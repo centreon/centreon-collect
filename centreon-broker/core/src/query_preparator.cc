@@ -77,28 +77,27 @@ mysql_stmt query_preparator::prepare_insert_into(
   const mapping::entry* entries = info->get_mapping();
   if (entries)
     throw msg_fmt(
-        "prepare_insert_into only works with BBDO with embedded protobuf message");
+        "prepare_insert_into only works with BBDO with embedded protobuf "
+        "message");
 
   /* Here is the protobuf case : no mapping */
   const google::protobuf::Descriptor* desc =
-        google::protobuf::DescriptorPool::generated_pool()
-                ->FindMessageTypeByName(fmt::format("com.centreon.broker.{}",
-                      info->get_name()));
+      google::protobuf::DescriptorPool::generated_pool()->FindMessageTypeByName(
+          fmt::format("com.centreon.broker.{}", info->get_name()));
 
   int size = 0;
   for (auto it = mapping.begin(); it != mapping.end(); ++it) {
     if (it->first < desc->field_count()) {
       const std::string& entry_name = desc->field(it->first)->name();
       log_v2::sql()->info("In message {}: object at position {} gives {}",
-                          info->get_name(), it->first,
-                          entry_name);
+                          info->get_name(), it->first, entry_name);
       query.append(entry_name);
       query.append(",");
       bind_mapping.emplace(fmt::format(":{}", entry_name), size++);
     } else
-      throw msg_fmt("Index in mapping out of range compared to protobuf message '{}'",
+      throw msg_fmt(
+          "Index in mapping out of range compared to protobuf message '{}'",
           info->get_name());
-
   }
   query.resize(query.size() - 1);
   query.append(") VALUE(");
@@ -177,13 +176,13 @@ mysql_stmt query_preparator::prepare_insert(mysql& ms, bool ignore) {
   } else {
     /* Here is the protobuf case : no mapping */
     const google::protobuf::Descriptor* desc =
-          google::protobuf::DescriptorPool::generated_pool()
-                  ->FindMessageTypeByName(fmt::format("com.centreon.broker.{}",
-                        info->get_name()));
+        google::protobuf::DescriptorPool::generated_pool()
+            ->FindMessageTypeByName(
+                fmt::format("com.centreon.broker.{}", info->get_name()));
 
     int size = 0;
     for (int i = 0; i < desc->field_count(); i++) {
-      //log_v2::neb()->info("{}", desc->field(i)->name());
+      // log_v2::neb()->info("{}", desc->field(i)->name());
       const std::string entry_name = desc->field(i)->name();
       query.append(entry_name);
       query.append(",");
@@ -363,7 +362,8 @@ mysql_stmt query_preparator::prepare_update(mysql& ms) {
  *
  *  @param[out] q  Database query, prepared and ready to run.
  */
-mysql_stmt query_preparator::prepare_update_table(mysql& ms,
+mysql_stmt query_preparator::prepare_update_table(
+    mysql& ms,
     const std::string& table,
     const std::unordered_map<int32_t, std::string>& mapping) {
   std::map<std::string, int> query_bind_mapping;
@@ -381,20 +381,23 @@ mysql_stmt query_preparator::prepare_update_table(mysql& ms,
   std::string where(" WHERE ");
   const mapping::entry* entries(info->get_mapping());
   if (entries)
-    throw msg_fmt("prepare_update_table only works with BBDO with embedded protobuf message");
+    throw msg_fmt(
+        "prepare_update_table only works with BBDO with embedded protobuf "
+        "message");
   std::string key;
   int query_size(0);
   int where_size(0);
 
   /* Here is the protobuf case : no mapping */
   const google::protobuf::Descriptor* desc =
-        google::protobuf::DescriptorPool::generated_pool()
-                ->FindMessageTypeByName(fmt::format("com.centreon.broker.{}",
-                      info->get_name()));
+      google::protobuf::DescriptorPool::generated_pool()->FindMessageTypeByName(
+          fmt::format("com.centreon.broker.{}", info->get_name()));
 
   for (auto it = mapping.begin(); it != mapping.end(); ++it) {
-    if (it->first < desc->field_count()) {
-      const std::string& entry_name = desc->field(it->first)->name();
+    const google::protobuf::FieldDescriptor* f =
+        desc->FindFieldByNumber(it->first);
+    if (f) {
+      const std::string& entry_name = f->name();
       log_v2::sql()->info("In message {}: object at position {} gives {}",
                           info->get_name(), it->first, entry_name);
       // Standard field.
@@ -411,7 +414,12 @@ mysql_stmt query_preparator::prepare_update_table(mysql& ms,
         key = fmt::format(":{}", entry_name);
         where_bind_mapping.insert(std::make_pair(key, where_size++));
       }
-    }
+    } else
+      throw msg_fmt(
+          "could not prepare update query for event of type {}:"
+          "protobuf field with number {} does not exist in '{}' protobuf "
+          "object",
+          _event_id, info->get_name(), it->first);
   }
   query.resize(query.size() - 1);
   query.append(where, 0, where.size() - 5);

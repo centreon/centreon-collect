@@ -17,10 +17,13 @@
 */
 
 #include "com/centreon/broker/lua/broker_event.hh"
+#include <google/protobuf/message.h>
 
 #include <cstring>
 
+#include "bbdo/service.pb.h"
 #include "com/centreon/broker/io/data.hh"
+#include "com/centreon/broker/io/protobuf.hh"
 #include "com/centreon/broker/mapping/entry.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
@@ -71,121 +74,151 @@ void broker_event::create_as_table(lua_State* L, const io::data& d) {
   lua_pushstring(L, "element");
   lua_pushinteger(L, elem);
   lua_rawset(L, -3);
-  io::event_info const* info(io::events::instance().get_event_info(d.type()));
+  const io::event_info* info(io::events::instance().get_event_info(d.type()));
   if (info) {
-    for (mapping::entry const* current_entry(info->get_mapping());
-         !current_entry->is_null(); ++current_entry) {
-      char const* entry_name(current_entry->get_name_v2());
-      if (entry_name && entry_name[0]) {
-        lua_pushstring(L, entry_name);
-        switch (current_entry->get_type()) {
-          case mapping::source::BOOL:
-            lua_pushboolean(L, current_entry->get_bool(d));
-            break;
-          case mapping::source::DOUBLE:
-            lua_pushnumber(L, current_entry->get_double(d));
-            break;
-          case mapping::source::INT:
-            switch (current_entry->get_attribute()) {
-              case mapping::entry::invalid_on_zero: {
-                int val(current_entry->get_int(d));
-                if (val == 0)
+    if (info->get_mapping()) {
+      for (const mapping::entry* current_entry(info->get_mapping());
+           !current_entry->is_null(); ++current_entry) {
+        const char* entry_name(current_entry->get_name_v2());
+        if (entry_name && entry_name[0]) {
+          lua_pushstring(L, entry_name);
+          switch (current_entry->get_type()) {
+            case mapping::source::BOOL:
+              lua_pushboolean(L, current_entry->get_bool(d));
+              break;
+            case mapping::source::DOUBLE:
+              lua_pushnumber(L, current_entry->get_double(d));
+              break;
+            case mapping::source::INT:
+              switch (current_entry->get_attribute()) {
+                case mapping::entry::invalid_on_zero: {
+                  int val(current_entry->get_int(d));
+                  if (val == 0)
+                    lua_pushnil(L);
+                  else
+                    lua_pushinteger(L, val);
+                } break;
+                case mapping::entry::invalid_on_minus_one: {
+                  int val(current_entry->get_int(d));
+                  if (val == -1)
+                    lua_pushnil(L);
+                  else
+                    lua_pushinteger(L, val);
+                } break;
+                default:
+                  lua_pushinteger(L, current_entry->get_int(d));
+              }
+              break;
+            case mapping::source::SHORT:
+              lua_pushinteger(L, current_entry->get_short(d));
+              break;
+            case mapping::source::STRING:
+              if (current_entry->get_attribute() ==
+                  mapping::entry::invalid_on_zero) {
+                std::string val{current_entry->get_string(d)};
+                if (val.empty())
                   lua_pushnil(L);
                 else
-                  lua_pushinteger(L, val);
-              } break;
-              case mapping::entry::invalid_on_minus_one: {
-                int val(current_entry->get_int(d));
-                if (val == -1)
-                  lua_pushnil(L);
-                else
-                  lua_pushinteger(L, val);
-              } break;
-              default:
-                lua_pushinteger(L, current_entry->get_int(d));
-            }
-            break;
-          case mapping::source::SHORT:
-            lua_pushinteger(L, current_entry->get_short(d));
-            break;
-          case mapping::source::STRING:
-            if (current_entry->get_attribute() ==
-                mapping::entry::invalid_on_zero) {
-              std::string val{current_entry->get_string(d)};
-              if (val.empty())
-                lua_pushnil(L);
-              else
-                lua_pushstring(L, val.c_str());
-            } else
-              lua_pushstring(L, current_entry->get_string(d).c_str());
-            break;
-          case mapping::source::TIME:
-            switch (current_entry->get_attribute()) {
-              case mapping::entry::invalid_on_zero: {
-                time_t val = current_entry->get_time(d);
-                if (val == 0)
-                  lua_pushnil(L);
-                else
-                  lua_pushinteger(L, val);
-              } break;
-              case mapping::entry::invalid_on_minus_one: {
-                time_t val = current_entry->get_time(d);
-                if (val == -1)
-                  lua_pushnil(L);
-                else
-                  lua_pushinteger(L, val);
-              } break;
-              default:
-                lua_pushinteger(L, current_entry->get_time(d));
-            }
-            break;
-          case mapping::source::UINT:
-            switch (current_entry->get_attribute()) {
-              case mapping::entry::invalid_on_zero: {
-                uint32_t val = current_entry->get_uint(d);
-                if (val == 0)
-                  lua_pushnil(L);
-                else
-                  lua_pushinteger(L, val);
-              } break;
-              case mapping::entry::invalid_on_minus_one: {
-                uint32_t val = current_entry->get_uint(d);
-                if (val == static_cast<uint32_t>(-1))
-                  lua_pushnil(L);
-                else
-                  lua_pushinteger(L, val);
-              } break;
-              default:
-                lua_pushinteger(L, current_entry->get_uint(d));
-            }
-            break;
-          case mapping::source::ULONG:
-            switch (current_entry->get_attribute()) {
-              case mapping::entry::invalid_on_zero: {
-                uint64_t val = current_entry->get_ulong(d);
-                if (val == 0)
-                  lua_pushnil(L);
-                else
-                  lua_pushinteger(L, val);
-              } break;
-              case mapping::entry::invalid_on_minus_one: {
-                uint64_t val = current_entry->get_ulong(d);
-                if (val == static_cast<uint64_t>(-1))
-                  lua_pushnil(L);
-                else
-                  lua_pushinteger(L, val);
-              } break;
-              default:
-                lua_pushinteger(L, current_entry->get_ulong(d));
-            }
-            break;
+                  lua_pushstring(L, val.c_str());
+              } else
+                lua_pushstring(L, current_entry->get_string(d).c_str());
+              break;
+            case mapping::source::TIME:
+              switch (current_entry->get_attribute()) {
+                case mapping::entry::invalid_on_zero: {
+                  time_t val = current_entry->get_time(d);
+                  if (val == 0)
+                    lua_pushnil(L);
+                  else
+                    lua_pushinteger(L, val);
+                } break;
+                case mapping::entry::invalid_on_minus_one: {
+                  time_t val = current_entry->get_time(d);
+                  if (val == -1)
+                    lua_pushnil(L);
+                  else
+                    lua_pushinteger(L, val);
+                } break;
+                default:
+                  lua_pushinteger(L, current_entry->get_time(d));
+              }
+              break;
+            case mapping::source::UINT:
+              switch (current_entry->get_attribute()) {
+                case mapping::entry::invalid_on_zero: {
+                  uint32_t val = current_entry->get_uint(d);
+                  if (val == 0)
+                    lua_pushnil(L);
+                  else
+                    lua_pushinteger(L, val);
+                } break;
+                case mapping::entry::invalid_on_minus_one: {
+                  uint32_t val = current_entry->get_uint(d);
+                  if (val == static_cast<uint32_t>(-1))
+                    lua_pushnil(L);
+                  else
+                    lua_pushinteger(L, val);
+                } break;
+                default:
+                  lua_pushinteger(L, current_entry->get_uint(d));
+              }
+              break;
+            case mapping::source::ULONG:
+              switch (current_entry->get_attribute()) {
+                case mapping::entry::invalid_on_zero: {
+                  uint64_t val = current_entry->get_ulong(d);
+                  if (val == 0)
+                    lua_pushnil(L);
+                  else
+                    lua_pushinteger(L, val);
+                } break;
+                case mapping::entry::invalid_on_minus_one: {
+                  uint64_t val = current_entry->get_ulong(d);
+                  if (val == static_cast<uint64_t>(-1))
+                    lua_pushnil(L);
+                  else
+                    lua_pushinteger(L, val);
+                } break;
+                default:
+                  lua_pushinteger(L, current_entry->get_ulong(d));
+              }
+              break;
 
-          default:  // Error in one of the mappings.
-            throw msg_fmt(
-                "invalid mapping for object "
-                "of type '{}': {}"
-                " is not a known type ID",
-                info->get_name(), current_entry->get_type());
+            default:  // Error in one of the mappings.
+              throw msg_fmt(
+                  "invalid mapping for object "
+                  "of type '{}': {}"
+                  " is not a known type ID",
+                  info->get_name(), current_entry->get_type());
+          }
+          lua_rawset(L, -3);
+        }
+      }
+    } else {
+      const google::protobuf::Message* p =
+          static_cast<const google::protobuf::Message*>(
+              static_cast<const void*>(&d) +
+              io::protobuf<Service, make_type(io::neb, neb::de_pb_service)>::
+                  obj_offset());
+      const google::protobuf::Descriptor* desc = p->GetDescriptor();
+      const google::protobuf::Reflection* refl = p->GetReflection();
+      /* Here is the protobuf case : no mapping */
+      //      const google::protobuf::Descriptor* desc =
+      //            google::protobuf::DescriptorPool::generated_pool()
+      //                    ->FindMessageTypeByName(
+      //                        fmt::format("com.centreon.broker.{}",
+      //                                    info->get_name()));
+      for (int i = 0; i < desc->field_count(); i++) {
+        auto f = desc->field(i);
+        const std::string& entry_name = f->name();
+        lua_pushlstring(L, entry_name.c_str(), entry_name.size());
+        switch (f->type()) {
+          case google::protobuf::FieldDescriptor::TYPE_BOOL:
+            lua_pushboolean(L, refl->GetBool(*p, f));
+            break;
+          default:
+            lua_pushlstring(L, "not_implemented", 15);
+            break;
         }
         lua_rawset(L, -3);
       }

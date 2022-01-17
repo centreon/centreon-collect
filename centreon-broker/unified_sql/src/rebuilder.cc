@@ -46,7 +46,6 @@ using namespace com::centreon::broker::unified_sql;
  *  @param[in] interval_length         Length in seconds of a time unit.
  */
 rebuilder::rebuilder(const database_config& db_cfg,
-                     stream* parent,
                      uint32_t rrd_length,
                      uint32_t interval_length)
     : _db_cfg(db_cfg), _interval_length(interval_length), _rrd_len(rrd_length) {
@@ -106,7 +105,6 @@ void rebuilder::rebuild_rrd_graphs(const std::shared_ptr<io::data>& d) {
         v.rrd_retention = res.value_as_i32(3);
         if (!v.rrd_retention)
           v.rrd_retention = _rrd_len;
-        uint32_t rrd_retention = res.value_as_u32(1);
         v.check_interval = res.value_as_f64(4) * _interval_length;
         if (!v.check_interval)
           v.check_interval = 5 * 60;

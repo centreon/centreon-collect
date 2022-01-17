@@ -19,7 +19,6 @@
 set(protobuf_files
     rebuild_message
     remove_graph_message
-    service
    )
 
 foreach(name IN LISTS protobuf_files)
@@ -32,8 +31,28 @@ foreach(name IN LISTS protobuf_files)
         ARGS --cpp_out=${CMAKE_SOURCE_DIR}/bbdo --proto_path=${CMAKE_SOURCE_DIR}/bbdo ${proto_file}
         VERBATIM
         )
+
     add_custom_target(${name} DEPENDS "${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.cc" "${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.h")
 endforeach()
+
+add_custom_command(OUTPUT "${CMAKE_SOURCE_DIR}/bbdo/service.pb.cc" "${CMAKE_SOURCE_DIR}/bbdo/service.pb.h"
+        DEPENDS ${CMAKE_SOURCE_DIR}/bbdo/service.proto
+        COMMENT "Generating interface files of the bbdo file service.proto"
+        COMMAND ${Protobuf_PROTOC_EXECUTABLE}
+        ARGS --cpp_out=${CMAKE_SOURCE_DIR}/bbdo --proto_path=${CMAKE_SOURCE_DIR}/bbdo service.proto
+        VERBATIM
+        )
+add_custom_target(target_service DEPENDS "${CMAKE_SOURCE_DIR}/bbdo/service.pb.cc" "${CMAKE_SOURCE_DIR}/bbdo/service.pb.h")
+
+#set_source_files_properties("${CMAKE_SOURCE_DIR}/bbdo/service.pb.cc" PROPERTIES GENERATED TRUE)
+#set_source_files_properties("${CMAKE_SOURCE_DIR}/bbdo/service.pb.h" PROPERTIES GENERATED TRUE)
+add_library(
+    pb_service_lib STATIC
+      "service.pb.cc"
+      "service.pb.h"
+    )
+add_dependencies(pb_service_lib target_service)
+set_target_properties(pb_service_lib PROPERTIES COMPILE_FLAGS "-fPIC")
 
 macro(get_protobuf_files name)
   set_source_files_properties("${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.cc" PROPERTIES GENERATED TRUE)

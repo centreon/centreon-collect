@@ -1597,15 +1597,16 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
   auto s{static_cast<neb::pb_service const*>(d.get())};
   auto ss = s->obj;
 
-  log_v2::perfdata()->info("SQL: pb service status output: <<{}>>", ss.output());
+  log_v2::perfdata()->info("SQL: pb service status output: <<{}>>",
+                           ss.output());
   log_v2::perfdata()->info("SQL: service status perfdata: <<{}>>",
                            ss.perf_data());
 
   time_t now = time(nullptr);
   if (ss.check_type() ||           // - passive result
       !ss.active_checks_enabled()  // - active checks are disabled,
-                                 //   status might not be updated
-      ||                         // - normal case
+                                   //   status might not be updated
+      ||                           // - normal case
       ss.next_check() >= now - 5 * 60 || !ss.next_check()) {  // - initial state
     // Apply to DB.
     log_v2::sql()->info(
@@ -1619,33 +1620,35 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
       query_preparator::event_unique unique;
       unique.insert("host_id");
       unique.insert("service_id");
-      query_preparator qp(neb::service_status::static_type(), unique);
-      _service_status_update = qp.prepare_update_table(_mysql, "services",
-          {{1, "host_id"},
-           {2, "service_id"},
-           {3, "acknowledged"},
-           {4, "acknowledgement_type"},
-           {5, "active_checks"},
-           {12, "state" },
-           {15, "execution_time" },
-           {19, "last_check"},
-           {20, "last_hard_state"},
-           {21, "last_hard_state_change"},
-           {24, "last_state_change"},
-           {25, "last_time_ok"},
-           {26, "last_time_warning"},
-           {27, "last_time_critical"},
-           {28, "last_time_unknown"},
-           {29, "last_update"},
-           {30, "latency"},
-           });
+      query_preparator qp(neb::pb_service::static_type(), unique);
+      _service_status_update =
+          qp.prepare_update_table(_mysql, "services",
+                                  {
+                                      {1, "host_id"},
+                                      {2, "service_id"},
+                                      {3, "acknowledged"},
+                                      {4, "acknowledgement_type"},
+                                      {5, "active_checks"},
+                                      {12, "state"},
+                                      {15, "execution_time"},
+                                      {19, "last_check"},
+                                      {20, "last_hard_state"},
+                                      {21, "last_hard_state_change"},
+                                      {24, "last_state_change"},
+                                      {25, "last_time_ok"},
+                                      {26, "last_time_warning"},
+                                      {27, "last_time_critical"},
+                                      {28, "last_time_unknown"},
+                                      {29, "last_update"},
+                                      {30, "latency"},
+                                  });
       _service_status_update = qp.prepare_update(_mysql);
     }
 
     // Processing.
     _service_status_update << *s;
-    int32_t conn =
-        _mysql.choose_connection_by_instance(_cache_host_instance[static_cast<uint32_t>(ss.host_id())]);
+    int32_t conn = _mysql.choose_connection_by_instance(
+        _cache_host_instance[static_cast<uint32_t>(ss.host_id())]);
     _mysql.run_statement(_service_status_update,
                          database::mysql_error::store_service_status, false,
                          conn);
@@ -1656,8 +1659,8 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
         "SQL: not processing service status event (host: {}, service: {}, "
         "check type: {}, last check: {}, next check: {}, now: {}, state ({}, "
         "{}))",
-        ss.host_id(), ss.service_id(), ss.check_type(), ss.last_check(), ss.next_check(),
-        now, ss.current_state(), ss.state_type());
+        ss.host_id(), ss.service_id(), ss.check_type(), ss.last_check(),
+        ss.next_check(), now, ss.current_state(), ss.state_type());
 }
 
 /**

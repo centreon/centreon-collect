@@ -63,7 +63,6 @@ class rebuilder {
 
  public:
   rebuilder(database_config const& db_cfg,
-            stream* parent,
             uint32_t interval_length = 60,
             uint32_t rrd_length = 15552000);
   ~rebuilder() noexcept = default;

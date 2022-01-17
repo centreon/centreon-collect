@@ -106,6 +106,8 @@ class protobuf : public data {
     return retval.release();
   }
 
+  constexpr static uint32_t obj_offset() { return offsetof(protobuf, obj); }
+
   /**
    * @brief An internal BBDO object used to access to the constructor,
    * serialization and unserialization functions.
@@ -116,8 +118,8 @@ class protobuf : public data {
 template <typename T, uint32_t Typ>
 const io::event_info::event_operations protobuf<T, Typ>::operations{
     &new_proto, &serialize, &unserialize};
-}  // namespace io
 
+}  // namespace io
 CCB_END()
 
 #endif  // !CCB_IO_PROTOBUF_HH

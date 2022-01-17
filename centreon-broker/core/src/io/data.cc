@@ -66,6 +66,6 @@ data& data::operator=(data const& other) {
  *
  *  @return The event type.
  */
-uint32_t data::type() const noexcept {
-  return _type;
-}
+// uint32_t data::type() const noexcept {
+//   return _type;
+// }
