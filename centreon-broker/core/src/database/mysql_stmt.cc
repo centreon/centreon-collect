@@ -166,105 +166,109 @@ void mysql_stmt::operator<<(io::data const& d) {
   // Get event info.
   io::event_info const* info(io::events::instance().get_event_info(d.type()));
   if (info) {
-    for (mapping::entry const* current_entry(info->get_mapping());
-         !current_entry->is_null(); ++current_entry) {
-      char const* entry_name = current_entry->get_name_v2();
-      if (entry_name && entry_name[0]) {
-        std::string field(":");
-        field.append(entry_name);
-        switch (current_entry->get_type()) {
-          case mapping::source::BOOL:
-            bind_value_as_bool(field, current_entry->get_bool(d));
-            break;
-          case mapping::source::DOUBLE:
-            bind_value_as_f64(field, current_entry->get_double(d));
-            break;
-          case mapping::source::INT: {
-            int v(current_entry->get_int(d));
-            switch (current_entry->get_attribute()) {
-              case mapping::entry::invalid_on_zero:
-                if (v == 0)
+    if (info->get_mapping()) {
+      for (mapping::entry const* current_entry(info->get_mapping());
+           !current_entry->is_null(); ++current_entry) {
+        char const* entry_name = current_entry->get_name_v2();
+        if (entry_name && entry_name[0]) {
+          std::string field(":");
+          field.append(entry_name);
+          switch (current_entry->get_type()) {
+            case mapping::source::BOOL:
+              bind_value_as_bool(field, current_entry->get_bool(d));
+              break;
+            case mapping::source::DOUBLE:
+              bind_value_as_f64(field, current_entry->get_double(d));
+              break;
+            case mapping::source::INT: {
+              int v(current_entry->get_int(d));
+              switch (current_entry->get_attribute()) {
+                case mapping::entry::invalid_on_zero:
+                  if (v == 0)
+                    bind_value_as_null(field);
+                  else
+                    bind_value_as_i32(field, v);
+                  break;
+                case mapping::entry::invalid_on_minus_one:
+                  if (v == -1)
+                    bind_value_as_null(field);
+                  else
+                    bind_value_as_i32(field, v);
+                  break;
+                default:
+                  bind_value_as_i32(field, v);
+              }
+            } break;
+            case mapping::source::SHORT:
+              bind_value_as_i32(field, current_entry->get_short(d));
+              break;
+            case mapping::source::STRING: {
+              size_t max_len = 0;
+              const std::string& v(current_entry->get_string(d, &max_len));
+              fmt::string_view sv;
+              if (max_len > 0 && v.size() > max_len) {
+                log_v2::sql()->trace(
+                    "column '{}' should admit a longer string, it is cut to {} "
+                    "characters to be stored anyway.",
+                    current_entry->get_name_v2(), max_len);
+                max_len = misc::string::adjust_size_utf8(v, max_len);
+                sv = fmt::string_view(v.data(), max_len);
+              } else
+                sv = fmt::string_view(v);
+              if (current_entry->get_attribute() ==
+                  mapping::entry::invalid_on_zero) {
+                if (sv.size() == 0)
                   bind_value_as_null(field);
                 else
-                  bind_value_as_i32(field, v);
-                break;
-              case mapping::entry::invalid_on_minus_one:
-                if (v == -1)
-                  bind_value_as_null(field);
-                else
-                  bind_value_as_i32(field, v);
-                break;
-              default:
-                bind_value_as_i32(field, v);
-            }
-          } break;
-          case mapping::source::SHORT:
-            bind_value_as_i32(field, current_entry->get_short(d));
-            break;
-          case mapping::source::STRING: {
-            size_t max_len = 0;
-            const std::string& v(current_entry->get_string(d, &max_len));
-            fmt::string_view sv;
-            if (max_len > 0 && v.size() > max_len) {
-              log_v2::sql()->trace(
-                  "column '{}' should admit a longer string, it is cut to {} "
-                  "characters to be stored anyway.",
-                  current_entry->get_name_v2(), max_len);
-              max_len = misc::string::adjust_size_utf8(v, max_len);
-              sv = fmt::string_view(v.data(), max_len);
-            } else
-              sv = fmt::string_view(v);
-            if (current_entry->get_attribute() ==
-                mapping::entry::invalid_on_zero) {
-              if (sv.size() == 0)
-                bind_value_as_null(field);
-              else
+                  bind_value_as_str(field, sv);
+              } else
                 bind_value_as_str(field, sv);
-            } else
-              bind_value_as_str(field, sv);
-          } break;
-          case mapping::source::TIME: {
-            time_t v(current_entry->get_time(d));
-            switch (current_entry->get_attribute()) {
-              case mapping::entry::invalid_on_zero:
-                if (v == 0)
-                  bind_value_as_null(field);
-                else
+            } break;
+            case mapping::source::TIME: {
+              time_t v(current_entry->get_time(d));
+              switch (current_entry->get_attribute()) {
+                case mapping::entry::invalid_on_zero:
+                  if (v == 0)
+                    bind_value_as_null(field);
+                  else
+                    bind_value_as_u32(field, v);
+                  break;
+                case mapping::entry::invalid_on_minus_one:
+                  if (v == -1)
+                    bind_value_as_null(field);
+                  else
+                    bind_value_as_u32(field, v);
+                  break;
+                default:
                   bind_value_as_u32(field, v);
-                break;
-              case mapping::entry::invalid_on_minus_one:
-                if (v == -1)
-                  bind_value_as_null(field);
-                else
+              }
+            } break;
+            case mapping::source::UINT: {
+              uint32_t v(current_entry->get_uint(d));
+              switch (current_entry->get_attribute()) {
+                case mapping::entry::invalid_on_zero:
                   bind_value_as_u32(field, v);
-                break;
-              default:
-                bind_value_as_u32(field, v);
-            }
-          } break;
-          case mapping::source::UINT: {
-            uint32_t v(current_entry->get_uint(d));
-            switch (current_entry->get_attribute()) {
-              case mapping::entry::invalid_on_zero:
-                bind_value_as_u32(field, v);
-                break;
-              case mapping::entry::invalid_on_minus_one:
-                if (v == (uint32_t)-1)
-                  bind_value_as_null(field);
-                else
+                  break;
+                case mapping::entry::invalid_on_minus_one:
+                  if (v == (uint32_t)-1)
+                    bind_value_as_null(field);
+                  else
+                    bind_value_as_u32(field, v);
+                  break;
+                default:
                   bind_value_as_u32(field, v);
-                break;
-              default:
-                bind_value_as_u32(field, v);
-            }
-          } break;
-          default:  // Error in one of the mappings.
-            throw msg_fmt(
-                "invalid mapping for object "
-                "of type '{}': {} is not a know type ID",
-                info->get_name(), current_entry->get_type());
-        };
+              }
+            } break;
+            default:  // Error in one of the mappings.
+              throw msg_fmt(
+                  "invalid mapping for object "
+                  "of type '{}': {} is not a know type ID",
+                  info->get_name(), current_entry->get_type());
+          };
+        }
       }
+    } else {
+      /* Here is the protobuf case: no mapping */
     }
   } else
     throw msg_fmt(

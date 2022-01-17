@@ -1642,7 +1642,6 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
                                       {29, "last_update"},
                                       {30, "latency"},
                                   });
-      _service_status_update = qp.prepare_update(_mysql);
     }
 
     // Processing.
