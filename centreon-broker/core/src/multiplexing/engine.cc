@@ -301,8 +301,8 @@ void engine::_send_to_subscribers() {
 
   stats::center::instance().update(&EngineStats::set_processed_events, _stats,
                                    static_cast<uint32_t>(kiew.size()));
-  std::atomic<size_t> count{_muxers.size()};
-  if (count > 0) {
+  std::atomic<int> count{static_cast<int>(_muxers.size()) - 1};
+  if (count >= 0) {
     /* We must wait the end of the sending, so we use a promise. */
     std::promise<void> promise;
 
@@ -318,8 +318,8 @@ void engine::_send_to_subscribers() {
       pool::io_context().post([&kiew, m = *it, &count, &promise] {
         for (auto& e : kiew)
           m->publish(e);
-        --count;
-        if (count == 0)
+        if (atomic_fetch_sub_explicit(&count, 1, std::memory_order_relaxed) ==
+            0)
           promise.set_value();
       });
     }
@@ -327,12 +327,11 @@ void engine::_send_to_subscribers() {
     auto m = *it_last;
     for (auto& e : kiew)
       m->publish(e);
-    --count;
 
-    if (count == 0)
+    if (atomic_fetch_sub_explicit(&count, 1, std::memory_order_relaxed) == 0)
       promise.set_value();
 
-    promise.get_future().get();
+    promise.get_future().wait();
   }
 
   /* The strand is necessary for the order of data */
