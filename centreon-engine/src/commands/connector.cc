@@ -433,11 +433,12 @@ void connector::_connector_close() {
       std::cv_status::timeout};
   if (is_timeout || !_query_quit_ok) {
     _process.kill();
-    if (is_timeout)
+    if (is_timeout) {
       engine_logger(log_runtime_warning, basic)
           << "Warning: Cannot close connector '" << _name << "': Timeout";
-    log_v2::runtime()->warn("Warning: Cannot close connector '{}': Timeout",
-                            _name);
+      log_v2::runtime()->warn("Warning: Cannot close connector '{}': Timeout",
+                              _name);
+    }
   }
   UNLOCK(lock);
 

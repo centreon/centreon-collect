@@ -167,5 +167,5 @@ def engine_log_file_duplicate(log: str, date):
             return True
     except IOError:
         logger.console("The file '{}' does not exist".format(log))
-        return False, content[0]
+        return False
 
