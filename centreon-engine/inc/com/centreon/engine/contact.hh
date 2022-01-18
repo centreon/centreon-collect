@@ -211,12 +211,6 @@ std::shared_ptr<com::centreon::engine::contact> add_contact(
     int retain_status_information,
     int retain_nonstatus_information);
 
-// bool          operator==(
-//                com::centreon::engine::contact const& obj1,
-//                com::centreon::engine::contact const& obj2) throw ();
-// bool          operator!=(
-//                com::centreon::engine::contact const& obj1,
-//                com::centreon::engine::contact const& obj2) throw ();
 std::ostream& operator<<(std::ostream& os,
                          com::centreon::engine::contact const& obj);
 std::ostream& operator<<(std::ostream& os, contact_map_unsafe const& obj);

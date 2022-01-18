@@ -22,7 +22,9 @@
 
 #include "com/centreon/engine/events/sched_info.hh"
 #include <cmath>
+#include <iostream>
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/statusdata.hh"
 #include "com/centreon/engine/string.hh"
@@ -35,117 +37,105 @@ using namespace com::centreon::engine::logging;
  */
 void display_scheduling_info() {
   // Notice.
-  logger(log_info_message, basic)
-      << "\nProjected scheduling information for host and service checks\n"
-      << "is listed below.  This information assumes that you are going\n"
-      << "to start running Centreon Engine with your current config files.\n\n";
+  std::cout << "\nProjected scheduling information for host and service "
+               "checks\n is listed below.  This information assumes that you "
+               "are going\n to start running Centreon Engine with your current "
+               "config files.\n\n";
 
   // Host scheduling information.
-  logger(log_info_message, basic)
-      << "HOST SCHEDULING INFORMATION\n"
-      << "---------------------------\n"
-      << "Total hosts:                        " << scheduling_info.total_hosts
-      << "\n"
-      << "Total scheduled hosts:              "
-      << scheduling_info.total_scheduled_hosts << "\n";
-  if (config->host_inter_check_delay_method() == configuration::state::icd_none)
-    logger(log_info_message, basic)
-        << "Host inter-check delay method:      NONE\n";
-  else if (config->host_inter_check_delay_method() ==
-           configuration::state::icd_dumb)
-    logger(log_info_message, basic)
-        << "Host inter-check delay method:      DUMB\n";
-  else if (config->host_inter_check_delay_method() ==
-           configuration::state::icd_smart)
-    logger(log_info_message, basic)
-        << "Host inter-check delay method:      SMART\n"
-        << "Average host check interval:        "
-        << scheduling_info.average_host_check_interval << " sec\n";
-  else
-    logger(log_info_message, basic)
-        << "Host inter-check delay method:      USER-SUPPLIED VALUE\n";
-  logger(log_info_message, basic)
-      << "Host inter-check delay:             "
-      << scheduling_info.host_inter_check_delay << " sec\n"
-      << "Max host check spread:              "
-      << scheduling_info.max_host_check_spread << " min\n"
-      << "First scheduled check:              "
-      << ((scheduling_info.total_scheduled_hosts == 0)
-              ? "N/A\n"
-              : ctime(&scheduling_info.first_host_check))
-      << "Last scheduled check:               "
-      << ((scheduling_info.total_scheduled_hosts == 0)
-              ? "N/A\n"
-              : ctime(&scheduling_info.last_host_check))
-      << "\n";
-
+  std::cout << "HOST SCHEDULING INFORMATION\n"
+               "---------------------------\n"
+               "Total hosts:                        "
+            << scheduling_info.total_hosts
+            << "\n"
+               "Total scheduled hosts:              "
+            << scheduling_info.total_scheduled_hosts << "\n";
+  if (config->host_inter_check_delay_method() ==
+      configuration::state::icd_none) {
+    std::cout << "Host inter-check delay method:      NONE\n";
+  } else if (config->host_inter_check_delay_method() ==
+             configuration::state::icd_dumb) {
+    std::cout << "Host inter-check delay method:      DUMB\n";
+  } else if (config->host_inter_check_delay_method() ==
+             configuration::state::icd_smart) {
+    std::cout << "Host inter-check delay method:      SMART\n"
+                 "Average host check interval:        "
+              << scheduling_info.average_host_check_interval << " sec\n";
+  } else {
+    std::cout << "Host inter-check delay method:      USER-SUPPLIED VALUE\n";
+  }
+  std::cout << "Host inter-check delay:             "
+            << scheduling_info.host_inter_check_delay
+            << " sec\n Max host check spread:              "
+            << scheduling_info.max_host_check_spread
+            << " min\n First scheduled check:              "
+            << (scheduling_info.total_scheduled_hosts == 0
+                    ? "N/A\n"
+                    : ctime(&scheduling_info.first_host_check))
+            << "Last scheduled check:               "
+            << (scheduling_info.total_scheduled_hosts == 0
+                    ? "N/A\n"
+                    : ctime(&scheduling_info.last_host_check))
+            << "\n";
   // Service scheduling information.
-  logger(log_info_message, basic)
-      << "SERVICE SCHEDULING INFORMATION\n"
-      << "-------------------------------\n"
-      << "Total services:                     "
-      << scheduling_info.total_services << "\n"
-      << "Total scheduled services:           "
-      << scheduling_info.total_scheduled_services << "\n";
+  std::cout << "SERVICE SCHEDULING INFORMATION\n"
+               "-------------------------------\n"
+               "Total services:                     "
+            << scheduling_info.total_services
+            << "\n"
+               "Total scheduled services:           "
+            << scheduling_info.total_scheduled_services << "\n";
   if (config->service_inter_check_delay_method() ==
-      configuration::state::icd_none)
-    logger(log_info_message, basic)
-        << "Service inter-check delay method:   NONE\n";
-  else if (config->service_inter_check_delay_method() ==
-           configuration::state::icd_dumb)
-    logger(log_info_message, basic)
-        << "Service inter-check delay method:   DUMB\n";
-  else if (config->service_inter_check_delay_method() ==
-           configuration::state::icd_smart) {
-    logger(log_info_message, basic)
-        << "Service inter-check delay method:   SMART\n"
-        << "Average service check interval:     "
-        << scheduling_info.average_service_check_interval << " sec\n";
-  } else
-    logger(log_info_message, basic)
-        << "Service inter-check delay method:   USER-SUPPLIED VALUE\n";
-  logger(log_info_message, basic)
-      << "Inter-check delay:                  "
-      << scheduling_info.service_inter_check_delay << " sec\n"
-      << "Interleave factor method:           "
-      << ((config->service_interleave_factor_method() ==
-           configuration::state::ilf_user)
-              ? "USER-SUPPLIED VALUE"
-              : "SMART")
-      << "\n";
+      configuration::state::icd_none) {
+    std::cout << "Service inter-check delay method:   NONE\n";
+  } else if (config->service_inter_check_delay_method() ==
+             configuration::state::icd_dumb) {
+    std::cout << "Service inter-check delay method:   DUMB\n";
+  } else if (config->service_inter_check_delay_method() ==
+             configuration::state::icd_smart) {
+    std::cout << "Service inter-check delay method:   SMART\n"
+                 "Average service check interval:     "
+              << scheduling_info.average_service_check_interval << " sec\n";
+  } else {
+    std::cout << "Service inter-check delay method:   USER-SUPPLIED VALUE\n";
+  }
+  std::cout << "Inter-check delay:                  "
+            << scheduling_info.service_inter_check_delay
+            << " sec\n Interleave factor method:           "
+            << (config->service_interleave_factor_method() ==
+                        configuration::state::ilf_user
+                    ? "USER-SUPPLIED VALUE\n"
+                    : "SMART\n");
   if (config->service_interleave_factor_method() ==
-      configuration::state::ilf_smart)
-    logger(log_info_message, basic)
-        << "Average services per host:          "
-        << scheduling_info.average_services_per_host << "\n";
-  logger(log_info_message, basic)
-      << "Service interleave factor:          "
-      << scheduling_info.service_interleave_factor << "\n"
-      << "Max service check spread:           "
-      << scheduling_info.max_service_check_spread << " min\n"
-      << "First scheduled check:              "
-      << ctime(&scheduling_info.first_service_check)
-      << "Last scheduled check:               "
-      << ctime(&scheduling_info.last_service_check) << "\n";
-
+      configuration::state::ilf_smart) {
+    std::cout << "Average services per host:          "
+              << scheduling_info.average_services_per_host << "\n";
+  }
+  std::cout << "Service interleave factor:          "
+            << scheduling_info.service_interleave_factor
+            << "\n"
+               "Max service check spread:           "
+            << scheduling_info.max_service_check_spread
+            << " min\n"
+               "First scheduled check:              "
+            << ctime(&scheduling_info.first_service_check)
+            << "Last scheduled check:               "
+            << ctime(&scheduling_info.last_service_check) << "\n";
   // Check processing information.
-  logger(log_info_message, basic)
-      << "CHECK PROCESSING INFORMATION\n"
-      << "----------------------------\n"
-      << "Check result reaper interval:       "
-      << config->check_reaper_interval() << " sec\n";
-  if (config->max_parallel_service_checks() == 0)
-    logger(log_info_message, basic)
-        << "Max concurrent service checks:      Unlimited\n";
-  else
-    logger(log_info_message, basic)
-        << "Max concurrent service checks:      "
-        << config->max_parallel_service_checks() << "\n";
-  logger(log_info_message, basic) << "\n";
-
+  std::cout << "CHECK PROCESSING INFORMATION\n"
+               "----------------------------\n"
+               "Check result reaper interval:       "
+            << config->check_reaper_interval() << " sec\n";
+  if (config->max_parallel_service_checks() == 0) {
+    std::cout << "Max concurrent service checks:      Unlimited\n";
+  } else {
+    std::cout << "Max concurrent service checks:      "
+              << config->max_parallel_service_checks() << "\n";
+  }
+  std::cout << "\n";
   // Performance suggestions.
-  logger(log_info_message, basic) << "PERFORMANCE SUGGESTIONS\n"
-                                  << "-----------------------\n";
+  std::cout << "PERFORMANCE SUGGESTIONS\n"
+               "-----------------------\n";
   int suggestions(0);
 
   // MAX REAPER INTERVAL RECOMMENDATION.
@@ -159,15 +149,13 @@ void display_scheduling_info() {
   if (max_reaper_interval > 30.0)
     max_reaper_interval = 30.0;
   if (max_reaper_interval < config->check_reaper_interval()) {
-    logger(log_info_message, basic)
-        << "* Value for 'check_result_reaper_frequency' should be <= "
-        << static_cast<int>(max_reaper_interval) << " seconds\n";
+    std::cout << "* Value for 'check_result_reaper_frequency' should be <= "
+              << static_cast<int>(max_reaper_interval) << " seconds\n";
     ++suggestions;
   }
   if (config->check_reaper_interval() < 2) {
-    logger(log_info_message, basic)
-        << "* Value for 'check_result_reaper_frequency' should be >= 2 "
-           "seconds\n";
+    std::cout << "* Value for 'check_result_reaper_frequency' should be >= 2 "
+                 "seconds\n";
     ++suggestions;
   }
 
@@ -198,14 +186,13 @@ void display_scheduling_info() {
   // Compare with configured value.
   if ((minimum_concurrent_checks > config->max_parallel_service_checks()) &&
       config->max_parallel_service_checks() != 0) {
-    logger(log_info_message, basic)
-        << "* Value for 'max_concurrent_checks' option should be >= "
-        << static_cast<int>(minimum_concurrent_checks) << "\n";
+    std::cout << "* Value for 'max_concurrent_checks' option should be >= "
+              << static_cast<int>(minimum_concurrent_checks) << "\n";
     ++suggestions;
   }
-  if (suggestions == 0)
-    logger(log_info_message, basic)
-        << "I have no suggestions - things look okay.\n";
+  if (suggestions == 0) {
+    std::cout << "I have no suggestions - things look okay.\n";
+  }
 
   return;
 }

@@ -46,6 +46,7 @@ Start Engine
 	${count}=	Get Engines Count
 	FOR	${idx}	IN RANGE	0	${count}
 		${alias}=	Catenate	SEPARATOR=	e	${idx}
+		Log To Console	${alias}
 		${conf}=	Catenate	SEPARATOR=	/etc/centreon-engine/config	${idx}	/centengine.cfg
 		${log}=	Catenate	SEPARATOR=	/var/log/centreon-engine/config	${idx}
 		${lib}=	Catenate	SEPARATOR=	/var/lib/centreon-engine/config	${idx}

@@ -1,7 +1,7 @@
 /*
 ** Copyright 1999-2009 Ethan Galstad
 ** Copyright 2009-2010 Nagios Core Development Team and Community Contributors
-** Copyright 2011-2017 Centreon
+** Copyright 2011-2021 Centreon
 **
 ** This file is part of Centreon Engine.
 **
@@ -26,7 +26,6 @@
 #include <getopt.h>
 #endif  // HAVE_GETOPT_H
 #include <unistd.h>
-
 #include <random>
 #include <string>
 
@@ -43,6 +42,7 @@
 #include "com/centreon/engine/enginerpc.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging.hh"
 #include "com/centreon/engine/logging/broker.hh"
 #include "com/centreon/engine/logging/logger.hh"
@@ -173,62 +173,68 @@ int main(int argc, char* argv[]) {
 
     // Just display the license.
     if (display_license) {
-      logger(logging::log_info_message, logging::basic)
-          << "Centreon Engine " << CENTREON_ENGINE_VERSION_STRING << "\n"
+      std::cout
+          << "Centreon Engine " << CENTREON_ENGINE_VERSION_STRING
           << "\n"
-          << "Copyright 1999-2009 Ethan Galstad\n"
-          << "Copyright 2009-2010 Nagios Core Development Team and Community "
+             "\n"
+             "Copyright 1999-2009 Ethan Galstad\n"
+             "Copyright 2009-2010 Nagios Core Development Team and Community "
              "Contributors\n"
-          << "Copyright 2011-2021 Centreon\n"
-          << "\n"
-          << "This program is free software: you can redistribute it and/or\n"
-          << "modify it under the terms of the GNU General Public License "
+             "Copyright 2011-2021 Centreon\n"
+             "\n"
+             "This program is free software: you can redistribute it and/or\n"
+             "modify it under the terms of the GNU General Public License "
              "version 2\n"
-          << "as published by the Free Software Foundation.\n"
-          << "\n"
-          << "Centreon Engine is distributed in the hope that it will be "
+             "as published by the Free Software Foundation.\n"
+             "\n"
+             "Centreon Engine is distributed in the hope that it will be "
              "useful,\n"
-          << "but WITHOUT ANY WARRANTY; without even the implied warranty of\n"
-          << "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the "
+             "but WITHOUT ANY WARRANTY; without even the implied warranty "
+             "of\n"
+             "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the "
              "GNU\n"
-          << "General Public License for more details.\n"
-          << "\n"
-          << "You should have received a copy of the GNU General Public "
+             "General Public License for more details.\n"
+             "\n"
+             "You should have received a copy of the GNU General Public "
              "License\n"
-          << "along with this program. If not, see\n"
-          << "<http://www.gnu.org/licenses/>.";
+             "along with this program. If not, see\n"
+             "<http://www.gnu.org/licenses/>.\n";
+
       retval = EXIT_SUCCESS;
     }
     // If requested or if an error occured, print usage.
     else if (error || display_help) {
-      logger(logging::log_info_message, logging::basic)
-          << "Usage: " << argv[0] << " [options] <main_config_file>\n"
-          << "\n"
-          << "Basics:\n"
-          << "  -h, --help                  Print help.\n"
-          << "  -V, --license, --version    Print software version and "
+      std::cout
+          << "Usage: " << argv[0]
+          << " [options] <main_config_file>\n"
+             "\n"
+             "Basics:\n"
+             "  -h, --help                  Print help.\n"
+             "  -V, --license, --version    Print software version and "
              "license.\n"
-          << "\n"
-          << "Configuration:\n"
-          << "  -v, --verify-config         Verify all configuration data.\n"
-          << "  -s, --test-scheduling       Shows projected/recommended check\n"
-          << "                              scheduling and other diagnostic "
+             "\n"
+             "Configuration:\n"
+             "  -v, --verify-config         Verify all configuration data.\n"
+             "  -s, --test-scheduling       Shows projected/recommended "
+             "check\n"
+             "                              scheduling and other diagnostic "
              "info\n"
-          << "                              based on the current "
+             "                              based on the current "
              "configuration\n"
-          << "                              files.\n"
-          << "  -x, --dont-verify-paths     Don't check for circular object "
+             "                              files.\n"
+             "  -x, --dont-verify-paths     Don't check for circular object "
              "paths -\n"
-          << "                              USE WITH CAUTION !\n"
-          << "  -D, --diagnose              Generate a diagnostic file.\n"
-          << "\n"
-          << "Online:\n"
-          << "  Website                     https://www.centreon.com\n"
-          << "  Reference documentation     "
+             "                              USE WITH CAUTION !\n"
+             "  -D, --diagnose              Generate a diagnostic file.\n"
+             "\n"
+             "Online:\n"
+             "  Website                     https://www.centreon.com\n"
+             "  Reference documentation     "
              "https://documentation.centreon.com/docs/centreon-engine/en/"
              "latest/\n"
-          << "  Sources                     "
-             "https://github.com/centreon/centreon-engine";
+             "  Sources                     "
+             "https://github.com/centreon/centreon-engine\n";
+
       retval = (display_help ? EXIT_SUCCESS : EXIT_FAILURE);
     }
     // We're just verifying the configuration.
@@ -244,39 +250,46 @@ int main(int argc, char* argv[]) {
 
         configuration::applier::state::instance().apply(config);
 
-        logger(logging::log_info_message, logging::basic)
-            << "\n"
-            << "Checked " << commands::command::commands.size()
-            << " commands.\n"
-            << "Checked " << commands::connector::connectors.size()
-            << " connectors.\n"
-            << "Checked " << contact::contacts.size() << " contacts.\n"
-            << "Checked " << hostdependency::hostdependencies.size()
-            << " host dependencies.\n"
-            << "Checked " << hostescalation::hostescalations.size()
-            << " host escalations.\n"
-            << "Checked " << hostgroup::hostgroups.size() << " host groups.\n"
-            << "Checked " << host::hosts.size() << " hosts.\n"
-            << "Checked " << servicedependency::servicedependencies.size()
-            << " service dependencies.\n"
-            << "Checked " << serviceescalation::serviceescalations.size()
-            << " service escalations.\n"
-            << "Checked " << servicegroup::servicegroups.size()
-            << " service groups.\n"
-            << "Checked " << service::services.size() << " services.\n"
-            << "Checked " << timeperiod::timeperiods.size()
-            << " time periods.\n"
-            << "\n"
-            << "Total Warnings: " << config_warnings << "\n"
-            << "Total Errors:   " << config_errors;
-
+        std::cout << "\n Checked " << commands::command::commands.size()
+                  << " commands.\n Checked "
+                  << commands::connector::connectors.size()
+                  << " connectors.\n Checked " << contact::contacts.size()
+                  << " contacts.\n Checked "
+                  << hostdependency::hostdependencies.size()
+                  << " host dependencies.\n Checked "
+                  << hostescalation::hostescalations.size()
+                  << " host escalations.\n Checked "
+                  << hostgroup::hostgroups.size() << " host groups.\n Checked "
+                  << host::hosts.size() << " hosts.\n Checked "
+                  << servicedependency::servicedependencies.size()
+                  << " service dependencies.\n Checked "
+                  << serviceescalation::serviceescalations.size()
+                  << " service escalations.\n Checked "
+                  << servicegroup::servicegroups.size()
+                  << " service groups.\n Checked " << service::services.size()
+                  << " services.\n Checked " << timeperiod::timeperiods.size()
+                  << " time periods.\n\n Total Warnings: " << config_warnings
+                  << "\n Total Errors:   " << config_errors << std::endl;
         retval = (config_errors ? EXIT_FAILURE : EXIT_SUCCESS);
       } catch (std::exception const& e) {
-        logger(logging::log_config_error, logging::basic)
-            << "Error while processing a config file: " << e.what();
-        logger(logging::log_config_error, logging::basic)
-            << "One or more problems occurred while processing "
-               "the config files.\n\n" ERROR_CONFIGURATION;
+        std::cout << "Error while processing a config file: " << e.what()
+                  << std::endl;
+
+        std::cout
+            << "One or more problems occurred while processing the config "
+               "files.\n "
+               "Check your configuration file(s) to ensure that they contain "
+               "valid directives and data definitions.\nIf you are upgrading "
+               "from "
+               "a previous version of Centreon Engine, you should be aware "
+               "that "
+               "some variables/definitions may have been removed or modified "
+               "in "
+               "this version.\n Make sure to read the documentation regarding "
+               "the "
+               "config files, as well as the version changelog to find out "
+               "what "
+               "has changed.\n";
       }
     }
     // We're just testing scheduling.
@@ -296,7 +309,8 @@ int main(int argc, char* argv[]) {
           try {
             p.parse(config.state_retention_file(), state);
           } catch (std::exception const& e) {
-            logger(logging::log_config_error, logging::basic) << e.what();
+            std::cout << "Error while parsing the retention: {}" << e.what()
+                      << std::endl;
           }
         }
 
@@ -306,7 +320,7 @@ int main(int argc, char* argv[]) {
         display_scheduling_info();
         retval = EXIT_SUCCESS;
       } catch (std::exception const& e) {
-        logger(logging::log_config_error, logging::basic) << e.what();
+        std::cout << e.what() << std::endl;
       }
     }
     // Diagnostic.
@@ -349,7 +363,9 @@ int main(int argc, char* argv[]) {
           try {
             p.parse(config.state_retention_file(), state);
           } catch (std::exception const& e) {
-            logger(logging::log_config_error, logging::basic) << e.what();
+            log_v2::config()->error("{}", e.what());
+            engine_logger(logging::log_config_error, logging::basic)
+                << e.what();
           }
         }
 
@@ -402,17 +418,20 @@ int main(int argc, char* argv[]) {
         event_start = time(NULL);
         mac->x[MACRO_EVENTSTARTTIME] = std::to_string(event_start);
 
-        logger(logging::log_info_message, logging::basic)
+        engine_logger(logging::log_info_message, logging::basic)
             << "Event loop start at " << string::ctime(event_start);
-
+        log_v2::config()->info("Event loop start at {}",
+                               string::ctime(event_start));
         // Start monitoring all services (doesn't return until a
         // restart or shutdown signal is encountered).
         com::centreon::engine::events::loop::instance().run();
 
-        if (sigshutdown)
-          logger(logging::log_process_info, logging::basic)
+        if (sigshutdown) {
+          engine_logger(logging::log_process_info, logging::basic)
               << "Caught SIG" << sigs[sig_id] << ", shutting down ...";
-
+          log_v2::process()->info("Caught SIG {}, shutting down ...",
+                                  sigs[sig_id]);
+        }
         // Send program data to broker.
         broker_program_state(NEBTYPE_PROCESS_EVENTLOOPEND, NEBFLAG_NONE,
                              NEBATTR_NONE, NULL);
@@ -427,16 +446,19 @@ int main(int argc, char* argv[]) {
         cleanup_status_data(true);
 
         // Shutdown stuff.
-        if (sigshutdown)
-          logger(logging::log_process_info, logging::basic)
+        if (sigshutdown) {
+          engine_logger(logging::log_process_info, logging::basic)
               << "Successfully shutdown ... (PID=" << getpid() << ")";
+          log_v2::process()->info("Successfully shutdown ... (PID={})",
+                                  getpid());
+        }
 
         retval = EXIT_SUCCESS;
       } catch (std::exception const& e) {
         // Log.
-        logger(logging::log_runtime_error, logging::basic)
+        engine_logger(logging::log_runtime_error, logging::basic)
             << "Error: " << e.what();
-
+        log_v2::process()->error("Error: {}", e.what());
         // Send program data to broker.
         broker_program_state(NEBTYPE_PROCESS_SHUTDOWN,
                              NEBFLAG_PROCESS_INITIATED,
@@ -449,7 +471,9 @@ int main(int argc, char* argv[]) {
     delete[] config_file;
     config_file = NULL;
   } catch (std::exception const& e) {
-    logger(logging::log_runtime_error, logging::basic) << "Error: " << e.what();
+    engine_logger(logging::log_runtime_error, logging::basic)
+        << "Error: " << e.what();
+    log_v2::process()->error("Error: {}", e.what());
   }
 
   // Unload singletons and global objects.

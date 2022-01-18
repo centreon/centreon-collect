@@ -23,6 +23,7 @@
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/log_v2.hh"
 
 using namespace com::centreon::engine::configuration;
 
@@ -60,10 +61,13 @@ void applier::hostdependency::add_object(
                          << *obj.hosts().begin() << "'";
 
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Creating new host dependency of host '"
       << *obj.dependent_hosts().begin() << "' on host '" << *obj.hosts().begin()
       << "'.";
+  log_v2::config()->debug(
+      "Creating new host dependency of host '{}' on host '{}'.",
+      *obj.dependent_hosts().begin(), *obj.hosts().begin());
 
   // Add dependency to the global configuration set.
   config->hostdependencies().insert(obj);
@@ -201,7 +205,9 @@ void applier::hostdependency::modify_object(
 void applier::hostdependency::remove_object(
     configuration::hostdependency const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more) << "Removing a host dependency.";
+  engine_logger(logging::dbg_config, logging::more)
+      << "Removing a host dependency.";
+  log_v2::config()->debug("Removing a host dependency.");
 
   // Find host dependency.
   hostdependency_mmap::iterator it(
@@ -230,7 +236,9 @@ void applier::hostdependency::remove_object(
 void applier::hostdependency::resolve_object(
     configuration::hostdependency const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more) << "Resolving a host dependency.";
+  engine_logger(logging::dbg_config, logging::more)
+      << "Resolving a host dependency.";
+  log_v2::config()->debug("Resolving a host dependency.");
 
   // Find host escalation
   hostdependency_mmap::iterator it{

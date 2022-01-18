@@ -23,6 +23,7 @@
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
@@ -234,10 +235,14 @@ void hostdependency::resolve(int& w, int& e) {
   // Find the dependent host.
   host_map::const_iterator it{host::hosts.find(_dependent_hostname)};
   if (it == host::hosts.end() || !it->second) {
-    logger(log_verification_error, basic)
+    engine_logger(log_verification_error, basic)
         << "Error: Dependent host specified in host dependency for "
            "host '"
         << _dependent_hostname << "' is not defined anywhere!";
+    log_v2::config()->error(
+        "Error: Dependent host specified in host dependency for "
+        "host '{}' is not defined anywhere!",
+        _dependent_hostname);
     errors++;
     dependent_host_ptr = nullptr;
   } else
@@ -246,9 +251,13 @@ void hostdependency::resolve(int& w, int& e) {
   // Find the host we're depending on.
   it = host::hosts.find(_hostname);
   if (it == host::hosts.end() || !it->second) {
-    logger(log_verification_error, basic)
+    engine_logger(log_verification_error, basic)
         << "Error: Host specified in host dependency for host '"
         << _dependent_hostname << "' is not defined anywhere!";
+    log_v2::config()->error(
+        "Error: Host specified in host dependency for host '{}' is not defined "
+        "anywhere!",
+        _dependent_hostname);
     errors++;
     master_host_ptr = nullptr;
   } else
@@ -256,9 +265,13 @@ void hostdependency::resolve(int& w, int& e) {
 
   // Make sure they're not the same host.
   if (dependent_host_ptr == master_host_ptr && dependent_host_ptr != nullptr) {
-    logger(log_verification_error, basic)
+    engine_logger(log_verification_error, basic)
         << "Error: Host dependency definition for host '" << _dependent_hostname
         << "' is circular (it depends on itself)!";
+    log_v2::config()->error(
+        "Error: Host dependency definition for host '{}' is circular (it "
+        "depends on itself)!",
+        _dependent_hostname);
     errors++;
   }
 
@@ -268,10 +281,14 @@ void hostdependency::resolve(int& w, int& e) {
         timeperiod::timeperiods.find(_dependency_period)};
 
     if (it == timeperiod::timeperiods.end() || !it->second) {
-      logger(log_verification_error, basic)
+      engine_logger(log_verification_error, basic)
           << "Error: Dependency period '" << this->get_dependency_period()
           << "' specified in host dependency for host '" << _dependent_hostname
           << "' is not defined anywhere!";
+      log_v2::config()->error(
+          "Error: Dependency period '{}' specified in host dependency for host "
+          "'{}' is not defined anywhere!",
+          this->get_dependency_period(), _dependent_hostname);
       errors++;
       dependency_period_ptr = nullptr;
     } else

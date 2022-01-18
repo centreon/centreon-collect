@@ -60,6 +60,7 @@ if (WITH_TESTING)
     "${TESTS_DIR}/configuration/applier/applier-contact.cc"
     "${TESTS_DIR}/configuration/applier/applier-contactgroup.cc"
     "${TESTS_DIR}/configuration/applier/applier-global.cc"
+    "${TESTS_DIR}/configuration/applier/applier-log.cc"
     "${TESTS_DIR}/configuration/applier/applier-host.cc"
     "${TESTS_DIR}/configuration/applier/applier-hostescalation.cc"
     "${TESTS_DIR}/configuration/applier/applier-hostdependency.cc"

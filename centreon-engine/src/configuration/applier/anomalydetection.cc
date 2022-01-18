@@ -27,6 +27,7 @@
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/log_v2.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -98,9 +99,11 @@ void applier::anomalydetection::add_object(
                          << obj.service_description() << "'";
 
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Creating new anomalydetection '" << obj.service_description()
       << "' of host '" << obj.host_name() << "'.";
+  log_v2::config()->debug("Creating new anomalydetection '{}' of host '{}'.",
+                          obj.service_description(), obj.host_name());
 
   // Add anomalydetection to the global configuration set.
   config->anomalydetections().insert(obj);
@@ -234,9 +237,11 @@ void applier::anomalydetection::modify_object(
   std::string const& service_description(obj.service_description());
 
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Modifying new anomalydetection '" << service_description
       << "' of host '" << host_name << "'.";
+  log_v2::config()->debug("Modifying new anomalydetection '{}' of host '{}'.",
+                          service_description, host_name);
 
   // Find the configuration object.
   set_anomalydetection::iterator it_cfg(
@@ -441,9 +446,11 @@ void applier::anomalydetection::remove_object(
 
   assert(obj.key().first);
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Removing anomalydetection '" << service_description << "' of host '"
       << host_name << "'.";
+  log_v2::config()->debug("Removing anomalydetection '{}' of host '{}'.",
+                          service_description, host_name);
 
   // Find anomalydetection.
   service_id_map::iterator it(engine::service::services_by_id.find(obj.key()));
@@ -490,9 +497,11 @@ void applier::anomalydetection::remove_object(
 void applier::anomalydetection::resolve_object(
     configuration::anomalydetection const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Resolving anomalydetection '" << obj.service_description()
       << "' of host '" << obj.host_name() << "'.";
+  log_v2::config()->debug("Resolving anomalydetection '{}' of host '{}'.",
+                          obj.service_description(), obj.host_name());
 
   // Find anomalydetection.
   service_id_map::iterator it(

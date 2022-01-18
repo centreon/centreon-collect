@@ -37,6 +37,7 @@
 #include "com/centreon/engine/downtimes/downtime.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/statusdata.hh"
@@ -64,9 +65,12 @@ int xsddefault_initialize_status_data() {
     if ((xsddefault_status_log_fd =
              open(config->status_file().c_str(), O_WRONLY | O_CREAT,
                   S_IRUSR | S_IWUSR | S_IRGRP)) == -1) {
-      logger(engine::logging::log_runtime_error, engine::logging::basic)
+      engine_logger(engine::logging::log_runtime_error, engine::logging::basic)
           << "Error: Unable to open status data file '" << config->status_file()
           << "': " << strerror(errno);
+      log_v2::runtime()->error(
+          "Error: Unable to open status data file '{}': {}",
+          config->status_file(), strerror(errno));
       return ERROR;
     }
     set_cloexec(xsddefault_status_log_fd);
@@ -104,8 +108,9 @@ int xsddefault_save_status_data() {
   int used_external_command_buffer_slots(0);
   int high_external_command_buffer_slots(0);
 
-  logger(engine::logging::dbg_functions, engine::logging::basic)
+  engine_logger(engine::logging::dbg_functions, engine::logging::basic)
       << "save_status_data()";
+  log_v2::functions()->trace("save_status_data()");
 
   // get number of items in the command buffer
   if (config->check_external_commands()) {
@@ -733,9 +738,12 @@ int xsddefault_save_status_data() {
       (fsync(xsddefault_status_log_fd) == -1) ||
       (lseek(xsddefault_status_log_fd, 0, SEEK_SET) == (off_t)-1)) {
     char const* msg(strerror(errno));
-    logger(engine::logging::log_runtime_error, engine::logging::basic)
+    engine_logger(engine::logging::log_runtime_error, engine::logging::basic)
         << "Error: Unable to update status data file '" << config->status_file()
         << "': " << msg;
+    log_v2::runtime()->error(
+        "Error: Unable to update status data file '{}': {}",
+        config->status_file(), msg);
     return ERROR;
   }
 
@@ -747,9 +755,12 @@ int xsddefault_save_status_data() {
     ssize_t wb(write(xsddefault_status_log_fd, data_ptr, size));
     if (wb <= 0) {
       char const* msg(strerror(errno));
-      logger(engine::logging::log_runtime_error, engine::logging::basic)
+      engine_logger(engine::logging::log_runtime_error, engine::logging::basic)
           << "Error: Unable to update status data file '"
           << config->status_file() << "': " << msg;
+      log_v2::runtime()->error(
+          "Error: Unable to update status data file '{}': {}",
+          config->status_file(), msg);
       return ERROR;
     }
     data_ptr += wb;

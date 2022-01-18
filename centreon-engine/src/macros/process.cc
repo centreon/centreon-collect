@@ -19,6 +19,7 @@
 */
 
 #include "com/centreon/engine/macros/process.hh"
+#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/string.hh"
@@ -42,16 +43,19 @@ int process_macros_r(nagios_macros* mac,
   int free_macro = false;
   int macro_options = 0;
 
-  logger(dbg_functions, basic) << "process_macros_r()";
+  engine_logger(dbg_functions, basic) << "process_macros_r()";
+  log_v2::functions()->trace("process_macros_r()");
 
   output_buffer = "";
 
   if (input_buffer.empty())
     return ERROR;
 
-  logger(dbg_macros, more) << "**** BEGIN MACRO PROCESSING ***********\n"
-                              "Processing: '"
-                           << input_buffer << "'";
+  engine_logger(dbg_macros, more) << "**** BEGIN MACRO PROCESSING ***********\n"
+                                     "Processing: '"
+                                  << input_buffer << "'";
+  log_v2::macros()->trace("**** BEGIN MACRO PROCESSING **** Processing: '{}'",
+                          input_buffer);
 
   for (std::string::const_iterator it{input_buffer.begin()},
        end{input_buffer.end()};
@@ -77,30 +81,43 @@ int process_macros_r(nagios_macros* mac,
           result = grab_macro_value_r(mac, token, token_resolved,
                                       &clean_options, &free_macro);
 
-          logger(dbg_macros, most)
+          engine_logger(dbg_macros, most)
               << "  Processed '" << token.c_str() << "', To '" << token_resolved
               << "', Clean Options: " << clean_options
               << ", Free: " << free_macro;
+          log_v2::macros()->trace(
+              "  Processed '{}', To '{}', Clean Options: {}, Free: {}", token,
+              token_resolved, clean_options, free_macro);
 
           /* an error occurred - we couldn't parse the macro, so continue on */
           if (result == ERROR) {
-            logger(dbg_macros, basic)
+            engine_logger(dbg_macros, basic)
                 << " WARNING: An error occurred processing macro '" << token
                 << "'!";
+            log_v2::macros()->trace(
+                " WARNING: An error occurred processing macro '{}'!", token);
           }
 
           /* insert macro */
           if (!token_resolved.empty()) {
-            logger(dbg_macros, most) << "  Processed '" << token
-                                     << "', Clean Options: " << clean_options
-                                     << ", Free: " << free_macro;
+            engine_logger(dbg_macros, most)
+                << "  Processed '" << token
+                << "', Clean Options: " << clean_options
+                << ", Free: " << free_macro;
+            log_v2::macros()->trace(
+                "  Processed '{}', Clean Options: {}, Free: {}", token,
+                clean_options, free_macro);
 
             /* include any cleaning options passed back to us */
             macro_options = (options | clean_options);
 
-            logger(dbg_macros, most) << "  Cleaning options: global=" << options
-                                     << ", local=" << clean_options
-                                     << ", effective=" << macro_options;
+            engine_logger(dbg_macros, most)
+                << "  Cleaning options: global=" << options
+                << ", local=" << clean_options
+                << ", effective=" << macro_options;
+            log_v2::macros()->trace(
+                "  Cleaning options: global={}, local={}, effective={}",
+                options, clean_options, macro_options);
 
             /* some macros are cleaned... */
             if (clean_macro || (macro_options & STRIP_ILLEGAL_MACRO_CHARS) ||
@@ -113,10 +130,13 @@ int process_macros_r(nagios_macros* mac,
                 if (!cleaned_macro.empty()) {
                   output_buffer.append(cleaned_macro);
 
-                  logger(dbg_macros, basic)
+                  engine_logger(dbg_macros, basic)
                       << "  Cleaned macro.  Running output ("
                       << output_buffer.length() << "): '" << output_buffer
                       << "'";
+                  log_v2::macros()->trace(
+                      "  Cleaned macro.  Running output ({}): '{}'",
+                      output_buffer.length(), output_buffer);
                 }
               }
             } else {
@@ -124,16 +144,22 @@ int process_macros_r(nagios_macros* mac,
                * buffer */
               output_buffer.append(token_resolved);
 
-              logger(dbg_macros, basic)
+              engine_logger(dbg_macros, basic)
                   << "  Uncleaned macro.  Running output ("
                   << output_buffer.length() << "): '" << output_buffer << "'";
+              log_v2::macros()->trace(
+                  "  Uncleaned macro.  Running output ({}): '{}'",
+                  output_buffer.length(), output_buffer);
             }
 
             /* free memory if necessary (if we URL encoded the macro or we were
              * told to do so by grab_macro_value()) */
-            logger(dbg_macros, basic)
+            engine_logger(dbg_macros, basic)
                 << "  Just finished macro.  Running output ("
                 << output_buffer.length() << "): '" << output_buffer << "'";
+            log_v2::macros()->trace(
+                "  Just finished macro.  Running output ({}): '{}'",
+                output_buffer.length(), output_buffer);
           }
 
           it += pos - where;
@@ -144,8 +170,11 @@ int process_macros_r(nagios_macros* mac,
     }
   }
 
-  logger(dbg_macros, more) << "  Done.  Final output: '" << output_buffer
-                           << "'\n"
-                              "**** END MACRO PROCESSING *************";
+  engine_logger(dbg_macros, more) << "  Done.  Final output: '" << output_buffer
+                                  << "'\n"
+                                     "**** END MACRO PROCESSING *************";
+  log_v2::macros()->trace(
+      "  Done.  Final output: '{}' **** END MACRO PROCESSING ****",
+      output_buffer);
   return OK;
 }

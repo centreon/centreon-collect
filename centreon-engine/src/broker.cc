@@ -1178,7 +1178,8 @@ void broker_log_data(int type,
                      time_t entry_time,
                      struct timeval const* timestamp) {
   // Config check.
-  if (!(config->event_broker_options() & BROKER_LOGGED_DATA))
+  if (!(config->event_broker_options() & BROKER_LOGGED_DATA) ||
+      !config->log_legacy_enabled())
     return;
 
   // Fill struct with relevant data.

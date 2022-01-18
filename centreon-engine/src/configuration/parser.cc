@@ -20,6 +20,7 @@
 #include "com/centreon/engine/configuration/parser.hh"
 #include <memory>
 #include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/io/directory_entry.hh"
 
@@ -360,8 +361,9 @@ void parser::_parse_directory_configuration(std::string const& path) {
  *  @param[in] path The configuration path.
  */
 void parser::_parse_global_configuration(std::string const& path) {
-  logger(logging::log_info_message, logging::most)
+  engine_logger(logging::log_info_message, logging::most)
       << "Reading main configuration file '" << path << "'.";
+  log_v2::config()->info("Reading main configuration file '{}'.", path);
 
   std::ifstream stream(path.c_str(), std::ios::binary);
   if (!stream.is_open())
@@ -392,8 +394,9 @@ void parser::_parse_global_configuration(std::string const& path) {
  *  @param[in] path The object definitions path.
  */
 void parser::_parse_object_definitions(std::string const& path) {
-  logger(logging::log_info_message, logging::basic)
+  engine_logger(logging::log_info_message, logging::basic)
       << "Processing object config file '" << path << "'";
+  log_v2::config()->info("Processing object config file '{}'", path);
 
   std::ifstream stream(path.c_str(), std::ios::binary);
   if (!stream.is_open())
@@ -469,8 +472,9 @@ void parser::_parse_object_definitions(std::string const& path) {
  *  @param[in] path The resource file path.
  */
 void parser::_parse_resource_file(std::string const& path) {
-  logger(logging::log_info_message, logging::most)
+  engine_logger(logging::log_info_message, logging::most)
       << "Reading resource file '" << path << "'";
+  log_v2::config()->info("Reading resource file '{}'", path);
 
   std::ifstream stream(path.c_str(), std::ios::binary);
   if (!stream.is_open())

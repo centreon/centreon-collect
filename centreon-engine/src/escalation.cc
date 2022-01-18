@@ -19,6 +19,7 @@
 
 #include "com/centreon/engine/escalation.hh"
 #include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/timeperiod.hh"
 
@@ -122,9 +123,13 @@ void escalation::resolve(int& w __attribute__((unused)), int& e) {
         timeperiod::timeperiods.find(get_escalation_period())};
 
     if (it == timeperiod::timeperiods.end() || !it->second) {
-      logger(log_verification_error, basic)
+      engine_logger(log_verification_error, basic)
           << "Error: Escalation period '" << get_escalation_period()
           << "' specified in escalation is not defined anywhere!";
+      log_v2::config()->error(
+          "Error: Escalation period '{}' specified in escalation is not "
+          "defined anywhere!",
+          get_escalation_period());
       errors++;
     } else
       // Save the timeperiod pointer for later.
@@ -140,10 +145,15 @@ void escalation::resolve(int& w __attribute__((unused)), int& e) {
         contactgroup::contactgroups.find(it->first)};
 
     if (it_cg == contactgroup::contactgroups.end() || !it_cg->second) {
-      logger(log_verification_error, basic)
+      engine_logger(log_verification_error, basic)
           << "Error: Contact group '" << it->first
           << "' specified in escalation for this notifier is not defined "
              "anywhere!";
+      log_v2::config()->error(
+          "Error: Contact group '{}' specified in escalation for this notifier "
+          "is not defined "
+          "anywhere!",
+          it->first);
       errors++;
     } else {
       // Save the contactgroup pointer for later.
