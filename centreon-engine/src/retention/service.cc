@@ -20,6 +20,7 @@
 #include "com/centreon/engine/retention/service.hh"
 #include <array>
 #include "com/centreon/engine/common.hh"
+#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/string.hh"
@@ -1175,10 +1176,16 @@ bool service::_set_last_state_change(time_t value) {
 bool service::_set_last_time_critical(time_t value) {
   time_t now = time(nullptr);
   if (value > now) {
-    logger(log_verification_error, basic) << "Warning: Service last time "
-                                             "critical cannot be in the future "
-                                             "(bad value: "
-                                          << value << ")";
+    engine_logger(log_verification_error, basic)
+        << "Warning: Service last time "
+           "critical cannot be in the future "
+           "(bad value: "
+        << value << ")";
+    log_v2::config()->warn(
+        "Warning: Service last time "
+        "critical cannot be in the future "
+        "(bad value: {})",
+        value);
     value = now;
   }
   _last_time_critical = value;
@@ -1193,9 +1200,12 @@ bool service::_set_last_time_critical(time_t value) {
 bool service::_set_last_time_ok(time_t value) {
   time_t now = time(nullptr);
   if (value > now) {
-    logger(log_verification_error, basic)
+    engine_logger(log_verification_error, basic)
         << "Warning: Service last time ok cannot be in the future (bad value: "
         << value << ")";
+    log_v2::config()->warn(
+        "Warning: Service last time ok cannot be in the future (bad value: {})",
+        value);
     value = now;
   }
   _last_time_ok = value;
@@ -1210,10 +1220,16 @@ bool service::_set_last_time_ok(time_t value) {
 bool service::_set_last_time_unknown(time_t value) {
   time_t now = time(nullptr);
   if (value > now) {
-    logger(log_verification_error, basic) << "Warning: Service last time "
-                                             "unknown cannot be in the future "
-                                             "(bad value: "
-                                          << value << ")";
+    engine_logger(log_verification_error, basic)
+        << "Warning: Service last time "
+           "unknown cannot be in the future "
+           "(bad value: "
+        << value << ")";
+    log_v2::config()->warn(
+        "Warning: Service last time "
+        "unknown cannot be in the future "
+        "(bad value: {})",
+        value);
     value = now;
   }
   _last_time_unknown = value;
@@ -1228,10 +1244,16 @@ bool service::_set_last_time_unknown(time_t value) {
 bool service::_set_last_time_warning(time_t value) {
   time_t now = time(nullptr);
   if (value > now) {
-    logger(log_verification_error, basic) << "Warning: Service last time "
-                                             "warning cannot be in the future "
-                                             "(bad value: "
-                                          << value << ")";
+    engine_logger(log_verification_error, basic)
+        << "Warning: Service last time "
+           "warning cannot be in the future "
+           "(bad value: "
+        << value << ")";
+    log_v2::config()->warn(
+        "Warning: Service last time "
+        "warning cannot be in the future "
+        "(bad value: {})",
+        value);
     value = now;
   }
   _last_time_warning = value;

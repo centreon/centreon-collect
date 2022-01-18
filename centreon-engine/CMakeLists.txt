@@ -440,6 +440,7 @@ set(
   "${SRC_DIR}/hostdependency.cc"
   "${SRC_DIR}/hostescalation.cc"
   "${SRC_DIR}/hostgroup.cc"
+  "${SRC_DIR}/log_v2.cc"
   "${SRC_DIR}/macros.cc"
   "${SRC_DIR}/nebmods.cc"
   "${SRC_DIR}/notification.cc"
@@ -485,6 +486,7 @@ set(
   "${INC_DIR}/com/centreon/engine/hostdependency.hh"
   "${INC_DIR}/com/centreon/engine/hostescalation.hh"
   "${INC_DIR}/com/centreon/engine/hostgroup.hh"
+  "${INC_DIR}/com/centreon/engine/log_v2.hh"
   "${INC_DIR}/com/centreon/engine/logging.hh"
   "${INC_DIR}/com/centreon/engine/macros.hh"
   "${INC_DIR}/com/centreon/engine/nebcallbacks.hh"
@@ -544,6 +546,7 @@ target_link_libraries(cce_core ${nlohmann_json_LIBS}
   ${SOCKET_LIBRARIES}
   centreon_clib
   ${fmt_LIBRARIES}
+  ${spdlog_LIBS}
 )
 
 # centengine target.

@@ -22,6 +22,7 @@
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/flapping.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/modules/external_commands/commands.hh"
 #include "com/centreon/engine/retention/applier/state.hh"
@@ -579,7 +580,8 @@ processing::processing()
 processing::~processing() noexcept {}
 
 bool processing::execute(const std::string& cmdstr) const {
-  logger(dbg_functions, basic) << "processing external command";
+  engine_logger(dbg_functions, basic) << "processing external command";
+  log_v2::functions()->trace("processing external command");
 
   char const* cmd{cmdstr.c_str()};
   size_t len{cmdstr.size()};
@@ -626,8 +628,10 @@ bool processing::execute(const std::string& cmdstr) const {
       command_id = it->second.id;
     else if (command_name[0] != '_') {
       lock.unlock();
-      logger(log_external_command | log_runtime_warning, basic)
+      engine_logger(log_external_command | log_runtime_warning, basic)
           << "Warning: Unrecognized external command -> " << command_name;
+      log_v2::external_command()->warn(
+          "Warning: Unrecognized external command -> {}", command_name);
       return false;
     }
 
@@ -639,16 +643,25 @@ bool processing::execute(const std::string& cmdstr) const {
   if (command_id == CMD_PROCESS_SERVICE_CHECK_RESULT ||
       command_id == CMD_PROCESS_HOST_CHECK_RESULT) {
     // Passive checks are logged in checks.c.
-    if (config->log_passive_checks())
-      logger(log_passive_check, basic)
+    if (config->log_passive_checks()) {
+      engine_logger(log_passive_check, basic)
           << "EXTERNAL COMMAND: " << command_name << ';' << args;
-  } else if (config->log_external_commands())
-    logger(log_external_command, basic)
+      log_v2::checks()->info("EXTERNAL COMMAND: {};{}", command_name, args);
+    }
+  } else if (config->log_external_commands()) {
+    engine_logger(log_external_command, basic)
         << "EXTERNAL COMMAND: " << command_name << ';' << args;
+    log_v2::external_command()->info("EXTERNAL COMMAND: {};{}", command_name,
+                                     args);
+  }
 
-  logger(dbg_external_command, more) << "External command id: " << command_id
-                                     << "\nCommand entry time: " << entry_time
-                                     << "\nCommand arguments: " << args;
+  engine_logger(dbg_external_command, more)
+      << "External command id: " << command_id
+      << "\nCommand entry time: " << entry_time
+      << "\nCommand arguments: " << args;
+  log_v2::external_command()->debug("External command id: {}", command_id);
+  log_v2::external_command()->debug("Command entry time: {}", entry_time);
+  log_v2::external_command()->debug("Command arguments: {}", args);
 
   // Send data to event broker.
   broker_external_command(NEBTYPE_EXTERNALCOMMAND_START, NEBFLAG_NONE,
@@ -695,10 +708,11 @@ void processing::_wrapper_read_state_information() {
     retention::applier::state app_state;
     app_state.apply(*config, state);
   } catch (std::exception const& e) {
-    logger(log_runtime_error, basic)
+    engine_logger(log_runtime_error, basic)
         << "Error: could not load retention file: " << e.what();
+    log_v2::runtime()->error("Error: could not load retention file: {}",
+                             e.what());
   }
-  return;
 }
 
 void processing::_wrapper_save_state_information() {

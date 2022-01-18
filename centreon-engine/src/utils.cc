@@ -47,6 +47,7 @@
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/nebmods.hh"
@@ -70,7 +71,8 @@ int my_system_r(nagios_macros* mac,
                 double* exectime,
                 std::string& output,
                 unsigned int max_output_length) {
-  logger(dbg_functions, basic) << "my_system_r()";
+  engine_logger(dbg_functions, basic) << "my_system_r()";
+  log_v2::functions()->trace("my_system_r()");
 
   // initialize return variables.
   *early_timeout = false;
@@ -81,7 +83,8 @@ int my_system_r(nagios_macros* mac,
     return service::state_ok;
   }
 
-  logger(dbg_commands, more) << "Running command '" << cmd << "'...";
+  engine_logger(dbg_commands, more) << "Running command '" << cmd << "'...";
+  log_v2::commands()->debug("Running command '{}'...", cmd);
 
   timeval start_time = timeval();
   timeval end_time = timeval();
@@ -109,10 +112,14 @@ int my_system_r(nagios_macros* mac,
     output = res.output;
   int result(res.exit_code);
 
-  logger(dbg_commands, more) << com::centreon::logging::setprecision(3)
-                             << "Execution time=" << *exectime
-                             << " sec, early timeout=" << *early_timeout
-                             << ", result=" << result << ", output=" << output;
+  engine_logger(dbg_commands, more)
+      << com::centreon::logging::setprecision(3)
+      << "Execution time=" << *exectime
+      << " sec, early timeout=" << *early_timeout << ", result=" << result
+      << ", output=" << output;
+  log_v2::commands()->debug(
+      "Execution time={:.3f} sec, early timeout={}, result={}, output={}",
+      *exectime, *early_timeout, result, output);
 
   // send event broker.
   broker_system_command(NEBTYPE_SYSTEM_COMMAND_END, NEBFLAG_NONE, NEBATTR_NONE,
@@ -144,7 +151,8 @@ int get_raw_command_line_r(nagios_macros* mac,
   int arg_index = 0;
   int escaped = false;
 
-  logger(dbg_functions, basic) << "get_raw_command_line_r()";
+  engine_logger(dbg_functions, basic) << "get_raw_command_line_r()";
+  log_v2::functions()->trace("get_raw_command_line_r()");
 
   /* clear the argv macros */
   clear_argv_macros_r(mac);
@@ -154,8 +162,10 @@ int get_raw_command_line_r(nagios_macros* mac,
     return ERROR;
   }
 
-  logger(dbg_commands | dbg_checks | dbg_macros, most)
+  engine_logger(dbg_commands | dbg_checks | dbg_macros, most)
       << "Raw Command Input: " << cmd_ptr->get_command_line();
+  log_v2::commands()->debug("Raw Command Input: {}",
+                            cmd_ptr->get_command_line());
 
   /* get the full command line */
   full_command = cmd_ptr->get_command_line();
@@ -205,8 +215,9 @@ int get_raw_command_line_r(nagios_macros* mac,
     }
   }
 
-  logger(dbg_commands | dbg_checks | dbg_macros, most)
+  engine_logger(dbg_commands | dbg_checks | dbg_macros, most)
       << "Expanded Command Output: " << full_command;
+  log_v2::commands()->debug("Expanded Command Output: {}", full_command);
 
   return OK;
 }

@@ -22,6 +22,7 @@
 #include <cstdlib>
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/string.hh"
@@ -950,8 +951,9 @@ int grab_macro_value_r(nagios_macros* mac,
       continue;
 
     if (strcmp(macro_x_names[x].c_str(), buf) == 0) {
-      logger(dbg_macros, most)
+      engine_logger(dbg_macros, most)
           << "  macros[" << x << "] (" << macro_x_names[x] << ") match.";
+      log_v2::macros()->trace("  macros[{}] ({}) match.", x, macro_x_names[x]);
 
       /* get the macro value */
       result = grab_macrox_value_r(mac, x, arg[0] ? arg[0] : "",
@@ -963,7 +965,9 @@ int grab_macro_value_r(nagios_macros* mac,
       if ((x >= 16 && x <= 19) || (x >= 49 && x <= 52) ||
           (x >= 99 && x <= 100) || (x >= 124 && x <= 127)) {
         *clean_options |= (STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS);
-        logger(dbg_macros, most) << "  New clean options: " << *clean_options;
+        engine_logger(dbg_macros, most)
+            << "  New clean options: " << *clean_options;
+        log_v2::macros()->trace("  New clean options: {}", *clean_options);
       }
       break;
     }
@@ -1085,8 +1089,10 @@ int grab_macro_value_r(nagios_macros* mac,
   }
   /* no macro matched... */
   else {
-    logger(dbg_macros, basic)
+    engine_logger(dbg_macros, basic)
         << " WARNING: Could not find a macro matching '" << macro_name << "'!";
+    log_v2::macros()->trace(" WARNING: Could not find a macro matching '{}'!",
+                            macro_name);
     result = ERROR;
   }
 
@@ -1122,8 +1128,10 @@ int grab_macrox_value_r(nagios_macros* mac,
         redirector.routines.find(macro_type));
     if (redirector.routines.end() == it) {
       retval = ERROR;
-      logger(dbg_macros, basic)
+      engine_logger(dbg_macros, basic)
           << "UNHANDLED MACRO #" << macro_type << "! THIS IS A BUG!";
+      log_v2::macros()->trace("UNHANDLED MACRO #{}! THIS IS A BUG!",
+                              macro_type);
     } else {
       retval = (*it->second)(mac, macro_type, arg1, arg2, output, free_macro);
     }

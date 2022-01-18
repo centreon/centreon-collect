@@ -386,10 +386,10 @@ TEST(ClibLogging, TempLoggerCtor) {
   auto id = e.add(obj.get(), 3, 0);
 
   temp_logger(0, 0) << "Centreon Clib test";
-  ASSERT_EQ(obj->get_nb_call(), 0);
+  ASSERT_EQ(obj->get_nb_call(), 0u);
 
   temp_logger(1, 0) << "Centreon Clib test";
-  ASSERT_EQ(obj->get_nb_call(), 1);
+  ASSERT_EQ(obj->get_nb_call(), 1u);
   e.remove(id);
 }
 
@@ -524,7 +524,7 @@ TEST(ClibLogging, TempLoggerLogChar) {
   auto id = e.add(obj.get(), 3, 0);
 
   temp_logger(1, 0) << 'c';
-  ASSERT_EQ(obj->get_nb_call(), 1);
+  ASSERT_EQ(obj->get_nb_call(), 1u);
   e.remove(id);
 }
 
@@ -534,7 +534,7 @@ TEST(ClibLogging, TempLoggerLogDouble) {
   auto id = e.add(obj.get(), 3, 0);
 
   temp_logger(1, 0) << double(42.42);
-  ASSERT_EQ(obj->get_nb_call(), 1);
+  ASSERT_EQ(obj->get_nb_call(), 1u);
   e.remove(id);
 }
 
@@ -544,7 +544,7 @@ TEST(ClibLogging, TempLoggerLogInt) {
   auto id = e.add(obj.get(), 3, 0);
 
   temp_logger(1, 0) << int(42);
-  ASSERT_EQ(obj->get_nb_call(), 1);
+  ASSERT_EQ(obj->get_nb_call(), 1u);
   e.remove(id);
 }
 
@@ -554,7 +554,7 @@ TEST(ClibLogging, TempLoggerLogLong) {
   auto id = e.add(obj.get(), 3, 0);
 
   temp_logger(1, 0) << 42L;
-  ASSERT_EQ(obj->get_nb_call(), 1);
+  ASSERT_EQ(obj->get_nb_call(), 1u);
   e.remove(id);
 }
 
@@ -564,7 +564,7 @@ TEST(ClibLogging, TempLoggerLogLongLong) {
   auto id = e.add(obj.get(), 3, 0);
 
   temp_logger(1, 0) << 42LL;
-  ASSERT_EQ(obj->get_nb_call(), 1);
+  ASSERT_EQ(obj->get_nb_call(), 1u);
   e.remove(id);
 }
 
@@ -574,7 +574,7 @@ TEST(ClibLogging, TempLoggerLogPVoid) {
   auto id = e.add(obj.get(), 3, 0);
 
   temp_logger(1, 0) << obj.get();
-  ASSERT_EQ(obj->get_nb_call(), 1);
+  ASSERT_EQ(obj->get_nb_call(), 1u);
   e.remove(id);
 }
 
@@ -584,7 +584,7 @@ TEST(ClibLogging, TempLoggerLogStdString) {
   auto id = e.add(obj.get(), 3, 0);
 
   temp_logger(1, 0) << std::string("Centreon Clib test");
-  ASSERT_EQ(obj->get_nb_call(), 1);
+  ASSERT_EQ(obj->get_nb_call(), 1u);
   e.remove(id);
 }
 
@@ -594,7 +594,7 @@ TEST(ClibLogging, TempLoggerLogString) {
   auto id = e.add(obj.get(), 3, 0);
 
   temp_logger(1, 0) << "Centreon Clib test";
-  ASSERT_EQ(obj->get_nb_call(), 1);
+  ASSERT_EQ(obj->get_nb_call(), 1u);
   e.remove(id);
 }
 
@@ -605,7 +605,7 @@ TEST(ClibLogging, TempLoggerLogUint) {
 
   unsigned int ui(42);
   temp_logger(1, 0) << ui;
-  ASSERT_EQ(obj->get_nb_call(), 1);
+  ASSERT_EQ(obj->get_nb_call(), 1u);
   e.remove(id);
 }
 
@@ -616,7 +616,7 @@ TEST(ClibLogging, TempLoggerLogULong) {
 
   unsigned long ul(42);
   temp_logger(1, 0) << ul;
-  ASSERT_EQ(obj->get_nb_call(), 1);
+  ASSERT_EQ(obj->get_nb_call(), 1u);
   e.remove(id);
 }
 
@@ -627,6 +627,6 @@ TEST(ClibLogging, TempLoggerLogULongLong) {
 
   unsigned long long ull(42);
   temp_logger(1, 0) << ull;
-  ASSERT_EQ(obj->get_nb_call(), 1);
+  ASSERT_EQ(obj->get_nb_call(), 1u);
   e.remove(id);
 }
