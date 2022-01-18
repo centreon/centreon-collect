@@ -6,6 +6,11 @@
 
 #### Fixes
 
+*multiplexing*
+
+The multiplexing engine works now asynchronously compared to its muxers. This
+improves a lot performances.
+
 *rrd*
 
 Add SQL query to check metrics to delete with their associated files.

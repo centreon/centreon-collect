@@ -286,9 +286,9 @@ TEST(ClibLogging, EngineRemoveByBackend) {
   engine& e(engine::instance());
   ASSERT_TRUE(null_pointer());
 
-  std::unique_ptr<backend_test> obj(new backend_test);
+  std::unique_ptr<backend_test> obj{std::make_unique<backend_test>()};
   e.add(obj.get(), 1, 0);
-  ASSERT_EQ(e.remove(obj.get()), 1);
+  ASSERT_EQ(e.remove(obj.get()), 1u);
 
   static unsigned int const nb_backend(1000);
   for (unsigned int i(1); i < nb_backend; ++i)
