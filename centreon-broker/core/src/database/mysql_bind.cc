@@ -1,5 +1,5 @@
 /*
-** Copyright 2018 Centreon
+** Copyright 2018, 2021 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -167,7 +167,7 @@ uint32_t mysql_bind::value_as_u32(int range) const {
     assert("This field is not an uint32_t" == nullptr);
 }
 
-void mysql_bind::set_value_as_u64(int range, unsigned long long value) {
+void mysql_bind::set_value_as_u64(int range, uint64_t value) {
   assert(static_cast<uint32_t>(range) < _bind.size());
   // if (range >= _bind.size())
   //  set_size(range + 1);
@@ -190,6 +190,17 @@ int64_t mysql_bind::value_as_i64(int range) const {
     return retval;
   } else
     assert("This field is not an unsigned long int" == nullptr);
+}
+
+void mysql_bind::set_value_as_i64(int range, int64_t value) {
+  assert(static_cast<uint32_t>(range) < _bind.size());
+  if (!_prepared(range))
+    _prepare_type(range, MYSQL_TYPE_LONGLONG);
+  _bind[range].is_unsigned = false;
+  _column[range].set_value(value);
+  _bind[range].buffer = _column[range].get_buffer();
+  _bind[range].is_null = _column[range].is_null_buffer();
+  _bind[range].length = _column[range].length_buffer();
 }
 
 uint64_t mysql_bind::value_as_u64(int range) const {

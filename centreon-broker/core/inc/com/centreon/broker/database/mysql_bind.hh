@@ -1,5 +1,5 @@
 /*
-** Copyright 2018 Centreon
+** Copyright 2018, 2021 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -42,8 +42,9 @@ class mysql_bind {
   uint32_t value_as_u32(int range) const;
   void set_value_as_u32(int range, uint32_t value);
   int64_t value_as_i64(int range) const;
+  void set_value_as_i64(int range, int64_t value);
   uint64_t value_as_u64(int range) const;
-  void set_value_as_u64(int range, unsigned long long value);
+  void set_value_as_u64(int range, uint64_t value);
   bool value_as_bool(int range) const;
   void set_value_as_bool(int range, bool value);
   float value_as_f32(int range) const;

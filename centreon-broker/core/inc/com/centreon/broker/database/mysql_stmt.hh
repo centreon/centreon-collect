@@ -21,6 +21,7 @@
 
 #include <map>
 #include <memory>
+#include <unordered_map>
 #include "com/centreon/broker/database/mysql_bind.hh"
 #include "com/centreon/broker/io/data.hh"
 
@@ -30,6 +31,20 @@ typedef std::map<std::string, int> mysql_bind_mapping;
 
 namespace database {
 class mysql_stmt {
+  int _compute_param_count(std::string const& query);
+
+  int _id;
+  int _param_count;
+  std::string _query;
+
+  std::unique_ptr<database::mysql_bind> _bind;
+  mysql_bind_mapping _bind_mapping;
+  /* For each item in the bbdo message, we map its index to:
+   *   * its name
+   *   * its attributes (always_valid, invalid_on_zero, invalid_on_minus_one)
+   */
+  std::vector<std::tuple<const char*, uint32_t, uint16_t>> _pb_mapping;
+
  public:
   mysql_stmt();
   mysql_stmt(std::string const& query, bool named);
@@ -37,6 +52,7 @@ class mysql_stmt {
              mysql_bind_mapping const& bind_mapping = mysql_bind_mapping());
   mysql_stmt(mysql_stmt&& other);
   mysql_stmt& operator=(mysql_stmt const& other);
+  mysql_stmt& operator=(mysql_stmt&& other);
   bool prepared() const;
   int get_id() const;
   std::unique_ptr<database::mysql_bind> get_bind();
@@ -48,8 +64,11 @@ class mysql_stmt {
   void bind_value_as_u32(int range, uint32_t value);
   void bind_value_as_u32(std::string const& key, uint32_t value);
 
-  void bind_value_as_u64(int range, unsigned long long value);
-  void bind_value_as_u64(std::string const& key, unsigned long long value);
+  void bind_value_as_i64(int range, int64_t value);
+  void bind_value_as_i64(std::string const& key, int64_t value);
+
+  void bind_value_as_u64(int range, uint64_t value);
+  void bind_value_as_u64(std::string const& key, uint64_t value);
 
   void bind_value_as_f32(int range, float value);
   void bind_value_as_f32(std::string const& key, float value);
@@ -70,16 +89,8 @@ class mysql_stmt {
   void bind_value_as_null(std::string const& key);
   std::string const& get_query() const;
   int get_param_count() const;
-
- private:
-  int _compute_param_count(std::string const& query);
-
-  int _id;
-  int _param_count;
-  std::string _query;
-
-  std::unique_ptr<database::mysql_bind> _bind;
-  mysql_bind_mapping _bind_mapping;
+  void set_pb_mapping(
+      std::vector<std::tuple<const char*, uint32_t, uint16_t>>&& mapping);
 };
 }  // namespace database
 

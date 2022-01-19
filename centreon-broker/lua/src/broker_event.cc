@@ -195,19 +195,11 @@ void broker_event::create_as_table(lua_State* L, const io::data& d) {
         }
       }
     } else {
+      /* Here is the protobuf case: no mapping */
       const google::protobuf::Message* p =
-          static_cast<const google::protobuf::Message*>(
-              static_cast<const void*>(&d) +
-              io::protobuf<Service, make_type(io::neb, neb::de_pb_service)>::
-                  obj_offset());
+          static_cast<const io::protobuf_base*>(&d)->msg();
       const google::protobuf::Descriptor* desc = p->GetDescriptor();
       const google::protobuf::Reflection* refl = p->GetReflection();
-      /* Here is the protobuf case : no mapping */
-      //      const google::protobuf::Descriptor* desc =
-      //            google::protobuf::DescriptorPool::generated_pool()
-      //                    ->FindMessageTypeByName(
-      //                        fmt::format("com.centreon.broker.{}",
-      //                                    info->get_name()));
       for (int i = 0; i < desc->field_count(); i++) {
         auto f = desc->field(i);
         const std::string& entry_name = f->name();

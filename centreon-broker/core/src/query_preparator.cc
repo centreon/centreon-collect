@@ -56,7 +56,7 @@ query_preparator::query_preparator(
 mysql_stmt query_preparator::prepare_insert_into(
     mysql& ms,
     const std::string& table,
-    const std::unordered_map<int32_t, std::string>& mapping,
+    const std::vector<query_preparator::pb_entry>& mapping,
     bool ignore) {
   std::map<std::string, int> bind_mapping;
   // Find event info.
@@ -85,19 +85,25 @@ mysql_stmt query_preparator::prepare_insert_into(
       google::protobuf::DescriptorPool::generated_pool()->FindMessageTypeByName(
           fmt::format("com.centreon.broker.{}", info->get_name()));
 
+  std::vector<std::tuple<const char*, uint32_t, uint16_t>> pb_mapping;
+
   int size = 0;
-  for (auto it = mapping.begin(); it != mapping.end(); ++it) {
-    if (it->first < desc->field_count()) {
-      const std::string& entry_name = desc->field(it->first)->name();
-      log_v2::sql()->info("In message {}: object at position {} gives {}",
-                          info->get_name(), it->first, entry_name);
+  for (auto& e : mapping) {
+    const google::protobuf::FieldDescriptor* f =
+        desc->FindFieldByNumber(e.number);
+    if (f) {
+      if (static_cast<uint32_t>(f->index()) >= pb_mapping.size())
+        pb_mapping.resize(f->index() + 1);
+      pb_mapping[f->index()] =
+          std::make_tuple(e.name, e.max_length, e.attribute);
+      const std::string& entry_name = f->name();
       query.append(entry_name);
       query.append(",");
       bind_mapping.emplace(fmt::format(":{}", entry_name), size++);
     } else
       throw msg_fmt(
-          "Index in mapping out of range compared to protobuf message '{}'",
-          info->get_name());
+          "Protobuf field with number {} does not exist in message '{}'",
+          e.number, info->get_name());
   }
   query.resize(query.size() - 1);
   query.append(") VALUE(");
@@ -112,6 +118,7 @@ mysql_stmt query_preparator::prepare_insert_into(
   mysql_stmt retval;
   try {
     retval = ms.prepare_query(query, bind_mapping);
+    retval.set_pb_mapping(std::move(pb_mapping));
   } catch (std::exception const& e) {
     throw msg_fmt(
         "could not prepare insertion query for event '{}' in table '{}': {}",
@@ -365,7 +372,7 @@ mysql_stmt query_preparator::prepare_update(mysql& ms) {
 mysql_stmt query_preparator::prepare_update_table(
     mysql& ms,
     const std::string& table,
-    const std::unordered_map<int32_t, std::string>& mapping) {
+    const std::vector<pb_entry>& mapping) {
   std::map<std::string, int> query_bind_mapping;
   std::map<std::string, int> where_bind_mapping;
   // Find event info.
@@ -393,13 +400,16 @@ mysql_stmt query_preparator::prepare_update_table(
       google::protobuf::DescriptorPool::generated_pool()->FindMessageTypeByName(
           fmt::format("com.centreon.broker.{}", info->get_name()));
 
-  for (auto it = mapping.begin(); it != mapping.end(); ++it) {
+  std::vector<std::tuple<const char*, uint32_t, uint16_t>> pb_mapping;
+  for (auto& e : mapping) {
     const google::protobuf::FieldDescriptor* f =
-        desc->FindFieldByNumber(it->first);
+        desc->FindFieldByNumber(e.number);
     if (f) {
-      const std::string& entry_name = f->name();
-      log_v2::sql()->info("In message {}: object at position {} gives {}",
-                          info->get_name(), it->first, entry_name);
+      if (static_cast<uint32_t>(f->index()) >= pb_mapping.size())
+        pb_mapping.resize(f->index() + 1);
+      pb_mapping[f->index()] =
+          std::make_tuple(e.name, e.max_length, e.attribute);
+      const char* entry_name = e.name;
       // Standard field.
       if (_unique.find(entry_name) == _unique.end()) {
         query.append(entry_name);
@@ -419,7 +429,7 @@ mysql_stmt query_preparator::prepare_update_table(
           "could not prepare update query for event of type {}:"
           "protobuf field with number {} does not exist in '{}' protobuf "
           "object",
-          _event_id, info->get_name(), it->first);
+          _event_id, e.number, info->get_name());
   }
   query.resize(query.size() - 1);
   query.append(where, 0, where.size() - 5);
@@ -433,6 +443,7 @@ mysql_stmt query_preparator::prepare_update_table(
   mysql_stmt retval;
   try {
     retval = ms.prepare_query(query, query_bind_mapping);
+    retval.set_pb_mapping(std::move(pb_mapping));
   } catch (std::exception const& e) {
     throw msg_fmt(
         "could not prepare update query for event '{}': on table '{}': {}",

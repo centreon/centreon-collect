@@ -1595,7 +1595,7 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
                          actions::service_dependencies);
   // Processed object.
   auto s{static_cast<neb::pb_service const*>(d.get())};
-  auto ss = s->obj;
+  auto ss = s->obj();
 
   log_v2::perfdata()->info("SQL: pb service status output: <<{}>>",
                            ss.output());
@@ -1621,27 +1621,42 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
       unique.insert("host_id");
       unique.insert("service_id");
       query_preparator qp(neb::pb_service::static_type(), unique);
-      _service_status_update =
-          qp.prepare_update_table(_mysql, "services",
-                                  {
-                                      {1, "host_id"},
-                                      {2, "service_id"},
-                                      {3, "acknowledged"},
-                                      {4, "acknowledgement_type"},
-                                      {5, "active_checks"},
-                                      {12, "state"},
-                                      {15, "execution_time"},
-                                      {19, "last_check"},
-                                      {20, "last_hard_state"},
-                                      {21, "last_hard_state_change"},
-                                      {24, "last_state_change"},
-                                      {25, "last_time_ok"},
-                                      {26, "last_time_warning"},
-                                      {27, "last_time_critical"},
-                                      {28, "last_time_unknown"},
-                                      {29, "last_update"},
-                                      {30, "latency"},
-                                  });
+      struct pb_entry {
+        int32_t number;
+        const char* name;
+        int32_t attribute;
+        uint32_t max_length;
+      };
+
+      _service_status_update = qp.prepare_update_table(
+          _mysql, "services",
+          {
+              {1, "host_id", io::protobuf_base::invalid_on_zero, 0},
+              {2, "service_id", io::protobuf_base::invalid_on_zero, 0},
+              {3, "acknowledged", 0, 0},
+              {4, "acknowledgement_type", 0, 0},
+              {5, "active_checks", 0, 0},
+              {6, "scheduled_downtime_depth", 0, 0},
+              {7, "check_command", 0, 0},
+              {8, "check_interval", 0, 0},
+              {9, "check_period", 0, 0},
+              {10, "check_type", 0, 0},
+              {11, "check_attempt", 0, 0},
+              {12, "state", 0, 0},
+              {15, "execution_time", 0, 0},
+              {17, "checked", 0, 0},
+              {19, "last_check", io::protobuf_base::invalid_on_zero, 0},
+              {20, "last_hard_state", 0, 0},
+              {21, "last_hard_state_change", io::protobuf_base::invalid_on_zero,
+               0},
+              {24, "last_state_change", io::protobuf_base::invalid_on_zero, 0},
+              {25, "last_time_ok", io::protobuf_base::invalid_on_zero, 0},
+              {26, "last_time_warning", io::protobuf_base::invalid_on_zero, 0},
+              {27, "last_time_critical", io::protobuf_base::invalid_on_zero, 0},
+              {28, "last_time_unknown", io::protobuf_base::invalid_on_zero, 0},
+              {29, "last_update", io::protobuf_base::invalid_on_zero, 0},
+              {30, "latency", 0, 0},
+          });
     }
 
     // Processing.

@@ -19,6 +19,7 @@
 #ifndef CCB_IO_PROTOBUF_HH
 #define CCB_IO_PROTOBUF_HH
 
+#include <google/protobuf/message.h>
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/io/event_info.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -35,15 +36,33 @@ namespace io {
  *  module data that wish to be transmitted by the multiplexing
  *  engine.
  */
-template <typename T, uint32_t Typ>
-class protobuf : public data {
- public:
-  T obj;
+class protobuf_base : public data {
+  google::protobuf::Message* _msg;
 
+ protected:
+  protobuf_base(uint32_t typ, google::protobuf::Message* msg)
+      : data(typ), _msg{msg} {}
+
+ public:
+  enum attribute {
+    always_valid = 0,
+    invalid_on_zero = (1 << 0),
+    invalid_on_minus_one = (1 << 1)
+  };
+
+  google::protobuf::Message* mut_msg() { return _msg; }
+  const google::protobuf::Message* msg() const { return _msg; }
+};
+
+template <typename T, uint32_t Typ>
+class protobuf : public protobuf_base {
+  T _obj;
+
+ public:
   /**
    * @brief Default constructor
    */
-  protobuf() : data(Typ) {}
+  protobuf() : protobuf_base(Typ, &_obj) {}
   /**
    * @brief Constructor that initializes the T object from an existing one.
    * The io::protobuf class is a BBDO object that encapsulates a protobuf
@@ -52,7 +71,7 @@ class protobuf : public data {
    *
    * @param o The protobuf object (it is copied).
    */
-  protobuf(const T& o) : data(Typ), obj(o) {}
+  protobuf(const T& o) : protobuf_base(Typ, &_obj), _obj(o) {}
   protobuf(const protobuf&) = delete;
   ~protobuf() noexcept = default;
   protobuf& operator=(const protobuf&) = delete;
@@ -82,7 +101,7 @@ class protobuf : public data {
   static std::string serialize(const io::data& e) {
     std::string retval;
     auto r = static_cast<const protobuf<T, Typ>*>(&e);
-    if (!r->obj.SerializeToString(&retval))
+    if (!r->obj().SerializeToString(&retval))
       throw com::centreon::exceptions::msg_fmt(
           "Unable to serialize {:x} protobuf object", Typ);
     return retval;
@@ -98,15 +117,19 @@ class protobuf : public data {
    * @return a pointer to the new object.
    */
   static io::data* unserialize(const char* buffer, size_t size) {
-    std::unique_ptr<protobuf<T, Typ>> retval =
-        std::make_unique<protobuf<T, Typ>>();
-    if (!retval->obj.ParseFromArray(buffer, size))
+    auto retval = std::make_unique<protobuf<T, Typ>>();
+    if (!retval->mut_msg()->ParseFromArray(buffer, size))
       throw com::centreon::exceptions::msg_fmt(
           "Unable to unserialize protobuf object");
     return retval.release();
   }
 
-  static uint32_t obj_offset() { return offsetof(protobuf, obj); }
+  const T& obj() const { return _obj; }
+
+  T& mut_obj() { return _obj; }
+
+  void set_obj(T&& obj) { _obj = std::move(obj); }
+
   /**
    * @brief An internal BBDO object used to access to the constructor,
    * serialization and unserialization functions.

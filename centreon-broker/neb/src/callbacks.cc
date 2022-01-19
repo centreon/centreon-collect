@@ -1561,7 +1561,8 @@ int neb::callback_process(int callback_type, void* data) {
               gl_pb_callbacks[i].callback));
       } else {
         // Register callbacks.
-        log_v2::neb()->debug("callbacks: registering callbacks for old BBDO version");
+        log_v2::neb()->debug(
+            "callbacks: registering callbacks for old BBDO version");
         for (uint32_t i(0); i < sizeof(gl_callbacks) / sizeof(*gl_callbacks);
              ++i)
           gl_registered_callbacks.emplace_back(std::make_unique<callback>(
@@ -1999,80 +2000,80 @@ int32_t neb::callback_pb_service_status(int callback_type,
       static_cast<nebstruct_service_status_data*>(data)->object_ptr)};
 
   auto s{std::make_shared<neb::pb_service>()};
-  neb::pb_service* srv = s.get();
+  Service& srv = s.get()->mut_obj();
 
-  srv->obj.set_host_id(es->get_host_id());
-  srv->obj.set_service_id(es->get_service_id());
+  srv.set_host_id(es->get_host_id());
+  srv.set_service_id(es->get_service_id());
   if (es->get_host_id() == 0 || es->get_service_id() == 0)
     log_v2::neb()->error("could not find ID of service ('{}', '{}')",
                          es->get_hostname(), es->get_description());
 
   if (es->get_problem_has_been_acknowledged()) {
-    srv->obj.set_acknowledged(true);
-    srv->obj.set_acknowledgement_type(
+    srv.set_acknowledged(true);
+    srv.set_acknowledgement_type(
         static_cast<Service_AckType>(es->get_acknowledgement_type()));
   }
-  srv->obj.set_active_checks_enabled(es->get_checks_enabled());
+  srv.set_active_checks_enabled(es->get_checks_enabled());
 
   if (!es->get_check_command().empty())
-    *srv->obj.mutable_check_command() =
+    *srv.mutable_check_command() =
         misc::string::check_string_utf8(es->get_check_command());
-  srv->obj.set_check_interval(es->get_check_interval());
+  srv.set_check_interval(es->get_check_interval());
   if (!es->get_check_period().empty())
-    *srv->obj.mutable_check_period() = es->get_check_period();
-  srv->obj.set_check_type(static_cast<Service_CheckType>(es->get_check_type()));
-  srv->obj.set_current_check_attempt(es->get_current_attempt());
-  srv->obj.set_current_state(static_cast<Service_State>(
+    *srv.mutable_check_period() = es->get_check_period();
+  srv.set_check_type(static_cast<Service_CheckType>(es->get_check_type()));
+  srv.set_current_check_attempt(es->get_current_attempt());
+  srv.set_current_state(static_cast<Service_State>(
       (es->has_been_checked() ? es->get_current_state()
                               : 4)));  // Pending state.
-  srv->obj.set_downtime_depth(es->get_scheduled_downtime_depth());
+  srv.set_downtime_depth(es->get_scheduled_downtime_depth());
   if (!es->get_event_handler().empty())
-    *srv->obj.mutable_event_handler() =
+    *srv.mutable_event_handler() =
         misc::string::check_string_utf8(es->get_event_handler());
-  srv->obj.set_event_handler_enabled(es->get_event_handler_enabled());
-  srv->obj.set_execution_time(es->get_execution_time());
-  srv->obj.set_flap_detection_enabled(es->get_flap_detection_enabled());
-  srv->obj.set_has_been_checked(es->has_been_checked());
-  srv->obj.set_is_flapping(es->get_is_flapping());
-  srv->obj.set_last_check(es->get_last_check());
-  srv->obj.set_last_hard_state(
+  srv.set_event_handler_enabled(es->get_event_handler_enabled());
+  srv.set_execution_time(es->get_execution_time());
+  srv.set_flap_detection_enabled(es->get_flap_detection_enabled());
+  srv.set_has_been_checked(es->has_been_checked());
+  srv.set_is_flapping(es->get_is_flapping());
+  srv.set_last_check(es->get_last_check());
+  srv.set_last_hard_state(
       static_cast<Service_State>(es->get_last_hard_state()));
-  srv->obj.set_last_hard_state_change(es->get_last_hard_state_change());
-  srv->obj.set_last_notification(es->get_last_notification());
-  srv->obj.set_notification_number(es->get_notification_number());
-  srv->obj.set_last_state_change(es->get_last_state_change());
-  srv->obj.set_last_time_critical(es->get_last_time_critical());
-  srv->obj.set_last_time_ok(es->get_last_time_ok());
-  srv->obj.set_last_time_unknown(es->get_last_time_unknown());
-  srv->obj.set_last_time_warning(es->get_last_time_warning());
-  srv->obj.set_last_update(time(nullptr));
-  srv->obj.set_latency(es->get_latency());
-  srv->obj.set_max_check_attempts(es->get_max_attempts());
-  srv->obj.set_next_check(es->get_next_check());
-  srv->obj.set_next_notification(es->get_next_notification());
-  srv->obj.set_no_more_notifications(es->get_no_more_notifications());
-  srv->obj.set_notifications_enabled(es->get_notifications_enabled());
-  srv->obj.set_obsess_over(es->get_obsess_over());
+  srv.set_last_hard_state_change(es->get_last_hard_state_change());
+  srv.set_last_notification(es->get_last_notification());
+  srv.set_notification_number(es->get_notification_number());
+  srv.set_last_state_change(es->get_last_state_change());
+  srv.set_last_time_critical(es->get_last_time_critical());
+  srv.set_last_time_ok(es->get_last_time_ok());
+  srv.set_last_time_unknown(es->get_last_time_unknown());
+  srv.set_last_time_warning(es->get_last_time_warning());
+  srv.set_last_update(time(nullptr));
+  srv.set_latency(es->get_latency());
+  srv.set_max_check_attempts(es->get_max_attempts());
+  srv.set_next_check(es->get_next_check());
+  srv.set_next_notification(es->get_next_notification());
+  srv.set_no_more_notifications(es->get_no_more_notifications());
+  srv.set_notifications_enabled(es->get_notifications_enabled());
+  srv.set_obsess_over(es->get_obsess_over());
   if (!es->get_plugin_output().empty())
-    *srv->obj.mutable_output() =
+    *srv.mutable_output() =
         misc::string::check_string_utf8(es->get_plugin_output());
 
   if (!es->get_long_plugin_output().empty())
-    *srv->obj.mutable_long_output() =
+    *srv.mutable_long_output() =
         misc::string::check_string_utf8(es->get_long_plugin_output());
 
-  srv->obj.set_passive_checks_enabled(es->get_accept_passive_checks());
-  srv->obj.set_percent_state_change(es->get_percent_state_change());
+  srv.set_passive_checks_enabled(es->get_accept_passive_checks());
+  srv.set_percent_state_change(es->get_percent_state_change());
   if (!es->get_perf_data().empty())
-    *srv->obj.mutable_perf_data() =
+    *srv.mutable_perf_data() =
         misc::string::check_string_utf8(es->get_perf_data());
-  srv->obj.set_retry_interval(es->get_retry_interval());
-  *srv->obj.mutable_host_name() =
+  srv.set_retry_interval(es->get_retry_interval());
+  *srv.mutable_host_name() =
       misc::string::check_string_utf8(es->get_hostname());
-  *srv->obj.mutable_service_description() =
+  *srv.mutable_service_description() =
       misc::string::check_string_utf8(es->get_description());
-  srv->obj.set_should_be_scheduled(es->get_should_be_scheduled());
-  srv->obj.set_state_type(static_cast<Service_StateType>(
+  srv.set_should_be_scheduled(es->get_should_be_scheduled());
+  srv.set_state_type(static_cast<Service_StateType>(
       es->has_been_checked() ? es->get_state_type() : engine::notifier::hard));
 
   // Send event(s).
@@ -2080,12 +2081,11 @@ int32_t neb::callback_pb_service_status(int callback_type,
 
   // Acknowledgement event.
   auto it =
-      gl_acknowledgements.find(
-          std::make_pair(srv->obj.host_id(), srv->obj.service_id()));
-  if (it != gl_acknowledgements.end() && !srv->obj.acknowledged()) {
-    if (!(!srv->obj.current_state()  // !(OK or (normal ack and NOK))
+      gl_acknowledgements.find(std::make_pair(srv.host_id(), srv.service_id()));
+  if (it != gl_acknowledgements.end() && !srv.acknowledged()) {
+    if (!(!srv.current_state()  // !(OK or (normal ack and NOK))
           || (!it->second.is_sticky &&
-              (srv->obj.current_state() != it->second.state)))) {
+              (srv.current_state() != it->second.state)))) {
       auto ack = std::make_shared<neb::acknowledgement>(it->second);
       ack->deletion_time = time(nullptr);
       gl_publisher.write(ack);
@@ -2201,9 +2201,8 @@ int neb::callback_service_status(int callback_type, void* data) {
     gl_publisher.write(service_status);
 
     // Acknowledgement event.
-    auto it = 
-        gl_acknowledgements.find(std::make_pair(service_status->host_id,
-                                                service_status->service_id));
+    auto it = gl_acknowledgements.find(
+        std::make_pair(service_status->host_id, service_status->service_id));
     if (it != gl_acknowledgements.end() && !service_status->acknowledged) {
       if (!(!service_status->current_state  // !(OK or (normal ack and NOK))
             || (!it->second.is_sticky &&

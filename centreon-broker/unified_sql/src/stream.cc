@@ -569,12 +569,12 @@ void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
     std::set<uint64_t> indexes_to_delete;
     std::set<uint64_t> metrics_to_delete;
     try {
-      if (!ids.obj.index_ids().empty()) {
+      if (!ids.obj().index_ids().empty()) {
         ms.run_query_and_get_result(
             fmt::format("SELECT i.id,m.metric_id, m.metric_name,i.host_id,"
                         "i.service_id FROM index_data i LEFT JOIN metrics m ON "
                         "i.id=m.index_id WHERE i.id IN ({})",
-                        fmt::join(ids.obj.index_ids(), ",")),
+                        fmt::join(ids.obj().index_ids(), ",")),
             &promise, conn);
         database::mysql_result res(promise.get_future().get());
 
@@ -590,13 +590,13 @@ void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
         }
       }
 
-      if (!ids.obj.metric_ids().empty()) {
+      if (!ids.obj().metric_ids().empty()) {
         promise = std::promise<database::mysql_result>();
 
         ms.run_query_and_get_result(
             fmt::format("SELECT index_id,metric_id,metric_name FROM metrics "
                         "WHERE metric_id IN ({})",
-                        fmt::join(ids.obj.metric_ids(), ",")),
+                        fmt::join(ids.obj().metric_ids(), ",")),
             &promise, conn);
         database::mysql_result res(promise.get_future().get());
 
@@ -631,9 +631,9 @@ void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
     if (!metrics_to_delete.empty() || !indexes_to_delete.empty()) {
       auto rmg{std::make_shared<storage::pb_remove_graph_message>()};
       for (uint64_t i : metrics_to_delete)
-        rmg->obj.add_metric_ids(i);
+        rmg->mut_obj().add_metric_ids(i);
       for (uint64_t i : indexes_to_delete)
-        rmg->obj.add_index_ids(i);
+        rmg->mut_obj().add_index_ids(i);
       multiplexing::publisher().write(rmg);
     } else
       log_v2::sql()->info(

@@ -1,5 +1,5 @@
 /*
-** Copyright 2015 Centreon
+** Copyright 2015, 2021 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -67,10 +67,23 @@ CCB_BEGIN()
  */
 class query_preparator {
  public:
-  typedef std::set<std::string> excluded_fields;
-  typedef std::set<std::string> doubled_fields;
-  typedef std::set<std::string> event_unique;
+  using excluded_fields = std::set<std::string>;
+  using doubled_fields = std::set<std::string>;
+  using event_unique = std::set<std::string>;
 
+  struct pb_entry {
+    int32_t number;
+    const char* name;
+    uint16_t attribute;
+    uint32_t max_length;
+  };
+
+ private:
+  uint32_t _event_id;
+  excluded_fields _excluded;
+  event_unique _unique;
+
+ public:
   query_preparator(uint32_t event_id,
                    event_unique const& unique = event_unique(),
                    excluded_fields const& excluded = excluded_fields());
@@ -78,23 +91,17 @@ class query_preparator {
   query_preparator(query_preparator const&) = delete;
   query_preparator& operator=(query_preparator const&) = delete;
   database::mysql_stmt prepare_insert(mysql& q, bool ignore = false);
-  database::mysql_stmt prepare_insert_into(
-      mysql& q,
-      const std::string& table,
-      const std::unordered_map<int32_t, std::string>& mapping,
-      bool ignore = false);
+  database::mysql_stmt prepare_insert_into(mysql& q,
+                                           const std::string& table,
+                                           const std::vector<pb_entry>& mapping,
+                                           bool ignore = false);
   database::mysql_stmt prepare_update(mysql& q);
   database::mysql_stmt prepare_update_table(
       mysql& q,
       const std::string& table,
-      const std::unordered_map<int32_t, std::string>& mapping);
+      const std::vector<pb_entry>& mapping);
   database::mysql_stmt prepare_insert_or_update(mysql& ms);
   database::mysql_stmt prepare_delete(mysql& q);
-
- private:
-  uint32_t _event_id;
-  excluded_fields _excluded;
-  event_unique _unique;
 };
 
 CCB_END()
