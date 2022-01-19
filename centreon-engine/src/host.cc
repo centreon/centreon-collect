@@ -3513,8 +3513,10 @@ int host::process_check_result_3x(enum host::host_state new_state,
   if (reschedule_check) {
     engine_logger(dbg_checks, more)
         << "Rescheduling next check of host at " << my_ctime(&next_check);
-    log_v2::checks()->debug("Rescheduling next check of host at {}",
-                            my_ctime(&next_check));
+    log_v2::checks()->debug(
+        "Rescheduling next check of host: {} of last check at {} and next "
+        "check at {}",
+        _name, get_last_check(), next_check);
 
     /* default is to reschedule host check unless a test below fails... */
     set_should_be_scheduled(true);
