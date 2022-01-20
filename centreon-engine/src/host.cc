@@ -22,6 +22,7 @@
 #include <cassert>
 #include <iomanip>
 
+#include <fmt/chrono.h>
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
@@ -3016,7 +3017,8 @@ int host::process_check_result_3x(enum host::host_state new_state,
   std::list<host*> check_hostlist;
   host::host_state parent_state = host::state_up;
   time_t current_time = 0L;
-  time_t next_check = 0L;
+  time_t next_check{get_last_check() +
+                    (get_check_interval() * config->interval_length())};
   time_t preferred_time = 0L;
   time_t next_valid_time = 0L;
   int run_async_check = true;
@@ -3038,10 +3040,6 @@ int host::process_check_result_3x(enum host::host_state new_state,
       get_check_type() == check_active ? "ACTIVE" : "PASSIVE",
       get_state_type() == hard ? "HARD" : "SOFT", get_current_state(),
       new_state);
-
-  /* default next check time */
-  next_check = (unsigned long)(get_last_check() + (get_check_interval() *
-                                                   config->interval_length()));
 
   /* we have to adjust current attempt # for passive checks, as it isn't done
    * elsewhere */
@@ -3089,9 +3087,6 @@ int host::process_check_result_3x(enum host::host_state new_state,
 
       /* reschedule the next check of the host at the normal interval */
       reschedule_check = true;
-      next_check =
-          (unsigned long)(get_last_check() +
-                          (get_check_interval() * config->interval_length()));
 
       /* propagate checks to immediate parents if they are not already UP */
       /* we do this because a parent host (or grandparent) may have recovered
@@ -3175,22 +3170,8 @@ int host::process_check_result_3x(enum host::host_state new_state,
         _current_state = determine_host_reachability();
 
       /* reschedule the next check if the host state changed */
-      if (_last_state != _current_state || _last_hard_state != _current_state) {
+      if (_last_state != _current_state || _last_hard_state != _current_state)
         reschedule_check = true;
-
-        /* schedule a re-check of the host at the retry interval because we
-         * can't determine its final state yet... */
-        if (get_state_type() == soft)
-          next_check =
-              (unsigned long)(get_last_check() + (get_retry_interval() *
-                                                  config->interval_length()));
-        /* host has maxed out on retries (or was previously in a hard problem
-         * state), so reschedule the next check at the normal interval */
-        else
-          next_check =
-              (unsigned long)(get_last_check() + (get_check_interval() *
-                                                  config->interval_length()));
-      }
     }
   }
 
@@ -3211,11 +3192,6 @@ int host::process_check_result_3x(enum host::host_state new_state,
       /* set the state type */
       set_state_type(hard);
 
-      /* reschedule the next check at the normal interval */
-      if (reschedule_check)
-        next_check =
-            (unsigned long)(get_last_check() +
-                            (get_check_interval() * config->interval_length()));
     }
     /***** HOST IS NOW DOWN/UNREACHABLE *****/
     else {
@@ -3233,9 +3209,6 @@ int host::process_check_result_3x(enum host::host_state new_state,
         /* host has maxed out on retries, so reschedule the next check at the
          * normal interval */
         reschedule_check = true;
-        next_check =
-            (unsigned long)(get_last_check() +
-                            (get_check_interval() * config->interval_length()));
 
         /* we need to run SYNCHRONOUS checks of all parent hosts to accurately
          * determine the state of this host */
@@ -3364,20 +3337,6 @@ int host::process_check_result_3x(enum host::host_state new_state,
 
         /* reschedule a check of the host */
         reschedule_check = true;
-
-        /* schedule a re-check of the host at the retry interval because we
-         * can't determine its final state yet... */
-        if (get_check_type() == check_active ||
-            config->passive_host_checks_are_soft())
-          next_check =
-              (unsigned long)(get_last_check() + (get_retry_interval() *
-                                                  config->interval_length()));
-
-        /* schedule a re-check of the host at the normal interval */
-        else
-          next_check =
-              (unsigned long)(get_last_check() + (get_check_interval() *
-                                                  config->interval_length()));
 
         /* propagate checks to immediate parents if they are UP */
         /* we do this because a parent host (or grandparent) may have gone down
@@ -3514,9 +3473,10 @@ int host::process_check_result_3x(enum host::host_state new_state,
     engine_logger(dbg_checks, more)
         << "Rescheduling next check of host at " << my_ctime(&next_check);
     log_v2::checks()->debug(
-        "Rescheduling next check of host: {} of last check at {} and next "
-        "check at {}",
-        _name, get_last_check(), next_check);
+        "Rescheduling next check of host: {} of last check at "
+        "{:%Y-%m-%dT%H:%M:%S} and next "
+        "check at {:%Y-%m-%dT%H:%M:%S}",
+        _name, fmt::localtime(get_last_check()), fmt::localtime(next_check));
 
     /* default is to reschedule host check unless a test below fails... */
     set_should_be_scheduled(true);
