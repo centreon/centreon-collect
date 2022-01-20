@@ -57,7 +57,6 @@ message Service {
   int64 next_notification = 33;
   bool no_more_notifications = 34;
   bool notifications_enabled = 35;
-  bool obsess_over = 36;
   string output = 37;
   string long_output = 38;
   bool passive_checks_enabled = 39;

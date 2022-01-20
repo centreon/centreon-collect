@@ -126,8 +126,6 @@ include(cmake/tool.cmake)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 add_definitions("-DASIO_STANDALONE")
 
-#find_package(PkgConfig REQUIRED)
-
 #
 # Get distributions name
 #
@@ -604,7 +602,6 @@ include(cmake/package.cmake)
 # Unit tests.
 #
 # Enable testing.
-option(WITH_TESTING "Generate unit tests." OFF)
 if (WITH_TESTING)
   add_subdirectory(test)
 endif ()

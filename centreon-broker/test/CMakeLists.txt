@@ -17,7 +17,6 @@
 ##
 
 include_directories(${CONAN_INCLUDE_DIRS_GTEST})
-#link_directories(${GTest_LIB_DIRS})
 
 # Tests directory.
 set(TESTS_DIR ${PROJECT_SOURCE_DIR}/core/test)
@@ -107,7 +106,12 @@ add_executable(ut
 
 target_link_libraries(ut roker rokerbase ${TESTS_LIBRARIES} conflictmgr
 	CONAN_PKG::nlohmann_json CONAN_PKG::asio CONAN_PKG::fmt CONAN_PKG::spdlog CONAN_PKG::gtest CONAN_PKG::mariadb-connector-c CONAN_PKG::openssl CONAN_PKG::grpc )
-#	CONAN_PKG::nlohmann_json CONAN_PKG::asio CONAN_PKG::fmt CONAN_PKG::spdlog CONAN_PKG::gtest CONAN_PKG::mariadb-connector-c CONAN_PKG::openssl CONAN_PKG::grpc ${absl_LIBS} )
+
+set_target_properties(
+    ut rpc_client
+    PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests
+)
 
 add_test(NAME tests COMMAND ut)
 

@@ -39,7 +39,7 @@ if (WITH_TESTING)
 
   target_link_libraries(rpc_client_engine cerpc CONAN_PKG::grpc CONAN_PKG::openssl CONAN_PKG::zlib dl pthread)
 
-  add_executable("bin_connector_test_run"
+  add_executable(bin_connector_test_run
       "${TESTS_DIR}/commands/bin_connector_test_run.cc")
   target_link_libraries(bin_connector_test_run cce_core pthread)
 
@@ -123,6 +123,12 @@ if (WITH_TESTING)
   include_directories(${TESTS_DIR})
 
   add_executable(ut_engine ${ut_sources})
+
+  set_target_properties(
+      ut_engine rpc_client_engine bin_connector_test_run
+      PROPERTIES
+      RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests
+  )
 
   add_test(NAME tests COMMAND ut_engine)
 

@@ -439,6 +439,8 @@ int32_t stream::write(const std::shared_ptr<io::data>& data) {
   uint16_t elem = element_of_type(type);
   if (cat == io::neb) {
     (this->*(_neb_processing_table[elem]))(data);
+    if (type == neb::pb_service::static_type())
+      _unified_sql_process_pb_service_status(data);
     if (type == neb::service_status::static_type())
       _unified_sql_process_service_status(data);
   } else if (type == make_type(io::bbdo, bbdo::de_rebuild_rrd_graphs))

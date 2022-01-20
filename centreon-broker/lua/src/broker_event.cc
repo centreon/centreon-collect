@@ -208,6 +208,29 @@ void broker_event::create_as_table(lua_State* L, const io::data& d) {
           case google::protobuf::FieldDescriptor::TYPE_BOOL:
             lua_pushboolean(L, refl->GetBool(*p, f));
             break;
+          case google::protobuf::FieldDescriptor::TYPE_DOUBLE:
+            lua_pushnumber(L, refl->GetDouble(*p, f));
+            break;
+          case google::protobuf::FieldDescriptor::TYPE_INT32:
+            lua_pushinteger(L, refl->GetInt32(*p, f));
+            break;
+          case google::protobuf::FieldDescriptor::TYPE_UINT32:
+            lua_pushinteger(L, refl->GetUInt32(*p, f));
+            break;
+          case google::protobuf::FieldDescriptor::TYPE_INT64:
+            lua_pushinteger(L, refl->GetInt64(*p, f));
+            break;
+          case google::protobuf::FieldDescriptor::TYPE_UINT64:
+            lua_pushinteger(L, refl->GetUInt64(*p, f));
+            break;
+          case google::protobuf::FieldDescriptor::TYPE_ENUM:
+            lua_pushinteger(L, refl->GetEnumValue(*p, f));
+            break;
+          case google::protobuf::FieldDescriptor::TYPE_STRING: {
+            const std::string& s = refl->GetString(*p, f);
+            lua_pushlstring(L, s.c_str(), s.size());
+          } break;
+
           default:
             lua_pushlstring(L, "not_implemented", 15);
             break;

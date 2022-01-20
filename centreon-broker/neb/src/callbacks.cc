@@ -2053,7 +2053,6 @@ int32_t neb::callback_pb_service_status(int callback_type,
   srv.set_next_notification(es->get_next_notification());
   srv.set_no_more_notifications(es->get_no_more_notifications());
   srv.set_notifications_enabled(es->get_notifications_enabled());
-  srv.set_obsess_over(es->get_obsess_over());
   if (!es->get_plugin_output().empty())
     *srv.mutable_output() =
         misc::string::check_string_utf8(es->get_plugin_output());
