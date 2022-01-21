@@ -169,3 +169,40 @@ def engine_log_file_duplicate(log: str, date):
         logger.console("The file '{}' does not exist".format(log))
         return False
 
+def check_reschedule(log: str, date, content):
+    my_date = parser.parse(date)
+    try:
+        f = open(log, "r")
+        lines = f.readlines()
+        p = re.compile(r"\[([^\]]*)\]")
+
+        # Let's find my_date
+        start = 0
+        end = len(lines) - 1
+        idx = start
+        while end - start > 1:
+            idx = (start + end) // 2
+            m = p.match(lines[idx])
+            idx_d = get_date(m.group(1))
+            if my_date <= idx_d:
+                end = idx
+            elif my_date > idx_d:
+                start = idx
+        retry_check = False
+        normal_check = False
+        for c in content:
+            for i in range(idx, len(lines)):
+                line = lines[i]
+                if c in line:
+                    logger.console("\"{}\" found at line {} from {}".format(c, i, idx))
+                    row = line.split()
+                    delta = int(datetime.strptime(row[19], "%Y-%m-%dT%H:%M:%S").timestamp()) - int(datetime.strptime(row[14], "%Y-%m-%dT%H:%M:%S").timestamp())
+                    if delta == 60:
+                        retry_check = True
+                    elif delta == 300:
+                        normal_check = True
+        return retry_check , normal_check
+    except IOError:
+        logger.console("The file '{}' does not exist".format(log))
+        return False
+
