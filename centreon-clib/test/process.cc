@@ -38,7 +38,7 @@ TEST(ClibProcess, ProcessEnv) {
   char* env[] = {(char*)"key1=value1", (char*)"key2=value2",
                  (char*)"key3=value3", NULL};
   p.exec(
-      "./test/bin_test_process_output check_env "
+      "./tests/bin_test_process_output check_env "
       "key1=value1 key2=value2 key3=value3",
       env);
   p.wait();
@@ -59,7 +59,7 @@ TEST(ClibProcess, ProcessEnvSerial) {
     char* env[] = {(char*)"key1=value1", (char*)"key2=value2",
                    (char*)"key3=value3", NULL};
     p.exec(
-        "./test/bin_test_process_output check_env "
+        "./tests/bin_test_process_output check_env "
         "key1=value1 key2=value2 key3=value3",
         env);
     p.wait();
@@ -82,7 +82,7 @@ TEST(ClibProcess, ProcessEnvRep) {
     char* env[] = {(char*)"key1=value1", (char*)"key2=value2",
                    (char*)"key3=value3", NULL};
     p.exec(
-        "./test/bin_test_process_output check_env "
+        "./tests/bin_test_process_output check_env "
         "key1=value1 key2=value2 key3=value3",
         env);
     p.wait();
@@ -107,7 +107,7 @@ TEST(ClibProcess, ProcessEnvMT) {
       char* env[] = {(char*)"key1=value1", (char*)"key2=value2",
                      (char*)"key3=value3", NULL};
       p.exec(
-          "./test/bin_test_process_output check_env "
+          "./tests/bin_test_process_output check_env "
           "key1=value1 key2=value2 key3=value3",
           env);
       p.wait();
@@ -129,7 +129,7 @@ TEST(ClibProcess, ProcessEnvMT) {
  */
 TEST(ClibProcess, ProcessKill) {
   process p;
-  p.exec("./test/bin_test_process_output check_sleep 1");
+  p.exec("./tests/bin_test_process_output check_sleep 1");
   p.kill();
   timestamp start(timestamp::now());
   p.wait();
@@ -148,7 +148,7 @@ TEST(ClibProcess, ProcessKillRep) {
   int sum = 0;
   process p;
   for (int i = 0; i < count; i++) {
-    p.exec("./test/bin_test_process_output check_sleep 1");
+    p.exec("./tests/bin_test_process_output check_sleep 1");
     p.kill();
     timestamp start(timestamp::now());
     p.wait();
@@ -169,7 +169,7 @@ TEST(ClibProcess, ProcessKillSerial) {
   int sum = 0;
   for (int i = 0; i < count; i++) {
     process p;
-    p.exec("./test/bin_test_process_output check_sleep 1");
+    p.exec("./tests/bin_test_process_output check_sleep 1");
     p.kill();
     timestamp start(timestamp::now());
     p.wait();
@@ -192,7 +192,7 @@ TEST(ClibProcess, ProcessKillMT) {
   for (int i = 0; i < count; i++) {
     v.emplace_back([&sum] {
       process p;
-      p.exec("./test/bin_test_process_output check_sleep 1");
+      p.exec("./tests/bin_test_process_output check_sleep 1");
       p.kill();
       timestamp start(timestamp::now());
       p.wait();
@@ -216,7 +216,7 @@ TEST(ClibProcess, ProcessKillMT) {
  */
 TEST(ClibProcess, ProcessStdout) {
   process p(nullptr, false, true, false);
-  p.exec("./test/bin_test_process_output check_stdout 0");
+  p.exec("./tests/bin_test_process_output check_stdout 0");
   std::string output;
   p.read(output);
   p.wait();
@@ -235,7 +235,7 @@ TEST(ClibProcess, ProcessStdoutRep) {
   int sum = 0;
   process p(nullptr, false, true, false);
   for (int i = 0; i < count; i++) {
-    p.exec("./test/bin_test_process_output check_stdout 0");
+    p.exec("./tests/bin_test_process_output check_stdout 0");
     std::string output;
     p.read(output);
     p.wait();
@@ -256,7 +256,7 @@ TEST(ClibProcess, ProcessStdoutSerial) {
   int sum = 0;
   for (int i = 0; i < count; i++) {
     process p(nullptr, false, true, false);
-    p.exec("./test/bin_test_process_output check_stdout 0");
+    p.exec("./tests/bin_test_process_output check_stdout 0");
     std::string output;
     p.read(output);
     p.wait();
@@ -268,7 +268,7 @@ TEST(ClibProcess, ProcessStdoutSerial) {
 TEST(ClibProcess, ProcessOutput) {
   constexpr int size = 10 * 1024;
 
-  std::string cmd("./test/bin_test_process_output check_output out");
+  std::string cmd("./tests/bin_test_process_output check_output out");
 
   process p;
   p.exec(cmd);
@@ -301,7 +301,7 @@ TEST(ClibProcess, ProcessOutput) {
 TEST(ClibProcess, ProcessErr) {
   constexpr int size = 10 * 1024;
 
-  std::string cmd("./test/bin_test_process_output check_output err");
+  std::string cmd("./tests/bin_test_process_output check_output err");
 
   process p;
   p.exec(cmd);
@@ -333,14 +333,14 @@ TEST(ClibProcess, ProcessErr) {
 
 TEST(ClibProcess, ProcessReturn) {
   process p;
-  p.exec("./test/bin_test_process_output check_return 42");
+  p.exec("./tests/bin_test_process_output check_return 42");
   p.wait();
   ASSERT_EQ(p.exit_code(), 42);
 }
 
 TEST(ClibProcess, ProcessTerminate) {
   process p;
-  p.exec("./test/bin_test_process_output check_sleep 1");
+  p.exec("./tests/bin_test_process_output check_sleep 1");
   p.terminate();
   timestamp start(timestamp::now());
   p.wait();
@@ -350,7 +350,7 @@ TEST(ClibProcess, ProcessTerminate) {
 
 TEST(ClibProcess, ProcessTimeout) {
   process p;
-  p.exec("./test/bin_test_process_output check_sleep 5", NULL, 1);
+  p.exec("./tests/bin_test_process_output check_sleep 5", NULL, 1);
   p.wait();
   timestamp exectime(p.end_time() - p.start_time());
   ASSERT_LT(exectime.to_seconds(), 2);
@@ -358,7 +358,7 @@ TEST(ClibProcess, ProcessTimeout) {
 
 TEST(ClibProcess, ProcessWaitTimeout) {
   process p;
-  p.exec("./test/bin_test_process_output check_sleep 1");
+  p.exec("./tests/bin_test_process_output check_sleep 1");
   ASSERT_FALSE(p.wait(500) == true);
   ASSERT_FALSE(p.wait(1500) == false);
 }

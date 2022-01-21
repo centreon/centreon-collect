@@ -73,4 +73,14 @@ if (WITH_TESTING)
   add_dependencies(ut_connector centreon_clib)
   target_link_libraries(ut_connector CONAN_PKG::gtest centreon_clib ${PERL_LIBRARIES} CONAN_PKG::fmt CONAN_PKG::spdlog ${LIBSSH2_LIBRARIES})
 
+set_target_properties(
+    ut_connector
+    PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/tests
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/tests
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR}/tests
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/tests
+)
+
 endif (WITH_TESTING)

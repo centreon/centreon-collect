@@ -55,10 +55,9 @@ class BrokerRpc : public ::testing::Test {
   std::list<std::string> execute(const std::string& command) {
     std::list<std::string> retval;
     char path[1024];
-    std::ostringstream oss;
-    oss << "test/rpc_client " << command;
+    std::string client{fmt::format("tests/rpc_client {}", command)};
 
-    FILE* fp = popen(oss.str().c_str(), "r");
+    FILE* fp = popen(client.c_str(), "r");
     while (fgets(path, sizeof(path), fp) != nullptr) {
       retval.emplace_back(path);
     }

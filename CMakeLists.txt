@@ -82,20 +82,16 @@ add_subdirectory(centreon-engine)
 add_subdirectory(centreon-connector)
 
 add_custom_target(test-broker
-    WORKING_DIRECTORY centreon-broker
-    COMMAND test/ut
+    COMMAND tests/ut_broker
     )
 add_custom_target(test-engine
-    WORKING_DIRECTORY centreon-engine
     COMMAND tests/ut_engine
     )
 add_custom_target(test-clib
-    WORKING_DIRECTORY centreon-clib
-    COMMAND test/ut-clib
+    COMMAND tests/ut_clib
     )
 add_custom_target(test-connector
-    WORKING_DIRECTORY centreon-connector
-    COMMAND ut_connector
+    COMMAND tests/ut_connector
     )
 
 add_custom_target(test

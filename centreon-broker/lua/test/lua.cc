@@ -2081,7 +2081,7 @@ TEST_F(LuaTest, BrokerPbServiceStatus) {
   RemoveFile("/tmp/event_log");
 }
 
-TEST_F(LuaTest, BrokerApi2PbServiceStatus) {
+TEST_F(LuaTest, BrokerApi2PbServiceStatusWithIndex) {
   config::applier::modules modules;
   modules.load_file("./lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
@@ -2127,6 +2127,49 @@ TEST_F(LuaTest, BrokerApi2PbServiceStatus) {
   ASSERT_NE(lst.find("service_id = 288"), std::string::npos);
   ASSERT_NE(lst.find("host_id = 1899"), std::string::npos);
   ASSERT_NE(lst.find("last_check = 123456"), std::string::npos);
+  RemoveFile(filename);
+  RemoveFile("/tmp/event_log");
+}
+
+TEST_F(LuaTest, BrokerApi2PbServiceStatusWithNext) {
+  config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  auto svc = std::make_shared<neb::pb_service>();
+  auto& obj = svc->mut_obj();
+  obj.set_host_id(1899);
+  obj.set_service_id(288);
+  *obj.mutable_service_description() = "foo bar";
+  *obj.mutable_check_command() = "super command";
+  *obj.mutable_output() = "cool";
+  obj.set_current_state(Service_State_CRITICAL);
+  obj.set_check_interval(7);
+  obj.set_check_type(Service_CheckType_CHECK_ACTIVE);
+  obj.set_last_check(123459);
+  std::string filename("/tmp/cache_test.lua");
+  CreateScript(filename,
+               "broker_api_version = 2\n"
+               "function init(conf)\n"
+               "  broker_log:set_parameters(3, '/tmp/event_log')\n"
+               "end\n\n"
+               "function write(d)\n"
+               "  for i,v in pairs(d) do\n"
+               "    broker_log:info(0, i .. ' => ' .. tostring(v))\n"
+               "  end\n"
+               "  return true\n"
+               "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  binding->write(svc);
+  std::string lst(ReadFile("/tmp/event_log"));
+  ASSERT_NE(lst.find("description => foo bar"), std::string::npos);
+  ASSERT_NE(lst.find("check_command => super command"), std::string::npos);
+  ASSERT_NE(lst.find("output => cool"), std::string::npos);
+  ASSERT_NE(lst.find("state => 2"), std::string::npos);
+  ASSERT_NE(lst.find("check_interval => 7"), std::string::npos);
+  ASSERT_NE(lst.find("check_type => 0"), std::string::npos);
+  ASSERT_NE(lst.find("service_id => 288"), std::string::npos);
+  ASSERT_NE(lst.find("host_id => 1899"), std::string::npos);
+  ASSERT_NE(lst.find("last_check => 123459"), std::string::npos);
   RemoveFile(filename);
   RemoveFile("/tmp/event_log");
 }
