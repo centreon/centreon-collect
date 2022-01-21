@@ -3018,7 +3018,7 @@ int host::process_check_result_3x(enum host::host_state new_state,
   host::host_state parent_state = host::state_up;
   time_t current_time = 0L;
   time_t next_check{get_last_check() +
-                    (get_check_interval() * config->interval_length())};
+                    get_check_interval() * config->interval_length()};
   time_t preferred_time = 0L;
   time_t next_valid_time = 0L;
   int run_async_check = true;
