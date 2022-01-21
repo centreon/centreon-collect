@@ -269,7 +269,6 @@ def check_reschedule(log: str, date, content: str):
         logger.console("The file '{}' does not exist".format(log))
         return False
 
-
 def check_reschedule_with_timeout(log: str, date, content: str, timeout: int):
     limit = time.time() + timeout
     c = ""
