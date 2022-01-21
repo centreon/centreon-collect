@@ -12,12 +12,17 @@ From a Centreon host, you need to install Robot Framework
 
 ```
 pip3 install -U robotframework robotframework-databaselibrary pymysql
+
+yum install "Development Tools" python3-devel -y
+
+pip3 install grpcio==1.33.2 grpcio_tools==1.33.2
+
+./init-proto.sh
 ```
 
 Then to run tests, you can use the following commands
 
 ```
-cd centreon-tests/robot
 robot .
 ```
 
