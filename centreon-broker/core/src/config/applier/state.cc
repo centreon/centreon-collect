@@ -49,6 +49,23 @@ state::state() : _poller_id(0), _rpc_port(0), _bbdo_version{2u, 0u, 0u} {}
  *  @param[in] run_mux Set to true if multiplexing must be run.
  */
 void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
+  /* With bbdo 3.0, unified_sql must replace sql/storage */
+  if (std::get<0>(s.bbdo_version()) >= 3) {
+    auto& lst = s.module_list();
+    bool found_sql =
+        std::find(lst.begin(), lst.end(), "80-sql.so") != lst.end();
+    bool found_storage =
+        std::find(lst.begin(), lst.end(), "20-storage.so") != lst.end();
+    if (found_sql || found_storage) {
+      log_v2::config()->error(
+          "Configuration check error: bbdo versions >= 3.0.0 need the "
+          "unified_sql module to be configured.");
+      throw msg_fmt(
+          "Configuration check error: bbdo versions >= 3.0.0 need the "
+          "unified_sql module to be configured.");
+    }
+  }
+
   // Sanity checks.
   static char const* const allowed_chars(
       "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 -_.");

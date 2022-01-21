@@ -487,6 +487,25 @@ def broker_config_clear_outputs_except(name, ex : list):
     f.write(json.dumps(conf, indent=2))
     f.close()
 
+
+def broker_config_add_item(name, key, value):
+    if name == 'central':
+        filename = "central-broker.json"
+    elif name == 'module':
+        filename = "central-module.json"
+    else:
+        filename = "central-rrd.json"
+
+    f = open("/etc/centreon-broker/{}".format(filename), "r")
+    buf = f.read()
+    f.close()
+    conf = json.loads(buf)
+    conf["centreonBroker"][key] = value
+    f = open("/etc/centreon-broker/{}".format(filename), "w")
+    f.write(json.dumps(conf, indent=2))
+    f.close()
+
+
 def broker_config_add_lua_output(name, output, luafile):
     if name == 'central':
         filename = "central-broker.json"
