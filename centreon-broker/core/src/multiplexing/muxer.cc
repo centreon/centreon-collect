@@ -54,7 +54,6 @@ muxer::muxer(std::string name,
       _write_filters_str{misc::dump_filters(_write_filters)},
       _persistent(persistent),
       _events_size{0u},
-      _stats{stats::center::instance().register_muxer(_name)},
       _last_stats{std::time(nullptr)} {
   // Load head queue file back in memory.
   std::lock_guard<std::mutex> lck(_mutex);
@@ -463,13 +462,9 @@ void muxer::_update_stats() noexcept {
     /* Since _mutex is locked, we can get interesting values and copy them
      * in the capture. Then the execute() function can put them in the stats
      * object asynchronously. */
-    stats::center::instance().execute(
-        [stats = _stats, name = _file ? _queue_file_name : "",
-         size = _events_size, unack = std::distance(_events.begin(), _pos)]() {
-          stats->set_queue_file(std::move(name));
-          stats->set_total_events(size);
-          stats->set_unacknowledged_events(unack);
-        });
+    stats::center::instance().update_muxer(
+        _name, _file ? _queue_file_name : "", _events_size,
+        std::distance(_events.begin(), _pos));
   }
 }
 

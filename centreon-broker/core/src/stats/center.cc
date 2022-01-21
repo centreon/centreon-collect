@@ -135,26 +135,6 @@ bool center::unregister_mysql_connection(SqlConnectionStats* connection) {
 }
 
 /**
- * @brief If the muxer needs to write statistics, it primarily has to
- * call this function to be registered in the statistic center and to get
- * a pointer for its statistics. It is prohibited to directly write into this
- * pointer. We must use the center member functions for this purpose.
- *
- * @param name
- *
- * @return A pointer to the muxer statistics.
- */
-MuxerStats* center::register_muxer(const std::string& name) {
-  std::promise<MuxerStats*> p;
-  std::future<MuxerStats*> retval = p.get_future();
-  _strand.post([this, &p, name] {
-    auto ms = &(*_stats.mutable_processing()->mutable_muxers())[name];
-    p.set_value(ms);
-  });
-  return retval.get();
-}
-
-/**
  * @brief
  *
  * @param name
@@ -169,6 +149,21 @@ bool center::unregister_muxer(const std::string& name) {
     p.set_value(true);
   });
   return retval.get();
+}
+
+void center::update_muxer(std::string name,
+                          std::string queue_file,
+                          uint32_t size,
+                          uint32_t unack) {
+  _strand.post([this, name = std::move(name), queue = std::move(queue_file),
+                size, unack] {
+    auto ms = &(*_stats.mutable_processing()->mutable_muxers())[name];
+    if (ms) {
+      ms->set_queue_file(std::move(queue));
+      ms->set_total_events(size);
+      ms->set_unacknowledged_events(unack);
+    }
+  });
 }
 
 /**

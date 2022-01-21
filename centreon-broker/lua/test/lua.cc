@@ -2173,3 +2173,113 @@ TEST_F(LuaTest, BrokerApi2PbServiceStatusWithNext) {
   RemoveFile(filename);
   RemoveFile("/tmp/event_log");
 }
+
+TEST_F(LuaTest, BrokerApi2PbServiceStatusJsonEncode) {
+  config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  auto svc = std::make_shared<neb::pb_service>();
+  auto& obj = svc->mut_obj();
+  obj.set_host_id(1899);
+  obj.set_service_id(288);
+  *obj.mutable_service_description() = "foo bar";
+  *obj.mutable_check_command() = "super command";
+  *obj.mutable_output() = "cool";
+  obj.set_current_state(Service_State_CRITICAL);
+  obj.set_check_interval(7);
+  obj.set_check_type(Service_CheckType_CHECK_ACTIVE);
+  obj.set_last_check(123459);
+  std::string filename("/tmp/cache_test.lua");
+  CreateScript(filename,
+               "broker_api_version = 2\n"
+               "function init(conf)\n"
+               "  broker_log:set_parameters(3, '/tmp/event_log')\n"
+               "end\n\n"
+               "function write(d)\n"
+               "  broker_log:info(0, broker.json_encode(d))\n"
+               "  return true\n"
+               "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  binding->write(svc);
+  std::string lst(ReadFile("/tmp/event_log"));
+  ASSERT_NE(
+      lst.find(
+          "INFO: { \"_type\": 65563, \"category\": 1, \"element\": 27, "
+          "\"host_id\":1899, \"service_id\":288, \"acknowledged\":false, "
+          "\"acknowledgement_type\":0, \"active_checks_enabled\":false, "
+          "\"downtime_depth\":0, \"check_command\":\"super command\", "
+          "\"check_interval\":7, \"check_period\":\"\", \"check_type\":0, "
+          "\"current_check_attempt\":0, \"current_state\":2, "
+          "\"event_handler_enabled\":false, \"event_handler\":\"\", "
+          "\"execution_time\":0, \"flap_detection_enabled\":false, "
+          "\"has_been_checked\":false, \"is_flapping\":false, "
+          "\"last_check\":123459, \"last_hard_state\":0, "
+          "\"last_hard_state_change\":0, \"last_notification\":0, "
+          "\"notification_number\":0, \"last_state_change\":0, "
+          "\"last_time_ok\":0, \"last_time_warning\":0, "
+          "\"last_time_critical\":0, \"last_time_unknown\":0, "
+          "\"last_update\":0, \"latency\":0, \"max_check_attempts\":0, "
+          "\"next_check\":0, \"next_notification\":0, "
+          "\"no_more_notifications\":false, \"notifications_enabled\":false, "
+          "\"output\":\"cool\", \"long_output\":\"\", "
+          "\"passive_checks_enabled\":false, \"percent_state_change\":0, "
+          "\"perf_data\":\"\", \"retry_interval\":0, \"host_name\":\"\", "
+          "\"service_description\":\"foo bar\", \"should_be_scheduled\":false, "
+          "\"state_type\":0}"),
+      std::string::npos);
+  RemoveFile(filename);
+  RemoveFile("/tmp/event_log");
+}
+
+TEST_F(LuaTest, BrokerPbServiceStatusJsonEncode) {
+  config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  auto svc = std::make_shared<neb::pb_service>();
+  auto& obj = svc->mut_obj();
+  obj.set_host_id(1899);
+  obj.set_service_id(288);
+  *obj.mutable_service_description() = "foo bar";
+  *obj.mutable_check_command() = "super command";
+  *obj.mutable_output() = "cool";
+  obj.set_current_state(Service_State_CRITICAL);
+  obj.set_check_interval(7);
+  obj.set_check_type(Service_CheckType_CHECK_ACTIVE);
+  obj.set_last_check(123459);
+  std::string filename("/tmp/cache_test.lua");
+  CreateScript(filename,
+               "function init(conf)\n"
+               "  broker_log:set_parameters(3, '/tmp/event_log')\n"
+               "end\n\n"
+               "function write(d)\n"
+               "  broker_log:info(0, broker.json_encode(d))\n"
+               "  return true\n"
+               "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  binding->write(svc);
+  std::string lst(ReadFile("/tmp/event_log"));
+  ASSERT_NE(
+      lst.find(
+          "INFO: "
+          "{\"active_checks_enabled\":false,\"flap_detection_enabled\":false,"
+          "\"acknowledgement_type\":0,\"check_command\":\"super "
+          "command\",\"last_state_change\":0,\"next_check\":0,\"passive_checks_"
+          "enabled\":false,\"has_been_checked\":false,\"last_time_warning\":0,"
+          "\"downtime_depth\":0,\"host_id\":1899,\"last_time_ok\":0,\"long_"
+          "output\":\"\",\"last_update\":0,\"next_notification\":0,\"last_"
+          "check\":123459,\"execution_time\":0,\"acknowledged\":false,\"_"
+          "type\":65563,\"no_more_notifications\":false,\"max_check_attempts\":"
+          "0,\"should_be_scheduled\":false,\"last_notification\":0,\"check_"
+          "type\":0,\"last_hard_state_change\":0,\"host_name\":\"\",\"retry_"
+          "interval\":0,\"category\":1,\"perf_data\":\"\",\"check_interval\":7,"
+          "\"percent_state_change\":0,\"output\":\"cool\",\"is_flapping\":"
+          "false,\"notifications_enabled\":false,\"last_hard_state\":0,\"state_"
+          "type\":0,\"current_check_attempt\":0,\"current_state\":2,\"event_"
+          "handler\":\"\",\"element\":27,\"last_time_unknown\":0,\"last_time_"
+          "critical\":0,\"event_handler_enabled\":false,\"notification_"
+          "number\":0,\"check_period\":\"\",\"service_description\":\"foo "
+          "bar\",\"service_id\":288,\"latency\":0}"),
+      std::string::npos);
+  RemoveFile(filename);
+  RemoveFile("/tmp/event_log");
+}
