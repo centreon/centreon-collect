@@ -30,7 +30,7 @@ BERD1
 	${start}=	Get Current Date
 	Start Broker
 	Start Engine
-	${content}=	Create List	lua: starting internal thread.
+	${content}=	Create List	lua: initializing the Lua virtual machine
 	${result}=	Find In Log with timeout	${logCbd}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in cbd
 	${result}=	Find In Log with timeout	${logModule}	${start}	${content}	30
@@ -66,7 +66,7 @@ BERD2
 	${start}=	Get Current Date
 	Start Broker
 	Start Engine
-	${content}=	Create List	lua: starting internal thread.
+	${content}=	Create List	lua: initializing the Lua virtual machine
 	${result}=	Find In Log with timeout	${logCbd}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in cbd
 	${result}=	Find In Log with timeout	${logModule}	${start}	${content}	30
@@ -101,7 +101,7 @@ BERDUC1
 	${start}=	Get Current Date
 	Start Broker
 	Start Engine
-	${content}=	Create List	lua: starting internal thread.
+	${content}=	Create List	lua: initializing the Lua virtual machine
 	${result}=	Find In Log with timeout	${logCbd}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in cbd
 	${result}=	Find In Log with timeout	${logModule}	${start}	${content}	30
@@ -135,7 +135,7 @@ BERDUCU1
 	${start}=	Get Current Date
 	Start Broker
 	Start Engine
-	${content}=	Create List	lua: starting internal thread.
+	${content}=	Create List	lua: initializing the Lua virtual machine
 	${result}=	Find In Log with timeout	${logCbd}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in cbd
 	${result}=	Find In Log with timeout	${logModule}	${start}	${content}	30
@@ -168,7 +168,7 @@ BERDUC2
 	${start}=	Get Current Date
 	Start Broker
 	Start Engine
-	${content}=	Create List	lua: starting internal thread.
+	${content}=	Create List	lua: initializing the Lua virtual machine
 	${result}=	Find In Log with timeout	${logCbd}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in cbd
 	${result}=	Find In Log with timeout	${logModule}	${start}	${content}	30
@@ -202,7 +202,7 @@ BERDUCU2
 	${start}=	Get Current Date
 	Start Broker
 	Start Engine
-	${content}=	Create List	lua: starting internal thread.
+	${content}=	Create List	lua: initializing the Lua virtual machine
 	${result}=	Find In Log with timeout	${logCbd}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in cbd
 	${result}=	Find In Log with timeout	${logModule}	${start}	${content}	30
