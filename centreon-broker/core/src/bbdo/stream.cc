@@ -35,6 +35,7 @@
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "com/centreon/broker/stats/center.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
@@ -599,7 +600,10 @@ stream::stream(bool is_input,
       _ack_limit(1000),
       _events_received_since_last_ack(0),
       _extensions{extensions},
-      _bbdo_version{config::applier::state::instance().bbdo_version()} {}
+      _bbdo_version{config::applier::state::instance().bbdo_version()},
+      _last_stats{std::time(nullptr)} {
+        _update_stats();
+      }
 
 /**
  * @brief All the mecanism behind this stream is stopped once this method is
@@ -634,6 +638,9 @@ int32_t stream::stop() {
   /* We return the number of events handled by our stream. */
   int32_t retval = _acknowledged_events;
   _acknowledged_events = 0;
+
+  _update_stats();
+
   return retval;
 }
 
@@ -646,6 +653,9 @@ int stream::flush() {
   _substream->flush();
   int retval = _acknowledged_events;
   _acknowledged_events -= retval;
+
+  _update_stats();
+
   return retval;
 }
 
@@ -849,6 +859,8 @@ void stream::negotiate(stream::negotiation_type neg) {
     }
   }
 
+  _update_stats();
+
   // Stream has now negotiated.
   _negotiated = true;
   log_v2::bbdo()->trace("Negotiation done.");
@@ -933,6 +945,9 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
     ++_events_received_since_last_ack;
   if (_events_received_since_last_ack >= _ack_limit)
     send_event_acknowledgement();
+
+  _update_stats();
+
   return !timed_out;
 }
 
@@ -1108,6 +1123,9 @@ bool stream::_read_any(std::shared_ptr<io::data>& d, time_t deadline) {
   } catch (const exceptions::timeout& e) {
     return false;
   }
+
+  _update_stats();
+
   return false;
 }
 
@@ -1153,6 +1171,7 @@ void stream::_read_packet(size_t size, time_t deadline) {
  */
 void stream::set_ack_limit(uint32_t limit) {
   _ack_limit = limit;
+  _update_stats();
 }
 
 /**
@@ -1197,6 +1216,23 @@ void stream::statistics(nlohmann::json& tree) const {
     _substream->statistics(tree);
 }
 
+void stream::_update_stats() noexcept {
+  std::time_t now{std::time(nullptr)};
+  if (now - _last_stats > 0 && _stats) {
+    _last_stats = now;
+    stats::center::instance().execute([stats = _stats, bbdo_ial = _ack_limit,
+      bbdo_ue = _events_received_since_last_ack]() {
+        stats->set_bbdo_unacknowledged_events(bbdo_ue);
+        stats->set_bbdo_input_ack_limit(bbdo_ial);
+      });
+  }
+}
+
+void stream::set_stats(QueueFileStats *stats) {
+  _stats = stats;
+  _update_stats();
+}
+
 void stream::_write(std::shared_ptr<io::data> const& d) {
   assert(d);
 
@@ -1221,6 +1257,9 @@ int32_t stream::write(std::shared_ptr<io::data> const& d) {
 
   int32_t retval = _acknowledged_events;
   _acknowledged_events -= retval;
+
+  _update_stats();
+
   return retval;
 }
 
@@ -1231,6 +1270,7 @@ int32_t stream::write(std::shared_ptr<io::data> const& d) {
  */
 void stream::acknowledge_events(uint32_t events) {
   _acknowledged_events += events;
+  _update_stats();
 }
 
 /**
@@ -1245,4 +1285,5 @@ void stream::send_event_acknowledgement() {
     _write(acknowledgement);
     _events_received_since_last_ack = 0;
   }
+  _update_stats();
 }

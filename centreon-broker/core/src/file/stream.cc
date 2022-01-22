@@ -24,6 +24,7 @@
 
 #include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/misc/string.hh"
+#include "com/centreon/broker/stats/center.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::file;
@@ -44,7 +45,10 @@ stream::stream(splitter* file)
       _file(file),
       _last_read_offset(0),
       _last_time(0),
-      _last_write_offset(0) {}
+      _last_write_offset(0),
+      _last_stats{std::time(nullptr)} {
+        _update_stats();
+      }
 
 /**
  *  Destructor.
@@ -85,6 +89,8 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
     data->resize(rb);
     d.reset(data.release());
   }
+
+  _update_stats();
 
   return true;
 }
@@ -153,6 +159,34 @@ void stream::statistics(nlohmann::json& tree) const {
   }
 }
 
+void stream::_update_stats() noexcept {
+  std::time_t now{std::time(nullptr)};
+  if (now - _last_stats > 0 && _stats) {
+    _last_stats = now;
+    stats::center::instance().execute([stats = _stats, mfs = _file->get_max_file_size(),
+      rid = _file->get_rid(), roffset = _file->get_roffset(), wid = _file->get_wid(), woffset = _file->get_woffset()]() {
+        stats->set_file_max_size((mfs != std::numeric_limits<long>::max()) ?
+          std::to_string(static_cast<double>(mfs)) : "unlimited");
+        //stats->set_file_expected_terminated_at();
+        const long long froffset(roffset + rid * static_cast<long long>(mfs));
+        const long long fwoffset(woffset + wid * static_cast<long long>(mfs));
+        if ((rid != wid && mfs == std::numeric_limits<long>::max()) || !fwoffset)
+          stats->set_file_percent_processed("unknown");
+        else
+          stats->set_file_percent_processed(std::to_string(100.0 * froffset / fwoffset));
+        stats->set_file_read_offset(static_cast<double>(roffset));
+        stats->set_file_read_path(rid);
+        stats->set_file_write_offset(static_cast<double>(woffset));
+        stats->set_file_write_path(wid);
+      });
+  }
+}
+
+void stream::set_stats(QueueFileStats *stats) {
+  _stats = stats;
+  _update_stats();
+}
+
 /**
  *  Write data to the file.
  *
@@ -182,6 +216,8 @@ int32_t stream::write(std::shared_ptr<io::data> const& d) {
       memory += wb;
     }
   }
+
+  _update_stats();
 
   return 1;
 }

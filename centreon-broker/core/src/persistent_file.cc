@@ -31,13 +31,14 @@ using namespace com::centreon::broker;
  *
  *  @param[in] path  Path of the persistent file.
  */
-persistent_file::persistent_file(const std::string& path)
+persistent_file::persistent_file(const std::string& path, QueueFileStats *stats)
     : io::stream("persistent_file") {
   // On-disk file.
   file::opener opnr;
   opnr.set_filename(path);
   std::shared_ptr<io::stream> fs(opnr.open());
   _splitter = std::static_pointer_cast<file::stream>(fs);
+  _splitter->set_stats(stats);
 
   // Compression layer.
   std::shared_ptr<compression::stream> cs(
@@ -46,6 +47,7 @@ persistent_file::persistent_file(const std::string& path)
 
   // BBDO layer.
   std::shared_ptr<bbdo::stream> bs(std::make_shared<bbdo::stream>(true));
+  bs->set_stats(stats);
   bs->set_coarse(true);
   bs->set_negotiate(false);
   bs->set_substream(cs);

@@ -39,6 +39,8 @@ class stream : public io::stream {
   mutable long long _last_read_offset;
   mutable time_t _last_time;
   mutable long long _last_write_offset;
+  QueueFileStats *_stats;
+  std::time_t _last_stats;
 
  public:
   stream(splitter* file);
@@ -49,6 +51,10 @@ class stream : public io::stream {
   bool read(std::shared_ptr<io::data>& d, time_t deadline) override;
   void remove_all_files();
   void statistics(nlohmann::json& tree) const override;
+
+  void _update_stats() noexcept;
+  void set_stats(QueueFileStats *stats = nullptr);
+
   int32_t write(std::shared_ptr<io::data> const& d) override;
   int32_t stop() override;
 };

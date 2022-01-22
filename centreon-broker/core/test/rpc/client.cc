@@ -134,10 +134,17 @@ int main(int argc, char** argv) {
     for (int16_t cpt = 2; cpt < argc; cpt++) {
       MuxerStats response;
       status += client.GetMuxerStats(&response, argv[cpt]) ? 0 : 1;
-      std::cout << "name: " << argv[cpt]
-                << ", queue_file: " << response.queue_file()
-                << ", unacknowledged_events: "
-                << response.unacknowledged_events() << std::endl;
+      std::cout << "name: " << argv[cpt] << ", unacknowledged_events: " << response.unacknowledged_events()
+        << ", queue_file_name: " << response.queue_file().name()
+        << ", queue_file_bbdo_unacknowledged_events: " << response.queue_file().bbdo_unacknowledged_events()
+        << ", queue_file_bbdo_input_ack_limit: " << response.queue_file().bbdo_input_ack_limit()
+        << ", queue_file_file_max_size: " << response.queue_file().file_max_size()
+        << ", queue_file_file_expected_terminated_at: " << response.queue_file().file_expected_terminated_at()
+        << ", queue_file_file_percent_processed: " << response.queue_file().file_percent_processed()
+        << ", queue_file_file_read_offset: " << response.queue_file().file_read_offset()
+        << ", queue_file_file_read_path: " << response.queue_file().file_read_path()
+        << ", queue_file_file_write_offset: " << response.queue_file().file_write_offset()
+        << ", queue_file_file_write_path: " << response.queue_file().file_write_path() << std::endl;
     }
   } else
     std::cout << "warning : not implemented" << std::endl;

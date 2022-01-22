@@ -157,33 +157,57 @@ TEST_F(BrokerRpc, GetMuxerStats) {
   brokerrpc brpc("0.0.0.0", 40000, "test");
   MuxerStats* _stats;
   std::vector<std::string> vectests{
-      "name: mx1, queue_file: qufl_, "
-      "unacknowledged_events: "
-      "1789\n",
-      "name: mx2, queue_file: _qufl, "
-      "unacknowledged_events: "
-      "1790\n",
-      "name: mx3, queue_file: _qufl_, "
-      "unacknowledged_events: "
-      "1791\n"};
+      "name: mx1, unacknowledged_events: 1789, queue_file_name: qufl1, queue_file_bbdo_unacknowledged_events: 100.1, "
+        "queue_file_bbdo_input_ack_limit: 100.2, queue_file_file_max_size: fms1, queue_file_file_expected_terminated_at: feta1, "
+        "queue_file_file_percent_processed: fpp1, queue_file_file_read_offset: 100.3, queue_file_file_read_path: 100100, "
+        "queue_file_file_write_offset: 100.4, queue_file_file_write_path: 100200\n",
+      "name: mx2, unacknowledged_events: 1790, queue_file_name: qufl2, queue_file_bbdo_unacknowledged_events: 200.1, "
+        "queue_file_bbdo_input_ack_limit: 200.2, queue_file_file_max_size: fms2, queue_file_file_expected_terminated_at: feta2, "
+        "queue_file_file_percent_processed: fpp2, queue_file_file_read_offset: 200.3, queue_file_file_read_path: 200100, "
+        "queue_file_file_write_offset: 200.4, queue_file_file_write_path: 200200\n",
+      "name: mx3, unacknowledged_events: 1791, queue_file_name: qufl3, queue_file_bbdo_unacknowledged_events: 300.1, "
+        "queue_file_bbdo_input_ack_limit: 300.2, queue_file_file_max_size: fms3, queue_file_file_expected_terminated_at: feta3, "
+        "queue_file_file_percent_processed: fpp3, queue_file_file_read_offset: 300.3, queue_file_file_read_path: 300100, "
+        "queue_file_file_write_offset: 300.4, queue_file_file_write_path: 300200\n"};
 
   _stats = stats::center::instance().register_muxer("mx1");
-  stats::center::instance().update(_stats->mutable_queue_file(),
-                                   std::string("qufl_"));
-  stats::center::instance().update(&MuxerStats::set_unacknowledged_events,
-                                   _stats, 1789u);
+  stats::center::instance().update(&MuxerStats::set_unacknowledged_events, _stats, 1789u);
+  stats::center::instance().update(_stats->mutable_queue_file()->mutable_name(), std::string("qufl1"));
+  stats::center::instance().update(&QueueFileStats::set_bbdo_unacknowledged_events, _stats->mutable_queue_file(), 100.1);
+  stats::center::instance().update(&QueueFileStats::set_bbdo_input_ack_limit, _stats->mutable_queue_file(), 100.2);
+  stats::center::instance().update(_stats->mutable_queue_file()->mutable_file_max_size(), std::string("fms1"));
+  stats::center::instance().update(_stats->mutable_queue_file()->mutable_file_expected_terminated_at(), std::string("feta1"));
+  stats::center::instance().update(_stats->mutable_queue_file()->mutable_file_percent_processed(), std::string("fpp1"));
+  stats::center::instance().update(&QueueFileStats::set_file_read_offset, _stats->mutable_queue_file(), 100.3);
+  stats::center::instance().update(&QueueFileStats::set_file_read_path, _stats->mutable_queue_file(), 100100);
+  stats::center::instance().update(&QueueFileStats::set_file_write_offset, _stats->mutable_queue_file(), 100.4);
+  stats::center::instance().update(&QueueFileStats::set_file_write_path, _stats->mutable_queue_file(), 100200);
 
   _stats = stats::center::instance().register_muxer("mx2");
-  stats::center::instance().update(_stats->mutable_queue_file(),
-                                   std::string("_qufl"));
-  stats::center::instance().update(&MuxerStats::set_unacknowledged_events,
-                                   _stats, 1790u);
+  stats::center::instance().update(&MuxerStats::set_unacknowledged_events, _stats, 1790u);
+  stats::center::instance().update(_stats->mutable_queue_file()->mutable_name(), std::string("qufl2"));
+  stats::center::instance().update(&QueueFileStats::set_bbdo_unacknowledged_events, _stats->mutable_queue_file(), 200.1);
+  stats::center::instance().update(&QueueFileStats::set_bbdo_input_ack_limit, _stats->mutable_queue_file(), 200.2);
+  stats::center::instance().update(_stats->mutable_queue_file()->mutable_file_max_size(), std::string("fms2"));
+  stats::center::instance().update(_stats->mutable_queue_file()->mutable_file_expected_terminated_at(), std::string("feta2"));
+  stats::center::instance().update(_stats->mutable_queue_file()->mutable_file_percent_processed(), std::string("fpp2"));
+  stats::center::instance().update(&QueueFileStats::set_file_read_offset, _stats->mutable_queue_file(), 200.3);
+  stats::center::instance().update(&QueueFileStats::set_file_read_path, _stats->mutable_queue_file(), 200100);
+  stats::center::instance().update(&QueueFileStats::set_file_write_offset, _stats->mutable_queue_file(), 200.4);
+  stats::center::instance().update(&QueueFileStats::set_file_write_path, _stats->mutable_queue_file(), 200200);
 
   _stats = stats::center::instance().register_muxer("mx3");
-  stats::center::instance().update(_stats->mutable_queue_file(),
-                                   std::string("_qufl_"));
-  stats::center::instance().update(&MuxerStats::set_unacknowledged_events,
-                                   _stats, 1791u);
+  stats::center::instance().update(&MuxerStats::set_unacknowledged_events, _stats, 1791u);
+  stats::center::instance().update(_stats->mutable_queue_file()->mutable_name(), std::string("qufl3"));
+  stats::center::instance().update(&QueueFileStats::set_bbdo_unacknowledged_events, _stats->mutable_queue_file(), 300.1);
+  stats::center::instance().update(&QueueFileStats::set_bbdo_input_ack_limit, _stats->mutable_queue_file(), 300.2);
+  stats::center::instance().update(_stats->mutable_queue_file()->mutable_file_max_size(), std::string("fms3"));
+  stats::center::instance().update(_stats->mutable_queue_file()->mutable_file_expected_terminated_at(), std::string("feta3"));
+  stats::center::instance().update(_stats->mutable_queue_file()->mutable_file_percent_processed(), std::string("fpp3"));
+  stats::center::instance().update(&QueueFileStats::set_file_read_offset, _stats->mutable_queue_file(), 300.3);
+  stats::center::instance().update(&QueueFileStats::set_file_read_path, _stats->mutable_queue_file(), 300100);
+  stats::center::instance().update(&QueueFileStats::set_file_write_offset, _stats->mutable_queue_file(), 300.4);
+  stats::center::instance().update(&QueueFileStats::set_file_write_path, _stats->mutable_queue_file(), 300200);
 
   std::list<std::string> output = execute("GetMuxerStats mx1 mx2 mx3");
 

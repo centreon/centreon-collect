@@ -26,6 +26,7 @@
 
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/namespace.hh"
+#include "broker.pb.h"
 
 CCB_BEGIN()
 

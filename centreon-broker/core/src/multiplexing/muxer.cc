@@ -79,7 +79,8 @@ muxer::muxer(std::string name,
   _pos = _events.begin();
   // Load queue file back in memory.
   try {
-    _file = std::make_unique<persistent_file>(_queue_file_name);
+    _file = std::make_unique<persistent_file>(_queue_file_name,
+      _stats->mutable_queue_file());
     std::shared_ptr<io::data> e;
     // The following do-while might read an extra event from the queue
     // file back in memory. However this is necessary to ensure that a
@@ -466,7 +467,7 @@ void muxer::_update_stats() noexcept {
     stats::center::instance().execute(
         [stats = _stats, name = _file ? _queue_file_name : "",
          size = _events_size, unack = std::distance(_events.begin(), _pos)]() {
-          stats->set_queue_file(std::move(name));
+          stats->mutable_queue_file()->set_name(std::move(name));
           stats->set_total_events(size);
           stats->set_unacknowledged_events(unack);
         });

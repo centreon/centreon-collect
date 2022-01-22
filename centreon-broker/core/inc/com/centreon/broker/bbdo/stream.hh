@@ -151,6 +151,9 @@ class stream : public io::stream {
   void _send_event_stop_and_wait_for_ack();
   std::string _get_extension_names(bool mandatory) const;
 
+  QueueFileStats *_stats;
+  std::time_t _last_stats;
+
  public:
   enum negotiation_type { negotiate_first = 1, negotiate_second, negotiated };
 
@@ -169,6 +172,10 @@ class stream : public io::stream {
   void set_negotiate(bool negotiate);
   void set_timeout(int timeout);
   void statistics(nlohmann::json& tree) const override;
+
+  void _update_stats() noexcept;
+  void set_stats(QueueFileStats *stats = nullptr);
+
   int write(std::shared_ptr<io::data> const& d) override;
   void acknowledge_events(uint32_t events);
   void send_event_acknowledgement();
