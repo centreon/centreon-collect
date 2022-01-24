@@ -60,7 +60,8 @@ muxer::muxer(std::string name,
   std::lock_guard<std::mutex> lck(_mutex);
   if (_persistent) {
     try {
-      auto mf{std::make_unique<persistent_file>(memory_file(_name))};
+      auto mf{std::make_unique<persistent_file>(memory_file(_name),
+        _stats->mutable_queue_file())};
       std::shared_ptr<io::data> e;
       for (;;) {
         e.reset();
@@ -208,7 +209,8 @@ void muxer::publish(const std::shared_ptr<io::data> event) {
     if (_events_size >= event_queue_max_size()) {
       // Try to create file if is necessary.
       if (!_file)
-        _file = std::make_unique<persistent_file>(_queue_file_name);
+        _file = std::make_unique<persistent_file>(_queue_file_name,
+          _stats->mutable_queue_file());
 
       _file->write(event);
     } else
@@ -370,7 +372,8 @@ void muxer::_clean() {
     try {
       log_v2::core()->trace("muxer: sending {} events to {}", _events_size,
                             memory_file(_name));
-      auto mf{std::make_unique<persistent_file>(memory_file(_name))};
+      auto mf{std::make_unique<persistent_file>(memory_file(_name),
+        _stats->mutable_queue_file())};
       while (!_events.empty()) {
         mf->write(_events.front());
         _events.pop_front();
