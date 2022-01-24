@@ -48,7 +48,7 @@ LOGV2EB1
 	 ${output}=	Query	SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2}
 	 Log To Console	${output}
          Sleep	1s
-         EXIT FOR LOOP IF	'${output}' == '((1,),)'
+         EXIT FOR LOOP IF	"${output}" == "((1,),)"
         END
 	Should Be Equal As Strings	${output}	((1,),)
 	Stop Engine
@@ -90,7 +90,7 @@ LOGV2DB1
 	 ${output}=	Query	SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2};
 	 Log To Console	${output}
          Sleep	1s
-         EXIT FOR LOOP IF	'${output}' == '((1,),)'
+         EXIT FOR LOOP IF	"${output}" == "((1,),)"
         END
 	Should Be Equal As Strings	${output}	((1,),)
 	Stop Engine
@@ -131,7 +131,7 @@ LOGV2DB2
 	 ${output}=	Query	SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2};
 	 Log To Console	${output}
          Sleep	1s
-         EXIT FOR LOOP IF	'${output}' == '((0,),)'
+         EXIT FOR LOOP IF	"${output}" == "((0,),)"
         END
 	Should Be Equal As Strings	${output}	((0,),)
 	Stop Engine
@@ -173,7 +173,7 @@ LOGV2EB2
 	 ${output}=	Query	SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2};
 	 Log To Console	${output}
          Sleep	1s
-         EXIT FOR LOOP IF       '${output}' == '((2,),)'
+         EXIT FOR LOOP IF       "${output}" == "((2,),)"
         END
 	Should Be Equal As Strings	${output}	((2,),)
 
