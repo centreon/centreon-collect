@@ -684,7 +684,7 @@ def get_broker_stats_size(name, key, timeout=TIMEOUT):
 def get_not_existing_indexes(count:int):
     # Connect to the database
     connection = pymysql.connect(host='localhost',
-                                 user='root',
+                                 user='centreon',
                                  password='centreon',
                                  database='centreon_storage',
                                  charset='utf8mb4',
@@ -725,7 +725,7 @@ def get_indexes_to_delete(count:int):
 
     # Connect to the database
     connection = pymysql.connect(host='localhost',
-                                 user='root',
+                                 user='centreon',
                                  password='centreon',
                                  database='centreon_storage',
                                  charset='utf8mb4',
@@ -764,7 +764,7 @@ def get_not_existing_metrics(count:int):
 
     # Connect to the database
     connection = pymysql.connect(host='localhost',
-                                 user='root',
+                                 user='centreon',
                                  password='centreon',
                                  database='centreon_storage',
                                  charset='utf8mb4',
@@ -801,7 +801,7 @@ def get_metrics_to_delete(count:int):
 
     # Connect to the database
     connection = pymysql.connect(host='localhost',
-                                 user='root',
+                                 user='centreon',
                                  password='centreon',
                                  database='centreon_storage',
                                  charset='utf8mb4',
@@ -837,7 +837,7 @@ def get_indexes_to_rebuild(count: int):
 
     # Connect to the database
     connection = pymysql.connect(host='localhost',
-                                 user='root',
+                                 user='centreon',
                                  password='centreon',
                                  database='centreon_storage',
                                  charset='utf8mb4',
@@ -884,7 +884,7 @@ def get_indexes_to_rebuild(count: int):
 def get_metrics_matching_indexes(indexes):
     # Connect to the database
     connection = pymysql.connect(host='localhost',
-                                 user='root',
+                                 user='centreon',
                                  password='centreon',
                                  database='centreon_storage',
                                  charset='utf8mb4',

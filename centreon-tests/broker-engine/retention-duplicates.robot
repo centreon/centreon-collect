@@ -18,6 +18,8 @@ BERD1
 	[Documentation]	Starting/stopping Broker does not create duplicated events.
 	[Tags]	Broker	Engine	start-stop	duplicate	retention
 	Config Engine	${1}
+	Engine Config Set Value	${0}	log_legacy_enabled	${0}
+	Engine Config Set Value	${0}	log_v2_enabled	${1}
 	Config Broker	central
 	Broker Config Clear Outputs Except	central	["ipv4"]
 	Broker Config Add Lua Output	central	test-doubles	${SCRIPTS}test-doubles-c.lua
@@ -45,7 +47,7 @@ BERD1
 	Sleep	25s
 	Stop Engine
 	Stop Broker
-	${result}=	Files Contains Same Md5	/tmp/lua-engine.log	/tmp/lua.log
+	${result}=	Files Contain Same Json	/tmp/lua-engine.log	/tmp/lua.log
 	Should Be True	${result}	msg=Contents of /tmp/lua.log and /tmp/lua-engine.log do not match.
 	${result}=	Check Multiplicity When Broker Restarted	/tmp/lua-engine.log	/tmp/lua.log
 	Should Be True	${result}	msg=There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
@@ -54,6 +56,8 @@ BERD2
 	[Documentation]	Starting/stopping Engine does not create duplicated events.
 	[Tags]	Broker	Engine	start-stop	duplicate	retention
 	Config Engine	${1}
+	Engine Config Set Value	${0}	log_legacy_enabled	${0}
+	Engine Config Set Value	${0}	log_v2_enabled	${1}
 	Config Broker	central
 	Broker Config Clear Outputs Except	central	["ipv4"]
 	Broker Config Add Lua Output	central	test-doubles	${SCRIPTS}test-doubles-c.lua
@@ -81,7 +85,7 @@ BERD2
 	Sleep	25s
 	Stop Engine
 	Stop Broker
-	${result}=	Files Contains Same Md5	/tmp/lua-engine.log	/tmp/lua.log
+	${result}=	Files Contain Same Json	/tmp/lua-engine.log	/tmp/lua.log
 	Should Be True	${result}	msg=Contents of /tmp/lua.log and /tmp/lua-engine.log do not match.
 	${result}=	Check Multiplicity When Engine Restarted	/tmp/lua-engine.log	/tmp/lua.log
 	Should Be True	${result}	msg=There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
@@ -90,6 +94,8 @@ BERDUC1
 	[Documentation]	Starting/stopping Broker does not create duplicated events in usual cases
 	[Tags]	Broker	Engine	start-stop	duplicate	retention
 	Config Engine	${1}
+	Engine Config Set Value	${0}	log_legacy_enabled	${0}
+	Engine Config Set Value	${0}	log_v2_enabled	${1}
 	Config Broker	central
 	Broker Config Add Lua Output	central	test-doubles	${SCRIPTS}test-doubles-c.lua
 	Broker Config Log	central	lua	debug
@@ -123,6 +129,8 @@ BERDUCU1
 	[Documentation]	Starting/stopping Broker does not create duplicated events in usual cases with unified_sql
 	[Tags]	Broker	Engine	start-stop	duplicate	retention
 	Config Engine	${1}
+	Engine Config Set Value	${0}	log_legacy_enabled	${0}
+	Engine Config Set Value	${0}	log_v2_enabled	${1}
 	Config Broker	central
 	Broker Config Add Lua Output	central	test-doubles	${SCRIPTS}test-doubles-c.lua
 	Broker Config Log	central	lua	debug
@@ -158,6 +166,8 @@ BERDUC2
 	[Tags]	Broker	Engine	start-stop	duplicate	retention
 	Clear Retention
 	Config Engine	${1}
+	Engine Config Set Value	${0}	log_legacy_enabled	${0}
+	Engine Config Set Value	${0}	log_v2_enabled	${1}
 	Config Broker	central
 	Broker Config Add Lua Output	central	test-doubles	${SCRIPTS}test-doubles-c.lua
 	Broker Config Log	central	lua	debug
@@ -191,6 +201,8 @@ BERDUCU2
 	[Tags]	Broker	Engine	start-stop	duplicate	retention
 	Clear Retention
 	Config Engine	${1}
+	Engine Config Set Value	${0}	log_legacy_enabled	${0}
+	Engine Config Set Value	${0}	log_v2_enabled	${1}
 	Config Broker	central
 	Config Broker Sql Output	central	unified_sql
 	Broker Config Add Lua Output	central	test-doubles	${SCRIPTS}test-doubles-c.lua

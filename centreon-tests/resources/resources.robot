@@ -31,6 +31,14 @@ Reload Broker
 	Send Signal To Process	SIGHUP	b1
 	Send Signal To Process	SIGHUP	b2
 
+Kindly Stop Broker
+        Send Signal To Process	SIGTERM	b1
+        Send Signal To Process	SIGTERM	b2
+        ${result}=	Wait For Process	b1	timeout=60s	on_timeout=kill
+        Should Be Equal As Integers	${result.rc}	0
+        ${result}=	Wait For Process	b2	timeout=60s	on_timeout=kill
+        Should Be Equal As Integers	${result.rc}	0
+
 Stop Broker
 	${result}=	Terminate Process	b1	kill=False
 	Should Be Equal As Integers	${result.rc}	0
