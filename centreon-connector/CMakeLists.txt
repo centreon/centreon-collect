@@ -31,10 +31,7 @@ link_directories(${CMAKE_SOURCE_DIR}/build/centreon-clib/)
 # Testing.
 if (WITH_TESTING)
   set_source_files_properties(${PROJECT_SOURCE_DIR}/perl/src/xs_init.cc PROPERTIES GENERATED TRUE)
-#include_directories(${GTest_INCLUDE_DIRS})
   include_directories(/usr/lib64/perl5/CORE)
-
-#link_directories(${GTest_LIB_DIRS})
 
   include_directories(${PROJECT_SOURCE_DIR}/perl/inc)
   include_directories(${PROJECT_SOURCE_DIR}/ssh/inc)
