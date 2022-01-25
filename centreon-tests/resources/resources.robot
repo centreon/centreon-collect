@@ -110,6 +110,8 @@ ${centralLog}	${BROKER_LOG}/central-broker-master.log
 ${moduleLog}	${BROKER_LOG}/central-module-master.log
 ${rrdLog}	${BROKER_LOG}/central-rrd-master.log
 
+${logEngine0}	${ENGINE_LOG}/config0/centengine.log
+
 ${DBName}	centreon_storage
 ${DBHost}	localhost
 ${DBUser}	centreon
