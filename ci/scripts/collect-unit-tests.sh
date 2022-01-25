@@ -22,7 +22,7 @@ make -j9 install
 
 #Test
 
-tests/ut --gtest_output=xml:broker-ut.xml
+tests/ut_broker --gtest_output=xml:broker-ut.xml
 tests/ut_engine --gtest_output=xml:engine-ut.xml
-tests/ut-clib --gtest_output=xml:/src/clib-ut.xml
+tests/ut_clib --gtest_output=xml:/src/clib-ut.xml
 # tests/ut_connector --gtest_output=xml:/src/connector-ut.xml
