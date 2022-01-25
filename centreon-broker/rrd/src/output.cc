@@ -288,7 +288,7 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
       switch (e->obj().state()) {
         case RebuildMessage_State_START:
           log_v2::rrd()->info("RRD: Starting to rebuild metrics ({})",
-                              fmt::join(e->obj.metric_id(), ","));
+                              fmt::join(e->obj().metric_id(), ","));
           // Rebuild is starting.
           for (auto& m : e->obj().metric_id()) {
             std::string path{fmt::format("{}{}.rrd", _metrics_path, m)};
@@ -304,7 +304,7 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
           break;
         case RebuildMessage_State_END:
           log_v2::rrd()->info("RRD: Finishing to rebuild metrics ({})",
-                              fmt::join(e->obj.metric_id(), ","));
+                              fmt::join(e->obj().metric_id(), ","));
           // Rebuild is ending.
           for (auto& m : e->obj().metric_id()) {
             std::string path{fmt::format("{}{}.rrd", _metrics_path, m)};
