@@ -20,8 +20,6 @@
 
 # Enable unit tests or not .
 if (WITH_TESTING)
-  include_directories(${GTest_INCLUDE_DIRS})
-  link_directories(${GTest_LIB_DIRS})
 
 # Tests directory.
   # Add root inclusion direction.
@@ -37,9 +35,9 @@ if (WITH_TESTING)
   add_executable(rpc_client_engine
       ${TESTS_DIR}/enginerpc/client.cc)
 
-  target_link_libraries(rpc_client_engine cerpc ${gRPC_LIBS} ${absl_LIBS} ${OpenSSL_LIBS} ${c-ares_LIBS} ${ZLIB_LIBS} dl pthread)
+  target_link_libraries(rpc_client_engine cerpc CONAN_PKG::grpc CONAN_PKG::openssl CONAN_PKG::zlib dl pthread)
 
-  add_executable("bin_connector_test_run"
+  add_executable(bin_connector_test_run
       "${TESTS_DIR}/commands/bin_connector_test_run.cc")
   target_link_libraries(bin_connector_test_run cce_core pthread)
 
@@ -92,7 +90,6 @@ if (WITH_TESTING)
     "${TESTS_DIR}/notifications/host_normal_notification.cc"
     "${TESTS_DIR}/notifications/host_recovery_notification.cc"
     "${TESTS_DIR}/notifications/service_normal_notification.cc"
-#    "${TESTS_DIR}/notifications/host_timeperiod_notification.cc"
     "${TESTS_DIR}/notifications/service_timeperiod_notification.cc"
     "${TESTS_DIR}/notifications/service_flapping_notification.cc"
     "${TESTS_DIR}/perfdata/perfdata.cc"
@@ -124,6 +121,16 @@ if (WITH_TESTING)
 
   add_executable(ut_engine ${ut_sources})
 
+  set_target_properties(
+      ut_engine rpc_client_engine bin_connector_test_run
+      PROPERTIES
+      RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests
+      RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/tests
+      RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/tests
+      RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR}/tests
+      RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/tests
+  )
+
   add_test(NAME tests COMMAND ut_engine)
 
   if (WITH_COVERAGE)
@@ -135,6 +142,6 @@ if (WITH_TESTING)
     )
     set(GCOV gcov)
   endif ()
-  target_link_libraries(ut_engine ${ENGINERPC} cce_core pthread ${GCOV} ${GTest_LIBS} ${gRPC_LIBS} ${absl_LIBS} ${OpenSSL_LIBS} ${c-ares_LIBS} ${ZLIB_LIBS} ${fmt_LIBS} dl)
+  target_link_libraries(ut_engine ${ENGINERPC} cce_core pthread ${GCOV} CONAN_PKG::gtest CONAN_PKG::grpc CONAN_PKG::openssl CONAN_PKG::zlib CONAN_PKG::fmt dl)
 
 endif ()

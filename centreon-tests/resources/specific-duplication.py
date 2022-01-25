@@ -16,7 +16,59 @@ from datetime import datetime
 # @param str The second file name
 #
 # @return A boolean True on success
-def files_contains_same_md5(file_e: str, file_b: str):
+def files_contain_same_json(file_e: str, file_b: str):
+    new_inst = { "_type": 4294901762, "category": 65535, "element": 2, "broker_id":1, "broker_name":"", "enabled":True, "poller_id":1, "poller_name":"Central"}
+
+    getoutput("cut -d' ' -f9- {0} > {0}.log1".format(file_e))
+    getoutput("cut -d' ' -f9- {0} > {0}.log1".format(file_b))
+
+    f1 = open("{}.log1".format(file_e))
+    content1 = f1.readlines()
+
+    f2 = open("{}.log1".format(file_b))
+    content2 = f2.readlines()
+
+    idx1 = 0
+    idx2 = 0
+
+    while idx1 < len(content1) and idx2 < len(content2):
+        if content1[idx1].rstrip() == "":
+            idx1 += 1
+            continue
+        if content2[idx2].rstrip() == "":
+            idx2 += 1
+            continue
+        if content1[idx1] == content2[idx2]:
+            idx1 += 1
+            idx2 += 1
+        else:
+            js1 = json.loads(content1[idx1])
+            js2 = json.loads(content2[idx2])
+            if js2['_type'] == 4294901762:
+                idx2 += 1
+                continue
+            if js1['_type'] == 4294901762:
+                idx1 += 1
+                continue
+
+            if len(js1) != len(js2):
+                return False
+            for k in js1:
+                if isinstance(js1[k], float):
+                    if abs(js1[k] - js2[k]) > 0.1:
+                        return False
+                else:
+                    if js1[k] != js2[k]:
+                        return False
+            idx1 += 1
+            idx2 += 1
+    retval = idx1 == len(content1) or idx2 == len(content2)
+    if not retval:
+        logger.console("not at the end of files idx1 = {}/{} or idx2 = {}/{}".format(idx1, len(content1), idx2, len(content2)))
+        return False
+    return True
+
+def files_contain_same_md5_1(file_e: str, file_b: str):
 
     getoutput("awk '{{print $8}}' {0} > {0}.md5".format(file_e))
     getoutput("awk '{{print $8}}' {0} > {0}.md5".format(file_b))
@@ -45,6 +97,7 @@ def files_contains_same_md5(file_e: str, file_b: str):
             idx1 += 1
             idx2 += 1
         else:
+            print("We have to improve comparaison here")
             return False
     return idx1 == len(content1) and idx2 == len(content2)
 
@@ -66,6 +119,7 @@ def check_multiplicity_when_broker_restarted(file1: str, file2: str):
 
     def create_md5_list(content):
         lst = dict()
+        typ = dict()
         for l in content:
             m = r.match(l)
             if m:
@@ -75,17 +129,21 @@ def check_multiplicity_when_broker_restarted(file1: str, file2: str):
                         lst[md5] += 1
                     else:
                         lst[md5] = 1
-        return lst
+                        typ[md5] = type
+        return lst, typ
 
-    lst1 = create_md5_list(content1)
-    lst2 = create_md5_list(content2)
+    lst1, typ1 = create_md5_list(content1)
+    lst2, typ2 = create_md5_list(content2)
 
     res1 = set(lst1.values())
     res2 = set(lst2.values())
-    if len(res1) > 1:
-      logger.console("Engine sends duplicates")
-    if len(res2) > 1:
-      logger.console("Broker sends duplicates")
+    if len(res1) != 1 or len(res2) != 1:
+        for k in lst1:
+            if lst1[k] != 1:
+                logger.console("In lst1: Bad {} {} with type {:x}".format(k, lst1[k], typ1[k]))
+        for k in lst2:
+            if lst2[k] != 1:
+                logger.console("In lst2: Bad {} {} with type {:x}".format(k, lst2[k], typ2[k]))
     return len(res1) == 1 and len(res2) == 1
 
 ##
@@ -106,6 +164,7 @@ def check_multiplicity_when_engine_restarted(file1: str, file2: str):
 
     def create_md5_list(content):
         lst = dict()
+        typ = dict()
         for l in content:
             m = r.match(l)
             if m:
@@ -121,11 +180,22 @@ def check_multiplicity_when_engine_restarted(file1: str, file2: str):
                         lst[md5] += 1
                     else:
                         lst[md5] = 1
-        return lst
+                        typ[md5] = type
+        return lst, typ
 
-    lst1 = create_md5_list(content1)
-    lst2 = create_md5_list(content2)
+    lst1, typ1 = create_md5_list(content1)
+    lst2, typ2 = create_md5_list(content2)
 
     res1 = set(lst1.values())
     res2 = set(lst2.values())
+    if len(res1) != 1 or len(res2) != 1:
+        for k in lst1:
+            if lst1[k] != 1:
+                logger.console("In lst1: Bad {} {} with type {:x}".format(k, lst1[k], typ1[k]))
+        for k in lst2:
+            if lst2[k] != 1:
+                logger.console("In lst2: Bad {} {} with type {:x}".format(k, lst2[k], typ2[k]))
     return len(res1) == 1 and len(res2) == 1
+
+#print(files_contain_same_json("/tmp/lua.log", "/tmp/lua-engine.log"))
+#print(check_multiplicity_when_engine_restarted("/tmp/lua-engine.log", "/tmp/lua.log"))

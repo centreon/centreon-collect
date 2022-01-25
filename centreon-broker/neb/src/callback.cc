@@ -27,12 +27,6 @@
 using namespace com::centreon::broker::neb;
 using namespace com::centreon::exceptions;
 
-/**************************************
- *                                     *
- *           Public Methods            *
- *                                     *
- **************************************/
-
 /**
  *  Default constructor.
  *

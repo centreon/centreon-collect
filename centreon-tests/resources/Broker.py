@@ -487,6 +487,25 @@ def broker_config_clear_outputs_except(name, ex : list):
     f.write(json.dumps(conf, indent=2))
     f.close()
 
+
+def broker_config_add_item(name, key, value):
+    if name == 'central':
+        filename = "central-broker.json"
+    elif name == 'module':
+        filename = "central-module.json"
+    else:
+        filename = "central-rrd.json"
+
+    f = open("/etc/centreon-broker/{}".format(filename), "r")
+    buf = f.read()
+    f.close()
+    conf = json.loads(buf)
+    conf["centreonBroker"][key] = value
+    f = open("/etc/centreon-broker/{}".format(filename), "w")
+    f.write(json.dumps(conf, indent=2))
+    f.close()
+
+
 def broker_config_add_lua_output(name, output, luafile):
     if name == 'central':
         filename = "central-broker.json"
@@ -665,7 +684,7 @@ def get_broker_stats_size(name, key, timeout=TIMEOUT):
 def get_not_existing_indexes(count:int):
     # Connect to the database
     connection = pymysql.connect(host='localhost',
-                                 user='root',
+                                 user='centreon',
                                  password='centreon',
                                  database='centreon_storage',
                                  charset='utf8mb4',
@@ -706,7 +725,7 @@ def get_indexes_to_delete(count:int):
 
     # Connect to the database
     connection = pymysql.connect(host='localhost',
-                                 user='root',
+                                 user='centreon',
                                  password='centreon',
                                  database='centreon_storage',
                                  charset='utf8mb4',
@@ -745,7 +764,7 @@ def get_not_existing_metrics(count:int):
 
     # Connect to the database
     connection = pymysql.connect(host='localhost',
-                                 user='root',
+                                 user='centreon',
                                  password='centreon',
                                  database='centreon_storage',
                                  charset='utf8mb4',
@@ -782,7 +801,7 @@ def get_metrics_to_delete(count:int):
 
     # Connect to the database
     connection = pymysql.connect(host='localhost',
-                                 user='root',
+                                 user='centreon',
                                  password='centreon',
                                  database='centreon_storage',
                                  charset='utf8mb4',
@@ -818,7 +837,7 @@ def get_indexes_to_rebuild(count: int):
 
     # Connect to the database
     connection = pymysql.connect(host='localhost',
-                                 user='root',
+                                 user='centreon',
                                  password='centreon',
                                  database='centreon_storage',
                                  charset='utf8mb4',
@@ -865,7 +884,7 @@ def get_indexes_to_rebuild(count: int):
 def get_metrics_matching_indexes(indexes):
     # Connect to the database
     connection = pymysql.connect(host='localhost',
-                                 user='root',
+                                 user='centreon',
                                  password='centreon',
                                  database='centreon_storage',
                                  charset='utf8mb4',

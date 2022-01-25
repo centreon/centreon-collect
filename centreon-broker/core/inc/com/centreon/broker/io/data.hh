@@ -43,7 +43,7 @@ class data {
   data(data const& other);
   virtual ~data();
   data& operator=(data const& other);
-  uint32_t type() const noexcept;
+  constexpr uint32_t type() const noexcept { return _type; }
 
   uint32_t source_id;
   uint32_t destination_id;

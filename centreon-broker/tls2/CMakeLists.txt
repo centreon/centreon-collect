@@ -42,7 +42,7 @@ add_library("${TLS2}" SHARED
   "${INC_DIR}/stream.hh"
 )
 
-target_link_libraries("${TLS2}" ${OpenSSL_LIBS})
+target_link_libraries("${TLS2}" CONAN_PKG::openssl CONAN_PKG::spdlog)
 
 set_target_properties("${TLS2}" PROPERTIES PREFIX "")
 
@@ -63,10 +63,10 @@ if (WITH_TESTING)
 
   add_executable(anon-test
       "${TEST_DIR}/anon-test.cc")
-  target_link_libraries(anon-test ${OpenSSL_LIBS} -pthread -ldl)
+  target_link_libraries(anon-test CONAN_PKG::openssl -pthread -ldl)
   add_executable(crypt-test
       "${TEST_DIR}/crypt-test.cc")
-  target_link_libraries(crypt-test ${OpenSSL_LIBS} -pthread -ldl ${fmt_LIBS})
+  target_link_libraries(crypt-test CONAN_PKG::openssl -pthread -ldl CONAN_PKG::fmt)
 endif()
 # Install rule.
 install(TARGETS "${TLS2}"

@@ -55,10 +55,9 @@ class BrokerRpc : public ::testing::Test {
   std::list<std::string> execute(const std::string& command) {
     std::list<std::string> retval;
     char path[1024];
-    std::ostringstream oss;
-    oss << "test/rpc_client " << command;
+    std::string client{fmt::format("tests/rpc_client {}", command)};
 
-    FILE* fp = popen(oss.str().c_str(), "r");
+    FILE* fp = popen(client.c_str(), "r");
     while (fgets(path, sizeof(path), fp) != nullptr) {
       retval.emplace_back(path);
     }
@@ -155,42 +154,24 @@ TEST_F(BrokerRpc, GetConflictManagerStats) {
 
 TEST_F(BrokerRpc, GetMuxerStats) {
   brokerrpc brpc("0.0.0.0", 40000, "test");
-  MuxerStats* _stats;
   std::vector<std::string> vectests{
       "name: mx1, queue_file: qufl_, "
       "unacknowledged_events: "
       "1789\n",
       "name: mx2, queue_file: _qufl, "
       "unacknowledged_events: "
-      "1790\n",
-      "name: mx3, queue_file: _qufl_, "
-      "unacknowledged_events: "
-      "1791\n"};
+      "1790\n"};
 
-  _stats = stats::center::instance().register_muxer("mx1");
-  stats::center::instance().update(_stats->mutable_queue_file(),
-                                   std::string("qufl_"));
-  stats::center::instance().update(&MuxerStats::set_unacknowledged_events,
-                                   _stats, 1789u);
+  stats::center::instance().update_muxer("mx1", "qufl_", 18u, 1789u);
 
-  _stats = stats::center::instance().register_muxer("mx2");
-  stats::center::instance().update(_stats->mutable_queue_file(),
-                                   std::string("_qufl"));
-  stats::center::instance().update(&MuxerStats::set_unacknowledged_events,
-                                   _stats, 1790u);
+  stats::center::instance().update_muxer("mx2", "_qufl", 18u, 1790u);
 
-  _stats = stats::center::instance().register_muxer("mx3");
-  stats::center::instance().update(_stats->mutable_queue_file(),
-                                   std::string("_qufl_"));
-  stats::center::instance().update(&MuxerStats::set_unacknowledged_events,
-                                   _stats, 1791u);
-
-  std::list<std::string> output = execute("GetMuxerStats mx1 mx2 mx3");
+  std::list<std::string> output = execute("GetMuxerStats mx1 mx2");
 
   std::vector<std::string> results(output.size());
   std::copy(output.begin(), output.end(), results.begin());
 
-  ASSERT_EQ(output.size(), 3u);
+  ASSERT_EQ(output.size(), 2u);
   ASSERT_EQ(results, vectests);
 
   brpc.shutdown();

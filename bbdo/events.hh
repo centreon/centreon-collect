@@ -87,6 +87,38 @@ enum data_element {
   de_remove_graphs = 5,
 };
 }
+namespace neb {
+// Data elements.
+enum data_element {
+  de_acknowledgement = 1,
+  de_comment,
+  de_custom_variable,
+  de_custom_variable_status,
+  de_downtime,
+  de_event_handler,
+  de_flapping_status,
+  de_host_check,
+  de_host_dependency,
+  de_host_group,
+  de_host_group_member,
+  de_host,
+  de_host_parent,
+  de_host_status,
+  de_instance,
+  de_instance_status,
+  de_log_entry,
+  de_module,
+  de_service_check,
+  de_service_dependency,
+  de_service_group,
+  de_service_group_member,
+  de_service,
+  de_service_status,
+  de_instance_configuration,
+  de_responsive_instance,
+  de_pb_service = 27,
+};
+}
 namespace storage {
 enum data_element {
   de_metric = 1,

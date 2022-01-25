@@ -42,6 +42,7 @@ add_library("${STATS}" SHARED
 )
 set_target_properties("${STATS}" PROPERTIES
     PREFIX "")
+target_link_libraries("${STATS}" CONAN_PKG::spdlog)
 
 # Testing.
 if (WITH_TESTING)

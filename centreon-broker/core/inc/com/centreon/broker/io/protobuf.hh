@@ -19,6 +19,7 @@
 #ifndef CCB_IO_PROTOBUF_HH
 #define CCB_IO_PROTOBUF_HH
 
+#include <google/protobuf/message.h>
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/io/event_info.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -27,23 +28,69 @@ CCB_BEGIN()
 
 namespace io {
 /**
- *  @class data data.hh "com/centreon/broker/io/data.hh"
+ *  @class data protobuf.hh "com/centreon/broker/io/protobuf.hh"
  *  @brief Data abstraction.
  *
  *  Data is the core element that is transmitted through Centreon
  *  Broker. It is an interface that is implemented by all specific
  *  module data that wish to be transmitted by the multiplexing
  *  engine.
+ *
+ *  protobuf_base is directly inherited from data and is common to all
+ *  bbdo protobuf messages. Its main goal is to allow the access to the
+ *  embedded protobuf message as a google::protobuf::Message* pointer.
+ *  We can access it through methods mut_msg() or msg() (mutable or not).
+ *
+ *  This class is very important when we want to parse a protobuf message
+ *  without knowing about its exact type. This is very useful with reflection
+ *  (see code in Lua module for more examples).
+ */
+class protobuf_base : public data {
+  google::protobuf::Message* _msg;
+
+ protected:
+  protobuf_base(uint32_t typ, google::protobuf::Message* msg)
+      : data(typ), _msg{msg} {}
+
+ public:
+  enum attribute {
+    always_valid = 0,
+    invalid_on_zero = (1 << 0),
+    invalid_on_minus_one = (1 << 1)
+  };
+
+  /**
+   * @brief Accessor to the protobuf::Message* pointer as mutable.
+   *
+   * @return a google::protobuf::Message* pointer.
+   */
+  google::protobuf::Message* mut_msg() { return _msg; }
+
+  /**
+   * @brief Accessor to the protouf::Message* pointer.
+   *
+   * @return a google::protobuf::Message* pointer.
+   */
+  const google::protobuf::Message* msg() const { return _msg; }
+};
+
+/**
+ * @class protobuf<T> protobuf.hh "com/centreon/broker/io/protobuf.hh"
+ * @brief This is the template to use each time we have to embed a protobuf
+ * message into a BBDO event.
+ *
+ * @tparam T A Protobuf message
+ * @tparam Typ The type to associate to this class as a BBDO type.
  */
 template <typename T, uint32_t Typ>
-class protobuf : public data {
- public:
-  T obj;
+class protobuf : public protobuf_base {
+  T _obj;
 
+ public:
   /**
    * @brief Default constructor
    */
-  protobuf() : data(Typ) {}
+  protobuf() : protobuf_base(Typ, &_obj) {}
   /**
    * @brief Constructor that initializes the T object from an existing one.
    * The io::protobuf class is a BBDO object that encapsulates a protobuf
@@ -52,7 +99,7 @@ class protobuf : public data {
    *
    * @param o The protobuf object (it is copied).
    */
-  protobuf(const T& o) : data(Typ), obj(o) {}
+  protobuf(const T& o) : protobuf_base(Typ, &_obj), _obj(o) {}
   protobuf(const protobuf&) = delete;
   ~protobuf() noexcept = default;
   protobuf& operator=(const protobuf&) = delete;
@@ -82,7 +129,7 @@ class protobuf : public data {
   static std::string serialize(const io::data& e) {
     std::string retval;
     auto r = static_cast<const protobuf<T, Typ>*>(&e);
-    if (!r->obj.SerializeToString(&retval))
+    if (!r->obj().SerializeToString(&retval))
       throw com::centreon::exceptions::msg_fmt(
           "Unable to serialize {:x} protobuf object", Typ);
     return retval;
@@ -98,13 +145,18 @@ class protobuf : public data {
    * @return a pointer to the new object.
    */
   static io::data* unserialize(const char* buffer, size_t size) {
-    std::unique_ptr<protobuf<T, Typ>> retval =
-        std::make_unique<protobuf<T, Typ>>();
-    if (!retval->obj.ParseFromArray(buffer, size))
+    auto retval = std::make_unique<protobuf<T, Typ>>();
+    if (!retval->mut_msg()->ParseFromArray(buffer, size))
       throw com::centreon::exceptions::msg_fmt(
           "Unable to unserialize protobuf object");
     return retval.release();
   }
+
+  const T& obj() const { return _obj; }
+
+  T& mut_obj() { return _obj; }
+
+  void set_obj(T&& obj) { _obj = std::move(obj); }
 
   /**
    * @brief An internal BBDO object used to access to the constructor,
@@ -116,8 +168,8 @@ class protobuf : public data {
 template <typename T, uint32_t Typ>
 const io::event_info::event_operations protobuf<T, Typ>::operations{
     &new_proto, &serialize, &unserialize};
-}  // namespace io
 
+}  // namespace io
 CCB_END()
 
 #endif  // !CCB_IO_PROTOBUF_HH

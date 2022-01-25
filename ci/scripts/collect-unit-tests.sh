@@ -22,18 +22,7 @@ make -j9 install
 
 #Test
 
-cd centreon-broker
-test/ut --gtest_output=xml:broker-ut.xml
-cd ..
-cd centreon-engine
-tests/ut_engine --gtest_output=xml:engine-ut.xml
-cd ..
-cd centreon-clib
-test/ut-clib --gtest_output=xml:/src/clib-ut.xml
-cd ..
-# cd centreon-connector
-# ./ut_connector --gtest_output=xml:/src/connector-ut.xml
-# cd .. 
-
-
-
+tests/ut_broker --gtest_output=xml:ut_broker.xml
+tests/ut_engine --gtest_output=xml:ut_engine.xml
+tests/ut_clib --gtest_output=xml:ut_clib.xml
+# tests/ut_connector --gtest_output=xml:ut_connector.xml

@@ -20,8 +20,8 @@
 set(INC_DIR "${PROJECT_SOURCE_DIR}/tcp/inc/com/centreon/broker/tcp")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/tcp/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/tcp/test")
-include_directories(${PROJECT_SOURCE_DIR}/tcp/inc 
-                    ${PROJECT_SOURCE_DIR}/neb/inc 
+include_directories(${PROJECT_SOURCE_DIR}/tcp/inc
+                    ${PROJECT_SOURCE_DIR}/neb/inc
 )
 
 # Sources.
@@ -51,6 +51,7 @@ add_library("${TCP}" SHARED
   ${HEADERS}
 )
 set_target_properties("${TCP}" PROPERTIES PREFIX "")
+target_link_libraries("${TCP}" CONAN_PKG::spdlog)
 
 # Testing.
 if (WITH_TESTING)

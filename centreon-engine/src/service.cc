@@ -745,7 +745,7 @@ com::centreon::engine::service* add_service(
   }
 
   // Allocate memory.
-  std::shared_ptr<service> obj{std::make_shared<service>(
+  auto obj{std::make_shared<service>(
       host_name, description, display_name.empty() ? description : display_name,
       check_command, checks_enabled, accept_passive_checks, initial_state,
       check_interval, retry_interval, notification_interval, max_attempts,
@@ -814,7 +814,7 @@ com::centreon::engine::service* add_service(
 void service::check_for_expired_acknowledgement() {
   if (get_problem_has_been_acknowledged()) {
     if (get_acknowledgement_timeout() > 0) {
-      time_t now(time(nullptr));
+      time_t now{time(nullptr)};
       if (get_last_acknowledgement() + get_acknowledgement_timeout() >= now) {
         engine_logger(log_info_message, basic)
             << "Acknowledgement of service '" << get_description()
@@ -2635,7 +2635,7 @@ bool service::schedule_check(time_t check_time, int options) {
   }
 
   // Default is to use the new event.
-  bool use_original_event(false);
+  bool use_original_event = false;
   timed_event* temp_event = events::loop::instance().find_event(
       events::loop::low, timed_event::EVENT_SERVICE_CHECK, this);
 
@@ -2653,7 +2653,7 @@ bool service::schedule_check(time_t check_time, int options) {
     use_original_event = true;
 
     // The original event is a forced check...
-    if ((temp_event->event_options & CHECK_OPTION_FORCE_EXECUTION)) {
+    if (temp_event->event_options & CHECK_OPTION_FORCE_EXECUTION) {
       // The new event is also forced and its execution time is earlier
       // than the original, so use it instead.
       if ((options & CHECK_OPTION_FORCE_EXECUTION) &&
@@ -2670,7 +2670,7 @@ bool service::schedule_check(time_t check_time, int options) {
     // The original event is not a forced check...
     else {
       // The new event is a forced check, so use it instead.
-      if ((options & CHECK_OPTION_FORCE_EXECUTION)) {
+      if (options & CHECK_OPTION_FORCE_EXECUTION) {
         use_original_event = false;
         engine_logger(dbg_checks, most)
             << "New service check event is forced, so it will be used "

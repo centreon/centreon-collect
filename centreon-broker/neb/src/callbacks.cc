@@ -56,7 +56,7 @@ using namespace com::centreon::exceptions;
 extern nebmodule* neb_module_list;
 
 // Acknowledgement list.
-std::map<std::pair<uint32_t, uint32_t>, neb::acknowledgement>
+std::unordered_map<std::pair<uint32_t, uint32_t>, neb::acknowledgement>
     neb::gl_acknowledgements;
 
 // Downtime list.
@@ -92,6 +92,23 @@ static struct {
     {NEBCALLBACK_PROGRAM_STATUS_DATA, &neb::callback_program_status},
     {NEBCALLBACK_SERVICE_CHECK_DATA, &neb::callback_service_check},
     {NEBCALLBACK_SERVICE_STATUS_DATA, &neb::callback_service_status}};
+
+// List of common callbacks.
+static struct {
+  uint32_t macro;
+  int (*callback)(int, void*);
+} const gl_pb_callbacks[] = {
+    {NEBCALLBACK_ACKNOWLEDGEMENT_DATA, &neb::callback_acknowledgement},
+    {NEBCALLBACK_COMMENT_DATA, &neb::callback_comment},
+    {NEBCALLBACK_DOWNTIME_DATA, &neb::callback_downtime},
+    {NEBCALLBACK_EVENT_HANDLER_DATA, &neb::callback_event_handler},
+    {NEBCALLBACK_EXTERNAL_COMMAND_DATA, &neb::callback_external_command},
+    {NEBCALLBACK_FLAPPING_DATA, &neb::callback_flapping_status},
+    {NEBCALLBACK_HOST_CHECK_DATA, &neb::callback_host_check},
+    {NEBCALLBACK_HOST_STATUS_DATA, &neb::callback_host_status},
+    {NEBCALLBACK_PROGRAM_STATUS_DATA, &neb::callback_program_status},
+    {NEBCALLBACK_SERVICE_CHECK_DATA, &neb::callback_service_check},
+    {NEBCALLBACK_SERVICE_STATUS_DATA, &neb::callback_pb_service_status}};
 
 // List of Engine-specific callbacks.
 static struct {
@@ -1381,8 +1398,8 @@ int neb::callback_host_status(int callback_type, void* data) {
     gl_publisher.write(host_status);
 
     // Acknowledgement event.
-    std::map<std::pair<uint32_t, uint32_t>, neb::acknowledgement>::iterator it(
-        gl_acknowledgements.find(std::make_pair(host_status->host_id, 0u)));
+    auto it =
+        gl_acknowledgements.find(std::make_pair(host_status->host_id, 0u));
     if (it != gl_acknowledgements.end() && !host_status->acknowledged) {
       if (!(!host_status->current_state  // !(OK or (normal ack and NOK))
             || (!it->second.is_sticky &&
@@ -1513,27 +1530,14 @@ int neb::callback_process(int callback_type, void* data) {
     if (NEBTYPE_PROCESS_EVENTLOOPSTART == process_data->type) {
       log_v2::neb()->info("callbacks: generating process start event");
 
-      // Register callbacks.
-      log_v2::neb()->debug("callbacks: registering callbacks");
-      for (uint32_t i(0); i < sizeof(gl_callbacks) / sizeof(*gl_callbacks); ++i)
-        gl_registered_callbacks.emplace_back(std::make_unique<callback>(
-            gl_callbacks[i].macro, gl_mod_handle, gl_callbacks[i].callback));
-
-      // Register Engine-specific callbacks.
-      if (gl_mod_flags & NEBMODULE_ENGINE) {
-        for (uint32_t i = 0;
-             i < sizeof(gl_engine_callbacks) / sizeof(*gl_engine_callbacks);
-             ++i)
-          gl_registered_callbacks.emplace_back(std::make_unique<callback>(
-              gl_engine_callbacks[i].macro, gl_mod_handle,
-              gl_engine_callbacks[i].callback));
-      }
-
       // Parse configuration file.
       uint32_t statistics_interval(0);
+      std::tuple<uint16_t, uint16_t, uint16_t> bbdo_version;
       try {
         config::parser parsr;
         config::state conf{parsr.parse(gl_configuration_file)};
+
+        bbdo_version = conf.bbdo_version();
 
         // Apply resulting configuration.
         config::applier::state::instance().apply(conf);
@@ -1544,6 +1548,35 @@ int neb::callback_process(int callback_type, void* data) {
       } catch (msg_fmt const& e) {
         log_v2::neb()->info(e.what());
         return 0;
+      }
+
+      if (std::get<0>(bbdo_version) > 2) {
+        // Register callbacks.
+        log_v2::neb()->debug(
+            "callbacks: registering callbacks for new BBDO version");
+        for (uint32_t i = 0;
+             i < sizeof(gl_pb_callbacks) / sizeof(*gl_pb_callbacks); ++i)
+          gl_registered_callbacks.emplace_back(std::make_unique<callback>(
+              gl_pb_callbacks[i].macro, gl_mod_handle,
+              gl_pb_callbacks[i].callback));
+      } else {
+        // Register callbacks.
+        log_v2::neb()->debug(
+            "callbacks: registering callbacks for old BBDO version");
+        for (uint32_t i(0); i < sizeof(gl_callbacks) / sizeof(*gl_callbacks);
+             ++i)
+          gl_registered_callbacks.emplace_back(std::make_unique<callback>(
+              gl_callbacks[i].macro, gl_mod_handle, gl_callbacks[i].callback));
+      }
+
+      // Register Engine-specific callbacks.
+      if (gl_mod_flags & NEBMODULE_ENGINE) {
+        for (uint32_t i = 0;
+             i < sizeof(gl_engine_callbacks) / sizeof(*gl_engine_callbacks);
+             ++i)
+          gl_registered_callbacks.emplace_back(std::make_unique<callback>(
+              gl_engine_callbacks[i].macro, gl_mod_handle,
+              gl_engine_callbacks[i].callback));
       }
 
       // Output variable.
@@ -1959,6 +1992,108 @@ int neb::callback_service_check(int callback_type, void* data) {
   return 0;
 }
 
+int32_t neb::callback_pb_service_status(int callback_type,
+                                        void* data) noexcept {
+  log_v2::neb()->info("callbacks: generating service status event");
+
+  const engine::service* es{static_cast<engine::service*>(
+      static_cast<nebstruct_service_status_data*>(data)->object_ptr)};
+
+  auto s{std::make_shared<neb::pb_service>()};
+  Service& srv = s.get()->mut_obj();
+
+  srv.set_host_id(es->get_host_id());
+  srv.set_service_id(es->get_service_id());
+  if (es->get_host_id() == 0 || es->get_service_id() == 0)
+    log_v2::neb()->error("could not find ID of service ('{}', '{}')",
+                         es->get_hostname(), es->get_description());
+
+  if (es->get_problem_has_been_acknowledged()) {
+    srv.set_acknowledged(true);
+    srv.set_acknowledgement_type(
+        static_cast<Service_AckType>(es->get_acknowledgement_type()));
+  }
+  srv.set_active_checks_enabled(es->get_checks_enabled());
+
+  if (!es->get_check_command().empty())
+    *srv.mutable_check_command() =
+        misc::string::check_string_utf8(es->get_check_command());
+  srv.set_check_interval(es->get_check_interval());
+  if (!es->get_check_period().empty())
+    *srv.mutable_check_period() = es->get_check_period();
+  srv.set_check_type(static_cast<Service_CheckType>(es->get_check_type()));
+  srv.set_current_check_attempt(es->get_current_attempt());
+  srv.set_current_state(static_cast<Service_State>(
+      (es->has_been_checked() ? es->get_current_state()
+                              : 4)));  // Pending state.
+  srv.set_downtime_depth(es->get_scheduled_downtime_depth());
+  if (!es->get_event_handler().empty())
+    *srv.mutable_event_handler() =
+        misc::string::check_string_utf8(es->get_event_handler());
+  srv.set_event_handler_enabled(es->get_event_handler_enabled());
+  srv.set_execution_time(es->get_execution_time());
+  srv.set_flap_detection_enabled(es->get_flap_detection_enabled());
+  srv.set_has_been_checked(es->has_been_checked());
+  srv.set_is_flapping(es->get_is_flapping());
+  srv.set_last_check(es->get_last_check());
+  srv.set_last_hard_state(
+      static_cast<Service_State>(es->get_last_hard_state()));
+  srv.set_last_hard_state_change(es->get_last_hard_state_change());
+  srv.set_last_notification(es->get_last_notification());
+  srv.set_notification_number(es->get_notification_number());
+  srv.set_last_state_change(es->get_last_state_change());
+  srv.set_last_time_critical(es->get_last_time_critical());
+  srv.set_last_time_ok(es->get_last_time_ok());
+  srv.set_last_time_unknown(es->get_last_time_unknown());
+  srv.set_last_time_warning(es->get_last_time_warning());
+  srv.set_last_update(time(nullptr));
+  srv.set_latency(es->get_latency());
+  srv.set_max_check_attempts(es->get_max_attempts());
+  srv.set_next_check(es->get_next_check());
+  srv.set_next_notification(es->get_next_notification());
+  srv.set_no_more_notifications(es->get_no_more_notifications());
+  srv.set_notifications_enabled(es->get_notifications_enabled());
+  if (!es->get_plugin_output().empty())
+    *srv.mutable_output() =
+        misc::string::check_string_utf8(es->get_plugin_output());
+
+  if (!es->get_long_plugin_output().empty())
+    *srv.mutable_long_output() =
+        misc::string::check_string_utf8(es->get_long_plugin_output());
+
+  srv.set_passive_checks_enabled(es->get_accept_passive_checks());
+  srv.set_percent_state_change(es->get_percent_state_change());
+  if (!es->get_perf_data().empty())
+    *srv.mutable_perf_data() =
+        misc::string::check_string_utf8(es->get_perf_data());
+  srv.set_retry_interval(es->get_retry_interval());
+  *srv.mutable_host_name() =
+      misc::string::check_string_utf8(es->get_hostname());
+  *srv.mutable_service_description() =
+      misc::string::check_string_utf8(es->get_description());
+  srv.set_should_be_scheduled(es->get_should_be_scheduled());
+  srv.set_state_type(static_cast<Service_StateType>(
+      es->has_been_checked() ? es->get_state_type() : engine::notifier::hard));
+
+  // Send event(s).
+  gl_publisher.write(s);
+
+  // Acknowledgement event.
+  auto it =
+      gl_acknowledgements.find(std::make_pair(srv.host_id(), srv.service_id()));
+  if (it != gl_acknowledgements.end() && !srv.acknowledged()) {
+    if (!(!srv.current_state()  // !(OK or (normal ack and NOK))
+          || (!it->second.is_sticky &&
+              (srv.current_state() != it->second.state)))) {
+      auto ack = std::make_shared<neb::acknowledgement>(it->second);
+      ack->deletion_time = time(nullptr);
+      gl_publisher.write(ack);
+    }
+    gl_acknowledgements.erase(it);
+  }
+  return 0;
+}
+
 /**
  *  @brief Function that process service status data.
  *
@@ -2065,10 +2200,9 @@ int neb::callback_service_status(int callback_type, void* data) {
     gl_publisher.write(service_status);
 
     // Acknowledgement event.
-    std::map<std::pair<uint32_t, uint32_t>, neb::acknowledgement>::iterator it(
-        gl_acknowledgements.find(std::make_pair(service_status->host_id,
-                                                service_status->service_id)));
-    if ((it != gl_acknowledgements.end()) && !service_status->acknowledged) {
+    auto it = gl_acknowledgements.find(
+        std::make_pair(service_status->host_id, service_status->service_id));
+    if (it != gl_acknowledgements.end() && !service_status->acknowledged) {
       if (!(!service_status->current_state  // !(OK or (normal ack and NOK))
             || (!it->second.is_sticky &&
                 (service_status->current_state != it->second.state)))) {

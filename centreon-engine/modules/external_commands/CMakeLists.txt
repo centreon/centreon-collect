@@ -49,7 +49,7 @@ set_property(TARGET "externalcmd" PROPERTY PREFIX "")
 
 set(EXTERNALCMD_MODULE "${EXTERNALCMD_MODULE}" PARENT_SCOPE)
 add_dependencies(externalcmd centreon_clib)
-target_link_libraries(externalcmd centreon_clib)
+target_link_libraries(externalcmd centreon_clib CONAN_PKG::spdlog)
 
 # Install rule.
 install(TARGETS "externalcmd"

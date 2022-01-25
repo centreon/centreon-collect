@@ -26,28 +26,28 @@
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::logging;
 
-checkable::checkable(std::string const& display_name,
-                     std::string const& check_command,
+checkable::checkable(const std::string& display_name,
+                     const std::string& check_command,
                      bool checks_enabled,
                      bool accept_passive_checks,
                      uint32_t check_interval,
                      uint32_t retry_interval,
                      int max_attempts,
-                     std::string const& check_period,
-                     std::string const& event_handler,
+                     const std::string& check_period,
+                     const std::string& event_handler,
                      bool event_handler_enabled,
-                     std::string const& notes,
-                     std::string const& notes_url,
-                     std::string const& action_url,
-                     std::string const& icon_image,
-                     std::string const& icon_image_alt,
+                     const std::string& notes,
+                     const std::string& notes_url,
+                     const std::string& action_url,
+                     const std::string& icon_image,
+                     const std::string& icon_image_alt,
                      bool flap_detection_enabled,
                      double low_flap_threshold,
                      double high_flap_threshold,
                      bool check_freshness,
                      int freshness_threshold,
                      bool obsess_over,
-                     std::string const& timezone)
+                     const std::string& timezone)
     : check_period_ptr{nullptr},
       _display_name{display_name},
       _check_command{check_command},
@@ -115,19 +115,19 @@ checkable::checkable(std::string const& display_name,
   }
 }
 
-std::string const& checkable::get_display_name() const {
+const std::string& checkable::get_display_name() const {
   return _display_name;
 }
 
-void checkable::set_display_name(std::string const& display_name) {
+void checkable::set_display_name(const std::string& display_name) {
   _display_name = display_name;
 }
 
-std::string const& checkable::get_check_command() const {
+const std::string& checkable::get_check_command() const {
   return _check_command;
 }
 
-void checkable::set_check_command(std::string const& check_command) {
+void checkable::set_check_command(const std::string& check_command) {
   _check_command = check_command;
 }
 
@@ -171,83 +171,83 @@ void checkable::set_max_attempts(int max_attempts) {
   _max_attempts = max_attempts;
 }
 
-std::string const& checkable::get_check_period() const {
+const std::string& checkable::get_check_period() const {
   return _check_period;
 }
 
-void checkable::set_check_period(std::string const& check_period) {
+void checkable::set_check_period(const std::string& check_period) {
   _check_period = check_period;
 }
 
-std::string const& checkable::get_action_url() const {
+const std::string& checkable::get_action_url() const {
   return _action_url;
 }
 
-void checkable::set_action_url(std::string const& action_url) {
+void checkable::set_action_url(const std::string& action_url) {
   _action_url = action_url;
 }
 
-std::string const& checkable::get_icon_image() const {
+const std::string& checkable::get_icon_image() const {
   return _icon_image;
 }
 
-void checkable::set_icon_image(std::string const& icon_image) {
+void checkable::set_icon_image(const std::string& icon_image) {
   _icon_image = icon_image;
 }
 
-std::string const& checkable::get_icon_image_alt() const {
+const std::string& checkable::get_icon_image_alt() const {
   return _icon_image_alt;
 }
 
-void checkable::set_icon_image_alt(std::string const& icon_image_alt) {
+void checkable::set_icon_image_alt(const std::string& icon_image_alt) {
   _icon_image_alt = icon_image_alt;
 }
 
-std::string const& checkable::get_event_handler() const {
+const std::string& checkable::get_event_handler() const {
   return _event_handler;
 }
 
-void checkable::set_event_handler(std::string const& event_handler) {
+void checkable::set_event_handler(const std::string& event_handler) {
   _event_handler = event_handler;
 }
 
-std::string const& checkable::get_notes() const {
+const std::string& checkable::get_notes() const {
   return _notes;
 }
 
-void checkable::set_notes(std::string const& notes) {
+void checkable::set_notes(const std::string& notes) {
   _notes = notes;
 }
 
-std::string const& checkable::get_notes_url() const {
+const std::string& checkable::get_notes_url() const {
   return _notes_url;
 }
 
-void checkable::set_notes_url(std::string const& notes_url) {
+void checkable::set_notes_url(const std::string& notes_url) {
   _notes_url = notes_url;
 }
 
-std::string const& checkable::get_plugin_output() const {
+const std::string& checkable::get_plugin_output() const {
   return _plugin_output;
 }
 
-void checkable::set_plugin_output(std::string const& plugin_output) {
+void checkable::set_plugin_output(const std::string& plugin_output) {
   _plugin_output = plugin_output;
 }
 
-std::string const& checkable::get_long_plugin_output() const {
+const std::string& checkable::get_long_plugin_output() const {
   return _long_plugin_output;
 }
 
-void checkable::set_long_plugin_output(std::string const& long_plugin_output) {
+void checkable::set_long_plugin_output(const std::string& long_plugin_output) {
   _long_plugin_output = long_plugin_output;
 }
 
-std::string const& checkable::get_perf_data() const {
+const std::string& checkable::get_perf_data() const {
   return _perf_data;
 }
 
-void checkable::set_perf_data(std::string const& perf_data) {
+void checkable::set_perf_data(const std::string& perf_data) {
   _perf_data = perf_data;
 }
 
@@ -275,11 +275,11 @@ void checkable::set_high_flap_threshold(double high_flap_threshold) {
   _high_flap_threshold = high_flap_threshold;
 }
 
-std::string const& checkable::get_timezone() const {
+const std::string& checkable::get_timezone() const {
   return _timezone;
 }
 
-void checkable::set_timezone(std::string const& timezone) {
+void checkable::set_timezone(const std::string& timezone) {
   _timezone = timezone;
 }
 

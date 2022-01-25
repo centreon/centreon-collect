@@ -54,10 +54,10 @@ endif ()
 
 include_directories("${PROJECT_SOURCE_DIR}/core/inc")
 include_directories("${PROJECT_SOURCE_DIR}/neb/inc")
+include_directories("${CMAKE_SOURCE_DIR}/centreon-engine/inc")
 set(INC_DIR "${PROJECT_SOURCE_DIR}/core/inc/com/centreon/broker")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/core/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/core/test")
-include(${CMAKE_BINARY_DIR}/conan_paths.cmake)
 
 add_custom_command(
   DEPENDS ${SRC_DIR}/database/table_max_size.py "${PROJECT_SOURCE_DIR}/simu/docker/installBroker.sql" "${PROJECT_SOURCE_DIR}/simu/docker/partitioning-logs.xml" "${PROJECT_SOURCE_DIR}/simu/docker/bam.sql" "${PROJECT_SOURCE_DIR}/simu/docker/createTablesCentstorage.sql"
@@ -71,28 +71,23 @@ add_custom_target(table_max_size DEPENDS ${INC_DIR}/database/table_max_size.hh)
 
 set_source_files_properties(${INC_DIR}/database/table_max_size.hh PROPERTIES GENERATED TRUE)
 
-find_package(mariadb-connector-c REQUIRED)
-
 add_definitions(${spdlog_DEFINITIONS} ${mariadb-connector-c_DEFINITIONS})
 
-include_directories(${mariadb-connector-c_INCLUDE_DIRS})
+include_directories(${CONAN_INCLUDE_DIRS_MARIADB-CONNECTOR-C})
 
-link_directories(${mariadb-connector-c_LIB_DIRS})
-
-message(STATUS "${PROTOBUF_PREFIX}/bin/protoc")
-set(GRPC_PREFIX "${gRPC_LIB_DIRS}/..")
+#link_directories(${mariadb-connector-c_LIB_DIRS})
 
 add_custom_command(
   DEPENDS ${SRC_DIR}/broker.proto
   COMMENT "Generating interface files of the proto file (grpc)"
   OUTPUT ${SRC_DIR}/broker.grpc.pb.cc ${SRC_DIR}/broker.grpc.pb.h
-  COMMAND ${PROTOBUF_PREFIX}/bin/protoc
-  ARGS --plugin=protoc-gen-grpc=${GRPC_PREFIX}/bin/grpc_cpp_plugin --proto_path=${SRC_DIR} --grpc_out="${SRC_DIR}" ${SRC_DIR}/broker.proto
+  COMMAND ${Protobuf_PROTOC_EXECUTABLE}
+  ARGS --plugin=protoc-gen-grpc=${CONAN_BIN_DIRS_GRPC}/grpc_cpp_plugin --proto_path=${SRC_DIR} --grpc_out="${SRC_DIR}" ${SRC_DIR}/broker.proto
 
   DEPENDS ${SRC_DIR}/broker.proto
   COMMENT "Generating interface files of the proto file (protobuf)"
   OUTPUT ${SRC_DIR}/broker.pb.cc ${SRC_DIR}/broker.pb.h
-  COMMAND ${PROTOBUF_PREFIX}/bin/protoc
+  COMMAND ${Protobuf_PROTOC_EXECUTABLE}
   ARGS --cpp_out="${SRC_DIR}" --proto_path=${SRC_DIR} ${SRC_DIR}/broker.proto
 )
 
@@ -106,7 +101,7 @@ add_library(
   ${SRC_DIR}/broker.pb.cc
   ${SRC_DIR}/broker.grpc.pb.h
   ${SRC_DIR}/broker.pb.h)
-target_link_libraries(berpc ${protobuf_LIBS})
+target_link_libraries(berpc CONAN_PKG::protobuf)
 set_target_properties(berpc PROPERTIES COMPILE_FLAGS "-fPIC")
 
 # Version.
@@ -130,8 +125,6 @@ include(cmake/tool.cmake)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 add_definitions("-DASIO_STANDALONE")
-
-find_package(PkgConfig REQUIRED)
 
 #
 # Get distributions name
@@ -477,11 +470,12 @@ set(LIBROKER_SOURCES
 add_library(rokerbase STATIC ${LIBROKER_SOURCES})
 set_target_properties(rokerbase PROPERTIES COMPILE_FLAGS "-fPIC")
 add_dependencies(rokerbase berpc)
-target_link_libraries(rokerbase ${ZLIB_LIBRARIES} ${OpenSSL_LIBS} ${mariadb-connector-c_LIBS} pthread dl berpc bbdo_bbdo)
+target_link_libraries(rokerbase CONAN_PKG::zlib CONAN_PKG::spdlog CONAN_PKG::openssl CONAN_PKG::mariadb-connector-c pthread dl berpc bbdo_bbdo)
 
 add_library(roker STATIC
   ${SRC_DIR}/config/applier/init.cc)
-target_link_libraries(roker rokerbase dl ${c-ares_LIBS} ${OpenSSL_LIBS} ${gRPC_LIBS} ${absl_LIBS} pthread)
+target_link_libraries(roker rokerbase dl CONAN_PKG::openssl CONAN_PKG::grpc pthread)
+#target_link_libraries(roker rokerbase dl ${c-ares_LIBS} CONAN_PKG::openssl CONAN_PKG::grpc ${absl_LIBS} pthread)
 
 
 # Standalone binary.
@@ -489,7 +483,7 @@ add_executable(cbd ${SRC_DIR}/main.cc)
 
 #Flags needed to include all symbols in binary.
 target_link_libraries(cbd
-	"-Wl,--whole-archive" rokerbase roker "-Wl,--no-whole-archive" ${nlohmann_json_LIBS} ${fmt_LIBS} ${spdlog_LIBS} ${gRPC_LIBS} ${absl_LIBS} )
+	"-Wl,--whole-archive" rokerbase roker "-Wl,--no-whole-archive" CONAN_PKG::nlohmann_json CONAN_PKG::fmt CONAN_PKG::spdlog CONAN_PKG::grpc )
 
 # Centreon Broker Watchdog
 option(WITH_CBWD "Build centreon broker watchdog." ON)
@@ -608,7 +602,6 @@ include(cmake/package.cmake)
 # Unit tests.
 #
 # Enable testing.
-option(WITH_TESTING "Generate unit tests." OFF)
 if (WITH_TESTING)
   add_subdirectory(test)
 endif ()

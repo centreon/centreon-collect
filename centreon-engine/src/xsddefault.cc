@@ -726,9 +726,10 @@ int xsddefault_save_status_data() {
   }
 
   // save all downtime
-  for (std::pair<time_t, std::shared_ptr<downtime>> const& dt :
-       downtime_manager::instance().get_scheduled_downtimes())
-    stream << *dt.second;
+  for (auto it = downtime_manager::instance().get_scheduled_downtimes().begin();
+      it != downtime_manager::instance().get_scheduled_downtimes().end();
+      ++it)
+    stream << *it->second;
 
   // Write data in buffer.
   stream.flush();

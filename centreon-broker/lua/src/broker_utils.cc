@@ -30,6 +30,7 @@
 
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/io/events.hh"
+#include "com/centreon/broker/io/protobuf.hh"
 #include "com/centreon/broker/mapping/entry.hh"
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -136,113 +137,163 @@ static void broker_json_encode_broker_event(std::shared_ptr<io::data> e,
     oss << fmt::format("{{ \"_type\": {}, \"category\": {}, \"element\": {}",
                        e->type(), static_cast<uint32_t>(e->type()) >> 16,
                        static_cast<uint32_t>(e->type()) & 0xffff);
-    for (const mapping::entry* current_entry = info->get_mapping();
-         !current_entry->is_null(); ++current_entry) {
-      char const* entry_name(current_entry->get_name_v2());
-      if (entry_name && *entry_name) {
-        switch (current_entry->get_type()) {
-          case mapping::source::BOOL:
-            oss << fmt::format(", \"{}\":{}", entry_name,
-                               current_entry->get_bool(*e));
-            break;
-          case mapping::source::DOUBLE:
-            oss << fmt::format(", \"{}\":{}", entry_name,
-                               current_entry->get_double(*e));
-            break;
-          case mapping::source::INT:
-            switch (current_entry->get_attribute()) {
-              case mapping::entry::invalid_on_zero: {
-                int val(current_entry->get_int(*e));
-                if (val != 0)
-                  oss << fmt::format(", \"{}\":{}", entry_name, val);
-              } break;
-              case mapping::entry::invalid_on_minus_one: {
-                int val(current_entry->get_int(*e));
-                if (val != -1)
-                  oss << fmt::format(", \"{}\":{}", entry_name, val);
-              } break;
-              default:
-                oss << fmt::format(", \"{}\":{}", entry_name,
-                                   current_entry->get_int(*e));
-            }
-            break;
-          case mapping::source::SHORT:
-            oss << fmt::format(", \"{}\":{}", entry_name,
-                               current_entry->get_short(*e));
-            break;
-          case mapping::source::STRING:
-            if (current_entry->get_attribute() ==
-                mapping::entry::invalid_on_zero) {
-              std::string val{current_entry->get_string(*e)};
-              if (!val.empty()) {
+    if (info->get_mapping()) {
+      for (const mapping::entry* current_entry = info->get_mapping();
+           !current_entry->is_null(); ++current_entry) {
+        char const* entry_name(current_entry->get_name_v2());
+        if (entry_name && *entry_name) {
+          switch (current_entry->get_type()) {
+            case mapping::source::BOOL:
+              oss << fmt::format(", \"{}\":{}", entry_name,
+                                 current_entry->get_bool(*e));
+              break;
+            case mapping::source::DOUBLE:
+              oss << fmt::format(", \"{}\":{}", entry_name,
+                                 current_entry->get_double(*e));
+              break;
+            case mapping::source::INT:
+              switch (current_entry->get_attribute()) {
+                case mapping::entry::invalid_on_zero: {
+                  int val(current_entry->get_int(*e));
+                  if (val != 0)
+                    oss << fmt::format(", \"{}\":{}", entry_name, val);
+                } break;
+                case mapping::entry::invalid_on_minus_one: {
+                  int val(current_entry->get_int(*e));
+                  if (val != -1)
+                    oss << fmt::format(", \"{}\":{}", entry_name, val);
+                } break;
+                default:
+                  oss << fmt::format(", \"{}\":{}", entry_name,
+                                     current_entry->get_int(*e));
+              }
+              break;
+            case mapping::source::SHORT:
+              oss << fmt::format(", \"{}\":{}", entry_name,
+                                 current_entry->get_short(*e));
+              break;
+            case mapping::source::STRING:
+              if (current_entry->get_attribute() ==
+                  mapping::entry::invalid_on_zero) {
+                std::string val{current_entry->get_string(*e)};
+                if (!val.empty()) {
+                  oss << fmt::format(", \"{}\":\"", entry_name);
+                  escape_str(val.c_str(), oss);
+                  oss << '"';
+                }
+              } else {
                 oss << fmt::format(", \"{}\":\"", entry_name);
-                escape_str(val.c_str(), oss);
+                escape_str(current_entry->get_string(*e).c_str(), oss);
                 oss << '"';
               }
-            } else {
-              oss << fmt::format(", \"{}\":\"", entry_name);
-              escape_str(current_entry->get_string(*e).c_str(), oss);
-              oss << '"';
-            }
-            break;
-          case mapping::source::TIME:
-            switch (current_entry->get_attribute()) {
-              case mapping::entry::invalid_on_zero: {
-                time_t val = current_entry->get_time(*e);
-                if (val != 0)
-                  oss << fmt::format(", \"{}\":\"{}\"", entry_name, val);
-              } break;
-              case mapping::entry::invalid_on_minus_one: {
-                time_t val = current_entry->get_time(*e);
-                if (val != -1)
-                  oss << fmt::format(", \"{}\":\"{}\"", entry_name, val);
-              } break;
-              default:
-                oss << fmt::format(", \"{}\":\"{}\"", entry_name,
-                                   current_entry->get_time(*e));
-            }
-            break;
-          case mapping::source::UINT:
-            switch (current_entry->get_attribute()) {
-              case mapping::entry::invalid_on_zero: {
-                uint32_t val = current_entry->get_uint(*e);
-                if (val != 0)
-                  oss << fmt::format(", \"{}\":{}", entry_name, val);
-              } break;
-              case mapping::entry::invalid_on_minus_one: {
-                uint32_t val = current_entry->get_uint(*e);
-                if (val != static_cast<uint32_t>(-1))
-                  oss << fmt::format(", \"{}\":{}", entry_name, val);
-              } break;
-              default:
-                oss << fmt::format(", \"{}\":{}", entry_name,
-                                   current_entry->get_uint(*e));
-            }
-            break;
-          case mapping::source::ULONG:
-            switch (current_entry->get_attribute()) {
-              case mapping::entry::invalid_on_zero: {
-                uint64_t val = current_entry->get_ulong(*e);
-                if (val != 0)
-                  oss << fmt::format(", \"{}\":{}", entry_name, val);
-              } break;
-              case mapping::entry::invalid_on_minus_one: {
-                uint64_t val = current_entry->get_ulong(*e);
-                if (val != static_cast<uint64_t>(-1))
-                  oss << fmt::format(", \"{}\":{}", entry_name, val);
-              } break;
-              default:
-                oss << fmt::format(", \"{}\":{}", entry_name,
-                                   current_entry->get_ulong(*e));
-            }
-            break;
+              break;
+            case mapping::source::TIME:
+              switch (current_entry->get_attribute()) {
+                case mapping::entry::invalid_on_zero: {
+                  time_t val = current_entry->get_time(*e);
+                  if (val != 0)
+                    oss << fmt::format(", \"{}\":\"{}\"", entry_name, val);
+                } break;
+                case mapping::entry::invalid_on_minus_one: {
+                  time_t val = current_entry->get_time(*e);
+                  if (val != -1)
+                    oss << fmt::format(", \"{}\":\"{}\"", entry_name, val);
+                } break;
+                default:
+                  oss << fmt::format(", \"{}\":\"{}\"", entry_name,
+                                     current_entry->get_time(*e));
+              }
+              break;
+            case mapping::source::UINT:
+              switch (current_entry->get_attribute()) {
+                case mapping::entry::invalid_on_zero: {
+                  uint32_t val = current_entry->get_uint(*e);
+                  if (val != 0)
+                    oss << fmt::format(", \"{}\":{}", entry_name, val);
+                } break;
+                case mapping::entry::invalid_on_minus_one: {
+                  uint32_t val = current_entry->get_uint(*e);
+                  if (val != static_cast<uint32_t>(-1))
+                    oss << fmt::format(", \"{}\":{}", entry_name, val);
+                } break;
+                default:
+                  oss << fmt::format(", \"{}\":{}", entry_name,
+                                     current_entry->get_uint(*e));
+              }
+              break;
+            case mapping::source::ULONG:
+              switch (current_entry->get_attribute()) {
+                case mapping::entry::invalid_on_zero: {
+                  uint64_t val = current_entry->get_ulong(*e);
+                  if (val != 0)
+                    oss << fmt::format(", \"{}\":{}", entry_name, val);
+                } break;
+                case mapping::entry::invalid_on_minus_one: {
+                  uint64_t val = current_entry->get_ulong(*e);
+                  if (val != static_cast<uint64_t>(-1))
+                    oss << fmt::format(", \"{}\":{}", entry_name, val);
+                } break;
+                default:
+                  oss << fmt::format(", \"{}\":{}", entry_name,
+                                     current_entry->get_ulong(*e));
+              }
+              break;
 
-          default:  // Error in one of the mappings.
+            default:  // Error in one of the mappings.
+              throw msg_fmt(
+                  "invalid mapping for object "
+                  "of type '{}': {}"
+                  " is not a known type ID",
+                  info->get_name(), current_entry->get_type());
+          }
+        }
+      }
+    } else {
+      /* Here is the protobuf case: no mapping */
+      const google::protobuf::Message* p =
+          static_cast<const io::protobuf_base*>(e.get())->msg();
+      const google::protobuf::Descriptor* desc = p->GetDescriptor();
+      const google::protobuf::Reflection* refl = p->GetReflection();
+      for (int i = 0; i < desc->field_count(); i++) {
+        auto f = desc->field(i);
+        const std::string& entry_name = f->name();
+        switch (f->type()) {
+          case google::protobuf::FieldDescriptor::TYPE_BOOL:
+            oss << fmt::format(", \"{}\":{}", entry_name, refl->GetBool(*p, f));
+            break;
+          case google::protobuf::FieldDescriptor::TYPE_DOUBLE:
+            oss << fmt::format(", \"{}\":{}", entry_name,
+                               refl->GetDouble(*p, f));
+            break;
+          case google::protobuf::FieldDescriptor::TYPE_INT32:
+            oss << fmt::format(", \"{}\":{}", entry_name,
+                               refl->GetInt32(*p, f));
+            break;
+          case google::protobuf::FieldDescriptor::TYPE_UINT32:
+            oss << fmt::format(", \"{}\":{}", entry_name,
+                               refl->GetUInt32(*p, f));
+            break;
+          case google::protobuf::FieldDescriptor::TYPE_INT64:
+            oss << fmt::format(", \"{}\":{}", entry_name,
+                               refl->GetInt64(*p, f));
+            break;
+          case google::protobuf::FieldDescriptor::TYPE_UINT64:
+            oss << fmt::format(", \"{}\":{}", entry_name,
+                               refl->GetUInt64(*p, f));
+            break;
+          case google::protobuf::FieldDescriptor::TYPE_ENUM:
+            oss << fmt::format(", \"{}\":{}", entry_name,
+                               refl->GetEnumValue(*p, f));
+            break;
+          case google::protobuf::FieldDescriptor::TYPE_STRING:
+            oss << fmt::format(", \"{}\":\"{}\"", entry_name,
+                               refl->GetString(*p, f));
+            break;
+          default:  // Error, a type not handled
             throw msg_fmt(
-                "invalid mapping for object "
-                "of type '{}': {}"
-                " is not a known type ID",
-                info->get_name(), current_entry->get_type());
+                "invalid mapping for object '{}': {} type ID is not handled by "
+                "the Lua stream",
+                info->get_name(), f->type());
         }
       }
     }

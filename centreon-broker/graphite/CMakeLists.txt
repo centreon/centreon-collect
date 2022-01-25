@@ -43,7 +43,7 @@ add_library("${GRAPHITE}" SHARED
   "${INC_DIR}/query.hh"
   "${INC_DIR}/macro_cache.hh"
 )
-target_link_libraries("${GRAPHITE}" bbdo_storage)
+target_link_libraries("${GRAPHITE}" bbdo_storage CONAN_PKG::spdlog)
 set_target_properties("${GRAPHITE}" PROPERTIES PREFIX "")
 
 # Testing.

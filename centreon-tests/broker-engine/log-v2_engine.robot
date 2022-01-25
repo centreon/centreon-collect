@@ -16,7 +16,7 @@ Library	../resources/Common.py
 
 *** Test Cases ***
 LOGV2EB1
-	[Documentation]	log-v2 enabled  hold log disabled check broker sink
+	[Documentation]	log-v2 enabled  old log disabled check broker sink
 	[Tags]	Broker	Engine	log-v2 sink broker
 	Config Engine	${1}
 	Config Broker	rrd
@@ -25,9 +25,10 @@ LOGV2EB1
 	Engine Config Set Value	${0}	log_legacy_enabled	${0}
 	Engine Config Set Value	${0}	log_v2_enabled	${1}
 
-	${start}=	Get Current Date	 UTC	exclude_millis=yes
-	${time_stamp}    Convert Date    ${start}    epoch	exclude_millis=yes
-    ${time_stamp2}    evaluate    int(${time_stamp})
+	${start}=	Get Current Date	 exclude_millis=yes
+	${time_stamp}	Convert Date    ${start}    epoch	exclude_millis=yes
+	${time_stamp2}	evaluate    int(${time_stamp})
+	Sleep	1s
 
 	Start Broker
 	Start Engine
@@ -37,22 +38,24 @@ LOGV2EB1
 	${pid}=	Get Process Id	e0
 	${content}=	Create List	[process] [info] [${pid}] Configuration loaded, main loop starting.
 
-	${log}=	Catenate	SEPARATOR=	${ENGINE_LOG}	/config0/centengine.log
-	${result1}=	Find In Log With Timeout	${log}	${start}	${content}	15	
+	${result1}=	Find In Log With Timeout	${logEngine0}	${start}	${content}	15
 	Should Be True	${result1}
-
-	Sleep	10s
 
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 	Log To Console	after connection
-	${output}=	Query	select count(*) from logs where output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2};
-	Log To Console	${output}
+        FOR    ${index}    IN RANGE    60
+	 Log To Console	SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2}
+	 ${output}=	Query	SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2}
+	 Log To Console	${output}
+         Sleep	1s
+         EXIT FOR LOOP IF	"${output}" == "((1,),)"
+        END
 	Should Be Equal As Strings	${output}	((1,),)
 	Stop Engine
 	Stop Broker
 
 LOGV2DB1
-	[Documentation]	log-v2 disabled hold log enabled check broker sink
+	[Documentation]	log-v2 disabled old log enabled check broker sink
 	[Tags]	Broker	Engine	log-v2 sink broker
 	Config Engine	${1}
 	Config Broker	rrd
@@ -61,9 +64,10 @@ LOGV2DB1
 	Engine Config Set Value	${0}	log_legacy_enabled	${1}
 	Engine Config Set Value	${0}	log_v2_enabled	${0}
 
-	${start}=	Get Current Date	 UTC	exclude_millis=yes
+	${start}=	Get Current Date	 exclude_millis=yes
 	${time_stamp}    Convert Date    ${start}    epoch	exclude_millis=yes
     ${time_stamp2}    evaluate    int(${time_stamp})
+	Sleep	1s
 
 	Start Broker
 	Start Engine
@@ -74,24 +78,26 @@ LOGV2DB1
 	${content_v2}=	Create List	[process] [info] [${pid}] Configuration loaded, main loop starting.
 	${content_hold}=	Create List	[${pid}] Configuration loaded, main loop starting.
 
-	${log}=	Catenate	SEPARATOR=	${ENGINE_LOG}	/config0/centengine.log
-	${result1}=	Find In Log With Timeout	${log}	${start}	${content_v2}	15	
-	${result2}=	Find In Log With Timeout	${log}	${start}	${content_hold}	15
+	${result1}=	Find In Log With Timeout	${logEngine0}	${start}	${content_v2}	15
+	${result2}=	Find In Log With Timeout	${logEngine0}	${start}	${content_hold}	15
 	Should Not Be True	${result1}
-	Should Be True	${result2}	
-	
-	Sleep	10s
+	Should Be True	${result2}
 
-	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 	Log To Console	after connection
-	${output}=	Query	select count(*) from logs where output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2};
-	Log To Console	${output}
+	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+        FOR	${index}	IN RANGE	60
+	 Log To Console	SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2}
+	 ${output}=	Query	SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2};
+	 Log To Console	${output}
+         Sleep	1s
+         EXIT FOR LOOP IF	"${output}" == "((1,),)"
+        END
 	Should Be Equal As Strings	${output}	((1,),)
 	Stop Engine
 	Stop Broker
 
 LOGV2DB2
-	[Documentation]	log-v2 disabled hold log disabled check broker sink
+	[Documentation]	log-v2 disabled old log disabled check broker sink
 	[Tags]	Broker	Engine	log-v2 sink broker
 	Config Engine	${1}
 	Config Broker	rrd
@@ -100,9 +106,10 @@ LOGV2DB2
 	Engine Config Set Value	${0}	log_legacy_enabled	${0}
 	Engine Config Set Value	${0}	log_v2_enabled	${0}
 
-	${start}=	Get Current Date	 UTC	exclude_millis=yes
+	${start}=	Get Current Date	 exclude_millis=yes
 	${time_stamp}    Convert Date    ${start}    epoch	exclude_millis=yes
     ${time_stamp2}    evaluate    int(${time_stamp})
+	Sleep	1s
 	Start Broker
 	Start Engine
 	${result}=	Check Connections
@@ -112,24 +119,26 @@ LOGV2DB2
 	${content_v2}=	Create List	[process] [info] [${pid}] Configuration loaded, main loop starting.
 	${content_hold}=	Create List	[${pid}] Configuration loaded, main loop starting.
 
-	${log}=	Catenate	SEPARATOR=	${ENGINE_LOG}	/config0/centengine.log
-	${result1}=	Find In Log With Timeout	${log}	${start}	${content_v2}	15	
-	${result2}=	Find In Log With Timeout	${log}	${start}	${content_hold}	15
+	${result1}=	Find In Log With Timeout	${logEngine0}	${start}	${content_v2}	15
+	${result2}=	Find In Log With Timeout	${logEngine0}	${start}	${content_hold}	15
 	Should Not Be True	${result1}
 	Should Not Be True	${result2}
 
-	Sleep	10s
-	
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 	Log To Console	after connection
-	${output}=	Query	select count(*) from logs where output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2};
-	Log To Console	${output}
+        FOR	${index}	IN RANGE	60
+	 Log To Console	SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2}
+	 ${output}=	Query	SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2};
+	 Log To Console	${output}
+         Sleep	1s
+         EXIT FOR LOOP IF	"${output}" == "((0,),)"
+        END
 	Should Be Equal As Strings	${output}	((0,),)
 	Stop Engine
 	Stop Broker
 
 LOGV2EB2
-	[Documentation]	log-v2 enabled hold log enabled check broker sink
+	[Documentation]	log-v2 enabled old log enabled check broker sink
 	[Tags]	Broker	Engine	log-v2	sinkbroker
 	Config Engine	${1}
 	Config Broker	rrd
@@ -138,9 +147,11 @@ LOGV2EB2
 	Engine Config Set Value	${0}	log_legacy_enabled	${1}
 	Engine Config Set Value	${0}	log_v2_enabled	${1}
 
-	${start}=	Get Current Date	 UTC	exclude_millis=yes
+	${start}=	Get Current Date	 exclude_millis=yes
 	${time_stamp}    Convert Date    ${start}    epoch	exclude_millis=yes
     ${time_stamp2}    evaluate    int(${time_stamp})
+	Sleep	1s
+
 	Start Broker
 	Start Engine
 	${result}=	Check Connections
@@ -150,25 +161,27 @@ LOGV2EB2
 	${content_v2}=	Create List	[process] [info] [${pid}] Configuration loaded, main loop starting.
 	${content_hold}=	Create List	[${pid}] Configuration loaded, main loop starting.
 
-	${log}=	Catenate	SEPARATOR=	${ENGINE_LOG}	/config0/centengine.log
-	${result1}=	Find In Log With Timeout	${log}	${start}	${content_v2}	15	
-	${result2}=	Find In Log With Timeout	${log}	${start}	${content_hold}	15
+	${result1}=	Find In Log With Timeout	${logEngine0}	${start}	${content_v2}	15
+	${result2}=	Find In Log With Timeout	${logEngine0}	${start}	${content_hold}	15
 	Should Be True	${result1}
 	Should Be True	${result2}
 
-	Sleep	20s
-
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 	Log To Console	after connection
-	${output}=	Query	select count(*) from logs where output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2};
-	Log To Console	${output}
+        FOR	${index}	IN RANGE	60
+	 Log To Console	SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2}
+	 ${output}=	Query	SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2};
+	 Log To Console	${output}
+         Sleep	1s
+         EXIT FOR LOOP IF       "${output}" == "((2,),)"
+        END
 	Should Be Equal As Strings	${output}	((2,),)
 
 	Stop Engine
 	Stop Broker
 
 LOGV2EF1
-	[Documentation]	log-v2 enabled  hold log disabled check logfile sink
+	[Documentation]	log-v2 enabled  old log disabled check logfile sink
 	[Tags]	Broker	Engine	log-v2
 	Config Engine	${1}
 	Config Broker	rrd
@@ -185,14 +198,13 @@ LOGV2EF1
 	${pid}=	Get Process Id	e0
 	${content_v2}=	Create List	[process] [info] [${pid}] Configuration loaded, main loop starting.
 
-	${log}=	Catenate	SEPARATOR=	${ENGINE_LOG}	/config0/centengine.log
-	${result1}=	Find In Log With Timeout	${log}	${start}	${content_v2}	15	
+	${result1}=	Find In Log With Timeout	${logEngine0}	${start}	${content_v2}	15
 	Should Be True	${result1}
 	Stop Engine
 	Stop Broker
 
 LOGV2DF1
-	[Documentation]	log-v2 disabled hold log enabled check logfile sink
+	[Documentation]	log-v2 disabled old log enabled check logfile sink
 	[Tags]	Broker	Engine	log-v2
 	Config Engine	${1}
 	Config Broker	rrd
@@ -210,16 +222,15 @@ LOGV2DF1
 	${content_hold}=	Create List	[${pid}] Configuration loaded, main loop starting.
 	${content_v2}=	Create List	[process] [info] [${pid}] Configuration loaded, main loop starting.
 
-	${log}=	Catenate	SEPARATOR=	${ENGINE_LOG}	/config0/centengine.log
-	${result1}=	Find In Log With Timeout	${log}	${start}	${content_hold}	15	
-	${result2}=	Find In Log With Timeout	${log}	${start}	${content_v2}	15	
+	${result1}=	Find In Log With Timeout	${logEngine0}	${start}	${content_hold}	15
+	${result2}=	Find In Log With Timeout	${logEngine0}	${start}	${content_v2}	15
 	Should Be True	${result1}
 	Should Not Be True	${result2}
 	Stop Engine
 	Stop Broker
 
 LOGV2DF2
-	[Documentation]	log-v2 disabled hold log disabled check logfile sink
+	[Documentation]	log-v2 disabled old log disabled check logfile sink
 	[Tags]	Broker	Engine	log-v2
 	Config Engine	${1}
 	Config Broker	rrd
@@ -237,16 +248,15 @@ LOGV2DF2
 	${content_v2}=	Create List	[process] [info] [${pid}] Configuration loaded, main loop starting.
 	${content_hold}=	Create List	[${pid}] Configuration loaded, main loop starting.
 
-	${log}=	Catenate	SEPARATOR=	${ENGINE_LOG}	/config0/centengine.log
-	${result1}=	Find In Log With Timeout	${log}	${start}	${content_v2}	15	
-	${result2}=	Find In Log With Timeout	${log}	${start}	${content_hold}	15
+	${result1}=	Find In Log With Timeout	${logEngine0}	${start}	${content_v2}	15
+	${result2}=	Find In Log With Timeout	${logEngine0}	${start}	${content_hold}	15
 	Should Not Be True	${result1}
-	Should Not Be True	${result2}	
+	Should Not Be True	${result2}
 	Stop Engine
 	Stop Broker
 
 LOGV2EF2
-	[Documentation]	log-v2 enabled hold log enabled check logfile sink
+	[Documentation]	log-v2 enabled old log enabled check logfile sink
 	[Tags]	Broker	Engine	log-v2
 	Config Engine	${1}
 	Config Broker	rrd
@@ -264,16 +274,15 @@ LOGV2EF2
 	${content_v2}=	Create List	[process] [info] [${pid}] Configuration loaded, main loop starting.
 	${content_hold}=	Create List	[${pid}] Configuration loaded, main loop starting.
 
-	${log}=	Catenate	SEPARATOR=	${ENGINE_LOG}	/config0/centengine.log
-	${result1}=	Find In Log With Timeout	${log}	${start}	${content_v2}	15	
-	${result2}=	Find In Log With Timeout	${log}	${start}	${content_hold}	15
+	${result1}=	Find In Log With Timeout	${logEngine0}	${start}	${content_v2}	15
+	${result2}=	Find In Log With Timeout	${logEngine0}	${start}	${content_hold}	15
 	Should Be True	${result1}
-	Should Be True	${result2}	
+	Should Be True	${result2}
 	Stop Engine
 	Stop Broker
 
 LOGV2BE2
-	[Documentation]	log-v2 enabled hold log enabled check broker sink is equal
+	[Documentation]	log-v2 enabled old log enabled check broker sink is equal
 	[Tags]	Broker	Engine	log-v2	sinkbroker
 	Config Engine	${1}
 	Config Broker	rrd
@@ -282,7 +291,7 @@ LOGV2BE2
 	Engine Config Set Value	${0}	log_legacy_enabled	${1}
 	Engine Config Set Value	${0}	log_v2_enabled	${1}
 
-	${start}=	Get Current Date	 UTC	exclude_millis=yes
+	${start}=	Get Current Date	 exclude_millis=yes
 	${time_stamp}    Convert Date    ${start}    epoch	exclude_millis=yes
     ${time_stamp2}    evaluate    int(${time_stamp})
 	Start Broker
@@ -294,7 +303,8 @@ LOGV2BE2
 
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 	Log To Console	after connection
-	@{output}=	Query	select count(*) as c, output from logs where ctime>=${time_stamp2} group by output having c<>2
+	Log To Console	SELECT COUNT(*) as c, output FROM logs WHERE ctime>=${time_stamp2} GROUP BY output HAVING c<>2
+	@{output}=	Query	SELECT COUNT(*) as c, output FROM logs WHERE ctime>=${time_stamp2} GROUP BY output HAVING c<>2
 
 	${res}=	engine log table duplicate	${output}
 	Should Be True	${res}	msg=one or other log are not duplicate in tables logs
@@ -303,7 +313,7 @@ LOGV2BE2
 	Stop Broker
 
 LOGV2FE2
-	[Documentation]	log-v2 enabled hold log enabled check logfile sink
+	[Documentation]	log-v2 enabled old log enabled check logfile sink
 	[Tags]	Broker	Engine	log-v2
 	Config Engine	${1}
 	Config Broker	rrd
@@ -312,7 +322,7 @@ LOGV2FE2
 	Engine Config Set Value	${0}	log_legacy_enabled	${1}
 	Engine Config Set Value	${0}	log_v2_enabled	${1}
 	Clear Engine Logs
-	
+
 	${start}=	Get Current Date
 	Start Broker
 	Start Engine
@@ -323,16 +333,8 @@ LOGV2FE2
 	${content_hold}=	Create List	[${pid}] Configuration loaded, main loop starting.
 
 	Sleep	2m
-	
-	${log}=	Catenate	SEPARATOR=	${ENGINE_LOG}	/config0/centengine.log
-	${res}=	engine log file duplicate	${log}	${start}
+
+	${res}=	engine log file duplicate	${logEngine0}	${start}
 	Should Be True	${res}	msg=one or other log are not duplicate in logsfile
 	Stop Engine
 	Stop Broker
-
-*** Variables ***
-${DBName}	centreon_storage
-${DBHost}	localhost
-${DBUser}	centreon
-${DBPass}	centreon
-${DBPort}	3306

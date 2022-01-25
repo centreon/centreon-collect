@@ -292,12 +292,3 @@ BRRDRMU1
         	${result}=	Compare RRD Average Value	${m}	${value}
                 Should Be True	${result}	msg=Data before RRD rebuild contain alternatively the metric ID and 0. The expected average is metric_id / 2.
         END
-
-*** Variables ***
-${DBName}	centreon_storage
-${DBHost}	localhost
-${DBUser}	centreon
-${DBPass}	centreon
-${DBPort}	3306
-${rrdLog}		${BROKER_LOG}/central-rrd-master.log
-${centralLog}		${BROKER_LOG}/central-broker-master.log

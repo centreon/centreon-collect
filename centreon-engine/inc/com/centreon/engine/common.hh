@@ -223,8 +223,8 @@
 
 /* Host/service check options. */
 #define CHECK_OPTION_NONE 0 /* No check options. */
-#define CHECK_OPTION_FORCE_EXECUTION                                        \
-  1 /* Force execution of a check (ignores disabled services/hosts, invalid \
+#define CHECK_OPTION_FORCE_EXECUTION 1
+    /* Force execution of a check (ignores disabled services/hosts, invalid \
        timeperiods). */
 #define CHECK_OPTION_FRESHNESS_CHECK 2 /* This is a freshness check. */
 #define CHECK_OPTION_ORPHAN_CHECK 4    /* This is an orphan check. */

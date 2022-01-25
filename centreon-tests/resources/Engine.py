@@ -310,3 +310,10 @@ def add_host_group(index: int, members: list):
     logger.console(mbs)
     f.write(engine.create_host_group(mbs))
     f.close()
+
+def engine_log_duplicate(result: list):
+    dup = True
+    for i in result:
+        if (i[0] % 2) != 0:
+            dup = False
+    return dup

@@ -61,7 +61,7 @@ add_executable(centreon_connector_ssh
 )
 add_dependencies(centreon_connector_ssh centreon_clib)
 target_link_libraries(centreon_connector_ssh ${LIBSSH2_LIBRARIES}
-  centreon_clib ${LIBGCRYPT_LIBRARIES} ${spdlog_LIBS} ${fmt_LIBS} pthread)
+  centreon_clib ${LIBGCRYPT_LIBRARIES} CONAN_PKG::spdlog CONAN_PKG::fmt pthread)
 
 # Install rules.
 install(TARGETS centreon_connector_ssh RUNTIME DESTINATION ${PREFIX_CONNECTORS})
