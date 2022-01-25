@@ -29,7 +29,7 @@ BEPBBEE1
 	Start Broker
 	Start Engine
 	${content}=	Create List	[bbdo] [error] BBDO: peer is using protocol version 3.0.0 whereas we're using protocol version 2.0.0
-	${result}=	Find In Log with timeout	${logCbd}	${start}	${content}	30
+	${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	30
 	Should Be True	${result}	msg=Message about not matching bbdo versions not available
 	Stop Engine
 	Stop Broker
@@ -50,7 +50,7 @@ BEPBBEE2
 	Start Broker
 	Start Engine
 	${content}=	Create List	[config] [error] Configuration check error: bbdo versions >= 3.0.0 need the unified_sql module to be configured.
-	${result}=	Find In Log with timeout	${logCbd}	${start}	${content}	30
+	${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	30
 	Should Be True	${result}	msg=Message about a missing config of unified_sql not available.
 	Stop Engine
 
@@ -76,7 +76,3 @@ BEPBBEE3
 	Stop Engine
 	Stop Broker
 
-
-*** Variables ***
-${logCbd}	${BROKER_LOG}/central-broker-master.log
-${logModule}	${BROKER_LOG}/central-module-master.log

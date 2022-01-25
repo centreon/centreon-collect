@@ -325,6 +325,3 @@ BDBMU1
 	 Stop Broker
 	 Stop Engine
 	END
-
-*** Variables ***
-${centralLog}		${BROKER_LOG}/central-broker-master.log

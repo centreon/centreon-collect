@@ -106,3 +106,12 @@ Reset Eth Connection
 ${BROKER_LOG}	/var/log/centreon-broker
 ${ENGINE_LOG}	/var/log/centreon-engine
 ${SCRIPTS}	${CURDIR}${/}scripts${/}
+${centralLog}	${BROKER_LOG}/central-broker-master.log
+${moduleLog}	${BROKER_LOG}/central-module-master.log
+${rrdLog}	${BROKER_LOG}/central-rrd-master.log
+
+${DBName}	centreon_storage
+${DBHost}	localhost
+${DBUser}	centreon
+${DBPass}	centreon
+${DBPort}	3306

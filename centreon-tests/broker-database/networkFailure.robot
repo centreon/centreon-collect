@@ -56,13 +56,13 @@ NetworkDBFail6
 	${result}=	Check Connections
 	Should Be True	${result}	msg=Broker and Engine are not connected
 	${content}=	Create List	run query: SELECT
-	${result}=	Find In Log With Timeout	${logCbd}	${start}	${content}	40
+	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	40
 	Should Be True	${result}	msg=No SELECT done by broker in the DB
         Disable Eth Connection On Port	port=3306
         Sleep	1m
         Reset Eth Connection
         ${content}=	Create List	0 events acknowledged
-	${result}=	Find In Log With Timeout	${logCbd}	${start}	${content}	40
+	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	40
         Stop Engine
         Kindly Stop Broker
 
@@ -84,13 +84,13 @@ NetworkDBFailU6
 	${result}=	Check Connections
 	Should Be True	${result}	msg=Broker and Engine are not connected
 	${content}=	Create List	run query: SELECT
-	${result}=	Find In Log With Timeout	${logCbd}	${start}	${content}	40
+	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	40
 	Should Be True	${result}	msg=No SELECT done by broker in the DB
         Disable Eth Connection On Port	port=3306
         Sleep	1m
         Reset Eth Connection
         ${content}=	Create List	0 events acknowledged
-	${result}=	Find In Log With Timeout	${logCbd}	${start}	${content}	40
+	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	40
         Stop Engine
         Kindly Stop Broker
 
@@ -113,7 +113,7 @@ NetworkDBFail7
 	${result}=	Check Connections
 	Should Be True	${result}	msg=Broker and Engine are not connected
 	${content}=	Create List	run query: SELECT
-	${result}=	Find In Log With Timeout	${logCbd}	${start}	${content}	40
+	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	40
 	Should Be True	${result}	msg=No SELECT done by broker in the DB
         FOR	${i}	IN	0	5
          Disable Eth Connection On Port	port=3306
@@ -122,7 +122,7 @@ NetworkDBFail7
          Sleep	10s
         END
         ${content}=	Create List	0 events acknowledged
-	${result}=	Find In Log With Timeout	${logCbd}	${start}	${content}	60
+	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	60
 	Should Be True	${result}	msg=There are still events in the queue.
         Stop Engine
         Kindly Stop Broker
@@ -145,7 +145,7 @@ NetworkDBFailU7
 	${result}=	Check Connections
 	Should Be True	${result}	msg=Broker and Engine are not connected
 	${content}=	Create List	run query: SELECT
-	${result}=	Find In Log With Timeout	${logCbd}	${start}	${content}	40
+	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	40
 	Should Be True	${result}	msg=No SELECT done by broker in the DB
         FOR	${i}	IN	0	5
          Disable Eth Connection On Port	port=3306
@@ -154,7 +154,7 @@ NetworkDBFailU7
          Sleep	10s
         END
         ${content}=	Create List	0 events acknowledged
-	${result}=	Find In Log With Timeout	${logCbd}	${start}	${content}	60
+	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	60
 	Should Be True	${result}	msg=There are still events in the queue.
         Stop Engine
         Kindly Stop Broker
@@ -182,15 +182,14 @@ Network Failure
 	Start Broker
 	Start Engine
 	${content}=	Create List	SQL: performing mysql_ping
-        ${result}=	Find In Log With Timeout	${logCbd}	${start}	${content}	50
+        ${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	50
         Should Be True	${result}	msg=We should have a call to mysql_ping every 30s on inactive connections.
 	Disable Sleep Enable	${interval}
 	${end}=	Get Current Date
 	${content}=	Create List	mysql_connection: commit
-	${result}=	Find In Log With Timeout	${logCbd}	${end}	${content}	80
+	${result}=	Find In Log With Timeout	${centralLog}	${end}	${content}	80
 	Should Be True	${result}	msg=timeout after network to be restablished (network failure duration : ${interval})
         Kindly Stop Broker
 	Stop Engine
 
 *** Variables ***
-${logCbd}	${BROKER_LOG}/central-broker-master.log

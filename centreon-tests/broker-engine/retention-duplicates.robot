@@ -33,9 +33,9 @@ BERD1
 	Start Broker
 	Start Engine
 	${content}=	Create List	lua: initializing the Lua virtual machine
-	${result}=	Find In Log with timeout	${logCbd}	${start}	${content}	30
+	${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in cbd
-	${result}=	Find In Log with timeout	${logModule}	${start}	${content}	30
+	${result}=	Find In Log with timeout	${moduleLog}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in centengine
 	${result}=	Check Connections
 	Should Be True	${result}	msg=Engine and Broker not connected.
@@ -71,9 +71,9 @@ BERD2
 	Start Broker
 	Start Engine
 	${content}=	Create List	lua: initializing the Lua virtual machine
-	${result}=	Find In Log with timeout	${logCbd}	${start}	${content}	30
+	${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in cbd
-	${result}=	Find In Log with timeout	${logModule}	${start}	${content}	30
+	${result}=	Find In Log with timeout	${moduleLog}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in centengine
 	${result}=	Check Connections
 	Should Be True	${result}	msg=Engine and Broker not connected.
@@ -108,9 +108,9 @@ BERDUC1
 	Start Broker
 	Start Engine
 	${content}=	Create List	lua: initializing the Lua virtual machine
-	${result}=	Find In Log with timeout	${logCbd}	${start}	${content}	30
+	${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in cbd
-	${result}=	Find In Log with timeout	${logModule}	${start}	${content}	30
+	${result}=	Find In Log with timeout	${moduleLog}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in centengine
 	${result}=	Check Connections
 	Should Be True	${result}	msg=Engine and Broker not connected.
@@ -144,9 +144,9 @@ BERDUCU1
 	Start Broker
 	Start Engine
 	${content}=	Create List	lua: initializing the Lua virtual machine
-	${result}=	Find In Log with timeout	${logCbd}	${start}	${content}	30
+	${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in cbd
-	${result}=	Find In Log with timeout	${logModule}	${start}	${content}	30
+	${result}=	Find In Log with timeout	${moduleLog}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in centengine
 	${result}=	Check Connections
 	Should Be True	${result}	msg=Engine and Broker not connected.
@@ -179,9 +179,9 @@ BERDUC2
 	Start Broker
 	Start Engine
 	${content}=	Create List	lua: initializing the Lua virtual machine
-	${result}=	Find In Log with timeout	${logCbd}	${start}	${content}	30
+	${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in cbd
-	${result}=	Find In Log with timeout	${logModule}	${start}	${content}	30
+	${result}=	Find In Log with timeout	${moduleLog}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in centengine
 	${result}=	Check Connections
 	Should Be True	${result}	msg=Engine and Broker not connected.
@@ -215,9 +215,9 @@ BERDUCU2
 	Start Broker
 	Start Engine
 	${content}=	Create List	lua: initializing the Lua virtual machine
-	${result}=	Find In Log with timeout	${logCbd}	${start}	${content}	30
+	${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in cbd
-	${result}=	Find In Log with timeout	${logModule}	${start}	${content}	30
+	${result}=	Find In Log with timeout	${moduleLog}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in centengine
 	${result}=	Check Connections
 	Should Be True	${result}	msg=Engine and Broker not connected.
@@ -232,6 +232,81 @@ BERDUCU2
 	${result}=	Check Multiplicity When Engine Restarted	/tmp/lua-engine.log	/tmp/lua.log
 	Should Be True	${result}	msg=There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
-*** Variables ***
-${logCbd}	${BROKER_LOG}/central-broker-master.log
-${logModule}	${BROKER_LOG}/central-module-master.log
+BERDUC3U1
+	[Documentation]	Starting/stopping Broker does not create duplicated events in usual cases with unified_sql and BBDO 3.0
+	[Tags]	Broker	Engine	start-stop	duplicate	retention
+	Config Engine	${1}
+	Engine Config Set Value	${0}	log_legacy_enabled	${0}
+	Engine Config Set Value	${0}	log_v2_enabled	${1}
+	Config Broker	central
+	Broker Config Add Lua Output	central	test-doubles	${SCRIPTS}test-doubles-c.lua
+	Broker Config Log	central	lua	debug
+	Config Broker Sql Output	central	unified_sql
+	Config Broker	module
+	Broker Config Add Lua Output	module	test-doubles	${SCRIPTS}test-doubles.lua
+	Broker Config Log	module	lua	debug
+	Config Broker	rrd
+        Broker Config Add Item	module	bbdo_version	3.0.0
+        Broker Config Add Item	central	bbdo_version	3.0.0
+        Broker Config Add Item	rrd	bbdo_version	3.0.0
+	Clear Retention
+	${start}=	Get Current Date
+	Start Broker
+	Start Engine
+	${content}=	Create List	lua: initializing the Lua virtual machine
+	${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	30
+	Should Be True	${result}	msg=Lua not started in cbd
+	${result}=	Find In Log with timeout	${moduleLog}	${start}	${content}	30
+	Should Be True	${result}	msg=Lua not started in centengine
+	${result}=	Check Connections
+	Should Be True	${result}	msg=Engine and Broker not connected.
+	Sleep	5s
+	Stop Broker
+	Sleep	5s
+	Clear Cache
+	Start Broker
+	Sleep	25s
+	Stop Engine
+	Stop Broker
+	${result}=	Check Multiplicity When Broker Restarted	/tmp/lua-engine.log	/tmp/lua.log
+	Should Be True	${result}	msg=There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
+
+BERDUC3U2
+	[Documentation]	Starting/stopping Engine does not create duplicated events in usual cases with unified_sql and BBDO 3.0
+	[Tags]	Broker	Engine	start-stop	duplicate	retention
+	Clear Retention
+	Config Engine	${1}
+	Engine Config Set Value	${0}	log_legacy_enabled	${0}
+	Engine Config Set Value	${0}	log_v2_enabled	${1}
+	Config Broker	central
+	Config Broker Sql Output	central	unified_sql
+	Broker Config Add Lua Output	central	test-doubles	${SCRIPTS}test-doubles-c.lua
+	Broker Config Log	central	lua	debug
+	Config Broker	module
+	Broker Config Add Lua Output	module	test-doubles	${SCRIPTS}test-doubles.lua
+	Broker Config Log	module	lua	debug
+	Config Broker	rrd
+        Broker Config Add Item	module	bbdo_version	3.0.0
+        Broker Config Add Item	central	bbdo_version	3.0.0
+        Broker Config Add Item	rrd	bbdo_version	3.0.0
+	${start}=	Get Current Date
+	Start Broker
+	Start Engine
+	${content}=	Create List	lua: initializing the Lua virtual machine
+	${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	30
+	Should Be True	${result}	msg=Lua not started in cbd
+	${result}=	Find In Log with timeout	${moduleLog}	${start}	${content}	30
+	Should Be True	${result}	msg=Lua not started in centengine
+	${result}=	Check Connections
+	Should Be True	${result}	msg=Engine and Broker not connected.
+	Sleep	5s
+	Stop Engine
+	Sleep	5s
+	Clear Cache
+	Start Engine
+	Sleep	25s
+	Stop Engine
+	Stop Broker
+	${result}=	Check Multiplicity When Engine Restarted	/tmp/lua-engine.log	/tmp/lua.log
+	Should Be True	${result}	msg=There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
+
