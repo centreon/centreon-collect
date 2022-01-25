@@ -21,7 +21,6 @@
 
 #include <map>
 #include <memory>
-#include <unordered_map>
 #include "com/centreon/broker/database/mysql_bind.hh"
 #include "com/centreon/broker/io/data.hh"
 

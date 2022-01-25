@@ -2258,28 +2258,16 @@ TEST_F(LuaTest, BrokerPbServiceStatusJsonEncode) {
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   binding->write(svc);
   std::string lst(ReadFile("/tmp/event_log"));
-  ASSERT_NE(
-      lst.find(
-          "INFO: "
-          "{\"active_checks_enabled\":false,\"flap_detection_enabled\":false,"
-          "\"acknowledgement_type\":0,\"check_command\":\"super "
-          "command\",\"last_state_change\":0,\"next_check\":0,\"passive_checks_"
-          "enabled\":false,\"has_been_checked\":false,\"last_time_warning\":0,"
-          "\"downtime_depth\":0,\"host_id\":1899,\"last_time_ok\":0,\"long_"
-          "output\":\"\",\"last_update\":0,\"next_notification\":0,\"last_"
-          "check\":123459,\"execution_time\":0,\"acknowledged\":false,\"_"
-          "type\":65563,\"no_more_notifications\":false,\"max_check_attempts\":"
-          "0,\"should_be_scheduled\":false,\"last_notification\":0,\"check_"
-          "type\":0,\"last_hard_state_change\":0,\"host_name\":\"\",\"retry_"
-          "interval\":0,\"category\":1,\"perf_data\":\"\",\"check_interval\":7,"
-          "\"percent_state_change\":0,\"output\":\"cool\",\"is_flapping\":"
-          "false,\"notifications_enabled\":false,\"last_hard_state\":0,\"state_"
-          "type\":0,\"current_check_attempt\":0,\"current_state\":2,\"event_"
-          "handler\":\"\",\"element\":27,\"last_time_unknown\":0,\"last_time_"
-          "critical\":0,\"event_handler_enabled\":false,\"notification_"
-          "number\":0,\"check_period\":\"\",\"service_description\":\"foo "
-          "bar\",\"service_id\":288,\"latency\":0}"),
-      std::string::npos);
+  ASSERT_NE(lst.find("\"_type\":65563"), std::string::npos);
+  ASSERT_NE(lst.find("\"category\":1"), std::string::npos);
+  ASSERT_NE(lst.find("\"element\":27"), std::string::npos);
+  ASSERT_NE(lst.find("\"host_id\":1899"), std::string::npos);
+  ASSERT_NE(lst.find("\"service_id\":288"), std::string::npos);
+  ASSERT_NE(lst.find("\"check_interval\":7"), std::string::npos);
+  ASSERT_NE(lst.find("\"current_state\":2"), std::string::npos);
+  ASSERT_NE(lst.find("\"last_check\":123459"), std::string::npos);
+  ASSERT_NE(lst.find("\"service_description\":\"foo bar\""), std::string::npos);
+  ASSERT_NE(lst.find("\"output\":\"cool\""), std::string::npos);
   RemoveFile(filename);
   RemoveFile("/tmp/event_log");
 }

@@ -33,11 +33,6 @@ include_directories(
 find_package(Protobuf REQUIRED)
 
 include_directories(${CONAN_INCLUDE_DIRS_GRPC})
-#include_directories(${absl_INCLUDE_DIRS})
-#include_directories(${protobuf_INCLUDE_DIRS})
-
-#link_directories(${protobuf_LIB_DIRS})
-#link_directories(${gRPC_LIB_DIRS})
 
 add_custom_command(
   DEPENDS ${ENGINERPC_DIR}/engine.proto
