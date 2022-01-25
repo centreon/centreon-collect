@@ -1,7 +1,5 @@
 include_directories(${CONAN_INCLUDE_DIRS_GTEST})
-#link_directories(${GTest_LIB_DIRS})
 add_executable(bin_test_process_output ${PROJECT_SOURCE_DIR}/test/bin_test_process_output.cc)
-
 
 add_library(shared_testing_library
   SHARED
