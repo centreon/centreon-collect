@@ -3170,8 +3170,14 @@ int host::process_check_result_3x(enum host::host_state new_state,
         _current_state = determine_host_reachability();
 
       /* reschedule the next check if the host state changed */
-      if (_last_state != _current_state || _last_hard_state != _current_state)
+      if (_last_state != _current_state || _last_hard_state != _current_state) {
         reschedule_check = true;
+        /* schedule a re-check of the host at the retry interval because we
+         * can't determine its final state yet... */
+        if (get_state_type() == soft)
+          next_check = get_last_check() +
+                       get_retry_interval() * config->interval_length();
+      }
     }
   }
 
@@ -3338,6 +3344,12 @@ int host::process_check_result_3x(enum host::host_state new_state,
         /* reschedule a check of the host */
         reschedule_check = true;
 
+        /* schedule a re-check of the host at the retry interval because we
+         * can't determine its final state yet... */
+        if (get_check_type() == check_active ||
+            config->passive_host_checks_are_soft())
+          next_check = get_last_check() +
+                       get_retry_interval() * config->interval_length();
         /* propagate checks to immediate parents if they are UP */
         /* we do this because a parent host (or grandparent) may have gone down
          * and blocked our route */

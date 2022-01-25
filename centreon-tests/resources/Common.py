@@ -188,7 +188,8 @@ def check_reschedule(log: str, date, content):
                 end = idx
             elif my_date > idx_d:
                 start = idx
-
+        retry_check = False
+        normal_check = False
         for c in content:
             for i in range(idx, len(lines)):
                 line = lines[i]
@@ -196,10 +197,11 @@ def check_reschedule(log: str, date, content):
                     logger.console("\"{}\" found at line {} from {}".format(c, i, idx))
                     row = line.split()
                     delta = int(datetime.strptime(row[19], "%Y-%m-%dT%H:%M:%S").timestamp()) - int(datetime.strptime(row[14], "%Y-%m-%dT%H:%M:%S").timestamp())
-                    if delta == 300:
-                        return True
-                    break
-        return False
+                    if delta == 60:
+                        retry_check = True
+                    elif delta == 300:
+                        normal_check = True
+        return retry_check , normal_check
     except IOError:
         logger.console("The file '{}' does not exist".format(log))
         return False
