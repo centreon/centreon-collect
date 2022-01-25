@@ -62,7 +62,7 @@ add_library("${TLS}" SHARED
   "${INC_DIR}/stream.hh"
 )
 
-target_link_libraries("${TLS}" ${GNUTLS_LIBRARIES})
+target_link_libraries("${TLS}" ${GNUTLS_LIBRARIES} CONAN_PKG::spdlog)
 
 set_target_properties("${TLS}" PROPERTIES PREFIX "")
 

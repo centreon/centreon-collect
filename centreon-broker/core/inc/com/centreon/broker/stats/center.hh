@@ -76,8 +76,11 @@ class center {
   SqlConnectionStats* register_mysql_connection();
   bool unregister_mysql_connection(SqlConnectionStats* connection);
   ConflictManagerStats* register_conflict_manager();
-  MuxerStats* register_muxer(const std::string& name);
   bool unregister_muxer(const std::string& name);
+  void update_muxer(std::string name,
+                    std::string queue_file,
+                    uint32_t size,
+                    uint32_t unack);
 
   bool get_muxer_stats(const std::string& name, MuxerStats* response);
 

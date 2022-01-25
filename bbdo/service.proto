@@ -13,16 +13,64 @@ message Service {
   }
   bool acknowledged = 3;
   AckType acknowledgement_type = 4;
+
   bool active_checks_enabled = 5;
-  string check_command = 6;
-  int32 check_interval = 7;
-  string check_period = 8;
+  int32 downtime_depth = 6;
+  string check_command = 7;
+  int32 check_interval = 8;
+  string check_period = 9;
 
   enum CheckType {
     CHECK_ACTIVE = 0;
     CHECK_PASSIVE = 1;
   }
-  CheckType check_type = 9;
-  int32 current_check_attempt = 10;
+  CheckType check_type = 10;
+  int32 current_check_attempt = 11;
+  enum State {
+    OK = 0;
+    WARNING = 1;
+    CRITICAL = 2;
+    UNKNOWN = 3;
+    PENDING = 4;
+  }
+  State current_state = 12;
+  bool event_handler_enabled = 13;
+  string event_handler = 14;
+  double execution_time = 15;
+  bool flap_detection_enabled = 16;
+  bool has_been_checked = 17;
+  bool is_flapping = 18;
+  int64 last_check = 19;
+  State last_hard_state = 20;
+  int64 last_hard_state_change = 21;
+  int64 last_notification = 22;
+  int32 notification_number = 23;
+  int64 last_state_change = 24;
+  int64 last_time_ok = 25;
+  int64 last_time_warning = 26;
+  int64 last_time_critical = 27;
+  int64 last_time_unknown = 28;
+  int64 last_update = 29;
+  double latency = 30;
+  int32 max_check_attempts = 31;
+  int64 next_check = 32;
+  int64 next_notification = 33;
+  bool no_more_notifications = 34;
+  bool notifications_enabled = 35;
+  string output = 37;
+  string long_output = 38;
+  bool passive_checks_enabled = 39;
+  double percent_state_change = 40;
+  string perf_data = 41;
+  double retry_interval = 42;
+  string host_name = 43;
+  string service_description = 44;
+  bool should_be_scheduled = 45;
 
+  enum StateType {
+    SOFT = 0;
+    HARD = 1;
+  }
+
+  StateType state_type = 46;
 }

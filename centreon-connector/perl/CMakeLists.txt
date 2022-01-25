@@ -55,7 +55,7 @@ add_executable(centreon_connector_perl
   ${PROJECT_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/reporter.hh
   )
 add_dependencies(centreon_connector_perl centreon_clib)
-target_link_libraries(centreon_connector_perl centreon_clib ${PERL_LIBRARIES} ${spdlog_LIBS} ${fmt_LIBS} pthread)
+target_link_libraries(centreon_connector_perl centreon_clib ${PERL_LIBRARIES} CONAN_PKG::spdlog CONAN_PKG::fmt pthread)
 
 # Install rules.
 install(TARGETS centreon_connector_perl RUNTIME DESTINATION ${PREFIX_CONNECTORS})

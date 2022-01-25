@@ -1,5 +1,5 @@
 /*
-** Copyright 2009-2013,2015-2016,2018-2021 Centreon
+** Copyright 2009-2016, 2018-2021 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -131,7 +131,6 @@ int nebmodule_init(int flags, char const* args, void* handle) {
 
       // Initialization.
       com::centreon::broker::config::applier::init(s);
-
       try {
         log_v2::instance().apply(s);
       } catch (const std::exception& e) {

@@ -285,12 +285,12 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
       log_v2::rrd()->debug("RRD: RebuildMessage received");
       std::shared_ptr<storage::pb_rebuild_message> e{
           std::static_pointer_cast<storage::pb_rebuild_message>(d)};
-      switch (e->obj.state()) {
+      switch (e->obj().state()) {
         case RebuildMessage_State_START:
           log_v2::rrd()->info("RRD: Starting to rebuild metrics ({})",
-                              fmt::join(e->obj.metric_id(), ","));
+                              fmt::join(e->obj().metric_id(), ","));
           // Rebuild is starting.
-          for (auto& m : e->obj.metric_id()) {
+          for (auto& m : e->obj().metric_id()) {
             std::string path{fmt::format("{}{}.rrd", _metrics_path, m)};
             /* Creation of metric caches */
             _metrics_rebuild[path];
@@ -300,13 +300,13 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
           break;
         case RebuildMessage_State_DATA:
           log_v2::rrd()->debug("RRD: Data to rebuild metrics");
-          _rebuild_data(e->obj);
+          _rebuild_data(e->obj());
           break;
         case RebuildMessage_State_END:
           log_v2::rrd()->info("RRD: Finishing to rebuild metrics ({})",
-                              fmt::join(e->obj.metric_id(), ","));
+                              fmt::join(e->obj().metric_id(), ","));
           // Rebuild is ending.
-          for (auto& m : e->obj.metric_id()) {
+          for (auto& m : e->obj().metric_id()) {
             std::string path{fmt::format("{}{}.rrd", _metrics_path, m)};
             auto it = _metrics_rebuild.find(path);
             std::list<std::shared_ptr<io::data>> l;
@@ -326,13 +326,13 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
       log_v2::rrd()->debug("RRD: RemoveGraphsMessage received");
       std::shared_ptr<storage::pb_remove_graph_message> e{
           std::static_pointer_cast<storage::pb_remove_graph_message>(d)};
-      for (auto& m : e->obj.metric_ids()) {
+      for (auto& m : e->obj().metric_ids()) {
         std::string path{fmt::format("{}{}.rrd", _metrics_path, m)};
         /* File removed */
         log_v2::rrd()->info("RRD: removing {} file", path);
         _backend.remove(path);
       }
-      for (auto& i : e->obj.index_ids()) {
+      for (auto& i : e->obj().index_ids()) {
         std::string path{fmt::format("{}{}.rrd", _status_path, i)};
         /* File removed */
         log_v2::rrd()->info("RRD: removing {} file", path);

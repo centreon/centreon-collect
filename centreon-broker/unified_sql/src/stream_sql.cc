@@ -1583,6 +1583,101 @@ void stream::_process_service_status(const std::shared_ptr<io::data>& d) {
 }
 
 /**
+ *  Process a service status event.
+ *
+ *  @param[in] e Uncasted service status.
+ *
+ * @return The number of events that can be acknowledged.
+ */
+void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
+  _finish_action(-1, actions::host_parents | actions::comments |
+                         actions::downtimes | actions::host_dependencies |
+                         actions::service_dependencies);
+  // Processed object.
+  auto s{static_cast<neb::pb_service const*>(d.get())};
+  auto ss = s->obj();
+
+  log_v2::perfdata()->info("SQL: pb service status output: <<{}>>",
+                           ss.output());
+  log_v2::perfdata()->info("SQL: service status perfdata: <<{}>>",
+                           ss.perf_data());
+
+  time_t now = time(nullptr);
+  if (ss.check_type() ||           // - passive result
+      !ss.active_checks_enabled()  // - active checks are disabled,
+                                   //   status might not be updated
+      ||                           // - normal case
+      ss.next_check() >= now - 5 * 60 || !ss.next_check()) {  // - initial state
+    // Apply to DB.
+    log_v2::sql()->info(
+        "SQL: processing service status event (host: {}, service: {}, last "
+        "check: {}, state ({}, {}))",
+        ss.host_id(), ss.service_id(), ss.last_check(), ss.current_state(),
+        ss.state_type());
+
+    // Prepare queries.
+    if (!_service_status_update.prepared()) {
+      query_preparator::event_unique unique;
+      unique.insert("host_id");
+      unique.insert("service_id");
+      query_preparator qp(neb::pb_service::static_type(), unique);
+      struct pb_entry {
+        int32_t number;
+        const char* name;
+        int32_t attribute;
+        uint32_t max_length;
+      };
+
+      _service_status_update = qp.prepare_update_table(
+          _mysql, "services",
+          {
+              {1, "host_id", io::protobuf_base::invalid_on_zero, 0},
+              {2, "service_id", io::protobuf_base::invalid_on_zero, 0},
+              {3, "acknowledged", 0, 0},
+              {4, "acknowledgement_type", 0, 0},
+              {5, "active_checks", 0, 0},
+              {6, "scheduled_downtime_depth", 0, 0},
+              {7, "check_command", 0, 0},
+              {8, "check_interval", 0, 0},
+              {9, "check_period", 0, 0},
+              {10, "check_type", 0, 0},
+              {11, "check_attempt", 0, 0},
+              {12, "state", 0, 0},
+              {15, "execution_time", 0, 0},
+              {17, "checked", 0, 0},
+              {19, "last_check", io::protobuf_base::invalid_on_zero, 0},
+              {20, "last_hard_state", 0, 0},
+              {21, "last_hard_state_change", io::protobuf_base::invalid_on_zero,
+               0},
+              {24, "last_state_change", io::protobuf_base::invalid_on_zero, 0},
+              {25, "last_time_ok", io::protobuf_base::invalid_on_zero, 0},
+              {26, "last_time_warning", io::protobuf_base::invalid_on_zero, 0},
+              {27, "last_time_critical", io::protobuf_base::invalid_on_zero, 0},
+              {28, "last_time_unknown", io::protobuf_base::invalid_on_zero, 0},
+              {29, "last_update", io::protobuf_base::invalid_on_zero, 0},
+              {30, "latency", 0, 0},
+          });
+    }
+
+    // Processing.
+    _service_status_update << *s;
+    int32_t conn = _mysql.choose_connection_by_instance(
+        _cache_host_instance[static_cast<uint32_t>(ss.host_id())]);
+    _mysql.run_statement(_service_status_update,
+                         database::mysql_error::store_service_status, false,
+                         conn);
+    _add_action(conn, actions::hosts);
+  } else
+    // Do nothing.
+    log_v2::sql()->info(
+        "SQL: not processing service status event (host: {}, service: {}, "
+        "check type: {}, last check: {}, next check: {}, now: {}, state ({}, "
+        "{}))",
+        ss.host_id(), ss.service_id(), ss.check_type(), ss.last_check(),
+        ss.next_check(), now, ss.current_state(), ss.state_type());
+}
+
+/**
  *  Process an instance configuration event.
  *
  *  @param[in] e  Uncasted instance configuration.

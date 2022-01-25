@@ -135,31 +135,13 @@ bool center::unregister_mysql_connection(SqlConnectionStats* connection) {
 }
 
 /**
- * @brief If the muxer needs to write statistics, it primarily has to
- * call this function to be registered in the statistic center and to get
- * a pointer for its statistics. It is prohibited to directly write into this
- * pointer. We must use the center member functions for this purpose.
+ * @brief Unregister a muxer from the stats. It removed its statistics from
+ * the center statistics. In case of updates not already set to the stats,
+ * the function waits for them before unregistering.
  *
- * @param name
+ * @param name The name of the concerned muxer.
  *
- * @return A pointer to the muxer statistics.
- */
-MuxerStats* center::register_muxer(const std::string& name) {
-  std::promise<MuxerStats*> p;
-  std::future<MuxerStats*> retval = p.get_future();
-  _strand.post([this, &p, name] {
-    auto ms = &(*_stats.mutable_processing()->mutable_muxers())[name];
-    p.set_value(ms);
-  });
-  return retval.get();
-}
-
-/**
- * @brief
- *
- * @param name
- *
- * @return
+ * @return true on success (it never fails).
  */
 bool center::unregister_muxer(const std::string& name) {
   std::promise<bool> p;
@@ -169,6 +151,29 @@ bool center::unregister_muxer(const std::string& name) {
     p.set_value(true);
   });
   return retval.get();
+}
+
+/**
+ * @brief Update the given muxer statistics in the center.
+ *
+ * @param name The name of the concerned muxer.
+ * @param queue_file its queue file
+ * @param size current total events.
+ * @param unack current unacknowledged events.
+ */
+void center::update_muxer(std::string name,
+                          std::string queue_file,
+                          uint32_t size,
+                          uint32_t unack) {
+  _strand.post([this, name = std::move(name), queue = std::move(queue_file),
+                size, unack] {
+    auto ms = &(*_stats.mutable_processing()->mutable_muxers())[name];
+    if (ms) {
+      ms->set_queue_file(std::move(queue));
+      ms->set_total_events(size);
+      ms->set_unacknowledged_events(unack);
+    }
+  });
 }
 
 /**

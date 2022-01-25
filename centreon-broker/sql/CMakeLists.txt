@@ -45,6 +45,7 @@ add_library("${SQL}" SHARED
 set_target_properties("${SQL}" PROPERTIES
     PREFIX ""
     COMPILE_FLAGS "-fPIC")
+target_link_libraries("${SQL}" CONAN_PKG::spdlog)
 
 # Install rule.
 install(TARGETS "${SQL}"

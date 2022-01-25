@@ -46,35 +46,33 @@ class handle {
   std::string _name;
   std::string _version;
 
-  void _internal_copy(handle const& right);
-
  public:
-  handle(std::string const& filename = "", std::string const& args = "");
-  handle(handle const& right);
+  handle(const std::string& filename = "", const std::string& args = "");
   virtual ~handle() noexcept;
-  handle& operator=(handle const& rigth);
+  handle(const handle&) = delete;
+  handle& operator=(const handle&) = delete;
   bool operator==(handle const& right) const noexcept;
   bool operator!=(handle const& right) const noexcept;
   void close();
   library* get_handle() const noexcept;
-  std::string const& get_author() const noexcept;
-  std::string const& get_copyright() const noexcept;
-  std::string const& get_description() const noexcept;
-  std::string const& get_filename() const noexcept;
-  std::string const& get_license() const noexcept;
-  std::string const& get_name() const noexcept;
-  std::string const& get_version() const noexcept;
-  std::string const& get_args() const noexcept;
+  const std::string& get_author() const noexcept;
+  const std::string& get_copyright() const noexcept;
+  const std::string& get_description() const noexcept;
+  const std::string& get_filename() const noexcept;
+  const std::string& get_license() const noexcept;
+  const std::string& get_name() const noexcept;
+  const std::string& get_version() const noexcept;
+  const std::string& get_args() const noexcept;
   bool is_loaded();
   void open();
-  void open(std::string const& filename, std::string const& args);
+  void open(const std::string& filename, const std::string& args);
   void reload();
-  void set_author(std::string const& author);
-  void set_copyright(std::string const& copyright);
-  void set_description(std::string const& description);
-  void set_license(std::string const& license);
-  void set_name(std::string const& name);
-  void set_version(std::string const& version);
+  void set_author(const std::string& author);
+  void set_copyright(const std::string& copyright);
+  void set_description(const std::string& description);
+  void set_license(const std::string& license);
+  void set_name(const std::string& name);
+  void set_version(const std::string& version);
 };
 }  // namespace broker
 

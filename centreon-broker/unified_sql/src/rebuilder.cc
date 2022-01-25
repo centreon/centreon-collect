@@ -46,7 +46,6 @@ using namespace com::centreon::broker::unified_sql;
  *  @param[in] interval_length         Length in seconds of a time unit.
  */
 rebuilder::rebuilder(const database_config& db_cfg,
-                     stream* parent,
                      uint32_t rrd_length,
                      uint32_t interval_length)
     : _db_cfg(db_cfg), _interval_length(interval_length), _rrd_len(rrd_length) {
@@ -64,7 +63,8 @@ void rebuilder::rebuild_rrd_graphs(const std::shared_ptr<io::data>& d) {
     const bbdo::pb_rebuild_rrd_graphs& ids =
         *static_cast<const bbdo::pb_rebuild_rrd_graphs*>(data.get());
 
-    std::string ids_str{fmt::format("{}", fmt::join(ids.obj.index_id(), ","))};
+    std::string ids_str{
+        fmt::format("{}", fmt::join(ids.obj().index_id(), ","))};
     log_v2::sql()->debug(
         "Metric rebuild: Rebuild metrics event received for metrics ({})",
         ids_str);
@@ -90,7 +90,7 @@ void rebuilder::rebuild_rrd_graphs(const std::shared_ptr<io::data>& d) {
     std::map<uint64_t, metric_info> ret_inter;
     std::list<int64_t> mids;
     auto start_rebuild = std::make_shared<storage::pb_rebuild_message>();
-    start_rebuild->obj.set_state(RebuildMessage_State_START);
+    start_rebuild->mut_obj().set_state(RebuildMessage_State_START);
     try {
       database::mysql_result res{promise.get_future().get()};
       while (ms.fetch_row(res)) {
@@ -98,7 +98,7 @@ void rebuilder::rebuild_rrd_graphs(const std::shared_ptr<io::data>& d) {
         mids.push_back(mid);
         log_v2::sql()->trace("Metric rebuild: metric {} is sent to rebuild",
                              mid);
-        start_rebuild->obj.add_metric_id(mid);
+        start_rebuild->mut_obj().add_metric_id(mid);
         auto ret = ret_inter.emplace(mid, metric_info());
         metric_info& v = ret.first->second;
         v.metric_name = res.value_as_str(1);
@@ -106,7 +106,6 @@ void rebuilder::rebuild_rrd_graphs(const std::shared_ptr<io::data>& d) {
         v.rrd_retention = res.value_as_i32(3);
         if (!v.rrd_retention)
           v.rrd_retention = _rrd_len;
-        uint32_t rrd_retention = res.value_as_u32(1);
         v.check_interval = res.value_as_f64(4) * _interval_length;
         if (!v.check_interval)
           v.check_interval = 5 * 60;
@@ -151,20 +150,22 @@ void rebuilder::rebuild_rrd_graphs(const std::shared_ptr<io::data>& d) {
                                  query);
             ms.run_query_and_get_result(query, &promise, conn);
             auto data_rebuild = std::make_shared<storage::pb_rebuild_message>();
-            data_rebuild->obj.set_state(RebuildMessage_State_DATA);
+            data_rebuild->mut_obj().set_state(RebuildMessage_State_DATA);
             database::mysql_result res(promise.get_future().get());
             while (ms.fetch_row(res)) {
               uint64_t id_metric = res.value_as_u64(0);
               time_t ctime = res.value_as_u64(1);
               double value = res.value_as_f64(2);
               Point* pt =
-                  (*data_rebuild->obj.mutable_timeserie())[id_metric].add_pts();
+                  (*data_rebuild->mut_obj().mutable_timeserie())[id_metric]
+                      .add_pts();
               pt->set_ctime(ctime);
               pt->set_value(value);
             }
             for (auto it = ret_inter.begin(); it != ret_inter.end(); ++it) {
               auto i = it->second;
-              auto& m{(*data_rebuild->obj.mutable_timeserie())[it->first]};
+              auto& m{
+                  (*data_rebuild->mut_obj().mutable_timeserie())[it->first]};
               m.set_check_interval(i.check_interval);
               m.set_data_source_type(i.data_source_type);
               m.set_rrd_retention(i.rrd_retention);
@@ -180,8 +181,8 @@ void rebuilder::rebuild_rrd_graphs(const std::shared_ptr<io::data>& d) {
                            e.what());
     }
     auto end_rebuild = std::make_shared<storage::pb_rebuild_message>();
-    end_rebuild->obj = start_rebuild->obj;
-    end_rebuild->obj.set_state(RebuildMessage_State_END);
+    end_rebuild->set_obj(std::move(start_rebuild->mut_obj()));
+    end_rebuild->mut_obj().set_state(RebuildMessage_State_END);
     multiplexing::publisher().write(end_rebuild);
     ms.run_query(
         fmt::format(

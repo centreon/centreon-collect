@@ -7,8 +7,6 @@ add_definitions(-DCENTREON_CONNECTOR_VERSION=\"${CONNECTOR_VERSION}\")
 include(${PROJECT_SOURCE_DIR}/cmake/FindSSH.cmake)
 include(${PROJECT_SOURCE_DIR}/cmake/Findperl.cmake)
 
-include(${CMAKE_BINARY_DIR}/conan_paths.cmake)
-
 set(PREFIX_CONNECTORS "${CMAKE_INSTALL_PREFIX}/lib64/centreon-connector/")
 # Generate code to dynamically load modules.
 
@@ -33,10 +31,7 @@ link_directories(${CMAKE_SOURCE_DIR}/build/centreon-clib/)
 # Testing.
 if (WITH_TESTING)
   set_source_files_properties(${PROJECT_SOURCE_DIR}/perl/src/xs_init.cc PROPERTIES GENERATED TRUE)
-  include_directories(${GTest_INCLUDE_DIRS})
   include_directories(/usr/lib64/perl5/CORE)
-
-  link_directories(${GTest_LIB_DIRS})
 
   include_directories(${PROJECT_SOURCE_DIR}/perl/inc)
   include_directories(${PROJECT_SOURCE_DIR}/ssh/inc)
@@ -73,6 +68,16 @@ if (WITH_TESTING)
     )
   add_dependencies(ut_connector centreon_connector_perl)
   add_dependencies(ut_connector centreon_clib)
-  target_link_libraries(ut_connector ${GTest_LIBS} centreon_clib ${PERL_LIBRARIES} ${fmt_LIBS} ${spdlog_LIBS} ${LIBSSH2_LIBRARIES})
+  target_link_libraries(ut_connector CONAN_PKG::gtest centreon_clib ${PERL_LIBRARIES} CONAN_PKG::fmt CONAN_PKG::spdlog ${LIBSSH2_LIBRARIES})
+
+set_target_properties(
+    ut_connector
+    PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/tests
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/tests
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR}/tests
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/tests
+)
 
 endif (WITH_TESTING)

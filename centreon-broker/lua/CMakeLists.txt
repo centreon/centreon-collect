@@ -23,7 +23,7 @@ set(SRC_DIR "${PROJECT_SOURCE_DIR}/lua/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/lua/test")
 include_directories("${INC_DIR}"
   "${PROJECT_SOURCE_DIR}/neb/inc"
-  ${OpenSSL_INCLUDE_DIRS})
+  ${CONAN_INCLUDE_DIRS_OPENSSL})
 set(INC_DIR "${INC_DIR}/com/centreon/broker/lua")
 
 # Storage module.
@@ -54,7 +54,7 @@ add_library("${LUA}" SHARED
   "${INC_DIR}/macro_cache.hh"
   "${INC_DIR}/stream.hh"
 )
-target_link_libraries("${LUA}" ${LUA_LIBRARIES} ${OpenSSL_LIBS} bbdo_storage bbdo_bam)
+target_link_libraries("${LUA}" ${LUA_LIBRARIES} CONAN_PKG::openssl bbdo_storage bbdo_bam CONAN_PKG::spdlog)
 set_target_properties("${LUA}" PROPERTIES PREFIX "")
 
 # Testing.

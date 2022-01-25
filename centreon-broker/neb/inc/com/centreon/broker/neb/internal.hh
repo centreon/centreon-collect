@@ -1,5 +1,5 @@
 /*
-** Copyright 2009-2013,2015 Centreon
+** Copyright 2009-2015, 2021 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -23,8 +23,12 @@
 #include <map>
 #include <string>
 #include <utility>
+#include "bbdo/events.hh"
+#include "bbdo/service.pb.h"
+#include "com/centreon/broker/io/protobuf.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/namespace.hh"
+#include "com/centreon/broker/misc/pair.hh"
 #include "com/centreon/broker/neb/callback.hh"
 
 CCB_BEGIN()
@@ -32,36 +36,6 @@ CCB_BEGIN()
 namespace neb {
 // Forward declaration.
 class acknowledgement;
-
-// Data elements.
-enum data_element {
-  de_acknowledgement = 1,
-  de_comment,
-  de_custom_variable,
-  de_custom_variable_status,
-  de_downtime,
-  de_event_handler,
-  de_flapping_status,
-  de_host_check,
-  de_host_dependency,
-  de_host_group,
-  de_host_group_member,
-  de_host,
-  de_host_parent,
-  de_host_status,
-  de_instance,
-  de_instance_status,
-  de_log_entry,
-  de_module,
-  de_service_check,
-  de_service_dependency,
-  de_service_group,
-  de_service_group_member,
-  de_service,
-  de_service_status,
-  de_instance_configuration,
-  de_responsive_instance
-};
 
 // Configuration file.
 extern std::string gl_configuration_file;
@@ -73,8 +47,12 @@ extern multiplexing::publisher gl_publisher;
 extern std::list<std::unique_ptr<neb::callback>> gl_registered_callbacks;
 
 // Acknowledgement list.
-extern std::map<std::pair<uint32_t, uint32_t>, neb::acknowledgement>
+extern std::unordered_map<std::pair<uint32_t, uint32_t>, neb::acknowledgement>
     gl_acknowledgements;
+
+using pb_service =
+    io::protobuf<Service, make_type(io::neb, neb::de_pb_service)>;
+
 }  // namespace neb
 
 CCB_END()

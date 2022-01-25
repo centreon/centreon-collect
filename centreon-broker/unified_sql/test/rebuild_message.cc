@@ -98,14 +98,14 @@ class UnifiedSqlRebuild2Test : public ::testing::Test {
 // Then the receiver can deserialize it.
 TEST_F(UnifiedSqlRebuild2Test, WriteRebuildMessage_START) {
   config::applier::modules modules;
-  modules.load_file("./unified_sql/20-unified_sql.so");
+  modules.load_file("./lib/20-unified_sql.so");
 
   std::shared_ptr<storage::pb_rebuild_message> r(
       std::make_shared<storage::pb_rebuild_message>());
-  r->obj.set_state(RebuildMessage_State_START);
-  r->obj.add_metric_id(1);
-  r->obj.add_metric_id(2);
-  r->obj.add_metric_id(5);
+  r->mut_obj().set_state(RebuildMessage_State_START);
+  r->mut_obj().add_metric_id(1);
+  r->mut_obj().add_metric_id(2);
+  r->mut_obj().add_metric_id(5);
 
   std::shared_ptr<into_memory> memory_stream(std::make_shared<into_memory>());
   bbdo::stream stm(true);
@@ -132,7 +132,7 @@ TEST_F(UnifiedSqlRebuild2Test, WriteRebuildMessage_START) {
   stm.read(e, time(nullptr) + 1000);
   std::shared_ptr<storage::pb_rebuild_message> new_r =
       std::static_pointer_cast<storage::pb_rebuild_message>(e);
-  ASSERT_TRUE(MessageDifferencer::Equals(r->obj, new_r->obj));
+  ASSERT_TRUE(MessageDifferencer::Equals(r->obj(), new_r->obj()));
 }
 
 // When the second rebuild message is sent, it contains the DATA flag
@@ -140,13 +140,13 @@ TEST_F(UnifiedSqlRebuild2Test, WriteRebuildMessage_START) {
 // Then the receiver can deserialize it.
 TEST_F(UnifiedSqlRebuild2Test, WriteRebuildMessage_DATA) {
   config::applier::modules modules;
-  modules.load_file("./unified_sql/20-unified_sql.so");
+  modules.load_file("./lib/20-unified_sql.so");
 
   std::shared_ptr<storage::pb_rebuild_message> r(
       std::make_shared<storage::pb_rebuild_message>());
-  r->obj.set_state(RebuildMessage_State_DATA);
+  r->mut_obj().set_state(RebuildMessage_State_DATA);
   for (int64_t i : {1, 2, 5}) {
-    Timeserie& ts = (*r->obj.mutable_timeserie())[i];
+    Timeserie& ts = (*r->mut_obj().mutable_timeserie())[i];
     ts.set_data_source_type(1);
     ts.set_check_interval(250);
     for (int j = 0; i < 20000; i++) {
@@ -172,5 +172,5 @@ TEST_F(UnifiedSqlRebuild2Test, WriteRebuildMessage_DATA) {
   stm.read(e, time(nullptr) + 1000);
   std::shared_ptr<storage::pb_rebuild_message> new_r =
       std::static_pointer_cast<storage::pb_rebuild_message>(e);
-  ASSERT_TRUE(MessageDifferencer::Equals(r->obj, new_r->obj));
+  ASSERT_TRUE(MessageDifferencer::Equals(r->obj(), new_r->obj()));
 }

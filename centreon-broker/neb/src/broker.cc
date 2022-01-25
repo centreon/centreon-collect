@@ -144,6 +144,9 @@ void broker_module_init(void const* arg) {
                        "responsive_instance",
                        &neb::responsive_instance::operations,
                        neb::responsive_instance::entries);
+
+      e.register_event(make_type(io::neb, neb::de_pb_service),
+                       "Service", &neb::pb_service::operations, "services");
     }
   }
 }

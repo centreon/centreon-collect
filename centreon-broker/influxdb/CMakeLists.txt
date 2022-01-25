@@ -48,7 +48,7 @@ add_library("${INFLUXDB}" SHARED
   "${INC_DIR}/macro_cache.hh"
   "${INC_DIR}/stream.hh"
 )
-target_link_libraries("${INFLUXDB}" bbdo_storage)
+target_link_libraries("${INFLUXDB}" bbdo_storage CONAN_PKG::spdlog)
 set_target_properties("${INFLUXDB}" PROPERTIES PREFIX "")
 
 # Testing.
