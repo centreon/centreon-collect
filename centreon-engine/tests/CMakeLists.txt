@@ -20,8 +20,6 @@
 
 # Enable unit tests or not .
 if (WITH_TESTING)
-#  include_directories(${GTest_INCLUDE_DIRS})
-#link_directories(${GTest_LIB_DIRS})
 
 # Tests directory.
   # Add root inclusion direction.
@@ -92,7 +90,6 @@ if (WITH_TESTING)
     "${TESTS_DIR}/notifications/host_normal_notification.cc"
     "${TESTS_DIR}/notifications/host_recovery_notification.cc"
     "${TESTS_DIR}/notifications/service_normal_notification.cc"
-#    "${TESTS_DIR}/notifications/host_timeperiod_notification.cc"
     "${TESTS_DIR}/notifications/service_timeperiod_notification.cc"
     "${TESTS_DIR}/notifications/service_flapping_notification.cc"
     "${TESTS_DIR}/perfdata/perfdata.cc"
@@ -146,6 +143,5 @@ if (WITH_TESTING)
     set(GCOV gcov)
   endif ()
   target_link_libraries(ut_engine ${ENGINERPC} cce_core pthread ${GCOV} CONAN_PKG::gtest CONAN_PKG::grpc CONAN_PKG::openssl CONAN_PKG::zlib CONAN_PKG::fmt dl)
-#  target_link_libraries(ut_engine ${ENGINERPC} cce_core pthread ${GCOV} CONAN_PKG::gtest CONAN_PKG::grpc ${absl_LIBS} CONAN_PKG::openssl ${c-ares_LIBS} CONAN_PKG::zlib CONAN_PKG::fmt dl)
 
 endif ()
