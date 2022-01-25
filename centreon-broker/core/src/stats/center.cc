@@ -135,11 +135,13 @@ bool center::unregister_mysql_connection(SqlConnectionStats* connection) {
 }
 
 /**
- * @brief
+ * @brief Unregister a muxer from the stats. It removed its statistics from
+ * the center statistics. In case of updates not already set to the stats,
+ * the function waits for them before unregistering.
  *
- * @param name
+ * @param name The name of the concerned muxer.
  *
- * @return
+ * @return true on success (it never fails).
  */
 bool center::unregister_muxer(const std::string& name) {
   std::promise<bool> p;
@@ -151,6 +153,14 @@ bool center::unregister_muxer(const std::string& name) {
   return retval.get();
 }
 
+/**
+ * @brief Update the given muxer statistics in the center.
+ *
+ * @param name The name of the concerned muxer.
+ * @param queue_file its queue file
+ * @param size current total events.
+ * @param unack current unacknowledged events.
+ */
 void center::update_muxer(std::string name,
                           std::string queue_file,
                           uint32_t size,

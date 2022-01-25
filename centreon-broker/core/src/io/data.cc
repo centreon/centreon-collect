@@ -58,14 +58,5 @@ data& data::operator=(data const& other) {
     source_id = other.source_id;
     destination_id = other.destination_id;
   }
-  return (*this);
+  return *this;
 }
-
-/**
- *  Get the type of this event.
- *
- *  @return The event type.
- */
-// uint32_t data::type() const noexcept {
-//   return _type;
-// }

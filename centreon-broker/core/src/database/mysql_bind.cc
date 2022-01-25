@@ -167,6 +167,12 @@ uint32_t mysql_bind::value_as_u32(int range) const {
     assert("This field is not an uint32_t" == nullptr);
 }
 
+/**
+ * @brief fill the column at the index range with the uint64 value.
+ *
+ * @param range The index of the concerned column.
+ * @param value The value to set.
+ */
 void mysql_bind::set_value_as_u64(int range, uint64_t value) {
   assert(static_cast<uint32_t>(range) < _bind.size());
   // if (range >= _bind.size())
@@ -181,6 +187,12 @@ void mysql_bind::set_value_as_u64(int range, uint64_t value) {
   _bind[range].length = _column[range].length_buffer();
 }
 
+/**
+ * @brief accessor to the column range that reads the value as int64.
+ *
+ * @param range The index of the concerned column.
+ * @return an int64. In case of bad type, an assertion would fail.
+ */
 int64_t mysql_bind::value_as_i64(int range) const {
   if (_bind[range].buffer_type == MYSQL_TYPE_LONGLONG)
     return *static_cast<int64_t*>(_bind[range].buffer);
@@ -192,6 +204,12 @@ int64_t mysql_bind::value_as_i64(int range) const {
     assert("This field is not an unsigned long int" == nullptr);
 }
 
+/**
+ * @brief fill the column at the index range with the int64 value.
+ *
+ * @param range The index of the concerned column.
+ * @param value The value to set.
+ */
 void mysql_bind::set_value_as_i64(int range, int64_t value) {
   assert(static_cast<uint32_t>(range) < _bind.size());
   if (!_prepared(range))
@@ -203,6 +221,12 @@ void mysql_bind::set_value_as_i64(int range, int64_t value) {
   _bind[range].length = _column[range].length_buffer();
 }
 
+/**
+ * @brief accessor to the column range that reads the value as uint64.
+ *
+ * @param range The index of the concerned column.
+ * @return an int64. In case of bad type, an assertion would fail.
+ */
 uint64_t mysql_bind::value_as_u64(int range) const {
   if (_bind[range].buffer_type == MYSQL_TYPE_LONGLONG)
     return *static_cast<uint64_t*>(_bind[range].buffer);

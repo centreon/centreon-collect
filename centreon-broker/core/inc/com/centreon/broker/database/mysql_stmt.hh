@@ -39,9 +39,12 @@ class mysql_stmt {
 
   std::unique_ptr<database::mysql_bind> _bind;
   mysql_bind_mapping _bind_mapping;
-  /* For each item in the bbdo message, we map its index to:
-   *   * its name
-   *   * its attributes (always_valid, invalid_on_zero, invalid_on_minus_one)
+
+  /* This vector represents how we map bbdo protobuf items into the DB table.
+   * Each index in the vector corresponds to the index in the protobuf object.
+   * And of each item in the vector we keep its name, its length (when it is
+   * a string or 0), its attributes (always_valid, invalid_on_zero,
+   * invalid_on_minus_one)
    */
   std::vector<std::tuple<const char*, uint32_t, uint16_t>> _pb_mapping;
 

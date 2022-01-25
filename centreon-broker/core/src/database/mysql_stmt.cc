@@ -119,6 +119,13 @@ mysql_stmt::mysql_stmt(mysql_stmt&& other)
       _bind(std::move(other._bind)),
       _bind_mapping(other._bind_mapping) {}
 
+/**
+ * @brief Move copy
+ *
+ * @param other the statement to move.
+ *
+ * @return a reference to the self statement.
+ */
 mysql_stmt& mysql_stmt::operator=(mysql_stmt&& other) {
   if (this != &other) {
     _id = std::move(other._id);
@@ -130,6 +137,13 @@ mysql_stmt& mysql_stmt::operator=(mysql_stmt&& other) {
   return *this;
 }
 
+/**
+ * @brief Copy operator
+ *
+ * @param other the statement to copy.
+ *
+ * @return a reference to the self statement.
+ */
 mysql_stmt& mysql_stmt::operator=(mysql_stmt const& other) {
   if (this != &other) {
     _id = other._id;

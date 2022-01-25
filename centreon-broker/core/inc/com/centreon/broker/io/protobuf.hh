@@ -28,13 +28,22 @@ CCB_BEGIN()
 
 namespace io {
 /**
- *  @class data data.hh "com/centreon/broker/io/data.hh"
+ *  @class data protobuf.hh "com/centreon/broker/io/protobuf.hh"
  *  @brief Data abstraction.
  *
  *  Data is the core element that is transmitted through Centreon
  *  Broker. It is an interface that is implemented by all specific
  *  module data that wish to be transmitted by the multiplexing
  *  engine.
+ *
+ *  protobuf_base is directly inherited from data and is common to all
+ *  bbdo protobuf messages. Its main goal is to allow the access to the
+ *  embedded protobuf message as a google::protobuf::Message* pointer.
+ *  We can access it through methods mut_msg() or msg() (mutable or not).
+ *
+ *  This class is very important when we want to parse a protobuf message
+ *  without knowing about its exact type. This is very useful with reflection
+ *  (see code in Lua module for more examples).
  */
 class protobuf_base : public data {
   google::protobuf::Message* _msg;
@@ -50,10 +59,29 @@ class protobuf_base : public data {
     invalid_on_minus_one = (1 << 1)
   };
 
+  /**
+   * @brief Accessor to the protobuf::Message* pointer as mutable.
+   *
+   * @return a google::protobuf::Message* pointer.
+   */
   google::protobuf::Message* mut_msg() { return _msg; }
+
+  /**
+   * @brief Accessor to the protouf::Message* pointer.
+   *
+   * @return a google::protobuf::Message* pointer.
+   */
   const google::protobuf::Message* msg() const { return _msg; }
 };
 
+/**
+ * @class protobuf<T> protobuf.hh "com/centreon/broker/io/protobuf.hh"
+ * @brief This is the template to use each time we have to embed a protobuf
+ * message into a BBDO event.
+ *
+ * @tparam T A Protobuf message
+ * @tparam Typ The type to associate to this class as a BBDO type.
+ */
 template <typename T, uint32_t Typ>
 class protobuf : public protobuf_base {
   T _obj;
