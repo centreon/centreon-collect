@@ -174,8 +174,6 @@ void output<T>::update() {
 template <typename T>
 int output<T>::write(std::shared_ptr<io::data> const& d) {
   log_v2::rrd()->trace("RRD: output::write.");
-  if (d->type() == 0x30009)
-    log_v2::rrd()->warn("RRD: GOODGOODGOOD");
   // Check that data exists.
   if (!validate(d, "RRD"))
     return 1;
@@ -289,8 +287,8 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
           std::static_pointer_cast<storage::pb_rebuild_message>(d)};
       switch (e->obj.state()) {
         case RebuildMessage_State_START:
-          log_v2::rrd()->debug("RRD: Starting to rebuild metrics ({})",
-                               fmt::join(e->obj.metric_id(), ","));
+          log_v2::rrd()->info("RRD: Starting to rebuild metrics ({})",
+                              fmt::join(e->obj.metric_id(), ","));
           // Rebuild is starting.
           for (auto& m : e->obj.metric_id()) {
             std::string path{fmt::format("{}{}.rrd", _metrics_path, m)};
@@ -305,8 +303,8 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
           _rebuild_data(e->obj);
           break;
         case RebuildMessage_State_END:
-          log_v2::rrd()->debug("RRD: Finishing to rebuild metrics ({})",
-                               fmt::join(e->obj.metric_id(), ","));
+          log_v2::rrd()->info("RRD: Finishing to rebuild metrics ({})",
+                              fmt::join(e->obj.metric_id(), ","));
           // Rebuild is ending.
           for (auto& m : e->obj.metric_id()) {
             std::string path{fmt::format("{}{}.rrd", _metrics_path, m)};
@@ -331,7 +329,7 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
       for (auto& m : e->obj.metric_ids()) {
         std::string path{fmt::format("{}{}.rrd", _metrics_path, m)};
         /* File removed */
-        log_v2::rrd()->info("RRD: removing {} file", path, m);
+        log_v2::rrd()->info("RRD: removing {} file", path);
         _backend.remove(path);
       }
       for (auto& i : e->obj.index_ids()) {
