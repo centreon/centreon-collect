@@ -9,8 +9,8 @@ stage('Dependencies containers creation') {
         checkout scm
         dir ('ci/docker') {
           sh 'cp ../../conanfile.txt .'
-          sh 'docker build --no-cache . -f Dockerfile.collect-centos7-dependencies -t registry.centreon.com/centreon-collect-centos7-dependencies:22.04-1'
-          sh 'docker push registry.centreon.com/centreon-collect-centos7-dependencies:22.04-1'
+          sh 'docker build --no-cache . -f Dockerfile.collect-centos7-dependencies -t registry.centreon.com/centreon-collect-centos7-dependencies:22.04-2'
+          sh 'docker push registry.centreon.com/centreon-collect-centos7-dependencies:22.04-2'
         }
       }
     }
