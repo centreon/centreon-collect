@@ -48,7 +48,7 @@ stage('Build / Unit tests // Packaging / Signing') {
     node("C++") {
       dir('centreon-collect-centos7') {
         checkout scm
-        sh 'docker run -i --entrypoint /src/ci/scripts/collect-unit-tests.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:22.04-1'
+        sh 'docker run -i --entrypoint /src/ci/scripts/collect-unit-tests.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:22.04-2'
       }
     }
   },
@@ -56,7 +56,7 @@ stage('Build / Unit tests // Packaging / Signing') {
     node("C++") {
       dir('centreon-collect-centos7') {
         checkout scm
-        sh 'docker run -i --entrypoint /src/ci/scripts/collect-rpm-package.sh -v "$PWD:/src" -e DISTRIB="el7" -e VERSION=$VERSION -e RELEASE=$RELEASE registry.centreon.com/centreon-collect-centos7-dependencies:22.04-1'
+        sh 'docker run -i --entrypoint /src/ci/scripts/collect-rpm-package.sh -v "$PWD:/src" -e DISTRIB="el7" -e VERSION=$VERSION -e RELEASE=$RELEASE registry.centreon.com/centreon-collect-centos7-dependencies:22.04-2'
         sh 'rpmsign --addsign *.rpm'
         stash name: 'el7-rpms', includes: '*.rpm'
         archiveArtifacts artifacts: "*.rpm"
