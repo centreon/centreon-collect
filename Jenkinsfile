@@ -71,6 +71,54 @@ stage('Build / Unit tests // Packaging / Signing') {
         sh 'rm -rf *.rpm'
       } 
     }
+  },
+  'centos8 rpm packaging and signing': {
+    node("C++") {
+      dir('centreon-collect-centos8') {
+        checkout scm
+        sh 'docker run -i --entrypoint /src/ci/scripts/collect-rpm-package.sh -v "$PWD:/src" -e DISTRIB="el8" -e VERSION=$VERSION -e RELEASE=$RELEASE registry.centreon.com/centreon-collect-centos8-dependencies:22.04'
+        sh 'rpmsign --addsign *.rpm'
+        stash name: 'el8-rpms', includes: '*.rpm'
+        archiveArtifacts artifacts: "*.rpm"
+        sh 'rm -rf *.rpm'
+      }
+    }
+  },
+  'debian buster Build and UT': {
+    node("C++") {
+      dir('centreon-collect-debian10') {
+        checkout scm
+        sh 'docker run -i --entrypoint /src/ci/scripts/collect-unit-tests.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-debian10-dependencies:22.04'
+      }
+    }
+  },
+  'debian buster packaging and signing': {
+    node("C++") {
+      dir('centreon-collect') {
+        checkout scm
+      }
+        sh 'docker run -i --entrypoint /src/centreon-collect/ci/scripts/collect-deb-package.sh -v "$PWD:/src" -e DISTRIB="Debian10" -e VERSION=$VERSION -e RELEASE=$RELEASE registry.centreon.com/centreon-collect-debian10-dependencies:22.04'
+        stash name: 'Debian10', includes: 'Debian10/*.deb'
+        archiveArtifacts artifacts: "Debian10/*"
+    }
+  },
+  'debian bullseye Build and UT': {
+    node("C++") {
+      dir('centreon-collect-debian11') {
+        checkout scm
+        sh 'docker run -i --entrypoint /src/ci/scripts/collect-unit-tests.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-debian11-dependencies:22.04'
+      }
+    }
+  },
+  'debian bullseye packaging and signing': {
+    node("C++") {
+      dir('centreon-collect') {
+        checkout scm
+      }
+      sh 'docker run -i --entrypoint /src/centreon-collect/ci/scripts/collect-deb-package.sh -v "$PWD:/src" -e DISTRIB="Debian11" -e VERSION=$VERSION -e RELEASE=$RELEASE registry.centreon.com/centreon-collect-debian11-dependencies:22.04'
+      stash name: 'Debian11', includes: 'Debian11/*.deb'
+      archiveArtifacts artifacts: "Debian11/*"
+    }
   }  
 }
 
