@@ -145,12 +145,12 @@ bool conflict_manager::init_storage(bool store_in_db,
         })) {
       if (_state == finished ||
           config::applier::mode == config::applier::finished) {
-        log_v2::sql()->info("Conflict manager not started because cbd stopped");
+        log_v2::sql()->info("conflict_manager: not started because cbd stopped");
         return false;
       }
       if (_singleton->_mysql.get_config() != dbcfg) {
         log_v2::sql()->error(
-            "Conflict manager: storage and sql streams do not have the same "
+            "conflict_manager: storage and sql streams do not have the same "
             "database configuration");
         return false;
       }
@@ -168,7 +168,7 @@ bool conflict_manager::init_storage(bool store_in_db,
       _singleton->_thread =
           std::thread(&conflict_manager::_callback, _singleton);
       pthread_setname_np(_singleton->_thread.native_handle(), "conflict_mngr");
-      log_v2::sql()->info("Conflict manager running");
+      log_v2::sql()->info("conflict_manager: running");
       return true;
     }
     log_v2::sql()->info(
@@ -205,6 +205,7 @@ bool conflict_manager::init_sql(database_config const& dbcfg,
   _singleton = new conflict_manager(dbcfg, loop_timeout, instance_timeout);
   if (!_singleton) {
     _state = finished;
+    log_v2::sql()->debug("conflict_manager: sql stream initialization failed");
     return false;
   }
 
@@ -212,6 +213,7 @@ bool conflict_manager::init_sql(database_config const& dbcfg,
   _singleton->_action.resize(_singleton->_mysql.connections_count());
   _init_cv.notify_all();
   _singleton->_ref_count++;
+  log_v2::sql()->debug("conflict_manager: sql stream initialization succeeded");
   return true;
 }
 
@@ -527,12 +529,15 @@ void conflict_manager::_callback() {
          * it it is necessary for cleanup operations.
          */
         while (count < _max_pending_queries && timeout < timeout_limit) {
+          log_v2::sql()->trace("conflict_manager: looping {} / {}", timeout, timeout_limit);
           if (events.empty())
             events = _fifo.first_events();
           if (events.empty()) {
             // Let's wait for 500ms.
-            if (_should_exit())
+            if (_should_exit()) {
+              log_v2::sql()->trace("conflict_manager: should exit");
               break;
+            }
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
             /* Here, just before looping, we commit. */
             std::chrono::system_clock::time_point now =
@@ -763,6 +768,7 @@ void conflict_manager::_add_action(int32_t conn, actions action) {
 }
 
 void conflict_manager::__exit() {
+  log_v2::sql()->trace("conflict_manager: exit called.");
   {
     std::lock_guard<std::mutex> lock(_loop_m);
     _exit = true;
@@ -830,30 +836,30 @@ int32_t conflict_manager::unload(stream_type type) {
     uint32_t count = atomic_fetch_sub(&_singleton->_ref_count, 1u) - 1u;
     int retval;
     if (count == 0) {
-      _singleton->__exit();
       retval = _singleton->_fifo.get_acks(type);
       {
         std::lock_guard<std::mutex> lck(_init_m);
         _state = finished;
         delete _singleton;
         _singleton = nullptr;
-        _init_cv.notify_all();
+//        _init_cv.notify_all();
       }
       log_v2::sql()->info(
-          "conflict_manager: no more user of the conflict manager.");
+          "conflict_manager: (type {}) no more user of the conflict manager.", type == 0 ? "sql" : "storage");
     } else {
+      _singleton->__exit();
       log_v2::sql()->info(
-          "conflict_manager: still {} stream{} using the conflict manager.",
-          count, count > 1 ? "s" : "");
+          "conflict_manager: (type {}) still {} stream{} using the conflict manager.",
+          type == 0 ? "sql" : "storage", count, count > 1 ? "s" : "");
       retval = _singleton->_fifo.get_acks(type);
       log_v2::sql()->info(
           "conflict_manager: still {} events handled but not acknowledged.",
           retval);
-      std::unique_lock<std::mutex> lk(_init_m);
-      for (int i = 0; i < 30 && _state != finished; i++) {
-        _init_cv.wait_for(lk, std::chrono::seconds(1),
-                          [] { return _state == finished; });
-      }
+//      std::unique_lock<std::mutex> lk(_init_m);
+//      for (int i = 0; i < 30 && _state != finished; i++) {
+//        _init_cv.wait_for(lk, std::chrono::seconds(1),
+//                          [] { return _state == finished; });
+//      }
     }
     return retval;
   }

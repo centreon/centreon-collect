@@ -47,6 +47,8 @@ BRRDDM1
         FOR	${m}	IN	@{metrics}
         	Wait Until Removed	/var/lib/centreon/metrics/${m}.rrd      20s
         END
+        Stop Engine
+        Stop Broker
 
 BRRDDID1
 	[Documentation]	RRD metrics deletion from index ids.
@@ -82,6 +84,8 @@ BRRDDID1
         FOR	${m}	IN	@{metrics}
         	Wait Until Removed	/var/lib/centreon/metrics/${m}.rrd	20s
         END
+        Stop Engine
+        Stop Broker
 
 BRRDDMID1
 	[Documentation]	RRD deletion of non existing metrics and indexes
@@ -108,6 +112,8 @@ BRRDDMID1
         ${content}=	Create List	do not appear in the storage database
         ${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	30
         Should Be True	${result}	msg=A message telling indexes nor metrics appear in the storage database should appear.
+        Stop Engine
+        Stop Broker
 
 BRRDDMU1
 	[Documentation]	RRD metric deletion on table metric with unified sql output
@@ -141,6 +147,8 @@ BRRDDMU1
         FOR	${m}	IN	@{metrics}
         	Wait Until Removed	/var/lib/centreon/metrics/${m}.rrd	20s
         END
+        Stop Engine
+        Stop Broker
 
 BRRDDIDU1
 	[Documentation]	RRD metrics deletion from index ids.
@@ -177,6 +185,8 @@ BRRDDIDU1
         FOR	${m}	IN	@{metrics}
         	Wait Until Removed	/var/lib/centreon/metrics/${m}.rrd	20s
         END
+        Stop Engine
+        Stop Broker
 
 BRRDDMIDU1
 	[Documentation]	RRD deletion of non existing metrics and indexes
@@ -204,6 +214,8 @@ BRRDDMIDU1
         ${content}=	Create List	do not appear in the storage database
         ${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	30
         Should Be True	${result}	msg=A message telling indexes nor metrics appear in the storage database should appear.
+        Stop Engine
+        Stop Broker
 
 
 BRRDRM1
@@ -248,6 +260,8 @@ BRRDRM1
         	${result}=	Compare RRD Average Value	${m}	${value}
                 Should Be True	${result}	msg=Data before RRD rebuild contain alternatively the metric ID and 0. The expected average is metric_id / 2.
         END
+        Stop Engine
+        Stop Broker
 
 BRRDRMU1
 	[Documentation]	RRD metric rebuild with gRPC API and unified sql
@@ -292,3 +306,5 @@ BRRDRMU1
         	${result}=	Compare RRD Average Value	${m}	${value}
                 Should Be True	${result}	msg=Data before RRD rebuild contain alternatively the metric ID and 0. The expected average is metric_id / 2.
         END
+        Stop Engine
+        Stop Broker
