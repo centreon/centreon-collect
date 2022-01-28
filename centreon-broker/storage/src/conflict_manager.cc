@@ -827,7 +827,7 @@ int32_t conflict_manager::unload(stream_type type) {
     log_v2::sql()->info("conflict_manager: already unloaded.");
     return 0;
   } else {
-    uint32_t count = std::atomic_fetch_sub(&_singleton->_ref_count, 1) - 1;
+    uint32_t count = atomic_fetch_sub(&_singleton->_ref_count, 1u) - 1u;
     int retval;
     if (count == 0) {
       _singleton->__exit();
