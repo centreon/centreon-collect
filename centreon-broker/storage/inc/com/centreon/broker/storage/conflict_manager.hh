@@ -361,7 +361,7 @@ class conflict_manager {
                            uint32_t interval_length,
                            const database_config& dbcfg);
   static conflict_manager& instance();
-  int32_t unload(stream_type type);
+  static int32_t unload(stream_type type);
   nlohmann::json get_statistics();
 
   int32_t send_event(stream_type c, std::shared_ptr<io::data> const& e);

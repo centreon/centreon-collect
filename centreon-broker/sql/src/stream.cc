@@ -92,8 +92,8 @@ stream::stream(database_config const& dbcfg,
 int32_t stream::stop() {
   // Stop cleanup thread.
   // _cleanup_thread.exit();
-  int32_t retval = storage::conflict_manager::instance().unload(
-      storage::conflict_manager::sql);
+  int32_t retval =
+      storage::conflict_manager::unload(storage::conflict_manager::sql);
   _stopped = true;
   log_v2::core()->info("sql stream stopped with {} ackowledged events", retval);
   return retval;

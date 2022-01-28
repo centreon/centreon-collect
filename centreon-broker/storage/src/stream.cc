@@ -75,8 +75,7 @@ stream::stream(database_config const& dbcfg,
 
 int32_t stream::stop() {
   // Stop cleanup thread.
-  int32_t retval =
-      conflict_manager::instance().unload(conflict_manager::storage);
+  int32_t retval = conflict_manager::unload(conflict_manager::storage);
   log_v2::core()->info("storage stream stopped with {} acknowledged events",
                        retval);
   _stopped = true;
