@@ -106,6 +106,10 @@ message EngineStats {
 message QueueFileStats {
   string name = 1;
   uint32 max_file_size = 2;
+  uint32 file_write_path = 3;
+  uint32 file_write_offset = 4;
+  uint32 file_read_path = 5;
+  uint32 file_read_offset = 6;
 }
 
 message MuxerStats {

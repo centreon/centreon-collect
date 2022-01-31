@@ -38,12 +38,15 @@ namespace file {
 class stream : public io::stream {
   std::unique_ptr<splitter> _file;
   QueueFileStats* _stats;
+  std::time_t _last_stats;
   mutable long long _last_read_offset;
   mutable time_t _last_time;
   mutable long long _last_write_offset;
 
+  void _update_stats();
+
  public:
-  stream(splitter* file);
+  stream(splitter* file, QueueFileStats* s);
   ~stream() noexcept = default;
   stream(const stream&) = delete;
   stream& operator=(const stream&) = delete;

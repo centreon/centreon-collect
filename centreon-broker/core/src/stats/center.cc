@@ -424,12 +424,8 @@ bool center::muxer_stats(const std::string& name, MuxerStats* response) {
 MuxerStats* center::muxer_stats(const std::string& name) {
   std::promise<MuxerStats*> p;
   _strand.post([&s = this->_stats, &p, &name] {
-    if (!s.processing().muxers().contains(name))
-      p.set_value(nullptr);
-    else {
-      MuxerStats* ms = &s.mutable_processing()->mutable_muxers()->at(name);
-      p.set_value(ms);
-    }
+    MuxerStats* ms = &(*s.mutable_processing()->mutable_muxers())[name];
+    p.set_value(ms);
   });
   return p.get_future().get();
 }

@@ -25,25 +25,21 @@
 #include "broker.pb.h"
 #include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/misc/string.hh"
+#include "com/centreon/broker/stats/center.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::file;
-
-/**************************************
- *                                     *
- *           Public Methods            *
- *                                     *
- **************************************/
 
 /**
  *  Constructor.
  *
  *  @param[in] file  Splitted file on which the stream will operate.
  */
-stream::stream(splitter* file)
+stream::stream(splitter* file, QueueFileStats* s)
     : io::stream("file"),
       _file(file),
-      _stats{nullptr},
+      _stats{s},
+      _last_stats{time(nullptr)},
       _last_read_offset(0),
       _last_time(0),
       _last_write_offset(0) {}
@@ -83,6 +79,7 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
     d.reset(data.release());
   }
 
+  _update_stats();
   return true;
 }
 
@@ -151,6 +148,25 @@ void stream::statistics(nlohmann::json& tree) const {
 }
 
 /**
+ * @brief Update persistent file statistics stored in _stats.
+ */
+void stream::_update_stats() {
+  time_t now = time(nullptr);
+  if (_stats && now > _last_stats) {
+    _last_stats = now;
+    stats::center::instance().execute([s = this->_stats, wid = _file->get_wid(),
+                                       woffset = _file->get_woffset(),
+                                       rid = _file->get_rid(),
+                                       roffset = _file->get_roffset()] {
+      s->set_file_write_path(wid);
+      s->set_file_write_offset(woffset);
+      s->set_file_read_path(rid);
+      s->set_file_read_offset(roffset);
+    });
+  }
+}
+
+/**
  *  Write data to the file.
  *
  *  @param[in] d  Data to write.
@@ -178,6 +194,7 @@ int32_t stream::write(std::shared_ptr<io::data> const& d) {
       size -= wb;
       memory += wb;
     }
+    _update_stats();
   }
 
   return 1;
