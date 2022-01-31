@@ -28,10 +28,10 @@ then
   put_rpms "standard" "$MAJOR" "el7" "unstable" "x86_64" "connector" "centreon-connector-$VERSION-$RELEASE" $CONNECTOREL7RPMS
   put_rpms "standard" "$MAJOR" "el7" "unstable" "x86_64" "clib" "centreon-clib-$VERSION-$RELEASE" $CLIBEL7RPMS
 
-  put_rpms "standard" "$MAJOR" "el8" "unstable" "x86_64" "engine" "centreon-engine-$VERSION-$RELEASE" $ENGINEEL8RPMS
-  put_rpms "standard" "$MAJOR" "el8" "unstable" "x86_64" "broker" "centreon-broker-$VERSION-$RELEASE" $BROKEREL8RPMS
-  put_rpms "standard" "$MAJOR" "el8" "unstable" "x86_64" "connector" "centreon-connector-$VERSION-$RELEASE" $CONNECTOREL8RPMS
-  put_rpms "standard" "$MAJOR" "el8" "unstable" "x86_64" "clib" "centreon-clib-$VERSION-$RELEASE" $CLIBEL8RPMS
+  #put_rpms "standard" "$MAJOR" "el8" "unstable" "x86_64" "engine" "centreon-engine-$VERSION-$RELEASE" $ENGINEEL8RPMS
+  #put_rpms "standard" "$MAJOR" "el8" "unstable" "x86_64" "broker" "centreon-broker-$VERSION-$RELEASE" $BROKEREL8RPMS
+  #put_rpms "standard" "$MAJOR" "el8" "unstable" "x86_64" "connector" "centreon-connector-$VERSION-$RELEASE" $CONNECTOREL8RPMS
+  #put_rpms "standard" "$MAJOR" "el8" "unstable" "x86_64" "clib" "centreon-clib-$VERSION-$RELEASE" $CLIBEL8RPMS
 elif [ "$BUILD" '=' 'RELEASE' ]
 then
   copy_internal_source_to_testing "standard" "centreon-collect" "centreon-collect-$VERSION-$RELEASE"
@@ -40,8 +40,8 @@ then
   put_rpms "standard" "$MAJOR" "el7" "testing" "x86_64" "connector" "centreon-connector-$VERSION-$RELEASE" $CONNECTOREL7RPMS
   put_rpms "standard" "$MAJOR" "el7" "testing" "x86_64" "clib" "centreon-clib-$VERSION-$RELEASE" $CLIBEL7RPMS
 
-  put_rpms "standard" "$MAJOR" "el8" "testing" "x86_64" "engine" "centreon-engine-$VERSION-$RELEASE" $ENGINEEL8RPMS
-  put_rpms "standard" "$MAJOR" "el8" "testing" "x86_64" "broker" "centreon-broker-$VERSION-$RELEASE" $BROKEREL8RPMS
-  put_rpms "standard" "$MAJOR" "el8" "testing" "x86_64" "connector" "centreon-connector-$VERSION-$RELEASE" $CONNECTOREL8RPMS
-  put_rpms "standard" "$MAJOR" "el8" "testing" "x86_64" "clib" "centreon-clib-$VERSION-$RELEASE" $CLIBEL8RPMS
+  #put_rpms "standard" "$MAJOR" "el8" "testing" "x86_64" "engine" "centreon-engine-$VERSION-$RELEASE" $ENGINEEL8RPMS
+  #put_rpms "standard" "$MAJOR" "el8" "testing" "x86_64" "broker" "centreon-broker-$VERSION-$RELEASE" $BROKEREL8RPMS
+  #put_rpms "standard" "$MAJOR" "el8" "testing" "x86_64" "connector" "centreon-connector-$VERSION-$RELEASE" $CONNECTOREL8RPMS
+  #put_rpms "standard" "$MAJOR" "el8" "testing" "x86_64" "clib" "centreon-clib-$VERSION-$RELEASE" $CLIBEL8RPMS
 fi
