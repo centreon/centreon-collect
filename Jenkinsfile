@@ -67,7 +67,7 @@ stage('Build / Unit tests // Packaging / Signing') {
         sh 'rm -rf *.rpm'
       } 
     }
-  },
+  },/*
   'centos8 Build and UT': {
     node("C++") {
       dir('centreon-collect-centos8') {
@@ -87,7 +87,7 @@ stage('Build / Unit tests // Packaging / Signing') {
         sh 'rm -rf *.rpm'
       }
     }
-  },
+  },*/
   'debian buster Build and UT': {
     node("C++") {
       dir('centreon-collect-debian') {
