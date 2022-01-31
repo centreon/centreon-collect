@@ -256,7 +256,8 @@ TEST_F(OutputTest, ShortPersistentFile) {
   }
   svc->last_time_ok = timestamp(0x55667788);  // 0x1cbe991a83
 
-  std::unique_ptr<io::stream> mf(new persistent_file("/tmp/test_output"));
+  std::unique_ptr<io::stream> mf(
+      new persistent_file("/tmp/test_output", nullptr));
   mf->write(svc);
 
   std::shared_ptr<io::data> e;

@@ -220,7 +220,7 @@ grpc::Status broker_impl::GetMuxerStats(grpc::ServerContext* context
                                         const GenericString* request,
                                         MuxerStats* response) {
   const std::string name = request->str_arg();
-  auto status = stats::center::instance().get_muxer_stats(name, response);
+  bool status = stats::center::instance().muxer_stats(name, response);
   return status ? grpc::Status::OK
                 : grpc::Status(
                       grpc::StatusCode::NOT_FOUND,

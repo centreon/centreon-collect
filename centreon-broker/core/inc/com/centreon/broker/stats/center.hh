@@ -81,8 +81,12 @@ class center {
                     std::string queue_file,
                     uint32_t size,
                     uint32_t unack);
+  void init_queue_file(std::string muxer,
+                       std::string queue_file,
+                       uint32_t max_file_size);
 
-  bool get_muxer_stats(const std::string& name, MuxerStats* response);
+  bool muxer_stats(const std::string& name, MuxerStats* response);
+  MuxerStats* muxer_stats(const std::string& name);
 
   void get_sql_connection_stats(uint32_t index, SqlConnectionStats* response);
   void get_conflict_manager_stats(ConflictManagerStats* response);

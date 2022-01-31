@@ -30,9 +30,11 @@ using namespace com::centreon::broker;
  *  Constructor.
  *
  *  @param[in] path  Path of the persistent file.
+ *  @param[in] muxer_name The muxer this file is associated to. This name is
+ * used to access the statistics in the stats center.
  */
-persistent_file::persistent_file(const std::string& path)
-    : io::stream("persistent_file") {
+persistent_file::persistent_file(const std::string& path, QueueFileStats* stats)
+    : io::stream("persistent_file"), _stats(stats) {
   // On-disk file.
   file::opener opnr;
   opnr.set_filename(path);
@@ -40,18 +42,24 @@ persistent_file::persistent_file(const std::string& path)
   _splitter = std::static_pointer_cast<file::stream>(fs);
 
   // Compression layer.
-  std::shared_ptr<compression::stream> cs(
-      std::make_shared<compression::stream>());
+  auto cs{std::make_shared<compression::stream>()};
   cs->set_substream(fs);
 
   // BBDO layer.
-  std::shared_ptr<bbdo::stream> bs(std::make_shared<bbdo::stream>(true));
+  auto bs{std::make_shared<bbdo::stream>(true)};
   bs->set_coarse(true);
   bs->set_negotiate(false);
   bs->set_substream(cs);
 
   // Set stream.
   io::stream::set_substream(bs);
+  if (_stats)
+    stats::center::instance().execute(
+        [p = path, s = this->_stats,
+         max_file_size = _splitter->max_file_size()] {
+          s->set_name(p);
+          s->set_max_file_size(max_file_size);
+        });
 }
 
 /**

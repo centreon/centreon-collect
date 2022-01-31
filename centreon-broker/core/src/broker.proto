@@ -103,10 +103,15 @@ message EngineStats {
   uint32 processed_events = 2;
 }
 
+message QueueFileStats {
+  string name = 1;
+  uint32 max_file_size = 2;
+}
+
 message MuxerStats {
   uint32 total_events = 1;
   uint32 unacknowledged_events = 2;
-  string queue_file = 3;
+  QueueFileStats queue_file = 3;
 }
 
 message ProcessingStats {

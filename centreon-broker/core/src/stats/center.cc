@@ -169,9 +169,23 @@ void center::update_muxer(std::string name,
                 size, unack] {
     auto ms = &(*_stats.mutable_processing()->mutable_muxers())[name];
     if (ms) {
-      ms->set_queue_file(std::move(queue));
+      ms->mutable_queue_file()->set_name(std::move(queue));
       ms->set_total_events(size);
       ms->set_unacknowledged_events(unack);
+    }
+  });
+}
+
+void center::init_queue_file(std::string muxer,
+                             std::string queue_file,
+                             uint32_t max_file_size) {
+  _strand.post([this, name = std::move(muxer), queue = std::move(queue_file),
+                max_file_size] {
+    auto qfs = (&(*_stats.mutable_processing()->mutable_muxers())[name])
+                   ->mutable_queue_file();
+    if (qfs) {
+      qfs->set_name(std::move(queue));
+      qfs->set_max_file_size(max_file_size);
     }
   });
 }
@@ -393,7 +407,7 @@ int center::get_json_stats_file_creation(void) {
   return _json_stats_file_creation;
 }
 
-bool center::get_muxer_stats(const std::string& name, MuxerStats* response) {
+bool center::muxer_stats(const std::string& name, MuxerStats* response) {
   std::promise<bool> p;
   std::future<bool> done = p.get_future();
   _strand.post([&s = this->_stats, &p, name, response] {
@@ -405,6 +419,19 @@ bool center::get_muxer_stats(const std::string& name, MuxerStats* response) {
     }
   });
   return done.get();
+}
+
+MuxerStats* center::muxer_stats(const std::string& name) {
+  std::promise<MuxerStats*> p;
+  _strand.post([&s = this->_stats, &p, &name] {
+    if (!s.processing().muxers().contains(name))
+      p.set_value(nullptr);
+    else {
+      MuxerStats* ms = &s.mutable_processing()->mutable_muxers()->at(name);
+      p.set_value(ms);
+    }
+  });
+  return p.get_future().get();
 }
 
 void center::get_processing_stats(ProcessingStats* response) {

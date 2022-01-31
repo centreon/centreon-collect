@@ -34,10 +34,11 @@ CCB_BEGIN()
  *  It uses BBDO, compression and file streams.
  */
 class persistent_file : public io::stream {
+  QueueFileStats* _stats;
   std::shared_ptr<file::stream> _splitter;
 
  public:
-  persistent_file(const std::string& path);
+  persistent_file(const std::string& path, QueueFileStats* stats = nullptr);
   ~persistent_file() noexcept = default;
   persistent_file(const persistent_file&) = delete;
   persistent_file& operator=(const persistent_file&) = delete;

@@ -59,7 +59,7 @@ muxer::muxer(std::string name,
   std::lock_guard<std::mutex> lck(_mutex);
   if (_persistent) {
     try {
-      auto mf{std::make_unique<persistent_file>(memory_file(_name))};
+      auto mf{std::make_unique<persistent_file>(memory_file(_name), nullptr)};
       std::shared_ptr<io::data> e;
       for (;;) {
         e.reset();
@@ -78,7 +78,9 @@ muxer::muxer(std::string name,
   _pos = _events.begin();
   // Load queue file back in memory.
   try {
-    _file = std::make_unique<persistent_file>(_queue_file_name);
+    QueueFileStats* stats =
+        stats::center::instance().muxer_stats(_name)->mutable_queue_file();
+    _file = std::make_unique<persistent_file>(_queue_file_name, stats);
     std::shared_ptr<io::data> e;
     // The following do-while might read an extra event from the queue
     // file back in memory. However this is necessary to ensure that a
@@ -205,8 +207,11 @@ void muxer::publish(const std::shared_ptr<io::data> event) {
     // Check if the event queue limit is reach.
     if (_events_size >= event_queue_max_size()) {
       // Try to create file if is necessary.
-      if (!_file)
-        _file = std::make_unique<persistent_file>(_queue_file_name);
+      if (!_file) {
+        QueueFileStats* s =
+            stats::center::instance().muxer_stats(_name)->mutable_queue_file();
+        _file = std::make_unique<persistent_file>(_queue_file_name, s);
+      }
 
       _file->write(event);
     } else
@@ -368,7 +373,7 @@ void muxer::_clean() {
     try {
       log_v2::core()->trace("muxer: sending {} events to {}", _events_size,
                             memory_file(_name));
-      auto mf{std::make_unique<persistent_file>(memory_file(_name))};
+      auto mf{std::make_unique<persistent_file>(memory_file(_name), nullptr)};
       while (!_events.empty()) {
         mf->write(_events.front());
         _events.pop_front();
@@ -475,7 +480,9 @@ void muxer::remove_queue_files() {
   log_v2::perfdata()->info("multiplexing: '{}' removed", _queue_file_name);
 
   /* Here _file is already destroyed */
-  persistent_file file(_queue_file_name);
+  QueueFileStats* stats =
+      stats::center::instance().muxer_stats(_name)->mutable_queue_file();
+  persistent_file file(_queue_file_name, stats);
   file.remove_all_files();
 }
 

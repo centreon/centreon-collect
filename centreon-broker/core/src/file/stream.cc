@@ -22,6 +22,7 @@
 #include <limits>
 #include <sstream>
 
+#include "broker.pb.h"
 #include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/misc/string.hh"
 
@@ -42,14 +43,10 @@ using namespace com::centreon::broker::file;
 stream::stream(splitter* file)
     : io::stream("file"),
       _file(file),
+      _stats{nullptr},
       _last_read_offset(0),
       _last_time(0),
       _last_write_offset(0) {}
-
-/**
- *  Destructor.
- */
-stream::~stream() {}
 
 /**
  *  Get peer name.
@@ -96,7 +93,7 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
  */
 void stream::statistics(nlohmann::json& tree) const {
   // Get base properties.
-  long max_file_size(_file->get_max_file_size());
+  uint32_t max_file_size(_file->max_file_size());
   int rid(_file->get_rid());
   long roffset(_file->get_roffset());
   int wid(_file->get_wid());
@@ -107,7 +104,7 @@ void stream::statistics(nlohmann::json& tree) const {
   tree["file_read_offset"] = static_cast<double>(roffset);
   tree["file_write_path"] = wid;
   tree["file_write_offset"] = static_cast<double>(woffset);
-  if (max_file_size != std::numeric_limits<long>::max())
+  if (max_file_size != std::numeric_limits<uint32_t>::max())
     tree["file_max_size"] = static_cast<double>(max_file_size);
   else
     tree["file_max_size"] = "unlimited";
@@ -116,7 +113,7 @@ void stream::statistics(nlohmann::json& tree) const {
   bool write_time_expected(false);
   long long froffset(roffset + rid * static_cast<long long>(max_file_size));
   long long fwoffset(woffset + wid * static_cast<long long>(max_file_size));
-  if ((rid != wid && max_file_size == std::numeric_limits<long>::max()) ||
+  if ((rid != wid && max_file_size == std::numeric_limits<uint32_t>::max()) ||
       !fwoffset) {
     tree["file_percent_processed"] = "unknown";
   } else {
@@ -200,4 +197,8 @@ int32_t stream::stop() {
  */
 void stream::remove_all_files() {
   _file->remove_all_files();
+}
+
+uint32_t stream::max_file_size() const {
+  return _file->max_file_size();
 }
