@@ -75,7 +75,7 @@ stage('Build / Unit tests // Packaging / Signing') {
         sh 'docker run -i --entrypoint /src/ci/scripts/collect-unit-tests.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos8-dependencies:21.10'
       }
     }
-  },
+  },/*
   'centos8 rpm packaging and signing': {
     node("C++") {
       dir('centreon-collect-centos8') {
@@ -87,7 +87,7 @@ stage('Build / Unit tests // Packaging / Signing') {
         sh 'rm -rf *.rpm'
       }
     }
-  },
+  },*/
   'debian buster Build and UT': {
     node("C++") {
       dir('centreon-collect-debian') {
