@@ -20,6 +20,8 @@
 
 #include <fmt/format.h>
 #include <sys/stat.h>
+#include "absl/strings/str_split.h"
+#include "absl/strings/string_view.h"
 
 #include <openssl/md5.h>
 #include <cstdlib>
@@ -508,11 +510,44 @@ static int l_broker_parse_perfdata(lua_State* L) {
   for (auto const& pd : pds) {
     lua_pushstring(L, pd.name().c_str());
     if (full) {
+      absl::string_view name{pd.name()};
+      absl::string_view metric{name.substr(name.find("#") + 1)};
+      absl::string_view fullinstance{name.substr(0, name.find("#"))};
+      std::list<absl::string_view> metric_fields{absl::StrSplit(metric, '.')};
+      std::list<absl::string_view> subinstance{
+          absl::StrSplit(fullinstance, '~')};
+
       lua_createtable(L, 0, 3);
       lua_pushnumber(L, pd.value());
       lua_setfield(L, -2, "value");
       lua_pushstring(L, pd.unit().c_str());
       lua_setfield(L, -2, "uom");
+      lua_pushlstring(L, metric.data(), metric.length());
+      lua_setfield(L, -2, "metric_name");
+      lua_pushlstring(L, name.data(), name.substr(0, name.find("~")).length());
+      lua_setfield(L, -2, "instance");
+      lua_pushlstring(
+          L, name.substr(name.find_last_of(".") + 1, name.size()).data(),
+          name.substr(name.find_last_of(".") + 1, name.size()).length());
+      lua_setfield(L, -2, "metric_unit");
+      lua_pushstring(L, "metric_fields");
+      lua_createtable(L, 0, 3);
+      int i = 0;
+      for (auto const& field : metric_fields) {
+        ++i;
+        lua_pushlstring(L, field.data(), field.length());
+        lua_rawseti(L, -2, i);
+      }
+      lua_settable(L, -3);
+      lua_pushstring(L, "subinstance");
+      lua_createtable(L, 0, 3);
+      i = 0;
+      for (auto const& field : subinstance) {
+        ++i;
+        lua_pushlstring(L, field.data(), field.length());
+        lua_rawseti(L, -2, i);
+      }
+      lua_settable(L, -3);
       lua_pushnumber(L, pd.min());
       lua_setfield(L, -2, "min");
       lua_pushnumber(L, pd.max());
@@ -523,7 +558,6 @@ static int l_broker_parse_perfdata(lua_State* L) {
       lua_setfield(L, -2, "warning_low");
       lua_pushboolean(L, pd.warning_mode());
       lua_setfield(L, -2, "warning_mode");
-
       lua_pushnumber(L, pd.critical());
       lua_setfield(L, -2, "critical_high");
       lua_pushnumber(L, pd.critical_low());
