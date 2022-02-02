@@ -369,6 +369,10 @@ int muxer::write(std::shared_ptr<io::data> const& d) {
  */
 void muxer::_clean() {
   _file.reset();
+  stats::center::instance().clear_muxer_queue_file(_name);
+  //  stats::center::instance().execute([name=this->_name] {
+  //      stats::center::instance().muxer_stats(name)->mutable_queue_file()->Clear();
+  //  });
   if (_persistent && !_events.empty()) {
     try {
       log_v2::core()->trace("muxer: sending {} events to {}", _events_size,
@@ -409,6 +413,7 @@ void muxer::_get_event_from_file(std::shared_ptr<io::data>& event) {
       // The file end was reach.
       (void)e;
       _file.reset();
+      stats::center::instance().clear_muxer_queue_file(_name);
     }
   }
 }

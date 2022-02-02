@@ -438,3 +438,17 @@ void center::get_processing_stats(ProcessingStats* response) {
   });
   p.get_future().get();
 }
+
+void center::clear_muxer_queue_file(const std::string& name) {
+  std::promise<void> p;
+  _strand.post([&s = this->_stats, &p, &name] {
+    if (s.processing().muxers().contains(name))
+      s.mutable_processing()
+          ->mutable_muxers()
+          ->at(name)
+          .mutable_queue_file()
+          ->Clear();
+    p.set_value();
+  });
+  p.get_future().wait();
+}

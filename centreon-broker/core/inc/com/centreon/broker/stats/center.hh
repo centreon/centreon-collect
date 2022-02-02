@@ -87,6 +87,7 @@ class center {
 
   bool muxer_stats(const std::string& name, MuxerStats* response);
   MuxerStats* muxer_stats(const std::string& name);
+  void clear_muxer_queue_file(const std::string& name);
 
   void get_sql_connection_stats(uint32_t index, SqlConnectionStats* response);
   void get_conflict_manager_stats(ConflictManagerStats* response);

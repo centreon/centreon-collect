@@ -39,9 +39,13 @@ class stream : public io::stream {
   std::unique_ptr<splitter> _file;
   QueueFileStats* _stats;
   std::time_t _last_stats;
+  std::time_t _last_stats_perc;
   mutable long long _last_read_offset;
   mutable time_t _last_time;
   mutable long long _last_write_offset;
+  std::array<std::pair<int64_t, double>, 10> _stats_perc;
+  size_t _stats_idx;
+  size_t _stats_size;
 
   void _update_stats();
 

@@ -36,8 +36,6 @@ using namespace com::centreon::broker;
 persistent_file::persistent_file(const std::string& path, QueueFileStats* stats)
     : io::stream("persistent_file"), _stats(stats) {
   // On-disk file.
-  file::opener opnr;
-  opnr.set_filename(path);
   constexpr uint32_t max_size{100000000u};
   auto fs = std::make_shared<file::stream>(
       new file::splitter(path, file::fs_file::open_read_write_truncate,

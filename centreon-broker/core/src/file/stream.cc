@@ -24,6 +24,8 @@
 
 #include "broker.pb.h"
 #include "com/centreon/broker/io/raw.hh"
+#include "com/centreon/broker/log_v2.hh"
+#include "com/centreon/broker/misc/math.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/stats/center.hh"
 
@@ -40,9 +42,13 @@ stream::stream(splitter* file, QueueFileStats* s)
       _file(file),
       _stats{s},
       _last_stats{time(nullptr)},
+      _last_stats_perc{time(nullptr)},
       _last_read_offset(0),
       _last_time(0),
-      _last_write_offset(0) {}
+      _last_write_offset(0),
+      _stats_perc{},
+      _stats_idx{0u},
+      _stats_size{0u} {}
 
 /**
  *  Get peer name.
@@ -50,9 +56,7 @@ stream::stream(splitter* file, QueueFileStats* s)
  *  @return Peer name.
  */
 std::string stream::peer() const {
-  std::ostringstream oss;
-  oss << "file://" << _file->get_file_path();
-  return oss.str();
+  return fmt::format("file://{}", _file->get_file_path());
 }
 
 /**
@@ -151,18 +155,86 @@ void stream::statistics(nlohmann::json& tree) const {
  * @brief Update persistent file statistics stored in _stats.
  */
 void stream::_update_stats() {
+  if (_stats == nullptr)
+    return;
+
   time_t now = time(nullptr);
-  if (_stats && now > _last_stats) {
+  if (now > _last_stats) {
     _last_stats = now;
-    stats::center::instance().execute([s = this->_stats, wid = _file->get_wid(),
-                                       woffset = _file->get_woffset(),
-                                       rid = _file->get_rid(),
-                                       roffset = _file->get_roffset()] {
-      s->set_file_write_path(wid);
-      s->set_file_write_offset(woffset);
-      s->set_file_read_path(rid);
-      s->set_file_read_offset(roffset);
-    });
+
+    const double mm = _file->max_file_size();
+    int32_t roffset = _file->get_roffset();
+    int32_t woffset = _file->get_woffset();
+    int32_t wid = _file->get_wid();
+    int32_t rid = _file->get_rid();
+    double a = (double)roffset + (double)rid * mm;
+    double b = (double)woffset + (double)wid * mm;
+    double m, p;
+
+    if (b != 0) {
+      double perc = 100.0 * a / b;
+      bool reg = false;
+      if (now > _last_stats_perc + 5) {
+        _last_stats_perc = now;
+        _stats_perc[_stats_idx] = std::make_pair(now, perc);
+        ++_stats_idx;
+        if (_stats_idx >= _stats_perc.size())
+          _stats_idx = 0;
+        if (_stats_size < _stats_perc.size())
+          _stats_size++;
+
+        reg = misc::least_squares(_stats_perc, _stats_size, m, p);
+        for (uint32_t i = 0; i < _stats_size; i++) {
+          log_v2::core()->info("queue: {:2}: {} => {}", i,
+                               std::get<0>(_stats_perc[i]),
+                               std::get<1>(_stats_perc[i]));
+        }
+        log_v2::core()->info("regression: y={}x+{}", m, p);
+      }
+
+      if (reg) {
+        stats::center::instance().execute(
+            [s = this->_stats, wid, woffset, rid, roffset, perc, m, p] {
+              s->set_file_write_path(wid);
+              s->set_file_write_offset(woffset);
+              s->set_file_read_path(rid);
+              s->set_file_read_offset(roffset);
+              s->set_file_percent_processed(perc);
+              if (m != 0) {
+                time_t terminated = static_cast<time_t>((100.0 - p) / m);
+                s->set_file_expected_terminated_at(terminated);
+                time_t now = time(nullptr);
+                int32_t duration = terminated - now;
+                int32_t sec = duration % 60;
+                duration /= 60;
+                int min = duration % 60;
+                duration /= 60;
+                std::string d;
+                if (duration)
+                  d = fmt::format("{}h{}m{}s", duration, min, sec);
+                else if (min)
+                  d = fmt::format("{}m{}s", min, sec);
+                else
+                  d = fmt::format("{}s", sec);
+                s->set_file_expected_terminated_in(d);
+
+                log_v2::core()->info("regression: terminated at {}",
+                                     static_cast<int64_t>((100.0 - p) / m));
+              } else
+                s->set_file_expected_terminated_at(
+                    std::numeric_limits<int64_t>::max());
+            });
+      } else {
+        stats::center::instance().execute(
+            [s = this->_stats, wid, woffset, rid, roffset, perc] {
+              s->set_file_write_path(wid);
+              s->set_file_write_offset(woffset);
+              s->set_file_read_path(rid);
+              s->set_file_read_offset(roffset);
+              s->set_file_percent_processed(perc);
+            });
+      }
+    }
   }
 }
 
