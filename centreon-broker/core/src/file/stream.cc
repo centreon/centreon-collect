@@ -189,12 +189,6 @@ void stream::_update_stats() {
           _stats_size++;
 
         reg = misc::least_squares(_stats_perc, _stats_size, m, p);
-        for (uint32_t i = 0; i < _stats_size; i++) {
-          log_v2::core()->info("queue: {:2}: {} => {}", i,
-                               std::get<0>(_stats_perc[i]),
-                               std::get<1>(_stats_perc[i]));
-        }
-        log_v2::core()->info("regression: y={}x+{}", m, p);
       }
 
       if (reg) {
