@@ -136,7 +136,7 @@ if (WITH_TESTING)
   if (WITH_COVERAGE)
     set(COVERAGE_EXCLUDES '${PROJECT_BINARY_DIR}/*' '${PROJECT_SOURCE_DIR}/tests/*' '/usr/include/* ')
     SETUP_TARGET_FOR_COVERAGE(
-        NAME test-coverage
+        NAME engine-test-coverage
         EXECUTABLE ut_engine
         DEPENDENCIES ut_engine
     )

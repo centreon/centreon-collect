@@ -68,6 +68,14 @@ option(WITH_TESTING "Build unit tests." OFF)
 
 option(WITH_CONF "Install configuration files." ON)
 
+# Code coverage on unit tests
+option(WITH_COVERAGE "Add code coverage on unit tests." OFF)
+if (WITH_TESTING AND WITH_COVERAGE)
+  set(CMAKE_BUILD_TYPE "Debug")
+  include(cmake/CodeCoverage.cmake)
+  APPEND_COVERAGE_COMPILER_FLAGS()
+endif ()
+
 set(protobuf_MODULE_COMPATIBLE True)
 
 add_definitions(${spdlog_DEFINITIONS})
@@ -96,4 +104,8 @@ add_custom_target(test-connector
 
 add_custom_target(test
     DEPENDS test-broker test-engine test-clib test-connector
+    )
+
+add_custom_target(test-coverage
+    DEPENDS broker-test-coverage engine-test-coverage clib-test-coverage
     )

@@ -37,14 +37,6 @@ if (WITH_TESTING)
   include(CTest)
 endif ()
 
-# Code coverage on unit tests
-option(WITH_COVERAGE "Add code coverage on unit tests." OFF)
-if (WITH_TESTING AND WITH_COVERAGE)
-  set(CMAKE_BUILD_TYPE "Debug")
-  include(cmake/CodeCoverage.cmake)
-  APPEND_COVERAGE_COMPILER_FLAGS()
-endif ()
-
 set(CMAKE_THREAD_PREFER_PTHREAD)
 include(FindThreads)
 if (NOT CMAKE_USE_PTHREADS_INIT)
