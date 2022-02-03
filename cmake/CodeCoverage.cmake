@@ -162,7 +162,7 @@ function(SETUP_TARGET_FOR_COVERAGE)
         COMMAND ${GENHTML_PATH} -o ${Coverage_NAME} ${Coverage_NAME}.info.cleaned
         COMMAND ${CMAKE_COMMAND} -E remove ${Coverage_NAME}.info ${Coverage_NAME}.info.cleaned
 
-        WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         DEPENDS ${Coverage_DEPENDENCIES}
         COMMENT "Resetting code coverage counters to zero.\nProcessing code coverage counters and generating report."
     )
