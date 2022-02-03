@@ -232,7 +232,8 @@ class gRPC_client:
     try:
       str_to_eval = "self.stub.{}(message)".format(method_name)
       check = eval(str_to_eval)
-      response_str = google.protobuf.json_format.MessageToJson(check, including_default_value_fields=True, preserving_proto_field_name=True, indent=2)
+      response_str = google.protobuf.json_format.MessageToJson(check, preserving_proto_field_name=True, indent=2)
+      #response_str = google.protobuf.json_format.MessageToJson(check, including_default_value_fields=True, preserving_proto_field_name=True, indent=2)
     except grpc.RpcError as e:
       sys.exit(f"code={e.code()}, message={e.details()}")
     else:

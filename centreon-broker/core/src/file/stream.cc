@@ -18,9 +18,9 @@
 
 #include "com/centreon/broker/file/stream.hh"
 
+#include <fmt/chrono.h>
 #include <cstdio>
 #include <limits>
-#include <sstream>
 
 #include "broker.pb.h"
 #include "com/centreon/broker/io/raw.hh"
@@ -173,10 +173,15 @@ void stream::_update_stats() {
 
     if (b != 0) {
       double perc = 100.0 * a / b;
+      double advance = b - a;
       bool reg = false;
+      /* The regression is computed only every 5 seconds. */
       if (now > _last_stats_perc + 5) {
         _last_stats_perc = now;
-        _stats_perc[_stats_idx] = std::make_pair(now, perc);
+        /* We store advance instead of perc, the first one is more linear
+         * compared to the second that is hyperbolic. To obtain a linear
+         * regression, the first one will give better results. */
+        _stats_perc[_stats_idx] = std::make_pair(now, advance);
         ++_stats_idx;
         if (_stats_idx >= _stats_perc.size())
           _stats_idx = 0;
@@ -194,32 +199,38 @@ void stream::_update_stats() {
 
       if (reg) {
         stats::center::instance().execute(
-            [s = this->_stats, wid, woffset, rid, roffset, perc, m, p] {
+            [s = this->_stats, now, wid, woffset, rid, roffset, perc, m, p] {
               s->set_file_write_path(wid);
               s->set_file_write_offset(woffset);
               s->set_file_read_path(rid);
               s->set_file_read_offset(roffset);
               s->set_file_percent_processed(perc);
               if (m != 0) {
-                time_t terminated = static_cast<time_t>((100.0 - p) / m);
-                s->set_file_expected_terminated_at(terminated);
-                time_t now = time(nullptr);
-                int32_t duration = terminated - now;
-                int32_t sec = duration % 60;
-                duration /= 60;
-                int min = duration % 60;
-                duration /= 60;
-                std::string d;
-                if (duration)
-                  d = fmt::format("{}h{}m{}s", duration, min, sec);
-                else if (min)
-                  d = fmt::format("{}m{}s", min, sec);
-                else
-                  d = fmt::format("{}s", sec);
-                s->set_file_expected_terminated_in(d);
+                time_t terminated = static_cast<time_t>(-p / m);
+                if (now > terminated) {
+                  s->set_file_expected_terminated_at(
+                      std::numeric_limits<int64_t>::max());
+                  s->set_file_expected_terminated_in("too slow");
+                } else {
+                  s->set_file_expected_terminated_at(terminated);
+                  int32_t duration = terminated - now;
+                  int32_t sec = duration % 60;
+                  duration /= 60;
+                  int min = duration % 60;
+                  duration /= 60;
+                  std::string d;
+                  if (duration)
+                    d = fmt::format("{}h{}m{}s", duration, min, sec);
+                  else if (min)
+                    d = fmt::format("{}m{}s", min, sec);
+                  else
+                    d = fmt::format("{}s", sec);
+                  s->set_file_expected_terminated_in(d);
 
-                log_v2::core()->info("regression: terminated at {}",
-                                     static_cast<int64_t>((100.0 - p) / m));
+                  log_v2::core()->info(
+                      "regression: terminated at {:%Y-%m-%d %H:%M:%S}",
+                      fmt::localtime(terminated));
+                }
               } else
                 s->set_file_expected_terminated_at(
                     std::numeric_limits<int64_t>::max());
