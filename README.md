@@ -222,4 +222,4 @@ maintainers:
 
 <a href="https://github.com/bouda1"><img src="https://avatars1.githubusercontent.com/u/6324413?s=400&v=4" title="David Boucher" width="80" height="80"></a> &nbsp;
 <a href="https://github.com/rem31"><img src="https://avatars.githubusercontent.com/u/73845199?s=460&v=4" title="Rémi Gres" width="80" height="80"></a> &nbsp;
-<a href="https://github.com/Maaown"><img src="https://avatars.githubusercontent.com/u/39004150?v=4" title="Leonard Viktor Pooch" width="80" height="80"></a> &nbsp;
+<a href="https://github.com/jean-christophe81"><img src="https://avatars.githubusercontent.com/u/98889244?v=4" title="Jean-Christophe Roques" width="80" height="80"></a> &nbsp;
