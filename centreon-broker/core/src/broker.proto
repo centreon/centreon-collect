@@ -103,10 +103,22 @@ message EngineStats {
   uint32 processed_events = 2;
 }
 
+message QueueFileStats {
+  string name = 1;
+  uint32 max_file_size = 2;
+  uint32 file_write_path = 3;
+  uint32 file_write_offset = 4;
+  uint32 file_read_path = 5;
+  uint32 file_read_offset = 6;
+  double file_percent_processed = 7;
+  int64 file_expected_terminated_at = 8;
+  string file_expected_terminated_in = 9;
+}
+
 message MuxerStats {
   uint32 total_events = 1;
   uint32 unacknowledged_events = 2;
-  string queue_file = 3;
+  QueueFileStats queue_file = 3;
 }
 
 message ProcessingStats {

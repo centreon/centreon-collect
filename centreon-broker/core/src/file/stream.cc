@@ -18,38 +18,37 @@
 
 #include "com/centreon/broker/file/stream.hh"
 
+#include <fmt/chrono.h>
 #include <cstdio>
 #include <limits>
-#include <sstream>
 
+#include "broker.pb.h"
 #include "com/centreon/broker/io/raw.hh"
+#include "com/centreon/broker/log_v2.hh"
+#include "com/centreon/broker/misc/math.hh"
 #include "com/centreon/broker/misc/string.hh"
+#include "com/centreon/broker/stats/center.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::file;
-
-/**************************************
- *                                     *
- *           Public Methods            *
- *                                     *
- **************************************/
 
 /**
  *  Constructor.
  *
  *  @param[in] file  Splitted file on which the stream will operate.
  */
-stream::stream(splitter* file)
+stream::stream(splitter* file, QueueFileStats* s)
     : io::stream("file"),
       _file(file),
+      _stats{s},
+      _last_stats{time(nullptr)},
+      _last_stats_perc{time(nullptr)},
       _last_read_offset(0),
       _last_time(0),
-      _last_write_offset(0) {}
-
-/**
- *  Destructor.
- */
-stream::~stream() {}
+      _last_write_offset(0),
+      _stats_perc{},
+      _stats_idx{0u},
+      _stats_size{0u} {}
 
 /**
  *  Get peer name.
@@ -57,9 +56,7 @@ stream::~stream() {}
  *  @return Peer name.
  */
 std::string stream::peer() const {
-  std::ostringstream oss;
-  oss << "file://" << _file->get_file_path();
-  return oss.str();
+  return fmt::format("file://{}", _file->get_file_path());
 }
 
 /**
@@ -86,6 +83,7 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
     d.reset(data.release());
   }
 
+  _update_stats();
   return true;
 }
 
@@ -96,7 +94,7 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
  */
 void stream::statistics(nlohmann::json& tree) const {
   // Get base properties.
-  long max_file_size(_file->get_max_file_size());
+  uint32_t max_file_size(_file->max_file_size());
   int rid(_file->get_rid());
   long roffset(_file->get_roffset());
   int wid(_file->get_wid());
@@ -107,7 +105,7 @@ void stream::statistics(nlohmann::json& tree) const {
   tree["file_read_offset"] = static_cast<double>(roffset);
   tree["file_write_path"] = wid;
   tree["file_write_offset"] = static_cast<double>(woffset);
-  if (max_file_size != std::numeric_limits<long>::max())
+  if (max_file_size != std::numeric_limits<uint32_t>::max())
     tree["file_max_size"] = static_cast<double>(max_file_size);
   else
     tree["file_max_size"] = "unlimited";
@@ -116,7 +114,7 @@ void stream::statistics(nlohmann::json& tree) const {
   bool write_time_expected(false);
   long long froffset(roffset + rid * static_cast<long long>(max_file_size));
   long long fwoffset(woffset + wid * static_cast<long long>(max_file_size));
-  if ((rid != wid && max_file_size == std::numeric_limits<long>::max()) ||
+  if ((rid != wid && max_file_size == std::numeric_limits<uint32_t>::max()) ||
       !fwoffset) {
     tree["file_percent_processed"] = "unknown";
   } else {
@@ -154,6 +152,98 @@ void stream::statistics(nlohmann::json& tree) const {
 }
 
 /**
+ * @brief Update persistent file statistics stored in _stats.
+ */
+void stream::_update_stats() {
+  if (_stats == nullptr)
+    return;
+
+  time_t now = time(nullptr);
+  if (now > _last_stats) {
+    _last_stats = now;
+
+    const double mm = _file->max_file_size();
+    int32_t roffset = _file->get_roffset();
+    int32_t woffset = _file->get_woffset();
+    int32_t wid = _file->get_wid();
+    int32_t rid = _file->get_rid();
+    double a = (double)roffset + (double)rid * mm;
+    double b = (double)woffset + (double)wid * mm;
+    double m, p;
+
+    if (b != 0) {
+      double perc = 100.0 * a / b;
+      double advance = b - a;
+      bool reg = false;
+      /* The regression is computed only every 5 seconds. */
+      if (now > _last_stats_perc + 5) {
+        _last_stats_perc = now;
+        /* We store advance instead of perc, the first one is more linear
+         * compared to the second that is hyperbolic. To obtain a linear
+         * regression, the first one will give better results. */
+        _stats_perc[_stats_idx] = std::make_pair(now, advance);
+        ++_stats_idx;
+        if (_stats_idx >= _stats_perc.size())
+          _stats_idx = 0;
+        if (_stats_size < _stats_perc.size())
+          _stats_size++;
+
+        reg = misc::least_squares(_stats_perc, _stats_size, m, p);
+      }
+
+      if (reg) {
+        stats::center::instance().execute(
+            [s = this->_stats, now, wid, woffset, rid, roffset, perc, m, p] {
+              s->set_file_write_path(wid);
+              s->set_file_write_offset(woffset);
+              s->set_file_read_path(rid);
+              s->set_file_read_offset(roffset);
+              s->set_file_percent_processed(perc);
+              if (m != 0) {
+                time_t terminated = static_cast<time_t>(-p / m);
+                if (now > terminated) {
+                  s->set_file_expected_terminated_at(
+                      std::numeric_limits<int64_t>::max());
+                  s->set_file_expected_terminated_in("too slow");
+                } else {
+                  s->set_file_expected_terminated_at(terminated);
+                  int32_t duration = terminated - now;
+                  int32_t sec = duration % 60;
+                  duration /= 60;
+                  int min = duration % 60;
+                  duration /= 60;
+                  std::string d;
+                  if (duration)
+                    d = fmt::format("{}h{}m{}s", duration, min, sec);
+                  else if (min)
+                    d = fmt::format("{}m{}s", min, sec);
+                  else
+                    d = fmt::format("{}s", sec);
+                  s->set_file_expected_terminated_in(d);
+
+                  log_v2::core()->info(
+                      "regression: terminated at {:%Y-%m-%d %H:%M:%S}",
+                      fmt::localtime(terminated));
+                }
+              } else
+                s->set_file_expected_terminated_at(
+                    std::numeric_limits<int64_t>::max());
+            });
+      } else {
+        stats::center::instance().execute(
+            [s = this->_stats, wid, woffset, rid, roffset, perc] {
+              s->set_file_write_path(wid);
+              s->set_file_write_offset(woffset);
+              s->set_file_read_path(rid);
+              s->set_file_read_offset(roffset);
+              s->set_file_percent_processed(perc);
+            });
+      }
+    }
+  }
+}
+
+/**
  *  Write data to the file.
  *
  *  @param[in] d  Data to write.
@@ -181,6 +271,7 @@ int32_t stream::write(std::shared_ptr<io::data> const& d) {
       size -= wb;
       memory += wb;
     }
+    _update_stats();
   }
 
   return 1;
@@ -200,4 +291,8 @@ int32_t stream::stop() {
  */
 void stream::remove_all_files() {
   _file->remove_all_files();
+}
+
+uint32_t stream::max_file_size() const {
+  return _file->max_file_size();
 }

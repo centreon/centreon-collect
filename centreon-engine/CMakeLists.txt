@@ -368,14 +368,6 @@ else ()
   set(LIBRARY_TYPE STATIC)
 endif ()
 
-# Code coverage on unit tests
-option(WITH_COVERAGE "Add code coverage on unit tests." OFF)
-if (WITH_TESTING AND WITH_COVERAGE)
-  set(CMAKE_BUILD_TYPE "Debug")
-  include(cmake/CodeCoverage.cmake)
-  APPEND_COVERAGE_COMPILER_FLAGS()
-endif()
-
 # Simumod module to simulate cbmod and catch its output
 option(WITH_SIMU "Add a module only used for tests to see data that cbmod should receive" OFF)
 if (WITH_SIMU)

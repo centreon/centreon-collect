@@ -127,7 +127,7 @@ if (WITH_COVERAGE)
       '${CMAKE_BINARY_DIR}/*'
       '*/.conan/*')
   SETUP_TARGET_FOR_COVERAGE(
-    NAME test-coverage
+    NAME broker-test-coverage
     EXECUTABLE ut_broker
     DEPENDENCIES ut_broker
   )

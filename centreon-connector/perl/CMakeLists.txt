@@ -59,12 +59,3 @@ target_link_libraries(centreon_connector_perl centreon_clib ${PERL_LIBRARIES} CO
 
 # Install rules.
 install(TARGETS centreon_connector_perl RUNTIME DESTINATION ${PREFIX_CONNECTORS})
-
-# Code coverage on unit tests
-option(WITH_COVERAGE "Add code coverage on unit tests." OFF)
-if (WITH_COVERAGE)
-  set(WITH_TESTING ON)
-  set(CMAKE_BUILD_TYPE "Debug")
-  include(CodeCoverage.cmake)
-  APPEND_COVERAGE_COMPILER_FLAGS()
-endif ()
