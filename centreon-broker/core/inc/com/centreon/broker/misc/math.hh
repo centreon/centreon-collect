@@ -32,9 +32,9 @@ namespace misc {
  *
  * @param pts An array of pairs (x, y)
  * @param size If shorter than the array size, only the first size pairs of
- *             the array are taken for the regression regression.
+ *             the array are taken for the regression.
  * @param a The computed value for the linear coefficient a (output)
- * @param b The computed  value for the constant term b (output)
+ * @param b The computed value for the constant term b (output)
  *
  * @return true if no error are seen, false otherwise.
  */

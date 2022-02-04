@@ -68,7 +68,7 @@ namespace file {
 class splitter : public fs_file {
   bool _auto_delete;
   std::string _base_path;
-  long _max_file_size;
+  const uint32_t _max_file_size;
   std::shared_ptr<FILE> _rfile;
   std::mutex* _rmutex;
   int32_t _rid;
@@ -87,7 +87,7 @@ class splitter : public fs_file {
  public:
   splitter(std::string const& path,
            fs_file::open_mode mode,
-           long max_file_size = 100000000,
+           uint32_t max_file_size = 100000000u,
            bool auto_delete = false);
   ~splitter();
   splitter(const splitter&) = delete;
@@ -102,7 +102,7 @@ class splitter : public fs_file {
   void flush() override;
 
   std::string get_file_path(int id = 0) const;
-  long get_max_file_size() const;
+  uint32_t max_file_size() const;
   int32_t get_rid() const;
   long get_roffset() const;
   int32_t get_wid() const;

@@ -51,11 +51,12 @@ using namespace com::centreon::broker::file;
  */
 splitter::splitter(std::string const& path,
                    fs_file::open_mode mode,
-                   long max_file_size,
+                   uint32_t max_file_size,
                    bool auto_delete)
     : _auto_delete{auto_delete},
       _base_path{path},
-      _max_file_size{max_file_size},
+      _max_file_size{max_file_size == 0u ? std::numeric_limits<uint32_t>::max()
+                                         : std::max(max_file_size, 10000u)},
       _rfile{},
       _rmutex{nullptr},
       _rid{0},
@@ -65,13 +66,6 @@ splitter::splitter(std::string const& path,
       _wid{0},
       _woffset{0} {
   (void)mode;
-
-  // Set max file size.
-  static long min_file_size(10000);
-  if (!_max_file_size)
-    _max_file_size = std::numeric_limits<long>::max();
-  else if (_max_file_size < min_file_size)
-    _max_file_size = min_file_size;
 
   // Get IDs of already existing file parts. File parts are suffixed
   // with their order number. A file named /var/lib/foo would have
@@ -281,7 +275,7 @@ std::string splitter::get_file_path(int id) const {
  *
  *  @return Max file size.
  */
-long splitter::get_max_file_size() const {
+uint32_t splitter::max_file_size() const {
   return _max_file_size;
 }
 

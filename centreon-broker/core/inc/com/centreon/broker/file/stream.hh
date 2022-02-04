@@ -21,6 +21,7 @@
 
 #include <memory>
 #include <mutex>
+#include "broker.pb.h"
 #include "com/centreon/broker/file/splitter.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/namespace.hh"
@@ -36,13 +37,21 @@ namespace file {
  */
 class stream : public io::stream {
   std::unique_ptr<splitter> _file;
+  QueueFileStats* _stats;
+  std::time_t _last_stats;
+  std::time_t _last_stats_perc;
   mutable long long _last_read_offset;
   mutable time_t _last_time;
   mutable long long _last_write_offset;
+  std::array<std::pair<int64_t, double>, 10> _stats_perc;
+  size_t _stats_idx;
+  size_t _stats_size;
+
+  void _update_stats();
 
  public:
-  stream(splitter* file);
-  ~stream();
+  stream(splitter* file, QueueFileStats* s);
+  ~stream() noexcept = default;
   stream(const stream&) = delete;
   stream& operator=(const stream&) = delete;
   std::string peer() const override;
@@ -51,6 +60,7 @@ class stream : public io::stream {
   void statistics(nlohmann::json& tree) const override;
   int32_t write(std::shared_ptr<io::data> const& d) override;
   int32_t stop() override;
+  uint32_t max_file_size() const;
 };
 }  // namespace file
 
