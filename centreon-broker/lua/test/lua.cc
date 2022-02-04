@@ -1328,8 +1328,7 @@ TEST_F(LuaTest, ParsePerfdata2) {
   size_t pos1 = lst.find(
       "\"PingSDWan~vdom~ifName#azure.insights.logicaldisk.free.percentage\":");
   size_t pos2 = lst.find("\"warning_low\":nan", pos1 + 1);
-  size_t pos3 =
-      lst.find("\"subinstance\":[\"PingSDWan\",\"vdom\",\"ifName\"]", pos1 + 1);
+  size_t pos3 = lst.find("\"subinstance\":[\"vdom\",\"ifName\"]", pos1 + 1);
   size_t pos4 =
       lst.find("\"metric_name\":\"azure.insights.logicaldisk.free.percentage\"",
                pos1 + 1);
@@ -1397,18 +1396,12 @@ TEST_F(LuaTest, ParsePerfdata3) {
   size_t pos1 = lst.find(
       "\"PingSDWanvdomifName.azure.insights.logicaldisk.free.percentage\":");
   size_t pos2 = lst.find("\"warning_low\":nan", pos1 + 1);
-  size_t pos3 = lst.find(
-      "subinstance\":[\"PingSDWanvdomifName.azure.insights.logicaldisk.free."
-      "percentage\"]",
-      pos1 + 1);
+  size_t pos3 = lst.find("subinstance\":[]", pos1 + 1);
   size_t pos4 = lst.find(
       "metric_name\":\"PingSDWanvdomifName.azure.insights.logicaldisk.free."
       "percentage\"",
       pos1 + 1);
-  size_t pos5 = lst.find(
-      "instance\":\"PingSDWanvdomifName.azure.insights.logicaldisk.free."
-      "percentage\"",
-      pos1 + 1);
+  size_t pos5 = lst.find("instance\":\"\"", pos1 + 1);
   size_t pos6 = lst.find("\"warning_mode\":false", pos1 + 1);
   size_t pos7 = lst.find("\"metric_unit\":\"percentage\"", pos1 + 1);
   size_t pos8 = lst.find("\"critical_mode\":false", pos1 + 1);
@@ -1472,8 +1465,7 @@ TEST_F(LuaTest, ParsePerfdata4) {
   size_t pos1 = lst.find(
       "\"PingSDWan~vdom~ifName#azure.insights#logicaldisk~free.percentage\":");
   size_t pos2 = lst.find("\"warning_low\":nan", pos1 + 1);
-  size_t pos3 =
-      lst.find("\"subinstance\":[\"PingSDWan\",\"vdom\",\"ifName\"]", pos1 + 1);
+  size_t pos3 = lst.find("\"subinstance\":[\"vdom\",\"ifName\"]", pos1 + 1);
   size_t pos4 =
       lst.find("\"metric_name\":\"azure.insights#logicaldisk~free.percentage\"",
                pos1 + 1);
