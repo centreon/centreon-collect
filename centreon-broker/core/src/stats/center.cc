@@ -354,29 +354,35 @@ std::string center::to_string() {
   return retval.get();
 }
 
-void center::get_sql_connection_stats(uint32_t index,
+bool center::get_sql_connection_stats(uint32_t index,
                                       SqlConnectionStats* response) {
   std::promise<bool> p;
   std::future<bool> done = p.get_future();
   _strand.post([&s = this->_stats, &p, &index, response] {
-    uint32_t i = 0;
-    for (auto it = s.connections().begin(), end = s.connections().end();
-         it != end; ++it, ++i) {
-      if (index == i) {
-        *response = (*it);
-      }
-    }
-
-    if (i > index) {
+    if (index > static_cast<uint32_t>(s.connections().size() - 1)) {
       log_v2::sql()->info(
-          "mysql_connection: index out of range in get sql "
-          "connection stats");
+          "mysql_connection: index out of range in get sql connection stats");
+      p.set_value(false);
+    } else {
+      *response = s.connections().at(index);
+      p.set_value(true);
     }
-    p.set_value(true);
   });
 
   // We wait for the response.
-  done.get();
+  return done.get();
+}
+
+void center::get_all_sql_connections_stats(AllSqlConnectionsStats* response) {
+  std::promise<void> p;
+  _strand.post([&s = this->_stats, &p, response] {
+    response->mutable_connections()->Assign(s.connections().begin(),
+                                            s.connections().end());
+    p.set_value();
+  });
+
+  // We wait for the response.
+  p.get_future().wait();
 }
 
 void center::get_sql_connection_size(GenericSize* response) {

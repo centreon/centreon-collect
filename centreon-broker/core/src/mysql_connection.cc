@@ -101,6 +101,32 @@ void mysql_connection::_clear_connection() {
   }
   _stmt.clear();
   mysql_close(_conn);
+  _conn = nullptr;
+  if (_connected) {
+    _connected = false;
+    _switch_point = std::time(nullptr);
+  }
+  _update_stats();
+}
+
+/**
+ * @brief Fill statistics if it happened more than 1 second ago
+ */
+void mysql_connection::_update_stats() noexcept {
+  auto now = std::time(nullptr);
+  if (now - _last_stats > 0) {
+    _last_stats = now;
+    stats::center::instance().execute(
+        [s = _stats, count = static_cast<int32_t>(_tasks_count),
+         connected = static_cast<bool>(_conn), sp = _switch_point] {
+          s->set_waiting_tasks(count);
+          s->set_connected(connected);
+          if (connected)
+            s->set_up(sp);
+          else
+            s->set_down(sp);
+        });
+  }
 }
 
 /**
@@ -154,7 +180,13 @@ bool mysql_connection::_try_to_reconnect() {
         _stmt[itq->first] = s;
     }
   }
-  return !fail;
+  if (!fail) {
+    _switch_point = std::time(nullptr);
+    _connected = true;
+    _update_stats();
+    return true;
+  }
+  return false;
 }
 
 void mysql_connection::_query(mysql_task* t) {
@@ -604,6 +636,10 @@ void mysql_connection::_run() {
 
     _state = running;
     _start_condition.notify_all();
+
+    _connected = true;
+    _switch_point = std::time(nullptr);
+    _update_stats();
     lck.unlock();
 
     std::unique_lock<std::mutex> lock(_tasks_m);
@@ -692,7 +728,10 @@ mysql_connection::mysql_connection(database_config const& db_cfg)
       _name(db_cfg.get_name()),
       _port(db_cfg.get_port()),
       _state(not_started),
+      _connected{false},
+      _switch_point{std::time(nullptr)},
       _stats{stats::center::instance().register_mysql_connection()},
+      _last_stats{std::time(nullptr)},
       _qps(db_cfg.get_queries_per_transaction()) {
   std::unique_lock<std::mutex> lck(_start_m);
   log_v2::sql()->info("mysql_connection: starting connection");
