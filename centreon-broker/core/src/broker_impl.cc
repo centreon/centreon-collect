@@ -195,7 +195,20 @@ grpc::Status broker_impl::GetSqlConnectionStats(grpc::ServerContext* context
                                                 const GenericInt* request,
                                                 SqlConnectionStats* response) {
   uint32_t index = request->value();
-  stats::center::instance().get_sql_connection_stats(index, response);
+  bool status =
+      stats::center::instance().get_sql_connection_stats(index, response);
+  return status ? grpc::Status::OK
+                : grpc::Status(
+                      grpc::StatusCode::NOT_FOUND,
+                      fmt::format("No sql connection stats found for index {}",
+                                  index));
+}
+
+grpc::Status broker_impl::GetAllSqlConnectionsStats(
+    grpc::ServerContext* context __attribute__((unused)),
+    const ::google::protobuf::Empty* request __attribute__((unused)),
+    AllSqlConnectionsStats* response) {
+  stats::center::instance().get_all_sql_connections_stats(response);
   return grpc::Status::OK;
 }
 

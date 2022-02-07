@@ -114,7 +114,7 @@ void mysql_connection::_clear_connection() {
  */
 void mysql_connection::_update_stats() noexcept {
   auto now = std::time(nullptr);
-  if (now - _last_stats > 0) {
+  if (now > _last_stats) {
     _last_stats = now;
     stats::center::instance().execute(
         [s = _stats, count = static_cast<int32_t>(_tasks_count),
@@ -647,15 +647,11 @@ void mysql_connection::_run() {
       std::list<std::unique_ptr<database::mysql_task>> tasks_list;
       if (!_tasks_list.empty()) {
         std::swap(_tasks_list, tasks_list);
-        stats::center::instance().update(&SqlConnectionStats::set_waiting_tasks,
-                                         _stats,
-                                         static_cast<int>(_tasks_count));
+        _tasks_count = 0;
+        _update_stats();
         assert(_tasks_list.empty());
       } else {
-        _tasks_count = 0;
-        stats::center::instance().update(&SqlConnectionStats::set_waiting_tasks,
-                                         _stats,
-                                         static_cast<int>(_tasks_count));
+        _update_stats();
         /* We are waiting for some activity, nothing to do for now it is time
          * to make some ping */
         _tasks_condition.wait(
@@ -695,12 +691,7 @@ void mysql_connection::_run() {
           log_v2::sql()->error("mysql_connection: Error type not managed...");
         }
 
-        if (time(nullptr) - start != 0) {
-          start = time(nullptr);
-          stats::center::instance().update(
-              &SqlConnectionStats::set_waiting_tasks, _stats,
-              static_cast<int>(_tasks_count));
-        }
+        _update_stats();
       }
 
       lock.lock();
