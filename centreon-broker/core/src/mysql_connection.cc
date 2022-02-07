@@ -106,27 +106,6 @@ void mysql_connection::_clear_connection() {
     _connected = false;
     _switch_point = std::time(nullptr);
   }
-  _update_stats();
-}
-
-/**
- * @brief Fill statistics if it happened more than 1 second ago
- */
-void mysql_connection::_update_stats() noexcept {
-  auto now = std::time(nullptr);
-  if (now > _last_stats) {
-    _last_stats = now;
-    stats::center::instance().execute(
-        [s = _stats, count = static_cast<int32_t>(_tasks_count),
-         connected = static_cast<bool>(_conn), sp = _switch_point] {
-          s->set_waiting_tasks(count);
-          s->set_connected(connected);
-          if (connected)
-            s->set_up(sp);
-          else
-            s->set_down(sp);
-        });
-  }
 }
 
 /**
@@ -183,7 +162,6 @@ bool mysql_connection::_try_to_reconnect() {
   if (!fail) {
     _switch_point = std::time(nullptr);
     _connected = true;
-    _update_stats();
     return true;
   }
   return false;
@@ -639,7 +617,6 @@ void mysql_connection::_run() {
 
     _connected = true;
     _switch_point = std::time(nullptr);
-    _update_stats();
     lck.unlock();
 
     std::unique_lock<std::mutex> lock(_tasks_m);
@@ -647,11 +624,8 @@ void mysql_connection::_run() {
       std::list<std::unique_ptr<database::mysql_task>> tasks_list;
       if (!_tasks_list.empty()) {
         std::swap(_tasks_list, tasks_list);
-        _tasks_count = 0;
-        _update_stats();
         assert(_tasks_list.empty());
       } else {
-        _update_stats();
         /* We are waiting for some activity, nothing to do for now it is time
          * to make some ping */
         _tasks_condition.wait(
@@ -681,17 +655,13 @@ void mysql_connection::_run() {
 
       lock.unlock();
 
-      time_t start = time(nullptr);
       for (auto& task : tasks_list) {
         --_tasks_count;
 
         if (_task_processing_table[task->type])
           (this->*(_task_processing_table[task->type]))(task.get());
-        else {
+        else
           log_v2::sql()->error("mysql_connection: Error type not managed...");
-        }
-
-        _update_stats();
       }
 
       lock.lock();
@@ -709,7 +679,7 @@ void mysql_connection::_run() {
 mysql_connection::mysql_connection(database_config const& db_cfg)
     : _conn(nullptr),
       _finish_asked(false),
-      _tasks_count(0),
+      _tasks_count{0},
       _need_commit(false),
       _last_access{0},
       _host(db_cfg.get_host()),
@@ -721,8 +691,6 @@ mysql_connection::mysql_connection(database_config const& db_cfg)
       _state(not_started),
       _connected{false},
       _switch_point{std::time(nullptr)},
-      _stats{stats::center::instance().register_mysql_connection()},
-      _last_stats{std::time(nullptr)},
       _qps(db_cfg.get_queries_per_transaction()) {
   std::unique_lock<std::mutex> lck(_start_m);
   log_v2::sql()->info("mysql_connection: starting connection");
@@ -735,8 +703,6 @@ mysql_connection::mysql_connection(database_config const& db_cfg)
   }
   pthread_setname_np(_thread->native_handle(), "mysql_connect");
   log_v2::sql()->info("mysql_connection: connection started");
-  stats::center::instance().update(&SqlConnectionStats::set_waiting_tasks,
-                                   _stats, 0);
 }
 
 /**
@@ -837,7 +803,7 @@ bool mysql_connection::match_config(database_config const& db_cfg) const {
          db_cfg.get_queries_per_transaction() == _qps;
 }
 
-int mysql_connection::get_tasks_count() const {
+int32_t mysql_connection::tasks_count() const {
   return _tasks_count;
 }
 
@@ -847,4 +813,12 @@ bool mysql_connection::is_finish_asked() const {
 
 bool mysql_connection::is_finished() const {
   return _state == finished;
+}
+
+bool mysql_connection::connected() const {
+  return _connected;
+}
+
+time_t mysql_connection::switch_point() const {
+  return _switch_point;
 }

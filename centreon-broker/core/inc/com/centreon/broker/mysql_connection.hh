@@ -99,10 +99,8 @@ class mysql_connection {
    * * _last_stats holds the last timestamp stats have been updated, they are
    * not updated more than one time per second.
    */
-  bool _connected;
-  std::time_t _switch_point;
-  SqlConnectionStats* _stats;
-  std::time_t _last_stats;
+  std::atomic_bool _connected;
+  std::atomic<std::time_t> _switch_point;
   uint32_t _qps;
 
   /* mutex to protect the string access in _error */
@@ -171,7 +169,9 @@ class mysql_connection {
   mysql_bind_mapping get_stmt_mapping(int stmt_id) const;
   int get_stmt_size() const;
   bool match_config(database_config const& db_cfg) const;
-  int get_tasks_count() const;
+  int32_t tasks_count() const;
+  bool connected() const;
+  time_t switch_point() const;
   bool is_finish_asked() const;
   bool is_finished() const;
   bool ping();

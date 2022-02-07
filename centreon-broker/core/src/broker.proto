@@ -10,7 +10,7 @@ service Broker {
   // stats
   rpc GetGenericStats(google.protobuf.Empty) returns (GenericString) {}
   rpc GetSqlConnectionStats(GenericInt) returns (SqlConnectionStats) {}
-  rpc GetAllSqlConnectionsStats(google.protobuf.Empty) returns (AllSqlConnectionsStats) {}
+  rpc GetSqlManagerStats(google.protobuf.Empty) returns (SqlManagerStats) {}
   rpc GetSqlConnectionSize(google.protobuf.Empty) returns (GenericSize) {}
   rpc GetConflictManagerStats(google.protobuf.Empty)
       returns (ConflictManagerStats) {}
@@ -70,14 +70,13 @@ message GenericResponse {
 
 message SqlConnectionStats {
   int32 waiting_tasks = 1;
-  bool connected = 2;
   oneof last_switch {
-    int64 up = 3;
-    int64 down = 4;
+    int64 up_since = 2;
+    int64 down_since = 3;
   };
 }
 
-message AllSqlConnectionsStats {
+message SqlManagerStats {
   repeated SqlConnectionStats connections = 1;
 }
 
@@ -146,6 +145,7 @@ message BrokerStats {
   repeated SqlConnectionStats connections = 7;
   ConflictManagerStats conflict_manager = 8;
   ProcessingStats processing = 9;
+  SqlManagerStats sql_manager = 10;
 }
 
 message IndexIds {

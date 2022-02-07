@@ -328,9 +328,9 @@ int mysql::choose_best_connection(int32_t type) {
     ++_current_connection;
     if (_current_connection >= count)
       _current_connection = 0;
-    if (_connection[_current_connection]->get_tasks_count() < task_count) {
+    if (_connection[_current_connection]->tasks_count() < task_count) {
       retval = _current_connection;
-      task_count = _connection[_current_connection]->get_tasks_count();
+      task_count = _connection[_current_connection]->tasks_count();
     }
   }
   last_type = type;

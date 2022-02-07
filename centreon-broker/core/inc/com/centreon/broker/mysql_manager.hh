@@ -72,8 +72,11 @@ class mysql_manager {
   // stats
   // Number of tasks per connection
   std::vector<int> _stats_counts;
+  SqlManagerStats* _stats;
+  asio::steady_timer _timer;
 
   mysql_manager();
+  void _update_stats(asio::error_code ec);
 
  public:
   ~mysql_manager();

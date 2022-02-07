@@ -39,8 +39,14 @@ mysql_manager& mysql_manager::instance() {
 /**
  *  The default constructor
  */
-mysql_manager::mysql_manager() : _stats_connections_timestamp(time(nullptr)) {
+mysql_manager::mysql_manager()
+    : _stats_connections_timestamp(time(nullptr)),
+      _stats{stats::center::instance().register_mysql_manager()},
+      _timer{pool::io_context()} {
   log_v2::sql()->trace("mysql_manager instanciation");
+  _timer.expires_after(std::chrono::seconds(5));
+  _timer.async_wait(
+      std::bind(&mysql_manager::_update_stats, this, std::placeholders::_1));
 }
 
 /**
@@ -104,6 +110,7 @@ std::vector<std::shared_ptr<mysql_connection>> mysql_manager::get_connections(
           std::make_shared<mysql_connection>(db_cfg));
       _connection.push_back(c);
       retval.push_back(c);
+      stats::center::instance().execute([s = _stats] { s->add_connections(); });
     }
   }
   update_connections();
@@ -139,6 +146,8 @@ void mysql_manager::update_connections() {
   while (it != _connection.end()) {
     if (it->unique() || (*it)->is_finished()) {
       it = _connection.erase(it);
+      stats::center::instance().execute(
+          [s = _stats] { s->mutable_connections()->RemoveLast(); });
       log_v2::sql()->debug("mysql_manager: one connection removed");
     } else
       ++it;
@@ -165,7 +174,7 @@ std::map<std::string, std::string> mysql_manager::get_stats() {
     stats_connections_count = _connection.size();
     _stats_counts.resize(stats_connections_count);
     for (int i(0); i < stats_connections_count; ++i)
-      _stats_counts[i] = _connection[i]->get_tasks_count();
+      _stats_counts[i] = _connection[i]->tasks_count();
   } else
     delay = time(nullptr) - _stats_connections_timestamp;
 
@@ -179,4 +188,27 @@ std::map<std::string, std::string> mysql_manager::get_stats() {
     retval.insert(std::make_pair(key, std::to_string(_stats_counts[i])));
   }
   return retval;
+}
+
+void mysql_manager::_update_stats(asio::error_code ec) {
+  if (ec)
+    log_v2::sql()->info("mysql_manager: stats interrupted: {}", ec.message());
+  else {
+    stats::center::instance().execute([this] {
+      std::lock_guard<std::mutex> lck(_cfg_mutex);
+      int i = 0;
+      for (const auto& c : _connection) {
+        SqlConnectionStats& cs = _stats->mutable_connections()->at(i);
+        cs.set_waiting_tasks(c->tasks_count());
+        if (c->connected())
+          cs.set_up_since(c->switch_point());
+        else
+          cs.set_down_since(c->switch_point());
+        ++i;
+      }
+    });
+    _timer.expires_after(std::chrono::seconds(5));
+    _timer.async_wait(
+        std::bind(&mysql_manager::_update_stats, this, std::placeholders::_1));
+  }
 }
