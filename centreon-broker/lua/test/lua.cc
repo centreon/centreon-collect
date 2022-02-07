@@ -1335,7 +1335,7 @@ TEST_F(LuaTest, ParsePerfdata2) {
   size_t pos6 = lst.find("\"warning_mode\":false", pos1 + 1);
   size_t pos7 = lst.find("\"metric_unit\":\"percentage\"", pos1 + 1);
   size_t pos8 = lst.find("\"critical_mode\":false", pos1 + 1);
-  size_t pos9 = lst.find("\"min\":0", pos8 + 1);
+  size_t pos9 = lst.find("\"min\":0", pos1 + 1);
   size_t pos10 = lst.find("\"critical_high\":nan", pos1 + 1);
   size_t pos11 = lst.find("\"warning_high\":nan", pos1 + 1);
   size_t pos12 = lst.find("\"critical_low\":nan", pos1 + 1);
@@ -1401,7 +1401,7 @@ TEST_F(LuaTest, ParsePerfdata3) {
   size_t pos6 = lst.find("\"warning_mode\":false", pos1 + 1);
   size_t pos7 = lst.find("\"metric_unit\":\"percentage\"", pos1 + 1);
   size_t pos8 = lst.find("\"critical_mode\":false", pos1 + 1);
-  size_t pos9 = lst.find("\"min\":0", pos8 + 1);
+  size_t pos9 = lst.find("\"min\":0", pos1 + 1);
   size_t pos10 = lst.find("\"critical_high\":nan", pos1 + 1);
   size_t pos11 = lst.find("\"warning_high\":nan", pos1 + 1);
   size_t pos12 = lst.find("\"critical_low\":nan", pos1 + 1);
@@ -1466,7 +1466,7 @@ TEST_F(LuaTest, ParsePerfdata4) {
   size_t pos6 = lst.find("\"warning_mode\":false", pos1 + 1);
   size_t pos7 = lst.find("\"metric_unit\":\"percentage\"", pos1 + 1);
   size_t pos8 = lst.find("\"critical_mode\":false", pos1 + 1);
-  size_t pos9 = lst.find("\"min\":0", pos8 + 1);
+  size_t pos9 = lst.find("\"min\":0", pos1 + 1);
   size_t pos10 = lst.find("\"critical_high\":nan", pos1 + 1);
   size_t pos11 = lst.find("\"warning_high\":nan", pos1 + 1);
   size_t pos12 = lst.find("\"critical_low\":nan", pos1 + 1);
