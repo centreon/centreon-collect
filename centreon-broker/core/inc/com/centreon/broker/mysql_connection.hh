@@ -96,8 +96,6 @@ class mysql_connection {
    * Stats variables:
    * * _connected tells if this is connected and working or not
    * * _switch_point holds the timestamp of the last time _connected switched.
-   * * _last_stats holds the last timestamp stats have been updated, they are
-   * not updated more than one time per second.
    */
   std::atomic_bool _connected;
   std::atomic<std::time_t> _switch_point;
