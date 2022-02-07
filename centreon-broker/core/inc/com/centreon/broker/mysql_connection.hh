@@ -130,7 +130,6 @@ class mysql_connection {
 
   void _prepare_connection();
   void _clear_connection();
-  void _update_stats() noexcept;
 
  public:
   /**************************************************************************/
