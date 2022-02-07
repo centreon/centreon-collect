@@ -28,18 +28,5 @@ stage('Dependencies containers creation') {
         }
       }
     }
-  },
-  'centos8 dependencies': {
-    node {
-      dir('centreon-collect-centos8') {
-        checkout scm
-        dir ('ci/docker') {
-          sh 'docker build . -f Dockerfile.collect-centos8-dependencies -t registry.centreon.com/centreon-collect-centos8-dependencies:21.10'
-          sh 'docker push registry.centreon.com/centreon-collect-centos8-dependencies:21.10'
-          sh 'docker tag registry.centreon.com/centreon-collect-centos8-dependencies:21.10 registry.centreon.com/centreon-collect-centos8-dependencies:22.04'
-          sh 'docker push registry.centreon.com/centreon-collect-centos8-dependencies:22.04'
-        }
-      }
-    }
   }
 }
