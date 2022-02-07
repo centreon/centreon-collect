@@ -6,6 +6,10 @@
 
 #### Fixes
 
+*lua*
+
+manage new perfdata labels in Broker's perfdata parsing routine
+
 *multiplexing*
 
 The multiplexing engine works now asynchronously compared to its muxers. This
