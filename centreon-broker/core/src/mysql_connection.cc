@@ -676,6 +676,11 @@ void mysql_connection::_run() {
 /*                    Methods executed by the main thread                     */
 /******************************************************************************/
 
+/**
+ * @brief Constructor
+ *
+ * @param db_cfg A database configuration.
+ */
 mysql_connection::mysql_connection(database_config const& db_cfg)
     : _conn(nullptr),
       _finish_asked(false),
@@ -803,6 +808,11 @@ bool mysql_connection::match_config(database_config const& db_cfg) const {
          db_cfg.get_queries_per_transaction() == _qps;
 }
 
+/**
+ * @brief Accessor to the number of waiting tasks to send to the database.
+ *
+ * @return An integer.
+ */
 int32_t mysql_connection::tasks_count() const {
   return _tasks_count;
 }
@@ -815,10 +825,22 @@ bool mysql_connection::is_finished() const {
   return _state == finished;
 }
 
+/**
+ * @brief Accessor to the connection, true if the connection is up and running,
+ * false otherwise
+ *
+ * @return a boolean.
+ */
 bool mysql_connection::connected() const {
   return _connected;
 }
 
+/**
+ * @brief Accessor to the switch point, the last timestamp when the connection
+ * was get or was lost.
+ *
+ * @return a time_t.
+ */
 time_t mysql_connection::switch_point() const {
   return _switch_point;
 }
