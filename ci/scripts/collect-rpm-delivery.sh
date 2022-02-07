@@ -12,13 +12,9 @@ fi
 
 MAJOR=`echo $VERSION | cut -d . -f 1,2`
 ENGINEEL7RPMS=`echo output/*engine*.el7.*.rpm`
-ENGINEEL8RPMS=`echo output/*engine*.el8.*.rpm`
 BROKEREL7RPMS=`echo output/*broker*.el7.*.rpm`
-BROKEREL8RPMS=`echo output/*broker*.el8.*.rpm`
 CLIBEL7RPMS=`echo output/*clib*.el7.*.rpm`
-CLIBEL8RPMS=`echo output/*clib*.el8.*.rpm`
 CONNECTOREL7RPMS=`echo output/*connector*.el7.*.rpm`
-CONNECTOREL8RPMS=`echo output/*connector*.el8.*.rpm`
 
 # Publish RPMs
 if [ "$BUILD" '=' 'QA' ]
