@@ -222,7 +222,8 @@ void stream::_update_stats() {
                   s->set_file_expected_terminated_in(d);
 
                   log_v2::core()->info(
-                      "regression: terminated at {:%Y-%m-%d %H:%M:%S}",
+                      "Retention file will be terminated at {:%Y-%m-%d "
+                      "%H:%M:%S}",
                       fmt::localtime(terminated));
                 }
               } else
