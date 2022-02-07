@@ -1305,7 +1305,6 @@ TEST_F(LuaTest, ParsePerfdata) {
 TEST_F(LuaTest, ParsePerfdata2) {
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/parse_perfdata.lua");
-  testing::internal::CaptureStdout();
   CreateScript(filename,
                "local function test_perf(value, full)\n"
                "  perf, err_msg = broker.parse_perfdata(value, full)\n"
@@ -1347,9 +1346,7 @@ TEST_F(LuaTest, ParsePerfdata2) {
       "\"percentage\"]",
       pos1 + 1);
   size_t pos16 = lst.find("\"uom\":\"%\"", pos1 + 1);
-  std::string out{testing::internal::GetCapturedStdout()};
 
-  std::cout << out << std::endl;
   ASSERT_NE(pos1, std::string::npos);
   ASSERT_NE(pos2, std::string::npos);
   ASSERT_NE(pos3, std::string::npos);
@@ -1373,7 +1370,6 @@ TEST_F(LuaTest, ParsePerfdata2) {
 TEST_F(LuaTest, ParsePerfdata3) {
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/parse_perfdata.lua");
-  testing::internal::CaptureStdout();
   CreateScript(filename,
                "local function test_perf(value, full)\n"
                "  perf, err_msg = broker.parse_perfdata(value, full)\n"
@@ -1416,9 +1412,7 @@ TEST_F(LuaTest, ParsePerfdata3) {
       "\"logicaldisk\",\"free\",\"percentage\"]",
       pos1 + 1);
   size_t pos16 = lst.find("\"uom\":\"%\"", pos1 + 1);
-  std::string out{testing::internal::GetCapturedStdout()};
 
-  std::cout << out << std::endl;
   ASSERT_NE(pos1, std::string::npos);
   ASSERT_NE(pos2, std::string::npos);
   ASSERT_NE(pos3, std::string::npos);
@@ -1442,7 +1436,6 @@ TEST_F(LuaTest, ParsePerfdata3) {
 TEST_F(LuaTest, ParsePerfdata4) {
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/parse_perfdata.lua");
-  testing::internal::CaptureStdout();
   CreateScript(filename,
                "local function test_perf(value, full)\n"
                "  perf, err_msg = broker.parse_perfdata(value, full)\n"
@@ -1484,9 +1477,7 @@ TEST_F(LuaTest, ParsePerfdata4) {
       "\"percentage\"]",
       pos1 + 1);
   size_t pos16 = lst.find("\"uom\":\"%\"", pos1 + 1);
-  std::string out{testing::internal::GetCapturedStdout()};
 
-  std::cout << out << std::endl;
   ASSERT_NE(pos1, std::string::npos);
   ASSERT_NE(pos2, std::string::npos);
   ASSERT_NE(pos3, std::string::npos);
