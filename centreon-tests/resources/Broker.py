@@ -11,6 +11,7 @@ import os.path
 import grpc
 import broker_pb2
 import broker_pb2_grpc
+from google.protobuf import empty_pb2
 
 TIMEOUT = 30
 
@@ -908,6 +909,7 @@ def get_metrics_matching_indexes(indexes):
 # @param metrics a list of metrics
 #
 def remove_graphs(port, indexes, metrics):
+    time.sleep(1)
     with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
         stub = broker_pb2_grpc.BrokerStub(channel)
         trm = broker_pb2.ToRemove()
@@ -923,6 +925,7 @@ def remove_graphs(port, indexes, metrics):
 # @param indexes The list of indexes corresponding to metrics to rebuild.
 #
 def rebuild_rrd_graphs(port, indexes):
+    time.sleep(1)
     with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
         stub = broker_pb2_grpc.BrokerStub(channel)
         k = 0.0
@@ -944,3 +947,38 @@ def compare_rrd_average_value(metric, value: float):
     res = float(res.split('\n')[1].replace(',', '.'))
     return abs(res - float(value)) < 2
 
+##
+# @brief Call the GetSqlManagerStats function by gRPC and checks there are
+# count active connections.
+#
+# @param count The expected number of active connections.
+#
+# @return A boolean.
+def check_sql_connections_count_with_grpc(port, count):
+    time.sleep(1)
+    with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
+        stub = broker_pb2_grpc.BrokerStub(channel)
+        res = stub.GetSqlManagerStats(empty_pb2.Empty())
+        if len(res.connections) < count:
+            return False
+        for c in res.connections:
+            if c.down_since:
+                return False
+    return True
+
+##
+# @brief Call the GetSqlManagerStats function by gRPC and checks there are
+# count active connections.
+#
+# @param count The expected number of active connections.
+#
+# @return A boolean.
+def check_all_sql_connections_down_with_grpc(port):
+    time.sleep(1)
+    with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
+        stub = broker_pb2_grpc.BrokerStub(channel)
+        res = stub.GetSqlManagerStats(empty_pb2.Empty())
+        for c in res.connections:
+            if c.up_since:
+                return False
+    return True
