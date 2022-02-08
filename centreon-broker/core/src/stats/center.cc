@@ -127,9 +127,11 @@ bool center::unregister_mysql_connection(SqlConnectionStats* connection) {
          it != end; ++it) {
       if (&(*it) == connection) {
         _stats.mutable_connections()->erase(it);
-        break;
+        p.set_value(true);
+        return;
       }
     }
+    p.set_value(false);
   });
   return retval.get();
 }
