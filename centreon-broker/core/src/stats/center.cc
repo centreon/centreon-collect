@@ -108,32 +108,30 @@ EngineStats* center::register_engine() {
   return retval.get();
 }
 
-SqlConnectionStats* center::register_mysql_connection() {
+SqlConnectionStats* center::add_connection() {
   std::promise<SqlConnectionStats*> p;
   std::future<SqlConnectionStats*> retval = p.get_future();
   _strand.post([this, &p] {
-    auto m = _stats.add_connections();
+    auto m = _stats.mutable_sql_manager()->add_connections();
     p.set_value(m);
   });
   return retval.get();
 }
 
-bool center::unregister_mysql_connection(SqlConnectionStats* connection) {
-  std::promise<bool> p;
-  std::future<bool> retval = p.get_future();
-  _strand.post([this, &p, connection] {
-    for (auto it = _stats.mutable_connections()->begin(),
-              end = _stats.mutable_connections()->end();
-         it != end; ++it) {
-      if (&(*it) == connection) {
-        _stats.mutable_connections()->erase(it);
-        p.set_value(true);
+void center::remove_connection(SqlConnectionStats* stats) {
+  std::promise<void> p;
+  _strand.post([this, stats, &p] {
+    auto* mc = _stats.mutable_sql_manager()->mutable_connections();
+    for (auto it = mc->begin(); it != mc->end(); ++it) {
+      if (&(*it) == stats) {
+        mc->erase(it);
+        p.set_value();
         return;
       }
     }
-    p.set_value(false);
+    p.set_value();
   });
-  return retval.get();
+  return p.get_future().wait();
 }
 
 /**
@@ -356,30 +354,10 @@ std::string center::to_string() {
   return retval.get();
 }
 
-bool center::get_sql_connection_stats(uint32_t index,
-                                      SqlConnectionStats* response) {
-  std::promise<bool> p;
-  std::future<bool> done = p.get_future();
-  _strand.post([&s = this->_stats, &p, &index, response] {
-    if (index > static_cast<uint32_t>(s.connections().size() - 1)) {
-      log_v2::sql()->info(
-          "mysql_connection: index out of range in get sql connection stats");
-      p.set_value(false);
-    } else {
-      *response = s.connections().at(index);
-      p.set_value(true);
-    }
-  });
-
-  // We wait for the response.
-  return done.get();
-}
-
-void center::get_all_sql_connections_stats(AllSqlConnectionsStats* response) {
+void center::get_sql_manager_stats(SqlManagerStats* response) {
   std::promise<void> p;
   _strand.post([&s = this->_stats, &p, response] {
-    response->mutable_connections()->Assign(s.connections().begin(),
-                                            s.connections().end());
+    *response = s.sql_manager();
     p.set_value();
   });
 
@@ -388,15 +366,14 @@ void center::get_all_sql_connections_stats(AllSqlConnectionsStats* response) {
 }
 
 void center::get_sql_connection_size(GenericSize* response) {
-  std::promise<bool> p;
-  std::future<bool> done = p.get_future();
+  std::promise<void> p;
   _strand.post([&s = this->_stats, &p, response] {
-    response->set_size(s.connections().size());
-    p.set_value(true);
+    response->set_size(s.sql_manager().connections().size());
+    p.set_value();
   });
 
   // We wait for the response.
-  done.get();
+  p.get_future().wait();
 }
 
 void center::get_conflict_manager_stats(ConflictManagerStats* response) {

@@ -141,7 +141,7 @@ class mysql_connection {
   /*                  Methods executed by the main thread                   */
   /**************************************************************************/
 
-  mysql_connection(database_config const& db_cfg);
+  mysql_connection(database_config const& db_cfg, SqlConnectionStats* stats);
   ~mysql_connection();
 
   void prepare_query(int id, std::string const& query);

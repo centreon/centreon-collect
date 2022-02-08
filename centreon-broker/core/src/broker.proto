@@ -9,9 +9,7 @@ service Broker {
 
   // stats
   rpc GetGenericStats(google.protobuf.Empty) returns (GenericString) {}
-  rpc GetSqlConnectionStats(GenericInt) returns (SqlConnectionStats) {}
-  rpc GetAllSqlConnectionsStats(google.protobuf.Empty) returns (AllSqlConnectionsStats) {}
-  rpc GetSqlConnectionSize(google.protobuf.Empty) returns (GenericSize) {}
+  rpc GetSqlManagerStats(google.protobuf.Empty) returns (SqlManagerStats) {}
   rpc GetConflictManagerStats(google.protobuf.Empty)
       returns (ConflictManagerStats) {}
   rpc GetMuxerStats(GenericString) returns (MuxerStats) {}
@@ -70,14 +68,13 @@ message GenericResponse {
 
 message SqlConnectionStats {
   int32 waiting_tasks = 1;
-  bool connected = 2;
   oneof last_switch {
-    int64 up = 3;
-    int64 down = 4;
+    int64 up_since = 3;
+    int64 down_since = 4;
   };
 }
 
-message AllSqlConnectionsStats {
+message SqlManagerStats {
   repeated SqlConnectionStats connections = 1;
 }
 
@@ -143,7 +140,7 @@ message BrokerStats {
   int64 now = 4;
   ThreadPool pool_stats = 5;
   repeated ModuleStats modules = 6;
-  repeated SqlConnectionStats connections = 7;
+  SqlManagerStats sql_manager = 7;
   ConflictManagerStats conflict_manager = 8;
   ProcessingStats processing = 9;
 }

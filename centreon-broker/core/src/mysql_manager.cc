@@ -86,7 +86,7 @@ std::vector<std::shared_ptr<mysql_connection>> mysql_manager::get_connections(
   {
     uint32_t current_connection{0};
     std::lock_guard<std::mutex> lock(_cfg_mutex);
-    for (std::shared_ptr<mysql_connection> c : _connection) {
+    for (auto c : _connection) {
       // Is this thread matching what the configuration needs?
       if (c->match_config(db_cfg) && !c->is_finished() &&
           !c->is_finish_asked() && !c->is_in_error()) {
@@ -100,8 +100,14 @@ std::vector<std::shared_ptr<mysql_connection>> mysql_manager::get_connections(
 
     // We are still missing threads in the configuration to return
     while (retval.size() < connection_count) {
-      std::shared_ptr<mysql_connection> c(
-          std::make_shared<mysql_connection>(db_cfg));
+      SqlConnectionStats* s = stats::center::instance().add_connection();
+      std::shared_ptr<mysql_connection> c;
+      try {
+        c = std::make_shared<mysql_connection>(db_cfg, s);
+      } catch (const std::exception& e) {
+        stats::center::instance().remove_connection(s);
+        throw;
+      }
       _connection.push_back(c);
       retval.push_back(c);
     }

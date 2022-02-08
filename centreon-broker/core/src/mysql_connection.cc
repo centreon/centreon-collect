@@ -120,11 +120,10 @@ void mysql_connection::_update_stats() noexcept {
         [s = _stats, count = static_cast<int32_t>(_tasks_count),
          connected = static_cast<bool>(_conn), sp = _switch_point] {
           s->set_waiting_tasks(count);
-          s->set_connected(connected);
           if (connected)
-            s->set_up(sp);
+            s->set_up_since(sp);
           else
-            s->set_down(sp);
+            s->set_down_since(sp);
         });
   }
 }
@@ -681,7 +680,6 @@ void mysql_connection::_run() {
 
       lock.unlock();
 
-      time_t start = time(nullptr);
       for (auto& task : tasks_list) {
         --_tasks_count;
 
@@ -706,7 +704,8 @@ void mysql_connection::_run() {
 /*                    Methods executed by the main thread                     */
 /******************************************************************************/
 
-mysql_connection::mysql_connection(database_config const& db_cfg)
+mysql_connection::mysql_connection(database_config const& db_cfg,
+                                   SqlConnectionStats* stats)
     : _conn(nullptr),
       _finish_asked(false),
       _tasks_count(0),
@@ -721,7 +720,7 @@ mysql_connection::mysql_connection(database_config const& db_cfg)
       _state(not_started),
       _connected{false},
       _switch_point{std::time(nullptr)},
-      _stats{stats::center::instance().register_mysql_connection()},
+      _stats{stats},
       _last_stats{std::time(nullptr)},
       _qps(db_cfg.get_queries_per_transaction()) {
   std::unique_lock<std::mutex> lck(_start_m);
@@ -745,6 +744,7 @@ mysql_connection::mysql_connection(database_config const& db_cfg)
  */
 mysql_connection::~mysql_connection() {
   log_v2::sql()->info("mysql_connection: finished");
+  stats::center::instance().remove_connection(_stats);
   finish();
   _thread->join();
 }
