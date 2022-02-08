@@ -118,7 +118,7 @@ void mysql_connection::_update_stats() noexcept {
     _last_stats = now;
     stats::center::instance().execute(
         [s = _stats, count = static_cast<int32_t>(_tasks_count),
-         connected = static_cast<bool>(_conn), sp = _switch_point] {
+         connected = static_cast<bool>(_connected), sp = _switch_point] {
           s->set_waiting_tasks(count);
           if (connected)
             s->set_up_since(sp);
@@ -646,15 +646,15 @@ void mysql_connection::_run() {
       std::list<std::unique_ptr<database::mysql_task>> tasks_list;
       if (!_tasks_list.empty()) {
         std::swap(_tasks_list, tasks_list);
-        _tasks_count = 0;
-        _update_stats();
         assert(_tasks_list.empty());
       } else {
-        _update_stats();
         /* We are waiting for some activity, nothing to do for now it is time
          * to make some ping */
-        _tasks_condition.wait(
-            lock, [this] { return _finish_asked || !_tasks_list.empty(); });
+        while (!_tasks_condition.wait_for(
+            lock, std::chrono::seconds(10),
+            [this] { return _finish_asked || !_tasks_list.empty(); })) {
+          _update_stats();
+        }
 
         std::time_t now = std::time(nullptr);
 
@@ -682,14 +682,13 @@ void mysql_connection::_run() {
 
       for (auto& task : tasks_list) {
         --_tasks_count;
+        _update_stats();
 
         if (_task_processing_table[task->type])
           (this->*(_task_processing_table[task->type]))(task.get());
         else {
           log_v2::sql()->error("mysql_connection: Error type not managed...");
         }
-
-        _update_stats();
       }
 
       lock.lock();
@@ -708,7 +707,7 @@ mysql_connection::mysql_connection(database_config const& db_cfg,
                                    SqlConnectionStats* stats)
     : _conn(nullptr),
       _finish_asked(false),
-      _tasks_count(0),
+      _tasks_count{0},
       _need_commit(false),
       _last_access{0},
       _host(db_cfg.get_host()),
@@ -755,6 +754,7 @@ void mysql_connection::_push(std::unique_ptr<mysql_task>&& q) {
     throw msg_fmt("This connection is closed and does not accept any query");
 
   _tasks_list.push_back(std::move(q));
+  _update_stats();
   ++_tasks_count;
   _tasks_condition.notify_all();
 }
