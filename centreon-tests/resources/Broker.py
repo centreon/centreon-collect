@@ -913,8 +913,8 @@ def remove_graphs(port, indexes, metrics):
     with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
         stub = broker_pb2_grpc.BrokerStub(channel)
         trm = broker_pb2.ToRemove()
-        trm.index_id.extend(indexes)
-        trm.metric_id.extend(metrics)
+        trm.index_ids.extend(indexes)
+        trm.metric_ids.extend(metrics)
         stub.RemoveGraphs(trm)
 
 

@@ -33,13 +33,11 @@ ENRSCHE1
 	${result}=	Check Connections
 	Should Be True	${result}	msg=Engine and Broker not connected
 
-	Sleep	4m
-
 	${pid}=	Get Process Id	e0
-	${content}=	Create List	[checks] [debug] [${pid}] Rescheduling next check of host: host_14
+	${content}=	Set Variable	[checks] [debug] [${pid}] Rescheduling next check of host: host_14
 
 	${log}=	Catenate	SEPARATOR=	${ENGINE_LOG}	/config0/centengine.log
-	${result1}	${result2}=	check reschedule	${log}	${start}	${content}	
+	${result1}	${result2}=	check reschedule with timeout	${log}	${start}	${content}	240
 	Should Be True	${result1}	msg=the delta of last_check and next_check is not equal to 60.
 	Should Be True	${result2}	msg=the delta of last_check and next_check is not equal to 300.
 	Stop Engine

@@ -1264,7 +1264,7 @@ int host::handle_async_check_result_3x(check_result* queued_check_result) {
       queued_check_result->get_reschedule_check() ? "Yes" : "No");
   log_v2::checks()->debug("Exited OK?:         {}",
                           queued_check_result->get_exited_ok() ? "Yes" : "No");
-  log_v2::checks()->debug("Exec Time:          {:.3f}\n", execution_time);
+  log_v2::checks()->debug("Exec Time:          {:.3f}", execution_time);
   log_v2::checks()->debug("Latency:            {}",
                           queued_check_result->get_latency());
   log_v2::checks()->debug("return Status:      {}",
@@ -3829,9 +3829,10 @@ void host::check_for_orphaned() {
 
     /* determine the time at which the check results should have come in (allow
      * 10 minutes slack time) */
-    expected_time = (time_t)(
-        it->second->get_next_check() + it->second->get_latency() +
-        config->host_check_timeout() + config->check_reaper_interval() + 600);
+    expected_time =
+        (time_t)(it->second->get_next_check() + it->second->get_latency() +
+                 config->host_check_timeout() +
+                 config->check_reaper_interval() + 600);
 
     /* this host was supposed to have executed a while ago, but for some reason
      * the results haven't come back in... */

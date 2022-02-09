@@ -35,6 +35,7 @@
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
+#include "com/centreon/broker/mysql_manager.hh"
 #include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/stats/builder.hh"
 #include "com/centreon/broker/stats/center.hh"
@@ -48,19 +49,22 @@ class StatsTest : public ::testing::Test {
   void SetUp() override {
     pool::load(0);
     stats::center::load();
-    io::protocols::load();
-    io::events::load();
+    mysql_manager::load();
     config::applier::state::load();
     multiplexing::engine::load();
+    io::protocols::load();
+    io::events::load();
     config::applier::endpoint::load();
   }
 
   void TearDown() override {
     config::applier::endpoint::unload();
+    multiplexing::engine::instance().clear();
     multiplexing::engine::unload();
     config::applier::state::unload();
     io::events::unload();
     io::protocols::unload();
+    mysql_manager::unload();
     stats::center::unload();
     pool::unload();
   }
@@ -82,32 +86,32 @@ TEST_F(StatsTest, Builder) {
   ASSERT_TRUE(result["mysql manager"]["delay since last check"].is_string());
 }
 
-//TEST_F(StatsTest, BuilderWithModules) {
-//  stats::builder build;
-//  auto& modules = config::applier::state::instance().get_modules();
-//  modules.apply({"storage/20-storage.so", "neb/10-neb.so", "lua/70-lua.so"},
-//                ".", nullptr);
+// TEST_F(StatsTest, BuilderWithModules) {
+//   stats::builder build;
+//   auto& modules = config::applier::state::instance().get_modules();
+//   modules.apply({"storage/20-storage.so", "neb/10-neb.so", "lua/70-lua.so"},
+//                 ".", nullptr);
 //
-//  build.build();
+//   build.build();
 //
-//  nlohmann::json result;
-//  ASSERT_NO_THROW(result = nlohmann::json::parse(build.data()));
+//   nlohmann::json result;
+//   ASSERT_NO_THROW(result = nlohmann::json::parse(build.data()));
 //
-//  ASSERT_TRUE(result.is_object());
-//  ASSERT_EQ(result["version"], CENTREON_BROKER_VERSION);
-//  ASSERT_EQ(result["pid"], getpid());
-//  ASSERT_TRUE(result["now"].is_string());
-//  ASSERT_TRUE(result["asio_version"].is_string());
-//  ASSERT_TRUE(result["mysql manager"].is_object());
-//  ASSERT_TRUE(result["mysql manager"]["delay since last check"].is_string());
+//   ASSERT_TRUE(result.is_object());
+//   ASSERT_EQ(result["version"], CENTREON_BROKER_VERSION);
+//   ASSERT_EQ(result["pid"], getpid());
+//   ASSERT_TRUE(result["now"].is_string());
+//   ASSERT_TRUE(result["asio_version"].is_string());
+//   ASSERT_TRUE(result["mysql manager"].is_object());
+//   ASSERT_TRUE(result["mysql manager"]["delay since last check"].is_string());
 //
-//  ASSERT_EQ(result["module./neb/10-neb.so"]["state"].get<std::string>(),
-//            "loaded");
-//  ASSERT_EQ(result["module./storage/20-storage.so"]["state"].get<std::string>(),
-//            "loaded");
-//  ASSERT_EQ(result["module./lua/70-lua.so"]["state"].get<std::string>(),
-//            "loaded");
-//}
+//   ASSERT_EQ(result["module./neb/10-neb.so"]["state"].get<std::string>(),
+//             "loaded");
+//   ASSERT_EQ(result["module./storage/20-storage.so"]["state"].get<std::string>(),
+//             "loaded");
+//   ASSERT_EQ(result["module./lua/70-lua.so"]["state"].get<std::string>(),
+//             "loaded");
+// }
 
 class st : public io::stream {
  public:
