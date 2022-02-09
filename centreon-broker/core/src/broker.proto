@@ -9,9 +9,9 @@ service Broker {
 
   // stats
   rpc GetGenericStats(google.protobuf.Empty) returns (GenericString) {}
-  rpc GetSqlConnectionStats(GenericInt) returns (SqlConnectionStats) {}
-  rpc GetSqlConnectionSize(google.protobuf.Empty) returns (GenericSize) {}
-  rpc GetConflictManagerStats(google.protobuf.Empty) returns (ConflictManagerStats) {}
+  rpc GetSqlManagerStats(google.protobuf.Empty) returns (SqlManagerStats) {}
+  rpc GetConflictManagerStats(google.protobuf.Empty)
+      returns (ConflictManagerStats) {}
 
   rpc GetNumModules(google.protobuf.Empty) returns (GenericSize) {}
   rpc GetModulesStats(GenericNameOrIndex) returns (GenericString) {}
@@ -55,6 +55,18 @@ message GenericResponse {
   string err_msg = 2;
 }
 
+message SqlConnectionStats {
+  int32 waiting_tasks = 1;
+  oneof last_switch {
+    int64 up_since = 3;
+    int64 down_since = 4;
+  };
+}
+
+message SqlManagerStats {
+  repeated SqlConnectionStats connections = 1;
+}
+
 message StatsQuery {
   enum Part {
     ENGINE = 0;
@@ -73,19 +85,15 @@ message EngineStats {
   uint32 unprocessed_events = 2;
 }
 
-message SqlConnectionStats {
- int32 waiting_tasks = 1;
- }
-
 message ConflictManagerStats {
- int32 events_handled = 1;
- int32 waiting_events = 2;
- int32 max_pending_events = 3;
- int32 sql = 4;
- int32 storage = 5;
- uint32 max_perfdata_events = 6;
- uint32 loop_timeout = 7;
- double speed = 8;
+  int32 events_handled = 1;
+  int32 waiting_events = 2;
+  int32 max_pending_events = 3;
+  int32 sql = 4;
+  int32 storage = 5;
+  uint32 max_perfdata_events = 6;
+  uint32 loop_timeout = 7;
+  double speed = 8;
 }
 
 message ModuleStats {
@@ -107,6 +115,6 @@ message BrokerStats {
   ThreadPool pool_stats = 5;
   EngineStats engine = 6;
   repeated ModuleStats modules = 7;
-  repeated SqlConnectionStats connections = 8;
+  SqlManagerStats sql_manager = 8;
   ConflictManagerStats conflict_manager = 9;
 }

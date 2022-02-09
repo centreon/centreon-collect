@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Centreon (https://www.centreon.com/)
+ * Copyright 2020-2021 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,15 +34,12 @@ class broker_impl final : public Broker::Service {
                                const ::google::protobuf::Empty* request,
                                GenericString* response) override;
 
-  grpc::Status GetSqlConnectionStats(grpc::ServerContext* context,
-                           const GenericInt* request,
-                           SqlConnectionStats* response) override;
+  grpc::Status GetSqlManagerStats(grpc::ServerContext* context,
+                                  const ::google::protobuf::Empty* request,
+                                  SqlManagerStats* response) override;
   grpc::Status GetConflictManagerStats(grpc::ServerContext* context,
-                           const ::google::protobuf::Empty* request,
-                           ConflictManagerStats* response) override;
-  grpc::Status GetSqlConnectionSize(grpc::ServerContext* context,
-                           const ::google::protobuf::Empty* request,
-                           GenericSize* response) override;
+                                       const ::google::protobuf::Empty* request,
+                                       ConflictManagerStats* response) override;
   grpc::Status GetNumModules(grpc::ServerContext* context,
                              const ::google::protobuf::Empty* /*request*/,
                              GenericSize* response) override;

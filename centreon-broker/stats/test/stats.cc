@@ -35,6 +35,7 @@
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
+#include "com/centreon/broker/mysql_manager.hh"
 #include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/stats/builder.hh"
 #include "com/centreon/broker/stats/center.hh"
@@ -48,19 +49,22 @@ class StatsTest : public ::testing::Test {
   void SetUp() override {
     pool::load(0);
     stats::center::load();
-    io::protocols::load();
-    io::events::load();
+    mysql_manager::load();
     config::applier::state::load();
     multiplexing::engine::load();
+    io::protocols::load();
+    io::events::load();
     config::applier::endpoint::load();
   }
 
   void TearDown() override {
     config::applier::endpoint::unload();
+    multiplexing::engine::instance().clear();
     multiplexing::engine::unload();
     config::applier::state::unload();
     io::events::unload();
     io::protocols::unload();
+    mysql_manager::unload();
     stats::center::unload();
     pool::unload();
   }
