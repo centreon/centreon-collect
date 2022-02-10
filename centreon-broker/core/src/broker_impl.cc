@@ -190,12 +190,11 @@ grpc::Status broker_impl::GetGenericStats(
   return grpc::Status::OK;
 }
 
-grpc::Status broker_impl::GetSqlConnectionStats(grpc::ServerContext* context
-                                                __attribute__((unused)),
-                                                const GenericInt* request,
-                                                SqlConnectionStats* response) {
-  uint32_t index = request->value();
-  stats::center::instance().get_sql_connection_stats(index, response);
+grpc::Status broker_impl::GetSqlManagerStats(
+    grpc::ServerContext* context __attribute__((unused)),
+    const ::google::protobuf::Empty* request __attribute__((unused)),
+    SqlManagerStats* response) {
+  stats::center::instance().get_sql_manager_stats(response);
   return grpc::Status::OK;
 }
 
@@ -204,14 +203,6 @@ grpc::Status broker_impl::GetConflictManagerStats(
     const ::google::protobuf::Empty* request __attribute__((unused)),
     ConflictManagerStats* response) {
   stats::center::instance().get_conflict_manager_stats(response);
-  return grpc::Status::OK;
-}
-
-grpc::Status broker_impl::GetSqlConnectionSize(
-    grpc::ServerContext* context __attribute__((unused)),
-    const ::google::protobuf::Empty* request __attribute__((unused)),
-    GenericSize* response) {
-  stats::center::instance().get_sql_connection_size(response);
   return grpc::Status::OK;
 }
 

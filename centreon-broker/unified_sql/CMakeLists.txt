@@ -60,6 +60,7 @@ target_link_libraries(${UNIFIED_SQL}
     rokerbase
     bbdo_storage
     CONAN_PKG::spdlog
+    CONAN_PKG::abseil
     pb_service_lib)
 
 # Testing.

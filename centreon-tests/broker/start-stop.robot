@@ -88,15 +88,18 @@ Start Stop Service
 	Start Process	/usr/sbin/cbd	/etc/centreon-broker/central-broker.json	alias=b1
 	Start Process	/usr/sbin/cbd	/etc/centreon-broker/central-rrd.json	alias=b2
 	Sleep	${interval}
-	${result1}=	Terminate Process	b1
-	Should Be Equal As Integers	${result1.rc}	0
-	${result2}=	Terminate Process	b2
-	Should Be Equal As Integers	${result2.rc}	0
+	Send Signal To Process	SIGTERM	b1
+	${result}=	Wait For Process	b1	timeout=60s	on_timeout=kill
+	Should Be True	${result.rc} == -15 or ${result.rc} == 0	msg=Broker service badly stopped
+	Send Signal To Process	SIGTERM	b2
+	${result}=	Wait For Process	b2	timeout=60s	on_timeout=kill
+	Should Be True	${result.rc} == -15 or ${result.rc} == 0	msg=Broker service badly stopped
 
 Start Stop Instance
 	[Arguments]	${interval}
-	Start Process	/usr/sbin/cbd	/etc/centreon-broker/central-broker.json
+	Start Process	/usr/sbin/cbd	/etc/centreon-broker/central-broker.json	alias=b1
 	Sleep	${interval}
-	${result}=	Terminate Process
-	Should Be True	${result.rc} == -15 or ${result.rc} == 0
+	Send Signal To Process	SIGTERM	b1
+	${result}=	Wait For Process	b1	timeout=60s	on_timeout=kill
+	Should Be True	${result.rc} == -15 or ${result.rc} == 0	msg=Broker instance badly stopped
 
