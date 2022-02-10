@@ -67,6 +67,8 @@ def find_in_log(log: str, date, content):
         while end - start > 1:
             idx = (start + end) // 2
             m = p.match(lines[idx])
+            if not m:
+                logger.console("Unable to parse the date ({} <= {} <= {}): <<{}>>".format(start, idx, end, lines[idx]))
             idx_d = get_date(m.group(1))
             if my_date <= idx_d:
                 end = idx
@@ -169,7 +171,7 @@ def engine_log_file_duplicate(log: str, date):
         logger.console("The file '{}' does not exist".format(log))
         return False
 
-def check_reschedule(log: str, date, content):
+def check_reschedule(log: str, date, content: str):
     my_date = parser.parse(date)
     try:
         f = open(log, "r")
@@ -183,6 +185,8 @@ def check_reschedule(log: str, date, content):
         while end - start > 1:
             idx = (start + end) // 2
             m = p.match(lines[idx])
+            if not m:
+                logger.console("Unable to parse the date ({} <= {} <= {}): <<{}>>".format(start, idx, end, lines[idx]))
             idx_d = get_date(m.group(1))
             if my_date <= idx_d:
                 end = idx
@@ -190,19 +194,27 @@ def check_reschedule(log: str, date, content):
                 start = idx
         retry_check = False
         normal_check = False
-        for c in content:
-            for i in range(idx, len(lines)):
-                line = lines[i]
-                if c in line:
-                    logger.console("\"{}\" found at line {} from {}".format(c, i, idx))
-                    row = line.split()
-                    delta = int(datetime.strptime(row[19], "%Y-%m-%dT%H:%M:%S").timestamp()) - int(datetime.strptime(row[14], "%Y-%m-%dT%H:%M:%S").timestamp())
-                    if delta == 60:
-                        retry_check = True
-                    elif delta == 300:
-                        normal_check = True
+        for i in range(idx, len(lines)):
+            line = lines[i]
+            if content in line:
+                logger.console("\"{}\" found at line {} from {}".format(content, i, idx))
+                row = line.split()
+                delta = int(datetime.strptime(row[19], "%Y-%m-%dT%H:%M:%S").timestamp()) - int(datetime.strptime(row[14], "%Y-%m-%dT%H:%M:%S").timestamp())
+                if delta == 60:
+                    retry_check = True
+                elif delta == 300:
+                    normal_check = True
         return retry_check , normal_check
     except IOError:
         logger.console("The file '{}' does not exist".format(log))
         return False
 
+def check_reschedule_with_timeout(log: str, date, content: str, timeout: int):
+    limit = time.time() + timeout
+    c = ""
+    while time.time() < limit:
+        v1, v2 = check_reschedule(log, date, content)
+        if v1 and v2:
+            return v1, v2
+        time.sleep(5)
+    return False

@@ -19,8 +19,8 @@ from datetime import datetime
 def files_contain_same_json(file_e: str, file_b: str):
     new_inst = { "_type": 4294901762, "category": 65535, "element": 2, "broker_id":1, "broker_name":"", "enabled":True, "poller_id":1, "poller_name":"Central"}
 
-    getoutput("cut -d' ' -f9- {0} > {0}.log1".format(file_e))
-    getoutput("cut -d' ' -f9- {0} > {0}.log1".format(file_b))
+    getoutput("cut -d' ' -f10- {0} > {0}.log1".format(file_e))
+    getoutput("cut -d' ' -f10- {0} > {0}.log1".format(file_b))
 
     f1 = open("{}.log1".format(file_e))
     content1 = f1.readlines()
@@ -197,5 +197,5 @@ def check_multiplicity_when_engine_restarted(file1: str, file2: str):
                 logger.console("In lst2: Bad {} {} with type {:x}".format(k, lst2[k], typ2[k]))
     return len(res1) == 1 and len(res2) == 1
 
-#print(files_contain_same_json("/tmp/lua.log", "/tmp/lua-engine.log"))
+#print(files_contain_same_json("/tmp/lua-engine.log", "/tmp/lua.log"))
 #print(check_multiplicity_when_engine_restarted("/tmp/lua-engine.log", "/tmp/lua.log"))

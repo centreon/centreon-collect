@@ -68,13 +68,7 @@ class center {
   static void unload();
   std::string to_string();
 
-  // EndpointStats* register_endpoint(const std::string& name);
   EngineStats* register_engine();
-  // FeederStats* register_feeder(EndpointStats* ep_stats,
-  //                             const std::string& name);
-  // ModuleStats* register_modules(void);
-  SqlConnectionStats* register_mysql_connection();
-  bool unregister_mysql_connection(SqlConnectionStats* connection);
   ConflictManagerStats* register_conflict_manager();
   bool unregister_muxer(const std::string& name);
   void update_muxer(std::string name,
@@ -89,11 +83,11 @@ class center {
   MuxerStats* muxer_stats(const std::string& name);
   void clear_muxer_queue_file(const std::string& name);
 
-  void get_sql_connection_stats(uint32_t index, SqlConnectionStats* response);
+  bool get_sql_connection_stats(uint32_t index, SqlConnectionStats* response);
+  void get_sql_manager_stats(SqlManagerStats* response);
+  SqlConnectionStats* add_connection();
+  void remove_connection(SqlConnectionStats* stats);
   void get_conflict_manager_stats(ConflictManagerStats* response);
-  // bool unregister_endpoint(const std::string& name);
-  // bool unregister_feeder(EndpointStats* ep_stats, const std::string& name);
-  // bool unregister_mysql_manager(void);
 
   int get_json_stats_file_creation(void);
   void get_sql_connection_size(GenericSize* response);

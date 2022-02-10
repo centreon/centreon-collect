@@ -1,5 +1,5 @@
 /*
-** Copyright 2018 Centreon
+** Copyright 2018-2021 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -65,6 +65,8 @@ CCB_BEGIN()
  *
  */
 class mysql_manager {
+  static mysql_manager* _instance;
+
   mutable std::mutex _cfg_mutex;
   std::vector<std::shared_ptr<mysql_connection>> _connection;
   // last stats update timestamp
@@ -76,6 +78,9 @@ class mysql_manager {
   mysql_manager();
 
  public:
+  static void load();
+  static void unload();
+
   ~mysql_manager();
   static mysql_manager& instance();
   std::vector<std::shared_ptr<mysql_connection>> get_connections(

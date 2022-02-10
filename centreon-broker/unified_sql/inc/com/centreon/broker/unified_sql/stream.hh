@@ -25,6 +25,7 @@
 #include <memory>
 #include <mutex>
 #include <unordered_map>
+#include <absl/container/flat_hash_map.h>
 
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/stream.hh"
@@ -191,8 +192,8 @@ class stream : public io::stream {
 
   std::unordered_set<uint32_t> _cache_deleted_instance_id;
   std::unordered_map<uint32_t, uint32_t> _cache_host_instance;
-  std::unordered_map<uint64_t, size_t> _cache_hst_cmd;
-  std::unordered_map<std::pair<uint64_t, uint64_t>, size_t> _cache_svc_cmd;
+  absl::flat_hash_map<uint64_t, size_t> _cache_hst_cmd;
+  absl::flat_hash_map<std::pair<uint64_t, uint64_t>, size_t> _cache_svc_cmd;
   std::unordered_map<std::pair<uint64_t, uint64_t>, index_info> _index_cache;
   std::unordered_map<std::pair<uint64_t, std::string>, metric_info>
       _metric_cache;

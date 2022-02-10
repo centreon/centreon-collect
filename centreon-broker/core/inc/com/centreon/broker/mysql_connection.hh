@@ -92,16 +92,26 @@ class mysql_connection {
   int _port;
   std::atomic<connection_state> _state;
 
+  /**
+   * Stats variables:
+   * * _connected tells if this is connected and working or not
+   * * _switch_point holds the timestamp of the last time _connected switched.
+   * * _last_stats holds the last timestamp stats have been updated, they are
+   * not updated more than one time per second.
+   */
+  bool _connected;
+  std::time_t _switch_point;
   SqlConnectionStats* _stats;
+  std::time_t _last_stats;
   uint32_t _qps;
 
   /* mutex to protect the string access in _error */
   mutable std::mutex _error_m;
   database::mysql_error _error;
+
   /**************************************************************************/
   /*                    Methods executed by this thread                     */
   /**************************************************************************/
-
   bool _server_error(int code) const;
   void _run();
   std::string _get_stack();
@@ -124,13 +134,14 @@ class mysql_connection {
 
   void _prepare_connection();
   void _clear_connection();
+  void _update_stats() noexcept;
 
  public:
   /**************************************************************************/
   /*                  Methods executed by the main thread                   */
   /**************************************************************************/
 
-  mysql_connection(database_config const& db_cfg);
+  mysql_connection(database_config const& db_cfg, SqlConnectionStats* stats);
   ~mysql_connection();
 
   void prepare_query(int id, std::string const& query);
