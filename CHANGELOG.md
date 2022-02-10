@@ -37,7 +37,9 @@ more loaded. And queries to load the cache are parallelized.
 
 *mysql_connection*
 
-A timeout is added on mysql\_ping and this function is less called than before.
+* A timeout is added on mysql\_ping and this function is less called than
+  before.
+* gRPC stats are improved on connections.
 
 *tls*
 

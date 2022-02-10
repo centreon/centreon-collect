@@ -73,18 +73,14 @@ class center {
   // FeederStats* register_feeder(EndpointStats* ep_stats,
   //                             const std::string& name);
   // ModuleStats* register_modules(void);
-  SqlConnectionStats* register_mysql_connection();
   ConflictManagerStats* register_conflict_manager();
-  bool unregister_mysql_connection(SqlConnectionStats* connection);
-  void get_sql_connection_stats(uint32_t index, SqlConnectionStats* response);
+  void get_sql_manager_stats(SqlManagerStats* response);
+  SqlConnectionStats* add_connection();
+  void remove_connection(SqlConnectionStats* stats);
   void get_conflict_manager_stats(ConflictManagerStats* response);
-  // bool unregister_endpoint(const std::string& name);
-  // bool unregister_feeder(EndpointStats* ep_stats, const std::string& name);
-  // bool unregister_mysql_manager(void);
-  
+
   int get_json_stats_file_creation(void);
   void get_stats(const StatsQuery* request, BrokerStats* response);
-  void get_sql_connection_size(GenericSize* response);
 
   /**
    * @brief Set the value pointed by ptr to the value value.
