@@ -70,6 +70,9 @@ monitoring_stream::monitoring_stream(std::string const& ext_cmd_file,
   log_v2::bam()->trace("BAM: monitoring_stream constructor");
   // Prepare queries.
   _prepare();
+
+  // Let's update BAs then we will be able to load the cache with inherited downtimes.
+  update();
   // Read cache.
   _read_cache();
 }
