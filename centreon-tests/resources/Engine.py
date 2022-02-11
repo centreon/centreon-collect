@@ -4,6 +4,7 @@ import shutil
 from os import makedirs
 import sys
 from os.path import exists, dirname
+import db_conf
 
 CONF_DIR = "/etc/centreon-engine"
 ENGINE_HOME = "/var/lib/centreon-engine"
@@ -17,6 +18,7 @@ class EngineInstance:
         self.last_host_group_id = 0
         self.commands_count = 50
         self.instances = count
+        self.service_cmd = {}
         self.build_configs(50, 20)
 
     def create_centengine(self, id: int, debug_level=0):
@@ -142,13 +144,14 @@ class EngineInstance:
     def create_service(self, host_id: int, cmd_ids):
         self.last_service_id += 1
         service_id = self.last_service_id
-
         command_id = random.randint(cmd_ids[0], cmd_ids[1])
+        self.service_cmd[service_id] = "command_{}".format(command_id)
+
         retval = """define service {{
     host_name                       host_{0}
     service_description             service_{1}
     _SERVICE_ID                     {1}
-    check_command                   command_{2}
+    check_command                   {2}
     max_check_attempts              3
     check_interval                  5
     retry_interval                  5
@@ -157,7 +160,7 @@ class EngineInstance:
     passive_checks_enabled          1
 }}
 """.format(
-            host_id, service_id, command_id)
+            host_id, service_id, self.service_cmd[service_id])
         return retval
 
     @staticmethod
@@ -191,11 +194,14 @@ class EngineInstance:
 """.format(hid, ",".join(mbs))
         logger.console(retval)
         return retval
-        
+
     def build_configs(self, hosts: int, services_by_host: int, debug_level=0):
         if exists(CONF_DIR):
           shutil.rmtree(CONF_DIR)
-        v = int(hosts / self.instances)
+        r = 0
+        if hosts % self.instances > 0:
+          r = 1
+        v = int(hosts / self.instances) + r
         last = hosts - (self.instances - 1) * v
         for inst in range(self.instances):
             if v < hosts:
@@ -317,3 +323,8 @@ def engine_log_duplicate(result: list):
         if (i[0] % 2) != 0:
             dup = False
     return dup
+
+conf = EngineInstance(3)
+db_conf = db_conf.DbConf(conf)
+db_conf.create_conf_db()
+db_conf.create_ba_with_services("test", "worst", [("host_16", "service_313")])
