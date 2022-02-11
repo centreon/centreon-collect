@@ -74,11 +74,8 @@ monitoring_stream::monitoring_stream(std::string const& ext_cmd_file,
   // Prepare queries.
   _prepare();
 
-  // Simulate a configuration update.
-  // FIXME DBR: what for? This update() call is made juste after the stream
-  // construction. I keep that in case I'm doing an error but it looks like
-  // a nonsense.
-  // update();
+  // Let's update BAs then we will be able to load the cache with inherited downtimes.
+  update();
   // Read cache.
   _read_cache();
 }
