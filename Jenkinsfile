@@ -48,14 +48,11 @@ stage('Build / Unit tests // Packaging / Signing') {
     node("C++") {
       dir('centreon-collect-centos7') {
         checkout scm
-<<<<<<< HEAD
-        sh 'docker run -i --entrypoint /src/ci/scripts/collect-unit-tests.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:22.04'
+        sh 'docker run -i --entrypoint /src/ci/scripts/collect-unit-tests.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:22.04-testdocker'
         sh "sudo apt-get install -y clang-tidy"
         withSonarQubeEnv('SonarQubeDev') {
           sh 'ci/scripts/collect-sources-analysis.sh'
         }
-=======
-        sh 'docker run -i --entrypoint /src/ci/scripts/collect-unit-tests.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:22.04-testdocker'
       }
     }
   },/*
@@ -64,7 +61,6 @@ stage('Build / Unit tests // Packaging / Signing') {
       dir('centreon-collect-centos8') {
         checkout scm
         sh 'docker run -i --entrypoint /src/ci/scripts/collect-unit-tests.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos8-dependencies:22.04-testdocker'
->>>>>>> 87f6f0028 (good bye el8)
       }
     }
   },*/
@@ -79,19 +75,7 @@ stage('Build / Unit tests // Packaging / Signing') {
         sh 'rm -rf *.rpm'
       } 
     }
-<<<<<<< HEAD
-  },
-  'centos8 Build and UT': {
-    node("C++") {
-      dir('centreon-collect-centos8') {
-        checkout scm
-        sh 'docker run -i --entrypoint /src/ci/scripts/collect-unit-tests.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos8-dependencies:22.04'
-      }
-    }
-  },
-=======
   },/*
->>>>>>> 87f6f0028 (good bye el8)
   'centos8 rpm packaging and signing': {
     node("C++") {
       dir('centreon-collect-centos8') {
