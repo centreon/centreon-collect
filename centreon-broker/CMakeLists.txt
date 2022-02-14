@@ -312,6 +312,7 @@ set(LIBROKER_SOURCES
   ${SRC_DIR}/instance_broadcast.cc
   ${SRC_DIR}/io/data.cc
   ${SRC_DIR}/io/endpoint.cc
+  ${SRC_DIR}/io/limit_endpoint.cc
   ${SRC_DIR}/io/events.cc
   ${SRC_DIR}/io/factory.cc
   ${SRC_DIR}/io/protocols.cc
@@ -393,6 +394,7 @@ set(LIBROKER_SOURCES
   ${INC_DIR}/instance_broadcast.hh
   ${INC_DIR}/io/data.hh
   ${INC_DIR}/io/endpoint.hh
+  ${INC_DIR}/io/limit_endpoint.hh
   ${INC_DIR}/io/event_info.hh
   ${INC_DIR}/io/events.hh
   ${INC_DIR}/io/factory.hh
@@ -413,6 +415,7 @@ set(LIBROKER_SOURCES
   ${INC_DIR}/misc/stringifier.hh
   ${INC_DIR}/misc/time.hh
   ${INC_DIR}/misc/tokenizer.hh
+  ${INC_DIR}/misc/trash.hh
   ${INC_DIR}/misc/variant.hh
   ${INC_DIR}/modules/handle.hh
   ${INC_DIR}/multiplexing/engine.hh
@@ -466,7 +469,7 @@ add_executable(cbd ${SRC_DIR}/main.cc)
 
 #Flags needed to include all symbols in binary.
 target_link_libraries(cbd
-	"-Wl,--whole-archive" rokerbase roker "-Wl,--no-whole-archive" CONAN_PKG::nlohmann_json CONAN_PKG::fmt CONAN_PKG::spdlog CONAN_PKG::grpc )
+"-export-dynamic" "-Wl,--whole-archive" rokerbase roker "-Wl,--no-whole-archive" CONAN_PKG::nlohmann_json CONAN_PKG::fmt -L${CONAN_LIB_DIRS_GRPC} "-Wl,--whole-archive" grpc++ "-Wl,--no-whole-archive" CONAN_PKG::spdlog CONAN_PKG::grpc )
 
 # Centreon Broker Watchdog
 option(WITH_CBWD "Build centreon broker watchdog." ON)
@@ -492,6 +495,7 @@ add_broker_module(TCP ON)
 add_broker_module(TLS ON)
 add_broker_module(TLS2 OFF)
 add_broker_module(DUMP OFF)
+add_broker_module(GRPC ON)
 
 # Lua module.
 option(WITH_MODULE_LUA "Build lua module." ON)

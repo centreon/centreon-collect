@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package com.centreon.broker.stream;
+
+message centreon_raw_data {
+    uint32 type = 1;
+    uint32 source = 2;
+    uint32 destination = 3;
+    bytes buffer = 4;
+}
+
+message centreon_event {
+    oneof content {
+        centreon_raw_data raw_data = 1;
+    }
+}
+
+
+
+
+
+service centreon_bbdo {
+    //emitter connect to receiver
+    rpc exchange(stream centreon_event) returns (stream centreon_event) {}
+}

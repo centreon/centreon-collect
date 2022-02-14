@@ -42,17 +42,17 @@ using namespace com::centreon::broker::tcp;
 connector::connector(const std::string& host,
                      uint16_t port,
                      int32_t read_timeout)
-    : io::endpoint(false),
+    : io::limit_endpoint(false),
       _host(host),
       _port(port),
-      _read_timeout(read_timeout),
-      _is_ready_count(0),
-      _is_ready_now(0) {}
+      _read_timeout(read_timeout)
+     {}
 
 /**
  *  Destructor.
  */
 connector::~connector() {}
+
 
 /**
  * @brief Connect to the remote host.
@@ -63,35 +63,22 @@ std::unique_ptr<io::stream> connector::open() {
   // Launch connection process.
   log_v2::tcp()->info("TCP: connecting to {}:{}", _host, _port);
   try {
-    std::unique_ptr<stream> retval =
-        std::make_unique<stream>(_host, _port, _read_timeout);
-    _is_ready_count = 0;
-    return retval;
-  } catch (const std::exception& e) {
-    if (_is_ready_count < 30)
-      _is_ready_count++;
+    return limit_endpoint::open();
+  }
+  catch (const std::exception &e) {
     log_v2::tcp()->debug(
-        "Unable to establish the connection to {}:{} (attempt {}): {}", _host,
-        _port, _is_ready_count, e.what());
-    return nullptr;
+    "Unable to establish the connection to {}:{} (attempt {}): {}", _host,
+    _port, _is_ready_count, e.what());
+    throw;
   }
 }
 
 /**
- * @brief Return true when it is time to attempt a new connection. The idea is
- * to increase the duration between two calls each time this function is called
- * without connection between. So if now server is available, we should not
- * try to connect too often, but if the connection failed one time, it should
- * be fast to connect again.
- *
- * @return a boolean.
+ * @brief create a stream from attributes
+ * 
+ * @return std::shared_ptr<stream> 
  */
-bool connector::is_ready() const {
-  time_t now;
-  std::time(&now);
-  if (now - _is_ready_now > (1 << _is_ready_count)) {
-    _is_ready_now = now;
-    return true;
-  }
-  return false;
+std::unique_ptr<io::stream> connector::create_stream() {
+  return std::make_unique<stream>(_host, _port, _read_timeout);
 }
+

@@ -21,7 +21,7 @@
 
 #include <asio.hpp>
 
-#include "com/centreon/broker/io/endpoint.hh"
+#include "com/centreon/broker/io/limit_endpoint.hh"
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()
@@ -33,15 +33,10 @@ namespace tcp {
  *
  *  Connect to some remote TCP host.
  */
-class connector : public io::endpoint {
+class connector : public io::limit_endpoint {
   const std::string _host;
   const uint16_t _port;
   const int32_t _read_timeout;
-
-  /* How many consecutive calls to is_ready() */
-  mutable int16_t _is_ready_count;
-  /* The time of the last call to is_ready() */
-  mutable std::time_t _is_ready_now;
 
  public:
   connector(const std::string& host, uint16_t port, int32_t read_timeout);
@@ -51,7 +46,8 @@ class connector : public io::endpoint {
   connector(const connector&) = delete;
 
   std::unique_ptr<io::stream> open() override;
-  bool is_ready() const override;
+
+  std::unique_ptr<io::stream> create_stream() override;
 };
 }  // namespace tcp
 

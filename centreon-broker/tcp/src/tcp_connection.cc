@@ -22,9 +22,11 @@
 
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "com/centreon/broker/misc/string.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker::tcp;
+using com::centreon::broker::misc::string::debug_buf;
 
 /**
  * @brief tcp_connection constructor.
@@ -107,53 +109,6 @@ int32_t tcp_connection::flush() {
   return retval;
 }
 
-/**
- * @brief This function is an internal function just used to debug. It displays
- * the data array as hex 8 bits integers in the limit of 20 values. If the array
- * is longer, only the 10 first bytes and the 10 last bytes are displayed.
- *
- * @param data A const char* array.
- * @param size The size of the data array.
- *
- * @return A string containing the result.
- */
-static std::string debug_buf(const char* data, int32_t size) {
-  auto to_str = [](uint8_t d) -> uint8_t {
-    uint8_t ret;
-    if (d < 10)
-      ret = '0' + d;
-    else
-      ret = 'a' + d - 10;
-    return ret;
-  };
-
-  std::string retval;
-  int l1;
-  if (size <= 10)
-    l1 = size;
-  else
-    l1 = 10;
-
-  for (int i = 0; i < l1; i++) {
-    uint8_t c = data[i];
-    uint8_t d1 = c >> 4;
-    uint8_t d2 = c & 0xf;
-    retval.push_back(to_str(d1));
-    retval.push_back(to_str(d2));
-  }
-  if (size > 10) {
-    if (size > 20)
-      retval += "...";
-    for (int i = std::max(size - 10, l1); i < size; i++) {
-      uint8_t c = data[i];
-      uint8_t d1 = c >> 4;
-      uint8_t d2 = c & 0xf;
-      retval.push_back(to_str(d1));
-      retval.push_back(to_str(d2));
-    }
-  }
-  return retval;
-}
 
 /**
  * @brief Write data on the socket. This function returns immediatly and does

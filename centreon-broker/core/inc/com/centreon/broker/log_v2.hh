@@ -46,6 +46,7 @@ class log_v2 {
   std::shared_ptr<spdlog::logger> _sql_log;
   std::shared_ptr<spdlog::logger> _tcp_log;
   std::shared_ptr<spdlog::logger> _tls_log;
+  std::shared_ptr<spdlog::logger> _grpc_log;
   std::mutex _load_m;
 
   log_v2();
@@ -72,6 +73,7 @@ class log_v2 {
   static std::shared_ptr<spdlog::logger> sql();
   static std::shared_ptr<spdlog::logger> tcp();
   static std::shared_ptr<spdlog::logger> tls();
+  static std::shared_ptr<spdlog::logger> grpc();
   static bool contains_logger(const std::string& logger);
   static bool contains_level(const std::string& level);
 };

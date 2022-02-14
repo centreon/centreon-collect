@@ -428,6 +428,7 @@ fi
 %{_datadir}/centreon/lib/centreon-broker/15-stats.so
 %{_datadir}/centreon/lib/centreon-broker/20-bam.so
 %{_datadir}/centreon/lib/centreon-broker/50-tcp.so
+%{_datadir}/centreon/lib/centreon-broker/50-grpc.so
 %{_datadir}/centreon/lib/centreon-broker/60-tls.so
 %{_datadir}/centreon/lib/centreon-broker/70-lua.so
 %{_datadir}/centreon/lib/centreon-broker/80-sql.so
