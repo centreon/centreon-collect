@@ -60,7 +60,8 @@ std::string options::help() const {
       << "  --debug    " << debug_description << "\n"
       << "  --help     " << help_description << "\n"
       << "  --version  " << version_description << "\n"
-      << "  --code     " << code_description << "\n";
+      << "  --code     " << code_description << "\n"
+      << "  --log-file " << log_file_description << "\n";
   return oss.str();
 }
 
