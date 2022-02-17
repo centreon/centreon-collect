@@ -37,7 +37,7 @@ namespace bam {
  */
 class hst_svc_mapping {
   absl::flat_hash_map<std::pair<std::string, std::string>,
-                     std::pair<uint32_t, uint32_t>>
+                      std::pair<uint32_t, uint32_t>>
       _mapping;
 
   absl::flat_hash_map<std::pair<uint32_t, uint32_t>, bool> _activated_mapping;

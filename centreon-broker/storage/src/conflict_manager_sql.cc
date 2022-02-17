@@ -360,7 +360,8 @@ void conflict_manager::_process_acknowledgement(
   log_v2::sql()->info(
       "processing acknowledgement event (poller: {}, host: {}, service: {}, "
       "entry time: {}, deletion time: {})",
-      ack.poller_id, ack.host_id, ack.service_id, ack.entry_time, ack.deletion_time);
+      ack.poller_id, ack.host_id, ack.service_id, ack.entry_time,
+      ack.deletion_time);
 
   // Processing.
   if (_is_valid_poller(ack.poller_id)) {
@@ -514,7 +515,6 @@ void conflict_manager::_process_custom_variable_status(
 
   log_v2::sql()->info("SQL: updating custom variable '{}' of ({}, {})", cv.name,
                       cv.host_id, cv.service_id);
-
 }
 
 /**

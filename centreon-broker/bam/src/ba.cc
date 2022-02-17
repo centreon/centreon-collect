@@ -506,7 +506,7 @@ void ba::visit(io::stream* visitor) {
     short hard_state(get_state_hard());
     bool state_changed(false);
     if (!_event) {
-      log_v2::bam()->trace("BAM: ba::visit no event => create of one");
+      log_v2::bam()->trace("BAM: ba::visit no event => creation of one");
       if (_last_kpi_update.is_null())
         _last_kpi_update = time(nullptr);
       _open_new_event(visitor, hard_state);
