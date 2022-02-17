@@ -1625,9 +1625,9 @@ void conflict_manager::_process_service_status(
     // Apply to DB.
     log_v2::sql()->info(
         "SQL: processing service status event (host: {}, service: {}, last "
-        "check: {}, state ({}, {}))",
+        "check: {}, state ({}, {}), in downtime {})",
         ss.host_id, ss.service_id, ss.last_check, ss.current_state,
-        ss.state_type);
+        ss.state_type, ss.downtime_depth);
 
     // Prepare queries.
     if (!_service_status_update.prepared()) {
