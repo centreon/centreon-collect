@@ -20,6 +20,7 @@
 #define CCB_BAM_KPI_SERVICE_HH
 
 #include <array>
+#include <absl/container/flat_hash_set.h>
 #include "bbdo/bam/kpi_event.hh"
 #include "bbdo/bam/state.hh"
 #include "com/centreon/broker/bam/impact_values.hh"
@@ -49,6 +50,7 @@ class kpi_service : public service_listener, public kpi {
 
   bool _acknowledged;
   bool _downtimed;
+  absl::flat_hash_set<uint32_t> _downtime_ids;
   std::array<double, 5> _impacts;
   timestamp _last_check;
   std::string _output;

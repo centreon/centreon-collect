@@ -19,10 +19,9 @@
 #ifndef CCB_BAM_HST_SVC_MAPPING_HH
 #define CCB_BAM_HST_SVC_MAPPING_HH
 
+#include <absl/container/flat_hash_map.h>
 #include <string>
-#include <unordered_map>
 #include <utility>
-#include "com/centreon/broker/misc/pair.hh"
 
 #include "com/centreon/broker/namespace.hh"
 
@@ -37,11 +36,11 @@ namespace bam {
  *  Allow to find an ID of a host or service by its name.
  */
 class hst_svc_mapping {
-  std::unordered_map<std::pair<std::string, std::string>,
-                     std::pair<uint32_t, uint32_t>>
+  absl::flat_hash_map<std::pair<std::string, std::string>,
+                      std::pair<uint32_t, uint32_t>>
       _mapping;
 
-  std::unordered_map<std::pair<uint32_t, uint32_t>, bool> _activated_mapping;
+  absl::flat_hash_map<std::pair<uint32_t, uint32_t>, bool> _activated_mapping;
 
  public:
   hst_svc_mapping() = default;
