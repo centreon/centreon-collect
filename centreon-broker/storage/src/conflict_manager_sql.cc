@@ -360,7 +360,8 @@ void conflict_manager::_process_acknowledgement(
   log_v2::sql()->info(
       "processing acknowledgement event (poller: {}, host: {}, service: {}, "
       "entry time: {}, deletion time: {})",
-      ack.poller_id, ack.host_id, ack.service_id, ack.entry_time, ack.deletion_time);
+      ack.poller_id, ack.host_id, ack.service_id, ack.entry_time,
+      ack.deletion_time);
 
   // Processing.
   if (_is_valid_poller(ack.poller_id)) {
@@ -514,7 +515,6 @@ void conflict_manager::_process_custom_variable_status(
 
   log_v2::sql()->info("SQL: updating custom variable '{}' of ({}, {})", cv.name,
                       cv.host_id, cv.service_id);
-
 }
 
 /**
@@ -1625,9 +1625,9 @@ void conflict_manager::_process_service_status(
     // Apply to DB.
     log_v2::sql()->info(
         "SQL: processing service status event (host: {}, service: {}, last "
-        "check: {}, state ({}, {}))",
+        "check: {}, state ({}, {}), in downtime {})",
         ss.host_id, ss.service_id, ss.last_check, ss.current_state,
-        ss.state_type);
+        ss.state_type, ss.downtime_depth);
 
     // Prepare queries.
     if (!_service_status_update.prepared()) {
