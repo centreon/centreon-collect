@@ -126,7 +126,7 @@ add_library("${BAM}" SHARED
   "${INC_DIR}/service_listener.hh"
   "${INC_DIR}/timeperiod_map.hh"
 )
-target_link_libraries("${BAM}" bbdo_storage bbdo_bam CONAN_PKG::spdlog)
+target_link_libraries("${BAM}" bbdo_storage bbdo_bam CONAN_PKG::spdlog CONAN_PKG::abseil)
 set_target_properties("${BAM}" PROPERTIES
     PREFIX "")
 
