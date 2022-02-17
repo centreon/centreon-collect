@@ -104,7 +104,7 @@ endpoint::~endpoint() {
  *
  *  @param[in] endpoints  Endpoints configuration objects.
  */
-void endpoint::apply(std::list<config::endpoint> const& endpoints) {
+void endpoint::apply(const std::list<config::endpoint>& endpoints) {
   // Log messages.
   log_v2::config()->info("endpoint applier: loading configuration");
   log_v2::config()->debug("endpoint applier: {} endpoints to apply",
@@ -181,8 +181,7 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
        * its peer to ack events to release them (and a failover is also able
        * to write data). */
       if (is_acceptor) {
-        std::unique_ptr<processing::acceptor> acceptr(
-            std::make_unique<processing::acceptor>(e, ep.name));
+        auto acceptr{std::make_unique<processing::acceptor>(e, ep.name)};
         acceptr->set_read_filters(_filters(ep.read_filters));
         acceptr->set_write_filters(_filters(ep.write_filters));
         endp.reset(acceptr.release());
