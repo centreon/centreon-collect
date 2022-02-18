@@ -21,6 +21,7 @@
 
 #include <cstring>
 
+#include "bbdo/host.pb.h"
 #include "bbdo/service.pb.h"
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/io/protobuf.hh"

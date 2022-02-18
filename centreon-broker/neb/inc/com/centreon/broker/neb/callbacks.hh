@@ -49,9 +49,8 @@ int callback_service(int callback_type, void* data);
 int callback_service_check(int callback_type, void* data);
 int callback_service_status(int callback_type, void* data);
 
+int callback_pb_host_status(int callback_type, void* data) noexcept;
 int callback_pb_service_status(int callback_type, void* data) noexcept;
-
-
 
 void unregister_callbacks();
 }  // namespace neb

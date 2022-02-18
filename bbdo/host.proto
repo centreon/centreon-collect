@@ -1,0 +1,70 @@
+syntax = "proto3";
+
+package com.centreon.broker;
+
+message Host {
+  uint64 host_id = 1;
+
+  enum AckType {
+    ACKNOWLEDGEMENT_NONE = 0;
+    ACKNOWLEDGEMENT_NORMAL = 1;
+    ACKNOWLEDGEMENT_STICKY = 2;
+  }
+  bool acknowledged = 2;
+  int32 acknowledgement_type = 3;
+
+  bool active_checks_enabled = 4;
+  int32 downtime_depth = 5;
+  string check_command = 6;
+  int32 check_interval = 7;
+  string check_period = 8;
+
+  enum CheckType {
+    CHECK_ACTIVE = 0;
+    CHECK_PASSIVE = 1;
+  }
+  CheckType check_type = 9;
+  int32 current_check_attempt = 10;
+  enum State {
+    UP = 0;
+    DOWN = 1;
+    UNREACHABLE = 2;
+  }
+  State current_state = 11;
+  bool event_handler_enabled = 12;
+  string event_handler = 13;
+  double execution_time = 14;
+  bool flap_detection_enabled = 15;
+  bool has_been_checked = 16;
+  bool is_flapping = 17;
+  int64 last_check = 18;
+  State last_hard_state = 19;
+  int64 last_hard_state_change = 20;
+  int64 last_notification = 21;
+  int32 notification_number = 22;
+  int64 last_state_change = 23;
+  int64 last_time_down = 24;
+  int64 last_time_unreachable = 25;
+  int64 last_time_up = 26;
+  int64 last_update = 27;
+  double latency = 28;
+  int32 max_check_attempts = 29;
+  int64 next_check = 30;
+  int64 next_notification = 31;
+  bool no_more_notifications = 32;
+  bool notifications_enabled = 33;
+  string output = 34;
+  bool passive_checks_enabled = 35;
+  double percent_state_change = 36;
+  string perf_data = 37;
+  double retry_interval = 38;
+  bool should_be_scheduled = 39;
+  bool obsess_over = 40;
+
+  enum StateType {
+    SOFT = 0;
+    HARD = 1;
+  }
+
+  StateType state_type = 41;
+}

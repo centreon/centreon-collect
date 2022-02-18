@@ -98,10 +98,11 @@ set(NEB_SOURCES
 
 # Static library.
 add_library(nebbase STATIC ${NEB_SOURCES})
-add_dependencies(nebbase table_max_size pb_service_lib)
+add_dependencies(nebbase table_max_size pb_service_lib pb_host_lib)
 target_link_libraries(nebbase
     CONAN_PKG::protobuf
-    pb_service_lib)
+    pb_service_lib 
+    pb_host_lib)
 
 set(NEBBASE_CXXFLAGS "${NEBBASE_CXXFLAGS} -fPIC")
 set_property(TARGET nebbase PROPERTY COMPILE_FLAGS ${NEBBASE_CXXFLAGS})

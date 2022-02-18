@@ -57,20 +57,20 @@ message Service {
   int64 next_notification = 33;
   bool no_more_notifications = 34;
   bool notifications_enabled = 35;
-  string output = 37;
-  string long_output = 38;
-  bool passive_checks_enabled = 39;
-  double percent_state_change = 40;
-  string perf_data = 41;
-  double retry_interval = 42;
-  string host_name = 43;
-  string service_description = 44;
-  bool should_be_scheduled = 45;
+  string output = 36;
+  string long_output = 37;
+  bool passive_checks_enabled = 38;
+  double percent_state_change = 39;
+  string perf_data = 40;
+  double retry_interval = 41;
+  string host_name = 42;
+  string service_description = 43;
+  bool should_be_scheduled = 44;
 
   enum StateType {
     SOFT = 0;
     HARD = 1;
   }
 
-  StateType state_type = 46;
+  StateType state_type = 45;
 }

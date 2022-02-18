@@ -2504,3 +2504,221 @@ TEST_F(LuaTest, BrokerPbServiceStatusJsonEncode) {
   RemoveFile(filename);
   RemoveFile("/tmp/event_log");
 }
+
+TEST_F(LuaTest, BrokerPbHostStatus) {
+  config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  auto host = std::make_shared<neb::pb_host>();
+  auto& obj = host->mut_obj();
+  obj.set_host_id(1899);
+  *obj.mutable_check_command() = "super command";
+  *obj.mutable_output() = "cool";
+  obj.set_current_state(Host_State_UP);
+  obj.set_check_interval(7);
+  obj.set_check_type(Host_CheckType_CHECK_ACTIVE);
+  obj.set_last_check(123456);
+  std::string filename("/tmp/cache_test.lua");
+  CreateScript(
+      filename,
+      "function init(conf)\n"
+      "  broker_log:set_parameters(3, '/tmp/event_log')\n"
+      "end\n\n"
+      "function write(d)\n"
+      "  broker_log:info(0, 'check_command = ' .. tostring(d.check_command))\n"
+      "  broker_log:info(0, 'output = ' .. d.output)\n"
+      "  broker_log:info(0, 'state = ' .. d.current_state)\n"
+      "  broker_log:info(0, 'check_interval = ' .. d.check_interval)\n"
+      "  broker_log:info(0, 'check_type = ' .. d.check_type)\n"
+      "  broker_log:info(0, 'host_id = ' .. d.host_id)\n"
+      "  broker_log:info(0, 'last_check = ' .. d.last_check)\n"
+      "  return true\n"
+      "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  binding->write(host);
+  std::string lst(ReadFile("/tmp/event_log"));
+  ASSERT_NE(lst.find("check_command = super command"), std::string::npos);
+  ASSERT_NE(lst.find("output = cool"), std::string::npos);
+  ASSERT_NE(lst.find("state = 0"), std::string::npos);
+  ASSERT_NE(lst.find("check_interval = 7"), std::string::npos);
+  ASSERT_NE(lst.find("check_type = 0"), std::string::npos);
+  ASSERT_NE(lst.find("host_id = 1899"), std::string::npos);
+  ASSERT_NE(lst.find("last_check = 123456"), std::string::npos);
+  RemoveFile(filename);
+  RemoveFile("/tmp/event_log");
+}
+
+TEST_F(LuaTest, BrokerApi2PbHostStatusWithIndex) {
+  config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  auto host = std::make_shared<neb::pb_host>();
+  auto& obj = host->mut_obj();
+  obj.set_host_id(1899);
+  *obj.mutable_check_command() = "super command";
+  *obj.mutable_output() = "cool";
+  obj.set_current_state(Host_State_UP);
+  obj.set_check_interval(7);
+  obj.set_check_type(Host_CheckType_CHECK_ACTIVE);
+  obj.set_last_check(123456);
+  std::string filename("/tmp/cache_test.lua");
+  CreateScript(
+      filename,
+      "broker_api_version = 2\n"
+      "function init(conf)\n"
+      "  broker_log:set_parameters(3, '/tmp/event_log')\n"
+      "end\n\n"
+      "function write(d)\n"
+      "  broker_log:info(0, 'check_command = ' .. tostring(d.check_command))\n"
+      "  broker_log:info(0, 'output = ' .. d.output)\n"
+      "  broker_log:info(0, 'state = ' .. d.current_state)\n"
+      "  broker_log:info(0, 'check_interval = ' .. d.check_interval)\n"
+      "  broker_log:info(0, 'check_type = ' .. d.check_type)\n"
+      "  broker_log:info(0, 'host_id = ' .. d.host_id)\n"
+      "  broker_log:info(0, 'last_check = ' .. d.last_check)\n"
+      "  return true\n"
+      "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  binding->write(host);
+  std::string lst(ReadFile("/tmp/event_log"));
+  ASSERT_NE(lst.find("check_command = super command"), std::string::npos);
+  ASSERT_NE(lst.find("output = cool"), std::string::npos);
+  ASSERT_NE(lst.find("state = 0"), std::string::npos);
+  ASSERT_NE(lst.find("check_interval = 7"), std::string::npos);
+  ASSERT_NE(lst.find("check_type = 0"), std::string::npos);
+  ASSERT_NE(lst.find("host_id = 1899"), std::string::npos);
+  ASSERT_NE(lst.find("last_check = 123456"), std::string::npos);
+  RemoveFile(filename);
+  RemoveFile("/tmp/event_log");
+}
+
+TEST_F(LuaTest, BrokerApi2PbHostStatusWithNext) {
+  config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  auto host = std::make_shared<neb::pb_host>();
+  auto& obj = host->mut_obj();
+  obj.set_host_id(1899);
+  *obj.mutable_check_command() = "super command";
+  *obj.mutable_output() = "cool";
+  obj.set_current_state(Host_State_UP);
+  obj.set_check_interval(7);
+  obj.set_check_type(Host_CheckType_CHECK_ACTIVE);
+  obj.set_last_check(123459);
+  std::string filename("/tmp/cache_test.lua");
+  CreateScript(filename,
+               "broker_api_version = 2\n"
+               "function init(conf)\n"
+               "  broker_log:set_parameters(3, '/tmp/event_log')\n"
+               "end\n\n"
+               "function write(d)\n"
+               "  for i,v in pairs(d) do\n"
+               "    broker_log:info(0, i .. ' => ' .. tostring(v))\n"
+               "  end\n"
+               "  return true\n"
+               "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  binding->write(host);
+  std::string lst(ReadFile("/tmp/event_log"));
+  ASSERT_NE(lst.find("check_command => super command"), std::string::npos);
+  ASSERT_NE(lst.find("output => cool"), std::string::npos);
+  ASSERT_NE(lst.find("state => 0"), std::string::npos);
+  ASSERT_NE(lst.find("check_interval => 7"), std::string::npos);
+  ASSERT_NE(lst.find("check_type => 0"), std::string::npos);
+  ASSERT_NE(lst.find("host_id => 1899"), std::string::npos);
+  ASSERT_NE(lst.find("last_check => 123459"), std::string::npos);
+  RemoveFile(filename);
+  RemoveFile("/tmp/event_log");
+}
+
+TEST_F(LuaTest, BrokerApi2PbHostStatusJsonEncode) {
+  config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  auto host = std::make_shared<neb::pb_host>();
+  auto& obj = host->mut_obj();
+  obj.set_host_id(1899);
+  *obj.mutable_check_command() = "super command";
+  *obj.mutable_output() = "cool";
+  obj.set_current_state(Host_State_UP);
+  obj.set_check_interval(7);
+  obj.set_check_type(Host_CheckType_CHECK_ACTIVE);
+  obj.set_last_check(123459);
+  std::string filename("/tmp/cache_test.lua");
+  CreateScript(filename,
+               "broker_api_version = 2\n"
+               "function init(conf)\n"
+               "  broker_log:set_parameters(3, '/tmp/event_log')\n"
+               "end\n\n"
+               "function write(d)\n"
+               "  broker_log:info(0, broker.json_encode(d))\n"
+               "  return true\n"
+               "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  binding->write(host);
+  std::string lst(ReadFile("/tmp/event_log"));
+  std::cout << lst << std::endl;
+  ASSERT_NE(
+      lst.find("INFO: { \"_type\": 65564, \"category\": 1, \"element\": 28, "
+               "\"host_id\":1899, \"acknowledged\":false, "
+               "\"acknowledgement_type\":0, \"active_checks_enabled\":false, "
+               "\"downtime_depth\":0, \"check_command\":\"super command\", "
+               "\"check_interval\":7, \"check_period\":\"\", \"check_type\":0, "
+               "\"current_check_attempt\":0, \"current_state\":0, "
+               "\"event_handler_enabled\":false, \"event_handler\":\"\", "
+               "\"execution_time\":0, \"flap_detection_enabled\":false, "
+               "\"has_been_checked\":false, \"is_flapping\":false, "
+               "\"last_check\":123459, \"last_hard_state\":0, "
+               "\"last_hard_state_change\":0, \"last_notification\":0, "
+               "\"notification_number\":0, \"last_state_change\":0, "
+               "\"last_time_down\":0, \"last_time_unreachable\":0, "
+               "\"last_time_up\":0, \"last_update\":0, \"latency\":0, "
+               "\"max_check_attempts\":0, \"next_check\":0, "
+               "\"next_notification\":0, \"no_more_notifications\":false, "
+               "\"notifications_enabled\":false, \"output\":\"cool\", "
+               "\"passive_checks_enabled\":false, \"percent_state_change\":0, "
+               "\"perf_data\":\"\", \"retry_interval\":0, "
+               "\"should_be_scheduled\":false, \"obsess_over\":false, "
+               "\"state_type\":0}"),
+      std::string::npos);
+
+  RemoveFile(filename);
+  RemoveFile("/tmp/event_log");
+}
+
+TEST_F(LuaTest, BrokerPbHostStatusJsonEncode) {
+  config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  auto host = std::make_shared<neb::pb_host>();
+  auto& obj = host->mut_obj();
+  obj.set_host_id(1899);
+  *obj.mutable_check_command() = "super command";
+  *obj.mutable_output() = "cool";
+  obj.set_current_state(Host_State_UP);
+  obj.set_check_interval(7);
+  obj.set_check_type(Host_CheckType_CHECK_ACTIVE);
+  obj.set_last_check(123459);
+  std::string filename("/tmp/cache_test.lua");
+  CreateScript(filename,
+               "function init(conf)\n"
+               "  broker_log:set_parameters(3, '/tmp/event_log')\n"
+               "end\n\n"
+               "function write(d)\n"
+               "  broker_log:info(0, broker.json_encode(d))\n"
+               "  return true\n"
+               "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  binding->write(host);
+  std::string lst(ReadFile("/tmp/event_log"));
+  ASSERT_NE(lst.find("\"_type\":65564"), std::string::npos);
+  ASSERT_NE(lst.find("\"category\":1"), std::string::npos);
+  ASSERT_NE(lst.find("\"element\":28"), std::string::npos);
+  ASSERT_NE(lst.find("\"host_id\":1899"), std::string::npos);
+  ASSERT_NE(lst.find("\"check_interval\":7"), std::string::npos);
+  ASSERT_NE(lst.find("\"current_state\":0"), std::string::npos);
+  ASSERT_NE(lst.find("\"last_check\":123459"), std::string::npos);
+  ASSERT_NE(lst.find("\"output\":\"cool\""), std::string::npos);
+  RemoveFile(filename);
+  RemoveFile("/tmp/event_log");
+}

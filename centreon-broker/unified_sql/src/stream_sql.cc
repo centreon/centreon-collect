@@ -1041,6 +1041,109 @@ void stream::_process_host_status(const std::shared_ptr<io::data>& d) {
 }
 
 /**
+ *  Process a host status protobuf event.
+ *
+ *  @param[in] e Uncasted host status.
+ *
+ * @return The number of events that can be acknowledged.
+ */
+void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
+  _finish_action(-1, actions::host_parents | actions::comments |
+                         actions::downtimes | actions::host_dependencies |
+                         actions::host_dependencies);
+  // Processed object.
+  auto s{static_cast<neb::pb_host const*>(d.get())};
+  auto ss = s->obj();
+
+  log_v2::perfdata()->info("SQL: pb host status output: <<{}>>", ss.output());
+  log_v2::perfdata()->info("SQL: host status perfdata: <<{}>>", ss.perf_data());
+
+  time_t now = time(nullptr);
+  if (ss.check_type() ||           // - passive result
+      !ss.active_checks_enabled()  // - active checks are disabled,
+                                   //   status might not be updated
+      ||                           // - normal case
+      ss.next_check() >= now - 5 * 60 || !ss.next_check()) {  // - initial state
+    // Apply to DB.
+    log_v2::sql()->info(
+        "SQL: processing host status event (host: {}, last "
+        "check: {}, state ({}, {}))",
+        ss.host_id(), ss.last_check(), ss.current_state(), ss.state_type());
+
+    // Prepare queries.
+    if (!_host_status_update.prepared()) {
+      query_preparator::event_unique unique;
+      unique.insert("host_id");
+      query_preparator qp(neb::pb_host::static_type(), unique);
+
+      _host_status_update = qp.prepare_update_table(
+          _mysql, "hosts",
+          {
+              {1, "host_id", io::protobuf_base::invalid_on_zero, 0},
+              {2, "acknowledged", 0, 0},
+              {3, "acknowledgement_type", 0, 0},
+              {4, "active_checks", 0, 0},
+              {5, "scheduled_downtime_depth", 0, 0},
+              {6, "check_command", 0, get_hosts_col_size(hosts_check_command)},
+              {7, "check_interval", 0, 0},
+              {8, "check_period", 0, get_hosts_col_size(hosts_check_period)},
+              {9, "check_type", 0, 0},
+              {10, "check_attempt", 0, 0},
+              {11, "state", 0, 0},
+              {12, "event_handler_enabled", 0, 0},
+              {13, "event_handler", 0, get_hosts_col_size(hosts_event_handler)},
+              {14, "execution_time", 0, 0},
+              {15, "flap_detection", 0, 0},
+              {16, "checked", 0, 0},
+              {17, "flapping", 0, 0},
+              {18, "last_check", io::protobuf_base::invalid_on_zero, 0},
+              {19, "last_hard_state", 0, 0},
+              {20, "last_hard_state_change", io::protobuf_base::invalid_on_zero,
+               0},
+              {21, "last_notification", io::protobuf_base::invalid_on_zero, 0},
+              {22, "notification_number", 0, 0},
+              {23, "last_state_change", io::protobuf_base::invalid_on_zero, 0},
+              {24, "last_time_down", io::protobuf_base::invalid_on_zero, 0},
+              {25, "last_time_unreachable", io::protobuf_base::invalid_on_zero,
+               0},
+              {26, "last_time_up", io::protobuf_base::invalid_on_zero, 0},
+              {27, "last_update", io::protobuf_base::invalid_on_zero, 0},
+              {28, "latency", 0, 0},
+              {29, "max_check_attempts", 0, 0},
+              {30, "next_check", io::protobuf_base::invalid_on_zero, 0},
+              {31, "next_host_notification", io::protobuf_base::invalid_on_zero,
+               0},
+              {32, "no_more_notifications", 0, 0},
+              {33, "notify", 0, 0},
+              {34, "output", 0, get_hosts_col_size(hosts_output)},
+              {35, "passive_checks", 0, 0},
+              {36, "percent_state_change", 0, 0},
+              {37, "perfdata", 0, get_hosts_col_size(hosts_perfdata)},
+              {38, "retry_interval", 0, 0},
+              {39, "should_be_scheduled", 0, 0},
+              {40, "obsess_over_host", 0, 0},
+              {41, "state_type", 0, 0},
+          });
+    }
+
+    // Processing.
+    _host_status_update << *s;
+    int32_t conn = _mysql.choose_connection_by_instance(
+        _cache_host_instance[static_cast<uint32_t>(ss.host_id())]);
+    _mysql.run_statement(_host_status_update,
+                         database::mysql_error::store_host_status, false, conn);
+    _add_action(conn, actions::hosts);
+  } else
+    // Do nothing.
+    log_v2::sql()->info(
+        "SQL: not processing host status event (host: {}, "
+        "check type: {}, last check: {}, next check: {}, now: {}, state ({}, "
+        "{}))",
+        ss.host_id(), ss.check_type(), ss.last_check(), ss.next_check(), now,
+        ss.current_state(), ss.state_type());
+}
+
+/**
  *  Process an instance event. The thread executing the command is controlled
  *  so that queries depending on this one will be made by the same thread.
  *
@@ -1610,8 +1713,8 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
       ss.next_check() >= now - 5 * 60 || !ss.next_check()) {  // - initial state
     // Apply to DB.
     log_v2::sql()->info(
-        "SQL: processing service status event (host: {}, service: {}, last "
-        "check: {}, state ({}, {}))",
+        "SQL: processing service status event proto (host: {}, service: {}, "
+        "last check: {}, state ({}, {}))",
         ss.host_id(), ss.service_id(), ss.last_check(), ss.current_state(),
         ss.state_type());
 
@@ -1631,18 +1734,27 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
               {4, "acknowledgement_type", 0, 0},
               {5, "active_checks", 0, 0},
               {6, "scheduled_downtime_depth", 0, 0},
-              {7, "check_command", 0, 0},
+              {7, "check_command", 0,
+               get_services_col_size(services_check_command)},
               {8, "check_interval", 0, 0},
-              {9, "check_period", 0, 0},
+              {9, "check_period", 0,
+               get_services_col_size(services_check_period)},
               {10, "check_type", 0, 0},
               {11, "check_attempt", 0, 0},
               {12, "state", 0, 0},
+              {13, "event_handler_enabled", 0, 0},
+              {14, "event_handler", 0,
+               get_services_col_size(services_event_handler)},
               {15, "execution_time", 0, 0},
+              {16, "flap_detection", 0, 0},
               {17, "checked", 0, 0},
+              {18, "flapping", 0, 0},
               {19, "last_check", io::protobuf_base::invalid_on_zero, 0},
               {20, "last_hard_state", 0, 0},
               {21, "last_hard_state_change", io::protobuf_base::invalid_on_zero,
                0},
+              {22, "last_notification", io::protobuf_base::invalid_on_zero, 0},
+              {23, "notification_number", 0, 0},
               {24, "last_state_change", io::protobuf_base::invalid_on_zero, 0},
               {25, "last_time_ok", io::protobuf_base::invalid_on_zero, 0},
               {26, "last_time_warning", io::protobuf_base::invalid_on_zero, 0},
@@ -1650,6 +1762,18 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
               {28, "last_time_unknown", io::protobuf_base::invalid_on_zero, 0},
               {29, "last_update", io::protobuf_base::invalid_on_zero, 0},
               {30, "latency", 0, 0},
+              {31, "max_check_attempts", 0, 0},
+              {32, "next_check", io::protobuf_base::invalid_on_zero, 0},
+              {33, "next_notification", io::protobuf_base::invalid_on_zero, 0},
+              {34, "no_more_notifications", 0, 0},
+              {35, "notify", 0, 0},
+              {36, "output", 0, get_services_col_size(services_output)},
+              {38, "passive_checks", 0, 0},
+              {39, "percent_state_change", 0, 0},
+              {40, "perfdata", 0, get_services_col_size(services_perfdata)},
+              {41, "retry_interval", 0, 0},
+              {44, "should_be_scheduled", 0, 0},
+              {45, "state_type", 0, 0},
           });
     }
 
