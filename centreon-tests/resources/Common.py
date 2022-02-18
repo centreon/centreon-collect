@@ -285,3 +285,56 @@ def check_ba_status_with_timeout(ba_name: str, status: int, timeout: int):
         time.sleep(5)
     return False
 
+def check_service_downtime_with_timeout(hostname: str, service_desc: str, enabled, timeout: int):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host='localhost',
+                                 user='centreon',
+                                 password='centreon',
+                                 database='centreon_storage',
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT s.scheduled_downtime_depth from services s LEFT JOIN hosts h ON s.host_id=h.host_id wHERE s.description='{}' AND h.name='{}'".format(service_desc, hostname))
+                result = cursor.fetchall()
+                if not result[0]['scheduled_downtime_depth'] is None and result[0]['scheduled_downtime_depth'] == int(enabled):
+                    return True
+        time.sleep(5)
+    return False
+
+def delete_service_downtime(hst: str, svc: str):
+    now = int(time.time())
+    connection = pymysql.connect(host='localhost',
+                             user='centreon',
+                             password='centreon',
+                             database='centreon_storage',
+                             charset='utf8mb4',
+                             cursorclass=pymysql.cursors.DictCursor)
+
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute("select d.internal_id from downtimes d inner join hosts h on d.host_id=h.host_id inner join services s on d.service_id=s.service_id where d.cancelled='0' and s.scheduled_downtime_depth='1' and s.description='{}' and h.name='{}'".format(svc, hst))
+            result = cursor.fetchall()
+            did = int(result[0]['internal_id'])
+
+    cmd = "[{}] DEL_SVC_DOWNTIME;{}".format(now, did)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
+
+def number_of_downtimes_is(nb: int):
+    connection = pymysql.connect(host='localhost',
+                             user='centreon',
+                             password='centreon',
+                             database='centreon_storage',
+                             charset='utf8mb4',
+                             cursorclass=pymysql.cursors.DictCursor)
+
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT count(*) from services WHERE scheduled_downtime_depth='1'")
+            result = cursor.fetchall()
+            return int(result[0]['count(*)']) == int(nb)
+

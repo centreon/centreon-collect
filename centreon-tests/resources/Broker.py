@@ -898,7 +898,6 @@ def get_metrics_matching_indexes(indexes):
             result = cursor.fetchall()
             retval = [int(r['metric_id']) for r in result]
             return retval
-    return []
 
 
 ##
@@ -943,9 +942,12 @@ def rebuild_rrd_graphs(port, indexes):
 #
 # @return A boolean.
 def compare_rrd_average_value(metric, value: float):
-    res = getoutput("rrdtool graph dummy --start=end-30d --end=now DEF:x=/var/lib/centreon/metrics/{}.rrd:value:AVERAGE VDEF:xa=x,AVERAGE PRINT:xa:%lf".format(metric))
+    res = getoutput("rrdtool graph dummy --start=end-30d --end=now"
+                    " DEF:x=/var/lib/centreon/metrics/{}.rrd:value:AVERAGE VDEF:xa=x,AVERAGE PRINT:xa:%lf"
+                    .format(metric))
     res = float(res.split('\n')[1].replace(',', '.'))
     return abs(res - float(value)) < 2
+
 
 ##
 # @brief Call the GetSqlManagerStats function by gRPC and checks there are
@@ -966,6 +968,7 @@ def check_sql_connections_count_with_grpc(port, count):
                 return False
     return True
 
+
 ##
 # @brief Call the GetSqlManagerStats function by gRPC and checks there are
 # count active connections.
@@ -983,6 +986,12 @@ def check_all_sql_connections_down_with_grpc(port):
                 return False
     return True
 
+
+##
+# @brief Add the bam configuration to broker.
+#
+# @param name The broker name to consider.
+#
 def add_bam_config_to_broker(name):
     if name == 'central':
         filename = "central-broker.json"
@@ -1000,7 +1009,7 @@ def add_bam_config_to_broker(name):
         "name": "centreon-bam-monitoring",
         "cache": "yes",
         "check_replication": "no",
-        "command_file": "/var/lib/centreon-engine/rw/centengine.cmd",
+        "command_file": "/var/lib/centreon-engine/config0/rw/centengine.cmd",
         "db_host": "127.0.0.1",
         "db_name": "centreon",
         "db_password": "centreon",

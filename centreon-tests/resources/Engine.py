@@ -385,13 +385,31 @@ define connector {
         f.writelines(lines)
         f.close()
 
+
+##
+# @brief Configure all the necessary files for num instances of centengine.
+#
+# @param num: How many engine configurations to start
+#
 def config_engine(num: int):
   global engine
   engine = EngineInstance(num)
 
+
+##
+# @brief Accessor to the number of centengine configurations
+#
 def get_engines_count():
   return engine.instances
 
+
+##
+# @brief Function to change a value in the centengine.cfg for the config idx.
+#
+# @param idx index of the configuration (from 0)
+# @param key the key to change the value.
+# @param value the new value to set to the key variable.
+#
 def engine_config_set_value(idx: int, key: str, value: str):
   filename = "/etc/centreon-engine/config{}/centengine.cfg".format(idx)
   f = open(filename, "r")
@@ -405,6 +423,7 @@ def engine_config_set_value(idx: int, key: str, value: str):
   f = open(filename, "w")
   f.writelines(lines)
   f.close()
+
 
 def add_host_group(index: int, members: list):
     mbs = []
@@ -425,29 +444,36 @@ def engine_log_duplicate(result: list):
     return dup
 
 def clone_engine_config_to_db():
-    global db_conf
-    db_conf = db_conf.DbConf(engine)
-    db_conf.create_conf_db()
+    global dbconf
+    dbconf = db_conf.DbConf(engine)
+    dbconf.create_conf_db()
 
 def add_bam_config_to_engine():
-    global db_conf
-    db_conf.init_bam()
+    global dbconf
+    dbconf.init_bam()
 
 def create_ba_with_services(name: str, typ: str, svc: list):
-    global db_conf
-    db_conf.create_ba_with_services(name, typ, svc)
+    global dbconf
+    dbconf.create_ba_with_services(name, typ, svc)
 
 
 def get_command_id(service:int):
     global engine
-    global db_conf
+    global dbconf
     cmd_name = engine.service_cmd[service]
-    return db_conf.command[cmd_name]
+    return dbconf.command[cmd_name]
 
 
 def process_service_check_result(hst: str, svc: str, state: int, output: str):
     now = int(time.time())
     cmd = "[{}] PROCESS_SERVICE_CHECK_RESULT;{};{};{};{}\n".format(now, hst, svc, state, output)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
+
+def schedule_service_downtime(hst: str, svc: str, duration: int):
+    now = int(time.time())
+    cmd = "[{2}] SCHEDULE_SVC_DOWNTIME;{0};{1};{2};{3};1;0;{4};admin;Downtime set by admin".format(hst, svc, now, now + duration, duration)
     f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
     f.write(cmd)
     f.close()

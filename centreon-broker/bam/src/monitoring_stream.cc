@@ -229,9 +229,9 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
       ba_status* status(static_cast<ba_status*>(data.get()));
       log_v2::bam()->trace(
           "BAM: processing BA status (id {}, nominal {}, acknowledgement {}, "
-          "downtime {}) - in downtime {}",
+          "downtime {}) - in downtime {}, state {}",
           status->ba_id, status->level_nominal, status->level_acknowledgement,
-          status->level_downtime, status->in_downtime);
+          status->level_downtime, status->in_downtime, status->state);
       _ba_update.bind_value_as_f64(0, status->level_nominal);
       _ba_update.bind_value_as_f64(1, status->level_acknowledgement);
       _ba_update.bind_value_as_f64(2, status->level_downtime);

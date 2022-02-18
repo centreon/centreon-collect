@@ -517,8 +517,9 @@ void ba::visit(io::stream* visitor) {
     else if (_in_downtime != _event->in_downtime ||
              hard_state != _event->status) {
       log_v2::bam()->trace(
-          "BAM: ba::visit event needs update downtime: {}, state: {}",
-          _in_downtime != _event->in_downtime, hard_state != _event->status);
+          "BAM: ba current event needs update? downtime?: {}, state?: {} ; dt:{}, state:{} ",
+          _in_downtime != _event->in_downtime, hard_state != _event->status,
+          _in_downtime, hard_state);
       state_changed = true;
       _event->end_time = _last_kpi_update;
       visitor->write(std::static_pointer_cast<io::data>(_event));

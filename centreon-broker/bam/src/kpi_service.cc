@@ -188,8 +188,8 @@ void kpi_service::service_update(
       status->service_id == _service_id) {
     // Log message.
     log_v2::bam()->debug(
-        "BAM: KPI {} is getting notified of service ({}, {}) update", _id,
-        _host_id, _service_id);
+        "BAM: KPI {} is getting notified of service ({}, {}) update (state: {})", _id,
+        _host_id, _service_id, status->current_state);
 
     // Update information.
     if (status->last_check.is_null()) {
@@ -409,7 +409,7 @@ void kpi_service::visit(io::stream* visitor) {
     // Generate status event.
     {
       log_v2::bam()->debug("Generating kpi status {} for service", _id);
-      std::shared_ptr<kpi_status> status{std::make_shared<kpi_status>(_id)};
+      auto status{std::make_shared<kpi_status>(_id)};
       status->in_downtime = in_downtime();
       status->level_acknowledgement_hard = hard_values.get_acknowledgement();
       status->level_acknowledgement_soft = soft_values.get_acknowledgement();
@@ -423,8 +423,8 @@ void kpi_service::visit(io::stream* visitor) {
       status->last_impact =
           _downtimed ? hard_values.get_downtime() : hard_values.get_nominal();
       log_v2::bam()->trace(
-          "Writing kpi status {}: in downtime: {} ; last state changed: {}",
-          _id, status->in_downtime, status->last_state_change);
+          "Writing kpi status {}: in downtime: {} ; last state changed: {} ; state: {}",
+          _id, status->in_downtime, status->last_state_change, status->state_hard);
       visitor->write(status);
     }
   }
