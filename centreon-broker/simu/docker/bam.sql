@@ -386,7 +386,7 @@ CREATE TABLE IF NOT EXISTS `mod_bam_contact_timeperiod` (
 -- Structure de la table `mod_bam_reporting`
 -- 
 
-CREATE TABLE IF NOT EXISTS @DB_CENTSTORAGE@.`mod_bam_reporting` (
+CREATE TABLE IF NOT EXISTS centreon_storage.`mod_bam_reporting` (
   `log_id` int(11) NOT NULL auto_increment,
   `host_name` varchar(255) NOT NULL default '0',
   `service_description` varchar(255) NOT NULL default '0',
@@ -419,7 +419,7 @@ CREATE TABLE IF NOT EXISTS @DB_CENTSTORAGE@.`mod_bam_reporting` (
 -- Structure de la table `mod_bam_reporting_status`
 -- 
 
-CREATE TABLE IF NOT EXISTS @DB_CENTSTORAGE@.`mod_bam_reporting_status` (
+CREATE TABLE IF NOT EXISTS centreon_storage.`mod_bam_reporting_status` (
   `id` int(11) NOT NULL,
   `host_name` varchar(255) default NULL,
   `service_description` varchar(255) default NULL,
@@ -432,7 +432,7 @@ CREATE TABLE IF NOT EXISTS @DB_CENTSTORAGE@.`mod_bam_reporting_status` (
 -- Structure de la table `mod_bam_logs`
 -- 
 
-CREATE TABLE IF NOT EXISTS @DB_CENTSTORAGE@.`mod_bam_logs` (
+CREATE TABLE IF NOT EXISTS centreon_storage.`mod_bam_logs` (
   `status` varchar(255) NOT NULL,
   `level` float NOT NULL,
   `warning_thres` float NOT NULL,
@@ -450,7 +450,7 @@ CREATE TABLE IF NOT EXISTS @DB_CENTSTORAGE@.`mod_bam_logs` (
 -- Structure de la table `mod_bam_kpi_logs`
 -- 
 
-CREATE TABLE IF NOT EXISTS @DB_CENTSTORAGE@.`mod_bam_kpi_logs` (
+CREATE TABLE IF NOT EXISTS centreon_storage.`mod_bam_kpi_logs` (
   `kpi_id` int(11),
   `boolean_id` int(11),
   `ba_id` int(11),
@@ -468,7 +468,7 @@ CREATE TABLE IF NOT EXISTS @DB_CENTSTORAGE@.`mod_bam_kpi_logs` (
 --
 -- Business Views.
 --
-CREATE TABLE @DB_CENTSTORAGE@.mod_bam_reporting_bv (
+CREATE TABLE centreon_storage.mod_bam_reporting_bv (
   bv_id int NOT NULL auto_increment,
   bv_name varchar(255) default NULL,
 
@@ -481,7 +481,7 @@ CREATE TABLE @DB_CENTSTORAGE@.mod_bam_reporting_bv (
 --
 -- Business Activities.
 --
-CREATE TABLE @DB_CENTSTORAGE@.mod_bam_reporting_ba (
+CREATE TABLE centreon_storage.mod_bam_reporting_ba (
   ba_id int NOT NULL,
   ba_name varchar(254) default NULL,
   ba_description text default NULL,
@@ -497,7 +497,7 @@ CREATE TABLE @DB_CENTSTORAGE@.mod_bam_reporting_ba (
 --
 -- Key Performance Indicators.
 --
-CREATE TABLE @DB_CENTSTORAGE@.mod_bam_reporting_kpi (
+CREATE TABLE centreon_storage.mod_bam_reporting_kpi (
   kpi_id int NOT NULL,
   kpi_name varchar(255) default NULL,
 
@@ -527,7 +527,7 @@ CREATE TABLE @DB_CENTSTORAGE@.mod_bam_reporting_kpi (
 --
 -- Relations between BA and BV.
 --
-CREATE TABLE @DB_CENTSTORAGE@.mod_bam_reporting_relations_ba_bv (
+CREATE TABLE centreon_storage.mod_bam_reporting_relations_ba_bv (
   ba_bv_id int NOT NULL auto_increment,
   bv_id int NOT NULL,
   ba_id int NOT NULL,
@@ -542,7 +542,7 @@ CREATE TABLE @DB_CENTSTORAGE@.mod_bam_reporting_relations_ba_bv (
 --
 -- BA events.
 --
-CREATE TABLE @DB_CENTSTORAGE@.mod_bam_reporting_ba_events (
+CREATE TABLE centreon_storage.mod_bam_reporting_ba_events (
   ba_event_id int NOT NULL auto_increment,
   ba_id int NOT NULL,
   start_time int NOT NULL,
@@ -561,7 +561,7 @@ CREATE TABLE @DB_CENTSTORAGE@.mod_bam_reporting_ba_events (
 --
 -- KPI events.
 --
-CREATE TABLE @DB_CENTSTORAGE@.mod_bam_reporting_kpi_events (
+CREATE TABLE centreon_storage.mod_bam_reporting_kpi_events (
   kpi_event_id int NOT NULL auto_increment,
   kpi_id int NOT NULL,
   start_time int NOT NULL,
@@ -581,7 +581,7 @@ CREATE TABLE @DB_CENTSTORAGE@.mod_bam_reporting_kpi_events (
 --
 -- Relations between BA events and KPI events.
 --
-CREATE TABLE @DB_CENTSTORAGE@.mod_bam_reporting_relations_ba_kpi_events (
+CREATE TABLE centreon_storage.mod_bam_reporting_relations_ba_kpi_events (
   relation_id BIGINT NOT NULL auto_increment,
   ba_event_id int NOT NULL,
   kpi_event_id int NOT NULL,
@@ -596,7 +596,7 @@ CREATE TABLE @DB_CENTSTORAGE@.mod_bam_reporting_relations_ba_kpi_events (
 --
 -- Timeperiods.
 --
-CREATE TABLE @DB_CENTSTORAGE@.mod_bam_reporting_timeperiods (
+CREATE TABLE centreon_storage.mod_bam_reporting_timeperiods (
   timeperiod_id int NOT NULL,
   name varchar(200) default NULL,
   sunday varchar(200) default NULL,
@@ -613,7 +613,7 @@ CREATE TABLE @DB_CENTSTORAGE@.mod_bam_reporting_timeperiods (
 --
 -- Timeperiods exceptions.
 --
-CREATE TABLE @DB_CENTSTORAGE@.mod_bam_reporting_timeperiods_exceptions (
+CREATE TABLE centreon_storage.mod_bam_reporting_timeperiods_exceptions (
   timeperiod_id int NOT NULL,
   daterange varchar(255) NOT NULL,
   timerange varchar(255) NOT NULL,
@@ -625,7 +625,7 @@ CREATE TABLE @DB_CENTSTORAGE@.mod_bam_reporting_timeperiods_exceptions (
 --
 -- Timeperiods exclusions.
 --
-CREATE TABLE @DB_CENTSTORAGE@.mod_bam_reporting_timeperiods_exclusions (
+CREATE TABLE centreon_storage.mod_bam_reporting_timeperiods_exclusions (
   timeperiod_id int NOT NULL,
   excluded_timeperiod_id int NOT NULL,
 
@@ -638,7 +638,7 @@ CREATE TABLE @DB_CENTSTORAGE@.mod_bam_reporting_timeperiods_exclusions (
 --
 -- BA/timeperiods relations.
 --
-CREATE TABLE @DB_CENTSTORAGE@.mod_bam_reporting_relations_ba_timeperiods (
+CREATE TABLE centreon_storage.mod_bam_reporting_relations_ba_timeperiods (
   ba_id int default NULL,
   timeperiod_id int default NULL,
   is_default boolean default NULL,
@@ -652,7 +652,7 @@ CREATE TABLE @DB_CENTSTORAGE@.mod_bam_reporting_relations_ba_timeperiods (
 --
 -- BA events durations.
 --
-CREATE TABLE @DB_CENTSTORAGE@.mod_bam_reporting_ba_events_durations (
+CREATE TABLE centreon_storage.mod_bam_reporting_ba_events_durations (
   ba_event_id int NOT NULL,
   timeperiod_id int NOT NULL,
 
@@ -672,7 +672,7 @@ CREATE TABLE @DB_CENTSTORAGE@.mod_bam_reporting_ba_events_durations (
 --
 -- BA availabilities.
 --
-CREATE TABLE @DB_CENTSTORAGE@.mod_bam_reporting_ba_availabilities (
+CREATE TABLE centreon_storage.mod_bam_reporting_ba_availabilities (
   ba_id int NOT NULL,
   time_id int NOT NULL,
   timeperiod_id int NOT NULL,

@@ -898,7 +898,6 @@ def get_metrics_matching_indexes(indexes):
             result = cursor.fetchall()
             retval = [int(r['metric_id']) for r in result]
             return retval
-    return []
 
 
 ##
@@ -943,9 +942,12 @@ def rebuild_rrd_graphs(port, indexes):
 #
 # @return A boolean.
 def compare_rrd_average_value(metric, value: float):
-    res = getoutput("rrdtool graph dummy --start=end-30d --end=now DEF:x=/var/lib/centreon/metrics/{}.rrd:value:AVERAGE VDEF:xa=x,AVERAGE PRINT:xa:%lf".format(metric))
+    res = getoutput("rrdtool graph dummy --start=end-30d --end=now"
+                    " DEF:x=/var/lib/centreon/metrics/{}.rrd:value:AVERAGE VDEF:xa=x,AVERAGE PRINT:xa:%lf"
+                    .format(metric))
     res = float(res.split('\n')[1].replace(',', '.'))
     return abs(res - float(value)) < 2
+
 
 ##
 # @brief Call the GetSqlManagerStats function by gRPC and checks there are
@@ -966,6 +968,7 @@ def check_sql_connections_count_with_grpc(port, count):
                 return False
     return True
 
+
 ##
 # @brief Call the GetSqlManagerStats function by gRPC and checks there are
 # count active connections.
@@ -982,3 +985,59 @@ def check_all_sql_connections_down_with_grpc(port):
             if c.up_since:
                 return False
     return True
+
+
+##
+# @brief Add the bam configuration to broker.
+#
+# @param name The broker name to consider.
+#
+def add_bam_config_to_broker(name):
+    if name == 'central':
+        filename = "central-broker.json"
+    elif name == 'module':
+        filename = "central-module.json"
+    else:
+        filename = "central-rrd.json"
+
+    f = open("/etc/centreon-broker/{}".format(filename), "r")
+    buf = f.read()
+    f.close()
+    conf = json.loads(buf)
+    output_dict = conf["centreonBroker"]["output"]
+    output_dict.append({
+        "name": "centreon-bam-monitoring",
+        "cache": "yes",
+        "check_replication": "no",
+        "command_file": "/var/lib/centreon-engine/config0/rw/centengine.cmd",
+        "db_host": "127.0.0.1",
+        "db_name": "centreon",
+        "db_password": "centreon",
+        "db_port": "3306",
+        "db_type": "mysql",
+        "db_user": "centreon",
+        "queries_per_transaction": "0",
+        "storage_db_name": "centreon_storage",
+        "type": "bam"
+        })
+    output_dict.append({
+      "name": "centreon-bam-reporting",
+      "filters": {
+      "category": [
+          "bam"
+        ]
+      },
+      "check_replication": "no",
+      "db_host": "127.0.0.1",
+      "db_name": "centreon_storage",
+      "db_password": "centreon",
+      "db_port": "3306",
+      "db_type": "mysql",
+      "db_user": "centreon",
+      "queries_per_transaction": "0",
+      "type": "bam_bi"
+    })
+    f = open("/etc/centreon-broker/{}".format(filename), "w")
+    f.write(json.dumps(conf, indent=2))
+    f.close()
+
