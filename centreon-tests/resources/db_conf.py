@@ -22,6 +22,7 @@ class DbConf:
         self.services_per_host_count = 20
         self.commands_per_poller_count = 50
         self.clear_db()
+        self.engine = engine
 
     def clear_db(self):
         # Connect to the database
@@ -53,6 +54,23 @@ class DbConf:
                 cursor.execute("DELETE FROM mod_bam_kpi")
                 cursor.execute("ALTER TABLE mod_bam_kpi AUTO_INCREMENT = 1")
             connection.commit()
+
+    def init_bam(self):
+        connection = pymysql.connect(host='localhost',
+                                     user='centreon',
+                                     password='centreon',
+                                     database='centreon',
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        self.engine.create_bam_timeperiod()
+        self.engine.create_bam_command()
+        with connection:
+            with connection.cursor() as cursor:
+                self.module_bam_hid = self.engine.create_bam_host()
+                cursor.execute("INSERT INTO host (host_id, host_name, contact_additive_inheritance, cg_additive_inheritance,host_location,host_locked,host_register,host_activate) VALUES ({}, '_Module_BAM_1',0,0,0,0,'2','1')".format(self.module_bam_hid))
+                connection.commit()
+        self.engine.centengine_conf_add_bam()
 
     def create_conf_db(self):
         connection = pymysql.connect(host='localhost',
@@ -156,9 +174,14 @@ class DbConf:
             elif typ == 'worst':
                 t = 2
             with connection.cursor() as cursor:
-                cursor.execute("INSERT INTO mod_bam (name, state_source) VALUES ('{}',{})".format(name, t))
+                cursor.execute("INSERT INTO mod_bam (name, state_source, activate,id_reporting_period,level_w,level_c,id_notification_period,notifications_enabled,event_handler_enabled, inherit_kpi_downtimes) VALUES ('{}',{},'1',1, 80, 70, 1,'0', '0','1')".format(name, t))
                 id_ba = cursor.lastrowid
+                sid = self.engine.create_bam_service("ba_{}".format(id_ba), name, "_Module_BAM_1", "centreon-bam-check!{}".format(id_ba))
+                cursor.execute("INSERT INTO service (service_id, service_description, display_name, service_active_checks_enabled, service_passive_checks_enabled,service_register) VALUES ({0}, \"ba_{1}\",\"{2}\",'2','2','2')".format(sid, id_ba, name))
+                cursor.execute("INSERT INTO host_service_relation (host_host_id, service_service_id) VALUES ({},{})".format(self.module_bam_hid, sid))
+                cursor.execute("INSERT INTO mod_bam_poller_relations VALUES ({},1)".format(id_ba))
                 for v in svc:
-                    cursor.execute("INSERT INTO mod_bam_kpi (host_id,service_id,id_ba) VALUES ({},{},{})".format(self.host[v[0]], self.service[v[1]],id_ba))
+                    cursor.execute("INSERT INTO mod_bam_kpi (host_id,service_id,id_ba,drop_warning_impact_id,drop_critical_impact_id,drop_unknown_impact_id,config_type) VALUES ({},{},{},1,1,1,'0')".format(self.host[v[0]], self.service[v[1]],id_ba))
+
             connection.commit()
 

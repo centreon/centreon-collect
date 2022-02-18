@@ -1,10 +1,11 @@
-import random
-from robot.api import logger
-import shutil
 from os import makedirs
-import sys
 from os.path import exists, dirname
+from robot.api import logger
 import db_conf
+import random
+import shutil
+import sys
+import time
 
 CONF_DIR = "/etc/centreon-engine"
 ENGINE_HOME = "/var/lib/centreon-engine"
@@ -152,6 +153,7 @@ class EngineInstance:
     service_description             service_{1}
     _SERVICE_ID                     {1}
     check_command                   {2}
+    check_period                    24x7
     max_check_attempts              3
     check_interval                  5
     retry_interval                  5
@@ -162,6 +164,93 @@ class EngineInstance:
 """.format(
             host_id, service_id, self.service_cmd[service_id])
         return retval
+
+    def create_bam_timeperiod(self):
+        retval = """define timeperiod {
+  timeperiod_name                centreon-bam-timeperiod
+  alias                          centreon-bam-timeperiod
+  sunday                         00:00-24:00
+  monday                         00:00-24:00
+  tuesday                        00:00-24:00
+  wednesday                      00:00-24:00
+  thursday                       00:00-24:00
+  friday                         00:00-24:00
+  saturday                       00:00-24:00
+}
+"""
+        config_dir = "{}/config0".format(CONF_DIR)
+        ff = open(config_dir + "/centreon-bam-timeperiod.cfg", "a+")
+        ff.write(retval)
+        ff.close()
+
+    def create_bam_command(self):
+        retval = """define command {
+  command_name                   centreon-bam-check
+  command_line                   $CENTREONPLUGINS$/check_centreon_bam -i $ARG1$
+                }
+
+define command {
+  command_name                   centreon-bam-host-alive
+  command_line                   /usr/lib64/nagios/plugins//check_ping -H $HOSTADDRESS$ -w 3000.0,80% -c 5000.0,100% -p 1
+}
+"""
+        config_dir = "{}/config0".format(CONF_DIR)
+        ff = open(config_dir + "/centreon-bam-command.cfg", "a+")
+        ff.write(retval)
+        ff.close()
+
+    def create_bam_host(self):
+        self.last_host_id += 1
+        print(self.last_host_id)
+        host_id = self.last_host_id
+        retval = """define host {{
+  host_name                      _Module_BAM_1
+  alias                          Centreon BAM Module
+  address                        127.0.0.1
+  check_command                  centreon-bam-host-alive
+  max_check_attempts             3
+  check_interval                 1
+  active_checks_enabled          0
+  passive_checks_enabled         0
+  check_period                   centreon-bam-timeperiod
+  notification_period            centreon-bam-timeperiod
+  notification_options           d
+  _HOST_ID                       {}
+  register                       1
+}}
+""".format(host_id)
+        config_dir = "{}/config0".format(CONF_DIR)
+        ff = open(config_dir + "/centreon-bam-host.cfg", "a+")
+        ff.write(retval)
+        ff.close()
+        return host_id
+
+    def create_bam_service(self, name:str, display_name:str, host_name:str,check_command:str):
+        self.last_service_id += 1
+        service_id = self.last_service_id
+        retval = """define service {{
+    service_description             {1}
+    display_name                    {2}
+    host_name                       {0}
+    check_command                   {3}
+    max_check_attempts              1
+    normal_check_interval           5
+    retry_check_interval            1
+    active_checks_enabled           1
+    passive_checks_enabled          1
+    check_period                    centreon-bam-timeperiod
+    notification_period             24x7
+    notifications_enabled           0
+    event_handler_enabled           0
+    _SERVICE_ID                     {4}
+    register                        1
+}}
+""".format(host_name, name, display_name, check_command, service_id)
+        config_dir = "{}/config0".format(CONF_DIR)
+        ff = open(config_dir + "/centreon-bam-services.cfg", "a+")
+        ff.write(retval)
+        ff.close()
+        return service_id
 
     @staticmethod
     def create_command(cmd):
@@ -250,15 +339,15 @@ define command {{
 """.format(ENGINE_HOME))
             f.close()
             f = open(config_dir + "/connectors.cfg", "w")
-            f.write("""define connector {                                                              
-    connector_name                 Perl Connector                               
-    connector_line                 /usr/lib64/centreon-connector/centreon_connector_perl 
-}                                                                               
-                                                                                
-define connector {                                                              
-    connector_name                 SSH Connector                                
-    connector_line                 /usr/lib64/centreon-connector/centreon_connector_ssh 
-}                       
+            f.write("""define connector {
+    connector_name                 Perl Connector
+    connector_line                 /usr/lib64/centreon-connector/centreon_connector_perl
+}
+
+define connector {
+    connector_name                 SSH Connector
+    connector_line                 /usr/lib64/centreon-connector/centreon_connector_ssh
+}
 """)
             f.close()
             f = open(config_dir + "/resource.cfg", "w")
@@ -284,6 +373,17 @@ define connector {
                 makedirs(ENGINE_HOME)
             for file in ["check.pl", "notif.pl"]:
                 shutil.copyfile("{0}/{1}".format(SCRIPT_DIR, file), "{0}/{1}".format(ENGINE_HOME, file))
+
+    def centengine_conf_add_bam(self):
+        config_dir = "{}/config0".format(CONF_DIR)
+        f = open(config_dir + "/centengine.cfg", "r")
+        lines = f.readlines()
+        f.close
+        lines_to_prep = ["cfg_file=/etc/centreon-engine/config0/centreon-bam-command.cfg\n", "cfg_file=/etc/centreon-engine/config0/centreon-bam-timeperiod.cfg\n", "cfg_file=/etc/centreon-engine/config0/centreon-bam-host.cfg\n", "cfg_file=/etc/centreon-engine/config0/centreon-bam-services.cfg\n"]
+        f = open(config_dir + "/centengine.cfg", "w")
+        f.writelines(lines_to_prep)
+        f.writelines(lines)
+        f.close()
 
 def config_engine(num: int):
   global engine
@@ -324,7 +424,34 @@ def engine_log_duplicate(result: list):
             dup = False
     return dup
 
-conf = EngineInstance(3)
-db_conf = db_conf.DbConf(conf)
-db_conf.create_conf_db()
-db_conf.create_ba_with_services("test", "worst", [("host_16", "service_313")])
+def clone_engine_config_to_db():
+    global db_conf
+    db_conf = db_conf.DbConf(engine)
+    db_conf.create_conf_db()
+
+def add_bam_config_to_engine():
+    global db_conf
+    db_conf.init_bam()
+
+def create_ba_with_services(name: str, typ: str, svc: list):
+    global db_conf
+    db_conf.create_ba_with_services(name, typ, svc)
+
+
+def get_command_id(service:int):
+    global engine
+    global db_conf
+    cmd_name = engine.service_cmd[service]
+    return db_conf.command[cmd_name]
+
+
+def process_service_check_result(hst: str, svc: str, state: int, output: str):
+    now = int(time.time())
+    cmd = "[{}] PROCESS_SERVICE_CHECK_RESULT;{};{};{};{}\n".format(now, hst, svc, state, output)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
+
+#process_service_check_result("host_16", "service_314", 2, "bad bad bad")
+#process_service_check_result("host_16", "service_314", 2, "bad bad bad")
+#process_service_check_result("host_16", "service_314", 2, "bad bad bad")
