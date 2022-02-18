@@ -1,9 +1,11 @@
 from robot.api import logger
 from subprocess import getoutput
 import re
+import os
 import time
 from dateutil import parser
 from datetime import datetime
+import pymysql.cursors
 
 TIMEOUT = 30
 
@@ -218,3 +220,121 @@ def check_reschedule_with_timeout(log: str, date, content: str, timeout: int):
             return v1, v2
         time.sleep(5)
     return False
+
+def clear_commands_status():
+    if os.path.exists("/tmp/states"):
+        os.remove("/tmp/states")
+
+def set_command_status(cmd, status):
+    if os.path.exists("/tmp/states"):
+        f = open("/tmp/states")
+        lines = f.readlines()
+    else:
+        lines = []
+    p = re.compile("{}=>(.*)$".format(cmd))
+    done = False
+    for i in range(len(lines)):
+        m = p.match(lines[i])
+        if m:
+            if int(m.group(1)) != status:
+                lines[i] = "{}=>{}\n".format(cmd, status)
+            done = True
+            break
+
+    if not done:
+        lines.append("{}=>{}\n".format(cmd, status))
+    f = open("/tmp/states", "w")
+    f.writelines(lines)
+    f.close()
+
+
+def check_service_status_with_timeout(hostname: str, service_desc: str, status: int, timeout: int):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host='localhost',
+                                 user='centreon',
+                                 password='centreon',
+                                 database='centreon_storage',
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT s.state FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description=\"{}\" AND h.name=\"{}\"".format(service_desc, hostname))
+                result = cursor.fetchall()
+                if result[0]['state'] and int(result[0]['state']) == status:
+                    return True
+        time.sleep(5)
+    return False
+
+def check_ba_status_with_timeout(ba_name: str, status: int, timeout: int):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host='localhost',
+                                 user='centreon',
+                                 password='centreon',
+                                 database='centreon',
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT current_status FROM mod_bam WHERE name='{}'".format(ba_name))
+                result = cursor.fetchall()
+                if result[0]['current_status'] and int(result[0]['current_status']) == status:
+                    return True
+        time.sleep(5)
+    return False
+
+def check_service_downtime_with_timeout(hostname: str, service_desc: str, enabled, timeout: int):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host='localhost',
+                                 user='centreon',
+                                 password='centreon',
+                                 database='centreon_storage',
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT s.scheduled_downtime_depth from services s LEFT JOIN hosts h ON s.host_id=h.host_id wHERE s.description='{}' AND h.name='{}'".format(service_desc, hostname))
+                result = cursor.fetchall()
+                if not result[0]['scheduled_downtime_depth'] is None and result[0]['scheduled_downtime_depth'] == int(enabled):
+                    return True
+        time.sleep(5)
+    return False
+
+def delete_service_downtime(hst: str, svc: str):
+    now = int(time.time())
+    connection = pymysql.connect(host='localhost',
+                             user='centreon',
+                             password='centreon',
+                             database='centreon_storage',
+                             charset='utf8mb4',
+                             cursorclass=pymysql.cursors.DictCursor)
+
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute("select d.internal_id from downtimes d inner join hosts h on d.host_id=h.host_id inner join services s on d.service_id=s.service_id where d.cancelled='0' and s.scheduled_downtime_depth='1' and s.description='{}' and h.name='{}'".format(svc, hst))
+            result = cursor.fetchall()
+            did = int(result[0]['internal_id'])
+
+    cmd = "[{}] DEL_SVC_DOWNTIME;{}".format(now, did)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
+
+def number_of_downtimes_is(nb: int):
+    connection = pymysql.connect(host='localhost',
+                             user='centreon',
+                             password='centreon',
+                             database='centreon_storage',
+                             charset='utf8mb4',
+                             cursorclass=pymysql.cursors.DictCursor)
+
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT count(*) from services WHERE scheduled_downtime_depth='1'")
+            result = cursor.fetchall()
+            return int(result[0]['count(*)']) == int(nb)
+

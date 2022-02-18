@@ -21,7 +21,7 @@ import sys
 import re
 
 dico = {}
-pattern_ct = re.compile('CREATE TABLE( IF NOT EXISTS)? (@.*@\.)?`?([^`]*)`? \(')
+pattern_ct = re.compile('CREATE TABLE( IF NOT EXISTS)? (centreon_storage\.)?`?([^`]*)`? \(')
 column_ct = re.compile('\s*`?([^`]*)`? (varchar\(([0-9]*)\)|text)')
 end_ct = re.compile('^\)')
 

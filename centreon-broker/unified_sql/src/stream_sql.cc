@@ -1621,12 +1621,6 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
       unique.insert("host_id");
       unique.insert("service_id");
       query_preparator qp(neb::pb_service::static_type(), unique);
-      struct pb_entry {
-        int32_t number;
-        const char* name;
-        int32_t attribute;
-        uint32_t max_length;
-      };
 
       _service_status_update = qp.prepare_update_table(
           _mysql, "services",
