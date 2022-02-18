@@ -15,21 +15,21 @@ Library	../resources/Engine.py
 BEBAMIDT1
 	[Documentation]	A BA of type 'worst' with one service is configured. The BA is in critical state, because of its service. Then we set a downtime on this last one. An inherited downtime is set to the BA. The downtime is removed from the service, the inherited downtime is then deleted.
 	[Tags]	Broker	downtime	engine	bam
-        log to console	toto 1
+	log to console	toto 1
 	Clear Commands Status
-        log to console	toto 2
+	log to console	toto 2
 	Config Broker	central
-        log to console	toto 3
+	log to console	toto 3
 	Broker Config Log	central	bam	trace
-        log to console	toto 4
+	log to console	toto 4
 	Config Broker	rrd
-        log to console	toto 5
+	log to console	toto 5
 	Config Engine	${1}
-        log to console	toto 6
+	log to console	toto 6
 	Clone Engine Config To DB
-        log to console	toto 7
+	log to console	toto 7
 	Add Bam Config To Engine
-        log to console	toto 8
+	log to console	toto 8
 	@{svc}=	Set Variable	${{ [("host_16", "service_314")] }}
 	Create BA With Services	test	worst	${svc}
 	Add Bam Config To Broker	central
@@ -39,29 +39,29 @@ BEBAMIDT1
 	Set Command Status	${cmd_1}	2
 	Start Broker
 	Start Engine
-        Sleep	5s
+	Sleep	5s
 
-        # KPI set to critical
-        Repeat Keyword	3 times	Process Service Check Result	host_16	service_314	2	output critical for 314
+	# KPI set to critical
+	Repeat Keyword	3 times	Process Service Check Result	host_16	service_314	2	output critical for 314
 	${result}=	Check Service Status With Timeout	host_16	service_314	2	300
 	Should Be True	${result}	msg=The service (host_16,service_314) is not CRITICAL as expected
 
-        # The BA should become critical
+	# The BA should become critical
 	${result}=	Check Ba Status With Timeout	test	2	300
 	Should Be True	${result}	msg=The BA ba_1 is not CRITICAL as expected
 
 	# A downtime is put on service_314
-        Schedule Service Downtime	host_16	service_314	3600
-        ${result}=	Check Service Downtime With Timeout	host_16	service_314	1	300
+	Schedule Service Downtime	host_16	service_314	3600
+	${result}=	Check Service Downtime With Timeout	host_16	service_314	1	300
 	Should Be True	${result}	msg=The service (host_16, service_314) is not in downtime as it should be
-        ${result}=	Check Service Downtime With Timeout	_Module_BAM_1	ba_1	1	300
+	${result}=	Check Service Downtime With Timeout	_Module_BAM_1	ba_1	1	300
 	Should Be True	${result}	msg=The BA ba_1 is not in downtime as it should
 
 	# The downtime is deleted
-        Delete Service Downtime	host_16	service_314
-        ${result}=	Check Service Downtime With Timeout	host_16	service_314	0	300
+	Delete Service Downtime	host_16	service_314
+	${result}=	Check Service Downtime With Timeout	host_16	service_314	0	300
 	Should Be True	${result}	msg=The service (host_16, service_314) is in downtime and should not.
-        ${result}=	Check Service Downtime With Timeout	_Module_BAM_1	ba_1	0	300
+	${result}=	Check Service Downtime With Timeout	_Module_BAM_1	ba_1	0	300
 	Should Be True	${result}	msg=The BA ba_1 is in downtime as it should not
 
 	Stop Engine
@@ -86,49 +86,49 @@ BEBAMIDT2
 	Set Command Status	${cmd_1}	2
 	Start Broker
 	Start Engine
-        Sleep	3s
+	Sleep	3s
 
-        # KPI set to critical
-        Repeat Keyword	3 times	Process Service Check Result	host_16	service_314	2	output critical for 314
+	# KPI set to critical
+	Repeat Keyword	3 times	Process Service Check Result	host_16	service_314	2	output critical for 314
 	${result}=	Check Service Status With Timeout	host_16	service_314	2	300
 	Should Be True	${result}	msg=The service (host_16,service_314) is not CRITICAL as expected
 
-        # The BA should become critical
+	# The BA should become critical
 	${result}=	Check Ba Status With Timeout	test	2	300
 	Should Be True	${result}	msg=The BA ba_1 is not CRITICAL as expected
 
 	# A downtime is put on service_314
-        Schedule Service Downtime	host_16	service_314	3600
-        ${result}=	Check Service Downtime With Timeout	host_16	service_314	1	300
+	Schedule Service Downtime	host_16	service_314	3600
+	${result}=	Check Service Downtime With Timeout	host_16	service_314	1	300
 	Should Be True	${result}	msg=The service (host_16, service_314) is not in downtime as it should be
-        ${result}=	Check Service Downtime With Timeout	_Module_BAM_1	ba_1	1	300
+	${result}=	Check Service Downtime With Timeout	_Module_BAM_1	ba_1	1	300
 	Should Be True	${result}	msg=The BA ba_1 is not in downtime as it should
 
-        FOR	${i}	IN RANGE	5
+	FOR	${i}	IN RANGE	5
 	  # Engine is restarted
-          Stop Engine
-          Start Engine
-          Sleep	3s
+	  Stop Engine
+	  Start Engine
+	  Sleep	3s
 	  # Broker is restarted
-          Stop Broker
-          Start Broker
-        END
+	  Stop Broker
+	  Start Broker
+	END
 
-        Sleep	5s
+	Sleep	5s
 	# There are still two downtimes: the one on the ba and the one on the kpi.
-        ${result}=	Number Of Downtimes is	2
-        Should Be True	${result}	msg=We should only have only two downtimes
+	${result}=	Number Of Downtimes is	2
+	Should Be True	${result}	msg=We should only have only two downtimes
 
 	# The downtime is deleted
-        Delete Service Downtime	host_16	service_314
-        ${result}=	Check Service Downtime With Timeout	host_16	service_314	0	300
+	Delete Service Downtime	host_16	service_314
+	${result}=	Check Service Downtime With Timeout	host_16	service_314	0	300
 	Should Be True	${result}	msg=The service (host_16, service_314) is in downtime and should not.
-        ${result}=	Check Service Downtime With Timeout	_Module_BAM_1	ba_1	0	300
+	${result}=	Check Service Downtime With Timeout	_Module_BAM_1	ba_1	0	300
 	Should Be True	${result}	msg=The BA ba_1 is in downtime as it should not
 
 	# We should have no more downtime
-        ${result}=	Number Of Downtimes is	0
-        Should Be True	${result}	msg=We should have no more downtime
+	${result}=	Number Of Downtimes is	0
+	Should Be True	${result}	msg=We should have no more downtime
 
 	Stop Engine
 	Stop Broker
