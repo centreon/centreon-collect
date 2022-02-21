@@ -17,8 +17,9 @@ else
 fi
 
 #Build
-make -j9
-make -j9 install
+#make -j9
+./ci/docker/sast/build-wrapper-linux-x86-64 --out-dir . make -j9 clean all
+#make -j9 install
 
 #Test
 
