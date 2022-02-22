@@ -107,7 +107,7 @@ stage('Build / Unit tests // Packaging / Signing') {
       dir('centreon-collect-debian11') {
         checkout scm
         sh 'docker run -i --entrypoint /src/ci/scripts/collect-unit-tests.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-debian11-dependencies:22.04'
-        archiveArtifacts artifacts: "build-wrapper.json"
+        archiveArtifacts artifacts: "build/build-wrapper-dump.json"
       }
     }
   },
