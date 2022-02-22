@@ -109,7 +109,7 @@ stage('Build / Unit tests // Packaging / Signing') {
         sh 'docker run -i --entrypoint /src/ci/scripts/collect-unit-tests.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-debian11-dependencies:22.04'
         archiveArtifacts artifacts: "build/build-wrapper-dump.json"
         withSonarQubeEnv('SonarQubeDev') {
-          sh 'docker run -i -v "$PWD:/src" -w="/src" --entrypoint /src/centreon-collect/ci/scripts/collect-sources-analysis.sh --rm -u $(id -u):$(id -g) sonarsource/sonar-scanner-cli:latest "$SONAR_AUTH_TOKEN" "$SONAR_HOST_URL"'
+          sh 'docker run -i -v "$PWD:/src" -w="/src" --entrypoint /src/centreon-collect-debian11/ci/scripts/collect-sources-analysis.sh --rm -u $(id -u):$(id -g) sonarsource/sonar-scanner-cli:latest "$SONAR_AUTH_TOKEN" "$SONAR_HOST_URL"'
         }    
       }
     }
