@@ -19,9 +19,7 @@ fi
 #Build
 #make -j9
 cp -rp ../ci/docker/sast .
-cd sast
-ls -lart
-./build-wrapper-linux-x86-64 --out-dir . make -j9 install
+./sast/build-wrapper-linux-x86-64 --out-dir . make -j9
 #make -j9 install
 
 #Test
