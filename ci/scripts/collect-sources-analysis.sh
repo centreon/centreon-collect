@@ -14,5 +14,5 @@ if [ -z "$VERSION" ] ; then
   echo "You need to specify the VERSION variable"
   exit 1
 fi
-
+ls -lart
 sonar-scanner -Dsonar.projectVersion="$VERSION" -Dsonar.login="$1" -Dsonar.host.url="$2"
