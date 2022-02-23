@@ -14,7 +14,9 @@ pipeline {
         steps {
           echo 'Releasing Centreon Collect'
           loadCommonScripts()
-          sh './ci/release/collect-release.sh'
+          withCredentials([string(credentialsId: 'download-token', variable: 'DOWNLOAD_TOKEN')]) {
+            sh './ci/release/collect-release.sh' "$DOWNLOAD_TOKEN"
+          }
         }
       }
     }
