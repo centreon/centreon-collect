@@ -14,6 +14,7 @@ pipeline {
                  beforeAgent true }
           steps {
             sh 'docker run -i --entrypoint /src/ci/scripts/ENTRYPOINTSCRIPT -v "$PWD:/src" DOCKERIMAGE'
+            robot outputPath: 'centreon-tests', logFileName: 'log.html', outputFileName: 'output.xml', reportFileName: 'report.hml', passThreshold: 100, unstableThreshold: 75.0
           }
           post { always { cleanWs() }}
         }
