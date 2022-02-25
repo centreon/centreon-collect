@@ -1,0 +1,22 @@
+@Library('centreon-shared-library') _
+
+pipeline {
+
+    agent none
+    triggers {
+        cron('0 0 * * *')
+    }
+    stages {
+      stage('Launch Centreon Tests') {
+        stage('Robot Tests Execution') {
+          agent any
+          when { branch 'master'
+                 beforeAgent true }
+          steps {
+            sh 'docker run -i --entrypoint /src/ci/scripts/ENTRYPOINTSCRIPT -v "$PWD:/src" DOCKERIMAGE'
+          }
+          post { always { cleanWs() }}
+        }
+      }
+    }
+}
