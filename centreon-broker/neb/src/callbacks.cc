@@ -1452,6 +1452,8 @@ int neb::callback_pb_host_status(int callback_type, void* data) noexcept {
     host.set_check_command(
         misc::string::check_string_utf8(eh->get_check_command()));
   host.set_check_interval(eh->get_check_interval());
+  host.set_enabled(static_cast<nebstruct_host_status_data*>(data)->type !=
+                   NEBTYPE_HOST_DELETE);
   if (!eh->get_check_period().empty())
     host.set_check_period(eh->get_check_period());
   host.set_check_type(static_cast<Host_CheckType>(eh->get_check_type()));
@@ -2115,7 +2117,8 @@ int32_t neb::callback_pb_service_status(int callback_type,
         static_cast<Service_AckType>(es->get_acknowledgement_type()));
   }
   srv.set_active_checks_enabled(es->get_checks_enabled());
-
+  srv.set_enabled(static_cast<nebstruct_service_status_data*>(data)->type !=
+                  NEBTYPE_SERVICE_DELETE);
   if (!es->get_check_command().empty())
     *srv.mutable_check_command() =
         misc::string::check_string_utf8(es->get_check_command());
@@ -2154,6 +2157,7 @@ int32_t neb::callback_pb_service_status(int callback_type,
   srv.set_next_notification(es->get_next_notification());
   srv.set_no_more_notifications(es->get_no_more_notifications());
   srv.set_notifications_enabled(es->get_notifications_enabled());
+  srv.set_obsess_over(es->get_obsess_over());
   if (!es->get_plugin_output().empty())
     *srv.mutable_output() =
         misc::string::check_string_utf8(es->get_plugin_output());
