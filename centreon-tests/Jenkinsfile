@@ -10,7 +10,7 @@ pipeline {
       stage('Launch Centreon Tests') {
         stage('Robot Tests Execution') {
           agent any
-          when { branch 'master'
+          when { branch 'master'; branch 'develop'; branch 'COPS-824-cicd-create-pipeline-centreon-test-on-centreon-collect'
                  beforeAgent true }
           steps {
             sh 'docker run -i --entrypoint /src/ci/scripts/ENTRYPOINTSCRIPT -v "$PWD:/src" DOCKERIMAGE'
