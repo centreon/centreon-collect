@@ -2440,6 +2440,7 @@ TEST_F(LuaTest, BrokerApi2PbServiceStatusJsonEncode) {
           "INFO: { \"_type\": 65563, \"category\": 1, \"element\": 27, "
           "\"host_id\":1899, \"service_id\":288, \"acknowledged\":false, "
           "\"acknowledgement_type\":0, \"active_checks_enabled\":false, "
+          "\"enabled\":false, "
           "\"downtime_depth\":0, \"check_command\":\"super command\", "
           "\"check_interval\":7, \"check_period\":\"\", \"check_type\":0, "
           "\"current_check_attempt\":0, \"current_state\":2, "
@@ -2458,7 +2459,7 @@ TEST_F(LuaTest, BrokerApi2PbServiceStatusJsonEncode) {
           "\"passive_checks_enabled\":false, \"percent_state_change\":0, "
           "\"perf_data\":\"\", \"retry_interval\":0, \"host_name\":\"\", "
           "\"service_description\":\"foo bar\", \"should_be_scheduled\":false, "
-          "\"state_type\":0}"),
+          "\"obsess_over\":false, \"state_type\":0}"),
       std::string::npos);
   RemoveFile(filename);
   RemoveFile("/tmp/event_log");
@@ -2662,6 +2663,7 @@ TEST_F(LuaTest, BrokerApi2PbHostStatusJsonEncode) {
       lst.find("INFO: { \"_type\": 65564, \"category\": 1, \"element\": 28, "
                "\"host_id\":1899, \"acknowledged\":false, "
                "\"acknowledgement_type\":0, \"active_checks_enabled\":false, "
+               "\"enabled\":false, "
                "\"downtime_depth\":0, \"check_command\":\"super command\", "
                "\"check_interval\":7, \"check_period\":\"\", \"check_type\":0, "
                "\"current_check_attempt\":0, \"current_state\":0, "
