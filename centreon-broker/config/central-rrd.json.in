@@ -1,18 +1,37 @@
 {
     "centreonBroker": {
         "broker_id": 2,
-        "broker_name": "central-rrd",
+        "broker_name": "central-rrd-master",
         "poller_id": 1,
         "poller_name": "Central",
         "module_directory": "@PREFIX_MODULES@",
         "log_timestamp": true,
+        "bbdo_version": "3.0.0",
         "log_thread_id": false,
         "event_queue_max_size": 100000,
-        "command_file": "@PREFIX_VAR@/central-rrd.cmd",
-        "cache_directory": "@PREFIX_VAR@",
+        "command_file": "",
+        "cache_directory": "@BROKER_VAR_LIB_DIR@",
+        "log": {
+            "directory": "/var/log/centreon-broker/",
+            "filename": "",
+            "max_size": 0,
+            "loggers": {
+                "core": "info",
+                "config": "error",
+                "sql": "error",
+                "processing": "error",
+                "perfdata": "error",
+                "bbdo": "error",
+                "tcp": "error",
+                "tls": "error",
+                "lua": "error",
+                "bam": "error",
+		        "neb": "error"
+            }
+        },
         "input": [
             {
-                "name": "central-rrd-input",
+                "name": "central-rrd-master-input",
                 "port": "5670",
                 "buffering_timeout": "0",
                 "retry_interval": "60",
@@ -24,23 +43,13 @@
                 "type": "ipv4"
             }
         ],
-        "logger": [
-            {
-                "name": "/var/log/centreon-broker/central-rrd.log",
-                "config": "yes",
-                "debug": "no",
-                "error": "yes",
-                "info": "no",
-                "level": "low",
-                "type": "file"
-            }
-        ],
         "output": [
             {
-                "name": "central-rrd-output",
+                "name": "central-rrd-master-output",
                 "metrics_path": "/var/lib/centreon/metrics/",
                 "status_path": "/var/lib/centreon/status/",
                 "retry_interval": "60",
+                "store_in_data_bin": "yes",
                 "buffering_timeout": "0",
                 "write_metrics": "yes",
                 "write_status": "yes",
@@ -51,9 +60,12 @@
         "stats": [
             {
                 "type": "stats",
-                "name": "central-rrd-stats",
-                "json_fifo": "@PREFIX_VAR@/central-rrd-stats.json"
+                "name": "central-rrd-master-stats",
+                "json_fifo": "@BROKER_VAR_LIB_DIR@/central-rrd-master-stats.json"
             }
-        ]
+        ],
+        "grpc": {
+            "port": 51002
+        }
     }
 }

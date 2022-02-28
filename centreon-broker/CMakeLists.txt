@@ -246,8 +246,8 @@ if (WITH_DAEMONS)
 endif ()
 
 if (WITH_CONFIG_FILES)
-  configure_file("${PROJECT_SOURCE_DIR}/config/poller-module.json.in"
-    "${PROJECT_SOURCE_DIR}/config/poller-module.json"
+  configure_file("${PROJECT_SOURCE_DIR}/config/central-module.json.in"
+    "${PROJECT_SOURCE_DIR}/config/central-module.json"
     @ONLY)
   configure_file("${PROJECT_SOURCE_DIR}/config/central-broker.json.in"
     "${PROJECT_SOURCE_DIR}/config/central-broker.json"
@@ -256,7 +256,7 @@ if (WITH_CONFIG_FILES)
     "${PROJECT_SOURCE_DIR}/config/central-rrd.json"
     @ONLY)
 
-  install(FILES "${PROJECT_SOURCE_DIR}/config/poller-module.json"
+  install(FILES "${PROJECT_SOURCE_DIR}/config/central-module.json"
     DESTINATION "${PREFIX_BROKER_CONF}")
   install(FILES "${PROJECT_SOURCE_DIR}/config/central-rrd.json"
     DESTINATION "${PREFIX_BROKER_CONF}")

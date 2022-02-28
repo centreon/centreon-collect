@@ -26,22 +26,10 @@ configure_file("${SRC_DIR}/centengine.cfg.in"
   "${SRC_DIR}/centengine.cfg")
 configure_file("${SRC_DIR}/resource.cfg.in"
   "${SRC_DIR}/resource.cfg")
-configure_file("${SRC_DIR}/objects/commands.cfg.in"
-  "${SRC_DIR}/objects/commands.cfg")
-configure_file("${SRC_DIR}/objects/contacts.cfg.in"
-  "${SRC_DIR}/objects/contacts.cfg")
-configure_file("${SRC_DIR}/objects/localhost.cfg.in"
-  "${SRC_DIR}/objects/localhost.cfg")
-configure_file("${SRC_DIR}/objects/printer.cfg.in"
-  "${SRC_DIR}/objects/printer.cfg")
-configure_file("${SRC_DIR}/objects/switch.cfg.in"
-  "${SRC_DIR}/objects/switch.cfg")
-configure_file("${SRC_DIR}/objects/templates.cfg.in"
-  "${SRC_DIR}/objects/templates.cfg")
-configure_file("${SRC_DIR}/objects/timeperiods.cfg.in"
-  "${SRC_DIR}/objects/timeperiods.cfg")
-configure_file("${SRC_DIR}/objects/windows.cfg.in"
-  "${SRC_DIR}/objects/windows.cfg")
+configure_file("${SRC_DIR}/commands.cfg.in"
+  "${SRC_DIR}/commands.cfg")
+configure_file("${SRC_DIR}/timeperiods.cfg.in"
+  "${SRC_DIR}/timeperiods.cfg")
 
 # Install files if necessary.
 option(WITH_SAMPLE_CONFIG "Install sample configuration files." ON)
@@ -58,15 +46,9 @@ if (WITH_SAMPLE_CONFIG)
     endif ()
   endfunction()
 
-  my_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_ENGINE_CONF}/centengine.cfg\")
-  my_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_ENGINE_CONF}/resource.cfg\")
-  my_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_ENGINE_CONF}/objects/commands.cfg\")
-  my_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_ENGINE_CONF}/objects/contacts.cfg\")
-  my_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_ENGINE_CONF}/objects/localhost.cfg\")
-  my_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_ENGINE_CONF}/objects/printer.cfg\")
-  my_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_ENGINE_CONF}/objects/switch.cfg\")
-  my_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_ENGINE_CONF}/objects/templates.cfg\")
-  my_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_ENGINE_CONF}/objects/timeperiods.cfg\")
-  my_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_ENGINE_CONF}/objects/windows.cfg\")
+  my_chown(\"${USER_ENGINE}\" \"${USER_ENGINE}\" \"${PREFIX_ENGINE_CONF}/centengine.cfg\")
+  my_chown(\"${USER_ENGINE}\" \"${USER_ENGINE}\" \"${PREFIX_ENGINE_CONF}/resource.cfg\")
+  my_chown(\"${USER_ENGINE}\" \"${USER_ENGINE}\" \"${PREFIX_ENGINE_CONF}/commands.cfg\")
+  my_chown(\"${USER_ENGINE}\" \"${USER_ENGINE}\" \"${PREFIX_ENGINE_CONF}/timeperiods.cfg\")
   ")
 endif ()

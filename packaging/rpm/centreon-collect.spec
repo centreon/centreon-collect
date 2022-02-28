@@ -351,7 +351,8 @@ fi
 %defattr(-,centreon-engine,centreon-engine,-)
 %attr(0664,centreon-engine,centreon-engine) %config(noreplace) %{_sysconfdir}/centreon-engine/centengine.cfg
 %attr(0664,centreon-engine,centreon-engine) %config(noreplace) %{_sysconfdir}/centreon-engine/resource.cfg
-%attr(0664,centreon-engine,centreon-engine) %config(noreplace) %{_sysconfdir}/centreon-engine/objects/*.cfg
+%attr(0664,centreon-engine,centreon-engine) %config(noreplace) %{_sysconfdir}/centreon-engine/commands.cfg
+%attr(0664,centreon-engine,centreon-engine) %config(noreplace) %{_sysconfdir}/centreon-engine/timeperiods.cfg
 
 %defattr(-,root,root,-)
 %config(noreplace) %{_sysconfdir}/logrotate.d/centengine
@@ -440,10 +441,10 @@ fi
 
 %files -n centreon-broker-cbmod
 %defattr(664,centreon-broker,centreon-broker,-)
-%config(noreplace) %{_sysconfdir}/centreon-broker/poller-module.json
+%config(noreplace) %{_sysconfdir}/centreon-broker/central-module.json
 %defattr(-,root,root,-)
 %{_libdir}/nagios/cbmod.so
-#%{_sysconfdir}/centreon-broker/poller-module.json
+#%{_sysconfdir}/centreon-broker/central-module.json
 
 %post -n centreon-broker-cbmod
 %{_bindir}/getent passwd centreon-engine &>/dev/null && %{_sbindir}/usermod -a -G centreon-broker centreon-engine
