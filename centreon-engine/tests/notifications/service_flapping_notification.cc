@@ -536,6 +536,95 @@ TEST_F(ServiceFlappingNotification, CheckFlappingWithHostDown) {
   ASSERT_EQ(m3, std::string::npos);
 }
 
+TEST_F(ServiceFlappingNotification, CheckFlappingWithSoftState) {
+  config->enable_flap_detection(true);
+  _service->set_flap_detection_enabled(true);
+  _service->add_flap_detection_on(engine::service::ok);
+  _service->add_flap_detection_on(engine::service::down);
+  _service->set_notification_interval(1);
+  time_t now = 45000;
+  set_time(now);
+  _service->set_current_state(engine::service::state_ok);
+  _service->set_last_hard_state(engine::service::state_ok);
+  _service->set_last_hard_state_change(50000);
+  _service->set_state_type(checkable::hard);
+  _service->set_first_notification_delay(0);
+  _service->set_max_attempts(3);
+
+  // This loop is to store many OK in the state history.
+  for (int i = 1; i < 22; i++) {
+    now += 300;
+    std::cout << "NOW = " << now << std::endl;
+    set_time(now);
+    _service->set_last_state(_service->get_current_state());
+    if (notifier::hard == _service->get_state_type())
+      _service->set_last_hard_state(_service->get_current_state());
+
+    std::ostringstream oss;
+    std::time_t now{std::time(nullptr)};
+    oss << '[' << now << ']'
+        << " PROCESS_SERVICE_CHECK_RESULT;test_host;test_description;0;service "
+           "ok";
+    std::string cmd{oss.str()};
+    process_external_command(cmd.c_str());
+    checks::checker::instance().reap();
+  }
+
+  testing::internal::CaptureStdout();
+  // This loop is to store many CRITICAL or OK in the state history to start the
+  // flapping.
+  for (int i = 1; i < 8; i++) {
+    now += 300;
+    std::cout << "NOW = " << now << std::endl;
+    set_time(now);
+    _service->set_last_state(_service->get_current_state());
+    if (notifier::hard == _service->get_state_type())
+      _service->set_last_hard_state(_service->get_current_state());
+
+    std::ostringstream oss;
+    std::time_t now{std::time(nullptr)};
+    oss << '[' << now << ']'
+        << " PROCESS_SERVICE_CHECK_RESULT;test_host;test_description;"
+        << ((i % 2 == 1) ? "2;service critical" : "0;service ok");
+    std::string cmd{oss.str()};
+    process_external_command(cmd.c_str());
+    checks::checker::instance().reap();
+  }
+
+  // This loop is to store many CRITICAL in the state history to stop the
+  // flapping.
+  for (int i = 1; i < 18; i++) {
+    std::cout << "Step " << i << ":";
+    now += 300;
+    std::cout << "NOW = " << now << std::endl;
+    set_time(now);
+    _service->set_last_state(_service->get_current_state());
+    if (notifier::hard == _service->get_state_type())
+      _service->set_last_hard_state(_service->get_current_state());
+    std::ostringstream oss;
+    std::time_t now{std::time(nullptr)};
+    oss << '[' << now << ']'
+        << " PROCESS_SERVICE_CHECK_RESULT;test_host;test_description;2;service "
+           "critical";
+    std::string cmd{oss.str()};
+    process_external_command(cmd.c_str());
+    checks::checker::instance().reap();
+  }
+
+  std::string out{testing::internal::GetCapturedStdout()};
+  size_t m1{out.find(
+      "SERVICE NOTIFICATION: "
+      "admin;test_host;test_description;FLAPPINGSTART (CRITICAL);cmd;")};
+  size_t m2{
+      out.find("SERVICE FLAPPING ALERT: test_host;test_description;STOPPED;")};
+  size_t m3{out.find(
+      "SERVICE NOTIFICATION: "
+      "admin;test_host;test_description;FLAPPINGSTOP (CRITICAL);cmd;")};
+  ASSERT_NE(m1, std::string::npos);
+  ASSERT_NE(m2, std::string::npos);
+  ASSERT_NE(m3, std::string::npos);
+}
+
 TEST_F(ServiceFlappingNotification, RetentionFlappingNotification) {
   config->enable_flap_detection(true);
   _service->set_flap_detection_enabled(true);
