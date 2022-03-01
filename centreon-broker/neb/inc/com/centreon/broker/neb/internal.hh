@@ -24,11 +24,12 @@
 #include <string>
 #include <utility>
 #include "bbdo/events.hh"
+#include "bbdo/host.pb.h"
 #include "bbdo/service.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
+#include "com/centreon/broker/misc/pair.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/namespace.hh"
-#include "com/centreon/broker/misc/pair.hh"
 #include "com/centreon/broker/neb/callback.hh"
 
 CCB_BEGIN()
@@ -52,6 +53,8 @@ extern std::unordered_map<std::pair<uint32_t, uint32_t>, neb::acknowledgement>
 
 using pb_service =
     io::protobuf<Service, make_type(io::neb, neb::de_pb_service)>;
+
+using pb_host = io::protobuf<Host, make_type(io::neb, neb::de_pb_host)>;
 
 }  // namespace neb
 

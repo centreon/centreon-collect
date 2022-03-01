@@ -477,7 +477,3 @@ def schedule_service_downtime(hst: str, svc: str, duration: int):
     f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
     f.write(cmd)
     f.close()
-
-#process_service_check_result("host_16", "service_314", 2, "bad bad bad")
-#process_service_check_result("host_16", "service_314", 2, "bad bad bad")
-#process_service_check_result("host_16", "service_314", 2, "bad bad bad")

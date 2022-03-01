@@ -17,6 +17,7 @@
 */
 #ifndef CCB_UNIFIED_SQL_STREAM_HH
 #define CCB_UNIFIED_SQL_STREAM_HH
+#include <absl/container/flat_hash_map.h>
 #include <array>
 #include <atomic>
 #include <condition_variable>
@@ -25,7 +26,6 @@
 #include <memory>
 #include <mutex>
 #include <unordered_map>
-#include <absl/container/flat_hash_map.h>
 
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/stream.hh"
@@ -297,6 +297,7 @@ class stream : public io::stream {
   void _process_responsive_instance(const std::shared_ptr<io::data>& d);
 
   void _process_pb_service_status(const std::shared_ptr<io::data>& d);
+  void _process_pb_host_status(const std::shared_ptr<io::data>& d);
 
   void _unified_sql_process_service_status(const std::shared_ptr<io::data>& d);
   void _unified_sql_process_pb_service_status(
