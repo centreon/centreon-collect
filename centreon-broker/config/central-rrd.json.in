@@ -12,7 +12,7 @@
         "command_file": "",
         "cache_directory": "@BROKER_VAR_LIB_DIR@",
         "log": {
-            "directory": "/var/log/centreon-broker/",
+            "directory": "@BROKER_VAR_LOG_DIR@",
             "filename": "",
             "max_size": 0,
             "loggers": {

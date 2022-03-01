@@ -156,10 +156,6 @@ set(PREFIX_BROKER_CONF ${CMAKE_INSTALL_FULL_SYSCONFDIR}/centreon-broker)
 set(PREFIX_MODULES "${CMAKE_INSTALL_FULL_DATADIR}/centreon/lib/centreon-broker")
 set(PREFIX_CBMOD "${CMAKE_INSTALL_PREFIX}/lib64/nagios")
 
-# var directories.
-set(BROKER_VAR_LOG_DIR "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/log/centreon-broker")
-set(BROKER_VAR_LIB_DIR "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/lib/centreon-broker")
-
 # User.
 if (WITH_USER_BROKER)
   set(USER "${WITH_USER_BROKER}")

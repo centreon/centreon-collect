@@ -30,7 +30,7 @@
 #         historical purposes. This should be the first option specified in the
 #         config file!
 
-log_file=@VAR_LOG_DIR@/centengine.log
+log_file=@ENGINE_VAR_LOG_DIR@/centengine.log
 
 
 # var:    cfg_file
@@ -60,7 +60,7 @@ resource_file=@PREFIX_ENGINE_CONF@/resource.cfg
 #         is stored. The contents of the status file are deleted every time
 #         Centreon Engine restarts.
 
-status_file=@VAR_LOG_DIR@/status.dat
+status_file=@ENGINE_VAR_LOG_DIR@/status.dat
 
 
 
@@ -98,7 +98,7 @@ command_check_interval=1s
 #         on the file, as the file is deleted every time its contents are
 #         processed.
 
-command_file=@VAR_LIB_DIR@/rw/centengine.cmd
+command_file=@ENGINE_VAR_LIB_DIR@/rw/centengine.cmd
 
 
 # var:    event_broker_options
@@ -366,7 +366,7 @@ retain_state_information=1
 #         network when Centreon Engine is restarted. This file is used only if
 #         the retain_state_information variable is set to 1.
 
-state_retention_file=@VAR_LOG_DIR@/retention.dat
+state_retention_file=@ENGINE_VAR_LOG_DIR@/retention.dat
 
 
 # var:    retention_update_interval
@@ -782,7 +782,7 @@ debug_verbosity=2
 # brief:  This option determines where Centreon Engine should write debugging
 #         information.
 
-debug_file=@VAR_LOG_DIR@/centengine.debug
+debug_file=@ENGINE_VAR_LOG_DIR@/centengine.debug
 
 
 # var:    max_debug_file_size

@@ -58,6 +58,13 @@ set(USER_BROKER centreon-broker)
 set(USER_ENGINE centreon-engine)
 ##################################
 
+# var directories.
+set(BROKER_VAR_LOG_DIR "/var/log/centreon-broker")
+set(BROKER_VAR_LIB_DIR "/var/lib/centreon-broker")
+set(ENGINE_VAR_LOG_DIR "/var/log/centreon-engine")
+set(ENGINE_VAR_LOG_ARCHIVE_DIR "/var/log/centreon-engine/archives")
+set(ENGINE_VAR_LIB_DIR "/var/lib/centreon-engine")
+
 include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup(TARGETS)
 

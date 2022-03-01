@@ -9,10 +9,9 @@
         "log_timestamp": true,
         "log_thread_id": false,
         "event_queue_max_size": 100000,
-        "command_file": "@BROKER_VAR_LIB_DIR@/command.sock",
         "cache_directory": "@BROKER_VAR_LIB_DIR@",
         "log": {
-            "directory": "/var/log/centreon-broker/",
+            "directory": "@BROKER_VAR_LOG_DIR@",
             "filename": "",
             "max_size": 0,
             "loggers": {
@@ -34,7 +33,7 @@
                 "name": "central-broker-master-input",
                 "port": "5669",
                 "buffering_timeout": "0",
-                "retry_interval": "60",
+                "retry_interval": "10",
                 "protocol": "bbdo",
                 "tls": "auto",
                 "negotiation": "yes",
@@ -44,26 +43,6 @@
             }
         ],
         "output": [
-            {          
-          		"name" : "central-broker-unified-sql",
-          		"db_type" : "mysql",
-          		"db_host" : "localhost",
-          		"db_port" : "3306",
-         		"db_user" : "centreon",
-          		"db_password" : "centreon",
-          		"db_name" : "centreon_storage",
-          		"interval" : "60",
-          		"length" : "15552000",
-          		"queries_per_transaction" : "20000",
-          		"connections_count" : "1",
-          		"read_timeout" : "60",
-          		"buffering_timeout" : "0",
-          		"retry_interval" : "60",
-          		"check_replication" : "no",
-          		"type" : "unified_sql",
-          		"store_in_data_bin" : "yes",
-          		"insert_in_index_data" : "1"
-		    }, 
             {
                 "name": "centreon-broker-rrd",
                 "port": "5670",

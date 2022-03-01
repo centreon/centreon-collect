@@ -10,9 +10,9 @@
         "bbdo_version": "3.0.0",
         "event_queue_max_size": 100000,
         "command_file": "",
-        "cache_directory": "@CMAKE_INSTALL_FULL_LOCALSTATEDIR@/lib/centreon-engine",
+        "cache_directory": "@ENGINE_VAR_LIB_DIR@",
         "log": {
-            "directory": "/var/log/centreon-broker/",
+            "directory": "@BROKER_VAR_LOG_DIR@",
             "filename": "",
             "max_size": 0,
             "loggers": {
@@ -48,7 +48,7 @@
             {
                 "type": "stats",
                 "name": "central-rrd-stats",
-                "json_fifo": "@CMAKE_INSTALL_FULL_LOCALSTATEDIR@/lib/centreon-engine/central-module-master-stats.json"
+                "json_fifo": "@ENGINE_VAR_LIB_DIR@/central-module-master-stats.json"
             }
         ],
         "grpc": {
