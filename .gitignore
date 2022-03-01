@@ -21,6 +21,8 @@ centreon-broker/core/inc/com/centreon/broker/version.hh
 centreon-broker/config/central-rrd.json
 centreon-broker/config/central-broker.json
 centreon-broker/config/central-module.json
+centreon-broker/script/cbd.init
+centreon-broker/script/watchdog.json
 doc/_build
 doc/devel-doc
 engine_pb2.py

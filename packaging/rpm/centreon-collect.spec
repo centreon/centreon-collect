@@ -245,7 +245,7 @@ cmake3 \
         -DWITH_GROUP_BROKER=centreon-broker \
         -DWITH_USER_ENGINE=centreon-engine \
         -DWITH_GROUP_ENGINE=centreon-engine \
-        -DWITH_DAEMONS='central-rrd;central-broker' \
+        -DWITH_DAEMONS=y \
         -DWITH_CONFIG_FILES=y \
         -DCMAKE_BUILD_TYPE=RelWithDebInfo \
         .

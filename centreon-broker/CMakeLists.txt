@@ -224,11 +224,6 @@ if (WITH_DAEMONS)
       @ONLY)
   endif ()
 
-  foreach (DAEMON_NAME IN LISTS WITH_DAEMONS)
-    set(DAEMONS_CONFIGURATION
-      "${DAEMONS_CONFIGURATION}  \"cbd\": [ { \"name\": \"${DAEMON_NAME}\", \"configuration_file\": \"${PREFIX_BROKER_CONF}/${DAEMON_NAME}.json\", \"run\": true, \"reload\": true } ],\n")
-  endforeach ()
-
   configure_file("${PROJECT_SOURCE_DIR}/script/watchdog.json.in"
     "${PROJECT_SOURCE_DIR}/script/watchdog.json"
     @ONLY)
