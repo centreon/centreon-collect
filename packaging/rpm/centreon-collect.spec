@@ -409,10 +409,10 @@ fi
 %{_datadir}/centreon/lib/centreon-broker/70-influxdb.so
 
 %files -n centreon-broker-cbd
-%defattr(664,centreon-broker,centreon-broker,-)
-%defattr(664,centreon-broker,centreon-broker) %config(noreplace) %{_sysconfdir}/centreon-broker/central-broker.json
-%defattr(664,centreon-broker,centreon-broker) %config(noreplace) %{_sysconfdir}/centreon-broker/central-rrd.json
-%defattr(664,centreon-broker,centreon-broker) %config(noreplace) %{_sysconfdir}/centreon-broker/watchdog.json
+%defattr(-,centreon-broker,centreon-broker,-)
+%attr(0664,centreon-broker,centreon-broker) %config(noreplace) %{_sysconfdir}/centreon-broker/central-broker.json
+%attr(0664,centreon-broker,centreon-broker) %config(noreplace) %{_sysconfdir}/centreon-broker/central-rrd.json
+%attr(0664,centreon-broker,centreon-broker) %config(noreplace) %{_sysconfdir}/centreon-broker/watchdog.json
 %defattr(-,root,root,-)
 %{_sbindir}/cbd
 %{_sbindir}/cbwd
@@ -437,8 +437,8 @@ fi
 #%{_datadir}/centreon-broker/lua
 
 %files -n centreon-broker-cbmod
-%defattr(664,centreon-broker,centreon-broker,-)
-%defattr(664,centreon-broker,centreon-broker) %config(noreplace) %{_sysconfdir}/centreon-broker/central-module.json
+%defattr(-,centreon-broker,centreon-broker,-)
+%attr(0664,centreon-broker,centreon-broker) %config(noreplace) %{_sysconfdir}/centreon-broker/central-module.json
 %defattr(-,root,root,-)
 %{_libdir}/nagios/cbmod.so
 
