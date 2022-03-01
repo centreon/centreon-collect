@@ -71,6 +71,7 @@ void (stream::*const stream::_neb_processing_table[])(
     &stream::_process_instance_configuration,
     &stream::_process_responsive_instance,
     &stream::_process_pb_service_status,
+    &stream::_process_pb_host_status,
 };
 
 stream::stream(const database_config& dbcfg,
@@ -105,9 +106,10 @@ stream::stream(const database_config& dbcfg,
       _stats{stats::center::instance().register_conflict_manager()},
       _oldest_timestamp{std::numeric_limits<time_t>::max()} {
   log_v2::sql()->debug("unified sql: stream class instanciation");
-  stats::center::instance().execute([stats = _stats,
-                                     loop_timeout = _loop_timeout,
-                                     max_queries = _max_pending_queries] {
+  stats::center::instance().execute([
+    stats = _stats, loop_timeout = _loop_timeout,
+    max_queries = _max_pending_queries
+  ] {
     stats->set_loop_timeout(loop_timeout);
     stats->set_max_pending_events(max_queries);
   });
@@ -561,7 +563,7 @@ int32_t stream::stop() {
  * @param d The BBDO message with all the metrics/indexes to remove.
  */
 void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
-  asio::post(pool::instance().io_context(), [this, data = d] {
+  asio::post(pool::instance().io_context(), [ this, data = d ] {
     mysql ms(_dbcfg);
     const bbdo::pb_remove_graphs& ids =
         *static_cast<const bbdo::pb_remove_graphs*>(data.get());

@@ -20,9 +20,10 @@
 #define CCB_UNIFIED_SQL_INTERNAL_HH
 
 #include "bbdo/events.hh"
+#include "bbdo/host.pb.h"
 #include "bbdo/rebuild_message.pb.h"
-#include "bbdo/service.pb.h"
 #include "bbdo/remove_graph_message.pb.h"
+#include "bbdo/service.pb.h"
 #include "centreon-broker/core/src/broker.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
 
@@ -39,8 +40,11 @@ using pb_remove_graphs =
 }  // namespace bbdo
 
 namespace neb {
-using pb_service = io::protobuf<Service, make_type(io::neb, neb::de_pb_service)>;
-}
+using pb_service =
+    io::protobuf<Service, make_type(io::neb, neb::de_pb_service)>;
+
+using pb_host = io::protobuf<Host, make_type(io::neb, neb::de_pb_host)>;
+}  // namespace neb
 
 namespace storage {
 /**

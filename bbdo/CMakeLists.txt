@@ -54,6 +54,23 @@ add_library(
 add_dependencies(pb_service_lib target_service)
 set_target_properties(pb_service_lib PROPERTIES COMPILE_FLAGS "-fPIC")
 
+add_custom_command(OUTPUT "${CMAKE_SOURCE_DIR}/bbdo/host.pb.cc" "${CMAKE_SOURCE_DIR}/bbdo/host.pb.h"
+        DEPENDS ${CMAKE_SOURCE_DIR}/bbdo/host.proto
+        COMMENT "Generating interface files of the bbdo file host.proto"
+        COMMAND ${Protobuf_PROTOC_EXECUTABLE}
+        ARGS --cpp_out=${CMAKE_SOURCE_DIR}/bbdo --proto_path=${CMAKE_SOURCE_DIR}/bbdo host.proto
+        VERBATIM
+        )
+add_custom_target(target_host DEPENDS "${CMAKE_SOURCE_DIR}/bbdo/host.pb.cc" "${CMAKE_SOURCE_DIR}/bbdo/host.pb.h")
+
+add_library(
+    pb_host_lib STATIC
+      "host.pb.cc"
+      "host.pb.h"
+    )
+add_dependencies(pb_host_lib target_host)
+set_target_properties(pb_host_lib PROPERTIES COMPILE_FLAGS "-fPIC")
+
 macro(get_protobuf_files name)
   set_source_files_properties("${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.cc" PROPERTIES GENERATED TRUE)
   set_source_files_properties("${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.h" PROPERTIES GENERATED TRUE)

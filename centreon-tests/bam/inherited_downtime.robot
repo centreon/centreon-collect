@@ -15,21 +15,15 @@ Library	../resources/Engine.py
 BEBAMIDT1
 	[Documentation]	A BA of type 'worst' with one service is configured. The BA is in critical state, because of its service. Then we set a downtime on this last one. An inherited downtime is set to the BA. The downtime is removed from the service, the inherited downtime is then deleted.
 	[Tags]	Broker	downtime	engine	bam
-	log to console	toto 1
 	Clear Commands Status
-	log to console	toto 2
 	Config Broker	central
-	log to console	toto 3
 	Broker Config Log	central	bam	trace
-	log to console	toto 4
 	Config Broker	rrd
-	log to console	toto 5
 	Config Engine	${1}
-	log to console	toto 6
+
 	Clone Engine Config To DB
-	log to console	toto 7
 	Add Bam Config To Engine
-	log to console	toto 8
+
 	@{svc}=	Set Variable	${{ [("host_16", "service_314")] }}
 	Create BA With Services	test	worst	${svc}
 	Add Bam Config To Broker	central
