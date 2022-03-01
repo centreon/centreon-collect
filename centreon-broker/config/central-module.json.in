@@ -26,7 +26,7 @@
                 "tls": "error",
                 "lua": "error",
                 "bam": "error",
-		        "neb": "error"
+                "neb": "error"
             }
         },
         "output": [

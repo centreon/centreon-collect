@@ -1,6 +1,19 @@
 {
     "centreonBroker": {
-        @DAEMONS_CONFIGURATION@
-        "log": "/var/log/centreon-broker/watchdog.log"
+        "cbd": [ 
+            { 
+                "name": "central-rrd-master", 
+                "configuration_file": "@PREFIX_BROKER_CONF@/central-rrd.json", 
+                "run": true, 
+                "reload": true 
+            },
+            { 
+                "name": "central-broker-master", 
+                "configuration_file": "@PREFIX_BROKER_CONF@/central-broker.json", 
+                "run": true, 
+                "reload": true 
+            } 
+        ],
+        "log": "@BROKER_VAR_LOG_DIR@/watchdog.log"
     }
 }
