@@ -1,6 +1,5 @@
 ##
-## Copyright 1999-2009 Ethan Galstad
-## Copyright 2011-2013 Merethis
+## Copyright 2009-2022 Centreon
 ##
 ## This file is part of Centreon Engine.
 ##
@@ -31,7 +30,7 @@
 #         historical purposes. This should be the first option specified in the
 #         config file!
 
-log_file=@VAR_DIR@/centengine.log
+log_file=@ENGINE_VAR_LOG_DIR@/centengine.log
 
 
 # var:    cfg_file
@@ -41,52 +40,8 @@ log_file=@VAR_DIR@/centengine.log
 #         shown below), or keep them all in a single config file.
 
 # You can specify individual object config files as shown below:
-cfg_file=@PREFIX_CONF@/objects/commands.cfg
-cfg_file=@PREFIX_CONF@/objects/contacts.cfg
-cfg_file=@PREFIX_CONF@/objects/timeperiods.cfg
-cfg_file=@PREFIX_CONF@/objects/templates.cfg
-
-# Definitions for monitoring the local (Linux) host
-cfg_file=@PREFIX_CONF@/objects/localhost.cfg
-
-# Definitions for monitoring a Windows machine
-#cfg_file=@PREFIX_CONF@/objects/windows.cfg
-
-# Definitions for monitoring a router/switch
-#cfg_file=@PREFIX_CONF@/objects/switch.cfg
-
-# Definitions for monitoring a network printer
-#cfg_file=@PREFIX_CONF@/objects/printer.cfg
-
-# You can also tell Nagios to process all config files (with a .cfg extension)
-# in a particular directory by using the cfg_dir directive as shown below.
-#cfg_dir=@PREFIX_CONF@/servers
-#cfg_dir=@PREFIX_CONF@/printers
-#cfg_dir=@PREFIX_CONF@/switches
-#cfg_dir=@PREFIX_CONF@/routers
-
-
-# var:  object_cache_file
-# brief: This option determines where object definitions are cached when
-#        Centreon Engine starts/restarts.
-
-object_cache_file=@VAR_DIR@/objects.cache
-
-
-# var:    precached_object_file
-# brief:  This options determines the location of the precached object file. If
-#         you run Centreon Engine with the -p command line option, it will
-#         preprocess your object configuration file(s) and write the cached
-#         config to this file. You can then start Centreon Engine with the -u
-#         option to have it read object definitions from this precached file,
-#         rather than the standard object configuration files (see the cfg_file
-#         and cfg_dir options above). Using a precached object file can speed up
-#         the time needed to (re)start the Centreon Engine process if you've got
-#         a large and/or complex configuration. Read the documentation section
-#         on optimizing Centreon Engine to find our more about how this feature works.
-
-precached_object_file=@VAR_DIR@/objects.precache
-
+cfg_file=@PREFIX_ENGINE_CONF@/commands.cfg
+cfg_file=@PREFIX_ENGINE_CONF@/timeperiods.cfg
 
 # var:    resource_file
 # brief:  This is an optional resource file that contains $USERx$ macro
@@ -97,7 +52,7 @@ precached_object_file=@VAR_DIR@/objects.precache
 #         this file and restrictive permissions (600) can be placed on this
 #         file.
 
-resource_file=@PREFIX_CONF@/resource.cfg
+resource_file=@PREFIX_ENGINE_CONF@/resource.cfg
 
 
 # var:    status_file
@@ -105,14 +60,8 @@ resource_file=@PREFIX_CONF@/resource.cfg
 #         is stored. The contents of the status file are deleted every time
 #         Centreon Engine restarts.
 
-status_file=@VAR_DIR@/status.dat
+status_file=@ENGINE_VAR_LOG_DIR@/status.dat
 
-
-# var:    status_update_interval
-# brief:  This option determines the frequency (in seconds) that Centreon Engine
-#         will periodically dump program, host, and service status data.
-
-status_update_interval=10
 
 
 # var:    check_external_commands
@@ -140,8 +89,7 @@ check_external_commands=1
 #         NOTE: Setting this value to -1 causes Centreon Engine to check the
 #         external command file as often as possible.
 
-#command_check_interval=15s
-command_check_interval=-1
+command_check_interval=1s
 
 
 # var:    command_file
@@ -150,17 +98,7 @@ command_check_interval=-1
 #         on the file, as the file is deleted every time its contents are
 #         processed.
 
-command_file=@RW_DIR@/centengine.cmd
-
-
-# var:    external_command_buffer_slots
-# brief:  This settings is used to tweak the number of items or "slots" that the
-#         Centreon Engine daemon should allocate to the buffer that holds
-#         incoming external commands before they are processed. As external
-#         commands are processed by the daemon, they are removed from the
-#         buffer.
-
-external_command_buffer_slots=4096
+command_file=@ENGINE_VAR_LIB_DIR@/rw/centengine.cmd
 
 
 # var:    event_broker_options
@@ -180,8 +118,8 @@ event_broker_options=-1
 #         space.
 
 #broker_module=<modulepath> [moduleargs]
-#broker_module=/somewhere/module1.o
-#broker_module=/somewhere/module2.o arg1 arg2=3 debug=0
+broker_module=@ENGINE_MODULES_DIR@externalcmd.so
+broker_module=@CMAKE_INSTALL_PREFIX@/lib64/nagios/cbmod.so @CMAKE_INSTALL_FULL_SYSCONFDIR@/centreon-broker/central-module.json
 
 
 # var:    use_syslog
@@ -190,7 +128,7 @@ event_broker_options=-1
 # values: 0 = disable.
 #         1 = enable.
 
-use_syslog=1
+use_syslog=0
 
 
 # var:    log_notifications
@@ -227,18 +165,6 @@ log_host_retries=1
 
 log_event_handlers=1
 
-# var:    log_initial_states
-# brief:  If you want Centreon Engine to log all initial host and service states
-#         to the main log file (the first time the service or host is checked)
-#         you can enable this option. If you are not using an external
-#         application that does long term state statistics reporting, you do not
-#         need to enable this option.
-# values: 0 = disable.
-#         1 = enable.
-
-log_initial_states=0
-
-
 # var:    log_external_commands
 # brief:  If you don't want Centreon Engine to log external commands, disable
 #         this option.
@@ -249,38 +175,6 @@ log_initial_states=0
 #         1 = enable.
 
 log_external_commands=1
-
-
-# var:    log_passive_checks
-# brief:  If you don't want Centreon Engine to log passive host and service
-#         checks, disable this option.
-# values: 0 = disable.
-#         1 = enable.
-
-log_passive_checks=1
-
-
-# var:    global_host_event_handler
-# brief:  These options allow you to specify a host event handler command that
-#         is to be run for every host state change. The global event handler is
-#         executed immediately prior to the event handler that you have
-#         optionally specified in each host definition. The command argument is
-#         the short name of a command definition that you define in your host
-#         configuration file. Read the HTML docs for more information.
-
-#global_host_event_handler=somecommand
-
-
-# var:    global_service_event_handler
-# brief:  These options allow you to specify a service event handler command
-#         that is to be run for every service state change. The global event
-#         handler is executed immediately prior to the event handler that you
-#         have optionally specified in each service definition. The command
-#         argument is the short name of a command definition that you define in
-#         your host configuration file. Read the HTML docs for more information.
-
-#global_service_event_handler=somecommand
-
 
 # var:    service_inter_check_delay_method
 # brief:  This is the method that Centreon Engine should use when initially
@@ -301,9 +195,9 @@ service_inter_check_delay_method=s
 # var:    max_service_check_spread
 # brief:  This variable determines the timeframe (in minutes) from the program
 #         start time that an initial check of all services should be completed.
-#         Default is 30 minutes.
+#         Default is 5 minutes.
 
-max_service_check_spread=30
+max_service_check_spread=5
 
 
 # var:    service_interleave_factor
@@ -320,29 +214,6 @@ max_service_check_spread=30
 
 service_interleave_factor=s
 
-
-# var:    host_inter_check_delay_method
-# brief:  This is the method that Centreon Engine should use when initially
-#         "spreading out" host checks when it starts monitoring. The default is
-#         to use smart delay calculation, which will try to space all host
-#         checks out evenly to minimize CPU load. Using the dumb setting will
-#         cause all checks to be scheduled at the same time (with no delay
-#         between them)!
-# values: n    = None - don't use any delay between checks.
-#         d    = Use a "dumb" delay of 1 second between checks.
-#         s    = Use "smart" inter-check delay calculation.
-#         x.xx = Use an inter-check delay of x.xx seconds.
-
-host_inter_check_delay_method=s
-
-
-# var:    max_host_check_spread
-# brief:  This variable determines the timeframe (in minutes) from the program
-#         start time that an initial check of all hosts should be completed.
-#         Default is 30 minutes.
-
-max_host_check_spread=30
-
 # var:    max_concurrent_checks
 # brief:  This option allows you to specify the maximum number of service checks
 #         that can be run in parallel at any given time.
@@ -351,23 +222,14 @@ max_host_check_spread=30
 #         0 will not restrict the number of concurrent checks that are being
 #         executed.
 
-max_concurrent_checks=0
+max_concurrent_checks=400
 
 
 # var:    check_result_reaper_frequency
 # brief:  This is the frequency (in seconds!) that Centreon Engine will process
 #         the results of host and service checks.
 
-check_result_reaper_frequency=10
-
-
-# var:    max_check_result_reaper_time
-# brief:  This is the max amount of time (in seconds) that  a single check
-#         result reaper event will be allowed to run before returning control
-#         back to Centreon Engine so it can perform other duties.
-
-max_check_result_reaper_time=30
-
+check_result_reaper_frequency=5
 
 # var:    cached_host_check_horizon
 # brief:  This option determines the maximum amount of time (in seconds) that
@@ -381,20 +243,7 @@ max_check_result_reaper_time=30
 # values: 0 = disable.
 #         x = time in seconds.
 
-cached_host_check_horizon=15
-
-
-# var:    cached_service_check_horizon
-# brief:  This option determines the maximum amount of time (in seconds) that
-#         the state of a previous service check is considered current. Cached
-#         service states (from service checks that were performed more recently
-#         that the timeframe specified by this value) can immensely improve
-#         performance in regards to predictive dependency checks.
-# values: 0 = disable.
-#         x = time in seconds.
-
-cached_service_check_horizon=15
-
+cached_host_check_horizon=60
 
 # var:    enable_predictive_host_dependency_checks
 # brief:  This option determines whether or not Centreon Engine will attempt to
@@ -434,7 +283,7 @@ soft_state_dependencies=0
 # brief:  These options determine when Centreon Engine will react to detected
 #         changes in system time (either forward or backwards).
 
-#time_change_threshold=900
+time_change_threshold=900
 
 
 # var:    auto_reschedule_checks
@@ -479,7 +328,7 @@ auto_rescheduling_window=180
 # brief:  This is the number of seconds to sleep between checking for system
 #         events and service checks that need to be run.
 
-sleep_time=0.25
+sleep_time=0.2
 
 
 # var:    *_timeout
@@ -490,10 +339,11 @@ sleep_time=0.25
 #         performance data commands. All values are in seconds.
 
 service_check_timeout=60
-host_check_timeout=30
+host_check_timeout=12
 event_handler_timeout=30
 notification_timeout=30
 ocsp_timeout=5
+ochp_timeout=5
 perfdata_timeout=5
 
 
@@ -516,7 +366,7 @@ retain_state_information=1
 #         network when Centreon Engine is restarted. This file is used only if
 #         the retain_state_information variable is set to 1.
 
-state_retention_file=@VAR_DIR@/retention.dat
+state_retention_file=@ENGINE_VAR_LOG_DIR@/retention.dat
 
 
 # var:    retention_update_interval
@@ -585,17 +435,6 @@ retained_contact_service_attribute_mask=0
 #         have not been tested much, so your mileage is likely to vary...
 
 interval_length=60
-
-
-# var:    use_aggressive_host_checking
-# brief:  If you don't want to turn on aggressive host checking features, enable
-#         this option. Read the docs for more info on what aggressive host check
-#         is or check out the source code in base/checks.c
-# values: 0 = disable.
-#         1 = enable.
-
-use_aggressive_host_checking=0
-
 
 # var:    execute_service_checks
 # brief:  This determines whether or not Centreon Engine will actively execute
@@ -672,69 +511,6 @@ enable_event_handlers=1
 
 process_performance_data=0
 
-
-# var:    *_perfdata_command
-# brief:  These commands are run after every host and service check is
-#         performed. These commands are executed only if the
-#         enable_performance_data option (above) is set to 1. The command
-#         argument is the short name of a command definition that you define in
-#         your host configuration file. Read the HTML docs for more information
-#         on performance data.
-
-#host_perfdata_command=process-host-perfdata
-#service_perfdata_command=process-service-perfdata
-
-
-# var:    *_perfdata_file
-# brief:  These files are used to store host and service performance data.
-#         Performance data is only written to these files if the
-#         enable_performance_data option (above) is set to 1.
-
-#host_perfdata_file=/tmp/host-perfdata
-#service_perfdata_file=/tmp/service-perfdata
-
-
-# var:    *_perfdata_file_template
-# brief:  These options determine what data is written (and how) to the
-#         performance data files. The templates may contain macros, special
-#         characters (\t for tab, \r for carriage return, \n for newline) and
-#         plain text. A newline is automatically added after each write to the
-#         performance data file. Some examples of what you can do are shown
-#         below.
-
-#host_perfdata_file_template=[HOSTPERFDATA]\t$TIMET$\t$HOSTNAME$\t$HOSTEXECUTIONTIME$\t$HOSTOUTPUT$\t$HOSTPERFDATA$
-#service_perfdata_file_template=[SERVICEPERFDATA]\t$TIMET$\t$HOSTNAME$\t$SERVICEDESC$\t$SERVICEEXECUTIONTIME$\t$SERVICELATENCY$\t$SERVICEOUTPUT$\t$SERVICEPERFDATA$
-
-
-# var:    *_perfdata_file_mode
-# brief:  This option determines whether or not the host and service performance
-#         data files are opened in write ("w") or append ("a") mode. If you want
-#         to use named pipes, you should use the special pipe ("p") mode which
-#         avoid blocking at startup, otherwise you will likely want the defult
-#         append ("a") mode.
-
-#host_perfdata_file_mode=a
-#service_perfdata_file_mode=a
-
-
-# var:    *_perfdata_file_processing_interval
-# brief:  These options determine how often (in seconds) the host and service
-#         performance data files are processed using the commands defined below.
-#         A value of 0 indicates the files should not be periodically processed.
-
-#host_perfdata_file_processing_interval=0
-#service_perfdata_file_processing_interval=0
-
-
-# var:    *_perfdata_file_processing_command
-# brief:  These commands are used to periodically process the host and service
-#         performance data files. The interval at which the processing occurs is
-#         determined by the options above.
-
-#host_perfdata_file_processing_command=process-host-perfdata-file
-#service_perfdata_file_processing_command=process-service-perfdata-file
-
-
 # var:    obsess_over_services
 # brief:  This determines whether or not Centreon Engine will obsess over
 #         service checks and run the ocsp_command defined below. Unless you're
@@ -747,17 +523,6 @@ process_performance_data=0
 obsess_over_services=0
 
 
-# var:    ocsp_command
-# brief:  This is the command that is run for every service check that is
-#         processed by Centreon Engine. This command is executed only if the
-#         obsess_over_services option (above) is set to 1. The command argument
-#         is the short name of a command definition that you define in your host
-#         configuration file. Read the HTML docs for more information on
-#         implementing distributed monitoring.
-
-#ocsp_command=somecommand
-
-
 # var:    obsess_over_hosts
 # brief:  This determines whether or not Centreon Engine will obsess over host
 #         checks and run the ochp_command defined below. Unless you're planning
@@ -768,17 +533,6 @@ obsess_over_services=0
 #         1 = obsess over hosts.
 
 obsess_over_hosts=0
-
-
-# var:    ochp_command
-# brief:  This is the command that is run for every host check that is processed
-#         by Centreon Engine. This command is executed only if the
-#         obsess_over_hosts option (above) is set to 1. The command argument is
-#         the short name of a command definition that you define in your host
-#         configuration file. Read the HTML docs for more information on
-#         implementing distributed monitoring.
-
-#ochp_command=somecommand
 
 
 # var:    translate_passive_host_checks
@@ -798,18 +552,6 @@ obsess_over_hosts=0
 
 translate_passive_host_checks=0
 
-
-# var:    passive_host_checks_are_soft
-# brief:  This determines whether or not Centreon Engine will treat passive host
-#         checks as being HARD or SOFT. By default, a passive host check result
-#         will put a host into a HARD state type. This can be changed by
-#         enabling this option.
-# values: 0 = passive checks are HARD.
-#         1 = passive checks are SOFT.
-
-passive_host_checks_are_soft=0
-
-
 # var:    check_for_orphaned_*
 # brief:  These options determine whether or not Centreon Engine will
 #         periodically check for orphaned host service checks. Since service
@@ -824,8 +566,8 @@ passive_host_checks_are_soft=0
 # values: 0 = disable checks.
 #         1 = enable checks.
 
-check_for_orphaned_services=1
-check_for_orphaned_hosts=1
+check_for_orphaned_services=0
+check_for_orphaned_hosts=0
 
 
 # var:    check_service_freshness
@@ -893,10 +635,10 @@ enable_flap_detection=1
 #         what this option does. This option has no effect if flap detection is
 #         disabled.
 
-low_service_flap_threshold=5.0
-high_service_flap_threshold=20.0
-low_host_flap_threshold=5.0
-high_host_flap_threshold=20.0
+low_service_flap_threshold=25.0
+high_service_flap_threshold=50.0
+low_host_flap_threshold=25.0
+high_host_flap_threshold=50.0
 
 
 # var:    date_format
@@ -907,7 +649,7 @@ high_host_flap_threshold=20.0
 #         iso8601        = (YYYY-MM-DD HH:MM:SS)
 #         strict-iso8601 = (YYYY-MM-DDTHH:MM:SS)
 
-date_format=us
+date_format=euro
 
 
 # var:    use_timezone
@@ -920,8 +662,7 @@ date_format=us
 #           ...
 #         </Directory>
 
-#use_timezone=US/Mountain
-#use_timezone=Australia/Brisbane
+use_timezone=:Europe/London
 
 
 # var:    illegal_object_name_chars
@@ -929,7 +670,7 @@ date_format=us
 #         used in host names, service descriptions, or names of other object
 #         types.
 
-illegal_object_name_chars=`~!$%^&*|'"<>?,()=
+illegal_object_name_chars=~!$%^&*"|'<>?,()=
 
 
 # var:    illegal_macro_output_chars
@@ -946,7 +687,7 @@ illegal_object_name_chars=`~!$%^&*|'"<>?,()=
 #	  - $SERVICEACKAUTHOR$
 #	  - $SERVICEACKCOMMENT$
 
-illegal_macro_output_chars=`~$&|'"<>
+illegal_macro_output_chars=`~$^&"|'<>
 
 
 # var:    use_regexp_matching
@@ -979,8 +720,8 @@ use_true_regexp_matching=0
 #         them by using the $ADMINEMAIL$ and $ADMINPAGER$ macros in your
 #         notification commands.
 
-admin_email=root@localhost
-admin_pager=pageroot@localhost
+admin_email=admin@localhost
+admin_pager=admin
 
 
 # var:    use_large_installation_tweaks
@@ -1005,32 +746,6 @@ use_large_installation_tweaks=0
 #         1 = Enable environment variable macros.
 
 enable_environment_macros=0
-
-
-# var:    free_child_process_memory
-# brief:  This option determines whether or not Centreon Engine will free memory
-#         in child processes (processed used to execute system commands and
-#         host/ service checks). If you specify a value here, it will override
-#         program defaults.
-# value: 0 = Do not free memory in child processes.
-#        1 = Free memory in child processes.
-
-#free_child_process_memory=1
-
-
-# var:    child_processes_fork_twice
-# brief:  This option determines how Centreon Engine will fork child processes
-#         (used to execute system commands and host/service checks). Normally
-#         child processes are fork()ed twice, which provides a very high level
-#         of isolation from problems. Fork()ing once is probably enough and will
-#         save a great deal on CPU usage (in large installs), so you might want
-#         to consider using this. If you specify a value here, it will program
-#         defaults.
-# value: 0 = Child processes fork() just once.
-#        1 = Child processes fork() twice.
-
-#child_processes_fork_twice=1
-
 
 # var:    debug_level
 # brief:  This option determines how much (if any) debugging information will be
@@ -1060,14 +775,14 @@ debug_level=0
 #         1 = More detailed.
 #         2 = Very detailed.
 
-debug_verbosity=1
+debug_verbosity=2
 
 
 # var:    debug_file
 # brief:  This option determines where Centreon Engine should write debugging
 #         information.
 
-debug_file=@VAR_DIR@/centengine.debug
+debug_file=@ENGINE_VAR_LOG_DIR@/centengine.debug
 
 
 # var:    max_debug_file_size
@@ -1078,3 +793,28 @@ debug_file=@VAR_DIR@/centengine.debug
 #         doesn't get out of control when debugging Centreon Engine.
 
 max_debug_file_size=1000000
+
+# var:    log_pid
+# brief:  Enable the possibility to log pid information in engine log file 
+#         (option only for Centreon Engine).
+# values: 0 = Disabled.
+#         1 = Enabled.
+
+log_pid=1
+
+# var:    enable_macros_filter
+# brief:  This options is an advanced configuration of engine that enables or not
+#         the filtering of macros sent to broker.If you don't understand 
+#         the purpose of enabling this option, please do not enable it.
+# values: 0 = Disabled.
+#         1 = Enabled.
+
+enable_macros_filter=0
+
+# var:    instance_heartbeat_interval
+# brief:  Time interval in seconds between two heartbeat events. 
+#         This event is the one responsible of the 'Last Update' 
+#         column update in the Pollers listing. 
+#         Value must be between 5 and 600. Default value is 30.
+
+instance_heartbeat_interval=30

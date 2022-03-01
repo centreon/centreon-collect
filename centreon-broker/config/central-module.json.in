@@ -1,15 +1,16 @@
 {
     "centreonBroker": {
-        "broker_id": 1,
-        "broker_name": "central-broker-master",
+        "broker_id": 3,
+        "broker_name": "central-module-master",
         "poller_id": 1,
         "poller_name": "Central",
         "module_directory": "@PREFIX_MODULES@",
-        "bbdo_version": "3.0.0",
-        "log_timestamp": true,
+        "log_timestamp": false,
         "log_thread_id": false,
+        "bbdo_version": "3.0.0",
         "event_queue_max_size": 100000,
-        "cache_directory": "@BROKER_VAR_LIB_DIR@",
+        "command_file": "",
+        "cache_directory": "@ENGINE_VAR_LIB_DIR@",
         "log": {
             "directory": "@BROKER_VAR_LOG_DIR@",
             "filename": "",
@@ -28,30 +29,16 @@
 		        "neb": "error"
             }
         },
-        "input": [
-            {
-                "name": "central-broker-master-input",
-                "port": "5669",
-                "buffering_timeout": "0",
-                "retry_interval": "10",
-                "protocol": "bbdo",
-                "tls": "auto",
-                "negotiation": "yes",
-                "one_peer_retention_mode": "no",
-                "compression": "auto",
-                "type": "ipv4"
-            }
-        ],
         "output": [
             {
-                "name": "centreon-broker-rrd",
-                "port": "5670",
-                "buffering_timeout": "0",
+                "name": "central-module-master-output",
+                "port": "5669",
                 "host": "localhost",
-                "retry_interval": "60",
                 "protocol": "bbdo",
                 "tls": "no",
                 "negotiation": "yes",
+                "buffering_timeout": "0",
+                "retry_interval": "60",
                 "one_peer_retention_mode": "no",
                 "compression": "no",
                 "type": "ipv4"
@@ -60,12 +47,12 @@
         "stats": [
             {
                 "type": "stats",
-                "name": "central-broker-master-stats",
-                "json_fifo": "@BROKER_VAR_LIB_DIR@/central-broker-master-stats.json"
+                "name": "central-rrd-stats",
+                "json_fifo": "@ENGINE_VAR_LIB_DIR@/central-module-master-stats.json"
             }
         ],
         "grpc": {
-            "port": 51001
+            "port": 51003
         }
     }
 }

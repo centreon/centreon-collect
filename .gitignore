@@ -18,6 +18,9 @@ build
 centreon-broker/core/inc/com/centreon/broker/database/table_max_size.hh
 centreon-broker/core/inc/com/centreon/broker/vars.hh
 centreon-broker/core/inc/com/centreon/broker/version.hh
+centreon-broker/config/central-rrd.json
+centreon-broker/config/central-broker.json
+centreon-broker/config/central-module.json
 doc/_build
 doc/devel-doc
 engine_pb2.py
@@ -74,7 +77,8 @@ centreon-engine/benchmark/lib/*
 centreon-engine/benchmark/log/*
 centreon-engine/cmake-build-debug/*
 centreon-engine/conf/centengine.cfg
-centreon-engine/conf/objects/*.cfg
+centreon-engine/conf/timeperiods.cfg
+centreon-engine/conf/commands.cfg
 centreon-engine/conf/resource.cfg
 centreon-engine/doc/_build
 centreon-engine/enginerpc/engine.*pb.cc
