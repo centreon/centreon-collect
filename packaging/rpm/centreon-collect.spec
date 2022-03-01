@@ -245,7 +245,7 @@ cmake3 \
         -DWITH_GROUP_BROKER=centreon-broker \
         -DWITH_USER_ENGINE=centreon-engine \
         -DWITH_GROUP_ENGINE=centreon-engine \
-        -DWITH_DAEMONS='central-rrd;central-broker' \
+        -DWITH_DAEMONS=y \
         -DWITH_CONFIG_FILES=y \
         -DCMAKE_BUILD_TYPE=RelWithDebInfo \
         .
@@ -351,7 +351,8 @@ fi
 %defattr(-,centreon-engine,centreon-engine,-)
 %attr(0664,centreon-engine,centreon-engine) %config(noreplace) %{_sysconfdir}/centreon-engine/centengine.cfg
 %attr(0664,centreon-engine,centreon-engine) %config(noreplace) %{_sysconfdir}/centreon-engine/resource.cfg
-%attr(0664,centreon-engine,centreon-engine) %config(noreplace) %{_sysconfdir}/centreon-engine/objects/*.cfg
+%attr(0664,centreon-engine,centreon-engine) %config(noreplace) %{_sysconfdir}/centreon-engine/commands.cfg
+%attr(0664,centreon-engine,centreon-engine) %config(noreplace) %{_sysconfdir}/centreon-engine/timeperiods.cfg
 
 %defattr(-,root,root,-)
 %config(noreplace) %{_sysconfdir}/logrotate.d/centengine
@@ -408,16 +409,13 @@ fi
 %{_datadir}/centreon/lib/centreon-broker/70-influxdb.so
 
 %files -n centreon-broker-cbd
-%defattr(664,centreon-broker,centreon-broker,-)
-%config(noreplace) %{_sysconfdir}/centreon-broker/central-broker.json
-%config(noreplace) %{_sysconfdir}/centreon-broker/central-rrd.json
-%config(noreplace) %{_sysconfdir}/centreon-broker/watchdog.json
+%defattr(-,centreon-broker,centreon-broker,-)
+%attr(0664,centreon-broker,centreon-broker) %config(noreplace) %{_sysconfdir}/centreon-broker/central-broker.json
+%attr(0664,centreon-broker,centreon-broker) %config(noreplace) %{_sysconfdir}/centreon-broker/central-rrd.json
+%attr(0664,centreon-broker,centreon-broker) %config(noreplace) %{_sysconfdir}/centreon-broker/watchdog.json
 %defattr(-,root,root,-)
 %{_sbindir}/cbd
 %{_sbindir}/cbwd
-#%{_sysconfdir}/centreon-broker/central-broker.json
-#%{_sysconfdir}/centreon-broker/central-rrd.json
-#%{_sysconfdir}/centreon-broker/watchdog.json
 
 %defattr(-,root,root,-)
 %{_datadir}/doc/centreon-broker/
@@ -439,11 +437,10 @@ fi
 #%{_datadir}/centreon-broker/lua
 
 %files -n centreon-broker-cbmod
-%defattr(664,centreon-broker,centreon-broker,-)
-%config(noreplace) %{_sysconfdir}/centreon-broker/poller-module.json
+%defattr(-,centreon-broker,centreon-broker,-)
+%attr(0664,centreon-broker,centreon-broker) %config(noreplace) %{_sysconfdir}/centreon-broker/central-module.json
 %defattr(-,root,root,-)
 %{_libdir}/nagios/cbmod.so
-#%{_sysconfdir}/centreon-broker/poller-module.json
 
 %post -n centreon-broker-cbmod
 %{_bindir}/getent passwd centreon-engine &>/dev/null && %{_sbindir}/usermod -a -G centreon-broker centreon-engine

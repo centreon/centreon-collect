@@ -156,10 +156,6 @@ set(PREFIX_BROKER_CONF ${CMAKE_INSTALL_FULL_SYSCONFDIR}/centreon-broker)
 set(PREFIX_MODULES "${CMAKE_INSTALL_FULL_DATADIR}/centreon/lib/centreon-broker")
 set(PREFIX_CBMOD "${CMAKE_INSTALL_PREFIX}/lib64/nagios")
 
-# var directories.
-set(BROKER_VAR_LOG_DIR "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/log/centreon-broker")
-set(BROKER_VAR_LIB_DIR "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/lib/centreon-broker")
-
 # User.
 if (WITH_USER_BROKER)
   set(USER "${WITH_USER_BROKER}")
@@ -228,11 +224,6 @@ if (WITH_DAEMONS)
       @ONLY)
   endif ()
 
-  foreach (DAEMON_NAME IN LISTS WITH_DAEMONS)
-    set(DAEMONS_CONFIGURATION
-      "${DAEMONS_CONFIGURATION}  \"cbd\": [ { \"name\": \"${DAEMON_NAME}\", \"configuration_file\": \"${PREFIX_BROKER_CONF}/${DAEMON_NAME}.json\", \"run\": true, \"reload\": true } ],\n")
-  endforeach ()
-
   configure_file("${PROJECT_SOURCE_DIR}/script/watchdog.json.in"
     "${PROJECT_SOURCE_DIR}/script/watchdog.json"
     @ONLY)
@@ -246,8 +237,8 @@ if (WITH_DAEMONS)
 endif ()
 
 if (WITH_CONFIG_FILES)
-  configure_file("${PROJECT_SOURCE_DIR}/config/poller-module.json.in"
-    "${PROJECT_SOURCE_DIR}/config/poller-module.json"
+  configure_file("${PROJECT_SOURCE_DIR}/config/central-module.json.in"
+    "${PROJECT_SOURCE_DIR}/config/central-module.json"
     @ONLY)
   configure_file("${PROJECT_SOURCE_DIR}/config/central-broker.json.in"
     "${PROJECT_SOURCE_DIR}/config/central-broker.json"
@@ -256,7 +247,7 @@ if (WITH_CONFIG_FILES)
     "${PROJECT_SOURCE_DIR}/config/central-rrd.json"
     @ONLY)
 
-  install(FILES "${PROJECT_SOURCE_DIR}/config/poller-module.json"
+  install(FILES "${PROJECT_SOURCE_DIR}/config/central-module.json"
     DESTINATION "${PREFIX_BROKER_CONF}")
   install(FILES "${PROJECT_SOURCE_DIR}/config/central-rrd.json"
     DESTINATION "${PREFIX_BROKER_CONF}")

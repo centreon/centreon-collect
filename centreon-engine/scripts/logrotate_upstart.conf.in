@@ -4,7 +4,7 @@
   daily
   delaycompress
   missingok
-  olddir @LOG_ARCHIVE_DIR@
+  olddir @ENGINE_VAR_LOG_ARCHIVE_DIR@
   createolddir 755 @USER@ @GROUP@
   rotate 365
   postrotate
@@ -17,7 +17,7 @@
   create 640 @USER@ @GROUP@
   delaycompress
   missingok
-  olddir @LOG_ARCHIVE_DIR@
+  olddir @ENGINE_VAR_LOG_ARCHIVE_DIR@
   createolddir 755 @USER@ @GROUP@
   rotate 5
   size   1G
