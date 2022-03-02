@@ -454,8 +454,8 @@ int grab_service_macros_r(nagios_macros* mac,
   if (!svc->get_parent_groups().empty())
     mac->servicegroup_ptr = svc->get_parent_groups().front();
 
-  if (!svc->get_contacts().empty())
-    mac->contact_ptr = svc->get_contacts().begin()->second;
+  if (!svc->contacts().empty())
+    mac->contact_ptr = svc->contacts().begin()->second;
 
   if (!svc->get_contactgroups().empty())
     mac->contactgroup_ptr = svc->get_contactgroups().begin()->second;

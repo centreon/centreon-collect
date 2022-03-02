@@ -173,7 +173,7 @@ void applier::anomalydetection::add_object(
   for (set_string::const_iterator it(obj.contacts().begin()),
        end(obj.contacts().end());
        it != end; ++it)
-    ad->get_contacts().insert({*it, nullptr});
+    ad->mut_contacts().insert({*it, nullptr});
 
   // Add contactgroups.
   for (set_string::const_iterator it(obj.contactgroups().begin()),
@@ -381,13 +381,13 @@ void applier::anomalydetection::modify_object(
   // Contacts.
   if (obj.contacts() != obj_old.contacts()) {
     // Delete old contacts.
-    s->get_contacts().clear();
+    s->mut_contacts().clear();
 
     // Add contacts to host.
     for (set_string::const_iterator it(obj.contacts().begin()),
          end(obj.contacts().end());
          it != end; ++it)
-      s->get_contacts().insert({*it, nullptr});
+      s->mut_contacts().insert({*it, nullptr});
   }
 
   // Contact groups.

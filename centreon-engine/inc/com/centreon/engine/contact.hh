@@ -20,6 +20,7 @@
 #ifndef CCE_CONTACT_HH
 #define CCE_CONTACT_HH
 
+#include <absl/container/flat_hash_map.h>
 #include <time.h>
 #include <list>
 #include <memory>
@@ -33,11 +34,11 @@
 #define MAX_CONTACT_ADDRESSES 6
 
 /* Forward declaration. */
-typedef std::unordered_map<std::string,
-                           std::shared_ptr<com::centreon::engine::contact>>
-    contact_map;
-typedef std::unordered_map<std::string, com::centreon::engine::contact*>
-    contact_map_unsafe;
+using contact_map =
+    absl::flat_hash_map<std::string,
+                        std::shared_ptr<com::centreon::engine::contact>>;
+using contact_map_unsafe =
+    absl::flat_hash_map<std::string, com::centreon::engine::contact*>;
 
 CCE_BEGIN()
 class host;

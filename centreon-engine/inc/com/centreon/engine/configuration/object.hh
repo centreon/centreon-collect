@@ -52,6 +52,7 @@ class object {
     servicegroup = 13,
     timeperiod = 14,
     anomalydetection = 15,
+    severity = 16,
   };
 
   object(object_type type);

@@ -146,6 +146,36 @@ void broker_adaptive_contact_data(int type,
 }
 
 /**
+ * @brief Send adaptive severity updates to broker.
+ *
+ * @param type      Type.
+ * @param flags     Flags.
+ * @param attr      Attributes.
+ * @param data      Target severity.
+ * @param timestamp Timestamp.
+ */
+void broker_adaptive_severity_data(int type,
+                                   int flags,
+                                   int attr,
+                                   void* data,
+                                   const struct timeval* timestamp) {
+  /* Config check. */
+  if (!(config->event_broker_options() & BROKER_ADAPTIVE_DATA))
+    return;
+
+  /* Fill struct with relevant data. */
+  nebstruct_adaptive_severity_data ds;
+  ds.type = type;
+  ds.flags = flags;
+  ds.attr = attr;
+  ds.timestamp = get_broker_timestamp(timestamp);
+  ds.object_ptr = data;
+
+  /* Make callbacks. */
+  neb_make_callbacks(NEBCALLBACK_ADAPTIVE_SEVERITY_DATA, &ds);
+}
+
+/**
  *  Send adaptive dependency updates to broker.
  *
  *  @param[in] type      Type.

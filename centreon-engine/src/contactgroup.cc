@@ -113,7 +113,7 @@ std::ostream& operator<<(std::ostream& os, contactgroup_map_unsafe const& obj) {
   for (contactgroup_map_unsafe::const_iterator it{obj.begin()}, end{obj.end()};
        it != end; ++it) {
     os << it->first;
-    if (next(it) != end)
+    if (std::next(it) != end)
       os << ", ";
     else
       os << "";
