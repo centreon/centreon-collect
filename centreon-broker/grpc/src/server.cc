@@ -1,3 +1,22 @@
+/*
+ * Copyright 2022 Centreon (https://www.centreon.com/)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ *
+ */
+
 #include "grpc_stream.grpc.pb.h"
 
 #include "com/centreon/broker/grpc/server.hh"
@@ -135,10 +154,12 @@ bool accepted_service::start_write() {
 
 void accepted_service::OnWriteDone(bool ok) {
   bool another_to_write = false;
+  event_ptr written;
   {
     unique_lock l(_protect);
     _write_pending = false;
     if (ok) {
+      written = _write_current;
       _write_queue.pop_front();
       ++_nb_written;
       another_to_write = !_write_queue.empty();
@@ -154,6 +175,9 @@ void accepted_service::OnWriteDone(bool ok) {
       log_v2::grpc()->error("{:p} {} echec write", static_cast<void*>(this),
                             __PRETTY_FUNCTION__, *_write_current);
     }
+  }
+  if (written) {
+    _write_callback(written);
   }
   if (another_to_write) {
     start_write();

@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013,2015,2017 Centreon
+** Copyright 2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -19,8 +19,6 @@
 #ifndef CCB_GRPC_CHANNEL_HH
 #define CCB_GRPC_CHANNEL_HH
 
-#include "grpc_grpc.hh"
-
 namespace com {
 namespace centreon {
 namespace broker {
@@ -30,7 +28,6 @@ std::ostream& operator<<(std::ostream&, const detail_centreon_event&);
 }  // namespace grpc
 namespace stream {
 class centreon_event;
-class centreon_raw_data;
 std::ostream& operator<<(std::ostream&, const centreon_event&);
 }  // namespace stream
 }  // namespace broker
@@ -45,7 +42,6 @@ CCB_BEGIN()
 namespace grpc {
 
 using grpc_event = centreon_stream::centreon_event;
-using grpc_raw_data = centreon_stream::centreon_raw_data;
 using event_ptr = std::shared_ptr<grpc_event>;
 using channel_ptr = std::shared_ptr<::grpc::Channel>;
 
@@ -60,6 +56,10 @@ struct detail_centreon_event {
  *
  */
 class channel : public std::enable_shared_from_this<channel> {
+ public:
+  using write_callback_type = std::function<void(const event_ptr&)>;
+
+ private:
   channel& operator=(const channel&) = delete;
   channel(const channel&) = delete;
 
@@ -74,16 +74,28 @@ class channel : public std::enable_shared_from_this<channel> {
 
   int _nb_written;
 
+  write_callback_type _write_callback;
+
   mutable std::mutex _protect;
   mutable std::condition_variable _read_cond;
 
   channel(const std::string& hostport)
-      : _hostport(hostport), _thrown(false), _nb_written(0) {}
+      : _hostport(hostport),
+        _thrown(false),
+        _nb_written(0),
+        _write_callback(_dummy_write_callback) {}
+
+  static void _dummy_write_callback(const event_ptr&) {}
 
  public:
   using pointer = std::shared_ptr<channel>;
 
   virtual ~channel() = default;
+
+  template <class call_back_type>
+  void set_write_callback(call_back_type&& new_callback) {
+    _write_callback = new_callback;
+  }
 
   void to_trash();
   virtual bool is_down() const = 0;

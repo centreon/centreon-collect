@@ -2,16 +2,9 @@ syntax = "proto3";
 
 package com.centreon.broker.stream;
 
-message centreon_raw_data {
-    uint32 type = 1;
-    uint32 source = 2;
-    uint32 destination = 3;
-    bytes buffer = 4;
-}
-
 message centreon_event {
     oneof content {
-        centreon_raw_data raw_data = 1;
+        bytes buffer = 1;
     }
 }
 

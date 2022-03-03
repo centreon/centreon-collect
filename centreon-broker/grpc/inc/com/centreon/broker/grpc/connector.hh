@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013,2015,2017 Centreon
+** Copyright 2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -21,27 +21,23 @@
 
 #include "com/centreon/broker/io/limit_endpoint.hh"
 
-#include "grpc_grpc.hh"
-
 CCB_BEGIN()
 
-
 namespace grpc {
-    class connector : public io::limit_endpoint {
-        const std::string _hostport;
+class connector : public io::limit_endpoint {
+  const std::string _hostport;
 
-    public:
-        connector(const std::string& host, uint16_t port);
+ public:
+  connector(const std::string& host, uint16_t port);
 
-        connector& operator=(const connector&) = delete;
-        connector(const connector&) = delete;
+  connector& operator=(const connector&) = delete;
+  connector(const connector&) = delete;
 
-        std::unique_ptr<io::stream> open() override;
+  std::unique_ptr<io::stream> open() override;
 
-        std::unique_ptr<io::stream> create_stream() override;
-
-    };
-}; //namespace grpc
+  std::unique_ptr<io::stream> create_stream() override;
+};
+};  // namespace grpc
 
 CCB_END()
 

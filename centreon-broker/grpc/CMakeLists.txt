@@ -39,7 +39,6 @@ set(SOURCES
 )
 # Headers.
 set(HEADERS
-  "${INC_DIR}/grpc_grpc.hh"
   "${INC_DIR}/channel.hh"
   "${INC_DIR}/stream.hh"
   "${INC_DIR}/client.hh"

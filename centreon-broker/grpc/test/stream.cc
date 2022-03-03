@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 - 2019 Centreon (https://www.centreon.com/)
+ * Copyright 2022 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,10 +17,9 @@
  *
  */
 
+#include <condition_variable>
 #include <mutex>
 #include <set>
-
-#include "com/centreon/broker/grpc/acceptor.hh"
 
 #include <absl/strings/string_view.h>
 #include <fmt/format.h>
@@ -29,6 +28,12 @@
 #include <nlohmann/json.hpp>
 
 #include <grpcpp/create_channel.h>
+#include "../src/grpc_stream.pb.h"
+
+using system_clock = std::chrono::system_clock;
+using time_point = system_clock::time_point;
+using duration = system_clock::duration;
+using unique_lock = std::unique_lock<std::mutex>;
 
 #include "com/centreon/broker/grpc/acceptor.hh"
 #include "com/centreon/broker/grpc/stream.hh"
@@ -40,6 +45,9 @@
 
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
+
+using event_ptr =
+    std::shared_ptr<com::centreon::broker::stream::centreon_event>;
 
 const static std::string test_hostport("127.0.0.1:4444");
 
@@ -55,8 +63,9 @@ test_param tests_feed[] = {{100, 1200, 1300, "bonjour1"},
                            {300, 3200, 3300, "bonjour3"}};
 
 std::shared_ptr<io::raw> create_event(const test_param& param) {
-  return std::make_shared<io::raw>(param.data_type, param.src, param.dest,
-                                   absl::string_view(param.buffer));
+  std::shared_ptr<io::raw> ret = std::make_shared<io::raw>();
+  ret->_buffer.assign(param.buffer.begin(), param.buffer.end());
+  return ret;
 }
 
 class grpc_test_server : public ::testing::TestWithParam<test_param> {
@@ -78,26 +87,23 @@ class grpc_test_server : public ::testing::TestWithParam<test_param> {
 
 std::unique_ptr<com::centreon::broker::grpc::acceptor> grpc_test_server::s;
 
-#define COMPARE_EVENT(read_ret, received, param)                              \
-  ASSERT_TRUE(read_ret);                                                      \
-  {                                                                           \
-    std::shared_ptr<io::raw> raw_receive =                                    \
-        std::dynamic_pointer_cast<io::raw>(received);                         \
-    ASSERT_TRUE(raw_receive.get() != nullptr)                                 \
-        << " failed to cast to io::raw ";                                     \
-    EXPECT_EQ(raw_receive->type(), param.data_type)                           \
-        << " data_type incorrect ";                                           \
-    EXPECT_EQ(raw_receive->source_id, param.src) << " src incorrect ";        \
-    EXPECT_EQ(raw_receive->destination_id, param.dest) << " dest incorrect "; \
-    EXPECT_EQ(std::string(raw_receive->get_buffer().begin(),                  \
-                          raw_receive->get_buffer().end()),                   \
-              param.buffer)                                                   \
-        << " buffer incorrect ";                                              \
+#define COMPARE_EVENT(read_ret, received, param)             \
+  ASSERT_TRUE(read_ret);                                     \
+  {                                                          \
+    std::shared_ptr<io::raw> raw_receive =                   \
+        std::dynamic_pointer_cast<io::raw>(received);        \
+    ASSERT_TRUE(raw_receive.get() != nullptr)                \
+        << " failed to cast to io::raw ";                    \
+    EXPECT_EQ(std::string(raw_receive->get_buffer().begin(), \
+                          raw_receive->get_buffer().end()),  \
+              param.buffer)                                  \
+        << " buffer incorrect ";                             \
   }
 
 TEST_P(grpc_test_server, ClientToServerSendReceive) {
   com::centreon::broker::grpc::stream client(test_hostport);
-  std::unique_ptr<io::stream> accepted = s->open(std::chrono::milliseconds(10));
+  std::unique_ptr<io::stream> accepted =
+      s->open(std::chrono::milliseconds(100));
 
   unsigned nb_written = 0;
   for (unsigned test_ind = 0; test_ind < 100; ++test_ind) {
@@ -129,7 +135,8 @@ INSTANTIATE_TEST_SUITE_P(GRPCTestServer,
 TEST_P(grpc_test_server, ServerToClientSendReceive) {
   unsigned nb_written = 0;
   com::centreon::broker::grpc::stream client(test_hostport);
-  std::unique_ptr<io::stream> accepted = s->open(std::chrono::milliseconds(10));
+  std::unique_ptr<io::stream> accepted =
+      s->open(std::chrono::milliseconds(100));
   for (unsigned test_ind = 0; test_ind < 100; ++test_ind) {
     test_param param = GetParam();
     param.data_type += test_ind;
@@ -193,7 +200,8 @@ INSTANTIATE_TEST_SUITE_P(GRPCTestCommFailure,
 TEST_P(grpc_comm_failure, ClientToServerFailureBeforeWrite) {
   com::centreon::broker::grpc::stream client("127.0.0.1:" +
                                              std::to_string(relay_listen_port));
-  std::unique_ptr<io::stream> accepted = s->open(std::chrono::milliseconds(10));
+  std::unique_ptr<io::stream> accepted =
+      s->open(std::chrono::milliseconds(100));
 
   test_param param = GetParam();
   log_v2::grpc()->debug("{} write param.data_type={}", __PRETTY_FUNCTION__,
@@ -214,7 +222,8 @@ TEST_P(grpc_comm_failure, ClientToServerFailureBeforeWrite) {
 TEST_P(grpc_comm_failure, ClientToServerFailureAfterWrite) {
   com::centreon::broker::grpc::stream client("127.0.0.1:" +
                                              std::to_string(relay_listen_port));
-  std::unique_ptr<io::stream> accepted = s->open(std::chrono::milliseconds(10));
+  std::unique_ptr<io::stream> accepted =
+      s->open(std::chrono::milliseconds(100));
 
   test_param param = GetParam();
   log_v2::grpc()->debug("{} write param.data_type={}", __PRETTY_FUNCTION__,
@@ -246,7 +255,8 @@ TEST_P(grpc_comm_failure, ServerToClientFailureBeforeWrite) {
   std::this_thread::sleep_for(std::chrono::milliseconds(10));
   com::centreon::broker::grpc::stream client("127.0.0.1:" +
                                              std::to_string(relay_listen_port));
-  std::unique_ptr<io::stream> accepted = s->open(std::chrono::milliseconds(10));
+  std::unique_ptr<io::stream> accepted =
+      s->open(std::chrono::milliseconds(100));
 
   test_param param = GetParam();
   log_v2::grpc()->debug("{} write param.data_type={}", __PRETTY_FUNCTION__,
@@ -274,7 +284,7 @@ TEST_P(grpc_comm_failure, ServerToClientFailureBeforeWrite) {
 
   com::centreon::broker::grpc::stream client2(
       "127.0.0.1:" + std::to_string(relay_listen_port));
-  accepted = s->open(std::chrono::milliseconds(10));
+  accepted = s->open(std::chrono::milliseconds(100));
   accepted->write(create_event(param));
   read_ret = client2.read(receive, time(nullptr) + 2);
   log_v2::grpc()->debug("{} read_ret={} param.data_type={}",
@@ -287,7 +297,8 @@ TEST_P(grpc_comm_failure, ServerToClientFailureAfterWrite) {
   std::this_thread::sleep_for(std::chrono::milliseconds(10));
   com::centreon::broker::grpc::stream client("127.0.0.1:" +
                                              std::to_string(relay_listen_port));
-  std::unique_ptr<io::stream> accepted = s->open(std::chrono::milliseconds(10));
+  std::unique_ptr<io::stream> accepted =
+      s->open(std::chrono::milliseconds(100));
 
   test_param param = GetParam();
   log_v2::grpc()->debug("{} write param.data_type={}", __PRETTY_FUNCTION__,
@@ -315,7 +326,7 @@ TEST_P(grpc_comm_failure, ServerToClientFailureAfterWrite) {
 
   com::centreon::broker::grpc::stream client2(
       "127.0.0.1:" + std::to_string(relay_listen_port));
-  accepted = s->open(std::chrono::milliseconds(10));
+  accepted = s->open(std::chrono::milliseconds(100));
   accepted->write(create_event(param));
   read_ret = client2.read(receive, time(nullptr) + 2);
   log_v2::grpc()->debug("{} read_ret={} param.data_type={}",
@@ -325,15 +336,32 @@ TEST_P(grpc_comm_failure, ServerToClientFailureAfterWrite) {
 
 TEST_P(grpc_comm_failure, ServerToClientFailureNoLostEvent) {
   relay->shutdown_relays();
+  std::this_thread::sleep_for(std::chrono::seconds(1));
   std::unique_ptr<com::centreon::broker::grpc::stream> client(
       std::make_unique<com::centreon::broker::grpc::stream>(
           "127.0.0.1:" + std::to_string(relay_listen_port)));
-  std::unique_ptr<io::stream> accepted = s->open(std::chrono::milliseconds(10));
-  unsigned nb_written = 0;
+
+  std::shared_ptr<io::data> receive;
+  client->read(receive, std::chrono::milliseconds(100));
+  std::unique_ptr<io::stream> accepted =
+      s->open(std::chrono::milliseconds(100));
+  unsigned volatile nb_written = 0;
 
   test_param param = GetParam();
 
   std::multiset<unsigned> emit, received;
+
+  auto write_callback = [&emit, &nb_written](const event_ptr& written) {
+    emit.insert(atoi(written->buffer().c_str()));
+    ++nb_written;
+    log_v2::grpc()->debug("{} nb_written={}", __PRETTY_FUNCTION__, nb_written);
+  };
+
+  if (accepted) {
+    static_cast<com::centreon::broker::grpc::stream*>(accepted.get())
+        ->set_write_callback(write_callback);
+  }
+
   auto read = [&received, &client](unsigned milli_second_delay) {
     std::shared_ptr<io::data> receive;
     while (true) {
@@ -342,7 +370,10 @@ TEST_P(grpc_comm_failure, ServerToClientFailureNoLostEvent) {
             receive, std::chrono::milliseconds(milli_second_delay));
         log_v2::grpc()->debug("{} read_ret={}", __PRETTY_FUNCTION__, read_ret);
         if (read_ret) {
-          received.insert(receive->type());
+          std::string s(
+              std::static_pointer_cast<io::raw>(receive)->get_buffer().begin(),
+              std::static_pointer_cast<io::raw>(receive)->get_buffer().end());
+          received.insert(atoi(s.c_str()));
         } else {
           break;
         }
@@ -353,85 +384,55 @@ TEST_P(grpc_comm_failure, ServerToClientFailureNoLostEvent) {
     }
   };
 
-  auto create_param = [this, &param, &nb_written](unsigned offset) {
+  auto create_param = [this, &param, &nb_written]() {
     param = GetParam();
-    param.data_type = nb_written + offset;
-    param.src += nb_written + offset;
-    param.dest += nb_written + offset;
-    param.buffer += "_";
-    param.buffer += std::to_string(nb_written + offset);
+    param.data_type = nb_written;
+    param.src += nb_written;
+    param.dest += nb_written;
+    param.buffer = std::to_string(nb_written);
   };
 
-  int last_write = -1;
   auto write = [this, &accepted, &nb_written, create_param, &param, &emit,
-                &last_write]() {
-    int written = 0;
-    if (accepted) {
-      written = accepted->flush();
-    }
-    if (written) {
-      emit.insert(last_write);
-      last_write = -1;
-      written = 0;
-      ++nb_written;
-    }
+                &write_callback]() {
     try {
       if (!accepted) {
-        accepted = s->open(std::chrono::milliseconds(10));
+        accepted = s->open(std::chrono::milliseconds(100));
       }
       if (accepted) {
-        create_param(written);
-        written = accepted->write(create_event(param));
-        if (written) {
-          emit.insert(last_write);
-          last_write = -1;
-          written = 0;
-          ++nb_written;
-        }
-        last_write = param.data_type;
+        static_cast<com::centreon::broker::grpc::stream*>(accepted.get())
+            ->set_write_callback(write_callback);
+        create_param();
+        accepted->write(create_event(param));
         log_v2::grpc()->debug("{} write param.data_type={}",
                               __PRETTY_FUNCTION__, param.data_type);
       }
     } catch (const std::exception&) {
-      written += accepted->stop();
-      accepted = s->open(std::chrono::milliseconds(10));
+      accepted->stop();
+      accepted = s->open(std::chrono::milliseconds(100));
       if (accepted) {
+        static_cast<com::centreon::broker::grpc::stream*>(accepted.get())
+            ->set_write_callback(write_callback);
         try {
-          create_param(written);
-          written = accepted->write(create_event(param));
+          create_param();
+          accepted->write(create_event(param));
           log_v2::grpc()->debug("{} write param.data_type={}",
                                 __PRETTY_FUNCTION__, param.data_type);
-          if (written) {
-            emit.insert(last_write);
-            last_write = -1;
-            written = 0;
-            ++nb_written;
-          }
-          last_write = param.data_type;
 
         } catch (const std::exception&) {
-          written += accepted->stop();
+          accepted->stop();
           accepted.reset();
         }
       }
     }
-    for (; written > 0; --written) {
-      emit.insert(nb_written++);
-    }
   };
 
   for (nb_written = 0; nb_written < 25;) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
     write();
     std::this_thread::sleep_for(std::chrono::milliseconds(1 + rand() % 100));
     relay->shutdown_relays();
     std::this_thread::sleep_for(std::chrono::milliseconds(1 + rand() % 100));
-    read(1);
-  }
-  if (accepted) {
-    int written = accepted->flush();
-    for (; written > 0; --written) {
-      emit.insert(nb_written++);
-    }
+    read(10);
   }
   read(100);
   EXPECT_EQ(emit.size(), received.size());
@@ -440,20 +441,38 @@ TEST_P(grpc_comm_failure, ServerToClientFailureNoLostEvent) {
 
 TEST_P(grpc_comm_failure, ClientToServerFailureNoLostEvent) {
   relay->shutdown_relays();
+  std::this_thread::sleep_for(std::chrono::seconds(1));
   std::unique_ptr<com::centreon::broker::grpc::stream> client(
       std::make_unique<com::centreon::broker::grpc::stream>(
           "127.0.0.1:" + std::to_string(relay_listen_port)));
-  std::unique_ptr<io::stream> accepted = s->open(std::chrono::milliseconds(10));
-  unsigned nb_written = 0;
+
+  std::unique_ptr<io::stream> accepted =
+      s->open(std::chrono::milliseconds(100));
+
+  if (accepted) {
+    std::shared_ptr<io::data> receive;
+    static_cast<com::centreon::broker::grpc::stream*>(accepted.get())
+        ->read(receive, std::chrono::milliseconds(100));
+  }
+  unsigned volatile nb_written = 0;
 
   test_param param = GetParam();
 
   std::multiset<unsigned> emit, received;
+
+  auto write_callback = [&emit, &nb_written](const event_ptr& written) {
+    emit.insert(atoi(written->buffer().c_str()));
+    ++nb_written;
+    log_v2::grpc()->debug("{} nb_written={}", __PRETTY_FUNCTION__, nb_written);
+  };
+
+  client->set_write_callback(write_callback);
+
   auto read = [&received, &accepted](unsigned milli_second_delay) {
     std::shared_ptr<io::data> receive;
     while (true) {
       if (!accepted) {
-        accepted = s->open(std::chrono::milliseconds(10));
+        accepted = s->open(std::chrono::milliseconds(100));
       }
       if (!accepted) {
         break;
@@ -464,96 +483,64 @@ TEST_P(grpc_comm_failure, ClientToServerFailureNoLostEvent) {
                 ->read(receive, std::chrono::milliseconds(milli_second_delay));
         log_v2::grpc()->debug("{} read_ret={}", __PRETTY_FUNCTION__, read_ret);
         if (read_ret) {
-          received.insert(receive->type());
+          std::string s(
+              std::static_pointer_cast<io::raw>(receive)->get_buffer().begin(),
+              std::static_pointer_cast<io::raw>(receive)->get_buffer().end());
+          received.insert(atoi(s.c_str()));
         } else {
           break;
         }
       } catch (const std::exception&) {
-        accepted = s->open(std::chrono::milliseconds(10));
+        accepted = s->open(std::chrono::milliseconds(100));
       }
     }
   };
 
-  auto create_param = [this, &param, &nb_written](unsigned offset) {
+  auto create_param = [this, &param, &nb_written]() {
     param = GetParam();
-    param.data_type = nb_written + offset;
-    param.src += nb_written + offset;
-    param.dest += nb_written + offset;
-    param.buffer += "_";
-    param.buffer += std::to_string(nb_written + offset);
+    param.data_type = nb_written;
+    param.src += nb_written;
+    param.dest += nb_written;
+    param.buffer = std::to_string(nb_written);
   };
 
-  int last_written = -1;
-  auto write = [this, &client, &nb_written, create_param, &param, &emit,
-                &last_written]() {
-    int written = 0;
-    if (client) {
-      written = client->flush();
-    }
-    if (!client->is_down())
-      if (last_written == nb_written + written) {
-        return;
-      }
-    if (written > 0) {
-      emit.insert(last_written);
-      ++nb_written;
-      written = 0;
-      last_written = -1;
-    }
+  auto write = [this, &client, &nb_written, create_param, &param,
+                &write_callback]() {
+    client->flush();
     try {
       if (!client) {
         client = std::make_unique<com::centreon::broker::grpc::stream>(
             "127.0.0.1:" + std::to_string(relay_listen_port));
+        client->set_write_callback(write_callback);
       }
-      create_param(written);
-      written = client->write(create_event(param));
+      create_param();
+      client->write(create_event(param));
       log_v2::grpc()->debug("{} write param.data_type={}", __PRETTY_FUNCTION__,
                             param.data_type);
-      if (written > 0) {
-        emit.insert(last_written);
-        ++nb_written;
-        written = 0;
-      }
-      last_written = param.data_type;
     } catch (const std::exception&) {
-      written += client->stop();
+      client->stop();
       client = std::make_unique<com::centreon::broker::grpc::stream>(
           "127.0.0.1:" + std::to_string(relay_listen_port));
+      client->set_write_callback(write_callback);
       try {
-        create_param(written);
-        written += client->write(create_event(param));
+        create_param();
+        client->write(create_event(param));
         log_v2::grpc()->debug("{} write param.data_type={}",
                               __PRETTY_FUNCTION__, param.data_type);
-        if (written > 0) {
-          emit.insert(last_written);
-          ++nb_written;
-          written = 0;
-        }
-        last_written = param.data_type;
       } catch (const std::exception&) {
-        written += client->stop();
+        client->stop();
         client.reset();
-        last_written = -1;
       }
-    }
-    if (written > 0) {
-      emit.insert(last_written);
-      ++nb_written;
     }
   };
 
   for (nb_written = 0; nb_written < 25;) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
     write();
     std::this_thread::sleep_for(std::chrono::milliseconds(rand() % 100));
     relay->shutdown_relays();
     std::this_thread::sleep_for(std::chrono::milliseconds(rand() % 100));
-    read(1);
-  }
-  if (client) {
-    int written = client->flush();
-    for (; written > 0; --written) {
-      emit.insert(nb_written++);
-    }
+    read(10);
   }
   read(100);
   EXPECT_EQ(emit.size(), received.size());

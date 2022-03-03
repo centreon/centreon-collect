@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 - 2019 Centreon (https://www.centreon.com/)
+ * Copyright 2022 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,12 @@
 #include <mutex>
 
 #include <gtest/gtest.h>
+
+using system_clock = std::chrono::system_clock;
+using time_point = system_clock::time_point;
+using duration = system_clock::duration;
+using unique_lock = std::unique_lock<std::mutex>;
+
 #include <com/centreon/broker/grpc/acceptor.hh>
 #include "com/centreon/broker/grpc/factory.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"

@@ -1,3 +1,22 @@
+/*
+ * Copyright 2022 Centreon (https://www.centreon.com/)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ *
+ */
+
 #include "com/centreon/broker/grpc/stream.hh"
 #include "grpc_stream.grpc.pb.h"
 
@@ -26,11 +45,10 @@ com::centreon::broker::grpc::stream::~stream() noexcept {
   std::pair<event_ptr, bool> read_res = _channel->read(duration_or_deadline); \
   if (read_res.second) {                                                      \
     const grpc_event& to_convert = *read_res.first;                           \
-    if (to_convert.has_raw_data()) {                                          \
-      d = std::make_shared<io::raw>(to_convert.raw_data().type(),             \
-                                    to_convert.raw_data().source(),           \
-                                    to_convert.raw_data().destination(),      \
-                                    to_convert.raw_data().buffer());          \
+    if (to_convert.has_buffer()) {                                            \
+      d = std::make_shared<io::raw>();                                        \
+      std::static_pointer_cast<io::raw>(d)->_buffer.assign(                   \
+          to_convert.buffer().begin(), to_convert.buffer().end());            \
     } else {                                                                  \
       return false;                                                           \
     }                                                                         \
@@ -56,14 +74,10 @@ int32_t com::centreon::broker::grpc::stream::write(
     std::shared_ptr<io::data> const& d) {
   event_ptr to_send(std::make_shared<grpc_event>());
 
-  grpc_raw_data* raw = to_send->mutable_raw_data();
-  raw->set_type(d->type());
-  raw->set_source(d->source_id);
-  raw->set_destination(d->destination_id);
   std::shared_ptr<io::raw> raw_src = std::dynamic_pointer_cast<io::raw>(d);
   if (raw_src) {
-    raw->mutable_buffer()->assign(raw_src->_buffer.begin(),
-                                  raw_src->_buffer.end());
+    to_send->mutable_buffer()->assign(raw_src->_buffer.begin(),
+                                      raw_src->_buffer.end());
   }
 
   return _channel->write(to_send);

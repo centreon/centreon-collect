@@ -45,15 +45,6 @@ class raw : public data {
   raw(const std::vector<char>& b);
   raw(std::vector<char>&& b);
   raw(char* dataptr, size_t r);
-
-  template <class char_container_class>
-  raw(uint32_t typ,
-      uint32_t source,
-      uint32_t destination,
-      const char_container_class& buff)
-      : com::centreon::broker::io::data(typ, source, destination),
-        _buffer(buff.begin(), buff.end()) {}
-
   ~raw();
   raw& operator=(raw const& r);
   constexpr static uint32_t static_type() {

@@ -40,9 +40,6 @@ class data {
  public:
   data() = delete;
   data(uint32_t type = 0);
-  data(uint32_t type, uint32_t src, uint32_t dest)
-  :_type(type), source_id(src), destination_id(dest) {}
-  
   data(data const& other);
   virtual ~data();
   data& operator=(data const& other);

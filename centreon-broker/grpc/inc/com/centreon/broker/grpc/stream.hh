@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013,2015,2017 Centreon
+** Copyright 2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -19,13 +19,12 @@
 #ifndef CCB_GRPC_STREAM_HH__
 #define CCB_GPRC_STREAM_HH__
 
-#include "grpc_grpc.hh"
+#include "channel.hh"
 
 CCB_BEGIN()
 
 namespace grpc {
 
-class channel;
 class accepted_service;
 class stream : public io::stream {
  protected:
@@ -54,6 +53,11 @@ class stream : public io::stream {
   int32_t stop() override;
 
   bool is_down() const;
+
+  template <class call_back_type>
+  void set_write_callback(call_back_type&& new_callback) {
+    _channel->set_write_callback(new_callback);
+  }
 };
 }  // namespace grpc
 
