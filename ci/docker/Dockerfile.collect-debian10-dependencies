@@ -33,6 +33,7 @@ RUN apt-get -y update && \
     locales && \
     rm -rf /var/lib/apt/lists/* && \
     localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
+RUN dpkg -i cmake_3.18.4-2+deb11u1~bpo10+1_amd64.deb cmake-data_3.18.4-2+deb11u1~bpo10+1_all.deb
 RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
 RUN python3 get-pip.py
 RUN pip3 install conan
