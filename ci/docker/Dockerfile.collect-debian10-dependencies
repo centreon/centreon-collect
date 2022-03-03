@@ -1,6 +1,8 @@
 FROM debian:buster
 RUN apt-get -y update && \
     apt-get -y install curl
+RUN curl http://ftp.fr.debian.org/debian/pool/main/c/cmake/cmake_3.18.4-2+deb11u1~bpo10+1_amd64.deb --output cmake_3.18.4-2+deb11u1~bpo10+1_amd64.deb
+RUN curl http://ftp.fr.debian.org/debian/pool/main/c/cmake/cmake-data_3.18.4-2+deb11u1~bpo10+1_all.deb --output cmake-data_3.18.4-2+deb11u1~bpo10+1_all.deb
 RUN curl http://ftp.fr.debian.org/debian/pool/main/d/dwz/dwz_0.13-5~bpo10+1_amd64.deb --output dwz_0.13-5~bpo10+1_amd64.deb
 RUN apt-get -y update && \
     apt-get -y install cmake \
