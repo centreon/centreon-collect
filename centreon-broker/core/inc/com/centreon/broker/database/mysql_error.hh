@@ -108,6 +108,7 @@ class mysql_error {
     insert_timeperiod_exception,
     insert_exclusion_timeperiod,
     insert_relation_ba_timeperiod,
+    store_severity,
   };
   static constexpr const char* msg[]{
       "error: ",
@@ -181,6 +182,7 @@ class mysql_error {
       "could not insert exception of timeperiod: ",
       "could not insert exclusion of timeperiod: ",
       "could not insert relation of BA to timeperiod: ",
+      "could not insert severity in severities table: ",
   };
 
   mysql_error() : _active(false) {}

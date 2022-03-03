@@ -19,14 +19,14 @@
 #ifndef CCB_MYSQL_STMT_HH
 #define CCB_MYSQL_STMT_HH
 
-#include <map>
+#include <absl/container/flat_hash_map.h>
 #include <memory>
 #include "com/centreon/broker/database/mysql_bind.hh"
 #include "com/centreon/broker/io/data.hh"
 
 CCB_BEGIN()
 
-typedef std::map<std::string, int> mysql_bind_mapping;
+typedef absl::flat_hash_map<std::string, int> mysql_bind_mapping;
 
 namespace database {
 class mysql_stmt {

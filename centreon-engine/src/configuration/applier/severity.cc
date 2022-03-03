@@ -50,6 +50,10 @@ void applier::severity::add_object(const configuration::severity& obj) {
 
   // Add new items to the configuration state.
   engine::severity::severities.insert({sv->id(), sv});
+
+  timeval tv(get_broker_timestamp(nullptr));
+  broker_adaptive_severity_data(NEBTYPE_SEVERITY_ADD, NEBFLAG_NONE,
+                                NEBATTR_NONE, sv.get(), &tv);
 }
 
 /**
@@ -94,7 +98,7 @@ void applier::severity::modify_object(const configuration::severity& obj) {
     s->set_icon_id(obj.icon_id());
 
     // Notify event broker.
-    timeval tv(get_broker_timestamp(NULL));
+    timeval tv(get_broker_timestamp(nullptr));
     broker_adaptive_severity_data(NEBTYPE_SEVERITY_UPDATE, NEBFLAG_NONE,
                                   NEBATTR_NONE, s, &tv);
   } else
@@ -131,19 +135,12 @@ void applier::severity::remove_object(const configuration::severity& obj) {
 /**
  *  Resolve a severity.
  *
- *  @param[in,out] obj  Object to resolve.
+ *  @param[in] obj  Object to resolve.
  */
-void applier::severity::resolve_object(const configuration::severity&) {
-  //  // Logging.
-  //  log_v2::config()->debug("Resolving severity {}.", obj.key());
-  //
-  //  // Find severity.
-  //  severity_map::const_iterator sv_it{
-  //      engine::severity::severities.find(obj.key())};
-  //  if (sv_it == engine::severity::severities.end() || !sv_it->second)
-  //    throw engine_error() << "Cannot resolve non-existing severity "
-  //                         << obj.key();
-  //
-  //  // Resolve severity.
-  //  sv_it->second->resolve(config_warnings, config_errors);
+void applier::severity::resolve_object(const configuration::severity& obj) {
+  severity_map::const_iterator sv_it{
+      engine::severity::severities.find(obj.key())};
+  if (sv_it == engine::severity::severities.end() || !sv_it->second)
+    throw engine_error() << "Cannot resolve non-existing severity "
+                         << obj.key();
 }

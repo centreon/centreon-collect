@@ -58,7 +58,7 @@ mysql_stmt query_preparator::prepare_insert_into(
     const std::string& table,
     const std::vector<query_preparator::pb_entry>& mapping,
     bool ignore) {
-  std::map<std::string, int> bind_mapping;
+  absl::flat_hash_map<std::string, int> bind_mapping;
   // Find event info.
   io::event_info const* info(io::events::instance().get_event_info(_event_id));
   if (!info)
@@ -135,7 +135,7 @@ mysql_stmt query_preparator::prepare_insert_into(
  *                      (default value is false).
  */
 mysql_stmt query_preparator::prepare_insert(mysql& ms, bool ignore) {
-  std::map<std::string, int> bind_mapping;
+  absl::flat_hash_map<std::string, int> bind_mapping;
   // Find event info.
   io::event_info const* info(io::events::instance().get_event_info(_event_id));
   if (!info)
@@ -218,8 +218,8 @@ mysql_stmt query_preparator::prepare_insert(mysql& ms, bool ignore) {
 }
 
 mysql_stmt query_preparator::prepare_insert_or_update(mysql& ms) {
-  std::map<std::string, int> insert_bind_mapping;
-  std::map<std::string, int> update_bind_mapping;
+  absl::flat_hash_map<std::string, int> insert_bind_mapping;
+  absl::flat_hash_map<std::string, int> update_bind_mapping;
   // Find event info.
   io::event_info const* info(io::events::instance().get_event_info(_event_id));
   if (!info)
@@ -274,7 +274,7 @@ mysql_stmt query_preparator::prepare_insert_or_update(mysql& ms) {
   insert.append(") ");
   insert.append(update);
 
-  for (std::map<std::string, int>::const_iterator
+  for (absl::flat_hash_map<std::string, int>::const_iterator
            it(update_bind_mapping.begin()),
        end(update_bind_mapping.end());
        it != end; ++it)
@@ -295,14 +295,120 @@ mysql_stmt query_preparator::prepare_insert_or_update(mysql& ms) {
   return retval;
 }
 
+mysql_stmt query_preparator::prepare_insert_or_update_table(
+    mysql& ms,
+    const std::string& table,
+    const std::vector<query_preparator::pb_entry>& mapping) {
+  absl::flat_hash_map<std::string, int> insert_bind_mapping;
+  absl::flat_hash_map<std::string, int> update_bind_mapping;
+  // Find event info.
+  io::event_info const* info(io::events::instance().get_event_info(_event_id));
+  if (!info)
+    throw msg_fmt(
+        "could not prepare insertion query for event of type {} : "
+        "event is not registered ",
+        _event_id);
+
+  // Build query string.
+  std::string insert{fmt::format("INSERT INTO {} (", table)};
+  std::string update(" ON DUPLICATE KEY UPDATE ");
+
+  const mapping::entry* entries = info->get_mapping();
+  if (entries)
+    throw msg_fmt(
+        "prepare_insert_or_update_table only works with BBDO with embedded "
+        "protobuf message");
+
+  const google::protobuf::Descriptor* desc =
+      google::protobuf::DescriptorPool::generated_pool()->FindMessageTypeByName(
+          fmt::format("com.centreon.broker.{}", info->get_name()));
+
+  std::vector<std::tuple<const char*, uint32_t, uint16_t>> pb_mapping;
+
+  int size = 0;
+  std::string key;
+  for (auto& e : mapping) {
+    const google::protobuf::FieldDescriptor* f =
+        desc->FindFieldByNumber(e.number);
+    if (f) {
+      if (static_cast<uint32_t>(f->index()) >= pb_mapping.size())
+        pb_mapping.resize(f->index() + 1);
+      pb_mapping[f->index()] =
+          std::make_tuple(e.name, e.max_length, e.attribute);
+      const std::string& entry_name = f->name();
+      if (entry_name.empty() || _excluded.find(entry_name) != _excluded.end())
+        continue;
+      insert.append(entry_name);
+      insert.append(",");
+      insert_bind_mapping.emplace(fmt::format(":{}", entry_name), size++);
+    } else
+      throw msg_fmt(
+          "Protobuf field with number {} does not exist in message '{}'",
+          e.number, info->get_name());
+  }
+  insert.resize(insert.size() - 1);
+  insert.append(") VALUES(");
+  int insert_size(0);
+  int update_size(0);
+  for (auto& e : mapping) {
+    const google::protobuf::FieldDescriptor* f =
+        desc->FindFieldByNumber(e.number);
+    if (f) {
+      if (static_cast<uint32_t>(f->index()) >= pb_mapping.size())
+        pb_mapping.resize(f->index() + 1);
+      pb_mapping[f->index()] =
+          std::make_tuple(e.name, e.max_length, e.attribute);
+      const std::string& entry_name = f->name();
+      if (entry_name.empty() || _excluded.find(entry_name) != _excluded.end())
+        continue;
+      key = fmt::format(":{}", entry_name);
+      if (_unique.find(entry_name) == _unique.end()) {
+        update.append(fmt::format("{}=?,", entry_name));
+        key.append("1");
+        insert_bind_mapping.insert(std::make_pair(key, insert_size++));
+        key[key.size() - 1] = '2';
+        update_bind_mapping.insert(std::make_pair(key, update_size++));
+      } else {
+        insert.append("?,");
+        update_bind_mapping.insert(std::make_pair(key, insert_size++));
+      }
+    } else
+      throw msg_fmt(
+          "Protobuf field with number {} does not exist in message '{}'",
+          e.number, info->get_name());
+  }
+  insert.resize(insert.size() - 1);
+  update.resize(update.size() - 1);
+  insert.append(") ");
+  insert.append(update);
+
+  for (auto it = update_bind_mapping.begin(), end = update_bind_mapping.end();
+       it != end; ++it)
+    insert_bind_mapping.insert(
+        std::make_pair(it->first, it->second + insert_size));
+
+  log_v2::sql()->debug("mysql: query_preparator: {}", insert);
+  // Prepare statement.
+  mysql_stmt retval;
+  try {
+    retval = ms.prepare_query(insert, insert_bind_mapping);
+  } catch (std::exception const& e) {
+    throw msg_fmt(
+        "could not prepare insert or update query for event '{}' in table "
+        "'{}': {}",
+        info->get_name(), table, e.what());
+  }
+  return retval;
+}
+
 /**
  *  Prepare update query for specified event.
  *
  *  @param[out] q  Database query, prepared and ready to run.
  */
 mysql_stmt query_preparator::prepare_update(mysql& ms) {
-  std::map<std::string, int> query_bind_mapping;
-  std::map<std::string, int> where_bind_mapping;
+  absl::flat_hash_map<std::string, int> query_bind_mapping;
+  absl::flat_hash_map<std::string, int> where_bind_mapping;
   // Find event info.
   io::event_info const* info(io::events::instance().get_event_info(_event_id));
   if (!info)
@@ -346,7 +452,8 @@ mysql_stmt query_preparator::prepare_update(mysql& ms) {
   query.resize(query.size() - 1);
   query.append(where, 0, where.size() - 5);
 
-  for (std::map<std::string, int>::iterator it(where_bind_mapping.begin()),
+  for (absl::flat_hash_map<std::string, int>::iterator
+           it(where_bind_mapping.begin()),
        end(where_bind_mapping.end());
        it != end; ++it)
     query_bind_mapping.insert(
@@ -373,8 +480,8 @@ mysql_stmt query_preparator::prepare_update_table(
     mysql& ms,
     const std::string& table,
     const std::vector<pb_entry>& mapping) {
-  std::map<std::string, int> query_bind_mapping;
-  std::map<std::string, int> where_bind_mapping;
+  absl::flat_hash_map<std::string, int> query_bind_mapping;
+  absl::flat_hash_map<std::string, int> where_bind_mapping;
   // Find event info.
   io::event_info const* info(io::events::instance().get_event_info(_event_id));
   if (!info)
@@ -458,7 +565,7 @@ mysql_stmt query_preparator::prepare_update_table(
  *  @param[out] q  Database query, prepared and ready to run.
  */
 mysql_stmt query_preparator::prepare_delete(mysql& ms) {
-  std::map<std::string, int> bind_mapping;
+  absl::flat_hash_map<std::string, int> bind_mapping;
   // Find event info.
   io::event_info const* info(io::events::instance().get_event_info(_event_id));
   if (!info)
@@ -494,6 +601,50 @@ mysql_stmt query_preparator::prepare_delete(mysql& ms) {
     throw msg_fmt(
         "could not prepare deletion query for event '{}' on table '{}': {}",
         info->get_name(), info->get_table_v2(), e.what());
+  }
+  return retval;
+}
+
+/**
+ *  Prepare deletion query for specified event.
+ *
+ *  @param[out] q  Database query, prepared and ready to run.
+ */
+mysql_stmt query_preparator::prepare_delete_table(mysql& ms,
+                                                  const std::string& table) {
+  absl::flat_hash_map<std::string, int32_t> bind_mapping;
+  // Find event info.
+  const io::event_info* info(io::events::instance().get_event_info(_event_id));
+  if (!info)
+    throw msg_fmt(
+        "could not prepare deletion query for event of type {}: event is not "
+        "registered",
+        _event_id);
+
+  // Prepare query.
+  std::string query(fmt::format("DELETE FROM {} WHERE ", table));
+  int size = 0;
+  for (event_unique::const_iterator it = _unique.begin(), end = _unique.end();
+       it != end; ++it) {
+    query.append("(");
+    query.append(*it);
+    query.append("=?");
+    std::string key(fmt::format(":{}", *it));
+    bind_mapping.insert(std::make_pair(key, size++));
+
+    query.append(") AND ");
+  }
+  query.resize(query.size() - 5);
+
+  // Prepare statement.
+  mysql_stmt retval;
+  try {
+    retval = ms.prepare_query(query, bind_mapping);
+  } catch (std::exception const& e) {
+    // FIXME DBR
+    throw msg_fmt(
+        "could not prepare deletion query for event '{}' on table '{}': {}",
+        info->get_name(), table, e.what());
   }
   return retval;
 }

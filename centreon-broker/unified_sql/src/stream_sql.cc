@@ -1800,6 +1800,57 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
         ss.next_check(), now, ss.current_state(), ss.state_type());
 }
 
+void stream::_process_severity(const std::shared_ptr<io::data>& d) {
+  _finish_action(-1, actions::severities);
+
+  // Prepare queries.
+  if (!_severity_update.prepared()) {
+    query_preparator::event_unique unique;
+    unique.insert("id");
+    query_preparator qp(neb::pb_severity::static_type(), unique);
+
+    _severity_update = qp.prepare_update_table(
+        _mysql, "severities",
+        {
+            {1, "id", io::protobuf_base::invalid_on_zero, 0},
+            {3, "level", io::protobuf_base::invalid_on_zero, 0},
+            {4, "icon_id", 0, 0},
+            {5, "name", 0, get_severities_col_size(severities_name)},
+        });
+    _severity_delete = qp.prepare_delete_table(_mysql, "severities");
+
+    _severity_insupdate = qp.prepare_insert_or_update_table(
+        _mysql, "severities",
+        {
+            {1, "id", io::protobuf_base::invalid_on_zero, 0},
+            {3, "level", io::protobuf_base::invalid_on_zero, 0},
+            {4, "icon_id", 0, 0},
+            {5, "name", 0, get_severities_col_size(severities_name)},
+        });
+  }
+  // Processed object.
+  auto s{static_cast<const neb::pb_severity*>(d.get())};
+  auto sv = s->obj();
+  mysql_stmt* st;
+  switch (sv.action()) {
+    case Severity_Action_ADD:
+      st = &_severity_insupdate;
+      break;
+    case Severity_Action_MODIFY:
+      st = &_severity_update;
+      break;
+    case Severity_Action_DELETE:
+      st = &_severity_delete;
+      break;
+    default:
+      log_v2::sql()->error("Bad action in severity object");
+      break;
+  }
+  int32_t conn = special_conn::severity % _mysql.connections_count();
+  _mysql.run_statement(*st, database::mysql_error::store_severity, false, conn);
+  _add_action(conn, actions::severities);
+}
+
 /**
  *  Process an instance configuration event.
  *

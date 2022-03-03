@@ -19,7 +19,6 @@
 #ifndef CCE_CONFIGURATION_SEVERITY_HH
 #define CCE_CONFIGURATION_SEVERITY_HH
 
-#include <absl/container/btree_set.h>
 #include <absl/container/flat_hash_map.h>
 #include <string>
 #include "com/centreon/engine/configuration/object.hh"
@@ -61,7 +60,7 @@ class severity : public object {
   static const absl::flat_hash_map<std::string, setter_func> _setters;
 };
 
-typedef absl::btree_set<severity> set_severity;
+using set_severity = std::set<severity>;
 }  // namespace configuration
 
 CCE_END()

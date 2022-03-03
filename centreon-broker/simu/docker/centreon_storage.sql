@@ -2280,11 +2280,11 @@ CREATE TABLE `servicestateevents` (
 --
 -- Table structure for table `severities`
 --
-CREATE TABLE `severities` (
+CREATE TABLE severities (
   `id` bigint unsigned NOT NULL,
   `name` varchar(255) DEFAULT NULL,
   `level` int(11) unsigned NOT NULL,
-  `icon_id` int(11) unsigned default NULL,
+  `icon_id` bigint unsigned default NULL,
   PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 

@@ -2110,11 +2110,28 @@ int32_t neb::callback_severity(int callback_type __attribute__((unused)),
                                void* data) noexcept {
   log_v2::neb()->info("callbacks: generating protobuf severity event");
 
-  const engine::severity* es{static_cast<engine::severity*>(
-      static_cast<nebstruct_adaptive_severity_data*>(data)->object_ptr)};
+  nebstruct_adaptive_severity_data* ds =
+      static_cast<nebstruct_adaptive_severity_data*>(data);
+  const engine::severity* es{static_cast<engine::severity*>(ds->object_ptr)};
 
   auto s{std::make_shared<neb::pb_severity>()};
   Severity& sv = s.get()->mut_obj();
+  switch (ds->type) {
+    case NEBTYPE_SEVERITY_ADD:
+      sv.set_action(Severity_Action_ADD);
+      break;
+    case NEBTYPE_SEVERITY_DELETE:
+      sv.set_action(Severity_Action_DELETE);
+      break;
+    case NEBTYPE_SEVERITY_UPDATE:
+      sv.set_action(Severity_Action_MODIFY);
+      break;
+    default:
+      log_v2::neb()->error(
+          "callbacks: protobuf severity event action must be among ADD, MODIFY "
+          "or DELETE");
+      return 1;
+  }
   sv.set_id(es->id());
   sv.set_level(es->level());
   sv.set_icon_id(es->icon_id());

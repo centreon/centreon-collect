@@ -701,4 +701,15 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
+--
+-- Table structure for table `severities`
+--
+CREATE TABLE `severities` (
+  `id` bigint unsigned NOT NULL,
+  `name` varchar(255) DEFAULT NULL,
+  `level` int(11) unsigned NOT NULL,
+  `icon_id` bigint unsigned default NULL,
+  PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
 

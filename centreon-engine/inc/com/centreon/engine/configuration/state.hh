@@ -20,7 +20,6 @@
 #ifndef CCE_CONFIGURATION_STATE_HH
 #define CCE_CONFIGURATION_STATE_HH
 
-#include <absl/container/btree_set.h>
 #include <cstdint>
 
 #include "com/centreon/engine/configuration/anomalydetection.hh"
