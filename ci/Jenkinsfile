@@ -49,6 +49,6 @@ stage('Dependencies containers creation') {
           sh 'docker push registry.centreon.com/centreon-collect-centos8-dependencies:22.04-1'
         }
       }
-    }*/
-  }
+    }
+  }*/
 }
