@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Centreon (https://www.centreon.com/)
+ * Copyright 2021 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,10 +31,12 @@ const absl::flat_hash_map<std::string, severity::setter_func>
     severity::_setters{
         {"name", SETTER(const std::string&, _set_name)},
         {"severity_name", SETTER(const std::string&, _set_name)},
-        {"id", SETTER(int, _set_id)},
-        {"severity_id", SETTER(int, _set_id)},
-        {"level", SETTER(int32_t, _set_level)},
-        {"severity_level", SETTER(int32_t, _set_level)},
+        {"id", SETTER(uint64_t, _set_id)},
+        {"severity_id", SETTER(uint64_t, _set_id)},
+        {"level", SETTER(uint32_t, _set_level)},
+        {"severity_level", SETTER(uint32_t, _set_level)},
+        {"icon_id", SETTER(uint64_t, _set_icon_id)},
+        {"severity_icon_id", SETTER(uint64_t, _set_icon_id)},
     };
 
 /**
@@ -43,7 +45,7 @@ const absl::flat_hash_map<std::string, severity::setter_func>
  * @param key The unique id corresponding to this severity.
  */
 severity::severity(const key_type& key)
-    : object(object::severity), _id{key}, _level{0} {}
+    : object(object::severity), _id{key}, _level{0}, _icon_id{0} {}
 
 /**
  * @brief Copy constructor.
@@ -51,7 +53,11 @@ severity::severity(const key_type& key)
  * @param other The severity to copy.
  */
 severity::severity(const severity& other)
-    : object(other), _id{other._id}, _level{other._level}, _name{other._name} {}
+    : object(other),
+      _id{other._id},
+      _level{other._level},
+      _icon_id{other._icon_id},
+      _name{other._name} {}
 
 /**
  * @brief Assign operator.
@@ -65,6 +71,7 @@ severity& severity::operator=(const severity& other) {
     object::operator=(other);
     _id = other._id;
     _level = other._level;
+    _icon_id = other._icon_id;
     _name = other._name;
   }
   return *this;
@@ -78,7 +85,8 @@ severity& severity::operator=(const severity& other) {
  * @return True if objects are equal, False otherwise.
  */
 bool severity::operator==(const severity& other) const noexcept {
-  return _id == other._id && _level == other._level && _name == other._name;
+  return _id == other._id && _level == other._level &&
+         _icon_id == other._icon_id && _name == other._name;
 }
 
 /**
@@ -89,7 +97,8 @@ bool severity::operator==(const severity& other) const noexcept {
  * @return False if objects are equal, True otherwise.
  */
 bool severity::operator!=(const severity& other) const noexcept {
-  return _id != other._id || _level != other._level || _name != other._name;
+  return _id != other._id || _level != other._level ||
+         _icon_id != other._icon_id || _name != other._name;
 }
 
 /**
@@ -104,21 +113,28 @@ bool severity::operator<(const severity& other) const noexcept {
     return _id < other._id;
   else if (_level != other._level)
     return _level < other._level;
+  else if (_icon_id != other._icon_id)
+    return _icon_id < other._icon_id;
   return _name < other._name;
 }
 
 /**
  * @brief Check if the object is valid.
  *
+ * * name must not be empty
+ * * id must be > 0
+ * * level must be > 0
+ * * no criteria on icon_id, if 0 there is no icon.
+ *
  * If the object is not valid, an exception is thrown.
  */
 void severity::check_validity() const {
   if (_name.empty())
     throw engine_error() << "Severity has no name (property 'name')";
-  if (_id <= 0)
+  if (_id == 0)
     throw engine_error()
         << "Severity id must not be less than 1 (property 'id')";
-  if (_level <= 0)
+  if (_level == 0)
     throw engine_error()
         << "Severity level must not be less than 1 (property 'level')";
 }
@@ -137,8 +153,17 @@ const severity::key_type& severity::key() const noexcept {
  *
  * @return Severity level.
  */
-int32_t severity::level() const noexcept {
+uint32_t severity::level() const noexcept {
   return _level;
+}
+
+/**
+ * @brief Get severity icon_id.
+ *
+ * @return Severity icon_id.
+ */
+uint64_t severity::icon_id() const noexcept {
+  return _icon_id;
 }
 
 /**
@@ -182,7 +207,7 @@ void severity::merge(const object&) {}
  *
  * @return True on success.
  */
-bool severity::_set_id(int32_t id) {
+bool severity::_set_id(uint64_t id) {
   if (id > 0) {
     _id = id;
     return true;
@@ -197,12 +222,24 @@ bool severity::_set_id(int32_t id) {
  *
  * @return True on success.
  */
-bool severity::_set_level(int32_t level) {
+bool severity::_set_level(uint32_t level) {
   if (level > 0) {
     _level = level;
     return true;
   } else
     return false;
+}
+
+/**
+ * @brief Set icon_id value.
+ *
+ * @param icon_id A positive integer.
+ *
+ * @return True on success.
+ */
+bool severity::_set_icon_id(uint64_t icon_id) {
+  _icon_id = icon_id;
+  return true;
 }
 
 /**

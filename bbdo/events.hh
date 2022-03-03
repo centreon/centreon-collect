@@ -116,8 +116,9 @@ enum data_element {
   de_service_status,
   de_instance_configuration,
   de_responsive_instance,
-  de_pb_service,
+  de_pb_service = 27,
   de_pb_host = 28,
+  de_pb_severity = 29,
 };
 }  // namespace neb
 namespace storage {

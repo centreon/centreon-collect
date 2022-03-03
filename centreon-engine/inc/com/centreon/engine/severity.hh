@@ -44,25 +44,31 @@ CCE_BEGIN()
  *
  */
 class severity {
-  uint32_t _id;
+  uint64_t _id;
   uint32_t _level;
+  uint64_t _icon_id;
   std::string _name;
 
  public:
   static severity_map severities;
 
-  severity(int32_t id, int32_t level, const std::string& name);
+  severity(uint64_t id,
+           uint32_t level,
+           uint64_t icon_id,
+           const std::string& name);
   ~severity() noexcept = default;
   severity(const severity&) = delete;
   severity& operator=(const severity&) = delete;
   bool operator==(const severity&) = delete;
   bool operator!=(const severity&) = delete;
 
-  uint32_t id() const;
+  uint64_t id() const;
   const std::string& name() const;
   void set_name(const std::string& name);
   uint32_t level() const;
+  uint64_t icon_id() const;
   void set_level(uint32_t level);
+  void set_icon_id(uint64_t icon_id);
 };
 
 CCE_END()

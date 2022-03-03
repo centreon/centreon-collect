@@ -1,5 +1,5 @@
 /*
-** Copyright 2009-2020 Centreon
+** Copyright 2009-2021 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -47,6 +47,7 @@
 #include "com/centreon/engine/nebstructs.hh"
 #include "com/centreon/engine/servicedependency.hh"
 #include "com/centreon/engine/servicegroup.hh"
+#include "com/centreon/engine/severity.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::broker;
@@ -91,7 +92,8 @@ static struct {
     {NEBCALLBACK_HOST_STATUS_DATA, &neb::callback_host_status},
     {NEBCALLBACK_PROGRAM_STATUS_DATA, &neb::callback_program_status},
     {NEBCALLBACK_SERVICE_CHECK_DATA, &neb::callback_service_check},
-    {NEBCALLBACK_SERVICE_STATUS_DATA, &neb::callback_service_status}};
+    {NEBCALLBACK_SERVICE_STATUS_DATA, &neb::callback_service_status},
+    {NEBCALLBACK_ADAPTIVE_SEVERITY_DATA, &neb::callback_severity}};
 
 // List of common callbacks.
 static struct {
@@ -108,7 +110,8 @@ static struct {
     {NEBCALLBACK_HOST_STATUS_DATA, &neb::callback_pb_host_status},
     {NEBCALLBACK_PROGRAM_STATUS_DATA, &neb::callback_program_status},
     {NEBCALLBACK_SERVICE_CHECK_DATA, &neb::callback_service_check},
-    {NEBCALLBACK_SERVICE_STATUS_DATA, &neb::callback_pb_service_status}};
+    {NEBCALLBACK_SERVICE_STATUS_DATA, &neb::callback_pb_service_status},
+    {NEBCALLBACK_ADAPTIVE_SEVERITY_DATA, &neb::callback_severity}};
 
 // List of Engine-specific callbacks.
 static struct {
@@ -2095,7 +2098,35 @@ int neb::callback_service_check(int callback_type, void* data) {
   return 0;
 }
 
-int32_t neb::callback_pb_service_status(int callback_type,
+/**
+ * @brief Process adaptive severity data.
+ *
+ * @param callback_type Callback type (NEBCALLBACK_ADAPTIVE_SEVERITY_DATA).
+ * @param data A pointer to a nebstruct_adaptive_severity_data.
+ *
+ * @return 0 on success.
+ */
+int32_t neb::callback_severity(int callback_type __attribute__((unused)),
+                               void* data) noexcept {
+  log_v2::neb()->info("callbacks: generating protobuf severity event");
+
+  const engine::severity* es{static_cast<engine::severity*>(
+      static_cast<nebstruct_adaptive_severity_data*>(data)->object_ptr)};
+
+  auto s{std::make_shared<neb::pb_severity>()};
+  Severity& sv = s.get()->mut_obj();
+  sv.set_id(es->id());
+  sv.set_level(es->level());
+  sv.set_icon_id(es->icon_id());
+  sv.set_name(es->name());
+
+  // Send event(s).
+  gl_publisher.write(s);
+  return 0;
+}
+
+int32_t neb::callback_pb_service_status(int callback_type
+                                        __attribute__((unused)),
                                         void* data) noexcept {
   log_v2::neb()->info("callbacks: generating service status event protobuf");
 

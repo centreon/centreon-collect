@@ -26,6 +26,7 @@
 #include "bbdo/events.hh"
 #include "bbdo/host.pb.h"
 #include "bbdo/service.pb.h"
+#include "bbdo/severity.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
 #include "com/centreon/broker/misc/pair.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
@@ -53,8 +54,9 @@ extern std::unordered_map<std::pair<uint32_t, uint32_t>, neb::acknowledgement>
 
 using pb_service =
     io::protobuf<Service, make_type(io::neb, neb::de_pb_service)>;
-
 using pb_host = io::protobuf<Host, make_type(io::neb, neb::de_pb_host)>;
+using pb_severity =
+    io::protobuf<Severity, make_type(io::neb, neb::de_pb_severity)>;
 
 }  // namespace neb
 

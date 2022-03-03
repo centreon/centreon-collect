@@ -43,8 +43,8 @@ void applier::severity::add_object(const configuration::severity& obj) {
   // Add severity to the global configuration set.
   config->mut_severities().insert(obj);
 
-  auto sv{
-      std::make_shared<engine::severity>(obj.key(), obj.level(), obj.name())};
+  auto sv{std::make_shared<engine::severity>(obj.key(), obj.level(),
+                                             obj.icon_id(), obj.name())};
   if (!sv)
     throw engine_error() << "Could not register severity " << obj.key();
 
@@ -79,23 +79,26 @@ void applier::severity::modify_object(const configuration::severity& obj) {
   // Find severity object.
   severity_map::iterator it_obj{engine::severity::severities.find(obj.key())};
   if (it_obj == engine::severity::severities.end())
-    throw engine_error() << "Could not modify non-existing "
-                         << "severity object " << obj.key();
+    throw engine_error() << "Could not modify non-existing severity object "
+                         << obj.key();
   engine::severity* s = it_obj->second.get();
 
   // Update the global configuration set.
   configuration::severity old_cfg(*it_cfg);
-  config->mut_severities().erase(it_cfg);
-  config->mut_severities().insert(obj);
+  if (old_cfg != obj) {
+    config->mut_severities().erase(it_cfg);
+    config->mut_severities().insert(obj);
 
-  if (s->name() != obj.name())
     s->set_name(obj.name());
-  s->set_level(obj.level());
+    s->set_level(obj.level());
+    s->set_icon_id(obj.icon_id());
 
-  // Notify event broker.
-  timeval tv(get_broker_timestamp(NULL));
-  broker_adaptive_severity_data(NEBTYPE_SEVERITY_UPDATE, NEBFLAG_NONE,
-                                NEBATTR_NONE, s, &tv);
+    // Notify event broker.
+    timeval tv(get_broker_timestamp(NULL));
+    broker_adaptive_severity_data(NEBTYPE_SEVERITY_UPDATE, NEBFLAG_NONE,
+                                  NEBATTR_NONE, s, &tv);
+  } else
+    log_v2::config()->debug("Severity {} did not change", obj.key());
 }
 
 /**

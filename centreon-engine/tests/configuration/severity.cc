@@ -69,3 +69,14 @@ TEST_F(ConfigSeverity, NewSeverityWellFilled) {
   ASSERT_EQ(sv.name(), "foobar");
   ASSERT_NO_THROW(sv.check_validity());
 }
+
+// When I create a configuration::severity with an icon id.
+// Then we can get its value.
+TEST_F(ConfigSeverity, NewSeverityIconId) {
+  configuration::severity sv(1);
+  sv.parse("level", "2");
+  sv.parse("icon_id", "18");
+  sv.parse("name", "foobar");
+  ASSERT_EQ(sv.icon_id(), 18);
+  ASSERT_NO_THROW(sv.check_validity());
+}

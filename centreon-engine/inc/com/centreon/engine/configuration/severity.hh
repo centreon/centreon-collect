@@ -30,13 +30,15 @@ CCE_BEGIN()
 namespace configuration {
 class severity : public object {
   typedef bool (*setter_func)(severity&, const char*);
-  using key_type = int32_t;
+  using key_type = uint64_t;
   key_type _id;
-  int32_t _level;
+  uint32_t _level;
+  uint64_t _icon_id;
   std::string _name;
 
-  bool _set_id(int32_t id);
-  bool _set_level(int32_t level);
+  bool _set_id(uint64_t id);
+  bool _set_level(uint32_t level);
+  bool _set_icon_id(uint64_t icon_id);
   bool _set_name(const std::string& name);
 
  public:
@@ -52,7 +54,8 @@ class severity : public object {
   void merge(const object& obj) override;
   bool parse(const char* key, const char* value) override;
 
-  int32_t level() const noexcept;
+  uint32_t level() const noexcept;
+  uint64_t icon_id() const noexcept;
   const std::string& name() const noexcept;
 
   static const absl::flat_hash_map<std::string, setter_func> _setters;

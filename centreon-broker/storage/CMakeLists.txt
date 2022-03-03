@@ -67,7 +67,7 @@ add_library("${STORAGE}" SHARED
 set_target_properties("${STORAGE}" PROPERTIES
     PREFIX ""
     COMPILE_FLAGS "-fPIC")
-add_dependencies("${STORAGE}" rebuild_message remove_graph_message)
+add_dependencies("${STORAGE}" target_rebuild_message target_remove_graph_message)
 target_link_libraries(${STORAGE} conflictmgr rokerbase bbdo_storage)
 
 # Testing.

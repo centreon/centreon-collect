@@ -23,27 +23,79 @@ using namespace com::centreon::engine;
 
 severity_map severity::severities;
 
-severity::severity(int32_t id, int32_t level, const std::string& name)
-    : _id{static_cast<uint32_t>(id)},
-      _level{static_cast<uint32_t>(level)},
-      _name{name} {}
+/**
+ * @brief Constructor of a severity.
+ *
+ * @param id      Its id.
+ * @param level   Its level (1 is more important than 2, ...).
+ * @param icon_id Its icon_id.
+ * @param name    Its name.
+ */
+severity::severity(uint64_t id,
+                   uint32_t level,
+                   uint64_t icon_id,
+                   const std::string& name)
+    : _id{id}, _level{level}, _icon_id{icon_id}, _name{name} {}
 
-uint32_t severity::id() const {
+/**
+ * @brief Accessor to the id.
+ *
+ * @return The id.
+ */
+uint64_t severity::id() const {
   return _id;
 }
 
+/**
+ * @brief Accessor to the level
+ *
+ * @return the level.
+ */
 uint32_t severity::level() const {
   return _level;
 }
 
+/**
+ * @brief Accessor to the icon_id
+ *
+ * @return the icon_id.
+ */
+uint64_t severity::icon_id() const {
+  return _icon_id;
+}
+
+/**
+ * @brief Level setter
+ *
+ * @param level The new level.
+ */
 void severity::set_level(uint32_t level) {
   _level = level;
 }
 
+/**
+ * @brief Icon_id setter
+ *
+ * @param icon_id The new icon_id.
+ */
+void severity::set_icon_id(uint64_t icon_id) {
+  _icon_id = icon_id;
+}
+
+/**
+ * @brief Accessor to the name
+ *
+ * @return the name.
+ */
 const std::string& severity::name() const {
   return _name;
 }
 
+/**
+ * @brief Setter of the name
+ *
+ * @param name The new name.
+ */
 void severity::set_name(const std::string& name) {
   _name = name;
 }
