@@ -135,7 +135,7 @@ static struct {
   int (*callback)(int, void*);
 } const gl_pb_engine_callbacks[] = {
     {NEBCALLBACK_ADAPTIVE_DEPENDENCY_DATA, &neb::callback_dependency},
-    {NEBCALLBACK_ADAPTIVE_HOST_DATA, &neb::callback_host},
+    {NEBCALLBACK_ADAPTIVE_HOST_DATA, &neb::callback_pb_host},
     {NEBCALLBACK_ADAPTIVE_SERVICE_DATA, &neb::callback_pb_service},
     {NEBCALLBACK_CUSTOM_VARIABLE_DATA, &neb::callback_custom_variable},
     {NEBCALLBACK_GROUP_DATA, &neb::callback_group},
@@ -1114,6 +1114,171 @@ int neb::callback_group_member(int callback_type, void* data) {
  *  @return 0 on success.
  */
 int neb::callback_host(int callback_type, void* data) {
+  // Log message.
+  log_v2::neb()->info("callbacks: generating host event");
+  (void)callback_type;
+
+  try {
+    // In/Out variables.
+    nebstruct_adaptive_host_data const* host_data(
+        static_cast<nebstruct_adaptive_host_data*>(data));
+    engine::host const* h(static_cast<engine::host*>(host_data->object_ptr));
+    std::shared_ptr<neb::host> my_host(new neb::host);
+
+    // Set host parameters.
+    my_host->acknowledged = h->get_problem_has_been_acknowledged();
+    my_host->acknowledgement_type = h->get_acknowledgement_type();
+    if (!h->get_action_url().empty())
+      my_host->action_url =
+          misc::string::check_string_utf8(h->get_action_url());
+    my_host->active_checks_enabled = h->get_checks_enabled();
+    if (!h->get_address().empty())
+      my_host->address = misc::string::check_string_utf8(h->get_address());
+    if (!h->get_alias().empty())
+      my_host->alias = misc::string::check_string_utf8(h->get_alias());
+    my_host->check_freshness = h->get_check_freshness();
+    if (!h->get_check_command().empty())
+      my_host->check_command =
+          misc::string::check_string_utf8(h->get_check_command());
+    my_host->check_interval = h->get_check_interval();
+    if (!h->get_check_period().empty())
+      my_host->check_period = h->get_check_period();
+    my_host->check_type = h->get_check_type();
+    my_host->current_check_attempt = h->get_current_attempt();
+    my_host->current_state =
+        (h->has_been_checked() ? h->get_current_state() : 4);  // Pending state.
+    my_host->default_active_checks_enabled = h->get_checks_enabled();
+    my_host->default_event_handler_enabled = h->get_event_handler_enabled();
+    my_host->default_flap_detection_enabled = h->get_flap_detection_enabled();
+    my_host->default_notifications_enabled = h->get_notifications_enabled();
+    my_host->default_passive_checks_enabled = h->get_accept_passive_checks();
+    my_host->downtime_depth = h->get_scheduled_downtime_depth();
+    if (!h->get_display_name().empty())
+      my_host->display_name =
+          misc::string::check_string_utf8(h->get_display_name());
+    my_host->enabled = (host_data->type != NEBTYPE_HOST_DELETE);
+    if (!h->get_event_handler().empty())
+      my_host->event_handler =
+          misc::string::check_string_utf8(h->get_event_handler());
+    my_host->event_handler_enabled = h->get_event_handler_enabled();
+    my_host->execution_time = h->get_execution_time();
+    my_host->first_notification_delay = h->get_first_notification_delay();
+    my_host->notification_number = h->get_notification_number();
+    my_host->flap_detection_enabled = h->get_flap_detection_enabled();
+    my_host->flap_detection_on_down =
+        h->get_flap_detection_on(engine::notifier::down);
+    my_host->flap_detection_on_unreachable =
+        h->get_flap_detection_on(engine::notifier::unreachable);
+    my_host->flap_detection_on_up =
+        h->get_flap_detection_on(engine::notifier::up);
+    my_host->freshness_threshold = h->get_freshness_threshold();
+    my_host->has_been_checked = h->has_been_checked();
+    my_host->high_flap_threshold = h->get_high_flap_threshold();
+    if (!h->get_name().empty())
+      my_host->host_name = misc::string::check_string_utf8(h->get_name());
+    if (!h->get_icon_image().empty())
+      my_host->icon_image =
+          misc::string::check_string_utf8(h->get_icon_image());
+    if (!h->get_icon_image_alt().empty())
+      my_host->icon_image_alt =
+          misc::string::check_string_utf8(h->get_icon_image_alt());
+    my_host->is_flapping = h->get_is_flapping();
+    my_host->last_check = h->get_last_check();
+    my_host->last_hard_state = h->get_last_hard_state();
+    my_host->last_hard_state_change = h->get_last_hard_state_change();
+    my_host->last_notification = h->get_last_notification();
+    my_host->last_state_change = h->get_last_state_change();
+    my_host->last_time_down = h->get_last_time_down();
+    my_host->last_time_unreachable = h->get_last_time_unreachable();
+    my_host->last_time_up = h->get_last_time_up();
+    my_host->last_update = time(nullptr);
+    my_host->latency = h->get_latency();
+    my_host->low_flap_threshold = h->get_low_flap_threshold();
+    my_host->max_check_attempts = h->get_max_attempts();
+    my_host->next_check = h->get_next_check();
+    my_host->next_notification = h->get_next_notification();
+    my_host->no_more_notifications = h->get_no_more_notifications();
+    if (!h->get_notes().empty())
+      my_host->notes = misc::string::check_string_utf8(h->get_notes());
+    if (!h->get_notes_url().empty())
+      my_host->notes_url = misc::string::check_string_utf8(h->get_notes_url());
+    my_host->notifications_enabled = h->get_notifications_enabled();
+    my_host->notification_interval = h->get_notification_interval();
+    if (!h->get_notification_period().empty())
+      my_host->notification_period = h->get_notification_period();
+    my_host->notify_on_down = h->get_notify_on(engine::notifier::down);
+    my_host->notify_on_downtime = h->get_notify_on(engine::notifier::downtime);
+    my_host->notify_on_flapping =
+        h->get_notify_on(engine::notifier::flappingstart);
+    my_host->notify_on_recovery = h->get_notify_on(engine::notifier::up);
+    my_host->notify_on_unreachable =
+        h->get_notify_on(engine::notifier::unreachable);
+    my_host->obsess_over = h->get_obsess_over();
+    if (!h->get_plugin_output().empty()) {
+      my_host->output = misc::string::check_string_utf8(h->get_plugin_output());
+      my_host->output.append("\n");
+    }
+    if (!h->get_long_plugin_output().empty())
+      my_host->output.append(
+          misc::string::check_string_utf8(h->get_long_plugin_output()));
+    my_host->passive_checks_enabled = h->get_accept_passive_checks();
+    my_host->percent_state_change = h->get_percent_state_change();
+    if (!h->get_perf_data().empty())
+      my_host->perf_data = misc::string::check_string_utf8(h->get_perf_data());
+    my_host->poller_id = config::applier::state::instance().poller_id();
+    my_host->retain_nonstatus_information =
+        h->get_retain_nonstatus_information();
+    my_host->retain_status_information = h->get_retain_status_information();
+    my_host->retry_interval = h->get_retry_interval();
+    my_host->should_be_scheduled = h->get_should_be_scheduled();
+    my_host->stalk_on_down = h->get_stalk_on(engine::notifier::down);
+    my_host->stalk_on_unreachable =
+        h->get_stalk_on(engine::notifier::unreachable);
+    my_host->stalk_on_up = h->get_stalk_on(engine::notifier::up);
+    my_host->state_type =
+        (h->has_been_checked() ? h->get_state_type() : engine::notifier::hard);
+    if (!h->get_statusmap_image().empty())
+      my_host->statusmap_image =
+          misc::string::check_string_utf8(h->get_statusmap_image());
+    my_host->timezone = h->get_timezone();
+
+    // Find host ID.
+    uint64_t host_id = engine::get_host_id(my_host->host_name);
+    if (host_id != 0) {
+      my_host->host_id = host_id;
+
+      // Send host event.
+      log_v2::neb()->info("callbacks:  new host {} ('{}') on instance {}",
+                          my_host->host_id, my_host->host_name,
+                          my_host->poller_id);
+      neb::gl_publisher.write(my_host);
+
+      /* No need to send this service custom variables changes, custom variables
+       * are managed in a different loop. */
+    } else
+      log_v2::neb()->error(
+          "callbacks: host '{}' has no ID (yet) defined",
+          (!h->get_name().empty() ? h->get_name() : "(unknown)"));
+  }
+  // Avoid exception propagation to C code.
+  catch (...) {
+  }
+  return 0;
+}
+
+/**
+ *  @brief Function that process host protobuf data.
+ *
+ *  This function is called by Engine when some host data is available.
+ *
+ *  @param[in] callback_type Type of the callback
+ *                           (NEBCALLBACK_HOST_DATA).
+ *  @param[in] data          A pointer to a nebstruct_host_data
+ *                           containing a host data.
+ *
+ *  @return 0 on success.
+ */
+int neb::callback_pb_host(int callback_type, void* data) {
   // Log message.
   log_v2::neb()->info("callbacks: generating host event");
   (void)callback_type;
