@@ -354,15 +354,12 @@ mysql_stmt query_preparator::prepare_insert_or_update_table(
     const google::protobuf::FieldDescriptor* f =
         desc->FindFieldByNumber(e.number);
     if (f) {
-      if (static_cast<uint32_t>(f->index()) >= pb_mapping.size())
-        pb_mapping.resize(f->index() + 1);
-      pb_mapping[f->index()] =
-          std::make_tuple(e.name, e.max_length, e.attribute);
       const std::string& entry_name = f->name();
       if (entry_name.empty() || _excluded.find(entry_name) != _excluded.end())
         continue;
       key = fmt::format(":{}", entry_name);
       if (_unique.find(entry_name) == _unique.end()) {
+        insert.append("?,");
         update.append(fmt::format("{}=?,", entry_name));
         key.append("1");
         insert_bind_mapping.insert(std::make_pair(key, insert_size++));
@@ -392,6 +389,7 @@ mysql_stmt query_preparator::prepare_insert_or_update_table(
   mysql_stmt retval;
   try {
     retval = ms.prepare_query(insert, insert_bind_mapping);
+    retval.set_pb_mapping(std::move(pb_mapping));
   } catch (std::exception const& e) {
     throw msg_fmt(
         "could not prepare insert or update query for event '{}' in table "

@@ -329,7 +329,26 @@ void mysql_stmt::operator<<(io::data const& d) {
                   bind_value_as_i32(field, v);
                 break;
               default:
-                bind_value_as_i32(field, refl->GetInt32(*p, f));
+                bind_value_as_i32(field, v);
+            }
+          } break;
+          case google::protobuf::FieldDescriptor::TYPE_UINT32: {
+            uint32_t v{refl->GetUInt32(*p, f)};
+            switch (std::get<2>(pr)) {
+              case io::protobuf_base::invalid_on_zero:
+                if (v == 0)
+                  bind_value_as_null(field);
+                else
+                  bind_value_as_u32(field, v);
+                break;
+              case io::protobuf_base::invalid_on_minus_one:
+                if (v == (uint32_t)-1)
+                  bind_value_as_null(field);
+                else
+                  bind_value_as_u32(field, v);
+                break;
+              default:
+                bind_value_as_u32(field, v);
             }
           } break;
           case google::protobuf::FieldDescriptor::TYPE_INT64: {

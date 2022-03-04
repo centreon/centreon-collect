@@ -36,6 +36,7 @@
 #include "com/centreon/engine/nebcallbacks.hh"
 #include "com/centreon/engine/nebstructs.hh"
 #include "com/centreon/engine/objects.hh"
+#include "com/centreon/engine/severity.hh"
 
 // Internal Nagios host list.
 
@@ -243,6 +244,19 @@ static void send_host_group_list() {
 
   // End log message.
   log_v2::neb()->info("init: end of host group dump");
+}
+
+static void send_severity_list() {
+  /* Start log message. */
+  log_v2::neb()->info("init: beginning severity dump");
+
+  for (auto it = com::centreon::engine::severity::severities.begin(),
+            end = com::centreon::engine::severity::severities.end();
+       it != end; ++it) {
+    timeval timestamp = get_broker_timestamp(nullptr);
+    broker_adaptive_severity_data(NEBTYPE_SEVERITY_ADD, NEBFLAG_NONE,
+                                  NEBATTR_NONE, it->second.get(), &timestamp);
+  }
 }
 
 /**
@@ -474,6 +488,7 @@ static void send_instance_configuration() {
  *  Send initial configuration to the global publisher.
  */
 void neb::send_initial_configuration() {
+  send_severity_list();
   send_host_list();
   send_service_list();
   send_custom_variables_list();

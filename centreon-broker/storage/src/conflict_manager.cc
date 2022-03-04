@@ -74,6 +74,9 @@ void (conflict_manager::*const conflict_manager::_neb_processing_table[])(
     &conflict_manager::_process_service_status,
     &conflict_manager::_process_instance_configuration,
     &conflict_manager::_process_responsive_instance,
+    nullptr,
+    nullptr,
+    &conflict_manager::_process_severity,
 };
 
 conflict_manager& conflict_manager::instance() {

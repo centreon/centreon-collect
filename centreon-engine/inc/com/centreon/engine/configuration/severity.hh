@@ -60,7 +60,7 @@ class severity : public object {
   static const absl::flat_hash_map<std::string, setter_func> _setters;
 };
 
-using set_severity = std::set<severity>;
+typedef std::set<severity> set_severity;
 }  // namespace configuration
 
 CCE_END()
