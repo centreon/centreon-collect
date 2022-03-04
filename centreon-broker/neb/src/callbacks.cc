@@ -130,6 +130,19 @@ static struct {
     {NEBCALLBACK_MODULE_DATA, &neb::callback_module},
     {NEBCALLBACK_RELATION_DATA, &neb::callback_relation}};
 
+static struct {
+  uint32_t macro;
+  int (*callback)(int, void*);
+} const gl_pb_engine_callbacks[] = {
+    {NEBCALLBACK_ADAPTIVE_DEPENDENCY_DATA, &neb::callback_dependency},
+    {NEBCALLBACK_ADAPTIVE_HOST_DATA, &neb::callback_host},
+    {NEBCALLBACK_ADAPTIVE_SERVICE_DATA, &neb::callback_pb_service},
+    {NEBCALLBACK_CUSTOM_VARIABLE_DATA, &neb::callback_custom_variable},
+    {NEBCALLBACK_GROUP_DATA, &neb::callback_group},
+    {NEBCALLBACK_GROUP_MEMBER_DATA, &neb::callback_group_member},
+    {NEBCALLBACK_MODULE_DATA, &neb::callback_module},
+    {NEBCALLBACK_RELATION_DATA, &neb::callback_relation}};
+
 // Registered callbacks.
 std::list<std::unique_ptr<neb::callback>> neb::gl_registered_callbacks;
 
@@ -1680,12 +1693,27 @@ int neb::callback_process(int callback_type, void* data) {
 
       // Register Engine-specific callbacks.
       if (gl_mod_flags & NEBMODULE_ENGINE) {
-        for (uint32_t i = 0;
-             i < sizeof(gl_engine_callbacks) / sizeof(*gl_engine_callbacks);
-             ++i)
-          gl_registered_callbacks.emplace_back(std::make_unique<callback>(
-              gl_engine_callbacks[i].macro, gl_mod_handle,
-              gl_engine_callbacks[i].callback));
+        if (std::get<0>(bbdo_version) > 2) {
+          // Register engine callbacks.
+          log_v2::neb()->debug(
+              "callbacks: registering callbacks for new BBDO version");
+          for (uint32_t i = 0; i < sizeof(gl_pb_engine_callbacks) /
+                                       sizeof(*gl_pb_engine_callbacks);
+               ++i)
+            gl_registered_callbacks.emplace_back(std::make_unique<callback>(
+                gl_pb_engine_callbacks[i].macro, gl_mod_handle,
+                gl_pb_engine_callbacks[i].callback));
+        } else {
+          // Register engine callbacks.
+          log_v2::neb()->debug(
+              "callbacks: registering callbacks for old BBDO version");
+          for (uint32_t i = 0;
+               i < sizeof(gl_engine_callbacks) / sizeof(*gl_engine_callbacks);
+               ++i)
+            gl_registered_callbacks.emplace_back(std::make_unique<callback>(
+                gl_engine_callbacks[i].macro, gl_mod_handle,
+                gl_engine_callbacks[i].callback));
+        }
       }
 
       // Output variable.
@@ -1701,8 +1729,10 @@ int neb::callback_process(int callback_type, void* data) {
 
       // Send initial event and then configuration.
       gl_publisher.write(instance);
-      send_initial_configuration();
-
+      if (std::get<0>(bbdo_version) > 2)
+        send_initial_pb_configuration();
+      else
+        send_initial_configuration();
       // Add statistics event.
       if (statistics_interval) {
         log_v2::neb()->info(
@@ -2037,6 +2067,172 @@ int neb::callback_service(int callback_type, void* data) {
   // Avoid exception propagation in C code.
   catch (...) {
   }
+  return 0;
+}
+
+/**
+ *  @brief Function that process protobuf service data.
+ *
+ *  This function is called by Engine when some service data is
+ *  available.
+ *
+ *  @param[in] callback_type Type of the callback
+ *                           (NEBCALLBACK_ADAPTIVE_SERVICE_DATA).
+ *  @param[in] data          A pointer to a
+ *                           nebstruct_adaptive_service_data containing
+ *                           the service data.
+ *
+ *  @return 0 on success.
+ */
+int neb::callback_pb_service(int callback_type, void* data) {
+  log_v2::neb()->info("callbacks: generating service event protobuf");
+
+  const engine::service* es{static_cast<engine::service*>(
+      static_cast<nebstruct_adaptive_service_data*>(data)->object_ptr)};
+
+  auto s{std::make_shared<neb::pb_service>()};
+  Service& srv = s.get()->mut_obj();
+
+  // Fill output var.
+  srv.set_acknowledged(es->get_problem_has_been_acknowledged());
+  srv.set_acknowledgement_type(
+      static_cast<Service_AckType>(es->get_acknowledgement_type()));
+  if (!es->get_action_url().empty())
+    *srv.mutable_action_url() =
+        misc::string::check_string_utf8(es->get_action_url());
+  srv.set_active_checks_enabled(es->get_checks_enabled());
+  if (!es->get_check_command().empty())
+    *srv.mutable_check_command() =
+        misc::string::check_string_utf8(es->get_check_command());
+  srv.set_check_freshness(es->get_check_freshness());
+  srv.set_check_interval(es->get_check_interval());
+  if (!es->get_check_period().empty())
+    srv.set_check_period(es->get_check_period());
+  srv.set_check_type(static_cast<Service_CheckType>(es->get_check_type()));
+  srv.set_current_check_attempt(es->get_current_attempt());
+  srv.set_current_state(static_cast<Service_State>(
+      es->has_been_checked() ? es->get_current_state() : 4));  // Pending state.
+  srv.set_default_active_checks_enabled(es->get_checks_enabled());
+  srv.set_default_event_handler_enabled(es->get_event_handler_enabled());
+  srv.set_default_flap_detection_enabled(es->get_flap_detection_enabled());
+  srv.set_default_notifications_enabled(es->get_notifications_enabled());
+  srv.set_default_passive_checks_enabled(es->get_accept_passive_checks());
+  srv.set_downtime_depth(es->get_scheduled_downtime_depth());
+  if (!es->get_display_name().empty())
+    *srv.mutable_display_name() =
+        misc::string::check_string_utf8(es->get_display_name());
+  srv.set_enabled(static_cast<nebstruct_service_status_data*>(data)->type !=
+                  NEBTYPE_SERVICE_DELETE);
+  if (!es->get_event_handler().empty())
+    *srv.mutable_event_handler() =
+        misc::string::check_string_utf8(es->get_event_handler());
+  srv.set_event_handler_enabled(es->get_event_handler_enabled());
+  srv.set_execution_time(es->get_execution_time());
+  srv.set_first_notification_delay(es->get_first_notification_delay());
+  srv.set_notification_number(es->get_notification_number());
+  srv.set_flap_detection_enabled(es->get_flap_detection_enabled());
+  srv.set_flap_detection_on_critical(
+      es->get_flap_detection_on(engine::notifier::critical));
+  srv.set_flap_detection_on_ok(es->get_flap_detection_on(engine::notifier::ok));
+  srv.set_flap_detection_on_unknown(
+      es->get_flap_detection_on(engine::notifier::unknown));
+  srv.set_flap_detection_on_warning(
+      es->get_flap_detection_on(engine::notifier::warning));
+  srv.set_freshness_threshold(es->get_freshness_threshold());
+  srv.set_has_been_checked(es->has_been_checked());
+  srv.set_high_flap_threshold(es->get_high_flap_threshold());
+  if (!es->get_hostname().empty())
+    *srv.mutable_host_name() =
+        misc::string::check_string_utf8(es->get_hostname());
+  if (!es->get_icon_image().empty())
+    *srv.mutable_icon_image() =
+        misc::string::check_string_utf8(es->get_icon_image());
+  if (!es->get_icon_image_alt().empty())
+    *srv.mutable_icon_image_alt() =
+        misc::string::check_string_utf8(es->get_icon_image_alt());
+  srv.set_is_flapping(es->get_is_flapping());
+  srv.set_is_volatile(es->get_is_volatile());
+  srv.set_last_check(es->get_last_check());
+  srv.set_last_hard_state(
+      static_cast<Service_State>(es->get_last_hard_state()));
+  srv.set_last_hard_state_change(es->get_last_hard_state_change());
+  srv.set_last_notification(es->get_last_notification());
+  srv.set_last_state_change(es->get_last_state_change());
+  srv.set_last_time_critical(es->get_last_time_critical());
+  srv.set_last_time_ok(es->get_last_time_ok());
+  srv.set_last_time_unknown(es->get_last_time_unknown());
+  srv.set_last_time_warning(es->get_last_time_warning());
+  srv.set_last_update(time(nullptr));
+  srv.set_latency(es->get_latency());
+  srv.set_low_flap_threshold(es->get_low_flap_threshold());
+  srv.set_max_check_attempts(es->get_max_attempts());
+  srv.set_next_check(es->get_next_check());
+  srv.set_next_notification(es->get_next_notification());
+  srv.set_no_more_notifications(es->get_no_more_notifications());
+  if (!es->get_notes().empty())
+    *srv.mutable_note() = misc::string::check_string_utf8(es->get_notes());
+  if (!es->get_notes_url().empty())
+    *srv.mutable_notes_url() =
+        misc::string::check_string_utf8(es->get_notes_url());
+  srv.set_notifications_enabled(es->get_notifications_enabled());
+  srv.set_notification_interval(es->get_notification_interval());
+  if (!es->get_notification_period().empty())
+    srv.set_notification_period(es->get_notification_period());
+  srv.set_notify_on_critical(es->get_notify_on(engine::notifier::critical));
+  srv.set_notify_on_downtime(es->get_notify_on(engine::notifier::downtime));
+  srv.set_notify_on_flapping(
+      es->get_notify_on(engine::notifier::flappingstart));
+  srv.set_notify_on_recovery(es->get_notify_on(engine::notifier::ok));
+  srv.set_notify_on_unknown(es->get_notify_on(engine::notifier::unknown));
+  srv.set_notify_on_warning(es->get_notify_on(engine::notifier::warning));
+  srv.set_obsess_over(es->get_obsess_over());
+  if (!es->get_plugin_output().empty())
+    *srv.mutable_output() =
+        misc::string::check_string_utf8(es->get_plugin_output());
+  if (!es->get_long_plugin_output().empty())
+    *srv.mutable_long_output() =
+        misc::string::check_string_utf8(es->get_long_plugin_output());
+  srv.set_passive_checks_enabled(es->get_accept_passive_checks());
+  srv.set_percent_state_change(es->get_percent_state_change());
+  if (!es->get_perf_data().empty())
+    *srv.mutable_perf_data() =
+        misc::string::check_string_utf8(es->get_perf_data());
+  srv.set_retain_nonstatus_information(es->get_retain_nonstatus_information());
+  srv.set_retain_status_information(es->get_retain_status_information());
+  srv.set_retry_interval(es->get_retry_interval());
+  if (!es->get_description().empty())
+    *srv.mutable_service_description() =
+        misc::string::check_string_utf8(es->get_description());
+  srv.set_should_be_scheduled(es->get_should_be_scheduled());
+  srv.set_stalk_on_critical(es->get_stalk_on(engine::notifier::critical));
+  srv.set_stalk_on_ok(es->get_stalk_on(engine::notifier::ok));
+  srv.set_stalk_on_unknown(es->get_stalk_on(engine::notifier::unknown));
+  srv.set_stalk_on_warning(es->get_stalk_on(engine::notifier::warning));
+  srv.set_state_type(static_cast<Service_StateType>(
+      es->has_been_checked() ? es->get_state_type() : engine::notifier::hard));
+
+  // Search host ID and service ID.
+  std::pair<uint64_t, uint64_t> p;
+  p = engine::get_host_and_service_id(es->get_hostname(),
+                                      es->get_description());
+  srv.set_host_id(p.first);
+  srv.set_service_id(p.second);
+  if (srv.host_id() && srv.service_id()) {
+    // Send service event.
+    log_v2::neb()->info("callbacks: new service {} ('{}') on host {}",
+                        srv.service_id(), srv.service_description(),
+                        srv.host_id());
+    neb::gl_publisher.write(s);
+
+    /* No need to send this service custom variables changes, custom
+     * variables are managed in a different loop. */
+  } else
+    log_v2::neb()->error(
+        "callbacks: service has no host ID or no service ID (yet) (host "
+        "'{}', service '{}')",
+        (!es->get_hostname().empty() ? srv.host_name() : "(unknown)"),
+        (!es->get_description().empty() ? srv.service_description()
+                                        : "(unknown)"));
   return 0;
 }
 

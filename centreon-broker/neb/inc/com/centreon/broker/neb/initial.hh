@@ -24,7 +24,8 @@ namespace centreon {
 namespace broker {
 namespace neb {
 void send_initial_configuration();
-}
+void send_initial_pb_configuration();
+}  // namespace neb
 }  // namespace broker
 }  // namespace centreon
 }  // namespace com
