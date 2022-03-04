@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package com.centreon.broker;
+
+message Severity {
+  uint64 id = 1;
+  enum Action {
+    ADD = 0;
+    DELETE = 1;
+    MODIFY = 2;
+  }
+  Action action = 2;
+  uint32 level = 3;
+  uint64 icon_id = 4;
+  string name = 5;
+}
