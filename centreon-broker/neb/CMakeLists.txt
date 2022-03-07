@@ -98,7 +98,7 @@ set(NEB_SOURCES
 
 # Static library.
 add_library(nebbase STATIC ${NEB_SOURCES})
-add_dependencies(nebbase table_max_size pb_service_lib pb_host_lib)
+add_dependencies(nebbase table_max_size target_service target_host target_severity)
 target_link_libraries(nebbase
     CONAN_PKG::protobuf
     pb_service_lib 
