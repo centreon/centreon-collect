@@ -158,7 +158,7 @@ bool conflict_manager::init_storage(bool store_in_db,
             "database configuration");
         return false;
       }
-      std::lock_guard<std::mutex> lk(_singleton->_loop_m);
+      std::lock_guard<std::mutex> lck(_singleton->_loop_m);
       _singleton->_rebuilder = std::make_unique<rebuilder>(
           dbcfg, rrd_len ? rrd_len : 15552000, interval_length);
       _singleton->_store_in_db = store_in_db;
@@ -432,9 +432,9 @@ void conflict_manager::_callback() {
     std::chrono::system_clock::time_point time_to_deleted_index =
         std::chrono::system_clock::now();
 
-    size_t pos = 0;
     std::deque<std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>> events;
     try {
+      size_t pos = 0;
       while (!_should_exit()) {
         /* Time to send perfdatas to rrd ; no lock needed, it is this thread
          * that fill this queue. */
@@ -552,9 +552,10 @@ void conflict_manager::_callback() {
             std::shared_ptr<io::data>& d = std::get<0>(tpl);
             uint32_t type{d->type()};
             uint16_t cat{category_of_type(type)};
-            uint16_t elem{element_of_type(type)};
-            if (std::get<1>(tpl) == sql && cat == io::neb)
+            if (std::get<1>(tpl) == sql && cat == io::neb) {
+              uint16_t elem{element_of_type(type)};
               (this->*(_neb_processing_table[elem]))(tpl);
+            }
             else if (std::get<1>(tpl) == storage && cat == io::neb &&
                      type == neb::service_status::static_type())
               _storage_process_service_status(tpl);
@@ -602,9 +603,10 @@ void conflict_manager::_callback() {
               } while (timeout > duration);
 
               _events_handled = events.size();
-              float s = 0.0f;
-              for (const auto& c : _stats_count)
-                s += c;
+              float s = std::accumulate(_stats_count.begin(), _stats_count.end(), 0.0f);
+//              float s = 0.0f;
+//              for (const auto& c : _stats_count)
+//                s += c;
 
               {
                 std::lock_guard<std::mutex> lk(_stat_m);
@@ -740,8 +742,9 @@ void conflict_manager::_finish_action(int32_t conn, uint32_t action) {
 void conflict_manager::_finish_actions() {
   log_v2::sql()->trace("conflict_manager: finish actions");
   _mysql.commit();
-  for (uint32_t& v : _action)
-    v = actions::none;
+  std::fill(_action.begin(), _action.end(), actions::none);
+//  for (uint32_t& v : _action)
+//    v = actions::none;
 
   _fifo.clean(sql);
   _fifo.clean(storage);
@@ -812,7 +815,7 @@ nlohmann::json conflict_manager::get_statistics() {
   retval["max pending events"] = static_cast<int32_t>(_max_pending_queries);
   retval["max perfdata events"] = static_cast<int32_t>(_max_perfdata_queries);
   retval["loop timeout"] = static_cast<int32_t>(_loop_timeout);
-  if (auto lock = std::unique_lock<std::mutex>(_stat_m, std::try_to_lock)) {
+  if (std::unique_lock<std::mutex>(_stat_m, std::try_to_lock)) {
     retval["waiting_events"] = static_cast<int32_t>(_fifo.get_events().size());
     retval["events_handled"] = _events_handled;
     retval["sql"] = static_cast<int32_t>(_fifo.get_timeline(sql).size());

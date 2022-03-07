@@ -73,8 +73,8 @@ int receiver::write(std::shared_ptr<io::data> const& d) {
     ++(it->second);
     if (e.number > it->second)
       throw msg_fmt(
-          "invalid sequence number for Centreon Broker instance {} got {},
-          expected {} ",
+          "invalid sequence number for Centreon Broker instance {} got {}, "
+          "expected {} ",
           e.source_id,
           e.number, it->second);
     it->second = e.number;
