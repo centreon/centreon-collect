@@ -1288,6 +1288,24 @@ void state::check_service_freshness(bool value) {
 }
 
 /**
+ *  Get all engine severities.
+ *
+ *  @return All engine severities.
+ */
+const set_severity& state::severities() const noexcept {
+  return _severities;
+}
+
+/**
+ *  Get all engine severities (mutable).
+ *
+ *  @return All engine severities.
+ */
+set_severity& state::mut_severities() noexcept {
+  return _severities;
+}
+
+/**
  *  Get all engine commands.
  *
  *  @return All engine commands.
@@ -2197,8 +2215,8 @@ void state::host_perfdata_file_mode(perfdata_file_mode value) {
  *
  *  @return The host_perfdata_file_processing_command value.
  */
-std::string const& state::host_perfdata_file_processing_command() const
-    noexcept {
+std::string const& state::host_perfdata_file_processing_command()
+    const noexcept {
   return _host_perfdata_file_processing_command;
 }
 
@@ -3150,6 +3168,24 @@ set_anomalydetection::iterator state::anomalydetections_find(
   return _anomalydetections.end();
 }
 /**
+ *  Get severity by its key.
+ *
+ *  @param[in] k Severity name.
+ *
+ *  @return Iterator to the element if found, severities().end()
+ *          otherwise.
+ */
+set_severity::iterator state::severities_find(severity::key_type const& k) {
+  configuration::severity below_searched(k);
+  auto it{_severities.upper_bound(below_searched)};
+  if (it != _severities.end() && it->key() == k)
+    return it;
+  else if (it != _severities.begin() && (--it)->key() == k)
+    return it;
+  return _severities.end();
+}
+
+/**
  *  Get service by its key.
  *
  *  @param[in] k Service name.
@@ -3227,8 +3263,8 @@ void state::service_freshness_check_interval(unsigned int value) {
  *
  *  @return The service_inter_check_delay_method value.
  */
-state::inter_check_delay state::service_inter_check_delay_method() const
-    noexcept {
+state::inter_check_delay state::service_inter_check_delay_method()
+    const noexcept {
   return _service_inter_check_delay_method;
 }
 
@@ -3246,8 +3282,8 @@ void state::service_inter_check_delay_method(inter_check_delay value) {
  *
  *  @return The service_interleave_factor_method value.
  */
-state::interleave_factor state::service_interleave_factor_method() const
-    noexcept {
+state::interleave_factor state::service_interleave_factor_method()
+    const noexcept {
   return _service_interleave_factor_method;
 }
 
@@ -3319,8 +3355,8 @@ void state::service_perfdata_file_mode(perfdata_file_mode value) {
  *
  *  @return The service_perfdata_file_processing_command value.
  */
-std::string const& state::service_perfdata_file_processing_command() const
-    noexcept {
+std::string const& state::service_perfdata_file_processing_command()
+    const noexcept {
   return _service_perfdata_file_processing_command;
 }
 
@@ -3593,8 +3629,8 @@ void state::translate_passive_host_checks(bool value) {
  *
  *  @return The users resources list.
  */
-std::unordered_map<std::string, std::string> const& state::user() const
-    noexcept {
+std::unordered_map<std::string, std::string> const& state::user()
+    const noexcept {
   return _users;
 }
 

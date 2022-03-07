@@ -1,5 +1,5 @@
 /*
-** Copyright 2018 Centreon
+** Copyright 2018-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -191,10 +191,10 @@ std::unique_ptr<database::mysql_bind> mysql_stmt::get_bind() {
 
 void mysql_stmt::operator<<(io::data const& d) {
   // Get event info.
-  io::event_info const* info(io::events::instance().get_event_info(d.type()));
+  const io::event_info* info = io::events::instance().get_event_info(d.type());
   if (info) {
     if (info->get_mapping()) {
-      for (mapping::entry const* current_entry(info->get_mapping());
+      for (const mapping::entry* current_entry(info->get_mapping());
            !current_entry->is_null(); ++current_entry) {
         char const* entry_name = current_entry->get_name_v2();
         if (entry_name && entry_name[0]) {
@@ -329,7 +329,26 @@ void mysql_stmt::operator<<(io::data const& d) {
                   bind_value_as_i32(field, v);
                 break;
               default:
-                bind_value_as_i32(field, refl->GetInt32(*p, f));
+                bind_value_as_i32(field, v);
+            }
+          } break;
+          case google::protobuf::FieldDescriptor::TYPE_UINT32: {
+            uint32_t v{refl->GetUInt32(*p, f)};
+            switch (std::get<2>(pr)) {
+              case io::protobuf_base::invalid_on_zero:
+                if (v == 0)
+                  bind_value_as_null(field);
+                else
+                  bind_value_as_u32(field, v);
+                break;
+              case io::protobuf_base::invalid_on_minus_one:
+                if (v == (uint32_t)-1)
+                  bind_value_as_null(field);
+                else
+                  bind_value_as_u32(field, v);
+                break;
+              default:
+                bind_value_as_u32(field, v);
             }
           } break;
           case google::protobuf::FieldDescriptor::TYPE_INT64: {

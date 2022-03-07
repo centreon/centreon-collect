@@ -278,6 +278,11 @@
 #define NEBTYPE_TIMEPERIOD_DELETE 3801
 #define NEBTYPE_TIMEPERIOD_UPDATE 3802
 
+/* Severity. */
+#define NEBTYPE_SEVERITY_ADD 3900
+#define NEBTYPE_SEVERITY_DELETE 3901
+#define NEBTYPE_SEVERITY_UPDATE 3902
+
 /*
 ** Event flags.
 */
@@ -334,6 +339,11 @@ void broker_adaptive_contact_data(int type,
                                   unsigned long modsattr,
                                   unsigned long modsattrs,
                                   struct timeval const* timestamp);
+void broker_adaptive_severity_data(int type,
+                                   int flags,
+                                   int attr,
+                                   void* data,
+                                   const struct timeval* timestamp);
 void broker_adaptive_dependency_data(int type,
                                      int flags,
                                      int attr,

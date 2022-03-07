@@ -1226,9 +1226,10 @@ TEST_F(ServiceNotification, RecoveryTwoUsers) {
       out.find("SERVICE NOTIFICATION: admin;test_host;test_svc;RECOVERY "
                "(OK);cmd;service ok",
                step6 + 1)};
+  ASSERT_NE(step7, std::string::npos);
   size_t step8{
       out.find("SERVICE NOTIFICATION: admin1;test_host;test_svc;RECOVERY "
                "(OK);cmd;service ok",
-               step7 + 1)};
+               step6 + 1)};
   ASSERT_NE(step8, std::string::npos);
 }

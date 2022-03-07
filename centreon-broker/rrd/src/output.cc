@@ -320,6 +320,11 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
             }
           }
           break;
+        default:
+          log_v2::rrd()->error(
+              "RRD: Bad 'state' value in rebuild message: it can only contain "
+              "START, DATA or END");
+          break;
       }
     } break;
     case storage::pb_remove_graph_message::static_type(): {

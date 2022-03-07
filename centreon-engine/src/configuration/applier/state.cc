@@ -45,6 +45,7 @@
 #include "com/centreon/engine/configuration/applier/servicedependency.hh"
 #include "com/centreon/engine/configuration/applier/serviceescalation.hh"
 #include "com/centreon/engine/configuration/applier/servicegroup.hh"
+#include "com/centreon/engine/configuration/applier/severity.hh"
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
 #include "com/centreon/engine/configuration/command.hh"
 #include "com/centreon/engine/exceptions/error.hh"
@@ -615,8 +616,8 @@ void applier::state::_apply(
   }
 
   // Add objects.
-  for (typename cfg_set::const_iterator it_create(diff.added().begin()),
-       end_create(diff.added().end());
+  for (typename cfg_set::const_iterator it_create = diff.added().begin(),
+                                        end_create = diff.added().end();
        it_create != end_create; ++it_create) {
     if (!verify_config)
       aplyr.add_object(*it_create);
@@ -632,8 +633,8 @@ void applier::state::_apply(
   }
 
   // Modify objects.
-  for (typename cfg_set::const_iterator it_modify(diff.modified().begin()),
-       end_modify(diff.modified().end());
+  for (typename cfg_set::const_iterator it_modify = diff.modified().begin(),
+                                        end_modify = diff.modified().end();
        it_modify != end_modify; ++it_modify) {
     if (!verify_config)
       aplyr.modify_object(*it_modify);
@@ -1263,6 +1264,10 @@ void applier::state::_processing(configuration::state& new_cfg,
   difference<set_command> diff_commands;
   diff_commands.parse(config->commands(), new_cfg.commands());
 
+  // Build difference for severities.
+  difference<set_severity> diff_severities;
+  diff_severities.parse(config->severities(), new_cfg.severities());
+
   // Build difference for contacts.
   difference<set_contact> diff_contacts;
   diff_contacts.parse(config->contacts(), new_cfg.contacts());
@@ -1376,6 +1381,9 @@ void applier::state::_processing(configuration::state& new_cfg,
     _resolve<configuration::contactgroup, applier::contactgroup>(
         config->contactgroups());
     _resolve<configuration::contact, applier::contact>(config->contacts());
+
+    // Apply severities.
+    _apply<configuration::severity, applier::severity>(diff_severities);
 
     // Apply hosts and hostgroups.
     _apply<configuration::host, applier::host>(diff_hosts);

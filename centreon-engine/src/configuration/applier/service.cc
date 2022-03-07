@@ -178,7 +178,7 @@ void applier::service::add_object(configuration::service const& obj) {
   for (set_string::const_iterator it(obj.contacts().begin()),
        end(obj.contacts().end());
        it != end; ++it)
-    svc->get_contacts().insert({*it, nullptr});
+    svc->mut_contacts().insert({*it, nullptr});
 
   // Add contactgroups.
   for (set_string::const_iterator it(obj.contactgroups().begin()),
@@ -431,13 +431,13 @@ void applier::service::modify_object(configuration::service const& obj) {
   // Contacts.
   if (obj.contacts() != obj_old.contacts()) {
     // Delete old contacts.
-    s->get_contacts().clear();
+    s->mut_contacts().clear();
 
     // Add contacts to host.
     for (set_string::const_iterator it(obj.contacts().begin()),
          end(obj.contacts().end());
          it != end; ++it)
-      s->get_contacts().insert({*it, nullptr});
+      s->mut_contacts().insert({*it, nullptr});
   }
 
   // Contact groups.

@@ -24,6 +24,7 @@ LOGV2EB1
 	Config Broker	module
 	Engine Config Set Value	${0}	log_legacy_enabled	${0}
 	Engine Config Set Value	${0}	log_v2_enabled	${1}
+	Engine Config Set Value	${0}	log_level_config	trace
 
 	${start}=	Get Current Date	 exclude_millis=yes
 	${time_stamp}	Convert Date    ${start}    epoch	exclude_millis=yes

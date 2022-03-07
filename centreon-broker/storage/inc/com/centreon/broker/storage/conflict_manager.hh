@@ -94,6 +94,7 @@ class conflict_manager {
     log,
     service_dependency,
     service_group,
+    severity,
   };
 
   enum actions {
@@ -115,6 +116,7 @@ class conflict_manager {
     services = 1 << 14,
     index_data = 1 << 15,
     metrics = 1 << 16,
+    severities = 1 << 17,
   };
 
   struct index_info {
@@ -256,6 +258,9 @@ class conflict_manager {
   database::mysql_stmt _service_group_member_insert;
   database::mysql_stmt _service_insupdate;
   database::mysql_stmt _service_status_update;
+  database::mysql_stmt _severity_insupdate;
+  database::mysql_stmt _severity_update;
+  database::mysql_stmt _severity_delete;
 
   database::mysql_stmt _index_data_insert;
   database::mysql_stmt _index_data_update;
@@ -327,6 +332,8 @@ class conflict_manager {
   void _process_instance_configuration(
       std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
   void _process_responsive_instance(
+      std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
+  void _process_severity(
       std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
 
   void _storage_process_service_status(

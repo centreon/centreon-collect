@@ -6,6 +6,7 @@ import random
 import shutil
 import sys
 import time
+import re
 
 CONF_DIR = "/etc/centreon-engine"
 ENGINE_HOME = "/var/lib/centreon-engine"
@@ -101,7 +102,7 @@ class EngineInstance:
                 "log_legacy_enabled=1\n"
                 "log_v2_logger=file\n"
                 "log_level_functions=info\n"
-                "log_level_config=info\n"
+                "log_level_config=debug\n"
                 "log_level_events=info\n"
                 "log_level_checks=info\n"
                 "log_level_notifications=info\n"
@@ -283,6 +284,23 @@ define command {
 """.format(hid, ",".join(mbs))
         logger.console(retval)
         return retval
+
+    @staticmethod
+    def create_severities(nb:int, offset: int):
+        config_file = "{}/config0/severities.cfg".format(CONF_DIR)
+        ff = open(config_file, "w+")
+        content = ""
+        for i in range(nb):
+            level = i % 5 + 1
+            content += """define severity {{
+    id                     {0}
+    name                   severity{3}
+    level                  {1}
+    icon_id                {2}
+}}
+""".format(i + 1, level, 6 - level, i + offset)
+        ff.write(content)
+        ff.close()
 
     def build_configs(self, hosts: int, services_by_host: int, debug_level=0):
         if exists(CONF_DIR):
@@ -477,3 +495,19 @@ def schedule_service_downtime(hst: str, svc: str, duration: int):
     f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
     f.write(cmd)
     f.close()
+
+def create_severities_file(nb:int, offset:int = 1):
+    engine.create_severities(nb, offset)
+
+def config_engine_add_cfg_file(cfg:str):
+    ff = open("{}/config0/centengine.cfg".format(CONF_DIR), "r")
+    lines = ff.readlines()
+    ff.close()
+    r = re.compile(r"^\s*cfg_file=")
+    for i in range(len(lines)):
+        if r.match(lines[i]):
+            lines.insert(i, "cfg_file={}/config0/{}\n".format(CONF_DIR, cfg))
+            break
+    ff = open("{}/config0/centengine.cfg".format(CONF_DIR), "w+")
+    ff.writelines(lines)
+    ff.close()

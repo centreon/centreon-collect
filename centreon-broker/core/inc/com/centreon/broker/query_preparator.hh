@@ -19,8 +19,8 @@
 #ifndef CCB_QUERY_PREPARATOR_HH
 #define CCB_QUERY_PREPARATOR_HH
 
-#include <map>
-#include <set>
+#include <absl/container/btree_set.h>
+#include <absl/container/flat_hash_map.h>
 #include "com/centreon/broker/mysql.hh"
 #include "com/centreon/broker/namespace.hh"
 
@@ -67,9 +67,10 @@ CCB_BEGIN()
  */
 class query_preparator {
  public:
-  using excluded_fields = std::set<std::string>;
-  using doubled_fields = std::set<std::string>;
-  using event_unique = std::set<std::string>;
+  using excluded_fields = absl::btree_set<std::string>;
+  using doubled_fields = absl::btree_set<std::string>;
+  using event_unique = absl::btree_set<std::string>;
+  using event_pb_unique = absl::btree_set<int32_t>;
 
   struct pb_entry {
     int32_t number;
@@ -82,11 +83,13 @@ class query_preparator {
   uint32_t _event_id;
   excluded_fields _excluded;
   event_unique _unique;
+  event_pb_unique _pb_unique;
 
  public:
   query_preparator(uint32_t event_id,
                    event_unique const& unique = event_unique(),
                    excluded_fields const& excluded = excluded_fields());
+  query_preparator(uint32_t event_id, const event_pb_unique& pb_unique);
   ~query_preparator() noexcept = default;
   query_preparator(query_preparator const&) = delete;
   query_preparator& operator=(query_preparator const&) = delete;
@@ -101,7 +104,13 @@ class query_preparator {
       const std::string& table,
       const std::vector<pb_entry>& mapping);
   database::mysql_stmt prepare_insert_or_update(mysql& ms);
+  database::mysql_stmt prepare_insert_or_update_table(
+      mysql& ms,
+      const std::string& table,
+      const std::vector<query_preparator::pb_entry>& mapping);
   database::mysql_stmt prepare_delete(mysql& q);
+  database::mysql_stmt prepare_delete_table(mysql& ms,
+                                            const std::string& table);
 };
 
 CCB_END()

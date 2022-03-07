@@ -20,10 +20,10 @@
 #ifndef CCE_OBJECTS_CONTACTGROUP_HH
 #define CCE_OBJECTS_CONTACTGROUP_HH
 
+#include <absl/container/flat_hash_map.h>
 #include <list>
 #include <memory>
 #include <string>
-#include <unordered_map>
 #include "com/centreon/engine/namespace.hh"
 
 /* Forward declaration. */
@@ -36,13 +36,13 @@ class contactgroup;
 }
 CCE_END()
 
-typedef std::unordered_map<std::string,
-                           std::shared_ptr<com::centreon::engine::contactgroup>>
-    contactgroup_map;
-typedef std::unordered_map<std::string, com::centreon::engine::contact*>
-    contact_map_unsafe;
-typedef std::unordered_map<std::string, com::centreon::engine::contactgroup*>
-    contactgroup_map_unsafe;
+using contactgroup_map =
+    absl::flat_hash_map<std::string,
+                        std::shared_ptr<com::centreon::engine::contactgroup>>;
+using contactgroup_map_unsafe =
+    absl::flat_hash_map<std::string, com::centreon::engine::contactgroup*>;
+using contact_map_unsafe =
+    absl::flat_hash_map<std::string, com::centreon::engine::contact*>;
 
 CCE_BEGIN()
 

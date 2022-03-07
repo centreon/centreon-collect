@@ -52,6 +52,7 @@ set(
   "${SRC_DIR}/serviceescalation.cc"
   "${SRC_DIR}/serviceextinfo.cc"
   "${SRC_DIR}/servicegroup.cc"
+  "${SRC_DIR}/severity.cc"
   "${SRC_DIR}/timeperiod.cc"
   "${SRC_DIR}/timerange.cc"
 
@@ -77,6 +78,7 @@ set(
   "${INC_DIR}/serviceescalation.hh"
   "${INC_DIR}/serviceextinfo.hh"
   "${INC_DIR}/servicegroup.hh"
+  "${INC_DIR}/severity.hh"
   "${INC_DIR}/service.hh"
   "${INC_DIR}/state.hh"
   "${INC_DIR}/timeperiod.hh"

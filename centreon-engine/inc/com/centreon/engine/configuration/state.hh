@@ -35,6 +35,7 @@
 #include "com/centreon/engine/configuration/servicedependency.hh"
 #include "com/centreon/engine/configuration/serviceescalation.hh"
 #include "com/centreon/engine/configuration/servicegroup.hh"
+#include "com/centreon/engine/configuration/severity.hh"
 #include "com/centreon/engine/configuration/timeperiod.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/namespace.hh"
@@ -136,6 +137,8 @@ class state {
   void check_reaper_interval(unsigned int value);
   bool check_service_freshness() const noexcept;
   void check_service_freshness(bool value);
+  const set_severity& severities() const noexcept;
+  set_severity& mut_severities() noexcept;
   set_command const& commands() const noexcept;
   set_command& commands() noexcept;
   set_command::const_iterator commands_find(command::key_type const& k) const;
@@ -335,6 +338,7 @@ class state {
   set_service::const_iterator services_find(
       std::string const& host_name,
       std::string const& service_desc) const;
+  set_severity::iterator severities_find(severity::key_type const& k);
   unsigned int service_check_timeout() const noexcept;
   void service_check_timeout(unsigned int value);
   unsigned int service_freshness_check_interval() const noexcept;
@@ -524,6 +528,7 @@ class state {
   unsigned int _check_reaper_interval;
   bool _check_service_freshness;
   set_command _commands;
+  set_severity _severities;
   int _command_check_interval;
   bool _command_check_interval_is_seconds;
   std::string _command_file;
