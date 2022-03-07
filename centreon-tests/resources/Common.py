@@ -267,6 +267,46 @@ def check_service_status_with_timeout(hostname: str, service_desc: str, status: 
         time.sleep(5)
     return False
 
+def check_severity_with_timeout(name: str, level, icon_id, timeout: int):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host='localhost',
+                                 user='centreon',
+                                 password='centreon',
+                                 database='centreon_storage',
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT level, icon_id FROM severities WHERE name='{}'".format(name))
+                result = cursor.fetchall()
+                if len(result) > 0:
+                    if int(result[0]['level']) == int(level) and int(result[0]['icon_id']) == int(icon_id):
+                        return True
+        time.sleep(1)
+    return False
+
+def check_severities_count(value: int, timeout: int):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host='localhost',
+                                 user='centreon',
+                                 password='centreon',
+                                 database='centreon_storage',
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT count(*) FROM severities")
+                result = cursor.fetchall()
+                if len(result) > 0:
+                    if int(result[0]['count(*)']) == int(value):
+                        return True
+        time.sleep(1)
+    return False
+
 def check_ba_status_with_timeout(ba_name: str, status: int, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
@@ -338,3 +378,15 @@ def number_of_downtimes_is(nb: int):
             result = cursor.fetchall()
             return int(result[0]['count(*)']) == int(nb)
 
+def clear_db(table: str):
+    connection = pymysql.connect(host='localhost',
+                             user='centreon',
+                             password='centreon',
+                             database='centreon_storage',
+                             charset='utf8mb4',
+                             cursorclass=pymysql.cursors.DictCursor)
+
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute("DELETE FROM {}".format(table))
+        connection.commit()

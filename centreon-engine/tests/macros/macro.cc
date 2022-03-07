@@ -652,7 +652,7 @@ TEST_F(Macro, NotificationRecipients) {
 
   std::string out;
   process_macros_r(mac, "$NOTIFICATIONRECIPIENTS:test_host:test_svc$", out, 1);
-  ASSERT_EQ(out, "admin,admin1");
+  ASSERT_TRUE(out == "admin,admin1" || out == "admin1,admin");
 }
 
 TEST_F(Macro, NotificationAuthor) {

@@ -44,6 +44,7 @@ set(
   "${SRC_DIR}/servicedependency.cc"
   "${SRC_DIR}/serviceescalation.cc"
   "${SRC_DIR}/servicegroup.cc"
+  "${SRC_DIR}/severity.cc"
   "${SRC_DIR}/state.cc"
   "${SRC_DIR}/timeperiod.cc"
 
@@ -66,6 +67,7 @@ set(
   "${INC_DIR}/servicedependency.hh"
   "${INC_DIR}/serviceescalation.hh"
   "${INC_DIR}/servicegroup.hh"
+  "${INC_DIR}/severity.hh"
   "${INC_DIR}/state.hh"
   "${INC_DIR}/timeperiod.hh"
 

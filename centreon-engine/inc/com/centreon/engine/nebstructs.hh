@@ -62,6 +62,16 @@ typedef struct nebstruct_adaptive_contact_data_struct {
   void* object_ptr;
 } nebstruct_adaptive_contact_data;
 
+/* Adaptive severity data structure. */
+typedef struct nebstruct_adaptive_severity_data_struct {
+  int type;
+  int flags;
+  int attr;
+  struct timeval timestamp;
+
+  void* object_ptr;
+} nebstruct_adaptive_severity_data;
+
 /* Adaptive dependency data structure. */
 typedef struct nebstruct_adaptive_dependency_data_struct {
   int type;

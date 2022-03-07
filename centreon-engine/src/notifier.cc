@@ -867,8 +867,8 @@ std::unordered_set<contact*> notifier::get_contacts_to_notify(
   if (!escalated) {
     /* Construction of the set containing contacts to notify. We don't know
      * for the moment if those contacts accept notification. */
-    for (contact_map_unsafe::const_iterator it{get_contacts().begin()},
-         end{get_contacts().end()};
+    for (contact_map_unsafe::const_iterator it{contacts().begin()},
+         end{contacts().end()};
          it != end; ++it) {
       assert(it->second);
       if (it->second->should_be_notified(cat, type, *this))
@@ -1247,12 +1247,12 @@ notifier::notifier_type notifier::get_notifier_type() const noexcept {
   return _notifier_type;
 }
 
-std::unordered_map<std::string, contact*>& notifier::get_contacts() noexcept {
+absl::flat_hash_map<std::string, contact*>& notifier::mut_contacts() noexcept {
   return _contacts;
 }
 
-std::unordered_map<std::string, contact*> const& notifier::get_contacts() const
-    noexcept {
+const absl::flat_hash_map<std::string, contact*>& notifier::contacts()
+    const noexcept {
   return _contacts;
 }
 
@@ -1278,8 +1278,8 @@ bool is_contact_for_notifier(com::centreon::engine::notifier* notif,
     return false;
 
   // Search all individual contacts of this host.
-  for (contact_map_unsafe::const_iterator it{notif->get_contacts().begin()},
-       end{notif->get_contacts().end()};
+  for (contact_map_unsafe::const_iterator it = notif->contacts().begin(),
+                                          end = notif->contacts().end();
        it != end; ++it)
     if (it->second == cntct)
       return true;
@@ -1386,8 +1386,8 @@ void notifier::resolve(int& w, int& e) {
   }
 
   /* check all contacts */
-  for (contact_map_unsafe::iterator it{get_contacts().begin()},
-       end{get_contacts().end()};
+  for (contact_map_unsafe::iterator it = mut_contacts().begin(),
+                                    end = mut_contacts().end();
        it != end; ++it) {
     contact_map::const_iterator found_it{contact::contacts.find(it->first)};
     if (found_it == contact::contacts.end() || !found_it->second.get()) {

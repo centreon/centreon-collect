@@ -585,7 +585,7 @@ std::ostream& operator<<(std::ostream& os, host_map_unsafe const& obj) {
  *
  *  @return The output stream.
  */
-std::ostream& operator<<(std::ostream& os, host const& obj) {
+std::ostream& operator<<(std::ostream& os, const host& obj) {
   hostgroup* hg{obj.get_parent_groups().front()};
 
   std::string evt_str;
@@ -614,11 +614,11 @@ std::ostream& operator<<(std::ostream& os, host const& obj) {
     oss << obj.get_contactgroups();
     cg_oss = oss.str();
   }
-  if (obj.get_contacts().empty())
+  if (obj.contacts().empty())
     c_oss = "\"NULL\"";
   else {
     std::ostringstream oss;
-    oss << obj.get_contacts();
+    oss << obj.contacts();
     c_oss = oss.str();
   }
   if (obj.parent_hosts.empty())
@@ -3831,9 +3831,10 @@ void host::check_for_orphaned() {
 
     /* determine the time at which the check results should have come in (allow
      * 10 minutes slack time) */
-    expected_time = (time_t)(
-        it->second->get_next_check() + it->second->get_latency() +
-        config->host_check_timeout() + config->check_reaper_interval() + 600);
+    expected_time =
+        (time_t)(it->second->get_next_check() + it->second->get_latency() +
+                 config->host_check_timeout() +
+                 config->check_reaper_interval() + 600);
 
     /* this host was supposed to have executed a while ago, but for some reason
      * the results haven't come back in... */

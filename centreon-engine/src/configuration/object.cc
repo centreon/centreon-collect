@@ -33,6 +33,7 @@
 #include "com/centreon/engine/configuration/serviceescalation.hh"
 #include "com/centreon/engine/configuration/serviceextinfo.hh"
 #include "com/centreon/engine/configuration/servicegroup.hh"
+#include "com/centreon/engine/configuration/severity.hh"
 #include "com/centreon/engine/configuration/timeperiod.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/string.hh"
@@ -154,6 +155,8 @@ object_ptr object::create(std::string const& type_name) {
     obj = object_ptr(new configuration::hostextinfo());
   else if (type_name == "anomalydetection")
     obj = object_ptr(new configuration::anomalydetection());
+  else if (type_name == "severity")
+    obj = object_ptr(new configuration::severity());
   return obj;
 }
 

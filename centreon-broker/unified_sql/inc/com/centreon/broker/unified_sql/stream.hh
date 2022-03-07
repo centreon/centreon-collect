@@ -91,6 +91,7 @@ class stream : public io::stream {
     log,
     service_dependency,
     service_group,
+    severity,
   };
 
   enum actions {
@@ -112,6 +113,7 @@ class stream : public io::stream {
     services = 1 << 14,
     index_data = 1 << 15,
     metrics = 1 << 16,
+    severities = 1 << 17,
   };
 
   struct index_info {
@@ -254,6 +256,9 @@ class stream : public io::stream {
   database::mysql_stmt _service_group_member_insert;
   database::mysql_stmt _service_insupdate;
   database::mysql_stmt _service_status_update;
+  database::mysql_stmt _severity_insupdate;
+  database::mysql_stmt _severity_update;
+  database::mysql_stmt _severity_delete;
 
   database::mysql_stmt _index_data_insert;
   database::mysql_stmt _index_data_update;
@@ -298,6 +303,7 @@ class stream : public io::stream {
 
   void _process_pb_service_status(const std::shared_ptr<io::data>& d);
   void _process_pb_host_status(const std::shared_ptr<io::data>& d);
+  void _process_severity(const std::shared_ptr<io::data>& d);
 
   void _unified_sql_process_service_status(const std::shared_ptr<io::data>& d);
   void _unified_sql_process_pb_service_status(

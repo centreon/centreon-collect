@@ -112,7 +112,7 @@ void applier::host::add_object(configuration::host const& obj) {
   for (set_string::const_iterator it(obj.contacts().begin()),
        end(obj.contacts().end());
        it != end; ++it)
-    h->get_contacts().insert({*it, nullptr});
+    h->mut_contacts().insert({*it, nullptr});
 
   // Contact groups.
   for (set_string::const_iterator it(obj.contactgroups().begin()),
@@ -330,13 +330,13 @@ void applier::host::modify_object(configuration::host const& obj) {
   // Contacts.
   if (obj.contacts() != obj_old.contacts()) {
     // Delete old contacts.
-    it_obj->second->get_contacts().clear();
+    it_obj->second->mut_contacts().clear();
 
     // Add contacts to host.
     for (set_string::const_iterator it(obj.contacts().begin()),
          end(obj.contacts().end());
          it != end; ++it)
-      it_obj->second->get_contacts().insert({*it, nullptr});
+      it_obj->second->mut_contacts().insert({*it, nullptr});
   }
 
   // Contact groups.

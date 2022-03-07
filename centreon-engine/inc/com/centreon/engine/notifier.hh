@@ -252,9 +252,8 @@ class notifier : public checkable {
       uint32_t& notification_interval,
       bool& escalated);
   notifier_type get_notifier_type() const noexcept;
-  std::unordered_map<std::string, contact*>& get_contacts() noexcept;
-  std::unordered_map<std::string, contact*> const& get_contacts()
-      const noexcept;
+  absl::flat_hash_map<std::string, contact*>& mut_contacts() noexcept;
+  const absl::flat_hash_map<std::string, contact*>& contacts() const noexcept;
   contactgroup_map_unsafe& get_contactgroups() noexcept;
   contactgroup_map_unsafe const& get_contactgroups() const noexcept;
   void resolve(int& w, int& e);
@@ -334,7 +333,7 @@ class notifier : public checkable {
   /* New ones */
   int _notification_number;
   // reason_type _type;
-  std::unordered_map<std::string, contact*> _contacts;
+  contact_map_unsafe _contacts;
   contactgroup_map_unsafe _contact_groups;
   std::array<std::unique_ptr<notification>, 6> _notification;
   std::array<int, MAX_STATE_HISTORY_ENTRIES> _state_history;
