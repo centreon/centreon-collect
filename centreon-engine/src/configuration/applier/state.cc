@@ -46,6 +46,7 @@
 #include "com/centreon/engine/configuration/applier/serviceescalation.hh"
 #include "com/centreon/engine/configuration/applier/servicegroup.hh"
 #include "com/centreon/engine/configuration/applier/severity.hh"
+#include "com/centreon/engine/configuration/applier/tag.hh"
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
 #include "com/centreon/engine/configuration/command.hh"
 #include "com/centreon/engine/exceptions/error.hh"
@@ -1268,6 +1269,10 @@ void applier::state::_processing(configuration::state& new_cfg,
   difference<set_severity> diff_severities;
   diff_severities.parse(config->severities(), new_cfg.severities());
 
+  // Build difference for tags.
+  difference<set_tag> diff_tags;
+  diff_tags.parse(config->tags(), new_cfg.tags());
+
   // Build difference for contacts.
   difference<set_contact> diff_contacts;
   diff_contacts.parse(config->contacts(), new_cfg.contacts());
@@ -1384,6 +1389,9 @@ void applier::state::_processing(configuration::state& new_cfg,
 
     // Apply severities.
     _apply<configuration::severity, applier::severity>(diff_severities);
+
+    // Apply tags.
+    _apply<configuration::tag, applier::tag>(diff_tags);
 
     // Apply hosts and hostgroups.
     _apply<configuration::host, applier::host>(diff_hosts);

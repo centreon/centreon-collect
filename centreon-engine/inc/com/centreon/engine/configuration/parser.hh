@@ -106,12 +106,12 @@ class parser {
   state* _config;
   unsigned int _current_line;
   std::string _current_path;
-  std::array<list_object, 18> _lst_objects;
-  std::array<map_object, 18> _map_objects;
+  std::array<list_object, 19> _lst_objects;
+  std::array<map_object, 19> _map_objects;
   std::unordered_map<object*, file_info> _objects_info;
   unsigned int _read_options;
   static store _store[];
-  std::array<map_object, 18> _templates;
+  std::array<map_object, 19> _templates;
 };
 }  // namespace configuration
 

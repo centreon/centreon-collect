@@ -45,6 +45,7 @@ parser::store parser::_store[] = {
     &parser::_store_into_map<servicegroup, &servicegroup::servicegroup_name>,
     &parser::_store_into_map<timeperiod, &timeperiod::timeperiod_name>,
     &parser::_store_into_list,
+    &parser::_store_into_list,
     &parser::_store_into_list};
 
 /**
@@ -104,6 +105,7 @@ void parser::parse(std::string const& path, state& config) {
   _insert(_lst_objects[object::anomalydetection], config.anomalydetections());
   _insert(_map_objects[object::timeperiod], config.timeperiods());
   _insert(_lst_objects[object::severity], config.mut_severities());
+  _insert(_lst_objects[object::tag], config.mut_tags());
 
   // cleanup.
   _objects_info.clear();

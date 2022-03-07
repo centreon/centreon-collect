@@ -147,7 +147,7 @@ bool modules::_check_module(const std::string& name, void* h) noexcept {
   if (::strncmp(CENTREON_BROKER_VERSION, *version,
                 strlen(CENTREON_BROKER_VERSION) + 1) != 0) {
     log_v2::core()->error(
-        "modules: version mismatch in '{}': exepected '{}', found '{}'", name,
+        "modules: version mismatch in '{}': expected '{}', found '{}'", name,
         CENTREON_BROKER_VERSION, *version);
     return false;
   }

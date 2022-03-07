@@ -46,6 +46,10 @@ void stream::_clean_tables(uint32_t instance_id) {
   _mysql.run_query("DELETE FROM severities",
                    database::mysql_error::clean_severities, false, conn);
 
+  conn = special_conn::tag % _mysql.connections_count();
+  _mysql.run_query("DELETE FROM tags", database::mysql_error::clean_severities,
+                   false, conn);
+
   conn = _mysql.choose_connection_by_instance(instance_id);
   log_v2::sql()->debug(
       "unified sql: disable hosts and services (instance_id: {})", instance_id);
@@ -1858,6 +1862,60 @@ void stream::_process_severity(const std::shared_ptr<io::data>& d) {
   int32_t conn = special_conn::severity % _mysql.connections_count();
   _mysql.run_statement(*st, database::mysql_error::store_severity, false, conn);
   _add_action(conn, actions::severities);
+}
+
+void stream::_process_tag(const std::shared_ptr<io::data>& d) {
+  log_v2::sql()->debug("SQL: process tag");
+  _finish_action(-1, actions::tags);
+
+  // Prepare queries.
+  if (!_tag_update.prepared()) {
+    query_preparator::event_pb_unique unique;
+    unique.insert(1);
+    query_preparator qp(neb::pb_tag::static_type(), unique);
+
+    _tag_update = qp.prepare_update_table(
+        _mysql, "tags",
+        {
+            {1, "id", io::protobuf_base::invalid_on_zero, 0},
+            {3, "type", io::protobuf_base::invalid_on_zero, 0},
+            {4, "name", 0, get_tags_col_size(tags_name)},
+        });
+    _tag_delete = qp.prepare_delete_table(_mysql, "tags");
+
+    _tag_insupdate = qp.prepare_insert_or_update_table(
+        _mysql, "tags",
+        {
+            {1, "id", io::protobuf_base::invalid_on_zero, 0},
+            {3, "type", io::protobuf_base::invalid_on_zero, 0},
+            {4, "name", 0, get_tags_col_size(tags_name)},
+        });
+  }
+  // Processed object.
+  auto s{static_cast<const neb::pb_tag*>(d.get())};
+  auto tg = s->obj();
+  mysql_stmt* st;
+  switch (tg.action()) {
+    case Tag_Action_ADD:
+      log_v2::sql()->trace("SQL: new tag {}", tg.id());
+      st = &_tag_insupdate;
+      break;
+    case Tag_Action_MODIFY:
+      log_v2::sql()->trace("SQL: modified tag {}", tg.id());
+      st = &_tag_update;
+      break;
+    case Tag_Action_DELETE:
+      log_v2::sql()->trace("SQL: removed tag {}", tg.id());
+      st = &_tag_delete;
+      break;
+    default:
+      log_v2::sql()->error("Bad action in tag object");
+      break;
+  }
+  *st << *s;
+  int32_t conn = special_conn::tag % _mysql.connections_count();
+  _mysql.run_statement(*st, database::mysql_error::store_tag, false, conn);
+  _add_action(conn, actions::tags);
 }
 
 /**

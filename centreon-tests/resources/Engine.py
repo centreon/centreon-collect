@@ -302,6 +302,24 @@ define command {
         ff.write(content)
         ff.close()
 
+    @staticmethod
+    def create_tags(nb:int, offset: int):
+        tt = ["hostcategory", "servicecategory", "hostgroup", "servicegroup"]
+
+        config_file = "{}/config0/tags.cfg".format(CONF_DIR)
+        ff = open(config_file, "w+")
+        content = ""
+        for i in range(nb):
+            typ = tt[i % 4]
+            content += """define tag {{
+    id                     {0}
+    name                   tag{2}
+    type                   {1}
+}}
+""".format(i + 1, typ, i + offset)
+        ff.write(content)
+        ff.close()
+
     def build_configs(self, hosts: int, services_by_host: int, debug_level=0):
         if exists(CONF_DIR):
           shutil.rmtree(CONF_DIR)
@@ -498,6 +516,9 @@ def schedule_service_downtime(hst: str, svc: str, duration: int):
 
 def create_severities_file(nb:int, offset:int = 1):
     engine.create_severities(nb, offset)
+
+def create_tags_file(nb:int, offset:int = 1):
+    engine.create_tags(nb, offset)
 
 def config_engine_add_cfg_file(cfg:str):
     ff = open("{}/config0/centengine.cfg".format(CONF_DIR), "r")

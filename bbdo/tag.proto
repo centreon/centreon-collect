@@ -20,15 +20,22 @@ syntax = "proto3";
 
 package com.centreon.broker;
 
-message Severity {
+message Tag {
   uint64 id = 1;
   enum Action {
     ADD = 0;
     DELETE = 1;
     MODIFY = 2;
   }
+  enum Type {
+    NONE = 0;
+    HOSTCATEGORY = 1;
+    SERVICECATEGORY = 2;
+    HOSTGROUP = 3;
+    SERVICEGROUP = 4;
+  }
+
   Action action = 2;
-  uint32 level = 3;
-  uint64 icon_id = 4;
-  string name = 5;
+  Type type = 3;
+  string name = 4;
 }

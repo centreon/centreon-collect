@@ -153,6 +153,9 @@ void broker_module_init(void const* arg) {
 
       e.register_event(make_type(io::neb, neb::de_pb_severity), "Severity",
                        &neb::pb_severity::operations, "severities");
+
+      e.register_event(make_type(io::neb, neb::de_pb_tag), "Tag",
+                       &neb::pb_tag::operations, "tags");
     }
   }
 }

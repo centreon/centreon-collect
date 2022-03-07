@@ -25,11 +25,11 @@ using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::modules;
 
-const char* handle::deinitialization{"broker_module_deinit"};
-const char* handle::initialization{"broker_module_init"};
-const char* handle::updatization{"broker_module_update"};
-const char* handle::versionning{"broker_module_version"};
-const char* handle::parents_list{"broker_module_parents"};
+constexpr const char* handle::deinitialization;
+constexpr const char* handle::initialization;
+constexpr const char* handle::updatization;
+constexpr const char* handle::versionning;
+constexpr const char* handle::parents_list;
 
 handle::handle(const std::string& filename, void* h, const void* arg)
     : _filename{filename}, _handle{h} {

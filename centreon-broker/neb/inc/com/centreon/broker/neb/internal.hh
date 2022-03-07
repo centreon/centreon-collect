@@ -27,6 +27,7 @@
 #include "bbdo/host.pb.h"
 #include "bbdo/service.pb.h"
 #include "bbdo/severity.pb.h"
+#include "bbdo/tag.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
 #include "com/centreon/broker/misc/pair.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
@@ -57,6 +58,7 @@ using pb_service =
 using pb_host = io::protobuf<Host, make_type(io::neb, neb::de_pb_host)>;
 using pb_severity =
     io::protobuf<Severity, make_type(io::neb, neb::de_pb_severity)>;
+using pb_tag = io::protobuf<Tag, make_type(io::neb, neb::de_pb_tag)>;
 
 }  // namespace neb
 

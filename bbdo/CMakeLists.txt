@@ -22,6 +22,7 @@ set(protobuf_files
     service
     host
     severity
+    tag
    )
 
 foreach(name IN LISTS protobuf_files)
@@ -61,6 +62,14 @@ add_library(
     )
 add_dependencies(pb_severity_lib target_host)
 set_target_properties(pb_severity_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+add_library(
+    pb_tag_lib STATIC
+      tag.pb.cc
+      tag.pb.h
+    )
+add_dependencies(pb_tag_lib target_host)
+set_target_properties(pb_tag_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 macro(get_protobuf_files name)
   set_source_files_properties("${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.cc" PROPERTIES GENERATED TRUE)

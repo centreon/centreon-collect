@@ -17,8 +17,8 @@
  *
  */
 
-#ifndef CCE_SEVERITY_HH
-#define CCE_SEVERITY_HH
+#ifndef CCE_TAG_HH
+#define CCE_TAG_HH
 
 #include <absl/container/flat_hash_map.h>
 #include <memory>
@@ -27,54 +27,57 @@
 
 /* Forward declaration. */
 namespace com::centreon::engine {
-class severity;
+class tag;
 }
 
-using severity_map =
-    absl::flat_hash_map<uint32_t,
-                        std::shared_ptr<com::centreon::engine::severity>>;
-using severity_map_unsafe =
-    absl::flat_hash_map<std::string, com::centreon::engine::severity*>;
+using tag_map =
+    absl::flat_hash_map<uint32_t, std::shared_ptr<com::centreon::engine::tag>>;
+using tag_map_unsafe =
+    absl::flat_hash_map<std::string, com::centreon::engine::tag*>;
 
 CCE_BEGIN()
 
 /**
- *  @class severity severity.hh "com/centreon/engine/severity.hh
- *  @brief Object representing a severity
+ *  @class tag tag.hh "com/centreon/engine/tag.hh
+ *  @brief Object representing a tag
  *
  */
-class severity {
+class tag {
+ public:
+  enum tagtype {
+    hostcategory = 1,
+    servicecategory = 2,
+    hostgroup = 3,
+    servicegroup = 4,
+  };
+
+ private:
   uint64_t _id;
-  uint32_t _level;
-  uint64_t _icon_id;
+  tagtype _type;
   std::string _name;
 
  public:
-  static severity_map severities;
+  static tag_map tags;
 
-  severity(uint64_t id,
-           uint32_t level,
-           uint64_t icon_id,
-           const std::string& name);
-  ~severity() noexcept = default;
-  severity(const severity&) = delete;
-  severity& operator=(const severity&) = delete;
-  bool operator==(const severity&) = delete;
-  bool operator!=(const severity&) = delete;
+  tag(uint64_t id, tagtype typ, const std::string& name);
+  ~tag() noexcept = default;
+  tag(const tag&) = delete;
+  tag& operator=(const tag&) = delete;
+  bool operator==(const tag&) = delete;
+  bool operator!=(const tag&) = delete;
 
   uint64_t id() const;
   const std::string& name() const;
   void set_name(const std::string& name);
-  uint32_t level() const;
-  uint64_t icon_id() const;
-  void set_level(uint32_t level);
+  tagtype type() const;
+  void set_type(const tagtype typ);
   void set_icon_id(uint64_t icon_id);
 };
 
 CCE_END()
 
 std::ostream& operator<<(std::ostream& os,
-                         com::centreon::engine::severity const& obj);
-std::ostream& operator<<(std::ostream& os, severity_map_unsafe const& obj);
+                         com::centreon::engine::tag const& obj);
+std::ostream& operator<<(std::ostream& os, tag_map_unsafe const& obj);
 
-#endif  // !CCE_SEVERITY_HH
+#endif  // !CCE_TAG_HH
