@@ -102,7 +102,7 @@ class EngineInstance:
                 "log_legacy_enabled=1\n"
                 "log_v2_logger=file\n"
                 "log_level_functions=info\n"
-                "log_level_config=info\n"
+                "log_level_config=debug\n"
                 "log_level_events=info\n"
                 "log_level_checks=info\n"
                 "log_level_notifications=info\n"
@@ -286,7 +286,7 @@ define command {
         return retval
 
     @staticmethod
-    def create_severities(nb:int):
+    def create_severities(nb:int, offset: int):
         config_file = "{}/config0/severities.cfg".format(CONF_DIR)
         ff = open(config_file, "w+")
         content = ""
@@ -294,11 +294,11 @@ define command {
             level = i % 5 + 1
             content += """define severity {{
     id                     {0}
-    name                   severity{0}
+    name                   severity{3}
     level                  {1}
     icon_id                {2}
 }}
-""".format(i + 1, level, 6 - level)
+""".format(i + 1, level, 6 - level, i + offset)
         ff.write(content)
         ff.close()
 
@@ -496,8 +496,8 @@ def schedule_service_downtime(hst: str, svc: str, duration: int):
     f.write(cmd)
     f.close()
 
-def create_severities_file(nb:int):
-    engine.create_severities(nb)
+def create_severities_file(nb:int, offset:int = 1):
+    engine.create_severities(nb, offset)
 
 def config_engine_add_cfg_file(cfg:str):
     ff = open("{}/config0/centengine.cfg".format(CONF_DIR), "r")

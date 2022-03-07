@@ -111,7 +111,7 @@ class parser {
   std::unordered_map<object*, file_info> _objects_info;
   unsigned int _read_options;
   static store _store[];
-  std::array<map_object, 16> _templates;
+  std::array<map_object, 18> _templates;
 };
 }  // namespace configuration
 

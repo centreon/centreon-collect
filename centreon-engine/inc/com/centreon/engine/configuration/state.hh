@@ -338,6 +338,7 @@ class state {
   set_service::const_iterator services_find(
       std::string const& host_name,
       std::string const& service_desc) const;
+  set_severity::iterator severities_find(severity::key_type const& k);
   unsigned int service_check_timeout() const noexcept;
   void service_check_timeout(unsigned int value);
   unsigned int service_freshness_check_interval() const noexcept;

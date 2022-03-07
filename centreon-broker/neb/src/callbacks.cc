@@ -2118,12 +2118,15 @@ int32_t neb::callback_severity(int callback_type __attribute__((unused)),
   Severity& sv = s.get()->mut_obj();
   switch (ds->type) {
     case NEBTYPE_SEVERITY_ADD:
+      log_v2::neb()->info("callbacks: new severity");
       sv.set_action(Severity_Action_ADD);
       break;
     case NEBTYPE_SEVERITY_DELETE:
+      log_v2::neb()->info("callbacks: removed severity");
       sv.set_action(Severity_Action_DELETE);
       break;
     case NEBTYPE_SEVERITY_UPDATE:
+      log_v2::neb()->info("callbacks: modified severity");
       sv.set_action(Severity_Action_MODIFY);
       break;
     default:

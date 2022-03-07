@@ -1072,8 +1072,8 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
 
     // Prepare queries.
     if (!_host_status_update.prepared()) {
-      query_preparator::event_unique unique;
-      unique.insert("host_id");
+      query_preparator::event_pb_unique unique;
+      unique.insert(1);
       query_preparator qp(neb::pb_host::static_type(), unique);
 
       _host_status_update = qp.prepare_update_table(
@@ -1721,9 +1721,9 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
 
     // Prepare queries.
     if (!_service_status_update.prepared()) {
-      query_preparator::event_unique unique;
-      unique.insert("host_id");
-      unique.insert("service_id");
+      query_preparator::event_pb_unique unique;
+      unique.insert(1);
+      unique.insert(2);
       query_preparator qp(neb::pb_service::static_type(), unique);
 
       _service_status_update = qp.prepare_update_table(
@@ -1805,8 +1805,8 @@ void stream::_process_severity(const std::shared_ptr<io::data>& d) {
 
   // Prepare queries.
   if (!_severity_update.prepared()) {
-    query_preparator::event_unique unique;
-    unique.insert("id");
+    query_preparator::event_pb_unique unique;
+    unique.insert(1);
     query_preparator qp(neb::pb_severity::static_type(), unique);
 
     _severity_update = qp.prepare_update_table(
@@ -1846,6 +1846,7 @@ void stream::_process_severity(const std::shared_ptr<io::data>& d) {
       log_v2::sql()->error("Bad action in severity object");
       break;
   }
+  *st << *s;
   int32_t conn = special_conn::severity % _mysql.connections_count();
   _mysql.run_statement(*st, database::mysql_error::store_severity, false, conn);
   _add_action(conn, actions::severities);

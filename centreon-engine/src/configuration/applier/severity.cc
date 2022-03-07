@@ -76,7 +76,7 @@ void applier::severity::modify_object(const configuration::severity& obj) {
   log_v2::config()->debug("Modifying severity {}.", obj.key());
 
   // Find old configuration.
-  auto it_cfg = config->severities().find(obj.key());
+  auto it_cfg = config->severities_find(obj.key());
   if (it_cfg == config->severities().end())
     throw engine_error() << "Cannot modify non-existing severity " << obj.key();
 

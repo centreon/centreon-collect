@@ -1,5 +1,5 @@
 /*
-** Copyright 2018 Centreon
+** Copyright 2018-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -191,10 +191,10 @@ std::unique_ptr<database::mysql_bind> mysql_stmt::get_bind() {
 
 void mysql_stmt::operator<<(io::data const& d) {
   // Get event info.
-  io::event_info const* info(io::events::instance().get_event_info(d.type()));
+  const io::event_info* info = io::events::instance().get_event_info(d.type());
   if (info) {
     if (info->get_mapping()) {
-      for (mapping::entry const* current_entry(info->get_mapping());
+      for (const mapping::entry* current_entry(info->get_mapping());
            !current_entry->is_null(); ++current_entry) {
         char const* entry_name = current_entry->get_name_v2();
         if (entry_name && entry_name[0]) {

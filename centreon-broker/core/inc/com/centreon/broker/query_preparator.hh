@@ -70,6 +70,7 @@ class query_preparator {
   using excluded_fields = absl::btree_set<std::string>;
   using doubled_fields = absl::btree_set<std::string>;
   using event_unique = absl::btree_set<std::string>;
+  using event_pb_unique = absl::btree_set<int32_t>;
 
   struct pb_entry {
     int32_t number;
@@ -82,11 +83,13 @@ class query_preparator {
   uint32_t _event_id;
   excluded_fields _excluded;
   event_unique _unique;
+  event_pb_unique _pb_unique;
 
  public:
   query_preparator(uint32_t event_id,
                    event_unique const& unique = event_unique(),
                    excluded_fields const& excluded = excluded_fields());
+  query_preparator(uint32_t event_id, const event_pb_unique& pb_unique);
   ~query_preparator() noexcept = default;
   query_preparator(query_preparator const&) = delete;
   query_preparator& operator=(query_preparator const&) = delete;

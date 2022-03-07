@@ -3168,6 +3168,24 @@ set_anomalydetection::iterator state::anomalydetections_find(
   return _anomalydetections.end();
 }
 /**
+ *  Get severity by its key.
+ *
+ *  @param[in] k Severity name.
+ *
+ *  @return Iterator to the element if found, severities().end()
+ *          otherwise.
+ */
+set_severity::iterator state::severities_find(severity::key_type const& k) {
+  configuration::severity below_searched(k);
+  auto it{_severities.upper_bound(below_searched)};
+  if (it != _severities.end() && it->key() == k)
+    return it;
+  else if (it != _severities.begin() && (--it)->key() == k)
+    return it;
+  return _severities.end();
+}
+
+/**
  *  Get service by its key.
  *
  *  @param[in] k Service name.

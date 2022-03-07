@@ -28,8 +28,11 @@ CCE_BEGIN()
 
 namespace configuration {
 class severity : public object {
-  typedef bool (*setter_func)(severity&, const char*);
+ public:
   using key_type = uint64_t;
+
+ private:
+  typedef bool (*setter_func)(severity&, const char*);
   key_type _id;
   uint32_t _level;
   uint64_t _icon_id;

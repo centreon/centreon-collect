@@ -1,5 +1,5 @@
 /*
-** Copyright 2015, 2020-2021 Centreon
+** Copyright 2015, 2020-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -32,7 +32,7 @@ using namespace com::centreon::broker::database;
  *  Constructor.
  *
  *  @param[in] event_id  Event ID.
- *  @param[in] unique    Event UNIQUE.
+ *  @param[in] unique    Event UNIQUE (for legacy events).
  *  @param[in] excluded  Fields excluded from the query.
  */
 query_preparator::query_preparator(
@@ -40,6 +40,17 @@ query_preparator::query_preparator(
     query_preparator::event_unique const& unique,
     query_preparator::excluded_fields const& excluded)
     : _event_id(event_id), _excluded(excluded), _unique(unique) {}
+
+/**
+ *  Constructor.
+ *
+ *  @param[in] event_id  Event ID.
+ *  @param[in] pb_unique    Event UNIQUE (for protobuf events).
+ */
+query_preparator::query_preparator(
+    uint32_t event_id,
+    const query_preparator::event_pb_unique& pb_unique)
+    : _event_id(event_id), _pb_unique(pb_unique) {}
 
 /**
  * @brief Prepare an INSERT query. The function waits for the table to insert
@@ -58,6 +69,7 @@ mysql_stmt query_preparator::prepare_insert_into(
     const std::string& table,
     const std::vector<query_preparator::pb_entry>& mapping,
     bool ignore) {
+  assert(_unique.empty());
   absl::flat_hash_map<std::string, int> bind_mapping;
   // Find event info.
   io::event_info const* info(io::events::instance().get_event_info(_event_id));
@@ -299,6 +311,7 @@ mysql_stmt query_preparator::prepare_insert_or_update_table(
     mysql& ms,
     const std::string& table,
     const std::vector<query_preparator::pb_entry>& mapping) {
+  assert(_unique.empty());
   absl::flat_hash_map<std::string, int> insert_bind_mapping;
   absl::flat_hash_map<std::string, int> update_bind_mapping;
   // Find event info.
@@ -358,7 +371,7 @@ mysql_stmt query_preparator::prepare_insert_or_update_table(
       if (entry_name.empty() || _excluded.find(entry_name) != _excluded.end())
         continue;
       key = fmt::format(":{}", entry_name);
-      if (_unique.find(entry_name) == _unique.end()) {
+      if (_pb_unique.find(e.number) == _pb_unique.end()) {
         insert.append("?,");
         update.append(fmt::format("{}=?,", entry_name));
         key.append("1");
@@ -478,6 +491,7 @@ mysql_stmt query_preparator::prepare_update_table(
     mysql& ms,
     const std::string& table,
     const std::vector<pb_entry>& mapping) {
+  assert(_unique.empty());
   absl::flat_hash_map<std::string, int> query_bind_mapping;
   absl::flat_hash_map<std::string, int> where_bind_mapping;
   // Find event info.
@@ -516,7 +530,7 @@ mysql_stmt query_preparator::prepare_update_table(
           std::make_tuple(e.name, e.max_length, e.attribute);
       const char* entry_name = e.name;
       // Standard field.
-      if (_unique.find(entry_name) == _unique.end()) {
+      if (_pb_unique.find(e.number) == _pb_unique.end()) {
         query.append(entry_name);
         key = fmt::format(":{}", entry_name);
         query.append("=?,");
@@ -603,45 +617,60 @@ mysql_stmt query_preparator::prepare_delete(mysql& ms) {
   return retval;
 }
 
-/**
- *  Prepare deletion query for specified event.
- *
- *  @param[out] q  Database query, prepared and ready to run.
- */
 mysql_stmt query_preparator::prepare_delete_table(mysql& ms,
                                                   const std::string& table) {
-  absl::flat_hash_map<std::string, int32_t> bind_mapping;
+  assert(_unique.empty());
+  absl::flat_hash_map<std::string, int> bind_mapping;
   // Find event info.
-  const io::event_info* info(io::events::instance().get_event_info(_event_id));
+  io::event_info const* info(io::events::instance().get_event_info(_event_id));
   if (!info)
     throw msg_fmt(
-        "could not prepare deletion query for event of type {}: event is not "
+        "could not prepare delete query for event of type {}: event is not "
         "registered",
         _event_id);
 
-  // Prepare query.
-  std::string query(fmt::format("DELETE FROM {} WHERE ", table));
-  int size = 0;
-  for (event_unique::const_iterator it = _unique.begin(), end = _unique.end();
-       it != end; ++it) {
-    query.append("(");
-    query.append(*it);
-    query.append("=?");
-    std::string key(fmt::format(":{}", *it));
-    bind_mapping.insert(std::make_pair(key, size++));
+  // Build query string.
+  std::string query{fmt::format("DELETE FROM {} WHERE ", table)};
 
-    query.append(") AND ");
+  const mapping::entry* entries = info->get_mapping();
+  if (entries)
+    throw msg_fmt(
+        "prepare_delete_table only works with BBDO with embedded protobuf "
+        "message");
+
+  /* Here is the protobuf case : no mapping */
+  const google::protobuf::Descriptor* desc =
+      google::protobuf::DescriptorPool::generated_pool()->FindMessageTypeByName(
+          fmt::format("com.centreon.broker.{}", info->get_name()));
+
+  std::vector<std::tuple<const char*, uint32_t, uint16_t>> pb_mapping;
+
+  int size = 0;
+  for (int nb : _pb_unique) {
+    const google::protobuf::FieldDescriptor* f = desc->FindFieldByNumber(nb);
+    if (f) {
+      if (static_cast<uint32_t>(f->index()) >= pb_mapping.size())
+        pb_mapping.resize(f->index() + 1);
+      pb_mapping[f->index()] = std::make_tuple(f->name().c_str(), 0, 0);
+      const std::string& entry_name = f->name();
+      query.append(fmt::format("{}=? AND ", entry_name));
+      bind_mapping.emplace(fmt::format(":{}", entry_name), size++);
+    } else
+      throw msg_fmt(
+          "Protobuf field at number {} does not exist in message '{}'", nb,
+          info->get_name());
   }
   query.resize(query.size() - 5);
 
+  log_v2::sql()->debug("mysql: query_preparator: {}", query);
   // Prepare statement.
   mysql_stmt retval;
   try {
     retval = ms.prepare_query(query, bind_mapping);
+    retval.set_pb_mapping(std::move(pb_mapping));
   } catch (std::exception const& e) {
-    // FIXME DBR
     throw msg_fmt(
-        "could not prepare deletion query for event '{}' on table '{}': {}",
+        "could not prepare delete query for event '{}' in table '{}': {}",
         info->get_name(), table, e.what());
   }
   return retval;
