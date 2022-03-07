@@ -38,17 +38,6 @@ foreach(name IN LISTS protobuf_files)
     add_custom_target("target_${name}" DEPENDS "${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.cc" "${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.h")
 endforeach()
 
-#add_custom_command(OUTPUT "${CMAKE_SOURCE_DIR}/bbdo/service.pb.cc" "${CMAKE_SOURCE_DIR}/bbdo/service.pb.h"
-#        DEPENDS ${CMAKE_SOURCE_DIR}/bbdo/service.proto
-#        COMMENT "Generating interface files of the bbdo file service.proto"
-#        COMMAND ${Protobuf_PROTOC_EXECUTABLE}
-#        ARGS --cpp_out=${CMAKE_SOURCE_DIR}/bbdo --proto_path=${CMAKE_SOURCE_DIR}/bbdo service.proto
-#        VERBATIM
-#        )
-#add_custom_target(target_service DEPENDS "${CMAKE_SOURCE_DIR}/bbdo/service.pb.cc" "${CMAKE_SOURCE_DIR}/bbdo/service.pb.h")
-
-#set_source_files_properties("${CMAKE_SOURCE_DIR}/bbdo/service.pb.cc" PROPERTIES GENERATED TRUE)
-#set_source_files_properties("${CMAKE_SOURCE_DIR}/bbdo/service.pb.h" PROPERTIES GENERATED TRUE)
 add_library(
     pb_service_lib STATIC
       service.pb.cc
@@ -56,15 +45,6 @@ add_library(
     )
 add_dependencies(pb_service_lib target_service)
 set_target_properties(pb_service_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
-
-#add_custom_command(OUTPUT "${CMAKE_SOURCE_DIR}/bbdo/host.pb.cc" "${CMAKE_SOURCE_DIR}/bbdo/host.pb.h"
-#        DEPENDS ${CMAKE_SOURCE_DIR}/bbdo/host.proto
-#        COMMENT "Generating interface files of the bbdo file host.proto"
-#        COMMAND ${Protobuf_PROTOC_EXECUTABLE}
-#        ARGS --cpp_out=${CMAKE_SOURCE_DIR}/bbdo --proto_path=${CMAKE_SOURCE_DIR}/bbdo host.proto
-#        VERBATIM
-#        )
-#add_custom_target(target_host DEPENDS "${CMAKE_SOURCE_DIR}/bbdo/host.pb.cc" "${CMAKE_SOURCE_DIR}/bbdo/host.pb.h")
 
 add_library(
     pb_host_lib STATIC
