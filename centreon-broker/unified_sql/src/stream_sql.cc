@@ -42,7 +42,11 @@ using namespace com::centreon::broker::unified_sql;
 void stream::_clean_tables(uint32_t instance_id) {
   /* Database version. */
 
-  int32_t conn = _mysql.choose_connection_by_instance(instance_id);
+  int32_t conn = special_conn::severity % _mysql.connections_count();
+  _mysql.run_query("DELETE FROM severities",
+                   database::mysql_error::clean_severities, false, conn);
+
+  conn = _mysql.choose_connection_by_instance(instance_id);
   log_v2::sql()->debug(
       "unified sql: disable hosts and services (instance_id: {})", instance_id);
   /* Disable hosts and services. */
@@ -1801,6 +1805,7 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
 }
 
 void stream::_process_severity(const std::shared_ptr<io::data>& d) {
+  log_v2::sql()->debug("SQL: process severity");
   _finish_action(-1, actions::severities);
 
   // Prepare queries.
@@ -1834,12 +1839,15 @@ void stream::_process_severity(const std::shared_ptr<io::data>& d) {
   mysql_stmt* st;
   switch (sv.action()) {
     case Severity_Action_ADD:
+      log_v2::sql()->trace("SQL: new severity {}", sv.id());
       st = &_severity_insupdate;
       break;
     case Severity_Action_MODIFY:
+      log_v2::sql()->trace("SQL: modified severity {}", sv.id());
       st = &_severity_update;
       break;
     case Severity_Action_DELETE:
+      log_v2::sql()->trace("SQL: removed severity {}", sv.id());
       st = &_severity_delete;
       break;
     default:
