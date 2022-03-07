@@ -1,5 +1,5 @@
 /*
-** Copyright 2009-2019 Centreon
+** Copyright 2009-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -250,10 +250,10 @@ static void send_severity_list() {
   /* Start log message. */
   log_v2::neb()->info("init: beginning severity dump");
 
+  timeval timestamp = get_broker_timestamp(nullptr);
   for (auto it = com::centreon::engine::severity::severities.begin(),
             end = com::centreon::engine::severity::severities.end();
        it != end; ++it) {
-    timeval timestamp = get_broker_timestamp(nullptr);
     broker_adaptive_severity_data(NEBTYPE_SEVERITY_ADD, NEBFLAG_NONE,
                                   NEBATTR_NONE, it->second.get(), &timestamp);
   }
