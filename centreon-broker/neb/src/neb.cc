@@ -20,15 +20,11 @@
 #include <csignal>
 #include <cstring>
 #include "com/centreon/broker/config/applier/init.hh"
-#include "com/centreon/broker/config/applier/modules.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/config/parser.hh"
-#include "com/centreon/broker/config/state.hh"
 #include "com/centreon/broker/log_v2.hh"
-#include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/callbacks.hh"
 #include "com/centreon/broker/neb/instance_configuration.hh"
-#include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/engine/nebcallbacks.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 

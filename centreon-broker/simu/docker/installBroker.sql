@@ -713,3 +713,12 @@ CREATE TABLE `severities` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
+--
+-- Table structure for table `tags`
+--
+CREATE TABLE `tags` (
+  `id` bigint unsigned NOT NULL,
+  `name` varchar(255) DEFAULT NULL,
+  `type` int(11) unsigned NOT NULL,
+  PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;

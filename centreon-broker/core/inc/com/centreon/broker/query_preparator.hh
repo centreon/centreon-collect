@@ -70,7 +70,6 @@ class query_preparator {
   using excluded_fields = absl::btree_set<std::string>;
   using doubled_fields = absl::btree_set<std::string>;
   using event_unique = absl::btree_set<std::string>;
-  using event_pb_unique = absl::btree_set<int32_t>;
 
   struct pb_entry {
     int32_t number;
@@ -78,6 +77,8 @@ class query_preparator {
     uint16_t attribute;
     uint32_t max_length;
   };
+
+  using event_pb_unique = std::vector<pb_entry>;
 
  private:
   uint32_t _event_id;

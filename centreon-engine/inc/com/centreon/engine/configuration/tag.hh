@@ -16,8 +16,8 @@
 ** For more information : contact@centreon.com
 */
 
-#ifndef CCE_CONFIGURATION_SEVERITY_HH
-#define CCE_CONFIGURATION_SEVERITY_HH
+#ifndef CCE_CONFIGURATION_TAG_HH
+#define CCE_CONFIGURATION_TAG_HH
 
 #include <absl/container/flat_hash_map.h>
 #include <string>
@@ -27,45 +27,50 @@
 CCE_BEGIN()
 
 namespace configuration {
-class severity : public object {
+class tag : public object {
  public:
   using key_type = uint64_t;
 
+  enum tagtype {
+    none = 0,
+    hostcategory = 1,
+    servicecategory = 2,
+    hostgroup = 3,
+    servicegroup = 4,
+  };
+
  private:
-  typedef bool (*setter_func)(severity&, const char*);
+  typedef bool (*setter_func)(tag&, const char*);
   key_type _id;
-  uint32_t _level;
-  uint64_t _icon_id;
+  tagtype _type;
   std::string _name;
 
   bool _set_id(uint64_t id);
-  bool _set_level(uint32_t level);
-  bool _set_icon_id(uint64_t icon_id);
+  bool _set_type(const std::string& type);
   bool _set_name(const std::string& name);
 
  public:
-  severity(const key_type& id = 0);
-  severity(const severity& other);
-  ~severity() noexcept override = default;
-  severity& operator=(const severity& other);
-  bool operator==(const severity& other) const noexcept;
-  bool operator!=(const severity& other) const noexcept;
-  bool operator<(const severity& other) const noexcept;
+  tag(const key_type& id = 0);
+  tag(const tag& other);
+  ~tag() noexcept override = default;
+  tag& operator=(const tag& other);
+  bool operator==(const tag& other) const noexcept;
+  bool operator!=(const tag& other) const noexcept;
+  bool operator<(const tag& other) const noexcept;
   void check_validity() const override;
   const key_type& key() const noexcept;
   void merge(const object& obj) override;
   bool parse(const char* key, const char* value) override;
 
-  uint32_t level() const noexcept;
-  uint64_t icon_id() const noexcept;
+  uint32_t type() const noexcept;
   const std::string& name() const noexcept;
 
   static const absl::flat_hash_map<std::string, setter_func> _setters;
 };
 
-typedef std::set<severity> set_severity;
+typedef std::set<tag> set_tag;
 }  // namespace configuration
 
 CCE_END()
 
-#endif  // !CCE_CONFIGURATION_SEVERITY_HH
+#endif  // !CCE_CONFIGURATION_TAG_HH

@@ -87,7 +87,7 @@ pool::pool(size_t size)
     for (uint32_t i = 0; i < _pool_size; ++i) {
       _pool.emplace_back([this] { _io_context.run(); });
       char str[16];
-      sprintf(str, "pool_thread%d", i);
+      sprintf(str, "pool_thread%u", i);
       pthread_setname_np(_pool[i].native_handle(), str);
     }
     _closed = false;

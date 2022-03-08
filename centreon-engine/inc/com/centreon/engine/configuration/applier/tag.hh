@@ -17,32 +17,32 @@
  *
  */
 
-#ifndef CCE_CONFIGURATION_APPLIER_SEVERITY_HH
-#define CCE_CONFIGURATION_APPLIER_SEVERITY_HH
+#ifndef CCE_CONFIGURATION_APPLIER_TAG_HH
+#define CCE_CONFIGURATION_APPLIER_TAG_HH
 
 #include "com/centreon/engine/namespace.hh"
 
 CCE_BEGIN()
 
 namespace configuration {
-class severity;
+class tag;
 class state;
 
 namespace applier {
-class severity {
+class tag {
  public:
-  severity() = default;
-  ~severity() noexcept = default;
-  severity& operator=(const severity& other) = delete;
-  void add_object(const configuration::severity& obj);
+  tag() = default;
+  ~tag() noexcept = default;
+  tag& operator=(const tag& other) = delete;
+  void add_object(const configuration::tag& obj);
   void expand_objects(configuration::state& s);
-  void modify_object(const configuration::severity& obj);
-  void remove_object(const configuration::severity& obj);
-  void resolve_object(const configuration::severity& obj);
+  void modify_object(const configuration::tag& obj);
+  void remove_object(const configuration::tag& obj);
+  void resolve_object(const configuration::tag& obj);
 };
 }  // namespace applier
 }  // namespace configuration
 
 CCE_END()
 
-#endif  // !CCE_CONFIGURATION_APPLIER_SEVERITY_HH
+#endif  // !CCE_CONFIGURATION_APPLIER_TAG_HH

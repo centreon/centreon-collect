@@ -2291,6 +2291,18 @@ CREATE TABLE severities (
 
 
 --
+-- Table structure for table `tags`
+--
+CREATE TABLE tags (
+  `id` bigint unsigned NOT NULL,
+  `name` varchar(255) DEFAULT NULL,
+  `type` int(11) unsigned NOT NULL,
+  PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
+
+--
 -- BA / Group relations.
 --
 CREATE TABLE mod_bam_bagroup_ba_relation (

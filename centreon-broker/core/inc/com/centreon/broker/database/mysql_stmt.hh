@@ -45,7 +45,7 @@ class mysql_stmt {
    * a string or 0), its attributes (always_valid, invalid_on_zero,
    * invalid_on_minus_one)
    */
-  std::vector<std::tuple<const char*, uint32_t, uint16_t>> _pb_mapping;
+  std::vector<std::tuple<std::string, uint32_t, uint16_t>> _pb_mapping;
 
  public:
   mysql_stmt();
@@ -92,7 +92,7 @@ class mysql_stmt {
   std::string const& get_query() const;
   int get_param_count() const;
   void set_pb_mapping(
-      std::vector<std::tuple<const char*, uint32_t, uint16_t>>&& mapping);
+      std::vector<std::tuple<std::string, uint32_t, uint16_t>>&& mapping);
 };
 }  // namespace database
 

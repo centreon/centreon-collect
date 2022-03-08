@@ -37,6 +37,7 @@
 #include "com/centreon/engine/nebstructs.hh"
 #include "com/centreon/engine/objects.hh"
 #include "com/centreon/engine/severity.hh"
+#include "com/centreon/engine/tag.hh"
 
 // Internal Nagios host list.
 
@@ -246,6 +247,9 @@ static void send_host_group_list() {
   log_v2::neb()->info("init: end of host group dump");
 }
 
+/**
+ * @brief When centengine is started, send severities in bulk.
+ */
 static void send_severity_list() {
   /* Start log message. */
   log_v2::neb()->info("init: beginning severity dump");
@@ -256,6 +260,22 @@ static void send_severity_list() {
        it != end; ++it) {
     broker_adaptive_severity_data(NEBTYPE_SEVERITY_ADD, NEBFLAG_NONE,
                                   NEBATTR_NONE, it->second.get(), &timestamp);
+  }
+}
+
+/**
+ * @brief When centengine is started, send tags in bulk.
+ */
+static void send_tag_list() {
+  /* Start log message. */
+  log_v2::neb()->info("init: beginning tag dump");
+
+  timeval timestamp = get_broker_timestamp(nullptr);
+  for (auto it = com::centreon::engine::tag::tags.begin(),
+            end = com::centreon::engine::tag::tags.end();
+       it != end; ++it) {
+    broker_adaptive_tag_data(NEBTYPE_TAG_ADD, NEBFLAG_NONE, NEBATTR_NONE,
+                             it->second.get(), &timestamp);
   }
 }
 
@@ -489,6 +509,7 @@ static void send_instance_configuration() {
  */
 void neb::send_initial_configuration() {
   send_severity_list();
+  send_tag_list();
   send_host_list();
   send_service_list();
   send_custom_variables_list();
