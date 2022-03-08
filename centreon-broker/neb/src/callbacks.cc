@@ -2121,7 +2121,7 @@ int neb::callback_pb_service(int callback_type, void* data) {
   if (!es->get_display_name().empty())
     *srv.mutable_display_name() =
         misc::string::check_string_utf8(es->get_display_name());
-  srv.set_enabled(static_cast<nebstruct_service_status_data*>(data)->type !=
+  srv.set_enabled(static_cast<nebstruct_adaptive_service_data*>(data)->type !=
                   NEBTYPE_SERVICE_DELETE);
   if (!es->get_event_handler().empty())
     *srv.mutable_event_handler() =

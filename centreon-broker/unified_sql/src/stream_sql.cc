@@ -1643,6 +1643,7 @@ void stream::_process_service(const std::shared_ptr<io::data>& d) {
  * @return The number of events that can be acknowledged.
  */
 void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
+  log_v2::sql()->debug("SQL: process pb service");
   _finish_action(-1, actions::host_parents | actions::comments |
                          actions::downtimes | actions::host_dependencies |
                          actions::service_dependencies);
@@ -1650,7 +1651,7 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
   auto s{static_cast<neb::pb_service const*>(d.get())};
   auto& ss = s->obj();
 
-  log_v2::sql()->error("SQL: pb service output: <<{}>>", ss.output());
+  log_v2::sql()->trace("SQL: pb service output: <<{}>>", ss.output());
   // Processed object.
   // const neb::service& s(*static_cast<neb::service const*>(d.get()));
   if (_cache_host_instance[ss.host_id()]) {
@@ -1658,7 +1659,7 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
         _cache_host_instance[ss.host_id()]);
 
     // Log message.
-    log_v2::sql()->error(
+    log_v2::sql()->trace(
         "SQL: processing service event (host: {}, service: {}, "
         "description: {})",
         ss.host_id(), ss.service_id(), ss.service_description());
@@ -1666,9 +1667,10 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
     if (ss.host_id() && ss.service_id()) {
       // Prepare queriess.
       if (!_service_insupdate.prepared()) {
-        query_preparator::event_unique unique;
-        unique.insert("host_id");
-        unique.insert("service_id");
+        query_preparator::event_pb_unique unique{
+            {1, "host_id", io::protobuf_base::invalid_on_zero, 0},
+            {2, "service_id", io::protobuf_base::invalid_on_zero, 0},
+        };
         query_preparator qp(neb::pb_service::static_type(), unique);
 
         _service_insupdate = qp.prepare_insert_or_update_table(
@@ -1727,9 +1729,51 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
                 {41, "perfdata", 0, get_services_col_size(services_perfdata)},
                 {42, "retry_interval", 0, 0},
 
+                {44, "description", 0,
+                 get_services_col_size(services_description)},
                 {45, "should_be_scheduled", 0, 0},
                 {46, "obsess_over_service", 0, 0},
                 {47, "state_type", 0, 0},
+                {48, "action_url", 0,
+                 get_services_col_size(services_action_url)},
+                {49, "check_freshness", 0, 0},
+                {50, "default_active_checks", 0, 0},
+                {51, "default_event_handler_enabled", 0, 0},
+                {52, "default_flap_detection", 0, 0},
+                {53, "default_notify", 0, 0},
+                {54, "default_passive_checks", 0, 0},
+                {55, "display_name", 0,
+                 get_services_col_size(services_display_name)},
+                {56, "first_notification_delay", 0, 0},
+                {57, "flap_detection_on_critical", 0, 0},
+                {58, "flap_detection_on_ok", 0, 0},
+                {59, "flap_detection_on_unknown", 0, 0},
+                {60, "flap_detection_on_warning", 0, 0},
+                {61, "freshness_threshold", 0, 0},
+                {62, "high_flap_threshold", 0, 0},
+                {63, "icon_image", 0,
+                 get_services_col_size(services_icon_image)},
+                {64, "icon_image_alt", 0,
+                 get_services_col_size(services_icon_image_alt)},
+                {65, "volatile", 0, 0},
+                {66, "low_flap_threshold", 0, 0},
+                {67, "notes", 0, get_services_col_size(services_notes)},
+                {68, "notes_url", 0, get_services_col_size(services_notes_url)},
+                {69, "notification_interval", 0, 0},
+                {70, "notification_period", 0,
+                 get_services_col_size(services_notification_period)},
+                {71, "notify_on_critical", 0, 0},
+                {72, "notify_on_downtime", 0, 0},
+                {73, "notify_on_flapping", 0, 0},
+                {74, "notify_on_recovery", 0, 0},
+                {75, "notify_on_unknown", 0, 0},
+                {76, "notify_on_warning", 0, 0},
+                {77, "stalk_on_critical", 0, 0},
+                {78, "stalk_on_ok", 0, 0},
+                {79, "stalk_on_unknown", 0, 0},
+                {80, "stalk_on_warning", 0, 0},
+                {81, "retain_nonstatus_information", 0, 0},
+                {82, "retain_status_information", 0, 0},
             });
       }
 
