@@ -1648,7 +1648,7 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
                          actions::service_dependencies);
   // Processed object.
   auto s{static_cast<neb::pb_service const*>(d.get())};
-  auto ss = s->obj();
+  auto& ss = s->obj();
 
   log_v2::sql()->error("SQL: pb service output: <<{}>>", ss.output());
   // Processed object.
