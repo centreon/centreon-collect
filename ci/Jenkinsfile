@@ -38,17 +38,17 @@ stage('Dependencies containers creation') {
         }
       }
     }
-  }/*,
+  },
   'centos8 dependencies': {
     node {
-      dir('centreon-collect-centos8') {
+      dir('centreon-collect-alma8') {
         checkout scm
         dir ('ci/docker') {
           sh 'cp ../../conanfile.txt .'
-          sh 'docker build --no-cache . -f Dockerfile.collect-centos8-dependencies -t registry.centreon.com/centreon-collect-centos8-dependencies:22.04-1'
-          sh 'docker push registry.centreon.com/centreon-collect-centos8-dependencies:22.04-1'
+          sh 'docker build --no-cache . -f Dockerfile.collect-alma8-dependencies -t registry.centreon.com/centreon-collect-alma8-dependencies:22.04-testdocker'
+          sh 'docker push registry.centreon.com/centreon-collect-alma8-dependencies:22.04-testdocker'
         }
       }
     }
-  }*/
+  }
 }
