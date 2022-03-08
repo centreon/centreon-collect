@@ -302,7 +302,7 @@ void mysql_stmt::operator<<(io::data const& d) {
 
       for (uint32_t i = 0; i < _pb_mapping.size(); i++) {
         auto& pr = _pb_mapping[i];
-        if (std::get<0>(pr) == nullptr)
+        if (std::get<0>(pr).empty())
           continue;
         auto f = desc->field(i);
         std::string field{fmt::format(":{}", std::get<0>(pr))};
@@ -761,6 +761,6 @@ int mysql_stmt::get_param_count() const {
 }
 
 void mysql_stmt::set_pb_mapping(
-    std::vector<std::tuple<const char*, uint32_t, uint16_t>>&& mapping) {
+    std::vector<std::tuple<std::string, uint32_t, uint16_t>>&& mapping) {
   _pb_mapping = std::move(mapping);
 }

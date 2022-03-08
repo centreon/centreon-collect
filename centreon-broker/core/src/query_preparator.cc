@@ -97,7 +97,7 @@ mysql_stmt query_preparator::prepare_insert_into(
       google::protobuf::DescriptorPool::generated_pool()->FindMessageTypeByName(
           fmt::format("com.centreon.broker.{}", info->get_name()));
 
-  std::vector<std::tuple<const char*, uint32_t, uint16_t>> pb_mapping;
+  std::vector<std::tuple<std::string, uint32_t, uint16_t>> pb_mapping;
 
   int size = 0;
   for (auto& e : mapping) {
@@ -106,9 +106,9 @@ mysql_stmt query_preparator::prepare_insert_into(
     if (f) {
       if (static_cast<uint32_t>(f->index()) >= pb_mapping.size())
         pb_mapping.resize(f->index() + 1);
-      pb_mapping[f->index()] =
-          std::make_tuple(e.name, e.max_length, e.attribute);
       const std::string& entry_name = f->name();
+      pb_mapping[f->index()] =
+          std::make_tuple(entry_name, e.max_length, e.attribute);
       query.append(entry_name);
       query.append(",");
       bind_mapping.emplace(fmt::format(":{}", entry_name), size++);
@@ -336,7 +336,7 @@ mysql_stmt query_preparator::prepare_insert_or_update_table(
       google::protobuf::DescriptorPool::generated_pool()->FindMessageTypeByName(
           fmt::format("com.centreon.broker.{}", info->get_name()));
 
-  std::vector<std::tuple<const char*, uint32_t, uint16_t>> pb_mapping;
+  std::vector<std::tuple<std::string, uint32_t, uint16_t>> pb_mapping;
 
   int size = 0;
   std::string key;
@@ -346,9 +346,9 @@ mysql_stmt query_preparator::prepare_insert_or_update_table(
     if (f) {
       if (static_cast<uint32_t>(f->index()) >= pb_mapping.size())
         pb_mapping.resize(f->index() + 1);
-      pb_mapping[f->index()] =
-          std::make_tuple(e.name, e.max_length, e.attribute);
       const std::string& entry_name = f->name();
+      pb_mapping[f->index()] =
+          std::make_tuple(entry_name, e.max_length, e.attribute);
       if (entry_name.empty() || _excluded.find(entry_name) != _excluded.end())
         continue;
       insert.append(e.name);
@@ -371,7 +371,10 @@ mysql_stmt query_preparator::prepare_insert_or_update_table(
       if (entry_name.empty() || _excluded.find(entry_name) != _excluded.end())
         continue;
       key = fmt::format(":{}", entry_name);
-      if (_pb_unique.find(e.number) == _pb_unique.end()) {
+      if (std::find_if(_pb_unique.begin(), _pb_unique.end(),
+                       [nb = e.number](const query_preparator::pb_entry& p) {
+                         return p.number == nb;
+                       }) == _pb_unique.end()) {
         insert.append("?,");
         update.append(fmt::format("{}=?,", e.name));
         key.append("1");
@@ -519,26 +522,29 @@ mysql_stmt query_preparator::prepare_update_table(
       google::protobuf::DescriptorPool::generated_pool()->FindMessageTypeByName(
           fmt::format("com.centreon.broker.{}", info->get_name()));
 
-  std::vector<std::tuple<const char*, uint32_t, uint16_t>> pb_mapping;
+  std::vector<std::tuple<std::string, uint32_t, uint16_t>> pb_mapping;
   for (auto& e : mapping) {
     const google::protobuf::FieldDescriptor* f =
         desc->FindFieldByNumber(e.number);
     if (f) {
       if (static_cast<uint32_t>(f->index()) >= pb_mapping.size())
         pb_mapping.resize(f->index() + 1);
+      const std::string& entry_name = f->name();
       pb_mapping[f->index()] =
-          std::make_tuple(e.name, e.max_length, e.attribute);
-      const char* entry_name = e.name;
+          std::make_tuple(entry_name, e.max_length, e.attribute);
       // Standard field.
-      if (_pb_unique.find(e.number) == _pb_unique.end()) {
-        query.append(entry_name);
+      if (std::find_if(_pb_unique.begin(), _pb_unique.end(),
+                       [nb = e.number](const query_preparator::pb_entry& p) {
+                         return p.number == nb;
+                       }) == _pb_unique.end()) {
+        query.append(e.name);
         key = fmt::format(":{}", entry_name);
         query.append("=?,");
         query_bind_mapping.insert(std::make_pair(key, query_size++));
       }
       // Part of ID field.
       else {
-        where.append(entry_name);
+        where.append(e.name);
         where.append("=? AND ");
         key = fmt::format(":{}", entry_name);
         where_bind_mapping.insert(std::make_pair(key, where_size++));
@@ -643,22 +649,24 @@ mysql_stmt query_preparator::prepare_delete_table(mysql& ms,
       google::protobuf::DescriptorPool::generated_pool()->FindMessageTypeByName(
           fmt::format("com.centreon.broker.{}", info->get_name()));
 
-  std::vector<std::tuple<const char*, uint32_t, uint16_t>> pb_mapping;
+  std::vector<std::tuple<std::string, uint32_t, uint16_t>> pb_mapping;
 
   int size = 0;
-  for (int nb : _pb_unique) {
-    const google::protobuf::FieldDescriptor* f = desc->FindFieldByNumber(nb);
+  for (auto& u : _pb_unique) {
+    const google::protobuf::FieldDescriptor* f =
+        desc->FindFieldByNumber(u.number);
     if (f) {
       if (static_cast<uint32_t>(f->index()) >= pb_mapping.size())
         pb_mapping.resize(f->index() + 1);
-      pb_mapping[f->index()] = std::make_tuple(f->name().c_str(), 0, 0);
       const std::string& entry_name = f->name();
-      query.append(fmt::format("{}=? AND ", entry_name));
+      pb_mapping[f->index()] =
+          std::make_tuple(u.name, u.max_length, u.attribute);
+      query.append(fmt::format("{}=? AND ", u.name));
       bind_mapping.emplace(fmt::format(":{}", entry_name), size++);
     } else
       throw msg_fmt(
-          "Protobuf field at number {} does not exist in message '{}'", nb,
-          info->get_name());
+          "Protobuf field at number {} does not exist in message '{}'",
+          u.number, info->get_name());
   }
   query.resize(query.size() - 5);
 

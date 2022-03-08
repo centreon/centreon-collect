@@ -56,7 +56,7 @@ void conflict_manager::_clean_tables(uint32_t instance_id) {
   // conn = special_conn::tag % _mysql.connections_count();
   // log_v2::sql()->debug("Removing tags");
   //_mysql.run_query("DELETE FROM tags", database::mysql_error::clean_tags,
-  //false,
+  // false,
   //                 conn);
 
   int32_t conn = _mysql.choose_connection_by_instance(instance_id);
@@ -1704,8 +1704,9 @@ void conflict_manager::_process_severity(
 
   // Prepare queries.
   if (!_severity_update.prepared()) {
-    query_preparator::event_pb_unique unique;
-    unique.insert(1);
+    query_preparator::event_pb_unique unique{
+        {1, "id", io::protobuf_base::invalid_on_zero, 0}};
+
     query_preparator qp(neb::pb_severity::static_type(), unique);
 
     _severity_update = qp.prepare_update_table(
@@ -1767,8 +1768,8 @@ void conflict_manager::_process_tag(
 
   // Prepare queries.
   if (!_tag_update.prepared()) {
-    query_preparator::event_pb_unique unique;
-    unique.insert(1);
+    query_preparator::event_pb_unique unique{
+        {1, "id", io::protobuf_base::invalid_on_zero, 0}};
     query_preparator qp(neb::pb_tag::static_type(), unique);
 
     _tag_update = qp.prepare_update_table(

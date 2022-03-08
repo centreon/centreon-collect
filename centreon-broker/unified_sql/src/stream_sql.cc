@@ -1080,8 +1080,8 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
 
     // Prepare queries.
     if (!_host_status_update.prepared()) {
-      query_preparator::event_pb_unique unique;
-      unique.insert(1);
+      query_preparator::event_pb_unique unique{
+          {1, "host_id", io::protobuf_base::invalid_on_zero, 0}};
       query_preparator qp(neb::pb_host::static_type(), unique);
 
       _host_status_update = qp.prepare_update_table(
@@ -1729,9 +1729,10 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
 
     // Prepare queries.
     if (!_service_status_update.prepared()) {
-      query_preparator::event_pb_unique unique;
-      unique.insert(1);
-      unique.insert(2);
+      query_preparator::event_pb_unique unique{
+          {1, "host_id", io::protobuf_base::invalid_on_zero, 0},
+          {2, "service_id", io::protobuf_base::invalid_on_zero, 0},
+      };
       query_preparator qp(neb::pb_service::static_type(), unique);
 
       _service_status_update = qp.prepare_update_table(
@@ -1814,8 +1815,9 @@ void stream::_process_severity(const std::shared_ptr<io::data>& d) {
 
   // Prepare queries.
   if (!_severity_update.prepared()) {
-    query_preparator::event_pb_unique unique;
-    unique.insert(1);
+    query_preparator::event_pb_unique unique{
+        {1, "id", io::protobuf_base::invalid_on_zero, 0},
+    };
     query_preparator qp(neb::pb_severity::static_type(), unique);
 
     _severity_update = qp.prepare_update_table(
@@ -1874,8 +1876,9 @@ void stream::_process_tag(const std::shared_ptr<io::data>& d) {
 
   // Prepare queries.
   if (!_tag_update.prepared()) {
-    query_preparator::event_pb_unique unique;
-    unique.insert(1);
+    query_preparator::event_pb_unique unique{
+        {1, "id", io::protobuf_base::invalid_on_zero, 0},
+    };
     query_preparator qp(neb::pb_tag::static_type(), unique);
 
     _tag_update = qp.prepare_update_table(
