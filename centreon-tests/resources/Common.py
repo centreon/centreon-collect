@@ -287,6 +287,26 @@ def check_severity_with_timeout(name: str, level, icon_id, timeout: int):
         time.sleep(1)
     return False
 
+def check_tag_with_timeout(name: str, typ, timeout: int):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host='localhost',
+                                 user='centreon',
+                                 password='centreon',
+                                 database='centreon_storage',
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT type FROM tags WHERE name='{}'".format(name))
+                result = cursor.fetchall()
+                if len(result) > 0:
+                    if int(result[0]['type']) == int(typ):
+                        return True
+        time.sleep(1)
+    return False
+
 def check_severities_count(value: int, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
@@ -300,6 +320,26 @@ def check_severities_count(value: int, timeout: int):
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute("SELECT count(*) FROM severities")
+                result = cursor.fetchall()
+                if len(result) > 0:
+                    if int(result[0]['count(*)']) == int(value):
+                        return True
+        time.sleep(1)
+    return False
+
+def check_tags_count(value: int, timeout: int):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host='localhost',
+                                 user='centreon',
+                                 password='centreon',
+                                 database='centreon_storage',
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT count(*) FROM tags")
                 result = cursor.fetchall()
                 if len(result) > 0:
                     if int(result[0]['count(*)']) == int(value):

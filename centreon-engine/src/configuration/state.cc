@@ -1306,6 +1306,24 @@ set_severity& state::mut_severities() noexcept {
 }
 
 /**
+ *  Get all engine tags.
+ *
+ *  @return All engine tags.
+ */
+const set_tag& state::tags() const noexcept {
+  return _tags;
+}
+
+/**
+ *  Get all engine tags (mutable).
+ *
+ *  @return All engine tags.
+ */
+set_tag& state::mut_tags() noexcept {
+  return _tags;
+}
+
+/**
  *  Get all engine commands.
  *
  *  @return All engine commands.
@@ -3167,6 +3185,7 @@ set_anomalydetection::iterator state::anomalydetections_find(
     return it;
   return _anomalydetections.end();
 }
+
 /**
  *  Get severity by its key.
  *
@@ -3183,6 +3202,24 @@ set_severity::iterator state::severities_find(severity::key_type const& k) {
   else if (it != _severities.begin() && (--it)->key() == k)
     return it;
   return _severities.end();
+}
+
+/**
+ *  Get tag by its key.
+ *
+ *  @param[in] k Tag name.
+ *
+ *  @return Iterator to the element if found, tags().end()
+ *          otherwise.
+ */
+set_tag::iterator state::tags_find(tag::key_type const& k) {
+  configuration::tag below_searched(k);
+  auto it{_tags.upper_bound(below_searched)};
+  if (it != _tags.end() && it->key() == k)
+    return it;
+  else if (it != _tags.begin() && (--it)->key() == k)
+    return it;
+  return _tags.end();
 }
 
 /**

@@ -67,10 +67,8 @@ void command_manager::execute() {
   std::swap(queue, _queue);
   lock.unlock();
 
-  auto it = queue.begin(), end = queue.end();
-  while (it != end) {
-    (*it)();
-    ++it;
+  while (!queue.empty()) {
+    (queue.front())();
     queue.pop_front();
   }
 }

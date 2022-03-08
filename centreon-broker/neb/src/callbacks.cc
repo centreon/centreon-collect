@@ -48,6 +48,7 @@
 #include "com/centreon/engine/servicedependency.hh"
 #include "com/centreon/engine/servicegroup.hh"
 #include "com/centreon/engine/severity.hh"
+#include "com/centreon/engine/tag.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::broker;
@@ -93,7 +94,8 @@ static struct {
     {NEBCALLBACK_PROGRAM_STATUS_DATA, &neb::callback_program_status},
     {NEBCALLBACK_SERVICE_CHECK_DATA, &neb::callback_service_check},
     {NEBCALLBACK_SERVICE_STATUS_DATA, &neb::callback_service_status},
-    {NEBCALLBACK_ADAPTIVE_SEVERITY_DATA, &neb::callback_severity}};
+    {NEBCALLBACK_ADAPTIVE_SEVERITY_DATA, &neb::callback_severity},
+    {NEBCALLBACK_ADAPTIVE_TAG_DATA, &neb::callback_tag}};
 
 // List of common callbacks.
 static struct {
@@ -111,7 +113,8 @@ static struct {
     {NEBCALLBACK_PROGRAM_STATUS_DATA, &neb::callback_program_status},
     {NEBCALLBACK_SERVICE_CHECK_DATA, &neb::callback_service_check},
     {NEBCALLBACK_SERVICE_STATUS_DATA, &neb::callback_pb_service_status},
-    {NEBCALLBACK_ADAPTIVE_SEVERITY_DATA, &neb::callback_severity}};
+    {NEBCALLBACK_ADAPTIVE_SEVERITY_DATA, &neb::callback_severity},
+    {NEBCALLBACK_ADAPTIVE_TAG_DATA, &neb::callback_tag}};
 
 // List of Engine-specific callbacks.
 static struct {
@@ -2136,12 +2139,78 @@ int32_t neb::callback_severity(int callback_type __attribute__((unused)),
       return 1;
   }
   sv.set_id(es->id());
+  sv.set_poller_id(config::applier::state::instance().poller_id());
   sv.set_level(es->level());
   sv.set_icon_id(es->icon_id());
   sv.set_name(es->name());
 
   // Send event(s).
   gl_publisher.write(s);
+  return 0;
+}
+
+/**
+ * @brief Process adaptive tag data.
+ *
+ * @param callback_type Callback type (NEBCALLBACK_ADAPTIVE_SEVERITY_DATA).
+ * @param data A pointer to a nebstruct_adaptive_tag_data.
+ *
+ * @return 0 on success.
+ */
+int32_t neb::callback_tag(int callback_type __attribute__((unused)),
+                          void* data) noexcept {
+  log_v2::neb()->info("callbacks: generating protobuf tag event");
+
+  nebstruct_adaptive_tag_data* ds =
+      static_cast<nebstruct_adaptive_tag_data*>(data);
+  const engine::tag* et{static_cast<engine::tag*>(ds->object_ptr)};
+
+  auto t{std::make_shared<neb::pb_tag>()};
+  Tag& tg = t.get()->mut_obj();
+  switch (ds->type) {
+    case NEBTYPE_TAG_ADD:
+      log_v2::neb()->info("callbacks: new tag");
+      tg.set_action(Tag_Action_ADD);
+      break;
+    case NEBTYPE_TAG_DELETE:
+      log_v2::neb()->info("callbacks: removed tag");
+      tg.set_action(Tag_Action_DELETE);
+      break;
+    case NEBTYPE_TAG_UPDATE:
+      log_v2::neb()->info("callbacks: modified tag");
+      tg.set_action(Tag_Action_MODIFY);
+      break;
+    default:
+      log_v2::neb()->error(
+          "callbacks: protobuf tag event action must be among ADD, MODIFY "
+          "or DELETE");
+      return 1;
+  }
+  tg.set_id(et->id());
+  tg.set_poller_id(config::applier::state::instance().poller_id());
+  switch (et->type()) {
+    case engine::tag::hostcategory:
+      tg.set_type(Tag_Type_HOSTCATEGORY);
+      break;
+    case engine::tag::servicecategory:
+      tg.set_type(Tag_Type_SERVICECATEGORY);
+      break;
+    case engine::tag::hostgroup:
+      tg.set_type(Tag_Type_HOSTGROUP);
+      break;
+    case engine::tag::servicegroup:
+      tg.set_type(Tag_Type_SERVICEGROUP);
+      break;
+    default:
+      log_v2::neb()->error(
+          "callbacks: protobuf tag event type must be among HOSTCATEGORY, "
+          "SERVICECATEGORY, HOSTGROUP pr SERVICEGROUP");
+      return 1;
+  }
+  tg.set_name(et->name());
+
+  // Send event(t).
+  gl_publisher.write(t);
   return 0;
 }
 

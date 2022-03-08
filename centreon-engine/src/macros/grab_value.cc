@@ -379,8 +379,8 @@ static int handle_contact_macro(nagios_macros* mac,
  */
 static int handle_contactgroup_macro(nagios_macros* mac,
                                      int macro_type,
-                                     std::string const& arg1,
-                                     std::string const& arg2,
+                                     const std::string& arg1,
+                                     const std::string& arg2,
                                      std::string& output,
                                      int* free_macro) {
   (void)arg2;

@@ -51,11 +51,11 @@ class handle {
   bool is_open() const;
   void update(const void* arg = nullptr);
 
-  static const char* deinitialization;
-  static const char* initialization;
-  static const char* updatization;
-  static const char* versionning;
-  static const char* parents_list;
+  static constexpr const char* deinitialization{"broker_module_deinit"};
+  static constexpr const char* initialization{"broker_module_init"};
+  static constexpr const char* updatization{"broker_module_update"};
+  static constexpr const char* versionning{"broker_module_version"};
+  static constexpr const char* parents_list{"broker_module_parents"};
 };
 }  // namespace modules
 

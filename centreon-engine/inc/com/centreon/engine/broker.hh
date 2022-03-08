@@ -283,6 +283,11 @@
 #define NEBTYPE_SEVERITY_DELETE 3901
 #define NEBTYPE_SEVERITY_UPDATE 3902
 
+/* Tag. */
+#define NEBTYPE_TAG_ADD 4000
+#define NEBTYPE_TAG_DELETE 4001
+#define NEBTYPE_TAG_UPDATE 4002
+
 /*
 ** Event flags.
 */
@@ -344,6 +349,11 @@ void broker_adaptive_severity_data(int type,
                                    int attr,
                                    void* data,
                                    const struct timeval* timestamp);
+void broker_adaptive_tag_data(int type,
+                              int flags,
+                              int attr,
+                              void* data,
+                              const struct timeval* timestamp);
 void broker_adaptive_dependency_data(int type,
                                      int flags,
                                      int attr,

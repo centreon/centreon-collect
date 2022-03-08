@@ -92,6 +92,7 @@ class stream : public io::stream {
     service_dependency,
     service_group,
     severity,
+    tag,
   };
 
   enum actions {
@@ -114,6 +115,7 @@ class stream : public io::stream {
     index_data = 1 << 15,
     metrics = 1 << 16,
     severities = 1 << 17,
+    tags = 1 << 18,
   };
 
   struct index_info {
@@ -259,6 +261,9 @@ class stream : public io::stream {
   database::mysql_stmt _severity_insupdate;
   database::mysql_stmt _severity_update;
   database::mysql_stmt _severity_delete;
+  database::mysql_stmt _tag_insupdate;
+  database::mysql_stmt _tag_update;
+  database::mysql_stmt _tag_delete;
 
   database::mysql_stmt _index_data_insert;
   database::mysql_stmt _index_data_update;
@@ -304,6 +309,7 @@ class stream : public io::stream {
   void _process_pb_service_status(const std::shared_ptr<io::data>& d);
   void _process_pb_host_status(const std::shared_ptr<io::data>& d);
   void _process_severity(const std::shared_ptr<io::data>& d);
+  void _process_tag(const std::shared_ptr<io::data>& d);
 
   void _unified_sql_process_service_status(const std::shared_ptr<io::data>& d);
   void _unified_sql_process_pb_service_status(

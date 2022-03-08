@@ -71,6 +71,7 @@ if (WITH_TESTING)
     "${TESTS_DIR}/configuration/object.cc"
     "${TESTS_DIR}/configuration/service.cc"
     "${TESTS_DIR}/configuration/severity.cc"
+    "${TESTS_DIR}/configuration/tag.cc"
     "${TESTS_DIR}/contacts/contactgroup-config.cc"
     "${TESTS_DIR}/contacts/simple-contactgroup.cc"
     "${TESTS_DIR}/custom_vars/extcmd.cc"

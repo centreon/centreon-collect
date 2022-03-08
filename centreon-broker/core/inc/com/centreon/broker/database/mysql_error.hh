@@ -110,6 +110,8 @@ class mysql_error {
     insert_relation_ba_timeperiod,
     store_severity,
     clean_severities,
+    store_tag,
+    clean_tags,
   };
   static constexpr const char* msg[]{
       "error: ",
@@ -185,6 +187,8 @@ class mysql_error {
       "could not insert relation of BA to timeperiod: ",
       "could not insert severity in severities table: ",
       "could not remove severities: ",
+      "could not insert tag in tags table: ",
+      "could not remove tags: ",
   };
 
   mysql_error() : _active(false) {}
