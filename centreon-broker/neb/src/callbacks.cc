@@ -2139,6 +2139,7 @@ int32_t neb::callback_severity(int callback_type __attribute__((unused)),
       return 1;
   }
   sv.set_id(es->id());
+  sv.set_poller_id(config::applier::state::instance().poller_id());
   sv.set_level(es->level());
   sv.set_icon_id(es->icon_id());
   sv.set_name(es->name());
@@ -2186,6 +2187,7 @@ int32_t neb::callback_tag(int callback_type __attribute__((unused)),
       return 1;
   }
   tg.set_id(et->id());
+  tg.set_poller_id(config::applier::state::instance().poller_id());
   switch (et->type()) {
     case engine::tag::hostcategory:
       tg.set_type(Tag_Type_HOSTCATEGORY);

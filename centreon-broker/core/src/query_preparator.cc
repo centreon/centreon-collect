@@ -351,7 +351,7 @@ mysql_stmt query_preparator::prepare_insert_or_update_table(
       const std::string& entry_name = f->name();
       if (entry_name.empty() || _excluded.find(entry_name) != _excluded.end())
         continue;
-      insert.append(entry_name);
+      insert.append(e.name);
       insert.append(",");
       insert_bind_mapping.emplace(fmt::format(":{}", entry_name), size++);
     } else
@@ -373,7 +373,7 @@ mysql_stmt query_preparator::prepare_insert_or_update_table(
       key = fmt::format(":{}", entry_name);
       if (_pb_unique.find(e.number) == _pb_unique.end()) {
         insert.append("?,");
-        update.append(fmt::format("{}=?,", entry_name));
+        update.append(fmt::format("{}=?,", e.name));
         key.append("1");
         insert_bind_mapping.insert(std::make_pair(key, insert_size++));
         key[key.size() - 1] = '2';

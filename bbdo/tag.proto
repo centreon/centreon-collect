@@ -20,6 +20,20 @@ syntax = "proto3";
 
 package com.centreon.broker;
 
+/**
+ * @brief A tag is a generalization of a host group or a service group. It
+ * is a way to group resources. It has an id, a type and a name.
+ *
+ * Because a tag can be sent from several poller, and by moment a poller can
+ * say it does not need it anymore, broker needs to know from which poller the
+ * tag event comes from, so we have a poller_id in the message.
+ *
+ * For example, two pollers use a tag named 'foo'. Then the first one sends a
+ * Tag message with the action DELETE. This means this poller does not need it
+ * anymore but we don't know about the other poller. Then we can remove
+ * relations between resources of our poller and this tag. And only if the tag
+ * is no more used at all, we can remove it.
+ */
 message Tag {
   uint64 id = 1;
   enum Action {
@@ -38,4 +52,5 @@ message Tag {
   Action action = 2;
   Type type = 3;
   string name = 4;
+  int64 poller_id = 5;
 }

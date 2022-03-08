@@ -42,17 +42,24 @@ using namespace com::centreon::broker::storage;
 void conflict_manager::_clean_tables(uint32_t instance_id) {
   /* Database version. */
 
-  int32_t conn = special_conn::severity % _mysql.connections_count();
-  log_v2::sql()->debug("Removing severities");
-  _mysql.run_query("DELETE FROM severities",
-                   database::mysql_error::clean_severities, false, conn);
+  // FIXME DBR: This is to improve. We cannot do that, otherwise each time a
+  // poller is restarted, all tags are removed and we will just keep the ones
+  // brought by the new poller.
+  // int32_t conn = special_conn::severity % _mysql.connections_count();
+  // log_v2::sql()->debug("Removing severities");
+  //_mysql.run_query("DELETE FROM severities",
+  //                 database::mysql_error::clean_severities, false, conn);
 
-  conn = special_conn::tag % _mysql.connections_count();
-  log_v2::sql()->debug("Removing tags");
-  _mysql.run_query("DELETE FROM tags", database::mysql_error::clean_tags, false,
-                   conn);
+  // FIXME DBR: This is to improve. We cannot do that, otherwise each time a
+  // poller is restarted, all tags are removed and we will just keep the ones
+  // brought by the new poller.
+  // conn = special_conn::tag % _mysql.connections_count();
+  // log_v2::sql()->debug("Removing tags");
+  //_mysql.run_query("DELETE FROM tags", database::mysql_error::clean_tags,
+  //false,
+  //                 conn);
 
-  conn = _mysql.choose_connection_by_instance(instance_id);
+  int32_t conn = _mysql.choose_connection_by_instance(instance_id);
   log_v2::sql()->debug(
       "conflict_manager: disable hosts and services (instance_id: {})",
       instance_id);
@@ -1734,6 +1741,7 @@ void conflict_manager::_process_severity(
       st = &_severity_update;
       break;
     case Severity_Action_DELETE:
+      // FIXME DBO: Delete should be implemented later.
       log_v2::sql()->trace("SQL: removed severity {}", sv.id());
       st = &_severity_delete;
       break;
@@ -1741,10 +1749,13 @@ void conflict_manager::_process_severity(
       log_v2::sql()->error("Bad action in severity object");
       break;
   }
-  *st << *s;
-  int32_t conn = special_conn::severity % _mysql.connections_count();
-  _mysql.run_statement(*st, database::mysql_error::store_severity, false, conn);
-  _add_action(conn, actions::severities);
+  if (sv.action() != Severity_Action_DELETE) {
+    *st << *s;
+    int32_t conn = special_conn::severity % _mysql.connections_count();
+    _mysql.run_statement(*st, database::mysql_error::store_severity, false,
+                         conn);
+    _add_action(conn, actions::severities);
+  }
   *std::get<2>(t) = true;
 }
 
@@ -1791,6 +1802,7 @@ void conflict_manager::_process_tag(
       st = &_tag_update;
       break;
     case Tag_Action_DELETE:
+      // FIXME DBO: Delete should be implemented later.
       log_v2::sql()->trace("SQL: removed tag {}", tg.id());
       st = &_tag_delete;
       break;
@@ -1798,10 +1810,12 @@ void conflict_manager::_process_tag(
       log_v2::sql()->error("Bad action in tag object");
       break;
   }
-  *st << *s;
-  int32_t conn = special_conn::tag % _mysql.connections_count();
-  _mysql.run_statement(*st, database::mysql_error::store_tag, false, conn);
-  _add_action(conn, actions::tags);
+  if (tg.action() != Tag_Action_DELETE) {
+    *st << *s;
+    int32_t conn = special_conn::tag % _mysql.connections_count();
+    _mysql.run_statement(*st, database::mysql_error::store_tag, false, conn);
+    _add_action(conn, actions::tags);
+  }
   *std::get<2>(t) = true;
 }
 

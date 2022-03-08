@@ -1851,6 +1851,7 @@ void stream::_process_severity(const std::shared_ptr<io::data>& d) {
       st = &_severity_update;
       break;
     case Severity_Action_DELETE:
+      // FIXME DBO: Delete should be implemented later.
       log_v2::sql()->trace("SQL: removed severity {}", sv.id());
       st = &_severity_delete;
       break;
@@ -1858,10 +1859,13 @@ void stream::_process_severity(const std::shared_ptr<io::data>& d) {
       log_v2::sql()->error("Bad action in severity object");
       break;
   }
-  *st << *s;
-  int32_t conn = special_conn::severity % _mysql.connections_count();
-  _mysql.run_statement(*st, database::mysql_error::store_severity, false, conn);
-  _add_action(conn, actions::severities);
+  if (sv.action() != Severity_Action_DELETE) {
+    *st << *s;
+    int32_t conn = special_conn::severity % _mysql.connections_count();
+    _mysql.run_statement(*st, database::mysql_error::store_severity, false,
+                         conn);
+    _add_action(conn, actions::severities);
+  }
 }
 
 void stream::_process_tag(const std::shared_ptr<io::data>& d) {
@@ -1905,6 +1909,7 @@ void stream::_process_tag(const std::shared_ptr<io::data>& d) {
       st = &_tag_update;
       break;
     case Tag_Action_DELETE:
+      // FIXME DBO: Delete should be implemented later.
       log_v2::sql()->trace("SQL: removed tag {}", tg.id());
       st = &_tag_delete;
       break;
@@ -1912,10 +1917,12 @@ void stream::_process_tag(const std::shared_ptr<io::data>& d) {
       log_v2::sql()->error("Bad action in tag object");
       break;
   }
-  *st << *s;
-  int32_t conn = special_conn::tag % _mysql.connections_count();
-  _mysql.run_statement(*st, database::mysql_error::store_tag, false, conn);
-  _add_action(conn, actions::tags);
+  if (tg.action() != Tag_Action_DELETE) {
+    *st << *s;
+    int32_t conn = special_conn::tag % _mysql.connections_count();
+    _mysql.run_statement(*st, database::mysql_error::store_tag, false, conn);
+    _add_action(conn, actions::tags);
+  }
 }
 
 /**
