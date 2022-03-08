@@ -338,7 +338,6 @@ mysql_stmt query_preparator::prepare_insert_or_update_table(
 
   std::vector<std::tuple<std::string, uint32_t, uint16_t>> pb_mapping;
 
-  int size = 0;
   std::string key;
   for (auto& e : mapping) {
     const google::protobuf::FieldDescriptor* f =
@@ -353,7 +352,6 @@ mysql_stmt query_preparator::prepare_insert_or_update_table(
         continue;
       insert.append(e.name);
       insert.append(",");
-      insert_bind_mapping.emplace(fmt::format(":{}", entry_name), size++);
     } else
       throw msg_fmt(
           "Protobuf field with number {} does not exist in message '{}'",
@@ -383,7 +381,7 @@ mysql_stmt query_preparator::prepare_insert_or_update_table(
         update_bind_mapping.insert(std::make_pair(key, update_size++));
       } else {
         insert.append("?,");
-        update_bind_mapping.insert(std::make_pair(key, insert_size++));
+        insert_bind_mapping.insert(std::make_pair(key, insert_size++));
       }
     } else
       throw msg_fmt(

@@ -1061,7 +1061,7 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
                          actions::host_dependencies);
   // Processed object.
   auto s{static_cast<neb::pb_host const*>(d.get())};
-  auto ss = s->obj();
+  auto& ss = s->obj();
 
   log_v2::perfdata()->info("SQL: pb host status output: <<{}>>", ss.output());
   log_v2::perfdata()->info("SQL: host status perfdata: <<{}>>", ss.perf_data());
@@ -1707,7 +1707,7 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
                          actions::service_dependencies);
   // Processed object.
   auto s{static_cast<neb::pb_service const*>(d.get())};
-  auto ss = s->obj();
+  auto& ss = s->obj();
 
   log_v2::perfdata()->info("SQL: pb service status output: <<{}>>",
                            ss.output());
@@ -1841,7 +1841,7 @@ void stream::_process_severity(const std::shared_ptr<io::data>& d) {
   }
   // Processed object.
   auto s{static_cast<const neb::pb_severity*>(d.get())};
-  auto sv = s->obj();
+  auto& sv = s->obj();
   mysql_stmt* st;
   switch (sv.action()) {
     case Severity_Action_ADD:
@@ -1900,7 +1900,7 @@ void stream::_process_tag(const std::shared_ptr<io::data>& d) {
   }
   // Processed object.
   auto s{static_cast<const neb::pb_tag*>(d.get())};
-  auto tg = s->obj();
+  auto& tg = s->obj();
   mysql_stmt* st;
   switch (tg.action()) {
     case Tag_Action_ADD:
