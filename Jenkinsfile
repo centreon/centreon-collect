@@ -72,7 +72,7 @@ stage('Build / Unit tests // Packaging / Signing') {
       } 
     }
   },
-  'centos8 rpm packaging and signing': {
+  'alma8 rpm packaging and signing': {
     node("C++") {
       dir('centreon-collect-alma8') {
         checkout scm
