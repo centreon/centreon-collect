@@ -1730,7 +1730,7 @@ void conflict_manager::_process_severity(
   }
   // Processed object.
   auto s{static_cast<const neb::pb_severity*>(d.get())};
-  auto sv = s->obj();
+  auto& sv = s->obj();
   mysql_stmt* st;
   switch (sv.action()) {
     case Severity_Action_ADD:
@@ -1791,7 +1791,7 @@ void conflict_manager::_process_tag(
   }
   // Processed object.
   auto s{static_cast<const neb::pb_tag*>(d.get())};
-  auto tg = s->obj();
+  auto& tg = s->obj();
   mysql_stmt* st;
   switch (tg.action()) {
     case Tag_Action_ADD:

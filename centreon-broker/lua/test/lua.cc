@@ -1,5 +1,5 @@
 /*
-** Copyright 2018-2021 Centreon
+** Copyright 2018-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -2269,7 +2269,7 @@ TEST_F(LuaTest, BrokerPbServiceStatus) {
   config::applier::modules modules;
   modules.load_file("./lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
-  auto svc = std::make_shared<neb::pb_service>();
+  auto svc = std::make_shared<neb::pb_service_status>();
   auto& obj = svc->mut_obj();
   obj.set_host_id(1899);
   obj.set_service_id(288);
@@ -2318,7 +2318,7 @@ TEST_F(LuaTest, BrokerApi2PbServiceStatusWithIndex) {
   config::applier::modules modules;
   modules.load_file("./lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
-  auto svc = std::make_shared<neb::pb_service>();
+  auto svc = std::make_shared<neb::pb_service_status>();
   auto& obj = svc->mut_obj();
   obj.set_host_id(1899);
   obj.set_service_id(288);
@@ -2368,7 +2368,7 @@ TEST_F(LuaTest, BrokerApi2PbServiceStatusWithNext) {
   config::applier::modules modules;
   modules.load_file("./lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
-  auto svc = std::make_shared<neb::pb_service>();
+  auto svc = std::make_shared<neb::pb_service_status>();
   auto& obj = svc->mut_obj();
   obj.set_host_id(1899);
   obj.set_service_id(288);
@@ -2411,7 +2411,7 @@ TEST_F(LuaTest, BrokerApi2PbServiceStatusJsonEncode) {
   config::applier::modules modules;
   modules.load_file("./lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
-  auto svc = std::make_shared<neb::pb_service>();
+  auto svc = std::make_shared<neb::pb_service_status>();
   auto& obj = svc->mut_obj();
   obj.set_host_id(1899);
   obj.set_service_id(288);
@@ -2469,7 +2469,7 @@ TEST_F(LuaTest, BrokerPbServiceStatusJsonEncode) {
   config::applier::modules modules;
   modules.load_file("./lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
-  auto svc = std::make_shared<neb::pb_service>();
+  auto svc = std::make_shared<neb::pb_service_status>();
   auto& obj = svc->mut_obj();
   obj.set_host_id(1899);
   obj.set_service_id(288);
@@ -2510,7 +2510,7 @@ TEST_F(LuaTest, BrokerPbHostStatus) {
   config::applier::modules modules;
   modules.load_file("./lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
-  auto host = std::make_shared<neb::pb_host>();
+  auto host = std::make_shared<neb::pb_host_status>();
   auto& obj = host->mut_obj();
   obj.set_host_id(1899);
   *obj.mutable_check_command() = "super command";
@@ -2553,7 +2553,7 @@ TEST_F(LuaTest, BrokerApi2PbHostStatusWithIndex) {
   config::applier::modules modules;
   modules.load_file("./lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
-  auto host = std::make_shared<neb::pb_host>();
+  auto host = std::make_shared<neb::pb_host_status>();
   auto& obj = host->mut_obj();
   obj.set_host_id(1899);
   *obj.mutable_check_command() = "super command";
@@ -2597,7 +2597,7 @@ TEST_F(LuaTest, BrokerApi2PbHostStatusWithNext) {
   config::applier::modules modules;
   modules.load_file("./lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
-  auto host = std::make_shared<neb::pb_host>();
+  auto host = std::make_shared<neb::pb_host_status>();
   auto& obj = host->mut_obj();
   obj.set_host_id(1899);
   *obj.mutable_check_command() = "super command";
@@ -2636,7 +2636,7 @@ TEST_F(LuaTest, BrokerApi2PbHostStatusJsonEncode) {
   config::applier::modules modules;
   modules.load_file("./lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
-  auto host = std::make_shared<neb::pb_host>();
+  auto host = std::make_shared<neb::pb_host_status>();
   auto& obj = host->mut_obj();
   obj.set_host_id(1899);
   *obj.mutable_check_command() = "super command";
@@ -2692,7 +2692,7 @@ TEST_F(LuaTest, BrokerPbHostStatusJsonEncode) {
   config::applier::modules modules;
   modules.load_file("./lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
-  auto host = std::make_shared<neb::pb_host>();
+  auto host = std::make_shared<neb::pb_host_status>();
   auto& obj = host->mut_obj();
   obj.set_host_id(1899);
   *obj.mutable_check_command() = "super command";

@@ -1448,7 +1448,7 @@ int neb::callback_pb_host_status(int callback_type, void* data) noexcept {
   const engine::host* eh{static_cast<engine::host*>(
       static_cast<nebstruct_host_status_data*>(data)->object_ptr)};
 
-  auto h{std::make_shared<neb::pb_host>()};
+  auto h{std::make_shared<neb::pb_host_status>()};
   Host& host = h.get()->mut_obj();
 
   host.set_acknowledged(eh->get_problem_has_been_acknowledged());
@@ -2024,8 +2024,8 @@ int neb::callback_service(int callback_type, void* data) {
                           my_service->service_description, my_service->host_id);
       neb::gl_publisher.write(my_service);
 
-      /* No need to send this service custom variables changes, custom variables
-       * are managed in a different loop. */
+      /* No need to send this service custom variables changes, custom
+       * variables are managed in a different loop. */
     } else
       log_v2::neb()->error(
           "callbacks: service has no host ID or no service ID (yet) (host "
@@ -2058,8 +2058,8 @@ int neb::callback_service_check(int callback_type, void* data) {
       static_cast<nebstruct_service_check_data*>(data);
 
   /* For each check, this event is received three times one precheck, one
-   * initiate and one processed. We just keep the initiate one. At the processed
-   * one we also received the service status. */
+   * initiate and one processed. We just keep the initiate one. At the
+   * processed one we also received the service status. */
   if (scdata->type != NEBTYPE_SERVICECHECK_INITIATE)
     return 0;
 
@@ -2222,7 +2222,7 @@ int32_t neb::callback_pb_service_status(int callback_type
   const engine::service* es{static_cast<engine::service*>(
       static_cast<nebstruct_service_status_data*>(data)->object_ptr)};
 
-  auto s{std::make_shared<neb::pb_service>()};
+  auto s{std::make_shared<neb::pb_service_status>()};
   Service& srv = s.get()->mut_obj();
 
   srv.set_host_id(es->get_host_id());

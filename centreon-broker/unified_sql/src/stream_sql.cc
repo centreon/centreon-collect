@@ -1060,29 +1060,29 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
                          actions::downtimes | actions::host_dependencies |
                          actions::host_dependencies);
   // Processed object.
-  auto s{static_cast<neb::pb_host const*>(d.get())};
-  auto& ss = s->obj();
+  auto s{static_cast<const neb::pb_host_status*>(d.get())};
+  auto& hs = s->obj();
 
-  log_v2::perfdata()->info("SQL: pb host status output: <<{}>>", ss.output());
-  log_v2::perfdata()->info("SQL: host status perfdata: <<{}>>", ss.perf_data());
+  log_v2::perfdata()->info("SQL: pb host status output: <<{}>>", hs.output());
+  log_v2::perfdata()->info("SQL: host status perfdata: <<{}>>", hs.perf_data());
 
   time_t now = time(nullptr);
-  if (ss.check_type() ||           // - passive result
-      !ss.active_checks_enabled()  // - active checks are disabled,
+  if (hs.check_type() ||           // - passive result
+      !hs.active_checks_enabled()  // - active checks are disabled,
                                    //   status might not be updated
       ||                           // - normal case
-      ss.next_check() >= now - 5 * 60 || !ss.next_check()) {  // - initial state
+      hs.next_check() >= now - 5 * 60 || !hs.next_check()) {  // - initial state
     // Apply to DB.
     log_v2::sql()->info(
         "SQL: processing host status event (host: {}, last "
         "check: {}, state ({}, {}))",
-        ss.host_id(), ss.last_check(), ss.current_state(), ss.state_type());
+        hs.host_id(), hs.last_check(), hs.current_state(), hs.state_type());
 
     // Prepare queries.
     if (!_host_status_update.prepared()) {
       query_preparator::event_pb_unique unique{
           {1, "host_id", io::protobuf_base::invalid_on_zero, 0}};
-      query_preparator qp(neb::pb_host::static_type(), unique);
+      query_preparator qp(neb::pb_host_status::static_type(), unique);
 
       _host_status_update = qp.prepare_update_table(
           _mysql, "hosts",
@@ -1138,7 +1138,7 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
     // Processing.
     _host_status_update << *s;
     int32_t conn = _mysql.choose_connection_by_instance(
-        _cache_host_instance[static_cast<uint32_t>(ss.host_id())]);
+        _cache_host_instance[static_cast<uint32_t>(hs.host_id())]);
     _mysql.run_statement(_host_status_update,
                          database::mysql_error::store_host_status, false, conn);
     _add_action(conn, actions::hosts);
@@ -1148,8 +1148,8 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
         "SQL: not processing host status event (host: {}, "
         "check type: {}, last check: {}, next check: {}, now: {}, state ({}, "
         "{}))",
-        ss.host_id(), ss.check_type(), ss.last_check(), ss.next_check(), now,
-        ss.current_state(), ss.state_type());
+        hs.host_id(), hs.check_type(), hs.last_check(), hs.next_check(), now,
+        hs.current_state(), hs.state_type());
 }
 
 /**
@@ -1706,7 +1706,7 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
                          actions::downtimes | actions::host_dependencies |
                          actions::service_dependencies);
   // Processed object.
-  auto s{static_cast<neb::pb_service const*>(d.get())};
+  auto s{static_cast<const neb::pb_service_status*>(d.get())};
   auto& ss = s->obj();
 
   log_v2::perfdata()->info("SQL: pb service status output: <<{}>>",
@@ -1733,7 +1733,7 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
           {1, "host_id", io::protobuf_base::invalid_on_zero, 0},
           {2, "service_id", io::protobuf_base::invalid_on_zero, 0},
       };
-      query_preparator qp(neb::pb_service::static_type(), unique);
+      query_preparator qp(neb::pb_service_status::static_type(), unique);
 
       _service_status_update = qp.prepare_update_table(
           _mysql, "services",

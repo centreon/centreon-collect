@@ -1,5 +1,5 @@
 /*
-** Copyright 2021 Centreon
+** Copyright 2021-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -117,9 +117,11 @@ enum data_element {
   de_instance_configuration,
   de_responsive_instance,
   de_pb_service = 27,
-  de_pb_host = 28,
-  de_pb_severity = 29,
-  de_pb_tag = 30,
+  de_pb_service_status = 28,
+  de_pb_host = 29,
+  de_pb_host_status = 30,
+  de_pb_severity = 31,
+  de_pb_tag = 32,
 };
 }  // namespace neb
 namespace storage {
