@@ -125,7 +125,7 @@ class property : public source {
    *
    *  @return Boolean property.
    */
-  bool get_bool(io::data const& d) {
+  bool get_bool(io::data const& d) override {
     return static_cast<T const*>(&d)->*(_prop.b);
   }
 
@@ -136,7 +136,7 @@ class property : public source {
    *
    *  @return Double property.
    */
-  double get_double(io::data const& d) {
+  double get_double(io::data const& d) override {
     return static_cast<T const*>(&d)->*(_prop.d);
   }
 
@@ -147,7 +147,7 @@ class property : public source {
    *
    *  @return Integer property.
    */
-  int get_int(io::data const& d) {
+  int get_int(io::data const& d) override {
     return static_cast<T const*>(&d)->*(_prop.i);
   }
 
@@ -158,7 +158,7 @@ class property : public source {
    *
    *  @return Short property.
    */
-  short get_short(io::data const& d) {
+  short get_short(io::data const& d) override {
     return static_cast<T const*>(&d)->*(_prop.s);
   }
 
@@ -170,7 +170,8 @@ class property : public source {
    *  @return String property.
    */
   std::string const& get_string(io::data const& d,
-                                size_t* max_len __attribute__((unused))) {
+                                size_t* max_len
+                                __attribute__((unused))) override {
     return static_cast<T const*>(&d)->*(_prop.q);
   }
 
@@ -181,7 +182,7 @@ class property : public source {
    *
    *  @return Time property.
    */
-  timestamp const& get_time(io::data const& d) {
+  timestamp const& get_time(io::data const& d) override {
     return static_cast<T const*>(&d)->*(_prop.t);
   }
 
@@ -192,7 +193,7 @@ class property : public source {
    *
    *  @return Unsigned integer property.
    */
-  uint32_t get_uint(io::data const& d) {
+  uint32_t get_uint(io::data const& d) override {
     return static_cast<T const*>(&d)->*(_prop.I);
   }
 
@@ -203,7 +204,7 @@ class property : public source {
    *
    *  @return Unsigned integer property.
    */
-  uint64_t get_ulong(io::data const& d) {
+  uint64_t get_ulong(io::data const& d) override {
     return static_cast<T const*>(&d)->*(_prop.l);
   }
 
@@ -214,7 +215,7 @@ class property : public source {
    *
    *  @return Unsigned short property.
    */
-  unsigned short get_ushort(io::data const& d) {
+  unsigned short get_ushort(io::data const& d) override {
     return static_cast<T const*>(&d)->*(_prop.S);
   }
 
@@ -224,7 +225,7 @@ class property : public source {
    *  @param[out] d     Object to set.
    *  @param[in]  value New value.
    */
-  void set_bool(io::data& d, bool value) {
+  void set_bool(io::data& d, bool value) override {
     static_cast<T*>(&d)->*(_prop.b) = value;
   }
 
@@ -234,7 +235,7 @@ class property : public source {
    *  @param[out] d     Object to set.
    *  @param[in]  value New value.
    */
-  void set_double(io::data& d, double value) {
+  void set_double(io::data& d, double value) override {
     static_cast<T*>(&d)->*(_prop.d) = value;
   }
 
@@ -244,7 +245,7 @@ class property : public source {
    *  @param[out] d     Object to set.
    *  @param[in]  value New value.
    */
-  void set_int(io::data& d, int value) {
+  void set_int(io::data& d, int value) override {
     static_cast<T*>(&d)->*(_prop.i) = value;
   }
 
@@ -254,7 +255,7 @@ class property : public source {
    *  @param[out] d     Object to set.
    *  @param[in]  value New value.
    */
-  void set_short(io::data& d, short value) {
+  void set_short(io::data& d, short value) override {
     static_cast<T*>(&d)->*(_prop.s) = value;
   }
 
@@ -264,7 +265,7 @@ class property : public source {
    *  @param[out] d     Object to set.
    *  @param[in]  value New value.
    */
-  void set_string(io::data& d, std::string const& value) {
+  void set_string(io::data& d, std::string const& value) override {
     static_cast<T*>(&d)->*(_prop.q) = value;
   }
 
@@ -274,7 +275,7 @@ class property : public source {
    *  @param[out] d     Object to set.
    *  @param[in]  value New value.
    */
-  void set_time(io::data& d, timestamp const& value) {
+  void set_time(io::data& d, timestamp const& value) override {
     static_cast<T*>(&d)->*(_prop.t) = value;
   }
 
@@ -284,7 +285,7 @@ class property : public source {
    *  @param[out] d     Object to set.
    *  @param[in]  value New value.
    */
-  void set_uint(io::data& d, uint32_t value) {
+  void set_uint(io::data& d, uint32_t value) override {
     static_cast<T*>(&d)->*(_prop.I) = value;
   }
 
@@ -294,7 +295,7 @@ class property : public source {
    *  @param[out] d     Object to set.
    *  @param[in]  value New value.
    */
-  void set_ulong(io::data& d, uint64_t value) {
+  void set_ulong(io::data& d, uint64_t value) override {
     static_cast<T*>(&d)->*(_prop.l) = value;
   }
 
@@ -304,7 +305,7 @@ class property : public source {
    *  @param[out] d     Object to set.
    *  @param[in]  value New value.
    */
-  void set_ushort(io::data& d, unsigned short value) {
+  void set_ushort(io::data& d, unsigned short value) override {
     static_cast<T*>(&d)->*(_prop.S) = value;
   }
 };
