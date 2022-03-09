@@ -39,7 +39,7 @@ namespace bbdo {
 class ack : public io::data {
  public:
   ack();
-  ack(uint32_t acknowledged_events);
+  explicit ack(uint32_t acknowledged_events);
   ~ack() noexcept = default;
   ack(ack const&) = delete;
   ack& operator=(ack const&) = delete;
