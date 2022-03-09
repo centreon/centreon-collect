@@ -94,7 +94,7 @@ BEPBBEE4
 	${start}=	Get Current Date
 	Start Broker
 	Start Engine
-        Wait Until Created	/tmp/pbhost.log	1m
+        Wait Until Created	/tmp/pbhoststatus.log	1m
 	Stop Engine
 	Stop Broker
 
