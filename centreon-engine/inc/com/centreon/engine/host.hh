@@ -20,18 +20,6 @@
 #ifndef CCE_HOST_HH
 #define CCE_HOST_HH
 
-#include <time.h>
-
-#include <list>
-#include <memory>
-#include <ostream>
-#include <string>
-#include <unordered_map>
-
-#include "com/centreon/engine/common.hh"
-#include "com/centreon/engine/logging.hh"
-#include "com/centreon/engine/namespace.hh"
-#include "com/centreon/engine/notifier.hh"
 #include "com/centreon/engine/service.hh"
 
 /* Forward declaration. */
@@ -139,7 +127,7 @@ class host : public notifier {
   void clear_flap(double percent_change,
                   double high_threshold,
                   double low_threshold);
-  void update_status() override;
+  void update_status(status_type t = status_type::ALL) override;
   void check_for_expired_acknowledgement();
   //  bool               check_notification_viability(reason_type type,
   //                                                  int options) override;

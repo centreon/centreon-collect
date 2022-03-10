@@ -25,7 +25,6 @@
 #include <mutex>
 #include "com/centreon/engine/flapping.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/nebmods.hh"
 #include "com/centreon/engine/nebstructs.hh"
 #include "com/centreon/engine/sehandlers.hh"
 #include "com/centreon/engine/string.hh"
@@ -1630,6 +1629,36 @@ void broker_service_status(int type,
 
   // Make callbacks.
   neb_make_callbacks(NEBCALLBACK_SERVICE_STATUS_DATA, &ds);
+}
+
+/**
+ *  Sends service status updates to broker.
+ *
+ *  @param[in] type      Type.
+ *  @param[in] flags     Flags.
+ *  @param[in] attr      Attributes.
+ *  @param[in] svc       Target service.
+ *  @param[in] timestamp Timestamp.
+ */
+void broker_service_status_check_result(int type,
+                                        int flags,
+                                        int attr,
+                                        com::centreon::engine::service* svc,
+                                        struct timeval const* timestamp) {
+  // Config check.
+  if (!(config->event_broker_options() & BROKER_STATUS_DATA))
+    return;
+
+  // Fill struct with relevant data.
+  nebstruct_service_status_data ds;
+  ds.type = type;
+  ds.flags = flags;
+  ds.attr = attr;
+  ds.timestamp = get_broker_timestamp(timestamp);
+  ds.object_ptr = svc;
+
+  // Make callbacks.
+  neb_make_callbacks(NEBCALLBACK_SERVICE_STATUS_CHECK_RESULT_DATA, &ds);
 }
 
 /**

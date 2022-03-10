@@ -111,3 +111,64 @@ message Service {
   bool retain_nonstatus_information = 81;
   bool retain_status_information = 82;
 }
+
+/**
+ * @brief Message sent in BBDO 3.0.0 instead of neb::service_status
+ */
+message ServiceStatusCheckResult {
+  uint64 host_id = 1;
+  uint64 service_id = 2;
+
+  bool has_been_checked = 3;
+  enum CheckType {
+    ACTIVE = 0;
+    PASSIVE = 1;
+  }
+  CheckType check_type = 4;
+
+  enum State {
+    OK = 0;
+    WARNING = 1;
+    CRITICAL = 2;
+    UNKNOWN = 3;
+    PENDING = 4;
+  }
+  State current_state = 5;
+  enum StateType {
+    SOFT = 0;
+    HARD = 1;
+  }
+  StateType state_type = 6;
+  int64 last_state_change = 7;
+  State last_hard_state = 8;
+  int64 last_hard_state_change = 9;
+  int64 last_time_ok = 10;
+  int64 last_time_warning = 11;
+  int64 last_time_critical = 12;
+  int64 last_time_unknown = 13;
+
+  string output = 14;
+  string long_output = 15;
+  string perf_data = 16;
+
+  bool is_flapping = 17;
+  double percent_state_change = 18;
+  double latency = 19;
+  double execution_time = 20;
+  int64 last_check = 21;
+  int64 next_check = 22;
+  bool should_be_scheduled = 23;
+  int32 current_check_attempt = 24;
+
+  int32 notification_number = 25;
+  bool no_more_notifications = 26;
+  int64 last_notification = 27;
+  int64 next_notification = 28;
+
+  enum AckType {
+    NONE = 0;
+    NORMAL = 1;
+    STICKY = 2;
+  }
+  AckType acknowledgement_type = 29;
+}

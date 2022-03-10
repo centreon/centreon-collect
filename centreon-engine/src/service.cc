@@ -1,21 +1,21 @@
 /*
-** Copyright 2011 - 2021 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2011 - 2022 Centreon (https://www.centreon.com/)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ *
+ */
 
 #include "com/centreon/engine/service.hh"
 
@@ -35,12 +35,10 @@
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/macros/grab_host.hh"
-#include "com/centreon/engine/macros/grab_service.hh"
 #include "com/centreon/engine/neberrors.hh"
 #include "com/centreon/engine/notification.hh"
 #include "com/centreon/engine/objects.hh"
 #include "com/centreon/engine/sehandlers.hh"
-#include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/timezone_locker.hh"
 #include "com/centreon/exceptions/interruption.hh"
@@ -986,6 +984,14 @@ std::string const& service::get_check_command_args() const {
   return _check_command_args;
 }
 
+/**
+ * @brief Handle asynchronously the result of a check.
+ *
+ * @param queued_check_result The check result.
+ *
+ * @return OK or ERROR.
+ *
+ */
 int service::handle_async_check_result(check_result* queued_check_result) {
   time_t next_service_check = 0L;
   time_t preferred_time = 0L;
@@ -2923,9 +2929,18 @@ void service::disable_flap_detection() {
 /**
  * @brief Updates service status info. Send data to event broker.
  */
-void service::update_status() {
-  broker_service_status(NEBTYPE_SERVICESTATUS_UPDATE, NEBFLAG_NONE,
-                        NEBATTR_NONE, this, nullptr);
+void service::update_status(service::status_type t) {
+  switch (t) {
+    case ALL:
+      broker_service_status(NEBTYPE_SERVICESTATUS_UPDATE, NEBFLAG_NONE,
+                            NEBATTR_NONE, this, nullptr);
+      break;
+    case CHECK_RESULT:
+      broker_service_status_check_result(NEBTYPE_SERVICESTATUS_UPDATE,
+                                         NEBFLAG_NONE, NEBATTR_NONE, this,
+                                         nullptr);
+      break;
+  }
 }
 
 /* checks viability of performing a service check */

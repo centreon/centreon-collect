@@ -27,7 +27,6 @@
 #include <time.h>
 #include <deque>
 #include "com/centreon/engine/downtimes/downtime.hh"
-#include "com/centreon/engine/namespace.hh"
 
 CCE_BEGIN()
 class timed_event;

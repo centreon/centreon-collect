@@ -2101,7 +2101,7 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
     _mysql.run_statement(_service_status_update,
                          database::mysql_error::store_service_status, false,
                          conn);
-    _add_action(conn, actions::hosts);
+    _add_action(conn, actions::services);
   } else
     // Do nothing.
     log_v2::sql()->info(
@@ -2110,6 +2110,131 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
         "{}))",
         ss.host_id(), ss.service_id(), ss.check_type(), ss.last_check(),
         ss.next_check(), now, ss.current_state(), ss.state_type());
+}
+/**
+ *  Process a service status event.
+ *
+ *  @param[in] e Uncasted service status.
+ *
+ * @return The number of events that can be acknowledged.
+ */
+void stream::_process_pb_service_status_check_result(
+    const std::shared_ptr<io::data>& d) {
+  _finish_action(-1, actions::host_parents | actions::comments |
+                         actions::downtimes | actions::host_dependencies |
+                         actions::service_dependencies);
+  // Processed object.
+  auto s{static_cast<const neb::pb_service_status_check_result*>(d.get())};
+  auto& sscr = s->obj();
+
+  log_v2::perfdata()->info("SQL: pb service status check result output: <<{}>>",
+                           sscr.output());
+  log_v2::perfdata()->info("SQL: service status check result perfdata: <<{}>>",
+                           sscr.perf_data());
+
+  time_t now = time(nullptr);
+  if (sscr.check_type() == ServiceStatusCheckResult_CheckType_PASSIVE ||
+      sscr.next_check() >= now - 5 * 60 ||  // usual case
+      sscr.next_check() == 0) {             // initial state
+    // Apply to DB.
+    log_v2::sql()->info(
+        "SQL: processing service status check result event proto (host: {}, "
+        "service: {}, "
+        "last check: {}, state ({}, {}))",
+        sscr.host_id(), sscr.service_id(), sscr.last_check(),
+        sscr.current_state(), sscr.state_type());
+
+    // Prepare queries.
+    if (!_sscr_update.prepared()) {
+      _sscr_update = _mysql.prepare_query(
+          "UPDATE services SET "
+          "checked=?,"                 // has_been_checked
+          "check_type=?,"              // check_type
+          "state=?,"                   // current_state
+          "state_type=?,"              // state_type
+          "last_state_change=?,"       // last_state_change
+          "last_hard_state=?,"         // last_hard_state
+          "last_hard_state_change=?,"  // last_hard_state_change
+          "last_time_ok=?,"            // last_time_ok
+          "last_time_warning=?,"       // last_time_warning
+          "last_time_critical=?,"      // last_time_critical
+          "last_time_unknown=?,"       // last_time_unknown
+          "output=?,"                  // output + '\n' + long_output
+          "perfdata=?,"                // perf_data
+          "flapping=?,"                // is_flapping
+          "percent_state_change=?,"    // percent_state_change
+          "latency=?,"                 // latency
+          "execution_time=?,"          // execution_time
+          "last_check=?,"              // last_check
+          "next_check=?,"              // next_check
+          "should_be_scheduled=?,"     // should_be_scheduled
+          "check_attempt=?,"           // current_check_attempt
+          "notification_number=?,"     // notification_number
+          "no_more_notifications=?,"   // no_more_notifications
+          "last_notification=?,"       // last_notification
+          "next_notification=?,"       // next_notification
+          "acknowledged=?,"            // acknowledgement_type != NONE
+          "acknowledgement_type=? "    // acknowledgement_type
+          "WHERE host_id=? AND service_id=?");
+    }
+
+    // Processing.
+
+    _sscr_update.bind_value_as_bool(0, sscr.has_been_checked());
+    _sscr_update.bind_value_as_i32(1, sscr.check_type());
+    _sscr_update.bind_value_as_i32(2, sscr.current_state());
+    _sscr_update.bind_value_as_i32(3, sscr.state_type());
+    _sscr_update.bind_value_as_i64(4, sscr.last_state_change());
+    _sscr_update.bind_value_as_i32(5, sscr.last_hard_state());
+    _sscr_update.bind_value_as_i64(6, sscr.last_hard_state_change());
+    _sscr_update.bind_value_as_i64(7, sscr.last_time_ok());
+    _sscr_update.bind_value_as_i64(8, sscr.last_time_warning());
+    _sscr_update.bind_value_as_i64(9, sscr.last_time_critical());
+    _sscr_update.bind_value_as_i64(10, sscr.last_time_unknown());
+    std::string full_output{
+        fmt::format("{}\n{}", sscr.output(), sscr.long_output())};
+    size_t size = misc::string::adjust_size_utf8(
+        full_output, get_services_col_size(services_output));
+    _sscr_update.bind_value_as_str(11,
+                                   fmt::string_view(full_output.data(), size));
+    size = misc::string::adjust_size_utf8(
+        sscr.perf_data(), get_services_col_size(services_perfdata));
+    _sscr_update.bind_value_as_str(
+        12, fmt::string_view(sscr.perf_data().data(), size));
+    _sscr_update.bind_value_as_bool(13, sscr.is_flapping());
+    _sscr_update.bind_value_as_f64(14, sscr.percent_state_change());
+    _sscr_update.bind_value_as_f64(15, sscr.latency());
+    _sscr_update.bind_value_as_f64(16, sscr.execution_time());
+    _sscr_update.bind_value_as_i64(17, sscr.last_check());
+    _sscr_update.bind_value_as_i64(18, sscr.next_check());
+    _sscr_update.bind_value_as_bool(19, sscr.should_be_scheduled());
+    _sscr_update.bind_value_as_i32(20, sscr.current_check_attempt());
+    _sscr_update.bind_value_as_i32(21, sscr.notification_number());
+    _sscr_update.bind_value_as_bool(22, sscr.no_more_notifications());
+    _sscr_update.bind_value_as_i64(23, sscr.last_notification());
+    _sscr_update.bind_value_as_i64(23, sscr.next_notification());
+    _sscr_update.bind_value_as_bool(
+        24,
+        sscr.acknowledgement_type() != ServiceStatusCheckResult_AckType_NONE);
+    _sscr_update.bind_value_as_i32(25, sscr.acknowledgement_type());
+    _sscr_update.bind_value_as_i32(26, sscr.host_id());
+    _sscr_update.bind_value_as_i32(27, sscr.service_id());
+
+    int32_t conn = _mysql.choose_connection_by_instance(
+        _cache_host_instance[static_cast<uint32_t>(sscr.host_id())]);
+    _mysql.run_statement(
+        _sscr_update, database::mysql_error::store_service_status_check_result,
+        false, conn);
+    _add_action(conn, actions::services);
+  } else
+    // Do nothing.
+    log_v2::sql()->info(
+        "SQL: not processing service status check result event (host: {}, "
+        "service: {}, "
+        "check type: {}, last check: {}, next check: {}, now: {}, state ({}, "
+        "{}))",
+        sscr.host_id(), sscr.service_id(), sscr.check_type(), sscr.last_check(),
+        sscr.next_check(), now, sscr.current_state(), sscr.state_type());
 }
 
 void stream::_process_severity(const std::shared_ptr<io::data>& d) {

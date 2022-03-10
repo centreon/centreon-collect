@@ -20,11 +20,8 @@
 #ifndef CCE_CONFIGURATION_SERVICEDEPENDENCY_HH
 #define CCE_CONFIGURATION_SERVICEDEPENDENCY_HH
 
-#include <memory>
-#include <set>
 #include "com/centreon/engine/configuration/group.hh"
 #include "com/centreon/engine/configuration/object.hh"
-#include "com/centreon/engine/namespace.hh"
 #include "com/centreon/engine/opt.hh"
 
 CCE_BEGIN()

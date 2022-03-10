@@ -53,10 +53,14 @@ extern std::list<std::unique_ptr<neb::callback>> gl_registered_callbacks;
 extern std::unordered_map<std::pair<uint32_t, uint32_t>, neb::acknowledgement>
     gl_acknowledgements;
 
-using pb_service_status =
-    io::protobuf<Service, make_type(io::neb, neb::de_pb_service_status)>;
 using pb_service =
     io::protobuf<Service, make_type(io::neb, neb::de_pb_service)>;
+using pb_service_status =
+    io::protobuf<Service, make_type(io::neb, neb::de_pb_service_status)>;
+using pb_service_status_check_result =
+    io::protobuf<ServiceStatusCheckResult,
+                 make_type(io::neb, neb::de_pb_service_status_check_result)>;
+
 using pb_host_status =
     io::protobuf<Host, make_type(io::neb, neb::de_pb_host_status)>;
 using pb_host = io::protobuf<Host, make_type(io::neb, neb::de_pb_host)>;

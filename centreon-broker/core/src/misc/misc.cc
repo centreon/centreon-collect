@@ -70,10 +70,9 @@ static const uint16_t crc_tbl[16] = {
  */
 uint16_t misc::crc16_ccitt(char const* data, uint32_t data_len) {
   uint16_t crc = 0xffff;
-  uint8_t c;
   const uint8_t* p = reinterpret_cast<const uint8_t*>(data);
   while (data_len--) {
-    c = *p++;
+    uint8_t c = *p++;
     crc = ((crc >> 4) & 0x0fff) ^ crc_tbl[((crc ^ c) & 15)];
     c >>= 4;
     crc = ((crc >> 4) & 0x0fff) ^ crc_tbl[((crc ^ c) & 15)];

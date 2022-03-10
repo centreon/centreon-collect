@@ -1,6 +1,7 @@
 /*
 ** Copyright 2002-2006 Ethan Galstad
 ** Copyright 2011-2013 Merethis
+** Copyright 2018-2022 Centreon
 **
 ** This file is part of Centreon Engine.
 **
@@ -21,12 +22,8 @@
 #ifndef CCE_BROKER_HH
 #define CCE_BROKER_HH
 
-#include <sys/time.h>
 #include "com/centreon/engine/commands/command.hh"
-#include "com/centreon/engine/contact.hh"
 #include "com/centreon/engine/events/timed_event.hh"
-#include "com/centreon/engine/host.hh"
-#include "com/centreon/engine/service.hh"
 #include "com/centreon/engine/timeperiod.hh"
 
 /* Event broker options. */
@@ -612,6 +609,11 @@ void broker_service_status(int type,
                            int attr,
                            com::centreon::engine::service* svc,
                            struct timeval const* timestamp);
+void broker_service_status_check_result(int type,
+                                        int flags,
+                                        int attr,
+                                        com::centreon::engine::service* svc,
+                                        struct timeval const* timestamp);
 void broker_statechange_data(int type,
                              int flags,
                              int attr,

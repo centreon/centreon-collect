@@ -95,7 +95,9 @@ static struct {
     {NEBCALLBACK_SERVICE_CHECK_DATA, &neb::callback_service_check},
     {NEBCALLBACK_SERVICE_STATUS_DATA, &neb::callback_service_status},
     {NEBCALLBACK_ADAPTIVE_SEVERITY_DATA, &neb::callback_severity},
-    {NEBCALLBACK_ADAPTIVE_TAG_DATA, &neb::callback_tag}};
+    {NEBCALLBACK_ADAPTIVE_TAG_DATA, &neb::callback_tag},
+    {NEBCALLBACK_SERVICE_STATUS_CHECK_RESULT_DATA,
+     &neb::callback_service_status}};
 
 // List of common callbacks.
 static struct {
@@ -114,7 +116,9 @@ static struct {
     {NEBCALLBACK_SERVICE_CHECK_DATA, &neb::callback_service_check},
     {NEBCALLBACK_SERVICE_STATUS_DATA, &neb::callback_pb_service_status},
     {NEBCALLBACK_ADAPTIVE_SEVERITY_DATA, &neb::callback_severity},
-    {NEBCALLBACK_ADAPTIVE_TAG_DATA, &neb::callback_tag}};
+    {NEBCALLBACK_ADAPTIVE_TAG_DATA, &neb::callback_tag},
+    {NEBCALLBACK_SERVICE_STATUS_CHECK_RESULT_DATA,
+     &neb::callback_pb_service_status_check_result}};
 
 // List of Engine-specific callbacks.
 static struct {
@@ -2656,6 +2660,87 @@ int32_t neb::callback_pb_service_status(int callback_type
     if (!(!srv.current_state()  // !(OK or (normal ack and NOK))
           || (!it->second.is_sticky &&
               (srv.current_state() != it->second.state)))) {
+      auto ack = std::make_shared<neb::acknowledgement>(it->second);
+      ack->deletion_time = time(nullptr);
+      gl_publisher.write(ack);
+    }
+    gl_acknowledgements.erase(it);
+  }
+  return 0;
+}
+
+int32_t neb::callback_pb_service_status_check_result(int callback_type
+                                                     __attribute__((unused)),
+                                                     void* data) noexcept {
+  log_v2::neb()->info("callbacks: generating service status event protobuf");
+
+  const engine::service* es{static_cast<engine::service*>(
+      static_cast<nebstruct_service_status_data*>(data)->object_ptr)};
+
+  auto s{std::make_shared<neb::pb_service_status_check_result>()};
+  ServiceStatusCheckResult& sscr = s.get()->mut_obj();
+
+  sscr.set_host_id(es->get_host_id());
+  sscr.set_service_id(es->get_service_id());
+  if (es->get_host_id() == 0 || es->get_service_id() == 0)
+    log_v2::neb()->error("could not find ID of service ('{}', '{}')",
+                         es->get_hostname(), es->get_description());
+
+  if (es->get_problem_has_been_acknowledged())
+    sscr.set_acknowledgement_type(static_cast<ServiceStatusCheckResult_AckType>(
+        es->get_acknowledgement_type()));
+  else
+    sscr.set_acknowledgement_type(ServiceStatusCheckResult_AckType_NONE);
+
+  sscr.set_check_type(
+      static_cast<ServiceStatusCheckResult_CheckType>(es->get_check_type()));
+  sscr.set_current_check_attempt(es->get_current_attempt());
+  sscr.set_current_state(static_cast<ServiceStatusCheckResult_State>(
+      (es->has_been_checked() ? es->get_current_state()
+                              : 4)));  // Pending state.
+  sscr.set_execution_time(es->get_execution_time());
+  sscr.set_has_been_checked(es->has_been_checked());
+  sscr.set_is_flapping(es->get_is_flapping());
+  sscr.set_last_check(es->get_last_check());
+  sscr.set_last_hard_state(
+      static_cast<ServiceStatusCheckResult_State>(es->get_last_hard_state()));
+  sscr.set_last_hard_state_change(es->get_last_hard_state_change());
+  sscr.set_last_notification(es->get_last_notification());
+  sscr.set_notification_number(es->get_notification_number());
+  sscr.set_last_state_change(es->get_last_state_change());
+  sscr.set_last_time_critical(es->get_last_time_critical());
+  sscr.set_last_time_ok(es->get_last_time_ok());
+  sscr.set_last_time_unknown(es->get_last_time_unknown());
+  sscr.set_last_time_warning(es->get_last_time_warning());
+  sscr.set_latency(es->get_latency());
+  sscr.set_next_check(es->get_next_check());
+  sscr.set_next_notification(es->get_next_notification());
+  sscr.set_no_more_notifications(es->get_no_more_notifications());
+  if (!es->get_plugin_output().empty())
+    sscr.set_output(misc::string::check_string_utf8(es->get_plugin_output()));
+
+  if (!es->get_long_plugin_output().empty())
+    sscr.set_long_output(
+        misc::string::check_string_utf8(es->get_long_plugin_output()));
+
+  sscr.set_percent_state_change(es->get_percent_state_change());
+  if (!es->get_perf_data().empty())
+    sscr.set_perf_data(misc::string::check_string_utf8(es->get_perf_data()));
+  sscr.set_should_be_scheduled(es->get_should_be_scheduled());
+  sscr.set_state_type(static_cast<ServiceStatusCheckResult_StateType>(
+      es->has_been_checked() ? es->get_state_type() : engine::notifier::hard));
+
+  // Send event(s).
+  gl_publisher.write(s);
+
+  // Acknowledgement event.
+  auto it = gl_acknowledgements.find(
+      std::make_pair(sscr.host_id(), sscr.service_id()));
+  if (it != gl_acknowledgements.end() &&
+      sscr.acknowledgement_type() == ServiceStatusCheckResult_AckType_NONE) {
+    if (!(!sscr.current_state()  // !(OK or (normal ack and NOK))
+          || (!it->second.is_sticky &&
+              (sscr.current_state() != it->second.state)))) {
       auto ack = std::make_shared<neb::acknowledgement>(it->second);
       ack->deletion_time = time(nullptr);
       gl_publisher.write(ack);

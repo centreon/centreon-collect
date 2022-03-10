@@ -39,6 +39,11 @@ class notification;
 
 class notifier : public checkable {
  public:
+  enum status_type {
+    ALL = 0,
+    CHECK_RESULT = 1,
+  };
+
   enum notification_category {
     cat_normal,
     cat_recovery,
@@ -169,7 +174,7 @@ class notifier : public checkable {
   void set_last_problem_id(unsigned long last_problem_id) noexcept;
 
   virtual bool schedule_check(time_t check_time, int options) = 0;
-  virtual void update_status() = 0;
+  virtual void update_status(status_type t = status_type::ALL) = 0;
   int notify(reason_type type,
              std::string const& not_author,
              std::string const& not_data,

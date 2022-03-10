@@ -30,7 +30,6 @@
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/log_v2.hh"
-#include "com/centreon/engine/logging/logger.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;
@@ -231,9 +230,13 @@ std::ostream& dump::scheduled_downtime(std::ostream& os, downtime const& obj) {
 std::ostream& dump::downtimes(std::ostream& os) {
   engine_logger(dbg_functions, basic) << "dump::downtimes()";
   log_v2::functions()->trace("dump::downtimes()");
-  for (std::pair<time_t, std::shared_ptr<downtime>> const& obj :
-       downtimes::downtime_manager::instance().get_scheduled_downtimes())
-    dump::scheduled_downtime(os, *obj.second);
+  for (auto obj = downtimes::downtime_manager::instance()
+                      .get_scheduled_downtimes()
+                      .begin();
+       obj !=
+       downtimes::downtime_manager::instance().get_scheduled_downtimes().end();
+       ++obj)
+    dump::scheduled_downtime(os, *obj->second);
   return os;
 }
 

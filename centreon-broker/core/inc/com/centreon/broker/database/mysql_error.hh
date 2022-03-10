@@ -112,6 +112,7 @@ class mysql_error {
     clean_severities,
     store_tag,
     clean_tags,
+    store_service_status_check_result,
   };
   static constexpr const char* msg[]{
       "error: ",
@@ -189,6 +190,7 @@ class mysql_error {
       "could not remove severities: ",
       "could not insert tag in tags table: ",
       "could not remove tags: ",
+      "could not update the service status check result into the database: ",
   };
 
   mysql_error() : _active(false) {}

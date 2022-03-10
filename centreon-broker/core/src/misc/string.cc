@@ -47,11 +47,11 @@ std::string& string::trim(std::string& str) noexcept {
   return str;
 }
 
-std::list<std::string> string::split(std::string const& str, char sep) {
+std::list<std::string> string::split(const std::string& str, char sep) {
   std::list<std::string> retval;
-  size_t pos = 0, new_pos;
+  size_t pos = 0;
   while (pos != std::string::npos) {
-    new_pos = str.find(sep, pos);
+    size_t new_pos = str.find(sep, pos);
     if (new_pos != std::string::npos) {
       retval.push_back(str.substr(pos, new_pos - pos));
       pos = new_pos + 1;
@@ -64,12 +64,12 @@ std::list<std::string> string::split(std::string const& str, char sep) {
   return retval;
 }
 
-std::list<fmt::string_view> string::split_sv(std::string const& str, char sep) {
+std::list<fmt::string_view> string::split_sv(const std::string& str, char sep) {
   std::list<fmt::string_view> retval;
-  size_t pos = 0, new_pos;
+  size_t pos = 0;
 
   while (pos != std::string::npos) {
-    new_pos = str.find(sep, pos);
+    size_t new_pos = str.find(sep, pos);
     if (new_pos != std::string::npos) {
       retval.emplace_back(str.data() + pos, new_pos - pos);
       pos = new_pos + 1;
@@ -122,10 +122,9 @@ bool string::is_number(const std::string& s) {
  * string should always be an UTF-8 string.
  */
 std::string string::check_string_utf8(std::string const& str) noexcept {
-  uint32_t val;
   std::string::const_iterator it;
   for (it = str.begin(); it != str.end();) {
-    val = (*it & 0xff);
+    uint32_t val = (*it & 0xff);
     if ((val & 0x80) == 0) {
       ++it;
       continue;
@@ -176,7 +175,7 @@ std::string string::check_string_utf8(std::string const& str) noexcept {
       uint8_t c = static_cast<uint8_t>(*it);
       if (c < 128)
         out.push_back(c);
-      else if (c >= 128 && c <= 160)
+      else if (c <= 160)
         out.push_back('_');
       else {
         switch (c) {
@@ -333,7 +332,6 @@ std::string string::check_string_utf8(std::string const& str) noexcept {
         ++it;
       }
       return out;
-      break;
     }
     ++itt;
   } while (itt != str.end());

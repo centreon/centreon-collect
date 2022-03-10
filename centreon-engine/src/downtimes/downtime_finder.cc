@@ -19,7 +19,6 @@
 
 #include "com/centreon/engine/downtimes/downtime_finder.hh"
 #include <cstdlib>
-#include "com/centreon/engine/downtimes/downtime.hh"
 #include "com/centreon/engine/downtimes/host_downtime.hh"
 #include "com/centreon/engine/downtimes/service_downtime.hh"
 
@@ -73,21 +72,21 @@ downtime_finder::result_set downtime_finder::find_matching_all(
     downtime_finder::criteria_set const& criterias) {
   result_set result;
   // Process all downtimes.
-  for (std::pair<time_t, std::shared_ptr<downtime> > const& dt : *_map) {
+  for (auto dt = _map->begin(); dt != _map->end(); ++dt) {
     // Process all criterias.
     bool matched_all{true};
     for (criteria_set::const_iterator it(criterias.begin()),
          end(criterias.end());
          it != end; ++it) {
-      switch (dt.second->get_type()) {
+      switch (dt->second->get_type()) {
         case downtime::host_downtime:
           if (!_match_criteria(
-                  *std::static_pointer_cast<host_downtime>(dt.second), *it))
+                  *std::static_pointer_cast<host_downtime>(dt->second), *it))
             matched_all = false;
           break;
         case downtime::service_downtime:
           if (!_match_criteria(
-                  *std::static_pointer_cast<service_downtime>(dt.second), *it))
+                  *std::static_pointer_cast<service_downtime>(dt->second), *it))
             matched_all = false;
           break;
         case downtime::any_downtime:
@@ -99,7 +98,7 @@ downtime_finder::result_set downtime_finder::find_matching_all(
 
     // If downtime matched all criterias, add it to the result set.
     if (matched_all)
-      result.push_back(dt.second->get_downtime_id());
+      result.push_back(dt->second->get_downtime_id());
   }
   return result;
 }

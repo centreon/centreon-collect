@@ -22,7 +22,6 @@
 #include "com/centreon/engine/configuration/servicedependency.hh"
 #include "com/centreon/engine/dependency.hh"
 #include "com/centreon/engine/hash.hh"
-#include "com/centreon/engine/namespace.hh"
 
 /* Forward declaration. */
 CCE_BEGIN()
