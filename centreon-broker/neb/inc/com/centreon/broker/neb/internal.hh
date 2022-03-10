@@ -55,6 +55,8 @@ extern std::unordered_map<std::pair<uint32_t, uint32_t>, neb::acknowledgement>
 
 using pb_service_status =
     io::protobuf<Service, make_type(io::neb, neb::de_pb_service_status)>;
+using pb_service =
+    io::protobuf<Service, make_type(io::neb, neb::de_pb_service)>;
 using pb_host_status =
     io::protobuf<Host, make_type(io::neb, neb::de_pb_host_status)>;
 using pb_severity =

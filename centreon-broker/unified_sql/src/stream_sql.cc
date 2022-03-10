@@ -1636,6 +1636,165 @@ void stream::_process_service(const std::shared_ptr<io::data>& d) {
 }
 
 /**
+ *  Process a service event.
+ *
+ *  @param[in] e Uncasted service.
+ *
+ * @return The number of events that can be acknowledged.
+ */
+void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
+  log_v2::sql()->debug("SQL: process pb service");
+  _finish_action(-1, actions::host_parents | actions::comments |
+                         actions::downtimes | actions::host_dependencies |
+                         actions::service_dependencies);
+  // Processed object.
+  auto s{static_cast<neb::pb_service const*>(d.get())};
+  auto& ss = s->obj();
+
+  log_v2::sql()->trace("SQL: pb service output: <<{}>>", ss.output());
+  // Processed object.
+  // const neb::service& s(*static_cast<neb::service const*>(d.get()));
+  if (_cache_host_instance[ss.host_id()]) {
+    int32_t conn = _mysql.choose_connection_by_instance(
+        _cache_host_instance[ss.host_id()]);
+
+    // Log message.
+    log_v2::sql()->trace(
+        "SQL: processing service event (host: {}, service: {}, "
+        "description: {})",
+        ss.host_id(), ss.service_id(), ss.service_description());
+
+    if (ss.host_id() && ss.service_id()) {
+      // Prepare queriess.
+      if (!_service_insupdate.prepared()) {
+        query_preparator::event_pb_unique unique{
+            {1, "host_id", io::protobuf_base::invalid_on_zero, 0},
+            {2, "service_id", io::protobuf_base::invalid_on_zero, 0},
+        };
+        query_preparator qp(neb::pb_service::static_type(), unique);
+
+        _service_insupdate = qp.prepare_insert_or_update_table(
+            _mysql, "services",
+            {
+                {1, "host_id", io::protobuf_base::invalid_on_zero, 0},
+                {2, "service_id", io::protobuf_base::invalid_on_zero, 0},
+                {3, "acknowledged", 0, 0},
+                {4, "acknowledgement_type", 0, 0},
+                {5, "active_checks", 0, 0},
+                {6, "enabled", 0, 0},
+                {7, "scheduled_downtime_depth", 0, 0},
+                {8, "check_command", 0,
+                 get_services_col_size(services_check_command)},
+                {9, "check_interval", 0, 0},
+                {10, "check_period", 0,
+                 get_services_col_size(services_check_period)},
+                {11, "check_type", 0, 0},
+                {12, "check_attempt", 0, 0},
+                {13, "state", 0, 0},
+                {14, "event_handler_enabled", 0, 0},
+                {15, "event_handler", 0,
+                 get_services_col_size(services_event_handler)},
+                {16, "execution_time", 0, 0},
+                {17, "flap_detection", 0, 0},
+                {18, "checked", 0, 0},
+                {19, "flapping", 0, 0},
+                {20, "last_check", io::protobuf_base::invalid_on_zero, 0},
+                {21, "last_hard_state", 0, 0},
+                {22, "last_hard_state_change",
+                 io::protobuf_base::invalid_on_zero, 0},
+                {23, "last_notification", io::protobuf_base::invalid_on_zero,
+                 0},
+                {24, "notification_number", 0, 0},
+                {25, "last_state_change", io::protobuf_base::invalid_on_zero,
+                 0},
+                {26, "last_time_ok", io::protobuf_base::invalid_on_zero, 0},
+                {27, "last_time_warning", io::protobuf_base::invalid_on_zero,
+                 0},
+                {28, "last_time_critical", io::protobuf_base::invalid_on_zero,
+                 0},
+                {29, "last_time_unknown", io::protobuf_base::invalid_on_zero,
+                 0},
+                {30, "last_update", io::protobuf_base::invalid_on_zero, 0},
+                {31, "latency", 0, 0},
+                {32, "max_check_attempts", 0, 0},
+                {33, "next_check", io::protobuf_base::invalid_on_zero, 0},
+                {34, "next_notification", io::protobuf_base::invalid_on_zero,
+                 0},
+                {35, "no_more_notifications", 0, 0},
+                {36, "notify", 0, 0},
+                {37, "output", 0, get_services_col_size(services_output)},
+
+                {39, "passive_checks", 0, 0},
+                {40, "percent_state_change", 0, 0},
+                {41, "perfdata", 0, get_services_col_size(services_perfdata)},
+                {42, "retry_interval", 0, 0},
+
+                {44, "description", 0,
+                 get_services_col_size(services_description)},
+                {45, "should_be_scheduled", 0, 0},
+                {46, "obsess_over_service", 0, 0},
+                {47, "state_type", 0, 0},
+                {48, "action_url", 0,
+                 get_services_col_size(services_action_url)},
+                {49, "check_freshness", 0, 0},
+                {50, "default_active_checks", 0, 0},
+                {51, "default_event_handler_enabled", 0, 0},
+                {52, "default_flap_detection", 0, 0},
+                {53, "default_notify", 0, 0},
+                {54, "default_passive_checks", 0, 0},
+                {55, "display_name", 0,
+                 get_services_col_size(services_display_name)},
+                {56, "first_notification_delay", 0, 0},
+                {57, "flap_detection_on_critical", 0, 0},
+                {58, "flap_detection_on_ok", 0, 0},
+                {59, "flap_detection_on_unknown", 0, 0},
+                {60, "flap_detection_on_warning", 0, 0},
+                {61, "freshness_threshold", 0, 0},
+                {62, "high_flap_threshold", 0, 0},
+                {63, "icon_image", 0,
+                 get_services_col_size(services_icon_image)},
+                {64, "icon_image_alt", 0,
+                 get_services_col_size(services_icon_image_alt)},
+                {65, "volatile", 0, 0},
+                {66, "low_flap_threshold", 0, 0},
+                {67, "notes", 0, get_services_col_size(services_notes)},
+                {68, "notes_url", 0, get_services_col_size(services_notes_url)},
+                {69, "notification_interval", 0, 0},
+                {70, "notification_period", 0,
+                 get_services_col_size(services_notification_period)},
+                {71, "notify_on_critical", 0, 0},
+                {72, "notify_on_downtime", 0, 0},
+                {73, "notify_on_flapping", 0, 0},
+                {74, "notify_on_recovery", 0, 0},
+                {75, "notify_on_unknown", 0, 0},
+                {76, "notify_on_warning", 0, 0},
+                {77, "stalk_on_critical", 0, 0},
+                {78, "stalk_on_ok", 0, 0},
+                {79, "stalk_on_unknown", 0, 0},
+                {80, "stalk_on_warning", 0, 0},
+                {81, "retain_nonstatus_information", 0, 0},
+                {82, "retain_status_information", 0, 0},
+            });
+      }
+
+      // Processing.
+      _service_insupdate << *s;
+      _mysql.run_statement(_service_insupdate,
+                           database::mysql_error::store_service, true, conn);
+      _add_action(conn, actions::services);
+    } else
+      log_v2::sql()->trace(
+          "SQL: service '{}' has no host ID, service ID nor hostname, probably "
+          "bam fake service",
+          ss.service_description());
+  } else
+    log_v2::sql()->error(
+        "SQL: host with host_id = {} does not exist - unable to store service "
+        "of that host. You should restart centengine",
+        ss.host_id());
+}
+
+/**
  *  Process a service status event.
  *
  *  @param[in] e Uncasted service status.
