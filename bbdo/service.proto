@@ -75,4 +75,39 @@ message Service {
   }
 
   StateType state_type = 47;
+  string action_url = 48;
+  bool check_freshness = 49;
+  bool default_active_checks_enabled = 50;
+  bool default_event_handler_enabled = 51;
+  bool default_flap_detection_enabled = 52;
+  bool default_notifications_enabled = 53;
+  bool default_passive_checks_enabled = 54;
+  string display_name = 55;
+  double first_notification_delay = 56;
+  bool flap_detection_on_critical = 57;
+  bool flap_detection_on_ok = 58;
+  bool flap_detection_on_unknown = 59;
+  bool flap_detection_on_warning = 60;
+  double freshness_threshold = 61;
+  double high_flap_threshold = 62;
+  string icon_image = 63;
+  string icon_image_alt = 64;
+  bool is_volatile = 65;
+  double low_flap_threshold = 66;
+  string note = 67;
+  string notes_url = 68;
+  double notification_interval = 69;
+  string notification_period = 70;
+  bool notify_on_critical = 71;
+  bool notify_on_downtime = 72;
+  bool notify_on_flapping = 73;
+  bool notify_on_recovery = 74;
+  bool notify_on_unknown = 75;
+  bool notify_on_warning = 76;
+  bool stalk_on_critical = 77;
+  bool stalk_on_ok = 78;
+  bool stalk_on_unknown = 79;
+  bool stalk_on_warning = 80;
+  bool retain_nonstatus_information = 81;
+  bool retain_status_information = 82;
 }

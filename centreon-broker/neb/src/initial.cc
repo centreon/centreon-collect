@@ -486,6 +486,35 @@ static void send_service_list() {
 }
 
 /**
+ *  Send to the global publisher the list of services within Nagios.
+ */
+static void send_pb_service_list() {
+  // Start log message.
+  log_v2::neb()->info("init: beginning pb service dump");
+
+  // Loop through all services.
+  for (service_map::const_iterator
+           it{com::centreon::engine::service::services.begin()},
+       end{com::centreon::engine::service::services.end()};
+       it != end; ++it) {
+    // Fill callback struct.
+    nebstruct_adaptive_service_data nsasd;
+    memset(&nsasd, 0, sizeof(nsasd));
+    nsasd.type = NEBTYPE_SERVICE_ADD;
+    nsasd.command_type = CMD_NONE;
+    nsasd.modified_attribute = MODATTR_ALL;
+    nsasd.modified_attributes = MODATTR_ALL;
+    nsasd.object_ptr = it->second.get();
+
+    // Callback.
+    neb::callback_pb_service(NEBCALLBACK_ADAPTIVE_SERVICE_DATA, &nsasd);
+  }
+
+  // End log message.
+  log_v2::neb()->info("init: end of pb services dump");
+}
+
+/**
  *  Send the instance configuration loaded event.
  */
 static void send_instance_configuration() {
@@ -512,6 +541,29 @@ void neb::send_initial_configuration() {
   send_tag_list();
   send_host_list();
   send_service_list();
+  send_custom_variables_list();
+  send_downtimes_list();
+  send_host_parents_list();
+  send_host_group_list();
+  send_service_group_list();
+  send_host_dependencies_list();
+  send_service_dependencies_list();
+  send_module_list();
+  send_instance_configuration();
+}
+
+/**************************************
+ *                                     *
+ *          Global Functions           *
+ *                                     *
+ **************************************/
+
+/**
+ *  Send initial configuration to the global publisher.
+ */
+void neb::send_initial_pb_configuration() {
+  send_host_list();
+  send_pb_service_list();
   send_custom_variables_list();
   send_downtimes_list();
   send_host_parents_list();

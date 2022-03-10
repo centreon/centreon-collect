@@ -39,13 +39,6 @@ using pb_remove_graphs =
     io::protobuf<ToRemove, make_type(io::bbdo, bbdo::de_remove_graphs)>;
 }  // namespace bbdo
 
-namespace neb {
-using pb_service =
-    io::protobuf<Service, make_type(io::neb, neb::de_pb_service)>;
-
-using pb_host = io::protobuf<Host, make_type(io::neb, neb::de_pb_host)>;
-}  // namespace neb
-
 namespace storage {
 /**
  * Here is the declaration of the message sent by unified_sql to rrd to rebuild
