@@ -1,0 +1,7 @@
+#!/bin/sh
+
+if [ "$1" = "configure" ] ; then
+    /sbin/ldconfig
+fi
+
+exit 0

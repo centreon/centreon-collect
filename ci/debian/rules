@@ -1,28 +1,15 @@
 #!/usr/bin/make -f
-export DH_VERBOSE=1
-export CPU_COUNT=$(nproc --all)
 
 %:
 	dh $@  
 
 override_dh_auto_configure:
-	mkdir build
-	cd build && \
-	conan install .. -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing && \
-	CXXFLAGS="-Wall -Wextra" cmake \
-		-DCMAKE_EXPORT_COMPILE_COMMANDS=On \
-		-DCMAKE_BUILD_TYPE=RelWithDebInfo \
-		-DCMAKE_INSTALL_PREFIX=/usr \
-		-DWITH_TESTING=0 \
-		-DWITH_MODULE_SIMU=On \
-		-DWITH_BENCH=On \
-		-DWITH_CREATE_FILES=OFF \
-		..
+	bash cmake.sh -r
 
 override_dh_auto_build:
 	cd build && \
-	make -j9
+	make
 
 override_dh_auto_install:
 	cd build && \
-	make -j9 install DESTDIR=../debian/tmp-centreon-collect
+	make install DESTDIR=../debian/tmp-centreon-collect
