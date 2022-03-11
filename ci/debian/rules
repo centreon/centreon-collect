@@ -4,12 +4,23 @@
 	dh $@  
 
 override_dh_auto_configure:
-	bash cmake.sh -r
+	mkdir build
+	cd build && \
+	conan install .. -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing && \
+	CXXFLAGS="-Wall -Wextra" cmake \
+		-DCMAKE_EXPORT_COMPILE_COMMANDS=On \
+		-DCMAKE_BUILD_TYPE=RelWithDebInfo \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DWITH_TESTING=0 \
+		-DWITH_MODULE_SIMU=On \
+		-DWITH_BENCH=On \
+		-DWITH_CREATE_FILES=OFF \
+		..
 
 override_dh_auto_build:
 	cd build && \
-	make
+	make -j9
 
 override_dh_auto_install:
 	cd build && \
-	make install DESTDIR=../debian/tmp-centreon-collect
+	make -j9 install DESTDIR=../debian/tmp-centreon-collect
