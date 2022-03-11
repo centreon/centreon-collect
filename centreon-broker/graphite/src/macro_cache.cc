@@ -114,7 +114,13 @@ std::string const& macro_cache::get_service_description(
   if (found == _services.end())
     throw msg_fmt("graphite: could not find information on service ({}, {})",
                   host_id, service_id);
-  return found->second->service_description;
+  if (found->second->type() == neb::service::static_type()) {
+    auto const& s = std::static_pointer_cast<neb::service>(found->second);
+    return s->service_description;
+  } else {
+    auto const& s = std::static_pointer_cast<neb::pb_service>(found->second);
+    return s->mut_obj().service_description();
+  }
 }
 
 /**
@@ -147,6 +153,8 @@ void macro_cache::write(std::shared_ptr<io::data> const& data) {
     _process_host(data);
   else if (data->type() == neb::service::static_type())
     _process_service(data);
+  else if (data->type() == neb::pb_service::static_type())
+    _process_pb_service(data);
   else if (data->type() == storage::index_mapping::static_type())
     _process_index_mapping(data);
   else if (data->type() == storage::metric_mapping::static_type())
@@ -180,7 +188,17 @@ void macro_cache::_process_host(std::shared_ptr<io::data> const& data) {
  */
 void macro_cache::_process_service(std::shared_ptr<io::data> const& data) {
   auto const& s = std::static_pointer_cast<neb::service>(data);
-  _services[{s->host_id, s->service_id}] = s;
+  _services[{s->host_id, s->service_id}] = data;
+}
+
+/**
+ *  Process a pb service event.
+ *
+ *  @param data  The event.
+ */
+void macro_cache::_process_pb_service(std::shared_ptr<io::data> const& data) {
+  auto const& s = std::static_pointer_cast<neb::pb_service>(data);
+  _services[{s->mut_obj().host_id(), s->mut_obj().service_id()}] = data;
 }
 
 /**

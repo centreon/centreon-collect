@@ -111,6 +111,93 @@ TEST(graphiteQuery, ComplexStatus) {
             "test_._host1_1_svc1_1_poller_test_3_3__TEST_$ 2 2000\n");
 }
 
+TEST(graphiteQuery, ComplexPbMetric) {
+  std::shared_ptr<persistent_cache> pcache{nullptr};
+  graphite::macro_cache cache(pcache);
+  storage::metric m{1u, 1u, "host1", 2000llu, 60, true, 40u, 42, 42.0, 4};
+  std::shared_ptr<neb::host> host{std::make_shared<neb::host>()};
+  std::shared_ptr<neb::pb_service> svc{std::make_shared<neb::pb_service>()};
+  std::shared_ptr<neb::instance> instance{std::make_shared<neb::instance>()};
+  std::shared_ptr<storage::metric_mapping> metric_map{
+      std::make_shared<storage::metric_mapping>()};
+  std::shared_ptr<storage::index_mapping> index_map{
+      std::make_shared<storage::index_mapping>()};
+
+  m.source_id = 3;
+
+  svc->mut_obj().set_service_description("svc.1");
+  svc->mut_obj().set_service_id(1);
+  svc->mut_obj().set_host_id(1);
+
+  host->host_name = "host1";
+  host->host_id = 1;
+
+  instance->poller_id = 3;
+  instance->name = "poller test";
+
+  metric_map->metric_id = 40;
+  metric_map->index_id = 41;
+
+  index_map->index_id = 41;
+
+  cache.write(host);
+  cache.write(svc);
+  cache.write(instance);
+  cache.write(metric_map);
+  cache.write(index_map);
+
+  graphite::query q{
+      "test . $HOST$ $HOSTID$ $SERVICE$ $SERVICEID$ $INSTANCE$ $INSTANCEID$ "
+      "$INDEXID$ $TEST$ TEST $$",
+      "a", graphite::query::metric, cache};
+
+  ASSERT_EQ(q.generate_metric(m),
+            "test_._host1_1_svca1_1_poller_test_3_41__TEST_$ 42 2000\n");
+}
+
+TEST(graphiteQuery, ComplexPbStatus) {
+  std::shared_ptr<persistent_cache> pcache{nullptr};
+  graphite::macro_cache cache(pcache);
+  storage::status s{2000llu, 3, 60, true, 9, 2};
+
+  std::shared_ptr<neb::host> host{std::make_shared<neb::host>()};
+  std::shared_ptr<neb::pb_service> svc{std::make_shared<neb::pb_service>()};
+  std::shared_ptr<neb::instance> instance{std::make_shared<neb::instance>()};
+  std::shared_ptr<storage::index_mapping> index_map{
+      std::make_shared<storage::index_mapping>()};
+
+  graphite::query q{
+      "test . $HOST$ $HOSTID$ $SERVICE$ $SERVICEID$ $INSTANCE$ $INSTANCEID$ "
+      "$INDEXID$ $TEST$ TEST $$",
+      "a", graphite::query::status, cache};
+
+  svc->mut_obj().set_service_description("svc1");
+  svc->mut_obj().set_service_id(1);
+  svc->mut_obj().set_host_id(1);
+
+  host->host_name = "host1";
+  host->host_id = 1;
+
+  instance->poller_id = 3;
+  instance->name = "poller test";
+
+  index_map->index_id = 3;
+  index_map->host_id = 1;
+  index_map->service_id = 1;
+
+  s.source_id = 3;
+  s.destination_id = 4;
+  s.broker_id = 1;
+
+  cache.write(host);
+  cache.write(svc);
+  cache.write(instance);
+  cache.write(index_map);
+
+  ASSERT_EQ(q.generate_status(s),
+            "test_._host1_1_svc1_1_poller_test_3_3__TEST_$ 2 2000\n");
+}
+
 TEST(graphiteQuery, Except) {
   std::shared_ptr<persistent_cache> pcache{nullptr};
   graphite::macro_cache cache(pcache);

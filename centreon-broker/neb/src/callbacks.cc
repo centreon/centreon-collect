@@ -2170,7 +2170,7 @@ int neb::callback_pb_service(int callback_type, void* data) {
   srv.set_next_notification(es->get_next_notification());
   srv.set_no_more_notifications(es->get_no_more_notifications());
   if (!es->get_notes().empty())
-    *srv.mutable_note() = misc::string::check_string_utf8(es->get_notes());
+    *srv.mutable_notes() = misc::string::check_string_utf8(es->get_notes());
   if (!es->get_notes_url().empty())
     *srv.mutable_notes_url() =
         misc::string::check_string_utf8(es->get_notes_url());

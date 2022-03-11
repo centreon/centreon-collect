@@ -94,7 +94,7 @@ message Service {
   string icon_image_alt = 64;
   bool is_volatile = 65;
   double low_flap_threshold = 66;
-  string note = 67;
+  string notes = 67;
   string notes_url = 68;
   double notification_interval = 69;
   string notification_period = 70;

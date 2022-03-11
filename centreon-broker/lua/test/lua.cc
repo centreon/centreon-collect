@@ -603,7 +603,35 @@ TEST_F(LuaTest, ServiceCacheTest) {
       "end\n");
   std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
   std::string lst(ReadFile("/tmp/log"));
+  ASSERT_NE(lst.find("service description is description"), std::string::npos);
+  RemoveFile(filename);
+  RemoveFile("/tmp/log");
+}
 
+// When a query for a hostname is made
+// And the cache knows about it
+// Then the hostname is returned from the lua method.
+TEST_F(LuaTest, PbServiceCacheTest) {
+  std::map<std::string, misc::variant> conf;
+  std::string filename("/tmp/cache_test.lua");
+  std::shared_ptr<neb::pb_service> svc(new neb::pb_service);
+  svc->mut_obj().set_service_description("description");
+  svc->mut_obj().set_service_id(14);
+  svc->mut_obj().set_host_id(1);
+  svc->mut_obj().set_enabled(true);
+  _cache->write(svc);
+
+  CreateScript(
+      filename,
+      "function init(conf)\n"
+      "  broker_log:set_parameters(3, '/tmp/log')\n"
+      "  local svc = broker_cache:get_service_description(1, 14)\n"
+      "  broker_log:info(1, 'service description is ' .. tostring(svc))\n"
+      "end\n\n"
+      "function write(d)\n"
+      "end\n");
+  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  std::string lst(ReadFile("/tmp/log"));
   ASSERT_NE(lst.find("service description is description"), std::string::npos);
   RemoveFile(filename);
   RemoveFile("/tmp/log");
@@ -645,6 +673,48 @@ TEST_F(LuaTest, IndexMetricCacheTest) {
   std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
   std::string lst(ReadFile("/tmp/log"));
 
+  ASSERT_NE(lst.find("service description is MyDescription"),
+            std::string::npos);
+  RemoveFile(filename);
+  RemoveFile("/tmp/log");
+}
+
+// When a query for a hostname is made
+// And the cache knows about it
+// Then the hostname is returned from the lua method.
+TEST_F(LuaTest, PbIndexMetricCacheTest) {
+  std::map<std::string, misc::variant> conf;
+  std::string filename("/tmp/cache_test.lua");
+  std::shared_ptr<neb::pb_service> svc(new neb::pb_service);
+  svc->mut_obj().set_service_description("MyDescription");
+  svc->mut_obj().set_service_id(14);
+  svc->mut_obj().set_host_id(1);
+  svc->mut_obj().set_enabled(true);
+  _cache->write(svc);
+  std::shared_ptr<neb::host> hst(new neb::host);
+  hst->host_id = 1;
+  hst->host_name = "host1";
+  _cache->write(hst);
+  std::shared_ptr<storage::index_mapping> im(new storage::index_mapping);
+  im->index_id = 7;
+  im->service_id = 14;
+  im->host_id = 1;
+  _cache->write(im);
+
+  CreateScript(
+      filename,
+      "function init(conf)\n"
+      "  broker_log:set_parameters(3, '/tmp/log')\n"
+      "  local index_mapping = broker_cache:get_index_mapping(7)\n"
+      "  local svc = "
+      "broker_cache:get_service_description(index_mapping.host_id, "
+      "index_mapping.service_id)\n"
+      "  broker_log:info(1, 'service description is ' .. tostring(svc))\n"
+      "end\n\n"
+      "function write(d)\n"
+      "end\n");
+  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  std::string lst(ReadFile("/tmp/log"));
   ASSERT_NE(lst.find("service description is MyDescription"),
             std::string::npos);
   RemoveFile(filename);
@@ -964,6 +1034,65 @@ TEST_F(LuaTest, ServiceGroupCacheTest) {
   svc->host_id = 22;
   svc->host_name = "host_centreon";
   svc->service_description = "service_description";
+  _cache->write(svc);
+  std::shared_ptr<neb::service_group_member> member(
+      new neb::service_group_member);
+  member->host_id = 22;
+  member->service_id = 17;
+  member->poller_id = 3;
+  member->enabled = false;
+  member->group_id = 16;
+  member->group_name = "seize";
+  _cache->write(member);
+  member.reset(new neb::service_group_member);
+  member->host_id = 22;
+  member->service_id = 17;
+  member->poller_id = 4;
+  member->enabled = true;
+  member->group_id = 17;
+  member->group_name = "dix-sept";
+  _cache->write(member);
+
+  CreateScript(filename,
+               "function init(conf)\n"
+               "  broker_log:set_parameters(3, '/tmp/log')\n"
+               "  local sg = broker_cache:get_servicegroups(22, 17)\n"
+               "  for i,v in ipairs(sg) do\n"
+               "    broker_log:info(1, 'member of ' .. broker.json_encode(v))\n"
+               "  end\n"
+               "end\n\n"
+               "function write(d)\n"
+               "end\n");
+  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  std::string lst(ReadFile("/tmp/log"));
+
+  ASSERT_NE(std::string::npos, lst.find("\"group_id\":17"));
+  ASSERT_NE(std::string::npos, lst.find("\"group_name\":\"dix-sept\""));
+
+  RemoveFile(filename);
+  RemoveFile("/tmp/log");
+}
+
+// When a query for service groups is made
+// And the cache does know about them
+// Then an array is returned by the lua method.
+TEST_F(LuaTest, PbServiceGroupCacheTest) {
+  std::map<std::string, misc::variant> conf;
+  std::string filename("/tmp/cache_test.lua");
+  std::shared_ptr<neb::service_group> sg(new neb::service_group);
+  sg->id = 16;
+  sg->name = "centreon1";
+  _cache->write(sg);
+  sg.reset(new neb::service_group);
+  sg->id = 17;
+  sg->name = "centreon2";
+  _cache->write(sg);
+  std::shared_ptr<neb::pb_service> svc(new neb::pb_service);
+  svc->mut_obj().set_service_description("service_description");
+  svc->mut_obj().set_service_id(17);
+  svc->mut_obj().set_host_id(22);
+  svc->mut_obj().set_host_name("host_centreon");
+  svc->mut_obj().set_enabled(true);
   _cache->write(svc);
   std::shared_ptr<neb::service_group_member> member(
       new neb::service_group_member);
@@ -2007,6 +2136,161 @@ TEST_F(LuaTest, BrokerEventPairs) {
   RemoveFile("/tmp/event_log");
 }
 
+// When a query for a hostname is made
+// And the cache does not know about it
+// Then nil is returned from the lua method.
+TEST_F(LuaTest, PbCacheSvcGetNotesUrlTest) {
+  std::map<std::string, misc::variant> conf;
+  std::string filename("/tmp/cache_test.lua");
+  std::shared_ptr<neb::pb_service> svc(new neb::pb_service);
+  auto& obj = svc->mut_obj();
+  obj.set_host_id(1);
+  obj.set_service_id(2);
+  obj.set_notes("svc notes");
+  obj.set_notes_url("svc notes url");
+  obj.set_action_url("svc action url");
+  obj.set_enabled(true);
+  _cache->write(svc);
+
+  CreateScript(filename,
+               "function init(conf)\n"
+               "  broker_log:set_parameters(3, '/tmp/log')\n"
+               "  local notes_url = broker_cache:get_notes_url(1, 2)\n"
+               "  local action_url = broker_cache:get_action_url(1, 2)\n"
+               "  local notes = broker_cache:get_notes(1, 2)\n"
+               "  broker_log:info(1, \"notes_url=\" .. notes_url)\n"
+               "  broker_log:info(1, \"action_url=\" .. action_url)\n"
+               "  broker_log:info(1, \"notes=\" .. notes)\n"
+               "end\n\n"
+               "function write(d)\n"
+               "end\n");
+  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  std::string lst(ReadFile("/tmp/log"));
+  ASSERT_NE(lst.find("notes_url=svc notes url"), std::string::npos);
+  ASSERT_NE(lst.find("action_url=svc action url"), std::string::npos);
+  ASSERT_NE(lst.find("notes=svc notes"), std::string::npos);
+  RemoveFile(filename);
+  RemoveFile("/tmp/log");
+}
+
+TEST_F(LuaTest, PbCacheSeverity) {
+  std::map<std::string, misc::variant> conf;
+  std::string filename("/tmp/cache_test.lua");
+  std::shared_ptr<neb::pb_service> svc(new neb::pb_service);
+  auto& obj = svc->mut_obj();
+  obj.set_host_id(1);
+  obj.set_service_id(2);
+  obj.set_notes("svc notes");
+  obj.set_notes_url("svc notes url");
+  obj.set_action_url("svc action url");
+  obj.set_enabled(true);
+  _cache->write(svc);
+  std::shared_ptr<neb::custom_variable> cv =
+      std::make_shared<neb::custom_variable>();
+  cv->name = "CRITICALITY_LEVEL";
+  cv->value = std::to_string(3);
+  cv->host_id = 1;
+  cv->service_id = 2;
+  _cache->write(cv);
+
+  CreateScript(filename,
+               "function init(conf)\n"
+               "  broker_log:set_parameters(3, '/tmp/log')\n"
+               "  local severity = broker_cache:get_severity(1, 2)\n"
+               "  broker_log:info(1, \"severity=\" .. severity)\n"
+               "end\n\n"
+               "function write(d)\n"
+               "end\n");
+  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  std::string lst(ReadFile("/tmp/log"));
+  ASSERT_NE(lst.find("severity=3"), std::string::npos);
+  RemoveFile(filename);
+  RemoveFile("/tmp/log");
+}
+
+TEST_F(LuaTest, PbBrokerEventIndex) {
+  config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  std::shared_ptr<neb::pb_service> svc(new neb::pb_service);
+  auto& obj = svc->mut_obj();
+  obj.set_host_id(1);
+  obj.set_service_id(2);
+  obj.set_stalk_on_ok(false);
+  *obj.mutable_service_description() = "foo bar";
+  *obj.mutable_notes() = "svc notes";
+  *obj.mutable_notes_url() = "svc notes url";
+  *obj.mutable_action_url() = "svc action url";
+  obj.set_check_interval(1);
+  obj.set_check_type(static_cast<Service_CheckType>(14));
+  obj.set_last_check(123456);
+  obj.set_enabled(true);
+  std::string filename("/tmp/cache_test.lua");
+  CreateScript(
+      filename,
+      "function init(conf)\n"
+      "  broker_log:set_parameters(3, '/tmp/event_log')\n"
+      "end\n\n"
+      "function write(d)\n"
+      "  broker_log:info(0, 'service_description = ' .. "
+      "d.service_description)\n"
+      "  broker_log:info(0, 'stalk_on_ok = ' .. tostring(d.stalk_on_ok))\n"
+      "  broker_log:info(0, 'check_interval = ' .. d.check_interval)\n"
+      "  broker_log:info(0, 'check_type = ' .. d.check_type)\n"
+      "  broker_log:info(0, 'service_id = ' .. d.service_id)\n"
+      "  broker_log:info(0, 'last_check = ' .. d.last_check)\n"
+      "end\n");
+  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  binding->write(svc);
+  std::string lst(ReadFile("/tmp/event_log"));
+  std::cout << lst << std::endl;
+  ASSERT_NE(lst.find("service_description = foo bar"), std::string::npos);
+  ASSERT_NE(lst.find("stalk_on_ok = false"), std::string::npos);
+  ASSERT_NE(lst.find("check_interval = 1"), std::string::npos);
+  ASSERT_NE(lst.find("check_type = 14"), std::string::npos);
+  ASSERT_NE(lst.find("service_id = 2"), std::string::npos);
+  ASSERT_NE(lst.find("last_check = 123456"), std::string::npos);
+  RemoveFile(filename);
+  RemoveFile("/tmp/event_log");
+}
+
+TEST_F(LuaTest, PbBrokerEventPairs) {
+  config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  std::shared_ptr<neb::pb_service> svc(new neb::pb_service);
+  auto& obj = svc->mut_obj();
+  obj.set_host_id(1);
+  obj.set_service_id(2);
+  *obj.mutable_service_description() = "foo bar";
+  *obj.mutable_notes() = "svc notes";
+  *obj.mutable_notes_url() = "svc notes url";
+  *obj.mutable_action_url() = "svc action url";
+  obj.set_enabled(true);
+  std::string filename("/tmp/cache_test.lua");
+  CreateScript(filename,
+               "function init(conf)\n"
+               "  broker_log:set_parameters(3, '/tmp/event_log')\n"
+               "end\n\n"
+               "function write(d)\n"
+               "  for k,v in pairs(d) do\n"
+               "    broker_log:info(0, k .. ' = ' .. tostring(v))\n"
+               "  end\n"
+               "end\n");
+  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  binding->write(svc);
+  std::string lst(ReadFile("/tmp/event_log"));
+  std::cout << lst << std::endl;
+  ASSERT_NE(lst.find("service_description = foo bar"), std::string::npos);
+  ASSERT_NE(lst.find("notes = svc notes"), std::string::npos);
+  ASSERT_NE(lst.find("notes_url = svc notes url"), std::string::npos);
+  ASSERT_NE(lst.find("action_url = svc action url"), std::string::npos);
+  ASSERT_NE(lst.find("host_id = 1"), std::string::npos);
+  ASSERT_NE(lst.find("service_id = 2"), std::string::npos);
+  RemoveFile(filename);
+  RemoveFile("/tmp/event_log");
+}
+
 TEST_F(LuaTest, BrokerEventJsonEncode) {
   config::applier::modules modules;
   modules.load_file("./lib/10-neb.so");
@@ -2094,7 +2378,6 @@ TEST_F(LuaTest, TestHostApiV1) {
   std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
   binding->write(hst);
   std::string lst(ReadFile("/tmp/event_log"));
-  std::cout << lst << std::endl;
   ASSERT_NE(lst.find("type of d = table"), std::string::npos);
   ASSERT_NE(lst.find("type of hst = table"), std::string::npos);
   RemoveFile(filename);
@@ -2122,7 +2405,6 @@ TEST_F(LuaTest, TestHostApiV2) {
   std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
   binding->write(hst);
   std::string lst(ReadFile("/tmp/event_log"));
-  std::cout << lst << std::endl;
   ASSERT_NE(lst.find("type of d = userdata"), std::string::npos);
   ASSERT_NE(lst.find("type of hst = userdata"), std::string::npos);
   RemoveFile(filename);
@@ -2154,7 +2436,6 @@ TEST_F(LuaTest, TestSvcApiV2) {
   std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
   binding->write(svc);
   std::string lst(ReadFile("/tmp/event_log"));
-  std::cout << lst << std::endl;
   ASSERT_NE(lst.find("type of d = userdata"), std::string::npos);
   ASSERT_NE(lst.find("type of svc = userdata"), std::string::npos);
   RemoveFile(filename);
@@ -2186,7 +2467,6 @@ TEST_F(LuaTest, TestSvcApiV1) {
   std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
   binding->write(svc);
   std::string lst(ReadFile("/tmp/event_log"));
-  std::cout << lst << std::endl;
   ASSERT_NE(lst.find("type of d = table"), std::string::npos);
   ASSERT_NE(lst.find("type of svc = table"), std::string::npos);
   RemoveFile(filename);
@@ -2217,6 +2497,106 @@ TEST_F(LuaTest, BrokerEventCache) {
   binding->write(svc);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("description = foo bar cache"), std::string::npos);
+  RemoveFile(filename);
+  RemoveFile("/tmp/event_log");
+}
+
+TEST_F(LuaTest, PbTestSvcApiV2) {
+  config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  std::shared_ptr<neb::pb_service> svc(new neb::pb_service);
+  auto& obj = svc->mut_obj();
+  obj.set_host_id(1);
+  obj.set_service_id(2);
+  *obj.mutable_service_description() = "foo bar cache";
+  *obj.mutable_notes() = "svc notes";
+  *obj.mutable_notes_url() = "svc notes url";
+  *obj.mutable_action_url() = "svc action url";
+  obj.set_enabled(true);
+  std::string filename("/tmp/cache_test.lua");
+  CreateScript(filename,
+               "broker_api_version='2'\n\n"
+               "function init(conf)\n"
+               "  broker_log:set_parameters(3, '/tmp/event_log')\n"
+               "end\n\n"
+               "function write(d)\n"
+               "  local svc = broker_cache:get_service(1, 2)\n"
+               "  broker_log:info(0, 'type of d = ' .. type(d))\n"
+               "  broker_log:info(0, 'type of svc = ' .. type(svc))\n"
+               "end\n");
+  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  binding->write(svc);
+  std::string lst(ReadFile("/tmp/event_log"));
+  std::cout << lst << std::endl;
+  ASSERT_NE(lst.find("type of d = userdata"), std::string::npos);
+  ASSERT_NE(lst.find("type of svc = userdata"), std::string::npos);
+  RemoveFile(filename);
+  RemoveFile("/tmp/event_log");
+}
+
+TEST_F(LuaTest, PbTestSvcApiV1) {
+  config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  std::shared_ptr<neb::pb_service> svc(new neb::pb_service);
+  auto& obj = svc->mut_obj();
+  obj.set_host_id(1);
+  obj.set_service_id(2);
+  *obj.mutable_service_description() = "foo bar cache";
+  *obj.mutable_notes() = "svc notes";
+  *obj.mutable_notes_url() = "svc notes url";
+  *obj.mutable_action_url() = "svc action url";
+  obj.set_enabled(true);
+  std::string filename("/tmp/cache_test.lua");
+  CreateScript(filename,
+               "broker_api_version=1\n\n"
+               "function init(conf)\n"
+               "  broker_log:set_parameters(3, '/tmp/event_log')\n"
+               "end\n\n"
+               "function write(d)\n"
+               "  local svc = broker_cache:get_service(1, 2)\n"
+               "  broker_log:info(0, 'type of d = ' .. type(d))\n"
+               "  broker_log:info(0, 'type of svc = ' .. type(svc))\n"
+               "end\n");
+  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  binding->write(svc);
+  std::string lst(ReadFile("/tmp/event_log"));
+  std::cout << lst << std::endl;
+  ASSERT_NE(lst.find("type of d = table"), std::string::npos);
+  ASSERT_NE(lst.find("type of svc = table"), std::string::npos);
+  RemoveFile(filename);
+  RemoveFile("/tmp/event_log");
+}
+
+TEST_F(LuaTest, PbBrokerEventCache) {
+  config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  std::shared_ptr<neb::pb_service> svc(new neb::pb_service);
+  auto& obj = svc->mut_obj();
+  obj.set_host_id(1);
+  obj.set_service_id(2);
+  *obj.mutable_service_description() = "foo bar cache";
+  *obj.mutable_notes() = "svc notes";
+  *obj.mutable_notes_url() = "svc notes url";
+  *obj.mutable_action_url() = "svc action url";
+  obj.set_enabled(true);
+  std::string filename("/tmp/cache_test.lua");
+  CreateScript(filename,
+               "function init(conf)\n"
+               "  broker_log:set_parameters(3, '/tmp/event_log')\n"
+               "end\n\n"
+               "function write(d)\n"
+               "  local svc = broker_cache:get_service(1, 2)\n"
+               "  broker_log:info(0, 'service_description = ' .. "
+               "svc.service_description)\n"
+               "end\n");
+  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  binding->write(svc);
+  std::string lst(ReadFile("/tmp/event_log"));
+  std::cout << lst << std::endl;
+  ASSERT_NE(lst.find("service_description = foo bar cache"), std::string::npos);
   RemoveFile(filename);
   RemoveFile("/tmp/event_log");
 }
@@ -2472,7 +2852,7 @@ TEST_F(LuaTest, BrokerApi2PbServiceStatusJsonEncode) {
           "\"flap_detection_on_warning\":false, \"freshness_threshold\":0, "
           "\"high_flap_threshold\":0, \"icon_image\":\"\", "
           "\"icon_image_alt\":\"\", \"is_volatile\":false, "
-          "\"low_flap_threshold\":0, \"note\":\"\", \"notes_url\":\"\", "
+          "\"low_flap_threshold\":0, \"notes\":\"\", \"notes_url\":\"\", "
           "\"notification_interval\":0, \"notification_period\":\"\", "
           "\"notify_on_critical\":false, \"notify_on_downtime\":false, "
           "\"notify_on_flapping\":false, \"notify_on_recovery\":false, "
@@ -2593,7 +2973,7 @@ TEST_F(LuaTest, BrokerApi2PbServiceJsonEncode) {
           "\"flap_detection_on_warning\":false, \"freshness_threshold\":0, "
           "\"high_flap_threshold\":0, \"icon_image\":\"\", "
           "\"icon_image_alt\":\"\", \"is_volatile\":false, "
-          "\"low_flap_threshold\":0, \"note\":\"\", \"notes_url\":\"\", "
+          "\"low_flap_threshold\":0, \"notes\":\"\", \"notes_url\":\"\", "
           "\"notification_interval\":0, \"notification_period\":\"\", "
           "\"notify_on_critical\":false, \"notify_on_downtime\":false, "
           "\"notify_on_flapping\":false, \"notify_on_recovery\":false, "
