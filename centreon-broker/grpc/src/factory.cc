@@ -35,10 +35,19 @@ using namespace com::centreon::exceptions;
  *
  *  @return True if the configuration has this protocol.
  */
-bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
+bool factory::has_endpoint(com::centreon::broker::config::endpoint& cfg,
+                           io::extension* ext) {
   if (ext)
     *ext = io::extension("GRPC", false, false);
   return cfg.type == "grpc";
+}
+
+static std::string read_file(const std::string& path) {
+  std::ifstream file(path);
+  std::stringstream ss;
+  ss << file.rdbuf();
+  file.close();
+  return ss.str();
 }
 
 /**
@@ -51,62 +60,110 @@ bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
  *  @return Endpoint matching configuration.
  */
 io::endpoint* factory::new_endpoint(
-    config::endpoint& cfg,
+    com::centreon::broker::config::endpoint& cfg,
     bool& is_acceptor,
     std::shared_ptr<persistent_cache> cache) const {
   (void)cache;
 
+  std::map<std::string, std::string>::const_iterator it;
+
   // Find host (if exists).
   std::string host;
-  {
-    auto it = cfg.params.find("host");
-    if (it != cfg.params.end())
-      host = it->second;
-    if (!host.empty() &&
-        (std::isspace(host[0]) || std::isspace(host[host.size() - 1]))) {
-      log_v2::tcp()->error(
-          "TCP: 'host' must be a string matching a host, not beginning or "
-          "ending with spaces for endpoint {}, it contains '{}'",
-          cfg.name, host);
-      throw msg_fmt(
-          "TCP: invalid host value '{}' defined for endpoint '{}"
-          "', it must not begin or end with spaces.",
-          host, cfg.name);
-    }
+  it = cfg.params.find("host");
+  if (it != cfg.params.end())
+    host = it->second;
+  if (!host.empty() &&
+      (std::isspace(host[0]) || std::isspace(host[host.size() - 1]))) {
+    log_v2::grpc()->error(
+        "GRPC: 'host' must be a string matching a host, not beginning or "
+        "ending with spaces for endpoint {}, it contains '{}'",
+        cfg.name, host);
+    throw msg_fmt(
+        "GRPC: invalid host value '{}' defined for endpoint '{}"
+        "', it must not begin or end with spaces.",
+        host, cfg.name);
   }
 
   // Find port (must exist).
   uint16_t port;
-  {
-    std::map<std::string, std::string>::const_iterator it{
-        cfg.params.find("port")};
-    if (it == cfg.params.end()) {
-      log_v2::tcp()->error("TCP: no 'port' defined for endpoint '{}'",
-                           cfg.name);
-      throw msg_fmt("TCP: no 'port' defined for endpoint '{}'", cfg.name);
-    }
+  it = cfg.params.find("port");
+  if (it == cfg.params.end()) {
+    log_v2::grpc()->error("GRPC: no 'port' defined for endpoint '{}'",
+                          cfg.name);
+    throw msg_fmt("GRPC: no 'port' defined for endpoint '{}'", cfg.name);
+  }
+  try {
+    port = static_cast<uint16_t>(std::stol(it->second));
+  } catch (const std::exception& e) {
+    log_v2::grpc()->error(
+        "GRPC: 'port' must be an integer and not '{}' for endpoint '{}'",
+        it->second, cfg.name);
+    throw msg_fmt("GRPC: invalid port value '{}' defined for endpoint '{}'",
+                  it->second, cfg.name);
+  }
+
+  bool crypted = false;
+  it = cfg.params.find("crypted");
+  if (it != cfg.params.end()) {
+    crypted = !strcasecmp(it->second.c_str(), "yes");
+  }
+
+  std::string certificate;
+  it = cfg.params.find("certificate_path");
+  if (it != cfg.params.end()) {
     try {
-      port = static_cast<uint16_t>(std::stol(it->second));
+      certificate = read_file(it->second);
     } catch (const std::exception& e) {
-      log_v2::tcp()->error(
-          "TCP: 'port' must be an integer and not '{}' for endpoint '{}'",
-          it->second, cfg.name);
-      throw msg_fmt("TCP: invalid port value '{}' defined for endpoint '{}'",
-                    it->second, cfg.name);
+      log_v2::grpc()->error("{} failed to open cert file from:{} {}",
+                            __PRETTY_FUNCTION__, it->second.c_str(), e.what());
     }
   }
+
+  std::string certificate_key;
+  it = cfg.params.find("certificate_key_path");
+  if (it != cfg.params.end()) {
+    try {
+      certificate_key = read_file(it->second);
+    } catch (const std::exception& e) {
+      log_v2::grpc()->error("{} failed to open key file from:{} {}",
+                            __PRETTY_FUNCTION__, it->second.c_str(), e.what());
+    }
+  }
+
+  std::string certificate_authority;
+  it = cfg.params.find("certificate_authority_path");
+  if (it != cfg.params.end()) {
+    try {
+      certificate_authority = read_file(it->second);
+    } catch (const std::exception& e) {
+      log_v2::grpc()->error("{} failed to open authority file from:{} {}",
+                            __PRETTY_FUNCTION__, it->second.c_str(), e.what());
+    }
+  }
+
+  std::string authorization;
+  it = cfg.params.find("authorization");
+  if (it != cfg.params.end()) {
+    authorization = it->second;
+  }
+
+  grpc_config::pointer conf(
+      std::make_shared<grpc_config>("", crypted, certificate, certificate_key,
+                                    certificate_authority, authorization));
 
   // Acceptor.
   std::unique_ptr<io::endpoint> endp;
   if (host.empty()) {
     is_acceptor = true;
-    std::unique_ptr<grpc::acceptor> a(new grpc::acceptor(port));
+    conf->_hostport = "0.0.0.0:" + std::to_string(port);
+    std::unique_ptr<grpc::acceptor> a(new grpc::acceptor(conf));
     endp.reset(a.release());
   }
   // Connector.
   else {
     is_acceptor = false;
-    std::unique_ptr<grpc::connector> c(new grpc::connector(host, port));
+    conf->_hostport = host + ':' + std::to_string(port);
+    std::unique_ptr<grpc::connector> c(new grpc::connector(conf));
     endp.reset(c.release());
   }
 

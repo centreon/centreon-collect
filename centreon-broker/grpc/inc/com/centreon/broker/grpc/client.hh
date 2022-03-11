@@ -20,7 +20,6 @@
 #define CCB_GPRC_CLIENT_HH
 
 #include "channel.hh"
-#include "grpc_stream.grpc.pb.h"
 
 CCB_BEGIN()
 
@@ -38,20 +37,14 @@ class client : public channel,
   std::unique_ptr<com::centreon::broker::stream::centreon_bbdo::Stub> _stub;
   std::unique_ptr<::grpc::ClientContext> _context;
 
-  bool _read_pending;
-  bool _read_started;
-  bool _write_pending;
-  bool _error;
-  event_ptr _read_current, _write_current;
-
  protected:
   client& operator=(const client&) = delete;
   client(const client&) = delete;
 
-  client(const std::string& hostport);
+  client(const grpc_config::pointer& conf);
 
-  void start_read();
-  void start_write();
+  void start_read(event_ptr& to_read, bool first_read) override;
+  void start_write(const event_ptr& to_send) override;
 
  public:
   using pointer = std::shared_ptr<client>;
@@ -60,21 +53,9 @@ class client : public channel,
     return std::static_pointer_cast<client>(channel::shared_from_this());
   }
 
-  static pointer create(const std::string& hostport);
+  static pointer create(const grpc_config::pointer& conf);
 
   ~client();
-
-  bool is_down() const override { return _error || _thrown; }
-
-  std::pair<event_ptr, bool> read(time_t deadline) override;
-  std::pair<event_ptr, bool> read(
-      const system_clock::time_point& deadline) override;
-  std::pair<event_ptr, bool> read(
-      const system_clock::duration& timeout) override;
-
-  int write(const event_ptr&) override;
-  int flush() override;
-  int stop() override;
 
   void OnReadDone(bool ok) override;
   void OnWriteDone(bool ok) override;

@@ -17,8 +17,9 @@
  *
  */
 
-#include "com/centreon/broker/grpc/stream.hh"
 #include "grpc_stream.grpc.pb.h"
+
+#include "com/centreon/broker/grpc/stream.hh"
 
 #include "com/centreon/broker/grpc/client.hh"
 #include "com/centreon/broker/grpc/server.hh"
@@ -26,14 +27,14 @@
 using namespace com::centreon::broker::grpc;
 using namespace com::centreon::broker;
 
-com::centreon::broker::grpc::stream::stream(const std::string& hostport)
-    : io::stream("GRPC"), _hostport(hostport), _accept(false) {
-  _channel = client::create(_hostport);
+com::centreon::broker::grpc::stream::stream(const grpc_config::pointer& conf)
+    : io::stream("GRPC"), _accept(false) {
+  _channel = client::create(conf);
 }
 
 com::centreon::broker::grpc::stream::stream(
     const std::shared_ptr<accepted_service>& accepted)
-    : io::stream("GRPC"), _hostport(""), _accept(true), _channel(accepted) {}
+    : io::stream("GRPC"), _accept(true), _channel(accepted) {}
 
 com::centreon::broker::grpc::stream::~stream() noexcept {
   if (_channel) {
@@ -44,7 +45,7 @@ com::centreon::broker::grpc::stream::~stream() noexcept {
 #define READ_IMPL                                                             \
   std::pair<event_ptr, bool> read_res = _channel->read(duration_or_deadline); \
   if (read_res.second) {                                                      \
-    const grpc_event& to_convert = *read_res.first;                           \
+    const grpc_event_type& to_convert = *read_res.first;                      \
     if (to_convert.has_buffer()) {                                            \
       d = std::make_shared<io::raw>();                                        \
       std::static_pointer_cast<io::raw>(d)->_buffer.assign(                   \
@@ -72,7 +73,7 @@ bool com::centreon::broker::grpc::stream::read(
 
 int32_t com::centreon::broker::grpc::stream::write(
     std::shared_ptr<io::data> const& d) {
-  event_ptr to_send(std::make_shared<grpc_event>());
+  event_ptr to_send(std::make_shared<grpc_event_type>());
 
   std::shared_ptr<io::raw> raw_src = std::dynamic_pointer_cast<io::raw>(d);
   if (raw_src) {

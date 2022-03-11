@@ -25,26 +25,24 @@ CCB_BEGIN()
 
 namespace io {
 
-    class limit_endpoint : public endpoint {
-    protected:
-        /* How many consecutive calls to is_ready() */
-        mutable int16_t _is_ready_count;
-        /* The time of the last call to is_ready() */
-        mutable std::time_t _is_ready_now;
+class limit_endpoint : public endpoint {
+ protected:
+  /* How many consecutive calls to is_ready() */
+  mutable int16_t _is_ready_count;
+  /* The time of the last call to is_ready() */
+  mutable std::time_t _is_ready_now;
 
-    public:
-        limit_endpoint(bool is_accptr)
-            :endpoint(is_accptr), _is_ready_count(0), _is_ready_now(0) {}
+ public:
+  limit_endpoint(bool is_accptr)
+      : endpoint(is_accptr), _is_ready_count(0), _is_ready_now(0) {}
 
-        std::unique_ptr<stream> open() override;
-        bool is_ready() const override;
+  std::unique_ptr<stream> open() override;
+  bool is_ready() const override;
 
-        virtual std::unique_ptr<stream> create_stream() = 0;
+  virtual std::unique_ptr<stream> create_stream() = 0;
+};
 
-    };
-
-} //namespace io
-
+}  // namespace io
 
 CCB_END()
 

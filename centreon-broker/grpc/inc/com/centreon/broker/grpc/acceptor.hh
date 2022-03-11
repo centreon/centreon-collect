@@ -20,6 +20,7 @@
 #define CCB_GRPC_ACCEPTOR_HH
 
 #include "com/centreon/broker/io/endpoint.hh"
+#include "grpc_config.hh"
 
 CCB_BEGIN()
 
@@ -31,7 +32,7 @@ class acceptor : public io::endpoint {
   std::shared_ptr<server> _grpc_instance;
 
  public:
-  acceptor(uint16_t port);
+  acceptor(const grpc_config::pointer& conf);
   ~acceptor();
 
   acceptor(const acceptor&) = delete;

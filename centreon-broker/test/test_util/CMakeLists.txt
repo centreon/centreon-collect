@@ -1,5 +1,5 @@
 ##
-## Copyright 2011 Centreon
+## Copyright 2022 Centreon
 ##
 ## Licensed under the Apache License, Version 2.0 (the "License");
 ## you may not use this file except in compliance with the License.
@@ -32,7 +32,6 @@ set(HEADERS
   "${INC_DIR}/tcp_relais.hh"
 )
 
-# GRPC module.
 add_library("test_util" STATIC  ${SOURCES}  ${HEADERS})
 target_link_libraries("test_util" CONAN_PKG::spdlog)
 

@@ -32,23 +32,19 @@ using namespace com::centreon::exceptions;
  * accepted_service
  ****************************************************************************/
 
-static com::centreon::broker::misc::trash<accepted_service> _service_trash;
-
-accepted_service::accepted_service()
-    : channel(""), _error(false), _write_pending(false), _read_pending(false) {
+accepted_service::accepted_service(const grpc_config::pointer& conf)
+    : channel("accepted_service", conf) {
   log_v2::grpc()->trace("{} this={:p}", __PRETTY_FUNCTION__,
                         static_cast<void*>(this));
+}
+
+void accepted_service::start() {
+  channel::start_read(true);
 }
 
 accepted_service::~accepted_service() {
   log_v2::grpc()->trace("{} this={:p}", __PRETTY_FUNCTION__,
                         static_cast<void*>(this));
-}
-
-void accepted_service::to_trash() {
-  desactivate();
-  _thrown = true;
-  _service_trash.to_trash(shared_from_this(), time(nullptr) + 60);
 }
 
 void accepted_service::desactivate() {
@@ -59,162 +55,26 @@ void accepted_service::OnCancel() {
   desactivate();
 }
 
-/*******************************************************
- *     read section
- *******************************************************/
-
-void accepted_service::start_read() {
-  {
-    unique_lock l(_protect);
-    if (!is_alive()) {
-      return;
-    }
-    if (_read_pending) {
-      return;
-    }
-    _read_current = std::make_shared<grpc_event>();
-    _read_pending = true;
-    log_v2::grpc()->trace("{:p} {} start read", static_cast<void*>(this),
-                          __PRETTY_FUNCTION__);
-  }
-  StartRead(_read_current.get());
+void accepted_service::start_read(event_ptr& to_read, bool) {
+  StartRead(to_read.get());
 }
 
 void accepted_service::OnReadDone(bool ok) {
-  {
-    unique_lock l(_protect);
-    _read_pending = false;
-    _read_queue.push_back(_read_current);
-    _read_cond.notify_all();
-    if (ok) {
-      if (log_v2::grpc()->level() == spdlog::level::trace) {
-        log_v2::grpc()->trace("{:p} {} receive:{}", static_cast<void*>(this),
-                              __PRETTY_FUNCTION__,
-                              detail_centreon_event(*_read_current));
-      } else {
-        log_v2::grpc()->debug("{:p} {} receive:{}", static_cast<void*>(this),
-                              __PRETTY_FUNCTION__, *_read_current);
-      }
-    } else {
-      log_v2::grpc()->error("{:p} {} echec receive", static_cast<void*>(this),
-                            __PRETTY_FUNCTION__);
-      _error = true;
-    }
-  }
-  if (ok) {
-    start_read();
-  }
-}
-std::pair<event_ptr, bool> accepted_service::read(
-    const system_clock::time_point& deadline) {
-  event_ptr read;
-  {
-    unique_lock l(_protect);
-    if (!_read_queue.empty()) {
-      read = _read_queue.front();
-      _read_queue.pop_front();
-      return std::make_pair(read, true);
-    }
-    if (is_down()) {
-      throw(msg_fmt("{} connexion is down", __PRETTY_FUNCTION__));
-    }
-    _read_cond.wait_until(l, deadline,
-                          [this]() { return !_read_queue.empty(); });
-    if (!_read_queue.empty()) {
-      read = _read_queue.front();
-      _read_queue.pop_front();
-      return std::make_pair(read, true);
-    }
-  }
-  return std::make_pair(read, false);
+  on_read_done(ok);
 }
 
-/*******************************************************
- *     write section
- *******************************************************/
-
-bool accepted_service::start_write() {
-  event_ptr to_send;
-  {
-    unique_lock l(_protect);
-    if (!is_alive()) {
-      return false;
-    }
-    if (_write_pending || _write_queue.empty()) {
-      return false;
-    }
-    to_send = _write_current = _write_queue.front();
-    _write_pending = true;
-    log_v2::grpc()->trace("{:p} {} start write", static_cast<void*>(this),
-                          __PRETTY_FUNCTION__);
-  }
+void accepted_service::start_write(const event_ptr& to_send) {
   StartWrite(to_send.get());
-  return true;
 }
 
 void accepted_service::OnWriteDone(bool ok) {
-  bool another_to_write = false;
-  event_ptr written;
-  {
-    unique_lock l(_protect);
-    _write_pending = false;
-    if (ok) {
-      written = _write_current;
-      _write_queue.pop_front();
-      ++_nb_written;
-      another_to_write = !_write_queue.empty();
-      if (log_v2::grpc()->level() == spdlog::level::trace) {
-        log_v2::grpc()->trace("{:p} {} written:{}", static_cast<void*>(this),
-                              __PRETTY_FUNCTION__,
-                              detail_centreon_event(*_write_current));
-      } else {
-        log_v2::grpc()->debug("{:p} {} written:{}", static_cast<void*>(this),
-                              __PRETTY_FUNCTION__, *_write_current);
-      }
-    } else {
-      log_v2::grpc()->error("{:p} {} echec write", static_cast<void*>(this),
-                            __PRETTY_FUNCTION__, *_write_current);
-    }
-  }
-  if (written) {
-    _write_callback(written);
-  }
-  if (another_to_write) {
-    start_write();
-  }
-}
-int accepted_service::write(const event_ptr& to_send) {
-  int nb_written = 0;
-  if (is_down()) {
-    throw(msg_fmt("{} connexion is down", __PRETTY_FUNCTION__));
-  }
-  {
-    unique_lock l(_protect);
-    _write_queue.push_back(to_send);
-    nb_written = _nb_written;
-    _nb_written = 0;
-  }
-  start_write();
-  return nb_written;
-}
-
-int accepted_service::flush() {
-  unique_lock l(_protect);
-  int nb_written = _nb_written;
-  _nb_written = 0;
-  return nb_written;
-}
-
-int accepted_service::stop() {
-  int ret = flush();
-  to_trash();
-  return ret;
+  on_write_done(ok);
 }
 
 /****************************************************************************
- * server
+ *                              server
  ****************************************************************************/
-server::server(const std::string& hostport) : _hostport(hostport) {}
+server::server(const grpc_config::pointer& conf) : _conf(conf) {}
 
 void server::start() {
   ::grpc::Service::MarkMethodCallback(
@@ -226,7 +86,42 @@ void server::start() {
              }));
 
   ::grpc::ServerBuilder builder;
-  builder.AddListeningPort(_hostport, ::grpc::InsecureServerCredentials());
+
+  std::shared_ptr<::grpc::ServerCredentials> server_creds;
+#ifdef USE_TLS
+  if (false && !_conf->get_cert().empty() && !_conf->get_key().empty()) {
+    std::vector<::grpc::experimental::IdentityKeyCertPair> key_cert = {
+        {_conf->get_key(), _conf->get_cert()}};
+    std::shared_ptr<::grpc::experimental::StaticDataCertificateProvider>
+        cert_provider = std::make_shared<
+            ::grpc::experimental::StaticDataCertificateProvider>(
+            _conf->get_ca(), key_cert);
+    ::grpc::experimental::TlsServerCredentialsOptions creds_opts(cert_provider);
+    creds_opts.set_root_cert_name("Root");
+    server_creds = ::grpc::experimental::TlsServerCredentials(creds_opts);
+#else
+  if (!_conf->get_cert().empty() && !_conf->get_key().empty()) {
+    ::grpc::SslServerCredentialsOptions::PemKeyCertPair pkcp = {
+        _conf->get_key(), _conf->get_cert()};
+
+    log_v2::grpc()->info(
+        "{} crypted server listen on {} cert: {}..., key: {}..., ca: {}....",
+        __PRETTY_FUNCTION__, _conf->get_hostport(),
+        _conf->get_cert().substr(0, 10), _conf->get_key().substr(0, 10),
+        _conf->get_ca().substr(0, 10));
+
+    ::grpc::SslServerCredentialsOptions ssl_opts;
+    ssl_opts.pem_root_certs = _conf->get_ca();
+    ssl_opts.pem_key_cert_pairs.push_back(pkcp);
+
+    server_creds = ::grpc::SslServerCredentials(ssl_opts);
+#endif
+  } else {
+    log_v2::grpc()->info("{} uncrypted server listen on {}",
+                         __PRETTY_FUNCTION__, _conf->get_hostport());
+    server_creds = ::grpc::InsecureServerCredentials();
+  }
+  builder.AddListeningPort(_conf->get_hostport(), server_creds);
   builder.RegisterService(this);
   builder.AddChannelArgument(GRPC_ARG_KEEPALIVE_PERMIT_WITHOUT_CALLS, 1);
   builder.AddChannelArgument(GRPC_ARG_KEEPALIVE_TIME_MS, 30000);
@@ -238,24 +133,44 @@ void server::start() {
   _server = std::unique_ptr<::grpc::Server>(builder.BuildAndStart());
 }
 
-server::pointer server::create(const std::string& hostport) {
-  server::pointer ret(new server(hostport));
+server::pointer server::create(const grpc_config::pointer& conf) {
+  server::pointer ret(new server(conf));
   ret->start();
   return ret;
 }
 
-::grpc::ServerBidiReactor<::centreon_grpc::grpc_event,
-                          ::centreon_grpc::grpc_event>*
-server::exchange(::grpc::CallbackServerContext*) {
+::grpc::ServerBidiReactor<grpc_event_type, grpc_event_type>* server::exchange(
+    ::grpc::CallbackServerContext* context) {
+  // authorization header match?
+  if (!_conf->get_authorization().empty()) {
+    const auto& metas = context->client_metadata();
+
+    auto header_search = metas.lower_bound(authorization_header);
+    if (header_search == metas.end()) {
+      log_v2::grpc()->error("{} header {} not found", __PRETTY_FUNCTION__,
+                            authorization_header);
+      return nullptr;
+    }
+    bool found = false;
+    for (; header_search != metas.end() && !found; ++header_search) {
+      if (header_search->first != authorization_header) {
+        log_v2::grpc()->error("{} header {} don't match to {}",
+                              __PRETTY_FUNCTION__, authorization_header,
+                              _conf->get_authorization());
+        return nullptr;
+      }
+      found = _conf->get_authorization() == header_search->second;
+    }
+  }
   accepted_service::pointer serv;
   {
     unique_lock l(_protect);
-    serv = std::make_shared<accepted_service>();
+    serv = std::make_shared<accepted_service>(_conf);
     _accepted.push(serv);
     _accept_cond.notify_one();
   }
 
-  serv->start_read();
+  serv->start();
   return serv.get();
 }
 

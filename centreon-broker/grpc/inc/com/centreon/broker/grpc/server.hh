@@ -30,12 +30,8 @@ CCB_BEGIN()
 namespace grpc {
 
 class accepted_service
-    : public ::grpc::ServerBidiReactor<::centreon_grpc::grpc_event,
-                                       ::centreon_grpc::grpc_event>,
+    : public ::grpc::ServerBidiReactor<grpc_event_type, grpc_event_type>,
       public channel {
-  bool _error, _write_pending, _read_pending;
-  event_ptr _read_current, _write_current;
-
  public:
   using pointer = std::shared_ptr<accepted_service>;
 
@@ -44,16 +40,13 @@ class accepted_service
         channel::shared_from_this());
   }
 
-  accepted_service();
+  accepted_service(const grpc_config::pointer& conf);
   ~accepted_service();
 
-  void start_read();
-  bool start_write();
+  void start();
+  void start_read(event_ptr&, bool first_read) override;
+  void start_write(const event_ptr&) override;
 
-  bool is_down() const override { return _error || _thrown; }
-
-  bool is_alive() const { return !_error && !_thrown; }
-  void to_trash();
   void desactivate();
 
   void OnReadDone(bool ok) override;
@@ -63,42 +56,27 @@ class accepted_service
   void OnDone() override{};
 
   void OnCancel() override;
-
-  virtual std::pair<event_ptr, bool> read(time_t deadline) override {
-    return read(system_clock::from_time_t(deadline));
-  }
-  virtual std::pair<event_ptr, bool> read(
-      const system_clock::time_point& deadline) override;
-  virtual std::pair<event_ptr, bool> read(
-      const system_clock::duration& delay) override {
-    return read(system_clock::now() + delay);
-  }
-
-  virtual int write(const event_ptr&) override;
-  virtual int flush() override;
-  virtual int stop() override;
 };
 
 class server : public centreon_stream::centreon_bbdo::Service,
                public std::enable_shared_from_this<server> {
   std::unique_ptr<::grpc::Server> _server;
   std::queue<accepted_service::pointer> _accepted;
-  std::string _hostport;
+  grpc_config::pointer _conf;
   mutable std::mutex _protect;
   mutable std::condition_variable _accept_cond;
 
-  server(const std::string& hostport);
+  server(const grpc_config::pointer& conf);
 
-  ::grpc::ServerBidiReactor<::centreon_grpc::grpc_event,
-                            ::centreon_grpc::grpc_event>*
-  exchange(::grpc::CallbackServerContext*);
+  ::grpc::ServerBidiReactor<grpc_event_type, grpc_event_type>* exchange(
+      ::grpc::CallbackServerContext*);
 
   void start();
 
  public:
   using pointer = std::shared_ptr<server>;
 
-  static pointer create(const std::string& hostport);
+  static pointer create(const grpc_config::pointer& conf);
 
   ~server() = default;
 

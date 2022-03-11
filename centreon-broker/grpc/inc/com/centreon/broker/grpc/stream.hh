@@ -34,7 +34,7 @@ class stream : public io::stream {
   std::shared_ptr<channel> _channel;
 
  public:
-  stream(const std::string& hostport);
+  stream(const grpc_config::pointer& conf);
   stream(const std::shared_ptr<accepted_service>&);
 
   stream& operator=(const stream&) = delete;
@@ -53,11 +53,6 @@ class stream : public io::stream {
   int32_t stop() override;
 
   bool is_down() const;
-
-  template <class call_back_type>
-  void set_write_callback(call_back_type&& new_callback) {
-    _channel->set_write_callback(new_callback);
-  }
 };
 }  // namespace grpc
 

@@ -33,7 +33,7 @@ using unique_lock = std::unique_lock<std::mutex>;
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 
-TEST(GRPCFactory, HasEndpoint) {
+TEST(grpc_factory, HasEndpoint) {
   grpc::factory fact;
   config::endpoint cfg(config::endpoint::io_type::output);
 
@@ -43,7 +43,7 @@ TEST(GRPCFactory, HasEndpoint) {
   ASSERT_FALSE(fact.has_endpoint(cfg, nullptr));
 }
 
-TEST(GRPCFactory, Exception) {
+TEST(grpc_factory, Exception) {
   grpc::factory fact;
   config::endpoint cfg(config::endpoint::io_type::output);
   bool is_acceptor;
@@ -52,7 +52,7 @@ TEST(GRPCFactory, Exception) {
   ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), msg_fmt);
 }
 
-TEST(GRPCFactory, Acceptor) {
+TEST(grpc_factory, Acceptor) {
   grpc::factory fact;
   config::endpoint cfg(config::endpoint::io_type::output);
   bool is_acceptor;
@@ -68,7 +68,7 @@ TEST(GRPCFactory, Acceptor) {
   delete endp;
 }
 
-TEST(GRPCFactory, BadPort) {
+TEST(grpc_factory, BadPort) {
   grpc::factory fact;
   config::endpoint cfg(config::endpoint::io_type::output);
   bool is_acceptor;
@@ -80,7 +80,7 @@ TEST(GRPCFactory, BadPort) {
   ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), msg_fmt);
 }
 
-TEST(GRPCFactory, BadHost) {
+TEST(grpc_factory, BadHost) {
   grpc::factory fact;
   config::endpoint cfg(config::endpoint::io_type::output);
   bool is_acceptor;
@@ -95,7 +95,7 @@ TEST(GRPCFactory, BadHost) {
   ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), msg_fmt);
 }
 
-TEST(GRPCFactory, Connector) {
+TEST(grpc_factory, Connector) {
   grpc::factory fact;
   config::endpoint cfg(config::endpoint::io_type::output);
   bool is_acceptor;

@@ -120,6 +120,9 @@ set_target_properties(
     RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR}/tests
     RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/tests
 )
+ 
+#keys used by ut_broker grpc
+file(COPY ${PROJECT_SOURCE_DIR}/grpc/test/grpc_test_keys DESTINATION ${CMAKE_BINARY_DIR}/tests)
 
 add_test(NAME tests COMMAND ut_broker)
 

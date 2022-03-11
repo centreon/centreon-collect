@@ -20,15 +20,16 @@
 #define CCB_GRPC_CONNECTOR_HH
 
 #include "com/centreon/broker/io/limit_endpoint.hh"
+#include "grpc_config.hh"
 
 CCB_BEGIN()
 
 namespace grpc {
 class connector : public io::limit_endpoint {
-  const std::string _hostport;
+  grpc_config::pointer _conf;
 
  public:
-  connector(const std::string& host, uint16_t port);
+  connector(const grpc_config::pointer& conf);
 
   connector& operator=(const connector&) = delete;
   connector(const connector&) = delete;

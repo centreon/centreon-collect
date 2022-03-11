@@ -45,14 +45,12 @@ connector::connector(const std::string& host,
     : io::limit_endpoint(false),
       _host(host),
       _port(port),
-      _read_timeout(read_timeout)
-     {}
+      _read_timeout(read_timeout) {}
 
 /**
  *  Destructor.
  */
 connector::~connector() {}
-
 
 /**
  * @brief Connect to the remote host.
@@ -64,21 +62,19 @@ std::unique_ptr<io::stream> connector::open() {
   log_v2::tcp()->info("TCP: connecting to {}:{}", _host, _port);
   try {
     return limit_endpoint::open();
-  }
-  catch (const std::exception &e) {
+  } catch (const std::exception& e) {
     log_v2::tcp()->debug(
-    "Unable to establish the connection to {}:{} (attempt {}): {}", _host,
-    _port, _is_ready_count, e.what());
-    throw;
+        "Unable to establish the connection to {}:{} (attempt {}): {}", _host,
+        _port, _is_ready_count, e.what());
+    return nullptr;
   }
 }
 
 /**
  * @brief create a stream from attributes
- * 
- * @return std::shared_ptr<stream> 
+ *
+ * @return std::shared_ptr<stream>
  */
 std::unique_ptr<io::stream> connector::create_stream() {
   return std::make_unique<stream>(_host, _port, _read_timeout);
 }
-

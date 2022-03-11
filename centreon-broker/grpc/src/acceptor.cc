@@ -25,9 +25,8 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::grpc;
 
-acceptor::acceptor(uint16_t port)
-    : io::endpoint(true),
-      _grpc_instance(server::create("0.0.0.0:" + std::to_string(port))) {}
+acceptor::acceptor(const grpc_config::pointer& conf)
+    : io::endpoint(true), _grpc_instance(server::create(conf)) {}
 
 acceptor::~acceptor() {}
 

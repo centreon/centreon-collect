@@ -2,15 +2,12 @@ syntax = "proto3";
 
 package com.centreon.broker.stream;
 
+
 message centreon_event {
     oneof content {
         bytes buffer = 1;
     }
 }
-
-
-
-
 
 service centreon_bbdo {
     //emitter connect to receiver

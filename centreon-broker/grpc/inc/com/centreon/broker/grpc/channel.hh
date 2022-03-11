@@ -19,6 +19,8 @@
 #ifndef CCB_GRPC_CHANNEL_HH
 #define CCB_GRPC_CHANNEL_HH
 
+#include "grpc_config.hh"
+
 namespace com {
 namespace centreon {
 namespace broker {
@@ -27,23 +29,23 @@ class detail_centreon_event;
 std::ostream& operator<<(std::ostream&, const detail_centreon_event&);
 }  // namespace grpc
 namespace stream {
-class centreon_event;
 std::ostream& operator<<(std::ostream&, const centreon_event&);
 }  // namespace stream
 }  // namespace broker
 }  // namespace centreon
 }  // namespace com
 
-namespace centreon_stream = com::centreon::broker::stream;
 namespace centreon_grpc = com::centreon::broker::grpc;
+namespace centreon_stream = com::centreon::broker::stream;
+using grpc_event_type = centreon_stream::centreon_event;
+using event_ptr = std::shared_ptr<grpc_event_type>;
 
 CCB_BEGIN()
 
 namespace grpc {
 
-using grpc_event = centreon_stream::centreon_event;
-using event_ptr = std::shared_ptr<grpc_event>;
 using channel_ptr = std::shared_ptr<::grpc::Channel>;
+using uint64_vector = std::vector<uint64_t>;
 
 struct detail_centreon_event {
   detail_centreon_event(const centreon_stream::centreon_event& todump)
@@ -51,64 +53,73 @@ struct detail_centreon_event {
   const centreon_stream::centreon_event& to_dump;
 };
 
+const std::string authorization_header("authorization");
+
 /**
  * @brief base class of grpc communication final class server or client
  *
  */
 class channel : public std::enable_shared_from_this<channel> {
- public:
-  using write_callback_type = std::function<void(const event_ptr&)>;
-
  private:
   channel& operator=(const channel&) = delete;
   channel(const channel&) = delete;
 
  protected:
-  std::string _hostport;
-
   using event_queue = std::list<event_ptr>;
 
-  event_queue _write_queue, _read_queue;
+  const std::string _class_name;
 
+  /// read section
+  event_queue _read_queue;
+  bool _read_pending;
+  event_ptr _read_current;
+
+  // write section
+  event_queue _write_queue;
+  event_ptr _write_current;
+  bool _write_pending;
+
+  bool _error;
   bool _thrown;
 
-  int _nb_written;
-
-  write_callback_type _write_callback;
+  grpc_config::pointer _conf;
 
   mutable std::mutex _protect;
   mutable std::condition_variable _read_cond;
 
-  channel(const std::string& hostport)
-      : _hostport(hostport),
-        _thrown(false),
-        _nb_written(0),
-        _write_callback(_dummy_write_callback) {}
+  channel(const std::string& class_name, const grpc_config::pointer& conf);
 
-  static void _dummy_write_callback(const event_ptr&) {}
+  void start_read(bool first_read);
+  void start_write();
+
+  virtual void start_write(const event_ptr&) = 0;
+  virtual void start_read(event_ptr&, bool first_read) = 0;
+
+  void on_write_done(bool ok);
+  void on_read_done(bool ok);
 
  public:
   using pointer = std::shared_ptr<channel>;
 
+  void start();
+
   virtual ~channel() = default;
 
-  template <class call_back_type>
-  void set_write_callback(call_back_type&& new_callback) {
-    _write_callback = new_callback;
-  }
-
   void to_trash();
-  virtual bool is_down() const = 0;
+  bool is_down() const { return _error || _thrown; };
+  bool is_alive() const { return !_error && !_thrown; }
 
-  virtual std::pair<event_ptr, bool> read(time_t deadline) = 0;
-  virtual std::pair<event_ptr, bool> read(
-      const system_clock::time_point& deadline) = 0;
-  virtual std::pair<event_ptr, bool> read(
-      const system_clock::duration& deadline) = 0;
+  std::pair<event_ptr, bool> read(time_t deadline) {
+    return read(system_clock::from_time_t(deadline));
+  }
+  std::pair<event_ptr, bool> read(const system_clock::duration& deadline) {
+    return read(system_clock::now() + deadline);
+  }
+  std::pair<event_ptr, bool> read(const system_clock::time_point& deadline);
 
-  virtual int write(const event_ptr&) = 0;
-  virtual int flush() = 0;
-  virtual int stop() = 0;
+  int write(const event_ptr&);
+  int flush();
+  virtual int stop();
 };
 }  // namespace grpc
 

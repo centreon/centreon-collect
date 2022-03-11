@@ -17,6 +17,8 @@
  *
  */
 
+#include "grpc_stream.pb.h"
+
 #include "com/centreon/broker/grpc/connector.hh"
 #include "com/centreon/broker/grpc/stream.hh"
 
@@ -30,8 +32,8 @@ using namespace com::centreon::broker::grpc;
  * @param host The host to connect to.
  * @param port The port used for the connection.
  */
-connector::connector(const std::string& host, uint16_t port)
-    : io::limit_endpoint(false), _hostport(host + ':' + std::to_string(port)) {}
+connector::connector(const grpc_config::pointer& conf)
+    : io::limit_endpoint(false), _conf(conf) {}
 
 /**
  * @brief open a new connection
@@ -39,14 +41,14 @@ connector::connector(const std::string& host, uint16_t port)
  * @return std::unique_ptr<io::stream>
  */
 std::unique_ptr<io::stream> connector::open() {
-  log_v2::grpc()->info("TCP: connecting to {}", _hostport);
+  log_v2::grpc()->info("TCP: connecting to {}", _conf->get_hostport());
   try {
     return limit_endpoint::open();
   } catch (const std::exception& e) {
     log_v2::tcp()->debug(
-        "Unable to establish the connection to {} (attempt {}): {}", _hostport,
-        _is_ready_count, e.what());
-    throw;
+        "Unable to establish the connection to {} (attempt {}): {}",
+        _conf->get_hostport(), _is_ready_count, e.what());
+    return nullptr;
   }
 }
 
@@ -56,5 +58,5 @@ std::unique_ptr<io::stream> connector::open() {
  * @return std::unique_ptr<io::stream>
  */
 std::unique_ptr<io::stream> connector::create_stream() {
-  return std::make_unique<stream>(_hostport);
+  return std::make_unique<stream>(_conf);
 }

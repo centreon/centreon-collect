@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <chrono>
 #include <condition_variable>
+#include <fstream>
 #include <limits>
 #include <memory>
 #include <mutex>
@@ -32,6 +33,8 @@
 
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/spdlog.h>
+
+#include <asio.hpp>
 
 #include <grpc/grpc.h>
 #include <grpcpp/alarm.h>
