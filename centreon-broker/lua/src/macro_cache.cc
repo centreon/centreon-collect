@@ -176,7 +176,7 @@ std::string const& macro_cache::get_notes_url(uint64_t host_id,
       return s->notes_url;
     } else {
       auto const& s = std::static_pointer_cast<neb::pb_service>(found->second);
-      return s->mut_obj().notes_url();
+      return s->obj().notes_url();
     }
   } else {
     auto found = _hosts.find(host_id);
@@ -208,7 +208,7 @@ std::string const& macro_cache::get_action_url(uint64_t host_id,
       return s->action_url;
     } else {
       auto const& s = std::static_pointer_cast<neb::pb_service>(found->second);
-      return s->mut_obj().action_url();
+      return s->obj().action_url();
     }
   } else {
     auto found = _hosts.find(host_id);
@@ -240,7 +240,7 @@ std::string const& macro_cache::get_notes(uint64_t host_id,
       return s->notes;
     } else {
       auto const& s = std::static_pointer_cast<neb::pb_service>(found->second);
-      return s->mut_obj().notes();
+      return s->obj().notes();
     }
   } else {
     auto found = _hosts.find(host_id);
@@ -297,7 +297,7 @@ std::string const& macro_cache::get_service_description(
     return s->service_description;
   } else {
     auto const& s = std::static_pointer_cast<neb::pb_service>(found->second);
-    return s->mut_obj().service_description();
+    return s->obj().service_description();
   }
 }
 
@@ -533,12 +533,12 @@ void macro_cache::_process_service(std::shared_ptr<io::data> const& data) {
 void macro_cache::_process_pb_service(std::shared_ptr<io::data> const& data) {
   auto const& s = std::static_pointer_cast<neb::pb_service>(data);
   log_v2::lua()->debug("lua: processing service ({}, {}) (description:{})",
-                       s->mut_obj().host_id(), s->mut_obj().service_id(),
-                       s->mut_obj().service_description());
-  if (s->mut_obj().enabled())
-    _services[{s->mut_obj().host_id(), s->mut_obj().service_id()}] = data;
+                       s->obj().host_id(), s->obj().service_id(),
+                       s->obj().service_description());
+  if (s->obj().enabled())
+    _services[{s->obj().host_id(), s->obj().service_id()}] = data;
   else
-    _services.erase({s->mut_obj().host_id(), s->mut_obj().service_id()});
+    _services.erase({s->obj().host_id(), s->obj().service_id()});
 }
 
 /**

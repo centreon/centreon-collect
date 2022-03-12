@@ -2098,12 +2098,11 @@ int neb::callback_pb_service(int callback_type, void* data) {
   srv.set_acknowledgement_type(
       static_cast<Service_AckType>(es->get_acknowledgement_type()));
   if (!es->get_action_url().empty())
-    *srv.mutable_action_url() =
-        misc::string::check_string_utf8(es->get_action_url());
+    srv.set_action_url(misc::string::check_string_utf8(es->get_action_url()));
   srv.set_active_checks_enabled(es->get_checks_enabled());
   if (!es->get_check_command().empty())
-    *srv.mutable_check_command() =
-        misc::string::check_string_utf8(es->get_check_command());
+    srv.set_check_command(
+        misc::string::check_string_utf8(es->get_check_command()));
   srv.set_check_freshness(es->get_check_freshness());
   srv.set_check_interval(es->get_check_interval());
   if (!es->get_check_period().empty())
@@ -2119,13 +2118,13 @@ int neb::callback_pb_service(int callback_type, void* data) {
   srv.set_default_passive_checks_enabled(es->get_accept_passive_checks());
   srv.set_downtime_depth(es->get_scheduled_downtime_depth());
   if (!es->get_display_name().empty())
-    *srv.mutable_display_name() =
-        misc::string::check_string_utf8(es->get_display_name());
+    srv.set_display_name(
+        misc::string::check_string_utf8(es->get_display_name()));
   srv.set_enabled(static_cast<nebstruct_adaptive_service_data*>(data)->type !=
                   NEBTYPE_SERVICE_DELETE);
   if (!es->get_event_handler().empty())
-    *srv.mutable_event_handler() =
-        misc::string::check_string_utf8(es->get_event_handler());
+    srv.set_event_handler(
+        misc::string::check_string_utf8(es->get_event_handler()));
   srv.set_event_handler_enabled(es->get_event_handler_enabled());
   srv.set_execution_time(es->get_execution_time());
   srv.set_first_notification_delay(es->get_first_notification_delay());
@@ -2142,14 +2141,12 @@ int neb::callback_pb_service(int callback_type, void* data) {
   srv.set_has_been_checked(es->has_been_checked());
   srv.set_high_flap_threshold(es->get_high_flap_threshold());
   if (!es->get_hostname().empty())
-    *srv.mutable_host_name() =
-        misc::string::check_string_utf8(es->get_hostname());
+    srv.set_host_name(misc::string::check_string_utf8(es->get_hostname()));
   if (!es->get_icon_image().empty())
-    *srv.mutable_icon_image() =
-        misc::string::check_string_utf8(es->get_icon_image());
+    srv.set_icon_image(misc::string::check_string_utf8(es->get_icon_image()));
   if (!es->get_icon_image_alt().empty())
-    *srv.mutable_icon_image_alt() =
-        misc::string::check_string_utf8(es->get_icon_image_alt());
+    srv.set_icon_image_alt(
+        misc::string::check_string_utf8(es->get_icon_image_alt()));
   srv.set_is_flapping(es->get_is_flapping());
   srv.set_is_volatile(es->get_is_volatile());
   srv.set_last_check(es->get_last_check());
@@ -2170,10 +2167,9 @@ int neb::callback_pb_service(int callback_type, void* data) {
   srv.set_next_notification(es->get_next_notification());
   srv.set_no_more_notifications(es->get_no_more_notifications());
   if (!es->get_notes().empty())
-    *srv.mutable_notes() = misc::string::check_string_utf8(es->get_notes());
+    srv.set_notes(misc::string::check_string_utf8(es->get_notes()));
   if (!es->get_notes_url().empty())
-    *srv.mutable_notes_url() =
-        misc::string::check_string_utf8(es->get_notes_url());
+    srv.set_notes_url(misc::string::check_string_utf8(es->get_notes_url()));
   srv.set_notifications_enabled(es->get_notifications_enabled());
   srv.set_notification_interval(es->get_notification_interval());
   if (!es->get_notification_period().empty())
@@ -2187,22 +2183,20 @@ int neb::callback_pb_service(int callback_type, void* data) {
   srv.set_notify_on_warning(es->get_notify_on(engine::notifier::warning));
   srv.set_obsess_over(es->get_obsess_over());
   if (!es->get_plugin_output().empty())
-    *srv.mutable_output() =
-        misc::string::check_string_utf8(es->get_plugin_output());
+    srv.set_output(misc::string::check_string_utf8(es->get_plugin_output()));
   if (!es->get_long_plugin_output().empty())
-    *srv.mutable_long_output() =
-        misc::string::check_string_utf8(es->get_long_plugin_output());
+    srv.set_long_output(
+        misc::string::check_string_utf8(es->get_long_plugin_output()));
   srv.set_passive_checks_enabled(es->get_accept_passive_checks());
   srv.set_percent_state_change(es->get_percent_state_change());
   if (!es->get_perf_data().empty())
-    *srv.mutable_perf_data() =
-        misc::string::check_string_utf8(es->get_perf_data());
+    srv.set_perf_data(misc::string::check_string_utf8(es->get_perf_data()));
   srv.set_retain_nonstatus_information(es->get_retain_nonstatus_information());
   srv.set_retain_status_information(es->get_retain_status_information());
   srv.set_retry_interval(es->get_retry_interval());
   if (!es->get_description().empty())
-    *srv.mutable_service_description() =
-        misc::string::check_string_utf8(es->get_description());
+    srv.set_service_description(
+        misc::string::check_string_utf8(es->get_description()));
   srv.set_should_be_scheduled(es->get_should_be_scheduled());
   srv.set_stalk_on_critical(es->get_stalk_on(engine::notifier::critical));
   srv.set_stalk_on_ok(es->get_stalk_on(engine::notifier::ok));

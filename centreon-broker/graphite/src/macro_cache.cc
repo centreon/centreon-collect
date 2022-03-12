@@ -119,7 +119,7 @@ std::string const& macro_cache::get_service_description(
     return s->service_description;
   } else {
     auto const& s = std::static_pointer_cast<neb::pb_service>(found->second);
-    return s->mut_obj().service_description();
+    return s->obj().service_description();
   }
 }
 
@@ -146,19 +146,28 @@ std::string const& macro_cache::get_instance(uint64_t instance_id) const {
 void macro_cache::write(std::shared_ptr<io::data> const& data) {
   if (!data)
     return;
-
-  if (data->type() == neb::instance::static_type())
-    _process_instance(data);
-  else if (data->type() == neb::host::static_type())
-    _process_host(data);
-  else if (data->type() == neb::service::static_type())
-    _process_service(data);
-  else if (data->type() == neb::pb_service::static_type())
-    _process_pb_service(data);
-  else if (data->type() == storage::index_mapping::static_type())
-    _process_index_mapping(data);
-  else if (data->type() == storage::metric_mapping::static_type())
-    _process_metric_mapping(data);
+  switch (data->type()) {
+    case neb::instance::static_type():
+      _process_instance(data);
+      break;
+    case neb::host::static_type():
+      _process_host(data);
+      break;
+    case neb::service::static_type():
+      _process_service(data);
+      break;
+    case neb::pb_service::static_type():
+      _process_pb_service(data);
+      break;
+    case storage::index_mapping::static_type():
+      _process_index_mapping(data);
+      break;
+    case storage::metric_mapping::static_type():
+      _process_metric_mapping(data);
+      break;
+    default:
+      break;
+  }
 }
 
 /**
@@ -198,7 +207,7 @@ void macro_cache::_process_service(std::shared_ptr<io::data> const& data) {
  */
 void macro_cache::_process_pb_service(std::shared_ptr<io::data> const& data) {
   auto const& s = std::static_pointer_cast<neb::pb_service>(data);
-  _services[{s->mut_obj().host_id(), s->mut_obj().service_id()}] = data;
+  _services[{s->obj().host_id(), s->obj().service_id()}] = data;
 }
 
 /**

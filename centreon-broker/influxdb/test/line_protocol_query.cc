@@ -205,21 +205,19 @@ TEST(InfluxDBLineProtoQuery, ComplexPbMetric) {
   std::shared_ptr<persistent_cache> pcache{nullptr};
   influxdb::macro_cache cache(pcache);
   storage::metric m{1u, 1u, "host1", 2000llu, 60, true, 40u, 42, 42.0, 4};
-  std::shared_ptr<neb::host> host{std::make_shared<neb::host>()};
-  std::shared_ptr<neb::pb_service> svc{std::make_shared<neb::pb_service>()};
-  std::shared_ptr<neb::instance> instance{std::make_shared<neb::instance>()};
-  std::shared_ptr<storage::metric_mapping> metric_map{
-      std::make_shared<storage::metric_mapping>()};
-  std::shared_ptr<storage::index_mapping> index_map{
-      std::make_shared<storage::index_mapping>()};
+  auto host{std::make_shared<neb::host>()};
+  auto svc{std::make_shared<neb::pb_service>()};
+  auto instance{std::make_shared<neb::instance>()};
+  auto metric_map{std::make_shared<storage::metric_mapping>()};
+  auto index_map{std::make_shared<storage::index_mapping>()};
 
-  columns.push_back(
+  columns.emplace_back(
       influxdb::column{"host1", "42.0", true, influxdb::column::number});
-  columns.push_back(
+  columns.emplace_back(
       influxdb::column{"host2", "42.0", false, influxdb::column::number});
-  columns.push_back(
+  columns.emplace_back(
       influxdb::column{"host2", "42.0", false, influxdb::column::string});
-  columns.push_back(
+  columns.emplace_back(
       influxdb::column{"host3", "43.0", true, influxdb::column::number});
 
   m.source_id = 3;
@@ -262,19 +260,18 @@ TEST(InfluxDBLineProtoQuery, ComplexPBStatus) {
   influxdb::macro_cache cache(pcache);
   storage::status s{2000llu, 3, 60, true, 9, 2};
 
-  std::shared_ptr<neb::host> host{std::make_shared<neb::host>()};
-  std::shared_ptr<neb::pb_service> svc{std::make_shared<neb::pb_service>()};
-  std::shared_ptr<neb::instance> instance{std::make_shared<neb::instance>()};
-  std::shared_ptr<storage::index_mapping> index_map{
-      std::make_shared<storage::index_mapping>()};
+  auto host{std::make_shared<neb::host>()};
+  auto svc{std::make_shared<neb::pb_service>()};
+  auto instance{std::make_shared<neb::instance>()};
+  auto index_map{std::make_shared<storage::index_mapping>()};
 
-  columns.push_back(
+  columns.emplace_back(
       influxdb::column{"host1", "42.0", true, influxdb::column::number});
-  columns.push_back(
+  columns.emplace_back(
       influxdb::column{"host2", "42.0", false, influxdb::column::number});
-  columns.push_back(
+  columns.emplace_back(
       influxdb::column{"host2", "42.0", false, influxdb::column::string});
-  columns.push_back(
+  columns.emplace_back(
       influxdb::column{"host3", "43.0", true, influxdb::column::number});
 
   influxdb::line_protocol_query q{

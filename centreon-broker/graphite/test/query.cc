@@ -115,13 +115,11 @@ TEST(graphiteQuery, ComplexPbMetric) {
   std::shared_ptr<persistent_cache> pcache{nullptr};
   graphite::macro_cache cache(pcache);
   storage::metric m{1u, 1u, "host1", 2000llu, 60, true, 40u, 42, 42.0, 4};
-  std::shared_ptr<neb::host> host{std::make_shared<neb::host>()};
-  std::shared_ptr<neb::pb_service> svc{std::make_shared<neb::pb_service>()};
-  std::shared_ptr<neb::instance> instance{std::make_shared<neb::instance>()};
-  std::shared_ptr<storage::metric_mapping> metric_map{
-      std::make_shared<storage::metric_mapping>()};
-  std::shared_ptr<storage::index_mapping> index_map{
-      std::make_shared<storage::index_mapping>()};
+  auto host{std::make_shared<neb::host>()};
+  auto svc{std::make_shared<neb::pb_service>()};
+  auto instance{std::make_shared<neb::instance>()};
+  auto metric_map{std::make_shared<storage::metric_mapping>()};
+  auto index_map{std::make_shared<storage::index_mapping>()};
 
   m.source_id = 3;
 
@@ -160,11 +158,10 @@ TEST(graphiteQuery, ComplexPbStatus) {
   graphite::macro_cache cache(pcache);
   storage::status s{2000llu, 3, 60, true, 9, 2};
 
-  std::shared_ptr<neb::host> host{std::make_shared<neb::host>()};
-  std::shared_ptr<neb::pb_service> svc{std::make_shared<neb::pb_service>()};
-  std::shared_ptr<neb::instance> instance{std::make_shared<neb::instance>()};
-  std::shared_ptr<storage::index_mapping> index_map{
-      std::make_shared<storage::index_mapping>()};
+  auto host{std::make_shared<neb::host>()};
+  auto svc{std::make_shared<neb::pb_service>()};
+  auto instance{std::make_shared<neb::instance>()};
+  auto index_map{std::make_shared<storage::index_mapping>()};
 
   graphite::query q{
       "test . $HOST$ $HOSTID$ $SERVICE$ $SERVICEID$ $INSTANCE$ $INSTANCEID$ "
