@@ -94,14 +94,15 @@ message Host {
   double notification_interval = 66;
   string notification_period = 67;
   bool notify_on_down = 68;
-  bool notify_on_flapping = 69;
-  bool notify_on_recovery = 70;
-  bool notify_on_unreachable = 71;
-  bool stalk_on_down = 72;
-  bool stalk_on_unreachable = 73;
-  bool stalk_on_up = 74;
-  string statusmap_image = 75;
-  bool retain_nonstatus_information = 76;
-  bool retain_status_information = 77;
-  string timezone = 78;
+  bool notify_on_downtime = 69;
+  bool notify_on_flapping = 70;
+  bool notify_on_recovery = 71;
+  bool notify_on_unreachable = 72;
+  bool stalk_on_down = 73;
+  bool stalk_on_unreachable = 74;
+  bool stalk_on_up = 75;
+  string statusmap_image = 76;
+  bool retain_nonstatus_information = 77;
+  bool retain_status_information = 78;
+  string timezone = 79;
 }
