@@ -200,7 +200,7 @@ class notifier : public checkable {
   time_t get_initial_notif_time() const noexcept;
   void set_acknowledgement_timeout(int timeout) noexcept;
   void set_last_acknowledgement(time_t ack) noexcept;
-  time_t get_last_acknowledgement() const noexcept;
+  time_t last_acknowledgement() const noexcept;
   uint32_t get_notification_interval(void) const noexcept;
   void set_notification_interval(uint32_t notification_interval) noexcept;
   std::string const& get_notification_period() const noexcept;
@@ -232,7 +232,7 @@ class notifier : public checkable {
   void add_modified_attributes(uint32_t attr) noexcept;
   uint32_t get_modified_attributes() const noexcept;
   void set_modified_attributes(uint32_t modified_attributes) noexcept;
-  bool get_problem_has_been_acknowledged() const noexcept;
+  bool problem_has_been_acknowledged() const noexcept;
   void set_problem_has_been_acknowledged(
       bool problem_has_been_acknowledged) noexcept;
   virtual bool recovered() const = 0;
@@ -272,7 +272,7 @@ class notifier : public checkable {
   void set_flap_type(uint32_t type) noexcept;
   timeperiod* get_notification_period_ptr() const noexcept;
   void set_notification_period_ptr(timeperiod* tp) noexcept;
-  int get_acknowledgement_timeout() const noexcept;
+  int acknowledgement_timeout() const noexcept;
   bool get_is_volatile() const noexcept;
   void set_is_volatile(bool vol);
 

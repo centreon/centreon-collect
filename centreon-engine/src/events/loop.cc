@@ -260,13 +260,13 @@ void loop::_dispatching() {
           timed_event::EVENT_SERVICE_CHECK) {
         int nudge_seconds(0);
         service* temp_service(
-            static_cast<service*>((*_event_list_low.begin())->event_data));
+            static_cast<service*>(_event_list_low.front()->event_data));
 
         // Don't run a service check if we're already maxed out on the
         // number of parallel service checks...
         if (config->max_parallel_service_checks() != 0 &&
-            (currently_running_service_checks >=
-             config->max_parallel_service_checks())) {
+            currently_running_service_checks >=
+                config->max_parallel_service_checks()) {
           // Move it at least 5 seconds (to overcome the current peak),
           // with a random 10 seconds (to spread the load).
           nudge_seconds = 5 + (rand() % 10);
@@ -323,7 +323,7 @@ void loop::_dispatching() {
           // reschedule it for a later time. Since event was not
           // executed, it needs to be remove()'ed to maintain sync with
           // event broker modules.
-          timed_event* temp_event{*_event_list_low.begin()};
+          timed_event* temp_event{_event_list_low.front()};
           _event_list_low.pop_front();
 
           // We nudge the next check time when it is
@@ -387,13 +387,15 @@ void loop::_dispatching() {
           // Reschedule.
           if ((notifier::soft == temp_host->get_state_type()) &&
               (temp_host->get_current_state() != host::state_up))
-            temp_host->set_next_check((time_t)(
-                temp_host->get_next_check() +
-                (temp_host->get_retry_interval() * config->interval_length())));
+            temp_host->set_next_check(
+                (time_t)(temp_host->get_next_check() +
+                         (temp_host->get_retry_interval() *
+                          config->interval_length())));
           else
-            temp_host->set_next_check((time_t)(
-                temp_host->get_next_check() +
-                (temp_host->get_check_interval() * config->interval_length())));
+            temp_host->set_next_check(
+                (time_t)(temp_host->get_next_check() +
+                         (temp_host->get_check_interval() *
+                          config->interval_length())));
           temp_event->run_time = temp_host->get_next_check();
           reschedule_event(temp_event, events::loop::low);
           temp_host->update_status();
@@ -764,7 +766,7 @@ void loop::compensate_for_system_time_change(unsigned long last_time,
     it->second->set_initial_notif_time(adjust_timestamp_for_time_change(
         time_difference, it->second->get_initial_notif_time()));
     it->second->set_last_acknowledgement(adjust_timestamp_for_time_change(
-        time_difference, it->second->get_last_acknowledgement()));
+        time_difference, it->second->last_acknowledgement()));
 
     // recalculate next re-notification time.
     it->second->set_next_notification(it->second->get_next_notification_time(

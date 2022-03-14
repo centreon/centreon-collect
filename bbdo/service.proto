@@ -7,9 +7,9 @@ message Service {
   uint64 service_id = 2;
 
   enum AckType {
-    ACKNOWLEDGEMENT_NONE = 0;
-    ACKNOWLEDGEMENT_NORMAL = 1;
-    ACKNOWLEDGEMENT_STICKY = 2;
+    NONE = 0;
+    NORMAL = 1;
+    STICKY = 2;
   }
   bool acknowledged = 3;
   AckType acknowledgement_type = 4;
@@ -18,12 +18,12 @@ message Service {
   bool enabled = 6;
   int32 downtime_depth = 7;
   string check_command = 8;
-  int32 check_interval = 9;
+  uint32 check_interval = 9;
   string check_period = 10;
 
   enum CheckType {
-    CHECK_ACTIVE = 0;
-    CHECK_PASSIVE = 1;
+    ACTIVE = 0;
+    PASSIVE = 1;
   }
   CheckType check_type = 11;
   int32 current_check_attempt = 12;

@@ -332,7 +332,7 @@ std::ostream& dump::host(std::ostream& os,
      << obj.get_is_flapping()
      << "\n"
         "last_acknowledgement="
-     << obj.get_last_acknowledgement()
+     << obj.last_acknowledgement()
      << "\n"
         "last_check="
      << static_cast<unsigned long>(obj.get_last_check())
@@ -411,7 +411,7 @@ std::ostream& dump::host(std::ostream& os,
      << obj.get_plugin_output()
      << "\n"
         "problem_has_been_acknowledged="
-     << obj.get_problem_has_been_acknowledged()
+     << obj.problem_has_been_acknowledged()
      << "\n"
         "process_performance_data="
      << obj.get_process_performance_data()
@@ -670,7 +670,7 @@ std::ostream& dump::service(std::ostream& os, class service const& obj) {
      << obj.get_is_flapping()
      << "\n"
         "last_acknowledgement="
-     << obj.get_last_acknowledgement()
+     << obj.last_acknowledgement()
      << "\n"
         "last_check="
      << static_cast<unsigned long>(obj.get_last_check())
@@ -755,7 +755,7 @@ std::ostream& dump::service(std::ostream& os, class service const& obj) {
      << obj.get_plugin_output()
      << "\n"
         "problem_has_been_acknowledged="
-     << obj.get_problem_has_been_acknowledged()
+     << obj.problem_has_been_acknowledged()
      << "\n"
         "process_performance_data="
      << obj.get_process_performance_data()

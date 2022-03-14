@@ -419,7 +419,7 @@ int xsddefault_save_status_data() {
         << it->second->get_notifications_enabled()
         << "\n"
            "\tproblem_has_been_acknowledged="
-        << it->second->get_problem_has_been_acknowledged()
+        << it->second->problem_has_been_acknowledged()
         << "\n"
            "\tacknowledgement_type="
         << it->second->get_acknowledgement_type()
@@ -604,7 +604,7 @@ int xsddefault_save_status_data() {
            << it->second->get_event_handler_enabled()
            << "\n"
               "\tproblem_has_been_acknowledged="
-           << it->second->get_problem_has_been_acknowledged()
+           << it->second->problem_has_been_acknowledged()
            << "\n"
               "\tacknowledgement_type="
            << it->second->get_acknowledgement_type()
@@ -727,8 +727,7 @@ int xsddefault_save_status_data() {
 
   // save all downtime
   for (auto it = downtime_manager::instance().get_scheduled_downtimes().begin();
-      it != downtime_manager::instance().get_scheduled_downtimes().end();
-      ++it)
+       it != downtime_manager::instance().get_scheduled_downtimes().end(); ++it)
     stream << *it->second;
 
   // Write data in buffer.

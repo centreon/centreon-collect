@@ -436,7 +436,7 @@ std::ostream& operator<<(std::ostream& os,
      << "\n  icon_image:                           " << obj.get_icon_image()
      << "\n  icon_image_alt:                       " << obj.get_icon_image_alt()
      << "\n  problem_has_been_acknowledged:        "
-     << obj.get_problem_has_been_acknowledged()
+     << obj.problem_has_been_acknowledged()
      << "\n  acknowledgement_type:                 "
      << obj.get_acknowledgement_type()
      << "\n  host_problem_at_last_check:           "
@@ -810,10 +810,10 @@ com::centreon::engine::service* add_service(
  *
  */
 void service::check_for_expired_acknowledgement() {
-  if (get_problem_has_been_acknowledged()) {
-    if (get_acknowledgement_timeout() > 0) {
-      time_t now{time(nullptr)};
-      if (get_last_acknowledgement() + get_acknowledgement_timeout() >= now) {
+  if (problem_has_been_acknowledged()) {
+    if (acknowledgement_timeout() > 0) {
+      time_t now = time(nullptr);
+      if (last_acknowledgement() + acknowledgement_timeout() >= now) {
         engine_logger(log_info_message, basic)
             << "Acknowledgement of service '" << get_description()
             << "' on host '" << this->get_host_ptr()->get_name()
@@ -896,12 +896,11 @@ uint64_t engine::get_service_id(std::string const& host,
  *
  */
 void service::schedule_acknowledgement_expiration() {
-  if (get_acknowledgement_timeout() > 0 &&
-      get_last_acknowledgement() != (time_t)0) {
-    timed_event* evt = new timed_event(
-        timed_event::EVENT_EXPIRE_SERVICE_ACK,
-        get_last_acknowledgement() + get_acknowledgement_timeout(), false, 0,
-        nullptr, true, this, nullptr, 0);
+  if (acknowledgement_timeout() > 0 && last_acknowledgement() != (time_t)0) {
+    timed_event* evt =
+        new timed_event(timed_event::EVENT_EXPIRE_SERVICE_ACK,
+                        last_acknowledgement() + acknowledgement_timeout(),
+                        false, 0, nullptr, true, this, nullptr, 0);
     events::loop::instance().schedule(evt, false);
   }
 }

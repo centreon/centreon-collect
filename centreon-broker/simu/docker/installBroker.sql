@@ -722,3 +722,27 @@ CREATE TABLE `tags` (
   `type` int(11) unsigned NOT NULL,
   PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
+--
+-- Table structure for table `resources`
+--
+CREATE TABLE `resources` (
+  `id` bigint unsigned NOT NULL,
+  `parent_id` bigint unsigned NOT NULL,
+  `type` tinyint unsigned NOT NULL,
+  `status` tinyint unsigned DEFAULT NULL,
+  `status_ordered` tinyint unsigned DEFAULT NULL,
+  `in_downtime` tinyint(1) DEFAULT 0 NOT NULL,
+  `acknowledged` tinyint(1) DEFAULT 0 NOT NULL,
+  `status_confirmed` tinyint(1) DEFAULT NULL,
+  `check_attempts` tinyint unsigned DEFAULT NULL,
+  `max_check_attempts` tinyint unsigned DEFAULT NULL,
+  `poller_id` bigint unsigned NOT NULL,
+  `severity_id` bigint unsigned,
+  `name` varchar(255) DEFAULT NULL,
+  `parent_name` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (id, parent_id),
+  FOREIGN KEY (severity_id) REFERENCES severities (id)
+  ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;

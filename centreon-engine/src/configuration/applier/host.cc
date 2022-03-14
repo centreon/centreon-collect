@@ -104,7 +104,7 @@ void applier::host::add_object(configuration::host const& obj) {
   h->set_initial_notif_time(0);
   h->set_should_reschedule_current_check(false);
   h->set_host_id(obj.host_id());
-  h->set_acknowledgement_timeout(obj.get_acknowledgement_timeout() *
+  h->set_acknowledgement_timeout(obj.acknowledgement_timeout() *
                                  config->interval_length());
   h->set_last_acknowledgement(0);
 
@@ -322,8 +322,8 @@ void applier::host::modify_object(configuration::host const& obj) {
   it_obj->second->set_obsess_over(obj.obsess_over_host());
   it_obj->second->set_timezone(obj.timezone());
   it_obj->second->set_host_id(obj.host_id());
-  it_obj->second->set_acknowledgement_timeout(
-      obj.get_acknowledgement_timeout() * config->interval_length());
+  it_obj->second->set_acknowledgement_timeout(obj.acknowledgement_timeout() *
+                                              config->interval_length());
   it_obj->second->set_recovery_notification_delay(
       obj.recovery_notification_delay());
 

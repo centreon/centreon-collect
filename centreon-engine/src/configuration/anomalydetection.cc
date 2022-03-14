@@ -298,8 +298,8 @@ anomalydetection& anomalydetection::operator=(anomalydetection const& other) {
  *
  *  @return True if is the same anomalydetection, otherwise false.
  */
-bool anomalydetection::operator==(anomalydetection const& other) const
-    noexcept {
+bool anomalydetection::operator==(
+    anomalydetection const& other) const noexcept {
   if (!object::operator==(other)) {
     engine_logger(dbg_config, more)
         << "configuration::anomalydetection::equality => object don't match";
@@ -713,8 +713,8 @@ bool anomalydetection::operator==(anomalydetection const& other) const
  *
  *  @return True if is not the same anomalydetection, otherwise false.
  */
-bool anomalydetection::operator!=(anomalydetection const& other) const
-    noexcept {
+bool anomalydetection::operator!=(
+    anomalydetection const& other) const noexcept {
   return !operator==(other);
 }
 
@@ -1490,7 +1490,7 @@ bool anomalydetection::timezone_defined() const noexcept {
  *
  *  @return Acknowledgement timeout.
  */
-int anomalydetection::get_acknowledgement_timeout() const noexcept {
+int anomalydetection::acknowledgement_timeout() const noexcept {
   return _acknowledgement_timeout;
 }
 

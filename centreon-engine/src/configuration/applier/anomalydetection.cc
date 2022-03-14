@@ -165,7 +165,7 @@ void applier::anomalydetection::add_object(
   engine::anomalydetection::services[{obj.host_name(),
                                       obj.service_description()}]
       ->set_service_id(obj.service_id());
-  ad->set_acknowledgement_timeout(obj.get_acknowledgement_timeout() *
+  ad->set_acknowledgement_timeout(obj.acknowledgement_timeout() *
                                   config->interval_length());
   ad->set_last_acknowledgement(0);
 
@@ -374,7 +374,7 @@ void applier::anomalydetection::modify_object(
   s->set_timezone(obj.timezone());
   s->set_host_id(obj.host_id());
   s->set_service_id(obj.service_id());
-  s->set_acknowledgement_timeout(obj.get_acknowledgement_timeout() *
+  s->set_acknowledgement_timeout(obj.acknowledgement_timeout() *
                                  config->interval_length());
   s->set_recovery_notification_delay(obj.recovery_notification_delay());
 

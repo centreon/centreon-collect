@@ -314,7 +314,7 @@ bool notifier::_is_notification_viable_normal(reason_type type
     return false;
   }
 
-  if (get_problem_has_been_acknowledged()) {
+  if (problem_has_been_acknowledged()) {
     engine_logger(dbg_notifications, more)
         << "This notifier problem has been acknowledged, so we won't send "
            "notifications.";
@@ -1023,7 +1023,7 @@ void notifier::set_last_acknowledgement(time_t ack) noexcept {
   _last_acknowledgement = ack;
 }
 
-time_t notifier::get_last_acknowledgement() const noexcept {
+time_t notifier::last_acknowledgement() const noexcept {
   return _last_acknowledgement;
 }
 
@@ -1213,7 +1213,7 @@ void notifier::set_is_being_freshened(bool freshened) noexcept {
   _is_being_freshened = freshened;
 }
 
-bool notifier::get_problem_has_been_acknowledged() const noexcept {
+bool notifier::problem_has_been_acknowledged() const noexcept {
   return _problem_has_been_acknowledged;
 }
 
@@ -1583,7 +1583,7 @@ timeperiod* notifier::get_notification_period_ptr() const noexcept {
   return _notification_period_ptr;
 }
 
-int notifier::get_acknowledgement_timeout() const noexcept {
+int notifier::acknowledgement_timeout() const noexcept {
   return _acknowledgement_timeout;
 }
 

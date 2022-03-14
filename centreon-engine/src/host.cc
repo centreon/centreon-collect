@@ -829,7 +829,7 @@ std::ostream& operator<<(std::ostream& os, const host& obj) {
      << obj.get_should_be_drawn()
      << "\n"
         "  problem_has_been_acknowledged:        "
-     << obj.get_problem_has_been_acknowledged()
+     << obj.problem_has_been_acknowledged()
      << "\n"
         "  acknowledgement_type:                 "
      << obj.get_acknowledgement_type()
@@ -1160,12 +1160,11 @@ uint64_t engine::get_host_id(std::string const& name) {
  *
  */
 void host::schedule_acknowledgement_expiration() {
-  if (get_acknowledgement_timeout() > 0 &&
-      get_last_acknowledgement() != (time_t)0) {
-    timed_event* evt = new timed_event(
-        timed_event::EVENT_EXPIRE_HOST_ACK,
-        get_last_acknowledgement() + get_acknowledgement_timeout(), false, 0,
-        nullptr, true, this, nullptr, 0);
+  if (acknowledgement_timeout() > 0 && last_acknowledgement() != (time_t)0) {
+    timed_event* evt =
+        new timed_event(timed_event::EVENT_EXPIRE_HOST_ACK,
+                        last_acknowledgement() + acknowledgement_timeout(),
+                        false, 0, nullptr, true, this, nullptr, 0);
     events::loop::instance().schedule(evt, false);
   }
 }
@@ -2258,10 +2257,10 @@ void host::update_status(host::status_type t) {
  *
  */
 void host::check_for_expired_acknowledgement() {
-  if (get_problem_has_been_acknowledged()) {
-    if (get_acknowledgement_timeout() > 0) {
+  if (problem_has_been_acknowledged()) {
+    if (acknowledgement_timeout() > 0) {
       time_t now(time(nullptr));
-      if (get_last_acknowledgement() + get_acknowledgement_timeout() >= now) {
+      if (last_acknowledgement() + acknowledgement_timeout() >= now) {
         engine_logger(log_info_message, basic)
             << "Acknowledgement of host '" << get_name() << "' just expired";
         log_v2::events()->info("Acknowledgement of host '{}' just expired",

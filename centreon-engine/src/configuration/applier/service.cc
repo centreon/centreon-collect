@@ -170,7 +170,7 @@ void applier::service::add_object(configuration::service const& obj) {
       ->set_host_id(obj.host_id());
   engine::service::services[{*obj.hosts().begin(), obj.service_description()}]
       ->set_service_id(obj.service_id());
-  svc->set_acknowledgement_timeout(obj.get_acknowledgement_timeout() *
+  svc->set_acknowledgement_timeout(obj.acknowledgement_timeout() *
                                    config->interval_length());
   svc->set_last_acknowledgement(0);
 
@@ -424,7 +424,7 @@ void applier::service::modify_object(configuration::service const& obj) {
   s->set_timezone(obj.timezone());
   s->set_host_id(obj.host_id());
   s->set_service_id(obj.service_id());
-  s->set_acknowledgement_timeout(obj.get_acknowledgement_timeout() *
+  s->set_acknowledgement_timeout(obj.acknowledgement_timeout() *
                                  config->interval_length());
   s->set_recovery_notification_delay(obj.recovery_notification_delay());
 

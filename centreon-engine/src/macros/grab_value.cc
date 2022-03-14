@@ -536,7 +536,7 @@ static int handle_summary_macro(nagios_macros* mac,
         else if (it->second->get_current_state() == host::state_down) {
           if (it->second->get_scheduled_downtime_depth() > 0)
             problem = false;
-          if (it->second->get_problem_has_been_acknowledged())
+          if (it->second->problem_has_been_acknowledged())
             problem = false;
           if (!it->second->get_checks_enabled())
             problem = false;
@@ -546,7 +546,7 @@ static int handle_summary_macro(nagios_macros* mac,
         } else if (it->second->get_current_state() == host::state_unreachable) {
           if (it->second->get_scheduled_downtime_depth() > 0)
             problem = false;
-          if (it->second->get_problem_has_been_acknowledged())
+          if (it->second->problem_has_been_acknowledged())
             problem = false;
           if (!it->second->get_checks_enabled())
             problem = false;
@@ -596,7 +596,7 @@ static int handle_summary_macro(nagios_macros* mac,
             problem = false;
           if (it->second->get_scheduled_downtime_depth() > 0)
             problem = false;
-          if (it->second->get_problem_has_been_acknowledged())
+          if (it->second->problem_has_been_acknowledged())
             problem = false;
           if (!it->second->get_checks_enabled())
             problem = false;
@@ -616,7 +616,7 @@ static int handle_summary_macro(nagios_macros* mac,
             problem = false;
           if (it->second->get_scheduled_downtime_depth() > 0)
             problem = false;
-          if (it->second->get_problem_has_been_acknowledged())
+          if (it->second->problem_has_been_acknowledged())
             problem = false;
           if (!it->second->get_checks_enabled())
             problem = false;
@@ -636,7 +636,7 @@ static int handle_summary_macro(nagios_macros* mac,
             problem = false;
           if (it->second->get_scheduled_downtime_depth() > 0)
             problem = false;
-          if (it->second->get_problem_has_been_acknowledged())
+          if (it->second->problem_has_been_acknowledged())
             problem = false;
           if (!it->second->get_checks_enabled())
             problem = false;

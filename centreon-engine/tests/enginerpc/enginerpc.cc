@@ -829,7 +829,7 @@ TEST_F(EngineRpc, RemoveHostAcknowledgement) {
   call_command_manager(th, &condvar, &mutex, &continuerunning);
   auto output = execute("RemoveHostAcknowledgement byhostid 12");
 
-  ASSERT_EQ(_host->get_problem_has_been_acknowledged(), false);
+  ASSERT_EQ(_host->problem_has_been_acknowledged(), false);
   ASSERT_EQ(comment::comments.size(), 0u);
   // second test
   _host->set_problem_has_been_acknowledged(true);
@@ -846,7 +846,7 @@ TEST_F(EngineRpc, RemoveHostAcknowledgement) {
   condvar.notify_one();
   th->join();
 
-  ASSERT_EQ(_host->get_problem_has_been_acknowledged(), false);
+  ASSERT_EQ(_host->problem_has_been_acknowledged(), false);
   ASSERT_EQ(comment::comments.size(), 0u);
   erpc.shutdown();
 }
@@ -872,7 +872,7 @@ TEST_F(EngineRpc, RemoveServiceAcknowledgement) {
       execute("RemoveServiceAcknowledgement bynames test_host test_svc");
 
   ASSERT_EQ(comment::comments.size(), 0u);
-  ASSERT_EQ(_svc->get_problem_has_been_acknowledged(), false);
+  ASSERT_EQ(_svc->problem_has_been_acknowledged(), false);
 
   _svc->set_problem_has_been_acknowledged(true);
   cmt = std::make_shared<comment>(comment::service, comment::acknowledgment,
@@ -900,7 +900,7 @@ TEST_F(EngineRpc, AcknowledgementHostProblem) {
   std::mutex mutex;
   bool continuerunning = false;
 
-  ASSERT_EQ(_host->get_problem_has_been_acknowledged(), false);
+  ASSERT_EQ(_host->problem_has_been_acknowledged(), false);
   call_command_manager(th, &condvar, &mutex, &continuerunning);
 
   auto output =
@@ -912,7 +912,7 @@ TEST_F(EngineRpc, AcknowledgementHostProblem) {
   condvar.notify_one();
   th->join();
 
-  ASSERT_EQ(_host->get_problem_has_been_acknowledged(), true);
+  ASSERT_EQ(_host->problem_has_been_acknowledged(), true);
   erpc.shutdown();
 }
 
@@ -923,7 +923,7 @@ TEST_F(EngineRpc, AcknowledgementServiceProblem) {
   std::mutex mutex;
   bool continuerunning = false;
 
-  ASSERT_EQ(_svc->get_problem_has_been_acknowledged(), false);
+  ASSERT_EQ(_svc->problem_has_been_acknowledged(), false);
   call_command_manager(th, &condvar, &mutex, &continuerunning);
 
   auto output = execute(
@@ -936,7 +936,7 @@ TEST_F(EngineRpc, AcknowledgementServiceProblem) {
   condvar.notify_one();
   th->join();
 
-  ASSERT_EQ(_svc->get_problem_has_been_acknowledged(), true);
+  ASSERT_EQ(_svc->problem_has_been_acknowledged(), true);
   erpc.shutdown();
 }
 

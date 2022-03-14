@@ -1001,7 +1001,7 @@ void applier::scheduler::_schedule_host_events(
       << "Scheduling host acknowledgement expirations...";
   log_v2::events()->debug("Scheduling host acknowledgement expirations...");
   for (int i(0), end(hosts.size()); i < end; ++i)
-    if (hosts[i]->get_problem_has_been_acknowledged())
+    if (hosts[i]->problem_has_been_acknowledged())
       hosts[i]->schedule_acknowledgement_expiration();
 }
 
@@ -1048,8 +1048,9 @@ void applier::scheduler::_schedule_service_events(
                             ++interleave_block_index * total_interleave_blocks);
 
       // set the preferred next check time for the service.
-      svc.set_next_check((time_t)(
-          now + mult_factor * scheduling_info.service_inter_check_delay));
+      svc.set_next_check(
+          (time_t)(now +
+                   mult_factor * scheduling_info.service_inter_check_delay));
 
       // Make sure the service can actually be scheduled when we want.
       {
@@ -1097,11 +1098,11 @@ void applier::scheduler::_schedule_service_events(
            it(services_to_schedule.begin()),
        end(services_to_schedule.end());
        it != end; ++it) {
-    engine::service& svc(*it->second);
+    engine::service* s(it->second);
     // Create a new service check event.
     timed_event* evt(new timed_event(
-        timed_event::EVENT_SERVICE_CHECK, svc.get_next_check(), false, 0,
-        nullptr, true, (void*)&svc, nullptr, svc.get_check_options()));
+        timed_event::EVENT_SERVICE_CHECK, s->get_next_check(), false, 0,
+        nullptr, true, (void*)s, nullptr, s->get_check_options()));
     events::loop::instance().schedule(evt, false);
   }
 
@@ -1109,9 +1110,9 @@ void applier::scheduler::_schedule_service_events(
   engine_logger(dbg_events, most)
       << "Scheduling service acknowledgement expirations...";
   log_v2::events()->debug("Scheduling service acknowledgement expirations...");
-  for (int i(0), end(services.size()); i < end; ++i)
-    if (services[i]->get_problem_has_been_acknowledged())
-      services[i]->schedule_acknowledgement_expiration();
+  for (engine::service* s : services)
+    if (s->problem_has_been_acknowledged())
+      s->schedule_acknowledgement_expiration();
 }
 
 /**
