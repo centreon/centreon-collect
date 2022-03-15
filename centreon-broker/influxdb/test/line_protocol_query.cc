@@ -211,14 +211,10 @@ TEST(InfluxDBLineProtoQuery, ComplexPbMetric) {
   auto metric_map{std::make_shared<storage::metric_mapping>()};
   auto index_map{std::make_shared<storage::index_mapping>()};
 
-  columns.emplace_back(
-      influxdb::column{"host1", "42.0", true, influxdb::column::number});
-  columns.emplace_back(
-      influxdb::column{"host2", "42.0", false, influxdb::column::number});
-  columns.emplace_back(
-      influxdb::column{"host2", "42.0", false, influxdb::column::string});
-  columns.emplace_back(
-      influxdb::column{"host3", "43.0", true, influxdb::column::number});
+  columns.emplace_back("host1", "42.0", true, influxdb::column::number);
+  columns.emplace_back("host2", "42.0", false, influxdb::column::number);
+  columns.emplace_back("host2", "42.0", false, influxdb::column::string);
+  columns.emplace_back("host3", "43.0", true, influxdb::column::number);
 
   m.source_id = 3;
 
@@ -265,14 +261,10 @@ TEST(InfluxDBLineProtoQuery, ComplexPBStatus) {
   auto instance{std::make_shared<neb::instance>()};
   auto index_map{std::make_shared<storage::index_mapping>()};
 
-  columns.emplace_back(
-      influxdb::column{"host1", "42.0", true, influxdb::column::number});
-  columns.emplace_back(
-      influxdb::column{"host2", "42.0", false, influxdb::column::number});
-  columns.emplace_back(
-      influxdb::column{"host2", "42.0", false, influxdb::column::string});
-  columns.emplace_back(
-      influxdb::column{"host3", "43.0", true, influxdb::column::number});
+  columns.emplace_back("host1", "42.0", true, influxdb::column::number);
+  columns.emplace_back("host2", "42.0", false, influxdb::column::number);
+  columns.emplace_back("host2", "42.0", false, influxdb::column::string);
+  columns.emplace_back("host3", "43.0", true, influxdb::column::number);
 
   influxdb::line_protocol_query q{
       "test . $HOST$ $HOSTID$ $SERVICE$ $SERVICEID$ $INSTANCE$ $INSTANCEID$ "
