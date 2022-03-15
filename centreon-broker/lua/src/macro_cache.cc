@@ -95,7 +95,7 @@ const std::shared_ptr<storage::metric_mapping>& macro_cache::get_metric_mapping(
  *
  *  @return             A shared pointer on the service.
  */
-const std::shared_ptr<neb::service>& macro_cache::get_service(
+const std::shared_ptr<io::data>& macro_cache::get_service(
     uint64_t host_id,
     uint64_t service_id) const {
   auto found = _services.find({host_id, service_id});
@@ -171,7 +171,13 @@ std::string const& macro_cache::get_notes_url(uint64_t host_id,
     if (found == _services.end())
       throw msg_fmt("lua: could not find information on service ({}, {})",
                     host_id, service_id);
-    return found->second->notes_url;
+    if (found->second->type() == neb::service::static_type()) {
+      auto const& s = std::static_pointer_cast<neb::service>(found->second);
+      return s->notes_url;
+    } else {
+      auto const& s = std::static_pointer_cast<neb::pb_service>(found->second);
+      return s->obj().notes_url();
+    }
   } else {
     auto found = _hosts.find(host_id);
 
@@ -197,7 +203,13 @@ std::string const& macro_cache::get_action_url(uint64_t host_id,
     if (found == _services.end())
       throw msg_fmt("lua: could not find information on service ({}, {})",
                     host_id, service_id);
-    return found->second->action_url;
+    if (found->second->type() == neb::service::static_type()) {
+      auto const& s = std::static_pointer_cast<neb::service>(found->second);
+      return s->action_url;
+    } else {
+      auto const& s = std::static_pointer_cast<neb::pb_service>(found->second);
+      return s->obj().action_url();
+    }
   } else {
     auto found = _hosts.find(host_id);
 
@@ -223,8 +235,13 @@ std::string const& macro_cache::get_notes(uint64_t host_id,
     if (found == _services.end())
       throw msg_fmt("lua: cound not find information on service ({}, {})",
                     host_id, service_id);
-
-    return found->second->notes;
+    if (found->second->type() == neb::service::static_type()) {
+      auto const& s = std::static_pointer_cast<neb::service>(found->second);
+      return s->notes;
+    } else {
+      auto const& s = std::static_pointer_cast<neb::pb_service>(found->second);
+      return s->obj().notes();
+    }
   } else {
     auto found = _hosts.find(host_id);
 
@@ -275,7 +292,13 @@ std::string const& macro_cache::get_service_description(
   if (found == _services.end())
     throw msg_fmt("lua: could not find information on service ({}, {})",
                   host_id, service_id);
-  return found->second->service_description;
+  if (found->second->type() == neb::service::static_type()) {
+    auto const& s = std::static_pointer_cast<neb::service>(found->second);
+    return s->service_description;
+  } else {
+    auto const& s = std::static_pointer_cast<neb::pb_service>(found->second);
+    return s->obj().service_description();
+  }
 }
 
 /**
@@ -392,6 +415,9 @@ void macro_cache::write(std::shared_ptr<io::data> const& data) {
     case neb::service::static_type():
       _process_service(data);
       break;
+    case neb::pb_service::static_type():
+      _process_pb_service(data);
+      break;
     case neb::service_group::static_type():
       _process_service_group(data);
       break;
@@ -492,11 +518,27 @@ void macro_cache::_process_host_group_member(
 void macro_cache::_process_service(std::shared_ptr<io::data> const& data) {
   auto const& s = std::static_pointer_cast<neb::service>(data);
   log_v2::lua()->debug("lua: processing service ({}, {}) (description:{})",
-                       s->host_id, s->host_id, s->service_id);
+                       s->host_id, s->service_id, s->service_description);
   if (s->enabled)
-    _services[{s->host_id, s->service_id}] = s;
+    _services[{s->host_id, s->service_id}] = data;
   else
     _services.erase({s->host_id, s->service_id});
+}
+
+/**
+ *  Process a pb service event.
+ *
+ *  @param s  The event.
+ */
+void macro_cache::_process_pb_service(std::shared_ptr<io::data> const& data) {
+  auto const& s = std::static_pointer_cast<neb::pb_service>(data);
+  log_v2::lua()->debug("lua: processing service ({}, {}) (description:{})",
+                       s->obj().host_id(), s->obj().service_id(),
+                       s->obj().service_description());
+  if (s->obj().enabled())
+    _services[{s->obj().host_id(), s->obj().service_id()}] = data;
+  else
+    _services.erase({s->obj().host_id(), s->obj().service_id()});
 }
 
 /**

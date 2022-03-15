@@ -200,6 +200,106 @@ TEST(InfluxDBLineProtoQuery, ComplexStatus) {
       "TEST\\ $\\ 2,host1=42.0,host3=43.0 host2=42.0,host2=\"42.0\" 2000\n");
 }
 
+TEST(InfluxDBLineProtoQuery, ComplexPbMetric) {
+  std::vector<influxdb::column> columns;
+  std::shared_ptr<persistent_cache> pcache{nullptr};
+  influxdb::macro_cache cache(pcache);
+  storage::metric m{1u, 1u, "host1", 2000llu, 60, true, 40u, 42, 42.0, 4};
+  auto host{std::make_shared<neb::host>()};
+  auto svc{std::make_shared<neb::pb_service>()};
+  auto instance{std::make_shared<neb::instance>()};
+  auto metric_map{std::make_shared<storage::metric_mapping>()};
+  auto index_map{std::make_shared<storage::index_mapping>()};
+
+  columns.emplace_back("host1", "42.0", true, influxdb::column::number);
+  columns.emplace_back("host2", "42.0", false, influxdb::column::number);
+  columns.emplace_back("host2", "42.0", false, influxdb::column::string);
+  columns.emplace_back("host3", "43.0", true, influxdb::column::number);
+
+  m.source_id = 3;
+
+  svc->mut_obj().set_service_description("svc.1");
+  svc->mut_obj().set_service_id(1);
+  svc->mut_obj().set_host_id(1);
+
+  host->host_name = "host1";
+  host->host_id = 1;
+
+  instance->poller_id = 3;
+  instance->name = "poller test";
+
+  metric_map->metric_id = 40;
+  metric_map->index_id = 41;
+
+  index_map->index_id = 41;
+
+  cache.write(host);
+  cache.write(svc);
+  cache.write(instance);
+  cache.write(metric_map);
+  cache.write(index_map);
+
+  influxdb::line_protocol_query q{
+      "test . $HOST$ $HOSTID$ $SERVICE$ $SERVICEID$ $INSTANCE$ $INSTANCEID$ "
+      "$INDEXID$ $TEST$ TEST $$ $VALUE$",
+      columns, influxdb::line_protocol_query::metric, cache};
+
+  ASSERT_EQ(
+      q.generate_metric(m),
+      "test\\ .\\ host1\\ 1\\ svc.1\\ 1\\ poller\\ test\\ 3\\ 41\\ \\ TEST\\ $"
+      "\\ 42,host1=42.0,host3=43.0 host2=42.0,host2=\"42.0\" 2000\n");
+}
+
+TEST(InfluxDBLineProtoQuery, ComplexPBStatus) {
+  std::vector<influxdb::column> columns;
+  std::shared_ptr<persistent_cache> pcache{nullptr};
+  influxdb::macro_cache cache(pcache);
+  storage::status s{2000llu, 3, 60, true, 9, 2};
+
+  auto host{std::make_shared<neb::host>()};
+  auto svc{std::make_shared<neb::pb_service>()};
+  auto instance{std::make_shared<neb::instance>()};
+  auto index_map{std::make_shared<storage::index_mapping>()};
+
+  columns.emplace_back("host1", "42.0", true, influxdb::column::number);
+  columns.emplace_back("host2", "42.0", false, influxdb::column::number);
+  columns.emplace_back("host2", "42.0", false, influxdb::column::string);
+  columns.emplace_back("host3", "43.0", true, influxdb::column::number);
+
+  influxdb::line_protocol_query q{
+      "test . $HOST$ $HOSTID$ $SERVICE$ $SERVICEID$ $INSTANCE$ $INSTANCEID$ "
+      "$INDEXID$ $TEST$ TEST $$ $VALUE$",
+      columns, influxdb::line_protocol_query::status, cache};
+
+  svc->mut_obj().set_service_description("svc1");
+  svc->mut_obj().set_service_id(1);
+  svc->mut_obj().set_host_id(1);
+
+  host->host_name = "host1";
+  host->host_id = 1;
+
+  instance->poller_id = 3;
+  instance->name = "poller test";
+
+  index_map->index_id = 3;
+  index_map->host_id = 1;
+  index_map->service_id = 1;
+
+  s.source_id = 3;
+  s.destination_id = 4;
+  s.broker_id = 1;
+
+  cache.write(host);
+  cache.write(svc);
+  cache.write(instance);
+  cache.write(index_map);
+
+  ASSERT_EQ(
+      q.generate_status(s),
+      "test\\ .\\ host1\\ 1\\ svc1\\ 1\\ poller\\ test\\ 3\\ 3\\ \\ "
+      "TEST\\ $\\ 2,host1=42.0,host3=43.0 host2=42.0,host2=\"42.0\" 2000\n");
+}
+
 TEST(InfluxDBLineProtoQuery, Except) {
   std::vector<influxdb::column> columns;
   std::shared_ptr<persistent_cache> pcache{nullptr};
