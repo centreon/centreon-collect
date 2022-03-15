@@ -1470,11 +1470,11 @@ TEST_F(EngineRpc, ChangeHostObjectIntVar) {
   call_command_manager(th, &condvar, &mutex, &continuerunning);
 
   auto output = execute("ChangeHostObjectIntVar test_host 0 1 1.0");
-  ASSERT_EQ(_host->get_check_interval(), 1u);
+  ASSERT_EQ(_host->check_interval(), 1u);
   output = execute("ChangeHostObjectIntVar test_host 1 1 2.0");
   ASSERT_EQ(_host->get_retry_interval(), 2u);
   output = execute("ChangeHostObjectIntVar test_host 2 1 1.0");
-  ASSERT_EQ(_host->get_max_attempts(), 1);
+  ASSERT_EQ(_host->max_check_attempts(), 1);
   {
     std::lock_guard<std::mutex> lock(mutex);
     continuerunning = true;
@@ -1496,7 +1496,7 @@ TEST_F(EngineRpc, ChangeServiceObjectIntVar) {
   auto output = execute(
       "ChangeServiceObjectIntVar"
       " test_host test_svc 0 1 1.0");
-  ASSERT_EQ(_svc->get_check_interval(), 1u);
+  ASSERT_EQ(_svc->check_interval(), 1u);
   output = execute(
       "ChangeServiceObjectIntVar"
       " test_host test_svc 1 1 2.0");
@@ -1504,7 +1504,7 @@ TEST_F(EngineRpc, ChangeServiceObjectIntVar) {
   output = execute(
       "ChangeServiceObjectIntVar"
       " test_host test_svc 2 1 1.0");
-  ASSERT_EQ(_svc->get_max_attempts(), 1);
+  ASSERT_EQ(_svc->max_check_attempts(), 1);
   {
     std::lock_guard<std::mutex> lock(mutex);
     continuerunning = true;

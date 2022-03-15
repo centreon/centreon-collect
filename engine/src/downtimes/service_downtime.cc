@@ -204,7 +204,7 @@ int service_downtime::unschedule() {
         get_duration(), get_downtime_id(), nullptr);
 
     found->second->dec_scheduled_downtime_depth();
-    found->second->update_status();
+    found->second->update_status(service::DOWNTIME);
 
     /* log a notice - this is parsed by the history CGI */
     if (found->second->get_scheduled_downtime_depth() == 0) {
@@ -424,7 +424,9 @@ int service_downtime::handle() {
     }
 
     /* update the status data */
-    found->second->update_status();
+    /* We update with CHECK_RESULT level, so notifications numbers, downtimes,
+     * and check infos will be updated. */
+    found->second->update_status(service::CHECK_RESULT);
 
     /* decrement pending flex downtime if necessary */
     if (!is_fixed() && _incremented_pending_downtime) {
@@ -509,7 +511,8 @@ int service_downtime::handle() {
     _set_in_effect(true);
 
     /* update the status data */
-    found->second->update_status();
+    /* Because of the notification the status is sent with CHECK_RESULT level */
+    found->second->update_status(service::CHECK_RESULT);
 
     /* schedule an event */
     if (!is_fixed())

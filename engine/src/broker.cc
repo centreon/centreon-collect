@@ -1162,7 +1162,7 @@ int broker_host_check(int type,
   ds.object_ptr = hst;
   ds.check_type = check_type;
   ds.current_attempt = hst->get_current_attempt();
-  ds.max_attempts = hst->get_max_attempts();
+  ds.max_attempts = hst->max_check_attempts();
   ds.state = state;
   ds.state_type = state_type;
   ds.timeout = timeout;
@@ -1575,7 +1575,7 @@ int broker_service_check(int type,
   ds.object_ptr = svc;
   ds.check_type = check_type;
   ds.current_attempt = svc->get_current_attempt();
-  ds.max_attempts = svc->get_max_attempts();
+  ds.max_attempts = svc->max_check_attempts();
   ds.state = svc->get_current_state();
   ds.state_type = svc->get_state_type();
   ds.timeout = timeout;
@@ -1661,6 +1661,35 @@ void broker_service_status_check_result(int type,
   neb_make_callbacks(NEBCALLBACK_SERVICE_STATUS_CHECK_RESULT_DATA, &ds);
 }
 
+/**
+ *  Sends service status updates to broker.
+ *
+ *  @param[in] type      Type.
+ *  @param[in] flags     Flags.
+ *  @param[in] attr      Attributes.
+ *  @param[in] svc       Target service.
+ *  @param[in] timestamp Timestamp.
+ */
+void broker_service_status_downtime(int type,
+                                    int flags,
+                                    int attr,
+                                    com::centreon::engine::service* svc,
+                                    struct timeval const* timestamp) {
+  // Config check.
+  if (!(config->event_broker_options() & BROKER_STATUS_DATA))
+    return;
+
+  // Fill struct with relevant data.
+  nebstruct_service_status_data ds;
+  ds.type = type;
+  ds.flags = flags;
+  ds.attr = attr;
+  ds.timestamp = get_broker_timestamp(timestamp);
+  ds.object_ptr = svc;
+
+  // Make callbacks.
+  neb_make_callbacks(NEBCALLBACK_SERVICE_STATUS_DOWNTIME_DATA, &ds);
+}
 /**
  *  Send state change data to broker.
  *

@@ -115,6 +115,7 @@ class mysql_error {
     store_service_status_check_result,
     store_service_status_small,
     update_index_data,
+    update_resources,
   };
   static constexpr const char* msg[]{
       "error: ",
@@ -195,6 +196,7 @@ class mysql_error {
       "could not update the service status check result into the database: ",
       "could not update the service status downtime into the database: ",
       "could not update index data: ",
+      "could not update resources: ",
   };
 
   mysql_error() : _active(false) {}

@@ -254,7 +254,7 @@ struct grab_service_redirection {
        {&get_member_as_string<service,
                               int,
                               checkable,
-                              &checkable::get_max_attempts>,
+                              &checkable::max_check_attempts>,
         true}},
       // Execution time.
       {MACRO_SERVICEEXECUTIONTIME,

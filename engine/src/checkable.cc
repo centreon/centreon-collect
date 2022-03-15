@@ -131,7 +131,7 @@ void checkable::set_check_command(const std::string& check_command) {
   _check_command = check_command;
 }
 
-uint32_t checkable::get_check_interval() const {
+uint32_t checkable::check_interval() const {
   return _check_interval;
 }
 
@@ -163,7 +163,7 @@ void checkable::set_last_hard_state_change(time_t last_hard_state_change) {
   _last_hard_state_change = last_hard_state_change;
 }
 
-int checkable::get_max_attempts() const {
+int checkable::max_check_attempts() const {
   return _max_attempts;
 }
 
@@ -291,7 +291,7 @@ void checkable::set_state_history_index(uint32_t state_history_index) {
   _state_history_index = state_history_index;
 }
 
-bool checkable::get_checks_enabled() const {
+bool checkable::active_checks_enabled() const {
   return _checks_enabled;
 }
 

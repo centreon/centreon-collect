@@ -543,7 +543,7 @@ int anomalydetection::run_async_check(int check_options,
   if (NEBERROR_CALLBACKCANCEL == res) {
     if (preferred_time != nullptr)
       *preferred_time +=
-          static_cast<time_t>(get_check_interval() * config->interval_length());
+          static_cast<time_t>(check_interval() * config->interval_length());
     engine_logger(log_runtime_error, basic)
         << "Error: Some broker module cancelled check of anomalydetection '"
         << get_description() << "' on host '" << get_hostname();

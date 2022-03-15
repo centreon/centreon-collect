@@ -316,7 +316,7 @@ int xsddefault_save_status_data() {
         << it->second->get_notification_period()
         << "\n"
            "\tcheck_interval="
-        << it->second->get_check_interval()
+        << it->second->check_interval()
         << "\n"
            "\tretry_interval="
         << it->second->get_retry_interval()
@@ -380,7 +380,7 @@ int xsddefault_save_status_data() {
         << it->second->get_current_attempt()
         << "\n"
            "\tmax_attempts="
-        << it->second->get_max_attempts()
+        << it->second->max_check_attempts()
         << "\n"
            "\tstate_type="
         << it->second->get_state_type()
@@ -425,7 +425,7 @@ int xsddefault_save_status_data() {
         << it->second->get_acknowledgement_type()
         << "\n"
            "\tactive_checks_enabled="
-        << it->second->get_checks_enabled()
+        << it->second->active_checks_enabled()
         << "\n"
            "\tpassive_checks_enabled="
         << it->second->get_accept_passive_checks()
@@ -488,7 +488,7 @@ int xsddefault_save_status_data() {
            << it->second->get_notification_period()
            << "\n"
               "\tcheck_interval="
-           << it->second->get_check_interval()
+           << it->second->check_interval()
            << "\n"
               "\tretry_interval="
            << it->second->get_retry_interval()
@@ -534,7 +534,7 @@ int xsddefault_save_status_data() {
            << it->second->get_current_attempt()
            << "\n"
               "\tmax_attempts="
-           << it->second->get_max_attempts()
+           << it->second->max_check_attempts()
            << "\n"
               "\tstate_type="
            << it->second->get_state_type()
@@ -595,7 +595,7 @@ int xsddefault_save_status_data() {
            << it->second->get_notifications_enabled()
            << "\n"
               "\tactive_checks_enabled="
-           << it->second->get_checks_enabled()
+           << it->second->active_checks_enabled()
            << "\n"
               "\tpassive_checks_enabled="
            << it->second->get_accept_passive_checks()

@@ -343,12 +343,12 @@ void loop::_dispatching() {
             else
               temp_service->set_next_check(
                   (time_t)(temp_service->get_next_check() +
-                           (temp_service->get_check_interval() *
+                           (temp_service->check_interval() *
                             config->interval_length())));
           }
           temp_event->run_time = temp_service->get_next_check();
           reschedule_event(temp_event, events::loop::low);
-          temp_service->update_status();
+          temp_service->update_status(service::CHECK_RESULT);
           run_event = false;
         }
       }
@@ -392,10 +392,9 @@ void loop::_dispatching() {
                          (temp_host->get_retry_interval() *
                           config->interval_length())));
           else
-            temp_host->set_next_check(
-                (time_t)(temp_host->get_next_check() +
-                         (temp_host->get_check_interval() *
-                          config->interval_length())));
+            temp_host->set_next_check((time_t)(temp_host->get_next_check() +
+                                               (temp_host->check_interval() *
+                                                config->interval_length())));
           temp_event->run_time = temp_host->get_next_check();
           reschedule_event(temp_event, events::loop::low);
           temp_host->update_status();
@@ -633,7 +632,7 @@ void loop::adjust_check_scheduling() {
           current_exec_time_offset, current_icd_offset, first_window_time);
       (*it)->run_time = new_run_time;
       svc->set_next_check(new_run_time);
-      svc->update_status();
+      svc->update_status(service::CHECK_RESULT);
     } else
       continue;
 

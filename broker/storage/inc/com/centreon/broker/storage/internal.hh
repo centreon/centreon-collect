@@ -22,7 +22,7 @@
 #include "bbdo/events.hh"
 #include "bbdo/rebuild_message.pb.h"
 #include "bbdo/remove_graph_message.pb.h"
-#include "centreon-broker/core/src/broker.pb.h"
+#include "broker/core/src/broker.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
 
 CCB_BEGIN()

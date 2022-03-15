@@ -317,7 +317,7 @@ struct grab_host_redirection {
        {&get_member_as_string<host,
                               int,
                               checkable,
-                              &checkable::get_max_attempts>,
+                              &checkable::max_check_attempts>,
         true}},
       {MACRO_HOSTDOWNTIME,
        {&get_member_as_string<host,

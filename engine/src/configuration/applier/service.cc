@@ -576,7 +576,7 @@ void applier::service::resolve_object(configuration::service const& obj) {
     hst->second->set_total_services(hst->second->get_total_services() + 1);
     hst->second->set_total_service_check_interval(
         hst->second->get_total_service_check_interval() +
-        static_cast<uint64_t>(it->second->get_check_interval()));
+        static_cast<uint64_t>(it->second->check_interval()));
   }
 
   // Resolve service.

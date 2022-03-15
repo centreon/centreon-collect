@@ -414,7 +414,7 @@ int handle_host_event(com::centreon::engine::host* hst) {
   broker_statechange_data(
       NEBTYPE_STATECHANGE_END, NEBFLAG_NONE, NEBATTR_NONE, HOST_STATECHANGE,
       (void*)hst, hst->get_current_state(), hst->get_state_type(),
-      hst->get_current_attempt(), hst->get_max_attempts(), nullptr);
+      hst->get_current_attempt(), hst->max_check_attempts(), nullptr);
 
   /* bail out if we shouldn't be running event handlers */
   if (!config->enable_event_handlers())

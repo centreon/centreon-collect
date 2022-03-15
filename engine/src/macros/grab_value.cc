@@ -538,7 +538,7 @@ static int handle_summary_macro(nagios_macros* mac,
             problem = false;
           if (it->second->problem_has_been_acknowledged())
             problem = false;
-          if (!it->second->get_checks_enabled())
+          if (!it->second->active_checks_enabled())
             problem = false;
           if (problem)
             hosts_down_unhandled++;
@@ -548,7 +548,7 @@ static int handle_summary_macro(nagios_macros* mac,
             problem = false;
           if (it->second->problem_has_been_acknowledged())
             problem = false;
-          if (!it->second->get_checks_enabled())
+          if (!it->second->active_checks_enabled())
             problem = false;
           if (problem)
             hosts_down_unhandled++;
@@ -598,7 +598,7 @@ static int handle_summary_macro(nagios_macros* mac,
             problem = false;
           if (it->second->problem_has_been_acknowledged())
             problem = false;
-          if (!it->second->get_checks_enabled())
+          if (!it->second->active_checks_enabled())
             problem = false;
           if (problem)
             services_warning_unhandled++;
@@ -618,7 +618,7 @@ static int handle_summary_macro(nagios_macros* mac,
             problem = false;
           if (it->second->problem_has_been_acknowledged())
             problem = false;
-          if (!it->second->get_checks_enabled())
+          if (!it->second->active_checks_enabled())
             problem = false;
           if (problem)
             services_unknown_unhandled++;
@@ -638,7 +638,7 @@ static int handle_summary_macro(nagios_macros* mac,
             problem = false;
           if (it->second->problem_has_been_acknowledged())
             problem = false;
-          if (!it->second->get_checks_enabled())
+          if (!it->second->active_checks_enabled())
             problem = false;
           if (problem)
             services_critical_unhandled++;

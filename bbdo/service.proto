@@ -53,7 +53,7 @@ message Service {
   int64 last_time_unknown = 29;
   int64 last_update = 30;
   double latency = 31;
-  int32 max_check_attempts = 32;
+  uint32 max_check_attempts = 32;
   int64 next_check = 33;
   int64 next_notification = 34;
   bool no_more_notifications = 35;
@@ -110,6 +110,7 @@ message Service {
   bool stalk_on_warning = 80;
   bool retain_nonstatus_information = 81;
   bool retain_status_information = 82;
+  uint64 severity_id = 83;
 }
 
 /**
@@ -171,4 +172,34 @@ message ServiceStatusCheckResult {
     STICKY = 2;
   }
   AckType acknowledgement_type = 29;
+  int32 downtime_depth = 30;
+}
+
+/**
+ * @brief Message sent in BBDO 3.0.0 instead of neb::service_status
+ * When only one of the downtime depth or the next_check changed.
+ */
+message ServiceStatusSmall {
+  uint64 host_id = 1;
+  uint64 service_id = 2;
+
+  enum CheckType {
+    ACTIVE = 0;
+    PASSIVE = 1;
+  }
+  CheckType check_type = 3;
+  int64 next_check = 4;
+  int32 downtime_depth = 5;
+}
+
+message AdaptiveService {
+  uint64 host_id = 1;
+  uint64 service_id = 2;
+
+  oneof attribute {
+    bool notifications_enabled = 3;
+    uint32 max_check_attempts = 4;
+    uint32 check_interval = 5;
+    bool active_checks_enabled = 6;
+  }
 }

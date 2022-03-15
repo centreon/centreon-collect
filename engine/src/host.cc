@@ -677,13 +677,13 @@ std::ostream& operator<<(std::ostream& os, const host& obj) {
      << obj.get_initial_state()
      << "\n"
         "  check_interval:                       "
-     << obj.get_check_interval()
+     << obj.check_interval()
      << "\n"
         "  retry_interval:                       "
      << obj.get_retry_interval()
      << "\n"
         "  max_attempts:                         "
-     << obj.get_max_attempts()
+     << obj.max_check_attempts()
      << "\n"
         "  event_handler:                        "
      << obj.get_event_handler()
@@ -766,7 +766,7 @@ std::ostream& operator<<(std::ostream& os, const host& obj) {
      << obj.get_process_performance_data()
      << "\n"
         "  checks_enabled:                       "
-     << obj.get_checks_enabled()
+     << obj.active_checks_enabled()
      << "\n"
         "  accept_passive_checks:                "
      << obj.get_accept_passive_checks()
@@ -1588,9 +1588,9 @@ int host::run_scheduled_check(int check_options, double latency) {
        */
       if (current_time >= preferred_time)
         preferred_time = current_time +
-                         static_cast<time_t>((get_check_interval() <= 0)
+                         static_cast<time_t>((check_interval() <= 0)
                                                  ? 300
-                                                 : (get_check_interval() *
+                                                 : (check_interval() *
                                                     config->interval_length()));
 
       // Make sure we rescheduled the next host check at a valid time.
@@ -1867,7 +1867,7 @@ bool host::schedule_check(time_t check_time, int options) {
       get_name(), my_ctime(&check_time));
 
   /* don't schedule a check if active checks of this host are disabled */
-  if (!get_checks_enabled() && !(options & CHECK_OPTION_FORCE_EXECUTION)) {
+  if (!active_checks_enabled() && !(options & CHECK_OPTION_FORCE_EXECUTION)) {
     engine_logger(dbg_checks, basic)
         << "Active checks are disabled for this host.";
     log_v2::checks()->trace("Active checks are disabled for this host.");
@@ -2439,8 +2439,8 @@ bool host::verify_check_viability(int check_options,
     check_interval = static_cast<int>(this->get_retry_interval() *
                                       config->interval_length());
   else
-    check_interval = static_cast<int>(this->get_check_interval() *
-                                      config->interval_length());
+    check_interval =
+        static_cast<int>(this->check_interval() * config->interval_length());
 
   /* make sure check interval is positive - otherwise use 5 minutes out for next
    * check */
@@ -2456,7 +2456,7 @@ bool host::verify_check_viability(int check_options,
   /* can we check the host right now? */
   if (!(check_options & CHECK_OPTION_FORCE_EXECUTION)) {
     /* if checks of the host are currently disabled... */
-    if (!this->get_checks_enabled()) {
+    if (!this->active_checks_enabled()) {
       preferred_time = current_time + check_interval;
       perform_check = false;
     }
@@ -2817,7 +2817,7 @@ bool host::is_result_fresh(time_t current_time, int log_this) {
   if (get_freshness_threshold() == 0) {
     double interval;
     if ((hard == get_state_type()) || (host::state_up == get_current_state()))
-      interval = get_check_interval();
+      interval = check_interval();
     else
       interval = get_retry_interval();
     freshness_threshold = static_cast<int>(
@@ -2844,7 +2844,7 @@ bool host::is_result_fresh(time_t current_time, int log_this) {
    * frequently that freshness threshold intervals (hosts never go stale). */
   /* CHANGED 10/07/07 EG - Added max_host_check_spread to expiration time as
    * suggested by Altinity */
-  else if (get_checks_enabled() && event_start > get_last_check() &&
+  else if (active_checks_enabled() && event_start > get_last_check() &&
            get_freshness_threshold() == 0)
     expiration_time =
         (time_t)(event_start + freshness_threshold +
@@ -3019,7 +3019,7 @@ int host::process_check_result_3x(enum host::host_state new_state,
   host::host_state parent_state = host::state_up;
   time_t current_time = 0L;
   time_t next_check{get_last_check() +
-                    get_check_interval() * config->interval_length()};
+                    check_interval() * config->interval_length()};
   time_t preferred_time = 0L;
   time_t next_valid_time = 0L;
   int run_async_check = true;
@@ -3030,14 +3030,14 @@ int host::process_check_result_3x(enum host::host_state new_state,
 
   engine_logger(dbg_checks, more)
       << "HOST: " << _name << ", ATTEMPT=" << get_current_attempt() << "/"
-      << get_max_attempts() << ", CHECK TYPE="
+      << max_check_attempts() << ", CHECK TYPE="
       << (get_check_type() == check_active ? "ACTIVE" : "PASSIVE")
       << ", STATE TYPE=" << (get_state_type() == hard ? "HARD" : "SOFT")
       << ", OLD STATE=" << get_current_state() << ", NEW STATE=" << new_state;
   log_v2::checks()->debug(
       "HOST: {}, ATTEMPT={}/{}, CHECK TYPE={}, STATE TYPE={}, OLD STATE={}, "
       "NEW STATE={}",
-      _name, get_current_attempt(), get_max_attempts(),
+      _name, get_current_attempt(), max_check_attempts(),
       get_check_type() == check_active ? "ACTIVE" : "PASSIVE",
       get_state_type() == hard ? "HARD" : "SOFT", get_current_state(),
       new_state);
@@ -3152,7 +3152,7 @@ int host::process_check_result_3x(enum host::host_state new_state,
       else {
         /* set the state type */
         /* we've maxed out on the retries */
-        if (get_current_attempt() == get_max_attempts())
+        if (get_current_attempt() == max_check_attempts())
           set_state_type(hard);
         /* the host was in a hard problem state before, so it still is now */
         else if (get_current_attempt() == 1)
@@ -3206,7 +3206,7 @@ int host::process_check_result_3x(enum host::host_state new_state,
       log_v2::checks()->debug("Host is now DOWN/UNREACHABLE.");
 
       /***** SPECIAL CASE FOR HOSTS WITH MAX_ATTEMPTS==1 *****/
-      if (get_max_attempts() == 1) {
+      if (max_check_attempts() == 1) {
         engine_logger(dbg_checks, more) << "Max attempts = 1!.";
         log_v2::checks()->debug("Max attempts = 1!.");
 
@@ -3401,7 +3401,7 @@ int host::process_check_result_3x(enum host::host_state new_state,
 
         /* check dependencies on second to last host check */
         if (config->enable_predictive_host_dependency_checks() &&
-            get_current_attempt() == (get_max_attempts() - 1)) {
+            get_current_attempt() == (max_check_attempts() - 1)) {
           /* propagate checks to hosts that THIS ONE depends on for
            * notifications AND execution */
           /* we do to help ensure that the dependency checks are accurate before
@@ -3436,13 +3436,13 @@ int host::process_check_result_3x(enum host::host_state new_state,
 
   engine_logger(dbg_checks, more)
       << "Pre-handle_host_state() Host: " << _name
-      << ", Attempt=" << get_current_attempt() << "/" << get_max_attempts()
+      << ", Attempt=" << get_current_attempt() << "/" << max_check_attempts()
       << ", Type=" << (get_state_type() == hard ? "HARD" : "SOFT")
       << ", Final State=" << _current_state;
   log_v2::checks()->debug(
       "Pre-handle_host_state() Host: {}, Attempt={}/{}, Type={}, Final "
       "State={}",
-      _name, get_current_attempt(), get_max_attempts(),
+      _name, get_current_attempt(), max_check_attempts(),
       get_state_type() == hard ? "HARD" : "SOFT", _current_state);
 
   /* handle the host state */
@@ -3450,13 +3450,13 @@ int host::process_check_result_3x(enum host::host_state new_state,
 
   engine_logger(dbg_checks, more)
       << "Post-handle_host_state() Host: " << _name
-      << ", Attempt=" << get_current_attempt() << "/" << get_max_attempts()
+      << ", Attempt=" << get_current_attempt() << "/" << max_check_attempts()
       << ", Type=" << (get_state_type() == hard ? "HARD" : "SOFT")
       << ", Final State=" << _current_state;
   log_v2::checks()->debug(
       "Post-handle_host_state() Host: {}, Attempt={}/{}, Type={}, Final "
       "State={}",
-      _name, get_current_attempt(), get_max_attempts(),
+      _name, get_current_attempt(), max_check_attempts(),
       get_state_type() == hard ? "HARD" : "SOFT", _current_state);
 
   /******************** POST-PROCESSING STUFF *********************/
@@ -3513,12 +3513,12 @@ int host::process_check_result_3x(enum host::host_state new_state,
 
     /* hosts with non-recurring intervals do not get rescheduled if we're in a
      * HARD or UP state */
-    if (get_check_interval() == 0 &&
+    if (check_interval() == 0 &&
         (get_state_type() == hard || _current_state == host::state_up))
       set_should_be_scheduled(false);
 
     /* host with active checks disabled do not get rescheduled */
-    if (!get_checks_enabled())
+    if (!active_checks_enabled())
       set_should_be_scheduled(false);
 
     /* schedule a non-forced check if we can */
@@ -3731,7 +3731,7 @@ void host::check_result_freshness() {
       continue;
 
     /* skip hosts that have both active and passive checks disabled */
-    if (!it->second->get_checks_enabled() &&
+    if (!it->second->active_checks_enabled() &&
         !it->second->get_accept_passive_checks())
       continue;
 
@@ -3778,12 +3778,12 @@ void host::adjust_check_attempt(bool is_active) {
   engine_logger(dbg_checks, most)
       << "Adjusting check attempt number for host '" << _name
       << "': current attempt=" << get_current_attempt() << "/"
-      << get_max_attempts() << ", state=" << _current_state
+      << max_check_attempts() << ", state=" << _current_state
       << ", state type=" << get_state_type();
   log_v2::checks()->debug(
       "Adjusting check attempt number for host '{}': current attempt= {}/{}, "
       "state= {}, state type= {}",
-      _name, get_current_attempt(), get_max_attempts(), _current_state,
+      _name, get_current_attempt(), max_check_attempts(), _current_state,
       get_state_type());
   /* if host is in a hard state, reset current attempt number */
   if (get_state_type() == notifier::hard)
@@ -3796,7 +3796,7 @@ void host::adjust_check_attempt(bool is_active) {
     set_current_attempt(1);
 
   /* increment current attempt number */
-  else if (get_current_attempt() < get_max_attempts())
+  else if (get_current_attempt() < max_check_attempts())
     set_current_attempt(get_current_attempt() + 1);
 
   engine_logger(dbg_checks, most)

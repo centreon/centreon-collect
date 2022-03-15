@@ -68,11 +68,11 @@ class checkable {
   void set_display_name(std::string const& name);
   std::string const& get_check_command() const;
   void set_check_command(std::string const& check_command);
-  uint32_t get_check_interval() const;
+  uint32_t check_interval() const;
   void set_check_interval(uint32_t check_interval);
   double get_retry_interval() const;
   void set_retry_interval(double retry_interval);
-  int get_max_attempts() const;
+  int max_check_attempts() const;
   void set_max_attempts(int max_attempts);
   std::string const& get_check_period() const;
   void set_check_period(std::string const& check_period);
@@ -106,7 +106,7 @@ class checkable {
   void set_obsess_over(bool obsess_over_host);
   std::string const& get_timezone() const;
   void set_timezone(std::string const& timezone);
-  bool get_checks_enabled() const;
+  bool active_checks_enabled() const;
   void set_checks_enabled(bool checks_enabled);
   bool get_accept_passive_checks() const;
   void set_accept_passive_checks(bool accept_passive_checks);

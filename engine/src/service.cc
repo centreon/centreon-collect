@@ -321,13 +321,13 @@ std::ostream& operator<<(std::ostream& os,
      << obj.get_initial_state()
      << "\n"
         "  check_interval:                       "
-     << obj.get_check_interval()
+     << obj.check_interval()
      << "\n"
         "  retry_interval:                       "
      << obj.get_retry_interval()
      << "\n"
         "  max_attempts:                         "
-     << obj.get_max_attempts()
+     << obj.max_check_attempts()
      << "\n"
         "  contact_groups:                       "
      << cg_oss
@@ -422,7 +422,8 @@ std::ostream& operator<<(std::ostream& os,
      << obj.get_accept_passive_checks()
      << "\n  event_handler_enabled:                "
      << obj.get_event_handler_enabled()
-     << "\n  checks_enabled:                       " << obj.get_checks_enabled()
+     << "\n  checks_enabled:                       "
+     << obj.active_checks_enabled()
      << "\n  retain_status_information:            "
      << obj.get_retain_status_information()
      << "\n  retain_nonstatus_information:         "
@@ -823,7 +824,10 @@ void service::check_for_expired_acknowledgement() {
             get_description(), this->get_host_ptr()->get_name());
         set_problem_has_been_acknowledged(false);
         set_acknowledgement_type(ACKNOWLEDGEMENT_NONE);
-        update_status();
+        // FIXME DBO: could be improved with something smaller.
+        // We will see later, I don't know if there are many events concerning
+        // acks.
+        update_status(CHECK_RESULT);
       }
     }
   }
@@ -1307,17 +1311,17 @@ int service::handle_async_check_result(check_result* queued_check_result) {
   if (_last_state == state_ok && _current_state != _last_state)
     set_current_attempt(1);
   else if (get_state_type() == soft &&
-           get_current_attempt() < get_max_attempts())
+           get_current_attempt() < max_check_attempts())
     add_current_attempt(1);
 
   engine_logger(dbg_checks, most)
       << "ST: " << (get_state_type() == soft ? "SOFT" : "HARD")
-      << "  CA: " << get_current_attempt() << "  MA: " << get_max_attempts()
+      << "  CA: " << get_current_attempt() << "  MA: " << max_check_attempts()
       << "  CS: " << _current_state << "  LS: " << _last_state
       << "  LHS: " << _last_hard_state;
   log_v2::checks()->debug("ST: {}  CA: {} MA: {} CS: {} LS: {} LHS: {}",
                           (get_state_type() == soft ? "SOFT" : "HARD"),
-                          get_current_attempt(), get_max_attempts(),
+                          get_current_attempt(), max_check_attempts(),
                           _current_state, _last_state, _last_hard_state);
 
   /* check for a state change (either soft or hard) */
@@ -1344,7 +1348,7 @@ int service::handle_async_check_result(check_result* queued_check_result) {
    * check for a "normal" hard state change where max check attempts is
    * reached
    */
-  if (get_current_attempt() >= get_max_attempts() &&
+  if (get_current_attempt() >= max_check_attempts() &&
       (_current_state != _last_hard_state ||
        get_last_state_change() > get_last_hard_state_change())) {
     engine_logger(dbg_checks, most) << "Service had a HARD STATE CHANGE!!";
@@ -1520,7 +1524,7 @@ int service::handle_async_check_result(check_result* queued_check_result) {
 
       /* this is a soft recovery */
       set_state_type(soft);
-      int attempt = get_max_attempts() - 1;
+      int attempt = max_check_attempts() - 1;
       set_current_attempt(attempt < 1 ? 1 : attempt);
 
       /* log the soft recovery */
@@ -1556,7 +1560,7 @@ int service::handle_async_check_result(check_result* queued_check_result) {
     if (reschedule_check)
       next_service_check =
           (time_t)(get_last_check() +
-                   get_check_interval() * config->interval_length());
+                   check_interval() * config->interval_length());
   }
 
   /*******************************************/
@@ -1717,13 +1721,13 @@ int service::handle_async_check_result(check_result* queued_check_result) {
 
     engine_logger(dbg_checks, more)
         << "Current/Max Attempt(s): " << get_current_attempt() << '/'
-        << get_max_attempts();
+        << max_check_attempts();
     log_v2::checks()->debug("Current/Max Attempt(s): {}/{}",
-                            get_current_attempt(), get_max_attempts());
+                            get_current_attempt(), max_check_attempts());
 
     /* if we should retry the service check, do so (except it the host is down
      * or unreachable!) */
-    if (get_current_attempt() < get_max_attempts()) {
+    if (get_current_attempt() < max_check_attempts()) {
       /* the host is down or unreachable, so don't attempt to retry the service
        * check */
       if (route_result != host::state_up) {
@@ -1737,7 +1741,7 @@ int service::handle_async_check_result(check_result* queued_check_result) {
         if (reschedule_check)
           next_service_check =
               (time_t)(get_last_check() +
-                       get_check_interval() * config->interval_length());
+                       check_interval() * config->interval_length());
 
         /* log the problem as a hard state if the host just went down */
         if (hard_state_change) {
@@ -1774,7 +1778,7 @@ int service::handle_async_check_result(check_result* queued_check_result) {
 
       /* perform dependency checks on the second to last check of the service */
       if (config->enable_predictive_service_dependency_checks() &&
-          get_current_attempt() == (get_max_attempts() - 1)) {
+          get_current_attempt() == (max_check_attempts() - 1)) {
         engine_logger(dbg_checks, more)
             << "Looking for services to check for predictive "
                "dependency checks...";
@@ -1869,7 +1873,7 @@ int service::handle_async_check_result(check_result* queued_check_result) {
       if (reschedule_check)
         next_service_check =
             (time_t)(get_last_check() +
-                     get_check_interval() * config->interval_length());
+                     check_interval() * config->interval_length());
     }
 
     /* should we obsessive over service checks? */
@@ -1904,11 +1908,11 @@ int service::handle_async_check_result(check_result* queued_check_result) {
     }
 
     /* services with non-recurring intervals do not get rescheduled */
-    if (get_check_interval() == 0)
+    if (check_interval() == 0)
       set_should_be_scheduled(false);
 
     /* services with active checks disabled do not get rescheduled */
-    if (!get_checks_enabled())
+    if (!active_checks_enabled())
       set_should_be_scheduled(false);
 
     /* schedule a non-forced check if we can */
@@ -1946,11 +1950,11 @@ int service::handle_async_check_result(check_result* queued_check_result) {
       queued_check_result->get_return_code(), nullptr, nullptr);
 
   if (!(reschedule_check && get_should_be_scheduled() && has_been_checked()) ||
-      !get_checks_enabled()) {
+      !active_checks_enabled()) {
     /* set the checked flag */
     set_has_been_checked(true);
     /* update the current service status log */
-    update_status();
+    update_status(CHECK_RESULT);
   }
 
   /* check to see if the service and/or associate host is flapping */
@@ -2171,7 +2175,7 @@ int service::handle_service_event() {
   broker_statechange_data(NEBTYPE_STATECHANGE_END, NEBFLAG_NONE, NEBATTR_NONE,
                           SERVICE_STATECHANGE, (void*)this, _current_state,
                           get_state_type(), get_current_attempt(),
-                          get_max_attempts(), nullptr);
+                          max_check_attempts(), nullptr);
 
   /* bail out if we shouldn't be running event handlers */
   if (!config->enable_event_handlers())
@@ -2356,9 +2360,9 @@ int service::run_scheduled_check(int check_options, double latency) {
       if (current_time >= preferred_time)
         preferred_time =
             current_time +
-            static_cast<time_t>(get_check_interval() <= 0
+            static_cast<time_t>(check_interval() <= 0
                                     ? 300
-                                    : get_check_interval() *
+                                    : check_interval() *
                                           config->interval_length());
 
       // Make sure we rescheduled the next service check at a valid time.
@@ -2412,7 +2416,7 @@ int service::run_scheduled_check(int check_options, double latency) {
 
     /* update the status log */
     if (!sent)
-      update_status();
+      update_status(CHECK_RESULT);
     return ERROR;
   }
   return OK;
@@ -2474,7 +2478,7 @@ int service::run_async_check(int check_options,
   if (NEBERROR_CALLBACKCANCEL == res) {
     if (preferred_time != nullptr)
       *preferred_time +=
-          static_cast<time_t>(get_check_interval() * config->interval_length());
+          static_cast<time_t>(check_interval() * config->interval_length());
     engine_logger(log_runtime_error, basic)
         << "Error: Some broker module cancelled check of service '"
         << get_description() << "' on host '" << get_hostname();
@@ -2627,7 +2631,7 @@ bool service::schedule_check(time_t check_time, int options) {
 
   // Don't schedule a check if active checks
   // of this service are disabled.
-  if (!get_checks_enabled() && !(options & CHECK_OPTION_FORCE_EXECUTION)) {
+  if (!active_checks_enabled() && !(options & CHECK_OPTION_FORCE_EXECUTION)) {
     engine_logger(dbg_checks, basic)
         << "Active checks of this service are disabled.";
     log_v2::checks()->trace("Active checks of this service are disabled.");
@@ -2730,11 +2734,11 @@ bool service::schedule_check(time_t check_time, int options) {
 
       events::loop::instance().reschedule_event(new_event, events::loop::low);
 
-      if (!get_checks_enabled())
+      if (!active_checks_enabled())
         no_update_status_now = true;
     } catch (...) {
       // Update the status log.
-      update_status();
+      update_status(CHECK_RESULT);
       throw;
     }
   } else {
@@ -2750,7 +2754,7 @@ bool service::schedule_check(time_t check_time, int options) {
 
   // Update the status log.
   if (!no_update_status_now)
-    update_status();
+    update_status(CHECK_RESULT);
   return true;
 }
 
@@ -2889,7 +2893,9 @@ void service::enable_flap_detection() {
   check_for_flapping(false, true);
 
   /* update service status */
-  update_status();
+  // FIXME DBO: Since we are just talking about flapping,
+  // we could improve this message.
+  update_status(CHECK_RESULT);
 }
 
 /* disables flap detection for a specific service */
@@ -2939,6 +2945,10 @@ void service::update_status(service::status_type t) {
                                          NEBFLAG_NONE, NEBATTR_NONE, this,
                                          nullptr);
       break;
+    case DOWNTIME:
+      broker_service_status_downtime(NEBTYPE_SERVICESTATUS_UPDATE, NEBFLAG_NONE,
+                                     NEBATTR_NONE, this, nullptr);
+      break;
   }
 }
 
@@ -2960,7 +2970,7 @@ bool service::verify_check_viability(int check_options,
         static_cast<int>(get_retry_interval() * config->interval_length());
   else
     check_interval =
-        static_cast<int>(get_check_interval() * config->interval_length());
+        static_cast<int>(this->check_interval() * config->interval_length());
 
   /* get the current time */
   time(&current_time);
@@ -2971,7 +2981,7 @@ bool service::verify_check_viability(int check_options,
   /* can we check the host right now? */
   if (!(check_options & CHECK_OPTION_FORCE_EXECUTION)) {
     /* if checks of the service are currently disabled... */
-    if (!get_checks_enabled()) {
+    if (!active_checks_enabled()) {
       preferred_time = current_time + check_interval;
       perform_check = false;
 
@@ -3293,7 +3303,7 @@ bool service::is_result_fresh(time_t current_time, int log_this) {
   if (get_freshness_threshold() == 0) {
     if (get_state_type() == hard || this->_current_state == service::state_ok)
       freshness_threshold = static_cast<int>(
-          (get_check_interval() * config->interval_length()) + get_latency() +
+          (check_interval() * config->interval_length()) + get_latency() +
           config->additional_freshness_latency());
     else
       freshness_threshold = static_cast<int>(
@@ -3324,7 +3334,7 @@ bool service::is_result_fresh(time_t current_time, int log_this) {
    * active checks enabled... */
   /* CHANGED 10/07/07 EG - Added max_service_check_spread to expiration time as
    * suggested by Altinity */
-  else if (this->get_checks_enabled() && event_start > get_last_check() &&
+  else if (this->active_checks_enabled() && event_start > get_last_check() &&
            this->get_freshness_threshold() == 0)
     expiration_time = (time_t)(event_start + freshness_threshold +
                                (config->max_service_check_spread() *
@@ -3434,7 +3444,7 @@ void service::handle_flap_detection_disabled() {
   }
 
   /* update service status */
-  update_status();
+  update_status(CHECK_RESULT);
 }
 
 std::list<servicegroup*> const& service::get_parent_groups() const {
@@ -3612,7 +3622,7 @@ void service::check_result_freshness() {
       continue;
 
     /* skip services that have both active and passive checks disabled */
-    if (!it->second->get_checks_enabled() &&
+    if (!it->second->active_checks_enabled() &&
         !it->second->get_accept_passive_checks())
       continue;
 
@@ -3631,7 +3641,7 @@ void service::check_result_freshness() {
     /* EXCEPTION */
     /* don't check freshness of services without regular check intervals if
      * we're using auto-freshness threshold */
-    if (it->second->get_check_interval() == 0 &&
+    if (it->second->check_interval() == 0 &&
         it->second->get_freshness_threshold() == 0)
       continue;
 
@@ -3743,7 +3753,7 @@ void service::resolve(int& w, int& e) {
 
   // See if the notification interval is less than the check interval.
   if (get_notifications_enabled() && get_notification_interval() &&
-      get_notification_interval() < get_check_interval()) {
+      get_notification_interval() < check_interval()) {
     engine_logger(log_verification_error, basic)
         << "Warning: Service '" << _description << "' on host '" << _hostname
         << "'  has a notification interval less than "

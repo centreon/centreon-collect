@@ -17,6 +17,7 @@
 */
 #include <fmt/format.h>
 
+#include "bbdo/storage/index_mapping.hh"
 #include "com/centreon/broker/database/mysql_result.hh"
 #include "com/centreon/broker/database/table_max_size.hh"
 #include "com/centreon/broker/log_v2.hh"
@@ -1223,12 +1224,12 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
         hs.host_id(), hs.last_check(), hs.current_state(), hs.state_type());
 
     // Prepare queries.
-    if (!_host_status_update.prepared()) {
+    if (!_pb_host_status_update.prepared()) {
       query_preparator::event_pb_unique unique{
           {1, "host_id", io::protobuf_base::invalid_on_zero, 0}};
       query_preparator qp(neb::pb_host_status::static_type(), unique);
 
-      _host_status_update = qp.prepare_update_table(
+      _pb_host_status_update = qp.prepare_update_table(
           _mysql, "hosts",
           {
               {1, "host_id", io::protobuf_base::invalid_on_zero, 0},
@@ -1280,10 +1281,10 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
     }
 
     // Processing.
-    _host_status_update << *s;
+    _pb_host_status_update << *s;
     int32_t conn = _mysql.choose_connection_by_instance(
         _cache_host_instance[static_cast<uint32_t>(hs.host_id())]);
-    _mysql.run_statement(_host_status_update,
+    _mysql.run_statement(_pb_host_status_update,
                          database::mysql_error::store_host_status, false, conn);
     _add_action(conn, actions::hosts);
   } else
@@ -1784,7 +1785,6 @@ void stream::_process_service(const std::shared_ptr<io::data>& d) {
  *
  *  @param[in] e Uncasted service.
  *
- * @return The number of events that can be acknowledged.
  */
 void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
   log_v2::sql()->debug("SQL: process pb service");
@@ -1804,20 +1804,20 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
 
     // Log message.
     log_v2::sql()->trace(
-        "SQL: processing service event (host: {}, service: {}, "
+        "SQL: processing pb service event (host: {}, service: {}, "
         "description: {})",
         ss.host_id(), ss.service_id(), ss.service_description());
 
     if (ss.host_id() && ss.service_id()) {
       // Prepare queriess.
-      if (!_service_insupdate.prepared()) {
+      if (!_pb_service_insupdate.prepared()) {
         query_preparator::event_pb_unique unique{
             {1, "host_id", io::protobuf_base::invalid_on_zero, 0},
             {2, "service_id", io::protobuf_base::invalid_on_zero, 0},
         };
         query_preparator qp(neb::pb_service::static_type(), unique);
 
-        _service_insupdate = qp.prepare_insert_or_update_table(
+        _pb_service_insupdate = qp.prepare_insert_or_update_table(
             _mysql, "services",
             {
                 {1, "host_id", io::protobuf_base::invalid_on_zero, 0},
@@ -1919,13 +1919,83 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
                 {81, "retain_nonstatus_information", 0, 0},
                 {82, "retain_status_information", 0, 0},
             });
+        _resources_insupdate = _mysql.prepare_query(
+            "INSERT INTO resources "
+            "(id,parent_id,type,status,status_ordered,in_downtime,acknowledged,"
+            "status_confirmed,check_attempts,max_check_attempts,poller_id,"
+            "severity_id,name,parent_name, "
+            "notifications_enabled,check_interval,active_checks_enabled) "
+            "VALUES(?,?,0,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE "
+            "type=0,status=?,status_ordered=?,in_downtime=?,acknowledged=?,"
+            "status_confirmed=?,check_attempts=?,max_check_attempts=?,poller_"
+            "id=?,severity_id=?,name=?,parent_name=?,notifications_enabled=?,"
+            "check_interval=?,active_checks_enabled=?");
       }
 
       // Processing.
-      _service_insupdate << *s;
-      _mysql.run_statement(_service_insupdate,
+      _pb_service_insupdate << *s;
+      _mysql.run_statement(_pb_service_insupdate,
                            database::mysql_error::store_service, true, conn);
+
+      _check_and_update_index_cache(ss);
       _add_action(conn, actions::services);
+
+      // INSERT
+      _resources_insupdate.bind_value_as_u64(0, ss.service_id());
+      _resources_insupdate.bind_value_as_u64(1, ss.host_id());
+      _resources_insupdate.bind_value_as_u32(2, ss.current_state());
+      _resources_insupdate.bind_value_as_u32(
+          3, ordered_status[ss.current_state()]);
+      _resources_insupdate.bind_value_as_bool(4, ss.downtime_depth() > 0);
+      _resources_insupdate.bind_value_as_bool(
+          5, ss.acknowledgement_type() != Service_AckType_NONE);
+      _resources_insupdate.bind_value_as_bool(
+          6, ss.state_type() == Service_StateType_HARD);
+      _resources_insupdate.bind_value_as_u32(7, ss.current_check_attempt());
+      _resources_insupdate.bind_value_as_u32(8, ss.max_check_attempts());
+      _resources_insupdate.bind_value_as_u64(
+          9, _cache_host_instance[ss.host_id()]);
+      if (ss.severity_id())
+        _resources_insupdate.bind_value_as_u64(10, ss.severity_id());
+      else
+        _resources_insupdate.bind_value_as_null(10);
+      fmt::string_view name{misc::string::truncate(
+          ss.service_description(), get_resources_col_size(resources_name))};
+      fmt::string_view parent_name{misc::string::truncate(
+          ss.host_name(), get_resources_col_size(resources_parent_name))};
+      _resources_insupdate.bind_value_as_str(11, name);
+      _resources_insupdate.bind_value_as_str(12, parent_name);
+      _resources_insupdate.bind_value_as_bool(13, ss.notifications_enabled());
+      _resources_insupdate.bind_value_as_u32(14, ss.check_interval());
+      _resources_insupdate.bind_value_as_bool(15, ss.active_checks_enabled());
+
+      // ON DUPLICATE
+      _resources_insupdate.bind_value_as_u32(16, ss.current_state());
+      _resources_insupdate.bind_value_as_u32(
+          17, ordered_status[ss.current_state()]);
+      _resources_insupdate.bind_value_as_bool(18, ss.downtime_depth() > 0);
+      _resources_insupdate.bind_value_as_bool(
+          19, ss.acknowledgement_type() != Service_AckType_NONE);
+      _resources_insupdate.bind_value_as_bool(
+          20, ss.state_type() == Service_StateType_HARD);
+      _resources_insupdate.bind_value_as_u32(21, ss.current_check_attempt());
+      _resources_insupdate.bind_value_as_u32(22, ss.max_check_attempts());
+      _resources_insupdate.bind_value_as_u64(
+          23, _cache_host_instance[ss.host_id()]);
+      if (ss.severity_id())
+        _resources_insupdate.bind_value_as_u64(24, ss.severity_id());
+      else
+        _resources_insupdate.bind_value_as_null(24);
+      _resources_insupdate.bind_value_as_str(25, name);
+      _resources_insupdate.bind_value_as_str(26, parent_name);
+      _resources_insupdate.bind_value_as_bool(27, ss.notifications_enabled());
+      _resources_insupdate.bind_value_as_u32(28, ss.check_interval());
+      _resources_insupdate.bind_value_as_bool(29, ss.active_checks_enabled());
+
+      _finish_action(-1, actions::resources);
+      _mysql.run_statement(_resources_insupdate,
+                           database::mysql_error::store_service, true, conn);
+      _add_action(conn, actions::resources);
     } else
       log_v2::sql()->trace(
           "SQL: service '{}' has no host ID, service ID nor hostname, probably "
@@ -1936,6 +2006,245 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
         "SQL: host with host_id = {} does not exist - unable to store service "
         "of that host. You should restart centengine",
         ss.host_id());
+}
+
+void stream::_prepare_adaptive_service_services_update(
+    stream::adaptive_service_attrib attr) {
+  constexpr const std::array<const char*, ADAPTIVE_SERVICE_ATTRIB_SIZE> key{
+      "notify",
+      "max_check_attempts",
+      "check_interval",
+      "active_checks",
+  };
+  _adaptive_service_services_update[attr] = _mysql.prepare_query(fmt::format(
+      "UPDATE services SET {}=? WHERE host_id=? AND service_id=?", key[attr]));
+}
+
+void stream::_prepare_adaptive_service_resources_update(
+    stream::adaptive_service_attrib attr) {
+  constexpr const std::array<const char*, ADAPTIVE_SERVICE_ATTRIB_SIZE> key{
+      "notifications_enabled",
+      "max_check_attempts",
+      "check_interval",
+      "active_checks_enabled",
+  };
+  _adaptive_service_resources_update[attr] = _mysql.prepare_query(fmt::format(
+      "UPDATE resources SET {}=? WHERE parent_id=? AND id=?", key[attr]));
+}
+
+/**
+ *  Process an adaptive service event.
+ *
+ *  @param[in] e Uncasted service.
+ *
+ */
+void stream::_process_pb_adaptive_service(const std::shared_ptr<io::data>& d) {
+  log_v2::sql()->debug("SQL: process pb adaptive service");
+  _finish_action(-1, actions::host_parents | actions::comments |
+                         actions::downtimes | actions::host_dependencies |
+                         actions::service_dependencies);
+  // Processed object.
+  auto s{static_cast<const neb::pb_adaptive_service*>(d.get())};
+  auto& as = s->obj();
+  if (_cache_host_instance[as.host_id()]) {
+    int32_t conn = _mysql.choose_connection_by_instance(
+        _cache_host_instance[static_cast<uint32_t>(as.host_id())]);
+
+    database::mysql_stmt* svc_stmt;
+    database::mysql_stmt* res_stmt;
+    switch (as.attribute_case()) {
+      case AdaptiveService::kNotificationsEnabled: {
+        svc_stmt = &_adaptive_service_services_update[NOTIFICATIONS_ENABLED];
+        res_stmt = &_adaptive_service_resources_update[NOTIFICATIONS_ENABLED];
+        if (!svc_stmt->prepared()) {
+          _prepare_adaptive_service_services_update(NOTIFICATIONS_ENABLED);
+          _prepare_adaptive_service_resources_update(NOTIFICATIONS_ENABLED);
+        }
+        log_v2::sql()->debug(
+            "SQL: process pb adaptive service on notifications");
+        svc_stmt->bind_value_as_bool(0, as.notifications_enabled());
+        res_stmt->bind_value_as_bool(0, as.notifications_enabled());
+      } break;
+      case AdaptiveService::kMaxCheckAttempts: {
+        svc_stmt = &_adaptive_service_services_update[MAX_CHECK_ATTEMPTS];
+        res_stmt = &_adaptive_service_resources_update[MAX_CHECK_ATTEMPTS];
+        if (!svc_stmt->prepared()) {
+          _prepare_adaptive_service_services_update(MAX_CHECK_ATTEMPTS);
+          _prepare_adaptive_service_resources_update(MAX_CHECK_ATTEMPTS);
+        }
+        log_v2::sql()->debug(
+            "SQL: process pb adaptive service on max check attempts");
+        svc_stmt->bind_value_as_u32(0, as.max_check_attempts());
+        res_stmt->bind_value_as_u32(0, as.max_check_attempts());
+      } break;
+      case AdaptiveService::kCheckInterval: {
+        svc_stmt = &_adaptive_service_services_update[CHECK_INTERVAL];
+        res_stmt = &_adaptive_service_resources_update[CHECK_INTERVAL];
+        if (!svc_stmt->prepared()) {
+          _prepare_adaptive_service_services_update(CHECK_INTERVAL);
+          _prepare_adaptive_service_resources_update(CHECK_INTERVAL);
+        }
+        log_v2::sql()->debug(
+            "SQL: process pb adaptive service on check interval");
+        svc_stmt->bind_value_as_u32(0, as.check_interval());
+        res_stmt->bind_value_as_u32(0, as.check_interval());
+      } break;
+      case AdaptiveService::kActiveChecksEnabled: {
+        svc_stmt = &_adaptive_service_services_update[ACTIVE_CHECKS_ENABLED];
+        res_stmt = &_adaptive_service_resources_update[ACTIVE_CHECKS_ENABLED];
+        if (!svc_stmt->prepared()) {
+          _prepare_adaptive_service_services_update(ACTIVE_CHECKS_ENABLED);
+          _prepare_adaptive_service_resources_update(ACTIVE_CHECKS_ENABLED);
+        }
+        log_v2::sql()->debug(
+            "SQL: process pb adaptive service on check interval");
+        svc_stmt->bind_value_as_u32(0, as.check_interval());
+        res_stmt->bind_value_as_u32(0, as.check_interval());
+      } break;
+      default:
+        assert(1 == 0);
+    }
+    svc_stmt->bind_value_as_u64(1, as.host_id());
+    svc_stmt->bind_value_as_u64(2, as.service_id());
+    _mysql.run_statement(*svc_stmt, database::mysql_error::store_service, false,
+                         conn);
+    _add_action(conn, actions::services);
+    _mysql.run_statement(*res_stmt, database::mysql_error::update_resources,
+                         false, conn);
+    _add_action(conn, actions::resources);
+  } else
+    log_v2::sql()->error(
+        "SQL: host with host_id = {} does not exist - unable to store service "
+        "of that host. You should restart centengine",
+        as.host_id());
+}
+
+/**
+ * @brief Check if the index cache contains informations about the given
+ * service. If these informations changed or do not exist, they are inserted
+ * into the cache.
+ *
+ * @param ss A neb::pb_service.
+ */
+void stream::_check_and_update_index_cache(const Service& ss) {
+  auto it_index_cache = _index_cache.find({ss.host_id(), ss.service_id()});
+
+  fmt::string_view hv(misc::string::truncate(
+      ss.host_name(), get_index_data_col_size(index_data_host_name)));
+  fmt::string_view sv(misc::string::truncate(
+      ss.service_description(),
+      get_index_data_col_size(index_data_service_description)));
+  bool special =
+      !strncmp(ss.host_name().c_str(), BAM_NAME, sizeof(BAM_NAME) - 1);
+
+  int32_t conn =
+      _mysql.choose_connection_by_instance(_cache_host_instance[ss.host_id()]);
+
+  // Not found
+  if (it_index_cache == _index_cache.end()) {
+    log_v2::sql()->debug("sql: index not found in cache for service ({}, {})",
+                         ss.host_id(), ss.service_id());
+
+    if (!_index_data_insert.prepared())
+      _index_data_insert = _mysql.prepare_query(
+          "INSERT INTO index_data "
+          "(host_id,host_name,service_id,service_description,must_be_rebuild,"
+          "special) VALUES (?,?,?,?,?,?)");
+
+    uint64_t index_id = 0;
+
+    _index_data_insert.bind_value_as_i32(0, ss.host_id());
+    _index_data_insert.bind_value_as_str(1, hv);
+    _index_data_insert.bind_value_as_i32(2, ss.service_id());
+    _index_data_insert.bind_value_as_str(3, sv);
+    _index_data_insert.bind_value_as_str(4, "0");
+    _index_data_insert.bind_value_as_bool(5, special);
+
+    std::promise<uint64_t> p;
+    _mysql.run_statement_and_get_int<uint64_t>(
+        _index_data_insert, &p, database::mysql_task::LAST_INSERT_ID, conn);
+    try {
+      index_id = p.get_future().get();
+    } catch (const std::exception& e) {
+      if (!_index_data_query.prepared())
+        _index_data_query = _mysql.prepare_query(
+            "SELECT "
+            "id,host_name,service_description,rrd_retention,check_interval,"
+            "special,locked from index_data WHERE host_id=? AND service_id=?");
+
+      _index_data_query.bind_value_as_i32(0, ss.host_id());
+      _index_data_query.bind_value_as_i32(1, ss.service_id());
+      std::promise<database::mysql_result> pq;
+      log_v2::sql()->debug(
+          "Attempt to get the index from the database for service ({}, {})",
+          ss.host_id(), ss.service_id());
+
+      _mysql.run_statement_and_get_result(_index_data_query, &pq, conn);
+
+      try {
+        database::mysql_result res(pq.get_future().get());
+        if (_mysql.fetch_row(res)) {
+          index_id = res.value_as_u64(0);
+          index_info info{
+              .index_id = index_id,
+              .host_name = res.value_as_str(1),
+              .service_description = res.value_as_str(2),
+              .rrd_retention =
+                  res.value_as_u32(3) ? res.value_as_u32(3) : _rrd_len,
+              .interval = res.value_as_u32(4) ? res.value_as_u32(4) : 5,
+              .special = res.value_as_bool(5),
+              .locked = res.value_as_bool(6),
+          };
+          log_v2::sql()->debug(
+              "sql: loaded index {} of ({}, {}) with rrd_len={}", index_id,
+              ss.host_id(), ss.service_id(), info.rrd_retention);
+          _index_cache[{ss.host_id(), ss.service_id()}] = std::move(info);
+          // Create the metric mapping.
+          auto im{std::make_shared<storage::index_mapping>(
+              info.index_id, ss.host_id(), ss.service_id())};
+          multiplexing::publisher pblshr;
+          pblshr.write(im);
+        }
+      } catch (const std::exception& e) {
+      }
+      if (index_id == 0)
+        throw exceptions::msg_fmt(
+            "Could not fetch index id of service ({}, {}): {}", ss.host_id(),
+            ss.service_id(), e.what());
+    }
+
+  } else {
+    uint64_t index_id = it_index_cache->second.index_id;
+
+    if (it_index_cache->second.host_name != hv ||
+        it_index_cache->second.service_description != sv ||
+        it_index_cache->second.interval != ss.check_interval()) {
+      if (!_index_data_update.prepared())
+        _index_data_update = _mysql.prepare_query(
+            "UPDATE index_data "
+            "SET host_name=?, service_description=?, must_be_rebuild=?, "
+            "special=?, check_interval=? "
+            "WHERE id=?");
+
+      _index_data_update.bind_value_as_str(0, hv);
+      _index_data_update.bind_value_as_str(1, sv);
+      _index_data_update.bind_value_as_str(2, "0");
+      _index_data_update.bind_value_as_str(3, special ? "1" : "0");
+      _index_data_update.bind_value_as_u32(4, ss.check_interval());
+      _index_data_update.bind_value_as_u64(5, index_id);
+      _mysql.run_statement(_index_data_update, mysql_error::update_index_data,
+                           conn);
+      it_index_cache->second.host_name = fmt::to_string(hv);
+      it_index_cache->second.service_description = fmt::to_string(sv);
+      it_index_cache->second.interval = ss.check_interval();
+      log_v2::sql()->debug(
+          "Updating index_data for host_id={} and service_id={}: host_name={}, "
+          "service_description={}, check_interval={}",
+          ss.host_id(), ss.service_id(), it_index_cache->second.host_name,
+          it_index_cache->second.service_description,
+          it_index_cache->second.interval);
+    }
+  }
 }
 
 /**
@@ -2031,14 +2340,14 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
         ss.state_type());
 
     // Prepare queries.
-    if (!_service_status_update.prepared()) {
+    if (!_pb_service_status_update.prepared()) {
       query_preparator::event_pb_unique unique{
           {1, "host_id", io::protobuf_base::invalid_on_zero, 0},
           {2, "service_id", io::protobuf_base::invalid_on_zero, 0},
       };
       query_preparator qp(neb::pb_service_status::static_type(), unique);
 
-      _service_status_update = qp.prepare_update_table(
+      _pb_service_status_update = qp.prepare_update_table(
           _mysql, "services",
           {
               {1, "host_id", io::protobuf_base::invalid_on_zero, 0},
@@ -2095,10 +2404,10 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
     }
 
     // Processing.
-    _service_status_update << *s;
+    _pb_service_status_update << *s;
     int32_t conn = _mysql.choose_connection_by_instance(
         _cache_host_instance[static_cast<uint32_t>(ss.host_id())]);
-    _mysql.run_statement(_service_status_update,
+    _mysql.run_statement(_pb_service_status_update,
                          database::mysql_error::store_service_status, false,
                          conn);
     _add_action(conn, actions::services);
@@ -2111,6 +2420,7 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
         ss.host_id(), ss.service_id(), ss.check_type(), ss.last_check(),
         ss.next_check(), now, ss.current_state(), ss.state_type());
 }
+
 /**
  *  Process a service status event.
  *
@@ -2127,10 +2437,10 @@ void stream::_process_pb_service_status_check_result(
   auto s{static_cast<const neb::pb_service_status_check_result*>(d.get())};
   auto& sscr = s->obj();
 
-  log_v2::perfdata()->info("SQL: pb service status check result output: <<{}>>",
-                           sscr.output());
-  log_v2::perfdata()->info("SQL: service status check result perfdata: <<{}>>",
-                           sscr.perf_data());
+  log_v2::sql()->debug("SQL: pb service status check result output: <<{}>>",
+                       sscr.output());
+  log_v2::sql()->debug("SQL: service status check result perfdata: <<{}>>",
+                       sscr.perf_data());
 
   time_t now = time(nullptr);
   if (sscr.check_type() == ServiceStatusCheckResult_CheckType_PASSIVE ||
@@ -2146,36 +2456,43 @@ void stream::_process_pb_service_status_check_result(
 
     // Prepare queries.
     if (!_sscr_update.prepared()) {
+      _sscr_resources_update = _mysql.prepare_query(
+          "UPDATE resources SET "
+          "status=?,"                     // 0: current_state
+          "status_ordered=?,"             // 1: obtained from current_state
+          "in_downtime=? "                // 2: downtime_depth() > 0
+          "WHERE id=? AND parent_id=?");  // 3, 4: service_id and host_id
       _sscr_update = _mysql.prepare_query(
           "UPDATE services SET "
-          "checked=?,"                 // has_been_checked
-          "check_type=?,"              // check_type
-          "state=?,"                   // current_state
-          "state_type=?,"              // state_type
-          "last_state_change=?,"       // last_state_change
-          "last_hard_state=?,"         // last_hard_state
-          "last_hard_state_change=?,"  // last_hard_state_change
-          "last_time_ok=?,"            // last_time_ok
-          "last_time_warning=?,"       // last_time_warning
-          "last_time_critical=?,"      // last_time_critical
-          "last_time_unknown=?,"       // last_time_unknown
-          "output=?,"                  // output + '\n' + long_output
-          "perfdata=?,"                // perf_data
-          "flapping=?,"                // is_flapping
-          "percent_state_change=?,"    // percent_state_change
-          "latency=?,"                 // latency
-          "execution_time=?,"          // execution_time
-          "last_check=?,"              // last_check
-          "next_check=?,"              // next_check
-          "should_be_scheduled=?,"     // should_be_scheduled
-          "check_attempt=?,"           // current_check_attempt
-          "notification_number=?,"     // notification_number
-          "no_more_notifications=?,"   // no_more_notifications
-          "last_notification=?,"       // last_notification
-          "next_notification=?,"       // next_notification
-          "acknowledged=?,"            // acknowledgement_type != NONE
-          "acknowledgement_type=? "    // acknowledgement_type
-          "WHERE host_id=? AND service_id=?");
+          "checked=?,"                   // 0: has_been_checked
+          "check_type=?,"                // 1: check_type
+          "state=?,"                     // 2: current_state
+          "state_type=?,"                // 3: state_type
+          "last_state_change=?,"         // 4: last_state_change
+          "last_hard_state=?,"           // 5: last_hard_state
+          "last_hard_state_change=?,"    // 6: last_hard_state_change
+          "last_time_ok=?,"              // 7: last_time_ok
+          "last_time_warning=?,"         // 8: last_time_warning
+          "last_time_critical=?,"        // 9: last_time_critical
+          "last_time_unknown=?,"         // 10: last_time_unknown
+          "output=?,"                    // 11: output + '\n' + long_output
+          "perfdata=?,"                  // 12: perf_data
+          "flapping=?,"                  // 13: is_flapping
+          "percent_state_change=?,"      // 14: percent_state_change
+          "latency=?,"                   // 15: latency
+          "execution_time=?,"            // 16: execution_time
+          "last_check=?,"                // 17: last_check
+          "next_check=?,"                // 18: next_check
+          "should_be_scheduled=?,"       // 19: should_be_scheduled
+          "check_attempt=?,"             // 20: current_check_attempt
+          "notification_number=?,"       // 21: notification_number
+          "no_more_notifications=?,"     // 22: no_more_notifications
+          "last_notification=?,"         // 23: last_notification
+          "next_notification=?,"         // 24: next_notification
+          "acknowledged=?,"              // 25: acknowledgement_type != NONE
+          "acknowledgement_type=?,"      // 26: acknowledgement_type
+          "scheduled_downtime_depth=? "  // 27: downtime_depth
+          "WHERE host_id=? AND service_id=?");  // 28, 29
     }
 
     // Processing.
@@ -2212,20 +2529,35 @@ void stream::_process_pb_service_status_check_result(
     _sscr_update.bind_value_as_i32(21, sscr.notification_number());
     _sscr_update.bind_value_as_bool(22, sscr.no_more_notifications());
     _sscr_update.bind_value_as_i64(23, sscr.last_notification());
-    _sscr_update.bind_value_as_i64(23, sscr.next_notification());
+    _sscr_update.bind_value_as_i64(24, sscr.next_notification());
     _sscr_update.bind_value_as_bool(
-        24,
+        25,
         sscr.acknowledgement_type() != ServiceStatusCheckResult_AckType_NONE);
-    _sscr_update.bind_value_as_i32(25, sscr.acknowledgement_type());
-    _sscr_update.bind_value_as_i32(26, sscr.host_id());
-    _sscr_update.bind_value_as_i32(27, sscr.service_id());
+    _sscr_update.bind_value_as_i32(26, sscr.acknowledgement_type());
+    _sscr_update.bind_value_as_i32(27, sscr.downtime_depth());
+    _sscr_update.bind_value_as_i32(28, sscr.host_id());
+    _sscr_update.bind_value_as_i32(29, sscr.service_id());
 
     int32_t conn = _mysql.choose_connection_by_instance(
         _cache_host_instance[static_cast<uint32_t>(sscr.host_id())]);
     _mysql.run_statement(
         _sscr_update, database::mysql_error::store_service_status_check_result,
         false, conn);
+
     _add_action(conn, actions::services);
+
+    _sscr_resources_update.bind_value_as_i32(0, sscr.current_state());
+    _sscr_resources_update.bind_value_as_i32(
+        1, ordered_status[sscr.current_state()]);
+    _sscr_resources_update.bind_value_as_bool(2, sscr.downtime_depth() > 0);
+    _sscr_resources_update.bind_value_as_u64(3, sscr.service_id());
+    _sscr_resources_update.bind_value_as_u64(4, sscr.host_id());
+
+    _mysql.run_statement(
+        _sscr_resources_update,
+        database::mysql_error::store_service_status_check_result, false, conn);
+
+    _add_action(conn, actions::resources);
   } else
     // Do nothing.
     log_v2::sql()->info(
@@ -2235,6 +2567,69 @@ void stream::_process_pb_service_status_check_result(
         "{}))",
         sscr.host_id(), sscr.service_id(), sscr.check_type(), sscr.last_check(),
         sscr.next_check(), now, sscr.current_state(), sscr.state_type());
+}
+
+/**
+ *  Process a service status event.
+ *
+ *  @param[in] e Uncasted service status.
+ *
+ * @return The number of events that can be acknowledged.
+ */
+void stream::_process_pb_service_status_small(
+    const std::shared_ptr<io::data>& d) {
+  _finish_action(-1, actions::host_parents | actions::comments |
+                         actions::downtimes | actions::host_dependencies |
+                         actions::service_dependencies);
+  // Processed object.
+  auto s{static_cast<const neb::pb_service_status_small*>(d.get())};
+  auto& sss = s->obj();
+
+  log_v2::sql()->debug("SQL: pb service status small on service ({}, {})",
+                       sss.host_id(), sss.service_id());
+
+  time_t now = time(nullptr);
+  if (sss.check_type() == ServiceStatusSmall_CheckType_PASSIVE ||
+      sss.next_check() >= now - 5 * 60 ||  // usual case
+      sss.next_check() == 0) {             // initial state
+    // Apply to DB.
+    log_v2::sql()->info(
+        "SQL: processing service status small event proto (host: {}, "
+        "service: {}, downtime depth: {}, next check: {}",
+        sss.host_id(), sss.service_id(), sss.downtime_depth(),
+        sss.next_check());
+
+    // Prepare queries.
+    // No need to store check_type or next_check, they did not move. We just
+    // use them for the previous condition.
+    if (!_sss_update.prepared()) {
+      _sss_update = _mysql.prepare_query(
+          "UPDATE services SET "
+          "next_check=?,"                       // 0: next_check
+          "scheduled_downtime_depth=?,"         // 1: downtime_depth
+          "WHERE host_id=? AND service_id=?");  // 2, 3
+    }
+
+    // Processing.
+
+    _sss_update.bind_value_as_i64(0, sss.next_check());
+    _sss_update.bind_value_as_i32(1, sss.downtime_depth());
+    _sss_update.bind_value_as_i32(2, sss.host_id());
+    _sss_update.bind_value_as_i32(3, sss.service_id());
+
+    int32_t conn = _mysql.choose_connection_by_instance(
+        _cache_host_instance[static_cast<uint32_t>(sss.host_id())]);
+    _mysql.run_statement(_sss_update,
+                         database::mysql_error::store_service_status_small,
+                         false, conn);
+    _add_action(conn, actions::services);
+  } else
+    // Do nothing.
+    log_v2::sql()->info(
+        "SQL: not processing service small event (host: {}, service: {}, "
+        "downtime depth: {}, next check: {})",
+        sss.host_id(), sss.service_id(), sss.downtime_depth(),
+        sss.next_check());
 }
 
 void stream::_process_severity(const std::shared_ptr<io::data>& d) {

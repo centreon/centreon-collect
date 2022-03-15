@@ -42,6 +42,7 @@ class notifier : public checkable {
   enum status_type {
     ALL = 0,
     CHECK_RESULT = 1,
+    DOWNTIME = 2,
   };
 
   enum notification_category {

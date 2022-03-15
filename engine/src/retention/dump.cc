@@ -278,7 +278,7 @@ std::ostream& dump::host(std::ostream& os,
      << obj.get_acknowledgement_type()
      << "\n"
         "active_checks_enabled="
-     << obj.get_checks_enabled()
+     << obj.active_checks_enabled()
      << "\n"
         "check_command="
      << obj.get_check_command()
@@ -371,7 +371,7 @@ std::ostream& dump::host(std::ostream& os,
      << obj.get_long_plugin_output()
      << "\n"
         "max_attempts="
-     << obj.get_max_attempts()
+     << obj.max_check_attempts()
      << "\n"
         "modified_attributes="
      << (obj.get_modified_attributes() &
@@ -381,7 +381,7 @@ std::ostream& dump::host(std::ostream& os,
      << static_cast<unsigned long>(obj.get_next_check())
      << "\n"
         "normal_check_interval="
-     << obj.get_check_interval()
+     << obj.check_interval()
      << "\n"
         "notification_period="
      << obj.get_notification_period()
@@ -417,7 +417,7 @@ std::ostream& dump::host(std::ostream& os,
      << obj.get_process_performance_data()
      << "\n"
         "retry_check_interval="
-     << obj.get_check_interval()
+     << obj.get_retry_interval()
      << "\n"
         "state_type="
      << obj.get_state_type() << "\n";
@@ -613,7 +613,7 @@ std::ostream& dump::service(std::ostream& os, class service const& obj) {
      << obj.get_acknowledgement_type()
      << "\n"
         "active_checks_enabled="
-     << obj.get_checks_enabled()
+     << obj.active_checks_enabled()
      << "\n"
         "check_command="
      << obj.get_check_command()
@@ -712,7 +712,7 @@ std::ostream& dump::service(std::ostream& os, class service const& obj) {
      << obj.get_long_plugin_output()
      << "\n"
         "max_attempts="
-     << obj.get_max_attempts()
+     << obj.max_check_attempts()
      << "\n"
         "modified_attributes="
      << (obj.get_modified_attributes() &
@@ -722,7 +722,7 @@ std::ostream& dump::service(std::ostream& os, class service const& obj) {
      << static_cast<unsigned long>(obj.get_next_check())
      << "\n"
         "normal_check_interval="
-     << obj.get_check_interval()
+     << obj.check_interval()
      << "\n"
         "notification_period="
      << obj.get_notification_period()

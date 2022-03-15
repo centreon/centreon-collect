@@ -27,6 +27,7 @@
 #include <mutex>
 #include <unordered_map>
 
+#include "bbdo/service.pb.h"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/misc/pair.hh"
@@ -42,6 +43,8 @@ class service_status;
 }
 
 namespace unified_sql {
+
+constexpr const char* BAM_NAME = "_Module_";
 
 /**
  * @brief The conflict manager.
@@ -82,6 +85,7 @@ class stream : public io::stream {
   enum stream_type { sql, unified_sql };
 
  private:
+  const static std::array<int, 5> ordered_status;
   enum special_conn {
     custom_variable,
     downtime,
@@ -116,15 +120,17 @@ class stream : public io::stream {
     metrics = 1 << 16,
     severities = 1 << 17,
     tags = 1 << 18,
+    resources = 1 << 19,
   };
 
   struct index_info {
-    std::string host_name;
     uint64_t index_id;
-    bool locked;
-    uint32_t rrd_retention;
+    std::string host_name;
     std::string service_description;
+    uint32_t rrd_retention;
+    uint32_t interval;
     bool special;
+    bool locked;
   };
 
   static const std::array<std::string, 5> metric_type_name;
@@ -248,6 +254,7 @@ class stream : public io::stream {
   database::mysql_stmt _host_parent_delete;
   database::mysql_stmt _host_parent_insert;
   database::mysql_stmt _host_status_update;
+  database::mysql_stmt _pb_host_status_update;
   database::mysql_stmt _instance_insupdate;
   database::mysql_stmt _instance_status_insupdate;
   database::mysql_stmt _module_insert;
@@ -257,23 +264,39 @@ class stream : public io::stream {
   database::mysql_stmt _service_group_member_delete;
   database::mysql_stmt _service_group_member_insert;
   database::mysql_stmt _service_insupdate;
+  database::mysql_stmt _pb_service_insupdate;
   database::mysql_stmt _service_status_update;
+  database::mysql_stmt _pb_service_status_update;
   database::mysql_stmt _sscr_update;
+  database::mysql_stmt _sss_update;
   database::mysql_stmt _severity_insupdate;
   database::mysql_stmt _severity_update;
   database::mysql_stmt _severity_delete;
   database::mysql_stmt _tag_insupdate;
   database::mysql_stmt _tag_update;
   database::mysql_stmt _tag_delete;
+  database::mysql_stmt _resources_insupdate;
+  database::mysql_stmt _sscr_resources_update;
 
   database::mysql_stmt _index_data_insert;
   database::mysql_stmt _index_data_update;
   database::mysql_stmt _index_data_query;
   database::mysql_stmt _metrics_insert;
 
-  // bool _should_exit() const;
-  // void _callback();
+  enum adaptive_service_attrib {
+    NOTIFICATIONS_ENABLED,
+    MAX_CHECK_ATTEMPTS,
+    CHECK_INTERVAL,
+    ACTIVE_CHECKS_ENABLED,
+    ADAPTIVE_SERVICE_ATTRIB_SIZE
+  };
+  std::array<database::mysql_stmt, ADAPTIVE_SERVICE_ATTRIB_SIZE>
+      _adaptive_service_services_update;
+  std::array<database::mysql_stmt, ADAPTIVE_SERVICE_ATTRIB_SIZE>
+      _adaptive_service_resources_update;
 
+  void _prepare_adaptive_service_services_update(adaptive_service_attrib attr);
+  void _prepare_adaptive_service_resources_update(adaptive_service_attrib attr);
   void _update_hosts_and_services_of_unresponsive_instances();
   void _update_hosts_and_services_of_instance(uint32_t id, bool responsive);
   void _update_timestamp(uint32_t instance_id);
@@ -309,14 +332,21 @@ class stream : public io::stream {
 
   void _process_pb_host(const std::shared_ptr<io::data>& d);
   void _process_pb_service(const std::shared_ptr<io::data>& d);
+  void _process_pb_adaptive_service(const std::shared_ptr<io::data>& d);
   void _process_pb_service_status(const std::shared_ptr<io::data>& d);
   void _process_pb_service_status_check_result(
       const std::shared_ptr<io::data>& d);
+  void _process_pb_service_status_small(const std::shared_ptr<io::data>& d);
   void _process_pb_host_status(const std::shared_ptr<io::data>& d);
   void _process_severity(const std::shared_ptr<io::data>& d);
   void _process_tag(const std::shared_ptr<io::data>& d);
 
   void _unified_sql_process_service_status(const std::shared_ptr<io::data>& d);
+  void _unified_sql_process_service_status_check_result(
+      const std::shared_ptr<io::data>& d);
+  void _check_and_update_index_cache(const Service& ss);
+
+  template <typename T>
   void _unified_sql_process_pb_service_status(
       const std::shared_ptr<io::data>& d);
 
