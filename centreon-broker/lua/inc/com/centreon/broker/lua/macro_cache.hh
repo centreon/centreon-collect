@@ -58,8 +58,7 @@ class macro_cache {
   std::map<std::pair<uint64_t, uint64_t>,
            std::shared_ptr<neb::custom_variable> >
       _custom_vars;
-  std::unordered_map<std::pair<uint64_t, uint64_t>,
-                     std::shared_ptr<neb::service> >
+  std::unordered_map<std::pair<uint64_t, uint64_t>, std::shared_ptr<io::data> >
       _services;
   std::unordered_map<uint64_t, std::shared_ptr<neb::service_group> >
       _service_groups;
@@ -88,8 +87,8 @@ class macro_cache {
   const std::shared_ptr<storage::metric_mapping>& get_metric_mapping(
       uint32_t metric_id) const;
   const std::shared_ptr<neb::host>& get_host(uint64_t host_id) const;
-  const std::shared_ptr<neb::service>& get_service(uint64_t host_id,
-                                                   uint64_t service_id) const;
+  const std::shared_ptr<io::data>& get_service(uint64_t host_id,
+                                               uint64_t service_id) const;
   std::string const& get_host_name(uint64_t host_id) const;
   std::string const& get_notes_url(uint64_t host_id, uint64_t service_id) const;
   std::string const& get_notes(uint64_t host_id, uint64_t service_id) const;
@@ -127,6 +126,7 @@ class macro_cache {
   void _process_host_group_member(std::shared_ptr<io::data> const& data);
   void _process_custom_variable(std::shared_ptr<io::data> const& data);
   void _process_service(std::shared_ptr<io::data> const& data);
+  void _process_pb_service(std::shared_ptr<io::data> const& data);
   void _process_service_group(std::shared_ptr<io::data> const& data);
   void _process_service_group_member(std::shared_ptr<io::data> const& data);
   void _process_index_mapping(std::shared_ptr<io::data> const& data);
