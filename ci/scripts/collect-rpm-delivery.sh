@@ -44,4 +44,9 @@ then
   #put_rpms "standard" "$MAJOR" "el8" "testing" "x86_64" "broker" "centreon-broker-$VERSION-$RELEASE" $BROKEREL8RPMS
   #put_rpms "standard" "$MAJOR" "el8" "testing" "x86_64" "connector" "centreon-connector-$VERSION-$RELEASE" $CONNECTOREL8RPMS
   #put_rpms "standard" "$MAJOR" "el8" "testing" "x86_64" "clib" "centreon-clib-$VERSION-$RELEASE" $CLIBEL8RPMS
+else
+  put_rpms "standard" "$MAJOR" "el7" "canary" "x86_64" "engine" "centreon-engine-$VERSION-$RELEASE" $ENGINEEL7RPMS
+  put_rpms "standard" "$MAJOR" "el7" "canary" "x86_64" "broker" "centreon-broker-$VERSION-$RELEASE" $BROKEREL7RPMS
+  put_rpms "standard" "$MAJOR" "el7" "canary" "x86_64" "connector" "centreon-connector-$VERSION-$RELEASE" $CONNECTOREL7RPMS
+  put_rpms "standard" "$MAJOR" "el7" "canary" "x86_64" "clib" "centreon-clib-$VERSION-$RELEASE" $CLIBEL7RPMS
 fi
