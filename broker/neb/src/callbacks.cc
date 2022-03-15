@@ -1297,11 +1297,11 @@ int neb::callback_pb_host(int callback_type, void* data) {
   Host& host = h.get()->mut_obj();
 
   // Set host parameters.
-  host.set_acknowledged(eh->get_problem_has_been_acknowledged());
+  host.set_acknowledged(eh->problem_has_been_acknowledged());
   host.set_acknowledgement_type(eh->get_acknowledgement_type());
   if (!eh->get_action_url().empty())
     host.set_action_url(misc::string::check_string_utf8(eh->get_action_url()));
-  host.set_active_checks_enabled(eh->get_checks_enabled());
+  host.set_active_checks_enabled(eh->active_checks_enabled());
   if (!eh->get_address().empty())
     host.set_address(misc::string::check_string_utf8(eh->get_address()));
   if (!eh->get_alias().empty())
@@ -1310,14 +1310,14 @@ int neb::callback_pb_host(int callback_type, void* data) {
   if (!eh->get_check_command().empty())
     host.set_check_command(
         misc::string::check_string_utf8(eh->get_check_command()));
-  host.set_check_interval(eh->get_check_interval());
+  host.set_check_interval(eh->check_interval());
   if (!eh->get_check_period().empty())
     host.set_check_period(eh->get_check_period());
   host.set_check_type(static_cast<Host_CheckType>(eh->get_check_type()));
   host.set_current_check_attempt(eh->get_current_attempt());
   host.set_current_state(static_cast<Host_State>(
       eh->has_been_checked() ? eh->get_current_state() : 4));  // Pending state.
-  host.set_default_active_checks_enabled(eh->get_checks_enabled());
+  host.set_default_active_checks_enabled(eh->active_checks_enabled());
   host.set_default_event_handler_enabled(eh->get_event_handler_enabled());
   host.set_default_flap_detection_enabled(eh->get_flap_detection_enabled());
   host.set_default_notifications_enabled(eh->get_notifications_enabled());
@@ -1364,7 +1364,7 @@ int neb::callback_pb_host(int callback_type, void* data) {
   host.set_last_update(time(nullptr));
   host.set_latency(eh->get_latency());
   host.set_low_flap_threshold(eh->get_low_flap_threshold());
-  host.set_max_check_attempts(eh->get_max_attempts());
+  host.set_max_check_attempts(eh->max_check_attempts());
   host.set_next_check(eh->get_next_check());
   host.set_next_notification(eh->get_next_notification());
   host.set_no_more_notifications(eh->get_no_more_notifications());
@@ -2370,7 +2370,7 @@ int neb::callback_pb_service(int callback_type, void* data) {
     srv.set_next_notification(es->get_next_notification());
     srv.set_no_more_notifications(es->get_no_more_notifications());
     if (!es->get_notes().empty())
-      *srv.mutable_note() = misc::string::check_string_utf8(es->get_notes());
+      srv.set_notes(misc::string::check_string_utf8(es->get_notes()));
     if (!es->get_notes_url().empty())
       *srv.mutable_notes_url() =
           misc::string::check_string_utf8(es->get_notes_url());
