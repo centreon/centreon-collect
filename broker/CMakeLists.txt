@@ -54,7 +54,7 @@ endif ()
 
 include_directories("${PROJECT_SOURCE_DIR}/core/inc")
 include_directories("${PROJECT_SOURCE_DIR}/neb/inc")
-include_directories("${CMAKE_SOURCE_DIR}/centreon-engine/inc")
+include_directories("${CMAKE_SOURCE_DIR}/engine/inc")
 set(INC_DIR "${PROJECT_SOURCE_DIR}/core/inc/com/centreon/broker")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/core/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/core/test")

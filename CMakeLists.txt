@@ -93,10 +93,10 @@ include_directories(${CMAKE_SOURCE_DIR}
                     ${CONAN_INCLUDE_DIRS})
 
 add_subdirectory(bbdo)
-add_subdirectory(centreon-broker)
-add_subdirectory(centreon-clib)
-add_subdirectory(centreon-engine)
-add_subdirectory(centreon-connector)
+add_subdirectory(broker)
+add_subdirectory(clib)
+add_subdirectory(engine)
+add_subdirectory(connectors)
 
 add_custom_target(test-broker
     COMMAND tests/ut_broker

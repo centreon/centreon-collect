@@ -112,7 +112,7 @@ set(PTHREAD_LIBRARIES "${CMAKE_THREAD_LIBS_INIT}")
 #    message(FATAL_ERROR "Could not find Centreon Clib's headers (try WITH_CENTREON_CLIB_INCLUDE_DIR).")
 #  endif ()
 #endif ()
-include_directories(${CMAKE_SOURCE_DIR}/centreon-clib/inc)
+include_directories(${CMAKE_SOURCE_DIR}/clib/inc)
 
 ## Find Centreon Clib's library.
 #if (WITH_CENTREON_CLIB_LIBRARIES)
