@@ -123,15 +123,15 @@ stage('Build / Unit tests // Packaging / Signing') {
 }
 
 stage('Delivery') {
-    node("C++") {
-      unstash 'el8-rpms'
-      unstash 'el7-rpms'
-      dir('centreon-collect-delivery') {
-        checkout scm
-        loadCommonScripts()
-        sh 'rm -rf output && mkdir output && mv ../*.rpm output'
-        sh './ci/scripts/collect-rpm-delivery.sh'
-      }
+  node("C++") {
+    unstash 'el8-rpms'
+    unstash 'el7-rpms'
+    dir('centreon-collect-delivery') {
+      checkout scm
+      loadCommonScripts()
+      sh 'rm -rf output && mkdir output && mv ../*.rpm output'
+      sh './ci/scripts/collect-rpm-delivery.sh'
     }
   }
 }
+
