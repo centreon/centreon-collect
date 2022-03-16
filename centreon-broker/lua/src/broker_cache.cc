@@ -229,9 +229,7 @@ static int l_broker_cache_get_service_v2(lua_State* L) {
   uint32_t svc_id(luaL_checkinteger(L, 3));
 
   try {
-    const std::shared_ptr<neb::service>& svc{
-        cache->get_service(host_id, svc_id)};
-    broker_event::create(L, svc);
+    broker_event::create(L, cache->get_service(host_id, svc_id));
   } catch (std::exception const& e) {
     (void)e;
     lua_pushnil(L);

@@ -23,6 +23,8 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include "bbdo/storage/index_mapping.hh"
+#include "bbdo/storage/metric_mapping.hh"
 #include "com/centreon/broker/io/factory.hh"
 #include "com/centreon/broker/misc/pair.hh"
 #include "com/centreon/broker/namespace.hh"
@@ -30,8 +32,6 @@
 #include "com/centreon/broker/neb/instance.hh"
 #include "com/centreon/broker/neb/service.hh"
 #include "com/centreon/broker/persistent_cache.hh"
-#include "bbdo/storage/index_mapping.hh"
-#include "bbdo/storage/metric_mapping.hh"
 
 CCB_BEGIN()
 
@@ -45,8 +45,7 @@ class macro_cache {
   std::shared_ptr<persistent_cache> _cache;
   std::unordered_map<uint64_t, std::shared_ptr<neb::instance> > _instances;
   std::unordered_map<uint64_t, std::shared_ptr<neb::host> > _hosts;
-  std::unordered_map<std::pair<uint64_t, uint64_t>,
-                     std::shared_ptr<neb::service> >
+  std::unordered_map<std::pair<uint64_t, uint64_t>, std::shared_ptr<io::data> >
       _services;
   std::unordered_map<uint64_t, std::shared_ptr<storage::index_mapping> >
       _index_mappings;
@@ -56,6 +55,7 @@ class macro_cache {
   void _process_instance(std::shared_ptr<io::data> const& data);
   void _process_host(std::shared_ptr<io::data> const& data);
   void _process_service(std::shared_ptr<io::data> const& data);
+  void _process_pb_service(std::shared_ptr<io::data> const& data);
   void _process_index_mapping(std::shared_ptr<io::data> const& data);
   void _process_metric_mapping(std::shared_ptr<io::data> const& data);
   void _save_to_disk();
