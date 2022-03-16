@@ -265,8 +265,7 @@ static int l_broker_cache_get_host_v2(lua_State* L) {
   int id(luaL_checkinteger(L, 2));
 
   try {
-    const std::shared_ptr<neb::host>& hst{cache->get_host(id)};
-    broker_event::create(L, hst);
+    broker_event::create(L, cache->get_host(id));
   } catch (std::exception const& e) {
     (void)e;
     lua_pushnil(L);

@@ -1280,11 +1280,11 @@ int neb::callback_host(int callback_type, void* data) {
  */
 int neb::callback_pb_host(int callback_type, void* data) {
   // Log message.
-  log_v2::neb()->info("callbacks: generating host event protobuf");
+  log_v2::neb()->info("callbacks: generating pb host event protobuf");
   (void)callback_type;
 
   const engine::host* eh{static_cast<engine::host*>(
-      static_cast<nebstruct_host_status_data*>(data)->object_ptr)};
+      static_cast<nebstruct_adaptive_host_data*>(data)->object_ptr)};
 
   auto h{std::make_shared<neb::pb_host>()};
   Host& host = h.get()->mut_obj();
@@ -1665,12 +1665,11 @@ int neb::callback_pb_host_status(int callback_type, void* data) noexcept {
   host.set_notifications_enabled(eh->get_notifications_enabled());
   host.set_obsess_over(eh->get_obsess_over());
   if (!eh->get_plugin_output().empty()) {
-    *host.mutable_output() =
-        misc::string::check_string_utf8(eh->get_plugin_output());
+    host.set_output(misc::string::check_string_utf8(eh->get_plugin_output()));
   }
   if (!eh->get_long_plugin_output().empty())
-    *host.mutable_output() =
-        misc::string::check_string_utf8(eh->get_long_plugin_output());
+    host.set_output(
+        misc::string::check_string_utf8(eh->get_long_plugin_output()));
   host.set_passive_checks_enabled(eh->get_accept_passive_checks());
   host.set_percent_state_change(eh->get_percent_state_change());
   if (!eh->get_perf_data().empty())
@@ -2586,11 +2585,11 @@ int32_t neb::callback_pb_service_status(int callback_type
   srv.set_enabled(static_cast<nebstruct_service_status_data*>(data)->type !=
                   NEBTYPE_SERVICE_DELETE);
   if (!es->get_check_command().empty())
-    *srv.mutable_check_command() =
-        misc::string::check_string_utf8(es->get_check_command());
+    srv.set_check_command(
+        misc::string::check_string_utf8(es->get_check_command()));
   srv.set_check_interval(es->get_check_interval());
   if (!es->get_check_period().empty())
-    *srv.mutable_check_period() = es->get_check_period();
+    srv.set_check_period(es->get_check_period());
   srv.set_check_type(static_cast<Service_CheckType>(es->get_check_type()));
   srv.set_current_check_attempt(es->get_current_attempt());
   srv.set_current_state(static_cast<Service_State>(
@@ -2598,8 +2597,8 @@ int32_t neb::callback_pb_service_status(int callback_type
                               : 4)));  // Pending state.
   srv.set_downtime_depth(es->get_scheduled_downtime_depth());
   if (!es->get_event_handler().empty())
-    *srv.mutable_event_handler() =
-        misc::string::check_string_utf8(es->get_event_handler());
+    srv.set_event_handler(
+        misc::string::check_string_utf8(es->get_event_handler()));
   srv.set_event_handler_enabled(es->get_event_handler_enabled());
   srv.set_execution_time(es->get_execution_time());
   srv.set_flap_detection_enabled(es->get_flap_detection_enabled());
@@ -2625,23 +2624,20 @@ int32_t neb::callback_pb_service_status(int callback_type
   srv.set_notifications_enabled(es->get_notifications_enabled());
   srv.set_obsess_over(es->get_obsess_over());
   if (!es->get_plugin_output().empty())
-    *srv.mutable_output() =
-        misc::string::check_string_utf8(es->get_plugin_output());
+    srv.set_output(misc::string::check_string_utf8(es->get_plugin_output()));
 
   if (!es->get_long_plugin_output().empty())
-    *srv.mutable_long_output() =
-        misc::string::check_string_utf8(es->get_long_plugin_output());
+    srv.set_long_output(
+        misc::string::check_string_utf8(es->get_long_plugin_output()));
 
   srv.set_passive_checks_enabled(es->get_accept_passive_checks());
   srv.set_percent_state_change(es->get_percent_state_change());
   if (!es->get_perf_data().empty())
-    *srv.mutable_perf_data() =
-        misc::string::check_string_utf8(es->get_perf_data());
+    srv.set_perf_data(misc::string::check_string_utf8(es->get_perf_data()));
   srv.set_retry_interval(es->get_retry_interval());
-  *srv.mutable_host_name() =
-      misc::string::check_string_utf8(es->get_hostname());
-  *srv.mutable_service_description() =
-      misc::string::check_string_utf8(es->get_description());
+  srv.set_host_name(misc::string::check_string_utf8(es->get_hostname()));
+  srv.set_service_description(
+      misc::string::check_string_utf8(es->get_description()));
   srv.set_should_be_scheduled(es->get_should_be_scheduled());
   srv.set_state_type(static_cast<Service_StateType>(
       es->has_been_checked() ? es->get_state_type() : engine::notifier::hard));

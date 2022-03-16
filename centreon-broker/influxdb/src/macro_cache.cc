@@ -96,7 +96,13 @@ std::string const& macro_cache::get_host_name(uint64_t host_id) const {
   auto const found = _hosts.find(host_id);
   if (found == _hosts.end())
     throw msg_fmt("influxdb: could not find information on host {} ", host_id);
-  return found->second->host_name;
+  if (found->second->type() == neb::host::static_type()) {
+    auto const& h = std::static_pointer_cast<neb::host>(found->second);
+    return h->host_name;
+  } else {
+    auto const& h = std::static_pointer_cast<neb::pb_host>(found->second);
+    return h->obj().host_name();
+  }
 }
 
 /**
@@ -154,6 +160,9 @@ void macro_cache::write(std::shared_ptr<io::data> const& data) {
     case neb::host::static_type():
       _process_host(data);
       break;
+    case neb::pb_host::static_type():
+      _process_pb_host(data);
+      break;
     case neb::service::static_type():
       _process_service(data);
       break;
@@ -188,7 +197,17 @@ void macro_cache::_process_instance(std::shared_ptr<io::data> const& data) {
  */
 void macro_cache::_process_host(std::shared_ptr<io::data> const& data) {
   auto const& h = std::static_pointer_cast<neb::host>(data);
-  _hosts[h->host_id] = h;
+  _hosts[h->host_id] = data;
+}
+
+/**
+ *  Process a host event.
+ *
+ *  @param data  The event.
+ */
+void macro_cache::_process_pb_host(std::shared_ptr<io::data> const& data) {
+  auto const& h = std::static_pointer_cast<neb::pb_host>(data);
+  _hosts[h->obj().host_id()] = data;
 }
 
 /**

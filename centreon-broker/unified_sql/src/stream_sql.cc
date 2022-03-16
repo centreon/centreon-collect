@@ -1056,6 +1056,7 @@ void stream::_process_host_status(const std::shared_ptr<io::data>& d) {
  * @return The number of events that can be acknowledged.
  */
 void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
+  log_v2::sql()->trace("SQL: process pb host");
   _finish_action(-1, actions::host_parents | actions::comments |
                          actions::downtimes | actions::host_dependencies |
                          actions::host_dependencies);
@@ -1063,8 +1064,8 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
   auto s{static_cast<const neb::pb_host*>(d.get())};
   auto& hs = s->obj();
 
-  log_v2::perfdata()->info("SQL: pb host status output: <<{}>>", hs.output());
-  log_v2::perfdata()->info("SQL: host status perfdata: <<{}>>", hs.perf_data());
+  log_v2::perfdata()->info("SQL: pb host output: <<{}>>", hs.output());
+  log_v2::perfdata()->info("SQL: host perfdata: <<{}>>", hs.perf_data());
 
   time_t now = time(nullptr);
   if (hs.check_type() ||           // - passive result
@@ -1074,7 +1075,7 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
       hs.next_check() >= now - 5 * 60 || !hs.next_check()) {  // - initial state
     // Apply to DB.
     log_v2::sql()->info(
-        "SQL: processing host status event (host: {}, last "
+        "SQL: processing host event (host: {}, last "
         "check: {}, state ({}, {}))",
         hs.host_id(), hs.last_check(), hs.current_state(), hs.state_type());
 
@@ -1185,7 +1186,7 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
   } else
     // Do nothing.
     log_v2::sql()->info(
-        "SQL: not processing host status event (host: {}, "
+        "SQL: not processing host event (host: {}, "
         "check type: {}, last check: {}, next check: {}, now: {}, state ({}, "
         "{}))",
         hs.host_id(), hs.check_type(), hs.last_check(), hs.next_check(), now,
@@ -1787,7 +1788,7 @@ void stream::_process_service(const std::shared_ptr<io::data>& d) {
  * @return The number of events that can be acknowledged.
  */
 void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
-  log_v2::sql()->debug("SQL: process pb service");
+  log_v2::sql()->trace("SQL: process pb service");
   _finish_action(-1, actions::host_parents | actions::comments |
                          actions::downtimes | actions::host_dependencies |
                          actions::service_dependencies);

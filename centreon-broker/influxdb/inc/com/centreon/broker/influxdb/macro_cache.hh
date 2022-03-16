@@ -43,7 +43,7 @@ namespace influxdb {
 class macro_cache {
   std::shared_ptr<persistent_cache> _cache;
   std::unordered_map<uint64_t, std::shared_ptr<neb::instance>> _instances;
-  std::unordered_map<uint64_t, std::shared_ptr<neb::host>> _hosts;
+  std::unordered_map<uint64_t, std::shared_ptr<io::data>> _hosts;
   std::unordered_map<std::pair<uint64_t, uint64_t>, std::shared_ptr<io::data>>
       _services;
   std::unordered_map<uint64_t, std::shared_ptr<storage::index_mapping>>
@@ -53,6 +53,7 @@ class macro_cache {
 
   void _process_instance(std::shared_ptr<io::data> const& data);
   void _process_host(std::shared_ptr<io::data> const& data);
+  void _process_pb_host(std::shared_ptr<io::data> const& data);
   void _process_service(std::shared_ptr<io::data> const& data);
   void _process_pb_service(std::shared_ptr<io::data> const& data);
   void _process_index_mapping(std::shared_ptr<io::data> const& data);

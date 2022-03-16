@@ -113,12 +113,12 @@ const std::shared_ptr<io::data>& macro_cache::get_service(
  *
  *  @return             A shared pointer on the host.
  */
-const std::shared_ptr<neb::host>& macro_cache::get_host(
-    uint64_t host_id) const {
+const std::shared_ptr<io::data>& macro_cache::get_host(uint64_t host_id) const {
   auto found = _hosts.find(host_id);
 
   if (found == _hosts.end())
     throw msg_fmt("lua: could not find information on host {}", host_id);
+
   return found->second;
 }
 
@@ -134,7 +134,14 @@ std::string const& macro_cache::get_host_name(uint64_t host_id) const {
 
   if (found == _hosts.end())
     throw msg_fmt("lua: could not find information on host {}", host_id);
-  return found->second->host_name;
+
+  if (found->second->type() == neb::host::static_type()) {
+    auto const& s = std::static_pointer_cast<neb::host>(found->second);
+    return s->host_name;
+  } else {
+    auto const& s = std::static_pointer_cast<neb::pb_host>(found->second);
+    return s->obj().host_name();
+  }
 }
 
 /**
@@ -183,7 +190,14 @@ std::string const& macro_cache::get_notes_url(uint64_t host_id,
 
     if (found == _hosts.end())
       throw msg_fmt("lua: could not find information on host {}", host_id);
-    return found->second->notes_url;
+
+    if (found->second->type() == neb::host::static_type()) {
+      auto const& s = std::static_pointer_cast<neb::host>(found->second);
+      return s->notes_url;
+    } else {
+      auto const& s = std::static_pointer_cast<neb::pb_host>(found->second);
+      return s->obj().notes_url();
+    }
   }
 }
 
@@ -215,7 +229,14 @@ std::string const& macro_cache::get_action_url(uint64_t host_id,
 
     if (found == _hosts.end())
       throw msg_fmt("lua: could not find information on host {}", host_id);
-    return found->second->action_url;
+
+    if (found->second->type() == neb::host::static_type()) {
+      auto const& s = std::static_pointer_cast<neb::host>(found->second);
+      return s->action_url;
+    } else {
+      auto const& s = std::static_pointer_cast<neb::pb_host>(found->second);
+      return s->obj().action_url();
+    }
   }
 }
 
@@ -247,7 +268,14 @@ std::string const& macro_cache::get_notes(uint64_t host_id,
 
     if (found == _hosts.end())
       throw msg_fmt("lua: could not find information on host {}", host_id);
-    return found->second->notes;
+
+    if (found->second->type() == neb::host::static_type()) {
+      auto const& s = std::static_pointer_cast<neb::host>(found->second);
+      return s->notes;
+    } else {
+      auto const& s = std::static_pointer_cast<neb::pb_host>(found->second);
+      return s->obj().notes();
+    }
   }
 }
 
@@ -406,6 +434,9 @@ void macro_cache::write(std::shared_ptr<io::data> const& data) {
     case neb::host::static_type():
       _process_host(data);
       break;
+    case neb::pb_host::static_type():
+      _process_pb_host(data);
+      break;
     case neb::host_group::static_type():
       _process_host_group(data);
       break;
@@ -472,9 +503,25 @@ void macro_cache::_process_host(std::shared_ptr<io::data> const& data) {
   log_v2::lua()->debug("lua: processing host '{}' of id {}", h->host_name,
                        h->host_id);
   if (h->enabled)
-    _hosts[h->host_id] = h;
+    _hosts[h->host_id] = data;
   else
     _hosts.erase(h->host_id);
+}
+
+/**
+ *  Process a pb host event.
+ *
+ *  @param h  The event.
+ */
+void macro_cache::_process_pb_host(std::shared_ptr<io::data> const& data) {
+  std::shared_ptr<neb::pb_host> const& h =
+      std::static_pointer_cast<neb::pb_host>(data);
+  log_v2::lua()->debug("lua: processing host '{}' of id {}",
+                       h->obj().host_name(), h->obj().host_id());
+  if (h->obj().enabled())
+    _hosts[h->obj().host_id()] = data;
+  else
+    _hosts.erase(h->obj().host_id());
 }
 
 /**

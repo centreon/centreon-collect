@@ -205,7 +205,7 @@ TEST(InfluxDBLineProtoQuery, ComplexPbMetric) {
   std::shared_ptr<persistent_cache> pcache{nullptr};
   influxdb::macro_cache cache(pcache);
   storage::metric m{1u, 1u, "host1", 2000llu, 60, true, 40u, 42, 42.0, 4};
-  auto host{std::make_shared<neb::host>()};
+  auto host{std::make_shared<neb::pb_host>()};
   auto svc{std::make_shared<neb::pb_service>()};
   auto instance{std::make_shared<neb::instance>()};
   auto metric_map{std::make_shared<storage::metric_mapping>()};
@@ -222,8 +222,8 @@ TEST(InfluxDBLineProtoQuery, ComplexPbMetric) {
   svc->mut_obj().set_service_id(1);
   svc->mut_obj().set_host_id(1);
 
-  host->host_name = "host1";
-  host->host_id = 1;
+  host->mut_obj().set_host_name("host1");
+  host->mut_obj().set_host_id(1);
 
   instance->poller_id = 3;
   instance->name = "poller test";
@@ -256,7 +256,7 @@ TEST(InfluxDBLineProtoQuery, ComplexPBStatus) {
   influxdb::macro_cache cache(pcache);
   storage::status s{2000llu, 3, 60, true, 9, 2};
 
-  auto host{std::make_shared<neb::host>()};
+  auto host{std::make_shared<neb::pb_host>()};
   auto svc{std::make_shared<neb::pb_service>()};
   auto instance{std::make_shared<neb::instance>()};
   auto index_map{std::make_shared<storage::index_mapping>()};
@@ -275,8 +275,8 @@ TEST(InfluxDBLineProtoQuery, ComplexPBStatus) {
   svc->mut_obj().set_service_id(1);
   svc->mut_obj().set_host_id(1);
 
-  host->host_name = "host1";
-  host->host_id = 1;
+  host->mut_obj().set_host_name("host1");
+  host->mut_obj().set_host_id(1);
 
   instance->poller_id = 3;
   instance->name = "poller test";

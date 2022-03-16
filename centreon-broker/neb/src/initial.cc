@@ -308,6 +308,34 @@ static void send_host_list() {
 }
 
 /**
+ *  Send to the global publisher the list of hosts within Nagios.
+ */
+static void send_pb_host_list() {
+  // Start log message.
+  log_v2::neb()->info("init: beginning pb host dump");
+
+  // Loop through all hosts.
+  for (host_map::iterator it{com::centreon::engine::host::hosts.begin()},
+       end{com::centreon::engine::host::hosts.end()};
+       it != end; ++it) {
+    // Fill callback struct.
+    nebstruct_adaptive_host_data nsahd;
+    memset(&nsahd, 0, sizeof(nsahd));
+    nsahd.type = NEBTYPE_HOST_ADD;
+    nsahd.command_type = CMD_NONE;
+    nsahd.modified_attribute = MODATTR_ALL;
+    nsahd.modified_attributes = MODATTR_ALL;
+    nsahd.object_ptr = it->second.get();
+
+    // Callback.
+    neb::callback_pb_host(NEBCALLBACK_ADAPTIVE_HOST_DATA, &nsahd);
+  }
+
+  // End log message.
+  log_v2::neb()->info("init: end of pb host dump");
+}
+
+/**
  *  Send to the global publisher the list of host parents within Nagios.
  */
 static void send_host_parents_list() {
@@ -562,7 +590,7 @@ void neb::send_initial_configuration() {
  *  Send initial configuration to the global publisher.
  */
 void neb::send_initial_pb_configuration() {
-  send_host_list();
+  send_pb_host_list();
   send_pb_service_list();
   send_custom_variables_list();
   send_downtimes_list();

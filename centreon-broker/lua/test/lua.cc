@@ -148,7 +148,7 @@ TEST_F(LuaTest, WithoutFilter) {
                "function write(d)\n"
                "  return 1\n"
                "end");
-  std::unique_ptr<luabinding> bb(new luabinding(filename, conf, *_cache));
+  auto bb{std::make_unique<luabinding>(filename, conf, *_cache)};
   ASSERT_FALSE(bb->has_filter());
   RemoveFile(filename);
 }
@@ -194,7 +194,7 @@ TEST_F(LuaTest, SimpleScript) {
       "  return true\n"
       "end\n");
 
-  std::unique_ptr<luabinding> bnd(new luabinding(filename, conf, *_cache));
+  auto bnd{std::make_unique<luabinding>(filename, conf, *_cache)};
   ASSERT_TRUE(bnd.get());
   std::unique_ptr<neb::service> s(new neb::service);
   s->host_id = 12;
@@ -234,7 +234,7 @@ TEST_F(LuaTest, WriteAcknowledgement) {
   config::applier::modules modules;
   modules.load_file("./lib/10-neb.so");
 
-  std::unique_ptr<luabinding> bnd(new luabinding(FILE3, conf, *_cache));
+  auto bnd{std::make_unique<luabinding>(FILE3, conf, *_cache)};
   ASSERT_TRUE(bnd.get());
   std::unique_ptr<neb::acknowledgement> s(new neb::acknowledgement);
   s->host_id = 13;
@@ -352,7 +352,7 @@ TEST_F(LuaAsioTest, SocketUnconnectedState) {
                "end\n\n"
                "function write(d)\n"
                "end\n\n");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string lst(ReadFile("/tmp/log"));
 
   ASSERT_NE(std::string::npos, lst.find("State: unconnected"));
@@ -379,7 +379,7 @@ TEST_F(LuaAsioTest, SocketConnectedState) {
                "end\n\n"
                "function write(d)\n"
                "end\n\n");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string lst(ReadFile("/tmp/log"));
 
   ASSERT_NE(std::string::npos, lst.find("State: connected"));
@@ -424,7 +424,7 @@ TEST_F(LuaTest, JsonEncode) {
       "end\n\n"
       "function write(d)\n"
       "end\n");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string result(ReadFile("/tmp/log"));
 
   ASSERT_NE(result.find("INFO: aa=>C:\\bonjour"), std::string::npos);
@@ -449,7 +449,7 @@ TEST_F(LuaTest, EmptyJsonEncode) {
                "end\n\n"
                "function write(d)\n"
                "end\n");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string lst(ReadFile("/tmp/log"));
 
   ASSERT_NE(lst.find("INFO: empty array: []"), std::string::npos);
@@ -477,7 +477,7 @@ TEST_F(LuaTest, JsonEncodeEscape) {
                "end\n\n"
                "function write(d)\n"
                "end\n");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string lst(ReadFile("/tmp/log"));
 
   ASSERT_NE(lst.find("INFO: 1=>d:\\bonjour le \"monde\""), std::string::npos);
@@ -510,7 +510,7 @@ TEST_F(LuaTest, JsonEncodeEvent) {
                "end\n\n"
                "function write(d)\n"
                "end\n");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string result{ReadFile("/tmp/log")};
 
   ASSERT_NE(result.find("INFO: category=>1"), std::string::npos);
@@ -536,7 +536,7 @@ TEST_F(LuaTest, CacheTest) {
                "end\n\n"
                "function write(d)\n"
                "end\n");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string lst(ReadFile("/tmp/log"));
 
   ASSERT_NE(lst.find("host does not exist"), std::string::npos);
@@ -570,9 +570,47 @@ TEST_F(LuaTest, HostCacheTest) {
                "end\n\n"
                "function write(d)\n"
                "end\n");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string lst(ReadFile("/tmp/log"));
 
+  ASSERT_NE(lst.find("host is centreon"), std::string::npos);
+  ASSERT_NE(lst.find("alias alias-centreon address 4.3.2.1 name centreon"),
+            std::string::npos);
+  RemoveFile(filename);
+  RemoveFile("/tmp/log");
+}
+
+// When a query for a hostname is made
+// And the cache knows about it
+// Then the hostname is returned from the lua method.
+TEST_F(LuaTest, PbHostCacheTest) {
+  config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  std::string filename("/tmp/cache_test.lua");
+  auto hst{std::make_shared<neb::pb_host>()};
+  hst->mut_obj().set_host_id(1);
+  hst->mut_obj().set_host_name("centreon");
+  hst->mut_obj().set_display_name("centreon");
+  hst->mut_obj().set_alias("alias-centreon");
+  hst->mut_obj().set_address("4.3.2.1");
+  hst->mut_obj().set_enabled(true);
+  _cache->write(hst);
+
+  CreateScript(filename,
+               "function init(conf)\n"
+               "  broker_log:set_parameters(3, '/tmp/log')\n"
+               "  local hstname = broker_cache:get_hostname(1)\n"
+               "  broker_log:info(1, 'host is ' .. tostring(hstname))\n"
+               "  local hst = broker_cache:get_host(1)\n"
+               "  broker_log:info(1, 'alias ' .. hst.alias .. ' address ' .. "
+               "hst.address .. ' name ' .. hst.host_name)\n"
+               "end\n\n"
+               "function write(d)\n"
+               "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  std::string lst(ReadFile("/tmp/log"));
+  std::cout << lst << std::endl;
   ASSERT_NE(lst.find("host is centreon"), std::string::npos);
   ASSERT_NE(lst.find("alias alias-centreon address 4.3.2.1 name centreon"),
             std::string::npos);
@@ -601,7 +639,7 @@ TEST_F(LuaTest, ServiceCacheTest) {
       "end\n\n"
       "function write(d)\n"
       "end\n");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string lst(ReadFile("/tmp/log"));
   ASSERT_NE(lst.find("service description is description"), std::string::npos);
   RemoveFile(filename);
@@ -632,6 +670,7 @@ TEST_F(LuaTest, PbServiceCacheTest) {
       "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string lst(ReadFile("/tmp/log"));
+  std::cout << lst << std::endl;
   ASSERT_NE(lst.find("service description is description"), std::string::npos);
   RemoveFile(filename);
   RemoveFile("/tmp/log");
@@ -670,7 +709,7 @@ TEST_F(LuaTest, IndexMetricCacheTest) {
       "end\n\n"
       "function write(d)\n"
       "end\n");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string lst(ReadFile("/tmp/log"));
 
   ASSERT_NE(lst.find("service description is MyDescription"),
@@ -691,9 +730,9 @@ TEST_F(LuaTest, PbIndexMetricCacheTest) {
   svc->mut_obj().set_host_id(1);
   svc->mut_obj().set_enabled(true);
   _cache->write(svc);
-  auto hst{std::make_shared<neb::host>()};
-  hst->host_id = 1;
-  hst->host_name = "host1";
+  auto hst{std::make_shared<neb::pb_host>()};
+  hst->mut_obj().set_host_id(1);
+  hst->mut_obj().set_host_name("host1");
   _cache->write(hst);
   auto im{std::make_shared<storage::index_mapping>()};
   im->index_id = 7;
@@ -744,7 +783,7 @@ TEST_F(LuaTest, InstanceNameCacheTest) {
       "end\n\n"
       "function write(d)\n"
       "end\n");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string lst(ReadFile("/tmp/log"));
 
   ASSERT_NE(lst.find("instance name is MyPoller"), std::string::npos);
@@ -773,7 +812,7 @@ TEST_F(LuaTest, MetricMappingCacheTestV1) {
                "end\n\n"
                "function write(d)\n"
                "end\n");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string lst(ReadFile("/tmp/log"));
 
   ASSERT_NE(std::string::npos, lst.find("mm type is table"));
@@ -804,7 +843,7 @@ TEST_F(LuaTest, MetricMappingCacheTestV2) {
                "end\n\n"
                "function write(d)\n"
                "end\n");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string lst(ReadFile("/tmp/log"));
 
   ASSERT_NE(std::string::npos, lst.find("mm type is userdata"));
@@ -829,7 +868,7 @@ TEST_F(LuaTest, HostGroupCacheTestNameNotAvailable) {
                "end\n\n"
                "function write(d)\n"
                "end\n");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string lst(ReadFile("/tmp/log"));
 
   ASSERT_NE(lst.find("host group is nil"), std::string::npos);
@@ -856,7 +895,7 @@ TEST_F(LuaTest, HostGroupCacheTestName) {
                "end\n\n"
                "function write(d)\n"
                "end\n");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string lst(ReadFile("/tmp/log"));
 
   ASSERT_NE(lst.find("host group is centreon"), std::string::npos);
@@ -880,7 +919,7 @@ TEST_F(LuaTest, HostGroupCacheTestEmpty) {
       "end\n\n"
       "function write(d)\n"
       "end\n");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string lst(ReadFile("/tmp/log"));
 
   ASSERT_NE(lst.find("host group is []"), std::string::npos);
@@ -931,7 +970,60 @@ TEST_F(LuaTest, HostGroupCacheTest) {
                "end\n\n"
                "function write(d)\n"
                "end\n");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  std::string lst(ReadFile("/tmp/log"));
+
+  ASSERT_NE(std::string::npos, lst.find("\"group_id\":17"));
+  ASSERT_NE(std::string::npos, lst.find("\"group_name\":\"seventeen\""));
+
+  RemoveFile(filename);
+  RemoveFile("/tmp/log");
+}
+
+// When a query for host groups is made
+// And the cache does know about them
+// Then an array is returned by the lua method.
+TEST_F(LuaTest, PbHostGroupCacheTest) {
+  std::map<std::string, misc::variant> conf;
+  std::string filename("/tmp/cache_test.lua");
+  auto hg{std::make_shared<neb::host_group>()};
+  hg->id = 16;
+  hg->name = "centreon1";
+  _cache->write(hg);
+  hg.reset(new neb::host_group);
+  hg->id = 17;
+  hg->name = "centreon2";
+  _cache->write(hg);
+  auto hst{std::make_shared<neb::pb_host>()};
+  hst->mut_obj().set_host_id(22);
+  hst->mut_obj().set_host_name("host_centreon");
+  _cache->write(hst);
+  std::shared_ptr<neb::host_group_member> member(new neb::host_group_member);
+  member->host_id = 22;
+  member->group_id = 16;
+  member->group_name = "sixteen";
+  member->enabled = false;
+  member->poller_id = 14;
+  _cache->write(member);
+  member.reset(new neb::host_group_member);
+  member->host_id = 22;
+  member->group_id = 17;
+  member->group_name = "seventeen";
+  member->enabled = true;
+  member->poller_id = 144;
+  _cache->write(member);
+
+  CreateScript(filename,
+               "function init(conf)\n"
+               "  broker_log:set_parameters(3, '/tmp/log')\n"
+               "  local hg = broker_cache:get_hostgroups(22)\n"
+               "  for i,v in ipairs(hg) do\n"
+               "    broker_log:info(1, 'member of ' .. broker.json_encode(v))\n"
+               "  end\n"
+               "end\n\n"
+               "function write(d)\n"
+               "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string lst(ReadFile("/tmp/log"));
 
   ASSERT_NE(std::string::npos, lst.find("\"group_id\":17"));
@@ -956,7 +1048,7 @@ TEST_F(LuaTest, ServiceGroupCacheTestNameNotAvailable) {
                "end\n\n"
                "function write(d)\n"
                "end\n");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string lst(ReadFile("/tmp/log"));
 
   ASSERT_NE(lst.find("service group is nil"), std::string::npos);
@@ -983,7 +1075,7 @@ TEST_F(LuaTest, ServiceGroupCacheTestName) {
                "end\n\n"
                "function write(d)\n"
                "end\n");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string lst(ReadFile("/tmp/log"));
 
   ASSERT_NE(lst.find("service group is centreon"), std::string::npos);
@@ -1007,7 +1099,7 @@ TEST_F(LuaTest, ServiceGroupCacheTestEmpty) {
       "end\n\n"
       "function write(d)\n"
       "end\n");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string lst(ReadFile("/tmp/log"));
 
   ASSERT_TRUE(lst.find("service group is []", std::string::npos));
@@ -1063,7 +1155,7 @@ TEST_F(LuaTest, ServiceGroupCacheTest) {
                "end\n\n"
                "function write(d)\n"
                "end\n");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string lst(ReadFile("/tmp/log"));
 
   ASSERT_NE(std::string::npos, lst.find("\"group_id\":17"));
@@ -1158,7 +1250,7 @@ TEST_F(LuaTest, BamCacheTestBvBaRelation) {
                "end\n\n"
                "function write(d)\n"
                "end\n");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string lst(ReadFile("/tmp/log"));
 
   ASSERT_NE(std::string::npos, lst.find("member of bv 18"));
@@ -1193,7 +1285,7 @@ TEST_F(LuaTest, BamCacheTestBaV1) {
       "end\n\n"
       "function write(d)\n"
       "end\n");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string lst(ReadFile("/tmp/log"));
 
   ASSERT_NE(std::string::npos, lst.find("\"ba_name\":\"ba name\""));
@@ -1229,7 +1321,7 @@ TEST_F(LuaTest, BamCacheTestBaV2) {
       "end\n\n"
       "function write(d)\n"
       "end\n");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string lst(ReadFile("/tmp/log"));
 
   ASSERT_NE(std::string::npos, lst.find("\"ba_name\":\"ba name\""));
@@ -1256,7 +1348,7 @@ TEST_F(LuaTest, BamCacheTestBaNil) {
                "end\n\n"
                "function write(d)\n"
                "end\n");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string lst(ReadFile("/tmp/log"));
 
   ASSERT_NE(std::string::npos, lst.find("member of ba nil"));
@@ -1287,7 +1379,7 @@ TEST_F(LuaTest, BamCacheTestBvV1) {
       "end\n\n"
       "function write(d)\n"
       "end\n");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string lst(ReadFile("/tmp/log"));
 
   ASSERT_NE(std::string::npos, lst.find("type of bv table"));
@@ -1322,7 +1414,7 @@ TEST_F(LuaTest, BamCacheTestBvV2) {
       "end\n\n"
       "function write(d)\n"
       "end\n");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string lst(ReadFile("/tmp/log"));
 
   std::cout << lst << std::endl;
@@ -1390,7 +1482,7 @@ TEST_F(LuaTest, ParsePerfdata) {
       "end\n\n"
       "function write(d)\n"
       "end\n");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string lst(ReadFile("/tmp/log"));
   size_t pos1 = lst.find("\"percent_packet_loss\":0");
   size_t pos2 = lst.find("\"rta\":0.8");
@@ -1450,7 +1542,7 @@ TEST_F(LuaTest, ParsePerfdata2) {
                "end\n\n"
                "function write(d)\n"
                "end\n");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string lst(ReadFile("/tmp/log"));
   size_t pos1 = lst.find(
       "\"PingSDWan~vdom~ifName#azure.insights.logicaldisk.free.percentage\":");
@@ -1515,7 +1607,7 @@ TEST_F(LuaTest, ParsePerfdata3) {
                "end\n\n"
                "function write(d)\n"
                "end\n");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string lst(ReadFile("/tmp/log"));
   size_t pos1 = lst.find(
       "\"PingSDWanvdomifName.azure.insights.logicaldisk.free.percentage\":");
@@ -1581,7 +1673,7 @@ TEST_F(LuaTest, ParsePerfdata4) {
                "end\n\n"
                "function write(d)\n"
                "end\n");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string lst(ReadFile("/tmp/log"));
   size_t pos1 = lst.find(
       "\"PingSDWan~vdom~ifName#azure.insights#logicaldisk~free.percentage\":");
@@ -1648,7 +1740,7 @@ TEST_F(LuaTest, ParsePerfdata5) {
                "end\n\n"
                "function write(d)\n"
                "end\n");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string lst(ReadFile("/tmp/log"));
   size_t pos1 = lst.find("\"subinstance\":[\"titi\",\"tutu\",\"tata\"]");
   size_t pos2 = lst.find("\"metric_name\":\"toto~a.b.totu\"", pos1 + 1);
@@ -1686,7 +1778,7 @@ TEST_F(LuaTest, UpdatePath) {
                "function write(d)\n"
                "  return true\n"
                "end\n");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string lst(ReadFile("/tmp/log"));
 
   ASSERT_NE(lst.find("foo bar"), std::string::npos);
@@ -1709,7 +1801,7 @@ TEST_F(LuaTest, CheckPath) {
                "function write(d)\n"
                "  return true\n"
                "end\n");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string lst(ReadFile("/tmp/log"));
 
   ASSERT_NE(lst.find("/tmp/?.lua"), std::string::npos);
@@ -1745,7 +1837,7 @@ TEST_F(LuaTest, UrlEncode) {
       "end\n\n"
       "function write(d)\n"
       "end\n");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string result(ReadFile("/tmp/log"));
 
   ASSERT_NE(result.find("INFO: RES1 GOOD"), std::string::npos);
@@ -1769,7 +1861,7 @@ TEST_F(LuaTest, JsonDecodeArray) {
                "end\n\n"
                "function write(d)\n"
                "end\n");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string result(ReadFile("/tmp/log"));
 
   ASSERT_NE(result.find("dec[1]=2"), std::string::npos);
@@ -1792,7 +1884,7 @@ TEST_F(LuaTest, JsonDecodeObject) {
                "end\n\n"
                "function write(d)\n"
                "end\n");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string result(ReadFile("/tmp/log"));
 
   ASSERT_NE(result.find("dec.foo=12"), std::string::npos);
@@ -1856,7 +1948,7 @@ TEST_F(LuaTest, JsonDecodeFull) {
                "  return true\n"
                "end");
 
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string result(ReadFile("/tmp/log"));
 
   ASSERT_NE(result.find("dec.quiz.maths.q1.question=5 + 7 = ?"),
@@ -1889,7 +1981,7 @@ TEST_F(LuaTest, JsonDecodeError) {
                "  return true\n"
                "end");
 
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string result(ReadFile("/tmp/log"));
 
   ASSERT_NE(result.find("dec=nil"), std::string::npos);
@@ -1918,7 +2010,7 @@ TEST_F(LuaTest, Stat) {
                "function write(d)\n"
                "  return true\n"
                "end");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string result(ReadFile("/tmp/log"));
   uid_t uid = geteuid();
   std::string str(fmt::format("\"uid\":{}", uid));
@@ -1944,7 +2036,7 @@ TEST_F(LuaTest, StatError) {
       "function write(d)\n"
       "  return true\n"
       "end");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string result(ReadFile("/tmp/log"));
   ASSERT_NE(result.find("info=nil"), std::string::npos);
   ASSERT_NE(result.find("err=No such file or directory"), std::string::npos);
@@ -1979,7 +2071,44 @@ TEST_F(LuaTest, CacheGetNotesUrlTest) {
                "end\n\n"
                "function write(d)\n"
                "end\n");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  std::string lst(ReadFile("/tmp/log"));
+
+  ASSERT_NE(lst.find("notes_url=host notes url"), std::string::npos);
+  ASSERT_NE(lst.find("action_url=host action url"), std::string::npos);
+  ASSERT_NE(lst.find("notes=host notes"), std::string::npos);
+  RemoveFile(filename);
+  RemoveFile("/tmp/log");
+}
+
+// When a query for a hostname is made
+// And the cache does not know about it
+// Then nil is returned from the lua method.
+TEST_F(LuaTest, PbCacheGetNotesUrlTest) {
+  std::map<std::string, misc::variant> conf;
+  std::string filename("/tmp/cache_test.lua");
+  auto hst{std::make_shared<neb::pb_host>()};
+  hst->mut_obj().set_host_id(1);
+  hst->mut_obj().set_notes("host notes");
+  hst->mut_obj().set_notes_url("host notes url");
+  hst->mut_obj().set_action_url("host action url");
+  hst->mut_obj().set_host_name("centreon");
+  hst->mut_obj().set_enabled(true);
+  _cache->write(hst);
+
+  CreateScript(filename,
+               "function init(conf)\n"
+               "  broker_log:set_parameters(3, '/tmp/log')\n"
+               "  local notes_url = broker_cache:get_notes_url(1)\n"
+               "  local action_url = broker_cache:get_action_url(1)\n"
+               "  local notes = broker_cache:get_notes(1)\n"
+               "  broker_log:info(1, \"notes_url=\" .. notes_url)\n"
+               "  broker_log:info(1, \"action_url=\" .. action_url)\n"
+               "  broker_log:info(1, \"notes=\" .. notes)\n"
+               "end\n\n"
+               "function write(d)\n"
+               "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string lst(ReadFile("/tmp/log"));
 
   ASSERT_NE(lst.find("notes_url=host notes url"), std::string::npos);
@@ -2015,7 +2144,7 @@ TEST_F(LuaTest, CacheSvcGetNotesUrlTest) {
                "end\n\n"
                "function write(d)\n"
                "end\n");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string lst(ReadFile("/tmp/log"));
 
   ASSERT_NE(lst.find("notes_url=svc notes url"), std::string::npos);
@@ -2051,7 +2180,7 @@ TEST_F(LuaTest, CacheSeverity) {
                "end\n\n"
                "function write(d)\n"
                "end\n");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string lst(ReadFile("/tmp/log"));
 
   ASSERT_NE(lst.find("severity=3"), std::string::npos);
@@ -2087,7 +2216,7 @@ TEST_F(LuaTest, BrokerEventIndex) {
       "  broker_log:info(0, 'service_id = ' .. d.service_id)\n"
       "  broker_log:info(0, 'last_check = ' .. d.last_check)\n"
       "end\n");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   binding->write(svc);
   std::string lst(ReadFile("/tmp/event_log"));
   std::cout << lst << std::endl;
@@ -2122,7 +2251,7 @@ TEST_F(LuaTest, BrokerEventPairs) {
                "    broker_log:info(0, k .. ' = ' .. tostring(v))\n"
                "  end\n"
                "end\n");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   binding->write(svc);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("description = foo bar"), std::string::npos);
@@ -2309,7 +2438,7 @@ TEST_F(LuaTest, BrokerEventJsonEncode) {
                "function write(d)\n"
                "  broker_log:info(0, broker.json_encode(d))\n"
                "end\n");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   binding->write(svc);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(
@@ -2373,7 +2502,7 @@ TEST_F(LuaTest, TestHostApiV1) {
                "  broker_log:info(0, 'type of d = ' .. type(d))\n"
                "  broker_log:info(0, 'type of hst = ' .. type(hst))\n"
                "end\n");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   binding->write(hst);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("type of d = table"), std::string::npos);
@@ -2400,7 +2529,63 @@ TEST_F(LuaTest, TestHostApiV2) {
                "  broker_log:info(0, 'type of d = ' .. type(d))\n"
                "  broker_log:info(0, 'type of hst = ' .. type(hst))\n"
                "end\n");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  binding->write(hst);
+  std::string lst(ReadFile("/tmp/event_log"));
+  ASSERT_NE(lst.find("type of d = userdata"), std::string::npos);
+  ASSERT_NE(lst.find("type of hst = userdata"), std::string::npos);
+  RemoveFile(filename);
+  RemoveFile("/tmp/event_log");
+}
+
+TEST_F(LuaTest, PbTestHostApiV1) {
+  config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  auto hst{std::make_shared<neb::pb_host>()};
+  hst->mut_obj().set_host_id(1);
+  hst->mut_obj().set_host_name("foo bar host cache");
+  hst->mut_obj().set_enabled(true);
+  std::string filename("/tmp/cache_test.lua");
+  CreateScript(filename,
+               "broker_api_version=1\n\n"
+               "function init(conf)\n"
+               "  broker_log:set_parameters(3, '/tmp/event_log')\n"
+               "end\n\n"
+               "function write(d)\n"
+               "  local hst = broker_cache:get_host(1)\n"
+               "  broker_log:info(0, 'type of d = ' .. type(d))\n"
+               "  broker_log:info(0, 'type of hst = ' .. type(hst))\n"
+               "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  binding->write(hst);
+  std::string lst(ReadFile("/tmp/event_log"));
+  ASSERT_NE(lst.find("type of d = table"), std::string::npos);
+  ASSERT_NE(lst.find("type of hst = table"), std::string::npos);
+  RemoveFile(filename);
+  RemoveFile("/tmp/event_log");
+}
+
+TEST_F(LuaTest, PbTestHostApiV2) {
+  config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  auto hst{std::make_shared<neb::pb_host>()};
+  hst->mut_obj().set_host_id(1);
+  hst->mut_obj().set_host_name("foo bar host cache");
+  hst->mut_obj().set_enabled(true);
+  std::string filename("/tmp/cache_test.lua");
+  CreateScript(filename,
+               "broker_api_version=2\n\n"
+               "function init(conf)\n"
+               "  broker_log:set_parameters(3, '/tmp/event_log')\n"
+               "end\n\n"
+               "function write(d)\n"
+               "  local hst = broker_cache:get_host(1)\n"
+               "  broker_log:info(0, 'type of d = ' .. type(d))\n"
+               "  broker_log:info(0, 'type of hst = ' .. type(hst))\n"
+               "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   binding->write(hst);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("type of d = userdata"), std::string::npos);
@@ -2431,7 +2616,7 @@ TEST_F(LuaTest, TestSvcApiV2) {
                "  broker_log:info(0, 'type of d = ' .. type(d))\n"
                "  broker_log:info(0, 'type of svc = ' .. type(svc))\n"
                "end\n");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   binding->write(svc);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("type of d = userdata"), std::string::npos);
@@ -2462,7 +2647,7 @@ TEST_F(LuaTest, TestSvcApiV1) {
                "  broker_log:info(0, 'type of d = ' .. type(d))\n"
                "  broker_log:info(0, 'type of svc = ' .. type(svc))\n"
                "end\n");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   binding->write(svc);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("type of d = table"), std::string::npos);
@@ -2491,7 +2676,7 @@ TEST_F(LuaTest, BrokerEventCache) {
                "  local svc = broker_cache:get_service(1, 2)\n"
                "  broker_log:info(0, 'description = ' .. svc.description)\n"
                "end\n");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   binding->write(svc);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("description = foo bar cache"), std::string::npos);
@@ -2613,7 +2798,7 @@ TEST_F(LuaTest, md5) {
                "function write(d)\n"
                "  return true\n"
                "end");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string result(ReadFile("/tmp/log"));
   ASSERT_NE(result.find("ed076287532e86365e841e92bfc50d8c"), std::string::npos);
 
@@ -2635,7 +2820,7 @@ TEST_F(LuaTest, emptyMd5) {
                "function write(d)\n"
                "  return true\n"
                "end");
-  std::unique_ptr<luabinding> binding(new luabinding(filename, conf, *_cache));
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string result(ReadFile("/tmp/log"));
   ASSERT_NE(result.find("d41d8cd98f00b204e9800998ecf8427e"), std::string::npos);
 
@@ -3178,29 +3363,50 @@ TEST_F(LuaTest, BrokerApi2PbHostStatusJsonEncode) {
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   binding->write(host);
   std::string lst(ReadFile("/tmp/event_log"));
+  std::cout << lst << std::endl;
   ASSERT_NE(
-      lst.find("INFO: { \"_type\": 65566, \"category\": 1, \"element\": 30, "
-               "\"host_id\":1899, \"acknowledged\":false, "
-               "\"acknowledgement_type\":0, \"active_checks_enabled\":false, "
-               "\"enabled\":false, "
-               "\"downtime_depth\":0, \"check_command\":\"super command\", "
-               "\"check_interval\":7, \"check_period\":\"\", \"check_type\":0, "
-               "\"current_check_attempt\":0, \"current_state\":0, "
-               "\"event_handler_enabled\":false, \"event_handler\":\"\", "
-               "\"execution_time\":0, \"flap_detection_enabled\":false, "
-               "\"has_been_checked\":false, \"is_flapping\":false, "
-               "\"last_check\":123459, \"last_hard_state\":0, "
-               "\"last_hard_state_change\":0, \"last_notification\":0, "
-               "\"notification_number\":0, \"last_state_change\":0, "
-               "\"last_time_down\":0, \"last_time_unreachable\":0, "
-               "\"last_time_up\":0, \"last_update\":0, \"latency\":0, "
-               "\"max_check_attempts\":0, \"next_check\":0, "
-               "\"next_notification\":0, \"no_more_notifications\":false, "
-               "\"notifications_enabled\":false, \"output\":\"cool\", "
-               "\"passive_checks_enabled\":false, \"percent_state_change\":0, "
-               "\"perf_data\":\"\", \"retry_interval\":0, "
-               "\"should_be_scheduled\":false, \"obsess_over\":false, "
-               "\"state_type\":0}"),
+      lst.find(
+          "INFO: { \"_type\": 65566, \"category\": 1, \"element\": 30, "
+          "\"host_id\":1899, \"acknowledged\":false, "
+          "\"acknowledgement_type\":0, \"active_checks_enabled\":false, "
+          "\"enabled\":false, "
+          "\"downtime_depth\":0, \"check_command\":\"super command\", "
+          "\"check_interval\":7, \"check_period\":\"\", \"check_type\":0, "
+          "\"current_check_attempt\":0, \"current_state\":0, "
+          "\"event_handler_enabled\":false, \"event_handler\":\"\", "
+          "\"execution_time\":0, \"flap_detection_enabled\":false, "
+          "\"has_been_checked\":false, \"is_flapping\":false, "
+          "\"last_check\":123459, \"last_hard_state\":0, "
+          "\"last_hard_state_change\":0, \"last_notification\":0, "
+          "\"notification_number\":0, \"last_state_change\":0, "
+          "\"last_time_down\":0, \"last_time_unreachable\":0, "
+          "\"last_time_up\":0, \"last_update\":0, \"latency\":0, "
+          "\"max_check_attempts\":0, \"next_check\":0, "
+          "\"next_notification\":0, \"no_more_notifications\":false, "
+          "\"notifications_enabled\":false, \"output\":\"cool\", "
+          "\"passive_checks_enabled\":false, \"percent_state_change\":0, "
+          "\"perf_data\":\"\", \"retry_interval\":0, "
+          "\"should_be_scheduled\":false, \"obsess_over\":false, "
+          "\"state_type\":0, \"action_url\":\"\", \"address\":\"\", "
+          "\"alias\":\"\", \"check_freshness\":false, "
+          "\"default_active_checks_enabled\":false, "
+          "\"default_event_handler_enabled\":false, "
+          "\"default_flap_detection_enabled\":false, "
+          "\"default_notifications_enabled\":false, "
+          "\"default_passive_checks_enabled\":false, \"display_name\":\"\", "
+          "\"first_notification_delay\":0, \"flap_detection_on_down\":false, "
+          "\"flap_detection_on_unreachable\":false, "
+          "\"flap_detection_on_up\":false, \"freshness_threshold\":0, "
+          "\"high_flap_threshold\":0, \"host_name\":\"\", \"icon_image\":\"\", "
+          "\"icon_image_alt\":\"\", \"poller_id\":0, \"low_flap_threshold\":0, "
+          "\"notes\":\"\", \"notes_url\":\"\", \"notification_interval\":0, "
+          "\"notification_period\":\"\", \"notify_on_down\":false, "
+          "\"notify_on_downtime\":false, \"notify_on_flapping\":false, "
+          "\"notify_on_recovery\":false, \"notify_on_unreachable\":false, "
+          "\"stalk_on_down\":false, \"stalk_on_unreachable\":false, "
+          "\"stalk_on_up\":false, \"statusmap_image\":\"\", "
+          "\"retain_nonstatus_information\":false, "
+          "\"retain_status_information\":false, \"timezone\":\"\"}"),
       std::string::npos);
 
   RemoveFile(filename);
@@ -3235,6 +3441,119 @@ TEST_F(LuaTest, BrokerPbHostStatusJsonEncode) {
   ASSERT_NE(lst.find("\"_type\":65566"), std::string::npos);
   ASSERT_NE(lst.find("\"category\":1"), std::string::npos);
   ASSERT_NE(lst.find("\"element\":30"), std::string::npos);
+  ASSERT_NE(lst.find("\"host_id\":1899"), std::string::npos);
+  ASSERT_NE(lst.find("\"check_interval\":7"), std::string::npos);
+  ASSERT_NE(lst.find("\"current_state\":0"), std::string::npos);
+  ASSERT_NE(lst.find("\"last_check\":123459"), std::string::npos);
+  ASSERT_NE(lst.find("\"output\":\"cool\""), std::string::npos);
+  RemoveFile(filename);
+  RemoveFile("/tmp/event_log");
+}
+
+TEST_F(LuaTest, BrokerApi2PbHostJsonEncode) {
+  config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  auto host = std::make_shared<neb::pb_host>();
+  auto& obj = host->mut_obj();
+  obj.set_host_id(1899);
+  obj.set_check_command("super command");
+  obj.set_output("cool");
+  obj.set_current_state(Host_State_UP);
+  obj.set_check_interval(7);
+  obj.set_check_type(Host_CheckType_CHECK_ACTIVE);
+  obj.set_last_check(123459);
+  std::string filename("/tmp/cache_test.lua");
+  CreateScript(filename,
+               "broker_api_version = 2\n"
+               "function init(conf)\n"
+               "  broker_log:set_parameters(3, '/tmp/event_log')\n"
+               "end\n\n"
+               "function write(d)\n"
+               "  broker_log:info(0, broker.json_encode(d))\n"
+               "  return true\n"
+               "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  binding->write(host);
+  std::string lst(ReadFile("/tmp/event_log"));
+  std::cout << lst << std::endl;
+  ASSERT_NE(
+      lst.find(
+          "INFO: { \"_type\": 65565, \"category\": 1, \"element\": 29, "
+          "\"host_id\":1899, \"acknowledged\":false, "
+          "\"acknowledgement_type\":0, \"active_checks_enabled\":false, "
+          "\"enabled\":false, "
+          "\"downtime_depth\":0, \"check_command\":\"super command\", "
+          "\"check_interval\":7, \"check_period\":\"\", \"check_type\":0, "
+          "\"current_check_attempt\":0, \"current_state\":0, "
+          "\"event_handler_enabled\":false, \"event_handler\":\"\", "
+          "\"execution_time\":0, \"flap_detection_enabled\":false, "
+          "\"has_been_checked\":false, \"is_flapping\":false, "
+          "\"last_check\":123459, \"last_hard_state\":0, "
+          "\"last_hard_state_change\":0, \"last_notification\":0, "
+          "\"notification_number\":0, \"last_state_change\":0, "
+          "\"last_time_down\":0, \"last_time_unreachable\":0, "
+          "\"last_time_up\":0, \"last_update\":0, \"latency\":0, "
+          "\"max_check_attempts\":0, \"next_check\":0, "
+          "\"next_notification\":0, \"no_more_notifications\":false, "
+          "\"notifications_enabled\":false, \"output\":\"cool\", "
+          "\"passive_checks_enabled\":false, \"percent_state_change\":0, "
+          "\"perf_data\":\"\", \"retry_interval\":0, "
+          "\"should_be_scheduled\":false, \"obsess_over\":false, "
+          "\"state_type\":0, \"action_url\":\"\", \"address\":\"\", "
+          "\"alias\":\"\", \"check_freshness\":false, "
+          "\"default_active_checks_enabled\":false, "
+          "\"default_event_handler_enabled\":false, "
+          "\"default_flap_detection_enabled\":false, "
+          "\"default_notifications_enabled\":false, "
+          "\"default_passive_checks_enabled\":false, \"display_name\":\"\", "
+          "\"first_notification_delay\":0, \"flap_detection_on_down\":false, "
+          "\"flap_detection_on_unreachable\":false, "
+          "\"flap_detection_on_up\":false, \"freshness_threshold\":0, "
+          "\"high_flap_threshold\":0, \"host_name\":\"\", \"icon_image\":\"\", "
+          "\"icon_image_alt\":\"\", \"poller_id\":0, \"low_flap_threshold\":0, "
+          "\"notes\":\"\", \"notes_url\":\"\", \"notification_interval\":0, "
+          "\"notification_period\":\"\", \"notify_on_down\":false, "
+          "\"notify_on_downtime\":false, \"notify_on_flapping\":false, "
+          "\"notify_on_recovery\":false, \"notify_on_unreachable\":false, "
+          "\"stalk_on_down\":false, \"stalk_on_unreachable\":false, "
+          "\"stalk_on_up\":false, \"statusmap_image\":\"\", "
+          "\"retain_nonstatus_information\":false, "
+          "\"retain_status_information\":false, \"timezone\":\"\"}"),
+      std::string::npos);
+
+  RemoveFile(filename);
+  RemoveFile("/tmp/event_log");
+}
+
+TEST_F(LuaTest, BrokerPbHostJsonEncode) {
+  config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  auto host = std::make_shared<neb::pb_host>();
+  auto& obj = host->mut_obj();
+  obj.set_host_id(1899);
+  obj.set_check_command("super command");
+  obj.set_output("cool");
+  obj.set_current_state(Host_State_UP);
+  obj.set_check_interval(7);
+  obj.set_check_type(Host_CheckType_CHECK_ACTIVE);
+  obj.set_last_check(123459);
+  std::string filename("/tmp/cache_test.lua");
+  CreateScript(filename,
+               "function init(conf)\n"
+               "  broker_log:set_parameters(3, '/tmp/event_log')\n"
+               "end\n\n"
+               "function write(d)\n"
+               "  broker_log:info(0, broker.json_encode(d))\n"
+               "  return true\n"
+               "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  binding->write(host);
+  std::string lst(ReadFile("/tmp/event_log"));
+  ASSERT_NE(lst.find("\"_type\":65565"), std::string::npos);
+  ASSERT_NE(lst.find("\"category\":1"), std::string::npos);
+  ASSERT_NE(lst.find("\"element\":29"), std::string::npos);
   ASSERT_NE(lst.find("\"host_id\":1899"), std::string::npos);
   ASSERT_NE(lst.find("\"check_interval\":7"), std::string::npos);
   ASSERT_NE(lst.find("\"current_state\":0"), std::string::npos);

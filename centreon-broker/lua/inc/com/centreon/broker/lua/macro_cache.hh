@@ -50,7 +50,7 @@ namespace lua {
 class macro_cache {
   std::shared_ptr<persistent_cache> _cache;
   std::unordered_map<uint64_t, std::shared_ptr<neb::instance> > _instances;
-  std::unordered_map<uint64_t, std::shared_ptr<neb::host> > _hosts;
+  std::unordered_map<uint64_t, std::shared_ptr<io::data> > _hosts;
   std::unordered_map<uint64_t, std::shared_ptr<neb::host_group> > _host_groups;
   std::map<std::pair<uint64_t, uint64_t>,
            std::shared_ptr<neb::host_group_member> >
@@ -86,7 +86,7 @@ class macro_cache {
   storage::index_mapping const& get_index_mapping(uint32_t index_id) const;
   const std::shared_ptr<storage::metric_mapping>& get_metric_mapping(
       uint32_t metric_id) const;
-  const std::shared_ptr<neb::host>& get_host(uint64_t host_id) const;
+  const std::shared_ptr<io::data>& get_host(uint64_t host_id) const;
   const std::shared_ptr<io::data>& get_service(uint64_t host_id,
                                                uint64_t service_id) const;
   std::string const& get_host_name(uint64_t host_id) const;
@@ -122,6 +122,7 @@ class macro_cache {
 
   void _process_instance(std::shared_ptr<io::data> const& data);
   void _process_host(std::shared_ptr<io::data> const& data);
+  void _process_pb_host(std::shared_ptr<io::data> const& data);
   void _process_host_group(std::shared_ptr<io::data> const& data);
   void _process_host_group_member(std::shared_ptr<io::data> const& data);
   void _process_custom_variable(std::shared_ptr<io::data> const& data);
