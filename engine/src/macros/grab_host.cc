@@ -305,7 +305,7 @@ struct grab_host_redirection {
        {&get_member_as_string<host,
                               std::string const&,
                               checkable,
-                              &checkable::get_check_command>,
+                              &checkable::check_command>,
         true}},
       {MACRO_HOSTATTEMPT,
        {&get_member_as_string<host,

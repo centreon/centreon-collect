@@ -204,7 +204,7 @@ class notifier : public checkable {
   time_t last_acknowledgement() const noexcept;
   uint32_t get_notification_interval(void) const noexcept;
   void set_notification_interval(uint32_t notification_interval) noexcept;
-  std::string const& get_notification_period() const noexcept;
+  std::string const& notification_period() const noexcept;
   void set_notification_period(std::string const& notification_period) noexcept;
 
   uint32_t get_first_notification_delay(void) const noexcept;

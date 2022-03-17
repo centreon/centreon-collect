@@ -338,7 +338,7 @@ void loop::_dispatching() {
                 temp_service->get_current_state() != service::state_ok)
               temp_service->set_next_check(
                   (time_t)(temp_service->get_next_check() +
-                           temp_service->get_retry_interval() *
+                           temp_service->retry_interval() *
                                config->interval_length()));
             else
               temp_service->set_next_check(
@@ -387,14 +387,13 @@ void loop::_dispatching() {
           // Reschedule.
           if ((notifier::soft == temp_host->get_state_type()) &&
               (temp_host->get_current_state() != host::state_up))
-            temp_host->set_next_check(
-                (time_t)(temp_host->get_next_check() +
-                         (temp_host->get_retry_interval() *
-                          config->interval_length())));
+            temp_host->set_next_check((time_t)(temp_host->get_next_check() +
+                                               temp_host->retry_interval() *
+                                                   config->interval_length()));
           else
             temp_host->set_next_check((time_t)(temp_host->get_next_check() +
-                                               (temp_host->check_interval() *
-                                                config->interval_length())));
+                                               temp_host->check_interval() *
+                                                   config->interval_length()));
           temp_event->run_time = temp_host->get_next_check();
           reschedule_event(temp_event, events::loop::low);
           temp_host->update_status();

@@ -196,7 +196,7 @@ grpc::Status engine_impl::GetHost(grpc::ServerContext* context
     host->set_name(selectedhost->get_name());
     host->set_alias(selectedhost->get_alias());
     host->set_address(selectedhost->get_address());
-    host->set_check_period(selectedhost->get_check_period());
+    host->set_check_period(selectedhost->check_period());
     host->set_current_state(
         static_cast<EngineHost::State>(selectedhost->get_current_state()));
     host->set_id(selectedhost->get_host_id());
@@ -310,7 +310,7 @@ grpc::Status engine_impl::GetService(grpc::ServerContext* context
         service->set_service_id(selectedservice->get_service_id());
         service->set_host_name(selectedservice->get_hostname());
         service->set_description(selectedservice->get_description());
-        service->set_check_period(selectedservice->get_check_period());
+        service->set_check_period(selectedservice->check_period());
         service->set_current_state(static_cast<EngineService::State>(
             selectedservice->get_current_state()));
         return 0;

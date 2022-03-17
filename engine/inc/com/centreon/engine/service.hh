@@ -155,6 +155,7 @@ class service : public notifier {
   void enable_flap_detection();
   void disable_flap_detection();
   void update_status(status_type t = status_type::ALL) override;
+  void update_adaptive_data();
   bool verify_check_viability(int check_options,
                               bool* time_is_valid,
                               time_t* new_time);

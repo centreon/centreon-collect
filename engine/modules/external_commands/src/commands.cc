@@ -585,7 +585,7 @@ int process_passive_service_check(time_t check_time,
   }
 
   /* skip this is we aren't accepting passive checks for this service */
-  if (!found->second->get_accept_passive_checks())
+  if (!found->second->passive_checks_enabled())
     return ERROR;
 
   timeval tv;
@@ -697,7 +697,7 @@ int process_passive_host_check(time_t check_time,
   }
 
   /* skip this is we aren't accepting passive checks for this host */
-  if (!it->second->get_accept_passive_checks())
+  if (!it->second->passive_checks_enabled())
     return ERROR;
 
   timeval tv;
@@ -2689,7 +2689,7 @@ void enable_passive_service_checks(service* svc) {
   unsigned long attr(MODATTR_PASSIVE_CHECKS_ENABLED);
 
   /* no change */
-  if (svc->get_accept_passive_checks())
+  if (svc->passive_checks_enabled())
     return;
 
   /* set the attribute modified flag */
@@ -2709,7 +2709,7 @@ void disable_passive_service_checks(service* svc) {
   unsigned long attr(MODATTR_PASSIVE_CHECKS_ENABLED);
 
   /* no change */
-  if (!svc->get_accept_passive_checks())
+  if (!svc->passive_checks_enabled())
     return;
 
   /* set the attribute modified flag */
@@ -2824,7 +2824,7 @@ void enable_passive_host_checks(host* hst) {
   unsigned long attr(MODATTR_PASSIVE_CHECKS_ENABLED);
 
   /* no change */
-  if (hst->get_accept_passive_checks())
+  if (hst->passive_checks_enabled())
     return;
 
   /* set the attribute modified flag */
@@ -2847,7 +2847,7 @@ void disable_passive_host_checks(host* hst) {
   unsigned long attr(MODATTR_PASSIVE_CHECKS_ENABLED);
 
   /* no change */
-  if (!hst->get_accept_passive_checks())
+  if (!hst->passive_checks_enabled())
     return;
 
   /* set the attribute modified flag */
@@ -2920,7 +2920,7 @@ void enable_service_event_handler(service* svc) {
   unsigned long attr(MODATTR_EVENT_HANDLER_ENABLED);
 
   /* no change */
-  if (svc->get_event_handler_enabled())
+  if (svc->event_handler_enabled())
     return;
 
   /* set the attribute modified flag */
@@ -2940,7 +2940,7 @@ void disable_service_event_handler(service* svc) {
   unsigned long attr(MODATTR_EVENT_HANDLER_ENABLED);
 
   /* no change */
-  if (!svc->get_event_handler_enabled())
+  if (!svc->event_handler_enabled())
     return;
 
   /* set the attribute modified flag */
@@ -2960,7 +2960,7 @@ void enable_host_event_handler(host* hst) {
   unsigned long attr(MODATTR_EVENT_HANDLER_ENABLED);
 
   /* no change */
-  if (hst->get_event_handler_enabled())
+  if (hst->event_handler_enabled())
     return;
 
   /* set the attribute modified flag */
@@ -2983,7 +2983,7 @@ void disable_host_event_handler(host* hst) {
   unsigned long attr(MODATTR_EVENT_HANDLER_ENABLED);
 
   /* no change */
-  if (!hst->get_event_handler_enabled())
+  if (!hst->event_handler_enabled())
     return;
 
   /* set the attribute modified flag */
@@ -3312,7 +3312,7 @@ void start_obsessing_over_service(service* svc) {
   unsigned long attr(MODATTR_OBSESSIVE_HANDLER_ENABLED);
 
   /* no change */
-  if (svc->get_obsess_over())
+  if (svc->obsess_over())
     return;
 
   /* set the attribute modified flag */
@@ -3332,7 +3332,7 @@ void stop_obsessing_over_service(service* svc) {
   unsigned long attr(MODATTR_OBSESSIVE_HANDLER_ENABLED);
 
   /* no change */
-  if (!svc->get_obsess_over())
+  if (!svc->obsess_over())
     return;
 
   /* set the attribute modified flag */
@@ -3352,7 +3352,7 @@ void start_obsessing_over_host(host* hst) {
   unsigned long attr(MODATTR_OBSESSIVE_HANDLER_ENABLED);
 
   /* no change */
-  if (hst->get_obsess_over())
+  if (hst->obsess_over())
     return;
 
   /* set the attribute modified flag */
@@ -3375,7 +3375,7 @@ void stop_obsessing_over_host(host* hst) {
   unsigned long attr(MODATTR_OBSESSIVE_HANDLER_ENABLED);
 
   /* no change */
-  if (!hst->get_obsess_over())
+  if (!hst->obsess_over())
     return;
 
   /* set the attribute modified flag */

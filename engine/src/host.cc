@@ -671,7 +671,7 @@ std::ostream& operator<<(std::ostream& os, const host& obj) {
      << obj.services
      << "\n"
         "  host_check_command:                   "
-     << obj.get_check_command()
+     << obj.check_command()
      << "\n"
         "  initial_state:                        "
      << obj.get_initial_state()
@@ -680,13 +680,13 @@ std::ostream& operator<<(std::ostream& os, const host& obj) {
      << obj.check_interval()
      << "\n"
         "  retry_interval:                       "
-     << obj.get_retry_interval()
+     << obj.retry_interval()
      << "\n"
         "  max_attempts:                         "
      << obj.max_check_attempts()
      << "\n"
         "  event_handler:                        "
-     << obj.get_event_handler()
+     << obj.event_handler()
      << "\n"
         "  contact_groups:                       "
      << cg_oss
@@ -725,12 +725,12 @@ std::ostream& operator<<(std::ostream& os, const host& obj) {
      << obj.get_notify_on(notifier::downtime)
      << "\n"
         "  notification_period:                  "
-     << obj.get_notification_period() << "\n"
+     << obj.notification_period() << "\n"
      << notifications
-     << "  check_period:                         " << obj.get_check_period()
+     << "  check_period:                         " << obj.check_period()
      << "\n"
         "  flap_detection_enabled:               "
-     << obj.get_flap_detection_enabled()
+     << obj.flap_detection_enabled()
      << "\n"
         "  low_flap_threshold:                   "
      << obj.get_low_flap_threshold()
@@ -757,7 +757,7 @@ std::ostream& operator<<(std::ostream& os, const host& obj) {
      << obj.get_stalk_on(notifier::unreachable)
      << "\n"
         "  check_freshness:                      "
-     << obj.get_check_freshness()
+     << obj.check_freshness_enabled()
      << "\n"
         "  freshness_threshold:                  "
      << obj.get_freshness_threshold()
@@ -769,10 +769,10 @@ std::ostream& operator<<(std::ostream& os, const host& obj) {
      << obj.active_checks_enabled()
      << "\n"
         "  accept_passive_checks:                "
-     << obj.get_accept_passive_checks()
+     << obj.passive_checks_enabled()
      << "\n"
         "  event_handler_enabled:                "
-     << obj.get_event_handler_enabled()
+     << obj.event_handler_enabled()
      << "\n"
         "  retain_status_information:            "
      << obj.get_retain_status_information()
@@ -781,7 +781,7 @@ std::ostream& operator<<(std::ostream& os, const host& obj) {
      << obj.get_retain_nonstatus_information()
      << "\n"
         "  obsess_over_host:                     "
-     << obj.get_obsess_over()
+     << obj.obsess_over()
      << "\n"
         "  notes:                                "
      << obj.get_notes()
@@ -1289,7 +1289,7 @@ int host::handle_async_check_result_3x(check_result* queued_check_result) {
 
       return ERROR;
     }
-    if (!get_accept_passive_checks()) {
+    if (!passive_checks_enabled()) {
       engine_logger(dbg_checks, basic)
           << "Discarding passive host check result because passive checks "
              "are disabled for this host.";
@@ -1490,7 +1490,7 @@ int host::handle_async_check_result_3x(check_result* queued_check_result) {
     }
 
     /* a NULL host check command means we should assume the host is UP */
-    if (get_check_command().empty()) {
+    if (check_command().empty()) {
       set_plugin_output("(Host assumed to be UP)");
       svc_res = service::state_ok;
     }
@@ -1539,7 +1539,7 @@ int host::handle_async_check_result_3x(check_result* queued_check_result) {
   broker_host_check(NEBTYPE_HOSTCHECK_PROCESSED, NEBFLAG_NONE, NEBATTR_NONE,
                     this, get_check_type(), get_current_state(),
                     get_state_type(), start_time_hires, end_time_hires,
-                    get_check_command().c_str(), get_latency(),
+                    check_command().c_str(), get_latency(),
                     get_execution_time(), config->host_check_timeout(),
                     queued_check_result->get_early_timeout(),
                     queued_check_result->get_return_code(), nullptr,
@@ -1588,7 +1588,7 @@ int host::run_scheduled_check(int check_options, double latency) {
        */
       if (current_time >= preferred_time)
         preferred_time = current_time +
-                         static_cast<time_t>((check_interval() <= 0)
+                         static_cast<time_t>(check_interval() <= 0
                                                  ? 300
                                                  : (check_interval() *
                                                     config->interval_length()));
@@ -1710,12 +1710,12 @@ int host::run_async_check(int check_options,
   timeval end_time;
   memset(&start_time, 0, sizeof(start_time));
   memset(&end_time, 0, sizeof(end_time));
-  int res = broker_host_check(
-      NEBTYPE_HOSTCHECK_ASYNC_PRECHECK, NEBFLAG_NONE, NEBATTR_NONE, this,
-      checkable::check_active, get_current_state(), get_state_type(),
-      start_time, end_time, get_check_command().c_str(), get_latency(), 0.0,
-      config->host_check_timeout(), false, 0, nullptr, nullptr, nullptr,
-      nullptr, nullptr);
+  int res = broker_host_check(NEBTYPE_HOSTCHECK_ASYNC_PRECHECK, NEBFLAG_NONE,
+                              NEBATTR_NONE, this, checkable::check_active,
+                              get_current_state(), get_state_type(), start_time,
+                              end_time, check_command().c_str(), get_latency(),
+                              0.0, config->host_check_timeout(), false, 0,
+                              nullptr, nullptr, nullptr, nullptr, nullptr);
 
   // Host check was cancel by NEB module. Reschedule check later.
   if (NEBERROR_CALLBACKCANCEL == res) {
@@ -1758,7 +1758,7 @@ int host::run_async_check(int check_options,
   grab_host_macros_r(macros, this);
   std::string tmp;
   get_raw_command_line_r(macros, get_check_command_ptr(),
-                         get_check_command().c_str(), tmp, 0);
+                         check_command().c_str(), tmp, 0);
 
   // Time to start command.
   gettimeofday(&start_time, nullptr);
@@ -1782,7 +1782,7 @@ int host::run_async_check(int check_options,
   broker_host_check(NEBTYPE_HOSTCHECK_INITIATE, NEBFLAG_NONE, NEBATTR_NONE,
                     this, checkable::check_active, get_current_state(),
                     get_state_type(), start_time, end_time,
-                    get_check_command().c_str(), get_latency(), 0.0,
+                    check_command().c_str(), get_latency(), 0.0,
                     config->host_check_timeout(), false, 0,
                     processed_cmd.c_str(), nullptr, nullptr, nullptr, nullptr);
 
@@ -2112,7 +2112,7 @@ void host::check_for_flapping(bool update,
     return;
 
   /* don't do anything if we don't have flap detection enabled for this host */
-  if (!get_flap_detection_enabled())
+  if (!flap_detection_enabled())
     return;
 
   /* are we flapping, undecided, or what?... */
@@ -2436,8 +2436,8 @@ bool host::verify_check_viability(int check_options,
   /* get the check interval to use if we need to reschedule the check */
   if (this->get_state_type() == soft &&
       this->get_current_state() != host::state_up)
-    check_interval = static_cast<int>(this->get_retry_interval() *
-                                      config->interval_length());
+    check_interval =
+        static_cast<int>(this->retry_interval() * config->interval_length());
   else
     check_interval =
         static_cast<int>(this->check_interval() * config->interval_length());
@@ -2681,7 +2681,7 @@ void host::disable_flap_detection() {
                              get_name());
 
   /* nothing to do... */
-  if (!get_flap_detection_enabled())
+  if (!flap_detection_enabled())
     return;
 
   /* set the attribute modified flag */
@@ -2711,7 +2711,7 @@ void host::enable_flap_detection() {
   log_v2::checks()->debug("Enabling flap detection for host '{}'.", get_name());
 
   /* nothing to do... */
-  if (get_flap_detection_enabled())
+  if (flap_detection_enabled())
     return;
 
   /* set the attribute modified flag */
@@ -2819,7 +2819,7 @@ bool host::is_result_fresh(time_t current_time, int log_this) {
     if ((hard == get_state_type()) || (host::state_up == get_current_state()))
       interval = check_interval();
     else
-      interval = get_retry_interval();
+      interval = retry_interval();
     freshness_threshold = static_cast<int>(
         (interval * config->interval_length()) + get_latency() +
         config->additional_freshness_latency());
@@ -3176,8 +3176,8 @@ int host::process_check_result_3x(enum host::host_state new_state,
         /* schedule a re-check of the host at the retry interval because we
          * can't determine its final state yet... */
         if (get_state_type() == soft)
-          next_check = get_last_check() +
-                       get_retry_interval() * config->interval_length();
+          next_check =
+              get_last_check() + retry_interval() * config->interval_length();
       }
     }
   }
@@ -3349,8 +3349,8 @@ int host::process_check_result_3x(enum host::host_state new_state,
          * can't determine its final state yet... */
         if (get_check_type() == check_active ||
             config->passive_host_checks_are_soft())
-          next_check = get_last_check() +
-                       get_retry_interval() * config->interval_length();
+          next_check =
+              get_last_check() + retry_interval() * config->interval_length();
         /* propagate checks to immediate parents if they are UP */
         /* we do this because a parent host (or grandparent) may have gone down
          * and blocked our route */
@@ -3401,7 +3401,7 @@ int host::process_check_result_3x(enum host::host_state new_state,
 
         /* check dependencies on second to last host check */
         if (config->enable_predictive_host_dependency_checks() &&
-            get_current_attempt() == (max_check_attempts() - 1)) {
+            get_current_attempt() == max_check_attempts() - 1) {
           /* propagate checks to hosts that THIS ONE depends on for
            * notifications AND execution */
           /* we do to help ensure that the dependency checks are accurate before
@@ -3727,12 +3727,12 @@ void host::check_result_freshness() {
   for (host_map::iterator it{host::hosts.begin()}, end{host::hosts.end()};
        it != end; ++it) {
     /* skip hosts we shouldn't be checking for freshness */
-    if (!it->second->get_check_freshness())
+    if (!it->second->check_freshness_enabled())
       continue;
 
     /* skip hosts that have both active and passive checks disabled */
     if (!it->second->active_checks_enabled() &&
-        !it->second->get_accept_passive_checks())
+        !it->second->passive_checks_enabled())
       continue;
 
     /* skip hosts that are currently executing (problems here will be caught by

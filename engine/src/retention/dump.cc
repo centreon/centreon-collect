@@ -281,7 +281,7 @@ std::ostream& dump::host(std::ostream& os,
      << obj.active_checks_enabled()
      << "\n"
         "check_command="
-     << obj.get_check_command()
+     << obj.check_command()
      << "\n"
         "check_execution_time="
      << std::setprecision(3) << std::fixed << obj.get_execution_time()
@@ -293,7 +293,7 @@ std::ostream& dump::host(std::ostream& os,
      << obj.get_check_options()
      << "\n"
         "check_period="
-     << obj.get_check_period()
+     << obj.check_period()
      << "\n"
         "check_type="
      << obj.get_check_type()
@@ -317,13 +317,13 @@ std::ostream& dump::host(std::ostream& os,
      << obj.get_current_state()
      << "\n"
         "event_handler="
-     << obj.get_event_handler()
+     << obj.event_handler()
      << "\n"
         "event_handler_enabled="
-     << obj.get_event_handler_enabled()
+     << obj.event_handler_enabled()
      << "\n"
         "flap_detection_enabled="
-     << obj.get_flap_detection_enabled()
+     << obj.flap_detection_enabled()
      << "\n"
         "has_been_checked="
      << obj.has_been_checked()
@@ -384,7 +384,7 @@ std::ostream& dump::host(std::ostream& os,
      << obj.check_interval()
      << "\n"
         "notification_period="
-     << obj.get_notification_period()
+     << obj.notification_period()
      << "\n"
         "notifications_enabled="
      << obj.get_notifications_enabled()
@@ -396,10 +396,10 @@ std::ostream& dump::host(std::ostream& os,
      << obj.get_notified_on(notifier::unreachable)
      << "\n"
         "obsess_over_host="
-     << obj.get_obsess_over()
+     << obj.obsess_over()
      << "\n"
         "passive_checks_enabled="
-     << obj.get_accept_passive_checks()
+     << obj.passive_checks_enabled()
      << "\n"
         "percent_state_change="
      << std::setprecision(2) << std::fixed << obj.get_percent_state_change()
@@ -417,7 +417,7 @@ std::ostream& dump::host(std::ostream& os,
      << obj.get_process_performance_data()
      << "\n"
         "retry_check_interval="
-     << obj.get_retry_interval()
+     << obj.retry_interval()
      << "\n"
         "state_type="
      << obj.get_state_type() << "\n";
@@ -616,7 +616,7 @@ std::ostream& dump::service(std::ostream& os, class service const& obj) {
      << obj.active_checks_enabled()
      << "\n"
         "check_command="
-     << obj.get_check_command()
+     << obj.check_command()
      << "\n"
         "check_execution_time="
      << std::setprecision(3) << std::fixed << obj.get_execution_time()
@@ -631,7 +631,7 @@ std::ostream& dump::service(std::ostream& os, class service const& obj) {
      << obj.get_check_options()
      << "\n"
         "check_period="
-     << obj.get_check_period()
+     << obj.check_period()
      << "\n"
         "check_type="
      << obj.get_check_type()
@@ -655,13 +655,13 @@ std::ostream& dump::service(std::ostream& os, class service const& obj) {
      << obj.get_current_state()
      << "\n"
         "event_handler="
-     << obj.get_event_handler()
+     << obj.event_handler()
      << "\n"
         "event_handler_enabled="
-     << obj.get_event_handler_enabled()
+     << obj.event_handler_enabled()
      << "\n"
         "flap_detection_enabled="
-     << obj.get_flap_detection_enabled()
+     << obj.flap_detection_enabled()
      << "\n"
         "has_been_checked="
      << obj.has_been_checked()
@@ -725,7 +725,7 @@ std::ostream& dump::service(std::ostream& os, class service const& obj) {
      << obj.check_interval()
      << "\n"
         "notification_period="
-     << obj.get_notification_period()
+     << obj.notification_period()
      << "\n"
         "notifications_enabled="
      << obj.get_notifications_enabled()
@@ -740,10 +740,10 @@ std::ostream& dump::service(std::ostream& os, class service const& obj) {
      << obj.get_notified_on(notifier::warning)
      << "\n"
         "obsess_over_service="
-     << obj.get_obsess_over()
+     << obj.obsess_over()
      << "\n"
         "passive_checks_enabled="
-     << obj.get_accept_passive_checks()
+     << obj.passive_checks_enabled()
      << "\n"
         "percent_state_change="
      << std::setprecision(2) << std::fixed << obj.get_percent_state_change()
@@ -761,7 +761,7 @@ std::ostream& dump::service(std::ostream& os, class service const& obj) {
      << obj.get_process_performance_data()
      << "\n"
         "retry_check_interval="
-     << obj.get_retry_interval()
+     << obj.retry_interval()
      << "\n"
         "state_type="
      << obj.get_state_type() << "\n";

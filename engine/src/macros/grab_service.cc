@@ -211,7 +211,7 @@ struct grab_service_redirection {
        {&get_member_as_string<service,
                               std::string const&,
                               checkable,
-                              &checkable::get_check_command>,
+                              &checkable::check_command>,
         true}},
       // Check type.
       {MACRO_SERVICECHECKTYPE, {&get_service_check_type, true}},

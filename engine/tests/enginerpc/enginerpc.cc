@@ -1472,7 +1472,7 @@ TEST_F(EngineRpc, ChangeHostObjectIntVar) {
   auto output = execute("ChangeHostObjectIntVar test_host 0 1 1.0");
   ASSERT_EQ(_host->check_interval(), 1u);
   output = execute("ChangeHostObjectIntVar test_host 1 1 2.0");
-  ASSERT_EQ(_host->get_retry_interval(), 2u);
+  ASSERT_EQ(_host->retry_interval(), 2u);
   output = execute("ChangeHostObjectIntVar test_host 2 1 1.0");
   ASSERT_EQ(_host->max_check_attempts(), 1);
   {
@@ -1500,7 +1500,7 @@ TEST_F(EngineRpc, ChangeServiceObjectIntVar) {
   output = execute(
       "ChangeServiceObjectIntVar"
       " test_host test_svc 1 1 2.0");
-  ASSERT_EQ(_svc->get_retry_interval(), 2u);
+  ASSERT_EQ(_svc->retry_interval(), 2u);
   output = execute(
       "ChangeServiceObjectIntVar"
       " test_host test_svc 2 1 1.0");
@@ -1564,19 +1564,19 @@ TEST_F(EngineRpc, ChangeHostObjectCharVar) {
   output = execute(
       "ChangeHostObjectCharVar"
       " test_host 1 cmd");
-  ASSERT_EQ(_host->get_event_handler(), "cmd");
+  ASSERT_EQ(_host->event_handler(), "cmd");
   output = execute(
       "ChangeHostObjectCharVar"
       " test_host 2 cmd");
-  ASSERT_EQ(_host->get_check_command(), "cmd");
+  ASSERT_EQ(_host->check_command(), "cmd");
   output = execute(
       "ChangeHostObjectCharVar"
       " test_host 3 24x7");
-  ASSERT_EQ(_host->get_check_period(), "24x7");
+  ASSERT_EQ(_host->check_period(), "24x7");
   output = execute(
       "ChangeHostObjectCharVar"
       " test_host 4 24x7");
-  ASSERT_EQ(_host->get_notification_period(), "24x7");
+  ASSERT_EQ(_host->notification_period(), "24x7");
   {
     std::lock_guard<std::mutex> lock(mutex);
     continuerunning = true;
@@ -1605,19 +1605,19 @@ TEST_F(EngineRpc, ChangeServiceObjectCharVar) {
   output = execute(
       "ChangeServiceObjectCharVar"
       " test_host test_svc 1 cmd");
-  ASSERT_EQ(_svc->get_event_handler(), "cmd");
+  ASSERT_EQ(_svc->event_handler(), "cmd");
   output = execute(
       "ChangeServiceObjectCharVar"
       " test_host test_svc 2 cmd");
-  ASSERT_EQ(_svc->get_check_command(), "cmd");
+  ASSERT_EQ(_svc->check_command(), "cmd");
   output = execute(
       "ChangeServiceObjectCharVar"
       " test_host test_svc 3 24x7");
-  ASSERT_EQ(_svc->get_check_period(), "24x7");
+  ASSERT_EQ(_svc->check_period(), "24x7");
   output = execute(
       "ChangeServiceObjectCharVar"
       " test_host test_svc 4 24x7");
-  ASSERT_EQ(_svc->get_notification_period(), "24x7");
+  ASSERT_EQ(_svc->notification_period(), "24x7");
   {
     std::lock_guard<std::mutex> lock(mutex);
     continuerunning = true;

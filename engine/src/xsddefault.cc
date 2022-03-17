@@ -307,22 +307,22 @@ int xsddefault_save_status_data() {
         << it->second->get_modified_attributes()
         << "\n"
            "\tcheck_command="
-        << it->second->get_check_command()
+        << it->second->check_command()
         << "\n"
            "\tcheck_period="
-        << it->second->get_check_period()
+        << it->second->check_period()
         << "\n"
            "\tnotification_period="
-        << it->second->get_notification_period()
+        << it->second->notification_period()
         << "\n"
            "\tcheck_interval="
         << it->second->check_interval()
         << "\n"
            "\tretry_interval="
-        << it->second->get_retry_interval()
+        << it->second->retry_interval()
         << "\n"
            "\tevent_handler="
-        << it->second->get_event_handler()
+        << it->second->event_handler()
         << "\n"
            "\thas_been_checked="
         << it->second->has_been_checked()
@@ -428,19 +428,19 @@ int xsddefault_save_status_data() {
         << it->second->active_checks_enabled()
         << "\n"
            "\tpassive_checks_enabled="
-        << it->second->get_accept_passive_checks()
+        << it->second->passive_checks_enabled()
         << "\n"
            "\tevent_handler_enabled="
-        << it->second->get_event_handler_enabled()
+        << it->second->event_handler_enabled()
         << "\n"
            "\tflap_detection_enabled="
-        << it->second->get_flap_detection_enabled()
+        << it->second->flap_detection_enabled()
         << "\n"
            "\tprocess_performance_data="
         << it->second->get_process_performance_data()
         << "\n"
            "\tobsess_over_host="
-        << it->second->get_obsess_over()
+        << it->second->obsess_over()
         << "\n"
            "\tlast_update="
         << static_cast<unsigned long>(current_time)
@@ -479,22 +479,22 @@ int xsddefault_save_status_data() {
            << it->second->get_modified_attributes()
            << "\n"
               "\tcheck_command="
-           << it->second->get_check_command()
+           << it->second->check_command()
            << "\n"
               "\tcheck_period="
-           << it->second->get_check_period()
+           << it->second->check_period()
            << "\n"
               "\tnotification_period="
-           << it->second->get_notification_period()
+           << it->second->notification_period()
            << "\n"
               "\tcheck_interval="
            << it->second->check_interval()
            << "\n"
               "\tretry_interval="
-           << it->second->get_retry_interval()
+           << it->second->retry_interval()
            << "\n"
               "\tevent_handler="
-           << it->second->get_event_handler()
+           << it->second->event_handler()
            << "\n"
               "\thas_been_checked="
            << it->second->has_been_checked()
@@ -598,10 +598,10 @@ int xsddefault_save_status_data() {
            << it->second->active_checks_enabled()
            << "\n"
               "\tpassive_checks_enabled="
-           << it->second->get_accept_passive_checks()
+           << it->second->passive_checks_enabled()
            << "\n"
               "\tevent_handler_enabled="
-           << it->second->get_event_handler_enabled()
+           << it->second->event_handler_enabled()
            << "\n"
               "\tproblem_has_been_acknowledged="
            << it->second->problem_has_been_acknowledged()
@@ -610,13 +610,13 @@ int xsddefault_save_status_data() {
            << it->second->get_acknowledgement_type()
            << "\n"
               "\tflap_detection_enabled="
-           << it->second->get_flap_detection_enabled()
+           << it->second->flap_detection_enabled()
            << "\n"
               "\tprocess_performance_data="
            << it->second->get_process_performance_data()
            << "\n"
               "\tobsess_over_service="
-           << it->second->get_obsess_over()
+           << it->second->obsess_over()
            << "\n"
               "\tlast_update="
            << static_cast<unsigned long>(current_time)

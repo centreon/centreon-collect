@@ -169,7 +169,7 @@ anomalydetection::anomalydetection(uint64_t host_id,
               notification_period,
               notifications_enabled,
               is_volatile,
-              dependent_service->get_check_period(),
+              dependent_service->check_period(),
               event_handler,
               event_handler_enabled,
               notes,
@@ -533,11 +533,10 @@ int anomalydetection::run_async_check(int check_options,
   // Send broker event.
   timeval start_time = {0, 0};
   timeval end_time = {0, 0};
-  int res =
-      broker_service_check(NEBTYPE_SERVICECHECK_ASYNC_PRECHECK, NEBFLAG_NONE,
-                           NEBATTR_NONE, this, checkable::check_active,
-                           start_time, end_time, get_check_command().c_str(),
-                           get_latency(), 0.0, 0, false, 0, nullptr, nullptr);
+  int res = broker_service_check(
+      NEBTYPE_SERVICECHECK_ASYNC_PRECHECK, NEBFLAG_NONE, NEBATTR_NONE, this,
+      checkable::check_active, start_time, end_time, check_command().c_str(),
+      get_latency(), 0.0, 0, false, 0, nullptr, nullptr);
 
   // Anomalydetection check was cancelled by NEB module. reschedule check later.
   if (NEBERROR_CALLBACKCANCEL == res) {
@@ -587,7 +586,7 @@ int anomalydetection::run_async_check(int check_options,
   grab_service_macros_r(macros, this);
   std::string tmp;
   get_raw_command_line_r(macros, get_check_command_ptr(),
-                         get_check_command().c_str(), tmp, 0);
+                         check_command().c_str(), tmp, 0);
 
   // Time to start command.
   gettimeofday(&start_time, nullptr);
@@ -609,9 +608,9 @@ int anomalydetection::run_async_check(int check_options,
   // Send event broker.
   res = broker_service_check(
       NEBTYPE_SERVICECHECK_INITIATE, NEBFLAG_NONE, NEBATTR_NONE, this,
-      checkable::check_active, start_time, end_time,
-      get_check_command().c_str(), get_latency(), 0.0,
-      config->service_check_timeout(), false, 0, oss.str().c_str(), nullptr);
+      checkable::check_active, start_time, end_time, check_command().c_str(),
+      get_latency(), 0.0, config->service_check_timeout(), false, 0,
+      oss.str().c_str(), nullptr);
 
   // Restore latency.
   set_latency(old_latency);
@@ -1043,6 +1042,6 @@ const std::string& anomalydetection::get_thresholds_file() const {
 }
 
 void anomalydetection::resolve(int& w, int& e) {
-  set_check_period(_dependent_service->get_check_period());
+  set_check_period(_dependent_service->check_period());
   service::resolve(w, e);
 }

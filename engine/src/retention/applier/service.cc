@@ -41,13 +41,12 @@ using namespace com::centreon::engine::retention;
 void applier::service::apply(configuration::state const& config,
                              list_service const& lst,
                              bool scheduling_info_is_ok) {
-  for (list_service::const_iterator it(lst.begin()), end(lst.end()); it != end;
-       ++it) {
+  for (auto& s : lst) {
     try {
-      std::pair<unsigned int, unsigned int> id(get_host_and_service_id(
-          (*it)->host_name().c_str(), (*it)->service_description().c_str()));
+      std::pair<uint64_t, uint64_t> id{
+          get_host_and_service_id(s->host_name(), s->service_description())};
       engine::service& svc(find_service(id.first, id.second));
-      _update(config, **it, svc, scheduling_info_is_ok);
+      _update(config, *s, svc, scheduling_info_is_ok);
     } catch (...) {
       // ignore exception for the retention.
     }
@@ -329,5 +328,6 @@ void applier::service::_update(configuration::state const& config,
     obj.set_last_hard_state_change(obj.get_last_state_change());
 
   // update service status.
-  obj.update_status();
+  obj.update_adaptive_data();
+  obj.update_status(notifier::CHECK_RESULT);
 }

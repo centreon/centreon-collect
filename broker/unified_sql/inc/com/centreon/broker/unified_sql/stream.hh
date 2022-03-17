@@ -283,20 +283,6 @@ class stream : public io::stream {
   database::mysql_stmt _index_data_query;
   database::mysql_stmt _metrics_insert;
 
-  enum adaptive_service_attrib {
-    NOTIFICATIONS_ENABLED,
-    MAX_CHECK_ATTEMPTS,
-    CHECK_INTERVAL,
-    ACTIVE_CHECKS_ENABLED,
-    ADAPTIVE_SERVICE_ATTRIB_SIZE
-  };
-  std::array<database::mysql_stmt, ADAPTIVE_SERVICE_ATTRIB_SIZE>
-      _adaptive_service_services_update;
-  std::array<database::mysql_stmt, ADAPTIVE_SERVICE_ATTRIB_SIZE>
-      _adaptive_service_resources_update;
-
-  void _prepare_adaptive_service_services_update(adaptive_service_attrib attr);
-  void _prepare_adaptive_service_resources_update(adaptive_service_attrib attr);
   void _update_hosts_and_services_of_unresponsive_instances();
   void _update_hosts_and_services_of_instance(uint32_t id, bool responsive);
   void _update_timestamp(uint32_t instance_id);

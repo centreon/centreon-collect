@@ -2008,30 +2008,6 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
         ss.host_id());
 }
 
-void stream::_prepare_adaptive_service_services_update(
-    stream::adaptive_service_attrib attr) {
-  constexpr const std::array<const char*, ADAPTIVE_SERVICE_ATTRIB_SIZE> key{
-      "notify",
-      "max_check_attempts",
-      "check_interval",
-      "active_checks",
-  };
-  _adaptive_service_services_update[attr] = _mysql.prepare_query(fmt::format(
-      "UPDATE services SET {}=? WHERE host_id=? AND service_id=?", key[attr]));
-}
-
-void stream::_prepare_adaptive_service_resources_update(
-    stream::adaptive_service_attrib attr) {
-  constexpr const std::array<const char*, ADAPTIVE_SERVICE_ATTRIB_SIZE> key{
-      "notifications_enabled",
-      "max_check_attempts",
-      "check_interval",
-      "active_checks_enabled",
-  };
-  _adaptive_service_resources_update[attr] = _mysql.prepare_query(fmt::format(
-      "UPDATE resources SET {}=? WHERE parent_id=? AND id=?", key[attr]));
-}
-
 /**
  *  Process an adaptive service event.
  *
@@ -2050,68 +2026,93 @@ void stream::_process_pb_adaptive_service(const std::shared_ptr<io::data>& d) {
     int32_t conn = _mysql.choose_connection_by_instance(
         _cache_host_instance[static_cast<uint32_t>(as.host_id())]);
 
-    database::mysql_stmt* svc_stmt;
-    database::mysql_stmt* res_stmt;
-    switch (as.attribute_case()) {
-      case AdaptiveService::kNotificationsEnabled: {
-        svc_stmt = &_adaptive_service_services_update[NOTIFICATIONS_ENABLED];
-        res_stmt = &_adaptive_service_resources_update[NOTIFICATIONS_ENABLED];
-        if (!svc_stmt->prepared()) {
-          _prepare_adaptive_service_services_update(NOTIFICATIONS_ENABLED);
-          _prepare_adaptive_service_resources_update(NOTIFICATIONS_ENABLED);
-        }
-        log_v2::sql()->debug(
-            "SQL: process pb adaptive service on notifications");
-        svc_stmt->bind_value_as_bool(0, as.notifications_enabled());
-        res_stmt->bind_value_as_bool(0, as.notifications_enabled());
-      } break;
-      case AdaptiveService::kMaxCheckAttempts: {
-        svc_stmt = &_adaptive_service_services_update[MAX_CHECK_ATTEMPTS];
-        res_stmt = &_adaptive_service_resources_update[MAX_CHECK_ATTEMPTS];
-        if (!svc_stmt->prepared()) {
-          _prepare_adaptive_service_services_update(MAX_CHECK_ATTEMPTS);
-          _prepare_adaptive_service_resources_update(MAX_CHECK_ATTEMPTS);
-        }
-        log_v2::sql()->debug(
-            "SQL: process pb adaptive service on max check attempts");
-        svc_stmt->bind_value_as_u32(0, as.max_check_attempts());
-        res_stmt->bind_value_as_u32(0, as.max_check_attempts());
-      } break;
-      case AdaptiveService::kCheckInterval: {
-        svc_stmt = &_adaptive_service_services_update[CHECK_INTERVAL];
-        res_stmt = &_adaptive_service_resources_update[CHECK_INTERVAL];
-        if (!svc_stmt->prepared()) {
-          _prepare_adaptive_service_services_update(CHECK_INTERVAL);
-          _prepare_adaptive_service_resources_update(CHECK_INTERVAL);
-        }
-        log_v2::sql()->debug(
-            "SQL: process pb adaptive service on check interval");
-        svc_stmt->bind_value_as_u32(0, as.check_interval());
-        res_stmt->bind_value_as_u32(0, as.check_interval());
-      } break;
-      case AdaptiveService::kActiveChecksEnabled: {
-        svc_stmt = &_adaptive_service_services_update[ACTIVE_CHECKS_ENABLED];
-        res_stmt = &_adaptive_service_resources_update[ACTIVE_CHECKS_ENABLED];
-        if (!svc_stmt->prepared()) {
-          _prepare_adaptive_service_services_update(ACTIVE_CHECKS_ENABLED);
-          _prepare_adaptive_service_resources_update(ACTIVE_CHECKS_ENABLED);
-        }
-        log_v2::sql()->debug(
-            "SQL: process pb adaptive service on check interval");
-        svc_stmt->bind_value_as_u32(0, as.check_interval());
-        res_stmt->bind_value_as_u32(0, as.check_interval());
-      } break;
-      default:
-        assert(1 == 0);
-    }
-    svc_stmt->bind_value_as_u64(1, as.host_id());
-    svc_stmt->bind_value_as_u64(2, as.service_id());
-    _mysql.run_statement(*svc_stmt, database::mysql_error::store_service, false,
-                         conn);
-    _add_action(conn, actions::services);
-    _mysql.run_statement(*res_stmt, database::mysql_error::update_resources,
+    constexpr const char* buf = "UPDATE services SET";
+    constexpr size_t size = strlen(buf);
+    std::string query{buf};
+    if (as.has_notifications_enabled())
+      query += fmt::format(" notify='{}',", as.notifications_enabled() ? 1 : 0);
+    if (as.has_active_checks_enabled())
+      query += fmt::format(" active_checks='{}',",
+                           as.active_checks_enabled() ? 1 : 0);
+    if (as.has_passive_checks_enabled())
+      query += fmt::format(" passive_checks='{}',",
+                           as.passive_checks_enabled() ? 1 : 0);
+    if (as.has_event_handler_enabled())
+      query += fmt::format(" event_handler_enabled='{}',",
+                           as.event_handler_enabled() ? 1 : 0);
+    if (as.has_flap_detection_enabled())
+      query += fmt::format(" flap_detection='{}',",
+                           as.flap_detection_enabled() ? 1 : 0);
+    if (as.has_obsess_over())
+      query +=
+          fmt::format(" obsess_over_service='{}',", as.obsess_over() ? 1 : 0);
+    if (as.has_event_handler())
+      query += fmt::format(
+          " event_handler='{}',",
+          misc::string::escape(as.event_handler(),
+                               get_services_col_size(services_event_handler)));
+    if (as.has_check_command())
+      query += fmt::format(
+          " check_command='{}',",
+          misc::string::escape(as.check_command(),
+                               get_services_col_size(services_check_command)));
+    if (as.has_check_interval())
+      query += fmt::format(" check_interval={},", as.check_interval());
+    if (as.has_retry_interval())
+      query += fmt::format(" retry_interval={},", as.retry_interval());
+    if (as.has_max_check_attempts())
+      query += fmt::format(" max_check_attempts={},", as.max_check_attempts());
+    if (as.has_check_freshness())
+      query +=
+          fmt::format(" check_freshness='{}',", as.check_freshness() ? 1 : 0);
+    if (as.has_check_period())
+      query += fmt::format(
+          " check_period='{}',",
+          misc::string::escape(as.check_period(),
+                               get_services_col_size(services_check_period)));
+    if (as.has_notification_period())
+      query +=
+          fmt::format(" notification_period='{}',",
+                      misc::string::escape(
+                          as.notification_period(),
+                          get_services_col_size(services_notification_period)));
+
+    // If nothing was added to query, we can exit immediately.
+    if (query.size() > size) {
+      query.resize(query.size() - 1);
+      query += fmt::format(" WHERE host_id={} AND service_id={}", as.host_id(),
+                           as.service_id());
+      log_v2::sql()->trace("SQL: query <<{}>>", query);
+      _mysql.run_query(query, database::mysql_error::store_service, false,
+                       conn);
+      _add_action(conn, actions::services);
+
+      constexpr const char* res_buf = "UPDATE resources SET";
+      constexpr size_t res_size = strlen(res_buf);
+      std::string res_query{res_buf};
+      if (as.has_notifications_enabled())
+        res_query += fmt::format(" notifications_enabled='{}',",
+                                 as.notifications_enabled() ? 1 : 0);
+      if (as.has_active_checks_enabled())
+        res_query += fmt::format(" active_checks_enabled='{}',",
+                                 as.active_checks_enabled() ? 1 : 0);
+      if (as.has_passive_checks_enabled())
+        res_query += fmt::format(" passive_checks_enabled='{}',",
+                                 as.passive_checks_enabled() ? 1 : 0);
+      if (as.has_max_check_attempts())
+        res_query +=
+            fmt::format(" max_check_attempts={},", as.max_check_attempts());
+
+      if (res_query.size() > res_size) {
+        res_query.resize(res_query.size() - 1);
+        res_query += fmt::format(" WHERE parent_id={} AND id={}", as.host_id(),
+                                 as.service_id());
+        log_v2::sql()->trace("SQL: query <<{}>>", res_query);
+        _mysql.run_query(res_query, database::mysql_error::update_resources,
                          false, conn);
-    _add_action(conn, actions::resources);
+        _add_action(conn, actions::resources);
+      }
+    }
   } else
     log_v2::sql()->error(
         "SQL: host with host_id = {} does not exist - unable to store service "

@@ -312,10 +312,10 @@ std::ostream& operator<<(std::ostream& os,
      << obj.get_display_name()
      << "\n"
         "  service_check_command:                "
-     << obj.get_check_command()
+     << obj.check_command()
      << "\n"
         "  event_handler:                        "
-     << obj.get_event_handler()
+     << obj.event_handler()
      << "\n"
         "  initial_state:                        "
      << obj.get_initial_state()
@@ -324,7 +324,7 @@ std::ostream& operator<<(std::ostream& os,
      << obj.check_interval()
      << "\n"
         "  retry_interval:                       "
-     << obj.get_retry_interval()
+     << obj.retry_interval()
      << "\n"
         "  max_attempts:                         "
      << obj.max_check_attempts()
@@ -384,12 +384,12 @@ std::ostream& operator<<(std::ostream& os,
      << obj.get_is_volatile()
      << "\n"
         "  notification_period:                  "
-     << obj.get_notification_period() << "\n"
+     << obj.notification_period() << "\n"
      << notifications
-     << "  check_period:                         " << obj.get_check_period()
+     << "  check_period:                         " << obj.check_period()
      << "\n"
         "  flap_detection_enabled:               "
-     << obj.get_flap_detection_enabled()
+     << obj.flap_detection_enabled()
      << "\n"
         "  low_flap_threshold:                   "
      << obj.get_low_flap_threshold()
@@ -413,15 +413,15 @@ std::ostream& operator<<(std::ostream& os,
      << obj.get_process_performance_data()
      << "\n"
         "  check_freshness:                      "
-     << obj.get_check_freshness()
+     << obj.check_freshness_enabled()
      << "\n"
         "  freshness_threshold:                  "
      << obj.get_freshness_threshold()
      << "\n"
         "  accept_passive_service_checks:        "
-     << obj.get_accept_passive_checks()
+     << obj.passive_checks_enabled()
      << "\n  event_handler_enabled:                "
-     << obj.get_event_handler_enabled()
+     << obj.event_handler_enabled()
      << "\n  checks_enabled:                       "
      << obj.active_checks_enabled()
      << "\n  retain_status_information:            "
@@ -430,7 +430,7 @@ std::ostream& operator<<(std::ostream& os,
      << obj.get_retain_nonstatus_information()
      << "\n  notifications_enabled:                "
      << obj.get_notifications_enabled()
-     << "\n  obsess_over_service:                  " << obj.get_obsess_over()
+     << "\n  obsess_over_service:                  " << obj.obsess_over()
      << "\n  notes:                                " << obj.get_notes()
      << "\n  notes_url:                            " << obj.get_notes_url()
      << "\n  action_url:                           " << obj.get_action_url()
@@ -1082,7 +1082,7 @@ int service::handle_async_check_result(check_result* queued_check_result) {
           "service checks are disabled globally.");
       return ERROR;
     }
-    if (!get_accept_passive_checks()) {
+    if (!passive_checks_enabled()) {
       engine_logger(dbg_checks, basic)
           << "Discarding passive service check result because passive "
              "checks are disabled for this service.";
@@ -1773,12 +1773,12 @@ int service::handle_async_check_result(check_result* queued_check_result) {
         if (reschedule_check)
           next_service_check =
               (time_t)(get_last_check() +
-                       get_retry_interval() * config->interval_length());
+                       retry_interval() * config->interval_length());
       }
 
       /* perform dependency checks on the second to last check of the service */
       if (config->enable_predictive_service_dependency_checks() &&
-          get_current_attempt() == (max_check_attempts() - 1)) {
+          get_current_attempt() == max_check_attempts() - 1) {
         engine_logger(dbg_checks, more)
             << "Looking for services to check for predictive "
                "dependency checks...";
@@ -2129,7 +2129,7 @@ void service::check_for_flapping(bool update,
 
   /* don't do anything if we don't have flap detection enabled for this service
    */
-  if (!get_flap_detection_enabled())
+  if (!flap_detection_enabled())
     return;
 
   /* are we flapping, undecided, or what?... */
@@ -2180,7 +2180,7 @@ int service::handle_service_event() {
   /* bail out if we shouldn't be running event handlers */
   if (!config->enable_event_handlers())
     return OK;
-  if (!get_event_handler_enabled())
+  if (!event_handler_enabled())
     return OK;
 
   /* find the host */
@@ -2195,7 +2195,7 @@ int service::handle_service_event() {
   run_global_service_event_handler(mac, this);
 
   /* run the event handler command if there is one */
-  if (!get_event_handler().empty())
+  if (!event_handler().empty())
     run_service_event_handler(mac, this);
   clear_volatile_macros_r(mac);
 
@@ -2224,7 +2224,7 @@ int service::obsessive_compulsive_service_check_processor() {
   /* bail out if we shouldn't be obsessing */
   if (config->obsess_over_services() == false)
     return OK;
-  if (!get_obsess_over())
+  if (!obsess_over())
     return OK;
 
   /* if there is no valid command, exit */
@@ -2468,11 +2468,10 @@ int service::run_async_check(int check_options,
   // Send broker event.
   timeval start_time = {0, 0};
   timeval end_time = {0, 0};
-  int res =
-      broker_service_check(NEBTYPE_SERVICECHECK_ASYNC_PRECHECK, NEBFLAG_NONE,
-                           NEBATTR_NONE, this, checkable::check_active,
-                           start_time, end_time, get_check_command().c_str(),
-                           get_latency(), 0.0, 0, false, 0, nullptr, nullptr);
+  int res = broker_service_check(
+      NEBTYPE_SERVICECHECK_ASYNC_PRECHECK, NEBFLAG_NONE, NEBATTR_NONE, this,
+      checkable::check_active, start_time, end_time, check_command().c_str(),
+      get_latency(), 0.0, 0, false, 0, nullptr, nullptr);
 
   // Service check was cancelled by NEB module. reschedule check later.
   if (NEBERROR_CALLBACKCANCEL == res) {
@@ -2520,7 +2519,7 @@ int service::run_async_check(int check_options,
   grab_service_macros_r(macros, this);
   std::string tmp;
   get_raw_command_line_r(macros, get_check_command_ptr(),
-                         get_check_command().c_str(), tmp, 0);
+                         check_command().c_str(), tmp, 0);
 
   // Time to start command.
   gettimeofday(&start_time, nullptr);
@@ -2540,12 +2539,11 @@ int service::run_async_check(int check_options,
   std::string processed_cmd(cmd->process_cmd(macros));
 
   // Send event broker.
-  res =
-      broker_service_check(NEBTYPE_SERVICECHECK_INITIATE, NEBFLAG_NONE,
-                           NEBATTR_NONE, this, checkable::check_active,
-                           start_time, end_time, get_check_command().c_str(),
-                           get_latency(), 0.0, config->service_check_timeout(),
-                           false, 0, processed_cmd.c_str(), nullptr);
+  res = broker_service_check(
+      NEBTYPE_SERVICECHECK_INITIATE, NEBFLAG_NONE, NEBATTR_NONE, this,
+      checkable::check_active, start_time, end_time, check_command().c_str(),
+      get_latency(), 0.0, config->service_check_timeout(), false, 0,
+      processed_cmd.c_str(), nullptr);
 
   // Restore latency.
   set_latency(old_latency);
@@ -2875,7 +2873,7 @@ void service::enable_flap_detection() {
       _hostname);
 
   /* nothing to do... */
-  if (get_flap_detection_enabled())
+  if (flap_detection_enabled())
     return;
 
   /* set the attribute modified flag */
@@ -2913,7 +2911,7 @@ void service::disable_flap_detection() {
       _hostname);
 
   /* nothing to do... */
-  if (!get_flap_detection_enabled())
+  if (!flap_detection_enabled())
     return;
 
   /* set the attribute modified flag */
@@ -2952,6 +2950,20 @@ void service::update_status(service::status_type t) {
   }
 }
 
+/**
+ * @brief Several configurations could be initially handled by service status
+ * events. But they are configurations and do not have to be handled like this.
+ * So, to have service_status lighter, we removed these items from it but we
+ * add a new adaptive service event containing these ones. it is sent when this
+ * method is called.
+ */
+void service::update_adaptive_data() {
+  /* send data to event broker */
+  broker_adaptive_service_data(
+      NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE, NEBATTR_BBDO3_ONLY, this,
+      CMD_NONE, get_modified_attributes(), get_modified_attributes(), nullptr);
+}
+
 /* checks viability of performing a service check */
 bool service::verify_check_viability(int check_options,
                                      bool* time_is_valid,
@@ -2967,7 +2979,7 @@ bool service::verify_check_viability(int check_options,
   /* get the check interval to use if we need to reschedule the check */
   if (get_state_type() == soft && _current_state != service::state_ok)
     check_interval =
-        static_cast<int>(get_retry_interval() * config->interval_length());
+        static_cast<int>(retry_interval() * config->interval_length());
   else
     check_interval =
         static_cast<int>(this->check_interval() * config->interval_length());
@@ -3303,12 +3315,12 @@ bool service::is_result_fresh(time_t current_time, int log_this) {
   if (get_freshness_threshold() == 0) {
     if (get_state_type() == hard || this->_current_state == service::state_ok)
       freshness_threshold = static_cast<int>(
-          (check_interval() * config->interval_length()) + get_latency() +
+          check_interval() * config->interval_length() + get_latency() +
           config->additional_freshness_latency());
     else
       freshness_threshold = static_cast<int>(
-          this->get_retry_interval() * config->interval_length() +
-          get_latency() + config->additional_freshness_latency());
+          this->retry_interval() * config->interval_length() + get_latency() +
+          config->additional_freshness_latency());
   } else
     freshness_threshold = this->get_freshness_threshold();
 
@@ -3613,7 +3625,7 @@ void service::check_result_freshness() {
        end(service::services.end());
        it != end; ++it) {
     /* skip services we shouldn't be checking for freshness */
-    if (!it->second->get_check_freshness())
+    if (!it->second->check_freshness_enabled())
       continue;
 
     /* skip services that are currently executing (problems here will be caught
@@ -3623,7 +3635,7 @@ void service::check_result_freshness() {
 
     /* skip services that have both active and passive checks disabled */
     if (!it->second->active_checks_enabled() &&
-        !it->second->get_accept_passive_checks())
+        !it->second->passive_checks_enabled())
       continue;
 
     /* skip services that are already being freshened */
