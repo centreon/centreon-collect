@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2021 Centreon
+** Copyright 2011-2022 Centreon
 **
 ** This file is part of Centreon Engine.
 **
@@ -20,18 +20,10 @@
 #ifndef CCE_SERVICE_HH
 #define CCE_SERVICE_HH
 
-#include <time.h>
-
-#include <array>
-#include <memory>
-#include <ostream>
-#include <string>
-#include <unordered_map>
 #include <utility>
 
 #include "com/centreon/engine/check_result.hh"
 #include "com/centreon/engine/common.hh"
-#include "com/centreon/engine/customvariable.hh"
 #include "com/centreon/engine/hash.hh"
 #include "com/centreon/engine/logging.hh"
 #include "com/centreon/engine/notifier.hh"

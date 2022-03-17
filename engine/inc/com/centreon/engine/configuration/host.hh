@@ -114,7 +114,7 @@ class host : public object {
   std::string const& statusmap_image() const throw();
   std::string const& timezone() const throw();
   std::string const& vrml_image() const throw();
-  int get_acknowledgement_timeout() const throw();
+  int acknowledgement_timeout() const throw();
   bool set_acknowledgement_timeout(int value);
 
  private:

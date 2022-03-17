@@ -124,7 +124,7 @@ class anomalydetection : public object {
   void timezone(std::string const& time_zone);
   std::string const& timezone() const noexcept;
   bool timezone_defined() const noexcept;
-  int get_acknowledgement_timeout() const noexcept;
+  int acknowledgement_timeout() const noexcept;
   bool set_acknowledgement_timeout(int value);
 
  private:

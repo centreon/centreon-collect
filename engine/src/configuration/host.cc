@@ -1008,7 +1008,7 @@ std::string const& host::vrml_image() const throw() {
  *
  *  @return Acknowledgement timeout.
  */
-int host::get_acknowledgement_timeout() const throw() {
+int host::acknowledgement_timeout() const throw() {
   return _acknowledgement_timeout;
 }
 

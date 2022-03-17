@@ -314,7 +314,7 @@ bool notifier::_is_notification_viable_normal(reason_type type
     return false;
   }
 
-  if (get_problem_has_been_acknowledged()) {
+  if (problem_has_been_acknowledged()) {
     engine_logger(dbg_notifications, more)
         << "This notifier problem has been acknowledged, so we won't send "
            "notifications.";
@@ -1023,7 +1023,7 @@ void notifier::set_last_acknowledgement(time_t ack) noexcept {
   _last_acknowledgement = ack;
 }
 
-time_t notifier::get_last_acknowledgement() const noexcept {
+time_t notifier::last_acknowledgement() const noexcept {
   return _last_acknowledgement;
 }
 
@@ -1036,7 +1036,7 @@ void notifier::set_notification_interval(
   _notification_interval = notification_interval;
 }
 
-std::string const& notifier::get_notification_period() const noexcept {
+std::string const& notifier::notification_period() const noexcept {
   return _notification_period;
 }
 
@@ -1213,7 +1213,7 @@ void notifier::set_is_being_freshened(bool freshened) noexcept {
   _is_being_freshened = freshened;
 }
 
-bool notifier::get_problem_has_been_acknowledged() const noexcept {
+bool notifier::problem_has_been_acknowledged() const noexcept {
   return _problem_has_been_acknowledged;
 }
 
@@ -1312,9 +1312,9 @@ void notifier::resolve(int& w, int& e) {
   _escalations.clear();
 
   /* check the event handler command */
-  if (!get_event_handler().empty()) {
-    size_t pos{get_event_handler().find_first_of('!')};
-    std::string cmd_name{get_event_handler().substr(0, pos)};
+  if (!event_handler().empty()) {
+    size_t pos{event_handler().find_first_of('!')};
+    std::string cmd_name{event_handler().substr(0, pos)};
 
     command_map::iterator cmd_found{commands::command::commands.find(cmd_name)};
 
@@ -1335,9 +1335,9 @@ void notifier::resolve(int& w, int& e) {
 
   /* hosts that don't have check commands defined shouldn't ever be checked...
    */
-  if (!get_check_command().empty()) {
-    size_t pos{get_check_command().find_first_of('!')};
-    std::string cmd_name{get_check_command().substr(0, pos)};
+  if (!check_command().empty()) {
+    size_t pos{check_command().find_first_of('!')};
+    std::string cmd_name{check_command().substr(0, pos)};
 
     command_map::iterator cmd_found{commands::command::commands.find(cmd_name)};
 
@@ -1356,7 +1356,7 @@ void notifier::resolve(int& w, int& e) {
       set_check_command_ptr(cmd_found->second.get());
   }
 
-  if (get_check_period().empty()) {
+  if (check_period().empty()) {
     engine_logger(log_verification_error, basic)
         << "Warning: Notifier '" << get_display_name()
         << "' has no check time period defined!";
@@ -1367,17 +1367,17 @@ void notifier::resolve(int& w, int& e) {
     check_period_ptr = nullptr;
   } else {
     timeperiod_map::const_iterator found_it{
-        timeperiod::timeperiods.find(get_check_period())};
+        timeperiod::timeperiods.find(check_period())};
 
     if (found_it == timeperiod::timeperiods.end() || !found_it->second) {
       engine_logger(log_verification_error, basic)
-          << "Error: Check period '" << get_check_period()
+          << "Error: Check period '" << check_period()
           << "' specified for host '" << get_display_name()
           << "' is not defined anywhere!";
       log_v2::config()->error(
           "Error: Check period '{}' specified for host '{}' is not defined "
           "anywhere!",
-          get_check_period(), get_display_name());
+          check_period(), get_display_name());
       errors++;
       check_period_ptr = nullptr;
     } else
@@ -1426,19 +1426,19 @@ void notifier::resolve(int& w, int& e) {
   }
 
   // Check notification timeperiod.
-  if (!get_notification_period().empty()) {
+  if (!notification_period().empty()) {
     timeperiod_map::const_iterator found_it{
-        timeperiod::timeperiods.find(get_notification_period())};
+        timeperiod::timeperiods.find(notification_period())};
 
     if (found_it == timeperiod::timeperiods.end() || !found_it->second.get()) {
       engine_logger(log_verification_error, basic)
-          << "Error: Notification period '" << get_notification_period()
+          << "Error: Notification period '" << notification_period()
           << "' specified for notifier '" << get_display_name()
           << "' is not defined anywhere!";
       log_v2::config()->error(
           "Error: Notification period '{}' specified for notifier '{}' is not "
           "defined anywhere!",
-          get_notification_period(), get_display_name());
+          notification_period(), get_display_name());
       errors++;
       _notification_period_ptr = nullptr;
     } else
@@ -1583,7 +1583,7 @@ timeperiod* notifier::get_notification_period_ptr() const noexcept {
   return _notification_period_ptr;
 }
 
-int notifier::get_acknowledgement_timeout() const noexcept {
+int notifier::acknowledgement_timeout() const noexcept {
   return _acknowledgement_timeout;
 }
 

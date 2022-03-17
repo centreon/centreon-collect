@@ -20,8 +20,6 @@
 #ifndef CCE_OBJECTS_HOSTDEPENDENCY_HH
 #define CCE_OBJECTS_HOSTDEPENDENCY_HH
 
-#include <ostream>
-#include <string>
 #include "com/centreon/engine/configuration/hostdependency.hh"
 #include "com/centreon/engine/dependency.hh"
 

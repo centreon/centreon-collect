@@ -556,7 +556,7 @@ void applier::scheduler::_calculate_host_scheduling_params() {
     com::centreon::engine::host& hst(*it->second);
 
     bool schedule_check(true);
-    if (!hst.get_check_interval() || !hst.get_checks_enabled())
+    if (!hst.check_interval() || !hst.active_checks_enabled())
       schedule_check = false;
     else {
       timezone_locker lock(hst.get_timezone());
@@ -572,7 +572,7 @@ void applier::scheduler::_calculate_host_scheduling_params() {
       hst.set_should_be_scheduled(true);
       ++scheduling_info.total_scheduled_hosts;
       scheduling_info.host_check_interval_total +=
-          static_cast<unsigned long>(hst.get_check_interval());
+          static_cast<unsigned long>(hst.check_interval());
     } else {
       hst.set_should_be_scheduled(false);
       engine_logger(dbg_events, more)
@@ -713,7 +713,7 @@ void applier::scheduler::_calculate_service_scheduling_params() {
     engine::service& svc(*it->second);
 
     bool schedule_check(true);
-    if (!svc.get_check_interval() || !svc.get_checks_enabled())
+    if (!svc.check_interval() || !svc.active_checks_enabled())
       schedule_check = false;
 
     {
@@ -730,7 +730,7 @@ void applier::scheduler::_calculate_service_scheduling_params() {
       svc.set_should_be_scheduled(true);
       ++scheduling_info.total_scheduled_services;
       scheduling_info.service_check_interval_total +=
-          static_cast<unsigned long>(svc.get_check_interval());
+          static_cast<unsigned long>(svc.check_interval());
     } else {
       svc.set_should_be_scheduled(false);
       engine_logger(dbg_events, more)
@@ -975,7 +975,7 @@ void applier::scheduler::_schedule_host_events(
     if (!hst.get_should_be_scheduled()) {
       // passive checks are an exception if a forced check was
       // scheduled before Centreon Engine was restarted.
-      if (!(!hst.get_checks_enabled() && hst.get_next_check() &&
+      if (!(!hst.active_checks_enabled() && hst.get_next_check() &&
             (hst.get_check_options() & CHECK_OPTION_FORCE_EXECUTION)))
         continue;
     }
@@ -1001,7 +1001,7 @@ void applier::scheduler::_schedule_host_events(
       << "Scheduling host acknowledgement expirations...";
   log_v2::events()->debug("Scheduling host acknowledgement expirations...");
   for (int i(0), end(hosts.size()); i < end; ++i)
-    if (hosts[i]->get_problem_has_been_acknowledged())
+    if (hosts[i]->problem_has_been_acknowledged())
       hosts[i]->schedule_acknowledgement_expiration();
 }
 
@@ -1048,8 +1048,9 @@ void applier::scheduler::_schedule_service_events(
                             ++interleave_block_index * total_interleave_blocks);
 
       // set the preferred next check time for the service.
-      svc.set_next_check((time_t)(
-          now + mult_factor * scheduling_info.service_inter_check_delay));
+      svc.set_next_check(
+          (time_t)(now +
+                   mult_factor * scheduling_info.service_inter_check_delay));
 
       // Make sure the service can actually be scheduled when we want.
       {
@@ -1075,21 +1076,19 @@ void applier::scheduler::_schedule_service_events(
   std::multimap<time_t, engine::service*> services_to_schedule;
 
   // add scheduled service checks to event queue.
-  for (unsigned int i(0); i < end; ++i) {
-    engine::service& svc(*services[i]);
-
+  for (engine::service* s : services) {
     // update status of all services (scheduled or not).
-    svc.update_status();
+    s->update_status();
 
     // skip most services that shouldn't be scheduled.
-    if (!svc.get_should_be_scheduled()) {
+    if (!s->get_should_be_scheduled()) {
       // passive checks are an exception if a forced check was
       // scheduled before Centreon Engine was restarted.
-      if (!(!svc.get_checks_enabled() && svc.get_next_check() &&
-            (svc.get_check_options() & CHECK_OPTION_FORCE_EXECUTION)))
+      if (!(!s->active_checks_enabled() && s->get_next_check() &&
+            (s->get_check_options() & CHECK_OPTION_FORCE_EXECUTION)))
         continue;
     }
-    services_to_schedule.insert(std::make_pair(svc.get_next_check(), &svc));
+    services_to_schedule.insert(std::make_pair(s->get_next_check(), s));
   }
 
   // Schedule events list.
@@ -1097,11 +1096,11 @@ void applier::scheduler::_schedule_service_events(
            it(services_to_schedule.begin()),
        end(services_to_schedule.end());
        it != end; ++it) {
-    engine::service& svc(*it->second);
+    engine::service* s(it->second);
     // Create a new service check event.
     timed_event* evt(new timed_event(
-        timed_event::EVENT_SERVICE_CHECK, svc.get_next_check(), false, 0,
-        nullptr, true, (void*)&svc, nullptr, svc.get_check_options()));
+        timed_event::EVENT_SERVICE_CHECK, s->get_next_check(), false, 0,
+        nullptr, true, (void*)s, nullptr, s->get_check_options()));
     events::loop::instance().schedule(evt, false);
   }
 
@@ -1109,9 +1108,9 @@ void applier::scheduler::_schedule_service_events(
   engine_logger(dbg_events, most)
       << "Scheduling service acknowledgement expirations...";
   log_v2::events()->debug("Scheduling service acknowledgement expirations...");
-  for (int i(0), end(services.size()); i < end; ++i)
-    if (services[i]->get_problem_has_been_acknowledged())
-      services[i]->schedule_acknowledgement_expiration();
+  for (engine::service* s : services)
+    if (s->problem_has_been_acknowledged())
+      s->schedule_acknowledgement_expiration();
 }
 
 /**

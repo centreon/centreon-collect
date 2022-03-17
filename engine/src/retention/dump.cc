@@ -30,7 +30,6 @@
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/log_v2.hh"
-#include "com/centreon/engine/logging/logger.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;
@@ -231,9 +230,13 @@ std::ostream& dump::scheduled_downtime(std::ostream& os, downtime const& obj) {
 std::ostream& dump::downtimes(std::ostream& os) {
   engine_logger(dbg_functions, basic) << "dump::downtimes()";
   log_v2::functions()->trace("dump::downtimes()");
-  for (std::pair<time_t, std::shared_ptr<downtime>> const& obj :
-       downtimes::downtime_manager::instance().get_scheduled_downtimes())
-    dump::scheduled_downtime(os, *obj.second);
+  for (auto obj = downtimes::downtime_manager::instance()
+                      .get_scheduled_downtimes()
+                      .begin();
+       obj !=
+       downtimes::downtime_manager::instance().get_scheduled_downtimes().end();
+       ++obj)
+    dump::scheduled_downtime(os, *obj->second);
   return os;
 }
 
@@ -275,10 +278,10 @@ std::ostream& dump::host(std::ostream& os,
      << obj.get_acknowledgement_type()
      << "\n"
         "active_checks_enabled="
-     << obj.get_checks_enabled()
+     << obj.active_checks_enabled()
      << "\n"
         "check_command="
-     << obj.get_check_command()
+     << obj.check_command()
      << "\n"
         "check_execution_time="
      << std::setprecision(3) << std::fixed << obj.get_execution_time()
@@ -290,7 +293,7 @@ std::ostream& dump::host(std::ostream& os,
      << obj.get_check_options()
      << "\n"
         "check_period="
-     << obj.get_check_period()
+     << obj.check_period()
      << "\n"
         "check_type="
      << obj.get_check_type()
@@ -314,13 +317,13 @@ std::ostream& dump::host(std::ostream& os,
      << obj.get_current_state()
      << "\n"
         "event_handler="
-     << obj.get_event_handler()
+     << obj.event_handler()
      << "\n"
         "event_handler_enabled="
-     << obj.get_event_handler_enabled()
+     << obj.event_handler_enabled()
      << "\n"
         "flap_detection_enabled="
-     << obj.get_flap_detection_enabled()
+     << obj.flap_detection_enabled()
      << "\n"
         "has_been_checked="
      << obj.has_been_checked()
@@ -329,7 +332,7 @@ std::ostream& dump::host(std::ostream& os,
      << obj.get_is_flapping()
      << "\n"
         "last_acknowledgement="
-     << obj.get_last_acknowledgement()
+     << obj.last_acknowledgement()
      << "\n"
         "last_check="
      << static_cast<unsigned long>(obj.get_last_check())
@@ -368,7 +371,7 @@ std::ostream& dump::host(std::ostream& os,
      << obj.get_long_plugin_output()
      << "\n"
         "max_attempts="
-     << obj.get_max_attempts()
+     << obj.max_check_attempts()
      << "\n"
         "modified_attributes="
      << (obj.get_modified_attributes() &
@@ -378,10 +381,10 @@ std::ostream& dump::host(std::ostream& os,
      << static_cast<unsigned long>(obj.get_next_check())
      << "\n"
         "normal_check_interval="
-     << obj.get_check_interval()
+     << obj.check_interval()
      << "\n"
         "notification_period="
-     << obj.get_notification_period()
+     << obj.notification_period()
      << "\n"
         "notifications_enabled="
      << obj.get_notifications_enabled()
@@ -393,10 +396,10 @@ std::ostream& dump::host(std::ostream& os,
      << obj.get_notified_on(notifier::unreachable)
      << "\n"
         "obsess_over_host="
-     << obj.get_obsess_over()
+     << obj.obsess_over()
      << "\n"
         "passive_checks_enabled="
-     << obj.get_accept_passive_checks()
+     << obj.passive_checks_enabled()
      << "\n"
         "percent_state_change="
      << std::setprecision(2) << std::fixed << obj.get_percent_state_change()
@@ -408,13 +411,13 @@ std::ostream& dump::host(std::ostream& os,
      << obj.get_plugin_output()
      << "\n"
         "problem_has_been_acknowledged="
-     << obj.get_problem_has_been_acknowledged()
+     << obj.problem_has_been_acknowledged()
      << "\n"
         "process_performance_data="
      << obj.get_process_performance_data()
      << "\n"
         "retry_check_interval="
-     << obj.get_check_interval()
+     << obj.retry_interval()
      << "\n"
         "state_type="
      << obj.get_state_type() << "\n";
@@ -610,10 +613,10 @@ std::ostream& dump::service(std::ostream& os, class service const& obj) {
      << obj.get_acknowledgement_type()
      << "\n"
         "active_checks_enabled="
-     << obj.get_checks_enabled()
+     << obj.active_checks_enabled()
      << "\n"
         "check_command="
-     << obj.get_check_command()
+     << obj.check_command()
      << "\n"
         "check_execution_time="
      << std::setprecision(3) << std::fixed << obj.get_execution_time()
@@ -628,7 +631,7 @@ std::ostream& dump::service(std::ostream& os, class service const& obj) {
      << obj.get_check_options()
      << "\n"
         "check_period="
-     << obj.get_check_period()
+     << obj.check_period()
      << "\n"
         "check_type="
      << obj.get_check_type()
@@ -652,13 +655,13 @@ std::ostream& dump::service(std::ostream& os, class service const& obj) {
      << obj.get_current_state()
      << "\n"
         "event_handler="
-     << obj.get_event_handler()
+     << obj.event_handler()
      << "\n"
         "event_handler_enabled="
-     << obj.get_event_handler_enabled()
+     << obj.event_handler_enabled()
      << "\n"
         "flap_detection_enabled="
-     << obj.get_flap_detection_enabled()
+     << obj.flap_detection_enabled()
      << "\n"
         "has_been_checked="
      << obj.has_been_checked()
@@ -667,7 +670,7 @@ std::ostream& dump::service(std::ostream& os, class service const& obj) {
      << obj.get_is_flapping()
      << "\n"
         "last_acknowledgement="
-     << obj.get_last_acknowledgement()
+     << obj.last_acknowledgement()
      << "\n"
         "last_check="
      << static_cast<unsigned long>(obj.get_last_check())
@@ -709,7 +712,7 @@ std::ostream& dump::service(std::ostream& os, class service const& obj) {
      << obj.get_long_plugin_output()
      << "\n"
         "max_attempts="
-     << obj.get_max_attempts()
+     << obj.max_check_attempts()
      << "\n"
         "modified_attributes="
      << (obj.get_modified_attributes() &
@@ -719,10 +722,10 @@ std::ostream& dump::service(std::ostream& os, class service const& obj) {
      << static_cast<unsigned long>(obj.get_next_check())
      << "\n"
         "normal_check_interval="
-     << obj.get_check_interval()
+     << obj.check_interval()
      << "\n"
         "notification_period="
-     << obj.get_notification_period()
+     << obj.notification_period()
      << "\n"
         "notifications_enabled="
      << obj.get_notifications_enabled()
@@ -737,10 +740,10 @@ std::ostream& dump::service(std::ostream& os, class service const& obj) {
      << obj.get_notified_on(notifier::warning)
      << "\n"
         "obsess_over_service="
-     << obj.get_obsess_over()
+     << obj.obsess_over()
      << "\n"
         "passive_checks_enabled="
-     << obj.get_accept_passive_checks()
+     << obj.passive_checks_enabled()
      << "\n"
         "percent_state_change="
      << std::setprecision(2) << std::fixed << obj.get_percent_state_change()
@@ -752,13 +755,13 @@ std::ostream& dump::service(std::ostream& os, class service const& obj) {
      << obj.get_plugin_output()
      << "\n"
         "problem_has_been_acknowledged="
-     << obj.get_problem_has_been_acknowledged()
+     << obj.problem_has_been_acknowledged()
      << "\n"
         "process_performance_data="
      << obj.get_process_performance_data()
      << "\n"
         "retry_check_interval="
-     << obj.get_retry_interval()
+     << obj.retry_interval()
      << "\n"
         "state_type="
      << obj.get_state_type() << "\n";

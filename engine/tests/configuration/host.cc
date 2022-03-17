@@ -28,7 +28,7 @@ using namespace com::centreon::engine;
 // Then its acknowledgements timeout is set to 0
 TEST(ConfigurationHostAcknowledgementTimeoutTest, DefaultConstruction) {
   configuration::host h;
-  ASSERT_EQ(0, h.get_acknowledgement_timeout());
+  ASSERT_EQ(0, h.acknowledgement_timeout());
 }
 
 // Given a host configuration object
@@ -38,7 +38,7 @@ TEST(ConfigurationHostAcknowledgementTimeoutTest, DefaultConstruction) {
 TEST(ConfigurationHostAcknowledgementTimeoutTest, SetToPositiveValue) {
   configuration::host h;
   ASSERT_TRUE(h.set_acknowledgement_timeout(42));
-  ASSERT_EQ(42, h.get_acknowledgement_timeout());
+  ASSERT_EQ(42, h.acknowledgement_timeout());
 }
 
 // Given a host configuration object
@@ -49,7 +49,7 @@ TEST(ConfigurationHostAcknowledgementTimeoutTest, SetToZero) {
   configuration::host h;
   h.set_acknowledgement_timeout(42);
   ASSERT_TRUE(h.set_acknowledgement_timeout(0));
-  ASSERT_EQ(0, h.get_acknowledgement_timeout());
+  ASSERT_EQ(0, h.acknowledgement_timeout());
 }
 
 // Given a host configuration object
@@ -60,5 +60,5 @@ TEST(ConfigurationHostAcknowledgementTimeoutTest, SetToNegativeValue) {
   configuration::host h;
   h.set_acknowledgement_timeout(42);
   ASSERT_FALSE(h.set_acknowledgement_timeout(-36));
-  ASSERT_EQ(42, h.get_acknowledgement_timeout());
+  ASSERT_EQ(42, h.acknowledgement_timeout());
 }

@@ -1423,7 +1423,7 @@ std::string const& service::timezone() const throw() {
  *
  *  @return True if service timezone is already defined.
  */
-bool service::timezone_defined() const throw() {
+bool service::timezone_defined() const noexcept {
   return _timezone.is_set();
 }
 
@@ -1432,7 +1432,7 @@ bool service::timezone_defined() const throw() {
  *
  *  @return Acknowledgement timeout.
  */
-int service::get_acknowledgement_timeout() const throw() {
+int service::acknowledgement_timeout() const noexcept {
   return _acknowledgement_timeout;
 }
 

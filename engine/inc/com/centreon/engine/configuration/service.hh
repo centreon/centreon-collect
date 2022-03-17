@@ -124,7 +124,7 @@ class service : public object {
   void timezone(std::string const& time_zone);
   std::string const& timezone() const throw();
   bool timezone_defined() const throw();
-  int get_acknowledgement_timeout() const throw();
+  int acknowledgement_timeout() const throw();
   bool set_acknowledgement_timeout(int value);
 
  private:
