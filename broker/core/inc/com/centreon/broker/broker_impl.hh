@@ -21,7 +21,7 @@
 
 #include "bbdo/events.hh"
 #include "broker.grpc.pb.h"
-#include "centreon-broker/core/src/broker.pb.h"
+#include "broker/core/src/broker.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
 #include "com/centreon/broker/namespace.hh"
 

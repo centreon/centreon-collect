@@ -91,7 +91,7 @@ macro(get_protobuf_accessor name)
         )
 endmacro()
 
-include_directories("${CMAKE_SOURCE_DIR}/centreon-broker/core/inc")
+include_directories("${CMAKE_SOURCE_DIR}/broker/core/inc")
 
 add_library(
     bbdo_bbdo STATIC
