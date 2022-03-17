@@ -68,4 +68,41 @@ message Host {
   }
 
   StateType state_type = 42;
+  string action_url = 43;
+  string address = 44;
+  string alias = 45;
+  bool check_freshness = 46;
+  bool default_active_checks_enabled = 47;
+  bool default_event_handler_enabled = 48;
+  bool default_flap_detection_enabled = 49;
+  bool default_notifications_enabled = 50;
+  bool default_passive_checks_enabled = 51;
+  string display_name = 52;
+  double first_notification_delay = 53;
+  bool flap_detection_on_down = 54;
+  bool flap_detection_on_unreachable = 55;
+  bool flap_detection_on_up = 56;
+  double freshness_threshold = 57;
+  double high_flap_threshold = 58;
+  string host_name = 59;
+  string icon_image = 60;
+  string icon_image_alt = 61;
+  int32 poller_id = 62;
+  double low_flap_threshold = 63;
+  string notes = 64;
+  string notes_url = 65;
+  double notification_interval = 66;
+  string notification_period = 67;
+  bool notify_on_down = 68;
+  bool notify_on_downtime = 69;
+  bool notify_on_flapping = 70;
+  bool notify_on_recovery = 71;
+  bool notify_on_unreachable = 72;
+  bool stalk_on_down = 73;
+  bool stalk_on_unreachable = 74;
+  bool stalk_on_up = 75;
+  string statusmap_image = 76;
+  bool retain_nonstatus_information = 77;
+  bool retain_status_information = 78;
+  string timezone = 79;
 }

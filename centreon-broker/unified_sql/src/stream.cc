@@ -72,7 +72,7 @@ void (stream::*const stream::_neb_processing_table[])(
     &stream::_process_responsive_instance,
     &stream::_process_pb_service,
     &stream::_process_pb_service_status,
-    nullptr,
+    &stream::_process_pb_host,
     &stream::_process_pb_host_status,
     &stream::_process_severity,
     &stream::_process_tag,
