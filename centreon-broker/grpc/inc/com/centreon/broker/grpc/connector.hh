@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013, 2020-2021 Centreon
+** Copyright 2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -16,31 +16,20 @@
 ** For more information : contact@centreon.com
 */
 
-#ifndef CCB_TCP_CONNECTOR_HH
-#define CCB_TCP_CONNECTOR_HH
-
-#include <asio.hpp>
+#ifndef CCB_GRPC_CONNECTOR_HH
+#define CCB_GRPC_CONNECTOR_HH
 
 #include "com/centreon/broker/io/limit_endpoint.hh"
-#include "com/centreon/broker/namespace.hh"
+#include "grpc_config.hh"
 
 CCB_BEGIN()
 
-namespace tcp {
-/**
- *  @class connector connector.hh "com/centreon/broker/tcp/connector.hh"
- *  @brief TCP connector.
- *
- *  Connect to some remote TCP host.
- */
+namespace grpc {
 class connector : public io::limit_endpoint {
-  const std::string _host;
-  const uint16_t _port;
-  const int32_t _read_timeout;
+  grpc_config::pointer _conf;
 
  public:
-  connector(const std::string& host, uint16_t port, int32_t read_timeout);
-  ~connector();
+  connector(const grpc_config::pointer& conf);
 
   connector& operator=(const connector&) = delete;
   connector(const connector&) = delete;
@@ -49,8 +38,8 @@ class connector : public io::limit_endpoint {
 
   std::unique_ptr<io::stream> create_stream() override;
 };
-}  // namespace tcp
+};  // namespace grpc
 
 CCB_END()
 
-#endif  // !CCB_TCP_CONNECTOR_HH
+#endif  // !CCB_GRPC_CONNECTOR_HH

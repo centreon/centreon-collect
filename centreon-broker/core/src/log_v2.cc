@@ -55,6 +55,7 @@ log_v2::log_v2() {
   _sql_log = std::make_shared<logger>("sql", stdout_sink);
   _tcp_log = std::make_shared<logger>("tcp", stdout_sink);
   _tls_log = std::make_shared<logger>("tls", stdout_sink);
+  _grpc_log = std::make_shared<logger>("grpc", stdout_sink);
 }
 
 log_v2::~log_v2() {
@@ -75,6 +76,7 @@ log_v2::~log_v2() {
   _sql_log->flush();
   _tcp_log->flush();
   _tls_log->flush();
+  _grpc_log->flush();
 }
 
 void log_v2::apply(const config::state& conf) {
@@ -114,11 +116,12 @@ void log_v2::apply(const config::state& conf) {
   _sql_log = std::make_shared<logger>("sql", null_sink);
   _tcp_log = std::make_shared<logger>("tcp", null_sink);
   _tls_log = std::make_shared<logger>("tls", null_sink);
+  _grpc_log = std::make_shared<logger>("grpc", null_sink);
 
-  const std::array<std::string, 16> loggers{
+  const std::array<std::string, 17> loggers{
       "bam",      "bbdo",         "config", "core",  "lua",      "influxdb",
       "graphite", "notification", "rrd",    "stats", "perfdata", "processing",
-      "sql",      "neb",          "tcp",    "tls"};
+      "sql",      "neb",          "tcp",    "tls",   "grpc"};
 
   for (auto it = log.loggers.begin(), end = log.loggers.end(); it != end;
        ++it) {
@@ -155,6 +158,8 @@ void log_v2::apply(const config::state& conf) {
       l = &_stats_log;
     else if (it->first == "neb")
       l = &_neb_log;
+    else if (it->first == "grpc")
+      l = &_grpc_log;
     else
       continue;
 
@@ -176,10 +181,10 @@ void log_v2::apply(const config::state& conf) {
  * @return a boolean.
  */
 bool log_v2::contains_logger(const std::string& logger) {
-  const std::array<std::string, 16> loggers{
+  const std::array<std::string, 17> loggers{
       "bam",      "bbdo",         "config", "core",  "lua",      "influxdb",
       "graphite", "notification", "rrd",    "stats", "perfdata", "processing",
-      "sql",      "neb",          "tcp",    "tls"};
+      "sql",      "neb",          "tcp",    "tls", "grpc"};
   return std::find(loggers.begin(), loggers.end(), logger) != loggers.end();
 }
 
@@ -257,6 +262,10 @@ std::shared_ptr<spdlog::logger> log_v2::tcp() {
 
 std::shared_ptr<spdlog::logger> log_v2::tls() {
   return instance()._tls_log;
+}
+
+std::shared_ptr<spdlog::logger> log_v2::grpc() {
+  return instance()._grpc_log;
 }
 
 const std::string& log_v2::log_name() const {

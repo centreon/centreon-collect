@@ -23,7 +23,7 @@
 
 # Set necessary settings.
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.16)
 project("Centreon Collect" C CXX)
 if (NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   message(FATAL_ERROR "You can build broker with g++ or clang++. CMake will exit.")
@@ -62,6 +62,13 @@ set(USER_ENGINE centreon-engine)
 
 include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup(TARGETS)
+
+#find_package(Boost 1.78.0 REQUIRED)
+
+# if (NOT Boost_FOUND)
+#     message(FATAL_ERROR "boost mandatory")
+# endif()
+
 
 include(GNUInstallDirs)
 

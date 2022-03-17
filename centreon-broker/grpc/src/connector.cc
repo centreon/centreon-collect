@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 - 2021 Centreon (https://www.centreon.com/)
+ * Copyright 2022 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,19 +17,13 @@
  *
  */
 
-#include "com/centreon/broker/tcp/connector.hh"
+#include "grpc_stream.pb.h"
 
-#include <fmt/format.h>
-
-#include <memory>
-#include <sstream>
-
-#include "com/centreon/broker/log_v2.hh"
-#include "com/centreon/broker/tcp/stream.hh"
-#include "com/centreon/broker/tcp/tcp_async.hh"
+#include "com/centreon/broker/grpc/connector.hh"
+#include "com/centreon/broker/grpc/stream.hh"
 
 using namespace com::centreon::broker;
-using namespace com::centreon::broker::tcp;
+using namespace com::centreon::broker::grpc;
 
 /**
  * @brief Constructor of the connector that will connect to the given host at
@@ -37,35 +31,23 @@ using namespace com::centreon::broker::tcp;
  *
  * @param host The host to connect to.
  * @param port The port used for the connection.
- * @param read_timeout The read timeout in seconds or -1 if no duration.
  */
-connector::connector(const std::string& host,
-                     uint16_t port,
-                     int32_t read_timeout)
-    : io::limit_endpoint(false),
-      _host(host),
-      _port(port),
-      _read_timeout(read_timeout) {}
+connector::connector(const grpc_config::pointer& conf)
+    : io::limit_endpoint(false), _conf(conf) {}
 
 /**
- *  Destructor.
- */
-connector::~connector() {}
-
-/**
- * @brief Connect to the remote host.
+ * @brief open a new connection
  *
- * @return The TCP connection object.
+ * @return std::unique_ptr<io::stream>
  */
 std::unique_ptr<io::stream> connector::open() {
-  // Launch connection process.
-  log_v2::tcp()->info("TCP: connecting to {}:{}", _host, _port);
+  log_v2::grpc()->info("TCP: connecting to {}", _conf->get_hostport());
   try {
     return limit_endpoint::open();
   } catch (const std::exception& e) {
     log_v2::tcp()->debug(
-        "Unable to establish the connection to {}:{} (attempt {}): {}", _host,
-        _port, _is_ready_count, e.what());
+        "Unable to establish the connection to {} (attempt {}): {}",
+        _conf->get_hostport(), _is_ready_count, e.what());
     return nullptr;
   }
 }
@@ -73,8 +55,8 @@ std::unique_ptr<io::stream> connector::open() {
 /**
  * @brief create a stream from attributes
  *
- * @return std::shared_ptr<stream>
+ * @return std::unique_ptr<io::stream>
  */
 std::unique_ptr<io::stream> connector::create_stream() {
-  return std::make_unique<stream>(_host, _port, _read_timeout);
+  return std::make_unique<stream>(_conf);
 }

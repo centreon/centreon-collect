@@ -16,6 +16,8 @@
 ** For more information : contact@centreon.com
 */
 
+#include <sys/resource.h>
+#include <sys/time.h>
 #include <csignal>
 #include <cstdlib>
 #include <iostream>
@@ -51,6 +53,11 @@ static void term_handler([[maybe_unused]] int signum) {
   errno = old_errno;
 }
 
+void limit_fd() {
+  struct rlimit fd_limit({20, 20});
+  setrlimit(RLIMIT_NOFILE, &fd_limit);
+}
+
 /**
  *  Program entry point.
  *
@@ -61,6 +68,7 @@ static void term_handler([[maybe_unused]] int signum) {
  *  @return 0 on successful execution.
  */
 int main(int argc, char** argv, char** env) {
+  limit_fd();
   // Return value.
   int retval(EXIT_FAILURE);
 
