@@ -17,8 +17,8 @@
  *
  */
 
-#include <thread>
 #include <fstream>
+#include <thread>
 #include "grpc_test_include.hh"
 #include "tcp_relais.hh"
 
@@ -97,8 +97,7 @@ std::unique_ptr<com::centreon::broker::grpc::acceptor> grpc_test_server::s;
 TEST_P(grpc_test_server, ClientToServerSendReceive) {
   com::centreon::broker::grpc::stream client(conf);
   std::unique_ptr<io::stream> accepted =
-      s->open(std::chrono::milliseconds(100));
-
+      s->open(std::chrono::milliseconds(1000));
   ASSERT_NE(accepted.get(), nullptr);
 
   for (unsigned test_ind = 0; test_ind < 100; ++test_ind) {
@@ -127,7 +126,9 @@ INSTANTIATE_TEST_SUITE_P(grpc_test_server,
 TEST_P(grpc_test_server, ServerToClientSendReceive) {
   com::centreon::broker::grpc::stream client(conf);
   std::unique_ptr<io::stream> accepted =
-      s->open(std::chrono::milliseconds(100));
+      s->open(std::chrono::milliseconds(1000));
+  ASSERT_NE(accepted.get(), nullptr);
+
   for (unsigned test_ind = 0; test_ind < 100; ++test_ind) {
     test_param param = GetParam();
     param.data_type += test_ind;
@@ -182,7 +183,8 @@ INSTANTIATE_TEST_SUITE_P(grpc_comm_failure,
 TEST_P(grpc_comm_failure, ClientToServerFailureBeforeWrite) {
   com::centreon::broker::grpc::stream client(conf_relay_in);
   std::unique_ptr<io::stream> accepted =
-      s->open(std::chrono::milliseconds(100));
+      s->open(std::chrono::milliseconds(1000));
+  ASSERT_NE(accepted.get(), nullptr);
 
   test_param param = GetParam();
   log_v2::grpc()->debug("{} write param.data_type={}", __PRETTY_FUNCTION__,
@@ -203,7 +205,8 @@ TEST_P(grpc_comm_failure, ClientToServerFailureBeforeWrite) {
 TEST_P(grpc_comm_failure, ClientToServerFailureAfterWrite) {
   com::centreon::broker::grpc::stream client(conf_relay_in);
   std::unique_ptr<io::stream> accepted =
-      s->open(std::chrono::milliseconds(100));
+      s->open(std::chrono::milliseconds(1000));
+  ASSERT_NE(accepted.get(), nullptr);
 
   test_param param = GetParam();
   log_v2::grpc()->debug("{} write param.data_type={}", __PRETTY_FUNCTION__,
@@ -235,7 +238,8 @@ TEST_P(grpc_comm_failure, ServerToClientFailureBeforeWrite) {
   std::this_thread::sleep_for(std::chrono::milliseconds(10));
   com::centreon::broker::grpc::stream client(conf_relay_in);
   std::unique_ptr<io::stream> accepted =
-      s->open(std::chrono::milliseconds(100));
+      s->open(std::chrono::milliseconds(1000));
+  ASSERT_NE(accepted.get(), nullptr);
 
   test_param param = GetParam();
   log_v2::grpc()->debug("{} write param.data_type={}", __PRETTY_FUNCTION__,
@@ -262,7 +266,8 @@ TEST_P(grpc_comm_failure, ServerToClientFailureBeforeWrite) {
   EXPECT_THROW(accepted->write(create_event(param)), msg_fmt);
 
   com::centreon::broker::grpc::stream client2(conf_relay_in);
-  accepted = s->open(std::chrono::milliseconds(100));
+  accepted = s->open(std::chrono::milliseconds(1000));
+  ASSERT_NE(accepted.get(), nullptr);
   accepted->write(create_event(param));
   read_ret = client2.read(receive, time(nullptr) + 2);
   log_v2::grpc()->debug("{} read_ret={} param.data_type={}",
@@ -275,7 +280,8 @@ TEST_P(grpc_comm_failure, ServerToClientFailureAfterWrite) {
   std::this_thread::sleep_for(std::chrono::milliseconds(10));
   com::centreon::broker::grpc::stream client(conf_relay_in);
   std::unique_ptr<io::stream> accepted =
-      s->open(std::chrono::milliseconds(100));
+      s->open(std::chrono::milliseconds(1000));
+  ASSERT_NE(accepted.get(), nullptr);
 
   test_param param = GetParam();
   log_v2::grpc()->debug("{} write param.data_type={}", __PRETTY_FUNCTION__,
@@ -302,7 +308,8 @@ TEST_P(grpc_comm_failure, ServerToClientFailureAfterWrite) {
   ASSERT_THROW(client.read(receive, time(nullptr) + 2), msg_fmt);
 
   com::centreon::broker::grpc::stream client2(conf_relay_in);
-  accepted = s->open(std::chrono::milliseconds(100));
+  accepted = s->open(std::chrono::milliseconds(1000));
+  ASSERT_NE(accepted.get(), nullptr);
   accepted->write(create_event(param));
   read_ret = client2.read(receive, time(nullptr) + 2);
   log_v2::grpc()->debug("{} read_ret={} param.data_type={}",
@@ -370,8 +377,9 @@ INSTANTIATE_TEST_SUITE_P(grpc_test_server_crypted,
 TEST_P(grpc_test_server_crypted, ServerToClientWithKeySendReceive) {
   com::centreon::broker::grpc::stream client(conf_crypted_client1234);
   std::unique_ptr<io::stream> accepted =
-      s->open(std::chrono::milliseconds(200));
+      s->open(std::chrono::milliseconds(1000));
   ASSERT_NE(accepted.get(), nullptr);
+
   for (unsigned test_ind = 0; test_ind < 100; ++test_ind) {
     test_param param = GetParam();
     param.data_type += test_ind;
