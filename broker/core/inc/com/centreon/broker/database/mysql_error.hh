@@ -1,5 +1,5 @@
 /*
-** Copyright 2018-2020 Centreon
+** Copyright 2018-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -112,6 +112,10 @@ class mysql_error {
     clean_severities,
     store_tag,
     clean_tags,
+    store_service_status_check_result,
+    store_service_status_small,
+    update_index_data,
+    update_resources,
   };
   static constexpr const char* msg[]{
       "error: ",
@@ -189,6 +193,10 @@ class mysql_error {
       "could not remove severities: ",
       "could not insert tag in tags table: ",
       "could not remove tags: ",
+      "could not update the service status check result into the database: ",
+      "could not update the service status downtime into the database: ",
+      "could not update index data: ",
+      "could not update resources: ",
   };
 
   mysql_error() : _active(false) {}

@@ -1662,7 +1662,7 @@ void conflict_manager::_process_service_status(
     _mysql.run_statement(_service_status_update,
                          database::mysql_error::store_service_status, false,
                          conn);
-    _add_action(conn, actions::hosts);
+    _add_action(conn, actions::services);
   } else
     // Do nothing.
     log_v2::sql()->info(

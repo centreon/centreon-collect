@@ -328,5 +328,6 @@ void applier::service::_update(configuration::state const& config,
     obj.set_last_hard_state_change(obj.get_last_state_change());
 
   // update service status.
-  obj.update_status();
+  obj.update_adaptive_data();
+  obj.update_status(notifier::CHECK_RESULT);
 }

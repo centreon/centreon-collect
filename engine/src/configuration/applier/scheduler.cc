@@ -1078,7 +1078,7 @@ void applier::scheduler::_schedule_service_events(
   // add scheduled service checks to event queue.
   for (engine::service* s : services) {
     // update status of all services (scheduled or not).
-    s->update_status();
+    s->update_status(engine::service::ALL);
 
     // skip most services that shouldn't be scheduled.
     if (!s->get_should_be_scheduled()) {

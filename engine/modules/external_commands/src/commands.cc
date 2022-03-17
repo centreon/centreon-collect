@@ -2554,7 +2554,7 @@ void acknowledge_service_problem(service* svc,
                 notifier::notification_option_none);
 
   /* update the status log with the service info */
-  svc->update_status();
+  svc->update_status(service::CHECK_RESULT);
 
   /* add a comment for the acknowledgement */
   std::shared_ptr<comment> com{
@@ -2582,7 +2582,7 @@ void remove_service_acknowledgement(service* svc) {
   svc->set_problem_has_been_acknowledged(false);
 
   /* update the status log with the service info */
-  svc->update_status();
+  svc->update_status(service::CHECK_RESULT);
 
   /* remove any non-persistant comments associated with the ack */
   comment::delete_service_acknowledgement_comments(svc);

@@ -1632,6 +1632,65 @@ void broker_service_status(int type,
 }
 
 /**
+ *  Sends service status updates to broker.
+ *
+ *  @param[in] type      Type.
+ *  @param[in] flags     Flags.
+ *  @param[in] attr      Attributes.
+ *  @param[in] svc       Target service.
+ *  @param[in] timestamp Timestamp.
+ */
+void broker_service_status_check_result(int type,
+                                        int flags,
+                                        int attr,
+                                        com::centreon::engine::service* svc,
+                                        struct timeval const* timestamp) {
+  // Config check.
+  if (!(config->event_broker_options() & BROKER_STATUS_DATA))
+    return;
+
+  // Fill struct with relevant data.
+  nebstruct_service_status_data ds;
+  ds.type = type;
+  ds.flags = flags;
+  ds.attr = attr;
+  ds.timestamp = get_broker_timestamp(timestamp);
+  ds.object_ptr = svc;
+
+  // Make callbacks.
+  neb_make_callbacks(NEBCALLBACK_SERVICE_STATUS_CHECK_RESULT_DATA, &ds);
+}
+
+/**
+ *  Sends service status updates to broker.
+ *
+ *  @param[in] type      Type.
+ *  @param[in] flags     Flags.
+ *  @param[in] attr      Attributes.
+ *  @param[in] svc       Target service.
+ *  @param[in] timestamp Timestamp.
+ */
+void broker_service_status_downtime(int type,
+                                    int flags,
+                                    int attr,
+                                    com::centreon::engine::service* svc,
+                                    struct timeval const* timestamp) {
+  // Config check.
+  if (!(config->event_broker_options() & BROKER_STATUS_DATA))
+    return;
+
+  // Fill struct with relevant data.
+  nebstruct_service_status_data ds;
+  ds.type = type;
+  ds.flags = flags;
+  ds.attr = attr;
+  ds.timestamp = get_broker_timestamp(timestamp);
+  ds.object_ptr = svc;
+
+  // Make callbacks.
+  neb_make_callbacks(NEBCALLBACK_SERVICE_STATUS_DOWNTIME_DATA, &ds);
+}
+/**
  *  Send state change data to broker.
  *
  *  @param[in] type             Type.

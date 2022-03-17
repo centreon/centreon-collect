@@ -2247,7 +2247,7 @@ void host::clear_flap(double percent_change,
 /**
  * @brief Updates host status info. Data are sent to event broker.
  */
-void host::update_status() {
+void host::update_status(host::status_type t) {
   broker_host_status(NEBTYPE_HOSTSTATUS_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
                      this, nullptr);
 }

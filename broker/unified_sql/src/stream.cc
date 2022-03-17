@@ -41,6 +41,8 @@ using namespace com::centreon::broker::unified_sql;
 const std::array<std::string, 5> stream::metric_type_name{
     "GAUGE", "COUNTER", "DERIVE", "ABSOLUTE", "AUTOMATIC"};
 
+const std::array<int, 5> stream::ordered_status{0, 3, 4, 2, 1};
+
 void (stream::*const stream::_neb_processing_table[])(
     const std::shared_ptr<io::data>&) = {
     nullptr,
@@ -71,11 +73,14 @@ void (stream::*const stream::_neb_processing_table[])(
     &stream::_process_instance_configuration,
     &stream::_process_responsive_instance,
     &stream::_process_pb_service,
+    &stream::_process_pb_adaptive_service,
     &stream::_process_pb_service_status,
     &stream::_process_pb_host,
     &stream::_process_pb_host_status,
     &stream::_process_severity,
     &stream::_process_tag,
+    &stream::_process_pb_service_status_check_result,
+    &stream::_process_pb_service_status_small,
 };
 
 stream::stream(const database_config& dbcfg,
@@ -110,10 +115,9 @@ stream::stream(const database_config& dbcfg,
       _stats{stats::center::instance().register_conflict_manager()},
       _oldest_timestamp{std::numeric_limits<time_t>::max()} {
   log_v2::sql()->debug("unified sql: stream class instanciation");
-  stats::center::instance().execute([
-    stats = _stats, loop_timeout = _loop_timeout,
-    max_queries = _max_pending_queries
-  ] {
+  stats::center::instance().execute([stats = _stats,
+                                     loop_timeout = _loop_timeout,
+                                     max_queries = _max_pending_queries] {
     stats->set_loop_timeout(loop_timeout);
     stats->set_max_pending_events(max_queries);
   });
@@ -184,7 +188,8 @@ void stream::_load_caches() {
     std::promise<database::mysql_result> promise;
     _mysql.run_query_and_get_result(
         "SELECT "
-        "id,host_id,service_id,host_name,rrd_retention,service_description,"
+        "id,host_id,service_id,host_name,rrd_retention,check_interval,service_"
+        "description,"
         "special,locked FROM index_data",
         &promise);
     try {
@@ -192,14 +197,16 @@ void stream::_load_caches() {
 
       // Loop through result set.
       while (_mysql.fetch_row(res)) {
-        index_info info{.host_name = res.value_as_str(3),
-                        .index_id = res.value_as_u64(0),
-                        .locked = res.value_as_bool(7),
-                        .rrd_retention = res.value_as_u32(4)
-                                             ? res.value_as_u32(4)
-                                             : _rrd_len,
-                        .service_description = res.value_as_str(5),
-                        .special = res.value_as_u32(6) == 2};
+        index_info info{
+            .index_id = res.value_as_u64(0),
+            .host_name = res.value_as_str(3),
+            .service_description = res.value_as_str(6),
+            .rrd_retention =
+                res.value_as_u32(4) ? res.value_as_u32(4) : _rrd_len,
+            .interval = res.value_as_u32(5),
+            .special = res.value_as_bool(7),
+            .locked = res.value_as_bool(8),
+        };
         uint32_t host_id(res.value_as_u32(1));
         uint32_t service_id(res.value_as_u32(2));
         log_v2::perfdata()->debug(
@@ -445,10 +452,18 @@ int32_t stream::write(const std::shared_ptr<io::data>& data) {
   uint16_t elem = element_of_type(type);
   if (cat == io::neb) {
     (this->*(_neb_processing_table[elem]))(data);
-    if (type == neb::pb_service::static_type())
-      _unified_sql_process_pb_service_status(data);
-    if (type == neb::service_status::static_type())
-      _unified_sql_process_service_status(data);
+    switch (type) {
+      case neb::pb_service_status::static_type():
+        _unified_sql_process_pb_service_status<neb::pb_service_status>(data);
+        break;
+      case neb::pb_service_status_check_result::static_type():
+        _unified_sql_process_pb_service_status<
+            neb::pb_service_status_check_result>(data);
+        break;
+      case neb::service_status::static_type():
+        _unified_sql_process_service_status(data);
+        break;
+    }
   } else if (type == make_type(io::bbdo, bbdo::de_rebuild_rrd_graphs))
     _rebuilder.rebuild_rrd_graphs(data);
   else if (type == make_type(io::bbdo, bbdo::de_remove_graphs))
@@ -567,7 +582,7 @@ int32_t stream::stop() {
  * @param d The BBDO message with all the metrics/indexes to remove.
  */
 void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
-  asio::post(pool::instance().io_context(), [ this, data = d ] {
+  asio::post(pool::instance().io_context(), [this, data = d] {
     mysql ms(_dbcfg);
     const bbdo::pb_remove_graphs& ids =
         *static_cast<const bbdo::pb_remove_graphs*>(data.get());

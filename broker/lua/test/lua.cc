@@ -2841,7 +2841,7 @@ TEST_F(LuaTest, BrokerPbServiceStatus) {
   obj.set_output("cool");
   obj.set_current_state(Service_State_CRITICAL);
   obj.set_check_interval(7);
-  obj.set_check_type(Service_CheckType_CHECK_ACTIVE);
+  obj.set_check_type(Service_CheckType_ACTIVE);
   obj.set_last_check(123456);
   std::string filename("/tmp/cache_test.lua");
   CreateScript(
@@ -2890,7 +2890,7 @@ TEST_F(LuaTest, BrokerApi2PbServiceStatusWithIndex) {
   obj.set_output("cool");
   obj.set_current_state(Service_State_CRITICAL);
   obj.set_check_interval(7);
-  obj.set_check_type(Service_CheckType_CHECK_ACTIVE);
+  obj.set_check_type(Service_CheckType_ACTIVE);
   obj.set_last_check(123456);
   std::string filename("/tmp/cache_test.lua");
   CreateScript(
@@ -2940,7 +2940,7 @@ TEST_F(LuaTest, BrokerApi2PbServiceStatusWithNext) {
   obj.set_output("cool");
   obj.set_current_state(Service_State_CRITICAL);
   obj.set_check_interval(7);
-  obj.set_check_type(Service_CheckType_CHECK_ACTIVE);
+  obj.set_check_type(Service_CheckType_ACTIVE);
   obj.set_last_check(123459);
   std::string filename("/tmp/cache_test.lua");
   CreateScript(filename,
@@ -2983,7 +2983,7 @@ TEST_F(LuaTest, BrokerApi2PbServiceStatusJsonEncode) {
   obj.set_output("cool");
   obj.set_current_state(Service_State_CRITICAL);
   obj.set_check_interval(7);
-  obj.set_check_type(Service_CheckType_CHECK_ACTIVE);
+  obj.set_check_type(Service_CheckType_ACTIVE);
   obj.set_last_check(123459);
   std::string filename("/tmp/cache_test.lua");
   CreateScript(filename,
@@ -3062,7 +3062,7 @@ TEST_F(LuaTest, BrokerPbServiceStatusJsonEncode) {
   obj.set_output("cool");
   obj.set_current_state(Service_State_CRITICAL);
   obj.set_check_interval(7);
-  obj.set_check_type(Service_CheckType_CHECK_ACTIVE);
+  obj.set_check_type(Service_CheckType_ACTIVE);
   obj.set_last_check(123459);
   std::string filename("/tmp/cache_test.lua");
   CreateScript(filename,
@@ -3103,7 +3103,7 @@ TEST_F(LuaTest, BrokerApi2PbServiceJsonEncode) {
   obj.set_output("cool");
   obj.set_current_state(Service_State_CRITICAL);
   obj.set_check_interval(7);
-  obj.set_check_type(Service_CheckType_CHECK_ACTIVE);
+  obj.set_check_type(Service_CheckType_ACTIVE);
   obj.set_last_check(123459);
   std::string filename("/tmp/cache_test.lua");
   CreateScript(filename,
@@ -3183,7 +3183,7 @@ TEST_F(LuaTest, BrokerPbServiceJsonEncode) {
   obj.set_output("cool");
   obj.set_current_state(Service_State_CRITICAL);
   obj.set_check_interval(7);
-  obj.set_check_type(Service_CheckType_CHECK_ACTIVE);
+  obj.set_check_type(Service_CheckType_ACTIVE);
   obj.set_last_check(123459);
   std::string filename("/tmp/cache_test.lua");
   CreateScript(filename,
@@ -3222,7 +3222,7 @@ TEST_F(LuaTest, BrokerPbHostStatus) {
   obj.set_output("cool");
   obj.set_current_state(Host_State_UP);
   obj.set_check_interval(7);
-  obj.set_check_type(Host_CheckType_CHECK_ACTIVE);
+  obj.set_check_type(Host_CheckType_ACTIVE);
   obj.set_last_check(123456);
   std::string filename("/tmp/cache_test.lua");
   CreateScript(
@@ -3265,7 +3265,7 @@ TEST_F(LuaTest, BrokerApi2PbHostStatusWithIndex) {
   obj.set_output("cool");
   obj.set_current_state(Host_State_UP);
   obj.set_check_interval(7);
-  obj.set_check_type(Host_CheckType_CHECK_ACTIVE);
+  obj.set_check_type(Host_CheckType_ACTIVE);
   obj.set_last_check(123456);
   std::string filename("/tmp/cache_test.lua");
   CreateScript(
@@ -3309,7 +3309,7 @@ TEST_F(LuaTest, BrokerApi2PbHostStatusWithNext) {
   obj.set_output("cool");
   obj.set_current_state(Host_State_UP);
   obj.set_check_interval(7);
-  obj.set_check_type(Host_CheckType_CHECK_ACTIVE);
+  obj.set_check_type(Host_CheckType_ACTIVE);
   obj.set_last_check(123459);
   std::string filename("/tmp/cache_test.lua");
   CreateScript(filename,
@@ -3348,7 +3348,7 @@ TEST_F(LuaTest, BrokerApi2PbHostStatusJsonEncode) {
   obj.set_output("cool");
   obj.set_current_state(Host_State_UP);
   obj.set_check_interval(7);
-  obj.set_check_type(Host_CheckType_CHECK_ACTIVE);
+  obj.set_check_type(Host_CheckType_ACTIVE);
   obj.set_last_check(123459);
   std::string filename("/tmp/cache_test.lua");
   CreateScript(filename,
@@ -3424,7 +3424,7 @@ TEST_F(LuaTest, BrokerPbHostStatusJsonEncode) {
   obj.set_output("cool");
   obj.set_current_state(Host_State_UP);
   obj.set_check_interval(7);
-  obj.set_check_type(Host_CheckType_CHECK_ACTIVE);
+  obj.set_check_type(Host_CheckType_ACTIVE);
   obj.set_last_check(123459);
   std::string filename("/tmp/cache_test.lua");
   CreateScript(filename,
@@ -3461,7 +3461,7 @@ TEST_F(LuaTest, BrokerApi2PbHostJsonEncode) {
   obj.set_output("cool");
   obj.set_current_state(Host_State_UP);
   obj.set_check_interval(7);
-  obj.set_check_type(Host_CheckType_CHECK_ACTIVE);
+  obj.set_check_type(Host_CheckType_ACTIVE);
   obj.set_last_check(123459);
   std::string filename("/tmp/cache_test.lua");
   CreateScript(filename,
@@ -3537,7 +3537,7 @@ TEST_F(LuaTest, BrokerPbHostJsonEncode) {
   obj.set_output("cool");
   obj.set_current_state(Host_State_UP);
   obj.set_check_interval(7);
-  obj.set_check_type(Host_CheckType_CHECK_ACTIVE);
+  obj.set_check_type(Host_CheckType_ACTIVE);
   obj.set_last_check(123459);
   std::string filename("/tmp/cache_test.lua");
   CreateScript(filename,

@@ -348,7 +348,7 @@ void loop::_dispatching() {
           }
           temp_event->run_time = temp_service->get_next_check();
           reschedule_event(temp_event, events::loop::low);
-          temp_service->update_status();
+          temp_service->update_status(service::CHECK_RESULT);
           run_event = false;
         }
       }
@@ -631,7 +631,7 @@ void loop::adjust_check_scheduling() {
           current_exec_time_offset, current_icd_offset, first_window_time);
       (*it)->run_time = new_run_time;
       svc->set_next_check(new_run_time);
-      svc->update_status();
+      svc->update_status(service::CHECK_RESULT);
     } else
       continue;
 

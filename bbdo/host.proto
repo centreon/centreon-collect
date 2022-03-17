@@ -21,8 +21,8 @@ message Host {
   string check_period = 9;
 
   enum CheckType {
-    CHECK_ACTIVE = 0;
-    CHECK_PASSIVE = 1;
+    ACTIVE = 0;
+    PASSIVE = 1;
   }
   CheckType check_type = 10;
   int32 current_check_attempt = 11;

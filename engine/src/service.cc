@@ -824,7 +824,10 @@ void service::check_for_expired_acknowledgement() {
             get_description(), this->get_host_ptr()->get_name());
         set_problem_has_been_acknowledged(false);
         set_acknowledgement_type(ACKNOWLEDGEMENT_NONE);
-        update_status();
+        // FIXME DBO: could be improved with something smaller.
+        // We will see later, I don't know if there are many events concerning
+        // acks.
+        update_status(CHECK_RESULT);
       }
     }
   }
@@ -1951,7 +1954,7 @@ int service::handle_async_check_result(check_result* queued_check_result) {
     /* set the checked flag */
     set_has_been_checked(true);
     /* update the current service status log */
-    update_status();
+    update_status(CHECK_RESULT);
   }
 
   /* check to see if the service and/or associate host is flapping */
@@ -2413,7 +2416,7 @@ int service::run_scheduled_check(int check_options, double latency) {
 
     /* update the status log */
     if (!sent)
-      update_status();
+      update_status(CHECK_RESULT);
     return ERROR;
   }
   return OK;
@@ -2733,7 +2736,7 @@ bool service::schedule_check(time_t check_time, int options) {
         no_update_status_now = true;
     } catch (...) {
       // Update the status log.
-      update_status();
+      update_status(CHECK_RESULT);
       throw;
     }
   } else {
@@ -2749,7 +2752,7 @@ bool service::schedule_check(time_t check_time, int options) {
 
   // Update the status log.
   if (!no_update_status_now)
-    update_status();
+    update_status(CHECK_RESULT);
   return true;
 }
 
@@ -2888,7 +2891,9 @@ void service::enable_flap_detection() {
   check_for_flapping(false, true);
 
   /* update service status */
-  update_status();
+  // FIXME DBO: Since we are just talking about flapping,
+  // we could improve this message.
+  update_status(CHECK_RESULT);
 }
 
 /* disables flap detection for a specific service */
@@ -2927,9 +2932,36 @@ void service::disable_flap_detection() {
 /**
  * @brief Updates service status info. Send data to event broker.
  */
-void service::update_status() {
-  broker_service_status(NEBTYPE_SERVICESTATUS_UPDATE, NEBFLAG_NONE,
-                        NEBATTR_NONE, this, nullptr);
+void service::update_status(service::status_type t) {
+  switch (t) {
+    case ALL:
+      broker_service_status(NEBTYPE_SERVICESTATUS_UPDATE, NEBFLAG_NONE,
+                            NEBATTR_NONE, this, nullptr);
+      break;
+    case CHECK_RESULT:
+      broker_service_status_check_result(NEBTYPE_SERVICESTATUS_UPDATE,
+                                         NEBFLAG_NONE, NEBATTR_NONE, this,
+                                         nullptr);
+      break;
+    case DOWNTIME:
+      broker_service_status_downtime(NEBTYPE_SERVICESTATUS_UPDATE, NEBFLAG_NONE,
+                                     NEBATTR_NONE, this, nullptr);
+      break;
+  }
+}
+
+/**
+ * @brief Several configurations could be initially handled by service status
+ * events. But they are configurations and do not have to be handled like this.
+ * So, to have service_status lighter, we removed these items from it but we
+ * add a new adaptive service event containing these ones. it is sent when this
+ * method is called.
+ */
+void service::update_adaptive_data() {
+  /* send data to event broker */
+  broker_adaptive_service_data(
+      NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE, NEBATTR_BBDO3_ONLY, this,
+      CMD_NONE, get_modified_attributes(), get_modified_attributes(), nullptr);
 }
 
 /* checks viability of performing a service check */
@@ -3424,7 +3456,7 @@ void service::handle_flap_detection_disabled() {
   }
 
   /* update service status */
-  update_status();
+  update_status(CHECK_RESULT);
 }
 
 std::list<servicegroup*> const& service::get_parent_groups() const {
