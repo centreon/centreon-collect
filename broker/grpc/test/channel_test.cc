@@ -18,6 +18,7 @@
  *
  */
 
+#include <thread>
 #include "grpc_test_include.hh"
 
 using namespace com::centreon::broker;

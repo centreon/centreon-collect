@@ -1,5 +1,5 @@
 /*
-** Copyright 2013 Centreon
+** Copyright 2021 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -16,15 +16,13 @@
 ** For more information : contact@centreon.com
 */
 
-#ifndef CCB_UNIFIED_SQL_INTERNAL_HH
-#define CCB_UNIFIED_SQL_INTERNAL_HH
+#ifndef CCB_STORAGE_INTERNAL_HH
+#define CCB_STORAGE_INTERNAL_HH
 
 #include "bbdo/events.hh"
-#include "bbdo/host.pb.h"
 #include "bbdo/rebuild_message.pb.h"
 #include "bbdo/remove_graph_message.pb.h"
-#include "bbdo/service.pb.h"
-#include "centreon-broker/core/src/broker.pb.h"
+#include "broker/core/src/broker.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
 
 CCB_BEGIN()
@@ -52,4 +50,4 @@ using pb_remove_graph_message =
 }  // namespace storage
 CCB_END()
 
-#endif  // !CCB_UNIFIED_SQL_INTERNAL_HH
+#endif  // !CCB_STORAGE_INTERNAL_HH
