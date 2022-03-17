@@ -40,6 +40,10 @@ include_directories(${PROJECT_SOURCE_DIR}/stats/inc)
 include_directories(${PROJECT_SOURCE_DIR}/tcp/inc)
 include_directories(${PROJECT_SOURCE_DIR}/tls/inc)
 include_directories(${PROJECT_SOURCE_DIR}/tls2/inc)
+include_directories(${PROJECT_SOURCE_DIR}/grpc/inc)
+include_directories(${PROJECT_SOURCE_DIR}/test/test_util/inc)
+
+add_subdirectory(${PROJECT_SOURCE_DIR}/test/test_util)
 
 # needed by module.cc
 add_definitions(-DCENTREON_BROKER_TEST_MODULE_PATH="${CMAKE_BINARY_DIR}/test/")
@@ -104,7 +108,7 @@ add_executable(ut_broker
   ${TESTS_SOURCES}
   )
 
-target_link_libraries(ut_broker roker rokerbase ${TESTS_LIBRARIES} conflictmgr
+target_link_libraries(ut_broker test_util roker rokerbase ${TESTS_LIBRARIES} conflictmgr
 	CONAN_PKG::nlohmann_json CONAN_PKG::asio CONAN_PKG::fmt CONAN_PKG::spdlog CONAN_PKG::gtest CONAN_PKG::mariadb-connector-c CONAN_PKG::openssl CONAN_PKG::grpc )
 
 set_target_properties(
@@ -116,6 +120,9 @@ set_target_properties(
     RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR}/tests
     RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/tests
 )
+ 
+#keys used by ut_broker grpc
+file(COPY ${PROJECT_SOURCE_DIR}/grpc/test/grpc_test_keys DESTINATION ${CMAKE_BINARY_DIR}/tests)
 
 add_test(NAME tests COMMAND ut_broker)
 

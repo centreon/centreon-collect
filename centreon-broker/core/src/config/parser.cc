@@ -26,8 +26,8 @@
 #include <streambuf>
 
 #include "com/centreon/broker/log_v2.hh"
-#include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/misc/filesystem.hh"
+#include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
@@ -166,17 +166,17 @@ state parser::parse(std::string const& file) {
                                  retval, &state::module_directory,
                                  &json::is_string)) {
           if (!misc::filesystem::readable(retval.module_directory()))
-            throw msg_fmt("The module directory '{}' is not accessible", retval.module_directory());
-        }
-        else if (get_conf<state>({it.key(), it.value()}, "cache_directory",
-                                 retval, &state::cache_directory,
-                                 &json::is_string)) {
+            throw msg_fmt("The module directory '{}' is not accessible",
+                          retval.module_directory());
+        } else if (get_conf<state>({it.key(), it.value()}, "cache_directory",
+                                   retval, &state::cache_directory,
+                                   &json::is_string)) {
           if (!misc::filesystem::readable(retval.cache_directory()))
-            throw msg_fmt("The cache directory '{}' is not accessible", retval.cache_directory());
-        }
-        else if (get_conf<int, state>({it.key(), it.value()}, "pool_size",
-                                      retval, &state::pool_size,
-                                      &json::is_number, &json::get<int>))
+            throw msg_fmt("The cache directory '{}' is not accessible",
+                          retval.cache_directory());
+        } else if (get_conf<int, state>({it.key(), it.value()}, "pool_size",
+                                        retval, &state::pool_size,
+                                        &json::is_number, &json::get<int>))
           ;
         else if (get_conf<state>({it.key(), it.value()}, "command_file", retval,
                                  &state::command_file, &json::is_string))
@@ -249,7 +249,8 @@ state parser::parse(std::string const& file) {
             conf.directory = "/var/log/centreon-broker";
 
           if (!misc::filesystem::writable(conf.directory))
-            throw msg_fmt("The log directory '{}' is not writable", conf.directory);
+            throw msg_fmt("The log directory '{}' is not writable",
+                          conf.directory);
 
           conf.filename = "";
 
@@ -423,6 +424,8 @@ void parser::_parse_endpoint(json const& elem,
         module = "70-graphite.so";
       else if (e.type == "influxdb")
         module = "70-influxdb.so";
+      else if (e.type == "grpc")
+        module = "50-grpc.so";
       else
         throw msg_fmt("config parser: endpoint of invalid type '{}'", e.type);
     }
