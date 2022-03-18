@@ -2487,12 +2487,12 @@ void acknowledge_host_problem(host* hst,
   hst->set_problem_has_been_acknowledged(true);
 
   /* set the acknowledgement type */
-  hst->set_acknowledgement_type((type == ACKNOWLEDGEMENT_STICKY)
+  hst->set_acknowledgement_type(type == ACKNOWLEDGEMENT_STICKY
                                     ? ACKNOWLEDGEMENT_STICKY
                                     : ACKNOWLEDGEMENT_NORMAL);
 
   /* schedule acknowledgement expiration */
-  time_t current_time(time(nullptr));
+  time_t current_time = time(nullptr);
   hst->set_last_acknowledgement(current_time);
   hst->schedule_acknowledgement_expiration();
 
@@ -2508,13 +2508,13 @@ void acknowledge_host_problem(host* hst,
                 notifier::notification_option_none);
 
   /* update the status log with the host info */
-  hst->update_status();
+  hst->update_status(host::CHECK_RESULT);
 
   /* add a comment for the acknowledgement */
-  std::shared_ptr<comment> com{
-      new comment(comment::host, comment::acknowledgment, hst->get_host_id(), 0,
-                  current_time, ack_author, ack_data, persistent,
-                  comment::internal, false, (time_t)0)};
+  auto com{std::make_shared<comment>(comment::host, comment::acknowledgment,
+                                     hst->get_host_id(), 0, current_time,
+                                     ack_author, ack_data, persistent,
+                                     comment::internal, false, (time_t)0)};
   comment::comments.insert({com->get_comment_id(), com});
 }
 
@@ -2533,12 +2533,12 @@ void acknowledge_service_problem(service* svc,
   svc->set_problem_has_been_acknowledged(true);
 
   /* set the acknowledgement type */
-  svc->set_acknowledgement_type((type == ACKNOWLEDGEMENT_STICKY)
+  svc->set_acknowledgement_type(type == ACKNOWLEDGEMENT_STICKY
                                     ? ACKNOWLEDGEMENT_STICKY
                                     : ACKNOWLEDGEMENT_NORMAL);
 
   /* schedule acknowledgement expiration */
-  time_t current_time(time(nullptr));
+  time_t current_time = time(nullptr);
   svc->set_last_acknowledgement(current_time);
   svc->schedule_acknowledgement_expiration();
 
@@ -2570,7 +2570,7 @@ void remove_host_acknowledgement(host* hst) {
   hst->set_problem_has_been_acknowledged(false);
 
   /* update the status log with the host info */
-  hst->update_status();
+  hst->update_status(host::CHECK_RESULT);
 
   /* remove any non-persistant comments associated with the ack */
   comment::delete_host_acknowledgement_comments(hst);
@@ -2686,7 +2686,7 @@ void stop_accepting_passive_service_checks(void) {
 
 /* enables passive service checks for a particular service */
 void enable_passive_service_checks(service* svc) {
-  unsigned long attr(MODATTR_PASSIVE_CHECKS_ENABLED);
+  constexpr const unsigned long attr = MODATTR_PASSIVE_CHECKS_ENABLED;
 
   /* no change */
   if (svc->passive_checks_enabled())
@@ -2821,7 +2821,7 @@ void stop_accepting_passive_host_checks(void) {
 
 /* enables passive host checks for a particular host */
 void enable_passive_host_checks(host* hst) {
-  unsigned long attr(MODATTR_PASSIVE_CHECKS_ENABLED);
+  constexpr const unsigned long attr = MODATTR_PASSIVE_CHECKS_ENABLED;
 
   /* no change */
   if (hst->passive_checks_enabled())
@@ -2837,9 +2837,6 @@ void enable_passive_host_checks(host* hst) {
   broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
                             NEBATTR_NONE, hst, CMD_NONE, attr,
                             hst->get_modified_attributes(), nullptr);
-
-  /* update the status log with the host info */
-  hst->update_status();
 }
 
 /* disables passive host checks for a particular host */

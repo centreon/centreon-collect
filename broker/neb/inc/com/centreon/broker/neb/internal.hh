@@ -70,6 +70,9 @@ using pb_service_status_small =
 
 using pb_host_status =
     io::protobuf<Host, make_type(io::neb, neb::de_pb_host_status)>;
+using pb_host_status_check_result =
+    io::protobuf<HostStatusCheckResult,
+                 make_type(io::neb, neb::de_pb_host_status_check_result)>;
 using pb_host = io::protobuf<Host, make_type(io::neb, neb::de_pb_host)>;
 using pb_severity =
     io::protobuf<Severity, make_type(io::neb, neb::de_pb_severity)>;

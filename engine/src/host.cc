@@ -1587,11 +1587,12 @@ int host::run_scheduled_check(int check_options, double latency) {
       /* if host has no check interval, schedule it again for 5 minutes from now
        */
       if (current_time >= preferred_time)
-        preferred_time = current_time +
-                         static_cast<time_t>(check_interval() <= 0
-                                                 ? 300
-                                                 : (check_interval() *
-                                                    config->interval_length()));
+        preferred_time =
+            current_time +
+            static_cast<time_t>(check_interval() <= 0
+                                    ? 300
+                                    : check_interval() *
+                                          config->interval_length());
 
       // Make sure we rescheduled the next host check at a valid time.
       {
@@ -1603,7 +1604,7 @@ int host::run_scheduled_check(int check_options, double latency) {
       /* the host could not be rescheduled properly - set the next check time
        * for next week */
       if (!time_is_valid && next_valid_time == preferred_time) {
-        set_next_check((time_t)(next_valid_time + (60 * 60 * 24 * 7)));
+        set_next_check((time_t)(next_valid_time + 60 * 60 * 24 * 7));
 
         engine_logger(log_runtime_warning, basic)
             << "Warning: Check of host '" << get_name()
@@ -1611,17 +1612,16 @@ int host::run_scheduled_check(int check_options, double latency) {
                "rescheduled properly.  Scheduling check for next week... "
             << " next_check  " << get_next_check();
         log_v2::runtime()->warn(
-            "Warning: Check of host '{}' could not be "
-            "rescheduled properly.  Scheduling check for next week... {} "
-            "next_check  {}",
-            get_name(), get_name(), get_next_check());
+            "Warning: Check of host '{}' could not be rescheduled properly.  "
+            "Scheduling check for next week... next_check  {}",
+            get_name(), get_next_check());
 
         engine_logger(dbg_checks, more)
             << "Unable to find any valid times to reschedule the next"
                " host check!";
         log_v2::checks()->debug(
-            "Unable to find any valid times to reschedule the next"
-            " host check!");
+            "Unable to find any valid times to reschedule the next host "
+            "check!");
       }
       /* this service could be rescheduled... */
       else {
@@ -1636,7 +1636,7 @@ int host::run_scheduled_check(int check_options, double latency) {
     }
 
     /* update the status log */
-    update_status();
+    update_status(CHECK_RESULT);
 
     /* reschedule the next host check - unless we couldn't find a valid next
      * check time */
@@ -1986,7 +1986,7 @@ bool host::schedule_check(time_t check_time, int options) {
   }
 
   /* update the status log */
-  update_status();
+  update_status(CHECK_RESULT);
   return true;
 }
 
@@ -2248,8 +2248,20 @@ void host::clear_flap(double percent_change,
  * @brief Updates host status info. Data are sent to event broker.
  */
 void host::update_status(host::status_type t) {
-  broker_host_status(NEBTYPE_HOSTSTATUS_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
-                     this, nullptr);
+  switch (t) {
+    case ALL:
+      broker_host_status(NEBTYPE_HOSTSTATUS_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
+                         this, nullptr);
+      break;
+    case CHECK_RESULT:
+      broker_host_status_check_result(NEBTYPE_HOSTSTATUS_UPDATE, NEBFLAG_NONE,
+                                      NEBATTR_NONE, this, nullptr);
+      break;
+    default:
+      log_v2::events()->error(
+          "This status_type {} is unknown. So we stop the program.", t);
+      assert(1 == 0);
+  }
 }
 
 /**
@@ -2259,7 +2271,7 @@ void host::update_status(host::status_type t) {
 void host::check_for_expired_acknowledgement() {
   if (problem_has_been_acknowledged()) {
     if (acknowledgement_timeout() > 0) {
-      time_t now(time(nullptr));
+      time_t now = time(nullptr);
       if (last_acknowledgement() + acknowledgement_timeout() >= now) {
         engine_logger(log_info_message, basic)
             << "Acknowledgement of host '" << get_name() << "' just expired";
@@ -2267,7 +2279,8 @@ void host::check_for_expired_acknowledgement() {
                                get_name());
         set_problem_has_been_acknowledged(false);
         set_acknowledgement_type(ACKNOWLEDGEMENT_NONE);
-        update_status();
+        // FIXME DBO: could be improved with something smaller.
+        update_status(CHECK_RESULT);
       }
     }
   }
@@ -2729,7 +2742,7 @@ void host::enable_flap_detection() {
   check_for_flapping(false, false, true);
 
   /* update host status */
-  update_status();
+  update_status(CHECK_RESULT);
 }
 
 /*
@@ -2943,7 +2956,7 @@ void host::handle_flap_detection_disabled() {
   }
 
   /* update host status */
-  update_status();
+  update_status(CHECK_RESULT);
 }
 
 int host::perform_on_demand_check(enum host::host_state* check_return_code,
@@ -3522,16 +3535,15 @@ int host::process_check_result_3x(enum host::host_state new_state,
       set_should_be_scheduled(false);
 
     /* schedule a non-forced check if we can */
-    if (get_should_be_scheduled()) {
+    if (get_should_be_scheduled())
       sent = schedule_check(get_next_check(), CHECK_OPTION_NONE);
-    }
   }
 
   /* update host status - for both active (scheduled) and passive
    * (non-scheduled) hosts */
   /* This condition is to avoid to send host status twice. */
   if (!sent)
-    update_status();
+    update_status(CHECK_RESULT);
 
   /* run async checks of all hosts we added above */
   /* don't run a check if one is already executing or we can get by with a

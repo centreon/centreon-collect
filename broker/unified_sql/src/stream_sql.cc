@@ -1,5 +1,5 @@
 /*
-** Copyright 2019-2021 Centreon
+** Copyright 2021-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -1058,8 +1058,7 @@ void stream::_process_host_status(const std::shared_ptr<io::data>& d) {
  */
 void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
   _finish_action(-1, actions::host_parents | actions::comments |
-                         actions::downtimes | actions::host_dependencies |
-                         actions::host_dependencies);
+                         actions::downtimes | actions::host_dependencies);
   // Processed object.
   auto s{static_cast<const neb::pb_host*>(d.get())};
   auto& hs = s->obj();
@@ -1295,6 +1294,145 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
         "{}))",
         hs.host_id(), hs.check_type(), hs.last_check(), hs.next_check(), now,
         hs.current_state(), hs.state_type());
+}
+
+/**
+ *  Process a host status check result event.
+ *
+ *  @param[in] e Uncasted service status.
+ *
+ */
+void stream::_process_pb_host_status_check_result(
+    const std::shared_ptr<io::data>& d) {
+  _finish_action(-1, actions::host_parents | actions::comments |
+                         actions::downtimes | actions::host_dependencies);
+  // Processed object.
+  auto h{static_cast<const neb::pb_host_status_check_result*>(d.get())};
+  auto& hscr = h->obj();
+
+  log_v2::sql()->debug("SQL: pb host status check result output: <<{}>>",
+                       hscr.output());
+  log_v2::sql()->debug("SQL: pb host status check result perfdata: <<{}>>",
+                       hscr.perf_data());
+
+  time_t now = time(nullptr);
+  if (hscr.check_type() == HostStatusCheckResult_CheckType_PASSIVE ||
+      hscr.next_check() >= now - 5 * 60 ||  // usual case
+      hscr.next_check() == 0) {             // initial state
+    // Apply to DB.
+    log_v2::sql()->info(
+        "SQL: processing host status check result event proto (host: {}, "
+        "last check: {}, state ({}, {}))",
+        hscr.host_id(), hscr.last_check(), hscr.current_state(),
+        hscr.state_type());
+
+    // Prepare queries.
+    if (!_hscr_update.prepared()) {
+      _hscr_resources_update = _mysql.prepare_query(
+          "UPDATE resources SET "
+          "status=?,"          // 0: current_state
+          "status_ordered=?,"  // 1: obtained from current_state
+          "in_downtime=? "     // 2: downtime_depth() > 0
+          "WHERE id=? AND parent_id is NULL");  // 3: host_id
+      _hscr_update = _mysql.prepare_query(
+          "UPDATE hosts SET "
+          "checked=?,"                   // 0: has_been_checked
+          "check_type=?,"                // 1: check_type
+          "state=?,"                     // 2: current_state
+          "state_type=?,"                // 3: state_type
+          "last_state_change=?,"         // 4: last_state_change
+          "last_hard_state=?,"           // 5: last_hard_state
+          "last_hard_state_change=?,"    // 6: last_hard_state_change
+          "last_time_up=?,"              // 7: last_time_up
+          "last_time_down=?,"            // 8: last_time_down
+          "last_time_unreachable=?,"     // 9: last_time_unreachable
+          "output=?,"                    // 10: output + '\n' + long_output
+          "perfdata=?,"                  // 11: perf_data
+          "flapping=?,"                  // 12: is_flapping
+          "percent_state_change=?,"      // 13: percent_state_change
+          "latency=?,"                   // 14: latency
+          "execution_time=?,"            // 15: execution_time
+          "last_check=?,"                // 16: last_check
+          "next_check=?,"                // 17: next_check
+          "should_be_scheduled=?,"       // 18: should_be_scheduled
+          "check_attempt=?,"             // 19: current_check_attempt
+          "notification_number=?,"       // 20: notification_number
+          "no_more_notifications=?,"     // 21: no_more_notifications
+          "last_notification=?,"         // 22: last_notification
+          "next_host_notification=?,"    // 23: next_notification
+          "acknowledged=?,"              // 24: acknowledgement_type != NONE
+          "acknowledgement_type=?,"      // 25: acknowledgement_type
+          "scheduled_downtime_depth=? "  // 26: downtime_depth
+          "WHERE host_id=?");            // 27: host_id
+    }
+
+    // Processing.
+
+    _hscr_update.bind_value_as_bool(0, hscr.has_been_checked());
+    _hscr_update.bind_value_as_i32(1, hscr.check_type());
+    _hscr_update.bind_value_as_i32(2, hscr.current_state());
+    _hscr_update.bind_value_as_i32(3, hscr.state_type());
+    _hscr_update.bind_value_as_i64(4, hscr.last_state_change());
+    _hscr_update.bind_value_as_i32(5, hscr.last_hard_state());
+    _hscr_update.bind_value_as_i64(6, hscr.last_hard_state_change());
+    _hscr_update.bind_value_as_i64(7, hscr.last_time_up());
+    _hscr_update.bind_value_as_i64(8, hscr.last_time_down());
+    _hscr_update.bind_value_as_i64(9, hscr.last_time_unreachable());
+    std::string full_output{
+        fmt::format("{}\n{}", hscr.output(), hscr.long_output())};
+    size_t size = misc::string::adjust_size_utf8(
+        full_output, get_hosts_col_size(hosts_output));
+    _hscr_update.bind_value_as_str(10,
+                                   fmt::string_view(full_output.data(), size));
+    size = misc::string::adjust_size_utf8(hscr.perf_data(),
+                                          get_hosts_col_size(hosts_perfdata));
+    _hscr_update.bind_value_as_str(
+        11, fmt::string_view(hscr.perf_data().data(), size));
+    _hscr_update.bind_value_as_bool(12, hscr.is_flapping());
+    _hscr_update.bind_value_as_f64(13, hscr.percent_state_change());
+    _hscr_update.bind_value_as_f64(14, hscr.latency());
+    _hscr_update.bind_value_as_f64(15, hscr.execution_time());
+    _hscr_update.bind_value_as_i64(16, hscr.last_check());
+    _hscr_update.bind_value_as_i64(17, hscr.next_check());
+    _hscr_update.bind_value_as_bool(18, hscr.should_be_scheduled());
+    _hscr_update.bind_value_as_i32(19, hscr.current_check_attempt());
+    _hscr_update.bind_value_as_i32(20, hscr.notification_number());
+    _hscr_update.bind_value_as_bool(21, hscr.no_more_notifications());
+    _hscr_update.bind_value_as_i64(22, hscr.last_notification());
+    _hscr_update.bind_value_as_i64(23, hscr.next_notification());
+    _hscr_update.bind_value_as_bool(
+        24, hscr.acknowledgement_type() != HostStatusCheckResult_AckType_NONE);
+    _hscr_update.bind_value_as_i32(25, hscr.acknowledgement_type());
+    _hscr_update.bind_value_as_i32(26, hscr.downtime_depth());
+    _hscr_update.bind_value_as_i32(27, hscr.host_id());
+
+    int32_t conn = _mysql.choose_connection_by_instance(
+        _cache_host_instance[static_cast<uint32_t>(hscr.host_id())]);
+    _mysql.run_statement(_hscr_update,
+                         database::mysql_error::store_host_status_check_result,
+                         false, conn);
+
+    _add_action(conn, actions::hosts);
+
+    _hscr_resources_update.bind_value_as_i32(0, hscr.current_state());
+    _hscr_resources_update.bind_value_as_i32(
+        1, ordered_status[hscr.current_state()]);
+    _hscr_resources_update.bind_value_as_bool(2, hscr.downtime_depth() > 0);
+    _hscr_resources_update.bind_value_as_u64(3, hscr.host_id());
+
+    _mysql.run_statement(_hscr_resources_update,
+                         database::mysql_error::store_host_status_check_result,
+                         false, conn);
+
+    _add_action(conn, actions::resources);
+  } else
+    // Do nothing.
+    log_v2::sql()->info(
+        "SQL: not processing pb host status check result event (host: {}, "
+        "check type: {}, last check: {}, next check: {}, now: {}, state ({}, "
+        "{}))",
+        hscr.host_id(), hscr.check_type(), hscr.last_check(), hscr.next_check(),
+        now, hscr.current_state(), hscr.state_type());
 }
 
 /**

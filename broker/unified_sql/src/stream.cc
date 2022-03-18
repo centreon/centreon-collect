@@ -80,6 +80,7 @@ void (stream::*const stream::_neb_processing_table[])(
     &stream::_process_severity,
     &stream::_process_tag,
     &stream::_process_pb_service_status_check_result,
+    &stream::_process_pb_host_status_check_result,
     &stream::_process_pb_service_status_small,
 };
 

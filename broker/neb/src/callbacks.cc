@@ -98,7 +98,9 @@ static struct {
     {NEBCALLBACK_ADAPTIVE_TAG_DATA, &neb::callback_tag},
     {NEBCALLBACK_SERVICE_STATUS_CHECK_RESULT_DATA,
      &neb::callback_service_status},
-    {NEBCALLBACK_SERVICE_STATUS_DOWNTIME_DATA, &neb::callback_service_status}};
+    {NEBCALLBACK_SERVICE_STATUS_DOWNTIME_DATA, &neb::callback_service_status},
+    {NEBCALLBACK_HOST_STATUS_CHECK_RESULT_DATA,
+     &neb::callback_pb_host_status_check_result}};
 
 // List of common callbacks.
 static struct {
@@ -121,7 +123,9 @@ static struct {
     {NEBCALLBACK_SERVICE_STATUS_CHECK_RESULT_DATA,
      &neb::callback_pb_service_status_check_result},
     {NEBCALLBACK_SERVICE_STATUS_DOWNTIME_DATA,
-     &neb::callback_pb_service_status_small}};
+     &neb::callback_pb_service_status_small},
+    {NEBCALLBACK_HOST_STATUS_CHECK_RESULT_DATA,
+     &neb::callback_pb_host_status_check_result}};
 
 // List of Engine-specific callbacks.
 static struct {
@@ -1707,6 +1711,96 @@ int neb::callback_pb_host_status(int callback_type, void* data) noexcept {
 }
 
 /**
+ *  @brief Function that process host status data.
+ *
+ *  This function is called by Nagios when some host status data are available.
+ *
+ *  @param[in] callback_type Type of the callback
+ *                           (NEBCALLBACK_HOST_STATUS_DATA).
+ *  @param[in] data          A pointer to a nebstruct_host_status_data
+ *                           containing the host status data.
+ *
+ *  @return 0 on success.
+ */
+int neb::callback_pb_host_status_check_result(int callback_type,
+                                              void* data) noexcept {
+  // Log message.
+  log_v2::neb()->info(
+      "callbacks: generating pb host status check result event protobuf");
+  (void)callback_type;
+
+  const engine::host* eh{static_cast<engine::host*>(
+      static_cast<nebstruct_host_status_data*>(data)->object_ptr)};
+
+  auto h{std::make_shared<neb::pb_host_status_check_result>()};
+  HostStatusCheckResult& hscr = h.get()->mut_obj();
+
+  hscr.set_host_id(eh->get_host_id());
+  if (hscr.host_id() == 0)
+    log_v2::neb()->error("could not find ID of host '{}'", eh->get_name());
+
+  if (eh->problem_has_been_acknowledged())
+    hscr.set_acknowledgement_type(static_cast<HostStatusCheckResult_AckType>(
+        eh->get_acknowledgement_type()));
+  else
+    hscr.set_acknowledgement_type(HostStatusCheckResult_AckType_NONE);
+
+  hscr.set_check_type(
+      static_cast<HostStatusCheckResult_CheckType>(eh->get_check_type()));
+  hscr.set_current_check_attempt(eh->get_current_attempt());
+  hscr.set_current_state(static_cast<HostStatusCheckResult_State>(
+      eh->has_been_checked() ? eh->get_current_state() : 2));  // Pending state.
+  hscr.set_execution_time(eh->get_execution_time());
+  hscr.set_has_been_checked(eh->has_been_checked());
+  hscr.set_is_flapping(eh->get_is_flapping());
+  hscr.set_last_check(eh->get_last_check());
+  hscr.set_last_hard_state(
+      static_cast<HostStatusCheckResult_State>(eh->get_last_hard_state()));
+  hscr.set_last_hard_state_change(eh->get_last_hard_state_change());
+  hscr.set_last_notification(eh->get_last_notification());
+  hscr.set_notification_number(eh->get_notification_number());
+  hscr.set_last_state_change(eh->get_last_state_change());
+  hscr.set_last_time_down(eh->get_last_time_down());
+  hscr.set_last_time_unreachable(eh->get_last_time_unreachable());
+  hscr.set_last_time_up(eh->get_last_time_up());
+  hscr.set_latency(eh->get_latency());
+  hscr.set_next_check(eh->get_next_check());
+  hscr.set_next_notification(eh->get_next_notification());
+  hscr.set_no_more_notifications(eh->get_no_more_notifications());
+  if (!eh->get_plugin_output().empty())
+    hscr.set_output(misc::string::check_string_utf8(eh->get_plugin_output()));
+  if (!eh->get_long_plugin_output().empty())
+    hscr.set_output(
+        misc::string::check_string_utf8(eh->get_long_plugin_output()));
+
+  hscr.set_percent_state_change(eh->get_percent_state_change());
+  if (!eh->get_perf_data().empty())
+    hscr.set_perf_data(misc::string::check_string_utf8(eh->get_perf_data()));
+  hscr.set_should_be_scheduled(eh->get_should_be_scheduled());
+  hscr.set_state_type(static_cast<HostStatusCheckResult_StateType>(
+      eh->has_been_checked() ? eh->get_state_type() : engine::notifier::hard));
+  hscr.set_downtime_depth(eh->get_scheduled_downtime_depth());
+
+  // Send event(s).
+  gl_publisher.write(h);
+
+  // Acknowledgement event.
+  auto it = gl_acknowledgements.find(std::make_pair(hscr.host_id(), 0u));
+  if (it != gl_acknowledgements.end() &&
+      hscr.acknowledgement_type() == HostStatusCheckResult_AckType_NONE) {
+    if (!(!hscr.current_state()  // !(OK or (normal ack and NOK))
+          || (!it->second.is_sticky &&
+              (hscr.current_state() != it->second.state)))) {
+      auto ack = std::make_shared<neb::acknowledgement>(it->second);
+      ack->deletion_time = time(nullptr);
+      gl_publisher.write(ack);
+    }
+    gl_acknowledgements.erase(it);
+  }
+  return 0;
+}
+
+/**
  *  @brief Function that process log data.
  *
  *  This function is called by Nagios when some log data are available.
@@ -2763,8 +2857,7 @@ int32_t neb::callback_pb_service_status_check_result(int callback_type
       static_cast<ServiceStatusCheckResult_CheckType>(es->get_check_type()));
   sscr.set_current_check_attempt(es->get_current_attempt());
   sscr.set_current_state(static_cast<ServiceStatusCheckResult_State>(
-      (es->has_been_checked() ? es->get_current_state()
-                              : 4)));  // Pending state.
+      es->has_been_checked() ? es->get_current_state() : 4));  // Pending state.
   sscr.set_execution_time(es->get_execution_time());
   sscr.set_has_been_checked(es->has_been_checked());
   sscr.set_is_flapping(es->get_is_flapping());

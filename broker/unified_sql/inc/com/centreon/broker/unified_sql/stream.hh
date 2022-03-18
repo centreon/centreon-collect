@@ -267,6 +267,7 @@ class stream : public io::stream {
   database::mysql_stmt _pb_service_insupdate;
   database::mysql_stmt _service_status_update;
   database::mysql_stmt _pb_service_status_update;
+  database::mysql_stmt _hscr_update;
   database::mysql_stmt _sscr_update;
   database::mysql_stmt _sss_update;
   database::mysql_stmt _severity_insupdate;
@@ -276,6 +277,7 @@ class stream : public io::stream {
   database::mysql_stmt _tag_update;
   database::mysql_stmt _tag_delete;
   database::mysql_stmt _resources_insupdate;
+  database::mysql_stmt _hscr_resources_update;
   database::mysql_stmt _sscr_resources_update;
 
   database::mysql_stmt _index_data_insert;
@@ -324,6 +326,7 @@ class stream : public io::stream {
       const std::shared_ptr<io::data>& d);
   void _process_pb_service_status_small(const std::shared_ptr<io::data>& d);
   void _process_pb_host_status(const std::shared_ptr<io::data>& d);
+  void _process_pb_host_status_check_result(const std::shared_ptr<io::data>& d);
   void _process_severity(const std::shared_ptr<io::data>& d);
   void _process_tag(const std::shared_ptr<io::data>& d);
 

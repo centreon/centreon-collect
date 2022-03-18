@@ -76,7 +76,9 @@
 #define NEBCALLBACK_SERVICE_STATUS_CHECK_RESULT_DATA 45
 #define NEBCALLBACK_SERVICE_STATUS_DOWNTIME_DATA 46
 
-#define NEBCALLBACK_NUMITEMS 47 /* Total number of callback types we have. */
+#define NEBCALLBACK_HOST_STATUS_CHECK_RESULT_DATA 47
+
+#define NEBCALLBACK_NUMITEMS 48 /* Total number of callback types we have. */
 
 #ifdef __cplusplus
 extern "C" {

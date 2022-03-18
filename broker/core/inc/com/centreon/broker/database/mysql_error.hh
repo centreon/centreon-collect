@@ -116,7 +116,9 @@ class mysql_error {
     store_service_status_small,
     update_index_data,
     update_resources,
+    store_host_status_check_result,
   };
+
   static constexpr const char* msg[]{
       "error: ",
       "could not clean hosts and services tables: ",
@@ -197,6 +199,7 @@ class mysql_error {
       "could not update the service status downtime into the database: ",
       "could not update index data: ",
       "could not update resources: ",
+      "could not update the host status check result into the database: ",
   };
 
   mysql_error() : _active(false) {}
