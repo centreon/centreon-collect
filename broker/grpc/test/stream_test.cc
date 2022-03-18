@@ -159,7 +159,7 @@ class grpc_comm_failure : public ::testing::TestWithParam<test_param> {
     // log_v2::grpc()->set_level(spdlog::level::trace);
     s = std::make_unique<com::centreon::broker::grpc::acceptor>(conf_relay_out);
     relay = std::make_unique<test_util::tcp_relais>(
-        "127.0.0.1", relay_listen_port, "localhost", server_listen_port);
+        "127.0.0.1", relay_listen_port, "127.0.0.1", server_listen_port);
     com::centreon::broker::pool::load(1);
   }
   static void TearDownTestSuite() {
