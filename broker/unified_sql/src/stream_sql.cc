@@ -1413,7 +1413,8 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
   auto& hs = s->obj();
 
   log_v2::perfdata()->info("SQL: pb host status output: <<{}>>", hs.output());
-  log_v2::perfdata()->info("SQL: host status perfdata: <<{}>>", hs.perf_data());
+  log_v2::perfdata()->info("SQL: pb host status perfdata: <<{}>>",
+                           hs.perf_data());
 
   time_t now = time(nullptr);
   if (hs.check_type() ||           // - passive result
