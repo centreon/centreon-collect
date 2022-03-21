@@ -604,10 +604,6 @@ void conflict_manager::_callback() {
               _events_handled = events.size();
               float s = std::accumulate(_stats_count.begin(),
                                         _stats_count.end(), 0.0f);
-              //              float s = 0.0f;
-              //              for (const auto& c : _stats_count)
-              //                s += c;
-
               {
                 std::lock_guard<std::mutex> lk(_stat_m);
                 _speed = s / _stats_count.size();
@@ -743,8 +739,6 @@ void conflict_manager::_finish_actions() {
   log_v2::sql()->trace("conflict_manager: finish actions");
   _mysql.commit();
   std::fill(_action.begin(), _action.end(), actions::none);
-  //  for (uint32_t& v : _action)
-  //    v = actions::none;
 
   _fifo.clean(sql);
   _fifo.clean(storage);
