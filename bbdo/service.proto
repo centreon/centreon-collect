@@ -192,6 +192,12 @@ message ServiceStatusSmall {
   int32 downtime_depth = 5;
 }
 
+/**
+ * @brief Message used to send adaptive service configuration. When only one
+ * or two configuration items change, this event is used.
+ *
+ * Only used with BBDO 3.0
+ */
 message AdaptiveService {
   uint64 host_id = 1;
   uint64 service_id = 2;

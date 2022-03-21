@@ -6,9 +6,9 @@ message Host {
   uint64 host_id = 1;
 
   enum AckType {
-    ACKNOWLEDGEMENT_NONE = 0;
-    ACKNOWLEDGEMENT_NORMAL = 1;
-    ACKNOWLEDGEMENT_STICKY = 2;
+    NONE = 0;
+    NORMAL = 1;
+    STICKY = 2;
   }
   bool acknowledged = 2;
   int32 acknowledgement_type = 3;
@@ -105,6 +105,7 @@ message Host {
   bool retain_nonstatus_information = 77;
   bool retain_status_information = 78;
   string timezone = 79;
+  uint64 severity_id = 80;
 }
 
 /**
@@ -165,6 +166,12 @@ message HostStatusCheckResult {
   int32 downtime_depth = 28;
 }
 
+/**
+ * @brief Message used to send adaptive host configuration. When only one
+ * or two configuration items change, this event is used.
+ *
+ * Only used with BBDO 3.0
+ */
 message AdaptiveHost {
   uint64 host_id = 1;
   uint64 service_id = 2;

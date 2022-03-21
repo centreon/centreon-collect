@@ -85,7 +85,8 @@ class stream : public io::stream {
   enum stream_type { sql, unified_sql };
 
  private:
-  const static std::array<int, 5> ordered_status;
+  const static std::array<int, 4> hst_ordered_status;
+  const static std::array<int, 5> svc_ordered_status;
   enum special_conn {
     custom_variable,
     downtime,
@@ -251,6 +252,7 @@ class stream : public io::stream {
   database::mysql_stmt _host_group_member_delete;
   database::mysql_stmt _host_group_member_insert;
   database::mysql_stmt _host_insupdate;
+  database::mysql_stmt _pb_host_insupdate;
   database::mysql_stmt _host_parent_delete;
   database::mysql_stmt _host_parent_insert;
   database::mysql_stmt _host_status_update;
@@ -276,7 +278,8 @@ class stream : public io::stream {
   database::mysql_stmt _tag_insupdate;
   database::mysql_stmt _tag_update;
   database::mysql_stmt _tag_delete;
-  database::mysql_stmt _resources_insupdate;
+  database::mysql_stmt _resources_host_insupdate;
+  database::mysql_stmt _resources_service_insupdate;
   database::mysql_stmt _hscr_resources_update;
   database::mysql_stmt _sscr_resources_update;
 

@@ -41,7 +41,8 @@ using namespace com::centreon::broker::unified_sql;
 const std::array<std::string, 5> stream::metric_type_name{
     "GAUGE", "COUNTER", "DERIVE", "ABSOLUTE", "AUTOMATIC"};
 
-const std::array<int, 5> stream::ordered_status{0, 3, 4, 2, 1};
+const std::array<int, 4> stream::hst_ordered_status{0, 4, 2, 1};
+const std::array<int, 5> stream::svc_ordered_status{0, 3, 4, 2, 1};
 
 void (stream::*const stream::_neb_processing_table[])(
     const std::shared_ptr<io::data>&) = {

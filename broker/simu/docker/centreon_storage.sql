@@ -2319,10 +2319,22 @@ CREATE TABLE `resources` (
   `poller_id` bigint unsigned NOT NULL,
   `severity_id` bigint unsigned,
   `name` varchar(255) DEFAULT NULL,
+  `alias` varchar(255) DEFAULT NULL,
+  `address` varchar(255) DEFAULT NULL,
   `parent_name` varchar(255) DEFAULT NULL,
+  `notes_url` varchar(255) DEFAULT NULL,
+  `notes` varchar(255) DEFAULT NULL,
+  `action_url` varchar(255) DEFAULT NULL,
+  `has_graph` tinyint(1) DEFAULT 0 NOT NULL,
+  `notifications_enabled` tinyint(1) DEFAULT 0 NOT NULL,
+  `passive_checks_enabled` tinyint(1) DEFAULT 0 NOT NULL,
+  `active_checks_enabled` tinyint(1) DEFAULT 0 NOT NULL,
+  `last_check_type` tinyint unsigned DEFAULT 0 NOT NULL,
+  `last_check` bigint unsigned DEFAULT NULL,
+  `output` text,
   PRIMARY KEY (id, parent_id),
   FOREIGN KEY (severity_id) REFERENCES severities (id)
-    ON DELETE CASCADE
+  ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
