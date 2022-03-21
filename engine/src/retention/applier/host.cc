@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013,2015-2016 Centreon
+** Copyright 2011-2013,2015-2016,2022 Centreon
 **
 ** This file is part of Centreon Engine.
 **
@@ -311,5 +311,6 @@ void applier::host::_update(configuration::state const& config,
     obj.set_last_hard_state_change(obj.get_last_state_change());
 
   // update host status.
-  obj.update_status();
+  obj.update_adaptive_data();
+  obj.update_status(notifier::CHECK_RESULT);
 }

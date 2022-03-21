@@ -2433,6 +2433,20 @@ void host::update_performance_data() {
   xpddefault_update_host_performance_data(this);
 }
 
+/**
+ * @brief Several configurations could be initially handled by host status
+ * events. But they are configurations and do not have to be handled like this.
+ * So, to have host_status lighter, we removed these items from it but we
+ * add a new adaptive host event containing these ones. it is sent when this
+ * method is called.
+ */
+void host::update_adaptive_data() {
+  /* send data to event broker */
+  broker_adaptive_host_data(
+      NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE, NEBATTR_BBDO3_ONLY, this,
+      CMD_NONE, get_modified_attributes(), get_modified_attributes(), nullptr);
+}
+
 /* checks viability of performing a host check */
 bool host::verify_check_viability(int check_options,
                                   bool* time_is_valid,

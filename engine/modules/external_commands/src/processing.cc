@@ -768,8 +768,8 @@ void processing::_wrapper_enable_host_svc_checks(host* hst) {
 }
 
 void processing::_wrapper_set_host_notification_number(host* hst, char* args) {
-  if (args)
-    set_host_notification_number(hst, atoi(args));
+  if (hst && args)
+    hst->set_notification_number(atoi(args));
 }
 
 void processing::_wrapper_send_custom_host_notification(host* hst, char* args) {
@@ -832,8 +832,8 @@ void processing::_wrapper_disable_passive_service_checks(host* hst) {
 void processing::_wrapper_set_service_notification_number(service* svc,
                                                           char* args) {
   char* str(my_strtok(args, ";"));
-  if (str)
-    set_service_notification_number(svc, atoi(str));
+  if (svc && str)
+    svc->set_notification_number(atoi(str));
 }
 
 void processing::_wrapper_send_custom_service_notification(service* svc,

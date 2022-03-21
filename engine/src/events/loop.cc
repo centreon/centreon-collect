@@ -396,7 +396,7 @@ void loop::_dispatching() {
                                                    config->interval_length()));
           temp_event->run_time = temp_host->get_next_check();
           reschedule_event(temp_event, events::loop::low);
-          temp_host->update_status();
+          temp_host->update_status(host::CHECK_RESULT);
           run_event = false;
         }
       }
@@ -615,7 +615,7 @@ void loop::adjust_check_scheduling() {
           current_exec_time_offset, current_icd_offset, first_window_time);
       (*it)->run_time = new_run_time;
       hst->set_next_check(new_run_time);
-      hst->update_status();
+      hst->update_status(host::CHECK_RESULT);
     } else if ((*it)->event_type == timed_event::EVENT_SERVICE_CHECK) {
       if (!(svc = (com::centreon::engine::service*)(*it)->event_data))
         continue;
@@ -771,7 +771,7 @@ void loop::compensate_for_system_time_change(unsigned long last_time,
         it->second->get_last_notification()));
 
     // update the status data.
-    it->second->update_status();
+    it->second->update_status(service::CHECK_RESULT);
   }
 
   // adjust host timestamps.
@@ -802,7 +802,7 @@ void loop::compensate_for_system_time_change(unsigned long last_time,
         it->second->get_last_notification()));
 
     // update the status data.
-    it->second->update_status();
+    it->second->update_status(host::CHECK_RESULT);
   }
 
   // adjust program timestamps.

@@ -198,16 +198,17 @@ message AdaptiveService {
 
   optional bool notifications_enabled = 3;
   optional bool active_checks_enabled = 4;
-  optional bool passive_checks_enabled = 5;
-  optional bool event_handler_enabled = 6;
-  optional bool flap_detection_enabled  = 7;
-  optional bool obsess_over  = 8;
-  optional string event_handler = 9;
-  optional string check_command  = 10;
-  optional uint32 check_interval  = 11;
-  optional uint32 retry_interval  = 12;
-  optional uint32 max_check_attempts  = 13;
-  optional bool check_freshness = 14;
-  optional string check_period  = 15;
-  optional string notification_period  = 16;
+  optional bool should_be_scheduled = 5;
+  optional bool passive_checks_enabled = 6;
+  optional bool event_handler_enabled = 7;
+  optional bool flap_detection_enabled = 8;
+  optional bool obsess_over = 9;
+  optional string event_handler = 10;
+  optional string check_command = 11;
+  optional uint32 check_interval = 12;
+  optional uint32 retry_interval = 13;
+  optional uint32 max_check_attempts  = 14;
+  optional bool check_freshness = 15;
+  optional string check_period = 16;
+  optional string notification_period = 17;
 }

@@ -204,7 +204,7 @@ int service_downtime::unschedule() {
         get_duration(), get_downtime_id(), nullptr);
 
     found->second->dec_scheduled_downtime_depth();
-    found->second->update_status(service::DOWNTIME);
+    found->second->update_status(service::CHECK_RESULT);
 
     /* log a notice - this is parsed by the history CGI */
     if (found->second->get_scheduled_downtime_depth() == 0) {

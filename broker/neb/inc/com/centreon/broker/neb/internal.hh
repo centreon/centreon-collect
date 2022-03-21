@@ -74,6 +74,9 @@ using pb_host_status_check_result =
     io::protobuf<HostStatusCheckResult,
                  make_type(io::neb, neb::de_pb_host_status_check_result)>;
 using pb_host = io::protobuf<Host, make_type(io::neb, neb::de_pb_host)>;
+using pb_adaptive_host =
+    io::protobuf<AdaptiveHost, make_type(io::neb, neb::de_pb_adaptive_host)>;
+
 using pb_severity =
     io::protobuf<Severity, make_type(io::neb, neb::de_pb_severity)>;
 using pb_tag = io::protobuf<Tag, make_type(io::neb, neb::de_pb_tag)>;

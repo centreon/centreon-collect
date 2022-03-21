@@ -1193,9 +1193,121 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
 }
 
 /**
+ *  Process an adaptive host event.
+ *
+ *  @param[in] e Uncasted host.
+ *
+ */
+void stream::_process_pb_adaptive_host(const std::shared_ptr<io::data>& d) {
+  log_v2::sql()->debug("SQL: process pb adaptive host");
+  _finish_action(-1, actions::host_parents | actions::comments |
+                         actions::downtimes | actions::host_dependencies |
+                         actions::service_dependencies);
+  // Processed object.
+  auto h{static_cast<const neb::pb_adaptive_host*>(d.get())};
+  auto& ah = h->obj();
+  if (_cache_host_instance[ah.host_id()]) {
+    int32_t conn = _mysql.choose_connection_by_instance(
+        _cache_host_instance[static_cast<uint32_t>(ah.host_id())]);
+
+    constexpr const char* buf = "UPDATE hosts SET";
+    constexpr size_t size = strlen(buf);
+    std::string query{buf};
+    if (ah.has_notifications_enabled())
+      query += fmt::format(" notify='{}',", ah.notifications_enabled() ? 1 : 0);
+    if (ah.has_active_checks_enabled())
+      query += fmt::format(" active_checks='{}',",
+                           ah.active_checks_enabled() ? 1 : 0);
+    if (ah.has_should_be_scheduled())
+      query += fmt::format(" should_be_scheduled='{}',",
+                           ah.should_be_scheduled() ? 1 : 0);
+    if (ah.has_passive_checks_enabled())
+      query += fmt::format(" passive_checks='{}',",
+                           ah.passive_checks_enabled() ? 1 : 0);
+    if (ah.has_event_handler_enabled())
+      query += fmt::format(" event_handler_enabled='{}',",
+                           ah.event_handler_enabled() ? 1 : 0);
+    if (ah.has_flap_detection_enabled())
+      query += fmt::format(" flap_detection='{}',",
+                           ah.flap_detection_enabled() ? 1 : 0);
+    if (ah.has_obsess_over())
+      query += fmt::format(" obsess_over_host='{}',", ah.obsess_over() ? 1 : 0);
+    if (ah.has_event_handler())
+      query += fmt::format(
+          " event_handler='{}',",
+          misc::string::escape(ah.event_handler(),
+                               get_hosts_col_size(hosts_event_handler)));
+    if (ah.has_check_command())
+      query += fmt::format(
+          " check_command='{}',",
+          misc::string::escape(ah.check_command(),
+                               get_hosts_col_size(hosts_check_command)));
+    if (ah.has_check_interval())
+      query += fmt::format(" check_interval={},", ah.check_interval());
+    if (ah.has_retry_interval())
+      query += fmt::format(" retry_interval={},", ah.retry_interval());
+    if (ah.has_max_check_attempts())
+      query += fmt::format(" max_check_attempts={},", ah.max_check_attempts());
+    if (ah.has_check_freshness())
+      query +=
+          fmt::format(" check_freshness='{}',", ah.check_freshness() ? 1 : 0);
+    if (ah.has_check_period())
+      query += fmt::format(
+          " check_period='{}',",
+          misc::string::escape(ah.check_period(),
+                               get_hosts_col_size(hosts_check_period)));
+    if (ah.has_notification_period())
+      query +=
+          fmt::format(" notification_period='{}',",
+                      misc::string::escape(
+                          ah.notification_period(),
+                          get_services_col_size(services_notification_period)));
+
+    // If nothing was added to query, we can exit immediately.
+    if (query.size() > size) {
+      query.resize(query.size() - 1);
+      query += fmt::format(" WHERE host_id={}", ah.host_id());
+      log_v2::sql()->trace("SQL: query <<{}>>", query);
+      _mysql.run_query(query, database::mysql_error::store_host, false, conn);
+      _add_action(conn, actions::hosts);
+
+      constexpr const char* res_buf = "UPDATE resources SET";
+      constexpr size_t res_size = strlen(res_buf);
+      std::string res_query{res_buf};
+      if (ah.has_notifications_enabled())
+        res_query += fmt::format(" notifications_enabled='{}',",
+                                 ah.notifications_enabled() ? 1 : 0);
+      if (ah.has_active_checks_enabled())
+        res_query += fmt::format(" active_checks_enabled='{}',",
+                                 ah.active_checks_enabled() ? 1 : 0);
+      if (ah.has_passive_checks_enabled())
+        res_query += fmt::format(" passive_checks_enabled='{}',",
+                                 ah.passive_checks_enabled() ? 1 : 0);
+      if (ah.has_max_check_attempts())
+        res_query +=
+            fmt::format(" max_check_attempts={},", ah.max_check_attempts());
+
+      if (res_query.size() > res_size) {
+        res_query.resize(res_query.size() - 1);
+        res_query +=
+            fmt::format(" WHERE parent_id IS NULL AND id={}", ah.host_id());
+        log_v2::sql()->trace("SQL: query <<{}>>", res_query);
+        _mysql.run_query(res_query, database::mysql_error::update_resources,
+                         false, conn);
+        _add_action(conn, actions::resources);
+      }
+    }
+  } else
+    log_v2::sql()->error(
+        "SQL: host with host_id = {} does not exist - unable to store service "
+        "of that host. You should restart centengine",
+        ah.host_id());
+}
+
+/**
  *  Process a host status protobuf event.
  *
- *  @param[in] e Uncasted host status.
+ *  @param[in] d Uncasted host status.
  *
  * @return The number of events that can be acknowledged.
  */
@@ -2172,6 +2284,9 @@ void stream::_process_pb_adaptive_service(const std::shared_ptr<io::data>& d) {
     if (as.has_active_checks_enabled())
       query += fmt::format(" active_checks='{}',",
                            as.active_checks_enabled() ? 1 : 0);
+    if (as.has_should_be_scheduled())
+      query += fmt::format(" should_be_scheduled='{}',",
+                           as.should_be_scheduled() ? 1 : 0);
     if (as.has_passive_checks_enabled())
       query += fmt::format(" passive_checks='{}',",
                            as.passive_checks_enabled() ? 1 : 0);

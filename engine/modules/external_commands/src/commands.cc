@@ -1352,7 +1352,7 @@ int cmd_change_object_int_var(int cmd, char* args) {
   double old_dval(0.0);
   time_t preferred_time(0);
   time_t next_valid_time(0);
-  unsigned long attr(MODATTR_NONE);
+  uint32_t attr = MODATTR_NONE;
   unsigned long hattr(MODATTR_NONE);
   unsigned long sattr(MODATTR_NONE);
   host_map::const_iterator it;
@@ -1577,8 +1577,6 @@ int cmd_change_object_int_var(int cmd, char* args) {
                                 NEBATTR_NONE, temp_host, cmd, attr,
                                 temp_host->get_modified_attributes(), nullptr);
 
-      /* update the status log with the host info */
-      temp_host->update_status();
       break;
 
     case CMD_CHANGE_CONTACT_MODATTR:
@@ -1905,9 +1903,6 @@ int cmd_change_object_char_var(int cmd, char* args) {
       broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
                                 NEBATTR_NONE, temp_host, cmd, attr,
                                 temp_host->get_modified_attributes(), nullptr);
-
-      /* update the status log with the host info */
-      temp_host->update_status();
       break;
 
     case CMD_CHANGE_CONTACT_HOST_NOTIFICATION_TIMEPERIOD:
@@ -1988,7 +1983,6 @@ int cmd_change_object_custom_var(int cmd, char* args) {
 
       /* set the modified attributes and update the status of the object */
       temp_host->add_modified_attributes(MODATTR_CUSTOM_VARIABLE);
-      temp_host->update_status();
     } break;
     case CMD_CHANGE_CUSTOM_SVC_VAR: {
       service_map::const_iterator found(service::services.find({name1, name2}));
@@ -2064,7 +2058,7 @@ int cmd_process_external_commands_from_file(int cmd, char* args) {
 
 /* temporarily disables a service check */
 void disable_service_checks(service* svc) {
-  unsigned long attr(MODATTR_ACTIVE_CHECKS_ENABLED);
+  constexpr uint32_t attr = MODATTR_ACTIVE_CHECKS_ENABLED;
 
   /* checks are already disabled */
   if (!svc->active_checks_enabled())
@@ -2087,7 +2081,7 @@ void disable_service_checks(service* svc) {
 void enable_service_checks(service* svc) {
   time_t preferred_time(0);
   time_t next_valid_time(0);
-  unsigned long attr(MODATTR_ACTIVE_CHECKS_ENABLED);
+  constexpr uint32_t attr = MODATTR_ACTIVE_CHECKS_ENABLED;
 
   /* checks are already enabled */
   if (svc->active_checks_enabled())
@@ -2121,11 +2115,14 @@ void enable_service_checks(service* svc) {
   broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
                                NEBATTR_NONE, svc, CMD_NONE, attr,
                                svc->get_modified_attributes(), nullptr);
+
+  /* update the status log with the host info */
+  svc->update_status(service::CHECK_RESULT);
 }
 
 /* enable notifications on a program-wide basis */
 void enable_all_notifications(void) {
-  unsigned long attr(MODATTR_NOTIFICATIONS_ENABLED);
+  constexpr uint32_t attr = MODATTR_NOTIFICATIONS_ENABLED;
 
   /* bail out if we're already set... */
   if (config->enable_notifications())
@@ -2150,7 +2147,7 @@ void enable_all_notifications(void) {
 
 /* disable notifications on a program-wide basis */
 void disable_all_notifications(void) {
-  unsigned long attr(MODATTR_NOTIFICATIONS_ENABLED);
+  constexpr uint32_t attr = MODATTR_NOTIFICATIONS_ENABLED;
 
   /* bail out if we're already set... */
   if (config->enable_notifications() == false)
@@ -2195,7 +2192,7 @@ void enable_service_notifications(service* svc) {
 
 /* disables notifications for a service */
 void disable_service_notifications(service* svc) {
-  unsigned long attr(MODATTR_NOTIFICATIONS_ENABLED);
+  constexpr uint32_t attr = MODATTR_NOTIFICATIONS_ENABLED;
 
   /* no change */
   if (!svc->get_notifications_enabled())
@@ -2215,7 +2212,7 @@ void disable_service_notifications(service* svc) {
 
 /* enables notifications for a host */
 void enable_host_notifications(host* hst) {
-  unsigned long attr(MODATTR_NOTIFICATIONS_ENABLED);
+  constexpr uint32_t attr = MODATTR_NOTIFICATIONS_ENABLED;
 
   /* no change */
   if (hst->get_notifications_enabled())
@@ -2231,14 +2228,11 @@ void enable_host_notifications(host* hst) {
   broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
                             NEBATTR_NONE, hst, CMD_NONE, attr,
                             hst->get_modified_attributes(), nullptr);
-
-  /* update the status log to reflect the new host state */
-  hst->update_status();
 }
 
 /* disables notifications for a host */
 void disable_host_notifications(host* hst) {
-  unsigned long attr(MODATTR_NOTIFICATIONS_ENABLED);
+  constexpr uint32_t attr = MODATTR_NOTIFICATIONS_ENABLED;
 
   /* no change */
   if (!hst->get_notifications_enabled())
@@ -2254,9 +2248,6 @@ void disable_host_notifications(host* hst) {
   broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
                             NEBATTR_NONE, hst, CMD_NONE, attr,
                             hst->get_modified_attributes(), nullptr);
-
-  /* update the status log to reflect the new host state */
-  hst->update_status();
 }
 
 /* enables notifications for all hosts and services "beyond" a given host */
@@ -2340,7 +2331,7 @@ void disable_and_propagate_notifications(host* hst,
 
 /* enables host notifications for a contact */
 void enable_contact_host_notifications(contact* cntct) {
-  unsigned long attr(MODATTR_NOTIFICATIONS_ENABLED);
+  constexpr uint32_t attr = MODATTR_NOTIFICATIONS_ENABLED;
 
   /* no change */
   if (cntct->get_host_notifications_enabled())
@@ -2366,7 +2357,7 @@ void enable_contact_host_notifications(contact* cntct) {
 
 /* disables host notifications for a contact */
 void disable_contact_host_notifications(contact* cntct) {
-  unsigned long attr(MODATTR_NOTIFICATIONS_ENABLED);
+  constexpr uint32_t attr = MODATTR_NOTIFICATIONS_ENABLED;
 
   /* no change */
   if (!cntct->get_host_notifications_enabled())
@@ -2392,7 +2383,7 @@ void disable_contact_host_notifications(contact* cntct) {
 
 /* enables service notifications for a contact */
 void enable_contact_service_notifications(contact* cntct) {
-  unsigned long attr(MODATTR_NOTIFICATIONS_ENABLED);
+  constexpr uint32_t attr = MODATTR_NOTIFICATIONS_ENABLED;
 
   /* no change */
   if (cntct->get_service_notifications_enabled())
@@ -2418,7 +2409,7 @@ void enable_contact_service_notifications(contact* cntct) {
 
 /* disables service notifications for a contact */
 void disable_contact_service_notifications(contact* cntct) {
-  unsigned long attr(MODATTR_NOTIFICATIONS_ENABLED);
+  constexpr uint32_t attr = MODATTR_NOTIFICATIONS_ENABLED;
 
   /* no change */
   if (!cntct->get_service_notifications_enabled())
@@ -2557,10 +2548,10 @@ void acknowledge_service_problem(service* svc,
   svc->update_status(service::CHECK_RESULT);
 
   /* add a comment for the acknowledgement */
-  std::shared_ptr<comment> com{
-      new comment(comment::service, comment::acknowledgment, svc->get_host_id(),
-                  svc->get_service_id(), current_time, ack_author, ack_data,
-                  persistent, comment::internal, false, (time_t)0)};
+  auto com{std::make_shared<comment>(
+      comment::service, comment::acknowledgment, svc->get_host_id(),
+      svc->get_service_id(), current_time, ack_author, ack_data, persistent,
+      comment::internal, false, (time_t)0)};
   comment::comments.insert({com->get_comment_id(), com});
 }
 
@@ -2590,7 +2581,7 @@ void remove_service_acknowledgement(service* svc) {
 
 /* starts executing service checks */
 void start_executing_service_checks(void) {
-  unsigned long attr(MODATTR_ACTIVE_CHECKS_ENABLED);
+  constexpr uint32_t attr = MODATTR_ACTIVE_CHECKS_ENABLED;
 
   /* bail out if we're already executing services */
   if (config->execute_service_checks())
@@ -2638,7 +2629,7 @@ void stop_executing_service_checks(void) {
 
 /* starts accepting passive service checks */
 void start_accepting_passive_service_checks(void) {
-  unsigned long attr(MODATTR_PASSIVE_CHECKS_ENABLED);
+  constexpr uint32_t attr = MODATTR_PASSIVE_CHECKS_ENABLED;
 
   /* bail out if we're already accepting passive services */
   if (config->accept_passive_service_checks())
@@ -2662,7 +2653,7 @@ void start_accepting_passive_service_checks(void) {
 
 /* stops accepting passive service checks */
 void stop_accepting_passive_service_checks(void) {
-  unsigned long attr(MODATTR_PASSIVE_CHECKS_ENABLED);
+  constexpr uint32_t attr = MODATTR_PASSIVE_CHECKS_ENABLED;
 
   /* bail out if we're already not accepting passive services */
   if (config->accept_passive_service_checks() == false)
@@ -2706,7 +2697,7 @@ void enable_passive_service_checks(service* svc) {
 
 /* disables passive service checks for a particular service */
 void disable_passive_service_checks(service* svc) {
-  unsigned long attr(MODATTR_PASSIVE_CHECKS_ENABLED);
+  constexpr uint32_t attr = MODATTR_PASSIVE_CHECKS_ENABLED;
 
   /* no change */
   if (!svc->passive_checks_enabled())
@@ -2726,7 +2717,7 @@ void disable_passive_service_checks(service* svc) {
 
 /* starts executing host checks */
 void start_executing_host_checks(void) {
-  unsigned long attr(MODATTR_ACTIVE_CHECKS_ENABLED);
+  constexpr uint32_t attr = MODATTR_ACTIVE_CHECKS_ENABLED;
 
   /* bail out if we're already executing hosts */
   if (config->execute_host_checks())
@@ -2750,7 +2741,7 @@ void start_executing_host_checks(void) {
 
 /* stops executing host checks */
 void stop_executing_host_checks(void) {
-  unsigned long attr(MODATTR_ACTIVE_CHECKS_ENABLED);
+  constexpr uint32_t attr = MODATTR_ACTIVE_CHECKS_ENABLED;
 
   /* bail out if we're already not executing hosts */
   if (config->execute_host_checks() == false)
@@ -2774,7 +2765,7 @@ void stop_executing_host_checks(void) {
 
 /* starts accepting passive host checks */
 void start_accepting_passive_host_checks(void) {
-  unsigned long attr(MODATTR_PASSIVE_CHECKS_ENABLED);
+  constexpr uint32_t attr = MODATTR_PASSIVE_CHECKS_ENABLED;
 
   /* bail out if we're already accepting passive hosts */
   if (config->accept_passive_host_checks())
@@ -2798,7 +2789,7 @@ void start_accepting_passive_host_checks(void) {
 
 /* stops accepting passive host checks */
 void stop_accepting_passive_host_checks(void) {
-  unsigned long attr(MODATTR_PASSIVE_CHECKS_ENABLED);
+  constexpr uint32_t attr = MODATTR_PASSIVE_CHECKS_ENABLED;
 
   /* bail out if we're already not accepting passive hosts */
   if (config->accept_passive_host_checks() == false)
@@ -2841,7 +2832,7 @@ void enable_passive_host_checks(host* hst) {
 
 /* disables passive host checks for a particular host */
 void disable_passive_host_checks(host* hst) {
-  unsigned long attr(MODATTR_PASSIVE_CHECKS_ENABLED);
+  constexpr uint32_t attr = MODATTR_PASSIVE_CHECKS_ENABLED;
 
   /* no change */
   if (!hst->passive_checks_enabled())
@@ -2857,14 +2848,11 @@ void disable_passive_host_checks(host* hst) {
   broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
                             NEBATTR_NONE, hst, CMD_NONE, attr,
                             hst->get_modified_attributes(), nullptr);
-
-  /* update the status log with the host info */
-  hst->update_status();
 }
 
 /* enables event handlers on a program-wide basis */
 void start_using_event_handlers(void) {
-  unsigned long attr(MODATTR_EVENT_HANDLER_ENABLED);
+  constexpr uint32_t attr = MODATTR_EVENT_HANDLER_ENABLED;
 
   /* no change */
   if (config->enable_event_handlers())
@@ -2889,7 +2877,7 @@ void start_using_event_handlers(void) {
 
 /* disables event handlers on a program-wide basis */
 void stop_using_event_handlers(void) {
-  unsigned long attr(MODATTR_EVENT_HANDLER_ENABLED);
+  constexpr uint32_t attr = MODATTR_EVENT_HANDLER_ENABLED;
 
   /* no change */
   if (config->enable_event_handlers() == false)
@@ -2914,7 +2902,7 @@ void stop_using_event_handlers(void) {
 
 /* enables the event handler for a particular service */
 void enable_service_event_handler(service* svc) {
-  unsigned long attr(MODATTR_EVENT_HANDLER_ENABLED);
+  constexpr uint32_t attr = MODATTR_EVENT_HANDLER_ENABLED;
 
   /* no change */
   if (svc->event_handler_enabled())
@@ -2934,7 +2922,7 @@ void enable_service_event_handler(service* svc) {
 
 /* disables the event handler for a particular service */
 void disable_service_event_handler(service* svc) {
-  unsigned long attr(MODATTR_EVENT_HANDLER_ENABLED);
+  constexpr uint32_t attr = MODATTR_EVENT_HANDLER_ENABLED;
 
   /* no change */
   if (!svc->event_handler_enabled())
@@ -2954,7 +2942,7 @@ void disable_service_event_handler(service* svc) {
 
 /* enables the event handler for a particular host */
 void enable_host_event_handler(host* hst) {
-  unsigned long attr(MODATTR_EVENT_HANDLER_ENABLED);
+  constexpr uint32_t attr = MODATTR_EVENT_HANDLER_ENABLED;
 
   /* no change */
   if (hst->event_handler_enabled())
@@ -2970,14 +2958,11 @@ void enable_host_event_handler(host* hst) {
   broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
                             NEBATTR_NONE, hst, CMD_NONE, attr,
                             hst->get_modified_attributes(), nullptr);
-
-  /* update the status log with the host info */
-  hst->update_status();
 }
 
 /* disables the event handler for a particular host */
 void disable_host_event_handler(host* hst) {
-  unsigned long attr(MODATTR_EVENT_HANDLER_ENABLED);
+  constexpr uint32_t attr = MODATTR_EVENT_HANDLER_ENABLED;
 
   /* no change */
   if (!hst->event_handler_enabled())
@@ -2993,14 +2978,11 @@ void disable_host_event_handler(host* hst) {
   broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
                             NEBATTR_NONE, hst, CMD_NONE, attr,
                             hst->get_modified_attributes(), nullptr);
-
-  /* update the status log with the host info */
-  hst->update_status();
 }
 
 /* disables checks of a particular host */
 void disable_host_checks(host* hst) {
-  unsigned long attr(MODATTR_ACTIVE_CHECKS_ENABLED);
+  constexpr uint32_t attr = MODATTR_ACTIVE_CHECKS_ENABLED;
 
   /* checks are already disabled */
   if (!hst->active_checks_enabled())
@@ -3017,16 +2999,13 @@ void disable_host_checks(host* hst) {
   broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
                             NEBATTR_NONE, hst, CMD_NONE, attr,
                             hst->get_modified_attributes(), nullptr);
-
-  /* update the status log with the host info */
-  hst->update_status();
 }
 
 /* enables checks of a particular host */
 void enable_host_checks(host* hst) {
   time_t preferred_time(0);
   time_t next_valid_time(0);
-  unsigned long attr(MODATTR_ACTIVE_CHECKS_ENABLED);
+  constexpr uint32_t attr = MODATTR_ACTIVE_CHECKS_ENABLED;
 
   /* checks are already enabled */
   if (hst->active_checks_enabled())
@@ -3062,12 +3041,12 @@ void enable_host_checks(host* hst) {
                             hst->get_modified_attributes(), nullptr);
 
   /* update the status log with the host info */
-  hst->update_status();
+  hst->update_status(host::CHECK_RESULT);
 }
 
 /* start obsessing over service check results */
 void start_obsessing_over_service_checks(void) {
-  unsigned long attr(MODATTR_OBSESSIVE_HANDLER_ENABLED);
+  constexpr uint32_t attr = MODATTR_OBSESSIVE_HANDLER_ENABLED;
 
   /* no change */
   if (config->obsess_over_services())
@@ -3091,7 +3070,7 @@ void start_obsessing_over_service_checks(void) {
 
 /* stop obsessing over service check results */
 void stop_obsessing_over_service_checks(void) {
-  unsigned long attr(MODATTR_OBSESSIVE_HANDLER_ENABLED);
+  constexpr uint32_t attr = MODATTR_OBSESSIVE_HANDLER_ENABLED;
 
   /* no change */
   if (config->obsess_over_services() == false)
@@ -3139,7 +3118,7 @@ void start_obsessing_over_host_checks(void) {
 
 /* stop obsessing over host check results */
 void stop_obsessing_over_host_checks(void) {
-  unsigned long attr(MODATTR_OBSESSIVE_HANDLER_ENABLED);
+  constexpr uint32_t attr = MODATTR_OBSESSIVE_HANDLER_ENABLED;
 
   /* no change */
   if (config->obsess_over_hosts() == false)
@@ -3163,7 +3142,7 @@ void stop_obsessing_over_host_checks(void) {
 
 /* enables service freshness checking */
 void enable_service_freshness_checks(void) {
-  unsigned long attr(MODATTR_FRESHNESS_CHECKS_ENABLED);
+  constexpr uint32_t attr = MODATTR_FRESHNESS_CHECKS_ENABLED;
 
   /* no change */
   if (config->check_service_freshness())
@@ -3187,7 +3166,7 @@ void enable_service_freshness_checks(void) {
 
 /* disables service freshness checking */
 void disable_service_freshness_checks(void) {
-  unsigned long attr(MODATTR_FRESHNESS_CHECKS_ENABLED);
+  constexpr uint32_t attr = MODATTR_FRESHNESS_CHECKS_ENABLED;
 
   /* no change */
   if (config->check_service_freshness() == false)
@@ -3211,7 +3190,7 @@ void disable_service_freshness_checks(void) {
 
 /* enables host freshness checking */
 void enable_host_freshness_checks(void) {
-  unsigned long attr(MODATTR_FRESHNESS_CHECKS_ENABLED);
+  constexpr uint32_t attr = MODATTR_FRESHNESS_CHECKS_ENABLED;
 
   /* no change */
   if (config->check_host_freshness())
@@ -3234,7 +3213,7 @@ void enable_host_freshness_checks(void) {
 
 /* disables host freshness checking */
 void disable_host_freshness_checks(void) {
-  unsigned long attr(MODATTR_FRESHNESS_CHECKS_ENABLED);
+  constexpr uint32_t attr = MODATTR_FRESHNESS_CHECKS_ENABLED;
 
   /* no change */
   if (config->check_host_freshness() == false)
@@ -3258,7 +3237,7 @@ void disable_host_freshness_checks(void) {
 
 /* enable performance data on a program-wide basis */
 void enable_performance_data(void) {
-  unsigned long attr(MODATTR_PERFORMANCE_DATA_ENABLED);
+  constexpr uint32_t attr = MODATTR_PERFORMANCE_DATA_ENABLED;
 
   /* bail out if we're already set... */
   if (config->process_performance_data())
@@ -3282,7 +3261,7 @@ void enable_performance_data(void) {
 
 /* disable performance data on a program-wide basis */
 void disable_performance_data(void) {
-  unsigned long attr(MODATTR_PERFORMANCE_DATA_ENABLED);
+  constexpr uint32_t attr = MODATTR_PERFORMANCE_DATA_ENABLED;
 
   /* bail out if we're already set... */
   if (config->process_performance_data() == false)
@@ -3306,7 +3285,7 @@ void disable_performance_data(void) {
 
 /* start obsessing over a particular service */
 void start_obsessing_over_service(service* svc) {
-  unsigned long attr(MODATTR_OBSESSIVE_HANDLER_ENABLED);
+  constexpr uint32_t attr = MODATTR_OBSESSIVE_HANDLER_ENABLED;
 
   /* no change */
   if (svc->obsess_over())
@@ -3326,7 +3305,7 @@ void start_obsessing_over_service(service* svc) {
 
 /* stop obsessing over a particular service */
 void stop_obsessing_over_service(service* svc) {
-  unsigned long attr(MODATTR_OBSESSIVE_HANDLER_ENABLED);
+  constexpr uint32_t attr = MODATTR_OBSESSIVE_HANDLER_ENABLED;
 
   /* no change */
   if (!svc->obsess_over())
@@ -3346,7 +3325,7 @@ void stop_obsessing_over_service(service* svc) {
 
 /* start obsessing over a particular host */
 void start_obsessing_over_host(host* hst) {
-  unsigned long attr(MODATTR_OBSESSIVE_HANDLER_ENABLED);
+  constexpr uint32_t attr = MODATTR_OBSESSIVE_HANDLER_ENABLED;
 
   /* no change */
   if (hst->obsess_over())
@@ -3362,14 +3341,11 @@ void start_obsessing_over_host(host* hst) {
   broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
                             NEBATTR_NONE, hst, CMD_NONE, attr,
                             hst->get_modified_attributes(), nullptr);
-
-  /* update the status log with the host info */
-  hst->update_status();
 }
 
 /* stop obsessing over a particular host */
 void stop_obsessing_over_host(host* hst) {
-  unsigned long attr(MODATTR_OBSESSIVE_HANDLER_ENABLED);
+  constexpr uint32_t attr = MODATTR_OBSESSIVE_HANDLER_ENABLED;
 
   /* no change */
   if (!hst->obsess_over())
@@ -3385,17 +3361,6 @@ void stop_obsessing_over_host(host* hst) {
   broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
                             NEBATTR_NONE, hst, CMD_NONE, attr,
                             hst->get_modified_attributes(), nullptr);
-
-  /* update the status log with the host info */
-  hst->update_status();
-}
-
-void set_host_notification_number(host* hst, int num) {
-  hst->set_notification_number(num);
-}
-
-void set_service_notification_number(service* svc, int num) {
-  svc->set_notification_number(num);
 }
 
 void new_thresholds_file(char* filename) {

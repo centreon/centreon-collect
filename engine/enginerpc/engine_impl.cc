@@ -836,7 +836,7 @@ grpc::Status engine_impl::RemoveHostAcknowledgement(
     /* set the acknowledgement flag */
     temp_host->set_problem_has_been_acknowledged(false);
     /* update the status log with the host info */
-    temp_host->update_status();
+    temp_host->update_status(host::CHECK_RESULT);
     /* remove any non-persistant comments associated with the ack */
     comment::delete_host_acknowledgement_comments(temp_host.get());
     return 0;
@@ -907,7 +907,7 @@ grpc::Status engine_impl::RemoveServiceAcknowledgement(
     /* set the acknowledgement flag */
     temp_service->set_problem_has_been_acknowledged(false);
     /* update the status log with the service info */
-    temp_service->update_status();
+    temp_service->update_status(service::CHECK_RESULT);
     /* remove any non-persistant comments associated with the ack */
     comment::delete_service_acknowledgement_comments(temp_service.get());
     return 0;
@@ -965,7 +965,7 @@ grpc::Status engine_impl::AcknowledgementHostProblem(
                         request->ack_data(),
                         notifier::notification_option_none);
     /* update the status log with the host info */
-    temp_host->update_status();
+    temp_host->update_status(host::CHECK_RESULT);
     /* add a comment for the acknowledgement */
     auto com = std::make_shared<comment>(
         comment::host, comment::acknowledgment, temp_host->get_host_id(), 0,
@@ -1010,12 +1010,12 @@ grpc::Status engine_impl::AcknowledgementServiceProblem(
     /* set the acknowledgement flag */
     temp_service->set_problem_has_been_acknowledged(true);
     /* set the acknowledgement type */
-    if (EngineAcknowledgement::Type_Name(request->type()) == "STICKY")
+    if (request->type() == EngineAcknowledgement_Type_STICKY)
       temp_service->set_acknowledgement_type(ACKNOWLEDGEMENT_STICKY);
     else
       temp_service->set_acknowledgement_type(ACKNOWLEDGEMENT_NORMAL);
     /* schedule acknowledgement expiration */
-    time_t current_time(time(nullptr));
+    time_t current_time = time(nullptr);
     temp_service->set_last_acknowledgement(current_time);
     temp_service->schedule_acknowledgement_expiration();
     /* send data to event broker */
@@ -1030,7 +1030,7 @@ grpc::Status engine_impl::AcknowledgementServiceProblem(
                            request->ack_author(), request->ack_data(),
                            notifier::notification_option_none);
     /* update the status log with the service info */
-    temp_service->update_status();
+    temp_service->update_status(service::CHECK_RESULT);
 
     /* add a comment for the acknowledgement */
     auto com = std::make_shared<comment>(

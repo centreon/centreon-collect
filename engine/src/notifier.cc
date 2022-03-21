@@ -214,8 +214,8 @@ void notifier::set_notification_number(int num) {
   /* set the notification number */
   _notification_number = num;
 
-  /* update the status log with the host info */
-  update_status();
+  /* update the status log with the notifier info */
+  update_status(notifier::CHECK_RESULT);
 }
 
 bool notifier::_is_notification_viable_normal(reason_type type

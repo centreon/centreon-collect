@@ -239,12 +239,6 @@ void start_obsessing_over_host(
 void stop_obsessing_over_host(
     com::centreon::engine::host*
         hst);  // stop obsessing about specific host check results
-void set_host_notification_number(
-    com::centreon::engine::host* hst,
-    int num);  // sets current notification number for a specific host
-void set_service_notification_number(
-    com::centreon::engine::service* svc,
-    int num);  // sets current notification number for a specific service
 void new_thresholds_file(
     char* filename);  // Update all the anomalydetections
                       // concerned by the new thresholds file.
