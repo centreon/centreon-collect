@@ -256,7 +256,6 @@ class stream : public io::stream {
   database::mysql_stmt _host_parent_delete;
   database::mysql_stmt _host_parent_insert;
   database::mysql_stmt _host_status_update;
-  database::mysql_stmt _pb_host_status_update;
   database::mysql_stmt _instance_insupdate;
   database::mysql_stmt _instance_status_insupdate;
   database::mysql_stmt _module_insert;
@@ -268,10 +267,8 @@ class stream : public io::stream {
   database::mysql_stmt _service_insupdate;
   database::mysql_stmt _pb_service_insupdate;
   database::mysql_stmt _service_status_update;
-  database::mysql_stmt _pb_service_status_update;
   database::mysql_stmt _hscr_update;
   database::mysql_stmt _sscr_update;
-  database::mysql_stmt _sss_update;
   database::mysql_stmt _severity_insupdate;
   database::mysql_stmt _severity_update;
   database::mysql_stmt _severity_delete;
