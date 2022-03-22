@@ -117,13 +117,11 @@ static struct {
     {NEBCALLBACK_HOST_STATUS_DATA, &neb::callback_pb_host_status},
     {NEBCALLBACK_PROGRAM_STATUS_DATA, &neb::callback_program_status},
     {NEBCALLBACK_SERVICE_CHECK_DATA, &neb::callback_service_check},
-    {NEBCALLBACK_SERVICE_STATUS_DATA, &neb::callback_pb_service_status},
+    {NEBCALLBACK_SERVICE_STATUS_DATA, nullptr},
     {NEBCALLBACK_ADAPTIVE_SEVERITY_DATA, &neb::callback_severity},
     {NEBCALLBACK_ADAPTIVE_TAG_DATA, &neb::callback_tag},
     {NEBCALLBACK_SERVICE_STATUS_CHECK_RESULT_DATA,
      &neb::callback_pb_service_status_check_result},
-    {NEBCALLBACK_SERVICE_STATUS_DOWNTIME_DATA,
-     &neb::callback_pb_service_status_small},
     {NEBCALLBACK_HOST_STATUS_CHECK_RESULT_DATA,
      &neb::callback_pb_host_status_check_result}};
 
@@ -2793,106 +2791,6 @@ int32_t neb::callback_tag(int callback_type __attribute__((unused)),
   return 0;
 }
 
-int32_t neb::callback_pb_service_status(int callback_type
-                                        __attribute__((unused)),
-                                        void* data) noexcept {
-  log_v2::neb()->info("callbacks: generating service status event protobuf");
-
-  const engine::service* es{static_cast<engine::service*>(
-      static_cast<nebstruct_service_status_data*>(data)->object_ptr)};
-
-  auto s{std::make_shared<neb::pb_service_status>()};
-  Service& srv = s.get()->mut_obj();
-
-  srv.set_host_id(es->get_host_id());
-  srv.set_service_id(es->get_service_id());
-  if (es->get_host_id() == 0 || es->get_service_id() == 0)
-    log_v2::neb()->error("could not find ID of service ('{}', '{}')",
-                         es->get_hostname(), es->get_description());
-
-  if (es->problem_has_been_acknowledged()) {
-    srv.set_acknowledged(true);
-    srv.set_acknowledgement_type(
-        static_cast<Service_AckType>(es->get_acknowledgement_type()));
-  }
-  srv.set_active_checks_enabled(es->active_checks_enabled());
-  srv.set_enabled(static_cast<nebstruct_service_status_data*>(data)->type !=
-                  NEBTYPE_SERVICE_DELETE);
-  if (!es->check_command().empty())
-    srv.set_check_command(misc::string::check_string_utf8(es->check_command()));
-  srv.set_check_interval(es->check_interval());
-  if (!es->check_period().empty())
-    srv.set_check_period(es->check_period());
-  srv.set_check_type(static_cast<Service_CheckType>(es->get_check_type()));
-  srv.set_current_check_attempt(es->get_current_attempt());
-  srv.set_current_state(static_cast<Service_State>(
-      (es->has_been_checked() ? es->get_current_state()
-                              : 4)));  // Pending state.
-  srv.set_downtime_depth(es->get_scheduled_downtime_depth());
-  if (!es->event_handler().empty())
-    srv.set_event_handler(misc::string::check_string_utf8(es->event_handler()));
-  srv.set_event_handler_enabled(es->event_handler_enabled());
-  srv.set_execution_time(es->get_execution_time());
-  srv.set_flap_detection_enabled(es->flap_detection_enabled());
-  srv.set_has_been_checked(es->has_been_checked());
-  srv.set_is_flapping(es->get_is_flapping());
-  srv.set_last_check(es->get_last_check());
-  srv.set_last_hard_state(
-      static_cast<Service_State>(es->get_last_hard_state()));
-  srv.set_last_hard_state_change(es->get_last_hard_state_change());
-  srv.set_last_notification(es->get_last_notification());
-  srv.set_notification_number(es->get_notification_number());
-  srv.set_last_state_change(es->get_last_state_change());
-  srv.set_last_time_critical(es->get_last_time_critical());
-  srv.set_last_time_ok(es->get_last_time_ok());
-  srv.set_last_time_unknown(es->get_last_time_unknown());
-  srv.set_last_time_warning(es->get_last_time_warning());
-  srv.set_last_update(time(nullptr));
-  srv.set_latency(es->get_latency());
-  srv.set_max_check_attempts(es->max_check_attempts());
-  srv.set_next_check(es->get_next_check());
-  srv.set_next_notification(es->get_next_notification());
-  srv.set_no_more_notifications(es->get_no_more_notifications());
-  srv.set_notifications_enabled(es->get_notifications_enabled());
-  srv.set_obsess_over(es->obsess_over());
-  if (!es->get_plugin_output().empty())
-    srv.set_output(misc::string::check_string_utf8(es->get_plugin_output()));
-
-  if (!es->get_long_plugin_output().empty())
-    srv.set_long_output(
-        misc::string::check_string_utf8(es->get_long_plugin_output()));
-
-  srv.set_passive_checks_enabled(es->passive_checks_enabled());
-  srv.set_percent_state_change(es->get_percent_state_change());
-  if (!es->get_perf_data().empty())
-    srv.set_perf_data(misc::string::check_string_utf8(es->get_perf_data()));
-  srv.set_retry_interval(es->retry_interval());
-  srv.set_host_name(misc::string::check_string_utf8(es->get_hostname()));
-  srv.set_service_description(
-      misc::string::check_string_utf8(es->get_description()));
-  srv.set_should_be_scheduled(es->get_should_be_scheduled());
-  srv.set_state_type(static_cast<Service_StateType>(
-      es->has_been_checked() ? es->get_state_type() : engine::notifier::hard));
-
-  // Send event(s).
-  gl_publisher.write(s);
-
-  // Acknowledgement event.
-  auto it =
-      gl_acknowledgements.find(std::make_pair(srv.host_id(), srv.service_id()));
-  if (it != gl_acknowledgements.end() && !srv.acknowledged()) {
-    if (!(!srv.current_state()  // !(OK or (normal ack and NOK))
-          || (!it->second.is_sticky &&
-              (srv.current_state() != it->second.state)))) {
-      auto ack = std::make_shared<neb::acknowledgement>(it->second);
-      ack->deletion_time = time(nullptr);
-      gl_publisher.write(ack);
-    }
-    gl_acknowledgements.erase(it);
-  }
-  return 0;
-}
-
 int32_t neb::callback_pb_service_status_check_result(int callback_type
                                                      __attribute__((unused)),
                                                      void* data) noexcept {
@@ -2972,29 +2870,6 @@ int32_t neb::callback_pb_service_status_check_result(int callback_type
     }
     gl_acknowledgements.erase(it);
   }
-  return 0;
-}
-
-int32_t neb::callback_pb_service_status_small(int callback_type
-                                              __attribute__((unused)),
-                                              void* data) noexcept {
-  log_v2::neb()->info(
-      "callbacks: generating service status downtime protobuf event");
-
-  const engine::service* es{static_cast<engine::service*>(
-      static_cast<nebstruct_service_status_data*>(data)->object_ptr)};
-
-  auto s{std::make_shared<neb::pb_service_status_small>()};
-  ServiceStatusSmall& sss = s.get()->mut_obj();
-
-  sss.set_check_type(
-      static_cast<ServiceStatusSmall_CheckType>(es->get_check_type()));
-  sss.set_next_check(es->get_next_check());
-  sss.set_downtime_depth(es->get_scheduled_downtime_depth());
-
-  // Send event(s).
-  gl_publisher.write(s);
-
   return 0;
 }
 

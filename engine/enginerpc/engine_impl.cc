@@ -837,7 +837,7 @@ grpc::Status engine_impl::RemoveHostAcknowledgement(
     temp_host->set_problem_has_been_acknowledged(false);
     temp_host->set_acknowledgement_type(ACKNOWLEDGEMENT_NONE);
     /* update the status log with the host info */
-    temp_host->update_status(host::CHECK_RESULT);
+    temp_host->update_status();
     /* remove any non-persistant comments associated with the ack */
     comment::delete_host_acknowledgement_comments(temp_host.get());
     return 0;
@@ -909,7 +909,7 @@ grpc::Status engine_impl::RemoveServiceAcknowledgement(
     temp_service->set_problem_has_been_acknowledged(false);
     temp_service->set_acknowledgement_type(ACKNOWLEDGEMENT_NONE);
     /* update the status log with the service info */
-    temp_service->update_status(service::CHECK_RESULT);
+    temp_service->update_status();
     /* remove any non-persistant comments associated with the ack */
     comment::delete_service_acknowledgement_comments(temp_service.get());
     return 0;
@@ -967,7 +967,7 @@ grpc::Status engine_impl::AcknowledgementHostProblem(
                         request->ack_data(),
                         notifier::notification_option_none);
     /* update the status log with the host info */
-    temp_host->update_status(host::CHECK_RESULT);
+    temp_host->update_status();
     /* add a comment for the acknowledgement */
     auto com = std::make_shared<comment>(
         comment::host, comment::acknowledgment, temp_host->get_host_id(), 0,
@@ -1032,7 +1032,7 @@ grpc::Status engine_impl::AcknowledgementServiceProblem(
                            request->ack_author(), request->ack_data(),
                            notifier::notification_option_none);
     /* update the status log with the service info */
-    temp_service->update_status(service::CHECK_RESULT);
+    temp_service->update_status();
 
     /* add a comment for the acknowledgement */
     auto com = std::make_shared<comment>(
@@ -2428,6 +2428,8 @@ grpc::Status engine_impl::ChangeHostObjectIntVar(grpc::ServerContext* context
         /* modify the check interval */
         temp_host->set_check_interval(request->dval());
         attr = MODATTR_NORMAL_CHECK_INTERVAL;
+        temp_host->set_modified_attributes(
+            temp_host->get_modified_attributes() | attr);
 
         /* schedule a host check if previous interval was 0 (checks were not
          * regularly scheduled) */
@@ -2452,16 +2454,15 @@ grpc::Status engine_impl::ChangeHostObjectIntVar(grpc::ServerContext* context
             temp_host->schedule_check(temp_host->get_next_check(),
                                       CHECK_OPTION_NONE);
         }
-        temp_host->set_modified_attributes(
-            temp_host->get_modified_attributes() | attr);
         broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
                                   NEBATTR_NONE, temp_host.get(), CMD_NONE, attr,
                                   temp_host->get_modified_attributes(),
                                   nullptr);
 
         /* We need check result to handle next check */
-        temp_host->update_status(host::CHECK_RESULT);
+        temp_host->update_status();
       } break;
+
       case ChangeObjectInt_Mode_RETRY_CHECK_INTERVAL:
         temp_host->set_retry_interval(request->dval());
         attr = MODATTR_RETRY_CHECK_INTERVAL;
@@ -2472,6 +2473,7 @@ grpc::Status engine_impl::ChangeHostObjectIntVar(grpc::ServerContext* context
                                   temp_host->get_modified_attributes(),
                                   nullptr);
         break;
+
       case ChangeObjectInt_Mode_MAX_ATTEMPTS:
         temp_host->set_max_attempts(request->intval());
         attr = MODATTR_MAX_CHECK_ATTEMPTS;
@@ -2489,9 +2491,10 @@ grpc::Status engine_impl::ChangeHostObjectIntVar(grpc::ServerContext* context
             temp_host->get_current_attempt() > 1) {
           temp_host->set_current_attempt(temp_host->max_check_attempts());
           /* We need check result to handle next check */
-          temp_host->update_status(host::CHECK_RESULT);
+          temp_host->update_status();
         }
         break;
+
       case ChangeObjectInt_Mode_MODATTR:
         attr = request->intval();
         temp_host->set_modified_attributes(attr);
@@ -2501,6 +2504,7 @@ grpc::Status engine_impl::ChangeHostObjectIntVar(grpc::ServerContext* context
                                   temp_host->get_modified_attributes(),
                                   nullptr);
         break;
+
       default:
         err = "no mode informed for method ChangeHostObjectIntVar";
         return 1;
@@ -2569,39 +2573,63 @@ grpc::Status engine_impl::ChangeServiceObjectIntVar(
             temp_service->schedule_check(temp_service->get_next_check(),
                                          CHECK_OPTION_NONE);
         }
+        temp_service->set_modified_attributes(
+            temp_service->get_modified_attributes() | attr);
+        broker_adaptive_service_data(
+            NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
+            temp_service.get(), CMD_NONE, attr,
+            temp_service->get_modified_attributes(), nullptr);
+
+        /* We need check result to handle next check */
+        temp_service->update_status();
       } break;
       case ChangeObjectInt_Mode_RETRY_CHECK_INTERVAL:
         temp_service->set_retry_interval(request->dval());
         attr = MODATTR_RETRY_CHECK_INTERVAL;
+        temp_service->set_modified_attributes(
+            temp_service->get_modified_attributes() | attr);
+        /* send data to event broker */
+        broker_adaptive_service_data(
+            NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
+            temp_service.get(), CMD_NONE, attr,
+            temp_service->get_modified_attributes(), nullptr);
         break;
+
       case ChangeObjectInt_Mode_MAX_ATTEMPTS:
         temp_service->set_max_attempts(request->intval());
         attr = MODATTR_MAX_CHECK_ATTEMPTS;
+        temp_service->set_modified_attributes(
+            temp_service->get_modified_attributes() | attr);
+
+        broker_adaptive_service_data(
+            NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
+            temp_service.get(), CMD_NONE, attr,
+            temp_service->get_modified_attributes(), nullptr);
 
         /* adjust current attempt number if in a hard state */
         if (temp_service->get_state_type() == notifier::hard &&
             temp_service->get_current_state() != service::state_ok &&
-            temp_service->get_current_attempt() > 1)
+            temp_service->get_current_attempt() > 1) {
           temp_service->set_current_attempt(temp_service->max_check_attempts());
+          /* We need check result to handle next check */
+          temp_service->update_status();
+        }
         break;
+
       case ChangeObjectInt_Mode_MODATTR:
         attr = request->intval();
+        temp_service->set_modified_attributes(attr);
+        /* send data to event broker */
+        broker_adaptive_service_data(
+            NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
+            temp_service.get(), CMD_NONE, attr,
+            temp_service->get_modified_attributes(), nullptr);
         break;
       default:
         err = "no mode informed for method ChangeServiceObjectIntVar";
         return 1;
     }
 
-    if (request->mode() == ChangeObjectInt_Mode_MODATTR)
-      temp_service->set_modified_attributes(attr);
-    else
-      temp_service->set_modified_attributes(
-          temp_service->get_modified_attributes() | attr);
-    /* send data to event broker */
-    broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
-                                 NEBATTR_NONE, temp_service.get(), CMD_NONE,
-                                 attr, temp_service->get_modified_attributes(),
-                                 nullptr);
     return 0;
   });
 

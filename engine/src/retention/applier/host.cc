@@ -312,5 +312,5 @@ void applier::host::_update(configuration::state const& config,
 
   // update host status.
   obj.update_adaptive_data();
-  obj.update_status(notifier::CHECK_RESULT);
+  obj.update_status();
 }

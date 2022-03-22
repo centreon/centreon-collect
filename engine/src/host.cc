@@ -1636,7 +1636,7 @@ int host::run_scheduled_check(int check_options, double latency) {
     }
 
     /* update the status log */
-    update_status(CHECK_RESULT);
+    update_status();
 
     /* reschedule the next host check - unless we couldn't find a valid next
      * check time */
@@ -1986,7 +1986,7 @@ bool host::schedule_check(time_t check_time, int options) {
   }
 
   /* update the status log */
-  update_status(CHECK_RESULT);
+  update_status();
   return true;
 }
 
@@ -2247,21 +2247,9 @@ void host::clear_flap(double percent_change,
 /**
  * @brief Updates host status info. Data are sent to event broker.
  */
-void host::update_status(host::status_type t) {
-  switch (t) {
-    case ALL:
-      broker_host_status(NEBTYPE_HOSTSTATUS_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
-                         this, nullptr);
-      break;
-    case CHECK_RESULT:
-      broker_host_status_check_result(NEBTYPE_HOSTSTATUS_UPDATE, NEBFLAG_NONE,
-                                      NEBATTR_NONE, this, nullptr);
-      break;
-    default:
-      log_v2::events()->error(
-          "This status_type {} is unknown. So we stop the program.", t);
-      assert(1 == 0);
-  }
+void host::update_status() {
+  broker_host_status_check_result(NEBTYPE_HOSTSTATUS_UPDATE, NEBFLAG_NONE,
+                                  NEBATTR_NONE, this, nullptr);
 }
 
 /**
@@ -2280,7 +2268,7 @@ void host::check_for_expired_acknowledgement() {
         set_problem_has_been_acknowledged(false);
         set_acknowledgement_type(ACKNOWLEDGEMENT_NONE);
         // FIXME DBO: could be improved with something smaller.
-        update_status(CHECK_RESULT);
+        update_status();
       }
     }
   }
@@ -2756,7 +2744,7 @@ void host::enable_flap_detection() {
   check_for_flapping(false, false, true);
 
   /* update host status */
-  update_status(CHECK_RESULT);
+  update_status();
 }
 
 /*
@@ -2970,7 +2958,7 @@ void host::handle_flap_detection_disabled() {
   }
 
   /* update host status */
-  update_status(CHECK_RESULT);
+  update_status();
 }
 
 int host::perform_on_demand_check(enum host::host_state* check_return_code,
@@ -3557,7 +3545,7 @@ int host::process_check_result_3x(enum host::host_state new_state,
    * (non-scheduled) hosts */
   /* This condition is to avoid to send host status twice. */
   if (!sent)
-    update_status(CHECK_RESULT);
+    update_status();
 
   /* run async checks of all hosts we added above */
   /* don't run a check if one is already executing or we can get by with a

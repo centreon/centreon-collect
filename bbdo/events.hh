@@ -118,15 +118,13 @@ enum data_element {
   de_responsive_instance,
   de_pb_service = 27,
   de_pb_adaptive_service = 28,
-  de_pb_service_status = 29,
+  de_pb_service_status_check_result = 29,
   de_pb_host = 30,
   de_pb_host_status = 31,
   de_pb_severity = 32,
   de_pb_tag = 33,
-  de_pb_service_status_check_result = 34,
   de_pb_host_status_check_result = 35,
   de_pb_adaptive_host = 36,
-  de_pb_service_status_small = 37,
 };
 }  // namespace neb
 namespace storage {

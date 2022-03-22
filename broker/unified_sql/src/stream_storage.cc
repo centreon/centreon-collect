@@ -300,8 +300,6 @@ void stream::_unified_sql_process_pb_service_status(
 }
 
 template void stream::_unified_sql_process_pb_service_status<
-    neb::pb_service_status>(const std::shared_ptr<io::data>& d);
-template void stream::_unified_sql_process_pb_service_status<
     neb::pb_service_status_check_result>(const std::shared_ptr<io::data>& d);
 
 /**

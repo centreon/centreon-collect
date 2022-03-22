@@ -54,10 +54,8 @@ int callback_pb_host(int callback_type, void* data);
 int callback_pb_host_status(int callback_type, void* data) noexcept;
 int callback_pb_host_status_check_result(int callback_type,
                                          void* data) noexcept;
-int callback_pb_service_status(int callback_type, void* data) noexcept;
 int callback_pb_service_status_check_result(int callback_type,
                                             void* data) noexcept;
-int callback_pb_service_status_small(int callback_type, void* data) noexcept;
 int callback_severity(int callback_type, void* data) noexcept;
 int callback_tag(int callback_type, void* data) noexcept;
 

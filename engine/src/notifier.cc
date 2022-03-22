@@ -215,7 +215,7 @@ void notifier::set_notification_number(int num) {
   _notification_number = num;
 
   /* update the status log with the notifier info */
-  update_status(notifier::CHECK_RESULT);
+  update_status();
 }
 
 bool notifier::_is_notification_viable_normal(reason_type type

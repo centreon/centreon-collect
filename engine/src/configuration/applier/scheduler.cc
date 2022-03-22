@@ -965,21 +965,19 @@ void applier::scheduler::_schedule_host_events(
   std::multimap<time_t, com::centreon::engine::host*> hosts_to_schedule;
 
   // add scheduled host checks to event queue.
-  for (unsigned int i(0); i < end; ++i) {
-    com::centreon::engine::host& hst(*hosts[i]);
-
+  for (engine::host* h : hosts) {
     // update status of all hosts (scheduled or not).
-    hst.update_status();
+    h->update_status();
 
     // skip most hosts that shouldn't be scheduled.
-    if (!hst.get_should_be_scheduled()) {
+    if (!h->get_should_be_scheduled()) {
       // passive checks are an exception if a forced check was
       // scheduled before Centreon Engine was restarted.
-      if (!(!hst.active_checks_enabled() && hst.get_next_check() &&
-            (hst.get_check_options() & CHECK_OPTION_FORCE_EXECUTION)))
+      if (!(!h->active_checks_enabled() && h->get_next_check() &&
+            (h->get_check_options() & CHECK_OPTION_FORCE_EXECUTION)))
         continue;
     }
-    hosts_to_schedule.insert(std::make_pair(hst.get_next_check(), &hst));
+    hosts_to_schedule.insert(std::make_pair(h->get_next_check(), h));
   }
 
   // Schedule events list.
@@ -1029,46 +1027,44 @@ void applier::scheduler::_schedule_service_events(
   // interleaving to minimize remote load).
 
   int current_interleave_block(0);
-  unsigned int const end(services.size());
 
   if (scheduling_info.service_interleave_factor > 0) {
     int interleave_block_index(0);
-    for (unsigned int i(0); i < end; ++i) {
-      engine::service& svc(*services[i]);
+    for (engine::service* s : services) {
       if (interleave_block_index >= scheduling_info.service_interleave_factor) {
         ++current_interleave_block;
         interleave_block_index = 0;
       }
 
       // skip this service if it shouldn't be scheduled.
-      if (!svc.get_should_be_scheduled())
+      if (!s->get_should_be_scheduled())
         continue;
 
       int const mult_factor(current_interleave_block +
                             ++interleave_block_index * total_interleave_blocks);
 
       // set the preferred next check time for the service.
-      svc.set_next_check(
+      s->set_next_check(
           (time_t)(now +
                    mult_factor * scheduling_info.service_inter_check_delay));
 
       // Make sure the service can actually be scheduled when we want.
       {
-        timezone_locker lock(svc.get_timezone());
-        if (!check_time_against_period(svc.get_next_check(),
-                                       svc.check_period_ptr)) {
+        timezone_locker lock(s->get_timezone());
+        if (!check_time_against_period(s->get_next_check(),
+                                       s->check_period_ptr)) {
           time_t next_valid_time(0);
-          get_next_valid_time(svc.get_next_check(), &next_valid_time,
-                              svc.check_period_ptr);
-          svc.set_next_check(next_valid_time);
+          get_next_valid_time(s->get_next_check(), &next_valid_time,
+                              s->check_period_ptr);
+          s->set_next_check(next_valid_time);
         }
       }
 
       if (!scheduling_info.first_service_check ||
-          svc.get_next_check() < scheduling_info.first_service_check)
-        scheduling_info.first_service_check = svc.get_next_check();
-      if (svc.get_next_check() > scheduling_info.last_service_check)
-        scheduling_info.last_service_check = svc.get_next_check();
+          s->get_next_check() < scheduling_info.first_service_check)
+        scheduling_info.first_service_check = s->get_next_check();
+      if (s->get_next_check() > scheduling_info.last_service_check)
+        scheduling_info.last_service_check = s->get_next_check();
     }
   }
 
@@ -1078,7 +1074,7 @@ void applier::scheduler::_schedule_service_events(
   // add scheduled service checks to event queue.
   for (engine::service* s : services) {
     // update status of all services (scheduled or not).
-    s->update_status(engine::service::ALL);
+    s->update_status();
 
     // skip most services that shouldn't be scheduled.
     if (!s->get_should_be_scheduled()) {

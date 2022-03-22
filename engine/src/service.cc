@@ -827,7 +827,7 @@ void service::check_for_expired_acknowledgement() {
         // FIXME DBO: could be improved with something smaller.
         // We will see later, I don't know if there are many events concerning
         // acks.
-        update_status(CHECK_RESULT);
+        update_status();
       }
     }
   }
@@ -1954,7 +1954,7 @@ int service::handle_async_check_result(check_result* queued_check_result) {
     /* set the checked flag */
     set_has_been_checked(true);
     /* update the current service status log */
-    update_status(CHECK_RESULT);
+    update_status();
   }
 
   /* check to see if the service and/or associate host is flapping */
@@ -2416,7 +2416,7 @@ int service::run_scheduled_check(int check_options, double latency) {
 
     /* update the status log */
     if (!sent)
-      update_status(CHECK_RESULT);
+      update_status();
     return ERROR;
   }
   return OK;
@@ -2736,7 +2736,7 @@ bool service::schedule_check(time_t check_time, int options) {
         no_update_status_now = true;
     } catch (...) {
       // Update the status log.
-      update_status(CHECK_RESULT);
+      update_status();
       throw;
     }
   } else {
@@ -2752,7 +2752,7 @@ bool service::schedule_check(time_t check_time, int options) {
 
   // Update the status log.
   if (!no_update_status_now)
-    update_status(CHECK_RESULT);
+    update_status();
   return true;
 }
 
@@ -2893,7 +2893,7 @@ void service::enable_flap_detection() {
   /* update service status */
   // FIXME DBO: Since we are just talking about flapping,
   // we could improve this message.
-  update_status(CHECK_RESULT);
+  update_status();
 }
 
 /* disables flap detection for a specific service */
@@ -2932,22 +2932,9 @@ void service::disable_flap_detection() {
 /**
  * @brief Updates service status info. Send data to event broker.
  */
-void service::update_status(service::status_type t) {
-  switch (t) {
-    case ALL:
-      broker_service_status(NEBTYPE_SERVICESTATUS_UPDATE, NEBFLAG_NONE,
-                            NEBATTR_NONE, this, nullptr);
-      break;
-    case CHECK_RESULT:
-      broker_service_status_check_result(NEBTYPE_SERVICESTATUS_UPDATE,
-                                         NEBFLAG_NONE, NEBATTR_NONE, this,
-                                         nullptr);
-      break;
-    case DOWNTIME:
-      broker_service_status_downtime(NEBTYPE_SERVICESTATUS_UPDATE, NEBFLAG_NONE,
+void service::update_status() {
+  broker_service_status_check_result(NEBTYPE_SERVICESTATUS_UPDATE, NEBFLAG_NONE,
                                      NEBATTR_NONE, this, nullptr);
-      break;
-  }
 }
 
 /**
@@ -3456,7 +3443,7 @@ void service::handle_flap_detection_disabled() {
   }
 
   /* update service status */
-  update_status(CHECK_RESULT);
+  update_status();
 }
 
 std::list<servicegroup*> const& service::get_parent_groups() const {

@@ -1432,6 +1432,8 @@ int cmd_change_object_int_var(int cmd, char* args) {
       /* modify the check interval */
       temp_host->set_check_interval(dval);
       attr = MODATTR_NORMAL_CHECK_INTERVAL;
+      temp_host->set_modified_attributes(temp_host->get_modified_attributes() |
+                                         attr);
 
       /* schedule a host check if previous interval was 0 (checks were not
        * regularly scheduled) */
@@ -1454,22 +1456,42 @@ int cmd_change_object_int_var(int cmd, char* args) {
           temp_host->schedule_check(temp_host->get_next_check(),
                                     CHECK_OPTION_NONE);
       }
+      broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
+                                NEBATTR_NONE, temp_host, CMD_NONE, attr,
+                                temp_host->get_modified_attributes(), nullptr);
+
+      /* We need check result to handle next check */
+      temp_host->update_status();
       break;
 
     case CMD_CHANGE_RETRY_HOST_CHECK_INTERVAL:
       temp_host->set_retry_interval(dval);
       attr = MODATTR_RETRY_CHECK_INTERVAL;
+      temp_host->set_modified_attributes(temp_host->get_modified_attributes() |
+                                         attr);
+      broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
+                                NEBATTR_NONE, temp_host, CMD_NONE, attr,
+                                temp_host->get_modified_attributes(), nullptr);
       break;
 
     case CMD_CHANGE_MAX_HOST_CHECK_ATTEMPTS:
       temp_host->set_max_attempts(intval);
       attr = MODATTR_MAX_CHECK_ATTEMPTS;
+      temp_host->set_modified_attributes(temp_host->get_modified_attributes() |
+                                         attr);
+
+      broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
+                                NEBATTR_NONE, temp_host, CMD_NONE, attr,
+                                temp_host->get_modified_attributes(), nullptr);
 
       /* adjust current attempt number if in a hard state */
       if (temp_host->get_state_type() == notifier::hard &&
           temp_host->get_current_state() != host::state_up &&
-          temp_host->get_current_attempt() > 1)
+          temp_host->get_current_attempt() > 1) {
         temp_host->set_current_attempt(temp_host->max_check_attempts());
+        /* We need check result to handle next check */
+        temp_host->update_status();
+      }
       break;
 
     case CMD_CHANGE_NORMAL_SVC_CHECK_INTERVAL:
@@ -1502,27 +1524,70 @@ int cmd_change_object_int_var(int cmd, char* args) {
           found_svc->second->schedule_check(found_svc->second->get_next_check(),
                                             CHECK_OPTION_NONE);
       }
+      found_svc->second->set_modified_attributes(
+          found_svc->second->get_modified_attributes() | attr);
+      broker_adaptive_service_data(
+          NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
+          found_svc->second.get(), CMD_NONE, attr,
+          found_svc->second->get_modified_attributes(), nullptr);
+
+      /* We need check result to handle next check */
+      found_svc->second->update_status();
       break;
 
     case CMD_CHANGE_RETRY_SVC_CHECK_INTERVAL:
       found_svc->second->set_retry_interval(dval);
       attr = MODATTR_RETRY_CHECK_INTERVAL;
+      found_svc->second->set_modified_attributes(
+          found_svc->second->get_modified_attributes() | attr);
+      broker_adaptive_service_data(
+          NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
+          found_svc->second.get(), CMD_NONE, attr,
+          found_svc->second->get_modified_attributes(), nullptr);
       break;
 
     case CMD_CHANGE_MAX_SVC_CHECK_ATTEMPTS:
       found_svc->second->set_max_attempts(intval);
       attr = MODATTR_MAX_CHECK_ATTEMPTS;
+      found_svc->second->set_modified_attributes(
+          found_svc->second->get_modified_attributes() | attr);
+      /* send data to event broker */
+      broker_adaptive_service_data(
+          NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
+          found_svc->second.get(), cmd, attr,
+          found_svc->second->get_modified_attributes(), nullptr);
 
       /* adjust current attempt number if in a hard state */
       if (found_svc->second->get_state_type() == notifier::hard &&
           found_svc->second->get_current_state() != service::state_ok &&
-          found_svc->second->get_current_attempt() > 1)
+          found_svc->second->get_current_attempt() > 1) {
         found_svc->second->set_current_attempt(
             found_svc->second->max_check_attempts());
+        /* We need check result to handle next check */
+        found_svc->second->update_status();
+      }
       break;
 
     case CMD_CHANGE_HOST_MODATTR:
+      attr = intval;
+      temp_host->set_modified_attributes(attr);
+      /* send data to event broker */
+      broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
+                                NEBATTR_NONE, temp_host, cmd, attr,
+                                temp_host->get_modified_attributes(), nullptr);
+      break;
+
     case CMD_CHANGE_SVC_MODATTR:
+      attr = intval;
+      found_svc->second->set_modified_attributes(attr);
+
+      /* send data to event broker */
+      broker_adaptive_service_data(
+          NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
+          found_svc->second.get(), cmd, attr,
+          found_svc->second->get_modified_attributes(), nullptr);
+      break;
+
     case CMD_CHANGE_CONTACT_MODATTR:
       attr = intval;
       break;
@@ -1541,44 +1606,6 @@ int cmd_change_object_int_var(int cmd, char* args) {
 
   /* send data to event broker and update status file */
   switch (cmd) {
-    case CMD_CHANGE_RETRY_SVC_CHECK_INTERVAL:
-    case CMD_CHANGE_NORMAL_SVC_CHECK_INTERVAL:
-    case CMD_CHANGE_MAX_SVC_CHECK_ATTEMPTS:
-    case CMD_CHANGE_SVC_MODATTR:
-
-      /* set the modified service attribute */
-      if (cmd == CMD_CHANGE_SVC_MODATTR)
-        found_svc->second->set_modified_attributes(attr);
-      else
-        found_svc->second->set_modified_attributes(
-            found_svc->second->get_modified_attributes() | attr);
-
-      /* send data to event broker */
-      broker_adaptive_service_data(
-          NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
-          found_svc->second.get(), cmd, attr,
-          found_svc->second->get_modified_attributes(), nullptr);
-
-      break;
-
-    case CMD_CHANGE_NORMAL_HOST_CHECK_INTERVAL:
-    case CMD_CHANGE_RETRY_HOST_CHECK_INTERVAL:
-    case CMD_CHANGE_MAX_HOST_CHECK_ATTEMPTS:
-    case CMD_CHANGE_HOST_MODATTR:
-      /* set the modified host attribute */
-      if (cmd == CMD_CHANGE_HOST_MODATTR)
-        temp_host->set_modified_attributes(attr);
-      else
-        temp_host->set_modified_attributes(
-            temp_host->get_modified_attributes() | attr);
-
-      /* send data to event broker */
-      broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                                NEBATTR_NONE, temp_host, cmd, attr,
-                                temp_host->get_modified_attributes(), nullptr);
-
-      break;
-
     case CMD_CHANGE_CONTACT_MODATTR:
     case CMD_CHANGE_CONTACT_MODHATTR:
     case CMD_CHANGE_CONTACT_MODSATTR:
@@ -2117,7 +2144,7 @@ void enable_service_checks(service* svc) {
                                svc->get_modified_attributes(), nullptr);
 
   /* update the status log with the host info */
-  svc->update_status(service::CHECK_RESULT);
+  svc->update_status();
 }
 
 /* enable notifications on a program-wide basis */
@@ -2499,7 +2526,7 @@ void acknowledge_host_problem(host* hst,
                 notifier::notification_option_none);
 
   /* update the status log with the host info */
-  hst->update_status(host::CHECK_RESULT);
+  hst->update_status();
 
   /* add a comment for the acknowledgement */
   auto com{std::make_shared<comment>(comment::host, comment::acknowledgment,
@@ -2545,7 +2572,7 @@ void acknowledge_service_problem(service* svc,
                 notifier::notification_option_none);
 
   /* update the status log with the service info */
-  svc->update_status(service::CHECK_RESULT);
+  svc->update_status();
 
   /* add a comment for the acknowledgement */
   auto com{std::make_shared<comment>(
@@ -2561,7 +2588,7 @@ void remove_host_acknowledgement(host* hst) {
   hst->set_problem_has_been_acknowledged(false);
 
   /* update the status log with the host info */
-  hst->update_status(host::CHECK_RESULT);
+  hst->update_status();
 
   /* remove any non-persistant comments associated with the ack */
   comment::delete_host_acknowledgement_comments(hst);
@@ -2573,7 +2600,7 @@ void remove_service_acknowledgement(service* svc) {
   svc->set_problem_has_been_acknowledged(false);
 
   /* update the status log with the service info */
-  svc->update_status(service::CHECK_RESULT);
+  svc->update_status();
 
   /* remove any non-persistant comments associated with the ack */
   comment::delete_service_acknowledgement_comments(svc);
@@ -3041,7 +3068,7 @@ void enable_host_checks(host* hst) {
                             hst->get_modified_attributes(), nullptr);
 
   /* update the status log with the host info */
-  hst->update_status(host::CHECK_RESULT);
+  hst->update_status();
 }
 
 /* start obsessing over service check results */

@@ -59,14 +59,9 @@ using pb_adaptive_service =
     io::protobuf<AdaptiveService,
                  make_type(io::neb, neb::de_pb_adaptive_service)>;
 
-using pb_service_status =
-    io::protobuf<Service, make_type(io::neb, neb::de_pb_service_status)>;
 using pb_service_status_check_result =
     io::protobuf<ServiceStatusCheckResult,
                  make_type(io::neb, neb::de_pb_service_status_check_result)>;
-using pb_service_status_small =
-    io::protobuf<ServiceStatusSmall,
-                 make_type(io::neb, neb::de_pb_service_status_small)>;
 
 using pb_host_status =
     io::protobuf<Host, make_type(io::neb, neb::de_pb_host_status)>;

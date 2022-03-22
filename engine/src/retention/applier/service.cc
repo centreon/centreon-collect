@@ -329,5 +329,5 @@ void applier::service::_update(configuration::state const& config,
 
   // update service status.
   obj.update_adaptive_data();
-  obj.update_status(notifier::CHECK_RESULT);
+  obj.update_status();
 }
