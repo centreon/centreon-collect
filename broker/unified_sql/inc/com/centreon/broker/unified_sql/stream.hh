@@ -322,7 +322,6 @@ class stream : public io::stream {
   void _process_responsive_instance(const std::shared_ptr<io::data>& d);
 
   void _process_pb_host(const std::shared_ptr<io::data>& d);
-  void _process_pb_host_status(const std::shared_ptr<io::data>& d);
   void _process_pb_host_status_check_result(const std::shared_ptr<io::data>& d);
   void _process_pb_adaptive_host(const std::shared_ptr<io::data>& d);
   void _process_pb_service(const std::shared_ptr<io::data>& d);
@@ -339,7 +338,6 @@ class stream : public io::stream {
       const std::shared_ptr<io::data>& d);
   void _check_and_update_index_cache(const Service& ss);
 
-  template <typename T>
   void _unified_sql_process_pb_service_status(
       const std::shared_ptr<io::data>& d);
 

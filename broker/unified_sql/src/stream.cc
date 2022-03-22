@@ -77,11 +77,10 @@ void (stream::*const stream::_neb_processing_table[])(
     &stream::_process_pb_adaptive_service,
     &stream::_process_pb_service_status_check_result,
     &stream::_process_pb_host,
-    &stream::_process_pb_host_status,
+    &stream::_process_pb_adaptive_host,
+    &stream::_process_pb_host_status_check_result,
     &stream::_process_severity,
     &stream::_process_tag,
-    &stream::_process_pb_host_status_check_result,
-    &stream::_process_pb_adaptive_host,
 };
 
 stream::stream(const database_config& dbcfg,
@@ -455,8 +454,7 @@ int32_t stream::write(const std::shared_ptr<io::data>& data) {
     (this->*(_neb_processing_table[elem]))(data);
     switch (type) {
       case neb::pb_service_status_check_result::static_type():
-        _unified_sql_process_pb_service_status<
-            neb::pb_service_status_check_result>(data);
+        _unified_sql_process_pb_service_status(data);
         break;
       case neb::service_status::static_type():
         _unified_sql_process_service_status(data);

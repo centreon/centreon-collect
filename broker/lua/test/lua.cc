@@ -3215,7 +3215,7 @@ TEST_F(LuaTest, BrokerPbHostStatus) {
   config::applier::modules modules;
   modules.load_file("./lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
-  auto host = std::make_shared<neb::pb_host_status>();
+  auto host = std::make_shared<neb::pb_host>();
   auto& obj = host->mut_obj();
   obj.set_host_id(1899);
   obj.set_check_command("super command");
@@ -3258,7 +3258,7 @@ TEST_F(LuaTest, BrokerApi2PbHostStatusWithIndex) {
   config::applier::modules modules;
   modules.load_file("./lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
-  auto host = std::make_shared<neb::pb_host_status>();
+  auto host = std::make_shared<neb::pb_host>();
   auto& obj = host->mut_obj();
   obj.set_host_id(1899);
   obj.set_check_command("super command");
@@ -3302,7 +3302,7 @@ TEST_F(LuaTest, BrokerApi2PbHostStatusWithNext) {
   config::applier::modules modules;
   modules.load_file("./lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
-  auto host = std::make_shared<neb::pb_host_status>();
+  auto host = std::make_shared<neb::pb_host>();
   auto& obj = host->mut_obj();
   obj.set_host_id(1899);
   obj.set_check_command("super command");
@@ -3341,7 +3341,7 @@ TEST_F(LuaTest, BrokerApi2PbHostStatusJsonEncode) {
   config::applier::modules modules;
   modules.load_file("./lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
-  auto host = std::make_shared<neb::pb_host_status>();
+  auto host = std::make_shared<neb::pb_host>();
   auto& obj = host->mut_obj();
   obj.set_host_id(1899);
   obj.set_check_command("super command");
@@ -3417,7 +3417,7 @@ TEST_F(LuaTest, BrokerPbHostStatusJsonEncode) {
   config::applier::modules modules;
   modules.load_file("./lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
-  auto host = std::make_shared<neb::pb_host_status>();
+  auto host = std::make_shared<neb::pb_host>();
   auto& obj = host->mut_obj();
   obj.set_host_id(1899);
   obj.set_check_command("super command");
