@@ -201,6 +201,13 @@ void broker_event::create_as_table(lua_State* L, const io::data& d) {
       const google::protobuf::Reflection* refl = p->GetReflection();
       for (int i = 0; i < desc->field_count(); i++) {
         auto f = desc->field(i);
+        auto oof = f->containing_oneof();
+        if (oof) {
+          if (!refl->GetOneofFieldDescriptor(*p, oof)) {
+            continue;
+          }
+        }
+
         const std::string& entry_name = f->name();
         lua_pushlstring(L, entry_name.c_str(), entry_name.size());
         switch (f->type()) {
@@ -240,7 +247,7 @@ void broker_event::create_as_table(lua_State* L, const io::data& d) {
   } else
     throw msg_fmt(
         "cannot bind object of type {}"
-        " to database query: mapping does not exist",
+        " to lua table: mapping does not exist",
         d.type());
 }
 
@@ -452,6 +459,13 @@ static int l_broker_event_next(lua_State* L) {
           f = nullptr;
       }
       if (f) {
+        auto oof = f->containing_oneof();
+        if (oof) {
+          if (!refl->GetOneofFieldDescriptor(*p, oof)) {
+            return 0;
+          }
+        }
+
         const std::string& entry_name = f->name();
         lua_pushlstring(L, entry_name.c_str(), entry_name.size());
         switch (f->type()) {
@@ -648,6 +662,11 @@ static int l_broker_event_index(lua_State* L) {
       const google::protobuf::Reflection* refl = p->GetReflection();
       auto f = desc->FindFieldByName(key);
       if (f) {
+        auto oof = f->containing_oneof();
+        if (oof) {
+          if (!refl->GetOneofFieldDescriptor(*p, oof))
+            return 0;
+        }
         const std::string& entry_name = f->name();
         lua_pushlstring(L, entry_name.c_str(), entry_name.size());
         switch (f->type()) {

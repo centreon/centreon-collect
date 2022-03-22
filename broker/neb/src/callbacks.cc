@@ -98,7 +98,6 @@ static struct {
     {NEBCALLBACK_ADAPTIVE_TAG_DATA, &neb::callback_tag},
     {NEBCALLBACK_SERVICE_STATUS_CHECK_RESULT_DATA,
      &neb::callback_service_status},
-    {NEBCALLBACK_SERVICE_STATUS_DOWNTIME_DATA, &neb::callback_service_status},
     {NEBCALLBACK_HOST_STATUS_CHECK_RESULT_DATA,
      &neb::callback_pb_host_status_check_result}};
 
