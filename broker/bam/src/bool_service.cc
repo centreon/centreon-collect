@@ -100,7 +100,7 @@ void bool_service::service_update(
  *  @param[out] visitor  Object that will receive events.
  */
 void bool_service::service_update(
-    const std::shared_ptr<neb::pb_service_status_check_result>& status,
+    const std::shared_ptr<neb::pb_service_status>& status,
     io::stream* visitor) {
   log_v2::bam()->trace(
       "bool_service: service update with neb::pb_service_status");

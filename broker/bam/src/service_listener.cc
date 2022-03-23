@@ -84,7 +84,7 @@ void service_listener::service_update(
  *  @param[out] visitor  Visitor.
  */
 void service_listener::service_update(
-    const std::shared_ptr<neb::pb_service_status_check_result>& status,
+    const std::shared_ptr<neb::pb_service_status>& status,
     io::stream* visitor) {
   (void)status;
   (void)visitor;

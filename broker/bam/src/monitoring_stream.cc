@@ -207,9 +207,8 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
       _applier.book_service().update(ss, &ev_cache);
       ev_cache.commit_to(pblshr);
     } break;
-    case neb::pb_service_status_check_result::static_type(): {
-      auto ss =
-          std::static_pointer_cast<neb::pb_service_status_check_result>(data);
+    case neb::pb_service_status::static_type(): {
+      auto ss = std::static_pointer_cast<neb::pb_service_status>(data);
       auto& o = ss->obj();
       log_v2::bam()->trace(
           "BAM: processing pb service status (host: {}, service: {}, hard "

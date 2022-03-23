@@ -71,7 +71,7 @@ static inline bool check_equality(double a, double b) {
  */
 void stream::_unified_sql_process_pb_service_status(
     const std::shared_ptr<io::data>& d) {
-  auto s{static_cast<const neb::pb_service_status_check_result*>(d.get())};
+  auto s{static_cast<const neb::pb_service_status*>(d.get())};
   auto& ss = s->obj();
 
   uint64_t host_id = ss.host_id(), service_id = ss.service_id();

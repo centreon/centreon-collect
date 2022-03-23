@@ -449,6 +449,9 @@ void macro_cache::write(std::shared_ptr<io::data> const& data) {
     case neb::pb_service::static_type():
       _process_pb_service(data);
       break;
+    case neb::pb_adaptive_service::static_type():
+      _process_pb_adaptive_service(data);
+      break;
     case neb::service_group::static_type():
       _process_service_group(data);
       break;
@@ -586,6 +589,93 @@ void macro_cache::_process_pb_service(std::shared_ptr<io::data> const& data) {
     _services[{s->obj().host_id(), s->obj().service_id()}] = data;
   else
     _services.erase({s->obj().host_id(), s->obj().service_id()});
+}
+
+/**
+ *  Process a pb service event.
+ *
+ *  @param s  The event.
+ */
+void macro_cache::_process_pb_adaptive_service(
+    std::shared_ptr<io::data> const& data) {
+  const auto& s = std::static_pointer_cast<neb::pb_adaptive_service>(data);
+  log_v2::lua()->debug("lua: processing adaptive service ({}, {})",
+                       s->obj().host_id(), s->obj().service_id());
+  auto& as = s->obj();
+  auto it = _services.find({as.host_id(), as.service_id()});
+  if (it != _services.end()) {
+    if (it->second->type() == make_type(io::neb, neb::de_service)) {
+      auto& s = *std::static_pointer_cast<neb::service>(it->second);
+      if (as.has_notifications_enabled())
+        s.notifications_enabled = as.notifications_enabled();
+      if (as.has_active_checks_enabled())
+        s.active_checks_enabled = as.active_checks_enabled();
+      if (as.has_should_be_scheduled())
+        s.should_be_scheduled = as.should_be_scheduled();
+      if (as.has_passive_checks_enabled())
+        s.passive_checks_enabled = as.passive_checks_enabled();
+      if (as.has_event_handler_enabled())
+        s.event_handler_enabled = as.event_handler_enabled();
+      if (as.has_flap_detection_enabled())
+        s.flap_detection_enabled = as.flap_detection_enabled();
+      if (as.has_obsess_over())
+        s.obsess_over = as.obsess_over();
+      if (as.has_event_handler())
+        s.event_handler = as.event_handler();
+      if (as.has_check_command())
+        s.check_command = as.check_command();
+      if (as.has_check_interval())
+        s.check_interval = as.check_interval();
+      if (as.has_retry_interval())
+        s.retry_interval = as.retry_interval();
+      if (as.has_max_check_attempts())
+        s.max_check_attempts = as.max_check_attempts();
+      if (as.has_check_freshness())
+        s.check_freshness = as.check_freshness();
+      if (as.has_check_period())
+        s.check_period = as.check_period();
+      if (as.has_notification_period())
+        s.notification_period = as.notification_period();
+    } else {
+      auto& s =
+          std::static_pointer_cast<neb::pb_service>(it->second)->mut_obj();
+      if (as.has_notifications_enabled())
+        s.set_notifications_enabled(as.notifications_enabled());
+      if (as.has_active_checks_enabled())
+        s.set_active_checks_enabled(as.active_checks_enabled());
+      if (as.has_should_be_scheduled())
+        s.set_should_be_scheduled(as.should_be_scheduled());
+      if (as.has_passive_checks_enabled())
+        s.set_passive_checks_enabled(as.passive_checks_enabled());
+      if (as.has_event_handler_enabled())
+        s.set_event_handler_enabled(as.event_handler_enabled());
+      if (as.has_flap_detection_enabled())
+        s.set_flap_detection_enabled(as.flap_detection_enabled());
+      if (as.has_obsess_over())
+        s.set_obsess_over(as.obsess_over());
+      if (as.has_event_handler())
+        s.set_event_handler(as.event_handler());
+      if (as.has_check_command())
+        s.set_check_command(as.check_command());
+      if (as.has_check_interval())
+        s.set_check_interval(as.check_interval());
+      if (as.has_retry_interval())
+        s.set_retry_interval(as.retry_interval());
+      if (as.has_max_check_attempts())
+        s.set_max_check_attempts(as.max_check_attempts());
+      if (as.has_check_freshness())
+        s.set_check_freshness(as.check_freshness());
+      if (as.has_check_period())
+        s.set_check_period(as.check_period());
+      if (as.has_notification_period())
+        s.set_notification_period(as.notification_period());
+    }
+  } else {
+    log_v2::lua()->warn(
+        "lua: cannot update cache for service ({}, {}), it does not exist in "
+        "the cache",
+        s->obj().host_id(), s->obj().service_id());
+  }
 }
 
 /**

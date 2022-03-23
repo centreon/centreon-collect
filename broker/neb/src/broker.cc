@@ -150,10 +150,9 @@ void broker_module_init(void const* arg) {
       e.register_event(make_type(io::neb, neb::de_pb_adaptive_service),
                        "AdaptiveService", &neb::pb_adaptive_service::operations,
                        "services");
-      e.register_event(
-          make_type(io::neb, neb::de_pb_service_status_check_result),
-          "ServiceStatusCheckResult",
-          &neb::pb_service_status_check_result::operations, "services");
+      e.register_event(make_type(io::neb, neb::de_pb_service_status),
+                       "ServiceStatus", &neb::pb_service_status::operations,
+                       "services");
 
       e.register_event(make_type(io::neb, neb::de_pb_host), "Host",
                        &neb::pb_host::operations, "hosts");
@@ -161,9 +160,8 @@ void broker_module_init(void const* arg) {
                        "AdaptiveHost", &neb::pb_adaptive_host::operations,
                        "hosts");
 
-      e.register_event(make_type(io::neb, neb::de_pb_host_status_check_result),
-                       "HostStatusCheckResult",
-                       &neb::pb_host_status_check_result::operations, "hosts");
+      e.register_event(make_type(io::neb, neb::de_pb_host_status), "HostStatus",
+                       &neb::pb_host_status::operations, "hosts");
 
       e.register_event(make_type(io::neb, neb::de_pb_severity), "Severity",
                        &neb::pb_severity::operations, "severities");

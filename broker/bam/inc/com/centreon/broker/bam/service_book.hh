@@ -67,7 +67,7 @@ class service_book {
               io::stream* visitor = nullptr);
   void update(const std::shared_ptr<neb::pb_service>& t,
               io::stream* visitor = nullptr);
-  void update(const std::shared_ptr<neb::pb_service_status_check_result>& t,
+  void update(const std::shared_ptr<neb::pb_service_status>& t,
               io::stream* visitor = nullptr);
 };
 }  // namespace bam

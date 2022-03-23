@@ -65,6 +65,7 @@ class ba {
   };
 
   std::shared_ptr<neb::host> _ba_host(uint32_t host_id);
+  std::shared_ptr<neb::pb_host> _ba_pb_host(uint32_t host_id);
   std::shared_ptr<neb::service> _ba_service(uint32_t ba_id,
                                             uint32_t host_id,
                                             uint32_t service_id,

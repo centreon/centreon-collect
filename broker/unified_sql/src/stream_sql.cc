@@ -1403,12 +1403,11 @@ void stream::_process_pb_adaptive_host(const std::shared_ptr<io::data>& d) {
  *  @param[in] e Uncasted service status.
  *
  */
-void stream::_process_pb_host_status_check_result(
-    const std::shared_ptr<io::data>& d) {
+void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
   _finish_action(-1, actions::host_parents | actions::comments |
                          actions::downtimes | actions::host_dependencies);
   // Processed object.
-  auto h{static_cast<const neb::pb_host_status_check_result*>(d.get())};
+  auto h{static_cast<const neb::pb_host_status*>(d.get())};
   auto& hscr = h->obj();
 
   log_v2::sql()->debug("SQL: pb host status check result output: <<{}>>",
@@ -1417,7 +1416,7 @@ void stream::_process_pb_host_status_check_result(
                        hscr.perf_data());
 
   time_t now = time(nullptr);
-  if (hscr.check_type() == HostStatusCheckResult_CheckType_PASSIVE ||
+  if (hscr.check_type() == HostStatus_CheckType_PASSIVE ||
       hscr.next_check() >= now - 5 * 60 ||  // usual case
       hscr.next_check() == 0) {             // initial state
     // Apply to DB.
@@ -1509,15 +1508,14 @@ void stream::_process_pb_host_status_check_result(
     _hscr_update.bind_value_as_i64(22, hscr.last_notification());
     _hscr_update.bind_value_as_i64(23, hscr.next_notification());
     _hscr_update.bind_value_as_bool(
-        24, hscr.acknowledgement_type() != HostStatusCheckResult_AckType_NONE);
+        24, hscr.acknowledgement_type() != HostStatus_AckType_NONE);
     _hscr_update.bind_value_as_i32(25, hscr.acknowledgement_type());
     _hscr_update.bind_value_as_i32(26, hscr.downtime_depth());
     _hscr_update.bind_value_as_i32(27, hscr.host_id());
 
     int32_t conn = _mysql.choose_connection_by_instance(
         _cache_host_instance[static_cast<uint32_t>(hscr.host_id())]);
-    _mysql.run_statement(_hscr_update,
-                         database::mysql_error::store_host_status_check_result,
+    _mysql.run_statement(_hscr_update, database::mysql_error::store_host_status,
                          false, conn);
 
     _add_action(conn, actions::hosts);
@@ -1527,16 +1525,15 @@ void stream::_process_pb_host_status_check_result(
         1, hst_ordered_status[hscr.current_state()]);
     _hscr_resources_update.bind_value_as_bool(2, hscr.downtime_depth() > 0);
     _hscr_resources_update.bind_value_as_bool(
-        3, hscr.acknowledgement_type() != HostStatusCheckResult_AckType_NONE);
+        3, hscr.acknowledgement_type() != HostStatus_AckType_NONE);
     _hscr_resources_update.bind_value_as_bool(
-        4, hscr.state_type() == HostStatusCheckResult_StateType_HARD);
+        4, hscr.state_type() == HostStatus_StateType_HARD);
     _hscr_resources_update.bind_value_as_u32(5, hscr.current_check_attempt());
     _hscr_resources_update.bind_value_as_bool(6, hscr.perf_data() != "");
     _hscr_resources_update.bind_value_as_u64(7, hscr.host_id());
 
     _mysql.run_statement(_hscr_resources_update,
-                         database::mysql_error::store_host_status_check_result,
-                         false, conn);
+                         database::mysql_error::store_host_status, false, conn);
 
     _add_action(conn, actions::resources);
   } else
@@ -2595,13 +2592,12 @@ void stream::_process_service_status(const std::shared_ptr<io::data>& d) {
  *  @param[in] e Uncasted service status.
  *
  */
-void stream::_process_pb_service_status_check_result(
-    const std::shared_ptr<io::data>& d) {
+void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
   _finish_action(-1, actions::host_parents | actions::comments |
                          actions::downtimes | actions::host_dependencies |
                          actions::service_dependencies);
   // Processed object.
-  auto s{static_cast<const neb::pb_service_status_check_result*>(d.get())};
+  auto s{static_cast<const neb::pb_service_status*>(d.get())};
   auto& sscr = s->obj();
 
   log_v2::sql()->debug("SQL: pb service status check result output: <<{}>>",
@@ -2610,7 +2606,7 @@ void stream::_process_pb_service_status_check_result(
                        sscr.perf_data());
 
   time_t now = time(nullptr);
-  if (sscr.check_type() == ServiceStatusCheckResult_CheckType_PASSIVE ||
+  if (sscr.check_type() == ServiceStatus_CheckType_PASSIVE ||
       sscr.next_check() >= now - 5 * 60 ||  // usual case
       sscr.next_check() == 0) {             // initial state
     // Apply to DB.
@@ -2705,8 +2701,7 @@ void stream::_process_pb_service_status_check_result(
     _sscr_update.bind_value_as_i64(23, sscr.last_notification());
     _sscr_update.bind_value_as_i64(24, sscr.next_notification());
     _sscr_update.bind_value_as_bool(
-        25,
-        sscr.acknowledgement_type() != ServiceStatusCheckResult_AckType_NONE);
+        25, sscr.acknowledgement_type() != ServiceStatus_AckType_NONE);
     _sscr_update.bind_value_as_i32(26, sscr.acknowledgement_type());
     _sscr_update.bind_value_as_i32(27, sscr.downtime_depth());
     _sscr_update.bind_value_as_i32(28, sscr.host_id());
@@ -2715,8 +2710,7 @@ void stream::_process_pb_service_status_check_result(
     int32_t conn = _mysql.choose_connection_by_instance(
         _cache_host_instance[static_cast<uint32_t>(sscr.host_id())]);
     _mysql.run_statement(
-        _sscr_update, database::mysql_error::store_service_status_check_result,
-        false, conn);
+        _sscr_update, database::mysql_error::store_service_status, false, conn);
 
     _add_action(conn, actions::services);
 
@@ -2725,18 +2719,17 @@ void stream::_process_pb_service_status_check_result(
         1, svc_ordered_status[sscr.current_state()]);
     _sscr_resources_update.bind_value_as_bool(2, sscr.downtime_depth() > 0);
     _sscr_resources_update.bind_value_as_bool(
-        3,
-        sscr.acknowledgement_type() != ServiceStatusCheckResult_AckType_NONE);
+        3, sscr.acknowledgement_type() != ServiceStatus_AckType_NONE);
     _sscr_resources_update.bind_value_as_bool(
-        4, sscr.state_type() == ServiceStatusCheckResult_StateType_HARD);
+        4, sscr.state_type() == ServiceStatus_StateType_HARD);
     _sscr_resources_update.bind_value_as_u32(5, sscr.current_check_attempt());
     _sscr_resources_update.bind_value_as_bool(6, sscr.perf_data() != "");
     _sscr_resources_update.bind_value_as_u64(10, sscr.service_id());
     _sscr_resources_update.bind_value_as_u64(11, sscr.host_id());
 
-    _mysql.run_statement(
-        _sscr_resources_update,
-        database::mysql_error::store_service_status_check_result, false, conn);
+    _mysql.run_statement(_sscr_resources_update,
+                         database::mysql_error::store_service_status, false,
+                         conn);
 
     _add_action(conn, actions::resources);
   } else

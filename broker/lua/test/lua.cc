@@ -624,7 +624,7 @@ TEST_F(LuaTest, PbHostCacheTest) {
 TEST_F(LuaTest, ServiceCacheTest) {
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
-  std::shared_ptr<neb::service> svc(new neb::service);
+  auto svc = std::make_shared<neb::service>();
   svc->host_id = 1;
   svc->service_id = 14;
   svc->service_description = "description";
@@ -642,6 +642,162 @@ TEST_F(LuaTest, ServiceCacheTest) {
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string lst(ReadFile("/tmp/log"));
   ASSERT_NE(lst.find("service description is description"), std::string::npos);
+  RemoveFile(filename);
+  RemoveFile("/tmp/log");
+}
+
+// When a query for a hostname is made
+// And the cache knows about it
+// Then the hostname is returned from the lua method.
+TEST_F(LuaTest, ServiceCacheTestAdaptive) {
+  config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  std::string filename("/tmp/cache_test.lua");
+  auto svc = std::make_shared<neb::service>();
+  svc->host_id = 1;
+  svc->service_id = 14;
+  svc->service_description = "description";
+  _cache->write(svc);
+  auto as = std::make_shared<neb::pb_adaptive_service>();
+  as->mut_obj().set_host_id(1);
+  as->mut_obj().set_service_id(14);
+  as->mut_obj().set_event_handler("abcdef");
+  _cache->write(as);
+
+  CreateScript(
+      filename,
+      "function init(conf)\n"
+      "  broker_log:set_parameters(3, '/tmp/log')\n"
+      "  local svc = broker_cache:get_service_description(1, 14)\n"
+      "  broker_log:info(1, 'service description is ' .. tostring(svc))\n"
+      "  local s = broker_cache:get_service(1, 14)\n"
+      "  broker_log:info(1, 'service event handler is ' .. s.event_handler)\n"
+      "end\n\n"
+      "function write(d)\n"
+      "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  std::string lst(ReadFile("/tmp/log"));
+  ASSERT_NE(lst.find("service description is description"), std::string::npos);
+  ASSERT_NE(lst.find("service event handler is abcdef"), std::string::npos);
+  RemoveFile(filename);
+  RemoveFile("/tmp/log");
+}
+
+// When a query for a hostname is made
+// And the cache knows about it
+// Then the hostname is returned from the lua method.
+TEST_F(LuaTest, ServiceCacheTestPbAndAdaptive) {
+  config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  std::string filename("/tmp/cache_test.lua");
+  auto svc = std::make_shared<neb::pb_service>();
+  svc->mut_obj().set_host_id(1);
+  svc->mut_obj().set_service_id(14);
+  svc->mut_obj().set_service_description("description");
+  svc->mut_obj().set_enabled(true);
+  _cache->write(svc);
+  auto as = std::make_shared<neb::pb_adaptive_service>();
+  as->mut_obj().set_host_id(1);
+  as->mut_obj().set_service_id(14);
+  as->mut_obj().set_event_handler("fedcba");
+  _cache->write(as);
+
+  CreateScript(
+      filename,
+      "function init(conf)\n"
+      "  broker_log:set_parameters(3, '/tmp/log')\n"
+      "  local svc = broker_cache:get_service_description(1, 14)\n"
+      "  broker_log:info(1, 'service description is ' .. tostring(svc))\n"
+      "  local s = broker_cache:get_service(1, 14)\n"
+      "  broker_log:info(1, 'service event handler is ' .. s.event_handler)\n"
+      "end\n\n"
+      "function write(d)\n"
+      "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  std::string lst(ReadFile("/tmp/log"));
+  ASSERT_NE(lst.find("service description is description"), std::string::npos);
+  ASSERT_NE(lst.find("service event handler is fedcba"), std::string::npos);
+  RemoveFile(filename);
+  RemoveFile("/tmp/log");
+}
+
+// When a query for a hostname is made
+// And the cache knows about it
+// Then the hostname is returned from the lua method.
+TEST_F(LuaTest, ServiceCacheApi2TestAdaptive) {
+  config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  std::string filename("/tmp/cache_test.lua");
+  auto svc = std::make_shared<neb::service>();
+  svc->host_id = 1;
+  svc->service_id = 14;
+  svc->service_description = "description";
+  _cache->write(svc);
+  auto as = std::make_shared<neb::pb_adaptive_service>();
+  as->mut_obj().set_host_id(1);
+  as->mut_obj().set_service_id(14);
+  as->mut_obj().set_event_handler("abcdef");
+  _cache->write(as);
+
+  CreateScript(
+      filename,
+      "broker_api_version=2\n"
+      "function init(conf)\n"
+      "  broker_log:set_parameters(3, '/tmp/log')\n"
+      "  local svc = broker_cache:get_service_description(1, 14)\n"
+      "  broker_log:info(1, 'service description is ' .. tostring(svc))\n"
+      "  local s = broker_cache:get_service(1, 14)\n"
+      "  broker_log:info(1, 'service event handler is ' .. s.event_handler)\n"
+      "end\n\n"
+      "function write(d)\n"
+      "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  std::string lst(ReadFile("/tmp/log"));
+  ASSERT_NE(lst.find("service description is description"), std::string::npos);
+  ASSERT_NE(lst.find("service event handler is abcdef"), std::string::npos);
+  RemoveFile(filename);
+  RemoveFile("/tmp/log");
+}
+
+// When a query for a hostname is made
+// And the cache knows about it
+// Then the hostname is returned from the lua method.
+TEST_F(LuaTest, ServiceCacheApi2TestPbAndAdaptive) {
+  config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  std::string filename("/tmp/cache_test.lua");
+  auto svc = std::make_shared<neb::pb_service>();
+  svc->mut_obj().set_host_id(1);
+  svc->mut_obj().set_service_id(14);
+  svc->mut_obj().set_service_description("description");
+  svc->mut_obj().set_enabled(true);
+  _cache->write(svc);
+  auto as = std::make_shared<neb::pb_adaptive_service>();
+  as->mut_obj().set_host_id(1);
+  as->mut_obj().set_service_id(14);
+  as->mut_obj().set_event_handler("fedcba");
+  _cache->write(as);
+
+  CreateScript(
+      filename,
+      "broker_api_version=2\n"
+      "function init(conf)\n"
+      "  broker_log:set_parameters(3, '/tmp/log')\n"
+      "  local svc = broker_cache:get_service_description(1, 14)\n"
+      "  broker_log:info(1, 'service description is ' .. tostring(svc))\n"
+      "  local s = broker_cache:get_service(1, 14)\n"
+      "  broker_log:info(1, 'service event handler is ' .. s.event_handler)\n"
+      "end\n\n"
+      "function write(d)\n"
+      "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  std::string lst(ReadFile("/tmp/log"));
+  ASSERT_NE(lst.find("service description is description"), std::string::npos);
+  ASSERT_NE(lst.find("service event handler is fedcba"), std::string::npos);
   RemoveFile(filename);
   RemoveFile("/tmp/log");
 }
@@ -682,7 +838,7 @@ TEST_F(LuaTest, PbServiceCacheTest) {
 TEST_F(LuaTest, IndexMetricCacheTest) {
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
-  std::shared_ptr<neb::service> svc(new neb::service);
+  auto svc = std::make_shared<neb::service>();
   svc->host_id = 1;
   svc->service_id = 14;
   svc->service_description = "MyDescription";
@@ -1121,7 +1277,7 @@ TEST_F(LuaTest, ServiceGroupCacheTest) {
   sg->id = 17;
   sg->name = "centreon2";
   _cache->write(sg);
-  std::shared_ptr<neb::service> svc(new neb::service);
+  auto svc = std::make_shared<neb::service>();
   svc->service_id = 17;
   svc->host_id = 22;
   svc->host_name = "host_centreon";
@@ -2124,7 +2280,7 @@ TEST_F(LuaTest, PbCacheGetNotesUrlTest) {
 TEST_F(LuaTest, CacheSvcGetNotesUrlTest) {
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
-  std::shared_ptr<neb::service> svc(new neb::service);
+  auto svc = std::make_shared<neb::service>();
   svc->host_id = 1;
   svc->service_id = 2;
   svc->notes = "svc notes";
@@ -2157,7 +2313,7 @@ TEST_F(LuaTest, CacheSvcGetNotesUrlTest) {
 TEST_F(LuaTest, CacheSeverity) {
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
-  std::shared_ptr<neb::service> svc(new neb::service);
+  auto svc = std::make_shared<neb::service>();
   svc->host_id = 1;
   svc->service_id = 2;
   svc->notes = "svc notes";
@@ -2192,7 +2348,7 @@ TEST_F(LuaTest, BrokerEventIndex) {
   config::applier::modules modules;
   modules.load_file("./lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
-  std::shared_ptr<neb::service> svc(new neb::service);
+  auto svc = std::make_shared<neb::service>();
   svc->host_id = 1;
   svc->service_id = 2;
   svc->service_description = "foo bar";
@@ -2234,7 +2390,7 @@ TEST_F(LuaTest, BrokerEventPairs) {
   config::applier::modules modules;
   modules.load_file("./lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
-  std::shared_ptr<neb::service> svc(new neb::service);
+  auto svc = std::make_shared<neb::service>();
   svc->host_id = 1;
   svc->service_id = 2;
   svc->service_description = "foo bar";
@@ -3270,10 +3426,10 @@ TEST_F(LuaTest, BrokerApi2PbHostJsonEncode) {
   config::applier::modules modules;
   modules.load_file("./lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
-  auto host = std::make_shared<neb::pb_host_status_check_result>();
+  auto host = std::make_shared<neb::pb_host_status>();
   auto& obj = host->mut_obj();
   obj.set_host_id(1899);
-  obj.set_current_state(HostStatusCheckResult_State_UP);
+  obj.set_current_state(HostStatus_State_UP);
   obj.set_output("cool");
   obj.set_perf_data("perfdata");
   std::string filename("/tmp/cache_test.lua");
@@ -3342,12 +3498,12 @@ TEST_F(LuaTest, BrokerApi2PbHostStatusJsonEncode) {
   config::applier::modules modules;
   modules.load_file("./lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
-  auto host = std::make_shared<neb::pb_host_status_check_result>();
+  auto host = std::make_shared<neb::pb_host_status>();
   auto& obj = host->mut_obj();
   obj.set_host_id(1899);
   obj.set_output("cool");
-  obj.set_current_state(HostStatusCheckResult_State_UP);
-  obj.set_check_type(HostStatusCheckResult_CheckType_ACTIVE);
+  obj.set_current_state(HostStatus_State_UP);
+  obj.set_check_type(HostStatus_CheckType_ACTIVE);
   obj.set_last_check(123459);
   std::string filename("/tmp/cache_test.lua");
   CreateScript(filename,
@@ -3377,12 +3533,12 @@ TEST_F(LuaTest, BrokerPbHostStatusJsonEncode) {
   config::applier::modules modules;
   modules.load_file("./lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
-  auto host = std::make_shared<neb::pb_host_status_check_result>();
+  auto host = std::make_shared<neb::pb_host_status>();
   auto& obj = host->mut_obj();
   obj.set_host_id(1899);
   obj.set_output("cool");
-  obj.set_current_state(HostStatusCheckResult_State_UP);
-  obj.set_check_type(HostStatusCheckResult_CheckType_ACTIVE);
+  obj.set_current_state(HostStatus_State_UP);
+  obj.set_check_type(HostStatus_CheckType_ACTIVE);
   obj.set_last_check(123459);
   std::string filename("/tmp/cache_test.lua");
   CreateScript(filename,

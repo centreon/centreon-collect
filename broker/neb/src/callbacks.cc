@@ -95,11 +95,7 @@ static struct {
     {NEBCALLBACK_SERVICE_CHECK_DATA, &neb::callback_service_check},
     {NEBCALLBACK_SERVICE_STATUS_DATA, &neb::callback_service_status},
     {NEBCALLBACK_ADAPTIVE_SEVERITY_DATA, &neb::callback_severity},
-    {NEBCALLBACK_ADAPTIVE_TAG_DATA, &neb::callback_tag},
-    {NEBCALLBACK_SERVICE_STATUS_CHECK_RESULT_DATA,
-     &neb::callback_service_status},
-    {NEBCALLBACK_HOST_STATUS_CHECK_RESULT_DATA,
-     &neb::callback_pb_host_status_check_result}};
+    {NEBCALLBACK_ADAPTIVE_TAG_DATA, &neb::callback_tag}};
 
 // List of common callbacks.
 static struct {
@@ -113,16 +109,12 @@ static struct {
     {NEBCALLBACK_EXTERNAL_COMMAND_DATA, &neb::callback_external_command},
     {NEBCALLBACK_FLAPPING_DATA, &neb::callback_flapping_status},
     {NEBCALLBACK_HOST_CHECK_DATA, &neb::callback_host_check},
-    {NEBCALLBACK_HOST_STATUS_DATA, nullptr},
+    {NEBCALLBACK_HOST_STATUS_DATA, &neb::callback_pb_host_status},
     {NEBCALLBACK_PROGRAM_STATUS_DATA, &neb::callback_program_status},
     {NEBCALLBACK_SERVICE_CHECK_DATA, &neb::callback_service_check},
-    {NEBCALLBACK_SERVICE_STATUS_DATA, nullptr},
+    {NEBCALLBACK_SERVICE_STATUS_DATA, &neb::callback_pb_service_status},
     {NEBCALLBACK_ADAPTIVE_SEVERITY_DATA, &neb::callback_severity},
-    {NEBCALLBACK_ADAPTIVE_TAG_DATA, &neb::callback_tag},
-    {NEBCALLBACK_SERVICE_STATUS_CHECK_RESULT_DATA,
-     &neb::callback_pb_service_status_check_result},
-    {NEBCALLBACK_HOST_STATUS_CHECK_RESULT_DATA,
-     &neb::callback_pb_host_status_check_result}};
+    {NEBCALLBACK_ADAPTIVE_TAG_DATA, &neb::callback_tag}};
 
 // List of Engine-specific callbacks.
 static struct {
@@ -1680,8 +1672,7 @@ int neb::callback_host_status(int callback_type, void* data) {
  *
  *  @return 0 on success.
  */
-int neb::callback_pb_host_status_check_result(int callback_type,
-                                              void* data) noexcept {
+int neb::callback_pb_host_status(int callback_type, void* data) noexcept {
   // Log message.
   log_v2::neb()->info(
       "callbacks: generating pb host status check result event protobuf");
@@ -1690,30 +1681,29 @@ int neb::callback_pb_host_status_check_result(int callback_type,
   const engine::host* eh{static_cast<engine::host*>(
       static_cast<nebstruct_host_status_data*>(data)->object_ptr)};
 
-  auto h{std::make_shared<neb::pb_host_status_check_result>()};
-  HostStatusCheckResult& hscr = h.get()->mut_obj();
+  auto h{std::make_shared<neb::pb_host_status>()};
+  HostStatus& hscr = h.get()->mut_obj();
 
   hscr.set_host_id(eh->get_host_id());
   if (hscr.host_id() == 0)
     log_v2::neb()->error("could not find ID of host '{}'", eh->get_name());
 
   if (eh->problem_has_been_acknowledged())
-    hscr.set_acknowledgement_type(static_cast<HostStatusCheckResult_AckType>(
-        eh->get_acknowledgement_type()));
+    hscr.set_acknowledgement_type(
+        static_cast<HostStatus_AckType>(eh->get_acknowledgement_type()));
   else
-    hscr.set_acknowledgement_type(HostStatusCheckResult_AckType_NONE);
+    hscr.set_acknowledgement_type(HostStatus_AckType_NONE);
 
-  hscr.set_check_type(
-      static_cast<HostStatusCheckResult_CheckType>(eh->get_check_type()));
+  hscr.set_check_type(static_cast<HostStatus_CheckType>(eh->get_check_type()));
   hscr.set_current_check_attempt(eh->get_current_attempt());
-  hscr.set_current_state(static_cast<HostStatusCheckResult_State>(
+  hscr.set_current_state(static_cast<HostStatus_State>(
       eh->has_been_checked() ? eh->get_current_state() : 2));  // Pending state.
   hscr.set_execution_time(eh->get_execution_time());
   hscr.set_has_been_checked(eh->has_been_checked());
   hscr.set_is_flapping(eh->get_is_flapping());
   hscr.set_last_check(eh->get_last_check());
   hscr.set_last_hard_state(
-      static_cast<HostStatusCheckResult_State>(eh->get_last_hard_state()));
+      static_cast<HostStatus_State>(eh->get_last_hard_state()));
   hscr.set_last_hard_state_change(eh->get_last_hard_state_change());
   hscr.set_last_notification(eh->get_last_notification());
   hscr.set_notification_number(eh->get_notification_number());
@@ -1735,7 +1725,7 @@ int neb::callback_pb_host_status_check_result(int callback_type,
   if (!eh->get_perf_data().empty())
     hscr.set_perf_data(misc::string::check_string_utf8(eh->get_perf_data()));
   hscr.set_should_be_scheduled(eh->get_should_be_scheduled());
-  hscr.set_state_type(static_cast<HostStatusCheckResult_StateType>(
+  hscr.set_state_type(static_cast<HostStatus_StateType>(
       eh->has_been_checked() ? eh->get_state_type() : engine::notifier::hard));
   hscr.set_downtime_depth(eh->get_scheduled_downtime_depth());
 
@@ -1745,7 +1735,7 @@ int neb::callback_pb_host_status_check_result(int callback_type,
   // Acknowledgement event.
   auto it = gl_acknowledgements.find(std::make_pair(hscr.host_id(), 0u));
   if (it != gl_acknowledgements.end() &&
-      hscr.acknowledgement_type() == HostStatusCheckResult_AckType_NONE) {
+      hscr.acknowledgement_type() == HostStatus_AckType_NONE) {
     if (!(!hscr.current_state()  // !(OK or (normal ack and NOK))
           || (!it->second.is_sticky &&
               (hscr.current_state() != it->second.state)))) {
@@ -2688,17 +2678,17 @@ int32_t neb::callback_tag(int callback_type __attribute__((unused)),
   return 0;
 }
 
-int32_t neb::callback_pb_service_status_check_result(int callback_type
-                                                     __attribute__((unused)),
-                                                     void* data) noexcept {
+int32_t neb::callback_pb_service_status(int callback_type
+                                        __attribute__((unused)),
+                                        void* data) noexcept {
   log_v2::neb()->info(
       "callbacks: generating service status check result protobuf event");
 
   const engine::service* es{static_cast<engine::service*>(
       static_cast<nebstruct_service_status_data*>(data)->object_ptr)};
 
-  auto s{std::make_shared<neb::pb_service_status_check_result>()};
-  ServiceStatusCheckResult& sscr = s.get()->mut_obj();
+  auto s{std::make_shared<neb::pb_service_status>()};
+  ServiceStatus& sscr = s.get()->mut_obj();
 
   sscr.set_host_id(es->get_host_id());
   sscr.set_service_id(es->get_service_id());
@@ -2707,22 +2697,22 @@ int32_t neb::callback_pb_service_status_check_result(int callback_type
                          es->get_hostname(), es->get_description());
 
   if (es->problem_has_been_acknowledged())
-    sscr.set_acknowledgement_type(static_cast<ServiceStatusCheckResult_AckType>(
-        es->get_acknowledgement_type()));
+    sscr.set_acknowledgement_type(
+        static_cast<ServiceStatus_AckType>(es->get_acknowledgement_type()));
   else
-    sscr.set_acknowledgement_type(ServiceStatusCheckResult_AckType_NONE);
+    sscr.set_acknowledgement_type(ServiceStatus_AckType_NONE);
 
   sscr.set_check_type(
-      static_cast<ServiceStatusCheckResult_CheckType>(es->get_check_type()));
+      static_cast<ServiceStatus_CheckType>(es->get_check_type()));
   sscr.set_current_check_attempt(es->get_current_attempt());
-  sscr.set_current_state(static_cast<ServiceStatusCheckResult_State>(
+  sscr.set_current_state(static_cast<ServiceStatus_State>(
       es->has_been_checked() ? es->get_current_state() : 4));  // Pending state.
   sscr.set_execution_time(es->get_execution_time());
   sscr.set_has_been_checked(es->has_been_checked());
   sscr.set_is_flapping(es->get_is_flapping());
   sscr.set_last_check(es->get_last_check());
   sscr.set_last_hard_state(
-      static_cast<ServiceStatusCheckResult_State>(es->get_last_hard_state()));
+      static_cast<ServiceStatus_State>(es->get_last_hard_state()));
   sscr.set_last_hard_state_change(es->get_last_hard_state_change());
   sscr.set_last_notification(es->get_last_notification());
   sscr.set_notification_number(es->get_notification_number());
@@ -2746,7 +2736,7 @@ int32_t neb::callback_pb_service_status_check_result(int callback_type
   if (!es->get_perf_data().empty())
     sscr.set_perf_data(misc::string::check_string_utf8(es->get_perf_data()));
   sscr.set_should_be_scheduled(es->get_should_be_scheduled());
-  sscr.set_state_type(static_cast<ServiceStatusCheckResult_StateType>(
+  sscr.set_state_type(static_cast<ServiceStatus_StateType>(
       es->has_been_checked() ? es->get_state_type() : engine::notifier::hard));
   sscr.set_downtime_depth(es->get_scheduled_downtime_depth());
 
@@ -2757,7 +2747,7 @@ int32_t neb::callback_pb_service_status_check_result(int callback_type
   auto it = gl_acknowledgements.find(
       std::make_pair(sscr.host_id(), sscr.service_id()));
   if (it != gl_acknowledgements.end() &&
-      sscr.acknowledgement_type() == ServiceStatusCheckResult_AckType_NONE) {
+      sscr.acknowledgement_type() == ServiceStatus_AckType_NONE) {
     if (!(!sscr.current_state()  // !(OK or (normal ack and NOK))
           || (!it->second.is_sticky &&
               (sscr.current_state() != it->second.state)))) {

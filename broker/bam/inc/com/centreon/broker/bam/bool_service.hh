@@ -57,9 +57,8 @@ class bool_service : public bool_value, public service_listener {
                         io::stream* visitor = nullptr) override;
   uint32_t get_host_id() const;
   uint32_t get_service_id() const;
-  void service_update(
-      const std::shared_ptr<neb::pb_service_status_check_result>& status,
-      io::stream* visitor = nullptr) override;
+  void service_update(const std::shared_ptr<neb::pb_service_status>& status,
+                      io::stream* visitor = nullptr) override;
   void service_update(const std::shared_ptr<neb::service_status>& status,
                       io::stream* visitor = nullptr) override;
   double value_hard() override;

@@ -2933,8 +2933,8 @@ void service::disable_flap_detection() {
  * @brief Updates service status info. Send data to event broker.
  */
 void service::update_status() {
-  broker_service_status_check_result(NEBTYPE_SERVICESTATUS_UPDATE, NEBFLAG_NONE,
-                                     NEBATTR_NONE, this, nullptr);
+  broker_service_status(NEBTYPE_SERVICESTATUS_UPDATE, NEBFLAG_NONE,
+                        NEBATTR_NONE, this, nullptr);
 }
 
 /**

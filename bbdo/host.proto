@@ -111,7 +111,7 @@ message Host {
 /**
  * @brief Message sent in BBDO 3.0.0 instead of neb::service_status
  */
-message HostStatusCheckResult {
+message HostStatus {
   uint64 host_id = 1;
 
   bool has_been_checked = 2;

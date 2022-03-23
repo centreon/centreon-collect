@@ -139,8 +139,13 @@ void applier::ba::apply(bam::configuration::state::bas const& my_bas,
     applied& content(_applied[it->first]);
     content.cfg = it->second;
     content.obj = new_ba;
-    std::shared_ptr<neb::host> h(_ba_host(it->second.get_host_id()));
-    multiplexing::publisher().write(h);
+    if (bbdo3_enabled) {
+      std::shared_ptr<neb::pb_host> h(_ba_pb_host(it->second.get_host_id()));
+      multiplexing::publisher().write(h);
+    } else {
+      std::shared_ptr<neb::host> h(_ba_host(it->second.get_host_id()));
+      multiplexing::publisher().write(h);
+    }
     std::shared_ptr<io::data> s;
     if (bbdo3_enabled)
       s = _ba_pb_service(it->first, it->second.get_host_id(),
@@ -221,6 +226,25 @@ std::shared_ptr<neb::host> applier::ba::_ba_host(uint32_t host_id) {
 }
 
 /**
+ *  Get the virtual BA host of a BA.
+ *
+ *  @param[in] host_id  Host ID.
+ *
+ *  @return Virtual BA host.
+ */
+std::shared_ptr<neb::pb_host> applier::ba::_ba_pb_host(uint32_t host_id) {
+  auto h = std::make_shared<neb::pb_host>();
+  auto& o = h->mut_obj();
+  o.set_poller_id(
+      com::centreon::broker::config::applier::state::instance().poller_id());
+  o.set_host_id(host_id);
+  o.set_host_name(fmt::format("_Module_BAM_{}", o.poller_id()));
+  o.set_last_update(time(nullptr));
+  o.set_enabled(true);
+  return h;
+}
+
+/**
  *  Get the virtual BA service of a BA.
  *
  *  @param[in] ba_id       BA ID.
@@ -270,6 +294,7 @@ std::shared_ptr<neb::pb_service> applier::ba::_ba_pb_service(
   o.set_last_update(time(nullptr));
   o.set_downtime_depth(in_downtime ? 1 : 0);
   o.set_max_check_attempts(1);
+  o.set_enabled(true);
   return s;
 }
 

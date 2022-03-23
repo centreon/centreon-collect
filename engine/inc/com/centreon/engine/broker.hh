@@ -544,11 +544,6 @@ void broker_host_status(int type,
                         int attr,
                         com::centreon::engine::host* hst,
                         struct timeval const* timestamp);
-void broker_host_status_check_result(int type,
-                                     int flags,
-                                     int attr,
-                                     com::centreon::engine::host* hst,
-                                     struct timeval const* timestamp);
 void broker_log_data(int type,
                      int flags,
                      int attr,
@@ -615,11 +610,6 @@ void broker_service_status(int type,
                            int attr,
                            com::centreon::engine::service* svc,
                            struct timeval const* timestamp);
-void broker_service_status_check_result(int type,
-                                        int flags,
-                                        int attr,
-                                        com::centreon::engine::service* svc,
-                                        struct timeval const* timestamp);
 void broker_statechange_data(int type,
                              int flags,
                              int attr,

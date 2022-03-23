@@ -131,15 +131,14 @@ void service_book::update(const std::shared_ptr<neb::pb_service>& t,
 }
 
 /**
- * @brief Propagate events of type pb_service_status_check_result to the
+ * @brief Propagate events of type pb_service_status to the
  * concerned services and then to the corresponding kpi.
  *
  * @param t The event to handle.
  * @param visitor The stream to write into.
  */
-void service_book::update(
-    const std::shared_ptr<neb::pb_service_status_check_result>& t,
-    io::stream* visitor) {
+void service_book::update(const std::shared_ptr<neb::pb_service_status>& t,
+                          io::stream* visitor) {
   std::pair<multimap::iterator, multimap::iterator> range{_book.equal_range(
       std::make_pair(t->obj().host_id(), t->obj().service_id()))};
   while (range.first != range.second) {

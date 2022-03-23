@@ -599,12 +599,11 @@ void ba::visit(io::stream* visitor) {
         status->state_type = 1;  // Hard.
         visitor->write(status);
       } else {
-        auto status{std::make_shared<neb::pb_service_status_check_result>()};
+        auto status{std::make_shared<neb::pb_service_status>()};
         auto& o = status->mut_obj();
-        o.set_check_type(
-            ServiceStatusCheckResult_CheckType_PASSIVE);  // Passive.
+        o.set_check_type(ServiceStatus_CheckType_PASSIVE);  // Passive.
         o.set_current_check_attempt(1);
-        o.set_current_state(ServiceStatusCheckResult_State_OK);
+        o.set_current_state(ServiceStatus_State_OK);
         o.set_has_been_checked(true);
         o.set_host_id(_host_id);
         o.set_downtime_depth(_in_downtime);
@@ -612,7 +611,7 @@ void ba::visit(io::stream* visitor) {
           o.set_last_check(_event->start_time);
         else
           o.set_last_check(_last_kpi_update);
-        o.set_last_hard_state(ServiceStatusCheckResult_State_OK);
+        o.set_last_hard_state(ServiceStatus_State_OK);
         o.set_last_hard_state_change(o.last_check());
         o.set_last_state_change(o.last_check());
         o.set_output(
@@ -623,7 +622,7 @@ void ba::visit(io::stream* visitor) {
                                     static_cast<int>(_level_warning),
                                     static_cast<int>(_level_critical)));
         o.set_service_id(_service_id);
-        o.set_state_type(ServiceStatusCheckResult_StateType_HARD);
+        o.set_state_type(ServiceStatus_StateType_HARD);
         visitor->write(status);
       }
     }

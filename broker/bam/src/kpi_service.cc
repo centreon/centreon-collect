@@ -227,7 +227,7 @@ void kpi_service::service_update(
  *  @param[out] visitor  Object that will receive events.
  */
 void kpi_service::service_update(
-    const std::shared_ptr<neb::pb_service_status_check_result>& status,
+    const std::shared_ptr<neb::pb_service_status>& status,
     io::stream* visitor) {
   if (status && status->obj().host_id() == _host_id &&
       status->obj().service_id() == _service_id) {

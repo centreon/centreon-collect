@@ -52,7 +52,7 @@ class service_listener {
   virtual void service_update(std::shared_ptr<neb::pb_service> const& status,
                               io::stream* visitor = nullptr);
   virtual void service_update(
-      std::shared_ptr<neb::pb_service_status_check_result> const& status,
+      std::shared_ptr<neb::pb_service_status> const& status,
       io::stream* visitor = nullptr);
   virtual void service_update(
       std::shared_ptr<neb::service_status> const& status,

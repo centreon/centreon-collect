@@ -116,7 +116,7 @@ message Service {
 /**
  * @brief Message sent in BBDO 3.0.0 instead of neb::service_status
  */
-message ServiceStatusCheckResult {
+message ServiceStatus {
   uint64 host_id = 1;
   uint64 service_id = 2;
 

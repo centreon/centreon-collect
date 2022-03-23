@@ -319,20 +319,15 @@ class stream : public io::stream {
   void _process_responsive_instance(const std::shared_ptr<io::data>& d);
 
   void _process_pb_host(const std::shared_ptr<io::data>& d);
-  void _process_pb_host_status_check_result(const std::shared_ptr<io::data>& d);
+  void _process_pb_host_status(const std::shared_ptr<io::data>& d);
   void _process_pb_adaptive_host(const std::shared_ptr<io::data>& d);
   void _process_pb_service(const std::shared_ptr<io::data>& d);
   void _process_pb_adaptive_service(const std::shared_ptr<io::data>& d);
   void _process_pb_service_status(const std::shared_ptr<io::data>& d);
-  void _process_pb_service_status_check_result(
-      const std::shared_ptr<io::data>& d);
-  void _process_pb_service_status_small(const std::shared_ptr<io::data>& d);
   void _process_severity(const std::shared_ptr<io::data>& d);
   void _process_tag(const std::shared_ptr<io::data>& d);
 
   void _unified_sql_process_service_status(const std::shared_ptr<io::data>& d);
-  void _unified_sql_process_service_status_check_result(
-      const std::shared_ptr<io::data>& d);
   void _check_and_update_index_cache(const Service& ss);
 
   void _unified_sql_process_pb_service_status(
