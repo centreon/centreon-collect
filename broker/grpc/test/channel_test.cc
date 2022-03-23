@@ -114,8 +114,8 @@ TEST_F(grpc_channel_tester, read_all) {
 
   ASSERT_FALSE(read_ret.second);
 
-  ASSERT_LE(std::chrono::milliseconds(9), (read_end - read_start));
-  ASSERT_LE((read_end - read_start), std::chrono::milliseconds(11));
+  ASSERT_LE(std::chrono::milliseconds(9), read_end - read_start);
+  ASSERT_LE(read_end - read_start, std::chrono::milliseconds(15));
 }
 
 TEST_F(grpc_channel_tester, throw_read_after_failure) {

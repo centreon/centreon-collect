@@ -68,10 +68,14 @@ monitoring_stream::monitoring_stream(std::string const& ext_cmd_file,
       _storage_db_cfg(storage_db_cfg),
       _cache(cache) {
   log_v2::bam()->trace("BAM: monitoring_stream constructor");
+  auto& bbdo = config::applier::state::instance().bbdo_version();
+  log_v2::bam()->info("BAM: bbdo version {}", std::get<0>(bbdo));
+  _bbdo3_enabled = std::get<0>(bbdo) >= 3;
   // Prepare queries.
   _prepare();
 
-  // Let's update BAs then we will be able to load the cache with inherited downtimes.
+  // Let's update BAs then we will be able to load the cache with inherited
+  // downtimes.
   update();
   // Read cache.
   _read_cache();
@@ -203,6 +207,31 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
       _applier.book_service().update(ss, &ev_cache);
       ev_cache.commit_to(pblshr);
     } break;
+    case neb::pb_service_status_check_result::static_type(): {
+      auto ss =
+          std::static_pointer_cast<neb::pb_service_status_check_result>(data);
+      auto& o = ss->obj();
+      log_v2::bam()->trace(
+          "BAM: processing pb service status (host: {}, service: {}, hard "
+          "state {}, current state {})",
+          o.host_id(), o.service_id(), o.last_hard_state(), o.current_state());
+      multiplexing::publisher pblshr;
+      event_cache_visitor ev_cache;
+      _applier.book_service().update(ss, &ev_cache);
+      ev_cache.commit_to(pblshr);
+    } break;
+    case neb::pb_service::static_type(): {
+      auto s = std::static_pointer_cast<neb::pb_service>(data);
+      auto& o = s->obj();
+      log_v2::bam()->trace(
+          "BAM: processing pb service status (host: {}, service: {}, hard "
+          "state {}, current state {})",
+          o.host_id(), o.service_id(), o.last_hard_state(), o.current_state());
+      multiplexing::publisher pblshr;
+      event_cache_visitor ev_cache;
+      _applier.book_service().update(s, &ev_cache);
+      ev_cache.commit_to(pblshr);
+    } break;
     case neb::acknowledgement::static_type(): {
       std::shared_ptr<neb::acknowledgement> ack(
           std::static_pointer_cast<neb::acknowledgement>(data));
@@ -218,8 +247,10 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
       std::shared_ptr<neb::downtime> dt(
           std::static_pointer_cast<neb::downtime>(data));
       log_v2::bam()->trace(
-          "BAM: processing downtime ({}) on service ({}, {}) started: {}, stopped: {}",
-          dt->internal_id, dt->host_id, dt->service_id, dt->was_started, dt->was_cancelled);
+          "BAM: processing downtime ({}) on service ({}, {}) started: {}, "
+          "stopped: {}",
+          dt->internal_id, dt->host_id, dt->service_id, dt->was_started,
+          dt->was_cancelled);
       multiplexing::publisher pblshr;
       event_cache_visitor ev_cache;
       _applier.book_service().update(dt, &ev_cache);

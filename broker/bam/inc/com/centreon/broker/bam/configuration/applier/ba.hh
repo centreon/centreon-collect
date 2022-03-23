@@ -69,6 +69,10 @@ class ba {
                                             uint32_t host_id,
                                             uint32_t service_id,
                                             bool in_downtime = false);
+  std::shared_ptr<neb::pb_service> _ba_pb_service(uint32_t ba_id,
+                                                  uint32_t host_id,
+                                                  uint32_t service_id,
+                                                  bool in_downtime = false);
   void _internal_copy(ba const& other);
   std::shared_ptr<bam::ba> _new_ba(configuration::ba const& cfg,
                                    service_book& book);

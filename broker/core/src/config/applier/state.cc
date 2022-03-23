@@ -172,7 +172,8 @@ const std::string& state::cache_dir() const noexcept {
  *
  * @return The bbdo version.
  */
-std::tuple<uint16_t, uint16_t, uint16_t> state::bbdo_version() const noexcept {
+const std::tuple<uint16_t, uint16_t, uint16_t>& state::bbdo_version()
+    const noexcept {
   return _bbdo_version;
 }
 

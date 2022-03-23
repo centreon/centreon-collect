@@ -188,8 +188,9 @@ void kpi_service::service_update(
       status->service_id == _service_id) {
     // Log message.
     log_v2::bam()->debug(
-        "BAM: KPI {} is getting notified of service ({}, {}) update (state: {})", _id,
-        _host_id, _service_id, status->current_state);
+        "BAM: KPI {} is getting notified of service ({}, {}) update (state: "
+        "{})",
+        _id, _host_id, _service_id, status->current_state);
 
     // Update information.
     if (status->last_check.is_null()) {
@@ -210,6 +211,52 @@ void kpi_service::service_update(
     _state_hard = static_cast<state>(status->last_hard_state);
     _state_soft = static_cast<state>(status->current_state);
     _state_type = status->state_type;
+
+    // Generate status event.
+    visit(visitor);
+
+    // Propagate change.
+    propagate_update(visitor);
+  }
+}
+
+/**
+ *  Service got updated !
+ *
+ *  @param[in]  status   Service status.
+ *  @param[out] visitor  Object that will receive events.
+ */
+void kpi_service::service_update(
+    const std::shared_ptr<neb::pb_service_status_check_result>& status,
+    io::stream* visitor) {
+  if (status && status->obj().host_id() == _host_id &&
+      status->obj().service_id() == _service_id) {
+    auto& o = status->obj();
+    // Log message.
+    log_v2::bam()->debug(
+        "BAM: KPI {} is getting notified of service ({}, {}) update (state: "
+        "{})",
+        _id, _host_id, _service_id, o.current_state());
+
+    // Update information.
+    if (o.last_check() == 0 || o.last_check() == -1) {
+      if (_last_check.is_null()) {
+        _last_check = std::time(nullptr);
+        log_v2::bam()->trace(
+            "service kpi {} last check updated with status last update {}", _id,
+            _last_check);
+      }
+    } else {
+      _last_check = o.last_check();
+      log_v2::bam()->trace(
+          "service kpi {} last check updated with status last check {}", _id,
+          o.last_check());
+    }
+    _output = o.output();
+    _perfdata = o.perf_data();
+    _state_hard = static_cast<state>(o.last_hard_state());
+    _state_soft = static_cast<state>(o.current_state());
+    _state_type = o.state_type();
 
     // Generate status event.
     visit(visitor);
@@ -423,8 +470,10 @@ void kpi_service::visit(io::stream* visitor) {
       status->last_impact =
           _downtimed ? hard_values.get_downtime() : hard_values.get_nominal();
       log_v2::bam()->trace(
-          "Writing kpi status {}: in downtime: {} ; last state changed: {} ; state: {}",
-          _id, status->in_downtime, status->last_state_change, status->state_hard);
+          "Writing kpi status {}: in downtime: {} ; last state changed: {} ; "
+          "state: {}",
+          _id, status->in_downtime, status->last_state_change,
+          status->state_hard);
       visitor->write(status);
     }
   }

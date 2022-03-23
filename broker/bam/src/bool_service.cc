@@ -1,5 +1,5 @@
 /*
-** Copyright 2014, 2021 Centreon
+** Copyright 2014, 2021-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 #include "com/centreon/broker/bam/bool_service.hh"
 #include <cassert>
 
+#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/neb/service_status.hh"
 
 using namespace com::centreon::broker;
@@ -81,12 +82,34 @@ uint32_t bool_service::get_service_id() const {
 void bool_service::service_update(
     std::shared_ptr<neb::service_status> const& status,
     io::stream* visitor) {
+  log_v2::bam()->trace("bool_service: service update with neb::service_status");
   if (status && status->host_id == _host_id &&
       status->service_id == _service_id) {
     _state_hard = status->last_hard_state;
     _state_soft = status->current_state;
     _state_known = true;
     _in_downtime = (status->downtime_depth > 0);
+    propagate_update(visitor);
+  }
+}
+
+/**
+ *  Notify of service update.
+ *
+ *  @param[in]  status   Service status.
+ *  @param[out] visitor  Object that will receive events.
+ */
+void bool_service::service_update(
+    const std::shared_ptr<neb::pb_service_status_check_result>& status,
+    io::stream* visitor) {
+  log_v2::bam()->trace(
+      "bool_service: service update with neb::pb_service_status");
+  auto& o = status->obj();
+  if (status && o.host_id() == _host_id && o.service_id() == _service_id) {
+    _state_hard = o.last_hard_state();
+    _state_soft = o.current_state();
+    _state_known = true;
+    _in_downtime = o.downtime_depth() > 0;
     propagate_update(visitor);
   }
 }

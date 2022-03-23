@@ -104,14 +104,24 @@ void applier::ba::apply(bam::configuration::state::bas const& my_bas,
   //
 
   // Delete objects.
-  for (std::map<uint32_t, applied>::iterator it(to_delete.begin()),
-       end(to_delete.end());
+  auto& bbdo = config::applier::state::instance().bbdo_version();
+  bool bbdo3_enabled = std::get<0>(bbdo) >= 3;
+  for (std::map<uint32_t, applied>::iterator it = to_delete.begin(),
+                                             end = to_delete.end();
        it != end; ++it) {
     log_v2::bam()->info("BAM: removing BA {}", it->first);
-    std::shared_ptr<neb::service> s(
-        _ba_service(it->first, it->second.cfg.get_host_id(),
-                    it->second.cfg.get_service_id()));
-    s->enabled = false;
+    std::shared_ptr<io::data> s;
+    if (bbdo3_enabled) {
+      auto bs = _ba_pb_service(it->first, it->second.cfg.get_host_id(),
+                               it->second.cfg.get_service_id());
+      bs->mut_obj().set_enabled(false);
+      s = bs;
+    } else {
+      auto bs = _ba_service(it->first, it->second.cfg.get_host_id(),
+                            it->second.cfg.get_service_id());
+      bs->enabled = false;
+      s = bs;
+    }
     book.unlisten(it->second.cfg.get_host_id(), it->second.cfg.get_service_id(),
                   static_cast<bam::ba*>(it->second.obj.get()));
     _applied.erase(it->first);
@@ -131,8 +141,13 @@ void applier::ba::apply(bam::configuration::state::bas const& my_bas,
     content.obj = new_ba;
     std::shared_ptr<neb::host> h(_ba_host(it->second.get_host_id()));
     multiplexing::publisher().write(h);
-    std::shared_ptr<neb::service> s(_ba_service(
-        it->first, it->second.get_host_id(), it->second.get_service_id()));
+    std::shared_ptr<io::data> s;
+    if (bbdo3_enabled)
+      s = _ba_pb_service(it->first, it->second.get_host_id(),
+                         it->second.get_service_id());
+    else
+      s = _ba_service(it->first, it->second.get_host_id(),
+                      it->second.get_service_id());
     multiplexing::publisher().write(s);
   }
 
@@ -231,6 +246,34 @@ std::shared_ptr<neb::service> applier::ba::_ba_service(uint32_t ba_id,
 }
 
 /**
+ *  Get the virtual BA service of a BA.
+ *
+ *  @param[in] ba_id       BA ID.
+ *  @param[in] host_id     Host ID.
+ *  @param[in] service_id  Service ID.
+ *
+ *  @return Virtual BA service.
+ */
+std::shared_ptr<neb::pb_service> applier::ba::_ba_pb_service(
+    uint32_t ba_id,
+    uint32_t host_id,
+    uint32_t service_id,
+    bool in_downtime) {
+  log_v2::bam()->trace("_ba_pb_service ba {}, service {}:{} with downtime {}",
+                       ba_id, host_id, service_id, in_downtime);
+  auto s{std::make_shared<neb::pb_service>()};
+  auto& o = s->mut_obj();
+  o.set_host_id(host_id);
+  o.set_service_id(service_id);
+  o.set_service_description(fmt::format("ba_{}", ba_id));
+  o.set_display_name(o.service_description());
+  o.set_last_update(time(nullptr));
+  o.set_downtime_depth(in_downtime ? 1 : 0);
+  o.set_max_check_attempts(1);
+  return s;
+}
+
+/**
  *  Copy internal data members.
  *
  *  @param[in] other  Object to copy.
@@ -283,6 +326,8 @@ void applier::ba::save_to_cache(persistent_cache& cache) {
  */
 void applier::ba::load_from_cache(persistent_cache& cache) {
   log_v2::bam()->trace("BAM: loading inherited downtimes from cache");
+  auto& bbdo = config::applier::state::instance().bbdo_version();
+  bool bbdo3_enabled = std::get<0>(bbdo) >= 3;
   std::shared_ptr<io::data> d;
   cache.get(d);
   while (d) {
@@ -295,8 +340,13 @@ void applier::ba::load_from_cache(persistent_cache& cache) {
       log_v2::bam()->debug("BAM: found an inherited downtime for BA {}",
                            found->first);
       found->second.obj->set_inherited_downtime(dwn);
-      auto s = _ba_service(found->first, found->second.cfg.get_host_id(),
+      std::shared_ptr<io::data> s;
+      if (bbdo3_enabled)
+        s = _ba_pb_service(found->first, found->second.cfg.get_host_id(),
                            found->second.cfg.get_service_id(), dwn.in_downtime);
+      else
+        s = _ba_service(found->first, found->second.cfg.get_host_id(),
+                        found->second.cfg.get_service_id(), dwn.in_downtime);
       multiplexing::publisher().write(s);
     }
     cache.get(d);

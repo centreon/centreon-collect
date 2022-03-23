@@ -59,23 +59,16 @@ class service_book {
   void unlisten(uint32_t host_id,
                 uint32_t service_id,
                 service_listener* listnr);
-  /**
-   * @brief This method propagates events of type T to the concerned services
-   * and then to the corresponding kpi.
-   *
-   * @tparam T A neb::downtime, neb::service_status, neb::acknowledgement
-   * @param t The event to handle.
-   * @param visitor The stream to write into.
-   */
-  template <typename T>
-  void update(const std::shared_ptr<T>& t, io::stream* visitor = nullptr) {
-    std::pair<multimap::iterator, multimap::iterator> range{
-        _book.equal_range(std::make_pair(t->host_id, t->service_id))};
-    while (range.first != range.second) {
-      range.first->second->service_update(t, visitor);
-      ++range.first;
-    }
-  }
+  void update(const std::shared_ptr<neb::acknowledgement>& t,
+              io::stream* visitor = nullptr);
+  void update(const std::shared_ptr<neb::downtime>& t,
+              io::stream* visitor = nullptr);
+  void update(const std::shared_ptr<neb::service_status>& t,
+              io::stream* visitor = nullptr);
+  void update(const std::shared_ptr<neb::pb_service>& t,
+              io::stream* visitor = nullptr);
+  void update(const std::shared_ptr<neb::pb_service_status_check_result>& t,
+              io::stream* visitor = nullptr);
 };
 }  // namespace bam
 

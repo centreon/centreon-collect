@@ -65,6 +65,32 @@ void service_listener::service_update(
 }
 
 /**
+ *  Notify of a service status update.
+ *
+ *  @param[in]  status   Service status.
+ *  @param[out] visitor  Visitor.
+ */
+void service_listener::service_update(
+    const std::shared_ptr<neb::pb_service>& status,
+    io::stream* visitor) {
+  (void)status;
+  (void)visitor;
+}
+
+/**
+ *  Notify of a service status update.
+ *
+ *  @param[in]  status   Service status.
+ *  @param[out] visitor  Visitor.
+ */
+void service_listener::service_update(
+    const std::shared_ptr<neb::pb_service_status_check_result>& status,
+    io::stream* visitor) {
+  (void)status;
+  (void)visitor;
+}
+
+/**
  *  Notify of an acknowledgement.
  *
  *  @param[in]  ack      Acknowledgement.
