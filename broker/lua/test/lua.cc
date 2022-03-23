@@ -3585,15 +3585,14 @@ TEST_F(LuaTest, BrokerPbAdaptiveHostJsonEncode) {
   binding->write(host);
   std::string lst(ReadFile("/tmp/event_log"));
   std::cout << "Content: <<" << lst << ">>" << std::endl;
-  size_t pos1 = lst.find("\"_type\":65567");
-  ASSERT_NE(pos1, std::string::npos);
-  ASSERT_NE(lst.find("\"category\":1", pos1), std::string::npos);
-  ASSERT_NE(lst.find("\"element\":31", pos1), std::string::npos);
+  ASSERT_NE(lst.find("\"_type\":65567"), std::string::npos);
+  ASSERT_NE(lst.find("\"category\":1"), std::string::npos);
+  ASSERT_NE(lst.find("\"element\":31"), std::string::npos);
   ASSERT_NE(lst.find("\"host_id\":1492"), std::string::npos);
-  ASSERT_NE(lst.find("\"max_check_attempts\":5", pos1), std::string::npos);
-  ASSERT_NE(lst.find("\"check_command\":\"super command\"", pos1),
+  ASSERT_NE(lst.find("\"max_check_attempts\":5"), std::string::npos);
+  ASSERT_NE(lst.find("\"check_command\":\"super command\""),
             std::string::npos);
-  ASSERT_EQ(lst.find("\"check_freshness\":", pos1), std::string::npos);
+  ASSERT_EQ(lst.find("\"check_freshness\":"), std::string::npos);
   RemoveFile(filename);
   RemoveFile("/tmp/event_log");
 }
