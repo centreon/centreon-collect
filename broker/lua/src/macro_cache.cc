@@ -284,8 +284,8 @@ std::string const& macro_cache::get_notes(uint64_t host_id,
  *
  *  @return             A std::map
  */
-std::map<std::pair<uint64_t, uint64_t>,
-         std::shared_ptr<neb::host_group_member> > const&
+const absl::btree_map<std::pair<uint64_t, uint64_t>,
+                      std::shared_ptr<neb::host_group_member>>&
 macro_cache::get_host_group_members() const {
   return _host_group_members;
 }
@@ -337,8 +337,8 @@ std::string const& macro_cache::get_service_description(
  *
  *  @return   A map indexed by host_id/service_id/group_id.
  */
-std::map<std::tuple<uint64_t, uint64_t, uint64_t>,
-         std::shared_ptr<neb::service_group_member> > const&
+absl::btree_map<std::tuple<uint64_t, uint64_t, uint64_t>,
+                std::shared_ptr<neb::service_group_member>> const&
 macro_cache::get_service_group_members() const {
   return _service_group_members;
 }
@@ -381,7 +381,7 @@ std::string const& macro_cache::get_instance(uint64_t instance_id) const {
  */
 std::unordered_multimap<
     uint64_t,
-    std::shared_ptr<bam::dimension_ba_bv_relation_event> > const&
+    std::shared_ptr<bam::dimension_ba_bv_relation_event>> const&
 macro_cache::get_dimension_ba_bv_relation_events() const {
   return _dimension_ba_bv_relation_events;
 }
@@ -436,6 +436,9 @@ void macro_cache::write(std::shared_ptr<io::data> const& data) {
       break;
     case neb::pb_host::static_type():
       _process_pb_host(data);
+      break;
+    case neb::pb_adaptive_host::static_type():
+      _process_pb_adaptive_host(data);
       break;
     case neb::host_group::static_type():
       _process_host_group(data);
@@ -525,6 +528,90 @@ void macro_cache::_process_pb_host(std::shared_ptr<io::data> const& data) {
     _hosts[h->obj().host_id()] = data;
   else
     _hosts.erase(h->obj().host_id());
+}
+
+/**
+ *  Process a pb adaptive host event.
+ *
+ *  @param s  The event.
+ */
+void macro_cache::_process_pb_adaptive_host(
+    const std::shared_ptr<io::data>& data) {
+  const auto& h = std::static_pointer_cast<neb::pb_adaptive_host>(data);
+  log_v2::lua()->debug("lua: processing adaptive host {}", h->obj().host_id());
+  auto& ah = h->obj();
+  auto it = _hosts.find(ah.host_id());
+  if (it != _hosts.end()) {
+    if (it->second->type() == make_type(io::neb, neb::de_host)) {
+      auto& h = *std::static_pointer_cast<neb::host>(it->second);
+      if (ah.has_notifications_enabled())
+        h.notifications_enabled = ah.notifications_enabled();
+      if (ah.has_active_checks_enabled())
+        h.active_checks_enabled = ah.active_checks_enabled();
+      if (ah.has_should_be_scheduled())
+        h.should_be_scheduled = ah.should_be_scheduled();
+      if (ah.has_passive_checks_enabled())
+        h.passive_checks_enabled = ah.passive_checks_enabled();
+      if (ah.has_event_handler_enabled())
+        h.event_handler_enabled = ah.event_handler_enabled();
+      if (ah.has_flap_detection_enabled())
+        h.flap_detection_enabled = ah.flap_detection_enabled();
+      if (ah.has_obsess_over())
+        h.obsess_over = ah.obsess_over();
+      if (ah.has_event_handler())
+        h.event_handler = ah.event_handler();
+      if (ah.has_check_command())
+        h.check_command = ah.check_command();
+      if (ah.has_check_interval())
+        h.check_interval = ah.check_interval();
+      if (ah.has_retry_interval())
+        h.retry_interval = ah.retry_interval();
+      if (ah.has_max_check_attempts())
+        h.max_check_attempts = ah.max_check_attempts();
+      if (ah.has_check_freshness())
+        h.check_freshness = ah.check_freshness();
+      if (ah.has_check_period())
+        h.check_period = ah.check_period();
+      if (ah.has_notification_period())
+        h.notification_period = ah.notification_period();
+    } else {
+      auto& h = std::static_pointer_cast<neb::pb_host>(it->second)->mut_obj();
+      if (ah.has_notifications_enabled())
+        h.set_notifications_enabled(ah.notifications_enabled());
+      if (ah.has_active_checks_enabled())
+        h.set_active_checks_enabled(ah.active_checks_enabled());
+      if (ah.has_should_be_scheduled())
+        h.set_should_be_scheduled(ah.should_be_scheduled());
+      if (ah.has_passive_checks_enabled())
+        h.set_passive_checks_enabled(ah.passive_checks_enabled());
+      if (ah.has_event_handler_enabled())
+        h.set_event_handler_enabled(ah.event_handler_enabled());
+      if (ah.has_flap_detection_enabled())
+        h.set_flap_detection_enabled(ah.flap_detection_enabled());
+      if (ah.has_obsess_over())
+        h.set_obsess_over(ah.obsess_over());
+      if (ah.has_event_handler())
+        h.set_event_handler(ah.event_handler());
+      if (ah.has_check_command())
+        h.set_check_command(ah.check_command());
+      if (ah.has_check_interval())
+        h.set_check_interval(ah.check_interval());
+      if (ah.has_retry_interval())
+        h.set_retry_interval(ah.retry_interval());
+      if (ah.has_max_check_attempts())
+        h.set_max_check_attempts(ah.max_check_attempts());
+      if (ah.has_check_freshness())
+        h.set_check_freshness(ah.check_freshness());
+      if (ah.has_check_period())
+        h.set_check_period(ah.check_period());
+      if (ah.has_notification_period())
+        h.set_notification_period(ah.notification_period());
+    }
+  } else
+    log_v2::lua()->warn(
+        "lua: cannot update cache for host {}, it does not exist in "
+        "the cache",
+        h->obj().host_id());
 }
 
 /**

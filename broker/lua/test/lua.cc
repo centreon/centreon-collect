@@ -583,6 +583,83 @@ TEST_F(LuaTest, HostCacheTest) {
 // When a query for a hostname is made
 // And the cache knows about it
 // Then the hostname is returned from the lua method.
+TEST_F(LuaTest, HostCacheTestAdaptive) {
+  config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  std::string filename("/tmp/cache_test.lua");
+  std::shared_ptr<neb::host> hst(new neb::host);
+  hst->host_id = 1;
+  hst->host_name = "centreon";
+  hst->alias = "alias-centreon";
+  hst->address = "4.3.2.1";
+  _cache->write(hst);
+  auto ah = std::make_shared<neb::pb_adaptive_host>();
+  ah->mut_obj().set_host_id(1);
+  ah->mut_obj().set_event_handler("qwerty");
+  _cache->write(ah);
+
+  CreateScript(filename,
+               "function init(conf)\n"
+               "  broker_log:set_parameters(3, '/tmp/log')\n"
+               "  local hstname = broker_cache:get_hostname(1)\n"
+               "  broker_log:info(1, 'host is ' .. tostring(hstname))\n"
+               "  local hst = broker_cache:get_host(1)\n"
+               "  broker_log:info(1, 'event_handler ' .. hst.event_handler)\n"
+               "end\n\n"
+               "function write(d)\n"
+               "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  std::string lst(ReadFile("/tmp/log"));
+
+  ASSERT_NE(lst.find("host is centreon"), std::string::npos);
+  ASSERT_NE(lst.find("event_handler qwerty"), std::string::npos);
+  RemoveFile(filename);
+  RemoveFile("/tmp/log");
+}
+
+// When a query for a hostname is made
+// And the cache knows about it
+// Then the hostname is returned from the lua method.
+TEST_F(LuaTest, HostCacheV2TestAdaptive) {
+  config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  std::string filename("/tmp/cache_test.lua");
+  std::shared_ptr<neb::host> hst(new neb::host);
+  hst->host_id = 1;
+  hst->host_name = "centreon";
+  hst->alias = "alias-centreon";
+  hst->address = "4.3.2.1";
+  _cache->write(hst);
+  auto ah = std::make_shared<neb::pb_adaptive_host>();
+  ah->mut_obj().set_host_id(1);
+  ah->mut_obj().set_event_handler("qwerty");
+  _cache->write(ah);
+
+  CreateScript(filename,
+               "broker_api_version=2\n"
+               "function init(conf)\n"
+               "  broker_log:set_parameters(3, '/tmp/log')\n"
+               "  local hstname = broker_cache:get_hostname(1)\n"
+               "  broker_log:info(1, 'host is ' .. tostring(hstname))\n"
+               "  local hst = broker_cache:get_host(1)\n"
+               "  broker_log:info(1, 'event_handler ' .. hst.event_handler)\n"
+               "end\n\n"
+               "function write(d)\n"
+               "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  std::string lst(ReadFile("/tmp/log"));
+
+  ASSERT_NE(lst.find("host is centreon"), std::string::npos);
+  ASSERT_NE(lst.find("event_handler qwerty"), std::string::npos);
+  RemoveFile(filename);
+  RemoveFile("/tmp/log");
+}
+
+// When a query for a hostname is made
+// And the cache knows about it
+// Then the hostname is returned from the lua method.
 TEST_F(LuaTest, PbHostCacheTest) {
   config::applier::modules modules;
   modules.load_file("./lib/10-neb.so");
@@ -614,6 +691,87 @@ TEST_F(LuaTest, PbHostCacheTest) {
   ASSERT_NE(lst.find("host is centreon"), std::string::npos);
   ASSERT_NE(lst.find("alias alias-centreon address 4.3.2.1 name centreon"),
             std::string::npos);
+  RemoveFile(filename);
+  RemoveFile("/tmp/log");
+}
+
+// When a query for a hostname is made
+// And the cache knows about it
+// Then the hostname is returned from the lua method.
+TEST_F(LuaTest, PbHostCacheTestAdaptive) {
+  config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  std::string filename("/tmp/cache_test.lua");
+  auto hst{std::make_shared<neb::pb_host>()};
+  hst->mut_obj().set_host_id(1);
+  hst->mut_obj().set_host_name("centreon");
+  hst->mut_obj().set_display_name("centreon");
+  hst->mut_obj().set_alias("alias-centreon");
+  hst->mut_obj().set_address("4.3.2.1");
+  hst->mut_obj().set_enabled(true);
+  _cache->write(hst);
+  auto ah = std::make_shared<neb::pb_adaptive_host>();
+  ah->mut_obj().set_host_id(1);
+  ah->mut_obj().set_event_handler("azerty");
+  _cache->write(ah);
+
+  CreateScript(filename,
+               "function init(conf)\n"
+               "  broker_log:set_parameters(3, '/tmp/log')\n"
+               "  local hstname = broker_cache:get_hostname(1)\n"
+               "  broker_log:info(1, 'host is ' .. tostring(hstname))\n"
+               "  local hst = broker_cache:get_host(1)\n"
+               "  broker_log:info(1, 'event_handler ' .. hst.event_handler)\n"
+               "end\n\n"
+               "function write(d)\n"
+               "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  std::string lst(ReadFile("/tmp/log"));
+  std::cout << lst << std::endl;
+  ASSERT_NE(lst.find("host is centreon"), std::string::npos);
+  ASSERT_NE(lst.find("event_handler azerty"), std::string::npos);
+  RemoveFile(filename);
+  RemoveFile("/tmp/log");
+}
+
+// When a query for a hostname is made
+// And the cache knows about it
+// Then the hostname is returned from the lua method.
+TEST_F(LuaTest, PbHostCacheV2TestAdaptive) {
+  config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  std::string filename("/tmp/cache_test.lua");
+  auto hst{std::make_shared<neb::pb_host>()};
+  hst->mut_obj().set_host_id(1);
+  hst->mut_obj().set_host_name("centreon");
+  hst->mut_obj().set_display_name("centreon");
+  hst->mut_obj().set_alias("alias-centreon");
+  hst->mut_obj().set_address("4.3.2.1");
+  hst->mut_obj().set_enabled(true);
+  _cache->write(hst);
+  auto ah = std::make_shared<neb::pb_adaptive_host>();
+  ah->mut_obj().set_host_id(1);
+  ah->mut_obj().set_event_handler("azerty");
+  _cache->write(ah);
+
+  CreateScript(filename,
+               "broker_api_version=2\n"
+               "function init(conf)\n"
+               "  broker_log:set_parameters(3, '/tmp/log')\n"
+               "  local hstname = broker_cache:get_hostname(1)\n"
+               "  broker_log:info(1, 'host is ' .. tostring(hstname))\n"
+               "  local hst = broker_cache:get_host(1)\n"
+               "  broker_log:info(1, 'event_handler ' .. hst.event_handler)\n"
+               "end\n\n"
+               "function write(d)\n"
+               "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  std::string lst(ReadFile("/tmp/log"));
+  std::cout << lst << std::endl;
+  ASSERT_NE(lst.find("host is centreon"), std::string::npos);
+  ASSERT_NE(lst.find("event_handler azerty"), std::string::npos);
   RemoveFile(filename);
   RemoveFile("/tmp/log");
 }
