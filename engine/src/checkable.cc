@@ -123,7 +123,7 @@ void checkable::set_display_name(const std::string& display_name) {
   _display_name = display_name;
 }
 
-const std::string& checkable::get_check_command() const {
+const std::string& checkable::check_command() const {
   return _check_command;
 }
 
@@ -131,7 +131,7 @@ void checkable::set_check_command(const std::string& check_command) {
   _check_command = check_command;
 }
 
-uint32_t checkable::get_check_interval() const {
+uint32_t checkable::check_interval() const {
   return _check_interval;
 }
 
@@ -139,7 +139,7 @@ void checkable::set_check_interval(uint32_t check_interval) {
   _check_interval = check_interval;
 }
 
-double checkable::get_retry_interval() const {
+double checkable::retry_interval() const {
   return _retry_interval;
 }
 
@@ -163,7 +163,7 @@ void checkable::set_last_hard_state_change(time_t last_hard_state_change) {
   _last_hard_state_change = last_hard_state_change;
 }
 
-int checkable::get_max_attempts() const {
+int checkable::max_check_attempts() const {
   return _max_attempts;
 }
 
@@ -171,7 +171,7 @@ void checkable::set_max_attempts(int max_attempts) {
   _max_attempts = max_attempts;
 }
 
-const std::string& checkable::get_check_period() const {
+const std::string& checkable::check_period() const {
   return _check_period;
 }
 
@@ -203,7 +203,7 @@ void checkable::set_icon_image_alt(const std::string& icon_image_alt) {
   _icon_image_alt = icon_image_alt;
 }
 
-const std::string& checkable::get_event_handler() const {
+const std::string& checkable::event_handler() const {
   return _event_handler;
 }
 
@@ -251,7 +251,7 @@ void checkable::set_perf_data(const std::string& perf_data) {
   _perf_data = perf_data;
 }
 
-bool checkable::get_flap_detection_enabled(void) const {
+bool checkable::flap_detection_enabled() const {
   return _flap_detection_enabled;
 }
 
@@ -291,7 +291,7 @@ void checkable::set_state_history_index(uint32_t state_history_index) {
   _state_history_index = state_history_index;
 }
 
-bool checkable::get_checks_enabled() const {
+bool checkable::active_checks_enabled() const {
   return _checks_enabled;
 }
 
@@ -299,7 +299,7 @@ void checkable::set_checks_enabled(bool checks_enabled) {
   _checks_enabled = checks_enabled;
 }
 
-bool checkable::get_check_freshness() const {
+bool checkable::check_freshness_enabled() const {
   return _check_freshness;
 }
 
@@ -335,7 +335,7 @@ void checkable::set_has_been_checked(bool has_been_checked) {
   _has_been_checked = has_been_checked;
 }
 
-bool checkable::get_event_handler_enabled() const {
+bool checkable::event_handler_enabled() const {
   return _event_handler_enabled;
 }
 
@@ -343,7 +343,7 @@ void checkable::set_event_handler_enabled(bool event_handler_enabled) {
   _event_handler_enabled = event_handler_enabled;
 }
 
-bool checkable::get_accept_passive_checks() const {
+bool checkable::passive_checks_enabled() const {
   return _accept_passive_checks;
 }
 
@@ -432,7 +432,7 @@ void checkable::set_percent_state_change(double percent_state_change) {
   _percent_state_change = percent_state_change;
 }
 
-bool checkable::get_obsess_over() const {
+bool checkable::obsess_over() const {
   return _obsess_over;
 }
 

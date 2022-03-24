@@ -71,7 +71,7 @@ void hosts_actively_checked::run(std::string& output, std::string& perfdata) {
   for (host_map::const_iterator it{com::centreon::engine::host::hosts.begin()},
        end{com::centreon::engine::host::hosts.end()};
        it != end; ++it)
-    if (it->second->get_checks_enabled())
+    if (it->second->active_checks_enabled())
       ++total;
 
   // Output.

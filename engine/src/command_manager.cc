@@ -135,7 +135,7 @@ int command_manager::process_passive_service_check(
   }
 
   /* skip this is we aren't accepting passive checks for this service */
-  if (!found->second->get_accept_passive_checks())
+  if (!found->second->passive_checks_enabled())
     return ERROR;
 
   timeval tv;
@@ -204,7 +204,7 @@ int command_manager::process_passive_host_check(time_t check_time,
   }
 
   /* skip this is we aren't accepting passive checks for this host */
-  if (!it->second->get_accept_passive_checks())
+  if (!it->second->passive_checks_enabled())
     return ERROR;
 
   timeval tv;

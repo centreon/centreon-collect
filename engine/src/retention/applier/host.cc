@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013,2015-2016 Centreon
+** Copyright 2011-2013,2015-2016,2022 Centreon
 **
 ** This file is part of Centreon Engine.
 **
@@ -248,7 +248,7 @@ void applier::host::_update(configuration::state const& config,
       if (obj.get_state_type() == notifier::hard &&
           obj.get_current_state() != engine::host::state_up &&
           obj.get_current_attempt() > 1)
-        obj.set_current_attempt(obj.get_max_attempts());
+        obj.set_current_attempt(obj.max_check_attempts());
     }
 
     if (!state.customvariables().empty() &&
@@ -290,7 +290,7 @@ void applier::host::_update(configuration::state const& config,
   // since restart).
   if (obj.get_current_state() != engine::host::state_up &&
       obj.get_state_type() == notifier::hard)
-    obj.set_current_attempt(obj.get_max_attempts());
+    obj.set_current_attempt(obj.max_check_attempts());
 
   // ADDED 02/20/08 assume same flapping state if large install
   // tweaks enabled.
@@ -311,5 +311,6 @@ void applier::host::_update(configuration::state const& config,
     obj.set_last_hard_state_change(obj.get_last_state_change());
 
   // update host status.
+  obj.update_adaptive_data();
   obj.update_status();
 }

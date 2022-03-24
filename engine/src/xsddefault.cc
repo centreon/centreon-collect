@@ -307,22 +307,22 @@ int xsddefault_save_status_data() {
         << it->second->get_modified_attributes()
         << "\n"
            "\tcheck_command="
-        << it->second->get_check_command()
+        << it->second->check_command()
         << "\n"
            "\tcheck_period="
-        << it->second->get_check_period()
+        << it->second->check_period()
         << "\n"
            "\tnotification_period="
-        << it->second->get_notification_period()
+        << it->second->notification_period()
         << "\n"
            "\tcheck_interval="
-        << it->second->get_check_interval()
+        << it->second->check_interval()
         << "\n"
            "\tretry_interval="
-        << it->second->get_retry_interval()
+        << it->second->retry_interval()
         << "\n"
            "\tevent_handler="
-        << it->second->get_event_handler()
+        << it->second->event_handler()
         << "\n"
            "\thas_been_checked="
         << it->second->has_been_checked()
@@ -380,7 +380,7 @@ int xsddefault_save_status_data() {
         << it->second->get_current_attempt()
         << "\n"
            "\tmax_attempts="
-        << it->second->get_max_attempts()
+        << it->second->max_check_attempts()
         << "\n"
            "\tstate_type="
         << it->second->get_state_type()
@@ -419,28 +419,28 @@ int xsddefault_save_status_data() {
         << it->second->get_notifications_enabled()
         << "\n"
            "\tproblem_has_been_acknowledged="
-        << it->second->get_problem_has_been_acknowledged()
+        << it->second->problem_has_been_acknowledged()
         << "\n"
            "\tacknowledgement_type="
         << it->second->get_acknowledgement_type()
         << "\n"
            "\tactive_checks_enabled="
-        << it->second->get_checks_enabled()
+        << it->second->active_checks_enabled()
         << "\n"
            "\tpassive_checks_enabled="
-        << it->second->get_accept_passive_checks()
+        << it->second->passive_checks_enabled()
         << "\n"
            "\tevent_handler_enabled="
-        << it->second->get_event_handler_enabled()
+        << it->second->event_handler_enabled()
         << "\n"
            "\tflap_detection_enabled="
-        << it->second->get_flap_detection_enabled()
+        << it->second->flap_detection_enabled()
         << "\n"
            "\tprocess_performance_data="
         << it->second->get_process_performance_data()
         << "\n"
            "\tobsess_over_host="
-        << it->second->get_obsess_over()
+        << it->second->obsess_over()
         << "\n"
            "\tlast_update="
         << static_cast<unsigned long>(current_time)
@@ -479,22 +479,22 @@ int xsddefault_save_status_data() {
            << it->second->get_modified_attributes()
            << "\n"
               "\tcheck_command="
-           << it->second->get_check_command()
+           << it->second->check_command()
            << "\n"
               "\tcheck_period="
-           << it->second->get_check_period()
+           << it->second->check_period()
            << "\n"
               "\tnotification_period="
-           << it->second->get_notification_period()
+           << it->second->notification_period()
            << "\n"
               "\tcheck_interval="
-           << it->second->get_check_interval()
+           << it->second->check_interval()
            << "\n"
               "\tretry_interval="
-           << it->second->get_retry_interval()
+           << it->second->retry_interval()
            << "\n"
               "\tevent_handler="
-           << it->second->get_event_handler()
+           << it->second->event_handler()
            << "\n"
               "\thas_been_checked="
            << it->second->has_been_checked()
@@ -534,7 +534,7 @@ int xsddefault_save_status_data() {
            << it->second->get_current_attempt()
            << "\n"
               "\tmax_attempts="
-           << it->second->get_max_attempts()
+           << it->second->max_check_attempts()
            << "\n"
               "\tstate_type="
            << it->second->get_state_type()
@@ -595,28 +595,28 @@ int xsddefault_save_status_data() {
            << it->second->get_notifications_enabled()
            << "\n"
               "\tactive_checks_enabled="
-           << it->second->get_checks_enabled()
+           << it->second->active_checks_enabled()
            << "\n"
               "\tpassive_checks_enabled="
-           << it->second->get_accept_passive_checks()
+           << it->second->passive_checks_enabled()
            << "\n"
               "\tevent_handler_enabled="
-           << it->second->get_event_handler_enabled()
+           << it->second->event_handler_enabled()
            << "\n"
               "\tproblem_has_been_acknowledged="
-           << it->second->get_problem_has_been_acknowledged()
+           << it->second->problem_has_been_acknowledged()
            << "\n"
               "\tacknowledgement_type="
            << it->second->get_acknowledgement_type()
            << "\n"
               "\tflap_detection_enabled="
-           << it->second->get_flap_detection_enabled()
+           << it->second->flap_detection_enabled()
            << "\n"
               "\tprocess_performance_data="
            << it->second->get_process_performance_data()
            << "\n"
               "\tobsess_over_service="
-           << it->second->get_obsess_over()
+           << it->second->obsess_over()
            << "\n"
               "\tlast_update="
            << static_cast<unsigned long>(current_time)
@@ -727,8 +727,7 @@ int xsddefault_save_status_data() {
 
   // save all downtime
   for (auto it = downtime_manager::instance().get_scheduled_downtimes().begin();
-      it != downtime_manager::instance().get_scheduled_downtimes().end();
-      ++it)
+       it != downtime_manager::instance().get_scheduled_downtimes().end(); ++it)
     stream << *it->second;
 
   // Write data in buffer.

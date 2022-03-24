@@ -28,7 +28,7 @@ using namespace com::centreon::engine;
 // Then its acknowledgements timeout is set to 0
 TEST(ConfigurationServiceAcknowledgementTimeoutTest, DefaultConstruction) {
   configuration::service s;
-  ASSERT_EQ(0, s.get_acknowledgement_timeout());
+  ASSERT_EQ(0, s.acknowledgement_timeout());
 }
 
 // Given a service configuration object
@@ -38,7 +38,7 @@ TEST(ConfigurationServiceAcknowledgementTimeoutTest, DefaultConstruction) {
 TEST(ConfigurationServiceAcknowledgementTimeoutTest, SetToPositiveValue) {
   configuration::service s;
   ASSERT_TRUE(s.set_acknowledgement_timeout(42));
-  ASSERT_EQ(42, s.get_acknowledgement_timeout());
+  ASSERT_EQ(42, s.acknowledgement_timeout());
 }
 
 // Given a service configuration object
@@ -49,7 +49,7 @@ TEST(ConfigurationServiceAcknowledgementTimeoutTest, SetToZero) {
   configuration::service s;
   s.set_acknowledgement_timeout(42);
   ASSERT_TRUE(s.set_acknowledgement_timeout(0));
-  ASSERT_EQ(0, s.get_acknowledgement_timeout());
+  ASSERT_EQ(0, s.acknowledgement_timeout());
 }
 
 // Given a service configuration object
@@ -60,7 +60,7 @@ TEST(ConfigurationServiceAcknowledgementTimeoutTest, SetToNegativeValue) {
   configuration::service s;
   s.set_acknowledgement_timeout(42);
   ASSERT_FALSE(s.set_acknowledgement_timeout(-36));
-  ASSERT_EQ(42, s.get_acknowledgement_timeout());
+  ASSERT_EQ(42, s.acknowledgement_timeout());
 }
 
 TEST(ConfigurationServiceParseProperties, SetCustomVariable) {

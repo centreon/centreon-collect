@@ -6,9 +6,9 @@ message Host {
   uint64 host_id = 1;
 
   enum AckType {
-    ACKNOWLEDGEMENT_NONE = 0;
-    ACKNOWLEDGEMENT_NORMAL = 1;
-    ACKNOWLEDGEMENT_STICKY = 2;
+    NONE = 0;
+    NORMAL = 1;
+    STICKY = 2;
   }
   bool acknowledged = 2;
   int32 acknowledgement_type = 3;
@@ -21,8 +21,8 @@ message Host {
   string check_period = 9;
 
   enum CheckType {
-    CHECK_ACTIVE = 0;
-    CHECK_PASSIVE = 1;
+    ACTIVE = 0;
+    PASSIVE = 1;
   }
   CheckType check_type = 10;
   int32 current_check_attempt = 11;
@@ -105,4 +105,89 @@ message Host {
   bool retain_nonstatus_information = 77;
   bool retain_status_information = 78;
   string timezone = 79;
+  uint64 severity_id = 80;
+}
+
+/**
+ * @brief Message sent in BBDO 3.0.0 instead of neb::service_status
+ */
+message HostStatus {
+  uint64 host_id = 1;
+
+  bool has_been_checked = 2;
+  enum CheckType {
+    ACTIVE = 0;
+    PASSIVE = 1;
+  }
+  CheckType check_type = 3;
+
+  enum State {
+    UP = 0;
+    DOWN = 1;
+    UNREACHABLE = 2;
+  }
+  State current_state = 4;
+  enum StateType {
+    SOFT = 0;
+    HARD = 1;
+  }
+  StateType state_type = 5;
+  int64 last_state_change = 6;
+  State last_hard_state = 7;
+  int64 last_hard_state_change = 8;
+  int64 last_time_up = 9;
+  int64 last_time_down = 10;
+  int64 last_time_unreachable = 11;
+
+  string output = 12;
+  string long_output = 13;
+  string perf_data = 14;
+
+  bool is_flapping = 15;
+  double percent_state_change = 16;
+  double latency = 17;
+  double execution_time = 18;
+  int64 last_check = 19;
+  int64 next_check = 20;
+  bool should_be_scheduled = 21;
+  int32 current_check_attempt = 22;
+
+  int32 notification_number = 23;
+  bool no_more_notifications = 24;
+  int64 last_notification = 25;
+  int64 next_notification = 26;
+
+  enum AckType {
+    NONE = 0;
+    NORMAL = 1;
+    STICKY = 2;
+  }
+  AckType acknowledgement_type = 27;
+  int32 downtime_depth = 28;
+}
+
+/**
+ * @brief Message used to send adaptive host configuration. When only one
+ * or two configuration items change, this event is used.
+ *
+ * Only used with BBDO 3.0
+ */
+message AdaptiveHost {
+  uint64 host_id = 1;
+
+  optional bool notifications_enabled = 2;
+  optional bool active_checks_enabled = 3;
+  optional bool should_be_scheduled = 4;
+  optional bool passive_checks_enabled = 5;
+  optional bool event_handler_enabled = 6;
+  optional bool flap_detection_enabled  = 7;
+  optional bool obsess_over  = 8;
+  optional string event_handler = 9;
+  optional string check_command  = 10;
+  optional uint32 check_interval  = 11;
+  optional uint32 retry_interval  = 12;
+  optional uint32 max_check_attempts  = 13;
+  optional bool check_freshness = 14;
+  optional string check_period  = 15;
+  optional string notification_period  = 16;
 }

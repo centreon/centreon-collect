@@ -25,7 +25,6 @@
 #include <mutex>
 #include "com/centreon/engine/flapping.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/nebmods.hh"
 #include "com/centreon/engine/nebstructs.hh"
 #include "com/centreon/engine/sehandlers.hh"
 #include "com/centreon/engine/string.hh"
@@ -1163,7 +1162,7 @@ int broker_host_check(int type,
   ds.object_ptr = hst;
   ds.check_type = check_type;
   ds.current_attempt = hst->get_current_attempt();
-  ds.max_attempts = hst->get_max_attempts();
+  ds.max_attempts = hst->max_check_attempts();
   ds.state = state;
   ds.state_type = state_type;
   ds.timeout = timeout;
@@ -1576,7 +1575,7 @@ int broker_service_check(int type,
   ds.object_ptr = svc;
   ds.check_type = check_type;
   ds.current_attempt = svc->get_current_attempt();
-  ds.max_attempts = svc->get_max_attempts();
+  ds.max_attempts = svc->max_check_attempts();
   ds.state = svc->get_current_state();
   ds.state_type = svc->get_state_type();
   ds.timeout = timeout;

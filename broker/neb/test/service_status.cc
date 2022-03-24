@@ -24,7 +24,7 @@
 
 using namespace com::centreon::broker;
 
-class ServiceStatus : public ::testing::Test {
+class TestServiceStatus : public ::testing::Test {
   void SetUp() override { randomize_init(); };
 
   void TearDown() override { randomize_cleanup(); };
@@ -35,7 +35,7 @@ class ServiceStatus : public ::testing::Test {
  *
  *  @return EXIT_SUCCESS on success.
  */
-TEST_F(ServiceStatus, Assign) {
+TEST_F(TestServiceStatus, Assign) {
   // Object #1.
   neb::service_status ss1;
   std::vector<randval> randvals1;
@@ -61,7 +61,7 @@ TEST_F(ServiceStatus, Assign) {
  *
  *  @return EXIT_SUCCESS on success.
  */
-TEST_F(ServiceStatus, CopyCtor) {
+TEST_F(TestServiceStatus, CopyCtor) {
   // Object #1.
   neb::service_status ss1;
   std::vector<randval> randvals1;
@@ -82,7 +82,7 @@ TEST_F(ServiceStatus, CopyCtor) {
 /**
  *  Check service_status' default constructor.
  */
-TEST_F(ServiceStatus, DefaultCtor) {
+TEST_F(TestServiceStatus, DefaultCtor) {
   // Object.
   neb::service_status ss;
 

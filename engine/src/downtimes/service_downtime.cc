@@ -424,6 +424,8 @@ int service_downtime::handle() {
     }
 
     /* update the status data */
+    /* We update with CHECK_RESULT level, so notifications numbers, downtimes,
+     * and check infos will be updated. */
     found->second->update_status();
 
     /* decrement pending flex downtime if necessary */
@@ -509,6 +511,7 @@ int service_downtime::handle() {
     _set_in_effect(true);
 
     /* update the status data */
+    /* Because of the notification the status is sent with CHECK_RESULT level */
     found->second->update_status();
 
     /* schedule an event */
