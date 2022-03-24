@@ -35,6 +35,14 @@ def check_connection(port: int, pid1: int, pid2: int):
 
 
 def get_date(d: str):
+    """Generates a date from a string. This string can be just a timestamp or a date in iso format
+
+    Args:
+        d (str): the date as a string
+
+    Returns:
+        datetime: The date once converted.
+    """
     try:
         ts = int(d)
         retval = datetime.fromtimestamp(int(ts))
@@ -56,26 +64,21 @@ def find_in_log_with_timeout(log: str, date, content, timeout: int):
 
 
 def find_in_log(log: str, date, content):
-    my_date = parser.parse(date)
+    """Find content in log file from the given date
+
+    Args:
+        log (str): The log file
+        date (_type_): A date as a string
+        content (_type_): An array of strings we want to find in the log.
+
+    Returns:
+        boolean,str: The boolean is True on success, and the string contains the first string not found in logs otherwise.
+    """
     try:
         f = open(log, "r")
         lines = f.readlines()
-        p = re.compile(r"\[([^\]]*)\]")
-
-        # Let's find my_date
-        start = 0
-        end = len(lines) - 1
-        idx = start
-        while end - start > 1:
-            idx = (start + end) // 2
-            m = p.match(lines[idx])
-            if not m:
-                logger.console("Unable to parse the date ({} <= {} <= {}): <<{}>>".format(start, idx, end, lines[idx]))
-            idx_d = get_date(m.group(1))
-            if my_date <= idx_d:
-                end = idx
-            elif my_date > idx_d:
-                start = idx
+        f.close()
+        idx = find_line_from(lines, date)
 
         for c in content:
             found = False
@@ -95,6 +98,11 @@ def find_in_log(log: str, date, content):
 
 
 def get_hostname():
+    """Return the fqdn host name of the computer.
+
+    Returns:
+        str: the host name
+    """
     retval = getoutput("hostname --fqdn")
     retval = retval.rstrip()
     return retval
@@ -151,49 +159,73 @@ def engine_log_table_duplicate(result: list):
             dup = False
     return dup
 
-def engine_log_file_duplicate(log: str, date):
-    my_date = parser.parse(date)
+def check_engine_logs_are_duplicated(log: str, date):
     try:
         f = open(log, "r")
         lines = f.readlines()
+        f.close()
+        idx = find_line_from(lines, date)
         count_true = 0
         count_false = 0
-        q = re.compile(r"\[([^\]]*)\] \[([^\]]*)\] \[([^\]]*)\] \[([^\]]*)\]")
-        for i in range(0, len(lines)):
-            m = q.search(lines[i])
-            if not m:
-                count_false += 1
+        logs = []
+        old_log = re.compile(r"\[[^\]]*\] \[[^\]]*\] ([^\[].*)")
+        new_log = re.compile(r"\[[^\]]*\] \[[^\]]*\] \[[^\]]*\] \[[^\]]*\] (.*)")
+        for l in lines[idx:]:
+            mo = old_log.match(l)
+            mn = new_log.match(l)
+            if mo:
+                if mo.group(1) in logs:
+                    logs.remove(mo.group(1))
+                else:
+                    logs.append(mo.group(1))
             else:
-                count_true += 1
-        if count_false != count_true:
-            return False
-        else:
+                mn = new_log.match(l)
+                if mn:
+                    if mn.group(1) in logs:
+                        logs.remove(mn.group(1))
+                    else:
+                        logs.append(mn.group(1))
+            logger.console(logs)
+        if len(logs) <= 1:
+            # It is possible to miss one log because of the initial split of the
+            # file.
             return True
+        else:
+            logger.console("Logs not duplicated")
+            for l in logs:
+                logger.console(l)
     except IOError:
         logger.console("The file '{}' does not exist".format(log))
         return False
 
-def check_reschedule(log: str, date, content: str):
+def find_line_from(lines, date):
     my_date = parser.parse(date)
+    p = re.compile(r"\[([^\]]*)\]")
+
+    # Let's find my_date
+    start = 0
+    end = len(lines) - 1
+    idx = start
+    while end - start > 1:
+        idx = (start + end) // 2
+        m = p.match(lines[idx])
+        if not m or m is None:
+            logger.console("Unable to parse the date ({} <= {} <= {}): <<{}>>".format(start, idx, end, lines[idx]))
+        idx_d = get_date(m.group(1))
+        if my_date <= idx_d:
+            end = idx
+        elif my_date > idx_d:
+            start = idx
+    return idx
+
+
+def check_reschedule(log: str, date, content: str):
     try:
         f = open(log, "r")
         lines = f.readlines()
-        p = re.compile(r"\[([^\]]*)\]")
+        f.close()
+        idx = find_line_from(lines, date)
 
-        # Let's find my_date
-        start = 0
-        end = len(lines) - 1
-        idx = start
-        while end - start > 1:
-            idx = (start + end) // 2
-            m = p.match(lines[idx])
-            if not m:
-                logger.console("Unable to parse the date ({} <= {} <= {}): <<{}>>".format(start, idx, end, lines[idx]))
-            idx_d = get_date(m.group(1))
-            if my_date <= idx_d:
-                end = idx
-            elif my_date > idx_d:
-                start = idx
         retry_check = False
         normal_check = False
         for i in range(idx, len(lines)):
@@ -430,3 +462,27 @@ def clear_db(table: str):
         with connection.cursor() as cursor:
             cursor.execute("DELETE FROM {}".format(table))
         connection.commit()
+
+def check_service_severity_with_timeout(host_id: int, service_id: int, severity_id, timeout: int):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host='localhost',
+                                 user='centreon',
+                                 password='centreon',
+                                 database='centreon_storage',
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute("select sv.id from resources r left join severities sv ON r.severity_id=sv.severity_id where r.parent_id = {} and r.id={}".format(host_id, service_id))
+                result = cursor.fetchall()
+                logger.console(result)
+                if len(result) > 0:
+                    if severity_id == 'None':
+                        if result[0]['id'] is None:
+                            return True
+                    elif not result[0]['id'] is None and int(result[0]['id']) == int(severity_id):
+                        return True
+        time.sleep(1)
+    return False

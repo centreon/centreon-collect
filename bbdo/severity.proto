@@ -46,5 +46,10 @@ message Severity {
   uint32 level = 3;
   uint64 icon_id = 4;
   string name = 5;
-  uint64 poller_id = 6;
+  enum Type {
+    SERVICE = 0;
+    HOST = 1;
+  }
+  Type type = 6;
+  uint64 poller_id = 7;
 }

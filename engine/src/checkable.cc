@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2019 Centreon
+** Copyright 2011-2019,2022 Centreon
 **
 ** This file is part of Centreon Engine.
 **
@@ -21,7 +21,6 @@
 #include <sstream>
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/log_v2.hh"
-#include "com/centreon/engine/logging/logger.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::logging;
@@ -470,4 +469,23 @@ bool checkable::get_is_executing() const {
 
 void checkable::set_is_executing(bool is_executing) {
   _is_executing = is_executing;
+}
+
+/**
+ * @brief Set the severity. And we can also set nullptr if we don't want any
+ * severity.
+ *
+ * @param severity The severity to associate to the resource.
+ */
+void checkable::set_severity(std::shared_ptr<severity> severity) {
+  _severity = severity;
+}
+
+/**
+ * @brief Accessor to the severity of the resource.
+ *
+ * @param severity The severity or nullptr if none.
+ */
+const std::shared_ptr<severity>& checkable::get_severity() const {
+  return _severity;
 }

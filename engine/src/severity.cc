@@ -34,8 +34,13 @@ severity_map severity::severities;
 severity::severity(uint64_t id,
                    uint32_t level,
                    uint64_t icon_id,
-                   const std::string& name)
-    : _id{id}, _level{level}, _icon_id{icon_id}, _name{name} {}
+                   const std::string& name,
+                   uint16_t typ)
+    : _id{id},
+      _level{level},
+      _icon_id{icon_id},
+      _name{name},
+      _type{static_cast<severity_type>(typ)} {}
 
 /**
  * @brief Accessor to the id.
@@ -98,4 +103,22 @@ const std::string& severity::name() const {
  */
 void severity::set_name(const std::string& name) {
   _name = name;
+}
+
+/**
+ * @brief Setter of the type.
+ *
+ * @param typ The new type
+ */
+void severity::set_type(const severity::severity_type typ) {
+  _type = typ;
+}
+
+/**
+ * @brief Getter for the type
+ *
+ * @return the current severity type.
+ */
+severity::severity_type severity::type() const {
+  return _type;
 }

@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2019 Centreon
+** Copyright 2011-2019,2022 Centreon
 **
 ** This file is part of Centreon Engine.
 **
@@ -30,6 +30,7 @@
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/log_v2.hh"
+#include "com/centreon/engine/severity.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -139,6 +140,18 @@ void applier::host::add_object(configuration::host const& obj) {
        end(obj.parents().end());
        it != end; ++it)
     h->add_parent_host(*it);
+
+  // Add severity.
+  if (obj.severity_id()) {
+    configuration::severity::key_type k = {obj.severity_id(),
+                                           configuration::severity::host};
+    auto sv = engine::severity::severities.find(k);
+    if (sv == engine::severity::severities.end())
+      throw engine_error() << "Could not add the severity (" << k.first << ", "
+                           << k.second << ") to the host '" << obj.host_name()
+                           << "'";
+    h->set_severity(sv->second);
+  }
 
   // Notify event broker.
   timeval tv(get_broker_timestamp(nullptr));
@@ -397,6 +410,19 @@ void applier::host::modify_object(configuration::host const& obj) {
          it != end; ++it)
       it_obj->second->add_parent_host(*it);
   }
+
+  // Severity.
+  if (obj.severity_id()) {
+    configuration::severity::key_type k = {obj.severity_id(),
+                                           configuration::severity::host};
+    auto sv = engine::severity::severities.find(k);
+    if (sv == engine::severity::severities.end())
+      throw engine_error() << "Could not update the severity (" << k.first
+                           << ", " << k.second << ") to the host '"
+                           << obj.host_name() << "'";
+    it_obj->second->set_severity(sv->second);
+  } else
+    it_obj->second->set_severity(nullptr);
 
   // Notify event broker.
   timeval tv(get_broker_timestamp(nullptr));

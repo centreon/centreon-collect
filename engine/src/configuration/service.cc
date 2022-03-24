@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013,2015-2017,2019 Centreon
+** Copyright 2011-2013,2015-2017,2019,2022 Centreon
 **
 ** This file is part of Centreon Engine.
 **
@@ -100,7 +100,10 @@ std::unordered_map<std::string, service::setter_func> const service::_setters{
     {"retain_status_information", SETTER(bool, _set_retain_status_information)},
     {"retain_nonstatus_information",
      SETTER(bool, _set_retain_nonstatus_information)},
-    {"timezone", SETTER(std::string const&, _set_timezone)}};
+    {"timezone", SETTER(std::string const&, _set_timezone)},
+    {"severity", SETTER(uint64_t, _set_severity_id)},
+    {"severity_id", SETTER(uint64_t, _set_severity_id)},
+};
 
 // Default values.
 static int default_acknowledgement_timeout(0);
@@ -166,7 +169,8 @@ service::service()
       _recovery_notification_delay(0),
       _host_id(0),
       _service_id(0),
-      _stalking_options(default_stalking_options) {}
+      _stalking_options(default_stalking_options),
+      _severity_id{0u} {}
 
 /**
  *  Copy constructor.
@@ -220,12 +224,8 @@ service::service(service const& other)
       _host_id(other._host_id),
       _service_id(other._service_id),
       _stalking_options(other._stalking_options),
-      _timezone(other._timezone) {}
-
-/**
- *  Destructor.
- */
-service::~service() throw() {}
+      _timezone(other._timezone),
+      _severity_id{other._severity_id} {}
 
 /**
  *  Assignment operator.
@@ -283,6 +283,7 @@ service& service::operator=(service const& other) {
     _service_id = other._service_id;
     _stalking_options = other._stalking_options;
     _timezone = other._timezone;
+    _severity_id = other._severity_id;
   }
   return *this;
 }
@@ -294,7 +295,7 @@ service& service::operator=(service const& other) {
  *
  *  @return True if is the same service, otherwise false.
  */
-bool service::operator==(service const& other) const throw() {
+bool service::operator==(service const& other) const noexcept {
   if (!object::operator==(other)) {
     engine_logger(dbg_config, more)
         << "configuration::service::equality => object don't match";
@@ -641,6 +642,13 @@ bool service::operator==(service const& other) const throw() {
         "configuration::service::equality => timezone don't match");
     return false;
   }
+  if (_severity_id != other._severity_id) {
+    engine_logger(dbg_config, more)
+        << "configuration::service::equality => severity id don't match";
+    log_v2::config()->debug(
+        "configuration::service::equality => severity id don't match");
+    return false;
+  }
   engine_logger(dbg_config, more) << "configuration::service::equality => OK";
   log_v2::config()->debug("configuration::service::equality => OK");
   return true;
@@ -653,7 +661,7 @@ bool service::operator==(service const& other) const throw() {
  *
  *  @return True if is not the same service, otherwise false.
  */
-bool service::operator!=(service const& other) const throw() {
+bool service::operator!=(service const& other) const noexcept {
   return !operator==(other);
 }
 
@@ -664,7 +672,7 @@ bool service::operator!=(service const& other) const throw() {
  *
  *  @return True if this object is less than right.
  */
-bool service::operator<(service const& other) const throw() {
+bool service::operator<(service const& other) const noexcept {
   // hosts and service_description have to be first in this operator.
   // The configuration diff mechanism relies on this.
   if (_host_id != other._host_id)
@@ -757,7 +765,10 @@ bool service::operator<(service const& other) const throw() {
     return _servicegroups < other._servicegroups;
   else if (_stalking_options != other._stalking_options)
     return _stalking_options < other._stalking_options;
-  return _timezone < other._timezone;
+  else if (_timezone != other._timezone)
+    return _timezone < other._timezone;
+  else
+    return _severity_id < other._severity_id;
 }
 
 /**
@@ -767,8 +778,8 @@ bool service::operator<(service const& other) const throw() {
  */
 void service::check_validity() const {
   if (_service_description.empty())
-    throw(engine_error() << "Service has no description (property "
-                         << "'service_description')");
+    throw engine_error() << "Service has no description (property "
+                         << "'service_description')";
   if (_hosts->empty() && _hostgroups->empty())
     throw engine_error()
         << "Service '" << _service_description
@@ -888,7 +899,7 @@ bool service::parse(char const* key, char const* value) {
  *
  *  @return The action_url.
  */
-std::string const& service::action_url() const throw() {
+std::string const& service::action_url() const noexcept {
   return _action_url;
 }
 
@@ -897,7 +908,7 @@ std::string const& service::action_url() const throw() {
  *
  *  @return The checks_active.
  */
-bool service::checks_active() const throw() {
+bool service::checks_active() const noexcept {
   return _checks_active;
 }
 
@@ -906,7 +917,7 @@ bool service::checks_active() const throw() {
  *
  *  @return The checks_passive.
  */
-bool service::checks_passive() const throw() {
+bool service::checks_passive() const noexcept {
   return _checks_passive;
 }
 
@@ -915,7 +926,7 @@ bool service::checks_passive() const throw() {
  *
  *  @return The check_command.
  */
-std::string const& service::check_command() const throw() {
+std::string const& service::check_command() const noexcept {
   return _check_command;
 }
 
@@ -924,7 +935,7 @@ std::string const& service::check_command() const throw() {
  *
  *  @return The check_command_is_important.
  */
-bool service::check_command_is_important() const throw() {
+bool service::check_command_is_important() const noexcept {
   return _check_command_is_important;
 }
 
@@ -933,7 +944,7 @@ bool service::check_command_is_important() const throw() {
  *
  *  @return The check_freshness.
  */
-bool service::check_freshness() const throw() {
+bool service::check_freshness() const noexcept {
   return _check_freshness;
 }
 
@@ -942,7 +953,7 @@ bool service::check_freshness() const throw() {
  *
  *  @return The check_interval.
  */
-unsigned int service::check_interval() const throw() {
+unsigned int service::check_interval() const noexcept {
   return _check_interval;
 }
 
@@ -951,7 +962,7 @@ unsigned int service::check_interval() const throw() {
  *
  *  @return The check_period.
  */
-std::string const& service::check_period() const throw() {
+std::string const& service::check_period() const noexcept {
   return _check_period;
 }
 
@@ -960,7 +971,7 @@ std::string const& service::check_period() const throw() {
  *
  *  @return The contactgroups.
  */
-set_string& service::contactgroups() throw() {
+set_string& service::contactgroups() noexcept {
   return *_contactgroups;
 }
 
@@ -969,7 +980,7 @@ set_string& service::contactgroups() throw() {
  *
  *  @return The contactgroups.
  */
-set_string const& service::contactgroups() const throw() {
+set_string const& service::contactgroups() const noexcept {
   return *_contactgroups;
 }
 
@@ -978,7 +989,7 @@ set_string const& service::contactgroups() const throw() {
  *
  *  @return True if contactgroups were defined.
  */
-bool service::contactgroups_defined() const throw() {
+bool service::contactgroups_defined() const noexcept {
   return _contactgroups.is_set();
 }
 
@@ -987,7 +998,7 @@ bool service::contactgroups_defined() const throw() {
  *
  *  @return The contacts.
  */
-set_string& service::contacts() throw() {
+set_string& service::contacts() noexcept {
   return *_contacts;
 }
 
@@ -996,7 +1007,7 @@ set_string& service::contacts() throw() {
  *
  *  @return The contacts.
  */
-set_string const& service::contacts() const throw() {
+set_string const& service::contacts() const noexcept {
   return *_contacts;
 }
 
@@ -1005,7 +1016,7 @@ set_string const& service::contacts() const throw() {
  *
  *  @return True if contacts were defined.
  */
-bool service::contacts_defined() const throw() {
+bool service::contacts_defined() const noexcept {
   return _contacts.is_set();
 }
 
@@ -1014,8 +1025,8 @@ bool service::contacts_defined() const throw() {
  *
  *  @return The customvariables.
  */
-com::centreon::engine::map_customvar const& service::customvariables() const
-    throw() {
+com::centreon::engine::map_customvar const& service::customvariables()
+    const noexcept {
   return _customvariables;
 }
 
@@ -1024,7 +1035,7 @@ com::centreon::engine::map_customvar const& service::customvariables() const
  *
  *  @return The customvariables.
  */
-com::centreon::engine::map_customvar& service::customvariables() throw() {
+com::centreon::engine::map_customvar& service::customvariables() noexcept {
   return _customvariables;
 }
 
@@ -1033,7 +1044,7 @@ com::centreon::engine::map_customvar& service::customvariables() throw() {
  *
  *  @return The display_name.
  */
-std::string const& service::display_name() const throw() {
+std::string const& service::display_name() const noexcept {
   return _display_name;
 }
 
@@ -1042,7 +1053,7 @@ std::string const& service::display_name() const throw() {
  *
  *  @return The event_handler.
  */
-std::string const& service::event_handler() const throw() {
+std::string const& service::event_handler() const noexcept {
   return _event_handler;
 }
 
@@ -1051,7 +1062,7 @@ std::string const& service::event_handler() const throw() {
  *
  *  @return The event_handler_enabled.
  */
-bool service::event_handler_enabled() const throw() {
+bool service::event_handler_enabled() const noexcept {
   return _event_handler_enabled;
 }
 
@@ -1060,7 +1071,7 @@ bool service::event_handler_enabled() const throw() {
  *
  *  @return The first_notification_delay.
  */
-unsigned int service::first_notification_delay() const throw() {
+unsigned int service::first_notification_delay() const noexcept {
   return _first_notification_delay;
 }
 
@@ -1069,7 +1080,7 @@ unsigned int service::first_notification_delay() const throw() {
  *
  *  @return The flap_detection_enabled.
  */
-bool service::flap_detection_enabled() const throw() {
+bool service::flap_detection_enabled() const noexcept {
   return _flap_detection_enabled;
 }
 
@@ -1078,7 +1089,7 @@ bool service::flap_detection_enabled() const throw() {
  *
  *  @return The flap_detection_options.
  */
-unsigned short service::flap_detection_options() const throw() {
+unsigned short service::flap_detection_options() const noexcept {
   return _flap_detection_options;
 }
 
@@ -1087,7 +1098,7 @@ unsigned short service::flap_detection_options() const throw() {
  *
  *  @return The freshness_threshold.
  */
-unsigned int service::freshness_threshold() const throw() {
+unsigned int service::freshness_threshold() const noexcept {
   return _freshness_threshold;
 }
 
@@ -1096,7 +1107,7 @@ unsigned int service::freshness_threshold() const throw() {
  *
  *  @return The high_flap_threshold.
  */
-unsigned int service::high_flap_threshold() const throw() {
+unsigned int service::high_flap_threshold() const noexcept {
   return _high_flap_threshold;
 }
 
@@ -1105,7 +1116,7 @@ unsigned int service::high_flap_threshold() const throw() {
  *
  *  @return The hostgroups.
  */
-set_string& service::hostgroups() throw() {
+set_string& service::hostgroups() noexcept {
   return *_hostgroups;
 }
 
@@ -1114,7 +1125,7 @@ set_string& service::hostgroups() throw() {
  *
  *  @return The hostgroups.
  */
-set_string const& service::hostgroups() const throw() {
+set_string const& service::hostgroups() const noexcept {
   return *_hostgroups;
 }
 
@@ -1123,7 +1134,7 @@ set_string const& service::hostgroups() const throw() {
  *
  *  @return The hosts.
  */
-set_string& service::hosts() throw() {
+set_string& service::hosts() noexcept {
   return *_hosts;
 }
 
@@ -1132,7 +1143,7 @@ set_string& service::hosts() throw() {
  *
  *  @return The hosts.
  */
-set_string const& service::hosts() const throw() {
+set_string const& service::hosts() const noexcept {
   return *_hosts;
 }
 
@@ -1141,7 +1152,7 @@ set_string const& service::hosts() const throw() {
  *
  *  @return Service's host's ID.
  */
-uint64_t service::host_id() const throw() {
+uint64_t service::host_id() const noexcept {
   return _host_id;
 }
 
@@ -1150,7 +1161,7 @@ uint64_t service::host_id() const throw() {
  *
  *  @return The icon_image.
  */
-std::string const& service::icon_image() const throw() {
+std::string const& service::icon_image() const noexcept {
   return _icon_image;
 }
 
@@ -1159,7 +1170,7 @@ std::string const& service::icon_image() const throw() {
  *
  *  @return The icon_image_alt.
  */
-std::string const& service::icon_image_alt() const throw() {
+std::string const& service::icon_image_alt() const noexcept {
   return _icon_image_alt;
 }
 
@@ -1168,7 +1179,7 @@ std::string const& service::icon_image_alt() const throw() {
  *
  *  @return The initial_state.
  */
-unsigned int service::initial_state() const throw() {
+unsigned int service::initial_state() const noexcept {
   return _initial_state;
 }
 
@@ -1177,7 +1188,7 @@ unsigned int service::initial_state() const throw() {
  *
  *  @return The is_volatile.
  */
-bool service::is_volatile() const throw() {
+bool service::is_volatile() const noexcept {
   return _is_volatile;
 }
 
@@ -1186,7 +1197,7 @@ bool service::is_volatile() const throw() {
  *
  *  @return The low_flap_threshold.
  */
-unsigned int service::low_flap_threshold() const throw() {
+unsigned int service::low_flap_threshold() const noexcept {
   return _low_flap_threshold;
 }
 
@@ -1195,7 +1206,7 @@ unsigned int service::low_flap_threshold() const throw() {
  *
  *  @return The max_check_attempts.
  */
-unsigned int service::max_check_attempts() const throw() {
+unsigned int service::max_check_attempts() const noexcept {
   return _max_check_attempts;
 }
 
@@ -1204,7 +1215,7 @@ unsigned int service::max_check_attempts() const throw() {
  *
  *  @return The notes.
  */
-std::string const& service::notes() const throw() {
+std::string const& service::notes() const noexcept {
   return _notes;
 }
 
@@ -1213,7 +1224,7 @@ std::string const& service::notes() const throw() {
  *
  *  @return The notes_url.
  */
-std::string const& service::notes_url() const throw() {
+std::string const& service::notes_url() const noexcept {
   return _notes_url;
 }
 
@@ -1222,7 +1233,7 @@ std::string const& service::notes_url() const throw() {
  *
  *  @return The notifications_enabled.
  */
-bool service::notifications_enabled() const throw() {
+bool service::notifications_enabled() const noexcept {
   return _notifications_enabled;
 }
 
@@ -1231,7 +1242,7 @@ bool service::notifications_enabled() const throw() {
  *
  *  @param[in] interval Notification interval.
  */
-void service::notification_interval(unsigned int interval) throw() {
+void service::notification_interval(unsigned int interval) noexcept {
   _notification_interval = interval;
   return;
 }
@@ -1241,7 +1252,7 @@ void service::notification_interval(unsigned int interval) throw() {
  *
  *  @return True if notification interval was set in configuration.
  */
-bool service::notification_interval_defined() const throw() {
+bool service::notification_interval_defined() const noexcept {
   return _notification_interval.is_set();
 }
 
@@ -1250,7 +1261,7 @@ bool service::notification_interval_defined() const throw() {
  *
  *  @return The notification_interval.
  */
-unsigned int service::notification_interval() const throw() {
+unsigned int service::notification_interval() const noexcept {
   return _notification_interval;
 }
 
@@ -1259,7 +1270,7 @@ unsigned int service::notification_interval() const throw() {
  *
  *  @return The notification_options.
  */
-unsigned short service::notification_options() const throw() {
+unsigned short service::notification_options() const noexcept {
   return _notification_options;
 }
 
@@ -1278,7 +1289,7 @@ void service::notification_period(std::string const& period) {
  *
  *  @return The notification_period.
  */
-std::string const& service::notification_period() const throw() {
+std::string const& service::notification_period() const noexcept {
   return _notification_period;
 }
 
@@ -1287,7 +1298,7 @@ std::string const& service::notification_period() const throw() {
  *
  *  @return True if notification period was set in configuration.
  */
-bool service::notification_period_defined() const throw() {
+bool service::notification_period_defined() const noexcept {
   return _notification_period.is_set();
 }
 
@@ -1296,7 +1307,7 @@ bool service::notification_period_defined() const throw() {
  *
  *  @return The obsess_over_service.
  */
-bool service::obsess_over_service() const throw() {
+bool service::obsess_over_service() const noexcept {
   return _obsess_over_service;
 }
 
@@ -1305,7 +1316,7 @@ bool service::obsess_over_service() const throw() {
  *
  *  @return The process_perf_data.
  */
-bool service::process_perf_data() const throw() {
+bool service::process_perf_data() const noexcept {
   return _process_perf_data;
 }
 
@@ -1314,7 +1325,7 @@ bool service::process_perf_data() const throw() {
  *
  *  @return The retain_nonstatus_information.
  */
-bool service::retain_nonstatus_information() const throw() {
+bool service::retain_nonstatus_information() const noexcept {
   return _retain_nonstatus_information;
 }
 
@@ -1323,7 +1334,7 @@ bool service::retain_nonstatus_information() const throw() {
  *
  *  @return The retain_status_information.
  */
-bool service::retain_status_information() const throw() {
+bool service::retain_status_information() const noexcept {
   return _retain_status_information;
 }
 
@@ -1332,7 +1343,7 @@ bool service::retain_status_information() const throw() {
  *
  *  @return The retry_interval.
  */
-unsigned int service::retry_interval() const throw() {
+unsigned int service::retry_interval() const noexcept {
   return _retry_interval;
 }
 
@@ -1341,7 +1352,7 @@ unsigned int service::retry_interval() const throw() {
  *
  *  @return The recovery_notification_delay.
  */
-unsigned int service::recovery_notification_delay() const throw() {
+unsigned int service::recovery_notification_delay() const noexcept {
   return _recovery_notification_delay;
 }
 
@@ -1350,7 +1361,7 @@ unsigned int service::recovery_notification_delay() const throw() {
  *
  *  @return The service groups.
  */
-set_string& service::servicegroups() throw() {
+set_string& service::servicegroups() noexcept {
   return *_servicegroups;
 }
 
@@ -1359,7 +1370,7 @@ set_string& service::servicegroups() throw() {
  *
  *  @return The servicegroups.
  */
-set_string const& service::servicegroups() const throw() {
+set_string const& service::servicegroups() const noexcept {
   return *_servicegroups;
 }
 
@@ -1368,7 +1379,7 @@ set_string const& service::servicegroups() const throw() {
  *
  *  @return The service_description.
  */
-std::string& service::service_description() throw() {
+std::string& service::service_description() noexcept {
   return _service_description;
 }
 
@@ -1377,7 +1388,7 @@ std::string& service::service_description() throw() {
  *
  *  @return The service_description.
  */
-std::string const& service::service_description() const throw() {
+std::string const& service::service_description() const noexcept {
   return _service_description;
 }
 
@@ -1386,7 +1397,7 @@ std::string const& service::service_description() const throw() {
  *
  *  @return  The service id.
  */
-uint64_t service::service_id() const throw() {
+uint64_t service::service_id() const noexcept {
   return _service_id;
 }
 
@@ -1395,7 +1406,7 @@ uint64_t service::service_id() const throw() {
  *
  *  @return The stalking_options.
  */
-unsigned short service::stalking_options() const throw() {
+unsigned short service::stalking_options() const noexcept {
   return _stalking_options;
 }
 
@@ -1414,7 +1425,7 @@ void service::timezone(std::string const& time_zone) {
  *
  *  @return This service timezone.
  */
-std::string const& service::timezone() const throw() {
+std::string const& service::timezone() const noexcept {
   return _timezone;
 }
 
@@ -2106,4 +2117,25 @@ bool service::_set_timezone(std::string const& value) {
  */
 void service::set_host_id(uint64_t value) {
   _host_id = value;
+}
+
+/**
+ * @brief Set the severity_id (or 0 when there is no severity).
+ *
+ * @param severity_id The severity_id or 0.
+ *
+ * @return true on success.
+ */
+bool service::_set_severity_id(uint64_t severity_id) {
+  _severity_id = severity_id;
+  return true;
+}
+
+/**
+ * @brief Accessor to the severity_id.
+ *
+ * @return the severity_id or 0 if none.
+ */
+uint64_t service::severity_id() const noexcept {
+  return _severity_id;
 }

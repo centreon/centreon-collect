@@ -205,6 +205,7 @@ class conflict_manager {
   std::unordered_map<std::pair<uint64_t, std::string>, metric_info>
       _metric_cache;
   std::mutex _metric_cache_m;
+  absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t> _severity_cache;
 
   std::unordered_set<uint32_t> _hostgroup_cache;
   std::unordered_set<uint32_t> _servicegroup_cache;
@@ -260,7 +261,7 @@ class conflict_manager {
   database::mysql_stmt _service_group_member_insert;
   database::mysql_stmt _service_insupdate;
   database::mysql_stmt _service_status_update;
-  database::mysql_stmt _severity_insupdate;
+  database::mysql_stmt _severity_insert;
   database::mysql_stmt _severity_update;
   database::mysql_stmt _severity_delete;
   database::mysql_stmt _tag_insupdate;

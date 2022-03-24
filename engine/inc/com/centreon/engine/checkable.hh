@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Centreon (https://www.centreon.com/)
+ * Copyright 2019,2022 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@
 #define CCE_CHECKABLE_HH
 
 #include <ctime>
+#include <memory>
 #include <string>
 
 #include "com/centreon/engine/namespace.hh"
@@ -30,6 +31,7 @@ namespace commands {
 class command;
 }
 class timeperiod;
+class severity;
 
 class checkable {
  public:
@@ -155,6 +157,8 @@ class checkable {
   commands::command* get_check_command_ptr() const;
   bool get_is_executing() const;
   void set_is_executing(bool is_executing);
+  void set_severity(std::shared_ptr<severity> sv);
+  const std::shared_ptr<severity>& get_severity() const;
 
   timeperiod* check_period_ptr;
 
@@ -202,6 +206,7 @@ class checkable {
   commands::command* _event_handler_ptr;
   commands::command* _check_command_ptr;
   bool _is_executing;
+  std::shared_ptr<severity> _severity;
 };
 
 CCE_END()

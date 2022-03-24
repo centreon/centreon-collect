@@ -1464,6 +1464,7 @@ int neb::callback_pb_host(int callback_type, void* data) {
       host.set_statusmap_image(
           misc::string::check_string_utf8(eh->get_statusmap_image()));
     host.set_timezone(eh->get_timezone());
+    host.set_severity_id(eh->get_severity() ? eh->get_severity()->id() : 0);
 
     // Find host ID.
     uint64_t host_id = engine::get_host_id(host.host_name());
@@ -2296,39 +2297,41 @@ int neb::callback_pb_service(int callback_type, void* data) {
       static_cast<nebstruct_adaptive_service_data*>(data);
   const engine::service* es{static_cast<engine::service*>(ds->object_ptr)};
 
-  if (ds->type == NEBTYPE_ADAPTIVESERVICE_UPDATE && ds->attr != MODATTR_ALL) {
+  log_v2::neb()->trace("modified_attribute = {}", ds->modified_attribute);
+  if (ds->type == NEBTYPE_ADAPTIVESERVICE_UPDATE &&
+      ds->modified_attribute != MODATTR_ALL) {
     auto s{std::make_shared<neb::pb_adaptive_service>()};
     AdaptiveService& srv = s.get()->mut_obj();
-    if (ds->attr & MODATTR_NOTIFICATIONS_ENABLED)
+    if (ds->modified_attribute & MODATTR_NOTIFICATIONS_ENABLED)
       srv.set_notifications_enabled(es->get_notifications_enabled());
-    else if (ds->attr & MODATTR_ACTIVE_CHECKS_ENABLED) {
+    else if (ds->modified_attribute & MODATTR_ACTIVE_CHECKS_ENABLED) {
       srv.set_active_checks_enabled(es->active_checks_enabled());
       srv.set_should_be_scheduled(es->get_should_be_scheduled());
-    } else if (ds->attr & MODATTR_PASSIVE_CHECKS_ENABLED)
+    } else if (ds->modified_attribute & MODATTR_PASSIVE_CHECKS_ENABLED)
       srv.set_passive_checks_enabled(es->passive_checks_enabled());
-    else if (ds->attr & MODATTR_EVENT_HANDLER_ENABLED)
+    else if (ds->modified_attribute & MODATTR_EVENT_HANDLER_ENABLED)
       srv.set_event_handler_enabled(es->event_handler_enabled());
-    else if (ds->attr & MODATTR_FLAP_DETECTION_ENABLED)
+    else if (ds->modified_attribute & MODATTR_FLAP_DETECTION_ENABLED)
       srv.set_flap_detection_enabled(es->flap_detection_enabled());
-    else if (ds->attr & MODATTR_OBSESSIVE_HANDLER_ENABLED)
+    else if (ds->modified_attribute & MODATTR_OBSESSIVE_HANDLER_ENABLED)
       srv.set_obsess_over(es->obsess_over());
-    else if (ds->attr & MODATTR_EVENT_HANDLER_COMMAND)
+    else if (ds->modified_attribute & MODATTR_EVENT_HANDLER_COMMAND)
       srv.set_event_handler(
           misc::string::check_string_utf8(es->event_handler()));
-    else if (ds->attr & MODATTR_CHECK_COMMAND)
+    else if (ds->modified_attribute & MODATTR_CHECK_COMMAND)
       srv.set_check_command(
           misc::string::check_string_utf8(es->check_command()));
-    else if (ds->attr & MODATTR_NORMAL_CHECK_INTERVAL)
+    else if (ds->modified_attribute & MODATTR_NORMAL_CHECK_INTERVAL)
       srv.set_check_interval(es->check_interval());
-    else if (ds->attr & MODATTR_RETRY_CHECK_INTERVAL)
+    else if (ds->modified_attribute & MODATTR_RETRY_CHECK_INTERVAL)
       srv.set_retry_interval(es->retry_interval());
-    else if (ds->attr & MODATTR_MAX_CHECK_ATTEMPTS)
+    else if (ds->modified_attribute & MODATTR_MAX_CHECK_ATTEMPTS)
       srv.set_max_check_attempts(es->max_check_attempts());
-    else if (ds->attr & MODATTR_FRESHNESS_CHECKS_ENABLED)
+    else if (ds->modified_attribute & MODATTR_FRESHNESS_CHECKS_ENABLED)
       srv.set_check_freshness(es->check_freshness_enabled());
-    else if (ds->attr & MODATTR_CHECK_TIMEPERIOD)
+    else if (ds->modified_attribute & MODATTR_CHECK_TIMEPERIOD)
       srv.set_check_period(es->check_period());
-    else if (ds->attr & MODATTR_NOTIFICATION_TIMEPERIOD)
+    else if (ds->modified_attribute & MODATTR_NOTIFICATION_TIMEPERIOD)
       srv.set_notification_period(es->notification_period());
     else {
       log_v2::neb()->error("callbacks: adaptive service not implemented.");
@@ -2477,6 +2480,7 @@ int neb::callback_pb_service(int callback_type, void* data) {
     srv.set_state_type(static_cast<Service_StateType>(
         es->has_been_checked() ? es->get_state_type()
                                : engine::notifier::hard));
+    srv.set_severity_id(es->get_severity() ? es->get_severity()->id() : 0);
 
     // Search host ID and service ID.
     std::pair<uint64_t, uint64_t> p;
@@ -2484,6 +2488,9 @@ int neb::callback_pb_service(int callback_type, void* data) {
                                         es->get_description());
     srv.set_host_id(p.first);
     srv.set_service_id(p.second);
+    if (srv.host_id() && srv.service_id())
+      log_v2::neb()->debug("callbacks: service ({}, {}) has a severity id {}",
+                           srv.host_id(), srv.service_id(), srv.severity_id());
     if (srv.host_id() && srv.service_id()) {
       // Send service event.
       log_v2::neb()->info("callbacks: new service {} ('{}') on host {}",
@@ -2607,6 +2614,7 @@ int32_t neb::callback_severity(int callback_type __attribute__((unused)),
   sv.set_level(es->level());
   sv.set_icon_id(es->icon_id());
   sv.set_name(es->name());
+  sv.set_type(static_cast<com::centreon::broker::Severity_Type>(es->type()));
 
   // Send event(s).
   gl_publisher.write(s);

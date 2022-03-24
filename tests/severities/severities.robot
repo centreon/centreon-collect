@@ -164,6 +164,44 @@ BEUSEV2
 	Stop Engine
 	Stop Broker
 
+BEUSEV3
+	[Documentation]	Four services have a severity added. Then we remove the severity from service 1. Then we change severity 11 to severity7 for service 3.
+	[Tags]	Broker	Engine	protobuf	bbdo	severities
+	#Clear DB	severities
+	Config Engine	${1}
+	Create Severities File	${20}
+	Config Engine Add Cfg File	severities.cfg
+        Add Severity To Services	11	[1, 2, 3, 4]
+	Config Broker	central
+	Config Broker	rrd
+	Config Broker	module
+	Config Broker Sql Output	central	unified_sql
+        Broker Config Add Item	module	bbdo_version	3.0.0
+        Broker Config Add Item	central	bbdo_version	3.0.0
+        Broker Config Add Item	rrd	bbdo_version	3.0.0
+	Broker Config Log	module	neb	debug
+	Broker Config Log	central	sql	trace
+	Clear Retention
+	${start}=	Get Current Date
+	Start Engine
+	Start Broker
+	${result}=	check service severity With Timeout	1	1	11	60
+	Should Be True	${result}	msg=Service (1, 1) should have severity_id=11
+
+        Remove Severities From Services
+        Add Severity To Services	11	[2, 4]
+        Add Severity To Services	7	[3]
+        Reload Engine
+        Reload Broker
+        Sleep	1s
+	${result}=	check service severity With Timeout	1	3	7	60
+	Should Be True	${result}	msg=Service (1, 3) should have severity_id=7
+	${result}=	check service severity With Timeout	1	1	None	60
+	Should Be True	${result}	msg=Service (1, 1) should have no severity
+
+	Stop Engine
+	Kindly Stop Broker
+
 #BEUSEV3
 #	[Documentation]	Engine is configured with some severities (same as before). Engine and broker are started like in BESV2, severities.cfg is changed and engine reloaded. Broker updates the DB. Several severities are removed and Broker updates correctly the DB.
 #	[Tags]	Broker	Engine	protobuf	bbdo	severities

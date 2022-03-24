@@ -102,7 +102,7 @@ class EngineInstance:
                 "log_legacy_enabled=1\n"
                 "log_v2_logger=file\n"
                 "log_level_functions=info\n"
-                "log_level_config=debug\n"
+                "log_level_config=info\n"
                 "log_level_events=info\n"
                 "log_level_checks=info\n"
                 "log_level_notifications=info\n"
@@ -290,6 +290,7 @@ define command {
         config_file = "{}/config0/severities.cfg".format(CONF_DIR)
         ff = open(config_file, "w+")
         content = ""
+        typ = [ "service", "host" ]
         for i in range(nb):
             level = i % 5 + 1
             content += """define severity {{
@@ -297,8 +298,9 @@ define command {
     name                   severity{3}
     level                  {1}
     icon_id                {2}
+    type                   {4}
 }}
-""".format(i + 1, level, 6 - level, i + offset)
+""".format(i + 1, level, 6 - level, i + offset, typ[i % 2])
         ff.write(content)
         ff.close()
 
@@ -531,4 +533,30 @@ def config_engine_add_cfg_file(cfg:str):
             break
     ff = open("{}/config0/centengine.cfg".format(CONF_DIR), "w+")
     ff.writelines(lines)
+    ff.close()
+
+
+def add_severity_to_services(severity_id:int, svc_lst):
+    ff = open("{}/config0/services.cfg".format(CONF_DIR), "r")
+    lines = ff.readlines()
+    ff.close()
+    r = re.compile(r"^\s*_SERVICE_ID\s*(\d+)$")
+    for i in range(len(lines)):
+        m = r.match(lines[i])
+        if m and m.group(1) in svc_lst:
+            lines.insert(i + 1, "    severity_id                     {}\n".format(severity_id))
+
+    ff = open("{}/config0/services.cfg".format(CONF_DIR), "w")
+    ff.writelines(lines)
+    ff.close()
+
+
+def remove_severities_from_services():
+    ff = open("{}/config0/services.cfg".format(CONF_DIR), "r")
+    lines = ff.readlines()
+    ff.close()
+    r = re.compile(r"^\s*severity_id\s*\d+$")
+    out = [l for l in lines if not r.match(l)]
+    ff = open("{}/config0/services.cfg".format(CONF_DIR), "w")
+    ff.writelines(out)
     ff.close()
