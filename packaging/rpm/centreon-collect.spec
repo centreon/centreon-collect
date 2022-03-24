@@ -262,7 +262,7 @@ cmake3 \
 %{__install} -d $RPM_BUILD_ROOT%{_sysconfdir}/centreon-engine/conf.d
 %{__install} -d $RPM_BUILD_ROOT%{_datadir}/doc/centreon-broker
 %{__install} -d $RPM_BUILD_ROOT%{_datadir}/centreon-broker/lua
-%{__install} -m 644 centreon-broker/script/centreon-broker.logrotate $RPM_BUILD_ROOT%{_sysconfdir}/logrotate.d/cbd
+%{__install} -m 644 broker/script/centreon-broker.logrotate $RPM_BUILD_ROOT%{_sysconfdir}/logrotate.d/cbd
 %{__install} -d $RPM_BUILD_ROOT%{_localstatedir}/log/centreon-engine
 %{__install} -d $RPM_BUILD_ROOT%{_localstatedir}/log/centreon-engine/archives
 %{__install} -d $RPM_BUILD_ROOT%{_localstatedir}/lib/centreon-engine
@@ -338,12 +338,12 @@ fi
 %files -n centreon-clib
 %defattr(-,root,root,-)
 %{_libdir}/libcentreon_clib.so
-%doc centreon-clib/LICENSE
+%doc clib/LICENSE
 
 %files -n centreon-clib-devel
 %defattr(-,root,root,-)
 %{_includedir}/centreon-clib
-%doc centreon-clib/LICENSE
+%doc clib/LICENSE
 
 %files -n centreon-engine
 
@@ -362,18 +362,18 @@ fi
 %attr(0775,root,root) %{_datadir}/centreon-engine/extra/integrate_centreon_engine2centreon.sh
 %attr(0755,centreon-engine,centreon-engine) %{_localstatedir}/log/centreon-engine/
 %attr(0755,centreon-engine,centreon-engine) %dir %{_localstatedir}/lib/centreon-engine/
-%doc centreon-engine/license.txt
+%doc engine/license.txt
 
 %files -n centreon-engine-extcommands
 %defattr(-,root,root,-)
 %{_libdir}/centreon-engine/externalcmd.so
 %attr(0775,centreon-engine,centreon-engine) %{_localstatedir}/lib/centreon-engine/rw
-%doc centreon-engine/license.txt
+%doc engine/license.txt
 
 %files -n centreon-engine-devel
 %defattr(-,root,root,-)
 %{_includedir}/centreon-engine
-%doc centreon-engine/license.txt
+%doc engine/license.txt
 
 %files -n centreon-engine-bench
 %defattr(-,root,root,-)
@@ -428,6 +428,7 @@ fi
 %{_datadir}/centreon/lib/centreon-broker/15-stats.so
 %{_datadir}/centreon/lib/centreon-broker/20-bam.so
 %{_datadir}/centreon/lib/centreon-broker/50-tcp.so
+%{_datadir}/centreon/lib/centreon-broker/50-grpc.so
 %{_datadir}/centreon/lib/centreon-broker/60-tls.so
 %{_datadir}/centreon/lib/centreon-broker/70-lua.so
 %{_datadir}/centreon/lib/centreon-broker/80-sql.so
@@ -449,7 +450,7 @@ fi
 %files -n centreon-broker-devel
 %defattr(-,root,root,-)
 %{_prefix}/include/centreon-broker
-%doc centreon-broker/LICENSE
+%doc broker/LICENSE
 %{_includedir}/centreon-broker
 
 %files

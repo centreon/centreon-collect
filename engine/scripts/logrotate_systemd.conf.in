@@ -1,0 +1,13 @@
+@ENGINE_VAR_LOG_DIR@/*.log {
+  compress
+  create 640 @USER@ @GROUP@
+  daily
+  delaycompress
+  missingok
+  olddir @ENGINE_VAR_LOG_ARCHIVE_DIR@
+  createolddir 755 @USER@ @GROUP@
+  rotate 365
+  postrotate
+    systemctl reload centengine
+  endscript
+}

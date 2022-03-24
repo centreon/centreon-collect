@@ -23,7 +23,7 @@
 
 # Set necessary settings.
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.16)
 project("Centreon Collect" C CXX)
 if (NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   message(FATAL_ERROR "You can build broker with g++ or clang++. CMake will exit.")
@@ -93,10 +93,10 @@ include_directories(${CMAKE_SOURCE_DIR}
                     ${CONAN_INCLUDE_DIRS})
 
 add_subdirectory(bbdo)
-add_subdirectory(centreon-broker)
-add_subdirectory(centreon-clib)
-add_subdirectory(centreon-engine)
-add_subdirectory(centreon-connector)
+add_subdirectory(broker)
+add_subdirectory(clib)
+add_subdirectory(engine)
+add_subdirectory(connectors)
 
 add_custom_target(test-broker
     COMMAND tests/ut_broker

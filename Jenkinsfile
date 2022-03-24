@@ -122,17 +122,16 @@ stage('Build / Unit tests // Packaging / Signing') {
   }  
 }
 
-if ((env.BUILD == 'RELEASE') || (env.BUILD == 'QA')) {
-  stage('Delivery') {
-    node("C++") {
-      unstash 'el8-rpms'
-      unstash 'el7-rpms'
-      dir('centreon-collect-delivery') {
-        checkout scm
-        loadCommonScripts()
-        sh 'rm -rf output && mkdir output && mv ../*.rpm output'
-        sh './ci/scripts/collect-rpm-delivery.sh'
-      }
+stage('Delivery') {
+  node("C++") {
+    unstash 'el8-rpms'
+    unstash 'el7-rpms'
+    dir('centreon-collect-delivery') {
+      checkout scm
+      loadCommonScripts()
+      sh 'rm -rf output && mkdir output && mv ../*.rpm output'
+      sh './ci/scripts/collect-rpm-delivery.sh'
     }
   }
 }
+

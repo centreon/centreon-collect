@@ -11,3 +11,6 @@ zlib/1.2.11
 
 [generators]
 cmake
+
+[options]
+grpc:secure=True
