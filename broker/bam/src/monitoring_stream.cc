@@ -68,9 +68,6 @@ monitoring_stream::monitoring_stream(std::string const& ext_cmd_file,
       _storage_db_cfg(storage_db_cfg),
       _cache(cache) {
   log_v2::bam()->trace("BAM: monitoring_stream constructor");
-  auto& bbdo = config::applier::state::instance().bbdo_version();
-  log_v2::bam()->info("BAM: bbdo version {}", std::get<0>(bbdo));
-  _bbdo3_enabled = std::get<0>(bbdo) >= 3;
   // Prepare queries.
   _prepare();
 

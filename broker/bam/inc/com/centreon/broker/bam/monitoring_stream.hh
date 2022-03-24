@@ -53,7 +53,6 @@ class monitoring_stream : public io::stream {
   int32_t _pending_events;
   database_config _storage_db_cfg;
   std::shared_ptr<persistent_cache> _cache;
-  bool _bbdo3_enabled;
 
  public:
   monitoring_stream(std::string const& ext_cmd_file,
