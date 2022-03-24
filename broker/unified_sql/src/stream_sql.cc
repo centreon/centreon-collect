@@ -1275,7 +1275,8 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
 
       _finish_action(-1, actions::resources);
       _mysql.run_statement(_resources_host_insupdate,
-                           database::mysql_error::store_host_resources, true, conn);
+                           database::mysql_error::store_host_resources, true,
+                           conn);
       _add_action(conn, actions::resources);
     } else
       log_v2::sql()->trace(
