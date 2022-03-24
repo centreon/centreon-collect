@@ -5,7 +5,7 @@ function init(conf)
 end
 
 function write(e)
-  if e._type == 65564 then
+  if e._type == 65565 then
     broker_log:info(0, broker.json_encode(e))
   end
   return true
