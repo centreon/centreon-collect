@@ -38,6 +38,7 @@ class host;
 class service;
 class servicegroup;
 class serviceescalation;
+class severity;
 CCE_END()
 
 typedef std::unordered_map<std::pair<std::string, std::string>,
@@ -192,6 +193,7 @@ class service : public notifier {
   host const* get_host_ptr() const;
   host* get_host_ptr();
   bool get_host_problem_at_last_check() const;
+  void set_severity(std::shared_ptr<severity> sv);
 
   static service_map services;
   static service_id_map services_by_id;
@@ -218,6 +220,7 @@ class service : public notifier {
   std::list<servicegroup*> _servicegroups;
   host* _host_ptr;
   bool _host_problem_at_last_check;
+  std::shared_ptr<severity> _severity;
 };
 CCE_END()
 

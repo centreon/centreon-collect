@@ -38,18 +38,21 @@ using namespace com::centreon::engine::configuration;
  */
 void applier::severity::add_object(const configuration::severity& obj) {
   // Logging.
-  log_v2::config()->debug("Creating new severity {}.", obj.key());
+  log_v2::config()->debug("Creating new severity ({}, {}).", obj.key().first,
+                          obj.key().second);
 
   // Add severity to the global configuration set.
   config->mut_severities().insert(obj);
 
-  auto sv{std::make_shared<engine::severity>(obj.key(), obj.level(),
-                                             obj.icon_id(), obj.name())};
+  auto sv{std::make_shared<engine::severity>(obj.key().first, obj.level(),
+                                             obj.icon_id(), obj.name(),
+                                             obj.key().second)};
   if (!sv)
-    throw engine_error() << "Could not register severity " << obj.key();
+    throw engine_error() << "Could not register severity (" << obj.key().first
+                         << ", " << obj.key().second << ")";
 
   // Add new items to the configuration state.
-  engine::severity::severities.insert({sv->id(), sv});
+  engine::severity::severities.insert({obj.key(), sv});
 
   timeval tv(get_broker_timestamp(nullptr));
   broker_adaptive_severity_data(NEBTYPE_SEVERITY_ADD, NEBFLAG_NONE,
@@ -73,18 +76,21 @@ void applier::severity::expand_objects(configuration::state&) {}
  */
 void applier::severity::modify_object(const configuration::severity& obj) {
   // Logging.
-  log_v2::config()->debug("Modifying severity {}.", obj.key());
+  log_v2::config()->debug("Modifying severity ({}, {}).", obj.key().first,
+                          obj.key().second);
 
   // Find old configuration.
   auto it_cfg = config->severities_find(obj.key());
   if (it_cfg == config->severities().end())
-    throw engine_error() << "Cannot modify non-existing severity " << obj.key();
+    throw engine_error() << "Cannot modify non-existing severity ("
+                         << obj.key().first << ", " << obj.key().second << ")";
 
   // Find severity object.
   severity_map::iterator it_obj{engine::severity::severities.find(obj.key())};
   if (it_obj == engine::severity::severities.end())
     throw engine_error() << "Could not modify non-existing severity object "
-                         << obj.key();
+                         << fmt::format("({}, {})", obj.key().first,
+                                        obj.key().second);
   engine::severity* s = it_obj->second.get();
 
   // Update the global configuration set.
@@ -102,7 +108,8 @@ void applier::severity::modify_object(const configuration::severity& obj) {
     broker_adaptive_severity_data(NEBTYPE_SEVERITY_UPDATE, NEBFLAG_NONE,
                                   NEBATTR_NONE, s, &tv);
   } else
-    log_v2::config()->debug("Severity {} did not change", obj.key());
+    log_v2::config()->debug("Severity ({}, {}) did not change", obj.key().first,
+                            obj.key().second);
 }
 
 /**
@@ -112,7 +119,8 @@ void applier::severity::modify_object(const configuration::severity& obj) {
  */
 void applier::severity::remove_object(const configuration::severity& obj) {
   // Logging.
-  log_v2::config()->debug("Removing severity {}.", obj.key());
+  log_v2::config()->debug("Removing severity ({}, {}).", obj.key().first,
+                          obj.key().second);
 
   // Find severity.
   severity_map::iterator it = engine::severity::severities.find(obj.key());
@@ -142,5 +150,6 @@ void applier::severity::resolve_object(const configuration::severity& obj) {
       engine::severity::severities.find(obj.key())};
   if (sv_it == engine::severity::severities.end() || !sv_it->second)
     throw engine_error() << "Cannot resolve non-existing severity "
-                         << obj.key();
+                         << fmt::format("({}, {})", obj.key().first,
+                                        obj.key().second);
 }

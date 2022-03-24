@@ -28,6 +28,7 @@
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/log_v2.hh"
+#include "com/centreon/engine/severity.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -198,6 +199,19 @@ void applier::service::add_object(configuration::service const& obj) {
                              NEBATTR_NONE, svc, it->first.c_str(),
                              it->second.get_value().c_str(), &tv);
     }
+  }
+
+  // Add severity.
+  if (obj.severity_id()) {
+    configuration::severity::key_type k = {obj.severity_id(),
+                                           configuration::severity::service};
+    auto sv = engine::severity::severities.find(k);
+    if (sv == engine::severity::severities.end())
+      throw engine_error() << "Could not add the severity (" << k.first << ", "
+                           << k.second << ") to the service '"
+                           << obj.service_description() << "' of host '"
+                           << *obj.hosts().begin() << "'";
+    svc->set_severity(sv->second);
   }
 
   // Notify event broker.
@@ -475,6 +489,20 @@ void applier::service::modify_object(configuration::service const& obj) {
       }
     }
   }
+
+  // Severity.
+  if (obj.severity_id()) {
+    configuration::severity::key_type k = {obj.severity_id(),
+                                           configuration::severity::service};
+    auto sv = engine::severity::severities.find(k);
+    if (sv == engine::severity::severities.end())
+      throw engine_error() << "Could not update the severity (" << k.first
+                           << ", " << k.second << ") to the service '"
+                           << obj.service_description() << "' of host '"
+                           << *obj.hosts().begin() << "'";
+    s->set_severity(sv->second);
+  } else
+    s->set_severity(nullptr);
 
   // Notify event broker.
   timeval tv(get_broker_timestamp(NULL));

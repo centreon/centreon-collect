@@ -38,21 +38,21 @@ class ConfigSeverity : public ::testing::Test {
 // When I create a configuration::severity with a null id
 // Then an exception is thrown.
 TEST_F(ConfigSeverity, NewSeverityWithNoKey) {
-  configuration::severity sv(0);
+  configuration::severity sv({0, 0});
   ASSERT_THROW(sv.check_validity(), std::exception);
 }
 
 // When I create a configuration::severity with a null level
 // Then an exception is thrown.
 TEST_F(ConfigSeverity, NewSeverityWithNoLevel) {
-  configuration::severity sv(1);
+  configuration::severity sv({1, 0});
   ASSERT_THROW(sv.check_validity(), std::exception);
 }
 
 // When I create a configuration::severity with an empty name
 // Then an exception is thrown.
 TEST_F(ConfigSeverity, NewSeverityWithNoName) {
-  configuration::severity sv(1);
+  configuration::severity sv({1, 0});
   sv.parse("level", "2");
   ASSERT_THROW(sv.check_validity(), std::exception);
 }
@@ -61,22 +61,25 @@ TEST_F(ConfigSeverity, NewSeverityWithNoName) {
 // non null id and non null level.
 // Then no exception is thrown.
 TEST_F(ConfigSeverity, NewSeverityWellFilled) {
-  configuration::severity sv(1);
+  configuration::severity sv({1, 0});
   sv.parse("level", "2");
   sv.parse("name", "foobar");
-  ASSERT_EQ(sv.key(), 1);
+  sv.parse("type", "service");
+  ASSERT_EQ(sv.key().first, 1);
   ASSERT_EQ(sv.level(), 2);
   ASSERT_EQ(sv.name(), "foobar");
+  ASSERT_EQ(sv.type(), configuration::severity::service);
   ASSERT_NO_THROW(sv.check_validity());
 }
 
 // When I create a configuration::severity with an icon id.
 // Then we can get its value.
 TEST_F(ConfigSeverity, NewSeverityIconId) {
-  configuration::severity sv(1);
+  configuration::severity sv({1, 0});
   sv.parse("level", "2");
   sv.parse("icon_id", "18");
   sv.parse("name", "foobar");
+  sv.parse("type", "host");
   ASSERT_EQ(sv.icon_id(), 18);
   ASSERT_NO_THROW(sv.check_validity());
 }

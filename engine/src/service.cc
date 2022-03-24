@@ -3793,3 +3793,7 @@ void service::resolve(int& w, int& e) {
 bool service::get_host_problem_at_last_check() const {
   return _host_problem_at_last_check;
 }
+
+void service::set_severity(std::shared_ptr<severity> severity) {
+  _severity = severity;
+}
