@@ -114,6 +114,7 @@ class mysql_error {
     clean_tags,
     update_index_data,
     update_resources,
+    store_host_resources,
   };
 
   static constexpr const char* msg[]{
@@ -194,6 +195,7 @@ class mysql_error {
       "could not remove tags: ",
       "could not update index data: ",
       "could not update resources: ",
+      "could not insert host in resources: ",
   };
 
   mysql_error() : _active(false) {}

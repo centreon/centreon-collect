@@ -1082,7 +1082,7 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
         query_preparator::event_pb_unique unique{
             {1, "host_id", io::protobuf_base::invalid_on_zero, 0}};
         query_preparator qp(neb::pb_host::static_type(), unique);
-        _host_insupdate = qp.prepare_insert_or_update_table(
+        _pb_host_insupdate = qp.prepare_insert_or_update_table(
             _mysql, "hosts",
             {
                 {1, "host_id", io::protobuf_base::invalid_on_zero, 0},
@@ -1275,7 +1275,7 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
 
       _finish_action(-1, actions::resources);
       _mysql.run_statement(_resources_host_insupdate,
-                           database::mysql_error::store_host, true, conn);
+                           database::mysql_error::store_host_resources, true, conn);
       _add_action(conn, actions::resources);
     } else
       log_v2::sql()->trace(
@@ -1462,13 +1462,13 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
           "UPDATE resources SET "
           "status=?,"            // 0: current_state
           "status_ordered=?,"    // 1: obtained from current_state
-          "in_downtime=? "       // 2: downtime_depth() > 0
-          "acknowledged=? "      // 3: acknowledgement_type != NONE
-          "status_confirmed=? "  // 4: state_type == HARD
-          "check_attempts=? "    // 5: current_check_attempt
-          "has_graph=? "         // 6: perfdata != ""
-          "last_check_type=? "   // 7: check_type
-          "last_check=? "        // 8: last_check
+          "in_downtime=?,"       // 2: downtime_depth() > 0
+          "acknowledged=?,"      // 3: acknowledgement_type != NONE
+          "status_confirmed=?,"  // 4: state_type == HARD
+          "check_attempts=?,"    // 5: current_check_attempt
+          "has_graph=?,"         // 6: perfdata != ""
+          "last_check_type=?,"   // 7: check_type
+          "last_check=?,"        // 8: last_check
           "output=? "            // 9: output
           "WHERE id=? AND parent_id is NULL");  // 10: host_id
     }
@@ -2654,13 +2654,13 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
           "UPDATE resources SET "
           "status=?,"                     // 0: current_state
           "status_ordered=?,"             // 1: obtained from current_state
-          "in_downtime=? "                // 2: downtime_depth() > 0
-          "acknowledged=? "               // 3: acknowledgement_type != NONE
-          "status_confirmed=? "           // 4: state_type == HARD
-          "check_attempts=? "             // 5: current_check_attempt
-          "has_graph=? "                  // 6: perfdata != ""
-          "last_check_type=? "            // 7: check_type
-          "last_check=? "                 // 8: last_check
+          "in_downtime=?,"                // 2: downtime_depth() > 0
+          "acknowledged=?,"               // 3: acknowledgement_type != NONE
+          "status_confirmed=?,"           // 4: state_type == HARD
+          "check_attempts=?,"             // 5: current_check_attempt
+          "has_graph=?,"                  // 6: perfdata != ""
+          "last_check_type=?,"            // 7: check_type
+          "last_check=?,"                 // 8: last_check
           "output=? "                     // 9: output
           "WHERE id=? AND parent_id=?");  // 10, 11: service_id and host_id
     }
