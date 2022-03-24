@@ -196,7 +196,7 @@ TEST_F(LuaTest, SimpleScript) {
 
   auto bnd{std::make_unique<luabinding>(filename, conf, *_cache)};
   ASSERT_TRUE(bnd.get());
-  std::unique_ptr<neb::service> s(new neb::service);
+  auto s{std::make_unique<neb::service>()};
   s->host_id = 12;
   s->service_id = 18;
   s->output = "Bonjour";
@@ -236,7 +236,7 @@ TEST_F(LuaTest, WriteAcknowledgement) {
 
   auto bnd{std::make_unique<luabinding>(FILE3, conf, *_cache)};
   ASSERT_TRUE(bnd.get());
-  std::unique_ptr<neb::acknowledgement> s(new neb::acknowledgement);
+  auto s{std::make_unique<neb::acknowledgement>()};
   s->host_id = 13;
   s->author = "testAck";
   s->service_id = 21;
@@ -552,7 +552,7 @@ TEST_F(LuaTest, HostCacheTest) {
   modules.load_file("./lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
-  std::shared_ptr<neb::host> hst(new neb::host);
+  auto hst{std::make_shared<neb::host>()};
   hst->host_id = 1;
   hst->host_name = "centreon";
   hst->alias = "alias-centreon";
@@ -588,7 +588,7 @@ TEST_F(LuaTest, HostCacheTestAdaptive) {
   modules.load_file("./lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
-  std::shared_ptr<neb::host> hst(new neb::host);
+  auto hst{std::make_shared<neb::host>()};
   hst->host_id = 1;
   hst->host_name = "centreon";
   hst->alias = "alias-centreon";
@@ -626,7 +626,7 @@ TEST_F(LuaTest, HostCacheV2TestAdaptive) {
   modules.load_file("./lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
-  std::shared_ptr<neb::host> hst(new neb::host);
+  auto hst{std::make_shared<neb::host>()};
   hst->host_id = 1;
   hst->host_name = "centreon";
   hst->alias = "alias-centreon";
@@ -1001,7 +1001,7 @@ TEST_F(LuaTest, IndexMetricCacheTest) {
   svc->service_id = 14;
   svc->service_description = "MyDescription";
   _cache->write(svc);
-  std::shared_ptr<neb::host> hst(new neb::host);
+  auto hst{std::make_shared<neb::host>()};
   hst->host_id = 1;
   hst->host_name = "host1";
   _cache->write(hst);
@@ -1080,7 +1080,7 @@ TEST_F(LuaTest, PbIndexMetricCacheTest) {
 TEST_F(LuaTest, InstanceNameCacheTest) {
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
-  std::shared_ptr<neb::instance> inst(new neb::instance);
+  auto inst{std::make_shared<neb::instance>()};
   inst->broker_id = 42;
   inst->engine = "engine name";
   inst->is_running = true;
@@ -1196,7 +1196,7 @@ TEST_F(LuaTest, HostGroupCacheTestNameNotAvailable) {
 TEST_F(LuaTest, HostGroupCacheTestName) {
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
-  std::shared_ptr<neb::host_group> hg(new neb::host_group);
+  auto hg{std::make_shared<neb::host_group>()};
   hg->id = 28;
   hg->name = "centreon";
   _cache->write(hg);
@@ -1247,26 +1247,26 @@ TEST_F(LuaTest, HostGroupCacheTestEmpty) {
 TEST_F(LuaTest, HostGroupCacheTest) {
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
-  std::shared_ptr<neb::host_group> hg(new neb::host_group);
+  auto hg{std::make_shared<neb::host_group>()};
   hg->id = 16;
   hg->name = "centreon1";
   _cache->write(hg);
-  hg.reset(new neb::host_group);
+  hg = std::make_shared<neb::host_group>();
   hg->id = 17;
   hg->name = "centreon2";
   _cache->write(hg);
-  std::shared_ptr<neb::host> hst(new neb::host);
+  auto hst{std::make_shared<neb::host>()};
   hst->host_id = 22;
   hst->host_name = "host_centreon";
   _cache->write(hst);
-  std::shared_ptr<neb::host_group_member> member(new neb::host_group_member);
+  auto member{std::make_shared<neb::host_group_member>()};
   member->host_id = 22;
   member->group_id = 16;
   member->group_name = "sixteen";
   member->enabled = false;
   member->poller_id = 14;
   _cache->write(member);
-  member.reset(new neb::host_group_member);
+  member = std::make_shared<neb::host_group_member>();
   member->host_id = 22;
   member->group_id = 17;
   member->group_name = "seventeen";
@@ -1304,7 +1304,7 @@ TEST_F(LuaTest, PbHostGroupCacheTest) {
   hg->id = 16;
   hg->name = "centreon1";
   _cache->write(hg);
-  hg.reset(new neb::host_group);
+  hg = std::make_shared<neb::host_group>();
   hg->id = 17;
   hg->name = "centreon2";
   _cache->write(hg);
@@ -1312,14 +1312,14 @@ TEST_F(LuaTest, PbHostGroupCacheTest) {
   hst->mut_obj().set_host_id(22);
   hst->mut_obj().set_host_name("host_centreon");
   _cache->write(hst);
-  std::shared_ptr<neb::host_group_member> member(new neb::host_group_member);
+  auto member{std::make_shared<neb::host_group_member>()};
   member->host_id = 22;
   member->group_id = 16;
   member->group_name = "sixteen";
   member->enabled = false;
   member->poller_id = 14;
   _cache->write(member);
-  member.reset(new neb::host_group_member);
+  member = std::make_shared<neb::host_group_member>();
   member->host_id = 22;
   member->group_id = 17;
   member->group_name = "seventeen";
@@ -1376,7 +1376,7 @@ TEST_F(LuaTest, ServiceGroupCacheTestNameNotAvailable) {
 TEST_F(LuaTest, ServiceGroupCacheTestName) {
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
-  std::shared_ptr<neb::service_group> sg(new neb::service_group);
+  auto sg{std::make_shared<neb::service_group>()};
   sg->id = 28;
   sg->name = "centreon";
   _cache->write(sg);
@@ -1427,11 +1427,11 @@ TEST_F(LuaTest, ServiceGroupCacheTestEmpty) {
 TEST_F(LuaTest, ServiceGroupCacheTest) {
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
-  std::shared_ptr<neb::service_group> sg(new neb::service_group);
+  auto sg{std::make_shared<neb::service_group>()};
   sg->id = 16;
   sg->name = "centreon1";
   _cache->write(sg);
-  sg.reset(new neb::service_group);
+  sg = std::make_shared<neb::service_group>();
   sg->id = 17;
   sg->name = "centreon2";
   _cache->write(sg);
@@ -1441,8 +1441,7 @@ TEST_F(LuaTest, ServiceGroupCacheTest) {
   svc->host_name = "host_centreon";
   svc->service_description = "service_description";
   _cache->write(svc);
-  std::shared_ptr<neb::service_group_member> member(
-      new neb::service_group_member);
+  auto member{std::make_shared<neb::service_group_member>()};
   member->host_id = 22;
   member->service_id = 17;
   member->poller_id = 3;
@@ -1450,7 +1449,7 @@ TEST_F(LuaTest, ServiceGroupCacheTest) {
   member->group_id = 16;
   member->group_name = "seize";
   _cache->write(member);
-  member.reset(new neb::service_group_member);
+  member = std::make_shared<neb::service_group_member>();
   member->host_id = 22;
   member->service_id = 17;
   member->poller_id = 4;
@@ -1489,7 +1488,7 @@ TEST_F(LuaTest, PbServiceGroupCacheTest) {
   sg->id = 16;
   sg->name = "centreon1";
   _cache->write(sg);
-  sg.reset(new neb::service_group);
+  sg = std::make_shared<neb::service_group>();
   sg->id = 17;
   sg->name = "centreon2";
   _cache->write(sg);
@@ -1508,7 +1507,7 @@ TEST_F(LuaTest, PbServiceGroupCacheTest) {
   member->group_id = 16;
   member->group_name = "seize";
   _cache->write(member);
-  member.reset(new neb::service_group_member);
+  member = std::make_shared<neb::service_group_member>();
   member->host_id = 22;
   member->service_id = 17;
   member->poller_id = 4;
@@ -2365,7 +2364,7 @@ TEST_F(LuaTest, StatError) {
 TEST_F(LuaTest, CacheGetNotesUrlTest) {
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
-  std::shared_ptr<neb::host> hst(new neb::host);
+  auto hst{std::make_shared<neb::host>()};
   hst->host_id = 1;
   hst->notes = "host notes";
   hst->notes_url = "host notes url";
