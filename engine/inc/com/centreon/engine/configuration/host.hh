@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013,2015-2017 Centreon
+** Copyright 2011-2013,2015-2017,2022 Centreon
 **
 ** This file is part of Centreon Engine.
 **
@@ -51,71 +51,71 @@ class host : public object {
 
   host(key_type const& key = 0);
   host(host const& other);
-  ~host() throw() override;
   host& operator=(host const& other);
-  bool operator==(host const& other) const throw();
-  bool operator!=(host const& other) const throw();
-  bool operator<(host const& other) const throw();
+  bool operator==(host const& other) const noexcept;
+  bool operator!=(host const& other) const noexcept;
+  bool operator<(host const& other) const noexcept;
   void check_validity() const override;
-  key_type key() const throw();
+  key_type key() const noexcept;
   void merge(configuration::hostextinfo const& obj);
   void merge(object const& obj) override;
   bool parse(char const* key, char const* value) override;
 
-  std::string const& action_url() const throw();
-  std::string const& address() const throw();
-  std::string const& alias() const throw();
-  bool checks_active() const throw();
-  bool checks_passive() const throw();
-  std::string const& check_command() const throw();
-  bool check_freshness() const throw();
-  unsigned int check_interval() const throw();
-  std::string const& check_period() const throw();
-  set_string const& contactgroups() const throw();
-  set_string const& contacts() const throw();
-  point_2d const& coords_2d() const throw();
-  point_3d const& coords_3d() const throw();
-  map_customvar const& customvariables() const throw();
-  map_customvar& customvariables() throw();
-  std::string const& display_name() const throw();
-  std::string const& event_handler() const throw();
-  bool event_handler_enabled() const throw();
-  unsigned int first_notification_delay() const throw();
-  bool flap_detection_enabled() const throw();
-  unsigned int flap_detection_options() const throw();
-  unsigned int freshness_threshold() const throw();
-  bool have_coords_2d() const throw();
-  bool have_coords_3d() const throw();
-  unsigned int high_flap_threshold() const throw();
-  set_string& hostgroups() throw();
-  set_string const& hostgroups() const throw();
-  uint64_t host_id() const throw();
-  std::string const& host_name() const throw();
-  std::string const& icon_image() const throw();
-  std::string const& icon_image_alt() const throw();
-  unsigned int initial_state() const throw();
-  unsigned int low_flap_threshold() const throw();
-  unsigned int max_check_attempts() const throw();
-  std::string const& notes() const throw();
-  std::string const& notes_url() const throw();
-  bool notifications_enabled() const throw();
-  unsigned int notification_interval() const throw();
-  unsigned int notification_options() const throw();
-  std::string const& notification_period() const throw();
-  bool obsess_over_host() const throw();
-  set_string& parents() throw();
-  set_string const& parents() const throw();
-  bool process_perf_data() const throw();
-  bool retain_nonstatus_information() const throw();
-  bool retain_status_information() const throw();
-  unsigned int retry_interval() const throw();
-  unsigned int recovery_notification_delay() const throw();
-  unsigned int stalking_options() const throw();
-  std::string const& statusmap_image() const throw();
-  std::string const& timezone() const throw();
-  std::string const& vrml_image() const throw();
-  int acknowledgement_timeout() const throw();
+  std::string const& action_url() const noexcept;
+  std::string const& address() const noexcept;
+  std::string const& alias() const noexcept;
+  bool checks_active() const noexcept;
+  bool checks_passive() const noexcept;
+  std::string const& check_command() const noexcept;
+  bool check_freshness() const noexcept;
+  unsigned int check_interval() const noexcept;
+  std::string const& check_period() const noexcept;
+  set_string const& contactgroups() const noexcept;
+  set_string const& contacts() const noexcept;
+  point_2d const& coords_2d() const noexcept;
+  point_3d const& coords_3d() const noexcept;
+  map_customvar const& customvariables() const noexcept;
+  map_customvar& customvariables() noexcept;
+  std::string const& display_name() const noexcept;
+  std::string const& event_handler() const noexcept;
+  bool event_handler_enabled() const noexcept;
+  unsigned int first_notification_delay() const noexcept;
+  bool flap_detection_enabled() const noexcept;
+  unsigned int flap_detection_options() const noexcept;
+  unsigned int freshness_threshold() const noexcept;
+  bool have_coords_2d() const noexcept;
+  bool have_coords_3d() const noexcept;
+  unsigned int high_flap_threshold() const noexcept;
+  set_string& hostgroups() noexcept;
+  set_string const& hostgroups() const noexcept;
+  uint64_t host_id() const noexcept;
+  std::string const& host_name() const noexcept;
+  std::string const& icon_image() const noexcept;
+  std::string const& icon_image_alt() const noexcept;
+  unsigned int initial_state() const noexcept;
+  unsigned int low_flap_threshold() const noexcept;
+  unsigned int max_check_attempts() const noexcept;
+  std::string const& notes() const noexcept;
+  std::string const& notes_url() const noexcept;
+  bool notifications_enabled() const noexcept;
+  unsigned int notification_interval() const noexcept;
+  unsigned int notification_options() const noexcept;
+  std::string const& notification_period() const noexcept;
+  bool obsess_over_host() const noexcept;
+  set_string& parents() noexcept;
+  set_string const& parents() const noexcept;
+  bool process_perf_data() const noexcept;
+  bool retain_nonstatus_information() const noexcept;
+  bool retain_status_information() const noexcept;
+  unsigned int retry_interval() const noexcept;
+  unsigned int recovery_notification_delay() const noexcept;
+  unsigned int stalking_options() const noexcept;
+  std::string const& statusmap_image() const noexcept;
+  std::string const& timezone() const noexcept;
+  std::string const& vrml_image() const noexcept;
+  int acknowledgement_timeout() const noexcept;
   bool set_acknowledgement_timeout(int value);
+  uint64_t severity_id() const noexcept;
 
  private:
   typedef bool (*setter_func)(host&, char const*);
@@ -168,6 +168,7 @@ class host : public object {
   bool _set_statusmap_image(std::string const& value);
   bool _set_timezone(std::string const& value);
   bool _set_vrml_image(std::string const& value);
+  bool _set_severity_id(uint64_t severity_id);
 
   opt<int> _acknowledgement_timeout;
   std::string _action_url;
@@ -218,6 +219,7 @@ class host : public object {
   std::string _statusmap_image;
   opt<std::string> _timezone;
   std::string _vrml_image;
+  uint64_t _severity_id;
 };
 
 typedef std::shared_ptr<host> host_ptr;

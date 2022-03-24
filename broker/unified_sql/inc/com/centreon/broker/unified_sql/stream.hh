@@ -1,5 +1,5 @@
 /*
-** Copyright 2019-2021 Centreon
+** Copyright 2019-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -205,10 +205,11 @@ class stream : public io::stream {
   std::unordered_map<uint32_t, uint32_t> _cache_host_instance;
   absl::flat_hash_map<uint64_t, size_t> _cache_hst_cmd;
   absl::flat_hash_map<std::pair<uint64_t, uint64_t>, size_t> _cache_svc_cmd;
-  std::unordered_map<std::pair<uint64_t, uint64_t>, index_info> _index_cache;
-  std::unordered_map<std::pair<uint64_t, std::string>, metric_info>
+  absl::flat_hash_map<std::pair<uint64_t, uint64_t>, index_info> _index_cache;
+  absl::flat_hash_map<std::pair<uint64_t, std::string>, metric_info>
       _metric_cache;
   std::mutex _metric_cache_m;
+  absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t> _severity_cache;
 
   std::unordered_set<uint32_t> _hostgroup_cache;
   std::unordered_set<uint32_t> _servicegroup_cache;
@@ -269,7 +270,7 @@ class stream : public io::stream {
   database::mysql_stmt _service_status_update;
   database::mysql_stmt _hscr_update;
   database::mysql_stmt _sscr_update;
-  database::mysql_stmt _severity_insupdate;
+  database::mysql_stmt _severity_insert;
   database::mysql_stmt _severity_update;
   database::mysql_stmt _severity_delete;
   database::mysql_stmt _tag_insupdate;

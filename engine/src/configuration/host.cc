@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013,2015-2017,2019 Centreon
+** Copyright 2011-2013,2015-2017,2019,2022 Centreon
 **
 ** This file is part of Centreon Engine.
 **
@@ -97,7 +97,10 @@ std::unordered_map<std::string, host::setter_func> const host::_setters{
     {"retain_status_information", SETTER(bool, _set_retain_status_information)},
     {"retain_nonstatus_information",
      SETTER(bool, _set_retain_nonstatus_information)},
-    {"timezone", SETTER(std::string const&, _set_timezone)}};
+    {"timezone", SETTER(std::string const&, _set_timezone)},
+    {"severity", SETTER(uint64_t, _set_severity_id)},
+    {"severity_id", SETTER(uint64_t, _set_severity_id)},
+};
 
 // Default values.
 static bool const default_checks_active(true);
@@ -162,7 +165,8 @@ host::host(host::key_type const& key)
       _retain_status_information(default_retain_status_information),
       _retry_interval(default_retry_interval),
       _recovery_notification_delay(0),
-      _stalking_options(default_stalking_options) {}
+      _stalking_options(default_stalking_options),
+      _severity_id{0u} {}
 
 /**
  *  Copy constructor.
@@ -172,11 +176,6 @@ host::host(host::key_type const& key)
 host::host(host const& other) : object(other) {
   operator=(other);
 }
-
-/**
- *  Destructor.
- */
-host::~host() throw() {}
 
 /**
  *  Assignment operator.
@@ -236,6 +235,7 @@ host& host::operator=(host const& other) {
     _statusmap_image = other._statusmap_image;
     _timezone = other._timezone;
     _vrml_image = other._vrml_image;
+    _severity_id = other._severity_id;
   }
   return *this;
 }
@@ -247,49 +247,50 @@ host& host::operator=(host const& other) {
  *
  *  @return True if this object and other object are equal.
  */
-bool host::operator==(host const& other) const throw() {
-  return (
-      object::operator==(other) &&
-      _acknowledgement_timeout == other._acknowledgement_timeout &&
-      _action_url == other._action_url && _address == other._address &&
-      _alias == other._alias && _checks_active == other._checks_active &&
-      _checks_passive == other._checks_passive &&
-      _check_command == other._check_command &&
-      _check_freshness == other._check_freshness &&
-      _check_interval == other._check_interval &&
-      _check_period == other._check_period &&
-      _contactgroups == other._contactgroups && _contacts == other._contacts &&
-      _coords_2d == other._coords_2d && _coords_3d == other._coords_3d &&
-      std::operator==(_customvariables, other._customvariables) &&
-      _display_name == other._display_name &&
-      _event_handler == other._event_handler &&
-      _event_handler_enabled == other._event_handler_enabled &&
-      _first_notification_delay == other._first_notification_delay &&
-      _flap_detection_enabled == other._flap_detection_enabled &&
-      _flap_detection_options == other._flap_detection_options &&
-      _freshness_threshold == other._freshness_threshold &&
-      _high_flap_threshold == other._high_flap_threshold &&
-      _hostgroups == other._hostgroups && _host_id == other._host_id &&
-      _host_name == other._host_name && _icon_image == other._icon_image &&
-      _icon_image_alt == other._icon_image_alt &&
-      _initial_state == other._initial_state &&
-      _low_flap_threshold == other._low_flap_threshold &&
-      _max_check_attempts == other._max_check_attempts &&
-      _notes == other._notes && _notes_url == other._notes_url &&
-      _notifications_enabled == other._notifications_enabled &&
-      _notification_interval == other._notification_interval &&
-      _notification_options == other._notification_options &&
-      _notification_period == other._notification_period &&
-      _obsess_over_host == other._obsess_over_host &&
-      _parents == other._parents &&
-      _process_perf_data == other._process_perf_data &&
-      _retain_nonstatus_information == other._retain_nonstatus_information &&
-      _retain_status_information == other._retain_status_information &&
-      _retry_interval == other._retry_interval &&
-      _recovery_notification_delay == other._recovery_notification_delay &&
-      _stalking_options == other._stalking_options &&
-      _statusmap_image == other._statusmap_image &&
-      _timezone == other._timezone && _vrml_image == other._vrml_image);
+bool host::operator==(host const& other) const noexcept {
+  return object::operator==(other) &&
+         _acknowledgement_timeout == other._acknowledgement_timeout &&
+         _action_url == other._action_url && _address == other._address &&
+         _alias == other._alias && _checks_active == other._checks_active &&
+         _checks_passive == other._checks_passive &&
+         _check_command == other._check_command &&
+         _check_freshness == other._check_freshness &&
+         _check_interval == other._check_interval &&
+         _check_period == other._check_period &&
+         _contactgroups == other._contactgroups &&
+         _contacts == other._contacts && _coords_2d == other._coords_2d &&
+         _coords_3d == other._coords_3d &&
+         std::operator==(_customvariables, other._customvariables) &&
+         _display_name == other._display_name &&
+         _event_handler == other._event_handler &&
+         _event_handler_enabled == other._event_handler_enabled &&
+         _first_notification_delay == other._first_notification_delay &&
+         _flap_detection_enabled == other._flap_detection_enabled &&
+         _flap_detection_options == other._flap_detection_options &&
+         _freshness_threshold == other._freshness_threshold &&
+         _high_flap_threshold == other._high_flap_threshold &&
+         _hostgroups == other._hostgroups && _host_id == other._host_id &&
+         _host_name == other._host_name && _icon_image == other._icon_image &&
+         _icon_image_alt == other._icon_image_alt &&
+         _initial_state == other._initial_state &&
+         _low_flap_threshold == other._low_flap_threshold &&
+         _max_check_attempts == other._max_check_attempts &&
+         _notes == other._notes && _notes_url == other._notes_url &&
+         _notifications_enabled == other._notifications_enabled &&
+         _notification_interval == other._notification_interval &&
+         _notification_options == other._notification_options &&
+         _notification_period == other._notification_period &&
+         _obsess_over_host == other._obsess_over_host &&
+         _parents == other._parents &&
+         _process_perf_data == other._process_perf_data &&
+         _retain_nonstatus_information == other._retain_nonstatus_information &&
+         _retain_status_information == other._retain_status_information &&
+         _retry_interval == other._retry_interval &&
+         _recovery_notification_delay == other._recovery_notification_delay &&
+         _stalking_options == other._stalking_options &&
+         _statusmap_image == other._statusmap_image &&
+         _timezone == other._timezone && _vrml_image == other._vrml_image &&
+         _severity_id == other._severity_id;
 }
 
 /**
@@ -299,7 +300,7 @@ bool host::operator==(host const& other) const throw() {
  *
  *  @return True if is not the same host, otherwise false.
  */
-bool host::operator!=(host const& other) const throw() {
+bool host::operator!=(host const& other) const noexcept {
   return !operator==(other);
 }
 
@@ -310,7 +311,7 @@ bool host::operator!=(host const& other) const throw() {
  *
  *  @return True if this object is less than right.
  */
-bool host::operator<(host const& other) const throw() {
+bool host::operator<(host const& other) const noexcept {
   // host_id has to be first in this operator.
   // The configuration diff mechanism relies on this.
   if (_host_id != other._host_id)
@@ -408,7 +409,10 @@ bool host::operator<(host const& other) const throw() {
     return _statusmap_image < other._statusmap_image;
   else if (_timezone != other._timezone)
     return _timezone < other._timezone;
-  return _vrml_image < other._vrml_image;
+  else if (_vrml_image != other._vrml_image)
+    return _vrml_image < other._vrml_image;
+  else
+    return _severity_id < other._severity_id;
 }
 
 /**
@@ -418,11 +422,10 @@ bool host::operator<(host const& other) const throw() {
  */
 void host::check_validity() const {
   if (_host_name.empty())
-    throw(engine_error() << "Host has no name (property 'host_name')");
+    throw engine_error() << "Host has no name (property 'host_name')";
   if (_address.empty())
-    throw(engine_error() << "Host '" << _host_name
-                         << "' has no address (property 'address')");
-  return;
+    throw engine_error() << "Host '" << _host_name
+                         << "' has no address (property 'address')";
 }
 
 /**
@@ -430,7 +433,7 @@ void host::check_validity() const {
  *
  *  @return Host name.
  */
-host::key_type host::key() const throw() {
+host::key_type host::key() const noexcept {
   return _host_id;
 }
 
@@ -458,7 +461,7 @@ void host::merge(configuration::hostextinfo const& tmpl) {
  */
 void host::merge(object const& obj) {
   if (obj.type() != _type)
-    throw(engine_error() << "Cannot merge host with '" << obj.type() << "'");
+    throw engine_error() << "Cannot merge host with '" << obj.type() << "'";
   host const& tmpl(static_cast<host const&>(obj));
 
   MRG_OPTION(_acknowledgement_timeout);
@@ -540,7 +543,7 @@ bool host::parse(char const* key, char const* value) {
  *
  *  @return The action_url.
  */
-std::string const& host::action_url() const throw() {
+std::string const& host::action_url() const noexcept {
   return _action_url;
 }
 
@@ -549,7 +552,7 @@ std::string const& host::action_url() const throw() {
  *
  *  @return The address.
  */
-std::string const& host::address() const throw() {
+std::string const& host::address() const noexcept {
   return _address;
 }
 
@@ -558,7 +561,7 @@ std::string const& host::address() const throw() {
  *
  *  @return The alias.
  */
-std::string const& host::alias() const throw() {
+std::string const& host::alias() const noexcept {
   return _alias;
 }
 
@@ -567,7 +570,7 @@ std::string const& host::alias() const throw() {
  *
  *  @return The checks_active.
  */
-bool host::checks_active() const throw() {
+bool host::checks_active() const noexcept {
   return _checks_active;
 }
 
@@ -576,7 +579,7 @@ bool host::checks_active() const throw() {
  *
  *  @return The checks_passive.
  */
-bool host::checks_passive() const throw() {
+bool host::checks_passive() const noexcept {
   return _checks_passive;
 }
 
@@ -585,7 +588,7 @@ bool host::checks_passive() const throw() {
  *
  *  @return The check_command.
  */
-std::string const& host::check_command() const throw() {
+std::string const& host::check_command() const noexcept {
   return _check_command;
 }
 
@@ -594,7 +597,7 @@ std::string const& host::check_command() const throw() {
  *
  *  @return The check_freshness.
  */
-bool host::check_freshness() const throw() {
+bool host::check_freshness() const noexcept {
   return _check_freshness;
 }
 
@@ -603,7 +606,7 @@ bool host::check_freshness() const throw() {
  *
  *  @return The check_interval.
  */
-unsigned int host::check_interval() const throw() {
+unsigned int host::check_interval() const noexcept {
   return _check_interval;
 }
 
@@ -612,7 +615,7 @@ unsigned int host::check_interval() const throw() {
  *
  *  @return The check_period.
  */
-std::string const& host::check_period() const throw() {
+std::string const& host::check_period() const noexcept {
   return _check_period;
 }
 
@@ -621,7 +624,7 @@ std::string const& host::check_period() const throw() {
  *
  *  @return The contactgroups.
  */
-set_string const& host::contactgroups() const throw() {
+set_string const& host::contactgroups() const noexcept {
   return *_contactgroups;
 }
 
@@ -630,7 +633,7 @@ set_string const& host::contactgroups() const throw() {
  *
  *  @return The contacts.
  */
-set_string const& host::contacts() const throw() {
+set_string const& host::contacts() const noexcept {
   return *_contacts;
 }
 
@@ -639,7 +642,7 @@ set_string const& host::contacts() const throw() {
  *
  *  @return The coords_2d.
  */
-point_2d const& host::coords_2d() const throw() {
+point_2d const& host::coords_2d() const noexcept {
   return _coords_2d.get();
 }
 
@@ -648,7 +651,7 @@ point_2d const& host::coords_2d() const throw() {
  *
  *  @return The coords_3d.
  */
-point_3d const& host::coords_3d() const throw() {
+point_3d const& host::coords_3d() const noexcept {
   return _coords_3d.get();
 }
 
@@ -657,7 +660,7 @@ point_3d const& host::coords_3d() const throw() {
  *
  *  @return The customvariables.
  */
-engine::map_customvar const& host::customvariables() const throw() {
+engine::map_customvar const& host::customvariables() const noexcept {
   return _customvariables;
 }
 
@@ -666,7 +669,7 @@ engine::map_customvar const& host::customvariables() const throw() {
  *
  *  @return The customvariables.
  */
-engine::map_customvar& host::customvariables() throw() {
+engine::map_customvar& host::customvariables() noexcept {
   return _customvariables;
 }
 
@@ -675,7 +678,7 @@ engine::map_customvar& host::customvariables() throw() {
  *
  *  @return The display_name.
  */
-std::string const& host::display_name() const throw() {
+std::string const& host::display_name() const noexcept {
   return _display_name;
 }
 
@@ -684,7 +687,7 @@ std::string const& host::display_name() const throw() {
  *
  *  @return The event_handler.
  */
-std::string const& host::event_handler() const throw() {
+std::string const& host::event_handler() const noexcept {
   return _event_handler;
 }
 
@@ -693,7 +696,7 @@ std::string const& host::event_handler() const throw() {
  *
  *  @return The event_handler_enabled.
  */
-bool host::event_handler_enabled() const throw() {
+bool host::event_handler_enabled() const noexcept {
   return _event_handler_enabled;
 }
 
@@ -702,7 +705,7 @@ bool host::event_handler_enabled() const throw() {
  *
  *  @return The first_notification_delay.
  */
-unsigned int host::first_notification_delay() const throw() {
+unsigned int host::first_notification_delay() const noexcept {
   return _first_notification_delay;
 }
 
@@ -711,7 +714,7 @@ unsigned int host::first_notification_delay() const throw() {
  *
  *  @return The flap_detection_enabled.
  */
-bool host::flap_detection_enabled() const throw() {
+bool host::flap_detection_enabled() const noexcept {
   return _flap_detection_enabled;
 }
 
@@ -720,7 +723,7 @@ bool host::flap_detection_enabled() const throw() {
  *
  *  @return The flap_detection_options.
  */
-unsigned int host::flap_detection_options() const throw() {
+unsigned int host::flap_detection_options() const noexcept {
   return _flap_detection_options;
 }
 
@@ -729,7 +732,7 @@ unsigned int host::flap_detection_options() const throw() {
  *
  *  @return The freshness_threshold.
  */
-unsigned int host::freshness_threshold() const throw() {
+unsigned int host::freshness_threshold() const noexcept {
   return _freshness_threshold;
 }
 
@@ -738,7 +741,7 @@ unsigned int host::freshness_threshold() const throw() {
  *
  *  @return True if coords 2d exist, otherwise false.
  */
-bool host::have_coords_2d() const throw() {
+bool host::have_coords_2d() const noexcept {
   return _coords_2d.is_set();
 }
 
@@ -747,7 +750,7 @@ bool host::have_coords_2d() const throw() {
  *
  *  @return True if coords 3d exist, otherwise false.
  */
-bool host::have_coords_3d() const throw() {
+bool host::have_coords_3d() const noexcept {
   return _coords_3d.is_set();
 }
 
@@ -756,7 +759,7 @@ bool host::have_coords_3d() const throw() {
  *
  *  @return The high_flap_threshold.
  */
-unsigned int host::high_flap_threshold() const throw() {
+unsigned int host::high_flap_threshold() const noexcept {
   return _high_flap_threshold;
 }
 
@@ -765,7 +768,7 @@ unsigned int host::high_flap_threshold() const throw() {
  *
  *  @return The host groups.
  */
-set_string& host::hostgroups() throw() {
+set_string& host::hostgroups() noexcept {
   return *_hostgroups;
 }
 
@@ -774,7 +777,7 @@ set_string& host::hostgroups() throw() {
  *
  *  @return The hostgroups.
  */
-set_string const& host::hostgroups() const throw() {
+set_string const& host::hostgroups() const noexcept {
   return *_hostgroups;
 }
 
@@ -783,7 +786,7 @@ set_string const& host::hostgroups() const throw() {
  *
  *  @return  The host id.
  */
-uint64_t host::host_id() const throw() {
+uint64_t host::host_id() const noexcept {
   return _host_id;
 }
 
@@ -792,7 +795,7 @@ uint64_t host::host_id() const throw() {
  *
  *  @return The host_name.
  */
-std::string const& host::host_name() const throw() {
+std::string const& host::host_name() const noexcept {
   return _host_name;
 }
 
@@ -801,7 +804,7 @@ std::string const& host::host_name() const throw() {
  *
  *  @return The icon_image.
  */
-std::string const& host::icon_image() const throw() {
+std::string const& host::icon_image() const noexcept {
   return _icon_image;
 }
 
@@ -810,7 +813,7 @@ std::string const& host::icon_image() const throw() {
  *
  *  @return The icon_image_alt.
  */
-std::string const& host::icon_image_alt() const throw() {
+std::string const& host::icon_image_alt() const noexcept {
   return _icon_image_alt;
 }
 
@@ -819,7 +822,7 @@ std::string const& host::icon_image_alt() const throw() {
  *
  *  @return The initial_state.
  */
-unsigned int host::initial_state() const throw() {
+unsigned int host::initial_state() const noexcept {
   return _initial_state;
 }
 
@@ -828,7 +831,7 @@ unsigned int host::initial_state() const throw() {
  *
  *  @return The low_flap_threshold.
  */
-unsigned int host::low_flap_threshold() const throw() {
+unsigned int host::low_flap_threshold() const noexcept {
   return _low_flap_threshold;
 }
 
@@ -837,7 +840,7 @@ unsigned int host::low_flap_threshold() const throw() {
  *
  *  @return The max_check_attempts.
  */
-unsigned int host::max_check_attempts() const throw() {
+unsigned int host::max_check_attempts() const noexcept {
   return _max_check_attempts;
 }
 
@@ -846,7 +849,7 @@ unsigned int host::max_check_attempts() const throw() {
  *
  *  @return The notes.
  */
-std::string const& host::notes() const throw() {
+std::string const& host::notes() const noexcept {
   return _notes;
 }
 
@@ -855,7 +858,7 @@ std::string const& host::notes() const throw() {
  *
  *  @return The notes_url.
  */
-std::string const& host::notes_url() const throw() {
+std::string const& host::notes_url() const noexcept {
   return _notes_url;
 }
 
@@ -864,7 +867,7 @@ std::string const& host::notes_url() const throw() {
  *
  *  @return The notifications_enabled.
  */
-bool host::notifications_enabled() const throw() {
+bool host::notifications_enabled() const noexcept {
   return _notifications_enabled;
 }
 
@@ -873,7 +876,7 @@ bool host::notifications_enabled() const throw() {
  *
  *  @return The notification_interval.
  */
-unsigned int host::notification_interval() const throw() {
+unsigned int host::notification_interval() const noexcept {
   return _notification_interval;
 }
 
@@ -882,7 +885,7 @@ unsigned int host::notification_interval() const throw() {
  *
  *  @return The notification_options.
  */
-unsigned int host::notification_options() const throw() {
+unsigned int host::notification_options() const noexcept {
   return _notification_options;
 }
 
@@ -891,7 +894,7 @@ unsigned int host::notification_options() const throw() {
  *
  *  @return The notification_period.
  */
-std::string const& host::notification_period() const throw() {
+std::string const& host::notification_period() const noexcept {
   return _notification_period;
 }
 
@@ -900,7 +903,7 @@ std::string const& host::notification_period() const throw() {
  *
  *  @return The obsess_over_host.
  */
-bool host::obsess_over_host() const throw() {
+bool host::obsess_over_host() const noexcept {
   return _obsess_over_host;
 }
 
@@ -909,7 +912,7 @@ bool host::obsess_over_host() const throw() {
  *
  *  @return The parents.
  */
-set_string& host::parents() throw() {
+set_string& host::parents() noexcept {
   return *_parents;
 }
 
@@ -918,7 +921,7 @@ set_string& host::parents() throw() {
  *
  *  @return The parents.
  */
-set_string const& host::parents() const throw() {
+set_string const& host::parents() const noexcept {
   return *_parents;
 }
 
@@ -927,7 +930,7 @@ set_string const& host::parents() const throw() {
  *
  *  @return The process_perf_data.
  */
-bool host::process_perf_data() const throw() {
+bool host::process_perf_data() const noexcept {
   return _process_perf_data;
 }
 
@@ -936,7 +939,7 @@ bool host::process_perf_data() const throw() {
  *
  *  @return The retain_nonstatus_information.
  */
-bool host::retain_nonstatus_information() const throw() {
+bool host::retain_nonstatus_information() const noexcept {
   return _retain_nonstatus_information;
 }
 
@@ -945,7 +948,7 @@ bool host::retain_nonstatus_information() const throw() {
  *
  *  @return The retain_status_information.
  */
-bool host::retain_status_information() const throw() {
+bool host::retain_status_information() const noexcept {
   return _retain_status_information;
 }
 
@@ -954,7 +957,7 @@ bool host::retain_status_information() const throw() {
  *
  *  @return The retry_interval.
  */
-unsigned int host::retry_interval() const throw() {
+unsigned int host::retry_interval() const noexcept {
   return _retry_interval;
 }
 
@@ -963,7 +966,7 @@ unsigned int host::retry_interval() const throw() {
  *
  *  @return The recovery_notification_delay.
  */
-unsigned int host::recovery_notification_delay() const throw() {
+unsigned int host::recovery_notification_delay() const noexcept {
   return _recovery_notification_delay;
 }
 
@@ -972,7 +975,7 @@ unsigned int host::recovery_notification_delay() const throw() {
  *
  *  @return The stalking_options.
  */
-unsigned int host::stalking_options() const throw() {
+unsigned int host::stalking_options() const noexcept {
   return _stalking_options;
 }
 
@@ -981,7 +984,7 @@ unsigned int host::stalking_options() const throw() {
  *
  *  @return The statusmap_image.
  */
-std::string const& host::statusmap_image() const throw() {
+std::string const& host::statusmap_image() const noexcept {
   return _statusmap_image;
 }
 
@@ -990,7 +993,7 @@ std::string const& host::statusmap_image() const throw() {
  *
  *  @return The timezone.
  */
-std::string const& host::timezone() const throw() {
+std::string const& host::timezone() const noexcept {
   return _timezone;
 }
 
@@ -999,7 +1002,7 @@ std::string const& host::timezone() const throw() {
  *
  *  @return The vrml_image.
  */
-std::string const& host::vrml_image() const throw() {
+std::string const& host::vrml_image() const noexcept {
   return _vrml_image;
 }
 
@@ -1008,7 +1011,7 @@ std::string const& host::vrml_image() const throw() {
  *
  *  @return Acknowledgement timeout.
  */
-int host::acknowledgement_timeout() const throw() {
+int host::acknowledgement_timeout() const noexcept {
   return _acknowledgement_timeout;
 }
 
@@ -1719,4 +1722,25 @@ bool host::_set_timezone(std::string const& value) {
 bool host::_set_vrml_image(std::string const& value) {
   _vrml_image = value;
   return true;
+}
+
+/**
+ * @brief Set the severity_id (or 0 when there is no severity).
+ *
+ * @param severity_id The severity_id or 0.
+ *
+ * @return true on success.
+ */
+bool host::_set_severity_id(uint64_t severity_id) {
+  _severity_id = severity_id;
+  return true;
+}
+
+/**
+ * @brief Accessor to the severity_id.
+ *
+ * @return the severity_id or 0 if none.
+ */
+uint64_t host::severity_id() const noexcept {
+  return _severity_id;
 }

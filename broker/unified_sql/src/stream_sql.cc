@@ -2037,13 +2037,15 @@ void stream::_process_service(const std::shared_ptr<io::data>& d) {
  *
  */
 void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
-  log_v2::sql()->trace("SQL: process pb service");
+  log_v2::sql()->debug("SQL: processing pb service");
   _finish_action(-1, actions::host_parents | actions::comments |
                          actions::downtimes | actions::host_dependencies |
                          actions::service_dependencies);
   // Processed object.
   auto s{static_cast<neb::pb_service const*>(d.get())};
   auto& ss = s->obj();
+  log_v2::sql()->debug("service ({}, {}) with severity_id {}", ss.host_id(),
+                       ss.service_id(), ss.severity_id());
 
   log_v2::sql()->trace("SQL: pb service output: <<{}>>", ss.output());
   // Processed object.
@@ -2211,9 +2213,13 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
                                                      ss.max_check_attempts());
       _resources_service_insupdate.bind_value_as_u64(
           9, _cache_host_instance[ss.host_id()]);
-      if (ss.severity_id())
-        _resources_service_insupdate.bind_value_as_u64(10, ss.severity_id());
-      else
+      uint64_t sid = 0;
+      if (ss.severity_id()) {
+        log_v2::sql()->debug("service ({}, {}) with severity_id {}",
+                             ss.host_id(), ss.service_id(), ss.severity_id());
+        sid = _severity_cache[{ss.severity_id(), 0}];
+        _resources_service_insupdate.bind_value_as_u64(10, sid);
+      } else
         _resources_service_insupdate.bind_value_as_null(10);
       fmt::string_view name{misc::string::truncate(
           ss.service_description(), get_resources_col_size(resources_name))};
@@ -2232,7 +2238,7 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
       _resources_service_insupdate.bind_value_as_str(15, action_url);
       _resources_service_insupdate.bind_value_as_bool(
           16, ss.notifications_enabled());
-      _resources_service_insupdate.bind_value_as_u32(
+      _resources_service_insupdate.bind_value_as_bool(
           17, ss.passive_checks_enabled());
       _resources_service_insupdate.bind_value_as_bool(
           18, ss.active_checks_enabled());
@@ -2254,7 +2260,7 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
       _resources_service_insupdate.bind_value_as_u64(
           26, _cache_host_instance[ss.host_id()]);
       if (ss.severity_id())
-        _resources_service_insupdate.bind_value_as_u64(27, ss.severity_id());
+        _resources_service_insupdate.bind_value_as_u64(27, sid);
       else
         _resources_service_insupdate.bind_value_as_null(27);
       _resources_service_insupdate.bind_value_as_str(28, name);
@@ -2749,59 +2755,94 @@ void stream::_process_severity(const std::shared_ptr<io::data>& d) {
   _finish_action(-1, actions::severities);
 
   // Prepare queries.
-  if (!_severity_update.prepared()) {
-    query_preparator::event_pb_unique unique{
-        {1, "id", io::protobuf_base::invalid_on_zero, 0},
-    };
-    query_preparator qp(neb::pb_severity::static_type(), unique);
-
-    _severity_update = qp.prepare_update_table(
-        _mysql, "severities",
-        {
-            {1, "id", io::protobuf_base::invalid_on_zero, 0},
-            {3, "level", io::protobuf_base::invalid_on_zero, 0},
-            {4, "icon_id", 0, 0},
-            {5, "name", 0, get_severities_col_size(severities_name)},
-        });
-    _severity_delete = qp.prepare_delete_table(_mysql, "severities");
-
-    _severity_insupdate = qp.prepare_insert_or_update_table(
-        _mysql, "severities",
-        {
-            {1, "id", io::protobuf_base::invalid_on_zero, 0},
-            {3, "level", io::protobuf_base::invalid_on_zero, 0},
-            {4, "icon_id", 0, 0},
-            {5, "name", 0, get_severities_col_size(severities_name)},
-        });
+  if (!_severity_insert.prepared()) {
+    _severity_update = _mysql.prepare_query(
+        "UPDATE severities SET id=?,type=?,name=?,level=?,icon_id=? WHERE "
+        "severity_id=?");
+    _severity_insert = _mysql.prepare_query(
+        "INSERT INTO severities (id,type,name,level,icon_id) "
+        "VALUES(?,?,?,?,?)");
+    _severity_delete =
+        _mysql.prepare_query("DELETE FROM severities WHERE severity_id=?");
   }
   // Processed object.
   auto s{static_cast<const neb::pb_severity*>(d.get())};
   auto& sv = s->obj();
-  mysql_stmt* st;
+  uint64_t severity_id = _severity_cache[{sv.id(), sv.type()}];
+  int32_t conn = special_conn::severity % _mysql.connections_count();
   switch (sv.action()) {
     case Severity_Action_ADD:
-      log_v2::sql()->trace("SQL: new severity {}", sv.id());
-      st = &_severity_insupdate;
+      if (severity_id) {
+        log_v2::sql()->trace("SQL: add already existing severity {}", sv.id());
+        _severity_update.bind_value_as_u64(0, sv.id());
+        _severity_update.bind_value_as_u32(1, sv.type());
+        _severity_update.bind_value_as_str(2, sv.name());
+        _severity_update.bind_value_as_u32(3, sv.level());
+        _severity_update.bind_value_as_u64(4, sv.icon_id());
+        _severity_update.bind_value_as_u64(5, severity_id);
+        _mysql.run_statement(_severity_update,
+                             database::mysql_error::store_severity, false,
+                             conn);
+      } else {
+        log_v2::sql()->trace("SQL: add severity {}", sv.id());
+        _severity_insert.bind_value_as_u64(0, sv.id());
+        _severity_insert.bind_value_as_u32(1, sv.type());
+        _severity_insert.bind_value_as_str(2, sv.name());
+        _severity_insert.bind_value_as_u32(3, sv.level());
+        _severity_insert.bind_value_as_u64(4, sv.icon_id());
+        std::promise<uint64_t> p;
+        _mysql.run_statement_and_get_int<uint64_t>(
+            _severity_insert, &p, database::mysql_task::LAST_INSERT_ID, conn);
+        try {
+          severity_id = p.get_future().get();
+          _severity_cache[{sv.id(), sv.type()}] = severity_id;
+        } catch (const std::exception& e) {
+          log_v2::sql()->error(
+              "unified sql: unable to insert new severity ({},{}): {}", sv.id(),
+              sv.type(), e.what());
+        }
+      }
+      _add_action(conn, actions::severities);
       break;
     case Severity_Action_MODIFY:
-      log_v2::sql()->trace("SQL: modified severity {}", sv.id());
-      st = &_severity_update;
+      log_v2::sql()->trace("SQL: modify severity {}", sv.id());
+      _severity_update.bind_value_as_u64(0, sv.id());
+      _severity_update.bind_value_as_u32(1, sv.type());
+      _severity_update.bind_value_as_str(2, sv.name());
+      _severity_update.bind_value_as_u32(3, sv.level());
+      _severity_update.bind_value_as_u64(4, sv.icon_id());
+      if (severity_id) {
+        _severity_update.bind_value_as_u64(5, severity_id);
+        _mysql.run_statement(_severity_update,
+                             database::mysql_error::store_severity, false,
+                             conn);
+        _add_action(conn, actions::severities);
+      } else
+        log_v2::sql()->error(
+            "unified sql: unable to modify severity ({}, {}): not in cache",
+            sv.id(), sv.type());
       break;
     case Severity_Action_DELETE:
-      // FIXME DBO: Delete should be implemented later.
-      log_v2::sql()->trace("SQL: removed severity {}", sv.id());
-      st = &_severity_delete;
+      log_v2::sql()->trace("SQL: remove severity {}", sv.id());
+      {
+        // FIXME DBO: Delete should be implemented later.
+        if (0 && severity_id) {
+          _severity_delete.bind_value_as_u64(0, severity_id);
+          _mysql.run_statement(_severity_delete,
+                               database::mysql_error::store_severity, false,
+                               conn);
+          _add_action(conn, actions::severities);
+          _severity_cache.erase({sv.id(), sv.type()});
+        } else {
+          log_v2::sql()->error(
+              "unified sql: unable to delete severity ({}, {}): not in cache",
+              sv.id(), sv.type());
+        }
+      }
       break;
     default:
       log_v2::sql()->error("Bad action in severity object");
       break;
-  }
-  if (sv.action() != Severity_Action_DELETE) {
-    *st << *s;
-    int32_t conn = special_conn::severity % _mysql.connections_count();
-    _mysql.run_statement(*st, database::mysql_error::store_severity, false,
-                         conn);
-    _add_action(conn, actions::severities);
   }
 }
 

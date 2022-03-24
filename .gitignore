@@ -27,6 +27,8 @@ broker/script/cbd.init
 broker/script/watchdog.json
 doc/_build
 doc/devel-doc
+broker/doc/devel-doc
+engine/doc/devel-doc
 engine_pb2.py
 engine_pb2.pyc
 engine_pb2_grpc.py

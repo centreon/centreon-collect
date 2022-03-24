@@ -19,8 +19,8 @@ from datetime import datetime
 def files_contain_same_json(file_e: str, file_b: str):
     new_inst = { "_type": 4294901762, "category": 65535, "element": 2, "broker_id":1, "broker_name":"", "enabled":True, "poller_id":1, "poller_name":"Central"}
 
-    getoutput("cut -d' ' -f10- {0} > {0}.log1".format(file_e))
-    getoutput("cut -d' ' -f10- {0} > {0}.log1".format(file_b))
+    getoutput("cut -d' ' -f9- {0} > {0}.log1".format(file_e))
+    getoutput("cut -d' ' -f9- {0} > {0}.log1".format(file_b))
 
     f1 = open("{}.log1".format(file_e))
     content1 = f1.readlines()
