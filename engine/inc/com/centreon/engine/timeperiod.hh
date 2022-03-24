@@ -20,13 +20,9 @@
 #ifndef CCE_OBJECTS_TIMEPERIOD_HH
 #define CCE_OBJECTS_TIMEPERIOD_HH
 
-#include <ostream>
-#include <string>
 #include <unordered_map>
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/daterange.hh"
-#include "com/centreon/engine/namespace.hh"
-#include "com/centreon/engine/timerange.hh"
 
 /* Forward declaration. */
 CCE_BEGIN()

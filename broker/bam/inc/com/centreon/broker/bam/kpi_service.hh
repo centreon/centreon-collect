@@ -19,8 +19,8 @@
 #ifndef CCB_BAM_KPI_SERVICE_HH
 #define CCB_BAM_KPI_SERVICE_HH
 
-#include <array>
 #include <absl/container/flat_hash_set.h>
+#include <array>
 #include "bbdo/bam/kpi_event.hh"
 #include "bbdo/bam/state.hh"
 #include "com/centreon/broker/bam/impact_values.hh"
@@ -81,6 +81,8 @@ class kpi_service : public service_listener, public kpi {
   bool in_downtime() const;
   bool is_acknowledged() const;
   void service_update(std::shared_ptr<neb::service_status> const& status,
+                      io::stream* visitor = nullptr);
+  void service_update(const std::shared_ptr<neb::pb_service_status>& status,
                       io::stream* visitor = nullptr);
   void service_update(std::shared_ptr<neb::acknowledgement> const& ack,
                       io::stream* visitor = nullptr);

@@ -283,9 +283,11 @@ void mysql_connection::_commit(mysql_task* t) {
 
 void mysql_connection::_prepare(mysql_task* t) {
   mysql_task_prepare* task(static_cast<mysql_task_prepare*>(t));
-  if (_stmt[task->id]) {
-    log_v2::sql()->info("mysql_connection: Statement already prepared: {} ({})",
-                        task->id, task->query);
+  if (_stmt.find(task->id) != _stmt.end()) {
+    log_v2::sql()->error(
+        "mysql_connection: Statement already prepared: {} ({})", task->id,
+        task->query);
+    assert(1 == 0);
     return;
   }
 

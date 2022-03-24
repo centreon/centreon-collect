@@ -258,6 +258,12 @@ static void broker_json_encode_broker_event(std::shared_ptr<io::data> e,
       const google::protobuf::Reflection* refl = p->GetReflection();
       for (int i = 0; i < desc->field_count(); i++) {
         auto f = desc->field(i);
+        auto oof = f->containing_oneof();
+        if (oof) {
+          if (!refl->GetOneofFieldDescriptor(*p, oof)) {
+            continue;
+          }
+        }
         const std::string& entry_name = f->name();
         switch (f->type()) {
           case google::protobuf::FieldDescriptor::TYPE_BOOL:

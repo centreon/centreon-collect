@@ -329,7 +329,7 @@ void checker::run_sync(host* hst,
   broker_host_check(NEBTYPE_HOSTCHECK_INITIATE, NEBFLAG_NONE, NEBATTR_NONE, hst,
                     checkable::check_active, hst->get_current_state(),
                     hst->get_state_type(), start_time, end_time,
-                    hst->get_check_command().c_str(), hst->get_latency(), 0.0,
+                    hst->check_command().c_str(), hst->get_latency(), 0.0,
                     config->host_check_timeout(), false, 0, nullptr, nullptr,
                     nullptr, nullptr, nullptr);
 
@@ -356,7 +356,7 @@ void checker::run_sync(host* hst,
   broker_host_check(NEBTYPE_HOSTCHECK_PROCESSED, NEBFLAG_NONE, NEBATTR_NONE,
                     hst, checkable::check_active, hst->get_current_state(),
                     hst->get_state_type(), start_time, end_time,
-                    hst->get_check_command().c_str(), hst->get_latency(),
+                    hst->check_command().c_str(), hst->get_latency(),
                     hst->get_execution_time(), config->host_check_timeout(),
                     false, hst->get_current_state(), nullptr,
                     const_cast<char*>(hst->get_plugin_output().c_str()),
@@ -454,9 +454,9 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
   int ret(broker_host_check(
       NEBTYPE_HOSTCHECK_SYNC_PRECHECK, NEBFLAG_NONE, NEBATTR_NONE, hst,
       checkable::check_active, hst->get_current_state(), hst->get_state_type(),
-      start_time, end_time, hst->get_check_command().c_str(),
-      hst->get_latency(), 0.0, config->host_check_timeout(), false, 0, nullptr,
-      nullptr, nullptr, nullptr, nullptr));
+      start_time, end_time, hst->check_command().c_str(), hst->get_latency(),
+      0.0, config->host_check_timeout(), false, 0, nullptr, nullptr, nullptr,
+      nullptr, nullptr));
 
   // Host sync check was cancelled or overriden by NEB module.
   if ((NEBERROR_CALLBACKCANCEL == ret) || (NEBERROR_CALLBACKOVERRIDE == ret))
@@ -467,7 +467,7 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
   grab_host_macros_r(macros, hst);
   std::string tmp;
   get_raw_command_line_r(macros, hst->get_check_command_ptr(),
-                         hst->get_check_command().c_str(), tmp, 0);
+                         hst->check_command().c_str(), tmp, 0);
 
   // Time to start command.
   gettimeofday(&start_time, nullptr);
@@ -484,7 +484,7 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
   broker_host_check(NEBTYPE_HOSTCHECK_RAW_START, NEBFLAG_NONE, NEBATTR_NONE,
                     hst, checkable::check_active, host::state_up,
                     hst->get_state_type(), start_time, end_time,
-                    hst->get_check_command().c_str(), 0.0, 0.0,
+                    hst->check_command().c_str(), 0.0, 0.0,
                     config->host_check_timeout(), false, service::state_ok,
                     processed_cmd.c_str(),
                     const_cast<char*>(hst->get_plugin_output().c_str()),
@@ -596,7 +596,7 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
   hst->set_perf_data(perfdata_output);
 
   // A nullptr host check command means we should assume the host is UP.
-  if (hst->get_check_command().empty()) {
+  if (hst->check_command().empty()) {
     hst->set_plugin_output("(Host assumed to be UP)");
     res.exit_code = service::state_ok;
   }
@@ -624,7 +624,7 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
   broker_host_check(
       NEBTYPE_HOSTCHECK_RAW_END, NEBFLAG_NONE, NEBATTR_NONE, hst,
       checkable::check_active, return_result, hst->get_state_type(), start_time,
-      end_time, hst->get_check_command().c_str(), 0.0, execution_time,
+      end_time, hst->check_command().c_str(), 0.0, execution_time,
       config->host_check_timeout(), res.exit_status == process::timeout,
       res.exit_code, tmp_processed_cmd,
       const_cast<char*>(hst->get_plugin_output().c_str()),

@@ -24,6 +24,7 @@
 #include "bbdo/bam/ba_status.hh"
 #include "com/centreon/broker/bam/impact_values.hh"
 #include "com/centreon/broker/bam/kpi.hh"
+#include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/service_status.hh"
@@ -517,7 +518,8 @@ void ba::visit(io::stream* visitor) {
     else if (_in_downtime != _event->in_downtime ||
              hard_state != _event->status) {
       log_v2::bam()->trace(
-          "BAM: ba current event needs update? downtime?: {}, state?: {} ; dt:{}, state:{} ",
+          "BAM: ba current event needs update? downtime?: {}, state?: {} ; "
+          "dt:{}, state:{} ",
           _in_downtime != _event->in_downtime, hard_state != _event->status,
           _in_downtime, hard_state);
       state_changed = true;
@@ -551,48 +553,78 @@ void ba::visit(io::stream* visitor) {
 
     // Generate virtual service status event.
     if (_generate_virtual_status) {
-      auto status{std::make_shared<neb::service_status>()};
-      status->active_checks_enabled = false;
-      status->check_interval = 0.0;
-      status->check_type = 1;  // Passive.
-      status->current_check_attempt = 1;
-      status->current_state = hard_state;
-      status->enabled = true;
-      status->event_handler_enabled = false;
-      status->execution_time = 0.0;
-      status->flap_detection_enabled = false;
-      status->has_been_checked = true;
-      status->host_id = _host_id;
-      status->downtime_depth = _in_downtime;
-      // status->host_name = XXX;
-      status->is_flapping = false;
-      if (_event)
-        status->last_check = _event->start_time;
-      else
-        status->last_check = _last_kpi_update;
-      status->last_hard_state = hard_state;
-      status->last_hard_state_change = status->last_check;
-      status->last_state_change = status->last_check;
-      // status->last_time_critical = XXX;
-      // status->last_time_unknown = XXX;
-      // status->last_time_warning = XXX;
-      status->last_update = time(nullptr);
-      status->latency = 0.0;
-      status->max_check_attempts = 1;
-      status->obsess_over = false;
-      status->output =
-          fmt::format("BA : Business Activity {} - current_level = {}%", _id,
-                      static_cast<int>(normalize(_level_hard)));
-      // status->percent_state_chagne = XXX;
-      status->perf_data = fmt::format(
-          "BA_Level={}%;{};{};0;100", static_cast<int>(normalize(_level_hard)),
-          static_cast<int>(_level_warning), static_cast<int>(_level_critical));
-      status->retry_interval = 0;
-      // status->service_description = XXX;
-      status->service_id = _service_id;
-      status->should_be_scheduled = false;
-      status->state_type = 1;  // Hard.
-      visitor->write(status);
+      auto& bbdo = config::applier::state::instance().bbdo_version();
+      if (std::get<0>(bbdo) < 3) {
+        auto status{std::make_shared<neb::service_status>()};
+        status->active_checks_enabled = false;
+        status->check_interval = 0.0;
+        status->check_type = 1;  // Passive.
+        status->current_check_attempt = 1;
+        status->current_state = 0;
+        status->enabled = true;
+        status->event_handler_enabled = false;
+        status->execution_time = 0.0;
+        status->flap_detection_enabled = false;
+        status->has_been_checked = true;
+        status->host_id = _host_id;
+        status->downtime_depth = _in_downtime;
+        // status->host_name = XXX;
+        status->is_flapping = false;
+        if (_event)
+          status->last_check = _event->start_time;
+        else
+          status->last_check = _last_kpi_update;
+        status->last_hard_state = hard_state;
+        status->last_hard_state_change = status->last_check;
+        status->last_state_change = status->last_check;
+        // status->last_time_critical = XXX;
+        // status->last_time_unknown = XXX;
+        // status->last_time_warning = XXX;
+        status->last_update = time(nullptr);
+        status->latency = 0.0;
+        status->max_check_attempts = 1;
+        status->obsess_over = false;
+        status->output =
+            fmt::format("BA : Business Activity {} - current_level = {}%", _id,
+                        static_cast<int>(normalize(_level_hard)));
+        // status->percent_state_chagne = XXX;
+        status->perf_data =
+            fmt::format("BA_Level={}%;{};{};0;100",
+                        static_cast<int>(normalize(_level_hard)),
+                        static_cast<int>(_level_warning),
+                        static_cast<int>(_level_critical));
+        status->retry_interval = 0;
+        status->service_id = _service_id;
+        status->should_be_scheduled = false;
+        status->state_type = 1;  // Hard.
+        visitor->write(status);
+      } else {
+        auto status{std::make_shared<neb::pb_service_status>()};
+        auto& o = status->mut_obj();
+        o.set_check_type(ServiceStatus_CheckType_PASSIVE);  // Passive.
+        o.set_current_check_attempt(1);
+        o.set_current_state(ServiceStatus_State_OK);
+        o.set_has_been_checked(true);
+        o.set_host_id(_host_id);
+        o.set_downtime_depth(_in_downtime);
+        if (_event)
+          o.set_last_check(_event->start_time);
+        else
+          o.set_last_check(_last_kpi_update);
+        o.set_last_hard_state(ServiceStatus_State_OK);
+        o.set_last_hard_state_change(o.last_check());
+        o.set_last_state_change(o.last_check());
+        o.set_output(
+            fmt::format("BA : Business Activity {} - current_level = {}%", _id,
+                        static_cast<int>(normalize(_level_hard))));
+        o.set_perf_data(fmt::format("BA_Level={}%;{};{};0;100",
+                                    static_cast<int>(normalize(_level_hard)),
+                                    static_cast<int>(_level_warning),
+                                    static_cast<int>(_level_critical)));
+        o.set_service_id(_service_id);
+        o.set_state_type(ServiceStatus_StateType_HARD);
+        visitor->write(status);
+      }
     }
   }
 }

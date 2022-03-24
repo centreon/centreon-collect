@@ -73,7 +73,7 @@ void services_actively_checked::run(std::string& output,
            it{com::centreon::engine::service::services.begin()},
        end{com::centreon::engine::service::services.end()};
        it != end; ++it)
-    if (it->second->get_checks_enabled())
+    if (it->second->active_checks_enabled())
       ++total;
 
   // Output.

@@ -23,6 +23,7 @@
 
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/namespace.hh"
+#include "com/centreon/broker/neb/internal.hh"
 
 CCB_BEGIN()
 
@@ -48,6 +49,11 @@ class service_listener {
   service_listener(service_listener const& other);
   virtual ~service_listener();
   service_listener& operator=(service_listener const& other);
+  virtual void service_update(std::shared_ptr<neb::pb_service> const& status,
+                              io::stream* visitor = nullptr);
+  virtual void service_update(
+      std::shared_ptr<neb::pb_service_status> const& status,
+      io::stream* visitor = nullptr);
   virtual void service_update(
       std::shared_ptr<neb::service_status> const& status,
       io::stream* visitor = nullptr);

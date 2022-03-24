@@ -1,6 +1,7 @@
 /*
 ** Copyright 2002-2006 Ethan Galstad
 ** Copyright 2011-2013 Merethis
+** Copyright 2018-2022 Centreon
 **
 ** This file is part of Centreon Engine.
 **
@@ -21,12 +22,8 @@
 #ifndef CCE_BROKER_HH
 #define CCE_BROKER_HH
 
-#include <sys/time.h>
 #include "com/centreon/engine/commands/command.hh"
-#include "com/centreon/engine/contact.hh"
 #include "com/centreon/engine/events/timed_event.hh"
-#include "com/centreon/engine/host.hh"
-#include "com/centreon/engine/service.hh"
 #include "com/centreon/engine/timeperiod.hh"
 
 /* Event broker options. */
@@ -307,6 +304,7 @@
 #define NEBATTR_SHUTDOWN_ABNORMAL (1 << 1)
 #define NEBATTR_RESTART_NORMAL (1 << 2)
 #define NEBATTR_RESTART_ABNORMAL (1 << 3)
+#define NEBATTR_BBDO3_ONLY (1 << 4)
 
 /* Flapping. */
 #define NEBATTR_FLAPPING_STOP_NORMAL 1

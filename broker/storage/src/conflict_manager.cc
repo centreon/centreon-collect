@@ -1,5 +1,5 @@
 /*
-** Copyright 2019-2020 Centreon
+** Copyright 2019-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -555,9 +555,8 @@ void conflict_manager::_callback() {
             if (std::get<1>(tpl) == sql && cat == io::neb) {
               uint16_t elem{element_of_type(type)};
               (this->*(_neb_processing_table[elem]))(tpl);
-            }
-            else if (std::get<1>(tpl) == storage && cat == io::neb &&
-                     type == neb::service_status::static_type())
+            } else if (std::get<1>(tpl) == storage && cat == io::neb &&
+                       type == neb::service_status::static_type())
               _storage_process_service_status(tpl);
             else if (std::get<1>(tpl) == storage &&
                      type == make_type(io::bbdo, bbdo::de_rebuild_rrd_graphs)) {
@@ -603,11 +602,8 @@ void conflict_manager::_callback() {
               } while (timeout > duration);
 
               _events_handled = events.size();
-              float s = std::accumulate(_stats_count.begin(), _stats_count.end(), 0.0f);
-//              float s = 0.0f;
-//              for (const auto& c : _stats_count)
-//                s += c;
-
+              float s = std::accumulate(_stats_count.begin(),
+                                        _stats_count.end(), 0.0f);
               {
                 std::lock_guard<std::mutex> lk(_stat_m);
                 _speed = s / _stats_count.size();
@@ -743,8 +739,6 @@ void conflict_manager::_finish_actions() {
   log_v2::sql()->trace("conflict_manager: finish actions");
   _mysql.commit();
   std::fill(_action.begin(), _action.end(), actions::none);
-//  for (uint32_t& v : _action)
-//    v = actions::none;
 
   _fifo.clean(sql);
   _fifo.clean(storage);

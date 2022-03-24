@@ -63,13 +63,6 @@ set(USER_ENGINE centreon-engine)
 include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup(TARGETS)
 
-#find_package(Boost 1.78.0 REQUIRED)
-
-# if (NOT Boost_FOUND)
-#     message(FATAL_ERROR "boost mandatory")
-# endif()
-
-
 include(GNUInstallDirs)
 
 # var directories.

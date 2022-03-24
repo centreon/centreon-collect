@@ -60,7 +60,7 @@ int obsessive_compulsive_host_check_processor(
   /* bail out if we shouldn't be obsessing */
   if (!config->obsess_over_hosts())
     return OK;
-  if (!hst->get_obsess_over())
+  if (!hst->obsess_over())
     return OK;
 
   /* if there is no valid command, exit */
@@ -291,7 +291,7 @@ int run_service_event_handler(nagios_macros* mac,
     return ERROR;
 
   /* bail if there's no command */
-  if (svc->get_event_handler().empty())
+  if (svc->event_handler().empty())
     return ERROR;
 
   engine_logger(dbg_eventhandlers, more)
@@ -306,7 +306,7 @@ int run_service_event_handler(nagios_macros* mac,
 
   /* get the raw command line */
   get_raw_command_line_r(mac, svc->get_event_handler_ptr(),
-                         svc->get_event_handler().c_str(), raw_command,
+                         svc->event_handler().c_str(), raw_command,
                          macro_options);
   if (raw_command.empty())
     return ERROR;
@@ -331,7 +331,7 @@ int run_service_event_handler(nagios_macros* mac,
     oss << "SERVICE EVENT HANDLER: " << svc->get_hostname() << ';'
         << svc->get_description()
         << ";$SERVICESTATE$;$SERVICESTATETYPE$;$SERVICEATTEMPT$;"
-        << svc->get_event_handler();
+        << svc->event_handler();
     process_macros_r(mac, oss.str(), processed_logentry, macro_options);
     engine_logger(log_event_handler, basic) << processed_logentry;
     log_v2::events()->info(processed_logentry);
@@ -345,7 +345,7 @@ int run_service_event_handler(nagios_macros* mac,
       SERVICE_EVENTHANDLER, (void*)svc, svc->get_current_state(),
       svc->get_state_type(), start_time, end_time, exectime,
       config->event_handler_timeout(), early_timeout, result,
-      svc->get_event_handler().c_str(),
+      svc->event_handler().c_str(),
       const_cast<char*>(processed_command.c_str()), nullptr, nullptr);
 
   /* neb module wants to override (or cancel) the event handler - perhaps it
@@ -389,7 +389,7 @@ int run_service_event_handler(nagios_macros* mac,
                        svc->get_current_state(), svc->get_state_type(),
                        start_time, end_time, exectime,
                        config->event_handler_timeout(), early_timeout, result,
-                       svc->get_event_handler().c_str(),
+                       svc->event_handler().c_str(),
                        const_cast<char*>(processed_command.c_str()),
                        const_cast<char*>(command_output.c_str()), nullptr);
 
@@ -414,12 +414,12 @@ int handle_host_event(com::centreon::engine::host* hst) {
   broker_statechange_data(
       NEBTYPE_STATECHANGE_END, NEBFLAG_NONE, NEBATTR_NONE, HOST_STATECHANGE,
       (void*)hst, hst->get_current_state(), hst->get_state_type(),
-      hst->get_current_attempt(), hst->get_max_attempts(), nullptr);
+      hst->get_current_attempt(), hst->max_check_attempts(), nullptr);
 
   /* bail out if we shouldn't be running event handlers */
   if (!config->enable_event_handlers())
     return OK;
-  if (!hst->get_event_handler_enabled())
+  if (!hst->event_handler_enabled())
     return OK;
 
   /* update host macros */
@@ -429,7 +429,7 @@ int handle_host_event(com::centreon::engine::host* hst) {
   run_global_host_event_handler(mac, hst);
 
   /* run the event handler command if there is one */
-  if (!hst->get_event_handler().empty())
+  if (!hst->event_handler().empty())
     run_host_event_handler(mac, hst);
 
   /* send data to event broker */
@@ -593,7 +593,7 @@ int run_host_event_handler(nagios_macros* mac,
     return ERROR;
 
   /* bail if there's no command */
-  if (hst->get_event_handler().empty())
+  if (hst->event_handler().empty())
     return ERROR;
 
   engine_logger(dbg_eventhandlers, more)
@@ -606,7 +606,7 @@ int run_host_event_handler(nagios_macros* mac,
 
   /* get the raw command line */
   get_raw_command_line_r(mac, hst->get_event_handler_ptr(),
-                         hst->get_event_handler().c_str(), raw_command,
+                         hst->event_handler().c_str(), raw_command,
                          macro_options);
   if (raw_command.empty())
     return ERROR;
@@ -630,7 +630,7 @@ int run_host_event_handler(nagios_macros* mac,
     std::ostringstream oss;
     oss << "HOST EVENT HANDLER: " << hst->get_name()
         << ";$HOSTSTATE$;$HOSTSTATETYPE$;$HOSTATTEMPT$;"
-        << hst->get_event_handler();
+        << hst->event_handler();
     process_macros_r(mac, oss.str(), processed_logentry, macro_options);
     engine_logger(log_event_handler, basic) << processed_logentry;
     log_v2::events()->info(processed_logentry);
@@ -643,7 +643,7 @@ int run_host_event_handler(nagios_macros* mac,
       NEBTYPE_EVENTHANDLER_START, NEBFLAG_NONE, NEBATTR_NONE, HOST_EVENTHANDLER,
       (void*)hst, hst->get_current_state(), hst->get_state_type(), start_time,
       end_time, exectime, config->event_handler_timeout(), early_timeout,
-      result, hst->get_event_handler().c_str(),
+      result, hst->event_handler().c_str(),
       const_cast<char*>(processed_command.c_str()), nullptr, nullptr);
 
   /* neb module wants to override (or cancel) the event handler - perhaps it
@@ -685,7 +685,7 @@ int run_host_event_handler(nagios_macros* mac,
                        HOST_EVENTHANDLER, (void*)hst, hst->get_current_state(),
                        hst->get_state_type(), start_time, end_time, exectime,
                        config->event_handler_timeout(), early_timeout, result,
-                       hst->get_event_handler().c_str(),
+                       hst->event_handler().c_str(),
                        const_cast<char*>(processed_command.c_str()),
                        const_cast<char*>(command_output.c_str()), nullptr);
 

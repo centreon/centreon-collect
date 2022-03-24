@@ -1,5 +1,5 @@
 /*
-** Copyright 2018-2020 Centreon
+** Copyright 2018-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -112,7 +112,11 @@ class mysql_error {
     clean_severities,
     store_tag,
     clean_tags,
+    update_index_data,
+    update_resources,
+    store_host_resources,
   };
+
   static constexpr const char* msg[]{
       "error: ",
       "could not clean hosts and services tables: ",
@@ -189,6 +193,9 @@ class mysql_error {
       "could not remove severities: ",
       "could not insert tag in tags table: ",
       "could not remove tags: ",
+      "could not update index data: ",
+      "could not update resources: ",
+      "could not insert host in resources: ",
   };
 
   mysql_error() : _active(false) {}
