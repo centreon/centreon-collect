@@ -1464,6 +1464,7 @@ int neb::callback_pb_host(int callback_type, void* data) {
       host.set_statusmap_image(
           misc::string::check_string_utf8(eh->get_statusmap_image()));
     host.set_timezone(eh->get_timezone());
+    host.set_severity_id(eh->get_severity() ? eh->get_severity()->id() : 0);
 
     // Find host ID.
     uint64_t host_id = engine::get_host_id(host.host_name());
@@ -2477,7 +2478,7 @@ int neb::callback_pb_service(int callback_type, void* data) {
     srv.set_state_type(static_cast<Service_StateType>(
         es->has_been_checked() ? es->get_state_type()
                                : engine::notifier::hard));
-    srv.set_severity_id(es->severity() ? es->severity()->id() : 0);
+    srv.set_severity_id(es->get_severity() ? es->get_severity()->id() : 0);
 
     // Search host ID and service ID.
     std::pair<uint64_t, uint64_t> p;

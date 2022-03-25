@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013,2015-2017,2019 Centreon
+** Copyright 2011-2013,2015-2017,2019,2022 Centreon
 **
 ** This file is part of Centreon Engine.
 **
@@ -282,6 +282,7 @@ service& service::operator=(service const& other) {
     _service_id = other._service_id;
     _stalking_options = other._stalking_options;
     _timezone = other._timezone;
+    _severity_id = other._severity_id;
   }
   return *this;
 }
@@ -640,6 +641,13 @@ bool service::operator==(service const& other) const noexcept {
         "configuration::service::equality => timezone don't match");
     return false;
   }
+  if (_severity_id != other._severity_id) {
+    engine_logger(dbg_config, more)
+        << "configuration::service::equality => severity id don't match";
+    log_v2::config()->debug(
+        "configuration::service::equality => severity id don't match");
+    return false;
+  }
   engine_logger(dbg_config, more) << "configuration::service::equality => OK";
   log_v2::config()->debug("configuration::service::equality => OK");
   return true;
@@ -756,7 +764,10 @@ bool service::operator<(service const& other) const noexcept {
     return _servicegroups < other._servicegroups;
   else if (_stalking_options != other._stalking_options)
     return _stalking_options < other._stalking_options;
-  return _timezone < other._timezone;
+  else if (_timezone != other._timezone)
+    return _timezone < other._timezone;
+  else
+    return _severity_id < other._severity_id;
 }
 
 /**
@@ -766,8 +777,8 @@ bool service::operator<(service const& other) const noexcept {
  */
 void service::check_validity() const {
   if (_service_description.empty())
-    throw(engine_error() << "Service has no description (property "
-                         << "'service_description')");
+    throw engine_error() << "Service has no description (property "
+                         << "'service_description')";
   if (_hosts->empty() && _hostgroups->empty())
     throw engine_error()
         << "Service '" << _service_description
@@ -2107,11 +2118,23 @@ void service::set_host_id(uint64_t value) {
   _host_id = value;
 }
 
+/**
+ * @brief Set the severity_id (or 0 when there is no severity).
+ *
+ * @param severity_id The severity_id or 0.
+ *
+ * @return true on success.
+ */
 bool service::_set_severity_id(uint64_t severity_id) {
   _severity_id = severity_id;
   return true;
 }
 
+/**
+ * @brief Accessor to the severity_id.
+ *
+ * @return the severity_id or 0 if none.
+ */
 uint64_t service::severity_id() const noexcept {
   return _severity_id;
 }

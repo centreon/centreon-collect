@@ -45,7 +45,7 @@ CCE_BEGIN()
  */
 class severity {
  public:
-  enum severity_type { none, service, host };
+  enum severity_type { none = -1, service = 0, host = 1 };
 
   uint64_t _id;
   uint32_t _level;

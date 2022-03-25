@@ -31,9 +31,9 @@ class severity : public object {
  public:
   using key_type = std::pair<uint64_t, uint16_t>;
   enum severity_type {
-    none,
-    service,
-    host,
+    none = -1,
+    service = 0,
+    host = 1,
   };
 
  private:
