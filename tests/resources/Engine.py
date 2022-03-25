@@ -290,6 +290,7 @@ define command {
         config_file = "{}/config0/severities.cfg".format(CONF_DIR)
         ff = open(config_file, "w+")
         content = ""
+        typ = [ "service", "host" ]
         for i in range(nb):
             level = i % 5 + 1
             content += """define severity {{
@@ -297,8 +298,9 @@ define command {
     name                   severity{3}
     level                  {1}
     icon_id                {2}
+    type                   {4}
 }}
-""".format(i + 1, level, 6 - level, i + offset)
+""".format(i + 1, level, 6 - level, i + offset, typ[i % 2])
         ff.write(content)
         ff.close()
 
