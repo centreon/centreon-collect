@@ -2477,6 +2477,7 @@ int neb::callback_pb_service(int callback_type, void* data) {
     srv.set_state_type(static_cast<Service_StateType>(
         es->has_been_checked() ? es->get_state_type()
                                : engine::notifier::hard));
+    srv.set_severity_id(es->severity() ? es->severity()->id() : 0);
 
     // Search host ID and service ID.
     std::pair<uint64_t, uint64_t> p;

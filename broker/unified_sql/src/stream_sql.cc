@@ -2232,7 +2232,7 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
       _resources_service_insupdate.bind_value_as_str(15, action_url);
       _resources_service_insupdate.bind_value_as_bool(
           16, ss.notifications_enabled());
-      _resources_service_insupdate.bind_value_as_u32(
+      _resources_service_insupdate.bind_value_as_bool(
           17, ss.passive_checks_enabled());
       _resources_service_insupdate.bind_value_as_bool(
           18, ss.active_checks_enabled());
