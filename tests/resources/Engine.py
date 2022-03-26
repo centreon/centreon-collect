@@ -534,3 +534,29 @@ def config_engine_add_cfg_file(cfg:str):
     ff = open("{}/config0/centengine.cfg".format(CONF_DIR), "w+")
     ff.writelines(lines)
     ff.close()
+
+
+def add_severity_to_services(severity_id:int, svc_lst):
+    ff = open("{}/config0/services.cfg".format(CONF_DIR), "r")
+    lines = ff.readlines()
+    ff.close()
+    r = re.compile(r"^\s*_SERVICE_ID\s*(\d+)$")
+    for i in range(len(lines)):
+        m = r.match(lines[i])
+        if m and m.group(1) in svc_lst:
+            lines.insert(i + 1, "    severity_id                     {}\n".format(severity_id))
+
+    ff = open("{}/config0/services.cfg".format(CONF_DIR), "w")
+    ff.writelines(lines)
+    ff.close()
+
+
+def remove_severities_from_services():
+    ff = open("{}/config0/services.cfg".format(CONF_DIR), "r")
+    lines = ff.readlines()
+    ff.close()
+    r = re.compile(r"^\s*severity_id\s*\d+$")
+    lines = [l for l in lines if r.match(l)]
+    ff = open("{}/config0/services.cfg".format(CONF_DIR), "r")
+    ff.writelines(lines)
+    ff.close()

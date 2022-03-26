@@ -224,7 +224,8 @@ service::service(service const& other)
       _host_id(other._host_id),
       _service_id(other._service_id),
       _stalking_options(other._stalking_options),
-      _timezone(other._timezone) {}
+      _timezone(other._timezone),
+      _severity_id{other._severity_id} {}
 
 /**
  *  Assignment operator.

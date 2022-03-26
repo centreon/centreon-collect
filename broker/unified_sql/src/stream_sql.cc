@@ -2037,13 +2037,15 @@ void stream::_process_service(const std::shared_ptr<io::data>& d) {
  *
  */
 void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
-  log_v2::sql()->trace("SQL: process pb service");
+  log_v2::sql()->debug("SQL: processing pb service");
   _finish_action(-1, actions::host_parents | actions::comments |
                          actions::downtimes | actions::host_dependencies |
                          actions::service_dependencies);
   // Processed object.
   auto s{static_cast<neb::pb_service const*>(d.get())};
   auto& ss = s->obj();
+  log_v2::sql()->debug("service ({}, {}) with severity_id {}", ss.host_id(),
+                       ss.service_id(), ss.severity_id());
 
   log_v2::sql()->trace("SQL: pb service output: <<{}>>", ss.output());
   // Processed object.
@@ -2211,9 +2213,11 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
                                                      ss.max_check_attempts());
       _resources_service_insupdate.bind_value_as_u64(
           9, _cache_host_instance[ss.host_id()]);
-      if (ss.severity_id())
+      if (ss.severity_id()) {
+        log_v2::sql()->debug("service ({}, {}) with severity_id {}",
+                             ss.host_id(), ss.service_id(), ss.severity_id());
         _resources_service_insupdate.bind_value_as_u64(10, ss.severity_id());
-      else
+      } else
         _resources_service_insupdate.bind_value_as_null(10);
       fmt::string_view name{misc::string::truncate(
           ss.service_description(), get_resources_col_size(resources_name))};
@@ -2253,9 +2257,11 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
                                                      ss.max_check_attempts());
       _resources_service_insupdate.bind_value_as_u64(
           26, _cache_host_instance[ss.host_id()]);
-      if (ss.severity_id())
+      if (ss.severity_id()) {
+        log_v2::sql()->debug("service ({}, {}) with severity_id {}",
+                             ss.host_id(), ss.service_id(), ss.severity_id());
         _resources_service_insupdate.bind_value_as_u64(27, ss.severity_id());
-      else
+      } else
         _resources_service_insupdate.bind_value_as_null(27);
       _resources_service_insupdate.bind_value_as_str(28, name);
       _resources_service_insupdate.bind_value_as_str(29, parent_name);

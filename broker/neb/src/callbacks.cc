@@ -2486,6 +2486,9 @@ int neb::callback_pb_service(int callback_type, void* data) {
                                         es->get_description());
     srv.set_host_id(p.first);
     srv.set_service_id(p.second);
+    if (srv.host_id() && srv.service_id())
+      log_v2::neb()->debug("callbacks: service ({}, {}) has a severity id {}",
+                           srv.host_id(), srv.service_id(), srv.severity_id());
     if (srv.host_id() && srv.service_id()) {
       // Send service event.
       log_v2::neb()->info("callbacks: new service {} ('{}') on host {}",
