@@ -187,7 +187,7 @@ def check_reschedule(log: str, date, content: str):
         while end - start > 1:
             idx = (start + end) // 2
             m = p.match(lines[idx])
-            if not m:
+            if not m or m is None:
                 logger.console("Unable to parse the date ({} <= {} <= {}): <<{}>>".format(start, idx, end, lines[idx]))
             idx_d = get_date(m.group(1))
             if my_date <= idx_d:
@@ -431,7 +431,7 @@ def clear_db(table: str):
             cursor.execute("DELETE FROM {}".format(table))
         connection.commit()
 
-def check_service_severity_with_timeout(host_id: int, service_id: int, severity_id: int, timeout: int):
+def check_service_severity_with_timeout(host_id: int, service_id: int, severity_id, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host='localhost',
@@ -445,8 +445,12 @@ def check_service_severity_with_timeout(host_id: int, service_id: int, severity_
             with connection.cursor() as cursor:
                 cursor.execute("SELECT severity_id FROM resources WHERE parent_id={} AND id={}".format(host_id, service_id))
                 result = cursor.fetchall()
+                logger.console(result)
                 if len(result) > 0:
-                    if int(result[0]['severity_id']) == severity_id:
+                    if severity_id == 'None':
+                        if result[0]['severity_id'] is None:
+                            return True
+                    elif not result[0]['severity_id'] is None and int(result[0]['severity_id']) == int(severity_id):
                         return True
         time.sleep(1)
     return False

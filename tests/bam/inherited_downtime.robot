@@ -16,6 +16,7 @@ BEBAMIDT1
 	[Documentation]	A BA of type 'worst' with one service is configured. The BA is in critical state, because of its service. Then we set a downtime on this last one. An inherited downtime is set to the BA. The downtime is removed from the service, the inherited downtime is then deleted.
 	[Tags]	Broker	downtime	engine	bam
 	Clear Commands Status
+	Config Broker	module
 	Config Broker	central
 	Broker Config Log	central	bam	trace
 	Config Broker	rrd

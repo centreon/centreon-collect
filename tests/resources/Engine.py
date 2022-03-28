@@ -556,7 +556,7 @@ def remove_severities_from_services():
     lines = ff.readlines()
     ff.close()
     r = re.compile(r"^\s*severity_id\s*\d+$")
-    lines = [l for l in lines if r.match(l)]
-    ff = open("{}/config0/services.cfg".format(CONF_DIR), "r")
-    ff.writelines(lines)
+    out = [l for l in lines if not r.match(l)]
+    ff = open("{}/config0/services.cfg".format(CONF_DIR), "w")
+    ff.writelines(out)
     ff.close()
