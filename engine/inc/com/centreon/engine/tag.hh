@@ -31,7 +31,8 @@ class tag;
 }
 
 using tag_map =
-    absl::flat_hash_map<uint32_t, std::shared_ptr<com::centreon::engine::tag>>;
+    absl::flat_hash_map<std::pair<uint64_t, uint32_t>,
+                        std::shared_ptr<com::centreon::engine::tag>>;
 using tag_map_unsafe =
     absl::flat_hash_map<std::string, com::centreon::engine::tag*>;
 
@@ -59,7 +60,7 @@ class tag {
  public:
   static tag_map tags;
 
-  tag(uint64_t id, tagtype typ, const std::string& name);
+  tag(uint64_t id, tagtype type, const std::string& name);
   ~tag() noexcept = default;
   tag(const tag&) = delete;
   tag& operator=(const tag&) = delete;

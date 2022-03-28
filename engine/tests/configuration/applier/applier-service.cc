@@ -26,6 +26,7 @@
 #include "com/centreon/engine/configuration/applier/contactgroup.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/service.hh"
+#include "com/centreon/engine/configuration/applier/tag.hh"
 #include "com/centreon/engine/configuration/host.hh"
 #include "com/centreon/engine/configuration/service.hh"
 #include "com/centreon/engine/exceptions/error.hh"
@@ -489,4 +490,331 @@ TEST_F(ApplierService, StalkingOptionsWhenServiceIsModified) {
   ASSERT_TRUE(serv->get_notify_on(engine::service::warning));
   ASSERT_TRUE(serv->get_notify_on(engine::service::critical));
   ASSERT_TRUE(serv->get_notify_on(engine::service::unknown));
+}
+
+// Given service configuration with a host defined
+// Then the applier add_object creates the service
+TEST_F(ApplierService, NewServiceFromConfigTags) {
+  configuration::applier::host hst_aply;
+  configuration::applier::service svc_aply;
+  configuration::service svc;
+  configuration::host hst;
+  ASSERT_TRUE(hst.parse("host_name", "test_host"));
+  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
+  // The host id is not given
+  ASSERT_THROW(hst_aply.add_object(hst), std::exception);
+  ASSERT_TRUE(hst.parse("host_id", "1"));
+  ASSERT_NO_THROW(hst_aply.add_object(hst));
+  ASSERT_TRUE(svc.parse("host", "test_host"));
+  ASSERT_TRUE(svc.parse("service_description", "test description"));
+  ASSERT_TRUE(svc.parse("service_id", "3"));
+  ASSERT_TRUE(svc.parse("tags", "1,2,3"));
+
+  configuration::applier::command cmd_aply;
+  configuration::command cmd("cmd");
+  cmd.parse("command_line", "echo 1");
+  svc.parse("check_command", "cmd");
+  cmd_aply.add_object(cmd);
+
+  configuration::tag tag;
+  configuration::applier::tag tag_aply;
+  tag.parse("id", "1");
+  tag.parse("type", "servicegroup");
+  tag.parse("name", "foobar1");
+  tag_aply.add_object(tag);
+
+  tag.parse("id", "2");
+  tag.parse("type", "servicegroup");
+  tag.parse("name", "foobar2");
+  tag_aply.add_object(tag);
+
+  tag.parse("id", "3");
+  tag.parse("type", "servicecategory");
+  tag.parse("name", "foobar3");
+  tag_aply.add_object(tag);
+
+  // No need here to call svc_aply.expand_objects(*config) because the
+  // configuration service is not stored in configuration::state. We just have
+  // to set the host_id manually.
+  svc.set_host_id(1);
+  svc_aply.add_object(svc);
+  service_id_map const& sm(engine::service::services_by_id);
+  ASSERT_EQ(sm.size(), 1u);
+  ASSERT_EQ(sm.begin()->first.first, 1u);
+  ASSERT_EQ(sm.begin()->first.second, 3u);
+
+  // Service is not resolved, host is null now.
+  ASSERT_TRUE(!sm.begin()->second->get_host_ptr());
+  ASSERT_TRUE(sm.begin()->second->get_description() == "test description");
+}
+
+// Given service configuration with a host defined
+// Then the applier add_object creates the service
+TEST_F(ApplierService, RenameServiceFromConfigTags) {
+  configuration::applier::host hst_aply;
+  configuration::applier::service svc_aply;
+  configuration::service svc;
+  configuration::host hst;
+  ASSERT_TRUE(hst.parse("host_name", "test_host"));
+  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
+  // The host id is not given
+  ASSERT_THROW(hst_aply.add_object(hst), std::exception);
+  ASSERT_TRUE(hst.parse("host_id", "1"));
+  ASSERT_NO_THROW(hst_aply.add_object(hst));
+  ASSERT_TRUE(svc.parse("host", "test_host"));
+  ASSERT_TRUE(svc.parse("service_description", "test description"));
+  ASSERT_TRUE(svc.parse("service_id", "3"));
+  ASSERT_TRUE(svc.parse("tags", "1,2,3"));
+
+  configuration::applier::command cmd_aply;
+  configuration::command cmd("cmd");
+  cmd.parse("command_line", "echo 1");
+  svc.parse("check_command", "cmd");
+  cmd_aply.add_object(cmd);
+
+  configuration::tag tag;
+  configuration::applier::tag tag_aply;
+  tag.parse("id", "1");
+  tag.parse("type", "servicegroup");
+  tag.parse("name", "foobar1");
+  tag_aply.add_object(tag);
+
+  tag.parse("id", "2");
+  tag.parse("type", "servicegroup");
+  tag.parse("name", "foobar2");
+  tag_aply.add_object(tag);
+
+  tag.parse("id", "3");
+  tag.parse("type", "servicecategory");
+  tag.parse("name", "foobar3");
+  tag_aply.add_object(tag);
+  // We fake here the expand_object on configuration::service
+  svc.set_host_id(1);
+
+  svc_aply.add_object(svc);
+
+  ASSERT_TRUE(svc.parse("service_description", "test description2"));
+  svc_aply.modify_object(svc);
+  svc_aply.expand_objects(*config);
+
+  service_id_map const& sm(engine::service::services_by_id);
+  ASSERT_EQ(sm.size(), 1u);
+  ASSERT_EQ(sm.begin()->first.first, 1u);
+  ASSERT_EQ(sm.begin()->first.second, 3u);
+
+  // Service is not resolved, host is null now.
+  ASSERT_TRUE(!sm.begin()->second->get_host_ptr());
+  ASSERT_TRUE(sm.begin()->second->get_description() == "test description2");
+
+  std::string s{engine::service::services[{"test_host", "test description2"}]
+                    ->get_description()};
+  ASSERT_TRUE(s == "test description2");
+}
+
+// Given service configuration with a host defined
+// Then the applier add_object creates the service
+TEST_F(ApplierService, RemoveServiceFromConfigTags) {
+  configuration::applier::host hst_aply;
+  configuration::applier::service svc_aply;
+  configuration::service svc;
+  configuration::host hst;
+  ASSERT_TRUE(hst.parse("host_name", "test_host"));
+  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
+  // The host id is not given
+  ASSERT_THROW(hst_aply.add_object(hst), std::exception);
+  ASSERT_TRUE(hst.parse("host_id", "1"));
+  ASSERT_NO_THROW(hst_aply.add_object(hst));
+  ASSERT_TRUE(svc.parse("host", "test_host"));
+  ASSERT_TRUE(svc.parse("service_description", "test description"));
+  ASSERT_TRUE(svc.parse("service_id", "3"));
+  ASSERT_TRUE(svc.parse("tags", "1,2,3"));
+
+  configuration::applier::command cmd_aply;
+  configuration::command cmd("cmd");
+  cmd.parse("command_line", "echo 1");
+  svc.parse("check_command", "cmd");
+  cmd_aply.add_object(cmd);
+
+  configuration::tag tag;
+  configuration::applier::tag tag_aply;
+  tag.parse("id", "1");
+  tag.parse("type", "servicegroup");
+  tag.parse("name", "foobar1");
+  tag_aply.add_object(tag);
+
+  tag.parse("id", "2");
+  tag.parse("type", "servicegroup");
+  tag.parse("name", "foobar2");
+  tag_aply.add_object(tag);
+
+  tag.parse("id", "3");
+  tag.parse("type", "servicecategory");
+  tag.parse("name", "foobar3");
+  tag_aply.add_object(tag);
+  // We fake here the expand_object on configuration::service
+  svc.set_host_id(1);
+
+  svc_aply.add_object(svc);
+
+  ASSERT_EQ(engine::service::services_by_id.size(), 1u);
+  svc_aply.remove_object(svc);
+  ASSERT_EQ(engine::service::services_by_id.size(), 0u);
+
+  ASSERT_TRUE(svc.parse("service_description", "test description2"));
+
+  // We have to fake the expand_object on configuration::service
+  svc.set_host_id(1);
+
+  svc_aply.add_object(svc);
+
+  service_id_map const& sm(engine::service::services_by_id);
+  ASSERT_EQ(sm.size(), 1u);
+  ASSERT_EQ(sm.begin()->first.first, 1u);
+  ASSERT_EQ(sm.begin()->first.second, 3u);
+
+  // Service is not resolved, host is null now.
+  ASSERT_TRUE(!sm.begin()->second->get_host_ptr());
+  ASSERT_TRUE(sm.begin()->second->get_description() == "test description2");
+
+  std::string s{engine::service::services[{"test_host", "test description2"}]
+                    ->get_description()};
+  ASSERT_TRUE(s == "test description2");
+}
+
+// Given a service configuration,
+// When we duplicate it, we get a configuration equal to the previous one.
+// When two services are generated from the same configuration
+// Then they are equal.
+// When Modifying a configuration changes,
+// Then the '!=' effect on configurations.
+TEST_F(ApplierService, ServicesEqualityTags) {
+  configuration::applier::host hst_aply;
+  configuration::applier::service svc_aply;
+  configuration::service csvc;
+  configuration::host hst;
+  ASSERT_TRUE(hst.parse("host_name", "test_host"));
+  ASSERT_TRUE(hst.parse("host_id", "1"));
+  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
+  hst_aply.add_object(hst);
+  ASSERT_TRUE(csvc.parse("hosts", "test_host"));
+  ASSERT_TRUE(csvc.parse("service_description", "test description1"));
+  ASSERT_TRUE(csvc.parse("service_id", "12345"));
+  ASSERT_TRUE(csvc.parse("acknowledgement_timeout", "21"));
+  ASSERT_TRUE(csvc.parse("tags", "1,2,3"));
+
+  configuration::applier::command cmd_aply;
+  configuration::command cmd("cmd");
+  cmd.parse("command_line", "echo 1");
+  csvc.parse("check_command", "cmd");
+  cmd_aply.add_object(cmd);
+
+  configuration::tag tag;
+  configuration::applier::tag tag_aply;
+  tag.parse("id", "1");
+  tag.parse("type", "servicegroup");
+  tag.parse("name", "foobar1");
+  tag_aply.add_object(tag);
+
+  tag.parse("id", "2");
+  tag.parse("type", "servicegroup");
+  tag.parse("name", "foobar2");
+  tag_aply.add_object(tag);
+
+  tag.parse("id", "3");
+  tag.parse("type", "servicecategory");
+  tag.parse("name", "foobar3");
+  tag_aply.add_object(tag);
+  // We have to fake the expand_object on configuration::service
+  csvc.set_host_id(1);
+
+  svc_aply.add_object(csvc);
+  ASSERT_TRUE(csvc.parse("service_description", "test description2"));
+  ASSERT_THROW(svc_aply.add_object(csvc), std::exception);
+  ASSERT_TRUE(csvc.parse("service_id", "12346"));
+  ASSERT_NO_THROW(svc_aply.add_object(csvc));
+  service_map const& sm(engine::service::services);
+  ASSERT_EQ(sm.size(), 2u);
+  service_map::const_iterator it(sm.begin());
+  std::shared_ptr<com::centreon::engine::service> svc1(it->second);
+  ++it;
+  std::shared_ptr<com::centreon::engine::service> svc2(it->second);
+  configuration::service csvc1(csvc);
+  ASSERT_EQ(csvc, csvc1);
+  ASSERT_TRUE(csvc1.parse("tags", "6,8,9"));
+  ASSERT_TRUE(csvc < csvc1);
+  ASSERT_TRUE(csvc.parse("tags", "15,26,34"));
+  ASSERT_TRUE(csvc1 < csvc);
+
+  ASSERT_TRUE(svc1 != svc2);
+}
+
+// Given a service configuration applied to a service,
+// When the check_validity() method is executed on the configuration,
+// Then it throws an exception because:
+//  1. it does not provide a service description
+//  2. it is not attached to a host
+//  3. the service does not contain any check command.
+TEST_F(ApplierService, ServicesCheckValidityTags) {
+  configuration::applier::host hst_aply;
+  configuration::applier::service svc_aply;
+  configuration::service csvc;
+
+  // No service description
+  ASSERT_THROW(csvc.check_validity(), engine::exceptions::error);
+
+  ASSERT_TRUE(csvc.parse("service_description", "check description"));
+  ASSERT_TRUE(csvc.parse("service_id", "53"));
+  ASSERT_TRUE(csvc.parse("tags", "1,2,3"));
+
+  // No host attached to
+  ASSERT_THROW(csvc.check_validity(), engine::exceptions::error);
+
+  ASSERT_TRUE(csvc.parse("hosts", "test_host"));
+
+  // No check command attached to
+  ASSERT_THROW(csvc.check_validity(), engine::exceptions::error);
+
+  configuration::applier::command cmd_aply;
+  configuration::command cmd("cmd");
+  cmd.parse("command_line", "echo 1");
+  csvc.parse("check_command", "cmd");
+  cmd_aply.add_object(cmd);
+
+  configuration::host hst;
+  ASSERT_TRUE(hst.parse("host_name", "test_host"));
+  ASSERT_TRUE(hst.parse("address", "10.11.12.13"));
+  ASSERT_TRUE(hst.parse("host_id", "124"));
+  hst_aply.add_object(hst);
+
+  configuration::tag tag;
+  configuration::applier::tag tag_aply;
+  tag.parse("id", "1");
+  tag.parse("type", "servicegroup");
+  tag.parse("name", "foobar1");
+  tag_aply.add_object(tag);
+
+  tag.parse("id", "2");
+  tag.parse("type", "servicegroup");
+  tag.parse("name", "foobar2");
+  tag_aply.add_object(tag);
+
+  tag.parse("id", "3");
+  tag.parse("type", "servicecategory");
+  tag.parse("name", "foobar3");
+  tag_aply.add_object(tag);
+  // We fake here the expand_object on configuration::service
+  csvc.set_host_id(124);
+
+  svc_aply.add_object(csvc);
+  ASSERT_TRUE(csvc.parse("service_description", "foo"));
+
+  // No check command
+  ASSERT_NO_THROW(csvc.check_validity());
+  svc_aply.resolve_object(csvc);
+
+  service_map const& sm(engine::service::services);
+  ASSERT_EQ(sm.size(), 1u);
+
+  host_map const& hm(engine::host::hosts);
+  ASSERT_EQ(sm.begin()->second->get_host_ptr(), hm.begin()->second.get());
 }

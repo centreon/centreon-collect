@@ -121,9 +121,11 @@ class service : public object {
   bool set_service_id(uint64_t value);
   unsigned short stalking_options() const noexcept;
   void timezone(std::string const& time_zone);
-  std::string const& timezone() const noexcept;
-  bool timezone_defined() const noexcept;
-  int acknowledgement_timeout() const noexcept;
+  std::string const& timezone() const throw();
+  void tags(const std::string& value);
+  const std::list<uint64_t>& tags() const noexcept;
+  bool timezone_defined() const throw();
+  int acknowledgement_timeout() const throw();
   bool set_acknowledgement_timeout(int value);
   uint64_t severity_id() const noexcept;
 
@@ -175,6 +177,7 @@ class service : public object {
   bool _set_stalking_options(std::string const& value);
   bool _set_timezone(std::string const& value);
   bool _set_severity_id(uint64_t severity_id);
+  bool _set_tags(const std::string& value);
 
   opt<int> _acknowledgement_timeout;
   std::string _action_url;
@@ -224,6 +227,7 @@ class service : public object {
   opt<unsigned short> _stalking_options;
   opt<std::string> _timezone;
   opt<uint64_t> _severity_id;
+  std::list<uint64_t> _tags;
 };
 
 typedef std::shared_ptr<service> service_ptr;

@@ -209,3 +209,30 @@ BEUTAG2
 #
 #	Stop Engine
 #	Stop Broker
+
+BEUTAG3
+	[Documentation]	Engine is configured with some tags. When broker receives them, it stores them in the centreon_storage.tags table. Engine is started before.
+	[Tags]	Broker	Engine	protobuf	bbdo	tags
+	#Clear DB	tags
+	Config Engine	${1}
+	Create Tags File	${20}
+	Config Engine Add Cfg File	tags.cfg
+	Add Tags To Services	"2,5,6"	[1, 2, 3, 4]
+	Config Broker	central
+	Config Broker	rrd
+	Config Broker	module
+	Config Broker Sql Output	central	unified_sql
+        Broker Config Add Item	module	bbdo_version	3.0.0
+        Broker Config Add Item	central	bbdo_version	3.0.0
+        Broker Config Add Item	rrd	bbdo_version	3.0.0
+	Broker Config Log	module	neb	debug
+	Broker Config Log	central	sql	debug
+	Clear Retention
+	${start}=	Get Current Date
+	Start Engine
+	Sleep	1s
+	Start Broker
+	${result}=	check service tags With Timeout	1	1	2	60
+	Should Be True	${result}	msg=Service (1, 1) should have severity_id=11
+	Stop Engine
+	Stop Broker

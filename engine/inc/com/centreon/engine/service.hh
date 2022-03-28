@@ -27,6 +27,7 @@
 #include "com/centreon/engine/hash.hh"
 #include "com/centreon/engine/logging.hh"
 #include "com/centreon/engine/notifier.hh"
+#include "com/centreon/engine/tag.hh"
 
 /* Forward declaration. */
 CCE_BEGIN()
@@ -192,6 +193,8 @@ class service : public notifier {
   host const* get_host_ptr() const;
   host* get_host_ptr();
   bool get_host_problem_at_last_check() const;
+  tag_map& mut_tags() noexcept;
+  const tag_map& tags() const noexcept;
 
   static service_map services;
   static service_id_map services_by_id;
@@ -218,6 +221,7 @@ class service : public notifier {
   std::list<servicegroup*> _servicegroups;
   host* _host_ptr;
   bool _host_problem_at_last_check;
+  tag_map _tags;
 };
 CCE_END()
 

@@ -588,6 +588,18 @@ def add_template_to_services(poller:int, tmpl:str, svc_lst):
     ff.writelines(lines)
     ff.close()
 
+def add_tags_to_services(tag_id:str, svc_lst):
+    ff = open("{}/config0/services.cfg".format(CONF_DIR), "r")
+    lines = ff.readlines()
+    ff.close()
+    r = re.compile(r"^\s*_SERVICE_ID\s*(\d+)$")
+    for i in range(len(lines)):
+        m = r.match(lines[i])
+        if m and m.group(1) in svc_lst:
+            lines.insert(i + 1, "    tags                     {}\n".format(tag_id))
+    ff = open("{}/config0/services.cfg".format(CONF_DIR), "w")
+    ff.writelines(lines)
+    ff.close()
 
 def remove_severities_from_services(poller:int):
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
@@ -597,4 +609,14 @@ def remove_severities_from_services(poller:int):
     out = [l for l in lines if not r.match(l)]
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "w")
     ff.writelines(out)
+    ff.close()
+
+def remove_tags_from_services():
+    ff = open("{}/config0/services.cfg".format(CONF_DIR), "r")
+    lines = ff.readlines()
+    ff.close()
+    r = re.compile(r"^\s*tags\s*\d+$")
+    lines = [l for l in lines if r.match(l)]
+    ff = open("{}/config0/services.cfg".format(CONF_DIR), "r")
+    ff.writelines(lines)
     ff.close()

@@ -115,6 +115,7 @@ class mysql_error {
     update_index_data,
     update_resources,
     store_host_resources,
+    store_tags_resources_tags,
   };
 
   static constexpr const char* msg[]{
@@ -196,6 +197,7 @@ class mysql_error {
       "could not update index data: ",
       "could not update resources: ",
       "could not insert host in resources: ",
+      "could not insert tag in resources_tags table: ",
   };
 
   mysql_error() : _active(false) {}

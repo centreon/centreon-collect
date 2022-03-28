@@ -1186,6 +1186,10 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
             "poller_id=?,severity_id=?,name=?,parent_name=?,notes_url=?,"
             "notes=?,action_url=?,notifications_enabled=?,"
             "passive_checks_enabled=?,active_checks_enabled=?");
+        _resources_tags_insupdate = _mysql.prepare_query(
+            "INSERT INTO resources_tags "
+            "(tag_id,resource_parent_id,resource_id,resource_type) "
+            "VALUES(?,0,?,1)");
       }
 
       // Process object.
@@ -1283,6 +1287,36 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
                            database::mysql_error::store_host_resources, true,
                            conn);
       _add_action(conn, actions::resources);
+
+      _index_data_query = _mysql.prepare_query(
+          "SELECT "
+          "id from tags WHERE tid=? AND ttype=?");
+
+      for (auto tag : h.tags()) {
+        _index_data_query.bind_value_as_i32(0, tag.first);
+        _index_data_query.bind_value_as_i32(1, tag.second);
+        std::promise<database::mysql_result> pq;
+        log_v2::sql()->debug(
+            "Attempt to get the tag from the database for host ({})",
+            h.host_id());
+
+        _mysql.run_statement_and_get_result(_index_data_query, &pq, conn);
+
+        try {
+          database::mysql_result res(pq.get_future().get());
+          if (_mysql.fetch_row(res)) {
+            _resources_tags_insupdate.bind_value_as_u64(0, res.value_as_u64(0));
+            _resources_tags_insupdate.bind_value_as_u64(1, h.host_id());
+
+            _finish_action(-1, actions::resources_tags);
+            _mysql.run_statement(
+                _resources_tags_insupdate,
+                database::mysql_error::store_tags_resources_tags, true, conn);
+            _add_action(conn, actions::resources_tags);
+          }
+        } catch (const std::exception& e) {
+        }
+      }
     } else
       log_v2::sql()->trace(
           "SQL: host '{}' of poller {} has no ID nor alias, probably bam "
@@ -2191,6 +2225,10 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
             "poller_id=?,severity_id=?,name=?,parent_name=?,notes_url=?,"
             "notes=?,action_url=?,notifications_enabled=?,"
             "passive_checks_enabled=?,active_checks_enabled=?");
+        _resources_tags_insupdate = _mysql.prepare_query(
+            "INSERT INTO resources_tags "
+            "(tag_id,resource_parent_id,resource_id,resource_type) "
+            "VALUES(?,0,?,1)");
       }
 
       // Processing.
@@ -2288,6 +2326,36 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
       _mysql.run_statement(_resources_service_insupdate,
                            database::mysql_error::store_service, true, conn);
       _add_action(conn, actions::resources);
+
+      _index_data_query = _mysql.prepare_query(
+          "SELECT "
+          "id from tags WHERE tid=? AND ttype=?");
+
+      for (auto tag : ss.tags()) {
+        _index_data_query.bind_value_as_i32(0, tag.first);
+        _index_data_query.bind_value_as_i32(1, tag.second);
+        std::promise<database::mysql_result> pq;
+        log_v2::sql()->debug(
+            "Attempt to get the tag from the database for host ({})",
+            ss.host_id());
+
+        _mysql.run_statement_and_get_result(_index_data_query, &pq, conn);
+
+        try {
+          database::mysql_result res(pq.get_future().get());
+          if (_mysql.fetch_row(res)) {
+            _resources_tags_insupdate.bind_value_as_u64(0, res.value_as_u64(0));
+            _resources_tags_insupdate.bind_value_as_u64(1, ss.host_id());
+
+            _finish_action(-1, actions::resources_tags);
+            _mysql.run_statement(
+                _resources_tags_insupdate,
+                database::mysql_error::store_tags_resources_tags, true, conn);
+            _add_action(conn, actions::resources_tags);
+          }
+        } catch (const std::exception& e) {
+        }
+      }
     } else
       log_v2::sql()->trace(
           "SQL: service '{}' has no host ID, service ID nor hostname, probably "

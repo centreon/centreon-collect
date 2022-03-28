@@ -18,7 +18,7 @@
 */
 
 #include "com/centreon/engine/host.hh"
-
+#include <absl/container/flat_hash_map.h>
 #include <cassert>
 #include <iomanip>
 
@@ -563,6 +563,14 @@ bool host::recovered() const {
 
 int host::get_current_state_int() const {
   return static_cast<int>(_current_state);
+}
+
+tag_map& host::mut_tags() noexcept {
+  return _tags;
+}
+
+const tag_map& host::tags() const noexcept {
+  return _tags;
 }
 
 std::ostream& operator<<(std::ostream& os, host_map_unsafe const& obj) {
@@ -3844,10 +3852,9 @@ void host::check_for_orphaned() {
 
     /* determine the time at which the check results should have come in (allow
      * 10 minutes slack time) */
-    expected_time =
-        (time_t)(it->second->get_next_check() + it->second->get_latency() +
-                 config->host_check_timeout() +
-                 config->check_reaper_interval() + 600);
+    expected_time = (time_t)(
+        it->second->get_next_check() + it->second->get_latency() +
+        config->host_check_timeout() + config->check_reaper_interval() + 600);
 
     /* this host was supposed to have executed a while ago, but for some reason
      * the results haven't come back in... */

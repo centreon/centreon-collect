@@ -169,6 +169,7 @@ class host : public object {
   bool _set_timezone(std::string const& value);
   bool _set_vrml_image(std::string const& value);
   bool _set_severity_id(uint64_t severity_id);
+  bool _set_tags(const std::string& value);
 
   opt<int> _acknowledgement_timeout;
   std::string _action_url;
@@ -220,6 +221,7 @@ class host : public object {
   opt<std::string> _timezone;
   std::string _vrml_image;
   uint64_t _severity_id;
+  std::list<uint64_t> _tags;
 };
 
 typedef std::shared_ptr<host> host_ptr;

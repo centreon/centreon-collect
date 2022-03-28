@@ -485,3 +485,24 @@ def check_service_severity_with_timeout(host_id: int, service_id: int, severity_
                         return True
         time.sleep(1)
     return False
+
+def check_service_tags_with_timeout(host_id: int, service_id: int, tag_id: int, timeout: int):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host='localhost',
+                                 user='centreon',
+                                 password='centreon',
+                                 database='centreon_storage',
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT tag_id FROM resources_tags WHERE parent_id={} AND id={}".format(host_id, service_id))
+                result = cursor.fetchall()
+                if len(result) > 0:
+                    if int(result[0]['tag_id']) == tag_id:
+                        return True
+        time.sleep(1)
+    return False
+

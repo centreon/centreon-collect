@@ -135,6 +135,27 @@ void applier::host::add_object(configuration::host const& obj) {
     }
   }
 
+  // add tags
+  for (auto tag : obj.tags()) {
+    tag_map::iterator it_tag_group{engine::tag::tags.find(
+        std::make_pair(tag, engine::tag::tagtype::hostgroup))};
+    tag_map::iterator it_tag_category{engine::tag::tags.find(
+        std::make_pair(tag, engine::tag::tagtype::hostcategory))};
+    if (it_tag_group == engine::tag::tags.end() &&
+        it_tag_category == engine::tag::tags.end())
+      throw engine_error() << "Could not find tag '" << tag
+                           << "' on which to apply service (" << obj.host_id()
+                           << ")";
+    else if (it_tag_group != engine::tag::tags.end())
+      h->mut_tags().insert({std::make_pair(it_tag_group->second->id(),
+                                           it_tag_group->second->type()),
+                            it_tag_group->second});
+    else if (it_tag_category != engine::tag::tags.end())
+      h->mut_tags().insert({std::make_pair(it_tag_category->second->id(),
+                                           it_tag_category->second->type()),
+                            it_tag_category->second});
+  }
+
   // Parents.
   for (set_string::const_iterator it(obj.parents().begin()),
        end(obj.parents().end());
@@ -387,6 +408,32 @@ void applier::host::modify_object(configuration::host const& obj) {
                                c.first.c_str(), c.second.get_value().c_str(),
                                &tv);
       }
+    }
+  }
+
+  // add tags
+  if (obj.tags() != obj_old.tags()) {
+    it_obj->second->mut_tags().clear();
+    for (auto tag : obj.tags()) {
+      tag_map::iterator it_tag_group{engine::tag::tags.find(
+          std::make_pair(tag, engine::tag::tagtype::servicegroup))};
+      tag_map::iterator it_tag_category{engine::tag::tags.find(
+          std::make_pair(tag, engine::tag::tagtype::servicecategory))};
+      if (it_tag_group == engine::tag::tags.end() &&
+          it_tag_category == engine::tag::tags.end())
+        throw engine_error()
+            << "Could not find tag '" << tag << "' on which to apply service ("
+            << obj.host_id() << ")";
+      else if (it_tag_group != engine::tag::tags.end())
+        it_obj->second->mut_tags().insert(
+            {std::make_pair(it_tag_group->second->id(),
+                            it_tag_group->second->type()),
+             it_tag_group->second});
+      else if (it_tag_category != engine::tag::tags.end())
+        it_obj->second->mut_tags().insert(
+            {std::make_pair(it_tag_category->second->id(),
+                            it_tag_category->second->type()),
+             it_tag_category->second});
     }
   }
 

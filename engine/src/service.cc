@@ -19,8 +19,8 @@
 
 #include "com/centreon/engine/service.hh"
 
+#include <absl/container/flat_hash_map.h>
 #include <iomanip>
-
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/deleter/listmember.hh"
@@ -987,6 +987,14 @@ std::string const& service::get_check_command_args() const {
   return _check_command_args;
 }
 
+tag_map& service::mut_tags() noexcept {
+  return _tags;
+}
+
+const tag_map& service::tags() const noexcept {
+  return _tags;
+}
+
 /**
  * @brief Handle asynchronously the result of a check.
  *
@@ -1558,9 +1566,8 @@ int service::handle_async_check_result(check_result* queued_check_result) {
     set_no_more_notifications(false);
 
     if (reschedule_check)
-      next_service_check =
-          (time_t)(get_last_check() +
-                   check_interval() * config->interval_length());
+      next_service_check = (time_t)(
+          get_last_check() + check_interval() * config->interval_length());
   }
 
   /*******************************************/
@@ -1739,9 +1746,8 @@ int service::handle_async_check_result(check_result* queued_check_result) {
         /* the host is not up, so reschedule the next service check at regular
          * interval */
         if (reschedule_check)
-          next_service_check =
-              (time_t)(get_last_check() +
-                       check_interval() * config->interval_length());
+          next_service_check = (time_t)(
+              get_last_check() + check_interval() * config->interval_length());
 
         /* log the problem as a hard state if the host just went down */
         if (hard_state_change) {
@@ -1771,9 +1777,8 @@ int service::handle_async_check_result(check_result* queued_check_result) {
         handle_service_event();
 
         if (reschedule_check)
-          next_service_check =
-              (time_t)(get_last_check() +
-                       retry_interval() * config->interval_length());
+          next_service_check = (time_t)(
+              get_last_check() + retry_interval() * config->interval_length());
       }
 
       /* perform dependency checks on the second to last check of the service */
@@ -1871,9 +1876,8 @@ int service::handle_async_check_result(check_result* queued_check_result) {
 
       /* reschedule the next check at the regular interval */
       if (reschedule_check)
-        next_service_check =
-            (time_t)(get_last_check() +
-                     check_interval() * config->interval_length());
+        next_service_check = (time_t)(
+            get_last_check() + check_interval() * config->interval_length());
     }
 
     /* should we obsessive over service checks? */
@@ -3335,9 +3339,9 @@ bool service::is_result_fresh(time_t current_time, int log_this) {
    * suggested by Altinity */
   else if (this->active_checks_enabled() && event_start > get_last_check() &&
            this->get_freshness_threshold() == 0)
-    expiration_time = (time_t)(event_start + freshness_threshold +
-                               (config->max_service_check_spread() *
-                                config->interval_length()));
+    expiration_time = (time_t)(
+        event_start + freshness_threshold +
+        (config->max_service_check_spread() * config->interval_length()));
   else
     expiration_time = (time_t)(get_last_check() + freshness_threshold);
 

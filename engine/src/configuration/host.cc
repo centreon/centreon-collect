@@ -18,6 +18,9 @@
 */
 
 #include "com/centreon/engine/configuration/host.hh"
+#include "absl/strings/numbers.h"
+#include "absl/strings/str_split.h"
+#include "absl/strings/string_view.h"
 #include "com/centreon/engine/configuration/hostextinfo.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/host.hh"
@@ -100,7 +103,8 @@ std::unordered_map<std::string, host::setter_func> const host::_setters{
     {"timezone", SETTER(std::string const&, _set_timezone)},
     {"severity", SETTER(uint64_t, _set_severity_id)},
     {"severity_id", SETTER(uint64_t, _set_severity_id)},
-};
+    {"tags", SETTER(std::string const&, _set_tags)},
+    {"tags_id", SETTER(std::string const&, _set_tags)}};
 
 // Default values.
 static bool const default_checks_active(true);
@@ -236,6 +240,7 @@ host& host::operator=(host const& other) {
     _timezone = other._timezone;
     _vrml_image = other._vrml_image;
     _severity_id = other._severity_id;
+    _tags = other._tags;
   }
   return *this;
 }
@@ -290,7 +295,7 @@ bool host::operator==(host const& other) const noexcept {
          _stalking_options == other._stalking_options &&
          _statusmap_image == other._statusmap_image &&
          _timezone == other._timezone && _vrml_image == other._vrml_image &&
-         _severity_id == other._severity_id;
+         _severity_id == other._severity_id && _tags == other._tags;
 }
 
 /**
@@ -411,8 +416,9 @@ bool host::operator<(host const& other) const noexcept {
     return _timezone < other._timezone;
   else if (_vrml_image != other._vrml_image)
     return _vrml_image < other._vrml_image;
-  else
+  else if (_severity_id != other._severity_id)
     return _severity_id < other._severity_id;
+  return _tags < other._tags;
 }
 
 /**
@@ -511,6 +517,7 @@ void host::merge(object const& obj) {
   MRG_DEFAULT(_statusmap_image);
   MRG_OPTION(_timezone);
   MRG_DEFAULT(_vrml_image);
+  MRG_DEFAULT(_tags);
 }
 
 /**
@@ -995,6 +1002,30 @@ std::string const& host::statusmap_image() const noexcept {
  */
 std::string const& host::timezone() const noexcept {
   return _timezone;
+}
+
+/**
+ *  Set host tags.
+ *
+ *  @param[in] tags  New host tags.
+ */
+void host::tags(const std::string& value) {
+  std::list<absl::string_view> tags{absl::StrSplit(value, ',')};
+  _tags.clear();
+  for (auto tag : tags) {
+    int64_t id;
+    SimpleAtoi(tag, &id);
+    _tags.emplace_back(id);
+  }
+}
+
+/**
+ *  Get host tags.
+ *
+ *  @return This host tags.
+ */
+const std::list<uint64_t>& host::tags() const noexcept {
+  return _tags;
 }
 
 /**
@@ -1710,6 +1741,25 @@ bool host::_set_statusmap_image(std::string const& value) {
 bool host::_set_timezone(std::string const& value) {
   _timezone = value;
   return true;
+}
+
+/**
+ *  Set host tags.
+ *
+ *  @param[in] value  The new tags.
+ *
+ *  @return True.
+ */
+bool host::_set_tags(const std::string& value) {
+  bool ret;
+  std::list<absl::string_view> tags{absl::StrSplit(value, ',')};
+  _tags.clear();
+  for (auto tag : tags) {
+    int64_t id;
+    ret = SimpleAtoi(tag, &id);
+    _tags.emplace_back(id);
+  }
+  return ret;
 }
 
 /**

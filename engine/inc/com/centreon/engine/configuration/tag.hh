@@ -29,7 +29,7 @@ CCE_BEGIN()
 namespace configuration {
 class tag : public object {
  public:
-  using key_type = uint64_t;
+  using key_type = std::pair<uint64_t, uint16_t>;
 
   enum tagtype {
     none = 0,
@@ -41,7 +41,7 @@ class tag : public object {
 
  private:
   typedef bool (*setter_func)(tag&, const char*);
-  key_type _id;
+  key_type _key;
   tagtype _type;
   std::string _name;
 
@@ -50,7 +50,7 @@ class tag : public object {
   bool _set_name(const std::string& name);
 
  public:
-  tag(const key_type& id = 0);
+  tag(const key_type& key = {0, 0});
   tag(const tag& other);
   ~tag() noexcept override = default;
   tag& operator=(const tag& other);

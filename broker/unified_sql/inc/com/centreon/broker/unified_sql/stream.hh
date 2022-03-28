@@ -122,6 +122,7 @@ class stream : public io::stream {
     severities = 1 << 17,
     tags = 1 << 18,
     resources = 1 << 19,
+    resources_tags = 1 << 20,
   };
 
   struct index_info {
@@ -275,6 +276,7 @@ class stream : public io::stream {
   database::mysql_stmt _tag_insupdate;
   database::mysql_stmt _tag_update;
   database::mysql_stmt _tag_delete;
+  database::mysql_stmt _resources_tags_insupdate;
   database::mysql_stmt _resources_host_insupdate;
   database::mysql_stmt _resources_service_insupdate;
   database::mysql_stmt _hscr_resources_update;
