@@ -443,14 +443,14 @@ def check_service_severity_with_timeout(host_id: int, service_id: int, severity_
 
         with connection:
             with connection.cursor() as cursor:
-                cursor.execute("SELECT severity_id FROM resources WHERE parent_id={} AND id={}".format(host_id, service_id))
+                cursor.execute("select sv.id from resources r left join severities sv ON r.severity_id=sv.severity_id where r.parent_id = {} and r.id={}".format(host_id, service_id))
                 result = cursor.fetchall()
                 logger.console(result)
                 if len(result) > 0:
                     if severity_id == 'None':
-                        if result[0]['severity_id'] is None:
+                        if result[0]['id'] is None:
                             return True
-                    elif not result[0]['severity_id'] is None and int(result[0]['severity_id']) == int(severity_id):
+                    elif not result[0]['id'] is None and int(result[0]['id']) == int(severity_id):
                         return True
         time.sleep(1)
     return False

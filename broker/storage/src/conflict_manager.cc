@@ -296,6 +296,11 @@ void conflict_manager::_load_caches() {
       "source_type FROM metrics",
       &promise_met);
 
+  /* severities => _severity_cache */
+  std::promise<mysql_result> promise_severity;
+  _mysql.run_query_and_get_result(
+      "SELECT severity_id, id, type FROM severities", &promise_severity);
+
   /* Result of all outdated instances */
   try {
     mysql_result res(promise_inst.get_future().get());
@@ -397,6 +402,18 @@ void conflict_manager::_load_caches() {
     }
   } catch (std::exception const& e) {
     throw msg_fmt("conflict_manager: could not get the list of metrics: {}",
+                  e.what());
+  }
+
+  try {
+    mysql_result res{promise_severity.get_future().get()};
+    while (_mysql.fetch_row(res)) {
+      _severity_cache[{res.value_as_u64(2),
+                       static_cast<uint16_t>(res.value_as_u32(1))}] =
+          res.value_as_u64(0);
+    }
+  } catch (const std::exception& e) {
+    throw msg_fmt("unified sql: could not get the list of severities: {}",
                   e.what());
   }
 }

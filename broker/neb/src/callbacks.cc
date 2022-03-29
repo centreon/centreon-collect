@@ -2297,7 +2297,7 @@ int neb::callback_pb_service(int callback_type, void* data) {
       static_cast<nebstruct_adaptive_service_data*>(data);
   const engine::service* es{static_cast<engine::service*>(ds->object_ptr)};
 
-  log_v2::neb()->info("attr = {}", ds->attr);
+  log_v2::neb()->trace("modified_attribute = {}", ds->modified_attribute);
   if (ds->type == NEBTYPE_ADAPTIVESERVICE_UPDATE &&
       ds->modified_attribute != MODATTR_ALL) {
     auto s{std::make_shared<neb::pb_adaptive_service>()};
@@ -2614,6 +2614,7 @@ int32_t neb::callback_severity(int callback_type __attribute__((unused)),
   sv.set_level(es->level());
   sv.set_icon_id(es->icon_id());
   sv.set_name(es->name());
+  sv.set_type(static_cast<com::centreon::broker::Severity_Type>(es->type()));
 
   // Send event(s).
   gl_publisher.write(s);

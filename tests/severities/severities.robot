@@ -180,7 +180,7 @@ BEUSEV3
         Broker Config Add Item	central	bbdo_version	3.0.0
         Broker Config Add Item	rrd	bbdo_version	3.0.0
 	Broker Config Log	module	neb	debug
-	Broker Config Log	central	sql	debug
+	Broker Config Log	central	sql	trace
 	Clear Retention
 	${start}=	Get Current Date
 	Start Engine
@@ -193,7 +193,7 @@ BEUSEV3
         Add Severity To Services	7	[3]
         Reload Engine
         Reload Broker
-        Sleep	2s
+        Sleep	1s
 	${result}=	check service severity With Timeout	1	3	7	60
 	Should Be True	${result}	msg=Service (1, 3) should have severity_id=7
 	${result}=	check service severity With Timeout	1	1	None	60
