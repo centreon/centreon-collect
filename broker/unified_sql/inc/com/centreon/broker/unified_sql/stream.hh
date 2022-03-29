@@ -214,6 +214,7 @@ class stream : public io::stream {
 
   std::unordered_set<uint32_t> _hostgroup_cache;
   std::unordered_set<uint32_t> _servicegroup_cache;
+  absl::flat_hash_map<std::pair<uint64_t, uint32_t>, uint64_t> tags_cache;
 
   /* The queue of metrics sent in bulk to the database. The insert is done if
    * the loop timeout is reached or if the queue size is greater than

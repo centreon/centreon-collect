@@ -1186,10 +1186,6 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
             "poller_id=?,severity_id=?,name=?,parent_name=?,notes_url=?,"
             "notes=?,action_url=?,notifications_enabled=?,"
             "passive_checks_enabled=?,active_checks_enabled=?");
-        _resources_tags_insupdate = _mysql.prepare_query(
-            "INSERT INTO resources_tags "
-            "(tag_id,resource_parent_id,resource_id,resource_type) "
-            "VALUES(?,0,?,1)");
       }
 
       // Process object.
@@ -1288,33 +1284,34 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
                            conn);
       _add_action(conn, actions::resources);
 
-      _index_data_query = _mysql.prepare_query(
-          "SELECT "
-          "id from tags WHERE tid=? AND ttype=?");
-
       for (auto tag : h.tags()) {
-        _index_data_query.bind_value_as_i32(0, tag.first);
-        _index_data_query.bind_value_as_i32(1, tag.second);
-        std::promise<database::mysql_result> pq;
-        log_v2::sql()->debug(
-            "Attempt to get the tag from the database for host ({})",
-            h.host_id());
+        auto it_tags_cache =
+            tags_cache.find(std::make_pair(tag.first, tag.second));
 
-        _mysql.run_statement_and_get_result(_index_data_query, &pq, conn);
+        if (!_resources_tags_insupdate.prepared()) {
+          _resources_tags_insupdate = _mysql.prepare_query(
+              "INSERT INTO resources_tags "
+              "(tag_id,resource_id) "
+              "VALUES(?,?)");
+        }
 
-        try {
-          database::mysql_result res(pq.get_future().get());
-          if (_mysql.fetch_row(res)) {
-            _resources_tags_insupdate.bind_value_as_u64(0, res.value_as_u64(0));
-            _resources_tags_insupdate.bind_value_as_u64(1, h.host_id());
+        if (it_tags_cache != tags_cache.end()) {
+          _resources_tags_insupdate.bind_value_as_u64(0, it_tags_cache->second);
+          _resources_tags_insupdate.bind_value_as_u64(1, h.host_id());
 
-            _finish_action(-1, actions::resources_tags);
-            _mysql.run_statement(
-                _resources_tags_insupdate,
-                database::mysql_error::store_tags_resources_tags, true, conn);
-            _add_action(conn, actions::resources_tags);
-          }
-        } catch (const std::exception& e) {
+          log_v2::sql()->debug(
+              "dans for tag host {} tag_id "
+              "{} id {} type {}",
+              h.host_id(), it_tags_cache->second, tag.first, tag.second);
+          _finish_action(-1, actions::resources_tags);
+          _mysql.run_statement(_resources_tags_insupdate,
+                               database::mysql_error::store_tags_resources_tags,
+                               true, conn);
+          _add_action(conn, actions::resources_tags);
+        } else {
+          log_v2::sql()->error(
+              "SQL: could not found on cache  the tag ({}, {}) for host '{}'",
+              tag.first, tag.second, h.host_id());
         }
       }
     } else
@@ -2225,10 +2222,6 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
             "poller_id=?,severity_id=?,name=?,parent_name=?,notes_url=?,"
             "notes=?,action_url=?,notifications_enabled=?,"
             "passive_checks_enabled=?,active_checks_enabled=?");
-        _resources_tags_insupdate = _mysql.prepare_query(
-            "INSERT INTO resources_tags "
-            "(tag_id,resource_parent_id,resource_id,resource_type) "
-            "VALUES(?,0,?,1)");
       }
 
       // Processing.
@@ -2327,33 +2320,34 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
                            database::mysql_error::store_service, true, conn);
       _add_action(conn, actions::resources);
 
-      _index_data_query = _mysql.prepare_query(
-          "SELECT "
-          "id from tags WHERE tid=? AND ttype=?");
-
       for (auto tag : ss.tags()) {
-        _index_data_query.bind_value_as_i32(0, tag.first);
-        _index_data_query.bind_value_as_i32(1, tag.second);
-        std::promise<database::mysql_result> pq;
-        log_v2::sql()->debug(
-            "Attempt to get the tag from the database for host ({})",
-            ss.host_id());
+        auto it_tags_cache =
+            tags_cache.find(std::make_pair(tag.first, tag.second));
 
-        _mysql.run_statement_and_get_result(_index_data_query, &pq, conn);
+        if (!_resources_tags_insupdate.prepared()) {
+          _resources_tags_insupdate = _mysql.prepare_query(
+              "INSERT INTO resources_tags "
+              "(tag_id,resource_id) "
+              "VALUES(?,?)");
+        }
 
-        try {
-          database::mysql_result res(pq.get_future().get());
-          if (_mysql.fetch_row(res)) {
-            _resources_tags_insupdate.bind_value_as_u64(0, res.value_as_u64(0));
-            _resources_tags_insupdate.bind_value_as_u64(1, ss.host_id());
+        if (it_tags_cache != tags_cache.end()) {
+          _resources_tags_insupdate.bind_value_as_u64(0, it_tags_cache->second);
+          _resources_tags_insupdate.bind_value_as_u64(1, ss.service_id());
 
-            _finish_action(-1, actions::resources_tags);
-            _mysql.run_statement(
-                _resources_tags_insupdate,
-                database::mysql_error::store_tags_resources_tags, true, conn);
-            _add_action(conn, actions::resources_tags);
-          }
-        } catch (const std::exception& e) {
+          log_v2::sql()->debug(
+              "dans for tag                           !!!!! service {} tag_id "
+              "{} id {} type {}",
+              ss.service_id(), it_tags_cache->second, tag.first, tag.second);
+          _finish_action(-1, actions::resources_tags);
+          _mysql.run_statement(_resources_tags_insupdate,
+                               database::mysql_error::store_tags_resources_tags,
+                               true, conn);
+          _add_action(conn, actions::resources_tags);
+        } else {
+          log_v2::sql()->error(
+              "SQL: could not found on cache  the tag ({}, {}) for host '{}'",
+              tag.first, tag.second, ss.service_id());
         }
       }
     } else
@@ -2961,6 +2955,7 @@ void stream::_process_tag(const std::shared_ptr<io::data>& d) {
       // FIXME DBO: Delete should be implemented later.
       log_v2::sql()->trace("SQL: removed tag {}", tg.id());
       st = &_tag_delete;
+      // tags_cache.erase(std::make_pair(tg.id(), tg.type()));
       break;
     default:
       log_v2::sql()->error("Bad action in tag object");
@@ -2969,8 +2964,44 @@ void stream::_process_tag(const std::shared_ptr<io::data>& d) {
   if (tg.action() != Tag_Action_DELETE) {
     *st << *s;
     int32_t conn = special_conn::tag % _mysql.connections_count();
-    _mysql.run_statement(*st, database::mysql_error::store_tag, false, conn);
+    std::promise<uint64_t> p;
+    _mysql.run_statement_and_get_int<uint64_t>(
+        *st, &p, database::mysql_task::LAST_INSERT_ID, conn);
     _add_action(conn, actions::tags);
+    uint64_t tag_id;
+    try {
+      tag_id = p.get_future().get();
+    } catch (const std::exception& e) {
+      if (!_index_data_query.prepared())
+        _index_data_query = _mysql.prepare_query(
+            "SELECT "
+            "id from tags WHERE tid=? AND ttype=?");
+
+      _index_data_query.bind_value_as_i32(0, tg.id());
+      _index_data_query.bind_value_as_i32(1, tg.type());
+      std::promise<database::mysql_result> pq;
+      log_v2::sql()->debug(
+          "Attempt to get the tag_id from the database for tag ({}, {})",
+          tg.id(), tg.type());
+
+      _mysql.run_statement_and_get_result(_index_data_query, &pq, conn);
+
+      try {
+        database::mysql_result res(pq.get_future().get());
+        if (_mysql.fetch_row(res)) {
+          tag_id = res.value_as_u64(0);
+          log_v2::sql()->debug("sql: loaded tag_id {} for tag ({}, {})", tag_id,
+                               tg.id(), tg.type());
+        }
+      } catch (const std::exception& e) {
+      }
+      if (tag_id == 0)
+        throw exceptions::msg_fmt("Could not fetch tag_id of tag ({}, {}): {}",
+                                  tg.id(), tg.type(), e.what());
+    }
+    log_v2::sql()->debug("juste avant pb insert cache ({}, {}, tag_id {})",
+                         tg.id(), tg.type(), tag_id);
+    tags_cache.emplace(std::make_pair(tg.id(), tg.type()), tag_id);
   }
 }
 
