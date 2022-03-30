@@ -116,6 +116,12 @@ message Service {
   repeated TagInfo tags = 84;
 }
 
+message tag {
+  uint64 id = 1;
+  uint32 type = 2;
+}
+
+
 /**
  * @brief Message sent in BBDO 3.0.0 instead of neb::service_status
  */
