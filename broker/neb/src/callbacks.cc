@@ -1466,7 +1466,9 @@ int neb::callback_pb_host(int callback_type, void* data) {
     host.set_timezone(eh->get_timezone());
     host.set_severity_id(eh->get_severity() ? eh->get_severity()->id() : 0);
     for (auto tag : eh->tags()) {
-      (*host.mutable_tags())[tag.first.first] = tag.first.second;
+      TagInfo* ti = host.mutable_tags()->Add();
+      ti->set_id(tag.first.first);
+      ti->set_type(static_cast<TagType>(tag.first.second));
     }
 
     // Find host ID.
@@ -2486,7 +2488,9 @@ int neb::callback_pb_service(int callback_type, void* data) {
     srv.set_severity_id(es->get_severity() ? es->get_severity()->id() : 0);
 
     for (auto tag : es->tags()) {
-      (*srv.mutable_tags())[tag.first.first] = tag.first.second;
+      TagInfo* ti = srv.mutable_tags()->Add();
+      ti->set_id(tag.first.first);
+      ti->set_type(static_cast<TagType>(tag.first.second));
     }
 
     // Search host ID and service ID.
