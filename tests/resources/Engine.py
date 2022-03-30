@@ -102,7 +102,7 @@ class EngineInstance:
                 "log_legacy_enabled=1\n"
                 "log_v2_logger=file\n"
                 "log_level_functions=info\n"
-                "log_level_config=debug\n"
+                "log_level_config=info\n"
                 "log_level_events=info\n"
                 "log_level_checks=info\n"
                 "log_level_notifications=info\n"
