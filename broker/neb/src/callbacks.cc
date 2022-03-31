@@ -2662,16 +2662,16 @@ int32_t neb::callback_tag(int callback_type __attribute__((unused)),
   tg.set_poller_id(config::applier::state::instance().poller_id());
   switch (et->type()) {
     case engine::tag::hostcategory:
-      tg.set_type(Tag_Type_HOSTCATEGORY);
+      tg.set_type(HOSTCATEGORY);
       break;
     case engine::tag::servicecategory:
-      tg.set_type(Tag_Type_SERVICECATEGORY);
+      tg.set_type(SERVICECATEGORY);
       break;
     case engine::tag::hostgroup:
-      tg.set_type(Tag_Type_HOSTGROUP);
+      tg.set_type(HOSTGROUP);
       break;
     case engine::tag::servicegroup:
-      tg.set_type(Tag_Type_SERVICEGROUP);
+      tg.set_type(SERVICEGROUP);
       break;
     default:
       log_v2::neb()->error(
