@@ -1531,7 +1531,10 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
         4, hscr.state_type() == HostStatus_StateType_HARD);
     _hscr_resources_update.bind_value_as_u32(5, hscr.current_check_attempt());
     _hscr_resources_update.bind_value_as_bool(6, hscr.perf_data() != "");
-    _hscr_resources_update.bind_value_as_u64(7, hscr.host_id());
+    _sscr_resources_update.bind_value_as_u32(7, hscr.check_type());
+    _sscr_resources_update.bind_value_as_u64(8, hscr.last_check());
+    _sscr_resources_update.bind_value_as_str(9, hscr.output());
+    _hscr_resources_update.bind_value_as_u64(10, hscr.host_id());
 
     _mysql.run_statement(_hscr_resources_update,
                          database::mysql_error::store_host_status, false, conn);
@@ -2731,6 +2734,9 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
         4, sscr.state_type() == ServiceStatus_StateType_HARD);
     _sscr_resources_update.bind_value_as_u32(5, sscr.current_check_attempt());
     _sscr_resources_update.bind_value_as_bool(6, sscr.perf_data() != "");
+    _sscr_resources_update.bind_value_as_u32(7, sscr.check_type());
+    _sscr_resources_update.bind_value_as_u64(8, sscr.last_check());
+    _sscr_resources_update.bind_value_as_str(9, sscr.output());
     _sscr_resources_update.bind_value_as_u64(10, sscr.service_id());
     _sscr_resources_update.bind_value_as_u64(11, sscr.host_id());
 

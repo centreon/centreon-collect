@@ -132,11 +132,74 @@ static void escape_str(const char* content, std::ostringstream& oss) {
     oss << content;
 }
 
+static void _message_to_json(std::ostringstream& oss,
+                             const google::protobuf::Message* p) {
+  const google::protobuf::Descriptor* desc = p->GetDescriptor();
+  const google::protobuf::Reflection* refl = p->GetReflection();
+  for (int i = 0; i < desc->field_count(); i++) {
+    auto f = desc->field(i);
+    auto oof = f->containing_oneof();
+    if (oof) {
+      if (!refl->GetOneofFieldDescriptor(*p, oof)) {
+        continue;
+      }
+    }
+    const std::string& entry_name = f->name();
+    if (i > 0)
+      oss << ", ";
+    switch (f->type()) {
+      case google::protobuf::FieldDescriptor::TYPE_BOOL:
+        oss << fmt::format("\"{}\":{}", entry_name, refl->GetBool(*p, f));
+        break;
+      case google::protobuf::FieldDescriptor::TYPE_DOUBLE:
+        oss << fmt::format("\"{}\":{}", entry_name, refl->GetDouble(*p, f));
+        break;
+      case google::protobuf::FieldDescriptor::TYPE_INT32:
+        oss << fmt::format("\"{}\":{}", entry_name, refl->GetInt32(*p, f));
+        break;
+      case google::protobuf::FieldDescriptor::TYPE_UINT32:
+        oss << fmt::format("\"{}\":{}", entry_name, refl->GetUInt32(*p, f));
+        break;
+      case google::protobuf::FieldDescriptor::TYPE_INT64:
+        oss << fmt::format("\"{}\":{}", entry_name, refl->GetInt64(*p, f));
+        break;
+      case google::protobuf::FieldDescriptor::TYPE_UINT64:
+        oss << fmt::format("\"{}\":{}", entry_name, refl->GetUInt64(*p, f));
+        break;
+      case google::protobuf::FieldDescriptor::TYPE_ENUM:
+        oss << fmt::format("\"{}\":{}", entry_name, refl->GetEnumValue(*p, f));
+        break;
+      case google::protobuf::FieldDescriptor::TYPE_STRING:
+        oss << fmt::format("\"{}\":\"{}\"", entry_name, refl->GetString(*p, f));
+        break;
+      case google::protobuf::FieldDescriptor::TYPE_MESSAGE:
+        oss << fmt::format("\"{}\":", entry_name);
+        if (f->is_repeated()) {
+          oss << '[';
+          size_t s = refl->FieldSize(*p, f);
+          for (size_t i = 0; i < s; i++) {
+            if (i > 0)
+              oss << ", ";
+            oss << '{';
+            _message_to_json(oss, &refl->GetRepeatedMessage(*p, f, i));
+            oss << '}';
+          }
+          oss << ']';
+        }
+        break;
+      default:  // Error, a type not handled
+        throw msg_fmt(
+            "protobuf {} type ID is not handled in the broker json converter",
+            f->type());
+    }
+  }
+}
+
 static void broker_json_encode_broker_event(std::shared_ptr<io::data> e,
                                             std::ostringstream& oss) {
   io::event_info const* info = io::events::instance().get_event_info(e->type());
   if (info) {
-    oss << fmt::format("{{ \"_type\": {}, \"category\": {}, \"element\": {}",
+    oss << fmt::format("{{\"_type\":{}, \"category\":{}, \"element\":{}",
                        e->type(), static_cast<uint32_t>(e->type()) >> 16,
                        static_cast<uint32_t>(e->type()) & 0xffff);
     if (info->get_mapping()) {
@@ -251,66 +314,18 @@ static void broker_json_encode_broker_event(std::shared_ptr<io::data> e,
         }
       }
     } else {
+      oss << ", ";
       /* Here is the protobuf case: no mapping */
       const google::protobuf::Message* p =
           static_cast<const io::protobuf_base*>(e.get())->msg();
-      const google::protobuf::Descriptor* desc = p->GetDescriptor();
-      const google::protobuf::Reflection* refl = p->GetReflection();
-      for (int i = 0; i < desc->field_count(); i++) {
-        auto f = desc->field(i);
-        auto oof = f->containing_oneof();
-        if (oof) {
-          if (!refl->GetOneofFieldDescriptor(*p, oof)) {
-            continue;
-          }
-        }
-        const std::string& entry_name = f->name();
-        switch (f->type()) {
-          case google::protobuf::FieldDescriptor::TYPE_BOOL:
-            oss << fmt::format(", \"{}\":{}", entry_name, refl->GetBool(*p, f));
-            break;
-          case google::protobuf::FieldDescriptor::TYPE_DOUBLE:
-            oss << fmt::format(", \"{}\":{}", entry_name,
-                               refl->GetDouble(*p, f));
-            break;
-          case google::protobuf::FieldDescriptor::TYPE_INT32:
-            oss << fmt::format(", \"{}\":{}", entry_name,
-                               refl->GetInt32(*p, f));
-            break;
-          case google::protobuf::FieldDescriptor::TYPE_UINT32:
-            oss << fmt::format(", \"{}\":{}", entry_name,
-                               refl->GetUInt32(*p, f));
-            break;
-          case google::protobuf::FieldDescriptor::TYPE_INT64:
-            oss << fmt::format(", \"{}\":{}", entry_name,
-                               refl->GetInt64(*p, f));
-            break;
-          case google::protobuf::FieldDescriptor::TYPE_UINT64:
-            oss << fmt::format(", \"{}\":{}", entry_name,
-                               refl->GetUInt64(*p, f));
-            break;
-          case google::protobuf::FieldDescriptor::TYPE_ENUM:
-            oss << fmt::format(", \"{}\":{}", entry_name,
-                               refl->GetEnumValue(*p, f));
-            break;
-          case google::protobuf::FieldDescriptor::TYPE_STRING:
-            oss << fmt::format(", \"{}\":\"{}\"", entry_name,
-                               refl->GetString(*p, f));
-            break;
-          default:  // Error, a type not handled
-            throw msg_fmt(
-                "invalid mapping for object '{}': {} type ID is not handled by "
-                "the Lua stream",
-                info->get_name(), f->type());
-        }
-      }
+      _message_to_json(oss, p);
     }
-    oss << "}";
   } else
     throw msg_fmt(
         "cannot bind object of type {}"
         " to database query: mapping does not exist",
         e->type());
+  oss << '}';
 }
 
 /**
@@ -359,7 +374,8 @@ static void broker_json_encode(lua_State* L, std::ostringstream& oss) {
 static int l_broker_json_encode(lua_State* L) {
   std::ostringstream oss;
   broker_json_encode(L, oss);
-  lua_pushstring(L, oss.str().c_str());
+  std::string s{oss.str()};
+  lua_pushlstring(L, s.c_str(), s.size());
   return 1;
 }
 
