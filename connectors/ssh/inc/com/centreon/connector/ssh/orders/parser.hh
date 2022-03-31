@@ -19,14 +19,17 @@
 #ifndef CCCS_ORDERS_PARSER_HH
 #define CCCS_ORDERS_PARSER_HH
 
-#include <string>
 #include "com/centreon/connector/ssh/namespace.hh"
-#include "com/centreon/connector/ssh/orders/listener.hh"
-#include "com/centreon/handle_listener.hh"
+#include "com/centreon/connector/ssh/orders/options.hh"
 
 CCCS_BEGIN()
 
+class policy_interface;
+
 namespace orders {
+
+constexpr unsigned parser_buff_size = 4096;
+
 /**
  *  @class parser parser.hh "com/centreon/connector/ssh/orders/parser.hh"
  *  @brief Parse orders.
@@ -35,25 +38,42 @@ namespace orders {
  *  parser class can handle be registered with one handle at a time
  *  and one listener.
  */
-class parser : public handle_listener {
+class parser : public std::enable_shared_from_this<parser> {
+ protected:
+  shared_io_context _io_context;
+  asio::posix::stream_descriptor _sin;
   std::string _buffer;
-  listener* _listnr;
+  bool _dont_care_about_stdin_eof;
 
+  std::shared_ptr<policy_interface> _owner;
+
+  char _recv_buff[parser_buff_size];
+
+  void read();
   void _parse(std::string const& cmd);
 
+  parser(shared_io_context io_context,
+         const std::shared_ptr<policy_interface>& policy);
+  virtual void start_read();
+  void read_file(const std::string& test_file_path);
+
+  void read_handler(const std::error_code& error,
+                    std::size_t bytes_transferred);
+
  public:
-  parser();
-  ~parser() noexcept {};
+  using pointer = std::shared_ptr<parser>;
+
+  static const std::error_code eof_err;  // used by test
+
+  static pointer create(shared_io_context io_context,
+                        const std::shared_ptr<policy_interface>& policy,
+                        const std::string& test_cmd_file = "");
+
+  virtual ~parser() noexcept {};
   parser(parser const& p) = delete;
   parser& operator=(parser const& p) = delete;
-  void error(handle& h) override;
-  std::string const& get_buffer() const noexcept;
-  listener* get_listener() const noexcept;
-  void listen(listener* l = nullptr) noexcept;
-  void read(handle& h) override;
-  bool want_read(handle& h) override;
-  bool want_write(handle& h) override;
 };
+
 }  // namespace orders
 
 CCCS_END()

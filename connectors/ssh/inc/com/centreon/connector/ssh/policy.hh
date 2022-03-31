@@ -19,16 +19,9 @@
 #ifndef CCCS_POLICY_HH
 #define CCCS_POLICY_HH
 
-#include <map>
-#include <mutex>
-#include <utility>
-#include "com/centreon/connector/ssh/checks/listener.hh"
-#include "com/centreon/connector/ssh/orders/listener.hh"
-#include "com/centreon/connector/ssh/orders/parser.hh"
+#include "com/centreon/connector/ssh/orders/options.hh"
 #include "com/centreon/connector/ssh/reporter.hh"
 #include "com/centreon/connector/ssh/sessions/credentials.hh"
-#include "com/centreon/io/file_stream.hh"
-#include "com/centreon/timestamp.hh"
 
 CCCS_BEGIN()
 
@@ -37,9 +30,23 @@ namespace checks {
 class check;
 class result;
 }  // namespace checks
+
 namespace sessions {
 class session;
 }
+
+class policy_interface : public std::enable_shared_from_this<policy_interface> {
+ public:
+  virtual ~policy_interface() = default;
+
+  virtual void on_eof() = 0;
+  virtual void on_error(uint64_t cmd_id, const std::string& msg) = 0;
+  virtual void on_execute(uint64_t cmd_id,
+                          const time_point& timeout,
+                          const orders::options::pointer& opt) = 0;
+  virtual void on_quit() = 0;
+  virtual void on_version() = 0;
+};
 
 /**
  *  @class policy policy.hh "com/centreon/connector/ssh/policy.hh"
@@ -47,40 +54,57 @@ class session;
  *
  *  Manage program execution.
  */
-class policy : public orders::listener, public checks::listener {
- public:
-  policy();
-  ~policy() noexcept override;
-  void on_eof() override;
-  void on_error(uint64_t cmd_id, char const* msg) override;
-  void on_execute(uint64_t cmd_id,
-                  const timestamp& timeout,
-                  std::string const& host,
-                  unsigned short port,
-                  std::string const& user,
-                  std::string const& password,
-                  std::string const& key,
-                  std::list<std::string> const& cmds,
-                  int skip_output,
-                  int skip_error,
-                  bool is_ipv6) override;
-  void on_quit() override;
-  void on_result(checks::result const& r) override;
-  void on_version() override;
-  bool run();
+class policy : public policy_interface {
+  bool _error;
+  reporter::pointer _reporter;
+  std::map<sessions::credentials, std::shared_ptr<sessions::session>> _sessions;
 
- private:
+  struct connect_waiting_session {
+    struct cmd_info {
+      uint64_t cmd_id;
+      time_point timeout;
+      orders::options::pointer opt;
+    };
+
+    std::queue<cmd_info> waiting_check;
+    std::shared_ptr<sessions::session> _connecting;
+  };
+
+  std::map<sessions::credentials, connect_waiting_session>
+      _connect_waiting_session;
+
+  shared_io_context _io_context;
+
+  policy(const shared_io_context& io_context);
   policy(policy const& p);
   policy& operator=(policy const& p);
 
-  std::map<uint64_t, std::pair<checks::check*, sessions::session*> > _checks;
-  bool _error;
-  std::mutex _mutex;
-  orders::parser _parser;
-  reporter _reporter;
-  std::map<sessions::credentials, sessions::session*> _sessions;
-  io::file_stream _sin;
-  io::file_stream _sout;
+  void start(const std::string& test_cmd_file);
+  void on_connect(const std::error_code& err,
+                  const sessions::credentials& creds);
+
+ public:
+  using pointer = std::shared_ptr<policy>;
+
+  pointer shared_from_this() {
+    return std::static_pointer_cast<policy>(
+        policy_interface::shared_from_this());
+  }
+
+  static pointer create(const shared_io_context& io_context,
+                        const std::string& test_cmd_file);
+
+  void on_eof() override;
+  void on_error(uint64_t cmd_id, const std::string& msg) override;
+  void on_execute(uint64_t cmd_id,
+                  const time_point& timeout,
+                  const orders::options::pointer& opt) override;
+  void on_execute(const std::shared_ptr<sessions::session>& session,
+                  uint64_t cmd_id,
+                  const time_point& timeout,
+                  const orders::options::pointer& opt);
+  void on_quit() override;
+  void on_version() override;
 };
 
 CCCS_END()

@@ -210,6 +210,18 @@ void credentials::set_user(std::string const& user) {
   _user = user;
 }
 
+CCCS_BEGIN()
+
+namespace sessions {
+std::ostream& operator<<(std::ostream& s, const credentials& cred) {
+  s << cred.get_user() << '@' << cred.get_host() << ':' << cred.get_port();
+  return s;
+}
+
+}  // namespace sessions
+
+CCCS_END()
+
 /**************************************
  *                                     *
  *           Private Methods           *

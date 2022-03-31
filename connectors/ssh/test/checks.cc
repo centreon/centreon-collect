@@ -21,7 +21,6 @@
 
 #include "com/centreon/connector/ssh/checks/check.hh"
 #include "com/centreon/connector/ssh/checks/result.hh"
-#include "com/centreon/connector/ssh/checks/timeout.hh"
 
 using namespace com::centreon::connector::ssh;
 using namespace com::centreon::connector::ssh::checks;
@@ -66,9 +65,9 @@ TEST(SSHChecks, CommandId) {
   // Checks.
   r.set_command_id(71184);
   for (unsigned int i = 0; i < 100; ++i)
-    ASSERT_EQ(r.get_command_id(), 71184ull);
+    ASSERT_EQ(r.get_command_id(), 71184u);
   r.set_command_id(15);
-  ASSERT_EQ(r.get_command_id(), 15ull);
+  ASSERT_EQ(r.get_command_id(), 15u);
   r.set_command_id(741258963148368872ull);
   for (unsigned int i = 0; i < 10000; ++i)
     ASSERT_EQ(r.get_command_id(), 741258963148368872ull);
@@ -94,7 +93,7 @@ TEST(SSHChecks, CtorCopy) {
   r1.set_output("baz qux");
 
   // Check content.
-  ASSERT_EQ(r1.get_command_id(), 42ull);
+  ASSERT_EQ(r1.get_command_id(), 42u);
   ASSERT_EQ(r1.get_error(), "foo bar");
   ASSERT_EQ(r1.get_executed(), false);
   ASSERT_EQ(r1.get_exit_code(), 7536);
@@ -112,7 +111,7 @@ TEST(SSHChecks, CtorDefault) {
   com::centreon::connector::ssh::checks::result r;
 
   // Check.
-  ASSERT_EQ(r.get_command_id(), 0ull);
+  ASSERT_EQ(r.get_command_id(), 0u);
   ASSERT_EQ(r.get_error().empty(), true);
   ASSERT_EQ(r.get_executed(), false);
   ASSERT_EQ(r.get_exit_code(), -1);
@@ -183,15 +182,4 @@ TEST(SSHChecks, Output) {
     ASSERT_EQ(
         r.get_output(),
         "this is the last string that makes Centreon SSH Connector rocks !");
-}
-
-TEST(SSHChecks, TimeoutCtor) {
-  // Default construction.
-  checks::timeout t1;
-  ASSERT_EQ(t1.get_check(), nullptr);
-
-  // Constructed with check.
-  checks::check c1;
-  checks::timeout t2(&c1);
-  ASSERT_EQ(t2.get_check(), &c1);
 }
