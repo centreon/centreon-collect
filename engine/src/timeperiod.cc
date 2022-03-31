@@ -65,16 +65,8 @@ timeperiod::timeperiod(std::string const& name, std::string const& alias)
   }
 }
 
-std::string const& timeperiod::timeperiod::get_name() const {
-  return _name;
-}
-
 void timeperiod::set_name(std::string const& name) {
   _name = name;
-}
-
-std::string const timeperiod::get_alias() const {
-  return _alias;
 }
 
 void timeperiod::set_alias(std::string const& alias) {
@@ -1196,12 +1188,4 @@ void timeperiod::resolve(int& w __attribute__((unused)), int& e) {
     e += errors;
     throw engine_error() << "Cannot resolve time period '" << _name << "'";
   }
-}
-
-timeperiodexclusion const& timeperiod::get_exclusions() const {
-  return _exclusions;
-}
-
-timeperiodexclusion& timeperiod::get_exclusions() {
-  return _exclusions;
 }

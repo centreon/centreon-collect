@@ -86,6 +86,9 @@ void applier::timeperiod::add_object(configuration::timeperiod const& obj) {
 
   // Fill time period structure.
   _add_time_ranges(obj.timeranges(), tp.get());
+  if (obj.name() == "Astreinte_Paas_1_avec_feries_2021") {
+    int tutu = 1;
+  }
   _add_exceptions(obj.exceptions(), tp.get());
   _add_exclusions(obj.exclude(), tp.get());
 }

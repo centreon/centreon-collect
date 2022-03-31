@@ -17,6 +17,8 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
+#include <ostream>
+
 #include "com/centreon/engine/configuration/timerange.hh"
 
 using namespace com::centreon::engine::configuration;
@@ -129,3 +131,18 @@ unsigned long timerange::start() const throw() {
 void timerange::start(unsigned long value) {
   _start = value;
 }
+
+CCE_BEGIN()
+
+namespace configuration {
+/**
+ * @brief dump operator
+ *
+ */
+std::ostream& operator<<(std::ostream& stream, const timerange& to_dump) {
+  stream << to_dump.start() << ',' << to_dump.end();
+  return stream;
+}
+}  // namespace configuration
+
+CCE_END()

@@ -41,12 +41,12 @@ class timeperiod {
  public:
   timeperiod(std::string const& name, std::string const& alias);
 
-  std::string const& get_name() const;
+  std::string const& get_name() const { return _name; };
   void set_name(std::string const& name);
-  std::string const get_alias() const;
+  std::string const get_alias() const { return _alias; };
   void set_alias(std::string const& alias);
-  timeperiodexclusion const& get_exclusions() const;
-  timeperiodexclusion& get_exclusions();
+  timeperiodexclusion const& get_exclusions() const { return _exclusions; };
+  timeperiodexclusion& get_exclusions() { return _exclusions; };
   void get_next_valid_time_per_timeperiod(time_t preferred_time,
                                           time_t* invalid_time,
                                           bool notif_timeperiod);

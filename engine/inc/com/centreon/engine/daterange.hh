@@ -98,9 +98,9 @@ class daterange {
   int _skip_interval;
 };
 
-CCE_END()
-
 std::ostream& operator<<(std::ostream& os,
                          com::centreon::engine::daterange const& obj);
+
+CCE_END()
 
 #endif  // !CCE_OBJECTS_DATERANGE_HH

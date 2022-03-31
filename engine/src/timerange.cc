@@ -89,6 +89,8 @@ bool timerange::operator!=(timerange const& obj) noexcept {
   return !(*this == obj);
 }
 
+CCE_BEGIN()
+
 /**
  *  Dump timerange content into the stream.
  *
@@ -123,3 +125,5 @@ std::ostream& operator<<(std::ostream& os, timerange_list const& obj) {
     os << **it << ((next(it) == obj.end()) ? "" : ", ");
   return os;
 }
+
+CCE_END()

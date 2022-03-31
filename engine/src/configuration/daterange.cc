@@ -17,6 +17,8 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
+#include <ostream>
+
 #include "com/centreon/engine/configuration/daterange.hh"
 
 using namespace com::centreon::engine::configuration;
@@ -380,3 +382,42 @@ void daterange::year_start(unsigned int value) {
 unsigned int daterange::year_start() const throw() {
   return (_year_start);
 }
+
+void daterange::dump(std::ostream& s) const {
+  s << "type:" << _type << " begin:" << _month_day_start << '/' << _month_start
+    << '/' << _year_start
+    << " _week_day_start_offset: " << _week_day_start_offset
+    << " end:" << _month_day_end << '/' << _month_end << '/' << _year_end
+    << " _week_day_end_offset: " << _week_day_end_offset
+    << " _skip_interval: " << _skip_interval << " timeranges: [ ";
+
+  for (const timerange& t : _timeranges) {
+    s << " {" << t.start() << ',' << t.end() << '}';
+  }
+  s << " ]";
+}
+
+CCE_BEGIN()
+namespace configuration {
+
+#define CASE_DUMP(val) \
+  case daterange::val: \
+    s << #val;         \
+    break;
+
+std::ostream& operator<<(std::ostream& s,
+                         const daterange::type_range& type_range) {
+  switch (type_range) {
+    CASE_DUMP(none)
+    CASE_DUMP(calendar_date)
+    CASE_DUMP(month_date)
+    CASE_DUMP(month_day)
+    CASE_DUMP(month_week_day)
+    CASE_DUMP(week_day)
+  }
+  return s;
+}
+
+}  // namespace configuration
+
+CCE_END()

@@ -72,6 +72,7 @@ if (WITH_TESTING)
     "${TESTS_DIR}/configuration/service.cc"
     "${TESTS_DIR}/configuration/severity.cc"
     "${TESTS_DIR}/configuration/tag.cc"
+    "${TESTS_DIR}/configuration/timeperiod-test.cc"
     "${TESTS_DIR}/contacts/contactgroup-config.cc"
     "${TESTS_DIR}/contacts/simple-contactgroup.cc"
     "${TESTS_DIR}/custom_vars/extcmd.cc"
@@ -105,6 +106,7 @@ if (WITH_TESTING)
     "${TESTS_DIR}/timeperiod/get_next_valid_time/dst_forward.cc"
     "${TESTS_DIR}/timeperiod/get_next_valid_time/earliest_daterange_first.cc"
     "${TESTS_DIR}/timeperiod/get_next_valid_time/exclusion.cc"
+    "${TESTS_DIR}/timeperiod/get_next_valid_time/exceptions_test.cc"
     "${TESTS_DIR}/timeperiod/get_next_valid_time/generic_month_date.cc"
     "${TESTS_DIR}/timeperiod/get_next_valid_time/normal_weekday.cc"
     "${TESTS_DIR}/timeperiod/get_next_valid_time/offset_weekday_of_generic_month.cc"
@@ -132,6 +134,9 @@ if (WITH_TESTING)
       RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR}/tests
       RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/tests
   )
+
+  #file used by timeperiod-test.cc
+  file(COPY ${TESTS_DIR}/configuration/timeperiods.cfg DESTINATION ${CMAKE_BINARY_DIR}/tests/ ) 
 
   add_test(NAME tests COMMAND ut_engine)
 

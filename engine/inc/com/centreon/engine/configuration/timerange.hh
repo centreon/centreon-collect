@@ -43,6 +43,9 @@ class timerange {
   unsigned long _end;
   unsigned long _start;
 };
+
+std::ostream& operator<<(std::ostream& stream, const timerange& to_dump);
+
 }  // namespace configuration
 
 CCE_END()

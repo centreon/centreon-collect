@@ -46,10 +46,11 @@ class timerange {
   uint64_t _range_start;
   uint64_t _range_end;
 };
-CCE_END()
 
 std::ostream& operator<<(std::ostream& os,
                          com::centreon::engine::timerange const& obj);
 std::ostream& operator<<(std::ostream& os, timerange_list const& obj);
+
+CCE_END()
 
 #endif  // !CCE_OBJECTS_TIMERANGE_HH

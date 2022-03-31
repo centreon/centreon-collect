@@ -33,6 +33,9 @@
 CCE_BEGIN()
 
 namespace configuration {
+namespace test {
+class time_period_comparator;
+}
 class timeperiod : public object {
  public:
   typedef std::string key_type;
@@ -55,6 +58,8 @@ class timeperiod : public object {
   set_string const& exclude() const throw();
   std::string const& timeperiod_name() const throw();
   std::vector<std::list<timerange> > const& timeranges() const throw();
+
+  friend test::time_period_comparator;
 
  private:
   typedef bool (*setter_func)(timeperiod&, char const*);

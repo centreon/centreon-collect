@@ -301,6 +301,7 @@ static std::ostream& _dump_week_day(std::ostream& os, daterange const& obj) {
   return (os);
 }
 
+CCE_BEGIN()
 /**
  *  Dump daterange content into the stream.
  *
@@ -324,6 +325,7 @@ std::ostream& operator<<(std::ostream& os, daterange const& obj) {
   }
   return (os);
 }
+CCE_END()
 
 /**
  *  Get the month name.

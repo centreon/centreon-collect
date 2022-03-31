@@ -73,6 +73,8 @@ class daterange {
   void year_start(unsigned int value);
   unsigned int year_start() const throw();
 
+  void dump(std::ostream&) const;
+
  private:
   unsigned int _month_end;
   unsigned int _month_start;
@@ -88,6 +90,14 @@ class daterange {
   unsigned int _year_end;
   unsigned int _year_start;
 };
+
+std::ostream& operator<<(std::ostream&, const daterange::type_range&);
+
+inline std::ostream& operator<<(std::ostream& str, const daterange& to_dump) {
+  to_dump.dump(str);
+  return str;
+}
+
 }  // namespace configuration
 
 CCE_END()
