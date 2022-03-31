@@ -747,6 +747,7 @@ TEST_F(ApplierService, ServicesEqualityTags) {
   ASSERT_TRUE(csvc1.parse("group_tags", "6,8,9"));
   ASSERT_TRUE(csvc < csvc1);
   ASSERT_TRUE(csvc.parse("category_tags", "15,26,34"));
+  ASSERT_TRUE(csvc.parse("group_tags", "6,8,9"));
   ASSERT_TRUE(csvc1 < csvc);
 
   ASSERT_TRUE(svc1 != svc2);
