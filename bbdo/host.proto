@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+import "tag.proto";
+
 package com.centreon.broker;
 
 message Host {
@@ -106,6 +108,7 @@ message Host {
   bool retain_status_information = 78;
   string timezone = 79;
   uint64 severity_id = 80;
+  repeated TagInfo tags = 81;
 }
 
 /**
