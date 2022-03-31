@@ -32,11 +32,11 @@ class tag : public object {
   using key_type = std::pair<uint64_t, uint16_t>;
 
   enum tagtype {
-    none = 0,
-    hostcategory = 1,
+    servicegroup = 0,
+    hostgroup = 1,
     servicecategory = 2,
-    hostgroup = 3,
-    servicegroup = 4,
+    hostcategory = 3,
+    none = 4
   };
 
  private:

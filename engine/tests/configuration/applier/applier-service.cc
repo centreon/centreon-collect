@@ -508,7 +508,8 @@ TEST_F(ApplierService, NewServiceFromConfigTags) {
   ASSERT_TRUE(svc.parse("host", "test_host"));
   ASSERT_TRUE(svc.parse("service_description", "test description"));
   ASSERT_TRUE(svc.parse("service_id", "3"));
-  ASSERT_TRUE(svc.parse("tags", "1,2,3"));
+  ASSERT_TRUE(svc.parse("group_tags", "1,2"));
+  ASSERT_TRUE(svc.parse("category_tags", "3"));
 
   configuration::applier::command cmd_aply;
   configuration::command cmd("cmd");
@@ -564,7 +565,8 @@ TEST_F(ApplierService, RenameServiceFromConfigTags) {
   ASSERT_TRUE(svc.parse("host", "test_host"));
   ASSERT_TRUE(svc.parse("service_description", "test description"));
   ASSERT_TRUE(svc.parse("service_id", "3"));
-  ASSERT_TRUE(svc.parse("tags", "1,2,3"));
+  ASSERT_TRUE(svc.parse("group_tags", "1,2"));
+  ASSERT_TRUE(svc.parse("category_tags", "3"));
 
   configuration::applier::command cmd_aply;
   configuration::command cmd("cmd");
@@ -627,7 +629,8 @@ TEST_F(ApplierService, RemoveServiceFromConfigTags) {
   ASSERT_TRUE(svc.parse("host", "test_host"));
   ASSERT_TRUE(svc.parse("service_description", "test description"));
   ASSERT_TRUE(svc.parse("service_id", "3"));
-  ASSERT_TRUE(svc.parse("tags", "1,2,3"));
+  ASSERT_TRUE(svc.parse("group_tags", "1,2"));
+  ASSERT_TRUE(svc.parse("category_tags", "3"));
 
   configuration::applier::command cmd_aply;
   configuration::command cmd("cmd");
@@ -700,7 +703,8 @@ TEST_F(ApplierService, ServicesEqualityTags) {
   ASSERT_TRUE(csvc.parse("service_description", "test description1"));
   ASSERT_TRUE(csvc.parse("service_id", "12345"));
   ASSERT_TRUE(csvc.parse("acknowledgement_timeout", "21"));
-  ASSERT_TRUE(csvc.parse("tags", "1,2,3"));
+  ASSERT_TRUE(csvc.parse("group_tags", "1,2"));
+  ASSERT_TRUE(csvc.parse("category_tags", "3"));
 
   configuration::applier::command cmd_aply;
   configuration::command cmd("cmd");
@@ -740,9 +744,9 @@ TEST_F(ApplierService, ServicesEqualityTags) {
   std::shared_ptr<com::centreon::engine::service> svc2(it->second);
   configuration::service csvc1(csvc);
   ASSERT_EQ(csvc, csvc1);
-  ASSERT_TRUE(csvc1.parse("tags", "6,8,9"));
+  ASSERT_TRUE(csvc1.parse("group_tags", "6,8,9"));
   ASSERT_TRUE(csvc < csvc1);
-  ASSERT_TRUE(csvc.parse("tags", "15,26,34"));
+  ASSERT_TRUE(csvc.parse("category_tags", "15,26,34"));
   ASSERT_TRUE(csvc1 < csvc);
 
   ASSERT_TRUE(svc1 != svc2);
@@ -764,7 +768,8 @@ TEST_F(ApplierService, ServicesCheckValidityTags) {
 
   ASSERT_TRUE(csvc.parse("service_description", "check description"));
   ASSERT_TRUE(csvc.parse("service_id", "53"));
-  ASSERT_TRUE(csvc.parse("tags", "1,2,3"));
+  ASSERT_TRUE(csvc.parse("group_tags", "1,2"));
+  ASSERT_TRUE(csvc.parse("category_tags", "3"));
 
   // No host attached to
   ASSERT_THROW(csvc.check_validity(), engine::exceptions::error);

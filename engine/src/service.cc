@@ -987,14 +987,6 @@ std::string const& service::get_check_command_args() const {
   return _check_command_args;
 }
 
-tag_map& service::mut_tags() noexcept {
-  return _tags;
-}
-
-const tag_map& service::tags() const noexcept {
-  return _tags;
-}
-
 /**
  * @brief Handle asynchronously the result of a check.
  *

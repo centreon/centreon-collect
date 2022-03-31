@@ -215,24 +215,17 @@ void applier::service::add_object(configuration::service const& obj) {
   }
 
   // add tags
-  for (auto tag : obj.tags()) {
-    tag_map::iterator it_tag_group{engine::tag::tags.find(
-        std::make_pair(tag, engine::tag::tagtype::servicegroup))};
-    tag_map::iterator it_tag_category{engine::tag::tags.find(
-        std::make_pair(tag, engine::tag::tagtype::servicecategory))};
-    if (it_tag_group == engine::tag::tags.end() &&
-        it_tag_category == engine::tag::tags.end())
-      throw engine_error() << "Could not find tag '" << tag
+  for (std::set<std::pair<uint64_t, uint16_t>>::iterator
+           it = obj.tags().begin(),
+           end = obj.tags().end();
+       it != end; ++it) {
+    tag_map::iterator it_tag{engine::tag::tags.find(*it)};
+    if (it_tag == engine::tag::tags.end())
+      throw engine_error() << "Could not find tag '" << it->first
                            << "' on which to apply service (" << obj.host_id()
                            << ", " << obj.service_id() << ")";
-    else if (it_tag_group != engine::tag::tags.end())
-      svc->mut_tags().insert({std::make_pair(it_tag_group->second->id(),
-                                             it_tag_group->second->type()),
-                              it_tag_group->second});
-    else if (it_tag_category != engine::tag::tags.end())
-      svc->mut_tags().insert({std::make_pair(it_tag_category->second->id(),
-                                             it_tag_category->second->type()),
-                              it_tag_category->second});
+    else
+      svc->mut_tags().emplace_front(it_tag->second);
   }
 
   // Notify event broker.
@@ -528,24 +521,18 @@ void applier::service::modify_object(configuration::service const& obj) {
   // add tags
   if (obj.tags() != obj_old.tags()) {
     s->mut_tags().clear();
-    for (auto tag : obj.tags()) {
-      tag_map::iterator it_tag_group{engine::tag::tags.find(
-          std::make_pair(tag, engine::tag::tagtype::servicegroup))};
-      tag_map::iterator it_tag_category{engine::tag::tags.find(
-          std::make_pair(tag, engine::tag::tagtype::servicecategory))};
-      if (it_tag_group == engine::tag::tags.end() &&
-          it_tag_category == engine::tag::tags.end())
-        throw engine_error()
-            << "Could not find tag '" << tag << "' on which to apply service ("
-            << obj.host_id() << ", " << obj.service_id() << ")";
-      else if (it_tag_group != engine::tag::tags.end())
-        s->mut_tags().insert({std::make_pair(it_tag_group->second->id(),
-                                             it_tag_group->second->type()),
-                              it_tag_group->second});
-      else if (it_tag_category != engine::tag::tags.end())
-        s->mut_tags().insert({std::make_pair(it_tag_category->second->id(),
-                                             it_tag_category->second->type()),
-                              it_tag_category->second});
+    for (std::set<std::pair<uint64_t, uint16_t>>::iterator
+             it = obj.tags().begin(),
+             end = obj.tags().end();
+         it != end; ++it) {
+      tag_map::iterator it_tag{
+          engine::tag::tags.find(std::make_pair(it->first, it->second))};
+      if (it_tag == engine::tag::tags.end())
+        throw engine_error() << "Could not find tag '" << it->first
+                             << "' on which to apply service (" << obj.host_id()
+                             << ", " << obj.service_id() << ")";
+      else
+        s->mut_tags().emplace_front(it_tag->second);
     }
   }
   // Notify event broker.

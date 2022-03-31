@@ -565,14 +565,6 @@ int host::get_current_state_int() const {
   return static_cast<int>(_current_state);
 }
 
-tag_map& host::mut_tags() noexcept {
-  return _tags;
-}
-
-const tag_map& host::tags() const noexcept {
-  return _tags;
-}
-
 std::ostream& operator<<(std::ostream& os, host_map_unsafe const& obj) {
   for (host_map_unsafe::const_iterator it{obj.begin()}, end{obj.end()};
        it != end; ++it) {

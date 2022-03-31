@@ -518,7 +518,7 @@ def check_host_tags_with_timeout(host_id: int, service_id: int, tag_id: int, tim
 
         with connection:
             with connection.cursor() as cursor:
-                cursor.execute("SELECT t.id FROM resources_tags rt, tags t WHERE rt.tag_id = t.tag_id and resource_id={} and t.id={}".format(service_id, tag_id))
+                cursor.execute("SELECT t.id FROM resources_tags rt, tags t WHERE rt.tag_id = t.tag_id and resource_id={} and t.id={}".format(host_id, tag_id))
                 result = cursor.fetchall()
                 if len(result) > 0:
                     if int(result[0]['id']) == tag_id:

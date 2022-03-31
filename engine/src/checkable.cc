@@ -489,3 +489,11 @@ void checkable::set_severity(std::shared_ptr<severity> severity) {
 const std::shared_ptr<severity>& checkable::get_severity() const {
   return _severity;
 }
+
+std::forward_list<std::shared_ptr<tag>>& checkable::mut_tags() {
+  return _tags;
+}
+
+const std::forward_list<std::shared_ptr<tag>>& checkable::tags() const {
+  return _tags;
+}

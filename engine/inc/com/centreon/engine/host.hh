@@ -246,8 +246,6 @@ class host : public notifier {
   bool get_notify_on_current_state() const override;
   bool is_in_downtime() const override;
   void resolve(int& w, int& e);
-  tag_map& mut_tags() noexcept;
-  const tag_map& tags() const noexcept;
 
   host_map_unsafe parent_hosts;
   host_map_unsafe child_hosts;
@@ -289,7 +287,6 @@ class host : public notifier {
   enum host_state _current_state;
   enum host_state _initial_state;
   std::list<hostgroup*> _hostgroups;
-  tag_map _tags;
 };
 
 CCE_END()

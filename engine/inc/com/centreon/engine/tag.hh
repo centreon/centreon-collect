@@ -46,10 +46,10 @@ CCE_BEGIN()
 class tag {
  public:
   enum tagtype {
-    hostcategory = 1,
+    servicegroup = 0,
+    hostgroup = 1,
     servicecategory = 2,
-    hostgroup = 3,
-    servicegroup = 4,
+    hostcategory = 3,
   };
 
  private:

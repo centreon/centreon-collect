@@ -106,8 +106,8 @@ std::unordered_map<std::string, service::setter_func> const service::_setters{
     {"timezone", SETTER(std::string const&, _set_timezone)},
     {"severity", SETTER(uint64_t, _set_severity_id)},
     {"severity_id", SETTER(uint64_t, _set_severity_id)},
-    {"tags", SETTER(std::string const&, _set_tags)},
-    {"tags_id", SETTER(std::string const&, _set_tags)}};
+    {"category_tags", SETTER(std::string const&, _set_category_tags)},
+    {"group_tags", SETTER(std::string const&, _set_group_tags)}};
 
 // Default values.
 static int default_acknowledgement_timeout(0);
@@ -782,8 +782,7 @@ bool service::operator<(service const& other) const noexcept {
     return _timezone < other._timezone;
   else if (_severity_id != other._severity_id)
     return _severity_id < other._severity_id;
-  else
-    return _tags < other._tags;
+  return _tags < other._tags;
 }
 
 /**
@@ -1456,26 +1455,11 @@ bool service::timezone_defined() const noexcept {
 }
 
 /**
- *  Set service tags.
- *
- *  @param[in] tags  New service tags.
- */
-void service::tags(const std::string& value) {
-  std::list<absl::string_view> tags{absl::StrSplit(value, ',')};
-  _tags.clear();
-  for (auto tag : tags) {
-    int64_t id;
-    SimpleAtoi(tag, &id);
-    _tags.emplace_back(id);
-  }
-}
-
-/**
  *  Get service tags.
  *
  *  @return This service tags.
  */
-const std::list<uint64_t>& service::tags() const noexcept {
+const std::set<std::pair<uint64_t, uint16_t>>& service::tags() const noexcept {
   return _tags;
 }
 
@@ -2152,20 +2136,49 @@ bool service::_set_timezone(std::string const& value) {
 }
 
 /**
- *  Set service tags.
+ *  Set host tags.
  *
  *  @param[in] value  The new tags.
  *
  *  @return True.
  */
-bool service::_set_tags(const std::string& value) {
+bool service::_set_category_tags(const std::string& value) {
   bool ret;
   std::list<absl::string_view> tags{absl::StrSplit(value, ',')};
-  _tags.clear();
+  for (auto tag : _tags) {
+    if (tag.second == tag::servicecategory) {
+      _tags.erase(tag);
+    }
+  }
+
   for (auto tag : tags) {
     int64_t id;
     ret = SimpleAtoi(tag, &id);
-    _tags.emplace_back(id);
+    _tags.emplace(id, tag::servicecategory);
+  }
+  return ret;
+}
+
+/**
+ *  Set host tags.
+ *
+ *  @param[in] value  The new tags.
+ *
+ *  @return True.
+ */
+bool service::_set_group_tags(const std::string& value) {
+  bool ret;
+  std::list<absl::string_view> tags{absl::StrSplit(value, ',')};
+  for (auto tag : _tags) {
+    if (tag.second == tag::servicegroup) {
+      _tags.erase(tag);
+    }
+  }
+
+  for (auto tag : tags) {
+    int64_t id;
+    ret = SimpleAtoi(tag, &id);
+    _tags.emplace(id, tag::servicegroup);
   }
   return ret;
 }

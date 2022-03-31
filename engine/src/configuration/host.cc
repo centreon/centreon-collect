@@ -103,8 +103,8 @@ std::unordered_map<std::string, host::setter_func> const host::_setters{
     {"timezone", SETTER(std::string const&, _set_timezone)},
     {"severity", SETTER(uint64_t, _set_severity_id)},
     {"severity_id", SETTER(uint64_t, _set_severity_id)},
-    {"tags", SETTER(std::string const&, _set_tags)},
-    {"tags_id", SETTER(std::string const&, _set_tags)}};
+    {"category_tags", SETTER(std::string const&, _set_category_tags)},
+    {"group_tags", SETTER(std::string const&, _set_group_tags)}};
 
 // Default values.
 static bool const default_checks_active(true);
@@ -170,7 +170,8 @@ host::host(host::key_type const& key)
       _retry_interval(default_retry_interval),
       _recovery_notification_delay(0),
       _stalking_options(default_stalking_options),
-      _severity_id{0u} {}
+      _severity_id{0u},
+      _tags{} {}
 
 /**
  *  Copy constructor.
@@ -1005,26 +1006,11 @@ std::string const& host::timezone() const noexcept {
 }
 
 /**
- *  Set host tags.
- *
- *  @param[in] tags  New host tags.
- */
-void host::tags(const std::string& value) {
-  std::list<absl::string_view> tags{absl::StrSplit(value, ',')};
-  _tags.clear();
-  for (auto tag : tags) {
-    int64_t id;
-    SimpleAtoi(tag, &id);
-    _tags.emplace_back(id);
-  }
-}
-
-/**
  *  Get host tags.
  *
  *  @return This host tags.
  */
-const std::list<uint64_t>& host::tags() const noexcept {
+const std::set<std::pair<uint64_t, uint16_t>>& host::tags() const noexcept {
   return _tags;
 }
 
@@ -1750,14 +1736,43 @@ bool host::_set_timezone(std::string const& value) {
  *
  *  @return True.
  */
-bool host::_set_tags(const std::string& value) {
+bool host::_set_category_tags(const std::string& value) {
   bool ret;
   std::list<absl::string_view> tags{absl::StrSplit(value, ',')};
-  _tags.clear();
+  for (auto tag : _tags) {
+    if (tag.second == tag::hostcategory) {
+      _tags.erase(tag);
+    }
+  }
+
   for (auto tag : tags) {
     int64_t id;
     ret = SimpleAtoi(tag, &id);
-    _tags.emplace_back(id);
+    _tags.emplace(id, tag::hostcategory);
+  }
+  return ret;
+}
+
+/**
+ *  Set host tags.
+ *
+ *  @param[in] value  The new tags.
+ *
+ *  @return True.
+ */
+bool host::_set_group_tags(const std::string& value) {
+  bool ret;
+  std::list<absl::string_view> tags{absl::StrSplit(value, ',')};
+  for (auto tag : _tags) {
+    if (tag.second == tag::hostgroup) {
+      _tags.erase(tag);
+    }
+  }
+
+  for (auto tag : tags) {
+    int64_t id;
+    ret = SimpleAtoi(tag, &id);
+    _tags.emplace(id, tag::hostgroup);
   }
   return ret;
 }

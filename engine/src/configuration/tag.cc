@@ -119,7 +119,7 @@ void tag::check_validity() const {
     throw engine_error() << "Tag has no name (property 'name')";
   if (_key.first == 0)
     throw engine_error() << "Tag id must not be less than 1 (property 'id')";
-  if (_type == 0)
+  if (_type == 4)
     throw engine_error() << "Tag type must be defined (property 'type')";
 }
 

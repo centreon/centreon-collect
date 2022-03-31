@@ -171,6 +171,7 @@ void stream::_load_caches() {
   std::promise<mysql_result> promise_sg;
   std::promise<mysql_result> promise_metrics;
   std::promise<mysql_result> promise_severity;
+  std::promise<mysql_result> promise_tags;
 
   /* get all outdated instances from the database => _stored_timestamps */
   _mysql.run_query_and_get_result(
@@ -208,6 +209,10 @@ void stream::_load_caches() {
   /* severities => _severity_cache */
   _mysql.run_query_and_get_result(
       "SELECT severity_id, id, type FROM severities", &promise_severity);
+
+  /* tags => _tags_cache */
+  _mysql.run_query_and_get_result("SELECT tag_id, id, type FROM tags",
+                                  &promise_tags);
 
   /* Since queries are executed asynchronously, firstly we execute all of them
    * and then we get their results. */
@@ -340,6 +345,18 @@ void stream::_load_caches() {
       }
     } catch (const std::exception& e) {
       throw msg_fmt("unified sql: could not get the list of severities: {}",
+                    e.what());
+    }
+
+    try {
+      mysql_result res{promise_tags.get_future().get()};
+      while (_mysql.fetch_row(res)) {
+        _tags_cache[{res.value_as_u64(2),
+                     static_cast<uint16_t>(res.value_as_u32(1))}] =
+            res.value_as_u64(0);
+      }
+    } catch (const std::exception& e) {
+      throw msg_fmt("unified sql: could not get the list of tags: {}",
                     e.what());
     }
   }

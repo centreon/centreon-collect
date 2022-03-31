@@ -326,7 +326,7 @@ define command {
 
     @staticmethod
     def create_tags(nb:int, offset: int):
-        tt = ["hostcategory", "servicecategory", "hostgroup", "servicegroup"]
+        tt = ["servicegroup", "hostgroup", "servicecategory", "hostcategory"]
 
         config_file = "{}/config0/tags.cfg".format(CONF_DIR)
         ff = open(config_file, "w+")
@@ -588,7 +588,7 @@ def add_template_to_services(poller:int, tmpl:str, svc_lst):
     ff.writelines(lines)
     ff.close()
 
-def add_tags_to_services(tag_id:str, svc_lst):
+def add_tags_to_services(type:str, tag_id:str, svc_lst):
     ff = open("{}/config0/services.cfg".format(CONF_DIR), "r")
     lines = ff.readlines()
     ff.close()
@@ -596,7 +596,7 @@ def add_tags_to_services(tag_id:str, svc_lst):
     for i in range(len(lines)):
         m = r.match(lines[i])
         if m and m.group(1) in svc_lst:
-            lines.insert(i + 1, "    tags                     {}\n".format(tag_id))
+            lines.insert(i + 1, "    {}                     {}\n".format(type, tag_id))
     ff = open("{}/config0/services.cfg".format(CONF_DIR), "w")
     ff.writelines(lines)
     ff.close()
@@ -611,7 +611,7 @@ def remove_severities_from_services(poller:int):
     ff.writelines(out)
     ff.close()
 
-def add_tags_to_host(tag_id:str, hst_lst):
+def add_tags_to_host(type:str, tag_id:str, hst_lst):
     ff = open("{}/config0/hosts.cfg".format(CONF_DIR), "r")
     lines = ff.readlines()
     ff.close()
@@ -619,7 +619,7 @@ def add_tags_to_host(tag_id:str, hst_lst):
     for i in range(len(lines)):
         m = r.match(lines[i])
         if m and m.group(1) in hst_lst:
-            lines.insert(i + 1, "    tags                     {}\n".format(tag_id))
+            lines.insert(i + 1, "    {}                     {}\n".format(type, tag_id))
 
     ff = open("{}/config0/hosts.cfg".format(CONF_DIR), "w")
     ff.writelines(lines)
