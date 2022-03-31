@@ -3414,9 +3414,14 @@ TEST_F(LuaTest, BrokerPbServiceStatusJsonEncode) {
   ASSERT_NE(lst.find("\"last_check\":123459"), std::string::npos);
   ASSERT_NE(lst.find("\"service_description\":\"foo bar\""), std::string::npos);
   ASSERT_NE(lst.find("\"output\":\"cool\""), std::string::npos);
-  ASSERT_NE(
-      lst.find("\"tags\":[{\"id\":24,\"type\":2},{\"id\":25,\"type\":2}]"),
-      std::string::npos);
+  size_t s1 = lst.find("\"tags\":[{\"id\":24,\"type\":2}");
+  if (s1 == std::string::npos)
+    s1 = lst.find("\"tags\":[{\"type\":2,\"id\":24}");
+  size_t s2 = lst.find(",{\"id\":25,\"type\":2}]");
+  if (s2 == std::string::npos)
+    s2 = lst.find(",{\"type\":2,\"id\":25}]");
+  ASSERT_NE(s1, std::string::npos);
+  ASSERT_NE(s2, std::string::npos);
   RemoveFile(filename);
   RemoveFile("/tmp/event_log");
 }
