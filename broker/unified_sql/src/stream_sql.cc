@@ -43,13 +43,14 @@ using namespace com::centreon::broker::unified_sql;
 void stream::_clean_tables(uint32_t instance_id) {
   /* Database version. */
 
-  int32_t conn = special_conn::severity % _mysql.connections_count();
-  _mysql.run_query("DELETE FROM severities",
-                   database::mysql_error::clean_severities, false, conn);
+  //  int32_t conn = special_conn::severity % _mysql.connections_count();
+  //  _mysql.run_query(fmt::format("UPDATE resources SET severity_id=NULL WHERE
+  //  severity_id IS NOT NULL and poller_id={}", instance_id),
+  //  database::mysql_error::clean_severities, false, conn);
 
-  conn = special_conn::tag % _mysql.connections_count();
-  _mysql.run_query("DELETE FROM tags", database::mysql_error::clean_severities,
-                   false, conn);
+  int32_t conn = special_conn::tag % _mysql.connections_count();
+  _mysql.run_query("DELETE FROM tags", database::mysql_error::clean_tags, false,
+                   conn);
 
   conn = _mysql.choose_connection_by_instance(instance_id);
   log_v2::sql()->debug(
@@ -1219,12 +1220,16 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
       _resources_host_insupdate.bind_value_as_u64(
           8, _cache_host_instance[h.host_id()]);
       uint64_t sid = 0;
-      if (h.severity_id() > 0) {
-        sid = _severity_cache[{h.severity_id(), 1}];
+      if (h.severity_id()) {
         log_v2::sql()->debug("host {} with severity_id {} => uid = {}",
                              h.host_id(), h.severity_id(), sid);
-        _resources_host_insupdate.bind_value_as_u64(9, sid);
+        sid = _severity_cache[{h.severity_id(), 1}];
       } else
+        log_v2::sql()->error("no host severity found in cache for host {}",
+                             h.host_id());
+      if (sid)
+        _resources_host_insupdate.bind_value_as_u64(9, sid);
+      else
         _resources_host_insupdate.bind_value_as_null(9);
       fmt::string_view name{misc::string::truncate(
           h.host_name(), get_resources_col_size(resources_name))};
@@ -1262,7 +1267,7 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
       _resources_host_insupdate.bind_value_as_u32(24, h.max_check_attempts());
       _resources_host_insupdate.bind_value_as_u64(
           25, _cache_host_instance[h.host_id()]);
-      if (h.severity_id() > 0)
+      if (sid)
         _resources_host_insupdate.bind_value_as_u64(26, sid);
       else
         _resources_host_insupdate.bind_value_as_null(26);
@@ -1536,9 +1541,9 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
         4, hscr.state_type() == HostStatus_StateType_HARD);
     _hscr_resources_update.bind_value_as_u32(5, hscr.current_check_attempt());
     _hscr_resources_update.bind_value_as_bool(6, hscr.perf_data() != "");
-    _sscr_resources_update.bind_value_as_u32(7, hscr.check_type());
-    _sscr_resources_update.bind_value_as_u64(8, hscr.last_check());
-    _sscr_resources_update.bind_value_as_str(9, hscr.output());
+    _hscr_resources_update.bind_value_as_u32(7, hscr.check_type());
+    _hscr_resources_update.bind_value_as_u64(8, hscr.last_check());
+    _hscr_resources_update.bind_value_as_str(9, hscr.output());
     _hscr_resources_update.bind_value_as_u64(10, hscr.host_id());
 
     _mysql.run_statement(_hscr_resources_update,
@@ -2221,12 +2226,14 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
           9, _cache_host_instance[ss.host_id()]);
       uint64_t sid = 0;
       if (ss.severity_id() > 0) {
-        sid = _severity_cache[{ss.severity_id(), 0}];
         log_v2::sql()->debug("service ({}, {}) with severity_id {} => uid = {}",
                              ss.host_id(), ss.service_id(), ss.severity_id(),
                              sid);
+        sid = _severity_cache[{ss.severity_id(), 0}];
+      }
+      if (sid)
         _resources_service_insupdate.bind_value_as_u64(10, sid);
-      } else
+      else
         _resources_service_insupdate.bind_value_as_null(10);
       fmt::string_view name{misc::string::truncate(
           ss.service_description(), get_resources_col_size(resources_name))};
@@ -2266,7 +2273,7 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
                                                      ss.max_check_attempts());
       _resources_service_insupdate.bind_value_as_u64(
           26, _cache_host_instance[ss.host_id()]);
-      if (ss.severity_id() > 0)
+      if (sid)
         _resources_service_insupdate.bind_value_as_u64(27, sid);
       else
         _resources_service_insupdate.bind_value_as_null(27);
@@ -2762,7 +2769,7 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
 
 void stream::_process_severity(const std::shared_ptr<io::data>& d) {
   log_v2::sql()->debug("SQL: processing severity");
-  _finish_action(-1, actions::severities);
+  _finish_action(-1, actions::resources | actions::severities);
 
   // Prepare queries.
   if (!_severity_insert.prepared()) {
