@@ -72,9 +72,9 @@ BEUSEV1
 	Config Broker	rrd
 	Config Broker	module
 	Config Broker Sql Output	central	unified_sql
-        Broker Config Add Item	module	bbdo_version	3.0.0
-        Broker Config Add Item	central	bbdo_version	3.0.0
-        Broker Config Add Item	rrd	bbdo_version	3.0.0
+	Broker Config Add Item	module	bbdo_version	3.0.0
+	Broker Config Add Item	central	bbdo_version	3.0.0
+	Broker Config Add Item	rrd	bbdo_version	3.0.0
 	Broker Config Log	module	neb	debug
 	Broker Config Log	central	sql	debug
 	Clear Retention
@@ -99,9 +99,9 @@ BEUSEV2
 	Config Broker	rrd
 	Config Broker	module
 	Config Broker Sql Output	central	unified_sql
-        Broker Config Add Item	module	bbdo_version	3.0.0
-        Broker Config Add Item	central	bbdo_version	3.0.0
-        Broker Config Add Item	rrd	bbdo_version	3.0.0
+	Broker Config Add Item	module	bbdo_version	3.0.0
+	Broker Config Add Item	central	bbdo_version	3.0.0
+	Broker Config Add Item	rrd	bbdo_version	3.0.0
 	Broker Config Log	module	neb	debug
 	Broker Config Log	central	sql	debug
 	Clear Retention
@@ -123,30 +123,30 @@ BEUSEV3
 	Config Engine	${1}
 	Create Severities File	${0}	${20}
 	Config Engine Add Cfg File	${0}	severities.cfg
-        Add Severity To Services	0	11	[1, 2, 3, 4]
+	Add Severity To Services	0	11	[1, 2, 3, 4]
 	Config Broker	central
 	Config Broker	rrd
 	Config Broker	module
 	Config Broker Sql Output	central	unified_sql
-        Broker Config Add Item	module	bbdo_version	3.0.0
-        Broker Config Add Item	central	bbdo_version	3.0.0
-        Broker Config Add Item	rrd	bbdo_version	3.0.0
+	Broker Config Add Item	module	bbdo_version	3.0.0
+	Broker Config Add Item	central	bbdo_version	3.0.0
+	Broker Config Add Item	rrd	bbdo_version	3.0.0
 	Broker Config Log	module	neb	debug
 	Broker Config Log	central	sql	trace
 	Clear Retention
 	${start}=	Get Current Date
 	Start Engine
 	Start Broker
-        Sleep	2s
+	Sleep	2s
 
 	${result}=	check service severity With Timeout	1	1	11	60
 	Should Be True	${result}	msg=Service (1, 1) should have severity_id=11
 
-        Remove Severities From Services	${0}
-        Add Severity To Services	0	11	[2, 4]
-        Add Severity To Services	0	7	[3]
-        Reload Engine
-        Reload Broker
+	Remove Severities From Services	${0}
+	Add Severity To Services	0	11	[2, 4]
+	Add Severity To Services	0	7	[3]
+	Reload Engine
+	Reload Broker
 	${result}=	check service severity With Timeout	1	3	7	60
 	Should Be True	${result}	msg=Service (1, 3) should have severity_id=7
 	${result}=	check service severity With Timeout	1	1	None	60
@@ -165,24 +165,24 @@ BEUSEV4
 	Config Engine Add Cfg File	${1}	severities.cfg
 	Engine Config Set Value	${0}	log_level_config	debug
 	Engine Config Set Value	${1}	log_level_config	debug
-        Add Severity To Services	0	19	[2, 4]
-        Add Severity To Services	0	17	[3, 5]
-        Add Severity To Services	1	19	[501, 502]
-        Add Severity To Services	1	17	[503]
+	Add Severity To Services	0	19	[2, 4]
+	Add Severity To Services	0	17	[3, 5]
+	Add Severity To Services	1	19	[501, 502]
+	Add Severity To Services	1	17	[503]
 	Config Broker	central
 	Config Broker	rrd
 	Config Broker	module
 	Config Broker Sql Output	central	unified_sql
-        Broker Config Add Item	module	bbdo_version	3.0.0
-        Broker Config Add Item	central	bbdo_version	3.0.0
-        Broker Config Add Item	rrd	bbdo_version	3.0.0
+	Broker Config Add Item	module	bbdo_version	3.0.0
+	Broker Config Add Item	central	bbdo_version	3.0.0
+	Broker Config Add Item	rrd	bbdo_version	3.0.0
 	Broker Config Log	module	neb	debug
 	Broker Config Log	central	sql	trace
 	Clear Retention
 	${start}=	Get Current Date
 	Start Engine
 	Start Broker
-        Sleep	5s
+	Sleep	5s
 	# We need to wait a little before reloading Engine
 	${result}=	check service severity With Timeout	1	2	19	60
 	Should Be True	${result}	msg=First step: Service (1, 2) should have severity_id=19
@@ -205,13 +205,13 @@ BEUSEV4
 	${result}=	check service severity With Timeout	26	503	17	60
 	Should Be True	${result}	msg=First step: Service (26, 503) should have severity_id=17
 
-        Remove Severities From Services	${0}
+	Remove Severities From Services	${0}
 	Create Severities File	${0}	${18}
 	Create Severities File	${1}	${18}
-        Add Severity To Services	1	17	[503]
-        Reload Engine
-        Reload Broker
-        Sleep	3s
+	Add Severity To Services	1	17	[503]
+	Reload Engine
+	Reload Broker
+	Sleep	3s
 	${result}=	check service severity With Timeout	26	503	17	60
 	Should Be True	${result}	msg=Second step: Service (26, 503) should have severity_id=17
 

@@ -43,11 +43,6 @@ using namespace com::centreon::broker::unified_sql;
 void stream::_clean_tables(uint32_t instance_id) {
   /* Database version. */
 
-  //  int32_t conn = special_conn::severity % _mysql.connections_count();
-  //  _mysql.run_query(fmt::format("UPDATE resources SET severity_id=NULL WHERE
-  //  severity_id IS NOT NULL and poller_id={}", instance_id),
-  //  database::mysql_error::clean_severities, false, conn);
-
   int32_t conn = special_conn::tag % _mysql.connections_count();
   _mysql.run_query("DELETE FROM tags", database::mysql_error::clean_tags, false,
                    conn);
@@ -2779,8 +2774,6 @@ void stream::_process_severity(const std::shared_ptr<io::data>& d) {
     _severity_insert = _mysql.prepare_query(
         "INSERT INTO severities (id,type,name,level,icon_id) "
         "VALUES(?,?,?,?,?)");
-    _severity_delete =
-        _mysql.prepare_query("DELETE FROM severities WHERE severity_id=?");
   }
   // Processed object.
   auto s{static_cast<const neb::pb_severity*>(d.get())};
@@ -2844,23 +2837,10 @@ void stream::_process_severity(const std::shared_ptr<io::data>& d) {
             sv.id(), sv.type());
       break;
     case Severity_Action_DELETE:
-      log_v2::sql()->trace("SQL: remove severity {}", sv.id());
-      {
-        // FIXME DBO: Delete should be implemented later.
-        if (0 && severity_id) {
-          _add_action(conn, actions::severities);
-          _severity_delete.bind_value_as_u64(0, severity_id);
-          _mysql.run_statement(_severity_delete,
-                               database::mysql_error::store_severity, false,
-                               conn);
-          _add_action(conn, actions::severities);
-          _severity_cache.erase({sv.id(), sv.type()});
-        } else {
-          log_v2::sql()->error(
-              "unified sql: unable to delete severity ({}, {}): not in cache",
-              sv.id(), sv.type());
-        }
-      }
+      log_v2::sql()->trace("SQL: remove severity {}: not implemented", sv.id());
+      // FIXME DBO: Delete should be implemented later. This case is difficult
+      // particularly when several pollers are running and some of them can
+      // be stopped...
       break;
     default:
       log_v2::sql()->error("Bad action in severity object");
