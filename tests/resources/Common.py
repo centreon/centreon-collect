@@ -486,3 +486,26 @@ def check_service_severity_with_timeout(host_id: int, service_id: int, severity_
                         return True
         time.sleep(1)
     return False
+
+def check_severity_existence_with_timeout(severity_id:int, typ:int, enabled: bool, timeout: int):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host='localhost',
+                                 user='centreon',
+                                 password='centreon',
+                                 database='centreon_storage',
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT severity_id from severities WHERE id={} and type={}".format(severity_id, typ))
+                result = cursor.fetchall()
+                logger.console(result)
+                if len(result) > 0:
+                    if enabled and not result[0]['severity_id'] is None:
+                      return True
+                    if not enabled and result[0]['severity_id'] is None:
+                      return True
+        time.sleep(1)
+    return False

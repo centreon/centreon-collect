@@ -286,8 +286,8 @@ define command {
         return retval
 
     @staticmethod
-    def create_severities(nb:int, offset: int):
-        config_file = "{}/config0/severities.cfg".format(CONF_DIR)
+    def create_severities(poller:int, nb:int, offset: int):
+        config_file = "{}/config{}/severities.cfg".format(CONF_DIR, poller)
         ff = open(config_file, "w+")
         content = ""
         typ = [ "service", "host" ]
@@ -516,28 +516,28 @@ def schedule_service_downtime(hst: str, svc: str, duration: int):
     f.write(cmd)
     f.close()
 
-def create_severities_file(nb:int, offset:int = 1):
-    engine.create_severities(nb, offset)
+def create_severities_file(poller: int, nb:int, offset:int = 1):
+    engine.create_severities(poller, nb, offset)
 
 def create_tags_file(nb:int, offset:int = 1):
     engine.create_tags(nb, offset)
 
-def config_engine_add_cfg_file(cfg:str):
-    ff = open("{}/config0/centengine.cfg".format(CONF_DIR), "r")
+def config_engine_add_cfg_file(poller:int, cfg:str):
+    ff = open("{}/config{}/centengine.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
     r = re.compile(r"^\s*cfg_file=")
     for i in range(len(lines)):
         if r.match(lines[i]):
-            lines.insert(i, "cfg_file={}/config0/{}\n".format(CONF_DIR, cfg))
+            lines.insert(i, "cfg_file={}/config{}/{}\n".format(CONF_DIR, poller, cfg))
             break
-    ff = open("{}/config0/centengine.cfg".format(CONF_DIR), "w+")
+    ff = open("{}/config{}/centengine.cfg".format(CONF_DIR, poller), "w+")
     ff.writelines(lines)
     ff.close()
 
 
-def add_severity_to_services(severity_id:int, svc_lst):
-    ff = open("{}/config0/services.cfg".format(CONF_DIR), "r")
+def add_severity_to_services(poller:int, severity_id:int, svc_lst):
+    ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
     r = re.compile(r"^\s*_SERVICE_ID\s*(\d+)$")
@@ -546,17 +546,17 @@ def add_severity_to_services(severity_id:int, svc_lst):
         if m and m.group(1) in svc_lst:
             lines.insert(i + 1, "    severity_id                     {}\n".format(severity_id))
 
-    ff = open("{}/config0/services.cfg".format(CONF_DIR), "w")
+    ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "w")
     ff.writelines(lines)
     ff.close()
 
 
-def remove_severities_from_services():
-    ff = open("{}/config0/services.cfg".format(CONF_DIR), "r")
+def remove_severities_from_services(poller:int):
+    ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
     r = re.compile(r"^\s*severity_id\s*\d+$")
     out = [l for l in lines if not r.match(l)]
-    ff = open("{}/config0/services.cfg".format(CONF_DIR), "w")
+    ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "w")
     ff.writelines(out)
     ff.close()
