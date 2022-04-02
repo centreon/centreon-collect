@@ -2143,18 +2143,27 @@ bool service::_set_timezone(std::string const& value) {
  *  @return True.
  */
 bool service::_set_category_tags(const std::string& value) {
-  bool ret;
+  bool ret = true;
   std::list<absl::string_view> tags{absl::StrSplit(value, ',')};
-  for (auto tag : _tags) {
-    if (tag.second == tag::servicecategory) {
-      _tags.erase(tag);
-    }
+  for (std::set<std::pair<uint64_t, uint16_t>>::iterator it(_tags.begin()),
+       end(_tags.end());
+       it != end; ++it) {
+    if (it->second == tag::servicecategory)
+      _tags.erase(it);
   }
 
-  for (auto tag : tags) {
+  for (auto& tag : tags) {
     int64_t id;
-    ret = SimpleAtoi(tag, &id);
-    _tags.emplace(id, tag::servicecategory);
+    bool parse_ok;
+    parse_ok = SimpleAtoi(tag, &id);
+    if (parse_ok) {
+      _tags.emplace(id, tag::servicecategory);
+    } else {
+      log_v2::config()->warn(
+          "Warning: service ({}, {}) error for parsing tag {}", _host_id,
+          _service_id, value);
+      ret = false;
+    }
   }
   return ret;
 }
@@ -2167,18 +2176,27 @@ bool service::_set_category_tags(const std::string& value) {
  *  @return True.
  */
 bool service::_set_group_tags(const std::string& value) {
-  bool ret;
+  bool ret = true;
   std::list<absl::string_view> tags{absl::StrSplit(value, ',')};
-  for (auto tag : _tags) {
-    if (tag.second == tag::servicegroup) {
-      _tags.erase(tag);
-    }
+  for (std::set<std::pair<uint64_t, uint16_t>>::iterator it(_tags.begin()),
+       end(_tags.end());
+       it != end; ++it) {
+    if (it->second == tag::servicegroup)
+      _tags.erase(it);
   }
 
-  for (auto tag : tags) {
+  for (auto& tag : tags) {
     int64_t id;
-    ret = SimpleAtoi(tag, &id);
-    _tags.emplace(id, tag::servicegroup);
+    bool parse_ok;
+    parse_ok = SimpleAtoi(tag, &id);
+    if (parse_ok) {
+      _tags.emplace(id, tag::servicegroup);
+    } else {
+      log_v2::config()->warn(
+          "Warning: service ({}, {}) error for parsing tag {}", _host_id,
+          _service_id, value);
+      ret = false;
+    }
   }
   return ret;
 }

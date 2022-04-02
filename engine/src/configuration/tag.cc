@@ -40,8 +40,7 @@ const absl::flat_hash_map<std::string, tag::setter_func> tag::_setters{
  *
  * @param key The unique id corresponding to this tag.
  */
-tag::tag(const key_type& key)
-    : object(object::tag), _key{key}, _type{tag::none} {}
+tag::tag(const key_type& key) : object(object::tag), _key{key} {}
 
 /**
  * @brief Copy constructor.
@@ -49,7 +48,7 @@ tag::tag(const key_type& key)
  * @param other The tag to copy.
  */
 tag::tag(const tag& other)
-    : object(other), _key{other._key}, _type{other._type}, _name{other._name} {}
+    : object(other), _key{other._key}, _name{other._name} {}
 
 /**
  * @brief Assign operator.
@@ -62,7 +61,6 @@ tag& tag::operator=(const tag& other) {
   if (this != &other) {
     object::operator=(other);
     _key = other._key;
-    _type = other._type;
     _name = other._name;
   }
   return *this;
@@ -76,7 +74,7 @@ tag& tag::operator=(const tag& other) {
  * @return True if objects are equal, False otherwise.
  */
 bool tag::operator==(const tag& other) const noexcept {
-  return _key == other._key && _type == other._type && _name == other._name;
+  return _key == other._key && _name == other._name;
 }
 
 /**
@@ -87,7 +85,7 @@ bool tag::operator==(const tag& other) const noexcept {
  * @return False if objects are equal, True otherwise.
  */
 bool tag::operator!=(const tag& other) const noexcept {
-  return _key != other._key || _type != other._type || _name != other._name;
+  return _key != other._key || _name != other._name;
 }
 
 /**
@@ -100,8 +98,6 @@ bool tag::operator!=(const tag& other) const noexcept {
 bool tag::operator<(const tag& other) const noexcept {
   if (_key != other._key)
     return _key < other._key;
-  else if (_type != other._type)
-    return _type < other._type;
   return _name < other._name;
 }
 
@@ -119,7 +115,7 @@ void tag::check_validity() const {
     throw engine_error() << "Tag has no name (property 'name')";
   if (_key.first == 0)
     throw engine_error() << "Tag id must not be less than 1 (property 'id')";
-  if (_type == 4)
+  if (_key.second == -1)
     throw engine_error() << "Tag type must be defined (property 'type')";
 }
 
@@ -137,8 +133,8 @@ const tag::key_type& tag::key() const noexcept {
  *
  * @return Severity type.
  */
-uint32_t tag::type() const noexcept {
-  return static_cast<uint32_t>(_type);
+uint16_t tag::type() const noexcept {
+  return _key.second;
 }
 
 /**
@@ -200,13 +196,13 @@ bool tag::_set_id(uint64_t id) {
  */
 bool tag::_set_type(const std::string& typ) {
   if (typ == "hostcategory")
-    _type = tag::hostcategory;
+    _key.second = tag::hostcategory;
   else if (typ == "servicecategory")
-    _type = tag::servicecategory;
+    _key.second = tag::servicecategory;
   else if (typ == "hostgroup")
-    _type = tag::hostgroup;
+    _key.second = tag::hostgroup;
   else if (typ == "servicegroup")
-    _type = tag::servicegroup;
+    _key.second = tag::servicegroup;
   else
     return false;
   return true;

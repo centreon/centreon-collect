@@ -1284,31 +1284,27 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
                            conn);
       _add_action(conn, actions::resources);
 
+      if (!_resources_tags_insert.prepared()) {
+        _resources_tags_insert = _mysql.prepare_query(
+            "INSERT INTO resources_tags "
+            "(tag_id,resource_id) "
+            "VALUES(?,?)");
+      }
       for (auto tag : h.tags()) {
         auto it_tags_cache =
             _tags_cache.find(std::make_pair(tag.id(), tag.type()));
 
-        if (!_resources_tags_insupdate.prepared()) {
-          _resources_tags_insupdate = _mysql.prepare_query(
-              "INSERT INTO resources_tags "
-              "(tag_id,resource_id) "
-              "VALUES(?,?) ON DUPLICATE KEY "
-              "UPDATE tag_id=?,resource_id=?");
-        }
-
         if (it_tags_cache != _tags_cache.end()) {
-          _resources_tags_insupdate.bind_value_as_u64(0, it_tags_cache->second);
-          _resources_tags_insupdate.bind_value_as_u64(1, h.host_id());
-          _resources_tags_insupdate.bind_value_as_u64(2, it_tags_cache->second);
-          _resources_tags_insupdate.bind_value_as_u64(3, h.host_id());
+          _resources_tags_insert.bind_value_as_u64(0, it_tags_cache->second);
+          _resources_tags_insert.bind_value_as_u64(1, h.host_id());
           log_v2::sql()->debug(
               "dans for tag host {} tag_id "
               "{} id {} type {}",
               h.host_id(), it_tags_cache->second, tag.id(), tag.type());
           _finish_action(-1, actions::resources_tags);
-          _mysql.run_statement(_resources_tags_insupdate,
+          _mysql.run_statement(_resources_tags_insert,
                                database::mysql_error::store_tags_resources_tags,
-                               true, conn);
+                               false, conn);
           _add_action(conn, actions::resources_tags);
         } else {
           log_v2::sql()->error(
@@ -2322,27 +2318,23 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
                            database::mysql_error::store_service, true, conn);
       _add_action(conn, actions::resources);
 
+      if (!_resources_tags_insert.prepared()) {
+        _resources_tags_insert = _mysql.prepare_query(
+            "INSERT INTO resources_tags "
+            "(tag_id,resource_id) "
+            "VALUES(?,?)");
+      }
       for (auto tag : ss.tags()) {
         auto it_tags_cache =
             _tags_cache.find(std::make_pair(tag.id(), tag.type()));
 
-        if (!_resources_tags_insupdate.prepared()) {
-          _resources_tags_insupdate = _mysql.prepare_query(
-              "INSERT INTO resources_tags "
-              "(tag_id,resource_id) "
-              "VALUES(?,?) ON DUPLICATE KEY "
-              "UPDATE tag_id=?,resource_id=?");
-        }
-
         if (it_tags_cache != _tags_cache.end()) {
-          _resources_tags_insupdate.bind_value_as_u64(0, it_tags_cache->second);
-          _resources_tags_insupdate.bind_value_as_u64(1, ss.service_id());
-          _resources_tags_insupdate.bind_value_as_u64(2, it_tags_cache->second);
-          _resources_tags_insupdate.bind_value_as_u64(3, ss.service_id());
+          _resources_tags_insert.bind_value_as_u64(0, it_tags_cache->second);
+          _resources_tags_insert.bind_value_as_u64(1, ss.service_id());
           _finish_action(-1, actions::resources_tags);
-          _mysql.run_statement(_resources_tags_insupdate,
+          _mysql.run_statement(_resources_tags_insert,
                                database::mysql_error::store_tags_resources_tags,
-                               true, conn);
+                               false, conn);
           _add_action(conn, actions::resources_tags);
         } else {
           log_v2::sql()->error(
@@ -2936,7 +2928,7 @@ void stream::_process_tag(const std::shared_ptr<io::data>& d) {
         _tag_update.bind_value_as_u64(0, tg.id());
         _tag_update.bind_value_as_u32(1, tg.type());
         _tag_update.bind_value_as_str(2, tg.name());
-        _tag_update.bind_value_as_u64(5, tag_id);
+        _tag_update.bind_value_as_u64(3, tag_id);
         _mysql.run_statement(_tag_update, database::mysql_error::store_tag,
                              false, conn);
       } else {
@@ -2964,7 +2956,7 @@ void stream::_process_tag(const std::shared_ptr<io::data>& d) {
       _tag_update.bind_value_as_u32(1, tg.type());
       _tag_update.bind_value_as_str(2, tg.name());
       if (tag_id) {
-        _tag_update.bind_value_as_u64(5, tag_id);
+        _tag_update.bind_value_as_u64(3, tag_id);
         _mysql.run_statement(_tag_update, database::mysql_error::store_tag,
                              false, conn);
         _add_action(conn, actions::tags);
@@ -2973,22 +2965,6 @@ void stream::_process_tag(const std::shared_ptr<io::data>& d) {
             "unified sql: unable to modify tag ({}, {}): not in cache", tg.id(),
             tg.type());
       break;
-    case Tag_Action_DELETE:
-      log_v2::sql()->trace("SQL: remove tag {}", tg.id());
-      {
-        // FIXME DBO: Delete should be implemented later.
-        if (0 && tag_id) {
-          _tag_delete.bind_value_as_u64(0, tag_id);
-          _mysql.run_statement(_tag_delete, database::mysql_error::store_tag,
-                               false, conn);
-          _add_action(conn, actions::tags);
-          _tags_cache.erase({tg.id(), tg.type()});
-        } else {
-          log_v2::sql()->error(
-              "unified sql: unable to delete tag ({}, {}): not in cache",
-              tg.id(), tg.type());
-        }
-      }
       break;
     default:
       log_v2::sql()->error("Bad action in tag object");

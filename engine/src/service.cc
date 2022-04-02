@@ -19,7 +19,6 @@
 
 #include "com/centreon/engine/service.hh"
 
-#include <absl/container/flat_hash_map.h>
 #include <iomanip>
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checks/checker.hh"

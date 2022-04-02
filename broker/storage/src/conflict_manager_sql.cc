@@ -1792,7 +1792,7 @@ void conflict_manager::_process_tag(
         _tag_update.bind_value_as_u64(0, tg.id());
         _tag_update.bind_value_as_u32(1, tg.type());
         _tag_update.bind_value_as_str(2, tg.name());
-        _tag_update.bind_value_as_u64(5, tag_id);
+        _tag_update.bind_value_as_u64(3, tag_id);
         _mysql.run_statement(_tag_update, database::mysql_error::store_tag,
                              false, conn);
       } else {
@@ -1820,7 +1820,7 @@ void conflict_manager::_process_tag(
       _tag_update.bind_value_as_u32(1, tg.type());
       _tag_update.bind_value_as_str(2, tg.name());
       if (tag_id) {
-        _tag_update.bind_value_as_u64(5, tag_id);
+        _tag_update.bind_value_as_u64(3, tag_id);
         _mysql.run_statement(_tag_update, database::mysql_error::store_tag,
                              false, conn);
         _add_action(conn, actions::tags);
@@ -1829,22 +1829,6 @@ void conflict_manager::_process_tag(
             "unified sql: unable to modify tag ({}, {}): not in cache", tg.id(),
             tg.type());
       break;
-    case Tag_Action_DELETE:
-      log_v2::sql()->trace("SQL: remove tag {}", tg.id());
-      {
-        // FIXME DBO: Delete should be implemented later.
-        if (0 && tag_id) {
-          _tag_delete.bind_value_as_u64(0, tag_id);
-          _mysql.run_statement(_tag_delete, database::mysql_error::store_tag,
-                               false, conn);
-          _add_action(conn, actions::tags);
-          _tags_cache.erase({tg.id(), tg.type()});
-        } else {
-          log_v2::sql()->error(
-              "unified sql: unable to delete tag ({}, {}): not in cache",
-              tg.id(), tg.type());
-        }
-      }
       break;
     default:
       log_v2::sql()->error("Bad action in tag object");

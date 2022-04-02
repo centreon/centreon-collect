@@ -31,7 +31,7 @@ class tag;
 }
 
 using tag_map =
-    absl::flat_hash_map<std::pair<uint64_t, uint32_t>,
+    absl::flat_hash_map<std::pair<uint64_t, uint16_t>,
                         std::shared_ptr<com::centreon::engine::tag>>;
 using tag_map_unsafe =
     absl::flat_hash_map<std::string, com::centreon::engine::tag*>;

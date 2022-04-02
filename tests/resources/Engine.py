@@ -611,7 +611,7 @@ def remove_severities_from_services(poller:int):
     ff.writelines(out)
     ff.close()
 
-def add_tags_to_host(type:str, tag_id:str, hst_lst):
+def add_tags_to_hosts(type:str, tag_id:str, hst_lst):
     ff = open("{}/config0/hosts.cfg".format(CONF_DIR), "r")
     lines = ff.readlines()
     ff.close()

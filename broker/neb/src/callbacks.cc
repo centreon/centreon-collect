@@ -1471,8 +1471,8 @@ int neb::callback_pb_host(int callback_type, void* data) {
              end = eh->tags().end();
          it != end; ++it) {
       TagInfo* ti = host.mutable_tags()->Add();
-      ti->set_id(it->get()->id());
-      ti->set_type(static_cast<TagType>(it->get()->type()));
+      ti->set_id((*it)->id());
+      ti->set_type(static_cast<TagType>((*it)->type()));
     }
 
     // Find host ID.
@@ -2497,8 +2497,8 @@ int neb::callback_pb_service(int callback_type, void* data) {
              end = es->tags().end();
          it != end; ++it) {
       TagInfo* ti = srv.mutable_tags()->Add();
-      ti->set_id(it->get()->id());
-      ti->set_type(static_cast<TagType>(it->get()->type()));
+      ti->set_id((*it)->id());
+      ti->set_type(static_cast<TagType>((*it)->type()));
     }
 
     // Search host ID and service ID.

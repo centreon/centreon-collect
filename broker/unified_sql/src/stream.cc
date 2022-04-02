@@ -351,8 +351,8 @@ void stream::_load_caches() {
     try {
       mysql_result res{promise_tags.get_future().get()};
       while (_mysql.fetch_row(res)) {
-        _tags_cache[{res.value_as_u64(2),
-                     static_cast<uint16_t>(res.value_as_u32(1))}] =
+        _tags_cache[{res.value_as_u64(1),
+                     static_cast<uint16_t>(res.value_as_u32(2))}] =
             res.value_as_u64(0);
       }
     } catch (const std::exception& e) {

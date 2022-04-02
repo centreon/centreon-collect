@@ -121,9 +121,9 @@ class service : public object {
   bool set_service_id(uint64_t value);
   unsigned short stalking_options() const noexcept;
   void timezone(std::string const& time_zone);
-  std::string const& timezone() const throw();
-  bool timezone_defined() const throw();
-  int acknowledgement_timeout() const throw();
+  std::string const& timezone() const noexcept;
+  bool timezone_defined() const noexcept;
+  int acknowledgement_timeout() const noexcept;
   bool set_acknowledgement_timeout(int value);
   uint64_t severity_id() const noexcept;
   const std::set<std::pair<uint64_t, uint16_t>>& tags() const noexcept;

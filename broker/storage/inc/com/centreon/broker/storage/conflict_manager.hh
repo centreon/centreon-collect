@@ -206,7 +206,7 @@ class conflict_manager {
       _metric_cache;
   std::mutex _metric_cache_m;
   absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t> _severity_cache;
-  absl::flat_hash_map<std::pair<uint64_t, uint32_t>, uint64_t> _tags_cache;
+  absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t> _tags_cache;
 
   std::unordered_set<uint32_t> _hostgroup_cache;
   std::unordered_set<uint32_t> _servicegroup_cache;

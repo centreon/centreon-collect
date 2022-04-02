@@ -116,7 +116,7 @@ void applier::tag::remove_object(const configuration::tag& obj) {
   log_v2::config()->debug("Removing tag {}.", obj.key().first);
 
   // Find tag.
-  tag_map::iterator it = engine::tag::tags.find(obj.key());
+  tag_map::iterator it = engine::tag::tags.find(obj.key(), obj.type());
   if (it != engine::tag::tags.end()) {
     engine::tag* tg(it->second.get());
 
@@ -139,7 +139,7 @@ void applier::tag::remove_object(const configuration::tag& obj) {
  *  @param[in] obj  Object to resolve.
  */
 void applier::tag::resolve_object(const configuration::tag& obj) {
-  tag_map::const_iterator tg_it{engine::tag::tags.find(obj.key())};
+  tag_map::const_iterator tg_it{engine::tag::tags.find(obj.key(), obj.type())};
   if (tg_it == engine::tag::tags.end() || !tg_it->second)
     throw engine_error() << "Cannot resolve non-existing tag "
                          << obj.key().first;

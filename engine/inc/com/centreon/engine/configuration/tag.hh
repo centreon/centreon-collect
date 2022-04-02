@@ -36,13 +36,12 @@ class tag : public object {
     hostgroup = 1,
     servicecategory = 2,
     hostcategory = 3,
-    none = 4
+    none = -1
   };
 
  private:
   typedef bool (*setter_func)(tag&, const char*);
   key_type _key;
-  tagtype _type;
   std::string _name;
 
   bool _set_id(uint64_t id);
@@ -62,7 +61,7 @@ class tag : public object {
   void merge(const object& obj) override;
   bool parse(const char* key, const char* value) override;
 
-  uint32_t type() const noexcept;
+  uint16_t type() const noexcept;
   const std::string& name() const noexcept;
 
   static const absl::flat_hash_map<std::string, setter_func> _setters;
