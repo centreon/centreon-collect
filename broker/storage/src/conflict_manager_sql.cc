@@ -1778,7 +1778,6 @@ void conflict_manager::_process_tag(
     _tag_insert = _mysql.prepare_query(
         "INSERT INTO tags (id,type,name) "
         "VALUES(?,?,?)");
-    _tag_delete = _mysql.prepare_query("DELETE FROM tags WHERE tag_id=?");
   }
   // Processed object.
   auto s{static_cast<const neb::pb_tag*>(d.get())};

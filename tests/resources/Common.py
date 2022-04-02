@@ -506,7 +506,7 @@ def check_service_tags_with_timeout(host_id: int, service_id: int, tag_id: int, 
         time.sleep(1)
     return False
 
-def check_host_tags_with_timeout(host_id: int, service_id: int, tag_id: int, timeout: int):
+def check_host_tags_with_timeout(host_id: int, tag_id: int, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host='localhost',

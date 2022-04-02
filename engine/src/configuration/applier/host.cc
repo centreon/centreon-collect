@@ -143,7 +143,7 @@ void applier::host::add_object(configuration::host const& obj) {
     tag_map::iterator it_tag{engine::tag::tags.find(*it)};
     if (it_tag == engine::tag::tags.end())
       throw engine_error() << "Could not find tag '" << it->first
-                           << "' on which to apply service (" << obj.host_id()
+                           << "' on which to apply host (" << obj.host_id()
                            << ")";
     else
       h->mut_tags().emplace_front(it_tag->second);
@@ -415,7 +415,7 @@ void applier::host::modify_object(configuration::host const& obj) {
       if (it_tag == engine::tag::tags.end())
         throw engine_error()
             << "Could not find tag '" << it->first
-            << "' on which to apply service (" << obj.host_id() << ")";
+            << "' on which to apply host (" << obj.host_id() << ")";
       else
         it_obj->second->mut_tags().emplace_front(it_tag->second);
     }

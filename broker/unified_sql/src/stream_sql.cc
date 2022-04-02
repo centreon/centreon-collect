@@ -43,9 +43,9 @@ using namespace com::centreon::broker::unified_sql;
 void stream::_clean_tables(uint32_t instance_id) {
   /* Database version. */
 
-  int32_t conn = special_conn::tag % _mysql.connections_count();
-  _mysql.run_query("DELETE FROM tags", database::mysql_error::clean_tags, false,
-                   conn);
+  conn = special_conn::tag % _mysql.connections_count();
+  _mysql.run_query("DELETE FROM resources_tags",
+                   database::mysql_error::clean_resources_tags, false, conn);
 
   conn = _mysql.choose_connection_by_instance(instance_id);
   log_v2::sql()->debug(
@@ -2914,7 +2914,6 @@ void stream::_process_tag(const std::shared_ptr<io::data>& d) {
     _tag_insert = _mysql.prepare_query(
         "INSERT INTO tags (id,type,name) "
         "VALUES(?,?,?)");
-    _tag_delete = _mysql.prepare_query("DELETE FROM tags WHERE tag_id=?");
   }
   // Processed object.
   auto s{static_cast<const neb::pb_tag*>(d.get())};
