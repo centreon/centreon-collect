@@ -866,6 +866,7 @@ void service::merge(object const& obj) {
   MRG_DEFAULT(_service_description);
   MRG_OPTION(_stalking_options);
   MRG_OPTION(_timezone);
+  MRG_OPTION(_severity_id);
 }
 
 /**

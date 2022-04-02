@@ -226,3 +226,55 @@ BEUSEV4
 
 	Stop Engine
 	Kindly Stop Broker
+
+BETUSEV1
+	[Documentation]	Services have severities provided by templates.
+	[Tags]	Broker	Engine	protobuf	bbdo	severities
+	Config Engine	${2}
+	Create Severities File	${0}	${20}
+	Create Severities File	${1}	${20}
+        Create Template File	${0}	service	severity	[1, 3]
+        Create Template File	${1}	service	severity	[3, 5]
+
+	Config Engine Add Cfg File	${0}	severities.cfg
+	Config Engine Add Cfg File	${1}	severities.cfg
+	Config Engine Add Cfg File	${0}	serviceTemplates.cfg
+	Config Engine Add Cfg File	${1}	serviceTemplates.cfg
+	Engine Config Set Value	${0}	log_level_config	debug
+	Engine Config Set Value	${1}	log_level_config	debug
+	Add Template To Services	0	service_template_1	[1, 2, 3, 4]
+	Add Template To Services	0	service_template_2	[5, 6, 7, 8]
+	Add Template To Services	1	service_template_1	[501, 502]
+	Add Template To Services	1	service_template_2	[503, 504]
+	Config Broker	central
+	Config Broker	rrd
+	Config Broker	module
+	Config Broker Sql Output	central	unified_sql
+	Broker Config Add Item	module	bbdo_version	3.0.0
+	Broker Config Add Item	central	bbdo_version	3.0.0
+	Broker Config Add Item	rrd	bbdo_version	3.0.0
+	Broker Config Log	module	neb	debug
+	Broker Config Log	central	sql	trace
+	Clear Retention
+	${start}=	Get Current Date
+	Start Engine
+	Start Broker
+	Sleep	5s
+	# We need to wait a little before reloading Engine
+	${result}=	check service severity With Timeout	1	2	1	60
+	Should Be True	${result}	msg=First step: Service (1, 2) should have severity_id=1
+
+	${result}=	check service severity With Timeout	1	4	1	60
+	Should Be True	${result}	msg=First step: Service (1, 4) should have severity_id=1
+
+	${result}=	check service severity With Timeout	1	5	3	60
+	Should Be True	${result}	msg=First step: Service (1, 5) should have severity_id=3
+
+	${result}=	check service severity With Timeout	26	502	3	60
+	Should Be True	${result}	msg=First step: Service (26, 502) should have severity_id=3
+
+	${result}=	check service severity With Timeout	26	503	5	60
+	Should Be True	${result}	msg=First step: Service (26, 503) should have severity_id=5
+
+	Stop Engine
+	Kindly Stop Broker
