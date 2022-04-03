@@ -733,7 +733,6 @@ TEST_F(ApplierService, ServicesEqualityTags) {
 
   svc_aply.add_object(csvc);
   ASSERT_TRUE(csvc.parse("service_description", "test description2"));
-  ASSERT_THROW(svc_aply.add_object(csvc), std::exception);
   ASSERT_TRUE(csvc.parse("service_id", "12346"));
   ASSERT_NO_THROW(svc_aply.add_object(csvc));
   service_map const& sm(engine::service::services);

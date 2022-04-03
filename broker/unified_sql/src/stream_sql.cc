@@ -43,7 +43,7 @@ using namespace com::centreon::broker::unified_sql;
 void stream::_clean_tables(uint32_t instance_id) {
   /* Database version. */
 
-  conn = special_conn::tag % _mysql.connections_count();
+  int32_t conn = special_conn::tag % _mysql.connections_count();
   _mysql.run_query("DELETE FROM resources_tags",
                    database::mysql_error::clean_resources_tags, false, conn);
 

@@ -42,7 +42,11 @@ using namespace com::centreon::broker::storage;
 void conflict_manager::_clean_tables(uint32_t instance_id) {
   /* Database version. */
 
-  int32_t conn = _mysql.choose_connection_by_instance(instance_id);
+  int32_t conn = special_conn::tag % _mysql.connections_count();
+  _mysql.run_query("DELETE FROM resources_tags",
+                   database::mysql_error::clean_resources_tags, false, conn);
+
+  conn = _mysql.choose_connection_by_instance(instance_id);
   log_v2::sql()->debug(
       "conflict_manager: disable hosts and services (instance_id: {})",
       instance_id);
