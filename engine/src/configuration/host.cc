@@ -1741,9 +1741,11 @@ bool host::_set_category_tags(const std::string& value) {
   std::list<absl::string_view> tags{absl::StrSplit(value, ',')};
   for (std::set<std::pair<uint64_t, uint16_t>>::iterator it(_tags.begin()),
        end(_tags.end());
-       it != end; ++it) {
+       it != end;) {
     if (it->second == tag::hostcategory)
-      _tags.erase(it);
+      it = _tags.erase(it);
+    else
+      ++it;
   }
 
   for (auto& tag : tags) {
@@ -1773,9 +1775,11 @@ bool host::_set_group_tags(const std::string& value) {
   std::list<absl::string_view> tags{absl::StrSplit(value, ',')};
   for (std::set<std::pair<uint64_t, uint16_t>>::iterator it(_tags.begin()),
        end(_tags.end());
-       it != end; ++it) {
+       it != end;) {
     if (it->second == tag::hostgroup)
-      _tags.erase(it);
+      it = _tags.erase(it);
+    else
+      ++it;
   }
 
   for (auto& tag : tags) {
