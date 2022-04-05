@@ -207,6 +207,7 @@ void parser::_parse(std::string const& cmd) {
               << "invalid execution request "
                  "received: timeout > to monitoring engine timeout";
       } catch (std::exception const& e) {
+        log::core()->error("fail to parse cmd line {} {}", cmdline, e.what());
         _owner->on_error(cmd_id, e.what());
         return;
       }

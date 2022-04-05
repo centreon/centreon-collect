@@ -12,6 +12,7 @@ CONF_DIR = "/etc/centreon-engine"
 ENGINE_HOME = "/var/lib/centreon-engine"
 SCRIPT_DIR: str = dirname(__file__) + "/engine-scripts/"
 
+
 class EngineInstance:
     def __init__(self, count: int):
         self.last_service_id = 0
@@ -139,7 +140,7 @@ class EngineInstance:
                       "  checkh{0}\n    check_period                   24x7\n    register                       1\n    "
                       "_KEY{0}                      VAL{0}\n    _SNMPCOMMUNITY                 public\n    "
                       "_SNMPVERSION                   2c\n    _HOST_ID                       {0}\n}}\n".format(
-                hid, a, b, c, d),
+                          hid, a, b, c, d),
             "hid": hid}
         return retval
 
@@ -226,7 +227,7 @@ define command {
         ff.close()
         return host_id
 
-    def create_bam_service(self, name:str, display_name:str, host_name:str,check_command:str):
+    def create_bam_service(self, name: str, display_name: str, host_name: str, check_command: str):
         self.last_service_id += 1
         service_id = self.last_service_id
         retval = """define service {{
@@ -286,11 +287,11 @@ define command {
         return retval
 
     @staticmethod
-    def create_severities(nb:int, offset: int):
+    def create_severities(nb: int, offset: int):
         config_file = "{}/config0/severities.cfg".format(CONF_DIR)
         ff = open(config_file, "w+")
         content = ""
-        typ = [ "service", "host" ]
+        typ = ["service", "host"]
         for i in range(nb):
             level = i % 5 + 1
             content += """define severity {{
@@ -305,7 +306,7 @@ define command {
         ff.close()
 
     @staticmethod
-    def create_tags(nb:int, offset: int):
+    def create_tags(nb: int, offset: int):
         tt = ["hostcategory", "servicecategory", "hostgroup", "servicegroup"]
 
         config_file = "{}/config0/tags.cfg".format(CONF_DIR)
@@ -324,10 +325,10 @@ define command {
 
     def build_configs(self, hosts: int, services_by_host: int, debug_level=0):
         if exists(CONF_DIR):
-          shutil.rmtree(CONF_DIR)
+            shutil.rmtree(CONF_DIR)
         r = 0
         if hosts % self.instances > 0:
-          r = 1
+            r = 1
         v = int(hosts / self.instances) + r
         last = hosts - (self.instances - 1) * v
         for inst in range(self.instances):
@@ -410,14 +411,16 @@ define connector {
             if not exists(ENGINE_HOME):
                 makedirs(ENGINE_HOME)
             for file in ["check.pl", "notif.pl"]:
-                shutil.copyfile("{0}/{1}".format(SCRIPT_DIR, file), "{0}/{1}".format(ENGINE_HOME, file))
+                shutil.copyfile("{0}/{1}".format(SCRIPT_DIR, file),
+                                "{0}/{1}".format(ENGINE_HOME, file))
 
     def centengine_conf_add_bam(self):
         config_dir = "{}/config0".format(CONF_DIR)
         f = open(config_dir + "/centengine.cfg", "r")
         lines = f.readlines()
         f.close
-        lines_to_prep = ["cfg_file=/etc/centreon-engine/config0/centreon-bam-command.cfg\n", "cfg_file=/etc/centreon-engine/config0/centreon-bam-timeperiod.cfg\n", "cfg_file=/etc/centreon-engine/config0/centreon-bam-host.cfg\n", "cfg_file=/etc/centreon-engine/config0/centreon-bam-services.cfg\n"]
+        lines_to_prep = ["cfg_file=/etc/centreon-engine/config0/centreon-bam-command.cfg\n", "cfg_file=/etc/centreon-engine/config0/centreon-bam-timeperiod.cfg\n",
+                         "cfg_file=/etc/centreon-engine/config0/centreon-bam-host.cfg\n", "cfg_file=/etc/centreon-engine/config0/centreon-bam-services.cfg\n"]
         f = open(config_dir + "/centengine.cfg", "w")
         f.writelines(lines_to_prep)
         f.writelines(lines)
@@ -430,15 +433,15 @@ define connector {
 # @param num: How many engine configurations to start
 #
 def config_engine(num: int):
-  global engine
-  engine = EngineInstance(num)
+    global engine
+    engine = EngineInstance(num)
 
 
 ##
 # @brief Accessor to the number of centengine configurations
 #
 def get_engines_count():
-  return engine.instances
+    return engine.instances
 
 
 ##
@@ -449,18 +452,18 @@ def get_engines_count():
 # @param value the new value to set to the key variable.
 #
 def engine_config_set_value(idx: int, key: str, value: str):
-  filename = "/etc/centreon-engine/config{}/centengine.cfg".format(idx)
-  f = open(filename, "r")
-  lines = f.readlines()
-  f.close()
+    filename = "/etc/centreon-engine/config{}/centengine.cfg".format(idx)
+    f = open(filename, "r")
+    lines = f.readlines()
+    f.close()
 
-  for i in range(len(lines)):
-    if lines[i].startswith(key + "="):
-      lines[i] = "{}={}\n".format(key, value)
+    for i in range(len(lines)):
+        if lines[i].startswith(key + "="):
+            lines[i] = "{}={}\n".format(key, value)
 
-  f = open(filename, "w")
-  f.writelines(lines)
-  f.close()
+    f = open(filename, "w")
+    f.writelines(lines)
+    f.close()
 
 
 def add_host_group(index: int, members: list):
@@ -474,6 +477,7 @@ def add_host_group(index: int, members: list):
     f.write(engine.create_host_group(mbs))
     f.close()
 
+
 def engine_log_duplicate(result: list):
     dup = True
     for i in result:
@@ -481,21 +485,24 @@ def engine_log_duplicate(result: list):
             dup = False
     return dup
 
+
 def clone_engine_config_to_db():
     global dbconf
     dbconf = db_conf.DbConf(engine)
     dbconf.create_conf_db()
 
+
 def add_bam_config_to_engine():
     global dbconf
     dbconf.init_bam()
+
 
 def create_ba_with_services(name: str, typ: str, svc: list):
     global dbconf
     dbconf.create_ba_with_services(name, typ, svc)
 
 
-def get_command_id(service:int):
+def get_command_id(service: int):
     global engine
     global dbconf
     cmd_name = engine.service_cmd[service]
@@ -504,25 +511,49 @@ def get_command_id(service:int):
 
 def process_service_check_result(hst: str, svc: str, state: int, output: str):
     now = int(time.time())
-    cmd = "[{}] PROCESS_SERVICE_CHECK_RESULT;{};{};{};{}\n".format(now, hst, svc, state, output)
+    cmd = "[{}] PROCESS_SERVICE_CHECK_RESULT;{};{};{};{}\n".format(
+        now, hst, svc, state, output)
     f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
     f.write(cmd)
     f.close()
+
 
 def schedule_service_downtime(hst: str, svc: str, duration: int):
     now = int(time.time())
-    cmd = "[{2}] SCHEDULE_SVC_DOWNTIME;{0};{1};{2};{3};1;0;{4};admin;Downtime set by admin".format(hst, svc, now, now + duration, duration)
+    cmd = "[{2}] SCHEDULE_SVC_DOWNTIME;{0};{1};{2};{3};1;0;{4};admin;Downtime set by admin".format(
+        hst, svc, now, now + duration, duration)
     f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
     f.write(cmd)
     f.close()
 
-def create_severities_file(nb:int, offset:int = 1):
+
+def schedule_forced_svc_check(host: str, svc: str, pipe: str = "/var/lib/centreon-engine/rw/centengine.cmd"):
+    now = int(time.time())
+    f = open(pipe, "w")
+    cmd = "[{2}] SCHEDULE_FORCED_SVC_CHECK;{0};{1};{2}".format(host, svc, now)
+    f.write(cmd)
+    f.close()
+    time.sleep(0.05)
+
+
+def schedule_forced_host_check(host: str, pipe: str = "/var/lib/centreon-engine/rw/centengine.cmd"):
+    now = int(time.time())
+    f = open(pipe, "w")
+    cmd = "[{1}] SCHEDULE_FORCED_HOST_CHECK;{0};{1}".format(host, now)
+    f.write(cmd)
+    f.close()
+    time.sleep(0.05)
+
+
+def create_severities_file(nb: int, offset: int = 1):
     engine.create_severities(nb, offset)
 
-def create_tags_file(nb:int, offset:int = 1):
+
+def create_tags_file(nb: int, offset: int = 1):
     engine.create_tags(nb, offset)
 
-def config_engine_add_cfg_file(cfg:str):
+
+def config_engine_add_cfg_file(cfg: str):
     ff = open("{}/config0/centengine.cfg".format(CONF_DIR), "r")
     lines = ff.readlines()
     ff.close()
@@ -536,7 +567,7 @@ def config_engine_add_cfg_file(cfg:str):
     ff.close()
 
 
-def add_severity_to_services(severity_id:int, svc_lst):
+def add_severity_to_services(severity_id: int, svc_lst):
     ff = open("{}/config0/services.cfg".format(CONF_DIR), "r")
     lines = ff.readlines()
     ff.close()
@@ -544,7 +575,8 @@ def add_severity_to_services(severity_id:int, svc_lst):
     for i in range(len(lines)):
         m = r.match(lines[i])
         if m and m.group(1) in svc_lst:
-            lines.insert(i + 1, "    severity_id                     {}\n".format(severity_id))
+            lines.insert(
+                i + 1, "    severity_id                     {}\n".format(severity_id))
 
     ff = open("{}/config0/services.cfg".format(CONF_DIR), "w")
     ff.writelines(lines)
@@ -560,3 +592,36 @@ def remove_severities_from_services():
     ff = open("{}/config0/services.cfg".format(CONF_DIR), "w")
     ff.writelines(out)
     ff.close()
+
+##
+# @brief Function that search a check, retrieve command index and return check result
+# then it searchs the string "connector::run: id=1090", and then search "connector::_recv_query_execute: id=1090,"
+# and return this line
+#
+# @param debug_file_path path of the debug log file
+# @param str_to_search string after witch we will start connector::run search
+#
+
+
+def check_search(debug_file_path: str, str_to_search):
+    with open(debug_file_path, 'r') as f:
+        lines = f.readlines()
+        for first_ind in range(len(lines)):
+            find_index = lines[first_ind].find(str_to_search + ' ')
+            if (find_index > 0):
+                for second_ind in range(first_ind, len(lines)):
+                    # search cmd_id
+                    m = re.search(
+                        r"^\[\d+\]\s+\[\d+\]\s+connector::run:\s+id=(\d+)", lines[second_ind])
+                    if (m is not None):
+                        cmd_id = m.group(1)
+                        r_query_execute = r"^\[\d+\]\s+\[\d+\]\s+connector::_recv_query_execute:\s+id=" + \
+                            cmd_id + ",\s+(\S[\s\S]+)$"
+                        for third_ind in range(second_ind, len(lines)):
+                            m = re.match(
+                                r_query_execute, lines[third_ind])
+                            if (m is not None):
+                                return m.group(1)
+                        return "_recv_query_execute not found" + r_query_execute
+                return "connector::run not found"
+        return "check_search don t find " + str_to_search

@@ -62,6 +62,15 @@ Start Engine
 	 Start Process	/usr/sbin/centengine	${conf}	alias=${alias}
 	END
 
+Start Custom Engine
+	[Arguments]	 ${conf_path}  ${process_alias}
+	Start Process  /usr/sbin/centengine  ${conf_path}  alias=${process_alias}
+
+Stop Custom Engine
+	[Arguments]  ${process_alias}
+	${result}=	Terminate Process	${process_alias}
+	Should Be True	${result.rc} == -15 or ${result.rc} == 0	msg=Engine badly stopped alias = ${process_alias} - code returned ${result.rc}.
+
 Stop Engine
 	${count}=	Get Engines Count
 	FOR	${idx}	IN RANGE	0	${count}
