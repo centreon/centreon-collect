@@ -55,7 +55,6 @@ set(
   "${SRC_DIR}/severity.cc"
   "${SRC_DIR}/tag.cc"
   "${SRC_DIR}/timeperiod.cc"
-  "${SRC_DIR}/timerange.cc"
 
   # Headers.
   "${INC_DIR}/anomalydetection.hh"
@@ -84,7 +83,6 @@ set(
   "${INC_DIR}/state.hh"
   "${INC_DIR}/tag.hh"
   "${INC_DIR}/timeperiod.hh"
-  "${INC_DIR}/timerange.hh"
 
   PARENT_SCOPE
 )

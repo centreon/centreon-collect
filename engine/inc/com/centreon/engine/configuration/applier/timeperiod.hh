@@ -30,12 +30,13 @@
 // Forward declaration.
 CCE_BEGIN()
 
+class timerange;
+
 namespace configuration {
 // Forward declarations.
 class daterange;
 class state;
 class timeperiod;
-class timerange;
 
 namespace applier {
 class timeperiod {

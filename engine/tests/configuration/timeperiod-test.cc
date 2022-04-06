@@ -34,8 +34,7 @@ using namespace com::centreon::engine;
 
 using string_vector = std::vector<std::string>;
 
-using config_timerange_list =
-    std::list<com::centreon::engine::configuration::timerange>;
+using config_timerange_list = std::list<com::centreon::engine::timerange>;
 using config_daterange_list =
     std::list<com::centreon::engine::configuration::daterange>;
 
@@ -532,12 +531,6 @@ bool time_period_comparator::is_equal() const {
   }
 
   return true;
-}
-
-bool operator==(const com::centreon::engine::timerange& left,
-                const com::centreon::engine::configuration::timerange& right) {
-  return left.get_range_start() == right.start() &&
-         left.get_range_end() == right.end();
 }
 
 bool operator==(const com::centreon::engine::daterange& left,

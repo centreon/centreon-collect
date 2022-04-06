@@ -69,7 +69,7 @@ uint64_t timerange::get_range_end() const {
  *
  *  @return True if is the same object, otherwise false.
  */
-bool timerange::operator==(timerange const& obj) noexcept {
+bool timerange::operator==(timerange const& obj) const {
   if (_range_start == obj.get_range_start() &&
       _range_end == obj.get_range_end()) {
     return true;
@@ -85,11 +85,24 @@ bool timerange::operator==(timerange const& obj) noexcept {
  *
  *  @return True if is not the same object, otherwise false.
  */
-bool timerange::operator!=(timerange const& obj) noexcept {
+bool timerange::operator!=(timerange const& obj) const {
   return !(*this == obj);
 }
 
 CCE_BEGIN()
+
+/**
+ *  Less-than operator.
+ *
+ *  @param[in] right Object to compare to.
+ *
+ *  @return True if this object is less than right.
+ */
+bool timerange::operator<(timerange const& right) const {
+  if (_range_start != right._range_start)
+    return (_range_start < right._range_start);
+  return (_range_end < right._range_end);
+}
 
 /**
  *  Dump timerange content into the stream.

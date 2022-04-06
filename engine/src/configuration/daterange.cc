@@ -22,6 +22,7 @@
 #include "com/centreon/engine/configuration/daterange.hh"
 
 using namespace com::centreon::engine::configuration;
+using namespace com::centreon::engine;
 
 /**
  *  Constructor.
@@ -392,7 +393,7 @@ void daterange::dump(std::ostream& s) const {
     << " _skip_interval: " << _skip_interval << " timeranges: [ ";
 
   for (const timerange& t : _timeranges) {
-    s << " {" << t.start() << ',' << t.end() << '}';
+    s << " {" << t.get_range_start() << ',' << t.get_range_end() << '}';
   }
   s << " ]";
 }

@@ -20,11 +20,12 @@
 #include "com/centreon/engine/configuration/timeperiod.hh"
 #include <cstdio>
 #include "com/centreon/engine/common.hh"
-#include "com/centreon/engine/configuration/timerange.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/string.hh"
+#include "com/centreon/engine/timerange.hh"
 
 using namespace com::centreon;
+using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
 
 #define SETTER(type, method) \

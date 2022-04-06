@@ -22,8 +22,8 @@
 
 #include <list>
 #include <string>
-#include "com/centreon/engine/configuration/timerange.hh"
 #include "com/centreon/engine/namespace.hh"
+#include "com/centreon/engine/timerange.hh"
 
 CCE_BEGIN()
 

@@ -39,8 +39,9 @@ class timerange {
   uint64_t get_range_end() const;
   // static timerange_list timeranges;
 
-  bool operator==(timerange const& obj) throw();
-  bool operator!=(timerange const& obj) throw();
+  bool operator==(timerange const& obj) const;
+  bool operator!=(timerange const& obj) const;
+  bool operator<(timerange const& obj) const;
 
  private:
   uint64_t _range_start;

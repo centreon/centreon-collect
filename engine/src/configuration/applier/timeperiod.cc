@@ -261,11 +261,12 @@ void applier::timeperiod::_add_exceptions(
           it2->month_day_end(), it2->week_day_end(), it2->week_day_end_offset(),
           it2->skip_interval())};
       tp->exceptions[it2->type()].push_back(dr);
-      for (std::list<timerange>::const_iterator it3(it2->timeranges().begin()),
+      for (std::list<engine::timerange>::const_iterator
+               it3(it2->timeranges().begin()),
            end3(it2->timeranges().end());
            it3 != end3; ++it3) {
-        std::shared_ptr<engine::timerange> tr{
-            new engine::timerange(it3->start(), it3->end())};
+        std::shared_ptr<engine::timerange> tr{new engine::timerange(
+            it3->get_range_start(), it3->get_range_end())};
         for (daterange_list::iterator it4(tp->exceptions[it2->type()].begin()),
              end4(tp->exceptions[it2->type()].end());
              it4 != end4; ++it4)
@@ -281,7 +282,7 @@ void applier::timeperiod::_add_exceptions(
  *  @param[out] tp     Time period object.
  */
 void applier::timeperiod::_add_time_ranges(
-    std::vector<std::list<configuration::timerange> > const& ranges,
+    std::vector<std::list<engine::timerange> > const& ranges,
     engine::timeperiod* tp) {
   unsigned short day(0);
   for (std::vector<std::list<timerange> >::const_iterator it(ranges.begin()),
@@ -290,7 +291,7 @@ void applier::timeperiod::_add_time_ranges(
     for (std::list<timerange>::const_iterator it2(it->begin()), end2(it->end());
          it2 != end2; ++it2) {
       std::shared_ptr<engine::timerange> tr{
-          new engine::timerange(it2->start(), it2->end())};
+          new engine::timerange(it2->get_range_start(), it2->get_range_end())};
       tp->days[day].push_back(tr);
     }
 }
