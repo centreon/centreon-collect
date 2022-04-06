@@ -27,10 +27,6 @@
 #include <unistd.h>
 #include <cctype>
 #include <cerrno>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <sstream>
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/commands/connector.hh"
 #include "com/centreon/engine/commands/forward.hh"

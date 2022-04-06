@@ -22,7 +22,6 @@
 
 #include "com/centreon/engine/checks/stats.hh"
 #include <cmath>
-#include <ctime>
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/globals.hh"
 

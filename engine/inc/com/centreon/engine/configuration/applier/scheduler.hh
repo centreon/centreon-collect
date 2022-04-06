@@ -20,8 +20,6 @@
 #ifndef CCE_CONFIGURATION_APPLIER_SCHEDULER_HH
 #define CCE_CONFIGURATION_APPLIER_SCHEDULER_HH
 
-#include <set>
-#include <vector>
 #include "com/centreon/engine/configuration/applier/difference.hh"
 #include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"

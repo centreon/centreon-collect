@@ -19,8 +19,7 @@
 */
 
 #include "com/centreon/engine/macros/grab_host.hh"
-#include <sstream>
-#include <utility>
+
 #include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros/clear_host.hh"

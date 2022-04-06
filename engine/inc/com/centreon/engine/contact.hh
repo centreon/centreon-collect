@@ -21,11 +21,6 @@
 #define CCE_CONTACT_HH
 
 #include <absl/container/flat_hash_map.h>
-#include <time.h>
-#include <list>
-#include <memory>
-#include <ostream>
-#include <vector>
 #include "com/centreon/engine/contactgroup.hh"
 #include "com/centreon/engine/customvariable.hh"
 #include "com/centreon/engine/notifier.hh"

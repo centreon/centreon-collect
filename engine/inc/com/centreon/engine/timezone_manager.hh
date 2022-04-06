@@ -21,8 +21,6 @@
 #define CCE_TIMEZONE_MANAGER_HH
 
 #include <stack>
-#include <string>
-#include "com/centreon/engine/namespace.hh"
 
 CCE_BEGIN()
 

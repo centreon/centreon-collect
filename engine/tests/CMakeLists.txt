@@ -40,6 +40,7 @@ if (WITH_TESTING)
   add_executable(bin_connector_test_run
       "${TESTS_DIR}/commands/bin_connector_test_run.cc")
   target_link_libraries(bin_connector_test_run cce_core pthread)
+  target_precompile_headers(bin_connector_test_run PRIVATE ../precomp_inc/precomp.hh)
 
   set(ut_sources
     # Sources.
@@ -124,6 +125,7 @@ if (WITH_TESTING)
   include_directories(${TESTS_DIR})
 
   add_executable(ut_engine ${ut_sources})
+  target_precompile_headers(ut_engine PRIVATE ../precomp_inc/precomp.hh)
 
   set_target_properties(
       ut_engine rpc_client_engine bin_connector_test_run

@@ -20,14 +20,9 @@
 #ifndef CCE_CONFIGURATION_TIMEPERIOD_HH
 #define CCE_CONFIGURATION_TIMEPERIOD_HH
 
-#include <list>
-#include <set>
-#include <string>
-#include <vector>
 #include "com/centreon/engine/configuration/daterange.hh"
 #include "com/centreon/engine/configuration/group.hh"
 #include "com/centreon/engine/configuration/object.hh"
-#include "com/centreon/engine/namespace.hh"
 #include "com/centreon/engine/opt.hh"
 
 CCE_BEGIN()

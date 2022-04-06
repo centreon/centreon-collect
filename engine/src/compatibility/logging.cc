@@ -19,10 +19,7 @@
 
 #include "com/centreon/engine/logging.hh"
 #include <sys/time.h>
-#include <unistd.h>
 #include <cstdarg>
-#include <cstdio>
-#include <string>
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/host.hh"

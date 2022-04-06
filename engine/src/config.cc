@@ -19,11 +19,6 @@
 */
 
 #include "com/centreon/engine/config.hh"
-#include <cerrno>
-#include <cstdio>
-#include <cstdlib>
-#include <sstream>
-#include <unordered_map>
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/configuration/parser.hh"

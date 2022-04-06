@@ -18,7 +18,6 @@
 */
 
 #include <string.h>
-#include <string>
 #include "com/centreon/engine/exceptions/error.hh"
 
 using namespace com::centreon::engine;

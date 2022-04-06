@@ -20,11 +20,7 @@
 #ifndef CCE_MODULES_LOADER_HH
 #define CCE_MODULES_LOADER_HH
 
-#include <list>
-#include <memory>
-#include <string>
 #include "com/centreon/engine/broker/handle.hh"
-#include "com/centreon/engine/namespace.hh"
 
 CCE_BEGIN()
 

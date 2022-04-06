@@ -20,14 +20,9 @@
 #ifndef CCE_CONFIGURATION_CONTACT_HH
 #define CCE_CONFIGURATION_CONTACT_HH
 
-#include <absl/container/flat_hash_map.h>
-#include <set>
-#include <string>
-#include <vector>
 #include "com/centreon/engine/configuration/group.hh"
 #include "com/centreon/engine/configuration/object.hh"
 #include "com/centreon/engine/customvariable.hh"
-#include "com/centreon/engine/namespace.hh"
 #include "com/centreon/engine/opt.hh"
 
 typedef std::vector<std::string> tab_string;

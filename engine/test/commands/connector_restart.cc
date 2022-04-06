@@ -17,9 +17,6 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <ctime>
-#include <exception>
-#include <sstream>
 #include "com/centreon/engine/commands/connector.hh"
 #include "com/centreon/engine/commands/forward.hh"
 #include "com/centreon/engine/exceptions/error.hh"

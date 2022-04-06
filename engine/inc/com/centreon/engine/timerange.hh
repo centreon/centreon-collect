@@ -20,10 +20,6 @@
 #ifndef CCE_OBJECTS_TIMERANGE_HH
 #define CCE_OBJECTS_TIMERANGE_HH
 
-#include <list>
-#include <memory>
-#include "com/centreon/engine/namespace.hh"
-
 CCE_BEGIN()
 class timerange;
 CCE_END()

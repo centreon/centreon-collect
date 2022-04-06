@@ -20,8 +20,6 @@
 #ifndef CCE_DELETER_SERVICEESCALATION_HH
 #define CCE_DELETER_SERVICEESCALATION_HH
 
-#include "com/centreon/engine/namespace.hh"
-
 CCE_BEGIN()
 
 namespace deleter {

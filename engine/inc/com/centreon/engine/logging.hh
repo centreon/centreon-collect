@@ -21,9 +21,6 @@
 #ifndef CCE_LOGGING_HH
 #define CCE_LOGGING_HH
 
-#include <time.h>
-#include "com/centreon/engine/namespace.hh"
-
 // State Logging Types
 #define INITIAL_STATES 1
 

@@ -18,7 +18,7 @@
  */
 
 #include <gtest/gtest.h>
-#include <iostream>
+
 #include "../timeperiod/utils.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"

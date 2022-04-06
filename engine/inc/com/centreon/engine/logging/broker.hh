@@ -20,7 +20,6 @@
 #define CCE_LOGGING_BROKER_HH
 
 #include <thread>
-#include "com/centreon/engine/namespace.hh"
 #include "com/centreon/logging/backend.hh"
 
 CCE_BEGIN()

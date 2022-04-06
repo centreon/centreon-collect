@@ -19,7 +19,6 @@
 
 #ifndef CCE_OBJECTS_DATERANGE_HH
 #define CCE_OBJECTS_DATERANGE_HH
-#include <ostream>
 #include "com/centreon/engine/timerange.hh"
 
 struct timeperiod_struct;

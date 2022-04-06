@@ -18,7 +18,7 @@
 */
 
 #include "com/centreon/engine/retention/program.hh"
-#include <ctime>
+
 #include "com/centreon/engine/exceptions/error.hh"
 #include "test/unittest.hh"
 

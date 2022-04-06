@@ -17,11 +17,7 @@
  *
  */
 
-#include <time.h>
-
 #include <cstring>
-#include <iostream>
-#include <memory>
 #include <regex>
 
 #include "../test_engine.hh"

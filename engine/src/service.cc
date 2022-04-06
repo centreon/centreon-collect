@@ -19,7 +19,6 @@
 
 #include "com/centreon/engine/service.hh"
 
-#include <iomanip>
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/deleter/listmember.hh"

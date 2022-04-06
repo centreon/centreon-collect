@@ -21,8 +21,6 @@
 
 #include <gtest/gtest.h>
 
-#include <cstdio>
-
 #include "../test_engine.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/command_manager.hh"

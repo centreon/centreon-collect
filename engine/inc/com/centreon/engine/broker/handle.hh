@@ -20,9 +20,6 @@
 #ifndef CCE_BROKER_HANDLE_HH
 #define CCE_BROKER_HANDLE_HH
 
-#include <memory>
-#include <string>
-#include "com/centreon/engine/namespace.hh"
 #include "com/centreon/library.hh"
 
 CCE_BEGIN()

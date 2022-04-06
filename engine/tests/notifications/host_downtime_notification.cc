@@ -18,7 +18,6 @@
  */
 
 #include <cstring>
-#include <memory>
 
 #include <com/centreon/engine/configuration/applier/timeperiod.hh>
 #include "../test_engine.hh"

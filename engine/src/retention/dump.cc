@@ -19,7 +19,6 @@
 
 #include "com/centreon/engine/retention/dump.hh"
 #include <fstream>
-#include <iomanip>
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"

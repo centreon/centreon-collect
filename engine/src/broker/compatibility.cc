@@ -18,10 +18,6 @@
 */
 
 #include "com/centreon/engine/broker/compatibility.hh"
-#include <cassert>
-#include <cstdlib>
-#include <cstring>
-#include <memory>
 #include "com/centreon/engine/nebmodules.hh"
 #include "com/centreon/engine/string.hh"
 

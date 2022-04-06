@@ -19,8 +19,6 @@
 
 #include "globals.h"
 #include <climits>
-#include <cstddef>
-#include <cstdint>
 
 // Log.
 char const* log_archive_path("");

@@ -19,7 +19,7 @@
 
 #include "tests/timeperiod/utils.hh"
 #include <cstring>
-#include <memory>
+
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/timerange.hh"
 
@@ -312,6 +312,9 @@ time_t strtotimet(std::string const& str) {
 #ifndef __THROW
 #define __THROW
 #endif  // !__THROW
+#ifndef __restrict
+#define __restrict
+#endif  // !__restrict
 
 extern "C" time_t time(time_t* t) __THROW {
   if (t)
@@ -319,10 +322,12 @@ extern "C" time_t time(time_t* t) __THROW {
   return (gl_now);
 }
 
-extern "C" int gettimeofday(struct timeval* tv, struct timezone* tz) __THROW {
+extern "C" {
+int gettimeofday(struct timeval* __restrict tv, void* __restrict __tz) __THROW {
   if (tv) {
     tv->tv_sec = gl_now;
     tv->tv_usec = 0;
   }
   return 0;
+}
 }

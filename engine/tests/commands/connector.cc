@@ -20,8 +20,7 @@
 #include "com/centreon/engine/commands/connector.hh"
 #include <gtest/gtest.h>
 #include <signal.h>
-#include <condition_variable>
-#include <mutex>
+
 #include "../timeperiod/utils.hh"
 #include "com/centreon/engine/commands/forward.hh"
 #include "com/centreon/process_manager.hh"

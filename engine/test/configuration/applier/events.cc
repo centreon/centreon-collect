@@ -19,7 +19,6 @@
 */
 
 #include <sys/time.h>
-#include <cmath>
 #include "com/centreon/engine/events/defines.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/log_v2.hh"

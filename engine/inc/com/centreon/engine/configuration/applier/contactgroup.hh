@@ -20,9 +20,7 @@
 #ifndef CCE_CONFIGURATION_APPLIER_CONTACTGROUP_HH
 #define CCE_CONFIGURATION_APPLIER_CONTACTGROUP_HH
 
-#include <map>
 #include "com/centreon/engine/configuration/contactgroup.hh"
-#include "com/centreon/engine/namespace.hh"
 
 CCE_BEGIN()
 

@@ -24,8 +24,6 @@
 #define CCE_EVENTS_TIMED_EVENT_HH
 
 #include <stdint.h>
-#include <time.h>
-#include <deque>
 #include "com/centreon/engine/downtimes/downtime.hh"
 
 CCE_BEGIN()

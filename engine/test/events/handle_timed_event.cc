@@ -17,7 +17,6 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <exception>
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/events/defines.hh"
 #include "com/centreon/engine/exceptions/error.hh"

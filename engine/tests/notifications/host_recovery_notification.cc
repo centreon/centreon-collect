@@ -18,10 +18,8 @@
  */
 
 #include <gtest/gtest.h>
-#include <time.h>
 
 #include <cstring>
-#include <memory>
 
 #include "../helper.hh"
 #include "../timeperiod/utils.hh"

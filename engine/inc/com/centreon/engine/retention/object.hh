@@ -20,9 +20,6 @@
 #ifndef CCE_RETENTION_OBJECT_HH
 #define CCE_RETENTION_OBJECT_HH
 
-#include <memory>
-#include <string>
-#include "com/centreon/engine/namespace.hh"
 #include "com/centreon/engine/string.hh"
 
 CCE_BEGIN()

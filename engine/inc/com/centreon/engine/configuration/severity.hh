@@ -19,10 +19,7 @@
 #ifndef CCE_CONFIGURATION_SEVERITY_HH
 #define CCE_CONFIGURATION_SEVERITY_HH
 
-#include <absl/container/flat_hash_map.h>
-#include <string>
 #include "com/centreon/engine/configuration/object.hh"
-#include "com/centreon/engine/namespace.hh"
 
 CCE_BEGIN()
 

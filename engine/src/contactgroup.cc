@@ -18,8 +18,6 @@
 */
 
 #include "com/centreon/engine/configuration/contactgroup.hh"
-#include <memory>
-#include <sstream>
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/contact.hh"

@@ -18,7 +18,7 @@
 */
 
 #include "com/centreon/engine/configuration/timeperiod.hh"
-#include <cstdio>
+
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/string.hh"

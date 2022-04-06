@@ -19,11 +19,8 @@
 
 #include <fmt/format.h>
 #include <gtest/gtest.h>
-#include <time.h>
 
 #include <cstring>
-#include <iostream>
-#include <memory>
 
 #include <com/centreon/engine/macros.hh>
 #include <com/centreon/engine/macros/grab_host.hh>

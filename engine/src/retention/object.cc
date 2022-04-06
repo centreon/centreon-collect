@@ -18,7 +18,7 @@
 */
 
 #include "com/centreon/engine/retention/object.hh"
-#include <array>
+
 #include "com/centreon/engine/retention/comment.hh"
 #include "com/centreon/engine/retention/contact.hh"
 #include "com/centreon/engine/retention/downtime.hh"

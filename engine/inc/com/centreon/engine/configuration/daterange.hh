@@ -20,9 +20,6 @@
 #ifndef CCE_CONFIGURATION_DATERANGE_HH
 #define CCE_CONFIGURATION_DATERANGE_HH
 
-#include <list>
-#include <string>
-#include "com/centreon/engine/namespace.hh"
 #include "com/centreon/engine/timerange.hh"
 
 CCE_BEGIN()

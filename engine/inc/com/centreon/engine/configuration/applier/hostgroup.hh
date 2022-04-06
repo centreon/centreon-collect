@@ -20,9 +20,7 @@
 #ifndef CCE_CONFIGURATION_APPLIER_HOSTGROUP_HH
 #define CCE_CONFIGURATION_APPLIER_HOSTGROUP_HH
 
-#include <map>
 #include "com/centreon/engine/configuration/hostgroup.hh"
-#include "com/centreon/engine/namespace.hh"
 
 CCE_BEGIN()
 

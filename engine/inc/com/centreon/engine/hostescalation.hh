@@ -19,7 +19,6 @@
 
 #ifndef CCE_HOSTESCALATION_HH
 #define CCE_HOSTESCALATION_HH
-#include <ostream>
 #include "com/centreon/engine/escalation.hh"
 
 /* Forward declaration. */

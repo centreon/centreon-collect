@@ -21,10 +21,8 @@
 
 #include <fmt/format.h>
 #include <gtest/gtest.h>
-#include <time.h>
 
 #include <cstring>
-#include <memory>
 
 #include "../test_engine.hh"
 #include "../timeperiod/utils.hh"

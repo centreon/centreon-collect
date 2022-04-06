@@ -17,20 +17,11 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <unistd.h>
 #include <cctype>
 #include <cerrno>
-#include <cstdlib>
 #include <cstring>
-#include <ctime>
 #include <fstream>
-#include <iterator>
-#include <list>
-#include <sstream>
-#include <string>
 #include <thread>
-#include <vector>
-#include "com/centreon/engine/namespace.hh"
 #include "com/centreon/engine/version.hh"
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/timestamp.hh"

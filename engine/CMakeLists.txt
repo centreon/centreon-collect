@@ -532,6 +532,9 @@ add_library(cce_core ${LIBRARY_TYPE} ${FILES})
 add_dependencies(cce_core engine_rpc)
 add_dependencies(cce_core centreon_clib)
 
+target_precompile_headers(cce_core PRIVATE precomp_inc/precomp.hh)
+
+
 # Link target with required libraries.
 target_link_libraries(cce_core CONAN_PKG::nlohmann_json
   ${MATH_LIBRARIES}

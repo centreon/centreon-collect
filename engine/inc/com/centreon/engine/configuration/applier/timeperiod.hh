@@ -20,11 +20,6 @@
 #ifndef CCE_CONFIGURATION_APPLIER_TIMEPERIOD_HH
 #define CCE_CONFIGURATION_APPLIER_TIMEPERIOD_HH
 
-#include <list>
-#include <set>
-#include <string>
-#include <vector>
-#include "com/centreon/engine/namespace.hh"
 #include "com/centreon/engine/timeperiod.hh"
 
 // Forward declaration.

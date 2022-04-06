@@ -21,9 +21,6 @@
 #define CCE_STATISTICS_HH
 
 #include <sys/types.h>
-#include <unistd.h>
-#include <atomic>
-#include "com/centreon/engine/namespace.hh"
 
 struct buffer_stats {
   uint32_t used;

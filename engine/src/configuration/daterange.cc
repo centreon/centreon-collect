@@ -17,8 +17,6 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <ostream>
-
 #include "com/centreon/engine/configuration/daterange.hh"
 
 using namespace com::centreon::engine::configuration;

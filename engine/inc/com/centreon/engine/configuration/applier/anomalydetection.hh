@@ -20,8 +20,6 @@
 #ifndef CCE_CONFIGURATION_APPLIER_ANOMALYDETECTION_HH
 #define CCE_CONFIGURATION_APPLIER_ANOMALYDETECTION_HH
 
-#include "com/centreon/engine/namespace.hh"
-
 CCE_BEGIN()
 
 namespace configuration {

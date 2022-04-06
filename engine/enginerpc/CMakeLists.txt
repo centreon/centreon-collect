@@ -78,6 +78,9 @@ add_library(
   "${INC_DIR}/enginerpc.hh"
 )
 
+target_precompile_headers(${ENGINERPC} PRIVATE ../precomp_inc/precomp.hh)
+
+
 # Prettier name.
 set_property(TARGET ${ENGINERPC} PROPERTY PREFIX "" PROPERTY POSITION_INDEPENDENT_CODE ON)
 # Link target with libraries.

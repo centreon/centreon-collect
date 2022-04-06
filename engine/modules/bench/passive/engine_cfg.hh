@@ -20,9 +20,6 @@
 #ifndef ENGINE_CFG_HH
 #define ENGINE_CFG_HH
 
-#include <list>
-#include <string>
-
 /**
  *  @class engine_cfg engine_cfg.hh
  *  @brief Generate Centreon Engine configuration files.

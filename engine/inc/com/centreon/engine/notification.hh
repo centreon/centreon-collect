@@ -20,10 +20,6 @@
 #ifndef CCE_NOTIFICATION_HH
 #define CCE_NOTIFICATION_HH
 
-#include <memory>
-#include <set>
-
-#include "com/centreon/engine/namespace.hh"
 #include "com/centreon/engine/notifier.hh"
 
 CCE_BEGIN()

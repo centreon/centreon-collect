@@ -18,8 +18,6 @@
 */
 
 #include "com/centreon/engine/timerange.hh"
-#include <array>
-#include <iomanip>
 #include "com/centreon/engine/daterange.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/log_v2.hh"

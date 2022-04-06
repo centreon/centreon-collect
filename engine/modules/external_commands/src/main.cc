@@ -20,7 +20,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <cstddef>
-#include <exception>
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/log_v2.hh"

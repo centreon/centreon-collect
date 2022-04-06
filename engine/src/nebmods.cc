@@ -19,9 +19,6 @@
 */
 
 #include "com/centreon/engine/nebmods.hh"
-#include <cerrno>
-#include <cstdio>
-#include <cstdlib>
 #include "com/centreon/engine/broker/loader.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/log_v2.hh"

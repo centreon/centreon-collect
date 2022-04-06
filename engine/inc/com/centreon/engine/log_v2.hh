@@ -21,12 +21,7 @@
 #include <spdlog/common.h>
 #include <spdlog/spdlog.h>
 
-#include <array>
-#include <map>
-#include <memory>
-
 #include "com/centreon/engine/configuration/state.hh"
-#include "com/centreon/engine/namespace.hh"
 
 CCE_BEGIN()
 class log_v2 {

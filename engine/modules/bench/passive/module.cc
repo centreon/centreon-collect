@@ -17,7 +17,6 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <cstdlib>
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/nebcallbacks.hh"

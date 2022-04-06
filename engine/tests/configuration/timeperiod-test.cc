@@ -17,7 +17,7 @@
  *
  */
 #include <fstream>
-#include <iostream>
+
 #include <regex>
 
 #include <gtest/gtest.h>

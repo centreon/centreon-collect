@@ -19,7 +19,6 @@
 
 #include "com/centreon/engine/host.hh"
 #include <cassert>
-#include <iomanip>
 
 #include <fmt/chrono.h>
 #include "com/centreon/engine/broker.hh"

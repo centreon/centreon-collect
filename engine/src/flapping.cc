@@ -19,8 +19,6 @@
 */
 
 #include "com/centreon/engine/flapping.hh"
-#include <iomanip>
-#include <sstream>
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/globals.hh"

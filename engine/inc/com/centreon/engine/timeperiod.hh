@@ -20,7 +20,6 @@
 #ifndef CCE_OBJECTS_TIMEPERIOD_HH
 #define CCE_OBJECTS_TIMEPERIOD_HH
 
-#include <unordered_map>
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/daterange.hh"
 

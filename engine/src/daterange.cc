@@ -18,8 +18,6 @@
 */
 
 #include "com/centreon/engine/daterange.hh"
-#include <array>
-#include <iomanip>
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/timeperiod.hh"

@@ -20,10 +20,8 @@
 #ifndef CCE_CONFIGURATION_SERVICEESCALATION_HH
 #define CCE_CONFIGURATION_SERVICEESCALATION_HH
 
-#include <set>
 #include "com/centreon/engine/configuration/group.hh"
 #include "com/centreon/engine/configuration/object.hh"
-#include "com/centreon/engine/namespace.hh"
 #include "com/centreon/engine/opt.hh"
 #include "com/centreon/engine/shared.hh"
 
