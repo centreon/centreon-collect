@@ -15,42 +15,47 @@ const MaxDepth = 3
 
 func findIncludes(file string, treated *[]string, depth int) {
   var myList []string
-  file1 := file
-  f, err := os.Open(file1)
+  file1 := filepath.Clean(file)
+  file1, err := filepath.EvalSymLinks(file1)
   if err != nil {
-    file1 = strings.TrimPrefix(file, "inc/")
-    for _, pref := range []string{
-                            "/usr/local/include/",
-                            "rrd/inc/",
-                            "generator/inc/",
-                            "graphite/inc/",
-                            "tls/inc/",
-                            "lua/inc/",
-                            "redis/inc/",
-                            "neb/inc/",
-                            "tcp/inc/",
-                            "bam/inc/",
-                            "core/inc/",
-                            "watchdog/inc/",
-                            "stats/inc/",
-                            "notification/inc/",
-                            "../protobuf/",
-                            "dumper/inc/",
-                            "storage/inc/",
-                            "unified_sql/inc/",
-                            "influxdb/inc/",
-                            "sql/inc/" } {
-      f, err = os.Open(pref + file1)
-      if err == nil {
-        file1 = pref + file1
-        *treated = append(*treated, file1)
-        break
-      }
-    }
-  } else {
-    *treated = append(*treated, file1)
+    fmt.Println("Error: " + err.Error())
+    os.Exit(1)
   }
-  defer f.Close()
+    f, err := os.Open(file1)
+    if err != nil {
+      file1 = strings.TrimPrefix(file, "inc/")
+      for _, pref := range []string{
+                              "/usr/local/include/",
+                              "rrd/inc/",
+                              "generator/inc/",
+                              "graphite/inc/",
+                              "tls/inc/",
+                              "lua/inc/",
+                              "redis/inc/",
+                              "neb/inc/",
+                              "tcp/inc/",
+                              "bam/inc/",
+                              "core/inc/",
+                              "watchdog/inc/",
+                              "stats/inc/",
+                              "notification/inc/",
+                              "../protobuf/",
+                              "dumper/inc/",
+                              "storage/inc/",
+                              "unified_sql/inc/",
+                              "influxdb/inc/",
+                              "sql/inc/" } {
+        f, err = os.Open(pref + file1)
+        if err == nil {
+          file1 = pref + file1
+          *treated = append(*treated, file1)
+          break
+        }
+      }
+    } else {
+      *treated = append(*treated, file1)
+    }
+    defer f.Close()
 
   depth++
   if depth > MaxDepth {
