@@ -153,9 +153,10 @@ events::events_container events::get_events_by_category_name(
       if (category_of_type(it->first) == cat)
         retval.emplace(it->first, it->second);
     }
+    if (retval.empty())
+      throw msg_fmt("cannot find event category '{}'", name);
     return retval;
   }
-  throw msg_fmt("core: cannot find event category '{}'", name);
 }
 
 /**

@@ -22,7 +22,7 @@ BFC1
         Broker Config Output Set Json	central	central-broker-master-sql	filters	{"category": ["neb", "foo", "bar"]}
         ${start}=	Get Current Date
 	Start Broker
-        ${content}=	Create List	Error in category elements: 'foo' is not a known category	Error in category elements: 'bar' is not a known category	Filters applied on endpoint: neb
+        ${content}=	Create List	'foo' is not a known category: cannot find event category 'foo'	'bar' is not a known category: cannot find event category 'bar'	Filters applied on endpoint: neb
         ${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	30
         Should Be True	${result}	msg="Only neb filter should be applied on sql output"
 
@@ -38,7 +38,7 @@ BFC2
         Broker Config Output Set Json	central	central-broker-master-sql	filters	{"category": ["doe", "foo", "bar"]}
         ${start}=	Get Current Date
 	Start Broker
-        ${content}=	Create List	Error in category elements: 'doe' is not a known category	Error in category elements: 'bar' is not a known category	Filters applied on endpoint: all
+        ${content}=	Create List	'doe' is not a known category: cannot find event category 'doe'	'bar' is not a known category: cannot find event category 'bar'	Filters applied on endpoint: all
         ${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	30
         Should Be True	${result}	msg="Only neb filter should be applied on sql output"
 
