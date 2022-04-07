@@ -49,7 +49,6 @@ stage('Build / Unit tests // Packaging / Signing') {
       dir('centreon-collect-centos7') {
         checkout scm
         sh 'docker run -i --entrypoint /src/ci/scripts/collect-unit-tests.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:22.04-testdocker'
-        sh "sudo apt-get install -y clang-tidy"
         withSonarQubeEnv('SonarQubeDev') {
           sh 'ci/scripts/collect-sources-analysis.sh'
         }
@@ -106,7 +105,7 @@ stage('Build / Unit tests // Packaging / Signing') {
         archiveArtifacts artifacts: "Debian10/*"
     }
   },
-    'debian bullseye Build and UT': {
+  'debian bullseye Build and UT': {
     node("C++") {
       dir('centreon-collect-debian11') {
         checkout scm
@@ -126,6 +125,16 @@ stage('Build / Unit tests // Packaging / Signing') {
   }  
 }
 
+stage('Quality Gate') {
+  timeout(time: 10, unit: 'MINUTES') {
+    waitForQualityGate()
+//    def qualityGate = waitForQualityGate()
+//    if (qualityGate.status != 'OK') {
+//      error "Pipeline aborted due to quality gate failure: ${qualityGate.status}"
+//    }
+  }
+}
+
 if ((env.BUILD == 'RELEASE') || (env.BUILD == 'QA')) {
   stage('Delivery') {
     node("C++") {
@@ -140,3 +149,4 @@ if ((env.BUILD == 'RELEASE') || (env.BUILD == 'QA')) {
     }
   }
 }
+
