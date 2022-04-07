@@ -1,5 +1,5 @@
 /*
-** Copyright 2015-2021 Centreon
+** Copyright 2015-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 #ifndef CCB_PROCESSING_ACCEPTOR_HH
 #define CCB_PROCESSING_ACCEPTOR_HH
 
+#include <absl/container/flat_hash_set.h>
 #include <atomic>
 #include <condition_variable>
 #include <ctime>
@@ -59,10 +60,10 @@ class acceptor : public endpoint {
 
   std::shared_ptr<io::endpoint> _endp;
   std::list<processing::feeder*> _feeders;
-  std::unordered_set<uint32_t> _read_filters;
+  absl::flat_hash_set<uint32_t> _read_filters;
   std::string _read_filters_str;
   time_t _retry_interval;
-  std::unordered_set<uint32_t> _write_filters;
+  absl::flat_hash_set<uint32_t> _write_filters;
   std::string _write_filters_str;
   std::atomic_bool _listening;
 
@@ -85,9 +86,9 @@ class acceptor : public endpoint {
   void accept();
   void start() override;
   void exit() override final;
-  void set_read_filters(std::unordered_set<uint32_t> const& filters);
+  void set_read_filters(const absl::flat_hash_set<uint32_t>& filters);
   void set_retry_interval(time_t retry_interval);
-  void set_write_filters(std::unordered_set<uint32_t> const& filters);
+  void set_write_filters(const absl::flat_hash_set<uint32_t>& filters);
 };
 }  // namespace processing
 

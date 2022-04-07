@@ -171,12 +171,12 @@ std::vector<char> misc::from_hex(std::string const& str) {
  *
  *  @return             A string containing all the filters.
  */
-std::string misc::dump_filters(std::unordered_set<uint32_t> const& filters) {
+std::string misc::dump_filters(const absl::flat_hash_set<uint32_t>& filters) {
   io::events::events_container all_event_container =
       io::events::instance().get_events_by_category_name("all");
   std::map<uint32_t, std::string> name_by_id;
 
-  std::unordered_set<uint32_t> all_events;
+  absl::flat_hash_set<uint32_t> all_events;
   for (io::events::events_container::const_iterator
            it = all_event_container.begin(),
            end = all_event_container.end();
@@ -189,13 +189,10 @@ std::string misc::dump_filters(std::unordered_set<uint32_t> const& filters) {
     return "all";
 
   std::string ret;
-  for (std::unordered_set<uint32_t>::const_iterator it = filters.begin(),
-                                                    end = filters.end();
-       it != end; ++it) {
-    std::map<uint32_t, std::string>::const_iterator found =
-        name_by_id.find(*it);
+  for (auto it = filters.cbegin(), end = filters.cend(); it != end; ++it) {
+    auto found = name_by_id.find(*it);
     if (found != name_by_id.end())
-      ret.append(",  ").append(found->second);
+      ret.append(", ").append(found->second);
   }
   return ret;
 }

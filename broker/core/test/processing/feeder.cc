@@ -54,10 +54,10 @@ class TestFeeder : public ::testing::Test {
     io::events::load();
 
     std::unique_ptr<io::stream> client(new TestStream);
-    std::unordered_set<uint32_t> read_filters;
-    std::unordered_set<uint32_t> write_filters;
-    _feeder.reset(
-        new feeder("test-feeder", client, read_filters, write_filters));
+    absl::flat_hash_set<uint32_t> read_filters;
+    absl::flat_hash_set<uint32_t> write_filters;
+    _feeder = std::make_unique<feeder>("test-feeder", client, read_filters,
+                                       write_filters);
   }
 
   void TearDown() override {
