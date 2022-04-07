@@ -11,15 +11,6 @@ echo "################################################## PACKAGING COLLECT #####
 AUTHOR="Luiz Costa"
 AUTHOR_EMAIL="me@luizgustavo.pro.br"
 
-if ! [ -d ../repo ]; then
-    rm -rf ./repo
-fi
-
-# mkdir -p centreon-collect
-# cp -rv * centreon-collect
-if [ -d centreon-collect/debian ] ; then
-    rm -rf centreon-collect/debian
-fi
 if [ -d centreon-collect/build ] ; then
     rm -rf centreon-collect/build
 fi
