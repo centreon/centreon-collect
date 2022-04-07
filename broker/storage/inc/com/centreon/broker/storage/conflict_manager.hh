@@ -263,7 +263,6 @@ class conflict_manager {
   database::mysql_stmt _service_status_update;
   database::mysql_stmt _severity_insert;
   database::mysql_stmt _severity_update;
-  database::mysql_stmt _severity_delete;
   database::mysql_stmt _tag_insupdate;
   database::mysql_stmt _tag_update;
   database::mysql_stmt _tag_delete;

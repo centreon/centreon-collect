@@ -43,13 +43,9 @@ using namespace com::centreon::broker::unified_sql;
 void stream::_clean_tables(uint32_t instance_id) {
   /* Database version. */
 
-  int32_t conn = special_conn::severity % _mysql.connections_count();
-  _mysql.run_query("DELETE FROM severities",
-                   database::mysql_error::clean_severities, false, conn);
-
-  conn = special_conn::tag % _mysql.connections_count();
-  _mysql.run_query("DELETE FROM tags", database::mysql_error::clean_severities,
-                   false, conn);
+  int32_t conn = special_conn::tag % _mysql.connections_count();
+  _mysql.run_query("DELETE FROM tags", database::mysql_error::clean_tags, false,
+                   conn);
 
   conn = _mysql.choose_connection_by_instance(instance_id);
   log_v2::sql()->debug(
@@ -903,7 +899,7 @@ void stream::_process_host(const std::shared_ptr<io::data>& d) {
   neb::host& h = *static_cast<neb::host*>(d.get());
 
   // Log message.
-  log_v2::sql()->debug(
+  log_v2::sql()->info(
       "SQL: processing host event (poller: {}, host: {}, name: {})",
       h.poller_id, h.host_id, h.host_name);
 
@@ -1060,12 +1056,13 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
   _finish_action(-1, actions::instances | actions::hostgroups |
                          actions::host_dependencies | actions::host_parents |
                          actions::custom_variables | actions::downtimes |
-                         actions::comments | actions::service_dependencies);
+                         actions::comments | actions::service_dependencies |
+                         actions::severities);
   auto s{static_cast<const neb::pb_host*>(d.get())};
   auto& h = s->obj();
 
   // Log message.
-  log_v2::sql()->debug(
+  log_v2::sql()->info(
       "SQL: processing pb host event (poller: {}, host: {}, name: {})",
       h.poller_id(), h.host_id(), h.host_name());
 
@@ -1217,8 +1214,16 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
       _resources_host_insupdate.bind_value_as_u32(7, h.max_check_attempts());
       _resources_host_insupdate.bind_value_as_u64(
           8, _cache_host_instance[h.host_id()]);
-      if (h.severity_id())
-        _resources_host_insupdate.bind_value_as_u64(9, h.severity_id());
+      uint64_t sid = 0;
+      if (h.severity_id()) {
+        log_v2::sql()->debug("host {} with severity_id {} => uid = {}",
+                             h.host_id(), h.severity_id(), sid);
+        sid = _severity_cache[{h.severity_id(), 1}];
+      } else
+        log_v2::sql()->error("no host severity found in cache for host {}",
+                             h.host_id());
+      if (sid)
+        _resources_host_insupdate.bind_value_as_u64(9, sid);
       else
         _resources_host_insupdate.bind_value_as_null(9);
       fmt::string_view name{misc::string::truncate(
@@ -1257,8 +1262,8 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
       _resources_host_insupdate.bind_value_as_u32(24, h.max_check_attempts());
       _resources_host_insupdate.bind_value_as_u64(
           25, _cache_host_instance[h.host_id()]);
-      if (h.severity_id())
-        _resources_host_insupdate.bind_value_as_u64(26, h.severity_id());
+      if (sid)
+        _resources_host_insupdate.bind_value_as_u64(26, sid);
       else
         _resources_host_insupdate.bind_value_as_null(26);
       _resources_host_insupdate.bind_value_as_str(27, name);
@@ -1293,7 +1298,7 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
  *
  */
 void stream::_process_pb_adaptive_host(const std::shared_ptr<io::data>& d) {
-  log_v2::sql()->debug("SQL: process pb adaptive host");
+  log_v2::sql()->info("SQL: processing pb adaptive host");
   _finish_action(-1, actions::host_parents | actions::comments |
                          actions::downtimes | actions::host_dependencies |
                          actions::service_dependencies);
@@ -1531,9 +1536,9 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
         4, hscr.state_type() == HostStatus_StateType_HARD);
     _hscr_resources_update.bind_value_as_u32(5, hscr.current_check_attempt());
     _hscr_resources_update.bind_value_as_bool(6, hscr.perf_data() != "");
-    _sscr_resources_update.bind_value_as_u32(7, hscr.check_type());
-    _sscr_resources_update.bind_value_as_u64(8, hscr.last_check());
-    _sscr_resources_update.bind_value_as_str(9, hscr.output());
+    _hscr_resources_update.bind_value_as_u32(7, hscr.check_type());
+    _hscr_resources_update.bind_value_as_u64(8, hscr.last_check());
+    _hscr_resources_update.bind_value_as_str(9, hscr.output());
     _hscr_resources_update.bind_value_as_u64(10, hscr.host_id());
 
     _mysql.run_statement(_hscr_resources_update,
@@ -2040,16 +2045,14 @@ void stream::_process_service(const std::shared_ptr<io::data>& d) {
  *
  */
 void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
-  log_v2::sql()->debug("SQL: processing pb service");
   _finish_action(-1, actions::host_parents | actions::comments |
                          actions::downtimes | actions::host_dependencies |
-                         actions::service_dependencies);
+                         actions::service_dependencies | actions::severities);
   // Processed object.
   auto s{static_cast<neb::pb_service const*>(d.get())};
   auto& ss = s->obj();
-  log_v2::sql()->debug("service ({}, {}) with severity_id {}", ss.host_id(),
-                       ss.service_id(), ss.severity_id());
-
+  log_v2::sql()->debug("SQL: processing pb service ({}, {})", ss.host_id(),
+                       ss.service_id());
   log_v2::sql()->trace("SQL: pb service output: <<{}>>", ss.output());
   // Processed object.
   // const neb::service& s(*static_cast<neb::service const*>(d.get()));
@@ -2217,12 +2220,15 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
       _resources_service_insupdate.bind_value_as_u64(
           9, _cache_host_instance[ss.host_id()]);
       uint64_t sid = 0;
-      if (ss.severity_id()) {
-        log_v2::sql()->debug("service ({}, {}) with severity_id {}",
-                             ss.host_id(), ss.service_id(), ss.severity_id());
+      if (ss.severity_id() > 0) {
+        log_v2::sql()->debug("service ({}, {}) with severity_id {} => uid = {}",
+                             ss.host_id(), ss.service_id(), ss.severity_id(),
+                             sid);
         sid = _severity_cache[{ss.severity_id(), 0}];
+      }
+      if (sid)
         _resources_service_insupdate.bind_value_as_u64(10, sid);
-      } else
+      else
         _resources_service_insupdate.bind_value_as_null(10);
       fmt::string_view name{misc::string::truncate(
           ss.service_description(), get_resources_col_size(resources_name))};
@@ -2262,7 +2268,7 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
                                                      ss.max_check_attempts());
       _resources_service_insupdate.bind_value_as_u64(
           26, _cache_host_instance[ss.host_id()]);
-      if (ss.severity_id())
+      if (sid)
         _resources_service_insupdate.bind_value_as_u64(27, sid);
       else
         _resources_service_insupdate.bind_value_as_null(27);
@@ -2301,7 +2307,7 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
  *
  */
 void stream::_process_pb_adaptive_service(const std::shared_ptr<io::data>& d) {
-  log_v2::sql()->debug("SQL: process pb adaptive service");
+  log_v2::sql()->debug("SQL: processing pb adaptive service");
   _finish_action(-1, actions::host_parents | actions::comments |
                          actions::downtimes | actions::host_dependencies |
                          actions::service_dependencies);
@@ -2757,8 +2763,8 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
 }
 
 void stream::_process_severity(const std::shared_ptr<io::data>& d) {
-  log_v2::sql()->debug("SQL: process severity");
-  _finish_action(-1, actions::severities);
+  log_v2::sql()->debug("SQL: processing severity");
+  _finish_action(-1, actions::resources | actions::severities);
 
   // Prepare queries.
   if (!_severity_insert.prepared()) {
@@ -2768,16 +2774,18 @@ void stream::_process_severity(const std::shared_ptr<io::data>& d) {
     _severity_insert = _mysql.prepare_query(
         "INSERT INTO severities (id,type,name,level,icon_id) "
         "VALUES(?,?,?,?,?)");
-    _severity_delete =
-        _mysql.prepare_query("DELETE FROM severities WHERE severity_id=?");
   }
   // Processed object.
   auto s{static_cast<const neb::pb_severity*>(d.get())};
   auto& sv = s->obj();
+  log_v2::sql()->trace(
+      "SQL: severity event with id={}, type={}, name={}, level={}, icon_id={}",
+      sv.id(), sv.type(), sv.name(), sv.level(), sv.icon_id());
   uint64_t severity_id = _severity_cache[{sv.id(), sv.type()}];
   int32_t conn = special_conn::severity % _mysql.connections_count();
   switch (sv.action()) {
     case Severity_Action_ADD:
+      _add_action(conn, actions::severities);
       if (severity_id) {
         log_v2::sql()->trace("SQL: add already existing severity {}", sv.id());
         _severity_update.bind_value_as_u64(0, sv.id());
@@ -2808,9 +2816,9 @@ void stream::_process_severity(const std::shared_ptr<io::data>& d) {
               sv.type(), e.what());
         }
       }
-      _add_action(conn, actions::severities);
       break;
     case Severity_Action_MODIFY:
+      _add_action(conn, actions::severities);
       log_v2::sql()->trace("SQL: modify severity {}", sv.id());
       _severity_update.bind_value_as_u64(0, sv.id());
       _severity_update.bind_value_as_u32(1, sv.type());
@@ -2829,22 +2837,10 @@ void stream::_process_severity(const std::shared_ptr<io::data>& d) {
             sv.id(), sv.type());
       break;
     case Severity_Action_DELETE:
-      log_v2::sql()->trace("SQL: remove severity {}", sv.id());
-      {
-        // FIXME DBO: Delete should be implemented later.
-        if (0 && severity_id) {
-          _severity_delete.bind_value_as_u64(0, severity_id);
-          _mysql.run_statement(_severity_delete,
-                               database::mysql_error::store_severity, false,
-                               conn);
-          _add_action(conn, actions::severities);
-          _severity_cache.erase({sv.id(), sv.type()});
-        } else {
-          log_v2::sql()->error(
-              "unified sql: unable to delete severity ({}, {}): not in cache",
-              sv.id(), sv.type());
-        }
-      }
+      log_v2::sql()->trace("SQL: remove severity {}: not implemented", sv.id());
+      // FIXME DBO: Delete should be implemented later. This case is difficult
+      // particularly when several pollers are running and some of them can
+      // be stopped...
       break;
     default:
       log_v2::sql()->error("Bad action in severity object");
@@ -2853,7 +2849,7 @@ void stream::_process_severity(const std::shared_ptr<io::data>& d) {
 }
 
 void stream::_process_tag(const std::shared_ptr<io::data>& d) {
-  log_v2::sql()->debug("SQL: process tag");
+  log_v2::sql()->info("SQL: processing tag");
   _finish_action(-1, actions::tags);
 
   // Prepare queries.

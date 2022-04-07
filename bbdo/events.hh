@@ -27,6 +27,7 @@ namespace centreon {
 namespace broker {
 namespace io {
 enum data_category {
+  none = 0,
   neb = 1,
   bbdo = 2,
   storage = 3,
@@ -53,7 +54,7 @@ constexpr uint16_t category_id(const char* name) {
     return dumper;
   if (strncmp("generator", name, 10) == 0)
     return generator;
-  return 0;
+  return none;
 }
 constexpr const char* category_name(data_category cat) {
   switch (cat) {

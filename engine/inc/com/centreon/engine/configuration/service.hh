@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013,2015-2017 Centreon
+** Copyright 2011-2013,2015-2017-2022 Centreon
 **
 ** This file is part of Centreon Engine.
 **
@@ -223,7 +223,7 @@ class service : public object {
   static std::unordered_map<std::string, setter_func> const _setters;
   opt<unsigned short> _stalking_options;
   opt<std::string> _timezone;
-  uint64_t _severity_id;
+  opt<uint64_t> _severity_id;
 };
 
 typedef std::shared_ptr<service> service_ptr;
