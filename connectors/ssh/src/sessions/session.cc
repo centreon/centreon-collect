@@ -525,12 +525,7 @@ void session::_passwd_handler(int retval,
                               connect_callback callback,
                               const time_point& timeout) {
   if (retval != 0) {
-#if LIBSSH2_VERSION_NUM >= 0x010203
     if (retval == LIBSSH2_ERROR_AUTHENTICATION_FAILED) {
-#else
-    if ((retval != LIBSSH2_ERROR_ALLOC) &&
-        (retval != LIBSSH2_ERROR_SOCKET_SEND)) {
-#endif /* libssh2 version >= 1.2.3 */
       log::core()->info(
           "could not authenticate with password on session {}: {}", _creds,
           retval);
@@ -595,12 +590,7 @@ void session::handshake(connect_callback callback, const time_point& timeout) {
   log::core()->info("handshake {}", _creds);
   async_wait(
       [me = shared_from_this(), this]() {
-#if LIBSSH2_VERSION_NUM >= 0x010208
-        // libssh2_session_startup deprecated in version 1.2.8 and later
         return libssh2_session_handshake(_session, _socket.native_handle());
-#else
-        return libssh2_session_startup(_session, _socket.native_handle());
-#endif
       },
       [me = shared_from_this(), callback, timeout](int ret) {
         me->handshake_handler(ret, callback, timeout);
@@ -667,17 +657,9 @@ void session::handshake_handler(int retval,
 
     // Check fingerprint.
     libssh2_knownhost* kh;
-#if LIBSSH2_VERSION_NUM >= 0x010206
-    // Introduced in 1.2.6.
     int check(libssh2_knownhost_checkp(
         known_hosts, _creds.get_host().c_str(), -1, fingerprint, len,
         LIBSSH2_KNOWNHOST_TYPE_PLAIN | LIBSSH2_KNOWNHOST_KEYENC_RAW, &kh));
-#else
-    // 1.2.5 or older.
-    int check(libssh2_knownhost_check(
-        known_hosts, creds.get_host().c_str(), fingerprint, len,
-        LIBSSH2_KNOWNHOST_TYPE_PLAIN | LIBSSH2_KNOWNHOST_KEYENC_RAW, &kh));
-#endif  // LIBSSH2_VERSION_NUM
 
     // Free known hosts list.
     libssh2_knownhost_free(known_hosts);

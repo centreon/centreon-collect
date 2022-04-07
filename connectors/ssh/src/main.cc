@@ -16,9 +16,6 @@
 ** For more information : contact@centreon.com
 */
 
-#ifdef LIBSSH2_WITH_LIBGCRYPT
-#include <gcrypt.h>
-#endif  // LIBSSH2_WITH_LIBGCRYPT
 #include "com/centreon/connector/log.hh"
 #include "com/centreon/connector/ssh/options.hh"
 #include "com/centreon/connector/ssh/policy.hh"
@@ -32,11 +29,6 @@ using namespace com::centreon::connector::ssh;
 #ifndef CENTREON_CONNECTOR_VERSION
 #define CENTREON_CONNECTOR_VERSION "(development version)"
 #endif  // !CENTREON_CONNECTOR_VERSION
-
-#ifdef LIBSSH2_WITH_LIBGCRYPT
-// libgcrypt threading structure.
-GCRY_THREAD_OPTION_PTHREAD_IMPL;
-#endif  // LIBSSH2_WITH_LIBGCRYPT
 
 /**
  *  Connector entry point.
@@ -81,17 +73,8 @@ int main(int argc, char* argv[]) {
       }
       log::core()->info("Centreon SSH Connector {} starting PID={}",
                         CENTREON_CONNECTOR_VERSION, getpid());
-#if LIBSSH2_VERSION_NUM >= 0x010205
       // Initialize libssh2.
       log::core()->debug("initializing libssh2");
-#ifdef LIBSSH2_WITH_LIBGCRYPT
-      // FIXME DBR: needed or not needed ??
-      // Version check should be the very first call because it
-      // makes sure that important subsystems are initialized.
-      if (!gcry_check_version(GCRYPT_VERSION))
-        throw basic_error() << "libgcrypt version mismatch: ";
-      gcry_control(GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
-#endif  // LIBSSH2_WITH_LIBGCRYPT
       if (libssh2_init(0))
         throw basic_error() << "libssh2 initialization failed";
       {
@@ -102,7 +85,6 @@ int main(int argc, char* argv[]) {
               << " required)";
         log::core()->info("libssh2 version {} successfully loaded", version);
       }
-#endif /* libssh2 version >= 1.2.5 */
 
       // Set termination handler.
       log::core()->debug("installing termination handler");
@@ -130,10 +112,8 @@ int main(int argc, char* argv[]) {
     return EXIT_FAILURE;
   }
 
-#if LIBSSH2_VERSION_NUM >= 0x010205
   // Deinitialize libssh2.
   libssh2_exit();
-#endif /* libssh2 version >= 1.2.5 */
 
   log::core()->info("bye");
 

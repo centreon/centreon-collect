@@ -97,7 +97,6 @@ if [ -r /etc/centos-release ] ; then
     perl-devel
     perl-ExtUtils-Embed
     perl-srpm-macros
-    libssh2-devel
     libgcrypt-devel
   )
   for i in "${pkgs[@]}"; do
@@ -154,7 +153,6 @@ elif [ -r /etc/issue ] ; then
       python3
       python3-pip
       libperl-dev
-      libssh2-1-dev
       libgcrypt20-dev
     )
     for i in "${pkgs[@]}"; do
@@ -180,7 +178,6 @@ elif [ -r /etc/issue ] ; then
       python3
       python3-pip
       libperl-dev
-      libssh2-1-dev
       libgcrypt20-dev
     )
     for i in "${pkgs[@]}"; do

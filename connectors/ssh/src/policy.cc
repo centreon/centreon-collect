@@ -91,16 +91,6 @@ void policy::on_error(uint64_t cmd_id, const std::string& msg) {
 void policy::on_execute(uint64_t cmd_id,
                         const time_point& timeout,
                         const orders::options::pointer& opt) {
-  // std::string const& host,
-  // unsigned short port,
-  // std::string const& user,
-  // std::string const& password,
-  // std::string const& key,
-  // std::list<std::string> const& cmds,
-  // int skip_stdout,
-  // int skip_stderr,
-  // bool use_ipv6) {
-  // Log message.
   log::core()->info(
       "got request to execute check {0} on session {1}@{2} (timeout {3}, "
       "first command \"{4}\")",

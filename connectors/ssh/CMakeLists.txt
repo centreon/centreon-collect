@@ -52,9 +52,7 @@ add_executable(centreon_connector_ssh
 )
 add_dependencies(centreon_connector_ssh centreon_clib)
 target_link_libraries(centreon_connector_ssh 
-  centreon_clib ${LIBGCRYPT_LIBRARIES} CONAN_PKG::spdlog CONAN_PKG::fmt CONAN_PKG::libssh2 pthread)
-#target_link_libraries(centreon_connector_ssh ${Libssh2_LIBRARIES}
-#  ${CLIB_LIBRARIES} ${LIBGCRYPT_LIBRARIES} ${spdlog_LIBS} ${fmt_LIBS} pthread)
+  centreon_clib CONAN_PKG::spdlog CONAN_PKG::fmt CONAN_PKG::libssh2 pthread)
 
 
 
