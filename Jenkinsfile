@@ -49,6 +49,9 @@ stage('Build / Unit tests // Packaging / Signing') {
       dir('centreon-collect-centos7') {
         checkout scm
         sh 'docker run -i --entrypoint /src/ci/scripts/collect-unit-tests.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:22.04-testdocker'
+        withSonarQubeEnv('SonarQubeDev') {
+          sh 'ci/scripts/collect-sources-analysis.sh'
+        }
       }
     }
   },/*
@@ -120,6 +123,16 @@ stage('Build / Unit tests // Packaging / Signing') {
       archiveArtifacts artifacts: "Debian11/*"
     }
   }  
+}
+
+stage('Quality Gate') {
+  timeout(time: 10, unit: 'MINUTES') {
+    waitForQualityGate()
+//    def qualityGate = waitForQualityGate()
+//    if (qualityGate.status != 'OK') {
+//      error "Pipeline aborted due to quality gate failure: ${qualityGate.status}"
+//    }
+  }
 }
 
 stage('Delivery') {
