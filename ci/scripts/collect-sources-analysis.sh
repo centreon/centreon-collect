@@ -9,4 +9,4 @@ pwd
 # Moving files in order to be able to use absolute path specified in compile_commands.json
 sudo mv build src
 
-sonar-scanner -Dsonar.projectVersion="$VERSION"
+sonar-scanner -X -Dsonar.projectVersion="$VERSION"
