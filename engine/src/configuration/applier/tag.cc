@@ -38,18 +38,19 @@ using namespace com::centreon::engine::configuration;
  */
 void applier::tag::add_object(const configuration::tag& obj) {
   // Logging.
-  log_v2::config()->debug("Creating new tag {}.", obj.key());
+  log_v2::config()->debug("Creating new tag {}.", obj.key().first);
 
   // Add tag to the global configuration set.
   config->mut_tags().insert(obj);
 
   auto tg{std::make_shared<engine::tag>(
-      obj.key(), static_cast<engine::tag::tagtype>(obj.type()), obj.name())};
+      obj.key().first, static_cast<engine::tag::tagtype>(obj.type()),
+      obj.name())};
   if (!tg)
-    throw engine_error() << "Could not register tag " << obj.key();
+    throw engine_error() << "Could not register tag " << obj.key().first;
 
   // Add new items to the configuration state.
-  engine::tag::tags.insert({tg->id(), tg});
+  engine::tag::tags.insert({std::make_pair(tg->id(), tg->type()), tg});
 
   timeval tv(get_broker_timestamp(nullptr));
   broker_adaptive_tag_data(NEBTYPE_TAG_ADD, NEBFLAG_NONE, NEBATTR_NONE,
@@ -73,18 +74,19 @@ void applier::tag::expand_objects(configuration::state&) {}
  */
 void applier::tag::modify_object(const configuration::tag& obj) {
   // Logging.
-  log_v2::config()->debug("Modifying tag {}.", obj.key());
+  log_v2::config()->debug("Modifying tag {}.", obj.key().first);
 
   // Find old configuration.
   auto it_cfg = config->tags_find(obj.key());
   if (it_cfg == config->tags().end())
-    throw engine_error() << "Cannot modify non-existing tag " << obj.key();
+    throw engine_error() << "Cannot modify non-existing tag "
+                         << obj.key().first;
 
   // Find tag object.
-  tag_map::iterator it_obj{engine::tag::tags.find(obj.key())};
+  tag_map::iterator it_obj{engine::tag::tags.find(obj.key(), obj.type())};
   if (it_obj == engine::tag::tags.end())
     throw engine_error() << "Could not modify non-existing tag object "
-                         << obj.key();
+                         << obj.key().first;
   engine::tag* s = it_obj->second.get();
 
   // Update the global configuration set.
@@ -101,7 +103,7 @@ void applier::tag::modify_object(const configuration::tag& obj) {
     broker_adaptive_tag_data(NEBTYPE_TAG_UPDATE, NEBFLAG_NONE, NEBATTR_NONE, s,
                              &tv);
   } else
-    log_v2::config()->debug("Severity {} did not change", obj.key());
+    log_v2::config()->debug("Severity {} did not change", obj.key().first);
 }
 
 /**
@@ -111,10 +113,10 @@ void applier::tag::modify_object(const configuration::tag& obj) {
  */
 void applier::tag::remove_object(const configuration::tag& obj) {
   // Logging.
-  log_v2::config()->debug("Removing tag {}.", obj.key());
+  log_v2::config()->debug("Removing tag {}.", obj.key().first);
 
   // Find tag.
-  tag_map::iterator it = engine::tag::tags.find(obj.key());
+  tag_map::iterator it = engine::tag::tags.find(obj.key(), obj.type());
   if (it != engine::tag::tags.end()) {
     engine::tag* tg(it->second.get());
 
@@ -137,7 +139,8 @@ void applier::tag::remove_object(const configuration::tag& obj) {
  *  @param[in] obj  Object to resolve.
  */
 void applier::tag::resolve_object(const configuration::tag& obj) {
-  tag_map::const_iterator tg_it{engine::tag::tags.find(obj.key())};
+  tag_map::const_iterator tg_it{engine::tag::tags.find(obj.key(), obj.type())};
   if (tg_it == engine::tag::tags.end() || !tg_it->second)
-    throw engine_error() << "Cannot resolve non-existing tag " << obj.key();
+    throw engine_error() << "Cannot resolve non-existing tag "
+                         << obj.key().first;
 }

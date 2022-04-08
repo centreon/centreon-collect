@@ -214,6 +214,20 @@ void applier::service::add_object(configuration::service const& obj) {
     svc->set_severity(sv->second);
   }
 
+  // add tags
+  for (std::set<std::pair<uint64_t, uint16_t>>::iterator
+           it = obj.tags().begin(),
+           end = obj.tags().end();
+       it != end; ++it) {
+    tag_map::iterator it_tag{engine::tag::tags.find(*it)};
+    if (it_tag == engine::tag::tags.end())
+      throw engine_error() << "Could not find tag '" << it->first
+                           << "' on which to apply service (" << obj.host_id()
+                           << ", " << obj.service_id() << ")";
+    else
+      svc->mut_tags().emplace_front(it_tag->second);
+  }
+
   // Notify event broker.
   timeval tv(get_broker_timestamp(NULL));
   broker_adaptive_service_data(NEBTYPE_SERVICE_ADD, NEBFLAG_NONE, NEBATTR_NONE,
@@ -504,6 +518,22 @@ void applier::service::modify_object(configuration::service const& obj) {
   } else
     s->set_severity(nullptr);
 
+  // add tags
+  if (obj.tags() != obj_old.tags()) {
+    s->mut_tags().clear();
+    for (std::set<std::pair<uint64_t, uint16_t>>::iterator
+             it = obj.tags().begin(),
+             end = obj.tags().end();
+         it != end; ++it) {
+      tag_map::iterator it_tag{engine::tag::tags.find(*it)};
+      if (it_tag == engine::tag::tags.end())
+        throw engine_error() << "Could not find tag '" << it->first
+                             << "' on which to apply service (" << obj.host_id()
+                             << ", " << obj.service_id() << ")";
+      else
+        s->mut_tags().emplace_front(it_tag->second);
+    }
+  }
   // Notify event broker.
   timeval tv(get_broker_timestamp(NULL));
   broker_adaptive_service_data(NEBTYPE_SERVICE_UPDATE, NEBFLAG_NONE,

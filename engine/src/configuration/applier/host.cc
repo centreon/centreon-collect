@@ -135,6 +135,20 @@ void applier::host::add_object(configuration::host const& obj) {
     }
   }
 
+  // add tags
+  for (std::set<std::pair<uint64_t, uint16_t>>::iterator
+           it = obj.tags().begin(),
+           end = obj.tags().end();
+       it != end; ++it) {
+    tag_map::iterator it_tag{engine::tag::tags.find(*it)};
+    if (it_tag == engine::tag::tags.end())
+      throw engine_error() << "Could not find tag '" << it->first
+                           << "' on which to apply host (" << obj.host_id()
+                           << ")";
+    else
+      h->mut_tags().emplace_front(it_tag->second);
+  }
+
   // Parents.
   for (set_string::const_iterator it(obj.parents().begin()),
        end(obj.parents().end());
@@ -387,6 +401,23 @@ void applier::host::modify_object(configuration::host const& obj) {
                                c.first.c_str(), c.second.get_value().c_str(),
                                &tv);
       }
+    }
+  }
+
+  // add tags
+  if (obj.tags() != obj_old.tags()) {
+    it_obj->second->mut_tags().clear();
+    for (std::set<std::pair<uint64_t, uint16_t>>::iterator
+             it = obj.tags().begin(),
+             end = obj.tags().end();
+         it != end; ++it) {
+      tag_map::iterator it_tag{engine::tag::tags.find(*it)};
+      if (it_tag == engine::tag::tags.end())
+        throw engine_error()
+            << "Could not find tag '" << it->first
+            << "' on which to apply host (" << obj.host_id() << ")";
+      else
+        it_obj->second->mut_tags().emplace_front(it_tag->second);
     }
   }
 

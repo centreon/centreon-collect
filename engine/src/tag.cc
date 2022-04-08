@@ -31,8 +31,8 @@ tag_map tag::tags;
  *                tag::servicegroup.
  * @param name    Its name.
  */
-tag::tag(uint64_t id, tag::tagtype typ, const std::string& name)
-    : _id{id}, _type{typ}, _name{name} {}
+tag::tag(uint64_t id, tag::tagtype type, const std::string& name)
+    : _id{id}, _type{type}, _name{name} {}
 
 /**
  * @brief Accessor to the id.
