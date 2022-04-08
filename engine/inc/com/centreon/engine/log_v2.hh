@@ -31,22 +31,25 @@
 CCE_BEGIN()
 class log_v2 {
   std::string _log_name;
-  std::shared_ptr<spdlog::logger> _config_log;
-  std::shared_ptr<spdlog::logger> _functions_log;
-  std::shared_ptr<spdlog::logger> _events_log;
-  std::shared_ptr<spdlog::logger> _checks_log;
-  std::shared_ptr<spdlog::logger> _notifications_log;
-  std::shared_ptr<spdlog::logger> _eventbroker_log;
-  std::shared_ptr<spdlog::logger> _external_command_log;
-  std::shared_ptr<spdlog::logger> _commands_log;
-  std::shared_ptr<spdlog::logger> _downtimes_log;
-  std::shared_ptr<spdlog::logger> _comments_log;
-  std::shared_ptr<spdlog::logger> _macros_log;
-  std::shared_ptr<spdlog::logger> _process_log;
-  std::shared_ptr<spdlog::logger> _runtime_log;
+  static std::array<std::shared_ptr<spdlog::logger>, 13> _log;
+  enum logger {
+    log_config,
+    log_functions,
+    log_events,
+    log_checks,
+    log_notifications,
+    log_eventbroker,
+    log_external_command,
+    log_commands,
+    log_downtimes,
+    log_comments,
+    log_macros,
+    log_process,
+    log_runtime,
+  };
 
   log_v2();
-  ~log_v2() noexcept = default;
+  ~log_v2() noexcept;
 
  public:
   void apply(const configuration::state& config);
