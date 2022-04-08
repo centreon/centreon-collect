@@ -6,6 +6,8 @@ mkdir src
 
 ls -lart
 sudo find / -type d -name ".conan" 2>/dev/null
+echo "current location"
+pwd
 
 sudo mv build src
 
