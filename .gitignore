@@ -4,10 +4,13 @@
 *.swp
 .idea
 .vscode
+.scannerwork
+
 CMakeCache.txt
 CMakeFiles
 CTest*.cmake
 Makefile
+.conan
 Testing
 __
 broker_pb2.py
