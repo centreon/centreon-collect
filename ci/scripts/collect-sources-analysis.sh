@@ -5,6 +5,7 @@ set -e
 mkdir src
 
 ls -lart
+sudo find / -type d -name ".conan" 2>/dev/null
 
 sudo mv build src
 
