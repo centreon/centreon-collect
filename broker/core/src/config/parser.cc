@@ -292,6 +292,34 @@ state parser::parse(std::string const& file) {
                 "in "
                 "bytes (as number or string)");
 
+          conf.flush_period = 0u;
+
+          if (conf_js.contains("flush_period") &&
+              conf_js["flush_period"].is_string()) {
+            try {
+              conf.flush_period =
+                  std::stoul(conf_js["flush_period"].get<std::string>());
+            } catch (const std::exception& e) {
+              throw msg_fmt(
+                  "'flush_period' key in the log configuration must contain a "
+                  "number "
+                  "of seconds (or 0 to flush everytime)");
+            }
+          } else if (conf_js.contains("flush_period") &&
+                     conf_js["flush_period"].is_number()) {
+            int64_t tmp = conf_js["flush_period"].get<int>();
+            if (tmp < 0)
+              throw msg_fmt(
+                  "'flush_period' key in the log configuration must contain a "
+                  "positive number or 0.");
+            conf.flush_period = tmp;
+          } else if (conf_js.contains("flush_period") &&
+                     !conf_js["flush_period"].is_null())
+            throw msg_fmt(
+                "'flush_period' key in the log configuration must contain a "
+                "number "
+                "of seconds (as number or string)");
+
           if (conf_js.contains("loggers") && conf_js["loggers"].is_object()) {
             conf.loggers.clear();
             for (auto it = conf_js["loggers"].begin();

@@ -1,5 +1,5 @@
 /*
-** Copyright 2020 Centreon
+** Copyright 2020-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -30,23 +30,27 @@ CCB_BEGIN()
 
 class log_v2 {
   std::string _log_name;
-  std::shared_ptr<spdlog::logger> _bam_log;
-  std::shared_ptr<spdlog::logger> _bbdo_log;
-  std::shared_ptr<spdlog::logger> _config_log;
-  std::shared_ptr<spdlog::logger> _core_log;
-  std::shared_ptr<spdlog::logger> _graphite_log;
-  std::shared_ptr<spdlog::logger> _notification_log;
-  std::shared_ptr<spdlog::logger> _rrd_log;
-  std::shared_ptr<spdlog::logger> _stats_log;
-  std::shared_ptr<spdlog::logger> _influxdb_log;
-  std::shared_ptr<spdlog::logger> _lua_log;
-  std::shared_ptr<spdlog::logger> _neb_log;
-  std::shared_ptr<spdlog::logger> _perfdata_log;
-  std::shared_ptr<spdlog::logger> _processing_log;
-  std::shared_ptr<spdlog::logger> _sql_log;
-  std::shared_ptr<spdlog::logger> _tcp_log;
-  std::shared_ptr<spdlog::logger> _tls_log;
-  std::shared_ptr<spdlog::logger> _grpc_log;
+  enum logger {
+    log_bam,
+    log_bbdo,
+    log_config,
+    log_core,
+    log_graphite,
+    log_grpc,
+    log_influxdb,
+    log_lua,
+    log_neb,
+    log_notification,
+    log_perfdata,
+    log_processing,
+    log_rrd,
+    log_sql,
+    log_stats,
+    log_tcp,
+    log_tls,
+  };
+
+  static std::array<std::shared_ptr<spdlog::logger>, 17> _log;
   std::mutex _load_m;
 
   log_v2();
