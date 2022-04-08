@@ -22,8 +22,6 @@
 
 #include <unistd.h>
 
-#include <time.h>
-
 #include <algorithm>
 #include <array>
 #include <atomic>
@@ -59,13 +57,7 @@
 #include <utility>
 #include <vector>
 
-#include <absl/container/flat_hash_map.h>
-
 #include <fmt/format.h>
-//#include <spdlog/common.h>
-//#include <spdlog/spdlog.h>
-
-#include <boost/icl/interval_set.hpp>
 
 #include "com/centreon/engine/namespace.hh"
 

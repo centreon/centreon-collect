@@ -22,21 +22,18 @@
 
 #include <gtest/gtest.h>
 
+#include "com/centreon/engine/timerange.hh"
+
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
 #include "com/centreon/engine/configuration/timeperiod.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/string.hh"
-#include "com/centreon/engine/timerange.hh"
 
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine;
 
 using string_vector = std::vector<std::string>;
-
-using config_timerange_list = std::list<com::centreon::engine::timerange>;
-using config_daterange_list =
-    std::list<com::centreon::engine::configuration::daterange>;
 
 CCE_BEGIN()
 namespace configuration {
@@ -54,14 +51,14 @@ class time_period_comparator {
   const configuration::timeperiod& _parser;
   std::shared_ptr<com::centreon::engine::timeperiod> _result;
 
-  static config_timerange_list extract_timerange(
-      const std::string& line_content,
-      unsigned offset,
-      const std::smatch& datas);
+  static timerange_list extract_timerange(const std::string& line_content,
+                                          unsigned offset,
+                                          const std::smatch& datas);
   std::string name, alias;
 
-  std::vector<config_daterange_list> _exceptions;
-  std::vector<config_timerange_list> _timeranges;
+  std::array<timerange_list, 7> _timeranges;
+  std::array<daterange_list, DATERANGE_TYPES> _exceptions;
+
   group<set_string> _exclude;
 
  public:
@@ -158,7 +155,7 @@ void time_period_comparator::extract_skip(const std::smatch matchs,
   std::smatch skip_extract;
   std::string skip_data = matchs[match_index].str();
   if (std::regex_search(skip_data, skip_extract, skip_extractor)) {
-    date_range.skip_interval(atoi(skip_extract[1].str().c_str()));
+    date_range.set_skip_interval(atoi(skip_extract[1].str().c_str()));
   }
 }
 
@@ -166,9 +163,6 @@ time_period_comparator::time_period_comparator(
     const configuration::timeperiod& parser,
     const string_vector& timeperiod_content)
     : _parser(parser) {
-  _exceptions.resize(DATERANGE_TYPES);
-  _timeranges.resize(7);
-
   com::centreon::engine::configuration::applier::timeperiod applier;
 
   com::centreon::engine::timeperiod::timeperiods.clear();
@@ -193,28 +187,26 @@ time_period_comparator::time_period_comparator(
       std::smatch line_extract;
       if (std::regex_search(line, line_extract, day_extractor)) {
         unsigned day_index = day_to_index.find(line_extract[1].str())->second;
-        config_timerange_list time_intervals =
+        timerange_list time_intervals =
             extract_timerange(line, 2, line_extract);
-        for (const auto& toadd : time_intervals) {
-          _timeranges[day_index].push_front(toadd);
-        }
+        _timeranges[day_index] = time_intervals;
         continue;
       }
     }
     {  // exception "january 1 08:00-12:00"
       std::smatch line_extract;
       if (std::regex_search(line, line_extract, date_extractor)) {
-        config_timerange_list time_intervals =
+        timerange_list time_intervals =
             extract_timerange(line, 3, line_extract);
         int day_of_month = atoi(line_extract[2].str().c_str());
         unsigned month_index =
             month_to_index.find(line_extract[1].str())->second;
         daterange toadd(daterange::month_date);
-        toadd.month_start(month_index);
-        toadd.month_day_start(day_of_month);
-        toadd.month_end(month_index);
-        toadd.month_day_end(day_of_month);
-        toadd.timeranges(time_intervals);
+        toadd.set_smon(month_index);
+        toadd.set_smday(day_of_month);
+        toadd.set_emon(month_index);
+        toadd.set_emday(day_of_month);
+        toadd.set_timerange(time_intervals);
 
         _exceptions[daterange::month_date].push_front(toadd);
         continue;
@@ -223,7 +215,7 @@ time_period_comparator::time_period_comparator(
     {  // exception july 10 - 15 / 2			00:00-24:00
       std::smatch line_extract;
       if (std::regex_search(line, line_extract, date_range1_extractor)) {
-        config_timerange_list time_intervals =
+        timerange_list time_intervals =
             extract_timerange(line, 5, line_extract);
         int day_of_month_start = atoi(line_extract[2].str().c_str());
         int day_of_month_end = atoi(line_extract[3].str().c_str());
@@ -231,11 +223,11 @@ time_period_comparator::time_period_comparator(
             month_to_index.find(line_extract[1].str())->second;
         daterange toadd(daterange::month_date);
         extract_skip(line_extract, 4, toadd);
-        toadd.month_start(month_index);
-        toadd.month_day_start(day_of_month_start);
-        toadd.month_end(month_index);
-        toadd.month_day_end(day_of_month_end);
-        toadd.timeranges(time_intervals);
+        toadd.set_smon(month_index);
+        toadd.set_smday(day_of_month_start);
+        toadd.set_emon(month_index);
+        toadd.set_emday(day_of_month_end);
+        toadd.set_timerange(time_intervals);
 
         _exceptions[daterange::month_date].push_front(toadd);
         continue;
@@ -244,7 +236,7 @@ time_period_comparator::time_period_comparator(
     {  // exception april 10 - may 15 /2	00:00-24:00
       std::smatch line_extract;
       if (std::regex_search(line, line_extract, date_range2_extractor)) {
-        config_timerange_list time_intervals =
+        timerange_list time_intervals =
             extract_timerange(line, 6, line_extract);
         int day_of_month_start = atoi(line_extract[2].str().c_str());
         unsigned month_index_start =
@@ -254,11 +246,11 @@ time_period_comparator::time_period_comparator(
             month_to_index.find(line_extract[3].str())->second;
         daterange toadd(daterange::month_date);
         extract_skip(line_extract, 5, toadd);
-        toadd.month_start(month_index_start);
-        toadd.month_day_start(day_of_month_start);
-        toadd.month_end(month_index_end);
-        toadd.month_day_end(day_of_month_end);
-        toadd.timeranges(time_intervals);
+        toadd.set_smon(month_index_start);
+        toadd.set_smday(day_of_month_start);
+        toadd.set_emon(month_index_end);
+        toadd.set_emday(day_of_month_end);
+        toadd.set_timerange(time_intervals);
 
         _exceptions[daterange::month_date].push_front(toadd);
         continue;
@@ -272,15 +264,15 @@ time_period_comparator::time_period_comparator(
         unsigned day_of_month = atoi(line_extract[3].str().c_str());
         daterange toadd(daterange::calendar_date);
         extract_skip(line_extract, 4, toadd);
-        config_timerange_list time_intervals =
+        timerange_list time_intervals =
             extract_timerange(line, 5, line_extract);
-        toadd.year_start(year);
-        toadd.year_end(year);
-        toadd.month_start(month);
-        toadd.month_end(month);
-        toadd.month_day_start(day_of_month);
-        toadd.month_day_end(day_of_month);
-        toadd.timeranges(time_intervals);
+        toadd.set_syear(year);
+        toadd.set_eyear(year);
+        toadd.set_smon(month);
+        toadd.set_emon(month);
+        toadd.set_smday(day_of_month);
+        toadd.set_emday(day_of_month);
+        toadd.set_timerange(time_intervals);
 
         _exceptions[daterange::calendar_date].push_front(toadd);
         continue;
@@ -289,7 +281,7 @@ time_period_comparator::time_period_comparator(
     {  // exception "2007-01-01 - 2008-02-01 /3	00:00-24:00"
       std::smatch line_extract;
       if (std::regex_search(line, line_extract, full_date_range_extractor)) {
-        config_timerange_list time_intervals =
+        timerange_list time_intervals =
             extract_timerange(line, 8, line_extract);
         unsigned year_start = atoi(line_extract[1].str().c_str());
         unsigned month_start = atoi(line_extract[2].str().c_str()) - 1;
@@ -299,13 +291,13 @@ time_period_comparator::time_period_comparator(
         unsigned day_of_month_end = atoi(line_extract[6].str().c_str());
         daterange toadd(daterange::calendar_date);
         extract_skip(line_extract, 7, toadd);
-        toadd.year_start(year_start);
-        toadd.year_end(year_end);
-        toadd.month_start(month_start);
-        toadd.month_end(month_end);
-        toadd.month_day_start(day_of_month_start);
-        toadd.month_day_end(day_of_month_end);
-        toadd.timeranges(time_intervals);
+        toadd.set_syear(year_start);
+        toadd.set_eyear(year_end);
+        toadd.set_smon(month_start);
+        toadd.set_emon(month_end);
+        toadd.set_smday(day_of_month_start);
+        toadd.set_emday(day_of_month_end);
+        toadd.set_timerange(time_intervals);
 
         _exceptions[daterange::calendar_date].push_front(toadd);
         continue;
@@ -314,13 +306,13 @@ time_period_comparator::time_period_comparator(
     {  // exception day -1
       std::smatch line_extract;
       if (std::regex_search(line, line_extract, n_th_day_of_month_extractor)) {
-        config_timerange_list time_intervals =
+        timerange_list time_intervals =
             extract_timerange(line, 2, line_extract);
         unsigned day_of_month = atoi(line_extract[1].str().c_str());
         daterange toadd(daterange::month_day);
-        toadd.month_day_start(day_of_month);
-        toadd.month_day_end(day_of_month);
-        toadd.timeranges(time_intervals);
+        toadd.set_smday(day_of_month);
+        toadd.set_emday(day_of_month);
+        toadd.set_timerange(time_intervals);
 
         _exceptions[daterange::month_day].push_front(toadd);
         continue;
@@ -330,15 +322,15 @@ time_period_comparator::time_period_comparator(
       std::smatch line_extract;
       if (std::regex_search(line, line_extract,
                             n_th_day_of_month_range_extractor)) {
-        config_timerange_list time_intervals =
+        timerange_list time_intervals =
             extract_timerange(line, 4, line_extract);
         unsigned day_of_month_start = atoi(line_extract[1].str().c_str());
         unsigned day_of_month_end = atoi(line_extract[2].str().c_str());
         daterange toadd(daterange::month_day);
         extract_skip(line_extract, 3, toadd);
-        toadd.month_day_start(day_of_month_start);
-        toadd.month_day_end(day_of_month_end);
-        toadd.timeranges(time_intervals);
+        toadd.set_smday(day_of_month_start);
+        toadd.set_emday(day_of_month_end);
+        toadd.set_timerange(time_intervals);
 
         _exceptions[daterange::month_day].push_front(toadd);
         continue;
@@ -347,17 +339,17 @@ time_period_comparator::time_period_comparator(
     {  // exception monday 3			00:00-24:00
       std::smatch line_extract;
       if (std::regex_search(line, line_extract, n_th_day_of_week_extractor)) {
-        config_timerange_list time_intervals =
+        timerange_list time_intervals =
             extract_timerange(line, 3, line_extract);
         daterange toadd(daterange::week_day);
         unsigned week_day_index =
             day_to_index.find(line_extract[1].str())->second;
         int day_month_index = atoi(line_extract[2].str().c_str());
-        toadd.week_day_start(week_day_index);
-        toadd.week_day_end(week_day_index);
-        toadd.timeranges(time_intervals);
-        toadd.week_day_start_offset(day_month_index);
-        toadd.week_day_end_offset(day_month_index);
+        toadd.set_swday(week_day_index);
+        toadd.set_ewday(week_day_index);
+        toadd.set_timerange(time_intervals);
+        toadd.set_swday_offset(day_month_index);
+        toadd.set_ewday_offset(day_month_index);
 
         _exceptions[daterange::week_day].push_front(toadd);
         continue;
@@ -367,7 +359,7 @@ time_period_comparator::time_period_comparator(
       std::smatch line_extract;
       if (std::regex_search(line, line_extract,
                             n_th_day_of_week_range_extractor)) {
-        config_timerange_list time_intervals =
+        timerange_list time_intervals =
             extract_timerange(line, 6, line_extract);
         daterange toadd(daterange::week_day);
         extract_skip(line_extract, 5, toadd);
@@ -377,11 +369,11 @@ time_period_comparator::time_period_comparator(
         unsigned week_day_index_end =
             day_to_index.find(line_extract[3].str())->second;
         int day_month_index_end = atoi(line_extract[4].str().c_str());
-        toadd.week_day_start(week_day_index_start);
-        toadd.week_day_end(week_day_index_end);
-        toadd.timeranges(time_intervals);
-        toadd.week_day_start_offset(day_month_index_start);
-        toadd.week_day_end_offset(day_month_index_end);
+        toadd.set_swday(week_day_index_start);
+        toadd.set_ewday(week_day_index_end);
+        toadd.set_timerange(time_intervals);
+        toadd.set_swday_offset(day_month_index_start);
+        toadd.set_ewday_offset(day_month_index_end);
 
         _exceptions[daterange::week_day].push_front(toadd);
         continue;
@@ -391,7 +383,7 @@ time_period_comparator::time_period_comparator(
       std::smatch line_extract;
       if (std::regex_search(line, line_extract,
                             n_th_day_of_week_of_month_extractor)) {
-        config_timerange_list time_intervals =
+        timerange_list time_intervals =
             extract_timerange(line, 4, line_extract);
         daterange toadd(daterange::month_week_day);
         unsigned month_index =
@@ -399,13 +391,13 @@ time_period_comparator::time_period_comparator(
         unsigned week_day_index =
             day_to_index.find(line_extract[1].str())->second;
         int day_month_index = atoi(line_extract[2].str().c_str());
-        toadd.month_start(month_index);
-        toadd.month_end(month_index);
-        toadd.week_day_start(week_day_index);
-        toadd.week_day_end(week_day_index);
-        toadd.week_day_start_offset(day_month_index);
-        toadd.week_day_end_offset(day_month_index);
-        toadd.timeranges(time_intervals);
+        toadd.set_smon(month_index);
+        toadd.set_emon(month_index);
+        toadd.set_swday(week_day_index);
+        toadd.set_ewday(week_day_index);
+        toadd.set_swday_offset(day_month_index);
+        toadd.set_ewday_offset(day_month_index);
+        toadd.set_timerange(time_intervals);
 
         _exceptions[daterange::month_week_day].push_front(toadd);
         continue;
@@ -415,7 +407,7 @@ time_period_comparator::time_period_comparator(
       std::smatch line_extract;
       if (std::regex_search(line, line_extract,
                             n_th_day_of_week_of_month_range_extractor)) {
-        config_timerange_list time_intervals =
+        timerange_list time_intervals =
             extract_timerange(line, 8, line_extract);
         daterange toadd(daterange::month_week_day);
         unsigned month_index_start =
@@ -429,13 +421,13 @@ time_period_comparator::time_period_comparator(
             day_to_index.find(line_extract[4].str())->second;
         int day_month_index_end = atoi(line_extract[5].str().c_str());
         extract_skip(line_extract, 7, toadd);
-        toadd.month_start(month_index_start);
-        toadd.month_end(month_index_end);
-        toadd.week_day_start(week_day_index_start);
-        toadd.week_day_end(week_day_index_end);
-        toadd.week_day_start_offset(day_month_index_start);
-        toadd.week_day_end_offset(day_month_index_end);
-        toadd.timeranges(time_intervals);
+        toadd.set_smon(month_index_start);
+        toadd.set_emon(month_index_end);
+        toadd.set_swday(week_day_index_start);
+        toadd.set_ewday(week_day_index_end);
+        toadd.set_swday_offset(day_month_index_start);
+        toadd.set_ewday_offset(day_month_index_end);
+        toadd.set_timerange(time_intervals);
 
         _exceptions[daterange::month_week_day].push_front(toadd);
         continue;
@@ -468,33 +460,39 @@ time_period_comparator::time_period_comparator(
       com::centreon::engine::timeperiod::timeperiods[parser.timeperiod_name()];
 }
 
-template <class elem_class>
-std::ostream& operator<<(std::ostream& str,
-                         const std::list<elem_class>& todump) {
-  std::cerr << "{ ";
-  for (const auto& elem : todump) {
-    std::cerr << "{\t" << elem << " }" << std::endl;
-  }
-  std::cerr << " }" << std::endl;
-  return str;
-}
-
-template <class elem_class>
-std::ostream& operator<<(std::ostream& str,
-                         const std::vector<elem_class>& todump) {
-  std::cerr << "{ ";
-  for (const auto& elem : todump) {
-    std::cerr << "{\t" << elem << " }" << std::endl;
-  }
-  std::cerr << " }" << std::endl;
-  return str;
-}
-
 std::ostream& operator<<(std::ostream& s, const set_string& to_dump) {
   for (const std::string& elem : to_dump) {
     s << ' ' << elem;
   }
   return s;
+}
+
+static const char* day_label[] = {"sunday",   "monday", "tuesday", "wednesday",
+                                  "thursday", "friday", "saturday"};
+
+std::ostream& operator<<(std::ostream& s, const days_array& to_dump) {
+  s << '[';
+  for (unsigned day_ind = 0; day_ind < 7; ++day_ind) {
+    s << '{' << day_label[day_ind] << " , " << to_dump[day_ind] << "},";
+  }
+  s << ']';
+  return s;
+}
+
+template <class T, long unsigned int array_size>
+bool operator==(const std::vector<T>& left,
+                const std::array<T, array_size>& right) {
+  if (left.size() != array_size) {
+    std::cerr << "left.size()=" << left.size()
+              << " right.size()=" << right.size() << std::endl;
+    return false;
+  }
+  for (unsigned ind = 0; ind < array_size; ++ind) {
+    if (left[ind] != right[ind]) {
+      return false;
+    }
+  }
+  return true;
 }
 
 bool time_period_comparator::is_equal() const {
@@ -509,14 +507,14 @@ bool time_period_comparator::is_equal() const {
     return false;
   }
 
-  if (_timeranges != _parser.timeranges()) {
+  if (!(_parser.timeranges() == _timeranges)) {
     std::cerr << "timeranges difference" << std::endl;
-    std::cerr << "_timeranges= " << _timeranges << std::endl;
+    std::cerr << "_timeranges=" << _timeranges << std::endl;
     std::cerr << "_parser.timeranges= " << _parser.timeranges() << std::endl;
     return false;
   }
 
-  if (_exceptions != _parser.exceptions()) {
+  if (!(_parser.exceptions() == _exceptions)) {
     std::cerr << "exception difference" << std::endl;
     std::cerr << "_exceptions= " << _exceptions << std::endl;
     std::cerr << "_parser.exceptions= " << _parser.exceptions() << std::endl;
@@ -531,21 +529,6 @@ bool time_period_comparator::is_equal() const {
   }
 
   return true;
-}
-
-bool operator==(const com::centreon::engine::daterange& left,
-                const com::centreon::engine::configuration::daterange& right) {
-  return left.get_syear() == right.year_start() &&
-         left.get_smon() == right.month_start() &&
-         left.get_smday() == right.month_day_start() &&
-         left.get_swday() == right.week_day_start() &&
-         left.get_swday_offset() == right.week_day_start_offset() &&
-         left.get_eyear() == right.year_end() &&
-         left.get_emon() == right.month_end() &&
-         left.get_emday() == right.month_day_end() &&
-         left.get_ewday() == right.week_day_end() &&
-         left.get_ewday_offset() == right.week_day_end_offset() &&
-         left.get_skip_interval() == right.skip_interval();
 }
 
 template <class T1, long unsigned int array_size, class T2>
@@ -616,16 +599,16 @@ bool time_period_comparator::is_result_equal() const {
     return false;
   }
 
-  if (!(_timeranges == _result->days)) {
+  if (!(_result->days == _timeranges)) {
     std::cerr << "timeranges difference" << std::endl;
-    std::cerr << "_timeranges= " << _timeranges << std::endl;
+    // std::cerr << "_timeranges= " << _timeranges << std::endl;
     std::cerr << "_parser.timeranges= " << _parser.timeranges() << std::endl;
     return false;
   }
 
-  if (!(_exceptions == _result->exceptions)) {
+  if (!(_result->exceptions == _exceptions)) {
     std::cerr << "exception difference" << std::endl;
-    std::cerr << "_exceptions= " << _exceptions << std::endl;
+    // std::cerr << "_exceptions= " << _exceptions << std::endl;
     std::cerr << "_parser.exceptions= " << _parser.exceptions() << std::endl;
     return false;
   }
@@ -640,11 +623,11 @@ bool time_period_comparator::is_result_equal() const {
   return true;
 }
 
-config_timerange_list time_period_comparator::extract_timerange(
+timerange_list time_period_comparator::extract_timerange(
     const std::string& line_content,
     unsigned offset,
     const std::smatch& datas) {
-  config_timerange_list ret;
+  timerange_list ret;
   for (; offset < datas.size(); ++offset) {
     std::smatch range;
     std::string ranges = datas[offset].str();

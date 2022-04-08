@@ -20,6 +20,8 @@
 #ifndef CCE_CONFIGURATION_CONTACT_HH
 #define CCE_CONFIGURATION_CONTACT_HH
 
+#include <absl/container/flat_hash_map.h>
+
 #include "com/centreon/engine/configuration/group.hh"
 #include "com/centreon/engine/configuration/object.hh"
 #include "com/centreon/engine/customvariable.hh"

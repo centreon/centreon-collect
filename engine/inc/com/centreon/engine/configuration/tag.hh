@@ -19,6 +19,8 @@
 #ifndef CCE_CONFIGURATION_TAG_HH
 #define CCE_CONFIGURATION_TAG_HH
 
+#include <absl/container/flat_hash_map.h>
+
 #include "com/centreon/engine/configuration/object.hh"
 
 CCE_BEGIN()

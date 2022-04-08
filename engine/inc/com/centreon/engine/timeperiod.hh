@@ -20,7 +20,6 @@
 #ifndef CCE_OBJECTS_TIMEPERIOD_HH
 #define CCE_OBJECTS_TIMEPERIOD_HH
 
-#include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/daterange.hh"
 
 /* Forward declaration. */
@@ -58,8 +57,8 @@ class timeperiod {
   bool operator==(timeperiod const& obj) throw();
   bool operator!=(timeperiod const& obj) throw();
 
-  std::array<timerange_list, 7> days;
-  std::array<daterange_list, DATERANGE_TYPES> exceptions;
+  days_array days;
+  exception_array exceptions;
 
   static timeperiod_map timeperiods;
 
