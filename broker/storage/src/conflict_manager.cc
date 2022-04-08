@@ -300,6 +300,10 @@ void conflict_manager::_load_caches() {
   std::promise<mysql_result> promise_severity;
   _mysql.run_query_and_get_result(
       "SELECT severity_id, id, type FROM severities", &promise_severity);
+  /* tags => _tags_cache */
+  std::promise<mysql_result> promise_tags;
+  _mysql.run_query_and_get_result("SELECT tag_id, id, type FROM tags",
+                                  &promise_tags);
 
   /* Result of all outdated instances */
   try {
@@ -415,6 +419,16 @@ void conflict_manager::_load_caches() {
   } catch (const std::exception& e) {
     throw msg_fmt("unified sql: could not get the list of severities: {}",
                   e.what());
+  }
+  try {
+    mysql_result res{promise_tags.get_future().get()};
+    while (_mysql.fetch_row(res)) {
+      _tags_cache[{res.value_as_u64(1),
+                   static_cast<uint16_t>(res.value_as_u32(2))}] =
+          res.value_as_u64(0);
+    }
+  } catch (const std::exception& e) {
+    throw msg_fmt("unified sql: could not get the list of tags: {}", e.what());
   }
 }
 
@@ -629,7 +643,7 @@ void conflict_manager::_callback() {
                 std::lock_guard<std::mutex> lk(_stat_m);
                 _speed = s / _stats_count.size();
                 stats::center::instance().execute(
-                    [s = this->_stats, spd = _speed] { s->set_speed(spd); });
+                    [ s = this->_stats, spd = _speed ] { s->set_speed(spd); });
               }
             }
           }
@@ -810,7 +824,7 @@ void conflict_manager::_update_stats(const std::uint32_t size,
                                      const std::size_t sql_size,
                                      const std::size_t stor_size) noexcept {
   stats::center::instance().execute(
-      [s = this->_stats, size, mpdq, ev_size, sql_size, stor_size] {
+      [ s = this->_stats, size, mpdq, ev_size, sql_size, stor_size ] {
         s->set_events_handled(size);
         s->set_max_perfdata_events(mpdq);
         s->set_waiting_events(static_cast<int32_t>(ev_size));
@@ -881,7 +895,7 @@ int32_t conflict_manager::unload(stream_type type) {
  * @param d The BBDO message with all the metrics/indexes to remove.
  */
 void conflict_manager::remove_graphs(const std::shared_ptr<io::data>& d) {
-  asio::post(pool::instance().io_context(), [this, data = d] {
+  asio::post(pool::instance().io_context(), [ this, data = d ] {
     mysql ms(_mysql.get_config());
     const bbdo::pb_remove_graphs& ids =
         *static_cast<const bbdo::pb_remove_graphs*>(data.get());

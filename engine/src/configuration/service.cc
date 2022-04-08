@@ -18,6 +18,9 @@
 */
 
 #include "com/centreon/engine/configuration/service.hh"
+#include "absl/strings/numbers.h"
+#include "absl/strings/str_split.h"
+#include "absl/strings/string_view.h"
 #include "com/centreon/engine/configuration/serviceextinfo.hh"
 #include "com/centreon/engine/customvariable.hh"
 #include "com/centreon/engine/exceptions/error.hh"
@@ -103,7 +106,8 @@ std::unordered_map<std::string, service::setter_func> const service::_setters{
     {"timezone", SETTER(std::string const&, _set_timezone)},
     {"severity", SETTER(uint64_t, _set_severity_id)},
     {"severity_id", SETTER(uint64_t, _set_severity_id)},
-};
+    {"category_tags", SETTER(std::string const&, _set_category_tags)},
+    {"group_tags", SETTER(std::string const&, _set_group_tags)}};
 
 // Default values.
 static int default_acknowledgement_timeout(0);
@@ -225,7 +229,8 @@ service::service(service const& other)
       _service_id(other._service_id),
       _stalking_options(other._stalking_options),
       _timezone(other._timezone),
-      _severity_id{other._severity_id} {}
+      _severity_id{other._severity_id},
+      _tags{other._tags} {}
 
 /**
  *  Assignment operator.
@@ -284,6 +289,7 @@ service& service::operator=(service const& other) {
     _stalking_options = other._stalking_options;
     _timezone = other._timezone;
     _severity_id = other._severity_id;
+    _tags = other._tags;
   }
   return *this;
 }
@@ -649,6 +655,13 @@ bool service::operator==(service const& other) const noexcept {
         "configuration::service::equality => severity id don't match");
     return false;
   }
+  if (_tags != other._tags) {
+    engine_logger(dbg_config, more)
+        << "configuration::service::equality => tags don't match";
+    log_v2::config()->debug(
+        "configuration::service::equality => tags don't match");
+    return false;
+  }
   engine_logger(dbg_config, more) << "configuration::service::equality => OK";
   log_v2::config()->debug("configuration::service::equality => OK");
   return true;
@@ -767,8 +780,9 @@ bool service::operator<(service const& other) const noexcept {
     return _stalking_options < other._stalking_options;
   else if (_timezone != other._timezone)
     return _timezone < other._timezone;
-  else
+  else if (_severity_id != other._severity_id)
     return _severity_id < other._severity_id;
+  return _tags < other._tags;
 }
 
 /**
@@ -867,6 +881,7 @@ void service::merge(object const& obj) {
   MRG_OPTION(_stalking_options);
   MRG_OPTION(_timezone);
   MRG_OPTION(_severity_id);
+  MRG_DEFAULT(_tags);
 }
 
 /**
@@ -1026,8 +1041,8 @@ bool service::contacts_defined() const noexcept {
  *
  *  @return The customvariables.
  */
-com::centreon::engine::map_customvar const& service::customvariables()
-    const noexcept {
+com::centreon::engine::map_customvar const& service::customvariables() const
+    noexcept {
   return _customvariables;
 }
 
@@ -1437,6 +1452,15 @@ std::string const& service::timezone() const noexcept {
  */
 bool service::timezone_defined() const noexcept {
   return _timezone.is_set();
+}
+
+/**
+ *  Get service tags.
+ *
+ *  @return This service tags.
+ */
+const std::set<std::pair<uint64_t, uint16_t>>& service::tags() const noexcept {
+  return _tags;
 }
 
 /**
@@ -2109,6 +2133,76 @@ bool service::_set_stalking_options(std::string const& value) {
 bool service::_set_timezone(std::string const& value) {
   _timezone = value;
   return true;
+}
+
+/**
+ *  Set host tags.
+ *
+ *  @param[in] value  The new tags.
+ *
+ *  @return True.
+ */
+bool service::_set_category_tags(const std::string& value) {
+  bool ret = true;
+  std::list<absl::string_view> tags{absl::StrSplit(value, ',')};
+  for (std::set<std::pair<uint64_t, uint16_t>>::iterator it(_tags.begin()),
+       end(_tags.end());
+       it != end;) {
+    if (it->second == tag::servicecategory)
+      it = _tags.erase(it);
+    else
+      ++it;
+  }
+
+  for (auto& tag : tags) {
+    int64_t id;
+    bool parse_ok;
+    parse_ok = SimpleAtoi(tag, &id);
+    if (parse_ok) {
+      _tags.emplace(id, tag::servicecategory);
+    } else {
+      log_v2::config()->warn(
+          "Warning: service ({}, {}) error for parsing tag {}", _host_id,
+          _service_id, value);
+      ret = false;
+    }
+  }
+  return ret;
+}
+
+/**
+ *  Set host tags.
+ *
+ *  @param[in] value  The new tags.
+ *
+ *  @return True.
+ */
+bool service::_set_group_tags(const std::string& value) {
+  bool ret = true;
+  std::list<absl::string_view> tags{absl::StrSplit(value, ',')};
+  for (std::set<std::pair<uint64_t, uint16_t>>::iterator it(_tags.begin()),
+       end(_tags.end());
+       it != end;) {
+    if (it->second == tag::servicegroup)
+      it = _tags.erase(it);
+    else
+      ++it;
+  }
+
+  for (auto& tag : tags) {
+    int64_t id;
+    bool parse_ok;
+    parse_ok = SimpleAtoi(tag, &id);
+    if (parse_ok) {
+      _tags.emplace(id, tag::servicegroup);
+    } else {
+      log_v2::config()->warn(
+          "Warning: service ({}, {}) error for parsing tag {}", _host_id,
+          _service_id, value);
+      ret = false;
+    }
+  }
+  return ret;
 }
 
 /**

@@ -27,6 +27,7 @@
 #include "com/centreon/engine/hash.hh"
 #include "com/centreon/engine/logging.hh"
 #include "com/centreon/engine/notifier.hh"
+#include "com/centreon/engine/tag.hh"
 
 /* Forward declaration. */
 CCE_BEGIN()

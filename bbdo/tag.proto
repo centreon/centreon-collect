@@ -34,7 +34,6 @@ package com.centreon.broker;
  * relations between resources of our poller and this tag. And only if the tag
  * is no more used at all, we can remove it.
  */
-
 enum TagType {
   SERVICEGROUP = 0;
   HOSTGROUP = 1;
