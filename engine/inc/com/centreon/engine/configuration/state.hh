@@ -267,8 +267,6 @@ class state {
   void low_service_flap_threshold(float value);
   void macros_filter(std::string const& value);
   std::set<std::string> const& macros_filter() const;
-  unsigned int max_check_reaper_time() const noexcept;
-  void max_check_reaper_time(unsigned int value);
   unsigned long max_debug_file_size() const noexcept;
   void max_debug_file_size(unsigned long value);
   unsigned int max_host_check_spread() const noexcept;
@@ -589,7 +587,6 @@ class state {
   float _low_host_flap_threshold;
   float _low_service_flap_threshold;
   std::set<std::string> _macros_filter;
-  unsigned int _max_check_reaper_time;
   unsigned long _max_debug_file_size;
   unsigned int _max_host_check_spread;
   unsigned long _max_log_file_size;

@@ -148,8 +148,6 @@ std::unordered_map<std::string, state::setter_func> const state::_setters{
     {"low_host_flap_threshold", SETTER(float, low_host_flap_threshold)},
     {"low_service_flap_threshold", SETTER(float, low_service_flap_threshold)},
     {"macros_filter", SETTER(std::string const&, macros_filter)},
-    {"max_check_result_reaper_time",
-     SETTER(unsigned int, max_check_reaper_time)},
     {"max_concurrent_checks",
      SETTER(unsigned int, max_parallel_service_checks)},
     {"max_debug_file_size", SETTER(unsigned long, max_debug_file_size)},
@@ -316,7 +314,8 @@ static state::perfdata_file_mode const default_host_perfdata_file_mode(
     state::mode_pipe);
 static unsigned int const default_host_perfdata_file_processing_interval(0);
 static std::string const default_host_perfdata_file_template(
-    "[HOSTPERFDATA]\t$TIMET$\t$HOSTNAME$\t$HOSTEXECUTIONTIME$\t$HOSTOUTPUT$\t$"
+    "[HOSTPERFDATA]\t$TIMET$\t$HOSTNAME$\t$HOSTEXECUTIONTIME$\t$HOSTOUTPUT$"
+    "\t$"
     "HOSTPERFDATA$");
 static std::string const default_illegal_object_chars("");
 static std::string const default_illegal_output_chars("`~$&|'\"<>");
@@ -331,7 +330,6 @@ static bool const default_log_pid(true);
 static bool const default_log_service_retries(false);
 static float const default_low_host_flap_threshold(20.0);
 static float const default_low_service_flap_threshold(20.0);
-static unsigned int const default_max_check_reaper_time(30);
 static unsigned long const default_max_debug_file_size(1000000);
 static unsigned int const default_max_host_check_spread(5);
 static unsigned long const default_max_log_file_size(0);
@@ -468,7 +466,6 @@ state::state()
       _log_service_retries(default_log_service_retries),
       _low_host_flap_threshold(default_low_host_flap_threshold),
       _low_service_flap_threshold(default_low_service_flap_threshold),
-      _max_check_reaper_time(default_max_check_reaper_time),
       _max_debug_file_size(default_max_debug_file_size),
       _max_host_check_spread(default_max_host_check_spread),
       _max_log_file_size(default_max_log_file_size),
@@ -642,7 +639,6 @@ state& state::operator=(state const& right) {
     _low_host_flap_threshold = right._low_host_flap_threshold;
     _low_service_flap_threshold = right._low_service_flap_threshold;
     _macros_filter = right._macros_filter;
-    _max_check_reaper_time = right._max_check_reaper_time;
     _max_debug_file_size = right._max_debug_file_size;
     _max_host_check_spread = right._max_host_check_spread;
     _max_log_file_size = right._max_log_file_size;
@@ -808,7 +804,6 @@ bool state::operator==(state const& right) const noexcept {
       _low_host_flap_threshold == right._low_host_flap_threshold &&
       _low_service_flap_threshold == right._low_service_flap_threshold &&
       _macros_filter == right._macros_filter &&
-      _max_check_reaper_time == right._max_check_reaper_time &&
       _max_debug_file_size == right._max_debug_file_size &&
       _max_host_check_spread == right._max_host_check_spread &&
       _max_log_file_size == right._max_log_file_size &&
@@ -1793,7 +1788,8 @@ bool state::enable_predictive_service_dependency_checks() const noexcept {
 /**
  *  Set enable_predictive_service_dependency_checks value.
  *
- *  @param[in] value The new enable_predictive_service_dependency_checks value.
+ *  @param[in] value The new enable_predictive_service_dependency_checks
+ * value.
  */
 void state::enable_predictive_service_dependency_checks(bool value) {
   _enable_predictive_service_dependency_checks = value;
@@ -2236,8 +2232,8 @@ void state::host_perfdata_file_mode(perfdata_file_mode value) {
  *
  *  @return The host_perfdata_file_processing_command value.
  */
-std::string const& state::host_perfdata_file_processing_command()
-    const noexcept {
+std::string const& state::host_perfdata_file_processing_command() const
+    noexcept {
   return _host_perfdata_file_processing_command;
 }
 
@@ -2532,26 +2528,6 @@ void state::low_service_flap_threshold(float value) {
     throw engine_error() << "low_service_flap_threshold "
                          << "must be between 0.0 and 100.0, both excluded";
   _low_service_flap_threshold = value;
-}
-
-/**
- *  Get max_check_reaper_time value.
- *
- *  @return The max_check_reaper_time value.
- */
-unsigned int state::max_check_reaper_time() const noexcept {
-  return _max_check_reaper_time;
-}
-
-/**
- *  Set max_check_reaper_time value.
- *
- *  @param[in] value The new max_check_reaper_time value.
- */
-void state::max_check_reaper_time(unsigned int value) {
-  if (!value)
-    throw engine_error() << "max_check_reaper_time cannot be 0";
-  _max_check_reaper_time = value;
 }
 
 /**
@@ -3321,8 +3297,8 @@ void state::service_freshness_check_interval(unsigned int value) {
  *
  *  @return The service_inter_check_delay_method value.
  */
-state::inter_check_delay state::service_inter_check_delay_method()
-    const noexcept {
+state::inter_check_delay state::service_inter_check_delay_method() const
+    noexcept {
   return _service_inter_check_delay_method;
 }
 
@@ -3340,8 +3316,8 @@ void state::service_inter_check_delay_method(inter_check_delay value) {
  *
  *  @return The service_interleave_factor_method value.
  */
-state::interleave_factor state::service_interleave_factor_method()
-    const noexcept {
+state::interleave_factor state::service_interleave_factor_method() const
+    noexcept {
   return _service_interleave_factor_method;
 }
 
@@ -3413,8 +3389,8 @@ void state::service_perfdata_file_mode(perfdata_file_mode value) {
  *
  *  @return The service_perfdata_file_processing_command value.
  */
-std::string const& state::service_perfdata_file_processing_command()
-    const noexcept {
+std::string const& state::service_perfdata_file_processing_command() const
+    noexcept {
   return _service_perfdata_file_processing_command;
 }
 
@@ -3687,8 +3663,8 @@ void state::translate_passive_host_checks(bool value) {
  *
  *  @return The users resources list.
  */
-std::unordered_map<std::string, std::string> const& state::user()
-    const noexcept {
+std::unordered_map<std::string, std::string> const& state::user() const
+    noexcept {
   return _users;
 }
 
@@ -3737,7 +3713,8 @@ void state::use_aggressive_host_checking(bool value __attribute__((unused))) {
       << "Warning: use_aggressive_host_checking is deprecated."
          " This option is no more supported since version 21.04.";
   log_v2::config()->warn(
-      "Warning: use_aggressive_host_checking is deprecated. This option is no "
+      "Warning: use_aggressive_host_checking is deprecated. This option is "
+      "no "
       "more supported since version 21.04.");
   ++config_warnings;
 }

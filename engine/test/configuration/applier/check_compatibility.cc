@@ -133,7 +133,6 @@ struct global {
   bool log_service_retries;
   float low_host_flap_threshold;
   float low_service_flap_threshold;
-  unsigned int max_check_reaper_time;
   unsigned long max_debug_file_size;
   unsigned int max_host_check_spread;
   unsigned int max_parallel_service_checks;
@@ -145,7 +144,6 @@ struct global {
   unsigned int ochp_timeout;
   std::string ocsp_command;
   unsigned int ocsp_timeout;
-  bool passive_host_checks_are_soft;
   bool process_performance_data;
   unsigned long retained_contact_host_attribute_mask;
   unsigned long retained_contact_service_attribute_mask;
@@ -162,7 +160,6 @@ struct global {
   bool soft_state_dependencies;
   unsigned int status_update_interval;
   unsigned int time_change_threshold;
-  bool translate_passive_host_checks;
   bool use_aggressive_host_checking;
   bool use_large_installation_tweaks;
   bool use_regexp_matches;
@@ -338,7 +335,6 @@ bool chkdiff(global& g1, global& g2) {
   check_value(log_service_retries);
   check_value(low_host_flap_threshold);
   check_value(low_service_flap_threshold);
-  check_value(max_check_reaper_time);
   check_value(max_debug_file_size);
   check_value(max_host_check_spread);
   check_value(max_parallel_service_checks);
@@ -350,7 +346,6 @@ bool chkdiff(global& g1, global& g2) {
   check_value(ochp_timeout);
   check_value(ocsp_command);
   check_value(ocsp_timeout);
-  check_value(passive_host_checks_are_soft);
   check_value(process_performance_data);
   check_value(retained_contact_host_attribute_mask);
   check_value(retained_contact_service_attribute_mask);
@@ -367,7 +362,6 @@ bool chkdiff(global& g1, global& g2) {
   check_value(soft_state_dependencies);
   check_value(status_update_interval);
   check_value(time_change_threshold);
-  check_value(translate_passive_host_checks);
   check_value(use_aggressive_host_checking);
   check_value(use_large_installation_tweaks);
   check_value(use_regexp_matches);
@@ -588,7 +582,6 @@ static global get_globals() {
   g.log_service_retries = log_service_retries;
   g.low_host_flap_threshold = low_host_flap_threshold;
   g.low_service_flap_threshold = low_service_flap_threshold;
-  g.max_check_reaper_time = max_check_reaper_time;
   g.max_debug_file_size = max_debug_file_size;
   g.max_host_check_spread = max_host_check_spread;
   g.max_parallel_service_checks = max_parallel_service_checks;
@@ -600,7 +593,6 @@ static global get_globals() {
   g.ochp_timeout = ochp_timeout;
   g.ocsp_command = to_str(ocsp_command);
   g.ocsp_timeout = ocsp_timeout;
-  g.passive_host_checks_are_soft = passive_host_checks_are_soft;
   g.process_performance_data = process_performance_data;
   g.retained_contact_host_attribute_mask = retained_contact_host_attribute_mask;
   g.retained_contact_service_attribute_mask =
@@ -618,7 +610,6 @@ static global get_globals() {
   g.soft_state_dependencies = soft_state_dependencies;
   g.status_update_interval = status_update_interval;
   g.time_change_threshold = time_change_threshold;
-  g.translate_passive_host_checks = translate_passive_host_checks;
   g.use_aggressive_host_checking = use_aggressive_host_checking;
   g.use_large_installation_tweaks = use_large_installation_tweaks;
   g.use_regexp_matches = use_regexp_matches;

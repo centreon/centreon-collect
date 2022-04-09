@@ -565,7 +565,6 @@ CREATE TABLE `cfg_nagios` (
   `max_service_check_spread` int(11) DEFAULT NULL,
   `max_host_check_spread` int(11) DEFAULT NULL,
   `check_result_reaper_frequency` int(11) DEFAULT NULL,
-  `max_check_result_reaper_time` int(11) DEFAULT NULL,
   `interval_length` int(11) DEFAULT NULL,
   `auto_reschedule_checks` enum('0','1','2') DEFAULT NULL,
   `auto_rescheduling_interval` int(11) DEFAULT NULL,
