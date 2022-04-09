@@ -381,8 +381,6 @@ class state {
   set_timeperiod::iterator timeperiods_find(timeperiod::key_type const& k);
   unsigned int time_change_threshold() const noexcept;
   void time_change_threshold(unsigned int value);
-  bool translate_passive_host_checks() const noexcept;
-  void translate_passive_host_checks(bool value);
   std::unordered_map<std::string, std::string> const& user() const noexcept;
   void user(std::unordered_map<std::string, std::string> const& value);
   void user(std::string const& key, std::string const& value);
@@ -637,7 +635,6 @@ class state {
   unsigned int _status_update_interval;
   set_timeperiod _timeperiods;
   unsigned int _time_change_threshold;
-  bool _translate_passive_host_checks;
   std::unordered_map<std::string, std::string> _users;
   bool _use_large_installation_tweaks;
   uint32_t _instance_heartbeat_interval;

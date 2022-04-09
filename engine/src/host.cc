@@ -3177,12 +3177,9 @@ int host::process_check_result_3x(enum host::host_state new_state,
       }
 
       /* make a determination of the host's state */
-      /* translate host state between DOWN/UNREACHABLE (only for passive checks
-       * if enabled) */
+      /* translate host state between DOWN/UNREACHABLE */
       _current_state = new_state;
-      if (get_check_type() == check_active ||
-          config->translate_passive_host_checks())
-        _current_state = determine_host_reachability();
+      _current_state = determine_host_reachability();
 
       /* reschedule the next check if the host state changed */
       if (_last_state != _current_state || _last_hard_state != _current_state) {
@@ -3300,12 +3297,9 @@ int host::process_check_result_3x(enum host::host_state new_state,
         else {
           /* set the state */
           _current_state = new_state;
-
-          /* translate host state between DOWN/UNREACHABLE for passive checks
-           * (if enabled) */
+          /* translate host state between DOWN/UNREACHABLE */
           /* make a determination of the host's state */
-          if (config->translate_passive_host_checks())
-            _current_state = determine_host_reachability();
+          _current_state = determine_host_reachability();
         }
 
         /* propagate checks to immediate children if they are not UNREACHABLE */
@@ -3349,12 +3343,9 @@ int host::process_check_result_3x(enum host::host_state new_state,
 
         /* make a (in some cases) preliminary determination of the host's state
          */
-        /* translate host state between DOWN/UNREACHABLE (for passive checks
-         * only if enabled) */
+        /* translate host state between DOWN/UNREACHABLE  */
         _current_state = new_state;
-        if (get_check_type() == check_active ||
-            config->translate_passive_host_checks())
-          _current_state = determine_host_reachability();
+        _current_state = determine_host_reachability();
 
         /* reschedule a check of the host */
         reschedule_check = true;

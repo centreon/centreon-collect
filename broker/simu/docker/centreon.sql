@@ -543,7 +543,6 @@ CREATE TABLE `cfg_nagios` (
   `nagios_comment` text,
   `nagios_activate` enum('0','1') DEFAULT NULL,
   `event_broker_options` varchar(255) DEFAULT NULL,
-  `translate_passive_host_checks` int(11) DEFAULT NULL,
   `nagios_server_id` int(11) DEFAULT NULL,
   `enable_predictive_host_dependency_checks` enum('0','1','2') DEFAULT NULL,
   `enable_predictive_service_dependency_checks` enum('0','1','2') DEFAULT NULL,

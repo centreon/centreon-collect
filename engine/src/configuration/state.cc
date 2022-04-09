@@ -222,8 +222,6 @@ std::unordered_map<std::string, state::setter_func> const state::_setters{
     {"temp_file", SETTER(std::string const&, _set_temp_file)},
     {"temp_path", SETTER(std::string const&, _set_temp_path)},
     {"time_change_threshold", SETTER(unsigned int, time_change_threshold)},
-    {"translate_passive_host_checks",
-     SETTER(bool, translate_passive_host_checks)},
     {"use_aggressive_host_checking",
      SETTER(bool, use_aggressive_host_checking)},
     {"use_agressive_host_checking", SETTER(bool, use_aggressive_host_checking)},
@@ -372,7 +370,6 @@ static std::string const default_state_retention_file(DEFAULT_RETENTION_FILE);
 static std::string const default_status_file(DEFAULT_STATUS_FILE);
 static unsigned int const default_status_update_interval(60);
 static unsigned int const default_time_change_threshold(900);
-static bool const default_translate_passive_host_checks(false);
 static bool const default_use_large_installation_tweaks(false);
 static uint32_t const default_instance_heartbeat_interval(30);
 static bool const default_use_regexp_matches(false);
@@ -512,7 +509,6 @@ state::state()
       _status_file(default_status_file),
       _status_update_interval(default_status_update_interval),
       _time_change_threshold(default_time_change_threshold),
-      _translate_passive_host_checks(default_translate_passive_host_checks),
       _use_large_installation_tweaks(default_use_large_installation_tweaks),
       _instance_heartbeat_interval(default_instance_heartbeat_interval),
       _use_regexp_matches(default_use_regexp_matches),
@@ -690,7 +686,6 @@ state& state::operator=(state const& right) {
     _status_update_interval = right._status_update_interval;
     _timeperiods = right._timeperiods;
     _time_change_threshold = right._time_change_threshold;
-    _translate_passive_host_checks = right._translate_passive_host_checks;
     _users = right._users;
     _use_large_installation_tweaks = right._use_large_installation_tweaks;
     _use_regexp_matches = right._use_regexp_matches;
@@ -857,7 +852,6 @@ bool state::operator==(state const& right) const noexcept {
       _status_update_interval == right._status_update_interval &&
       _timeperiods == right._timeperiods &&
       _time_change_threshold == right._time_change_threshold &&
-      _translate_passive_host_checks == right._translate_passive_host_checks &&
       _users == right._users &&
       _use_large_installation_tweaks == right._use_large_installation_tweaks &&
       _use_regexp_matches == right._use_regexp_matches &&
@@ -3638,24 +3632,6 @@ void state::time_change_threshold(unsigned int value) {
     throw engine_error() << "time_change_threshold cannot be less than 6 ("
                          << value << " provided)";
   _time_change_threshold = value;
-}
-
-/**
- *  Get translate_passive_host_checks value.
- *
- *  @return The translate_passive_host_checks value.
- */
-bool state::translate_passive_host_checks() const noexcept {
-  return _translate_passive_host_checks;
-}
-
-/**
- *  Set translate_passive_host_checks value.
- *
- *  @param[in] value The new translate_passive_host_checks value.
- */
-void state::translate_passive_host_checks(bool value) {
-  _translate_passive_host_checks = value;
 }
 
 /**

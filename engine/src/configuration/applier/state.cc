@@ -441,8 +441,6 @@ void applier::state::_apply(configuration::state const& new_cfg) {
   config->status_file(new_cfg.status_file());
   config->status_update_interval(new_cfg.status_update_interval());
   config->time_change_threshold(new_cfg.time_change_threshold());
-  config->translate_passive_host_checks(
-      new_cfg.translate_passive_host_checks());
   config->use_large_installation_tweaks(
       new_cfg.use_large_installation_tweaks());
   config->instance_heartbeat_interval(new_cfg.instance_heartbeat_interval());
