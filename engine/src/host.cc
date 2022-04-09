@@ -3058,8 +3058,7 @@ int host::process_check_result_3x(enum host::host_state new_state,
 
   /* we have to adjust current attempt # for passive checks, as it isn't done
    * elsewhere */
-  if (get_check_type() == check_passive &&
-      config->passive_host_checks_are_soft())
+  if (get_check_type() == check_passive)
     adjust_check_attempt(false);
 
   /* log passive checks - we need to do this here, as some my bypass external
@@ -3087,8 +3086,7 @@ int host::process_check_result_3x(enum host::host_state new_state,
       /* set the state type */
       /* set state type to HARD for passive checks and active checks that were
        * previously in a HARD STATE */
-      if (get_state_type() == hard || (get_check_type() == check_passive &&
-                                       !config->passive_host_checks_are_soft()))
+      if (get_state_type() == hard)
         set_state_type(hard);
       else
         set_state_type(soft);
@@ -3152,29 +3150,16 @@ int host::process_check_result_3x(enum host::host_state new_state,
       engine_logger(dbg_checks, more) << "Host is still DOWN/UNREACHABLE.";
       log_v2::checks()->debug("Host is still DOWN/UNREACHABLE.");
 
-      /* passive checks are treated as HARD states by default... */
-      if (get_check_type() == check_passive &&
-          !config->passive_host_checks_are_soft()) {
-        /* set the state type */
+      /* set the state type */
+      /* we've maxed out on the retries */
+      if (get_current_attempt() == max_check_attempts())
         set_state_type(hard);
-
-        /* reset the current attempt */
-        set_current_attempt(1);
-      }
-
-      /* active checks and passive checks (treated as SOFT states) */
-      else {
-        /* set the state type */
-        /* we've maxed out on the retries */
-        if (get_current_attempt() == max_check_attempts())
-          set_state_type(hard);
-        /* the host was in a hard problem state before, so it still is now */
-        else if (get_current_attempt() == 1)
-          set_state_type(hard);
-        /* the host is in a soft state and the check will be retried */
-        else
-          set_state_type(soft);
-      }
+      /* the host was in a hard problem state before, so it still is now */
+      else if (get_current_attempt() == 1)
+        set_state_type(hard);
+      /* the host is in a soft state and the check will be retried */
+      else
+        set_state_type(soft);
 
       /* make a determination of the host's state */
       /* translate host state between DOWN/UNREACHABLE */
@@ -3325,21 +3310,9 @@ int host::process_check_result_3x(enum host::host_state new_state,
       }
       /***** MAX ATTEMPTS > 1 *****/
       else {
-        /* active and (in some cases) passive check results are treated as SOFT
-         * states */
-        if (get_check_type() == check_active ||
-            config->passive_host_checks_are_soft()) {
-          /* set the state type */
-          set_state_type(soft);
-        }
-        /* by default, passive check results are treated as HARD states */
-        else {
-          /* set the state type */
-          set_state_type(hard);
-
-          /* reset the current attempt */
-          set_current_attempt(1);
-        }
+        /* active and passive check results are treated as SOFT states */
+        /* set the state type */
+        set_state_type(soft);
 
         /* make a (in some cases) preliminary determination of the host's state
          */
@@ -3352,10 +3325,9 @@ int host::process_check_result_3x(enum host::host_state new_state,
 
         /* schedule a re-check of the host at the retry interval because we
          * can't determine its final state yet... */
-        if (get_check_type() == check_active ||
-            config->passive_host_checks_are_soft())
-          next_check =
-              get_last_check() + retry_interval() * config->interval_length();
+        next_check =
+            get_last_check() + retry_interval() * config->interval_length();
+
         /* propagate checks to immediate parents if they are UP */
         /* we do this because a parent host (or grandparent) may have gone down
          * and blocked our route */

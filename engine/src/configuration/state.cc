@@ -167,8 +167,6 @@ std::unordered_map<std::string, state::setter_func> const state::_setters{
     {"ocsp_command", SETTER(std::string const&, ocsp_command)},
     {"ocsp_timeout", SETTER(unsigned int, ocsp_timeout)},
     {"p1_file", SETTER(std::string const&, _set_p1_file)},
-    {"passive_host_checks_are_soft",
-     SETTER(bool, passive_host_checks_are_soft)},
     {"perfdata_timeout", SETTER(int, perfdata_timeout)},
     {"poller_name", SETTER(std::string const&, poller_name)},
     {"poller_id", SETTER(uint32_t, poller_id)},
@@ -341,7 +339,6 @@ static std::string const default_ochp_command("");
 static unsigned int const default_ochp_timeout(15);
 static std::string const default_ocsp_command("");
 static unsigned int const default_ocsp_timeout(15);
-static bool const default_passive_host_checks_are_soft(false);
 static int const default_perfdata_timeout(5);
 static bool const default_process_performance_data(false);
 static unsigned long const default_retained_contact_host_attribute_mask(0L);
@@ -476,7 +473,6 @@ state::state()
       _ochp_timeout(default_ochp_timeout),
       _ocsp_command(default_ocsp_command),
       _ocsp_timeout(default_ocsp_timeout),
-      _passive_host_checks_are_soft(default_passive_host_checks_are_soft),
       _perfdata_timeout(default_perfdata_timeout),
       _poller_name{"unknown"},
       _poller_id{0},
@@ -647,7 +643,6 @@ state& state::operator=(state const& right) {
     _ochp_timeout = right._ochp_timeout;
     _ocsp_command = right._ocsp_command;
     _ocsp_timeout = right._ocsp_timeout;
-    _passive_host_checks_are_soft = right._passive_host_checks_are_soft;
     _perfdata_timeout = right._perfdata_timeout;
     _poller_name = right._poller_name;
     _poller_id = right._poller_id;
@@ -811,7 +806,6 @@ bool state::operator==(state const& right) const noexcept {
       _ochp_timeout == right._ochp_timeout &&
       _ocsp_command == right._ocsp_command &&
       _ocsp_timeout == right._ocsp_timeout &&
-      _passive_host_checks_are_soft == right._passive_host_checks_are_soft &&
       _perfdata_timeout == right._perfdata_timeout &&
       _poller_name == right._poller_name && _poller_id == right._poller_id &&
       _rpc_port == right._rpc_port &&
@@ -2766,24 +2760,6 @@ void state::ocsp_timeout(unsigned int value) {
   if (!value)
     throw engine_error() << "ocsp_timeout cannot be 0";
   _ocsp_timeout = value;
-}
-
-/**
- *  Get passive_host_checks_are_soft value.
- *
- *  @return The passive_host_checks_are_soft value.
- */
-bool state::passive_host_checks_are_soft() const noexcept {
-  return _passive_host_checks_are_soft;
-}
-
-/**
- *  Set passive_host_checks_are_soft value.
- *
- *  @param[in] value The new passive_host_checks_are_soft value.
- */
-void state::passive_host_checks_are_soft(bool value) {
-  _passive_host_checks_are_soft = value;
 }
 
 /**

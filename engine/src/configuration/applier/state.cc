@@ -405,7 +405,6 @@ void applier::state::_apply(configuration::state const& new_cfg) {
   config->ochp_timeout(new_cfg.ochp_timeout());
   config->ocsp_command(new_cfg.ocsp_command());
   config->ocsp_timeout(new_cfg.ocsp_timeout());
-  config->passive_host_checks_are_soft(new_cfg.passive_host_checks_are_soft());
   config->perfdata_timeout(new_cfg.perfdata_timeout());
   config->process_performance_data(new_cfg.process_performance_data());
   config->resource_file(new_cfg.resource_file());

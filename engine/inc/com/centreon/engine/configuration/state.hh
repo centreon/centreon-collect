@@ -293,8 +293,6 @@ class state {
   void ocsp_command(std::string const& value);
   unsigned int ocsp_timeout() const noexcept;
   void ocsp_timeout(unsigned int value);
-  bool passive_host_checks_are_soft() const noexcept;
-  void passive_host_checks_are_soft(bool value);
   int perfdata_timeout() const noexcept;
   void perfdata_timeout(int value);
   std::string const& poller_name() const noexcept;
@@ -598,7 +596,6 @@ class state {
   unsigned int _ochp_timeout;
   std::string _ocsp_command;
   unsigned int _ocsp_timeout;
-  bool _passive_host_checks_are_soft;
   int _perfdata_timeout;
   std::string _poller_name;
   uint32_t _poller_id;

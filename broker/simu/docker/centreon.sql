@@ -548,7 +548,6 @@ CREATE TABLE `cfg_nagios` (
   `enable_predictive_service_dependency_checks` enum('0','1','2') DEFAULT NULL,
   `cached_host_check_horizon` int(11) DEFAULT NULL,
   `cached_service_check_horizon` int(11) DEFAULT NULL,
-  `passive_host_checks_are_soft` int(11) DEFAULT NULL,
   `use_large_installation_tweaks` enum('0','1','2') DEFAULT NULL,
   `enable_environment_macros` enum('0','1','2') DEFAULT NULL,
   `use_setpgid` enum('0','1','2') DEFAULT NULL,
