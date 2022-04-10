@@ -31,8 +31,6 @@ using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
 using namespace spdlog;
 
-std::array<std::shared_ptr<spdlog::logger>, 17> log_v2::_log;
-
 log_v2& log_v2::instance() {
   static log_v2 instance;
   return instance;
@@ -65,10 +63,12 @@ log_v2::log_v2() {
   _log[log_v2::log_tcp] = create_logger("tcp");
   _log[log_v2::log_tls] = create_logger("tls");
   _log[log_v2::log_grpc] = create_logger("grpc");
+  _running = true;
 }
 
 log_v2::~log_v2() {
   core()->info("log finished");
+  _running = false;
   spdlog::shutdown();
   for (auto& l : _log)
     l.reset();
@@ -76,6 +76,7 @@ log_v2::~log_v2() {
 
 void log_v2::apply(const config::state& conf) {
   std::lock_guard<std::mutex> lock(_load_m);
+  _running = false;
 
   const auto& log = conf.log_conf();
 
@@ -143,6 +144,7 @@ void log_v2::apply(const config::state& conf) {
     spdlog::register_logger(l);
     _log[it->second] = std::move(l);
   }
+  _running = true;
 }
 
 /**
@@ -177,85 +179,156 @@ bool log_v2::contains_level(const std::string& level) {
 }
 
 std::shared_ptr<spdlog::logger> log_v2::bam() {
-  return instance()._log[log_v2::log_bam];
+  if (instance()._running)
+    return instance()._log[log_v2::log_bam];
+  else {
+    auto null_sink = std::make_shared<sinks::null_sink_mt>();
+    return std::make_shared<spdlog::logger>("bam", null_sink);
+  }
 }
 
 std::shared_ptr<spdlog::logger> log_v2::bbdo() {
-  return instance()._log[log_v2::log_bbdo];
+  if (instance()._running)
+    return instance()._log[log_v2::log_bbdo];
+  else {
+    auto null_sink = std::make_shared<sinks::null_sink_mt>();
+    return std::make_shared<spdlog::logger>("bbdo", null_sink);
+  }
 }
 
 std::shared_ptr<spdlog::logger> log_v2::config() {
-  return instance()._log[log_v2::log_config];
+  if (instance()._running)
+    return instance()._log[log_v2::log_config];
+  else {
+    auto null_sink = std::make_shared<sinks::null_sink_mt>();
+    return std::make_shared<spdlog::logger>("config", null_sink);
+  }
 }
 
 std::shared_ptr<spdlog::logger> log_v2::core() {
-  assert(instance()._log[log_v2::log_core]);
-  return instance()._log[log_v2::log_core];
+  if (instance()._running)
+    return instance()._log[log_v2::log_core];
+  else {
+    auto null_sink = std::make_shared<sinks::null_sink_mt>();
+    return std::make_shared<spdlog::logger>("core", null_sink);
+  }
 }
 
 std::shared_ptr<spdlog::logger> log_v2::influxdb() {
-  assert(instance()._log[log_v2::log_influxdb]);
-  return instance()._log[log_v2::log_influxdb];
+  if (instance()._running)
+    return instance()._log[log_v2::log_influxdb];
+  else {
+    auto null_sink = std::make_shared<sinks::null_sink_mt>();
+    return std::make_shared<spdlog::logger>("influxdb", null_sink);
+  }
 }
 
 std::shared_ptr<spdlog::logger> log_v2::graphite() {
-  assert(instance()._log[log_v2::log_graphite]);
-  return instance()._log[log_v2::log_graphite];
+  if (instance()._running)
+    return instance()._log[log_v2::log_graphite];
+  else {
+    auto null_sink = std::make_shared<sinks::null_sink_mt>();
+    return std::make_shared<spdlog::logger>("graphite", null_sink);
+  }
 }
 
 std::shared_ptr<spdlog::logger> log_v2::notification() {
-  assert(instance()._log[log_v2::log_notification]);
-  return instance()._log[log_v2::log_notification];
+  if (instance()._running)
+    return instance()._log[log_v2::log_notification];
+  else {
+    auto null_sink = std::make_shared<sinks::null_sink_mt>();
+    return std::make_shared<spdlog::logger>("notification", null_sink);
+  }
 }
 
 std::shared_ptr<spdlog::logger> log_v2::rrd() {
-  assert(instance()._log[log_v2::log_rrd]);
-  return instance()._log[log_v2::log_rrd];
+  if (instance()._running)
+    return instance()._log[log_v2::log_rrd];
+  else {
+    auto null_sink = std::make_shared<sinks::null_sink_mt>();
+    return std::make_shared<spdlog::logger>("rrd", null_sink);
+  }
 }
 
 std::shared_ptr<spdlog::logger> log_v2::stats() {
-  assert(instance()._log[log_v2::log_stats]);
-  return instance()._log[log_v2::log_stats];
+  if (instance()._running)
+    return instance()._log[log_v2::log_stats];
+  else {
+    auto null_sink = std::make_shared<sinks::null_sink_mt>();
+    return std::make_shared<spdlog::logger>("stats", null_sink);
+  }
 }
 
 std::shared_ptr<spdlog::logger> log_v2::lua() {
-  assert(instance()._log[log_v2::log_lua]);
-  return instance()._log[log_v2::log_lua];
+  if (instance()._running)
+    return instance()._log[log_v2::log_lua];
+  else {
+    auto null_sink = std::make_shared<sinks::null_sink_mt>();
+    return std::make_shared<spdlog::logger>("lua", null_sink);
+  }
 }
 
 std::shared_ptr<spdlog::logger> log_v2::neb() {
-  assert(instance()._log[log_v2::log_neb]);
-  return instance()._log[log_v2::log_neb];
+  if (instance()._running)
+    return instance()._log[log_v2::log_neb];
+  else {
+    auto null_sink = std::make_shared<sinks::null_sink_mt>();
+    return std::make_shared<spdlog::logger>("neb", null_sink);
+  }
 }
 
 std::shared_ptr<spdlog::logger> log_v2::perfdata() {
-  assert(instance()._log[log_v2::log_perfdata]);
-  return instance()._log[log_v2::log_perfdata];
+  if (instance()._running)
+    return instance()._log[log_v2::log_perfdata];
+  else {
+    auto null_sink = std::make_shared<sinks::null_sink_mt>();
+    return std::make_shared<spdlog::logger>("perfdata", null_sink);
+  }
 }
 
 std::shared_ptr<spdlog::logger> log_v2::processing() {
-  assert(instance()._log[log_v2::log_processing]);
-  return instance()._log[log_v2::log_processing];
+  if (instance()._running)
+    return instance()._log[log_v2::log_processing];
+  else {
+    auto null_sink = std::make_shared<sinks::null_sink_mt>();
+    return std::make_shared<spdlog::logger>("processing", null_sink);
+  }
 }
 
 std::shared_ptr<spdlog::logger> log_v2::sql() {
-  assert(instance()._log[log_v2::log_sql]);
-  return instance()._log[log_v2::log_sql];
+  if (instance()._running)
+    return instance()._log[log_v2::log_sql];
+  else {
+    auto null_sink = std::make_shared<sinks::null_sink_mt>();
+    return std::make_shared<spdlog::logger>("sql", null_sink);
+  }
 }
 
 std::shared_ptr<spdlog::logger> log_v2::tcp() {
-  assert(instance()._log[log_v2::log_tcp]);
-  return instance()._log[log_v2::log_tcp];
+  if (instance()._running)
+    return instance()._log[log_v2::log_tcp];
+  else {
+    auto null_sink = std::make_shared<sinks::null_sink_mt>();
+    return std::make_shared<spdlog::logger>("tcp", null_sink);
+  }
 }
 
 std::shared_ptr<spdlog::logger> log_v2::tls() {
-  assert(instance()._log[log_v2::log_tls]);
-  return instance()._log[log_v2::log_tls];
+  if (instance()._running)
+    return instance()._log[log_v2::log_tls];
+  else {
+    auto null_sink = std::make_shared<sinks::null_sink_mt>();
+    return std::make_shared<spdlog::logger>("tls", null_sink);
+  }
 }
 
 std::shared_ptr<spdlog::logger> log_v2::grpc() {
-  assert(instance()._log[log_v2::log_grpc]);
-  return instance()._log[log_v2::log_grpc];
+  if (instance()._running)
+    return instance()._log[log_v2::log_grpc];
+  else {
+    auto null_sink = std::make_shared<sinks::null_sink_mt>();
+    return std::make_shared<spdlog::logger>("grpc", null_sink);
+  }
 }
 
 const std::string& log_v2::log_name() const {

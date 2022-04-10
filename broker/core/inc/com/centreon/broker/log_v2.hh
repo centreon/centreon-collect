@@ -50,7 +50,8 @@ class log_v2 {
     log_tls,
   };
 
-  static std::array<std::shared_ptr<spdlog::logger>, 17> _log;
+  std::array<std::shared_ptr<spdlog::logger>, 17> _log;
+  std::atomic_bool _running;
   std::mutex _load_m;
 
   log_v2();
