@@ -74,6 +74,8 @@ log_v2::log_v2() {
 log_v2::~log_v2() noexcept {
   _log[log_v2::log_runtime]->info("log finished");
   spdlog::shutdown();
+  for (auto& l : _log)
+    l.reset();
 }
 
 void log_v2::apply(const configuration::state& config) {
@@ -149,54 +151,67 @@ void log_v2::apply(const configuration::state& config) {
 }
 
 std::shared_ptr<spdlog::logger> log_v2::functions() {
+  assert(instance()._log[log_v2::log_functions]);
   return instance()._log[log_v2::log_functions];
 }
 
 std::shared_ptr<spdlog::logger> log_v2::config() {
+  assert(instance()._log[log_v2::log_config]);
   return instance()._log[log_v2::log_config];
 }
 
 std::shared_ptr<spdlog::logger> log_v2::events() {
+  assert(instance()._log[log_v2::log_events]);
   return instance()._log[log_v2::log_events];
 }
 
 std::shared_ptr<spdlog::logger> log_v2::checks() {
+  assert(instance()._log[log_v2::log_checks]);
   return instance()._log[log_v2::log_checks];
 }
 
 std::shared_ptr<spdlog::logger> log_v2::notifications() {
+  assert(instance()._log[log_v2::log_notifications]);
   return instance()._log[log_v2::log_notifications];
 }
 
 std::shared_ptr<spdlog::logger> log_v2::eventbroker() {
+  assert(instance()._log[log_v2::log_eventbroker]);
   return instance()._log[log_v2::log_eventbroker];
 }
 
 std::shared_ptr<spdlog::logger> log_v2::external_command() {
+  assert(instance()._log[log_v2::log_external_command]);
   return instance()._log[log_v2::log_external_command];
 }
 
 std::shared_ptr<spdlog::logger> log_v2::commands() {
+  assert(instance()._log[log_v2::log_commands]);
   return instance()._log[log_v2::log_commands];
 }
 
 std::shared_ptr<spdlog::logger> log_v2::downtimes() {
+  assert(instance()._log[log_v2::log_downtimes]);
   return instance()._log[log_v2::log_downtimes];
 }
 
 std::shared_ptr<spdlog::logger> log_v2::comments() {
+  assert(instance()._log[log_v2::log_comments]);
   return instance()._log[log_v2::log_comments];
 }
 
 std::shared_ptr<spdlog::logger> log_v2::macros() {
+  assert(instance()._log[log_v2::log_macros]);
   return instance()._log[log_v2::log_macros];
 }
 
 std::shared_ptr<spdlog::logger> log_v2::process() {
+  assert(instance()._log[log_v2::log_process]);
   return instance()._log[log_v2::log_process];
 }
 
 std::shared_ptr<spdlog::logger> log_v2::runtime() {
+  assert(instance()._log[log_v2::log_runtime]);
   return instance()._log[log_v2::log_runtime];
 }
 

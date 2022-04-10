@@ -70,6 +70,8 @@ log_v2::log_v2() {
 log_v2::~log_v2() {
   core()->info("log finished");
   spdlog::shutdown();
+  for (auto& l : _log)
+    l.reset();
 }
 
 void log_v2::apply(const config::state& conf) {
@@ -187,58 +189,72 @@ std::shared_ptr<spdlog::logger> log_v2::config() {
 }
 
 std::shared_ptr<spdlog::logger> log_v2::core() {
+  assert(instance()._log[log_v2::log_core]);
   return instance()._log[log_v2::log_core];
 }
 
 std::shared_ptr<spdlog::logger> log_v2::influxdb() {
+  assert(instance()._log[log_v2::log_influxdb]);
   return instance()._log[log_v2::log_influxdb];
 }
 
 std::shared_ptr<spdlog::logger> log_v2::graphite() {
+  assert(instance()._log[log_v2::log_graphite]);
   return instance()._log[log_v2::log_graphite];
 }
 
 std::shared_ptr<spdlog::logger> log_v2::notification() {
+  assert(instance()._log[log_v2::log_notification]);
   return instance()._log[log_v2::log_notification];
 }
 
 std::shared_ptr<spdlog::logger> log_v2::rrd() {
+  assert(instance()._log[log_v2::log_rrd]);
   return instance()._log[log_v2::log_rrd];
 }
 
 std::shared_ptr<spdlog::logger> log_v2::stats() {
+  assert(instance()._log[log_v2::log_stats]);
   return instance()._log[log_v2::log_stats];
 }
 
 std::shared_ptr<spdlog::logger> log_v2::lua() {
+  assert(instance()._log[log_v2::log_lua]);
   return instance()._log[log_v2::log_lua];
 }
 
 std::shared_ptr<spdlog::logger> log_v2::neb() {
+  assert(instance()._log[log_v2::log_neb]);
   return instance()._log[log_v2::log_neb];
 }
 
 std::shared_ptr<spdlog::logger> log_v2::perfdata() {
+  assert(instance()._log[log_v2::log_perfdata]);
   return instance()._log[log_v2::log_perfdata];
 }
 
 std::shared_ptr<spdlog::logger> log_v2::processing() {
+  assert(instance()._log[log_v2::log_processing]);
   return instance()._log[log_v2::log_processing];
 }
 
 std::shared_ptr<spdlog::logger> log_v2::sql() {
+  assert(instance()._log[log_v2::log_sql]);
   return instance()._log[log_v2::log_sql];
 }
 
 std::shared_ptr<spdlog::logger> log_v2::tcp() {
+  assert(instance()._log[log_v2::log_tcp]);
   return instance()._log[log_v2::log_tcp];
 }
 
 std::shared_ptr<spdlog::logger> log_v2::tls() {
+  assert(instance()._log[log_v2::log_tls]);
   return instance()._log[log_v2::log_tls];
 }
 
 std::shared_ptr<spdlog::logger> log_v2::grpc() {
+  assert(instance()._log[log_v2::log_grpc]);
   return instance()._log[log_v2::log_grpc];
 }
 

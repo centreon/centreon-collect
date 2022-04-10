@@ -38,6 +38,7 @@ com::centreon::broker::grpc::stream::stream(
 
 com::centreon::broker::grpc::stream::~stream() noexcept {
   if (_channel) {
+    //_channel->stop();
     _channel->to_trash();
   }
 }
@@ -75,7 +76,7 @@ int32_t com::centreon::broker::grpc::stream::write(
     std::shared_ptr<io::data> const& d) {
   event_ptr to_send(std::make_shared<grpc_event_type>());
 
-  std::shared_ptr<io::raw> raw_src = std::dynamic_pointer_cast<io::raw>(d);
+  std::shared_ptr<io::raw> raw_src = std::static_pointer_cast<io::raw>(d);
   if (raw_src) {
     to_send->mutable_buffer()->assign(raw_src->_buffer.begin(),
                                       raw_src->_buffer.end());
