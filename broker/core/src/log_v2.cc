@@ -36,7 +36,7 @@ log_v2& log_v2::instance() {
   return instance;
 }
 
-log_v2::log_v2() {
+log_v2::log_v2() : _running{false} {
   auto stdout_sink = std::make_shared<sinks::stdout_color_sink_mt>();
   auto create_logger = [&stdout_sink](const std::string& name) {
     std::shared_ptr<spdlog::logger> log =

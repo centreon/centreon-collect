@@ -31,8 +31,8 @@
 CCE_BEGIN()
 class log_v2 {
   std::string _log_name;
-  static std::array<std::shared_ptr<spdlog::logger>, 13> _log;
-  static std::atomic_bool _running;
+  std::array<std::shared_ptr<spdlog::logger>, 13> _log;
+  std::atomic_bool _running;
   enum logger {
     log_config,
     log_functions,

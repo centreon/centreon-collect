@@ -27,15 +27,12 @@
 using namespace com::centreon::engine;
 using namespace spdlog;
 
-std::array<std::shared_ptr<spdlog::logger>, 13> log_v2::_log;
-std::atomic_bool log_v2::_running{false};
-
 log_v2& log_v2::instance() {
   static log_v2 instance;
   return instance;
 }
 
-log_v2::log_v2() {
+log_v2::log_v2() : _running{false} {
   auto stdout_sink = std::make_shared<sinks::stdout_sink_mt>();
   auto create_logger = [&stdout_sink](const std::string& name,
                                       level::level_enum lvl) {
@@ -156,7 +153,7 @@ void log_v2::apply(const configuration::state& config) {
 }
 
 std::shared_ptr<spdlog::logger> log_v2::functions() {
-  if (_running)
+  if (instance()._running)
     return instance()._log[log_v2::log_functions];
   else {
     auto null_sink = std::make_shared<sinks::null_sink_mt>();
@@ -165,7 +162,7 @@ std::shared_ptr<spdlog::logger> log_v2::functions() {
 }
 
 std::shared_ptr<spdlog::logger> log_v2::config() {
-  if (_running)
+  if (instance()._running)
     return instance()._log[log_v2::log_config];
   else {
     auto null_sink = std::make_shared<sinks::null_sink_mt>();
@@ -174,7 +171,7 @@ std::shared_ptr<spdlog::logger> log_v2::config() {
 }
 
 std::shared_ptr<spdlog::logger> log_v2::events() {
-  if (_running)
+  if (instance()._running)
     return instance()._log[log_v2::log_events];
   else {
     auto null_sink = std::make_shared<sinks::null_sink_mt>();
@@ -183,7 +180,7 @@ std::shared_ptr<spdlog::logger> log_v2::events() {
 }
 
 std::shared_ptr<spdlog::logger> log_v2::checks() {
-  if (_running)
+  if (instance()._running)
     return instance()._log[log_v2::log_checks];
   else {
     auto null_sink = std::make_shared<sinks::null_sink_mt>();
@@ -192,7 +189,7 @@ std::shared_ptr<spdlog::logger> log_v2::checks() {
 }
 
 std::shared_ptr<spdlog::logger> log_v2::notifications() {
-  if (_running)
+  if (instance()._running)
     return instance()._log[log_v2::log_notifications];
   else {
     auto null_sink = std::make_shared<sinks::null_sink_mt>();
@@ -201,7 +198,7 @@ std::shared_ptr<spdlog::logger> log_v2::notifications() {
 }
 
 std::shared_ptr<spdlog::logger> log_v2::eventbroker() {
-  if (_running)
+  if (instance()._running)
     return instance()._log[log_v2::log_eventbroker];
   else {
     auto null_sink = std::make_shared<sinks::null_sink_mt>();
@@ -210,7 +207,7 @@ std::shared_ptr<spdlog::logger> log_v2::eventbroker() {
 }
 
 std::shared_ptr<spdlog::logger> log_v2::external_command() {
-  if (_running)
+  if (instance()._running)
     return instance()._log[log_v2::log_external_command];
   else {
     auto null_sink = std::make_shared<sinks::null_sink_mt>();
@@ -219,7 +216,7 @@ std::shared_ptr<spdlog::logger> log_v2::external_command() {
 }
 
 std::shared_ptr<spdlog::logger> log_v2::commands() {
-  if (_running)
+  if (instance()._running)
     return instance()._log[log_v2::log_commands];
   else {
     auto null_sink = std::make_shared<sinks::null_sink_mt>();
@@ -228,7 +225,7 @@ std::shared_ptr<spdlog::logger> log_v2::commands() {
 }
 
 std::shared_ptr<spdlog::logger> log_v2::downtimes() {
-  if (_running)
+  if (instance()._running)
     return instance()._log[log_v2::log_downtimes];
   else {
     auto null_sink = std::make_shared<sinks::null_sink_mt>();
@@ -237,7 +234,7 @@ std::shared_ptr<spdlog::logger> log_v2::downtimes() {
 }
 
 std::shared_ptr<spdlog::logger> log_v2::comments() {
-  if (_running)
+  if (instance()._running)
     return instance()._log[log_v2::log_comments];
   else {
     auto null_sink = std::make_shared<sinks::null_sink_mt>();
@@ -246,7 +243,7 @@ std::shared_ptr<spdlog::logger> log_v2::comments() {
 }
 
 std::shared_ptr<spdlog::logger> log_v2::macros() {
-  if (_running)
+  if (instance()._running)
     return instance()._log[log_v2::log_macros];
   else {
     auto null_sink = std::make_shared<sinks::null_sink_mt>();
@@ -255,7 +252,7 @@ std::shared_ptr<spdlog::logger> log_v2::macros() {
 }
 
 std::shared_ptr<spdlog::logger> log_v2::process() {
-  if (_running)
+  if (instance()._running)
     return instance()._log[log_v2::log_process];
   else {
     auto null_sink = std::make_shared<sinks::null_sink_mt>();
@@ -264,7 +261,7 @@ std::shared_ptr<spdlog::logger> log_v2::process() {
 }
 
 std::shared_ptr<spdlog::logger> log_v2::runtime() {
-  if (_running)
+  if (instance()._running)
     return instance()._log[log_v2::log_runtime];
   else {
     auto null_sink = std::make_shared<sinks::null_sink_mt>();
