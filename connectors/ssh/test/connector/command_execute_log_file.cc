@@ -120,8 +120,9 @@ int main() {
     std::ifstream file(LOG_FILE);
     if (file.is_open()) {
       getline(file, line);
-      if (line.find("[info] Centreon SSH Connector " CENTREON_CONNECTOR_VERSION
-                    " starting") == std::string::npos)
+      if (line.find(
+              "[info] Centreon SSH Connector " CENTREON_CONNECTOR_VERSION
+              " starting") == std::string::npos)
         throw(basic_error()
               << "bad content: the first line does not start with 'Centreon "
                  "SSH Connector " CENTREON_CONNECTOR_VERSION " starting'");

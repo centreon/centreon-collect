@@ -34,7 +34,13 @@ namespace checks {
 class result {
  public:
   result();
+  result(unsigned long long cmd_id, int exit_code, const std::string& error);
+  result(unsigned long long cmd_id,
+         int exit_code,
+         const std::string& output,
+         const std::string& error);
   result(result const& r);
+
   ~result() = default;
   result& operator=(result const& r);
   unsigned long long get_command_id() const noexcept;
