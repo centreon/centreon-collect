@@ -137,7 +137,6 @@ a monitoring engine.
 Summary: Centreon Connector SSH provide persistante connection between checks.
 Group: Application/System
 Requires: centreon-clib = %{version}-%{release}
-Requires: libssh2 >= 1.4
 Requires: libgcrypt
 
 %description -n centreon-connector-ssh

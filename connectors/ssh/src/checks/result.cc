@@ -32,6 +32,29 @@ using namespace com::centreon::connector::ssh::checks;
 result::result() : _cmd_id(0), _executed(false), _exit_code(-1) {}
 
 /**
+ * @brief error constructor
+ *
+ */
+result::result(unsigned long long cmd_id,
+               int exit_code,
+               const std::string& error)
+    : _cmd_id(cmd_id), _error(error), _executed(false), _exit_code(exit_code) {}
+
+/**
+ * @brief success constructor
+ *
+ */
+result::result(unsigned long long cmd_id,
+               int exit_code,
+               const std::string& output,
+               const std::string& error)
+    : _cmd_id(cmd_id),
+      _error(error),
+      _executed(true),
+      _exit_code(exit_code),
+      _output(output) {}
+
+/**
  *  Copy constructor.
  *
  *  @param[in] r Object to copy.

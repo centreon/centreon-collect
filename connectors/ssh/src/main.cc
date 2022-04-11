@@ -16,18 +16,7 @@
 ** For more information : contact@centreon.com
 */
 
-#include <atomic>
-#include <cerrno>
-#include <csignal>
-#include <cstdio>
-#include <cstdlib>
-#ifdef LIBSSH2_WITH_LIBGCRYPT
-#include <gcrypt.h>
-#endif  // LIBSSH2_WITH_LIBGCRYPT
-#include <libssh2.h>
-#include <iostream>
 #include "com/centreon/connector/log.hh"
-#include "com/centreon/connector/ssh/multiplexer.hh"
 #include "com/centreon/connector/ssh/options.hh"
 #include "com/centreon/connector/ssh/policy.hh"
 #include "com/centreon/exceptions/basic.hh"
@@ -41,29 +30,6 @@ using namespace com::centreon::connector::ssh;
 #define CENTREON_CONNECTOR_VERSION "(development version)"
 #endif  // !CENTREON_CONNECTOR_VERSION
 
-// Termination flag.
-std::atomic<bool> should_exit(false);
-
-#ifdef LIBSSH2_WITH_LIBGCRYPT
-// libgcrypt threading structure.
-GCRY_THREAD_OPTION_PTHREAD_IMPL;
-#endif  // LIBSSH2_WITH_LIBGCRYPT
-
-/**
- *  Termination handler.
- *
- *  @param[in] signum Unused.
- */
-static void term_handler(int signum) {
-  (void)signum;
-  int old_errno(errno);
-  log::core()->info("termination request received");
-  should_exit = true;
-  log::core()->info("reseting termination handler");
-  signal(SIGTERM, SIG_DFL);
-  errno = old_errno;
-}
-
 /**
  *  Connector entry point.
  *
@@ -73,15 +39,10 @@ static void term_handler(int signum) {
  *  @return 0 on successful execution.
  */
 int main(int argc, char* argv[]) {
-  // Return value.
-  int retval(EXIT_FAILURE);
-
   try {
-    // Initializations.
-    multiplexer::load();
-
     // Command line parsing.
     options opts;
+    std::string test_file_path;
     try {
       opts.parse(argc - 1, argv + 1);
     } catch (exceptions::basic const& e) {
@@ -90,11 +51,9 @@ int main(int argc, char* argv[]) {
     }
     if (opts.get_argument("help").get_is_set()) {
       std::cout << opts.help() << std::endl;
-      retval = EXIT_SUCCESS;
     } else if (opts.get_argument("version").get_is_set()) {
       std::cout << "Centreon SSH Connector " << CENTREON_CONNECTOR_VERSION
                 << std::endl;
-      retval = EXIT_SUCCESS;
     } else {
       // Set logging object.
       if (opts.get_argument("log-file").get_is_set()) {
@@ -108,19 +67,14 @@ int main(int argc, char* argv[]) {
       } else {
         log::instance().set_level(spdlog::level::info);
       }
-      log::core()->info("Centreon SSH Connector {} starting",
-                        CENTREON_CONNECTOR_VERSION);
-#if LIBSSH2_VERSION_NUM >= 0x010205
+
+      if (opts.get_argument("test-file").get_is_set()) {
+        test_file_path = opts.get_argument("test-file").get_value();
+      }
+      log::core()->info("Centreon SSH Connector {} starting PID={}",
+                        CENTREON_CONNECTOR_VERSION, getpid());
       // Initialize libssh2.
       log::core()->debug("initializing libssh2");
-#ifdef LIBSSH2_WITH_LIBGCRYPT
-      // FIXME DBR: needed or not needed ??
-      // Version check should be the very first call because it
-      // makes sure that important subsystems are initialized.
-      if (!gcry_check_version(GCRYPT_VERSION))
-        throw basic_error() << "libgcrypt version mismatch: ";
-      gcry_control(GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
-#endif  // LIBSSH2_WITH_LIBGCRYPT
       if (libssh2_init(0))
         throw basic_error() << "libssh2 initialization failed";
       {
@@ -131,27 +85,37 @@ int main(int argc, char* argv[]) {
               << " required)";
         log::core()->info("libssh2 version {} successfully loaded", version);
       }
-#endif /* libssh2 version >= 1.2.5 */
 
       // Set termination handler.
       log::core()->debug("installing termination handler");
-      signal(SIGTERM, term_handler);
+
+      shared_io_context io_context(std::make_shared<asio::io_context>());
+      asio::signal_set signal_handler(*io_context, SIGTERM, SIGINT, SIGPIPE);
+
+      signal_handler.async_wait(
+          [io_context](const std::error_code&, int signal_number) {
+            if (signal_number == SIGPIPE) {
+              log::core()->info("SIGPIPE received");
+              return;
+            }
+            log::core()->info("termination request received");
+            io_context->stop();
+          });
 
       // Program policy.
-      policy p;
-      retval = (p.run() ? EXIT_SUCCESS : EXIT_FAILURE);
+      policy::create(io_context, test_file_path);
+
+      io_context->run();
     }
   } catch (std::exception const& e) {
-    log::core()->error("installing termination handler");
+    log::core()->error("failure {}", e.what());
+    return EXIT_FAILURE;
   }
 
-#if LIBSSH2_VERSION_NUM >= 0x010205
   // Deinitialize libssh2.
   libssh2_exit();
-#endif /* libssh2 version >= 1.2.5 */
 
-  // Deinitializations.
-  multiplexer::unload();
+  log::core()->info("bye");
 
-  return retval;
+  return EXIT_SUCCESS;
 }

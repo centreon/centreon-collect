@@ -32,10 +32,20 @@ using namespace com::centreon::connector::ssh;
  *                                     *
  **************************************/
 
+reporter::pointer reporter::create(const shared_io_context& io_context) {
+  return pointer(new reporter(io_context));
+}
+
 /**
  *  Default constructor.
  */
-reporter::reporter() : _can_report(true), _reported(0) {}
+reporter::reporter(const shared_io_context& io_context)
+    : _buffer(std::make_shared<std::string>()),
+      _can_report(true),
+      _reported(0),
+      _io_context(io_context),
+      _sout(*io_context, ::dup(STDOUT_FILENO)),
+      _writing(false) {}
 
 /**
  *  Destructor.
@@ -46,32 +56,12 @@ reporter::~reporter() noexcept {
 }
 
 /**
- *  Check if reporter can report.
- *
- *  @return true if reporter can report.
- */
-bool reporter::can_report() const noexcept {
-  return _can_report;
-}
-
-/**
  *  Error event on the handle.
  *
  *  @param[in] h Unused.
  */
-void reporter::error([[maybe_unused]] handle& h) {
+void reporter::error() {
   _can_report = false;
-  throw basic_error() << "error detected on the handle used"
-                         " to report to the monitoring engine";
-}
-
-/**
- *  Get reporter's internal buffer.
- *
- *  @return Internal buffer.
- */
-std::string const& reporter::get_buffer() const noexcept {
-  return _buffer;
 }
 
 /**
@@ -82,8 +72,11 @@ std::string const& reporter::get_buffer() const noexcept {
 void reporter::send_result(checks::result const& r) {
   // Update statistics.
   ++_reported;
-  log::core()->debug("reporting check result #{0} (check {1})", _reported,
-                     r.get_command_id());
+  log::core()->debug(
+      "reporting check result #{} check:{} executed:{} exit code:{} output:{} "
+      "error:{}",
+      _reported, r.get_command_id(), r.get_executed(), r.get_exit_code(),
+      r.get_output(), r.get_error());
 
   // Build packet.
   std::ostringstream oss;
@@ -114,7 +107,8 @@ void reporter::send_result(checks::result const& r) {
   for (unsigned int i = 0; i < 4; ++i)
     oss.put('\0');
   // Append packet to write buffer.
-  _buffer.append(oss.str());
+  _buffer->append(oss.str());
+  write();
 }
 
 /**
@@ -139,16 +133,8 @@ void reporter::send_version(unsigned int major, unsigned int minor) {
     oss.put('\0');
 
   // Send packet back to monitoring engine.
-  _buffer.append(oss.str());
-}
-
-/**
- *  Do we want to send something to the monitoring engine ?
- *
- *  @param[in] h Monitoring engine handle.
- */
-bool reporter::want_write([[maybe_unused]] handle& h) {
-  return can_report() && !_buffer.empty();
+  _buffer->append(oss.str());
+  write();
 }
 
 /**
@@ -156,7 +142,25 @@ bool reporter::want_write([[maybe_unused]] handle& h) {
  *
  *  @param[in] h Handle.
  */
-void reporter::write(handle& h) {
-  unsigned long wb(h.write(_buffer.c_str(), _buffer.size()));
-  _buffer.erase(0, wb);
+void reporter::write() {
+  if (_writing) {
+    return;
+  }
+  if (!_buffer->empty()) {
+    _writing = true;
+    std::shared_ptr<std::string> buff = _buffer;
+    _buffer = std::make_shared<std::string>();
+    asio::async_write(_sout, asio::buffer(*buff),
+                      [buff, me = shared_from_this()](
+                          const std::error_code error, std::size_t) {
+                        if (error) {
+                          log::core()->error("failed to write to stdout {}",
+                                             error.message());
+                          me->error();
+                        } else {
+                          me->_writing = false;
+                          me->write();
+                        }
+                      });
+  }
 }

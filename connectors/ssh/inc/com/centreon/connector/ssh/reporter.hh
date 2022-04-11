@@ -19,10 +19,8 @@
 #ifndef CCCS_REPORTER_HH
 #define CCCS_REPORTER_HH
 
-#include <string>
-#include "com/centreon/connector/ssh/checks/listener.hh"
+#include "com/centreon/connector/ssh/checks/result.hh"
 #include "com/centreon/connector/ssh/namespace.hh"
-#include "com/centreon/handle_listener.hh"
 
 CCCS_BEGIN()
 
@@ -32,23 +30,32 @@ CCCS_BEGIN()
  *
  *  Send replies to the monitoring engine.
  */
-class reporter : public com::centreon::handle_listener {
-  std::string _buffer;
+class reporter : public std::enable_shared_from_this<reporter> {
+ protected:
+  std::shared_ptr<std::string> _buffer;
   bool _can_report;
   unsigned int _reported;
+  shared_io_context _io_context;
+  asio::posix::stream_descriptor _sout;
+  bool _writing;
+
+  reporter(const shared_io_context& io_context);
 
  public:
-  reporter();
+  using pointer = std::shared_ptr<reporter>;
+
+  static pointer create(const shared_io_context& io_context);
+
   reporter(reporter const& r) = delete;
-  ~reporter() noexcept override;
+  virtual ~reporter() noexcept;
   reporter& operator=(reporter const& r) = delete;
-  bool can_report() const noexcept;
-  void error(handle& h) override;
-  std::string const& get_buffer() const noexcept;
+  bool can_report() const { return _can_report; };
+  void error();
   void send_result(checks::result const& r);
   void send_version(unsigned int major, unsigned int minor);
-  bool want_write(handle& h) override;
-  void write(handle& h) override;
+  virtual void write();
+
+  const std::string& get_buffer() const { return *_buffer; }
 };
 
 CCCS_END()
