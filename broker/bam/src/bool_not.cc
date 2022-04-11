@@ -17,6 +17,7 @@
 */
 
 #include "com/centreon/broker/bam/bool_not.hh"
+#include <cmath>
 
 using namespace com::centreon::broker::bam;
 
@@ -90,7 +91,7 @@ void bool_not::set_value(std::shared_ptr<bool_value>& value) {
  *  @return Hard value.
  */
 double bool_not::value_hard() {
-  return abs(_value->value_hard()) <= eps;
+  return _value->value_hard() == 0;
 }
 
 /**
@@ -99,7 +100,7 @@ double bool_not::value_hard() {
  *  @return Soft value.
  */
 double bool_not::value_soft() {
-  return abs(_value->value_soft()) <= eps;
+  return _value->value_soft() == 0;
 }
 
 /**
@@ -117,7 +118,7 @@ void bool_not::_internal_copy(bool_not const& right) {
  *  @return  True if the state is known.
  */
 bool bool_not::state_known() const {
-  return abs(_value) > eps && abs(_value->state_known()) > eps;
+  return _value != 0 && _value->state_known() != 0;
 }
 
 /**
@@ -126,5 +127,5 @@ bool bool_not::state_known() const {
  *  @return  True if this expression is in downtime.
  */
 bool bool_not::in_downtime() const {
-  return abs(_value) > eps && (_value->in_downtime()) > eps;
+  return _value != 0 && _value->in_downtime() != 0;
 }
