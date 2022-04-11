@@ -18,6 +18,9 @@
 */
 
 #include "com/centreon/engine/configuration/host.hh"
+#include "absl/strings/numbers.h"
+#include "absl/strings/str_split.h"
+#include "absl/strings/string_view.h"
 #include "com/centreon/engine/configuration/hostextinfo.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/host.hh"
@@ -100,7 +103,8 @@ std::unordered_map<std::string, host::setter_func> const host::_setters{
     {"timezone", SETTER(std::string const&, _set_timezone)},
     {"severity", SETTER(uint64_t, _set_severity_id)},
     {"severity_id", SETTER(uint64_t, _set_severity_id)},
-};
+    {"category_tags", SETTER(std::string const&, _set_category_tags)},
+    {"group_tags", SETTER(std::string const&, _set_group_tags)}};
 
 // Default values.
 static bool const default_checks_active(true);
@@ -166,7 +170,8 @@ host::host(host::key_type const& key)
       _retry_interval(default_retry_interval),
       _recovery_notification_delay(0),
       _stalking_options(default_stalking_options),
-      _severity_id{0u} {}
+      _severity_id{0u},
+      _tags{} {}
 
 /**
  *  Copy constructor.
@@ -236,6 +241,7 @@ host& host::operator=(host const& other) {
     _timezone = other._timezone;
     _vrml_image = other._vrml_image;
     _severity_id = other._severity_id;
+    _tags = other._tags;
   }
   return *this;
 }
@@ -290,7 +296,7 @@ bool host::operator==(host const& other) const noexcept {
          _stalking_options == other._stalking_options &&
          _statusmap_image == other._statusmap_image &&
          _timezone == other._timezone && _vrml_image == other._vrml_image &&
-         _severity_id == other._severity_id;
+         _severity_id == other._severity_id && _tags == other._tags;
 }
 
 /**
@@ -411,8 +417,9 @@ bool host::operator<(host const& other) const noexcept {
     return _timezone < other._timezone;
   else if (_vrml_image != other._vrml_image)
     return _vrml_image < other._vrml_image;
-  else
+  else if (_severity_id != other._severity_id)
     return _severity_id < other._severity_id;
+  return _tags < other._tags;
 }
 
 /**
@@ -511,6 +518,7 @@ void host::merge(object const& obj) {
   MRG_DEFAULT(_statusmap_image);
   MRG_OPTION(_timezone);
   MRG_DEFAULT(_vrml_image);
+  MRG_DEFAULT(_tags);
 }
 
 /**
@@ -995,6 +1003,15 @@ std::string const& host::statusmap_image() const noexcept {
  */
 std::string const& host::timezone() const noexcept {
   return _timezone;
+}
+
+/**
+ *  Get host tags.
+ *
+ *  @return This host tags.
+ */
+const std::set<std::pair<uint64_t, uint16_t>>& host::tags() const noexcept {
+  return _tags;
 }
 
 /**
@@ -1710,6 +1727,74 @@ bool host::_set_statusmap_image(std::string const& value) {
 bool host::_set_timezone(std::string const& value) {
   _timezone = value;
   return true;
+}
+
+/**
+ *  Set host tags.
+ *
+ *  @param[in] value  The new tags.
+ *
+ *  @return True.
+ */
+bool host::_set_category_tags(const std::string& value) {
+  bool ret = true;
+  std::list<absl::string_view> tags{absl::StrSplit(value, ',')};
+  for (std::set<std::pair<uint64_t, uint16_t>>::iterator it(_tags.begin()),
+       end(_tags.end());
+       it != end;) {
+    if (it->second == tag::hostcategory)
+      it = _tags.erase(it);
+    else
+      ++it;
+  }
+
+  for (auto& tag : tags) {
+    int64_t id;
+    bool parse_ok;
+    parse_ok = SimpleAtoi(tag, &id);
+    if (parse_ok) {
+      _tags.emplace(id, tag::hostcategory);
+    } else {
+      log_v2::config()->warn("Warning: host ({}) error for parsing tag {}",
+                             _host_id, value);
+      ret = false;
+    }
+  }
+  return ret;
+}
+
+/**
+ *  Set host tags.
+ *
+ *  @param[in] value  The new tags.
+ *
+ *  @return True.
+ */
+bool host::_set_group_tags(const std::string& value) {
+  bool ret = true;
+  std::list<absl::string_view> tags{absl::StrSplit(value, ',')};
+  for (std::set<std::pair<uint64_t, uint16_t>>::iterator it(_tags.begin()),
+       end(_tags.end());
+       it != end;) {
+    if (it->second == tag::hostgroup)
+      it = _tags.erase(it);
+    else
+      ++it;
+  }
+
+  for (auto& tag : tags) {
+    int64_t id;
+    bool parse_ok;
+    parse_ok = SimpleAtoi(tag, &id);
+    if (parse_ok) {
+      _tags.emplace(id, tag::hostgroup);
+    } else {
+      log_v2::config()->warn("Warning: host ({}) error for parsing tag {}",
+                             _host_id, value);
+      ret = false;
+    }
+  }
+  return ret;
 }
 
 /**

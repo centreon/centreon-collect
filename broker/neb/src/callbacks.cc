@@ -1465,6 +1465,15 @@ int neb::callback_pb_host(int callback_type, void* data) {
           misc::string::check_string_utf8(eh->get_statusmap_image()));
     host.set_timezone(eh->get_timezone());
     host.set_severity_id(eh->get_severity() ? eh->get_severity()->id() : 0);
+    for (std::forward_list<
+             std::shared_ptr<com::centreon::engine::tag>>::const_iterator
+             it = eh->tags().begin(),
+             end = eh->tags().end();
+         it != end; ++it) {
+      TagInfo* ti = host.mutable_tags()->Add();
+      ti->set_id((*it)->id());
+      ti->set_type(static_cast<TagType>((*it)->type()));
+    }
 
     // Find host ID.
     uint64_t host_id = engine::get_host_id(host.host_name());
@@ -2482,6 +2491,16 @@ int neb::callback_pb_service(int callback_type, void* data) {
                                : engine::notifier::hard));
     srv.set_severity_id(es->get_severity() ? es->get_severity()->id() : 0);
 
+    for (std::forward_list<
+             std::shared_ptr<com::centreon::engine::tag>>::const_iterator
+             it = es->tags().begin(),
+             end = es->tags().end();
+         it != end; ++it) {
+      TagInfo* ti = srv.mutable_tags()->Add();
+      ti->set_id((*it)->id());
+      ti->set_type(static_cast<TagType>((*it)->type()));
+    }
+
     // Search host ID and service ID.
     std::pair<uint64_t, uint64_t> p;
     p = engine::get_host_and_service_id(es->get_hostname(),
@@ -2662,16 +2681,16 @@ int32_t neb::callback_tag(int callback_type __attribute__((unused)),
   tg.set_poller_id(config::applier::state::instance().poller_id());
   switch (et->type()) {
     case engine::tag::hostcategory:
-      tg.set_type(Tag_Type_HOSTCATEGORY);
+      tg.set_type(HOSTCATEGORY);
       break;
     case engine::tag::servicecategory:
-      tg.set_type(Tag_Type_SERVICECATEGORY);
+      tg.set_type(SERVICECATEGORY);
       break;
     case engine::tag::hostgroup:
-      tg.set_type(Tag_Type_HOSTGROUP);
+      tg.set_type(HOSTGROUP);
       break;
     case engine::tag::servicegroup:
-      tg.set_type(Tag_Type_SERVICEGROUP);
+      tg.set_type(SERVICEGROUP);
       break;
     default:
       log_v2::neb()->error(

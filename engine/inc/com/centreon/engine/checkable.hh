@@ -21,9 +21,9 @@
 #define CCE_CHECKABLE_HH
 
 #include <ctime>
+#include <forward_list>
 #include <memory>
 #include <string>
-
 #include "com/centreon/engine/namespace.hh"
 
 CCE_BEGIN()
@@ -32,6 +32,7 @@ class command;
 }
 class timeperiod;
 class severity;
+class tag;
 
 class checkable {
  public:
@@ -159,7 +160,8 @@ class checkable {
   void set_is_executing(bool is_executing);
   void set_severity(std::shared_ptr<severity> sv);
   const std::shared_ptr<severity>& get_severity() const;
-
+  std::forward_list<std::shared_ptr<tag>>& mut_tags();
+  const std::forward_list<std::shared_ptr<tag>>& tags() const;
   timeperiod* check_period_ptr;
 
  private:
@@ -207,6 +209,7 @@ class checkable {
   commands::command* _check_command_ptr;
   bool _is_executing;
   std::shared_ptr<severity> _severity;
+  std::forward_list<std::shared_ptr<tag>> _tags;
 };
 
 CCE_END()

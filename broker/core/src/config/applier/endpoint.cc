@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2012,2015,2017-2021 Centreon
+** Copyright 2011-2012,2015,2017-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -524,21 +524,42 @@ void endpoint::_diff_endpoints(
  *
  *  @return Filters.
  */
-std::unordered_set<uint32_t> endpoint::_filters(
-    std::set<std::string> const& str_filters) {
-  std::unordered_set<uint32_t> elements;
-  for (std::set<std::string>::const_iterator it(str_filters.begin()),
-       end(str_filters.end());
-       it != end; ++it) {
+absl::flat_hash_set<uint32_t> endpoint::_filters(
+    const std::set<std::string>& str_filters) {
+  absl::flat_hash_set<uint32_t> elements;
+  std::forward_list<fmt::string_view> applied_filters;
+  auto fill_elements = [&elements](const std::string& str) -> bool {
+    bool retval = false;
     io::events::events_container const& tmp_elements(
-        io::events::instance().get_matching_events(*it));
-    for (io::events::events_container::const_iterator it(tmp_elements.begin()),
-         end(tmp_elements.end());
+        io::events::instance().get_matching_events(str));
+    for (io::events::events_container::const_iterator
+             it = tmp_elements.cbegin(),
+             end = tmp_elements.cend();
          it != end; ++it) {
       log_v2::config()->info("endpoint applier: new filtering element: {}",
                              it->first);
       elements.insert(it->first);
+      retval = true;
     }
+    return retval;
+  };
+
+  for (auto& str : str_filters) {
+    bool ok = false;
+    try {
+      ok = fill_elements(str);
+    } catch (const std::exception& e) {
+      log_v2::config()->error(
+          "endpoint applier: '{}' is not a known category: {}", str, e.what());
+    }
+    if (ok)
+      applied_filters.emplace_front(str);
   }
+  if (applied_filters.empty() && !str_filters.empty()) {
+    fill_elements("all");
+    applied_filters.emplace_front("all");
+  }
+  log_v2::config()->info("Filters applied on endpoint: {}",
+                         fmt::join(applied_filters, ", "));
   return elements;
 }

@@ -33,20 +33,20 @@ Description: Centreon Clib is a common library for all Centreon products
 
 Package: centreon-engine
 Architecture: any
-Depends: centreon-clib, ${misc:Depends}, ${shlibs:Depends}
+Depends: 
+    centreon-clib, 
+    centreon-common,
+    monitoring-plugins-basic, 
+    ${misc:Depends}, 
+    ${shlibs:Depends}
 Description: Centreon Engine is a monitoring engine, compatible with Nagios
  configuration, designed to monitor hosts and services on your network.
 
 Package: centreon-engine-dev
 Architecture: any
-Depends: centreon-clib-dev, ${misc:Depends}, ${shlibs:Depends}
+Depends: centreon-clib-dev, centreon-common, ${misc:Depends}, ${shlibs:Depends}
 Description: Centreon Engine devel provide include files to develop Centreon Engine
  Modules or Centreon Engine Connector.
-
-Package: centreon-engine-bench
-Architecture: any
-Depends: centreon-engine, ${misc:Depends}, ${shlibs:Depends}
-Description: Some Centreon Engine benchmarking tools.
 
 Package: centreon-engine-extcommands
 Architecture: any

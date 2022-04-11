@@ -42,24 +42,11 @@ using namespace com::centreon::broker::storage;
 void conflict_manager::_clean_tables(uint32_t instance_id) {
   /* Database version. */
 
-  // FIXME DBR: This is to improve. We cannot do that, otherwise each time a
-  // poller is restarted, all tags are removed and we will just keep the ones
-  // brought by the new poller.
-  // int32_t conn = special_conn::severity % _mysql.connections_count();
-  // log_v2::sql()->debug("Removing severities");
-  //_mysql.run_query("DELETE FROM severities",
-  //                 database::mysql_error::clean_severities, false, conn);
+  int32_t conn = special_conn::tag % _mysql.connections_count();
+  _mysql.run_query("DELETE FROM resources_tags",
+                   database::mysql_error::clean_resources_tags, false, conn);
 
-  // FIXME DBR: This is to improve. We cannot do that, otherwise each time a
-  // poller is restarted, all tags are removed and we will just keep the ones
-  // brought by the new poller.
-  // conn = special_conn::tag % _mysql.connections_count();
-  // log_v2::sql()->debug("Removing tags");
-  //_mysql.run_query("DELETE FROM tags", database::mysql_error::clean_tags,
-  // false,
-  //                 conn);
-
-  int32_t conn = _mysql.choose_connection_by_instance(instance_id);
+  conn = _mysql.choose_connection_by_instance(instance_id);
   log_v2::sql()->debug(
       "conflict_manager: disable hosts and services (instance_id: {})",
       instance_id);
@@ -1710,8 +1697,6 @@ void conflict_manager::_process_severity(
     _severity_insert = _mysql.prepare_query(
         "INSERT INTO severities (id,type,name,level,icon_id) "
         "VALUES(?,?,?,?,?)");
-    _severity_delete =
-        _mysql.prepare_query("DELETE FROM severities WHERE severity_id=?");
   }
   // Processed object.
   auto s{static_cast<const neb::pb_severity*>(d.get())};
@@ -1720,6 +1705,7 @@ void conflict_manager::_process_severity(
   int32_t conn = special_conn::severity % _mysql.connections_count();
   switch (sv.action()) {
     case Severity_Action_ADD:
+      _add_action(conn, actions::severities);
       if (severity_id) {
         log_v2::sql()->trace("SQL: add already existing severity {}", sv.id());
         _severity_update.bind_value_as_u64(0, sv.id());
@@ -1750,7 +1736,6 @@ void conflict_manager::_process_severity(
               sv.type(), e.what());
         }
       }
-      _add_action(conn, actions::severities);
       break;
     case Severity_Action_MODIFY:
       log_v2::sql()->trace("SQL: modify severity {}", sv.id());
@@ -1771,22 +1756,10 @@ void conflict_manager::_process_severity(
             sv.id(), sv.type());
       break;
     case Severity_Action_DELETE:
-      log_v2::sql()->trace("SQL: remove severity {}", sv.id());
-      {
-        // FIXME DBO: Delete should be implemented later.
-        if (0 && severity_id) {
-          _severity_delete.bind_value_as_u64(0, severity_id);
-          _mysql.run_statement(_severity_delete,
-                               database::mysql_error::store_severity, false,
-                               conn);
-          _add_action(conn, actions::severities);
-          _severity_cache.erase({sv.id(), sv.type()});
-        } else {
-          log_v2::sql()->error(
-              "unified sql: unable to delete severity ({}, {}): not in cache",
-              sv.id(), sv.type());
-        }
-      }
+      log_v2::sql()->trace("SQL: remove severity {}: not implemented", sv.id());
+      // FIXME DBO: Delete should be implemented later. This case is difficult
+      // particularly when several pollers are running and some of them can
+      // be stopped...
       break;
     default:
       log_v2::sql()->error("Bad action in severity object");
@@ -1802,57 +1775,68 @@ void conflict_manager::_process_tag(
   _finish_action(-1, actions::tags);
 
   // Prepare queries.
-  if (!_tag_update.prepared()) {
-    query_preparator::event_pb_unique unique{
-        {1, "id", io::protobuf_base::invalid_on_zero, 0}};
-    query_preparator qp(neb::pb_tag::static_type(), unique);
-
-    _tag_update = qp.prepare_update_table(
-        _mysql, "tags",
-        {
-            {1, "id", io::protobuf_base::invalid_on_zero, 0},
-            {3, "type", io::protobuf_base::invalid_on_zero, 0},
-            {4, "name", 0, get_tags_col_size(tags_name)},
-        });
-    _tag_delete = qp.prepare_delete_table(_mysql, "tags");
-
-    _tag_insupdate = qp.prepare_insert_or_update_table(
-        _mysql, "tags",
-        {
-            {1, "id", io::protobuf_base::invalid_on_zero, 0},
-            {3, "type", io::protobuf_base::invalid_on_zero, 0},
-            {4, "name", 0, get_tags_col_size(tags_name)},
-        });
+  if (!_tag_insert.prepared()) {
+    _tag_update = _mysql.prepare_query(
+        "UPDATE tags SET id=?,type=?,name=? WHERE "
+        "tag_id=?");
+    _tag_insert = _mysql.prepare_query(
+        "INSERT INTO tags (id,type,name) "
+        "VALUES(?,?,?)");
   }
   // Processed object.
   auto s{static_cast<const neb::pb_tag*>(d.get())};
   auto& tg = s->obj();
-  mysql_stmt* st;
+  uint64_t tag_id = _tags_cache[{tg.id(), tg.type()}];
+  int32_t conn = special_conn::tag % _mysql.connections_count();
   switch (tg.action()) {
     case Tag_Action_ADD:
-      log_v2::sql()->trace("SQL: new tag {}", tg.id());
-      st = &_tag_insupdate;
+      if (tag_id) {
+        log_v2::sql()->trace("SQL: add already existing tag {}", tg.id());
+        _tag_update.bind_value_as_u64(0, tg.id());
+        _tag_update.bind_value_as_u32(1, tg.type());
+        _tag_update.bind_value_as_str(2, tg.name());
+        _tag_update.bind_value_as_u64(3, tag_id);
+        _mysql.run_statement(_tag_update, database::mysql_error::store_tag,
+                             false, conn);
+      } else {
+        log_v2::sql()->trace("SQL: add tag {}", tg.id());
+        _tag_insert.bind_value_as_u64(0, tg.id());
+        _tag_insert.bind_value_as_u32(1, tg.type());
+        _tag_insert.bind_value_as_str(2, tg.name());
+        std::promise<uint64_t> p;
+        _mysql.run_statement_and_get_int<uint64_t>(
+            _tag_insert, &p, database::mysql_task::LAST_INSERT_ID, conn);
+        try {
+          tag_id = p.get_future().get();
+          _tags_cache[{tg.id(), tg.type()}] = tag_id;
+        } catch (const std::exception& e) {
+          log_v2::sql()->error(
+              "unified sql: unable to insert new tag ({},{}): {}", tg.id(),
+              tg.type(), e.what());
+        }
+      }
+      _add_action(conn, actions::tags);
       break;
     case Tag_Action_MODIFY:
-      log_v2::sql()->trace("SQL: modified tag {}", tg.id());
-      st = &_tag_update;
+      log_v2::sql()->trace("SQL: modify tag {}", tg.id());
+      _tag_update.bind_value_as_u64(0, tg.id());
+      _tag_update.bind_value_as_u32(1, tg.type());
+      _tag_update.bind_value_as_str(2, tg.name());
+      if (tag_id) {
+        _tag_update.bind_value_as_u64(3, tag_id);
+        _mysql.run_statement(_tag_update, database::mysql_error::store_tag,
+                             false, conn);
+        _add_action(conn, actions::tags);
+      } else
+        log_v2::sql()->error(
+            "unified sql: unable to modify tag ({}, {}): not in cache", tg.id(),
+            tg.type());
       break;
-    case Tag_Action_DELETE:
-      // FIXME DBO: Delete should be implemented later.
-      log_v2::sql()->trace("SQL: removed tag {}", tg.id());
-      st = &_tag_delete;
       break;
     default:
       log_v2::sql()->error("Bad action in tag object");
       break;
   }
-  if (tg.action() != Tag_Action_DELETE) {
-    *st << *s;
-    int32_t conn = special_conn::tag % _mysql.connections_count();
-    _mysql.run_statement(*st, database::mysql_error::store_tag, false, conn);
-    _add_action(conn, actions::tags);
-  }
-  *std::get<2>(t) = true;
 }
 
 /**

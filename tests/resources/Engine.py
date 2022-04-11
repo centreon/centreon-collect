@@ -27,7 +27,6 @@ class EngineInstance:
     def create_centengine(self, id: int, debug_level=0):
         return ("#cfg_file={2}/config{0}/hostTemplates.cfg\n"
                 "cfg_file={2}/config{0}/hosts.cfg\n"
-                "#cfg_file={2}/config{0}/serviceTemplates.cfg\n"
                 "cfg_file={2}/config{0}/services.cfg\n"
                 "cfg_file={2}/config{0}/commands.cfg\n"
                 "#cfg_file={2}/config{0}/contactgroups.cfg\n"
@@ -287,8 +286,8 @@ define command {
         return retval
 
     @staticmethod
-    def create_severities(nb: int, offset: int):
-        config_file = "{}/config0/severities.cfg".format(CONF_DIR)
+    def create_severities(poller:int, nb:int, offset: int):
+        config_file = "{}/config{}/severities.cfg".format(CONF_DIR, poller)
         ff = open(config_file, "w+")
         content = ""
         typ = ["service", "host"]
@@ -306,10 +305,29 @@ define command {
         ff.close()
 
     @staticmethod
-    def create_tags(nb: int, offset: int):
-        tt = ["hostcategory", "servicecategory", "hostgroup", "servicegroup"]
+    def create_template_file(poller: int, typ: str, what: str, ids):
+        config_file = "{}/config{}/{}Templates.cfg".format(CONF_DIR, poller, typ)
+        ff = open(config_file, "w+")
+        content = ""
+        idx = 1
+        for i in ids:
+            content += """define {} {{
+name                   {}_template_{}
+{}               {}
+register               0
+active_checks_enabled  1
+passive_checks_enabled 1
+}}
+""".format(typ,typ,idx,what, i)
+            idx += 1
+        ff.write(content)
+        ff.close()
 
-        config_file = "{}/config0/tags.cfg".format(CONF_DIR)
+    @staticmethod
+    def create_tags(poller:int, nb:int, offset: int):
+        tt = ["servicegroup", "hostgroup", "servicecategory", "hostcategory"]
+
+        config_file = "{}/config{}/tags.cfg".format(CONF_DIR, poller)
         ff = open(config_file, "w+")
         content = ""
         for i in range(nb):
@@ -526,7 +544,6 @@ def schedule_service_downtime(hst: str, svc: str, duration: int):
     f.write(cmd)
     f.close()
 
-
 def schedule_forced_svc_check(host: str, svc: str, pipe: str = "/var/lib/centreon-engine/rw/centengine.cmd"):
     now = int(time.time())
     f = open(pipe, "w")
@@ -545,30 +562,34 @@ def schedule_forced_host_check(host: str, pipe: str = "/var/lib/centreon-engine/
     time.sleep(0.05)
 
 
-def create_severities_file(nb: int, offset: int = 1):
-    engine.create_severities(nb, offset)
+def create_severities_file(poller: int, nb:int, offset:int = 1):
+    engine.create_severities(poller, nb, offset)
 
+def create_template_file(poller: int, typ: str, what: str, ids:list):
+    engine.create_template_file(poller, typ, what, ids)
 
-def create_tags_file(nb: int, offset: int = 1):
-    engine.create_tags(nb, offset)
+def create_template_file(poller: int, typ: str, what: str, ids:list):
+    engine.create_template_file(poller, typ, what, ids)
 
+def create_tags_file(poller: int, nb:int, offset:int = 1):
+    engine.create_tags(poller, nb, offset)
 
-def config_engine_add_cfg_file(cfg: str):
-    ff = open("{}/config0/centengine.cfg".format(CONF_DIR), "r")
+def config_engine_add_cfg_file(poller:int, cfg:str):
+    ff = open("{}/config{}/centengine.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
     r = re.compile(r"^\s*cfg_file=")
     for i in range(len(lines)):
         if r.match(lines[i]):
-            lines.insert(i, "cfg_file={}/config0/{}\n".format(CONF_DIR, cfg))
+            lines.insert(i, "cfg_file={}/config{}/{}\n".format(CONF_DIR, poller, cfg))
             break
-    ff = open("{}/config0/centengine.cfg".format(CONF_DIR), "w+")
+    ff = open("{}/config{}/centengine.cfg".format(CONF_DIR, poller), "w+")
     ff.writelines(lines)
     ff.close()
 
 
-def add_severity_to_services(severity_id: int, svc_lst):
-    ff = open("{}/config0/services.cfg".format(CONF_DIR), "r")
+def add_severity_to_services(poller:int, severity_id:int, svc_lst):
+    ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
     r = re.compile(r"^\s*_SERVICE_ID\s*(\d+)$")
@@ -578,18 +599,45 @@ def add_severity_to_services(severity_id: int, svc_lst):
             lines.insert(
                 i + 1, "    severity_id                     {}\n".format(severity_id))
 
-    ff = open("{}/config0/services.cfg".format(CONF_DIR), "w")
+    ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "w")
     ff.writelines(lines)
     ff.close()
 
 
-def remove_severities_from_services():
-    ff = open("{}/config0/services.cfg".format(CONF_DIR), "r")
+def add_template_to_services(poller:int, tmpl:str, svc_lst):
+    ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
+    lines = ff.readlines()
+    ff.close()
+    r = re.compile(r"^\s*_SERVICE_ID\s*(\d+)$")
+    for i in range(len(lines)):
+        m = r.match(lines[i])
+        if m and m.group(1) in svc_lst:
+            lines.insert(i + 1, "    use                     {}\n".format(tmpl))
+
+    ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "w")
+    ff.writelines(lines)
+    ff.close()
+
+def add_tags_to_services(poller:int, type:str, tag_id:str, svc_lst):
+    ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
+    lines = ff.readlines()
+    ff.close()
+    r = re.compile(r"^\s*_SERVICE_ID\s*(\d+)$")
+    for i in range(len(lines)):
+        m = r.match(lines[i])
+        if m and m.group(1) in svc_lst:
+            lines.insert(i + 1, "    {}                     {}\n".format(type, tag_id))
+    ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "w")
+    ff.writelines(lines)
+    ff.close()
+
+def remove_severities_from_services(poller:int):
+    ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
     r = re.compile(r"^\s*severity_id\s*\d+$")
     out = [l for l in lines if not r.match(l)]
-    ff = open("{}/config0/services.cfg".format(CONF_DIR), "w")
+    ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "w")
     ff.writelines(out)
     ff.close()
 
@@ -625,3 +673,65 @@ def check_search(debug_file_path: str, str_to_search):
                         return "_recv_query_execute not found" + r_query_execute
                 return "connector::run not found"
         return "check_search don t find " + str_to_search
+
+def add_tags_to_hosts(poller:int, type:str, tag_id:str, hst_lst):
+    ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r")
+    lines = ff.readlines()
+    ff.close()
+    r = re.compile(r"^\s*_HOST_ID\s*(\d+)$")
+    for i in range(len(lines)):
+        m = r.match(lines[i])
+        if m and m.group(1) in hst_lst:
+            lines.insert(i + 1, "    {}                     {}\n".format(type, tag_id))
+
+    ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "w")
+    ff.writelines(lines)
+    ff.close()
+
+def remove_tags_from_services(poller:int, type:str):
+    ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
+    lines = ff.readlines()
+    ff.close()
+    r = re.compile("r\"^\s*{}\s*\d+$\"".format(type))
+    lines = [l for l in lines if r.match(l)]
+    ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
+    ff.writelines(lines)
+    ff.close()
+
+def remove_tags_from_hosts(poller:int, type:str):
+    ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r")
+    lines = ff.readlines()
+    ff.close()
+    r = re.compile("r\"^\s*{}\s*\d+$\"".format(type))
+    lines = [l for l in lines if r.match(l)]
+    ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r")
+    ff.writelines(lines)
+    ff.close()
+
+def add_template_to_services(poller:int, tmpl:str, svc_lst):
+    ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
+    lines = ff.readlines()
+    ff.close()
+    r = re.compile(r"^\s*_SERVICE_ID\s*(\d+)$")
+    for i in range(len(lines)):
+        m = r.match(lines[i])
+        if m and m.group(1) in svc_lst:
+            lines.insert(i + 1, "    use                     {}\n".format(tmpl))
+
+    ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "w")
+    ff.writelines(lines)
+    ff.close()
+
+def add_template_to_hosts(poller:int, tmpl:str, hst_lst):
+    ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r")
+    lines = ff.readlines()
+    ff.close()
+    r = re.compile(r"^\s*_HOST_ID\s*(\d+)$")
+    for i in range(len(lines)):
+        m = r.match(lines[i])
+        if m and m.group(1) in hst_lst:
+            lines.insert(i + 1, "    use                     {}\n".format(tmpl))
+
+    ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "w")
+    ff.writelines(lines)
+    ff.close()

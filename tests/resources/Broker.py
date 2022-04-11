@@ -546,6 +546,24 @@ def broker_config_output_set(name, output, key, value):
     f.write(json.dumps(conf, indent=2))
     f.close()
 
+def broker_config_output_set_json(name, output, key, value):
+    if name == 'central':
+        filename = "central-broker.json"
+    elif name == 'module':
+        filename = "central-module.json"
+    else:
+        filename = "central-rrd.json"
+    f = open("/etc/centreon-broker/{}".format(filename), "r")
+    buf = f.read()
+    f.close()
+    conf = json.loads(buf)
+    output_dict = [elem for i, elem in enumerate(conf["centreonBroker"]["output"]) if elem["name"] == output][0]
+    j = json.loads(value)
+    output_dict[key] = j
+    f = open("/etc/centreon-broker/{}".format(filename), "w")
+    f.write(json.dumps(conf, indent=2))
+    f.close()
+
 def broker_config_output_remove(name, output, key):
     if name == 'central':
         filename = "central-broker.json"

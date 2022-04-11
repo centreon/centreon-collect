@@ -115,9 +115,10 @@ stream::stream(const database_config& dbcfg,
       _stats{stats::center::instance().register_conflict_manager()},
       _oldest_timestamp{std::numeric_limits<time_t>::max()} {
   log_v2::sql()->debug("unified sql: stream class instanciation");
-  stats::center::instance().execute([stats = _stats,
-                                     loop_timeout = _loop_timeout,
-                                     max_queries = _max_pending_queries] {
+  stats::center::instance().execute([
+    stats = _stats, loop_timeout = _loop_timeout,
+    max_queries = _max_pending_queries
+  ] {
     stats->set_loop_timeout(loop_timeout);
     stats->set_max_pending_events(max_queries);
   });
@@ -170,6 +171,7 @@ void stream::_load_caches() {
   std::promise<mysql_result> promise_sg;
   std::promise<mysql_result> promise_metrics;
   std::promise<mysql_result> promise_severity;
+  std::promise<mysql_result> promise_tags;
 
   /* get all outdated instances from the database => _stored_timestamps */
   _mysql.run_query_and_get_result(
@@ -207,6 +209,10 @@ void stream::_load_caches() {
   /* severities => _severity_cache */
   _mysql.run_query_and_get_result(
       "SELECT severity_id, id, type FROM severities", &promise_severity);
+
+  /* tags => _tags_cache */
+  _mysql.run_query_and_get_result("SELECT tag_id, id, type FROM tags",
+                                  &promise_tags);
 
   /* Since queries are executed asynchronously, firstly we execute all of them
    * and then we get their results. */
@@ -333,12 +339,24 @@ void stream::_load_caches() {
     try {
       mysql_result res{promise_severity.get_future().get()};
       while (_mysql.fetch_row(res)) {
-        _severity_cache[{res.value_as_u64(2),
-                         static_cast<uint16_t>(res.value_as_u32(1))}] =
+        _severity_cache[{res.value_as_u64(1),
+                         static_cast<uint16_t>(res.value_as_u32(2))}] =
             res.value_as_u64(0);
       }
     } catch (const std::exception& e) {
       throw msg_fmt("unified sql: could not get the list of severities: {}",
+                    e.what());
+    }
+
+    try {
+      mysql_result res{promise_tags.get_future().get()};
+      while (_mysql.fetch_row(res)) {
+        _tags_cache[{res.value_as_u64(1),
+                     static_cast<uint16_t>(res.value_as_u32(2))}] =
+            res.value_as_u64(0);
+      }
+    } catch (const std::exception& e) {
+      throw msg_fmt("unified sql: could not get the list of tags: {}",
                     e.what());
     }
   }
@@ -595,7 +613,7 @@ int32_t stream::stop() {
  * @param d The BBDO message with all the metrics/indexes to remove.
  */
 void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
-  asio::post(pool::instance().io_context(), [this, data = d] {
+  asio::post(pool::instance().io_context(), [ this, data = d ] {
     mysql ms(_dbcfg);
     const bbdo::pb_remove_graphs& ids =
         *static_cast<const bbdo::pb_remove_graphs*>(data.get());

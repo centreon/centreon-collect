@@ -510,7 +510,6 @@ def check_service_severity_with_timeout(host_id: int, service_id: int, severity_
                 cursor.execute("select sv.id from resources r left join severities sv ON r.severity_id=sv.severity_id where r.parent_id = {} and r.id={}".format(
                     host_id, service_id))
                 result = cursor.fetchall()
-                logger.console(result)
                 if len(result) > 0:
                     if severity_id == 'None':
                         if result[0]['id'] is None:
@@ -519,3 +518,44 @@ def check_service_severity_with_timeout(host_id: int, service_id: int, severity_
                         return True
         time.sleep(1)
     return False
+
+def check_service_tags_with_timeout(host_id: int, service_id: int, tag_id: int, timeout: int):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host='localhost',
+                                 user='centreon',
+                                 password='centreon',
+                                 database='centreon_storage',
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT t.id FROM resources_tags rt, tags t WHERE rt.tag_id = t.tag_id and resource_id={} and t.id={}".format(service_id, tag_id))
+                result = cursor.fetchall()
+                if len(result) > 0:
+                    if int(result[0]['id']) == tag_id:
+                        return True
+        time.sleep(1)
+    return False
+
+def check_host_tags_with_timeout(host_id: int, tag_id: int, timeout: int):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host='localhost',
+                                 user='centreon',
+                                 password='centreon',
+                                 database='centreon_storage',
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT t.id FROM resources_tags rt, tags t WHERE rt.tag_id = t.tag_id and resource_id={} and t.id={}".format(host_id, tag_id))
+                result = cursor.fetchall()
+                if len(result) > 0:
+                    if int(result[0]['id']) == tag_id:
+                        return True
+        time.sleep(1)
+    return False
+

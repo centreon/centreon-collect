@@ -19,9 +19,9 @@
 #ifndef CCB_MISC_MISC_HH
 #define CCB_MISC_MISC_HH
 
+#include <absl/container/flat_hash_set.h>
 #include <list>
 #include <string>
-#include <unordered_set>
 #include <vector>
 #include "com/centreon/broker/misc/perfdata.hh"
 #include "com/centreon/broker/namespace.hh"
@@ -35,7 +35,7 @@ uint16_t crc16_ccitt(char const* data, uint32_t data_len);
 std::string exec(std::string const& cmd);
 int32_t exec_process(char const** argv, bool wait_for_completion);
 std::vector<char> from_hex(std::string const& str);
-std::string dump_filters(std::unordered_set<uint32_t> const& filters);
+std::string dump_filters(const absl::flat_hash_set<uint32_t>& filters);
 std::list<perfdata> parse_perfdata(uint32_t host_id,
                                    uint32_t service_id,
                                    const char* str);

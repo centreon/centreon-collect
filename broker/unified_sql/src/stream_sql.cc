@@ -43,13 +43,9 @@ using namespace com::centreon::broker::unified_sql;
 void stream::_clean_tables(uint32_t instance_id) {
   /* Database version. */
 
-  int32_t conn = special_conn::severity % _mysql.connections_count();
-  _mysql.run_query("DELETE FROM severities",
-                   database::mysql_error::clean_severities, false, conn);
-
-  conn = special_conn::tag % _mysql.connections_count();
-  _mysql.run_query("DELETE FROM tags", database::mysql_error::clean_severities,
-                   false, conn);
+  int32_t conn = special_conn::tag % _mysql.connections_count();
+  _mysql.run_query("DELETE FROM resources_tags",
+                   database::mysql_error::clean_resources_tags, false, conn);
 
   conn = _mysql.choose_connection_by_instance(instance_id);
   log_v2::sql()->debug(
@@ -903,7 +899,7 @@ void stream::_process_host(const std::shared_ptr<io::data>& d) {
   neb::host& h = *static_cast<neb::host*>(d.get());
 
   // Log message.
-  log_v2::sql()->debug(
+  log_v2::sql()->info(
       "SQL: processing host event (poller: {}, host: {}, name: {})",
       h.poller_id, h.host_id, h.host_name);
 
@@ -1060,12 +1056,13 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
   _finish_action(-1, actions::instances | actions::hostgroups |
                          actions::host_dependencies | actions::host_parents |
                          actions::custom_variables | actions::downtimes |
-                         actions::comments | actions::service_dependencies);
+                         actions::comments | actions::service_dependencies |
+                         actions::severities);
   auto s{static_cast<const neb::pb_host*>(d.get())};
   auto& h = s->obj();
 
   // Log message.
-  log_v2::sql()->debug(
+  log_v2::sql()->info(
       "SQL: processing pb host event (poller: {}, host: {}, name: {})",
       h.poller_id(), h.host_id(), h.host_name());
 
@@ -1217,8 +1214,16 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
       _resources_host_insupdate.bind_value_as_u32(7, h.max_check_attempts());
       _resources_host_insupdate.bind_value_as_u64(
           8, _cache_host_instance[h.host_id()]);
-      if (h.severity_id())
-        _resources_host_insupdate.bind_value_as_u64(9, h.severity_id());
+      uint64_t sid = 0;
+      if (h.severity_id()) {
+        log_v2::sql()->debug("host {} with severity_id {} => uid = {}",
+                             h.host_id(), h.severity_id(), sid);
+        sid = _severity_cache[{h.severity_id(), 1}];
+      } else
+        log_v2::sql()->error("no host severity found in cache for host {}",
+                             h.host_id());
+      if (sid)
+        _resources_host_insupdate.bind_value_as_u64(9, sid);
       else
         _resources_host_insupdate.bind_value_as_null(9);
       fmt::string_view name{misc::string::truncate(
@@ -1257,8 +1262,8 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
       _resources_host_insupdate.bind_value_as_u32(24, h.max_check_attempts());
       _resources_host_insupdate.bind_value_as_u64(
           25, _cache_host_instance[h.host_id()]);
-      if (h.severity_id())
-        _resources_host_insupdate.bind_value_as_u64(26, h.severity_id());
+      if (sid)
+        _resources_host_insupdate.bind_value_as_u64(26, sid);
       else
         _resources_host_insupdate.bind_value_as_null(26);
       _resources_host_insupdate.bind_value_as_str(27, name);
@@ -1278,6 +1283,35 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
                            database::mysql_error::store_host_resources, true,
                            conn);
       _add_action(conn, actions::resources);
+
+      if (!_resources_tags_insert.prepared()) {
+        _resources_tags_insert = _mysql.prepare_query(
+            "INSERT INTO resources_tags "
+            "(tag_id,resource_id) "
+            "VALUES(?,?)");
+      }
+      for (auto tag : h.tags()) {
+        auto it_tags_cache =
+            _tags_cache.find(std::make_pair(tag.id(), tag.type()));
+
+        if (it_tags_cache != _tags_cache.end()) {
+          _resources_tags_insert.bind_value_as_u64(0, it_tags_cache->second);
+          _resources_tags_insert.bind_value_as_u64(1, h.host_id());
+          log_v2::sql()->debug(
+              "dans for tag host {} tag_id "
+              "{} id {} type {}",
+              h.host_id(), it_tags_cache->second, tag.id(), tag.type());
+          _finish_action(-1, actions::resources_tags);
+          _mysql.run_statement(_resources_tags_insert,
+                               database::mysql_error::store_tags_resources_tags,
+                               false, conn);
+          _add_action(conn, actions::resources_tags);
+        } else {
+          log_v2::sql()->error(
+              "SQL: could not found on cache  the tag ({}, {}) for host '{}'",
+              tag.id(), tag.type(), h.host_id());
+        }
+      }
     } else
       log_v2::sql()->trace(
           "SQL: host '{}' of poller {} has no ID nor alias, probably bam "
@@ -1293,7 +1327,7 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
  *
  */
 void stream::_process_pb_adaptive_host(const std::shared_ptr<io::data>& d) {
-  log_v2::sql()->debug("SQL: process pb adaptive host");
+  log_v2::sql()->info("SQL: processing pb adaptive host");
   _finish_action(-1, actions::host_parents | actions::comments |
                          actions::downtimes | actions::host_dependencies |
                          actions::service_dependencies);
@@ -1531,7 +1565,10 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
         4, hscr.state_type() == HostStatus_StateType_HARD);
     _hscr_resources_update.bind_value_as_u32(5, hscr.current_check_attempt());
     _hscr_resources_update.bind_value_as_bool(6, hscr.perf_data() != "");
-    _hscr_resources_update.bind_value_as_u64(7, hscr.host_id());
+    _hscr_resources_update.bind_value_as_u32(7, hscr.check_type());
+    _hscr_resources_update.bind_value_as_u64(8, hscr.last_check());
+    _hscr_resources_update.bind_value_as_str(9, hscr.output());
+    _hscr_resources_update.bind_value_as_u64(10, hscr.host_id());
 
     _mysql.run_statement(_hscr_resources_update,
                          database::mysql_error::store_host_status, false, conn);
@@ -2037,16 +2074,14 @@ void stream::_process_service(const std::shared_ptr<io::data>& d) {
  *
  */
 void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
-  log_v2::sql()->debug("SQL: processing pb service");
   _finish_action(-1, actions::host_parents | actions::comments |
                          actions::downtimes | actions::host_dependencies |
-                         actions::service_dependencies);
+                         actions::service_dependencies | actions::severities);
   // Processed object.
   auto s{static_cast<neb::pb_service const*>(d.get())};
   auto& ss = s->obj();
-  log_v2::sql()->debug("service ({}, {}) with severity_id {}", ss.host_id(),
-                       ss.service_id(), ss.severity_id());
-
+  log_v2::sql()->debug("SQL: processing pb service ({}, {})", ss.host_id(),
+                       ss.service_id());
   log_v2::sql()->trace("SQL: pb service output: <<{}>>", ss.output());
   // Processed object.
   // const neb::service& s(*static_cast<neb::service const*>(d.get()));
@@ -2214,12 +2249,15 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
       _resources_service_insupdate.bind_value_as_u64(
           9, _cache_host_instance[ss.host_id()]);
       uint64_t sid = 0;
-      if (ss.severity_id()) {
-        log_v2::sql()->debug("service ({}, {}) with severity_id {}",
-                             ss.host_id(), ss.service_id(), ss.severity_id());
+      if (ss.severity_id() > 0) {
+        log_v2::sql()->debug("service ({}, {}) with severity_id {} => uid = {}",
+                             ss.host_id(), ss.service_id(), ss.severity_id(),
+                             sid);
         sid = _severity_cache[{ss.severity_id(), 0}];
+      }
+      if (sid)
         _resources_service_insupdate.bind_value_as_u64(10, sid);
-      } else
+      else
         _resources_service_insupdate.bind_value_as_null(10);
       fmt::string_view name{misc::string::truncate(
           ss.service_description(), get_resources_col_size(resources_name))};
@@ -2259,7 +2297,7 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
                                                      ss.max_check_attempts());
       _resources_service_insupdate.bind_value_as_u64(
           26, _cache_host_instance[ss.host_id()]);
-      if (ss.severity_id())
+      if (sid)
         _resources_service_insupdate.bind_value_as_u64(27, sid);
       else
         _resources_service_insupdate.bind_value_as_null(27);
@@ -2279,6 +2317,31 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
       _mysql.run_statement(_resources_service_insupdate,
                            database::mysql_error::store_service, true, conn);
       _add_action(conn, actions::resources);
+
+      if (!_resources_tags_insert.prepared()) {
+        _resources_tags_insert = _mysql.prepare_query(
+            "INSERT INTO resources_tags "
+            "(tag_id,resource_id) "
+            "VALUES(?,?)");
+      }
+      for (auto tag : ss.tags()) {
+        auto it_tags_cache =
+            _tags_cache.find(std::make_pair(tag.id(), tag.type()));
+
+        if (it_tags_cache != _tags_cache.end()) {
+          _resources_tags_insert.bind_value_as_u64(0, it_tags_cache->second);
+          _resources_tags_insert.bind_value_as_u64(1, ss.service_id());
+          _finish_action(-1, actions::resources_tags);
+          _mysql.run_statement(_resources_tags_insert,
+                               database::mysql_error::store_tags_resources_tags,
+                               false, conn);
+          _add_action(conn, actions::resources_tags);
+        } else {
+          log_v2::sql()->error(
+              "SQL: could not found on cache  the tag ({}, {}) for host '{}'",
+              tag.id(), tag.type(), ss.service_id());
+        }
+      }
     } else
       log_v2::sql()->trace(
           "SQL: service '{}' has no host ID, service ID nor hostname, probably "
@@ -2298,7 +2361,7 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
  *
  */
 void stream::_process_pb_adaptive_service(const std::shared_ptr<io::data>& d) {
-  log_v2::sql()->debug("SQL: process pb adaptive service");
+  log_v2::sql()->debug("SQL: processing pb adaptive service");
   _finish_action(-1, actions::host_parents | actions::comments |
                          actions::downtimes | actions::host_dependencies |
                          actions::service_dependencies);
@@ -2731,6 +2794,9 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
         4, sscr.state_type() == ServiceStatus_StateType_HARD);
     _sscr_resources_update.bind_value_as_u32(5, sscr.current_check_attempt());
     _sscr_resources_update.bind_value_as_bool(6, sscr.perf_data() != "");
+    _sscr_resources_update.bind_value_as_u32(7, sscr.check_type());
+    _sscr_resources_update.bind_value_as_u64(8, sscr.last_check());
+    _sscr_resources_update.bind_value_as_str(9, sscr.output());
     _sscr_resources_update.bind_value_as_u64(10, sscr.service_id());
     _sscr_resources_update.bind_value_as_u64(11, sscr.host_id());
 
@@ -2751,8 +2817,8 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
 }
 
 void stream::_process_severity(const std::shared_ptr<io::data>& d) {
-  log_v2::sql()->debug("SQL: process severity");
-  _finish_action(-1, actions::severities);
+  log_v2::sql()->debug("SQL: processing severity");
+  _finish_action(-1, actions::resources | actions::severities);
 
   // Prepare queries.
   if (!_severity_insert.prepared()) {
@@ -2762,16 +2828,18 @@ void stream::_process_severity(const std::shared_ptr<io::data>& d) {
     _severity_insert = _mysql.prepare_query(
         "INSERT INTO severities (id,type,name,level,icon_id) "
         "VALUES(?,?,?,?,?)");
-    _severity_delete =
-        _mysql.prepare_query("DELETE FROM severities WHERE severity_id=?");
   }
   // Processed object.
   auto s{static_cast<const neb::pb_severity*>(d.get())};
   auto& sv = s->obj();
+  log_v2::sql()->trace(
+      "SQL: severity event with id={}, type={}, name={}, level={}, icon_id={}",
+      sv.id(), sv.type(), sv.name(), sv.level(), sv.icon_id());
   uint64_t severity_id = _severity_cache[{sv.id(), sv.type()}];
   int32_t conn = special_conn::severity % _mysql.connections_count();
   switch (sv.action()) {
     case Severity_Action_ADD:
+      _add_action(conn, actions::severities);
       if (severity_id) {
         log_v2::sql()->trace("SQL: add already existing severity {}", sv.id());
         _severity_update.bind_value_as_u64(0, sv.id());
@@ -2802,9 +2870,9 @@ void stream::_process_severity(const std::shared_ptr<io::data>& d) {
               sv.type(), e.what());
         }
       }
-      _add_action(conn, actions::severities);
       break;
     case Severity_Action_MODIFY:
+      _add_action(conn, actions::severities);
       log_v2::sql()->trace("SQL: modify severity {}", sv.id());
       _severity_update.bind_value_as_u64(0, sv.id());
       _severity_update.bind_value_as_u32(1, sv.type());
@@ -2823,22 +2891,10 @@ void stream::_process_severity(const std::shared_ptr<io::data>& d) {
             sv.id(), sv.type());
       break;
     case Severity_Action_DELETE:
-      log_v2::sql()->trace("SQL: remove severity {}", sv.id());
-      {
-        // FIXME DBO: Delete should be implemented later.
-        if (0 && severity_id) {
-          _severity_delete.bind_value_as_u64(0, severity_id);
-          _mysql.run_statement(_severity_delete,
-                               database::mysql_error::store_severity, false,
-                               conn);
-          _add_action(conn, actions::severities);
-          _severity_cache.erase({sv.id(), sv.type()});
-        } else {
-          log_v2::sql()->error(
-              "unified sql: unable to delete severity ({}, {}): not in cache",
-              sv.id(), sv.type());
-        }
-      }
+      log_v2::sql()->trace("SQL: remove severity {}: not implemented", sv.id());
+      // FIXME DBO: Delete should be implemented later. This case is difficult
+      // particularly when several pollers are running and some of them can
+      // be stopped...
       break;
     default:
       log_v2::sql()->error("Bad action in severity object");
@@ -2847,60 +2903,71 @@ void stream::_process_severity(const std::shared_ptr<io::data>& d) {
 }
 
 void stream::_process_tag(const std::shared_ptr<io::data>& d) {
-  log_v2::sql()->debug("SQL: process tag");
+  log_v2::sql()->info("SQL: processing tag");
   _finish_action(-1, actions::tags);
 
   // Prepare queries.
-  if (!_tag_update.prepared()) {
-    query_preparator::event_pb_unique unique{
-        {1, "id", io::protobuf_base::invalid_on_zero, 0},
-    };
-    query_preparator qp(neb::pb_tag::static_type(), unique);
-
-    _tag_update = qp.prepare_update_table(
-        _mysql, "tags",
-        {
-            {1, "id", io::protobuf_base::invalid_on_zero, 0},
-            {3, "type", io::protobuf_base::invalid_on_zero, 0},
-            {4, "name", 0, get_tags_col_size(tags_name)},
-        });
-    _tag_delete = qp.prepare_delete_table(_mysql, "tags");
-
-    _tag_insupdate = qp.prepare_insert_or_update_table(
-        _mysql, "tags",
-        {
-            {1, "id", io::protobuf_base::invalid_on_zero, 0},
-            {3, "type", io::protobuf_base::invalid_on_zero, 0},
-            {4, "name", 0, get_tags_col_size(tags_name)},
-        });
+  if (!_tag_insert.prepared()) {
+    _tag_update = _mysql.prepare_query(
+        "UPDATE tags SET id=?,type=?,name=? WHERE "
+        "tag_id=?");
+    _tag_insert = _mysql.prepare_query(
+        "INSERT INTO tags (id,type,name) "
+        "VALUES(?,?,?)");
   }
   // Processed object.
   auto s{static_cast<const neb::pb_tag*>(d.get())};
   auto& tg = s->obj();
-  mysql_stmt* st;
+  uint64_t tag_id = _tags_cache[{tg.id(), tg.type()}];
+  int32_t conn = special_conn::tag % _mysql.connections_count();
   switch (tg.action()) {
     case Tag_Action_ADD:
-      log_v2::sql()->trace("SQL: new tag {}", tg.id());
-      st = &_tag_insupdate;
+      if (tag_id) {
+        log_v2::sql()->trace("SQL: add already existing tag {}", tg.id());
+        _tag_update.bind_value_as_u64(0, tg.id());
+        _tag_update.bind_value_as_u32(1, tg.type());
+        _tag_update.bind_value_as_str(2, tg.name());
+        _tag_update.bind_value_as_u64(3, tag_id);
+        _mysql.run_statement(_tag_update, database::mysql_error::store_tag,
+                             false, conn);
+      } else {
+        log_v2::sql()->trace("SQL: add tag {}", tg.id());
+        _tag_insert.bind_value_as_u64(0, tg.id());
+        _tag_insert.bind_value_as_u32(1, tg.type());
+        _tag_insert.bind_value_as_str(2, tg.name());
+        std::promise<uint64_t> p;
+        _mysql.run_statement_and_get_int<uint64_t>(
+            _tag_insert, &p, database::mysql_task::LAST_INSERT_ID, conn);
+        try {
+          tag_id = p.get_future().get();
+          _tags_cache[{tg.id(), tg.type()}] = tag_id;
+        } catch (const std::exception& e) {
+          log_v2::sql()->error(
+              "unified sql: unable to insert new tag ({},{}): {}", tg.id(),
+              tg.type(), e.what());
+        }
+      }
+      _add_action(conn, actions::tags);
       break;
     case Tag_Action_MODIFY:
-      log_v2::sql()->trace("SQL: modified tag {}", tg.id());
-      st = &_tag_update;
+      log_v2::sql()->trace("SQL: modify tag {}", tg.id());
+      _tag_update.bind_value_as_u64(0, tg.id());
+      _tag_update.bind_value_as_u32(1, tg.type());
+      _tag_update.bind_value_as_str(2, tg.name());
+      if (tag_id) {
+        _tag_update.bind_value_as_u64(3, tag_id);
+        _mysql.run_statement(_tag_update, database::mysql_error::store_tag,
+                             false, conn);
+        _add_action(conn, actions::tags);
+      } else
+        log_v2::sql()->error(
+            "unified sql: unable to modify tag ({}, {}): not in cache", tg.id(),
+            tg.type());
       break;
-    case Tag_Action_DELETE:
-      // FIXME DBO: Delete should be implemented later.
-      log_v2::sql()->trace("SQL: removed tag {}", tg.id());
-      st = &_tag_delete;
       break;
     default:
       log_v2::sql()->error("Bad action in tag object");
       break;
-  }
-  if (tg.action() != Tag_Action_DELETE) {
-    *st << *s;
-    int32_t conn = special_conn::tag % _mysql.connections_count();
-    _mysql.run_statement(*st, database::mysql_error::store_tag, false, conn);
-    _add_action(conn, actions::tags);
   }
 }
 
