@@ -49,13 +49,14 @@ namespace misc {
 
         using trash_content = std::forward_list<element_erase_pair>;
 
-        trash_content _content;        
+        trash_content _content;
         std::mutex _protect;
 
         void clean();
     public:
         void to_trash(const element_pointer & to_throw, time_t time_to_erase);
         void refresh_time_to_erase(const element_pointer & to_throw, time_t time_to_erase);
+        ~trash() noexcept = default;
     };
 
     /**
