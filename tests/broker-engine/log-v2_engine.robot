@@ -22,9 +22,11 @@ LOGV2EB1
 	Config Broker	rrd
 	Config Broker	central
 	Config Broker	module
+        Broker Config Flush Log	module	0
 	Engine Config Set Value	${0}	log_legacy_enabled	${0}
 	Engine Config Set Value	${0}	log_v2_enabled	${1}
 	Engine Config Set Value	${0}	log_level_config	trace
+        Engine Config Set Value	${0}    log_flush_period	0	True
 
 	${start}=	Get Current Date	 exclude_millis=yes
 	${time_stamp}	Convert Date    ${start}    epoch	exclude_millis=yes
@@ -39,8 +41,8 @@ LOGV2EB1
 	${pid}=	Get Process Id	e0
 	${content}=	Create List	[process] [info] [${pid}] Configuration loaded, main loop starting.
 
-	${result1}=	Find In Log With Timeout	${logEngine0}	${start}	${content}	15
-	Should Be True	${result1}
+	${result1}=	Find In Log With Timeout	${logEngine0}	${start}	${content}	30
+	Should Be True	${result1}	msg=No message telling configuration loaded.
 
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 	Log To Console	after connection
@@ -62,8 +64,10 @@ LOGV2DB1
 	Config Broker	rrd
 	Config Broker	central
 	Config Broker	module
+        Broker Config Flush Log	module	0
 	Engine Config Set Value	${0}	log_legacy_enabled	${1}
 	Engine Config Set Value	${0}	log_v2_enabled	${0}
+        Engine Config Set Value	${0}    log_flush_period	0	True
 
 	${start}=	Get Current Date	 exclude_millis=yes
 	${time_stamp}    Convert Date    ${start}    epoch	exclude_millis=yes
@@ -77,12 +81,12 @@ LOGV2DB1
 
 	${pid}=	Get Process Id	e0
 	${content_v2}=	Create List	[process] [info] [${pid}] Configuration loaded, main loop starting.
-	${content_hold}=	Create List	[${pid}] Configuration loaded, main loop starting.
+	${content_old}=	Create List	[${pid}] Configuration loaded, main loop starting.
 
 	${result1}=	Find In Log With Timeout	${logEngine0}	${start}	${content_v2}	15
-	${result2}=	Find In Log With Timeout	${logEngine0}	${start}	${content_hold}	15
+	${result2}=	Find In Log With Timeout	${logEngine0}	${start}	${content_old}	15
 	Should Not Be True	${result1}
-	Should Be True	${result2}
+	Should Be True	${result2}	msg=Old logs should be enabled.
 
 	Log To Console	after connection
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
@@ -104,8 +108,10 @@ LOGV2DB2
 	Config Broker	rrd
 	Config Broker	central
 	Config Broker	module
+        Broker Config Flush Log	module	0
 	Engine Config Set Value	${0}	log_legacy_enabled	${0}
 	Engine Config Set Value	${0}	log_v2_enabled	${0}
+        Engine Config Set Value	${0}    log_flush_period	0	True
 
 	${start}=	Get Current Date	 exclude_millis=yes
 	${time_stamp}    Convert Date    ${start}    epoch	exclude_millis=yes
@@ -120,8 +126,8 @@ LOGV2DB2
 	${content_v2}=	Create List	[process] [info] [${pid}] Configuration loaded, main loop starting.
 	${content_hold}=	Create List	[${pid}] Configuration loaded, main loop starting.
 
-	${result1}=	Find In Log With Timeout	${logEngine0}	${start}	${content_v2}	15
-	${result2}=	Find In Log With Timeout	${logEngine0}	${start}	${content_hold}	15
+	${result1}=	Find In Log With Timeout	${logEngine0}	${start}	${content_v2}	30
+	${result2}=	Find In Log With Timeout	${logEngine0}	${start}	${content_hold}	30
 	Should Not Be True	${result1}
 	Should Not Be True	${result2}
 
@@ -145,8 +151,10 @@ LOGV2EB2
 	Config Broker	rrd
 	Config Broker	central
 	Config Broker	module
+        Broker Config Flush Log	module	0
 	Engine Config Set Value	${0}	log_legacy_enabled	${1}
 	Engine Config Set Value	${0}	log_v2_enabled	${1}
+        Engine Config Set Value	${0}    log_flush_period	0	True
 
 	${start}=	Get Current Date	 exclude_millis=yes
 	${time_stamp}    Convert Date    ${start}    epoch	exclude_millis=yes
@@ -162,8 +170,8 @@ LOGV2EB2
 	${content_v2}=	Create List	[process] [info] [${pid}] Configuration loaded, main loop starting.
 	${content_hold}=	Create List	[${pid}] Configuration loaded, main loop starting.
 
-	${result1}=	Find In Log With Timeout	${logEngine0}	${start}	${content_v2}	15
-	${result2}=	Find In Log With Timeout	${logEngine0}	${start}	${content_hold}	15
+	${result1}=	Find In Log With Timeout	${logEngine0}	${start}	${content_v2}	30
+	${result2}=	Find In Log With Timeout	${logEngine0}	${start}	${content_hold}	30
 	Should Be True	${result1}
 	Should Be True	${result2}
 
@@ -188,8 +196,10 @@ LOGV2EF1
 	Config Broker	rrd
 	Config Broker	central
 	Config Broker	module
+        Broker Config Flush Log	module	0
 	Engine Config Set Value	${0}	log_legacy_enabled	${0}
 	Engine Config Set Value	${0}	log_v2_enabled	${1}
+        Engine Config Set Value	${0}    log_flush_period	0	True
 
 	${start}=	Get Current Date
 	Start Broker
@@ -199,7 +209,7 @@ LOGV2EF1
 	${pid}=	Get Process Id	e0
 	${content_v2}=	Create List	[process] [info] [${pid}] Configuration loaded, main loop starting.
 
-	${result1}=	Find In Log With Timeout	${logEngine0}	${start}	${content_v2}	15
+	${result1}=	Find In Log With Timeout	${logEngine0}	${start}	${content_v2}	30
 	Should Be True	${result1}
 	Stop Engine
 	Stop Broker
@@ -211,8 +221,10 @@ LOGV2DF1
 	Config Broker	rrd
 	Config Broker	central
 	Config Broker	module
+        Broker Config Flush Log	module	0
 	Engine Config Set Value	${0}	log_legacy_enabled	${1}
 	Engine Config Set Value	${0}	log_v2_enabled	${0}
+        Engine Config Set Value	${0}    log_flush_period	0	True
 
 	${start}=	Get Current Date
 	Start Broker
@@ -223,8 +235,8 @@ LOGV2DF1
 	${content_hold}=	Create List	[${pid}] Configuration loaded, main loop starting.
 	${content_v2}=	Create List	[process] [info] [${pid}] Configuration loaded, main loop starting.
 
-	${result1}=	Find In Log With Timeout	${logEngine0}	${start}	${content_hold}	15
-	${result2}=	Find In Log With Timeout	${logEngine0}	${start}	${content_v2}	15
+	${result1}=	Find In Log With Timeout	${logEngine0}	${start}	${content_hold}	30
+	${result2}=	Find In Log With Timeout	${logEngine0}	${start}	${content_v2}	30
 	Should Be True	${result1}
 	Should Not Be True	${result2}
 	Stop Engine
@@ -237,8 +249,10 @@ LOGV2DF2
 	Config Broker	rrd
 	Config Broker	central
 	Config Broker	module
+        Broker Config Flush Log	module	0
 	Engine Config Set Value	${0}	log_legacy_enabled	${0}
 	Engine Config Set Value	${0}	log_v2_enabled	${0}
+        Engine Config Set Value	${0}    log_flush_period	0	True
 
 	${start}=	Get Current Date
 	Start Broker
@@ -263,8 +277,10 @@ LOGV2EF2
 	Config Broker	rrd
 	Config Broker	central
 	Config Broker	module
+        Broker Config Flush Log	module	0
 	Engine Config Set Value	${0}	log_legacy_enabled	${1}
 	Engine Config Set Value	${0}	log_v2_enabled	${1}
+        Engine Config Set Value	${0}    log_flush_period	0	True
 
 	${start}=	Get Current Date
 	Start Broker
@@ -289,8 +305,10 @@ LOGV2BE2
 	Config Broker	rrd
 	Config Broker	central
 	Config Broker	module
+        Broker Config Flush Log	module	0
 	Engine Config Set Value	${0}	log_legacy_enabled	${1}
 	Engine Config Set Value	${0}	log_v2_enabled	${1}
+        Engine Config Set Value	${0}    log_flush_period	0	True
 
 	${start}=	Get Current Date	 exclude_millis=yes
 	${time_stamp}    Convert Date    ${start}    epoch	exclude_millis=yes
@@ -320,8 +338,11 @@ LOGV2FE2
 	Config Broker	rrd
 	Config Broker	central
 	Config Broker	module
+        Broker Config Flush Log	module	0
 	Engine Config Set Value	${0}	log_legacy_enabled	${1}
 	Engine Config Set Value	${0}	log_v2_enabled	${1}
+        Engine Config Set Value	${0}    log_flush_period	0	True
+
 	Clear Engine Logs
 
 	${start}=	Get Current Date

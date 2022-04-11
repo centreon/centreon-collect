@@ -469,15 +469,18 @@ def get_engines_count():
 # @param key the key to change the value.
 # @param value the new value to set to the key variable.
 #
-def engine_config_set_value(idx: int, key: str, value: str):
+def engine_config_set_value(idx: int, key: str, value: str, force: bool = False):
     filename = "/etc/centreon-engine/config{}/centengine.cfg".format(idx)
     f = open(filename, "r")
     lines = f.readlines()
     f.close()
 
-    for i in range(len(lines)):
-        if lines[i].startswith(key + "="):
-            lines[i] = "{}={}\n".format(key, value)
+    if force:
+        lines.append("{}={}\n".format(key, value))
+    else:
+        for i in range(len(lines)):
+            if lines[i].startswith(key + "="):
+                lines[i] = "{}={}\n".format(key, value)
 
     f = open(filename, "w")
     f.writelines(lines)
