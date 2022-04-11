@@ -37,10 +37,8 @@ com::centreon::broker::grpc::stream::stream(
     : io::stream("GRPC"), _accept(true), _channel(accepted) {}
 
 com::centreon::broker::grpc::stream::~stream() noexcept {
-  if (_channel) {
-    //_channel->stop();
+  if (_channel)
     _channel->to_trash();
-  }
 }
 
 #define READ_IMPL                                                             \

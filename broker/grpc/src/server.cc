@@ -43,9 +43,8 @@ void accepted_service::start() {
 }
 
 accepted_service::~accepted_service() {
-  // log removed because the logger instance can be removed at this moment.
-//  log_v2::grpc()->trace("{} this={:p}", __PRETTY_FUNCTION__,
-//                        static_cast<void*>(this));
+  log_v2::grpc()->trace("{} this={:p}", __PRETTY_FUNCTION__,
+                        static_cast<void*>(this));
 }
 
 void accepted_service::desactivate() {
