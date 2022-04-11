@@ -275,6 +275,8 @@ class state {
   void max_host_check_spread(unsigned int value);
   unsigned long max_log_file_size() const noexcept;
   void max_log_file_size(unsigned long value);
+  uint32_t log_flush_period() const noexcept;
+  void log_flush_period(uint32_t value);
   unsigned int max_parallel_service_checks() const noexcept;
   void max_parallel_service_checks(unsigned int value);
   unsigned int max_service_check_spread() const noexcept;
@@ -591,6 +593,7 @@ class state {
   unsigned long _max_debug_file_size;
   unsigned int _max_host_check_spread;
   unsigned long _max_log_file_size;
+  uint32_t _log_flush_period;
   unsigned int _max_parallel_service_checks;
   unsigned int _max_service_check_spread;
   unsigned int _notification_timeout;

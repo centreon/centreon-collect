@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013,2015-2017, 2021 Centreon
+** Copyright 2011-2013,2015-2017, 2021-2022 Centreon
 **
 ** This file is part of Centreon Engine.
 **
@@ -155,6 +155,7 @@ std::unordered_map<std::string, state::setter_func> const state::_setters{
     {"max_debug_file_size", SETTER(unsigned long, max_debug_file_size)},
     {"max_host_check_spread", SETTER(unsigned int, max_host_check_spread)},
     {"max_log_file_size", SETTER(unsigned long, max_log_file_size)},
+    {"log_flush_period", SETTER(uint32_t, log_flush_period)},
     {"max_service_check_spread",
      SETTER(unsigned int, max_service_check_spread)},
     {"nagios_group", SETTER(std::string const&, _set_nagios_group)},
@@ -334,6 +335,7 @@ static unsigned int const default_max_check_reaper_time(30);
 static unsigned long const default_max_debug_file_size(1000000);
 static unsigned int const default_max_host_check_spread(5);
 static unsigned long const default_max_log_file_size(0);
+static constexpr uint32_t default_log_flush_period{5u};
 static unsigned int const default_max_parallel_service_checks(0);
 static unsigned int const default_max_service_check_spread(5);
 static unsigned int const default_notification_timeout(30);
@@ -470,6 +472,7 @@ state::state()
       _max_debug_file_size(default_max_debug_file_size),
       _max_host_check_spread(default_max_host_check_spread),
       _max_log_file_size(default_max_log_file_size),
+      _log_flush_period(default_log_flush_period),
       _max_parallel_service_checks(default_max_parallel_service_checks),
       _max_service_check_spread(default_max_service_check_spread),
       _notification_timeout(default_notification_timeout),
@@ -2605,6 +2608,24 @@ unsigned long state::max_log_file_size() const noexcept {
  */
 void state::max_log_file_size(unsigned long value) {
   _max_log_file_size = value;
+}
+
+/**
+ *  Get log_flush_period value.
+ *
+ *  @return The log_flush_period value.
+ */
+uint32_t state::log_flush_period() const noexcept {
+  return _log_flush_period;
+}
+
+/**
+ *  Set log_flush_period value.
+ *
+ *  @param[in] value The new log_flush_period value.
+ */
+void state::log_flush_period(uint32_t value) {
+  _log_flush_period = value;
 }
 
 /**

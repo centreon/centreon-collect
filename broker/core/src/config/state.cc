@@ -17,7 +17,6 @@
 */
 
 #include "com/centreon/broker/config/state.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/bbdo/internal.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -36,7 +35,7 @@ state::state()
       _event_queue_max_size{10000},
       _poller_id{0},
       _pool_size{0},
-      _log_conf{"/var/log/centreon-broker", "", 0, {}} {}
+      _log_conf{"/var/log/centreon-broker", "", 0, 5u, {}} {}
 
 /**
  *  Copy constructor.
@@ -294,9 +293,13 @@ std::list<std::string>& state::module_list() noexcept {
 void state::add_module(std::string module) {
   bool conflict{false};
   if (module == "20-unified_sql.so")
-    conflict = std::find(_module_list.begin(), _module_list.end(), "20-storage.so") != _module_list.end() || std::find(_module_list.begin(), _module_list.end(), "80-sql.so") != _module_list.end();
+    conflict = std::find(_module_list.begin(), _module_list.end(),
+                         "20-storage.so") != _module_list.end() ||
+               std::find(_module_list.begin(), _module_list.end(),
+                         "80-sql.so") != _module_list.end();
   else if (module == "80-sql.so" || module == "20-storage.so")
-    conflict = std::find(_module_list.begin(), _module_list.end(), "20-unified_sql.so") != _module_list.end();
+    conflict = std::find(_module_list.begin(), _module_list.end(),
+                         "20-unified_sql.so") != _module_list.end();
   if (conflict)
     throw msg_fmt(
         "config parser: unified_sql output is incompatible with storage/sql "

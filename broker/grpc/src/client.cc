@@ -88,8 +88,6 @@ client::pointer client::create(const grpc_config::pointer& conf) {
 }
 
 client::~client() {
-  log_v2::grpc()->trace("{} this={:p}", __PRETTY_FUNCTION__,
-                        static_cast<void*>(this));
   _stub.reset();
   _context.reset();
   _channel.reset();

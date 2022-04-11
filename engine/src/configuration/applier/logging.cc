@@ -70,6 +70,8 @@ void applier::logging::apply(state& config) {
     _del_stdout();
     _del_stderr();
     _del_debug();
+    _del_log_file();
+    _del_syslog();
   }
 }
 
