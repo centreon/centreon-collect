@@ -85,7 +85,7 @@ class stream : public io::stream {
   enum stream_type { sql, unified_sql };
 
  private:
-  const static std::array<int, 4> hst_ordered_status;
+  const static std::array<int, 5> hst_ordered_status;
   const static std::array<int, 5> svc_ordered_status;
   enum special_conn {
     custom_variable,

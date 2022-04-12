@@ -1447,7 +1447,7 @@ void stream::_process_pb_adaptive_host(const std::shared_ptr<io::data>& d) {
         if (res_query.size() > res_size) {
           res_query.resize(res_query.size() - 1);
           res_query +=
-              fmt::format(" WHERE parent_id IS NULL AND id={}", ah.host_id());
+              fmt::format(" WHERE parent_id=0 AND id={}", ah.host_id());
           log_v2::sql()->trace("SQL: query <<{}>>", res_query);
           _mysql.run_query(res_query, database::mysql_error::update_resources,
                            false, conn);
@@ -1527,18 +1527,18 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
     if (_store_in_resources && !_hscr_resources_update.prepared()) {
       _hscr_resources_update = _mysql.prepare_query(
           "UPDATE resources SET "
-          "status=?,"              // 0: current_state
-          "status_ordered=?,"      // 1: obtained from current_state
-          "last_status_change=?,"  // 2: last_state_change
-          "in_downtime=?,"         // 3: downtime_depth() > 0
-          "acknowledged=?,"        // 4: acknowledgement_type != NONE
-          "status_confirmed=?,"    // 5: state_type == HARD
-          "check_attempts=?,"      // 6: current_check_attempt
-          "has_graph=?,"           // 7: perfdata != ""
-          "last_check_type=?,"     // 8: check_type
-          "last_check=?,"          // 9: last_check
-          "output=? "              // 10: output
-          "WHERE id=? AND parent_id is NULL");  // 11: host_id
+          "status=?,"                     // 0: current_state
+          "status_ordered=?,"             // 1: obtained from current_state
+          "last_status_change=?,"         // 2: last_state_change
+          "in_downtime=?,"                // 3: downtime_depth() > 0
+          "acknowledged=?,"               // 4: acknowledgement_type != NONE
+          "status_confirmed=?,"           // 5: state_type == HARD
+          "check_attempts=?,"             // 6: current_check_attempt
+          "has_graph=?,"                  // 7: perfdata != ""
+          "last_check_type=?,"            // 8: check_type
+          "last_check=?,"                 // 9: last_check
+          "output=? "                     // 10: output
+          "WHERE id=? AND parent_id=0");  // 11: host_id
     }
 
     // Processing.
