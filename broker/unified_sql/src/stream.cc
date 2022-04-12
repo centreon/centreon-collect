@@ -88,7 +88,9 @@ stream::stream(const database_config& dbcfg,
                uint32_t interval_length,
                uint32_t loop_timeout,
                uint32_t instance_timeout,
-               bool store_in_data_bin)
+               bool store_in_data_bin,
+               bool store_in_resources,
+               bool store_in_hosts_services)
     : io::stream("unified_sql"),
       _state{not_started},
       _processed{0},
@@ -102,6 +104,8 @@ stream::stream(const database_config& dbcfg,
       _instance_timeout{instance_timeout},
       _rebuilder{dbcfg, rrd_len ? rrd_len : 15552000, interval_length},
       _store_in_db{store_in_data_bin},
+      _store_in_resources{store_in_resources},
+      _store_in_hosts_services{store_in_hosts_services},
       _rrd_len{rrd_len},
       _interval_length{interval_length},
       _max_perfdata_queries{_max_pending_queries},
@@ -115,10 +119,9 @@ stream::stream(const database_config& dbcfg,
       _stats{stats::center::instance().register_conflict_manager()},
       _oldest_timestamp{std::numeric_limits<time_t>::max()} {
   log_v2::sql()->debug("unified sql: stream class instanciation");
-  stats::center::instance().execute([
-    stats = _stats, loop_timeout = _loop_timeout,
-    max_queries = _max_pending_queries
-  ] {
+  stats::center::instance().execute([stats = _stats,
+                                     loop_timeout = _loop_timeout,
+                                     max_queries = _max_pending_queries] {
     stats->set_loop_timeout(loop_timeout);
     stats->set_max_pending_events(max_queries);
   });
@@ -613,7 +616,7 @@ int32_t stream::stop() {
  * @param d The BBDO message with all the metrics/indexes to remove.
  */
 void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
-  asio::post(pool::instance().io_context(), [ this, data = d ] {
+  asio::post(pool::instance().io_context(), [this, data = d] {
     mysql ms(_dbcfg);
     const bbdo::pb_remove_graphs& ids =
         *static_cast<const bbdo::pb_remove_graphs*>(data.get());

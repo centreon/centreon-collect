@@ -182,6 +182,8 @@ class stream : public io::stream {
   uint32_t _instance_timeout;
   rebuilder _rebuilder;
   bool _store_in_db;
+  bool _store_in_resources;
+  bool _store_in_hosts_services;
   uint32_t _rrd_len;
   uint32_t _interval_length;
   uint32_t _max_perfdata_queries;
@@ -355,7 +357,9 @@ class stream : public io::stream {
          uint32_t interval_length,
          uint32_t loop_timeout,
          uint32_t instance_timeout,
-         bool store_in_data_bin);
+         bool store_in_data_bin,
+         bool store_in_resources,
+         bool store_in_hosts_services);
   stream() = delete;
   stream& operator=(const stream&) = delete;
   stream(const stream&) = delete;

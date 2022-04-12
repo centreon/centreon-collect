@@ -130,6 +130,29 @@ io::endpoint* factory::new_endpoint(
       store_in_data_bin = config::parser::parse_boolean(it->second);
   }
 
+  // Store or not in resources.
+  bool store_in_resources{true};
+  {
+    std::map<std::string, std::string>::const_iterator it{
+        cfg.params.find("store_in_resources")};
+    if (it != cfg.params.end())
+      store_in_resources = config::parser::parse_boolean(it->second);
+  }
+
+  // Store or not in hosts_services.
+  bool store_in_hosts_services{true};
+  {
+    std::map<std::string, std::string>::const_iterator it{
+        cfg.params.find("store_in_hosts_services")};
+    if (it != cfg.params.end())
+      store_in_hosts_services = config::parser::parse_boolean(it->second);
+  }
+
+  log_v2::sql()->debug("SQL: store in hosts/services: {}",
+                       store_in_hosts_services ? "yes" : "no");
+  log_v2::sql()->debug("SQL: store in resources: {}",
+                       store_in_resources ? "yes" : "no");
+
   // Loop timeout
   // By default, 30 seconds
   int32_t loop_timeout = cfg.read_timeout;
@@ -148,7 +171,8 @@ io::endpoint* factory::new_endpoint(
   // Connector.
   auto c = std::make_unique<unified_sql::connector>();
   c->connect_to(dbcfg, rrd_length, interval_length, loop_timeout,
-                instance_timeout, store_in_data_bin);
+                instance_timeout, store_in_data_bin, store_in_resources,
+                store_in_hosts_services);
   is_acceptor = false;
   return c.release();
 }
