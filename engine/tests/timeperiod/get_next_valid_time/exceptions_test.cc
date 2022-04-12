@@ -1,20 +1,19 @@
 /*
 ** Copyright 2022 Centreon
 **
-** This file is part of Centreon Engine.
+** Licensed under the Apache License, Version 2.0 (the "License");
+** you may not use this file except in compliance with the License.
+** You may obtain a copy of the License at
 **
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
+**     http://www.apache.org/licenses/LICENSE-2.0
 **
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
+** Unless required by applicable law or agreed to in writing, software
+** distributed under the License is distributed on an "AS IS" BASIS,
+** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+** See the License for the specific language governing permissions and
+** limitations under the License.
 **
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
+** For more information : contact@centreon.com
 */
 
 #include <gtest/gtest.h>
@@ -40,6 +39,7 @@ class timeperiod_exception : public ::testing::TestWithParam<test_param> {
   static configuration::applier::timeperiod _applier;
   static void SetUpTestSuite() {
     init_config_state();
+    com::centreon::engine::timeperiod::timeperiods.clear();
     parse_timeperiods_cfg_file("tests/timeperiods.cfg");
   }
 
@@ -188,9 +188,3 @@ TEST_P(timeperiod_exception, TestExceptions) {
       << " pref:" << param.prefered << " expected: " << param.expected
       << " calculated UTC:" << ctime_gmt(calculated);
 }
-
-static const std::vector<test_param> cases_nagios = {};
-
-INSTANTIATE_TEST_SUITE_P(timeperiod_exception_nagios,
-                         timeperiod_exception,
-                         ::testing::ValuesIn(cases_nagios));

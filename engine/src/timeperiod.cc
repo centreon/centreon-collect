@@ -765,6 +765,9 @@ bool check_time_against_period(time_t test_time, timeperiod* tperiod) {
   time_t next_valid_time{(time_t)-1};
   tperiod->get_next_valid_time_per_timeperiod(test_time, &next_valid_time,
                                               false);
+  log_v2::functions()->trace("check_time_against_period {} ret={}",
+                             tperiod->get_name(), next_valid_time == test_time);
+
   return next_valid_time == test_time;
 }
 
@@ -1103,6 +1106,9 @@ void timeperiod::get_next_valid_time_per_timeperiod(time_t preferred_time,
   // Else use the calculated time.
   else
     *valid_time = earliest_time;
+  log_v2::functions()->trace(
+      "get_next_valid_time_per_timeperiod {} valid_time={}", _name,
+      *valid_time);
 }
 
 /**

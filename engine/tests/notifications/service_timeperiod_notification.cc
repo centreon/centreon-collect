@@ -492,7 +492,6 @@ TEST_F(ServiceTimePeriodNotification, TimePeriodUserOut) {
   // uint64_t id{_svc->get_next_notification_id()};
   for (int i = 0; i < 7; ++i) {
     timerange_list list_time;
-    // list_time.emplace_back(1000, 15000));
     list_time.emplace_back(8000, 85000);
     tiperiod->days[i] = list_time;
   }
@@ -617,7 +616,6 @@ TEST_F(ServiceTimePeriodNotification, TimePeriodUserIn) {
   // uint64_t id{_svc->get_next_notification_id()};
   for (int i = 0; i < 7; ++i) {
     timerange_list list_time;
-    // list_time.emplace_back(1000, 15000));
     list_time.emplace_back(8000, 85000);
     tiperiod->days[i] = list_time;
   }
@@ -742,7 +740,6 @@ TEST_F(ServiceTimePeriodNotification, TimePeriodUserAll) {
   // uint64_t id{_svc->get_next_notification_id()};
   for (int i = 0; i < 7; ++i) {
     timerange_list list_time;
-    // list_time.emplace_back(1000, 15000));
     list_time.emplace_back(8000, 85000);
     tiperiod->days[i] = list_time;
   }
@@ -860,7 +857,6 @@ TEST_F(ServiceTimePeriodNotification, TimePeriodUserNone) {
   // uint64_t id{_svc->get_next_notification_id()};
   for (int i = 0; i < 7; ++i) {
     timerange_list list_time;
-    // list_time.emplace_back(1000, 15000));
     list_time.emplace_back(8000, 85000);
     tiperiod->days[i] = list_time;
   }
@@ -977,7 +973,6 @@ TEST_F(ServiceTimePeriodNotification, NoTimePeriodUser) {
   // uint64_t id{_svc->get_next_notification_id()};
   for (int i = 0; i < 7; ++i) {
     timerange_list list_time;
-    // list_time.emplace_back(1000, 15000);
     list_time.emplace_back(8000, 85000);
     tiperiod->days[i] = list_time;
   }

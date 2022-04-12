@@ -94,7 +94,6 @@ TEST_F(GetNextValidTimeCalendarDateTest, AfterCalendarDates) {
 
   for (int i = 0; i < 7; ++i) {
     timerange_list list_time;
-    // list_time.emplace_back(1000, 15000);
     list_time.emplace_back(8000, 85000);
     tiperiod->days[i] = list_time;
   }
