@@ -1538,7 +1538,7 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
           "last_check_type=?,"     // 8: check_type
           "last_check=?,"          // 9: last_check
           "output=? "              // 10: output
-          "WHERE id=? AND parent_id is NULL");  // 10: host_id
+          "WHERE id=? AND parent_id is NULL");  // 11: host_id
     }
 
     // Processing.
