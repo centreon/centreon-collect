@@ -122,10 +122,6 @@ stage('Build / Unit tests // Packaging / Signing') {
 stage('Quality Gate') {
   timeout(time: 10, unit: 'MINUTES') {
     waitForQualityGate()
-//    def qualityGate = waitForQualityGate()
-//    if (qualityGate.status != 'OK') {
-//      error "Pipeline aborted due to quality gate failure: ${qualityGate.status}"
-//    }
   }
 }
 
@@ -151,4 +147,3 @@ stage('Delivery') {
     }
   }
 }
-
