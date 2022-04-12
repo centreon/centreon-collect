@@ -20,9 +20,6 @@
 #ifndef CCE_RETENTION_DOWNTIME_HH
 #define CCE_RETENTION_DOWNTIME_HH
 
-#include <list>
-#include <string>
-#include "com/centreon/engine/namespace.hh"
 #include "com/centreon/engine/retention/object.hh"
 
 CCE_BEGIN()

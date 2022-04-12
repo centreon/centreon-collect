@@ -18,8 +18,6 @@
  */
 #include <chrono>
 
-#include "com/centreon/engine/namespace.hh"
-
 CCE_BEGIN()
 
 struct restart_stats {

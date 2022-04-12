@@ -19,8 +19,7 @@
 
 #include <gtest/gtest.h>
 #include <com/centreon/engine/macros.hh>
-#include <memory>
-#include <mutex>
+
 #include "../timeperiod/utils.hh"
 #include "com/centreon/engine/commands/raw.hh"
 #include "helper.hh"

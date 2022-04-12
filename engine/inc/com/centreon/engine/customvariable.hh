@@ -20,11 +20,6 @@
 #ifndef CCE_OBJECTS_CUSTOMVARIABLE_HH
 #define CCE_OBJECTS_CUSTOMVARIABLE_HH
 
-#include <string>
-#include <unordered_map>
-
-#include "com/centreon/engine/namespace.hh"
-
 CCE_BEGIN()
 
 /**

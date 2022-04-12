@@ -19,8 +19,6 @@
 
 #include "com/centreon/engine/configuration/applier/host.hh"
 
-#include <algorithm>
-
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/config.hh"

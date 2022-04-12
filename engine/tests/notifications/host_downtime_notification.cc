@@ -18,7 +18,6 @@
  */
 
 #include <cstring>
-#include <memory>
 
 #include <com/centreon/engine/configuration/applier/timeperiod.hh>
 #include "../test_engine.hh"
@@ -87,7 +86,7 @@ TEST_F(HostDowntimeNotification, SimpleHostDowntime) {
   std::unique_ptr<engine::timeperiod> tperiod{
       new engine::timeperiod("tperiod", "alias")};
   for (size_t i = 0; i < tperiod->days.size(); ++i)
-    tperiod->days[i].push_back(std::make_shared<engine::timerange>(0, 86400));
+    tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::hostescalation> host_escalation{
       new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7, Uuid())};
@@ -136,7 +135,7 @@ TEST_F(HostDowntimeNotification,
   std::unique_ptr<engine::timeperiod> tperiod{
       new engine::timeperiod("tperiod", "alias")};
   for (size_t i = 0; i < tperiod->days.size(); ++i)
-    tperiod->days[i].push_back(std::make_shared<engine::timerange>(0, 86400));
+    tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::hostescalation> host_escalation{
       new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7, Uuid())};
@@ -245,7 +244,7 @@ TEST_F(HostDowntimeNotification, SimpleHostDowntimeNotifyContactExitingUp) {
 //  std::unique_ptr<engine::timeperiod> tperiod{
 //      new engine::timeperiod("tperiod", "alias")};
 //  for (uint32_t i = 0; i < tperiod->days.size(); ++i)
-//    tperiod->days[i].push_back(std::make_shared<engine::timerange>(0, 86400));
+//    tperiod->days[i].emplace_back(0,86400);
 //
 //  std::unique_ptr<engine::hostescalation> host_escalation{
 //      new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7)};
@@ -286,7 +285,7 @@ TEST_F(HostDowntimeNotification, SimpleHostDowntimeNotifyContactExitingUp) {
 //  std::unique_ptr<engine::timeperiod> tperiod{
 //      new engine::timeperiod("tperiod", "alias")};
 //  for (uint32_t i = 0; i < tperiod->days.size(); ++i)
-//    tperiod->days[i].push_back(std::make_shared<engine::timerange>(0, 86400));
+//    tperiod->days[i].emplace_back(0,86400);
 //
 //  std::unique_ptr<engine::hostescalation> host_escalation{
 //      new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7)};

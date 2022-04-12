@@ -17,9 +17,6 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <cstdio>
-#include <exception>
-#include <fstream>
 #include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/io/file_stream.hh"

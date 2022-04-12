@@ -41,6 +41,7 @@ endif ()
 set(INC_DIR "${PROJECT_SOURCE_DIR}/inc")
 set(SCRIPT_DIR "${PROJECT_SOURCE_DIR}/scripts")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
+set(PRECOMP_HEADER "${PROJECT_SOURCE_DIR}/precomp_inc/precomp.hh")
 
 set(ENGINE_MODULES_DIR "${CMAKE_INSTALL_PREFIX}/lib64/centreon-engine/")
 
@@ -532,6 +533,9 @@ add_library(cce_core ${LIBRARY_TYPE} ${FILES})
 add_dependencies(cce_core engine_rpc)
 add_dependencies(cce_core centreon_clib)
 
+target_precompile_headers(cce_core PRIVATE ${PRECOMP_HEADER})
+
+
 # Link target with required libraries.
 target_link_libraries(cce_core CONAN_PKG::nlohmann_json
   ${MATH_LIBRARIES}
@@ -546,6 +550,7 @@ target_link_libraries(cce_core CONAN_PKG::nlohmann_json
 add_executable("centengine" "${SRC_DIR}/main.cc")
 set_property(TARGET "centengine" PROPERTY ENABLE_EXPORTS "1")
 add_dependencies(centengine centreon_clib)
+target_precompile_headers(centengine PRIVATE ${PRECOMP_HEADER})
 
 # Link centengine with required libraries.
 target_link_libraries(centengine "-export-dynamic" centreon_clib "-Wl,-whole-archive" enginerpc cce_core  "-Wl,-no-whole-archive" -L${CONAN_LIB_DIRS_GRPC} "-Wl,--whole-archive" grpc++ "-Wl,--no-whole-archive" CONAN_PKG::grpc ${absl_LIBS} CONAN_PKG::openssl ${c-ares_LIBS} CONAN_PKG::zlib dl)
@@ -554,6 +559,7 @@ target_link_libraries(centengine "-export-dynamic" centreon_clib "-Wl,-whole-arc
 add_executable("centenginestats" "${SRC_DIR}/centenginestats.cc")
 add_dependencies("centenginestats" centreon_clib)
 target_link_libraries("centenginestats" centreon_clib)
+target_precompile_headers(centenginestats PRIVATE ${PRECOMP_HEADER})
 
 # Unit tests.
 add_subdirectory(tests)

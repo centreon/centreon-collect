@@ -20,10 +20,7 @@
 #ifndef CENTREON_ENGINE_DEPENDENCY_HH
 #define CENTREON_ENGINE_DEPENDENCY_HH
 
-#include <com/centreon/engine/namespace.hh>
 #include <com/centreon/engine/timeperiod.hh>
-#include <ostream>
-#include <string>
 
 CCE_BEGIN();
 

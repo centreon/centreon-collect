@@ -19,8 +19,6 @@
 
 #include "com/centreon/engine/broker/loader.hh"
 #include <climits>
-#include <exception>
-#include <list>
 #include "com/centreon/engine/exceptions/error.hh"
 #include "test/unittest.hh"
 

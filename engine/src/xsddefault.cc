@@ -25,11 +25,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <cerrno>
-#include <cstdio>
-#include <cstdlib>
-#include <iomanip>
-#include <sstream>
-#include <string>
 #include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"

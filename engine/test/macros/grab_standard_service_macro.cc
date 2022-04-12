@@ -20,7 +20,6 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
-#include <iostream>
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/macros/grab_service.hh"
 #include "com/centreon/engine/string.hh"

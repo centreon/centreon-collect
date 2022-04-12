@@ -19,12 +19,6 @@
 
 #include "com/centreon/engine/configuration/applier/state.hh"
 
-#include <unistd.h>
-
-#include <array>
-#include <cassert>
-#include <iostream>
-#include <unordered_map>
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/commands/connector.hh"
 #include "com/centreon/engine/config.hh"

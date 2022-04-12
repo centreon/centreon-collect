@@ -20,13 +20,7 @@
 #ifndef CCE_RETENTION_HOST_HH
 #define CCE_RETENTION_HOST_HH
 
-#include <list>
-#include <map>
-#include <string>
-#include <unordered_map>
-#include <vector>
 #include "com/centreon/engine/customvariable.hh"
-#include "com/centreon/engine/namespace.hh"
 #include "com/centreon/engine/opt.hh"
 #include "com/centreon/engine/retention/object.hh"
 

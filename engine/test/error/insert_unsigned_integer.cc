@@ -19,7 +19,6 @@
 
 #include <limits.h>
 #include <string.h>
-#include <sstream>
 #include "com/centreon/engine/exceptions/error.hh"
 
 using namespace com::centreon::engine;

@@ -20,8 +20,6 @@
 #ifndef CCE_CONFIGURATION_APPLIER_TAG_HH
 #define CCE_CONFIGURATION_APPLIER_TAG_HH
 
-#include "com/centreon/engine/namespace.hh"
-
 CCE_BEGIN()
 
 namespace configuration {

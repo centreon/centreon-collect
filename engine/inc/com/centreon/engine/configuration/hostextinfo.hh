@@ -20,12 +20,10 @@
 #ifndef CCE_CONFIGURATION_HOSTEXTINFO_HH
 #define CCE_CONFIGURATION_HOSTEXTINFO_HH
 
-#include <list>
 #include "com/centreon/engine/configuration/group.hh"
 #include "com/centreon/engine/configuration/object.hh"
 #include "com/centreon/engine/configuration/point_2d.hh"
 #include "com/centreon/engine/configuration/point_3d.hh"
-#include "com/centreon/engine/namespace.hh"
 #include "com/centreon/engine/opt.hh"
 
 CCE_BEGIN()

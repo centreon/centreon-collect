@@ -21,7 +21,6 @@
 #define CCE_STRING_HH
 
 #include <cerrno>
-#include <cstdlib>
 #include <cstring>
 #include <fstream>
 #include <limits>

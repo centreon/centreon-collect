@@ -20,7 +20,6 @@
 #ifndef CCE_DOWNTIMES_DOWTIME_MANAGER_HH
 #define CCE_DOWNTIMES_DOWTIME_MANAGER_HH
 
-#include <map>
 #include "com/centreon/engine/downtimes/downtime.hh"
 
 CCE_BEGIN()

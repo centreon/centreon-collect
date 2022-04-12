@@ -20,9 +20,6 @@
 #include "com/centreon/engine/events/loop.hh"
 
 #include <gtest/gtest.h>
-#include <time.h>
-
-#include <memory>
 
 #include "../test_engine.hh"
 #include "../timeperiod/utils.hh"

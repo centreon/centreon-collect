@@ -18,8 +18,6 @@
 */
 
 #include "com/centreon/engine/commands/command.hh"
-#include <atomic>
-#include <memory>
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/logging/logger.hh"

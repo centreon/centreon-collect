@@ -20,9 +20,7 @@
 #ifndef CCE_CONFIGURATION_APPLIER_SERVICEGROUP_HH
 #define CCE_CONFIGURATION_APPLIER_SERVICEGROUP_HH
 
-#include <map>
 #include "com/centreon/engine/configuration/servicegroup.hh"
-#include "com/centreon/engine/namespace.hh"
 
 CCE_BEGIN()
 

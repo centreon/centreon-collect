@@ -20,7 +20,6 @@
 #ifndef CCE_RETENTION_APPLIER_CONTACT_HH
 #define CCE_RETENTION_APPLIER_CONTACT_HH
 
-#include "com/centreon/engine/namespace.hh"
 #include "com/centreon/engine/retention/contact.hh"
 
 CCE_BEGIN()

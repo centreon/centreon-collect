@@ -20,8 +20,6 @@
 #ifndef CCE_RETENTION_PARSER_HH
 #define CCE_RETENTION_PARSER_HH
 
-#include <string>
-#include "com/centreon/engine/namespace.hh"
 #include "com/centreon/engine/retention/object.hh"
 
 CCE_BEGIN()

@@ -20,17 +20,11 @@
 #ifndef CCE_MOD_EXTCMD_PROCESSING_HH
 #define CCE_MOD_EXTCMD_PROCESSING_HH
 
-#include <cstring>
-#include <map>
-#include <mutex>
-#include <string>
-#include <unordered_map>
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/contact.hh"
 #include "com/centreon/engine/contactgroup.hh"
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/hostgroup.hh"
-#include "com/centreon/engine/namespace.hh"
 #include "com/centreon/engine/service.hh"
 #include "com/centreon/engine/servicegroup.hh"
 

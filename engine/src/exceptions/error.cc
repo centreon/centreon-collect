@@ -18,8 +18,6 @@
 */
 
 #include "com/centreon/engine/exceptions/error.hh"
-#include <cstdio>
-#include <cstring>
 
 #undef error
 

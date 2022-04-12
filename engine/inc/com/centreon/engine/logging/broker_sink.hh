@@ -20,11 +20,9 @@
 #define CCE_LOGGING_BROKER_SINK_HH
 #include <spdlog/details/fmt_helper.h>
 #include <spdlog/sinks/base_sink.h>
-#include <mutex>
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/logging/broker.hh"
 #include "com/centreon/engine/logging/logger.hh"
-#include "com/centreon/engine/namespace.hh"
 #include "com/centreon/engine/nebstructs.hh"
 #include "com/centreon/unique_array_ptr.hh"
 #include "spdlog/details/null_mutex.h"

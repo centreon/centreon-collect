@@ -21,7 +21,6 @@
 #define CCE_BROKER_COMPATIBILITY_HH
 
 #include "com/centreon/engine/broker/handle.hh"
-#include "com/centreon/engine/namespace.hh"
 
 CCE_BEGIN()
 

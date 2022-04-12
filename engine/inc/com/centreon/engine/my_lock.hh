@@ -1,5 +1,3 @@
-#include <iostream>
-#include <string>
 
 template <typename M>
 class my_lock_guard : public std::lock_guard<M> {

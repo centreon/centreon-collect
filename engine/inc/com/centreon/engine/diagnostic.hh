@@ -20,9 +20,6 @@
 #ifndef CCE_DIAGNOSTIC_HH
 #define CCE_DIAGNOSTIC_HH
 
-#include <string>
-#include "com/centreon/engine/namespace.hh"
-
 CCE_BEGIN()
 
 /**

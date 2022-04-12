@@ -18,15 +18,11 @@
 */
 
 #include <csignal>
-#include <cstdlib>
 #include <fstream>
 #ifdef HAVE_GETOPT_H
 #include <getopt.h>
 #endif  // HAVE_GETOPT_H
 #include <unistd.h>
-#include <iostream>
-#include <sstream>
-#include <string>
 #include "com/centreon/process.hh"
 #include "engine_cfg.hh"
 

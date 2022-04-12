@@ -17,8 +17,6 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <cstdlib>
-#include <exception>
 #include "com/centreon/engine/commands/result.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/process.hh"

@@ -2,9 +2,6 @@
 #define CCE_ENGINERPC_ENGINERPC_HH
 
 #include <grpcpp/server.h>
-#include <memory>
-#include <string>
-#include "com/centreon/engine/namespace.hh"
 #include "engine_impl.hh"
 
 CCE_BEGIN()

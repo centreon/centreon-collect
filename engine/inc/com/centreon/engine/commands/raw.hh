@@ -20,11 +20,7 @@
 #ifndef CCE_COMMANDS_RAW_HH
 #define CCE_COMMANDS_RAW_HH
 
-#include <deque>
-#include <mutex>
-#include <string>
 #include "com/centreon/engine/commands/command.hh"
-#include "com/centreon/engine/namespace.hh"
 #include "com/centreon/process.hh"
 #include "com/centreon/process_listener.hh"
 

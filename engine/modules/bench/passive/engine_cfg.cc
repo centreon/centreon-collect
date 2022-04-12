@@ -20,10 +20,7 @@
 #include "engine_cfg.hh"
 #include <sys/stat.h>
 #include <unistd.h>
-#include <cstdio>
-#include <cstdlib>
 #include <fstream>
-#include <sstream>
 #include "paths.hh"
 
 /**

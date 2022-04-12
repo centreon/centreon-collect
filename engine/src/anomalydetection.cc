@@ -19,10 +19,6 @@
 
 #include "com/centreon/engine/anomalydetection.hh"
 
-#include <cmath>
-#include <cstring>
-#include <limits>
-
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/globals.hh"

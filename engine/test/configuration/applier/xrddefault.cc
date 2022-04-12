@@ -24,13 +24,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <unistd.h>
 #include <cerrno>
-#include <cstdio>
-#include <cstdlib>
-#include <iomanip>
-#include <sstream>
-#include <string>
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/flapping.hh"
 #include "com/centreon/engine/globals.hh"

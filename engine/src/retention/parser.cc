@@ -19,9 +19,7 @@
 
 #include "com/centreon/engine/retention/parser.hh"
 
-#include <array>
 #include <fstream>
-#include <string>
 
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/retention/state.hh"

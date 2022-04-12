@@ -19,8 +19,7 @@
 
 #include "com/centreon/engine/downtimes/downtime_finder.hh"
 #include <gtest/gtest.h>
-#include <map>
-#include <memory>
+
 #include "com/centreon/clib.hh"
 #include "com/centreon/engine/downtimes/downtime.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"

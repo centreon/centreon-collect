@@ -21,9 +21,6 @@
 #define CCE_SEVERITY_HH
 
 #include <absl/container/flat_hash_map.h>
-#include <memory>
-#include <ostream>
-#include "com/centreon/engine/namespace.hh"
 
 /* Forward declaration. */
 namespace com::centreon::engine {

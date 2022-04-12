@@ -108,9 +108,7 @@ print qq(/*
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <cstdio>
 #include <fstream>
-#include <iostream>
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/logging/logger.hh"

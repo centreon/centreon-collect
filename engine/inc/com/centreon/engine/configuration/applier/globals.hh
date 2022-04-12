@@ -20,9 +20,7 @@
 #ifndef CCE_CONFIGURATION_APPLIER_GLOBALS_HH
 #define CCE_CONFIGURATION_APPLIER_GLOBALS_HH
 
-#include <string>
 #include "com/centreon/engine/configuration/state.hh"
-#include "com/centreon/engine/namespace.hh"
 
 CCE_BEGIN()
 

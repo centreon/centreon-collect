@@ -19,8 +19,6 @@
 
 #include "com/centreon/engine/configuration/state.hh"
 
-#include <limits>
-
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"

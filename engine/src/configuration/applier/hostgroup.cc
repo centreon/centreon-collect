@@ -18,7 +18,7 @@
 */
 
 #include "com/centreon/engine/configuration/applier/hostgroup.hh"
-#include <memory>
+
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"

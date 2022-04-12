@@ -21,11 +21,7 @@
 #ifndef CCE_MACROS_GRAB_HH
 #define CCE_MACROS_GRAB_HH
 
-#include <time.h>
-#include <iomanip>
-#include <sstream>
 #include "com/centreon/engine/macros/process.hh"
-#include "com/centreon/engine/namespace.hh"
 #include "com/centreon/engine/string.hh"
 
 CCE_BEGIN()

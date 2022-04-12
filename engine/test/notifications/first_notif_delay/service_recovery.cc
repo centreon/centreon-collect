@@ -17,9 +17,8 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <cstdio>
 #include <cstring>
-#include <ctime>
+
 #include "com/centreon/engine/check_result.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"

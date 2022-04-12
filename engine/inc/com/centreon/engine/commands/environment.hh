@@ -21,9 +21,6 @@
 #ifndef CCE_COMMANDS_ENVIRONMENT_HH
 #define CCE_COMMANDS_ENVIRONMENT_HH
 
-#include <string>
-#include "com/centreon/engine/namespace.hh"
-
 CCE_BEGIN()
 
 namespace commands {

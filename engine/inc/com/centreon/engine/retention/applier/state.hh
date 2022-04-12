@@ -20,7 +20,6 @@
 #ifndef CCE_RETENTION_APPLIER_STATE_HH
 #define CCE_RETENTION_APPLIER_STATE_HH
 
-#include "com/centreon/engine/namespace.hh"
 #include "com/centreon/engine/retention/state.hh"
 
 CCE_BEGIN()

@@ -19,7 +19,7 @@
 
 #include "com/centreon/engine/configuration/contact.hh"
 #include <gtest/gtest.h>
-#include <memory>
+
 #include "helper.hh"
 
 using namespace com::centreon;

@@ -18,7 +18,6 @@
 */
 
 #include "com/centreon/engine/configuration/group.hh"
-#include <algorithm>
 #include "com/centreon/engine/string.hh"
 
 using namespace com::centreon::engine::configuration;

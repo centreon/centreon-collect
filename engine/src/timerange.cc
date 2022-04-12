@@ -1,31 +1,25 @@
 /*
-** Copyright 2011-2013 Merethis
+** Copyright 2022 Centreon
 **
-** This file is part of Centreon Engine.
+** Licensed under the Apache License, Version 2.0 (the "License");
+** you may not use this file except in compliance with the License.
+** You may obtain a copy of the License at
 **
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
+**     http://www.apache.org/licenses/LICENSE-2.0
 **
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
+** Unless required by applicable law or agreed to in writing, software
+** distributed under the License is distributed on an "AS IS" BASIS,
+** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+** See the License for the specific language governing permissions and
+** limitations under the License.
 **
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
+** For more information : contact@centreon.com
 */
 
 #include "com/centreon/engine/timerange.hh"
-#include <array>
-#include <iomanip>
-#include "com/centreon/engine/daterange.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
-#include "com/centreon/engine/string.hh"
-#include "com/centreon/engine/timeperiod.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::logging;
@@ -53,41 +47,7 @@ timerange::timerange(uint64_t start, uint64_t end) {
   _range_end = end;
 }
 
-uint64_t timerange::get_range_start() const {
-  return _range_start;
-}
-
-uint64_t timerange::get_range_end() const {
-  return _range_end;
-}
-
-/**
- *  Equal operator.
- *
- *  @param[in] obj1 The first object to compare.
- *  @param[in] obj2 The second object to compare.
- *
- *  @return True if is the same object, otherwise false.
- */
-bool timerange::operator==(timerange const& obj) noexcept {
-  if (_range_start == obj.get_range_start() &&
-      _range_end == obj.get_range_end()) {
-    return true;
-  }
-  return false;
-}
-
-/**
- *  Not equal operator.
- *
- *  @param[in] obj1 The first object to compare.
- *  @param[in] obj2 The second object to compare.
- *
- *  @return True if is not the same object, otherwise false.
- */
-bool timerange::operator!=(timerange const& obj) noexcept {
-  return !(*this == obj);
-}
+CCE_BEGIN()
 
 /**
  *  Dump timerange content into the stream.
@@ -120,6 +80,8 @@ std::ostream& operator<<(std::ostream& os, timerange const& obj) {
 std::ostream& operator<<(std::ostream& os, timerange_list const& obj) {
   for (timerange_list::const_iterator it(obj.begin()), end(obj.end());
        it != end; ++it)
-    os << **it << ((next(it) == obj.end()) ? "" : ", ");
+    os << *it << ((next(it) == obj.end()) ? "" : ", ");
   return os;
 }
+
+CCE_END()

@@ -17,9 +17,8 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <exception>
 #include <fstream>
-#include <string>
+
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/modules/external_commands/commands.hh"
