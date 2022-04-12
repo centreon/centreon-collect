@@ -180,15 +180,19 @@ TEST_F(HostDowntimeNotification, SimpleHostDowntimeNotifyContactExitingUp) {
   _host->set_accept_passive_checks(true);
 
   testing::internal::CaptureStdout();
-  now += 300;
-  std::cout << "NOW = " << now << std::endl;
-  set_time(now);
   std::ostringstream oss;
-  oss << '[' << now << ']'
-      << " PROCESS_HOST_CHECK_RESULT;test_host;1;Down host";
-  std::string cmd{oss.str()};
-  process_external_command(cmd.c_str());
-  checks::checker::instance().reap();
+  std::string cmd;
+  for (int i = 0; i < 3; i++) {
+    now += 300;
+    std::cout << "NOW = " << now << std::endl;
+    set_time(now);
+    oss.str("");
+    oss << '[' << now << ']'
+        << " PROCESS_HOST_CHECK_RESULT;test_host;1;Down host";
+    cmd = oss.str();
+    process_external_command(cmd.c_str());
+    checks::checker::instance().reap();
+  }
 
   _host->set_scheduled_downtime_depth(2);
 
@@ -214,12 +218,12 @@ TEST_F(HostDowntimeNotification, SimpleHostDowntimeNotifyContactExitingUp) {
 
   std::string out{testing::internal::GetCapturedStdout()};
   std::cout << out << std::endl;
-  size_t step1{out.find("NOW = 50300")};
+  size_t step1{out.find("NOW = 50900")};
   ASSERT_NE(step1, std::string::npos);
   size_t step2{out.find("HOST NOTIFICATION: admin;test_host;DOWN;cmd;Down host",
                         step1 + 1)};
   ASSERT_NE(step2, std::string::npos);
-  size_t step3{out.find("NOW = 50600", step2 + 1)};
+  size_t step3{out.find("NOW = 51500", step2 + 1)};
   ASSERT_NE(step3, std::string::npos);
   size_t step4{
       out.find("HOST NOTIFICATION: admin;test_host;RECOVERY (UP);cmd;Host up",

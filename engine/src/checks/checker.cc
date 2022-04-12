@@ -36,6 +36,7 @@ using namespace com::centreon::engine::logging;
 using namespace com::centreon::engine::checks;
 
 checker* checker::_instance = nullptr;
+static constexpr time_t max_check_reaper_time = 30;
 
 /**************************************
  *                                     *
@@ -188,8 +189,8 @@ void checker::reap() {
       // Check if reaping has timed out.
       time_t current_time;
       time(&current_time);
-      if (current_time - reaper_start_time >
-          static_cast<time_t>(config->max_check_reaper_time())) {
+      // Maximum Check Result Reaper Time is set to 30
+      if (current_time - reaper_start_time > max_check_reaper_time) {
         engine_logger(dbg_checks, basic)
             << "Breaking out of check result reaper: "
             << "max reaper time exceeded";
