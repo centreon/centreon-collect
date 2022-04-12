@@ -26,7 +26,7 @@ using namespace com::centreon::broker::bam;
  *  @return Evaluation of the expression with hard values.
  */
 double bool_or::value_hard() {
-  return _left_hard || _right_hard;
+  return _left_hard != 0 || _right_hard != 0;
 }
 
 /**
@@ -35,5 +35,5 @@ double bool_or::value_hard() {
  *  @return Evaluation of the expression with soft values.
  */
 double bool_or::value_soft() {
-  return _left_soft || _right_soft;
+  return _left_soft != 0 || _right_soft != 0;
 }
