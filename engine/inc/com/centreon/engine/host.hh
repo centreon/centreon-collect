@@ -167,7 +167,7 @@ class host : public notifier {
   static void check_for_orphaned();
   static void check_result_freshness();
 
-  enum host_state determine_host_reachability();
+  enum host_state determine_host_reachability(enum host_state new_state);
   bool recovered() const override;
   int get_current_state_int() const override;
   std::string const& get_current_state_as_string() const override;

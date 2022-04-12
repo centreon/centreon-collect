@@ -146,8 +146,6 @@ std::unordered_map<std::string, state::setter_func> const state::_setters{
     {"low_host_flap_threshold", SETTER(float, low_host_flap_threshold)},
     {"low_service_flap_threshold", SETTER(float, low_service_flap_threshold)},
     {"macros_filter", SETTER(std::string const&, macros_filter)},
-    {"max_check_result_reaper_time",
-     SETTER(unsigned int, max_check_reaper_time)},
     {"max_concurrent_checks",
      SETTER(unsigned int, max_parallel_service_checks)},
     {"max_debug_file_size", SETTER(unsigned long, max_debug_file_size)},
@@ -167,8 +165,6 @@ std::unordered_map<std::string, state::setter_func> const state::_setters{
     {"ocsp_command", SETTER(std::string const&, ocsp_command)},
     {"ocsp_timeout", SETTER(unsigned int, ocsp_timeout)},
     {"p1_file", SETTER(std::string const&, _set_p1_file)},
-    {"passive_host_checks_are_soft",
-     SETTER(bool, passive_host_checks_are_soft)},
     {"perfdata_timeout", SETTER(int, perfdata_timeout)},
     {"poller_name", SETTER(std::string const&, poller_name)},
     {"poller_id", SETTER(uint32_t, poller_id)},
@@ -222,8 +218,6 @@ std::unordered_map<std::string, state::setter_func> const state::_setters{
     {"temp_file", SETTER(std::string const&, _set_temp_file)},
     {"temp_path", SETTER(std::string const&, _set_temp_path)},
     {"time_change_threshold", SETTER(unsigned int, time_change_threshold)},
-    {"translate_passive_host_checks",
-     SETTER(bool, translate_passive_host_checks)},
     {"use_aggressive_host_checking",
      SETTER(bool, use_aggressive_host_checking)},
     {"use_agressive_host_checking", SETTER(bool, use_aggressive_host_checking)},
@@ -314,7 +308,8 @@ static state::perfdata_file_mode const default_host_perfdata_file_mode(
     state::mode_pipe);
 static unsigned int const default_host_perfdata_file_processing_interval(0);
 static std::string const default_host_perfdata_file_template(
-    "[HOSTPERFDATA]\t$TIMET$\t$HOSTNAME$\t$HOSTEXECUTIONTIME$\t$HOSTOUTPUT$\t$"
+    "[HOSTPERFDATA]\t$TIMET$\t$HOSTNAME$\t$HOSTEXECUTIONTIME$\t$HOSTOUTPUT$"
+    "\t$"
     "HOSTPERFDATA$");
 static std::string const default_illegal_object_chars("");
 static std::string const default_illegal_output_chars("`~$&|'\"<>");
@@ -329,7 +324,6 @@ static bool const default_log_pid(true);
 static bool const default_log_service_retries(false);
 static float const default_low_host_flap_threshold(20.0);
 static float const default_low_service_flap_threshold(20.0);
-static unsigned int const default_max_check_reaper_time(30);
 static unsigned long const default_max_debug_file_size(1000000);
 static unsigned int const default_max_host_check_spread(5);
 static unsigned long const default_max_log_file_size(0);
@@ -343,7 +337,6 @@ static std::string const default_ochp_command("");
 static unsigned int const default_ochp_timeout(15);
 static std::string const default_ocsp_command("");
 static unsigned int const default_ocsp_timeout(15);
-static bool const default_passive_host_checks_are_soft(false);
 static int const default_perfdata_timeout(5);
 static bool const default_process_performance_data(false);
 static unsigned long const default_retained_contact_host_attribute_mask(0L);
@@ -372,7 +365,6 @@ static std::string const default_state_retention_file(DEFAULT_RETENTION_FILE);
 static std::string const default_status_file(DEFAULT_STATUS_FILE);
 static unsigned int const default_status_update_interval(60);
 static unsigned int const default_time_change_threshold(900);
-static bool const default_translate_passive_host_checks(false);
 static bool const default_use_large_installation_tweaks(false);
 static uint32_t const default_instance_heartbeat_interval(30);
 static bool const default_use_regexp_matches(false);
@@ -466,7 +458,6 @@ state::state()
       _log_service_retries(default_log_service_retries),
       _low_host_flap_threshold(default_low_host_flap_threshold),
       _low_service_flap_threshold(default_low_service_flap_threshold),
-      _max_check_reaper_time(default_max_check_reaper_time),
       _max_debug_file_size(default_max_debug_file_size),
       _max_host_check_spread(default_max_host_check_spread),
       _max_log_file_size(default_max_log_file_size),
@@ -480,7 +471,6 @@ state::state()
       _ochp_timeout(default_ochp_timeout),
       _ocsp_command(default_ocsp_command),
       _ocsp_timeout(default_ocsp_timeout),
-      _passive_host_checks_are_soft(default_passive_host_checks_are_soft),
       _perfdata_timeout(default_perfdata_timeout),
       _poller_name{"unknown"},
       _poller_id{0},
@@ -513,7 +503,6 @@ state::state()
       _status_file(default_status_file),
       _status_update_interval(default_status_update_interval),
       _time_change_threshold(default_time_change_threshold),
-      _translate_passive_host_checks(default_translate_passive_host_checks),
       _use_large_installation_tweaks(default_use_large_installation_tweaks),
       _instance_heartbeat_interval(default_instance_heartbeat_interval),
       _use_regexp_matches(default_use_regexp_matches),
@@ -640,7 +629,6 @@ state& state::operator=(state const& right) {
     _low_host_flap_threshold = right._low_host_flap_threshold;
     _low_service_flap_threshold = right._low_service_flap_threshold;
     _macros_filter = right._macros_filter;
-    _max_check_reaper_time = right._max_check_reaper_time;
     _max_debug_file_size = right._max_debug_file_size;
     _max_host_check_spread = right._max_host_check_spread;
     _max_log_file_size = right._max_log_file_size;
@@ -653,7 +641,6 @@ state& state::operator=(state const& right) {
     _ochp_timeout = right._ochp_timeout;
     _ocsp_command = right._ocsp_command;
     _ocsp_timeout = right._ocsp_timeout;
-    _passive_host_checks_are_soft = right._passive_host_checks_are_soft;
     _perfdata_timeout = right._perfdata_timeout;
     _poller_name = right._poller_name;
     _poller_id = right._poller_id;
@@ -692,7 +679,6 @@ state& state::operator=(state const& right) {
     _status_update_interval = right._status_update_interval;
     _timeperiods = right._timeperiods;
     _time_change_threshold = right._time_change_threshold;
-    _translate_passive_host_checks = right._translate_passive_host_checks;
     _users = right._users;
     _use_large_installation_tweaks = right._use_large_installation_tweaks;
     _use_regexp_matches = right._use_regexp_matches;
@@ -806,7 +792,6 @@ bool state::operator==(state const& right) const noexcept {
       _low_host_flap_threshold == right._low_host_flap_threshold &&
       _low_service_flap_threshold == right._low_service_flap_threshold &&
       _macros_filter == right._macros_filter &&
-      _max_check_reaper_time == right._max_check_reaper_time &&
       _max_debug_file_size == right._max_debug_file_size &&
       _max_host_check_spread == right._max_host_check_spread &&
       _max_log_file_size == right._max_log_file_size &&
@@ -819,7 +804,6 @@ bool state::operator==(state const& right) const noexcept {
       _ochp_timeout == right._ochp_timeout &&
       _ocsp_command == right._ocsp_command &&
       _ocsp_timeout == right._ocsp_timeout &&
-      _passive_host_checks_are_soft == right._passive_host_checks_are_soft &&
       _perfdata_timeout == right._perfdata_timeout &&
       _poller_name == right._poller_name && _poller_id == right._poller_id &&
       _rpc_port == right._rpc_port &&
@@ -860,7 +844,6 @@ bool state::operator==(state const& right) const noexcept {
       _status_update_interval == right._status_update_interval &&
       _timeperiods == right._timeperiods &&
       _time_change_threshold == right._time_change_threshold &&
-      _translate_passive_host_checks == right._translate_passive_host_checks &&
       _users == right._users &&
       _use_large_installation_tweaks == right._use_large_installation_tweaks &&
       _use_regexp_matches == right._use_regexp_matches &&
@@ -1791,7 +1774,8 @@ bool state::enable_predictive_service_dependency_checks() const noexcept {
 /**
  *  Set enable_predictive_service_dependency_checks value.
  *
- *  @param[in] value The new enable_predictive_service_dependency_checks value.
+ *  @param[in] value The new enable_predictive_service_dependency_checks
+ * value.
  */
 void state::enable_predictive_service_dependency_checks(bool value) {
   _enable_predictive_service_dependency_checks = value;
@@ -2234,8 +2218,8 @@ void state::host_perfdata_file_mode(perfdata_file_mode value) {
  *
  *  @return The host_perfdata_file_processing_command value.
  */
-std::string const& state::host_perfdata_file_processing_command()
-    const noexcept {
+std::string const& state::host_perfdata_file_processing_command() const
+    noexcept {
   return _host_perfdata_file_processing_command;
 }
 
@@ -2533,26 +2517,6 @@ void state::low_service_flap_threshold(float value) {
 }
 
 /**
- *  Get max_check_reaper_time value.
- *
- *  @return The max_check_reaper_time value.
- */
-unsigned int state::max_check_reaper_time() const noexcept {
-  return _max_check_reaper_time;
-}
-
-/**
- *  Set max_check_reaper_time value.
- *
- *  @param[in] value The new max_check_reaper_time value.
- */
-void state::max_check_reaper_time(unsigned int value) {
-  if (!value)
-    throw engine_error() << "max_check_reaper_time cannot be 0";
-  _max_check_reaper_time = value;
-}
-
-/**
  *  Get max_debug_file_size value.
  *
  *  @return The max_debug_file_size value.
@@ -2794,24 +2758,6 @@ void state::ocsp_timeout(unsigned int value) {
   if (!value)
     throw engine_error() << "ocsp_timeout cannot be 0";
   _ocsp_timeout = value;
-}
-
-/**
- *  Get passive_host_checks_are_soft value.
- *
- *  @return The passive_host_checks_are_soft value.
- */
-bool state::passive_host_checks_are_soft() const noexcept {
-  return _passive_host_checks_are_soft;
-}
-
-/**
- *  Set passive_host_checks_are_soft value.
- *
- *  @param[in] value The new passive_host_checks_are_soft value.
- */
-void state::passive_host_checks_are_soft(bool value) {
-  _passive_host_checks_are_soft = value;
 }
 
 /**
@@ -3319,8 +3265,8 @@ void state::service_freshness_check_interval(unsigned int value) {
  *
  *  @return The service_inter_check_delay_method value.
  */
-state::inter_check_delay state::service_inter_check_delay_method()
-    const noexcept {
+state::inter_check_delay state::service_inter_check_delay_method() const
+    noexcept {
   return _service_inter_check_delay_method;
 }
 
@@ -3338,8 +3284,8 @@ void state::service_inter_check_delay_method(inter_check_delay value) {
  *
  *  @return The service_interleave_factor_method value.
  */
-state::interleave_factor state::service_interleave_factor_method()
-    const noexcept {
+state::interleave_factor state::service_interleave_factor_method() const
+    noexcept {
   return _service_interleave_factor_method;
 }
 
@@ -3411,8 +3357,8 @@ void state::service_perfdata_file_mode(perfdata_file_mode value) {
  *
  *  @return The service_perfdata_file_processing_command value.
  */
-std::string const& state::service_perfdata_file_processing_command()
-    const noexcept {
+std::string const& state::service_perfdata_file_processing_command() const
+    noexcept {
   return _service_perfdata_file_processing_command;
 }
 
@@ -3663,30 +3609,12 @@ void state::time_change_threshold(unsigned int value) {
 }
 
 /**
- *  Get translate_passive_host_checks value.
- *
- *  @return The translate_passive_host_checks value.
- */
-bool state::translate_passive_host_checks() const noexcept {
-  return _translate_passive_host_checks;
-}
-
-/**
- *  Set translate_passive_host_checks value.
- *
- *  @param[in] value The new translate_passive_host_checks value.
- */
-void state::translate_passive_host_checks(bool value) {
-  _translate_passive_host_checks = value;
-}
-
-/**
  *  Get user resources.
  *
  *  @return The users resources list.
  */
-std::unordered_map<std::string, std::string> const& state::user()
-    const noexcept {
+std::unordered_map<std::string, std::string> const& state::user() const
+    noexcept {
   return _users;
 }
 
@@ -3735,7 +3663,8 @@ void state::use_aggressive_host_checking(bool value __attribute__((unused))) {
       << "Warning: use_aggressive_host_checking is deprecated."
          " This option is no more supported since version 21.04.";
   log_v2::config()->warn(
-      "Warning: use_aggressive_host_checking is deprecated. This option is no "
+      "Warning: use_aggressive_host_checking is deprecated. This option is "
+      "no "
       "more supported since version 21.04.");
   ++config_warnings;
 }

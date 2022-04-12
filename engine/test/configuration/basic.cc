@@ -149,8 +149,6 @@ static std::map<std::string, std::string> build_configuration(
   var["retained_contact_service_attribute_mask"] = obj2str(my_rand(0));
   var["obsess_over_services"] = obj2str(my_rand(0, 1));
   var["obsess_over_hosts"] = obj2str(my_rand(0, 1));
-  var["translate_passive_host_checks"] = obj2str(my_rand(0, 1));
-  var["passive_host_checks_are_soft"] = obj2str(my_rand(0, 1));
   var["service_check_timeout"] = obj2str(my_rand(1));
   var["host_check_timeout"] = obj2str(my_rand(1));
   var["event_handler_timeout"] = obj2str(my_rand(1));
@@ -176,7 +174,6 @@ static std::map<std::string, std::string> build_configuration(
   var["max_concurrent_checks"] = obj2str(my_rand(0));
   var["check_result_reaper_frequency"] = obj2str(my_rand(1));
   var["service_reaper_frequency"] = var["check_result_reaper_frequency"];
-  var["max_check_result_reaper_time"] = obj2str(my_rand(1));
   var["sleep_time"] = obj2str(my_rand(0.1f, 10000.0f));
   var["interval_length"] = obj2str(my_rand(1, 10000));
   var["check_external_commands"] = obj2str(my_rand(0, 1));
@@ -371,16 +368,6 @@ void test_configuration(std::string const& filename,
     throw(engine_error() << "obsess_over_hosts: init with '"
                          << my_conf["obsess_over_hosts"] << "'");
   }
-  if (my_conf["translate_passive_host_checks"] !=
-      obj2str(config->translate_passive_host_checks())) {
-    throw(engine_error() << "translate_passive_host_checks: init with '"
-                         << my_conf["translate_passive_host_checks"] << "'");
-  }
-  if (my_conf["passive_host_checks_are_soft"] !=
-      obj2str(config->passive_host_checks_are_soft())) {
-    throw(engine_error() << "passive_host_checks_are_soft: init with '"
-                         << my_conf["passive_host_checks_are_soft"] << "'");
-  }
   if (my_conf["service_check_timeout"] !=
       obj2str(config->service_check_timeout())) {
     throw(engine_error() << "service_check_timeout: init with '"
@@ -499,11 +486,6 @@ void test_configuration(std::string const& filename,
       obj2str(config->check_reaper_interval())) {
     throw(engine_error() << "service_reaper_frequency: init with '"
                          << my_conf["service_reaper_frequency"] << "'");
-  }
-  if (my_conf["max_check_result_reaper_time"] !=
-      obj2str(config->max_check_reaper_time())) {
-    throw(engine_error() << "max_check_result_reaper_time: init with '"
-                         << my_conf["max_check_result_reaper_time"] << "'");
   }
   if (my_conf["sleep_time"] != obj2str(config->sleep_time())) {
     throw(engine_error() << "sleep_time: init with '" << my_conf["sleep_time"]

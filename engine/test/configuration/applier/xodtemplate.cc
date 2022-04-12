@@ -15381,21 +15381,6 @@ int read_main_config_file(char const* main_config_file) {
       obsess_over_hosts = (atoi(value) > 0) ? true : false;
     }
 
-    else if (!strcmp(variable, "translate_passive_host_checks")) {
-      if (strlen(value) != 1 || value[0] < '0' || value[0] > '1') {
-        if (asprintf(&error_message,
-                     "Illegal value for translate_passive_host_checks")) {
-        }
-        error = true;
-        break;
-      }
-
-      translate_passive_host_checks = (atoi(value) > 0) ? true : false;
-    }
-
-    else if (!strcmp(variable, "passive_host_checks_are_soft"))
-      passive_host_checks_are_soft = (atoi(value) > 0) ? true : false;
-
     else if (!strcmp(variable, "service_check_timeout")) {
       service_check_timeout = atoi(value);
 
@@ -15642,17 +15627,6 @@ int read_main_config_file(char const* main_config_file) {
       if (check_reaper_interval < 1) {
         if (asprintf(&error_message,
                      "Illegal value for check_result_reaper_frequency")) {
-        }
-        error = true;
-        break;
-      }
-    }
-
-    else if (!strcmp(variable, "max_check_result_reaper_time")) {
-      max_check_reaper_time = atoi(value);
-      if (max_check_reaper_time < 1) {
-        if (asprintf(&error_message,
-                     "Illegal value for max_check_result_reaper_time")) {
         }
         error = true;
         break;

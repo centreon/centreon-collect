@@ -47,15 +47,19 @@ TEST_F(HostExternalCommand, AddHostDowntime) {
   set_time(20000);
   time_t now = time(nullptr);
 
-  std::string cmd{"test_srv;1;|"};
-
   testing::internal::CaptureStdout();
-  cmd_process_host_check_result(CMD_PROCESS_HOST_CHECK_RESULT, now,
-                                const_cast<char*>(cmd.c_str()));
-  checks::checker::instance().reap();
+
+  for (int i = 0; i < 3; i++) {
+    now += 300;
+    std::string cmd{"test_srv;1;|"};
+    set_time(now);
+    cmd_process_host_check_result(CMD_PROCESS_HOST_CHECK_RESULT, now,
+                                  const_cast<char*>(cmd.c_str()));
+    checks::checker::instance().reap();
+  }
 
   std::string const& out{testing::internal::GetCapturedStdout()};
-
+  std::cout << out << std::endl;
   ASSERT_NE(out.find("PASSIVE HOST CHECK"), std::string::npos);
   ASSERT_NE(out.find("HOST ALERT"), std::string::npos);
 }
@@ -72,12 +76,15 @@ TEST_F(HostExternalCommand, AddHostDowntimeByIpAddress) {
   set_time(20000);
   time_t now = time(nullptr);
 
-  std::string cmd{"127.0.0.1;1;|"};
-
   testing::internal::CaptureStdout();
-  cmd_process_host_check_result(CMD_PROCESS_HOST_CHECK_RESULT, now,
-                                const_cast<char*>(cmd.c_str()));
-  checks::checker::instance().reap();
+  for (int i = 0; i < 3; i++) {
+    now += 300;
+    std::string cmd{"127.0.0.1;1;|"};
+    set_time(now);
+    cmd_process_host_check_result(CMD_PROCESS_HOST_CHECK_RESULT, now,
+                                  const_cast<char*>(cmd.c_str()));
+    checks::checker::instance().reap();
+  }
 
   std::string const& out{testing::internal::GetCapturedStdout()};
 
