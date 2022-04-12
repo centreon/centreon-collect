@@ -750,6 +750,7 @@ CREATE TABLE `resources` (
   `type` tinyint(3) unsigned NOT NULL COMMENT '0=service, 1=host',
   `status` tinyint(3) unsigned DEFAULT NULL COMMENT 'service: 0=OK, 1=WARNING, 2=CRITICAL, 3=UNKNOWN, 4=PENDING\nhost: 0=UP, 1=DOWN, 2=UNREACHABLE, 4=PENDING',
   `status_ordered` tinyint(3) unsigned DEFAULT NULL COMMENT '0=OK=UP\n1=PENDING\n2=UNKNOWN=UNREACHABLE\n3=WARNING\n4=CRITICAL=DOWN',
+  `last_status_change` bigint(20) unsigned DEFAULT NULL COMMENT 'the last status change timestamp',
   `in_downtime` tinyint(1) NOT NULL DEFAULT 0 COMMENT '0=false, 1=true',
   `acknowledged` tinyint(1) NOT NULL DEFAULT 0 COMMENT '0=false, 1=true',
   `status_confirmed` tinyint(1) DEFAULT NULL COMMENT '0=FALSE=SOFT\n1=TRUE=HARD',
