@@ -18,7 +18,6 @@
 */
 
 #include "com/centreon/engine/commands/forward.hh"
-#include <cstdlib>
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"

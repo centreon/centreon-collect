@@ -18,8 +18,6 @@
  */
 #include "com/centreon/engine/notification.hh"
 
-#include <algorithm>
-
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"

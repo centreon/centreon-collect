@@ -18,7 +18,7 @@
 */
 
 #include <gtest/gtest.h>
-#include <memory>
+
 #include "com/centreon/engine/configuration/parser.hh"
 #include "com/centreon/engine/configuration/service.hh"
 

@@ -17,11 +17,8 @@
  *
  */
 
-#include <fmt/format.h>
 #include <gtest/gtest.h>
-#include <time.h>
 #include <fstream>
-#include <iostream>
 #include "com/centreon/engine/globals.hh"
 
 #include <com/centreon/engine/configuration/applier/command.hh>

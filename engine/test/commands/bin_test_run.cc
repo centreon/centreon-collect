@@ -17,9 +17,6 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <cstdlib>
-#include <cstring>
-#include <iostream>
 #include <thread>
 #include "com/centreon/engine/common.hh"
 

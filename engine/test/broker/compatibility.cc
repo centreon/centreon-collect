@@ -19,7 +19,6 @@
 
 #include "com/centreon/engine/broker/compatibility.hh"
 #include <climits>
-#include <exception>
 #include "com/centreon/engine/broker/loader.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/nebmodules.hh"

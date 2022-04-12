@@ -21,7 +21,6 @@
 #define CCE_DELETER_LISTMEMBER_HH
 
 #include <cstddef>
-#include "com/centreon/engine/namespace.hh"
 
 CCE_BEGIN()
 

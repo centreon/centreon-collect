@@ -18,7 +18,6 @@
 */
 
 #include "com/centreon/engine/checkable.hh"
-#include <sstream>
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/log_v2.hh"
 

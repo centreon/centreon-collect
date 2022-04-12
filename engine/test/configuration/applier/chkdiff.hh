@@ -20,8 +20,6 @@
 #ifndef CCE_TEST_CONFIGURATION_APPLIER_CHKDIFF_HH
 #define CCE_TEST_CONFIGURATION_APPLIER_CHKDIFF_HH
 
-#include <iostream>
-
 /**
  *  Check difference between to map of object.
  *

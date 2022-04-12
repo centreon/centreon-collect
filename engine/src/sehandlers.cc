@@ -19,7 +19,6 @@
 */
 
 #include "com/centreon/engine/sehandlers.hh"
-#include <sstream>
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/downtimes/downtime.hh"

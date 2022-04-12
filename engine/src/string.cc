@@ -19,8 +19,6 @@
 
 #include "com/centreon/engine/string.hh"
 
-#include <cassert>
-
 #include "com/centreon/engine/exceptions/error.hh"
 
 using namespace com::centreon::engine;

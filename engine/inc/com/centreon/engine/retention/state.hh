@@ -20,7 +20,6 @@
 #ifndef CCE_RETENTION_STATE_HH
 #define CCE_RETENTION_STATE_HH
 
-#include "com/centreon/engine/namespace.hh"
 #include "com/centreon/engine/retention/comment.hh"
 #include "com/centreon/engine/retention/contact.hh"
 #include "com/centreon/engine/retention/downtime.hh"

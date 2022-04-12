@@ -46,6 +46,7 @@ add_library(
 )
 # Prettier name.
 set_property(TARGET "externalcmd" PROPERTY PREFIX "")
+target_precompile_headers("externalcmd" PRIVATE ../../precomp_inc/precomp.hh)
 
 set(EXTERNALCMD_MODULE "${EXTERNALCMD_MODULE}" PARENT_SCOPE)
 add_dependencies(externalcmd centreon_clib)

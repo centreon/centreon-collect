@@ -19,9 +19,6 @@
 #ifndef CCE_FIRST_NOTIF_DELAY_COMMON_HH_
 #define CCE_FIRST_NOTIF_DELAY_COMMON_HH_
 
-#include <string>
-#include "com/centreon/engine/namespace.hh"
-
 #define FIRST_NOTIF_DELAY 3
 
 CCE_BEGIN()

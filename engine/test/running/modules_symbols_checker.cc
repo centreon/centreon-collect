@@ -18,7 +18,7 @@
 */
 
 #include <stdlib.h>
-#include <iostream>
+
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/library.hh"
 #include "common.h"

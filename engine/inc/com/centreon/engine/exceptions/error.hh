@@ -20,10 +20,6 @@
 #ifndef CCE_EXCEPTIONS_ERROR_HH
 #define CCE_EXCEPTIONS_ERROR_HH
 
-#include <exception>
-#include <string>
-#include "com/centreon/engine/namespace.hh"
-
 CCE_BEGIN()
 
 namespace exceptions {

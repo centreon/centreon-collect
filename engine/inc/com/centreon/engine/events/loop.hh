@@ -22,10 +22,7 @@
 #ifndef CCE_EVENTS_LOOP_HH
 #define CCE_EVENTS_LOOP_HH
 
-#include <ctime>
-#include <deque>
 #include "com/centreon/engine/events/timed_event.hh"
-#include "com/centreon/engine/namespace.hh"
 
 typedef std::deque<com::centreon::engine::timed_event*> timed_event_list;
 

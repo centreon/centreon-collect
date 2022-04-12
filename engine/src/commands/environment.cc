@@ -19,7 +19,6 @@
 */
 
 #include "com/centreon/engine/commands/environment.hh"
-#include <cstring>
 #include "com/centreon/engine/exceptions/error.hh"
 
 using namespace com::centreon::engine::commands;

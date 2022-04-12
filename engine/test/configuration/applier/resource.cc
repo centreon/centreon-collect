@@ -25,8 +25,6 @@
 #include "com/centreon/io/file_stream.hh"
 #include "test/unittest.hh"
 
-#include <iostream>
-
 using namespace com::centreon;
 using namespace com::centreon::engine;
 

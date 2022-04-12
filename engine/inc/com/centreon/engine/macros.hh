@@ -20,7 +20,6 @@
 
 #ifndef CCE_MACROS_HH
 #define CCE_MACROS_HH
-#include <string>
 #include "com/centreon/engine/macros/clear_host.hh"
 #include "com/centreon/engine/macros/clear_hostgroup.hh"
 #include "com/centreon/engine/macros/clear_service.hh"

@@ -19,8 +19,6 @@
 
 #include "com/centreon/engine/check_result.hh"
 
-#include <string>
-
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"

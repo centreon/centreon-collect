@@ -21,7 +21,6 @@
 #define CCE_RETENTION_APPLIER_HOST_HH
 
 #include "com/centreon/engine/host.hh"
-#include "com/centreon/engine/namespace.hh"
 #include "com/centreon/engine/retention/host.hh"
 
 // Forward declaration.

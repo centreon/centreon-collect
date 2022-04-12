@@ -26,16 +26,8 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <unistd.h>
 
-#include <algorithm>
-#include <cerrno>
-#include <cmath>
 #include <csignal>
-#include <cstdio>
-#include <cstdlib>
-#include <ctime>
-#include <iomanip>
 
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/broker/compatibility.hh"

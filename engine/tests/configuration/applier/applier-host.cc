@@ -18,7 +18,7 @@
  */
 
 #include <gtest/gtest.h>
-#include <memory>
+
 #include "../../timeperiod/utils.hh"
 #include "com/centreon/engine/configuration/applier/command.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"

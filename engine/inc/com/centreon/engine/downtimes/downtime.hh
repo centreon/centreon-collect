@@ -21,7 +21,6 @@
 #ifndef CCE_DOWNTIMES_DOWTIME_HH
 #define CCE_DOWNTIMES_DOWTIME_HH
 
-#include <sstream>
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/service.hh"
 

@@ -18,9 +18,7 @@
  */
 
 #include "com/centreon/engine/downtimes/service_downtime.hh"
-#include <fmt/format.h>
-#include <cstdint>
-#include <map>
+
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"

@@ -19,11 +19,8 @@
 
 #include <fmt/format.h>
 #include <gtest/gtest.h>
-#include <time.h>
 
 #include <cstring>
-#include <iostream>
-#include <memory>
 
 #include <com/centreon/engine/macros.hh>
 #include <com/centreon/engine/macros/grab_host.hh>
@@ -111,7 +108,7 @@ TEST_F(ServiceNotification, SimpleNormalServiceNotification) {
   std::unique_ptr<engine::timeperiod> tperiod{
       new engine::timeperiod("tperiod", "alias")};
   for (int i = 0; i < 7; ++i)
-    tperiod->days[i].push_back(std::make_shared<engine::timerange>(0, 86400));
+    tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0,
@@ -140,7 +137,7 @@ TEST_F(ServiceNotification,
   std::unique_ptr<engine::timeperiod> tperiod{
       new engine::timeperiod("tperiod", "alias")};
   for (int i = 0; i < 7; ++i)
-    tperiod->days[i].push_back(std::make_shared<engine::timerange>(0, 86400));
+    tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0,
@@ -164,7 +161,7 @@ TEST_F(ServiceNotification,
   std::unique_ptr<engine::timeperiod> tperiod{
       new engine::timeperiod("tperiod", "alias")};
   for (int i = 0; i < 7; ++i)
-    tperiod->days[i].push_back(std::make_shared<engine::timerange>(0, 86400));
+    tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0,
@@ -187,8 +184,7 @@ TEST_F(ServiceNotification, SimpleNormalServiceNotificationOutsideTimeperiod) {
 
   uint64_t id{_svc->get_next_notification_id()};
   for (int i = 0; i < 7; ++i)
-    tperiod->days[i].push_back(
-        std::make_shared<engine::timerange>(43200, 86400));
+    tperiod->days[i].emplace_back(43200, 86400);
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0, "", 7,
@@ -211,8 +207,7 @@ TEST_F(ServiceNotification,
 
   uint64_t id{_svc->get_next_notification_id()};
   for (int i = 0; i < 7; ++i)
-    tperiod->days[i].push_back(
-        std::make_shared<engine::timerange>(43200, 86400));
+    tperiod->days[i].emplace_back(43200, 86400);
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0, "", 7,
@@ -233,8 +228,7 @@ TEST_F(ServiceNotification, SimpleNormalServiceNotificationForcedNotification) {
 
   uint64_t id{_svc->get_next_notification_id()};
   for (int i = 0; i < 7; ++i)
-    tperiod->days[i].push_back(
-        std::make_shared<engine::timerange>(43200, 86400));
+    tperiod->days[i].emplace_back(43200, 86400);
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0, "", 7,
@@ -256,7 +250,7 @@ TEST_F(ServiceNotification, SimpleNormalServiceNotificationWithDowntime) {
   _svc->set_scheduled_downtime_depth(30);
   uint64_t id{_svc->get_next_notification_id()};
   for (int i = 0; i < 7; ++i)
-    tperiod->days[i].push_back(std::make_shared<engine::timerange>(0, 86400));
+    tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0, "", 7,
@@ -278,7 +272,7 @@ TEST_F(ServiceNotification, SimpleNormalServiceNotificationWithFlapping) {
   _svc->set_is_flapping(true);
   uint64_t id{_svc->get_next_notification_id()};
   for (int i = 0; i < 7; ++i)
-    tperiod->days[i].push_back(std::make_shared<engine::timerange>(0, 86400));
+    tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0, "", 7,
@@ -300,7 +294,7 @@ TEST_F(ServiceNotification, SimpleNormalServiceNotificationWithSoftState) {
   _svc->set_state_type(checkable::soft);
   uint64_t id{_svc->get_next_notification_id()};
   for (int i = 0; i < 7; ++i)
-    tperiod->days[i].push_back(std::make_shared<engine::timerange>(0, 86400));
+    tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0, "", 7,
@@ -322,7 +316,7 @@ TEST_F(ServiceNotification,
 
   uint64_t id{_svc->get_next_notification_id()};
   for (int i = 0; i < 7; ++i)
-    tperiod->days[i].push_back(std::make_shared<engine::timerange>(0, 86400));
+    tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0, "", 7,
@@ -345,7 +339,7 @@ TEST_F(ServiceNotification,
 
   uint64_t id{_svc->get_next_notification_id()};
   for (int i = 0; i < 7; ++i)
-    tperiod->days[i].push_back(std::make_shared<engine::timerange>(0, 86400));
+    tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0, "", 7,
@@ -369,7 +363,7 @@ TEST_F(ServiceNotification,
 
   uint64_t id{_svc->get_next_notification_id()};
   for (int i = 0; i < 7; ++i)
-    tperiod->days[i].push_back(std::make_shared<engine::timerange>(0, 86400));
+    tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0, "", 7,
@@ -394,7 +388,7 @@ TEST_F(ServiceNotification, SimpleNormalServiceNotificationOnStateNotNotified) {
 
   uint64_t id{_svc->get_next_notification_id()};
   for (int i = 0; i < 7; ++i)
-    tperiod->days[i].push_back(std::make_shared<engine::timerange>(0, 86400));
+    tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0, "", 7,
@@ -419,7 +413,7 @@ TEST_F(ServiceNotification,
 
   uint64_t id{_svc->get_next_notification_id()};
   for (int i = 0; i < 7; ++i)
-    tperiod->days[i].push_back(std::make_shared<engine::timerange>(0, 86400));
+    tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0, "", 7,
@@ -446,7 +440,7 @@ TEST_F(ServiceNotification,
 
   uint64_t id{_svc->get_next_notification_id()};
   for (int i = 0; i < 7; ++i)
-    tperiod->days[i].push_back(std::make_shared<engine::timerange>(0, 86400));
+    tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0, "", 7,
@@ -473,7 +467,7 @@ TEST_F(ServiceNotification,
   std::unique_ptr<engine::timeperiod> tperiod{
       new engine::timeperiod("tperiod", "alias")};
   for (uint32_t i = 0; i < tperiod->days.size(); ++i)
-    tperiod->days[i].push_back(std::make_shared<engine::timerange>(0, 86400));
+    tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0,
@@ -939,7 +933,7 @@ TEST_F(ServiceNotification, WarnCritServiceNotification) {
   std::unique_ptr<engine::timeperiod> tperiod{
       new engine::timeperiod("tperiod", "alias")};
   for (int i = 0; i < 7; ++i)
-    tperiod->days[i].push_back(std::make_shared<engine::timerange>(0, 86400));
+    tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0,
@@ -976,7 +970,7 @@ TEST_F(ServiceNotification, SimpleNormalVolatileServiceNotification) {
   std::unique_ptr<engine::timeperiod> tperiod{
       new engine::timeperiod("tperiod", "alias")};
   for (int i = 0; i < 7; ++i)
-    tperiod->days[i].push_back(std::make_shared<engine::timerange>(0, 86400));
+    tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0,
@@ -1025,7 +1019,7 @@ TEST_F(ServiceNotification, RecoveryNotifEvenIfServiceAcknowledged) {
   std::unique_ptr<engine::timeperiod> tperiod{
       new engine::timeperiod("tperiod", "alias")};
   for (int i = 0; i < 7; ++i)
-    tperiod->days[i].push_back(std::make_shared<engine::timerange>(0, 86400));
+    tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0,
@@ -1086,7 +1080,7 @@ TEST_F(ServiceNotification, SimpleVolatileServiceNotificationWithDowntime) {
   _svc->set_is_volatile(true);
   uint64_t id{_svc->get_next_notification_id()};
   for (int i = 0; i < 7; ++i)
-    tperiod->days[i].push_back(std::make_shared<engine::timerange>(0, 86400));
+    tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0, "", 7,

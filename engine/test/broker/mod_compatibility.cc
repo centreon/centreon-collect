@@ -17,7 +17,6 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <cstring>
 #include "com/centreon/engine/nebmods.hh"
 #include "test/broker/mod_load.hh"
 

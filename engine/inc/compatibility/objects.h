@@ -20,7 +20,6 @@
 #ifndef CCE_COMPATIBILITY_OBJECTS_H
 #define CCE_COMPATIBILITY_OBJECTS_H
 
-#include <time.h>
 #include "com/centreon/engine/commands/command.hh"
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/contact.hh"

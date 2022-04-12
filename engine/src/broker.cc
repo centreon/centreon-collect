@@ -21,8 +21,6 @@
 
 #include "com/centreon/engine/broker.hh"
 #include <unistd.h>
-#include <memory>
-#include <mutex>
 #include "com/centreon/engine/flapping.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/nebstructs.hh"

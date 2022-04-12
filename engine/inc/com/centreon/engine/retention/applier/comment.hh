@@ -20,7 +20,6 @@
 #ifndef CCE_RETENTION_APPLIER_COMMENT_HH
 #define CCE_RETENTION_APPLIER_COMMENT_HH
 
-#include "com/centreon/engine/namespace.hh"
 #include "com/centreon/engine/retention/comment.hh"
 
 CCE_BEGIN()

@@ -20,8 +20,6 @@
 #ifndef CCE_SERVICE_HH
 #define CCE_SERVICE_HH
 
-#include <utility>
-
 #include "com/centreon/engine/check_result.hh"
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/hash.hh"

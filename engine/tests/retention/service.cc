@@ -19,7 +19,7 @@
 
 #include "com/centreon/engine/retention/service.hh"
 #include <gtest/gtest.h>
-#include <ctime>
+
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/retention/dump.hh"
 

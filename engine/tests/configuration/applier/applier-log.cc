@@ -21,7 +21,7 @@
 #include <com/centreon/engine/configuration/applier/hostescalation.hh>
 #include <com/centreon/engine/configuration/parser.hh>
 #include <fstream>
-#include <iostream>
+
 #include "helper.hh"
 
 using namespace com::centreon;

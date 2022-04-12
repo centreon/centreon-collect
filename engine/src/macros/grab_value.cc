@@ -19,7 +19,7 @@
 */
 
 #include "com/centreon/engine/macros/grab_value.hh"
-#include <cstdlib>
+
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/log_v2.hh"

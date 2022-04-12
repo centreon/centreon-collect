@@ -18,11 +18,7 @@
 */
 
 #include <libgen.h>
-#include <cstring>
-#include <ctime>
-#include <exception>
 #include <fstream>
-#include <iostream>
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
 #include "com/centreon/engine/configuration/timeperiod.hh"
 #include "com/centreon/engine/exceptions/error.hh"

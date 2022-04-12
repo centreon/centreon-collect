@@ -17,11 +17,7 @@
  *
  */
 #include "com/centreon/engine/commands/connector.hh"
-#include <unistd.h>
-#include <cstdlib>
 
-#include <array>
-#include <list>
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/log_v2.hh"

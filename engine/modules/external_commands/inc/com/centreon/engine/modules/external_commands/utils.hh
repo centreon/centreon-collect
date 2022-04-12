@@ -20,8 +20,6 @@
 #ifndef CCE_MOD_EXTCMD_UTILS_HH
 #define CCE_MOD_EXTCMD_UTILS_HH
 
-#include <time.h>
-
 #ifdef __cplusplus
 extern "C" {
 #endif  // C++

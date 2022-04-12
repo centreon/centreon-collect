@@ -18,7 +18,7 @@
 */
 
 #include "com/centreon/engine/downtimes/downtime_finder.hh"
-#include <cstdlib>
+
 #include "com/centreon/engine/downtimes/host_downtime.hh"
 #include "com/centreon/engine/downtimes/service_downtime.hh"
 

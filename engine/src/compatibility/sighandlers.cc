@@ -18,10 +18,8 @@
 */
 
 #include "sighandlers.h"
-#include <unistd.h>
 #include <com/centreon/engine/notifier.hh>
 #include <com/centreon/engine/objects.hh>
-#include <cstdlib>
 #include "common.h"
 
 #define HOST_TIMEOUT_OUTPUT "(Host Check Timed Out)\n"

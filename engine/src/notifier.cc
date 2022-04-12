@@ -19,7 +19,6 @@
 
 #include "com/centreon/engine/notifier.hh"
 
-#include <cassert>
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/common.hh"

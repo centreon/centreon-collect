@@ -20,7 +20,6 @@
 #ifndef CCE_LOGGING_DEBUG_FILE_HH
 #define CCE_LOGGING_DEBUG_FILE_HH
 
-#include "com/centreon/engine/namespace.hh"
 #include "com/centreon/logging/file.hh"
 
 CCE_BEGIN()

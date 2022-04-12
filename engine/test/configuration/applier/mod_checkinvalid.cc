@@ -19,9 +19,6 @@
 
 #include <sys/types.h>
 #include <unistd.h>
-#include <cstdlib>
-#include <iostream>
-#include <string>
 #include "backup.hh"
 #include "com/centreon/concurrency/thread.hh"
 #include "com/centreon/engine/broker.hh"

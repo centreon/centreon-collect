@@ -23,9 +23,6 @@
 #ifndef CCE_EVENTS_SCHED_INFO_HH
 #define CCE_EVENTS_SCHED_INFO_HH
 
-#include <time.h>
-#include "com/centreon/engine/namespace.hh"
-
 // Forward declaration.
 CCE_BEGIN()
 class service;
@@ -67,8 +64,6 @@ void display_scheduling_info();
 
 #ifdef __cplusplus
 }
-
-#include <ostream>
 
 bool operator==(sched_info const& obj1, sched_info const& obj2) throw();
 bool operator!=(sched_info const& obj1, sched_info const& obj2) throw();

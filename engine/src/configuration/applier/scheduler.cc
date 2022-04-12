@@ -18,9 +18,6 @@
 */
 
 #include "com/centreon/engine/configuration/applier/scheduler.hh"
-#include <cmath>
-#include <cstddef>
-#include <cstring>
 #include "com/centreon/engine/configuration/applier/difference.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/deleter/listmember.hh"
@@ -1044,9 +1041,8 @@ void applier::scheduler::_schedule_service_events(
                             ++interleave_block_index * total_interleave_blocks);
 
       // set the preferred next check time for the service.
-      s->set_next_check(
-          (time_t)(now +
-                   mult_factor * scheduling_info.service_inter_check_delay));
+      s->set_next_check((time_t)(
+          now + mult_factor * scheduling_info.service_inter_check_delay));
 
       // Make sure the service can actually be scheduled when we want.
       {

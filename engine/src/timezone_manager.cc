@@ -18,8 +18,6 @@
 */
 
 #include "com/centreon/engine/timezone_manager.hh"
-#include <cstdlib>
-#include <ctime>
 
 using namespace com::centreon::engine;
 

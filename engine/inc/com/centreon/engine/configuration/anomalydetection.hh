@@ -20,15 +20,10 @@
 #ifndef CCE_CONFIGURATION_ANOMALYDETECTION_HH
 #define CCE_CONFIGURATION_ANOMALYDETECTION_HH
 
-#include <list>
-#include <memory>
-#include <set>
-#include <utility>
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/configuration/group.hh"
 #include "com/centreon/engine/configuration/object.hh"
 #include "com/centreon/engine/customvariable.hh"
-#include "com/centreon/engine/namespace.hh"
 #include "com/centreon/engine/opt.hh"
 
 CCE_BEGIN()

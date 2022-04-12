@@ -18,7 +18,7 @@
 */
 
 #include "com/centreon/engine/retention/host.hh"
-#include <array>
+
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging.hh"

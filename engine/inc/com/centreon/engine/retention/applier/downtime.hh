@@ -20,7 +20,6 @@
 #ifndef CCE_RETENTION_APPLIER_DOWNTIME_HH
 #define CCE_RETENTION_APPLIER_DOWNTIME_HH
 
-#include "com/centreon/engine/namespace.hh"
 #include "com/centreon/engine/retention/downtime.hh"
 
 CCE_BEGIN()

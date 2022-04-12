@@ -20,16 +20,12 @@
 #ifndef CCE_CONFIGURATION_HOST_HH
 #define CCE_CONFIGURATION_HOST_HH
 
-#include <list>
-#include <memory>
-#include <set>
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/configuration/group.hh"
 #include "com/centreon/engine/configuration/object.hh"
 #include "com/centreon/engine/configuration/point_2d.hh"
 #include "com/centreon/engine/configuration/point_3d.hh"
 #include "com/centreon/engine/customvariable.hh"
-#include "com/centreon/engine/namespace.hh"
 #include "com/centreon/engine/opt.hh"
 
 CCE_BEGIN()
