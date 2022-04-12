@@ -151,7 +151,7 @@ void check::_open() {
         return me->_session->new_channel(me->_channel);
       },
       [me = shared_from_this(), this](int retval) {
-        if (!retval) {
+        if (retval == 0) {
           log::core()->info("check {} channel was successfully opened",
                             _cmd_id);
           _step = e_step::chan_exec;
@@ -233,7 +233,7 @@ void check::_exec() {
         return libssh2_channel_exec(me->_channel, me->_cmds.front().c_str());
       },
       [me = shared_from_this(), this](int retval) {
-        if (!retval) {
+        if (retval == 0) {
           log::core()->info("check {} was successfully executed", _cmd_id);
           _step = e_step::chan_read_stdout;
           _process();

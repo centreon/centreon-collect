@@ -39,9 +39,10 @@ bool_value::bool_value(bool_value const& right) : computable(right) {}
  *
  *  @return This object.
  */
-bool_value& bool_value::operator=(bool_value const& right) {
-  computable::operator=(right);
-  return (*this);
+bool_value& bool_value::operator=(const bool_value& right) {
+  if (this != &right)
+    computable::operator=(right);
+  return *this;
 }
 
 /**
@@ -50,5 +51,5 @@ bool_value& bool_value::operator=(bool_value const& right) {
  *  @return  True if this boolean value is in downtime.
  */
 bool bool_value::in_downtime() const {
-  return (false);
+  return false;
 }

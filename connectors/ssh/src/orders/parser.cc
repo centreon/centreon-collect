@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2014 Centreon
+** Copyright 2011-2014, 2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -31,7 +31,7 @@ parser::parser(
 parser::pointer parser::create(shared_io_context io_context,
                                const std::shared_ptr<policy_interface>& policy,
                                const std::string& test_cmd_file) {
-  pointer ret(new parser(io_context, policy));
+  pointer ret{std::make_shared<parser>(io_context, policy)};
 
   if (!test_cmd_file.empty()) {
     ret->read_file(test_cmd_file);

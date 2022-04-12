@@ -1,5 +1,5 @@
 /*
-** Copyright 2014 Centreon
+** Copyright 2014, 2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -89,7 +89,7 @@ void bool_not::set_value(std::shared_ptr<bool_value>& value) {
  *  @return Hard value.
  */
 double bool_not::value_hard() {
-  return (!_value->value_hard());
+  return _value->value_hard() == 0;
 }
 
 /**
@@ -98,7 +98,7 @@ double bool_not::value_hard() {
  *  @return Soft value.
  */
 double bool_not::value_soft() {
-  return (!_value->value_soft());
+  return _value->value_soft() == 0;
 }
 
 /**
@@ -108,7 +108,6 @@ double bool_not::value_soft() {
  */
 void bool_not::_internal_copy(bool_not const& right) {
   _value = right._value;
-  return;
 }
 
 /**
@@ -117,7 +116,7 @@ void bool_not::_internal_copy(bool_not const& right) {
  *  @return  True if the state is known.
  */
 bool bool_not::state_known() const {
-  return (_value && _value->state_known());
+  return _value && _value->state_known();
 }
 
 /**
@@ -126,5 +125,5 @@ bool bool_not::state_known() const {
  *  @return  True if this expression is in downtime.
  */
 bool bool_not::in_downtime() const {
-  return (_value && _value->in_downtime());
+  return _value && _value->in_downtime();
 }
