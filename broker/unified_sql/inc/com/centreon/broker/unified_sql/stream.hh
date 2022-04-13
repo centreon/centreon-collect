@@ -18,6 +18,7 @@
 #ifndef CCB_UNIFIED_SQL_STREAM_HH
 #define CCB_UNIFIED_SQL_STREAM_HH
 #include <absl/container/flat_hash_map.h>
+#include <absl/container/flat_hash_set.h>
 #include <array>
 #include <atomic>
 #include <condition_variable>
@@ -215,7 +216,7 @@ class stream : public io::stream {
   absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t> _severity_cache;
   absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t> _tags_cache;
 
-  std::unordered_set<uint32_t> _hostgroup_cache;
+  absl::flat_hash_set<uint32_t> _hostgroup_cache;
   std::unordered_set<uint32_t> _servicegroup_cache;
 
   /* The queue of metrics sent in bulk to the database. The insert is done if
