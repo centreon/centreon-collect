@@ -46,8 +46,10 @@ void stream::_clean_tables(uint32_t instance_id) {
   int32_t conn;
 
   if (_store_in_resources) {
+    log_v2::sql()->debug(
+        "unified sql: remove tags memberships (instance_id: {})", instance_id);
     conn = special_conn::tag % _mysql.connections_count();
-    _mysql.run_query("DELETE FROM resources_tags",
+    _mysql.run_query(fmt::format("DELETE rt FROM resources_tags rt LEFT JOIN resources r ON rt.resource_id=r.resource_id WHERE r.poller_id={}", instance_id),
                      database::mysql_error::clean_resources_tags, false, conn);
   }
 
@@ -88,26 +90,27 @@ void stream::_clean_tables(uint32_t instance_id) {
                    false, conn);
   _add_action(conn, actions::servicegroups);
 
-  /* Remove host groups. */
-  log_v2::sql()->debug(
-      "unified sql: remove empty host groups (instance_id: {})", instance_id);
-  _mysql.run_query(
-      "DELETE hg FROM hostgroups AS hg LEFT JOIN hosts_hostgroups AS hhg ON "
-      "hg.hostgroup_id=hhg.hostgroup_id WHERE hhg.hostgroup_id IS NULL",
-      database::mysql_error::clean_empty_hostgroups, false, conn);
-  _add_action(conn, actions::hostgroups);
-
-  /* Remove service groups. */
-  log_v2::sql()->debug(
-      "unified sql: remove empty service groups (instance_id: {})",
-      instance_id);
-
-  _mysql.run_query(
-      "DELETE sg FROM servicegroups AS sg LEFT JOIN services_servicegroups as "
-      "ssg ON sg.servicegroup_id=ssg.servicegroup_id WHERE ssg.servicegroup_id "
-      "IS NULL",
-      database::mysql_error::clean_empty_servicegroups, false, conn);
-  _add_action(conn, actions::servicegroups);
+  //  FIXME DBO: we cannot do that, this leads to issues with several pollers.
+//  /* Remove host groups. */
+//  log_v2::sql()->debug(
+//      "unified sql: remove empty host groups (instance_id: {})", instance_id);
+//  _mysql.run_query(
+//      "DELETE hg FROM hostgroups AS hg LEFT JOIN hosts_hostgroups AS hhg ON "
+//      "hg.hostgroup_id=hhg.hostgroup_id WHERE hhg.hostgroup_id IS NULL",
+//      database::mysql_error::clean_empty_hostgroups, false, conn);
+//  _add_action(conn, actions::hostgroups);
+//
+//  /* Remove service groups. */
+//  log_v2::sql()->debug(
+//      "unified sql: remove empty service groups (instance_id: {})",
+//      instance_id);
+//
+//  _mysql.run_query(
+//      "DELETE sg FROM servicegroups AS sg LEFT JOIN services_servicegroups as "
+//      "ssg ON sg.servicegroup_id=ssg.servicegroup_id WHERE ssg.servicegroup_id "
+//      "IS NULL",
+//      database::mysql_error::clean_empty_servicegroups, false, conn);
+//  _add_action(conn, actions::servicegroups);
 
   /* Remove host dependencies. */
   log_v2::sql()->debug(
