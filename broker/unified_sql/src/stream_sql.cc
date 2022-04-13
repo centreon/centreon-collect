@@ -49,8 +49,11 @@ void stream::_clean_tables(uint32_t instance_id) {
     log_v2::sql()->debug(
         "unified sql: remove tags memberships (instance_id: {})", instance_id);
     conn = special_conn::tag % _mysql.connections_count();
-    _mysql.run_query(fmt::format("DELETE rt FROM resources_tags rt LEFT JOIN resources r ON rt.resource_id=r.resource_id WHERE r.poller_id={}", instance_id),
-                     database::mysql_error::clean_resources_tags, false, conn);
+    _mysql.run_query(
+        fmt::format("DELETE rt FROM resources_tags rt LEFT JOIN resources r ON "
+                    "rt.resource_id=r.resource_id WHERE r.poller_id={}",
+                    instance_id),
+        database::mysql_error::clean_resources_tags, false, conn);
   }
 
   conn = _mysql.choose_connection_by_instance(instance_id);
@@ -89,28 +92,6 @@ void stream::_clean_tables(uint32_t instance_id) {
   _mysql.run_query(query, database::mysql_error::clean_servicegroup_members,
                    false, conn);
   _add_action(conn, actions::servicegroups);
-
-  //  FIXME DBO: we cannot do that, this leads to issues with several pollers.
-//  /* Remove host groups. */
-//  log_v2::sql()->debug(
-//      "unified sql: remove empty host groups (instance_id: {})", instance_id);
-//  _mysql.run_query(
-//      "DELETE hg FROM hostgroups AS hg LEFT JOIN hosts_hostgroups AS hhg ON "
-//      "hg.hostgroup_id=hhg.hostgroup_id WHERE hhg.hostgroup_id IS NULL",
-//      database::mysql_error::clean_empty_hostgroups, false, conn);
-//  _add_action(conn, actions::hostgroups);
-//
-//  /* Remove service groups. */
-//  log_v2::sql()->debug(
-//      "unified sql: remove empty service groups (instance_id: {})",
-//      instance_id);
-//
-//  _mysql.run_query(
-//      "DELETE sg FROM servicegroups AS sg LEFT JOIN services_servicegroups as "
-//      "ssg ON sg.servicegroup_id=ssg.servicegroup_id WHERE ssg.servicegroup_id "
-//      "IS NULL",
-//      database::mysql_error::clean_empty_servicegroups, false, conn);
-//  _add_action(conn, actions::servicegroups);
 
   /* Remove host dependencies. */
   log_v2::sql()->debug(
@@ -771,7 +752,6 @@ void stream::_process_host_dependency(const std::shared_ptr<io::data>& d) {
  */
 void stream::_process_host_group(const std::shared_ptr<io::data>& d) {
   int32_t conn = special_conn::host_group % _mysql.connections_count();
-  _finish_action(-1, actions::hosts);
 
   // Cast object.
   neb::host_group const& hg{*static_cast<neb::host_group const*>(d.get())};
@@ -783,8 +763,7 @@ void stream::_process_host_group(const std::shared_ptr<io::data>& d) {
 
     _host_group_insupdate << hg;
     _mysql.run_statement(_host_group_insupdate,
-                         database::mysql_error::store_host_group, true, conn);
-    _add_action(conn, actions::hostgroups);
+                         database::mysql_error::store_host_group, false, conn);
     _hostgroup_cache.insert(hg.id);
   }
   // Delete group.
@@ -794,6 +773,7 @@ void stream::_process_host_group(const std::shared_ptr<io::data>& d) {
 
     // Delete group members.
     {
+      _finish_action(-1, actions::hosts);
       std::string query(fmt::format(
           "DELETE hosts_hostgroups FROM hosts_hostgroups LEFT JOIN hosts"
           " ON hosts_hostgroups.host_id=hosts.host_id"
@@ -803,6 +783,7 @@ void stream::_process_host_group(const std::shared_ptr<io::data>& d) {
       _hostgroup_cache.erase(hg.id);
     }
   }
+  _add_action(conn, actions::hostgroups);
 }
 
 /**
@@ -814,7 +795,7 @@ void stream::_process_host_group(const std::shared_ptr<io::data>& d) {
  */
 void stream::_process_host_group_member(const std::shared_ptr<io::data>& d) {
   int32_t conn = special_conn::host_group % _mysql.connections_count();
-  _finish_action(-1, actions::hostgroups | actions::hosts);
+  _finish_action(-1, actions::hosts);
 
   // Cast object.
   neb::host_group_member const& hgm(
@@ -855,7 +836,7 @@ void stream::_process_host_group_member(const std::shared_ptr<io::data>& d) {
         _mysql.run_statement(_host_group_insupdate,
                              database::mysql_error::store_host_group, false,
                              conn);
-        _add_action(conn, actions::hostgroups);
+        _hostgroup_cache.insert(hgm.group_id);
       }
 
       _host_group_member_insert << hgm;
@@ -885,7 +866,7 @@ void stream::_process_host_group_member(const std::shared_ptr<io::data>& d) {
     }
     _host_group_member_delete << hgm;
     _mysql.run_statement(_host_group_member_delete,
-                         database::mysql_error::delete_host_group_member, true,
+                         database::mysql_error::delete_host_group_member, false,
                          conn);
     _add_action(conn, actions::hostgroups);
   }
