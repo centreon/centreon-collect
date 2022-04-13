@@ -251,7 +251,7 @@ int neb::callback_comment(int callback_type, void* data) {
   try {
     // In/Out variables.
     nebstruct_comment_data const* comment_data;
-    std::shared_ptr<neb::comment> comment(new neb::comment);
+    auto comment{std::make_shared<neb::comment>()};
 
     // Fill output var.
     comment_data = static_cast<nebstruct_comment_data*>(data);
@@ -1652,8 +1652,7 @@ int neb::callback_host_status(int callback_type, void* data) {
       if (!(!host_status->current_state  // !(OK or (normal ack and NOK))
             || (!it->second.is_sticky &&
                 (host_status->current_state != it->second.state)))) {
-        std::shared_ptr<neb::acknowledgement> ack(
-            new neb::acknowledgement(it->second));
+        auto ack{std::make_shared<neb::acknowledgement>(it->second)};
         ack->deletion_time = time(nullptr);
         gl_publisher.write(ack);
       }
