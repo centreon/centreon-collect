@@ -14,6 +14,14 @@ if (env.CHANGE_BRANCH) {
   buildBranch = env.CHANGE_BRANCH
 }
 
+echo "DEBUG"
+echo env.BRANCH_NAME
+echo env.GIT_BRANCH_NAME
+echo env.CHANGE_BRANCH
+
+echo "FULL"
+printenv
+
 /*
 ** Branch management
 */
@@ -51,12 +59,20 @@ stage('Build / Unit tests // Packaging / Signing') {
       dir('centreon-collect-centos7') {
         checkout scm
         sh 'docker run -i --entrypoint /src/ci/scripts/collect-unit-tests.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:22.04-testdocker'
-        withSonarQubeEnv('SonarQubeDev') {
-          sh 'ci/scripts/collect-sources-analysis.sh'
-        }
       }
     }
   },
+  {
+  'centos7 SQ analysis': {
+    node("C++") {
+      dir('centreon-colect-centos7') {
+        checkout scm
+        withSonarQubeEnv('SonarQubeDev') {
+          sh 'docker run -i -v "$PWD:/src" -w="/src" --entrypoint ci/collect-sources-analysis --rm -u $(id -u):$(id -g) sonarsource/sonar-scanner-cli:latest "$SONAR_AUTH_TOKEN" "$SONAR_HOST_URL"'
+        }
+      }
+    }
+  }/*,
   'centos7 rpm packaging and signing': {
     node("C++") {
       dir('centreon-collect-centos7') {
@@ -116,7 +132,7 @@ stage('Build / Unit tests // Packaging / Signing') {
       stash name: 'Debian11', includes: 'Debian11/*.deb'
       archiveArtifacts artifacts: "Debian11/*"
     }
-  }  
+  }*/
 }
 
 stage('Quality Gate') {
@@ -125,6 +141,7 @@ stage('Quality Gate') {
   }
 }
 
+/*
 stage('Delivery') {
   node("C++") {
     unstash 'el8-rpms'
@@ -146,4 +163,4 @@ stage('Delivery') {
       }
     }
   }
-}
+}*/
