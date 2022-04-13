@@ -29,7 +29,7 @@ using namespace com::centreon::broker;
 TEST(StorageStatus, Assign) {
   // First object.
   storage::status s1;
-  s1.ctime = 123456789;
+  s1.time = 123456789;
   s1.index_id = 6774;
   s1.interval = 42;
   s1.is_for_rebuild = true;
@@ -38,7 +38,7 @@ TEST(StorageStatus, Assign) {
 
   // Second object.
   storage::status s2;
-  s2.ctime = 654123;
+  s2.time = 654123;
   s2.index_id = 33;
   s2.interval = 78;
   s2.is_for_rebuild = false;
@@ -49,7 +49,7 @@ TEST(StorageStatus, Assign) {
   s2 = s1;
 
   // Change first object.
-  s1.ctime = 741258;
+  s1.time = 741258;
   s1.index_id = 12;
   s1.interval = 36;
   s1.is_for_rebuild = false;
@@ -57,13 +57,13 @@ TEST(StorageStatus, Assign) {
   s1.state = 2;
 
   // Check objects properties values.
-  ASSERT_FALSE(s1.ctime != 741258);
+  ASSERT_FALSE(s1.time != 741258);
   ASSERT_FALSE(s1.index_id != 12);
   ASSERT_FALSE(s1.interval != 36);
   ASSERT_FALSE(s1.is_for_rebuild != false);
   ASSERT_FALSE(s1.rrd_len != 900);
   ASSERT_FALSE(s1.state != 2);
-  ASSERT_FALSE(s2.ctime != 123456789);
+  ASSERT_FALSE(s2.time != 123456789);
   ASSERT_FALSE(s2.index_id != 6774);
   ASSERT_FALSE(s2.interval != 42);
   ASSERT_FALSE(s2.is_for_rebuild != true);
@@ -77,7 +77,7 @@ TEST(StorageStatus, Assign) {
 TEST(StorageStatus, CopyCtor) {
   // First object.
   storage::status s1;
-  s1.ctime = 123456789;
+  s1.time = 123456789;
   s1.index_id = 42;
   s1.interval = 24;
   s1.is_for_rebuild = true;
@@ -88,7 +88,7 @@ TEST(StorageStatus, CopyCtor) {
   storage::status s2(s1);
 
   // Change first object.
-  s1.ctime = 741258;
+  s1.time = 741258;
   s1.index_id = 3612;
   s1.interval = 36;
   s1.is_for_rebuild = false;
@@ -96,13 +96,13 @@ TEST(StorageStatus, CopyCtor) {
   s1.state = 2;
 
   // Check objects properties values.
-  ASSERT_FALSE(s1.ctime != 741258);
+  ASSERT_FALSE(s1.time != 741258);
   ASSERT_FALSE(s1.index_id != 3612);
   ASSERT_FALSE(s1.interval != 36);
   ASSERT_FALSE(s1.is_for_rebuild != false);
   ASSERT_FALSE(s1.rrd_len != 900);
   ASSERT_FALSE(s1.state != 2);
-  ASSERT_FALSE(s2.ctime != 123456789);
+  ASSERT_FALSE(s2.time != 123456789);
   ASSERT_FALSE(s2.index_id != 42);
   ASSERT_FALSE(s2.interval != 24);
   ASSERT_FALSE(s2.is_for_rebuild != true);
@@ -121,7 +121,7 @@ TEST(StorageStatus, DefaultCtor) {
   auto val(io::events::data_type<io::storage, storage::de_status>::value);
 
   // Check properties values.
-  ASSERT_FALSE(s.ctime != 0);
+  ASSERT_FALSE(s.time != 0);
   ASSERT_FALSE(s.index_id != 0);
   ASSERT_FALSE(s.interval != 0);
   ASSERT_FALSE(s.is_for_rebuild != false);
