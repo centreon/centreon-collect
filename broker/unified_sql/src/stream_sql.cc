@@ -754,7 +754,7 @@ void stream::_process_host_group(const std::shared_ptr<io::data>& d) {
   int32_t conn = special_conn::host_group % _mysql.connections_count();
 
   // Cast object.
-  neb::host_group const& hg{*static_cast<neb::host_group const*>(d.get())};
+  const neb::host_group& hg{*static_cast<const neb::host_group*>(d.get())};
 
   if (hg.enabled) {
     log_v2::sql()->info("SQL: enabling host group {} ('{}' on instance {})",
@@ -798,8 +798,8 @@ void stream::_process_host_group_member(const std::shared_ptr<io::data>& d) {
   _finish_action(-1, actions::hosts);
 
   // Cast object.
-  neb::host_group_member const& hgm(
-      *static_cast<neb::host_group_member const*>(d.get()));
+  const neb::host_group_member& hgm{
+      *static_cast<const neb::host_group_member*>(d.get())};
 
   if (hgm.enabled) {
     // Log message.
@@ -1918,11 +1918,10 @@ void stream::_process_service_dependency(const std::shared_ptr<io::data>& d) {
  */
 void stream::_process_service_group(const std::shared_ptr<io::data>& d) {
   int32_t conn = special_conn::service_group % _mysql.connections_count();
-  _finish_action(-1, actions::hosts | actions::services);
 
   // Cast object.
-  neb::service_group const& sg(
-      *static_cast<neb::service_group const*>(d.get()));
+  const neb::service_group& sg{
+      *static_cast<const neb::service_group*>(d.get())};
 
   // Insert/update group.
   if (sg.enabled) {
@@ -1932,9 +1931,8 @@ void stream::_process_service_group(const std::shared_ptr<io::data>& d) {
 
     _service_group_insupdate << sg;
     _mysql.run_statement(_service_group_insupdate,
-                         database::mysql_error::store_service_group, true,
+                         database::mysql_error::store_service_group, false,
                          conn);
-    _add_action(conn, actions::servicegroups);
     _servicegroup_cache.insert(sg.id);
   }
   // Delete group.
@@ -1944,6 +1942,7 @@ void stream::_process_service_group(const std::shared_ptr<io::data>& d) {
 
     // Delete group members.
     {
+      _finish_action(-1, actions::services);
       std::string query(fmt::format(
           "DELETE services_servicegroups FROM services_servicegroups LEFT "
           "JOIN hosts ON services_servicegroups.host_id=hosts.host_id WHERE "
@@ -1951,10 +1950,10 @@ void stream::_process_service_group(const std::shared_ptr<io::data>& d) {
           "hosts.instance_id={}",
           sg.id, sg.poller_id));
       _mysql.run_query(query, database::mysql_error::empty, false, conn);
-      _add_action(conn, actions::servicegroups);
       _servicegroup_cache.erase(sg.id);
     }
   }
+  _add_action(conn, actions::servicegroups);
 }
 
 /**
@@ -1966,12 +1965,11 @@ void stream::_process_service_group(const std::shared_ptr<io::data>& d) {
  */
 void stream::_process_service_group_member(const std::shared_ptr<io::data>& d) {
   int32_t conn = special_conn::service_group % _mysql.connections_count();
-  _finish_action(-1,
-                 actions::hosts | actions::servicegroups | actions::services);
+  _finish_action(-1, actions::services);
 
   // Cast object.
-  neb::service_group_member const& sgm(
-      *static_cast<neb::service_group_member const*>(d.get()));
+  const neb::service_group_member& sgm{
+      *static_cast<const neb::service_group_member*>(d.get())};
 
   if (sgm.enabled) {
     // Log message.
@@ -2009,7 +2007,7 @@ void stream::_process_service_group_member(const std::shared_ptr<io::data>& d) {
       _mysql.run_statement(_service_group_insupdate,
                            database::mysql_error::store_service_group, false,
                            conn);
-      _add_action(conn, actions::servicegroups);
+      _servicegroup_cache.insert(sgm.group_id);
     }
 
     _service_group_member_insert << sgm;
