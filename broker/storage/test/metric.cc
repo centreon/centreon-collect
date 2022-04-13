@@ -33,7 +33,7 @@ TEST(StorageMetric, SpecificConstructor) {
   storage::metric m1(1, 14, "foo", 123456789, 42, true, 24, 180, 4242.0, 1);
 
   // Check objects properties values.
-  ASSERT_FALSE(m1.ctime != 123456789);
+  ASSERT_FALSE(m1.time != 123456789);
   ASSERT_FALSE(m1.interval != 42);
   ASSERT_FALSE(m1.is_for_rebuild != true);
   ASSERT_FALSE(m1.metric_id != 24);
@@ -53,7 +53,7 @@ TEST(StorageMetric, DefaultCtor) {
   auto val(io::events::data_type<io::storage, storage::de_metric>::value);
 
   // Check properties values.
-  ASSERT_FALSE(m.ctime != 0);
+  ASSERT_FALSE(m.time != 0);
   ASSERT_FALSE(m.interval != 0);
   ASSERT_FALSE(m.is_for_rebuild != false);
   ASSERT_FALSE(m.metric_id != 0);

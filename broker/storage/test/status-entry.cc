@@ -121,7 +121,7 @@ TEST_F(StatusEntryTest, WriteStatus) {
   stm.read(ev, time(nullptr) + 1000);
   std::shared_ptr<storage::status> new_st =
       std::static_pointer_cast<storage::status>(ev);
-  ASSERT_EQ(st->ctime, new_st->ctime);
+  ASSERT_EQ(st->time, new_st->time);
   ASSERT_EQ(st->index_id, new_st->index_id);
   ASSERT_EQ(st->state, new_st->state);
 
