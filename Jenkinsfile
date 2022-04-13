@@ -62,10 +62,9 @@ stage('Build / Unit tests // Packaging / Signing') {
       }
     }
   },
-  {
   'centos7 SQ analysis': {
     node("C++") {
-      dir('centreon-colect-centos7') {
+      dir('centreon-collect-centos7') {
         checkout scm
         withSonarQubeEnv('SonarQubeDev') {
           sh 'docker run -i -v "$PWD:/src" -w="/src" --entrypoint ci/collect-sources-analysis --rm -u $(id -u):$(id -g) sonarsource/sonar-scanner-cli:latest "$SONAR_AUTH_TOKEN" "$SONAR_HOST_URL"'

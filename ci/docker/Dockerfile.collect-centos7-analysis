@@ -1,0 +1,59 @@
+FROM centos:7 AS dependencies
+RUN curl https://downloads.mariadb.com/MariaDB/mariadb-10.5.8/yum/centos7-amd64/rpms/MariaDB-shared-10.5.8-1.el7.centos.x86_64.rpm --output MariaDB-shared-10.5.8-1.el7.centos.x86_64.rpm && \
+    curl https://downloads.mariadb.com/MariaDB/mariadb-10.5.8/yum/centos7-amd64/rpms/MariaDB-common-10.5.8-1.el7.centos.x86_64.rpm --output MariaDB-common-10.5.8-1.el7.centos.x86_64.rpm && \
+    curl https://downloads.mariadb.com/MariaDB/mariadb-10.5.8/yum/centos7-amd64/rpms/MariaDB-compat-10.5.8-1.el7.centos.x86_64.rpm --output MariaDB-compat-10.5.8-1.el7.centos.x86_64.rpm && \
+    curl https://downloads.mariadb.com/MariaDB/mariadb-10.5.8/yum/centos7-amd64/rpms/MariaDB-devel-10.5.8-1.el7.centos.x86_64.rpm --output MariaDB-devel-10.5.8-1.el7.centos.x86_64.rpm && \
+    curl http://yum-1.centreon.com/standard/21.10/el7/stable/x86_64/RPMS/rrdtool-devel-1.7.2-1.el7.centos.x86_64.rpm --output rrdtool-devel-1.7.2-1.el7.centos.x86_64.rpm && \
+    curl http://yum-1.centreon.com/standard/21.10/el7/stable/x86_64/RPMS/rrdtool-1.7.2-1.el7.centos.x86_64.rpm --output rrdtool-1.7.2-1.el7.centos.x86_64.rpm
+RUN yum -y upgrade && yum -y update && \
+    yum -y install make \
+    epel-release \
+    centos-release-scl \
+    python3 \
+    python3-pip \
+    ninja-build \
+    gnutls-devel \
+    lua-devel \
+    perl-Thread-Queue \
+    perl-devel \
+    perl-Data-Dumper \
+    perl-ExtUtils-MakeMaker \
+    perl-ExtUtils-Embed.noarch \
+    redhat-lsb \
+    libgcrypt-devel \
+    MariaDB*.rpm \
+    rrdtool*.rpm  && \
+    yum clean all
+RUN yum-config-manager --enable rhel-server-rhscl-7-rpms
+RUN yum -y install devtoolset-9 \
+    cmake3 \
+    gcc \
+    gcc-c++ \
+    perl-Ext* \
+    perl-App-FatPacker \
+    perl-File-Copy-Recursive \
+    perl-JSON \
+    gettext \
+    expect \
+    perl-XML-SAX \
+    rpm-build \
+    unzip \
+    wget
+RUN ln -s /usr/bin/cmake3 /usr/bin/cmake
+RUN pip3 install conan --prefix=/usr --upgrade
+RUN rm -rf ~/.conan/profiles/default
+COPY conanfile.txt .
+RUN cat conanfile.txt
+RUN source /opt/rh/devtoolset-9/enable && \
+    conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build='*'
+
+WORKDIR /src
+ENV PATH=/opt/rh/devtoolset-9/root/usr/bin:$PATH:/opt/rh/rh-php73/root/usr/bin
+ENV LD_LIBRARY_PATH=/opt/rh/devtoolset-9/root/usr/lib64:/opt/rh/devtoolset-9/root/usr/lib:/opt/rh/devtoolset-9/root/usr/lib64/dyninst:/opt/rh/devtoolset-9/root/usr/lib/dyninst:/opt/rh/devtoolset-9/root/usr/lib64:/opt/rh/devtoolset-9/root/usr/lib
+
+
+FROM: sonarsource/sonar-scanner-cli:latest
+WORKDIR /src
+COPY --from=dependencies /src /src/
+COPY --from=dependencies /root/.conan /root/
+RUN collect-sources-analysis.sh
