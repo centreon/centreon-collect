@@ -1240,8 +1240,8 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
                                  h.host_id(), h.severity_id(), sid);
             sid = _severity_cache[{h.severity_id(), 1}];
           } else
-            log_v2::sql()->error("no host severity found in cache for host {}",
-                                 h.host_id());
+            log_v2::sql()->info("no host severity found in cache for host {}",
+                                h.host_id());
           if (sid)
             _resources_host_insert.bind_value_as_u64(10, sid);
           else
@@ -1255,8 +1255,8 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
           _resources_host_insert.bind_value_as_str(17, action_url);
           _resources_host_insert.bind_value_as_bool(18,
                                                     h.notifications_enabled());
-          _resources_host_insert.bind_value_as_u32(19,
-                                                   h.passive_checks_enabled());
+          _resources_host_insert.bind_value_as_bool(19,
+                                                    h.passive_checks_enabled());
           _resources_host_insert.bind_value_as_bool(20,
                                                     h.active_checks_enabled());
           std::promise<uint64_t> p;
@@ -2357,8 +2357,8 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
 
           std::promise<uint64_t> p;
           _mysql.run_statement_and_get_int<uint64_t>(
-              _resources_host_insert, &p, database::mysql_task::LAST_INSERT_ID,
-              conn);
+              _resources_service_insert, &p,
+              database::mysql_task::LAST_INSERT_ID, conn);
           try {
             res_id = p.get_future().get();
             _resource_cache.insert({{ss.service_id(), ss.host_id()}, res_id});
@@ -2457,7 +2457,7 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
             _add_action(conn, actions::resources_tags);
           } else {
             log_v2::sql()->error(
-                "SQL: could not found on cache  the tag ({}, {}) for host '{}'",
+                "SQL: could not find the tag ({}, {}) in cache for host '{}'",
                 tag.id(), tag.type(), ss.service_id());
           }
         }

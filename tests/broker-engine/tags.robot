@@ -61,7 +61,7 @@ BETAG2
 
 BEUTAG1
 	[Documentation]	Engine is configured with some tags. When broker receives them, it stores them in the centreon_storage.tags table. Broker is started before.
-	[Tags]	Broker	Engine	protobuf	bbdo	tags
+	[Tags]	Broker	Engine	protobuf	bbdo	tags	unified_sql
 	Config Engine	${1}
 	Create Tags File	${0}	${20}
 	Config Engine Add Cfg File	${0}	tags.cfg
@@ -87,7 +87,7 @@ BEUTAG1
 
 BEUTAG2
 	[Documentation]	Engine is configured with some tags. When broker receives them, it stores them in the centreon_storage.tags table. Engine is started before.
-	[Tags]	Broker	Engine	protobuf	bbdo	tags
+	[Tags]	Broker	Engine	protobuf	bbdo	tags	unified_sql
 	Config Engine	${1}
 	Create Tags File	${0}	${20}
 	Config Engine Add Cfg File	${0}	tags.cfg
@@ -113,14 +113,14 @@ BEUTAG2
 	Stop Broker
 
 BEUTAG3
-	[Documentation]	Engine is configured with some tags. When broker receives them, it stores them in the centreon_storage.resources_tags table. Engine is started before.
-	[Tags]	Broker	Engine	protobuf	bbdo	tags
+	[Documentation]	Engine is configured with some tags. Group tags 9, 13 are set to services 1, 3, 5 and 6. Category tags 3 and 11 are added to services 1, 3, 5 and 6. The centreon_storage.resources and resources_tags tables are well filled.
+	[Tags]	Broker	Engine	protobuf	bbdo	tags	unified_sql
 	#Clear DB	tags
 	Config Engine	${1}
 	Create Tags File	${0}	${20}
 	Config Engine Add Cfg File	${0}	tags.cfg
-	Add Tags To Services	${0}	group_tags	9,13	[1, 3, 5, 6]
-	Add Tags To Services	${0}	category_tags	3,11	[1, 3, 5, 6]
+	Add Tags To Services	${0}	group_tags	9,13	[1, 3]
+	Add Tags To Services	${0}	category_tags	3,11	[3, 5, 6]
 	Config Broker	central
 	Config Broker	rrd
 	Config Broker	module
@@ -135,8 +135,12 @@ BEUTAG3
 	Start Engine
 	Sleep	1s
 	Start Broker
-	${result}=	check service tags With Timeout	1	1	9	60
-	Should Be True	${result}	msg=Service (1, 1) should have tag_id=9
+	${result}=	check service tags With Timeout	1	1	[9, 13]	60
+	Should Be True	${result}	msg=Service (1, 1) should have tag ids 9 and 13
+	${result}=	check service tags With Timeout	1	3	[9, 13, 3, 11]	60
+	Should Be True	${result}	msg=Service (1, 3) should have tag ids 9, 13, 3 and 11
+	${result}=	check service tags With Timeout	1	5	[3, 11]	60
+	Should Be True	${result}	msg=Service (1, 5) should have tag ids 3 and 11
 	Stop Engine
 	Stop Broker
 
