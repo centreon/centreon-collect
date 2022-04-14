@@ -20,6 +20,7 @@ fi
 rm -rf /src/build
 mkdir /src/build
 cd /src/build/
+
 DISTRIB=$(lsb_release -rs | cut -f1 -d.)
 #if [ "$DISTRIB" = "7" ] ; then
 #    source /opt/rh/devtoolset-9/enable
@@ -34,17 +35,7 @@ DISTRIB=$(lsb_release -rs | cut -f1 -d.)
 cd ..
 
 if [ "PR" == "$1" ] ; then
-  /src/tmp/sonar-scanner/bin/sonar-scanner -X
-    -Dsonar.projectVersion="$VERSION" \
-    -Dsonar.login="$2" \
-    -Dsonar.host.url="$3" \
-    -Dsonar.pullrequest.branch="$4" \
-    -Dsonar.pullrequest.base="$5" \
-    -Dsonar.pullrequest.key="$6"
+  /src/tmp/sonar-scanner/bin/sonar-scanner -X -Dsonar.projectVersion="$VERSION" -Dsonar.login="$2" -Dsonar.host.url="$3" -Dsonar.pullrequest.branch="$4" -Dsonar.pullrequest.base="$5" -Dsonar.pullrequest.key="$6"
 else
-  /src/tmp/sonar-scanner/bin/sonar-scanner -X
-    -Dsonar.projectVersion="$VERSION" \
-    -Dsonar.login="$2" \
-    -Dsonar.host.url="$3" \
-    -Dsonar.pullrequest.branch="$4"
+  /src/tmp/sonar-scanner/bin/sonar-scanner -X -Dsonar.projectVersion="$VERSION" -Dsonar.login="$2" -Dsonar.host.url="$3" -Dsonar.pullrequest.branch="$4"
 fi
