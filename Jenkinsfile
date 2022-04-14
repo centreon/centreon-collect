@@ -24,6 +24,12 @@ echo "${env.GIT_BRANCH_NAME}"
 echo "env.GIT_LOCAL_BRANCH"
 echo "${env.GIT_LOCAL_BRANCH}"
 
+echo "env.SONAR_HOST_URL"
+echo "${env.SONAR_HOST_URL}"
+
+echo "env.SONAR_HOST_URL"
+echo "$SONAR_HOST_URL"
+
 echo "env.CHANGE_BRANCH"
 echo "${env.CHANGE_BRANCH}"
 
