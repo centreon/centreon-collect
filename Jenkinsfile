@@ -14,29 +14,6 @@ if (env.CHANGE_BRANCH) {
   buildBranch = env.CHANGE_BRANCH
 }
 
-echo "DEBUG"
-echo "env.BRANCH_NAME"
-echo "${env.BRANCH_NAME}"
-
-echo "env.GIT_BRANCH"
-echo "${env.GIT_BRANCH_NAME}"
-
-echo "env.GIT_LOCAL_BRANCH"
-echo "${env.GIT_LOCAL_BRANCH}"
-
-echo "env.SONAR_HOST_URL"
-echo "${env.SONAR_HOST_URL}"
-
-echo "env.SONAR_HOST_URL"
-echo "$SONAR_HOST_URL"
-
-echo "env.CHANGE_BRANCH"
-echo "${env.CHANGE_BRANCH}"
-
-echo "env.CHANGE_ID"
-echo "${env.CHANGE_ID}"
-
-
 /*
 ** Branch management
 */
@@ -94,7 +71,7 @@ stage('Build / Unit tests // Packaging / Signing') {
         }
       }
     }
-  }/*,
+  },
   'centos7 rpm packaging and signing': {
     node("C++") {
       dir('centreon-collect-centos7') {
@@ -154,7 +131,7 @@ stage('Build / Unit tests // Packaging / Signing') {
       stash name: 'Debian11', includes: 'Debian11/*.deb'
       archiveArtifacts artifacts: "Debian11/*"
     }
-  }*/
+  }
 }
 
 stage('Quality Gate') {
@@ -163,7 +140,6 @@ stage('Quality Gate') {
   }
 }
 
-/*
 stage('Delivery') {
   node("C++") {
     unstash 'el8-rpms'
@@ -185,4 +161,4 @@ stage('Delivery') {
       }
     }
   }
-}*/
+}
