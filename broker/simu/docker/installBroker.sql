@@ -737,7 +737,8 @@ CREATE TABLE `resources_tags` (
   KEY `resources_tags_resources_resource_id_fk` (`resource_id`),
   KEY `resources_tags_tag_id_fk` (`tag_id`),
   CONSTRAINT `resources_tags_resources_resource_id_fk` FOREIGN KEY (`resource_id`) REFERENCES `resources` (`resource_id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `resources_tags_tag_id_fk` FOREIGN KEY (`tag_id`) REFERENCES `tags` (`tag_id`) ON DELETE CASCADE ON UPDATE CASCADE
+  CONSTRAINT `resources_tags_tag_id_fk` FOREIGN KEY (`tag_id`) REFERENCES `tags` (`tag_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  UNIQUE KEY `resources_tags_unique` (`tag_id`,`resource_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
