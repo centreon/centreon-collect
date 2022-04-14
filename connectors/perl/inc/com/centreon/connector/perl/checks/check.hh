@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013 Centreon
+** Copyright 2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -19,19 +19,19 @@
 #ifndef CCCP_CHECKS_CHECK_HH
 #define CCCP_CHECKS_CHECK_HH
 
-#include <sys/types.h>
-#include <string>
+#include "com/centreon/connector/namespace.hh"
 #include "com/centreon/connector/perl/namespace.hh"
-#include "com/centreon/connector/perl/pipe_handle.hh"
-#include "com/centreon/handle_listener.hh"
-#include "com/centreon/timestamp.hh"
+
+CCC_BEGIN()
+class result;
+class reporter;
+CCC_END()
 
 CCCP_BEGIN()
 
 namespace checks {
-// Forward declarations.
-class listener;
-class result;
+
+using shared_signal_set = std::shared_ptr<asio::signal_set>;
 
 /**
  *  @class check check.hh "com/centreon/connector/perl/checks/check.hh"
@@ -39,34 +39,68 @@ class result;
  *
  *  Class wrapping a Perl check as requested by the monitoring engine.
  */
-class check : public handle_listener {
+class check : public std::enable_shared_from_this<check> {
  public:
-  check();
-  ~check() noexcept;
+  using pointer = std::shared_ptr<check>;
+
+  check(uint64_t cmd_id,
+        const std::string& cmds,
+        const time_point& tmt,
+        const std::shared_ptr<com::centreon::connector::reporter> reporter,
+        const shared_io_context& io_context);
+  ~check();
   check(check const& c) = delete;
   check& operator=(check const& c) = delete;
-  void error(handle& h) override;
-  pid_t execute(uint64_t cmd_id, std::string const& cmd, const timestamp& tmt);
-  void listen(listener* listnr);
-  void on_timeout(bool final = true);
-  void read(handle& h) override;
-  void terminated(int exit_code);
-  void unlisten(listener* listnr);
-  bool want_read(handle& h) override;
-  void write(handle& h) override;
+
+  void on_timeout(const std::error_code& err, bool final);
+
+  void dump(std::ostream& s) const;
+
+  void set_exit_code(int exit_code);
+
+  pid_t execute();
+
+  static void close_all_father_fd();
+  static unsigned get_nb_check() { return _active_check.size(); }
+  static void add_signal_set(const shared_signal_set& s) {
+    _father_signal_set.push_back(s);
+  }
+  static void close_all_father_signal_set();
 
  private:
-  void _send_result_and_unregister(result const& r);
+  void _start_read_out();
+  void _start_read_err();
+  void _send_result();
+
+  static constexpr size_t buff_size = 4096;
+  using recv_buff = std::array<char, buff_size>;
+
+  recv_buff _out_buff, _err_buff;
 
   pid_t _child;
   uint64_t _cmd_id;
-  pipe_handle _err;
-  listener* _listnr;
-  pipe_handle _out;
+  std::string _cmd;
+  asio::readable_pipe _out, _err;
+  int _out_fd, _err_fd;
   std::string _stderr;
   std::string _stdout;
-  unsigned long _timeout;
+  time_point _timeout;
+  bool _out_eof, _err_eof, _exit_code_set;
+  int _exit_code;
+  asio::system_timer _timeout_timer;
+  std::shared_ptr<com::centreon::connector::reporter> _reporter;
+  shared_io_context _io_context;
+
+  static absl::flat_hash_set<int> _all_child_fd;
+  static absl::flat_hash_set<check*> _active_check;
+  static std::vector<shared_signal_set> _father_signal_set;
 };
+
+inline std::ostream& operator<<(std::ostream& s, const check& obj) {
+  obj.dump(s);
+  return s;
+}
+
 }  // namespace checks
 
 CCCP_END()

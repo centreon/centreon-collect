@@ -19,34 +19,18 @@
 #ifndef CCCS_POLICY_HH
 #define CCCS_POLICY_HH
 
+#include "com/centreon/connector/ipolicy.hh"
+#include "com/centreon/connector/reporter.hh"
 #include "com/centreon/connector/ssh/orders/options.hh"
-#include "com/centreon/connector/ssh/reporter.hh"
 #include "com/centreon/connector/ssh/sessions/credentials.hh"
 
 CCCS_BEGIN()
 
 // Forward declarations.
-namespace checks {
-class check;
-class result;
-}  // namespace checks
 
 namespace sessions {
 class session;
 }
-
-class policy_interface : public std::enable_shared_from_this<policy_interface> {
- public:
-  virtual ~policy_interface() = default;
-
-  virtual void on_eof() = 0;
-  virtual void on_error(uint64_t cmd_id, const std::string& msg) = 0;
-  virtual void on_execute(uint64_t cmd_id,
-                          const time_point& timeout,
-                          const orders::options::pointer& opt) = 0;
-  virtual void on_quit() = 0;
-  virtual void on_version() = 0;
-};
 
 /**
  *  @class policy policy.hh "com/centreon/connector/ssh/policy.hh"
@@ -54,7 +38,7 @@ class policy_interface : public std::enable_shared_from_this<policy_interface> {
  *
  *  Manage program execution.
  */
-class policy : public policy_interface {
+class policy : public com::centreon::connector::policy_interface {
   bool _error;
   reporter::pointer _reporter;
   std::map<sessions::credentials, std::shared_ptr<sessions::session>> _sessions;
@@ -63,7 +47,7 @@ class policy : public policy_interface {
     struct cmd_info {
       uint64_t cmd_id;
       time_point timeout;
-      orders::options::pointer opt;
+      com::centreon::connector::orders::options::pointer opt;
     };
 
     std::queue<cmd_info> waiting_check;
@@ -76,8 +60,8 @@ class policy : public policy_interface {
   shared_io_context _io_context;
 
   policy(const shared_io_context& io_context);
-  policy(policy const& p);
-  policy& operator=(policy const& p);
+  policy(policy const& p) = delete;
+  policy& operator=(policy const& p) = delete;
 
   void start(const std::string& test_cmd_file);
   void on_connect(const std::error_code& err,
@@ -96,13 +80,15 @@ class policy : public policy_interface {
 
   void on_eof() override;
   void on_error(uint64_t cmd_id, const std::string& msg) override;
-  void on_execute(uint64_t cmd_id,
-                  const time_point& timeout,
-                  const orders::options::pointer& opt) override;
-  void on_execute(const std::shared_ptr<sessions::session>& session,
-                  uint64_t cmd_id,
-                  const time_point& timeout,
-                  const orders::options::pointer& opt);
+  void on_execute(
+      uint64_t cmd_id,
+      const time_point& timeout,
+      const com::centreon::connector::orders::options::pointer& opt) override;
+  void on_execute(
+      const std::shared_ptr<sessions::session>& session,
+      uint64_t cmd_id,
+      const time_point& timeout,
+      const com::centreon::connector::orders::options::pointer& opt);
   void on_quit() override;
   void on_version() override;
 };

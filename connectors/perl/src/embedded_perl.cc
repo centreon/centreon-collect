@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2014 Centreon
+** Copyright 2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -18,15 +18,10 @@
 
 #include "com/centreon/connector/perl/embedded_perl.hh"
 #include "com/centreon/connector/log.hh"
-#include "com/centreon/connector/perl/pipe_handle.hh"
+#include "com/centreon/connector/perl/checks/check.hh"
 #include "com/centreon/exceptions/basic.hh"
 
 #include <perl.h>
-#include <unistd.h>
-
-#include <cstdlib>
-#include <iostream>
-#include <list>
 
 using namespace com::centreon;
 using namespace com::centreon::connector::perl;
@@ -83,10 +78,7 @@ embedded_perl& embedded_perl::instance() {
  *  @param[in] env  Program environment.
  *  @param[in] code Additional code to run by interpreter.
  */
-void embedded_perl::load(int* argc,
-                         char*** argv,
-                         char*** env,
-                         char const* code) {
+void embedded_perl::load(int argc, char** argv, char** env, char const* code) {
   if (!_instance)
     _instance = new embedded_perl(argc, argv, env, code);
 }
@@ -99,7 +91,9 @@ void embedded_perl::load(int* argc,
  *
  *  @return Process ID.
  */
-pid_t embedded_perl::run(std::string const& cmd, int fds[3]) {
+pid_t embedded_perl::run(std::string const& cmd,
+                         int fds[3],
+                         const shared_io_context& io_context) {
   // Check arguments.
   if (!fds)
     throw basic_error() << "cannot run Perl script without "
@@ -120,7 +114,7 @@ pid_t embedded_perl::run(std::string const& cmd, int fds[3]) {
 
   // Check if file has already been compiled.
   SV* handle;
-  umap<std::string, SV*>::const_iterator it(_parsed.find(file));
+  cmd_to_perl_map::const_iterator it(_parsed.find(file));
   dSP;
   if (it == _parsed.end()) {
     // Compile Perl file.
@@ -171,6 +165,7 @@ pid_t embedded_perl::run(std::string const& cmd, int fds[3]) {
   // Execute Perl file.
   pid_t child(fork());
   if (child > 0) {  // Parent
+
     close(in_pipe[0]);
     close(err_pipe[1]);
     close(out_pipe[1]);
@@ -178,18 +173,19 @@ pid_t embedded_perl::run(std::string const& cmd, int fds[3]) {
     fds[1] = out_pipe[0];
     fds[2] = err_pipe[0];
   } else if (!child) {  // Child
-    // Close existing file descriptors.
-    try {
-      pipe_handle::close_all_handles();
-    } catch (std::exception const& e) {
-      std::cerr << "could not close all inherited FDs: " << e.what()
-                << std::endl;
-      exit(3);
-    } catch (...) {
-      std::cerr << "could not close all inherited FDs" << std::endl;
-      exit(3);
+    unsigned father_process_name_length = strlen(_argv[0]);
+    std::string new_process_name("c_");
+    new_process_name += basename(file.c_str());
+    if (new_process_name.length() > father_process_name_length) {
+      new_process_name.resize(father_process_name_length);
     }
+    memset(_argv[0], 0, father_process_name_length);
+    strcpy(_argv[0], new_process_name.c_str());
 
+    // close all father fds
+    checks::check::close_all_father_fd();
+    checks::check::close_all_father_signal_set();
+    io_context->stop();
     // Setup process.
     close(in_pipe[1]);
     close(err_pipe[0]);
@@ -230,8 +226,8 @@ pid_t embedded_perl::run(std::string const& cmd, int fds[3]) {
     call_pv("Embed::Persistent::run_file", G_DISCARD);
     std::cerr << "error while executing Perl script '" << file
               << "': " << SvPV_nolen(ERRSV) << std::endl;
-    exit(3);
-    abort();
+    //    exit(3);
+    //   abort();
   } else if (child < 0) {  // Error
     char const* msg(strerror(errno));
     close(in_pipe[0]);
@@ -268,12 +264,12 @@ void embedded_perl::unload() {
  *  @param[in] env  Program environment.
  *  @param[in] code Additional code to run by interpreter.
  */
-embedded_perl::embedded_perl([[maybe_unused]] int* argc,
-                             [[maybe_unused]] char*** argv,
-                             [[maybe_unused]] char*** env,
-                             char const* code) {
+embedded_perl::embedded_perl([[maybe_unused]] int argc,
+                             [[maybe_unused]] char** argv,
+                             [[maybe_unused]] char** env,
+                             char const* code)
+    : _self(getpid()), _argv(argv) {
   // Set original PID.
-  _self = getpid();
   log::core()->debug("self PID is {}", _self);
 
   // Temporary script path.

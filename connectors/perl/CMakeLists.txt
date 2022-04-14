@@ -26,36 +26,34 @@ link_directories(${CMAKE_SOURCE_DIR}/build/centreon-clib/)
 add_executable(centreon_connector_perl
   # Sources.
   ${PROJECT_SOURCE_DIR}/common/src/log.cc
+  ${PROJECT_SOURCE_DIR}/common/src/reporter.cc
+  ${PROJECT_SOURCE_DIR}/common/src/result.cc
+  ${PROJECT_SOURCE_DIR}/common/src/parser.cc
   ${PROJECT_SOURCE_DIR}/perl/src/main.cc
   ${PROJECT_SOURCE_DIR}/perl/src/checks/check.cc
-  ${PROJECT_SOURCE_DIR}/perl/src/checks/result.cc
-  ${PROJECT_SOURCE_DIR}/perl/src/checks/timeout.cc
   ${PROJECT_SOURCE_DIR}/perl/src/embedded_perl.cc
-  ${PROJECT_SOURCE_DIR}/perl/src/multiplexer.cc
   ${PROJECT_SOURCE_DIR}/perl/src/options.cc
   ${PROJECT_SOURCE_DIR}/perl/src/orders/parser.cc
-  ${PROJECT_SOURCE_DIR}/perl/src/pipe_handle.cc
   ${PROJECT_SOURCE_DIR}/perl/src/policy.cc
-  ${PROJECT_SOURCE_DIR}/perl/src/reporter.cc
   ${PROJECT_SOURCE_DIR}/perl/src/script.cc
   ${PROJECT_SOURCE_DIR}/perl/src/xs_init.cc
   # Headers.
+  ${PROJECT_SOURCE_DIR}/common/inc/com/centreon/connector/log.hh
+  ${PROJECT_SOURCE_DIR}/common/inc/com/centreon/connector/reporter.hh
+  ${PROJECT_SOURCE_DIR}/common/inc/com/centreon/connector/result.hh
+  ${PROJECT_SOURCE_DIR}/common/inc/com/centreon/connector/parser.hh
   ${PROJECT_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/checks/check.hh
-  ${PROJECT_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/checks/listener.hh
-  ${PROJECT_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/checks/result.hh
-  ${PROJECT_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/checks/timeout.hh
   ${PROJECT_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/embedded_perl.hh
-  ${PROJECT_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/multiplexer.hh
   ${PROJECT_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/namespace.hh
   ${PROJECT_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/options.hh
-  ${PROJECT_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/orders/listener.hh
   ${PROJECT_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/orders/parser.hh
-  ${PROJECT_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/pipe_handle.hh
   ${PROJECT_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/policy.hh
-  ${PROJECT_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/reporter.hh
   )
 add_dependencies(centreon_connector_perl centreon_clib)
-target_link_libraries(centreon_connector_perl centreon_clib ${PERL_LIBRARIES} CONAN_PKG::spdlog CONAN_PKG::fmt pthread)
+target_link_libraries(centreon_connector_perl centreon_clib ${PERL_LIBRARIES} CONAN_PKG::spdlog CONAN_PKG::fmt CONAN_PKG::abseil pthread)
+
+target_precompile_headers(centreon_connector_perl PRIVATE precomp_inc/precomp.hh)
+
 
 # Install rules.
 install(TARGETS centreon_connector_perl RUNTIME DESTINATION ${PREFIX_CONNECTORS})

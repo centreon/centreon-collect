@@ -16,15 +16,12 @@
 ** For more information : contact@centreon.com
 */
 
-#include "com/centreon/connector/ssh/reporter.hh"
-
-#include <sstream>
+#include "com/centreon/connector/reporter.hh"
 
 #include "com/centreon/connector/log.hh"
-#include "com/centreon/connector/ssh/checks/result.hh"
-#include "com/centreon/exceptions/basic.hh"
+#include "com/centreon/connector/result.hh"
 
-using namespace com::centreon::connector::ssh;
+using namespace com::centreon::connector;
 
 /**************************************
  *                                     *
@@ -69,7 +66,7 @@ void reporter::error() {
  *
  *  @param[in] r Check result.
  */
-void reporter::send_result(checks::result const& r) {
+void reporter::send_result(result const& r) {
   // Update statistics.
   ++_reported;
   log::core()->debug(

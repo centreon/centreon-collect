@@ -37,8 +37,7 @@ class mock_parser : public parser {
  public:
   mock_parser(
       shared_io_context io_context,
-      const std::shared_ptr<com::centreon::connector::ssh::policy_interface>&
-          policy)
+      const std::shared_ptr<com::centreon::connector::policy_interface>& policy)
       : parser(io_context, policy) {}
 
   void start_read() override {}
