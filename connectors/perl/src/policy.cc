@@ -131,8 +131,6 @@ void policy::on_execute(
     pid_t child = check->execute();
     if (child > 0) {
       _checks[child] = check;
-    } else {
-      _reporter->send_result({cmd_id, -1, "fail to fork"});
     }
   } catch (const std::exception& e) {
     _reporter->send_result({cmd_id, -1, e.what()});

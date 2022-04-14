@@ -116,6 +116,10 @@ pid_t check::execute() {
     // Run process.
     int fds[3];
     _child = embedded_perl::instance().run(_cmd, fds, _io_context);
+    if (!_child) {  // son
+      log::core()->debug("{} son started", *this);
+      return 0;
+    }
     ::close(fds[0]);
     _all_child_fd.insert(fds[1]);
     _all_child_fd.insert(fds[2]);
@@ -127,7 +131,8 @@ pid_t check::execute() {
     _start_read_err();
 
     // Store command ID.
-    log::core()->debug("execute {}", *this);
+    log::core()->debug("execute {} _out_fd={} _err_fd={}", *this, _out_fd,
+                       _err_fd);
 
     _active_check.insert(this);
 
@@ -263,6 +268,6 @@ void check::_send_result() {
  * @param s
  */
 void check::dump(std::ostream& s) const {
-  s << "this=" << this << " , cmd_id=" << _cmd_id << " ,pid=" << _child
+  s << "check this=" << this << " , cmd_id=" << _cmd_id << " ,pid=" << _child
     << " cmd=" << _cmd;
 }
