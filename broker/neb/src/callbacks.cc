@@ -1465,14 +1465,10 @@ int neb::callback_pb_host(int callback_type, void* data) {
           misc::string::check_string_utf8(eh->get_statusmap_image()));
     host.set_timezone(eh->get_timezone());
     host.set_severity_id(eh->get_severity() ? eh->get_severity()->id() : 0);
-    for (std::forward_list<
-             std::shared_ptr<com::centreon::engine::tag>>::const_iterator
-             it = eh->tags().begin(),
-             end = eh->tags().end();
-         it != end; ++it) {
+    for (auto& tg : eh->tags()) {
       TagInfo* ti = host.mutable_tags()->Add();
-      ti->set_id((*it)->id());
-      ti->set_type(static_cast<TagType>((*it)->type()));
+      ti->set_id(tg->id());
+      ti->set_type(static_cast<TagType>(tg->type()));
     }
 
     // Find host ID.
@@ -2490,14 +2486,10 @@ int neb::callback_pb_service(int callback_type, void* data) {
                                : engine::notifier::hard));
     srv.set_severity_id(es->get_severity() ? es->get_severity()->id() : 0);
 
-    for (std::forward_list<
-             std::shared_ptr<com::centreon::engine::tag>>::const_iterator
-             it = es->tags().begin(),
-             end = es->tags().end();
-         it != end; ++it) {
+    for (auto& tg : es->tags()) {
       TagInfo* ti = srv.mutable_tags()->Add();
-      ti->set_id((*it)->id());
-      ti->set_type(static_cast<TagType>((*it)->type()));
+      ti->set_id(tg->id());
+      ti->set_type(static_cast<TagType>(tg->type()));
     }
 
     // Search host ID and service ID.
