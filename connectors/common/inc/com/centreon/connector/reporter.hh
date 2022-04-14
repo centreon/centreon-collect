@@ -16,13 +16,13 @@
 ** For more information : contact@centreon.com
 */
 
-#ifndef CCCS_REPORTER_HH
-#define CCCS_REPORTER_HH
+#ifndef CCC_REPORTER_HH
+#define CCC_REPORTER_HH
 
-#include "com/centreon/connector/ssh/checks/result.hh"
-#include "com/centreon/connector/ssh/namespace.hh"
+#include "com/centreon/connector/namespace.hh"
+#include "com/centreon/connector/result.hh"
 
-CCCS_BEGIN()
+CCC_BEGIN()
 
 /**
  *  @class reporter reporter.hh "com/centreon/connector/ssh/reporter.hh"
@@ -51,13 +51,13 @@ class reporter : public std::enable_shared_from_this<reporter> {
   reporter& operator=(reporter const& r) = delete;
   bool can_report() const { return _can_report; };
   void error();
-  void send_result(checks::result const& r);
+  void send_result(result const& r);
   void send_version(unsigned int major, unsigned int minor);
   virtual void write();
 
   const std::string& get_buffer() const { return *_buffer; }
 };
 
-CCCS_END()
+CCC_END()
 
-#endif  // !CCCS_REPORTER_HH
+#endif  // !CCC_REPORTER_HH

@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013 Centreon
+** Copyright 2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -18,261 +18,251 @@
 
 #include "com/centreon/connector/perl/checks/check.hh"
 
-#include <csignal>
-#include <cstdlib>
-#include <memory>
-
 #include "com/centreon/connector/log.hh"
-#include "com/centreon/connector/perl/checks/listener.hh"
-#include "com/centreon/connector/perl/checks/result.hh"
-#include "com/centreon/connector/perl/checks/timeout.hh"
 #include "com/centreon/connector/perl/embedded_perl.hh"
-#include "com/centreon/connector/perl/multiplexer.hh"
+#include "com/centreon/connector/reporter.hh"
+#include "com/centreon/connector/result.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::connector;
 using namespace com::centreon::connector::perl::checks;
 
-/**************************************
- *                                     *
- *           Public Methods            *
- *                                     *
- **************************************/
+/**
+ * @brief keep trace of father fd that are closed by child
+ *
+ */
+absl::flat_hash_set<int> check::_all_child_fd;
 
 /**
- *  Default constructor.
+ * @brief this set is used only for father to wait for all child to terminate
+ * before exit
+ *
  */
-check::check() : _child((pid_t)-1), _cmd_id(0), _listnr(nullptr), _timeout(0) {}
+absl::flat_hash_set<check*> check::_active_check;
 
 /**
- *  Destructor.
+ * @brief after a fork, child must close all father signal_set. If you don't do
+ * that father signal_set will handle a child signal
+ *
  */
-check::~check() noexcept {
-  try {
-    // Send result if we haven't already done so.
-    result r;
-    r.set_command_id(_cmd_id);
-    _send_result_and_unregister(r);
-  } catch (...) {
+std::vector<shared_signal_set> check::_father_signal_set;
+
+/**
+ * @brief Construct a new check::check object
+ *
+ * @param cmd_id
+ * @param cmd path to the script to execute
+ * @param tmt  absolute timeout
+ * @param reporter reporter that will write to engine
+ * @param io_context
+ */
+check::check(uint64_t cmd_id,
+             const std::string& cmd,
+             const time_point& tmt,
+             const std::shared_ptr<com::centreon::connector::reporter> reporter,
+             const shared_io_context& io_context)
+    : _child((pid_t)-1),
+      _cmd_id(cmd_id),
+      _cmd(cmd),
+      _out(*io_context),
+      _err(*io_context),
+      _out_fd(0),
+      _err_fd(0),
+      _timeout(tmt),
+      _out_eof(false),
+      _err_eof(false),
+      _exit_code_set(false),
+      _timeout_timer(*io_context),
+      _reporter(reporter),
+      _io_context(io_context) {
+  log::core()->trace("check::check {}", *this);
+}
+
+check::~check() {
+  log::core()->trace("check::~check {}", *this);
+  _all_child_fd.erase(_out_fd);
+  _all_child_fd.erase(_err_fd);
+  _active_check.erase(this);
+}
+
+/**
+ * @brief static method that close mostly father fds
+ *
+ */
+void check::close_all_father_fd() {
+  for (int fd : _all_child_fd) {
+    ::close(fd);
   }
 }
 
 /**
- *  Error occurred on one pipe.
+ * @brief static method that close all father signal set
  *
- *  @param[in] h Pipe.
  */
-void check::error(handle& h) {
-  (void)h;
-  result r;
-  r.set_command_id(_cmd_id);
-  _send_result_and_unregister(r);
+void check::close_all_father_signal_set() {
+  for (shared_signal_set& s : _father_signal_set) {
+    s->clear();
+  }
+  _father_signal_set.clear();
 }
 
 /**
  *  Execute a Perl script.
  *
- *  @param[in] cmd_id Command ID.
- *  @param[in] cmd    Command line.
- *  @param[in] tmt    Timeout.
- *
  *  @return Process ID.
  */
-pid_t check::execute(uint64_t cmd_id,
-                     std::string const& cmd,
-                     const timestamp& tmt) {
-  // Run process.
-  int fds[3];
-  _child = embedded_perl::instance().run(cmd, fds);
-  ::close(fds[0]);
-  _out.set_fd(fds[1]);
-  _err.set_fd(fds[2]);
+pid_t check::execute() {
+  try {
+    // Run process.
+    int fds[3];
+    _child = embedded_perl::instance().run(_cmd, fds, _io_context);
+    ::close(fds[0]);
+    _all_child_fd.insert(fds[1]);
+    _all_child_fd.insert(fds[2]);
+    _out_fd = fds[1];
+    _err_fd = fds[2];
+    _out.assign(fds[1]);
+    _err.assign(fds[2]);
+    _start_read_out();
+    _start_read_err();
 
-  // Store command ID.
-  log::core()->debug("check {0} has ID {1}", static_cast<void*>(this), cmd_id);
-  _cmd_id = cmd_id;
+    // Store command ID.
+    log::core()->debug("execute {}", *this);
 
-  // Register with multiplexer.
-  multiplexer::instance().handle_manager::add(&_err, this);
-  multiplexer::instance().handle_manager::add(&_out, this);
+    _active_check.insert(this);
 
-  // Register timeout.
-  std::unique_ptr<timeout> t(new timeout(this, false));
-  _timeout = multiplexer::instance().com::centreon::task_manager::add(
-      t.get(), tmt, false, true);
-  t.release();
-
+    _timeout_timer.expires_at(_timeout);
+    _timeout_timer.async_wait(
+        [me = shared_from_this()](const std::error_code& err) {
+          me->on_timeout(err, false);
+        });
+  } catch (const std::exception& e) {
+    log::core()->error("{} fail to start perl : {}", *this, e.what());
+    throw;
+  }
   return _child;
 }
 
 /**
- *  Listen the check.
+ * @brief start read on child's stdout
  *
- *  @param[in] listnr New listener.
  */
-void check::listen(listener* listnr) {
-  log::core()->debug("check {0} is listened by {1}", static_cast<void*>(this),
-                     static_cast<void*>(listnr));
-  _listnr = listnr;
+void check::_start_read_out() {
+  _out.async_read_some(
+      asio::buffer(_out_buff),
+      [me = shared_from_this(), this](const std::error_code& err,
+                                      std::size_t bytes_transferred) {
+        if (err) {
+          if (err.value() == asio::error::eof) {
+            log::core()->debug("{} stdout eof:{}", *this, err.message());
+          } else {
+            log::core()->error("{} stdout read error:{}", *this, err.message());
+          }
+          _out_eof = true;
+          _send_result();
+          return;
+        }
+        log::core()->debug("{} stdout read {} bytes", *this, bytes_transferred);
+        if (!bytes_transferred) {  // close
+          return;
+        }
+        _stdout.append(_out_buff.data(), bytes_transferred);
+        _start_read_out();
+      });
+}
+
+/**
+ * @brief start read on child's stderr
+ *
+ */
+void check::_start_read_err() {
+  _err.async_read_some(
+      asio::buffer(_err_buff),
+      [me = shared_from_this(), this](const std::error_code& err,
+                                      std::size_t bytes_transferred) {
+        if (err) {
+          if (err.value() == asio::error::eof) {
+            log::core()->debug("{} stderr eof:{}", *this, err.message());
+          } else {
+            log::core()->error("{} stderr read error:{}", *this, err.message());
+          }
+          _err_eof = true;
+          _send_result();
+          return;
+        }
+        log::core()->debug("{} stderr read {} bytes", *this, bytes_transferred);
+        if (!bytes_transferred) {  // close
+          return;
+        }
+        _stderr.append(_err_buff.data(), bytes_transferred);
+        _start_read_err();
+      });
 }
 
 /**
  *  Called when check timeout occurs.
  *
- *  @param[in] final Did we set the final timeout ?
+ *  @param[in] final if true child process will receive a sigkill instead of
+ * sigterm
  */
-void check::on_timeout(bool final) {
-  // Log message.
-  log::core()->error("check {0} (pid={1}) reached timeout", _cmd_id, _child);
-
-  // Reset timeout task ID.
-  _timeout = 0;
+void check::on_timeout(const std::error_code& err, bool final) {
+  if (err) {
+    return;
+  }
 
   if (_child <= 0)
     return;
 
+  _stderr += " time out";
+
   if (final) {
+    log::core()->error("{} reached timeout kill -9", *this);
     // Send SIGKILL (not catchable, not ignorable).
     kill(_child, SIGKILL);
-    _child = (pid_t)-1;
   } else {
+    log::core()->error("{} reached timeout kill -15", *this);
     // Try graceful shutdown.
     kill(_child, SIGTERM);
 
-    // Schedule a final timeout.
-    std::unique_ptr<timeout> t(new timeout(this, true));
-    _timeout = multiplexer::instance().com::centreon::task_manager::add(
-        t.get(), time(nullptr) + 1, false, true);
-    t.release();
+    _timeout_timer.expires_from_now(std::chrono::seconds(10));
+    _timeout_timer.async_wait(
+        [me = shared_from_this()](const std::error_code& err) {
+          me->on_timeout(err, true);
+        });
   }
 }
 
 /**
- *  Read data from handle.
+ * @brief set exit code of the child process
  *
- *  @param[in] h Handle.
+ * @param exit_code
  */
-void check::read(handle& h) {
-  char buffer[1024];
-  unsigned long rb(h.read(buffer, sizeof(buffer)));
-  if (&h == &_err) {
-    log::core()->debug("reading from process {}'s stdout", _child);
-    _stderr.append(buffer, rb);
-  } else {
-    log::core()->debug("reading from process {}'s stderr", _child);
-    _stdout.append(buffer, rb);
+void check::set_exit_code(int exit_code) {
+  _exit_code_set = true;
+  _exit_code = exit_code;
+  log::core()->debug("{} exit_code={}", *this, exit_code);
+  _send_result();
+}
+
+/**
+ * @brief if exit_code is set and if we have received an eof on child stdin and
+ * stderr this method send result to engine
+ *
+ */
+void check::_send_result() {
+  if (_err_eof && _out_eof && _exit_code_set) {
+    _reporter->send_result({_cmd_id, _exit_code, _stdout, _stderr});
+    _timeout_timer.cancel();
+    _active_check.erase(this);
   }
 }
 
 /**
- *  Process termination callback.
+ * @brief dump used by << operator
  *
- *  @param[in] exit_code Process exit code.
+ * @param s
  */
-void check::terminated(int exit_code) {
-  // Read possibly remaining data.
-  log::core()->debug("reading remaining data from process {}", _child);
-  try {
-    char buffer[1024];
-    unsigned long rb(_out.read(buffer, sizeof(buffer)));
-    while (rb != 0) {
-      _stdout.append(buffer, rb);
-      rb = _out.read(buffer, rb);
-    }
-  } catch (...) {
-  }
-  try {
-    char buffer[1024];
-    unsigned long rb(_err.read(buffer, sizeof(buffer)));
-    while (rb != 0) {
-      _stderr.append(buffer, rb);
-      rb = _err.read(buffer, sizeof(buffer));
-    }
-  } catch (...) {
-  }
-
-  // Reset PID.
-  _child = (pid_t)-1;
-
-  // Send check result.
-  result r;
-  r.set_command_id(_cmd_id);
-  r.set_executed(true);
-  r.set_exit_code(exit_code);
-  r.set_error(_stderr);
-  r.set_output(_stdout);
-  _send_result_and_unregister(r);
-}
-
-/**
- *  Unlisten the check.
- *
- *  @param[in] listnr Old listener.
- */
-void check::unlisten(listener* listnr) {
-  log::core()->debug("listener {0} stops listening check {1}",
-                     static_cast<void*>(_listnr), static_cast<void*>(this));
-  _listnr = nullptr;
-}
-
-/**
- *  Check want to read.
- *
- *  @return true.
- */
-bool check::want_read([[maybe_unused]] handle& h) {
-  return true;
-}
-
-/**
- *  Write callback.
- *
- *  @param[in] h Unused.
- */
-void check::write([[maybe_unused]] handle& h) {
-  // This is an error, we shouldn't have been called.
-  result r;
-  r.set_command_id(_cmd_id);
-  _send_result_and_unregister(r);
-}
-
-/**************************************
- *                                     *
- *           Private Methods           *
- *                                     *
- **************************************/
-
-/**
- *  Send check result and unregister.
- *
- *  @param[in] r Check result.
- */
-void check::_send_result_and_unregister(result const& r) {
-  // Kill subprocess.
-  if (_child > 0) {
-    kill(_child, SIGKILL);
-    _child = (pid_t)-1;
-  }
-
-  // Remove timeout task.
-  if (_timeout) {
-    try {
-      multiplexer::instance().com::centreon::task_manager::remove(_timeout);
-    } catch (...) {
-    }
-    _timeout = 0;
-  }
-
-  // Check that we haven't already send a check result.
-  if (_cmd_id) {
-    // Unregister from multiplexer.
-    multiplexer::instance().handle_manager::remove(this);
-
-    // Reset command ID.
-    _cmd_id = 0;
-
-    // Send check result to listener.
-    if (_listnr)
-      _listnr->on_result(r);
-  }
+void check::dump(std::ostream& s) const {
+  s << "this=" << this << " , cmd_id=" << _cmd_id << " ,pid=" << _child
+    << " cmd=" << _cmd;
 }

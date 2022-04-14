@@ -19,7 +19,7 @@
 #ifndef TEST_ORDERS_FAKE_LISTENER_HH
 #define TEST_ORDERS_FAKE_LISTENER_HH
 
-#include "com/centreon/connector/ssh/policy.hh"
+#include "com/centreon/connector/ipolicy.hh"
 
 using namespace com::centreon;
 
@@ -29,7 +29,7 @@ using namespace com::centreon;
  *
  *  Register callback call order.
  */
-class fake_listener : public com::centreon::connector::ssh::policy_interface {
+class fake_listener : public com::centreon::connector::policy_interface {
  public:
   enum e_callback { cb_eof, cb_error, cb_execute, cb_quit, cb_version };
   struct callback_info {
@@ -54,10 +54,11 @@ class fake_listener : public com::centreon::connector::ssh::policy_interface {
   std::list<callback_info> const& get_callbacks() const noexcept;
   void on_eof() override;
   void on_error(uint64_t cmd_id, const std::string& msg) override;
-  void on_execute(uint64_t cmd_id,
-                  const time_point& timeout,
-                  const com::centreon::connector::ssh::orders::options::pointer&
-                      opt) override;
+  void on_execute(
+      uint64_t cmd_id,
+      const time_point& timeout,
+      const std::shared_ptr<com::centreon::connector::orders::options>& opt)
+      override;
   void on_quit() override;
   void on_version() override;
 

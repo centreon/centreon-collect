@@ -20,15 +20,15 @@
 
 #include <atomic>
 #include <cstdio>
-#include <memory>
 
 #include "com/centreon/connector/log.hh"
+#include "com/centreon/connector/result.hh"
 #include "com/centreon/connector/ssh/checks/check.hh"
-#include "com/centreon/connector/ssh/checks/result.hh"
 #include "com/centreon/connector/ssh/orders/parser.hh"
 #include "com/centreon/connector/ssh/sessions/session.hh"
 
 using namespace com::centreon::connector::ssh;
+using namespace com::centreon::connector;
 
 /**************************************
  *                                     *
@@ -69,7 +69,7 @@ void policy::on_eof() {
  */
 void policy::on_error(uint64_t cmd_id, const std::string& msg) {
   if (cmd_id) {
-    checks::result r;
+    result r;
     r.set_command_id(cmd_id);
     r.set_executed(false);
     r.set_error(msg);
@@ -88,9 +88,10 @@ void policy::on_error(uint64_t cmd_id, const std::string& msg) {
  *  @param[in] timeout     Time the command has to execute.
  *  @param[in] opt         cmd options.
  */
-void policy::on_execute(uint64_t cmd_id,
-                        const time_point& timeout,
-                        const orders::options::pointer& opt) {
+void policy::on_execute(
+    uint64_t cmd_id,
+    const time_point& timeout,
+    const com::centreon::connector::orders::options::pointer& opt) {
   log::core()->info(
       "got request to execute check {0} on session {1}@{2} (timeout {3}, "
       "first command \"{4}\")",
@@ -167,16 +168,17 @@ void policy::on_connect(const std::error_code& err,
   _connect_waiting_session.erase(creds);
 }
 
-void policy::on_execute(const std::shared_ptr<sessions::session>& session,
-                        uint64_t cmd_id,
-                        const time_point& timeout,
-                        const orders::options::pointer& opt) {
+void policy::on_execute(
+    const std::shared_ptr<sessions::session>& session,
+    uint64_t cmd_id,
+    const time_point& timeout,
+    const com::centreon::connector::orders::options::pointer& opt) {
   // Create check object.
   checks::check::pointer chk_ptr(std::make_shared<checks::check>(
       session, cmd_id, opt->get_commands(), timeout, opt->skip_stdout(),
       opt->skip_stderr()));
 
-  chk_ptr->execute([me = shared_from_this()](const checks::result& res) {
+  chk_ptr->execute([me = shared_from_this()](const result& res) {
     me->_reporter->send_result(res);
   });
 }

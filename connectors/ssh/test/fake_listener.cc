@@ -15,12 +15,12 @@
 **
 ** For more information : contact@centreon.com
 */
-
-#include "fake_listener.hh"
-
 #include <cmath>
 
-using namespace com::centreon::connector::ssh::orders;
+#include "com/centreon/connector/ssh/orders/options.hh"
+#include "fake_listener.hh"
+
+using namespace com::centreon::connector::orders;
 
 /**************************************
  *                                     *
@@ -76,7 +76,7 @@ void fake_listener::on_error(uint64_t, const std::string&) {
  */
 void fake_listener::on_execute(uint64_t cmd_id,
                                const time_point& timeout,
-                               const options::pointer& opt) {
+                               const std::shared_ptr<options>& opt) {
   callback_info ci;
   ci.callback = cb_execute;
   ci.cmd_id = cmd_id;

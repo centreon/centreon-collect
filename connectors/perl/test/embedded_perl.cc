@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Centreon (https://www.centreon.com/)
+ * Copyright 2022 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,13 +18,16 @@
  */
 
 /* Be careful! gtest.h must be included before embedded_perl.hh */
-#include <gtest/gtest.h>
-#include "com/centreon/connector/perl/embedded_perl.hh"
 
+#include <gtest/gtest.h>
+
+#include "com/centreon/connector/perl/embedded_perl.hh"
 #include "com/centreon/io/file_stream.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::connector::perl;
+
+static shared_io_context io_context(std::make_shared<asio::io_context>());
 
 TEST(EmbeddedPerl, RunSimple1) {
   // Return value.
@@ -46,7 +49,7 @@ TEST(EmbeddedPerl, RunSimple1) {
 
     // Compile and execute script.
     int fds[3];
-    pid_t child(embedded_perl::instance().run(script_path, fds));
+    pid_t child(embedded_perl::instance().run(script_path, fds, io_context));
 
     // Wait for child termination.
     int status;
@@ -82,7 +85,7 @@ TEST(EmbeddedPerl, RunSimple2) {
 
     // Compile and execute script.
     int fds[3];
-    pid_t child(embedded_perl::instance().run(script_path, fds));
+    pid_t child(embedded_perl::instance().run(script_path, fds, io_context));
 
     // Wait for child termination.
     int status;
@@ -93,7 +96,7 @@ TEST(EmbeddedPerl, RunSimple2) {
       ASSERT_TRUE(false);
     }
 
-    child = embedded_perl::instance().run(script_path, fds);
+    child = embedded_perl::instance().run(script_path, fds, io_context);
 
     // Wait for child termination.
     if (waitpid(child, &status, 0) == child) {
