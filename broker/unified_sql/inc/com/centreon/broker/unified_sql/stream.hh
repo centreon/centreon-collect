@@ -216,6 +216,8 @@ class stream : public io::stream {
   absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t> _severity_cache;
   absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t> _tags_cache;
 
+  absl::flat_hash_map<std::pair<uint64_t, uint64_t>, uint64_t> _resource_cache;
+
   absl::flat_hash_set<uint32_t> _hostgroup_cache;
   absl::flat_hash_set<uint32_t> _servicegroup_cache;
 
@@ -280,8 +282,10 @@ class stream : public io::stream {
   database::mysql_stmt _tag_insert;
   database::mysql_stmt _tag_update;
   database::mysql_stmt _resources_tags_insert;
-  database::mysql_stmt _resources_host_insupdate;
-  database::mysql_stmt _resources_service_insupdate;
+  database::mysql_stmt _resources_host_insert;
+  database::mysql_stmt _resources_host_update;
+  database::mysql_stmt _resources_service_insert;
+  database::mysql_stmt _resources_service_update;
   database::mysql_stmt _hscr_resources_update;
   database::mysql_stmt _sscr_resources_update;
 

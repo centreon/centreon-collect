@@ -173,6 +173,7 @@ void stream::_load_caches() {
   std::promise<mysql_result> promise_hg;
   std::promise<mysql_result> promise_sg;
   std::promise<mysql_result> promise_metrics;
+  std::promise<mysql_result> promise_resource;
   std::promise<mysql_result> promise_severity;
   std::promise<mysql_result> promise_tags;
 
@@ -208,6 +209,10 @@ void stream::_load_caches() {
       "warn_threshold_mode,crit,crit_low,crit_threshold_mode,min,max,"
       "current_value,data_source_type FROM metrics",
       &promise_metrics);
+
+  /* resources => _resources_cache */
+  _mysql.run_query_and_get_result(
+      "SELECT resource_id, id, parent_id FROM resources", &promise_resource);
 
   /* severities => _severity_cache */
   _mysql.run_query_and_get_result(
@@ -336,6 +341,17 @@ void stream::_load_caches() {
       }
     } catch (std::exception const& e) {
       throw msg_fmt("unified sql: could not get the list of metrics: {}",
+                    e.what());
+    }
+
+    try {
+      mysql_result res{promise_resource.get_future().get()};
+      while (_mysql.fetch_row(res)) {
+        _resource_cache[{res.value_as_u64(1), res.value_as_u64(2)}] =
+            res.value_as_u64(0);
+      }
+    } catch (const std::exception& e) {
+      throw msg_fmt("unified sql: could not get the list of resources: {}",
                     e.what());
     }
 
