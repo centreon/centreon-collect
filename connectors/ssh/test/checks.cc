@@ -19,9 +19,10 @@
 
 #include <gtest/gtest.h>
 
+#include "com/centreon/connector/result.hh"
 #include "com/centreon/connector/ssh/checks/check.hh"
-#include "com/centreon/connector/ssh/checks/result.hh"
 
+using namespace com::centreon::connector;
 using namespace com::centreon::connector::ssh;
 using namespace com::centreon::connector::ssh::checks;
 
@@ -60,7 +61,7 @@ TEST(SSHChecks, ResultAssign) {
 
 TEST(SSHChecks, CommandId) {
   // Object.
-  com::centreon::connector::ssh::checks::result r;
+  result r;
 
   // Checks.
   r.set_command_id(71184);
@@ -108,7 +109,7 @@ TEST(SSHChecks, CtorCopy) {
 
 TEST(SSHChecks, CtorDefault) {
   // Object.
-  com::centreon::connector::ssh::checks::result r;
+  result r;
 
   // Check.
   ASSERT_EQ(r.get_command_id(), 0u);
@@ -120,7 +121,7 @@ TEST(SSHChecks, CtorDefault) {
 
 TEST(SSHChecks, Error) {
   // Object.
-  com::centreon::connector::ssh::checks::result r;
+  result r;
 
   // Checks.
   r.set_error("this is the first string");
@@ -138,7 +139,7 @@ TEST(SSHChecks, Error) {
 
 TEST(SSHChecks, Executed) {
   // Object.
-  com::centreon::connector::ssh::checks::result r;
+  result r;
 
   // Checks.
   r.set_executed(false);
@@ -153,7 +154,7 @@ TEST(SSHChecks, Executed) {
 
 TEST(SSHChecks, ExitCode) {
   // Object.
-  com::centreon::connector::ssh::checks::result r;
+  result r;
 
   // Checks.
   r.set_exit_code(71184);
@@ -168,7 +169,7 @@ TEST(SSHChecks, ExitCode) {
 
 TEST(SSHChecks, Output) {
   // Object.
-  com::centreon::connector::ssh::checks::result r;
+  result r;
 
   // Checks.
   r.set_output("this is the first string");

@@ -32,6 +32,8 @@ static char const* const version_description =
     "Print software version and exit.";
 static char const* const log_file_description =
     "Specifies the log file (default: stderr).";
+static char const* const test_file_description =
+    "Specifies the file used instead of stdin.";
 
 /**************************************
  *                                     *
@@ -61,7 +63,8 @@ std::string options::help() const {
       << "  --help     " << help_description << "\n"
       << "  --version  " << version_description << "\n"
       << "  --code     " << code_description << "\n"
-      << "  --log-file " << log_file_description << "\n";
+      << "  --log-file " << log_file_description << "\n"
+      << "  --test-file " << test_file_description << "\n";
   return oss.str();
 }
 
@@ -131,6 +134,14 @@ void options::_init() {
     arg.set_name('l');
     arg.set_long_name("log-file");
     arg.set_description(log_file_description);
+    arg.set_has_value(true);
+  }
+  // test file
+  {
+    misc::argument& arg(_arguments['x']);
+    arg.set_name('x');
+    arg.set_long_name("test-file");
+    arg.set_description(test_file_description);
     arg.set_has_value(true);
   }
 }

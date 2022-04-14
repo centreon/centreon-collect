@@ -19,7 +19,7 @@
 #ifndef CCCS_CHECKS_CHECK_HH
 #define CCCS_CHECKS_CHECK_HH
 
-#include "com/centreon/connector/ssh/checks/result.hh"
+#include "com/centreon/connector/result.hh"
 #include "com/centreon/connector/ssh/namespace.hh"
 
 CCCS_BEGIN()
@@ -29,8 +29,6 @@ class session;
 }
 
 namespace checks {
-// Forward declaration.
-class result;
 
 /**
  *  @class check check.hh "com/centreon/connector/ssh/checks/check.hh"
