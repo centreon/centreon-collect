@@ -81,7 +81,7 @@ stage('Build / Unit tests // Packaging / Signing') {
           echo "DEBUG 3"
           sh 'printenv'
           //sh 'docker run -i --entrypoint /src/ci/scripts/collect-sources-analysis -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:22.04-testdocker "$SONAR_AUTH_TOKEN" "$SONAR_HOST_URL"'
-          sh 'docker run -i -v "$PWD:/src" -w="/src" --entrypoint ci/scripts/collect-sources-analysis --rm -u $(id -u):$(id -g) registry.centreon.com/centreon-collect-centos7-dependencies:22.04-testdocker "$SONAR_AUTH_TOKEN" "$SONAR_HOST_URL"'
+          sh 'docker run -i -v "$PWD:/src" -w="/src" --entrypoint ci/scripts/collect-sources-analysis.sh --rm -u $(id -u):$(id -g) registry.centreon.com/centreon-collect-centos7-dependencies:22.04-testdocker "$SONAR_AUTH_TOKEN" "$SONAR_HOST_URL"'
         }
       }
     }
