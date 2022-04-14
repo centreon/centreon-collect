@@ -76,7 +76,7 @@ stage('Build / Unit tests // Packaging / Signing') {
       dir('centreon-collect-centos7') {
         checkout scm
         echo "DEBUG 2"
-        sh 'ci/sonar-scanner.sh'
+        sh 'ci/scripts/sonar-scanner.sh'
         withSonarQubeEnv('SonarQubeDev') {
           echo "DEBUG 3"
           sh 'printenv'
