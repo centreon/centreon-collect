@@ -19,9 +19,9 @@
 #ifndef CCCS_ORDERS_OPTIONS_HH
 #define CCCS_ORDERS_OPTIONS_HH
 
-#include "com/centreon/connector/ssh/namespace.hh"
+#include "com/centreon/connector/namespace.hh"
 
-CCCS_BEGIN()
+CCC_BEGIN()
 
 namespace orders {
 /**
@@ -70,6 +70,6 @@ class options {
 };
 }  // namespace orders
 
-CCCS_END()
+CCC_END()
 
 #endif  // !CCCS_ORDERS_OPTIONS_HH

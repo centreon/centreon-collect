@@ -17,14 +17,14 @@
  *
  */
 
-#include "com/centreon/connector/ssh/reporter.hh"
+#include "com/centreon/connector/reporter.hh"
 
 #include <gtest/gtest.h>
 
 #include "com/centreon/exceptions/basic.hh"
 
 using namespace com::centreon;
-using namespace com::centreon::connector::ssh;
+using namespace com::centreon::connector;
 
 static shared_io_context io_context(std::make_shared<asio::io_context>());
 
@@ -52,7 +52,7 @@ TEST(SSHSession, CtorDefault) {
 
 TEST(SSHSession, Error) {
   // Check result.
-  checks::result cr;
+  result cr;
   cr.set_command_id(42);
 
   // Reporter.
@@ -66,7 +66,7 @@ TEST(SSHSession, Error) {
 
 TEST(SSHSession, SendResult) {
   // Check result.
-  checks::result cr;
+  result cr;
   cr.set_command_id(42);
   cr.set_executed(true);
   cr.set_exit_code(3);

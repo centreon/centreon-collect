@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013, 2022 Centreon
+** Copyright 2011-2013 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -16,15 +16,16 @@
 ** For more information : contact@centreon.com
 */
 
-#ifndef CCCS_ORDERS_PARSER_HH
-#define CCCS_ORDERS_PARSER_HH
+#ifndef CCC_ORDERS_PARSER_HH
+#define CCC_ORDERS_PARSER_HH
 
-#include "com/centreon/connector/parser.hh"
-#include "com/centreon/connector/ssh/namespace.hh"
+#include "com/centreon/connector/namespace.hh"
 
-CCCS_BEGIN()
+CCC_BEGIN()
 
-namespace orders {
+class policy_interface;
+
+constexpr unsigned parser_buff_size = 4096;
 
 /**
  *  @class parser parser.hh "com/centreon/connector/ssh/orders/parser.hh"
@@ -34,27 +35,42 @@ namespace orders {
  *  parser class can handle be registered with one handle at a time
  *  and one listener.
  */
-class parser : public com::centreon::connector::parser {
+class parser : public std::enable_shared_from_this<parser> {
  protected:
-  parser(const shared_io_context& io_context,
-         const std::shared_ptr<com::centreon::connector::policy_interface>&
-             policy);
+  shared_io_context _io_context;
+  asio::posix::stream_descriptor _sin;
+  std::string _buffer;
+  bool _dont_care_about_stdin_eof;
 
-  void execute(const std::string& cmd) override;
+  std::shared_ptr<policy_interface> _owner;
+
+  char _recv_buff[parser_buff_size];
+
+  void read();
+  void _parse(std::string const& cmd);
+
+  parser(const shared_io_context& io_context,
+         const std::shared_ptr<policy_interface>& policy);
+
+  virtual void start_read();
+  void read_file(const std::string& test_file_path);
+
+  void read_handler(const std::error_code& error,
+                    std::size_t bytes_transferred);
+
+  virtual void execute(const std::string& cmd) = 0;
 
  public:
   using pointer = std::shared_ptr<parser>;
 
-  static pointer create(shared_io_context io_context,
-                        const std::shared_ptr<policy_interface>& policy,
-                        const std::string& test_cmd_file = "");
+  static const std::error_code eof_err;  // used by test
+
+  virtual ~parser() = default;
 
   parser(parser const& p) = delete;
   parser& operator=(parser const& p) = delete;
 };
 
-}  // namespace orders
+CCC_END()
 
-CCCS_END()
-
-#endif  // !CCCS_ORDERS_PARSER_HH
+#endif  // !CCC_ORDERS_PARSER_HH

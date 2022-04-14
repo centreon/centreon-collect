@@ -30,7 +30,7 @@
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/misc/command_line.hh"
 
-using namespace com::centreon::connector::ssh::orders;
+using namespace com::centreon::connector::orders;
 
 static char const* optstr = "1246a:C:E:fhH:i:l:n:o:O:p:qs:S:t:vV";
 static struct option optlong[] = {

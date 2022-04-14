@@ -19,10 +19,21 @@
 #ifndef CCCP_ORDERS_PARSER_HH
 #define CCCP_ORDERS_PARSER_HH
 
-#include <string>
+#include "com/centreon/connector/parser.hh"
 #include "com/centreon/connector/perl/namespace.hh"
-#include "com/centreon/connector/perl/orders/listener.hh"
-#include "com/centreon/handle_listener.hh"
+
+#include "com/centreon/connector/namespace.hh"
+
+CCC_BEGIN()
+
+namespace orders {
+class options : public std::string {
+ public:
+  options(const std::string& src) : std::string(src) {}
+};
+}  // namespace orders
+
+CCC_END()
 
 CCCP_BEGIN()
 
@@ -35,23 +46,23 @@ namespace orders {
  *  parser class can handle be registered with one handle at a time
  *  and one listener.
  */
-class parser : public handle_listener {
+class parser : public com::centreon::connector::parser {
+ protected:
+  parser(const shared_io_context& io_context,
+         const std::shared_ptr<com::centreon::connector::policy_interface>&
+             policy);
+
+  void execute(const std::string& cmd) override;
+
  public:
-  parser();
-  ~parser() override = default;
+  using pointer = std::shared_ptr<parser>;
+
+  static pointer create(shared_io_context io_context,
+                        const std::shared_ptr<policy_interface>& policy,
+                        const std::string& test_cmd_file = "");
+
   parser(parser const& p) = delete;
   parser& operator=(parser const& p) = delete;
-  void error(handle& h) override;
-  void listen(listener* l = nullptr) noexcept;
-  void read(handle& h) override;
-  bool want_read(handle& h) override;
-  bool want_write(handle& h) override;
-
- private:
-  void _parse(std::string const& cmd);
-
-  std::string _buffer;
-  listener* _listnr;
 };
 }  // namespace orders
 

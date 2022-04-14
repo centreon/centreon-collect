@@ -14,10 +14,11 @@
 ** For more information : contact@centreon.com
 */
 
-#ifndef CCCS_PRECOMP_HH
-#define CCCS_PRECOMP_HH
+#ifndef CCCP_PRECOMP_HH
+#define CCCP_PRECOMP_HH
 
-#include <asio.hpp>
+#include <sys/wait.h>
+#include <unistd.h>
 
 #include <chrono>
 #include <cstdio>
@@ -29,19 +30,16 @@
 #include <memory>
 #include <queue>
 #include <set>
-#include <sstream>
 #include <string>
 
-#include <libssh2.h>
-
-#include <spdlog/common.h>
-#include <spdlog/fmt/ostr.h>
-#include <spdlog/spdlog.h>
+#include <asio.hpp>
 
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
 
-#include <boost/smart_ptr/shared_array.hpp>
+#include <spdlog/common.h>
+#include <spdlog/fmt/ostr.h>
+#include <spdlog/spdlog.h>
 
 using shared_io_context = std::shared_ptr<asio::io_context>;
 
@@ -49,4 +47,4 @@ using system_clock = std::chrono::system_clock;
 using time_point = system_clock::time_point;
 using duration = system_clock::duration;
 
-#endif  // CCCS_PRECOMP_HH
+#endif  // CCCP_PRECOMP_HH
