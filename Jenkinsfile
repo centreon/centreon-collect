@@ -81,9 +81,9 @@ stage('Build / Unit tests // Packaging / Signing') {
           echo "DEBUG 3"
           sh 'printenv'
           if (env.CHANGE_ID) {
-            sh 'docker run -i --entrypoint /src/ci/scripts/collect-sources-analysis.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:22.04-testdocker "PR" "$SONAR_AUTH_TOKEN" "$SONAR_HOST_URL" "$CHANGE_TARGET" "CHANGE_BRANCH" "$CHANGE_ID" '
+            sh 'docker run -i --entrypoint /src/ci/scripts/collect-sources-analysis.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:22.04-testdocker "PR" "$SONAR_AUTH_TOKEN" "$SONAR_HOST_URL" "$CHANGE_TARGET" "CHANGE_BRANCH" "$CHANGE_ID" -p 9000'
           } else {
-            sh 'docker run -i --entrypoint /src/ci/scripts/collect-sources-analysis.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:22.04-testdocker "NotPR" "$SONAR_AUTH_TOKEN" "$SONAR_HOST_URL" "$CHANGE_BRANCH"'
+            sh 'docker run -i --entrypoint /src/ci/scripts/collect-sources-analysis.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:22.04-testdocker "NotPR" "$SONAR_AUTH_TOKEN" "$SONAR_HOST_URL" "$CHANGE_BRANCH" -p 9000'
           }
         }
       }

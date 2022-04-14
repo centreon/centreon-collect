@@ -17,6 +17,8 @@ else
 fi
 cd ..
 
+echo "host url = $3"
+
 if [ "PR" == "$1" ] ; then
   /src/tmp/sonar-scanner/bin/sonar-scanner -X
     -Dsonar.projectVersion="$VERSION" \
