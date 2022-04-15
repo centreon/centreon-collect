@@ -34,11 +34,11 @@ if [[ -n "$6" ]]; then
   echo "var6 = $6"
 fi
 
+# Get thread number
 PROCNBR=$( nproc )
-echo "nproc = $PROCNBR"
 
 if [ "PR" == "$1" ] ; then
-  SONAR=$( /src/tmp/sonar-scanner/bin/sonar-scanner -X -Dsonar.cfamily.threads=4 -Dsonar.projectVersion="$VERSION" -Dsonar.login="$2" -Dsonar.host.url="$3" -Dsonar.pullrequest.branch="$4" -Dsonar.pullrequest.base="$5" -Dsonar.pullrequest.key="$6" )
+  SONAR=$( /src/tmp/sonar-scanner/bin/sonar-scanner -X -Dsonar.cfamily.threads="$PROCNBR" -Dsonar.projectVersion="$VERSION" -Dsonar.login="$2" -Dsonar.host.url="$3" -Dsonar.pullrequest.branch="$4" -Dsonar.pullrequest.base="$5" -Dsonar.pullrequest.key="$6" )
 else
-  SONAR=$( /src/tmp/sonar-scanner/bin/sonar-scanner -X -Dsonar.cfamily.threads=4 -Dsonar.projectVersion="$VERSION" -Dsonar.login="$2" -Dsonar.host.url="$3" -Dsonar.pullrequest.branch="$4" )
+  SONAR=$( /src/tmp/sonar-scanner/bin/sonar-scanner -X -Dsonar.cfamily.threads="$PROCNBR" -Dsonar.projectVersion="$VERSION" -Dsonar.login="$2" -Dsonar.host.url="$3" -Dsonar.pullrequest.branch="$4" )
 fi
