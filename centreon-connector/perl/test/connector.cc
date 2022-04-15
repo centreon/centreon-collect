@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Centreon (https://www.centreon.com/)
+ * Copyright 2022 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,11 +21,14 @@
 #include <fstream>
 
 #include "com/centreon/clib.hh"
+#include "com/centreon/connector/log.hh"
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/io/file_stream.hh"
 #include "com/centreon/process.hh"
 
 using namespace com::centreon;
+using namespace com::centreon::connector;
+
 static std::string perl_connector = BUILD_PATH "/centreon-connector/perl/centreon_connector_perl";
 
 static constexpr const char cmd1[] =
@@ -78,8 +81,16 @@ static constexpr const char scripts[] =
   "3\0"                   \
   "4242\0"                \
   "1\0"                   \
-  "-1\0"                  \
-  " \0"                   \
+  "9\0"                   \
+  " time out time out\0"  \
+  " \0\0\0\0"
+
+#define TimeoutKillTermRESULT \
+  "3\0"                       \
+  "4242\0"                    \
+  "1\0"                       \
+  "15\0"                      \
+  " time out\0"               \
   " \0\0\0\0"
 
 #define TimeoutTermCMD \
@@ -132,8 +143,8 @@ class TestConnector : public testing::Test {
   }
 
   static void _write_file(char const* filename,
-                   char const* content,
-                   unsigned int size = 0) {
+                          char const* content,
+                          unsigned int size = 0) {
     // Check size.
     if (!size)
       size = strlen(content);
@@ -209,7 +220,7 @@ TEST_F(TestConnector, ExecuteModuleLoading) {
 TEST_F(TestConnector, ExecuteMultipleScripts) {
   // Write Perl scripts.
   std::string script_paths[10];
-  for (auto & script_path : script_paths) {
+  for (auto& script_path : script_paths) {
     script_path = io::file_stream::temp_path();
     _write_file(script_path.c_str(), scripts, sizeof(scripts) - 1);
   }
@@ -238,7 +249,7 @@ TEST_F(TestConnector, ExecuteMultipleScripts) {
   int retval{wait_for_termination()};
 
   // Remove temporary files.
-  for (auto & script_path : script_paths)
+  for (auto& script_path : script_paths)
     remove(script_path.c_str());
 
   unsigned int nb_right_output(0);
@@ -246,7 +257,7 @@ TEST_F(TestConnector, ExecuteMultipleScripts) {
        ++nb_right_output, ++pos)
     ;
 
-  ASSERT_TRUE(nb_right_output == count);
+  ASSERT_EQ(nb_right_output, count);
   ASSERT_EQ(retval, 0);
 }
 
@@ -322,11 +333,10 @@ TEST_F(TestConnector, ExecuteSingleScriptLogFile) {
   std::ifstream file("/tmp/log_file");
   ASSERT_TRUE(file.is_open());
   std::string line((std::istreambuf_iterator<char>(file)),
-                  std::istreambuf_iterator<char>());
+                   std::istreambuf_iterator<char>());
   ASSERT_NE(
-      line.find(
-          "[info] Centreon Perl Connector " CENTREON_CONNECTOR_VERSION
-          " starting"),
+      line.find("[info] Centreon Perl Connector " CENTREON_CONNECTOR_VERSION
+                " starting"),
       std::string::npos);
   file.close();
 }
@@ -342,10 +352,9 @@ TEST_F(TestConnector, ExecuteWithAdditionalCode) {
       "exit 0;\n");
 
   // Process.
-  p.exec(
-      perl_connector +
-      " --code 'package Centreon::Test; our $company=\"Centreon\"; our "
-      "$attribute=\"wonderful\";'");
+  p.exec(perl_connector +
+         " --code 'package Centreon::Test; our $company=\"Centreon\"; our "
+         "$attribute=\"wonderful\";'");
 
   // Write command.
   std::ostringstream oss;
@@ -382,10 +391,11 @@ TEST_F(TestConnector, NonExistantScript) {
   int retval{wait_for_termination()};
 
   ASSERT_EQ(retval, 0);
-  ASSERT_EQ(output.find("could not run"), std::string::npos);
-  ASSERT_EQ(output.size(), sizeof(NonExistantRESULT) - 1);
-  ASSERT_FALSE(
-      memcmp(output.c_str(), NonExistantRESULT, sizeof(NonExistantRESULT) - 1));
+  ASSERT_NE(output.find("Embedded Perl error: failed to open Perl file"),
+            std::string::npos);
+  ASSERT_FALSE(memcmp(output.c_str(), NonExistantRESULT,
+                      12));  // 12 is the length of beginning of the response
+                             // without error message
 }
 
 /**
@@ -408,9 +418,9 @@ TEST_F(TestConnector, TimeoutKill) {
   int retval{wait_for_termination()};
 
   ASSERT_EQ(retval, 0);
-  ASSERT_EQ(output.size(), sizeof(TimeoutKillRESULT) - 1);
-  ASSERT_FALSE(
-      memcmp(output.c_str(), TimeoutKillRESULT, sizeof(TimeoutKillRESULT) - 1));
+  std::string expected(TimeoutKillRESULT,
+                       TimeoutKillRESULT + sizeof(TimeoutKillRESULT) - 1);
+  ASSERT_EQ(output, expected);
 }
 
 TEST_F(TestConnector, TimeoutTerm) {
@@ -429,7 +439,8 @@ TEST_F(TestConnector, TimeoutTerm) {
   int retval{wait_for_termination()};
 
   ASSERT_EQ(retval, 0);
-  ASSERT_EQ(output.size(), sizeof(TimeoutKillRESULT) - 1);
-  ASSERT_FALSE(
-      memcmp(output.c_str(), TimeoutKillRESULT, sizeof(TimeoutKillRESULT) - 1));
+  std::string expected(
+      TimeoutKillTermRESULT,
+      TimeoutKillTermRESULT + sizeof(TimeoutKillTermRESULT) - 1);
+  ASSERT_EQ(output, expected);
 }

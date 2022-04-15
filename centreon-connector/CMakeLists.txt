@@ -1,8 +1,9 @@
 # Global options.
-cmake_minimum_required(VERSION 2.8.12)
+cmake_minimum_required(VERSION 3.16)
 project(connectors CXX)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 add_definitions("-D_GLIBCXX_USE_CXX11_ABI=1")
+
 
 set(CONNECTOR_MAJOR 21)
 set(CONNECTOR_MINOR 10)
@@ -11,17 +12,26 @@ set(CONNECTOR_VERSION "${CONNECTOR_MAJOR}.${CONNECTOR_MINOR}.${CONNECTOR_PATCH}"
 add_definitions(-DCENTREON_CONNECTOR_VERSION=\"${CONNECTOR_VERSION}\")
 
 include(${PROJECT_SOURCE_DIR}/cmake/Findclib.cmake)
-include(${PROJECT_SOURCE_DIR}/cmake/FindSSH.cmake)
 include(${PROJECT_SOURCE_DIR}/cmake/Findperl.cmake)
 
 include(${CMAKE_BINARY_DIR}/conan_paths.cmake)
 find_package(fmt REQUIRED)
 find_package(spdlog REQUIRED)
+find_package(asio REQUIRED)
+find_package(absl REQUIRED)
+find_package(Boost REQUIRED)
+find_package(Libssh2 REQUIRED)
+find_package(OpenSSL REQUIRED)
+find_package(ZLIB REQUIRED)
+
 
 add_definitions(${spdlog_DEFINITIONS})
 
 include_directories(${fmt_INCLUDE_DIRS})
 include_directories(${spdlog_INCLUDE_DIRS})
+include_directories(${asio_INCLUDE_DIRS})
+include_directories(${absl_INCLUDE_DIRS})
+include_directories(${Boost_INCLUDE_DIRS})
 
 # Generate code to dynamically load modules.
 
@@ -55,25 +65,25 @@ if (WITH_TESTING)
 
   include_directories(${PROJECT_SOURCE_DIR}/perl/inc)
   include_directories(${PROJECT_SOURCE_DIR}/ssh/inc)
+  include_directories(${Libssh2_INCLUDE_DIR})
+
   add_definitions(-DBUILD_PATH="${CMAKE_BINARY_DIR}")
 
   add_executable(ut_connector
     # Core sources
     ${PROJECT_SOURCE_DIR}/perl/src/embedded_perl.cc
     ${PROJECT_SOURCE_DIR}/common/src/log.cc
-    ${PROJECT_SOURCE_DIR}/perl/src/pipe_handle.cc
+    ${PROJECT_SOURCE_DIR}/common/src/result.cc
+    ${PROJECT_SOURCE_DIR}/common/src/reporter.cc
+    ${PROJECT_SOURCE_DIR}/common/src/parser.cc
+    ${PROJECT_SOURCE_DIR}/perl/src/checks/check.cc
     ${PROJECT_SOURCE_DIR}/perl/src/script.cc
     ${PROJECT_SOURCE_DIR}/perl/src/xs_init.cc
     ${PROJECT_SOURCE_DIR}/ssh/src/checks/check.cc
-    ${PROJECT_SOURCE_DIR}/ssh/src/checks/result.cc
-    ${PROJECT_SOURCE_DIR}/ssh/src/checks/timeout.cc
-    ${PROJECT_SOURCE_DIR}/ssh/src/multiplexer.cc
     ${PROJECT_SOURCE_DIR}/ssh/src/orders/options.cc
     ${PROJECT_SOURCE_DIR}/ssh/src/orders/parser.cc
     ${PROJECT_SOURCE_DIR}/ssh/src/sessions/credentials.cc
     ${PROJECT_SOURCE_DIR}/ssh/src/sessions/session.cc
-    ${PROJECT_SOURCE_DIR}/ssh/src/sessions/socket_handle.cc
-    ${PROJECT_SOURCE_DIR}/ssh/src/reporter.cc
     # Test sources.
     ${PROJECT_SOURCE_DIR}/perl/test/main.cc
     ${PROJECT_SOURCE_DIR}/perl/test/connector.cc
@@ -88,6 +98,9 @@ if (WITH_TESTING)
     )
   add_dependencies(ut_connector centreon_connector_perl)
   add_dependencies(ut_connector centreon_clib_shared)
-  target_link_libraries(ut_connector ${GTest_LIBS} centreon_clib ${PERL_LIBRARIES} ${fmt_LIBS} ${spdlog_LIBS} ${LIBSSH2_LIBRARIES})
+  target_link_libraries(ut_connector ${GTest_LIBS} centreon_clib ${PERL_LIBRARIES} ${fmt_LIBS} ${spdlog_LIBS} ${absl_LIBS} ${Libssh2_LIBS} ${OpenSSL_LIBS} ${ZLIB_LIBS} pthread dl)
+  target_precompile_headers(ut_connector PRIVATE ssh/precomp_inc/precomp.hh)
+
+
 
 endif (WITH_TESTING)

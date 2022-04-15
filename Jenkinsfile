@@ -72,7 +72,7 @@ stage('Build / Unit tests // Packaging / Signing') {
     node("C++") {
       dir('centreon-collect-alma8') {
         checkout scm
-        sh 'docker run -i --entrypoint /src/ci/scripts/collect-rpm-package.sh -v "$PWD:/src" -e DISTRIB="el8" -e VERSION=$VERSION -e RELEASE=$RELEASE registry.centreon.com/centreon-collect-alma8-dependencies:22.04-testdocker'
+        sh 'docker run -i --entrypoint /src/ci/scripts/collect-rpm-package.sh -v "$PWD:/src" -e DISTRIB="el8" -e VERSION=$VERSION -e RELEASE=$RELEASE registry.centreon.com/centreon-collect-alma8-dependencies:21.10'
         sh 'rpmsign --addsign *.rpm'
         stash name: 'el8-rpms', includes: '*.rpm'
         archiveArtifacts artifacts: "*.rpm"
@@ -87,19 +87,7 @@ stage('Build / Unit tests // Packaging / Signing') {
         sh 'docker run -i --entrypoint /src/ci/scripts/collect-unit-tests.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-debian-dependencies:21.10'
       }
     }
-  },
-  'debian buster packaging and signing': {
-    node("C++") {
-      dir('centreon-collect-centos8') {
-        //checkout scm
-        //sh 'docker run -i --entrypoint /src/ci/scripts/collect-rpm-package.sh -v "$PWD:/src" -e DISTRIB="el8" -e VERSION=$VERSION -e RELEASE=$RELEASE registry.centreon.com/centreon-collect-centos8-dependencies:21.10'
-        //sh 'rpmsign --addsign *.rpm'
-        //stash name: 'el8-rpms', includes: '*.rpm'
-        //archiveArtifacts artifacts: "*.rpm"
-        //sh 'rm -rf *.rpm'
-      }
-    }
-  } 
+  }
 }
 
 if ((env.BUILD == 'RELEASE') || (env.BUILD == 'QA')) {

@@ -32,8 +32,6 @@ BuildRequires:	gcc-c++
 BuildRequires:	make
 BuildRequires:	centreon-clib-devel >= %{thismajor}
 BuildRequires:  centreon-clib-devel < %{nextmajor}
-BuildRequires:  libssh2-devel >= 1.4
-BuildRequires:	libgcrypt-devel
 BuildRequires:  perl
 BuildRequires:  perl-devel
 BuildRequires:	perl-ExtUtils-Embed
@@ -60,8 +58,6 @@ Summary:	Centreon Connector SSH provide persistante connection between checks.
 Group:		%{group}
 Requires:	centreon-clib >= %{thismajor}
 Requires:       centreon-clib < %{nextmajor}
-Requires:	libssh2 >= 1.4
-Requires:	libgcrypt
 
 %description ssh
 Centreon Connector SSH provide persistante connection between checks.

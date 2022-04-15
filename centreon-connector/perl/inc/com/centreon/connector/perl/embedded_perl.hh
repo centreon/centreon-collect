@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2014 Centreon
+** Copyright 2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -22,9 +22,7 @@
 #include <EXTERN.h>
 #include <perl.h>
 #include <sys/types.h>
-#include <string>
 #include "com/centreon/connector/perl/namespace.hh"
-#include "com/centreon/unordered_hash.hh"
 
 // Global Perl interpreter.
 extern PerlInterpreter* my_perl;
@@ -42,21 +40,23 @@ class embedded_perl {
  public:
   ~embedded_perl();
   static embedded_perl& instance();
-  static void load(int* argc,
-                   char*** argv,
-                   char*** env,
-                   char const* code = NULL);
-  pid_t run(std::string const& cmd, int fds[3]);
+  static void load(int argc, char** argv, char** env, char const* code = NULL);
+  pid_t run(std::string const& cmd,
+            int fds[3],
+            const shared_io_context& io_context);
   static void unload();
 
  private:
-  embedded_perl(int* argc, char*** argv, char*** env, char const* code = NULL);
+  using cmd_to_perl_map = absl::flat_hash_map<std::string, SV*>;
+
+  embedded_perl(int argc, char** argv, char** env, char const* code = NULL);
   embedded_perl(embedded_perl const& ep);
   embedded_perl& operator=(embedded_perl const& ep);
 
-  umap<std::string, SV*> _parsed;
+  cmd_to_perl_map _parsed;
   static char const* const _script;
   pid_t _self;
+  char** _argv;
 };
 
 CCCP_END()

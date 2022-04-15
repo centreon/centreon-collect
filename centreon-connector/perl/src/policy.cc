@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013 Centreon
+** Copyright 2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -17,66 +17,73 @@
 */
 
 #include "com/centreon/connector/perl/policy.hh"
-
-#include <sys/wait.h>
-
-#include <cerrno>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <memory>
-
 #include "com/centreon/connector/log.hh"
-#include "com/centreon/connector/perl/checks/check.hh"
-#include "com/centreon/connector/perl/multiplexer.hh"
-#include "com/centreon/exceptions/basic.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::connector;
 using namespace com::centreon::connector::perl;
 
-// Exit flag.
-extern volatile bool should_exit;
-
-/**************************************
- *                                     *
- *           Public Methods            *
- *                                     *
- **************************************/
-
 /**
  *  Default constructor.
  */
-policy::policy() : _sin(stdin), _sout(stdout) {
-  // Send information back.
-  multiplexer::instance().handle_manager::add(&_sout, &_reporter);
+policy::policy(const shared_io_context& io_context)
+    : _reporter(reporter::create(io_context)),
+      _io_context(io_context),
+      _second_timer(*io_context),
+      _end_timer(*io_context) {}
 
-  // Listen orders.
-  _parser.listen(this);
+void policy::create(const shared_io_context& io_context,
+                    const std::string& test_cmd_file) {
+  std::shared_ptr<policy> ret(new policy(io_context));
+  ret->start(test_cmd_file);
+}
 
-  // Parser listens stdin.
-  multiplexer::instance().handle_manager::add(&_sin, &_parser);
+void policy::start(const std::string& test_cmd_file) {
+  orders::parser::create(_io_context, shared_from_this(), test_cmd_file);
+  checks::shared_signal_set signal(
+      std::make_shared<asio::signal_set>(*_io_context, SIGCHLD));
+  signal->async_wait(
+      [me = shared_from_this(), this](const std::error_code& err, int) {
+        if (!err) {
+          wait_pid();
+        }
+      });
+  checks::check::add_signal_set(signal);
+  start_second_timer();
 }
 
 /**
- *  Destructor.
+ * @brief sometimes asio::signal_set miss signal so this timer checks forgotten
+ * childs
+ *
  */
-policy::~policy() throw() {
-  // Remove from multiplexer.
-  try {
-    multiplexer::instance().handle_manager::remove(&_sin);
-    multiplexer::instance().handle_manager::remove(&_sout);
-  } catch (...) {
-  }
+void policy::start_second_timer() {
+  _second_timer.expires_from_now(std::chrono::seconds(1));
+  _second_timer.async_wait(
+      [me = shared_from_this()](const std::error_code& err) {
+        if (!err) {
+          me->wait_pid();
+          me->start_second_timer();
+        }
+      });
+}
 
-  // Close checks.
-  for (auto it = _checks.begin(), end = _checks.end(); it != end; ++it) {
-    try {
-      it->second->unlisten(this);
-    } catch (...) { }
-    delete it->second;
+/**
+ * @brief get child exit status
+ *
+ */
+void policy::wait_pid() {
+  pid_t child;
+  int exit_code;
+  while ((child = waitpid(-1, &exit_code, WNOHANG)) > 0) {
+    pid_to_check_map::iterator ended = _checks.find(child);
+    if (ended == _checks.end()) {
+      log::core()->error("pid {} inconnu", child);
+      continue;
+    }
+    ended->second->set_exit_code(exit_code);
+    _checks.erase(ended);
   }
-  _checks.clear();
 }
 
 /**
@@ -89,11 +96,21 @@ void policy::on_eof() {
 
 /**
  *  Called if an error occured on stdin.
+ *
+ *  @param[in] cmd_id Command ID.
+ *  @param[in] msg    Associated message.
  */
-void policy::on_error() {
-  log::core()->info("error occured while parsing stdin");
-  _error = true;
-  on_quit();
+void policy::on_error(uint64_t cmd_id, const std::string& msg) {
+  if (cmd_id) {
+    result r;
+    r.set_command_id(cmd_id);
+    r.set_executed(false);
+    r.set_error(msg);
+    _reporter->send_result(r);
+  } else {
+    log::core()->info("error occurred while parsing stdin");
+    on_quit();
+  }
 }
 
 /**
@@ -103,19 +120,20 @@ void policy::on_error() {
  *  @param[in] timeout Time the command has to execute.
  *  @param[in] cmd     Command to execute.
  */
-void policy::on_execute(unsigned long long cmd_id,
-                        const timestamp& timeout,
-                        std::string const& cmd) {
-  std::unique_ptr<checks::check> chk(new checks::check);
-  chk->listen(this);
+void policy::on_execute(
+    uint64_t cmd_id,
+    const time_point& timeout,
+    const std::shared_ptr<com::centreon::connector::orders::options>& opt) {
+  checks::check::pointer check = std::make_shared<checks::check>(
+      cmd_id, *opt, timeout, _reporter, _io_context);
+
   try {
-    pid_t child(chk->execute(cmd_id, cmd, timeout));
-    _checks[child] = chk.release();
-  } catch (std::exception const& e) {
-    log::core()->info("execution of check {} failed {}", cmd_id, e.what());
-    checks::result r;
-    r.set_command_id(cmd_id);
-    on_result(r);
+    pid_t child = check->execute();
+    if (child > 0) {
+      _checks[child] = check;
+    }
+  } catch (const std::exception& e) {
+    _reporter->send_result({cmd_id, -1, e.what()});
   }
 }
 
@@ -125,22 +143,31 @@ void policy::on_execute(unsigned long long cmd_id,
 void policy::on_quit() {
   // Exiting.
   log::core()->info("quit request received");
-  should_exit = true;
-  multiplexer::instance().handle_manager::remove(&_sin);
+  start_end_timer(false);
 }
 
 /**
- *  Check result callback.
+ * @brief before stop io_context, we wait after all checks end
  *
- *  @param[in] r Check result callback.
  */
-void policy::on_result(checks::result const& r) {
-  // Lock mutex.
-  static std::mutex processing_mutex;
-  std::lock_guard<std::mutex> lock(processing_mutex);
-
-  // Send check result back to monitoring engine.
-  _reporter.send_result(r);
+void policy::start_end_timer(bool final) {
+  _end_timer.expires_from_now(std::chrono::milliseconds(10));
+  _end_timer.async_wait([me = shared_from_this(),
+                         final](const std::error_code& err) {
+    if (!err) {
+      log::core()->trace("{} checks remaining", checks::check::get_nb_check());
+      if (checks::check::get_nb_check()) {
+        me->start_end_timer(false);
+      } else {
+        if (final) {
+          me->_io_context->stop();
+        } else {  // a last delay to allow reporter to write everything on
+                  // stdout
+          me->start_end_timer(true);
+        }
+      }
+    }
+  });
 }
 
 /**
@@ -148,57 +175,7 @@ void policy::on_result(checks::result const& r) {
  */
 void policy::on_version() {
   // Report version 1.0.
-  log::core()->info("monitoring engine requested protocol version, sending 1.0");
-  _reporter.send_version(1, 0);
-}
-
-/**
- *  Run the program.
- *
- *  @return false if program terminated prematurely.
- */
-bool policy::run() {
-  // No error occurred yet.
-  _error = false;
-
-  while (!should_exit || !_checks.empty()) {
-    // Run multiplexer.
-    multiplexer::instance().multiplex();
-
-    // Is there some terminated child ?
-    int status;
-    pid_t child(waitpid(0, &status, WNOHANG));
-    while (child != 0 && child != (pid_t)-1) {
-      // Handle process termination.
-      log::core()->info("process {0} exited with status {1}", child, status);
-      std::map<pid_t, checks::check*>::iterator it;
-      it = _checks.find(child);
-      if (it != _checks.end()) {
-        std::unique_ptr<checks::check> chk(it->second);
-        _checks.erase(it);
-        if (WIFSIGNALED(status)) {
-          log::core()->error("process {0} exited because of a signal {1}", child, WTERMSIG(status));
-        }
-
-        chk->terminated(WIFEXITED(status) ? WEXITSTATUS(status) : -1);
-      }
-      log::core()->debug("{} checks still running", _checks.size());
-
-      // Is there any other terminated child ?
-      child = waitpid(0, &status, WNOHANG);
-    }
-
-    // Check for error.
-    if (child == (pid_t)-1 && errno != ECHILD) {
-      char const* msg(strerror(errno));
-      throw basic_error() << "waitpid failed: " << msg;
-    }
-  }
-
-  // Run as long as some data remains.
-  log::core()->info("reporting last data to monitoring engine");
-  while (_reporter.can_report() && _reporter.want_write(_sout))
-    multiplexer::instance().multiplex();
-
-  return !_error;
+  log::core()->info(
+      "monitoring engine requested protocol version, sending 1.0");
+  _reporter->send_version(1, 0);
 }

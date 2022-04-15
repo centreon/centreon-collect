@@ -19,9 +19,7 @@
 #ifndef TEST_ORDERS_FAKE_LISTENER_HH
 #define TEST_ORDERS_FAKE_LISTENER_HH
 
-#include <list>
-#include "com/centreon/connector/ssh/orders/listener.hh"
-#include "com/centreon/timestamp.hh"
+#include "com/centreon/connector/ipolicy.hh"
 
 using namespace com::centreon;
 
@@ -31,19 +29,13 @@ using namespace com::centreon;
  *
  *  Register callback call order.
  */
-class fake_listener : public com::centreon::connector::ssh::orders::listener {
+class fake_listener : public com::centreon::connector::policy_interface {
  public:
-  enum e_callback {
-    cb_eof,
-    cb_error,
-    cb_execute,
-    cb_quit,
-    cb_version
-  };
+  enum e_callback { cb_eof, cb_error, cb_execute, cb_quit, cb_version };
   struct callback_info {
     e_callback callback;
     uint64_t cmd_id;
-    timestamp timeout;
+    time_point timeout;
     std::string host;
     unsigned short port;
     std::string user;
@@ -61,18 +53,12 @@ class fake_listener : public com::centreon::connector::ssh::orders::listener {
   fake_listener& operator=(fake_listener const& fl) = delete;
   std::list<callback_info> const& get_callbacks() const noexcept;
   void on_eof() override;
-  void on_error(uint64_t cmd_id, char const* msg) override;
-  void on_execute(uint64_t cmd_id,
-                  const timestamp& timeout,
-                  std::string const& host,
-                  unsigned short port,
-                  std::string const& user,
-                  std::string const& password,
-                  std::string const& identity,
-                  std::list<std::string> const& cmds,
-                  int skip_stdout,
-                  int skip_stderr,
-                  bool is_ipv6) override;
+  void on_error(uint64_t cmd_id, const std::string& msg) override;
+  void on_execute(
+      uint64_t cmd_id,
+      const time_point& timeout,
+      const std::shared_ptr<com::centreon::connector::orders::options>& opt)
+      override;
   void on_quit() override;
   void on_version() override;
 

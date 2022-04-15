@@ -17,47 +17,56 @@
  *
  */
 
-#include "com/centreon/connector/ssh/reporter.hh"
+#include "com/centreon/connector/reporter.hh"
 
 #include <gtest/gtest.h>
 
-#include "buffer_handle.hh"
 #include "com/centreon/exceptions/basic.hh"
 
 using namespace com::centreon;
-using namespace com::centreon::connector::ssh;
+using namespace com::centreon::connector;
+
+static shared_io_context io_context(std::make_shared<asio::io_context>());
+
+class mock_reporter : public reporter {
+ public:
+  std::string sent;
+  mock_reporter(const shared_io_context& io_context) : reporter(io_context) {}
+
+  void write() override {
+    if (!_buffer->empty()) {
+      sent += *_buffer;
+      _buffer = std::make_shared<std::string>();
+    }
+  }
+};
 
 TEST(SSHSession, CtorDefault) {
   // Object.
-  reporter r;
+  reporter::pointer r = reporter::create(io_context);
 
   // Check.
-  ASSERT_TRUE(r.can_report());
-  ASSERT_TRUE(r.get_buffer().empty());
+  ASSERT_TRUE(r->can_report());
+  ASSERT_TRUE(r->get_buffer().empty());
 }
 
 TEST(SSHSession, Error) {
   // Check result.
-  checks::result cr;
+  result cr;
   cr.set_command_id(42);
 
-  // Buffer handle.
-  buffer_handle bh;
-
   // Reporter.
-  reporter r;
-  r.send_result(cr);
-
-  // Notify of error.
-  ASSERT_THROW(r.error(bh), exceptions::basic);
+  reporter::pointer r = reporter::create(io_context);
+  r->send_result(cr);
+  r->error();
 
   // Reporter cannot report anymore.
-  ASSERT_FALSE(r.can_report());
+  ASSERT_FALSE(r->can_report());
 }
 
 TEST(SSHSession, SendResult) {
   // Check result.
-  checks::result cr;
+  result cr;
   cr.set_command_id(42);
   cr.set_executed(true);
   cr.set_exit_code(3);
@@ -65,39 +74,26 @@ TEST(SSHSession, SendResult) {
   cr.set_error("some error might have occurred");
 
   // Reporter.
-  reporter r;
+  mock_reporter r(io_context);
   r.send_result(cr);
 
-  // Buffer handle.
-  buffer_handle bh;
-  while (r.want_write(bh))
-    r.write(bh);
+  const char* expected =
+      "3\00042\0001\0003\0some error might have occurred\0this is my "
+      "output\0\0\0\0";
 
-  // Compare what reporter wrote with what is expected.
-  char buffer
-      [sizeof("3\00042\0001\0003\0some error might have occurred\0this is my "
-              "output\0\0\0\0") -
-       1];
-  ASSERT_EQ(bh.read(buffer, sizeof(buffer)), sizeof(buffer));
-  ASSERT_FALSE(
-      memcmp(buffer,
-             "3\00042\0001\0003\0some error might have occurred\0this is my "
-             "output\0\0\0\0",
-             sizeof(buffer)));
+  ASSERT_EQ(r.sent,
+            std::string(expected,
+                        expected +
+                            sizeof("3\00042\0001\0003\0some error might have "
+                                   "occurred\0this is my output\0\0\0\0") -
+                            1));
 }
 
 TEST(SSHSession, SendVersion) {
   // Reporter.
-  reporter r;
+  mock_reporter r(io_context);
   r.send_version(42, 84);
 
-  // Buffer handle.
-  buffer_handle bh;
-  while (r.want_write(bh))
-    r.write(bh);
-
-  // Compare what reporter wrote with what is expected.
-  char buffer[sizeof("1\00042\00084\0\0\0\0") - 1];
-  ASSERT_EQ(bh.read(buffer, sizeof(buffer)), sizeof(buffer));
-  ASSERT_FALSE(memcmp(buffer, "1\00042\00084\0\0\0\0", sizeof(buffer)));
+  const char* s = "1\00042\00084\0\0\0\0";
+  ASSERT_EQ(r.sent, std::string(s, s + sizeof("1\00042\00084\0\0\0\0") - 1));
 }

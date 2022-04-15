@@ -19,20 +19,16 @@
 #ifndef CCCS_CHECKS_CHECK_HH
 #define CCCS_CHECKS_CHECK_HH
 
-#include <ctime>
-#include <list>
-#include <string>
-#include "com/centreon/connector/ssh/checks/listener.hh"
+#include "com/centreon/connector/result.hh"
 #include "com/centreon/connector/ssh/namespace.hh"
-#include "com/centreon/connector/ssh/sessions/listener.hh"
-#include "com/centreon/connector/ssh/sessions/session.hh"
-#include "com/centreon/timestamp.hh"
 
 CCCS_BEGIN()
 
+namespace sessions {
+class session;
+}
+
 namespace checks {
-// Forward declaration.
-class result;
 
 /**
  *  @class check check.hh "com/centreon/connector/ssh/checks/check.hh"
@@ -40,45 +36,68 @@ class result;
  *
  *  Execute a check by opening a new channel on a SSH session.
  */
-class check : public sessions::listener {
+class check : public std::enable_shared_from_this<check> {
+  using callback = std::function<void(const result&)>;
+
  public:
-  check(int skip_stdout = -1, int skip_stderr = -1);
-  ~check() noexcept override;
-  void execute(sessions::session& sess,
-               unsigned long long cmd_id,
-               std::list<std::string> const& cmds,
-               const timestamp& tmt);
-  void listen(checks::listener* listnr);
-  void on_available(sessions::session& sess) override;
-  void on_close(sessions::session& sess) override;
-  void on_connected(sessions::session& sess) override;
-  void on_timeout();
-  void unlisten(checks::listener* listnr);
+  using pointer = std::shared_ptr<check>;
+  using string_list = std::list<std::string>;
+
+  check(const std::shared_ptr<sessions::session>& session,
+        unsigned long long cmd_id,
+        string_list const& cmds,
+        const time_point& tmt,
+        int skip_stdout = -1,
+        int skip_stderr = -1);
+  ~check() noexcept;
+
+  template <class callback_type>
+  void execute(callback_type&& callback);
+
+  void dump(std::ostream& s) const;
 
  private:
-  enum e_step { chan_open = 1, chan_exec, chan_read, chan_close };
+  enum class e_step {
+    chan_open = 1,
+    chan_exec,
+    chan_read_stdout,
+    chan_read_stderr,
+    chan_close
+  };
 
-  check(check const& c);
-  check& operator=(check const& c);
-  bool _close();
-  bool _exec();
-  bool _open();
-  bool _read();
-  void _send_result_and_unregister(result const& r);
+  check(check const& c) = delete;
+  check& operator=(check const& c) = delete;
+
+  void _execute();
+  void _process();
+  void _close();
+  void _close_handler(int retval);
+  void _exec();
+  void _open();
+  void _read(bool read_stdout);
   static std::string& _skip_data(std::string& data, int nb_line);
 
   LIBSSH2_CHANNEL* _channel;
-  std::list<std::string> _cmds;
   unsigned long long _cmd_id;
-  checks::listener* _listnr;
-  sessions::session* _session;
+  string_list _cmds;
+  time_point _timeout;
+  std::shared_ptr<sessions::session> _session;
+  callback _callback;
   int _skip_stderr;
   int _skip_stdout;
   std::string _stderr;
   std::string _stdout;
   e_step _step;
-  unsigned long _timeout;
 };
+
+template <class callback_type>
+void check::execute(callback_type&& callback) {
+  _callback = callback;
+  _execute();
+}
+
+std::ostream& operator<<(std::ostream& os, const check& chk);
+
 }  // namespace checks
 
 CCCS_END()
