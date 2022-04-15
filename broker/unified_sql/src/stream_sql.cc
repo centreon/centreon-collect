@@ -2274,7 +2274,7 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
               "status_confirmed,check_attempts,max_check_attempts,poller_id,"
               "severity_id,name,parent_name,notes_url,notes,action_url,"
               "notifications_enabled,passive_checks_enabled,active_checks_"
-              "enabled, ) "
+              "enabled) "
               "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
           _resources_service_update = _mysql.prepare_query(
               "UPDATE resources SET "
