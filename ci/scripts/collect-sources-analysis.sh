@@ -34,6 +34,21 @@ DISTRIB=$(lsb_release -rs | cut -f1 -d.)
 
 cd ..
 
+echo "host url = $3"
+echo "is PR ? = $1"
+
+if [[ -n "$4" ]]; then
+  echo "var4 = $4"
+fi
+
+if [[ -n "$5" ]]; then
+  echo "var5 = $5"
+fi
+
+if [[ -n "$6" ]]; then
+  echo "var6 = $6"
+fi
+
 if [ "PR" == "$1" ] ; then
   SONAR=$( /src/tmp/sonar-scanner/bin/sonar-scanner -X -Dsonar.projectVersion="$VERSION" -Dsonar.login="$2" -Dsonar.host.url="$3" -Dsonar.pullrequest.branch="$4" -Dsonar.pullrequest.base="$5" -Dsonar.pullrequest.key="$6" )
 else
