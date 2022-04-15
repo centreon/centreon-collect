@@ -25,10 +25,10 @@ PROCNBR=$( nproc )
 # Run SQ with or without reference branch
 if [ "PR" == "$1" ] ; then
   echo "Running SQ in PR mode"
-  SONAR=$( /src/tmp/sonar-scanner/bin/sonar-scanner -X -Dsonar.cfamily.threads="$PROCNBR" -Dsonar.projectVersion="$VERSION" -Dsonar.login="$2" -Dsonar.host.url="$3" -Dsonar.pullrequest.branch="$4" -Dsonar.pullrequest.base="$5" -Dsonar.pullrequest.key="$6" )
+  /src/tmp/sonar-scanner/bin/sonar-scanner -Dsonar.cfamily.threads="$PROCNBR" -Dsonar.projectVersion="$VERSION" -Dsonar.login="$2" -Dsonar.host.url="$3" -Dsonar.pullrequest.branch="$4" -Dsonar.pullrequest.base="$5" -Dsonar.pullrequest.key="$6"
 else
   echo "Running SQ in branch mode"
-  SONAR=$( /src/tmp/sonar-scanner/bin/sonar-scanner -X -Dsonar.cfamily.threads="$PROCNBR" -Dsonar.projectVersion="$VERSION" -Dsonar.login="$2" -Dsonar.host.url="$3" -Dsonar.pullrequest.branch="$4" )
+  /src/tmp/sonar-scanner/bin/sonar-scanner -Dsonar.cfamily.threads="$PROCNBR" -Dsonar.projectVersion="$VERSION" -Dsonar.login="$2" -Dsonar.host.url="$3" -Dsonar.pullrequest.branch="$4"
 fi
 
 # TODO: Save C++ SQ's analysis and use cache mode.
