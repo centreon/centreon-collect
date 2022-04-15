@@ -22,6 +22,28 @@ cd ..
 # Get thread number
 PROCNBR=$( nproc )
 
+
+echo "var1: is PR ? = $1"
+echo "var3 : host url = $3"
+
+if [[ -n "$4" ]]; then
+  echo "var4 = $4"
+else
+  echo "var4 is EMPTY"
+fi
+
+if [[ -n "$5" ]]; then
+  echo "var5 = $5"
+else
+  echo "var5 is EMPTY"
+fi
+
+if [[ -n "$6" ]]; then
+  echo "var6 = $6"
+else
+  echo "var6 is EMPTY"
+fi
+
 # Run SQ with or without reference branch
 if [ "PR" == "$1" ] ; then
   echo "Running SQ in PR mode"
