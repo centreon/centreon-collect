@@ -132,6 +132,22 @@ message Service {
   bool retain_status_information = 82;
   uint64 severity_id = 83;
   repeated TagInfo tags = 84;
+
+  /**
+   * @brief There is no 1, I know. ServiceType becomes ResourceType in the
+   * database. And a resource is represented also by a host. 1 is reserved for
+   * hosts.
+   */
+  enum ServiceType {
+    SERVICE = 0;
+    METASERVICE = 2;
+    BA = 3;
+  }
+  ServiceType type = 85;
+
+  /* In case of metaservice and ba, they also have an internal id. We keep it
+   * here. */
+  uint64 internal_id = 86;
 }
 
 

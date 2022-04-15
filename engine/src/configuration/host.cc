@@ -518,7 +518,7 @@ void host::merge(object const& obj) {
   MRG_DEFAULT(_statusmap_image);
   MRG_OPTION(_timezone);
   MRG_DEFAULT(_vrml_image);
-  MRG_DEFAULT(_tags);
+  MRG_MAP(_tags);
 }
 
 /**

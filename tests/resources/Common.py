@@ -519,7 +519,7 @@ def check_service_severity_with_timeout(host_id: int, service_id: int, severity_
         time.sleep(1)
     return False
 
-def check_service_tags_with_timeout(host_id: int, service_id: int, tag_ids: list, timeout: int):
+def check_resources_tags_with_timeout(parent_id: int, mid: int, tag_ids: list, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host='localhost',
@@ -531,14 +531,17 @@ def check_service_tags_with_timeout(host_id: int, service_id: int, tag_ids: list
 
         with connection:
             with connection.cursor() as cursor:
-                cursor.execute("select t.id from resources r inner join resources_tags rt on r.resource_id=rt.resource_id inner join tags t on rt.tag_id=t.tag_id WHERE r.id={} and r.parent_id={}".format(service_id, host_id))
+                cursor.execute("select t.id from resources r inner join resources_tags rt on r.resource_id=rt.resource_id inner join tags t on rt.tag_id=t.tag_id WHERE r.id={} and r.parent_id={}".format(mid, parent_id))
                 result = cursor.fetchall()
                 if len(result) > 0:
                     if len(result) == len(tag_ids):
                         for r in result:
                             if r['id'] not in tag_ids:
+                                logger.console("id {} is not in tag ids".format(r['id']))
                                 break
                             return True
+                    else:
+                        logger.console("different sizes: result:{} and tag_ids:{}".format(len(result), len(tag_ids)))
         time.sleep(1)
     return False
 

@@ -2274,11 +2274,11 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
               "status_confirmed,check_attempts,max_check_attempts,poller_id,"
               "severity_id,name,parent_name,notes_url,notes,action_url,"
               "notifications_enabled,passive_checks_enabled,active_checks_"
-              "enabled) "
-              "VALUES(?,?,0,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+              "enabled, ) "
+              "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
           _resources_service_update = _mysql.prepare_query(
               "UPDATE resources SET "
-              "type=0,status=?,status_ordered=?,last_status_change=?,"
+              "type=?,status=?,status_ordered=?,last_status_change=?,"
               "in_downtime=?,acknowledged=?,"
               "status_confirmed=?,check_attempts=?,max_check_attempts=?,"
               "poller_id=?,severity_id=?,name=?,parent_name=?,notes_url=?,"
@@ -2302,17 +2302,13 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
 
         uint64_t sid = 0;
         fmt::string_view name{misc::string::truncate(
-            ss.service_description(), get_resources_col_size(resources_name))};
+            ss.display_name(), get_resources_col_size(resources_name))};
         fmt::string_view parent_name{misc::string::truncate(
             ss.host_name(), get_resources_col_size(resources_parent_name))};
-        _resources_service_insert.bind_value_as_str(12, name);
-        _resources_service_insert.bind_value_as_str(13, parent_name);
         fmt::string_view notes_url{misc::string::truncate(
             ss.notes_url(), get_resources_col_size(resources_notes_url))};
-        _resources_service_insert.bind_value_as_str(14, notes_url);
         fmt::string_view notes{misc::string::truncate(
             ss.notes(), get_resources_col_size(resources_notes))};
-        _resources_service_insert.bind_value_as_str(15, notes);
         fmt::string_view action_url{misc::string::truncate(
             ss.action_url(), get_resources_col_size(resources_action_url))};
 
@@ -2320,23 +2316,24 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
         if (found == _resource_cache.end()) {
           _resources_service_insert.bind_value_as_u64(0, ss.service_id());
           _resources_service_insert.bind_value_as_u64(1, ss.host_id());
-          _resources_service_insert.bind_value_as_u32(2, ss.current_state());
+          _resources_service_insert.bind_value_as_u32(2, ss.type());
+          _resources_service_insert.bind_value_as_u32(3, ss.current_state());
           _resources_service_insert.bind_value_as_u32(
-              3, svc_ordered_status[ss.current_state()]);
-          _resources_service_insert.bind_value_as_u64(4,
+              4, svc_ordered_status[ss.current_state()]);
+          _resources_service_insert.bind_value_as_u64(5,
                                                       ss.last_state_change());
-          _resources_service_insert.bind_value_as_bool(5,
+          _resources_service_insert.bind_value_as_bool(6,
                                                        ss.downtime_depth() > 0);
           _resources_service_insert.bind_value_as_bool(
-              6, ss.acknowledgement_type() != Service_AckType_NONE);
+              7, ss.acknowledgement_type() != Service_AckType_NONE);
           _resources_service_insert.bind_value_as_bool(
-              7, ss.state_type() == Service_StateType_HARD);
+              8, ss.state_type() == Service_StateType_HARD);
           _resources_service_insert.bind_value_as_u32(
-              8, ss.current_check_attempt());
-          _resources_service_insert.bind_value_as_u32(9,
+              9, ss.current_check_attempt());
+          _resources_service_insert.bind_value_as_u32(10,
                                                       ss.max_check_attempts());
           _resources_service_insert.bind_value_as_u64(
-              10, _cache_host_instance[ss.host_id()]);
+              11, _cache_host_instance[ss.host_id()]);
           if (ss.severity_id() > 0) {
             log_v2::sql()->debug(
                 "service ({}, {}) with severity_id {} => uid = {}",
@@ -2344,16 +2341,20 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
             sid = _severity_cache[{ss.severity_id(), 0}];
           }
           if (sid)
-            _resources_service_insert.bind_value_as_u64(11, sid);
+            _resources_service_insert.bind_value_as_u64(12, sid);
           else
-            _resources_service_insert.bind_value_as_null(11);
-          _resources_service_insert.bind_value_as_str(16, action_url);
+            _resources_service_insert.bind_value_as_null(12);
+          _resources_service_insert.bind_value_as_str(13, name);
+          _resources_service_insert.bind_value_as_str(14, parent_name);
+          _resources_service_insert.bind_value_as_str(15, notes_url);
+          _resources_service_insert.bind_value_as_str(16, notes);
+          _resources_service_insert.bind_value_as_str(17, action_url);
           _resources_service_insert.bind_value_as_bool(
-              17, ss.notifications_enabled());
+              18, ss.notifications_enabled());
           _resources_service_insert.bind_value_as_bool(
-              18, ss.passive_checks_enabled());
+              19, ss.passive_checks_enabled());
           _resources_service_insert.bind_value_as_bool(
-              19, ss.active_checks_enabled());
+              20, ss.active_checks_enabled());
 
           std::promise<uint64_t> p;
           _mysql.run_statement_and_get_int<uint64_t>(
@@ -2372,39 +2373,40 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
         } else {
           res_id = found->second;
           // UPDATE
-          _resources_service_update.bind_value_as_u32(0, ss.current_state());
+          _resources_service_update.bind_value_as_u32(0, ss.type());
+          _resources_service_update.bind_value_as_u32(1, ss.current_state());
           _resources_service_update.bind_value_as_u32(
-              1, svc_ordered_status[ss.current_state()]);
-          _resources_service_update.bind_value_as_u64(2,
+              2, svc_ordered_status[ss.current_state()]);
+          _resources_service_update.bind_value_as_u64(3,
                                                       ss.last_state_change());
-          _resources_service_update.bind_value_as_bool(3,
+          _resources_service_update.bind_value_as_bool(4,
                                                        ss.downtime_depth() > 0);
           _resources_service_update.bind_value_as_bool(
-              4, ss.acknowledgement_type() != Service_AckType_NONE);
+              5, ss.acknowledgement_type() != Service_AckType_NONE);
           _resources_service_update.bind_value_as_bool(
-              5, ss.state_type() == Service_StateType_HARD);
+              6, ss.state_type() == Service_StateType_HARD);
           _resources_service_update.bind_value_as_u32(
-              6, ss.current_check_attempt());
-          _resources_service_update.bind_value_as_u32(7,
+              7, ss.current_check_attempt());
+          _resources_service_update.bind_value_as_u32(8,
                                                       ss.max_check_attempts());
           _resources_service_update.bind_value_as_u64(
-              8, _cache_host_instance[ss.host_id()]);
+              9, _cache_host_instance[ss.host_id()]);
           if (sid)
-            _resources_service_update.bind_value_as_u64(9, sid);
+            _resources_service_update.bind_value_as_u64(10, sid);
           else
-            _resources_service_update.bind_value_as_null(9);
-          _resources_service_update.bind_value_as_str(10, name);
-          _resources_service_update.bind_value_as_str(11, parent_name);
-          _resources_service_update.bind_value_as_str(12, notes_url);
-          _resources_service_update.bind_value_as_str(13, notes);
-          _resources_service_update.bind_value_as_str(14, action_url);
+            _resources_service_update.bind_value_as_null(10);
+          _resources_service_update.bind_value_as_str(11, name);
+          _resources_service_update.bind_value_as_str(12, parent_name);
+          _resources_service_update.bind_value_as_str(13, notes_url);
+          _resources_service_update.bind_value_as_str(14, notes);
+          _resources_service_update.bind_value_as_str(15, action_url);
           _resources_service_update.bind_value_as_bool(
-              15, ss.notifications_enabled());
+              16, ss.notifications_enabled());
           _resources_service_update.bind_value_as_bool(
-              16, ss.passive_checks_enabled());
+              17, ss.passive_checks_enabled());
           _resources_service_update.bind_value_as_bool(
-              17, ss.active_checks_enabled());
-          _resources_service_update.bind_value_as_u64(18, res_id);
+              18, ss.active_checks_enabled());
+          _resources_service_update.bind_value_as_u64(19, res_id);
 
           _mysql.run_statement(_resources_service_update,
                                database::mysql_error::store_service, true,

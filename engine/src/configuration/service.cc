@@ -881,7 +881,7 @@ void service::merge(object const& obj) {
   MRG_OPTION(_stalking_options);
   MRG_OPTION(_timezone);
   MRG_OPTION(_severity_id);
-  MRG_DEFAULT(_tags);
+  MRG_MAP(_tags);
 }
 
 /**
@@ -1041,8 +1041,8 @@ bool service::contacts_defined() const noexcept {
  *
  *  @return The customvariables.
  */
-com::centreon::engine::map_customvar const& service::customvariables() const
-    noexcept {
+com::centreon::engine::map_customvar const& service::customvariables()
+    const noexcept {
   return _customvariables;
 }
 

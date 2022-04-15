@@ -2413,9 +2413,49 @@ int neb::callback_pb_service(int callback_type, void* data) {
     srv.set_freshness_threshold(es->get_freshness_threshold());
     srv.set_has_been_checked(es->has_been_checked());
     srv.set_high_flap_threshold(es->get_high_flap_threshold());
-    if (!es->get_hostname().empty())
-      *srv.mutable_host_name() =
-          misc::string::check_string_utf8(es->get_hostname());
+    if (!es->get_description().empty())
+      *srv.mutable_service_description() =
+          misc::string::check_string_utf8(es->get_description());
+
+    if (!es->get_hostname().empty()) {
+      std::string name{misc::string::check_string_utf8(es->get_hostname())};
+      if (strncmp(name.c_str(), "_Module_Meta", 13) == 0) {
+        if (strncmp(srv.service_description().c_str(), "meta_", 5) == 0) {
+          srv.set_type(Service_ServiceType_METASERVICE);
+          uint64_t iid = 0;
+          for (auto c = srv.service_description().begin() + 5;
+               c != srv.service_description().end(); ++c) {
+            if (!isdigit(*c)) {
+              log_v2::neb()->error(
+                  "callbacks: service ('{}', '{}') looks like a meta-service "
+                  "but its name is malformed",
+                  name, srv.service_description());
+              break;
+            }
+            iid = 10 * iid + (*c - '0');
+          }
+          srv.set_internal_id(iid);
+        }
+      } else if (strncmp(name.c_str(), "_Module_BAM", 11) == 0) {
+        if (strncmp(srv.service_description().c_str(), "ba_", 3) == 0) {
+          srv.set_type(Service_ServiceType_BA);
+          uint64_t iid = 0;
+          for (auto c = srv.service_description().begin() + 3;
+               c != srv.service_description().end(); ++c) {
+            if (!isdigit(*c)) {
+              log_v2::neb()->error(
+                  "callbacks: service ('{}', '{}') looks like a "
+                  "business-activity but its name is malformed",
+                  name, srv.service_description());
+              break;
+            }
+            iid = 10 * iid + (*c - '0');
+          }
+          srv.set_internal_id(iid);
+        }
+      }
+      *srv.mutable_host_name() = std::move(name);
+    }
     if (!es->get_icon_image().empty())
       *srv.mutable_icon_image() =
           misc::string::check_string_utf8(es->get_icon_image());
@@ -2473,9 +2513,6 @@ int neb::callback_pb_service(int callback_type, void* data) {
         es->get_retain_nonstatus_information());
     srv.set_retain_status_information(es->get_retain_status_information());
     srv.set_retry_interval(es->retry_interval());
-    if (!es->get_description().empty())
-      *srv.mutable_service_description() =
-          misc::string::check_string_utf8(es->get_description());
     srv.set_should_be_scheduled(es->get_should_be_scheduled());
     srv.set_stalk_on_critical(es->get_stalk_on(engine::notifier::critical));
     srv.set_stalk_on_ok(es->get_stalk_on(engine::notifier::ok));
