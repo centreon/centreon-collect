@@ -60,7 +60,6 @@ stage('Build / Unit tests // Packaging / Signing') {
         checkout scm
         sh 'ci/scripts/sonar-scanner.sh'
         withSonarQubeEnv('SonarQubeDev') {
-          sh 'printenv'
           if (env.CHANGE_ID) {
             sh 'docker run -i --entrypoint /src/ci/scripts/collect-sources-analysis.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:22.04-testdocker "PR" "$SONAR_AUTH_TOKEN" "$SONAR_HOST_URL" "$CHANGE_TARGET" "$CHANGE_BRANCH" "$CHANGE_ID"'
           } else {
