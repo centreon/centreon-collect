@@ -25,7 +25,6 @@
 
 #include "com/centreon/broker/bbdo/internal.hh"
 #include "com/centreon/broker/bbdo/stream.hh"
-#include "bbdo/bbdo/version_response.hh"
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
@@ -85,8 +84,7 @@ acceptor::~acceptor() noexcept {
 std::unique_ptr<io::stream> acceptor::open() {
   // Wait for client from the lower layer.
   if (_from) {
-    std::unique_ptr<io::stream> u;
-    u = _from->open();
+    std::unique_ptr<io::stream> u = _from->open();
 
     // Add BBDO layer.
     if (u) {
