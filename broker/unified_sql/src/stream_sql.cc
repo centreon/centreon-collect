@@ -54,6 +54,8 @@ void stream::_clean_tables(uint32_t instance_id) {
                     "rt.resource_id=r.resource_id WHERE r.poller_id={}",
                     instance_id),
         database::mysql_error::clean_resources_tags, false, conn);
+    _mysql.run_query(fmt::format(
+        "UPDATE resources SET enabled='0' WHERE poller_id={}", instance_id));
   }
 
   conn = _mysql.choose_connection_by_instance(instance_id);
@@ -1172,8 +1174,8 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
               "severity_id,name,address,alias,parent_name,notes_url,notes,"
               "action_url,"
               "notifications_enabled,passive_checks_enabled,"
-              "active_checks_enabled) "
-              "VALUES(?,0,1,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+              "active_checks_enabled,enabled) "
+              "VALUES(?,0,1,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1)");
           _resources_host_update = _mysql.prepare_query(
               "UPDATE resources SET "
               "type=1,status=?,status_ordered=?,last_status_change=?,"
@@ -1182,7 +1184,7 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
               "poller_id=?,severity_id=?,name=?,address=?,alias=?,"
               "parent_name=?,notes_url=?,notes=?,action_url=?,"
               "notifications_enabled=?,passive_checks_enabled=?,"
-              "active_checks_enabled=? WHERE resource_id=?");
+              "active_checks_enabled=?,enabled=1 WHERE resource_id=?");
         }
       }
 
@@ -1548,17 +1550,18 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
     if (_store_in_resources && !_hscr_resources_update.prepared()) {
       _hscr_resources_update = _mysql.prepare_query(
           "UPDATE resources SET "
-          "status=?,"                     // 0: current_state
-          "status_ordered=?,"             // 1: obtained from current_state
-          "last_status_change=?,"         // 2: last_state_change
-          "in_downtime=?,"                // 3: downtime_depth() > 0
-          "acknowledged=?,"               // 4: acknowledgement_type != NONE
-          "status_confirmed=?,"           // 5: state_type == HARD
-          "check_attempts=?,"             // 6: current_check_attempt
-          "has_graph=?,"                  // 7: perfdata != ""
-          "last_check_type=?,"            // 8: check_type
-          "last_check=?,"                 // 9: last_check
-          "output=? "                     // 10: output
+          "status=?,"              // 0: current_state
+          "status_ordered=?,"      // 1: obtained from current_state
+          "last_status_change=?,"  // 2: last_state_change
+          "in_downtime=?,"         // 3: downtime_depth() > 0
+          "acknowledged=?,"        // 4: acknowledgement_type != NONE
+          "status_confirmed=?,"    // 5: state_type == HARD
+          "check_attempts=?,"      // 6: current_check_attempt
+          "has_graph=?,"           // 7: perfdata != ""
+          "last_check_type=?,"     // 8: check_type
+          "last_check=?,"          // 9: last_check
+          "output=?,"              // 10: output
+          "enabled=1 "
           "WHERE id=? AND parent_id=0");  // 11: host_id
     }
 
@@ -2274,8 +2277,8 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
               "status_confirmed,check_attempts,max_check_attempts,poller_id,"
               "severity_id,name,parent_name,notes_url,notes,action_url,"
               "notifications_enabled,passive_checks_enabled,active_checks_"
-              "enabled) "
-              "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+              "enabled,enabled) "
+              "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1)");
           _resources_service_update = _mysql.prepare_query(
               "UPDATE resources SET "
               "type=?,internal_id=?,status=?,status_ordered=?,last_status_"
@@ -2284,7 +2287,7 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
               "status_confirmed=?,check_attempts=?,max_check_attempts=?,"
               "poller_id=?,severity_id=?,name=?,parent_name=?,notes_url=?,"
               "notes=?,action_url=?,notifications_enabled=?,"
-              "passive_checks_enabled=?,active_checks_enabled=? "
+              "passive_checks_enabled=?,active_checks_enabled=?,enabled=1 "
               "WHERE resource_id=?");
         }
       }

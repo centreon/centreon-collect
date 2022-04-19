@@ -2421,7 +2421,7 @@ int neb::callback_pb_service(int callback_type, void* data) {
       std::string name{misc::string::check_string_utf8(es->get_hostname())};
       if (strncmp(name.c_str(), "_Module_Meta", 13) == 0) {
         if (strncmp(srv.service_description().c_str(), "meta_", 5) == 0) {
-          srv.set_type(Service_ServiceType_METASERVICE);
+          srv.set_type(METASERVICE);
           uint64_t iid = 0;
           for (auto c = srv.service_description().begin() + 5;
                c != srv.service_description().end(); ++c) {
@@ -2438,7 +2438,7 @@ int neb::callback_pb_service(int callback_type, void* data) {
         }
       } else if (strncmp(name.c_str(), "_Module_BAM", 11) == 0) {
         if (strncmp(srv.service_description().c_str(), "ba_", 3) == 0) {
-          srv.set_type(Service_ServiceType_BA);
+          srv.set_type(BA);
           uint64_t iid = 0;
           for (auto c = srv.service_description().begin() + 3;
                c != srv.service_description().end(); ++c) {
@@ -2795,6 +2795,43 @@ int32_t neb::callback_pb_service_status(int callback_type
       es->has_been_checked() ? es->get_state_type() : engine::notifier::hard));
   sscr.set_downtime_depth(es->get_scheduled_downtime_depth());
 
+  if (!es->get_hostname().empty()) {
+    if (strncmp(es->get_hostname().c_str(), "_Module_Meta", 13) == 0) {
+      if (strncmp(es->get_description().c_str(), "meta_", 5) == 0) {
+        sscr.set_type(METASERVICE);
+        uint64_t iid = 0;
+        for (auto c = es->get_description().begin() + 5;
+             c != es->get_description().end(); ++c) {
+          if (!isdigit(*c)) {
+            log_v2::neb()->error(
+                "callbacks: service ('{}', '{}') looks like a meta-service "
+                "but its name is malformed",
+                es->get_hostname(), es->get_description());
+            break;
+          }
+          iid = 10 * iid + (*c - '0');
+        }
+        sscr.set_internal_id(iid);
+      }
+    } else if (strncmp(es->get_hostname().c_str(), "_Module_BAM", 11) == 0) {
+      if (strncmp(es->get_description().c_str(), "ba_", 3) == 0) {
+        sscr.set_type(BA);
+        uint64_t iid = 0;
+        for (auto c = es->get_description().begin() + 3;
+             c != es->get_description().end(); ++c) {
+          if (!isdigit(*c)) {
+            log_v2::neb()->error(
+                "callbacks: service ('{}', '{}') looks like a "
+                "business-activity but its name is malformed",
+                es->get_hostname(), es->get_description());
+            break;
+          }
+          iid = 10 * iid + (*c - '0');
+        }
+        sscr.set_internal_id(iid);
+      }
+    }
+  }
   // Send event(s).
   gl_publisher.write(s);
 
