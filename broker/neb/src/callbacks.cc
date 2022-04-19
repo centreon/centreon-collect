@@ -1465,6 +1465,7 @@ int neb::callback_pb_host(int callback_type, void* data) {
           misc::string::check_string_utf8(eh->get_statusmap_image()));
     host.set_timezone(eh->get_timezone());
     host.set_severity_id(eh->get_severity() ? eh->get_severity()->id() : 0);
+    host.set_icon_id(eh->get_icon_id());
     for (auto& tg : eh->tags()) {
       TagInfo* ti = host.mutable_tags()->Add();
       ti->set_id(tg->id());
@@ -2522,6 +2523,7 @@ int neb::callback_pb_service(int callback_type, void* data) {
         es->has_been_checked() ? es->get_state_type()
                                : engine::notifier::hard));
     srv.set_severity_id(es->get_severity() ? es->get_severity()->id() : 0);
+    srv.set_icon_id(es->get_icon_id());
 
     for (auto& tg : es->tags()) {
       TagInfo* ti = srv.mutable_tags()->Add();

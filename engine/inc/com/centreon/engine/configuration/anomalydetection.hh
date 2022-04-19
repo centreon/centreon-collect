@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013,2015-2017 Centreon
+** Copyright 2011-2013,2015-2017, 2022 Centreon
 **
 ** This file is part of Centreon Engine.
 **
@@ -121,6 +121,9 @@ class anomalydetection : public object {
   bool timezone_defined() const noexcept;
   int acknowledgement_timeout() const noexcept;
   bool set_acknowledgement_timeout(int value);
+  uint64_t severity_id() const noexcept;
+  uint64_t icon_id() const noexcept;
+  const std::set<std::pair<uint64_t, uint16_t>>& tags() const noexcept;
 
  private:
   typedef bool (*setter_func)(anomalydetection&, char const*);
@@ -169,6 +172,10 @@ class anomalydetection : public object {
   bool _set_service_description(std::string const& value);
   bool _set_stalking_options(std::string const& value);
   bool _set_timezone(std::string const& value);
+  bool _set_severity_id(uint64_t severity_id);
+  bool _set_icon_id(uint64_t icon_id);
+  bool _set_category_tags(const std::string& value);
+  bool _set_group_tags(const std::string& value);
 
   opt<int> _acknowledgement_timeout;
   std::string _action_url;
@@ -217,6 +224,9 @@ class anomalydetection : public object {
   static std::unordered_map<std::string, setter_func> const _setters;
   opt<unsigned short> _stalking_options;
   opt<std::string> _timezone;
+  opt<uint64_t> _severity_id;
+  opt<uint64_t> _icon_id;
+  std::set<std::pair<uint64_t, uint16_t>> _tags;
 };
 
 typedef std::shared_ptr<anomalydetection> anomalydetection_ptr;

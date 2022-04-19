@@ -101,8 +101,9 @@ class host : public notifier {
        bool retain_status_information,
        bool retain_nonstatus_information,
        bool obsess_over_host,
-       std::string const& timezone);
-  ~host() = default;
+       std::string const& timezone,
+       uint64_t icon_id);
+  ~host() noexcept = default;
   uint64_t get_host_id(void) const;
   void set_host_id(uint64_t id);
   void add_child_host(host* child);

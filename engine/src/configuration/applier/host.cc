@@ -95,7 +95,7 @@ void applier::host::add_object(configuration::host const& obj) {
       obj.have_coords_3d(),
       true,  // should_be_drawn, enabled by Nagios
       obj.retain_status_information(), obj.retain_nonstatus_information(),
-      obj.obsess_over_host(), obj.timezone())};
+      obj.obsess_over_host(), obj.timezone(), obj.icon_id())};
 
   engine::host::hosts.insert({h->get_name(), h});
   engine::host::hosts_by_id.insert({obj.host_id(), h});

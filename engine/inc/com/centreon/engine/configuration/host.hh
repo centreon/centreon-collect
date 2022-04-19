@@ -112,6 +112,7 @@ class host : public object {
   int acknowledgement_timeout() const noexcept;
   bool set_acknowledgement_timeout(int value);
   uint64_t severity_id() const noexcept;
+  uint64_t icon_id() const noexcept;
   const std::set<std::pair<uint64_t, uint16_t>>& tags() const noexcept;
 
  private:
@@ -166,6 +167,7 @@ class host : public object {
   bool _set_timezone(std::string const& value);
   bool _set_vrml_image(std::string const& value);
   bool _set_severity_id(uint64_t severity_id);
+  bool _set_icon_id(uint64_t icon_id);
   bool _set_category_tags(const std::string& value);
   bool _set_group_tags(const std::string& value);
 
@@ -218,7 +220,8 @@ class host : public object {
   std::string _statusmap_image;
   opt<std::string> _timezone;
   std::string _vrml_image;
-  uint64_t _severity_id;
+  opt<uint64_t> _severity_id;
+  opt<uint64_t> _icon_id;
   std::set<std::pair<uint64_t, uint16_t>> _tags;
 };
 

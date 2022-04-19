@@ -149,6 +149,7 @@ message Service {
   /* In case of metaservice and ba, they also have an internal id. We keep it
    * here. */
   uint64 internal_id = 86;
+  uint64 icon_id = 87;
 }
 
 

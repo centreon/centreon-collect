@@ -159,7 +159,7 @@ void applier::service::add_object(configuration::service const& obj) {
       obj.notes(), obj.notes_url(), obj.action_url(), obj.icon_image(),
       obj.icon_image_alt(), obj.retain_status_information(),
       obj.retain_nonstatus_information(), obj.obsess_over_service(),
-      obj.timezone())};
+      obj.timezone(), obj.icon_id())};
   if (!svc)
     throw engine_error() << "Could not register service '"
                          << obj.service_description() << "' of host '"

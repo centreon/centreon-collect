@@ -1168,14 +1168,15 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
         if (_store_in_resources) {
           _resources_host_insert = _mysql.prepare_query(
               "INSERT INTO resources "
-              "(resource_id,id,parent_id,type,status,status_ordered,last_status_change,"
+              "(resource_id,id,parent_id,type,status,status_ordered,last_"
+              "status_change,"
               "in_downtime,acknowledged,"
               "status_confirmed,check_attempts,max_check_attempts,poller_id,"
               "severity_id,name,address,alias,parent_name,notes_url,notes,"
               "action_url,"
               "notifications_enabled,passive_checks_enabled,"
-              "active_checks_enabled,enabled) "
-              "VALUES(?,?,0,1,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1)");
+              "active_checks_enabled,enabled,icon_id) "
+              "VALUES(?,?,0,1,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1,?)");
           _resources_host_update = _mysql.prepare_query(
               "UPDATE resources SET "
               "type=1,status=?,status_ordered=?,last_status_change=?,"
@@ -1184,7 +1185,7 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
               "poller_id=?,severity_id=?,name=?,address=?,alias=?,"
               "parent_name=?,notes_url=?,notes=?,action_url=?,"
               "notifications_enabled=?,passive_checks_enabled=?,"
-              "active_checks_enabled=?,enabled=1 WHERE resource_id=?");
+              "active_checks_enabled=?,icon_id=? WHERE resource_id=?");
         }
       }
 
@@ -1262,9 +1263,9 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
                                                     h.passive_checks_enabled());
           _resources_host_insert.bind_value_as_bool(21,
                                                     h.active_checks_enabled());
-          _mysql.run_statement(
-              _resources_host_insert, database::mysql_error::store_host, true,
-              conn);
+          _resources_host_insert.bind_value_as_u64(22, h.icon_id());
+          _mysql.run_statement(_resources_host_insert,
+                               database::mysql_error::store_host, true, conn);
           _resource_cache.insert({{h.host_id(), 0}, _current_resource_id});
           ++_current_resource_id;
           _add_action(conn, actions::resources);
@@ -1302,7 +1303,8 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
                                                     h.passive_checks_enabled());
           _resources_host_update.bind_value_as_bool(19,
                                                     h.active_checks_enabled());
-          _resources_host_update.bind_value_as_u64(20, res_id);
+          _resources_host_update.bind_value_as_u64(20, h.icon_id());
+          _resources_host_update.bind_value_as_u64(21, res_id);
 
           _mysql.run_statement(_resources_host_update,
                                database::mysql_error::store_host_resources,
@@ -1543,17 +1545,17 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
     if (_store_in_resources && !_hscr_resources_update.prepared()) {
       _hscr_resources_update = _mysql.prepare_query(
           "UPDATE resources SET "
-          "status=?,"              // 0: current_state
-          "status_ordered=?,"      // 1: obtained from current_state
-          "last_status_change=?,"  // 2: last_state_change
-          "in_downtime=?,"         // 3: downtime_depth() > 0
-          "acknowledged=?,"        // 4: acknowledgement_type != NONE
-          "status_confirmed=?,"    // 5: state_type == HARD
-          "check_attempts=?,"      // 6: current_check_attempt
-          "has_graph=?,"           // 7: perfdata != ""
-          "last_check_type=?,"     // 8: check_type
-          "last_check=?,"          // 9: last_check
-          "output=? "              // 10: output
+          "status=?,"                     // 0: current_state
+          "status_ordered=?,"             // 1: obtained from current_state
+          "last_status_change=?,"         // 2: last_state_change
+          "in_downtime=?,"                // 3: downtime_depth() > 0
+          "acknowledged=?,"               // 4: acknowledgement_type != NONE
+          "status_confirmed=?,"           // 5: state_type == HARD
+          "check_attempts=?,"             // 6: current_check_attempt
+          "has_graph=?,"                  // 7: perfdata != ""
+          "last_check_type=?,"            // 8: check_type
+          "last_check=?,"                 // 9: last_check
+          "output=? "                     // 10: output
           "WHERE id=? AND parent_id=0");  // 11: host_id
     }
 
@@ -2264,13 +2266,14 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
         if (_store_in_resources) {
           _resources_service_insert = _mysql.prepare_query(
               "INSERT INTO resources "
-              "(resource_id,id,parent_id,type,internal_id,status,status_ordered,last_"
+              "(resource_id,id,parent_id,type,internal_id,status,status_"
+              "ordered,last_"
               "status_change,in_downtime,acknowledged,"
               "status_confirmed,check_attempts,max_check_attempts,poller_id,"
               "severity_id,name,parent_name,notes_url,notes,action_url,"
               "notifications_enabled,passive_checks_enabled,active_checks_"
-              "enabled,enabled) "
-              "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1)");
+              "enabled,enabled,icon_id) "
+              "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1,?)");
           _resources_service_update = _mysql.prepare_query(
               "UPDATE resources SET "
               "type=?,internal_id=?,status=?,status_ordered=?,last_status_"
@@ -2279,7 +2282,7 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
               "status_confirmed=?,check_attempts=?,max_check_attempts=?,"
               "poller_id=?,severity_id=?,name=?,parent_name=?,notes_url=?,"
               "notes=?,action_url=?,notifications_enabled=?,"
-              "passive_checks_enabled=?,active_checks_enabled=?,enabled=1 "
+              "passive_checks_enabled=?,active_checks_enabled=?,icon_id=? "
               "WHERE resource_id=?");
         }
       }
@@ -2356,12 +2359,14 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
               21, ss.passive_checks_enabled());
           _resources_service_insert.bind_value_as_bool(
               22, ss.active_checks_enabled());
+          _resources_service_insert.bind_value_as_u64(23, ss.icon_id());
 
-          _mysql.run_statement(
-              _resources_service_insert,
-              database::mysql_error::store_service, true, conn);
-            _resource_cache.insert({{ss.service_id(), ss.host_id()}, _current_resource_id});
-            ++_current_resource_id;
+          _mysql.run_statement(_resources_service_insert,
+                               database::mysql_error::store_service, true,
+                               conn);
+          _resource_cache.insert(
+              {{ss.service_id(), ss.host_id()}, _current_resource_id});
+          ++_current_resource_id;
           _add_action(conn, actions::resources);
         } else {
           res_id = found->second;
@@ -2403,7 +2408,8 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
               18, ss.passive_checks_enabled());
           _resources_service_update.bind_value_as_bool(
               19, ss.active_checks_enabled());
-          _resources_service_update.bind_value_as_u64(20, res_id);
+          _resources_service_update.bind_value_as_u64(20, ss.icon_id());
+          _resources_service_update.bind_value_as_u64(21, res_id);
 
           _mysql.run_statement(_resources_service_update,
                                database::mysql_error::store_service, true,
