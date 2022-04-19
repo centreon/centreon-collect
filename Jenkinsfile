@@ -19,10 +19,12 @@ if (env.CHANGE_BRANCH) {
 */
 if (env.BRANCH_NAME.startsWith('release-')) {
   env.BUILD = 'RELEASE'
+  env.REPO = 'testing'
 } else if ((env.BRANCH_NAME == env.REF_BRANCH) || (env.BRANCH_NAME == maintenanceBranch)) {
   env.BUILD = 'REFERENCE'
 } else if ((env.BRANCH_NAME == 'develop') || (env.BRANCH_NAME == qaBranch)) {
   env.BUILD = 'QA'
+  env.REPO = 'unstable'
 } else {
   env.BUILD = 'CI'
 }
@@ -54,15 +56,7 @@ stage('Build / Unit tests // Packaging / Signing') {
         }
       }
     }
-  },/*
-  'centos8 Build and UT': {
-    node("C++") {
-      dir('centreon-collect-centos8') {
-        checkout scm
-        sh 'docker run -i --entrypoint /src/ci/scripts/collect-unit-tests.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos8-dependencies:22.04-testdocker'
-      }
-    }
-  },*/
+  },
   'centos7 rpm packaging and signing': {
     node("C++") {
       dir('centreon-collect-centos7') {
@@ -144,6 +138,16 @@ stage('Delivery') {
       loadCommonScripts()
       sh 'rm -rf output && mkdir output && mv ../*.rpm output'
       sh './ci/scripts/collect-rpm-delivery.sh'
+      withCredentials([usernamePassword(credentialsId: 'nexus-credentials', passwordVariable: 'NEXUS_PASSWORD', usernameVariable: 'NEXUS_USERNAME')]) {
+        checkout scm
+        unstash "Debian11"
+        sh 'ls -lart'
+        sh '''for i in $(echo *.deb)
+              do 
+                curl -u $NEXUS_USERNAME:$NEXUS_PASSWORD -H "Content-Type: multipart/form-data" --data-binary "@./$i" https://apt.centreon.com/repository/22.04-$REPO/
+              done
+           '''    
+      }
     }
   }
 }
