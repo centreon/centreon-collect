@@ -202,9 +202,7 @@ class stream : public io::stream {
   /* Stats */
   ConflictManagerStats* _stats;
 
-  /* How many streams are using this stream? */
-  std::atomic<uint32_t> _ref_count;
-
+  uint64_t _current_resource_id;
   std::unordered_set<uint32_t> _cache_deleted_instance_id;
   std::unordered_map<uint32_t, uint32_t> _cache_host_instance;
   absl::flat_hash_map<uint64_t, size_t> _cache_hst_cmd;
