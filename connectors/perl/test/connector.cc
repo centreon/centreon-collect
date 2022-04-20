@@ -188,7 +188,7 @@ TEST_F(TestConnector, ExecuteModuleLoading) {
   _write_file(script_path.c_str(),
               "#!/usr/bin/perl\n"
               "\n"
-              "use Error::Simple;\n"
+              "use Sys::Hostname;\n"
               "use IO::Socket;\n"
               "\n"
               "print \"Centreon is wonderful\\n\";\n"
@@ -213,8 +213,9 @@ TEST_F(TestConnector, ExecuteModuleLoading) {
   remove(script_path.c_str());
 
   ASSERT_EQ(retval, 0);
-  ASSERT_EQ(output.size(), (sizeof(result) - 1));
-  ASSERT_FALSE(memcmp(output.c_str(), result, sizeof(result) - 1));
+  std::string expected(result, result + sizeof(result) - 1);
+
+  ASSERT_EQ(output, expected);
 }
 
 TEST_F(TestConnector, ExecuteMultipleScripts) {
