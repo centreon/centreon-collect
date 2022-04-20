@@ -180,7 +180,9 @@ void stream::_load_caches() {
 
   /* get the current resource_id autoincrement */
   _mysql.run_query_and_get_result(
-      fmt::format("SELECT `AUTO_INCREMENT` FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA='{}' AND TABLE_NAME='resources'", _mysql.get_config().get_name()),
+      fmt::format("SELECT `AUTO_INCREMENT` FROM INFORMATION_SCHEMA.TABLES "
+                  "WHERE TABLE_SCHEMA='{}' AND TABLE_NAME='resources'",
+                  _mysql.get_config().get_name()),
       &promise_resource_id);
 
   /* get all outdated instances from the database => _stored_timestamps */
@@ -240,7 +242,8 @@ void stream::_load_caches() {
       _current_resource_id = 1;
   } catch (std::exception const& e) {
     throw msg_fmt(
-        "unified sql: could not get the list of outdated instances: {}",
+        "unified sql: could not get the current resource id auto increment "
+        "value: {}",
         e.what());
   }
 
