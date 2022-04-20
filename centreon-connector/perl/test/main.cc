@@ -16,13 +16,15 @@
  * For more information : contact@centreon.com
  *
  */
-#include <gtest/gtest.h>
 #include <EXTERN.h>
+#include <gtest/gtest.h>
 #include <perl.h>
 
+#include "com/centreon/connector/log.hh"
 #include "com/centreon/connector/perl/embedded_perl.hh"
 
 using namespace com::centreon;
+using namespace com::centreon::connector;
 using namespace com::centreon::connector::perl;
 
 /**
@@ -33,11 +35,14 @@ using namespace com::centreon::connector::perl;
  *
  *  @return 0 on success, any other value on failure.
  */
-int main(int argc, char* argv[], char **env) {
+int main(int argc, char* argv[], char** env) {
+  log::instance().set_level(spdlog::level::trace);
+  log::instance().switch_to_stdout();
+  log::instance().add_pid_to_log();
   // GTest initialization.
   testing::InitGoogleTest(&argc, argv);
   PERL_SYS_INIT3(&argc, &argv, &env);
-  embedded_perl::load(&argc, &argv, &env);
+  embedded_perl::load(argc, argv, env);
   // Run all tests.
   int ret = RUN_ALL_TESTS();
 

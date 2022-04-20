@@ -52,6 +52,7 @@ include(${CMAKE_BINARY_DIR}/conan_paths.cmake)
 set(protobuf_MODULE_COMPATIBLE True)
 find_package(Protobuf REQUIRED)
 find_package(gRPC REQUIRED)
+find_package(re2 REQUIRED)
 find_package(c-ares REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(nlohmann_json REQUIRED)
@@ -645,7 +646,7 @@ add_dependencies(centengine centreon_clib_shared)
 get_property(CENTENGINE_BINARY TARGET "centengine" PROPERTY LOCATION)
 
 # Link centengine with required libraries.
-target_link_libraries(centengine centreon_clib "-Wl,-whole-archive" enginerpc cce_core  "-Wl,-no-whole-archive" ${gRPC_LIBS} ${absl_LIBS} ${OpenSSL_LIBS} ${c-ares_LIBS} ${ZLIB_LIBS} dl)
+target_link_libraries(centengine centreon_clib "-Wl,-whole-archive" enginerpc cce_core  "-Wl,-no-whole-archive" ${gRPC_LIBS} ${re2_LIBS} ${absl_LIBS} ${OpenSSL_LIBS} ${c-ares_LIBS} ${ZLIB_LIBS} dl)
 
 # centenginestats target.
 add_executable("centenginestats" "${SRC_DIR}/centenginestats.cc")
