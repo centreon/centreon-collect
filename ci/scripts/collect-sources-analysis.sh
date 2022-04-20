@@ -31,5 +31,3 @@ else
   echo "Running SQ in branch mode"
   /src/tmp/sonar-scanner/bin/sonar-scanner -X -Dsonar.scm.provider=git -Dsonar.scm.forceReloadAll=true -Dsonar.cfamily.threads="$PROCNBR" -Dsonar.scm.provider=git -Dsonar.login="$2" -Dsonar.host.url="$3" -Dsonar.projectVersion="$4" -Dsonar.branch.name="$5"
 fi
-
-# TODO: Save C++ SQ's analysis and use cache mode.
