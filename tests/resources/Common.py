@@ -519,6 +519,30 @@ def check_service_severity_with_timeout(host_id: int, service_id: int, severity_
         time.sleep(1)
     return False
 
+def check_host_severity_with_timeout(host_id: int, severity_id, timeout: int):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host='localhost',
+                                     user='centreon',
+                                     password='centreon',
+                                     database='centreon_storage',
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute("select sv.id from resources r left join severities sv ON r.severity_id=sv.severity_id where r.parent_id = 0 and r.id={}".format(
+                    host_id))
+                result = cursor.fetchall()
+                if len(result) > 0:
+                    if severity_id == 'None':
+                        if result[0]['id'] is None:
+                            return True
+                    elif not result[0]['id'] is None and int(result[0]['id']) == int(severity_id):
+                        return True
+        time.sleep(1)
+    return False
+
 def check_resources_tags_with_timeout(parent_id: int, mid: int, tag_ids: list, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:

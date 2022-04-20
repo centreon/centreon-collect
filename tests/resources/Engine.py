@@ -607,6 +607,22 @@ def add_severity_to_services(poller:int, severity_id:int, svc_lst):
     ff.close()
 
 
+def add_severity_to_hosts(poller:int, severity_id:int, svc_lst):
+    ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r")
+    lines = ff.readlines()
+    ff.close()
+    r = re.compile(r"^\s*_HOST_ID\s*(\d+)$")
+    for i in range(len(lines)):
+        m = r.match(lines[i])
+        if m and m.group(1) in svc_lst:
+            lines.insert(
+                i + 1, "    severity_id                     {}\n".format(severity_id))
+
+    ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "w")
+    ff.writelines(lines)
+    ff.close()
+
+
 def add_template_to_services(poller:int, tmpl:str, svc_lst):
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
@@ -641,6 +657,16 @@ def remove_severities_from_services(poller:int):
     r = re.compile(r"^\s*severity_id\s*\d+$")
     out = [l for l in lines if not r.match(l)]
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "w")
+    ff.writelines(out)
+    ff.close()
+
+def remove_severities_from_hosts(poller:int):
+    ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r")
+    lines = ff.readlines()
+    ff.close()
+    r = re.compile(r"^\s*severity_id\s*\d+$")
+    out = [l for l in lines if not r.match(l)]
+    ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "w")
     ff.writelines(out)
     ff.close()
 
