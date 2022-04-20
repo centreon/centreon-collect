@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013 Centreon
+** Copyright 2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -16,17 +16,15 @@
 ** For more information : contact@centreon.com
 */
 
-#ifndef CCCP_CHECKS_RESULT_HH
-#define CCCP_CHECKS_RESULT_HH
+#ifndef CCC_CHECKS_RESULT_HH
+#define CCC_CHECKS_RESULT_HH
 
-#include <string>
-#include "com/centreon/connector/perl/namespace.hh"
+#include "com/centreon/connector/namespace.hh"
 
-CCCP_BEGIN()
+CCC_BEGIN()
 
-namespace checks {
 /**
- *  @class result result.hh "com/centreon/connector/perl/checks/result.hh"
+ *  @class result result.hh "com/centreon/connector/ssh/checks/result.hh"
  *  @brief Check result.
  *
  *  Store check result.
@@ -34,29 +32,36 @@ namespace checks {
 class result {
  public:
   result();
-  result(result const& r) = delete;
+  result(unsigned long long cmd_id, int exit_code, const std::string& error);
+  result(unsigned long long cmd_id,
+         int exit_code,
+         const std::string& output,
+         const std::string& error);
+  result(result const& r);
+
   ~result() = default;
-  result& operator=(result const& r) = delete;
-  uint64_t get_command_id() const noexcept;
+  result& operator=(result const& r);
+  unsigned long long get_command_id() const noexcept;
   std::string const& get_error() const noexcept;
   bool get_executed() const noexcept;
   int get_exit_code() const noexcept;
   std::string const& get_output() const noexcept;
-  void set_command_id(uint64_t cmd_id) noexcept;
+  void set_command_id(unsigned long long cmd_id) noexcept;
   void set_error(std::string const& error);
   void set_executed(bool executed) noexcept;
   void set_exit_code(int code) noexcept;
   void set_output(std::string const& output);
 
  private:
-  uint64_t _cmd_id;
+  void _internal_copy(result const& r);
+
+  unsigned long long _cmd_id;
   std::string _error;
   bool _executed;
   int _exit_code;
   std::string _output;
 };
-}  // namespace checks
 
-CCCP_END()
+CCC_END()
 
-#endif  // !CCCP_CHECKS_RESULT_HH
+#endif  // !CCC_CHECKS_RESULT_HH

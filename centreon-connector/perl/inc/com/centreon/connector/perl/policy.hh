@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013 Centreon
+** Copyright 2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -19,25 +19,13 @@
 #ifndef CCCP_POLICY_HH
 #define CCCP_POLICY_HH
 
-#include <sys/types.h>
-
-#include <map>
-
-#include "com/centreon/connector/perl/checks/listener.hh"
+#include "com/centreon/connector/ipolicy.hh"
+#include "com/centreon/connector/perl/checks/check.hh"
 #include "com/centreon/connector/perl/namespace.hh"
-#include "com/centreon/connector/perl/orders/listener.hh"
 #include "com/centreon/connector/perl/orders/parser.hh"
-#include "com/centreon/connector/perl/reporter.hh"
-#include "com/centreon/io/file_stream.hh"
-#include "com/centreon/timestamp.hh"
+#include "com/centreon/connector/reporter.hh"
 
 CCCP_BEGIN()
-
-// Forward declarations.
-namespace checks {
-class check;
-class result;
-}  // namespace checks
 
 /**
  *  @class policy policy.hh "com/centreon/connector/perl/policy.hh"
@@ -45,29 +33,44 @@ class result;
  *
  *  Wraps software policy within a class.
  */
-class policy : public orders::listener, public checks::listener {
-  std::map<pid_t, checks::check*> _checks;
-  bool _error;
-  orders::parser _parser;
-  reporter _reporter;
-  io::file_stream _sin;
-  io::file_stream _sout;
+class policy : public com::centreon::connector::policy_interface {
+  using pid_to_check_map = std::map<pid_t, checks::check::pointer>;
+  pid_to_check_map _checks;
+  reporter::pointer _reporter;
+  shared_io_context _io_context;
+  asio::system_timer _second_timer, _end_timer;
+
+  policy(const shared_io_context& io_context);
+  void start(const std::string& test_cmd_file);
+
+  void on_sigchild();
+
+  void start_end_timer(bool final);
+  void start_second_timer();
+
+  void wait_pid();
 
  public:
-  policy();
-  ~policy() noexcept override;
   policy(policy const& p) = delete;
   policy& operator=(policy const& p) = delete;
 
+  std::shared_ptr<policy> shared_from_this() {
+    return std::static_pointer_cast<policy>(
+        com::centreon::connector::policy_interface::shared_from_this());
+  }
+
+  static void create(const shared_io_context& io_context,
+                     const std::string& test_cmd_file);
+
   void on_eof() override;
-  void on_error() override;
-  void on_execute(unsigned long long cmd_id,
-                  const timestamp& timeout,
-                  std::string const& cmd) override;
+  void on_error(uint64_t cmd_id, const std::string& msg) override;
+  void on_execute(
+      uint64_t cmd_id,
+      const time_point& timeout,
+      const std::shared_ptr<com::centreon::connector::orders::options>& opt)
+      override;
   void on_quit() override;
-  void on_result(checks::result const& r) override;
   void on_version() override;
-  bool run();
 };
 
 CCCP_END()
