@@ -67,6 +67,9 @@ class credentials {
   unsigned short _port;
   std::string _user;
 };
+
+std::ostream& operator<<(std::ostream&, const credentials&);
+
 }  // namespace sessions
 
 CCCS_END()

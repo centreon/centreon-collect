@@ -16,41 +16,48 @@
 ** For more information : contact@centreon.com
 */
 
-#ifndef CCCP_REPORTER_HH
-#define CCCP_REPORTER_HH
+#ifndef CCC_REPORTER_HH
+#define CCC_REPORTER_HH
 
-#include <string>
+#include "com/centreon/connector/namespace.hh"
+#include "com/centreon/connector/result.hh"
 
-#include "com/centreon/connector/perl/checks/listener.hh"
-#include "com/centreon/connector/perl/namespace.hh"
-#include "com/centreon/handle_listener.hh"
-
-CCCP_BEGIN()
+CCC_BEGIN()
 
 /**
- *  @class reporter reporter.hh "com/centreon/connector/perl/reporter.hh"
+ *  @class reporter reporter.hh "com/centreon/connector/ssh/reporter.hh"
  *  @brief Report data back to the monitoring engine.
  *
  *  Send replies to the monitoring engine.
  */
-class reporter : public com::centreon::handle_listener {
-  std::string _buffer;
+class reporter : public std::enable_shared_from_this<reporter> {
+ protected:
+  std::shared_ptr<std::string> _buffer;
   bool _can_report;
   unsigned int _reported;
+  shared_io_context _io_context;
+  asio::posix::stream_descriptor _sout;
+  bool _writing;
+
+  reporter(const shared_io_context& io_context);
 
  public:
-  reporter();
-  ~reporter() noexcept override;
+  using pointer = std::shared_ptr<reporter>;
+
+  static pointer create(const shared_io_context& io_context);
+
   reporter(reporter const& r) = delete;
+  virtual ~reporter() noexcept;
   reporter& operator=(reporter const& r) = delete;
-  bool can_report() const noexcept;
-  void error(handle& h) override;
-  void send_result(checks::result const& r);
+  bool can_report() const { return _can_report; };
+  void error();
+  void send_result(result const& r);
   void send_version(unsigned int major, unsigned int minor);
-  bool want_write(handle& h) override;
-  void write(handle& h) override;
+  virtual void write();
+
+  const std::string& get_buffer() const { return *_buffer; }
 };
 
-CCCP_END()
+CCC_END()
 
-#endif  // !CCCP_REPORTER_HH
+#endif  // !CCC_REPORTER_HH

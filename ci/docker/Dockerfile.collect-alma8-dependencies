@@ -46,12 +46,18 @@ fmt/7.1.3\n\
 spdlog/1.8.5\n\
 nlohmann_json/3.9.1\n\
 openssl/1.1.1l\n\
-grpc/1.37.0\n\
+grpc/1.43.0\n\
 mariadb-connector-c/3.1.12\n\
 zlib/1.2.11\n\
+boost/1.78.0\n\
+libssh2/1.10.0\n\
 [generators]\n\
 cmake_paths\n\
 cmake_find_package\n\
+[options]\n\
+grpc:secure=True\n\
+boost:header_only=True\n\
+libssh2:shared=False\n\
 ' > conanfile.txt
 RUN conan install . -s compiler.libcxx=libstdc++11 --build='*'
     

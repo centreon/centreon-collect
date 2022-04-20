@@ -40,7 +40,7 @@ if (WITH_TESTING)
   add_executable(rpc_client_engine
       ${TESTS_DIR}/enginerpc/client.cc)
 
-  target_link_libraries(rpc_client_engine cerpc ${gRPC_LIBS} ${absl_LIBS} ${OpenSSL_LIBS} ${c-ares_LIBS} ${ZLIB_LIBS} dl pthread)
+  target_link_libraries(rpc_client_engine cerpc ${gRPC_LIBS} ${re2_LIBS} ${absl_LIBS} ${OpenSSL_LIBS} ${c-ares_LIBS} ${ZLIB_LIBS} dl pthread)
 
   add_executable("bin_connector_test_run"
       "${TESTS_DIR}/commands/bin_connector_test_run.cc")
@@ -74,6 +74,7 @@ if (WITH_TESTING)
     "${TESTS_DIR}/configuration/host.cc"
     "${TESTS_DIR}/configuration/object.cc"
     "${TESTS_DIR}/configuration/service.cc"
+    "${TESTS_DIR}/configuration/timeperiod-test.cc"
     "${TESTS_DIR}/contacts/contactgroup-config.cc"
     "${TESTS_DIR}/contacts/simple-contactgroup.cc"
     "${TESTS_DIR}/custom_vars/extcmd.cc"
@@ -108,6 +109,7 @@ if (WITH_TESTING)
     "${TESTS_DIR}/timeperiod/get_next_valid_time/dst_forward.cc"
     "${TESTS_DIR}/timeperiod/get_next_valid_time/earliest_daterange_first.cc"
     "${TESTS_DIR}/timeperiod/get_next_valid_time/exclusion.cc"
+    "${TESTS_DIR}/timeperiod/get_next_valid_time/exceptions_test.cc"
     "${TESTS_DIR}/timeperiod/get_next_valid_time/generic_month_date.cc"
     "${TESTS_DIR}/timeperiod/get_next_valid_time/normal_weekday.cc"
     "${TESTS_DIR}/timeperiod/get_next_valid_time/offset_weekday_of_generic_month.cc"
@@ -125,6 +127,8 @@ if (WITH_TESTING)
   include_directories(${TESTS_DIR})
 
   add_executable(ut_engine ${ut_sources})
+  #file used by timeperiod-test.cc
+  file(COPY ${TESTS_DIR}/configuration/timeperiods.cfg DESTINATION ${CMAKE_BINARY_DIR}/centreon-engine/tests/ ) 
 
   add_test(NAME tests COMMAND ut_engine)
 
@@ -137,6 +141,6 @@ if (WITH_TESTING)
     )
     set(GCOV gcov)
   endif ()
-  target_link_libraries(ut_engine ${ENGINERPC} cce_core pthread ${GCOV} ${GTest_LIBS} ${gRPC_LIBS} ${absl_LIBS} ${OpenSSL_LIBS} ${c-ares_LIBS} ${ZLIB_LIBS} ${fmt_LIBS} dl)
+  target_link_libraries(ut_engine ${ENGINERPC} cce_core pthread ${GCOV} ${GTest_LIBS} ${gRPC_LIBS} ${re2_LIBS} ${absl_LIBS} ${OpenSSL_LIBS} ${c-ares_LIBS} ${ZLIB_LIBS} ${fmt_LIBS} dl)
 
 endif ()

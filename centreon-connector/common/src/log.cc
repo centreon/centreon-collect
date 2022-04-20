@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Centreon (https://www.centreon.com/)
+ * Copyright 2022 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,8 +32,7 @@ log::log() {
   _core_log->flush_on(spdlog::level::trace);
 }
 
-log::~log() {
-}
+log::~log() {}
 
 com::centreon::connector::log& log::instance() {
   static log instance;
@@ -44,6 +43,10 @@ com::centreon::connector::log& log::instance() {
 void log::set_level(spdlog::level::level_enum level) {
   _core_log->set_level(level);
   _core_log->flush_on(level);
+}
+
+void log::add_pid_to_log() {
+  _core_log->set_pattern("%P %+");
 }
 
 void log::switch_to_stdout() {

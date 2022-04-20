@@ -20,19 +20,15 @@
 
 #include <atomic>
 #include <cstdio>
-#include <memory>
 
 #include "com/centreon/connector/log.hh"
+#include "com/centreon/connector/result.hh"
 #include "com/centreon/connector/ssh/checks/check.hh"
-#include "com/centreon/connector/ssh/checks/result.hh"
-#include "com/centreon/connector/ssh/multiplexer.hh"
+#include "com/centreon/connector/ssh/orders/parser.hh"
 #include "com/centreon/connector/ssh/sessions/session.hh"
-#include "com/centreon/delayed_delete.hh"
 
 using namespace com::centreon::connector::ssh;
-
-// Exit flag.
-extern std::atomic<bool> should_exit;
+using namespace com::centreon::connector;
 
 /**************************************
  *                                     *
@@ -43,46 +39,18 @@ extern std::atomic<bool> should_exit;
 /**
  *  Default constructor.
  */
-policy::policy() : _sin(stdin), _sout(stdout) {
-  // Send information back.
-  multiplexer::instance().handle_manager::add(&_sout, &_reporter);
+policy::policy(const shared_io_context& io_context)
+    : _reporter(reporter::create(io_context)), _io_context(io_context) {}
 
-  // Listen orders.
-  _parser.listen(this);
-
-  // Parser listens stdin.
-  multiplexer::instance().handle_manager::add(&_sin, &_parser);
+policy::pointer policy::create(const shared_io_context& io_context,
+                               const std::string& test_cmd_file) {
+  pointer ret(new policy(io_context));
+  ret->start(test_cmd_file);
+  return ret;
 }
 
-/**
- *  Destructor.
- */
-policy::~policy() noexcept {
-  try {
-    // Remove from multiplexer.
-    multiplexer::instance().handle_manager::remove(&_sin);
-    multiplexer::instance().handle_manager::remove(&_sout);
-  } catch (...) {
-  }
-
-  // Close checks.
-  for (auto& c : _checks) {
-    try {
-      c.second.first->unlisten(this);
-    } catch (...) {
-    }
-    delete c.second.first;
-  }
-  _checks.clear();
-
-  // Close sessions.
-  for (auto& _session : _sessions) {
-    try {
-      _session.second->close();
-    } catch (...) {
-    }
-    delete _session.second;
-  }
+void policy::start(const std::string& test_cmd_file) {
+  orders::parser::create(_io_context, shared_from_this(), test_cmd_file);
 }
 
 /**
@@ -99,13 +67,13 @@ void policy::on_eof() {
  *  @param[in] cmd_id Command ID.
  *  @param[in] msg    Associated message.
  */
-void policy::on_error(uint64_t cmd_id, char const* msg) {
+void policy::on_error(uint64_t cmd_id, const std::string& msg) {
   if (cmd_id) {
-    checks::result r;
+    result r;
     r.set_command_id(cmd_id);
     r.set_executed(false);
     r.set_error(msg);
-    on_result(r);
+    _reporter->send_result(r);
   } else {
     log::core()->info("error occurred while parsing stdin");
     _error = true;
@@ -118,83 +86,101 @@ void policy::on_error(uint64_t cmd_id, char const* msg) {
  *
  *  @param[in] cmd_id      Command ID.
  *  @param[in] timeout     Time the command has to execute.
- *  @param[in] host        Target host.
- *  @param[in] port        Connection port.
- *  @param[in] user        User.
- *  @param[in] password    Password.
- *  @param[in] key         Identity file.
- *  @param[in] cmds        Commands to execute.
- *  @param[in] skip_stdout Ignore all or first n output lines.
- *  @param[in] skip_stderr Ignore all or first n error lines.
- *  @param[in] use_ipv6    Version of ip protocol to use.
+ *  @param[in] opt         cmd options.
  */
-void policy::on_execute(uint64_t cmd_id,
-                        const timestamp& timeout,
-                        std::string const& host,
-                        unsigned short port,
-                        std::string const& user,
-                        std::string const& password,
-                        std::string const& key,
-                        std::list<std::string> const& cmds,
-                        int skip_stdout,
-                        int skip_stderr,
-                        bool use_ipv6) {
-  try {
-    // Log message.
-    log::core()->info(
-        "got request to execute check {0} on session {1}@{2} (timeout {3}, "
-        "first command \"{4}\")",
-        cmd_id, user, host, timeout.to_seconds(), cmds.front());
+void policy::on_execute(
+    uint64_t cmd_id,
+    const time_point& timeout,
+    const com::centreon::connector::orders::options::pointer& opt) {
+  log::core()->info(
+      "got request to execute check {0} on session {1}@{2} (timeout {3}, "
+      "first command \"{4}\")",
+      cmd_id, opt->get_user(), opt->get_host(), opt->get_timeout(),
+      opt->get_commands().front());
 
-    // Credentials.
-    sessions::credentials creds;
-    creds.set_host(host);
-    creds.set_user(user);
-    creds.set_password(password);
-    creds.set_port(port);
-    creds.set_key(key);
+  // Credentials.
+  sessions::credentials creds;
+  creds.set_host(opt->get_host());
+  creds.set_user(opt->get_user());
+  creds.set_password(opt->get_authentication());
+  creds.set_port(opt->get_port());
+  creds.set_key(opt->get_identity_file());
 
-    // Object lock.
-    std::unique_lock<std::mutex> lock(_mutex);
+  // Find session.
+  auto it = _sessions.find(creds);
+  // still alive session?
+  if (it != _sessions.end() &&
+      it->second->get_state() ==
+          sessions::session::e_step::session_error) {  // no => erase it
+    _sessions.erase(it);
+    it = _sessions.end();
+  }
 
-    // Find session.
-    auto it = _sessions.find(creds);
-    if (it == _sessions.end()) {
-      log::core()->info("creating session for {0}@{1}:{2}", user, host, port);
-      std::unique_ptr<sessions::session> sess{new sessions::session(creds)};
-      sess->connect(use_ipv6);
-      _sessions[creds] = sess.release();
-      it = _sessions.find(creds);
+  if (it == _sessions.end()) {
+    auto connecting_yet = _connect_waiting_session.find(creds);
+    if (connecting_yet !=
+        _connect_waiting_session
+            .end()) {  // the session is yet connecting => push the check
+      connecting_yet->second.waiting_check.push({cmd_id, timeout, opt});
+      return;
     }
 
-    sessions::session* sess = it->second;
+    log::core()->info("creating session for {}", creds);
+    std::shared_ptr<sessions::session> sess(
+        std::make_shared<sessions::session>(creds, _io_context));
 
-    // Create check object.
-    checks::check* chk_ptr = new checks::check(skip_stdout, skip_stderr);
-    chk_ptr->listen(this);
-    _checks[cmd_id] = std::make_pair(chk_ptr, sess);
+    connect_waiting_session& connecting = _connect_waiting_session[creds];
+    connecting._connecting = sess;
+    connecting.waiting_check.push({cmd_id, timeout, opt});
 
-    // Release lock and run copied pointer (we might be called in
-    // on_result() and mutex must be available).
-    lock.unlock();
-
-    chk_ptr->execute(*sess, cmd_id, cmds, timeout);
-  } catch (std::exception const& e) {
-    log::core()->error(
-        "could not launch check ID {0} on host {1} because an error occurred: "
-        "{2}",
-        cmd_id, host, e.what());
-    checks::result r;
-    r.set_command_id(cmd_id);
-    on_result(r);
-  } catch (...) {
-    log::core()->error(
-        "could not launch check ID {0} on host {1} because an error occurred",
-        cmd_id, host);
-    checks::result r;
-    r.set_command_id(cmd_id);
-    on_result(r);
+    sess->connect(
+        [me = shared_from_this(), sess, creds](const std::error_code& err) {
+          me->on_connect(err, creds);
+        },
+        timeout);
+  } else {
+    on_execute(it->second, cmd_id, timeout, opt);
   }
+}
+
+void policy::on_connect(const std::error_code& err,
+                        const sessions::credentials& creds) {
+  connect_waiting_session& waiting_connect = _connect_waiting_session[creds];
+  if (err) {
+    std::ostringstream err_detail;
+    err_detail << " fail to connect to " << creds;
+    while (!waiting_connect.waiting_check.empty()) {
+      connect_waiting_session::cmd_info& cmd =
+          waiting_connect.waiting_check.front();
+      on_error(cmd.cmd_id, err_detail.str());
+      waiting_connect.waiting_check.pop();
+    }
+    _connect_waiting_session.erase(creds);
+    return;
+  }
+  _sessions.emplace(creds, waiting_connect._connecting);
+  while (!waiting_connect.waiting_check.empty()) {
+    connect_waiting_session::cmd_info& cmd =
+        waiting_connect.waiting_check.front();
+    on_execute(waiting_connect._connecting, cmd.cmd_id, cmd.timeout, cmd.opt);
+    waiting_connect.waiting_check.pop();
+  }
+  _connect_waiting_session.erase(creds);
+}
+
+void policy::on_execute(
+    const std::shared_ptr<sessions::session>& session,
+    uint64_t cmd_id,
+    const time_point& timeout,
+    const com::centreon::connector::orders::options::pointer& opt) {
+  // Create check object.
+  checks::check::pointer chk_ptr(std::make_shared<checks::check>(
+      session, cmd_id, opt->get_commands(), timeout, opt->skip_stdout(),
+      opt->skip_stderr()));
+
+  chk_ptr->execute([me = shared_from_this()](const result& res) {
+    me->_reporter->send_result(res);
+  });
 }
 
 /**
@@ -203,74 +189,11 @@ void policy::on_execute(uint64_t cmd_id,
 void policy::on_quit() {
   // Exiting.
   log::core()->info("quit request received");
-  should_exit = true;
-  multiplexer::instance().handle_manager::remove(&_sin);
-}
-
-/**
- *  Check result has arrived.
- *
- *  @param[in] r Check result.
- */
-void policy::on_result(checks::result const& r) {
-  // Object lock.
-  std::lock_guard<std::mutex> lock(_mutex);
-
-  // Remove check from list.
-  std::map<uint64_t, std::pair<checks::check*, sessions::session*> >::iterator
-      chk;
-  chk = _checks.find(r.get_command_id());
-  if (chk == _checks.end())
-    log::core()->error("got result of check {} which is not registered",
-                       r.get_command_id());
-  else {
-    try {
-      chk->second.first->unlisten(this);
-      chk->second.second->unlisten(chk->second.first);
-    } catch (...) {
-    }
-    delete chk->second.first;
-    sessions::session* sess(chk->second.second);
-    _checks.erase(chk);
-
-    // Check session.
-    if (!sess->is_connected()) {
-      log::core()->debug(
-          "session {} is not connected, checking if any check working with it "
-          "remains",
-          static_cast<void*>(sess));
-      bool found(false);
-      for (auto& _check : _checks)
-        if (_check.second.second == sess) {
-          found = true;
-          break;
-        }
-      if (!found) {
-        std::map<sessions::credentials, sessions::session*>::iterator it, end;
-        for (it = _sessions.begin(), end = _sessions.end(); it != end; ++it) {
-          if (it->second == sess)
-            break;
-        }
-        if (it == end)
-          log::core()->error(
-              "session {} was not found in policy list, deleting anyway",
-              static_cast<void*>(sess));
-        else {
-          log::core()->info(
-              "session {0}@{1}:{2} that is not connected and has no check "
-              "running will be deleted",
-              it->first.get_user(), it->first.get_host(), it->first.get_port());
-          _sessions.erase(it);
-        }
-        delayed_delete<sessions::session>* dd =
-            new delayed_delete<sessions::session>(sess);
-        multiplexer::instance().task_manager::add(dd, 0, true, true);
-      }
-    }
+  for (const auto& to_close : _sessions) {
+    to_close.second->close();
   }
-
-  // Send check result back to monitoring engine.
-  _reporter.send_result(r);
+  _sessions.clear();
+  _io_context->stop();
 }
 
 /**
@@ -280,37 +203,5 @@ void policy::on_version() {
   // Report version 1.0.
   log::core()->info(
       "monitoring engine requested protocol version, sending 1.0");
-  _reporter.send_version(1, 0);
-}
-
-/**
- *  Run the program.
- *
- *  @return false if program terminated prematurely.
- */
-bool policy::run() {
-  // No error occurred yet.
-  _error = false;
-
-  // Run multiplexer.
-  while (!should_exit) {
-    log::core()->debug("multiplexing");
-    multiplexer::instance().multiplex();
-  }
-
-  // Run as long as a check remains.
-  log::core()->info("waiting for checks to terminate");
-  while (!_checks.empty()) {
-    log::core()->debug("multiplexing remaining checks ({})", _checks.size());
-    multiplexer::instance().multiplex();
-  }
-
-  // Run as long as some data remains.
-  log::core()->info("reporting last data to monitoring engine");
-  while (_reporter.can_report() && _reporter.want_write(_sout)) {
-    log::core()->debug("multiplexing remaining data");
-    multiplexer::instance().multiplex();
-  }
-
-  return !_error;
+  _reporter->send_version(1, 0);
 }

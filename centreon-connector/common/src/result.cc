@@ -16,9 +16,9 @@
 ** For more information : contact@centreon.com
 */
 
-#include "com/centreon/connector/perl/checks/result.hh"
+#include "com/centreon/connector/result.hh"
 
-using namespace com::centreon::connector::perl::checks;
+using namespace com::centreon::connector;
 
 /**************************************
  *                                     *
@@ -32,11 +32,56 @@ using namespace com::centreon::connector::perl::checks;
 result::result() : _cmd_id(0), _executed(false), _exit_code(-1) {}
 
 /**
+ * @brief error constructor
+ *
+ */
+result::result(unsigned long long cmd_id,
+               int exit_code,
+               const std::string& error)
+    : _cmd_id(cmd_id), _error(error), _executed(false), _exit_code(exit_code) {}
+
+/**
+ * @brief success constructor
+ *
+ */
+result::result(unsigned long long cmd_id,
+               int exit_code,
+               const std::string& output,
+               const std::string& error)
+    : _cmd_id(cmd_id),
+      _error(error),
+      _executed(true),
+      _exit_code(exit_code),
+      _output(output) {}
+
+/**
+ *  Copy constructor.
+ *
+ *  @param[in] r Object to copy.
+ */
+result::result(result const& r) {
+  _internal_copy(r);
+}
+
+/**
+ *  Assignment operator.
+ *
+ *  @param[in] r Object to copy.
+ *
+ *  @return This object.
+ */
+result& result::operator=(result const& r) {
+  if (this != &r)
+    _internal_copy(r);
+  return (*this);
+}
+
+/**
  *  Get the command ID.
  *
  *  @return Command ID.
  */
-uint64_t result::get_command_id() const noexcept {
+unsigned long long result::get_command_id() const noexcept {
   return (_cmd_id);
 }
 
@@ -55,7 +100,7 @@ std::string const& result::get_error() const noexcept {
  *  @return true if check was executed, false otherwise.
  */
 bool result::get_executed() const noexcept {
-  return _executed;
+  return (_executed);
 }
 
 /**
@@ -64,7 +109,7 @@ bool result::get_executed() const noexcept {
  *  @return Check exit code.
  */
 int result::get_exit_code() const noexcept {
-  return _exit_code;
+  return (_exit_code);
 }
 
 /**
@@ -81,7 +126,7 @@ std::string const& result::get_output() const noexcept {
  *
  *  @param[in] cmd_id Command ID.
  */
-void result::set_command_id(uint64_t cmd_id) noexcept {
+void result::set_command_id(unsigned long long cmd_id) noexcept {
   _cmd_id = cmd_id;
 }
 
@@ -120,4 +165,23 @@ void result::set_exit_code(int code) noexcept {
  */
 void result::set_output(std::string const& output) {
   _output = output;
+}
+
+/**************************************
+ *                                     *
+ *           Private Methods           *
+ *                                     *
+ **************************************/
+
+/**
+ *  Copy internal data members.
+ *
+ *  @param[in] r Object to copy.
+ */
+void result::_internal_copy(result const& r) {
+  _cmd_id = r._cmd_id;
+  _error = r._error;
+  _executed = r._executed;
+  _exit_code = r._exit_code;
+  _output = r._output;
 }
