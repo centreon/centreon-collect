@@ -1,4 +1,5 @@
 @Library("centreon-shared-library")_
+import org.jenkinsci.plugins.pipeline.modeldefinition.Utils
 
 /*
 ** Variables.
@@ -29,6 +30,12 @@ if (env.BRANCH_NAME.startsWith('release-')) {
   env.BUILD = 'CI'
 }
 
+// Skip sonarQ analysis on branch without PR  - Unable to merge
+def securityAnalysisRequired = 'yes'
+if (!env.CHANGE_ID && env.BUILD == 'CI') {
+    securityAnalysisRequired = 'no'
+}
+
 /*
 ** Pipeline code.
 */
@@ -56,14 +63,21 @@ stage('Build / Unit tests // Packaging / Signing') {
   },
   'centos7 SQ analysis': {
     node("C++") {
-      dir('centreon-collect-centos7') {
-        checkout scm
-        sh 'ci/scripts/sonar-scanner.sh'
-        withSonarQubeEnv('SonarQubeDev') {
-          if (env.CHANGE_ID) {
-            sh 'docker run -i --entrypoint /src/ci/scripts/collect-sources-analysis.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:22.04-testdocker "PR" "$SONAR_AUTH_TOKEN" "$SONAR_HOST_URL" "$VERSION" "$CHANGE_BRANCH" "$CHANGE_TARGET" "$CHANGE_ID"'
-          } else {
-            sh 'docker run -i --entrypoint /src/ci/scripts/collect-sources-analysis.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:22.04-testdocker "NotPR" "$SONAR_AUTH_TOKEN" "$SONAR_HOST_URL" "$VERSION" "$BRANCH_NAME"'
+      if (securityAnalysisRequired == 'no') {
+        Utils.markStageSkippedForConditional('centos7 SQ analysis')
+      } else {
+        dir('centreon-collect-centos7') {
+          checkout scm
+          loadCommonScripts()
+          sh 'ci/scripts/collect-install-sonar-scanner.sh'
+          sh 'ci/scripts/collect-get-sq-cache.sh'
+          withSonarQubeEnv('SonarQubeDev') {
+            if (env.CHANGE_ID) {
+              sh 'docker run -i --entrypoint /src/ci/scripts/collect-sources-analysis.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:22.04-testdocker "PR" "$SONAR_AUTH_TOKEN" "$SONAR_HOST_URL" "$VERSION" "$CHANGE_BRANCH" "$CHANGE_TARGET" "$CHANGE_ID"'
+            } else {
+              sh 'docker run -i --entrypoint /src/ci/scripts/collect-sources-analysis.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:22.04-testdocker "NotPR" "$SONAR_AUTH_TOKEN" "$SONAR_HOST_URL" "$VERSION" "$BRANCH_NAME"'
+              sh 'ci/scripts/collect-set-sq-cache.sh'
+            }
           }
         }
       }
@@ -132,8 +146,14 @@ stage('Build / Unit tests // Packaging / Signing') {
 }
 
 stage('Quality Gate') {
-  timeout(time: 10, unit: 'MINUTES') {
-    waitForQualityGate()
+  node("C++") {
+    if (securityAnalysisRequired == 'no') {
+      Utils.markStageSkippedForConditional('Quality Gate')
+    } else {
+      timeout(time: 10, unit: 'MINUTES') {
+        waitForQualityGate()
+      }
+    }
   }
 }
 
