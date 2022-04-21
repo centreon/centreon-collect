@@ -52,5 +52,5 @@ PROJECT="centreon-collect"
   echo "Saving new cache"
   mv /root/.sonar/cache /src/build
   cd /src/build
-  tar czf "$PROJECT-$VERSION-SQ-source.tar.gz" cache
+  tar czf "$PROJECT-SQ-cache-$VERSION.tar.gz" cache
 #fi
