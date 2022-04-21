@@ -12,7 +12,7 @@ if [[ -z "$PROJECT" ]] ; then
   PROJECT="centreon-collect"
 fi
 
-install_scanner() {
+install_scanner () {
   # Installing missing requirements
   sudo apt-get install unzip || exit
 
@@ -28,7 +28,7 @@ install_scanner() {
   sudo mv sonar-scanner-4.7.0.2747-linux sonar-scanner
 }
 
-clean_previous_cache() {
+clean_previous_cache () {
   if [[ -d "/src/build/cache" ]]; then
     rm -rf /src/build/cache
   fi
@@ -38,7 +38,7 @@ clean_previous_cache() {
 }
 
 # workspace scope
-get_cache() {
+get_cache () {
   pwd
   ls -la
   
@@ -47,21 +47,36 @@ get_cache() {
 }
 
 #container scope
-deploy_cache() {
+deploy_cache () {
   tar xzf "$PROJECT-SQ-cache-$VERSION.tar.gz"
   mv /src/build/cache /root/.sonar
 }
 
 # workspace scope
-set_cache() {
+set_cache () {
   put_internal_source "$PROJECT" "$PROJECT-SQ-cache-$VERSION" "$PROJECT-SQ-cache-$VERSION.tar.gz"
 }
 
 # container scope
-save_cache() {
+save_cache () {
   mv /root/.sonar/cache /src/build
   cd /src/build
   tar czf "$PROJECT-$VERSION-SQ-source.tar.gz" cache
+}
+
+get_internal_source () {
+  rm -f `basename $1`
+  wget -q "http://srvi-repo.int.centreon.com/sources/internal/$1"
+}
+
+put_internal_source () {
+  DIR="/srv/sources/internal/$1"
+  NEWDIR="$2"
+  ssh "$REPO_CREDS" mkdir -p "$DIR/$NEWDIR"
+  shift
+  shift
+  scp -r "$@" "$REPO_CREDS:$DIR/$NEWDIR"
+  clean_directory "$DIR"
 }
 
 if [[ -n $1 ]]; then
