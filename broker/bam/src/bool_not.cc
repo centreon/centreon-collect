@@ -20,6 +20,8 @@
 
 using namespace com::centreon::broker::bam;
 
+constexpr double eps = 0.000001;
+
 /**
  *  Constructor.
  *
@@ -80,7 +82,6 @@ bool bool_not::child_has_update(computable* child, io::stream* visitor) {
  */
 void bool_not::set_value(std::shared_ptr<bool_value>& value) {
   _value = value;
-  return;
 }
 
 /**
@@ -89,7 +90,7 @@ void bool_not::set_value(std::shared_ptr<bool_value>& value) {
  *  @return Hard value.
  */
 double bool_not::value_hard() {
-  return _value->value_hard() == 0;
+  return abs(_value->value_hard()) <= eps;
 }
 
 /**
@@ -98,7 +99,7 @@ double bool_not::value_hard() {
  *  @return Soft value.
  */
 double bool_not::value_soft() {
-  return _value->value_soft() == 0;
+  return abs(_value->value_soft()) <= eps;
 }
 
 /**
@@ -116,7 +117,7 @@ void bool_not::_internal_copy(bool_not const& right) {
  *  @return  True if the state is known.
  */
 bool bool_not::state_known() const {
-  return _value && _value->state_known();
+  return abs(_value) > eps && abs(_value->state_known()) > eps;
 }
 
 /**
@@ -125,5 +126,5 @@ bool bool_not::state_known() const {
  *  @return  True if this expression is in downtime.
  */
 bool bool_not::in_downtime() const {
-  return _value && _value->in_downtime();
+  return abs(_value) > eps && (_value->in_downtime()) > eps;
 }
