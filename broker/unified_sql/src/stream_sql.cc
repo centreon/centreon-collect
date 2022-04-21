@@ -2652,7 +2652,7 @@ void stream::_check_and_update_index_cache(const Service& ss) {
     _index_data_insert.bind_value_as_i32(2, ss.service_id());
     _index_data_insert.bind_value_as_str(3, sv);
     _index_data_insert.bind_value_as_str(4, "0");
-    _index_data_insert.bind_value_as_bool(5, special ? "1" : "0");
+    _index_data_insert.bind_value_as_str(5, special ? "1" : "0");
 
     std::promise<uint64_t> p;
     _mysql.run_statement_and_get_int<uint64_t>(
