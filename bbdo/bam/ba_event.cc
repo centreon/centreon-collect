@@ -21,6 +21,8 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;
 
+constexpr double eps = 0.000001;
+
 /**
  *  Default constructor.
  */
@@ -63,7 +65,7 @@ ba_event& ba_event::operator=(ba_event const& other) {
  *  @return  True if the two objects are equal.
  */
 bool ba_event::operator==(ba_event const& other) const {
-  return ba_id == other.ba_id && first_level == other.first_level &&
+  return ba_id == other.ba_id && abs(first_level - other.first_level) < eps &&
          end_time == other.end_time && in_downtime == other.in_downtime &&
          start_time == other.start_time && status == other.status;
 }

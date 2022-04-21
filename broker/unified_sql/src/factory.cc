@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2015,2017 Centreon
+** Copyright 2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -48,12 +48,6 @@ static std::string const& find_param(config::endpoint const& cfg,
         key, cfg.name);
   return it->second;
 }
-
-/**************************************
- *                                     *
- *           Public Methods            *
- *                                     *
- **************************************/
 
 /**
  *  Check if a configuration match the unified_sql layer.

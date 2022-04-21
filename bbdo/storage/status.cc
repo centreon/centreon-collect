@@ -26,7 +26,7 @@ using namespace com::centreon::broker::storage;
  */
 status::status()
     : io::data(status::static_type()),
-      ctime(0),
+      time(0),
       index_id(0),
       interval(0),
       is_for_rebuild(false),
@@ -36,7 +36,7 @@ status::status()
 /**
  *  Constructor.
  *
- * @param ctime
+ * @param time
  * @param index_id
  * @param interval
  * @param is_for_rebuild
@@ -44,14 +44,14 @@ status::status()
  * @param state
  * @param Unknown
  */
-status::status(timestamp const& ctime,
+status::status(timestamp const& time,
                uint64_t index_id,
                uint32_t interval,
                bool is_for_rebuild,
                timestamp const& rrd_len,
                int16_t state)
     : io::data(status::static_type()),
-      ctime{ctime},
+      time{time},
       index_id{index_id},
       interval{interval},
       is_for_rebuild{is_for_rebuild},
@@ -97,7 +97,7 @@ status& status::operator=(status const& s) {
  *  @param[in] s Object to copy.
  */
 void status::_internal_copy(status const& s) {
-  ctime = s.ctime;
+  time = s.time;
   index_id = s.index_id;
   interval = s.interval;
   is_for_rebuild = s.is_for_rebuild;
@@ -113,7 +113,7 @@ void status::_internal_copy(status const& s) {
 
 // Mapping.
 mapping::entry const status::entries[] = {
-    mapping::entry(&status::ctime,
+    mapping::entry(&status::time,
                    "ctime",
                    mapping::entry::invalid_on_minus_one),
     mapping::entry(&status::index_id,

@@ -190,7 +190,8 @@ host::host(uint64_t host_id,
            bool retain_status_information,
            bool retain_nonstatus_information,
            bool obsess_over_host,
-           std::string const& timezone)
+           std::string const& timezone,
+           uint64_t icon_id)
     : notifier{host_notification,
                !display_name.empty() ? display_name : name,
                check_command,
@@ -230,7 +231,8 @@ host::host(uint64_t host_id,
                timezone,
                retain_status_information > 0,
                retain_nonstatus_information > 0,
-               false},
+               false,
+               icon_id},
       _id{host_id},
       _name{name},
       _address{address},
@@ -3803,9 +3805,10 @@ void host::check_for_orphaned() {
 
     /* determine the time at which the check results should have come in (allow
      * 10 minutes slack time) */
-    expected_time = (time_t)(
-        it->second->get_next_check() + it->second->get_latency() +
-        config->host_check_timeout() + config->check_reaper_interval() + 600);
+    expected_time =
+        (time_t)(it->second->get_next_check() + it->second->get_latency() +
+                 config->host_check_timeout() +
+                 config->check_reaper_interval() + 600);
 
     /* this host was supposed to have executed a while ago, but for some reason
      * the results haven't come back in... */

@@ -234,8 +234,6 @@ void command_line::parse(char const* cmdline, unsigned int size) {
   // If no token were found, avoid memory leak.
   if (!_argv[0])
     delete[] str;
-
-  return;
 }
 
 /**

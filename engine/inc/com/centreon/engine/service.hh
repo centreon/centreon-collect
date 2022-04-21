@@ -91,8 +91,9 @@ class service : public notifier {
           bool check_freshness,
           int freshness_threshold,
           bool obsess_over,
-          std::string const& timezone);
-  ~service() = default;
+          std::string const& timezone,
+          uint64_t icon_id);
+  ~service() noexcept = default;
   void set_host_id(uint64_t host_id);
   uint64_t get_host_id() const;
   void set_service_id(uint64_t service_id);
@@ -270,7 +271,8 @@ com::centreon::engine::service* add_service(
     int retain_status_information,
     int retain_nonstatus_information,
     bool obsess_over,
-    std::string const& timezone);
+    std::string const& timezone,
+    uint64_t icon_id);
 
 std::ostream& operator<<(std::ostream& os,
                          com::centreon::engine::service const& obj);

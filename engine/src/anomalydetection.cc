@@ -148,7 +148,8 @@ anomalydetection::anomalydetection(uint64_t host_id,
                                    bool check_freshness,
                                    int freshness_threshold,
                                    bool obsess_over,
-                                   std::string const& timezone)
+                                   std::string const& timezone,
+                                   uint64_t icon_id)
     : service{hostname,
               description,
               display_name,
@@ -179,7 +180,8 @@ anomalydetection::anomalydetection(uint64_t host_id,
               check_freshness,
               freshness_threshold,
               obsess_over,
-              timezone},
+              timezone,
+              icon_id},
       _dependent_service{dependent_service},
       _metric_name{metric_name},
       _thresholds_file{thresholds_file},
@@ -319,7 +321,8 @@ com::centreon::engine::anomalydetection* add_anomalydetection(
     int retain_status_information,
     int retain_nonstatus_information,
     bool obsess_over_service,
-    std::string const& timezone) {
+    std::string const& timezone,
+    uint64_t icon_id) {
   // Make sure we have everything we need.
   if (!service_id) {
     engine_logger(log_config_error, basic)
@@ -414,7 +417,7 @@ com::centreon::engine::anomalydetection* add_anomalydetection(
   }
 
   // Allocate memory.
-  std::shared_ptr<anomalydetection> obj{std::make_shared<anomalydetection>(
+  auto obj{std::make_shared<anomalydetection>(
       host_id, service_id, host_name, description,
       display_name.empty() ? description : display_name, dependent_service,
       metric_name, thresholds_file, status_change, checks_enabled,
@@ -424,7 +427,7 @@ com::centreon::engine::anomalydetection* add_anomalydetection(
       is_volatile, event_handler, event_handler_enabled, notes, notes_url,
       action_url, icon_image, icon_image_alt, flap_detection_enabled,
       low_flap_threshold, high_flap_threshold, check_freshness,
-      freshness_threshold, obsess_over_service, timezone)};
+      freshness_threshold, obsess_over_service, timezone, icon_id)};
   try {
     obj->set_acknowledgement_type(ACKNOWLEDGEMENT_NONE);
     obj->set_check_options(CHECK_OPTION_NONE);

@@ -18,6 +18,7 @@
 #ifndef CCB_UNIFIED_SQL_STREAM_HH
 #define CCB_UNIFIED_SQL_STREAM_HH
 #include <absl/container/flat_hash_map.h>
+#include <absl/container/flat_hash_set.h>
 #include <array>
 #include <atomic>
 #include <condition_variable>
@@ -85,7 +86,7 @@ class stream : public io::stream {
   enum stream_type { sql, unified_sql };
 
  private:
-  const static std::array<int, 4> hst_ordered_status;
+  const static std::array<int, 5> hst_ordered_status;
   const static std::array<int, 5> svc_ordered_status;
   enum special_conn {
     custom_variable,
@@ -201,9 +202,7 @@ class stream : public io::stream {
   /* Stats */
   ConflictManagerStats* _stats;
 
-  /* How many streams are using this stream? */
-  std::atomic<uint32_t> _ref_count;
-
+  uint64_t _current_resource_id;
   std::unordered_set<uint32_t> _cache_deleted_instance_id;
   std::unordered_map<uint32_t, uint32_t> _cache_host_instance;
   absl::flat_hash_map<uint64_t, size_t> _cache_hst_cmd;
@@ -215,8 +214,10 @@ class stream : public io::stream {
   absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t> _severity_cache;
   absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t> _tags_cache;
 
-  std::unordered_set<uint32_t> _hostgroup_cache;
-  std::unordered_set<uint32_t> _servicegroup_cache;
+  absl::flat_hash_map<std::pair<uint64_t, uint64_t>, uint64_t> _resource_cache;
+
+  absl::flat_hash_set<uint32_t> _hostgroup_cache;
+  absl::flat_hash_set<uint32_t> _servicegroup_cache;
 
   /* The queue of metrics sent in bulk to the database. The insert is done if
    * the loop timeout is reached or if the queue size is greater than
@@ -279,8 +280,10 @@ class stream : public io::stream {
   database::mysql_stmt _tag_insert;
   database::mysql_stmt _tag_update;
   database::mysql_stmt _resources_tags_insert;
-  database::mysql_stmt _resources_host_insupdate;
-  database::mysql_stmt _resources_service_insupdate;
+  database::mysql_stmt _resources_host_insert;
+  database::mysql_stmt _resources_host_update;
+  database::mysql_stmt _resources_service_insert;
+  database::mysql_stmt _resources_service_update;
   database::mysql_stmt _hscr_resources_update;
   database::mysql_stmt _sscr_resources_update;
 

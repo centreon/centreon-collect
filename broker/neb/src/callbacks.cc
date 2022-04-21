@@ -1,5 +1,5 @@
 /*
-** Copyright 2009-2021 Centreon
+** Copyright 2009-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -251,7 +251,7 @@ int neb::callback_comment(int callback_type, void* data) {
   try {
     // In/Out variables.
     nebstruct_comment_data const* comment_data;
-    std::shared_ptr<neb::comment> comment(new neb::comment);
+    auto comment{std::make_shared<neb::comment>()};
 
     // Fill output var.
     comment_data = static_cast<nebstruct_comment_data*>(data);
@@ -1289,7 +1289,8 @@ int neb::callback_pb_host(int callback_type, void* data) {
       static_cast<nebstruct_adaptive_host_data*>(data);
   const engine::host* eh{static_cast<engine::host*>(dh->object_ptr)};
 
-  if (dh->type == NEBTYPE_ADAPTIVEHOST_UPDATE && dh->attr != MODATTR_ALL) {
+  if (dh->type == NEBTYPE_ADAPTIVEHOST_UPDATE &&
+      dh->modified_attribute != MODATTR_ALL) {
     auto h{std::make_shared<neb::pb_adaptive_host>()};
     AdaptiveHost& hst = h.get()->mut_obj();
     if (dh->attr & MODATTR_NOTIFICATIONS_ENABLED)
@@ -1465,14 +1466,11 @@ int neb::callback_pb_host(int callback_type, void* data) {
           misc::string::check_string_utf8(eh->get_statusmap_image()));
     host.set_timezone(eh->get_timezone());
     host.set_severity_id(eh->get_severity() ? eh->get_severity()->id() : 0);
-    for (std::forward_list<
-             std::shared_ptr<com::centreon::engine::tag>>::const_iterator
-             it = eh->tags().begin(),
-             end = eh->tags().end();
-         it != end; ++it) {
+    host.set_icon_id(eh->get_icon_id());
+    for (auto& tg : eh->tags()) {
       TagInfo* ti = host.mutable_tags()->Add();
-      ti->set_id((*it)->id());
-      ti->set_type(static_cast<TagType>((*it)->type()));
+      ti->set_id(tg->id());
+      ti->set_type(static_cast<TagType>(tg->type()));
     }
 
     // Find host ID.
@@ -1652,8 +1650,7 @@ int neb::callback_host_status(int callback_type, void* data) {
       if (!(!host_status->current_state  // !(OK or (normal ack and NOK))
             || (!it->second.is_sticky &&
                 (host_status->current_state != it->second.state)))) {
-        std::shared_ptr<neb::acknowledgement> ack(
-            new neb::acknowledgement(it->second));
+        auto ack{std::make_shared<neb::acknowledgement>(it->second)};
         ack->deletion_time = time(nullptr);
         gl_publisher.write(ack);
       }
@@ -2418,9 +2415,49 @@ int neb::callback_pb_service(int callback_type, void* data) {
     srv.set_freshness_threshold(es->get_freshness_threshold());
     srv.set_has_been_checked(es->has_been_checked());
     srv.set_high_flap_threshold(es->get_high_flap_threshold());
-    if (!es->get_hostname().empty())
-      *srv.mutable_host_name() =
-          misc::string::check_string_utf8(es->get_hostname());
+    if (!es->get_description().empty())
+      *srv.mutable_service_description() =
+          misc::string::check_string_utf8(es->get_description());
+
+    if (!es->get_hostname().empty()) {
+      std::string name{misc::string::check_string_utf8(es->get_hostname())};
+      if (strncmp(name.c_str(), "_Module_Meta", 13) == 0) {
+        if (strncmp(srv.service_description().c_str(), "meta_", 5) == 0) {
+          srv.set_type(METASERVICE);
+          uint64_t iid = 0;
+          for (auto c = srv.service_description().begin() + 5;
+               c != srv.service_description().end(); ++c) {
+            if (!isdigit(*c)) {
+              log_v2::neb()->error(
+                  "callbacks: service ('{}', '{}') looks like a meta-service "
+                  "but its name is malformed",
+                  name, srv.service_description());
+              break;
+            }
+            iid = 10 * iid + (*c - '0');
+          }
+          srv.set_internal_id(iid);
+        }
+      } else if (strncmp(name.c_str(), "_Module_BAM", 11) == 0) {
+        if (strncmp(srv.service_description().c_str(), "ba_", 3) == 0) {
+          srv.set_type(BA);
+          uint64_t iid = 0;
+          for (auto c = srv.service_description().begin() + 3;
+               c != srv.service_description().end(); ++c) {
+            if (!isdigit(*c)) {
+              log_v2::neb()->error(
+                  "callbacks: service ('{}', '{}') looks like a "
+                  "business-activity but its name is malformed",
+                  name, srv.service_description());
+              break;
+            }
+            iid = 10 * iid + (*c - '0');
+          }
+          srv.set_internal_id(iid);
+        }
+      }
+      *srv.mutable_host_name() = std::move(name);
+    }
     if (!es->get_icon_image().empty())
       *srv.mutable_icon_image() =
           misc::string::check_string_utf8(es->get_icon_image());
@@ -2478,9 +2515,6 @@ int neb::callback_pb_service(int callback_type, void* data) {
         es->get_retain_nonstatus_information());
     srv.set_retain_status_information(es->get_retain_status_information());
     srv.set_retry_interval(es->retry_interval());
-    if (!es->get_description().empty())
-      *srv.mutable_service_description() =
-          misc::string::check_string_utf8(es->get_description());
     srv.set_should_be_scheduled(es->get_should_be_scheduled());
     srv.set_stalk_on_critical(es->get_stalk_on(engine::notifier::critical));
     srv.set_stalk_on_ok(es->get_stalk_on(engine::notifier::ok));
@@ -2490,15 +2524,12 @@ int neb::callback_pb_service(int callback_type, void* data) {
         es->has_been_checked() ? es->get_state_type()
                                : engine::notifier::hard));
     srv.set_severity_id(es->get_severity() ? es->get_severity()->id() : 0);
+    srv.set_icon_id(es->get_icon_id());
 
-    for (std::forward_list<
-             std::shared_ptr<com::centreon::engine::tag>>::const_iterator
-             it = es->tags().begin(),
-             end = es->tags().end();
-         it != end; ++it) {
+    for (auto& tg : es->tags()) {
       TagInfo* ti = srv.mutable_tags()->Add();
-      ti->set_id((*it)->id());
-      ti->set_type(static_cast<TagType>((*it)->type()));
+      ti->set_id(tg->id());
+      ti->set_type(static_cast<TagType>(tg->type()));
     }
 
     // Search host ID and service ID.
@@ -2767,6 +2798,43 @@ int32_t neb::callback_pb_service_status(int callback_type
       es->has_been_checked() ? es->get_state_type() : engine::notifier::hard));
   sscr.set_downtime_depth(es->get_scheduled_downtime_depth());
 
+  if (!es->get_hostname().empty()) {
+    if (strncmp(es->get_hostname().c_str(), "_Module_Meta", 13) == 0) {
+      if (strncmp(es->get_description().c_str(), "meta_", 5) == 0) {
+        sscr.set_type(METASERVICE);
+        uint64_t iid = 0;
+        for (auto c = es->get_description().begin() + 5;
+             c != es->get_description().end(); ++c) {
+          if (!isdigit(*c)) {
+            log_v2::neb()->error(
+                "callbacks: service ('{}', '{}') looks like a meta-service "
+                "but its name is malformed",
+                es->get_hostname(), es->get_description());
+            break;
+          }
+          iid = 10 * iid + (*c - '0');
+        }
+        sscr.set_internal_id(iid);
+      }
+    } else if (strncmp(es->get_hostname().c_str(), "_Module_BAM", 11) == 0) {
+      if (strncmp(es->get_description().c_str(), "ba_", 3) == 0) {
+        sscr.set_type(BA);
+        uint64_t iid = 0;
+        for (auto c = es->get_description().begin() + 3;
+             c != es->get_description().end(); ++c) {
+          if (!isdigit(*c)) {
+            log_v2::neb()->error(
+                "callbacks: service ('{}', '{}') looks like a "
+                "business-activity but its name is malformed",
+                es->get_hostname(), es->get_description());
+            break;
+          }
+          iid = 10 * iid + (*c - '0');
+        }
+        sscr.set_internal_id(iid);
+      }
+    }
+  }
   // Send event(s).
   gl_publisher.write(s);
 

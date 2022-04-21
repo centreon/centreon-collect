@@ -18,9 +18,9 @@
 */
 
 #include "com/centreon/engine/configuration/service.hh"
-#include "absl/strings/numbers.h"
-#include "absl/strings/str_split.h"
-#include "absl/strings/string_view.h"
+#include <absl/strings/numbers.h>
+#include <absl/strings/str_split.h>
+#include <absl/strings/string_view.h>
 #include "com/centreon/engine/configuration/serviceextinfo.hh"
 #include "com/centreon/engine/customvariable.hh"
 #include "com/centreon/engine/exceptions/error.hh"
@@ -107,7 +107,9 @@ std::unordered_map<std::string, service::setter_func> const service::_setters{
     {"severity", SETTER(uint64_t, _set_severity_id)},
     {"severity_id", SETTER(uint64_t, _set_severity_id)},
     {"category_tags", SETTER(std::string const&, _set_category_tags)},
-    {"group_tags", SETTER(std::string const&, _set_group_tags)}};
+    {"group_tags", SETTER(std::string const&, _set_group_tags)},
+    {"icon_id", SETTER(uint64_t, _set_icon_id)},
+};
 
 // Default values.
 static int default_acknowledgement_timeout(0);
@@ -174,7 +176,8 @@ service::service()
       _host_id(0),
       _service_id(0),
       _stalking_options(default_stalking_options),
-      _severity_id{0u} {}
+      _severity_id{0u},
+      _icon_id{0u} {}
 
 /**
  *  Copy constructor.
@@ -230,6 +233,7 @@ service::service(service const& other)
       _stalking_options(other._stalking_options),
       _timezone(other._timezone),
       _severity_id{other._severity_id},
+      _icon_id{other._icon_id},
       _tags{other._tags} {}
 
 /**
@@ -289,6 +293,7 @@ service& service::operator=(service const& other) {
     _stalking_options = other._stalking_options;
     _timezone = other._timezone;
     _severity_id = other._severity_id;
+    _icon_id = other._icon_id;
     _tags = other._tags;
   }
   return *this;
@@ -655,6 +660,13 @@ bool service::operator==(service const& other) const noexcept {
         "configuration::service::equality => severity id don't match");
     return false;
   }
+  if (_icon_id != other._icon_id) {
+    engine_logger(dbg_config, more)
+        << "configuration::service::equality => icon id don't match";
+    log_v2::config()->debug(
+        "configuration::service::equality => icon id don't match");
+    return false;
+  }
   if (_tags != other._tags) {
     engine_logger(dbg_config, more)
         << "configuration::service::equality => tags don't match";
@@ -782,6 +794,8 @@ bool service::operator<(service const& other) const noexcept {
     return _timezone < other._timezone;
   else if (_severity_id != other._severity_id)
     return _severity_id < other._severity_id;
+  else if (_icon_id != other._icon_id)
+    return _icon_id < other._icon_id;
   return _tags < other._tags;
 }
 
@@ -881,7 +895,8 @@ void service::merge(object const& obj) {
   MRG_OPTION(_stalking_options);
   MRG_OPTION(_timezone);
   MRG_OPTION(_severity_id);
-  MRG_DEFAULT(_tags);
+  MRG_OPTION(_icon_id);
+  MRG_MAP(_tags);
 }
 
 /**
@@ -1041,8 +1056,8 @@ bool service::contacts_defined() const noexcept {
  *
  *  @return The customvariables.
  */
-com::centreon::engine::map_customvar const& service::customvariables() const
-    noexcept {
+com::centreon::engine::map_customvar const& service::customvariables()
+    const noexcept {
   return _customvariables;
 }
 
@@ -2171,7 +2186,7 @@ bool service::_set_category_tags(const std::string& value) {
 }
 
 /**
- *  Set host tags.
+ *  Set service tags.
  *
  *  @param[in] value  The new tags.
  *
@@ -2233,4 +2248,25 @@ bool service::_set_severity_id(uint64_t severity_id) {
  */
 uint64_t service::severity_id() const noexcept {
   return _severity_id;
+}
+
+/**
+ * @brief Set the icon_id (or 0 when there is no icon).
+ *
+ * @param icon_id The icon_id or 0.
+ *
+ * @return true on success.
+ */
+bool service::_set_icon_id(uint64_t icon_id) {
+  _icon_id = icon_id;
+  return true;
+}
+
+/**
+ * @brief Accessor to the icon_id.
+ *
+ * @return the icon_id or 0 if none.
+ */
+uint64_t service::icon_id() const noexcept {
+  return _icon_id;
 }

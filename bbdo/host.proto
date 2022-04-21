@@ -127,6 +127,7 @@ message Host {
   string timezone = 79;
   uint64 severity_id = 80;
   repeated TagInfo tags = 81;
+  uint64 icon_id = 82;
 }
 
 /**

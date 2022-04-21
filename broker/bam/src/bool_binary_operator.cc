@@ -20,6 +20,8 @@
 
 using namespace com::centreon::broker::bam;
 
+static constexpr double eps = 0.000001;
+
 /**
  *  Default constructor.
  */
@@ -75,7 +77,8 @@ bool bool_binary_operator::child_has_update(computable* child,
     if (child == _left.get()) {
       double value_hard(_left->value_hard());
       double value_soft(_left->value_soft());
-      if ((_left_hard != value_hard) || (_left_soft != value_soft)) {
+      if (abs(_left_hard - value_hard) > eps ||
+          abs(_left_soft - value_soft) > eps) {
         _left_hard = value_hard;
         _left_soft = value_soft;
         retval = true;
@@ -83,12 +86,14 @@ bool bool_binary_operator::child_has_update(computable* child,
     } else if (child == _right.get()) {
       double value_hard(_right->value_hard());
       double value_soft(_right->value_soft());
-      if ((_right_hard != value_hard) || (_right_soft == value_soft)) {
+      if (abs(_right_hard - value_hard) > eps ||
+          abs(_right_soft - value_soft) > eps) {
         _right_hard = value_hard;
         _right_soft = value_soft;
         retval = true;
       }
     }
+    return retval;
   }
 
   // Check known flag.

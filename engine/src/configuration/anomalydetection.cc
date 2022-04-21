@@ -1,5 +1,5 @@
 /*
-** Copyright 2020 Centreon
+** Copyright 2020-2022 Centreon
 **
 ** This file is part of Centreon Engine.
 **
@@ -18,6 +18,9 @@
 */
 
 #include "com/centreon/engine/configuration/anomalydetection.hh"
+#include <absl/strings/numbers.h>
+#include <absl/strings/str_split.h>
+#include <absl/strings/string_view.h>
 #include "com/centreon/engine/configuration/serviceextinfo.hh"
 #include "com/centreon/engine/customvariable.hh"
 #include "com/centreon/engine/exceptions/error.hh"
@@ -102,7 +105,13 @@ std::unordered_map<std::string, anomalydetection::setter_func> const
          SETTER(bool, _set_retain_status_information)},
         {"retain_nonstatus_information",
          SETTER(bool, _set_retain_nonstatus_information)},
-        {"timezone", SETTER(std::string const&, _set_timezone)}};
+        {"timezone", SETTER(std::string const&, _set_timezone)},
+        {"severity", SETTER(uint64_t, _set_severity_id)},
+        {"severity_id", SETTER(uint64_t, _set_severity_id)},
+        {"category_tags", SETTER(std::string const&, _set_category_tags)},
+        {"group_tags", SETTER(std::string const&, _set_group_tags)},
+        {"icon_id", SETTER(uint64_t, _set_icon_id)},
+    };
 
 // Default values.
 static int default_acknowledgement_timeout(0);
@@ -170,7 +179,9 @@ anomalydetection::anomalydetection()
       _host_id(0),
       _service_id(0),
       _dependent_service_id(0),
-      _stalking_options(default_stalking_options) {}
+      _stalking_options(default_stalking_options),
+      _severity_id{0u},
+      _icon_id{0u} {}
 
 /**
  *  Copy constructor.
@@ -224,7 +235,10 @@ anomalydetection::anomalydetection(anomalydetection const& other)
       _service_id(other._service_id),
       _dependent_service_id(other._dependent_service_id),
       _stalking_options(other._stalking_options),
-      _timezone(other._timezone) {}
+      _timezone(other._timezone),
+      _severity_id{other._severity_id},
+      _icon_id{other._icon_id},
+      _tags{other._tags} {}
 
 /**
  *  Destructor.
@@ -287,6 +301,9 @@ anomalydetection& anomalydetection::operator=(anomalydetection const& other) {
     _dependent_service_id = other._dependent_service_id;
     _stalking_options = other._stalking_options;
     _timezone = other._timezone;
+    _severity_id = other._severity_id;
+    _icon_id = other._icon_id;
+    _tags = other._tags;
   }
   return *this;
 }
@@ -700,6 +717,27 @@ bool anomalydetection::operator==(
         "configuration::anomalydetection::equality => timezone don't match");
     return false;
   }
+  if (_severity_id != other._severity_id) {
+    engine_logger(dbg_config, more) << "configuration::anomalydetection::"
+                                       "equality => severity id don't match";
+    log_v2::config()->debug(
+        "configuration::anomalydetection::equality => severity id don't match");
+    return false;
+  }
+  if (_icon_id != other._icon_id) {
+    engine_logger(dbg_config, more)
+        << "configuration::anomalydetection::equality => icon id don't match";
+    log_v2::config()->debug(
+        "configuration::anomalydetection::equality => icon id don't match");
+    return false;
+  }
+  if (_tags != other._tags) {
+    engine_logger(dbg_config, more)
+        << "configuration::anomalydetection::equality => tags don't match";
+    log_v2::config()->debug(
+        "configuration::anomalydetection::equality => tags don't match");
+    return false;
+  }
   engine_logger(dbg_config, more)
       << "configuration::anomalydetection::equality => OK";
   log_v2::config()->debug("configuration::anomalydetection::equality => OK");
@@ -818,7 +856,13 @@ bool anomalydetection::operator<(anomalydetection const& other) const noexcept {
     return _servicegroups < other._servicegroups;
   else if (_stalking_options != other._stalking_options)
     return _stalking_options < other._stalking_options;
-  return _timezone < other._timezone;
+  else if (_timezone != other._timezone)
+    return _timezone < other._timezone;
+  else if (_severity_id != other._severity_id)
+    return _severity_id < other._severity_id;
+  else if (_icon_id != other._icon_id)
+    return _icon_id < other._icon_id;
+  return _tags < other._tags;
 }
 
 /**
@@ -921,6 +965,9 @@ void anomalydetection::merge(object const& obj) {
   MRG_DEFAULT(_service_description);
   MRG_OPTION(_stalking_options);
   MRG_OPTION(_timezone);
+  MRG_OPTION(_severity_id);
+  MRG_OPTION(_icon_id);
+  MRG_MAP(_tags);
 }
 
 /**
@@ -1483,6 +1530,16 @@ std::string const& anomalydetection::timezone() const noexcept {
  */
 bool anomalydetection::timezone_defined() const noexcept {
   return _timezone.is_set();
+}
+
+/**
+ *  Get anomalydetection tags.
+ *
+ *  @return This anomalydetection tags.
+ */
+const std::set<std::pair<uint64_t, uint16_t>>& anomalydetection::tags()
+    const noexcept {
+  return _tags;
 }
 
 /**
@@ -2169,6 +2226,76 @@ bool anomalydetection::_set_timezone(std::string const& value) {
 }
 
 /**
+ *  Set host tags.
+ *
+ *  @param[in] value  The new tags.
+ *
+ *  @return True.
+ */
+bool anomalydetection::_set_category_tags(const std::string& value) {
+  bool ret = true;
+  std::list<absl::string_view> tags{absl::StrSplit(value, ',')};
+  for (std::set<std::pair<uint64_t, uint16_t>>::iterator it(_tags.begin()),
+       end(_tags.end());
+       it != end;) {
+    if (it->second == tag::servicecategory)
+      it = _tags.erase(it);
+    else
+      ++it;
+  }
+
+  for (auto& tag : tags) {
+    int64_t id;
+    bool parse_ok;
+    parse_ok = SimpleAtoi(tag, &id);
+    if (parse_ok) {
+      _tags.emplace(id, tag::servicecategory);
+    } else {
+      log_v2::config()->warn(
+          "Warning: anomalydetection ({}, {}) error for parsing tag {}",
+          _host_id, _service_id, value);
+      ret = false;
+    }
+  }
+  return ret;
+}
+
+/**
+ *  Set anomalydetection tags.
+ *
+ *  @param[in] value  The new tags.
+ *
+ *  @return True.
+ */
+bool anomalydetection::_set_group_tags(const std::string& value) {
+  bool ret = true;
+  std::list<absl::string_view> tags{absl::StrSplit(value, ',')};
+  for (std::set<std::pair<uint64_t, uint16_t>>::iterator it(_tags.begin()),
+       end(_tags.end());
+       it != end;) {
+    if (it->second == tag::servicegroup)
+      it = _tags.erase(it);
+    else
+      ++it;
+  }
+
+  for (auto& tag : tags) {
+    int64_t id;
+    bool parse_ok;
+    parse_ok = SimpleAtoi(tag, &id);
+    if (parse_ok) {
+      _tags.emplace(id, tag::servicegroup);
+    } else {
+      log_v2::config()->warn(
+          "Warning: anomalydetection ({}, {}) error for parsing tag {}",
+          _host_id, _service_id, value);
+      ret = false;
+    }
+  }
+  return ret;
+}
+
+/**
  *  Set the host id.
  *
  * @param value The host id.
@@ -2178,4 +2305,46 @@ bool anomalydetection::_set_timezone(std::string const& value) {
 bool anomalydetection::set_host_id(uint64_t value) {
   _host_id = value;
   return true;
+}
+
+/**
+ * @brief Set the severity_id (or 0 when there is no severity).
+ *
+ * @param severity_id The severity_id or 0.
+ *
+ * @return true on success.
+ */
+bool anomalydetection::_set_severity_id(uint64_t severity_id) {
+  _severity_id = severity_id;
+  return true;
+}
+
+/**
+ * @brief Accessor to the severity_id.
+ *
+ * @return the severity_id or 0 if none.
+ */
+uint64_t anomalydetection::severity_id() const noexcept {
+  return _severity_id;
+}
+
+/**
+ * @brief Set the icon_id (or 0 when there is no icon).
+ *
+ * @param icon_id The icon_id or 0.
+ *
+ * @return true on success.
+ */
+bool anomalydetection::_set_icon_id(uint64_t icon_id) {
+  _icon_id = icon_id;
+  return true;
+}
+
+/**
+ * @brief Accessor to the icon_id.
+ *
+ * @return the icon_id or 0 if none.
+ */
+uint64_t anomalydetection::icon_id() const noexcept {
+  return _icon_id;
 }

@@ -942,7 +942,7 @@ void conflict_manager::_process_host(
   // Processing
   if (_is_valid_poller(h.poller_id)) {
     // FixMe BAM Generate fake host, this host
-    // does not contains a display_name
+    // does not contain a display_name
     // We should not store them in db
     if (h.host_id && !h.alias.empty()) {
       int32_t conn = _mysql.choose_connection_by_instance(h.poller_id);

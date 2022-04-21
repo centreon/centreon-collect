@@ -18,6 +18,7 @@
 
 #include "com/centreon/broker/file/directory_watcher.hh"
 
+#include <alloca.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
@@ -141,11 +142,10 @@ std::vector<directory_event> directory_watcher::get_events() {
   }
   log_v2::core()->debug("file: directory watcher getting events of size {}",
                         buf_size);
-  char* buf = new char[buf_size];
+  char* buf = (char*)alloca(buf_size);
   int len = ::read(_inotify_instance_id, buf, buf_size);
   if (len == -1) {
     int err = errno;
-    delete[] buf;
     throw msg_fmt("directory_watcher: couldn't read events: '{}'",
                   ::strerror(err));
   }
@@ -197,7 +197,7 @@ std::vector<directory_event> directory_watcher::get_events() {
         name, event_type);
   }
 
-  return (ret);
+  return ret;
 }
 
 /**
