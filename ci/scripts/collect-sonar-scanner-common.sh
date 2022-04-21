@@ -18,7 +18,7 @@ fi
 
 install_scanner() {
   # Installing missing requirements
-  sudo apt-get install unzip shellcheck || exit
+  sudo apt-get install unzip || exit
 
   # Cleaning
   rm -rf tmp
@@ -39,6 +39,8 @@ get_cache() {
 }
 
 set_cache() {
+  pwd
+  ls -la
   put_internal_source "$PROJECT" "$PROJECT-SQ-cache-$VERSION" "$PROJECT-SQ-cache-$VERSION.tar.gz"
 }
 
