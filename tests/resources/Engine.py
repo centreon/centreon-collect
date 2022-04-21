@@ -500,24 +500,16 @@ def engine_config_set_value(idx: int, key: str, value: str, force: bool = False)
 
 
 def add_host_group(index: int, id_host_group: int, members: list):
-    mbs = []
-    for m in members:
-        if m in engine.hosts:
-            mbs.append(m)
-
+    mbs = [l for l in members if l in engine.hosts]
     f = open("/etc/centreon-engine/config{}/hostgroups.cfg".format(index), "a+")
     logger.console(mbs)
     f.write(engine.create_host_group(id_host_group, mbs))
     f.close()
 
 def add_service_group(index: int, id_service_group: int, members: list):
-    mbs = []
-    for m in members:
-        mbs.append(m)
-
     f = open("/etc/centreon-engine/config{}/servicegroups.cfg".format(index), "a+")
-    logger.console(mbs)
-    f.write(engine.create_service_group(id_service_group, mbs))
+    logger.console(members)
+    f.write(engine.create_service_group(id_service_group, members))
     f.close()
 
 
@@ -792,9 +784,7 @@ def config_engine_remove_cfg_file(poller:int, fic:str):
     lines = ff.readlines()
     ff.close()
     r = re.compile(r"^\s*cfg_file=/etc/centreon-engine/config{}/{}".format(poller, fic))
-    linesearch = [l for l in lines if r.match(l)]
+    linesearch = [l for l in lines if not r.match(l)]
     ff = open("{}/config{}/centengine.cfg".format(CONF_DIR, poller), "w")
-    for line in lines:
-        if linesearch[0] != line:
-            ff.writelines(line)
+    ff.writelines(linesearch)
     ff.close()
