@@ -16,9 +16,9 @@ if [[ -z "$PROJECT" ]] ; then
   PROJECT="centreon-collect"
 fi
 
-install_scanner () {
+install_scanner() {
   # Installing missing requirements
-  sudo apt-get install unzip || exit
+  sudo apt-get install unzip shellcheck || exit
 
   # Cleaning
   rm -rf tmp
@@ -32,34 +32,37 @@ install_scanner () {
   sudo mv sonar-scanner-4.7.0.2747-linux sonar-scanner
 }
 
-# workspace scope
-get_cache () {
-  pwd
-  ls -la
-
-  echo "rm tarball"
+get_cache() {
+  echo "clean and pull tarball"
   rm -rf "$PROJECT-SQ-cache-$VERSION.tar.gz"
-
-  echo "try to pull"
   get_internal_source "$PROJECT/$PROJECT-$VERSION/$PROJECT-SQ-cache-$VERSION.tar.gz"
 }
 
-# workspace scope
-set_cache () {
+set_cache() {
   put_internal_source "$PROJECT" "$PROJECT-SQ-cache-$VERSION" "$PROJECT-SQ-cache-$VERSION.tar.gz"
 }
 
-get_internal_source () {
-  echo ' #wget "http://srvi-repo.int.centreon.com/sources/internal/$1" '
+get_internal_source() {
+  URL="http://srvi-repo.int.centreon.com/sources/internal/$1"
+  if validate_url $URL; then
+    wget -q "$URL"
+  else
+    echo "ERROR: File not found. Skipping it"
+  fi
 }
 
-put_internal_source () {
+put_internal_source() {
   DIR="/srv/sources/internal/$1"
   NEWDIR="$2"
   ssh "$REPO_CREDS" mkdir -p "$DIR/$NEWDIR"
   shift
   shift
   scp -r "$@" "$REPO_CREDS:$DIR/$NEWDIR"
+}
+
+validate_file_exists() {
+  wget --spider $1
+  return $?
 }
 
 if [[ -n $1 ]]; then
