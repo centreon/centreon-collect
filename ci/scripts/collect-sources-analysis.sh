@@ -28,7 +28,7 @@ PROCNBR=$( nproc )
 # Run SQ with or without reference branch
 if [[ "PR" == "$1" ]] ; then
   echo "Getting SQ cache"
-  get_cache
+  deploy_cache
   echo "Running SQ in PR mode"
   /src/tmp/sonar-scanner/bin/sonar-scanner -X -Dsonar.scm.provider=git -Dsonar.scm.forceReloadAll=true -Dsonar.cfamily.threads="$PROCNBR" -Dsonar.scm.provider=git -Dsonar.login="$2" -Dsonar.host.url="$3" -Dsonar.projectVersion="$4" -Dsonar.pullrequest.branch="$5" -Dsonar.pullrequest.base="$6" -Dsonar.pullrequest.key="$7"
 else
@@ -37,5 +37,5 @@ else
   echo "Running SQ in branch mode"
   /src/tmp/sonar-scanner/bin/sonar-scanner -X -Dsonar.scm.provider=git -Dsonar.scm.forceReloadAll=true -Dsonar.cfamily.threads="$PROCNBR" -Dsonar.scm.provider=git -Dsonar.login="$2" -Dsonar.host.url="$3" -Dsonar.projectVersion="$4" -Dsonar.branch.name="$5"
   echo "Saving new cache"
-  set_cache
+  save_cache
 fi
