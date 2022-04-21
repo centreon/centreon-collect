@@ -19,23 +19,38 @@ else
 fi
 cd ..
 
-# Import script
-. `dirname $0`/collect-sonar-scanner-common.sh
-
 # Get thread number
 PROCNBR=$( nproc )
+PROJECT="centreon-collect"
 
 # Run SQ with or without reference branch
 if [[ "PR" == "$1" ]] ; then
   echo "Getting SQ cache"
-  deploy_cache
+  if [[ -f "/src/build/$PROJECT-SQ-cache-$VERSION.tar.gz" ]]; then
+    cd /src/build
+    tar xzf "$PROJECT-SQ-cache-$VERSION.tar.gz"
+    mv /src/build/cache /root/.sonar
+    cd ..
+  else
+    echo "WARNING: Cache's tarball not found. The cache will be recomputed..."
+  fi
+
   echo "Running SQ in PR mode"
   /src/tmp/sonar-scanner/bin/sonar-scanner -X -Dsonar.scm.provider=git -Dsonar.scm.forceReloadAll=true -Dsonar.cfamily.threads="$PROCNBR" -Dsonar.scm.provider=git -Dsonar.login="$2" -Dsonar.host.url="$3" -Dsonar.projectVersion="$4" -Dsonar.pullrequest.branch="$5" -Dsonar.pullrequest.base="$6" -Dsonar.pullrequest.key="$7"
 else
   echo "Cleaning previous cache"
-  clean_previous_cache
+  if [[ -d "/src/build/cache" ]]; then
+    rm -rf /src/build/cache
+  fi
+  if [[ -d "/root/.sonar/cache" ]]; then
+    rm -rf /root/.sonar/cache
+  fi
+
   echo "Running SQ in branch mode"
   /src/tmp/sonar-scanner/bin/sonar-scanner -X -Dsonar.scm.provider=git -Dsonar.scm.forceReloadAll=true -Dsonar.cfamily.threads="$PROCNBR" -Dsonar.scm.provider=git -Dsonar.login="$2" -Dsonar.host.url="$3" -Dsonar.projectVersion="$4" -Dsonar.branch.name="$5"
+
   echo "Saving new cache"
-  save_cache
+  mv /root/.sonar/cache /src/build
+  cd /src/build
+  tar czf "$PROJECT-$VERSION-SQ-source.tar.gz" cache
 fi
