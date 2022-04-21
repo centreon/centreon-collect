@@ -146,7 +146,6 @@ std::vector<directory_event> directory_watcher::get_events() {
   int len = ::read(_inotify_instance_id, buf, buf_size);
   if (len == -1) {
     int err = errno;
-    // delete[] buf;
     throw msg_fmt("directory_watcher: couldn't read events: '{}'",
                   ::strerror(err));
   }
