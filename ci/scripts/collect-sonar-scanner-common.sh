@@ -1,6 +1,12 @@
 #!/bin/bash
 set -e
 
+# Machine credentials.
+REGISTRY="registry.centreon.com"
+REPO_CREDS="ubuntu@srvi-repo.int.centreon.com"
+DLDEV_URL='http://download-dev.int.centreon.com'
+DL_URL='https://download.centreon.com'
+
 # Check arguments.
 if [[ -z "$VERSION" ]] ; then
   echo "ERROR: You need to specify VERSION environment variable."
@@ -65,7 +71,6 @@ save_cache () {
 }
 
 get_internal_source () {
-  rm -f `basename $1`
   wget -q "http://srvi-repo.int.centreon.com/sources/internal/$1"
 }
 
@@ -76,7 +81,6 @@ put_internal_source () {
   shift
   shift
   scp -r "$@" "$REPO_CREDS:$DIR/$NEWDIR"
-  clean_directory "$DIR"
 }
 
 if [[ -n $1 ]]; then
