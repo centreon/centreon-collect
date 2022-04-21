@@ -18,6 +18,7 @@ yum install "Development Tools" python3-devel -y
 pip3 install grpcio==1.33.2 grpcio_tools==1.33.2
 
 ./init-proto.sh
+./init-bam.sh
 ```
 
 Then to run tests, you can use the following commands
