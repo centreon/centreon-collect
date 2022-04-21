@@ -53,4 +53,4 @@ PROJECT="centreon-collect"
   mv /root/.sonar/cache /src/build
   cd /src/build
   tar czf "$PROJECT-$VERSION-SQ-source.tar.gz" cache
-fi
+#fi
