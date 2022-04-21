@@ -46,10 +46,10 @@ set_cache() {
 
 get_internal_source() {
   URL="http://srvi-repo.int.centreon.com/sources/internal/$1"
-  if validate_url $URL; then
+  if validate_file_exists "$URL"; then
     wget -q "$URL"
   else
-    echo "ERROR: File not found. Skipping it"
+    echo "WARNING: File not found. Skipping it"
   fi
 }
 
@@ -63,10 +63,11 @@ put_internal_source() {
 }
 
 validate_file_exists() {
-  wget --spider $1
+  wget --spider "$1"
   return $?
 }
 
+# case load
 if [[ -n $1 ]]; then
   if [[ "get" == "$1" ]]; then
     get_cache
