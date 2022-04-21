@@ -59,7 +59,9 @@ void config::applier::init(size_t n_thread, const std::string& name) {
 void config::applier::deinit() {
   mode = finished;
   config::applier::endpoint::unload();
-  multiplexing::engine::instance().clear();
+  if (multiplexing::engine::instance_ptr()) {
+    multiplexing::engine::instance().clear();
+  }
   multiplexing::engine::unload();
   config::applier::state::unload();
   io::events::unload();

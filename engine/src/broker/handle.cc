@@ -213,8 +213,7 @@ void handle::open() {
                               "returned an error");
 
     broker::compatibility::instance().loaded_module(this);
-  } catch (std::exception const& e) {
-    (void)e;
+  } catch (std::exception const&) {
     close();
     throw;
   }
