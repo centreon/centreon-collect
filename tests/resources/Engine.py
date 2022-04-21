@@ -745,7 +745,8 @@ def remove_tags_from_services(poller:int, type:str):
     ff.close()
     r = re.compile("r\"^\s*{}\s*\d+$\"".format(type))
     lines = [l for l in lines if r.match(l)]
-    ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
+    ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "w")
+    ff.writelines(lines)
     ff.close()
 
 def remove_tags_from_hosts(poller:int, type:str):
@@ -754,7 +755,7 @@ def remove_tags_from_hosts(poller:int, type:str):
     ff.close()
     r = re.compile("r\"^\s*{}\s*\d+$\"".format(type))
     lines = [l for l in lines if r.match(l)]
-    ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r")
+    ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "w")
     ff.writelines(lines)
     ff.close()
 
