@@ -2,10 +2,7 @@
 set -e
 
 # Machine credentials.
-REGISTRY="registry.centreon.com"
 REPO_CREDS="ubuntu@srvi-repo.int.centreon.com"
-DLDEV_URL='http://download-dev.int.centreon.com'
-DL_URL='https://download.centreon.com'
 
 # Check arguments.
 if [[ -z "$VERSION" ]] ; then
@@ -14,7 +11,7 @@ if [[ -z "$VERSION" ]] ; then
 fi
 
 if [[ -z "$PROJECT" ]] ; then
-  echo "WARNING: PORJECT was not set as environment variable."
+  echo "WARNING: PROJECT was not set as environment variable."
   PROJECT="centreon-collect"
 fi
 
@@ -34,40 +31,21 @@ install_scanner () {
   sudo mv sonar-scanner-4.7.0.2747-linux sonar-scanner
 }
 
-clean_previous_cache () {
-  if [[ -d "/src/build/cache" ]]; then
-    rm -rf /src/build/cache
-  fi
-  if [[ -d "/root/.sonar/cache" ]]; then
-    rm -rf /root/.sonar/cache
-  fi
-}
-
 # workspace scope
 get_cache () {
   pwd
   ls -la
-  
-  rm -rf "$PROJECT-SQ-cache-$VERSION.tar.gz"
-  get_internal_source "$PROJECT/$PROJECT-$VERSION/$PROJECT-SQ-cache-$VERSION.tar.gz"
-}
 
-#container scope
-deploy_cache () {
-  tar xzf "$PROJECT-SQ-cache-$VERSION.tar.gz"
-  mv /src/build/cache /root/.sonar
+  echo "rm tarball"
+  rm -rf "$PROJECT-SQ-cache-$VERSION.tar.gz"
+
+  echo "try to pull"
+  get_internal_source "$PROJECT/$PROJECT-$VERSION/$PROJECT-SQ-cache-$VERSION.tar.gz"
 }
 
 # workspace scope
 set_cache () {
   put_internal_source "$PROJECT" "$PROJECT-SQ-cache-$VERSION" "$PROJECT-SQ-cache-$VERSION.tar.gz"
-}
-
-# container scope
-save_cache () {
-  mv /root/.sonar/cache /src/build
-  cd /src/build
-  tar czf "$PROJECT-$VERSION-SQ-source.tar.gz" cache
 }
 
 get_internal_source () {
