@@ -49,8 +49,6 @@ PROJECT="centreon-collect"
 #  echo "Running SQ in branch mode"
 #  /src/tmp/sonar-scanner/bin/sonar-scanner -X -Dsonar.scm.forceReloadAll=true -Dsonar.cfamily.threads="$PROCNBR" -Dsonar.scm.provider=git -Dsonar.login="$2" -Dsonar.host.url="$3" -Dsonar.projectVersion="$4" -Dsonar.branch.name="$5"
 
-  echo "Saving new cache"
+  echo "Moving cache"
   mv /root/.sonar/cache /src/build
-  cd /src/build
-  tar czf "$PROJECT-SQ-cache-$VERSION.tar.gz" cache
 #fi
