@@ -75,6 +75,9 @@ stage('Build / Unit tests // Packaging / Signing') {
             if (env.CHANGE_ID) {
               sh 'ci/scripts/collect-sonar-scanner-common.sh "get"'
               sh 'docker run -i --entrypoint /src/ci/scripts/collect-sources-analysis.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:22.04-2 "PR" "$SONAR_AUTH_TOKEN" "$SONAR_HOST_URL" "$VERSION" "$CHANGE_BRANCH" "$CHANGE_TARGET" "$CHANGE_ID"'
+
+
+              sh 'ci/scripts/collect-sonar-scanner-common.sh "set"'
             } else {
               sh 'docker run -i --entrypoint /src/ci/scripts/collect-sources-analysis.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:22.04-2 "NotPR" "$SONAR_AUTH_TOKEN" "$SONAR_HOST_URL" "$VERSION" "$BRANCH_NAME"'
               sh 'ci/scripts/collect-sonar-scanner-common.sh "set"'
