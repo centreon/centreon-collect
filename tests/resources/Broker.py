@@ -1,5 +1,6 @@
 import pymysql.cursors
 import time
+import shutil
 import socket, sys, time
 from datetime import datetime
 from subprocess import getoutput
@@ -893,9 +894,7 @@ def create_metrics(count:int):
                     cursor.execute(sql)
                     ids_metric = cursor.lastrowid
                     connection.commit()
-                    f = open("/var/lib/centreon/metrics/{}.rrd".format(ids_metric), "w")
-                    f.write("")
-                    f.close()
+                    shutil.copy("/var/lib/centreon/metrics/tmpl_15552000_300_0.rrd", "/var/lib/centreon/metrics/{}.rrd".format(ids_metric))
                     logger.console("create metric file {}".format(ids_metric))
 
 
