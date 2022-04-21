@@ -24,7 +24,7 @@ PROCNBR=$( nproc )
 PROJECT="centreon-collect"
 
 # Run SQ with or without reference branch
-if [[ "PR" == "$1" ]] ; then
+#if [[ "PR" == "$1" ]] ; then
   echo "Getting SQ cache"
   if [[ -f "/src/build/$PROJECT-SQ-cache-$VERSION.tar.gz" ]]; then
     cd /src/build
@@ -37,17 +37,17 @@ if [[ "PR" == "$1" ]] ; then
 
   echo "Running SQ in PR mode"
   /src/tmp/sonar-scanner/bin/sonar-scanner -X -Dsonar.scm.provider=git -Dsonar.scm.forceReloadAll=true -Dsonar.cfamily.threads="$PROCNBR" -Dsonar.scm.provider=git -Dsonar.login="$2" -Dsonar.host.url="$3" -Dsonar.projectVersion="$4" -Dsonar.pullrequest.branch="$5" -Dsonar.pullrequest.base="$6" -Dsonar.pullrequest.key="$7"
-else
-  echo "Cleaning previous cache"
-  if [[ -d "/src/build/cache" ]]; then
-    rm -rf /src/build/cache
-  fi
-  if [[ -d "/root/.sonar/cache" ]]; then
-    rm -rf /root/.sonar/cache
-  fi
+#else
+#  echo "Cleaning previous cache"
+#  if [[ -d "/src/build/cache" ]]; then
+#    rm -rf /src/build/cache
+#  fi
+#  if [[ -d "/root/.sonar/cache" ]]; then
+#    rm -rf /root/.sonar/cache
+#  fi
 
-  echo "Running SQ in branch mode"
-  /src/tmp/sonar-scanner/bin/sonar-scanner -X -Dsonar.scm.provider=git -Dsonar.scm.forceReloadAll=true -Dsonar.cfamily.threads="$PROCNBR" -Dsonar.scm.provider=git -Dsonar.login="$2" -Dsonar.host.url="$3" -Dsonar.projectVersion="$4" -Dsonar.branch.name="$5"
+#  echo "Running SQ in branch mode"
+#  /src/tmp/sonar-scanner/bin/sonar-scanner -X -Dsonar.scm.provider=git -Dsonar.scm.forceReloadAll=true -Dsonar.cfamily.threads="$PROCNBR" -Dsonar.scm.provider=git -Dsonar.login="$2" -Dsonar.host.url="$3" -Dsonar.projectVersion="$4" -Dsonar.branch.name="$5"
 
   echo "Saving new cache"
   mv /root/.sonar/cache /src/build
