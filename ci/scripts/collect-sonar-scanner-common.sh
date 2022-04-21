@@ -49,7 +49,7 @@ set_cache () {
 }
 
 get_internal_source () {
-  wget -q "http://srvi-repo.int.centreon.com/sources/internal/$1"
+  wget "http://srvi-repo.int.centreon.com/sources/internal/$1"
 }
 
 put_internal_source () {
