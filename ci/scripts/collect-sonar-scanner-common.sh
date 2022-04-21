@@ -39,6 +39,7 @@ get_cache() {
 }
 
 set_cache() {
+  echo "common VERSION = $VERSION"
   cd build
   pwd
   ls -la
