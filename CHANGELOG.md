@@ -1,5 +1,19 @@
 # Changelog
 
+## 21.10.2
+
+### centreon-broker
+
+#### Fixes
+
+*core*
+
+Unknown filters applied in the configuration file do not hang broker anymore.
+
+*log*
+
+If a logger was at the 'off'/'disabled' state, then broker did not start.
+
 ## 21.10.1
 
 ### centreon-broker
