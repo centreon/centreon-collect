@@ -290,6 +290,8 @@ std::shared_ptr<neb::pb_service> applier::ba::_ba_pb_service(
   o.set_host_id(host_id);
   o.set_service_id(service_id);
   o.set_service_description(fmt::format("ba_{}", ba_id));
+  o.set_type(BA);
+  o.set_internal_id(ba_id);
   o.set_display_name(o.service_description());
   o.set_last_update(time(nullptr));
   o.set_downtime_depth(in_downtime ? 1 : 0);

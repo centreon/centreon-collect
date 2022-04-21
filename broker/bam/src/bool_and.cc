@@ -20,13 +20,15 @@
 
 using namespace com::centreon::broker::bam;
 
+constexpr double eps = 0.000001;
+
 /**
  *  Get the hard value.
  *
  *  @return Evaluation of the expression with hard values.
  */
 double bool_and::value_hard() {
-  return _left_hard && _right_hard;
+  return abs(_left_hard) > eps && abs(_right_hard) > eps;
 }
 
 /**
@@ -35,5 +37,5 @@ double bool_and::value_hard() {
  *  @return Evaluation of the expression with soft values.
  */
 double bool_and::value_soft() {
-  return _left_soft && _right_soft;
+  return abs(_left_soft) > eps && abs(_right_soft) > eps;
 }

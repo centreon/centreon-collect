@@ -337,12 +337,12 @@ void line_protocol_query::_compile_scheme(
       if (_type == metric)
         _append_compiled_getter(
             &line_protocol_query::_get_member<timestamp, storage::metric,
-                                              &storage::metric::ctime>,
+                                              &storage::metric::time>,
             escaper);
       else if (_type == status)
         _append_compiled_getter(
             &line_protocol_query::_get_member<timestamp, storage::status,
-                                              &storage::status::ctime>,
+                                              &storage::status::time>,
             escaper);
     } else
       log_v2::influxdb()->info("influxdb: unknown macro '{}': ignoring it",

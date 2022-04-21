@@ -24,6 +24,7 @@
 #include <list>
 #include <memory>
 
+#include "bbdo/storage/status.hh"
 #include "com/centreon/broker/bbdo/stream.hh"
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/io/events.hh"
@@ -36,7 +37,6 @@
 #include "com/centreon/broker/modules/handle.hh"
 #include "com/centreon/broker/neb/instance.hh"
 #include "com/centreon/broker/unified_sql/factory.hh"
-#include "bbdo/storage/status.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::misc;
@@ -100,8 +100,7 @@ TEST_F(UnifiedSqlEntryTest, WriteStatus) {
 
   // Register event status.
   e.register_event(make_type(io::storage, storage::de_status), "status",
-                   &storage::status::operations,
-                   storage::status::entries);
+                   &storage::status::operations, storage::status::entries);
 
   // Register unified_sql layer.
   io::protocols::instance().reg("unified_sql",
@@ -122,7 +121,7 @@ TEST_F(UnifiedSqlEntryTest, WriteStatus) {
   stm.read(ev, time(nullptr) + 1000);
   std::shared_ptr<storage::status> new_st =
       std::static_pointer_cast<storage::status>(ev);
-  ASSERT_EQ(st->ctime, new_st->ctime);
+  ASSERT_EQ(st->time, new_st->time);
   ASSERT_EQ(st->index_id, new_st->index_id);
   ASSERT_EQ(st->state, new_st->state);
 

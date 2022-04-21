@@ -22,6 +22,17 @@ import "tag.proto";
 
 package com.centreon.broker;
 
+/**
+ * @brief There is no 1, I know. ServiceType becomes ResourceType in the
+ * database. And a resource is represented also by a host. 1 is reserved for
+ * hosts.
+ */
+enum ServiceType {
+  SERVICE = 0;
+  METASERVICE = 2;
+  BA = 3;
+}
+
 message Service {
   uint64 host_id = 1;
   uint64 service_id = 2;
@@ -132,6 +143,13 @@ message Service {
   bool retain_status_information = 82;
   uint64 severity_id = 83;
   repeated TagInfo tags = 84;
+
+  ServiceType type = 85;
+
+  /* In case of metaservice and ba, they also have an internal id. We keep it
+   * here. */
+  uint64 internal_id = 86;
+  uint64 icon_id = 87;
 }
 
 
@@ -195,6 +213,12 @@ message ServiceStatus {
   }
   AckType acknowledgement_type = 29;
   int32 downtime_depth = 30;
+
+  ServiceType type = 31;
+
+  /* In case of metaservice and ba, they also have an internal id. We keep it
+   * here. */
+  uint64 internal_id = 32;
 }
 
 /**

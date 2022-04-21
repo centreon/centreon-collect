@@ -41,7 +41,7 @@ def main():
 
     if len(sys.argv) != 2:
         print("Error: this script needs a json configuration file.")
-        exit(1)
+        sys.exit(1)
 
     json_file = open(sys.argv[1])
     conf = json.load(json_file)

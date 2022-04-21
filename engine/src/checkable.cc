@@ -45,7 +45,8 @@ checkable::checkable(const std::string& display_name,
                      bool check_freshness,
                      int freshness_threshold,
                      bool obsess_over,
-                     const std::string& timezone)
+                     const std::string& timezone,
+                     uint64_t icon_id)
     : check_period_ptr{nullptr},
       _display_name{display_name},
       _check_command{check_command},
@@ -86,7 +87,8 @@ checkable::checkable(const std::string& display_name,
       _percent_state_change{0.0},
       _event_handler_ptr{nullptr},
       _check_command_ptr{nullptr},
-      _is_executing{false} {
+      _is_executing{false},
+      _icon_id{icon_id} {
   if (max_attempts <= 0 || retry_interval <= 0 || freshness_threshold < 0) {
     std::ostringstream oss;
     bool empty{true};
@@ -481,12 +483,39 @@ void checkable::set_severity(std::shared_ptr<severity> severity) {
 }
 
 /**
+ * @brief Set the icon_id.
+ *
+ * @param icon_id An unsigned long long integer.
+ */
+void checkable::set_icon_id(uint64_t icon_id) {
+  _icon_id = icon_id;
+}
+
+/**
+ * @brief Accessor to the icon_id.
+ *
+ * @return resource icon_id
+ */
+uint64_t checkable::get_icon_id() const {
+  return _icon_id;
+}
+
+/**
  * @brief Accessor to the severity of the resource.
  *
  * @param severity The severity or nullptr if none.
  */
 const std::shared_ptr<severity>& checkable::get_severity() const {
   return _severity;
+}
+
+/**
+ * @brief Accessor to the icon_id of the resource.
+ *
+ * @return The resource icon_id.
+ */
+uint64_t checkable::icon_id() const {
+  return _icon_id;
 }
 
 std::forward_list<std::shared_ptr<tag>>& checkable::mut_tags() {

@@ -41,7 +41,7 @@ using namespace com::centreon::broker::unified_sql;
 const std::array<std::string, 5> stream::metric_type_name{
     "GAUGE", "COUNTER", "DERIVE", "ABSOLUTE", "AUTOMATIC"};
 
-const std::array<int, 4> stream::hst_ordered_status{0, 4, 2, 1};
+const std::array<int, 5> stream::hst_ordered_status{0, 4, 2, 0, 1};
 const std::array<int, 5> stream::svc_ordered_status{0, 3, 4, 2, 1};
 
 void (stream::*const stream::_neb_processing_table[])(
@@ -167,14 +167,23 @@ void stream::_load_caches() {
   /* get deleted cache of instance ids => _cache_deleted_instance_id */
   _load_deleted_instances();
 
+  std::promise<mysql_result> promise_resource_id;
   std::promise<mysql_result> promise_instance_id;
   std::promise<database::mysql_result> promise_index_data;
   std::promise<mysql_result> promise_hi;
   std::promise<mysql_result> promise_hg;
   std::promise<mysql_result> promise_sg;
   std::promise<mysql_result> promise_metrics;
+  std::promise<mysql_result> promise_resource;
   std::promise<mysql_result> promise_severity;
   std::promise<mysql_result> promise_tags;
+
+  /* get the current resource_id autoincrement */
+  _mysql.run_query_and_get_result(
+      fmt::format("SELECT `AUTO_INCREMENT` FROM INFORMATION_SCHEMA.TABLES "
+                  "WHERE TABLE_SCHEMA='{}' AND TABLE_NAME='resources'",
+                  _mysql.get_config().get_name()),
+      &promise_resource_id);
 
   /* get all outdated instances from the database => _stored_timestamps */
   _mysql.run_query_and_get_result(
@@ -209,6 +218,10 @@ void stream::_load_caches() {
       "current_value,data_source_type FROM metrics",
       &promise_metrics);
 
+  /* resources => _resources_cache */
+  _mysql.run_query_and_get_result(
+      "SELECT resource_id, id, parent_id FROM resources", &promise_resource);
+
   /* severities => _severity_cache */
   _mysql.run_query_and_get_result(
       "SELECT severity_id, id, type FROM severities", &promise_severity);
@@ -219,6 +232,20 @@ void stream::_load_caches() {
 
   /* Since queries are executed asynchronously, firstly we execute all of them
    * and then we get their results. */
+
+  /* get the current resource_id autoincrement */
+  try {
+    mysql_result res(promise_resource_id.get_future().get());
+    if (_mysql.fetch_row(res))
+      _current_resource_id = res.value_as_u64(0);
+    else
+      _current_resource_id = 1;
+  } catch (std::exception const& e) {
+    throw msg_fmt(
+        "unified sql: could not get the current resource id auto increment "
+        "value: {}",
+        e.what());
+  }
 
   /* get all outdated instances from the database => _stored_timestamps */
   try {
@@ -336,6 +363,17 @@ void stream::_load_caches() {
       }
     } catch (std::exception const& e) {
       throw msg_fmt("unified sql: could not get the list of metrics: {}",
+                    e.what());
+    }
+
+    try {
+      mysql_result res{promise_resource.get_future().get()};
+      while (_mysql.fetch_row(res)) {
+        _resource_cache[{res.value_as_u64(1), res.value_as_u64(2)}] =
+            res.value_as_u64(0);
+      }
+    } catch (const std::exception& e) {
+      throw msg_fmt("unified sql: could not get the list of resources: {}",
                     e.what());
     }
 

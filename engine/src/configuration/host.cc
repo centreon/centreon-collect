@@ -104,7 +104,9 @@ std::unordered_map<std::string, host::setter_func> const host::_setters{
     {"severity", SETTER(uint64_t, _set_severity_id)},
     {"severity_id", SETTER(uint64_t, _set_severity_id)},
     {"category_tags", SETTER(std::string const&, _set_category_tags)},
-    {"group_tags", SETTER(std::string const&, _set_group_tags)}};
+    {"group_tags", SETTER(std::string const&, _set_group_tags)},
+    {"icon_id", SETTER(uint64_t, _set_icon_id)},
+};
 
 // Default values.
 static bool const default_checks_active(true);
@@ -171,7 +173,7 @@ host::host(host::key_type const& key)
       _recovery_notification_delay(0),
       _stalking_options(default_stalking_options),
       _severity_id{0u},
-      _tags{} {}
+      _icon_id{0u} {}
 
 /**
  *  Copy constructor.
@@ -241,6 +243,7 @@ host& host::operator=(host const& other) {
     _timezone = other._timezone;
     _vrml_image = other._vrml_image;
     _severity_id = other._severity_id;
+    _icon_id = other._icon_id;
     _tags = other._tags;
   }
   return *this;
@@ -296,7 +299,8 @@ bool host::operator==(host const& other) const noexcept {
          _stalking_options == other._stalking_options &&
          _statusmap_image == other._statusmap_image &&
          _timezone == other._timezone && _vrml_image == other._vrml_image &&
-         _severity_id == other._severity_id && _tags == other._tags;
+         _severity_id == other._severity_id && _icon_id == other._icon_id &&
+         _tags == other._tags;
 }
 
 /**
@@ -419,6 +423,8 @@ bool host::operator<(host const& other) const noexcept {
     return _vrml_image < other._vrml_image;
   else if (_severity_id != other._severity_id)
     return _severity_id < other._severity_id;
+  else if (_icon_id != other._icon_id)
+    return _icon_id < other._icon_id;
   return _tags < other._tags;
 }
 
@@ -518,7 +524,9 @@ void host::merge(object const& obj) {
   MRG_DEFAULT(_statusmap_image);
   MRG_OPTION(_timezone);
   MRG_DEFAULT(_vrml_image);
-  MRG_DEFAULT(_tags);
+  MRG_OPTION(_severity_id);
+  MRG_OPTION(_icon_id);
+  MRG_MAP(_tags);
 }
 
 /**
@@ -1828,4 +1836,25 @@ bool host::_set_severity_id(uint64_t severity_id) {
  */
 uint64_t host::severity_id() const noexcept {
   return _severity_id;
+}
+
+/**
+ * @brief Set the icon_id (or 0 when there is no icon).
+ *
+ * @param icon_id The icon_id or 0.
+ *
+ * @return true on success.
+ */
+bool host::_set_icon_id(uint64_t icon_id) {
+  _icon_id = icon_id;
+  return true;
+}
+
+/**
+ * @brief Accessor to the icon_id.
+ *
+ * @return the icon_id or 0 if none.
+ */
+uint64_t host::icon_id() const noexcept {
+  return _icon_id;
 }

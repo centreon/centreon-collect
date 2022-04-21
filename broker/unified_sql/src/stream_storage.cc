@@ -286,8 +286,8 @@ void stream::_unified_sql_process_pb_service_status(
               static_cast<misc::perfdata::data_type>(pd.value_type()))};
           log_v2::perfdata()->debug(
               "unified sql: generating perfdata event for metric {} "
-              "(name '{}', ctime {}, value {}, rrd_len {}, data_type {})",
-              perf->metric_id, perf->name, perf->ctime, perf->value, rrd_len,
+              "(name '{}', time {}, value {}, rrd_len {}, data_type {})",
+              perf->metric_id, perf->name, perf->time, perf->value, rrd_len,
               perf->value_type);
           multiplexing::publisher().write(perf);
         }
@@ -657,8 +657,8 @@ void stream::_unified_sql_process_service_status(
               static_cast<misc::perfdata::data_type>(pd.value_type()))};
           log_v2::perfdata()->debug(
               "unified sql: generating perfdata event for metric {} "
-              "(name '{}', ctime {}, value {}, rrd_len {}, data_type {})",
-              perf->metric_id, perf->name, perf->ctime, perf->value, rrd_len,
+              "(name '{}', time {}, value {}, rrd_len {}, data_type {})",
+              perf->metric_id, perf->name, perf->time, perf->value, rrd_len,
               perf->value_type);
           multiplexing::publisher().write(perf);
         }
