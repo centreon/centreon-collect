@@ -6,7 +6,6 @@ rm -rf /src/build
 mkdir /src/build
 cd /src/build/
 
-
 DISTRIB=$( lsb_release -rs | cut -f1 -d. )
 if [[ "$DISTRIB" = "7" ]] ; then
     source /opt/rh/devtoolset-9/enable
@@ -21,6 +20,7 @@ cd ..
 
 # Get thread number
 PROCNBR=$( nproc )
+VERSION="$4"
 PROJECT="centreon-collect"
 
 # Run SQ with or without reference branch
@@ -36,7 +36,7 @@ PROJECT="centreon-collect"
   fi
 
   echo "Running SQ in PR mode"
-  /src/tmp/sonar-scanner/bin/sonar-scanner -X -Dsonar.scm.forceReloadAll=true -Dsonar.cfamily.threads="$PROCNBR" -Dsonar.scm.provider=git -Dsonar.login="$2" -Dsonar.host.url="$3" -Dsonar.projectVersion="$4" -Dsonar.pullrequest.branch="$5" -Dsonar.pullrequest.base="$6" -Dsonar.pullrequest.key="$7"
+  /src/tmp/sonar-scanner/bin/sonar-scanner -X -Dsonar.scm.forceReloadAll=true -Dsonar.cfamily.threads="$PROCNBR" -Dsonar.scm.provider=git -Dsonar.login="$2" -Dsonar.host.url="$3" -Dsonar.projectVersion="$VERSION" -Dsonar.pullrequest.branch="$5" -Dsonar.pullrequest.base="$6" -Dsonar.pullrequest.key="$7"
 #else
 #  echo "Cleaning previous cache"
 #  if [[ -d "/src/build/cache" ]]; then
@@ -47,10 +47,11 @@ PROJECT="centreon-collect"
 #  fi
 
 #  echo "Running SQ in branch mode"
-#  /src/tmp/sonar-scanner/bin/sonar-scanner -X -Dsonar.scm.forceReloadAll=true -Dsonar.cfamily.threads="$PROCNBR" -Dsonar.scm.provider=git -Dsonar.login="$2" -Dsonar.host.url="$3" -Dsonar.projectVersion="$4" -Dsonar.branch.name="$5"
+#  /src/tmp/sonar-scanner/bin/sonar-scanner -X -Dsonar.scm.forceReloadAll=true -Dsonar.cfamily.threads="$PROCNBR" -Dsonar.scm.provider=git -Dsonar.login="$2" -Dsonar.host.url="$3" -Dsonar.projectVersion="$VERSION" -Dsonar.branch.name="$5"
 
-echo "analysis VERSION = $VERSION"
+  echo "analysis VERSION = $VERSION"
 
-  echo "Moving cache"
+  echo "Moving cache as tarball"
   mv /root/.sonar/cache /src/build
+  tar czf "$PROJECT-SQ-cache-$VERSION.tar.gz" cache
 #fi

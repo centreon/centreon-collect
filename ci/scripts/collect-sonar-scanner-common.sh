@@ -39,12 +39,10 @@ get_cache() {
 }
 
 set_cache() {
-  echo "common VERSION = $VERSION"
   cd build
   pwd
   ls -la
   echo "Saving cache"
-  tar czf "$PROJECT-SQ-cache-$VERSION.tar.gz" cache
   put_internal_source "$PROJECT" "$PROJECT-SQ-cache-$VERSION" "$PROJECT-SQ-cache-$VERSION.tar.gz"
 }
 
