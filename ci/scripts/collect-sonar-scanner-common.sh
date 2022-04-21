@@ -39,7 +39,6 @@ clean_previous_cache() {
 
 # workspace scope
 get_cache() {
-  cd build
   rm -rf "$PROJECT-SQ-cache-$VERSION.tar.gz"
   get_internal_source "$PROJECT/$PROJECT-$VERSION/$PROJECT-SQ-cache-$VERSION.tar.gz"
 }
@@ -52,7 +51,6 @@ deploy_cache() {
 
 # workspace scope
 set_cache() {
-  cd build
   put_internal_source "$PROJECT" "$PROJECT-SQ-cache-$VERSION" "$PROJECT-SQ-cache-$VERSION.tar.gz"
 }
 
