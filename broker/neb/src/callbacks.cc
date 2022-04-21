@@ -1289,7 +1289,8 @@ int neb::callback_pb_host(int callback_type, void* data) {
       static_cast<nebstruct_adaptive_host_data*>(data);
   const engine::host* eh{static_cast<engine::host*>(dh->object_ptr)};
 
-  if (dh->type == NEBTYPE_ADAPTIVEHOST_UPDATE && dh->attr != MODATTR_ALL) {
+  if (dh->type == NEBTYPE_ADAPTIVEHOST_UPDATE &&
+      dh->modified_attribute != MODATTR_ALL) {
     auto h{std::make_shared<neb::pb_adaptive_host>()};
     AdaptiveHost& hst = h.get()->mut_obj();
     if (dh->attr & MODATTR_NOTIFICATIONS_ENABLED)

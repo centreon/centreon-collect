@@ -1050,7 +1050,7 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
                          actions::host_dependencies | actions::host_parents |
                          actions::custom_variables | actions::downtimes |
                          actions::comments | actions::service_dependencies |
-                         actions::severities);
+                         actions::severities | actions::resources );
   auto s{static_cast<const neb::pb_host*>(d.get())};
   auto& h = s->obj();
 
@@ -1240,9 +1240,9 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
           _resources_host_insert.bind_value_as_u64(
               10, _cache_host_instance[h.host_id()]);
           if (h.severity_id()) {
+            sid = _severity_cache[{h.severity_id(), 1}];
             log_v2::sql()->debug("host {} with severity_id {} => uid = {}",
                                  h.host_id(), h.severity_id(), sid);
-            sid = _severity_cache[{h.severity_id(), 1}];
           } else
             log_v2::sql()->info("no host severity found in cache for host {}",
                                 h.host_id());
@@ -1286,6 +1286,13 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
           _resources_host_update.bind_value_as_u32(7, h.max_check_attempts());
           _resources_host_update.bind_value_as_u64(
               8, _cache_host_instance[h.host_id()]);
+          if (h.severity_id()) {
+            sid = _severity_cache[{h.severity_id(), 1}];
+            log_v2::sql()->debug("host {} with severity_id {} => uid = {}",
+                                 h.host_id(), h.severity_id(), sid);
+          } else
+            log_v2::sql()->info("no host severity found in cache for host {}",
+                                h.host_id());
           if (sid)
             _resources_host_update.bind_value_as_u64(9, sid);
           else
@@ -2339,10 +2346,10 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
           _resources_service_insert.bind_value_as_u64(
               13, _cache_host_instance[ss.host_id()]);
           if (ss.severity_id() > 0) {
+            sid = _severity_cache[{ss.severity_id(), 0}];
             log_v2::sql()->debug(
                 "service ({}, {}) with severity_id {} => uid = {}",
                 ss.host_id(), ss.service_id(), ss.severity_id(), sid);
-            sid = _severity_cache[{ss.severity_id(), 0}];
           }
           if (sid)
             _resources_service_insert.bind_value_as_u64(14, sid);
@@ -2393,6 +2400,12 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
                                                       ss.max_check_attempts());
           _resources_service_update.bind_value_as_u64(
               10, _cache_host_instance[ss.host_id()]);
+          if (ss.severity_id() > 0) {
+            sid = _severity_cache[{ss.severity_id(), 0}];
+            log_v2::sql()->debug(
+                "service ({}, {}) with severity_id {} => uid = {}",
+                ss.host_id(), ss.service_id(), ss.severity_id(), sid);
+          }
           if (sid)
             _resources_service_update.bind_value_as_u64(11, sid);
           else

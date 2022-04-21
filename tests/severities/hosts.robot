@@ -54,7 +54,7 @@ BEUHSEV1
 	Kindly Stop Broker
 
 BEUHSEV2
-	[Documentation]	Seven services are configured with a severity on two pollers. Then we remove severities from the first and second services of the first poller but only the severity from the first service of the second poller. Then only severities no more used should be removed from the database.
+	[Documentation]	Seven hosts are configured with a severity on two pollers. Then we remove severities from the first and second hosts of the first poller but only the severity from the first host of the second poller.
 	[Tags]	Broker	Engine	protobuf	bbdo	severities
 	Config Engine	${2}
 	Create Severities File	${0}	${20}
@@ -63,10 +63,10 @@ BEUHSEV2
 	Config Engine Add Cfg File	${1}	severities.cfg
 	Engine Config Set Value	${0}	log_level_config	debug
 	Engine Config Set Value	${1}	log_level_config	debug
-	Add Severity To Services	0	19	[2, 4]
-	Add Severity To Services	0	17	[3, 5]
-	Add Severity To Services	1	19	[501, 502]
-	Add Severity To Services	1	17	[503]
+	Add Severity To Hosts	0	18	[2, 4]
+	Add Severity To Hosts	0	16	[3, 5]
+	Add Severity To Hosts	1	18	[26, 27]
+	Add Severity To Hosts	1	16	[28]
 	Config Broker	central
 	Config Broker	rrd
 	Config Broker	module
@@ -82,45 +82,45 @@ BEUHSEV2
 	Start Broker
 	Sleep	5s
 	# We need to wait a little before reloading Engine
-	${result}=	check service severity With Timeout	1	2	19	60
-	Should Be True	${result}	msg=First step: Service (1, 2) should have severity_id=19
+	${result}=	check host severity With Timeout	2	18	60
+	Should Be True	${result}	msg=First step: Host 2 should have severity_id=18
 
-	${result}=	check service severity With Timeout	1	4	19	60
-	Should Be True	${result}	msg=First step: Service (1, 4) should have severity_id=19
+	${result}=	check host severity With Timeout	4	18	60
+	Should Be True	${result}	msg=First step: Host 4 should have severity_id=18
 
-	${result}=	check service severity With Timeout	26	501	19	60
-	Should Be True	${result}	msg=First step: Service (26, 501) should have severity_id=19
+	${result}=	check host severity With Timeout	26	18	60
+	Should Be True	${result}	msg=First step: Host 26 should have severity_id=18
 
-	${result}=	check service severity With Timeout	26	502	19	60
-	Should Be True	${result}	msg=First step: Service (26, 502) should have severity_id=19
+	${result}=	check host severity With Timeout	27	18	60
+	Should Be True	${result}	msg=First step: Host 27 should have severity_id=18
 
-	${result}=	check service severity With Timeout	1	3	17	60
-	Should Be True	${result}	msg=First step: Service (1, 3) should have severity_id=17
+	${result}=	check host severity With Timeout	3	16	60
+	Should Be True	${result}	msg=First step: Host 3 should have severity_id=16
 
-	${result}=	check service severity With Timeout	1	5	17	60
-	Should Be True	${result}	msg=First step: Service (1, 5) should have severity_id=17
+	${result}=	check host severity With Timeout	5	16	60
+	Should Be True	${result}	msg=First step: Host 5 should have severity_id=16
 
-	${result}=	check service severity With Timeout	26	503	17	60
-	Should Be True	${result}	msg=First step: Service (26, 503) should have severity_id=17
+	${result}=	check host severity With Timeout	28	16	60
+	Should Be True	${result}	msg=First step: Host 28 should have severity_id=16
 
-	Remove Severities From Services	${0}
+	Remove Severities From Hosts	${0}
 	Create Severities File	${0}	${18}
 	Create Severities File	${1}	${18}
-	Add Severity To Services	1	17	[503]
+	Add Severity To Hosts	1	17	[28]
 	Reload Engine
 	Reload Broker
 	Sleep	3s
-	${result}=	check service severity With Timeout	26	503	17	60
-	Should Be True	${result}	msg=Second step: Service (26, 503) should have severity_id=17
+	${result}=	check host severity With Timeout	28	17	60
+	Should Be True	${result}	msg=Second step: Host 28 should have severity_id=17
 
-	${result}=	check service severity With Timeout	1	4	None	60
-	Should Be True	${result}	msg=Second step: Service (1, 4) should have severity_id=None
+	${result}=	check host severity With Timeout	4	None	60
+	Should Be True	${result}	msg=Second step: Host 4 should have severity_id=None
 
-	${result}=	check service severity With Timeout	1	3	None	60
-	Should Be True	${result}	msg=Second step: Service (1, 3) should have severity_id=17
+	${result}=	check host severity With Timeout	3	None	60
+	Should Be True	${result}	msg=Second step: Host 3 should have severity_id=17
 
-	${result}=	check service severity With Timeout	1	5	None	60
-	Should Be True	${result}	msg=Second step: Service (1, 5) should have severity_id=17
+	${result}=	check host severity With Timeout	5	None	60
+	Should Be True	${result}	msg=Second step: Host 5 should have severity_id=17
 
 	Stop Engine
 	Kindly Stop Broker

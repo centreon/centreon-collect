@@ -531,8 +531,7 @@ def check_host_severity_with_timeout(host_id: int, severity_id, timeout: int):
 
         with connection:
             with connection.cursor() as cursor:
-                cursor.execute("select sv.id from resources r left join severities sv ON r.severity_id=sv.severity_id where r.parent_id = 0 and r.id={}".format(
-                    host_id))
+                cursor.execute("select sv.id from resources r left join severities sv ON r.severity_id=sv.severity_id where r.parent_id = 0 and r.id={}".format(host_id))
                 result = cursor.fetchall()
                 if len(result) > 0:
                     if severity_id == 'None':
