@@ -17,6 +17,7 @@ class EngineInstance:
     def __init__(self, count: int):
         self.last_service_id = 0
         self.hosts = []
+        self.services = []
         self.last_host_id = 0
         self.last_host_group_id = 0
         self.commands_count = 50
@@ -271,17 +272,27 @@ define command {
 """.format(ENGINE_HOME, cmd)
         return retval
 
-    def create_host_group(self, mbs):
-        self.last_host_group_id += 1
-        hid = self.last_host_group_id
-
+    @staticmethod
+    def create_host_group(id, mbs):
         retval = """define hostgroup {{
     hostgroup_id                    {0}
     hostgroup_name                  hostgroup_{0}
     alias                           hostgroup_{0}
     members                         {1}
 }}
-""".format(hid, ",".join(mbs))
+""".format(id, ",".join(mbs))
+        logger.console(retval)
+        return retval
+
+    @staticmethod
+    def create_service_group(id, mbs):
+        retval = """define servicegroup {{
+    servicegroup_id                    {0}
+    servicegroup_name                  servicegroup_{0}
+    alias                           servicegroup_{0}
+    members                         {1}
+}}
+""".format(id, ",".join(mbs))
         logger.console(retval)
         return retval
 
@@ -373,6 +384,7 @@ passive_checks_enabled 1
                 for j in range(1, services_by_host + 1):
                     ff.write(self.create_service(h["hid"],
                                                  (inst * self.commands_count + 1, (inst + 1) * self.commands_count)))
+                    self.services.append("service_{}".format(h["hid"]))
             ff.close()
             f.close()
 
@@ -487,7 +499,7 @@ def engine_config_set_value(idx: int, key: str, value: str, force: bool = False)
     f.close()
 
 
-def add_host_group(index: int, members: list):
+def add_host_group(index: int, id_host_group: int, members: list):
     mbs = []
     for m in members:
         if m in engine.hosts:
@@ -495,7 +507,17 @@ def add_host_group(index: int, members: list):
 
     f = open("/etc/centreon-engine/config{}/hostgroups.cfg".format(index), "a+")
     logger.console(mbs)
-    f.write(engine.create_host_group(mbs))
+    f.write(engine.create_host_group(id_host_group, mbs))
+    f.close()
+
+def add_service_group(index: int, id_service_group: int, members: list):
+    mbs = []
+    for m in members:
+        mbs.append(m)
+
+    f = open("/etc/centreon-engine/config{}/servicegroups.cfg".format(index), "a+")
+    logger.console(mbs)
+    f.write(engine.create_service_group(id_service_group, mbs))
     f.close()
 
 
@@ -724,7 +746,6 @@ def remove_tags_from_services(poller:int, type:str):
     r = re.compile("r\"^\s*{}\s*\d+$\"".format(type))
     lines = [l for l in lines if r.match(l)]
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
-    ff.writelines(lines)
     ff.close()
 
 def remove_tags_from_hosts(poller:int, type:str):
@@ -763,4 +784,16 @@ def add_template_to_hosts(poller:int, tmpl:str, hst_lst):
 
     ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "w")
     ff.writelines(lines)
+    ff.close()
+
+def config_engine_remove_cfg_file(poller:int, fic:str):
+    ff = open("{}/config{}/centengine.cfg".format(CONF_DIR, poller), "r")
+    lines = ff.readlines()
+    ff.close()
+    r = re.compile(r"^\s*cfg_file=/etc/centreon-engine/config{}/{}".format(poller, fic))
+    linesearch = [l for l in lines if r.match(l)]
+    ff = open("{}/config{}/centengine.cfg".format(CONF_DIR, poller), "w")
+    for line in lines:
+        if linesearch[0] != line:
+            ff.writelines(line)
     ff.close()

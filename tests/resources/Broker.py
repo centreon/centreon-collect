@@ -854,6 +854,50 @@ def get_metrics_to_delete(count:int):
     inter = list(set(ids) & set(ids_db))
     return inter[:count]
 
+##
+# @brief creat metrics from available ones.
+#
+# @param count:int The number of metrics to create.
+#
+
+def create_metrics(count:int):
+    files = [os.path.basename(x) for x in glob.glob("/var/lib/centreon/metrics/[0-9]*.rrd")]
+    ids = [int(f.split(".")[0]) for f in files]
+
+    # Connect to the database
+    connection = pymysql.connect(host='localhost',
+                                 user='centreon',
+                                 password='centreon',
+                                 database='centreon_storage',
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+    with connection:
+        with connection.cursor() as cursor:
+            # Read a single record
+            sql = "SELECT `metric_id` FROM `metrics`"
+            cursor.execute(sql)
+            result = cursor.fetchall()
+            ids_db = [r['metric_id'] for r in result]
+            if list(set(ids) & set(ids_db)) == [] :
+                sql = "SELECT `id` FROM `index_data`"
+                cursor.execute(sql)
+                result = cursor.fetchall()
+                ids_index = [r['id'] for r in result]
+                if ids_index == [] :
+                    sql = "INSERT INTO index_data (host_id, service_id) VALUES ('1', '1')`"
+                    cursor.execute(sql)
+                    ids_index = cursor.lastrowid
+                for c in range(count) :
+                    sql = "INSERT INTO metrics (index_id,metric_name,unit_name,warn,warn_low,warn_threshold_mode,crit,crit_low,crit_threshold_mode,min,max,current_value,data_source_type) VALUES ('{}','metric_{}','unit_{}','10','1','0','1','1','0','0','100','25','0')".format(ids_index[0],c,c)
+                    cursor.execute(sql)
+                    ids_metric = cursor.lastrowid
+                    connection.commit()
+                    f = open("/var/lib/centreon/metrics/{}.rrd".format(ids_metric), "w")
+                    f.write("")
+                    f.close()
+                    logger.console("create metric file {}".format(ids_metric))
+
 
 def run_reverse_bam(duration, interval):
     subp.Popen("broker/map_client.py {:f}".format(interval), shell=True, stdout=subp.PIPE, stdin=subp.PIPE)
