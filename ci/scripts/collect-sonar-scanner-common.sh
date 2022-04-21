@@ -37,19 +37,30 @@ clean_previous_cache() {
   fi
 }
 
+# workspace scope
 get_cache() {
-  cd /src/build
+  cd build
   rm -rf "$PROJECT-SQ-cache-$VERSION.tar.gz"
   get_internal_source "$PROJECT/$PROJECT-$VERSION/$PROJECT-SQ-cache-$VERSION.tar.gz"
+}
+
+#container scope
+deploy_cache() {
   tar xzf "$PROJECT-SQ-cache-$VERSION.tar.gz"
   mv /src/build/cache /root/.sonar
 }
 
+# workspace scope
 set_cache() {
+  cd build
+  put_internal_source "$PROJECT" "$PROJECT-SQ-cache-$VERSION" "$PROJECT-SQ-cache-$VERSION.tar.gz"
+}
+
+# container scope
+save_cache() {
   mv /root/.sonar/cache /src/build
   cd /src/build
   tar czf "$PROJECT-$VERSION-SQ-source.tar.gz" cache
-  put_internal_source "$PROJECT" "$PROJECT-SQ-cache-$VERSION" "$PROJECT-SQ-cache-$VERSION.tar.gz"
 }
 
 if [[ -n $1 ]]; then
