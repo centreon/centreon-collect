@@ -39,9 +39,11 @@ get_cache() {
 }
 
 set_cache() {
+  cd build
   pwd
   ls -la
-  cd build
+  echo "Saving cache"
+  tar czf "$PROJECT-SQ-cache-$VERSION.tar.gz" cache
   put_internal_source "$PROJECT" "$PROJECT-SQ-cache-$VERSION" "$PROJECT-SQ-cache-$VERSION.tar.gz"
 }
 
