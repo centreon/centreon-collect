@@ -53,5 +53,6 @@ PROJECT="centreon-collect"
 
   echo "Moving cache as tarball"
   mv /root/.sonar/cache /src/build
+  cd /src/build
   tar czf "$PROJECT-SQ-cache-$VERSION.tar.gz" cache
 #fi
