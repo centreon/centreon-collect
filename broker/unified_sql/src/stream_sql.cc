@@ -58,8 +58,10 @@ void stream::_clean_tables(uint32_t instance_id) {
   }
 
   conn = _mysql.choose_connection_by_instance(instance_id);
-  _mysql.run_query(fmt::format(
-      "UPDATE resources SET enabled=0 WHERE poller_id={}", instance_id), database::mysql_error::clean_resources, false, conn);
+  _mysql.run_query(
+      fmt::format("UPDATE resources SET enabled=0 WHERE poller_id={}",
+                  instance_id),
+      database::mysql_error::clean_resources, false, conn);
   _add_action(conn, actions::resources);
   log_v2::sql()->debug(
       "unified sql: disable hosts and services (instance_id: {})", instance_id);
@@ -2650,7 +2652,7 @@ void stream::_check_and_update_index_cache(const Service& ss) {
     _index_data_insert.bind_value_as_i32(2, ss.service_id());
     _index_data_insert.bind_value_as_str(3, sv);
     _index_data_insert.bind_value_as_str(4, "0");
-    _index_data_insert.bind_value_as_bool(5, special);
+    _index_data_insert.bind_value_as_str(5, special ? "1" : "0");
 
     std::promise<uint64_t> p;
     _mysql.run_statement_and_get_int<uint64_t>(

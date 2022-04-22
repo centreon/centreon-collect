@@ -88,7 +88,14 @@ Here is the list of the currently implemented tests:
 - [x] BECC1: Broker/Engine communication with compression between central and poller
 - [x] New host group
 - [x] New host group
-
+- [x] BETUSEV2 Seven services are configured with a severity on two pollers. Then only severities no more used should be removed from the database.
+- [x] BETUSEV1 Services have severities provided by templates.
+- [x] BEUSEV4	Seven services are configured with a severity on two pollers. Then only severities no more used should be removed from the database.
+- [x] BEUSEV3	Four services have a severity added. Then we remove the severity from service 1. Then we change severity 11 to severity7 for service 3.
+- [x] BEUSEV2	Engine is configured with some severities.
+- [x] BEUSEV1	Engine is configured with some severities.
+- [x] BESEV2	Engine is configured with some severities.
+- [x] BESEV1	Engine is configured with some severities.
 ### engine
 
 - [x] ESS1: Start-Stop one instance of engine and no coredump
