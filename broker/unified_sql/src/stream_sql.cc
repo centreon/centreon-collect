@@ -45,6 +45,7 @@ void stream::_clean_tables(uint32_t instance_id) {
 
   int32_t conn;
 
+  _finish_action(-1, -1);
   if (_store_in_resources) {
     log_v2::sql()->debug(
         "unified sql: remove tags memberships (instance_id: {})", instance_id);
@@ -1189,7 +1190,7 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
               "poller_id=?,severity_id=?,name=?,address=?,alias=?,"
               "parent_name=?,notes_url=?,notes=?,action_url=?,"
               "notifications_enabled=?,passive_checks_enabled=?,"
-              "active_checks_enabled=?,icon_id=? WHERE resource_id=?");
+              "active_checks_enabled=?,icon_id=?,enabled=1 WHERE resource_id=?");
         }
       }
 
@@ -2293,8 +2294,8 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
               "status_confirmed=?,check_attempts=?,max_check_attempts=?,"
               "poller_id=?,severity_id=?,name=?,parent_name=?,notes_url=?,"
               "notes=?,action_url=?,notifications_enabled=?,"
-              "passive_checks_enabled=?,active_checks_enabled=?,icon_id=? "
-              "WHERE resource_id=?");
+              "passive_checks_enabled=?,active_checks_enabled=?,icon_id=?,"
+              "enabled=1 WHERE resource_id=?");
         }
       }
 
