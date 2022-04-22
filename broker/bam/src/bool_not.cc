@@ -91,7 +91,7 @@ void bool_not::set_value(std::shared_ptr<bool_value>& value) {
  *  @return Hard value.
  */
 double bool_not::value_hard() {
-  return _value->value_hard() == 0;
+  return std::abs(_value->value_hard()) < eps;
 }
 
 /**
@@ -100,7 +100,7 @@ double bool_not::value_hard() {
  *  @return Soft value.
  */
 double bool_not::value_soft() {
-  return _value->value_soft() == 0;
+  return std::abs(_value->value_soft()) < eps;
 }
 
 /**
