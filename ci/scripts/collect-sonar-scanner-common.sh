@@ -35,7 +35,7 @@ install_scanner() {
 get_cache() {
   echo "clean and pull tarball"
   rm -rf "$PROJECT-SQ-cache-$VERSION.tar.gz"
-  get_internal_source "$PROJECT/$PROJECT-$VERSION/$PROJECT-SQ-cache-$VERSION.tar.gz"
+  get_internal_source "$PROJECT/$PROJECT-SQ-cache-$VERSION/$PROJECT-SQ-cache-$VERSION.tar.gz"
 }
 
 set_cache() {
