@@ -110,8 +110,8 @@ BEUHSEV2
 	Reload Engine
 	Reload Broker
 	Sleep	3s
-	${result}=	check host severity With Timeout	28	17	60
-	Should Be True	${result}	msg=Second step: Host 28 should have severity_id=17
+	${result}=	check host severity With Timeout	28	16	60
+	Should Be True	${result}	msg=Second step: Host 28 should have severity_id=16
 
 	${result}=	check host severity With Timeout	4	None	60
 	Should Be True	${result}	msg=Second step: Host 4 should have severity_id=None
@@ -126,24 +126,24 @@ BEUHSEV2
 	Kindly Stop Broker
 
 BETUHSEV1
-	[Documentation]	Services have severities provided by templates.
+	[Documentation]	Hosts have severities provided by templates.
 	[Tags]	Broker	Engine	protobuf	bbdo	severities
 	Config Engine	${2}
 	Create Severities File	${0}	${20}
 	Create Severities File	${1}	${20}
-        Create Template File	${0}	service	severity	[1, 3]
-        Create Template File	${1}	service	severity	[3, 5]
+        Create Template File	${0}	host	severity	[2, 4]
+        Create Template File	${1}	host	severity	[6, 10]
 
 	Config Engine Add Cfg File	${0}	severities.cfg
 	Config Engine Add Cfg File	${1}	severities.cfg
-	Config Engine Add Cfg File	${0}	serviceTemplates.cfg
-	Config Engine Add Cfg File	${1}	serviceTemplates.cfg
+	Config Engine Add Cfg File	${0}	hostTemplates.cfg
+	Config Engine Add Cfg File	${1}	hostTemplates.cfg
 	Engine Config Set Value	${0}	log_level_config	debug
 	Engine Config Set Value	${1}	log_level_config	debug
-	Add Template To Services	0	service_template_1	[1, 2, 3, 4]
-	Add Template To Services	0	service_template_2	[5, 6, 7, 8]
-	Add Template To Services	1	service_template_1	[501, 502]
-	Add Template To Services	1	service_template_2	[503, 504]
+	Add Template To Hosts	0	host_template_1	[1, 2, 3, 4]
+	Add Template To Hosts	0	host_template_2	[5, 6, 7, 8]
+	Add Template To Hosts	1	host_template_1	[31, 32]
+	Add Template To Hosts	1	host_template_2	[33, 34]
 	Config Broker	central
 	Config Broker	rrd
 	Config Broker	module
@@ -159,20 +159,20 @@ BETUHSEV1
 	Start Broker
 	Sleep	5s
 	# We need to wait a little before reloading Engine
-	${result}=	check service severity With Timeout	1	2	1	60
-	Should Be True	${result}	msg=First step: Service (1, 2) should have severity_id=1
+	${result}=	check host severity With Timeout	2	2	60
+	Should Be True	${result}	msg=First step: Host 2 should have severity_id=2
 
-	${result}=	check service severity With Timeout	1	4	1	60
-	Should Be True	${result}	msg=First step: Service (1, 4) should have severity_id=1
+	${result}=	check host severity With Timeout	4	2	60
+	Should Be True	${result}	msg=First step: Host 4 should have severity_id=2
 
-	${result}=	check service severity With Timeout	1	5	3	60
-	Should Be True	${result}	msg=First step: Service (1, 5) should have severity_id=3
+	${result}=	check host severity With Timeout	5	4	60
+	Should Be True	${result}	msg=First step: Host 5 should have severity_id=4
 
-	${result}=	check service severity With Timeout	26	502	3	60
-	Should Be True	${result}	msg=First step: Service (26, 502) should have severity_id=3
+	${result}=	check host severity With Timeout	31	6	60
+	Should Be True	${result}	msg=First step: Host 31 should have severity_id=6
 
-	${result}=	check service severity With Timeout	26	503	5	60
-	Should Be True	${result}	msg=First step: Service (26, 503) should have severity_id=5
+	${result}=	check host severity With Timeout	33	10	60
+	Should Be True	${result}	msg=First step: Host 33 should have severity_id=10
 
 	Stop Engine
 	Kindly Stop Broker

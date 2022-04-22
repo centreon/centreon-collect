@@ -1,3 +1,4 @@
 #!/bin/bash
 
-mysql centreon -u centreon -p < ../broker/simu/docker/bam.sql
+mysql -u root -pcentreon -e "drop database centreon"
+mysql -u root -pcentreon < resources/centreon.sql

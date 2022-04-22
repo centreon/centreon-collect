@@ -54,11 +54,13 @@ void stream::_clean_tables(uint32_t instance_id) {
                     "rt.resource_id=r.resource_id WHERE r.poller_id={}",
                     instance_id),
         database::mysql_error::clean_resources_tags, false, conn);
-    _mysql.run_query(fmt::format(
-        "UPDATE resources SET enabled=0 WHERE poller_id={}", instance_id));
+    _mysql.commit(conn);
   }
 
   conn = _mysql.choose_connection_by_instance(instance_id);
+  _mysql.run_query(fmt::format(
+      "UPDATE resources SET enabled=0 WHERE poller_id={}", instance_id), database::mysql_error::clean_resources, false, conn);
+  _add_action(conn, actions::resources);
   log_v2::sql()->debug(
       "unified sql: disable hosts and services (instance_id: {})", instance_id);
   /* Disable hosts and services. */
@@ -1050,7 +1052,7 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
                          actions::host_dependencies | actions::host_parents |
                          actions::custom_variables | actions::downtimes |
                          actions::comments | actions::service_dependencies |
-                         actions::severities | actions::resources );
+                         actions::severities);
   auto s{static_cast<const neb::pb_host*>(d.get())};
   auto& h = s->obj();
 
@@ -2974,7 +2976,7 @@ void stream::_process_severity(const std::shared_ptr<io::data>& d) {
     return;
 
   log_v2::sql()->debug("SQL: processing severity");
-  _finish_action(-1, actions::resources | actions::severities);
+  _finish_action(-1, actions::resources);
 
   // Prepare queries.
   if (!_severity_insert.prepared()) {
