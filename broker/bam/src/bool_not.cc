@@ -73,7 +73,7 @@ bool_not& bool_not::operator=(bool_not const& right) {
 bool bool_not::child_has_update(computable* child, io::stream* visitor) {
   (void)child;
   (void)visitor;
-  return (true);
+  return true;
 }
 
 /**

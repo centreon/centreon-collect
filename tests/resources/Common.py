@@ -302,6 +302,7 @@ def check_service_status_with_timeout(hostname: str, service_desc: str, status: 
         connection = pymysql.connect(host='localhost',
                                      user='centreon',
                                      password='centreon',
+                                     autocommit=True,
                                      database='centreon_storage',
                                      charset='utf8mb4',
                                      cursorclass=pymysql.cursors.DictCursor)
@@ -527,6 +528,7 @@ def check_host_severity_with_timeout(host_id: int, severity_id, timeout: int):
                                      password='centreon',
                                      database='centreon_storage',
                                      charset='utf8mb4',
+                                     autocommit=True,
                                      cursorclass=pymysql.cursors.DictCursor)
 
         with connection:
