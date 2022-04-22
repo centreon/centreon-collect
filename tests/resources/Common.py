@@ -194,7 +194,6 @@ def check_engine_logs_are_duplicated(log: str, date):
                         logs.remove(mn.group(1))
                     else:
                         logs.append(mn.group(1))
-            logger.console(logs)
         if len(logs) <= 1:
             # It is possible to miss one log because of the initial split of the
             # file.
