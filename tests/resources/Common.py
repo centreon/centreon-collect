@@ -589,3 +589,22 @@ def check_host_tags_with_timeout(host_id: int, tag_id: int, timeout: int):
         time.sleep(1)
     return False
 
+def check_number_of_resources_monitored_by_poller_is(poller: int, value: int, timeout: int):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host='localhost',
+                                 user='centreon',
+                                 password='centreon',
+                                 database='centreon_storage',
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT count(*) FROM resources WHERE poller_id={} AND enabled=1".format(poller))
+                result = cursor.fetchall()
+                if len(result) > 0:
+                    if int(result[0]['count(*)']) == value:
+                        return True
+        time.sleep(1)
+    return False

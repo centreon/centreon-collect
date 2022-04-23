@@ -23,7 +23,7 @@ BETAG1
 	Config Broker	central
 	Config Broker	rrd
 	Config Broker	module
-	Broker Config Log	module	neb	debug
+	Broker Config Log	module0	neb	debug
 	Broker Config Log	central	sql	debug
 	Clear Retention
 	${start}=	Get Current Date
@@ -45,7 +45,7 @@ BETAG2
 	Config Broker	central
 	Config Broker	rrd
 	Config Broker	module
-	Broker Config Log	module	neb	debug
+	Broker Config Log	module0	neb	debug
 	Broker Config Log	central	sql	debug
 	Clear Retention
 	${start}=	Get Current Date
@@ -69,10 +69,10 @@ BEUTAG1
 	Config Broker	rrd
 	Config Broker	module
 	Config Broker Sql Output	central	unified_sql
-        Broker Config Add Item	module	bbdo_version	3.0.0
+        Broker Config Add Item	module0	bbdo_version	3.0.0
         Broker Config Add Item	central	bbdo_version	3.0.0
         Broker Config Add Item	rrd	bbdo_version	3.0.0
-	Broker Config Log	module	neb	debug
+	Broker Config Log	module0	neb	debug
 	Broker Config Log	central	sql	debug
 	Clear Retention
 	${start}=	Get Current Date
@@ -95,10 +95,10 @@ BEUTAG2
 	Config Broker	rrd
 	Config Broker	module
 	Config Broker Sql Output	central	unified_sql
-	Broker Config Add Item	module	bbdo_version	3.0.0
+	Broker Config Add Item	module0	bbdo_version	3.0.0
 	Broker Config Add Item	central	bbdo_version	3.0.0
 	Broker Config Add Item	rrd	bbdo_version	3.0.0
-	Broker Config Log	module	neb	debug
+	Broker Config Log	module0	neb	debug
 	Broker Config Log	central	sql	debug
 	Clear Retention
 	${start}=	Get Current Date
@@ -125,10 +125,10 @@ BEUTAG3
 	Config Broker	rrd
 	Config Broker	module
 	Config Broker Sql Output	central	unified_sql
-	Broker Config Add Item	module	bbdo_version	3.0.0
+	Broker Config Add Item	module0	bbdo_version	3.0.0
 	Broker Config Add Item	central	bbdo_version	3.0.0
 	Broker Config Add Item	rrd	bbdo_version	3.0.0
-	Broker Config Log	module	neb	debug
+	Broker Config Log	module0	neb	debug
 	Broker Config Log	central	sql	debug
 	Clear Retention
 	${start}=	Get Current Date
@@ -157,10 +157,10 @@ BEUTAG4
 	Config Broker	rrd
 	Config Broker	module
 	Config Broker Sql Output	central	unified_sql
-	Broker Config Add Item	module	bbdo_version	3.0.0
+	Broker Config Add Item	module0	bbdo_version	3.0.0
 	Broker Config Add Item	central	bbdo_version	3.0.0
 	Broker Config Add Item	rrd	bbdo_version	3.0.0
-	Broker Config Log	module	neb	debug
+	Broker Config Log	module0	neb	debug
 	Broker Config Log	central	sql	debug
 	Clear Retention
 	${start}=	Get Current Date
@@ -191,10 +191,10 @@ BEUTAG5
 	Config Broker	rrd
 	Config Broker	module
 	Config Broker Sql Output	central	unified_sql
-	Broker Config Add Item	module	bbdo_version	3.0.0
+	Broker Config Add Item	module0	bbdo_version	3.0.0
 	Broker Config Add Item	central	bbdo_version	3.0.0
 	Broker Config Add Item	rrd	bbdo_version	3.0.0
-	Broker Config Log	module	neb	debug
+	Broker Config Log	module0	neb	debug
 	Broker Config Log	central	sql	debug
 	Clear Retention
 	${start}=	Get Current Date
@@ -224,12 +224,14 @@ BEUTAG6
 	Add Tags To Services	${1}	category_tags	3,11	[501, 502, 503, 504]
 	Config Broker	central
 	Config Broker	rrd
-	Config Broker	module
+	Config Broker	module	${2}
 	Config Broker Sql Output	central	unified_sql
-	Broker Config Add Item	module	bbdo_version	3.0.0
+	Broker Config Add Item	module0	bbdo_version	3.0.0
+	Broker Config Add Item	module1	bbdo_version	3.0.0
 	Broker Config Add Item	central	bbdo_version	3.0.0
 	Broker Config Add Item	rrd	bbdo_version	3.0.0
-	Broker Config Log	module	neb	debug
+	Broker Config Log	module0	neb	debug
+	Broker Config Log	module1	neb	debug
 	Broker Config Log	central	sql	trace
 	Clear Retention
 	${start}=	Get Current Date
@@ -289,10 +291,10 @@ BEUTAG7
 	Config Broker	rrd
 	Config Broker	module
 	Config Broker Sql Output	central	unified_sql
-	Broker Config Add Item	module	bbdo_version	3.0.0
+	Broker Config Add Item	module0	bbdo_version	3.0.0
 	Broker Config Add Item	central	bbdo_version	3.0.0
 	Broker Config Add Item	rrd	bbdo_version	3.0.0
-	Broker Config Log	module	neb	debug
+	Broker Config Log	module0	neb	debug
 	Broker Config Log	central	sql	trace
 	Clear Retention
 	${start}=	Get Current Date
