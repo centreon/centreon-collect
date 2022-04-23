@@ -25,9 +25,9 @@ BECT1
 		Config Broker	central
 		Config Broker	module
 		Broker Config Input set	central	central-broker-master-input	tls	${comp1}
-		Broker Config Output set	module	central-module-master-output	tls	${comp2}
+		Broker Config Output set	module0	central-module-master-output	tls	${comp2}
 		Broker Config Log	central	bbdo	info
-		Broker Config Log	module	bbdo	info
+		Broker Config Log	module0	bbdo	info
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
@@ -45,7 +45,7 @@ BECT1
 		${log}=	Catenate	SEPARATOR=	${BROKER_LOG}	/central-broker-master.log
 		${result}=	Find In Log	${log}	${start}	${content1}
 		Should Be True	${result}
-		${log}=	Catenate	SEPARATOR=	${BROKER_LOG}	/central-module-master.log
+		${log}=	Catenate	SEPARATOR=	${BROKER_LOG}	/central-module-master0.log
 		${result}=	Find In Log	${log}	${start}	${content2}
 		Should Be True	${result}
 	END
@@ -66,15 +66,15 @@ BECT2
 	Broker Config Input set	central	central-broker-master-input	private_key	/etc/centreon-broker/client.key
 	Broker Config Input set	central	central-broker-master-input	public_cert	/etc/centreon-broker/client.crt
 	Broker Config Input set	central	central-broker-master-input	ca_certificate	/etc/centreon-broker/server.crt
-	Broker Config Output set	module	central-module-master-output	private_key	/etc/centreon-broker/server.key
-	Broker Config Output set	module	central-module-master-output	public_cert	/etc/centreon-broker/server.crt
-	Broker Config Output set	module	central-module-master-output	ca_certificate	/etc/centreon-broker/client.crt
+	Broker Config Output set	module0	central-module-master-output	private_key	/etc/centreon-broker/server.key
+	Broker Config Output set	module0	central-module-master-output	public_cert	/etc/centreon-broker/server.crt
+	Broker Config Output set	module0	central-module-master-output	ca_certificate	/etc/centreon-broker/client.crt
 	Broker Config Log	central	tls	debug
-	Broker Config Log	module	tls	debug
+	Broker Config Log	module0	tls	debug
 	Broker Config Log	central	bbdo	info
-	Broker Config Log	module	bbdo	info
+	Broker Config Log	module0	bbdo	info
 	Broker Config Input set	central	central-broker-master-input	tls	yes
-	Broker Config Output set	module	central-module-master-output	tls	yes
+	Broker Config Output set	module0	central-module-master-output	tls	yes
 	${start}=	Get Current Date
 	Start Broker
 	Start Engine
@@ -89,7 +89,7 @@ BECT2
 	${log}=	Catenate	SEPARATOR=	${BROKER_LOG}	/central-broker-master.log
 	${result}=	Find In Log	${log}	${start}	${content1}
 	Should Be True	${result}
-	${log}=	Catenate	SEPARATOR=	${BROKER_LOG}	/central-module-master.log
+	${log}=	Catenate	SEPARATOR=	${BROKER_LOG}	/central-module-master0.log
 	${result}=	Find In Log	${log}	${start}	${content2}
 	Should Be True	${result}
 
@@ -106,13 +106,13 @@ BECT3
 	Create Certificate	${hostname}	/etc/centreon-broker/client.crt
 
 	Broker Config Input set	central	central-broker-master-input	ca_certificate	/etc/centreon-broker/server.crt
-	Broker Config Output set	module	central-module-master-output	ca_certificate	/etc/centreon-broker/client.crt
+	Broker Config Output set	module0	central-module-master-output	ca_certificate	/etc/centreon-broker/client.crt
 	Broker Config Log	central	tls	debug
-	Broker Config Log	module	tls	debug
+	Broker Config Log	module0	tls	debug
 	Broker Config Log	central	bbdo	info
-	Broker Config Log	module	bbdo	info
+	Broker Config Log	module0	bbdo	info
 	Broker Config Input set	central	central-broker-master-input	tls	yes
-	Broker Config Output set	module	central-module-master-output	tls	yes
+	Broker Config Output set	module0	central-module-master-output	tls	yes
         # We get the current date just before starting broker
 	${start}=	Get Current Date
 	Start Broker
@@ -128,7 +128,7 @@ BECT3
 	${log}=	Catenate	SEPARATOR=	${BROKER_LOG}	/central-broker-master.log
 	${result}=	Find In Log	${log}	${start}	${content1}
 	Should Be True	${result}
-	${log}=	Catenate	SEPARATOR=	${BROKER_LOG}	/central-module-master.log
+	${log}=	Catenate	SEPARATOR=	${BROKER_LOG}	/central-module-master0.log
 	${result}=	Find In Log	${log}	${start}	${content2}
 	Should Be True	${result}
 
@@ -145,20 +145,20 @@ BECT4
 	Create Key And Certificate	${hostname}	/etc/centreon-broker/client.key	/etc/centreon-broker/client.crt
 
 	Broker Config Input set	central	central-broker-master-input	ca_certificate	/etc/centreon-broker/server.crt
-	Broker Config Output set	module	central-module-master-output	ca_certificate	/etc/centreon-broker/client.crt
+	Broker Config Output set	module0	central-module-master-output	ca_certificate	/etc/centreon-broker/client.crt
 	Broker Config Log	central	tls	debug
-	Broker Config Log	module	tls	debug
+	Broker Config Log	module0	tls	debug
 	Broker Config Log	central	bbdo	info
-	Broker Config Log	module	bbdo	info
+	Broker Config Log	module0	bbdo	info
 	Broker Config Input set	central	central-broker-master-input	tls	yes
 	Broker Config Input set	central	central-broker-master-input	private_key	/etc/centreon-broker/client.key
 	Broker Config Input set	central	central-broker-master-input	public_cert	/etc/centreon-broker/client.crt
 	Broker Config Input set	central	central-broker-master-input	ca_certificate	/etc/centreon-broker/server.crt
 	Broker Config Input set	central	central-broker-master-input	tls_hostname	centreon
-	Broker Config Output set	module	central-module-master-output	tls	yes
-	Broker Config Output set	module	central-module-master-output	private_key	/etc/centreon-broker/server.key
-	Broker Config Output set	module	central-module-master-output	public_cert	/etc/centreon-broker/server.crt
-	Broker Config Output set	module	central-module-master-output	ca_certificate	/etc/centreon-broker/client.crt
+	Broker Config Output set	module0	central-module-master-output	tls	yes
+	Broker Config Output set	module0	central-module-master-output	private_key	/etc/centreon-broker/server.key
+	Broker Config Output set	module0	central-module-master-output	public_cert	/etc/centreon-broker/server.crt
+	Broker Config Output set	module0	central-module-master-output	ca_certificate	/etc/centreon-broker/client.crt
         # We get the current date just before starting broker
 	${start}=	Get Current Date
 	Start Broker
@@ -174,7 +174,7 @@ BECT4
 	${log}=	Catenate	SEPARATOR=	${BROKER_LOG}	/central-broker-master.log
 	${result}=	Find In Log	${log}	${start}	${content1}
 	Should Be True	${result}
-	${log}=	Catenate	SEPARATOR=	${BROKER_LOG}	/central-module-master.log
+	${log}=	Catenate	SEPARATOR=	${BROKER_LOG}	/central-module-master0.log
 	${result}=	Find In Log	${log}	${start}	${content2}
 	Should Be True	${result}
 

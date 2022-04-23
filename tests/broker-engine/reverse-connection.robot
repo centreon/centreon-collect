@@ -24,7 +24,7 @@ BRGC1
 
 	Log To Console	Compression set to
 	Broker Config Log	central	bbdo	info
-	Broker Config Log	module	bbdo	info
+	Broker Config Log	module0	bbdo	info
 	${start}=	Get Current Date
 	Start Broker
 	Start Engine
@@ -52,7 +52,7 @@ BRCTS1
 	Config Broker	module
 
 	Broker Config Log	central	bbdo	info
-	Broker Config Log	module	bbdo	info
+	Broker Config Log	module0	bbdo	info
 	${start}=	Get Current Date
 	Start Broker
 	Start Engine
@@ -80,7 +80,7 @@ BRCS1
 	Config Broker	module
 
 	Broker Config Log	central	bbdo	info
-	Broker Config Log	module	bbdo	info
+	Broker Config Log	module0	bbdo	info
 	${start}=	Get Current Date
 	Start Broker
 	Start Engine

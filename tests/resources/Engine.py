@@ -14,7 +14,7 @@ SCRIPT_DIR: str = dirname(__file__) + "/engine-scripts/"
 
 
 class EngineInstance:
-    def __init__(self, count: int):
+    def __init__(self, count: int, hosts: int=50, srv_by_host: int=20):
         self.last_service_id = 0
         self.hosts = []
         self.services = []
@@ -23,17 +23,15 @@ class EngineInstance:
         self.commands_count = 50
         self.instances = count
         self.service_cmd = {}
-        self.build_configs(50, 20)
+        self.build_configs(hosts, srv_by_host)
 
     def create_centengine(self, id: int, debug_level=0):
-        return ("#cfg_file={2}/config{0}/hostTemplates.cfg\n"
-                "cfg_file={2}/config{0}/hosts.cfg\n"
+        return ("cfg_file={2}/config{0}/hosts.cfg\n"
                 "cfg_file={2}/config{0}/services.cfg\n"
                 "cfg_file={2}/config{0}/commands.cfg\n"
                 "#cfg_file={2}/config{0}/contactgroups.cfg\n"
                 "#cfg_file={2}/config{0}/contacts.cfg\n"
                 "cfg_file={2}/config{0}/hostgroups.cfg\n"
-                "#cfg_file={2}/config{0}/servicegroups.cfg\n"
                 "cfg_file={2}/config{0}/timeperiods.cfg\n"
                 "#cfg_file={2}/config{0}/escalations.cfg\n"
                 "#cfg_file={2}/config{0}/dependencies.cfg\n"
@@ -43,7 +41,7 @@ class EngineInstance:
                 "#cfg_file={2}/config{0}/meta_host.cfg\n"
                 "#cfg_file={2}/config{0}/meta_services.cfg\n"
                 "broker_module=/usr/lib64/centreon-engine/externalcmd.so\n"
-                "broker_module=/usr/lib64/nagios/cbmod.so /etc/centreon-broker/central-module.json\n"
+                "broker_module=/usr/lib64/nagios/cbmod.so /etc/centreon-broker/central-module{0}.json\n"
                 "interval_length=60\n"
                 "use_timezone=:Europe/Paris\n"
                 "resource_file={2}/config{0}/resource.cfg\n"
@@ -462,9 +460,9 @@ define connector {
 #
 # @param num: How many engine configurations to start
 #
-def config_engine(num: int):
+def config_engine(num: int, hosts: int = 50, srv_by_host: int = 20):
     global engine
-    engine = EngineInstance(num)
+    engine = EngineInstance(num, hosts, srv_by_host)
 
 
 ##
@@ -736,7 +734,7 @@ def remove_tags_from_services(poller:int, type:str):
     lines = ff.readlines()
     ff.close()
     r = re.compile("r\"^\s*{}\s*\d+$\"".format(type))
-    lines = [l for l in lines if r.match(l)]
+    lines = [l for l in lines if not r.match(l)]
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "w")
     ff.writelines(lines)
     ff.close()
@@ -746,7 +744,7 @@ def remove_tags_from_hosts(poller:int, type:str):
     lines = ff.readlines()
     ff.close()
     r = re.compile("r\"^\s*{}\s*\d+$\"".format(type))
-    lines = [l for l in lines if r.match(l)]
+    lines = [l for l in lines if not r.match(l)]
     ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "w")
     ff.writelines(lines)
     ff.close()

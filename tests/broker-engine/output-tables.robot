@@ -21,7 +21,7 @@ BERES1
 	Config Broker	central
 	Config Broker	module
 	Config Broker	rrd
-        Broker Config Add Item	module	bbdo_version	3.0.0
+        Broker Config Add Item	module0	bbdo_version	3.0.0
         Broker Config Add Item	central	bbdo_version	3.0.0
         Broker Config Add Item	rrd	bbdo_version	3.0.0
 	Broker Config Log	central	sql	trace
@@ -50,7 +50,7 @@ BEHS1
 	Config Broker	central
 	Config Broker	module
 	Config Broker	rrd
-        Broker Config Add Item	module	bbdo_version	3.0.0
+        Broker Config Add Item	module0	bbdo_version	3.0.0
         Broker Config Add Item	central	bbdo_version	3.0.0
         Broker Config Add Item	rrd	bbdo_version	3.0.0
 	Broker Config Log	central	sql	trace
