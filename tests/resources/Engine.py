@@ -504,6 +504,19 @@ def add_host_group(index: int, id_host_group: int, members: list):
     f.write(engine.create_host_group(id_host_group, mbs))
     f.close()
 
+def rename_host_group(index: int, id_host_group: int, name:str, members: list):
+    mbs = [l for l in members if l in engine.hosts]
+    f = open("/etc/centreon-engine/config{}/hostgroups.cfg".format(index), "w")
+    logger.console(mbs)
+    f.write("""define hostgroup {{
+    hostgroup_id                    {0}
+    hostgroup_name                  hostgroup_{1}
+    alias                           hostgroup_{1}
+    members                         {2}
+}}
+""".format(id_host_group, name, ",".join(mbs)))
+    f.close()
+
 def add_service_group(index: int, id_service_group: int, members: list):
     f = open("/etc/centreon-engine/config{}/servicegroups.cfg".format(index), "a+")
     logger.console(members)
