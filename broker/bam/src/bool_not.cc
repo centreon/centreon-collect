@@ -1,5 +1,5 @@
 /*
-** Copyright 2014 Centreon
+** Copyright 2014, 2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -17,8 +17,11 @@
 */
 
 #include "com/centreon/broker/bam/bool_not.hh"
+#include <cmath>
 
 using namespace com::centreon::broker::bam;
+
+constexpr double eps = 0.000001;
 
 /**
  *  Constructor.
@@ -70,7 +73,7 @@ bool_not& bool_not::operator=(bool_not const& right) {
 bool bool_not::child_has_update(computable* child, io::stream* visitor) {
   (void)child;
   (void)visitor;
-  return (true);
+  return true;
 }
 
 /**
@@ -80,7 +83,6 @@ bool bool_not::child_has_update(computable* child, io::stream* visitor) {
  */
 void bool_not::set_value(std::shared_ptr<bool_value>& value) {
   _value = value;
-  return;
 }
 
 /**
@@ -89,7 +91,7 @@ void bool_not::set_value(std::shared_ptr<bool_value>& value) {
  *  @return Hard value.
  */
 double bool_not::value_hard() {
-  return (!_value->value_hard());
+  return std::abs(_value->value_hard()) < eps;
 }
 
 /**
@@ -98,7 +100,7 @@ double bool_not::value_hard() {
  *  @return Soft value.
  */
 double bool_not::value_soft() {
-  return (!_value->value_soft());
+  return std::abs(_value->value_soft()) < eps;
 }
 
 /**
@@ -108,7 +110,6 @@ double bool_not::value_soft() {
  */
 void bool_not::_internal_copy(bool_not const& right) {
   _value = right._value;
-  return;
 }
 
 /**
@@ -117,7 +118,7 @@ void bool_not::_internal_copy(bool_not const& right) {
  *  @return  True if the state is known.
  */
 bool bool_not::state_known() const {
-  return (_value && _value->state_known());
+  return _value != 0 && _value->state_known() != 0;
 }
 
 /**
@@ -126,5 +127,5 @@ bool bool_not::state_known() const {
  *  @return  True if this expression is in downtime.
  */
 bool bool_not::in_downtime() const {
-  return (_value && _value->in_downtime());
+  return _value != 0 && _value->in_downtime() != 0;
 }

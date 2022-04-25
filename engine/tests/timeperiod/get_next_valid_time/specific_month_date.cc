@@ -18,7 +18,6 @@
 */
 
 #include <gtest/gtest.h>
-#include <cstring>
 #include "com/centreon/clib.hh"
 #include "com/centreon/engine/timeperiod.hh"
 #include "com/centreon/logging/engine.hh"

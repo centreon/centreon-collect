@@ -73,7 +73,7 @@ TEST_F(ProcessingTest, StartStop3) {
 }
 
 TEST_F(ProcessingTest, StartWithFilterStop) {
-  std::unordered_set<uint32_t> filters;
+  absl::flat_hash_set<uint32_t> filters;
   filters.insert(io::raw::static_type());
   _acceptor->set_read_filters(filters);
   time_t now{time(nullptr)};

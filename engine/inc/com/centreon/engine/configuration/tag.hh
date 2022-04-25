@@ -20,29 +20,27 @@
 #define CCE_CONFIGURATION_TAG_HH
 
 #include <absl/container/flat_hash_map.h>
-#include <string>
+
 #include "com/centreon/engine/configuration/object.hh"
-#include "com/centreon/engine/namespace.hh"
 
 CCE_BEGIN()
 
 namespace configuration {
 class tag : public object {
  public:
-  using key_type = uint64_t;
+  using key_type = std::pair<uint64_t, uint16_t>;
 
   enum tagtype {
-    none = 0,
-    hostcategory = 1,
+    servicegroup = 0,
+    hostgroup = 1,
     servicecategory = 2,
-    hostgroup = 3,
-    servicegroup = 4,
+    hostcategory = 3,
+    none = -1
   };
 
  private:
   typedef bool (*setter_func)(tag&, const char*);
-  key_type _id;
-  tagtype _type;
+  key_type _key;
   std::string _name;
 
   bool _set_id(uint64_t id);
@@ -50,7 +48,7 @@ class tag : public object {
   bool _set_name(const std::string& name);
 
  public:
-  tag(const key_type& id = 0);
+  tag(const key_type& key = {0, 0});
   tag(const tag& other);
   ~tag() noexcept override = default;
   tag& operator=(const tag& other);
@@ -62,7 +60,7 @@ class tag : public object {
   void merge(const object& obj) override;
   bool parse(const char* key, const char* value) override;
 
-  uint32_t type() const noexcept;
+  uint16_t type() const noexcept;
   const std::string& name() const noexcept;
 
   static const absl::flat_hash_map<std::string, setter_func> _setters;

@@ -17,8 +17,6 @@
 ** <http://www.gnu.org/licenses/>.
 */
 #include "com/centreon/engine/broker.hh"
-#include <cstring>
-#include <mutex>
 #include "com/centreon/engine/logging/broker.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/exceptions/basic.hh"

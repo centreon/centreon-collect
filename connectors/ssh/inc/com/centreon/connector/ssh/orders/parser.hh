@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013 Centreon
+** Copyright 2011-2013, 2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -19,14 +19,13 @@
 #ifndef CCCS_ORDERS_PARSER_HH
 #define CCCS_ORDERS_PARSER_HH
 
-#include <string>
+#include "com/centreon/connector/parser.hh"
 #include "com/centreon/connector/ssh/namespace.hh"
-#include "com/centreon/connector/ssh/orders/listener.hh"
-#include "com/centreon/handle_listener.hh"
 
 CCCS_BEGIN()
 
 namespace orders {
+
 /**
  *  @class parser parser.hh "com/centreon/connector/ssh/orders/parser.hh"
  *  @brief Parse orders.
@@ -35,25 +34,25 @@ namespace orders {
  *  parser class can handle be registered with one handle at a time
  *  and one listener.
  */
-class parser : public handle_listener {
-  std::string _buffer;
-  listener* _listnr;
+class parser : public com::centreon::connector::parser {
+ protected:
+  parser(const shared_io_context& io_context,
+         const std::shared_ptr<com::centreon::connector::policy_interface>&
+             policy);
 
-  void _parse(std::string const& cmd);
+  void execute(const std::string& cmd) override;
 
  public:
-  parser();
-  ~parser() noexcept {};
+  using pointer = std::shared_ptr<parser>;
+
+  static pointer create(shared_io_context io_context,
+                        const std::shared_ptr<policy_interface>& policy,
+                        const std::string& test_cmd_file = "");
+
   parser(parser const& p) = delete;
   parser& operator=(parser const& p) = delete;
-  void error(handle& h) override;
-  std::string const& get_buffer() const noexcept;
-  listener* get_listener() const noexcept;
-  void listen(listener* l = nullptr) noexcept;
-  void read(handle& h) override;
-  bool want_read(handle& h) override;
-  bool want_write(handle& h) override;
 };
+
 }  // namespace orders
 
 CCCS_END()

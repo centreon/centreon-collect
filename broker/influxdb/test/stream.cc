@@ -80,7 +80,7 @@ TEST_F(InfluxDBStream, Write) {
   m2 = new storage::metric;
   m3 = new storage::metric;
 
-  m1->ctime = 2000llu;
+  m1->time = 2000llu;
   m1->interval = 60;
   m1->is_for_rebuild = true;
   m1->metric_id = 42u;
@@ -91,7 +91,7 @@ TEST_F(InfluxDBStream, Write) {
   m1->host_id = 1u;
   m1->service_id = 1u;
 
-  m2->ctime = 2000llu;
+  m2->time = 2000llu;
   m2->interval = 60;
   m2->is_for_rebuild = true;
   m2->metric_id = 42u;
@@ -102,7 +102,7 @@ TEST_F(InfluxDBStream, Write) {
   m2->host_id = 1u;
   m2->service_id = 1u;
 
-  m3->ctime = 2000llu;
+  m3->time = 2000llu;
   m3->interval = 60;
   m3->is_for_rebuild = true;
   m3->metric_id = 42u;
@@ -137,7 +137,7 @@ TEST_F(InfluxDBStream, Flush) {
   m2 = new storage::metric;
   m3 = new storage::metric;
 
-  m1->ctime = 2000llu;
+  m1->time = 2000llu;
   m1->interval = 60;
   m1->is_for_rebuild = true;
   m1->metric_id = 42u;
@@ -148,7 +148,7 @@ TEST_F(InfluxDBStream, Flush) {
   m1->host_id = 1u;
   m1->service_id = 1u;
 
-  m2->ctime = 2000llu;
+  m2->time = 2000llu;
   m2->interval = 60;
   m2->is_for_rebuild = true;
   m2->metric_id = 42u;
@@ -159,7 +159,7 @@ TEST_F(InfluxDBStream, Flush) {
   m2->host_id = 1u;
   m2->service_id = 1u;
 
-  m3->ctime = 2000llu;
+  m3->time = 2000llu;
   m3->interval = 60;
   m3->is_for_rebuild = true;
   m3->metric_id = 42u;
@@ -212,7 +212,7 @@ TEST_F(InfluxDBStream, FlushStatusOK) {
   s1->source_id = 3;
   s1->destination_id = 4;
   s1->broker_id = 1;
-  s1->ctime = 2000llu;
+  s1->time = 2000llu;
   s1->interval = 60;
   s1->index_id = 3;
   s1->is_for_rebuild = true;
@@ -222,7 +222,7 @@ TEST_F(InfluxDBStream, FlushStatusOK) {
   s2->source_id = 3;
   s2->destination_id = 4;
   s2->broker_id = 1;
-  s2->ctime = 2000llu;
+  s2->time = 2000llu;
   s2->interval = 60;
   s2->index_id = 3;
   s2->is_for_rebuild = true;
@@ -232,7 +232,7 @@ TEST_F(InfluxDBStream, FlushStatusOK) {
   s3->source_id = 3;
   s3->destination_id = 4;
   s3->broker_id = 1;
-  s3->ctime = 2000llu;
+  s3->time = 2000llu;
   s3->interval = 60;
   s3->index_id = 3;
   s3->is_for_rebuild = true;

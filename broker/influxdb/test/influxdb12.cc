@@ -97,7 +97,7 @@ TEST_F(InfluxDB12, Simple) {
   influxdb::influxdb12 idb("centreon", "pass", "localhost", 4242, "centreon",
                            "host_status", scolumns, "host_metrics", mcolumns,
                            mcache);
-  m1.ctime = 2000llu;
+  m1.time = 2000llu;
   m1.interval = 60;
   m1.is_for_rebuild = true;
   m1.metric_id = 42u;
@@ -108,7 +108,7 @@ TEST_F(InfluxDB12, Simple) {
   m1.host_id = 1u;
   m1.service_id = 1u;
 
-  m2.ctime = 2000llu;
+  m2.time = 2000llu;
   m2.interval = 60;
   m2.is_for_rebuild = true;
   m2.metric_id = 42u;
@@ -119,7 +119,7 @@ TEST_F(InfluxDB12, Simple) {
   m2.host_id = 1u;
   m2.service_id = 1u;
 
-  m3.ctime = 2000llu;
+  m3.time = 2000llu;
   m3.interval = 60;
   m3.is_for_rebuild = true;
   m3.metric_id = 42u;
@@ -148,7 +148,7 @@ TEST_F(InfluxDB12, BadServerResponse1) {
                            "host_status", scolumns, "host_metrics", mcolumns,
                            mcache);
 
-  m1.ctime = 2000llu;
+  m1.time = 2000llu;
   m1.interval = 60;
   m1.is_for_rebuild = true;
   m1.metric_id = 42u;
@@ -159,7 +159,7 @@ TEST_F(InfluxDB12, BadServerResponse1) {
   m1.host_id = 1u;
   m1.service_id = 1u;
 
-  m2.ctime = 2000llu;
+  m2.time = 2000llu;
   m2.interval = 60;
   m2.is_for_rebuild = true;
   m2.metric_id = 42u;
@@ -170,7 +170,7 @@ TEST_F(InfluxDB12, BadServerResponse1) {
   m2.host_id = 1u;
   m2.service_id = 1u;
 
-  m3.ctime = 2000llu;
+  m3.time = 2000llu;
   m3.interval = 60;
   m3.is_for_rebuild = true;
   m3.metric_id = 42u;
@@ -217,7 +217,7 @@ TEST_F(InfluxDB12, BadServerResponse2) {
                            "host_status", scolumns, "host_metrics", mcolumns,
                            mcache);
 
-  m1.ctime = 2000llu;
+  m1.time = 2000llu;
   m1.interval = 60;
   m1.is_for_rebuild = true;
   m1.metric_id = 42u;
@@ -228,7 +228,7 @@ TEST_F(InfluxDB12, BadServerResponse2) {
   m1.host_id = 1u;
   m1.service_id = 1u;
 
-  m2.ctime = 2000llu;
+  m2.time = 2000llu;
   m2.interval = 60;
   m2.is_for_rebuild = true;
   m2.metric_id = 42u;
@@ -239,7 +239,7 @@ TEST_F(InfluxDB12, BadServerResponse2) {
   m2.host_id = 1u;
   m2.service_id = 1u;
 
-  m3.ctime = 2000llu;
+  m3.time = 2000llu;
   m3.interval = 60;
   m3.is_for_rebuild = true;
   m3.metric_id = 42u;

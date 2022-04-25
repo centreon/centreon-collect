@@ -39,7 +39,7 @@ class status : public io::data {
   void _internal_copy(status const& s);
 
  public:
-  timestamp ctime;
+  timestamp time;
   uint64_t index_id;
   uint32_t interval;
   bool is_for_rebuild;
@@ -50,7 +50,7 @@ class status : public io::data {
   static io::event_info::event_operations const operations;
 
   status();
-  status(timestamp const& ctime,
+  status(timestamp const& time,
          uint64_t index_id,
          uint32_t interval,
          bool is_for_rebuild,

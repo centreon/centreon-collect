@@ -20,8 +20,6 @@
 #ifndef CCE_CONFIGURATION_STATE_HH
 #define CCE_CONFIGURATION_STATE_HH
 
-#include <cstdint>
-
 #include "com/centreon/engine/configuration/anomalydetection.hh"
 #include "com/centreon/engine/configuration/command.hh"
 #include "com/centreon/engine/configuration/connector.hh"
@@ -39,7 +37,6 @@
 #include "com/centreon/engine/configuration/tag.hh"
 #include "com/centreon/engine/configuration/timeperiod.hh"
 #include "com/centreon/engine/logging/logger.hh"
-#include "com/centreon/engine/namespace.hh"
 
 CCE_BEGIN()
 
@@ -267,14 +264,14 @@ class state {
   void low_service_flap_threshold(float value);
   void macros_filter(std::string const& value);
   std::set<std::string> const& macros_filter() const;
-  unsigned int max_check_reaper_time() const noexcept;
-  void max_check_reaper_time(unsigned int value);
   unsigned long max_debug_file_size() const noexcept;
   void max_debug_file_size(unsigned long value);
   unsigned int max_host_check_spread() const noexcept;
   void max_host_check_spread(unsigned int value);
   unsigned long max_log_file_size() const noexcept;
   void max_log_file_size(unsigned long value);
+  uint32_t log_flush_period() const noexcept;
+  void log_flush_period(uint32_t value);
   unsigned int max_parallel_service_checks() const noexcept;
   void max_parallel_service_checks(unsigned int value);
   unsigned int max_service_check_spread() const noexcept;
@@ -293,8 +290,6 @@ class state {
   void ocsp_command(std::string const& value);
   unsigned int ocsp_timeout() const noexcept;
   void ocsp_timeout(unsigned int value);
-  bool passive_host_checks_are_soft() const noexcept;
-  void passive_host_checks_are_soft(bool value);
   int perfdata_timeout() const noexcept;
   void perfdata_timeout(int value);
   std::string const& poller_name() const noexcept;
@@ -381,8 +376,6 @@ class state {
   set_timeperiod::iterator timeperiods_find(timeperiod::key_type const& k);
   unsigned int time_change_threshold() const noexcept;
   void time_change_threshold(unsigned int value);
-  bool translate_passive_host_checks() const noexcept;
-  void translate_passive_host_checks(bool value);
   std::unordered_map<std::string, std::string> const& user() const noexcept;
   void user(std::unordered_map<std::string, std::string> const& value);
   void user(std::string const& key, std::string const& value);
@@ -587,10 +580,10 @@ class state {
   float _low_host_flap_threshold;
   float _low_service_flap_threshold;
   std::set<std::string> _macros_filter;
-  unsigned int _max_check_reaper_time;
   unsigned long _max_debug_file_size;
   unsigned int _max_host_check_spread;
   unsigned long _max_log_file_size;
+  uint32_t _log_flush_period;
   unsigned int _max_parallel_service_checks;
   unsigned int _max_service_check_spread;
   unsigned int _notification_timeout;
@@ -600,7 +593,6 @@ class state {
   unsigned int _ochp_timeout;
   std::string _ocsp_command;
   unsigned int _ocsp_timeout;
-  bool _passive_host_checks_are_soft;
   int _perfdata_timeout;
   std::string _poller_name;
   uint32_t _poller_id;
@@ -637,7 +629,6 @@ class state {
   unsigned int _status_update_interval;
   set_timeperiod _timeperiods;
   unsigned int _time_change_threshold;
-  bool _translate_passive_host_checks;
   std::unordered_map<std::string, std::string> _users;
   bool _use_large_installation_tweaks;
   uint32_t _instance_heartbeat_interval;

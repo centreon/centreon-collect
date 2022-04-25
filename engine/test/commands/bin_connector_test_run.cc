@@ -20,11 +20,6 @@
 #include <unistd.h>
 #include <cctype>
 #include <cerrno>
-#include <cstdlib>
-#include <cstring>
-#include <ctime>
-#include <list>
-#include <string>
 #include <thread>
 #include "com/centreon/engine/version.hh"
 #include "com/centreon/exceptions/basic.hh"

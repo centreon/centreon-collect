@@ -22,11 +22,6 @@
 
 #include <sys/time.h>
 
-#include <cerrno>
-#include <cstdio>
-#include <cstdlib>
-#include <sstream>
-
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/comment.hh"

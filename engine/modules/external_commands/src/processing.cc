@@ -18,7 +18,6 @@
 */
 
 #include "com/centreon/engine/modules/external_commands/processing.hh"
-#include <cstdlib>
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/flapping.hh"
 #include "com/centreon/engine/globals.hh"

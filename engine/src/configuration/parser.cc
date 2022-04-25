@@ -18,7 +18,6 @@
 */
 
 #include "com/centreon/engine/configuration/parser.hh"
-#include <memory>
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/string.hh"
@@ -511,19 +510,16 @@ void parser::_parse_resource_file(std::string const& path) {
  *  Resolve template for register objects.
  */
 void parser::_resolve_template() {
-  for (unsigned int i(0); i < sizeof(_templates) / sizeof(_templates[0]); ++i) {
-    map_object& templates(_templates[i]);
-    for (map_object::iterator it(_templates[i].begin()),
-         end(_templates[i].end());
+  for (map_object& templates : _templates) {
+    for (map_object::iterator it = templates.begin(), end = templates.end();
          it != end; ++it)
       it->second->resolve_template(templates);
   }
 
-  for (unsigned int i(0); i < sizeof(_lst_objects) / sizeof(_lst_objects[0]);
-       ++i) {
-    map_object& templates(_templates[i]);
-    for (list_object::iterator it(_lst_objects[i].begin()),
-         end(_lst_objects[i].end());
+  for (unsigned int i = 0; i < _lst_objects.size(); ++i) {
+    map_object& templates = _templates[i];
+    for (list_object::iterator it = _lst_objects[i].begin(),
+                               end = _lst_objects[i].end();
          it != end; ++it) {
       (*it)->resolve_template(templates);
       try {
@@ -535,11 +531,10 @@ void parser::_resolve_template() {
     }
   }
 
-  for (unsigned int i(0); i < sizeof(_map_objects) / sizeof(_map_objects[0]);
-       ++i) {
-    map_object& templates(_templates[i]);
-    for (map_object::iterator it(_map_objects[i].begin()),
-         end(_map_objects[i].end());
+  for (unsigned int i = 0; i < _map_objects.size(); ++i) {
+    map_object& templates = _templates[i];
+    for (map_object::iterator it = _map_objects[i].begin(),
+                              end = _map_objects[i].end();
          it != end; ++it) {
       it->second->resolve_template(templates);
       try {

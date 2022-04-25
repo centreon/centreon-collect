@@ -19,11 +19,9 @@
 #ifndef CCCS_ORDERS_OPTIONS_HH
 #define CCCS_ORDERS_OPTIONS_HH
 
-#include <list>
-#include <string>
-#include "com/centreon/connector/ssh/namespace.hh"
+#include "com/centreon/connector/namespace.hh"
 
-CCCS_BEGIN()
+CCC_BEGIN()
 
 namespace orders {
 /**
@@ -34,6 +32,8 @@ namespace orders {
  */
 class options {
  public:
+  using pointer = std::shared_ptr<options>;
+
   enum ip_protocol { ip_v4 = 0, ip_v6 = 1 };
 
   options(std::string const& cmdline = "");
@@ -70,6 +70,6 @@ class options {
 };
 }  // namespace orders
 
-CCCS_END()
+CCC_END()
 
 #endif  // !CCCS_ORDERS_OPTIONS_HH

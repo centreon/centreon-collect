@@ -18,7 +18,6 @@
 */
 
 #include "com/centreon/engine/configuration/command.hh"
-#include <memory>
 #include "com/centreon/engine/exceptions/error.hh"
 
 using namespace com::centreon;

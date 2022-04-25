@@ -20,10 +20,7 @@
 #ifndef CCE_RETENTION_DUMP_HH
 #define CCE_RETENTION_DUMP_HH
 
-#include <ostream>
-#include <unordered_map>
 #include "com/centreon/engine/customvariable.hh"
-#include "com/centreon/engine/namespace.hh"
 #include "com/centreon/engine/notification.hh"
 
 // Forward declaration.

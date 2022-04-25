@@ -20,7 +20,6 @@
 #ifndef CCE_RETENTION_APPLIER_PROGRAM_HH
 #define CCE_RETENTION_APPLIER_PROGRAM_HH
 
-#include "com/centreon/engine/namespace.hh"
 #include "com/centreon/engine/retention/program.hh"
 
 CCE_BEGIN()

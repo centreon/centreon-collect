@@ -37,6 +37,7 @@ const absl::flat_hash_map<std::string, severity::setter_func>
         {"severity_level", SETTER(uint32_t, _set_level)},
         {"icon_id", SETTER(uint64_t, _set_icon_id)},
         {"severity_icon_id", SETTER(uint64_t, _set_icon_id)},
+        {"type", SETTER(const std::string&, _set_type)},
     };
 
 /**
@@ -45,7 +46,7 @@ const absl::flat_hash_map<std::string, severity::setter_func>
  * @param key The unique id corresponding to this severity.
  */
 severity::severity(const key_type& key)
-    : object(object::severity), _id{key}, _level{0}, _icon_id{0} {}
+    : object(object::severity), _key{key}, _level{0}, _icon_id{0} {}
 
 /**
  * @brief Copy constructor.
@@ -54,7 +55,7 @@ severity::severity(const key_type& key)
  */
 severity::severity(const severity& other)
     : object(other),
-      _id{other._id},
+      _key{other._key},
       _level{other._level},
       _icon_id{other._icon_id},
       _name{other._name} {}
@@ -69,7 +70,7 @@ severity::severity(const severity& other)
 severity& severity::operator=(const severity& other) {
   if (this != &other) {
     object::operator=(other);
-    _id = other._id;
+    _key = other._key;
     _level = other._level;
     _icon_id = other._icon_id;
     _name = other._name;
@@ -85,7 +86,7 @@ severity& severity::operator=(const severity& other) {
  * @return True if objects are equal, False otherwise.
  */
 bool severity::operator==(const severity& other) const noexcept {
-  return _id == other._id && _level == other._level &&
+  return _key == other._key && _level == other._level &&
          _icon_id == other._icon_id && _name == other._name;
 }
 
@@ -97,7 +98,7 @@ bool severity::operator==(const severity& other) const noexcept {
  * @return False if objects are equal, True otherwise.
  */
 bool severity::operator!=(const severity& other) const noexcept {
-  return _id != other._id || _level != other._level ||
+  return _key != other._key || _level != other._level ||
          _icon_id != other._icon_id || _name != other._name;
 }
 
@@ -109,8 +110,8 @@ bool severity::operator!=(const severity& other) const noexcept {
  * @return True if this objects is less than other.
  */
 bool severity::operator<(const severity& other) const noexcept {
-  if (_id != other._id)
-    return _id < other._id;
+  if (_key != other._key)
+    return _key < other._key;
   else if (_level != other._level)
     return _level < other._level;
   else if (_icon_id != other._icon_id)
@@ -131,12 +132,14 @@ bool severity::operator<(const severity& other) const noexcept {
 void severity::check_validity() const {
   if (_name.empty())
     throw engine_error() << "Severity has no name (property 'name')";
-  if (_id == 0)
+  if (_key.first == 0)
     throw engine_error()
         << "Severity id must not be less than 1 (property 'id')";
   if (_level == 0)
     throw engine_error()
         << "Severity level must not be less than 1 (property 'level')";
+  if (_key.second == severity::none)
+    throw engine_error() << "Severity type must be one of 'service' or 'host'";
 }
 
 /**
@@ -145,7 +148,7 @@ void severity::check_validity() const {
  * @return Severity id.
  */
 const severity::key_type& severity::key() const noexcept {
-  return _id;
+  return _key;
 }
 
 /**
@@ -209,10 +212,12 @@ void severity::merge(const object&) {}
  */
 bool severity::_set_id(uint64_t id) {
   if (id > 0) {
-    _id = id;
+    _key.first = id;
     return true;
-  } else
+  } else {
+    _key.first = 0;
     return false;
+  }
 }
 
 /**
@@ -252,4 +257,29 @@ bool severity::_set_icon_id(uint64_t icon_id) {
 bool severity::_set_name(const std::string& name) {
   _name = name;
   return true;
+}
+
+/**
+ * @brief Set the type of the severity. We only have two possibilities,
+ * the type can be "service" or "host".
+ *
+ * @param typ A string
+ *
+ * @return true on success, false otherwise.
+ */
+bool severity::_set_type(const std::string& typ) {
+  if (typ == "service") {
+    _key.second = severity::service;
+    return true;
+  } else if (typ == "host") {
+    _key.second = severity::host;
+    return true;
+  } else {
+    _key.second = severity::none;
+    return false;
+  }
+}
+
+uint16_t severity::type() const noexcept {
+  return _key.second;
 }

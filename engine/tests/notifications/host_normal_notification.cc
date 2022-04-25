@@ -18,11 +18,8 @@
  */
 
 #include <gtest/gtest.h>
-#include <time.h>
 
 #include <cstring>
-#include <iostream>
-#include <memory>
 #include <regex>
 
 #include "../helper.hh"
@@ -92,7 +89,7 @@ TEST_F(HostNotification, SimpleNormalHostNotification) {
   std::unique_ptr<engine::timeperiod> tperiod{
       new engine::timeperiod("tperiod", "alias")};
   for (int i = 0; i < 7; ++i)
-    tperiod->days[i].push_back(std::make_shared<engine::timerange>(0, 86400));
+    tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::hostescalation> host_escalation{
       new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7, Uuid())};
@@ -119,7 +116,7 @@ TEST_F(HostNotification, SimpleNormalHostNotificationNotificationsdisabled) {
   std::unique_ptr<engine::timeperiod> tperiod{
       new engine::timeperiod("tperiod", "alias")};
   for (int i = 0; i < 7; ++i)
-    tperiod->days[i].push_back(std::make_shared<engine::timerange>(0, 86400));
+    tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::hostescalation> host_escalation{
       new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7, Uuid())};
@@ -141,7 +138,7 @@ TEST_F(HostNotification, SimpleNormalHostNotificationNotifierNotifdisabled) {
   std::unique_ptr<engine::timeperiod> tperiod{
       new engine::timeperiod("tperiod", "alias")};
   for (int i = 0; i < 7; ++i)
-    tperiod->days[i].push_back(std::make_shared<engine::timerange>(0, 86400));
+    tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::hostescalation> host_escalation{
       new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7, Uuid())};
@@ -163,8 +160,7 @@ TEST_F(HostNotification, SimpleNormalHostNotificationOutsideTimeperiod) {
 
   uint64_t id{_host->get_next_notification_id()};
   for (int i = 0; i < 7; ++i)
-    tperiod->days[i].push_back(
-        std::make_shared<engine::timerange>(43200, 86400));
+    tperiod->days[i].emplace_back(43200, 86400);
 
   std::unique_ptr<engine::hostescalation> host_escalation{
       new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, Uuid())};
@@ -186,8 +182,7 @@ TEST_F(HostNotification,
 
   uint64_t id{_host->get_next_notification_id()};
   for (int i = 0; i < 7; ++i)
-    tperiod->days[i].push_back(
-        std::make_shared<engine::timerange>(43200, 86400));
+    tperiod->days[i].emplace_back(43200, 86400);
 
   std::unique_ptr<engine::hostescalation> host_escalation{
       new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, Uuid())};
@@ -207,8 +202,7 @@ TEST_F(HostNotification, SimpleNormalHostNotificationForcedNotification) {
 
   uint64_t id{_host->get_next_notification_id()};
   for (int i = 0; i < 7; ++i)
-    tperiod->days[i].push_back(
-        std::make_shared<engine::timerange>(43200, 86400));
+    tperiod->days[i].emplace_back(43200, 86400);
 
   std::unique_ptr<engine::hostescalation> host_escalation{
       new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, Uuid())};
@@ -229,7 +223,7 @@ TEST_F(HostNotification, SimpleNormalHostNotificationWithDowntime) {
   _host->set_scheduled_downtime_depth(30);
   uint64_t id{_host->get_next_notification_id()};
   for (int i = 0; i < 7; ++i)
-    tperiod->days[i].push_back(std::make_shared<engine::timerange>(0, 86400));
+    tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::hostescalation> host_escalation{
       new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, Uuid())};
@@ -250,7 +244,7 @@ TEST_F(HostNotification, SimpleNormalHostNotificationWithFlapping) {
   _host->set_is_flapping(true);
   uint64_t id{_host->get_next_notification_id()};
   for (int i = 0; i < 7; ++i)
-    tperiod->days[i].push_back(std::make_shared<engine::timerange>(0, 86400));
+    tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::hostescalation> host_escalation{
       new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, Uuid())};
@@ -271,7 +265,7 @@ TEST_F(HostNotification, SimpleNormalHostNotificationWithSoftState) {
   _host->set_state_type(checkable::soft);
   uint64_t id{_host->get_next_notification_id()};
   for (int i = 0; i < 7; ++i)
-    tperiod->days[i].push_back(std::make_shared<engine::timerange>(0, 86400));
+    tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::hostescalation> host_escalation{
       new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, Uuid())};
@@ -292,7 +286,7 @@ TEST_F(HostNotification,
 
   uint64_t id{_host->get_next_notification_id()};
   for (int i = 0; i < 7; ++i)
-    tperiod->days[i].push_back(std::make_shared<engine::timerange>(0, 86400));
+    tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::hostescalation> host_escalation{
       new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, Uuid())};
@@ -313,7 +307,7 @@ TEST_F(HostNotification, SimpleNormalHostNotificationAfterPreviousTooSoon) {
 
   uint64_t id{_host->get_next_notification_id()};
   for (int i = 0; i < 7; ++i)
-    tperiod->days[i].push_back(std::make_shared<engine::timerange>(0, 86400));
+    tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::hostescalation> host_escalation{
       new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, Uuid())};
@@ -336,7 +330,7 @@ TEST_F(HostNotification,
 
   uint64_t id{_host->get_next_notification_id()};
   for (int i = 0; i < 7; ++i)
-    tperiod->days[i].push_back(std::make_shared<engine::timerange>(0, 86400));
+    tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::hostescalation> host_escalation{
       new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, Uuid())};
@@ -360,7 +354,7 @@ TEST_F(HostNotification, SimpleNormalHostNotificationOnStateNotNotified) {
 
   uint64_t id{_host->get_next_notification_id()};
   for (int i = 0; i < 7; ++i)
-    tperiod->days[i].push_back(std::make_shared<engine::timerange>(0, 86400));
+    tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::hostescalation> host_escalation{
       new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, Uuid())};
@@ -384,7 +378,7 @@ TEST_F(HostNotification,
 
   uint64_t id{_host->get_next_notification_id()};
   for (int i = 0; i < 7; ++i)
-    tperiod->days[i].push_back(std::make_shared<engine::timerange>(0, 86400));
+    tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::hostescalation> host_escalation{
       new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, Uuid())};
@@ -410,7 +404,7 @@ TEST_F(HostNotification,
 
   uint64_t id{_host->get_next_notification_id()};
   for (int i = 0; i < 7; ++i)
-    tperiod->days[i].push_back(std::make_shared<engine::timerange>(0, 86400));
+    tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::hostescalation> host_escalation{
       new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, Uuid())};
@@ -435,7 +429,7 @@ TEST_F(HostNotification, SimpleNormalHostNotificationNotifierDelayTooShort) {
   std::unique_ptr<engine::timeperiod> tperiod{
       new engine::timeperiod("tperiod", "alias")};
   for (uint32_t i = 0; i < tperiod->days.size(); ++i)
-    tperiod->days[i].push_back(std::make_shared<engine::timerange>(0, 86400));
+    tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::hostescalation> host_escalation{
       new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7, Uuid())};
@@ -500,8 +494,7 @@ TEST_F(HostNotification, SimpleCheck) {
   // Only sent when i == 2
   size_t step1{out.find("HOST ALERT: test_host;DOWN;HARD;1;")};
   // Not found because the alert is sent only one time.
-  size_t step2{out.find("HOST ALERT: test_host;DOWN;HARD;1;",
-                        step1 + 1)};
+  size_t step2{out.find("HOST ALERT: test_host;DOWN;HARD;1;", step1 + 1)};
   // Sent when i == 0 on the second loop.
   size_t step3{
       out.find("HOST NOTIFICATION: admin;test_host;RECOVERY (UP);cmd;")};
@@ -596,7 +589,7 @@ TEST_F(HostNotification, HostEscalation) {
   _host->set_accept_passive_checks(true);
 
   testing::internal::CaptureStdout();
-  for (int i = 0; i < 12; i++) {
+  for (int i = 0; i < 14; i++) {
     // When i == 0, the state_critical is soft => no notification
     // When i == 1, the state_critical is soft => no notification
     // When i == 2, the state_critical is hard down => notification
@@ -629,49 +622,49 @@ TEST_F(HostNotification, HostEscalation) {
 
   std::string out{testing::internal::GetCapturedStdout()};
   std::cout << out << std::endl;
-  size_t step1{out.find("NOW = 50300")};
+  size_t step1{out.find("NOW = 50900")};
   ASSERT_NE(step1, std::string::npos);
   size_t step2{
       out.find("HOST NOTIFICATION: "
                "admin;test_host;DOWN;cmd;Down host",
                step1 + 1)};
   ASSERT_NE(step2, std::string::npos);
-  size_t step3{out.find("NOW = 50600", step2 + 1)};
+  size_t step3{out.find("NOW = 51200", step2 + 1)};
   ASSERT_NE(step3, std::string::npos);
   size_t step4{
       out.find("HOST NOTIFICATION: "
                "test_contact;test_host;DOWN;cmd;Down host",
                step3 + 1)};
   ASSERT_NE(step4, std::string::npos);
-  size_t step5{out.find("NOW = 51200", step4 + 1)};
+  size_t step5{out.find("NOW = 51500", step4 + 1)};
   ASSERT_NE(step5, std::string::npos);
   size_t step6{
       out.find("HOST NOTIFICATION: "
                "test_contact;test_host;DOWN;cmd;Down host",
                step5 + 1)};
   ASSERT_NE(step6, std::string::npos);
-  size_t step7{out.find("NOW = 51800", step6 + 1)};
+  size_t step7{out.find("NOW = 52100", step6 + 1)};
   ASSERT_NE(step7, std::string::npos);
   size_t step8{
       out.find("HOST NOTIFICATION: "
                "test_contact;test_host;DOWN;cmd;Down host",
                step7 + 1)};
   ASSERT_NE(step8, std::string::npos);
-  size_t step9{out.find("NOW = 52400", step8 + 1)};
+  size_t step9{out.find("NOW = 52700", step8 + 1)};
   ASSERT_NE(step9, std::string::npos);
   size_t step10{
       out.find("HOST NOTIFICATION: "
                "test_contact;test_host;DOWN;cmd;Down host",
                step9 + 1)};
   ASSERT_NE(step10, std::string::npos);
-  size_t step11{out.find("NOW = 53000", step10 + 1)};
+  size_t step11{out.find("NOW = 53300", step10 + 1)};
   ASSERT_NE(step11, std::string::npos);
   size_t step12{
       out.find("HOST NOTIFICATION: "
                "test_contact;test_host;DOWN;cmd;Down host",
                step11 + 1)};
   ASSERT_NE(step12, std::string::npos);
-  size_t step13{out.find("NOW = 53600", step12 + 1)};
+  size_t step13{out.find("NOW = 53900", step12 + 1)};
   ASSERT_NE(step13, std::string::npos);
   size_t step14{
       out.find("HOST NOTIFICATION: "
@@ -869,13 +862,16 @@ TEST_F(HostNotification, HostEscalationOneTime) {
   if (notifier::hard == _host->get_state_type())
     _host->set_last_hard_state(_host->get_current_state());
 
-  std::ostringstream oss;
-  // std::time_t now{std::time(nullptr)};
-  oss << '[' << now << ']'
-      << " PROCESS_HOST_CHECK_RESULT;test_host;1;Down host";
-  std::string cmd{oss.str()};
-  process_external_command(cmd.c_str());
-  checks::checker::instance().reap();
+  for (int i = 0; i < 3; i++) {
+    now += 300;
+    set_time(now);
+    std::ostringstream oss;
+    oss << '[' << now << ']'
+        << " PROCESS_HOST_CHECK_RESULT;test_host;1;Down host";
+    std::string cmd{oss.str()};
+    process_external_command(cmd.c_str());
+    checks::checker::instance().reap();
+  }
 
   // When i == 0, the state_ok is hard (return to up) => Recovery
   // notification When i == 1, the state_ok is still here (no change) => no
@@ -961,13 +957,16 @@ TEST_F(HostNotification, HostEscalationOneTimeNotifInter0) {
   if (notifier::hard == _host->get_state_type())
     _host->set_last_hard_state(_host->get_current_state());
 
-  std::ostringstream oss;
-  // std::time_t now{std::time(nullptr)};
-  oss << '[' << now << ']'
-      << " PROCESS_HOST_CHECK_RESULT;test_host;1;Down host";
-  std::string cmd{oss.str()};
-  process_external_command(cmd.c_str());
-  checks::checker::instance().reap();
+  for (int i = 0; i < 3; i++) {
+    now += 300;
+    set_time(now);
+    std::ostringstream oss;
+    oss << '[' << now << ']'
+        << " PROCESS_HOST_CHECK_RESULT;test_host;1;Down host";
+    std::string cmd{oss.str()};
+    process_external_command(cmd.c_str());
+    checks::checker::instance().reap();
+  }
 
   // When i == 0, the state_ok is hard (return to up) => Recovery
   // notification When i == 1, the state_ok is still here (no change) => no

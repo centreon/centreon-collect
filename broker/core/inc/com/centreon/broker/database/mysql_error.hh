@@ -111,10 +111,12 @@ class mysql_error {
     store_severity,
     clean_severities,
     store_tag,
-    clean_tags,
+    clean_resources_tags,
     update_index_data,
     update_resources,
     store_host_resources,
+    store_tags_resources_tags,
+    clean_resources,
   };
 
   static constexpr const char* msg[]{
@@ -192,10 +194,12 @@ class mysql_error {
       "could not insert severity in severities table: ",
       "could not remove severities: ",
       "could not insert tag in tags table: ",
-      "could not remove tags: ",
+      "could not remove resources tags: ",
       "could not update index data: ",
       "could not update resources: ",
       "could not insert host in resources: ",
+      "could not insert tag in resources_tags table: ",
+      "could not clean the resources table: ",
   };
 
   mysql_error() : _active(false) {}

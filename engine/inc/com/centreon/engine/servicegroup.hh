@@ -20,11 +20,6 @@
 #ifndef CCE_OBJECTS_SERVICEGROUP_HH
 #define CCE_OBJECTS_SERVICEGROUP_HH
 
-#include <memory>
-#include <ostream>
-#include <string>
-#include <unordered_map>
-#include "com/centreon/engine/namespace.hh"
 #include "com/centreon/engine/service.hh"
 
 /* Forward declaration. */

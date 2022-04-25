@@ -20,9 +20,7 @@
 #ifndef CCE_CONFIGURATION_APPLIER_LOGGING_HH
 #define CCE_CONFIGURATION_APPLIER_LOGGING_HH
 
-#include <string>
 #include "com/centreon/engine/configuration/state.hh"
-#include "com/centreon/engine/namespace.hh"
 #include "com/centreon/logging/file.hh"
 #include "com/centreon/logging/syslogger.hh"
 

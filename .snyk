@@ -1,0 +1,10 @@
+# Snyk (https://snyk.io) policy file
+version: v1.14.0
+
+ignore: {}
+
+exclude:
+   code:
+     - tests/**/*
+     - ci/**/*
+     - packaging/**/*

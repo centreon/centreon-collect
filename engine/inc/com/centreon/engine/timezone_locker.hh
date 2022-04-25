@@ -20,9 +20,6 @@
 #ifndef CCE_TIMEZONE_LOCKER_HH
 #define CCE_TIMEZONE_LOCKER_HH
 
-#include <string>
-#include "com/centreon/engine/namespace.hh"
-
 CCE_BEGIN()
 
 /**

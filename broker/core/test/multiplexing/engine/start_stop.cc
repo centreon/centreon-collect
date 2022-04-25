@@ -55,7 +55,7 @@ TEST_F(StartStop, MultiplexingWorks) {
 
   try {
     // Subscriber.
-    std::unordered_set<uint32_t> filters{io::raw::static_type()};
+    absl::flat_hash_set<uint32_t> filters{io::raw::static_type()};
     multiplexing::muxer mux("core_multiplexing_engine_start_stop", filters,
                             filters, false);
 

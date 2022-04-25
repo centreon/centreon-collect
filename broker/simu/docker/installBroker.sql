@@ -705,56 +705,79 @@ UNLOCK TABLES;
 -- Table structure for table `severities`
 --
 CREATE TABLE `severities` (
-  `id` bigint unsigned NOT NULL,
-  `name` varchar(255) DEFAULT NULL,
+  `severity_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `id` bigint(20) unsigned NOT NULL,
+  `type` tinyint(4) unsigned NOT NULL COMMENT '0=service, 1=host',
+  `name` varchar(255) NOT NULL,
   `level` int(11) unsigned NOT NULL,
-  `icon_id` bigint unsigned default NULL,
-  PRIMARY KEY (id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+  `icon_id` bigint(20) unsigned NOT NULL,
+  PRIMARY KEY (`severity_id`),
+  UNIQUE KEY `severities_id_type_uindex` (`id`,`type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
 --
 -- Table structure for table `tags`
 --
 CREATE TABLE `tags` (
-  `id` bigint unsigned NOT NULL,
-  `name` varchar(255) DEFAULT NULL,
-  `type` int(11) unsigned NOT NULL,
-  PRIMARY KEY (id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+  `tag_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `id` bigint(20) unsigned NOT NULL,
+  `type` tinyint(3) unsigned NOT NULL COMMENT '0=servicegroup, 1=hostgroup, 2=servicecategory, 3=hostcategory',
+  `name` varchar(255) NOT NULL,
+  PRIMARY KEY (`tag_id`),
+  UNIQUE KEY `tags_id_type_uindex` (`id`,`type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+--
+-- Table structure for table `resources_tags`
+--
+CREATE TABLE `resources_tags` (
+  `tag_id` bigint(20) unsigned NOT NULL,
+  `resource_id` bigint(20) unsigned NOT NULL,
+  KEY `resources_tags_resources_resource_id_fk` (`resource_id`),
+  KEY `resources_tags_tag_id_fk` (`tag_id`),
+  CONSTRAINT `resources_tags_resources_resource_id_fk` FOREIGN KEY (`resource_id`) REFERENCES `resources` (`resource_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `resources_tags_tag_id_fk` FOREIGN KEY (`tag_id`) REFERENCES `tags` (`tag_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  UNIQUE KEY `resources_tags_unique` (`tag_id`,`resource_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
 -- Table structure for table `resources`
 --
 CREATE TABLE `resources` (
-  `id` bigint unsigned NOT NULL,
-  `parent_id` bigint unsigned NOT NULL,
-  `type` tinyint unsigned NOT NULL,
-  `status` tinyint unsigned DEFAULT NULL,
-  `status_ordered` tinyint unsigned DEFAULT NULL,
-  `in_downtime` tinyint(1) DEFAULT 0 NOT NULL,
-  `acknowledged` tinyint(1) DEFAULT 0 NOT NULL,
-  `status_confirmed` tinyint(1) DEFAULT NULL,
-  `check_attempts` tinyint unsigned DEFAULT NULL,
-  `max_check_attempts` tinyint unsigned DEFAULT NULL,
-  `poller_id` bigint unsigned NOT NULL,
-  `severity_id` bigint unsigned,
+  `resource_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `id` bigint(20) unsigned NOT NULL,
+  `parent_id` bigint(20) unsigned NOT NULL,
+  `internal_id` bigint(20) unsigned DEFAULT NULL COMMENT 'id of linked metaservice or business-activity',
+  `type` tinyint(3) unsigned NOT NULL COMMENT '0=service, 1=host, 2=metaservice, 3=business-activity',
+  `status` tinyint(3) unsigned DEFAULT NULL COMMENT 'service: 0=OK, 1=WARNING, 2=CRITICAL, 3=UNKNOWN, 4=PENDING\nhost: 0=UP, 1=DOWN, 2=UNREACHABLE, 4=PENDING',
+  `status_ordered` tinyint(3) unsigned DEFAULT NULL COMMENT '0=OK=UP\n1=PENDING\n2=UNKNOWN=UNREACHABLE\n3=WARNING\n4=CRITICAL=DOWN',
+  `last_status_change` bigint(20) unsigned DEFAULT NULL COMMENT 'the last status change timestamp',
+  `in_downtime` tinyint(1) NOT NULL DEFAULT 0 COMMENT '0=false, 1=true',
+  `acknowledged` tinyint(1) NOT NULL DEFAULT 0 COMMENT '0=false, 1=true',
+  `status_confirmed` tinyint(1) DEFAULT NULL COMMENT '0=FALSE=SOFT\n1=TRUE=HARD',
+  `check_attempts` tinyint(3) unsigned DEFAULT NULL,
+  `max_check_attempts` tinyint(3) unsigned DEFAULT NULL,
+  `poller_id` bigint(20) unsigned NOT NULL,
+  `severity_id` bigint(20) unsigned DEFAULT NULL,
   `name` varchar(255) DEFAULT NULL,
   `alias` varchar(255) DEFAULT NULL,
   `address` varchar(255) DEFAULT NULL,
   `parent_name` varchar(255) DEFAULT NULL,
+  `icon_id` bigint(20) unsigned DEFAULT NULL,
   `notes_url` varchar(255) DEFAULT NULL,
   `notes` varchar(255) DEFAULT NULL,
   `action_url` varchar(255) DEFAULT NULL,
-  `has_graph` tinyint(1) DEFAULT 0 NOT NULL,
-  `notifications_enabled` tinyint(1) DEFAULT 0 NOT NULL,
-  `passive_checks_enabled` tinyint(1) DEFAULT 0 NOT NULL,
-  `active_checks_enabled` tinyint(1) DEFAULT 0 NOT NULL,
-  `last_check_type` tinyint unsigned DEFAULT 0 NOT NULL,
-  `last_check` bigint unsigned DEFAULT NULL,
-  `output` text,
-  PRIMARY KEY (id, parent_id),
-  FOREIGN KEY (severity_id) REFERENCES severities (id)
-  ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+  `has_graph` tinyint(1) NOT NULL DEFAULT 0 COMMENT '0=false, 1=true',
+  `notifications_enabled` tinyint(1) NOT NULL DEFAULT 0 COMMENT '0=false, 1=true',
+  `passive_checks_enabled` tinyint(1) NOT NULL DEFAULT 0 COMMENT '0=false, 1=true',
+  `active_checks_enabled` tinyint(1) NOT NULL DEFAULT 0 COMMENT '0=false, 1=true',
+  `last_check_type` tinyint(3) unsigned NOT NULL DEFAULT 0 COMMENT '0=active check, 1=passive check',
+  `last_check` bigint(20) unsigned DEFAULT NULL COMMENT 'the last check timestamp',
+  `output` text DEFAULT NULL,
+  `enabled` tinyint(1) NOT NULL DEFAULT 1 COMMENT '0=false, 1=true',
+  PRIMARY KEY (`resource_id`),
+  UNIQUE KEY `resources_id_parent_id_type_uindex` (`id`,`parent_id`,`type`),
+  KEY `resources_severities_severity_id_fk` (`severity_id`),
+  CONSTRAINT `resources_severities_severity_id_fk` FOREIGN KEY (`severity_id`) REFERENCES `severities` (`severity_id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

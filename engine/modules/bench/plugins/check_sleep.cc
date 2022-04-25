@@ -21,7 +21,6 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <iostream>
 
 static int const STATUS_OK(0);
 static int const STATUS_WARNING(1);

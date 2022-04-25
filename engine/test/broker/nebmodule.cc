@@ -18,7 +18,6 @@
 */
 
 #include <climits>
-#include <exception>
 #include "com/centreon/engine/broker/loader.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/nebmods.hh"

@@ -855,6 +855,13 @@ TEST_F(LuaTest, ServiceCacheTestPbAndAdaptive) {
   svc->mut_obj().set_service_id(14);
   svc->mut_obj().set_service_description("description");
   svc->mut_obj().set_enabled(true);
+  TagInfo* tag = svc->mut_obj().mutable_tags()->Add();
+  tag->set_id(23);
+  tag->set_type(SERVICEGROUP);
+  tag = svc->mut_obj().mutable_tags()->Add();
+  tag->set_id(24);
+  tag->set_type(SERVICEGROUP);
+
   _cache->write(svc);
   auto as = std::make_shared<neb::pb_adaptive_service>();
   as->mut_obj().set_host_id(1);
@@ -870,6 +877,8 @@ TEST_F(LuaTest, ServiceCacheTestPbAndAdaptive) {
       "  broker_log:info(1, 'service description is ' .. tostring(svc))\n"
       "  local s = broker_cache:get_service(1, 14)\n"
       "  broker_log:info(1, 'service event handler is ' .. s.event_handler)\n"
+      "  broker_log:info(1, 'service tag[1] is ' .. s.tags[1].id)\n"
+      "  broker_log:info(1, 'service tag[2] is ' .. s.tags[2].id)\n"
       "end\n\n"
       "function write(d)\n"
       "end\n");
@@ -877,6 +886,8 @@ TEST_F(LuaTest, ServiceCacheTestPbAndAdaptive) {
   std::string lst(ReadFile("/tmp/log"));
   ASSERT_NE(lst.find("service description is description"), std::string::npos);
   ASSERT_NE(lst.find("service event handler is fedcba"), std::string::npos);
+  ASSERT_NE(lst.find("service tag[1] is 23"), std::string::npos);
+  ASSERT_NE(lst.find("service tag[2] is 24"), std::string::npos);
   RemoveFile(filename);
   RemoveFile("/tmp/log");
 }
@@ -933,6 +944,13 @@ TEST_F(LuaTest, ServiceCacheApi2TestPbAndAdaptive) {
   svc->mut_obj().set_service_id(14);
   svc->mut_obj().set_service_description("description");
   svc->mut_obj().set_enabled(true);
+  TagInfo* tag = svc->mut_obj().mutable_tags()->Add();
+  tag->set_id(24);
+  tag->set_type(SERVICECATEGORY);
+  tag = svc->mut_obj().mutable_tags()->Add();
+  tag->set_id(25);
+  tag->set_type(SERVICECATEGORY);
+
   _cache->write(svc);
   auto as = std::make_shared<neb::pb_adaptive_service>();
   as->mut_obj().set_host_id(1);
@@ -949,6 +967,8 @@ TEST_F(LuaTest, ServiceCacheApi2TestPbAndAdaptive) {
       "  broker_log:info(1, 'service description is ' .. tostring(svc))\n"
       "  local s = broker_cache:get_service(1, 14)\n"
       "  broker_log:info(1, 'service event handler is ' .. s.event_handler)\n"
+      "  broker_log:info(1, 'service tag[1] is ' .. s.tags[1].id)\n"
+      "  broker_log:info(1, 'service tag[2] is ' .. s.tags[2].id)\n"
       "end\n\n"
       "function write(d)\n"
       "end\n");
@@ -956,6 +976,8 @@ TEST_F(LuaTest, ServiceCacheApi2TestPbAndAdaptive) {
   std::string lst(ReadFile("/tmp/log"));
   ASSERT_NE(lst.find("service description is description"), std::string::npos);
   ASSERT_NE(lst.find("service event handler is fedcba"), std::string::npos);
+  ASSERT_NE(lst.find("service tag[1] is 24"), std::string::npos);
+  ASSERT_NE(lst.find("service tag[2] is 25"), std::string::npos);
   RemoveFile(filename);
   RemoveFile("/tmp/log");
 }
@@ -2679,6 +2701,7 @@ TEST_F(LuaTest, PbBrokerEventIndex) {
       "  broker_log:info(0, 'check_type = ' .. d.check_type)\n"
       "  broker_log:info(0, 'service_id = ' .. d.service_id)\n"
       "  broker_log:info(0, 'last_check = ' .. d.last_check)\n"
+      "  return true\n"
       "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   binding->write(svc);
@@ -2756,7 +2779,7 @@ TEST_F(LuaTest, BrokerEventJsonEncode) {
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(
       lst.find(
-          "{ \"_type\": 65559, \"category\": 1, \"element\": 23, "
+          "{\"_type\":65559, \"category\":1, \"element\":23, "
           "\"acknowledged\":false, \"acknowledgement_type\":0, "
           "\"action_url\":\"svc action url\", \"active_checks\":false, "
           "\"check_freshness\":false, \"check_interval\":0, "
@@ -3255,6 +3278,13 @@ TEST_F(LuaTest, BrokerApi2PbServiceStatusWithNext) {
   obj.set_check_interval(7);
   obj.set_check_type(Service_CheckType_ACTIVE);
   obj.set_last_check(123459);
+  TagInfo* tag = obj.mutable_tags()->Add();
+  tag->set_id(24);
+  tag->set_type(SERVICECATEGORY);
+  tag = obj.mutable_tags()->Add();
+  tag->set_id(25);
+  tag->set_type(SERVICECATEGORY);
+
   std::string filename("/tmp/cache_test.lua");
   CreateScript(filename,
                "broker_api_version = 2\n"
@@ -3279,6 +3309,7 @@ TEST_F(LuaTest, BrokerApi2PbServiceStatusWithNext) {
   ASSERT_NE(lst.find("service_id => 288"), std::string::npos);
   ASSERT_NE(lst.find("host_id => 1899"), std::string::npos);
   ASSERT_NE(lst.find("last_check => 123459"), std::string::npos);
+  ASSERT_NE(lst.find("tags => Protobuf message"), std::string::npos);
   RemoveFile(filename);
   RemoveFile("/tmp/event_log");
 }
@@ -3298,6 +3329,13 @@ TEST_F(LuaTest, BrokerApi2PbServiceStatusJsonEncode) {
   obj.set_check_interval(7);
   obj.set_check_type(Service_CheckType_ACTIVE);
   obj.set_last_check(123459);
+  TagInfo* tag = obj.mutable_tags()->Add();
+  tag->set_id(24);
+  tag->set_type(SERVICECATEGORY);
+  tag = obj.mutable_tags()->Add();
+  tag->set_id(25);
+  tag->set_type(SERVICECATEGORY);
+
   std::string filename("/tmp/cache_test.lua");
   CreateScript(filename,
                "broker_api_version = 2\n"
@@ -3312,7 +3350,7 @@ TEST_F(LuaTest, BrokerApi2PbServiceStatusJsonEncode) {
   binding->write(svc);
   std::string lst(ReadFile("/tmp/event_log"));
   std::cout << "<<" << lst << ">>" << std::endl;
-  size_t pos1 = lst.find("\"_type\": 65563");
+  size_t pos1 = lst.find("\"_type\":65563");
   ASSERT_NE(pos1, std::string::npos);
   ASSERT_NE(lst.find("\"host_id\":1899", pos1), std::string::npos);
   ASSERT_NE(lst.find("\"service_id\":288", pos1), std::string::npos);
@@ -3325,6 +3363,10 @@ TEST_F(LuaTest, BrokerApi2PbServiceStatusJsonEncode) {
   ASSERT_NE(lst.find("\"check_interval\":7", pos1), std::string::npos);
   ASSERT_NE(lst.find("\"check_type\":0", pos1), std::string::npos);
   ASSERT_NE(lst.find("\"last_check\":123459", pos1), std::string::npos);
+  ASSERT_NE(
+      lst.find("\"tags\":[{\"id\":24, \"type\":2}, {\"id\":25, \"type\":2}]",
+               pos1),
+      std::string::npos);
   RemoveFile(filename);
   RemoveFile("/tmp/event_log");
 }
@@ -3344,6 +3386,12 @@ TEST_F(LuaTest, BrokerPbServiceStatusJsonEncode) {
   obj.set_check_interval(7);
   obj.set_check_type(Service_CheckType_ACTIVE);
   obj.set_last_check(123459);
+  TagInfo* tag = obj.mutable_tags()->Add();
+  tag->set_id(24);
+  tag->set_type(SERVICECATEGORY);
+  tag = obj.mutable_tags()->Add();
+  tag->set_id(25);
+  tag->set_type(SERVICECATEGORY);
   std::string filename("/tmp/cache_test.lua");
   CreateScript(filename,
                "function init(conf)\n"
@@ -3366,6 +3414,14 @@ TEST_F(LuaTest, BrokerPbServiceStatusJsonEncode) {
   ASSERT_NE(lst.find("\"last_check\":123459"), std::string::npos);
   ASSERT_NE(lst.find("\"service_description\":\"foo bar\""), std::string::npos);
   ASSERT_NE(lst.find("\"output\":\"cool\""), std::string::npos);
+  size_t s1 = lst.find("\"tags\":[{\"id\":24,\"type\":2}");
+  if (s1 == std::string::npos)
+    s1 = lst.find("\"tags\":[{\"type\":2,\"id\":24}");
+  size_t s2 = lst.find(",{\"id\":25,\"type\":2}]");
+  if (s2 == std::string::npos)
+    s2 = lst.find(",{\"type\":2,\"id\":25}]");
+  ASSERT_NE(s1, std::string::npos);
+  ASSERT_NE(s2, std::string::npos);
   RemoveFile(filename);
   RemoveFile("/tmp/event_log");
 }
@@ -3398,9 +3454,9 @@ TEST_F(LuaTest, BrokerApi2PbServiceJsonEncode) {
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   binding->write(svc);
   std::string lst(ReadFile("/tmp/event_log"));
-  ASSERT_NE(lst.find("\"_type\": 65563"), std::string::npos);
-  ASSERT_NE(lst.find("\"category\": 1"), std::string::npos);
-  ASSERT_NE(lst.find("\"element\": 27"), std::string::npos);
+  ASSERT_NE(lst.find("\"_type\":65563"), std::string::npos);
+  ASSERT_NE(lst.find("\"category\":1"), std::string::npos);
+  ASSERT_NE(lst.find("\"element\":27"), std::string::npos);
   ASSERT_NE(lst.find("\"host_id\":1899"), std::string::npos);
   ASSERT_NE(lst.find("\"service_id\":288"), std::string::npos);
   ASSERT_NE(lst.find("\"check_interval\":7"), std::string::npos);
@@ -3602,9 +3658,9 @@ TEST_F(LuaTest, BrokerApi2PbHostJsonEncode) {
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   binding->write(host);
   std::string lst(ReadFile("/tmp/event_log"));
-  ASSERT_NE(lst.find("\"_type\": 65568"), std::string::npos);
-  ASSERT_NE(lst.find("\"category\": 1"), std::string::npos);
-  ASSERT_NE(lst.find("\"element\": 32"), std::string::npos);
+  ASSERT_NE(lst.find("\"_type\":65568"), std::string::npos);
+  ASSERT_NE(lst.find("\"category\":1"), std::string::npos);
+  ASSERT_NE(lst.find("\"element\":32"), std::string::npos);
   ASSERT_NE(lst.find("\"host_id\":1899"), std::string::npos);
   ASSERT_NE(lst.find("\"current_state\":0"), std::string::npos);
   ASSERT_NE(lst.find("\"perf_data\":\"perfdata\""), std::string::npos);
@@ -3675,9 +3731,9 @@ TEST_F(LuaTest, BrokerApi2PbHostStatusJsonEncode) {
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   binding->write(host);
   std::string lst(ReadFile("/tmp/event_log"));
-  ASSERT_NE(lst.find("\"_type\": 65568"), std::string::npos);
-  ASSERT_NE(lst.find("\"category\": 1"), std::string::npos);
-  ASSERT_NE(lst.find("\"element\": 32"), std::string::npos);
+  ASSERT_NE(lst.find("\"_type\":65568"), std::string::npos);
+  ASSERT_NE(lst.find("\"category\":1"), std::string::npos);
+  ASSERT_NE(lst.find("\"element\":32"), std::string::npos);
   ASSERT_NE(lst.find("\"host_id\":1899"), std::string::npos);
   ASSERT_NE(lst.find("\"current_state\":0"), std::string::npos);
   ASSERT_NE(lst.find("\"last_check\":123459"), std::string::npos);
@@ -3747,8 +3803,7 @@ TEST_F(LuaTest, BrokerPbAdaptiveHostJsonEncode) {
   ASSERT_NE(lst.find("\"element\":31"), std::string::npos);
   ASSERT_NE(lst.find("\"host_id\":1492"), std::string::npos);
   ASSERT_NE(lst.find("\"max_check_attempts\":5"), std::string::npos);
-  ASSERT_NE(lst.find("\"check_command\":\"super command\""),
-            std::string::npos);
+  ASSERT_NE(lst.find("\"check_command\":\"super command\""), std::string::npos);
   ASSERT_EQ(lst.find("\"check_freshness\":"), std::string::npos);
   RemoveFile(filename);
   RemoveFile("/tmp/event_log");
@@ -3777,10 +3832,10 @@ TEST_F(LuaTest, BrokerApi2PbAdaptiveHostJsonEncode) {
   binding->write(host);
   std::string lst(ReadFile("/tmp/event_log"));
   std::cout << "Content: <<" << lst << ">>" << std::endl;
-  size_t pos1 = lst.find("\"_type\": 65567");
+  size_t pos1 = lst.find("\"_type\":65567");
   ASSERT_NE(pos1, std::string::npos);
-  ASSERT_NE(lst.find("\"category\": 1", pos1), std::string::npos);
-  ASSERT_NE(lst.find("\"element\": 31", pos1), std::string::npos);
+  ASSERT_NE(lst.find("\"category\":1", pos1), std::string::npos);
+  ASSERT_NE(lst.find("\"element\":31", pos1), std::string::npos);
   ASSERT_NE(lst.find("\"host_id\":1492"), std::string::npos);
   ASSERT_NE(lst.find("\"max_check_attempts\":5", pos1), std::string::npos);
   ASSERT_NE(lst.find("\"check_command\":\"super command\"", pos1),

@@ -185,7 +185,7 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
         std::shared_ptr<storage::metric> e(
             std::static_pointer_cast<storage::metric>(d));
         log_v2::rrd()->debug("RRD: new data for metric {} (time {}) {}",
-                             e->metric_id, e->ctime,
+                             e->metric_id, e->time,
                              e->is_for_rebuild ? "for rebuild" : "");
 
         // Metric path.
@@ -201,7 +201,7 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
           } catch (exceptions::open const& b) {
             time_t interval(e->interval ? e->interval : 60);
             assert(e->rrd_len);
-            _backend.open(metric_path, e->rrd_len, e->ctime - 1, interval,
+            _backend.open(metric_path, e->rrd_len, e->time - 1, interval,
                           e->value_type);
           }
           std::string v;
@@ -236,7 +236,7 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
                                    e->metric_id, e->value_type, v);
               break;
           }
-          _backend.update(e->ctime, v);
+          _backend.update(e->time, v);
         } else
           // Cache value.
           it->second.push_back(d);
@@ -264,7 +264,7 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
           } catch (exceptions::open const& b) {
             time_t interval(e->interval ? e->interval : 60);
             assert(e->rrd_len);
-            _backend.open(status_path, e->rrd_len, e->ctime - 1, interval);
+            _backend.open(status_path, e->rrd_len, e->time - 1, interval);
           }
           std::string value;
           if (e->state == 0)
@@ -275,7 +275,7 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
             value = "0";
           else
             value = "";
-          _backend.update(e->ctime, value);
+          _backend.update(e->time, value);
         } else
           // Cache value.
           it->second.push_back(d);

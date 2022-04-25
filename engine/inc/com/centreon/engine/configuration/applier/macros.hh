@@ -20,9 +20,7 @@
 #ifndef CCE_CONFIGURATION_APPLIER_MACROS_HH
 #define CCE_CONFIGURATION_APPLIER_MACROS_HH
 
-#include <string>
 #include "com/centreon/engine/configuration/state.hh"
-#include "com/centreon/engine/namespace.hh"
 
 // Forward declaration.
 class nagios_macros;

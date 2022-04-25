@@ -18,8 +18,6 @@
 */
 
 #include "com/centreon/engine/logging/debug_file.hh"
-#include <cassert>
-#include <cstdlib>
 
 using namespace com::centreon::engine::logging;
 

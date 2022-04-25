@@ -18,7 +18,7 @@
  */
 
 #include <gtest/gtest.h>
-#include <memory>
+
 #include "../../test_engine.hh"
 #include "../../timeperiod/utils.hh"
 #include "com/centreon/engine/anomalydetection.hh"

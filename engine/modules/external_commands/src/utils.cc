@@ -22,12 +22,7 @@
 #include <fcntl.h>
 #include <poll.h>
 #include <sys/stat.h>
-#include <unistd.h>
-#include <atomic>
-#include <cerrno>
 #include <csignal>
-#include <cstdio>
-#include <memory>
 #include <thread>
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/globals.hh"

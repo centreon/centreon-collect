@@ -19,8 +19,6 @@
 
 #include "com/centreon/engine/service.hh"
 
-#include <iomanip>
-
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/deleter/listmember.hh"
@@ -89,7 +87,8 @@ service::service(std::string const& hostname,
                  bool check_freshness,
                  int freshness_threshold,
                  bool obsess_over,
-                 std::string const& timezone)
+                 std::string const& timezone,
+                 uint64_t icon_id)
     : notifier{service_notification,
                display_name,
                check_command,
@@ -122,7 +121,8 @@ service::service(std::string const& hostname,
                timezone,
                0,
                0,
-               is_volatile},
+               is_volatile,
+               icon_id},
       _host_id{0},
       _service_id{0},
       _hostname{hostname},
@@ -663,7 +663,8 @@ com::centreon::engine::service* add_service(
     int retain_status_information,
     int retain_nonstatus_information,
     bool obsess_over_service,
-    std::string const& timezone) {
+    std::string const& timezone,
+    uint64_t icon_id) {
   // Make sure we have everything we need.
   if (!service_id) {
     engine_logger(log_config_error, basic)
@@ -753,7 +754,7 @@ com::centreon::engine::service* add_service(
       event_handler, event_handler_enabled, notes, notes_url, action_url,
       icon_image, icon_image_alt, flap_detection_enabled, low_flap_threshold,
       high_flap_threshold, check_freshness, freshness_threshold,
-      obsess_over_service, timezone)};
+      obsess_over_service, timezone, icon_id)};
   try {
     obj->set_acknowledgement_type(ACKNOWLEDGEMENT_NONE);
     obj->set_check_options(CHECK_OPTION_NONE);

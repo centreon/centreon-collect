@@ -20,9 +20,8 @@
 
 #include <gtest/gtest.h>
 
-#include <atomic>
 #include <chrono>
-#include <cstdio>
+
 #include <fstream>
 #include <thread>
 

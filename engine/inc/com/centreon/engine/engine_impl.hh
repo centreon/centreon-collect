@@ -1,7 +1,6 @@
 #ifndef CCE_ENGINERPC_ENGINE_IMPL_HH
 #define CCE_ENGINERPC_ENGINE_IMPL_HH
 
-#include "com/centreon/engine/namespace.hh"
 #include "engine.grpc.pb.h"
 
 CCE_BEGIN()

@@ -43,7 +43,7 @@ class metric : public io::data {
   metric(uint32_t host_id,
          uint32_t service_id,
          const std::string& name,
-         timestamp ctime,
+         timestamp time,
          uint32_t interval,
          bool is_for_rebuild,
          uint32_t metric_id,
@@ -63,7 +63,7 @@ class metric : public io::data {
     return io::events::data_type<io::storage, storage::de_metric>::value;
   }
 
-  timestamp ctime;
+  timestamp time;
   uint32_t interval;
   bool is_for_rebuild;
   uint32_t metric_id;

@@ -51,7 +51,7 @@ TEST_F(PublisherWrite, Write) {
     multiplexing::publisher p;
 
     // Subscriber.
-    std::unordered_set<uint32_t> filters{io::raw::static_type()};
+    absl::flat_hash_set<uint32_t> filters{io::raw::static_type()};
     multiplexing::muxer mux("core_multiplexing_publisher_write", filters,
                             filters, true);
 

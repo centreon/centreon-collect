@@ -27,10 +27,6 @@
 #include <unistd.h>
 #include <cctype>
 #include <cerrno>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <sstream>
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/commands/connector.hh"
 #include "com/centreon/engine/commands/forward.hh"
@@ -3460,7 +3456,7 @@ int xodtemplate_parse_timeperiod_directive(xodtemplate_timeperiod* tperiod,
                   temp_buffer[0]) == 8) {
     /* add timerange exception */
     if (xodtemplate_add_exception_to_timeperiod(
-            tperiod, DATERANGE_CALENDAR_DATE, syear, smon - 1, smday, 0, 0,
+            tperiod, daterange::calendar_date, syear, smon - 1, smday, 0, 0,
             eyear, emon - 1, emday, 0, 0, skip_interval,
             temp_buffer[0]) == NULL)
       result = ERROR;
@@ -3471,7 +3467,7 @@ int xodtemplate_parse_timeperiod_directive(xodtemplate_timeperiod* tperiod,
     emday = smday;
     /* add timerange exception */
     if (xodtemplate_add_exception_to_timeperiod(
-            tperiod, DATERANGE_CALENDAR_DATE, syear, smon - 1, smday, 0, 0,
+            tperiod, daterange::calendar_date, syear, smon - 1, smday, 0, 0,
             eyear, emon - 1, emday, 0, 0, skip_interval,
             temp_buffer[0]) == NULL)
       result = ERROR;
@@ -3480,7 +3476,7 @@ int xodtemplate_parse_timeperiod_directive(xodtemplate_timeperiod* tperiod,
                     temp_buffer[0]) == 7) {
     /* add timerange exception */
     if (xodtemplate_add_exception_to_timeperiod(
-            tperiod, DATERANGE_CALENDAR_DATE, syear, smon - 1, smday, 0, 0,
+            tperiod, daterange::calendar_date, syear, smon - 1, smday, 0, 0,
             eyear, emon - 1, emday, 0, 0, 0, temp_buffer[0]) == NULL)
       result = ERROR;
   } else if (sscanf(input, "%4d-%2d-%2d %[0-9:, -]", &syear, &smon, &smday,
@@ -3490,7 +3486,7 @@ int xodtemplate_parse_timeperiod_directive(xodtemplate_timeperiod* tperiod,
     emday = smday;
     /* add timerange exception */
     if (xodtemplate_add_exception_to_timeperiod(
-            tperiod, DATERANGE_CALENDAR_DATE, syear, smon - 1, smday, 0, 0,
+            tperiod, daterange::calendar_date, syear, smon - 1, smday, 0, 0,
             eyear, emon - 1, emday, 0, 0, 0, temp_buffer[0]) == NULL)
       result = ERROR;
   }
@@ -3510,7 +3506,7 @@ int xodtemplate_parse_timeperiod_directive(xodtemplate_timeperiod* tperiod,
             OK) {
       /* add timeperiod exception */
       if (xodtemplate_add_exception_to_timeperiod(
-              tperiod, DATERANGE_MONTH_WEEK_DAY, 0, smon, 0, swday,
+              tperiod, daterange::month_week_day, 0, smon, 0, swday,
               swday_offset, 0, emon, 0, ewday, ewday_offset, skip_interval,
               temp_buffer[4]) == NULL)
         result = ERROR;
@@ -3530,7 +3526,7 @@ int xodtemplate_parse_timeperiod_directive(xodtemplate_timeperiod* tperiod,
       ewday_offset = emday;
       /* add timeperiod exception */
       if (xodtemplate_add_exception_to_timeperiod(
-              tperiod, DATERANGE_WEEK_DAY, 0, 0, 0, swday, swday_offset, 0, 0,
+              tperiod, daterange::week_day, 0, 0, 0, swday, swday_offset, 0, 0,
               0, ewday, ewday_offset, skip_interval, temp_buffer[2]) == NULL)
         result = ERROR;
     } else if ((result = xodtemplate_get_month_from_string(temp_buffer[0],
@@ -3540,7 +3536,7 @@ int xodtemplate_parse_timeperiod_directive(xodtemplate_timeperiod* tperiod,
       /* february 1 - march 15 / 3 */
       /* add timeperiod exception */
       if (xodtemplate_add_exception_to_timeperiod(
-              tperiod, DATERANGE_MONTH_DATE, 0, smon, smday, 0, 0, 0, emon,
+              tperiod, daterange::month_date, 0, smon, smday, 0, 0, 0, emon,
               emday, 0, 0, skip_interval, temp_buffer[2]) == NULL)
         result = ERROR;
     } else if (!strcmp(temp_buffer[0], "day") &&
@@ -3549,7 +3545,7 @@ int xodtemplate_parse_timeperiod_directive(xodtemplate_timeperiod* tperiod,
       /* add timeperiod exception */
       result = OK;
       if (xodtemplate_add_exception_to_timeperiod(
-              tperiod, DATERANGE_MONTH_DAY, 0, 0, smday, 0, 0, 0, 0, emday, 0,
+              tperiod, daterange::month_day, 0, 0, smday, 0, 0, 0, 0, emday, 0,
               0, skip_interval, temp_buffer[2]) == NULL)
         result = ERROR;
     }
@@ -3566,7 +3562,7 @@ int xodtemplate_parse_timeperiod_directive(xodtemplate_timeperiod* tperiod,
       ewday_offset = emday;
       /* add timeperiod exception */
       if (xodtemplate_add_exception_to_timeperiod(
-              tperiod, DATERANGE_WEEK_DAY, 0, 0, 0, swday, swday_offset, 0, 0,
+              tperiod, daterange::week_day, 0, 0, 0, swday, swday_offset, 0, 0,
               0, ewday, ewday_offset, skip_interval, temp_buffer[1]) == NULL)
         result = ERROR;
     } else if ((result = xodtemplate_get_month_from_string(temp_buffer[0],
@@ -3575,7 +3571,7 @@ int xodtemplate_parse_timeperiod_directive(xodtemplate_timeperiod* tperiod,
       emon = smon;
       /* add timeperiod exception */
       if (xodtemplate_add_exception_to_timeperiod(
-              tperiod, DATERANGE_MONTH_DATE, 0, smon, smday, 0, 0, 0, emon,
+              tperiod, daterange::month_date, 0, smon, smday, 0, 0, 0, emon,
               emday, 0, 0, skip_interval, temp_buffer[1]) == NULL)
         result = ERROR;
     } else if (!strcmp(temp_buffer[0], "day")) {
@@ -3583,7 +3579,7 @@ int xodtemplate_parse_timeperiod_directive(xodtemplate_timeperiod* tperiod,
       /* add timeperiod exception */
       result = OK;
       if (xodtemplate_add_exception_to_timeperiod(
-              tperiod, DATERANGE_MONTH_DAY, 0, 0, smday, 0, 0, 0, 0, emday, 0,
+              tperiod, daterange::month_day, 0, 0, smday, 0, 0, 0, 0, emday, 0,
               0, skip_interval, temp_buffer[1]) == NULL)
         result = ERROR;
     }
@@ -3602,7 +3598,7 @@ int xodtemplate_parse_timeperiod_directive(xodtemplate_timeperiod* tperiod,
             OK) {
       /* add timeperiod exception */
       if (xodtemplate_add_exception_to_timeperiod(
-              tperiod, DATERANGE_MONTH_WEEK_DAY, 0, smon, 0, swday,
+              tperiod, daterange::month_week_day, 0, smon, 0, swday,
               swday_offset, 0, emon, 0, ewday, ewday_offset, 0,
               temp_buffer[4]) == NULL)
         result = ERROR;
@@ -3620,7 +3616,7 @@ int xodtemplate_parse_timeperiod_directive(xodtemplate_timeperiod* tperiod,
       ewday_offset = emday;
       /* add timeperiod exception */
       if (xodtemplate_add_exception_to_timeperiod(
-              tperiod, DATERANGE_WEEK_DAY, 0, 0, 0, swday, swday_offset, 0, 0,
+              tperiod, daterange::week_day, 0, 0, 0, swday, swday_offset, 0, 0,
               0, ewday, ewday_offset, 0, temp_buffer[1]) == NULL)
         result = ERROR;
     } else if ((result = xodtemplate_get_month_from_string(temp_buffer[0],
@@ -3629,7 +3625,7 @@ int xodtemplate_parse_timeperiod_directive(xodtemplate_timeperiod* tperiod,
       emon = smon;
       /* add timeperiod exception */
       if (xodtemplate_add_exception_to_timeperiod(
-              tperiod, DATERANGE_MONTH_DATE, 0, smon, smday, 0, 0, 0, emon,
+              tperiod, daterange::month_date, 0, smon, smday, 0, 0, 0, emon,
               emday, 0, 0, 0, temp_buffer[1]) == NULL)
         result = ERROR;
     } else if (!strcmp(temp_buffer[0], "day")) {
@@ -3637,7 +3633,7 @@ int xodtemplate_parse_timeperiod_directive(xodtemplate_timeperiod* tperiod,
       /* add timeperiod exception */
       result = OK;
       if (xodtemplate_add_exception_to_timeperiod(
-              tperiod, DATERANGE_MONTH_DAY, 0, 0, smday, 0, 0, 0, 0, emday, 0,
+              tperiod, daterange::month_day, 0, 0, smday, 0, 0, 0, 0, emday, 0,
               0, 0, temp_buffer[1]) == NULL)
         result = ERROR;
     }
@@ -3655,7 +3651,7 @@ int xodtemplate_parse_timeperiod_directive(xodtemplate_timeperiod* tperiod,
       ewday_offset = emday;
       /* add timeperiod exception */
       if (xodtemplate_add_exception_to_timeperiod(
-              tperiod, DATERANGE_WEEK_DAY, 0, 0, 0, swday, swday_offset, 0, 0,
+              tperiod, daterange::week_day, 0, 0, 0, swday, swday_offset, 0, 0,
               0, ewday, ewday_offset, 0, temp_buffer[2]) == NULL)
         result = ERROR;
     } else if ((result = xodtemplate_get_month_from_string(temp_buffer[0],
@@ -3665,7 +3661,7 @@ int xodtemplate_parse_timeperiod_directive(xodtemplate_timeperiod* tperiod,
       /* february 1 - march 15 */
       /* add timeperiod exception */
       if (xodtemplate_add_exception_to_timeperiod(
-              tperiod, DATERANGE_MONTH_DATE, 0, smon, smday, 0, 0, 0, emon,
+              tperiod, daterange::month_date, 0, smon, smday, 0, 0, 0, emon,
               emday, 0, 0, 0, temp_buffer[2]) == NULL)
         result = ERROR;
     } else if (!strcmp(temp_buffer[0], "day") &&
@@ -3674,7 +3670,7 @@ int xodtemplate_parse_timeperiod_directive(xodtemplate_timeperiod* tperiod,
       /* add timeperiod exception */
       result = OK;
       if (xodtemplate_add_exception_to_timeperiod(
-              tperiod, DATERANGE_MONTH_DAY, 0, 0, smday, 0, 0, 0, 0, emday, 0,
+              tperiod, daterange::month_day, 0, 0, smday, 0, 0, 0, 0, emday, 0,
               0, 0, temp_buffer[2]) == NULL)
         result = ERROR;
     }
@@ -3691,7 +3687,7 @@ int xodtemplate_parse_timeperiod_directive(xodtemplate_timeperiod* tperiod,
       ewday_offset = swday_offset;
       /* add timeperiod exception */
       if (xodtemplate_add_exception_to_timeperiod(
-              tperiod, DATERANGE_WEEK_DAY, 0, 0, 0, swday, swday_offset, 0, 0,
+              tperiod, daterange::week_day, 0, 0, 0, swday, swday_offset, 0, 0,
               0, ewday, ewday_offset, 0, temp_buffer[1]) == NULL)
         result = ERROR;
     } else if ((result = xodtemplate_get_month_from_string(temp_buffer[0],
@@ -3701,7 +3697,7 @@ int xodtemplate_parse_timeperiod_directive(xodtemplate_timeperiod* tperiod,
       emday = smday;
       /* add timeperiod exception */
       if (xodtemplate_add_exception_to_timeperiod(
-              tperiod, DATERANGE_MONTH_DATE, 0, smon, smday, 0, 0, 0, emon,
+              tperiod, daterange::month_date, 0, smon, smday, 0, 0, 0, emon,
               emday, 0, 0, 0, temp_buffer[1]) == NULL)
         result = ERROR;
     } else if (!strcmp(temp_buffer[0], "day")) {
@@ -3710,7 +3706,7 @@ int xodtemplate_parse_timeperiod_directive(xodtemplate_timeperiod* tperiod,
       /* add timeperiod exception */
       result = OK;
       if (xodtemplate_add_exception_to_timeperiod(
-              tperiod, DATERANGE_MONTH_DAY, 0, 0, smday, 0, 0, 0, 0, emday, 0,
+              tperiod, daterange::month_day, 0, 0, smday, 0, 0, 0, 0, emday, 0,
               0, 0, temp_buffer[1]) == NULL)
         result = ERROR;
     }
@@ -3726,7 +3722,7 @@ int xodtemplate_parse_timeperiod_directive(xodtemplate_timeperiod* tperiod,
       ewday_offset = swday_offset;
       /* add timeperiod exception */
       if (xodtemplate_add_exception_to_timeperiod(
-              tperiod, DATERANGE_MONTH_WEEK_DAY, 0, smon, 0, swday,
+              tperiod, daterange::month_week_day, 0, smon, 0, swday,
               swday_offset, 0, emon, 0, ewday, ewday_offset, 0,
               temp_buffer[2]) == NULL)
         result = ERROR;
@@ -11230,7 +11226,7 @@ int xodtemplate_cache_objects(char* cache_file) {
           continue;
 
         switch (temp_daterange->type) {
-          case DATERANGE_CALENDAR_DATE:
+          case daterange::calendar_date:
             fprintf(fp, "\t%d-%02d-%02d", temp_daterange->syear,
                     temp_daterange->smon + 1, temp_daterange->smday);
             if ((temp_daterange->smday != temp_daterange->emday) ||
@@ -11242,7 +11238,7 @@ int xodtemplate_cache_objects(char* cache_file) {
               fprintf(fp, " / %d", temp_daterange->skip_interval);
             break;
 
-          case DATERANGE_MONTH_DATE:
+          case daterange::month_date:
             fprintf(fp, "\t%s %d", months[temp_daterange->smon],
                     temp_daterange->smday);
             if ((temp_daterange->smon != temp_daterange->emon) ||
@@ -11254,7 +11250,7 @@ int xodtemplate_cache_objects(char* cache_file) {
             }
             break;
 
-          case DATERANGE_MONTH_DAY:
+          case daterange::month_day:
             fprintf(fp, "\tday %d", temp_daterange->smday);
             if (temp_daterange->smday != temp_daterange->emday) {
               fprintf(fp, " - %d", temp_daterange->emday);
@@ -11263,7 +11259,7 @@ int xodtemplate_cache_objects(char* cache_file) {
             }
             break;
 
-          case DATERANGE_MONTH_WEEK_DAY:
+          case daterange::month_week_day:
             fprintf(fp, "\t%s %d %s", days[temp_daterange->swday],
                     temp_daterange->swday_offset, months[temp_daterange->smon]);
             if ((temp_daterange->smon != temp_daterange->emon) ||
@@ -11278,7 +11274,7 @@ int xodtemplate_cache_objects(char* cache_file) {
             }
             break;
 
-          case DATERANGE_WEEK_DAY:
+          case daterange::week_day:
             fprintf(fp, "\t%s %d", days[temp_daterange->swday],
                     temp_daterange->swday_offset);
             if ((temp_daterange->swday != temp_daterange->ewday) ||
@@ -15385,21 +15381,6 @@ int read_main_config_file(char const* main_config_file) {
       obsess_over_hosts = (atoi(value) > 0) ? true : false;
     }
 
-    else if (!strcmp(variable, "translate_passive_host_checks")) {
-      if (strlen(value) != 1 || value[0] < '0' || value[0] > '1') {
-        if (asprintf(&error_message,
-                     "Illegal value for translate_passive_host_checks")) {
-        }
-        error = true;
-        break;
-      }
-
-      translate_passive_host_checks = (atoi(value) > 0) ? true : false;
-    }
-
-    else if (!strcmp(variable, "passive_host_checks_are_soft"))
-      passive_host_checks_are_soft = (atoi(value) > 0) ? true : false;
-
     else if (!strcmp(variable, "service_check_timeout")) {
       service_check_timeout = atoi(value);
 
@@ -15646,17 +15627,6 @@ int read_main_config_file(char const* main_config_file) {
       if (check_reaper_interval < 1) {
         if (asprintf(&error_message,
                      "Illegal value for check_result_reaper_frequency")) {
-        }
-        error = true;
-        break;
-      }
-    }
-
-    else if (!strcmp(variable, "max_check_result_reaper_time")) {
-      max_check_reaper_time = atoi(value);
-      if (max_check_reaper_time < 1) {
-        if (asprintf(&error_message,
-                     "Illegal value for max_check_result_reaper_time")) {
         }
         error = true;
         break;

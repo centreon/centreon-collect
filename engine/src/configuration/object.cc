@@ -220,12 +220,10 @@ void object::resolve_template(map_object& templates) {
     return;
 
   _is_resolve = true;
-  for (std::list<std::string>::const_iterator it(_templates.begin()),
-       end(_templates.end());
-       it != end; ++it) {
-    map_object::iterator tmpl(templates.find(*it));
+  for (std::string& s : _templates) {
+    map_object::iterator tmpl = templates.find(s);
     if (tmpl == templates.end())
-      throw(engine_error() << "Cannot merge object of type '" << *it << "'");
+      throw engine_error() << "Cannot merge object of type '" << s << "'";
     tmpl->second->resolve_template(templates);
     merge(*tmpl->second);
   }

@@ -23,9 +23,6 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <unistd.h>
-#include <cstddef>
-#include <cstring>
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/string.hh"
 

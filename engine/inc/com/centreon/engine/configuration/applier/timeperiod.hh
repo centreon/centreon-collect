@@ -20,11 +20,6 @@
 #ifndef CCE_CONFIGURATION_APPLIER_TIMEPERIOD_HH
 #define CCE_CONFIGURATION_APPLIER_TIMEPERIOD_HH
 
-#include <list>
-#include <set>
-#include <string>
-#include <vector>
-#include "com/centreon/engine/namespace.hh"
 #include "com/centreon/engine/timeperiod.hh"
 
 // Forward declaration.
@@ -32,10 +27,8 @@ CCE_BEGIN()
 
 namespace configuration {
 // Forward declarations.
-class daterange;
 class state;
 class timeperiod;
-class timerange;
 
 namespace applier {
 class timeperiod {
@@ -53,10 +46,6 @@ class timeperiod {
  private:
   void _add_exclusions(std::set<std::string> const& exclusions,
                        com::centreon::engine::timeperiod* tp);
-  void _add_exceptions(std::vector<std::list<daterange> > const& exceptions,
-                       com::centreon::engine::timeperiod* tp);
-  void _add_time_ranges(std::vector<std::list<timerange> > const& ranges,
-                        com::centreon::engine::timeperiod* tp);
 };
 }  // namespace applier
 }  // namespace configuration

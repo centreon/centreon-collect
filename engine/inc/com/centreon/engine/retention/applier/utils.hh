@@ -20,11 +20,7 @@
 #ifndef CCE_RETENTION_APPLIER_UTILS_HH
 #define CCE_RETENTION_APPLIER_UTILS_HH
 
-#include <array>
-#include <string>
-#include <vector>
 #include "com/centreon/engine/common.hh"
-#include "com/centreon/engine/namespace.hh"
 
 CCE_BEGIN()
 

@@ -18,8 +18,6 @@
 */
 
 #include "com/centreon/engine/configuration/applier/anomalydetection.hh"
-#include <algorithm>
-#include <cassert>
 #include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
@@ -153,7 +151,7 @@ void applier::anomalydetection::add_object(
       obj.notes(), obj.notes_url(), obj.action_url(), obj.icon_image(),
       obj.icon_image_alt(), obj.retain_status_information(),
       obj.retain_nonstatus_information(), obj.obsess_over_service(),
-      obj.timezone())};
+      obj.timezone(), obj.icon_id())};
   if (!ad)
     throw engine_error() << "Could not register anomalydetection '"
                          << obj.service_description() << "' of host '"

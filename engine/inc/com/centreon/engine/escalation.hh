@@ -20,9 +20,7 @@
 #ifndef CCE_ESCALATION_HH
 #define CCE_ESCALATION_HH
 
-#include <string>
 #include "com/centreon/engine/contactgroup.hh"
-#include "com/centreon/engine/namespace.hh"
 #include "com/centreon/engine/notifier.hh"
 #include "com/centreon/engine/shared.hh"
 

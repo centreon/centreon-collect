@@ -20,7 +20,6 @@
 #ifndef CCE_RETENTION_APPLIER_SERVICE_HH
 #define CCE_RETENTION_APPLIER_SERVICE_HH
 
-#include "com/centreon/engine/namespace.hh"
 #include "com/centreon/engine/retention/service.hh"
 
 // Forward declaration.

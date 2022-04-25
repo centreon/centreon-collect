@@ -20,8 +20,6 @@
 #ifndef CCE_OPT_HH
 #define CCE_OPT_HH
 
-#include "com/centreon/engine/namespace.hh"
-
 CCE_BEGIN()
 
 template <typename T>

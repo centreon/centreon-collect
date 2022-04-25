@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2019 Centreon
+** Copyright 2011-2019,2022 Centreon
 **
 ** This file is part of Centreon Engine.
 **
@@ -19,8 +19,6 @@
 
 #include "com/centreon/engine/configuration/applier/host.hh"
 
-#include <algorithm>
-
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/config.hh"
@@ -30,6 +28,7 @@
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/log_v2.hh"
+#include "com/centreon/engine/severity.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -96,7 +95,7 @@ void applier::host::add_object(configuration::host const& obj) {
       obj.have_coords_3d(),
       true,  // should_be_drawn, enabled by Nagios
       obj.retain_status_information(), obj.retain_nonstatus_information(),
-      obj.obsess_over_host(), obj.timezone())};
+      obj.obsess_over_host(), obj.timezone(), obj.icon_id())};
 
   engine::host::hosts.insert({h->get_name(), h});
   engine::host::hosts_by_id.insert({obj.host_id(), h});
@@ -134,11 +133,37 @@ void applier::host::add_object(configuration::host const& obj) {
     }
   }
 
+  // add tags
+  for (std::set<std::pair<uint64_t, uint16_t>>::iterator
+           it = obj.tags().begin(),
+           end = obj.tags().end();
+       it != end; ++it) {
+    tag_map::iterator it_tag{engine::tag::tags.find(*it)};
+    if (it_tag == engine::tag::tags.end())
+      throw engine_error() << "Could not find tag '" << it->first
+                           << "' on which to apply host (" << obj.host_id()
+                           << ")";
+    else
+      h->mut_tags().emplace_front(it_tag->second);
+  }
+
   // Parents.
   for (set_string::const_iterator it(obj.parents().begin()),
        end(obj.parents().end());
        it != end; ++it)
     h->add_parent_host(*it);
+
+  // Add severity.
+  if (obj.severity_id()) {
+    configuration::severity::key_type k = {obj.severity_id(),
+                                           configuration::severity::host};
+    auto sv = engine::severity::severities.find(k);
+    if (sv == engine::severity::severities.end())
+      throw engine_error() << "Could not add the severity (" << k.first << ", "
+                           << k.second << ") to the host '" << obj.host_name()
+                           << "'";
+    h->set_severity(sv->second);
+  }
 
   // Notify event broker.
   timeval tv(get_broker_timestamp(nullptr));
@@ -377,6 +402,23 @@ void applier::host::modify_object(configuration::host const& obj) {
     }
   }
 
+  // add tags
+  if (obj.tags() != obj_old.tags()) {
+    it_obj->second->mut_tags().clear();
+    for (std::set<std::pair<uint64_t, uint16_t>>::iterator
+             it = obj.tags().begin(),
+             end = obj.tags().end();
+         it != end; ++it) {
+      tag_map::iterator it_tag{engine::tag::tags.find(*it)};
+      if (it_tag == engine::tag::tags.end())
+        throw engine_error()
+            << "Could not find tag '" << it->first
+            << "' on which to apply host (" << obj.host_id() << ")";
+      else
+        it_obj->second->mut_tags().emplace_front(it_tag->second);
+    }
+  }
+
   // Parents.
   if (obj.parents() != obj_old.parents()) {
     // Delete old parents.
@@ -397,6 +439,19 @@ void applier::host::modify_object(configuration::host const& obj) {
          it != end; ++it)
       it_obj->second->add_parent_host(*it);
   }
+
+  // Severity.
+  if (obj.severity_id()) {
+    configuration::severity::key_type k = {obj.severity_id(),
+                                           configuration::severity::host};
+    auto sv = engine::severity::severities.find(k);
+    if (sv == engine::severity::severities.end())
+      throw engine_error() << "Could not update the severity (" << k.first
+                           << ", " << k.second << ") to the host '"
+                           << obj.host_name() << "'";
+    it_obj->second->set_severity(sv->second);
+  } else
+    it_obj->second->set_severity(nullptr);
 
   // Notify event broker.
   timeval tv(get_broker_timestamp(nullptr));

@@ -18,9 +18,7 @@
 */
 
 #include "com/centreon/engine/host.hh"
-
 #include <cassert>
-#include <iomanip>
 
 #include <fmt/chrono.h>
 #include "com/centreon/engine/broker.hh"
@@ -192,7 +190,8 @@ host::host(uint64_t host_id,
            bool retain_status_information,
            bool retain_nonstatus_information,
            bool obsess_over_host,
-           std::string const& timezone)
+           std::string const& timezone,
+           uint64_t icon_id)
     : notifier{host_notification,
                !display_name.empty() ? display_name : name,
                check_command,
@@ -232,7 +231,8 @@ host::host(uint64_t host_id,
                timezone,
                retain_status_information > 0,
                retain_nonstatus_information > 0,
-               false},
+               false,
+               icon_id},
       _id{host_id},
       _name{name},
       _address{address},
@@ -3059,8 +3059,7 @@ int host::process_check_result_3x(enum host::host_state new_state,
 
   /* we have to adjust current attempt # for passive checks, as it isn't done
    * elsewhere */
-  if (get_check_type() == check_passive &&
-      config->passive_host_checks_are_soft())
+  if (get_check_type() == check_passive)
     adjust_check_attempt(false);
 
   /* log passive checks - we need to do this here, as some my bypass external
@@ -3088,8 +3087,7 @@ int host::process_check_result_3x(enum host::host_state new_state,
       /* set the state type */
       /* set state type to HARD for passive checks and active checks that were
        * previously in a HARD STATE */
-      if (get_state_type() == hard || (get_check_type() == check_passive &&
-                                       !config->passive_host_checks_are_soft()))
+      if (get_state_type() == hard)
         set_state_type(hard);
       else
         set_state_type(soft);
@@ -3153,37 +3151,20 @@ int host::process_check_result_3x(enum host::host_state new_state,
       engine_logger(dbg_checks, more) << "Host is still DOWN/UNREACHABLE.";
       log_v2::checks()->debug("Host is still DOWN/UNREACHABLE.");
 
-      /* passive checks are treated as HARD states by default... */
-      if (get_check_type() == check_passive &&
-          !config->passive_host_checks_are_soft()) {
-        /* set the state type */
+      /* set the state type */
+      /* we've maxed out on the retries */
+      if (get_current_attempt() == max_check_attempts())
         set_state_type(hard);
-
-        /* reset the current attempt */
-        set_current_attempt(1);
-      }
-
-      /* active checks and passive checks (treated as SOFT states) */
-      else {
-        /* set the state type */
-        /* we've maxed out on the retries */
-        if (get_current_attempt() == max_check_attempts())
-          set_state_type(hard);
-        /* the host was in a hard problem state before, so it still is now */
-        else if (get_current_attempt() == 1)
-          set_state_type(hard);
-        /* the host is in a soft state and the check will be retried */
-        else
-          set_state_type(soft);
-      }
+      /* the host was in a hard problem state before, so it still is now */
+      else if (get_current_attempt() == 1)
+        set_state_type(hard);
+      /* the host is in a soft state and the check will be retried */
+      else
+        set_state_type(soft);
 
       /* make a determination of the host's state */
-      /* translate host state between DOWN/UNREACHABLE (only for passive checks
-       * if enabled) */
-      _current_state = new_state;
-      if (get_check_type() == check_active ||
-          config->translate_passive_host_checks())
-        _current_state = determine_host_reachability();
+      /* translate host state between DOWN/UNREACHABLE */
+      _current_state = determine_host_reachability(new_state);
 
       /* reschedule the next check if the host state changed */
       if (_last_state != _current_state || _last_hard_state != _current_state) {
@@ -3300,13 +3281,9 @@ int host::process_check_result_3x(enum host::host_state new_state,
         /* set the host state for passive checks */
         else {
           /* set the state */
-          _current_state = new_state;
-
-          /* translate host state between DOWN/UNREACHABLE for passive checks
-           * (if enabled) */
+          /* translate host state between DOWN/UNREACHABLE */
           /* make a determination of the host's state */
-          if (config->translate_passive_host_checks())
-            _current_state = determine_host_reachability();
+          _current_state = determine_host_reachability(new_state);
         }
 
         /* propagate checks to immediate children if they are not UNREACHABLE */
@@ -3332,40 +3309,23 @@ int host::process_check_result_3x(enum host::host_state new_state,
       }
       /***** MAX ATTEMPTS > 1 *****/
       else {
-        /* active and (in some cases) passive check results are treated as SOFT
-         * states */
-        if (get_check_type() == check_active ||
-            config->passive_host_checks_are_soft()) {
-          /* set the state type */
-          set_state_type(soft);
-        }
-        /* by default, passive check results are treated as HARD states */
-        else {
-          /* set the state type */
-          set_state_type(hard);
-
-          /* reset the current attempt */
-          set_current_attempt(1);
-        }
+        /* active and passive check results are treated as SOFT states */
+        /* set the state type */
+        set_state_type(soft);
 
         /* make a (in some cases) preliminary determination of the host's state
          */
-        /* translate host state between DOWN/UNREACHABLE (for passive checks
-         * only if enabled) */
-        _current_state = new_state;
-        if (get_check_type() == check_active ||
-            config->translate_passive_host_checks())
-          _current_state = determine_host_reachability();
+        /* translate host state between DOWN/UNREACHABLE  */
+        _current_state = determine_host_reachability(new_state);
 
         /* reschedule a check of the host */
         reschedule_check = true;
 
         /* schedule a re-check of the host at the retry interval because we
          * can't determine its final state yet... */
-        if (get_check_type() == check_active ||
-            config->passive_host_checks_are_soft())
-          next_check =
-              get_last_check() + retry_interval() * config->interval_length();
+        next_check =
+            get_last_check() + retry_interval() * config->interval_length();
+
         /* propagate checks to immediate parents if they are UP */
         /* we do this because a parent host (or grandparent) may have gone down
          * and blocked our route */
@@ -3591,7 +3551,8 @@ int host::process_check_result_3x(enum host::host_state new_state,
                                                                       DOWN and
                                                                       UNREACHABLE
                                                                       states */
-enum host::host_state host::determine_host_reachability() {
+enum host::host_state host::determine_host_reachability(
+    enum host::host_state new_state) {
   enum host::host_state state = host::state_down;
   bool is_host_present = false;
 
@@ -3599,12 +3560,12 @@ enum host::host_state host::determine_host_reachability() {
   log_v2::functions()->trace("determine_host_reachability()");
 
   engine_logger(dbg_checks, most) << "Determining state of host '" << _name
-                                  << "': current state=" << _current_state;
+                                  << "': current state=" << new_state;
   log_v2::checks()->debug("Determining state of host '{}': current state= {}",
-                          _name, _current_state);
+                          _name, new_state);
 
   /* host is UP - no translation needed */
-  if (_current_state == host::state_up) {
+  if (new_state == host::state_up) {
     state = host::state_up;
     engine_logger(dbg_checks, most)
         << "Host is UP, no state translation needed.";

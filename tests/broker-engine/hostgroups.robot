@@ -30,7 +30,7 @@ EBNHG1
 	Start Engine
 	${result}=	Check Connections
 	Should Be True	${result}	msg=Engine and Broker not connected
-	Add Host Group	${0}	["host_1", "host_2", "host_3"]
+	Add Host Group	${0}	${1}	["host_1", "host_2", "host_3"]
 
 	Reload Broker
 	Reload Engine
@@ -62,7 +62,7 @@ EBNHGU1
 	Start Engine
 	${result}=	Check Connections
 	Should Be True	${result}	msg=Engine and Broker not connected
-	Add Host Group	${0}	["host_1", "host_2", "host_3"]
+	Add Host Group	${0}	${1}	["host_1", "host_2", "host_3"]
 
 	Reload Broker
 	Reload Engine

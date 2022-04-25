@@ -18,7 +18,6 @@
 */
 
 #include "com/centreon/engine/retention/state.hh"
-#include <array>
 
 using namespace com::centreon::engine::retention;
 

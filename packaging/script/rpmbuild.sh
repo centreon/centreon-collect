@@ -14,8 +14,8 @@ RELEASE=$2
 
 if [ -z $VERSION ] || [ -z $RELEASE ] ; then
    echo "Some or all of the parameters are empty";
-   echo $VERSION;
-   echo $RELEASE;
+   echo "$VERSION";
+   echo "$RELEASE";
    show_help
 fi
 
@@ -26,7 +26,7 @@ fi
 
 cd ../..
 
-tar czf /root/rpmbuild/SOURCES/centreon-collect-$VERSION.tar.gz \
+tar czf "/root/rpmbuild/SOURCES/centreon-collect-$VERSION.tar.gz" \
       --exclude './build' \
       --exclude './.git'  \
       --transform "s,^\.,centreon-collect-$VERSION," .

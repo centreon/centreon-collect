@@ -20,13 +20,8 @@
 #ifndef TEST_COMMANDS_WAIT_PROCESS_HH
 #define TEST_COMMANDS_WAIT_PROCESS_HH
 
-#include <cassert>
-#include <condition_variable>
-#include <cstdlib>
-#include <mutex>
 #include "com/centreon/engine/commands/command.hh"
 #include "com/centreon/engine/commands/command_listener.hh"
-#include "com/centreon/engine/namespace.hh"
 
 CCE_BEGIN()
 

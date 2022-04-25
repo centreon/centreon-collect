@@ -19,7 +19,6 @@ RUN yum -y upgrade && yum -y update && \
     perl-Data-Dumper \
     perl-ExtUtils-MakeMaker \
     perl-ExtUtils-Embed.noarch \
-    libssh2-devel \
     redhat-lsb \
     libgcrypt-devel \
     MariaDB*.rpm \

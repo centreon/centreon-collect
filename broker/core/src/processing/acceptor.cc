@@ -1,5 +1,5 @@
 /*
-** Copyright 2015-2021 Centreon
+** Copyright 2015-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -107,7 +107,7 @@ void acceptor::exit() {
  *
  *  @param[in] filters  Set of accepted event IDs.
  */
-void acceptor::set_read_filters(std::unordered_set<uint32_t> const& filters) {
+void acceptor::set_read_filters(const absl::flat_hash_set<uint32_t>& filters) {
   std::lock_guard<std::mutex> lock(_stat_mutex);
   _read_filters = filters;
   _read_filters_str = misc::dump_filters(_read_filters);
@@ -133,7 +133,7 @@ void acceptor::set_retry_interval(time_t retry_interval) {
  *  This is useful to prevent endpoints of generating some kind of
  *  events.
  */
-void acceptor::set_write_filters(std::unordered_set<uint32_t> const& filters) {
+void acceptor::set_write_filters(absl::flat_hash_set<uint32_t> const& filters) {
   std::lock_guard<std::mutex> lock(_stat_mutex);
   _write_filters = filters;
   _write_filters_str = misc::dump_filters(_write_filters);

@@ -19,8 +19,6 @@
 
 #include "com/centreon/engine/configuration/applier/globals.hh"
 
-#include <cassert>
-
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/string.hh"
 

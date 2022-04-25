@@ -18,15 +18,9 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <cerrno>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
 #ifdef HAVE_GETOPT_H
 #include <getopt.h>
 #endif  // HAVE_GETOPT_H
-#include <unistd.h>
-#include <iostream>
 #include "com/centreon/engine/check_result.hh"
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/notifier.hh"

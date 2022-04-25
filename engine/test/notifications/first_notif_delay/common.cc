@@ -19,7 +19,7 @@
 
 #include "test/notifications/first_notif_delay/common.hh"
 #include <unistd.h>
-#include <cstdio>
+
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/objects.hh"
 #include "com/centreon/io/file_stream.hh"

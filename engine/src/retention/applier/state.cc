@@ -18,7 +18,7 @@
 */
 
 #include "com/centreon/engine/configuration/applier/state.hh"
-#include <ctime>
+
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/retention/applier/comment.hh"
 #include "com/centreon/engine/retention/applier/contact.hh"

@@ -18,8 +18,6 @@
 */
 
 #include "com/centreon/engine/logging/engine.hh"
-#include <time.h>
-#include <exception>
 #include "com/centreon/engine/exceptions/error.hh"
 #include "test/logging/test.hh"
 #include "test/unittest.hh"

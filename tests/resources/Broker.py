@@ -1,5 +1,6 @@
 import pymysql.cursors
 import time
+import shutil
 import socket, sys, time
 from datetime import datetime
 from subprocess import getoutput
@@ -546,6 +547,24 @@ def broker_config_output_set(name, output, key, value):
     f.write(json.dumps(conf, indent=2))
     f.close()
 
+def broker_config_output_set_json(name, output, key, value):
+    if name == 'central':
+        filename = "central-broker.json"
+    elif name == 'module':
+        filename = "central-module.json"
+    else:
+        filename = "central-rrd.json"
+    f = open("/etc/centreon-broker/{}".format(filename), "r")
+    buf = f.read()
+    f.close()
+    conf = json.loads(buf)
+    output_dict = [elem for i, elem in enumerate(conf["centreonBroker"]["output"]) if elem["name"] == output][0]
+    j = json.loads(value)
+    output_dict[key] = j
+    f = open("/etc/centreon-broker/{}".format(filename), "w")
+    f.write(json.dumps(conf, indent=2))
+    f.close()
+
 def broker_config_output_remove(name, output, key):
     if name == 'central':
         filename = "central-broker.json"
@@ -612,6 +631,23 @@ def broker_config_log(name, key, value):
     conf = json.loads(buf)
     loggers = conf["centreonBroker"]["log"]["loggers"]
     loggers[key] = value
+    f = open("/etc/centreon-broker/{}".format(filename), "w")
+    f.write(json.dumps(conf, indent=2))
+    f.close()
+
+def broker_config_flush_log(name, value):
+    if name == 'central':
+        filename = "central-broker.json"
+    elif name == 'module':
+        filename = "central-module.json"
+    else:
+        filename = "central-rrd.json"
+    f = open("/etc/centreon-broker/{}".format(filename), "r")
+    buf = f.read()
+    f.close()
+    conf = json.loads(buf)
+    log = conf["centreonBroker"]["log"]
+    log["flush_period"] = value
     f = open("/etc/centreon-broker/{}".format(filename), "w")
     f.write(json.dumps(conf, indent=2))
     f.close()
@@ -818,6 +854,48 @@ def get_metrics_to_delete(count:int):
 
     inter = list(set(ids) & set(ids_db))
     return inter[:count]
+
+##
+# @brief creat metrics from available ones.
+#
+# @param count:int The number of metrics to create.
+#
+
+def create_metrics(count:int):
+    files = [os.path.basename(x) for x in glob.glob("/var/lib/centreon/metrics/[0-9]*.rrd")]
+    ids = [int(f.split(".")[0]) for f in files]
+
+    # Connect to the database
+    connection = pymysql.connect(host='localhost',
+                                 user='centreon',
+                                 password='centreon',
+                                 database='centreon_storage',
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+    with connection:
+        with connection.cursor() as cursor:
+            # Read a single record
+            sql = "SELECT `metric_id` FROM `metrics`"
+            cursor.execute(sql)
+            result = cursor.fetchall()
+            ids_db = [r['metric_id'] for r in result]
+            if list(set(ids) & set(ids_db)) == [] :
+                sql = "SELECT `id` FROM `index_data`"
+                cursor.execute(sql)
+                result = cursor.fetchall()
+                ids_index = [r['id'] for r in result]
+                if ids_index == [] :
+                    sql = "INSERT INTO index_data (host_id, service_id) VALUES ('1', '1')`"
+                    cursor.execute(sql)
+                    ids_index = cursor.lastrowid
+                for c in range(count) :
+                    sql = "INSERT INTO metrics (index_id,metric_name,unit_name,warn,warn_low,warn_threshold_mode,crit,crit_low,crit_threshold_mode,min,max,current_value,data_source_type) VALUES ('{}','metric_{}','unit_{}','10','1','0','1','1','0','0','100','25','0')".format(ids_index[0],c,c)
+                    cursor.execute(sql)
+                    ids_metric = cursor.lastrowid
+                    connection.commit()
+                    shutil.copy("/var/lib/centreon/metrics/tmpl_15552000_300_0.rrd", "/var/lib/centreon/metrics/{}.rrd".format(ids_metric))
+                    logger.console("create metric file {}".format(ids_metric))
 
 
 def run_reverse_bam(duration, interval):

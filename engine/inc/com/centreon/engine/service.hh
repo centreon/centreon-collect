@@ -20,13 +20,12 @@
 #ifndef CCE_SERVICE_HH
 #define CCE_SERVICE_HH
 
-#include <utility>
-
 #include "com/centreon/engine/check_result.hh"
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/hash.hh"
 #include "com/centreon/engine/logging.hh"
 #include "com/centreon/engine/notifier.hh"
+#include "com/centreon/engine/tag.hh"
 
 /* Forward declaration. */
 CCE_BEGIN()
@@ -92,8 +91,9 @@ class service : public notifier {
           bool check_freshness,
           int freshness_threshold,
           bool obsess_over,
-          std::string const& timezone);
-  ~service() = default;
+          std::string const& timezone,
+          uint64_t icon_id);
+  ~service() noexcept = default;
   void set_host_id(uint64_t host_id);
   uint64_t get_host_id() const;
   void set_service_id(uint64_t service_id);
@@ -271,7 +271,8 @@ com::centreon::engine::service* add_service(
     int retain_status_information,
     int retain_nonstatus_information,
     bool obsess_over,
-    std::string const& timezone);
+    std::string const& timezone,
+    uint64_t icon_id);
 
 std::ostream& operator<<(std::ostream& os,
                          com::centreon::engine::service const& obj);

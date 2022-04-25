@@ -19,11 +19,6 @@
 #ifndef CONNECTORS_PERL_INC_COM_CENTREON_CONNECTOR_PERL_LOG_H_
 #define CONNECTORS_PERL_INC_COM_CENTREON_CONNECTOR_PERL_LOG_H_
 
-#include <spdlog/common.h>
-#include <spdlog/spdlog.h>
-
-#include <memory>
-
 #include "com/centreon/connector/namespace.hh"
 
 CCC_BEGIN();
@@ -37,6 +32,7 @@ class log {
  public:
   static log& instance();
 
+  void add_pid_to_log();
   void set_level(spdlog::level::level_enum level);
   void switch_to_stdout();
   void switch_to_file(std::string const& filename);

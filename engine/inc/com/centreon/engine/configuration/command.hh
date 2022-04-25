@@ -20,12 +20,7 @@
 #ifndef CCE_CONFIGURATION_COMMAND_HH
 #define CCE_CONFIGURATION_COMMAND_HH
 
-#include <absl/container/flat_hash_map.h>
-#include <memory>
-#include <set>
-#include <string>
 #include "com/centreon/engine/configuration/object.hh"
-#include "com/centreon/engine/namespace.hh"
 
 CCE_BEGIN()
 

@@ -15,12 +15,18 @@
 **
 ** For more information : contact@centreon.com
 */
-
-#include "fake_listener.hh"
-
 #include <cmath>
 
-using namespace com::centreon::connector::ssh::orders;
+#include "com/centreon/connector/ssh/orders/options.hh"
+#include "fake_listener.hh"
+
+using namespace com::centreon::connector::orders;
+
+/**************************************
+ *                                     *
+ *           Public Methods            *
+ *                                     *
+ **************************************/
 
 /**
  *  Get the callbacks information.
@@ -47,9 +53,7 @@ void fake_listener::on_eof() {
  *  @param[in] cmd_id Command ID.
  *  @param[in] msg    Error message.
  */
-void fake_listener::on_error(uint64_t cmd_id, char const* msg) {
-  (void)cmd_id;
-  (void)msg;
+void fake_listener::on_error(uint64_t, const std::string&) {
   callback_info ci;
   ci.callback = cb_error;
   _callbacks.push_back(ci);
@@ -71,29 +75,21 @@ void fake_listener::on_error(uint64_t cmd_id, char const* msg) {
  *  @param[in] is_ipv6     Work with IPv6.
  */
 void fake_listener::on_execute(uint64_t cmd_id,
-                               const timestamp& timeout,
-                               std::string const& host,
-                               unsigned short port,
-                               std::string const& user,
-                               std::string const& password,
-                               std::string const& identity,
-                               std::list<std::string> const& cmds,
-                               int skip_stdout,
-                               int skip_stderr,
-                               bool is_ipv6) {
+                               const time_point& timeout,
+                               const std::shared_ptr<options>& opt) {
   callback_info ci;
   ci.callback = cb_execute;
   ci.cmd_id = cmd_id;
   ci.timeout = timeout;
-  ci.host = host;
-  ci.port = port;
-  ci.user = user;
-  ci.password = password;
-  ci.identity = identity;
-  ci.cmds = cmds;
-  ci.skip_stdout = skip_stdout;
-  ci.skip_stderr = skip_stderr;
-  ci.is_ipv6 = is_ipv6;
+  ci.host = opt->get_host();
+  ci.port = opt->get_port();
+  ci.user = opt->get_user();
+  ci.password = opt->get_authentication();
+  ci.identity = opt->get_identity_file();
+  ci.cmds = opt->get_commands();
+  ci.skip_stdout = opt->skip_stdout();
+  ci.skip_stderr = opt->skip_stderr();
+  ci.is_ipv6 = opt->get_ip_protocol() == options::ip_v6;
   _callbacks.push_back(ci);
 }
 
@@ -140,8 +136,9 @@ bool operator==(std::list<fake_listener::callback_info> const& left,
       if ((it1->callback != it2->callback) ||
           ((it1->callback == fake_listener::cb_execute) &&
            ((it1->cmd_id != it2->cmd_id) ||
-            (fabs(it1->timeout.to_seconds() - it2->timeout.to_seconds()) >=
-             1.0) ||
+            (fabs(std::chrono::duration_cast<std::chrono::duration<int>>(
+                      it1->timeout - it2->timeout)
+                      .count()) >= 1.0) ||
             (it1->host != it2->host) || (it1->port != it2->port) ||
             (it1->user != it2->user) || (it1->password != it2->password) ||
             (it1->identity != it2->identity) ||

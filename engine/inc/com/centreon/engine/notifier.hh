@@ -20,9 +20,6 @@
 #ifndef CCE_NOTIFIER_HH
 #define CCE_NOTIFIER_HH
 
-#include <array>
-#include <unordered_set>
-
 #include "com/centreon/engine/checkable.hh"
 #include "com/centreon/engine/contactgroup.hh"
 #include "com/centreon/engine/customvariable.hh"
@@ -131,7 +128,8 @@ class notifier : public checkable {
            std::string const& timezone,
            bool retain_status_information,
            bool retain_nonstatus_information,
-           bool is_volatile);
+           bool is_volatile,
+           uint64_t icon_id);
   ~notifier();
 
   void set_notification(int32_t idx, std::string const& value);

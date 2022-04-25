@@ -1,11 +1,8 @@
 #include "com/centreon/engine/engine_impl.hh"
 
-#include <fmt/format.h>
 #include <google/protobuf/util/time_util.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <algorithm>
-#include <functional>
 #include <future>
 
 #include "com/centreon/engine/anomalydetection.hh"

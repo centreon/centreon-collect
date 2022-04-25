@@ -20,7 +20,6 @@
 #ifndef TEST_LOGGING_COMMON_HH
 #define TEST_LOGGING_COMMON_HH
 
-#include "com/centreon/engine/namespace.hh"
 #include "com/centreon/logging/backend.hh"
 
 CCE_BEGIN()

@@ -40,6 +40,7 @@ if (WITH_TESTING)
   add_executable(bin_connector_test_run
       "${TESTS_DIR}/commands/bin_connector_test_run.cc")
   target_link_libraries(bin_connector_test_run cce_core pthread)
+  target_precompile_headers(bin_connector_test_run PRIVATE ../precomp_inc/precomp.hh)
 
   set(ut_sources
     # Sources.
@@ -72,6 +73,7 @@ if (WITH_TESTING)
     "${TESTS_DIR}/configuration/service.cc"
     "${TESTS_DIR}/configuration/severity.cc"
     "${TESTS_DIR}/configuration/tag.cc"
+    "${TESTS_DIR}/configuration/timeperiod-test.cc"
     "${TESTS_DIR}/contacts/contactgroup-config.cc"
     "${TESTS_DIR}/contacts/simple-contactgroup.cc"
     "${TESTS_DIR}/custom_vars/extcmd.cc"
@@ -105,6 +107,7 @@ if (WITH_TESTING)
     "${TESTS_DIR}/timeperiod/get_next_valid_time/dst_forward.cc"
     "${TESTS_DIR}/timeperiod/get_next_valid_time/earliest_daterange_first.cc"
     "${TESTS_DIR}/timeperiod/get_next_valid_time/exclusion.cc"
+    "${TESTS_DIR}/timeperiod/get_next_valid_time/exceptions_test.cc"
     "${TESTS_DIR}/timeperiod/get_next_valid_time/generic_month_date.cc"
     "${TESTS_DIR}/timeperiod/get_next_valid_time/normal_weekday.cc"
     "${TESTS_DIR}/timeperiod/get_next_valid_time/offset_weekday_of_generic_month.cc"
@@ -122,6 +125,7 @@ if (WITH_TESTING)
   include_directories(${TESTS_DIR})
 
   add_executable(ut_engine ${ut_sources})
+  target_precompile_headers(ut_engine PRIVATE ../precomp_inc/precomp.hh)
 
   set_target_properties(
       ut_engine rpc_client_engine bin_connector_test_run
@@ -132,6 +136,9 @@ if (WITH_TESTING)
       RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR}/tests
       RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/tests
   )
+
+  #file used by timeperiod-test.cc
+  file(COPY ${TESTS_DIR}/configuration/timeperiods.cfg DESTINATION ${CMAKE_BINARY_DIR}/tests/ ) 
 
   add_test(NAME tests COMMAND ut_engine)
 

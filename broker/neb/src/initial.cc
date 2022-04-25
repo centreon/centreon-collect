@@ -590,6 +590,8 @@ void neb::send_initial_configuration() {
  *  Send initial configuration to the global publisher.
  */
 void neb::send_initial_pb_configuration() {
+  send_severity_list();
+  send_tag_list();
   send_pb_host_list();
   send_pb_service_list();
   send_custom_variables_list();

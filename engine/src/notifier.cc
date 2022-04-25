@@ -19,7 +19,6 @@
 
 #include "com/centreon/engine/notifier.hh"
 
-#include <cassert>
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/common.hh"
@@ -96,7 +95,8 @@ notifier::notifier(notifier::notifier_type notifier_type,
                    std::string const& timezone,
                    bool retain_status_information,
                    bool retain_nonstatus_information,
-                   bool is_volatile)
+                   bool is_volatile,
+                   uint64_t icon_id)
     : checkable{display_name,
                 check_command,
                 checks_enabled,
@@ -118,7 +118,8 @@ notifier::notifier(notifier::notifier_type notifier_type,
                 check_freshness,
                 freshness_threshold,
                 obsess_over,
-                timezone},
+                timezone,
+                icon_id},
       _notifier_type{notifier_type},
       _stalk_type{stalk},
       _flap_type{0},

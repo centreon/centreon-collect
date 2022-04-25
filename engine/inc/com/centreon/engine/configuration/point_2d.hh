@@ -20,8 +20,6 @@
 #ifndef CCE_CONFIGURATION_POINT_2D_HH
 #define CCE_CONFIGURATION_POINT_2D_HH
 
-#include "com/centreon/engine/namespace.hh"
-
 CCE_BEGIN()
 
 namespace configuration {

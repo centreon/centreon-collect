@@ -19,6 +19,7 @@
 #ifndef CCB_CONFIG_APPLIER_ENDPOINT_HH
 #define CCB_CONFIG_APPLIER_ENDPOINT_HH
 
+#include <absl/container/flat_hash_set.h>
 #include <atomic>
 #include <list>
 #include <map>
@@ -26,7 +27,6 @@
 #include <mutex>
 #include <set>
 #include <string>
-#include <unordered_set>
 
 #include "com/centreon/broker/namespace.hh"
 
@@ -75,7 +75,7 @@ class endpoint {
       std::list<config::endpoint> const& new_endpoints,
       std::list<config::endpoint>& to_create,
       std::list<config::endpoint>& to_delete);
-  std::unordered_set<uint32_t> _filters(
+  absl::flat_hash_set<uint32_t> _filters(
       std::set<std::string> const& str_filters);
 
  public:

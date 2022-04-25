@@ -20,12 +20,6 @@
 #ifndef CCE_DOWNTIMES_DOWNTIME_FINDER_HH
 #define CCE_DOWNTIMES_DOWNTIME_FINDER_HH
 
-#include <map>
-#include <memory>
-#include <string>
-#include <vector>
-#include "com/centreon/engine/namespace.hh"
-
 CCE_BEGIN()
 
 namespace downtimes {

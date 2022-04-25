@@ -20,9 +20,6 @@
 #ifndef TEST_UNITTEST_HH
 #define TEST_UNITTEST_HH
 
-#include <cstdio>
-#include <cstdlib>
-#include <iostream>
 #include "com/centreon/clib.hh"
 #include "com/centreon/engine/broker/compatibility.hh"
 #include "com/centreon/engine/broker/loader.hh"
@@ -33,7 +30,6 @@
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
-#include "com/centreon/engine/namespace.hh"
 #include "com/centreon/engine/timezone_manager.hh"
 #include "com/centreon/logging/backend.hh"
 #include "com/centreon/logging/engine.hh"

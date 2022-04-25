@@ -17,11 +17,7 @@
  *
  */
 
-#include <time.h>
-
 #include <cstring>
-#include <iostream>
-#include <memory>
 #include <regex>
 
 #include "../test_engine.hh"
@@ -130,7 +126,7 @@ TEST_F(ServiceFlappingNotification, SimpleServiceFlapping) {
   std::unique_ptr<engine::timeperiod> tperiod{
       new engine::timeperiod("tperiod", "alias")};
   for (size_t i = 0; i < tperiod->days.size(); ++i)
-    tperiod->days[i].push_back(std::make_shared<engine::timerange>(0, 86400));
+    tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("host_name", "test_description", 0, 1, 1.0,
@@ -183,7 +179,7 @@ TEST_F(ServiceFlappingNotification, SimpleServiceFlappingStartTwoTimes) {
   std::unique_ptr<engine::timeperiod> tperiod{
       new engine::timeperiod("tperiod", "alias")};
   for (uint32_t i = 0; i < tperiod->days.size(); ++i)
-    tperiod->days[i].push_back(std::make_shared<engine::timerange>(0, 86400));
+    tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("host_name", "test_description", 0, 1, 1.0,
@@ -223,7 +219,7 @@ TEST_F(ServiceFlappingNotification, SimpleServiceFlappingStopTwoTimes) {
   std::unique_ptr<engine::timeperiod> tperiod{
       new engine::timeperiod("tperiod", "alias")};
   for (uint32_t i = 0; i < tperiod->days.size(); ++i)
-    tperiod->days[i].push_back(std::make_shared<engine::timerange>(0, 86400));
+    tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("host_name", "test_description", 0, 1, 1.0,

@@ -17,12 +17,8 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <cstdio>
-#include <cstdlib>
 #include <cstring>
-#include <iostream>
-#include <sstream>
-#include <string>
+
 #include "com/centreon/clib.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/io/file_stream.hh"

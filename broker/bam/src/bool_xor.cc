@@ -1,5 +1,5 @@
 /*
-** Copyright 2014 Centreon
+** Copyright 2014, 2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -20,13 +20,16 @@
 
 using namespace com::centreon::broker::bam;
 
+constexpr double eps = 0.000001;
+
 /**
  *  Get the hard value.
  *
  *  @return Evaluation of the expression with hard values.
  */
 double bool_xor::value_hard() {
-  return (!_left_hard && _right_hard) || (_left_hard && !_right_hard);
+  return (std::abs(_left_hard) < eps && std::abs(_right_hard) >= eps) ||
+         (std::abs(_left_hard) >= eps && std::abs(_right_hard) < eps);
 }
 
 /**
@@ -35,5 +38,6 @@ double bool_xor::value_hard() {
  *  @return Evaluation of the expression with soft values.
  */
 double bool_xor::value_soft() {
-  return (!_left_soft && _right_soft) || (_left_soft && !_right_soft);
+  return (std::abs(_left_soft) < eps && std::abs(_right_soft) >= eps) ||
+         (std::abs(_left_soft) >= eps && std::abs(_right_soft) < eps);
 }

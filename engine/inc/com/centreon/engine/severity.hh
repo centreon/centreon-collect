@@ -21,9 +21,6 @@
 #define CCE_SEVERITY_HH
 
 #include <absl/container/flat_hash_map.h>
-#include <memory>
-#include <ostream>
-#include "com/centreon/engine/namespace.hh"
 
 /* Forward declaration. */
 namespace com::centreon::engine {
@@ -31,7 +28,7 @@ class severity;
 }
 
 using severity_map =
-    absl::flat_hash_map<uint32_t,
+    absl::flat_hash_map<std::pair<uint32_t, uint16_t>,
                         std::shared_ptr<com::centreon::engine::severity>>;
 using severity_map_unsafe =
     absl::flat_hash_map<std::string, com::centreon::engine::severity*>;
@@ -44,10 +41,14 @@ CCE_BEGIN()
  *
  */
 class severity {
+ public:
+  enum severity_type { none = -1, service = 0, host = 1 };
+
   uint64_t _id;
   uint32_t _level;
   uint64_t _icon_id;
   std::string _name;
+  severity_type _type;
 
  public:
   static severity_map severities;
@@ -55,7 +56,8 @@ class severity {
   severity(uint64_t id,
            uint32_t level,
            uint64_t icon_id,
-           const std::string& name);
+           const std::string& name,
+           uint16_t type);
   ~severity() noexcept = default;
   severity(const severity&) = delete;
   severity& operator=(const severity&) = delete;
@@ -69,6 +71,8 @@ class severity {
   uint64_t icon_id() const;
   void set_level(uint32_t level);
   void set_icon_id(uint64_t icon_id);
+  void set_type(const severity_type typ);
+  severity_type type() const;
 };
 
 CCE_END()

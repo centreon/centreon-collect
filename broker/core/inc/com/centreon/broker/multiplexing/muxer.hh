@@ -19,9 +19,9 @@
 #ifndef CCB_MULTIPLEXING_MUXER_HH
 #define CCB_MULTIPLEXING_MUXER_HH
 
+#include <absl/container/flat_hash_set.h>
 #include <condition_variable>
 #include <list>
-#include <unordered_set>
 
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/persistent_file.hh"
@@ -53,7 +53,7 @@ namespace multiplexing {
  */
 class muxer : public io::stream {
  public:
-  using filters = std::unordered_set<uint32_t>;
+  using filters = absl::flat_hash_set<uint32_t>;
 
  private:
   static uint32_t _event_queue_max_size;

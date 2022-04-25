@@ -4,7 +4,6 @@ project(connectors CXX)
 set(CONNECTOR_VERSION "${COLLECT_MAJOR}.${COLLECT_MINOR}.${COLLECT_PATCH}")
 add_definitions(-DCENTREON_CONNECTOR_VERSION=\"${CONNECTOR_VERSION}\")
 
-include(${PROJECT_SOURCE_DIR}/cmake/FindSSH.cmake)
 include(${PROJECT_SOURCE_DIR}/cmake/Findperl.cmake)
 
 set(PREFIX_CONNECTORS "${CMAKE_INSTALL_PREFIX}/lib64/centreon-connector/")
@@ -35,25 +34,25 @@ if (WITH_TESTING)
 
   include_directories(${PROJECT_SOURCE_DIR}/perl/inc)
   include_directories(${PROJECT_SOURCE_DIR}/ssh/inc)
+  include_directories(${Libssh2_INCLUDE_DIR})
+
   add_definitions(-DBUILD_PATH="${CMAKE_BINARY_DIR}")
 
   add_executable(ut_connector
     # Core sources
     ${PROJECT_SOURCE_DIR}/perl/src/embedded_perl.cc
     ${PROJECT_SOURCE_DIR}/common/src/log.cc
-    ${PROJECT_SOURCE_DIR}/perl/src/pipe_handle.cc
+    ${PROJECT_SOURCE_DIR}/common/src/result.cc
+    ${PROJECT_SOURCE_DIR}/common/src/reporter.cc
+    ${PROJECT_SOURCE_DIR}/common/src/parser.cc
+    ${PROJECT_SOURCE_DIR}/perl/src/checks/check.cc
     ${PROJECT_SOURCE_DIR}/perl/src/script.cc
     ${PROJECT_SOURCE_DIR}/perl/src/xs_init.cc
     ${PROJECT_SOURCE_DIR}/ssh/src/checks/check.cc
-    ${PROJECT_SOURCE_DIR}/ssh/src/checks/result.cc
-    ${PROJECT_SOURCE_DIR}/ssh/src/checks/timeout.cc
-    ${PROJECT_SOURCE_DIR}/ssh/src/multiplexer.cc
     ${PROJECT_SOURCE_DIR}/ssh/src/orders/options.cc
     ${PROJECT_SOURCE_DIR}/ssh/src/orders/parser.cc
     ${PROJECT_SOURCE_DIR}/ssh/src/sessions/credentials.cc
     ${PROJECT_SOURCE_DIR}/ssh/src/sessions/session.cc
-    ${PROJECT_SOURCE_DIR}/ssh/src/sessions/socket_handle.cc
-    ${PROJECT_SOURCE_DIR}/ssh/src/reporter.cc
     # Test sources.
     ${PROJECT_SOURCE_DIR}/perl/test/main.cc
     ${PROJECT_SOURCE_DIR}/perl/test/connector.cc
@@ -68,7 +67,9 @@ if (WITH_TESTING)
     )
   add_dependencies(ut_connector centreon_connector_perl)
   add_dependencies(ut_connector centreon_clib)
-  target_link_libraries(ut_connector CONAN_PKG::gtest centreon_clib ${PERL_LIBRARIES} CONAN_PKG::fmt CONAN_PKG::spdlog ${LIBSSH2_LIBRARIES})
+  target_precompile_headers(ut_connector PRIVATE ssh/precomp_inc/precomp.hh)
+
+  target_link_libraries(ut_connector CONAN_PKG::gtest centreon_clib ${PERL_LIBRARIES} CONAN_PKG::fmt CONAN_PKG::spdlog CONAN_PKG::libssh2 CONAN_PKG::abseil ${LIBSSH2_LIBRARIES})
 
 set_target_properties(
     ut_connector

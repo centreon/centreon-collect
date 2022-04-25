@@ -728,8 +728,8 @@ void stream::negotiate(stream::negotiation_type neg) {
         "BBDO: sending welcome packet (available extensions: {})", extensions);
     /* if _negotiate, we send all the extensions we would like to have,
      * otherwise we only send the mandatory extensions */
-    std::shared_ptr<version_response> welcome_packet(
-        std::make_shared<version_response>(_bbdo_version, extensions));
+    auto welcome_packet{
+        std::make_shared<version_response>(_bbdo_version, extensions)};
     _write(welcome_packet);
   }
 

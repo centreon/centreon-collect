@@ -101,8 +101,9 @@ class host : public notifier {
        bool retain_status_information,
        bool retain_nonstatus_information,
        bool obsess_over_host,
-       std::string const& timezone);
-  ~host() = default;
+       std::string const& timezone,
+       uint64_t icon_id);
+  ~host() noexcept = default;
   uint64_t get_host_id(void) const;
   void set_host_id(uint64_t id);
   void add_child_host(host* child);
@@ -167,7 +168,7 @@ class host : public notifier {
   static void check_for_orphaned();
   static void check_result_freshness();
 
-  enum host_state determine_host_reachability();
+  enum host_state determine_host_reachability(enum host_state new_state);
   bool recovered() const override;
   int get_current_state_int() const override;
   std::string const& get_current_state_as_string() const override;

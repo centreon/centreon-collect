@@ -205,7 +205,7 @@ TEST_P(grpc_comm_failure, ClientToServerFailureBeforeWrite) {
 TEST_P(grpc_comm_failure, ClientToServerFailureAfterWrite) {
   com::centreon::broker::grpc::stream client(conf_relay_in);
   std::unique_ptr<io::stream> accepted =
-      s->open(std::chrono::milliseconds(1000));
+      s->open(std::chrono::milliseconds(2000));
   ASSERT_NE(accepted.get(), nullptr);
 
   test_param param = GetParam();

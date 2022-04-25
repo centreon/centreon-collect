@@ -20,10 +20,7 @@
 #ifndef CCE_OBJECTS_HOSTGROUP_HH
 #define CCE_OBJECTS_HOSTGROUP_HH
 
-#include <ostream>
-#include <string>
 #include "com/centreon/engine/host.hh"
-#include "com/centreon/engine/namespace.hh"
 
 /* Forward declaration. */
 CCE_BEGIN()

@@ -20,8 +20,6 @@
 #ifndef CCE_RETENTION_PROGRAM_HH
 #define CCE_RETENTION_PROGRAM_HH
 
-#include <string>
-#include "com/centreon/engine/namespace.hh"
 #include "com/centreon/engine/opt.hh"
 #include "com/centreon/engine/retention/object.hh"
 

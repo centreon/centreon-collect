@@ -137,7 +137,6 @@ a monitoring engine.
 Summary: Centreon Connector SSH provide persistante connection between checks.
 Group: Application/System
 Requires: centreon-clib = %{version}-%{release}
-Requires: libssh2 >= 1.4
 Requires: libgcrypt
 
 %description -n centreon-connector-ssh
@@ -433,9 +432,9 @@ fi
 %{_datadir}/centreon/lib/centreon-broker/70-lua.so
 %{_datadir}/centreon/lib/centreon-broker/80-sql.so
 %{_sysconfdir}/logrotate.d/cbd
-#%defattr(0775,centreon-broker,centreon-broker,-)
-#%{_datadir}/centreon-broker
-#%{_datadir}/centreon-broker/lua
+%defattr(0775,centreon-broker,centreon-broker,-)
+%{_datadir}/centreon-broker
+%{_datadir}/centreon-broker/lua
 
 %files -n centreon-broker-cbmod
 %defattr(-,centreon-broker,centreon-broker,-)

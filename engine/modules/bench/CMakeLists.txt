@@ -31,6 +31,7 @@ if (WITH_BENCH)
     "${SRC_DIR}/passive/module.cc")
   set_target_properties("bench_passive_module"
     PROPERTIES PREFIX "")
+  target_precompile_headers("bench_passive_module" PRIVATE ../../precomp_inc/precomp.hh)
   install(TARGETS "bench_passive_module"
     DESTINATION "${ENGINE_MODULES_DIR}"
     COMPONENT "bench")
@@ -41,6 +42,8 @@ if (WITH_BENCH)
     "${SRC_DIR}/passive/main.cc")
   add_dependencies("centengine_bench_passive" centreon_clib)
   target_link_libraries("centengine_bench_passive" centreon_clib)
+  target_precompile_headers("centengine_bench_passive" PRIVATE ../../precomp_inc/precomp.hh)
+
   install(TARGETS "centengine_bench_passive"
     DESTINATION "${CMAKE_INSTALL_FULL_SBINDIR}"
     COMPONENT "bench")

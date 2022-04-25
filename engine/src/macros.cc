@@ -19,10 +19,6 @@
 */
 
 #include "com/centreon/engine/macros.hh"
-#include <cstdio>
-#include <cstdlib>
-#include <iomanip>
-#include <sstream>
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/log_v2.hh"

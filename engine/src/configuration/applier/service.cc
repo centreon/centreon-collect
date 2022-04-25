@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2019 Centreon
+** Copyright 2011-2019,2022 Centreon
 **
 ** This file is part of Centreon Engine.
 **
@@ -18,8 +18,6 @@
 */
 
 #include "com/centreon/engine/configuration/applier/service.hh"
-#include <algorithm>
-#include <cassert>
 #include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
@@ -28,6 +26,7 @@
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/log_v2.hh"
+#include "com/centreon/engine/severity.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -160,7 +159,7 @@ void applier::service::add_object(configuration::service const& obj) {
       obj.notes(), obj.notes_url(), obj.action_url(), obj.icon_image(),
       obj.icon_image_alt(), obj.retain_status_information(),
       obj.retain_nonstatus_information(), obj.obsess_over_service(),
-      obj.timezone())};
+      obj.timezone(), obj.icon_id())};
   if (!svc)
     throw engine_error() << "Could not register service '"
                          << obj.service_description() << "' of host '"
@@ -198,6 +197,33 @@ void applier::service::add_object(configuration::service const& obj) {
                              NEBATTR_NONE, svc, it->first.c_str(),
                              it->second.get_value().c_str(), &tv);
     }
+  }
+
+  // Add severity.
+  if (obj.severity_id()) {
+    configuration::severity::key_type k = {obj.severity_id(),
+                                           configuration::severity::service};
+    auto sv = engine::severity::severities.find(k);
+    if (sv == engine::severity::severities.end())
+      throw engine_error() << "Could not add the severity (" << k.first << ", "
+                           << k.second << ") to the service '"
+                           << obj.service_description() << "' of host '"
+                           << *obj.hosts().begin() << "'";
+    svc->set_severity(sv->second);
+  }
+
+  // add tags
+  for (std::set<std::pair<uint64_t, uint16_t>>::iterator
+           it = obj.tags().begin(),
+           end = obj.tags().end();
+       it != end; ++it) {
+    tag_map::iterator it_tag{engine::tag::tags.find(*it)};
+    if (it_tag == engine::tag::tags.end())
+      throw engine_error() << "Could not find tag '" << it->first
+                           << "' on which to apply service (" << obj.host_id()
+                           << ", " << obj.service_id() << ")";
+    else
+      svc->mut_tags().emplace_front(it_tag->second);
   }
 
   // Notify event broker.
@@ -476,6 +502,36 @@ void applier::service::modify_object(configuration::service const& obj) {
     }
   }
 
+  // Severity.
+  if (obj.severity_id()) {
+    configuration::severity::key_type k = {obj.severity_id(),
+                                           configuration::severity::service};
+    auto sv = engine::severity::severities.find(k);
+    if (sv == engine::severity::severities.end())
+      throw engine_error() << "Could not update the severity (" << k.first
+                           << ", " << k.second << ") to the service '"
+                           << obj.service_description() << "' of host '"
+                           << *obj.hosts().begin() << "'";
+    s->set_severity(sv->second);
+  } else
+    s->set_severity(nullptr);
+
+  // add tags
+  if (obj.tags() != obj_old.tags()) {
+    s->mut_tags().clear();
+    for (std::set<std::pair<uint64_t, uint16_t>>::iterator
+             it = obj.tags().begin(),
+             end = obj.tags().end();
+         it != end; ++it) {
+      tag_map::iterator it_tag{engine::tag::tags.find(*it)};
+      if (it_tag == engine::tag::tags.end())
+        throw engine_error() << "Could not find tag '" << it->first
+                             << "' on which to apply service (" << obj.host_id()
+                             << ", " << obj.service_id() << ")";
+      else
+        s->mut_tags().emplace_front(it_tag->second);
+    }
+  }
   // Notify event broker.
   timeval tv(get_broker_timestamp(NULL));
   broker_adaptive_service_data(NEBTYPE_SERVICE_UPDATE, NEBFLAG_NONE,

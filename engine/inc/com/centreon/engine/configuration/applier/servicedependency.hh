@@ -20,11 +20,6 @@
 #ifndef CCE_CONFIGURATION_APPLIER_SERVICEDEPENDENCY_HH
 #define CCE_CONFIGURATION_APPLIER_SERVICEDEPENDENCY_HH
 
-#include <list>
-#include <set>
-#include <string>
-#include "com/centreon/engine/namespace.hh"
-
 CCE_BEGIN()
 
 namespace configuration {

@@ -20,10 +20,6 @@
 #ifndef CCE_CONFIGURATION_APPLIER_HOSTESCALATION_HH
 #define CCE_CONFIGURATION_APPLIER_HOSTESCALATION_HH
 
-#include <set>
-#include <string>
-#include "com/centreon/engine/namespace.hh"
-
 CCE_BEGIN()
 
 namespace configuration {

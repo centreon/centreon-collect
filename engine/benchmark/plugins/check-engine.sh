@@ -6,7 +6,7 @@ if [[ $cmd == "" ]] ; then
   exit 3
 fi
 
-mem=$(echo $cmd | awk '{print $1}')
-cpu=$(echo $cmd | awk '{print $2}')
+mem="$(echo $cmd | awk '{print $1}')"
+cpu="$(echo $cmd | awk '{print $2}')"
 echo "centreon-engine state mem=$mem cpu=$cpu | mem=$mem%;;;0;100 cpu=$cpu%;;;0;100"
 exit 0

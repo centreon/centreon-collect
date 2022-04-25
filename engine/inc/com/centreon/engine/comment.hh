@@ -20,9 +20,6 @@
 
 #ifndef CCE_OBJECTS_COMMENTS_HH
 #define CCE_OBJECTS_COMMENTS_HH
-#include <time.h>
-#include <map>
-#include <ostream>
 #include "com/centreon/engine/contact.hh"
 #include "com/centreon/engine/host.hh"
 

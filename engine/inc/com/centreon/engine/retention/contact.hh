@@ -20,11 +20,7 @@
 #ifndef CCE_RETENTION_CONTACT_HH
 #define CCE_RETENTION_CONTACT_HH
 
-#include <ctime>
-#include <list>
-#include <string>
 #include "com/centreon/engine/customvariable.hh"
-#include "com/centreon/engine/namespace.hh"
 #include "com/centreon/engine/opt.hh"
 #include "com/centreon/engine/retention/object.hh"
 

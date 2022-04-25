@@ -19,12 +19,6 @@
 
 #include "com/centreon/engine/configuration/applier/state.hh"
 
-#include <unistd.h>
-
-#include <array>
-#include <cassert>
-#include <iostream>
-#include <unordered_map>
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/commands/connector.hh"
 #include "com/centreon/engine/config.hh"
@@ -393,7 +387,6 @@ void applier::state::_apply(configuration::state const& new_cfg) {
   config->log_service_retries(new_cfg.log_service_retries());
   config->low_host_flap_threshold(new_cfg.low_host_flap_threshold());
   config->low_service_flap_threshold(new_cfg.low_service_flap_threshold());
-  config->max_check_reaper_time(new_cfg.max_check_reaper_time());
   config->max_debug_file_size(new_cfg.max_debug_file_size());
   config->max_host_check_spread(new_cfg.max_host_check_spread());
   config->max_log_file_size(new_cfg.max_log_file_size());
@@ -406,7 +399,6 @@ void applier::state::_apply(configuration::state const& new_cfg) {
   config->ochp_timeout(new_cfg.ochp_timeout());
   config->ocsp_command(new_cfg.ocsp_command());
   config->ocsp_timeout(new_cfg.ocsp_timeout());
-  config->passive_host_checks_are_soft(new_cfg.passive_host_checks_are_soft());
   config->perfdata_timeout(new_cfg.perfdata_timeout());
   config->process_performance_data(new_cfg.process_performance_data());
   config->resource_file(new_cfg.resource_file());
@@ -442,8 +434,6 @@ void applier::state::_apply(configuration::state const& new_cfg) {
   config->status_file(new_cfg.status_file());
   config->status_update_interval(new_cfg.status_update_interval());
   config->time_change_threshold(new_cfg.time_change_threshold());
-  config->translate_passive_host_checks(
-      new_cfg.translate_passive_host_checks());
   config->use_large_installation_tweaks(
       new_cfg.use_large_installation_tweaks());
   config->instance_heartbeat_interval(new_cfg.instance_heartbeat_interval());

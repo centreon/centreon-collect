@@ -22,6 +22,7 @@
 
 #include <map>
 #include <mutex>
+
 #include <nlohmann/json.hpp>
 #include <tuple>
 
@@ -73,7 +74,8 @@ class anomalydetection : public service {
                    bool check_freshness,
                    int freshness_threshold,
                    bool obsess_over,
-                   std::string const& timezone);
+                   std::string const& timezone,
+                   uint64_t icon_id);
   ~anomalydetection() = default;
   service* get_dependent_service() const;
   void set_dependent_service(service* svc);
@@ -152,6 +154,7 @@ com::centreon::engine::anomalydetection* add_anomalydetection(
     int retain_status_information,
     int retain_nonstatus_information,
     bool obsess_over,
-    std::string const& timezone);
+    std::string const& timezone,
+    uint64_t icon_id);
 
 #endif  // !CCE_ANOMALYDETECTION_HH

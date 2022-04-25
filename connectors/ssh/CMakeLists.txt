@@ -22,46 +22,43 @@ if (WITH_KNOWN_HOSTS_CHECK)
   add_definitions(-DWITH_KNOWN_HOSTS_CHECK)
 endif ()
 
-include_directories(${PROJECT_SOURCE_DIR}/ssh/inc)
+include_directories(${PROJECT_SOURCE_DIR}/ssh/inc ${Boost_INCLUDE_DIRS} ${Libssh2_INCLUDE_DIR})
 link_directories(${CMAKE_SOURCE_DIR}/build/centreon-clib/)
 # SSH connector.
 add_executable(centreon_connector_ssh
   # Sources.
   ${PROJECT_SOURCE_DIR}/common/src/log.cc
+  ${PROJECT_SOURCE_DIR}/common/src/parser.cc
+  ${PROJECT_SOURCE_DIR}/common/src/reporter.cc
+  ${PROJECT_SOURCE_DIR}/common/src/result.cc
   ${PROJECT_SOURCE_DIR}/ssh/src/main.cc
   ${PROJECT_SOURCE_DIR}/ssh/src/checks/check.cc
-  ${PROJECT_SOURCE_DIR}/ssh/src/checks/result.cc
-  ${PROJECT_SOURCE_DIR}/ssh/src/checks/timeout.cc
-  ${PROJECT_SOURCE_DIR}/ssh/src/multiplexer.cc
   ${PROJECT_SOURCE_DIR}/ssh/src/options.cc
   ${PROJECT_SOURCE_DIR}/ssh/src/orders/parser.cc
   ${PROJECT_SOURCE_DIR}/ssh/src/orders/options.cc
   ${PROJECT_SOURCE_DIR}/ssh/src/policy.cc
-  ${PROJECT_SOURCE_DIR}/ssh/src/reporter.cc
   ${PROJECT_SOURCE_DIR}/ssh/src/sessions/credentials.cc
   ${PROJECT_SOURCE_DIR}/ssh/src/sessions/session.cc
-  ${PROJECT_SOURCE_DIR}/ssh/src/sessions/socket_handle.cc
   # Headers.
+  ${PROJECT_SOURCE_DIR}/common/inc/com/centreon/connector/parser.hh
+  ${PROJECT_SOURCE_DIR}/common/inc/com/centreon/connector/reporter.hh
+  ${PROJECT_SOURCE_DIR}/common/inc/com/centreon/connector/result.hh
   ${PROJECT_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/checks/check.hh
-  ${PROJECT_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/checks/listener.hh
-  ${PROJECT_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/checks/result.hh
-  ${PROJECT_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/checks/timeout.hh
-  ${PROJECT_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/multiplexer.hh
   ${PROJECT_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/namespace.hh
   ${PROJECT_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/options.hh
-  ${PROJECT_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/orders/listener.hh
-  ${PROJECT_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/orders/parser.hh
   ${PROJECT_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/orders/options.hh
   ${PROJECT_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/policy.hh
-  ${PROJECT_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/reporter.hh
   ${PROJECT_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/sessions/credentials.hh
-  ${PROJECT_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/sessions/listener.hh
   ${PROJECT_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/sessions/session.hh
-  ${PROJECT_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/sessions/socket_handle.hh
 )
 add_dependencies(centreon_connector_ssh centreon_clib)
-target_link_libraries(centreon_connector_ssh ${LIBSSH2_LIBRARIES}
-  centreon_clib ${LIBGCRYPT_LIBRARIES} CONAN_PKG::spdlog CONAN_PKG::fmt pthread)
+target_link_libraries(centreon_connector_ssh 
+  centreon_clib CONAN_PKG::spdlog CONAN_PKG::fmt CONAN_PKG::libssh2 pthread)
+
+
+
+target_precompile_headers(centreon_connector_ssh PRIVATE precomp_inc/precomp.hh)
+
 
 # Install rules.
 install(TARGETS centreon_connector_ssh RUNTIME DESTINATION ${PREFIX_CONNECTORS})
