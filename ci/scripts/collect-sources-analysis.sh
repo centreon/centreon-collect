@@ -30,54 +30,31 @@ rm -f /src/tmp/sonar-scanner/conf/sonar-scanner.properties
 
   if [[ -f "$PROJECT-SQ-cache-$VERSION.tar.gz" ]]; then
     echo "INFO: Deploying SQ cache ..."
-
-
-
- #   cd /src/build
-
-
-#    rm -rf /src/build/cache
     tar xzf "$PROJECT-SQ-cache-$VERSION.tar.gz"
-
   else
     echo "INFO: Cache's tarball not found. The cache will be recomputed..."
   fi
-  cd /src
 
 echo "build state"
 pwd
 ls -la
 
-  echo "INFO: Running SQ in PR mode ..."
+  cd /src
+  mv /src/build/.scannerwork .
 
+  echo "INFO: Running SQ in PR mode ..."
   /src/tmp/sonar-scanner/bin/sonar-scanner -X -Dsonar.scm.forceReloadAll=true -Dsonar.cfamily.threads="$PROCNBR" -Dsonar.scm.provider=git -Dsonar.login="$2" -Dsonar.host.url="$3" -Dsonar.projectVersion="$VERSION" -Dsonar.pullrequest.branch="$5" -Dsonar.pullrequest.base="$6" -Dsonar.pullrequest.key="$7"
 #else
 #  echo "INFO: Cleaning cached files ..."
-#  if [[ -d "/src/build/cache" ]]; then
-#    rm -rf /src/build/cache
-#  fi
-#  if [[ -d "/root/.sonar/cache" ]]; then
-#    rm -rf /root/.sonar/cache
+#  if [[ -d "/src/.scannerwork" ]]; then
+#    rm -rf /src/.scannerwork
 #  fi
 
 #  echo "INFO: Running SQ in branch mode ..."
 #  /src/tmp/sonar-scanner/bin/sonar-scanner -X -Dsonar.scm.forceReloadAll=true -Dsonar.cfamily.threads="$PROCNBR" -Dsonar.scm.provider=git -Dsonar.login="$2" -Dsonar.host.url="$3" -Dsonar.projectVersion="$VERSION" -Dsonar.branch.name="$5"
 
-  echo "DEBUG: analysis VERSION = $VERSION"
-
   echo "INFO: Moving cache as tarball ..."
-
- cd /src/build
-
-echo "tmp source"
-pwd
-ls -la
-
-  tar czf "$PROJECT-SQ-cache-$VERSION.tar.gz" cache
-
-echo "tmp tarball"
-ls -la
-echo "find easter egg"
-find /src -name sonar-cfamily-reproducer.zip
-
+  mv /src/.scannerwork /src/build
+  cd /src/build
+  tar czf "$PROJECT-SQ-cache-$VERSION.tar.gz" cache .scannerwork
 #fi
