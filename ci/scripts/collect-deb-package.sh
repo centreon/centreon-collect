@@ -17,6 +17,7 @@ fi
 tar czpf centreon-collect-$VERSION.tar.gz centreon-collect
 cd centreon-collect/
 cp -rf ci/debian .
+sed -i "s/^centreon:version=.*$/centreon:version=${VERSION}/" debian/substvars
 debmake -f "${AUTHOR}" -e "${AUTHOR_EMAIL}" -u "$VERSION" -r "$RELEASE"
 debuild-pbuilder
 cd ../
