@@ -1190,7 +1190,8 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
               "poller_id=?,severity_id=?,name=?,address=?,alias=?,"
               "parent_name=?,notes_url=?,notes=?,action_url=?,"
               "notifications_enabled=?,passive_checks_enabled=?,"
-              "active_checks_enabled=?,icon_id=?,enabled=1 WHERE resource_id=?");
+              "active_checks_enabled=?,icon_id=?,enabled=1 WHERE "
+              "resource_id=?");
         }
       }
 
@@ -1210,163 +1211,186 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
         uint64_t res_id;
         auto found = _resource_cache.find({h.host_id(), 0});
 
-        uint64_t sid = 0;
-        fmt::string_view name{misc::string::truncate(
-            h.host_name(), get_resources_col_size(resources_name))};
-        fmt::string_view address{misc::string::truncate(
-            h.address(), get_resources_col_size(resources_address))};
-        fmt::string_view alias{misc::string::truncate(
-            h.alias(), get_resources_col_size(resources_alias))};
-        fmt::string_view parent_name{misc::string::truncate(
-            h.host_name(), get_resources_col_size(resources_parent_name))};
-        fmt::string_view notes_url{misc::string::truncate(
-            h.notes_url(), get_resources_col_size(resources_notes_url))};
-        fmt::string_view notes{misc::string::truncate(
-            h.notes(), get_resources_col_size(resources_notes))};
-        fmt::string_view action_url{misc::string::truncate(
-            h.action_url(), get_resources_col_size(resources_action_url))};
+        if (h.enabled()) {
+          uint64_t sid = 0;
+          fmt::string_view name{misc::string::truncate(
+              h.host_name(), get_resources_col_size(resources_name))};
+          fmt::string_view address{misc::string::truncate(
+              h.address(), get_resources_col_size(resources_address))};
+          fmt::string_view alias{misc::string::truncate(
+              h.alias(), get_resources_col_size(resources_alias))};
+          fmt::string_view parent_name{misc::string::truncate(
+              h.host_name(), get_resources_col_size(resources_parent_name))};
+          fmt::string_view notes_url{misc::string::truncate(
+              h.notes_url(), get_resources_col_size(resources_notes_url))};
+          fmt::string_view notes{misc::string::truncate(
+              h.notes(), get_resources_col_size(resources_notes))};
+          fmt::string_view action_url{misc::string::truncate(
+              h.action_url(), get_resources_col_size(resources_action_url))};
 
-        // INSERT
-        if (found == _resource_cache.end()) {
-          _resources_host_insert.bind_value_as_u64(0, _current_resource_id);
-          _resources_host_insert.bind_value_as_u64(1, h.host_id());
-          _resources_host_insert.bind_value_as_u32(2, h.current_state());
-          _resources_host_insert.bind_value_as_u32(
-              3, hst_ordered_status[h.current_state()]);
-          _resources_host_insert.bind_value_as_u64(4, h.last_state_change());
-          _resources_host_insert.bind_value_as_bool(5, h.downtime_depth() > 0);
-          _resources_host_insert.bind_value_as_bool(
-              6, h.acknowledgement_type() != Host_AckType_NONE);
-          _resources_host_insert.bind_value_as_bool(
-              7, h.state_type() == Host_StateType_HARD);
-          _resources_host_insert.bind_value_as_u32(8,
-                                                   h.current_check_attempt());
-          _resources_host_insert.bind_value_as_u32(9, h.max_check_attempts());
-          _resources_host_insert.bind_value_as_u64(
-              10, _cache_host_instance[h.host_id()]);
-          if (h.severity_id()) {
-            sid = _severity_cache[{h.severity_id(), 1}];
-            log_v2::sql()->debug("host {} with severity_id {} => uid = {}",
-                                 h.host_id(), h.severity_id(), sid);
-          } else
-            log_v2::sql()->info("no host severity found in cache for host {}",
-                                h.host_id());
-          if (sid)
-            _resources_host_insert.bind_value_as_u64(11, sid);
-          else
-            _resources_host_insert.bind_value_as_null(11);
-          _resources_host_insert.bind_value_as_str(12, name);
-          _resources_host_insert.bind_value_as_str(13, address);
-          _resources_host_insert.bind_value_as_str(14, alias);
-          _resources_host_insert.bind_value_as_str(15, parent_name);
-          _resources_host_insert.bind_value_as_str(16, notes_url);
-          _resources_host_insert.bind_value_as_str(17, notes);
-          _resources_host_insert.bind_value_as_str(18, action_url);
-          _resources_host_insert.bind_value_as_bool(19,
-                                                    h.notifications_enabled());
-          _resources_host_insert.bind_value_as_bool(20,
-                                                    h.passive_checks_enabled());
-          _resources_host_insert.bind_value_as_bool(21,
-                                                    h.active_checks_enabled());
-          _resources_host_insert.bind_value_as_u64(22, h.icon_id());
-          _mysql.run_statement(_resources_host_insert,
-                               database::mysql_error::store_host, true, conn);
-          _resource_cache.insert({{h.host_id(), 0}, _current_resource_id});
-          ++_current_resource_id;
-          _add_action(conn, actions::resources);
-        } else {
-          res_id = found->second;
-          // UPDATE
-          _resources_host_update.bind_value_as_u32(0, h.current_state());
-          _resources_host_update.bind_value_as_u32(
-              1, hst_ordered_status[h.current_state()]);
-          _resources_host_update.bind_value_as_u64(2, h.last_state_change());
-          _resources_host_update.bind_value_as_bool(3, h.downtime_depth() > 0);
-          _resources_host_update.bind_value_as_bool(
-              4, h.acknowledgement_type() != Host_AckType_NONE);
-          _resources_host_update.bind_value_as_bool(
-              5, h.state_type() == Host_StateType_HARD);
-          _resources_host_update.bind_value_as_u32(6,
-                                                   h.current_check_attempt());
-          _resources_host_update.bind_value_as_u32(7, h.max_check_attempts());
-          _resources_host_update.bind_value_as_u64(
-              8, _cache_host_instance[h.host_id()]);
-          if (h.severity_id()) {
-            sid = _severity_cache[{h.severity_id(), 1}];
-            log_v2::sql()->debug("host {} with severity_id {} => uid = {}",
-                                 h.host_id(), h.severity_id(), sid);
-          } else
-            log_v2::sql()->info("no host severity found in cache for host {}",
-                                h.host_id());
-          if (sid)
-            _resources_host_update.bind_value_as_u64(9, sid);
-          else
-            _resources_host_update.bind_value_as_null(9);
-          _resources_host_update.bind_value_as_str(10, name);
-          _resources_host_update.bind_value_as_str(11, address);
-          _resources_host_update.bind_value_as_str(12, alias);
-          _resources_host_update.bind_value_as_str(13, parent_name);
-          _resources_host_update.bind_value_as_str(14, notes_url);
-          _resources_host_update.bind_value_as_str(15, notes);
-          _resources_host_update.bind_value_as_str(16, action_url);
-          _resources_host_update.bind_value_as_bool(17,
-                                                    h.notifications_enabled());
-          _resources_host_update.bind_value_as_bool(18,
-                                                    h.passive_checks_enabled());
-          _resources_host_update.bind_value_as_bool(19,
-                                                    h.active_checks_enabled());
-          _resources_host_update.bind_value_as_u64(20, h.icon_id());
-          _resources_host_update.bind_value_as_u64(21, res_id);
+          // INSERT
+          if (found == _resource_cache.end()) {
+            _resources_host_insert.bind_value_as_u64(0, _current_resource_id);
+            _resources_host_insert.bind_value_as_u64(1, h.host_id());
+            _resources_host_insert.bind_value_as_u32(2, h.current_state());
+            _resources_host_insert.bind_value_as_u32(
+                3, hst_ordered_status[h.current_state()]);
+            _resources_host_insert.bind_value_as_u64(4, h.last_state_change());
+            _resources_host_insert.bind_value_as_bool(5,
+                                                      h.downtime_depth() > 0);
+            _resources_host_insert.bind_value_as_bool(
+                6, h.acknowledgement_type() != Host_AckType_NONE);
+            _resources_host_insert.bind_value_as_bool(
+                7, h.state_type() == Host_StateType_HARD);
+            _resources_host_insert.bind_value_as_u32(8,
+                                                     h.current_check_attempt());
+            _resources_host_insert.bind_value_as_u32(9, h.max_check_attempts());
+            _resources_host_insert.bind_value_as_u64(
+                10, _cache_host_instance[h.host_id()]);
+            if (h.severity_id()) {
+              sid = _severity_cache[{h.severity_id(), 1}];
+              log_v2::sql()->debug("host {} with severity_id {} => uid = {}",
+                                   h.host_id(), h.severity_id(), sid);
+            } else
+              log_v2::sql()->info("no host severity found in cache for host {}",
+                                  h.host_id());
+            if (sid)
+              _resources_host_insert.bind_value_as_u64(11, sid);
+            else
+              _resources_host_insert.bind_value_as_null(11);
+            _resources_host_insert.bind_value_as_str(12, name);
+            _resources_host_insert.bind_value_as_str(13, address);
+            _resources_host_insert.bind_value_as_str(14, alias);
+            _resources_host_insert.bind_value_as_str(15, parent_name);
+            _resources_host_insert.bind_value_as_str(16, notes_url);
+            _resources_host_insert.bind_value_as_str(17, notes);
+            _resources_host_insert.bind_value_as_str(18, action_url);
+            _resources_host_insert.bind_value_as_bool(
+                19, h.notifications_enabled());
+            _resources_host_insert.bind_value_as_bool(
+                20, h.passive_checks_enabled());
+            _resources_host_insert.bind_value_as_bool(
+                21, h.active_checks_enabled());
+            _resources_host_insert.bind_value_as_u64(22, h.icon_id());
+            _mysql.run_statement(_resources_host_insert,
+                                 database::mysql_error::store_host, true, conn);
+            _resource_cache.insert({{h.host_id(), 0}, _current_resource_id});
+            ++_current_resource_id;
+            _add_action(conn, actions::resources);
+          } else {
+            res_id = found->second;
+            // UPDATE
+            _resources_host_update.bind_value_as_u32(0, h.current_state());
+            _resources_host_update.bind_value_as_u32(
+                1, hst_ordered_status[h.current_state()]);
+            _resources_host_update.bind_value_as_u64(2, h.last_state_change());
+            _resources_host_update.bind_value_as_bool(3,
+                                                      h.downtime_depth() > 0);
+            _resources_host_update.bind_value_as_bool(
+                4, h.acknowledgement_type() != Host_AckType_NONE);
+            _resources_host_update.bind_value_as_bool(
+                5, h.state_type() == Host_StateType_HARD);
+            _resources_host_update.bind_value_as_u32(6,
+                                                     h.current_check_attempt());
+            _resources_host_update.bind_value_as_u32(7, h.max_check_attempts());
+            _resources_host_update.bind_value_as_u64(
+                8, _cache_host_instance[h.host_id()]);
+            if (h.severity_id()) {
+              sid = _severity_cache[{h.severity_id(), 1}];
+              log_v2::sql()->debug("host {} with severity_id {} => uid = {}",
+                                   h.host_id(), h.severity_id(), sid);
+            } else
+              log_v2::sql()->info("no host severity found in cache for host {}",
+                                  h.host_id());
+            if (sid)
+              _resources_host_update.bind_value_as_u64(9, sid);
+            else
+              _resources_host_update.bind_value_as_null(9);
+            _resources_host_update.bind_value_as_str(10, name);
+            _resources_host_update.bind_value_as_str(11, address);
+            _resources_host_update.bind_value_as_str(12, alias);
+            _resources_host_update.bind_value_as_str(13, parent_name);
+            _resources_host_update.bind_value_as_str(14, notes_url);
+            _resources_host_update.bind_value_as_str(15, notes);
+            _resources_host_update.bind_value_as_str(16, action_url);
+            _resources_host_update.bind_value_as_bool(
+                17, h.notifications_enabled());
+            _resources_host_update.bind_value_as_bool(
+                18, h.passive_checks_enabled());
+            _resources_host_update.bind_value_as_bool(
+                19, h.active_checks_enabled());
+            _resources_host_update.bind_value_as_u64(20, h.icon_id());
+            _resources_host_update.bind_value_as_u64(21, res_id);
 
-          _mysql.run_statement(_resources_host_update,
-                               database::mysql_error::store_host_resources,
-                               true, conn);
-          _add_action(conn, actions::resources);
-        }
-
-        if (!_resources_tags_insert.prepared()) {
-          _resources_tags_insert = _mysql.prepare_query(
-              "INSERT INTO resources_tags (tag_id,resource_id) VALUES(?,?)");
-        }
-        _finish_action(-1, actions::tags);
-        for (auto& tag : h.tags()) {
-          auto it_tags_cache = _tags_cache.find({tag.id(), tag.type()});
-
-          if (it_tags_cache == _tags_cache.end()) {
-            log_v2::sql()->error(
-                "SQL: could not find in cache the tag ({}, {}) for host '{}': "
-                "trying to add it.",
-                tag.id(), tag.type(), h.host_id());
-            if (!_tag_insert.prepared())
-              _tag_insert = _mysql.prepare_query(
-                  "INSERT INTO tags (id,type,name) VALUES(?,?,?)");
-            _tag_insert.bind_value_as_u64(0, tag.id());
-            _tag_insert.bind_value_as_u32(1, tag.type());
-            _tag_insert.bind_value_as_str(2, "(unknown)");
-            std::promise<uint64_t> p;
-            _mysql.run_statement_and_get_int<uint64_t>(
-                _tag_insert, &p, database::mysql_task::LAST_INSERT_ID, conn);
-            try {
-              uint64_t tag_id = p.get_future().get();
-              it_tags_cache =
-                  _tags_cache.insert({{tag.id(), tag.type()}, tag_id}).first;
-            } catch (const std::exception& e) {
-              log_v2::sql()->error("SQL: unable to insert new tag ({},{}): {}",
-                                   tag.id(), tag.type(), e.what());
-            }
+            _mysql.run_statement(_resources_host_update,
+                                 database::mysql_error::store_host_resources,
+                                 true, conn);
+            _add_action(conn, actions::resources);
           }
 
-          if (it_tags_cache != _tags_cache.end()) {
-            _resources_tags_insert.bind_value_as_u64(0, it_tags_cache->second);
-            _resources_tags_insert.bind_value_as_u64(1, res_id);
-            log_v2::sql()->debug(
-                "SQL: new relation between host (resource_id: {}, host_id: {}) "
-                "and tag ({},{})",
-                res_id, h.host_id(), tag.id(), tag.type());
-            _mysql.run_statement(
-                _resources_tags_insert,
-                database::mysql_error::store_tags_resources_tags, false, conn);
-            _add_action(conn, actions::resources_tags);
+          if (!_resources_tags_insert.prepared()) {
+            _resources_tags_insert = _mysql.prepare_query(
+                "INSERT INTO resources_tags (tag_id,resource_id) VALUES(?,?)");
+          }
+          _finish_action(-1, actions::tags);
+          for (auto& tag : h.tags()) {
+            auto it_tags_cache = _tags_cache.find({tag.id(), tag.type()});
+
+            if (it_tags_cache == _tags_cache.end()) {
+              log_v2::sql()->error(
+                  "SQL: could not find in cache the tag ({}, {}) for host "
+                  "'{}': "
+                  "trying to add it.",
+                  tag.id(), tag.type(), h.host_id());
+              if (!_tag_insert.prepared())
+                _tag_insert = _mysql.prepare_query(
+                    "INSERT INTO tags (id,type,name) VALUES(?,?,?)");
+              _tag_insert.bind_value_as_u64(0, tag.id());
+              _tag_insert.bind_value_as_u32(1, tag.type());
+              _tag_insert.bind_value_as_str(2, "(unknown)");
+              std::promise<uint64_t> p;
+              _mysql.run_statement_and_get_int<uint64_t>(
+                  _tag_insert, &p, database::mysql_task::LAST_INSERT_ID, conn);
+              try {
+                uint64_t tag_id = p.get_future().get();
+                it_tags_cache =
+                    _tags_cache.insert({{tag.id(), tag.type()}, tag_id}).first;
+              } catch (const std::exception& e) {
+                log_v2::sql()->error(
+                    "SQL: unable to insert new tag ({},{}): {}", tag.id(),
+                    tag.type(), e.what());
+              }
+            }
+
+            if (it_tags_cache != _tags_cache.end()) {
+              _resources_tags_insert.bind_value_as_u64(0,
+                                                       it_tags_cache->second);
+              _resources_tags_insert.bind_value_as_u64(1, res_id);
+              log_v2::sql()->debug(
+                  "SQL: new relation between host (resource_id: {}, host_id: "
+                  "{}) "
+                  "and tag ({},{})",
+                  res_id, h.host_id(), tag.id(), tag.type());
+              _mysql.run_statement(
+                  _resources_tags_insert,
+                  database::mysql_error::store_tags_resources_tags, false,
+                  conn);
+              _add_action(conn, actions::resources_tags);
+            }
+          }
+        } else {
+          if (found != _resource_cache.end()) {
+            _resources_disable.bind_value_as_u64(0, found->second);
+
+            _mysql.run_statement(_resources_disable,
+                                 database::mysql_error::clean_resources, false,
+                                 conn);
+            _resource_cache.erase(found);
+            _add_action(conn, actions::resources);
+          } else {
+            log_v2::sql()->info(
+                "SQL: no need to remove host {}, it is not in database",
+                h.host_id());
           }
         }
       }
@@ -2296,6 +2320,8 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
               "notes=?,action_url=?,notifications_enabled=?,"
               "passive_checks_enabled=?,active_checks_enabled=?,icon_id=?,"
               "enabled=1 WHERE resource_id=?");
+          _resources_disable = _mysql.prepare_query(
+              "UPDATE resources SET enabled=0 WHERE resource_id=?");
         }
       }
 
@@ -2311,177 +2337,198 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
         uint64_t res_id;
         auto found = _resource_cache.find({ss.service_id(), ss.host_id()});
 
-        uint64_t sid = 0;
-        fmt::string_view name{misc::string::truncate(
-            ss.display_name(), get_resources_col_size(resources_name))};
-        fmt::string_view parent_name{misc::string::truncate(
-            ss.host_name(), get_resources_col_size(resources_parent_name))};
-        fmt::string_view notes_url{misc::string::truncate(
-            ss.notes_url(), get_resources_col_size(resources_notes_url))};
-        fmt::string_view notes{misc::string::truncate(
-            ss.notes(), get_resources_col_size(resources_notes))};
-        fmt::string_view action_url{misc::string::truncate(
-            ss.action_url(), get_resources_col_size(resources_action_url))};
+        if (ss.enabled()) {
+          uint64_t sid = 0;
+          fmt::string_view name{misc::string::truncate(
+              ss.display_name(), get_resources_col_size(resources_name))};
+          fmt::string_view parent_name{misc::string::truncate(
+              ss.host_name(), get_resources_col_size(resources_parent_name))};
+          fmt::string_view notes_url{misc::string::truncate(
+              ss.notes_url(), get_resources_col_size(resources_notes_url))};
+          fmt::string_view notes{misc::string::truncate(
+              ss.notes(), get_resources_col_size(resources_notes))};
+          fmt::string_view action_url{misc::string::truncate(
+              ss.action_url(), get_resources_col_size(resources_action_url))};
 
-        // INSERT
-        if (found == _resource_cache.end()) {
-          _resources_service_insert.bind_value_as_u64(0, _current_resource_id);
-          _resources_service_insert.bind_value_as_u64(1, ss.service_id());
-          _resources_service_insert.bind_value_as_u64(2, ss.host_id());
-          _resources_service_insert.bind_value_as_u32(3, ss.type());
-          if (ss.internal_id())
-            _resources_service_insert.bind_value_as_u64(4, ss.internal_id());
-          else
-            _resources_service_insert.bind_value_as_null(4);
-          _resources_service_insert.bind_value_as_u32(5, ss.current_state());
-          _resources_service_insert.bind_value_as_u32(
-              6, svc_ordered_status[ss.current_state()]);
-          _resources_service_insert.bind_value_as_u64(7,
-                                                      ss.last_state_change());
-          _resources_service_insert.bind_value_as_bool(8,
-                                                       ss.downtime_depth() > 0);
-          _resources_service_insert.bind_value_as_bool(
-              9, ss.acknowledgement_type() != Service_AckType_NONE);
-          _resources_service_insert.bind_value_as_bool(
-              10, ss.state_type() == Service_StateType_HARD);
-          _resources_service_insert.bind_value_as_u32(
-              11, ss.current_check_attempt());
-          _resources_service_insert.bind_value_as_u32(12,
-                                                      ss.max_check_attempts());
-          _resources_service_insert.bind_value_as_u64(
-              13, _cache_host_instance[ss.host_id()]);
-          if (ss.severity_id() > 0) {
-            sid = _severity_cache[{ss.severity_id(), 0}];
-            log_v2::sql()->debug(
-                "service ({}, {}) with severity_id {} => uid = {}",
-                ss.host_id(), ss.service_id(), ss.severity_id(), sid);
+          // INSERT
+          if (found == _resource_cache.end()) {
+            _resources_service_insert.bind_value_as_u64(0,
+                                                        _current_resource_id);
+            _resources_service_insert.bind_value_as_u64(1, ss.service_id());
+            _resources_service_insert.bind_value_as_u64(2, ss.host_id());
+            _resources_service_insert.bind_value_as_u32(3, ss.type());
+            if (ss.internal_id())
+              _resources_service_insert.bind_value_as_u64(4, ss.internal_id());
+            else
+              _resources_service_insert.bind_value_as_null(4);
+            _resources_service_insert.bind_value_as_u32(5, ss.current_state());
+            _resources_service_insert.bind_value_as_u32(
+                6, svc_ordered_status[ss.current_state()]);
+            _resources_service_insert.bind_value_as_u64(7,
+                                                        ss.last_state_change());
+            _resources_service_insert.bind_value_as_bool(
+                8, ss.downtime_depth() > 0);
+            _resources_service_insert.bind_value_as_bool(
+                9, ss.acknowledgement_type() != Service_AckType_NONE);
+            _resources_service_insert.bind_value_as_bool(
+                10, ss.state_type() == Service_StateType_HARD);
+            _resources_service_insert.bind_value_as_u32(
+                11, ss.current_check_attempt());
+            _resources_service_insert.bind_value_as_u32(
+                12, ss.max_check_attempts());
+            _resources_service_insert.bind_value_as_u64(
+                13, _cache_host_instance[ss.host_id()]);
+            if (ss.severity_id() > 0) {
+              sid = _severity_cache[{ss.severity_id(), 0}];
+              log_v2::sql()->debug(
+                  "service ({}, {}) with severity_id {} => uid = {}",
+                  ss.host_id(), ss.service_id(), ss.severity_id(), sid);
+            }
+            if (sid)
+              _resources_service_insert.bind_value_as_u64(14, sid);
+            else
+              _resources_service_insert.bind_value_as_null(14);
+            _resources_service_insert.bind_value_as_str(15, name);
+            _resources_service_insert.bind_value_as_str(16, parent_name);
+            _resources_service_insert.bind_value_as_str(17, notes_url);
+            _resources_service_insert.bind_value_as_str(18, notes);
+            _resources_service_insert.bind_value_as_str(19, action_url);
+            _resources_service_insert.bind_value_as_bool(
+                20, ss.notifications_enabled());
+            _resources_service_insert.bind_value_as_bool(
+                21, ss.passive_checks_enabled());
+            _resources_service_insert.bind_value_as_bool(
+                22, ss.active_checks_enabled());
+            _resources_service_insert.bind_value_as_u64(23, ss.icon_id());
+
+            _mysql.run_statement(_resources_service_insert,
+                                 database::mysql_error::store_service, true,
+                                 conn);
+            _resource_cache.insert(
+                {{ss.service_id(), ss.host_id()}, _current_resource_id});
+            ++_current_resource_id;
+            _add_action(conn, actions::resources);
+          } else {
+            res_id = found->second;
+            // UPDATE
+            _resources_service_update.bind_value_as_u32(0, ss.type());
+            if (ss.internal_id())
+              _resources_service_update.bind_value_as_u64(1, ss.internal_id());
+            else
+              _resources_service_update.bind_value_as_null(1);
+            _resources_service_update.bind_value_as_u32(2, ss.current_state());
+            _resources_service_update.bind_value_as_u32(
+                3, svc_ordered_status[ss.current_state()]);
+            _resources_service_update.bind_value_as_u64(4,
+                                                        ss.last_state_change());
+            _resources_service_update.bind_value_as_bool(
+                5, ss.downtime_depth() > 0);
+            _resources_service_update.bind_value_as_bool(
+                6, ss.acknowledgement_type() != Service_AckType_NONE);
+            _resources_service_update.bind_value_as_bool(
+                7, ss.state_type() == Service_StateType_HARD);
+            _resources_service_update.bind_value_as_u32(
+                8, ss.current_check_attempt());
+            _resources_service_update.bind_value_as_u32(
+                9, ss.max_check_attempts());
+            _resources_service_update.bind_value_as_u64(
+                10, _cache_host_instance[ss.host_id()]);
+            if (ss.severity_id() > 0) {
+              sid = _severity_cache[{ss.severity_id(), 0}];
+              log_v2::sql()->debug(
+                  "service ({}, {}) with severity_id {} => uid = {}",
+                  ss.host_id(), ss.service_id(), ss.severity_id(), sid);
+            }
+            if (sid)
+              _resources_service_update.bind_value_as_u64(11, sid);
+            else
+              _resources_service_update.bind_value_as_null(11);
+            _resources_service_update.bind_value_as_str(12, name);
+            _resources_service_update.bind_value_as_str(13, parent_name);
+            _resources_service_update.bind_value_as_str(14, notes_url);
+            _resources_service_update.bind_value_as_str(15, notes);
+            _resources_service_update.bind_value_as_str(16, action_url);
+            _resources_service_update.bind_value_as_bool(
+                17, ss.notifications_enabled());
+            _resources_service_update.bind_value_as_bool(
+                18, ss.passive_checks_enabled());
+            _resources_service_update.bind_value_as_bool(
+                19, ss.active_checks_enabled());
+            _resources_service_update.bind_value_as_u64(20, ss.icon_id());
+            _resources_service_update.bind_value_as_u64(21, res_id);
+
+            _mysql.run_statement(_resources_service_update,
+                                 database::mysql_error::store_service, true,
+                                 conn);
+            _add_action(conn, actions::resources);
           }
-          if (sid)
-            _resources_service_insert.bind_value_as_u64(14, sid);
-          else
-            _resources_service_insert.bind_value_as_null(14);
-          _resources_service_insert.bind_value_as_str(15, name);
-          _resources_service_insert.bind_value_as_str(16, parent_name);
-          _resources_service_insert.bind_value_as_str(17, notes_url);
-          _resources_service_insert.bind_value_as_str(18, notes);
-          _resources_service_insert.bind_value_as_str(19, action_url);
-          _resources_service_insert.bind_value_as_bool(
-              20, ss.notifications_enabled());
-          _resources_service_insert.bind_value_as_bool(
-              21, ss.passive_checks_enabled());
-          _resources_service_insert.bind_value_as_bool(
-              22, ss.active_checks_enabled());
-          _resources_service_insert.bind_value_as_u64(23, ss.icon_id());
 
-          _mysql.run_statement(_resources_service_insert,
-                               database::mysql_error::store_service, true,
-                               conn);
-          _resource_cache.insert(
-              {{ss.service_id(), ss.host_id()}, _current_resource_id});
-          ++_current_resource_id;
-          _add_action(conn, actions::resources);
-        } else {
-          res_id = found->second;
-          // UPDATE
-          _resources_service_update.bind_value_as_u32(0, ss.type());
-          if (ss.internal_id())
-            _resources_service_update.bind_value_as_u64(1, ss.internal_id());
-          else
-            _resources_service_update.bind_value_as_null(1);
-          _resources_service_update.bind_value_as_u32(2, ss.current_state());
-          _resources_service_update.bind_value_as_u32(
-              3, svc_ordered_status[ss.current_state()]);
-          _resources_service_update.bind_value_as_u64(4,
-                                                      ss.last_state_change());
-          _resources_service_update.bind_value_as_bool(5,
-                                                       ss.downtime_depth() > 0);
-          _resources_service_update.bind_value_as_bool(
-              6, ss.acknowledgement_type() != Service_AckType_NONE);
-          _resources_service_update.bind_value_as_bool(
-              7, ss.state_type() == Service_StateType_HARD);
-          _resources_service_update.bind_value_as_u32(
-              8, ss.current_check_attempt());
-          _resources_service_update.bind_value_as_u32(9,
-                                                      ss.max_check_attempts());
-          _resources_service_update.bind_value_as_u64(
-              10, _cache_host_instance[ss.host_id()]);
-          if (ss.severity_id() > 0) {
-            sid = _severity_cache[{ss.severity_id(), 0}];
-            log_v2::sql()->debug(
-                "service ({}, {}) with severity_id {} => uid = {}",
-                ss.host_id(), ss.service_id(), ss.severity_id(), sid);
+          if (!_resources_tags_insert.prepared()) {
+            _resources_tags_insert = _mysql.prepare_query(
+                "INSERT INTO resources_tags (tag_id,resource_id) VALUES(?,?)");
           }
-          if (sid)
-            _resources_service_update.bind_value_as_u64(11, sid);
-          else
-            _resources_service_update.bind_value_as_null(11);
-          _resources_service_update.bind_value_as_str(12, name);
-          _resources_service_update.bind_value_as_str(13, parent_name);
-          _resources_service_update.bind_value_as_str(14, notes_url);
-          _resources_service_update.bind_value_as_str(15, notes);
-          _resources_service_update.bind_value_as_str(16, action_url);
-          _resources_service_update.bind_value_as_bool(
-              17, ss.notifications_enabled());
-          _resources_service_update.bind_value_as_bool(
-              18, ss.passive_checks_enabled());
-          _resources_service_update.bind_value_as_bool(
-              19, ss.active_checks_enabled());
-          _resources_service_update.bind_value_as_u64(20, ss.icon_id());
-          _resources_service_update.bind_value_as_u64(21, res_id);
+          _finish_action(-1, actions::tags);
+          for (auto& tag : ss.tags()) {
+            auto it_tags_cache = _tags_cache.find({tag.id(), tag.type()});
 
-          _mysql.run_statement(_resources_service_update,
-                               database::mysql_error::store_service, true,
-                               conn);
-          _add_action(conn, actions::resources);
-        }
+            if (it_tags_cache == _tags_cache.end()) {
+              log_v2::sql()->error(
+                  "SQL: could not find in cache the tag ({}, {}) for service "
+                  "({},{}): trying to add it.",
+                  tag.id(), tag.type(), ss.host_id(), ss.service_id());
+              if (!_tag_insert.prepared())
+                _tag_insert = _mysql.prepare_query(
+                    "INSERT INTO tags (id,type,name) VALUES(?,?,?)");
+              _tag_insert.bind_value_as_u64(0, tag.id());
+              _tag_insert.bind_value_as_u32(1, tag.type());
+              _tag_insert.bind_value_as_str(2, "(unknown)");
+              std::promise<uint64_t> p;
+              _mysql.run_statement_and_get_int<uint64_t>(
+                  _tag_insert, &p, database::mysql_task::LAST_INSERT_ID, conn);
+              try {
+                uint64_t tag_id = p.get_future().get();
+                it_tags_cache =
+                    _tags_cache.insert({{tag.id(), tag.type()}, tag_id}).first;
+              } catch (const std::exception& e) {
+                log_v2::sql()->error(
+                    "SQL: unable to insert new tag ({},{}): {}", tag.id(),
+                    tag.type(), e.what());
+              }
+            }
 
-        if (!_resources_tags_insert.prepared()) {
-          _resources_tags_insert = _mysql.prepare_query(
-              "INSERT INTO resources_tags (tag_id,resource_id) VALUES(?,?)");
-        }
-        _finish_action(-1, actions::tags);
-        for (auto& tag : ss.tags()) {
-          auto it_tags_cache = _tags_cache.find({tag.id(), tag.type()});
-
-          if (it_tags_cache == _tags_cache.end()) {
-            log_v2::sql()->error(
-                "SQL: could not find in cache the tag ({}, {}) for service "
-                "({},{}): trying to add it.",
-                tag.id(), tag.type(), ss.host_id(), ss.service_id());
-            if (!_tag_insert.prepared())
-              _tag_insert = _mysql.prepare_query(
-                  "INSERT INTO tags (id,type,name) VALUES(?,?,?)");
-            _tag_insert.bind_value_as_u64(0, tag.id());
-            _tag_insert.bind_value_as_u32(1, tag.type());
-            _tag_insert.bind_value_as_str(2, "(unknown)");
-            std::promise<uint64_t> p;
-            _mysql.run_statement_and_get_int<uint64_t>(
-                _tag_insert, &p, database::mysql_task::LAST_INSERT_ID, conn);
-            try {
-              uint64_t tag_id = p.get_future().get();
-              it_tags_cache =
-                  _tags_cache.insert({{tag.id(), tag.type()}, tag_id}).first;
-            } catch (const std::exception& e) {
-              log_v2::sql()->error("SQL: unable to insert new tag ({},{}): {}",
-                                   tag.id(), tag.type(), e.what());
+            if (it_tags_cache != _tags_cache.end()) {
+              _resources_tags_insert.bind_value_as_u64(0,
+                                                       it_tags_cache->second);
+              _resources_tags_insert.bind_value_as_u64(1, res_id);
+              log_v2::sql()->debug(
+                  "SQL: new relation between service (resource_id: {},  ({}, "
+                  "{})) and tag ({},{})",
+                  res_id, ss.host_id(), ss.service_id(), tag.id(), tag.type());
+              _mysql.run_statement(
+                  _resources_tags_insert,
+                  database::mysql_error::store_tags_resources_tags, false,
+                  conn);
+              _add_action(conn, actions::resources_tags);
+            } else {
+              log_v2::sql()->error(
+                  "SQL: could not find the tag ({}, {}) in cache for host '{}'",
+                  tag.id(), tag.type(), ss.service_id());
             }
           }
+        } else {
+          if (found != _resource_cache.end()) {
+            _resources_disable.bind_value_as_u64(0, found->second);
 
-          if (it_tags_cache != _tags_cache.end()) {
-            _resources_tags_insert.bind_value_as_u64(0, it_tags_cache->second);
-            _resources_tags_insert.bind_value_as_u64(1, res_id);
-            log_v2::sql()->debug(
-                "SQL: new relation between service (resource_id: {},  ({}, "
-                "{})) and tag ({},{})",
-                res_id, ss.host_id(), ss.service_id(), tag.id(), tag.type());
-            _mysql.run_statement(
-                _resources_tags_insert,
-                database::mysql_error::store_tags_resources_tags, false, conn);
-            _add_action(conn, actions::resources_tags);
+            _mysql.run_statement(_resources_disable,
+                                 database::mysql_error::clean_resources, false,
+                                 conn);
+            _resource_cache.erase(found);
+            _add_action(conn, actions::resources);
           } else {
-            log_v2::sql()->error(
-                "SQL: could not find the tag ({}, {}) in cache for host '{}'",
-                tag.id(), tag.type(), ss.service_id());
+            log_v2::sql()->info(
+                "SQL: no need to remove service ({}, {}), it is not in "
+                "database",
+                ss.host_id(), ss.service_id());
           }
         }
       }
