@@ -284,6 +284,7 @@ class stream : public io::stream {
   database::mysql_stmt _resources_host_update;
   database::mysql_stmt _resources_service_insert;
   database::mysql_stmt _resources_service_update;
+  database::mysql_stmt _resources_disable;
   database::mysql_stmt _hscr_resources_update;
   database::mysql_stmt _sscr_resources_update;
 
