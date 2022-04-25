@@ -1,2 +1,2 @@
-/var/lib/centreon-engine
-/var/log/centreon-engine
+var/lib/centreon-engine
+var/log/centreon-engine
