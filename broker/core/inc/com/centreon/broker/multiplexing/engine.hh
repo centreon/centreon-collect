@@ -100,6 +100,7 @@ class engine {
   static void load();
   static void unload();
   static engine& instance();
+  static engine* instance_ptr() { return _instance; }
 
   engine(const engine&) = delete;
   engine& operator=(const engine&) = delete;

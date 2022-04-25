@@ -48,9 +48,6 @@ test use connector perl multiple script
         schedule forced host check  ${host}  /tmp/test_connector_perl/rw/centengine.cmd
     END
     Sleep  10 seconds  we wait engine forced checks 
-    ${search_result}=  check search  /tmp/test_connector_ssh/log/centengine.debug  /usr/lib64/nagios/plugins/check_by_ssh -H ::1
-    Should Contain  ${search_result}  output='toto=::1'  msg=check not found for ::1  
-
     FOR	${idx}	IN RANGE	2	12
         ${search_str}=   Catenate	SEPARATOR=  test.pl -H 127.0.0.  ${idx} 
         ${search_result}=  check search  /tmp/test_connector_perl/log/centengine.debug  ${search_str}
