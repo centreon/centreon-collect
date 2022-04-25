@@ -29,8 +29,7 @@ PROJECT="centreon-collect"
   if [[ -f "$PROJECT-SQ-cache-$VERSION.tar.gz" ]]; then
     echo "INFO: Deploying SQ cache ..."
 
-echo "build state"
-ls -la
+
 
  #   cd /src/build
 
@@ -42,10 +41,9 @@ ls -la
     echo "INFO: Cache's tarball not found. The cache will be recomputed..."
   fi
 
-echo "sonar"
-ls -la /root/.sonar
-echo "cache"
-ls -la /root/.sonar/cache
+echo "build state"
+pwd
+ls -la
 
   echo "INFO: Running SQ in PR mode ..."
   /src/tmp/sonar-scanner/bin/sonar-scanner -X -Dsonar.scm.forceReloadAll=true -Dsonar.cfamily.threads="$PROCNBR" -Dsonar.scm.provider=git -Dsonar.login="$2" -Dsonar.host.url="$3" -Dsonar.projectVersion="$VERSION" -Dsonar.pullrequest.branch="$5" -Dsonar.pullrequest.base="$6" -Dsonar.pullrequest.key="$7"
@@ -68,6 +66,7 @@ ls -la /root/.sonar/cache
  # cd /src/build
 
 echo "tmp source"
+pwd
 ls -la
 
   tar czf "$PROJECT-SQ-cache-$VERSION.tar.gz" cache
