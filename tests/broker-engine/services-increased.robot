@@ -32,19 +32,20 @@ EBNSVC1
 	${start}=	Get Current Date
 	Start Broker
 	Start Engine
-        FOR	${i}	IN RANGE	${1}
+        FOR	${i}	IN RANGE	${3}
           Sleep	10s
-          ${srv_by_host}=	Evaluate	20+$i*4
+          ${srv_by_host}=	Evaluate	20 + 4 * $i
+          log to console	${srv_by_host} services by host with 50 hosts among 3 pollers.
           Config Engine	${3}	${50}	${srv_by_host}
           Reload Engine
           Reload Broker
-          ${nb_srv}=	Evaluate	17 * (20 + $i)
+          ${nb_srv}=	Evaluate	17 * (20 + 4 * $i)
           ${nb_res}=	Evaluate	$nb_srv + 17
           ${result}=	Check Number Of Resources Monitored by Poller is	${1}	${nb_res}	30
           Should Be True	${result}	msg=Poller 1 should monitor ${nb_srv} services and 17 hosts.
           ${result}=	Check Number Of Resources Monitored by Poller is	${2}	${nb_res}	30
           Should Be True	${result}	msg=Poller 2 should monitor ${nb_srv} services and 17 hosts.
-          ${nb_srv}=	Evaluate	16 * (20 + $i)
+          ${nb_srv}=	Evaluate	16 * (20 + 4 * $i)
           ${nb_res}=	Evaluate	$nb_srv + 16
           ${result}=	Check Number Of Resources Monitored by Poller is	${3}	${nb_res}	30
           Should Be True	${result}	msg=Poller 3 should monitor ${nb_srv} services and 16 hosts.
