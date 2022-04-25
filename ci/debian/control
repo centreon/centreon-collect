@@ -99,6 +99,8 @@ Depends:
     centreon-clib (>= 22.04.0~),
     centreon-engine (>= 22.04.0~), 
     centreon-broker-core (>= 22.04.0~),
+    centreon-broker-cbmod (>= 22.04.0~),
+    centreon-broker-storage (>= 22.04.0~),
     ${misc:Depends},
     ${shlibs:Depends}
 Description: Centreon Broker is a Centreon Engine/Nagios module that report events in
