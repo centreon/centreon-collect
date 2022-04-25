@@ -31,8 +31,8 @@ rm -f /src/tmp/sonar-scanner/conf/sonar-scanner.properties
   if [[ -f "$PROJECT-SQ-cache-$VERSION.tar.gz" ]]; then
     echo "INFO: Deploying SQ cache ..."
     tar xzf "$PROJECT-SQ-cache-$VERSION.tar.gz"
-    cd /src
-    mv /src/build/.scannerwork .
+
+    mv /src/build/.scannerwork /src
   else
     echo "INFO: Cache's tarball not found. The cache will be recomputed..."
   fi
@@ -42,6 +42,7 @@ pwd
 ls -la
 
   echo "INFO: Running SQ in PR mode ..."
+  cd /src
   /src/tmp/sonar-scanner/bin/sonar-scanner -X -Dsonar.scm.forceReloadAll=true -Dsonar.cfamily.threads="$PROCNBR" -Dsonar.scm.provider=git -Dsonar.login="$2" -Dsonar.host.url="$3" -Dsonar.projectVersion="$VERSION" -Dsonar.pullrequest.branch="$5" -Dsonar.pullrequest.base="$6" -Dsonar.pullrequest.key="$7"
 #else
 #  echo "INFO: Cleaning cached files ..."
