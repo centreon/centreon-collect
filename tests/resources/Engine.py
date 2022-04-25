@@ -688,7 +688,7 @@ def remove_severities_from_hosts(poller:int):
 # and return this line
 #
 # @param debug_file_path path of the debug log file
-# @param str_to_search string after witch we will start connector::run search
+# @param str_to_search string after which we will start connector::run search
 #
 
 

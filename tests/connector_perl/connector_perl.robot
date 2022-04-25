@@ -1,4 +1,8 @@
 *** Settings ***
+
+# FIXME DBO
+Force Tags        excluded
+
 Resource	../resources/resources.robot
 Library     ../resources/Engine.py
 Suite Setup	Start engine

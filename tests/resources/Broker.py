@@ -1017,7 +1017,7 @@ def remove_graphs(port, indexes, metrics, timeout=10):
 # @param port The port to use with gRPC.
 # @param indexes The list of indexes corresponding to metrics to rebuild.
 #
-def rebuild_rrd_graphs(port, indexes):
+def rebuild_rrd_graphs(port, indexes, timeout: int = TIMEOUT):
     limit = time.time() + timeout
     while time.time() < limit:
         time.sleep(1)
