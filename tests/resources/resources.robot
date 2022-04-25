@@ -114,7 +114,7 @@ ${BROKER_LOG}	/var/log/centreon-broker
 ${ENGINE_LOG}	/var/log/centreon-engine
 ${SCRIPTS}	${CURDIR}${/}scripts${/}
 ${centralLog}	${BROKER_LOG}/central-broker-master.log
-${moduleLog}	${BROKER_LOG}/central-module-master.log
+${moduleLog}	${BROKER_LOG}/central-module-master0.log
 ${rrdLog}	${BROKER_LOG}/central-rrd-master.log
 
 ${logEngine0}	${ENGINE_LOG}/config0/centengine.log
