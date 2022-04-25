@@ -33,17 +33,21 @@ install_scanner() {
 }
 
 get_cache() {
-  echo "clean and pull tarball"
+  echo "INFO: delete before pulling tarball ..."
   rm -rf "$PROJECT-SQ-cache-$VERSION.tar.gz"
-  get_internal_source "$PROJECT/$PROJECT-SQ-cache-$VERSION/$PROJECT-SQ-cache-$VERSION.tar.gz"
+  get_internal_source "SQ-cache/$PROJECT/$PROJECT-SQ-cache-$VERSION.tar.gz"
 }
 
 set_cache() {
+
+
   cd build
   pwd
   ls -la
-  echo "Saving cache"
-  put_internal_source "$PROJECT" "$PROJECT-SQ-cache-$VERSION" "$PROJECT-SQ-cache-$VERSION.tar.gz"
+
+
+  echo "INFO: Saving cache ..."
+  put_internal_source "SQ-cache" "$PROJECT" "$PROJECT-SQ-cache-$VERSION.tar.gz"
 }
 
 get_internal_source() {
@@ -70,7 +74,7 @@ validate_file_exists() {
 }
 
 # case load
-if [[ -n $1 ]]; then
+if [[ -n "$1" ]]; then
   if [[ "get" == "$1" ]]; then
     get_cache
   elif [[ "set" == "$1" ]]; then
