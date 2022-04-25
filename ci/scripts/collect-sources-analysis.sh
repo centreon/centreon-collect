@@ -22,6 +22,8 @@ fi
 PROCNBR=$( nproc )
 VERSION="$4"
 PROJECT="centreon-collect"
+# Delete default configuration file to override
+rm -f /src/tmp/sonar-scanner/conf/sonar-scanner.properties
 
 # Run SQ with or without reference branch
 #if [[ "PR" == "$1" ]] ; then
@@ -36,16 +38,18 @@ PROJECT="centreon-collect"
 
 #    rm -rf /src/build/cache
     tar xzf "$PROJECT-SQ-cache-$VERSION.tar.gz"
-    cd ..
+
   else
     echo "INFO: Cache's tarball not found. The cache will be recomputed..."
   fi
+  cd /src
 
 echo "build state"
 pwd
 ls -la
 
   echo "INFO: Running SQ in PR mode ..."
+
   /src/tmp/sonar-scanner/bin/sonar-scanner -X -Dsonar.scm.forceReloadAll=true -Dsonar.cfamily.threads="$PROCNBR" -Dsonar.scm.provider=git -Dsonar.login="$2" -Dsonar.host.url="$3" -Dsonar.projectVersion="$VERSION" -Dsonar.pullrequest.branch="$5" -Dsonar.pullrequest.base="$6" -Dsonar.pullrequest.key="$7"
 #else
 #  echo "INFO: Cleaning cached files ..."
@@ -63,7 +67,7 @@ ls -la
 
   echo "INFO: Moving cache as tarball ..."
 
- # cd /src/build
+ cd /src/build
 
 echo "tmp source"
 pwd
