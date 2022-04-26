@@ -28,13 +28,6 @@ rm -f /src/tmp/sonar-scanner/conf/sonar-scanner.properties
 
 # Run SQ with or without reference branch
 if [[ "PR" == "$1" ]] ; then
-
-  echo "DEBUG: /src/tmp"
-  cd /src/tmp
-  pwd
-  ls -la
-
-
   if [[ -f "/src/tmp/$PROJECT-SQ-cache-$VERSION.tar.gz" ]]; then
     echo "INFO: Deploying SQ cache ..."
     cd /src/tmp
@@ -45,16 +38,6 @@ if [[ "PR" == "$1" ]] ; then
     echo "INFO: Cache's tarball not found. The cache will be recomputed after the analysis ..."
     SET_CACHE=1
   fi
-
-  echo "DEBUG: /src/build"
-  cd /src/build
-  pwd
-  ls -la
-  echo "DEBUG: /src/.scannerwork"
-  cd /src/.scannerwork
-  pwd
-  ls -la
-
 
   echo "INFO: Running SQ in PR mode ..."
   cd /src
@@ -72,7 +55,7 @@ else
   SET_CACHE=1
 fi
 
-# Create cache's tarball
+# Create cache's tarball if required
 if [[ 1 -eq "$SET_CACHE" ]]; then
   echo "INFO: Cleaning tmp folder ..."
   cd /src/tmp

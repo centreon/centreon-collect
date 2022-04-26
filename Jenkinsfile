@@ -92,7 +92,7 @@ stage('Build / Unit tests // Packaging / Signing') {
         }
       }
     }
-  }/*,
+  },
   'centos7 rpm packaging and signing': {
     node("C++") {
       dir('centreon-collect-centos7') {
@@ -152,7 +152,7 @@ stage('Build / Unit tests // Packaging / Signing') {
       stash name: 'Debian11', includes: 'Debian11/*.deb'
       archiveArtifacts artifacts: "Debian11/*"
     }
-  }*/
+  }
 }
 
 stage('Quality Gate') {
@@ -167,7 +167,6 @@ stage('Quality Gate') {
   }
 }
 
-/*
 stage('Delivery') {
   node("C++") {
     unstash 'el8-rpms'
@@ -190,4 +189,3 @@ stage('Delivery') {
     }
   }
 }
-*/

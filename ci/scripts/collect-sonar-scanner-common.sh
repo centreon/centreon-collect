@@ -33,28 +33,14 @@ install_scanner() {
 }
 
 get_cache() {
-  
-echo "get_cache location"
-pwd
-ls -la
-
-rm -rf "$PROJECT-SQ-cache-$VERSION.tar.gz"
-
-
   cd tmp
-
   echo "INFO: delete before pulling tarball ..."
   rm -rf "$PROJECT-SQ-cache-$VERSION.tar.gz"
   get_internal_source "SQ-cache/$PROJECT/$PROJECT-SQ-cache-$VERSION.tar.gz"
 }
 
 set_cache() {
-
-pwd
-ls -la
-cd tmp
-pwd
-ls -la
+  cd tmp
 
   echo "INFO: Saving cache ..."
   put_internal_source "SQ-cache" "$PROJECT" "$PROJECT-SQ-cache-$VERSION.tar.gz"
@@ -63,7 +49,7 @@ ls -la
 get_internal_source() {
   URL="http://srvi-repo.int.centreon.com/sources/internal/$1"
   if validate_file_exists "$URL"; then
-    wget "$URL"
+    wget -q "$URL"
   else
     echo "WARNING: File not found. Skipping it"
   fi
