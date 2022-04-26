@@ -2,6 +2,9 @@
 
 set -e
 
+
+echo "REPO Creds ? : $REPO_CREDS"
+
 # Machine credentials.
 REPO_CREDS="ubuntu@srvi-repo.int.centreon.com"
 
