@@ -32,12 +32,23 @@ install_scanner() {
 }
 
 get_cache() {
+  echo "DEBUG: change_target = $CHANGE_TARGET"
+  echo "DEBUG: branch_name = $BRANCH_NAME"
+  if [[ -z $BRANCH_NAME ]]; then
+    TARGET=$BRANCH_NAME
+  else
+    TARGET=$CHANGE_TARGET
+  fi
+
   cd tmp
   echo "INFO: delete before pulling tarball ..."
-  rm -rf "$PROJECT-SQ-cache-$VERSION.tar.gz"
+  rm -rf "$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz"
 
-  PATH="SQ-cache/$PROJECT/$PROJECT-SQ-cache-$VERSION.tar.gz"
+  PATH="SQ-cache/$PROJECT/$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz"
   URL="http://srvi-repo.int.centreon.com/sources/internal/$PATH"
+
+  echo "DEBUG - URL is : $URL"
+
   if validate_file_exists "$URL"; then
     get_internal_source "$PATH"
   else
@@ -49,7 +60,7 @@ set_cache() {
   cd tmp
   if [[ -f "$PROJECT-SQ-cache-$VERSION.tar.gz" ]]; then
     echo "INFO: Saving cache's tarball ..."
-    put_internal_source "SQ-cache" "$PROJECT" "$PROJECT-SQ-cache-$VERSION.tar.gz"
+    put_internal_source "SQ-cache" "$PROJECT" "$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz"
   else
     echo "WARNING: Tarball to save not found. Skipping ..."
   fi
