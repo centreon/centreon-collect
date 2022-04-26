@@ -39,9 +39,26 @@ if [[ "PR" == "$1" ]] ; then
     SET_CACHE=1
   fi
 
+echo "DEBUG tmp state"
+pwd
+ls -la
+
+
+echo "DEBUG src state"
+cd /src
+pwd
+ls -la
+
+
+echo "DEBUG build state"
+cd /src/build
+pwd
+ls -la
+
+
   echo "INFO: Running SQ in PR mode ..."
   cd /src
-  /src/tmp/sonar-scanner/bin/sonar-scanner -Dsonar.scm.forceReloadAll=true -Dsonar.cfamily.threads="$PROCNBR" -Dsonar.scm.provider=git -Dsonar.login="$2" -Dsonar.host.url="$3" -Dsonar.projectVersion="$VERSION" -Dsonar.pullrequest.branch="$5" -Dsonar.pullrequest.base="$6" -Dsonar.pullrequest.key="$7"
+  /src/tmp/sonar-scanner/bin/sonar-scanner -X -Dsonar.scm.forceReloadAll=true -Dsonar.cfamily.threads="$PROCNBR" -Dsonar.scm.provider=git -Dsonar.login="$2" -Dsonar.host.url="$3" -Dsonar.projectVersion="$VERSION" -Dsonar.pullrequest.branch="$5" -Dsonar.pullrequest.base="$6" -Dsonar.pullrequest.key="$7"
 else
   echo "INFO: Cleaning previous run files ..."
   if [[ -d "/src/.scannerwork" ]]; then
@@ -49,7 +66,7 @@ else
   fi
 
   echo "INFO: Running SQ in branch mode ..."
-  /src/tmp/sonar-scanner/bin/sonar-scanner -Dsonar.scm.forceReloadAll=true -Dsonar.cfamily.threads="$PROCNBR" -Dsonar.scm.provider=git -Dsonar.login="$2" -Dsonar.host.url="$3" -Dsonar.projectVersion="$VERSION" -Dsonar.branch.name="$5"
+  /src/tmp/sonar-scanner/bin/sonar-scanner -X -Dsonar.scm.forceReloadAll=true -Dsonar.cfamily.threads="$PROCNBR" -Dsonar.scm.provider=git -Dsonar.login="$2" -Dsonar.host.url="$3" -Dsonar.projectVersion="$VERSION" -Dsonar.branch.name="$5"
 
   # Ask for cache saving
   SET_CACHE=1
@@ -59,6 +76,8 @@ fi
 if [[ 1 -eq "$SET_CACHE" ]]; then
   echo "INFO: Cleaning tmp folder ..."
   cd /src/tmp
+pwd
+ls -la
   rm -f "$PROJECT-SQ-cache-$VERSION.tar.gz"
 
   echo "INFO: Moving cache as tarball ..."
