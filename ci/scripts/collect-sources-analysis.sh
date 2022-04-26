@@ -34,6 +34,7 @@ if [[ "PR" == "$1" ]] ; then
     tar xzf "$PROJECT-SQ-cache-$VERSION.tar.gz"
     mv .scannerwork /src
     mv cache /src/build
+    rm -rf "/src/tmp/$PROJECT-SQ-cache-$VERSION.tar.gz"
   else
     echo "INFO: Cache's tarball not found. The cache will be recomputed after the analysis ..."
     SET_CACHE=1
@@ -56,6 +57,7 @@ pwd
 ls -la
 
 
+
   echo "INFO: Running SQ in PR mode ..."
   cd /src
   /src/tmp/sonar-scanner/bin/sonar-scanner -X -Dsonar.scm.forceReloadAll=true -Dsonar.cfamily.threads="$PROCNBR" -Dsonar.scm.provider=git -Dsonar.login="$2" -Dsonar.host.url="$3" -Dsonar.projectVersion="$VERSION" -Dsonar.pullrequest.branch="$5" -Dsonar.pullrequest.base="$6" -Dsonar.pullrequest.key="$7"
@@ -71,6 +73,9 @@ else
   # Ask for cache saving
   SET_CACHE=1
 fi
+
+echo "force cache regeneration"
+SET_CACHE=1
 
 # Create cache's tarball if required
 if [[ 1 -eq "$SET_CACHE" ]]; then
