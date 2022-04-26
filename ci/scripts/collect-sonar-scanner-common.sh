@@ -38,7 +38,10 @@ echo "get_cache location"
 pwd
 ls -la
 
-  cd ../tmp
+rm -rf "$PROJECT-SQ-cache-$VERSION.tar.gz"
+
+
+  cd tmp
 
   echo "INFO: delete before pulling tarball ..."
   rm -rf "$PROJECT-SQ-cache-$VERSION.tar.gz"
