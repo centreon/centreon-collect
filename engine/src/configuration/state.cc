@@ -552,6 +552,7 @@ state::~state() noexcept {}
  */
 state& state::operator=(state const& right) {
   if (this != &right) {
+    _cfg_main = right._cfg_main;
     _accept_passive_host_checks = right._accept_passive_host_checks;
     _accept_passive_service_checks = right._accept_passive_service_checks;
     _additional_freshness_latency = right._additional_freshness_latency;
@@ -2218,8 +2219,8 @@ void state::host_perfdata_file_mode(perfdata_file_mode value) {
  *
  *  @return The host_perfdata_file_processing_command value.
  */
-std::string const& state::host_perfdata_file_processing_command() const
-    noexcept {
+std::string const& state::host_perfdata_file_processing_command()
+    const noexcept {
   return _host_perfdata_file_processing_command;
 }
 
@@ -3265,8 +3266,8 @@ void state::service_freshness_check_interval(unsigned int value) {
  *
  *  @return The service_inter_check_delay_method value.
  */
-state::inter_check_delay state::service_inter_check_delay_method() const
-    noexcept {
+state::inter_check_delay state::service_inter_check_delay_method()
+    const noexcept {
   return _service_inter_check_delay_method;
 }
 
@@ -3284,8 +3285,8 @@ void state::service_inter_check_delay_method(inter_check_delay value) {
  *
  *  @return The service_interleave_factor_method value.
  */
-state::interleave_factor state::service_interleave_factor_method() const
-    noexcept {
+state::interleave_factor state::service_interleave_factor_method()
+    const noexcept {
   return _service_interleave_factor_method;
 }
 
@@ -3357,8 +3358,8 @@ void state::service_perfdata_file_mode(perfdata_file_mode value) {
  *
  *  @return The service_perfdata_file_processing_command value.
  */
-std::string const& state::service_perfdata_file_processing_command() const
-    noexcept {
+std::string const& state::service_perfdata_file_processing_command()
+    const noexcept {
   return _service_perfdata_file_processing_command;
 }
 
@@ -3613,8 +3614,8 @@ void state::time_change_threshold(unsigned int value) {
  *
  *  @return The users resources list.
  */
-std::unordered_map<std::string, std::string> const& state::user() const
-    noexcept {
+std::unordered_map<std::string, std::string> const& state::user()
+    const noexcept {
   return _users;
 }
 
