@@ -62,7 +62,7 @@ set_cache() {
 }
 
 validate_file_exists() {
-  /usr/bin/wget --spider "$1"
+  wget --spider "$1"
   return $?
 }
 
