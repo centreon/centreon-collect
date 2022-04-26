@@ -33,18 +33,14 @@ install_scanner() {
 }
 
 get_cache() {
-
-echo "get_cache location"
-pwd
-ls -la
-
-rm -rf "$PROJECT-SQ-cache-$VERSION.tar.gz"
-
-
   cd tmp
   echo "INFO: delete before pulling tarball ..."
   rm -rf "$PROJECT-SQ-cache-$VERSION.tar.gz"
   get_internal_source "SQ-cache/$PROJECT/$PROJECT-SQ-cache-$VERSION.tar.gz"
+
+echo "get_cache location"
+pwd
+ls -la
 }
 
 set_cache() {
