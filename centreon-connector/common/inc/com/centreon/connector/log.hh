@@ -26,6 +26,7 @@ CCC_BEGIN();
 class log {
  private:
   std::shared_ptr<spdlog::logger> _core_log;
+  bool _log_to_file;
   log();
   ~log();
 
@@ -36,6 +37,8 @@ class log {
   void set_level(spdlog::level::level_enum level);
   void switch_to_stdout();
   void switch_to_file(std::string const& filename);
+
+  bool is_log_to_file() const { return _log_to_file; }
 
   static std::shared_ptr<spdlog::logger> core();
 };
