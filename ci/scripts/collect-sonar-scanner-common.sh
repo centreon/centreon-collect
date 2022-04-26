@@ -17,7 +17,7 @@ fi
 
 install_scanner() {
   # Installing missing requirements
-  sudo apt-get install unzip || exit
+  sudo apt-get install unzip wget || exit
 
   # Cleaning
   sudo rm -rf tmp
