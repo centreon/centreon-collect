@@ -48,7 +48,6 @@ void policy::start(const std::string& test_cmd_file) {
           wait_pid();
         }
       });
-  checks::check::add_signal_set(signal);
   start_second_timer();
 }
 
@@ -155,7 +154,7 @@ void policy::start_end_timer(bool final) {
   _end_timer.async_wait([me = shared_from_this(),
                          final](const std::error_code& err) {
     if (!err) {
-      log::core()->trace("il reste {} checks", checks::check::get_nb_check());
+      log::core()->trace("{} checks remaining", checks::check::get_nb_check());
       if (checks::check::get_nb_check()) {
         me->start_end_timer(false);
       } else {

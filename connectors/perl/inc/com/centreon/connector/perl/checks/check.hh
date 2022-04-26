@@ -62,10 +62,6 @@ class check : public std::enable_shared_from_this<check> {
 
   static void close_all_father_fd();
   static unsigned get_nb_check() { return _active_check.size(); }
-  static void add_signal_set(const shared_signal_set& s) {
-    _father_signal_set.push_back(s);
-  }
-  static void close_all_father_signal_set();
 
  private:
   void _start_read_out();
