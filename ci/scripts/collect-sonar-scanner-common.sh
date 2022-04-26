@@ -37,20 +37,10 @@ get_cache() {
   echo "INFO: delete before pulling tarball ..."
   rm -rf "$PROJECT-SQ-cache-$VERSION.tar.gz"
   get_internal_source "SQ-cache/$PROJECT/$PROJECT-SQ-cache-$VERSION.tar.gz"
-
-echo "get_cache location"
-pwd
-ls -la
 }
 
 set_cache() {
-pwd
-ls -la
   cd tmp
-pwd
-ls -la
-
-
   if [[ -f "$PROJECT-SQ-cache-$VERSION.tar.gz" ]]; then
     echo "INFO: Saving cache's tarball ..."
     put_internal_source "SQ-cache" "$PROJECT" "$PROJECT-SQ-cache-$VERSION.tar.gz"
