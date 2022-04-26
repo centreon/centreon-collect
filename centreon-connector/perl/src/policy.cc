@@ -48,7 +48,6 @@ void policy::start(const std::string& test_cmd_file) {
           wait_pid();
         }
       });
-  checks::check::add_signal_set(signal);
   start_second_timer();
 }
 

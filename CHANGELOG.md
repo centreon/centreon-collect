@@ -14,6 +14,13 @@ Unknown filters applied in the configuration file do not hang broker anymore.
 
 If a logger was at the 'off'/'disabled' state, then broker did not start.
 
+### centreon-connector
+
+#### Fixes
+*perl connector*
+
+add io_context fork notification
+
 ## 21.10.1
 
 ### centreon-broker

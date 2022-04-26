@@ -24,7 +24,7 @@
 
 using namespace com::centreon::connector;
 
-log::log() {
+log::log() : _log_to_file(false) {
   auto filesink = std::make_shared<spdlog::sinks::null_sink_mt>();
   _core_log = std::make_shared<spdlog::logger>("core", filesink);
   _core_log->info("log started");
@@ -50,6 +50,7 @@ void log::add_pid_to_log() {
 }
 
 void log::switch_to_stdout() {
+  _log_to_file = false;
   auto filesink = std::make_shared<spdlog::sinks::stderr_color_sink_mt>();
   spdlog::level::level_enum lvl = _core_log->level();
   _core_log = std::make_shared<spdlog::logger>("core", filesink);
@@ -59,6 +60,7 @@ void log::switch_to_stdout() {
 }
 
 void log::switch_to_file(std::string const& filename) {
+  _log_to_file = true;
   auto filesink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(filename);
   spdlog::level::level_enum lvl = _core_log->level();
   _core_log = std::make_shared<spdlog::logger>("core", filesink);

@@ -162,10 +162,12 @@ pid_t embedded_perl::run(std::string const& cmd,
     throw basic_error() << msg;
   }
 
+  io_context->notify_fork(asio::io_context::fork_prepare);
+  log::core()->flush();
   // Execute Perl file.
   pid_t child(fork());
   if (child > 0) {  // Parent
-
+    io_context->notify_fork(asio::io_context::fork_parent);
     close(in_pipe[0]);
     close(err_pipe[1]);
     close(out_pipe[1]);
@@ -173,6 +175,7 @@ pid_t embedded_perl::run(std::string const& cmd,
     fds[1] = out_pipe[0];
     fds[2] = err_pipe[0];
   } else if (!child) {  // Child
+    io_context->notify_fork(asio::io_context::fork_child);
     unsigned father_process_name_length = strlen(_argv[0]);
     std::string new_process_name("c_");
     new_process_name += basename(file.c_str());
@@ -182,9 +185,14 @@ pid_t embedded_perl::run(std::string const& cmd,
     memset(_argv[0], 0, father_process_name_length);
     strcpy(_argv[0], new_process_name.c_str());
 
+    if (log::instance().is_log_to_file()) {
+      log::core()->debug("son started pid={}", getpid());
+    }
+    // default signal handler
+    sigset(SIGCHLD, SIG_DFL);
+    sigset(SIGTERM, SIG_DFL);
     // close all father fds
     checks::check::close_all_father_fd();
-    checks::check::close_all_father_signal_set();
     io_context->stop();
     // Setup process.
     close(in_pipe[1]);
@@ -224,8 +232,11 @@ pid_t embedded_perl::run(std::string const& cmd,
     XPUSHs(sv_2mortal(newSVpv(args.c_str(), 0)));
     PUTBACK;
     call_pv("Embed::Persistent::run_file", G_DISCARD);
-    std::cerr << "error while executing Perl script '" << file
-              << "': " << SvPV_nolen(ERRSV) << std::endl;
+    if (log::instance().is_log_to_file()) {
+      log::core()->debug("son end pid={} error:{}", getpid(),
+                         SvPV_nolen(ERRSV));
+    }
+    exit(EXIT_SUCCESS);
   } else if (child < 0) {  // Error
     char const* msg(strerror(errno));
     close(in_pipe[0]);
