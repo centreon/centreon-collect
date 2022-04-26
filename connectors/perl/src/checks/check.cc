@@ -41,13 +41,6 @@ absl::flat_hash_set<int> check::_all_child_fd;
 absl::flat_hash_set<check*> check::_active_check;
 
 /**
- * @brief after a fork, child must close all father signal_set. If you don't do
- * that father signal_set will handle a child signal
- *
- */
-std::vector<shared_signal_set> check::_father_signal_set;
-
-/**
  * @brief Construct a new check::check object
  *
  * @param cmd_id
@@ -96,17 +89,6 @@ void check::close_all_father_fd() {
 }
 
 /**
- * @brief static method that close all father signal set
- *
- */
-void check::close_all_father_signal_set() {
-  for (shared_signal_set& s : _father_signal_set) {
-    s->clear();
-  }
-  _father_signal_set.clear();
-}
-
-/**
  *  Execute a Perl script.
  *
  *  @return Process ID.
@@ -116,10 +98,6 @@ pid_t check::execute() {
     // Run process.
     int fds[3];
     _child = embedded_perl::instance().run(_cmd, fds, _io_context);
-    if (!_child) {  // son
-      log::core()->debug("{} son started", *this);
-      return 0;
-    }
     ::close(fds[0]);
     _all_child_fd.insert(fds[1]);
     _all_child_fd.insert(fds[2]);
@@ -168,9 +146,6 @@ void check::_start_read_out() {
           return;
         }
         log::core()->debug("{} stdout read {} bytes", *this, bytes_transferred);
-        if (!bytes_transferred) {  // close
-          return;
-        }
         _stdout.append(_out_buff.data(), bytes_transferred);
         _start_read_out();
       });
@@ -196,9 +171,6 @@ void check::_start_read_err() {
           return;
         }
         log::core()->debug("{} stderr read {} bytes", *this, bytes_transferred);
-        if (!bytes_transferred) {  // close
-          return;
-        }
         _stderr.append(_err_buff.data(), bytes_transferred);
         _start_read_err();
       });
