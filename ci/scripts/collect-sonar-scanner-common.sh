@@ -15,6 +15,14 @@ if [[ -z "$PROJECT" ]] ; then
   PROJECT="centreon-collect"
 fi
 
+if [[ -z "$TARGET" ]]; then
+  if [[ -z "$CHANGE_TARGET" ]]; then
+    TARGET="$CHANGE_TARGET"
+  else
+    TARGET="$BRANCH_NAME"
+  fi
+fi
+
 install_scanner() {
   # Installing missing requirements
   sudo apt-get install unzip || exit
@@ -34,9 +42,9 @@ install_scanner() {
 get_cache() {
   cd tmp
   echo "INFO: delete before pulling tarball ..."
-  rm -rf "$PROJECT-SQ-cache-$VERSION.tar.gz"
+  rm -rf "$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz"
 
-  PATH="SQ-cache/$PROJECT/$PROJECT-SQ-cache-$VERSION.tar.gz"
+  PATH="SQ-cache/$PROJECT/$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz"
   URL="http://srvi-repo.int.centreon.com/sources/internal/$PATH"
   if validate_file_exists "$URL"; then
     get_internal_source "$PATH"
@@ -48,9 +56,14 @@ get_cache() {
 set_cache() {
   cd tmp
 
-  if [[ -f "$PROJECT-SQ-cache-$VERSION.tar.gz" ]]; then
+#CLEAN
+ssh "$REPO_CREDS" rm -f "/srv/sources/internal/SQ-cache/centreon-collect/centreon-collect-SQ-cache-22.04.0.tar.gz"
+ssh "$REPO_CREDS" rm -f "/srv/sources/internal/SQ-cache/centreon-collect/centreon-collect-SQ-cache--22.04.0.tar.gz"
+
+
+  if [[ -f "$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz" ]]; then
     echo "INFO: Saving cache's tarball ..."
-    put_internal_source "SQ-cache" "$PROJECT" "$PROJECT-SQ-cache-$VERSION.tar.gz"
+    put_internal_source "SQ-cache" "$PROJECT" "$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz"
   else
     echo "WARNING: Tarball to save not found. Skipping ..."
   fi
