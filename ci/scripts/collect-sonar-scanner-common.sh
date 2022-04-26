@@ -2,7 +2,11 @@
 
 set -e
 
-source common.sh
+
+echo "REPO Creds ? : $REPO_CREDS"
+
+# Machine credentials.
+REPO_CREDS="ubuntu@srvi-repo.int.centreon.com"
 
 # Check arguments.
 if [[ -z "$VERSION" ]] ; then
@@ -35,14 +39,7 @@ get_cache() {
   cd tmp
   echo "INFO: delete before pulling tarball ..."
   rm -rf "$PROJECT-SQ-cache-$VERSION.tar.gz"
-
-  PATH="SQ-cache/$PROJECT/$PROJECT-SQ-cache-$VERSION.tar.gz"
-  URL="http://srvi-repo.int.centreon.com/sources/internal/$PATH"
-  if validate_file_exists "$URL"; then
-    get_internal_source "$PATH"
-  else
-    echo "WARNING: File not found. Skipping it"
-  fi
+  get_internal_source "SQ-cache/$PROJECT/$PROJECT-SQ-cache-$VERSION.tar.gz"
 }
 
 set_cache() {
@@ -53,6 +50,24 @@ set_cache() {
   else
     echo "WARNING: Tarball to save not found. Skipping ..."
   fi
+}
+
+get_internal_source() {
+  URL="http://srvi-repo.int.centreon.com/sources/internal/$1"
+  if validate_file_exists "$URL"; then
+    wget -q "$URL"
+  else
+    echo "WARNING: File not found. Skipping it"
+  fi
+}
+
+put_internal_source() {
+  DIR="/srv/sources/internal/$1"
+  NEWDIR="$2"
+  ssh "$REPO_CREDS" mkdir -p "$DIR/$NEWDIR"
+  shift
+  shift
+  scp -r "$@" "$REPO_CREDS:$DIR/$NEWDIR"
 }
 
 validate_file_exists() {
