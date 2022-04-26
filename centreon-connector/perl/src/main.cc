@@ -96,8 +96,6 @@ int main(int argc, char** argv, char** env) {
             io_context->stop();
           });
 
-      checks::check::add_signal_set(signal_handler);
-
       // Load Embedded Perl.
       embedded_perl::load(argc, argv, env,
                           (opts.get_argument("code").get_is_set()

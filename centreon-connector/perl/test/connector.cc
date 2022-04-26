@@ -213,8 +213,9 @@ TEST_F(TestConnector, ExecuteModuleLoading) {
   remove(script_path.c_str());
 
   ASSERT_EQ(retval, 0);
-  ASSERT_EQ(output.size(), (sizeof(result) - 1));
-  ASSERT_FALSE(memcmp(output.c_str(), result, sizeof(result) - 1));
+  std::string expected(result, result + sizeof(result) - 1);
+
+  ASSERT_EQ(output, expected);
 }
 
 TEST_F(TestConnector, ExecuteMultipleScripts) {
