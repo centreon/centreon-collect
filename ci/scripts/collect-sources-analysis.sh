@@ -58,7 +58,7 @@ else
   SET_CACHE=1
 fi
 
-#SET_CACHE=1
+SET_CACHE=1
 
 # Create cache's tarball if required
 if [[ 1 -eq "$SET_CACHE" ]]; then
