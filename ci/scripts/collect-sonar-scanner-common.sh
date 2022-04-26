@@ -17,7 +17,7 @@ fi
 
 install_scanner() {
   # Installing missing requirements
-  sudo apt-get install unzip wget || exit
+  sudo apt-get install unzip || exit
 
   # Cleaning
   sudo rm -rf tmp
@@ -54,9 +54,7 @@ get_cache() {
 
   PATH="SQ-cache/$PROJECT/$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz"
   URL="http://srvi-repo.int.centreon.com/sources/internal/$PATH"
-
-  # Validate that file exists
-  if curl --output /dev/null --silent --head --fail "$URL"; then
+  if validate_file_exists "$URL"; then
     get_internal_source "$PATH"
   else
     echo "WARNING: File not found. Skipping it"
@@ -71,6 +69,11 @@ set_cache() {
   else
     echo "WARNING: Tarball to save not found. Skipping ..."
   fi
+}
+
+validate_file_exists() {
+  wget --spider "$1"
+  return $?
 }
 
 # case load
