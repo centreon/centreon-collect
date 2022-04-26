@@ -32,6 +32,7 @@ if [[ "PR" == "$1" ]] ; then
     echo "INFO: Deploying SQ cache ..."
     cd /src/tmp
     tar xzf "$PROJECT-SQ-cache-$VERSION.tar.gz"
+    rm -rf /src/.scannerwork
     mv .scannerwork /src
     mv cache /src/build
     rm -rf "/src/tmp/$PROJECT-SQ-cache-$VERSION.tar.gz"
