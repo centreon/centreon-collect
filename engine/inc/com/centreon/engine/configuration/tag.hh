@@ -60,7 +60,6 @@ class tag : public object {
   void merge(const object& obj) override;
   bool parse(const char* key, const char* value) override;
 
-  uint16_t type() const noexcept;
   const std::string& name() const noexcept;
 
   static const absl::flat_hash_map<std::string, setter_func> _setters;

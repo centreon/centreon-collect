@@ -38,19 +38,25 @@ using namespace com::centreon::engine::configuration;
  */
 void applier::tag::add_object(const configuration::tag& obj) {
   // Logging.
-  log_v2::config()->debug("Creating new tag {}.", obj.key().first);
+  log_v2::config()->debug("Creating new tag ({},{}).", obj.key().first,
+                          obj.key().second);
 
   // Add tag to the global configuration set.
   config->mut_tags().insert(obj);
 
   auto tg{std::make_shared<engine::tag>(
-      obj.key().first, static_cast<engine::tag::tagtype>(obj.type()),
+      obj.key().first, static_cast<engine::tag::tagtype>(obj.key().second),
       obj.name())};
   if (!tg)
-    throw engine_error() << "Could not register tag " << obj.key().first;
+    throw engine_error() << "Could not register tag (" << obj.key().first << ","
+                         << obj.key().second << ")";
 
   // Add new items to the configuration state.
-  engine::tag::tags.insert({std::make_pair(tg->id(), tg->type()), tg});
+  auto res = engine::tag::tags.insert({obj.key(), tg});
+  if (!res.second)
+    log_v2::config()->error(
+        "Could not insert tag ({},{}) into cache because it already exists",
+        obj.key().first, obj.key().second);
 
   timeval tv(get_broker_timestamp(nullptr));
   broker_adaptive_tag_data(NEBTYPE_TAG_ADD, NEBFLAG_NONE, NEBATTR_NONE,
@@ -74,7 +80,8 @@ void applier::tag::expand_objects(configuration::state&) {}
  */
 void applier::tag::modify_object(const configuration::tag& obj) {
   // Logging.
-  log_v2::config()->debug("Modifying tag {}.", obj.key().first);
+  log_v2::config()->debug("Modifying tag ({},{}).", obj.key().first,
+                          obj.key().second);
 
   // Find old configuration.
   auto it_cfg = config->tags_find(obj.key());
@@ -83,11 +90,13 @@ void applier::tag::modify_object(const configuration::tag& obj) {
                          << obj.key().first;
 
   // Find tag object.
-  tag_map::iterator it_obj{engine::tag::tags.find(obj.key(), obj.type())};
-  if (it_obj == engine::tag::tags.end())
-    throw engine_error() << "Could not modify non-existing tag object "
-                         << obj.key().first;
-  engine::tag* s = it_obj->second.get();
+  tag_map::iterator it_obj{engine::tag::tags.find(obj.key())};
+  if (it_obj == engine::tag::tags.end()) {
+    throw engine_error() << "Could not modify non-existing tag object ("
+                         << obj.key().first << "," << obj.key().second << ")";
+  }
+
+  engine::tag* t = it_obj->second.get();
 
   // Update the global configuration set.
   configuration::tag old_cfg(*it_cfg);
@@ -95,15 +104,15 @@ void applier::tag::modify_object(const configuration::tag& obj) {
     config->mut_tags().erase(it_cfg);
     config->mut_tags().insert(obj);
 
-    s->set_name(obj.name());
-    s->set_type(static_cast<engine::tag::tagtype>(obj.type()));
+    t->set_name(obj.name());
 
     // Notify event broker.
     timeval tv(get_broker_timestamp(nullptr));
-    broker_adaptive_tag_data(NEBTYPE_TAG_UPDATE, NEBFLAG_NONE, NEBATTR_NONE, s,
+    broker_adaptive_tag_data(NEBTYPE_TAG_UPDATE, NEBFLAG_NONE, NEBATTR_NONE, t,
                              &tv);
   } else
-    log_v2::config()->debug("Severity {} did not change", obj.key().first);
+    log_v2::config()->debug("Tag ({},{}) did not change", obj.key().first,
+                            obj.key().second);
 }
 
 /**
@@ -113,7 +122,8 @@ void applier::tag::modify_object(const configuration::tag& obj) {
  */
 void applier::tag::remove_object(const configuration::tag& obj) {
   // Logging.
-  log_v2::config()->debug("Removing tag {}.", obj.key().first);
+  log_v2::config()->debug("Removing tag ({},{}).", obj.key().first,
+                          obj.key().second);
 
   // Find tag.
   tag_map::iterator it = engine::tag::tags.find(obj.key(), obj.type());
@@ -141,6 +151,6 @@ void applier::tag::remove_object(const configuration::tag& obj) {
 void applier::tag::resolve_object(const configuration::tag& obj) {
   tag_map::const_iterator tg_it{engine::tag::tags.find(obj.key(), obj.type())};
   if (tg_it == engine::tag::tags.end() || !tg_it->second)
-    throw engine_error() << "Cannot resolve non-existing tag "
-                         << obj.key().first;
+    throw engine_error() << "Cannot resolve non-existing tag ("
+                         << obj.key().first << "," << obj.key().second << ")";
 }

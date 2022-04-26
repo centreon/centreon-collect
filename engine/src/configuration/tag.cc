@@ -115,7 +115,7 @@ void tag::check_validity() const {
     throw engine_error() << "Tag has no name (property 'name')";
   if (_key.first == 0)
     throw engine_error() << "Tag id must not be less than 1 (property 'id')";
-  if (_key.second == -1)
+  if (_key.second == static_cast<uint16_t>(-1))
     throw engine_error() << "Tag type must be defined (property 'type')";
 }
 
@@ -126,15 +126,6 @@ void tag::check_validity() const {
  */
 const tag::key_type& tag::key() const noexcept {
   return _key;
-}
-
-/**
- * @brief Get tag type.
- *
- * @return Severity type.
- */
-uint16_t tag::type() const noexcept {
-  return _key.second;
 }
 
 /**
