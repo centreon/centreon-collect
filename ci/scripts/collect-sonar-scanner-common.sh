@@ -41,9 +41,12 @@ get_cache() {
 
 set_cache() {
   cd tmp
-
-  echo "INFO: Saving cache ..."
-  put_internal_source "SQ-cache" "$PROJECT" "$PROJECT-SQ-cache-$VERSION.tar.gz"
+  if [[ -f "$PROJECT-SQ-cache-$VERSION.tar.gz" ]]; then
+    echo "INFO: Saving cache's tarball ..."
+    put_internal_source "SQ-cache" "$PROJECT" "$PROJECT-SQ-cache-$VERSION.tar.gz"
+  else
+    echo "WARNING: Tarball to save not found. Skipping ..."
+  fi
 }
 
 get_internal_source() {

@@ -60,6 +60,7 @@ if [[ 1 -eq "$SET_CACHE" ]]; then
   echo "INFO: Cleaning tmp folder ..."
   cd /src/tmp
   rm -f "$PROJECT-SQ-cache-$VERSION.tar.gz"
+
   echo "INFO: Moving cache as tarball ..."
   mv /src/.scannerwork .
   mv /src/build/cache .
