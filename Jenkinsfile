@@ -68,7 +68,6 @@ stage('Build / Unit tests // Packaging / Signing') {
       } else {
         dir('centreon-collect-centos7') {
           checkout scm
-          loadCommonScripts()
           sh 'ci/scripts/collect-sonar-scanner-common.sh "install"'
           withSonarQubeEnv('SonarQubeDev') {
           sh 'printenv'
@@ -79,7 +78,7 @@ stage('Build / Unit tests // Packaging / Signing') {
               sh 'docker run -i --entrypoint /src/ci/scripts/collect-sources-analysis.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:22.04-testdocker "NotPR" "$SONAR_AUTH_TOKEN" "$SONAR_HOST_URL" "$VERSION" "$BRANCH_NAME"'
             }
             // Saving cache's tarball if generated
-            //loadCommonScripts()
+            loadCommonScripts()
             sh 'ci/scripts/collect-sonar-scanner-common.sh "set"'
           }
         }
