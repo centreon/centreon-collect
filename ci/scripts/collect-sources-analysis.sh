@@ -24,6 +24,11 @@ PROCNBR=$( nproc )
 VERSION="$4"
 PROJECT="centreon-collect"
 SET_CACHE=0
+if [[ -z "$CHANGE_TARGET" ]]; then
+  TARGET="$CHANGE_TARGET"
+else
+  TARGET="$BRANCH_NAME"
+fi
 # Delete default configuration file to override
 rm -f /src/tmp/sonar-scanner/conf/sonar-scanner.properties
 
