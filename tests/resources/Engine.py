@@ -339,14 +339,17 @@ passive_checks_enabled 1
         config_file = "{}/config{}/tags.cfg".format(CONF_DIR, poller)
         ff = open(config_file, "w+")
         content = ""
+        tid = 0
         for i in range(nb):
+            if i % 4 == 0:
+                tid += 1
             typ = tt[i % 4]
             content += """define tag {{
     id                     {0}
     name                   tag{2}
     type                   {1}
 }}
-""".format(i + 1, typ, i + offset)
+""".format(tid, typ, i + offset)
         ff.write(content)
         ff.close()
 
