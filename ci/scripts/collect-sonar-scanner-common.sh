@@ -44,11 +44,6 @@ get_cache() {
   echo "CHANGE_BRANCH: $CHANGE_BRANCH"
   echo "BRANCH_NAME: $BRANCH_NAME"
 
-  if [[ -n "$TARGET" ]]; then
-
-    exit;
-  fi
-
   cd tmp
   echo "INFO: Cleaning before pulling tarball ..."
   rm -rf "$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz"
