@@ -1275,7 +1275,7 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
             _mysql.run_statement(_resources_host_insert,
                                  database::mysql_error::store_host, true, conn);
             _resource_cache.insert({{h.host_id(), 0}, _current_resource_id});
-            ++_current_resource_id;
+            res_id = _current_resource_id++;
             _add_action(conn, actions::resources);
           } else {
             res_id = found->second;
@@ -2406,7 +2406,7 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
                                  conn);
             _resource_cache.insert(
                 {{ss.service_id(), ss.host_id()}, _current_resource_id});
-            ++_current_resource_id;
+            res_id = _current_resource_id++;
             _add_action(conn, actions::resources);
           } else {
             res_id = found->second;
