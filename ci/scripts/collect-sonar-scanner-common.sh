@@ -2,11 +2,7 @@
 
 set -e
 
-
-echo "REPO Creds ? : $REPO_CREDS"
-
-# Machine credentials.
-REPO_CREDS="ubuntu@srvi-repo.int.centreon.com"
+source common.sh
 
 # Check arguments.
 if [[ -z "$VERSION" ]] ; then
@@ -19,6 +15,12 @@ if [[ -z "$PROJECT" ]] ; then
   PROJECT="centreon-collect"
 fi
 
+if [[ -n "$CHANGE_TARGET" ]]; then
+  TARGET="$CHANGE_TARGET"
+else
+  TARGET="$BRANCH_NAME"
+fi
+
 install_scanner() {
   # Installing missing requirements
   sudo apt-get install unzip || exit
@@ -28,50 +30,61 @@ install_scanner() {
   mkdir tmp
   cd tmp
 
-  # Getting latest archive
+  echo "INFO: Getting latest archive ..."
   curl https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.7.0.2747-linux.zip --output sonar-scanner-cli-4.7.0.2747-linux.zip
-  unzip sonar-scanner-cli-4.7.0.2747-linux.zip
+  echo "INFO: Inflating files ..."
+  unzip -q sonar-scanner-cli-4.7.0.2747-linux.zip
+  echo "INFO: Cleaning ..."
   sudo rm -rf sonar-scanner-cli-4.7.0.2747-linux.zip sonar-scanner
   sudo mv sonar-scanner-4.7.0.2747-linux sonar-scanner
 }
 
 get_cache() {
+
+echo "Target: $TARGET"
+echo "CHANGE_TARGET: $CHANGE_TARGET"
+echo "CHANGE_BRANCH: $CHANGE_BRANCH"
+echo "BRANCH_NAME: $BRANCH_NAME"
+
   cd tmp
-  echo "INFO: delete before pulling tarball ..."
-  rm -rf "$PROJECT-SQ-cache-$VERSION.tar.gz"
-  get_internal_source "SQ-cache/$PROJECT/$PROJECT-SQ-cache-$VERSION.tar.gz"
+  echo "INFO: Cleaning before pulling tarball ..."
+  rm -rf "$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz"
+
+  PATH="SQ-cache/$PROJECT/$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz"
+  URL="http://srvi-repo.int.centreon.com/sources/internal/$PATH"
+
+echo "DEBUG: URL = $URL"
+
+  if validate_file_exists "$URL"; then
+    get_internal_source "$PATH"
+  else
+    echo "WARNING: File not found. Skipping"
+  fi
 }
 
 set_cache() {
   cd tmp
-  if [[ -f "$PROJECT-SQ-cache-$VERSION.tar.gz" ]]; then
+
+#CLEAN
+#ssh "$REPO_CREDS" rm -f "/srv/sources/internal/SQ-cache/centreon-collect/centreon-collect-SQ-cache-22.04.0.tar.gz"
+#ssh "$REPO_CREDS" rm -f "/srv/sources/internal/SQ-cache/centreon-collect/centreon-collect-SQ-cache--22.04.0.tar.gz"
+
+
+  if [[ -n "$TARGET" ]]; then
+    echo "ERROR: Target is empty. Skipping"
+    exit
+  fi
+
+  if [[ -f "$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz" ]]; then
     echo "INFO: Saving cache's tarball ..."
-    put_internal_source "SQ-cache" "$PROJECT" "$PROJECT-SQ-cache-$VERSION.tar.gz"
+    put_internal_source "SQ-cache" "$PROJECT" "$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz"
   else
-    echo "WARNING: Tarball to save not found. Skipping ..."
+    echo "WARNING: Tarball to save not found. Skipping"
   fi
-}
-
-get_internal_source() {
-  URL="http://srvi-repo.int.centreon.com/sources/internal/$1"
-  if validate_file_exists "$URL"; then
-    wget -q "$URL"
-  else
-    echo "WARNING: File not found. Skipping it"
-  fi
-}
-
-put_internal_source() {
-  DIR="/srv/sources/internal/$1"
-  NEWDIR="$2"
-  ssh "$REPO_CREDS" mkdir -p "$DIR/$NEWDIR"
-  shift
-  shift
-  scp -r "$@" "$REPO_CREDS:$DIR/$NEWDIR"
 }
 
 validate_file_exists() {
-  wget --spider "$1"
+  /usr/bin/wget --spider "$1"
   return $?
 }
 

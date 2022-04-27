@@ -71,14 +71,17 @@ stage('Build / Unit tests // Packaging / Signing') {
           loadCommonScripts()
           sh 'ci/scripts/collect-sonar-scanner-common.sh "install"'
           withSonarQubeEnv('SonarQubeDev') {
+            sh 'printenv'
             if (env.CHANGE_ID) {
               sh 'ci/scripts/collect-sonar-scanner-common.sh "get"'
               sh 'docker run -i --entrypoint /src/ci/scripts/collect-sources-analysis.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:22.04-testdocker "PR" "$SONAR_AUTH_TOKEN" "$SONAR_HOST_URL" "$VERSION" "$CHANGE_BRANCH" "$CHANGE_TARGET" "$CHANGE_ID"'
             } else {
               sh 'docker run -i --entrypoint /src/ci/scripts/collect-sources-analysis.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:22.04-testdocker "NotPR" "$SONAR_AUTH_TOKEN" "$SONAR_HOST_URL" "$VERSION" "$BRANCH_NAME"'
             }
-            // Saving cache's tarball if generated
-            sh 'ci/scripts/collect-sonar-scanner-common.sh "set"'
+            if (env.BUILD == "REFERENCE" || env.BUILD == "QA") {
+              // Saving cache's tarball if generated
+              sh 'ci/scripts/collect-sonar-scanner-common.sh "set"'
+            }
           }
         }
       }
