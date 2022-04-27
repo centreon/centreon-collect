@@ -47,9 +47,8 @@ get_cache() {
   PATH="SQ-cache/$PROJECT/$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz"
   URL="http://srvi-repo.int.centreon.com/sources/internal/$PATH"
 
-  echo "DEBUG - URL is : $URL"
-
-  if validate_file_exists "$URL"; then
+  # Validate that file exists
+  if curl --output /dev/null --silent --head --fail "$URL"; then
     get_internal_source "$PATH"
   else
     echo "WARNING: File not found. Skipping it"
@@ -58,17 +57,12 @@ get_cache() {
 
 set_cache() {
   cd tmp
-  if [[ -f "$PROJECT-SQ-cache-$VERSION.tar.gz" ]]; then
+  if [[ -f "$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz" ]]; then
     echo "INFO: Saving cache's tarball ..."
     put_internal_source "SQ-cache" "$PROJECT" "$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz"
   else
     echo "WARNING: Tarball to save not found. Skipping ..."
   fi
-}
-
-validate_file_exists() {
-  wget --spider "$1"
-  return $?
 }
 
 # case load

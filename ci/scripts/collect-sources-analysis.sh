@@ -29,14 +29,14 @@ rm -f /src/tmp/sonar-scanner/conf/sonar-scanner.properties
 
 # Run SQ with or without reference branch
 if [[ "PR" == "$1" ]] ; then
-  if [[ -f "/src/tmp/$PROJECT-SQ-cache-$VERSION.tar.gz" ]]; then
+  if [[ -f "/src/tmp/$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz" ]]; then
     echo "INFO: Deploying SQ cache ..."
     cd /src/tmp
-    tar xzf "$PROJECT-SQ-cache-$VERSION.tar.gz"
+    tar xzf "$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz"
     rm -rf /src/.scannerwork
     mv .scannerwork /src
     mv cache /src/build
-    rm -rf "/src/tmp/$PROJECT-SQ-cache-$VERSION.tar.gz"
+    rm -rf "/src/tmp/$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz"
   else
     echo "INFO: Cache's tarball not found. The cache will be recomputed after the analysis ..."
     SET_CACHE=1
@@ -64,10 +64,10 @@ SET_CACHE=1
 if [[ 1 -eq "$SET_CACHE" ]]; then
   echo "INFO: Cleaning tmp folder ..."
   cd /src/tmp
-  rm -f "$PROJECT-SQ-cache-$VERSION.tar.gz"
+  rm -f "$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz"
 
   echo "INFO: Moving cache as tarball ..."
   mv /src/.scannerwork .
   mv /src/build/cache .
-  tar czf "$PROJECT-SQ-cache-$VERSION.tar.gz" cache .scannerwork
+  tar czf "$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz" cache .scannerwork
 fi
