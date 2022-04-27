@@ -34,7 +34,7 @@ install_scanner() {
 }
 
 get_cache() {
-  if [[ -z "$CHANGE_TARGET" ]]; then
+  if [[ -n "$CHANGE_TARGET" ]]; then
     TARGET="$CHANGE_TARGET"
   else
     TARGET="$BRANCH_NAME"
@@ -55,6 +55,9 @@ get_cache() {
 
   PATH="SQ-cache/$PROJECT/$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz"
   URL="http://srvi-repo.int.centreon.com/sources/internal/$PATH"
+
+echo "DEBUG: URL = $URL"
+
   if validate_file_exists "$URL"; then
     get_internal_source "$PATH"
   else
