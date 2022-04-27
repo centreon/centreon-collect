@@ -61,6 +61,14 @@ stage('Build / Unit tests // Packaging / Signing') {
       }
     }
   },
+  'centos7 Build and UT': {
+    node("C++") {
+      dir('centreon-collect-centos7') {
+        checkout scm
+        sh 'docker run -i --entrypoint /src/ci/scripts/collect-test-robot.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:22.04'
+      }
+    }
+  },
   'centos7 SQ analysis': {
     node("C++") {
       if (securityAnalysisRequired == 'no') {
