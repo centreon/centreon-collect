@@ -74,7 +74,7 @@ if [[ 1 -eq "$SET_CACHE" ]]; then
   cd /src/tmp
   rm -f "$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz"
 
-  echo "INFO: Moving cache as tarball ..."
+  echo "INFO: Creating cache tarball named $PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz..."
   mv /src/.scannerwork .
   mv /src/build/cache .
   tar czf "$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz" cache .scannerwork
