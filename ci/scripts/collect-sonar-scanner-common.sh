@@ -16,11 +16,7 @@ if [[ -z "$PROJECT" ]] ; then
 fi
 
 if [[ -z "$TARGET" ]]; then
-  if [[ -z "$CHANGE_TARGET" ]]; then
-    TARGET="$CHANGE_TARGET"
-  else
-    TARGET="$BRANCH_NAME"
-  fi
+
 fi
 
 install_scanner() {
@@ -42,8 +38,18 @@ install_scanner() {
 }
 
 get_cache() {
+  if [[ -z "$CHANGE_TARGET" ]]; then
+    TARGET="$CHANGE_TARGET"
+  else
+    TARGET="$BRANCH_NAME"
+  fi
+  echo "Target: $TARGET"
+  echo "CHANGE_TARGET: $CHANGE_TARGET"
+  echo "CHANGE_BRANCH: $CHANGE_BRANCH"
+  echo "BRANCH_NAME: $BRANCH_NAME"
+  
   if [[ -n "$TARGET" ]]; then
-    echo "FATAL: Target is empty";
+
     exit;
   fi
 
@@ -64,8 +70,9 @@ set_cache() {
   cd tmp
 
 #CLEAN
-ssh "$REPO_CREDS" rm -f "/srv/sources/internal/SQ-cache/centreon-collect/centreon-collect-SQ-cache-22.04.0.tar.gz"
-ssh "$REPO_CREDS" rm -f "/srv/sources/internal/SQ-cache/centreon-collect/centreon-collect-SQ-cache--22.04.0.tar.gz"
+#ssh "$REPO_CREDS" rm -f "/srv/sources/internal/SQ-cache/centreon-collect/centreon-collect-SQ-cache-22.04.0.tar.gz"
+#ssh "$REPO_CREDS" rm -f "/srv/sources/internal/SQ-cache/centreon-collect/centreon-collect-SQ-cache--22.04.0.tar.gz"
+
 
   if [[ -n "$TARGET" ]]; then
     echo "FATAL: Target is empty";
