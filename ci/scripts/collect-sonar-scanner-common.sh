@@ -39,10 +39,10 @@ get_cache() {
   else
     TARGET="$BRANCH_NAME"
   fi
-  echo "Target: $TARGET"
-  echo "CHANGE_TARGET: $CHANGE_TARGET"
-  echo "CHANGE_BRANCH: $CHANGE_BRANCH"
-  echo "BRANCH_NAME: $BRANCH_NAME"
+echo "Target: $TARGET"
+echo "CHANGE_TARGET: $CHANGE_TARGET"
+echo "CHANGE_BRANCH: $CHANGE_BRANCH"
+echo "BRANCH_NAME: $BRANCH_NAME"
 
   cd tmp
   echo "INFO: Cleaning before pulling tarball ..."
@@ -56,7 +56,7 @@ echo "DEBUG: URL = $URL"
   if validate_file_exists "$URL"; then
     get_internal_source "$PATH"
   else
-    echo "WARNING: File not found. Skipping it"
+    echo "WARNING: File not found. Skipping"
   fi
 }
 
@@ -69,7 +69,7 @@ set_cache() {
 
 
   if [[ -n "$TARGET" ]]; then
-    echo "ERROR: Target is empty. Skipping ..."
+    echo "ERROR: Target is empty. Skipping"
     exit
   fi
 
@@ -77,7 +77,7 @@ set_cache() {
     echo "INFO: Saving cache's tarball ..."
     put_internal_source "SQ-cache" "$PROJECT" "$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz"
   else
-    echo "WARNING: Tarball to save not found. Skipping ..."
+    echo "WARNING: Tarball to save not found. Skipping"
   fi
 }
 
