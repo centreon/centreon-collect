@@ -80,6 +80,7 @@ stage('Build / Unit tests // Packaging / Signing') {
             }
             //if (env.BUILD == "REFERENCE" || env.BUILD == "QA") {
               // Saving cache's tarball if generated
+              sh 'printenv'
               sh 'ci/scripts/collect-sonar-scanner-common.sh "set"'
             //}
           }
