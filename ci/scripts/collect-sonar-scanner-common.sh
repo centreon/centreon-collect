@@ -15,10 +15,6 @@ if [[ -z "$PROJECT" ]] ; then
   PROJECT="centreon-collect"
 fi
 
-if [[ -z "$TARGET" ]]; then
-
-fi
-
 install_scanner() {
   # Installing missing requirements
   sudo apt-get install unzip || exit
@@ -47,7 +43,7 @@ get_cache() {
   echo "CHANGE_TARGET: $CHANGE_TARGET"
   echo "CHANGE_BRANCH: $CHANGE_BRANCH"
   echo "BRANCH_NAME: $BRANCH_NAME"
-  
+
   if [[ -n "$TARGET" ]]; then
 
     exit;
