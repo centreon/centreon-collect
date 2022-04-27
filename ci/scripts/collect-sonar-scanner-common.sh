@@ -44,12 +44,12 @@ get_cache() {
   echo "INFO: Cleaning before pulling tarball ..."
   rm -rf "$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz"
 
-  PATH="SQ-cache/$PROJECT/$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz"
-  URL="http://srvi-repo.int.centreon.com/sources/internal/$PATH"
+  CACHE_PATH="SQ-cache/$PROJECT/$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz"
+  CACHE_URL="http://srvi-repo.int.centreon.com/sources/internal/$CACHE_PATH"
 
-  if validate_file_exists "$URL"; then
+  if validate_file_exists "$CACHE_URL"; then
     echo "INFO: Pulling tarball ..."
-    /usr/bin/wget -q "$URL"
+    wget -q "$CACHE_URL"
   else
     echo "WARNING: File not found. Skipping $TARGET's cache on $VERSION"
   fi
@@ -72,7 +72,7 @@ set_cache() {
 }
 
 validate_file_exists() {
-  /usr/bin/wget --spider -q "$1"
+  wget --spider -q "$1"
   return $?
 }
 
