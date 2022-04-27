@@ -54,10 +54,6 @@ get_cache() {
 set_cache() {
   cd tmp
 
-#CLEAN
-DIR="/srv/sources/internal/SQ-cache/$PROJECT/$PROJECT-SQ-cache-$VERSION.tar.gz"
-ssh "$REPO_CREDS" rm -f "$DIR"
-
   if [[ -f "$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz" ]]; then
     echo "INFO: Saving cache's tarball ..."
     put_internal_source "SQ-cache" "$PROJECT" "$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz"
