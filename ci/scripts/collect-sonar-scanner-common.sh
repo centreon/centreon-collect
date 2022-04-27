@@ -69,8 +69,8 @@ set_cache() {
 
 
   if [[ -n "$TARGET" ]]; then
-    echo "FATAL: Target is empty";
-    exit;
+    echo "ERROR: Target is empty. Skipping ..."
+    exit
   fi
 
   if [[ -f "$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz" ]]; then
