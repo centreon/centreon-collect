@@ -2,8 +2,9 @@
 set -e
 
 echo "########################### start mariadb ############################"
-mysql_install_db --user=root --ldata=/var/lib/mysql/
+# mysql_install_db --user=root --ldata=/var/lib/mysql/
 mysqld --user=root &
+ps ax
 
 echo "########################### init centreon database ############################"
 cd /src/tests/
