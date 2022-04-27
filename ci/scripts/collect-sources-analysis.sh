@@ -15,7 +15,7 @@ AUTH_TOKEN="$2"
 URL="$3"
 VERSION="$4"
 TARGET="$5"
-if [[ "$MODE" == "PR" && -z "$6" && -z "$7" ]]; then
+if [[ "$MODE" == "PR" && -n "$6" && -n "$7" ]]; then
   PR_BRANCH="$6"
   PR_KEY="$7"
 else
