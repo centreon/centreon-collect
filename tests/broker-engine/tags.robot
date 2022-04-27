@@ -34,7 +34,7 @@ BETAG1
 	${result}=	check tag With Timeout	tag1	0	30
 	Should Be True	${result}	msg=tag1 should be of type 0
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker
 
 BETAG2
 	[Documentation]	Engine is configured with some tags. When broker receives them, it stores them in the centreon_storage.tags table. Engine is started before.
@@ -57,7 +57,7 @@ BETAG2
 	${result}=	check tag With Timeout	tag1	0	30
 	Should Be True	${result}	msg=tag1 should be of type 0
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker
 
 BEUTAG1
 	[Documentation]	Engine is configured with some tags. When broker receives them, it stores them in the centreon_storage.tags table. Broker is started before.
@@ -83,7 +83,7 @@ BEUTAG1
 	${result}=	check tag With Timeout	tag1	0	30
 	Should Be True	${result}	msg=tag1 should be of type 0
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker
 
 BEUTAG2
 	[Documentation]	Engine is configured with some tags. A new service is added with a tag. Broker should make the relations.
@@ -148,7 +148,7 @@ BEUTAG3
 	${result}=	check tag With Timeout	tag1	0	30
 	Should Be True	${result}	msg=tag1 should be of type 0
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker
 
 BEUTAG4
 	[Documentation]	Engine is configured with some tags. Group tags tag9, tag13 are set to services 1 and 3. Category tags tag3 and tag11 are added to services 1, 3, 5 and 6. The centreon_storage.resources and resources_tags tables are well filled.
@@ -182,7 +182,7 @@ BEUTAG4
 	${result}=	check resources tags With Timeout	1	5	servicecategory	[2, 4]	60
 	Should Be True	${result}	msg=Service (1, 5) should have servicecategory tag ids 2, 4
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker
 
 BEUTAG5
 	[Documentation]	Engine is configured with some tags. Group tags tag2, tag6 are set to hosts 1 and 2. Category tags tag4 and tag8 are added to hosts 2, 3, 4. The resources and resources_tags tables are well filled.
