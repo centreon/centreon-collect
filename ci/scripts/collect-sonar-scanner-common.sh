@@ -62,7 +62,7 @@ echo "BRANCH_NAME: $BRANCH_NAME"
     echo "INFO: Pulling tarball ..."
     get_internal_source "$PATH"
   else
-    echo "WARNING: File not found. Skipping $TARGET on $VERSION cache"
+    echo "WARNING: File not found. Skipping $TARGET's cache for $VERSION"
   fi
 }
 
@@ -76,7 +76,7 @@ echo "BRANCH_NAME: $BRANCH_NAME"
 
 
   if [[ -z "$TARGET" ]]; then
-    echo "ERROR: Target's name is empty. Skipping"
+    echo "ERROR: Target's name is empty. Skipping $VERSION's cache"
     exit
   fi
 
@@ -84,7 +84,7 @@ echo "BRANCH_NAME: $BRANCH_NAME"
     echo "INFO: Saving cache's tarball $PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz ..."
     put_internal_source "SQ-cache" "$PROJECT" "$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz"
   else
-    echo "WARNING: Tarball to save not found. Skipping"
+    echo "WARNING: Tarball to save not found. Skipping $TARGET's cache for $VERSION"
   fi
 }
 
