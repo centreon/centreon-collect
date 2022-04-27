@@ -331,64 +331,66 @@ BEUTAG7
 	Stop Engine
 	Kindly Stop Broker
 
-#BEUTAG8
-#	[Documentation]	hosts have tags provided by templates.
-#	[Tags]	Broker	Engine	protobuf	bbdo	tags
-#	Config Engine	${2}
-#	Create Tags File	${0}	${20}
-#	Create Tags File	${1}	${20}
-#	Create Template File	${0}	host	group_tags	[2, 6]
-#	Create Template File	${1}	host	group_tags	[10, 14]
-#
-#	Config Engine Add Cfg File	${0}	tags.cfg
-#	Config Engine Add Cfg File	${1}	tags.cfg
-#	Config Engine Add Cfg File	${0}	hostTemplates.cfg
-#	Config Engine Add Cfg File	${1}	hostTemplates.cfg
-#	Engine Config Set Value	${0}	log_level_config	debug
-#	Engine Config Set Value	${1}	log_level_config	debug
-#	Add Template To Hosts	0	host_template_1	[9, 10]
-#	Add Template To Hosts	0	host_template_2	[11, 12]
-#	Add Template To Hosts	1	host_template_1	[30, 31]
-#	Add Template To Hosts	1	host_template_2	[32, 33]
-#	Config Broker	central
-#	Config Broker	rrd
-#	Config Broker	module
-#	Config Broker Sql Output	central	unified_sql
-#	Broker Config Add Item	module	bbdo_version	3.0.0
-#	Broker Config Add Item	central	bbdo_version	3.0.0
-#	Broker Config Add Item	rrd	bbdo_version	3.0.0
-#	Broker Config Log	module	neb	debug
-#	Broker Config Log	central	sql	trace
-#	Clear Retention
-#	${start}=	Get Current Date
-#	Start Engine
-#	Sleep	5s
-#	Start Broker
-#
-#	# We need to wait a little before reloading Engine
-#	${result}=	check resources tags With Timeout	9	2	60
-#	Should Be True	${result}	msg=First step: resources (9) should have tags_id=2
-#
-#	${result}=	check resources tags With Timeout	10	2	60
-#	Should Be True	${result}	msg=First step: resources (10) should have tags_id=2
-#
-#	${result}=	check resources tags With Timeout	11	6	60
-#	Should Be True	${result}	msg=First step: resources (11) should have tags_id=6
-#
-#	${result}=	check resources tags With Timeout	12	6	60
-#	Should Be True	${result}	msg=First step: resources (12) should have tags_id=6
-#
-#	${result}=	check resources tags With Timeout	30	10	60
-#	Should Be True	${result}	msg=First step: resources (30) should have tags_id=10
-#
-#	${result}=	check resources tags With Timeout	31	10	60
-#	Should Be True	${result}	msg=First step: resources (31) should have tags_id=10
-#
-#	${result}=	check resources tags With Timeout	32	14	60
-#	Should Be True	${result}	msg=First step: resources (32) should have tags_id=14
-#
-#	${result}=	check resources tags With Timeout	33	14	60
-#	Should Be True	${result}	msg=First step: host (33) should have tags_id=14
-#
-#	Stop Engine
-#	Kindly Stop Broker
+BEUTAG8
+	[Documentation]	hosts have tags provided by templates.
+	[Tags]	Broker	Engine	protobuf	bbdo	tags
+	Config Engine	${2}
+	Create Tags File	${0}	${40}
+	Create Tags File	${1}	${40}
+	Create Template File	${0}	host	group_tags	[2, 6]
+	Create Template File	${1}	host	group_tags	[8, 9]
+
+	Config Engine Add Cfg File	${0}	tags.cfg
+	Config Engine Add Cfg File	${1}	tags.cfg
+	Config Engine Add Cfg File	${0}	hostTemplates.cfg
+	Config Engine Add Cfg File	${1}	hostTemplates.cfg
+	Engine Config Set Value	${0}	log_level_config	debug
+	Engine Config Set Value	${1}	log_level_config	debug
+	Add Template To Hosts	0	host_template_1	[9, 10]
+	Add Template To Hosts	0	host_template_2	[11, 12]
+	Add Template To Hosts	1	host_template_1	[30, 31]
+	Add Template To Hosts	1	host_template_2	[32, 33]
+	Config Broker	central
+	Config Broker	rrd
+	Config Broker	module	${2}
+	Config Broker Sql Output	central	unified_sql
+	Broker Config Add Item	module0	bbdo_version	3.0.0
+	Broker Config Add Item	module1	bbdo_version	3.0.0
+	Broker Config Add Item	central	bbdo_version	3.0.0
+	Broker Config Add Item	rrd	bbdo_version	3.0.0
+	Broker Config Log	module0	neb	debug
+	Broker Config Log	module1	neb	debug
+	Broker Config Log	central	sql	trace
+	Clear Retention
+	${start}=	Get Current Date
+	Start Engine
+	Sleep	2s
+	Start Broker
+
+	# We need to wait a little before reloading Engine
+	${result}=	check resources tags With Timeout	0	9	hostgroup	[2]	60
+	Should Be True	${result}	msg=First step: resource 9 should have hostgroup tag with id=2
+
+	${result}=	check resources tags With Timeout	0	10	hostgroup	[2]	60
+	Should Be True	${result}	msg=First step: resource 10 should have hostgroup tag with id=2
+
+	${result}=	check resources tags With Timeout	0	11	hostgroup	[6]	60
+	Should Be True	${result}	msg=First step: resource 11 should have hostgroup tag with id=6
+
+	${result}=	check resources tags With Timeout	0	12	hostgroup	[6]	60
+	Should Be True	${result}	msg=First step: resource 12 should have hostgroup tag with id=6
+
+	${result}=	check resources tags With Timeout	0	30	hostgroup	[8]	60
+	Should Be True	${result}	msg=First step: resource 30 should have hostgroup tag with id=10
+
+	${result}=	check resources tags With Timeout	0	31	hostgroup	[8]	60
+	Should Be True	${result}	msg=First step: resource 31 should have hostgroup tag with id=10
+
+	${result}=	check resources tags With Timeout	0	32	hostgroup	[9]	60
+	Should Be True	${result}	msg=First step: resource 32 should have hostgroup tag with id=14
+
+	${result}=	check resources tags With Timeout	0	33	hostgroup	[9]	60
+	Should Be True	${result}	msg=First step: host 33 should have hostgroup tag with id=14
+
+	Stop Engine
+	Kindly Stop Broker
