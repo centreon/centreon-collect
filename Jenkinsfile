@@ -61,7 +61,7 @@ stage('Build / Unit tests // Packaging / Signing') {
       }
     }
   },
-  'centos7 Build and UT': {
+  'centos7 Build and test robot': {
     node("C++") {
       dir('centreon-collect-centos7') {
         checkout scm
