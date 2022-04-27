@@ -22,12 +22,6 @@ else
 fi
 
 install_scanner() {
-
-echo "Target: $TARGET"
-echo "CHANGE_TARGET: $CHANGE_TARGET"
-echo "CHANGE_BRANCH: $CHANGE_BRANCH"
-echo "BRANCH_NAME: $BRANCH_NAME"
-
   echo "INFO: Installing missing requirements ..."
   sudo apt-get install unzip || exit
 
@@ -50,30 +44,19 @@ get_cache() {
   echo "INFO: Cleaning before pulling tarball ..."
   rm -rf "$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz"
 
-echo "Target: $TARGET"
-echo "CHANGE_TARGET: $CHANGE_TARGET"
-echo "CHANGE_BRANCH: $CHANGE_BRANCH"
-echo "BRANCH_NAME: $BRANCH_NAME"
-
   PATH="SQ-cache/$PROJECT/$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz"
   URL="http://srvi-repo.int.centreon.com/sources/internal/$PATH"
 
   if validate_file_exists "$URL"; then
     echo "INFO: Pulling tarball ..."
-    get_internal_source "$PATH"
+    wget -q "http://srvi-repo.int.centreon.com/sources/internal/$PATH"
   else
-    echo "WARNING: File not found. Skipping $TARGET's cache for $VERSION"
+    echo "WARNING: File not found. Skipping $TARGET's cache on $VERSION"
   fi
 }
 
 set_cache() {
   cd tmp
-
-echo "Target: $TARGET"
-echo "CHANGE_TARGET: $CHANGE_TARGET"
-echo "CHANGE_BRANCH: $CHANGE_BRANCH"
-echo "BRANCH_NAME: $BRANCH_NAME"
-
 
   if [[ -z "$TARGET" ]]; then
     echo "ERROR: Target's name is empty. Skipping $VERSION's cache"
@@ -84,7 +67,7 @@ echo "BRANCH_NAME: $BRANCH_NAME"
     echo "INFO: Saving cache's tarball $PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz ..."
     put_internal_source "SQ-cache" "$PROJECT" "$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz"
   else
-    echo "WARNING: Tarball to save not found. Skipping $TARGET's cache for $VERSION"
+    echo "WARNING: Tarball to save not found. Skipping $TARGET's cache on $VERSION"
   fi
 }
 
