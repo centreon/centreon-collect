@@ -62,7 +62,7 @@ echo "BRANCH_NAME: $BRANCH_NAME"
     echo "INFO: Pulling tarball ..."
     get_internal_source "$PATH"
   else
-    echo "WARNING: File not found. Skipping"
+    echo "WARNING: File not found. Skipping $TARGET on $VERSION cache"
   fi
 }
 
@@ -75,7 +75,7 @@ echo "CHANGE_BRANCH: $CHANGE_BRANCH"
 echo "BRANCH_NAME: $BRANCH_NAME"
 
 
-  if [[ -n "$TARGET" ]]; then
+  if [[ -z "$TARGET" ]]; then
     echo "ERROR: Target's name is empty. Skipping"
     exit
   fi
