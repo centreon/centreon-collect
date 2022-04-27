@@ -32,16 +32,23 @@ install_scanner() {
   mkdir tmp
   cd tmp
 
-  # Getting latest archive
+  echo "INFO: Getting latest archive ..."
   curl https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.7.0.2747-linux.zip --output sonar-scanner-cli-4.7.0.2747-linux.zip
-  unzip sonar-scanner-cli-4.7.0.2747-linux.zip
+  echo "INFO: Inflating files ..."
+  unzip -q sonar-scanner-cli-4.7.0.2747-linux.zip
+  echo "INFO: Cleaning ..."
   sudo rm -rf sonar-scanner-cli-4.7.0.2747-linux.zip sonar-scanner
   sudo mv sonar-scanner-4.7.0.2747-linux sonar-scanner
 }
 
 get_cache() {
+  if [[ -n "$TARGET" ]]; then
+    echo "FATAL: Target is empty";
+    exit;
+  fi
+
   cd tmp
-  echo "INFO: delete before pulling tarball ..."
+  echo "INFO: Cleaning before pulling tarball ..."
   rm -rf "$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz"
 
   PATH="SQ-cache/$PROJECT/$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz"
@@ -60,6 +67,10 @@ set_cache() {
 ssh "$REPO_CREDS" rm -f "/srv/sources/internal/SQ-cache/centreon-collect/centreon-collect-SQ-cache-22.04.0.tar.gz"
 ssh "$REPO_CREDS" rm -f "/srv/sources/internal/SQ-cache/centreon-collect/centreon-collect-SQ-cache--22.04.0.tar.gz"
 
+  if [[ -n "$TARGET" ]]; then
+    echo "FATAL: Target is empty";
+    exit;
+  fi
 
   if [[ -f "$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz" ]]; then
     echo "INFO: Saving cache's tarball ..."
