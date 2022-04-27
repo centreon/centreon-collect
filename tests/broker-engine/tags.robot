@@ -281,7 +281,7 @@ BEUTAG7
 	Create Tags File	${0}	${40}
 	Create Tags File	${1}	${40}
 	Create Template File	${0}	service	group_tags	[1, 9]
-	Create Template File	${1}	service	group_tags	[5, 13]
+	Create Template File	${1}	service	group_tags	[5, 7]
 
 	Config Engine Add Cfg File	${0}	tags.cfg
 	Config Engine Add Cfg File	${1}	tags.cfg
@@ -325,8 +325,8 @@ BEUTAG7
 	${result}=	check resources tags With Timeout	26	502	servicegroup	[1,4,5]	60
 	Should Be True	${result}	msg=First step: Service (26, 502) should have tags 1, 4 and 5
 
-	${result}=	check resources tags With Timeout	26	503	servicegroup	[13]	60
-	Should Be True	${result}	msg=First step: Service (26, 503) should have servicegroup tag 13
+	${result}=	check resources tags With Timeout	26	503	servicegroup	[7]	60
+	Should Be True	${result}	msg=First step: Service (26, 503) should have servicegroup tag 7
 
 	Stop Engine
 	Kindly Stop Broker
