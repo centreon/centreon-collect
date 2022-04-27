@@ -8,7 +8,7 @@ mkdir /src/build
 cd /src/build/
 
 # Variables
-PROCNBR=$( nproc )
+PROC_NBR=$( nproc )
 PROJECT="centreon-collect"
 MODE="$1"
 AUTH_TOKEN="$2"
@@ -38,8 +38,6 @@ else
 fi
 cd ..
 
-echo "DEBUG: Target is $TARGET"
-
 # Delete default SQ configuration file to override
 rm -f /src/tmp/sonar-scanner/conf/sonar-scanner.properties
 
@@ -60,7 +58,7 @@ if [[ "PR" == "$MODE" ]] ; then
 
   echo "INFO: Running SQ in PR mode ..."
   cd /src
-  /src/tmp/sonar-scanner/bin/sonar-scanner -X -Dsonar.scm.forceReloadAll=true -Dsonar.cfamily.threads="$PROCNBR" -Dsonar.scm.provider=git -Dsonar.login="$AUTH_TOKEN" -Dsonar.host.url="$URL" -Dsonar.projectVersion="$VERSION" -Dsonar.pullrequest.base="$TARGET" -Dsonar.pullrequest.branch="$PR_BRANCH" -Dsonar.pullrequest.key="$PR_KEY"
+  /src/tmp/sonar-scanner/bin/sonar-scanner -X -Dsonar.scm.forceReloadAll=true -Dsonar.cfamily.threads="$PROC_NBR" -Dsonar.scm.provider=git -Dsonar.login="$AUTH_TOKEN" -Dsonar.host.url="$URL" -Dsonar.projectVersion="$VERSION" -Dsonar.pullrequest.base="$TARGET" -Dsonar.pullrequest.branch="$PR_BRANCH" -Dsonar.pullrequest.key="$PR_KEY"
 else
   echo "INFO: Cleaning previous run files ..."
   if [[ -d "/src/.scannerwork" ]]; then
@@ -68,7 +66,7 @@ else
   fi
 
   echo "INFO: Running SQ in branch mode ..."
-  /src/tmp/sonar-scanner/bin/sonar-scanner -X -Dsonar.scm.forceReloadAll=true -Dsonar.cfamily.threads="$PROCNBR" -Dsonar.scm.provider=git -Dsonar.login="$AUTH_TOKEN" -Dsonar.host.url="$URL" -Dsonar.projectVersion="$VERSION" -Dsonar.branch.name="$TARGET"
+  /src/tmp/sonar-scanner/bin/sonar-scanner -X -Dsonar.scm.forceReloadAll=true -Dsonar.cfamily.threads="$PROC_NBR" -Dsonar.scm.provider=git -Dsonar.login="$AUTH_TOKEN" -Dsonar.host.url="$URL" -Dsonar.projectVersion="$VERSION" -Dsonar.branch.name="$TARGET"
 
   # Ask for cache saving
   SET_CACHE=1
