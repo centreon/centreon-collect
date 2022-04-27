@@ -34,11 +34,19 @@ install_scanner() {
 get_cache() {
   echo "DEBUG: change_target = $CHANGE_TARGET"
   echo "DEBUG: branch_name = $BRANCH_NAME"
-  if [[ -z $BRANCH_NAME ]]; then
-    TARGET=$BRANCH_NAME
-  else
+  if [[ -z $CHANGE_TARGET ]]; then
     TARGET=$CHANGE_TARGET
+  else
+    TARGET=$BRANCH_NAME
   fi
+
+  echo "DEBUG: change_target = $CHANGE_TARGET"
+  echo "DEBUG: branch_name = $BRANCH_NAME"
+  echo "DEBUG: target = $TARGET"
+  which curl
+  which wget
+
+
 
   cd tmp
   echo "INFO: delete before pulling tarball ..."
