@@ -49,7 +49,7 @@ get_cache() {
 
   if validate_file_exists "$URL"; then
     echo "INFO: Pulling tarball ..."
-    /usr/bin/wget -q "http://srvi-repo.int.centreon.com/sources/internal/$PATH"
+    /usr/bin/wget -q "$URL"
   else
     echo "WARNING: File not found. Skipping $TARGET's cache on $VERSION"
   fi
