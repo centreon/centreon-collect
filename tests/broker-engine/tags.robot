@@ -86,6 +86,43 @@ BEUTAG1
 	Stop Broker
 
 BEUTAG2
+	[Documentation]	Engine is configured with some tags. A new service is added with a tag. Broker should make the relations.
+	[Tags]	Broker	Engine	protobuf	bbdo	tags	unified_sql
+	Config Engine	${1}
+	Create Tags File	${0}	${20}
+	Config Engine Add Cfg File	${0}	tags.cfg
+	Config Broker	central
+	Config Broker	rrd
+	Config Broker	module
+	Config Broker Sql Output	central	unified_sql
+        Broker Config Add Item	module0	bbdo_version	3.0.0
+        Broker Config Add Item	central	bbdo_version	3.0.0
+        Broker Config Add Item	rrd	bbdo_version	3.0.0
+        Broker Config Output Set	central	central-broker-unified-sql	connections_count	1
+        Broker Config Output Set	central	central-broker-unified-sql	queries_per_transaction	1
+        Broker Config Output Set	central	central-broker-unified-sql	read_timeout	1
+        Broker Config Output Set	central	central-broker-unified-sql	retry_interval	5
+	Broker Config Log	module0	neb	debug
+	Broker Config Log	central	sql	error
+	Clear Retention
+	${start}=	Get Current Date
+	Start Broker
+	Start Engine
+        Sleep	2s
+
+        ${svc}=	Create Service	${0}	1     1
+	Add Tags To Services	${0}	group_tags	4	[${svc}]
+
+	Stop Engine
+	Start Engine
+	Reload Broker
+        Sleep	2s
+	${result}=	check resources tags With Timeout	1	${svc}	servicegroup	[4]	60
+	Should Be True	${result}	msg=New service should have a service group tag of id 4.
+	Stop Engine
+	Kindly Stop Broker
+
+BEUTAG3
 	[Documentation]	Engine is configured with some tags. When broker receives them, it stores them in the centreon_storage.tags table. Engine is started before.
 	[Tags]	Broker	Engine	protobuf	bbdo	tags	unified_sql
 	Config Engine	${1}
@@ -112,7 +149,7 @@ BEUTAG2
 	Stop Engine
 	Stop Broker
 
-BEUTAG3
+BEUTAG4
 	[Documentation]	Engine is configured with some tags. Group tags tag9, tag13 are set to services 1 and 3. Category tags tag3 and tag11 are added to services 1, 3, 5 and 6. The centreon_storage.resources and resources_tags tables are well filled.
 	[Tags]	Broker	Engine	protobuf	bbdo	tags	unified_sql
 	#Clear DB	tags
@@ -146,7 +183,7 @@ BEUTAG3
 	Stop Engine
 	Stop Broker
 
-BEUTAG4
+BEUTAG5
 	[Documentation]	Engine is configured with some tags. Group tags tag2, tag6 are set to hosts 1 and 2. Category tags tag4 and tag8 are added to hosts 2, 3, 4. The resources and resources_tags tables are well filled.
 	[Tags]	Broker	Engine	protobuf	bbdo	tags
 	#Clear DB	tags
@@ -180,7 +217,7 @@ BEUTAG4
 	Stop Engine
 	Kindly Stop Broker
 
-BEUTAG5
+BEUTAG6
 	[Documentation]	Engine is configured with some tags. When broker receives them, it stores them in the centreon_storage.resources_tags table. Engine is started before.
 	[Tags]	Broker	Engine	protobuf	bbdo	tags
 	#Clear DB	tags
@@ -216,7 +253,7 @@ BEUTAG5
 	Stop Engine
 	Kindly Stop Broker
 
-BEUTAG6
+BEUTAG7
 	[Documentation]	some services are configured and deleted with tags on two pollers.
 	[Tags]	Broker	Engine	protobuf	bbdo	tags
 	Config Engine	${2}
@@ -274,7 +311,7 @@ BEUTAG6
 	Stop Engine
 	Kindly Stop Broker
 
-BEUTAG7
+BEUTAG8
 	[Documentation]	Services have tags provided by templates.
 	[Tags]	Broker	Engine	protobuf	bbdo	tags
 	Config Engine	${2}
@@ -331,7 +368,7 @@ BEUTAG7
 	Stop Engine
 	Kindly Stop Broker
 
-BEUTAG8
+BEUTAG9
 	[Documentation]	hosts have tags provided by templates.
 	[Tags]	Broker	Engine	protobuf	bbdo	tags
 	Config Engine	${2}

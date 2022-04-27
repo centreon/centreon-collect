@@ -142,7 +142,7 @@ class EngineInstance:
             "hid": hid}
         return retval
 
-    def create_service(self, host_id: int, cmd_ids):
+    def create_service(self, host_id: int, cmd_ids:int):
         self.last_service_id += 1
         service_id = self.last_service_id
         command_id = random.randint(cmd_ids[0], cmd_ids[1])
@@ -526,6 +526,16 @@ def add_service_group(index: int, id_service_group: int, members: list):
     f.write(engine.create_service_group(id_service_group, members))
     f.close()
 
+def create_service(index:int, host_id:int, cmd_id:int):
+    f = open("/etc/centreon-engine/config{}/services.cfg".format(index), "a+")
+    svc = engine.create_service(host_id, [1, cmd_id])
+    lst = svc.split('\n')
+    good = [l for l in lst if "_SERVICE_ID" in l][0]
+    m = re.search(r"_SERVICE_ID\s+([^\s]*)$", good)
+    retval = int(m.group(1))
+    f.write(svc)
+    f.close()
+    return retval
 
 def engine_log_duplicate(result: list):
     dup = True
