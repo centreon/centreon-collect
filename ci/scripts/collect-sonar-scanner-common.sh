@@ -22,13 +22,13 @@ else
 fi
 
 install_scanner() {
-  echo "INFO: Installing missing requirements ..."
-  sudo apt-get install unzip || exit
-
   echo "INFO: Cleaning tmp ..."
-  sudo rm -rf "/$WORKSPACE/tmp"
+  sudo rm -rf "/$WORKSPACE/centreon-collect-centos7/tmp"
   mkdir tmp
   cd tmp
+
+  echo "INFO: Installing missing requirements ..."
+  sudo apt-get install unzip || exit
 
   echo "INFO: Getting latest archive ..."
   curl https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.7.0.2747-linux.zip --output sonar-scanner-cli-4.7.0.2747-linux.zip
