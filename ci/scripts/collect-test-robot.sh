@@ -1,25 +1,6 @@
 #!/bin/bash
 set -e
 
-echo "########################### start mariadb ############################"
-# mysql_install_db --user=root --ldata=/var/lib/mysql/
-mariadbd --user=root --verbose &
-ps ax
-sleep 5
-
-echo "########################### init centreon database ############################"
-
-cd /src/tests/
-mysql -e "CREATE USER IF NOT EXISTS 'centreon'@'localhost' IDENTIFIED BY 'centreon';"
-
-mysql -e "GRANT SELECT,UPDATE,DELETE,INSERT,CREATE,DROP,INDEX,ALTER,LOCK TABLES,CREATE TEMPORARY TABLES, EVENT,CREATE VIEW ON *.* TO  'centreon'@'localhost';"
-
-# mysql -u centreon -pcentreon -e "DROP DATABASE centreon_storage;"
-# mysql -u centreon -pcentreon -e "DROP DATABASE centreon;"
-
-mysql -u centreon -pcentreon < resources/centreon_storage.sql
-mysql -u centreon -pcentreon < resources/centreon.sql
-
 echo "########################### build and install centreon collect ############################"
 
 rm -rf /src/build
@@ -40,6 +21,25 @@ fi
 make -j9
 make -j9 install
 
+echo "########################### start mariadb ############################"
+# mysql_install_db --user=root --ldata=/var/lib/mysql/
+mariadbd --user=root --verbose &
+ps ax
+sleep 5
+
+echo "########################### init centreon database ############################"
+
+cd /src/tests/
+mysql -e "CREATE USER IF NOT EXISTS 'centreon'@'localhost' IDENTIFIED BY 'centreon';"
+
+mysql -e "GRANT SELECT,UPDATE,DELETE,INSERT,CREATE,DROP,INDEX,ALTER,LOCK TABLES,CREATE TEMPORARY TABLES, EVENT,CREATE VIEW ON *.* TO  'centreon'@'localhost';"
+
+# mysql -u centreon -pcentreon -e "DROP DATABASE centreon_storage;"
+# mysql -u centreon -pcentreon -e "DROP DATABASE centreon;"
+
+mysql -u centreon -pcentreon < resources/centreon_storage.sql
+mysql -u centreon -pcentreon < resources/centreon.sql
+
 echo "########################### install robot framework ############################"
 cd /src/tests/
 pip3 install -U robotframework robotframework-databaselibrary pymysql
@@ -52,9 +52,4 @@ pip3 install grpcio==1.33.2 grpcio_tools==1.33.2
 
 echo "########################### run centreon collect test robot ############################"
 cd /src/tests/
-robot severities/hosts.robot
-
-# echo "########################### move report test robot ############################"
-# mv report.html log.html output.xml ../
-# cd ../
-# chmod 777 report.html log.html output.xml
+robot .
