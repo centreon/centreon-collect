@@ -36,7 +36,9 @@ RUN yum -y install devtoolset-9 \
     gettext \
     expect \
     perl-XML-SAX \
-    rpm-build
+    rpm-build \
+    unzip \
+    ShellCheck
 RUN ln -s /usr/bin/cmake3 /usr/bin/cmake
 RUN pip3 install conan --prefix=/usr --upgrade
 RUN rm -rf ~/.conan/profiles/default
