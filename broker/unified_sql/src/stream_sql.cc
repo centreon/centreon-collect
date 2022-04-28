@@ -2849,6 +2849,9 @@ void stream::_process_service_status(const std::shared_ptr<io::data>& d) {
         "{}))",
         ss.host_id, ss.service_id, ss.check_type, ss.last_check, ss.next_check,
         now, ss.current_state, ss.state_type);
+
+  /* perfdata part */
+  _unified_sql_process_service_status(d);
 }
 
 /**
@@ -3019,6 +3022,9 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
         "{}))",
         sscr.host_id(), sscr.service_id(), sscr.check_type(), sscr.last_check(),
         sscr.next_check(), now, sscr.current_state(), sscr.state_type());
+
+  /* perfdata part */
+  _unified_sql_process_pb_service_status(d);
 }
 
 void stream::_process_severity(const std::shared_ptr<io::data>& d) {
