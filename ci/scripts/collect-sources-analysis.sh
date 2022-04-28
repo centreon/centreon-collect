@@ -21,7 +21,6 @@ if [[ "$MODE" == "PR" && -n "$6" && -n "$7" ]]; then
 else
   echo "WARNING: Data are missing. SQ analysis will probably fail or will certainly be inconsistent ..."
 fi
-SET_CACHE=0
 
 # Get distrib
 DISTRIB=$( lsb_release -rs | cut -f1 -d. )
@@ -52,8 +51,7 @@ if [[ "PR" == "$MODE" ]] ; then
     mv cache /src/build
     rm -rf "/src/tmp/$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz"
   else
-    echo "INFO: Cache's tarball not found. The cache will be recomputed after the analysis ..."
-    SET_CACHE=1
+    echo "WARNING: Cache's tarball not found. Run a job on the reference branch to generate it."
   fi
 
   echo "INFO: Running SQ in PR mode ..."
@@ -69,11 +67,6 @@ else
   /src/tmp/sonar-scanner/bin/sonar-scanner -X -Dsonar.scm.forceReloadAll=true -Dsonar.cfamily.threads="$PROC_NBR" -Dsonar.scm.provider=git -Dsonar.login="$AUTH_TOKEN" -Dsonar.host.url="$URL" -Dsonar.projectVersion="$VERSION" -Dsonar.branch.name="$TARGET"
 
   # Ask for cache saving
-  SET_CACHE=1
-fi
-
-# Create cache's tarball if required
-if [[ 1 -eq "$SET_CACHE" ]]; then
   echo "INFO: Cleaning tmp folder ..."
   cd /src/tmp
   rm -f "$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz"
