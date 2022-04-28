@@ -47,13 +47,13 @@ TestBadPwd
     ${search_result}=  check search  /tmp/test_connector_ssh/log/centengine.debug  /usr/lib64/nagios/plugins/check_by_ssh -H 127.0.0.11
     Should Contain  ${search_result}  fail to connect to testconnssh@127.0.0.11  msg=check not found for fail to connect to testconnssh@127.0.0.11  
 
-Test10Hosts
-    [Documentation]  as 127.0.0.x point to the localhost address we will simulate check on 20 hosts
+Test6Hosts
+    [Documentation]  as 127.0.0.x point to the localhost address we will simulate check on 6 hosts
     [Tags]	Connector	Engine
     Sleep  5 seconds  we wait sshd raz pending connexions from previous tests
     Run  cat ~testconnssh/.ssh/id_rsa.pub ~root/.ssh/id_rsa.pub > ~testconnssh/.ssh/authorized_keys
 
-    FOR	${idx}	IN RANGE	0  9
+    FOR	${idx}	IN RANGE	0  5
         ${host}=	Catenate	SEPARATOR=	local_host_test_machine_.	${idx}
         schedule forced host check  ${host}  /tmp/test_connector_ssh/rw/centengine.cmd
     END
@@ -61,7 +61,7 @@ Test10Hosts
     ${search_result}=  check search  /tmp/test_connector_ssh/log/centengine.debug  /usr/lib64/nagios/plugins/check_by_ssh -H ::1
     Should Contain  ${search_result}  output='toto=::1'  msg=check not found for ::1  
 
-    FOR	${idx}	IN RANGE	1	9
+    FOR	${idx}	IN RANGE	1	5
         ${expected_output}=  Catenate	SEPARATOR=  output='toto=127.0.0.  ${idx}
         ${search_str}=   Catenate	SEPARATOR=  /usr/lib64/nagios/plugins/check_by_ssh -H 127.0.0.  ${idx} 
         ${search_result}=  check search  /tmp/test_connector_ssh/log/centengine.debug  ${search_str}
