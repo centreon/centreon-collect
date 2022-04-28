@@ -26,9 +26,6 @@ install_scanner() {
   sudo apt-get install unzip || exit
 
   echo "INFO: Cleaning tmp ..."
-
-  echo "WORKSPACE = $WORKSPACE"
-
   sudo rm -rf "/$WORKSPACE/tmp"
   mkdir tmp
   cd tmp
@@ -44,10 +41,13 @@ install_scanner() {
 
 get_cache() {
   cd tmp
-  echo "INFO: Cleaning before pulling tarball ..."
-  rm -f "$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz"
 
-  CACHE_PATH="SQ-cache/$PROJECT/$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz"
+ssh "$REPO_CREDS" rm -f "/srv/sources/internal/SQ-cache/centreon-collect/centreon-collect-SQ-cache-develop-22.04.0.tar.gz"
+
+  echo "INFO: Cleaning before pulling tarball ..."
+  rm -f "$PROJECT-SQ-cache-$TARGET.tar.gz"
+
+  CACHE_PATH="SQ-cache/$PROJECT/$PROJECT-SQ-cache-$TARGET.tar.gz"
   CACHE_URL="http://srvi-repo.int.centreon.com/sources/internal/$CACHE_PATH"
 
   if validate_file_exists "$CACHE_URL"; then
@@ -66,11 +66,11 @@ set_cache() {
     exit
   fi
 
-  if [[ -f "$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz" ]]; then
-    echo "INFO: Saving cache's tarball $PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz ..."
-    put_internal_source "SQ-cache" "$PROJECT" "$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz"
+  if [[ -f "$PROJECT-SQ-cache-$TARGET.tar.gz" ]]; then
+    echo "INFO: Saving cache's tarball $PROJECT-SQ-cache-$TARGET.tar.gz ..."
+    put_internal_source "SQ-cache" "$PROJECT" "$PROJECT-SQ-cache-$TARGET.tar.gz"
   else
-    echo "WARNING: Tarball to save not found. Skipping $TARGET's cache on $VERSION"
+    echo "WARNING: Tarball to save not found. Skipping $TARGET's cache"
   fi
 }
 

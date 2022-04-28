@@ -42,14 +42,14 @@ rm -f /src/tmp/sonar-scanner/conf/sonar-scanner.properties
 
 # Run SQ with or without reference branch
 if [[ "PR" == "$MODE" ]] ; then
-  if [[ -f "/src/tmp/$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz" ]]; then
+  if [[ -f "/src/tmp/$PROJECT-SQ-cache-$TARGET.tar.gz" ]]; then
     echo "INFO: Deploying SQ cache ..."
     cd /src/tmp
-    tar xzf "$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz"
+    tar xzf "$PROJECT-SQ-cache-$TARGET.tar.gz"
     rm -rf /src/.scannerwork
     mv .scannerwork /src
     mv cache /src/build
-    rm -rf "/src/tmp/$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz"
+    rm -rf "/src/tmp/$PROJECT-SQ-cache-$TARGET.tar.gz"
   else
     echo "WARNING: Cache's tarball not found. Run a job on the reference branch to generate it."
   fi
@@ -66,13 +66,14 @@ else
   echo "INFO: Running SQ in branch mode ..."
   /src/tmp/sonar-scanner/bin/sonar-scanner -X -Dsonar.scm.forceReloadAll=true -Dsonar.cfamily.threads="$PROC_NBR" -Dsonar.scm.provider=git -Dsonar.login="$AUTH_TOKEN" -Dsonar.host.url="$URL" -Dsonar.projectVersion="$VERSION" -Dsonar.branch.name="$TARGET"
 
-  # Ask for cache saving
+# to remove
+fi
   echo "INFO: Cleaning tmp folder ..."
   cd /src/tmp
-  rm -f "$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz"
+  rm -f "$PROJECT-SQ-cache-$TARGET.tar.gz"
 
-  echo "INFO: Creating cache tarball named $PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz..."
+  echo "INFO: Creating cache tarball named $PROJECT-SQ-cache-$TARGET.tar.gz..."
   mv /src/.scannerwork .
   mv /src/build/cache .
-  tar czf "$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz" cache .scannerwork
-fi
+  tar czf "$PROJECT-SQ-cache-$TARGET.tar.gz" cache .scannerwork
+#fi
