@@ -78,10 +78,10 @@ stage('Build / Unit tests // Packaging / Signing') {
             } else {
               sh 'docker run -i --entrypoint /src/ci/scripts/collect-sources-analysis.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:22.04-testdocker "NotPR" "$SONAR_AUTH_TOKEN" "$SONAR_HOST_URL" "$VERSION" "$BRANCH_NAME"'
             }
-            //if (env.BUILD == "REFERENCE" || env.BUILD == "QA") {
+            if (env.BUILD == "REFERENCE" || env.BUILD == "QA") {
               // Saving cache's tarball if generated
               sh 'ci/scripts/collect-sonar-scanner-common.sh "set"'
-            //}
+            }
           }
         }
       }

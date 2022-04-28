@@ -42,8 +42,6 @@ install_scanner() {
 get_cache() {
   cd tmp
 
-ssh "$REPO_CREDS" rm -f "/srv/sources/internal/SQ-cache/centreon-collect/centreon-collect-SQ-cache-develop-22.04.0.tar.gz"
-
   echo "INFO: Cleaning before pulling tarball ..."
   rm -f "$PROJECT-SQ-cache-$TARGET.tar.gz"
 

@@ -66,8 +66,6 @@ else
   echo "INFO: Running SQ in branch mode ..."
   /src/tmp/sonar-scanner/bin/sonar-scanner -X -Dsonar.scm.forceReloadAll=true -Dsonar.cfamily.threads="$PROC_NBR" -Dsonar.scm.provider=git -Dsonar.login="$AUTH_TOKEN" -Dsonar.host.url="$URL" -Dsonar.projectVersion="$VERSION" -Dsonar.branch.name="$TARGET"
 
-# to remove
-fi
   echo "INFO: Cleaning tmp folder ..."
   cd /src/tmp
   rm -f "$PROJECT-SQ-cache-$TARGET.tar.gz"
@@ -76,4 +74,4 @@ fi
   mv /src/.scannerwork .
   mv /src/build/cache .
   tar czf "$PROJECT-SQ-cache-$TARGET.tar.gz" cache .scannerwork
-#fi
+fi
