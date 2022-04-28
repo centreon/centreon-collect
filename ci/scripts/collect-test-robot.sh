@@ -52,8 +52,9 @@ pip3 install grpcio==1.33.2 grpcio_tools==1.33.2
 
 echo "########################### run centreon collect test robot ############################"
 cd /src/tests/
-robot broker-engine/tags.robot
+robot severities/hosts.robot
 
+echo "########################### move report test robot ############################"
 mv report.html log.html output.xml ../
 cd ../
 chmod 777 report.html log.html output.xml
