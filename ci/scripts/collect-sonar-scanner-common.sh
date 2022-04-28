@@ -26,7 +26,13 @@ install_scanner() {
   sudo apt-get install unzip || exit
 
   echo "INFO: Cleaning tmp ..."
-  sudo rm -rf tmp
+if [[ -d "./tmp" ]]; then
+  echo "folder exists"
+fi
+
+echo "$PWD"
+
+  sudo rm -rf "$PWD/tmp"
   mkdir tmp
   cd tmp
 
@@ -42,7 +48,7 @@ install_scanner() {
 get_cache() {
   cd tmp
   echo "INFO: Cleaning before pulling tarball ..."
-  rm -rf "$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz"
+  rm -f "$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz"
 
   CACHE_PATH="SQ-cache/$PROJECT/$PROJECT-SQ-cache-$TARGET-$VERSION.tar.gz"
   CACHE_URL="http://srvi-repo.int.centreon.com/sources/internal/$CACHE_PATH"
