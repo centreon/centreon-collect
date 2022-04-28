@@ -151,7 +151,7 @@ TEST(SSHOrders, Execute) {
   ASSERT_LT(
       (comparison_timeout.time_since_epoch() - info1.timeout.time_since_epoch())
           .count(),
-      1000000);
+      100000000);  // 100ms
   ASSERT_EQ(info1.host, "localhost");
   ASSERT_EQ(info1.user, "root");
   ASSERT_EQ(info1.password, "myverysecretpassword");
