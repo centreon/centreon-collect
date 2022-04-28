@@ -26,13 +26,10 @@ install_scanner() {
   sudo apt-get install unzip || exit
 
   echo "INFO: Cleaning tmp ..."
-if [[ -d "./tmp" ]]; then
-  echo "folder exists"
-fi
 
-echo "$PWD"
+  echo "WORKSPACE = $WORKSPACE"
 
-  sudo rm -rf "$PWD/tmp"
+  sudo rm -rf "/$WORKSPACE/tmp"
   mkdir tmp
   cd tmp
 
