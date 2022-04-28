@@ -23,8 +23,7 @@ make -j9 install
 
 echo "########################### start mariadb ############################"
 # mysql_install_db --user=root --ldata=/var/lib/mysql/
-mariadbd --user=root --verbose &
-ps ax
+mariadbd --user=root &
 sleep 5
 
 echo "########################### init centreon database ############################"
@@ -52,5 +51,4 @@ pip3 install grpcio==1.33.2 grpcio_tools==1.33.2
 
 echo "########################### run centreon collect test robot ############################"
 cd /src/tests/
-robot broker-engine/tags.robot
-return 0
+robot --nostatusrc broker-engine/tags.robot
