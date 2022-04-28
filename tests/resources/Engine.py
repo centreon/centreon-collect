@@ -444,6 +444,8 @@ define connector {
             for file in ["check.pl", "notif.pl"]:
                 shutil.copyfile("{0}/{1}".format(SCRIPT_DIR, file),
                                 "{0}/{1}".format(ENGINE_HOME, file))
+            if not exists(ENGINE_HOME + "/config{}/rw".format(inst)):
+                makedirs(ENGINE_HOME + "/config{}/rw".format(inst))
 
     def centengine_conf_add_bam(self):
         config_dir = "{}/config0".format(CONF_DIR)
