@@ -54,7 +54,7 @@ echo "########################### run centreon collect test robot ##############
 cd /src/tests/
 robot severities/hosts.robot
 
-echo "########################### move report test robot ############################"
-mv report.html log.html output.xml ../
-cd ../
-chmod 777 report.html log.html output.xml
+# echo "########################### move report test robot ############################"
+# mv report.html log.html output.xml ../
+# cd ../
+# chmod 777 report.html log.html output.xml
