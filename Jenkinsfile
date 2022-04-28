@@ -66,6 +66,9 @@ stage('Build / Unit tests // Packaging / Signing') {
       dir('centreon-collect-centos7') {
         checkout scm
         sh 'docker run -i --entrypoint /src/ci/scripts/collect-test-robot.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:22.04'
+        stash name: 'robot', includes: 'report.html log.html output.xml'
+        archiveArtifacts artifacts: "report.html log.html output.xml"
+        sh 'rm -rf report.html log.html output.xml'
       }
     }
   }/*,

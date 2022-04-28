@@ -3,9 +3,9 @@
 pipeline {
 
     agent none
-    triggers {
-        cron('0 0 * * *')
-    }
+    // triggers {
+    //     cron('0 0 * * *')
+    // }
     stages {
       stage('Launch Centreon Tests') {
         stage('Robot Tests Execution') {
@@ -13,9 +13,8 @@ pipeline {
           when { branch 'master'; branch 'develop'; branch 'COPS-824-cicd-create-pipeline-centreon-test-on-centreon-collect'
                  beforeAgent true }
           steps {
-            checkout scm
             sh 'docker run -i --entrypoint /src/ci/scripts/collect-test-robot.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:22.04'
-            robot outputPath: 'centreon-tests', logFileName: 'log.html', outputFileName: 'output.xml', reportFileName: 'report.hml', passThreshold: 100, unstableThreshold: 75.0
+            robot outputPath: 'tests', logFileName: 'log.html', outputFileName: 'output.xml', reportFileName: 'report.hml', passThreshold: 100, unstableThreshold: 75.0
           }
           post { always { cleanWs() }}
         }
