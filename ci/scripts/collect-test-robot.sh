@@ -51,4 +51,4 @@ pip3 install grpcio==1.33.2 grpcio_tools==1.33.2
 
 echo "########################### run centreon collect test robot ############################"
 cd /src/tests/
-robot --nostatusrc broker-engine/tags.robot
+robot --nostatusrc .
