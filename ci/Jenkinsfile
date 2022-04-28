@@ -27,7 +27,7 @@ stage('Dependencies containers creation') {
       }
     }
   },
-  'debian 11 ependencies': {
+  'debian 11 dependencies': {
     node {
       dir('centreon-collect-debian11') {
         checkout scm
