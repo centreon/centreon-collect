@@ -17,6 +17,8 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
+#include <spdlog/fmt/ostr.h>
+
 #include "com/centreon/engine/notifier.hh"
 
 #include "com/centreon/engine/broker.hh"
@@ -37,6 +39,34 @@
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::logging;
 using namespace com::centreon::engine::configuration::applier;
+
+CCE_BEGIN()
+
+#define CASE_NOTIF_REASON_TYPE(reas) \
+  case notifier::reas:               \
+    str << #reas;                    \
+    break;
+
+std::ostream& operator<<(std::ostream& str,
+                         const notifier::reason_type& notif) {
+  switch (notif) {
+    CASE_NOTIF_REASON_TYPE(reason_normal)
+    CASE_NOTIF_REASON_TYPE(reason_recovery)
+    CASE_NOTIF_REASON_TYPE(reason_acknowledgement)
+    CASE_NOTIF_REASON_TYPE(reason_flappingstart)
+    CASE_NOTIF_REASON_TYPE(reason_flappingstop)
+    CASE_NOTIF_REASON_TYPE(reason_flappingdisabled)
+    CASE_NOTIF_REASON_TYPE(reason_downtimestart)
+    CASE_NOTIF_REASON_TYPE(reason_downtimeend)
+    CASE_NOTIF_REASON_TYPE(reason_downtimecancelled)
+    CASE_NOTIF_REASON_TYPE(reason_custom)
+    default:
+      str << "unknown notifier::reason_type:" << static_cast<unsigned>(notif);
+  }
+  return str;
+}
+
+CCE_END()
 
 std::array<std::string, 9> const notifier::tab_notification_str{{
     "NORMAL",
@@ -916,7 +946,7 @@ int notifier::notify(notifier::reason_type type,
                      std::string const& not_data,
                      notification_option options) {
   engine_logger(dbg_functions, basic) << "notifier::notify()";
-  log_v2::functions()->trace("notifier::notify()");
+  log_v2::functions()->trace("notifier::notify({})", type);
   notification_category cat{get_category(type)};
 
   /* Has this notification got sense? */

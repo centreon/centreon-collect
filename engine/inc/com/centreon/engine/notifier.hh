@@ -338,6 +338,8 @@ class notifier : public checkable {
   int _pending_flex_downtime;
 };
 
+std::ostream& operator<<(std::ostream&, const notifier::reason_type&);
+
 CCE_END()
 
 bool is_contact_for_notifier(com::centreon::engine::notifier* notif,
