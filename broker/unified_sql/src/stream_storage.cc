@@ -1,5 +1,5 @@
 /*
-** Copyright 2019-2021 Centreon
+** Copyright 2019-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -294,7 +294,7 @@ void stream::_unified_sql_process_pb_service_status(
           log_v2::perfdata()->trace(
               "unified sql: index {} is locked, so metric {} event not sent "
               "to rrd",
-              index_id, perf->metric_id);
+              index_id, metric_id);
         }
       }
       multiplexing::publisher pblshr;
