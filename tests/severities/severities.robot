@@ -24,7 +24,7 @@ BESEV1
 	Config Broker	central
 	Config Broker	rrd
 	Config Broker	module
-	Broker Config Log	module	neb	debug
+	Broker Config Log	module0	neb	debug
 	Broker Config Log	central	sql	debug
 	Clear Retention
 	${start}=	Get Current Date
@@ -47,7 +47,7 @@ BESEV2
 	Config Broker	central
 	Config Broker	rrd
 	Config Broker	module
-	Broker Config Log	module	neb	debug
+	Broker Config Log	module0	neb	debug
 	Broker Config Log	central	sql	debug
 	Clear Retention
 	${start}=	Get Current Date
@@ -72,10 +72,10 @@ BEUSEV1
 	Config Broker	rrd
 	Config Broker	module
 	Config Broker Sql Output	central	unified_sql
-	Broker Config Add Item	module	bbdo_version	3.0.0
+	Broker Config Add Item	module0	bbdo_version	3.0.0
 	Broker Config Add Item	central	bbdo_version	3.0.0
 	Broker Config Add Item	rrd	bbdo_version	3.0.0
-	Broker Config Log	module	neb	debug
+	Broker Config Log	module0	neb	debug
 	Broker Config Log	central	sql	debug
 	Clear Retention
 	${start}=	Get Current Date
@@ -99,10 +99,10 @@ BEUSEV2
 	Config Broker	rrd
 	Config Broker	module
 	Config Broker Sql Output	central	unified_sql
-	Broker Config Add Item	module	bbdo_version	3.0.0
+	Broker Config Add Item	module0	bbdo_version	3.0.0
 	Broker Config Add Item	central	bbdo_version	3.0.0
 	Broker Config Add Item	rrd	bbdo_version	3.0.0
-	Broker Config Log	module	neb	debug
+	Broker Config Log	module0	neb	debug
 	Broker Config Log	central	sql	debug
 	Clear Retention
 	${start}=	Get Current Date
@@ -128,10 +128,10 @@ BEUSEV3
 	Config Broker	rrd
 	Config Broker	module
 	Config Broker Sql Output	central	unified_sql
-	Broker Config Add Item	module	bbdo_version	3.0.0
+	Broker Config Add Item	module0	bbdo_version	3.0.0
 	Broker Config Add Item	central	bbdo_version	3.0.0
 	Broker Config Add Item	rrd	bbdo_version	3.0.0
-	Broker Config Log	module	neb	debug
+	Broker Config Log	module0	neb	debug
 	Broker Config Log	central	sql	trace
 	Clear Retention
 	${start}=	Get Current Date
@@ -173,10 +173,10 @@ BEUSEV4
 	Config Broker	rrd
 	Config Broker	module
 	Config Broker Sql Output	central	unified_sql
-	Broker Config Add Item	module	bbdo_version	3.0.0
+	Broker Config Add Item	module0	bbdo_version	3.0.0
 	Broker Config Add Item	central	bbdo_version	3.0.0
 	Broker Config Add Item	rrd	bbdo_version	3.0.0
-	Broker Config Log	module	neb	debug
+	Broker Config Log	module0	neb	debug
 	Broker Config Log	central	sql	trace
 	Clear Retention
 	${start}=	Get Current Date
@@ -250,10 +250,10 @@ BETUSEV1
 	Config Broker	rrd
 	Config Broker	module
 	Config Broker Sql Output	central	unified_sql
-	Broker Config Add Item	module	bbdo_version	3.0.0
+	Broker Config Add Item	module0	bbdo_version	3.0.0
 	Broker Config Add Item	central	bbdo_version	3.0.0
 	Broker Config Add Item	rrd	bbdo_version	3.0.0
-	Broker Config Log	module	neb	debug
+	Broker Config Log	module0	neb	debug
 	Broker Config Log	central	sql	trace
 	Clear Retention
 	${start}=	Get Current Date

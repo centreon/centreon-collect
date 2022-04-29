@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2015,2017, 2020-2021 Centreon
+** Copyright 2011-2015,2017, 2020-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -192,7 +192,7 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
         std::string metric_path(
             fmt::format("{}{}.rrd", _metrics_path, e->metric_id));
 
-        // Check that metric is not being rebuild.
+        // Check that metric is not being rebuilt.
         rebuild_cache::iterator it = _metrics_rebuild.find(metric_path);
         if (e->is_for_rebuild || it == _metrics_rebuild.end()) {
           // Write metrics RRD.

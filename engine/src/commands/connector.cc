@@ -518,9 +518,8 @@ void connector::_connector_start() {
  *
  *  @return The ending string.
  */
-const std::string& connector::_query_ending() const noexcept {
-  const static std::string ending(3, '\0');
-  return ending;
+std::string connector::_query_ending() noexcept {
+  return std::string(3, '\0');
 }
 
 /**

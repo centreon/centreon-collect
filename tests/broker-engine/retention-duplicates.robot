@@ -25,8 +25,8 @@ BERD1
 	Broker Config Add Lua Output	central	test-doubles	${SCRIPTS}test-doubles-c.lua
 	Broker Config Log	central	lua	debug
 	Config Broker	module
-	Broker Config Add Lua Output	module	test-doubles	${SCRIPTS}test-doubles.lua
-	Broker Config Log	module	lua	debug
+	Broker Config Add Lua Output	module0	test-doubles	${SCRIPTS}test-doubles.lua
+	Broker Config Log	module0	lua	debug
 	Config Broker	rrd
 	Clear Retention
 	${start}=	Get Current Date
@@ -63,8 +63,8 @@ BERD2
 	Broker Config Add Lua Output	central	test-doubles	${SCRIPTS}test-doubles-c.lua
 	Broker Config Log	central	lua	debug
 	Config Broker	module
-	Broker Config Add Lua Output	module	test-doubles	${SCRIPTS}test-doubles.lua
-	Broker Config Log	module	lua	debug
+	Broker Config Add Lua Output	module0	test-doubles	${SCRIPTS}test-doubles.lua
+	Broker Config Log	module0	lua	debug
 	Config Broker	rrd
 	Clear Retention
 	${start}=	Get Current Date
@@ -100,8 +100,8 @@ BERDUC1
 	Broker Config Add Lua Output	central	test-doubles	${SCRIPTS}test-doubles-c.lua
 	Broker Config Log	central	lua	debug
 	Config Broker	module
-	Broker Config Add Lua Output	module	test-doubles	${SCRIPTS}test-doubles.lua
-	Broker Config Log	module	lua	debug
+	Broker Config Add Lua Output	module0	test-doubles	${SCRIPTS}test-doubles.lua
+	Broker Config Log	module0	lua	debug
 	Config Broker	rrd
 	Clear Retention
 	${start}=	Get Current Date
@@ -136,8 +136,8 @@ BERDUCU1
 	Broker Config Log	central	lua	debug
 	Config Broker Sql Output	central	unified_sql
 	Config Broker	module
-	Broker Config Add Lua Output	module	test-doubles	${SCRIPTS}test-doubles.lua
-	Broker Config Log	module	lua	debug
+	Broker Config Add Lua Output	module0	test-doubles	${SCRIPTS}test-doubles.lua
+	Broker Config Log	module0	lua	debug
 	Config Broker	rrd
 	Clear Retention
 	${start}=	Get Current Date
@@ -172,8 +172,8 @@ BERDUC2
 	Broker Config Add Lua Output	central	test-doubles	${SCRIPTS}test-doubles-c.lua
 	Broker Config Log	central	lua	debug
 	Config Broker	module
-	Broker Config Add Lua Output	module	test-doubles	${SCRIPTS}test-doubles.lua
-	Broker Config Log	module	lua	debug
+	Broker Config Add Lua Output	module0	test-doubles	${SCRIPTS}test-doubles.lua
+	Broker Config Log	module0	lua	debug
 	Config Broker	rrd
 	${start}=	Get Current Date
 	Start Broker
@@ -208,8 +208,8 @@ BERDUCU2
 	Broker Config Add Lua Output	central	test-doubles	${SCRIPTS}test-doubles-c.lua
 	Broker Config Log	central	lua	debug
 	Config Broker	module
-	Broker Config Add Lua Output	module	test-doubles	${SCRIPTS}test-doubles.lua
-	Broker Config Log	module	lua	debug
+	Broker Config Add Lua Output	module0	test-doubles	${SCRIPTS}test-doubles.lua
+	Broker Config Log	module0	lua	debug
 	Config Broker	rrd
 	${start}=	Get Current Date
 	Start Broker
@@ -243,10 +243,10 @@ BERDUC3U1
 	Broker Config Log	central	lua	debug
 	Config Broker Sql Output	central	unified_sql
 	Config Broker	module
-	Broker Config Add Lua Output	module	test-doubles	${SCRIPTS}test-doubles.lua
-	Broker Config Log	module	lua	debug
+	Broker Config Add Lua Output	module0	test-doubles	${SCRIPTS}test-doubles.lua
+	Broker Config Log	module0	lua	debug
 	Config Broker	rrd
-        Broker Config Add Item	module	bbdo_version	3.0.0
+        Broker Config Add Item	module0	bbdo_version	3.0.0
         Broker Config Add Item	central	bbdo_version	3.0.0
         Broker Config Add Item	rrd	bbdo_version	3.0.0
 	Clear Retention
@@ -283,10 +283,10 @@ BERDUC3U2
 	Broker Config Add Lua Output	central	test-doubles	${SCRIPTS}test-doubles-c.lua
 	Broker Config Log	central	lua	debug
 	Config Broker	module
-	Broker Config Add Lua Output	module	test-doubles	${SCRIPTS}test-doubles.lua
-	Broker Config Log	module	lua	debug
+	Broker Config Add Lua Output	module0	test-doubles	${SCRIPTS}test-doubles.lua
+	Broker Config Log	module0	lua	debug
 	Config Broker	rrd
-        Broker Config Add Item	module	bbdo_version	3.0.0
+        Broker Config Add Item	module0	bbdo_version	3.0.0
         Broker Config Add Item	central	bbdo_version	3.0.0
         Broker Config Add Item	rrd	bbdo_version	3.0.0
 	${start}=	Get Current Date

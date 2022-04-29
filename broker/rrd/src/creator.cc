@@ -155,9 +155,6 @@ void creator::create(std::string const& filename,
  *  @param[in] in_fd    The fd informations to duplicate file.
  */
 void creator::_duplicate(std::string const& filename, fd_info const& in_fd) {
-  // Remove previous file.
-  remove(filename.c_str());
-
   int out_fd(open(filename.c_str(), O_CREAT | O_TRUNC | O_WRONLY,
                   S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH));
   if (out_fd < 0) {

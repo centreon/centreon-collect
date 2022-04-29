@@ -2,7 +2,7 @@
 set -e
 
 if [ -z "$VERSION" -o -z "$RELEASE" -o -z "$DISTRIB" ] ; then
-  echo "You need to specify VERSION / RELEASE variables"
+  echo "You need to specify VERSION / RELEASE / DISTRIB variables"
   exit 1
 fi
 

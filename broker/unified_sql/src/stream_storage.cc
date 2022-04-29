@@ -289,7 +289,7 @@ void stream::_unified_sql_process_pb_service_status(
               "(name '{}', time {}, value {}, rrd_len {}, data_type {})",
               perf->metric_id, perf->name, perf->time, perf->value, rrd_len,
               perf->value_type);
-          multiplexing::publisher().write(perf);
+          to_publish.emplace_back(perf);
         }
       }
       multiplexing::publisher pblshr;
@@ -660,7 +660,7 @@ void stream::_unified_sql_process_service_status(
               "(name '{}', time {}, value {}, rrd_len {}, data_type {})",
               perf->metric_id, perf->name, perf->time, perf->value, rrd_len,
               perf->value_type);
-          multiplexing::publisher().write(perf);
+          to_publish.emplace_back(perf);
         }
       }
       multiplexing::publisher pblshr;

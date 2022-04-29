@@ -14,7 +14,7 @@ SCRIPT_DIR: str = dirname(__file__) + "/engine-scripts/"
 
 
 class EngineInstance:
-    def __init__(self, count: int):
+    def __init__(self, count: int, hosts: int=50, srv_by_host: int=20):
         self.last_service_id = 0
         self.hosts = []
         self.services = []
@@ -23,17 +23,15 @@ class EngineInstance:
         self.commands_count = 50
         self.instances = count
         self.service_cmd = {}
-        self.build_configs(50, 20)
+        self.build_configs(hosts, srv_by_host)
 
     def create_centengine(self, id: int, debug_level=0):
-        return ("#cfg_file={2}/config{0}/hostTemplates.cfg\n"
-                "cfg_file={2}/config{0}/hosts.cfg\n"
+        return ("cfg_file={2}/config{0}/hosts.cfg\n"
                 "cfg_file={2}/config{0}/services.cfg\n"
                 "cfg_file={2}/config{0}/commands.cfg\n"
                 "#cfg_file={2}/config{0}/contactgroups.cfg\n"
                 "#cfg_file={2}/config{0}/contacts.cfg\n"
                 "cfg_file={2}/config{0}/hostgroups.cfg\n"
-                "#cfg_file={2}/config{0}/servicegroups.cfg\n"
                 "cfg_file={2}/config{0}/timeperiods.cfg\n"
                 "#cfg_file={2}/config{0}/escalations.cfg\n"
                 "#cfg_file={2}/config{0}/dependencies.cfg\n"
@@ -43,7 +41,7 @@ class EngineInstance:
                 "#cfg_file={2}/config{0}/meta_host.cfg\n"
                 "#cfg_file={2}/config{0}/meta_services.cfg\n"
                 "broker_module=/usr/lib64/centreon-engine/externalcmd.so\n"
-                "broker_module=/usr/lib64/nagios/cbmod.so /etc/centreon-broker/central-module.json\n"
+                "broker_module=/usr/lib64/nagios/cbmod.so /etc/centreon-broker/central-module{0}.json\n"
                 "interval_length=60\n"
                 "use_timezone=:Europe/Paris\n"
                 "resource_file={2}/config{0}/resource.cfg\n"
@@ -144,7 +142,7 @@ class EngineInstance:
             "hid": hid}
         return retval
 
-    def create_service(self, host_id: int, cmd_ids):
+    def create_service(self, host_id: int, cmd_ids:int):
         self.last_service_id += 1
         service_id = self.last_service_id
         command_id = random.randint(cmd_ids[0], cmd_ids[1])
@@ -341,14 +339,17 @@ passive_checks_enabled 1
         config_file = "{}/config{}/tags.cfg".format(CONF_DIR, poller)
         ff = open(config_file, "w+")
         content = ""
+        tid = 0
         for i in range(nb):
+            if i % 4 == 0:
+                tid += 1
             typ = tt[i % 4]
             content += """define tag {{
     id                     {0}
     name                   tag{2}
     type                   {1}
 }}
-""".format(i + 1, typ, i + offset)
+""".format(tid, typ, i + offset)
         ff.write(content)
         ff.close()
 
@@ -462,9 +463,9 @@ define connector {
 #
 # @param num: How many engine configurations to start
 #
-def config_engine(num: int):
+def config_engine(num: int, hosts: int = 50, srv_by_host: int = 20):
     global engine
-    engine = EngineInstance(num)
+    engine = EngineInstance(num, hosts, srv_by_host)
 
 
 ##
@@ -506,12 +507,35 @@ def add_host_group(index: int, id_host_group: int, members: list):
     f.write(engine.create_host_group(id_host_group, mbs))
     f.close()
 
+def rename_host_group(index: int, id_host_group: int, name:str, members: list):
+    mbs = [l for l in members if l in engine.hosts]
+    f = open("/etc/centreon-engine/config{}/hostgroups.cfg".format(index), "w")
+    logger.console(mbs)
+    f.write("""define hostgroup {{
+    hostgroup_id                    {0}
+    hostgroup_name                  hostgroup_{1}
+    alias                           hostgroup_{1}
+    members                         {2}
+}}
+""".format(id_host_group, name, ",".join(mbs)))
+    f.close()
+
 def add_service_group(index: int, id_service_group: int, members: list):
     f = open("/etc/centreon-engine/config{}/servicegroups.cfg".format(index), "a+")
     logger.console(members)
     f.write(engine.create_service_group(id_service_group, members))
     f.close()
 
+def create_service(index:int, host_id:int, cmd_id:int):
+    f = open("/etc/centreon-engine/config{}/services.cfg".format(index), "a+")
+    svc = engine.create_service(host_id, [1, cmd_id])
+    lst = svc.split('\n')
+    good = [l for l in lst if "_SERVICE_ID" in l][0]
+    m = re.search(r"_SERVICE_ID\s+([^\s]*)$", good)
+    retval = int(m.group(1))
+    f.write(svc)
+    f.close()
+    return retval
 
 def engine_log_duplicate(result: list):
     dup = True
@@ -690,7 +714,7 @@ def remove_severities_from_hosts(poller:int):
 # and return this line
 #
 # @param debug_file_path path of the debug log file
-# @param str_to_search string after witch we will start connector::run search
+# @param str_to_search string after which we will start connector::run search
 #
 
 
@@ -736,7 +760,7 @@ def remove_tags_from_services(poller:int, type:str):
     lines = ff.readlines()
     ff.close()
     r = re.compile("r\"^\s*{}\s*\d+$\"".format(type))
-    lines = [l for l in lines if r.match(l)]
+    lines = [l for l in lines if not r.match(l)]
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "w")
     ff.writelines(lines)
     ff.close()
@@ -746,7 +770,7 @@ def remove_tags_from_hosts(poller:int, type:str):
     lines = ff.readlines()
     ff.close()
     r = re.compile("r\"^\s*{}\s*\d+$\"".format(type))
-    lines = [l for l in lines if r.match(l)]
+    lines = [l for l in lines if not r.match(l)]
     ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "w")
     ff.writelines(lines)
     ff.close()

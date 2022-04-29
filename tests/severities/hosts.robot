@@ -26,10 +26,10 @@ BEUHSEV1
 	Config Broker	rrd
 	Config Broker	module
 	Config Broker Sql Output	central	unified_sql
-	Broker Config Add Item	module	bbdo_version	3.0.0
+	Broker Config Add Item	module0	bbdo_version	3.0.0
 	Broker Config Add Item	central	bbdo_version	3.0.0
 	Broker Config Add Item	rrd	bbdo_version	3.0.0
-	Broker Config Log	module	neb	debug
+	Broker Config Log	module0	neb	debug
 	Broker Config Log	central	sql	trace
 	Clear Retention
 	${start}=	Get Current Date
@@ -69,12 +69,14 @@ BEUHSEV2
 	Add Severity To Hosts	1	16	[28]
 	Config Broker	central
 	Config Broker	rrd
-	Config Broker	module
+	Config Broker	module	${2}
 	Config Broker Sql Output	central	unified_sql
-	Broker Config Add Item	module	bbdo_version	3.0.0
+	Broker Config Add Item	module0	bbdo_version	3.0.0
+	Broker Config Add Item	module1	bbdo_version	3.0.0
 	Broker Config Add Item	central	bbdo_version	3.0.0
 	Broker Config Add Item	rrd	bbdo_version	3.0.0
-	Broker Config Log	module	neb	debug
+	Broker Config Log	module0	neb	debug
+	Broker Config Log	module1	neb	debug
 	Broker Config Log	central	sql	trace
 	Clear Retention
 	${start}=	Get Current Date
@@ -146,12 +148,14 @@ BETUHSEV1
 	Add Template To Hosts	1	host_template_2	[33, 34]
 	Config Broker	central
 	Config Broker	rrd
-	Config Broker	module
+	Config Broker	module	${2}
 	Config Broker Sql Output	central	unified_sql
-	Broker Config Add Item	module	bbdo_version	3.0.0
+	Broker Config Add Item	module0	bbdo_version	3.0.0
+	Broker Config Add Item	module1	bbdo_version	3.0.0
 	Broker Config Add Item	central	bbdo_version	3.0.0
 	Broker Config Add Item	rrd	bbdo_version	3.0.0
-	Broker Config Log	module	neb	debug
+	Broker Config Log	module0	neb	debug
+	Broker Config Log	module1	neb	debug
 	Broker Config Log	central	sql	trace
 	Clear Retention
 	${start}=	Get Current Date

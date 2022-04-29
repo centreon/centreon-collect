@@ -528,14 +528,6 @@ int32_t stream::write(const std::shared_ptr<io::data>& data) {
   uint16_t elem = element_of_type(type);
   if (cat == io::neb) {
     (this->*(_neb_processing_table[elem]))(data);
-    switch (type) {
-      case neb::pb_service_status::static_type():
-        _unified_sql_process_pb_service_status(data);
-        break;
-      case neb::service_status::static_type():
-        _unified_sql_process_service_status(data);
-        break;
-    }
   } else if (type == make_type(io::bbdo, bbdo::de_rebuild_rrd_graphs))
     _rebuilder.rebuild_rrd_graphs(data);
   else if (type == make_type(io::bbdo, bbdo::de_remove_graphs))
