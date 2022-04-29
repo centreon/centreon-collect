@@ -2728,8 +2728,8 @@ void stream::_check_and_update_index_cache(const Service& ss) {
       multiplexing::publisher pblshr;
       pblshr.write(im);
     } catch (const std::exception& e) {
-      log_v2::sql()->debug("sql: cannot insert new index for service ({}, {})",
-          ss.host_id(), ss.service_id());
+      log_v2::sql()->debug("sql: cannot insert new index for service ({}, {}): {}",
+          ss.host_id(), ss.service_id(), e.what());
       if (!_index_data_query.prepared())
         _index_data_query = _mysql.prepare_query(
             "SELECT "
