@@ -21,8 +21,8 @@ BEPBBEE1
 	Config Broker	central
 	Config Broker	rrd
 	Config Broker	module
-        Broker Config Add Item	module	bbdo_version	3.0.0
-	Broker Config Log	module	bbdo	debug
+        Broker Config Add Item	module0	bbdo_version	3.0.0
+	Broker Config Log	module0	bbdo	debug
 	Broker Config Log	central	bbdo	debug
 	Clear Retention
 	${start}=	Get Current Date
@@ -41,7 +41,7 @@ BEPBBEE2
 	Config Broker	central
 	Config Broker	module
 	Config Broker	rrd
-        Broker Config Add Item	module	bbdo_version	3.0.0
+        Broker Config Add Item	module0	bbdo_version	3.0.0
         Broker Config Add Item	central	bbdo_version	3.0.0
         Broker Config Add Item	rrd	bbdo_version	3.0.0
 	Broker Config Log	central	sql	debug
@@ -62,7 +62,7 @@ BEPBBEE3
 	Config Broker	central
 	Config Broker	module
 	Config Broker	rrd
-        Broker Config Add Item	module	bbdo_version	3.0.0
+        Broker Config Add Item	module0	bbdo_version	3.0.0
         Broker Config Add Item	central	bbdo_version	3.0.0
         Broker Config Add Item	rrd	bbdo_version	3.0.0
 	Broker Config Log	central	sql	debug
@@ -84,7 +84,7 @@ BEPBBEE4
 	Config Broker	central
 	Config Broker	module
 	Config Broker	rrd
-        Broker Config Add Item	module	bbdo_version	3.0.0
+        Broker Config Add Item	module0	bbdo_version	3.0.0
         Broker Config Add Item	central	bbdo_version	3.0.0
         Broker Config Add Item	rrd	bbdo_version	3.0.0
 	Broker Config Log	central	sql	debug
@@ -106,7 +106,7 @@ BEPBBEE5
 	Config Broker	central
 	Config Broker	module
 	Config Broker	rrd
-        Broker Config Add Item	module	bbdo_version	3.0.0
+        Broker Config Add Item	module0	bbdo_version	3.0.0
         Broker Config Add Item	central	bbdo_version	3.0.0
         Broker Config Add Item	rrd	bbdo_version	3.0.0
 	Broker Config Log	central	sql	debug

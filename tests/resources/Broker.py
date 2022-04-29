@@ -369,7 +369,7 @@ config = {
 }}""",
 }
 
-def config_broker(name):
+def config_broker(name, poller_inst: int = 1):
     if name == 'central':
         broker_id = 1
         broker_name = "central-broker-master"
@@ -381,21 +381,32 @@ def config_broker(name):
     elif name == 'module':
         broker_id = 3
         broker_name = "central-module-master"
-        filename = "central-module.json"
+        filename = "central-module0.json"
     else:
         broker_id = 2
         broker_name = "central-rrd-master"
         filename = "central-rrd.json"
 
-    f = open("/etc/centreon-broker/{}".format(filename), "w")
-    f.write(config[name].format(broker_id, broker_name))
-    f.close()
+    if name == 'module':
+        for i in range(poller_inst):
+            broker_name = "/etc/centreon-broker/central-module{}.json".format(i)
+            buf = config[name].format(broker_id, "central-module-master{}".format(i))
+            conf = json.loads(buf)
+            conf["centreonBroker"]["poller_id"] = i + 1
+
+            f = open(broker_name, "w")
+            f.write(json.dumps(conf, indent=2))
+            f.close()
+    else:
+        f = open("/etc/centreon-broker/{}".format(filename), "w")
+        f.write(config[name].format(broker_id, broker_name))
+        f.close()
 
 def config_broker_sql_output(name, output):
     if name == 'central':
         filename = "central-broker.json"
-    elif name == 'module':
-        filename = "central-module.json"
+    elif name.startswith('module'):
+        filename = "central-{}.json".format(name)
     else:
         filename = "central-rrd.json"
 
@@ -471,8 +482,8 @@ def config_broker_sql_output(name, output):
 def broker_config_clear_outputs_except(name, ex : list):
     if name == 'central':
         filename = "central-broker.json"
-    elif name == 'module':
-        filename = "central-module.json"
+    elif name.startswith('module'):
+        filename = "central-{}.json".format(name)
     else:
         filename = "central-rrd.json"
 
@@ -493,10 +504,10 @@ def broker_config_clear_outputs_except(name, ex : list):
 def broker_config_add_item(name, key, value):
     if name == 'central':
         filename = "central-broker.json"
-    elif name == 'module':
-        filename = "central-module.json"
-    else:
+    elif name == 'rrd':
         filename = "central-rrd.json"
+    elif name.startswith('module'):
+        filename = "central-{}.json".format(name)
 
     f = open("/etc/centreon-broker/{}".format(filename), "r")
     buf = f.read()
@@ -511,8 +522,8 @@ def broker_config_add_item(name, key, value):
 def broker_config_add_lua_output(name, output, luafile):
     if name == 'central':
         filename = "central-broker.json"
-    elif name == 'module':
-        filename = "central-module.json"
+    elif name.startswith('module'):
+        filename = "central-{}.json".format(name)
     else:
         filename = "central-rrd.json"
 
@@ -533,8 +544,8 @@ def broker_config_add_lua_output(name, output, luafile):
 def broker_config_output_set(name, output, key, value):
     if name == 'central':
         filename = "central-broker.json"
-    elif name == 'module':
-        filename = "central-module.json"
+    elif name.startswith('module'):
+        filename = "central-{}.json".format(name)
     else:
         filename = "central-rrd.json"
     f = open("/etc/centreon-broker/{}".format(filename), "r")
@@ -550,8 +561,8 @@ def broker_config_output_set(name, output, key, value):
 def broker_config_output_set_json(name, output, key, value):
     if name == 'central':
         filename = "central-broker.json"
-    elif name == 'module':
-        filename = "central-module.json"
+    elif name.startswith('module'):
+        filename = "central-{}.json".format(name)
     else:
         filename = "central-rrd.json"
     f = open("/etc/centreon-broker/{}".format(filename), "r")
@@ -568,8 +579,8 @@ def broker_config_output_set_json(name, output, key, value):
 def broker_config_output_remove(name, output, key):
     if name == 'central':
         filename = "central-broker.json"
-    elif name == 'module':
-        filename = "central-module.json"
+    elif name.startswith('module'):
+        filename = "central-{}.json".format(name)
     else:
         filename = "central-rrd.json"
     f = open("/etc/centreon-broker/{}".format(filename), "r")
@@ -586,8 +597,8 @@ def broker_config_output_remove(name, output, key):
 def broker_config_input_set(name, inp, key, value):
     if name == 'central':
         filename = "central-broker.json"
-    elif name == 'module':
-        filename = "central-module.json"
+    elif name.startswith('module'):
+        filename = "central-{}.json".format(name)
     else:
         filename = "central-rrd.json"
     f = open("/etc/centreon-broker/{}".format(filename), "r")
@@ -603,8 +614,8 @@ def broker_config_input_set(name, inp, key, value):
 def broker_config_input_remove(name, inp, key):
     if name == 'central':
         filename = "central-broker.json"
-    elif name == 'module':
-        filename = "central-module.json"
+    elif name.startswith('module'):
+        filename = "central-{}.json".format(name)
     else:
         filename = "central-rrd.json"
     f = open("/etc/centreon-broker/{}".format(filename), "r")
@@ -621,8 +632,8 @@ def broker_config_input_remove(name, inp, key):
 def broker_config_log(name, key, value):
     if name == 'central':
         filename = "central-broker.json"
-    elif name == 'module':
-        filename = "central-module.json"
+    elif name.startswith('module'):
+        filename = "central-{}.json".format(name)
     else:
         filename = "central-rrd.json"
     f = open("/etc/centreon-broker/{}".format(filename), "r")
@@ -638,8 +649,8 @@ def broker_config_log(name, key, value):
 def broker_config_flush_log(name, value):
     if name == 'central':
         filename = "central-broker.json"
-    elif name == 'module':
-        filename = "central-module.json"
+    elif name.startswith('module'):
+        filename = "central-{}.json".format(name)
     else:
         filename = "central-rrd.json"
     f = open("/etc/centreon-broker/{}".format(filename), "r")
@@ -985,14 +996,19 @@ def get_metrics_matching_indexes(indexes):
 # @param indexes a list of indexes
 # @param metrics a list of metrics
 #
-def remove_graphs(port, indexes, metrics):
-    time.sleep(1)
-    with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
-        stub = broker_pb2_grpc.BrokerStub(channel)
-        trm = broker_pb2.ToRemove()
-        trm.index_ids.extend(indexes)
-        trm.metric_ids.extend(metrics)
-        stub.RemoveGraphs(trm)
+def remove_graphs(port, indexes, metrics, timeout=10):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        time.sleep(1)
+        with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            trm = broker_pb2.ToRemove()
+            trm.index_ids.extend(indexes)
+            trm.metric_ids.extend(metrics)
+            try:
+                stub.RemoveGraphs(trm)
+            except:
+                logger.console("gRPC server not ready")
 
 
 ##
@@ -1001,14 +1017,19 @@ def remove_graphs(port, indexes, metrics):
 # @param port The port to use with gRPC.
 # @param indexes The list of indexes corresponding to metrics to rebuild.
 #
-def rebuild_rrd_graphs(port, indexes):
-    time.sleep(1)
-    with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
-        stub = broker_pb2_grpc.BrokerStub(channel)
-        k = 0.0
-        idx = broker_pb2.IndexIds()
-        idx.index_id.extend(indexes)
-        stub.RebuildRRDGraphs(idx)
+def rebuild_rrd_graphs(port, indexes, timeout: int = TIMEOUT):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        time.sleep(1)
+        with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            k = 0.0
+            idx = broker_pb2.IndexIds()
+            idx.index_id.extend(indexes)
+            try:
+                stub.RebuildRRDGraphs(idx)
+            except:
+                logger.console("gRPC server not ready")
 
 
 ##
@@ -1073,8 +1094,8 @@ def check_all_sql_connections_down_with_grpc(port):
 def add_bam_config_to_broker(name):
     if name == 'central':
         filename = "central-broker.json"
-    elif name == 'module':
-        filename = "central-module.json"
+    elif name.startswith('module'):
+        filename = "central-{}.json".format(name)
     else:
         filename = "central-rrd.json"
 

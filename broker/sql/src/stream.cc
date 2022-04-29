@@ -117,7 +117,7 @@ int stream::flush() {
   _pending_events -= retval;
 
   // Event acknowledgement.
-  log_v2::sql()->debug("SQL: {} / {} events acknowledged", retval,
+  log_v2::sql()->trace("SQL: {} / {} events acknowledged", retval,
                        _pending_events);
   return retval;
 }

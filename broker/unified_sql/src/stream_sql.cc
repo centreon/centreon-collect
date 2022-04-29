@@ -2183,13 +2183,13 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
         _cache_host_instance[ss.host_id()]);
 
     // Log message.
-    log_v2::sql()->trace(
+    log_v2::sql()->info(
         "SQL: processing pb service event (host: {}, service: {}, "
         "description: {})",
         ss.host_id(), ss.service_id(), ss.service_description());
 
     if (ss.host_id() && ss.service_id()) {
-      // Prepare queriess.
+      // Prepare queries.
       if (!_pb_service_insupdate.prepared()) {
         query_preparator::event_pb_unique unique{
             {1, "host_id", io::protobuf_base::invalid_on_zero, 0},
@@ -2707,7 +2707,29 @@ void stream::_check_and_update_index_cache(const Service& ss) {
         _index_data_insert, &p, database::mysql_task::LAST_INSERT_ID, conn);
     try {
       index_id = p.get_future().get();
+      log_v2::sql()->debug("sql: new index {} added for service ({}, {}), special {}",
+          index_id, ss.host_id(), ss.service_id(), special ? "1" : "0");
+      index_info info{
+          .index_id = index_id,
+          .host_name = ss.host_name(),
+          .service_description = ss.service_description(),
+          .rrd_retention = _rrd_len,
+          .interval = ss.check_interval(),
+          .special = special,
+          .locked = false,
+      };
+      log_v2::sql()->debug(
+          "sql: loaded index {} of ({}, {}) with rrd_len={}", index_id,
+          ss.host_id(), ss.service_id(), info.rrd_retention);
+      _index_cache[{ss.host_id(), ss.service_id()}] = std::move(info);
+      // Create the metric mapping.
+      auto im{std::make_shared<storage::index_mapping>(
+          info.index_id, ss.host_id(), ss.service_id())};
+      multiplexing::publisher pblshr;
+      pblshr.write(im);
     } catch (const std::exception& e) {
+      log_v2::sql()->debug("sql: cannot insert new index for service ({}, {})",
+          ss.host_id(), ss.service_id());
       if (!_index_data_query.prepared())
         _index_data_query = _mysql.prepare_query(
             "SELECT "
@@ -2849,6 +2871,9 @@ void stream::_process_service_status(const std::shared_ptr<io::data>& d) {
         "{}))",
         ss.host_id, ss.service_id, ss.check_type, ss.last_check, ss.next_check,
         now, ss.current_state, ss.state_type);
+
+  /* perfdata part */
+  _unified_sql_process_service_status(d);
 }
 
 /**
@@ -3019,6 +3044,9 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
         "{}))",
         sscr.host_id(), sscr.service_id(), sscr.check_type(), sscr.last_check(),
         sscr.next_check(), now, sscr.current_state(), sscr.state_type());
+
+  /* perfdata part */
+  _unified_sql_process_pb_service_status(d);
 }
 
 void stream::_process_severity(const std::shared_ptr<io::data>& d) {

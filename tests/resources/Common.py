@@ -543,7 +543,15 @@ def check_host_severity_with_timeout(host_id: int, severity_id, timeout: int):
         time.sleep(1)
     return False
 
-def check_resources_tags_with_timeout(parent_id: int, mid: int, tag_ids: list, timeout: int):
+def check_resources_tags_with_timeout(parent_id: int, mid: int, typ: str, tag_ids: list, timeout: int):
+    if typ == 'servicegroup':
+        t = 0
+    elif typ == 'hostgroup':
+        t = 1
+    elif typ == 'servicecategory':
+        t = 2
+    else:
+        t = 3
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host='localhost',
@@ -555,7 +563,7 @@ def check_resources_tags_with_timeout(parent_id: int, mid: int, tag_ids: list, t
 
         with connection:
             with connection.cursor() as cursor:
-                cursor.execute("select t.id from resources r inner join resources_tags rt on r.resource_id=rt.resource_id inner join tags t on rt.tag_id=t.tag_id WHERE r.id={} and r.parent_id={}".format(mid, parent_id))
+                cursor.execute("select t.id from resources r inner join resources_tags rt on r.resource_id=rt.resource_id inner join tags t on rt.tag_id=t.tag_id WHERE r.id={} and r.parent_id={} and t.type={}".format(mid, parent_id, t))
                 result = cursor.fetchall()
                 if len(result) > 0:
                     if len(result) == len(tag_ids):
@@ -589,3 +597,62 @@ def check_host_tags_with_timeout(host_id: int, tag_id: int, timeout: int):
         time.sleep(1)
     return False
 
+def check_number_of_resources_monitored_by_poller_is(poller: int, value: int, timeout: int):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host='localhost',
+                                 user='centreon',
+                                 password='centreon',
+                                 database='centreon_storage',
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT count(*) FROM resources WHERE poller_id={} AND enabled=1".format(poller))
+                result = cursor.fetchall()
+                if len(result) > 0:
+                    if int(result[0]['count(*)']) == value:
+                        return True
+        time.sleep(1)
+    return False
+
+def check_number_of_relations_between_hostgroup_and_hosts(hostgroup: int, value: int, timeout: int):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host='localhost',
+                                 user='centreon',
+                                 password='centreon',
+                                 database='centreon_storage',
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT count(*) FROM hosts_hostgroups WHERE hostgroup_id={}".format(hostgroup))
+                result = cursor.fetchall()
+                if len(result) > 0:
+                    if int(result[0]['count(*)']) == value:
+                        return True
+        time.sleep(1)
+    return False
+
+def check_number_of_relations_between_servicegroup_and_services(servicegroup: int, value: int, timeout: int):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host='localhost',
+                                 user='centreon',
+                                 password='centreon',
+                                 database='centreon_storage',
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT count(*) FROM services_servicegroups WHERE servicegroup_id={}".format(servicegroup))
+                result = cursor.fetchall()
+                if len(result) > 0:
+                    if int(result[0]['count(*)']) == value:
+                        return True
+        time.sleep(1)
+    return False

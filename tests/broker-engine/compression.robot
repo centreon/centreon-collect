@@ -25,9 +25,9 @@ BECC1
 		Config Broker	central
 		Config Broker	module
 		Broker Config Input set	central	central-broker-master-input	compression	${comp1}
-		Broker Config Output set	module	central-module-master-output	compression	${comp2}
+		Broker Config Output set	module0	central-module-master-output	compression	${comp2}
 		Broker Config Log	central	bbdo	info
-		Broker Config Log	module	bbdo	info
+		Broker Config Log	module0	bbdo	info
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
@@ -45,7 +45,7 @@ BECC1
 		${log}=	Catenate	SEPARATOR=	${BROKER_LOG}	/central-broker-master.log
 		${result}=	Find In Log	${log}	${start}	${content1}
 		Should Be True	${result}
-		${log}=	Catenate	SEPARATOR=	${BROKER_LOG}	/central-module-master.log
+		${log}=	Catenate	SEPARATOR=	${BROKER_LOG}	/central-module-master0.log
 		${result}=	Find In Log	${log}	${start}	${content2}
 		Should Be True	${result}
 	END

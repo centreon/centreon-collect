@@ -104,7 +104,7 @@ class connector : public command, public process_listener {
   void _connector_close();
   void _connector_start();
   void _internal_copy(connector const& right);
-  std::string const& _query_ending() const noexcept;
+  std::string _query_ending() noexcept;
   void _recv_query_error(char const* data);
   void _recv_query_execute(char const* data);
   void _recv_query_quit(char const* data);
