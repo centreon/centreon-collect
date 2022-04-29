@@ -35,7 +35,7 @@ RUN dnf clean all && dnf install -y cmake \
     MariaDB-shared \
     perl \
     rpm-build
-RUN dnf install -y rh-python38
+RUN dnf clean all && dnf install -y rh-python38 which
 RUN dnf update libarchive
 
 RUN pip3 install conan --prefix=/usr --upgrade
