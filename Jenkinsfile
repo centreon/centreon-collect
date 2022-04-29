@@ -110,24 +110,6 @@ stage('Build / Unit tests // Packaging / Signing') {
       }
     }
   },
-  'debian buster Build and UT': {
-    node("C++") {
-      dir('centreon-collect-debian10') {
-        checkout scm
-        sh 'docker run -i --entrypoint /src/ci/scripts/collect-unit-tests.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-debian10-dependencies:22.04'
-      }
-    }
-  },
-  'debian buster packaging and signing': {
-    node("C++") {
-      dir('centreon-collect') {
-        checkout scm
-      }
-        sh 'docker run -i --entrypoint /src/centreon-collect/ci/scripts/collect-deb-package.sh -v "$PWD:/src" -e DISTRIB="Debian10" -e VERSION=$VERSION -e RELEASE=$RELEASE registry.centreon.com/centreon-collect-debian10-dependencies:22.04'
-        stash name: 'Debian10', includes: 'Debian10/*.deb'
-        archiveArtifacts artifacts: "Debian10/*"
-    }
-  },
   'debian bullseye Build and UT': {
     node("C++") {
       dir('centreon-collect-debian11') {
