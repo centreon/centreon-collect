@@ -5,7 +5,8 @@ fmt/8.0.1
 spdlog/1.9.2
 nlohmann_json/3.10.4
 openssl/1.1.1m
-grpc/1.43.0
+meson/0.62.1
+grpc/1.45.2
 mariadb-connector-c/3.1.12
 zlib/1.2.11
 boost/1.78.0

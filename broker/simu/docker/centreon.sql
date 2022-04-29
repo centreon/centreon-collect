@@ -2325,11 +2325,6 @@ CREATE TABLE `timeperiod` (
   PRIMARY KEY (`tp_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8;
 
-INSERT INTO `timeperiod` VALUES (NULL, '24x7', 'Always', '00:00-24:00', '00:00-24:00', '00:00-24:00', '00:00-24:00', '00:00-24:00', '00:00-24:00', '00:00-24:00');
-INSERT INTO `timeperiod` VALUES (NULL, 'none', 'Never', '', '', '', '', '', '', '');
-INSERT INTO `timeperiod` VALUES (NULL, 'nonworkhours', 'Non-Work Hours', '00:00-24:00', '00:00-09:00,17:00-24:00', '00:00-09:00,17:00-24:00', '00:00-09:00,17:00-24:00', '00:00-09:00,17:00-24:00', '00:00-09:00,17:00-24:00', '00:00-24:00');
-INSERT INTO `timeperiod` VALUES (NULL, 'workhours', 'Work hours', '', '09:00-17:00', '09:00-17:00', '09:00-17:00', '09:00-17:00', '09:00-17:00', '');
-
 DROP TABLE IF EXISTS `timeperiod_exceptions`;
 CREATE TABLE `timeperiod_exceptions` (
   `exception_id` int(11) NOT NULL AUTO_INCREMENT,
