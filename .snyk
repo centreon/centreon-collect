@@ -8,4 +8,4 @@ exclude:
      - tests/**/*
      - ci/**/*
      - packaging/**/*
-     - broker/deps.go
+     - "**/deps.go"
