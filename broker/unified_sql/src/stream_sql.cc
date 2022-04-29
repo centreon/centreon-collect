@@ -2707,8 +2707,9 @@ void stream::_check_and_update_index_cache(const Service& ss) {
         _index_data_insert, &p, database::mysql_task::LAST_INSERT_ID, conn);
     try {
       index_id = p.get_future().get();
-      log_v2::sql()->debug("sql: new index {} added for service ({}, {}), special {}",
-          index_id, ss.host_id(), ss.service_id(), special ? "1" : "0");
+      log_v2::sql()->debug(
+          "sql: new index {} added for service ({}, {}), special {}", index_id,
+          ss.host_id(), ss.service_id(), special ? "1" : "0");
       index_info info{
           .index_id = index_id,
           .host_name = ss.host_name(),
@@ -2718,9 +2719,9 @@ void stream::_check_and_update_index_cache(const Service& ss) {
           .special = special,
           .locked = false,
       };
-      log_v2::sql()->debug(
-          "sql: loaded index {} of ({}, {}) with rrd_len={}", index_id,
-          ss.host_id(), ss.service_id(), info.rrd_retention);
+      log_v2::sql()->debug("sql: loaded index {} of ({}, {}) with rrd_len={}",
+                           index_id, ss.host_id(), ss.service_id(),
+                           info.rrd_retention);
       _index_cache[{ss.host_id(), ss.service_id()}] = std::move(info);
       // Create the metric mapping.
       auto im{std::make_shared<storage::index_mapping>(
@@ -2728,8 +2729,9 @@ void stream::_check_and_update_index_cache(const Service& ss) {
       multiplexing::publisher pblshr;
       pblshr.write(im);
     } catch (const std::exception& e) {
-      log_v2::sql()->debug("sql: cannot insert new index for service ({}, {}): {}",
-          ss.host_id(), ss.service_id(), e.what());
+      log_v2::sql()->debug(
+          "sql: cannot insert new index for service ({}, {}): {}", ss.host_id(),
+          ss.service_id(), e.what());
       if (!_index_data_query.prepared())
         _index_data_query = _mysql.prepare_query(
             "SELECT "
@@ -2890,10 +2892,12 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
   auto s{static_cast<const neb::pb_service_status*>(d.get())};
   auto& sscr = s->obj();
 
-  log_v2::sql()->debug("SQL: pb service status check result output: <<{}>>",
-                       sscr.output());
-  log_v2::sql()->debug("SQL: service status check result perfdata: <<{}>>",
-                       sscr.perf_data());
+  log_v2::sql()->debug(
+      "SQL: pb service ({}, {}) status check result output: <<{}>>",
+      sscr.host_id(), sscr.service_id(), sscr.output());
+  log_v2::sql()->debug(
+      "SQL: service ({}, {}) status check result perfdata: <<{}>>",
+      sscr.host_id(), sscr.service_id(), sscr.perf_data());
 
   time_t now = time(nullptr);
   if (sscr.check_type() == ServiceStatus_CheckType_PASSIVE ||

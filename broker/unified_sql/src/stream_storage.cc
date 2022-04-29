@@ -290,6 +290,11 @@ void stream::_unified_sql_process_pb_service_status(
               perf->metric_id, perf->name, perf->time, perf->value, rrd_len,
               perf->value_type);
           to_publish.emplace_back(perf);
+        } else {
+          log_v2::perfdata()->trace(
+              "unified sql: index {} is locked, so metric {} event not sent "
+              "to rrd",
+              index_id, perf->metric_id);
         }
       }
       multiplexing::publisher pblshr;
