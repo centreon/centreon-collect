@@ -510,13 +510,14 @@ void stream::_unified_sql_process_service_status(
 
       std::list<std::shared_ptr<io::data>> to_publish;
       for (auto& pd : pds) {
-        misc::read_lock lck(_metric_cache_m);
+        misc::read_lock rlck(_metric_cache_m);
         auto it_index_cache = _metric_cache.find({index_id, pd.name()});
 
         /* The cache does not contain this metric */
         uint32_t metric_id;
         bool need_metric_mapping = true;
         if (it_index_cache == _metric_cache.end()) {
+          rlck.unlock();
           log_v2::perfdata()->debug(
               "unified sql: no metrics corresponding to index {} and "
               "perfdata '{}' found in cache",
@@ -586,6 +587,7 @@ void stream::_unified_sql_process_service_status(
                 pd.name(), index_id, e.what());
           }
         } else {
+          rlck.unlock();
           std::lock_guard<misc::shared_mutex> lock(_metric_cache_m);
           /* We have the metric in the cache */
           metric_id = it_index_cache->second.metric_id;
