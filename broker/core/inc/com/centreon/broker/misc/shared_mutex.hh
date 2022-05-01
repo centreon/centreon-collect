@@ -22,14 +22,11 @@
 #include <pthread.h>
 #include <chrono>
 #include <ctime>
-#include <thread>
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()
 
 namespace misc {
-// This code is adapted from:
-// http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2007/n2406.html#shared_mutex_imp
 class shared_mutex {
   pthread_rwlock_t _rwlock;
 
@@ -75,17 +72,18 @@ class shared_mutex {
 class read_lock {
  private:
   shared_mutex& _m;
-  uint32_t _locked;
+  bool _locked;
 
  public:
-  read_lock(shared_mutex& m) : _m(m), _locked{1u} { _m.lock_shared(); }
-  ~read_lock() {
-    if (--_locked == 0)
+  read_lock(shared_mutex& m) : _m(m), _locked{true} { _m.lock_shared(); }
+  ~read_lock() noexcept {
+    if (_locked)
       _m.unlock();
   }
+
   void unlock() {
     _m.unlock();
-    --_locked;
+    _locked = false;
   }
 };
 
