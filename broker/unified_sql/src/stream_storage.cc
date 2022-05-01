@@ -31,6 +31,7 @@
 #include "com/centreon/broker/database/table_max_size.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/misc.hh"
+#include "com/centreon/broker/misc/shared_mutex.hh"
 #include "com/centreon/broker/misc/perfdata.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/neb/events.hh"
@@ -131,6 +132,7 @@ void stream::_unified_sql_process_pb_service_status(
 
       std::list<std::shared_ptr<io::data>> to_publish;
       for (auto& pd : pds) {
+        misc::read_lock lck(_metric_cache_m);
         auto it_index_cache = _metric_cache.find({index_id, pd.name()});
 
         /* The cache does not contain this metric */
@@ -190,7 +192,7 @@ void stream::_unified_sql_process_pb_service_status(
                              .metric_mapping_sent =
                                  true};  // It will be done after this block
 
-            std::lock_guard<std::mutex> lock(_metric_cache_m);
+            std::lock_guard<misc::shared_mutex> lock(_metric_cache_m);
             _metric_cache[{index_id, pd.name()}] = info;
           } catch (std::exception const& e) {
             log_v2::perfdata()->error(
@@ -206,7 +208,7 @@ void stream::_unified_sql_process_pb_service_status(
                 pd.name(), index_id, e.what());
           }
         } else {
-          std::lock_guard<std::mutex> lock(_metric_cache_m);
+          std::lock_guard<misc::shared_mutex> lock(_metric_cache_m);
           /* We have the metric in the cache */
           metric_id = it_index_cache->second.metric_id;
           if (!it_index_cache->second.metric_mapping_sent)
@@ -506,6 +508,7 @@ void stream::_unified_sql_process_service_status(
 
       std::list<std::shared_ptr<io::data>> to_publish;
       for (auto& pd : pds) {
+        misc::read_lock lck(_metric_cache_m);
         auto it_index_cache = _metric_cache.find({index_id, pd.name()});
 
         /* The cache does not contain this metric */
@@ -565,7 +568,7 @@ void stream::_unified_sql_process_service_status(
                              .metric_mapping_sent =
                                  true};  // It will be done after this block
 
-            std::lock_guard<std::mutex> lock(_metric_cache_m);
+            std::lock_guard<misc::shared_mutex> lock(_metric_cache_m);
             _metric_cache[{index_id, pd.name()}] = info;
           } catch (std::exception const& e) {
             log_v2::perfdata()->error(
@@ -581,7 +584,7 @@ void stream::_unified_sql_process_service_status(
                 pd.name(), index_id, e.what());
           }
         } else {
-          std::lock_guard<std::mutex> lock(_metric_cache_m);
+          std::lock_guard<misc::shared_mutex> lock(_metric_cache_m);
           /* We have the metric in the cache */
           metric_id = it_index_cache->second.metric_id;
           if (!it_index_cache->second.metric_mapping_sent)
@@ -824,7 +827,7 @@ void stream::_check_deleted_index(asio::error_code ec) {
             &promise, conn);
         database::mysql_result res(promise.get_future().get());
 
-        std::lock_guard<std::mutex> lock(_metric_cache_m);
+        std::lock_guard<misc::shared_mutex> lock(_metric_cache_m);
         while (_mysql.fetch_row(res)) {
           index_to_delete.insert(res.value_as_u64(0));
           metrics_to_delete.insert(res.value_as_u64(1));

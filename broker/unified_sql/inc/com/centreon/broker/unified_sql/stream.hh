@@ -29,6 +29,7 @@
 #include <unordered_map>
 
 #include "bbdo/service.pb.h"
+#include "com/centreon/broker/misc/shared_mutex.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/misc/pair.hh"
@@ -208,9 +209,11 @@ class stream : public io::stream {
   absl::flat_hash_map<uint64_t, size_t> _cache_hst_cmd;
   absl::flat_hash_map<std::pair<uint64_t, uint64_t>, size_t> _cache_svc_cmd;
   absl::flat_hash_map<std::pair<uint64_t, uint64_t>, index_info> _index_cache;
+
   absl::flat_hash_map<std::pair<uint64_t, std::string>, metric_info>
       _metric_cache;
-  std::mutex _metric_cache_m;
+  misc::shared_mutex _metric_cache_m;
+
   absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t> _severity_cache;
   absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t> _tags_cache;
 
