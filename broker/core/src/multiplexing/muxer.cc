@@ -101,7 +101,7 @@ muxer::muxer(std::string name,
   _update_stats();
 
   // Log messages.
-  log_v2::perfdata()->info(
+  log_v2::core()->info(
       "multiplexing: '{}' starts with {} in queue and the queue file is {}",
       _name, _events_size, _file ? "enable" : "disable");
 
@@ -127,14 +127,14 @@ muxer::~muxer() noexcept {
  */
 void muxer::ack_events(int count) {
   // Remove acknowledged events.
-  log_v2::perfdata()->debug(
+  log_v2::core()->trace(
       "multiplexing: acknowledging {} events from {} event queue", count,
       _name);
   if (count) {
     std::lock_guard<std::mutex> lock(_mutex);
     for (int i = 0; i < count && !_events.empty(); ++i) {
       if (_events.begin() == _pos) {
-        log_v2::perfdata()->error(
+        log_v2::core()->error(
             "multiplexing: attempt to acknowledge "
             "more events than available in {} event queue: {} requested, {} "
             "acknowledged",
@@ -144,7 +144,7 @@ void muxer::ack_events(int count) {
       _events.pop_front();
       --_events_size;
     }
-    log_v2::perfdata()->trace("multiplexing: still {} events in {} event queue",
+    log_v2::core()->trace("multiplexing: still {} events in {} event queue",
                               _events_size, _name);
 
     // Fill memory from file.
@@ -311,7 +311,7 @@ uint32_t muxer::get_event_queue_size() const {
  *  Reprocess non-acknowledged events.
  */
 void muxer::nack_events() {
-  log_v2::perfdata()->debug(
+  log_v2::core()->debug(
       "multiplexing: reprocessing unacknowledged events from {} event queue",
       _name);
   std::lock_guard<std::mutex> lock(_mutex);
@@ -384,7 +384,7 @@ void muxer::_clean() {
         --_events_size;
       }
     } catch (std::exception const& e) {
-      log_v2::perfdata()->error(
+      log_v2::core()->error(
           "multiplexing: could not backup memory queue of '{}': {}", _name,
           e.what());
     }
@@ -482,7 +482,7 @@ void muxer::_update_stats() noexcept {
  *  Remove all the queue files attached to this muxer.
  */
 void muxer::remove_queue_files() {
-  log_v2::perfdata()->info("multiplexing: '{}' removed", _queue_file_name);
+  log_v2::core()->info("multiplexing: '{}' removed", _queue_file_name);
 
   /* Here _file is already destroyed */
   QueueFileStats* stats =
