@@ -334,7 +334,7 @@ void stream::_load_caches() {
 
   /* metrics => _metric_cache */
   {
-    std::lock_guard<std::mutex> lock(_metric_cache_m);
+    std::lock_guard<misc::shared_mutex> lock(_metric_cache_m);
     _metric_cache.clear();
     {
       std::lock_guard<std::mutex> lck(_queues_m);
@@ -407,13 +407,14 @@ void stream::update_metric_info_cache(uint64_t index_id,
                                       uint32_t metric_id,
                                       std::string const& metric_name,
                                       short metric_type) {
+  misc::read_lock lck(_metric_cache_m);
   auto it = _metric_cache.find({index_id, metric_name});
   if (it != _metric_cache.end()) {
     log_v2::perfdata()->info(
         "unified sql: updating metric '{}' of id {} at index {} to "
         "metric_type {}",
         metric_name, metric_id, index_id, metric_type_name[metric_type]);
-    std::lock_guard<std::mutex> lock(_metric_cache_m);
+    std::lock_guard<misc::shared_mutex> lock(_metric_cache_m);
     it->second.type = metric_type;
     if (it->second.metric_id != metric_id) {
       it->second.metric_id = metric_id;
@@ -605,7 +606,7 @@ int32_t stream::flush() {
   _ack -= retval;
   _pending_events -= retval;
   // Event acknowledgement.
-  log_v2::sql()->debug("SQL: {} / {} events acknowledged", retval,
+  log_v2::sql()->trace("SQL: {} / {} events acknowledged", retval,
                        _pending_events);
   return retval;
 }
@@ -665,7 +666,7 @@ void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
             &promise, conn);
         database::mysql_result res(promise.get_future().get());
 
-        std::lock_guard<std::mutex> lock(_metric_cache_m);
+        std::lock_guard<misc::shared_mutex> lock(_metric_cache_m);
         while (ms.fetch_row(res)) {
           indexes_to_delete.insert(res.value_as_u64(0));
           uint64_t mid = res.value_as_u64(1);
@@ -687,7 +688,7 @@ void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
             &promise, conn);
         database::mysql_result res(promise.get_future().get());
 
-        std::lock_guard<std::mutex> lock(_metric_cache_m);
+        std::lock_guard<misc::shared_mutex> lock(_metric_cache_m);
         while (ms.fetch_row(res)) {
           metrics_to_delete.insert(res.value_as_u64(1));
           _metric_cache.erase({res.value_as_u64(0), res.value_as_str(2)});

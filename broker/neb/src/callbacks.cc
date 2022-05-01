@@ -2791,8 +2791,15 @@ int32_t neb::callback_pb_service_status(int callback_type
         misc::string::check_string_utf8(es->get_long_plugin_output()));
 
   sscr.set_percent_state_change(es->get_percent_state_change());
-  if (!es->get_perf_data().empty())
+  if (!es->get_perf_data().empty()) {
     sscr.set_perf_data(misc::string::check_string_utf8(es->get_perf_data()));
+    log_v2::neb()->trace("callbacks: service ({}, {}) has perfdata <<{}>>",
+        es->get_host_id(), es->get_service_id(), es->get_perf_data());
+ }
+  else {
+    log_v2::neb()->trace("callbacks: service ({}, {}) has no perfdata",
+        es->get_host_id(), es->get_service_id());
+  }
   sscr.set_should_be_scheduled(es->get_should_be_scheduled());
   sscr.set_state_type(static_cast<ServiceStatus_StateType>(
       es->has_been_checked() ? es->get_state_type() : engine::notifier::hard));

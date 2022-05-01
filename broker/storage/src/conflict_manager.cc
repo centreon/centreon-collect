@@ -589,7 +589,16 @@ void conflict_manager::_callback() {
             uint16_t cat{category_of_type(type)};
             if (std::get<1>(tpl) == sql && cat == io::neb) {
               uint16_t elem{element_of_type(type)};
-              (this->*(_neb_processing_table[elem]))(tpl);
+              void (com::centreon::broker::storage::conflict_manager::*fn)(
+                  std::tuple<std::shared_ptr<com::centreon::broker::io::data>,
+                             unsigned int, bool*>&) =
+                  _neb_processing_table[elem];
+              if (fn)
+                (this->*fn)(tpl);
+              else {
+                log_v2::sql()->warn("SQL: no function defined for event {}:{}",
+                                    cat, elem);
+              }
             } else if (std::get<1>(tpl) == storage && cat == io::neb &&
                        type == neb::service_status::static_type())
               _storage_process_service_status(tpl);
@@ -643,7 +652,7 @@ void conflict_manager::_callback() {
                 std::lock_guard<std::mutex> lk(_stat_m);
                 _speed = s / _stats_count.size();
                 stats::center::instance().execute(
-                    [ s = this->_stats, spd = _speed ] { s->set_speed(spd); });
+                    [s = this->_stats, spd = _speed] { s->set_speed(spd); });
               }
             }
           }
@@ -824,7 +833,7 @@ void conflict_manager::_update_stats(const std::uint32_t size,
                                      const std::size_t sql_size,
                                      const std::size_t stor_size) noexcept {
   stats::center::instance().execute(
-      [ s = this->_stats, size, mpdq, ev_size, sql_size, stor_size ] {
+      [s = this->_stats, size, mpdq, ev_size, sql_size, stor_size] {
         s->set_events_handled(size);
         s->set_max_perfdata_events(mpdq);
         s->set_waiting_events(static_cast<int32_t>(ev_size));
@@ -895,7 +904,7 @@ int32_t conflict_manager::unload(stream_type type) {
  * @param d The BBDO message with all the metrics/indexes to remove.
  */
 void conflict_manager::remove_graphs(const std::shared_ptr<io::data>& d) {
-  asio::post(pool::instance().io_context(), [ this, data = d ] {
+  asio::post(pool::instance().io_context(), [this, data = d] {
     mysql ms(_mysql.get_config());
     const bbdo::pb_remove_graphs& ids =
         *static_cast<const bbdo::pb_remove_graphs*>(data.get());

@@ -27,8 +27,6 @@
 CCB_BEGIN()
 
 namespace misc {
-// This code is adapted from:
-// http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2007/n2406.html#shared_mutex_imp
 class shared_mutex {
   pthread_rwlock_t _rwlock;
 
@@ -39,7 +37,9 @@ class shared_mutex {
 
   // Exclusive ownership
 
-  void lock() { pthread_rwlock_wrlock(&_rwlock); }
+  void lock() {
+    pthread_rwlock_wrlock(&_rwlock);
+  }
 
   bool try_lock() { return pthread_rwlock_trywrlock(&_rwlock) == 0; }
 
@@ -50,11 +50,14 @@ class shared_mutex {
     return pthread_rwlock_timedwrlock(&_rwlock, &timeout) == 0;
   }
 
-  void unlock() { pthread_rwlock_unlock(&_rwlock); }
+  void unlock() {
+    pthread_rwlock_unlock(&_rwlock); }
 
   // Shared ownership
 
-  void lock_shared() { pthread_rwlock_rdlock(&_rwlock); }
+  void lock_shared() {
+    pthread_rwlock_rdlock(&_rwlock);
+  }
 
   bool try_lock_shared() { return pthread_rwlock_trywrlock(&_rwlock) == 0; }
 
@@ -67,12 +70,21 @@ class shared_mutex {
 };
 
 class read_lock {
- public:
-  read_lock(shared_mutex& m) : _m(m) { _m.lock_shared(); }
-  ~read_lock() { _m.unlock(); }
-
  private:
   shared_mutex& _m;
+  bool _locked;
+
+ public:
+  read_lock(shared_mutex& m) : _m(m), _locked{true} { _m.lock_shared(); }
+  ~read_lock() noexcept {
+    if (_locked)
+      _m.unlock();
+  }
+
+  void unlock() {
+    _m.unlock();
+    _locked = false;
+  }
 };
 
 }  // namespace misc
