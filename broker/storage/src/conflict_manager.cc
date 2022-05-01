@@ -589,7 +589,13 @@ void conflict_manager::_callback() {
             uint16_t cat{category_of_type(type)};
             if (std::get<1>(tpl) == sql && cat == io::neb) {
               uint16_t elem{element_of_type(type)};
-              (this->*(_neb_processing_table[elem]))(tpl);
+              void (com::centreon::broker::storage::conflict_manager::*fn)(std::tuple<std::shared_ptr<com::centreon::broker::io::data>, unsigned int, bool*>&) = _neb_processing_table[elem];
+              if (fn)
+                (this->*fn)(tpl);
+              else {
+                log_v2::sql()->warn("SQL: no function defined for event {}:{}",
+                    cat, elem);
+              }
             } else if (std::get<1>(tpl) == storage && cat == io::neb &&
                        type == neb::service_status::static_type())
               _storage_process_service_status(tpl);
