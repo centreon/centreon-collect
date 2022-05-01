@@ -2758,12 +2758,12 @@ void stream::_check_and_update_index_cache(const Service& ss) {
               .rrd_retention =
                   res.value_as_u32(3) ? res.value_as_u32(3) : _rrd_len,
               .interval = res.value_as_u32(4) ? res.value_as_u32(4) : 5,
-              .special = res.value_as_bool(5),
-              .locked = res.value_as_bool(6),
+              .special = res.value_as_str(5) == "1",
+              .locked = res.value_as_str(6) == "1",
           };
           log_v2::sql()->debug(
-              "sql: loaded index {} of ({}, {}) with rrd_len={}, special='{}' and special={}, locked='{}' and locked={}", index_id,
-              ss.host_id(), ss.service_id(), info.rrd_retention, res.value_as_str(5), res.value_as_bool(5), res.value_as_str(6), res.value_as_bool(6));
+              "sql: loaded index {} of ({}, {}) with rrd_len={}, special={}, locked={}", index_id,
+              ss.host_id(), ss.service_id(), info.rrd_retention, info.special, info.locked);
           _index_cache[{ss.host_id(), ss.service_id()}] = std::move(info);
           // Create the metric mapping.
           auto im{std::make_shared<storage::index_mapping>(
