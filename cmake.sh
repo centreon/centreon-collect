@@ -70,7 +70,7 @@ if [ -r /etc/centos-release ] ; then
   if [ $maj = "centos7" ] ; then
     if [[ ! -x /opt/rh/rh-python38 ]] ; then
       yum -y install centos-release-scl
-      yum -y install rh-python38 which
+      yum -y install rh-python38
       source /opt/rh/rh-python38/enable
     else
       echo "python38 already installed"
