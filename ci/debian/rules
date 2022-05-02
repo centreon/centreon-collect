@@ -1,7 +1,10 @@
 #!/usr/bin/make -f
 
 %:
-	dh $@  
+	dh $@
+
+override_dh_gencontrol:
+	dh_gencontrol -- -Tdebian/substvars
 
 override_dh_auto_configure:
 	mkdir build
