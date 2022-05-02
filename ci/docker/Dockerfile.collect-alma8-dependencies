@@ -35,14 +35,12 @@ RUN dnf clean all && dnf install -y cmake \
     MariaDB-shared \
     perl \
     rpm-build
-RUN dnf clean all && dnf install -y rh-python38 which
 RUN dnf update libarchive
 
 RUN pip3 install conan --prefix=/usr --upgrade
 RUN rm -rf ~/.conan/profiles/default
 COPY conanfile.txt .
 RUN cat conanfile.txt
-RUN source /opt/rh/rh-python38/enable && \
-    conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build='*'
+RUN conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build='*'
 
 WORKDIR /src
