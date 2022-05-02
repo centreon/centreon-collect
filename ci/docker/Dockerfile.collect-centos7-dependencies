@@ -26,6 +26,7 @@ RUN yum -y upgrade && yum -y update && \
     yum clean all
 RUN yum-config-manager --enable rhel-server-rhscl-7-rpms
 RUN yum -y install devtoolset-9 \
+    rh-python38 which \
     cmake3 \
     gcc \
     gcc-c++ \
@@ -44,7 +45,7 @@ RUN pip3 install conan --prefix=/usr --upgrade
 RUN rm -rf ~/.conan/profiles/default
 COPY conanfile.txt .
 RUN cat conanfile.txt
-RUN source /opt/rh/devtoolset-9/enable && \
+RUN source /opt/rh/devtoolset-9/enable && source /opt/rh/rh-python38/enable && \
     conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build='*'
 
 WORKDIR /src
