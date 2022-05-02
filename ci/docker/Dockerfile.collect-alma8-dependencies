@@ -15,7 +15,6 @@ RUN dnf clean all && dnf install -y cmake \
     gcc \
     gcc-c++ \
     gettext \
-    centos-release-scl \
     git \
     MariaDB-devel \
     gnutls-devel \
