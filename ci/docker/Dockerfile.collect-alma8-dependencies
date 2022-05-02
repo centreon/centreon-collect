@@ -42,7 +42,7 @@ RUN pip3 install conan --prefix=/usr --upgrade
 RUN rm -rf ~/.conan/profiles/default
 COPY conanfile.txt .
 RUN cat conanfile.txt
-RUN scl enable rh-python38 && \
+RUN source /opt/rh/rh-python38/enable && \
     conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build='*'
 
 WORKDIR /src
