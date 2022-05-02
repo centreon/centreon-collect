@@ -19,31 +19,38 @@ from datetime import datetime
 def files_contain_same_json(file_e: str, file_b: str):
     new_inst = { "_type": 4294901762, "category": 65535, "element": 2, "broker_id":1, "broker_name":"", "enabled":True, "poller_id":1, "poller_name":"Central"}
 
-    getoutput("cut -d' ' -f9- {0} > {0}.log1".format(file_e))
-    getoutput("cut -d' ' -f9- {0} > {0}.log1".format(file_b))
-
-    f1 = open("{}.log1".format(file_e))
+    f1 = open(file_e)
     content1 = f1.readlines()
 
-    f2 = open("{}.log1".format(file_b))
+    f2 = open(file_b)
     content2 = f2.readlines()
 
     idx1 = 0
     idx2 = 0
 
+    r = re.compile(r"^[^{]* (\{.*\})$")
     while idx1 < len(content1) and idx2 < len(content2):
-        if content1[idx1].rstrip() == "":
+        m1 = r.match(content1[idx1])
+        if m1 is not None:
+            c1 = m1.group(1)
+        else:
+            logger.console("content at line {} of '{}' is not JSON: {}".format(idx1, file_e, content1[idx1]))
             idx1 += 1
             continue
-        if content2[idx2].rstrip() == "":
+        m2 = r.match(content2[idx2])
+        if m2 is not None:
+            c2 = m2.group(1)
+        else:
+            logger.console("content at line {} of '{}' is not JSON: {}".format(idx2, file_b, content2[idx2]))
             idx2 += 1
             continue
-        if content1[idx1] == content2[idx2]:
+
+        if c1 == c2:
             idx1 += 1
             idx2 += 1
         else:
-            js1 = json.loads(content1[idx1])
-            js2 = json.loads(content2[idx2])
+            js1 = json.loads(c1)
+            js2 = json.loads(c2)
             if js2['_type'] == 4294901762:
                 idx2 += 1
                 continue

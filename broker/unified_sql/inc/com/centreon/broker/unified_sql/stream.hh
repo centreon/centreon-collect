@@ -29,11 +29,11 @@
 #include <unordered_map>
 
 #include "bbdo/service.pb.h"
-#include "com/centreon/broker/misc/shared_mutex.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/misc/pair.hh"
 #include "com/centreon/broker/misc/perfdata.hh"
+#include "com/centreon/broker/misc/shared_mutex.hh"
 #include "com/centreon/broker/mysql.hh"
 #include "com/centreon/broker/unified_sql/rebuilder.hh"
 #include "com/centreon/broker/unified_sql/stored_timestamp.hh"
@@ -203,7 +203,6 @@ class stream : public io::stream {
   /* Stats */
   ConflictManagerStats* _stats;
 
-  uint64_t _current_resource_id;
   std::unordered_set<uint32_t> _cache_deleted_instance_id;
   std::unordered_map<uint32_t, uint32_t> _cache_host_instance;
   absl::flat_hash_map<uint64_t, size_t> _cache_hst_cmd;

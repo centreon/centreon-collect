@@ -23,7 +23,7 @@ def check_connection(port: int, pid1: int, pid2: int):
                 r"127\.0\.0\.1:(\d+)\s+127\.0\.0\.1:(\d+)\s+.*,pid=(\d+)")
             for l in estab_port:
                 m = p.search(l)
-                if m:
+                if m is not None:
                     if pid1 == int(m.group(3)):
                         ok[0] = True
                     if pid2 == int(m.group(3)):
@@ -182,14 +182,14 @@ def check_engine_logs_are_duplicated(log: str, date):
         for l in lines[idx:]:
             mo = old_log.match(l)
             mn = new_log.match(l)
-            if mo:
+            if mo is not None:
                 if mo.group(1) in logs:
                     logs.remove(mo.group(1))
                 else:
                     logs.append(mo.group(1))
             else:
                 mn = new_log.match(l)
-                if mn:
+                if mn is not None:
                     if mn.group(1) in logs:
                         logs.remove(mn.group(1))
                     else:
@@ -218,7 +218,7 @@ def find_line_from(lines, date):
     while end - start > 1:
         idx = (start + end) // 2
         m = p.match(lines[idx])
-        if not m or m is None:
+        if m is None:
             logger.console("Unable to parse the date ({} <= {} <= {}): <<{}>>".format(
                 start, idx, end, lines[idx]))
         idx_d = get_date(m.group(1))
@@ -282,7 +282,7 @@ def set_command_status(cmd, status):
     done = False
     for i in range(len(lines)):
         m = p.match(lines[i])
-        if m:
+        if m is not None:
             if int(m.group(1)) != status:
                 lines[i] = "{}=>{}\n".format(cmd, status)
             done = True

@@ -1044,8 +1044,13 @@ def compare_rrd_average_value(metric, value: float):
     res = getoutput("rrdtool graph dummy --start=end-30d --end=now"
                     " DEF:x=/var/lib/centreon/metrics/{}.rrd:value:AVERAGE VDEF:xa=x,AVERAGE PRINT:xa:%lf"
                     .format(metric))
-    res = float(res.split('\n')[1].replace(',', '.'))
-    return abs(res - float(value)) < 2
+    lst = res.split('\n')
+    if len(lst) >= 2:
+        res = float(lst[1].replace(',', '.'))
+        return abs(res - float(value)) < 2
+    else:
+        logger.console("It was impossible to get the average value from the file /var/lib/centreon/metrics/{}.rrd from the last 30 days".format(metric))
+        return True
 
 
 ##

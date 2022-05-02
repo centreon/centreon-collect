@@ -248,9 +248,9 @@ BRRDRM1
 	${result}=	Find In Log With Timeout	${rrdLog}	${start}	${content1}	240
 	Should Be True	${result}	msg=RRD cbd did not receive metrics to rebuild END
 	FOR	${m}	IN	@{metrics}
-	${value}=	Evaluate	${m} / 2
+		${value}=	Evaluate	${m} / 2
 		${result}=	Compare RRD Average Value	${m}	${value}
-			Should Be True	${result}	msg=Data before RRD rebuild contain alternatively the metric ID and 0. The expected average is metric_id / 2.
+		Should Be True	${result}	msg=Data before RRD rebuild contain alternatively the metric ID and 0. The expected average is metric_id / 2.
 	END
 
 BRRDRMU1

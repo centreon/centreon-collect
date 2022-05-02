@@ -532,7 +532,11 @@ def create_service(index:int, host_id:int, cmd_id:int):
     lst = svc.split('\n')
     good = [l for l in lst if "_SERVICE_ID" in l][0]
     m = re.search(r"_SERVICE_ID\s+([^\s]*)$", good)
-    retval = int(m.group(1))
+    if m is not None:
+        retval = int(m.group(1))
+    else:
+        logger.error("Impossible to get the service id from '{}'".format(good))
+        m = 0
     f.write(svc)
     f.close()
     return retval
@@ -636,7 +640,7 @@ def add_severity_to_services(poller:int, severity_id:int, svc_lst):
     r = re.compile(r"^\s*_SERVICE_ID\s*(\d+)$")
     for i in range(len(lines)):
         m = r.match(lines[i])
-        if m and m.group(1) in svc_lst:
+        if m is not None and m.group(1) in svc_lst:
             lines.insert(
                 i + 1, "    severity_id                     {}\n".format(severity_id))
 
@@ -652,7 +656,7 @@ def add_severity_to_hosts(poller:int, severity_id:int, svc_lst):
     r = re.compile(r"^\s*_HOST_ID\s*(\d+)$")
     for i in range(len(lines)):
         m = r.match(lines[i])
-        if m and m.group(1) in svc_lst:
+        if m is not None and m.group(1) in svc_lst:
             lines.insert(
                 i + 1, "    severity_id                     {}\n".format(severity_id))
 
@@ -668,7 +672,7 @@ def add_template_to_services(poller:int, tmpl:str, svc_lst):
     r = re.compile(r"^\s*_SERVICE_ID\s*(\d+)$")
     for i in range(len(lines)):
         m = r.match(lines[i])
-        if m and m.group(1) in svc_lst:
+        if m is not None and m.group(1) in svc_lst:
             lines.insert(i + 1, "    use                     {}\n".format(tmpl))
 
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "w")
@@ -682,7 +686,7 @@ def add_tags_to_services(poller:int, type:str, tag_id:str, svc_lst):
     r = re.compile(r"^\s*_SERVICE_ID\s*(\d+)$")
     for i in range(len(lines)):
         m = r.match(lines[i])
-        if m and m.group(1) in svc_lst:
+        if m is not None and m.group(1) in svc_lst:
             lines.insert(i + 1, "    {}                     {}\n".format(type, tag_id))
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "w")
     ff.writelines(lines)
@@ -728,14 +732,14 @@ def check_search(debug_file_path: str, str_to_search):
                     # search cmd_id
                     m = re.search(
                         r"^\[\d+\]\s+\[\d+\]\s+connector::run:\s+id=(\d+)", lines[second_ind])
-                    if (m is not None):
+                    if m is not None:
                         cmd_id = m.group(1)
                         r_query_execute = r"^\[\d+\]\s+\[\d+\]\s+connector::_recv_query_execute:\s+id=" + \
                             cmd_id + ",\s+(\S[\s\S]+)$"
                         for third_ind in range(second_ind, len(lines)):
                             m = re.match(
                                 r_query_execute, lines[third_ind])
-                            if (m is not None):
+                            if m is not None:
                                 return m.group(1)
                         return "_recv_query_execute not found" + r_query_execute
                 return "connector::run not found"
@@ -748,7 +752,7 @@ def add_tags_to_hosts(poller:int, type:str, tag_id:str, hst_lst):
     r = re.compile(r"^\s*_HOST_ID\s*(\d+)$")
     for i in range(len(lines)):
         m = r.match(lines[i])
-        if m and m.group(1) in hst_lst:
+        if m is not None and m.group(1) in hst_lst:
             lines.insert(i + 1, "    {}                     {}\n".format(type, tag_id))
 
     ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "w")
@@ -782,7 +786,7 @@ def add_template_to_services(poller:int, tmpl:str, svc_lst):
     r = re.compile(r"^\s*_SERVICE_ID\s*(\d+)$")
     for i in range(len(lines)):
         m = r.match(lines[i])
-        if m and m.group(1) in svc_lst:
+        if m is not None and m.group(1) in svc_lst:
             lines.insert(i + 1, "    use                     {}\n".format(tmpl))
 
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "w")
@@ -796,7 +800,7 @@ def add_template_to_hosts(poller:int, tmpl:str, hst_lst):
     r = re.compile(r"^\s*_HOST_ID\s*(\d+)$")
     for i in range(len(lines)):
         m = r.match(lines[i])
-        if m and m.group(1) in hst_lst:
+        if m is not None and m.group(1) in hst_lst:
             lines.insert(i + 1, "    use                     {}\n".format(tmpl))
 
     ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "w")
