@@ -519,6 +519,24 @@ def broker_config_add_item(name, key, value):
     f.close()
 
 
+def broker_config_remove_item(name, key):
+    if name == 'central':
+        filename = "central-broker.json"
+    elif name == 'rrd':
+        filename = "central-rrd.json"
+    elif name.startswith('module'):
+        filename = "central-{}.json".format(name)
+
+    f = open("/etc/centreon-broker/{}".format(filename), "r")
+    buf = f.read()
+    f.close()
+    conf = json.loads(buf)
+    conf["centreonBroker"].pop(key)
+    f = open("/etc/centreon-broker/{}".format(filename), "w")
+    f.write(json.dumps(conf, indent=2))
+    f.close()
+
+
 def broker_config_add_lua_output(name, output, luafile):
     if name == 'central':
         filename = "central-broker.json"
