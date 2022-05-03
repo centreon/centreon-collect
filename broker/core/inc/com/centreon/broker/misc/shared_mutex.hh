@@ -75,7 +75,7 @@ class read_lock {
   bool _locked;
 
  public:
-  read_lock(shared_mutex& m) : _m(m), _locked{true} { _m.lock_shared(); }
+  explicit read_lock(shared_mutex& m) : _m(m), _locked{true} { _m.lock_shared(); }
   ~read_lock() noexcept {
     if (_locked)
       _m.unlock();
