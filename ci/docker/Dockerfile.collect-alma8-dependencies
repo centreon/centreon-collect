@@ -24,7 +24,8 @@ RUN dnf clean all && dnf install -y cmake \
     make \
     maven \
     perl-ExtUtils-Embed.noarch \
-    python3-pip \
+    python38 \
+    python38-pip \
     perl-Thread-Queue \
     redhat-lsb \
     rpm-build \
