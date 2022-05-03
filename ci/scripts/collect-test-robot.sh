@@ -1,8 +1,10 @@
 #!/bin/bash
 set -e
 
+export RUN_ENV=docker
+
 echo "########################### start mariadb ############################"
-mariadbd --user=root &
+mariadbd --user=root > /dev/null 2>&1 &
 sleep 5
 
 echo "########################### init centreon database ############################"

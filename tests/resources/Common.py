@@ -127,11 +127,18 @@ def create_certificate(host: str, cert: str):
 
 
 def start_mysql():
-    getoutput("systemctl start mysql")
+    if not getoutput("echo $RUN_ENV | awk '{print $1}'"):
+        getoutput("systemctl start mysql")
+    else:
+        getoutput("mariadbd --user=root > /dev/null 2>&1 &")
 
 
 def stop_mysql():
-    getoutput("systemctl stop mysql")
+    if not getoutput("echo $RUN_ENV | awk '{print $1}'"):
+        getoutput("systemctl stop mysql")
+    else:
+        getoutput(
+        "kill -9 $(ps aux | grep 'mariadbd --user=root' | grep -v grep | awk '{print $2}')")
 
 
 def kill_broker():
