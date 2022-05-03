@@ -45,8 +45,8 @@ stage('Dependencies containers creation') {
         checkout scm
         dir ('ci/docker') {
           sh 'cp ../../conanfile.txt .'
-          sh 'docker build --no-cache . -f Dockerfile.collect-alma8-dependencies -t registry.centreon.com/centreon-collect-alma8-dependencies:22.04-testdocker'
-          sh 'docker push registry.centreon.com/centreon-collect-alma8-dependencies:22.04-testdocker'
+          sh 'docker build --no-cache . -f Dockerfile.collect-alma8-dependencies -t registry.centreon.com/centreon-collect-alma8-dependencies:22.04'
+          sh 'docker push registry.centreon.com/centreon-collect-alma8-dependencies:22.04'
         }
       }
     }
