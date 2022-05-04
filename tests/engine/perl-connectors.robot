@@ -22,7 +22,7 @@ EPC1
 	Start Engine
 	${log}=	Catenate	SEPARATOR=	${ENGINE_LOG}	/config0/centengine.debug
 	${content}=	Create List	connector::run: connector='Perl Connector'
-	${result}=	Find In Log with timeout	${log}	${start}	${content}	20
+	${result}=	Find In Log with timeout	${log}	${start}	${content}	60
 	Should Be True	${result}	msg=Missing a message talking about 'Perl Connector'
 
 	${content}=	Create List	connector::data_is_available

@@ -218,9 +218,15 @@ def find_line_from(lines, date):
     while end - start > 1:
         idx = (start + end) // 2
         m = p.match(lines[idx])
-        if m is None:
+        while m is None:
             logger.console("Unable to parse the date ({} <= {} <= {}): <<{}>>".format(
                 start, idx, end, lines[idx]))
+            idx -= 1
+            if idx >= 0 :
+                m = p.match(lines[idx])
+            else:
+                logger.console("We are at the first line and no date found")
+
         idx_d = get_date(m.group(1))
         if my_date <= idx_d:
             end = idx

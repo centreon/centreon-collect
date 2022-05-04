@@ -535,7 +535,7 @@ def create_service(index:int, host_id:int, cmd_id:int):
     if m is not None:
         retval = int(m.group(1))
     else:
-        logger.error("Impossible to get the service id from '{}'".format(good))
+        raise Exception("Impossible to get the service id from '{}'".format(good))
         m = 0
     f.write(svc)
     f.close()
