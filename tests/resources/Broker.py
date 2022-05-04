@@ -926,7 +926,7 @@ def create_metrics(count:int):
                 result = cursor.fetchall()
                 ids_index = [r['id'] for r in result]
                 if ids_index == [] :
-                    sql = "INSERT INTO index_data (host_id, service_id) VALUES ('1', '1')`"
+                    sql = "INSERT INTO index_data (host_id, service_id) VALUES ('1', '1')"
                     cursor.execute(sql)
                     ids_index = cursor.lastrowid
                 for c in range(count) :
@@ -1047,8 +1047,10 @@ def remove_graphs(port, indexes, metrics, timeout=10):
 # @param indexes The list of indexes corresponding to metrics to rebuild.
 #
 def rebuild_rrd_graphs(port, indexes, timeout: int = TIMEOUT):
+    logger.console("start gRPC server")
     limit = time.time() + timeout
     while time.time() < limit:
+        logger.console("gRPC server on while")
         time.sleep(1)
         with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
             stub = broker_pb2_grpc.BrokerStub(channel)

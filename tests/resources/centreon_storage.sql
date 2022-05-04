@@ -100,6 +100,8 @@ CREATE TABLE `config` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8;
 
+INSERT INTO `config` (`RRDdatabase_path`, `RRDdatabase_status_path`, `RRDdatabase_nagios_stats_path`, `len_storage_rrd`, `len_storage_mysql`, `autodelete_rrd_db`, `sleep_time`, `purge_interval`, `storage_type`, `average`, `archive_log`, `archive_retention`, `reporting_retention`, `nagios_log_file`, `last_line_read`, `audit_log_option`, `len_storage_downtimes`, `len_storage_comments`) 
+  VALUES ('/var/lib/centreon/metrics', '/var/lib/centreon/status', '/var/lib/centreon/nagios-perf', 180, 365, 1, 10, 360, 2, null, 1, 31, 365, "/var/log/centreon-engine/centengine.log.log", 0, 1, 0, 0);
 --
 -- Table structure for table `customvariables`
 --
