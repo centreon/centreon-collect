@@ -519,6 +519,24 @@ def broker_config_add_item(name, key, value):
     f.close()
 
 
+def broker_config_remove_item(name, key):
+    if name == 'central':
+        filename = "central-broker.json"
+    elif name == 'rrd':
+        filename = "central-rrd.json"
+    elif name.startswith('module'):
+        filename = "central-{}.json".format(name)
+
+    f = open("/etc/centreon-broker/{}".format(filename), "r")
+    buf = f.read()
+    f.close()
+    conf = json.loads(buf)
+    conf["centreonBroker"].pop(key)
+    f = open("/etc/centreon-broker/{}".format(filename), "w")
+    f.write(json.dumps(conf, indent=2))
+    f.close()
+
+
 def broker_config_add_lua_output(name, output, luafile):
     if name == 'central':
         filename = "central-broker.json"
@@ -1044,8 +1062,13 @@ def compare_rrd_average_value(metric, value: float):
     res = getoutput("rrdtool graph dummy --start=end-30d --end=now"
                     " DEF:x=/var/lib/centreon/metrics/{}.rrd:value:AVERAGE VDEF:xa=x,AVERAGE PRINT:xa:%lf"
                     .format(metric))
-    res = float(res.split('\n')[1].replace(',', '.'))
-    return abs(res - float(value)) < 2
+    lst = res.split('\n')
+    if len(lst) >= 2:
+        res = float(lst[1].replace(',', '.'))
+        return abs(res - float(value)) < 2
+    else:
+        logger.console("It was impossible to get the average value from the file /var/lib/centreon/metrics/{}.rrd from the last 30 days".format(metric))
+        return True
 
 
 ##

@@ -30,10 +30,11 @@ BERES1
         Broker Config Output Set	central	central-broker-unified-sql	store_in_hosts_services	no
 	Clear Retention
 	${start}=	Get Current Date
+        Sleep	1s
 	Start Broker
 	Start Engine
         ${content_not_present}=	Create List	processing host status event (host:	UPDATE hosts SET checked=i	processing service status event (host:	UPDATE services SET checked=
-        ${content_present}=	Create List	UPDATE resources SET status=	INSERT INTO resources (id
+        ${content_present}=	Create List	UPDATE resources SET status=
         ${result}=	Find In log With Timeout	${centralLog}	${start}	${content_present}	60
         Should Be True	${result}	msg=no updates concerning resources available.
         FOR	${l}	IN	${content_not_present}
