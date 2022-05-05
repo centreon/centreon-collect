@@ -1,6 +1,5 @@
 @Library("centreon-shared-library")_
 import org.jenkinsci.plugins.pipeline.modeldefinition.Utils
-@Library('centreon-build-libraries@master') import org.centreon.Utils
 
 /*
 ** Variables.
@@ -155,7 +154,10 @@ stage('Quality Gate') {
       Utils.markStageSkippedForConditional('Quality Gate')
     } else {
       timeout(time: 10, unit: 'MINUTES') {
-        utils.checkSonarQualityGate()
+        def qualityGate = waitForQualityGate()
+        if (qualityGate.status != 'OK') {
+          currentBuild.result = 'FAIL'
+        }
       }
     }
   }
