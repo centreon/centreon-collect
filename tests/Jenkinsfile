@@ -3,9 +3,9 @@
 pipeline {
 
     agent none
-    triggers {
-        cron('0 0 * * *')
-    }
+    // triggers {
+    //     cron('0 0 * * *')
+    // }
     stages {
       stage('Launch Centreon Tests') {
           agent any
