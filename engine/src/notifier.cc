@@ -17,8 +17,6 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <spdlog/fmt/ostr.h>
-
 #include "com/centreon/engine/notifier.hh"
 
 #include "com/centreon/engine/broker.hh"
@@ -39,34 +37,6 @@
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::logging;
 using namespace com::centreon::engine::configuration::applier;
-
-CCE_BEGIN()
-
-#define CASE_NOTIF_REASON_TYPE(reas) \
-  case notifier::reas:               \
-    str << #reas;                    \
-    break;
-
-std::ostream& operator<<(std::ostream& str,
-                         const notifier::reason_type& notif) {
-  switch (notif) {
-    CASE_NOTIF_REASON_TYPE(reason_normal)
-    CASE_NOTIF_REASON_TYPE(reason_recovery)
-    CASE_NOTIF_REASON_TYPE(reason_acknowledgement)
-    CASE_NOTIF_REASON_TYPE(reason_flappingstart)
-    CASE_NOTIF_REASON_TYPE(reason_flappingstop)
-    CASE_NOTIF_REASON_TYPE(reason_flappingdisabled)
-    CASE_NOTIF_REASON_TYPE(reason_downtimestart)
-    CASE_NOTIF_REASON_TYPE(reason_downtimeend)
-    CASE_NOTIF_REASON_TYPE(reason_downtimecancelled)
-    CASE_NOTIF_REASON_TYPE(reason_custom)
-    default:
-      str << "unknown notifier::reason_type:" << static_cast<unsigned>(notif);
-  }
-  return str;
-}
-
-CCE_END()
 
 std::array<std::string, 9> const notifier::tab_notification_str{{
     "NORMAL",
@@ -242,6 +212,9 @@ void notifier::set_last_problem_id(unsigned long last_problem_id) noexcept {
  * @param num The notification number.
  */
 void notifier::set_notification_number(int num) {
+  log_v2::notifications()->trace(
+      "_notification_number set_notification_number: {} => {}",
+      _notification_number, num);
   /* set the notification number */
   _notification_number = num;
 
@@ -564,6 +537,9 @@ bool notifier::_is_notification_viable_recovery(reason_type type
   if (!retval) {
     if (!send_later) {
       _notification[cat_normal].reset();
+      log_v2::notifications()->trace(
+          " _notification_number _is_notification_viable_recovery: {} => 0",
+          _notification_number);
       _notification_number = 0;
     }
   }
@@ -955,8 +931,12 @@ int notifier::notify(notifier::reason_type type,
 
   /* For a first notification, we store what type of notification we try to
    * send and we fix the notification number to 1. */
-  if (type != reason_recovery)
+  if (type != reason_recovery) {
+    log_v2::notifications()->trace("_notification_number notify: {} -> {}",
+                                   _notification_number,
+                                   _notification_number + 1);
     ++_notification_number;
+  }
 
   /* What are the contacts to notify? */
   uint32_t notification_interval;
@@ -1006,8 +986,11 @@ int notifier::notify(notifier::reason_type type,
       }
       /* In case of an acknowledgement, we must keep the _notification_number
        * otherwise the recovery notification won't be sent when needed. */
-      if (cat != cat_acknowledgement)
+      if (cat != cat_acknowledgement && cat != cat_downtime) {
+        log_v2::notifications()->trace("_notification_number notify: {} => 0",
+                                       _notification_number);
         _notification_number = 0;
+      }
     }
   }
 

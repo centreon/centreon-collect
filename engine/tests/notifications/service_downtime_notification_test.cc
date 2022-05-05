@@ -85,9 +85,6 @@ class ServiceDowntimeNotification : public TestEngine {
     _svc->set_problem_has_been_acknowledged(false);
     _svc->set_notify_on(static_cast<uint32_t>(-1));
     _svc->set_max_attempts(1);
-    log_v2::functions()->set_level(spdlog::level::trace);
-    log_v2::checks()->set_level(spdlog::level::trace);
-    log_v2::notifications()->set_level(spdlog::level::trace);
   }
 
   void TearDown() override {
@@ -319,10 +316,8 @@ TEST_F(ServiceDowntimeNotification,
       step2);
   ASSERT_NE(step2_bis, std::string::npos);
 
-  size_t step3{out.find("[50400]", step2_bis)};
-  ASSERT_NE(step3, std::string::npos);
-  ASSERT_NE(out.find("SERVICE NOTIFICATION: "
+  ASSERT_EQ(out.find("SERVICE NOTIFICATION: "
                      "admin;test_host;test_svc;RECOVERY (OK);cmd;service ok",
-                     step3 + 1),
+                     step2_bis + 1),
             std::string::npos);
 }
