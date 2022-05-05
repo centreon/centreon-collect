@@ -582,6 +582,14 @@ def process_service_check_result(hst: str, svc: str, state: int, output: str):
     f.write(cmd)
     f.close()
 
+def service_ext_commands(hst: str, svc: str, state: int, output: str):
+    now = int(time.time())
+    cmd = "[{}] PROCESS_SERVICE_CHECK_RESULT;{};{};{};{}\n".format(
+        now, hst, svc, state, output)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
+
 
 def schedule_service_downtime(hst: str, svc: str, duration: int):
     now = int(time.time())
