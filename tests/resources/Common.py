@@ -669,3 +669,34 @@ def check_number_of_relations_between_servicegroup_and_services(servicegroup: in
                         return True
         time.sleep(1)
     return False
+
+def check_host_status(host: str, value: int, t: int, in_resources: bool, timeout: int = TIMEOUT):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host='localhost',
+                                 user='centreon',
+                                 password='centreon',
+                                 database='centreon_storage',
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                key = ''
+                confirmed = ''
+                if in_resources:
+                    cursor.execute("SELECT status, status_confirmed FROM resources WHERE parent_id=0 AND name='{}'".format(host))
+                    key = 'status'
+                    confirmed = 'status_confirmed'
+                else:
+                    cursor.execute("SELECT state, state_type FROM hosts WHERE name='{}'".format(host))
+                    key = 'state'
+                    confirmed = 'state_type'
+                result = cursor.fetchall()
+                if len(result) > 0:
+                    if int(result[0][key]) == value and int(result[0][confirmed]) == t:
+                        return True
+                    else:
+                        logger.console("Host '{}' has status '{}' with confirmed '{}'".format(host, result[0][key], result[0][confirmed]))
+        time.sleep(1)
+    return False
