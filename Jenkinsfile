@@ -61,15 +61,6 @@ stage('Build / Unit tests // Packaging / Signing') {
       }
     }
   },
-  'centos7 Build and test robot': {
-    node("C++") {
-      dir('centreon-collect-centos7') {
-        checkout scm
-        sh 'docker run -i --entrypoint /src/ci/scripts/collect-test-robot.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:22.04'
-        robot outputPath: 'tests', logFileName: 'log.html', outputFileName: 'output.xml', reportFileName: 'report.html', passThreshold: 100, unstableThreshold: 75.0
-      }
-    }
-  }/*,
   'centos7 SQ analysis': {
     node("C++") {
       if (securityAnalysisRequired == 'no') {
@@ -154,7 +145,7 @@ stage('Build / Unit tests // Packaging / Signing') {
       stash name: 'Debian11', includes: 'Debian11/*.deb'
       archiveArtifacts artifacts: "Debian11/*"
     }
-  }*/
+  }
 }
 
 stage('Quality Gate') {
