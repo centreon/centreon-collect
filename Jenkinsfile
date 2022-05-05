@@ -54,14 +54,14 @@ stage('Deliver sources') {
 
 stage('Build / Unit tests // Packaging / Signing') {
   parallel 'centos7 Build and UT': {
-    /*node("C++") {
+    node("C++") {
       dir('centreon-collect-centos7') {
         checkout scm
         sh 'docker run -i --entrypoint /src/ci/scripts/collect-unit-tests.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:22.04'
       }
     }
   },
-  'centos7 SQ analysis': {*/
+  'centos7 SQ analysis': {
     node("C++") {
       if (securityAnalysisRequired == 'no') {
         Utils.markStageSkippedForConditional('centos7 SQ analysis')
@@ -85,7 +85,7 @@ stage('Build / Unit tests // Packaging / Signing') {
         }
       }
     }
-  }/*,
+  },
   'centos7 rpm packaging and signing': {
     node("C++") {
       dir('centreon-collect-centos7') {
@@ -145,7 +145,7 @@ stage('Build / Unit tests // Packaging / Signing') {
       stash name: 'Debian11', includes: 'Debian11/*.deb'
       archiveArtifacts artifacts: "Debian11/*"
     }
-  }*/
+  }
 }
 
 stage('Quality Gate') {
@@ -166,7 +166,7 @@ stage('Quality Gate') {
   }
 }
 
-/*stage('Delivery') {
+stage('Delivery') {
   node("C++") {
     unstash 'el8-rpms'
     unstash 'el7-rpms'
@@ -187,4 +187,4 @@ stage('Quality Gate') {
       }
     }
   }
-}*/
+}
