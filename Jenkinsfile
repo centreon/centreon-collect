@@ -156,8 +156,11 @@ stage('Quality Gate') {
       timeout(time: 10, unit: 'MINUTES') {
         def qualityGate = waitForQualityGate()
         if (qualityGate.status != 'OK') {
-          currentBuild.result = 'FAIL'
+          error "Pipeline aborted due to quality gate failure: ${qualityGate.status}"
         }
+      }
+      if ((currentBuild.result ?: 'SUCCESS') != 'SUCCESS') {
+        error("Quality gate failure: ${qualityGate.status}.");
       }
     }
   }
