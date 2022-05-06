@@ -1091,17 +1091,23 @@ def compare_rrd_average_value(metric, value: float):
 # @param count The expected number of active connections.
 #
 # @return A boolean.
-def check_sql_connections_count_with_grpc(port, count):
-    time.sleep(1)
-    with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
-        stub = broker_pb2_grpc.BrokerStub(channel)
-        res = stub.GetSqlManagerStats(empty_pb2.Empty())
-        if len(res.connections) < count:
-            return False
-        for c in res.connections:
-            if c.down_since:
-                return False
-    return True
+def check_sql_connections_count_with_grpc(port, count, timeout=TIMEOUT):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        time.sleep(1)
+        with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            try:
+                res = stub.GetSqlManagerStats(empty_pb2.Empty())
+                if len(res.connections) < count:
+                    continue
+                for c in res.connections:
+                    if c.down_since:
+                        continue
+                return True
+            except:
+                logger.console("gRPC server not ready")
+    return False
 
 
 ##
@@ -1111,15 +1117,21 @@ def check_sql_connections_count_with_grpc(port, count):
 # @param count The expected number of active connections.
 #
 # @return A boolean.
-def check_all_sql_connections_down_with_grpc(port):
-    time.sleep(1)
-    with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
-        stub = broker_pb2_grpc.BrokerStub(channel)
-        res = stub.GetSqlManagerStats(empty_pb2.Empty())
-        for c in res.connections:
-            if c.up_since:
-                return False
-    return True
+def check_all_sql_connections_down_with_grpc(port, timeout=TIMEOUT):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        time.sleep(1)
+        with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            try:
+                res = stub.GetSqlManagerStats(empty_pb2.Empty())
+                for c in res.connections:
+                    if c.up_since:
+                        continue
+                return True
+            except:
+                logger.console("gRPC server not ready")
+    return False
 
 
 ##
