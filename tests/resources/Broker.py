@@ -1,3 +1,5 @@
+from os import makedirs
+from os.path import exists, dirname
 import pymysql.cursors
 import time
 import shutil
@@ -383,6 +385,12 @@ def config_broker(name, poller_inst: int = 1):
         broker_name = "central-module-master"
         filename = "central-module0.json"
     else:
+        if not exists("/var/lib/centreon/metrics/"):
+            makedirs("/var/lib/centreon/metrics/")
+        if not exists("/var/lib/centreon/status/"):
+            makedirs("/var/lib/centreon/status/")
+        if not exists("/var/lib/centreon/metrics/tmpl_15552000_300_0.rrd"):
+            getoutput("rrdcreate /var/lib/centreon/metrics/tmpl_15552000_300_0.rrd DS:value:ABSOLUTE:3000:U:U RRA:AVERAGE:0.5:1:864000")
         broker_id = 2
         broker_name = "central-rrd-master"
         filename = "central-rrd.json"
@@ -910,12 +918,15 @@ def create_metrics(count:int):
             result = cursor.fetchall()
             ids_db = [r['metric_id'] for r in result]
             if list(set(ids) & set(ids_db)) == [] :
+                sql = "DELETE FROM metrics"
+                cursor.execute(sql)
+                connection.commit()
                 sql = "SELECT `id` FROM `index_data`"
                 cursor.execute(sql)
                 result = cursor.fetchall()
                 ids_index = [r['id'] for r in result]
                 if ids_index == [] :
-                    sql = "INSERT INTO index_data (host_id, service_id) VALUES ('1', '1')`"
+                    sql = "INSERT INTO index_data (host_id, service_id) VALUES ('1', '1')"
                     cursor.execute(sql)
                     ids_index = cursor.lastrowid
                 for c in range(count) :
@@ -1036,8 +1047,10 @@ def remove_graphs(port, indexes, metrics, timeout=10):
 # @param indexes The list of indexes corresponding to metrics to rebuild.
 #
 def rebuild_rrd_graphs(port, indexes, timeout: int = TIMEOUT):
+    logger.console("start gRPC server")
     limit = time.time() + timeout
     while time.time() < limit:
+        logger.console("gRPC server on while")
         time.sleep(1)
         with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
             stub = broker_pb2_grpc.BrokerStub(channel)

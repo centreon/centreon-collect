@@ -228,7 +228,7 @@ BRRDRM1
 
 	# We get 3 indexes to rebuild
 	${index}=	Get Indexes To Rebuild	3
-	Rebuild Rrd Graphs	51001	${index}
+	Rebuild Rrd Graphs	51001	${index}	1
 	Log To Console	Indexes to rebuild: ${index}
 	${metrics}=	Get Metrics Matching Indexes	${index}
 	Log To Console	Metrics to rebuild: ${metrics}
@@ -237,11 +237,11 @@ BRRDRM1
 	Should Be True	${result}	msg=Central did not send metrics to rebuild
 
 	${content1}=	Create List	RRD: Starting to rebuild metrics
-	${result}=	Find In Log With Timeout	${rrdLog}	${start}	${content1}	30
+	${result}=	Find In Log With Timeout	${rrdLog}	${start}	${content1}	45
 	Should Be True	${result}	msg=RRD cbd did not receive metrics to rebuild START
 
 	${content1}=	Create List	RRD: Rebuilding metric
-	${result}=	Find In Log With Timeout	${rrdLog}	${start}	${content1}	30
+	${result}=	Find In Log With Timeout	${rrdLog}	${start}	${content1}	45
 	Should Be True	${result}	msg=RRD cbd did not receive metrics to rebuild DATA
 
 	${content1}=	Create List	RRD: Finishing to rebuild metrics
@@ -273,7 +273,7 @@ BRRDRMU1
 
 	# We get 3 indexes to rebuild
 	${index}=	Get Indexes To Rebuild	3
-	Rebuild Rrd Graphs	51001	${index}
+	Rebuild Rrd Graphs	51001	${index}	1
 	Log To Console	Indexes to rebuild: ${index}
 	${metrics}=	Get Metrics Matching Indexes	${index}
 	Log To Console	Metrics to rebuild: ${metrics}

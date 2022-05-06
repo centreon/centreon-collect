@@ -35,7 +35,7 @@ MIGRATION
         ${contentCentral}=	Create List	SQL: processing service status event
         ${result}=	Find In Log With Timeout      ${centralLog}	${start}	${contentCentral}	200
         Should Be True	${result}	msg=No service status processed by the sql output for 200s
-        ${contentRRD}=	Create List	RRD: new data for metric
+        ${contentRRD}=	Create List	RRD: output::write
         ${result}=	Find In Log With Timeout      ${rrdLog}	${start}	${contentRRD}	30
         Should Be True	${result}	msg=No metric sent to rrd cbd for 30s
 
@@ -52,7 +52,7 @@ MIGRATION
         ${contentCentral}=	Create List	SQL: processing service status event
         ${result}=	Find In Log With Timeout      ${centralLog}	${start}	${contentCentral}	200
         Should Be True	${result}	msg=No service status processed by the unified_sql output for 200s
-        ${contentRRD}=	Create List	RRD: new data for metric
+        ${contentRRD}=	Create List	RRD: output::write
         ${result}=	Find In Log With Timeout      ${rrdLog}	${start}	${contentRRD}	30
         Should Be True	${result}	msg=No metric sent to rrd cbd by unified_sql for 30s
 
@@ -73,7 +73,7 @@ MIGRATION
         ${contentCentral}=	Create List	status check result output:
         ${result}=	Find In Log With Timeout      ${centralLog}	${start}	${contentCentral}	200
         Should Be True	${result}	msg=No pb service status processed by the unified_sql output with BBDO3 for 200s
-        ${contentRRD}=	Create List	RRD: new data for metric
+        ${contentRRD}=	Create List	RRD: output::write
         ${result}=	Find In Log With Timeout      ${rrdLog}	${start}	${contentRRD}	30
         Should Be True	${result}	msg=No metric sent to rrd cbd by unified_sql for 30s
 
@@ -94,7 +94,7 @@ MIGRATION
         ${contentCentral}=	Create List	SQL: processing service status event
         ${result}=	Find In Log With Timeout      ${centralLog}	${start}	${contentCentral}	200
         Should Be True	${result}	msg=No service status processed by the unified_sql output for 200s
-        ${contentRRD}=	Create List	RRD: new data for metric
+        ${contentRRD}=	Create List	RRD: output::write
         ${result}=	Find In Log With Timeout      ${rrdLog}	${start}	${contentRRD}	30
         Should Be True	${result}	msg=No metric sent to rrd cbd by unified_sql for 30s
 
@@ -109,7 +109,7 @@ MIGRATION
         ${contentCentral}=	Create List	SQL: processing service status event
         ${result}=	Find In Log With Timeout      ${centralLog}	${start}	${contentCentral}	200
         Should Be True	${result}	msg=No service status processed by the sql output for 200s
-        ${contentRRD}=	Create List	RRD: new data for metric
+        ${contentRRD}=	Create List	RRD: output::write
         ${result}=	Find In Log With Timeout      ${rrdLog}	${start}	${contentRRD}	30
         Should Be True	${result}	msg=No metric sent to rrd cbd for 30s
 

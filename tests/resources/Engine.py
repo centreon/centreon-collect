@@ -435,6 +435,18 @@ define connector {
     friday                         00:00-24:00
     saturday                       00:00-24:00
 }
+define timeperiod {
+    name                           24x6
+    timeperiod_name                24x6
+    alias                          24_Hours_A_Day,_7_Days_A_Week
+    sunday                         00:00-24:00
+    monday                         00:00-24:00
+    tuesday                        00:00-24:00
+    wednesday                      00:00-24:00
+    thursday                       00:00-24:00
+    friday                         00:00-24:00
+    saturday                       00:00-24:00
+}
 """)
             f.close()
             f = open(config_dir + "/hostgroups.cfg", "w")
@@ -444,6 +456,8 @@ define connector {
             for file in ["check.pl", "notif.pl"]:
                 shutil.copyfile("{0}/{1}".format(SCRIPT_DIR, file),
                                 "{0}/{1}".format(ENGINE_HOME, file))
+            if not exists(ENGINE_HOME + "/config{}/rw".format(inst)):
+                makedirs(ENGINE_HOME + "/config{}/rw".format(inst))
 
     def centengine_conf_add_bam(self):
         config_dir = "{}/config0".format(CONF_DIR)
@@ -580,6 +594,85 @@ def process_service_check_result(hst: str, svc: str, state: int, output: str):
     f.write(cmd)
     f.close()
 
+def change_normal_svc_check_interval(hst: str, svc: str, check_interval: int):
+    now = int(time.time())
+    cmd = "[{}] CHANGE_NORMAL_SVC_CHECK_INTERVAL;{};{};{}\n".format(
+        now, hst, svc, check_interval)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
+
+def change_normal_host_check_interval(hst: str, check_interval: int):
+    now = int(time.time())
+    cmd = "[{}] CHANGE_NORMAL_HOST_CHECK_INTERVAL;{};{}\n".format(
+        now, hst, check_interval)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
+
+def change_retry_svc_check_interval(hst: str, svc: str, retry_interval: int):
+    now = int(time.time())
+    cmd = "[{}] CHANGE_RETRY_SVC_CHECK_INTERVAL;{};{};{}\n".format(
+        now, hst, svc, retry_interval)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
+
+def change_retry_host_check_interval(hst: str, retry_interval: int):
+    now = int(time.time())
+    cmd = "[{}] CHANGE_RETRY_HOST_CHECK_INTERVAL;{};{}\n".format(
+        now, hst, retry_interval)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
+
+def change_max_svc_check_attempts(hst: str, svc: str, max_check_attempts: int):
+    now = int(time.time())
+    cmd = "[{}] CHANGE_MAX_SVC_CHECK_ATTEMPTS;{};{};{}\n".format(
+        now, hst, svc, max_check_attempts)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
+
+def change_max_host_check_attempts(hst: str, max_check_attempts: int):
+    now = int(time.time())
+    cmd = "[{}] CHANGE_MAX_HOST_CHECK_ATTEMPTS;{};{}\n".format(
+        now, hst, max_check_attempts)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
+
+def change_Host_Check_Command(hst: str, Check_Command: str):
+    now = int(time.time())
+    cmd = "[{}] CHANGE_HOST_CHECK_COMMAND;{};{}\n".format(
+        now, hst, Check_Command)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
+
+def change_host_check_timeperiod(hst: str, check_timeperiod: str):
+    now = int(time.time())
+    cmd = "[{}] CHANGE_HOST_CHECK_TIMEPERIOD;{};{}\n".format(
+        now, hst, check_timeperiod)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
+
+def change_host_notification_timeperiod(hst: str, notification_timeperiod: str):
+    now = int(time.time())
+    cmd = "[{}] CHANGE_HOST_NOTIFICATION_TIMEPERIOD;{};{}\n".format(
+        now, hst, notification_timeperiod)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
+
+def service_ext_commands(hst: str, svc: str, state: int, output: str):
+    now = int(time.time())
+    cmd = "[{}] PROCESS_SERVICE_CHECK_RESULT;{};{};{};{}\n".format(
+        now, hst, svc, state, output)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
 
 def schedule_service_downtime(hst: str, svc: str, duration: int):
     now = int(time.time())
