@@ -32,6 +32,10 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
 using namespace com::centreon::broker::unified_sql;
 
+static inline bool is_not_zero(const int64_t& value) {
+  return value != 0;
+}
+
 /**
  *  @brief Clean tables with data associated to the instance.
  *
@@ -1654,7 +1658,7 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
       _hscr_update.bind_value_as_f64(13, hscr.percent_state_change());
       _hscr_update.bind_value_as_f64(14, hscr.latency());
       _hscr_update.bind_value_as_f64(15, hscr.execution_time());
-      _hscr_update.bind_value_as_i64(16, hscr.last_check());
+      _hscr_update.bind_value_as_i64(16, hscr.last_check(), is_not_zero);
       _hscr_update.bind_value_as_i64(17, hscr.next_check());
       _hscr_update.bind_value_as_bool(18, hscr.should_be_scheduled());
       _hscr_update.bind_value_as_i32(19, hscr.current_check_attempt());
@@ -1689,7 +1693,8 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
       _hscr_resources_update.bind_value_as_u32(6, hscr.current_check_attempt());
       _hscr_resources_update.bind_value_as_bool(7, hscr.perf_data() != "");
       _hscr_resources_update.bind_value_as_u32(8, hscr.check_type());
-      _hscr_resources_update.bind_value_as_u64(9, hscr.last_check());
+      _hscr_resources_update.bind_value_as_u64(9, hscr.last_check(),
+                                               is_not_zero);
       _hscr_resources_update.bind_value_as_str(10, hscr.output());
       _hscr_resources_update.bind_value_as_u64(11, hscr.host_id());
 
@@ -3051,7 +3056,7 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
       _sscr_update.bind_value_as_f64(14, sscr.percent_state_change());
       _sscr_update.bind_value_as_f64(15, sscr.latency());
       _sscr_update.bind_value_as_f64(16, sscr.execution_time());
-      _sscr_update.bind_value_as_i64(17, sscr.last_check());
+      _sscr_update.bind_value_as_i64(17, sscr.last_check(), is_not_zero);
       _sscr_update.bind_value_as_i64(18, sscr.next_check());
       _sscr_update.bind_value_as_bool(19, sscr.should_be_scheduled());
       _sscr_update.bind_value_as_i32(20, sscr.current_check_attempt());
@@ -3088,7 +3093,8 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
       _sscr_resources_update.bind_value_as_u32(6, sscr.current_check_attempt());
       _sscr_resources_update.bind_value_as_bool(7, sscr.perf_data() != "");
       _sscr_resources_update.bind_value_as_u32(8, sscr.check_type());
-      _sscr_resources_update.bind_value_as_u64(9, sscr.last_check());
+      _sscr_resources_update.bind_value_as_u64(9, sscr.last_check(),
+                                               is_not_zero);
       _sscr_resources_update.bind_value_as_str(10, sscr.output());
       _sscr_resources_update.bind_value_as_u64(11, sscr.service_id());
       _sscr_resources_update.bind_value_as_u64(12, sscr.host_id());
