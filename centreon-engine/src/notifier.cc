@@ -815,9 +815,10 @@ int notifier::notify(notifier::reason_type type,
         default:
           _notification[cat].reset();
       }
-      /* In case of an acknowledgement, we must keep the _notification_number
+      /* In case of an acknowledgement or downtime, we must keep the
+       * _notification_number
        * otherwise the recovery notification won't be sent when needed. */
-      if (cat != cat_acknowledgement)
+      if (cat != cat_acknowledgement && cat != cat_downtime)
         _notification_number = 0;
     }
   }
