@@ -274,7 +274,7 @@ void embedded_perl::unload() {
  *  @param[in] code Additional code to run by interpreter.
  */
 embedded_perl::embedded_perl([[maybe_unused]] int argc,
-                             [[maybe_unused]] char** argv,
+                             char** argv,
                              [[maybe_unused]] char** env,
                              char const* code)
     : _self(getpid()), _argv(argv) {
