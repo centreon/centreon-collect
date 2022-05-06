@@ -160,6 +160,7 @@ def clear_retention():
     getoutput("find /var -name '*.memory.*' -delete")
     getoutput("find /var -name '*.queue.*' -delete")
     getoutput("find /var -name '*.unprocessed*' -delete")
+    getoutput("find /var -name 'retention.dat' -delete")
 
 
 def clear_cache():
