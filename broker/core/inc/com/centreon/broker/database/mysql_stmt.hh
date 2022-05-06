@@ -68,9 +68,29 @@ class mysql_stmt {
 
   void bind_value_as_i64(int range, int64_t value);
   void bind_value_as_i64(std::string const& key, int64_t value);
+  template <typename not_null_predicate>
+  void bind_value_as_i64(int range,
+                         int64_t value,
+                         const not_null_predicate& pred) {
+    if (pred(value)) {
+      bind_value_as_i64(range, value);
+    } else {
+      bind_value_as_null(range);
+    }
+  }
 
   void bind_value_as_u64(int range, uint64_t value);
   void bind_value_as_u64(std::string const& key, uint64_t value);
+  template <typename not_null_predicate>
+  void bind_value_as_u64(int range,
+                         uint64_t value,
+                         const not_null_predicate& pred) {
+    if (pred(value)) {
+      bind_value_as_u64(range, value);
+    } else {
+      bind_value_as_null(range);
+    }
+  }
 
   void bind_value_as_f32(int range, float value);
   void bind_value_as_f32(std::string const& key, float value);

@@ -1704,7 +1704,7 @@ int neb::callback_pb_host_status(int callback_type, void* data) noexcept {
   hscr.set_check_type(static_cast<HostStatus_CheckType>(eh->get_check_type()));
   hscr.set_current_check_attempt(eh->get_current_attempt());
   hscr.set_current_state(static_cast<HostStatus_State>(
-      eh->has_been_checked() ? eh->get_current_state() : 2));  // Pending state.
+      eh->has_been_checked() ? eh->get_current_state() : 4));  // Pending state.
   hscr.set_execution_time(eh->get_execution_time());
   hscr.set_has_been_checked(eh->has_been_checked());
   hscr.set_is_flapping(eh->get_is_flapping());
@@ -2794,11 +2794,11 @@ int32_t neb::callback_pb_service_status(int callback_type
   if (!es->get_perf_data().empty()) {
     sscr.set_perf_data(misc::string::check_string_utf8(es->get_perf_data()));
     log_v2::neb()->trace("callbacks: service ({}, {}) has perfdata <<{}>>",
-        es->get_host_id(), es->get_service_id(), es->get_perf_data());
- }
-  else {
+                         es->get_host_id(), es->get_service_id(),
+                         es->get_perf_data());
+  } else {
     log_v2::neb()->trace("callbacks: service ({}, {}) has no perfdata",
-        es->get_host_id(), es->get_service_id());
+                         es->get_host_id(), es->get_service_id());
   }
   sscr.set_should_be_scheduled(es->get_should_be_scheduled());
   sscr.set_state_type(static_cast<ServiceStatus_StateType>(
