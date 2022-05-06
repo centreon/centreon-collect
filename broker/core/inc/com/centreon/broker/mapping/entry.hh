@@ -174,7 +174,7 @@ class entry {
    */
   template <typename T>
   entry(unsigned short(T::*prop),
-        char const* name,
+        const char* name,
         uint32_t attr = always_valid,
         bool serialize = true)
       : _attribute(attr),
@@ -241,10 +241,12 @@ class entry {
   }
 
   ~entry() noexcept {
-    if (_source) {
-      delete _source;
-      _source = nullptr;
-    }
+    // This is not the better fix, but entries are static objects
+    // only destroyed at the end of the program.
+    //    if (_source) {
+    //      delete _source;
+    //      _source = nullptr;
+    //    }
   }
   entry& operator=(entry const&) = delete;
   uint32_t get_attribute() const { return _attribute; }
