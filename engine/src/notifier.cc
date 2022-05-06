@@ -212,6 +212,9 @@ void notifier::set_last_problem_id(unsigned long last_problem_id) noexcept {
  * @param num The notification number.
  */
 void notifier::set_notification_number(int num) {
+  log_v2::notifications()->trace(
+      "_notification_number set_notification_number: {} => {}",
+      _notification_number, num);
   /* set the notification number */
   _notification_number = num;
 
@@ -534,6 +537,9 @@ bool notifier::_is_notification_viable_recovery(reason_type type
   if (!retval) {
     if (!send_later) {
       _notification[cat_normal].reset();
+      log_v2::notifications()->trace(
+          " _notification_number _is_notification_viable_recovery: {} => 0",
+          _notification_number);
       _notification_number = 0;
     }
   }
@@ -916,7 +922,7 @@ int notifier::notify(notifier::reason_type type,
                      std::string const& not_data,
                      notification_option options) {
   engine_logger(dbg_functions, basic) << "notifier::notify()";
-  log_v2::functions()->trace("notifier::notify()");
+  log_v2::functions()->trace("notifier::notify({})", type);
   notification_category cat{get_category(type)};
 
   /* Has this notification got sense? */
@@ -925,8 +931,12 @@ int notifier::notify(notifier::reason_type type,
 
   /* For a first notification, we store what type of notification we try to
    * send and we fix the notification number to 1. */
-  if (type != reason_recovery)
+  if (type != reason_recovery) {
+    log_v2::notifications()->trace("_notification_number notify: {} -> {}",
+                                   _notification_number,
+                                   _notification_number + 1);
     ++_notification_number;
+  }
 
   /* What are the contacts to notify? */
   uint32_t notification_interval;
@@ -976,8 +986,11 @@ int notifier::notify(notifier::reason_type type,
       }
       /* In case of an acknowledgement, we must keep the _notification_number
        * otherwise the recovery notification won't be sent when needed. */
-      if (cat != cat_acknowledgement)
+      if (cat != cat_acknowledgement && cat != cat_downtime) {
+        log_v2::notifications()->trace("_notification_number notify: {} => 0",
+                                       _notification_number);
         _notification_number = 0;
+      }
     }
   }
 
