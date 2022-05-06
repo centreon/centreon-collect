@@ -1293,39 +1293,39 @@ int neb::callback_pb_host(int callback_type, void* data) {
       dh->modified_attribute != MODATTR_ALL) {
     auto h{std::make_shared<neb::pb_adaptive_host>()};
     AdaptiveHost& hst = h.get()->mut_obj();
-    if (dh->attr & MODATTR_NOTIFICATIONS_ENABLED)
+    if (dh->modified_attribute & MODATTR_NOTIFICATIONS_ENABLED)
       hst.set_notifications_enabled(eh->get_notifications_enabled());
-    else if (dh->attr & MODATTR_ACTIVE_CHECKS_ENABLED) {
+    else if (dh->modified_attribute & MODATTR_ACTIVE_CHECKS_ENABLED) {
       hst.set_active_checks_enabled(eh->active_checks_enabled());
       hst.set_should_be_scheduled(eh->get_should_be_scheduled());
-    } else if (dh->attr & MODATTR_PASSIVE_CHECKS_ENABLED)
+    } else if (dh->modified_attribute & MODATTR_PASSIVE_CHECKS_ENABLED)
       hst.set_passive_checks_enabled(eh->passive_checks_enabled());
-    else if (dh->attr & MODATTR_EVENT_HANDLER_ENABLED)
+    else if (dh->modified_attribute & MODATTR_EVENT_HANDLER_ENABLED)
       hst.set_event_handler_enabled(eh->event_handler_enabled());
-    else if (dh->attr & MODATTR_FLAP_DETECTION_ENABLED)
+    else if (dh->modified_attribute & MODATTR_FLAP_DETECTION_ENABLED)
       hst.set_flap_detection_enabled(eh->flap_detection_enabled());
-    else if (dh->attr & MODATTR_OBSESSIVE_HANDLER_ENABLED)
+    else if (dh->modified_attribute & MODATTR_OBSESSIVE_HANDLER_ENABLED)
       hst.set_obsess_over(eh->obsess_over());
-    else if (dh->attr & MODATTR_EVENT_HANDLER_COMMAND)
+    else if (dh->modified_attribute & MODATTR_EVENT_HANDLER_COMMAND)
       hst.set_event_handler(
           misc::string::check_string_utf8(eh->event_handler()));
-    else if (dh->attr & MODATTR_CHECK_COMMAND)
+    else if (dh->modified_attribute & MODATTR_CHECK_COMMAND)
       hst.set_check_command(
           misc::string::check_string_utf8(eh->check_command()));
-    else if (dh->attr & MODATTR_NORMAL_CHECK_INTERVAL)
+    else if (dh->modified_attribute & MODATTR_NORMAL_CHECK_INTERVAL)
       hst.set_check_interval(eh->check_interval());
-    else if (dh->attr & MODATTR_RETRY_CHECK_INTERVAL)
+    else if (dh->modified_attribute & MODATTR_RETRY_CHECK_INTERVAL)
       hst.set_retry_interval(eh->retry_interval());
-    else if (dh->attr & MODATTR_MAX_CHECK_ATTEMPTS)
+    else if (dh->modified_attribute & MODATTR_MAX_CHECK_ATTEMPTS)
       hst.set_max_check_attempts(eh->max_check_attempts());
-    else if (dh->attr & MODATTR_FRESHNESS_CHECKS_ENABLED)
+    else if (dh->modified_attribute & MODATTR_FRESHNESS_CHECKS_ENABLED)
       hst.set_check_freshness(eh->check_freshness_enabled());
-    else if (dh->attr & MODATTR_CHECK_TIMEPERIOD)
+    else if (dh->modified_attribute & MODATTR_CHECK_TIMEPERIOD)
       hst.set_check_period(eh->check_period());
-    else if (dh->attr & MODATTR_NOTIFICATION_TIMEPERIOD)
+    else if (dh->modified_attribute & MODATTR_NOTIFICATION_TIMEPERIOD)
       hst.set_notification_period(eh->notification_period());
     else {
-      log_v2::neb()->error("callbacks: adaptive service not implemented.");
+      log_v2::neb()->error("callbacks: adaptive host not implemented.");
       assert(1 == 0);
     }
 

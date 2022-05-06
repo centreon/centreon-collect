@@ -1,8 +1,10 @@
 --
 -- Structure de la table `mod_bam`
 --
+SET FOREIGN_KEY_CHECKS=0;
 
-CREATE TABLE IF NOT EXISTS `mod_bam` (
+DROP TABLE IF EXISTS `mod_bam`;
+CREATE TABLE `mod_bam` (
   `ba_id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(254) DEFAULT NULL,
   `state_source` int NOT NULL DEFAULT '0',
@@ -74,7 +76,8 @@ ALTER TABLE `mod_bam`
 --
 -- Structure de la table `mod_bam_relations_ba_timeperiods`
 --
-CREATE TABLE IF NOT EXISTS mod_bam_relations_ba_timeperiods (
+DROP TABLE IF EXISTS `mod_bam_relations_ba_timeperiods`;
+CREATE TABLE mod_bam_relations_ba_timeperiods (
 	`ba_id` int(11) NOT NULL,
 	`tp_id` int(11) NOT NULL,
 	KEY `ba_id` (`ba_id`),
@@ -99,7 +102,8 @@ CREATE TABLE  IF NOT EXISTS `mod_bam_boolean` (
 --
 -- Structure de la table `mod_bam_kpi`
 --
-CREATE TABLE IF NOT EXISTS `mod_bam_kpi` (
+DROP TABLE IF EXISTS `mod_bam_kpi`;
+CREATE TABLE `mod_bam_kpi` (
   `kpi_id` int(11) NOT NULL AUTO_INCREMENT,  
   `state_type` enum('0','1') NOT NULL DEFAULT '1',
   `kpi_type` enum('0','1','2','3') NOT NULL DEFAULT '0',
@@ -155,7 +159,8 @@ ALTER TABLE `mod_bam_kpi`
 --
 -- Structure de la table `mod_bam_impacts`
 --
-CREATE TABLE IF NOT EXISTS `mod_bam_impacts` (
+DROP TABLE IF EXISTS `mod_bam_impacts`;
+CREATE TABLE `mod_bam_impacts` (
   `id_impact` INT( 11 ) NOT NULL AUTO_INCREMENT PRIMARY KEY ,
   `code` TINYINT( 4 ) NOT NULL ,
   `impact` FLOAT NOT NULL,
@@ -166,7 +171,8 @@ CREATE TABLE IF NOT EXISTS `mod_bam_impacts` (
 -- Structure de la table `mod_bam_ba_groups`
 -- 
 
-CREATE TABLE IF NOT EXISTS `mod_bam_ba_groups` (
+DROP TABLE IF EXISTS `mod_bam_ba_groups`;
+CREATE TABLE `mod_bam_ba_groups` (
   `id_ba_group` int(11) NOT NULL AUTO_INCREMENT,
   `ba_group_name` varchar(255) default NULL,
   `ba_group_description` varchar(255) default NULL,
@@ -178,7 +184,8 @@ CREATE TABLE IF NOT EXISTS `mod_bam_ba_groups` (
 -- Structure de la table `mod_bam_bagroup_ba_relation`
 -- 
 
-CREATE TABLE IF NOT EXISTS `mod_bam_bagroup_ba_relation` (
+DROP TABLE IF EXISTS `mod_bam_bagroup_ba_relation`;
+CREATE TABLE `mod_bam_bagroup_ba_relation` (
   `id_bgr` int(11) NOT NULL auto_increment,
   `id_ba` int(11) NOT NULL,
   `id_ba_group` int(11) NOT NULL,
@@ -195,7 +202,8 @@ ALTER TABLE `mod_bam_bagroup_ba_relation`
 -- 
 -- Structure de la table `mod_bam_acl`
 -- 
-CREATE TABLE IF NOT EXISTS `mod_bam_acl` (
+DROP TABLE IF EXISTS `mod_bam_acl`;
+CREATE TABLE `mod_bam_acl` (
   `acl_ba_id` int(11) NOT NULL auto_increment,
   `acl_group_id` int(11) NOT NULL,
   `ba_group_id` int(11) NOT NULL,
@@ -214,7 +222,8 @@ ALTER TABLE `mod_bam_acl`
 -- Structure de la table `mod_bam_cg_relation`
 -- 
 
-CREATE TABLE IF NOT EXISTS `mod_bam_cg_relation` (
+DROP TABLE IF EXISTS `mod_bam_cg_relation`;
+CREATE TABLE `mod_bam_cg_relation` (
   `id_cgba_r` int(11) NOT NULL auto_increment,
   `id_ba` int(11) NOT NULL,
   `id_cg` int(11) NOT NULL,
@@ -231,7 +240,8 @@ ALTER TABLE `mod_bam_cg_relation`
 -- 
 -- Structure de la table `mod_bam_escal_relation`
 -- 
-CREATE TABLE IF NOT EXISTS `mod_bam_escal_relation` (
+DROP TABLE IF EXISTS `mod_bam_escal_relation`;
+CREATE TABLE `mod_bam_escal_relation` (
   `id_escbar` int(11) NOT NULL auto_increment,
   `id_ba` int(11) NOT NULL,
   `id_esc` int(11) NOT NULL,
@@ -248,7 +258,8 @@ ALTER TABLE `mod_bam_escal_relation`
 -- 
 -- Structure de la table `mod_bam_dep_parent_relation`
 -- 
-CREATE TABLE IF NOT EXISTS `mod_bam_dep_parent_relation` (
+DROP TABLE IF EXISTS `mod_bam_dep_parent_relation`;
+CREATE TABLE `mod_bam_dep_parent_relation` (
   `id_dpr` int(11) NOT NULL auto_increment,
   `id_ba` int(11) NOT NULL,
   `id_dep` int(11) NOT NULL,
@@ -266,7 +277,8 @@ ALTER TABLE `mod_bam_dep_parent_relation`
 -- 
 -- Structure de la table `mod_bam_dep_child_relation`
 -- 
-CREATE TABLE IF NOT EXISTS `mod_bam_dep_child_relation` (
+DROP TABLE IF EXISTS `mod_bam_dep_child_relation`;
+CREATE TABLE `mod_bam_dep_child_relation` (
   `id_dcr` int(11) NOT NULL auto_increment,
   `id_ba` int(11) NOT NULL,
   `id_dep` int(11) NOT NULL,
@@ -284,7 +296,8 @@ ALTER TABLE `mod_bam_dep_parent_relation`
 -- Structure de la table `mod_bam_user_preferences`
 -- 
 
-CREATE TABLE IF NOT EXISTS `mod_bam_user_preferences` (
+DROP TABLE IF EXISTS `mod_bam_user_preferences`;
+CREATE TABLE `mod_bam_user_preferences` (
   `user_id` int(11) NULL,
   `pref_key` varchar(255) character set utf8 NOT NULL,
   `pref_value` varchar(255) character set utf8 NOT NULL
@@ -300,7 +313,8 @@ ALTER TABLE `mod_bam_user_preferences`
 -- 
 -- Structure de la table `mod_bam_user_overview_relation`
 -- 
-CREATE TABLE IF NOT EXISTS `mod_bam_user_overview_relation` (
+DROP TABLE IF EXISTS `mod_bam_user_overview_relation`;
+CREATE TABLE `mod_bam_user_overview_relation` (
   `user_id` int(11) NULL,
   `ba_id` int(11) NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
@@ -315,6 +329,7 @@ ALTER TABLE `mod_bam_user_overview_relation`
 --
 -- Create table for relation between BA and Poller
 --
+DROP TABLE IF EXISTS `mod_bam_poller_relations`;
 CREATE TABLE mod_bam_poller_relations (
   ba_id int NOT NULL,
   poller_id int NOT NULL,
@@ -328,7 +343,8 @@ CREATE TABLE mod_bam_poller_relations (
 --
 -- Create table for relation between contact and notification options
 --
-CREATE TABLE IF NOT EXISTS `mod_bam_contact_notification_options` (
+DROP TABLE IF EXISTS `mod_bam_contact_notification_options`;
+CREATE TABLE `mod_bam_contact_notification_options` (
   `contact_contact_id` INT(11) NOT NULL,
   `notification_options` VARCHAR(10) NOT NULL,
   INDEX `fk_mod_bam_notification_option_contact1_idx` (`contact_contact_id` ASC),
@@ -343,7 +359,8 @@ CREATE TABLE IF NOT EXISTS `mod_bam_contact_notification_options` (
 --
 -- Create relation between a contact and a command
 --
-CREATE TABLE IF NOT EXISTS `mod_bam_contact_command` (
+DROP TABLE IF EXISTS `mod_bam_contact_command`;
+CREATE TABLE `mod_bam_contact_command` (
   `contact_contact_id` INT(11) NOT NULL,
   `command_command_id` INT(11) NOT NULL,
   INDEX `fk_mod_bam_contact_command_contact1_idx` (`contact_contact_id` ASC),
@@ -364,7 +381,8 @@ CREATE TABLE IF NOT EXISTS `mod_bam_contact_command` (
 --
 -- Create a relation between a contact and a notification period
 --
-CREATE TABLE IF NOT EXISTS `mod_bam_contact_timeperiod` (
+DROP TABLE IF EXISTS `mod_bam_contact_timeperiod`;
+CREATE TABLE `mod_bam_contact_timeperiod` (
   `contact_contact_id` INT(11) NOT NULL,
   `timeperiod_tp_id` INT(11) NOT NULL,
   PRIMARY KEY (`contact_contact_id`),
@@ -386,7 +404,8 @@ CREATE TABLE IF NOT EXISTS `mod_bam_contact_timeperiod` (
 -- Structure de la table `mod_bam_reporting`
 -- 
 
-CREATE TABLE IF NOT EXISTS centreon_storage.`mod_bam_reporting` (
+DROP TABLE IF EXISTS centreon_storage.`mod_bam_reporting`;
+CREATE TABLE centreon_storage.`mod_bam_reporting` (
   `log_id` int(11) NOT NULL auto_increment,
   `host_name` varchar(255) NOT NULL default '0',
   `service_description` varchar(255) NOT NULL default '0',
@@ -419,7 +438,8 @@ CREATE TABLE IF NOT EXISTS centreon_storage.`mod_bam_reporting` (
 -- Structure de la table `mod_bam_reporting_status`
 -- 
 
-CREATE TABLE IF NOT EXISTS centreon_storage.`mod_bam_reporting_status` (
+DROP TABLE IF EXISTS centreon_storage.`mod_bam_reporting_status`;
+CREATE TABLE centreon_storage.`mod_bam_reporting_status` (
   `id` int(11) NOT NULL,
   `host_name` varchar(255) default NULL,
   `service_description` varchar(255) default NULL,
@@ -432,7 +452,8 @@ CREATE TABLE IF NOT EXISTS centreon_storage.`mod_bam_reporting_status` (
 -- Structure de la table `mod_bam_logs`
 -- 
 
-CREATE TABLE IF NOT EXISTS centreon_storage.`mod_bam_logs` (
+DROP TABLE IF EXISTS centreon_storage.`mod_bam_logs`;
+CREATE TABLE centreon_storage.`mod_bam_logs` (
   `status` varchar(255) NOT NULL,
   `level` float NOT NULL,
   `warning_thres` float NOT NULL,
@@ -450,7 +471,8 @@ CREATE TABLE IF NOT EXISTS centreon_storage.`mod_bam_logs` (
 -- Structure de la table `mod_bam_kpi_logs`
 -- 
 
-CREATE TABLE IF NOT EXISTS centreon_storage.`mod_bam_kpi_logs` (
+DROP TABLE IF EXISTS centreon_storage.`mod_bam_kpi_logs`;
+CREATE TABLE centreon_storage.`mod_bam_kpi_logs` (
   `kpi_id` int(11),
   `boolean_id` int(11),
   `ba_id` int(11),
@@ -468,6 +490,7 @@ CREATE TABLE IF NOT EXISTS centreon_storage.`mod_bam_kpi_logs` (
 --
 -- Business Views.
 --
+DROP TABLE IF EXISTS centreon_storage.`mod_bam_reporting_bv`;
 CREATE TABLE centreon_storage.mod_bam_reporting_bv (
   bv_id int NOT NULL auto_increment,
   bv_name varchar(255) default NULL,
@@ -481,6 +504,7 @@ CREATE TABLE centreon_storage.mod_bam_reporting_bv (
 --
 -- Business Activities.
 --
+DROP TABLE IF EXISTS centreon_storage.`mod_bam_reporting_ba`;
 CREATE TABLE centreon_storage.mod_bam_reporting_ba (
   ba_id int NOT NULL,
   ba_name varchar(254) default NULL,
@@ -497,6 +521,7 @@ CREATE TABLE centreon_storage.mod_bam_reporting_ba (
 --
 -- Key Performance Indicators.
 --
+DROP TABLE IF EXISTS centreon_storage.`mod_bam_reporting_kpi`;
 CREATE TABLE centreon_storage.mod_bam_reporting_kpi (
   kpi_id int NOT NULL,
   kpi_name varchar(255) default NULL,
@@ -527,6 +552,7 @@ CREATE TABLE centreon_storage.mod_bam_reporting_kpi (
 --
 -- Relations between BA and BV.
 --
+DROP TABLE IF EXISTS centreon_storage.`mod_bam_reporting_relations_ba_bv`;
 CREATE TABLE centreon_storage.mod_bam_reporting_relations_ba_bv (
   ba_bv_id int NOT NULL auto_increment,
   bv_id int NOT NULL,
@@ -542,6 +568,7 @@ CREATE TABLE centreon_storage.mod_bam_reporting_relations_ba_bv (
 --
 -- BA events.
 --
+DROP TABLE IF EXISTS centreon_storage.`mod_bam_reporting_ba_events`;
 CREATE TABLE centreon_storage.mod_bam_reporting_ba_events (
   ba_event_id int NOT NULL auto_increment,
   ba_id int NOT NULL,
@@ -561,6 +588,7 @@ CREATE TABLE centreon_storage.mod_bam_reporting_ba_events (
 --
 -- KPI events.
 --
+DROP TABLE IF EXISTS centreon_storage.`mod_bam_reporting_kpi_events`;
 CREATE TABLE centreon_storage.mod_bam_reporting_kpi_events (
   kpi_event_id int NOT NULL auto_increment,
   kpi_id int NOT NULL,
@@ -581,6 +609,7 @@ CREATE TABLE centreon_storage.mod_bam_reporting_kpi_events (
 --
 -- Relations between BA events and KPI events.
 --
+DROP TABLE IF EXISTS centreon_storage.`mod_bam_reporting_relations_ba_kpi_events`;
 CREATE TABLE centreon_storage.mod_bam_reporting_relations_ba_kpi_events (
   relation_id BIGINT NOT NULL auto_increment,
   ba_event_id int NOT NULL,
@@ -596,6 +625,7 @@ CREATE TABLE centreon_storage.mod_bam_reporting_relations_ba_kpi_events (
 --
 -- Timeperiods.
 --
+DROP TABLE IF EXISTS centreon_storage.`mod_bam_reporting_timeperiods`;
 CREATE TABLE centreon_storage.mod_bam_reporting_timeperiods (
   timeperiod_id int NOT NULL,
   name varchar(200) default NULL,
@@ -613,6 +643,7 @@ CREATE TABLE centreon_storage.mod_bam_reporting_timeperiods (
 --
 -- Timeperiods exceptions.
 --
+DROP TABLE IF EXISTS centreon_storage.`mod_bam_reporting_timeperiods_exceptions`;
 CREATE TABLE centreon_storage.mod_bam_reporting_timeperiods_exceptions (
   timeperiod_id int NOT NULL,
   daterange varchar(255) NOT NULL,
@@ -625,6 +656,7 @@ CREATE TABLE centreon_storage.mod_bam_reporting_timeperiods_exceptions (
 --
 -- Timeperiods exclusions.
 --
+DROP TABLE IF EXISTS centreon_storage.`mod_bam_reporting_timeperiods_exclusions`;
 CREATE TABLE centreon_storage.mod_bam_reporting_timeperiods_exclusions (
   timeperiod_id int NOT NULL,
   excluded_timeperiod_id int NOT NULL,
@@ -638,6 +670,7 @@ CREATE TABLE centreon_storage.mod_bam_reporting_timeperiods_exclusions (
 --
 -- BA/timeperiods relations.
 --
+DROP TABLE IF EXISTS centreon_storage.`mod_bam_reporting_relations_ba_timeperiods`;
 CREATE TABLE centreon_storage.mod_bam_reporting_relations_ba_timeperiods (
   ba_id int default NULL,
   timeperiod_id int default NULL,
@@ -652,6 +685,7 @@ CREATE TABLE centreon_storage.mod_bam_reporting_relations_ba_timeperiods (
 --
 -- BA events durations.
 --
+DROP TABLE IF EXISTS centreon_storage.`mod_bam_reporting_ba_events_durations`;
 CREATE TABLE centreon_storage.mod_bam_reporting_ba_events_durations (
   ba_event_id int NOT NULL,
   timeperiod_id int NOT NULL,
@@ -672,6 +706,7 @@ CREATE TABLE centreon_storage.mod_bam_reporting_ba_events_durations (
 --
 -- BA availabilities.
 --
+DROP TABLE IF EXISTS centreon_storage.`mod_bam_reporting_ba_availabilities`;
 CREATE TABLE centreon_storage.mod_bam_reporting_ba_availabilities (
   ba_id int NOT NULL,
   time_id int NOT NULL,
@@ -767,7 +802,8 @@ INSERT INTO `mod_bam_impacts` (`code`, `impact`, `color`) VALUES
 ALTER TABLE mod_bam_dep_child_relation ADD CONSTRAINT fk_id_ba_child FOREIGN KEY (`id_ba`) REFERENCES mod_bam(`ba_id`) ON DELETE CASCADE ON UPDATE NO ACTION;
 ALTER TABLE mod_bam_dep_child_relation ADD CONSTRAINT fk_id_dep_child FOREIGN KEY (`id_dep`) REFERENCES dependency(`dep_id`) ON DELETE CASCADE ON UPDATE NO ACTION;
 
-CREATE VIEW mod_bam_view_kpi AS
+DROP TABLE IF EXISTS `mod_bam_view_kpi`;
+CREATE VIEW `mod_bam_view_kpi` AS
 SELECT k.kpi_id, b.ba_id, k.activate AS kpi_activate, b.activate AS ba_activate, b.name AS ba_name,
 k.host_id, h.host_name AS kpi_host, k.service_id, s.service_description AS kpi_service,
 k.id_indicator_ba, bk.name AS kpi_ba,
