@@ -21,7 +21,7 @@
 #include <list>
 #include <queue>
 #include <thread>
-#include <unordered_map>
+#include <absl/container/btree_map.h>
 
 #include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/tcp/tcp_connection.hh"
@@ -68,7 +68,7 @@ class tcp_async {
 
   /* Connections opened by acceptors not already got by streams */
   mutable asio::io_context::strand _strand;
-  std::unordered_multimap<asio::ip::tcp::acceptor*,
+  absl::btree_multimap<asio::ip::tcp::acceptor*,
                           std::pair<tcp_connection::pointer, time_t>>
       _acceptor_available_con;
 
