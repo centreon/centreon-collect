@@ -9,6 +9,10 @@ Clean Before Suite
 	Clear Engine Logs
 	Clear Broker Logs
 
+Clean Grpc Before Suite
+	set grpc port  0
+	Clean Before Suite
+
 Clean After Suite
 	# Remove Files	${ENGINE_LOG}${/}centengine.log ${ENGINE_LOG}${/}centengine.debug
 	# Remove Files	${BROKER_LOG}${/}central-broker-master.log	${BROKER_LOG}${/}central-rrd-master.log	${BROKER_LOG}${/}central-module-master.log

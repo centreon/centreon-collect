@@ -2821,7 +2821,7 @@ void state::poller_id(uint32_t value) noexcept {
  *  @return The poller_id value.
  */
 uint16_t state::rpc_port() const noexcept {
-  return _poller_id;
+  return _rpc_port;
 }
 
 /**
@@ -2830,7 +2830,7 @@ uint16_t state::rpc_port() const noexcept {
  *  @param[in] value The new poller_id value.
  */
 void state::rpc_port(uint16_t value) noexcept {
-  _poller_id = value;
+  _rpc_port = value;
 }
 
 /**
