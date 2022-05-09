@@ -1,4 +1,4 @@
-from os import makedirs
+from os import makedirs,chmod
 from os.path import exists, dirname
 from robot.api import logger
 import db_conf
@@ -7,6 +7,7 @@ import shutil
 import sys
 import time
 import re
+import stat
 
 CONF_DIR = "/etc/centreon-engine"
 ENGINE_HOME = "/var/lib/centreon-engine"
@@ -456,6 +457,7 @@ define timeperiod {
             for file in ["check.pl", "notif.pl"]:
                 shutil.copyfile("{0}/{1}".format(SCRIPT_DIR, file),
                                 "{0}/{1}".format(ENGINE_HOME, file))
+                chmod("{0}/{1}".format(ENGINE_HOME, file), stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP)
             if not exists(ENGINE_HOME + "/config{}/rw".format(inst)):
                 makedirs(ENGINE_HOME + "/config{}/rw".format(inst))
 
