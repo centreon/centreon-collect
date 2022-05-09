@@ -135,9 +135,8 @@ enum data_element {
   de_status = 4,
   de_index_mapping = 5,
   de_metric_mapping = 6,
-  de_pb_rebuild = 7,
-  de_rebuild_message = 8,
-  de_remove_graph_message = 9,
+  de_rebuild_message = 7,
+  de_remove_graph_message = 8,
 };
 }
 namespace bam {
@@ -170,8 +169,6 @@ constexpr uint16_t category_of_type(uint32_t type) {
 constexpr uint16_t element_of_type(uint32_t type) {
   return static_cast<uint16_t>(type);
 }
-constexpr uint32_t storage_pb_rebuild =
-    make_type(io::storage, storage::de_pb_rebuild);
 }  // namespace broker
 }  // namespace centreon
 }  // namespace com

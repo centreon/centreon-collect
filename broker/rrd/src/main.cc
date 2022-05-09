@@ -101,8 +101,6 @@ void broker_module_init(void const* arg) {
       e.register_event(make_type(io::storage, storage::de_metric_mapping),
                        "metric_mapping", &storage::metric_mapping::operations,
                        storage::metric_mapping::entries);
-      log_v2::bbdo()->info("registering protobuf pb_rebuild as {:x}:{:x}",
-                           io::storage, storage::de_pb_rebuild);
 
       /* Let's register the message to start rebuilds, send rebuilds and
        * terminate rebuilds. This is pb_rebuild_message. */
