@@ -31,9 +31,9 @@ BEEXTCMD1
 	${start}=	Get Current Date
 	Start Broker
 	Start Engine
-        ${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
-        ${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
-        Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
+	${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 	Change Normal Svc Check Interval	host_1	service_1	10
 
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
@@ -61,9 +61,9 @@ BEEXTCMD2
 	${start}=	Get Current Date
 	Start Broker
 	Start Engine
-        ${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
-        ${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
-        Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
+	${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 	Change Normal Svc Check Interval	host_1	service_1	15
 
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
@@ -97,9 +97,9 @@ BEEXTCMD3
 	${start}=	Get Current Date
 	Start Broker
 	Start Engine
-        ${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
-        ${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
-        Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
+	${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 	Change Normal Host Check Interval	host_1	10
 
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
@@ -128,9 +128,9 @@ BEEXTCMD4
 	${start}=	Get Current Date
 	Start Broker
 	Start Engine
-        ${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
-        ${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
-        Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
+	${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 	Change Normal Host Check Interval	host_1	15
 
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
@@ -165,9 +165,9 @@ BEEXTCMD5
 	${start}=	Get Current Date
 	Start Broker
 	Start Engine
-        ${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
-        ${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
-        Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
+	${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 	Change Retry Svc Check Interval	host_1	service_1	15
 
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
@@ -195,9 +195,9 @@ BEEXTCMD6
 	${start}=	Get Current Date
 	Start Broker
 	Start Engine
-        ${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
-        ${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
-        Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
+	${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 	Change Retry Svc Check Interval	host_1	service_1	10
 
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
@@ -231,9 +231,9 @@ BEEXTCMD7
 	${start}=	Get Current Date
 	Start Broker
 	Start Engine
-        ${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
-        ${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
-        Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
+	${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 	Change Retry Host Check Interval	host_1	15
 
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
@@ -262,9 +262,9 @@ BEEXTCMD8
 	${start}=	Get Current Date
 	Start Broker
 	Start Engine
-        ${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
-        ${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
-        Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
+	${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 	Change Retry Host Check Interval	host_1	10
 
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
@@ -296,9 +296,9 @@ BEEXTCMD9
 	${start}=	Get Current Date
 	Start Broker
 	Start Engine
-        ${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
-        ${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
-        Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
+	${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 	Change Max Svc Check Attempts	host_1	service_1	15
 
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
@@ -335,9 +335,9 @@ BEEXTCMD10
 	${start}=	Get Current Date
 	Start Broker
 	Start Engine
-        ${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
-        ${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
-        Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
+	${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 	Change Max Svc Check Attempts	host_1	service_1	10
 
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
@@ -371,9 +371,9 @@ BEEXTCMD11
 	${start}=	Get Current Date
 	Start Broker
 	Start Engine
-        ${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
-        ${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
-        Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
+	${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 	Change Max Host Check Attempts	host_1	15
 
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
@@ -411,9 +411,9 @@ BEEXTCMD12
 	${start}=	Get Current Date
 	Start Broker
 	Start Engine
-        ${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
-        ${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
-        Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
+	${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 	Change Max Host Check Attempts	host_1	10
 
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
@@ -430,7 +430,7 @@ BEEXTCMD12
 	Stop Engine
 	Kindly Stop Broker
 
-BEEXTCMD15
+BEEXTCMD13
 	[Documentation]	external command CHANGE_HOST_CHECK_TIMEPERIOD on bbdo3.0
 	[Tags]	Broker	Engine	host	extcmd
 	Config Engine	${1}	${50}	${20}
@@ -448,9 +448,9 @@ BEEXTCMD15
 	${start}=	Get Current Date
 	Start Broker
 	Start Engine
-        ${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
-        ${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
-        Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
+	${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 	Change Host Check Timeperiod	host_1	24x6
 
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
@@ -467,7 +467,7 @@ BEEXTCMD15
 	Stop Engine
 	Kindly Stop Broker
 
-BEEXTCMD16
+BEEXTCMD14
 	[Documentation]	external command CHANGE_HOST_CHECK_TIMEPERIOD on bbdo2.0
 	[Tags]	Broker	Engine	host	extcmd
 	Config Engine	${1}	${50}	${20}
@@ -480,9 +480,9 @@ BEEXTCMD16
 	${start}=	Get Current Date
 	Start Broker
 	Start Engine
-        ${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
-        ${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
-        Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
+	${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 	Change Host Check Timeperiod	host_1	24x7
 
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
@@ -499,7 +499,7 @@ BEEXTCMD16
 	Stop Engine
 	Kindly Stop Broker
 
-BEEXTCMD17
+BEEXTCMD15
 	[Documentation]	external command CHANGE_HOST_NOTIFICATION_TIMEPERIOD on bbdo3.0
 	[Tags]	Broker	Engine	host	extcmd
 	Config Engine	${1}	${50}	${20}
@@ -517,9 +517,9 @@ BEEXTCMD17
 	${start}=	Get Current Date
 	Start Broker
 	Start Engine
-        ${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
-        ${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
-        Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
+	${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 	Change Host Notification Timeperiod	host_1	24x7
 
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
@@ -536,7 +536,7 @@ BEEXTCMD17
 	Stop Engine
 	Kindly Stop Broker
 
-BEEXTCMD18
+BEEXTCMD16
 	[Documentation]	external command CHANGE_HOST_NOTIFICATION_TIMEPERIOD on bbdo2.0
 	[Tags]	Broker	Engine	host	extcmd
 	Config Engine	${1}	${50}	${20}
@@ -549,9 +549,9 @@ BEEXTCMD18
 	${start}=	Get Current Date
 	Start Broker
 	Start Engine
-        ${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
-        ${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
-        Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
+	${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 	Change Host Notification Timeperiod	host_1	24x6
 
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
@@ -567,3 +567,371 @@ BEEXTCMD18
 
 	Stop Engine
 	Kindly Stop Broker
+
+BEEXTCMD17
+	[Documentation]	external command CHANGE_SVC_CHECK_TIMEPERIOD on bbdo3.0
+	[Tags]	Broker	Engine	host	extcmd
+	Config Engine	${1}	${50}	${20}
+	Config Broker	rrd
+	Config Broker	central
+	Config Broker	module	${1}
+	Broker Config Add Item	module0	bbdo_version	3.0.0
+	Broker Config Add Item	central	bbdo_version	3.0.0
+	Broker Config Add Item	rrd	bbdo_version	3.0.0
+	Broker Config Log	central	core	error
+	Broker Config Log	central	sql	debug
+	Broker Config Log	module0	neb	trace
+	Config Broker Sql Output	central	unified_sql
+	Clear Retention
+	${start}=	Get Current Date
+	Start Broker
+	Start Engine
+	${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
+	Change Svc Check Timeperiod	host_1	service_1	24x6
+
+	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+
+	FOR	${index}	IN RANGE	30
+		Log To Console	select s.check_period from services s,hosts h where s.description='service_1' and h.name='host_1'
+		${output}=	Query	select s.check_period from services s,hosts h where s.description='service_1' and h.name='host_1' 
+		Log To Console	${output}
+		Sleep	1s
+		EXIT FOR LOOP IF	"${output}" == "(('24x6',),)"
+	END
+	Should Be Equal As Strings	${output}	(('24x6',),)
+
+	Stop Engine
+	Kindly Stop Broker
+
+BEEXTCMD18
+	[Documentation]	external command CHANGE_SVC_CHECK_TIMEPERIOD on bbdo2.0
+	[Tags]	Broker	Engine	host	extcmd
+	Config Engine	${1}	${50}	${20}
+	Config Broker	rrd
+	Config Broker	central
+	Config Broker	module	${1}
+	Broker Config Log	central	core	error
+	Broker Config Log	central	sql	debug
+	Clear Retention
+	${start}=	Get Current Date
+	Start Broker
+	Start Engine
+	${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
+	Change Svc Check Timeperiod	host_1	service_1	24x7
+
+	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+
+	FOR	${index}	IN RANGE	30
+		Log To Console	select s.check_period from services s,hosts h where s.description='service_1' and h.name='host_1'
+		${output}=	Query	select s.check_period from services s,hosts h where s.description='service_1' and h.name='host_1' 
+		Log To Console	${output}
+		Sleep	1s
+		EXIT FOR LOOP IF	"${output}" == "(('24x7',),)"
+	END
+	Should Be Equal As Strings	${output}	(('24x7',),)
+
+	Stop Engine
+	Kindly Stop Broker
+
+BEEXTCMD19
+	[Documentation]	external command CHANGE_SVC_NOTIFICATION_TIMEPERIOD on bbdo3.0
+	[Tags]	Broker	Engine	host	extcmd
+	Config Engine	${1}	${50}	${20}
+	Config Broker	rrd
+	Config Broker	central
+	Config Broker	module	${1}
+	Broker Config Add Item	module0	bbdo_version	3.0.0
+	Broker Config Add Item	central	bbdo_version	3.0.0
+	Broker Config Add Item	rrd	bbdo_version	3.0.0
+	Broker Config Log	central	core	error
+	Broker Config Log	central	sql	debug
+	Broker Config Log	module0	neb	trace
+	Config Broker Sql Output	central	unified_sql
+	Clear Retention
+	${start}=	Get Current Date
+	Start Broker
+	Start Engine
+	${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
+	Change Svc Notification Timeperiod	host_1	service_1	24x7
+
+	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+
+	FOR	${index}	IN RANGE	30
+		Log To Console	select s.notification_period from services s,hosts h where s.description='service_1' and h.name='host_1'
+		${output}=	Query	select s.notification_period from services s,hosts h where s.description='service_1' and h.name='host_1'
+		Log To Console	${output}
+		Sleep	1s
+		EXIT FOR LOOP IF	"${output}" == "(('24x7',),)"
+	END
+	Should Be Equal As Strings	${output}	(('24x7',),)
+
+	Stop Engine
+	Kindly Stop Broker
+
+BEEXTCMD20
+	[Documentation]	external command CHANGE_SVC_NOTIFICATION_TIMEPERIOD on bbdo2.0
+	[Tags]	Broker	Engine	host	extcmd
+	Config Engine	${1}	${50}	${20}
+	Config Broker	rrd
+	Config Broker	central
+	Config Broker	module	${1}
+	Broker Config Log	central	core	error
+	Broker Config Log	central	sql	debug
+	Clear Retention
+	${start}=	Get Current Date
+	Start Broker
+	Start Engine
+	${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
+	Change Svc Notification Timeperiod	host_1	service_1	24x6
+
+	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+
+	FOR	${index}	IN RANGE	30
+		Log To Console	select s.notification_period from services s,hosts h where s.description='service_1' and h.name='host_1' 
+		${output}=	Query	select s.notification_period from services s,hosts h where s.description='service_1' and h.name='host_1' 
+		Log To Console	${output}
+		Sleep	1s
+		EXIT FOR LOOP IF	"${output}" == "(('24x6',),)"
+	END
+	Should Be Equal As Strings	${output}	(('24x6',),)
+
+	Stop Engine
+	Kindly Stop Broker
+
+BEEXTCMD21
+	[Documentation]	external command CHANGE_SVC_NOTIFICATION_TIMEPERIOD on bbdo3.0
+	[Tags]	Broker	Engine	host	extcmd
+	Config Engine	${1}	${50}	${20}
+	Config Broker	rrd
+	Config Broker	central
+	Config Broker	module	${1}
+	Broker Config Add Item	module0	bbdo_version	3.0.0
+	Broker Config Add Item	central	bbdo_version	3.0.0
+	Broker Config Add Item	rrd	bbdo_version	3.0.0
+	Broker Config Log	central	core	error
+	Broker Config Log	central	sql	debug
+	Broker Config Log	module0	neb	trace
+	Config Broker Sql Output	central	unified_sql
+	Clear Retention
+	${start}=	Get Current Date
+	Start Broker
+	Start Engine
+	${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
+	Change Svc Notification Timeperiod	host_1	service_1	24x7
+
+	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+
+	FOR	${index}	IN RANGE	30
+		Log To Console	select s.notification_period from services s,hosts h where s.description='service_1' and h.name='host_1'
+		${output}=	Query	select s.notification_period from services s,hosts h where s.description='service_1' and h.name='host_1'
+		Log To Console	${output}
+		Sleep	1s
+		EXIT FOR LOOP IF	"${output}" == "(('24x7',),)"
+	END
+	Should Be Equal As Strings	${output}	(('24x7',),)
+
+	Stop Engine
+	Kindly Stop Broker
+
+BEEXTCMD22
+	[Documentation]	external command CHANGE_SVC_NOTIFICATION_TIMEPERIOD on bbdo2.0
+	[Tags]	Broker	Engine	host	extcmd
+	Config Engine	${1}	${50}	${20}
+	Config Broker	rrd
+	Config Broker	central
+	Config Broker	module	${1}
+	Broker Config Log	central	core	error
+	Broker Config Log	central	sql	debug
+	Clear Retention
+	${start}=	Get Current Date
+	Start Broker
+	Start Engine
+	${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
+	Change Svc Notification Timeperiod	host_1	service_1	24x6
+
+	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+
+	FOR	${index}	IN RANGE	30
+		Log To Console	select s.notification_period from services s,hosts h where s.description='service_1' and h.name='host_1' 
+		${output}=	Query	select s.notification_period from services s,hosts h where s.description='service_1' and h.name='host_1' 
+		Log To Console	${output}
+		Sleep	1s
+		EXIT FOR LOOP IF	"${output}" == "(('24x6',),)"
+	END
+	Should Be Equal As Strings	${output}	(('24x6',),)
+
+	Stop Engine
+	Kindly Stop Broker
+
+BEEXTCMD23
+	[Documentation]	external command CHANGE_HOST_NOTIFICATION_TIMEPERIOD on bbdo3.0
+	[Tags]	Broker	Engine	host	extcmd
+	Config Engine	${1}	${50}	${20}
+	Config Broker	rrd
+	Config Broker	central
+	Config Broker	module	${1}
+	Broker Config Add Item	module0	bbdo_version	3.0.0
+	Broker Config Add Item	central	bbdo_version	3.0.0
+	Broker Config Add Item	rrd	bbdo_version	3.0.0
+	Broker Config Log	central	core	error
+	Broker Config Log	central	sql	debug
+	Broker Config Log	module0	neb	trace
+	Config Broker Sql Output	central	unified_sql
+	Clear Retention
+	${start}=	Get Current Date
+	Start Broker
+	Start Engine
+	${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
+	Change Host Notification Timeperiod	host_1	24x7
+
+	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+
+	FOR	${index}	IN RANGE	30
+		Log To Console	select notification_period from hosts where name='host_1' 
+		${output}=	Query	select notification_period from hosts where name='host_1' 
+		Log To Console	${output}
+		Sleep	1s
+		EXIT FOR LOOP IF	"${output}" == "(('24x7',),)"
+	END
+	Should Be Equal As Strings	${output}	(('24x7',),)
+
+	Stop Engine
+	Kindly Stop Broker
+
+BEEXTCMD24
+	[Documentation]	external command CHANGE_HOST_NOTIFICATION_TIMEPERIOD on bbdo2.0
+	[Tags]	Broker	Engine	host	extcmd
+	Config Engine	${1}	${50}	${20}
+	Config Broker	rrd
+	Config Broker	central
+	Config Broker	module	${1}
+	Broker Config Log	central	core	error
+	Broker Config Log	central	sql	debug
+	Clear Retention
+	${start}=	Get Current Date
+	Start Broker
+	Start Engine
+	${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
+	Change Host Notification Timeperiod	host_1	24x6
+
+	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+
+	FOR	${index}	IN RANGE	30
+		Log To Console	select notification_period from hosts where name='host_1' 
+		${output}=	Query	select notification_period from hosts where name='host_1' 
+		Log To Console	${output}
+		Sleep	1s
+		EXIT FOR LOOP IF	"${output}" == "(('24x6',),)"
+	END
+	Should Be Equal As Strings	${output}	(('24x6',),)
+
+	Stop Engine
+	Kindly Stop Broker
+
+BEEXTCMD25
+	[Documentation]	external command DISABLE_HOST_AND_CHILD_NOTIFICATIONS on bbdo3.0
+	[Tags]	Broker	Engine	host	extcmd
+	Config Engine	${1}	${50}	${20}
+	Config Broker	rrd
+	Config Broker	central
+	Config Broker	module	${1}
+	Broker Config Add Item	module0	bbdo_version	3.0.0
+	Broker Config Add Item	central	bbdo_version	3.0.0
+	Broker Config Add Item	rrd	bbdo_version	3.0.0
+	Broker Config Log	central	core	error
+	Broker Config Log	central	sql	debug
+	Broker Config Log	module0	neb	trace
+	Config Broker Sql Output	central	unified_sql
+	Clear Retention
+	FOR	${use_grpc}	IN RANGE	0  1
+		${start}=	Get Current Date
+		Start Broker
+		Start Engine
+		${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
+		Disable Host And child Notifications	${use_grpc}	host_1
+
+		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+
+		FOR	${index}	IN RANGE	30
+			Log To Console	select notify from hosts where name='host_1' 
+			${output}=	Query	select notify from hosts where name='host_1'  
+			Log To Console	${output}
+			Sleep	1s
+			EXIT FOR LOOP IF	"${output}" == "((0,),)"
+		END
+		Should Be Equal As Strings	${output}	((0,),)
+
+		FOR	${index}	IN RANGE	30
+			Log To Console	select notifications_enabled from resources where name='host_1' 
+			${output}=	Query	select notifications_enabled from resources where name='host_1' 
+			Log To Console	${output}
+			Sleep	1s
+			EXIT FOR LOOP IF	"${output}" == "((0,),)"
+		END
+		Should Be Equal As Strings	${output}	((0,),)
+
+		Stop Engine
+		Kindly Stop Broker
+	END
+
+BEEXTCMD26
+	[Documentation]	external command DISABLE_HOST_AND_CHILD_NOTIFICATIONS on bbdo2.0
+	[Tags]	Broker	Engine	host	extcmd
+	Config Engine	${1}	${50}	${20}
+	Config Broker	rrd
+	Config Broker	central
+	Config Broker	module	${1}
+	Broker Config Log	central	core	error
+	Broker Config Log	central	sql	debug
+	Clear Retention
+	FOR	${use_grpc}	IN RANGE	0  1
+		${start}=	Get Current Date
+		Start Broker
+		Start Engine
+		${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
+		Disable Host And child Notifications	${use_grpc}	host_1
+
+		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+
+		FOR	${index}	IN RANGE	30
+			Log To Console	select notify from hosts where name='host_1' 
+			${output}=	Query	select notify from hosts where name='host_1'  
+			Log To Console	${output}
+			Sleep	1s
+			EXIT FOR LOOP IF	"${output}" == "((0,),)"
+		END
+		Should Be Equal As Strings	${output}	((0,),)
+
+		FOR	${index}	IN RANGE	30
+			Log To Console	select notifications_enabled from resources where name='host_1' 
+			${output}=	Query	select notifications_enabled from resources where name='host_1' 
+			Log To Console	${output}
+			Sleep	1s
+			EXIT FOR LOOP IF	"${output}" == "((0,),)"
+		END
+		Should Be Equal As Strings	${output}	((0,),)
+
+		Stop Engine
+		Kindly Stop Broker
+	END
+

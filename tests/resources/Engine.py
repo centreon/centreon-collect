@@ -668,6 +668,31 @@ def change_host_notification_timeperiod(hst: str, notification_timeperiod: str):
     f.write(cmd)
     f.close()
 
+def change_svc_check_timeperiod(hst: str, svc: str, check_timeperiod: str):
+    now = int(time.time())
+    cmd = "[{}] CHANGE_SVC_CHECK_TIMEPERIOD;{};{};{}\n".format(
+        now, hst, svc, check_timeperiod)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
+
+def change_svc_notification_timeperiod(hst: str, svc: str, notification_timeperiod: str):
+    now = int(time.time())
+    cmd = "[{}] CHANGE_SVC_NOTIFICATION_TIMEPERIOD;{};{};{}\n".format(
+        now, hst, svc, notification_timeperiod)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
+
+def disable_host_and_child_notifications(use_grpc: int, hst: str):
+    if use_grpc == 0:
+        now = int(time.time())
+        cmd = "[{}] DISABLE_HOST_AND_CHILD_NOTIFICATIONS;{}\n".format(
+            now, hst)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
 def service_ext_commands(hst: str, svc: str, state: int, output: str):
     now = int(time.time())
     cmd = "[{}] PROCESS_SERVICE_CHECK_RESULT;{};{};{};{}\n".format(
