@@ -32,16 +32,10 @@ add_library(
   SHARED
 
   # Sources.
-  "${SRC_DIR}/commands.cc"
-  "${SRC_DIR}/internal.cc"
   "${SRC_DIR}/main.cc"
-  "${SRC_DIR}/processing.cc"
   "${SRC_DIR}/utils.cc"
 
   # Headers.
-  "${INC_DIR}/commands.hh"
-  "${INC_DIR}/internal.hh"
-  "${INC_DIR}/processing.hh"
   "${INC_DIR}/utils.hh"
 )
 # Prettier name.

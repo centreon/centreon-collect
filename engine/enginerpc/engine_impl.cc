@@ -1,13 +1,39 @@
-#include "com/centreon/engine/engine_impl.hh"
+
+/*
+** Copyright 2022 Centreon
+**
+** This file is part of Centreon Engine.
+**
+** Centreon Engine is free software: you can redistribute it and/or
+** modify it under the terms of the GNU General Public License version 2
+** as published by the Free Software Foundation.
+**
+** Centreon Engine is distributed in the hope that it will be useful,
+** but WITHOUT ANY WARRANTY; without even the implied warranty of
+** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+** General Public License for more details.
+**
+** You should have received a copy of the GNU General Public License
+** along with Centreon Engine. If not, see
+** <http://www.gnu.org/licenses/>.
+*/
 
 #include <google/protobuf/util/time_util.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <future>
 
+#include <spdlog/common.h>
+#include <spdlog/fmt/ostr.h>
+#include <spdlog/spdlog.h>
+
+#include "com/centreon/engine/host.hh"
+
 #include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/command_manager.hh"
+#include "com/centreon/engine/commands/commands.hh"
+#include "com/centreon/engine/commands/processing.hh"
 #include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/contact.hh"
@@ -16,13 +42,12 @@
 #include "com/centreon/engine/downtimes/downtime_finder.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/downtimes/service_downtime.hh"
+#include "com/centreon/engine/engine_impl.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/hostdependency.hh"
 #include "com/centreon/engine/hostgroup.hh"
-#include "com/centreon/engine/logging.hh"
-#include "com/centreon/engine/logging/logger.hh"
+#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/service.hh"
 #include "com/centreon/engine/servicedependency.hh"
 #include "com/centreon/engine/servicegroup.hh"
@@ -33,6 +58,40 @@
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::logging;
 using namespace com::centreon::engine::downtimes;
+
+CCE_BEGIN()
+
+std::ostream& operator<<(std::ostream& str, const HostIdentifier& host_id) {
+  switch (host_id.identifier_case()) {
+    case HostIdentifier::kName:
+      str << "host name=" << host_id.name();
+      break;
+    case HostIdentifier::kId:
+      str << "host id=" << host_id.id();
+      break;
+    default:
+      str << " host nor id nor name";
+  }
+  return str;
+}
+
+std::ostream& operator<<(std::ostream& str, const ServiceIdentifier& serv_id) {
+  switch (serv_id.identifier_case()) {
+    case ServiceIdentifier::kNames:
+      str << "host name=" << serv_id.names().host_name()
+          << " serv name=" << serv_id.names().service_name();
+      break;
+    case HostIdentifier::kId:
+      str << "host id=" << serv_id.ids().host_id()
+          << " serv id=" << serv_id.ids().service_id();
+      break;
+    default:
+      str << " serv nor id nor name";
+  }
+  return str;
+}
+
+CCE_END()
 
 /**
  * @brief Return the Engine's version.
@@ -157,48 +216,23 @@ grpc::Status engine_impl::GetHost(grpc::ServerContext* context
                                   __attribute__((unused)),
                                   EngineHost* response) {
   std::string err;
-  auto fn = std::packaged_task<int(void)>([&err, request,
-                                           host = response]() -> int32_t {
-    std::shared_ptr<com::centreon::engine::host> selectedhost;
-    /* checking identifier hostname (by name or by id) */
-    switch (request->identifier_case()) {
-      case HostIdentifier::kName: {
-        /* get the host */
-        auto ithostname = host::hosts.find(request->name());
-        if (ithostname != host::hosts.end())
-          selectedhost = ithostname->second;
-        else {
-          err = fmt::format("could not find host '{}'", request->name());
+  auto fn = std::packaged_task<int(void)>(
+      [&err, request, host = response]() -> int32_t {
+        std::shared_ptr<com::centreon::engine::host> selectedhost;
+        std::tie(selectedhost, err) = get_host(*request);
+        if (!err.empty()) {
           return 1;
         }
-      } break;
-      case HostIdentifier::kId: {
-        /* get the host */
-        auto ithostid = host::hosts_by_id.find(request->id());
-        if (ithostid != host::hosts_by_id.end())
-          selectedhost = ithostid->second;
-        else {
-          err = fmt::format("could not find host {}", request->id());
-          return 1;
-        }
-      } break;
-      default: {
-        err =
-            fmt::format("could not find identifier, you should inform a host");
-        return 1;
-        break;
-      }
-    }
 
-    host->set_name(selectedhost->get_name());
-    host->set_alias(selectedhost->get_alias());
-    host->set_address(selectedhost->get_address());
-    host->set_check_period(selectedhost->check_period());
-    host->set_current_state(
-        static_cast<EngineHost::State>(selectedhost->get_current_state()));
-    host->set_id(selectedhost->get_host_id());
-    return 0;
-  });
+        host->set_name(selectedhost->get_name());
+        host->set_alias(selectedhost->get_alias());
+        host->set_address(selectedhost->get_address());
+        host->set_check_period(selectedhost->check_period());
+        host->set_current_state(
+            static_cast<EngineHost::State>(selectedhost->get_current_state()));
+        host->set_id(selectedhost->get_host_id());
+        return 0;
+      });
 
   std::future<int32_t> result = fn.get_future();
   command_manager::instance().enqueue(std::move(fn));
@@ -266,40 +300,9 @@ grpc::Status engine_impl::GetService(grpc::ServerContext* context
   auto fn = std::packaged_task<int(void)>(
       [&err, request, service = response]() -> int32_t {
         std::shared_ptr<com::centreon::engine::service> selectedservice;
-
-        /* checking identifier sesrname (by names or by ids) */
-        switch (request->identifier_case()) {
-          case ServiceIdentifier::kNames: {
-            NameIdentifier names = request->names();
-            /* get the service */
-            auto itservicenames = service::services.find(
-                std::make_pair(names.host_name(), names.service_name()));
-            if (itservicenames != service::services.end())
-              selectedservice = itservicenames->second;
-            else {
-              err = fmt::format("could not find service ('{}', '{}')",
-                                names.host_name(), names.service_name());
-              return 1;
-            }
-          } break;
-          case ServiceIdentifier::kIds: {
-            IdIdentifier ids = request->ids();
-            /* get the service */
-            auto itserviceids = service::services_by_id.find(
-                std::make_pair(ids.host_id(), ids.service_id()));
-            if (itserviceids != service::services_by_id.end())
-              selectedservice = itserviceids->second;
-            else {
-              err = fmt::format("could not find service ({}, {})",
-                                ids.host_id(), ids.service_id());
-              return 1;
-            }
-          } break;
-          default: {
-            err = "could not find identifier, you should inform a service";
-            return 1;
-            break;
-          }
+        std::tie(selectedservice, err) = get_serv(*request);
+        if (!err.empty()) {
+          return 1;
         }
 
         /* recovering service's information */
@@ -678,33 +681,9 @@ grpc::Status engine_impl::DeleteAllHostComments(grpc::ServerContext* context
   std::string err;
   auto fn = std::packaged_task<int32_t(void)>([&err, request]() -> int32_t {
     std::shared_ptr<engine::host> temp_host;
-    /* checking the host identifer (by name or id) */
-    switch (request->identifier_case()) {
-      case HostIdentifier::kName: {
-        /* get the host */
-        auto it = host::hosts.find(request->name());
-        if (it != host::hosts.end())
-          temp_host = it->second;
-        if (temp_host == nullptr) {
-          err = fmt::format("could not find host '{}'", request->name());
-          return 1;
-        }
-      } break;
-      case HostIdentifier::kId: {
-        /* get the host */
-        auto it = host::hosts_by_id.find(request->id());
-        if (it != host::hosts_by_id.end())
-          temp_host = it->second;
-        if (temp_host == nullptr) {
-          err = fmt::format("could not find host {}", request->id());
-          return 1;
-        }
-      } break;
-      default: {
-        err = "could not find identifier, you should inform a host";
-        return 1;
-        break;
-      }
+    std::tie(temp_host, err) = get_host(*request);
+    if (!err.empty()) {
+      return 1;
     }
     comment::delete_host_comments(temp_host->get_host_id());
     return 0;
@@ -736,41 +715,11 @@ grpc::Status engine_impl::DeleteAllServiceComments(
   std::string err;
   auto fn = std::packaged_task<int32_t(void)>([&err, request]() -> int32_t {
     std::shared_ptr<engine::service> temp_service;
-
-    /* checking the service identifer (by names or ids) */
-    switch (request->identifier_case()) {
-      case ServiceIdentifier::kNames: {
-        NameIdentifier names = request->names();
-        /* get the service */
-        auto it =
-            service::services.find({names.host_name(), names.service_name()});
-        if (it != service::services.end())
-          temp_service = it->second;
-        if (temp_service == nullptr) {
-          err = fmt::format("could not find service '{}', '{}'",
-                            names.host_name(), names.service_name());
-          return 1;
-        }
-      } break;
-      case ServiceIdentifier::kIds: {
-        IdIdentifier ids = request->ids();
-        /* get the service */
-        auto it =
-            service::services_by_id.find({ids.host_id(), ids.service_id()});
-        if (it != service::services_by_id.end())
-          temp_service = it->second;
-        if (temp_service == nullptr) {
-          err = fmt::format("could not find service {}, {}", ids.host_id(),
-                            ids.service_id());
-          return 1;
-        }
-      } break;
-      default: {
-        err = "could not find identifier, please inform a service";
-        return 1;
-        break;
-      }
+    std::tie(temp_service, err) = get_serv(*request);
+    if (!err.empty()) {
+      return 1;
     }
+
     comment::delete_service_comments(temp_service->get_host_id(),
                                      temp_service->get_service_id());
     return 0;
@@ -800,34 +749,9 @@ grpc::Status engine_impl::RemoveHostAcknowledgement(
   std::string err;
   auto fn = std::packaged_task<int32_t(void)>([&err, request]() -> int32_t {
     std::shared_ptr<engine::host> temp_host;
-
-    /* checking the host identifer (by name or id) */
-    switch (request->identifier_case()) {
-      case HostIdentifier::kName: {
-        /* get the host */
-        auto it = host::hosts.find(request->name());
-        if (it != host::hosts.end())
-          temp_host = it->second;
-        if (temp_host == nullptr) {
-          err = fmt::format("could not find host '{}'", request->name());
-          return 1;
-        }
-      } break;
-      case HostIdentifier::kId: {
-        /* get the host */
-        auto it = host::hosts_by_id.find(request->id());
-        if (it != host::hosts_by_id.end())
-          temp_host = it->second;
-        if (temp_host == nullptr) {
-          err = fmt::format("could not find host {}", request->id());
-          return 1;
-        }
-      } break;
-      default: {
-        err = "could not find identifier, please inform a host";
-        return 1;
-        break;
-      }
+    std::tie(temp_host, err) = get_host(*request);
+    if (!err.empty()) {
+      return 1;
     }
 
     /* set the acknowledgement flag */
@@ -866,40 +790,9 @@ grpc::Status engine_impl::RemoveServiceAcknowledgement(
   std::string err;
   auto fn = std::packaged_task<int32_t(void)>([&err, request]() -> int32_t {
     std::shared_ptr<engine::service> temp_service;
-
-    /* checking the service identifer (by names or ids) */
-    switch (request->identifier_case()) {
-      case ServiceIdentifier::kNames: {
-        NameIdentifier names = request->names();
-        /* get the service */
-        auto it =
-            service::services.find({names.host_name(), names.service_name()});
-        if (it != service::services.end())
-          temp_service = it->second;
-        if (temp_service == nullptr) {
-          err = fmt::format("could not find service ('{}', '{}')",
-                            names.host_name(), names.service_name());
-          return 1;
-        }
-      } break;
-      case ServiceIdentifier::kIds: {
-        IdIdentifier ids = request->ids();
-        /* get the service */
-        auto it =
-            service::services_by_id.find({ids.host_id(), ids.service_id()});
-        if (it != service::services_by_id.end())
-          temp_service = it->second;
-        if (temp_service == nullptr) {
-          err = fmt::format("could not find service ({}, {})", ids.host_id(),
-                            ids.service_id());
-          return 1;
-        }
-      } break;
-      default: {
-        err = "could not find identifier, you should inform a service";
-        return 1;
-        break;
-      }
+    std::tie(temp_service, err) = get_serv(*request);
+    if (!err.empty()) {
+      return 1;
     }
 
     /* set the acknowledgement flag */
@@ -3157,8 +3050,184 @@ grpc::Status engine_impl::ShutdownProgram(
     return 0;
   });
 
-  std::future<int32_t> result = fn.get_future();
   command_manager::instance().enqueue(std::move(fn));
 
   return grpc::Status::OK;
+}
+
+#define HOST_METHOD_BEGIN                                                    \
+  log_v2::external_command()->debug("{}({})", __FUNCTION__, *request);       \
+  auto host_info = get_host(*request);                                       \
+  if (!host_info.second.empty()) {                                           \
+    log_v2::external_command()->error("{}({}) : {}", __FUNCTION__, *request, \
+                                      host_info.second);                     \
+    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,                \
+                        host_info.second);                                   \
+  }
+
+#define SERV_METHOD_BEGIN                                                    \
+  log_v2::external_command()->debug("{}({})", __FUNCTION__, *request);       \
+  auto serv_info = get_serv(*request);                                       \
+  if (!serv_info.second.empty()) {                                           \
+    log_v2::external_command()->error("{}({}) : {}", __FUNCTION__, *request, \
+                                      serv_info.second);                     \
+    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,                \
+                        serv_info.second);                                   \
+  }
+
+::grpc::Status engine_impl::EnableHostAndChildNotifications(
+    ::grpc::ServerContext* context,
+    const ::com::centreon::engine::HostIdentifier* request,
+    ::com::centreon::engine::CommandSuccess* response) {
+  HOST_METHOD_BEGIN
+  commands::processing::wrapper_enable_host_and_child_notifications(
+      host_info.first.get());
+  return grpc::Status::OK;
+}
+
+::grpc::Status engine_impl::DisableHostAndChildNotifications(
+    ::grpc::ServerContext* context,
+    const ::com::centreon::engine::HostIdentifier* request,
+    ::com::centreon::engine::CommandSuccess* response) {
+  HOST_METHOD_BEGIN
+  commands::processing::wrapper_disable_host_and_child_notifications(
+      host_info.first.get());
+  return grpc::Status::OK;
+}
+
+::grpc::Status engine_impl::DisableHostNotifications(
+    ::grpc::ServerContext* context,
+    const ::com::centreon::engine::HostIdentifier* request,
+    ::com::centreon::engine::CommandSuccess* response) {
+  HOST_METHOD_BEGIN
+  disable_host_notifications(host_info.first.get());
+  return grpc::Status::OK;
+}
+
+::grpc::Status engine_impl::EnableHostNotifications(
+    ::grpc::ServerContext* context,
+    const ::com::centreon::engine::HostIdentifier* request,
+    ::com::centreon::engine::CommandSuccess* response) {
+  HOST_METHOD_BEGIN
+  enable_host_notifications(host_info.first.get());
+  return grpc::Status::OK;
+}
+
+::grpc::Status engine_impl::DisableNotifications(
+    ::grpc::ServerContext* context,
+    const ::google::protobuf::Empty*,
+    ::com::centreon::engine::CommandSuccess* response) {
+  disable_all_notifications();
+  return grpc::Status::OK;
+}
+
+::grpc::Status engine_impl::EnableNotifications(
+    ::grpc::ServerContext* context,
+    const ::google::protobuf::Empty*,
+    ::com::centreon::engine::CommandSuccess* response) {
+  enable_all_notifications();
+  return grpc::Status::OK;
+}
+
+::grpc::Status engine_impl::DisableServiceNotifications(
+    ::grpc::ServerContext* context,
+    const ::com::centreon::engine::ServiceIdentifier* request,
+    ::com::centreon::engine::CommandSuccess* response) {
+  SERV_METHOD_BEGIN
+  disable_service_notifications(serv_info.first.get());
+  return grpc::Status::OK;
+}
+
+::grpc::Status engine_impl::EnableServiceNotifications(
+    ::grpc::ServerContext* context,
+    const ::com::centreon::engine::ServiceIdentifier* request,
+    ::com::centreon::engine::CommandSuccess* response) {
+  SERV_METHOD_BEGIN
+  enable_service_notifications(serv_info.first.get());
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief find host ever by name or id
+ *
+ * @param host_info
+ * @return std::shared_ptr<com::centreon::engine::host>
+ */
+std::pair<std::shared_ptr<com::centreon::engine::host>, std::string>
+engine_impl::get_host(
+    const ::com::centreon::engine::HostIdentifier& host_info) {
+  std::string err;
+  switch (host_info.identifier_case()) {
+    case HostIdentifier::kName: {
+      /* get the host */
+      auto ithostname = host::hosts.find(host_info.name());
+      if (ithostname != host::hosts.end())
+        return std::make_pair(ithostname->second, err);
+      else {
+        err = fmt::format("could not find host '{}'", host_info.name());
+        return std::make_pair(std::shared_ptr<com::centreon::engine::host>(),
+                              err);
+      }
+    } break;
+    case HostIdentifier::kId: {
+      /* get the host */
+      auto ithostid = host::hosts_by_id.find(host_info.id());
+      if (ithostid != host::hosts_by_id.end())
+        return std::make_pair(ithostid->second, err);
+      else {
+        err = fmt::format("could not find host {}", host_info.id());
+        return std::make_pair(std::shared_ptr<com::centreon::engine::host>(),
+                              err);
+      }
+    } break;
+    default: {
+      err = fmt::format("could not find identifier, you should inform a host");
+      return std::make_pair(std::shared_ptr<com::centreon::engine::host>(),
+                            err);
+    }
+  }
+}
+
+std::pair<std::shared_ptr<com::centreon::engine::service>,
+          std::string /*error*/>
+engine_impl::get_serv(
+    const ::com::centreon::engine::ServiceIdentifier& serv_info) {
+  std::string err;
+
+  /* checking identifier sesrname (by names or by ids) */
+  switch (serv_info.identifier_case()) {
+    case ServiceIdentifier::kNames: {
+      const NameIdentifier& names = serv_info.names();
+      /* get the service */
+      auto itservicenames = service::services.find(
+          std::make_pair(names.host_name(), names.service_name()));
+      if (itservicenames != service::services.end())
+        return std::make_pair(itservicenames->second, err);
+      else {
+        err = fmt::format("could not find service ('{}', '{}')",
+                          names.host_name(), names.service_name());
+        return std::make_pair(std::shared_ptr<com::centreon::engine::service>(),
+                              err);
+      }
+    } break;
+    case ServiceIdentifier::kIds: {
+      const IdIdentifier& ids = serv_info.ids();
+      /* get the service */
+      auto itserviceids = service::services_by_id.find(
+          std::make_pair(ids.host_id(), ids.service_id()));
+      if (itserviceids != service::services_by_id.end())
+        return std::make_pair(itserviceids->second, err);
+      else {
+        err = fmt::format("could not find service ({}, {})", ids.host_id(),
+                          ids.service_id());
+        return std::make_pair(std::shared_ptr<com::centreon::engine::service>(),
+                              err);
+      }
+    } break;
+    default: {
+      err = "could not find identifier, you should inform a service";
+      return std::make_pair(std::shared_ptr<com::centreon::engine::service>(),
+                            err);
+    }
+  }
 }

@@ -17,9 +17,12 @@
  *
  */
 
-#include "com/centreon/engine/enginerpc.hh"
 #include <fmt/format.h>
 #include <grpcpp/server_builder.h>
+
+#include "com/centreon/engine/host.hh"
+
+#include "com/centreon/engine/enginerpc.hh"
 #include "com/centreon/engine/logging/logger.hh"
 
 using namespace com::centreon::engine;

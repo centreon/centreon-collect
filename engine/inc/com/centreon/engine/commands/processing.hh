@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2019 Centreon
+** Copyright 2022 Centreon
 **
 ** This file is part of Centreon Engine.
 **
@@ -17,8 +17,8 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CCE_MOD_EXTCMD_PROCESSING_HH
-#define CCE_MOD_EXTCMD_PROCESSING_HH
+#ifndef CCE_PROCESSING_HH
+#define CCE_PROCESSING_HH
 
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/contact.hh"
@@ -30,31 +30,33 @@
 
 CCE_BEGIN()
 
-namespace modules {
-namespace external_commands {
+namespace commands {
+
+namespace detail {
+struct command_info {
+  command_info(int _id = 0,
+               void (*_func)(int, time_t, char*) = NULL,
+               bool is_thread_safe = false)
+      : id(_id), func(_func), thread_safe(is_thread_safe) {}
+  ~command_info() throw() {}
+  int id;
+  void (*func)(int id, time_t entry_time, char* args);
+  bool thread_safe;
+};
+
+};  // namespace detail
+
 class processing {
  public:
-  processing();
-  ~processing() throw();
-  bool execute(std::string const& cmd) const;
-  bool is_thread_safe(char const* cmd) const;
+  static bool execute(std::string const& cmd);
+  static bool is_thread_safe(char const* cmd);
+
+  static void wrapper_enable_host_and_child_notifications(host* hst);
+  static void wrapper_disable_host_and_child_notifications(host* hst);
 
  private:
-  struct command_info {
-    command_info(int _id = 0,
-                 void (*_func)(int, time_t, char*) = NULL,
-                 bool is_thread_safe = false)
-        : id(_id), func(_func), thread_safe(is_thread_safe) {}
-    ~command_info() throw() {}
-    int id;
-    void (*func)(int id, time_t entry_time, char* args);
-    bool thread_safe;
-  };
-
   static void _wrapper_read_state_information();
   static void _wrapper_save_state_information();
-  static void _wrapper_enable_host_and_child_notifications(host* hst);
-  static void _wrapper_disable_host_and_child_notifications(host* hst);
   static void _wrapper_enable_all_notifications_beyond_host(host* hst);
   static void _wrapper_disable_all_notifications_beyond_host(host* hst);
   static void _wrapper_enable_host_svc_notifications(host* hst);
@@ -129,7 +131,7 @@ class processing {
     (void)id;
     (void)entry_time;
 
-    char* name(my_strtok(args, ";"));
+    std::string name(my_strtok(args, ";"));
 
     host* hst{nullptr};
     host_map::const_iterator it(host::hosts.find(name));
@@ -138,7 +140,7 @@ class processing {
 
     if (!hst)
       return;
-    (*fptr)(hst, args + strlen(name) + 1);
+    (*fptr)(hst, args + name.length() + 1);
   }
 
   template <void (*fptr)(host*)>
@@ -183,14 +185,15 @@ class processing {
     (void)id;
     (void)entry_time;
 
-    char* name{my_strtok(args, ";")};
-    char* description{my_strtok(NULL, ";")};
+    std::string name{my_strtok(args, ";")};
+    std::string description{my_strtok(NULL, ";")};
     service_map::const_iterator found{
         service::services.find({name, description})};
 
     if (found == service::services.end() || !found->second)
       return;
-    (*fptr)(found->second.get(), args + strlen(name) + strlen(description) + 2);
+    (*fptr)(found->second.get(),
+            args + name.length() + description.length() + 2);
   }
 
   template <void (*fptr)(service*)>
@@ -277,11 +280,10 @@ class processing {
         (*fptr)(it->second);
   }
 
-  std::unordered_map<std::string, command_info> _lst_command;
-  mutable std::mutex _mutex;
+  static const std::unordered_map<std::string, detail::command_info>
+      _lst_command;
 };
-}  // namespace external_commands
-}  // namespace modules
+}  // namespace commands
 
 CCE_END()
 

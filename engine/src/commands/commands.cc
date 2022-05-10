@@ -18,12 +18,14 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include "com/centreon/engine/modules/external_commands/commands.hh"
+#include "com/centreon/engine/commands/commands.hh"
+#include "com/centreon/engine/commands/processing.hh"
 
 #include <sys/time.h>
 
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checks/checker.hh"
+#include "com/centreon/engine/commands/processing.hh"
 #include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/downtimes/downtime.hh"
@@ -34,9 +36,8 @@
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
-#include "com/centreon/engine/modules/external_commands/internal.hh"
-#include "com/centreon/engine/modules/external_commands/processing.hh"
-#include "com/centreon/engine/modules/external_commands/utils.hh"
+//#include "com/centreon/engine/modules/external_commands/internal.hh"
+//#include "com/centreon/engine/modules/external_commands/utils.hh"
 #include "com/centreon/engine/statusdata.hh"
 #include "com/centreon/engine/string.hh"
 #include "mmap.h"
@@ -171,7 +172,7 @@ int process_external_commands_from_file(char const* file, int delete_file) {
 
 /* external command processor */
 void process_external_command(const char* cmd) {
-  modules::external_commands::gl_processor.execute(cmd);
+  commands::processing::execute(cmd);
 }
 
 /******************************************************************/

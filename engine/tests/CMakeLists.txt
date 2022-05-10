@@ -44,9 +44,6 @@ if (WITH_TESTING)
 
   set(ut_sources
     # Sources.
-    "${PROJECT_SOURCE_DIR}/modules/external_commands/src/commands.cc"
-    "${PROJECT_SOURCE_DIR}/modules/external_commands/src/internal.cc"
-    "${PROJECT_SOURCE_DIR}/modules/external_commands/src/processing.cc"
     "${TESTS_DIR}/parse-check-output.cc"
     "${TESTS_DIR}/checks/service_check.cc"
     "${TESTS_DIR}/checks/service_retention.cc"

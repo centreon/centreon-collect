@@ -18,9 +18,9 @@
 */
 
 #include "com/centreon/engine/broker.hh"
+#include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/modules/external_commands/commands.hh"
 #include "com/centreon/engine/nebstructs.hh"
 #include "com/centreon/logging/engine.hh"
 #include "test/unittest.hh"

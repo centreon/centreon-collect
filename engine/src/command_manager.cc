@@ -17,13 +17,13 @@
  *
  */
 
-#include "com/centreon/engine/command_manager.hh"
-
 #include <google/protobuf/util/time_util.h>
 #include <sys/types.h>
-#include <unistd.h>
+
+#include "com/centreon/engine/host.hh"
 
 #include "com/centreon/engine/checks/checker.hh"
+#include "com/centreon/engine/command_manager.hh"
 #include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/globals.hh"

@@ -1,6 +1,6 @@
 /*
 ** Copyright 2002-2006           Ethan Galstad
-** Copyright 2011-2013,2015-2016 Centreon
+** Copyright 2022 Centreon
 **
 ** This file is part of Centreon Engine.
 **
@@ -18,8 +18,8 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CCE_MOD_EXTCMD_COMMANDS_HH
-#define CCE_MOD_EXTCMD_COMMANDS_HH
+#ifndef CCE_COMMANDS_HH
+#define CCE_COMMANDS_HH
 
 #include "com/centreon/engine/objects.hh"
 

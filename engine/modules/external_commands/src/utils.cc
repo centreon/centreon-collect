@@ -24,11 +24,11 @@
 #include <sys/stat.h>
 #include <csignal>
 #include <thread>
+#include "com/centreon/engine/commands/processing.hh"
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
-#include "com/centreon/engine/modules/external_commands/internal.hh"
 #include "com/centreon/engine/string.hh"
 #include "nagios.h"
 
@@ -289,9 +289,8 @@ static void command_file_worker_thread() {
              fgets(input_buffer, (int)(sizeof(input_buffer) - 1),
                    command_file_fp) != nullptr) {
         // Check if command is thread-safe (for immediate execution).
-        if (modules::external_commands::gl_processor.is_thread_safe(
-                input_buffer))
-          modules::external_commands::gl_processor.execute(input_buffer);
+        if (commands::processing::is_thread_safe(input_buffer))
+          commands::processing::execute(input_buffer);
         // Submit the external command for processing
         // (retry if buffer is full).
         else {

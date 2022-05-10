@@ -1028,7 +1028,7 @@ BEEXTCMD24
 	END
 
 BEEXTCMD25
-	[Documentation]	external command DISABLE_HOST_EVENT_HANDLER on bbdo3.0
+	[Documentation]	external command DISABLE_HOST_EVENT_HANDLER and ENABLE_HOST_EVENT_HANDLER on bbdo3.0
 	[Tags]	Broker	Engine	host	extcmd
 	Config Engine	${1}	${50}	${20}
 	Config Broker	rrd
@@ -1078,7 +1078,7 @@ BEEXTCMD25
 	END
 
 BEEXTCMD26
-	[Documentation]	external command DISABLE_HOST_EVENT_HANDLER on bbdo2.0
+	[Documentation]	external command DISABLE_HOST_EVENT_HANDLER and ENABLE_HOST_EVENT_HANDLER on bbdo2.0
 	[Tags]	Broker	Engine	host	extcmd
 	Config Engine	${1}	${50}	${20}
 	Config Broker	rrd
@@ -1123,7 +1123,7 @@ BEEXTCMD26
 	END
 
 BEEXTCMD27
-	[Documentation]	external command DISABLE_HOST_FLAP_DETECTION on bbdo3.0
+	[Documentation]	external command DISABLE_HOST_FLAP_DETECTION and ENABLE_HOST_FLAP_DETECTION on bbdo3.0
 	[Tags]	Broker	Engine	host	extcmd
 	Config Engine	${1}	${50}	${20}
 	Config Broker	rrd
@@ -1173,7 +1173,7 @@ BEEXTCMD27
 	END
 
 BEEXTCMD28
-	[Documentation]	external command DISABLE_HOST_FLAP_DETECTION on bbdo2.0
+	[Documentation]	external command DISABLE_HOST_FLAP_DETECTION and ENABLE_HOST_FLAP_DETECTION on bbdo2.0
 	[Tags]	Broker	Engine	host	extcmd
 	Config Engine	${1}	${50}	${20}
 	Config Broker	rrd
@@ -1218,7 +1218,7 @@ BEEXTCMD28
 	END
 
 BEEXTCMD29
-	[Documentation]	external command DISABLE_HOST_NOTIFICATIONS on bbdo3.0
+	[Documentation]	external command DISABLE_HOST_NOTIFICATIONS and ENABLE_HOST_NOTIFICATIONS on bbdo3.0
 	[Tags]	Broker	Engine	host	extcmd
 	Config Engine	${1}	${50}	${20}
 	Config Broker	rrd
@@ -1231,8 +1231,9 @@ BEEXTCMD29
 	Broker Config Log	central	sql	debug
 	Broker Config Log	module0	neb	trace
 	Config Broker Sql Output	central	unified_sql
-	Clear Retention
-	FOR	${use_grpc}	IN RANGE	0  1
+	FOR	${use_grpc}	IN RANGE	0  2
+		Log To Console	external command DISABLE_HOST_NOTIFICATIONS and ENABLE_HOST_NOTIFICATIONS on bbdo3.0 use_grpc=${use_grpc}
+		Clear Retention
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
@@ -1286,7 +1287,7 @@ BEEXTCMD29
 	END
 
 BEEXTCMD30
-	[Documentation]	external command DISABLE_HOST_NOTIFICATIONS on bbdo2.0
+	[Documentation]	external command DISABLE_HOST_NOTIFICATIONS and ENABLE_HOST_NOTIFICATIONS on bbdo2.0
 	[Tags]	Broker	Engine	host	extcmd
 	Config Engine	${1}	${50}	${20}
 	Config Broker	rrd
@@ -1294,8 +1295,9 @@ BEEXTCMD30
 	Config Broker	module	${1}
 	Broker Config Log	central	core	error
 	Broker Config Log	central	sql	debug
-	Clear Retention
-	FOR	${use_grpc}	IN RANGE	0  1
+	FOR	${use_grpc}	IN RANGE	0  2
+		Log To Console	external command DISABLE_HOST_NOTIFICATIONS and ENABLE_HOST_NOTIFICATIONS on bbdo2.0 use_grpc=${use_grpc}
+		Clear Retention
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine

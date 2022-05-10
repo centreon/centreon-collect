@@ -23,6 +23,7 @@
 #include "../test_engine.hh"
 #include "../timeperiod/utils.hh"
 #include "com/centreon/engine/checks/checker.hh"
+#include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/contactgroup.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
@@ -30,7 +31,6 @@
 #include "com/centreon/engine/configuration/host.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/hostescalation.hh"
-#include "com/centreon/engine/modules/external_commands/commands.hh"
 #include "com/centreon/engine/timeperiod.hh"
 #include "helper.hh"
 
