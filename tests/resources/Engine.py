@@ -693,6 +693,60 @@ def disable_host_and_child_notifications(use_grpc: int, hst: str):
         f.write(cmd)
         f.close()
 
+def enable_host_and_child_notifications(use_grpc: int, hst: str):
+    if use_grpc == 0:
+        now = int(time.time())
+        cmd = "[{}] ENABLE_HOST_AND_CHILD_NOTIFICATIONS;{}\n".format(
+            now, hst)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
+def disable_host_check(use_grpc: int, hst: str):
+    if use_grpc == 0:
+        now = int(time.time())
+        cmd = "[{}] DISABLE_HOST_CHECK;{}\n".format(
+            now, hst)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
+def enable_host_check(use_grpc: int, hst: str):
+    if use_grpc == 0:
+        now = int(time.time())
+        cmd = "[{}] ENABLE_HOST_CHECK;{}\n".format(
+            now, hst)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
+def disable_host_event_handler(use_grpc: int, hst: str):
+    if use_grpc == 0:
+        now = int(time.time())
+        cmd = "[{}] DISABLE_HOST_EVENT_HANDLER;{}\n".format(
+            now, hst)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
+def disable_host_flap_detection(use_grpc: int, hst: str):
+    if use_grpc == 0:
+        now = int(time.time())
+        cmd = "[{}] DISABLE_HOST_FLAP_DETECTION;{}\n".format(
+            now, hst)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
+def disable_host_notifications(use_grpc: int, hst: str):
+    if use_grpc == 0:
+        now = int(time.time())
+        cmd = "[{}] DISABLE_HOST_NOTIFICATIONS;{}\n".format(
+            now, hst)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
 def service_ext_commands(hst: str, svc: str, state: int, output: str):
     now = int(time.time())
     cmd = "[{}] PROCESS_SERVICE_CHECK_RESULT;{};{};{};{}\n".format(

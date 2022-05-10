@@ -888,6 +888,26 @@ BEEXTCMD25
 		END
 		Should Be Equal As Strings	${output}	((0,),)
 
+		Enable Host And child Notifications	${use_grpc}	host_1
+
+		FOR	${index}	IN RANGE	30
+			Log To Console	select notify from hosts where name='host_1' 
+			${output}=	Query	select notify from hosts where name='host_1'  
+			Log To Console	${output}
+			Sleep	1s
+			EXIT FOR LOOP IF	"${output}" == "((1,),)"
+		END
+		Should Be Equal As Strings	${output}	((1,),)
+
+		FOR	${index}	IN RANGE	30
+			Log To Console	select notifications_enabled from resources where name='host_1' 
+			${output}=	Query	select notifications_enabled from resources where name='host_1' 
+			Log To Console	${output}
+			Sleep	1s
+			EXIT FOR LOOP IF	"${output}" == "((1,),)"
+		END
+		Should Be Equal As Strings	${output}	((1,),)
+
 		Stop Engine
 		Kindly Stop Broker
 	END
@@ -922,9 +942,387 @@ BEEXTCMD26
 		END
 		Should Be Equal As Strings	${output}	((0,),)
 
+		Enable Host And child Notifications	${use_grpc}	host_1
+
+		FOR	${index}	IN RANGE	30
+			Log To Console	select notify from hosts where name='host_1' 
+			${output}=	Query	select notify from hosts where name='host_1'  
+			Log To Console	${output}
+			Sleep	1s
+			EXIT FOR LOOP IF	"${output}" == "((1,),)"
+		END
+		Should Be Equal As Strings	${output}	((1,),)
+
+		Stop Engine
+		Kindly Stop Broker
+	END
+
+BEEXTCMD26
+	[Documentation]	external command DISABLE_HOST_CHECK and ENABLE_HOST_CHECK on bbdo3.0
+	[Tags]	Broker	Engine	host	extcmd
+	Config Engine	${1}	${50}	${20}
+	Config Broker	rrd
+	Config Broker	central
+	Config Broker	module	${1}
+	Broker Config Add Item	module0	bbdo_version	3.0.0
+	Broker Config Add Item	central	bbdo_version	3.0.0
+	Broker Config Add Item	rrd	bbdo_version	3.0.0
+	Broker Config Log	central	core	error
+	Broker Config Log	central	sql	debug
+	Broker Config Log	module0	neb	trace
+	Config Broker Sql Output	central	unified_sql
+	Clear Retention
+	FOR	${use_grpc}	IN RANGE	0  1
+		${start}=	Get Current Date
+		Start Broker
+		Start Engine
+		${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
+		Disable Host Check	${use_grpc}	host_1
+
+		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+
+		FOR	${index}	IN RANGE	30
+			Log To Console	select active_checks from hosts where name='host_1' 
+			${output}=	Query	select active_checks from hosts where name='host_1'  
+			Log To Console	${output}
+			Sleep	1s
+			EXIT FOR LOOP IF	"${output}" == "((0,),)"
+		END
+		Should Be Equal As Strings	${output}	((0,),)
+
+		FOR	${index}	IN RANGE	30
+			Log To Console	select active_checks_enabled from resources where name='host_1' 
+			${output}=	Query	select active_checks_enabled from resources where name='host_1' 
+			Log To Console	${output}
+			Sleep	1s
+			EXIT FOR LOOP IF	"${output}" == "((0,),)"
+		END
+		Should Be Equal As Strings	${output}	((0,),)
+
+		FOR	${index}	IN RANGE	30
+			Log To Console	select should_be_scheduled from hosts where name='host_1' 
+			${output}=	Query	select should_be_scheduled from hosts where name='host_1'  
+			Log To Console	${output}
+			Sleep	1s
+			EXIT FOR LOOP IF	"${output}" == "((0,),)"
+		END
+		Should Be Equal As Strings	${output}	((0,),)
+
+		Enable Host Check	${use_grpc}	host_1
+
+		FOR	${index}	IN RANGE	30
+			Log To Console	select active_checks from hosts where name='host_1' 
+			${output}=	Query	select active_checks from hosts where name='host_1'  
+			Log To Console	${output}
+			Sleep	1s
+			EXIT FOR LOOP IF	"${output}" == "((1,),)"
+		END
+		Should Be Equal As Strings	${output}	((1,),)
+
+		FOR	${index}	IN RANGE	30
+			Log To Console	select active_checks_enabled from resources where name='host_1' 
+			${output}=	Query	select active_checks_enabled from resources where name='host_1' 
+			Log To Console	${output}
+			Sleep	1s
+			EXIT FOR LOOP IF	"${output}" == "((1,),)"
+		END
+		Should Be Equal As Strings	${output}	((1,),)
+
+		FOR	${index}	IN RANGE	30
+			Log To Console	select should_be_scheduled from hosts where name='host_1' 
+			${output}=	Query	select should_be_scheduled from hosts where name='host_1'  
+			Log To Console	${output}
+			Sleep	1s
+			EXIT FOR LOOP IF	"${output}" == "((1,),)"
+		END
+		Should Be Equal As Strings	${output}	((1,),)
+		Stop Engine
+		Kindly Stop Broker
+	END
+
+BEEXTCMD27
+	[Documentation]	external command DISABLE_HOST_CHECK and ENABLE_HOST_CHECK on bbdo2.0
+	[Tags]	Broker	Engine	host	extcmd
+	Config Engine	${1}	${50}	${20}
+	Config Broker	rrd
+	Config Broker	central
+	Config Broker	module	${1}
+	Broker Config Log	central	core	error
+	Broker Config Log	central	sql	debug
+	Clear Retention
+	FOR	${use_grpc}	IN RANGE	0  1
+		${start}=	Get Current Date
+		Start Broker
+		Start Engine
+		${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
+		Disable Host Check	${use_grpc}	host_1
+
+		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+
+		FOR	${index}	IN RANGE	30
+			Log To Console	select active_checks from hosts where name='host_1' 
+			${output}=	Query	select active_checks from hosts where name='host_1'  
+			Log To Console	${output}
+			Sleep	1s
+			EXIT FOR LOOP IF	"${output}" == "((0,),)"
+		END
+		Should Be Equal As Strings	${output}	((0,),)
+
+		FOR	${index}	IN RANGE	30
+			Log To Console	select should_be_scheduled from hosts where name='host_1' 
+			${output}=	Query	select should_be_scheduled from hosts where name='host_1'  
+			Log To Console	${output}
+			Sleep	1s
+			EXIT FOR LOOP IF	"${output}" == "((0,),)"
+		END
+		Should Be Equal As Strings	${output}	((0,),)
+
+		Enable Host Check	${use_grpc}	host_1
+
+		FOR	${index}	IN RANGE	30
+			Log To Console	select active_checks from hosts where name='host_1' 
+			${output}=	Query	select active_checks from hosts where name='host_1'  
+			Log To Console	${output}
+			Sleep	1s
+			EXIT FOR LOOP IF	"${output}" == "((1,),)"
+		END
+		Should Be Equal As Strings	${output}	((1,),)
+
+		FOR	${index}	IN RANGE	30
+			Log To Console	select should_be_scheduled from hosts where name='host_1' 
+			${output}=	Query	select should_be_scheduled from hosts where name='host_1'  
+			Log To Console	${output}
+			Sleep	1s
+			EXIT FOR LOOP IF	"${output}" == "((1,),)"
+		END
+		Should Be Equal As Strings	${output}	((1,),)
+
+		Stop Engine
+		Kindly Stop Broker
+	END
+
+BEEXTCMD28
+	[Documentation]	external command DISABLE_HOST_EVENT_HANDLER on bbdo3.0
+	[Tags]	Broker	Engine	host	extcmd
+	Config Engine	${1}	${50}	${20}
+	Config Broker	rrd
+	Config Broker	central
+	Config Broker	module	${1}
+	Broker Config Add Item	module0	bbdo_version	3.0.0
+	Broker Config Add Item	central	bbdo_version	3.0.0
+	Broker Config Add Item	rrd	bbdo_version	3.0.0
+	Broker Config Log	central	core	error
+	Broker Config Log	central	sql	debug
+	Broker Config Log	module0	neb	trace
+	Config Broker Sql Output	central	unified_sql
+	Clear Retention
+	FOR	${use_grpc}	IN RANGE	0  1
+		${start}=	Get Current Date
+		Start Broker
+		Start Engine
+		${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
+		Disable Host Event Handler	${use_grpc}	host_1
+
+		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+
+		FOR	${index}	IN RANGE	30
+			Log To Console	select event_handler_enabled from hosts where name='host_1' 
+			${output}=	Query	select event_handler_enabled from hosts where name='host_1'  
+			Log To Console	${output}
+			Sleep	1s
+			EXIT FOR LOOP IF	"${output}" == "((0,),)"
+		END
+		Should Be Equal As Strings	${output}	((0,),)
+
+		Stop Engine
+		Kindly Stop Broker
+	END
+
+BEEXTCMD29
+	[Documentation]	external command DISABLE_HOST_EVENT_HANDLER on bbdo2.0
+	[Tags]	Broker	Engine	host	extcmd
+	Config Engine	${1}	${50}	${20}
+	Config Broker	rrd
+	Config Broker	central
+	Config Broker	module	${1}
+	Broker Config Log	central	core	error
+	Broker Config Log	central	sql	debug
+	Clear Retention
+	FOR	${use_grpc}	IN RANGE	0  1
+		${start}=	Get Current Date
+		Start Broker
+		Start Engine
+		${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
+		Disable Host Event Handler	${use_grpc}	host_1
+
+		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+
+		FOR	${index}	IN RANGE	30
+			Log To Console	select event_handler_enabled from hosts where name='host_1' 
+			${output}=	Query	select event_handler_enabled from hosts where name='host_1'  
+			Log To Console	${output}
+			Sleep	1s
+			EXIT FOR LOOP IF	"${output}" == "((0,),)"
+		END
+		Should Be Equal As Strings	${output}	((0,),)
+
+		Stop Engine
+		Kindly Stop Broker
+	END
+
+BEEXTCMD30
+	[Documentation]	external command DISABLE_HOST_FLAP_DETECTION on bbdo3.0
+	[Tags]	Broker	Engine	host	extcmd
+	Config Engine	${1}	${50}	${20}
+	Config Broker	rrd
+	Config Broker	central
+	Config Broker	module	${1}
+	Broker Config Add Item	module0	bbdo_version	3.0.0
+	Broker Config Add Item	central	bbdo_version	3.0.0
+	Broker Config Add Item	rrd	bbdo_version	3.0.0
+	Broker Config Log	central	core	error
+	Broker Config Log	central	sql	debug
+	Broker Config Log	module0	neb	trace
+	Config Broker Sql Output	central	unified_sql
+	Clear Retention
+	FOR	${use_grpc}	IN RANGE	0  1
+		${start}=	Get Current Date
+		Start Broker
+		Start Engine
+		${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
+		Disable Host Flap Detection	${use_grpc}	host_1
+
+		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+
+		FOR	${index}	IN RANGE	30
+			Log To Console	select flap_detection from hosts where name='host_1' 
+			${output}=	Query	select flap_detection from hosts where name='host_1'  
+			Log To Console	${output}
+			Sleep	1s
+			EXIT FOR LOOP IF	"${output}" == "((0,),)"
+		END
+		Should Be Equal As Strings	${output}	((0,),)
+
+		Stop Engine
+		Kindly Stop Broker
+	END
+
+BEEXTCMD31
+	[Documentation]	external command DISABLE_HOST_FLAP_DETECTION on bbdo2.0
+	[Tags]	Broker	Engine	host	extcmd
+	Config Engine	${1}	${50}	${20}
+	Config Broker	rrd
+	Config Broker	central
+	Config Broker	module	${1}
+	Broker Config Log	central	core	error
+	Broker Config Log	central	sql	debug
+	Clear Retention
+	FOR	${use_grpc}	IN RANGE	0  1
+		${start}=	Get Current Date
+		Start Broker
+		Start Engine
+		${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
+		Disable Host Flap detection	${use_grpc}	host_1
+
+		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+
+		FOR	${index}	IN RANGE	30
+			Log To Console	select flap_detection from hosts where name='host_1' 
+			${output}=	Query	select flap_detection from hosts where name='host_1'  
+			Log To Console	${output}
+			Sleep	1s
+			EXIT FOR LOOP IF	"${output}" == "((0,),)"
+		END
+		Should Be Equal As Strings	${output}	((0,),)
+
+		Stop Engine
+		Kindly Stop Broker
+	END
+
+BEEXTCMD34
+	[Documentation]	external command DISABLE_HOST_NOTIFICATIONS on bbdo3.0
+	[Tags]	Broker	Engine	host	extcmd
+	Config Engine	${1}	${50}	${20}
+	Config Broker	rrd
+	Config Broker	central
+	Config Broker	module	${1}
+	Broker Config Add Item	module0	bbdo_version	3.0.0
+	Broker Config Add Item	central	bbdo_version	3.0.0
+	Broker Config Add Item	rrd	bbdo_version	3.0.0
+	Broker Config Log	central	core	error
+	Broker Config Log	central	sql	debug
+	Broker Config Log	module0	neb	trace
+	Config Broker Sql Output	central	unified_sql
+	Clear Retention
+	FOR	${use_grpc}	IN RANGE	0  1
+		${start}=	Get Current Date
+		Start Broker
+		Start Engine
+		${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
+		Disable Host Notifications	${use_grpc}	host_1
+
+		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+
+		FOR	${index}	IN RANGE	30
+			Log To Console	select notify from hosts where name='host_1' 
+			${output}=	Query	select notify from hosts where name='host_1'  
+			Log To Console	${output}
+			Sleep	1s
+			EXIT FOR LOOP IF	"${output}" == "((0,),)"
+		END
+		Should Be Equal As Strings	${output}	((0,),)
+
 		FOR	${index}	IN RANGE	30
 			Log To Console	select notifications_enabled from resources where name='host_1' 
 			${output}=	Query	select notifications_enabled from resources where name='host_1' 
+			Log To Console	${output}
+			Sleep	1s
+			EXIT FOR LOOP IF	"${output}" == "((0,),)"
+		END
+		Should Be Equal As Strings	${output}	((0,),)
+
+		Stop Engine
+		Kindly Stop Broker
+	END
+
+BEEXTCMD35
+	[Documentation]	external command DISABLE_HOST_NOTIFICATIONS on bbdo2.0
+	[Tags]	Broker	Engine	host	extcmd
+	Config Engine	${1}	${50}	${20}
+	Config Broker	rrd
+	Config Broker	central
+	Config Broker	module	${1}
+	Broker Config Log	central	core	error
+	Broker Config Log	central	sql	debug
+	Clear Retention
+	FOR	${use_grpc}	IN RANGE	0  1
+		${start}=	Get Current Date
+		Start Broker
+		Start Engine
+		${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
+		Disable Host Notifications	${use_grpc}	host_1
+
+		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+
+		FOR	${index}	IN RANGE	30
+			Log To Console	select notify from hosts where name='host_1' 
+			${output}=	Query	select notify from hosts where name='host_1'  
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((0,),)"
