@@ -3707,6 +3707,24 @@ TEST_F(LuaTest, BrokerPbHostJsonEncode) {
   RemoveFile("/tmp/event_log");
 }
 
+TEST_F(LuaTest, BrokerBbdoVersion) {
+  std::map<std::string, misc::variant> conf;
+  std::string filename("/tmp/cache_test.lua");
+  CreateScript(filename,
+               "function init(conf)\n"
+               "  broker_log:set_parameters(3, '/tmp/event_log')\n"
+               "  broker_log:info(0, 'BBDO version: ' .. broker.bbdo_version())\n"
+               "end\n"
+               "function write(d)\n"
+               "  return true\n"
+               "end");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  std::string lst(ReadFile("/tmp/event_log"));
+  ASSERT_NE(lst.find("BBDO version: 2.0.0"), std::string::npos);
+  RemoveFile(filename);
+  RemoveFile("/tmp/event_log");
+}
+
 TEST_F(LuaTest, BrokerApi2PbHostStatusJsonEncode) {
   config::applier::modules modules;
   modules.load_file("./lib/10-neb.so");
