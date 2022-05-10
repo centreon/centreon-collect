@@ -22,6 +22,7 @@
 #include <sys/stat.h>
 #include "absl/strings/str_split.h"
 #include "absl/strings/string_view.h"
+#include "com/centreon/broker/config/applier/state.hh"
 
 #include <openssl/md5.h>
 #include <cstdlib>
@@ -707,6 +708,22 @@ static int l_broker_md5(lua_State* L) {
 }
 
 /**
+ * @brief The Lua bbdo_version function (the real one). In the Lua, it returns
+ * a string with the bbdo version configured.
+ *
+ * @param L The Lua interpreter
+ *
+ * @return 1
+ */
+static int l_broker_bbdo_version(lua_State* L) {
+  auto& bbdo = config::applier::state::instance().bbdo_version();
+  std::string ret{fmt::format("{}.{}.{}", std::get<0>(bbdo), std::get<1>(bbdo),
+                              std::get<2>(bbdo))};
+  lua_pushlstring(L, ret.c_str(), ret.size());
+  return 1;
+}
+
+/**
  *  Load the Lua interpreter with the standard libraries
  *  and the broker lua sdk.
  *
@@ -719,6 +736,7 @@ void broker_utils::broker_utils_reg(lua_State* L) {
                               {"url_encode", l_broker_url_encode},
                               {"stat", l_broker_stat},
                               {"md5", l_broker_md5},
+                              {"bbdo_version", l_broker_bbdo_version},
                               {nullptr, nullptr}};
 
 #ifdef LUA51
