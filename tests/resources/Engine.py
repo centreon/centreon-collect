@@ -728,6 +728,15 @@ def disable_host_event_handler(use_grpc: int, hst: str):
         f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
         f.write(cmd)
         f.close()
+    
+def enable_host_event_handler(use_grpc: int, hst: str):
+    if use_grpc == 0:
+        now = int(time.time())
+        cmd = "[{}] ENABLE_HOST_EVENT_HANDLER;{}\n".format(
+            now, hst)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
 
 def disable_host_flap_detection(use_grpc: int, hst: str):
     if use_grpc == 0:
@@ -738,11 +747,139 @@ def disable_host_flap_detection(use_grpc: int, hst: str):
         f.write(cmd)
         f.close()
 
+def enable_host_flap_detection(use_grpc: int, hst: str):
+    if use_grpc == 0:
+        now = int(time.time())
+        cmd = "[{}] ENABLE_HOST_FLAP_DETECTION;{}\n".format(
+            now, hst)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
 def disable_host_notifications(use_grpc: int, hst: str):
     if use_grpc == 0:
         now = int(time.time())
         cmd = "[{}] DISABLE_HOST_NOTIFICATIONS;{}\n".format(
             now, hst)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
+def enable_host_notifications(use_grpc: int, hst: str):
+    if use_grpc == 0:
+        now = int(time.time())
+        cmd = "[{}] ENABLE_HOST_NOTIFICATIONS;{}\n".format(
+            now, hst)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
+
+
+def disable_host_svc_checks(use_grpc: int, hst: str):
+    if use_grpc == 0:
+        now = int(time.time())
+        cmd = "[{}] DISABLE_HOST_SVC_CHECKS;{}\n".format(
+            now, hst)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
+def enable_host_svc_checks(use_grpc: int, hst: str):
+    if use_grpc == 0:
+        now = int(time.time())
+        cmd = "[{}] ENABLE_HOST_SVC_CHECKS;{}\n".format(
+            now, hst)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
+def disable_host_svc_notifications(use_grpc: int, hst: str):
+    if use_grpc == 0:
+        now = int(time.time())
+        cmd = "[{}] DISABLE_HOST_SVC_NOTIFICATIONS;{}\n".format(
+            now, hst)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
+def enable_host_svc_notifications(use_grpc: int, hst: str):
+    if use_grpc == 0:
+        now = int(time.time())
+        cmd = "[{}] ENABLE_HOST_SVC_NOTIFICATIONS;{}\n".format(
+            now, hst)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
+def disable_passive_host_checks(use_grpc: int, hst: str):
+    if use_grpc == 0:
+        now = int(time.time())
+        cmd = "[{}] DISABLE_PASSIVE_HOST_CHECKS;{}\n".format(
+            now, hst)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
+def enable_passive_host_checks(use_grpc: int, hst: str):
+    if use_grpc == 0:
+        now = int(time.time())
+        cmd = "[{}] ENABLE_PASSIVE_HOST_CHECKS;{}\n".format(
+            now, hst)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
+def disable_passive_svc_checks(use_grpc: int, hst: str, svc: str):
+    if use_grpc == 0:
+        now = int(time.time())
+        cmd = "[{}] DISABLE_PASSIVE_SVC_CHECKS;{};{}\n".format(
+            now, hst, svc)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
+def enable_passive_svc_checks(use_grpc: int, hst: str, svc: str):
+    if use_grpc == 0:
+        now = int(time.time())
+        cmd = "[{}] ENABLE_PASSIVE_SVC_CHECKS;{};{}\n".format(
+            now, hst, svc)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
+def start_obsessing_over_host(use_grpc: int, hst: str):
+    if use_grpc == 0:
+        now = int(time.time())
+        cmd = "[{}] START_OBSESSING_OVER_HOST;{}\n".format(
+            now, hst)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
+def stop_obsessing_over_host(use_grpc: int, hst: str):
+    if use_grpc == 0:
+        now = int(time.time())
+        cmd = "[{}] STOP_OBSESSING_OVER_HOST;{}\n".format(
+            now, hst)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
+def start_obsessing_over_svc(use_grpc: int, hst: str, svc: str):
+    if use_grpc == 0:
+        now = int(time.time())
+        cmd = "[{}] START_OBSESSING_OVER_SVC;{};{}\n".format(
+            now, hst, svc)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
+def stop_obsessing_over_svc(use_grpc: int, hst: str, svc: str):
+    if use_grpc == 0:
+        now = int(time.time())
+        cmd = "[{}] STOP_OBSESSING_OVER_SVC;{};{}\n".format(
+            now, hst, svc)
         f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
         f.write(cmd)
         f.close()
