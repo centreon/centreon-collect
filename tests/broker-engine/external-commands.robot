@@ -707,7 +707,7 @@ BEEXTCMD20
 	Kindly Stop Broker
 
 BEEXTCMD21
-	[Documentation]	external command CHANGE_SVC_NOTIFICATION_TIMEPERIOD on bbdo3.0
+	[Documentation]	external command DISABLE_HOST_AND_CHILD_NOTIFICATIONS and ENABLE_HOST_AND_CHILD_NOTIFICATIONS on bbdo3.0
 	[Tags]	Broker	Engine	host	extcmd
 	Config Engine	${1}	${50}	${20}
 	Config Broker	rrd
@@ -721,30 +721,61 @@ BEEXTCMD21
 	Broker Config Log	module0	neb	trace
 	Config Broker Sql Output	central	unified_sql
 	Clear Retention
-	${start}=	Get Current Date
-	Start Broker
-	Start Engine
-	${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
-	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
-	Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
-	Change Svc Notification Timeperiod	host_1	service_1	24x7
+	FOR	${use_grpc}	IN RANGE	0  1
+		${start}=	Get Current Date
+		Start Broker
+		Start Engine
+		${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
+		Disable Host And child Notifications	${use_grpc}	host_1
 
-	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
-	FOR	${index}	IN RANGE	30
-		Log To Console	select s.notification_period from services s,hosts h where s.description='service_1' and h.name='host_1'
-		${output}=	Query	select s.notification_period from services s,hosts h where s.description='service_1' and h.name='host_1'
-		Log To Console	${output}
-		Sleep	1s
-		EXIT FOR LOOP IF	"${output}" == "(('24x7',),)"
+		FOR	${index}	IN RANGE	30
+			Log To Console	select notify from hosts where name='host_1' 
+			${output}=	Query	select notify from hosts where name='host_1'  
+			Log To Console	${output}
+			Sleep	1s
+			EXIT FOR LOOP IF	"${output}" == "((0,),)"
+		END
+		Should Be Equal As Strings	${output}	((0,),)
+
+		FOR	${index}	IN RANGE	30
+			Log To Console	select notifications_enabled from resources where name='host_1' 
+			${output}=	Query	select notifications_enabled from resources where name='host_1' 
+			Log To Console	${output}
+			Sleep	1s
+			EXIT FOR LOOP IF	"${output}" == "((0,),)"
+		END
+		Should Be Equal As Strings	${output}	((0,),)
+
+		Enable Host And child Notifications	${use_grpc}	host_1
+
+		FOR	${index}	IN RANGE	30
+			Log To Console	select notify from hosts where name='host_1' 
+			${output}=	Query	select notify from hosts where name='host_1'  
+			Log To Console	${output}
+			Sleep	1s
+			EXIT FOR LOOP IF	"${output}" == "((1,),)"
+		END
+		Should Be Equal As Strings	${output}	((1,),)
+
+		FOR	${index}	IN RANGE	30
+			Log To Console	select notifications_enabled from resources where name='host_1' 
+			${output}=	Query	select notifications_enabled from resources where name='host_1' 
+			Log To Console	${output}
+			Sleep	1s
+			EXIT FOR LOOP IF	"${output}" == "((1,),)"
+		END
+		Should Be Equal As Strings	${output}	((1,),)
+
+		Stop Engine
+		Kindly Stop Broker
 	END
-	Should Be Equal As Strings	${output}	(('24x7',),)
-
-	Stop Engine
-	Kindly Stop Broker
 
 BEEXTCMD22
-	[Documentation]	external command CHANGE_SVC_NOTIFICATION_TIMEPERIOD on bbdo2.0
+	[Documentation]	external command DISABLE_HOST_AND_CHILD_NOTIFICATIONS and ENABLE_HOST_AND_CHILD_NOTIFICATIONS on bbdo2.0
 	[Tags]	Broker	Engine	host	extcmd
 	Config Engine	${1}	${50}	${20}
 	Config Broker	rrd
@@ -753,211 +784,42 @@ BEEXTCMD22
 	Broker Config Log	central	core	error
 	Broker Config Log	central	sql	debug
 	Clear Retention
-	${start}=	Get Current Date
-	Start Broker
-	Start Engine
-	${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
-	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
-	Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
-	Change Svc Notification Timeperiod	host_1	service_1	24x6
+	FOR	${use_grpc}	IN RANGE	0  1
+		${start}=	Get Current Date
+		Start Broker
+		Start Engine
+		${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
+		Disable Host And child Notifications	${use_grpc}	host_1
 
-	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
-	FOR	${index}	IN RANGE	30
-		Log To Console	select s.notification_period from services s,hosts h where s.description='service_1' and h.name='host_1' 
-		${output}=	Query	select s.notification_period from services s,hosts h where s.description='service_1' and h.name='host_1' 
-		Log To Console	${output}
-		Sleep	1s
-		EXIT FOR LOOP IF	"${output}" == "(('24x6',),)"
+		FOR	${index}	IN RANGE	30
+			Log To Console	select notify from hosts where name='host_1' 
+			${output}=	Query	select notify from hosts where name='host_1'  
+			Log To Console	${output}
+			Sleep	1s
+			EXIT FOR LOOP IF	"${output}" == "((0,),)"
+		END
+		Should Be Equal As Strings	${output}	((0,),)
+
+		Enable Host And child Notifications	${use_grpc}	host_1
+
+		FOR	${index}	IN RANGE	30
+			Log To Console	select notify from hosts where name='host_1' 
+			${output}=	Query	select notify from hosts where name='host_1'  
+			Log To Console	${output}
+			Sleep	1s
+			EXIT FOR LOOP IF	"${output}" == "((1,),)"
+		END
+		Should Be Equal As Strings	${output}	((1,),)
+
+		Stop Engine
+		Kindly Stop Broker
 	END
-	Should Be Equal As Strings	${output}	(('24x6',),)
-
-	Stop Engine
-	Kindly Stop Broker
 
 BEEXTCMD23
-	[Documentation]	external command CHANGE_HOST_NOTIFICATION_TIMEPERIOD on bbdo3.0
-	[Tags]	Broker	Engine	host	extcmd
-	Config Engine	${1}	${50}	${20}
-	Config Broker	rrd
-	Config Broker	central
-	Config Broker	module	${1}
-	Broker Config Add Item	module0	bbdo_version	3.0.0
-	Broker Config Add Item	central	bbdo_version	3.0.0
-	Broker Config Add Item	rrd	bbdo_version	3.0.0
-	Broker Config Log	central	core	error
-	Broker Config Log	central	sql	debug
-	Broker Config Log	module0	neb	trace
-	Config Broker Sql Output	central	unified_sql
-	Clear Retention
-	${start}=	Get Current Date
-	Start Broker
-	Start Engine
-	${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
-	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
-	Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
-	Change Host Notification Timeperiod	host_1	24x7
-
-	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
-
-	FOR	${index}	IN RANGE	30
-		Log To Console	select notification_period from hosts where name='host_1' 
-		${output}=	Query	select notification_period from hosts where name='host_1' 
-		Log To Console	${output}
-		Sleep	1s
-		EXIT FOR LOOP IF	"${output}" == "(('24x7',),)"
-	END
-	Should Be Equal As Strings	${output}	(('24x7',),)
-
-	Stop Engine
-	Kindly Stop Broker
-
-BEEXTCMD24
-	[Documentation]	external command CHANGE_HOST_NOTIFICATION_TIMEPERIOD on bbdo2.0
-	[Tags]	Broker	Engine	host	extcmd
-	Config Engine	${1}	${50}	${20}
-	Config Broker	rrd
-	Config Broker	central
-	Config Broker	module	${1}
-	Broker Config Log	central	core	error
-	Broker Config Log	central	sql	debug
-	Clear Retention
-	${start}=	Get Current Date
-	Start Broker
-	Start Engine
-	${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
-	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
-	Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
-	Change Host Notification Timeperiod	host_1	24x6
-
-	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
-
-	FOR	${index}	IN RANGE	30
-		Log To Console	select notification_period from hosts where name='host_1' 
-		${output}=	Query	select notification_period from hosts where name='host_1' 
-		Log To Console	${output}
-		Sleep	1s
-		EXIT FOR LOOP IF	"${output}" == "(('24x6',),)"
-	END
-	Should Be Equal As Strings	${output}	(('24x6',),)
-
-	Stop Engine
-	Kindly Stop Broker
-
-BEEXTCMD25
-	[Documentation]	external command DISABLE_HOST_AND_CHILD_NOTIFICATIONS on bbdo3.0
-	[Tags]	Broker	Engine	host	extcmd
-	Config Engine	${1}	${50}	${20}
-	Config Broker	rrd
-	Config Broker	central
-	Config Broker	module	${1}
-	Broker Config Add Item	module0	bbdo_version	3.0.0
-	Broker Config Add Item	central	bbdo_version	3.0.0
-	Broker Config Add Item	rrd	bbdo_version	3.0.0
-	Broker Config Log	central	core	error
-	Broker Config Log	central	sql	debug
-	Broker Config Log	module0	neb	trace
-	Config Broker Sql Output	central	unified_sql
-	Clear Retention
-	FOR	${use_grpc}	IN RANGE	0  1
-		${start}=	Get Current Date
-		Start Broker
-		Start Engine
-		${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
-		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
-		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
-		Disable Host And child Notifications	${use_grpc}	host_1
-
-		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
-
-		FOR	${index}	IN RANGE	30
-			Log To Console	select notify from hosts where name='host_1' 
-			${output}=	Query	select notify from hosts where name='host_1'  
-			Log To Console	${output}
-			Sleep	1s
-			EXIT FOR LOOP IF	"${output}" == "((0,),)"
-		END
-		Should Be Equal As Strings	${output}	((0,),)
-
-		FOR	${index}	IN RANGE	30
-			Log To Console	select notifications_enabled from resources where name='host_1' 
-			${output}=	Query	select notifications_enabled from resources where name='host_1' 
-			Log To Console	${output}
-			Sleep	1s
-			EXIT FOR LOOP IF	"${output}" == "((0,),)"
-		END
-		Should Be Equal As Strings	${output}	((0,),)
-
-		Enable Host And child Notifications	${use_grpc}	host_1
-
-		FOR	${index}	IN RANGE	30
-			Log To Console	select notify from hosts where name='host_1' 
-			${output}=	Query	select notify from hosts where name='host_1'  
-			Log To Console	${output}
-			Sleep	1s
-			EXIT FOR LOOP IF	"${output}" == "((1,),)"
-		END
-		Should Be Equal As Strings	${output}	((1,),)
-
-		FOR	${index}	IN RANGE	30
-			Log To Console	select notifications_enabled from resources where name='host_1' 
-			${output}=	Query	select notifications_enabled from resources where name='host_1' 
-			Log To Console	${output}
-			Sleep	1s
-			EXIT FOR LOOP IF	"${output}" == "((1,),)"
-		END
-		Should Be Equal As Strings	${output}	((1,),)
-
-		Stop Engine
-		Kindly Stop Broker
-	END
-
-BEEXTCMD26
-	[Documentation]	external command DISABLE_HOST_AND_CHILD_NOTIFICATIONS on bbdo2.0
-	[Tags]	Broker	Engine	host	extcmd
-	Config Engine	${1}	${50}	${20}
-	Config Broker	rrd
-	Config Broker	central
-	Config Broker	module	${1}
-	Broker Config Log	central	core	error
-	Broker Config Log	central	sql	debug
-	Clear Retention
-	FOR	${use_grpc}	IN RANGE	0  1
-		${start}=	Get Current Date
-		Start Broker
-		Start Engine
-		${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
-		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
-		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
-		Disable Host And child Notifications	${use_grpc}	host_1
-
-		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
-
-		FOR	${index}	IN RANGE	30
-			Log To Console	select notify from hosts where name='host_1' 
-			${output}=	Query	select notify from hosts where name='host_1'  
-			Log To Console	${output}
-			Sleep	1s
-			EXIT FOR LOOP IF	"${output}" == "((0,),)"
-		END
-		Should Be Equal As Strings	${output}	((0,),)
-
-		Enable Host And child Notifications	${use_grpc}	host_1
-
-		FOR	${index}	IN RANGE	30
-			Log To Console	select notify from hosts where name='host_1' 
-			${output}=	Query	select notify from hosts where name='host_1'  
-			Log To Console	${output}
-			Sleep	1s
-			EXIT FOR LOOP IF	"${output}" == "((1,),)"
-		END
-		Should Be Equal As Strings	${output}	((1,),)
-
-		Stop Engine
-		Kindly Stop Broker
-	END
-
-BEEXTCMD26
 	[Documentation]	external command DISABLE_HOST_CHECK and ENABLE_HOST_CHECK on bbdo3.0
 	[Tags]	Broker	Engine	host	extcmd
 	Config Engine	${1}	${50}	${20}
@@ -1042,7 +904,7 @@ BEEXTCMD26
 		Kindly Stop Broker
 	END
 
-BEEXTCMD27
+BEEXTCMD24
 	[Documentation]	external command DISABLE_HOST_CHECK and ENABLE_HOST_CHECK on bbdo2.0
 	[Tags]	Broker	Engine	host	extcmd
 	Config Engine	${1}	${50}	${20}
@@ -1105,7 +967,7 @@ BEEXTCMD27
 		Kindly Stop Broker
 	END
 
-BEEXTCMD28
+BEEXTCMD25
 	[Documentation]	external command DISABLE_HOST_EVENT_HANDLER on bbdo3.0
 	[Tags]	Broker	Engine	host	extcmd
 	Config Engine	${1}	${50}	${20}
@@ -1144,7 +1006,7 @@ BEEXTCMD28
 		Kindly Stop Broker
 	END
 
-BEEXTCMD29
+BEEXTCMD26
 	[Documentation]	external command DISABLE_HOST_EVENT_HANDLER on bbdo2.0
 	[Tags]	Broker	Engine	host	extcmd
 	Config Engine	${1}	${50}	${20}
@@ -1178,7 +1040,7 @@ BEEXTCMD29
 		Kindly Stop Broker
 	END
 
-BEEXTCMD30
+BEEXTCMD27
 	[Documentation]	external command DISABLE_HOST_FLAP_DETECTION on bbdo3.0
 	[Tags]	Broker	Engine	host	extcmd
 	Config Engine	${1}	${50}	${20}
@@ -1217,7 +1079,7 @@ BEEXTCMD30
 		Kindly Stop Broker
 	END
 
-BEEXTCMD31
+BEEXTCMD28
 	[Documentation]	external command DISABLE_HOST_FLAP_DETECTION on bbdo2.0
 	[Tags]	Broker	Engine	host	extcmd
 	Config Engine	${1}	${50}	${20}
@@ -1251,7 +1113,7 @@ BEEXTCMD31
 		Kindly Stop Broker
 	END
 
-BEEXTCMD34
+BEEXTCMD29
 	[Documentation]	external command DISABLE_HOST_NOTIFICATIONS on bbdo3.0
 	[Tags]	Broker	Engine	host	extcmd
 	Config Engine	${1}	${50}	${20}
@@ -1299,7 +1161,7 @@ BEEXTCMD34
 		Kindly Stop Broker
 	END
 
-BEEXTCMD35
+BEEXTCMD30
 	[Documentation]	external command DISABLE_HOST_NOTIFICATIONS on bbdo2.0
 	[Tags]	Broker	Engine	host	extcmd
 	Config Engine	${1}	${50}	${20}
