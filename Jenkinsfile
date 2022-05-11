@@ -69,7 +69,6 @@ stage('Build / Unit tests // Packaging / Signing') {
         dir('centreon-collect-centos7') {
           checkout scm
           loadCommonScripts()
-          sh 'ci/scripts/collect-sonar-scanner-common.sh "install"'
           withSonarQubeEnv('SonarQubeDev') {
             if (env.CHANGE_ID) {
               sh 'ci/scripts/collect-sonar-scanner-common.sh "get"'
