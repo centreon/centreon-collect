@@ -119,11 +119,11 @@ BERDUC1
 	${result}=	Check Connections
 	Should Be True	${result}	msg=Engine and Broker not connected.
 	Sleep	5s
-#	Stop Broker
-#	Sleep	5s
-#	Clear Cache
-#	Start Broker
-	Sleep	1h
+	Stop Broker
+	Sleep	5s
+	Clear Cache
+	Start Broker
+	Sleep	25s
 	Stop Engine
 	Stop Broker
 	${result}=	Check Multiplicity When Broker Restarted	/tmp/lua-engine.log	/tmp/lua.log
