@@ -51,7 +51,7 @@ RUN pip3 install conan --prefix=/usr --upgrade
 RUN rm -rf ~/.conan/profiles/default
 COPY conanfile.txt .
 RUN cat conanfile.txt
-COPY ci/scripts/collect-sonar-scanner-common.sh .
+COPY collect-sonar-scanner-common.sh .
 RUN ./collect-sonar-scanner-common.sh "install"
 RUN source /opt/rh/devtoolset-9/enable && source /opt/rh/rh-python38/enable && \
     conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build='*'
