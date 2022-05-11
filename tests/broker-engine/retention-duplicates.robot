@@ -99,9 +99,13 @@ BERDUC1
 	Config Broker	central
 	Broker Config Add Lua Output	central	test-doubles	${SCRIPTS}test-doubles-c.lua
 	Broker Config Log	central	lua	debug
+	Broker Config Log	central	perfdata	debug
+	Broker Config Log	central	sql	debug
+
 	Config Broker	module
 	Broker Config Add Lua Output	module0	test-doubles	${SCRIPTS}test-doubles.lua
 	Broker Config Log	module0	lua	debug
+	Broker Config Log	module0	neb	debug
 	Config Broker	rrd
 	Clear Retention
 	${start}=	Get Current Date
@@ -115,11 +119,11 @@ BERDUC1
 	${result}=	Check Connections
 	Should Be True	${result}	msg=Engine and Broker not connected.
 	Sleep	5s
-	Stop Broker
-	Sleep	5s
-	Clear Cache
-	Start Broker
-	Sleep	25s
+#	Stop Broker
+#	Sleep	5s
+#	Clear Cache
+#	Start Broker
+	Sleep	1h
 	Stop Engine
 	Stop Broker
 	${result}=	Check Multiplicity When Broker Restarted	/tmp/lua-engine.log	/tmp/lua.log
