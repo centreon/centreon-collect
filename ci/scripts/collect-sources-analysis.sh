@@ -2,6 +2,9 @@
 
 set -e
 
+echo $(pwd)
+echo $(ls -l)
+echo $(ls -l /)
 #Cmake
 rm -rf /src/build
 mkdir /src/build
@@ -64,9 +67,7 @@ else
   fi
 
   echo "INFO: Running SQ in branch mode ..."
-  pwd
-  ls -l
-  ls -l /
+
   /sonar-scanner/bin/sonar-scanner -X -Dsonar.scm.forceReloadAll=true -Dsonar.cfamily.threads="$PROC_NBR" -Dsonar.scm.provider=git -Dsonar.login="$AUTH_TOKEN" -Dsonar.host.url="$URL" -Dsonar.projectVersion="$VERSION" -Dsonar.branch.name="$TARGET"
 
   echo "INFO: Cleaning tmp folder ..."
