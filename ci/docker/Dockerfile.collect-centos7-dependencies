@@ -56,13 +56,9 @@ RUN cat conanfile.txt
 RUN source /opt/rh/devtoolset-9/enable && source /opt/rh/rh-python38/enable && \
     conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build='*'
 
-WORKDIR /src
-RUN mkdir /src/tmp
-RUN cd /src/tmp
-RUN curl https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.7.0.2747-linux.zip --output sonar-scanner-cli-4.7.0.2747-linux.zip
 RUN unzip -q sonar-scanner-cli-4.7.0.2747-linux.zip
 RUN rm -rf sonar-scanner-cli-4.7.0.2747-linux.zip sonar-scanner
 RUN mv sonar-scanner-4.7.0.2747-linux sonar-scanner
-
+WORKDIR /src
 ENV PATH=/opt/rh/devtoolset-9/root/usr/bin:$PATH:/opt/rh/rh-php73/root/usr/bin
 ENV LD_LIBRARY_PATH=/opt/rh/devtoolset-9/root/usr/lib64:/opt/rh/devtoolset-9/root/usr/lib:/opt/rh/devtoolset-9/root/usr/lib64/dyninst:/opt/rh/devtoolset-9/root/usr/lib/dyninst:/opt/rh/devtoolset-9/root/usr/lib64:/opt/rh/devtoolset-9/root/usr/lib

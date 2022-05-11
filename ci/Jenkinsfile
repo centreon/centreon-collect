@@ -9,7 +9,6 @@ stage('Dependencies containers creation') {
         checkout scm
         dir ('ci/docker') {
           sh 'cp ../../conanfile.txt .'
-          sh 'cp ../scripts/collect-sonar-scanner-common.sh .'
           sh 'docker build --no-cache . -f Dockerfile.collect-centos7-dependencies -t registry.centreon.com/centreon-collect-centos7-dependencies:22.04'
           sh 'docker push registry.centreon.com/centreon-collect-centos7-dependencies:22.04'
         }

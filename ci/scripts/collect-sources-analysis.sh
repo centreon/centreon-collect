@@ -38,7 +38,7 @@ fi
 cd ..
 
 # Delete default SQ configuration file to override
-rm -f /src/tmp/sonar-scanner/conf/sonar-scanner.properties
+rm -f /sonar-scanner/conf/sonar-scanner.properties
 
 # Run SQ with or without reference branch
 if [[ "PR" == "$MODE" ]] ; then
@@ -56,7 +56,7 @@ if [[ "PR" == "$MODE" ]] ; then
 
   echo "INFO: Running SQ in PR mode ..."
   cd /src
-  /src/tmp/sonar-scanner/bin/sonar-scanner -X -Dsonar.scm.forceReloadAll=true -Dsonar.cfamily.threads="$PROC_NBR" -Dsonar.scm.provider=git -Dsonar.login="$AUTH_TOKEN" -Dsonar.host.url="$URL" -Dsonar.projectVersion="$VERSION" -Dsonar.pullrequest.base="$TARGET" -Dsonar.pullrequest.branch="$PR_BRANCH" -Dsonar.pullrequest.key="$PR_KEY"
+  /sonar-scanner/bin/sonar-scanner -X -Dsonar.scm.forceReloadAll=true -Dsonar.cfamily.threads="$PROC_NBR" -Dsonar.scm.provider=git -Dsonar.login="$AUTH_TOKEN" -Dsonar.host.url="$URL" -Dsonar.projectVersion="$VERSION" -Dsonar.pullrequest.base="$TARGET" -Dsonar.pullrequest.branch="$PR_BRANCH" -Dsonar.pullrequest.key="$PR_KEY"
 else
   echo "INFO: Cleaning previous run files ..."
   if [[ -d "/src/.scannerwork" ]]; then
@@ -64,7 +64,7 @@ else
   fi
 
   echo "INFO: Running SQ in branch mode ..."
-  /src/tmp/sonar-scanner/bin/sonar-scanner -X -Dsonar.scm.forceReloadAll=true -Dsonar.cfamily.threads="$PROC_NBR" -Dsonar.scm.provider=git -Dsonar.login="$AUTH_TOKEN" -Dsonar.host.url="$URL" -Dsonar.projectVersion="$VERSION" -Dsonar.branch.name="$TARGET"
+  /sonar-scanner/bin/sonar-scanner -X -Dsonar.scm.forceReloadAll=true -Dsonar.cfamily.threads="$PROC_NBR" -Dsonar.scm.provider=git -Dsonar.login="$AUTH_TOKEN" -Dsonar.host.url="$URL" -Dsonar.projectVersion="$VERSION" -Dsonar.branch.name="$TARGET"
 
   echo "INFO: Cleaning tmp folder ..."
   cd /src/tmp
