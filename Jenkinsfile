@@ -32,9 +32,9 @@ if (env.BRANCH_NAME.startsWith('release-')) {
 
 // Skip sonarQ analysis on branch without PR  - Unable to merge
 def securityAnalysisRequired = 'yes'
-if (!env.CHANGE_ID && env.BUILD == 'CI') {
-    securityAnalysisRequired = 'no'
-}
+// if (!env.CHANGE_ID && env.BUILD == 'CI') {
+//     securityAnalysisRequired = 'no'
+// }
 
 /*
 ** Pipeline code.
