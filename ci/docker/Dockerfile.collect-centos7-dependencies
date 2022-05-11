@@ -1,4 +1,5 @@
 FROM centos:7
+RUN pwd
 RUN curl https://downloads.mariadb.com/MariaDB/mariadb-10.5.8/yum/centos7-amd64/rpms/MariaDB-shared-10.5.8-1.el7.centos.x86_64.rpm --output MariaDB-shared-10.5.8-1.el7.centos.x86_64.rpm && \
     curl https://downloads.mariadb.com/MariaDB/mariadb-10.5.8/yum/centos7-amd64/rpms/MariaDB-common-10.5.8-1.el7.centos.x86_64.rpm --output MariaDB-common-10.5.8-1.el7.centos.x86_64.rpm && \
     curl https://downloads.mariadb.com/MariaDB/mariadb-10.5.8/yum/centos7-amd64/rpms/MariaDB-compat-10.5.8-1.el7.centos.x86_64.rpm --output MariaDB-compat-10.5.8-1.el7.centos.x86_64.rpm && \
@@ -8,7 +9,7 @@ RUN curl https://downloads.mariadb.com/MariaDB/mariadb-10.5.8/yum/centos7-amd64/
     curl https://downloads.mariadb.com/MariaDB/mariadb-10.5.8/yum/centos7-amd64/rpms/galera-4-26.4.6-1.el7.centos.x86_64.rpm --output galera-4-26.4.6-1.el7.centos.x86_64.rpm && \
     curl http://yum-1.centreon.com/standard/21.10/el7/stable/x86_64/RPMS/rrdtool-devel-1.7.2-1.el7.centos.x86_64.rpm --output rrdtool-devel-1.7.2-1.el7.centos.x86_64.rpm && \
     curl http://yum-1.centreon.com/standard/21.10/el7/stable/x86_64/RPMS/rrdtool-1.7.2-1.el7.centos.x86_64.rpm --output rrdtool-1.7.2-1.el7.centos.x86_64.rpm && \
-    curl https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.7.0.2747-linux.zip --output /src/tmp/sonar-scanner-cli-4.7.0.2747-linux.zip
+    curl https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.7.0.2747-linux.zip --output sonar-scanner-cli-4.7.0.2747-linux.zip
 RUN yum -y upgrade && yum -y update && \
     yum -y install make \
     openssh-server \
