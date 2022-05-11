@@ -82,9 +82,13 @@ void stream::_unified_sql_process_pb_service_status(
       "service_id:{}",
       host_id, service_id);
   auto it_index_cache = _index_cache.find({host_id, service_id});
-  if (it_index_cache == _index_cache.end())
-    throw msg_fmt("sql: could not find index for service({}, {})", host_id,
-                  service_id);
+  if (it_index_cache == _index_cache.end()) {
+    log_v2::sql()->critical(
+        "sql: could not find index for service({}, {}) - maybe the poller with "
+        "that service should be restarted",
+        host_id, service_id);
+    return;
+  }
 
   uint32_t rrd_len;
   int32_t conn =

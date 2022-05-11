@@ -2741,8 +2741,7 @@ void stream::_check_and_update_index_cache(const Service& ss) {
   fmt::string_view sv(misc::string::truncate(
       ss.service_description(),
       get_index_data_col_size(index_data_service_description)));
-  bool special =
-      !strncmp(ss.host_name().c_str(), BAM_NAME, sizeof(BAM_NAME) - 1);
+  bool special = ss.type() == BA;
 
   int32_t conn =
       _mysql.choose_connection_by_instance(_cache_host_instance[ss.host_id()]);
