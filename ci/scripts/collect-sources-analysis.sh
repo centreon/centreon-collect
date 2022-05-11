@@ -59,7 +59,7 @@ if [[ "PR" == "$MODE" ]] ; then
 
   echo "INFO: Running SQ in PR mode ..."
   cd /src
-  /sonar-scanner/bin/sonar-scanner -X -Dsonar.scm.forceReloadAll=true -Dsonar.cfamily.threads="$PROC_NBR" -Dsonar.scm.provider=git -Dsonar.login="$AUTH_TOKEN" -Dsonar.host.url="$URL" -Dsonar.projectVersion="$VERSION" -Dsonar.pullrequest.base="$TARGET" -Dsonar.pullrequest.branch="$PR_BRANCH" -Dsonar.pullrequest.key="$PR_KEY"
+  /sonar-scanner/bin/sonar-scanner -X -Dsonar.scm.forceReloadAll=true -Dsonar.cfamily.threads="8" -Dsonar.scm.provider=git -Dsonar.login="$AUTH_TOKEN" -Dsonar.host.url="$URL" -Dsonar.projectVersion="$VERSION" -Dsonar.pullrequest.base="$TARGET" -Dsonar.pullrequest.branch="$PR_BRANCH" -Dsonar.pullrequest.key="$PR_KEY"
 else
   echo "INFO: Cleaning previous run files ..."
   if [[ -d "/src/.scannerwork" ]]; then
@@ -68,12 +68,12 @@ else
 
   echo "INFO: Running SQ in branch mode ..."
 
-  /sonar-scanner/bin/sonar-scanner -X -Dsonar.scm.forceReloadAll=true -Dsonar.cfamily.threads="$PROC_NBR" -Dsonar.scm.provider=git -Dsonar.login="$AUTH_TOKEN" -Dsonar.host.url="$URL" -Dsonar.projectVersion="$VERSION" -Dsonar.branch.name="$TARGET"
+  /sonar-scanner/bin/sonar-scanner -X -Dsonar.scm.forceReloadAll=true -Dsonar.cfamily.threads="8" -Dsonar.scm.provider=git -Dsonar.login="$AUTH_TOKEN" -Dsonar.host.url="$URL" -Dsonar.projectVersion="$VERSION" -Dsonar.branch.name="$TARGET"
 
   echo "INFO: Cleaning tmp folder ..."
+  mkdir tmp
   cd /src/tmp
-  rm -f "$PROJECT-SQ-cache-$TARGET.tar.gz"
-
+  
   echo "INFO: Creating cache tarball named $PROJECT-SQ-cache-$TARGET.tar.gz..."
   mv /src/.scannerwork .
   mv /src/build/cache .
