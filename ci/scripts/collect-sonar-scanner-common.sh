@@ -40,8 +40,8 @@ install_scanner() {
 }
 
 get_cache() {
-  cd tmp
-
+  
+  echo $(pwd)
   echo "INFO: Cleaning before pulling tarball ..."
   rm -f "$PROJECT-SQ-cache-$TARGET.tar.gz"
 
@@ -57,8 +57,8 @@ get_cache() {
 }
 
 set_cache() {
-  cd tmp
-
+  
+  echo $(pwd)
   if [[ -z "$TARGET" ]]; then
     echo "ERROR: Target's name is empty. Skipping $VERSION's cache"
     exit
