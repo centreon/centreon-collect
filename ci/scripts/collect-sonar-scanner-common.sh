@@ -40,24 +40,34 @@ install_scanner() {
 }
 
 get_cache() {
-  
   echo $(pwd)
   echo "INFO: Cleaning before pulling tarball ..."
   rm -f "$PROJECT-SQ-cache-$TARGET.tar.gz"
 
   CACHE_PATH="SQ-cache/$PROJECT/$PROJECT-SQ-cache-$TARGET.tar.gz"
   CACHE_URL="http://srvi-repo.int.centreon.com/sources/internal/$CACHE_PATH"
-
+  echo "INFO: version $VERSION"
   if validate_file_exists "$CACHE_URL"; then
     echo "INFO: Pulling tarball ..."
     wget -q "$CACHE_URL"
   else
-    echo "WARNING: File not found. Skipping $TARGET's cache on $VERSION"
+    if [[ "22.04.0" == "$VERSION" ]]; then
+      CACHE_PATH="SQ-cache/$PROJECT/$PROJECT-SQ-cache-develop.tar.gz"
+      CACHE_URL="http://srvi-repo.int.centreon.com/sources/internal/$CACHE_PATH"
+      if validate_file_exists "$CACHE_URL"; then
+        echo "INFO: Pulling tarball ..."
+        wget -q "$CACHE_URL"
+      else
+        echo "WARNING: File not found. Skipping $TARGET's cache on $VERSION"
+      fi 
+    else 
+      echo "WARNING: Skipping $TARGET's cache on $VERSION"
+    fi
   fi
 }
 
 set_cache() {
-  
+  cd tmp
   echo $(pwd)
   if [[ -z "$TARGET" ]]; then
     echo "ERROR: Target's name is empty. Skipping $VERSION's cache"
