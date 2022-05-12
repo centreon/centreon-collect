@@ -136,18 +136,14 @@ stage('Build / Unit tests // Packaging / Signing') {
 
 stage('Quality Gate') {
   node("C++") {
-    if (securityAnalysisRequired == 'no') {
-      Utils.markStageSkippedForConditional('Quality Gate')
-    } else {
-      timeout(time: 10, unit: 'MINUTES') {
-        def qualityGate = waitForQualityGate()
-        if (qualityGate.status != 'OK') {
-          error "Pipeline aborted due to quality gate failure: ${qualityGate.status}"
-        }
+    timeout(time: 10, unit: 'MINUTES') {
+      def qualityGate = waitForQualityGate()
+      if (qualityGate.status != 'OK') {
+        error "Pipeline aborted due to quality gate failure: ${qualityGate.status}"
       }
-      if ((currentBuild.result ?: 'SUCCESS') != 'SUCCESS') {
-        error("Quality gate failure: ${qualityGate.status}.");
-      }
+    }
+    if ((currentBuild.result ?: 'SUCCESS') != 'SUCCESS') {
+      error("Quality gate failure: ${qualityGate.status}.");
     }
   }
 }
