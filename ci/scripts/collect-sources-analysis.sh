@@ -16,6 +16,7 @@ TARGET="$5"
 if [[ "$MODE" == "PR" && -n "$6" && -n "$7" ]]; then
   PR_BRANCH="$6"
   PR_KEY="$7"
+fi
 
 # Get distrib
 DISTRIB=$( lsb_release -rs | cut -f1 -d. )
