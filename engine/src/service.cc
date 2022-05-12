@@ -1882,6 +1882,7 @@ int service::handle_async_check_result(check_result* queued_check_result) {
       obsessive_compulsive_service_check_processor();
   }
 
+  bool need_update = false;
   /* reschedule the next service check ONLY for active, scheduled checks */
   if (reschedule_check) {
     engine_logger(dbg_checks, more) << "Rescheduling next check of service at "
@@ -1917,8 +1918,11 @@ int service::handle_async_check_result(check_result* queued_check_result) {
       set_should_be_scheduled(false);
 
     /* schedule a non-forced check if we can */
-    if (get_should_be_scheduled())
-      schedule_check(get_next_check(), CHECK_OPTION_NONE, true);
+    if (get_should_be_scheduled()) {
+      /* No update_status is asked but we store in need_update if it is needed,
+       * to send later. */
+      need_update = schedule_check(get_next_check(), CHECK_OPTION_NONE, true);
+    }
   }
 
   /* if we're stalking this state type and state was not already logged AND the
@@ -1955,8 +1959,10 @@ int service::handle_async_check_result(check_result* queued_check_result) {
     /* set the checked flag */
     set_has_been_checked(true);
     /* update the current service status log */
-    update_status();
+    need_update = true;
   }
+  if (need_update)
+    update_status();
 
   /* check to see if the service and/or associate host is flapping */
   if (!flapping_check_done) {
@@ -2613,7 +2619,8 @@ int service::run_async_check(int check_options,
  *  @param[in] check_time  Desired check time.
  *  @param[in] options     Check options (FORCED, FRESHNESS, ...).
  *
- * @return A boolean telling if service_status has been sent or not to broker.
+ * @return A boolean telling if service_status has been sent or if
+ * no_update_status_now is true, if it should be sent.
  */
 bool service::schedule_check(time_t check_time,
                              int options,
