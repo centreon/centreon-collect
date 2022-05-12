@@ -3,12 +3,12 @@
 set -e
 
 echo $(pwd)
-echo $(ls -l)
-echo $(ls -l /)
+
 #Cmake
-rm -rf /src/build
-mkdir /src/build
+# rm -rf /src/build
+# mkdir /src/build
 cd /src/build/
+echo $(ls -l)
 
 # Variables
 PROC_NBR=$( nproc )
