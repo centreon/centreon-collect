@@ -693,6 +693,24 @@ def schedule_service_downtime(hst: str, svc: str, duration: int):
     f.write(cmd)
     f.close()
 
+def schedule_host_downtime(poller: int, hst: str, duration: int):
+    now = int(time.time())
+    cmd1 = "[{1}] SCHEDULE_HOST_DOWNTIME;{0};{1};{2};1;0;{3};admin;Downtime set by admin\n".format(
+        hst, now, now + duration, duration)
+    cmd2 = "[{1}] SCHEDULE_HOST_SVC_DOWNTIME;{0};{1};{2};1;0;{3};admin;Downtime set by admin\n".format(
+        hst, now, now + duration, duration)
+    f = open("/var/lib/centreon-engine/config{}/rw/centengine.cmd".format(poller), "w")
+    f.write(cmd1)
+    f.write(cmd2)
+    f.close()
+
+def delete_host_downtimes(poller: int, hst: str):
+    now = int(time.time())
+    cmd = "[{}] DEL_HOST_DOWNTIME_FULL;{};;;;;;;;\n".format(now, hst)
+    f = open("/var/lib/centreon-engine/config{}/rw/centengine.cmd".format(poller), "w")
+    f.write(cmd)
+    f.close()
+
 def schedule_forced_svc_check(host: str, svc: str, pipe: str = "/var/lib/centreon-engine/rw/centengine.cmd"):
     now = int(time.time())
     f = open(pipe, "w")
