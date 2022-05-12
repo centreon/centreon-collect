@@ -42,6 +42,8 @@ using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::unified_sql;
 
+constexpr int32_t queue_timer_duration = 10;
+
 /**
  *  Check that the floating point values are the same number or are NaN or are
  *  INFINITY at the same time. The idea is to check if a is changed into b, did
@@ -82,9 +84,13 @@ void stream::_unified_sql_process_pb_service_status(
       "service_id:{}",
       host_id, service_id);
   auto it_index_cache = _index_cache.find({host_id, service_id});
-  if (it_index_cache == _index_cache.end())
-    throw msg_fmt("sql: could not find index for service({}, {})", host_id,
-                  service_id);
+  if (it_index_cache == _index_cache.end()) {
+    log_v2::sql()->critical(
+        "sql: could not find index for service({}, {}) - maybe the poller with "
+        "that service should be restarted",
+        host_id, service_id);
+    return;
+  }
 
   uint32_t rrd_len;
   int32_t conn =
@@ -803,6 +809,83 @@ void stream::_insert_perfdatas() {
   }
 }
 
+void stream::_check_queues(asio::error_code ec) {
+  if (ec)
+    log_v2::sql()->error(
+        "unified_sql: the queues check encountered an error: {}",
+        ec.message());
+  else {
+    time_t now = time(nullptr);
+    size_t sz_perfdatas;
+    size_t sz_metrics;
+    size_t sz_cv, sz_cvs;
+    size_t sz_logs;
+    {
+      std::lock_guard<std::mutex> lck(_queues_m);
+      sz_perfdatas = _perfdata_queue.size();
+      sz_metrics = _metrics.size();
+      sz_cv = _cv_queue.size();
+      sz_cvs = _cvs_queue.size();
+      sz_logs = _log_queue.size();
+    }
+  
+    bool perfdata_done = false;
+    if (now >= _next_insert_perfdatas || sz_perfdatas >= _max_perfdata_queries) {
+      _next_insert_perfdatas = now + queue_timer_duration;
+      _insert_perfdatas();
+      perfdata_done = true;
+    }
+  
+    bool metrics_done = false;
+    if (now >= _next_update_metrics || sz_metrics >= _max_metrics_queries) {
+      _next_update_metrics = now + queue_timer_duration;
+      _update_metrics();
+      metrics_done = true;
+    }
+  
+    bool customvar_done = false;
+    if (now >= _next_update_cv || sz_cv >= _max_cv_queries ||
+        sz_cvs >= _max_cv_queries) {
+      _next_update_cv = now + queue_timer_duration;
+      _update_customvariables();
+      customvar_done = true;
+    }
+  
+    bool logs_done = false;
+    if (now >= _next_insert_logs || sz_logs >= _max_log_queries) {
+      _next_insert_logs = now + queue_timer_duration;
+      _insert_logs();
+      logs_done = true;
+    }
+
+    // End.
+    log_v2::perfdata()->debug("unified_sql: end check_queue - perfdata: {}, metrics: {}, customvar: {}, logs: {}",
+                              perfdata_done, metrics_done, customvar_done, logs_done);
+
+    time_t duration = _next_insert_perfdatas;
+    if (_next_update_metrics < duration)
+      duration = _next_update_metrics;
+    if (_next_update_cv < duration)
+      duration = _next_update_cv;
+    if (_next_insert_logs < duration)
+      duration = _next_insert_logs;
+
+    duration -= now;
+    if (duration <= 0)
+      duration = 1;
+
+    if (!_stop_check_queues) {
+      _timer.expires_after(std::chrono::seconds(duration));
+      _timer.async_wait(
+          std::bind(&stream::_check_queues, this, std::placeholders::_1));
+    }
+    else {
+      log_v2::sql()->info("SQL: check_queues correctly interrupted.");
+      _check_queues_stopped = true;
+      _queues_cond_var.notify_all();
+    }
+  }
+}
 /**
  *  Check for deleted index.
  */

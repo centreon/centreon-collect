@@ -38,25 +38,25 @@ BEBAMIDT1
 
 	# KPI set to critical
 	Repeat Keyword	3 times	Process Service Check Result	host_16	service_314	2	output critical for 314
-	${result}=	Check Service Status With Timeout	host_16	service_314	2	300
+	${result}=	Check Service Status With Timeout	host_16	service_314	2	60
 	Should Be True	${result}	msg=The service (host_16,service_314) is not CRITICAL as expected
 
 	# The BA should become critical
-	${result}=	Check Ba Status With Timeout	test	2	300
+	${result}=	Check Ba Status With Timeout	test	2	60
 	Should Be True	${result}	msg=The BA ba_1 is not CRITICAL as expected
 
 	# A downtime is put on service_314
 	Schedule Service Downtime	host_16	service_314	3600
-	${result}=	Check Service Downtime With Timeout	host_16	service_314	1	300
+	${result}=	Check Service Downtime With Timeout	host_16	service_314	1	60
 	Should Be True	${result}	msg=The service (host_16, service_314) is not in downtime as it should be
-	${result}=	Check Service Downtime With Timeout	_Module_BAM_1	ba_1	1	300
+	${result}=	Check Service Downtime With Timeout	_Module_BAM_1	ba_1	1	60
 	Should Be True	${result}	msg=The BA ba_1 is not in downtime as it should
 
 	# The downtime is deleted
 	Delete Service Downtime	host_16	service_314
-	${result}=	Check Service Downtime With Timeout	host_16	service_314	0	300
+	${result}=	Check Service Downtime With Timeout	host_16	service_314	0	60
 	Should Be True	${result}	msg=The service (host_16, service_314) is in downtime and should not.
-	${result}=	Check Service Downtime With Timeout	_Module_BAM_1	ba_1	0	300
+	${result}=	Check Service Downtime With Timeout	_Module_BAM_1	ba_1	0	60
 	Should Be True	${result}	msg=The BA ba_1 is in downtime as it should not
 
 	Stop Engine
@@ -85,18 +85,18 @@ BEBAMIDT2
 
 	# KPI set to critical
 	Repeat Keyword	3 times	Process Service Check Result	host_16	service_314	2	output critical for 314
-	${result}=	Check Service Status With Timeout	host_16	service_314	2	300
+	${result}=	Check Service Status With Timeout	host_16	service_314	2	60
 	Should Be True	${result}	msg=The service (host_16,service_314) is not CRITICAL as expected
 
 	# The BA should become critical
-	${result}=	Check Ba Status With Timeout	test	2	300
+	${result}=	Check Ba Status With Timeout	test	2	60
 	Should Be True	${result}	msg=The BA ba_1 is not CRITICAL as expected
 
 	# A downtime is put on service_314
 	Schedule Service Downtime	host_16	service_314	3600
-	${result}=	Check Service Downtime With Timeout	host_16	service_314	1	300
+	${result}=	Check Service Downtime With Timeout	host_16	service_314	1	60
 	Should Be True	${result}	msg=The service (host_16, service_314) is not in downtime as it should be
-	${result}=	Check Service Downtime With Timeout	_Module_BAM_1	ba_1	1	300
+	${result}=	Check Service Downtime With Timeout	_Module_BAM_1	ba_1	1	60
 	Should Be True	${result}	msg=The BA ba_1 is not in downtime as it should
 
 	FOR	${i}	IN RANGE	5
@@ -116,9 +116,9 @@ BEBAMIDT2
 
 	# The downtime is deleted
 	Delete Service Downtime	host_16	service_314
-	${result}=	Check Service Downtime With Timeout	host_16	service_314	0	300
+	${result}=	Check Service Downtime With Timeout	host_16	service_314	0	60
 	Should Be True	${result}	msg=The service (host_16, service_314) is in downtime and should not.
-	${result}=	Check Service Downtime With Timeout	_Module_BAM_1	ba_1	0	300
+	${result}=	Check Service Downtime With Timeout	_Module_BAM_1	ba_1	0	60
 	Should Be True	${result}	msg=The BA ba_1 is in downtime as it should not
 
 	# We should have no more downtime

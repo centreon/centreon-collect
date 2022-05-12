@@ -1559,8 +1559,9 @@ int service::handle_async_check_result(check_result* queued_check_result) {
     set_no_more_notifications(false);
 
     if (reschedule_check)
-      next_service_check = (time_t)(
-          get_last_check() + check_interval() * config->interval_length());
+      next_service_check =
+          (time_t)(get_last_check() +
+                   check_interval() * config->interval_length());
   }
 
   /*******************************************/
@@ -1739,8 +1740,9 @@ int service::handle_async_check_result(check_result* queued_check_result) {
         /* the host is not up, so reschedule the next service check at regular
          * interval */
         if (reschedule_check)
-          next_service_check = (time_t)(
-              get_last_check() + check_interval() * config->interval_length());
+          next_service_check =
+              (time_t)(get_last_check() +
+                       check_interval() * config->interval_length());
 
         /* log the problem as a hard state if the host just went down */
         if (hard_state_change) {
@@ -1770,8 +1772,9 @@ int service::handle_async_check_result(check_result* queued_check_result) {
         handle_service_event();
 
         if (reschedule_check)
-          next_service_check = (time_t)(
-              get_last_check() + retry_interval() * config->interval_length());
+          next_service_check =
+              (time_t)(get_last_check() +
+                       retry_interval() * config->interval_length());
       }
 
       /* perform dependency checks on the second to last check of the service */
@@ -1869,8 +1872,9 @@ int service::handle_async_check_result(check_result* queued_check_result) {
 
       /* reschedule the next check at the regular interval */
       if (reschedule_check)
-        next_service_check = (time_t)(
-            get_last_check() + check_interval() * config->interval_length());
+        next_service_check =
+            (time_t)(get_last_check() +
+                     check_interval() * config->interval_length());
     }
 
     /* should we obsessive over service checks? */
@@ -1878,6 +1882,7 @@ int service::handle_async_check_result(check_result* queued_check_result) {
       obsessive_compulsive_service_check_processor();
   }
 
+  bool need_update = false;
   /* reschedule the next service check ONLY for active, scheduled checks */
   if (reschedule_check) {
     engine_logger(dbg_checks, more) << "Rescheduling next check of service at "
@@ -1913,8 +1918,11 @@ int service::handle_async_check_result(check_result* queued_check_result) {
       set_should_be_scheduled(false);
 
     /* schedule a non-forced check if we can */
-    if (get_should_be_scheduled())
-      schedule_check(get_next_check(), CHECK_OPTION_NONE);
+    if (get_should_be_scheduled()) {
+      /* No update_status is asked but we store in need_update if it is needed,
+       * to send later. */
+      need_update = schedule_check(get_next_check(), CHECK_OPTION_NONE, true);
+    }
   }
 
   /* if we're stalking this state type and state was not already logged AND the
@@ -1951,8 +1959,10 @@ int service::handle_async_check_result(check_result* queued_check_result) {
     /* set the checked flag */
     set_has_been_checked(true);
     /* update the current service status log */
-    update_status();
+    need_update = true;
   }
+  if (need_update)
+    update_status();
 
   /* check to see if the service and/or associate host is flapping */
   if (!flapping_check_done) {
@@ -2416,6 +2426,7 @@ int service::run_scheduled_check(int check_options, double latency) {
       update_status();
     return ERROR;
   }
+
   return OK;
 }
 
@@ -2608,9 +2619,12 @@ int service::run_async_check(int check_options,
  *  @param[in] check_time  Desired check time.
  *  @param[in] options     Check options (FORCED, FRESHNESS, ...).
  *
- * @return A boolean telling if service_status has been sent or not to broker.
+ * @return A boolean telling if service_status has been sent or if
+ * no_update_status_now is true, if it should be sent.
  */
-bool service::schedule_check(time_t check_time, int options) {
+bool service::schedule_check(time_t check_time,
+                             int options,
+                             bool no_update_status_now) {
   engine_logger(dbg_functions, basic) << "schedule_service_check()";
   log_v2::functions()->trace("schedule_service_check()");
 
@@ -2704,7 +2718,6 @@ bool service::schedule_check(time_t check_time, int options) {
   // Save check options for retention purposes.
   set_check_options(options);
 
-  bool no_update_status_now = false;
   // Schedule a new event.
   if (!use_original_event) {
     // We're using the new event, so remove the old one.
@@ -3332,9 +3345,9 @@ bool service::is_result_fresh(time_t current_time, int log_this) {
    * suggested by Altinity */
   else if (this->active_checks_enabled() && event_start > get_last_check() &&
            this->get_freshness_threshold() == 0)
-    expiration_time = (time_t)(
-        event_start + freshness_threshold +
-        (config->max_service_check_spread() * config->interval_length()));
+    expiration_time = (time_t)(event_start + freshness_threshold +
+                               (config->max_service_check_spread() *
+                                config->interval_length()));
   else
     expiration_time = (time_t)(get_last_check() + freshness_threshold);
 

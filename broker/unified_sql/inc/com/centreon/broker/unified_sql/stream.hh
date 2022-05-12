@@ -200,6 +200,12 @@ class stream : public io::stream {
   std::time_t _next_loop_timeout;
 
   asio::steady_timer _timer;
+  asio::steady_timer _queues_timer;
+  /* To give the order to stop the check_queues */
+  std::atomic_bool _stop_check_queues;
+  /* When the check_queues is really stopped */
+  bool _check_queues_stopped;
+
   /* Stats */
   ConflictManagerStats* _stats;
 
@@ -225,6 +231,7 @@ class stream : public io::stream {
    * the loop timeout is reached or if the queue size is greater than
    * _max_perfdata_queries. The filled table here is 'data_bin'. */
   mutable std::mutex _queues_m;
+  mutable std::condition_variable _queues_cond_var;
   std::deque<metric_value> _perfdata_queue;
   /* This map is also sent in bulk to the database. The insert is done if
    * the loop timeout is reached or if the queue size is greater than
@@ -299,6 +306,7 @@ class stream : public io::stream {
   void _update_hosts_and_services_of_instance(uint32_t id, bool responsive);
   void _update_timestamp(uint32_t instance_id);
   bool _is_valid_poller(uint32_t instance_id);
+  void _check_queues(asio::error_code ec);
   void _check_deleted_index(asio::error_code ec);
 
   void _process_acknowledgement(const std::shared_ptr<io::data>& d);

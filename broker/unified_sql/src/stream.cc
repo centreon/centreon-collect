@@ -44,6 +44,8 @@ const std::array<std::string, 5> stream::metric_type_name{
 const std::array<int, 5> stream::hst_ordered_status{0, 4, 2, 0, 1};
 const std::array<int, 5> stream::svc_ordered_status{0, 3, 4, 2, 1};
 
+static constexpr int32_t queue_timer_duration = 10;
+
 void (stream::*const stream::_neb_processing_table[])(
     const std::shared_ptr<io::data>&) = {
     nullptr,
@@ -116,6 +118,9 @@ stream::stream(const database_config& dbcfg,
       _next_update_metrics{std::time_t(nullptr) + 10},
       _next_loop_timeout{std::time_t(nullptr) + _loop_timeout},
       _timer{pool::io_context()},
+      _queues_timer{pool::io_context()},
+      _stop_check_queues{false},
+      _check_queues_stopped{false},
       _stats{stats::center::instance().register_conflict_manager()},
       _oldest_timestamp{std::numeric_limits<time_t>::max()} {
   log_v2::sql()->debug("unified sql: stream class instanciation");
@@ -137,10 +142,20 @@ stream::stream(const database_config& dbcfg,
   _timer.expires_after(std::chrono::minutes(5));
   _timer.async_wait(
       std::bind(&stream::_check_deleted_index, this, std::placeholders::_1));
+  _queues_timer.expires_after(std::chrono::seconds(queue_timer_duration));
+  _queues_timer.async_wait(
+      std::bind(&stream::_check_queues, this, std::placeholders::_1));
   log_v2::sql()->info("Unified sql stream running");
 }
 
 stream::~stream() noexcept {
+  std::promise<void> p;
+  asio::post(_timer.get_executor(), [this, &p] {
+    _timer.cancel();
+    p.set_value();
+  });
+  p.get_future().wait();
+
   log_v2::sql()->debug("unified sql: stream destruction");
 }
 
@@ -524,44 +539,6 @@ int32_t stream::write(const std::shared_ptr<io::data>& data) {
     _finish_actions();
   }
 
-  size_t sz_perfdatas;
-  size_t sz_metrics;
-  size_t sz_cv, sz_cvs;
-  size_t sz_logs;
-  {
-    std::lock_guard<std::mutex> lck(_queues_m);
-    sz_perfdatas = _perfdata_queue.size();
-    sz_metrics = _metrics.size();
-    sz_cv = _cv_queue.size();
-    sz_cvs = _cvs_queue.size();
-    sz_logs = _log_queue.size();
-  }
-
-  if (now >= _next_insert_perfdatas || sz_perfdatas >= _max_perfdata_queries) {
-    _next_insert_perfdatas = now + 10;
-    asio::post(pool::instance().io_context(),
-               std::bind(&stream::_insert_perfdatas, this));
-  }
-
-  if (now >= _next_update_metrics || sz_metrics >= _max_metrics_queries) {
-    _next_update_metrics = now + 10;
-    asio::post(pool::instance().io_context(),
-               std::bind(&stream::_update_metrics, this));
-  }
-
-  if (now >= _next_update_cv || sz_cv >= _max_cv_queries ||
-      sz_cvs >= _max_cv_queries) {
-    _next_update_cv = now + 10;
-    asio::post(pool::instance().io_context(),
-               std::bind(&stream::_update_customvariables, this));
-  }
-
-  if (now >= _next_insert_logs || sz_logs >= _max_log_queries) {
-    _next_insert_logs = now + 10;
-    asio::post(pool::instance().io_context(),
-               std::bind(&stream::_insert_logs, this));
-  }
-
   int32_t retval = _ack;
   _ack -= retval;
 
@@ -608,11 +585,20 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
  * @return the number of events to ack.
  */
 int32_t stream::stop() {
-  flush();
+  int32_t retval = flush();
+  /* We give the order to stop the check_queues */
+  _stop_check_queues = true;
+  /* We wait for the check_queues to be really stopped */
+  std::unique_lock<std::mutex> lck(_queues_m);
+  if (_queues_cond_var.wait_for(lck, std::chrono::seconds(queue_timer_duration), [this] {
+    return _check_queues_stopped;
+  })) {
+    log_v2::sql()->info("SQL: stream correctly stopped");
+  }
+  else {
+    log_v2::sql()->error("SQL: stream queues check still running...");
+  }
 
-  /* Let's return how many events to ack */
-  int32_t retval = _ack;
-  _ack -= retval;
   return retval;
 }
 
