@@ -66,8 +66,12 @@ get_cache() {
       return 0
     fi
   fi
+  echo $(ls -l)
   tar xzf "$TAR_NAME"
+  mkdir build
   mv cache build/
+  echo $(ls -l)
+  echo $(ls -l build)
   rm -rf "$TAR_NAME"
 }
 
