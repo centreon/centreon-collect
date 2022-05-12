@@ -40,8 +40,8 @@ for f in content:
             durations.sort(reverse = True)
             durations = durations[:10]
             gl_durations.append(durations)
-            gl_avg_duration.append((f, total_duration / count))
-            tests.append((f, success, fail))
+            gl_avg_duration.append((int(f), total_duration / count))
+            tests.append((int(f), success, fail))
             print("%s: %d/%d passed tests" % (f, success, count))
 
 # Display the arrays of longest tests
