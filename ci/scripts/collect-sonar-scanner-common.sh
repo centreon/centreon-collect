@@ -44,26 +44,31 @@ get_cache() {
   echo "INFO: Cleaning before pulling tarball ..."
   rm -f "$PROJECT-SQ-cache-$TARGET.tar.gz"
 
-  CACHE_PATH="SQ-cache/$PROJECT/$PROJECT-SQ-cache-$TARGET.tar.gz"
-  CACHE_URL="http://srvi-repo.int.centreon.com/sources/internal/$CACHE_PATH"
+  TAR_NAME="$PROJECT-SQ-cache-$TARGET.tar.gz"
+  CACHE_URL="http://srvi-repo.int.centreon.com/sources/internal/SQ-cache/$PROJECT/$TAR_NAME"
   echo "INFO: version $VERSION"
   if validate_file_exists "$CACHE_URL"; then
     echo "INFO: Pulling tarball ..."
     wget -q "$CACHE_URL"
   else
     if [[ "22.04.0" == "$VERSION" ]]; then
-      CACHE_PATH="SQ-cache/$PROJECT/$PROJECT-SQ-cache-develop.tar.gz"
-      CACHE_URL="http://srvi-repo.int.centreon.com/sources/internal/$CACHE_PATH"
+      TAR_NAME="SQ-cache/$PROJECT/$PROJECT-SQ-cache-develop.tar.gz"
+      CACHE_URL="http://srvi-repo.int.centreon.com/sources/internal/$TAR_NAME"
       if validate_file_exists "$CACHE_URL"; then
-        echo "INFO: Pulling tarball ..."
+        echo "INFO: Pulling tarball develop ..."
         wget -q "$CACHE_URL"
       else
         echo "WARNING: File not found. Skipping $TARGET's cache on $VERSION"
+        return 0
       fi 
     else 
       echo "WARNING: Skipping $TARGET's cache on $VERSION"
+      return 0
     fi
   fi
+  tar xzf "$TAR_NAME"
+  mv cache build/
+  rm -rf "$TAR_NAME"
 }
 
 set_cache() {
