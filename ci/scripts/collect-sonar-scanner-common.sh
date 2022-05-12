@@ -21,32 +21,12 @@ else
   TARGET="$BRANCH_NAME"
 fi
 
-install_scanner() {
-  echo "INFO: Cleaning tmp ..."
-  sudo rm -rf "/$WORKSPACE/centreon-collect-centos7/tmp"
-  mkdir tmp
-  cd tmp
-
-  echo "INFO: Installing missing requirements ..."
-  sudo apt-get install unzip || exit
-
-  echo "INFO: Getting latest archive ..."
-  curl https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.7.0.2747-linux.zip --output sonar-scanner-cli-4.7.0.2747-linux.zip
-  echo "INFO: Inflating files ..."
-  unzip -q sonar-scanner-cli-4.7.0.2747-linux.zip
-  echo "INFO: Cleaning again ..."
-  sudo rm -rf sonar-scanner-cli-4.7.0.2747-linux.zip sonar-scanner
-  sudo mv sonar-scanner-4.7.0.2747-linux sonar-scanner
-}
-
 get_cache() {
-  echo $(pwd)
   echo "INFO: Cleaning before pulling tarball ..."
   rm -f "$PROJECT-SQ-cache-$TARGET.tar.gz"
 
   TAR_NAME="$PROJECT-SQ-cache-$TARGET.tar.gz"
   CACHE_URL="http://srvi-repo.int.centreon.com/sources/internal/SQ-cache/$PROJECT/$TAR_NAME"
-  echo "INFO: version $VERSION"
   if validate_file_exists "$CACHE_URL"; then
     echo "INFO: Pulling tarball ..."
     wget -q "$CACHE_URL"
@@ -66,12 +46,9 @@ get_cache() {
       return 0
     fi
   fi
-  echo $(ls -l)
   tar xzf "$TAR_NAME"
   mkdir build
   mv cache build/
-  echo $(ls -l)
-  echo $(ls -l build)
   rm -rf "$TAR_NAME"
 }
 
@@ -102,7 +79,5 @@ if [[ -n "$1" ]]; then
     get_cache
   elif [[ "set" == "$1" ]]; then
     set_cache
-  elif [[ "install" == "$1" ]]; then
-    install_scanner
   fi
 fi
