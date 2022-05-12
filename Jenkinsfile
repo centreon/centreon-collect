@@ -57,7 +57,7 @@ stage('Build / Unit tests // Packaging / Signing') {
     node("C++") {
       dir('centreon-collect-centos7') {
         checkout scm
-        sh 'docker run -i --entrypoint /src/ci/scripts/collect-unit-tests.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:22.04'
+        sh 'docker run -i --entrypoint /src/ci/scripts/collect-unit-tests.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:22.04-test'
       }
     }
   },
@@ -72,9 +72,9 @@ stage('Build / Unit tests // Packaging / Signing') {
           withSonarQubeEnv('SonarQubeDev') {
             sh 'ci/scripts/collect-sonar-scanner-common.sh "get"'
             if (env.CHANGE_ID) {
-              sh 'docker run -i --entrypoint /src/ci/scripts/collect-sources-analysis.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:22.04 "PR" "$SONAR_AUTH_TOKEN" "$SONAR_HOST_URL" "$VERSION" "$CHANGE_TARGET" "$CHANGE_BRANCH" "$CHANGE_ID"'
+              sh 'docker run -i --entrypoint /src/ci/scripts/collect-sources-analysis.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:22.04-test "PR" "$SONAR_AUTH_TOKEN" "$SONAR_HOST_URL" "$VERSION" "$CHANGE_TARGET" "$CHANGE_BRANCH" "$CHANGE_ID"'
             } else {
-              sh 'docker run -i --entrypoint /src/ci/scripts/collect-sources-analysis.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:22.04 "NotPR" "$SONAR_AUTH_TOKEN" "$SONAR_HOST_URL" "$VERSION" "$BRANCH_NAME"'
+              sh 'docker run -i --entrypoint /src/ci/scripts/collect-sources-analysis.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:22.04-test "NotPR" "$SONAR_AUTH_TOKEN" "$SONAR_HOST_URL" "$VERSION" "$BRANCH_NAME"'
             }
             // if (env.BUILD == "REFERENCE" || env.BUILD == "QA") {
               // Saving cache's tarball if generated
@@ -89,7 +89,7 @@ stage('Build / Unit tests // Packaging / Signing') {
     node("C++") {
       dir('centreon-collect-centos7') {
         checkout scm
-        sh 'docker run -i --entrypoint /src/ci/scripts/collect-rpm-package.sh -v "$PWD:/src" -e DISTRIB="el7" -e VERSION=$VERSION -e RELEASE=$RELEASE registry.centreon.com/centreon-collect-centos7-dependencies:22.04'
+        sh 'docker run -i --entrypoint /src/ci/scripts/collect-rpm-package.sh -v "$PWD:/src" -e DISTRIB="el7" -e VERSION=$VERSION -e RELEASE=$RELEASE registry.centreon.com/centreon-collect-centos7-dependencies:22.04-test'
         sh 'rpmsign --addsign *.rpm'
         stash name: 'el7-rpms', includes: '*.rpm'
         archiveArtifacts artifacts: "*.rpm"
@@ -101,7 +101,7 @@ stage('Build / Unit tests // Packaging / Signing') {
     node("C++") {
       dir('centreon-collect-alma8') {
         checkout scm
-        sh 'docker run -i --entrypoint /src/ci/scripts/collect-rpm-package.sh -v "$PWD:/src" -e DISTRIB="el8" -e VERSION=$VERSION -e RELEASE=$RELEASE registry.centreon.com/centreon-collect-alma8-dependencies:22.04'
+        sh 'docker run -i --entrypoint /src/ci/scripts/collect-rpm-package.sh -v "$PWD:/src" -e DISTRIB="el8" -e VERSION=$VERSION -e RELEASE=$RELEASE registry.centreon.com/centreon-collect-alma8-dependencies:22.04-test'
         sh 'rpmsign --addsign *.rpm'
         stash name: 'el8-rpms', includes: '*.rpm'
         archiveArtifacts artifacts: "*.rpm"
@@ -113,7 +113,7 @@ stage('Build / Unit tests // Packaging / Signing') {
     node("C++") {
       dir('centreon-collect-debian10') {
         checkout scm
-        sh 'docker run -i --entrypoint /src/ci/scripts/collect-unit-tests.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-debian10-dependencies:22.04'
+        sh 'docker run -i --entrypoint /src/ci/scripts/collect-unit-tests.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-debian10-dependencies:22.04-test'
       }
     }
   },
@@ -122,7 +122,7 @@ stage('Build / Unit tests // Packaging / Signing') {
       dir('centreon-collect') {
         checkout scm
       }
-      sh 'docker run -i --entrypoint /src/centreon-collect/ci/scripts/collect-deb-package.sh -v "$PWD:/src" -e DISTRIB="Debian10" -e VERSION=$VERSION -e RELEASE=$RELEASE registry.centreon.com/centreon-collect-debian10-dependencies:22.04'
+      sh 'docker run -i --entrypoint /src/centreon-collect/ci/scripts/collect-deb-package.sh -v "$PWD:/src" -e DISTRIB="Debian10" -e VERSION=$VERSION -e RELEASE=$RELEASE registry.centreon.com/centreon-collect-debian10-dependencies:22.04-test'
       stash name: 'Debian10', includes: 'Debian10/*.deb'
       archiveArtifacts artifacts: "Debian10/*"
     }
@@ -131,7 +131,7 @@ stage('Build / Unit tests // Packaging / Signing') {
     node("C++") {
       dir('centreon-collect-debian11') {
         checkout scm
-        sh 'docker run -i --entrypoint /src/ci/scripts/collect-unit-tests.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-debian11-dependencies:22.04'
+        sh 'docker run -i --entrypoint /src/ci/scripts/collect-unit-tests.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-debian11-dependencies:22.04-test'
       }
     }
   },
@@ -140,7 +140,7 @@ stage('Build / Unit tests // Packaging / Signing') {
       dir('centreon-collect') {
         checkout scm
       }
-      sh 'docker run -i --entrypoint /src/centreon-collect/ci/scripts/collect-deb-package.sh -v "$PWD:/src" -e DISTRIB="Debian11" -e VERSION=$VERSION -e RELEASE=$RELEASE registry.centreon.com/centreon-collect-debian11-dependencies:22.04'
+      sh 'docker run -i --entrypoint /src/centreon-collect/ci/scripts/collect-deb-package.sh -v "$PWD:/src" -e DISTRIB="Debian11" -e VERSION=$VERSION -e RELEASE=$RELEASE registry.centreon.com/centreon-collect-debian11-dependencies:22.04-test'
       stash name: 'Debian11', includes: 'Debian11/*.deb'
       archiveArtifacts artifacts: "Debian11/*"
     }
