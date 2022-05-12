@@ -406,8 +406,7 @@ void conflict_manager::_storage_process_service_status(
 
         // Send perfdata event to processing.
         if (!index_locked) {
-          std::shared_ptr<storage::metric> perf{
-              std::make_shared<storage::metric>(
+          auto perf{std::make_shared<storage::metric>(
                   ss.host_id, ss.service_id, pd.name(), ss.last_check,
                   static_cast<uint32_t>(ss.check_interval * _interval_length),
                   false, metric_id, rrd_len, pd.value(),
@@ -417,7 +416,7 @@ void conflict_manager::_storage_process_service_status(
               "(name '{}', time {}, value {}, rrd_len {}, data_type {})",
               perf->metric_id, perf->name, perf->time, perf->value, rrd_len,
               perf->value_type);
-          multiplexing::publisher().write(perf);
+          to_publish.emplace_back(perf);
         }
       }
       multiplexing::publisher pblshr;

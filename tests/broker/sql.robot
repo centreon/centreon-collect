@@ -163,7 +163,6 @@ BDB10
 	Config Broker	rrd
 	Config Broker	module
 	Broker Config Log	central	sql	debug
-	Broker Config Log	module0	sql	debug
 	${start}=	Get Current Date
 	Start Broker
 	${content}=	Create List	sql stream initialization	storage stream initialization

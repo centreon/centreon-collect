@@ -631,6 +631,27 @@ def check_number_of_resources_monitored_by_poller_is(poller: int, value: int, ti
         time.sleep(1)
     return False
 
+def check_number_of_downtimes(expected: int, start, timeout: int):
+    limit = time.time() + timeout
+    d = parser.parse(start).timestamp()
+    while time.time() < limit:
+        connection = pymysql.connect(host='localhost',
+                                user='centreon',
+                                password='centreon',
+                                database='centreon_storage',
+                                charset='utf8mb4',
+                                cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT count(*) FROM downtimes WHERE start_time >= {} AND deletion_time IS NULL".format(d))
+                result = cursor.fetchall()
+                if len(result) > 0:
+                    logger.console("{}/{} active downtimes".format(result[0]['count(*)'], expected))
+                    if int(result[0]['count(*)']) == expected:
+                        return True
+        time.sleep(1)
+    return False
+
 def check_number_of_relations_between_hostgroup_and_hosts(hostgroup: int, value: int, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:

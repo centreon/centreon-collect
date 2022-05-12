@@ -48,8 +48,8 @@ class DowntimeFinderFindMatchingAllTest : public ::testing::Test {
                  42, "test_author", "test_comment");
     new_downtime(5, "out_host", "out_service", 7265943625, 7297479625, 1, 2,
                  31626500, "out_author", "out_comment");
-    _dtf.reset(new downtime_finder(
-        downtime_manager::instance().get_scheduled_downtimes()));
+    _dtf = std::make_unique<downtime_finder>(
+        downtime_manager::instance().get_scheduled_downtimes());
   }
 
   void TearDown() override {
@@ -59,16 +59,16 @@ class DowntimeFinderFindMatchingAllTest : public ::testing::Test {
     deinit_config_state();
   }
 
-  /*downtime**/ void new_downtime(uint64_t downtime_id,
-                                  std::string const& host_name,
-                                  std::string const& service_description,
-                                  time_t start,
-                                  time_t end,
-                                  int fixed,
-                                  unsigned long triggered_by,
-                                  int32_t duration,
-                                  std::string const& author,
-                                  std::string const& comment) {
+  void new_downtime(uint64_t downtime_id,
+                    std::string const& host_name,
+                    std::string const& service_description,
+                    time_t start,
+                    time_t end,
+                    int fixed,
+                    unsigned long triggered_by,
+                    int32_t duration,
+                    std::string const& author,
+                    std::string const& comment) {
     downtime_manager::instance().schedule_downtime(
         downtime::service_downtime, host_name, service_description, start,
         author.c_str(), comment.c_str(), start, end, fixed, triggered_by,

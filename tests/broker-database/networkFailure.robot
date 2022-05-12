@@ -87,7 +87,9 @@ NetworkDBFailU6
 	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	40
 	Should Be True	${result}	msg=No SELECT done by broker in the DB
         Disable Eth Connection On Port	port=3306
+	Log to console	Waiting for 1m while the connection to the DB is cut.
         Sleep	1m
+	Log to console	Reestablishing the connection and test last steps.
         Reset Eth Connection
         ${content}=	Create List	0 events acknowledged
 	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	40

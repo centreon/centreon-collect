@@ -118,6 +118,8 @@ ${moduleLog}	${BROKER_LOG}/central-module-master0.log
 ${rrdLog}	${BROKER_LOG}/central-rrd-master.log
 
 ${logEngine0}	${ENGINE_LOG}/config0/centengine.log
+${logEngine1}	${ENGINE_LOG}/config1/centengine.log
+${logEngine2}	${ENGINE_LOG}/config2/centengine.log
 
 ${DBName}	centreon_storage
 ${DBHost}	localhost
