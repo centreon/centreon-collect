@@ -3,7 +3,7 @@
 set -e
 
 source common.sh
-
+CACHE_REFERENCE="$2"
 # Check arguments.
 if [[ -z "$VERSION" ]] ; then
   echo "ERROR: You need to specify VERSION environment variable."
@@ -31,20 +31,15 @@ get_cache() {
     echo "INFO: Pulling tarball ..."
     wget -q "$CACHE_URL"
   else
-    if [[ "22.04.0" == "$VERSION" ]]; then
-      TAR_NAME="SQ-cache/$PROJECT/$PROJECT-SQ-cache-develop.tar.gz"
-      CACHE_URL="http://srvi-repo.int.centreon.com/sources/internal/$TAR_NAME"
-      if validate_file_exists "$CACHE_URL"; then
-        echo "INFO: Pulling tarball develop ..."
-        wget -q "$CACHE_URL"
-      else
-        echo "WARNING: File not found. Skipping $TARGET's cache on $VERSION"
-        return 0
-      fi 
-    else 
-      echo "WARNING: Skipping $TARGET's cache on $VERSION"
+    TAR_NAME="SQ-cache/$PROJECT/$PROJECT-SQ-cache-$CACHE_REFERENCE.tar.gz"
+    CACHE_URL="http://srvi-repo.int.centreon.com/sources/internal/$TAR_NAME"
+    if validate_file_exists "$CACHE_URL"; then
+      echo "INFO: Pulling tarball $CACHE_REFERENCE ..."
+      wget -q "$CACHE_URL"
+    else
+      echo "WARNING: File not found. Skipping $TARGET's cache on $CACHE_REFERENCE"
       return 0
-    fi
+    fi 
   fi
   tar xzf "$TAR_NAME"
   mkdir build
@@ -54,7 +49,6 @@ get_cache() {
 
 set_cache() {
   cd tmp
-  echo $(pwd)
   if [[ -z "$TARGET" ]]; then
     echo "ERROR: Target's name is empty. Skipping $VERSION's cache"
     exit
