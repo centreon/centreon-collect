@@ -1627,7 +1627,7 @@ int cmd_change_object_char_var(int cmd, char* args) {
   char* svc_description{nullptr};
   char* contact_name{nullptr};
   char* charval{nullptr};
-  char* temp_ptr{nullptr};
+  std::string temp_ptr;
   char* temp_ptr2{nullptr};
   unsigned long attr{MODATTR_NONE};
   unsigned long hattr{MODATTR_NONE};
@@ -1718,7 +1718,7 @@ int cmd_change_object_char_var(int cmd, char* args) {
       break;
   }
 
-  temp_ptr = string::dup(charval);
+  temp_ptr = charval;
 
   timeperiod_map::const_iterator found;
   command_map::iterator cmd_found;
@@ -1740,7 +1740,6 @@ int cmd_change_object_char_var(int cmd, char* args) {
         temp_timeperiod = found->second.get();
 
       if (temp_timeperiod == nullptr) {
-        delete[] temp_ptr;
         return ERROR;
       }
       break;
@@ -1756,12 +1755,10 @@ int cmd_change_object_char_var(int cmd, char* args) {
       cmd_found = commands::command::commands.find(temp_ptr2);
       if (cmd_found == commands::command::commands.end() ||
           !cmd_found->second) {
-        delete[] temp_ptr;
         return ERROR;
       }
 
-      delete[] temp_ptr;
-      temp_ptr = string::dup(charval);
+      temp_ptr = charval;
       break;
 
     default:
@@ -1802,7 +1799,6 @@ int cmd_change_object_char_var(int cmd, char* args) {
 
     case CMD_CHANGE_HOST_NOTIFICATION_TIMEPERIOD:
       temp_host->set_notification_period(temp_ptr);
-      delete[] temp_ptr;
       temp_host->set_notification_period_ptr(temp_timeperiod);
       attr = MODATTR_NOTIFICATION_TIMEPERIOD;
       break;
@@ -1815,7 +1811,6 @@ int cmd_change_object_char_var(int cmd, char* args) {
 
     case CMD_CHANGE_SVC_CHECK_COMMAND:
       found_svc->second->set_check_command(temp_ptr);
-      delete[] temp_ptr;
       found_svc->second->set_check_command_ptr(cmd_found->second.get());
       attr = MODATTR_CHECK_COMMAND;
       break;
