@@ -19,7 +19,6 @@
 #include <QCoreApplication>
 #include <QDir>
 #include <QFile>
-#include <cstring>
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/file/stream.hh"
 #include "com/centreon/broker/io/events.hh"

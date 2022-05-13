@@ -18,10 +18,6 @@
  */
 #include <gtest/gtest.h>
 
-#include <cstdlib>
-#include <iostream>
-#include <thread>
-
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/raw.hh"

@@ -19,8 +19,6 @@
 #ifndef CC_LOGGING_FILE_HH
 #define CC_LOGGING_FILE_HH
 
-#include <cstdio>
-#include <string>
 #include "com/centreon/logging/backend.hh"
 #include "com/centreon/namespace.hh"
 

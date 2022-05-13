@@ -20,8 +20,6 @@
 #define CCB_BAM_HST_SVC_MAPPING_HH
 
 #include <absl/container/flat_hash_map.h>
-#include <string>
-#include <utility>
 
 #include "com/centreon/broker/namespace.hh"
 

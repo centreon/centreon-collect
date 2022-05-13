@@ -18,10 +18,6 @@
 
 #include "com/centreon/broker/config/applier/state.hh"
 
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-
 #include "com/centreon/broker/config/applier/endpoint.hh"
 #include "com/centreon/broker/instance_broadcast.hh"
 #include "com/centreon/broker/log_v2.hh"

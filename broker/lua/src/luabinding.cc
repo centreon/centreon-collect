@@ -17,7 +17,6 @@
 */
 
 #include <cassert>
-#include <fstream>
 
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/lua/broker_cache.hh"

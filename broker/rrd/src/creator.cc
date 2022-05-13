@@ -20,8 +20,6 @@
 #include <rrd.h>
 
 #include <cerrno>
-#include <cstdio>
-#include <cstring>
 #ifdef __linux__
 #include <sys/sendfile.h>
 #endif  // Linux

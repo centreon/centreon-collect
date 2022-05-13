@@ -19,10 +19,6 @@
 #ifndef CCB_BAM_TIMEPERIOD_MAP_HH
 #define CCB_BAM_TIMEPERIOD_MAP_HH
 
-#include <map>
-#include <memory>
-#include <vector>
-
 #include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/time/timeperiod.hh"
 

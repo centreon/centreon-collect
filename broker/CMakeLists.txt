@@ -455,6 +455,7 @@ set(LIBROKER_SOURCES
 # Static libraries.
 add_library(rokerbase STATIC ${LIBROKER_SOURCES})
 set_target_properties(rokerbase PROPERTIES COMPILE_FLAGS "-fPIC")
+target_precompile_headers(rokerbase PRIVATE precomp_inc/precomp.hpp)
 add_dependencies(rokerbase berpc)
 target_link_libraries(rokerbase CONAN_PKG::zlib CONAN_PKG::spdlog CONAN_PKG::openssl CONAN_PKG::mariadb-connector-c pthread dl berpc bbdo_bbdo)
 
@@ -462,6 +463,7 @@ add_library(roker STATIC
   ${SRC_DIR}/config/applier/init.cc)
 target_link_libraries(roker rokerbase dl CONAN_PKG::openssl CONAN_PKG::grpc pthread)
 #target_link_libraries(roker rokerbase dl ${c-ares_LIBS} CONAN_PKG::openssl CONAN_PKG::grpc ${absl_LIBS} pthread)
+target_precompile_headers(roker PRIVATE precomp_inc/precomp.hpp)
 
 
 # Standalone binary.
@@ -470,6 +472,7 @@ add_executable(cbd ${SRC_DIR}/main.cc)
 #Flags needed to include all symbols in binary.
 target_link_libraries(cbd
 "-export-dynamic" "-Wl,--whole-archive" rokerbase roker "-Wl,--no-whole-archive" CONAN_PKG::nlohmann_json CONAN_PKG::fmt -L${CONAN_LIB_DIRS_GRPC} "-Wl,--whole-archive" grpc++ "-Wl,--no-whole-archive" CONAN_PKG::spdlog CONAN_PKG::grpc )
+target_precompile_headers(cbd PRIVATE precomp_inc/precomp.hpp)
 
 # Centreon Broker Watchdog
 option(WITH_CBWD "Build centreon broker watchdog." ON)

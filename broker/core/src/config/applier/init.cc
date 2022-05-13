@@ -17,8 +17,7 @@
 */
 
 #include "com/centreon/broker/config/applier/init.hh"
-#include <cstdlib>
-#include <memory>
+
 #include "com/centreon/broker/config/applier/endpoint.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/io/events.hh"

@@ -18,9 +18,6 @@
 
 #include "com/centreon/broker/database_config.hh"
 
-#include <map>
-#include <string>
-
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/exceptions/config.hh"
 #include "com/centreon/broker/log_v2.hh"

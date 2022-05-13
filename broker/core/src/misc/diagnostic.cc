@@ -20,9 +20,6 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <cstdio>
-#include <cstdlib>
-#include <fstream>
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/filesystem.hh"

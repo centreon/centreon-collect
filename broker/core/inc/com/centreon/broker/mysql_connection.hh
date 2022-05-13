@@ -19,11 +19,7 @@
 #ifndef CCB_MYSQL_CONNECTION_HH
 #define CCB_MYSQL_CONNECTION_HH
 
-#include <condition_variable>
 #include <future>
-#include <list>
-#include <mutex>
-#include <unordered_map>
 
 #include "com/centreon/broker/database/mysql_error.hh"
 #include "com/centreon/broker/database/mysql_result.hh"

@@ -19,7 +19,6 @@
 #ifndef CCB_NEB_HOST_SERVICE_STATUS_HH
 #define CCB_NEB_HOST_SERVICE_STATUS_HH
 
-#include <string>
 #include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/neb/status.hh"
 #include "com/centreon/broker/timestamp.hh"

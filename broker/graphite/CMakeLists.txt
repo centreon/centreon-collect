@@ -44,6 +44,7 @@ add_library("${GRAPHITE}" SHARED
   "${INC_DIR}/macro_cache.hh"
 )
 target_link_libraries("${GRAPHITE}" bbdo_storage CONAN_PKG::spdlog)
+target_precompile_headers(${GRAPHITE} PRIVATE ../precomp_inc/precomp.hpp)
 set_target_properties("${GRAPHITE}" PROPERTIES PREFIX "")
 
 # Testing.

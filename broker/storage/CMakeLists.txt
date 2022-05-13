@@ -44,6 +44,7 @@ set(CONFLICTMGR conflictmgr PARENT_SCOPE)
 set_target_properties(conflictmgr PROPERTIES
     COMPILE_FLAGS "-fPIC")
 target_link_libraries(conflictmgr CONAN_PKG::spdlog)
+target_precompile_headers(conflictmgr PRIVATE ../precomp_inc/precomp.hpp)
 
 # Storage module.
 set(STORAGE "20-storage")
@@ -69,6 +70,7 @@ set_target_properties("${STORAGE}" PROPERTIES
     COMPILE_FLAGS "-fPIC")
 add_dependencies("${STORAGE}" target_rebuild_message target_remove_graph_message)
 target_link_libraries(${STORAGE} conflictmgr rokerbase bbdo_storage)
+target_precompile_headers(${STORAGE} PRIVATE ../precomp_inc/precomp.hpp)
 
 # Testing.
 if (WITH_TESTING)

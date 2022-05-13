@@ -19,17 +19,7 @@
 
 #ifndef CCB_GRPC_PRECOMP_HH
 #define CCB_GRPC_PRECOMP_HH
-
-#include <algorithm>
-#include <chrono>
-#include <condition_variable>
-#include <fstream>
-#include <limits>
-#include <memory>
-#include <mutex>
-#include <queue>
-#include <set>
-#include <string>
+#include "../../precomp_inc/precomp.hpp"
 
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/spdlog.h>

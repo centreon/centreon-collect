@@ -19,8 +19,6 @@
 #ifndef CCB_NEB_GROUP_HH
 #define CCB_NEB_GROUP_HH
 
-#include <string>
-
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/namespace.hh"
 

@@ -17,7 +17,6 @@
 */
 
 #include "com/centreon/broker/lua/broker_log.hh"
-#include <fstream>
 #include "com/centreon/broker/log_v2.hh"
 
 using namespace com::centreon::broker;

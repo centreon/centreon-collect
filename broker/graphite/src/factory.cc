@@ -17,8 +17,6 @@
 */
 
 #include "com/centreon/broker/graphite/factory.hh"
-#include <cstring>
-#include <memory>
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/graphite/connector.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"

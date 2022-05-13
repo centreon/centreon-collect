@@ -19,10 +19,6 @@
 #ifndef CCB_MISC_MISC_HH
 #define CCB_MISC_MISC_HH
 
-#include <absl/container/flat_hash_set.h>
-#include <list>
-#include <string>
-#include <vector>
 #include "com/centreon/broker/misc/perfdata.hh"
 #include "com/centreon/broker/namespace.hh"
 

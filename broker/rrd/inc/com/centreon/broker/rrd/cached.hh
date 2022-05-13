@@ -21,8 +21,6 @@
 
 #include <fmt/format.h>
 
-#include <asio.hpp>
-
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/rrd/exceptions/open.hh"

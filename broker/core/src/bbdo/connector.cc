@@ -18,9 +18,7 @@
 
 #include "com/centreon/broker/bbdo/connector.hh"
 
-#include <algorithm>
 #include <cassert>
-#include <memory>
 
 #include "com/centreon/broker/bbdo/internal.hh"
 #include "com/centreon/broker/bbdo/stream.hh"

@@ -20,8 +20,6 @@
 
 #include <gtest/gtest.h>
 
-#include <memory>
-
 #include "com/centreon/broker/bam/dimension_kpi_event.hh"
 #include "com/centreon/broker/bam/dimension_truncate_table_signal.hh"
 #include "com/centreon/broker/persistent_cache.hh"

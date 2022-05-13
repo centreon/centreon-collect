@@ -17,16 +17,6 @@
 */
 #ifndef CCB_SQL_CONFLICT_MANAGER_HH
 #define CCB_SQL_CONFLICT_MANAGER_HH
-#include <array>
-#include <atomic>
-#include <condition_variable>
-#include <deque>
-#include <list>
-#include <memory>
-#include <mutex>
-#include <thread>
-#include <unordered_map>
-#include <unordered_set>
 
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/stream.hh"

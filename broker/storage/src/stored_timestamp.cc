@@ -18,8 +18,6 @@
 
 #include "com/centreon/broker/storage/stored_timestamp.hh"
 
-#include <ctime>
-
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::storage;
 

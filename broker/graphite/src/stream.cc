@@ -17,7 +17,6 @@
 */
 
 #include "com/centreon/broker/graphite/stream.hh"
-#include <sstream>
 #include "bbdo/storage/metric.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"

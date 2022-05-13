@@ -17,13 +17,10 @@
  *
  */
 #include <gtest/gtest.h>
-#include <chrono>
 #include <com/centreon/broker/stats/parser.hh>
 #include <com/centreon/broker/stats/worker.hh>
 #include <com/centreon/broker/stats/worker_pool.hh>
-#include <fstream>
 #include <nlohmann/json.hpp>
-#include <thread>
 #include "com/centreon/broker/config/applier/endpoint.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/config/parser.hh"

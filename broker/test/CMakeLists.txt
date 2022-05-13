@@ -111,6 +111,8 @@ add_executable(ut_broker
 target_link_libraries(ut_broker test_util roker rokerbase ${TESTS_LIBRARIES} conflictmgr
 	CONAN_PKG::nlohmann_json CONAN_PKG::asio CONAN_PKG::fmt CONAN_PKG::spdlog CONAN_PKG::gtest CONAN_PKG::mariadb-connector-c CONAN_PKG::openssl CONAN_PKG::grpc )
 
+target_precompile_headers(ut_broker PRIVATE ../precomp_inc/precomp.hpp)
+
 set_target_properties(
     ut_broker rpc_client
     PROPERTIES

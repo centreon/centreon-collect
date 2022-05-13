@@ -19,10 +19,6 @@
 #include <fmt/format.h>
 
 #include <cfloat>
-#include <cstring>
-#include <list>
-#include <set>
-#include <sstream>
 
 #include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric.hh"

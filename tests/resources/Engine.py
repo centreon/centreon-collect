@@ -1,4 +1,4 @@
-from os import makedirs,chmod
+from os import makedirs, chmod
 from os.path import exists, dirname
 from robot.api import logger
 import db_conf
@@ -106,13 +106,13 @@ class EngineInstance:
                 "log_v2_enabled=1\n"
                 "log_legacy_enabled=0\n"
                 "log_v2_logger=file\n"
-                "log_level_functions=info\n"
+                "log_level_functions=trace\n"
                 "log_level_config=info\n"
                 "log_level_events=info\n"
                 "log_level_checks=info\n"
                 "log_level_notifications=info\n"
                 "log_level_eventbroker=info\n"
-                "log_level_external_command=info\n"
+                "log_level_external_command=trace\n"
                 "log_level_commands=info\n"
                 "log_level_downtimes=info\n"
                 "log_level_comments=info\n"
@@ -463,7 +463,8 @@ define timeperiod {
             for file in ["check.pl", "notif.pl"]:
                 shutil.copyfile("{0}/{1}".format(SCRIPT_DIR, file),
                                 "{0}/{1}".format(ENGINE_HOME, file))
-                chmod("{0}/{1}".format(ENGINE_HOME, file), stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP)
+                chmod("{0}/{1}".format(ENGINE_HOME, file),
+                      stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP)
             if not exists(ENGINE_HOME + "/config{}/rw".format(inst)):
                 makedirs(ENGINE_HOME + "/config{}/rw".format(inst))
 

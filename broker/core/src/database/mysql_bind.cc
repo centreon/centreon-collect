@@ -21,8 +21,6 @@
 #include <cassert>
 #include <cfloat>
 #include <cmath>
-#include <cstring>
-#include <iostream>
 
 #include "com/centreon/broker/database/mysql_column.hh"
 #include "com/centreon/broker/io/events.hh"

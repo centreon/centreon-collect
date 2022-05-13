@@ -20,7 +20,6 @@
 #define CCB_MISC_UUID_HH_
 
 #include <stdint.h>
-#include <string>
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()

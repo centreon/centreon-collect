@@ -19,8 +19,6 @@
 #ifndef CCB_CEOF_CEOF_PARSER_HH
 #define CCB_CEOF_CEOF_PARSER_HH
 
-#include <string>
-#include <vector>
 #include "com/centreon/broker/ceof/ceof_iterator.hh"
 #include "com/centreon/broker/ceof/ceof_token.hh"
 #include "com/centreon/broker/namespace.hh"

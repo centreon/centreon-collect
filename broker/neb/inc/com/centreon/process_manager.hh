@@ -20,14 +20,6 @@
 #define CC_PROCESS_MANAGER_POSIX_HH
 
 #include <poll.h>
-#include <atomic>
-#include <condition_variable>
-#include <deque>
-#include <map>
-#include <mutex>
-#include <thread>
-#include <unordered_map>
-#include <vector>
 #include "com/centreon/namespace.hh"
 
 CC_BEGIN()

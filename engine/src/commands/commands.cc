@@ -36,8 +36,6 @@
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
-//#include "com/centreon/engine/modules/external_commands/internal.hh"
-//#include "com/centreon/engine/modules/external_commands/utils.hh"
 #include "com/centreon/engine/statusdata.hh"
 #include "com/centreon/engine/string.hh"
 #include "mmap.h"

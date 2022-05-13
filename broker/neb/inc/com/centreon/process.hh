@@ -20,9 +20,6 @@
 #define CC_PROCESS_POSIX_HH
 
 #include <sys/types.h>
-#include <condition_variable>
-#include <mutex>
-#include <string>
 #include "com/centreon/timestamp.hh"
 
 CC_BEGIN()

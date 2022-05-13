@@ -76,6 +76,7 @@ add_library("${RRD}" SHARED
   "${INC_DIR}/com/centreon/broker/rrd/output.hh"
   )
 set_target_properties("${RRD}" PROPERTIES PREFIX "")
+target_precompile_headers(${RRD} PRIVATE ../precomp_inc/precomp.hpp)
 add_dependencies("${RRD}" target_rebuild_message target_remove_graph_message)
 
 # Compile with librrd flags.

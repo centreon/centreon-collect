@@ -19,8 +19,6 @@
 #if !defined _CCB_MISC_BUFFER_HH
 #define _CCB_MISC_BUFFER_HH
 
-#include <deque>
-#include <vector>
 #include <stdexcept>
 #include "com/centreon/broker/namespace.hh"
 
@@ -69,7 +67,8 @@ class buffer {
   }
 
   std::pair<char*, size_t> front() {
-    return std::make_pair(_buf.front().data() + _shift, _buf.front().size() - _shift);
+    return std::make_pair(_buf.front().data() + _shift,
+                          _buf.front().size() - _shift);
   }
 
   std::vector<char> pop() {
@@ -81,9 +80,9 @@ class buffer {
       _buf.pop_front();
       _size -= retval.size();
       return retval;
-    }
-    else {
-      std::vector<char> retval(_buf.front().begin() + _shift, _buf.front().end());
+    } else {
+      std::vector<char> retval(_buf.front().begin() + _shift,
+                               _buf.front().end());
       _size -= retval.size();
       _shift = 0;
       _buf.pop_front();

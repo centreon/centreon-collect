@@ -19,7 +19,6 @@
 #ifndef CC_UNIQUE_ARRAY_PTR_HH
 #define CC_UNIQUE_ARRAY_PTR_HH
 
-#include <cstddef>
 #include "com/centreon/namespace.hh"
 
 CC_BEGIN()

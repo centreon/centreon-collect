@@ -19,8 +19,6 @@
 #ifndef CCB_IO_EVENTS_HH
 #define CCB_IO_EVENTS_HH
 
-#include <unordered_map>
-
 #include "bbdo/events.hh"
 #include "com/centreon/broker/io/event_info.hh"
 

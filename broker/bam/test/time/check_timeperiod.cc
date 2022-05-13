@@ -17,12 +17,6 @@
 */
 
 #include <gtest/gtest.h>
-#include <algorithm>
-#include <ctime>
-#include <fstream>
-#include <iostream>
-#include <string>
-#include <vector>
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/time/timeperiod.hh"

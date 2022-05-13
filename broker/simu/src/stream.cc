@@ -17,8 +17,6 @@
 */
 #include "com/centreon/broker/simu/stream.hh"
 
-#include <sstream>
-
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/simu/luabinding.hh"

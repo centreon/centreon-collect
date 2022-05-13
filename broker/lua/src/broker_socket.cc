@@ -18,7 +18,6 @@
 
 #include "com/centreon/broker/lua/broker_socket.hh"
 #include <fmt/format.h>
-#include <asio.hpp>
 
 #if ASIO_VERSION < 101200
 namespace asio {

@@ -19,8 +19,6 @@
 #ifndef CCB_TCP_CONNECTOR_HH
 #define CCB_TCP_CONNECTOR_HH
 
-#include <asio.hpp>
-
 #include "com/centreon/broker/io/limit_endpoint.hh"
 #include "com/centreon/broker/namespace.hh"
 

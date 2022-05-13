@@ -43,6 +43,7 @@ add_library("${STATS}" SHARED
 set_target_properties("${STATS}" PROPERTIES
     PREFIX "")
 target_link_libraries("${STATS}" CONAN_PKG::spdlog)
+target_precompile_headers(${STATS} PRIVATE ../precomp_inc/precomp.hpp)
 
 # Testing.
 if (WITH_TESTING)

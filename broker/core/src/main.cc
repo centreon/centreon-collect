@@ -19,13 +19,8 @@
 #include <getopt.h>
 
 #include <cerrno>
-#include <chrono>
 #include <clocale>
 #include <csignal>
-#include <cstdlib>
-#include <cstring>
-#include <exception>
-#include <thread>
 
 #include "com/centreon/broker/brokerrpc.hh"
 #include "com/centreon/broker/config/applier/init.hh"

@@ -19,8 +19,6 @@
 #ifndef CCB_NEB_NODE_EVENTS_CONNECTOR_HH
 #define CCB_NEB_NODE_EVENTS_CONNECTOR_HH
 
-#include <memory>
-#include <string>
 #include "com/centreon/broker/database_config.hh"
 #include "com/centreon/broker/io/endpoint.hh"
 #include "com/centreon/broker/namespace.hh"

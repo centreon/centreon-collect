@@ -22,7 +22,6 @@
 #include <gtest/gtest.h>
 
 #include <cmath>
-#include <cstdlib>
 
 #include "com/centreon/broker/database/table_max_size.hh"
 #include "randomize.hh"

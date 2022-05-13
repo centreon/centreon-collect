@@ -40,7 +40,7 @@ BEEXTCMD1
 
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
-		FOR	${index}	IN RANGE	30
+		FOR	${index}	IN RANGE	300
 			Log To Console	select s.check_interval from services s,hosts h where s.description='service_1' and h.name='host_1' 
 			${output}=	Query	select s.check_interval from services s,hosts h where s.description='service_1' and h.name='host_1'
 			Log To Console	${output}

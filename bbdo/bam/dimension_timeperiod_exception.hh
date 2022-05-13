@@ -19,8 +19,6 @@
 #ifndef CCB_BAM_DIMENSION_TIMEPERIOD_EXCEPTION_HH
 #define CCB_BAM_DIMENSION_TIMEPERIOD_EXCEPTION_HH
 
-#include <string>
-
 #include "bbdo/events.hh"
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/io/event_info.hh"

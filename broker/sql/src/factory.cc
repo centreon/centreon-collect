@@ -18,9 +18,6 @@
 
 #include "com/centreon/broker/sql/factory.hh"
 
-#include <cstring>
-#include <memory>
-
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/sql/connector.hh"
 

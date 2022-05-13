@@ -19,9 +19,6 @@
 #ifndef CCB_NEB_STRING_PAIR_HH
 #define CCB_NEB_STRING_PAIR_HH
 
-#include <functional>
-#include <string>
-
 namespace std {
 template <>
 struct hash<std::pair<std::string, std::string>> {

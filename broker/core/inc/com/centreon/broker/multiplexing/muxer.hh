@@ -19,10 +19,6 @@
 #ifndef CCB_MULTIPLEXING_MUXER_HH
 #define CCB_MULTIPLEXING_MUXER_HH
 
-#include <absl/container/flat_hash_set.h>
-#include <condition_variable>
-#include <list>
-
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/persistent_file.hh"
 

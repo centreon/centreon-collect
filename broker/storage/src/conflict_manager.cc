@@ -18,7 +18,6 @@
 #include "com/centreon/broker/storage/conflict_manager.hh"
 
 #include <cassert>
-#include <cstring>
 
 #include "bbdo/events.hh"
 #include "bbdo/storage/index_mapping.hh"

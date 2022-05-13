@@ -21,8 +21,6 @@
 #define CENTREON_BROKER_CORE_SRC_BROKERRPC_HH_
 
 #include <grpcpp/server.h>
-#include <memory>
-#include <string>
 #include "com/centreon/broker/broker_impl.hh"
 #include "com/centreon/broker/namespace.hh"
 

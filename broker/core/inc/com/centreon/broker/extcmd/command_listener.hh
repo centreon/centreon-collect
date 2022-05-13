@@ -19,9 +19,6 @@
 #ifndef CCB_EXTCMD_COMMAND_LISTENER_HH
 #define CCB_EXTCMD_COMMAND_LISTENER_HH
 
-#include <list>
-#include <map>
-#include <mutex>
 #include "com/centreon/broker/extcmd/command_result.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/namespace.hh"

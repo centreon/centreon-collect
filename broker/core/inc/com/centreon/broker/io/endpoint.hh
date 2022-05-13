@@ -19,10 +19,7 @@
 #ifndef CCB_IO_ENDPOINT_HH
 #define CCB_IO_ENDPOINT_HH
 
-#include <memory>
 #include <nlohmann/json.hpp>
-#include <set>
-#include <string>
 
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/namespace.hh"

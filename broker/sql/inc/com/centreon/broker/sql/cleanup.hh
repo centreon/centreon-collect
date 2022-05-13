@@ -19,9 +19,6 @@
 #ifndef CCB_SQL_CLEANUP_HH
 #define CCB_SQL_CLEANUP_HH
 
-#include <mutex>
-#include <string>
-#include <thread>
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()

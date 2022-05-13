@@ -20,7 +20,6 @@
 #define CCB_IO_EVENT_INFO_HH
 
 #include <cstddef>
-#include <string>
 
 #include "com/centreon/broker/namespace.hh"
 

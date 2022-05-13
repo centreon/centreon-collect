@@ -108,6 +108,7 @@ target_link_libraries(nebbase
 
 set(NEBBASE_CXXFLAGS "${NEBBASE_CXXFLAGS} -fPIC")
 set_property(TARGET nebbase PROPERTY COMPILE_FLAGS ${NEBBASE_CXXFLAGS})
+target_precompile_headers(nebbase PRIVATE ../precomp_inc/precomp.hpp)
 
 # Centreon Broker module.
 set(NEB "10-neb")
@@ -127,6 +128,7 @@ add_library("${NEB}" SHARED
 target_link_libraries(${NEB} nebbase CONAN_PKG::spdlog)
 #  "-Wl,--whole-archive" nebbase "-Wl,--no-whole-archive")
 set_target_properties("${NEB}" PROPERTIES PREFIX "")
+target_precompile_headers(${NEB} PRIVATE precomp_inc/precomp.hpp)
 install(TARGETS "${NEB}"
   LIBRARY DESTINATION "${PREFIX_MODULES}"
 )
@@ -163,6 +165,8 @@ else ()
   target_link_libraries("${CBMOD}" "rokerbase" CONAN_PKG::nlohmann_json CONAN_PKG::spdlog CONAN_PKG::asio)
 endif ()
 set_target_properties("${CBMOD}" PROPERTIES PREFIX "")
+target_precompile_headers(${CBMOD} PRIVATE precomp_inc/precomp.hpp)
+
 
 # Testing.
 if (WITH_TESTING)

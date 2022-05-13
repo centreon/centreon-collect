@@ -19,7 +19,6 @@
 #include "com/centreon/broker/database/mysql_column.hh"
 
 #include <cassert>
-#include <cstring>
 
 #include "com/centreon/broker/log_v2.hh"
 

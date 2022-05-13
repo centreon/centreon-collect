@@ -21,9 +21,6 @@
 
 #include <fmt/format.h>
 
-#include <memory>
-#include <sstream>
-
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/tcp/stream.hh"
 #include "com/centreon/broker/tcp/tcp_async.hh"

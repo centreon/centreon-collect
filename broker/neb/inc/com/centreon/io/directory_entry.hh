@@ -19,8 +19,6 @@
 #ifndef CC_IO_DIRECTORY_ENTRY_HH
 #define CC_IO_DIRECTORY_ENTRY_HH
 
-#include <list>
-#include <string>
 #include "com/centreon/handle.hh"
 #include "com/centreon/io/file_entry.hh"
 #include "com/centreon/namespace.hh"

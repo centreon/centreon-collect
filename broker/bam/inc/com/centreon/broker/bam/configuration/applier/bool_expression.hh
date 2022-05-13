@@ -19,9 +19,6 @@
 #ifndef CCB_BAM_CONFIGURATION_APPLIER_BOOL_EXPRESSION_HH
 #define CCB_BAM_CONFIGURATION_APPLIER_BOOL_EXPRESSION_HH
 
-#include <list>
-#include <map>
-#include <memory>
 #include "com/centreon/broker/bam/configuration/bool_expression.hh"
 #include "com/centreon/broker/bam/configuration/state.hh"
 #include "com/centreon/broker/namespace.hh"

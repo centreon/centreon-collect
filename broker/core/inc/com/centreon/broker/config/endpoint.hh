@@ -19,12 +19,7 @@
 #ifndef CCB_CONFIG_ENDPOINT_HH
 #define CCB_CONFIG_ENDPOINT_HH
 
-#include <ctime>
-#include <list>
-#include <map>
 #include <nlohmann/json.hpp>
-#include <set>
-#include <string>
 
 #include "com/centreon/broker/multiplexing/muxer.hh"
 

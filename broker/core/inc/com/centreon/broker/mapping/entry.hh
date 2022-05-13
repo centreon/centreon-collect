@@ -20,7 +20,6 @@
 #define CCB_MAPPING_ENTRY_HH
 
 #include <cassert>
-#include <memory>
 
 #include "com/centreon/broker/mapping/property.hh"
 

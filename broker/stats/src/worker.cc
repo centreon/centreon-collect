@@ -23,8 +23,6 @@
 #include <time.h>
 #include <unistd.h>
 #include <cerrno>
-#include <cstdlib>
-#include <cstring>
 #include <iomanip>
 #include <sstream>
 #include "com/centreon/broker/config/applier/endpoint.hh"

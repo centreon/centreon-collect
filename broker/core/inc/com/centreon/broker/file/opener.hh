@@ -19,7 +19,6 @@
 #ifndef CCB_FILE_OPENER_HH
 #define CCB_FILE_OPENER_HH
 
-#include <string>
 #include "com/centreon/broker/io/endpoint.hh"
 #include "com/centreon/broker/namespace.hh"
 

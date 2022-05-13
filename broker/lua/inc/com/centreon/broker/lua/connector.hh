@@ -19,8 +19,6 @@
 #ifndef CCB_LUA_CONNECTOR_HH
 #define CCB_LUA_CONNECTOR_HH
 
-#include <map>
-#include <memory>
 #include "com/centreon/broker/io/endpoint.hh"
 #include "com/centreon/broker/misc/variant.hh"
 

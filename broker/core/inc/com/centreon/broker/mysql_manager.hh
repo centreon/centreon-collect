@@ -18,11 +18,6 @@
 #ifndef CCB_MYSQL_MANAGER_HH
 #define CCB_MYSQL_MANAGER_HH
 
-#include <mutex>
-#include <thread>
-#include <unordered_map>
-#include <vector>
-
 #include "com/centreon/broker/database/mysql_error.hh"
 #include "com/centreon/broker/mysql.hh"
 #include "com/centreon/broker/stats/center.hh"

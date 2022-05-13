@@ -19,9 +19,6 @@
 #ifndef CCB_BBDO_STREAM_HH
 #define CCB_BBDO_STREAM_HH
 
-#include <deque>
-#include <list>
-
 #include "com/centreon/broker/io/extension.hh"
 #include "com/centreon/broker/io/stream.hh"
 

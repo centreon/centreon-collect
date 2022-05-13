@@ -17,8 +17,6 @@
 */
 
 #include "com/centreon/broker/time/daterange.hh"
-#include <cstdio>
-#include <cstring>
 
 using namespace com::centreon::broker::time;
 

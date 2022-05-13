@@ -19,10 +19,6 @@
 #include "com/centreon/broker/bam/kpi_service.hh"
 #include <fmt/format.h>
 #include <gtest/gtest.h>
-#include <cstdlib>
-#include <memory>
-#include <stack>
-#include <vector>
 #include "bbdo/bam/state.hh"
 #include "com/centreon/broker/bam/ba.hh"
 #include "com/centreon/broker/bam/configuration/applier/state.hh"

@@ -19,9 +19,6 @@
 #ifndef CCB_INFLUXDB_LINE_PROTOCOL_QUERY_HH
 #define CCB_INFLUXDB_LINE_PROTOCOL_QUERY_HH
 
-#include <string>
-#include <utility>
-#include <vector>
 #include "bbdo/storage/metric.hh"
 #include "bbdo/storage/status.hh"
 #include "com/centreon/broker/influxdb/column.hh"

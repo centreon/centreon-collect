@@ -19,10 +19,6 @@
 #ifndef CCB_FILE_SPLITTER_HH
 #define CCB_FILE_SPLITTER_HH
 
-#include <memory>
-#include <mutex>
-#include <string>
-
 #include "com/centreon/broker/file/fs_file.hh"
 #include "com/centreon/broker/namespace.hh"
 

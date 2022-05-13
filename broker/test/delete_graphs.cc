@@ -21,14 +21,6 @@
 #include <QSqlError>
 #include <QSqlQuery>
 #include <QVariant>
-#include <cstdlib>
-#include <cstring>
-#include <fstream>
-#include <iostream>
-#include <map>
-#include <sstream>
-#include <string>
-#include <utility>
 #include "com/centreon/broker/exceptions/msg.hh"
 #include "test/cbd.hh"
 #include "test/config.hh"

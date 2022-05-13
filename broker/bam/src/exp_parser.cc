@@ -18,10 +18,6 @@
 
 #include "com/centreon/broker/bam/exp_parser.hh"
 
-#include <cstdlib>
-#include <sstream>
-#include <stack>
-
 #include "com/centreon/broker/bam/exp_tokenizer.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"

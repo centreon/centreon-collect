@@ -56,6 +56,7 @@ set_target_properties("${UNIFIED_SQL}" PROPERTIES
     PREFIX ""
     COMPILE_FLAGS "-fPIC")
 add_dependencies("${UNIFIED_SQL}" target_rebuild_message target_remove_graph_message target_service target_host)
+target_precompile_headers(${UNIFIED_SQL} PRIVATE ../precomp_inc/precomp.hpp)
 target_link_libraries(${UNIFIED_SQL}
     rokerbase
     bbdo_storage

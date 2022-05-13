@@ -17,8 +17,6 @@
 */
 
 #include "com/centreon/broker/lua/factory.hh"
-#include <cstring>
-#include <memory>
 #include <nlohmann/json.hpp>
 #include "com/centreon/broker/lua/connector.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"

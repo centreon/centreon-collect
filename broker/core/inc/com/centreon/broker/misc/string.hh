@@ -22,13 +22,6 @@
 #include <fmt/format.h>
 
 #include <cerrno>
-#include <cstdlib>
-#include <cstring>
-#include <limits>
-#include <list>
-#include <sstream>
-#include <string>
-#include <vector>
 
 #include "com/centreon/broker/namespace.hh"
 
@@ -79,7 +72,6 @@ size_t adjust_size_utf8(const std::string& str, size_t s);
 std::string escape(const std::string& str, size_t s);
 
 std::string debug_buf(const char* data, int32_t size, int max_len = 10);
-
 
 }  // namespace string
 }  // namespace misc

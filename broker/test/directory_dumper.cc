@@ -22,10 +22,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <QProcess>
-#include <ctime>
-#include <fstream>
-#include <iostream>
-#include <sstream>
 #include "com/centreon/broker/exceptions/msg.hh"
 #include "test/broker_extcmd.hh"
 #include "test/cbd.hh"

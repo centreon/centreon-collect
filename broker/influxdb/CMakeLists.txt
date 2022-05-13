@@ -49,6 +49,7 @@ add_library("${INFLUXDB}" SHARED
   "${INC_DIR}/stream.hh"
 )
 target_link_libraries("${INFLUXDB}" bbdo_storage CONAN_PKG::spdlog)
+target_precompile_headers(${INFLUXDB} PRIVATE ../precomp_inc/precomp.hpp)
 set_target_properties("${INFLUXDB}" PROPERTIES PREFIX "")
 
 # Testing.

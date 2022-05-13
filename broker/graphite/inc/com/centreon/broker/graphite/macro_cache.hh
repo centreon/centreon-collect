@@ -19,10 +19,6 @@
 #ifndef CCB_GRAPHITE_MACRO_CACHE_HH
 #define CCB_GRAPHITE_MACRO_CACHE_HH
 
-#include <map>
-#include <memory>
-#include <string>
-#include <unordered_map>
 #include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric_mapping.hh"
 #include "com/centreon/broker/io/factory.hh"
