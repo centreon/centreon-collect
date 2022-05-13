@@ -51,6 +51,24 @@ static constexpr const char result[] =
     "Centreon is wonderful\n"
     "\x00\x00\x00\x00";
 
+static constexpr const char result_warning[] =
+    "3\x00"
+    "4242\x00"
+    "1\x00"
+    "1\x00"
+    " \x00"
+    "Centreon is wonderful\n"
+    "\x00\x00\x00\x00";
+
+static constexpr const char result_critical[] =
+    "3\x00"
+    "4242\x00"
+    "1\x00"
+    "2\x00"
+    " \x00"
+    "Centreon is wonderful\n"
+    "\x00\x00\x00\x00";
+
 static constexpr std::size_t count = 300;
 
 static constexpr const char cmd3[] = "2\x00";
@@ -500,8 +518,78 @@ TEST_F(TestConnector, ExecuteSingleScript) {
   remove(script_path.c_str());
 
   ASSERT_EQ(retval, 0);
-  ASSERT_EQ(output.size(), (sizeof(result) - 1));
-  ASSERT_FALSE(memcmp(output.c_str(), result, sizeof(result) - 1));
+  std::string expected(result, result + sizeof(result) - 1);
+  ASSERT_EQ(output, expected);
+}
+
+TEST_F(TestConnector, ExecuteSingleWarningScript) {
+  // Write Perl script.
+  std::string script_path(com::centreon::io::file_stream::temp_path());
+  _write_file(script_path.c_str(),
+              "#!/usr/bin/perl\n"
+              "\n"
+              "print \"Centreon is wonderful\\n\";\n"
+              "exit 1;\n");
+  log::core()->info("write perl code to {}", script_path);
+
+  // Process.
+  process::pointer p = std::make_shared<process>(perl_connector, _io_context);
+  p->start();
+
+  // Write command.
+  std::ostringstream oss;
+  oss.write(cmd1, sizeof(cmd1) - 1);
+  oss << script_path;
+  oss.write(cmd2, sizeof(cmd2) - 1);
+  write_cmd(*p, oss.str());
+
+  // Read reply.
+  std::string output{std::move(read_reply(*p))};
+
+  int retval{wait_for_termination(*p)};
+
+  // Remove temporary files.
+  remove(script_path.c_str());
+
+  ASSERT_EQ(retval, 0);
+  std::string expected(result_warning,
+                       result_warning + sizeof(result_warning) - 1);
+  ASSERT_EQ(output, expected);
+}
+
+TEST_F(TestConnector, ExecuteSingleCriticalScript) {
+  // Write Perl script.
+  std::string script_path(com::centreon::io::file_stream::temp_path());
+  _write_file(script_path.c_str(),
+              "#!/usr/bin/perl\n"
+              "\n"
+              "print \"Centreon is wonderful\\n\";\n"
+              "exit 2;\n");
+  log::core()->info("write perl code to {}", script_path);
+
+  // Process.
+  process::pointer p = std::make_shared<process>(perl_connector, _io_context);
+  p->start();
+
+  // Write command.
+  std::ostringstream oss;
+  oss.write(cmd1, sizeof(cmd1) - 1);
+  oss << script_path;
+  oss.write(cmd2, sizeof(cmd2) - 1);
+  write_cmd(*p, oss.str());
+
+  // Read reply.
+  std::string output{std::move(read_reply(*p))};
+
+  int retval{wait_for_termination(*p)};
+
+  // Remove temporary files.
+  remove(script_path.c_str());
+
+  ASSERT_EQ(retval, 0);
+  std::string expected(result_critical,
+                       result_critical + sizeof(result_critical) - 1);
+  ASSERT_EQ(output, expected);
 }
 
 TEST_F(TestConnector, ExecuteSingleScriptLogFile) {
