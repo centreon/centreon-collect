@@ -76,33 +76,13 @@ int check_for_external_commands() {
   /* process all commands found in the buffer */
   char* buffer(nullptr);
   for (;;) {
-    /* get a lock on the buffer */
-    pthread_mutex_lock(&external_command_buffer.buffer_lock);
-
-    /* if no items present, bail out */
-    if (external_command_buffer.items <= 0) {
-      pthread_mutex_unlock(&external_command_buffer.buffer_lock);
+    boost::optional<std::string> cmd = external_command_buffer.pop();
+    if (!cmd) {
       break;
     }
 
-    buffer =
-        ((char**)external_command_buffer.buffer)[external_command_buffer.tail];
-    ((char**)external_command_buffer.buffer)[external_command_buffer.tail] =
-        nullptr;
-
-    /* adjust tail counter and number of items */
-    external_command_buffer.tail = (external_command_buffer.tail + 1) %
-                                   config->external_command_buffer_slots();
-    external_command_buffer.items--;
-
-    /* release the lock on the buffer */
-    pthread_mutex_unlock(&external_command_buffer.buffer_lock);
-
     /* process the command */
-    process_external_command(buffer);
-
-    /* free memory */
-    delete[] buffer;
+    process_external_command(cmd->c_str());
   }
 
   return OK;

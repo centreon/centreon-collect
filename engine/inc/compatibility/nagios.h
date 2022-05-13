@@ -25,7 +25,6 @@
 
 #include "broker.h"
 #include "com/centreon/engine/check_result.hh"
-#include "com/centreon/engine/circular_buffer.hh"
 #include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/flapping.hh"

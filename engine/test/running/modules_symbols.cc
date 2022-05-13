@@ -63,7 +63,7 @@ extern timed_event* event_list_high;
 extern timed_event* event_list_high_tail;
 extern int execute_host_checks;
 extern int execute_service_checks;
-extern circular_buffer external_command_buffer;
+extern circular_buffer<std::string> external_command_buffer;
 extern int external_command_buffer_slots;
 extern char* global_host_event_handler;
 extern char* global_service_event_handler;
@@ -185,7 +185,8 @@ void run() {
       << "event_broker_options: " << event_broker_options << "\n"
       << "execute_host_checks: " << execute_host_checks << "\n"
       << "execute_service_checks: " << execute_service_checks << "\n"
-      << "external_command_buffer: " << external_command_buffer.buffer << "\n"
+      << "external_command_buffer.size(): " << external_command_buffer.size()
+      << "\n"
       << "external_command_buffer_slots: " << external_command_buffer_slots
       << "\n"
       << "find_command: " << (void (*)())find_command << "\n"

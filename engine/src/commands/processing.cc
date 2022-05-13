@@ -555,7 +555,7 @@ const std::unordered_map<std::string, command_info> processing::_lst_command(
 
 bool processing::execute(const std::string& cmdstr) {
   engine_logger(dbg_functions, basic) << "processing external command";
-  log_v2::functions()->trace("processing external command");
+  log_v2::functions()->trace("processing external command {}", cmdstr);
 
   char const* cmd{cmdstr.c_str()};
   size_t len{cmdstr.size()};

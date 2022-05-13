@@ -109,11 +109,8 @@ int xsddefault_save_status_data() {
 
   // get number of items in the command buffer
   if (config->check_external_commands()) {
-    // FIXME DBR
-    pthread_mutex_lock(&external_command_buffer.buffer_lock);
-    used_external_command_buffer_slots = external_command_buffer.items;
-    high_external_command_buffer_slots = external_command_buffer.high;
-    pthread_mutex_unlock(&external_command_buffer.buffer_lock);
+    used_external_command_buffer_slots = external_command_buffer.size();
+    high_external_command_buffer_slots = external_command_buffer.high();
   }
 
   // generate check statistics

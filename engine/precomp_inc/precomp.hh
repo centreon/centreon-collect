@@ -59,6 +59,9 @@
 
 #include <fmt/format.h>
 
+#include <boost/circular_buffer.hpp>
+#include <boost/optional.hpp>
+
 #include "com/centreon/engine/namespace.hh"
 
 #endif  // CCE_PRECOMP_HH
