@@ -38,6 +38,7 @@ get_cache() {
       wget -q "$CACHE_URL"
     else
       echo "WARNING: File not found. Skipping $TARGET's cache on $CACHE_REFERENCE"
+      mkdir build
       return 0
     fi 
   fi
