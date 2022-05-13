@@ -36,7 +36,6 @@
 #include "com/centreon/broker/neb/initial.hh"
 #include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/neb/set_log_data.hh"
-#include "com/centreon/broker/neb/statistics/generator.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/events/loop.hh"
@@ -149,23 +148,6 @@ std::list<std::unique_ptr<neb::callback>> neb::gl_registered_callbacks;
 // External function to get program version.
 extern "C" {
 char const* get_program_version();
-}
-
-// Statistics generator.
-static neb::statistics::generator gl_generator;
-
-extern "C" void event_statistics(void* args) {
-  (void)args;
-  try {
-    gl_generator.run();
-  } catch (std::exception const& e) {
-    log_v2::stats()->error(
-        "stats: error occurred while generating statistics event: {}",
-        e.what());
-  }
-  // Avoid exception propagation in C code.
-  catch (...) {
-  }
 }
 
 /**
@@ -1864,7 +1846,6 @@ int neb::callback_process(int callback_type, void* data) {
       log_v2::neb()->info("callbacks: generating process start event");
 
       // Parse configuration file.
-      uint32_t statistics_interval(0);
       std::tuple<uint16_t, uint16_t, uint16_t> bbdo_version;
       try {
         config::parser parsr;
@@ -1874,10 +1855,7 @@ int neb::callback_process(int callback_type, void* data) {
 
         // Apply resulting configuration.
         config::applier::state::instance().apply(conf);
-        gl_generator.set(conf);
 
-        // Set variables.
-        statistics_interval = gl_generator.interval();
       } catch (msg_fmt const& e) {
         log_v2::neb()->info(e.what());
         return 0;
@@ -1944,23 +1922,6 @@ int neb::callback_process(int callback_type, void* data) {
         send_initial_pb_configuration();
       else
         send_initial_configuration();
-      // Add statistics event.
-      if (statistics_interval) {
-        log_v2::neb()->info(
-            "stats: registering statistics generation event in monitoring "
-            "engine");
-        union {
-          void (*code)(void*);
-          void* data;
-        } val;
-        val.code = &event_statistics;
-        com::centreon::engine::timed_event* evt =
-            new com::centreon::engine::timed_event(
-                com::centreon::engine::timed_event::EVENT_USER_FUNCTION,
-                time(nullptr) + statistics_interval, 1, statistics_interval,
-                nullptr, 1, val.data, nullptr, 0);
-        com::centreon::engine::events::loop::instance().schedule(evt, false);
-      }
     } else if (NEBTYPE_PROCESS_EVENTLOOPEND == process_data->type) {
       log_v2::neb()->info("callbacks: generating process end event");
       // Output variable.
