@@ -93,7 +93,7 @@ message Service {
   string long_output = 38;
   bool passive_checks_enabled = 39;
   double percent_state_change = 40;
-  string perf_data = 41;
+  string perfdata = 41;
   double retry_interval = 42;
   string host_name = 43;
   string service_description = 44;
@@ -190,7 +190,7 @@ message ServiceStatus {
 
   string output = 14;
   string long_output = 15;
-  string perf_data = 16;
+  string perfdata = 16;
 
   bool is_flapping = 17;
   double percent_state_change = 18;

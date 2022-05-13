@@ -1429,7 +1429,7 @@ int neb::callback_pb_host(int callback_type, void* data) {
     host.set_passive_checks_enabled(eh->passive_checks_enabled());
     host.set_percent_state_change(eh->get_percent_state_change());
     if (!eh->get_perf_data().empty())
-      host.set_perf_data(misc::string::check_string_utf8(eh->get_perf_data()));
+      host.set_perfdata(misc::string::check_string_utf8(eh->get_perf_data()));
     host.set_poller_id(config::applier::state::instance().poller_id());
     host.set_retain_nonstatus_information(
         eh->get_retain_nonstatus_information());
@@ -1712,7 +1712,7 @@ int neb::callback_pb_host_status(int callback_type, void* data) noexcept {
 
   hscr.set_percent_state_change(eh->get_percent_state_change());
   if (!eh->get_perf_data().empty())
-    hscr.set_perf_data(misc::string::check_string_utf8(eh->get_perf_data()));
+    hscr.set_perfdata(misc::string::check_string_utf8(eh->get_perf_data()));
   hscr.set_should_be_scheduled(eh->get_should_be_scheduled());
   hscr.set_state_type(static_cast<HostStatus_StateType>(
       eh->has_been_checked() ? eh->get_state_type() : engine::notifier::hard));
@@ -2470,7 +2470,7 @@ int neb::callback_pb_service(int callback_type, void* data) {
     srv.set_passive_checks_enabled(es->passive_checks_enabled());
     srv.set_percent_state_change(es->get_percent_state_change());
     if (!es->get_perf_data().empty())
-      *srv.mutable_perf_data() =
+      *srv.mutable_perfdata() =
           misc::string::check_string_utf8(es->get_perf_data());
     srv.set_retain_nonstatus_information(
         es->get_retain_nonstatus_information());
@@ -2753,7 +2753,7 @@ int32_t neb::callback_pb_service_status(int callback_type
 
   sscr.set_percent_state_change(es->get_percent_state_change());
   if (!es->get_perf_data().empty()) {
-    sscr.set_perf_data(misc::string::check_string_utf8(es->get_perf_data()));
+    sscr.set_perfdata(misc::string::check_string_utf8(es->get_perf_data()));
     log_v2::neb()->trace("callbacks: service ({}, {}) has perfdata <<{}>>",
                          es->get_host_id(), es->get_service_id(),
                          es->get_perf_data());

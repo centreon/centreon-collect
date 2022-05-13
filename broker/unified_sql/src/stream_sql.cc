@@ -1568,7 +1568,7 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
   log_v2::sql()->debug("SQL: pb host status check result output: <<{}>>",
                        hscr.output());
   log_v2::sql()->debug("SQL: pb host status check result perfdata: <<{}>>",
-                       hscr.perf_data());
+                       hscr.perfdata());
 
   time_t now = time(nullptr);
   if (hscr.check_type() == HostStatus_CheckType_PASSIVE ||
@@ -1650,10 +1650,10 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
           full_output, get_hosts_col_size(hosts_output));
       _hscr_update.bind_value_as_str(
           10, fmt::string_view(full_output.data(), size));
-      size = misc::string::adjust_size_utf8(hscr.perf_data(),
+      size = misc::string::adjust_size_utf8(hscr.perfdata(),
                                             get_hosts_col_size(hosts_perfdata));
       _hscr_update.bind_value_as_str(
-          11, fmt::string_view(hscr.perf_data().data(), size));
+          11, fmt::string_view(hscr.perfdata().data(), size));
       _hscr_update.bind_value_as_bool(12, hscr.is_flapping());
       _hscr_update.bind_value_as_f64(13, hscr.percent_state_change());
       _hscr_update.bind_value_as_f64(14, hscr.latency());
@@ -1691,7 +1691,7 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
       _hscr_resources_update.bind_value_as_bool(
           5, hscr.state_type() == HostStatus_StateType_HARD);
       _hscr_resources_update.bind_value_as_u32(6, hscr.current_check_attempt());
-      _hscr_resources_update.bind_value_as_bool(7, hscr.perf_data() != "");
+      _hscr_resources_update.bind_value_as_bool(7, hscr.perfdata() != "");
       _hscr_resources_update.bind_value_as_u32(8, hscr.check_type());
       _hscr_resources_update.bind_value_as_u64(9, hscr.last_check(),
                                                is_not_zero);
@@ -2963,7 +2963,7 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
       sscr.host_id(), sscr.service_id(), sscr.output());
   log_v2::sql()->debug(
       "SQL: service ({}, {}) status check result perfdata: <<{}>>",
-      sscr.host_id(), sscr.service_id(), sscr.perf_data());
+      sscr.host_id(), sscr.service_id(), sscr.perfdata());
 
   time_t now = time(nullptr);
   if (sscr.check_type() == ServiceStatus_CheckType_PASSIVE ||
@@ -3048,9 +3048,9 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
       _sscr_update.bind_value_as_str(
           11, fmt::string_view(full_output.data(), size));
       size = misc::string::adjust_size_utf8(
-          sscr.perf_data(), get_services_col_size(services_perfdata));
+          sscr.perfdata(), get_services_col_size(services_perfdata));
       _sscr_update.bind_value_as_str(
-          12, fmt::string_view(sscr.perf_data().data(), size));
+          12, fmt::string_view(sscr.perfdata().data(), size));
       _sscr_update.bind_value_as_bool(13, sscr.is_flapping());
       _sscr_update.bind_value_as_f64(14, sscr.percent_state_change());
       _sscr_update.bind_value_as_f64(15, sscr.latency());
@@ -3090,7 +3090,7 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
       _sscr_resources_update.bind_value_as_bool(
           5, sscr.state_type() == ServiceStatus_StateType_HARD);
       _sscr_resources_update.bind_value_as_u32(6, sscr.current_check_attempt());
-      _sscr_resources_update.bind_value_as_bool(7, sscr.perf_data() != "");
+      _sscr_resources_update.bind_value_as_bool(7, sscr.perfdata() != "");
       _sscr_resources_update.bind_value_as_u32(8, sscr.check_type());
       _sscr_resources_update.bind_value_as_u64(9, sscr.last_check(),
                                                is_not_zero);

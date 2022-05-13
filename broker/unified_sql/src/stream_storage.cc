@@ -120,7 +120,7 @@ void stream::_unified_sql_process_pb_service_status(
       multiplexing::publisher().write(status);
     }
 
-    if (!ss.perf_data().empty()) {
+    if (!ss.perfdata().empty()) {
       /* Statements preparations */
       if (!_metrics_insert.prepared()) {
         _metrics_insert = _mysql.prepare_query(
@@ -134,7 +134,7 @@ void stream::_unified_sql_process_pb_service_status(
       /* Parse perfdata. */
       _finish_action(-1, actions::metrics);
       std::list<misc::perfdata> pds{misc::parse_perfdata(
-          ss.host_id(), ss.service_id(), ss.perf_data().c_str())};
+          ss.host_id(), ss.service_id(), ss.perfdata().c_str())};
 
       std::list<std::shared_ptr<io::data>> to_publish;
       for (auto& pd : pds) {

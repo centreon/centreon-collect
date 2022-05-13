@@ -77,7 +77,7 @@ message Host {
   string output = 35;
   bool passive_checks_enabled = 36;
   double percent_state_change = 37;
-  string perf_data = 38;
+  string perfdata = 38;
   double retry_interval = 39;
   bool should_be_scheduled = 40;
   bool obsess_over = 41;
@@ -163,7 +163,7 @@ message HostStatus {
 
   string output = 12;
   string long_output = 13;
-  string perf_data = 14;
+  string perfdata = 14;
 
   bool is_flapping = 15;
   double percent_state_change = 16;

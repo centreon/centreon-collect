@@ -253,7 +253,7 @@ void kpi_service::service_update(
           o.last_check());
     }
     _output = o.output();
-    _perfdata = o.perf_data();
+    _perfdata = o.perfdata();
     _state_hard = static_cast<state>(o.last_hard_state());
     _state_soft = static_cast<state>(o.current_state());
     _state_type = o.state_type();

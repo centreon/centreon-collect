@@ -617,7 +617,7 @@ void ba::visit(io::stream* visitor) {
         o.set_output(
             fmt::format("BA : Business Activity {} - current_level = {}%", _id,
                         static_cast<int>(normalize(_level_hard))));
-        o.set_perf_data(fmt::format("BA_Level={}%;{};{};0;100",
+        o.set_perfdata(fmt::format("BA_Level={}%;{};{};0;100",
                                     static_cast<int>(normalize(_level_hard)),
                                     static_cast<int>(_level_warning),
                                     static_cast<int>(_level_critical)));

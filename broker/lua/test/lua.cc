@@ -23,6 +23,7 @@
 #include <fstream>
 #include <list>
 #include <memory>
+#include <absl/strings/str_split.h>
 
 #include "../../core/test/test_server.hh"
 #include "bbdo/storage/status.hh"
@@ -3644,7 +3645,7 @@ TEST_F(LuaTest, BrokerApi2PbHostJsonEncode) {
   obj.set_host_id(1899);
   obj.set_current_state(HostStatus_State_UP);
   obj.set_output("cool");
-  obj.set_perf_data("perfdata");
+  obj.set_perfdata("perfdata");
   std::string filename("/tmp/cache_test.lua");
   CreateScript(filename,
                "broker_api_version = 2\n"
@@ -3663,7 +3664,7 @@ TEST_F(LuaTest, BrokerApi2PbHostJsonEncode) {
   ASSERT_NE(lst.find("\"element\":32"), std::string::npos);
   ASSERT_NE(lst.find("\"host_id\":1899"), std::string::npos);
   ASSERT_NE(lst.find("\"current_state\":0"), std::string::npos);
-  ASSERT_NE(lst.find("\"perf_data\":\"perfdata\""), std::string::npos);
+  ASSERT_NE(lst.find("\"perfdata\":\"perfdata\""), std::string::npos);
   ASSERT_NE(lst.find("\"output\":\"cool\""), std::string::npos);
 
   RemoveFile(filename);
@@ -3861,4 +3862,256 @@ TEST_F(LuaTest, BrokerApi2PbAdaptiveHostJsonEncode) {
   ASSERT_EQ(lst.find("\"check_freshness\":", pos1), std::string::npos);
   RemoveFile(filename);
   RemoveFile("/tmp/event_log");
+}
+
+TEST_F(LuaTest, ServiceObjectMatchBetweenBbdoVersions) {
+  config::applier::modules modules;
+  char tmp[256];
+  getcwd(tmp, 256);
+  modules.load_file("./lib/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  std::string filename("/tmp/cache_test.lua");
+  auto svc = std::make_shared<neb::service>();
+  svc->host_id = 1;
+  svc->service_id = 14;
+  svc->service_description = "description";
+  auto svc1 = std::make_shared<neb::pb_service>();
+  svc1->mut_obj().set_host_id(1);
+  svc1->mut_obj().set_service_id(14);
+  svc1->mut_obj().set_service_description("description");
+
+  CreateScript(
+      filename,
+      "function init(conf)\n"
+      "  broker_log:set_parameters(3, '/tmp/log')\n"
+      "end\n\n"
+      "local count = 1\n"
+      "function write(d)\n"
+      "  local puce = { '* ', '- ' }\n"
+      "  local keys = {}\n"
+      "  for k,_ in pairs(d) do\n"
+      "    keys[#keys + 1] = k\n"
+      "  end\n"
+      "  table.sort(keys)\n"
+      "  for i,k in ipairs(keys) do\n"
+      "    broker_log:info(1, puce[count] .. k)\n"
+      "  end\n"
+      "  count = count + 1\n"
+      "  return true\n"
+      "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  binding->write(svc);
+  binding->write(svc1);
+  std::string ret(ReadFile("/tmp/log"));
+  std::vector<absl::string_view> lst1 = absl::StrSplit(ret, '\n');
+  std::vector<absl::string_view> lst2 = lst1;
+  std::list<absl::string_view> l1, l2;
+  for (auto& s : lst1) {
+    if (s.find(" * ") != absl::string_view::npos)
+      l1.emplace_back(s.substr(34));
+  }
+  for (auto& s : lst2) {
+    if (s.find(" - ") != absl::string_view::npos)
+      l2.emplace_back(s.substr(34));
+  }
+
+  auto it = l1.begin();
+  for (auto& s : l2) {
+    ASSERT_TRUE(it != l1.end() && s >= *it);
+    if (s == *it) {
+      ++it;
+      continue;
+    }
+    else
+      continue;
+  }
+  RemoveFile(filename);
+  RemoveFile("/tmp/log");
+}
+
+TEST_F(LuaTest, HostObjectMatchBetweenBbdoVersions) {
+  config::applier::modules modules;
+  char tmp[256];
+  getcwd(tmp, 256);
+  modules.load_file("./lib/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  std::string filename("/tmp/cache_test.lua");
+  auto hst = std::make_shared<neb::host>();
+  hst->host_id = 1;
+  hst->host_name = "description";
+  auto hst1 = std::make_shared<neb::pb_host>();
+  hst1->mut_obj().set_host_id(1);
+  hst1->mut_obj().set_host_name("description");
+
+  CreateScript(
+      filename,
+      "function init(conf)\n"
+      "  broker_log:set_parameters(3, '/tmp/log')\n"
+      "end\n\n"
+      "local count = 1\n"
+      "function write(d)\n"
+      "  local puce = { '* ', '- ' }\n"
+      "  local keys = {}\n"
+      "  for k,_ in pairs(d) do\n"
+      "    keys[#keys + 1] = k\n"
+      "  end\n"
+      "  table.sort(keys)\n"
+      "  for i,k in ipairs(keys) do\n"
+      "    broker_log:info(1, puce[count] .. k)\n"
+      "  end\n"
+      "  count = count + 1\n"
+      "  return true\n"
+      "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  binding->write(hst);
+  binding->write(hst1);
+  std::string ret(ReadFile("/tmp/log"));
+  std::vector<absl::string_view> lst1 = absl::StrSplit(ret, '\n');
+  std::vector<absl::string_view> lst2 = lst1;
+  std::list<absl::string_view> l1, l2;
+  for (auto& s : lst1) {
+    if (s.find(" * ") != absl::string_view::npos)
+      l1.emplace_back(s.substr(34));
+  }
+  for (auto& s : lst2) {
+    if (s.find(" - ") != absl::string_view::npos)
+      l2.emplace_back(s.substr(34));
+  }
+
+  auto it = l1.begin();
+  for (auto& s : l2) {
+    ASSERT_TRUE(it != l1.end() && s >= *it);
+    if (s == *it) {
+      ++it;
+      continue;
+    }
+    else
+      continue;
+  }
+  RemoveFile(filename);
+  RemoveFile("/tmp/log");
+}
+
+TEST_F(LuaTest, ServiceStatusObjectMatchBetweenBbdoVersions) {
+  config::applier::modules modules;
+  char tmp[256];
+  getcwd(tmp, 256);
+  modules.load_file("./lib/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  std::string filename("/tmp/cache_test.lua");
+  auto svc = std::make_shared<neb::service_status>();
+  svc->host_id = 1;
+  svc->service_id = 14;
+  auto svc1 = std::make_shared<neb::pb_service_status>();
+  svc1->mut_obj().set_host_id(1);
+  svc1->mut_obj().set_service_id(14);
+
+  CreateScript(
+      filename,
+      "function init(conf)\n"
+      "  broker_log:set_parameters(3, '/tmp/log')\n"
+      "end\n\n"
+      "local count = 1\n"
+      "function write(d)\n"
+      "  local puce = { '* ', '- ' }\n"
+      "  local keys = {}\n"
+      "  for k,_ in pairs(d) do\n"
+      "    keys[#keys + 1] = k\n"
+      "  end\n"
+      "  table.sort(keys)\n"
+      "  for i,k in ipairs(keys) do\n"
+      "    broker_log:info(1, puce[count] .. k)\n"
+      "  end\n"
+      "  count = count + 1\n"
+      "  return true\n"
+      "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  binding->write(svc);
+  binding->write(svc1);
+  std::string ret(ReadFile("/tmp/log"));
+  std::vector<absl::string_view> lst1 = absl::StrSplit(ret, '\n');
+  std::vector<absl::string_view> lst2 = lst1;
+  std::list<absl::string_view> l1, l2;
+  for (auto& s : lst1) {
+    if (s.find(" * ") != absl::string_view::npos)
+      l1.emplace_back(s.substr(34));
+  }
+  for (auto& s : lst2) {
+    if (s.find(" - ") != absl::string_view::npos)
+      l2.emplace_back(s.substr(34));
+  }
+
+  auto it = l1.begin();
+  for (auto& s : l2) {
+    ASSERT_TRUE(it != l1.end() && s >= *it);
+    if (s == *it) {
+      ++it;
+      continue;
+    }
+    else
+      continue;
+  }
+  RemoveFile(filename);
+  RemoveFile("/tmp/log");
+}
+
+TEST_F(LuaTest, HostStatusObjectMatchBetweenBbdoVersions) {
+  config::applier::modules modules;
+  char tmp[256];
+  getcwd(tmp, 256);
+  modules.load_file("./lib/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  std::string filename("/tmp/cache_test.lua");
+  auto hst = std::make_shared<neb::host_status>();
+  hst->host_id = 1;
+  auto hst1 = std::make_shared<neb::pb_host_status>();
+  hst1->mut_obj().set_host_id(1);
+
+  CreateScript(
+      filename,
+      "function init(conf)\n"
+      "  broker_log:set_parameters(3, '/tmp/log')\n"
+      "end\n\n"
+      "local count = 1\n"
+      "function write(d)\n"
+      "  local puce = { '* ', '- ' }\n"
+      "  local keys = {}\n"
+      "  for k,_ in pairs(d) do\n"
+      "    keys[#keys + 1] = k\n"
+      "  end\n"
+      "  table.sort(keys)\n"
+      "  for i,k in ipairs(keys) do\n"
+      "    broker_log:info(1, puce[count] .. k)\n"
+      "  end\n"
+      "  count = count + 1\n"
+      "  return true\n"
+      "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  binding->write(hst);
+  binding->write(hst1);
+  std::string ret(ReadFile("/tmp/log"));
+  std::vector<absl::string_view> lst1 = absl::StrSplit(ret, '\n');
+  std::vector<absl::string_view> lst2 = lst1;
+  std::list<absl::string_view> l1, l2;
+  for (auto& s : lst1) {
+    if (s.find(" * ") != absl::string_view::npos)
+      l1.emplace_back(s.substr(34));
+  }
+  for (auto& s : lst2) {
+    if (s.find(" - ") != absl::string_view::npos)
+      l2.emplace_back(s.substr(34));
+  }
+
+  auto it = l1.begin();
+  for (auto& s : l2) {
+    ASSERT_TRUE(it != l1.end() && s >= *it);
+    if (s == *it) {
+      ++it;
+      continue;
+    }
+    else
+      continue;
+  }
+  RemoveFile(filename);
+  RemoveFile("/tmp/log");
 }
