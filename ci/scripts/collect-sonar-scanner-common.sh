@@ -5,17 +5,17 @@ set -e
 source common.sh
 CACHE_REFERENCE="$2"
 # Check arguments.
-if [[ -z "$VERSION" ]] ; then
+if [ -z "$VERSION" ]; then
   echo "ERROR: You need to specify VERSION environment variable."
   exit 1
 fi
 
-if [[ -z "$PROJECT" ]] ; then
+if [ -z "$PROJECT" ]; then
   echo "WARNING: PROJECT was not set as environment variable."
   PROJECT="centreon-collect"
 fi
 
-if [[ -n "$CHANGE_TARGET" ]]; then
+if [ -n "$CHANGE_TARGET" ]; then
   TARGET="$CHANGE_TARGET"
 else
   TARGET="$BRANCH_NAME"
@@ -38,7 +38,9 @@ get_cache() {
       wget -q "$CACHE_URL"
     else
       echo "WARNING: File not found. Skipping $TARGET's cache on $CACHE_REFERENCE"
-      mkdir build
+      if [ ! -d build ] ; then
+        mkdir build
+      fi
       return 0
     fi 
   fi
@@ -50,12 +52,12 @@ get_cache() {
 
 set_cache() {
   cd tmp
-  if [[ -z "$TARGET" ]]; then
+  if [ -z "$TARGET" ]; then
     echo "ERROR: Target's name is empty. Skipping $VERSION's cache"
     exit
   fi
 
-  if [[ -f "$PROJECT-SQ-cache-$TARGET.tar.gz" ]]; then
+  if [ -f "$PROJECT-SQ-cache-$TARGET.tar.gz" ]; then
     echo "INFO: Saving cache's tarball $PROJECT-SQ-cache-$TARGET.tar.gz ..."
     put_internal_source "SQ-cache" "$PROJECT" "$PROJECT-SQ-cache-$TARGET.tar.gz"
   else
@@ -69,10 +71,10 @@ validate_file_exists() {
 }
 
 # case load
-if [[ -n "$1" ]]; then
-  if [[ "get" == "$1" ]]; then
+if [ -n "$1" ]; then
+  if [ "get" == "$1" ]; then
     get_cache
-  elif [[ "set" == "$1" ]]; then
+  elif [ "set" == "$1" ]; then
     set_cache
   fi
 fi
