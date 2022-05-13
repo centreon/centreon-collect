@@ -25,7 +25,8 @@ RUN dnf clean all && dnf install -y cmake \
     maven \
     perl-ExtUtils-Embed.noarch \
     libssh2-devel \
-    python3-pip \
+    python38 \
+    python38-pip \
     perl-Thread-Queue \
     redhat-lsb \
     rpm-build \
