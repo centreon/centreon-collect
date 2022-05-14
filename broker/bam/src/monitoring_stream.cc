@@ -210,7 +210,7 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
       log_v2::bam()->trace(
           "BAM: processing pb service status (host: {}, service: {}, hard "
           "state {}, current state {})",
-          o.host_id(), o.service_id(), o.last_hard_state(), o.current_state());
+          o.host_id(), o.service_id(), o.last_hard_state(), o.state());
       multiplexing::publisher pblshr;
       event_cache_visitor ev_cache;
       _applier.book_service().update(ss, &ev_cache);
@@ -222,7 +222,7 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
       log_v2::bam()->trace(
           "BAM: processing pb service status (host: {}, service: {}, hard "
           "state {}, current state {})",
-          o.host_id(), o.service_id(), o.last_hard_state(), o.current_state());
+          o.host_id(), o.service_id(), o.last_hard_state(), o.state());
       multiplexing::publisher pblshr;
       event_cache_visitor ev_cache;
       _applier.book_service().update(s, &ev_cache);

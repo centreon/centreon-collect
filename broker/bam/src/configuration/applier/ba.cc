@@ -235,10 +235,10 @@ std::shared_ptr<neb::host> applier::ba::_ba_host(uint32_t host_id) {
 std::shared_ptr<neb::pb_host> applier::ba::_ba_pb_host(uint32_t host_id) {
   auto h = std::make_shared<neb::pb_host>();
   auto& o = h->mut_obj();
-  o.set_poller_id(
+  o.set_instance_id(
       com::centreon::broker::config::applier::state::instance().poller_id());
   o.set_host_id(host_id);
-  o.set_host_name(fmt::format("_Module_BAM_{}", o.poller_id()));
+  o.set_name(fmt::format("_Module_BAM_{}", o.instance_id()));
   o.set_last_update(time(nullptr));
   o.set_enabled(true);
   return h;
@@ -289,12 +289,12 @@ std::shared_ptr<neb::pb_service> applier::ba::_ba_pb_service(
   auto& o = s->mut_obj();
   o.set_host_id(host_id);
   o.set_service_id(service_id);
-  o.set_service_description(fmt::format("ba_{}", ba_id));
+  o.set_description(fmt::format("ba_{}", ba_id));
   o.set_type(BA);
   o.set_internal_id(ba_id);
-  o.set_display_name(o.service_description());
+  o.set_display_name(o.description());
   o.set_last_update(time(nullptr));
-  o.set_downtime_depth(in_downtime ? 1 : 0);
+  o.set_scheduled_downtime_depth(in_downtime ? 1 : 0);
   o.set_max_check_attempts(1);
   o.set_enabled(true);
   return s;

@@ -101,7 +101,7 @@ std::string const& macro_cache::get_host_name(uint64_t host_id) const {
     return h->host_name;
   } else {
     auto const& h = std::static_pointer_cast<neb::pb_host>(found->second);
-    return h->obj().host_name();
+    return h->obj().name();
   }
 }
 
@@ -125,7 +125,7 @@ std::string const& macro_cache::get_service_description(
     return s->service_description;
   } else {
     auto const& s = std::static_pointer_cast<neb::pb_service>(found->second);
-    return s->obj().service_description();
+    return s->obj().description();
   }
 }
 
