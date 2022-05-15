@@ -371,6 +371,24 @@ config = {
 }}""",
 }
 
+def _apply_conf(name, callback):
+    if name == 'central':
+        filename = "central-broker.json"
+    elif name.startswith('module'):
+        filename = "central-{}.json".format(name)
+    else:
+        filename = "central-rrd.json"
+
+    f = open("/etc/centreon-broker/{}".format(filename), "r")
+    buf = f.read()
+    f.close()
+    conf = json.loads(buf)
+    callback(conf)
+    f = open("/etc/centreon-broker/{}".format(filename), "w")
+    f.write(json.dumps(conf, indent=2))
+    f.close()
+
+
 def config_broker(name, poller_inst: int = 1):
     if name == 'central':
         broker_id = 1
@@ -409,6 +427,24 @@ def config_broker(name, poller_inst: int = 1):
         f = open("/etc/centreon-broker/{}".format(filename), "w")
         f.write(config[name].format(broker_id, broker_name))
         f.close()
+
+def change_broker_tcp_output_to_grpc(name: str):
+    def output_to_grpc(conf):
+        output_dict = conf["centreonBroker"]["output"]
+        for i, v in enumerate(output_dict):
+            if v["type"] == "ipv4":
+                v["type"] = "grpc"
+    _apply_conf(name, output_to_grpc)
+
+
+def change_broker_tcp_input_to_grpc(name: str):
+    def input_to_grpc(conf):
+        input_dict = conf["centreonBroker"]["input"]
+        for i, v in enumerate(input_dict):
+            if v["type"] == "ipv4":
+                v["type"] = "grpc"
+    _apply_conf(name, input_to_grpc)
+
 
 def config_broker_sql_output(name, output):
     if name == 'central':
