@@ -107,9 +107,9 @@ void bool_service::service_update(
   auto& o = status->obj();
   if (status && o.host_id() == _host_id && o.service_id() == _service_id) {
     _state_hard = o.last_hard_state();
-    _state_soft = o.current_state();
+    _state_soft = o.state();
     _state_known = true;
-    _in_downtime = o.downtime_depth() > 0;
+    _in_downtime = o.scheduled_downtime_depth() > 0;
     propagate_update(visitor);
   }
 }

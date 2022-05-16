@@ -236,7 +236,7 @@ void kpi_service::service_update(
     log_v2::bam()->debug(
         "BAM: KPI {} is getting notified of service ({}, {}) update (state: "
         "{})",
-        _id, _host_id, _service_id, o.current_state());
+        _id, _host_id, _service_id, o.state());
 
     // Update information.
     if (o.last_check() == 0 || o.last_check() == -1) {
@@ -253,9 +253,9 @@ void kpi_service::service_update(
           o.last_check());
     }
     _output = o.output();
-    _perfdata = o.perf_data();
+    _perfdata = o.perfdata();
     _state_hard = static_cast<state>(o.last_hard_state());
-    _state_soft = static_cast<state>(o.current_state());
+    _state_soft = static_cast<state>(o.state());
     _state_type = o.state_type();
 
     // Generate status event.

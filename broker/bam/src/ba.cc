@@ -602,11 +602,11 @@ void ba::visit(io::stream* visitor) {
         auto status{std::make_shared<neb::pb_service_status>()};
         auto& o = status->mut_obj();
         o.set_check_type(ServiceStatus_CheckType_PASSIVE);  // Passive.
-        o.set_current_check_attempt(1);
-        o.set_current_state(ServiceStatus_State_OK);
-        o.set_has_been_checked(true);
+        o.set_check_attempt(1);
+        o.set_state(ServiceStatus_State_OK);
+        o.set_checked(true);
         o.set_host_id(_host_id);
-        o.set_downtime_depth(_in_downtime);
+        o.set_scheduled_downtime_depth(_in_downtime);
         if (_event)
           o.set_last_check(_event->start_time);
         else
@@ -617,10 +617,10 @@ void ba::visit(io::stream* visitor) {
         o.set_output(
             fmt::format("BA : Business Activity {} - current_level = {}%", _id,
                         static_cast<int>(normalize(_level_hard))));
-        o.set_perf_data(fmt::format("BA_Level={}%;{};{};0;100",
-                                    static_cast<int>(normalize(_level_hard)),
-                                    static_cast<int>(_level_warning),
-                                    static_cast<int>(_level_critical)));
+        o.set_perfdata(fmt::format("BA_Level={}%;{};{};0;100",
+                                   static_cast<int>(normalize(_level_hard)),
+                                   static_cast<int>(_level_warning),
+                                   static_cast<int>(_level_critical)));
         o.set_service_id(_service_id);
         o.set_state_type(ServiceStatus_StateType_HARD);
         visitor->write(status);

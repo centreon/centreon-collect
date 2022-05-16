@@ -19,6 +19,7 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
+#include <absl/strings/str_split.h>
 #include <cstdio>
 #include <fstream>
 #include <list>
@@ -667,7 +668,7 @@ TEST_F(LuaTest, PbHostCacheTest) {
   std::string filename("/tmp/cache_test.lua");
   auto hst{std::make_shared<neb::pb_host>()};
   hst->mut_obj().set_host_id(1);
-  hst->mut_obj().set_host_name("centreon");
+  hst->mut_obj().set_name("centreon");
   hst->mut_obj().set_display_name("centreon");
   hst->mut_obj().set_alias("alias-centreon");
   hst->mut_obj().set_address("4.3.2.1");
@@ -681,7 +682,7 @@ TEST_F(LuaTest, PbHostCacheTest) {
                "  broker_log:info(1, 'host is ' .. tostring(hstname))\n"
                "  local hst = broker_cache:get_host(1)\n"
                "  broker_log:info(1, 'alias ' .. hst.alias .. ' address ' .. "
-               "hst.address .. ' name ' .. hst.host_name)\n"
+               "hst.address .. ' name ' .. hst.name)\n"
                "end\n\n"
                "function write(d)\n"
                "end\n");
@@ -705,7 +706,7 @@ TEST_F(LuaTest, PbHostCacheTestAdaptive) {
   std::string filename("/tmp/cache_test.lua");
   auto hst{std::make_shared<neb::pb_host>()};
   hst->mut_obj().set_host_id(1);
-  hst->mut_obj().set_host_name("centreon");
+  hst->mut_obj().set_name("centreon");
   hst->mut_obj().set_display_name("centreon");
   hst->mut_obj().set_alias("alias-centreon");
   hst->mut_obj().set_address("4.3.2.1");
@@ -745,7 +746,7 @@ TEST_F(LuaTest, PbHostCacheV2TestAdaptive) {
   std::string filename("/tmp/cache_test.lua");
   auto hst{std::make_shared<neb::pb_host>()};
   hst->mut_obj().set_host_id(1);
-  hst->mut_obj().set_host_name("centreon");
+  hst->mut_obj().set_name("centreon");
   hst->mut_obj().set_display_name("centreon");
   hst->mut_obj().set_alias("alias-centreon");
   hst->mut_obj().set_address("4.3.2.1");
@@ -853,7 +854,7 @@ TEST_F(LuaTest, ServiceCacheTestPbAndAdaptive) {
   auto svc = std::make_shared<neb::pb_service>();
   svc->mut_obj().set_host_id(1);
   svc->mut_obj().set_service_id(14);
-  svc->mut_obj().set_service_description("description");
+  svc->mut_obj().set_description("description");
   svc->mut_obj().set_enabled(true);
   TagInfo* tag = svc->mut_obj().mutable_tags()->Add();
   tag->set_id(23);
@@ -942,7 +943,7 @@ TEST_F(LuaTest, ServiceCacheApi2TestPbAndAdaptive) {
   auto svc = std::make_shared<neb::pb_service>();
   svc->mut_obj().set_host_id(1);
   svc->mut_obj().set_service_id(14);
-  svc->mut_obj().set_service_description("description");
+  svc->mut_obj().set_description("description");
   svc->mut_obj().set_enabled(true);
   TagInfo* tag = svc->mut_obj().mutable_tags()->Add();
   tag->set_id(24);
@@ -989,7 +990,7 @@ TEST_F(LuaTest, PbServiceCacheTest) {
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto svc{std::make_shared<neb::pb_service>()};
-  svc->mut_obj().set_service_description("description");
+  svc->mut_obj().set_description("description");
   svc->mut_obj().set_service_id(14);
   svc->mut_obj().set_host_id(1);
   svc->mut_obj().set_enabled(true);
@@ -1061,14 +1062,14 @@ TEST_F(LuaTest, PbIndexMetricCacheTest) {
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto svc{std::make_shared<neb::pb_service>()};
-  svc->mut_obj().set_service_description("MyDescription");
+  svc->mut_obj().set_description("MyDescription");
   svc->mut_obj().set_service_id(14);
   svc->mut_obj().set_host_id(1);
   svc->mut_obj().set_enabled(true);
   _cache->write(svc);
   auto hst{std::make_shared<neb::pb_host>()};
   hst->mut_obj().set_host_id(1);
-  hst->mut_obj().set_host_name("host1");
+  hst->mut_obj().set_name("host1");
   _cache->write(hst);
   auto im{std::make_shared<storage::index_mapping>()};
   im->index_id = 7;
@@ -1332,7 +1333,7 @@ TEST_F(LuaTest, PbHostGroupCacheTest) {
   _cache->write(hg);
   auto hst{std::make_shared<neb::pb_host>()};
   hst->mut_obj().set_host_id(22);
-  hst->mut_obj().set_host_name("host_centreon");
+  hst->mut_obj().set_name("host_centreon");
   _cache->write(hst);
   auto member{std::make_shared<neb::host_group_member>()};
   member->host_id = 22;
@@ -1515,7 +1516,7 @@ TEST_F(LuaTest, PbServiceGroupCacheTest) {
   sg->name = "centreon2";
   _cache->write(sg);
   auto svc{std::make_shared<neb::pb_service>()};
-  svc->mut_obj().set_service_description("service_description");
+  svc->mut_obj().set_description("service_description");
   svc->mut_obj().set_service_id(17);
   svc->mut_obj().set_host_id(22);
   svc->mut_obj().set_host_name("host_centreon");
@@ -2427,7 +2428,7 @@ TEST_F(LuaTest, PbCacheGetNotesUrlTest) {
   hst->mut_obj().set_notes("host notes");
   hst->mut_obj().set_notes_url("host notes url");
   hst->mut_obj().set_action_url("host action url");
-  hst->mut_obj().set_host_name("centreon");
+  hst->mut_obj().set_name("centreon");
   hst->mut_obj().set_enabled(true);
   _cache->write(hst);
 
@@ -2679,7 +2680,7 @@ TEST_F(LuaTest, PbBrokerEventIndex) {
   obj.set_host_id(1);
   obj.set_service_id(2);
   obj.set_stalk_on_ok(false);
-  obj.set_service_description("foo bar");
+  obj.set_description("foo bar");
   obj.set_notes("svc notes");
   obj.set_notes_url("svc notes url");
   obj.set_action_url("svc action url");
@@ -2695,7 +2696,7 @@ TEST_F(LuaTest, PbBrokerEventIndex) {
       "end\n\n"
       "function write(d)\n"
       "  broker_log:info(0, 'service_description = ' .. "
-      "d.service_description)\n"
+      "d.description)\n"
       "  broker_log:info(0, 'stalk_on_ok = ' .. tostring(d.stalk_on_ok))\n"
       "  broker_log:info(0, 'check_interval = ' .. d.check_interval)\n"
       "  broker_log:info(0, 'check_type = ' .. d.check_type)\n"
@@ -2725,7 +2726,7 @@ TEST_F(LuaTest, PbBrokerEventPairs) {
   auto& obj = svc->mut_obj();
   obj.set_host_id(1);
   obj.set_service_id(2);
-  obj.set_service_description("foo bar");
+  obj.set_description("foo bar");
   obj.set_notes("svc notes");
   obj.set_notes_url("svc notes url");
   obj.set_action_url("svc action url");
@@ -2744,7 +2745,7 @@ TEST_F(LuaTest, PbBrokerEventPairs) {
   binding->write(svc);
   std::string lst(ReadFile("/tmp/event_log"));
   std::cout << lst << std::endl;
-  ASSERT_NE(lst.find("service_description = foo bar"), std::string::npos);
+  ASSERT_NE(lst.find("description = foo bar"), std::string::npos);
   ASSERT_NE(lst.find("notes = svc notes"), std::string::npos);
   ASSERT_NE(lst.find("notes_url = svc notes url"), std::string::npos);
   ASSERT_NE(lst.find("action_url = svc action url"), std::string::npos);
@@ -2880,7 +2881,7 @@ TEST_F(LuaTest, PbTestHostApiV1) {
   std::map<std::string, misc::variant> conf;
   auto hst{std::make_shared<neb::pb_host>()};
   hst->mut_obj().set_host_id(1);
-  hst->mut_obj().set_host_name("foo bar host cache");
+  hst->mut_obj().set_name("foo bar host cache");
   hst->mut_obj().set_enabled(true);
   std::string filename("/tmp/cache_test.lua");
   CreateScript(filename,
@@ -2908,7 +2909,7 @@ TEST_F(LuaTest, PbTestHostApiV2) {
   std::map<std::string, misc::variant> conf;
   auto hst{std::make_shared<neb::pb_host>()};
   hst->mut_obj().set_host_id(1);
-  hst->mut_obj().set_host_name("foo bar host cache");
+  hst->mut_obj().set_name("foo bar host cache");
   hst->mut_obj().set_enabled(true);
   std::string filename("/tmp/cache_test.lua");
   CreateScript(filename,
@@ -3028,7 +3029,7 @@ TEST_F(LuaTest, PbTestSvcApiV2) {
   auto& obj = svc->mut_obj();
   obj.set_host_id(1);
   obj.set_service_id(2);
-  obj.set_service_description("foo bar cache");
+  obj.set_description("foo bar cache");
   obj.set_notes("svc notes");
   obj.set_notes_url("svc notes url");
   obj.set_action_url("svc action url");
@@ -3062,7 +3063,7 @@ TEST_F(LuaTest, PbTestSvcApiV1) {
   auto& obj = svc->mut_obj();
   obj.set_host_id(1);
   obj.set_service_id(2);
-  obj.set_service_description("foo bar cache");
+  obj.set_description("foo bar cache");
   obj.set_notes("svc notes");
   obj.set_notes_url("svc notes url");
   obj.set_action_url("svc action url");
@@ -3096,7 +3097,7 @@ TEST_F(LuaTest, PbBrokerEventCache) {
   auto& obj = svc->mut_obj();
   obj.set_host_id(1);
   obj.set_service_id(2);
-  obj.set_service_description("foo bar cache");
+  obj.set_description("foo bar cache");
   obj.set_notes("svc notes");
   obj.set_notes_url("svc notes url");
   obj.set_action_url("svc action url");
@@ -3109,7 +3110,7 @@ TEST_F(LuaTest, PbBrokerEventCache) {
                "function write(d)\n"
                "  local svc = broker_cache:get_service(1, 2)\n"
                "  broker_log:info(0, 'service_description = ' .. "
-               "svc.service_description)\n"
+               "svc.description)\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   binding->write(svc);
@@ -3172,10 +3173,10 @@ TEST_F(LuaTest, BrokerPbServiceStatus) {
   auto& obj = svc->mut_obj();
   obj.set_host_id(1899);
   obj.set_service_id(288);
-  obj.set_service_description("foo bar");
+  obj.set_description("foo bar");
   obj.set_check_command("super command");
   obj.set_output("cool");
-  obj.set_current_state(Service_State_CRITICAL);
+  obj.set_state(Service_State_CRITICAL);
   obj.set_check_interval(7);
   obj.set_check_type(Service_CheckType_ACTIVE);
   obj.set_last_check(123456);
@@ -3186,10 +3187,10 @@ TEST_F(LuaTest, BrokerPbServiceStatus) {
       "  broker_log:set_parameters(3, '/tmp/event_log')\n"
       "end\n\n"
       "function write(d)\n"
-      "  broker_log:info(0, 'description = ' .. d.service_description)\n"
+      "  broker_log:info(0, 'description = ' .. d.description)\n"
       "  broker_log:info(0, 'check_command = ' .. tostring(d.check_command))\n"
       "  broker_log:info(0, 'output = ' .. d.output)\n"
-      "  broker_log:info(0, 'state = ' .. d.current_state)\n"
+      "  broker_log:info(0, 'state = ' .. d.state)\n"
       "  broker_log:info(0, 'check_interval = ' .. d.check_interval)\n"
       "  broker_log:info(0, 'check_type = ' .. d.check_type)\n"
       "  broker_log:info(0, 'service_id = ' .. d.service_id)\n"
@@ -3221,10 +3222,10 @@ TEST_F(LuaTest, BrokerApi2PbServiceStatusWithIndex) {
   auto& obj = svc->mut_obj();
   obj.set_host_id(1899);
   obj.set_service_id(288);
-  obj.set_service_description("foo bar");
+  obj.set_description("foo bar");
   obj.set_check_command("super command");
   obj.set_output("cool");
-  obj.set_current_state(Service_State_CRITICAL);
+  obj.set_state(Service_State_CRITICAL);
   obj.set_check_interval(7);
   obj.set_check_type(Service_CheckType_ACTIVE);
   obj.set_last_check(123456);
@@ -3236,10 +3237,10 @@ TEST_F(LuaTest, BrokerApi2PbServiceStatusWithIndex) {
       "  broker_log:set_parameters(3, '/tmp/event_log')\n"
       "end\n\n"
       "function write(d)\n"
-      "  broker_log:info(0, 'description = ' .. d.service_description)\n"
+      "  broker_log:info(0, 'description = ' .. d.description)\n"
       "  broker_log:info(0, 'check_command = ' .. tostring(d.check_command))\n"
       "  broker_log:info(0, 'output = ' .. d.output)\n"
-      "  broker_log:info(0, 'state = ' .. d.current_state)\n"
+      "  broker_log:info(0, 'state = ' .. d.state)\n"
       "  broker_log:info(0, 'check_interval = ' .. d.check_interval)\n"
       "  broker_log:info(0, 'check_type = ' .. d.check_type)\n"
       "  broker_log:info(0, 'service_id = ' .. d.service_id)\n"
@@ -3271,10 +3272,10 @@ TEST_F(LuaTest, BrokerApi2PbServiceStatusWithNext) {
   auto& obj = svc->mut_obj();
   obj.set_host_id(1899);
   obj.set_service_id(288);
-  obj.set_service_description("foo bar");
+  obj.set_description("foo bar");
   obj.set_check_command("super command");
   obj.set_output("cool");
-  obj.set_current_state(Service_State_CRITICAL);
+  obj.set_state(Service_State_CRITICAL);
   obj.set_check_interval(7);
   obj.set_check_type(Service_CheckType_ACTIVE);
   obj.set_last_check(123459);
@@ -3322,10 +3323,10 @@ TEST_F(LuaTest, BrokerApi2PbServiceStatusJsonEncode) {
   auto& obj = svc->mut_obj();
   obj.set_host_id(1899);
   obj.set_service_id(288);
-  obj.set_service_description("foo bar");
+  obj.set_description("foo bar");
   obj.set_check_command("super command");
   obj.set_output("cool");
-  obj.set_current_state(Service_State_CRITICAL);
+  obj.set_state(Service_State_CRITICAL);
   obj.set_check_interval(7);
   obj.set_check_type(Service_CheckType_ACTIVE);
   obj.set_last_check(123459);
@@ -3354,12 +3355,11 @@ TEST_F(LuaTest, BrokerApi2PbServiceStatusJsonEncode) {
   ASSERT_NE(pos1, std::string::npos);
   ASSERT_NE(lst.find("\"host_id\":1899", pos1), std::string::npos);
   ASSERT_NE(lst.find("\"service_id\":288", pos1), std::string::npos);
-  ASSERT_NE(lst.find("\"service_description\":\"foo bar\"", pos1),
-            std::string::npos);
+  ASSERT_NE(lst.find("\"description\":\"foo bar\"", pos1), std::string::npos);
   ASSERT_NE(lst.find("\"check_command\":\"super command\"", pos1),
             std::string::npos);
   ASSERT_NE(lst.find("\"output\":\"cool\"", pos1), std::string::npos);
-  ASSERT_NE(lst.find("\"current_state\":2", pos1), std::string::npos);
+  ASSERT_NE(lst.find("\"state\":2", pos1), std::string::npos);
   ASSERT_NE(lst.find("\"check_interval\":7", pos1), std::string::npos);
   ASSERT_NE(lst.find("\"check_type\":0", pos1), std::string::npos);
   ASSERT_NE(lst.find("\"last_check\":123459", pos1), std::string::npos);
@@ -3379,10 +3379,10 @@ TEST_F(LuaTest, BrokerPbServiceStatusJsonEncode) {
   auto& obj = svc->mut_obj();
   obj.set_host_id(1899);
   obj.set_service_id(288);
-  obj.set_service_description("foo bar");
+  obj.set_description("foo bar");
   obj.set_check_command("super command");
   obj.set_output("cool");
-  obj.set_current_state(Service_State_CRITICAL);
+  obj.set_state(Service_State_CRITICAL);
   obj.set_check_interval(7);
   obj.set_check_type(Service_CheckType_ACTIVE);
   obj.set_last_check(123459);
@@ -3410,9 +3410,9 @@ TEST_F(LuaTest, BrokerPbServiceStatusJsonEncode) {
   ASSERT_NE(lst.find("\"host_id\":1899"), std::string::npos);
   ASSERT_NE(lst.find("\"service_id\":288"), std::string::npos);
   ASSERT_NE(lst.find("\"check_interval\":7"), std::string::npos);
-  ASSERT_NE(lst.find("\"current_state\":2"), std::string::npos);
+  ASSERT_NE(lst.find("\"state\":2"), std::string::npos);
   ASSERT_NE(lst.find("\"last_check\":123459"), std::string::npos);
-  ASSERT_NE(lst.find("\"service_description\":\"foo bar\""), std::string::npos);
+  ASSERT_NE(lst.find("\"description\":\"foo bar\""), std::string::npos);
   ASSERT_NE(lst.find("\"output\":\"cool\""), std::string::npos);
   size_t s1 = lst.find("\"tags\":[{\"id\":24,\"type\":2}");
   if (s1 == std::string::npos)
@@ -3434,10 +3434,10 @@ TEST_F(LuaTest, BrokerApi2PbServiceJsonEncode) {
   auto& obj = svc->mut_obj();
   obj.set_host_id(1899);
   obj.set_service_id(288);
-  obj.set_service_description("foo bar");
+  obj.set_description("foo bar");
   obj.set_check_command("super command");
   obj.set_output("cool");
-  obj.set_current_state(Service_State_CRITICAL);
+  obj.set_state(Service_State_CRITICAL);
   obj.set_check_interval(7);
   obj.set_check_type(Service_CheckType_ACTIVE);
   obj.set_last_check(123459);
@@ -3460,9 +3460,9 @@ TEST_F(LuaTest, BrokerApi2PbServiceJsonEncode) {
   ASSERT_NE(lst.find("\"host_id\":1899"), std::string::npos);
   ASSERT_NE(lst.find("\"service_id\":288"), std::string::npos);
   ASSERT_NE(lst.find("\"check_interval\":7"), std::string::npos);
-  ASSERT_NE(lst.find("\"current_state\":2"), std::string::npos);
+  ASSERT_NE(lst.find("\"state\":2"), std::string::npos);
   ASSERT_NE(lst.find("\"last_check\":123459"), std::string::npos);
-  ASSERT_NE(lst.find("\"service_description\":\"foo bar\""), std::string::npos);
+  ASSERT_NE(lst.find("\"description\":\"foo bar\""), std::string::npos);
   ASSERT_NE(lst.find("\"output\":\"cool\""), std::string::npos);
   RemoveFile(filename);
   RemoveFile("/tmp/event_log");
@@ -3476,10 +3476,10 @@ TEST_F(LuaTest, BrokerPbServiceJsonEncode) {
   auto& obj = svc->mut_obj();
   obj.set_host_id(1899);
   obj.set_service_id(288);
-  obj.set_service_description("foo bar");
+  obj.set_description("foo bar");
   obj.set_check_command("super command");
   obj.set_output("cool");
-  obj.set_current_state(Service_State_CRITICAL);
+  obj.set_state(Service_State_CRITICAL);
   obj.set_check_interval(7);
   obj.set_check_type(Service_CheckType_ACTIVE);
   obj.set_last_check(123459);
@@ -3501,9 +3501,9 @@ TEST_F(LuaTest, BrokerPbServiceJsonEncode) {
   ASSERT_NE(lst.find("\"host_id\":1899"), std::string::npos);
   ASSERT_NE(lst.find("\"service_id\":288"), std::string::npos);
   ASSERT_NE(lst.find("\"check_interval\":7"), std::string::npos);
-  ASSERT_NE(lst.find("\"current_state\":2"), std::string::npos);
+  ASSERT_NE(lst.find("\"state\":2"), std::string::npos);
   ASSERT_NE(lst.find("\"last_check\":123459"), std::string::npos);
-  ASSERT_NE(lst.find("\"service_description\":\"foo bar\""), std::string::npos);
+  ASSERT_NE(lst.find("\"description\":\"foo bar\""), std::string::npos);
   ASSERT_NE(lst.find("\"output\":\"cool\""), std::string::npos);
   RemoveFile(filename);
   RemoveFile("/tmp/event_log");
@@ -3518,7 +3518,7 @@ TEST_F(LuaTest, BrokerPbHostStatus) {
   obj.set_host_id(1899);
   obj.set_check_command("super command");
   obj.set_output("cool");
-  obj.set_current_state(Host_State_UP);
+  obj.set_state(Host_State_UP);
   obj.set_check_interval(7);
   obj.set_check_type(Host_CheckType_ACTIVE);
   obj.set_last_check(123456);
@@ -3531,7 +3531,7 @@ TEST_F(LuaTest, BrokerPbHostStatus) {
       "function write(d)\n"
       "  broker_log:info(0, 'check_command = ' .. tostring(d.check_command))\n"
       "  broker_log:info(0, 'output = ' .. d.output)\n"
-      "  broker_log:info(0, 'state = ' .. d.current_state)\n"
+      "  broker_log:info(0, 'state = ' .. d.state)\n"
       "  broker_log:info(0, 'check_interval = ' .. d.check_interval)\n"
       "  broker_log:info(0, 'check_type = ' .. d.check_type)\n"
       "  broker_log:info(0, 'host_id = ' .. d.host_id)\n"
@@ -3561,7 +3561,7 @@ TEST_F(LuaTest, BrokerApi2PbHostStatusWithIndex) {
   obj.set_host_id(1899);
   obj.set_check_command("super command");
   obj.set_output("cool");
-  obj.set_current_state(Host_State_UP);
+  obj.set_state(Host_State_UP);
   obj.set_check_interval(7);
   obj.set_check_type(Host_CheckType_ACTIVE);
   obj.set_last_check(123456);
@@ -3575,7 +3575,7 @@ TEST_F(LuaTest, BrokerApi2PbHostStatusWithIndex) {
       "function write(d)\n"
       "  broker_log:info(0, 'check_command = ' .. tostring(d.check_command))\n"
       "  broker_log:info(0, 'output = ' .. d.output)\n"
-      "  broker_log:info(0, 'state = ' .. d.current_state)\n"
+      "  broker_log:info(0, 'state = ' .. d.state)\n"
       "  broker_log:info(0, 'check_interval = ' .. d.check_interval)\n"
       "  broker_log:info(0, 'check_type = ' .. d.check_type)\n"
       "  broker_log:info(0, 'host_id = ' .. d.host_id)\n"
@@ -3605,7 +3605,7 @@ TEST_F(LuaTest, BrokerApi2PbHostStatusWithNext) {
   obj.set_host_id(1899);
   obj.set_check_command("super command");
   obj.set_output("cool");
-  obj.set_current_state(Host_State_UP);
+  obj.set_state(Host_State_UP);
   obj.set_check_interval(7);
   obj.set_check_type(Host_CheckType_ACTIVE);
   obj.set_last_check(123459);
@@ -3642,9 +3642,9 @@ TEST_F(LuaTest, BrokerApi2PbHostJsonEncode) {
   auto host = std::make_shared<neb::pb_host_status>();
   auto& obj = host->mut_obj();
   obj.set_host_id(1899);
-  obj.set_current_state(HostStatus_State_UP);
+  obj.set_state(HostStatus_State_UP);
   obj.set_output("cool");
-  obj.set_perf_data("perfdata");
+  obj.set_perfdata("perfdata");
   std::string filename("/tmp/cache_test.lua");
   CreateScript(filename,
                "broker_api_version = 2\n"
@@ -3662,8 +3662,8 @@ TEST_F(LuaTest, BrokerApi2PbHostJsonEncode) {
   ASSERT_NE(lst.find("\"category\":1"), std::string::npos);
   ASSERT_NE(lst.find("\"element\":32"), std::string::npos);
   ASSERT_NE(lst.find("\"host_id\":1899"), std::string::npos);
-  ASSERT_NE(lst.find("\"current_state\":0"), std::string::npos);
-  ASSERT_NE(lst.find("\"perf_data\":\"perfdata\""), std::string::npos);
+  ASSERT_NE(lst.find("\"state\":0"), std::string::npos);
+  ASSERT_NE(lst.find("\"perfdata\":\"perfdata\""), std::string::npos);
   ASSERT_NE(lst.find("\"output\":\"cool\""), std::string::npos);
 
   RemoveFile(filename);
@@ -3679,7 +3679,7 @@ TEST_F(LuaTest, BrokerPbHostJsonEncode) {
   obj.set_host_id(1899);
   obj.set_check_command("super command");
   obj.set_output("cool");
-  obj.set_current_state(Host_State_UP);
+  obj.set_state(Host_State_UP);
   obj.set_check_interval(7);
   obj.set_check_type(Host_CheckType_ACTIVE);
   obj.set_last_check(123459);
@@ -3700,7 +3700,7 @@ TEST_F(LuaTest, BrokerPbHostJsonEncode) {
   ASSERT_NE(lst.find("\"element\":30"), std::string::npos);
   ASSERT_NE(lst.find("\"host_id\":1899"), std::string::npos);
   ASSERT_NE(lst.find("\"check_interval\":7"), std::string::npos);
-  ASSERT_NE(lst.find("\"current_state\":0"), std::string::npos);
+  ASSERT_NE(lst.find("\"state\":0"), std::string::npos);
   ASSERT_NE(lst.find("\"last_check\":123459"), std::string::npos);
   ASSERT_NE(lst.find("\"output\":\"cool\""), std::string::npos);
   RemoveFile(filename);
@@ -3710,14 +3710,15 @@ TEST_F(LuaTest, BrokerPbHostJsonEncode) {
 TEST_F(LuaTest, BrokerBbdoVersion) {
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
-  CreateScript(filename,
-               "function init(conf)\n"
-               "  broker_log:set_parameters(3, '/tmp/event_log')\n"
-               "  broker_log:info(0, 'BBDO version: ' .. broker.bbdo_version())\n"
-               "end\n"
-               "function write(d)\n"
-               "  return true\n"
-               "end");
+  CreateScript(
+      filename,
+      "function init(conf)\n"
+      "  broker_log:set_parameters(3, '/tmp/event_log')\n"
+      "  broker_log:info(0, 'BBDO version: ' .. broker.bbdo_version())\n"
+      "end\n"
+      "function write(d)\n"
+      "  return true\n"
+      "end");
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("BBDO version: 2.0.0"), std::string::npos);
@@ -3733,7 +3734,7 @@ TEST_F(LuaTest, BrokerApi2PbHostStatusJsonEncode) {
   auto& obj = host->mut_obj();
   obj.set_host_id(1899);
   obj.set_output("cool");
-  obj.set_current_state(HostStatus_State_UP);
+  obj.set_state(HostStatus_State_UP);
   obj.set_check_type(HostStatus_CheckType_ACTIVE);
   obj.set_last_check(123459);
   std::string filename("/tmp/cache_test.lua");
@@ -3753,7 +3754,7 @@ TEST_F(LuaTest, BrokerApi2PbHostStatusJsonEncode) {
   ASSERT_NE(lst.find("\"category\":1"), std::string::npos);
   ASSERT_NE(lst.find("\"element\":32"), std::string::npos);
   ASSERT_NE(lst.find("\"host_id\":1899"), std::string::npos);
-  ASSERT_NE(lst.find("\"current_state\":0"), std::string::npos);
+  ASSERT_NE(lst.find("\"state\":0"), std::string::npos);
   ASSERT_NE(lst.find("\"last_check\":123459"), std::string::npos);
   ASSERT_NE(lst.find("\"output\":\"cool\""), std::string::npos);
   RemoveFile(filename);
@@ -3768,7 +3769,7 @@ TEST_F(LuaTest, BrokerPbHostStatusJsonEncode) {
   auto& obj = host->mut_obj();
   obj.set_host_id(1899);
   obj.set_output("cool");
-  obj.set_current_state(HostStatus_State_UP);
+  obj.set_state(HostStatus_State_UP);
   obj.set_check_type(HostStatus_CheckType_ACTIVE);
   obj.set_last_check(123459);
   std::string filename("/tmp/cache_test.lua");
@@ -3787,7 +3788,7 @@ TEST_F(LuaTest, BrokerPbHostStatusJsonEncode) {
   ASSERT_NE(lst.find("\"category\":1"), std::string::npos);
   ASSERT_NE(lst.find("\"element\":32"), std::string::npos);
   ASSERT_NE(lst.find("\"host_id\":1899"), std::string::npos);
-  ASSERT_NE(lst.find("\"current_state\":0"), std::string::npos);
+  ASSERT_NE(lst.find("\"state\":0"), std::string::npos);
   ASSERT_NE(lst.find("\"last_check\":123459"), std::string::npos);
   ASSERT_NE(lst.find("\"output\":\"cool\""), std::string::npos);
   RemoveFile(filename);
@@ -3861,4 +3862,325 @@ TEST_F(LuaTest, BrokerApi2PbAdaptiveHostJsonEncode) {
   ASSERT_EQ(lst.find("\"check_freshness\":", pos1), std::string::npos);
   RemoveFile(filename);
   RemoveFile("/tmp/event_log");
+}
+
+TEST_F(LuaTest, ServiceObjectMatchBetweenBbdoVersions) {
+  config::applier::modules modules;
+  char tmp[256];
+  getcwd(tmp, 256);
+  modules.load_file("./lib/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  std::string filename("/tmp/cache_test.lua");
+  auto svc = std::make_shared<neb::service>();
+  svc->host_id = 1;
+  svc->service_id = 14;
+  svc->service_description = "description";
+  svc->host_name = "toto";
+  svc->last_hard_state_change = 12345;
+  svc->last_notification = 12345;
+  svc->last_state_change = 12345;
+  svc->last_time_ok = 12345;
+  svc->last_time_warning = 12345;
+  svc->last_time_critical = 12345;
+  svc->last_time_unknown = 12345;
+  svc->last_update = 12345;
+  svc->last_check = 12345;
+  svc->next_check = 12345;
+  svc->next_notification = 12345;
+  auto svc1 = std::make_shared<neb::pb_service>();
+  svc1->mut_obj().set_host_id(1);
+  svc1->mut_obj().set_service_id(14);
+  svc1->mut_obj().set_description("description");
+
+  CreateScript(filename,
+               "function init(conf)\n"
+               "  broker_log:set_parameters(3, '/tmp/log')\n"
+               "end\n\n"
+               "local count = 1\n"
+               "function write(d)\n"
+               "  local puce = { '* ', '- ' }\n"
+               "  local keys = {}\n"
+               "  for k,_ in pairs(d) do\n"
+               "    keys[#keys + 1] = k\n"
+               "  end\n"
+               "  table.sort(keys)\n"
+               "  for i,k in ipairs(keys) do\n"
+               "    broker_log:info(1, puce[count] .. k)\n"
+               "  end\n"
+               "  count = count + 1\n"
+               "  return true\n"
+               "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  binding->write(svc);
+  binding->write(svc1);
+  std::string ret(ReadFile("/tmp/log"));
+  std::vector<absl::string_view> lst1 = absl::StrSplit(ret, '\n');
+  std::vector<absl::string_view> lst2 = lst1;
+  std::list<absl::string_view> l1, l2;
+  for (auto& s : lst1) {
+    if (s.find(" * ") != absl::string_view::npos)
+      l1.emplace_back(s.substr(34));
+  }
+  for (auto& s : lst2) {
+    if (s.find(" - ") != absl::string_view::npos)
+      l2.emplace_back(s.substr(34));
+  }
+
+  auto it = l1.begin();
+  for (auto it1 = l2.begin(); it1 != l2.end();) {
+    if (*it1 == "host_name" || *it1 == "icon_id" || *it1 == "internal_id" ||
+        *it1 == "is_volatile" || *it1 == "long_output" ||
+        *it1 == "severity_id" || *it1 == "tags" || *it1 == "type") {
+      ++it1;
+      continue;
+    }
+    std::cout << *it << " <=> " << *it1 << std::endl;
+    ASSERT_TRUE(it != l1.end() && *it1 >= *it);
+    if (*it1 == *it) {
+      ++it;
+      ++it1;
+      continue;
+    } else {
+      ++it;
+      continue;
+    }
+  }
+  RemoveFile(filename);
+  RemoveFile("/tmp/log");
+}
+
+TEST_F(LuaTest, HostObjectMatchBetweenBbdoVersions) {
+  config::applier::modules modules;
+  char tmp[256];
+  getcwd(tmp, 256);
+  modules.load_file("./lib/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  std::string filename("/tmp/cache_test.lua");
+  auto hst = std::make_shared<neb::host>();
+  hst->host_id = 1;
+  hst->host_name = "description";
+  hst->poller_id = 28;
+  hst->last_check = 12345;
+  hst->last_hard_state_change = 123456;
+  hst->last_notification = 123456;
+  hst->last_state_change = 123456;
+  hst->last_time_down = 123456;
+  hst->last_time_unreachable = 123456;
+  hst->last_time_up = 123456;
+  hst->last_update = 123456;
+  hst->next_check = 123456;
+  hst->next_notification = 123456;
+  auto hst1 = std::make_shared<neb::pb_host>();
+  hst1->mut_obj().set_host_id(1);
+  hst1->mut_obj().set_name("description");
+
+  CreateScript(filename,
+               "function init(conf)\n"
+               "  broker_log:set_parameters(3, '/tmp/log')\n"
+               "end\n\n"
+               "local count = 1\n"
+               "function write(d)\n"
+               "  local puce = { '* ', '- ' }\n"
+               "  local keys = {}\n"
+               "  for k,_ in pairs(d) do\n"
+               "    keys[#keys + 1] = k\n"
+               "  end\n"
+               "  table.sort(keys)\n"
+               "  for i,k in ipairs(keys) do\n"
+               "    broker_log:info(1, puce[count] .. k)\n"
+               "  end\n"
+               "  count = count + 1\n"
+               "  return true\n"
+               "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  binding->write(hst);
+  binding->write(hst1);
+  std::string ret(ReadFile("/tmp/log"));
+  std::vector<absl::string_view> lst1 = absl::StrSplit(ret, '\n');
+  std::vector<absl::string_view> lst2 = lst1;
+  std::list<absl::string_view> l1, l2;
+  for (auto& s : lst1) {
+    if (s.find(" * ") != absl::string_view::npos)
+      l1.emplace_back(s.substr(34));
+  }
+  for (auto& s : lst2) {
+    if (s.find(" - ") != absl::string_view::npos)
+      l2.emplace_back(s.substr(34));
+  }
+
+  auto it = l1.begin();
+  for (auto it1 = l2.begin(); it1 != l2.end();) {
+    if (*it1 == "icon_id" || *it1 == "severity_id" || *it1 == "tags") {
+      ++it1;
+      continue;
+    }
+    std::cout << *it << " <=> " << *it1 << std::endl;
+    ASSERT_TRUE(it != l1.end() && *it1 >= *it);
+    if (*it1 == *it) {
+      ++it;
+      ++it1;
+      continue;
+    } else {
+      ++it;
+      continue;
+    }
+  }
+  RemoveFile(filename);
+  RemoveFile("/tmp/log");
+}
+
+TEST_F(LuaTest, ServiceStatusObjectMatchBetweenBbdoVersions) {
+  config::applier::modules modules;
+  char tmp[256];
+  getcwd(tmp, 256);
+  modules.load_file("./lib/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  std::string filename("/tmp/cache_test.lua");
+  auto svc = std::make_shared<neb::service_status>();
+  svc->host_id = 1;
+  svc->service_id = 14;
+  svc->last_check = 12345;
+  svc->last_hard_state_change = 12345;
+  svc->last_notification = 12345;
+  svc->last_state_change = 12345;
+  svc->last_time_critical = 12345;
+  svc->last_time_ok = 12345;
+  svc->last_time_warning = 12345;
+  svc->last_time_unknown = 12345;
+  svc->next_check = 12345;
+  svc->next_notification = 12345;
+  auto svc1 = std::make_shared<neb::pb_service_status>();
+  svc1->mut_obj().set_host_id(1);
+  svc1->mut_obj().set_service_id(14);
+
+  CreateScript(filename,
+               "function init(conf)\n"
+               "  broker_log:set_parameters(3, '/tmp/log')\n"
+               "end\n\n"
+               "local count = 1\n"
+               "function write(d)\n"
+               "  local puce = { '* ', '- ' }\n"
+               "  local keys = {}\n"
+               "  for k,_ in pairs(d) do\n"
+               "    keys[#keys + 1] = k\n"
+               "  end\n"
+               "  table.sort(keys)\n"
+               "  for i,k in ipairs(keys) do\n"
+               "    broker_log:info(1, puce[count] .. k)\n"
+               "  end\n"
+               "  count = count + 1\n"
+               "  return true\n"
+               "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  binding->write(svc);
+  binding->write(svc1);
+  std::string ret(ReadFile("/tmp/log"));
+  std::vector<absl::string_view> lst1 = absl::StrSplit(ret, '\n');
+  std::vector<absl::string_view> lst2 = lst1;
+  std::list<absl::string_view> l1, l2;
+  for (auto& s : lst1) {
+    if (s.find(" * ") != absl::string_view::npos)
+      l1.emplace_back(s.substr(34));
+  }
+  for (auto& s : lst2) {
+    if (s.find(" - ") != absl::string_view::npos)
+      l2.emplace_back(s.substr(34));
+  }
+
+  auto it = l1.begin();
+  for (auto it1 = l2.begin(); it1 != l2.end();) {
+    if (*it1 == "internal_id" || *it1 == "long_output" || *it1 == "type") {
+      ++it1;
+      continue;
+    }
+    std::cout << *it << " <=> " << *it1 << std::endl;
+    ASSERT_TRUE(it != l1.end() && *it1 >= *it);
+    if (*it1 == *it) {
+      ++it;
+      ++it1;
+      continue;
+    } else {
+      ++it;
+      continue;
+    }
+  }
+  RemoveFile(filename);
+  RemoveFile("/tmp/log");
+}
+
+TEST_F(LuaTest, HostStatusObjectMatchBetweenBbdoVersions) {
+  config::applier::modules modules;
+  char tmp[256];
+  getcwd(tmp, 256);
+  modules.load_file("./lib/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  std::string filename("/tmp/cache_test.lua");
+  auto hst = std::make_shared<neb::host_status>();
+  hst->host_id = 1;
+  hst->last_hard_state = 12345;
+  hst->last_check = 12345;
+  hst->last_hard_state_change = 12345;
+  hst->last_notification = 12345;
+  hst->last_state_change = 12345;
+  hst->last_time_down = 12345;
+  hst->last_time_up = 12345;
+  hst->last_time_unreachable = 12345;
+  hst->next_check = 12345;
+  hst->next_notification = 12345;
+  auto hst1 = std::make_shared<neb::pb_host_status>();
+  hst1->mut_obj().set_host_id(1);
+
+  CreateScript(filename,
+               "function init(conf)\n"
+               "  broker_log:set_parameters(3, '/tmp/log')\n"
+               "end\n\n"
+               "local count = 1\n"
+               "function write(d)\n"
+               "  local puce = { '* ', '- ' }\n"
+               "  local keys = {}\n"
+               "  for k,_ in pairs(d) do\n"
+               "    keys[#keys + 1] = k\n"
+               "  end\n"
+               "  table.sort(keys)\n"
+               "  for i,k in ipairs(keys) do\n"
+               "    broker_log:info(1, puce[count] .. k)\n"
+               "  end\n"
+               "  count = count + 1\n"
+               "  return true\n"
+               "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  binding->write(hst);
+  binding->write(hst1);
+  std::string ret(ReadFile("/tmp/log"));
+  std::vector<absl::string_view> lst1 = absl::StrSplit(ret, '\n');
+  std::vector<absl::string_view> lst2 = lst1;
+  std::list<absl::string_view> l1, l2;
+  for (auto& s : lst1) {
+    if (s.find(" * ") != absl::string_view::npos)
+      l1.emplace_back(s.substr(34));
+  }
+  for (auto& s : lst2) {
+    if (s.find(" - ") != absl::string_view::npos)
+      l2.emplace_back(s.substr(34));
+  }
+
+  auto it = l1.begin();
+  for (auto it1 = l2.begin(); it1 != l2.end();) {
+    if (*it1 == "long_output" || *it1 == "icon_id") {
+      ++it1;
+      continue;
+    }
+    std::cout << *it << " <=> " << *it1 << std::endl;
+    ASSERT_TRUE(it != l1.end() && *it1 >= *it);
+    if (*it1 == *it) {
+      ++it;
+      ++it1;
+      continue;
+    } else {
+      ++it;
+      continue;
+    }
+  }
+  RemoveFile(filename);
+  RemoveFile("/tmp/log");
 }
