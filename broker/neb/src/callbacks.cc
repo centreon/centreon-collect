@@ -1276,18 +1276,18 @@ int neb::callback_pb_host(int callback_type, void* data) {
     auto h{std::make_shared<neb::pb_adaptive_host>()};
     AdaptiveHost& hst = h.get()->mut_obj();
     if (dh->modified_attribute & MODATTR_NOTIFICATIONS_ENABLED)
-      hst.set_notifications_enabled(eh->get_notifications_enabled());
+      hst.set_notify(eh->get_notifications_enabled());
     else if (dh->modified_attribute & MODATTR_ACTIVE_CHECKS_ENABLED) {
-      hst.set_active_checks_enabled(eh->active_checks_enabled());
+      hst.set_active_checks(eh->active_checks_enabled());
       hst.set_should_be_scheduled(eh->get_should_be_scheduled());
     } else if (dh->modified_attribute & MODATTR_PASSIVE_CHECKS_ENABLED)
-      hst.set_passive_checks_enabled(eh->passive_checks_enabled());
+      hst.set_passive_checks(eh->passive_checks_enabled());
     else if (dh->modified_attribute & MODATTR_EVENT_HANDLER_ENABLED)
       hst.set_event_handler_enabled(eh->event_handler_enabled());
     else if (dh->modified_attribute & MODATTR_FLAP_DETECTION_ENABLED)
-      hst.set_flap_detection_enabled(eh->flap_detection_enabled());
+      hst.set_flap_detection(eh->flap_detection_enabled());
     else if (dh->modified_attribute & MODATTR_OBSESSIVE_HANDLER_ENABLED)
-      hst.set_obsess_over(eh->obsess_over());
+      hst.set_obsess_over_host(eh->obsess_over());
     else if (dh->modified_attribute & MODATTR_EVENT_HANDLER_COMMAND)
       hst.set_event_handler(
           misc::string::check_string_utf8(eh->event_handler()));
@@ -1334,7 +1334,7 @@ int neb::callback_pb_host(int callback_type, void* data) {
     if (!eh->get_action_url().empty())
       host.set_action_url(
           misc::string::check_string_utf8(eh->get_action_url()));
-    host.set_active_checks_enabled(eh->active_checks_enabled());
+    host.set_active_checks(eh->active_checks_enabled());
     if (!eh->get_address().empty())
       host.set_address(misc::string::check_string_utf8(eh->get_address()));
     if (!eh->get_alias().empty())
@@ -1347,16 +1347,16 @@ int neb::callback_pb_host(int callback_type, void* data) {
     if (!eh->check_period().empty())
       host.set_check_period(eh->check_period());
     host.set_check_type(static_cast<Host_CheckType>(eh->get_check_type()));
-    host.set_current_check_attempt(eh->get_current_attempt());
-    host.set_current_state(static_cast<Host_State>(eh->has_been_checked()
-                                                       ? eh->get_current_state()
-                                                       : 4));  // Pending state.
-    host.set_default_active_checks_enabled(eh->active_checks_enabled());
+    host.set_check_attempt(eh->get_current_attempt());
+    host.set_state(static_cast<Host_State>(eh->has_been_checked()
+                                               ? eh->get_current_state()
+                                               : 4));  // Pending state.
+    host.set_default_active_checks(eh->active_checks_enabled());
     host.set_default_event_handler_enabled(eh->event_handler_enabled());
-    host.set_default_flap_detection_enabled(eh->flap_detection_enabled());
-    host.set_default_notifications_enabled(eh->get_notifications_enabled());
-    host.set_default_passive_checks_enabled(eh->passive_checks_enabled());
-    host.set_downtime_depth(eh->get_scheduled_downtime_depth());
+    host.set_default_flap_detection(eh->flap_detection_enabled());
+    host.set_default_notify(eh->get_notifications_enabled());
+    host.set_default_passive_checks(eh->passive_checks_enabled());
+    host.set_scheduled_downtime_depth(eh->get_scheduled_downtime_depth());
     if (!eh->get_display_name().empty())
       host.set_display_name(
           misc::string::check_string_utf8(eh->get_display_name()));
@@ -1369,7 +1369,7 @@ int neb::callback_pb_host(int callback_type, void* data) {
     host.set_execution_time(eh->get_execution_time());
     host.set_first_notification_delay(eh->get_first_notification_delay());
     host.set_notification_number(eh->get_notification_number());
-    host.set_flap_detection_enabled(eh->flap_detection_enabled());
+    host.set_flap_detection(eh->flap_detection_enabled());
     host.set_flap_detection_on_down(
         eh->get_flap_detection_on(engine::notifier::down));
     host.set_flap_detection_on_unreachable(
@@ -1377,17 +1377,17 @@ int neb::callback_pb_host(int callback_type, void* data) {
     host.set_flap_detection_on_up(
         eh->get_flap_detection_on(engine::notifier::up));
     host.set_freshness_threshold(eh->get_freshness_threshold());
-    host.set_has_been_checked(eh->has_been_checked());
+    host.set_checked(eh->has_been_checked());
     host.set_high_flap_threshold(eh->get_high_flap_threshold());
     if (!eh->get_name().empty())
-      host.set_host_name(misc::string::check_string_utf8(eh->get_name()));
+      host.set_name(misc::string::check_string_utf8(eh->get_name()));
     if (!eh->get_icon_image().empty())
       host.set_icon_image(
           misc::string::check_string_utf8(eh->get_icon_image()));
     if (!eh->get_icon_image_alt().empty())
       host.set_icon_image_alt(
           misc::string::check_string_utf8(eh->get_icon_image_alt()));
-    host.set_is_flapping(eh->get_is_flapping());
+    host.set_flapping(eh->get_is_flapping());
     host.set_last_check(eh->get_last_check());
     host.set_last_hard_state(
         static_cast<Host_State>(eh->get_last_hard_state()));
@@ -1402,13 +1402,13 @@ int neb::callback_pb_host(int callback_type, void* data) {
     host.set_low_flap_threshold(eh->get_low_flap_threshold());
     host.set_max_check_attempts(eh->max_check_attempts());
     host.set_next_check(eh->get_next_check());
-    host.set_next_notification(eh->get_next_notification());
+    host.set_next_host_notification(eh->get_next_notification());
     host.set_no_more_notifications(eh->get_no_more_notifications());
     if (!eh->get_notes().empty())
       host.set_notes(misc::string::check_string_utf8(eh->get_notes()));
     if (!eh->get_notes_url().empty())
       host.set_notes_url(misc::string::check_string_utf8(eh->get_notes_url()));
-    host.set_notifications_enabled(eh->get_notifications_enabled());
+    host.set_notify(eh->get_notifications_enabled());
     host.set_notification_interval(eh->get_notification_interval());
     if (!eh->notification_period().empty())
       host.set_notification_period(eh->notification_period());
@@ -1419,18 +1419,18 @@ int neb::callback_pb_host(int callback_type, void* data) {
     host.set_notify_on_recovery(eh->get_notify_on(engine::notifier::up));
     host.set_notify_on_unreachable(
         eh->get_notify_on(engine::notifier::unreachable));
-    host.set_obsess_over(eh->obsess_over());
+    host.set_obsess_over_host(eh->obsess_over());
     if (!eh->get_plugin_output().empty()) {
       host.set_output(misc::string::check_string_utf8(eh->get_plugin_output()));
     }
     if (!eh->get_long_plugin_output().empty())
       host.set_output(
           misc::string::check_string_utf8(eh->get_long_plugin_output()));
-    host.set_passive_checks_enabled(eh->passive_checks_enabled());
+    host.set_passive_checks(eh->passive_checks_enabled());
     host.set_percent_state_change(eh->get_percent_state_change());
     if (!eh->get_perf_data().empty())
-      host.set_perf_data(misc::string::check_string_utf8(eh->get_perf_data()));
-    host.set_poller_id(config::applier::state::instance().poller_id());
+      host.set_perfdata(misc::string::check_string_utf8(eh->get_perf_data()));
+    host.set_instance_id(config::applier::state::instance().poller_id());
     host.set_retain_nonstatus_information(
         eh->get_retain_nonstatus_information());
     host.set_retain_status_information(eh->get_retain_status_information());
@@ -1456,13 +1456,13 @@ int neb::callback_pb_host(int callback_type, void* data) {
     }
 
     // Find host ID.
-    uint64_t host_id = engine::get_host_id(host.host_name());
+    uint64_t host_id = engine::get_host_id(host.name());
     if (host_id != 0) {
       host.set_host_id(host_id);
 
       // Send host event.
       log_v2::neb()->info("callbacks:  new host {} ('{}') on instance {}",
-                          host.host_id(), host.host_name(), host.poller_id());
+                          host.host_id(), host.name(), host.instance_id());
       neb::gl_publisher.write(h);
 
       /* No need to send this service custom variables changes, custom variables
@@ -1684,12 +1684,12 @@ int neb::callback_pb_host_status(int callback_type, void* data) noexcept {
     hscr.set_acknowledgement_type(HostStatus_AckType_NONE);
 
   hscr.set_check_type(static_cast<HostStatus_CheckType>(eh->get_check_type()));
-  hscr.set_current_check_attempt(eh->get_current_attempt());
-  hscr.set_current_state(static_cast<HostStatus_State>(
+  hscr.set_check_attempt(eh->get_current_attempt());
+  hscr.set_state(static_cast<HostStatus_State>(
       eh->has_been_checked() ? eh->get_current_state() : 4));  // Pending state.
   hscr.set_execution_time(eh->get_execution_time());
-  hscr.set_has_been_checked(eh->has_been_checked());
-  hscr.set_is_flapping(eh->get_is_flapping());
+  hscr.set_checked(eh->has_been_checked());
+  hscr.set_flapping(eh->get_is_flapping());
   hscr.set_last_check(eh->get_last_check());
   hscr.set_last_hard_state(
       static_cast<HostStatus_State>(eh->get_last_hard_state()));
@@ -1702,7 +1702,7 @@ int neb::callback_pb_host_status(int callback_type, void* data) noexcept {
   hscr.set_last_time_up(eh->get_last_time_up());
   hscr.set_latency(eh->get_latency());
   hscr.set_next_check(eh->get_next_check());
-  hscr.set_next_notification(eh->get_next_notification());
+  hscr.set_next_host_notification(eh->get_next_notification());
   hscr.set_no_more_notifications(eh->get_no_more_notifications());
   if (!eh->get_plugin_output().empty())
     hscr.set_output(misc::string::check_string_utf8(eh->get_plugin_output()));
@@ -1712,11 +1712,11 @@ int neb::callback_pb_host_status(int callback_type, void* data) noexcept {
 
   hscr.set_percent_state_change(eh->get_percent_state_change());
   if (!eh->get_perf_data().empty())
-    hscr.set_perf_data(misc::string::check_string_utf8(eh->get_perf_data()));
+    hscr.set_perfdata(misc::string::check_string_utf8(eh->get_perf_data()));
   hscr.set_should_be_scheduled(eh->get_should_be_scheduled());
   hscr.set_state_type(static_cast<HostStatus_StateType>(
       eh->has_been_checked() ? eh->get_state_type() : engine::notifier::hard));
-  hscr.set_downtime_depth(eh->get_scheduled_downtime_depth());
+  hscr.set_scheduled_downtime_depth(eh->get_scheduled_downtime_depth());
 
   // Send event(s).
   gl_publisher.write(h);
@@ -1725,9 +1725,8 @@ int neb::callback_pb_host_status(int callback_type, void* data) noexcept {
   auto it = gl_acknowledgements.find(std::make_pair(hscr.host_id(), 0u));
   if (it != gl_acknowledgements.end() &&
       hscr.acknowledgement_type() == HostStatus_AckType_NONE) {
-    if (!(!hscr.current_state()  // !(OK or (normal ack and NOK))
-          || (!it->second.is_sticky &&
-              (hscr.current_state() != it->second.state)))) {
+    if (!(!hscr.state()  // !(OK or (normal ack and NOK))
+          || (!it->second.is_sticky && (hscr.state() != it->second.state)))) {
       auto ack = std::make_shared<neb::acknowledgement>(it->second);
       ack->deletion_time = time(nullptr);
       gl_publisher.write(ack);
@@ -2270,18 +2269,18 @@ int neb::callback_pb_service(int callback_type, void* data) {
     auto s{std::make_shared<neb::pb_adaptive_service>()};
     AdaptiveService& srv = s.get()->mut_obj();
     if (ds->modified_attribute & MODATTR_NOTIFICATIONS_ENABLED)
-      srv.set_notifications_enabled(es->get_notifications_enabled());
+      srv.set_notify(es->get_notifications_enabled());
     else if (ds->modified_attribute & MODATTR_ACTIVE_CHECKS_ENABLED) {
-      srv.set_active_checks_enabled(es->active_checks_enabled());
+      srv.set_active_checks(es->active_checks_enabled());
       srv.set_should_be_scheduled(es->get_should_be_scheduled());
     } else if (ds->modified_attribute & MODATTR_PASSIVE_CHECKS_ENABLED)
-      srv.set_passive_checks_enabled(es->passive_checks_enabled());
+      srv.set_passive_checks(es->passive_checks_enabled());
     else if (ds->modified_attribute & MODATTR_EVENT_HANDLER_ENABLED)
       srv.set_event_handler_enabled(es->event_handler_enabled());
     else if (ds->modified_attribute & MODATTR_FLAP_DETECTION_ENABLED)
       srv.set_flap_detection_enabled(es->flap_detection_enabled());
     else if (ds->modified_attribute & MODATTR_OBSESSIVE_HANDLER_ENABLED)
-      srv.set_obsess_over(es->obsess_over());
+      srv.set_obsess_over_service(es->obsess_over());
     else if (ds->modified_attribute & MODATTR_EVENT_HANDLER_COMMAND)
       srv.set_event_handler(
           misc::string::check_string_utf8(es->event_handler()));
@@ -2333,7 +2332,7 @@ int neb::callback_pb_service(int callback_type, void* data) {
         static_cast<Service_AckType>(es->get_acknowledgement_type()));
     if (!es->get_action_url().empty())
       srv.set_action_url(misc::string::check_string_utf8(es->get_action_url()));
-    srv.set_active_checks_enabled(es->active_checks_enabled());
+    srv.set_active_checks(es->active_checks_enabled());
     if (!es->check_command().empty())
       srv.set_check_command(
           misc::string::check_string_utf8(es->check_command()));
@@ -2342,16 +2341,16 @@ int neb::callback_pb_service(int callback_type, void* data) {
     if (!es->check_period().empty())
       srv.set_check_period(es->check_period());
     srv.set_check_type(static_cast<Service_CheckType>(es->get_check_type()));
-    srv.set_current_check_attempt(es->get_current_attempt());
-    srv.set_current_state(static_cast<Service_State>(
-        es->has_been_checked() ? es->get_current_state()
-                               : 4));  // Pending state.
-    srv.set_default_active_checks_enabled(es->active_checks_enabled());
+    srv.set_check_attempt(es->get_current_attempt());
+    srv.set_state(static_cast<Service_State>(es->has_been_checked()
+                                                 ? es->get_current_state()
+                                                 : 4));  // Pending state.
+    srv.set_default_active_checks(es->active_checks_enabled());
     srv.set_default_event_handler_enabled(es->event_handler_enabled());
-    srv.set_default_flap_detection_enabled(es->flap_detection_enabled());
-    srv.set_default_notifications_enabled(es->get_notifications_enabled());
-    srv.set_default_passive_checks_enabled(es->passive_checks_enabled());
-    srv.set_downtime_depth(es->get_scheduled_downtime_depth());
+    srv.set_default_flap_detection(es->flap_detection_enabled());
+    srv.set_default_notify(es->get_notifications_enabled());
+    srv.set_default_passive_checks(es->passive_checks_enabled());
+    srv.set_scheduled_downtime_depth(es->get_scheduled_downtime_depth());
     if (!es->get_display_name().empty())
       srv.set_display_name(
           misc::string::check_string_utf8(es->get_display_name()));
@@ -2364,7 +2363,7 @@ int neb::callback_pb_service(int callback_type, void* data) {
     srv.set_execution_time(es->get_execution_time());
     srv.set_first_notification_delay(es->get_first_notification_delay());
     srv.set_notification_number(es->get_notification_number());
-    srv.set_flap_detection_enabled(es->flap_detection_enabled());
+    srv.set_flap_detection(es->flap_detection_enabled());
     srv.set_flap_detection_on_critical(
         es->get_flap_detection_on(engine::notifier::critical));
     srv.set_flap_detection_on_ok(
@@ -2374,25 +2373,25 @@ int neb::callback_pb_service(int callback_type, void* data) {
     srv.set_flap_detection_on_warning(
         es->get_flap_detection_on(engine::notifier::warning));
     srv.set_freshness_threshold(es->get_freshness_threshold());
-    srv.set_has_been_checked(es->has_been_checked());
+    srv.set_checked(es->has_been_checked());
     srv.set_high_flap_threshold(es->get_high_flap_threshold());
     if (!es->get_description().empty())
-      *srv.mutable_service_description() =
-          misc::string::check_string_utf8(es->get_description());
+      srv.set_description(
+          misc::string::check_string_utf8(es->get_description()));
 
     if (!es->get_hostname().empty()) {
       std::string name{misc::string::check_string_utf8(es->get_hostname())};
       if (strncmp(name.c_str(), "_Module_Meta", 13) == 0) {
-        if (strncmp(srv.service_description().c_str(), "meta_", 5) == 0) {
+        if (strncmp(srv.description().c_str(), "meta_", 5) == 0) {
           srv.set_type(METASERVICE);
           uint64_t iid = 0;
-          for (auto c = srv.service_description().begin() + 5;
-               c != srv.service_description().end(); ++c) {
+          for (auto c = srv.description().begin() + 5;
+               c != srv.description().end(); ++c) {
             if (!isdigit(*c)) {
               log_v2::neb()->error(
                   "callbacks: service ('{}', '{}') looks like a meta-service "
                   "but its name is malformed",
-                  name, srv.service_description());
+                  name, srv.description());
               break;
             }
             iid = 10 * iid + (*c - '0');
@@ -2400,16 +2399,16 @@ int neb::callback_pb_service(int callback_type, void* data) {
           srv.set_internal_id(iid);
         }
       } else if (strncmp(name.c_str(), "_Module_BAM", 11) == 0) {
-        if (strncmp(srv.service_description().c_str(), "ba_", 3) == 0) {
+        if (strncmp(srv.description().c_str(), "ba_", 3) == 0) {
           srv.set_type(BA);
           uint64_t iid = 0;
-          for (auto c = srv.service_description().begin() + 3;
-               c != srv.service_description().end(); ++c) {
+          for (auto c = srv.description().begin() + 3;
+               c != srv.description().end(); ++c) {
             if (!isdigit(*c)) {
               log_v2::neb()->error(
                   "callbacks: service ('{}', '{}') looks like a "
                   "business-activity but its name is malformed",
-                  name, srv.service_description());
+                  name, srv.description());
               break;
             }
             iid = 10 * iid + (*c - '0');
@@ -2425,7 +2424,7 @@ int neb::callback_pb_service(int callback_type, void* data) {
     if (!es->get_icon_image_alt().empty())
       *srv.mutable_icon_image_alt() =
           misc::string::check_string_utf8(es->get_icon_image_alt());
-    srv.set_is_flapping(es->get_is_flapping());
+    srv.set_flapping(es->get_is_flapping());
     srv.set_is_volatile(es->get_is_volatile());
     srv.set_last_check(es->get_last_check());
     srv.set_last_hard_state(
@@ -2449,7 +2448,7 @@ int neb::callback_pb_service(int callback_type, void* data) {
     if (!es->get_notes_url().empty())
       *srv.mutable_notes_url() =
           misc::string::check_string_utf8(es->get_notes_url());
-    srv.set_notifications_enabled(es->get_notifications_enabled());
+    srv.set_notify(es->get_notifications_enabled());
     srv.set_notification_interval(es->get_notification_interval());
     if (!es->notification_period().empty())
       srv.set_notification_period(es->notification_period());
@@ -2460,17 +2459,17 @@ int neb::callback_pb_service(int callback_type, void* data) {
     srv.set_notify_on_recovery(es->get_notify_on(engine::notifier::ok));
     srv.set_notify_on_unknown(es->get_notify_on(engine::notifier::unknown));
     srv.set_notify_on_warning(es->get_notify_on(engine::notifier::warning));
-    srv.set_obsess_over(es->obsess_over());
+    srv.set_obsess_over_service(es->obsess_over());
     if (!es->get_plugin_output().empty())
       *srv.mutable_output() =
           misc::string::check_string_utf8(es->get_plugin_output());
     if (!es->get_long_plugin_output().empty())
       *srv.mutable_long_output() =
           misc::string::check_string_utf8(es->get_long_plugin_output());
-    srv.set_passive_checks_enabled(es->passive_checks_enabled());
+    srv.set_passive_checks(es->passive_checks_enabled());
     srv.set_percent_state_change(es->get_percent_state_change());
     if (!es->get_perf_data().empty())
-      *srv.mutable_perf_data() =
+      *srv.mutable_perfdata() =
           misc::string::check_string_utf8(es->get_perf_data());
     srv.set_retain_nonstatus_information(
         es->get_retain_nonstatus_information());
@@ -2505,8 +2504,7 @@ int neb::callback_pb_service(int callback_type, void* data) {
     if (srv.host_id() && srv.service_id()) {
       // Send service event.
       log_v2::neb()->info("callbacks: new service {} ('{}') on host {}",
-                          srv.service_id(), srv.service_description(),
-                          srv.host_id());
+                          srv.service_id(), srv.description(), srv.host_id());
       neb::gl_publisher.write(s);
 
       /* No need to send this service custom variables changes, custom
@@ -2516,8 +2514,7 @@ int neb::callback_pb_service(int callback_type, void* data) {
           "callbacks: service has no host ID or no service ID (yet) (host "
           "'{}', service '{}')",
           (!es->get_hostname().empty() ? srv.host_name() : "(unknown)"),
-          (!es->get_description().empty() ? srv.service_description()
-                                          : "(unknown)"));
+          (!es->get_description().empty() ? srv.description() : "(unknown)"));
   }
   return 0;
 }
@@ -2723,12 +2720,12 @@ int32_t neb::callback_pb_service_status(int callback_type
 
   sscr.set_check_type(
       static_cast<ServiceStatus_CheckType>(es->get_check_type()));
-  sscr.set_current_check_attempt(es->get_current_attempt());
-  sscr.set_current_state(static_cast<ServiceStatus_State>(
+  sscr.set_check_attempt(es->get_current_attempt());
+  sscr.set_state(static_cast<ServiceStatus_State>(
       es->has_been_checked() ? es->get_current_state() : 4));  // Pending state.
   sscr.set_execution_time(es->get_execution_time());
-  sscr.set_has_been_checked(es->has_been_checked());
-  sscr.set_is_flapping(es->get_is_flapping());
+  sscr.set_checked(es->has_been_checked());
+  sscr.set_flapping(es->get_is_flapping());
   sscr.set_last_check(es->get_last_check());
   sscr.set_last_hard_state(
       static_cast<ServiceStatus_State>(es->get_last_hard_state()));
@@ -2753,7 +2750,7 @@ int32_t neb::callback_pb_service_status(int callback_type
 
   sscr.set_percent_state_change(es->get_percent_state_change());
   if (!es->get_perf_data().empty()) {
-    sscr.set_perf_data(misc::string::check_string_utf8(es->get_perf_data()));
+    sscr.set_perfdata(misc::string::check_string_utf8(es->get_perf_data()));
     log_v2::neb()->trace("callbacks: service ({}, {}) has perfdata <<{}>>",
                          es->get_host_id(), es->get_service_id(),
                          es->get_perf_data());
@@ -2764,7 +2761,7 @@ int32_t neb::callback_pb_service_status(int callback_type
   sscr.set_should_be_scheduled(es->get_should_be_scheduled());
   sscr.set_state_type(static_cast<ServiceStatus_StateType>(
       es->has_been_checked() ? es->get_state_type() : engine::notifier::hard));
-  sscr.set_downtime_depth(es->get_scheduled_downtime_depth());
+  sscr.set_scheduled_downtime_depth(es->get_scheduled_downtime_depth());
 
   if (!es->get_hostname().empty()) {
     if (strncmp(es->get_hostname().c_str(), "_Module_Meta", 13) == 0) {
@@ -2811,9 +2808,8 @@ int32_t neb::callback_pb_service_status(int callback_type
       std::make_pair(sscr.host_id(), sscr.service_id()));
   if (it != gl_acknowledgements.end() &&
       sscr.acknowledgement_type() == ServiceStatus_AckType_NONE) {
-    if (!(!sscr.current_state()  // !(OK or (normal ack and NOK))
-          || (!it->second.is_sticky &&
-              (sscr.current_state() != it->second.state)))) {
+    if (!(!sscr.state()  // !(OK or (normal ack and NOK))
+          || (!it->second.is_sticky && (sscr.state() != it->second.state)))) {
       auto ack = std::make_shared<neb::acknowledgement>(it->second);
       ack->deletion_time = time(nullptr);
       gl_publisher.write(ack);

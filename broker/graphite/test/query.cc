@@ -123,11 +123,11 @@ TEST(graphiteQuery, ComplexPbMetric) {
 
   m.source_id = 3;
 
-  svc->mut_obj().set_service_description("svc.1");
+  svc->mut_obj().set_description("svc.1");
   svc->mut_obj().set_service_id(1);
   svc->mut_obj().set_host_id(1);
 
-  host->mut_obj().set_host_name("host1");
+  host->mut_obj().set_name("host1");
   host->mut_obj().set_host_id(1);
 
   instance->poller_id = 3;
@@ -168,11 +168,11 @@ TEST(graphiteQuery, ComplexPbStatus) {
       "$INDEXID$ $TEST$ TEST $$",
       "a", graphite::query::status, cache};
 
-  svc->mut_obj().set_service_description("svc1");
+  svc->mut_obj().set_description("svc1");
   svc->mut_obj().set_service_id(1);
   svc->mut_obj().set_host_id(1);
 
-  host->mut_obj().set_host_name("host1");
+  host->mut_obj().set_name("host1");
   host->mut_obj().set_host_id(1);
 
   instance->poller_id = 3;

@@ -140,7 +140,7 @@ std::string const& macro_cache::get_host_name(uint64_t host_id) const {
     return s->host_name;
   } else {
     auto const& s = std::static_pointer_cast<neb::pb_host>(found->second);
-    return s->obj().host_name();
+    return s->obj().name();
   }
 }
 
@@ -325,7 +325,7 @@ std::string const& macro_cache::get_service_description(
     return s->service_description;
   } else {
     auto const& s = std::static_pointer_cast<neb::pb_service>(found->second);
-    return s->obj().service_description();
+    return s->obj().description();
   }
 }
 
@@ -522,8 +522,8 @@ void macro_cache::_process_host(std::shared_ptr<io::data> const& data) {
 void macro_cache::_process_pb_host(std::shared_ptr<io::data> const& data) {
   std::shared_ptr<neb::pb_host> const& h =
       std::static_pointer_cast<neb::pb_host>(data);
-  log_v2::lua()->debug("lua: processing host '{}' of id {}",
-                       h->obj().host_name(), h->obj().host_id());
+  log_v2::lua()->debug("lua: processing host '{}' of id {}", h->obj().name(),
+                       h->obj().host_id());
   if (h->obj().enabled())
     _hosts[h->obj().host_id()] = data;
   else
@@ -544,20 +544,20 @@ void macro_cache::_process_pb_adaptive_host(
   if (it != _hosts.end()) {
     if (it->second->type() == make_type(io::neb, neb::de_host)) {
       auto& h = *std::static_pointer_cast<neb::host>(it->second);
-      if (ah.has_notifications_enabled())
-        h.notifications_enabled = ah.notifications_enabled();
-      if (ah.has_active_checks_enabled())
-        h.active_checks_enabled = ah.active_checks_enabled();
+      if (ah.has_notify())
+        h.notifications_enabled = ah.notify();
+      if (ah.has_active_checks())
+        h.active_checks_enabled = ah.active_checks();
       if (ah.has_should_be_scheduled())
         h.should_be_scheduled = ah.should_be_scheduled();
-      if (ah.has_passive_checks_enabled())
-        h.passive_checks_enabled = ah.passive_checks_enabled();
+      if (ah.has_passive_checks())
+        h.passive_checks_enabled = ah.passive_checks();
       if (ah.has_event_handler_enabled())
         h.event_handler_enabled = ah.event_handler_enabled();
-      if (ah.has_flap_detection_enabled())
-        h.flap_detection_enabled = ah.flap_detection_enabled();
-      if (ah.has_obsess_over())
-        h.obsess_over = ah.obsess_over();
+      if (ah.has_flap_detection())
+        h.flap_detection_enabled = ah.flap_detection();
+      if (ah.has_obsess_over_host())
+        h.obsess_over = ah.obsess_over_host();
       if (ah.has_event_handler())
         h.event_handler = ah.event_handler();
       if (ah.has_check_command())
@@ -576,20 +576,20 @@ void macro_cache::_process_pb_adaptive_host(
         h.notification_period = ah.notification_period();
     } else {
       auto& h = std::static_pointer_cast<neb::pb_host>(it->second)->mut_obj();
-      if (ah.has_notifications_enabled())
-        h.set_notifications_enabled(ah.notifications_enabled());
-      if (ah.has_active_checks_enabled())
-        h.set_active_checks_enabled(ah.active_checks_enabled());
+      if (ah.has_notify())
+        h.set_notify(ah.notify());
+      if (ah.has_active_checks())
+        h.set_active_checks(ah.active_checks());
       if (ah.has_should_be_scheduled())
         h.set_should_be_scheduled(ah.should_be_scheduled());
-      if (ah.has_passive_checks_enabled())
-        h.set_passive_checks_enabled(ah.passive_checks_enabled());
+      if (ah.has_passive_checks())
+        h.set_passive_checks(ah.passive_checks());
       if (ah.has_event_handler_enabled())
         h.set_event_handler_enabled(ah.event_handler_enabled());
-      if (ah.has_flap_detection_enabled())
-        h.set_flap_detection_enabled(ah.flap_detection_enabled());
-      if (ah.has_obsess_over())
-        h.set_obsess_over(ah.obsess_over());
+      if (ah.has_flap_detection())
+        h.set_flap_detection(ah.flap_detection());
+      if (ah.has_obsess_over_host())
+        h.set_obsess_over_host(ah.obsess_over_host());
       if (ah.has_event_handler())
         h.set_event_handler(ah.event_handler());
       if (ah.has_check_command())
@@ -671,7 +671,7 @@ void macro_cache::_process_pb_service(std::shared_ptr<io::data> const& data) {
   auto const& s = std::static_pointer_cast<neb::pb_service>(data);
   log_v2::lua()->debug("lua: processing service ({}, {}) (description:{})",
                        s->obj().host_id(), s->obj().service_id(),
-                       s->obj().service_description());
+                       s->obj().description());
   if (s->obj().enabled())
     _services[{s->obj().host_id(), s->obj().service_id()}] = data;
   else
@@ -693,20 +693,20 @@ void macro_cache::_process_pb_adaptive_service(
   if (it != _services.end()) {
     if (it->second->type() == make_type(io::neb, neb::de_service)) {
       auto& s = *std::static_pointer_cast<neb::service>(it->second);
-      if (as.has_notifications_enabled())
-        s.notifications_enabled = as.notifications_enabled();
-      if (as.has_active_checks_enabled())
-        s.active_checks_enabled = as.active_checks_enabled();
+      if (as.has_notify())
+        s.notifications_enabled = as.notify();
+      if (as.has_active_checks())
+        s.active_checks_enabled = as.active_checks();
       if (as.has_should_be_scheduled())
         s.should_be_scheduled = as.should_be_scheduled();
-      if (as.has_passive_checks_enabled())
-        s.passive_checks_enabled = as.passive_checks_enabled();
+      if (as.has_passive_checks())
+        s.passive_checks_enabled = as.passive_checks();
       if (as.has_event_handler_enabled())
         s.event_handler_enabled = as.event_handler_enabled();
       if (as.has_flap_detection_enabled())
         s.flap_detection_enabled = as.flap_detection_enabled();
-      if (as.has_obsess_over())
-        s.obsess_over = as.obsess_over();
+      if (as.has_obsess_over_service())
+        s.obsess_over = as.obsess_over_service();
       if (as.has_event_handler())
         s.event_handler = as.event_handler();
       if (as.has_check_command())
@@ -726,20 +726,20 @@ void macro_cache::_process_pb_adaptive_service(
     } else {
       auto& s =
           std::static_pointer_cast<neb::pb_service>(it->second)->mut_obj();
-      if (as.has_notifications_enabled())
-        s.set_notifications_enabled(as.notifications_enabled());
-      if (as.has_active_checks_enabled())
-        s.set_active_checks_enabled(as.active_checks_enabled());
+      if (as.has_notify())
+        s.set_notify(as.notify());
+      if (as.has_active_checks())
+        s.set_active_checks(as.active_checks());
       if (as.has_should_be_scheduled())
         s.set_should_be_scheduled(as.should_be_scheduled());
-      if (as.has_passive_checks_enabled())
-        s.set_passive_checks_enabled(as.passive_checks_enabled());
+      if (as.has_passive_checks())
+        s.set_passive_checks(as.passive_checks());
       if (as.has_event_handler_enabled())
         s.set_event_handler_enabled(as.event_handler_enabled());
       if (as.has_flap_detection_enabled())
-        s.set_flap_detection_enabled(as.flap_detection_enabled());
-      if (as.has_obsess_over())
-        s.set_obsess_over(as.obsess_over());
+        s.set_flap_detection(as.flap_detection_enabled());
+      if (as.has_obsess_over_service())
+        s.set_obsess_over_service(as.obsess_over_service());
       if (as.has_event_handler())
         s.set_event_handler(as.event_handler());
       if (as.has_check_command())

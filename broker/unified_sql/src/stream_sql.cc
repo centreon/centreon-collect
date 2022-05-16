@@ -1066,15 +1066,15 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
   // Log message.
   log_v2::sql()->info(
       "SQL: processing pb host event (poller: {}, host: {}, name: {})",
-      h.poller_id(), h.host_id(), h.host_name());
+      h.instance_id(), h.host_id(), h.name());
 
   // Processing
-  if (_is_valid_poller(h.poller_id())) {
+  if (_is_valid_poller(h.instance_id())) {
     // FixMe BAM Generate fake host, this host
     // does not contain a display_name
     // We should not store them in db
     if (h.host_id() && !h.alias().empty()) {
-      int32_t conn = _mysql.choose_connection_by_instance(h.poller_id());
+      int32_t conn = _mysql.choose_connection_by_instance(h.instance_id());
 
       // Prepare queries.
       if (!_pb_host_insupdate.prepared()) {
@@ -1207,7 +1207,7 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
 
       // Fill the cache...
       if (h.enabled())
-        _cache_host_instance[h.host_id()] = h.poller_id();
+        _cache_host_instance[h.host_id()] = h.instance_id();
       else
         _cache_host_instance.erase(h.host_id());
 
@@ -1218,13 +1218,13 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
         if (h.enabled()) {
           uint64_t sid = 0;
           fmt::string_view name{misc::string::truncate(
-              h.host_name(), get_resources_col_size(resources_name))};
+              h.name(), get_resources_col_size(resources_name))};
           fmt::string_view address{misc::string::truncate(
               h.address(), get_resources_col_size(resources_address))};
           fmt::string_view alias{misc::string::truncate(
               h.alias(), get_resources_col_size(resources_alias))};
           fmt::string_view parent_name{misc::string::truncate(
-              h.host_name(), get_resources_col_size(resources_parent_name))};
+              h.name(), get_resources_col_size(resources_parent_name))};
           fmt::string_view notes_url{misc::string::truncate(
               h.notes_url(), get_resources_col_size(resources_notes_url))};
           fmt::string_view notes{misc::string::truncate(
@@ -1235,18 +1235,17 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
           // INSERT
           if (found == _resource_cache.end()) {
             _resources_host_insert.bind_value_as_u64(0, h.host_id());
-            _resources_host_insert.bind_value_as_u32(1, h.current_state());
+            _resources_host_insert.bind_value_as_u32(1, h.state());
             _resources_host_insert.bind_value_as_u32(
-                2, hst_ordered_status[h.current_state()]);
+                2, hst_ordered_status[h.state()]);
             _resources_host_insert.bind_value_as_u64(3, h.last_state_change());
-            _resources_host_insert.bind_value_as_bool(4,
-                                                      h.downtime_depth() > 0);
+            _resources_host_insert.bind_value_as_bool(
+                4, h.scheduled_downtime_depth() > 0);
             _resources_host_insert.bind_value_as_bool(
                 5, h.acknowledgement_type() != Host_AckType_NONE);
             _resources_host_insert.bind_value_as_bool(
                 6, h.state_type() == Host_StateType_HARD);
-            _resources_host_insert.bind_value_as_u32(7,
-                                                     h.current_check_attempt());
+            _resources_host_insert.bind_value_as_u32(7, h.check_attempt());
             _resources_host_insert.bind_value_as_u32(8, h.max_check_attempts());
             _resources_host_insert.bind_value_as_u64(
                 9, _cache_host_instance[h.host_id()]);
@@ -1268,12 +1267,9 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
             _resources_host_insert.bind_value_as_str(15, notes_url);
             _resources_host_insert.bind_value_as_str(16, notes);
             _resources_host_insert.bind_value_as_str(17, action_url);
-            _resources_host_insert.bind_value_as_bool(
-                18, h.notifications_enabled());
-            _resources_host_insert.bind_value_as_bool(
-                19, h.passive_checks_enabled());
-            _resources_host_insert.bind_value_as_bool(
-                20, h.active_checks_enabled());
+            _resources_host_insert.bind_value_as_bool(18, h.notify());
+            _resources_host_insert.bind_value_as_bool(19, h.passive_checks());
+            _resources_host_insert.bind_value_as_bool(20, h.active_checks());
             _resources_host_insert.bind_value_as_u64(21, h.icon_id());
 
             std::promise<uint64_t> p;
@@ -1316,18 +1312,17 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
           if (res_id == 0) {
             res_id = found->second;
             // UPDATE
-            _resources_host_update.bind_value_as_u32(0, h.current_state());
+            _resources_host_update.bind_value_as_u32(0, h.state());
             _resources_host_update.bind_value_as_u32(
-                1, hst_ordered_status[h.current_state()]);
+                1, hst_ordered_status[h.state()]);
             _resources_host_update.bind_value_as_u64(2, h.last_state_change());
-            _resources_host_update.bind_value_as_bool(3,
-                                                      h.downtime_depth() > 0);
+            _resources_host_update.bind_value_as_bool(
+                3, h.scheduled_downtime_depth() > 0);
             _resources_host_update.bind_value_as_bool(
                 4, h.acknowledgement_type() != Host_AckType_NONE);
             _resources_host_update.bind_value_as_bool(
                 5, h.state_type() == Host_StateType_HARD);
-            _resources_host_update.bind_value_as_u32(6,
-                                                     h.current_check_attempt());
+            _resources_host_update.bind_value_as_u32(6, h.check_attempt());
             _resources_host_update.bind_value_as_u32(7, h.max_check_attempts());
             _resources_host_update.bind_value_as_u64(
                 8, _cache_host_instance[h.host_id()]);
@@ -1349,12 +1344,9 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
             _resources_host_update.bind_value_as_str(14, notes_url);
             _resources_host_update.bind_value_as_str(15, notes);
             _resources_host_update.bind_value_as_str(16, action_url);
-            _resources_host_update.bind_value_as_bool(
-                17, h.notifications_enabled());
-            _resources_host_update.bind_value_as_bool(
-                18, h.passive_checks_enabled());
-            _resources_host_update.bind_value_as_bool(
-                19, h.active_checks_enabled());
+            _resources_host_update.bind_value_as_bool(17, h.notify());
+            _resources_host_update.bind_value_as_bool(18, h.passive_checks());
+            _resources_host_update.bind_value_as_bool(19, h.active_checks());
             _resources_host_update.bind_value_as_u64(20, h.icon_id());
             _resources_host_update.bind_value_as_u64(21, res_id);
 
@@ -1434,7 +1426,7 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
       log_v2::sql()->trace(
           "SQL: host '{}' of poller {} has no ID nor alias, probably bam "
           "fake host",
-          h.host_name(), h.poller_id());
+          h.name(), h.instance_id());
   }
 }
 
@@ -1459,25 +1451,25 @@ void stream::_process_pb_adaptive_host(const std::shared_ptr<io::data>& d) {
     constexpr const char* buf = "UPDATE hosts SET";
     constexpr size_t size = strlen(buf);
     std::string query{buf};
-    if (ah.has_notifications_enabled())
-      query += fmt::format(" notify='{}',", ah.notifications_enabled() ? 1 : 0);
-    if (ah.has_active_checks_enabled())
-      query += fmt::format(" active_checks='{}',",
-                           ah.active_checks_enabled() ? 1 : 0);
+    if (ah.has_notify())
+      query += fmt::format(" notify='{}',", ah.notify() ? 1 : 0);
+    if (ah.has_active_checks())
+      query += fmt::format(" active_checks='{}',", ah.active_checks() ? 1 : 0);
     if (ah.has_should_be_scheduled())
       query += fmt::format(" should_be_scheduled='{}',",
                            ah.should_be_scheduled() ? 1 : 0);
-    if (ah.has_passive_checks_enabled())
-      query += fmt::format(" passive_checks='{}',",
-                           ah.passive_checks_enabled() ? 1 : 0);
+    if (ah.has_passive_checks())
+      query +=
+          fmt::format(" passive_checks='{}',", ah.passive_checks() ? 1 : 0);
     if (ah.has_event_handler_enabled())
       query += fmt::format(" event_handler_enabled='{}',",
                            ah.event_handler_enabled() ? 1 : 0);
-    if (ah.has_flap_detection_enabled())
+    if (ah.has_flap_detection())
       query += fmt::format(" flap_detection='{}',",
-                           ah.flap_detection_enabled() ? 1 : 0);
-    if (ah.has_obsess_over())
-      query += fmt::format(" obsess_over_host='{}',", ah.obsess_over() ? 1 : 0);
+                           ah.flap_detection() ? 1 : 0);
+    if (ah.has_obsess_over_host())
+      query +=
+          fmt::format(" obsess_over_host='{}',", ah.obsess_over_host() ? 1 : 0);
     if (ah.has_event_handler())
       query += fmt::format(
           " event_handler='{}',",
@@ -1521,15 +1513,15 @@ void stream::_process_pb_adaptive_host(const std::shared_ptr<io::data>& d) {
         constexpr const char* res_buf = "UPDATE resources SET";
         constexpr size_t res_size = strlen(res_buf);
         std::string res_query{res_buf};
-        if (ah.has_notifications_enabled())
-          res_query += fmt::format(" notifications_enabled='{}',",
-                                   ah.notifications_enabled() ? 1 : 0);
-        if (ah.has_active_checks_enabled())
+        if (ah.has_notify())
+          res_query +=
+              fmt::format(" notifications_enabled='{}',", ah.notify() ? 1 : 0);
+        if (ah.has_active_checks())
           res_query += fmt::format(" active_checks_enabled='{}',",
-                                   ah.active_checks_enabled() ? 1 : 0);
-        if (ah.has_passive_checks_enabled())
+                                   ah.active_checks() ? 1 : 0);
+        if (ah.has_passive_checks())
           res_query += fmt::format(" passive_checks_enabled='{}',",
-                                   ah.passive_checks_enabled() ? 1 : 0);
+                                   ah.passive_checks() ? 1 : 0);
         if (ah.has_max_check_attempts())
           res_query +=
               fmt::format(" max_check_attempts={},", ah.max_check_attempts());
@@ -1568,7 +1560,7 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
   log_v2::sql()->debug("SQL: pb host status check result output: <<{}>>",
                        hscr.output());
   log_v2::sql()->debug("SQL: pb host status check result perfdata: <<{}>>",
-                       hscr.perf_data());
+                       hscr.perfdata());
 
   time_t now = time(nullptr);
   if (hscr.check_type() == HostStatus_CheckType_PASSIVE ||
@@ -1578,8 +1570,7 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
     log_v2::sql()->info(
         "SQL: processing host status check result event proto (host: {}, "
         "last check: {}, state ({}, {}))",
-        hscr.host_id(), hscr.last_check(), hscr.current_state(),
-        hscr.state_type());
+        hscr.host_id(), hscr.last_check(), hscr.state(), hscr.state_type());
 
     // Prepare queries.
     if (_store_in_hosts_services && !_hscr_update.prepared()) {
@@ -1634,9 +1625,9 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
     // Processing.
 
     if (_store_in_hosts_services) {
-      _hscr_update.bind_value_as_bool(0, hscr.has_been_checked());
+      _hscr_update.bind_value_as_bool(0, hscr.checked());
       _hscr_update.bind_value_as_i32(1, hscr.check_type());
-      _hscr_update.bind_value_as_i32(2, hscr.current_state());
+      _hscr_update.bind_value_as_i32(2, hscr.state());
       _hscr_update.bind_value_as_i32(3, hscr.state_type());
       _hscr_update.bind_value_as_i64(4, hscr.last_state_change());
       _hscr_update.bind_value_as_i32(5, hscr.last_hard_state());
@@ -1650,26 +1641,26 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
           full_output, get_hosts_col_size(hosts_output));
       _hscr_update.bind_value_as_str(
           10, fmt::string_view(full_output.data(), size));
-      size = misc::string::adjust_size_utf8(hscr.perf_data(),
+      size = misc::string::adjust_size_utf8(hscr.perfdata(),
                                             get_hosts_col_size(hosts_perfdata));
       _hscr_update.bind_value_as_str(
-          11, fmt::string_view(hscr.perf_data().data(), size));
-      _hscr_update.bind_value_as_bool(12, hscr.is_flapping());
+          11, fmt::string_view(hscr.perfdata().data(), size));
+      _hscr_update.bind_value_as_bool(12, hscr.flapping());
       _hscr_update.bind_value_as_f64(13, hscr.percent_state_change());
       _hscr_update.bind_value_as_f64(14, hscr.latency());
       _hscr_update.bind_value_as_f64(15, hscr.execution_time());
       _hscr_update.bind_value_as_i64(16, hscr.last_check(), is_not_zero);
       _hscr_update.bind_value_as_i64(17, hscr.next_check());
       _hscr_update.bind_value_as_bool(18, hscr.should_be_scheduled());
-      _hscr_update.bind_value_as_i32(19, hscr.current_check_attempt());
+      _hscr_update.bind_value_as_i32(19, hscr.check_attempt());
       _hscr_update.bind_value_as_i32(20, hscr.notification_number());
       _hscr_update.bind_value_as_bool(21, hscr.no_more_notifications());
       _hscr_update.bind_value_as_i64(22, hscr.last_notification());
-      _hscr_update.bind_value_as_i64(23, hscr.next_notification());
+      _hscr_update.bind_value_as_i64(23, hscr.next_host_notification());
       _hscr_update.bind_value_as_bool(
           24, hscr.acknowledgement_type() != HostStatus_AckType_NONE);
       _hscr_update.bind_value_as_i32(25, hscr.acknowledgement_type());
-      _hscr_update.bind_value_as_i32(26, hscr.downtime_depth());
+      _hscr_update.bind_value_as_i32(26, hscr.scheduled_downtime_depth());
       _hscr_update.bind_value_as_i32(27, hscr.host_id());
 
       int32_t conn = _mysql.choose_connection_by_instance(
@@ -1681,17 +1672,18 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
     }
 
     if (_store_in_resources) {
-      _hscr_resources_update.bind_value_as_i32(0, hscr.current_state());
+      _hscr_resources_update.bind_value_as_i32(0, hscr.state());
       _hscr_resources_update.bind_value_as_i32(
-          1, hst_ordered_status[hscr.current_state()]);
+          1, hst_ordered_status[hscr.state()]);
       _hscr_resources_update.bind_value_as_u64(2, hscr.last_state_change());
-      _hscr_resources_update.bind_value_as_bool(3, hscr.downtime_depth() > 0);
+      _hscr_resources_update.bind_value_as_bool(
+          3, hscr.scheduled_downtime_depth() > 0);
       _hscr_resources_update.bind_value_as_bool(
           4, hscr.acknowledgement_type() != HostStatus_AckType_NONE);
       _hscr_resources_update.bind_value_as_bool(
           5, hscr.state_type() == HostStatus_StateType_HARD);
-      _hscr_resources_update.bind_value_as_u32(6, hscr.current_check_attempt());
-      _hscr_resources_update.bind_value_as_bool(7, hscr.perf_data() != "");
+      _hscr_resources_update.bind_value_as_u32(6, hscr.check_attempt());
+      _hscr_resources_update.bind_value_as_bool(7, hscr.perfdata() != "");
       _hscr_resources_update.bind_value_as_u32(8, hscr.check_type());
       _hscr_resources_update.bind_value_as_u64(9, hscr.last_check(),
                                                is_not_zero);
@@ -1713,7 +1705,7 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
         "check type: {}, last check: {}, next check: {}, now: {}, state ({}, "
         "{}))",
         hscr.host_id(), hscr.check_type(), hscr.last_check(), hscr.next_check(),
-        now, hscr.current_state(), hscr.state_type());
+        now, hscr.state(), hscr.state_type());
 }
 
 /**
@@ -2223,7 +2215,7 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
     log_v2::sql()->info(
         "SQL: processing pb service event (host: {}, service: {}, "
         "description: {})",
-        ss.host_id(), ss.service_id(), ss.service_description());
+        ss.host_id(), ss.service_id(), ss.description());
 
     if (ss.host_id() && ss.service_id()) {
       // Prepare queries.
@@ -2396,19 +2388,18 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
               _resources_service_insert.bind_value_as_u64(3, ss.internal_id());
             else
               _resources_service_insert.bind_value_as_null(3);
-            _resources_service_insert.bind_value_as_u32(4, ss.current_state());
+            _resources_service_insert.bind_value_as_u32(4, ss.state());
             _resources_service_insert.bind_value_as_u32(
-                5, svc_ordered_status[ss.current_state()]);
+                5, svc_ordered_status[ss.state()]);
             _resources_service_insert.bind_value_as_u64(6,
                                                         ss.last_state_change());
             _resources_service_insert.bind_value_as_bool(
-                7, ss.downtime_depth() > 0);
+                7, ss.scheduled_downtime_depth() > 0);
             _resources_service_insert.bind_value_as_bool(
                 8, ss.acknowledgement_type() != Service_AckType_NONE);
             _resources_service_insert.bind_value_as_bool(
                 9, ss.state_type() == Service_StateType_HARD);
-            _resources_service_insert.bind_value_as_u32(
-                10, ss.current_check_attempt());
+            _resources_service_insert.bind_value_as_u32(10, ss.check_attempt());
             _resources_service_insert.bind_value_as_u32(
                 11, ss.max_check_attempts());
             _resources_service_insert.bind_value_as_u64(
@@ -2428,12 +2419,11 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
             _resources_service_insert.bind_value_as_str(16, notes_url);
             _resources_service_insert.bind_value_as_str(17, notes);
             _resources_service_insert.bind_value_as_str(18, action_url);
-            _resources_service_insert.bind_value_as_bool(
-                19, ss.notifications_enabled());
-            _resources_service_insert.bind_value_as_bool(
-                20, ss.passive_checks_enabled());
-            _resources_service_insert.bind_value_as_bool(
-                21, ss.active_checks_enabled());
+            _resources_service_insert.bind_value_as_bool(19, ss.notify());
+            _resources_service_insert.bind_value_as_bool(20,
+                                                         ss.passive_checks());
+            _resources_service_insert.bind_value_as_bool(21,
+                                                         ss.active_checks());
             _resources_service_insert.bind_value_as_u64(22, ss.icon_id());
 
             std::promise<uint64_t> p;
@@ -2481,19 +2471,18 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
               _resources_service_update.bind_value_as_u64(1, ss.internal_id());
             else
               _resources_service_update.bind_value_as_null(1);
-            _resources_service_update.bind_value_as_u32(2, ss.current_state());
+            _resources_service_update.bind_value_as_u32(2, ss.state());
             _resources_service_update.bind_value_as_u32(
-                3, svc_ordered_status[ss.current_state()]);
+                3, svc_ordered_status[ss.state()]);
             _resources_service_update.bind_value_as_u64(4,
                                                         ss.last_state_change());
             _resources_service_update.bind_value_as_bool(
-                5, ss.downtime_depth() > 0);
+                5, ss.scheduled_downtime_depth() > 0);
             _resources_service_update.bind_value_as_bool(
                 6, ss.acknowledgement_type() != Service_AckType_NONE);
             _resources_service_update.bind_value_as_bool(
                 7, ss.state_type() == Service_StateType_HARD);
-            _resources_service_update.bind_value_as_u32(
-                8, ss.current_check_attempt());
+            _resources_service_update.bind_value_as_u32(8, ss.check_attempt());
             _resources_service_update.bind_value_as_u32(
                 9, ss.max_check_attempts());
             _resources_service_update.bind_value_as_u64(
@@ -2513,12 +2502,11 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
             _resources_service_update.bind_value_as_str(14, notes_url);
             _resources_service_update.bind_value_as_str(15, notes);
             _resources_service_update.bind_value_as_str(16, action_url);
-            _resources_service_update.bind_value_as_bool(
-                17, ss.notifications_enabled());
-            _resources_service_update.bind_value_as_bool(
-                18, ss.passive_checks_enabled());
-            _resources_service_update.bind_value_as_bool(
-                19, ss.active_checks_enabled());
+            _resources_service_update.bind_value_as_bool(17, ss.notify());
+            _resources_service_update.bind_value_as_bool(18,
+                                                         ss.passive_checks());
+            _resources_service_update.bind_value_as_bool(19,
+                                                         ss.active_checks());
             _resources_service_update.bind_value_as_u64(20, ss.icon_id());
             _resources_service_update.bind_value_as_u64(21, res_id);
 
@@ -2601,7 +2589,7 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
       log_v2::sql()->trace(
           "SQL: service '{}' has no host ID, service ID nor hostname, probably "
           "bam fake service",
-          ss.service_description());
+          ss.description());
   } else
     log_v2::sql()->error(
         "SQL: host with host_id = {} does not exist - unable to store service "
@@ -2630,26 +2618,25 @@ void stream::_process_pb_adaptive_service(const std::shared_ptr<io::data>& d) {
     constexpr const char* buf = "UPDATE services SET";
     constexpr size_t size = strlen(buf);
     std::string query{buf};
-    if (as.has_notifications_enabled())
-      query += fmt::format(" notify='{}',", as.notifications_enabled() ? 1 : 0);
-    if (as.has_active_checks_enabled())
-      query += fmt::format(" active_checks='{}',",
-                           as.active_checks_enabled() ? 1 : 0);
+    if (as.has_notify())
+      query += fmt::format(" notify='{}',", as.notify() ? 1 : 0);
+    if (as.has_active_checks())
+      query += fmt::format(" active_checks='{}',", as.active_checks() ? 1 : 0);
     if (as.has_should_be_scheduled())
       query += fmt::format(" should_be_scheduled='{}',",
                            as.should_be_scheduled() ? 1 : 0);
-    if (as.has_passive_checks_enabled())
-      query += fmt::format(" passive_checks='{}',",
-                           as.passive_checks_enabled() ? 1 : 0);
+    if (as.has_passive_checks())
+      query +=
+          fmt::format(" passive_checks='{}',", as.passive_checks() ? 1 : 0);
     if (as.has_event_handler_enabled())
       query += fmt::format(" event_handler_enabled='{}',",
                            as.event_handler_enabled() ? 1 : 0);
     if (as.has_flap_detection_enabled())
       query += fmt::format(" flap_detection='{}',",
                            as.flap_detection_enabled() ? 1 : 0);
-    if (as.has_obsess_over())
-      query +=
-          fmt::format(" obsess_over_service='{}',", as.obsess_over() ? 1 : 0);
+    if (as.has_obsess_over_service())
+      query += fmt::format(" obsess_over_service='{}',",
+                           as.obsess_over_service() ? 1 : 0);
     if (as.has_event_handler())
       query += fmt::format(
           " event_handler='{}',",
@@ -2695,15 +2682,15 @@ void stream::_process_pb_adaptive_service(const std::shared_ptr<io::data>& d) {
         constexpr const char* res_buf = "UPDATE resources SET";
         constexpr size_t res_size = strlen(res_buf);
         std::string res_query{res_buf};
-        if (as.has_notifications_enabled())
-          res_query += fmt::format(" notifications_enabled='{}',",
-                                   as.notifications_enabled() ? 1 : 0);
-        if (as.has_active_checks_enabled())
+        if (as.has_notify())
+          res_query +=
+              fmt::format(" notifications_enabled='{}',", as.notify() ? 1 : 0);
+        if (as.has_active_checks())
           res_query += fmt::format(" active_checks_enabled='{}',",
-                                   as.active_checks_enabled() ? 1 : 0);
-        if (as.has_passive_checks_enabled())
+                                   as.active_checks() ? 1 : 0);
+        if (as.has_passive_checks())
           res_query += fmt::format(" passive_checks_enabled='{}',",
-                                   as.passive_checks_enabled() ? 1 : 0);
+                                   as.passive_checks() ? 1 : 0);
         if (as.has_max_check_attempts())
           res_query +=
               fmt::format(" max_check_attempts={},", as.max_check_attempts());
@@ -2739,7 +2726,7 @@ void stream::_check_and_update_index_cache(const Service& ss) {
   fmt::string_view hv(misc::string::truncate(
       ss.host_name(), get_index_data_col_size(index_data_host_name)));
   fmt::string_view sv(misc::string::truncate(
-      ss.service_description(),
+      ss.description(),
       get_index_data_col_size(index_data_service_description)));
   bool special = ss.type() == BA;
 
@@ -2777,7 +2764,7 @@ void stream::_check_and_update_index_cache(const Service& ss) {
       index_info info{
           .index_id = index_id,
           .host_name = ss.host_name(),
-          .service_description = ss.service_description(),
+          .service_description = ss.description(),
           .rrd_retention = _rrd_len,
           .interval = ss.check_interval(),
           .special = special,
@@ -2963,7 +2950,7 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
       sscr.host_id(), sscr.service_id(), sscr.output());
   log_v2::sql()->debug(
       "SQL: service ({}, {}) status check result perfdata: <<{}>>",
-      sscr.host_id(), sscr.service_id(), sscr.perf_data());
+      sscr.host_id(), sscr.service_id(), sscr.perfdata());
 
   time_t now = time(nullptr);
   if (sscr.check_type() == ServiceStatus_CheckType_PASSIVE ||
@@ -2974,8 +2961,8 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
         "SQL: processing service status check result event proto (host: {}, "
         "service: {}, "
         "last check: {}, state ({}, {}))",
-        sscr.host_id(), sscr.service_id(), sscr.last_check(),
-        sscr.current_state(), sscr.state_type());
+        sscr.host_id(), sscr.service_id(), sscr.last_check(), sscr.state(),
+        sscr.state_type());
 
     // Prepare queries.
     if (_store_in_hosts_services && !_sscr_update.prepared()) {
@@ -3030,9 +3017,9 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
 
     // Processing.
     if (_store_in_hosts_services) {
-      _sscr_update.bind_value_as_bool(0, sscr.has_been_checked());
+      _sscr_update.bind_value_as_bool(0, sscr.checked());
       _sscr_update.bind_value_as_i32(1, sscr.check_type());
-      _sscr_update.bind_value_as_i32(2, sscr.current_state());
+      _sscr_update.bind_value_as_i32(2, sscr.state());
       _sscr_update.bind_value_as_i32(3, sscr.state_type());
       _sscr_update.bind_value_as_i64(4, sscr.last_state_change());
       _sscr_update.bind_value_as_i32(5, sscr.last_hard_state());
@@ -3048,17 +3035,17 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
       _sscr_update.bind_value_as_str(
           11, fmt::string_view(full_output.data(), size));
       size = misc::string::adjust_size_utf8(
-          sscr.perf_data(), get_services_col_size(services_perfdata));
+          sscr.perfdata(), get_services_col_size(services_perfdata));
       _sscr_update.bind_value_as_str(
-          12, fmt::string_view(sscr.perf_data().data(), size));
-      _sscr_update.bind_value_as_bool(13, sscr.is_flapping());
+          12, fmt::string_view(sscr.perfdata().data(), size));
+      _sscr_update.bind_value_as_bool(13, sscr.flapping());
       _sscr_update.bind_value_as_f64(14, sscr.percent_state_change());
       _sscr_update.bind_value_as_f64(15, sscr.latency());
       _sscr_update.bind_value_as_f64(16, sscr.execution_time());
       _sscr_update.bind_value_as_i64(17, sscr.last_check(), is_not_zero);
       _sscr_update.bind_value_as_i64(18, sscr.next_check());
       _sscr_update.bind_value_as_bool(19, sscr.should_be_scheduled());
-      _sscr_update.bind_value_as_i32(20, sscr.current_check_attempt());
+      _sscr_update.bind_value_as_i32(20, sscr.check_attempt());
       _sscr_update.bind_value_as_i32(21, sscr.notification_number());
       _sscr_update.bind_value_as_bool(22, sscr.no_more_notifications());
       _sscr_update.bind_value_as_i64(23, sscr.last_notification());
@@ -3066,7 +3053,7 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
       _sscr_update.bind_value_as_bool(
           25, sscr.acknowledgement_type() != ServiceStatus_AckType_NONE);
       _sscr_update.bind_value_as_i32(26, sscr.acknowledgement_type());
-      _sscr_update.bind_value_as_i32(27, sscr.downtime_depth());
+      _sscr_update.bind_value_as_i32(27, sscr.scheduled_downtime_depth());
       _sscr_update.bind_value_as_i32(28, sscr.host_id());
       _sscr_update.bind_value_as_i32(29, sscr.service_id());
 
@@ -3080,17 +3067,18 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
     }
 
     if (_store_in_resources) {
-      _sscr_resources_update.bind_value_as_i32(0, sscr.current_state());
+      _sscr_resources_update.bind_value_as_i32(0, sscr.state());
       _sscr_resources_update.bind_value_as_i32(
-          1, svc_ordered_status[sscr.current_state()]);
+          1, svc_ordered_status[sscr.state()]);
       _sscr_resources_update.bind_value_as_u64(2, sscr.last_state_change());
-      _sscr_resources_update.bind_value_as_bool(3, sscr.downtime_depth() > 0);
+      _sscr_resources_update.bind_value_as_bool(
+          3, sscr.scheduled_downtime_depth() > 0);
       _sscr_resources_update.bind_value_as_bool(
           4, sscr.acknowledgement_type() != ServiceStatus_AckType_NONE);
       _sscr_resources_update.bind_value_as_bool(
           5, sscr.state_type() == ServiceStatus_StateType_HARD);
-      _sscr_resources_update.bind_value_as_u32(6, sscr.current_check_attempt());
-      _sscr_resources_update.bind_value_as_bool(7, sscr.perf_data() != "");
+      _sscr_resources_update.bind_value_as_u32(6, sscr.check_attempt());
+      _sscr_resources_update.bind_value_as_bool(7, sscr.perfdata() != "");
       _sscr_resources_update.bind_value_as_u32(8, sscr.check_type());
       _sscr_resources_update.bind_value_as_u64(9, sscr.last_check(),
                                                is_not_zero);
@@ -3114,7 +3102,7 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
         "check type: {}, last check: {}, next check: {}, now: {}, state ({}, "
         "{}))",
         sscr.host_id(), sscr.service_id(), sscr.check_type(), sscr.last_check(),
-        sscr.next_check(), now, sscr.current_state(), sscr.state_type());
+        sscr.next_check(), now, sscr.state(), sscr.state_type());
 
   /* perfdata part */
   _unified_sql_process_pb_service_status(d);

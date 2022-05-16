@@ -113,14 +113,14 @@ void stream::_unified_sql_process_pb_service_status(
         "unified sql: host_id:{}, service_id:{} - generating status event "
         "with index_id {}, rrd_len: {}",
         host_id, service_id, index_id, rrd_len);
-    if (ss.has_been_checked()) {
+    if (ss.checked()) {
       auto status(std::make_shared<storage::status>(ss.last_check(), index_id,
                                                     interval, false, rrd_len,
                                                     ss.last_hard_state()));
       multiplexing::publisher().write(status);
     }
 
-    if (!ss.perf_data().empty()) {
+    if (!ss.perfdata().empty()) {
       /* Statements preparations */
       if (!_metrics_insert.prepared()) {
         _metrics_insert = _mysql.prepare_query(
@@ -134,7 +134,7 @@ void stream::_unified_sql_process_pb_service_status(
       /* Parse perfdata. */
       _finish_action(-1, actions::metrics);
       std::list<misc::perfdata> pds{misc::parse_perfdata(
-          ss.host_id(), ss.service_id(), ss.perf_data().c_str())};
+          ss.host_id(), ss.service_id(), ss.perfdata().c_str())};
 
       std::list<std::shared_ptr<io::data>> to_publish;
       for (auto& pd : pds) {
@@ -280,7 +280,7 @@ void stream::_unified_sql_process_pb_service_status(
           metric_value val;
           val.c_time = ss.last_check();
           val.metric_id = metric_id;
-          val.status = ss.current_state();
+          val.status = ss.state();
           val.value = pd.value();
           {
             std::lock_guard<std::mutex> lck(_queues_m);
@@ -812,8 +812,7 @@ void stream::_insert_perfdatas() {
 void stream::_check_queues(asio::error_code ec) {
   if (ec)
     log_v2::sql()->error(
-        "unified_sql: the queues check encountered an error: {}",
-        ec.message());
+        "unified_sql: the queues check encountered an error: {}", ec.message());
   else {
     time_t now = time(nullptr);
     size_t sz_perfdatas;
@@ -828,21 +827,22 @@ void stream::_check_queues(asio::error_code ec) {
       sz_cvs = _cvs_queue.size();
       sz_logs = _log_queue.size();
     }
-  
+
     bool perfdata_done = false;
-    if (now >= _next_insert_perfdatas || sz_perfdatas >= _max_perfdata_queries) {
+    if (now >= _next_insert_perfdatas ||
+        sz_perfdatas >= _max_perfdata_queries) {
       _next_insert_perfdatas = now + queue_timer_duration;
       _insert_perfdatas();
       perfdata_done = true;
     }
-  
+
     bool metrics_done = false;
     if (now >= _next_update_metrics || sz_metrics >= _max_metrics_queries) {
       _next_update_metrics = now + queue_timer_duration;
       _update_metrics();
       metrics_done = true;
     }
-  
+
     bool customvar_done = false;
     if (now >= _next_update_cv || sz_cv >= _max_cv_queries ||
         sz_cvs >= _max_cv_queries) {
@@ -850,7 +850,7 @@ void stream::_check_queues(asio::error_code ec) {
       _update_customvariables();
       customvar_done = true;
     }
-  
+
     bool logs_done = false;
     if (now >= _next_insert_logs || sz_logs >= _max_log_queries) {
       _next_insert_logs = now + queue_timer_duration;
@@ -859,8 +859,10 @@ void stream::_check_queues(asio::error_code ec) {
     }
 
     // End.
-    log_v2::perfdata()->debug("unified_sql: end check_queue - perfdata: {}, metrics: {}, customvar: {}, logs: {}",
-                              perfdata_done, metrics_done, customvar_done, logs_done);
+    log_v2::perfdata()->debug(
+        "unified_sql: end check_queue - perfdata: {}, metrics: {}, customvar: "
+        "{}, logs: {}",
+        perfdata_done, metrics_done, customvar_done, logs_done);
 
     time_t duration = _next_insert_perfdatas;
     if (_next_update_metrics < duration)
@@ -878,8 +880,7 @@ void stream::_check_queues(asio::error_code ec) {
       _timer.expires_after(std::chrono::seconds(duration));
       _timer.async_wait(
           std::bind(&stream::_check_queues, this, std::placeholders::_1));
-    }
-    else {
+    } else {
       log_v2::sql()->info("SQL: check_queues correctly interrupted.");
       _check_queues_stopped = true;
       _queues_cond_var.notify_all();
