@@ -19,7 +19,17 @@
 
 #ifndef CCB_GRPC_PRECOMP_HH
 #define CCB_GRPC_PRECOMP_HH
-#include "../../precomp_inc/precomp.hpp"
+
+#include <algorithm>
+#include <chrono>
+#include <condition_variable>
+#include <fstream>
+#include <limits>
+#include <memory>
+#include <mutex>
+#include <queue>
+#include <set>
+#include <string>
 
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/spdlog.h>
@@ -34,6 +44,8 @@
 #include <grpcpp/grpcpp.h>
 #include <grpcpp/impl/codegen/client_callback.h>
 #include <grpcpp/security/credentials.h>
+
+#include <absl/container/flat_hash_set.h>
 
 #include "com/centreon/broker/io/endpoint.hh"
 #include "com/centreon/broker/io/raw.hh"

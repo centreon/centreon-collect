@@ -78,7 +78,7 @@ add_library(
   "${INC_DIR}/enginerpc.hh"
 )
 
-target_precompile_headers(${ENGINERPC} PRIVATE ../precomp_inc/precomp.hh)
+target_precompile_headers(${ENGINERPC} PRIVATE precomp_inc/precomp.hh)
 
 
 # Prettier name.

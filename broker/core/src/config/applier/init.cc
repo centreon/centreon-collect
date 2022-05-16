@@ -16,6 +16,19 @@
 ** For more information : contact@centreon.com
 */
 
+#include <condition_variable>
+#include <deque>
+#include <future>
+#include <list>
+#include <stack>
+#include <thread>
+#include <vector>
+
+#include <absl/container/flat_hash_map.h>
+#include <absl/container/flat_hash_set.h>
+
+#include <asio.hpp>
+
 #include "com/centreon/broker/config/applier/init.hh"
 
 #include "com/centreon/broker/config/applier/endpoint.hh"

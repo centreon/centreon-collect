@@ -16,28 +16,23 @@
 ** For more information : contact@centreon.com
 */
 
-#ifndef CCB_NEB_PRECOMP_HH
-#define CCB_NEB_PRECOMP_HH
+#ifndef CC_LUA_PRECOMP_HH
+#define CC_LUA_PRECOMP_HH
 
 #include <condition_variable>
 #include <ctime>
 #include <deque>
+#include <fstream>
 #include <future>
 #include <limits>
 #include <list>
-#include <map>
-#include <stack>
 #include <string>
 #include <thread>
 #include <unordered_map>
 
+#include <absl/container/btree_map.h>
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
-
-#include <absl/strings/string_view.h>
-
-#include <boost/circular_buffer.hpp>
-#include <boost/optional.hpp>
 
 #include <asio.hpp>
 

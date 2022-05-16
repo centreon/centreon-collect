@@ -19,8 +19,20 @@
 #include <getopt.h>
 
 #include <cerrno>
+#include <chrono>
 #include <clocale>
+#include <condition_variable>
 #include <csignal>
+#include <cstdlib>
+#include <cstring>
+#include <deque>
+#include <exception>
+#include <future>
+#include <thread>
+
+#include <absl/container/flat_hash_set.h>
+
+#include <asio.hpp>
 
 #include "com/centreon/broker/brokerrpc.hh"
 #include "com/centreon/broker/config/applier/init.hh"

@@ -17,9 +17,6 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <sys/types.h>
-#include <unistd.h>
-#include <cstddef>
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/exceptions/error.hh"

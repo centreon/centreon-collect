@@ -19,11 +19,6 @@
 */
 
 #include "com/centreon/engine/modules/external_commands/utils.hh"
-#include <fcntl.h>
-#include <poll.h>
-#include <sys/stat.h>
-#include <csignal>
-#include <thread>
 #include "com/centreon/engine/commands/processing.hh"
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/globals.hh"

@@ -20,7 +20,6 @@
 
 #include <google/protobuf/util/time_util.h>
 #include <sys/types.h>
-#include <unistd.h>
 #include <future>
 
 #include <spdlog/common.h>

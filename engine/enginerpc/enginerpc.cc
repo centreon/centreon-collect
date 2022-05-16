@@ -17,7 +17,6 @@
  *
  */
 
-#include <fmt/format.h>
 #include <grpcpp/server_builder.h>
 
 #include "com/centreon/engine/host.hh"

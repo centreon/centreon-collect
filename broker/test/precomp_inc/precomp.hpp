@@ -16,28 +16,44 @@
 ** For more information : contact@centreon.com
 */
 
-#ifndef CCB_NEB_PRECOMP_HH
-#define CCB_NEB_PRECOMP_HH
+#ifndef CC_PRECOMP_HH
+#define CC_PRECOMP_HH
 
+#include <array>
+#include <atomic>
+#include <chrono>
 #include <condition_variable>
+#include <cstddef>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <ctime>
 #include <deque>
-#include <future>
+#include <exception>
+#include <fstream>
+#include <functional>
+#include <iostream>
 #include <limits>
 #include <list>
 #include <map>
+#include <memory>
+#include <mutex>
+#include <queue>
+#include <set>
+#include <sstream>
 #include <stack>
 #include <string>
 #include <thread>
 #include <unordered_map>
+#include <unordered_set>
+#include <utility>
+#include <vector>
 
+#include <absl/container/btree_map.h>
+#include <absl/container/btree_set.h>
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
-
-#include <absl/strings/string_view.h>
-
-#include <boost/circular_buffer.hpp>
-#include <boost/optional.hpp>
 
 #include <asio.hpp>
 
