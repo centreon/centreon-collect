@@ -699,18 +699,19 @@ int process_passive_host_check(time_t check_time,
 
 /* acknowledges a host or service problem */
 int cmd_acknowledge_problem(int cmd, char* args) {
-  char* host_name(nullptr);
-  char* svc_description(nullptr);
-  char* ack_author(nullptr);
-  char* ack_data(nullptr);
-  char* temp_ptr(nullptr);
+  std::string host_name;
+  std::string svc_description;
+  std::string ack_author;
+  std::string ack_data;
   int type(ACKNOWLEDGEMENT_NORMAL);
   int notify(true);
   int persistent(true);
   service_map::const_iterator found;
 
+  string::c_strtok arg(args);
+
   /* get the host name */
-  if ((host_name = my_strtok(args, ";")) == nullptr)
+  if (!arg.extract(';', host_name))
     return ERROR;
 
   /* verify that the host is valid */
@@ -721,7 +722,7 @@ int cmd_acknowledge_problem(int cmd, char* args) {
   /* this is a service acknowledgement */
   if (cmd == CMD_ACKNOWLEDGE_SVC_PROBLEM) {
     /* get the service name */
-    if ((svc_description = my_strtok(nullptr, ";")) == nullptr)
+    if (!arg.extract(';', svc_description))
       return ERROR;
 
     /* verify that the service is valid */
@@ -732,31 +733,29 @@ int cmd_acknowledge_problem(int cmd, char* args) {
   }
 
   /* get the type */
-  if ((temp_ptr = my_strtok(nullptr, ";")) == nullptr)
+  if (!arg.extract(';', type))
     return ERROR;
-  type = atoi(temp_ptr);
 
   /* get the notification option */
-  if ((temp_ptr = my_strtok(nullptr, ";")) == nullptr)
+  int ival;
+  if (!arg.extract(';', ival))
     return ERROR;
-  notify = (atoi(temp_ptr) > 0) ? true : false;
+
+  notify = (ival > 0) ? true : false;
 
   /* get the persistent option */
-  if ((temp_ptr = my_strtok(nullptr, ";")) == nullptr)
+  if (!arg.extract(';', ival))
     return ERROR;
-  persistent = (atoi(temp_ptr) > 0) ? true : false;
+  persistent = (ival > 0) ? true : false;
 
   /* get the acknowledgement author */
-  if ((temp_ptr = my_strtok(nullptr, ";")) == nullptr)
+  if (!arg.extract(';', ack_author))
     return ERROR;
-  ack_author = string::dup(temp_ptr);
 
   /* get the acknowledgement data */
-  if ((temp_ptr = my_strtok(nullptr, "\n")) == nullptr) {
-    delete[] ack_author;
+  if (!arg.extract('\n', ack_data)) {
     return ERROR;
   }
-  ack_data = string::dup(temp_ptr);
 
   /* acknowledge the host problem */
   if (cmd == CMD_ACKNOWLEDGE_HOST_PROBLEM)
@@ -767,21 +766,19 @@ int cmd_acknowledge_problem(int cmd, char* args) {
     acknowledge_service_problem(found->second.get(), ack_author, ack_data, type,
                                 notify, persistent);
 
-  /* free memory */
-  delete[] ack_author;
-  delete[] ack_data;
-
   return OK;
 }
 
 /* removes a host or service acknowledgement */
 int cmd_remove_acknowledgement(int cmd, char* args) {
-  char* host_name(nullptr);
-  char* svc_description(nullptr);
+  std::string host_name;
+  std::string svc_description;
   service_map::const_iterator found;
 
+  string::c_strtok arg(args);
+
   /* get the host name */
-  if ((host_name = my_strtok(args, ";")) == nullptr)
+  if (!arg.extract(';', host_name))
     return ERROR;
 
   /* verify that the host is valid */
@@ -792,7 +789,7 @@ int cmd_remove_acknowledgement(int cmd, char* args) {
   /* we are removing a service acknowledgement */
   if (cmd == CMD_REMOVE_SVC_ACKNOWLEDGEMENT) {
     /* get the service name */
-    if ((svc_description = my_strtok(nullptr, ";")) == nullptr)
+    if (!arg.extract(';', svc_description))
       return ERROR;
 
     /* verify that the service is valid */
@@ -1751,7 +1748,7 @@ int cmd_change_object_char_var(int cmd, char* args) {
     case CMD_CHANGE_HOST_CHECK_COMMAND:
     case CMD_CHANGE_SVC_CHECK_COMMAND:
       /* make sure the command exists */
-      temp_ptr2 = my_strtok(temp_ptr, "!");
+      temp_ptr2 = my_strtok(temp_ptr.c_str(), "!");
       cmd_found = commands::command::commands.find(temp_ptr2);
       if (cmd_found == commands::command::commands.end() ||
           !cmd_found->second) {
@@ -2016,33 +2013,24 @@ int cmd_change_object_custom_var(int cmd, char* args) {
 }
 
 /* processes an external host command */
-int cmd_process_external_commands_from_file(int cmd, char* args) {
-  char* fname(nullptr);
-  char* temp_ptr(nullptr);
-  int delete_file(false);
+int cmd_process_external_commands_from_file(int, char* args) {
+  std::string fname;
+  int delete_file;
 
-  (void)cmd;
+  string::c_strtok arg(args);
 
   /* get the file name */
-  if ((temp_ptr = my_strtok(args, ";")) == nullptr)
+  if (!arg.extract(';', fname))
     return ERROR;
-  fname = string::dup(temp_ptr);
 
   /* find the deletion option */
-  if ((temp_ptr = my_strtok(nullptr, "\n")) == nullptr) {
-    delete[] fname;
+  if (!arg.extract(';', delete_file)) {
     return ERROR;
   }
-  if (atoi(temp_ptr) == 0)
-    delete_file = false;
-  else
-    delete_file = true;
 
   /* process the file */
-  process_external_commands_from_file(fname, delete_file);
-
-  /* free memory */
-  delete[] fname;
+  process_external_commands_from_file(fname.c_str(),
+                                      delete_file ? true : false);
 
   return OK;
 }
@@ -2460,8 +2448,8 @@ void schedule_and_propagate_downtime(host* temp_host,
 
 /* acknowledges a host problem */
 void acknowledge_host_problem(host* hst,
-                              char* ack_author,
-                              char* ack_data,
+                              const std::string& ack_author,
+                              const std::string& ack_data,
                               int type,
                               int notify,
                               int persistent) {
@@ -2485,8 +2473,8 @@ void acknowledge_host_problem(host* hst,
   /* send data to event broker */
   broker_acknowledgement_data(NEBTYPE_ACKNOWLEDGEMENT_ADD, NEBFLAG_NONE,
                               NEBATTR_NONE, HOST_ACKNOWLEDGEMENT, (void*)hst,
-                              ack_author, ack_data, type, notify, persistent,
-                              nullptr);
+                              ack_author.c_str(), ack_data.c_str(), type,
+                              notify, persistent, nullptr);
 
   /* send out an acknowledgement notification */
   if (notify)
@@ -2506,8 +2494,8 @@ void acknowledge_host_problem(host* hst,
 
 /* acknowledges a service problem */
 void acknowledge_service_problem(service* svc,
-                                 char* ack_author,
-                                 char* ack_data,
+                                 const std::string& ack_author,
+                                 const std::string& ack_data,
                                  int type,
                                  int notify,
                                  int persistent) {
@@ -2531,8 +2519,8 @@ void acknowledge_service_problem(service* svc,
   /* send data to event broker */
   broker_acknowledgement_data(NEBTYPE_ACKNOWLEDGEMENT_ADD, NEBFLAG_NONE,
                               NEBATTR_NONE, SERVICE_ACKNOWLEDGEMENT, (void*)svc,
-                              ack_author, ack_data, type, notify, persistent,
-                              nullptr);
+                              ack_author.c_str(), ack_data.c_str(), type,
+                              notify, persistent, nullptr);
 
   /* send out an acknowledgement notification */
   if (notify)

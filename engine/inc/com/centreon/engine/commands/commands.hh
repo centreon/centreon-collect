@@ -149,15 +149,15 @@ void schedule_and_propagate_downtime(
     unsigned long
         duration);  // schedules downtime for all hosts beyond a given host
 void acknowledge_host_problem(com::centreon::engine::host* hst,
-                              char* ack_author,
-                              char* ack_data,
+                              const std::string& ack_author,
+                              const std::string& ack_data,
                               int type,
                               int notify,
                               int persistent);  // acknowledges a host problem
 void acknowledge_service_problem(
     com::centreon::engine::service* svc,
-    char* ack_author,
-    char* ack_data,
+    const std::string& ack_author,
+    const std::string& ack_data,
     int type,
     int notify,
     int persistent);  // acknowledges a service problem

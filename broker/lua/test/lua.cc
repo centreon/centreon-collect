@@ -16,6 +16,7 @@
 ** For more information : contact@centreon.com
 */
 
+#include <absl/strings/str_split.h>
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
