@@ -16,10 +16,6 @@
 ** For more information : contact@centreon.com
 */
 
-#include <fstream>
-#include <iostream>
-#include <string>
-
 // This utility executable is used to write into files in a portable way.
 // Usage: ./executable "what_to_write" filename
 int main(int argc, char** argv) {

@@ -20,7 +20,6 @@
 #define CCB_NEB_NODE_ID_HH
 
 #include <cstdint>
-#include <functional>
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()

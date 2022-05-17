@@ -20,9 +20,6 @@
 #ifndef CCB_STATS_PARSER_HH
 #define CCB_STATS_PARSER_HH
 
-#include <map>
-#include <string>
-#include <vector>
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()

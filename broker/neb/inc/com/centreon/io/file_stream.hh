@@ -19,8 +19,6 @@
 #ifndef CC_IO_FILE_STREAM_HH
 #define CC_IO_FILE_STREAM_HH
 
-#include <cstdio>
-#include <string>
 #include "com/centreon/handle.hh"
 #include "com/centreon/namespace.hh"
 

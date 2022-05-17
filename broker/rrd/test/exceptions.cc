@@ -19,8 +19,6 @@
 
 #include <gtest/gtest.h>
 
-#include <memory>
-
 #include "com/centreon/broker/rrd/exceptions/open.hh"
 #include "com/centreon/broker/rrd/exceptions/update.hh"
 

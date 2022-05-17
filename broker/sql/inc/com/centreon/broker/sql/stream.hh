@@ -19,9 +19,6 @@
 #ifndef CCB_SQL_STREAM_HH
 #define CCB_SQL_STREAM_HH
 
-#include <map>
-#include <set>
-#include <string>
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/mysql.hh"
 #include "com/centreon/broker/namespace.hh"

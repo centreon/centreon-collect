@@ -19,8 +19,6 @@
 #ifndef CCB_BBDO_VERSION_RESPONSE_HH
 #define CCB_BBDO_VERSION_RESPONSE_HH
 
-#include <string>
-
 #include "bbdo/events.hh"
 #include "com/centreon/broker/bbdo/internal.hh"
 #include "com/centreon/broker/io/data.hh"

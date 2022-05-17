@@ -24,8 +24,6 @@
 
 #include <cctype>
 #include <cerrno>
-#include <cstdio>
-#include <cstring>
 
 #include "bbdo/storage/metric.hh"
 #include "com/centreon/broker/log_v2.hh"

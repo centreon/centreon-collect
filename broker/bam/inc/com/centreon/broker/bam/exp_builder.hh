@@ -19,9 +19,6 @@
 #ifndef CCB_BAM_EXP_BUILDER_HH
 #define CCB_BAM_EXP_BUILDER_HH
 
-#include <list>
-#include <stack>
-
 #include "com/centreon/broker/bam/bool_call.hh"
 #include "com/centreon/broker/bam/bool_service.hh"
 #include "com/centreon/broker/bam/exp_parser.hh"

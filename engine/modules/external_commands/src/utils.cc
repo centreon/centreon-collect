@@ -19,16 +19,11 @@
 */
 
 #include "com/centreon/engine/modules/external_commands/utils.hh"
-#include <fcntl.h>
-#include <poll.h>
-#include <sys/stat.h>
-#include <csignal>
-#include <thread>
+#include "com/centreon/engine/commands/processing.hh"
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
-#include "com/centreon/engine/modules/external_commands/internal.hh"
 #include "com/centreon/engine/string.hh"
 #include "nagios.h"
 
@@ -181,25 +176,14 @@ int close_command_file(void) {
   return OK;
 }
 
-/* clean up resources used by command file worker thread */
-static void cleanup_command_file_worker_thread() {
-  /* release memory allocated to circular buffer */
-  for (int x = external_command_buffer.tail; x != external_command_buffer.head;
-       x = (x + 1) % config->external_command_buffer_slots()) {
-    delete[]((char**)external_command_buffer.buffer)[x];
-    ((char**)external_command_buffer.buffer)[x] = NULL;
-  }
-  delete[] external_command_buffer.buffer;
-  external_command_buffer.buffer = NULL;
-}
-
 /* worker thread - artificially increases buffer of named pipe */
 static void command_file_worker_thread() {
+  log_v2::external_command()->info("start command_file_worker_thread");
+
   char input_buffer[MAX_EXTERNAL_COMMAND_LENGTH];
   struct pollfd pfd;
   int pollval;
   struct timeval tv;
-  int buffer_items = 0;
 
   while (!should_exit) {
     pthread_testcancel();
@@ -261,25 +245,23 @@ static void command_file_worker_thread() {
       continue;
     }
 
-    /* get number of items in the buffer */
-    pthread_mutex_lock(&external_command_buffer.buffer_lock);
-    buffer_items = external_command_buffer.items;
-    pthread_mutex_unlock(&external_command_buffer.buffer_lock);
-
     /* 10-15-08 Fix for OS X by Jonathan Saggau - see
      * http://www.jonathansaggau.com/blog/2008/09/using_shark_and_custom_dtrace.html
      */
     /* Not sure if this would have negative effects on other OSes... */
-    if (buffer_items == 0) {
+    if (external_command_buffer.empty()) {
       /* pause a bit so OS X doesn't go nuts with CPU overload */
       tv.tv_sec = 0;
       tv.tv_usec = 500;
       select(0, nullptr, nullptr, nullptr, &tv);
     }
 
+    external_command_buffer.set_capacity(
+        config->external_command_buffer_slots());
+
     /* process all commands in the file (named pipe) if there's some space in
      * the buffer */
-    if (buffer_items < config->external_command_buffer_slots()) {
+    if (!external_command_buffer.full()) {
       /* clear EOF condition from prior run (FreeBSD fix) */
       /* FIXME: use_poll_on_cmd_pipe: Still needed? */
       clearerr(command_file_fp);
@@ -289,52 +271,39 @@ static void command_file_worker_thread() {
              fgets(input_buffer, (int)(sizeof(input_buffer) - 1),
                    command_file_fp) != nullptr) {
         // Check if command is thread-safe (for immediate execution).
-        if (modules::external_commands::gl_processor.is_thread_safe(
-                input_buffer))
-          modules::external_commands::gl_processor.execute(input_buffer);
+        if (commands::processing::is_thread_safe(input_buffer)) {
+          log_v2::external_command()->debug("direct execute {}", input_buffer);
+          commands::processing::execute(input_buffer);
+        }
         // Submit the external command for processing
         // (retry if buffer is full).
         else {
-          while (!should_exit &&
-                 submit_external_command(input_buffer, &buffer_items) ==
-                     ERROR &&
-                 buffer_items == config->external_command_buffer_slots()) {
+          while (!should_exit && external_command_buffer.full()) {
             // Wait a bit.
             tv.tv_sec = 0;
             tv.tv_usec = 250000;
             select(0, nullptr, nullptr, nullptr, &tv);
           }
-
+          log_v2::external_command()->debug("push execute {}", input_buffer);
+          external_command_buffer.push(input_buffer);
           // Bail if the circular buffer is full.
-          if (buffer_items == config->external_command_buffer_slots())
+          if (external_command_buffer.full())
             break;
         }
       }
     }
   }
-
-  cleanup_command_file_worker_thread();
+  log_v2::external_command()->info("end command_file_worker_thread");
 }
 
 /* initializes command file worker thread */
 int init_command_file_worker_thread(void) {
   /* initialize circular buffer */
-  external_command_buffer.head = 0;
-  external_command_buffer.tail = 0;
-  external_command_buffer.items = 0;
-  external_command_buffer.high = 0;
-  external_command_buffer.overflow = 0L;
-  external_command_buffer.buffer =
-      new void*[config->external_command_buffer_slots()];
-  if (external_command_buffer.buffer == NULL)
-    return ERROR;
-
-  /* initialize mutex (only on cold startup) */
-  if (!sigrestart)
-    pthread_mutex_init(&external_command_buffer.buffer_lock, NULL);
+  external_command_buffer.clear();
 
   /* create worker thread */
   worker = std::make_unique<std::thread>(&command_file_worker_thread);
+  pthread_setname_np(worker->native_handle(), "command_file_worker_thread");
 
   return OK;
 }
@@ -351,43 +320,4 @@ int shutdown_command_file_worker_thread(void) {
   }
 
   return OK;
-}
-
-/* submits an external command for processing */
-int submit_external_command(char const* cmd, int* buffer_items) {
-  int result = OK;
-
-  if (cmd == NULL || external_command_buffer.buffer == NULL) {
-    if (buffer_items != NULL)
-      *buffer_items = -1;
-    return ERROR;
-  }
-
-  /* obtain a lock for writing to the buffer */
-  pthread_mutex_lock(&external_command_buffer.buffer_lock);
-
-  if (external_command_buffer.items < config->external_command_buffer_slots()) {
-    /* save the line in the buffer */
-    ((char**)external_command_buffer.buffer)[external_command_buffer.head] =
-        string::dup(cmd);
-
-    /* increment the head counter and items */
-    external_command_buffer.head = (external_command_buffer.head + 1) %
-                                   config->external_command_buffer_slots();
-    external_command_buffer.items++;
-    if (external_command_buffer.items > external_command_buffer.high)
-      external_command_buffer.high = external_command_buffer.items;
-  }
-  /* buffer was full */
-  else
-    result = ERROR;
-
-  /* return number of items now in buffer */
-  if (buffer_items != NULL)
-    *buffer_items = external_command_buffer.items;
-
-  /* release lock on buffer */
-  pthread_mutex_unlock(&external_command_buffer.buffer_lock);
-
-  return result;
 }

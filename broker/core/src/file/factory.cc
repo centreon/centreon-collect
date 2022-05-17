@@ -18,8 +18,6 @@
 
 #include "com/centreon/broker/file/factory.hh"
 
-#include <memory>
-
 #include "com/centreon/broker/file/opener.hh"
 #include "com/centreon/broker/io/extension.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"

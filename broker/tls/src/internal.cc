@@ -18,7 +18,6 @@
 
 #include <gnutls/gnutls.h>
 
-#include <cstring>
 #if GNUTLS_VERSION_NUMBER < 0x030000
 #include <gcrypt.h>
 #include <pthread.h>

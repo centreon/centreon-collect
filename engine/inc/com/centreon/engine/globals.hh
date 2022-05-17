@@ -83,7 +83,7 @@ extern unsigned int currently_running_host_checks;
 extern time_t program_start;
 extern time_t event_start;
 
-extern circular_buffer external_command_buffer;
+extern circular_buffer<std::string> external_command_buffer;
 
 extern check_stats check_statistics[];
 

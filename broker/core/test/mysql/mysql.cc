@@ -23,7 +23,6 @@
 
 #include <cmath>
 #include <future>
-#include <memory>
 
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/exceptions/msg.hh"

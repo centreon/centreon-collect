@@ -17,8 +17,6 @@
 */
 
 #include "com/centreon/broker/time/timezone_manager.hh"
-#include <cstdlib>
-#include <ctime>
 
 using namespace com::centreon::broker::time;
 

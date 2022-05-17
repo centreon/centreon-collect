@@ -18,8 +18,6 @@
 
 #include "com/centreon/broker/simu/luabinding.hh"
 #include <cassert>
-#include <fstream>
-#include <memory>
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/lua/broker_log.hh"

@@ -19,8 +19,6 @@
 #ifndef CC_MISC_STRINGIFIER_HH
 #define CC_MISC_STRINGIFIER_HH
 
-#include <string>
-#include <thread>
 #include "com/centreon/namespace.hh"
 
 CC_BEGIN()

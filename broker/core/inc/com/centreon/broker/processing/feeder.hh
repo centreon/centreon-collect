@@ -19,12 +19,7 @@
 #ifndef CCB_PROCESSING_FEEDER_HH
 #define CCB_PROCESSING_FEEDER_HH
 
-#include <atomic>
 #include <climits>
-#include <condition_variable>
-#include <memory>
-#include <string>
-#include <thread>
 
 #include "com/centreon/broker/misc/shared_mutex.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"

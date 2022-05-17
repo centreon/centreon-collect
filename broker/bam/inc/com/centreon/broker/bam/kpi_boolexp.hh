@@ -19,8 +19,6 @@
 #ifndef CCB_BAM_KPI_BOOLEXP_HH
 #define CCB_BAM_KPI_BOOLEXP_HH
 
-#include <memory>
-
 #include "bbdo/bam/state.hh"
 #include "com/centreon/broker/bam/kpi.hh"
 #include "com/centreon/broker/io/stream.hh"

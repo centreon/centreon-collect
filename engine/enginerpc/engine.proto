@@ -105,6 +105,14 @@ service Engine {
   rpc ChangeContactObjectCustomVar(ChangeObjectCustomVar)
       returns (CommandSuccess) {}
   rpc ShutdownProgram(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+  rpc EnableHostAndChildNotifications(HostIdentifier) returns (CommandSuccess) {}
+  rpc DisableHostAndChildNotifications(HostIdentifier) returns (CommandSuccess) {}
+  rpc DisableHostNotifications(HostIdentifier) returns (CommandSuccess) {}
+  rpc EnableHostNotifications(HostIdentifier) returns (CommandSuccess) {}
+  rpc DisableNotifications(google.protobuf.Empty) returns (CommandSuccess) {}
+  rpc EnableNotifications(google.protobuf.Empty) returns (CommandSuccess) {}
+  rpc DisableServiceNotifications(ServiceIdentifier) returns (CommandSuccess) {}
+  rpc EnableServiceNotifications(ServiceIdentifier) returns (CommandSuccess) {}
 }
 
 message GenericString {

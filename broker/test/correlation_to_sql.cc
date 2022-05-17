@@ -19,15 +19,8 @@
 #include <QSqlError>
 #include <QSqlQuery>
 #include <QVariant>
-#include <algorithm>
-#include <cstdio>
-#include <cstdlib>
-#include <ctime>
-#include <fstream>
-#include <iostream>
 #include <iterator>
 #include <sstream>
-#include <vector>
 #include "com/centreon/broker/exceptions/msg.hh"
 #include "test/broker_extcmd.hh"
 #include "test/cbd.hh"

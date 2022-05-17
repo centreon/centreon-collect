@@ -19,8 +19,6 @@
 #include "com/centreon/broker/file/stream.hh"
 
 #include <fmt/chrono.h>
-#include <cstdio>
-#include <limits>
 
 #include "broker.pb.h"
 #include "com/centreon/broker/io/raw.hh"

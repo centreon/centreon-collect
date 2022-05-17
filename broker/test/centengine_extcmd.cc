@@ -17,8 +17,6 @@
 */
 
 #include "test/centengine_extcmd.hh"
-#include <cstdio>
-#include <fstream>
 #include <sstream>
 #include "com/centreon/broker/exceptions/msg.hh"
 #include "com/centreon/broker/misc/misc.hh"

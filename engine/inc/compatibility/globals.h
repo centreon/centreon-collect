@@ -54,7 +54,6 @@ extern unsigned long retained_process_service_attribute_mask;
 extern unsigned long retained_service_attribute_mask;
 
 // Commands execution system.
-extern circular_buffer check_result_buffer;
 extern unsigned int child_processes_fork_twice;
 
 // Embedded Perl.

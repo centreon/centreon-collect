@@ -17,7 +17,6 @@
 */
 
 #include "com/centreon/broker/mapping/entry.hh"
-#include <cstddef>
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::mapping;

@@ -20,7 +20,6 @@
 #define CCB_BAM_KPI_SERVICE_HH
 
 #include <absl/container/flat_hash_set.h>
-#include <array>
 #include "bbdo/bam/kpi_event.hh"
 #include "bbdo/bam/state.hh"
 #include "com/centreon/broker/bam/impact_values.hh"

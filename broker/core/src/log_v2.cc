@@ -18,12 +18,10 @@
 
 #include "com/centreon/broker/log_v2.hh"
 
-#include <absl/container/flat_hash_map.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/null_sink.h>
 #include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
-#include <fstream>
 
 #include "com/centreon/exceptions/msg_fmt.hh"
 

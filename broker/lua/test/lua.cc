@@ -16,14 +16,9 @@
 ** For more information : contact@centreon.com
 */
 
+#include <absl/strings/str_split.h>
 #include <fmt/format.h>
 #include <gtest/gtest.h>
-
-#include <absl/strings/str_split.h>
-#include <cstdio>
-#include <fstream>
-#include <list>
-#include <memory>
 
 #include "../../core/test/test_server.hh"
 #include "bbdo/storage/status.hh"

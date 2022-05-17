@@ -19,8 +19,6 @@
 #ifndef CCB_EVENTS_INSTANCE_STATUS_HH
 #define CCB_EVENTS_INSTANCE_STATUS_HH
 
-#include <string>
-
 #include "com/centreon/broker/io/event_info.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/mapping/entry.hh"

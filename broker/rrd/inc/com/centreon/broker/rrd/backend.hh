@@ -19,10 +19,6 @@
 #ifndef CCB_RRD_BACKEND_HH
 #define CCB_RRD_BACKEND_HH
 
-#include <ctime>
-#include <deque>
-#include <string>
-
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()

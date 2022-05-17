@@ -17,8 +17,7 @@
 */
 
 #include "com/centreon/broker/config/applier/modules.hh"
-#include <cstdlib>
-#include <memory>
+
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/filesystem.hh"
 #include "com/centreon/broker/modules/handle.hh"

@@ -19,12 +19,6 @@
 #ifndef CCB_BAM_AVAILABILITY_THREAD_HH
 #define CCB_BAM_AVAILABILITY_THREAD_HH
 
-#include <condition_variable>
-#include <memory>
-#include <mutex>
-#include <string>
-#include <thread>
-
 #include "com/centreon/broker/bam/availability_builder.hh"
 #include "com/centreon/broker/bam/timeperiod_map.hh"
 #include "com/centreon/broker/database_config.hh"

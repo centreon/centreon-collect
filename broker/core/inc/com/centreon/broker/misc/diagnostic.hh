@@ -19,8 +19,6 @@
 #ifndef CCB_MISC_DIAGNOSTIC_HH
 #define CCB_MISC_DIAGNOSTIC_HH
 
-#include <string>
-#include <vector>
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()

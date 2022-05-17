@@ -45,6 +45,8 @@
 #include <grpcpp/impl/codegen/client_callback.h>
 #include <grpcpp/security/credentials.h>
 
+#include <absl/container/flat_hash_set.h>
+
 #include "com/centreon/broker/io/endpoint.hh"
 #include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/io/stream.hh"

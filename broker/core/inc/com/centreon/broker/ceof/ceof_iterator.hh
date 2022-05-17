@@ -19,7 +19,6 @@
 #ifndef CCB_CEOF_CEOF_ITERATOR_HH
 #define CCB_CEOF_CEOF_ITERATOR_HH
 
-#include <vector>
 #include "com/centreon/broker/ceof/ceof_token.hh"
 #include "com/centreon/broker/namespace.hh"
 

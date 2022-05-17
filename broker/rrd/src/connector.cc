@@ -18,10 +18,6 @@
 
 #include "com/centreon/broker/rrd/connector.hh"
 
-#include <cerrno>
-#include <cstdlib>
-#include <cstring>
-
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/rrd/output.hh"
 

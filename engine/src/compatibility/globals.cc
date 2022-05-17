@@ -51,7 +51,6 @@ unsigned long retained_process_service_attribute_mask(0);
 unsigned long retained_service_attribute_mask(0);
 
 // Commands execution system.
-circular_buffer check_result_buffer;
 unsigned int child_processes_fork_twice(UINT_MAX);
 
 // Embedded Perl.

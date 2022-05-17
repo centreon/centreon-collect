@@ -19,9 +19,6 @@
 #ifndef CCB_BAM_BOOL_CALL_HH
 #define CCB_BAM_BOOL_CALL_HH
 
-#include <memory>
-#include <string>
-
 #include "com/centreon/broker/bam/bool_expression.hh"
 #include "com/centreon/broker/bam/bool_value.hh"
 #include "com/centreon/broker/namespace.hh"

@@ -19,7 +19,6 @@
 #ifndef CCB_COMPRESSION_STREAM_HH
 #define CCB_COMPRESSION_STREAM_HH
 
-#include <vector>
 #include "com/centreon/broker/compression/stack_array.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/namespace.hh"

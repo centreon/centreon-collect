@@ -17,13 +17,13 @@
  *
  */
 
-#include "com/centreon/engine/command_manager.hh"
-
 #include <google/protobuf/util/time_util.h>
 #include <sys/types.h>
-#include <unistd.h>
+
+#include "com/centreon/engine/host.hh"
 
 #include "com/centreon/engine/checks/checker.hh"
+#include "com/centreon/engine/command_manager.hh"
 #include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/globals.hh"
@@ -284,10 +284,8 @@ int command_manager::get_stats(std::string const& request, Stats* response) {
     uint32_t high_external_command_buffer_slots = 0;
     // get number f items in the command buffer
     if (config->check_external_commands()) {
-      pthread_mutex_lock(&external_command_buffer.buffer_lock);
-      used_external_command_buffer_slots = external_command_buffer.items;
-      high_external_command_buffer_slots = external_command_buffer.high;
-      pthread_mutex_unlock(&external_command_buffer.buffer_lock);
+      used_external_command_buffer_slots = external_command_buffer.size();
+      high_external_command_buffer_slots = external_command_buffer.high();
     }
     response->mutable_program_status()->set_total_external_command_buffer_slots(
         config->external_command_buffer_slots());

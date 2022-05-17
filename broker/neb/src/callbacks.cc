@@ -20,12 +20,6 @@
 
 #include <unistd.h>
 
-#include <cstdlib>
-#include <ctime>
-#include <memory>
-#include <set>
-#include <string>
-
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/config/state.hh"

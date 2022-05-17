@@ -19,7 +19,6 @@
 #ifndef CCB_ENGCMD_ENGINE_COMMAND_HH
 #define CCB_ENGCMD_ENGINE_COMMAND_HH
 
-#include <string>
 #include "com/centreon/broker/extcmd/command_result.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/namespace.hh"

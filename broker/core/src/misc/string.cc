@@ -20,9 +20,7 @@
 
 #include <fmt/format.h>
 
-#include <algorithm>
 #include <cassert>
-#include <fstream>
 
 using namespace com::centreon::broker::misc;
 

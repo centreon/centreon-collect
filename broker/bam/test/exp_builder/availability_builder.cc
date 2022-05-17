@@ -17,7 +17,6 @@
 */
 #include "com/centreon/broker/bam/availability_builder.hh"
 #include <gtest/gtest.h>
-#include <ctime>
 
 using namespace com::centreon::broker;
 

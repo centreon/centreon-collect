@@ -19,9 +19,6 @@
 #ifndef CCB_BAM_CONFIGURATION_BA_HH
 #define CCB_BAM_CONFIGURATION_BA_HH
 
-#include <string>
-#include <vector>
-
 #include "bbdo/bam/ba_event.hh"
 #include "com/centreon/broker/namespace.hh"
 

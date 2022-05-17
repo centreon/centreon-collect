@@ -18,7 +18,6 @@
 
 #include "com/centreon/broker/influxdb/influxdb12.hh"
 #include <iterator>
-#include <vector>
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"

@@ -19,10 +19,6 @@
 #ifndef CCB_MISC_TOKENIZER_HH
 #define CCB_MISC_TOKENIZER_HH
 
-#include <cstdlib>
-#include <cstring>
-#include <sstream>
-#include <string>
 #include "com/centreon/broker/namespace.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 

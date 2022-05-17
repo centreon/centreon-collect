@@ -20,8 +20,6 @@
 #define CCB_MYSQL_BIND_HH
 
 #include <mysql.h>
-#include <string>
-#include <vector>
 #include "com/centreon/broker/database/mysql_column.hh"
 #include "com/centreon/broker/namespace.hh"
 

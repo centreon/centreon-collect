@@ -26,12 +26,6 @@
 #include <QVariant>
 #include <cfloat>
 #include <cmath>
-#include <cstdio>
-#include <cstdlib>
-#include <ctime>
-#include <fstream>
-#include <iostream>
-#include <sstream>
 #include "com/centreon/broker/exceptions/msg.hh"
 #include "test/config.hh"
 #include "test/engine.hh"

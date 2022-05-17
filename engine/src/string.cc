@@ -17,6 +17,8 @@
  *
  */
 
+#include <absl/strings/numbers.h>
+
 #include "com/centreon/engine/string.hh"
 
 #include "com/centreon/engine/exceptions/error.hh"
@@ -324,4 +326,74 @@ std::string& string::remove_thresholds(std::string& perfdata) noexcept {
 
   perfdata.replace(pos1, pos3 - pos1, ";;");
   return perfdata;
+}
+
+/**
+ * @brief extract a part of the string_view passed in the construtor
+ * it allows empty field as my_strtok
+ *
+ * @param sep separator
+ * @param extracted field
+ * @return true extracted is valid
+ * @return false current pos is yet beyond string end
+ */
+bool string::c_strtok::extract(char sep, absl::string_view& extracted) {
+  if (_pos == absl::string_view::npos) {
+    return false;
+  }
+  size_type old_pos = _pos;
+  _pos = _src.find(sep, old_pos);
+  if (_pos != absl::string_view::npos) {
+    extracted = _src.substr(old_pos, (_pos++) - old_pos);
+  } else {
+    extracted = _src.substr(old_pos);
+  }
+  return true;
+}
+
+/**
+ * @brief extract a part of the string_view passed in the construtor
+ * it allows empty field as my_strtok
+ * if sep is not found it returns part from the current position to the end
+ * if current pos is yet beyond string end, it returns boost::none
+ *
+ * @param sep separator
+ * @return absl::string_view field extracted
+ */
+boost::optional<absl::string_view> string::c_strtok::extract(char sep) {
+  absl::string_view ret;
+  if (!extract(sep, ret)) {
+    return boost::none;
+  }
+  return ret;
+}
+
+/**
+ * @brief extract a part of the string_view passed in the construtor
+ * it allows empty field as my_strtok
+ *
+ * @param sep separator
+ * @param extracted field
+ * @return true extracted is valid
+ * @return false current pos is yet beyond string end
+ */
+bool string::c_strtok::extract(char sep, std::string& extracted) {
+  absl::string_view ret;
+  if (!extract(sep, ret)) {
+    return false;
+  }
+  extracted.assign(ret.begin(), ret.end());
+  return true;
+}
+
+bool string::c_strtok::extract(char sep, int& extracted) {
+  absl::string_view ret;
+  if (!extract(sep, ret)) {
+    return false;
+  }
+  if (absl::SimpleAtoi(ret, &extracted)) {
+    return true;
+  }
+  _pos = absl::string_view::npos;
+  return false;
 }

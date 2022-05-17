@@ -17,7 +17,6 @@
 */
 
 #include <gtest/gtest.h>
-#include <fstream>
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/misc/string.hh"
 

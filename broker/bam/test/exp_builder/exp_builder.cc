@@ -18,8 +18,6 @@
 
 #include "com/centreon/broker/bam/exp_builder.hh"
 #include <gtest/gtest.h>
-#include <list>
-#include <string>
 #include "com/centreon/broker/bam/bool_value.hh"
 #include "com/centreon/broker/bam/exp_parser.hh"
 

@@ -18,8 +18,7 @@
  */
 
 #include <gtest/gtest.h>
-#include <iostream>
-#include <string>
+
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/config/applier/modules.hh"
 

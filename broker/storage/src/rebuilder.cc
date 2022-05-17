@@ -21,9 +21,6 @@
 #include <fmt/format.h>
 #include <cfloat>
 #include <cmath>
-#include <cstdlib>
-#include <cstring>
-#include <ctime>
 
 #include "com/centreon/broker/database/mysql_error.hh"
 #include "com/centreon/broker/database/mysql_result.hh"

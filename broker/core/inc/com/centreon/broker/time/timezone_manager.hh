@@ -19,9 +19,6 @@
 #ifndef CCB_CORE_TIME_TIMEZONE_MANAGER_HH
 #define CCB_CORE_TIME_TIMEZONE_MANAGER_HH
 
-#include <mutex>
-#include <stack>
-#include <string>
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()

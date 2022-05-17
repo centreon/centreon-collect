@@ -19,7 +19,6 @@
 #ifndef CCB_SIMU_STREAM_HH
 #define CCB_SIMU_STREAM_HH
 
-#include <memory>
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/misc/variant.hh"
 

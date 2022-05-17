@@ -19,8 +19,6 @@
 #ifndef CCB_MYSQL_STMT_HH
 #define CCB_MYSQL_STMT_HH
 
-#include <absl/container/flat_hash_map.h>
-#include <memory>
 #include "com/centreon/broker/database/mysql_bind.hh"
 #include "com/centreon/broker/io/data.hh"
 

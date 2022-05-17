@@ -19,11 +19,6 @@
 #ifndef CCB_BAM_AVAILABILITY_BUILDER_HH
 #define CCB_BAM_AVAILABILITY_BUILDER_HH
 
-#include <map>
-#include <memory>
-#include <set>
-#include <string>
-
 #include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/time/timeperiod.hh"
 #include "com/centreon/broker/timestamp.hh"

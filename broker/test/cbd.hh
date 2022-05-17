@@ -20,7 +20,6 @@
 #define TEST_CBD_HH
 
 #include <QProcess>
-#include <string>
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()

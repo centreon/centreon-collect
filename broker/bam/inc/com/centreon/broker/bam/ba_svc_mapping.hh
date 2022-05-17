@@ -19,10 +19,6 @@
 #ifndef CCB_BAM_BA_SVC_MAPPING_HH
 #define CCB_BAM_BA_SVC_MAPPING_HH
 
-#include <map>
-#include <string>
-#include <utility>
-
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()

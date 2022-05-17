@@ -20,8 +20,6 @@
 #define CCB_MISC_SHARED_MUTEX_HH
 
 #include <pthread.h>
-#include <chrono>
-#include <ctime>
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()
@@ -37,9 +35,7 @@ class shared_mutex {
 
   // Exclusive ownership
 
-  void lock() {
-    pthread_rwlock_wrlock(&_rwlock);
-  }
+  void lock() { pthread_rwlock_wrlock(&_rwlock); }
 
   bool try_lock() { return pthread_rwlock_trywrlock(&_rwlock) == 0; }
 
@@ -50,14 +46,11 @@ class shared_mutex {
     return pthread_rwlock_timedwrlock(&_rwlock, &timeout) == 0;
   }
 
-  void unlock() {
-    pthread_rwlock_unlock(&_rwlock); }
+  void unlock() { pthread_rwlock_unlock(&_rwlock); }
 
   // Shared ownership
 
-  void lock_shared() {
-    pthread_rwlock_rdlock(&_rwlock);
-  }
+  void lock_shared() { pthread_rwlock_rdlock(&_rwlock); }
 
   bool try_lock_shared() { return pthread_rwlock_trywrlock(&_rwlock) == 0; }
 
@@ -75,7 +68,9 @@ class read_lock {
   bool _locked;
 
  public:
-  explicit read_lock(shared_mutex& m) : _m(m), _locked{true} { _m.lock_shared(); }
+  explicit read_lock(shared_mutex& m) : _m(m), _locked{true} {
+    _m.lock_shared();
+  }
   ~read_lock() noexcept {
     if (_locked)
       _m.unlock();

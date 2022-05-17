@@ -21,8 +21,6 @@
 #include <fnmatch.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <cstring>
-#include <fstream>
 #include <unistd.h>
 #include "com/centreon/broker/log_v2.hh"
 

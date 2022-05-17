@@ -19,7 +19,6 @@
 #ifndef CCB_FILE_FS_FILE_HH
 #define CCB_FILE_FS_FILE_HH
 
-#include <string>
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()

@@ -19,12 +19,6 @@
 #ifndef CCB_INFLUXDB_STREAM_HH
 #define CCB_INFLUXDB_STREAM_HH
 
-#include <deque>
-#include <list>
-#include <map>
-#include <memory>
-#include <mutex>
-#include <utility>
 #include "com/centreon/broker/influxdb/column.hh"
 #include "com/centreon/broker/influxdb/influxdb.hh"
 #include "com/centreon/broker/influxdb/macro_cache.hh"

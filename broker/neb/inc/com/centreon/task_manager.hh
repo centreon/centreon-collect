@@ -19,17 +19,9 @@
 #ifndef CC_TASK_MANAGER_HH
 #define CC_TASK_MANAGER_HH
 
-#include <condition_variable>
-#include <deque>
-#include <map>
-#include <mutex>
-#include <thread>
-#include <vector>
 #include "com/centreon/namespace.hh"
 #include "com/centreon/task.hh"
 #include "com/centreon/timestamp.hh"
-
-#include <iostream>
 
 CC_BEGIN()
 

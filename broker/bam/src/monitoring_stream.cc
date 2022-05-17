@@ -18,11 +18,6 @@
 
 #include "com/centreon/broker/bam/monitoring_stream.hh"
 
-#include <cstdlib>
-#include <ctime>
-#include <fstream>
-#include <limits>
-
 #include "bbdo/bam/ba_status.hh"
 #include "bbdo/bam/kpi_status.hh"
 #include "bbdo/bam/rebuild.hh"

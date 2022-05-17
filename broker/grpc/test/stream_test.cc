@@ -17,8 +17,6 @@
  *
  */
 
-#include <fstream>
-#include <thread>
 #include "grpc_test_include.hh"
 #include "tcp_relais.hh"
 

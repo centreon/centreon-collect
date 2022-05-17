@@ -21,8 +21,6 @@
 
 #include <gnutls/gnutls.h>
 
-#include <string>
-
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()

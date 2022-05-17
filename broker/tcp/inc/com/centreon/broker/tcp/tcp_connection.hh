@@ -17,10 +17,6 @@
 */
 #ifndef CENTREON_BROKER_TCP_CONNECTION_HH
 #define CENTREON_BROKER_TCP_CONNECTION_HH
-#include <asio.hpp>
-#include <atomic>
-#include <memory>
-#include <queue>
 
 #include "com/centreon/broker/namespace.hh"
 

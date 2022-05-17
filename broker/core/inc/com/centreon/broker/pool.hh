@@ -18,9 +18,6 @@
 #ifndef CENTREON_BROKER_CORE_INC_COM_CENTREON_BROKER_POOL_HH_
 #define CENTREON_BROKER_CORE_INC_COM_CENTREON_BROKER_POOL_HH_
 
-#include <asio.hpp>
-#include <cstdlib>
-
 #include "broker.pb.h"
 #include "com/centreon/broker/namespace.hh"
 

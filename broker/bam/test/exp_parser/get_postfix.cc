@@ -17,8 +17,6 @@
 */
 
 #include <gtest/gtest.h>
-#include <list>
-#include <string>
 #include "com/centreon/broker/bam/exp_parser.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 

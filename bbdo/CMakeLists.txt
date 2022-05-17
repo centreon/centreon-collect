@@ -103,6 +103,7 @@ add_library(
       "bbdo/stop.hh"
     )
 set_target_properties(bbdo_bbdo PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_precompile_headers(bbdo_bbdo PRIVATE precomp_inc/precomp.hpp)
 
 add_library(
     bbdo_storage STATIC
@@ -118,6 +119,7 @@ add_library(
       "storage/status.hh"
     )
 set_target_properties(bbdo_storage PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_precompile_headers(bbdo_storage PRIVATE precomp_inc/precomp.hpp)
 add_dependencies(bbdo_storage table_max_size)
 add_library(
     bbdo_bam STATIC
@@ -155,4 +157,5 @@ add_library(
       "bam/kpi_event.hh"
     )
 set_target_properties(bbdo_bam PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_precompile_headers(bbdo_bam PRIVATE precomp_inc/precomp.hpp)
 add_dependencies(bbdo_bam table_max_size)

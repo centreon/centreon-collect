@@ -19,7 +19,6 @@
 #ifndef CC_EXCEPTIONS_BASIC_HH
 #define CC_EXCEPTIONS_BASIC_HH
 
-#include <exception>
 #include "com/centreon/misc/stringifier.hh"
 
 CC_BEGIN()

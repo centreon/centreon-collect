@@ -19,11 +19,6 @@
 #ifndef CCB_BAM_EXP_PARSER_HH
 #define CCB_BAM_EXP_PARSER_HH
 
-#include <list>
-#include <map>
-#include <string>
-#include <vector>
-
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()

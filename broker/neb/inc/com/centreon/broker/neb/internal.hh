@@ -19,10 +19,6 @@
 #ifndef CCB_NEB_INTERNAL_HH
 #define CCB_NEB_INTERNAL_HH
 
-#include <list>
-#include <map>
-#include <string>
-#include <utility>
 #include "bbdo/events.hh"
 #include "bbdo/host.pb.h"
 #include "bbdo/service.pb.h"

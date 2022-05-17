@@ -19,7 +19,6 @@
 #ifndef CCB_BAM_CONFIGURATION_READER_V2_HH
 #define CCB_BAM_CONFIGURATION_READER_V2_HH
 
-#include <string>
 #include "com/centreon/broker/bam/configuration/state.hh"
 #include "com/centreon/broker/database_config.hh"
 #include "com/centreon/broker/namespace.hh"

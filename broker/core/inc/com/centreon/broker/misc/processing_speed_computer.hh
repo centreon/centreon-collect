@@ -19,9 +19,6 @@
 #ifndef CCB_MISC_PROCESSING_SPEED_COMPUTER_HH
 #define CCB_MISC_PROCESSING_SPEED_COMPUTER_HH
 
-#include <array>
-#include <ctime>
-#include <cstdint>
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()

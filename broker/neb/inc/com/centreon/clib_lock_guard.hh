@@ -18,7 +18,6 @@
 
 #ifndef CC_CLIB_LOCK_GUARD_HH
 #define CC_CLIB_LOCK_GUARD_HH
-#include <cstdio>
 
 #define DEBUG_CLIB
 

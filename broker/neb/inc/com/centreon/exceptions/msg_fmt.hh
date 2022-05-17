@@ -19,8 +19,6 @@
 #define CC_EXCEPTIONS_MSG_FMT_HH
 
 #include <fmt/format.h>
-#include <exception>
-#include <string>
 #include "com/centreon/namespace.hh"
 
 CC_BEGIN()

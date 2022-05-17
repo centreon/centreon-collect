@@ -19,7 +19,6 @@
 
 #include "com/centreon/broker/neb/instance.hh"
 #include <gtest/gtest.h>
-#include <cstdlib>
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/neb/internal.hh"
 #include "randomize.hh"

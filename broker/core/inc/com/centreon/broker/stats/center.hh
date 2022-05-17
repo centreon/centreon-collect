@@ -19,10 +19,6 @@
 #ifndef CCB_STATS_CENTER_HH
 #define CCB_STATS_CENTER_HH
 
-#include <asio.hpp>
-#include <functional>
-#include <unordered_map>
-
 #include "broker.pb.h"
 #include "com/centreon/broker/pool.hh"
 

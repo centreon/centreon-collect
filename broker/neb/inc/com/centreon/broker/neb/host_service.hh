@@ -19,7 +19,6 @@
 #ifndef CCB_NEB_HOST_SERVICE_HH
 #define CCB_NEB_HOST_SERVICE_HH
 
-#include <string>
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()

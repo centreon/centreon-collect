@@ -20,8 +20,6 @@
 #define CC_LOGGING_ENGINE_HH
 
 #include <climits>
-#include <mutex>
-#include <vector>
 #include "com/centreon/namespace.hh"
 
 CC_BEGIN()

@@ -20,9 +20,6 @@
 #define CC_HANDLE_MANAGER_POSIX_HH
 
 #include <poll.h>
-#include <map>
-#include <mutex>
-#include <utility>
 #include "com/centreon/handle.hh"
 
 CC_BEGIN()

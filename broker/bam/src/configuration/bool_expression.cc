@@ -17,7 +17,6 @@
 */
 
 #include "com/centreon/broker/bam/configuration/bool_expression.hh"
-#include <string>
 
 using namespace com::centreon::broker::bam::configuration;
 using namespace com::centreon::broker;

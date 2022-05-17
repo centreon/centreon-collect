@@ -31,10 +31,7 @@
 
 // Used c++0x implementation.
 #ifdef CXX0X_UNORDERED
-#include <functional>
-#include <unordered_map>
 #include <unordered_set>
-#include <utility>
 
 #define umap std::unordered_map
 #define umultimap std::unordered_multimap
@@ -55,10 +52,8 @@ struct hash<std::pair<T, U> > {
 
 // Used tr1 implementation.
 #elif defined(TR1_UNORDERED)
-#include <functional>
 #include <tr1/unordered_map>
 #include <tr1/unordered_set>
-#include <utility>
 
 #define umap std::tr1::unordered_map
 #define umultimap std::tr1::unordered_multimap
@@ -137,8 +132,6 @@ bool operator!=(umultimap<Key, T, Hash, Pred, Alloc> const& lhs,
 
 // Used std implementation.
 #else
-#include <map>
-#include <set>
 #define umap std::map
 #define umultimap std::multimap
 #define uset std::set

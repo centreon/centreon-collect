@@ -18,8 +18,6 @@
 
 #include "com/centreon/broker/lua/macro_cache.hh"
 
-#include <unordered_set>
-
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 

@@ -19,9 +19,6 @@
 #ifndef CCB_BAM_DIMENSION_BA_TIMEPERIOD_RELATION_HH
 #define CCB_BAM_DIMENSION_BA_TIMEPERIOD_RELATION_HH
 
-#include <memory>
-#include <vector>
-
 #include "bbdo/events.hh"
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/io/event_info.hh"

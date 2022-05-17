@@ -19,7 +19,6 @@
 #include "com/centreon/broker/bam/kpi_service.hh"
 
 #include <cassert>
-#include <cstring>
 
 #include "bbdo/bam/kpi_status.hh"
 #include "com/centreon/broker/bam/impact_values.hh"
