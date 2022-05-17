@@ -31,8 +31,8 @@ get_cache() {
     echo "INFO: Pulling tarball ..."
     wget -q "$CACHE_URL"
   else
-    TAR_NAME="SQ-cache/$PROJECT/$PROJECT-SQ-cache-$CACHE_REFERENCE.tar.gz"
-    CACHE_URL="http://srvi-repo.int.centreon.com/sources/internal/$TAR_NAME"
+    TAR_NAME="$PROJECT-SQ-cache-$CACHE_REFERENCE.tar.gz"
+    CACHE_URL="http://srvi-repo.int.centreon.com/sources/internal/SQ-cache/$PROJECT/$TAR_NAME"
     if validate_file_exists "$CACHE_URL"; then
       echo "INFO: Pulling tarball $CACHE_REFERENCE ..."
       wget -q "$CACHE_URL"
