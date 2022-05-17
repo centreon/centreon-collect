@@ -19,7 +19,6 @@
 #ifndef CCB_ENGCMD_ENDPOINT_HH
 #define CCB_ENGCMD_ENDPOINT_HH
 
-#include <string>
 #include "com/centreon/broker/io/endpoint.hh"
 #include "com/centreon/broker/namespace.hh"
 

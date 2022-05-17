@@ -20,9 +20,6 @@
 #ifndef CCB_TEMPORARY_STREAM_HH
 #define CCB_TEMPORARY_STREAM_HH
 
-#include <mutex>
-#include <queue>
-
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/namespace.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"

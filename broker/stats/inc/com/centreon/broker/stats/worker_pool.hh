@@ -20,10 +20,6 @@
 #ifndef CCB_STATS_WORKER_POOL_HH
 #define CCB_STATS_WORKER_POOL_HH
 
-#include <memory>
-#include <string>
-#include <thread>
-#include <vector>
 #include "com/centreon/broker/stats/worker.hh"
 
 namespace com {

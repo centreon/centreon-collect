@@ -18,7 +18,6 @@
 
 #include "com/centreon/broker/time/timerange.hh"
 #include <fmt/format.h>
-#include <cstring>
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/string.hh"
 

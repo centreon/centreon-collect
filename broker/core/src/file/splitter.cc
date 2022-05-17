@@ -22,12 +22,6 @@
 #include <fmt/format.h>
 
 #include <cassert>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <limits>
-#include <list>
-#include <memory>
 
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/file/cfile.hh"

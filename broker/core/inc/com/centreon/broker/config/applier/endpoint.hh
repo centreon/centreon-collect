@@ -19,15 +19,6 @@
 #ifndef CCB_CONFIG_APPLIER_ENDPOINT_HH
 #define CCB_CONFIG_APPLIER_ENDPOINT_HH
 
-#include <absl/container/flat_hash_set.h>
-#include <atomic>
-#include <list>
-#include <map>
-#include <memory>
-#include <mutex>
-#include <set>
-#include <string>
-
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()

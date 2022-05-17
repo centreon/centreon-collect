@@ -19,9 +19,6 @@
 #ifndef CCB_BAM_MONITORING_STREAM_HH
 #define CCB_BAM_MONITORING_STREAM_HH
 
-#include <mutex>
-#include <string>
-
 #include "com/centreon/broker/bam/configuration/applier/state.hh"
 #include "com/centreon/broker/database/mysql_stmt.hh"
 #include "com/centreon/broker/database_config.hh"

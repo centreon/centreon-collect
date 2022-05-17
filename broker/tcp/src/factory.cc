@@ -19,9 +19,6 @@
 
 #include "com/centreon/broker/tcp/factory.hh"
 
-#include <memory>
-#include <string>
-
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/tcp/acceptor.hh"

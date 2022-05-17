@@ -1,4 +1,4 @@
-from os import makedirs,chmod
+from os import makedirs, chmod
 from os.path import exists, dirname
 from robot.api import logger
 import db_conf
@@ -9,13 +9,18 @@ import time
 import re
 import stat
 
+import grpc
+import engine_pb2
+import engine_pb2_grpc
+
+
 CONF_DIR = "/etc/centreon-engine"
 ENGINE_HOME = "/var/lib/centreon-engine"
 SCRIPT_DIR: str = dirname(__file__) + "/engine-scripts/"
 
 
 class EngineInstance:
-    def __init__(self, count: int, hosts: int=50, srv_by_host: int=20):
+    def __init__(self, count: int, hosts: int = 50, srv_by_host: int = 20):
         self.last_service_id = 0
         self.hosts = []
         self.services = []
@@ -82,7 +87,7 @@ class EngineInstance:
                 "log_pid=1\n"
                 "macros_filter=KEY80,KEY81,KEY82,KEY83,KEY84\n"
                 "enable_macros_filter=0\n"
-                "grpc_port=50001\n"
+                "rpc_port=50001\n"
                 "postpone_notification_to_timeperiod=0\n"
                 "instance_heartbeat_interval=30\n"
                 "enable_notifications=1\n"
@@ -101,13 +106,13 @@ class EngineInstance:
                 "log_v2_enabled=1\n"
                 "log_legacy_enabled=0\n"
                 "log_v2_logger=file\n"
-                "log_level_functions=info\n"
+                "log_level_functions=trace\n"
                 "log_level_config=info\n"
                 "log_level_events=info\n"
                 "log_level_checks=info\n"
                 "log_level_notifications=info\n"
                 "log_level_eventbroker=info\n"
-                "log_level_external_command=info\n"
+                "log_level_external_command=trace\n"
                 "log_level_commands=info\n"
                 "log_level_downtimes=info\n"
                 "log_level_comments=info\n"
@@ -143,7 +148,7 @@ class EngineInstance:
             "hid": hid}
         return retval
 
-    def create_service(self, host_id: int, cmd_ids:int):
+    def create_service(self, host_id: int, cmd_ids: int):
         self.last_service_id += 1
         service_id = self.last_service_id
         command_id = random.randint(cmd_ids[0], cmd_ids[1])
@@ -296,7 +301,7 @@ define command {
         return retval
 
     @staticmethod
-    def create_severities(poller:int, nb:int, offset: int):
+    def create_severities(poller: int, nb: int, offset: int):
         config_file = "{}/config{}/severities.cfg".format(CONF_DIR, poller)
         ff = open(config_file, "w+")
         content = ""
@@ -316,7 +321,8 @@ define command {
 
     @staticmethod
     def create_template_file(poller: int, typ: str, what: str, ids):
-        config_file = "{}/config{}/{}Templates.cfg".format(CONF_DIR, poller, typ)
+        config_file = "{}/config{}/{}Templates.cfg".format(
+            CONF_DIR, poller, typ)
         ff = open(config_file, "w+")
         content = ""
         idx = 1
@@ -328,13 +334,13 @@ register               0
 active_checks_enabled  1
 passive_checks_enabled 1
 }}
-""".format(typ,typ,idx,what, i)
+""".format(typ, typ, idx, what, i)
             idx += 1
         ff.write(content)
         ff.close()
 
     @staticmethod
-    def create_tags(poller:int, nb:int, offset: int):
+    def create_tags(poller: int, nb: int, offset: int):
         tt = ["servicegroup", "hostgroup", "servicecategory", "hostcategory"]
 
         config_file = "{}/config{}/tags.cfg".format(CONF_DIR, poller)
@@ -457,7 +463,8 @@ define timeperiod {
             for file in ["check.pl", "notif.pl"]:
                 shutil.copyfile("{0}/{1}".format(SCRIPT_DIR, file),
                                 "{0}/{1}".format(ENGINE_HOME, file))
-                chmod("{0}/{1}".format(ENGINE_HOME, file), stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP)
+                chmod("{0}/{1}".format(ENGINE_HOME, file),
+                      stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP)
             if not exists(ENGINE_HOME + "/config{}/rw".format(inst)):
                 makedirs(ENGINE_HOME + "/config{}/rw".format(inst))
 
@@ -523,7 +530,8 @@ def add_host_group(index: int, id_host_group: int, members: list):
     f.write(engine.create_host_group(id_host_group, mbs))
     f.close()
 
-def rename_host_group(index: int, id_host_group: int, name:str, members: list):
+
+def rename_host_group(index: int, id_host_group: int, name: str, members: list):
     mbs = [l for l in members if l in engine.hosts]
     f = open("/etc/centreon-engine/config{}/hostgroups.cfg".format(index), "w")
     logger.console(mbs)
@@ -536,13 +544,15 @@ def rename_host_group(index: int, id_host_group: int, name:str, members: list):
 """.format(id_host_group, name, ",".join(mbs)))
     f.close()
 
+
 def add_service_group(index: int, id_service_group: int, members: list):
     f = open("/etc/centreon-engine/config{}/servicegroups.cfg".format(index), "a+")
     logger.console(members)
     f.write(engine.create_service_group(id_service_group, members))
     f.close()
 
-def create_service(index:int, host_id:int, cmd_id:int):
+
+def create_service(index: int, host_id: int, cmd_id: int):
     f = open("/etc/centreon-engine/config{}/services.cfg".format(index), "a+")
     svc = engine.create_service(host_id, [1, cmd_id])
     lst = svc.split('\n')
@@ -551,11 +561,13 @@ def create_service(index:int, host_id:int, cmd_id:int):
     if m is not None:
         retval = int(m.group(1))
     else:
-        raise Exception("Impossible to get the service id from '{}'".format(good))
+        raise Exception(
+            "Impossible to get the service id from '{}'".format(good))
         m = 0
     f.write(svc)
     f.close()
     return retval
+
 
 def engine_log_duplicate(result: list):
     dup = True
@@ -596,53 +608,96 @@ def process_service_check_result(hst: str, svc: str, state: int, output: str):
     f.write(cmd)
     f.close()
 
-def change_normal_svc_check_interval(hst: str, svc: str, check_interval: int):
-    now = int(time.time())
-    cmd = "[{}] CHANGE_NORMAL_SVC_CHECK_INTERVAL;{};{};{}\n".format(
-        now, hst, svc, check_interval)
-    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-    f.write(cmd)
-    f.close()
 
-def change_normal_host_check_interval(hst: str, check_interval: int):
-    now = int(time.time())
-    cmd = "[{}] CHANGE_NORMAL_HOST_CHECK_INTERVAL;{};{}\n".format(
-        now, hst, check_interval)
-    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-    f.write(cmd)
-    f.close()
+def change_normal_svc_check_interval(use_grpc: int, hst: str, svc: str, check_interval: int):
+    if use_grpc > 0:
+        with grpc.insecure_channel("127.0.0.1:50001") as channel:
+            stub = engine_pb2_grpc.EngineStub(channel)
+            stub.ChangeServiceObjectIntVar(engine_pb2.ChangeObjectInt(
+                host_name=hst, service_desc=svc, mode=engine_pb2.ChangeObjectInt.Mode.NORMAL_CHECK_INTERVAL, dval=check_interval))
+    else:
+        now = int(time.time())
+        cmd = "[{}] CHANGE_NORMAL_SVC_CHECK_INTERVAL;{};{};{}\n".format(
+            now, hst, svc, check_interval)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
 
-def change_retry_svc_check_interval(hst: str, svc: str, retry_interval: int):
-    now = int(time.time())
-    cmd = "[{}] CHANGE_RETRY_SVC_CHECK_INTERVAL;{};{};{}\n".format(
-        now, hst, svc, retry_interval)
-    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-    f.write(cmd)
-    f.close()
 
-def change_retry_host_check_interval(hst: str, retry_interval: int):
-    now = int(time.time())
-    cmd = "[{}] CHANGE_RETRY_HOST_CHECK_INTERVAL;{};{}\n".format(
-        now, hst, retry_interval)
-    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-    f.write(cmd)
-    f.close()
+def change_normal_host_check_interval(use_grpc: int, hst: str, check_interval: int):
+    if use_grpc > 0:
+        with grpc.insecure_channel("127.0.0.1:50001") as channel:
+            stub = engine_pb2_grpc.EngineStub(channel)
+            stub.ChangeHostObjectIntVar(engine_pb2.ChangeObjectInt(
+                host_name=hst, mode=engine_pb2.ChangeObjectInt.Mode.NORMAL_CHECK_INTERVAL, dval=check_interval))
+    else:
+        now = int(time.time())
+        cmd = "[{}] CHANGE_NORMAL_HOST_CHECK_INTERVAL;{};{}\n".format(
+            now, hst, check_interval)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
 
-def change_max_svc_check_attempts(hst: str, svc: str, max_check_attempts: int):
-    now = int(time.time())
-    cmd = "[{}] CHANGE_MAX_SVC_CHECK_ATTEMPTS;{};{};{}\n".format(
-        now, hst, svc, max_check_attempts)
-    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-    f.write(cmd)
-    f.close()
 
-def change_max_host_check_attempts(hst: str, max_check_attempts: int):
-    now = int(time.time())
-    cmd = "[{}] CHANGE_MAX_HOST_CHECK_ATTEMPTS;{};{}\n".format(
-        now, hst, max_check_attempts)
-    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-    f.write(cmd)
-    f.close()
+def change_retry_svc_check_interval(use_grpc: int, hst: str, svc: str, retry_interval: int):
+    if use_grpc > 0:
+        with grpc.insecure_channel("127.0.0.1:50001") as channel:
+            stub = engine_pb2_grpc.EngineStub(channel)
+            stub.ChangeServiceObjectIntVar(engine_pb2.ChangeObjectInt(
+                host_name=hst, service_desc=svc, mode=engine_pb2.ChangeObjectInt.Mode.RETRY_CHECK_INTERVAL, dval=retry_interval))
+    else:
+        now = int(time.time())
+        cmd = "[{}] CHANGE_RETRY_SVC_CHECK_INTERVAL;{};{};{}\n".format(
+            now, hst, svc, retry_interval)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
+
+def change_retry_host_check_interval(use_grpc: int, hst: str, retry_interval: int):
+    if use_grpc > 0:
+        with grpc.insecure_channel("127.0.0.1:50001") as channel:
+            stub = engine_pb2_grpc.EngineStub(channel)
+            stub.ChangeHostObjectIntVar(engine_pb2.ChangeObjectInt(
+                host_name=hst, mode=engine_pb2.ChangeObjectInt.Mode.RETRY_CHECK_INTERVAL, dval=retry_interval))
+    else:
+        now = int(time.time())
+        cmd = "[{}] CHANGE_RETRY_HOST_CHECK_INTERVAL;{};{}\n".format(
+            now, hst, retry_interval)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
+
+def change_max_svc_check_attempts(use_grpc: int, hst: str, svc: str, max_check_attempts: int):
+    if use_grpc > 0:
+        with grpc.insecure_channel("127.0.0.1:50001") as channel:
+            stub = engine_pb2_grpc.EngineStub(channel)
+            stub.ChangeServiceObjectIntVar(engine_pb2.ChangeObjectInt(
+                host_name=hst, service_desc=svc, mode=engine_pb2.ChangeObjectInt.Mode.MAX_ATTEMPTS, intval=max_check_attempts))
+    else:
+        now = int(time.time())
+        cmd = "[{}] CHANGE_MAX_SVC_CHECK_ATTEMPTS;{};{};{}\n".format(
+            now, hst, svc, max_check_attempts)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
+
+def change_max_host_check_attempts(use_grpc: int, hst: str, max_check_attempts: int):
+    if use_grpc > 0:
+        with grpc.insecure_channel("127.0.0.1:50001") as channel:
+            stub = engine_pb2_grpc.EngineStub(channel)
+            stub.ChangeHostObjectIntVar(engine_pb2.ChangeObjectInt(
+                host_name=hst, mode=engine_pb2.ChangeObjectInt.Mode.MAX_ATTEMPTS, intval=max_check_attempts))
+    else:
+        now = int(time.time())
+        cmd = "[{}] CHANGE_MAX_HOST_CHECK_ATTEMPTS;{};{}\n".format(
+            now, hst, max_check_attempts)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
 
 def change_host_check_command(hst: str, Check_Command: str):
     now = int(time.time())
@@ -652,21 +707,306 @@ def change_host_check_command(hst: str, Check_Command: str):
     f.write(cmd)
     f.close()
 
-def change_host_check_timeperiod(hst: str, check_timeperiod: str):
-    now = int(time.time())
-    cmd = "[{}] CHANGE_HOST_CHECK_TIMEPERIOD;{};{}\n".format(
-        now, hst, check_timeperiod)
-    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-    f.write(cmd)
-    f.close()
 
-def change_host_notification_timeperiod(hst: str, notification_timeperiod: str):
-    now = int(time.time())
-    cmd = "[{}] CHANGE_HOST_NOTIFICATION_TIMEPERIOD;{};{}\n".format(
-        now, hst, notification_timeperiod)
-    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-    f.write(cmd)
-    f.close()
+def change_host_check_timeperiod(use_grpc: int, hst: str, check_timeperiod: str):
+    if use_grpc > 0:
+        with grpc.insecure_channel("127.0.0.1:50001") as channel:
+            stub = engine_pb2_grpc.EngineStub(channel)
+            stub.ChangeHostObjectCharVar(engine_pb2.ChangeObjectChar(
+                host_name=hst, mode=engine_pb2.ChangeObjectChar.Mode.CHANGE_CHECK_TIMEPERIOD, charval=check_timeperiod))
+    else:
+        now = int(time.time())
+        cmd = "[{}] CHANGE_HOST_CHECK_TIMEPERIOD;{};{}\n".format(
+            now, hst, check_timeperiod)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
+
+def change_host_notification_timeperiod(use_grpc: int, hst: str, notification_timeperiod: str):
+    if use_grpc > 0:
+        with grpc.insecure_channel("127.0.0.1:50001") as channel:
+            stub = engine_pb2_grpc.EngineStub(channel)
+            stub.ChangeHostObjectCharVar(engine_pb2.ChangeObjectChar(
+                host_name=hst, mode=engine_pb2.ChangeObjectChar.Mode.CHANGE_NOTIFICATION_TIMEPERIOD, charval=notification_timeperiod))
+    else:
+        now = int(time.time())
+        cmd = "[{}] CHANGE_HOST_NOTIFICATION_TIMEPERIOD;{};{}\n".format(
+            now, hst, notification_timeperiod)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
+
+def change_svc_check_timeperiod(use_grpc: int, hst: str, svc: str, check_timeperiod: str):
+    if use_grpc > 0:
+        with grpc.insecure_channel("127.0.0.1:50001") as channel:
+            stub = engine_pb2_grpc.EngineStub(channel)
+            stub.ChangeServiceObjectCharVar(engine_pb2.ChangeObjectChar(
+                host_name=hst, service_desc=svc,  mode=engine_pb2.ChangeObjectChar.Mode.CHANGE_CHECK_TIMEPERIOD, charval=check_timeperiod))
+    else:
+        now = int(time.time())
+        cmd = "[{}] CHANGE_SVC_CHECK_TIMEPERIOD;{};{};{}\n".format(
+            now, hst, svc, check_timeperiod)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
+
+def change_svc_notification_timeperiod(use_grpc: int, hst: str, svc: str, notification_timeperiod: str):
+    if use_grpc > 0:
+        with grpc.insecure_channel("127.0.0.1:50001") as channel:
+            stub = engine_pb2_grpc.EngineStub(channel)
+            stub.ChangeServiceObjectCharVar(engine_pb2.ChangeObjectChar(
+                host_name=hst, service_desc=svc,  mode=engine_pb2.ChangeObjectChar.Mode.CHANGE_NOTIFICATION_TIMEPERIOD, charval=notification_timeperiod))
+    else:
+        now = int(time.time())
+        cmd = "[{}] CHANGE_SVC_NOTIFICATION_TIMEPERIOD;{};{};{}\n".format(
+            now, hst, svc, notification_timeperiod)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
+
+def disable_host_and_child_notifications(use_grpc: int, hst: str):
+    if use_grpc > 0:
+        with grpc.insecure_channel("127.0.0.1:50001") as channel:
+            stub = engine_pb2_grpc.EngineStub(channel)
+            stub.DisableHostAndChildNotifications(
+                engine_pb2.HostIdentifier(name=hst))
+    else:
+        now = int(time.time())
+        cmd = "[{}] DISABLE_HOST_AND_CHILD_NOTIFICATIONS;{}\n".format(
+            now, hst)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
+
+def enable_host_and_child_notifications(use_grpc: int, hst: str):
+    if use_grpc > 0:
+        with grpc.insecure_channel("127.0.0.1:50001") as channel:
+            stub = engine_pb2_grpc.EngineStub(channel)
+            stub.EnableHostAndChildNotifications(
+                engine_pb2.HostIdentifier(name=hst))
+    else:
+        now = int(time.time())
+        cmd = "[{}] ENABLE_HOST_AND_CHILD_NOTIFICATIONS;{}\n".format(
+            now, hst)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
+
+def disable_host_check(use_grpc: int, hst: str):
+    if use_grpc == 0:
+        now = int(time.time())
+        cmd = "[{}] DISABLE_HOST_CHECK;{}\n".format(
+            now, hst)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
+
+def enable_host_check(use_grpc: int, hst: str):
+    if use_grpc == 0:
+        now = int(time.time())
+        cmd = "[{}] ENABLE_HOST_CHECK;{}\n".format(
+            now, hst)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
+
+def disable_host_event_handler(use_grpc: int, hst: str):
+    if use_grpc == 0:
+        now = int(time.time())
+        cmd = "[{}] DISABLE_HOST_EVENT_HANDLER;{}\n".format(
+            now, hst)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
+
+def enable_host_event_handler(use_grpc: int, hst: str):
+    if use_grpc == 0:
+        now = int(time.time())
+        cmd = "[{}] ENABLE_HOST_EVENT_HANDLER;{}\n".format(
+            now, hst)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
+
+def disable_host_flap_detection(use_grpc: int, hst: str):
+    if use_grpc == 0:
+        now = int(time.time())
+        cmd = "[{}] DISABLE_HOST_FLAP_DETECTION;{}\n".format(
+            now, hst)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
+
+def enable_host_flap_detection(use_grpc: int, hst: str):
+    if use_grpc == 0:
+        now = int(time.time())
+        cmd = "[{}] ENABLE_HOST_FLAP_DETECTION;{}\n".format(
+            now, hst)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
+
+def disable_host_notifications(use_grpc: int, hst: str):
+    if use_grpc > 0:
+        with grpc.insecure_channel("127.0.0.1:50001") as channel:
+            stub = engine_pb2_grpc.EngineStub(channel)
+            stub.DisableHostNotifications(
+                engine_pb2.HostIdentifier(name=hst))
+    else:
+        now = int(time.time())
+        cmd = "[{}] DISABLE_HOST_NOTIFICATIONS;{}\n".format(
+            now, hst)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
+
+def enable_host_notifications(use_grpc: int, hst: str):
+    if use_grpc > 0:
+        with grpc.insecure_channel("127.0.0.1:50001") as channel:
+            stub = engine_pb2_grpc.EngineStub(channel)
+            stub.EnableHostNotifications(
+                engine_pb2.HostIdentifier(name=hst))
+    else:
+        now = int(time.time())
+        cmd = "[{}] ENABLE_HOST_NOTIFICATIONS;{}\n".format(
+            now, hst)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
+
+def disable_host_svc_checks(use_grpc: int, hst: str):
+    if use_grpc == 0:
+        now = int(time.time())
+        cmd = "[{}] DISABLE_HOST_SVC_CHECKS;{}\n".format(
+            now, hst)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
+
+def enable_host_svc_checks(use_grpc: int, hst: str):
+    if use_grpc == 0:
+        now = int(time.time())
+        cmd = "[{}] ENABLE_HOST_SVC_CHECKS;{}\n".format(
+            now, hst)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
+
+def disable_host_svc_notifications(use_grpc: int, hst: str):
+    if use_grpc == 0:
+        now = int(time.time())
+        cmd = "[{}] DISABLE_HOST_SVC_NOTIFICATIONS;{}\n".format(
+            now, hst)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
+
+def enable_host_svc_notifications(use_grpc: int, hst: str):
+    if use_grpc == 0:
+        now = int(time.time())
+        cmd = "[{}] ENABLE_HOST_SVC_NOTIFICATIONS;{}\n".format(
+            now, hst)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
+
+def disable_passive_host_checks(use_grpc: int, hst: str):
+    if use_grpc == 0:
+        now = int(time.time())
+        cmd = "[{}] DISABLE_PASSIVE_HOST_CHECKS;{}\n".format(
+            now, hst)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
+
+def enable_passive_host_checks(use_grpc: int, hst: str):
+    if use_grpc == 0:
+        now = int(time.time())
+        cmd = "[{}] ENABLE_PASSIVE_HOST_CHECKS;{}\n".format(
+            now, hst)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
+
+def disable_passive_svc_checks(use_grpc: int, hst: str, svc: str):
+    if use_grpc == 0:
+        now = int(time.time())
+        cmd = "[{}] DISABLE_PASSIVE_SVC_CHECKS;{};{}\n".format(
+            now, hst, svc)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
+
+def enable_passive_svc_checks(use_grpc: int, hst: str, svc: str):
+    if use_grpc == 0:
+        now = int(time.time())
+        cmd = "[{}] ENABLE_PASSIVE_SVC_CHECKS;{};{}\n".format(
+            now, hst, svc)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
+
+def start_obsessing_over_host(use_grpc: int, hst: str):
+    if use_grpc == 0:
+        now = int(time.time())
+        cmd = "[{}] START_OBSESSING_OVER_HOST;{}\n".format(
+            now, hst)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
+
+def stop_obsessing_over_host(use_grpc: int, hst: str):
+    if use_grpc == 0:
+        now = int(time.time())
+        cmd = "[{}] STOP_OBSESSING_OVER_HOST;{}\n".format(
+            now, hst)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
+
+def start_obsessing_over_svc(use_grpc: int, hst: str, svc: str):
+    if use_grpc == 0:
+        now = int(time.time())
+        cmd = "[{}] START_OBSESSING_OVER_SVC;{};{}\n".format(
+            now, hst, svc)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
+
+def stop_obsessing_over_svc(use_grpc: int, hst: str, svc: str):
+    if use_grpc == 0:
+        now = int(time.time())
+        cmd = "[{}] STOP_OBSESSING_OVER_SVC;{};{}\n".format(
+            now, hst, svc)
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
 
 def service_ext_commands(hst: str, svc: str, state: int, output: str):
     now = int(time.time())
@@ -675,6 +1015,7 @@ def service_ext_commands(hst: str, svc: str, state: int, output: str):
     f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
     f.write(cmd)
     f.close()
+
 
 def process_host_check_result(hst: str, state: int, output: str):
     now = int(time.time())
@@ -711,6 +1052,7 @@ def delete_host_downtimes(poller: int, hst: str):
     f.write(cmd)
     f.close()
 
+
 def schedule_forced_svc_check(host: str, svc: str, pipe: str = "/var/lib/centreon-engine/rw/centengine.cmd"):
     now = int(time.time())
     f = open(pipe, "w")
@@ -729,33 +1071,38 @@ def schedule_forced_host_check(host: str, pipe: str = "/var/lib/centreon-engine/
     time.sleep(0.05)
 
 
-def create_severities_file(poller: int, nb:int, offset:int = 1):
+def create_severities_file(poller: int, nb: int, offset: int = 1):
     engine.create_severities(poller, nb, offset)
 
-def create_template_file(poller: int, typ: str, what: str, ids:list):
+
+def create_template_file(poller: int, typ: str, what: str, ids: list):
     engine.create_template_file(poller, typ, what, ids)
 
-def create_template_file(poller: int, typ: str, what: str, ids:list):
+
+def create_template_file(poller: int, typ: str, what: str, ids: list):
     engine.create_template_file(poller, typ, what, ids)
 
-def create_tags_file(poller: int, nb:int, offset:int = 1):
+
+def create_tags_file(poller: int, nb: int, offset: int = 1):
     engine.create_tags(poller, nb, offset)
 
-def config_engine_add_cfg_file(poller:int, cfg:str):
+
+def config_engine_add_cfg_file(poller: int, cfg: str):
     ff = open("{}/config{}/centengine.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
     r = re.compile(r"^\s*cfg_file=")
     for i in range(len(lines)):
         if r.match(lines[i]):
-            lines.insert(i, "cfg_file={}/config{}/{}\n".format(CONF_DIR, poller, cfg))
+            lines.insert(
+                i, "cfg_file={}/config{}/{}\n".format(CONF_DIR, poller, cfg))
             break
     ff = open("{}/config{}/centengine.cfg".format(CONF_DIR, poller), "w+")
     ff.writelines(lines)
     ff.close()
 
 
-def add_severity_to_services(poller:int, severity_id:int, svc_lst):
+def add_severity_to_services(poller: int, severity_id: int, svc_lst):
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -771,7 +1118,7 @@ def add_severity_to_services(poller:int, severity_id:int, svc_lst):
     ff.close()
 
 
-def add_severity_to_hosts(poller:int, severity_id:int, svc_lst):
+def add_severity_to_hosts(poller: int, severity_id: int, svc_lst):
     ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -787,7 +1134,7 @@ def add_severity_to_hosts(poller:int, severity_id:int, svc_lst):
     ff.close()
 
 
-def add_template_to_services(poller:int, tmpl:str, svc_lst):
+def add_template_to_services(poller: int, tmpl: str, svc_lst):
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -795,13 +1142,15 @@ def add_template_to_services(poller:int, tmpl:str, svc_lst):
     for i in range(len(lines)):
         m = r.match(lines[i])
         if m is not None and m.group(1) in svc_lst:
-            lines.insert(i + 1, "    use                     {}\n".format(tmpl))
+            lines.insert(
+                i + 1, "    use                     {}\n".format(tmpl))
 
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "w")
     ff.writelines(lines)
     ff.close()
 
-def add_tags_to_services(poller:int, type:str, tag_id:str, svc_lst):
+
+def add_tags_to_services(poller: int, type: str, tag_id: str, svc_lst):
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -809,12 +1158,14 @@ def add_tags_to_services(poller:int, type:str, tag_id:str, svc_lst):
     for i in range(len(lines)):
         m = r.match(lines[i])
         if m is not None and m.group(1) in svc_lst:
-            lines.insert(i + 1, "    {}                     {}\n".format(type, tag_id))
+            lines.insert(
+                i + 1, "    {}                     {}\n".format(type, tag_id))
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "w")
     ff.writelines(lines)
     ff.close()
 
-def remove_severities_from_services(poller:int):
+
+def remove_severities_from_services(poller: int):
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -824,7 +1175,8 @@ def remove_severities_from_services(poller:int):
     ff.writelines(out)
     ff.close()
 
-def remove_severities_from_hosts(poller:int):
+
+def remove_severities_from_hosts(poller: int):
     ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -867,7 +1219,8 @@ def check_search(debug_file_path: str, str_to_search):
                 return "connector::run not found"
         return "check_search don t find " + str_to_search
 
-def add_tags_to_hosts(poller:int, type:str, tag_id:str, hst_lst):
+
+def add_tags_to_hosts(poller: int, type: str, tag_id: str, hst_lst):
     ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -875,13 +1228,15 @@ def add_tags_to_hosts(poller:int, type:str, tag_id:str, hst_lst):
     for i in range(len(lines)):
         m = r.match(lines[i])
         if m is not None and m.group(1) in hst_lst:
-            lines.insert(i + 1, "    {}                     {}\n".format(type, tag_id))
+            lines.insert(
+                i + 1, "    {}                     {}\n".format(type, tag_id))
 
     ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "w")
     ff.writelines(lines)
     ff.close()
 
-def remove_tags_from_services(poller:int, type:str):
+
+def remove_tags_from_services(poller: int, type: str):
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -891,7 +1246,8 @@ def remove_tags_from_services(poller:int, type:str):
     ff.writelines(lines)
     ff.close()
 
-def remove_tags_from_hosts(poller:int, type:str):
+
+def remove_tags_from_hosts(poller: int, type: str):
     ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -901,7 +1257,8 @@ def remove_tags_from_hosts(poller:int, type:str):
     ff.writelines(lines)
     ff.close()
 
-def add_template_to_services(poller:int, tmpl:str, svc_lst):
+
+def add_template_to_services(poller: int, tmpl: str, svc_lst):
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -909,13 +1266,15 @@ def add_template_to_services(poller:int, tmpl:str, svc_lst):
     for i in range(len(lines)):
         m = r.match(lines[i])
         if m is not None and m.group(1) in svc_lst:
-            lines.insert(i + 1, "    use                     {}\n".format(tmpl))
+            lines.insert(
+                i + 1, "    use                     {}\n".format(tmpl))
 
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "w")
     ff.writelines(lines)
     ff.close()
 
-def add_template_to_hosts(poller:int, tmpl:str, hst_lst):
+
+def add_template_to_hosts(poller: int, tmpl: str, hst_lst):
     ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
@@ -923,17 +1282,20 @@ def add_template_to_hosts(poller:int, tmpl:str, hst_lst):
     for i in range(len(lines)):
         m = r.match(lines[i])
         if m is not None and m.group(1) in hst_lst:
-            lines.insert(i + 1, "    use                     {}\n".format(tmpl))
+            lines.insert(
+                i + 1, "    use                     {}\n".format(tmpl))
 
     ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "w")
     ff.writelines(lines)
     ff.close()
 
-def config_engine_remove_cfg_file(poller:int, fic:str):
+
+def config_engine_remove_cfg_file(poller: int, fic: str):
     ff = open("{}/config{}/centengine.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
-    r = re.compile(r"^\s*cfg_file=/etc/centreon-engine/config{}/{}".format(poller, fic))
+    r = re.compile(
+        r"^\s*cfg_file=/etc/centreon-engine/config{}/{}".format(poller, fic))
     linesearch = [l for l in lines if not r.match(l)]
     ff = open("{}/config{}/centengine.cfg".format(CONF_DIR, poller), "w")
     ff.writelines(linesearch)

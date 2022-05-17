@@ -19,7 +19,6 @@
 #ifndef CCB_EXCEPTIONS_INTERRUPT_HH
 #define CCB_EXCEPTIONS_INTERRUPT_HH
 
-#include <exception>
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()

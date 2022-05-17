@@ -21,10 +21,6 @@
 #include <QSqlError>
 #include <QSqlQuery>
 #include <QSqlRecord>
-#include <fstream>
-#include <iostream>
-#include <map>
-#include <set>
 #include <sstream>
 #include "com/centreon/broker/exceptions/msg.hh"
 #include "test/predicate.hh"

@@ -19,12 +19,6 @@
 #ifndef CCB_BAM_REPORTING_STREAM_HH
 #define CCB_BAM_REPORTING_STREAM_HH
 
-#include <map>
-#include <memory>
-#include <mutex>
-#include <unordered_map>
-#include <vector>
-
 #include "bbdo/bam/ba_event.hh"
 #include "com/centreon/broker/bam/availability_thread.hh"
 #include "com/centreon/broker/bam/timeperiod_map.hh"

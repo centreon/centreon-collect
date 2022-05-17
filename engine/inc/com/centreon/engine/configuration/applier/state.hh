@@ -31,7 +31,6 @@ CCE_BEGIN()
 namespace commands {
 class command;
 class connector;
-class service;
 }  // namespace commands
 
 namespace retention {

@@ -19,8 +19,6 @@
 #ifndef CCB_CORE_TIME_PTR_TYPEDEF_HH
 #define CCB_CORE_TIME_PTR_TYPEDEF_HH
 
-#include <memory>
-
 #define DECLARE_SHARED_PTR(klass) typedef std::shared_ptr<klass> ptr
 
 #endif  // !CCB_CORE_TIME_PTR_TYPEDEF_HH

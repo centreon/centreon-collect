@@ -19,9 +19,7 @@
 #ifndef CCB_TIMESTAMP_HH
 #define CCB_TIMESTAMP_HH
 
-#include <ctime>
 #include <istream>
-#include <limits>
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()

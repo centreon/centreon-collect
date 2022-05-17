@@ -18,9 +18,6 @@
 
 #include "com/centreon/broker/bam/factory.hh"
 
-#include <cstring>
-#include <memory>
-
 #include "com/centreon/broker/bam/connector.hh"
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/database_config.hh"

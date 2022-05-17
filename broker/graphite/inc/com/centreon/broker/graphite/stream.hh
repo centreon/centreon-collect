@@ -19,13 +19,6 @@
 #ifndef CCB_GRAPHITE_STREAM_HH
 #define CCB_GRAPHITE_STREAM_HH
 
-#include <asio.hpp>
-#include <deque>
-#include <list>
-#include <map>
-#include <memory>
-#include <mutex>
-#include <utility>
 #include "bbdo/storage/metric.hh"
 #include "bbdo/storage/status.hh"
 #include "com/centreon/broker/graphite/macro_cache.hh"

@@ -20,8 +20,6 @@
 
 #include <unistd.h>
 
-#include <map>
-
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/misc/string.hh"
 

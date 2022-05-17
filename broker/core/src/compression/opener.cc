@@ -17,7 +17,6 @@
 */
 
 #include "com/centreon/broker/compression/opener.hh"
-#include <memory>
 #include "com/centreon/broker/compression/stream.hh"
 
 using namespace com::centreon::broker;

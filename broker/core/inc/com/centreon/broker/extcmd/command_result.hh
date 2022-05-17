@@ -19,7 +19,6 @@
 #ifndef CCB_EXTCMD_COMMAND_RESULT_HH
 #define CCB_EXTCMD_COMMAND_RESULT_HH
 
-#include <string>
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/io/event_info.hh"
 #include "com/centreon/broker/mapping/entry.hh"

@@ -19,15 +19,6 @@
 #ifndef CCB_PROCESSING_ACCEPTOR_HH
 #define CCB_PROCESSING_ACCEPTOR_HH
 
-#include <absl/container/flat_hash_set.h>
-#include <atomic>
-#include <condition_variable>
-#include <ctime>
-#include <list>
-#include <memory>
-#include <string>
-#include <thread>
-
 #include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/processing/endpoint.hh"
 

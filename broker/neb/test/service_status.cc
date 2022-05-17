@@ -19,7 +19,6 @@
 #include "com/centreon/broker/neb/service_status.hh"
 #include <gtest/gtest.h>
 #include <cmath>
-#include <cstdlib>
 #include "randomize.hh"
 
 using namespace com::centreon::broker;

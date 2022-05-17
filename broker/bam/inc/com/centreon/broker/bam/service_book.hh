@@ -19,9 +19,6 @@
 #ifndef CCB_BAM_SERVICE_BOOK_HH
 #define CCB_BAM_SERVICE_BOOK_HH
 
-#include <map>
-#include <memory>
-
 #include "com/centreon/broker/bam/service_listener.hh"
 #include "com/centreon/broker/io/stream.hh"
 

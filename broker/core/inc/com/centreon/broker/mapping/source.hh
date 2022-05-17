@@ -19,8 +19,6 @@
 #ifndef CCB_MAPPING_SOURCE_HH
 #define CCB_MAPPING_SOURCE_HH
 
-#include <string>
-
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/timestamp.hh"

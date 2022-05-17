@@ -18,9 +18,6 @@
 #ifndef CCB_MISC_FIFO_HH
 #define CCB_MISC_FIFO_HH
 #include <cassert>
-#include <chrono>
-#include <condition_variable>
-#include <mutex>
 
 #include "com/centreon/broker/namespace.hh"
 

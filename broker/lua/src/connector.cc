@@ -17,7 +17,6 @@
 */
 
 #include "com/centreon/broker/lua/connector.hh"
-#include <fstream>
 #include "com/centreon/broker/lua/stream.hh"
 
 using namespace com::centreon::broker;

@@ -19,7 +19,6 @@
 #ifndef CCB_IO_DATA_HH
 #define CCB_IO_DATA_HH
 
-#include <cstdint>
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()

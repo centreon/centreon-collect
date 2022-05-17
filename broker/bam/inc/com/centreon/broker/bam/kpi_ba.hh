@@ -19,8 +19,6 @@
 #ifndef CCB_BAM_KPI_BA_HH
 #define CCB_BAM_KPI_BA_HH
 
-#include <memory>
-
 #include "bbdo/bam/kpi_event.hh"
 #include "bbdo/bam/state.hh"
 #include "com/centreon/broker/bam/impact_values.hh"

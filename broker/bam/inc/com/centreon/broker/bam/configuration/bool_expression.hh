@@ -19,8 +19,6 @@
 #ifndef BAM_CCB_CONFIGURATION_BOOL_EXPRESSION_HH
 #define BAM_CCB_CONFIGURATION_BOOL_EXPRESSION_HH
 
-#include <list>
-#include <string>
 #include "bbdo/bam/kpi_event.hh"
 #include "com/centreon/broker/namespace.hh"
 

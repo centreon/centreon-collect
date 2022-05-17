@@ -19,7 +19,6 @@
 #ifndef CCB_CEOF_CEOF_WRITER_HH
 #define CCB_CEOF_CEOF_WRITER_HH
 
-#include <string>
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()

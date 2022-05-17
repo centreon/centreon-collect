@@ -19,7 +19,6 @@
 #ifndef CCB_INFLUXDB_COLUMN_HH
 #define CCB_INFLUXDB_COLUMN_HH
 
-#include <string>
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()

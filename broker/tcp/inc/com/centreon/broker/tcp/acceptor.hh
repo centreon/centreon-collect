@@ -19,11 +19,6 @@
 #ifndef CCB_TCP_ACCEPTOR_HH
 #define CCB_TCP_ACCEPTOR_HH
 
-#include <asio.hpp>
-#include <list>
-#include <memory>
-#include <mutex>
-
 #include "com/centreon/broker/io/endpoint.hh"
 #include "com/centreon/broker/namespace.hh"
 

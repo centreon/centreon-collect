@@ -18,8 +18,6 @@
 
 #include "com/centreon/broker/bam/kpi.hh"
 
-#include <ctime>
-
 #include "com/centreon/broker/bam/ba.hh"
 
 using namespace com::centreon::broker;

@@ -18,10 +18,6 @@
  */
 #include <gtest/gtest.h>
 
-#include <cstdlib>
-#include <mutex>
-#include <thread>
-
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/file/cfile.hh"
 #include "com/centreon/broker/file/splitter.hh"

@@ -19,8 +19,6 @@
 #ifndef CCB_BAM_CONFIGURATION_APPLIER_STATE_HH
 #define CCB_BAM_CONFIGURATION_APPLIER_STATE_HH
 
-#include <set>
-#include <string>
 #include "com/centreon/broker/bam/configuration/applier/ba.hh"
 #include "com/centreon/broker/bam/configuration/applier/bool_expression.hh"
 #include "com/centreon/broker/bam/configuration/applier/kpi.hh"

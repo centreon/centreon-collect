@@ -19,8 +19,6 @@
 #ifndef CCB_NEB_CHECK_HH
 #define CCB_NEB_CHECK_HH
 
-#include <string>
-
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/namespace.hh"

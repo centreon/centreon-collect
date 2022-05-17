@@ -19,8 +19,6 @@
 #include "com/centreon/broker/lua/broker_event.hh"
 #include <google/protobuf/message.h>
 
-#include <cstring>
-
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/io/protobuf.hh"
 #include "com/centreon/broker/mapping/entry.hh"

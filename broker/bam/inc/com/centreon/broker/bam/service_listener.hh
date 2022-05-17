@@ -19,8 +19,6 @@
 #ifndef CCB_BAM_SERVICE_LISTENER_HH
 #define CCB_BAM_SERVICE_LISTENER_HH
 
-#include <memory>
-
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/neb/internal.hh"

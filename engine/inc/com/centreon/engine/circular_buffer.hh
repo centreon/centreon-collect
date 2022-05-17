@@ -23,16 +23,73 @@
 #ifndef CCE_COMPATIBILITY_CIRCULAR_BUFFER_HH
 #define CCE_COMPATIBILITY_CIRCULAR_BUFFER_HH
 
-#include <pthread.h>
+template <class T>
+class circular_buffer : protected boost::circular_buffer<T> {
+  mutable std::mutex _protect;
+  using base_class = boost::circular_buffer<T>;
 
-typedef struct circular_buffer_struct {
-  void** buffer;
-  int tail;
-  int head;
-  int items;
-  int high;
-  unsigned long overflow;
-  pthread_mutex_t buffer_lock;
-} circular_buffer;
+  size_t _high;
+
+ public:
+  circular_buffer();
+  void push(const T& to_push);
+  boost::optional<T> pop();
+
+  void set_capacity(size_t capacity);
+  void clear();
+  bool full() const;
+  bool empty() const;
+  size_t size() const { return base_class::size(); }
+  size_t high() const { return _high; }
+};
+
+template <class T>
+circular_buffer<T>::circular_buffer() : _high(0) {}
+
+template <class T>
+void circular_buffer<T>::push(const T& to_push) {
+  std::lock_guard<std::mutex> l(_protect);
+  base_class::push_back(to_push);
+  if (base_class::size() > _high) {
+    _high = base_class::size();
+  }
+}
+
+template <class T>
+boost::optional<T> circular_buffer<T>::pop() {
+  std::lock_guard<std::mutex> l(_protect);
+  if (base_class::empty()) {
+    return boost::none;
+  }
+  T ret(*base_class::begin());
+  base_class::pop_front();
+  return ret;
+}
+
+template <class T>
+void circular_buffer<T>::clear() {
+  std::lock_guard<std::mutex> l(_protect);
+  base_class::clear();
+}
+
+template <class T>
+bool circular_buffer<T>::full() const {
+  std::lock_guard<std::mutex> l(_protect);
+  return base_class::full();
+}
+
+template <class T>
+bool circular_buffer<T>::empty() const {
+  std::lock_guard<std::mutex> l(_protect);
+  return base_class::empty();
+}
+
+template <class T>
+void circular_buffer<T>::set_capacity(size_t new_capacity) {
+  std::lock_guard<std::mutex> l(_protect);
+  if (new_capacity != base_class::capacity()) {
+    base_class::set_capacity(new_capacity);
+  }
+}
 
 #endif  // !CCE_COMPATIBILITY_CIRCULAR_BUFFER_HH

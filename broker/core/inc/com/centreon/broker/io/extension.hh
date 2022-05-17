@@ -19,8 +19,6 @@
 #ifndef CCB_IO_EXTENSION_HH
 #define CCB_IO_EXTENSION_HH
 
-#include <string>
-#include <unordered_map>
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()

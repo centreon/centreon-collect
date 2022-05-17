@@ -19,8 +19,6 @@
 #ifndef CCB_BAM_CONFIGURATION_APPLIER_BA_HH
 #define CCB_BAM_CONFIGURATION_APPLIER_BA_HH
 
-#include <map>
-#include <memory>
 #include "com/centreon/broker/bam/ba.hh"
 #include "com/centreon/broker/bam/configuration/ba.hh"
 #include "com/centreon/broker/bam/configuration/state.hh"

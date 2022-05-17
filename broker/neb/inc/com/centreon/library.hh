@@ -20,7 +20,6 @@
 #define CC_LIBRARY_POSIX_HH
 
 #include <dlfcn.h>
-#include <string>
 #include "com/centreon/namespace.hh"
 
 CC_BEGIN()

@@ -20,8 +20,6 @@
 
 #include <cfloat>
 #include <cmath>
-#include <cstdlib>
-#include <cstring>
 
 #include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric.hh"

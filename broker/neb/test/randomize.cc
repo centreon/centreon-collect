@@ -18,11 +18,6 @@
  */
 
 #include "randomize.hh"
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <list>
-#include <vector>
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/mapping/entry.hh"

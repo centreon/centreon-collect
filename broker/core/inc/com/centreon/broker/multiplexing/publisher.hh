@@ -19,8 +19,6 @@
 #ifndef CCB_MULTIPLEXING_PUBLISHER_HH
 #define CCB_MULTIPLEXING_PUBLISHER_HH
 
-#include <list>
-
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/namespace.hh"
 

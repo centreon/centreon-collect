@@ -17,8 +17,6 @@
 */
 #include <errmsg.h>
 
-#include <cstring>
-
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/mysql_manager.hh"

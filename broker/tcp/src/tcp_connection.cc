@@ -17,12 +17,9 @@
 */
 #include "com/centreon/broker/tcp/tcp_connection.hh"
 
-#include <functional>
-#include <thread>
-
 #include "com/centreon/broker/log_v2.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/misc/string.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker::tcp;
@@ -108,7 +105,6 @@ int32_t tcp_connection::flush() {
   }
   return retval;
 }
-
 
 /**
  * @brief Write data on the socket. This function returns immediatly and does

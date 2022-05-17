@@ -19,9 +19,6 @@
 #include "com/centreon/broker/persistent_cache.hh"
 #include <unistd.h>
 #include <cerrno>
-#include <cstdio>
-#include <cstring>
-#include <fstream>
 #include "com/centreon/broker/bbdo/stream.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/file/opener.hh"

@@ -19,8 +19,6 @@
 #ifndef CCB_BAM_CONFIGURATION_APPLIER_KPI_HH
 #define CCB_BAM_CONFIGURATION_APPLIER_KPI_HH
 
-#include <map>
-#include <memory>
 #include "com/centreon/broker/bam/configuration/kpi.hh"
 #include "com/centreon/broker/bam/configuration/state.hh"
 #include "com/centreon/broker/bam/kpi.hh"

@@ -17,10 +17,10 @@
  *
  */
 
-#include "com/centreon/broker/tcp/acceptor.hh"
-
 #include <fmt/format.h>
 #include <gtest/gtest.h>
+
+#include "com/centreon/broker/tcp/acceptor.hh"
 
 #include <nlohmann/json.hpp>
 

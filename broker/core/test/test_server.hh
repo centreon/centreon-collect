@@ -19,12 +19,6 @@
 #ifndef CENTREON_BROKER_CORE_TEST_TEST_SERVER_HH_
 #define CENTREON_BROKER_CORE_TEST_TEST_SERVER_HH_
 
-#include <asio.hpp>
-#include <atomic>
-#include <list>
-#include <memory>
-#include <unordered_map>
-
 struct test_server_connection {
   asio::ip::tcp::socket socket;
   char* buf;

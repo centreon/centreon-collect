@@ -20,8 +20,6 @@
 #define CCB_TEST_CENTENGINE_HH
 
 #include <QProcess>
-#include <fstream>
-#include <string>
 #include "com/centreon/broker/namespace.hh"
 #include "test/centengine_config.hh"
 #include "test/centengine_extcmd.hh"

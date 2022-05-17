@@ -19,10 +19,10 @@
 
 #include "test_engine.hh"
 
+#include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/configuration/applier/command.hh"
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
 #include "com/centreon/engine/configuration/state.hh"
-#include "com/centreon/engine/modules/external_commands/commands.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::downtimes;

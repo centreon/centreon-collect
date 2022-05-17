@@ -17,7 +17,6 @@
  *
  */
 
-#include <vector>
 #include "com/centreon/broker/config/state.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/stats/parser.hh"

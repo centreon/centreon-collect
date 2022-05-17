@@ -18,11 +18,6 @@
  */
 #include "com/centreon/broker/config/parser.hh"
 #include <gtest/gtest.h>
-#include <algorithm>
-#include <cstdio>
-#include <cstdlib>
-#include <fstream>
-#include <iostream>
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 

@@ -21,8 +21,6 @@
 
 #include <gnutls/gnutls.h>
 
-#include <vector>
-
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/namespace.hh"
 

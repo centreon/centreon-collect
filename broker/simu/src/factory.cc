@@ -17,8 +17,6 @@
 */
 
 #include "com/centreon/broker/simu/factory.hh"
-#include <cstring>
-#include <memory>
 #include <nlohmann/json.hpp>
 #include "com/centreon/broker/misc/variant.hh"
 #include "com/centreon/broker/simu/connector.hh"

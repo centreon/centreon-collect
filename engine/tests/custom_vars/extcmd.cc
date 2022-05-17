@@ -25,7 +25,7 @@
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/engine/macros/grab_host.hh"
-#include "com/centreon/engine/modules/external_commands/commands.hh"
+#include "com/centreon/engine/commands/commands.hh"
 #include "helper.hh"
 
 using namespace com::centreon;

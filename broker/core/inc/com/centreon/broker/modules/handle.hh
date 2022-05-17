@@ -20,7 +20,6 @@
 #define CCB_MODULES_HANDLE_HH
 
 #include <dlfcn.h>
-#include <string>
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()

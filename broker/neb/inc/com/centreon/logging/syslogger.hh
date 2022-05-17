@@ -19,7 +19,6 @@
 #ifndef CC_LOGGING_SYSLOGGER_HH
 #define CC_LOGGING_SYSLOGGER_HH
 
-#include <string>
 #include "com/centreon/logging/backend.hh"
 #include "com/centreon/namespace.hh"
 

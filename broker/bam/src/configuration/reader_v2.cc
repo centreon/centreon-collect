@@ -20,10 +20,6 @@
 
 #include <fmt/format.h>
 
-#include <cstring>
-#include <deque>
-#include <memory>
-
 #include "bbdo/bam/dimension_ba_bv_relation_event.hh"
 #include "bbdo/bam/dimension_ba_event.hh"
 #include "bbdo/bam/dimension_ba_timeperiod_relation.hh"

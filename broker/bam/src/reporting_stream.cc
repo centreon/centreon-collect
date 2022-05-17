@@ -18,8 +18,6 @@
 
 #include "com/centreon/broker/bam/reporting_stream.hh"
 
-#include <cstdlib>
-
 #include "bbdo/bam/ba_duration_event.hh"
 #include "bbdo/bam/ba_event.hh"
 #include "bbdo/bam/dimension_ba_bv_relation_event.hh"

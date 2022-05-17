@@ -21,8 +21,6 @@
 
 #include <gtest/gtest.h>
 
-#include <fstream>
-
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;

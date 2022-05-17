@@ -21,10 +21,6 @@
 #include <unistd.h>
 
 #include <cassert>
-#include <cstdio>
-#include <cstdlib>
-#include <utility>
-#include <vector>
 
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/io/events.hh"

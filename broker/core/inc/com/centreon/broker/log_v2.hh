@@ -21,8 +21,6 @@
 #include <spdlog/common.h>
 #include <spdlog/spdlog.h>
 
-#include <memory>
-
 #include "com/centreon/broker/config/state.hh"
 #include "com/centreon/broker/namespace.hh"
 

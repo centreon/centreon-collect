@@ -19,8 +19,6 @@
 #ifndef CCB_BAM_BOOL_BINARY_OPERATOR_HH
 #define CCB_BAM_BOOL_BINARY_OPERATOR_HH
 
-#include <memory>
-
 #include "com/centreon/broker/bam/bool_value.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/namespace.hh"

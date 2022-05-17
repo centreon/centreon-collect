@@ -18,9 +18,6 @@
 
 #include "com/centreon/broker/tls/factory.hh"
 
-#include <cstring>
-#include <memory>
-
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/tls/acceptor.hh"

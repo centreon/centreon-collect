@@ -20,7 +20,6 @@
 #define CCB_TEST_VISITOR_HH
 
 #include <fmt/format.h>
-#include <string>
 #include "com/centreon/broker/io/stream.hh"
 
 CCB_BEGIN()

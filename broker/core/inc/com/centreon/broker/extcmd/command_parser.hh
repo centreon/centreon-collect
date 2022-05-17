@@ -19,7 +19,6 @@
 #ifndef CCB_EXTCMD_COMMAND_PARSER_HH
 #define CCB_EXTCMD_COMMAND_PARSER_HH
 
-#include <string>
 #include "com/centreon/broker/extcmd/command_listener.hh"
 #include "com/centreon/broker/extcmd/command_request.hh"
 #include "com/centreon/broker/extcmd/command_result.hh"

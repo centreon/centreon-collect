@@ -19,7 +19,6 @@
 #ifndef CCB_CORE_TIME_TIME_INFO_HH
 #define CCB_CORE_TIME_TIME_INFO_HH
 
-#include <ctime>
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()

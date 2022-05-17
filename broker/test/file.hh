@@ -19,8 +19,6 @@
 #ifndef CCB_TEST_FILE_HH
 #define CCB_TEST_FILE_HH
 
-#include <map>
-#include <string>
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()

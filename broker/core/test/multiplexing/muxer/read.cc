@@ -18,7 +18,7 @@
  */
 
 #include <gtest/gtest.h>
-#include <memory>
+
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"

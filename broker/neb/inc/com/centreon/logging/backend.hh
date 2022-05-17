@@ -19,7 +19,6 @@
 #ifndef CC_LOGGING_BACKEND_HH
 #define CC_LOGGING_BACKEND_HH
 
-#include <mutex>
 #include "com/centreon/namespace.hh"
 
 CC_BEGIN()

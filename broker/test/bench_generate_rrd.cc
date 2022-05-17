@@ -18,11 +18,6 @@
 
 #include <sys/stat.h>
 #include <sys/time.h>
-#include <cstdio>
-#include <cstdlib>
-#include <ctime>
-#include <fstream>
-#include <iostream>
 #include <sstream>
 #include "com/centreon/broker/exceptions/msg.hh"
 #include "test/cbd.hh"

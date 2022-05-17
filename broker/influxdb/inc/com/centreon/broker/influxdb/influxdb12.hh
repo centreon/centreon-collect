@@ -19,9 +19,6 @@
 #ifndef CCB_INFLUXDB_INFLUXDB12_HH
 #define CCB_INFLUXDB_INFLUXDB12_HH
 
-#include <asio.hpp>
-#include <memory>
-#include <string>
 #include "bbdo/storage/metric.hh"
 #include "com/centreon/broker/influxdb/column.hh"
 #include "com/centreon/broker/influxdb/influxdb.hh"

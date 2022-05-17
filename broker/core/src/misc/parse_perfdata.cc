@@ -16,12 +16,9 @@
 ** For more information : contact@centreon.com
 */
 
-#include <algorithm>
 #include <cctype>
 #include <cfloat>
 #include <cmath>
-#include <cstdlib>
-#include <cstring>
 
 #include "bbdo/storage/metric.hh"
 #include "com/centreon/broker/database/table_max_size.hh"
@@ -127,8 +124,8 @@ static inline void extract_range(double* low,
  * @return A list of perfdata
  */
 std::list<perfdata> misc::parse_perfdata(uint32_t host_id,
-                                   uint32_t service_id,
-                                   const char* str) {
+                                         uint32_t service_id,
+                                         const char* str) {
   std::list<perfdata> retval;
   auto id = [host_id, service_id] {
     if (host_id || service_id)

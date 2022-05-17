@@ -16,7 +16,6 @@
  * For more information : contact@centreon.com
  *
  */
-#include "com/centreon/engine/enginerpc.hh"
 
 #include <gtest/gtest.h>
 
@@ -25,11 +24,16 @@
 #include <fstream>
 #include <thread>
 
+#include "com/centreon/engine/host.hh"
+
+#include "com/centreon/engine/enginerpc.hh"
+
 #include "../test_engine.hh"
 #include "../timeperiod/utils.hh"
 #include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/command_manager.hh"
+#include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/configuration/applier/anomalydetection.hh"
 #include "com/centreon/engine/configuration/applier/command.hh"
@@ -42,7 +46,6 @@
 #include "com/centreon/engine/configuration/hostgroup.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/events/loop.hh"
-#include "com/centreon/engine/modules/external_commands/commands.hh"
 #include "com/centreon/engine/timezone_manager.hh"
 #include "com/centreon/engine/version.hh"
 #include "helper.hh"

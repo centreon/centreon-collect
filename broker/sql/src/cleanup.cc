@@ -20,8 +20,6 @@
 
 #include <unistd.h>
 
-#include <ctime>
-
 #include "com/centreon/broker/database/mysql_error.hh"
 #include "com/centreon/broker/mysql.hh"
 

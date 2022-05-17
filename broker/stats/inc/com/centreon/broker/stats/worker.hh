@@ -20,10 +20,6 @@
 #ifndef CCB_STATS_WORKER_HH
 #define CCB_STATS_WORKER_HH
 
-#include <atomic>
-#include <string>
-#include <thread>
-
 namespace com {
 namespace centreon {
 namespace broker {

@@ -20,81 +20,87 @@
 #define CCB_MISC_TRASH_HH
 
 #include <forward_list>
-#include <ctime>
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()
 
 namespace misc {
-    /**
-     * @brief this class is a delayed trash where objects are thrown on. Then they are dereferenced after a time passed in parameter
-     * it s can be used for objects involved in unsafe asynchronous operations where we aren t sure of objects owning by asynchronous layers
-     * 
-     * TODO: if we used boost, replace forward_list by a multi_index_container
-     * @tparam T objects to delete
-     */
-    template <class T>
-    class trash {
-    public:
-        using element_pointer = std::shared_ptr<T>;
-    protected:
-        struct element_erase_pair{
-            element_erase_pair() {}
-            element_erase_pair(const element_pointer & element, time_t time_to_eras)
-            :elem(element), time_to_erase(time_to_eras) {}
+/**
+ * @brief this class is a delayed trash where objects are thrown on. Then they
+ * are dereferenced after a time passed in parameter it s can be used for
+ * objects involved in unsafe asynchronous operations where we aren t sure of
+ * objects owning by asynchronous layers
+ *
+ * TODO: if we used boost, replace forward_list by a multi_index_container
+ * @tparam T objects to delete
+ */
+template <class T>
+class trash {
+ public:
+  using element_pointer = std::shared_ptr<T>;
 
-            element_pointer elem;
-            time_t time_to_erase;
-        };
+ protected:
+  struct element_erase_pair {
+    element_erase_pair() {}
+    element_erase_pair(const element_pointer& element, time_t time_to_eras)
+        : elem(element), time_to_erase(time_to_eras) {}
 
-        using trash_content = std::forward_list<element_erase_pair>;
+    element_pointer elem;
+    time_t time_to_erase;
+  };
 
-        trash_content _content;
-        std::mutex _protect;
+  using trash_content = std::forward_list<element_erase_pair>;
 
-        void clean();
-    public:
-        void to_trash(const element_pointer & to_throw, time_t time_to_erase);
-        void refresh_time_to_erase(const element_pointer & to_throw, time_t time_to_erase);
-        ~trash() noexcept = default;
-    };
+  trash_content _content;
+  std::mutex _protect;
 
-    /**
-     * @brief dereference perempted objects
-     * not mutex protected
-     * @tparam T 
-     */
-    template <class T>
-    void trash<T>::clean() {
-        time_t now = time(nullptr);
-        _content.remove_if([now](const element_erase_pair & toTest) { return toTest.time_to_erase <  now;});
+  void clean();
+
+ public:
+  void to_trash(const element_pointer& to_throw, time_t time_to_erase);
+  void refresh_time_to_erase(const element_pointer& to_throw,
+                             time_t time_to_erase);
+  ~trash() noexcept = default;
+};
+
+/**
+ * @brief dereference perempted objects
+ * not mutex protected
+ * @tparam T
+ */
+template <class T>
+void trash<T>::clean() {
+  time_t now = time(nullptr);
+  _content.remove_if([now](const element_erase_pair& toTest) {
+    return toTest.time_to_erase < now;
+  });
+}
+
+template <class T>
+void trash<T>::to_trash(const element_pointer& to_throw, time_t time_to_erase) {
+  std::unique_lock<std::mutex> l(_protect);
+  clean();
+  for (element_erase_pair toUpdate : _content) {
+    if (toUpdate.elem == to_throw) {
+      toUpdate.time_to_erase = time_to_erase;
+      return;
     }
+  }
+  _content.emplace_front(to_throw, time_to_erase);
+}
 
-    template <class T>
-    void trash<T>::to_trash(const element_pointer & to_throw, time_t time_to_erase) {
-        std::unique_lock<std::mutex> l(_protect);
-        clean();
-        for (element_erase_pair toUpdate: _content) {
-            if (toUpdate.elem == to_throw) {
-                toUpdate.time_to_erase = time_to_erase;
-                return;
-            }
-        }
-        _content.emplace_front(to_throw, time_to_erase);
+template <class T>
+void trash<T>::refresh_time_to_erase(const element_pointer& to_update,
+                                     time_t time_to_erase) {
+  std::unique_lock<std::mutex> l(_protect);
+  clean();
+  for (element_erase_pair toUpdate : _content) {
+    if (toUpdate.elem == to_update) {
+      toUpdate.time_to_erase = time_to_erase;
+      return;
     }
-
-    template <class T>
-    void trash<T>::refresh_time_to_erase(const element_pointer & to_update, time_t time_to_erase) {
-        std::unique_lock<std::mutex> l(_protect);
-        clean();
-        for (element_erase_pair toUpdate: _content) {
-            if (toUpdate.elem == to_update) {
-                toUpdate.time_to_erase = time_to_erase;
-                return;
-            }
-        }
-    }
-
+  }
+}
 
 }  // namespace misc
 

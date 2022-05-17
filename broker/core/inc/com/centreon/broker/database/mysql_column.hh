@@ -22,7 +22,6 @@
 #include <fmt/format.h>
 #include <mysql.h>
 #include <cmath>
-#include <vector>
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()

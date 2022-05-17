@@ -19,10 +19,6 @@
 #ifndef CCB_BBDO_ACCEPTOR_HH
 #define CCB_BBDO_ACCEPTOR_HH
 
-#include <ctime>
-#include <list>
-#include <string>
-
 #include "com/centreon/broker/io/endpoint.hh"
 #include "com/centreon/broker/io/extension.hh"
 

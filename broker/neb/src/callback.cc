@@ -18,8 +18,6 @@
 
 #include "com/centreon/broker/neb/callback.hh"
 
-#include <cstdlib>
-
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/nebcallbacks.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"

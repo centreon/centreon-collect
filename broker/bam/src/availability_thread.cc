@@ -18,8 +18,6 @@
 
 #include "com/centreon/broker/bam/availability_thread.hh"
 
-#include <ctime>
-
 #include "com/centreon/broker/database/mysql_error.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/time.hh"

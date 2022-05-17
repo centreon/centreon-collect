@@ -19,8 +19,6 @@
 #ifndef CCB_IO_PROTOCOLS_HH
 #define CCB_IO_PROTOCOLS_HH
 
-#include <map>
-#include <string>
 #include "com/centreon/broker/io/factory.hh"
 
 CCB_BEGIN()

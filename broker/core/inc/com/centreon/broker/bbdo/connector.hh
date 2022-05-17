@@ -19,9 +19,6 @@
 #ifndef CCB_BBDO_CONNECTOR_HH
 #define CCB_BBDO_CONNECTOR_HH
 
-#include <ctime>
-#include <list>
-
 #include "com/centreon/broker/io/endpoint.hh"
 #include "com/centreon/broker/io/extension.hh"
 

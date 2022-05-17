@@ -19,10 +19,6 @@
 #ifndef CCB_CORE_TIME_TIMEPERIOD_HH
 #define CCB_CORE_TIME_TIMEPERIOD_HH
 
-#include <list>
-#include <memory>
-#include <string>
-#include <vector>
 #include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/time/daterange.hh"
 #include "com/centreon/broker/time/timerange.hh"

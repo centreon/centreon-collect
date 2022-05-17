@@ -19,8 +19,6 @@
 #ifndef CCB_BAM_EVENT_CACHE_VISITOR_HH
 #define CCB_BAM_EVENT_CACHE_VISITOR_HH
 
-#include <vector>
-
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/namespace.hh"
 

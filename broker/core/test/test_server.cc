@@ -21,11 +21,6 @@
 
 #include <gtest/gtest.h>
 
-#include <chrono>
-#include <functional>
-#include <iostream>
-#include <thread>
-
 static uint32_t const timeout_ms = 5;
 static uint32_t const buff_size = 1024;
 

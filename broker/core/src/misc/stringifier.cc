@@ -17,8 +17,6 @@
 */
 
 #include "com/centreon/broker/misc/stringifier.hh"
-#include <cstdio>
-#include <cstring>
 
 using namespace com::centreon::broker::misc;
 
