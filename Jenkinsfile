@@ -141,9 +141,9 @@ stage('Build / Unit tests // Packaging / Signing') {
       dir('centreon-collect') {
         checkout scm
       }
-      sh 'docker run -i --entrypoint /src/centreon-collect/ci/scripts/collect-deb-package.sh -v "$PWD:/src" -e DISTRIB="Debian11" -e VERSION=$VERSION -e RELEASE=$RELEASE registry.centreon.com/centreon-collect-debian11-dependencies:22.04'
-      stash name: 'Debian11', includes: 'Debian11/*.deb'
-      archiveArtifacts artifacts: "Debian11/*"
+      sh 'docker run -i --entrypoint /src/centreon-collect/ci/scripts/collect-deb-package.sh -v "$PWD:/src" -e DISTRIB="bullseye" -e VERSION=$VERSION -e RELEASE=$RELEASE registry.centreon.com/centreon-collect-debian11-dependencies:22.04'
+      stash name: 'Debian11', includes: 'bullseye/*.deb'
+      archiveArtifacts artifacts: "bullseye/*"
     }
   }
 }
@@ -178,7 +178,7 @@ stage('Delivery') {
       withCredentials([usernamePassword(credentialsId: 'nexus-credentials', passwordVariable: 'NEXUS_PASSWORD', usernameVariable: 'NEXUS_USERNAME')]) {
         checkout scm
         unstash "Debian11"
-        sh 'mv Debian11/*.deb .'
+        sh 'mv bullseye/*.deb .'
         sh '''for i in $(echo *.deb)
               do 
                 curl -u $NEXUS_USERNAME:$NEXUS_PASSWORD -H "Content-Type: multipart/form-data" --data-binary "@./$i" https://apt.centreon.com/repository/22.04-$REPO/
