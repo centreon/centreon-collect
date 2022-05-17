@@ -3,8 +3,6 @@
 set -e
 
 #Cmake
-rm -rf /src/build
-mkdir /src/build
 cd /src/build/
 
 # Variables
@@ -18,8 +16,6 @@ TARGET="$5"
 if [[ "$MODE" == "PR" && -n "$6" && -n "$7" ]]; then
   PR_BRANCH="$6"
   PR_KEY="$7"
-else
-  echo "WARNING: Data are missing. SQ analysis will probably fail or will certainly be inconsistent ..."
 fi
 
 # Get distrib
@@ -38,40 +34,24 @@ fi
 cd ..
 
 # Delete default SQ configuration file to override
-rm -f /src/tmp/sonar-scanner/conf/sonar-scanner.properties
+rm -f /sonar-scanner/conf/sonar-scanner.properties
 
 # Run SQ with or without reference branch
 if [[ "PR" == "$MODE" ]] ; then
-  if [[ -f "/src/tmp/$PROJECT-SQ-cache-$TARGET.tar.gz" ]]; then
-    echo "INFO: Deploying SQ cache ..."
-    cd /src/tmp
-    tar xzf "$PROJECT-SQ-cache-$TARGET.tar.gz"
-    rm -rf /src/.scannerwork
-    mv .scannerwork /src
-    mv cache /src/build
-    rm -rf "/src/tmp/$PROJECT-SQ-cache-$TARGET.tar.gz"
-  else
-    echo "WARNING: Cache's tarball not found. Run a job on the reference branch to generate it."
-  fi
 
   echo "INFO: Running SQ in PR mode ..."
   cd /src
-  /src/tmp/sonar-scanner/bin/sonar-scanner -X -Dsonar.scm.forceReloadAll=true -Dsonar.cfamily.threads="$PROC_NBR" -Dsonar.scm.provider=git -Dsonar.login="$AUTH_TOKEN" -Dsonar.host.url="$URL" -Dsonar.projectVersion="$VERSION" -Dsonar.pullrequest.base="$TARGET" -Dsonar.pullrequest.branch="$PR_BRANCH" -Dsonar.pullrequest.key="$PR_KEY"
+  /sonar-scanner/bin/sonar-scanner -X -Dsonar.scm.forceReloadAll=true -Dsonar.cfamily.threads="$PROC_NBR" -Dsonar.scm.provider=git -Dsonar.login="$AUTH_TOKEN" -Dsonar.host.url="$URL" -Dsonar.projectVersion="$VERSION" -Dsonar.pullrequest.base="$TARGET" -Dsonar.pullrequest.branch="$PR_BRANCH" -Dsonar.pullrequest.key="$PR_KEY"
 else
-  echo "INFO: Cleaning previous run files ..."
-  if [[ -d "/src/.scannerwork" ]]; then
-    rm -rf /src/.scannerwork
-  fi
-
   echo "INFO: Running SQ in branch mode ..."
-  /src/tmp/sonar-scanner/bin/sonar-scanner -X -Dsonar.scm.forceReloadAll=true -Dsonar.cfamily.threads="$PROC_NBR" -Dsonar.scm.provider=git -Dsonar.login="$AUTH_TOKEN" -Dsonar.host.url="$URL" -Dsonar.projectVersion="$VERSION" -Dsonar.branch.name="$TARGET"
-
-  echo "INFO: Cleaning tmp folder ..."
-  cd /src/tmp
-  rm -f "$PROJECT-SQ-cache-$TARGET.tar.gz"
-
-  echo "INFO: Creating cache tarball named $PROJECT-SQ-cache-$TARGET.tar.gz..."
-  mv /src/.scannerwork .
-  mv /src/build/cache .
-  tar czf "$PROJECT-SQ-cache-$TARGET.tar.gz" cache .scannerwork
+  cd /src
+  /sonar-scanner/bin/sonar-scanner -X -Dsonar.scm.forceReloadAll=true -Dsonar.cfamily.threads="$PROC_NBR" -Dsonar.scm.provider=git -Dsonar.login="$AUTH_TOKEN" -Dsonar.host.url="$URL" -Dsonar.projectVersion="$VERSION" -Dsonar.branch.name="$TARGET"
 fi
+
+mkdir tmp
+cd /src/tmp
+
+echo "INFO: Creating cache tarball named $PROJECT-SQ-cache-$TARGET.tar.gz..."
+mv /src/.scannerwork .
+mv /src/build/cache .
+tar czf "$PROJECT-SQ-cache-$TARGET.tar.gz" cache .scannerwork
