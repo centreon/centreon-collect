@@ -597,6 +597,7 @@ void conflict_manager::_callback() {
               else {
                 log_v2::sql()->warn("SQL: no function defined for event {}:{}",
                                     cat, elem);
+                *std::get<2>(tpl) = true;
               }
             } else if (std::get<1>(tpl) == storage && cat == io::neb &&
                        type == neb::service_status::static_type())
