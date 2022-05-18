@@ -125,16 +125,18 @@ def create_key_and_certificate(host: str, key: str, cert: str):
 def create_certificate(host: str, cert: str):
     create_key_and_certificate(host, "", cert)
 
+def run_env():
+    return getoutput("echo $RUN_ENV | awk '{print $1}'")
 
 def start_mysql():
-    if not getoutput("echo $RUN_ENV | awk '{print $1}'"):
+    if not run_env():
         getoutput("systemctl start mysql")
     else:
         getoutput("mariadbd --user=root > /dev/null 2>&1 &")
 
 
 def stop_mysql():
-    if not getoutput("echo $RUN_ENV | awk '{print $1}'"):
+    if not run_env():
         getoutput("systemctl stop mysql")
     else:
         getoutput(
