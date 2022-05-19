@@ -182,3 +182,18 @@ TEST(ParseCheckOutput, CheckDummy) {
   ASSERT_EQ(long_output, "");
   ASSERT_EQ(perf_data, "v3metric1=1 v3metric2=18;1 v3metric3=12;1;2;0;");
 }
+
+TEST(ParseCheckOutput, CheckDummy2) {
+  std::string buf{"CRITICAL - line 1\nline 2 \nline3\nline4"};
+  std::string short_output;
+  std::string long_output;
+  std::string perf_data;
+  bool escape_newlines{false};
+  bool newlines_are_escaped{true};
+
+  parse_check_output(buf, short_output, long_output, perf_data, escape_newlines,
+                     newlines_are_escaped);
+  ASSERT_EQ(short_output, "CRITICAL - line 1");
+  ASSERT_EQ(long_output, "line 2\nline3\nline4");
+  ASSERT_EQ(perf_data, "");
+}
