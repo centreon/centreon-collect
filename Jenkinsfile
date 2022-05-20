@@ -50,8 +50,22 @@ stage('Build / Unit tests // Packaging / Signing') {
         checkout scm
         sh 'docker run -i --entrypoint /src/ci/scripts/collect-unit-tests.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:21.10'
         sh "sudo apt-get install -y clang-tidy"
+      }
+    }
+  },
+  'centos7 SQ analysis': {
+    node("C++") {
+      dir('centreon-collect-centos7') {
+        checkout scm
+        loadCommonScripts()
         withSonarQubeEnv('SonarQubeDev') {
-          sh 'ci/scripts/collect-sources-analysis.sh'
+          sh 'ci/scripts/collect-sonar-scanner-common.sh "get" "dev-21.10.x"'
+          if (env.CHANGE_ID) {
+            sh 'docker run -i --entrypoint /src/ci/scripts/collect-sources-analysis.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:21.10 "PR" "$SONAR_AUTH_TOKEN" "$SONAR_HOST_URL" "$VERSION" "$CHANGE_TARGET" "$CHANGE_BRANCH" "$CHANGE_ID"'
+          } else {
+            sh 'docker run -i --entrypoint /src/ci/scripts/collect-sources-analysis.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:21.10 "NotPR" "$SONAR_AUTH_TOKEN" "$SONAR_HOST_URL" "$VERSION" "$BRANCH_NAME"'
+          }
+          sh 'ci/scripts/collect-sonar-scanner-common.sh "set"'
         }
       }
     }
@@ -86,6 +100,20 @@ stage('Build / Unit tests // Packaging / Signing') {
         checkout scm
         sh 'docker run -i --entrypoint /src/ci/scripts/collect-unit-tests.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-debian-dependencies:21.10'
       }
+    }
+  }
+}
+
+stage('Quality Gate') {
+  node("C++") {
+    timeout(time: 10, unit: 'MINUTES') {
+      def qualityGate = waitForQualityGate()
+      if (qualityGate.status != 'OK') {
+        error "Pipeline aborted due to quality gate failure: ${qualityGate.status}"
+      }
+    }
+    if ((currentBuild.result ?: 'SUCCESS') != 'SUCCESS') {
+      error("Quality gate failure: ${qualityGate.status}.");
     }
   }
 }
