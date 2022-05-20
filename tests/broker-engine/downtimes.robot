@@ -24,6 +24,7 @@ BEDTMASS1
 	Config Broker	rrd
 	Config Broker	central
 	Config Broker	module	${3}
+	Broker Config Log	central	sql	debug
 	Broker Config Log	module0	neb	debug
 	Broker Config Log	module1	neb	debug
 	Broker Config Log	module2	neb	debug
