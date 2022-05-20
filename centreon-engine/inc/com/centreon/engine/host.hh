@@ -128,7 +128,7 @@ class host : public notifier {
                       bool reschedule_check,
                       bool* time_is_valid,
                       time_t* preferred_time) noexcept;
-  bool schedule_check(time_t check_time, int options) override;
+  bool schedule_check(time_t check_time, int options, bool no_update_status_now = false) override;
   void check_for_flapping(bool update,
                           bool actual_check,
                           bool allow_flapstart_notification);
