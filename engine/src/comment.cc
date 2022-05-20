@@ -70,20 +70,13 @@ comment::comment(comment::type comment_type,
     is_added = false;
   }
 
-  broker_comment_data(NEBTYPE_COMMENT_LOAD, NEBFLAG_NONE, NEBATTR_NONE,
-                      _comment_type, _entry_type, _host_id, _service_id,
-                      _entry_time, _author.c_str(), _comment_data.c_str(),
-                      _persistent, _source, _expires, _expire_time, _comment_id,
-                      nullptr);
-
   /* send data to event broker */
-  if (is_added) {
-    broker_comment_data(NEBTYPE_COMMENT_ADD, NEBFLAG_NONE, NEBATTR_NONE,
-                        _comment_type, _entry_type, _host_id, _service_id,
-                        _entry_time, _author.c_str(), _comment_data.c_str(),
-                        _persistent, _source, _expires, _expire_time,
-                        _comment_id, nullptr);
-  }
+  if (is_added)
+    broker_comment_data(is_added ? NEBTYPE_COMMENT_ADD : NEBTYPE_COMMENT_LOAD,
+                        NEBFLAG_NONE, NEBATTR_NONE, _comment_type, _entry_type,
+                        _host_id, _service_id, _entry_time, _author.c_str(),
+                        _comment_data.c_str(), _persistent, _source, _expires,
+                        _expire_time, _comment_id, nullptr);
 }
 
 /* deletes a host or service comment */
