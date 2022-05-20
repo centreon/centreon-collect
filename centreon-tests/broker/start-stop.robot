@@ -44,44 +44,6 @@ BSS5
 	Broker Config Output Remove	central	centreon-broker-master-rrd	host
 	Repeat Keyword	5 times	Start Stop Instance	1s
 
-BSSU1
-	[Documentation]	Start-Stop with unified_sql two instances of broker and no coredump
-	[Tags]	Broker	start-stop	unified_sql
-	Config Broker	central
-	Config Broker	rrd
-	Config Broker Sql Output	central	unified_sql
-	Repeat Keyword	5 times	Start Stop Service	0
-
-BSSU2
-	[Documentation]	Start/Stop with unified_sql 10 times broker with 300ms interval and no coredump
-	[Tags]	Broker	start-stop	unified_sql
-	Config Broker	central
-	Config Broker Sql Output	central	unified_sql
-	Repeat Keyword	10 times	Start Stop Instance	300ms
-
-BSSU3
-	[Documentation]	Start-Stop with unified_sql one instance of broker and no coredump
-	[Tags]	Broker	start-stop	unified_sql
-	Config Broker	central
-	Config Broker Sql Output	central	unified_sql
-	Repeat Keyword	5 times	Start Stop Instance	0
-
-BSSU4
-	[Documentation]	Start/Stop with unified_sql 10 times broker with 1sec interval and no coredump
-	[Tags]	Broker	start-stop	unified_sql
-	Config Broker	central
-	Config Broker Sql Output	central	unified_sql
-	Repeat Keyword	10 times	Start Stop Instance	1s
-
-BSSU5
-	[Documentation]	Start-Stop with unified_sql with reversed connection on TCP acceptor with only one instance and no deadlock
-	[Tags]	Broker	start-stop	unified_sql
-	Config Broker	central
-	Config Broker Sql Output	central	unified_sql
-	Broker Config Output Set	central	centreon-broker-master-rrd	one_peer_retention_mode	yes
-	Broker Config Output Remove	central	centreon-broker-master-rrd	host
-	Repeat Keyword	5 times	Start Stop Instance	1s
-
 *** Keywords ***
 Start Stop Service
 	[Arguments]	${interval}

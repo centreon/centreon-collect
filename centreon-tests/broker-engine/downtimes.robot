@@ -28,13 +28,7 @@ BEDTMASS1
 	Broker Config Log	module1	neb	debug
 	Broker Config Log	module2	neb	debug
 
-        Broker Config Add Item	module0	bbdo_version	3.0.0
-        Broker Config Add Item	module1	bbdo_version	3.0.0
-        Broker Config Add Item	module2	bbdo_version	3.0.0
-        Broker Config Add Item	central	bbdo_version	3.0.0
-        Broker Config Add Item	rrd	bbdo_version	3.0.0
 	Broker Config Log	central	sql	debug
-	Config Broker Sql Output	central	unified_sql
 	Clear Retention
 	${start}=	Get Current Date
 	Start Broker
