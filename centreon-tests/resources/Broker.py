@@ -15,7 +15,13 @@ import grpc
 import broker_pb2
 import broker_pb2_grpc
 from google.protobuf import empty_pb2
+from robot.libraries.BuiltIn import BuiltIn
 
+db_name = BuiltIn().get_variable_value("${DBName}")
+db_host = BuiltIn().get_variable_value("${DBHost}")
+db_user = BuiltIn().get_variable_value("${DBUser}")
+db_pass = BuiltIn().get_variable_value("${DBPass}")
+db_port = BuiltIn().get_variable_value("${DBPort}")
 TIMEOUT = 30
 
 config = {
