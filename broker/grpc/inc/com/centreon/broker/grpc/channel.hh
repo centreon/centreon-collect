@@ -103,7 +103,7 @@ class channel : public std::enable_shared_from_this<channel> {
 
   void start();
 
-  virtual ~channel() = default;
+  virtual ~channel();
 
   void to_trash();
   bool is_down() const { return _error || _thrown; };

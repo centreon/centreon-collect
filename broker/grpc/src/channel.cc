@@ -27,7 +27,15 @@
 using namespace com::centreon::broker::grpc;
 using namespace com::centreon::exceptions;
 
-static com::centreon::broker::misc::trash<channel> _trash;
+/**
+ * @brief this memory leak is mandatory
+ * in case of shutdown, channel object also owned by grpc layers
+ * musn't be deleted
+ *
+ */
+using channel_trash_type = com::centreon::broker::misc::trash<channel>;
+
+static channel_trash_type* _trash(new channel_trash_type);
 
 namespace com {
 namespace centreon {
@@ -70,7 +78,14 @@ channel::channel(const std::string& class_name,
       _write_pending(false),
       _error(false),
       _thrown(false),
-      _conf(conf) {}
+      _conf(conf) {
+  log_v2::grpc()->debug("channel::channel this={:p}", static_cast<void*>(this));
+}
+
+channel::~channel() {
+  log_v2::grpc()->debug("channel::~channel this={:p}",
+                        static_cast<void*>(this));
+}
 
 void channel::start() {
   start_read(true);
@@ -82,8 +97,8 @@ void channel::to_trash() {
   _thrown = true;
   log_v2::grpc()->debug("{} this={:p}", __PRETTY_FUNCTION__,
                         static_cast<void*>(this));
-  _trash.to_trash(shared_from_this(),
-                  time(nullptr) + second_delay_before_delete);
+  _trash->to_trash(shared_from_this(),
+                   time(nullptr) + second_delay_before_delete);
 }
 
 int channel::stop() {
