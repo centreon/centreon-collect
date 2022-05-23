@@ -26,7 +26,8 @@ ENRSCHE1
 	Engine Config Set Value	${0}	log_v2_enabled	${1}
 	Engine Config Set Value	${0}	log_level_checks	debug
 
-	${start}=	Get Current Date
+	${start}=	Get Current Date	exclude_millis=yes
+        Sleep	1s
 
 	Start Broker
 	Start Engine
