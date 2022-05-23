@@ -34,6 +34,7 @@ BEDTMASS1
 	Broker Config Log	central	sql	debug
 	Clear Retention
 	${start}=	Get Current Date	exclude_millis=yes
+        Sleep	1s
 	Start Broker
 	Start Engine
 	# Let's wait for the initial service states.

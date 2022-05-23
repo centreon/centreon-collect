@@ -25,7 +25,8 @@ EFHC1
 
         Clear Retention
         Clear DB	hosts
-	${start}=	Get Current Date
+	${start}=	Get Current Date	exclude_millis=yes
+        Sleep	1s
         Start Engine
         Start Broker
         ${result}=	Check host status	host_1	4	1	False
@@ -61,7 +62,8 @@ EFHC2
 	Engine Config Set Value	${0}	log_initial_states	1	True
 
         Clear Retention
-	${start}=	Get Current Date
+	${start}=	Get Current Date	exclude_millis=yes
+        Sleep	1s
         Start Engine
         Start Broker
         ${content}=	Create List	INITIAL HOST STATE: host_1;

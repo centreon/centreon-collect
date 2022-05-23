@@ -622,10 +622,12 @@ def check_number_of_resources_monitored_by_poller_is(poller: int, value: int, ti
 
         with connection:
             with connection.cursor() as cursor:
-                cursor.execute("SELECT count(*) FROM resources WHERE poller_id={} AND enabled=1".format(poller))
-                result = cursor.fetchall()
-                if len(result) > 0:
-                    if int(result[0]['count(*)']) == value:
+                cursor.execute("select count(*) from hosts h where instance_id={} and enabled=1".format(poller))
+                hresult = cursor.fetchall()
+                cursor.execute("select count(*) from hosts h left join services s on s.host_id=h.host_id where h.instance_id={} and s.enabled=1".format(poller))
+                sresult = cursor.fetchall()
+                if len(hresult) > 0 and len(sresult) > 0:
+                    if int(hresult[0]['count(*)']) + int(sresult[0]['count(*)']) == value:
                         return True
         time.sleep(1)
     return False

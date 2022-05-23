@@ -1027,23 +1027,25 @@ def get_metrics_matching_indexes(indexes):
 ##
 # @brief send a gRPC command to remove graphs (by indexes or by metrics)
 #
-# @param port the gRPC port to use to send the command
 # @param indexes a list of indexes
 # @param metrics a list of metrics
 #
-def remove_graphs(port, indexes, metrics, timeout=10):
-    limit = time.time() + timeout
-    while time.time() < limit:
-        time.sleep(1)
-        with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
-            stub = broker_pb2_grpc.BrokerStub(channel)
-            trm = broker_pb2.ToRemove()
-            trm.index_ids.extend(indexes)
-            trm.metric_ids.extend(metrics)
-            try:
-                stub.RemoveGraphs(trm)
-            except:
-                logger.console("gRPC server not ready")
+#def remove_graphs(indexes, metrics, timeout=10):
+#    # Connect to the database
+#    connection = pymysql.connect(host='localhost',
+#                                 user='centreon',
+#                                 password='centreon',
+#                                 database='centreon_storage',
+#                                 charset='utf8mb4',
+#                                 cursorclass=pymysql.cursors.DictCursor)
+#    with connection:
+#        with connection.cursor() as cursor:
+#            # Read a single record
+#            sql = "UPDATE metrics SET to_delete='1' WHERE index_id IN ({})".format(','.join(map(str, indexes)))
+#            cursor.execute(sql)
+#            result = cursor.fetchall()
+#            retval = [int(r['metric_id']) for r in result]
+#            return retval
 
 
 ##

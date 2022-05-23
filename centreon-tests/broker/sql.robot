@@ -23,9 +23,9 @@ BDB1
 	FOR	${i}	IN RANGE	0	5
 	 ${start}=	Get Current Date
 	 Start Broker
-	 ${content}=	Create List	storage and sql streams do not have the same database configuration
+	 ${content}=	Create List	error while loading caches: could not get list of deleted instances
 	 ${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	30
-	 Should Be True	${result}	msg=A message should tell that sql and storage outputs do not have the same configuration.
+	 Should Be True	${result}	msg=An error message about the cache should arise.
 	 Stop Broker
 	END
 
@@ -40,9 +40,9 @@ BDB2
 	FOR	${i}	IN RANGE	0	5
 	 ${start}=	Get Current Date
 	 Start Broker
-	 ${content}=	Create List	storage and sql streams do not have the same database configuration
+         ${content}=	Create List	mysql_connection: Table 'centreon.index_data' doesn't exist
 	 ${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	20
-	 Should Be True	${result}	msg=A log telling the impossibility to establish a connection between the storage stream and the database should appear.
+	 Should Be True	${result}	msg=An error message should be raised because of a database misconfiguration.
 	 Stop Broker
 	END
 
