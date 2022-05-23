@@ -21,6 +21,9 @@ BEDTMASS1
 	Engine Config Set Value	${0}	log_level_functions	trace
 	Engine Config Set Value	${1}	log_level_functions	trace
 	Engine Config Set Value	${2}	log_level_functions	trace
+	Engine Config Set Value	${0}	log_initial_states	1	True
+	Engine Config Set Value	${1}	log_initial_states	1	True
+	Engine Config Set Value	${2}	log_initial_states	1	True
 	Config Broker	rrd
 	Config Broker	central
 	Config Broker	module	${3}
@@ -30,7 +33,7 @@ BEDTMASS1
 
 	Broker Config Log	central	sql	debug
 	Clear Retention
-	${start}=	Get Current Date
+	${start}=	Get Current Date	exclude_millis=yes
 	Start Broker
 	Start Engine
 	# Let's wait for the initial service states.

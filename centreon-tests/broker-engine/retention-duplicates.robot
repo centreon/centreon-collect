@@ -94,8 +94,6 @@ BERDUC1
 	[Documentation]	Starting/stopping Broker does not create duplicated events in usual cases
 	[Tags]	Broker	Engine	start-stop	duplicate	retention
 	Config Engine	${1}
-	Engine Config Set Value	${0}	log_legacy_enabled	${0}
-	Engine Config Set Value	${0}	log_v2_enabled	${1}
 	Config Broker	central
 	Broker Config Add Lua Output	central	test-doubles	${SCRIPTS}test-doubles-c.lua
 	Broker Config Log	central	lua	debug

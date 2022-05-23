@@ -23,8 +23,10 @@ BEEXTCMD2
 	Config Broker	central
 	Config Broker	module	${1}
 	Broker Config Log	central	sql	debug
+	Engine Config Set Value	${0}	log_initial_states	1	True
+	${start}=	Get Current Date	exclude_millis=yes
+        Sleep	1s
 	Clear Retention
-	${start}=	Get Current Date
 	Start Broker
 	Start Engine
         ${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
@@ -54,8 +56,10 @@ BEEXTCMD4
 	Config Broker	module	${1}
 	Broker Config Log	central	core	error
 	Broker Config Log	central	sql	debug
+	Engine Config Set Value	${0}	log_initial_states	1	True
+	${start}=	Get Current Date	exclude_millis=yes
+        Sleep	1s
 	Clear Retention
-	${start}=	Get Current Date
 	Start Broker
 	Start Engine
         ${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
@@ -84,8 +88,10 @@ BEEXTCMD6
 	Config Broker	central
 	Config Broker	module	${1}
 	Broker Config Log	central	sql	debug
+	Engine Config Set Value	${0}	log_initial_states	1	True
 	Clear Retention
-	${start}=	Get Current Date
+	${start}=	Get Current Date	exclude_millis=yes
+        Sleep	1s
 	Start Broker
 	Start Engine
         ${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
@@ -115,8 +121,10 @@ BEEXTCMD8
 	Config Broker	module	${1}
 	Broker Config Log	central	core	error
 	Broker Config Log	central	sql	debug
+	Engine Config Set Value	${0}	log_initial_states	1	True
 	Clear Retention
-	${start}=	Get Current Date
+	${start}=	Get Current Date	exclude_millis=yes
+        Sleep	1s
 	Start Broker
 	Start Engine
         ${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
@@ -145,8 +153,10 @@ BEEXTCMD10
 	Config Broker	central
 	Config Broker	module	${1}
 	Broker Config Log	central	sql	debug
+	Engine Config Set Value	${0}	log_initial_states	1	True
 	Clear Retention
-	${start}=	Get Current Date
+	${start}=	Get Current Date	exclude_millis=yes
+        Sleep	1s
 	Start Broker
 	Start Engine
         ${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
@@ -176,8 +186,10 @@ BEEXTCMD12
 	Config Broker	module	${1}
 	Broker Config Log	central	core	error
 	Broker Config Log	central	sql	debug
+	Engine Config Set Value	${0}	log_initial_states	1	True
 	Clear Retention
-	${start}=	Get Current Date
+        Sleep	1s
+	${start}=	Get Current Date	exclude_millis=yes
 	Start Broker
 	Start Engine
         ${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
@@ -188,8 +200,8 @@ BEEXTCMD12
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 	FOR	${index}	IN RANGE	30
-		Log To Console	select max_check_attempts from hosts where name='host_1' 
-		${output}=	Query	select max_check_attempts from hosts where name='host_1' 
+		Log To Console	select max_check_attempts from hosts where name='host_1'
+		${output}=	Query	select max_check_attempts from hosts where name='host_1'
 		Log To Console	${output}
 		Sleep	1s
 		EXIT FOR LOOP IF	"${output}" == "((10,),)"
@@ -208,8 +220,10 @@ BEEXTCMD16
 	Config Broker	module	${1}
 	Broker Config Log	central	core	error
 	Broker Config Log	central	sql	debug
+	Engine Config Set Value	${0}	log_initial_states	1	True
 	Clear Retention
-	${start}=	Get Current Date
+	${start}=	Get Current Date	exclude_millis=yes
+        Sleep	1s
 	Start Broker
 	Start Engine
         ${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
@@ -240,8 +254,10 @@ BEEXTCMD18
 	Config Broker	module	${1}
 	Broker Config Log	central	core	error
 	Broker Config Log	central	sql	debug
+	Engine Config Set Value	${0}	log_initial_states	1	True
+	${start}=	Get Current Date	exclude_millis=yes
+        Sleep	1s
 	Clear Retention
-	${start}=	Get Current Date
 	Start Broker
 	Start Engine
         ${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;

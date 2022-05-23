@@ -21,6 +21,7 @@ EFHC1
         Config Broker	module	${1}
 	Engine Config Set Value	${0}	log_legacy_enabled	${0}
 	Engine Config Set Value	${0}	log_v2_enabled	${1}
+	Engine Config Set Value	${0}	log_initial_states	1	True
 
         Clear Retention
         Clear DB	hosts
@@ -57,6 +58,7 @@ EFHC2
         Config Broker	module	${1}
 	Engine Config Set Value	${0}	log_legacy_enabled	${0}
 	Engine Config Set Value	${0}	log_v2_enabled	${1}
+	Engine Config Set Value	${0}	log_initial_states	1	True
 
         Clear Retention
 	${start}=	Get Current Date

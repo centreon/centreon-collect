@@ -80,28 +80,6 @@ void conflict_manager::_clean_tables(uint32_t instance_id) {
                    false, conn);
   _add_action(conn, actions::servicegroups);
 
-  /* Remove host groups. */
-  log_v2::sql()->debug(
-      "conflict_manager: remove empty host groups (instance_id: {})",
-      instance_id);
-  _mysql.run_query(
-      "DELETE hg FROM hostgroups AS hg LEFT JOIN hosts_hostgroups AS hhg ON "
-      "hg.hostgroup_id=hhg.hostgroup_id WHERE hhg.hostgroup_id IS NULL",
-      database::mysql_error::clean_empty_hostgroups, false, conn);
-  _add_action(conn, actions::hostgroups);
-
-  /* Remove service groups. */
-  log_v2::sql()->debug(
-      "conflict_manager: remove empty service groups (instance_id: {})",
-      instance_id);
-
-  _mysql.run_query(
-      "DELETE sg FROM servicegroups AS sg LEFT JOIN services_servicegroups as "
-      "ssg ON sg.servicegroup_id=ssg.servicegroup_id WHERE ssg.servicegroup_id "
-      "IS NULL",
-      database::mysql_error::clean_empty_servicegroups, false, conn);
-  _add_action(conn, actions::servicegroups);
-
   /* Remove host dependencies. */
   log_v2::sql()->debug(
       "conflict_manager: remove host dependencies (instance_id: {})",
