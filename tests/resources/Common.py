@@ -12,7 +12,7 @@ TIMEOUT = 30
 
 def check_connection(port: int, pid1: int, pid2: int):
     limit = time.time() + TIMEOUT
-    r = re.compile(r"^ESTAB.*127\.0\.0\.1:{}\s".format(port))
+    r = re.compile(r"^ESTAB.*127\.0\.0\.1\]*:{}\s".format(port))
     while time.time() < limit:
         out = getoutput("ss -plant")
         lst = out.split('\n')
@@ -20,7 +20,7 @@ def check_connection(port: int, pid1: int, pid2: int):
         if len(estab_port) >= 2:
             ok = [False, False]
             p = re.compile(
-                r"127\.0\.0\.1:(\d+)\s+127\.0\.0\.1:(\d+)\s+.*,pid=(\d+)")
+                r"127\.0\.0\.1\]*:(\d+)\s+.*127\.0\.0\.1\]*:(\d+)\s+.*,pid=(\d+)")
             for l in estab_port:
                 m = p.search(l)
                 if m is not None:
@@ -125,8 +125,10 @@ def create_key_and_certificate(host: str, key: str, cert: str):
 def create_certificate(host: str, cert: str):
     create_key_and_certificate(host, "", cert)
 
+
 def run_env():
     return getoutput("echo $RUN_ENV | awk '{print $1}'")
+
 
 def start_mysql():
     if not run_env():
@@ -140,7 +142,7 @@ def stop_mysql():
         getoutput("systemctl stop mysql")
     else:
         getoutput(
-        "kill -9 $(ps aux | grep 'mariadbd --user=root' | grep -v grep | awk '{print $2}')")
+            "kill -9 $(ps aux | grep 'mariadbd --user=root' | grep -v grep | awk '{print $2}')")
 
 
 def kill_broker():
@@ -232,7 +234,7 @@ def find_line_from(lines, date):
             logger.console("Unable to parse the date ({} <= {} <= {}): <<{}>>".format(
                 start, idx, end, lines[idx]))
             idx -= 1
-            if idx >= 0 :
+            if idx >= 0:
                 m = p.match(lines[idx])
             else:
                 logger.console("We are at the first line and no date found")
@@ -535,6 +537,7 @@ def check_service_severity_with_timeout(host_id: int, service_id: int, severity_
         time.sleep(1)
     return False
 
+
 def check_host_severity_with_timeout(host_id: int, severity_id, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
@@ -548,7 +551,8 @@ def check_host_severity_with_timeout(host_id: int, severity_id, timeout: int):
 
         with connection:
             with connection.cursor() as cursor:
-                cursor.execute("select sv.id from resources r left join severities sv ON r.severity_id=sv.severity_id where r.parent_id = 0 and r.id={}".format(host_id))
+                cursor.execute(
+                    "select sv.id from resources r left join severities sv ON r.severity_id=sv.severity_id where r.parent_id = 0 and r.id={}".format(host_id))
                 result = cursor.fetchall()
                 if len(result) > 0:
                     if severity_id == 'None':
@@ -558,6 +562,7 @@ def check_host_severity_with_timeout(host_id: int, severity_id, timeout: int):
                         return True
         time.sleep(1)
     return False
+
 
 def check_resources_tags_with_timeout(parent_id: int, mid: int, typ: str, tag_ids: list, timeout: int):
     if typ == 'servicegroup':
@@ -571,41 +576,46 @@ def check_resources_tags_with_timeout(parent_id: int, mid: int, typ: str, tag_id
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host='localhost',
-                                 user='centreon',
-                                 password='centreon',
-                                 database='centreon_storage',
-                                 charset='utf8mb4',
-                                 cursorclass=pymysql.cursors.DictCursor)
+                                     user='centreon',
+                                     password='centreon',
+                                     database='centreon_storage',
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
 
         with connection:
             with connection.cursor() as cursor:
-                cursor.execute("select t.id from resources r inner join resources_tags rt on r.resource_id=rt.resource_id inner join tags t on rt.tag_id=t.tag_id WHERE r.id={} and r.parent_id={} and t.type={}".format(mid, parent_id, t))
+                cursor.execute("select t.id from resources r inner join resources_tags rt on r.resource_id=rt.resource_id inner join tags t on rt.tag_id=t.tag_id WHERE r.id={} and r.parent_id={} and t.type={}".format(
+                    mid, parent_id, t))
                 result = cursor.fetchall()
                 if len(result) > 0:
                     if len(result) == len(tag_ids):
                         for r in result:
                             if r['id'] not in tag_ids:
-                                logger.console("id {} is not in tag ids".format(r['id']))
+                                logger.console(
+                                    "id {} is not in tag ids".format(r['id']))
                                 break
                             return True
                     else:
-                        logger.console("different sizes: result:{} and tag_ids:{}".format(len(result), len(tag_ids)))
+                        logger.console("different sizes: result:{} and tag_ids:{}".format(
+                            len(result), len(tag_ids)))
         time.sleep(1)
     return False
+
 
 def check_host_tags_with_timeout(host_id: int, tag_id: int, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host='localhost',
-                                 user='centreon',
-                                 password='centreon',
-                                 database='centreon_storage',
-                                 charset='utf8mb4',
-                                 cursorclass=pymysql.cursors.DictCursor)
+                                     user='centreon',
+                                     password='centreon',
+                                     database='centreon_storage',
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
 
         with connection:
             with connection.cursor() as cursor:
-                cursor.execute("SELECT t.id FROM resources_tags rt, tags t WHERE rt.tag_id = t.tag_id and resource_id={} and t.id={}".format(host_id, tag_id))
+                cursor.execute(
+                    "SELECT t.id FROM resources_tags rt, tags t WHERE rt.tag_id = t.tag_id and resource_id={} and t.id={}".format(host_id, tag_id))
                 result = cursor.fetchall()
                 if len(result) > 0:
                     if int(result[0]['id']) == tag_id:
@@ -613,80 +623,89 @@ def check_host_tags_with_timeout(host_id: int, tag_id: int, timeout: int):
         time.sleep(1)
     return False
 
+
 def check_number_of_resources_monitored_by_poller_is(poller: int, value: int, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host='localhost',
-                                 user='centreon',
-                                 password='centreon',
-                                 database='centreon_storage',
-                                 charset='utf8mb4',
-                                 cursorclass=pymysql.cursors.DictCursor)
+                                     user='centreon',
+                                     password='centreon',
+                                     database='centreon_storage',
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
 
         with connection:
             with connection.cursor() as cursor:
-                cursor.execute("SELECT count(*) FROM resources WHERE poller_id={} AND enabled=1".format(poller))
+                cursor.execute(
+                    "SELECT count(*) FROM resources WHERE poller_id={} AND enabled=1".format(poller))
                 result = cursor.fetchall()
                 if len(result) > 0:
                     if int(result[0]['count(*)']) == value:
                         return True
         time.sleep(1)
     return False
+
 
 def check_number_of_downtimes(expected: int, start, timeout: int):
     limit = time.time() + timeout
     d = parser.parse(start).timestamp()
     while time.time() < limit:
         connection = pymysql.connect(host='localhost',
-                                user='centreon',
-                                password='centreon',
-                                database='centreon_storage',
-                                charset='utf8mb4',
-                                cursorclass=pymysql.cursors.DictCursor)
+                                     user='centreon',
+                                     password='centreon',
+                                     database='centreon_storage',
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
         with connection:
             with connection.cursor() as cursor:
-                cursor.execute("SELECT count(*) FROM downtimes WHERE start_time >= {} AND deletion_time IS NULL".format(d))
+                cursor.execute(
+                    "SELECT count(*) FROM downtimes WHERE start_time >= {} AND deletion_time IS NULL".format(d))
                 result = cursor.fetchall()
                 if len(result) > 0:
-                    logger.console("{}/{} active downtimes".format(result[0]['count(*)'], expected))
+                    logger.console(
+                        "{}/{} active downtimes".format(result[0]['count(*)'], expected))
                     if int(result[0]['count(*)']) == expected:
                         return True
         time.sleep(1)
     return False
 
+
 def check_number_of_relations_between_hostgroup_and_hosts(hostgroup: int, value: int, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host='localhost',
-                                 user='centreon',
-                                 password='centreon',
-                                 database='centreon_storage',
-                                 charset='utf8mb4',
-                                 cursorclass=pymysql.cursors.DictCursor)
+                                     user='centreon',
+                                     password='centreon',
+                                     database='centreon_storage',
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
 
         with connection:
             with connection.cursor() as cursor:
-                cursor.execute("SELECT count(*) FROM hosts_hostgroups WHERE hostgroup_id={}".format(hostgroup))
+                cursor.execute(
+                    "SELECT count(*) FROM hosts_hostgroups WHERE hostgroup_id={}".format(hostgroup))
                 result = cursor.fetchall()
                 if len(result) > 0:
                     if int(result[0]['count(*)']) == value:
                         return True
         time.sleep(1)
     return False
+
 
 def check_number_of_relations_between_servicegroup_and_services(servicegroup: int, value: int, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host='localhost',
-                                 user='centreon',
-                                 password='centreon',
-                                 database='centreon_storage',
-                                 charset='utf8mb4',
-                                 cursorclass=pymysql.cursors.DictCursor)
+                                     user='centreon',
+                                     password='centreon',
+                                     database='centreon_storage',
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
 
         with connection:
             with connection.cursor() as cursor:
-                cursor.execute("SELECT count(*) FROM services_servicegroups WHERE servicegroup_id={}".format(servicegroup))
+                cursor.execute(
+                    "SELECT count(*) FROM services_servicegroups WHERE servicegroup_id={}".format(servicegroup))
                 result = cursor.fetchall()
                 if len(result) > 0:
                     if int(result[0]['count(*)']) == value:
@@ -694,26 +713,29 @@ def check_number_of_relations_between_servicegroup_and_services(servicegroup: in
         time.sleep(1)
     return False
 
+
 def check_host_status(host: str, value: int, t: int, in_resources: bool, timeout: int = TIMEOUT):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host='localhost',
-                                 user='centreon',
-                                 password='centreon',
-                                 database='centreon_storage',
-                                 charset='utf8mb4',
-                                 cursorclass=pymysql.cursors.DictCursor)
+                                     user='centreon',
+                                     password='centreon',
+                                     database='centreon_storage',
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
 
         with connection:
             with connection.cursor() as cursor:
                 key = ''
                 confirmed = ''
                 if in_resources:
-                    cursor.execute("SELECT status, status_confirmed FROM resources WHERE parent_id=0 AND name='{}'".format(host))
+                    cursor.execute(
+                        "SELECT status, status_confirmed FROM resources WHERE parent_id=0 AND name='{}'".format(host))
                     key = 'status'
                     confirmed = 'status_confirmed'
                 else:
-                    cursor.execute("SELECT state, state_type FROM hosts WHERE name='{}'".format(host))
+                    cursor.execute(
+                        "SELECT state, state_type FROM hosts WHERE name='{}'".format(host))
                     key = 'state'
                     confirmed = 'state_type'
                 result = cursor.fetchall()
@@ -721,6 +743,7 @@ def check_host_status(host: str, value: int, t: int, in_resources: bool, timeout
                     if int(result[0][key]) == value and int(result[0][confirmed]) == t:
                         return True
                     else:
-                        logger.console("Host '{}' has status '{}' with confirmed '{}'".format(host, result[0][key], result[0][confirmed]))
+                        logger.console("Host '{}' has status '{}' with confirmed '{}'".format(
+                            host, result[0][key], result[0][confirmed]))
         time.sleep(1)
     return False
