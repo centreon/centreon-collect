@@ -1749,7 +1749,9 @@ int host::run_async_check(int check_options,
  *
  * @return a boolean telling if yes or not the host status is sent to broker.
  */
-bool host::schedule_check(time_t check_time, int options) {
+bool host::schedule_check(time_t check_time,
+                          int options,
+                          bool no_update_status_now) {
   timed_event* temp_event = nullptr;
   int use_original_event = true;
 
@@ -1861,8 +1863,11 @@ bool host::schedule_check(time_t check_time, int options) {
   }
 
   /* update the status log */
-  update_status();
-  return true;
+  if (!no_update_status_now) {
+    update_status();
+    return true;
+  } else
+    return false;
 }
 
 /* detects host flapping */
