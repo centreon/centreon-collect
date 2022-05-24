@@ -43,6 +43,7 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::unified_sql;
 
 constexpr int32_t queue_timer_duration = 10;
+constexpr int32_t dt_queue_timer_duration = 5;
 
 /**
  *  Check that the floating point values are the same number or are NaN or are
@@ -860,7 +861,7 @@ void stream::_check_queues(asio::error_code ec) {
 
     bool downtimes_done = false;
     if (now >= _next_update_downtimes || sz_dt >= _max_dt_queries) {
-      _next_update_downtimes = now + queue_timer_duration;
+      _next_update_downtimes = now + dt_queue_timer_duration;
       _update_downtimes();
       downtimes_done = true;
     }
@@ -940,7 +941,8 @@ void stream::_check_deleted_index(asio::error_code ec) {
           _index_cache.erase({res.value_as_u32(3), res.value_as_u32(4)});
         }
         std::promise<database::mysql_result> promise_metrics;
-        std::future<database::mysql_result> future_metrics = promise_metrics.get_future();
+        std::future<database::mysql_result> future_metrics =
+            promise_metrics.get_future();
         _mysql.run_query_and_get_result(
             "SELECT metric_id, metric_name FROM metrics WHERE to_delete=1",
             std::move(promise_metrics), conn);
