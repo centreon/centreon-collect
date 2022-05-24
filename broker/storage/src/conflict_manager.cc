@@ -226,9 +226,10 @@ void conflict_manager::_load_deleted_instances() {
   _cache_deleted_instance_id.clear();
   std::string query{"SELECT instance_id FROM instances WHERE deleted=1"};
   std::promise<mysql_result> promise;
-  _mysql.run_query_and_get_result(query, &promise);
+  std::future<database::mysql_result> future = promise.get_future();
+  _mysql.run_query_and_get_result(query, std::move(promise));
   try {
-    mysql_result res(promise.get_future().get());
+    mysql_result res(future.get());
     while (_mysql.fetch_row(res))
       _cache_deleted_instance_id.insert(res.value_as_u32(0));
   } catch (std::exception const& e) {
@@ -246,36 +247,41 @@ void conflict_manager::_load_caches() {
   /* get all outdated instances from the database => _stored_timestamps */
   std::string query{"SELECT instance_id FROM instances WHERE outdated=TRUE"};
   std::promise<mysql_result> promise_inst;
-  _mysql.run_query_and_get_result(query, &promise_inst);
+  std::future<database::mysql_result> future_inst = promise_inst.get_future();
+  _mysql.run_query_and_get_result(query, std::move(promise_inst));
 
   /* index_data => _index_cache */
   std::promise<database::mysql_result> promise_ind;
+  std::future<database::mysql_result> future_ind = promise_ind.get_future();
   _mysql.run_query_and_get_result(
       "SELECT "
       "id,host_id,service_id,host_name,rrd_retention,service_description,"
       "special,locked FROM index_data",
-      &promise_ind);
+      std::move(promise_ind));
 
   /* hosts => _cache_host_instance */
   _cache_host_instance.clear();
 
   std::promise<mysql_result> promise_hst;
+  std::future<database::mysql_result> future_hst = promise_hst.get_future();
   _mysql.run_query_and_get_result("SELECT host_id,instance_id FROM hosts",
-                                  &promise_hst);
+                                  std::move(promise_hst));
 
   /* hostgroups => _hostgroup_cache */
   _hostgroup_cache.clear();
 
   std::promise<mysql_result> promise_hg;
+  std::future<database::mysql_result> future_hg = promise_hg.get_future();
   _mysql.run_query_and_get_result("SELECT hostgroup_id FROM hostgroups",
-                                  &promise_hg);
+                                  std::move(promise_hg));
 
   /* servicegroups => _servicegroup_cache */
   _servicegroup_cache.clear();
 
   std::promise<mysql_result> promise_sg;
+  std::future<database::mysql_result> future_sg = promise_sg.get_future();
   _mysql.run_query_and_get_result("SELECT servicegroup_id FROM servicegroups",
-                                  &promise_sg);
+                                  std::move(promise_sg));
 
   _cache_svc_cmd.clear();
   _cache_hst_cmd.clear();
@@ -288,25 +294,30 @@ void conflict_manager::_load_caches() {
   }
 
   std::promise<mysql_result> promise_met;
+  std::future<database::mysql_result> future_met = promise_met.get_future();
   _mysql.run_query_and_get_result(
       "SELECT "
       "metric_id,index_id,metric_name,unit_name,warn,warn_low,warn_threshold_"
       "mode,crit,crit_low,crit_threshold_mode,min,max,current_value,data_"
       "source_type FROM metrics",
-      &promise_met);
+      std::move(promise_met));
 
   /* severities => _severity_cache */
   std::promise<mysql_result> promise_severity;
+  std::future<database::mysql_result> future_severity =
+      promise_severity.get_future();
   _mysql.run_query_and_get_result(
-      "SELECT severity_id, id, type FROM severities", &promise_severity);
+      "SELECT severity_id, id, type FROM severities",
+      std::move(promise_severity));
   /* tags => _tags_cache */
   std::promise<mysql_result> promise_tags;
+  std::future<database::mysql_result> future_tags = promise_tags.get_future();
   _mysql.run_query_and_get_result("SELECT tag_id, id, type FROM tags",
-                                  &promise_tags);
+                                  std::move(promise_tags));
 
   /* Result of all outdated instances */
   try {
-    mysql_result res(promise_inst.get_future().get());
+    mysql_result res(future_inst.get());
     while (_mysql.fetch_row(res)) {
       uint32_t instance_id = res.value_as_i32(0);
       _stored_timestamps.insert(
@@ -323,7 +334,7 @@ void conflict_manager::_load_caches() {
 
   /* Result of index_data => _index_cache */
   try {
-    database::mysql_result res(promise_ind.get_future().get());
+    database::mysql_result res(future_ind.get());
 
     // Loop through result set.
     while (_mysql.fetch_row(res)) {
@@ -354,7 +365,7 @@ void conflict_manager::_load_caches() {
 
   /* Result of hosts => _cache_host_instance */
   try {
-    mysql_result res(promise_hst.get_future().get());
+    mysql_result res(future_hst.get());
     while (_mysql.fetch_row(res))
       _cache_host_instance[res.value_as_u32(0)] = res.value_as_u32(1);
   } catch (std::exception const& e) {
@@ -364,7 +375,7 @@ void conflict_manager::_load_caches() {
 
   /* Result of hostgroups => _hostgroup_cache */
   try {
-    mysql_result res(promise_hg.get_future().get());
+    mysql_result res(future_hg.get());
     while (_mysql.fetch_row(res))
       _hostgroup_cache.insert(res.value_as_u32(0));
   } catch (std::exception const& e) {
@@ -373,7 +384,7 @@ void conflict_manager::_load_caches() {
 
   /* Result of servicegroups => _servicegroup_cache */
   try {
-    mysql_result res(promise_sg.get_future().get());
+    mysql_result res(future_sg.get());
     while (_mysql.fetch_row(res))
       _servicegroup_cache.insert(res.value_as_u32(0));
   } catch (std::exception const& e) {
@@ -383,7 +394,7 @@ void conflict_manager::_load_caches() {
 
   /* Result of metrics => _metric_cache */
   try {
-    mysql_result res{promise_met.get_future().get()};
+    mysql_result res{future_met.get()};
     std::lock_guard<std::mutex> lock(_metric_cache_m);
     while (_mysql.fetch_row(res)) {
       metric_info info;
@@ -409,7 +420,7 @@ void conflict_manager::_load_caches() {
   }
 
   try {
-    mysql_result res{promise_severity.get_future().get()};
+    mysql_result res{future_severity.get()};
     while (_mysql.fetch_row(res)) {
       _severity_cache[{res.value_as_u64(2),
                        static_cast<uint16_t>(res.value_as_u32(1))}] =
@@ -420,7 +431,7 @@ void conflict_manager::_load_caches() {
                   e.what());
   }
   try {
-    mysql_result res{promise_tags.get_future().get()};
+    mysql_result res{future_tags.get()};
     while (_mysql.fetch_row(res)) {
       _tags_cache[{res.value_as_u64(1),
                    static_cast<uint16_t>(res.value_as_u32(2))}] =
@@ -910,6 +921,7 @@ void conflict_manager::remove_graphs(const std::shared_ptr<io::data>& d) {
         *static_cast<const bbdo::pb_remove_graphs*>(data.get());
 
     std::promise<database::mysql_result> promise;
+    std::future<database::mysql_result> future = promise.get_future();
     int32_t conn = ms.choose_best_connection(-1);
     std::set<uint64_t> indexes_to_delete;
     std::set<uint64_t> metrics_to_delete;
@@ -920,8 +932,8 @@ void conflict_manager::remove_graphs(const std::shared_ptr<io::data>& d) {
                         "i.service_id FROM index_data i LEFT JOIN metrics m ON "
                         "i.id=m.index_id WHERE i.id IN ({})",
                         fmt::join(ids.obj().index_ids(), ",")),
-            &promise, conn);
-        database::mysql_result res(promise.get_future().get());
+            std::move(promise), conn);
+        database::mysql_result res(future.get());
 
         std::lock_guard<std::mutex> lock(_metric_cache_m);
         while (ms.fetch_row(res)) {
@@ -936,14 +948,15 @@ void conflict_manager::remove_graphs(const std::shared_ptr<io::data>& d) {
       }
 
       if (!ids.obj().metric_ids().empty()) {
-        promise = std::promise<database::mysql_result>();
+        std::promise<database::mysql_result> promise_metrics;
+        std::future<database::mysql_result> future_metrics = promise_metrics.get_future();
 
         ms.run_query_and_get_result(
             fmt::format("SELECT index_id,metric_id,metric_name FROM metrics "
                         "WHERE metric_id IN ({})",
                         fmt::join(ids.obj().metric_ids(), ",")),
-            &promise, conn);
-        database::mysql_result res(promise.get_future().get());
+            std::move(promise_metrics), conn);
+        database::mysql_result res(future_metrics.get());
 
         std::lock_guard<std::mutex> lock(_metric_cache_m);
         while (ms.fetch_row(res)) {
