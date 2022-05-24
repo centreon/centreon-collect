@@ -505,11 +505,6 @@ void conflict_manager::_process_custom_variable_status(
 void conflict_manager::_process_downtime(
     std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t) {
   auto& d = std::get<0>(t);
-  int conn = special_conn::downtime % _mysql.connections_count();
-  _finish_action(-1, actions::hosts | actions::instances | actions::downtimes |
-                         actions::host_parents | actions::host_dependencies |
-                         actions::service_dependencies);
-
   // Cast object.
   neb::downtime const& dd = *static_cast<neb::downtime const*>(d.get());
 
@@ -527,36 +522,31 @@ void conflict_manager::_process_downtime(
 
   // Check if poller is valid.
   if (_is_valid_poller(dd.poller_id)) {
-    // Prepare queries.
-    if (!_downtime_insupdate.prepared()) {
-      _downtime_insupdate = mysql_stmt(
-          "INSERT INTO downtimes (actual_end_time,actual_start_time,author,"
-          "type,deletion_time,duration,end_time,entry_time,"
-          "fixed,host_id,instance_id,internal_id,service_id,"
-          "start_time,triggered_by,cancelled,started,comment_data) "
-          "VALUES(:actual_end_time,:actual_start_time,:author,:type,"
-          ":deletion_time,:duration,:end_time,:entry_time,:fixed,:host_id,"
-          ":instance_id,:internal_id,:service_id,:start_time,"
-          ":triggered_by,:cancelled,:started,:comment_data) "
-          "ON DUPLICATE KEY UPDATE "
-          "actual_end_time=GREATEST(COALESCE(actual_end_time,-1),"
-          ":actual_end_time),actual_start_time=COALESCE(actual_start_time,"
-          ":actual_start_time),author=:author,cancelled=:cancelled,"
-          "comment_data=:comment_data,deletion_time=:deletion_time,duration="
-          ":duration,end_time=:end_time,fixed=:fixed,host_id=:host_id,"
-          "service_id=:service_id,start_time=:start_time,started=:started,"
-          "triggered_by=:triggered_by, type=:type",
-          true);
-      _mysql.prepare_statement(_downtime_insupdate);
-    }
-
-    // Process object.
-    _downtime_insupdate << dd;
-    _mysql.run_statement(_downtime_insupdate,
-                         database::mysql_error::store_downtime, true, conn);
-    _add_action(conn, actions::downtimes);
+    _downtimes_queue.emplace_back(
+        std::get<2>(t),
+        fmt::format(
+            "({},{},'{}',{},{},{},{},{},{},{},{},{},{},{},{},{},{},'{}')",
+            dd.actual_end_time.is_null()
+                ? "NULL"
+                : fmt::format("{}", dd.actual_end_time),
+            dd.actual_start_time.is_null()
+                ? "NULL"
+                : fmt::format("{}", dd.actual_start_time),
+            misc::string::escape(dd.author,
+                                 get_downtimes_col_size(downtimes_author)),
+            dd.downtime_type,
+            dd.deletion_time.is_null() ? "NULL"
+                                       : fmt::format("{}", dd.deletion_time),
+            dd.duration,
+            dd.end_time.is_null() ? "NULL" : fmt::format("{}", dd.end_time),
+            dd.entry_time.is_null() ? "NULL" : fmt::format("{}", dd.entry_time),
+            dd.fixed, dd.host_id, dd.poller_id, dd.internal_id, dd.service_id,
+            dd.start_time.is_null() ? "NULL" : fmt::format("{}", dd.start_time),
+            dd.triggered_by == 0 ? "NULL" : fmt::format("{}", dd.triggered_by),
+            dd.was_cancelled, dd.was_started,
+            misc::string::escape(
+                dd.comment, get_downtimes_col_size(downtimes_comment_data))));
   }
-  *std::get<2>(t) = true;
 }
 
 /**
@@ -1657,6 +1647,48 @@ void conflict_manager::_process_responsive_instance(
   *std::get<2>(t) = true;
 }
 
+void conflict_manager::_update_downtimes() {
+  int32_t conn = special_conn::downtime % _mysql.connections_count();
+  _finish_action(-1, actions::hosts | actions::instances | actions::downtimes |
+                         actions::host_parents | actions::host_dependencies |
+                         actions::service_dependencies);
+  if (!_downtimes_queue.empty()) {
+    auto it = _downtimes_queue.begin();
+    std::ostringstream oss;
+    oss << "INSERT INTO downtimes (actual_end_time,actual_start_time,author,"
+           "type,deletion_time,duration,end_time,entry_time,"
+           "fixed,host_id,instance_id,internal_id,service_id,"
+           "start_time,triggered_by,cancelled,started,comment_data) "
+           "VALUES"
+        << std::get<1>(*it);
+    for (++it; it != _downtimes_queue.end(); ++it)
+      oss << "," << std::get<1>(*it);
+
+    /* The duplicate part */
+    oss << " ON DUPLICATE KEY UPDATE "
+           "actual_end_time=GREATEST(COALESCE(actual_end_time,-1),VALUES("
+           "actual_end_time)),actual_start_time=COALESCE(actual_start_time,"
+           "VALUES(actual_start_time)),author=VALUES(author),cancelled=VALUES("
+           "cancelled),comment_data=VALUES(comment_data),deletion_time=VALUES("
+           "deletion_time),duration=VALUES(duration),end_time=VALUES(end_time),"
+           "fixed=VALUES(fixed),start_time=VALUES(start_time),started=VALUES("
+           "started),triggered_by=VALUES(triggered_by), type=VALUES(type)";
+    std::string query{oss.str()};
+
+    _mysql.run_query(query, database::mysql_error::store_downtime, true, conn);
+    log_v2::sql()->debug("{} new downtimes inserted", _downtimes_queue.size());
+    log_v2::sql()->trace("sending query << {} >>", query);
+    _add_action(conn, actions::downtimes);
+
+    /* Acknowledgement and cleanup */
+    while (!_downtimes_queue.empty()) {
+      auto it = _downtimes_queue.begin();
+      *std::get<0>(*it) = true;
+      _downtimes_queue.pop_front();
+    }
+  }
+}
+
 /**
  * @brief Send a big query to update/insert a bulk of custom variables. When
  * the query is done, we set the corresponding boolean of each pair to true
@@ -1674,7 +1706,6 @@ void conflict_manager::_update_customvariables() {
            "(name,host_id,service_id,default_value,modified,type,update_time,"
            "value) VALUES "
         << std::get<1>(*it);
-    *std::get<0>(*it) = true;
     for (++it; it != _cv_queue.end(); ++it)
       oss << "," << std::get<1>(*it);
 
