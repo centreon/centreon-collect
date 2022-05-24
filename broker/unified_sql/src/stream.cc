@@ -163,9 +163,10 @@ void stream::_load_deleted_instances() {
   _cache_deleted_instance_id.clear();
   std::string query{"SELECT instance_id FROM instances WHERE deleted=1"};
   std::promise<mysql_result> promise;
-  _mysql.run_query_and_get_result(query, &promise);
+  std::future<mysql_result> future = promise.get_future();
+  _mysql.run_query_and_get_result(query, std::move(promise));
   try {
-    mysql_result res(promise.get_future().get());
+    mysql_result res(future.get());
     while (_mysql.fetch_row(res))
       _cache_deleted_instance_id.insert(res.value_as_u32(0));
   } catch (std::exception const& e) {
@@ -191,11 +192,21 @@ void stream::_load_caches() {
   std::promise<mysql_result> promise_resource;
   std::promise<mysql_result> promise_severity;
   std::promise<mysql_result> promise_tags;
+  std::future<mysql_result> future_instance_id =
+      promise_instance_id.get_future();
+  std::future<mysql_result> future_index_data = promise_index_data.get_future();
+  std::future<mysql_result> future_hi = promise_hi.get_future();
+  std::future<mysql_result> future_hg = promise_hg.get_future();
+  std::future<mysql_result> future_sg = promise_sg.get_future();
+  std::future<mysql_result> future_metrics = promise_metrics.get_future();
+  std::future<mysql_result> future_resource = promise_resource.get_future();
+  std::future<mysql_result> future_severity = promise_severity.get_future();
+  std::future<mysql_result> future_tags = promise_tags.get_future();
 
   /* get all outdated instances from the database => _stored_timestamps */
   _mysql.run_query_and_get_result(
       "SELECT instance_id FROM instances WHERE outdated=TRUE",
-      &promise_instance_id);
+      std::move(promise_instance_id));
 
   /* index_data => _index_cache */
   _mysql.run_query_and_get_result(
@@ -203,19 +214,19 @@ void stream::_load_caches() {
       "id,host_id,service_id,host_name,rrd_retention,check_interval,service_"
       "description,"
       "special,locked FROM index_data",
-      &promise_index_data);
+      std::move(promise_index_data));
 
   /* hosts => _cache_host_instance */
   _mysql.run_query_and_get_result("SELECT host_id,instance_id FROM hosts",
-                                  &promise_hi);
+                                  std::move(promise_hi));
 
   /* hostgroups => _hostgroup_cache */
   _mysql.run_query_and_get_result("SELECT hostgroup_id FROM hostgroups",
-                                  &promise_hg);
+                                  std::move(promise_hg));
 
   /* servicegroups => _servicegroup_cache */
   _mysql.run_query_and_get_result("SELECT servicegroup_id FROM servicegroups",
-                                  &promise_sg);
+                                  std::move(promise_sg));
 
   /* metrics => _metric_cache */
   _mysql.run_query_and_get_result(
@@ -223,23 +234,25 @@ void stream::_load_caches() {
       "metric_id,index_id,metric_name,unit_name,warn,warn_low,"
       "warn_threshold_mode,crit,crit_low,crit_threshold_mode,min,max,"
       "current_value,data_source_type FROM metrics",
-      &promise_metrics);
+      std::move(promise_metrics));
 
   /* resources => _resources_cache */
   _mysql.run_query_and_get_result(
-      "SELECT resource_id, id, parent_id FROM resources", &promise_resource);
+      "SELECT resource_id, id, parent_id FROM resources",
+      std::move(promise_resource));
 
   /* severities => _severity_cache */
   _mysql.run_query_and_get_result(
-      "SELECT severity_id, id, type FROM severities", &promise_severity);
+      "SELECT severity_id, id, type FROM severities",
+      std::move(promise_severity));
 
   /* tags => _tags_cache */
   _mysql.run_query_and_get_result("SELECT tag_id, id, type FROM tags",
-                                  &promise_tags);
+                                  std::move(promise_tags));
 
   /* get all outdated instances from the database => _stored_timestamps */
   try {
-    mysql_result res(promise_instance_id.get_future().get());
+    mysql_result res(future_instance_id.get());
     while (_mysql.fetch_row(res)) {
       uint32_t instance_id = res.value_as_i32(0);
       _stored_timestamps.insert(
@@ -256,7 +269,7 @@ void stream::_load_caches() {
 
   /* index_data => _index_cache */
   try {
-    database::mysql_result res(promise_index_data.get_future().get());
+    database::mysql_result res(future_index_data.get());
 
     // Loop through result set.
     while (_mysql.fetch_row(res)) {
@@ -290,7 +303,7 @@ void stream::_load_caches() {
   /* hosts => _cache_host_instance */
   _cache_host_instance.clear();
   try {
-    mysql_result res(promise_hi.get_future().get());
+    mysql_result res(future_hi.get());
     while (_mysql.fetch_row(res))
       _cache_host_instance[res.value_as_u32(0)] = res.value_as_u32(1);
   } catch (std::exception const& e) {
@@ -301,7 +314,7 @@ void stream::_load_caches() {
   /* hostgroups => _hostgroup_cache */
   _hostgroup_cache.clear();
   try {
-    mysql_result res(promise_hg.get_future().get());
+    mysql_result res(future_hg.get());
     while (_mysql.fetch_row(res))
       _hostgroup_cache.insert(res.value_as_u32(0));
   } catch (std::exception const& e) {
@@ -311,7 +324,7 @@ void stream::_load_caches() {
   /* servicegroups => _servicegroup_cache */
   _servicegroup_cache.clear();
   try {
-    mysql_result res(promise_sg.get_future().get());
+    mysql_result res(future_sg.get());
     while (_mysql.fetch_row(res))
       _servicegroup_cache.insert(res.value_as_u32(0));
   } catch (std::exception const& e) {
@@ -332,7 +345,7 @@ void stream::_load_caches() {
     }
 
     try {
-      mysql_result res{promise_metrics.get_future().get()};
+      mysql_result res{future_metrics.get()};
       while (_mysql.fetch_row(res)) {
         metric_info info;
         info.metric_id = res.value_as_u32(0);
@@ -357,7 +370,7 @@ void stream::_load_caches() {
     }
 
     try {
-      mysql_result res{promise_resource.get_future().get()};
+      mysql_result res{future_resource.get()};
       while (_mysql.fetch_row(res)) {
         _resource_cache[{res.value_as_u64(1), res.value_as_u64(2)}] =
             res.value_as_u64(0);
@@ -368,7 +381,7 @@ void stream::_load_caches() {
     }
 
     try {
-      mysql_result res{promise_severity.get_future().get()};
+      mysql_result res{future_severity.get()};
       while (_mysql.fetch_row(res)) {
         _severity_cache[{res.value_as_u64(1),
                          static_cast<uint16_t>(res.value_as_u32(2))}] =
@@ -380,7 +393,7 @@ void stream::_load_caches() {
     }
 
     try {
-      mysql_result res{promise_tags.get_future().get()};
+      mysql_result res{future_tags.get()};
       while (_mysql.fetch_row(res)) {
         _tags_cache[{res.value_as_u64(1),
                      static_cast<uint16_t>(res.value_as_u32(2))}] =
@@ -590,12 +603,10 @@ int32_t stream::stop() {
   _stop_check_queues = true;
   /* We wait for the check_queues to be really stopped */
   std::unique_lock<std::mutex> lck(_queues_m);
-  if (_queues_cond_var.wait_for(lck, std::chrono::seconds(queue_timer_duration), [this] {
-    return _check_queues_stopped;
-  })) {
+  if (_queues_cond_var.wait_for(lck, std::chrono::seconds(queue_timer_duration),
+                                [this] { return _check_queues_stopped; })) {
     log_v2::sql()->info("SQL: stream correctly stopped");
-  }
-  else {
+  } else {
     log_v2::sql()->error("SQL: stream queues check still running...");
   }
 
@@ -614,6 +625,7 @@ void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
         *static_cast<const bbdo::pb_remove_graphs*>(data.get());
 
     std::promise<database::mysql_result> promise;
+    std::future<mysql_result> future = promise.get_future();
     int32_t conn = ms.choose_best_connection(-1);
     std::set<uint64_t> indexes_to_delete;
     std::set<uint64_t> metrics_to_delete;
@@ -624,8 +636,8 @@ void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
                         "i.service_id FROM index_data i LEFT JOIN metrics m ON "
                         "i.id=m.index_id WHERE i.id IN ({})",
                         fmt::join(ids.obj().index_ids(), ",")),
-            &promise, conn);
-        database::mysql_result res(promise.get_future().get());
+            std::move(promise), conn);
+        database::mysql_result res(future.get());
 
         std::lock_guard<misc::shared_mutex> lock(_metric_cache_m);
         while (ms.fetch_row(res)) {
@@ -641,13 +653,14 @@ void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
 
       if (!ids.obj().metric_ids().empty()) {
         promise = std::promise<database::mysql_result>();
+        std::future<mysql_result> future = promise.get_future();
 
         ms.run_query_and_get_result(
             fmt::format("SELECT index_id,metric_id,metric_name FROM metrics "
                         "WHERE metric_id IN ({})",
                         fmt::join(ids.obj().metric_ids(), ",")),
-            &promise, conn);
-        database::mysql_result res(promise.get_future().get());
+            std::move(promise), conn);
+        database::mysql_result res(future.get());
 
         std::lock_guard<misc::shared_mutex> lock(_metric_cache_m);
         while (ms.fetch_row(res)) {

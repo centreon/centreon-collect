@@ -1273,12 +1273,13 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
             _resources_host_insert.bind_value_as_u64(21, h.icon_id());
 
             std::promise<uint64_t> p;
+            std::future<uint64_t> future = p.get_future();
             _mysql.run_statement_and_get_int<uint64_t>(
-                _resources_host_insert, &p,
+                _resources_host_insert, std::move(p),
                 database::mysql_task::LAST_INSERT_ID, conn);
             _add_action(conn, actions::resources);
             try {
-              res_id = p.get_future().get();
+              res_id = future.get();
               _resource_cache.insert({{h.host_id(), 0}, res_id});
             } catch (const std::exception& e) {
               log_v2::sql()->critical(
@@ -1286,13 +1287,15 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
                   e.what());
 
               std::promise<mysql_result> promise_resource;
+              std::future<mysql_result> future_resource =
+                  promise_resource.get_future();
               _mysql.run_query_and_get_result(
                   fmt::format("SELECT resource_id FROM resources WHERE "
                               "parent_id=0 AND id={}",
                               h.host_id()),
-                  &promise_resource);
+                  std::move(promise_resource));
               try {
-                mysql_result res{promise_resource.get_future().get()};
+                mysql_result res{future_resource.get()};
                 if (_mysql.fetch_row(res)) {
                   auto r = _resource_cache.insert(
                       {{h.host_id(), 0}, res.value_as_u64(0)});
@@ -1377,10 +1380,13 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
               _tag_insert.bind_value_as_u32(1, tag.type());
               _tag_insert.bind_value_as_str(2, "(unknown)");
               std::promise<uint64_t> p;
+              std::future<uint64_t> future = p.get_future();
+
               _mysql.run_statement_and_get_int<uint64_t>(
-                  _tag_insert, &p, database::mysql_task::LAST_INSERT_ID, conn);
+                  _tag_insert, std::move(p),
+                  database::mysql_task::LAST_INSERT_ID, conn);
               try {
-                uint64_t tag_id = p.get_future().get();
+                uint64_t tag_id = future.get();
                 it_tags_cache =
                     _tags_cache.insert({{tag.id(), tag.type()}, tag_id}).first;
               } catch (const std::exception& e) {
@@ -1465,8 +1471,8 @@ void stream::_process_pb_adaptive_host(const std::shared_ptr<io::data>& d) {
       query += fmt::format(" event_handler_enabled='{}',",
                            ah.event_handler_enabled() ? 1 : 0);
     if (ah.has_flap_detection())
-      query += fmt::format(" flap_detection='{}',",
-                           ah.flap_detection() ? 1 : 0);
+      query +=
+          fmt::format(" flap_detection='{}',", ah.flap_detection() ? 1 : 0);
     if (ah.has_obsess_over_host())
       query +=
           fmt::format(" obsess_over_host='{}',", ah.obsess_over_host() ? 1 : 0);
@@ -2427,12 +2433,13 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
             _resources_service_insert.bind_value_as_u64(22, ss.icon_id());
 
             std::promise<uint64_t> p;
+            std::future<uint64_t> future = p.get_future();
             _mysql.run_statement_and_get_int<uint64_t>(
-                _resources_service_insert, &p,
+                _resources_service_insert, std::move(p),
                 database::mysql_task::LAST_INSERT_ID, conn);
             _add_action(conn, actions::resources);
             try {
-              res_id = p.get_future().get();
+              res_id = future.get();
               _resource_cache.insert({{ss.service_id(), ss.host_id()}, res_id});
             } catch (const std::exception& e) {
               log_v2::sql()->critical(
@@ -2440,13 +2447,15 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
                   ss.host_id(), ss.service_id(), e.what());
 
               std::promise<mysql_result> promise_resource;
+              std::future<mysql_result> future_resource =
+                  promise_resource.get_future();
               _mysql.run_query_and_get_result(
                   fmt::format("SELECT resource_id FROM resources WHERE "
                               "parent_id={} AND id={}",
                               ss.host_id(), ss.service_id()),
-                  &promise_resource);
+                  std::move(promise_resource));
               try {
-                mysql_result res{promise_resource.get_future().get()};
+                mysql_result res{future_resource.get()};
                 if (_mysql.fetch_row(res)) {
                   auto r = _resource_cache.insert(
                       {{ss.service_id(), ss.host_id()}, res.value_as_u64(0)});
@@ -2536,10 +2545,12 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
               _tag_insert.bind_value_as_u32(1, tag.type());
               _tag_insert.bind_value_as_str(2, "(unknown)");
               std::promise<uint64_t> p;
+              std::future<uint64_t> future = p.get_future();
               _mysql.run_statement_and_get_int<uint64_t>(
-                  _tag_insert, &p, database::mysql_task::LAST_INSERT_ID, conn);
+                  _tag_insert, std::move(p),
+                  database::mysql_task::LAST_INSERT_ID, conn);
               try {
-                uint64_t tag_id = p.get_future().get();
+                uint64_t tag_id = future.get();
                 it_tags_cache =
                     _tags_cache.insert({{tag.id(), tag.type()}, tag_id}).first;
               } catch (const std::exception& e) {
@@ -2754,10 +2765,12 @@ void stream::_check_and_update_index_cache(const Service& ss) {
     _index_data_insert.bind_value_as_str(5, special ? "1" : "0");
 
     std::promise<uint64_t> p;
+    std::future<uint64_t> future = p.get_future();
     _mysql.run_statement_and_get_int<uint64_t>(
-        _index_data_insert, &p, database::mysql_task::LAST_INSERT_ID, conn);
+        _index_data_insert, std::move(p), database::mysql_task::LAST_INSERT_ID,
+        conn);
     try {
-      index_id = p.get_future().get();
+      index_id = future.get();
       log_v2::sql()->debug(
           "sql: new index {} added for service ({}, {}), special {}", index_id,
           ss.host_id(), ss.service_id(), special ? "1" : "0");
@@ -2792,14 +2805,16 @@ void stream::_check_and_update_index_cache(const Service& ss) {
       _index_data_query.bind_value_as_i32(0, ss.host_id());
       _index_data_query.bind_value_as_i32(1, ss.service_id());
       std::promise<database::mysql_result> pq;
+      std::future<database::mysql_result> future_pq = pq.get_future();
       log_v2::sql()->debug(
           "Attempt to get the index from the database for service ({}, {})",
           ss.host_id(), ss.service_id());
 
-      _mysql.run_statement_and_get_result(_index_data_query, &pq, conn);
+      _mysql.run_statement_and_get_result(_index_data_query, std::move(pq),
+                                          conn);
 
       try {
-        database::mysql_result res(pq.get_future().get());
+        database::mysql_result res(future_pq.get());
         if (_mysql.fetch_row(res)) {
           index_id = res.value_as_u64(0);
           index_info info{
@@ -3154,10 +3169,12 @@ void stream::_process_severity(const std::shared_ptr<io::data>& d) {
         _severity_insert.bind_value_as_u32(3, sv.level());
         _severity_insert.bind_value_as_u64(4, sv.icon_id());
         std::promise<uint64_t> p;
+        std::future<uint64_t> future = p.get_future();
         _mysql.run_statement_and_get_int<uint64_t>(
-            _severity_insert, &p, database::mysql_task::LAST_INSERT_ID, conn);
+            _severity_insert, std::move(p),
+            database::mysql_task::LAST_INSERT_ID, conn);
         try {
-          severity_id = p.get_future().get();
+          severity_id = future.get();
           _severity_cache[{sv.id(), sv.type()}] = severity_id;
         } catch (const std::exception& e) {
           log_v2::sql()->error(
@@ -3235,10 +3252,12 @@ void stream::_process_tag(const std::shared_ptr<io::data>& d) {
         _tag_insert.bind_value_as_u32(1, tg.type());
         _tag_insert.bind_value_as_str(2, tg.name());
         std::promise<uint64_t> p;
+        std::future<uint64_t> future = p.get_future();
         _mysql.run_statement_and_get_int<uint64_t>(
-            _tag_insert, &p, database::mysql_task::LAST_INSERT_ID, conn);
+            _tag_insert, std::move(p), database::mysql_task::LAST_INSERT_ID,
+            conn);
         try {
-          tag_id = p.get_future().get();
+          tag_id = future.get();
           _tags_cache[{tg.id(), tg.type()}] = tag_id;
         } catch (const std::exception& e) {
           log_v2::sql()->error(

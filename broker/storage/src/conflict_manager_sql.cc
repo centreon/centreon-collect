@@ -1700,10 +1700,13 @@ void conflict_manager::_process_severity(
         _severity_insert.bind_value_as_u32(3, sv.level());
         _severity_insert.bind_value_as_u64(4, sv.icon_id());
         std::promise<uint64_t> p;
+        std::future<uint64_t> future = p.get_future();
+
         _mysql.run_statement_and_get_int<uint64_t>(
-            _severity_insert, &p, database::mysql_task::LAST_INSERT_ID, conn);
+            _severity_insert, std::move(p),
+            database::mysql_task::LAST_INSERT_ID, conn);
         try {
-          severity_id = p.get_future().get();
+          severity_id = future.get();
           _severity_cache[{sv.id(), sv.type()}] = severity_id;
         } catch (const std::exception& e) {
           log_v2::sql()->error(
@@ -1779,10 +1782,12 @@ void conflict_manager::_process_tag(
         _tag_insert.bind_value_as_u32(1, tg.type());
         _tag_insert.bind_value_as_str(2, tg.name());
         std::promise<uint64_t> p;
+        std::future<uint64_t> future = p.get_future();
         _mysql.run_statement_and_get_int<uint64_t>(
-            _tag_insert, &p, database::mysql_task::LAST_INSERT_ID, conn);
+            _tag_insert, std::move(p), database::mysql_task::LAST_INSERT_ID,
+            conn);
         try {
-          tag_id = p.get_future().get();
+          tag_id = future.get();
           _tags_cache[{tg.id(), tg.type()}] = tag_id;
         } catch (const std::exception& e) {
           log_v2::sql()->error(
