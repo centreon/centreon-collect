@@ -76,6 +76,7 @@ void rebuilder::rebuild_rrd_graphs(const std::shared_ptr<io::data>& d) {
     int32_t conn = ms.choose_best_connection(-1);
     /* Lets' get the metrics to rebuild time in DB */
     std::promise<database::mysql_result> promise;
+    std::future<database::mysql_result> future = promise.get_future();
     std::string query{fmt::format(
         "SELECT m.metric_id, m.metric_name, m.data_source_type, "
         "i.rrd_retention, s.check_interval FROM metrics m LEFT JOIN index_data "
@@ -83,13 +84,13 @@ void rebuilder::rebuild_rrd_graphs(const std::shared_ptr<io::data>& d) {
         "i.service_id=s.service_id WHERE i.id IN ({})",
         ids_str)};
     log_v2::sql()->trace("Metric rebuild: Executed query << {} >>", query);
-    ms.run_query_and_get_result(query, &promise, conn);
+    ms.run_query_and_get_result(query, std::move(promise), conn);
     std::map<uint64_t, metric_info> ret_inter;
     std::list<int64_t> mids;
     auto start_rebuild = std::make_shared<storage::pb_rebuild_message>();
     start_rebuild->mut_obj().set_state(RebuildMessage_State_START);
     try {
-      database::mysql_result res{promise.get_future().get()};
+      database::mysql_result res{future.get()};
       while (ms.fetch_row(res)) {
         uint64_t mid = res.value_as_u64(0);
         mids.push_back(mid);
@@ -111,12 +112,13 @@ void rebuilder::rebuild_rrd_graphs(const std::shared_ptr<io::data>& d) {
       std::string mids_str{fmt::format("{}", fmt::join(mids, ","))};
       multiplexing::publisher().write(start_rebuild);
 
-      promise = std::promise<database::mysql_result>();
+      std::promise<database::mysql_result> promise_cfg;
+      std::future<database::mysql_result> future_cfg = promise_cfg.get_future();
       ms.run_query_and_get_result("SELECT len_storage_mysql FROM config",
-                                  &promise, conn);
+                                  std::move(promise_cfg), conn);
       int64_t db_retention_day = 0;
 
-      res = promise.get_future().get();
+      res = future_cfg.get();
       if (ms.fetch_row(res)) {
         db_retention_day = res.value_as_i64(0);
         log_v2::sql()->debug("Storage retention on Mysql: {} days",
@@ -138,6 +140,7 @@ void rebuilder::rebuild_rrd_graphs(const std::shared_ptr<io::data>& d) {
             end = mktime(&tmv);
             db_retention_day--;
             std::promise<database::mysql_result> promise;
+            std::future<database::mysql_result> future = promise.get_future();
             std::string query{
                 fmt::format("SELECT id_metric,ctime,value FROM data_bin WHERE "
                             "ctime>={} AND "
@@ -145,10 +148,10 @@ void rebuilder::rebuild_rrd_graphs(const std::shared_ptr<io::data>& d) {
                             start, end, mids_str)};
             log_v2::sql()->trace("Metrics rebuild: Query << {} >> executed",
                                  query);
-            ms.run_query_and_get_result(query, &promise, conn);
+            ms.run_query_and_get_result(query, std::move(promise), conn);
             auto data_rebuild = std::make_shared<storage::pb_rebuild_message>();
             data_rebuild->mut_obj().set_state(RebuildMessage_State_DATA);
-            database::mysql_result res(promise.get_future().get());
+            database::mysql_result res(future.get());
             while (ms.fetch_row(res)) {
               uint64_t id_metric = res.value_as_u64(0);
               time_t ctime = res.value_as_u64(1);
