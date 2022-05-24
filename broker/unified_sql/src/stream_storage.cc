@@ -823,6 +823,7 @@ void stream::_check_queues(asio::error_code ec) {
     size_t sz_perfdatas;
     size_t sz_metrics;
     size_t sz_cv, sz_cvs;
+    size_t sz_dt;
     size_t sz_logs;
     {
       std::lock_guard<std::mutex> lck(_queues_m);
@@ -831,6 +832,7 @@ void stream::_check_queues(asio::error_code ec) {
       sz_cv = _cv_queue.size();
       sz_cvs = _cvs_queue.size();
       sz_logs = _log_queue.size();
+      sz_dt = _downtimes_queue.size();
     }
 
     bool perfdata_done = false;
@@ -856,6 +858,13 @@ void stream::_check_queues(asio::error_code ec) {
       customvar_done = true;
     }
 
+    bool downtimes_done = false;
+    if (now >= _next_update_downtimes || sz_dt >= _max_dt_queries) {
+      _next_update_downtimes = now + queue_timer_duration;
+      _update_downtimes();
+      downtimes_done = true;
+    }
+
     bool logs_done = false;
     if (now >= _next_insert_logs || sz_logs >= _max_log_queries) {
       _next_insert_logs = now + queue_timer_duration;
@@ -866,8 +875,8 @@ void stream::_check_queues(asio::error_code ec) {
     // End.
     log_v2::perfdata()->debug(
         "unified_sql: end check_queue - perfdata: {}, metrics: {}, customvar: "
-        "{}, logs: {}",
-        perfdata_done, metrics_done, customvar_done, logs_done);
+        "{}, logs: {}, downtimes: {}",
+        perfdata_done, metrics_done, customvar_done, logs_done, downtimes_done);
 
     time_t duration = _next_insert_perfdatas;
     if (_next_update_metrics < duration)
@@ -876,6 +885,8 @@ void stream::_check_queues(asio::error_code ec) {
       duration = _next_update_cv;
     if (_next_insert_logs < duration)
       duration = _next_insert_logs;
+    if (_next_update_downtimes < duration)
+      duration = _next_update_downtimes;
 
     duration -= now;
     if (duration <= 0)

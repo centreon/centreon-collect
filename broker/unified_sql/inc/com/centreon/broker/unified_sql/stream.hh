@@ -183,21 +183,23 @@ class stream : public io::stream {
   mysql _mysql;
   uint32_t _instance_timeout;
   rebuilder _rebuilder;
-  bool _store_in_db;
+  bool _store_in_db = true;
   bool _store_in_resources;
   bool _store_in_hosts_services;
-  uint32_t _rrd_len;
-  uint32_t _interval_length;
-  uint32_t _max_perfdata_queries;
-  uint32_t _max_metrics_queries;
-  uint32_t _max_cv_queries;
-  uint32_t _max_log_queries;
+  uint32_t _rrd_len = 0u;
+  uint32_t _interval_length = 0u;
+  uint32_t _max_perfdata_queries = 0u;
+  uint32_t _max_metrics_queries = 0u;
+  uint32_t _max_cv_queries = 0u;
+  uint32_t _max_log_queries = 0u;
+  uint32_t _max_dt_queries = 0u;
 
   std::time_t _next_insert_perfdatas;
   std::time_t _next_update_metrics;
   std::time_t _next_update_cv;
   std::time_t _next_insert_logs;
   std::time_t _next_loop_timeout;
+  std::time_t _next_update_downtimes;
 
   asio::steady_timer _timer;
   asio::steady_timer _queues_timer;
@@ -250,6 +252,7 @@ class stream : public io::stream {
   std::deque<std::string> _cv_queue;
   std::deque<std::string> _cvs_queue;
   std::deque<std::string> _log_queue;
+  std::deque<std::string> _downtimes_queue;
 
   timestamp _oldest_timestamp;
   std::unordered_map<uint32_t, stored_timestamp> _stored_timestamps;
@@ -305,6 +308,7 @@ class stream : public io::stream {
   void _update_hosts_and_services_of_unresponsive_instances();
   void _update_hosts_and_services_of_instance(uint32_t id, bool responsive);
   void _update_timestamp(uint32_t instance_id);
+  void _update_downtimes();
   bool _is_valid_poller(uint32_t instance_id);
   void _check_queues(asio::error_code ec);
   void _check_deleted_index(asio::error_code ec);
