@@ -14,7 +14,23 @@ Unknown filters applied in the configuration file do not hang broker anymore.
 
 If a logger was at the 'off'/'disabled' state, then broker did not start.
 
-*engine*
+*sql*
+
+Hostgroups and servicegroups are no more deleted during an instance restart.
+This could lead to issues when several pollers are restarted simultaneously.
+
+*tcp*
+
+*service status*
+
+Connections are consumed in the same order they are created.
+
+*downtime*
+
+The downtime full delete external command did not work correctly and filtered
+too much.
+
+### centreon-engine
 
 Service status could be sent twice to cbd. This is fixed now.
 
