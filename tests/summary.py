@@ -1,11 +1,10 @@
 #!/usr/bin/python3
-import math
+import datetime
 import os
 import re
-import sys
 from xml.etree import ElementTree as ET
+
 import matplotlib.pyplot as plt
-import datetime
 
 content = os.listdir('.')
 r = re.compile(r"\d+")
@@ -37,11 +36,11 @@ for f in content:
                     if s.attrib['status'] == 'PASS':
                         success += 1
                     count += 1
-            durations.sort(reverse = True)
+            durations.sort(reverse=True)
             durations = durations[:10]
             gl_durations.append(durations)
-            gl_avg_duration.append((int(f), total_duration / count))
-            tests.append((int(f), success, fail))
+            gl_avg_duration.append((f, total_duration / count))
+            tests.append((f, success, fail))
             print("%s: %d/%d passed tests" % (f, success, count))
 
 # Display the arrays of longest tests
@@ -68,12 +67,8 @@ for xx in gl_avg_duration:
     x1.append(xx[0])
     y1.append(xx[1])
 
-#plt.figure()
 fig, ax = plt.subplots(2)
-#plt.title("Centreon-Tests")
 fig.suptitle("Centreon-Tests")
-#plt.subplots_adjust(bottom=0.226)
-#plt.stackplot(x, ys, yf, labels=['Success', 'failure'])
 ax[0].set_ylabel('tests')
 ax[0].set_xlabel('date')
 ax[0].tick_params(labelrotation=45)

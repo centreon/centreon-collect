@@ -43,6 +43,7 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::unified_sql;
 
 constexpr int32_t queue_timer_duration = 10;
+constexpr int32_t dt_queue_timer_duration = 5;
 
 /**
  *  Check that the floating point values are the same number or are NaN or are
@@ -823,6 +824,7 @@ void stream::_check_queues(asio::error_code ec) {
     size_t sz_perfdatas;
     size_t sz_metrics;
     size_t sz_cv, sz_cvs;
+    size_t sz_dt;
     size_t sz_logs;
     {
       std::lock_guard<std::mutex> lck(_queues_m);
@@ -831,6 +833,7 @@ void stream::_check_queues(asio::error_code ec) {
       sz_cv = _cv_queue.size();
       sz_cvs = _cvs_queue.size();
       sz_logs = _log_queue.size();
+      sz_dt = _downtimes_queue.size();
     }
 
     bool perfdata_done = false;
@@ -856,6 +859,13 @@ void stream::_check_queues(asio::error_code ec) {
       customvar_done = true;
     }
 
+    bool downtimes_done = false;
+    if (now >= _next_update_downtimes || sz_dt >= _max_dt_queries) {
+      _next_update_downtimes = now + dt_queue_timer_duration;
+      _update_downtimes();
+      downtimes_done = true;
+    }
+
     bool logs_done = false;
     if (now >= _next_insert_logs || sz_logs >= _max_log_queries) {
       _next_insert_logs = now + queue_timer_duration;
@@ -866,8 +876,8 @@ void stream::_check_queues(asio::error_code ec) {
     // End.
     log_v2::perfdata()->debug(
         "unified_sql: end check_queue - perfdata: {}, metrics: {}, customvar: "
-        "{}, logs: {}",
-        perfdata_done, metrics_done, customvar_done, logs_done);
+        "{}, logs: {}, downtimes: {}",
+        perfdata_done, metrics_done, customvar_done, logs_done, downtimes_done);
 
     time_t duration = _next_insert_perfdatas;
     if (_next_update_metrics < duration)
@@ -876,6 +886,8 @@ void stream::_check_queues(asio::error_code ec) {
       duration = _next_update_cv;
     if (_next_insert_logs < duration)
       duration = _next_insert_logs;
+    if (_next_update_downtimes < duration)
+      duration = _next_update_downtimes;
 
     duration -= now;
     if (duration <= 0)
@@ -929,7 +941,8 @@ void stream::_check_deleted_index(asio::error_code ec) {
           _index_cache.erase({res.value_as_u32(3), res.value_as_u32(4)});
         }
         std::promise<database::mysql_result> promise_metrics;
-        std::future<database::mysql_result> future_metrics = promise_metrics.get_future();
+        std::future<database::mysql_result> future_metrics =
+            promise_metrics.get_future();
         _mysql.run_query_and_get_result(
             "SELECT metric_id, metric_name FROM metrics WHERE to_delete=1",
             std::move(promise_metrics), conn);
