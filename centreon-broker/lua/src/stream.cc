@@ -40,7 +40,7 @@ using namespace com::centreon::broker::lua;
  *  @param[in] port                    port
  */
 stream::stream(std::string const& lua_script,
-               std::map<std::string, misc::variant> const& conf_params,
+               misc::string_to_variant_map const& conf_params,
                std::shared_ptr<persistent_cache> const& cache)
     : io::stream("lua"),
       _cache{cache},

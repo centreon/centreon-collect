@@ -105,12 +105,12 @@ class luabinding {
 
   lua_State* _load_interpreter();
   void _load_script(const std::string& lua_script);
-  void _init_script(std::map<std::string, misc::variant> const& conf_params);
+  void _init_script(misc::string_to_variant_map const& conf_params);
   void _update_lua_path(std::string const& path);
 
  public:
   luabinding(std::string const& lua_script,
-             std::map<std::string, misc::variant> const& conf_params,
+             misc::string_to_variant_map const& conf_params,
              macro_cache& cache);
   luabinding(luabinding const&) = delete;
   luabinding& operator=(luabinding const&) = delete;

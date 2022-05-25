@@ -75,7 +75,7 @@ io::endpoint* factory::new_endpoint(
     config::endpoint& cfg,
     bool& is_acceptor,
     std::shared_ptr<persistent_cache> cache) const {
-  std::map<std::string, misc::variant> conf_map;
+  misc::string_to_variant_map conf_map;
   std::string err;
 
   std::string filename(find_param(cfg, "path"));
