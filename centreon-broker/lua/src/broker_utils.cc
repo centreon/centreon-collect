@@ -643,6 +643,20 @@ static int l_broker_md5(lua_State* L) {
 }
 
 /**
+ * @brief The Lua bbdo_version function (the real one). In the Lua, it returns
+ * a string with the bbdo version configured.
+ * In 21.10 version it returns always 2.0.0
+ *
+ * @param L The Lua interpreter
+ *
+ * @return 1
+ */
+static int l_broker_bbdo_version(lua_State* L) {
+  lua_pushlstring(L, "2.0.0", 5);
+  return 1;
+}
+
+/**
  *  Load the Lua interpreter with the standard libraries
  *  and the broker lua sdk.
  *
@@ -655,6 +669,7 @@ void broker_utils::broker_utils_reg(lua_State* L) {
                               {"url_encode", l_broker_url_encode},
                               {"stat", l_broker_stat},
                               {"md5", l_broker_md5},
+                              {"bbdo_version", l_broker_bbdo_version},
                               {nullptr, nullptr}};
 
 #ifdef LUA51
