@@ -40,7 +40,7 @@ std::atomic<config::applier::applier_state> config::applier::mode{not_started};
  * @param n_thread number of threads in the pool.
  * @param name The broker name to give to this cbd instance.
  */
-void config::applier::init(size_t n_thread, const std::string& name) {
+void config::applier::init(size_t n_thread, const std::string&) {
   // Load singletons.
   pool::load(n_thread);
   stats::center::load();
