@@ -60,18 +60,51 @@ class mysql_task {
 
 class mysql_task_commit : public mysql_task {
  public:
-  mysql_task_commit(std::promise<bool>* promise, std::atomic_int& count)
-      : mysql_task(mysql_task::COMMIT), promise(promise), count(count) {}
-  std::promise<bool>* promise;
-  std::atomic_int& count;
+  /**
+   * @brief the purpose of this class is to set the future once all connections
+   * are committed
+   *
+   */
+  class mysql_task_commit_data {
+    std::promise<bool> _promise;
+    std::atomic_int _count;
+
+   public:
+    using pointer = std::shared_ptr<mysql_task_commit_data>;
+    /**
+     * @brief Construct a new mysql task commit data object
+     *
+     * @param connection_count number of connections to commit
+     */
+    mysql_task_commit_data(int connection_count) : _count(connection_count) {}
+    bool get() { return _promise.get_future().get(); }
+    bool set_value(bool value) {
+      int old = _count.fetch_sub(1);
+      if (old == 1) {  // commit is done on each connection => signal to get
+        _promise.set_value(value);
+        return true;
+      }
+      return false;
+    }
+  };
+  mysql_task_commit_data::pointer _data;
+
+ public:
+  mysql_task_commit(const mysql_task_commit_data::pointer& data)
+      : mysql_task(mysql_task::COMMIT), _data(data) {}
+
+  bool get() { return _data->get(); }
+  bool set_value(bool value) { return _data->set_value(value); }
 };
 
 class mysql_task_fetch : public mysql_task {
  public:
-  mysql_task_fetch(mysql_result* result, std::promise<bool>* promise)
-      : mysql_task(mysql_task::FETCH_ROW), result(result), promise(promise) {}
+  mysql_task_fetch(mysql_result* result, std::promise<bool>&& promise)
+      : mysql_task(mysql_task::FETCH_ROW),
+        result(result),
+        promise(std::move(promise)) {}
   mysql_result* result;
-  std::promise<bool>* promise;
+  std::promise<bool> promise;
 };
 
 class mysql_task_prepare : public mysql_task {
@@ -93,23 +126,25 @@ class mysql_task_run : public mysql_task {
 
 class mysql_task_run_res : public mysql_task {
  public:
-  mysql_task_run_res(std::string const& q, std::promise<mysql_result>* promise)
-      : mysql_task(mysql_task::RUN_RES), query(q), promise(promise) {}
+  mysql_task_run_res(std::string const& q, std::promise<mysql_result>&& promise)
+      : mysql_task(mysql_task::RUN_RES),
+        query(q),
+        promise(std::move(promise)) {}
   std::string query;
-  std::promise<mysql_result>* promise;
+  std::promise<mysql_result> promise;
 };
 
 class mysql_task_run_int : public mysql_task {
  public:
   mysql_task_run_int(std::string const& q,
-                     std::promise<int>* promise,
+                     std::promise<int>&& promise,
                      int_type type)
       : mysql_task(mysql_task::RUN_INT),
         query(q),
-        promise(promise),
+        promise(std::move(promise)),
         return_type(type) {}
   std::string query;
-  std::promise<int>* promise;
+  std::promise<int> promise;
   int_type return_type;
 };
 
@@ -134,13 +169,13 @@ class mysql_task_statement : public mysql_task {
 class mysql_task_statement_res : public mysql_task {
  public:
   mysql_task_statement_res(database::mysql_stmt& stmt,
-                           std::promise<mysql_result>* promise)
+                           std::promise<mysql_result>&& promise)
       : mysql_task(mysql_task::STATEMENT_RES),
-        promise(promise),
+        promise(std::move(promise)),
         statement_id(stmt.get_id()),
         param_count(stmt.get_param_count()),
         bind(stmt.get_bind()) {}
-  std::promise<mysql_result>* promise;
+  std::promise<mysql_result> promise;
   int statement_id;
   int param_count;
   std::unique_ptr<database::mysql_bind> bind;
@@ -150,20 +185,21 @@ template <typename T>
 class mysql_task_statement_int : public mysql_task {
  public:
   mysql_task_statement_int(database::mysql_stmt& stmt,
-                           std::promise<T>* promise,
+                           std::promise<T>&& promise,
                            int_type type)
-      : mysql_task((std::is_same<T, int>::value) ? mysql_task::STATEMENT_INT
-                   : (std::is_same<T, int64_t>::value)
-                       ? mysql_task::STATEMENT_INT64
-                   : (std::is_same<T, uint32_t>::value)
-                       ? mysql_task::STATEMENT_UINT
-                       : mysql_task::STATEMENT_UINT64),
-        promise(promise),
+      : mysql_task((std::is_same<T, int>::value)
+                       ? mysql_task::STATEMENT_INT
+                       : (std::is_same<T, int64_t>::value)
+                             ? mysql_task::STATEMENT_INT64
+                             : (std::is_same<T, uint32_t>::value)
+                                   ? mysql_task::STATEMENT_UINT
+                                   : mysql_task::STATEMENT_UINT64),
+        promise(std::move(promise)),
         return_type(type),
         statement_id(stmt.get_id()),
         param_count(stmt.get_param_count()),
         bind(stmt.get_bind()) {}
-  std::promise<T>* promise;
+  std::promise<T> promise;
   int_type return_type;
   int statement_id;
   int param_count;

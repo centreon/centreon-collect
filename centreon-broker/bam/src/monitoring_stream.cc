@@ -356,9 +356,10 @@ void monitoring_stream::_rebuild() {
   {
     std::string query("SELECT ba_id FROM mod_bam WHERE must_be_rebuild='1'");
     std::promise<mysql_result> promise;
-    _mysql.run_query_and_get_result(query, &promise, 0);
+    std::future<database::mysql_result> future = promise.get_future();
+    _mysql.run_query_and_get_result(query, std::move(promise), 0);
     try {
-      mysql_result res(promise.get_future().get());
+      mysql_result res(future.get());
       while (_mysql.fetch_row(res))
         bas_to_rebuild.push_back(res.value_as_u32(0));
     } catch (std::exception const& e) {

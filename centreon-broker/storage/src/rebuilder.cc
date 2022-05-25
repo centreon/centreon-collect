@@ -121,8 +121,9 @@ void rebuilder::_run(asio::error_code ec) {
                 "service_id={}",
                 info.host_id, info.service_id);
           std::promise<database::mysql_result> promise;
-          ms.run_query_and_get_result(query, &promise);
-          database::mysql_result res(promise.get_future().get());
+          std::future<database::mysql_result> future(promise.get_future());
+          ms.run_query_and_get_result(query, std::move(promise));
+          database::mysql_result res(future.get());
           if (ms.fetch_row(res))
             check_interval = res.value_as_f64(0) * _interval_length;
           if (!check_interval)
@@ -145,9 +146,10 @@ void rebuilder::_run(asio::error_code ec) {
                             index_id)};
 
             std::promise<database::mysql_result> promise;
-            ms.run_query_and_get_result(query, &promise);
+            std::future<database::mysql_result> future(promise.get_future());
+            ms.run_query_and_get_result(query, std::move(promise));
             try {
-              database::mysql_result res(promise.get_future().get());
+              database::mysql_result res(future.get());
 
               while (!_should_exit && ms.fetch_row(res)) {
                 metric_info info;
@@ -225,10 +227,11 @@ void rebuilder::_next_index_to_rebuild(index_info& info, mysql& ms) {
       "SELECT id,host_id,service_id,rrd_retention FROM"
       " index_data WHERE must_be_rebuild='1' LIMIT 1");
   std::promise<database::mysql_result> promise;
-  ms.run_query_and_get_result(query, &promise);
+  std::future<database::mysql_result> future(promise.get_future());
+  ms.run_query_and_get_result(query, std::move(promise));
 
   try {
-    database::mysql_result res(promise.get_future().get());
+    database::mysql_result res(future.get());
     if (ms.fetch_row(res)) {
       info.index_id = res.value_as_u64(0);
       info.host_id = res.value_as_u32(1);
@@ -282,13 +285,14 @@ void rebuilder::_rebuild_metric(mysql& ms,
                     "ctime>={} ORDER BY ctime ASC",
                     metric_id, start)};
     std::promise<database::mysql_result> promise;
-    ms.run_query_and_get_result(query, &promise);
+    std::future<database::mysql_result> future(promise.get_future());
+    ms.run_query_and_get_result(query, std::move(promise));
     log_v2::sql()->debug(
         "storage(rebuilder): rebuild of metric {}: SQL query: \"{}\"",
         metric_id, query);
 
     try {
-      database::mysql_result res(promise.get_future().get());
+      database::mysql_result res(future.get());
       while (!_should_exit && ms.fetch_row(res)) {
         std::shared_ptr<storage::metric> entry =
             std::make_shared<storage::metric>(
@@ -352,9 +356,10 @@ void rebuilder::_rebuild_status(mysql& ms,
                     "ctime>={} ORDER BY d.ctime ASC",
                     index_id, start)};
     std::promise<database::mysql_result> promise;
-    ms.run_query_and_get_result(query, &promise);
+    std::future<database::mysql_result> future(promise.get_future());
+    ms.run_query_and_get_result(query, std::move(promise));
     try {
-      database::mysql_result res(promise.get_future().get());
+      database::mysql_result res(future.get());
       while (!_should_exit && ms.fetch_row(res)) {
         std::shared_ptr<storage::status> entry(
             std::make_shared<storage::status>(res.value_as_u32(0), index_id,
