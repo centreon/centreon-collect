@@ -161,7 +161,7 @@ class mysql_connection {
                                  std::promise<T>&& promise,
                                  database::mysql_task::int_type type) {
     _push(std::make_unique<database::mysql_task_statement_int<T>>(
-        stmt, std::forward<std::promise<T>>(promise), type));
+        stmt, std::move(promise), type));
   }
 
   void finish();
