@@ -62,24 +62,24 @@ mysql::~mysql() {
  *  If an error occures, an exception is thrown.
  */
 void mysql::commit(int thread_id) {
-  std::promise<bool> promise;
-  std::future<bool> future(promise.get_future());
-  std::atomic_int ko;
+  mysql_task_commit::mysql_task_commit_data::pointer commit_data;
   if (thread_id < 0) {
-    ko = _connection.size();
+    commit_data = std::make_shared<mysql_task_commit::mysql_task_commit_data>(
+        _connection.size());
     for (std::vector<std::shared_ptr<mysql_connection>>::const_iterator
              it(_connection.begin()),
          end(_connection.end());
          it != end; ++it) {
-      (*it)->commit(&promise, ko);
+      (*it)->commit(commit_data);
     }
   } else {
-    ko = 1;
-    _connection[thread_id]->commit(&promise, ko);
+    commit_data =
+        std::make_shared<mysql_task_commit::mysql_task_commit_data>(1);
+    _connection[thread_id]->commit(commit_data);
   }
 
   try {
-    if (future.get())
+    if (commit_data->get())
       _pending_queries = 0;
   } catch (std::exception const& e) {
     throw;
@@ -169,14 +169,14 @@ int mysql::run_query(std::string const& query,
  * @return The thread id that executed the query.
  */
 int mysql::run_query_and_get_result(std::string const& query,
-                                    std::promise<mysql_result>* promise,
+                                    std::promise<mysql_result>&& promise,
                                     int thread_id) {
   _check_errors();
   if (thread_id < 0)
     // Here, we use _current_thread
     thread_id = choose_best_connection(-1);
 
-  _connection[thread_id]->run_query_and_get_result(query, promise);
+  _connection[thread_id]->run_query_and_get_result(query, std::move(promise));
   return thread_id;
 }
 
@@ -197,7 +197,7 @@ int mysql::run_query_and_get_result(std::string const& query,
  * @return The thread id that executed the query.
  */
 int mysql::run_query_and_get_int(std::string const& query,
-                                 std::promise<int>* promise,
+                                 std::promise<int>&& promise,
                                  mysql_task::int_type type,
                                  int thread_id) {
   _check_errors();
@@ -205,7 +205,8 @@ int mysql::run_query_and_get_int(std::string const& query,
     // Here, we use _current_thread
     thread_id = choose_best_connection(-1);
 
-  _connection[thread_id]->run_query_and_get_int(query, promise, type);
+  _connection[thread_id]->run_query_and_get_int(query, std::move(promise),
+                                                type);
   return thread_id;
 }
 
@@ -252,14 +253,15 @@ int mysql::run_statement(database::mysql_stmt& stmt,
  * @return The thread id that executed the query.
  */
 int mysql::run_statement_and_get_result(database::mysql_stmt& stmt,
-                                        std::promise<mysql_result>* promise,
+                                        std::promise<mysql_result>&& promise,
                                         int thread_id) {
   _check_errors();
   if (thread_id < 0)
     // Here, we use _current_thread
     thread_id = choose_best_connection(-1);
 
-  _connection[thread_id]->run_statement_and_get_result(stmt, promise);
+  _connection[thread_id]->run_statement_and_get_result(stmt,
+                                                       std::move(promise));
   return thread_id;
 }
 
