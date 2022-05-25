@@ -787,15 +787,13 @@ void mysql_connection::run_query(std::string const& query,
 void mysql_connection::run_query_and_get_result(
     const std::string& query,
     std::promise<mysql_result>&& promise) {
-  _push(std::make_unique<mysql_task_run_res>(
-      query, std::forward<std::promise<mysql_result>>(promise)));
+  _push(std::make_unique<mysql_task_run_res>(query, std::move(promise)));
 }
 
 void mysql_connection::run_query_and_get_int(std::string const& query,
                                              std::promise<int>&& promise,
                                              mysql_task::int_type type) {
-  _push(std::make_unique<mysql_task_run_int>(
-      query, std::forward<std::promise<int>>(promise), type));
+  _push(std::make_unique<mysql_task_run_int>(query, std::move(promise), type));
 }
 
 void mysql_connection::run_statement(database::mysql_stmt& stmt,
@@ -807,8 +805,7 @@ void mysql_connection::run_statement(database::mysql_stmt& stmt,
 void mysql_connection::run_statement_and_get_result(
     database::mysql_stmt& stmt,
     std::promise<mysql_result>&& promise) {
-  _push(std::make_unique<mysql_task_statement_res>(
-      stmt, std::forward<std::promise<mysql_result>>(promise)));
+  _push(std::make_unique<mysql_task_statement_res>(stmt, std::move(promise)));
 }
 
 void mysql_connection::finish() {

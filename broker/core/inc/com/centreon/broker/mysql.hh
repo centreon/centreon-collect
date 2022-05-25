@@ -71,7 +71,7 @@ class mysql {
       thread_id = choose_best_connection(-1);
 
     _connection[thread_id]->run_statement_and_get_int<T>(
-        stmt, std::forward<std::promise<T>>(promise), type);
+        stmt, std::move(promise), type);
     return thread_id;
   }
 
