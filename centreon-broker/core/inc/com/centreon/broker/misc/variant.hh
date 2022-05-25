@@ -19,6 +19,7 @@
 #ifndef CCB_MISC_VARIANT_HH_
 #define CCB_MISC_VARIANT_HH_
 
+#include <map>
 #include <string>
 #include "com/centreon/broker/namespace.hh"
 
@@ -80,6 +81,9 @@ class variant {
     std::string _str_value;
   };
 };
+
+using string_to_variant_map = std::map<std::string, variant, std::less<>>;
+
 }  // namespace misc
 
 CCB_END()

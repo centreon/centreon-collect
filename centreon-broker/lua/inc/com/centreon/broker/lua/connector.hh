@@ -40,13 +40,13 @@ class connector : public io::endpoint {
   ~connector();
   connector& operator=(connector const&) = delete;
   void connect_to(std::string const& lua_script,
-                  std::map<std::string, misc::variant> const& cfg_params,
+                  misc::string_to_variant_map const& cfg_params,
                   std::shared_ptr<persistent_cache> const& cache);
   std::unique_ptr<io::stream> open() override;
 
  private:
   std::string _lua_script;
-  std::map<std::string, misc::variant> _conf_params;
+  misc::string_to_variant_map _conf_params;
   std::shared_ptr<persistent_cache> _cache;
 };
 }  // namespace lua
