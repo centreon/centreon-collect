@@ -281,8 +281,6 @@ void parse_check_output(std::string const& buffer,
    * end_line is the position of the line end. */
   size_t start_line{0}, end_line, pos_line;
   int line_number{1};
-  log_v2::checks()->debug("Parsing check output start output {} find    {}",
-                          buffer, buffer.find("\n", start_line));
   while (!eof) {
     if (newlines_are_escaped &&
         (pos_line = buffer.find("\\n", start_line)) != std::string::npos) {

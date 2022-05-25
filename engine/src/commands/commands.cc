@@ -22,9 +22,6 @@
 #include "com/centreon/engine/commands/processing.hh"
 
 #include <sys/time.h>
-#include "absl/strings/str_replace.h"
-#include "absl/strings/str_split.h"
-#include "absl/strings/string_view.h"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/commands/processing.hh"
