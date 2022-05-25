@@ -76,7 +76,6 @@ void worker::_close() {
     close(_fd);
     _fd = -1;
   }
-  return;
 }
 
 /**
@@ -106,7 +105,6 @@ void worker::_run() {
     while (!_exit) {
       // Check file opening.
       if (_buffer.empty()) {
-        _close();
         usleep(100000);
         if (!_open())
           continue;
@@ -119,7 +117,7 @@ void worker::_run() {
       fds.revents = 0;
 
       // Multiplexing.
-      int flagged(poll(&fds, 1, 1000));
+      int flagged = poll(&fds, 1, 1000);
 
       // Error.
       if (flagged < 0) {
@@ -142,11 +140,12 @@ void worker::_run() {
           }
 
           // Write data.
-          ssize_t wb(write(_fd, _buffer.c_str(), _buffer.size()));
-          if (wb > 0)
-            _buffer.erase(0, wb);
-          else
-            _buffer.clear();
+          ssize_t delta = 0;
+          while (delta < _buffer.size()) {
+            delta += write(_fd, _buffer.c_str() + delta, _buffer.size() - delta);
+          }
+          _close();
+          _buffer.clear();
         }
       }
     }

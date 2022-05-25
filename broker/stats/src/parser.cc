@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 - 2021 Centreon (https://www.centreon.com/)
+ * Copyright 2011 - 2022 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,7 +35,7 @@ parser::parser() {}
 parser::~parser() noexcept {}
 
 /**
- *  Parse a XML buffer.
+ *  Parse a JSON buffer.
  *
  *  @param[out] entries Parsed entries.
  *  @param[in]  content XML content.
