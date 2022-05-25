@@ -22,7 +22,9 @@
 #include "com/centreon/engine/commands/processing.hh"
 
 #include <sys/time.h>
-
+#include "absl/strings/str_replace.h"
+#include "absl/strings/str_split.h"
+#include "absl/strings/string_view.h"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/commands/processing.hh"
@@ -222,7 +224,7 @@ int cmd_add_comment(int cmd, time_t entry_time, char* args) {
 }
 
 /* removes a host or service comment from the status log */
-int cmd_delete_comment(int cmd [[maybe_unused]], char* args) {
+int cmd_delete_comment(int cmd[[maybe_unused]], char* args) {
   uint64_t comment_id{0};
 
   /* get the comment id we should delete */
@@ -485,13 +487,16 @@ int cmd_process_service_check_result(int cmd, time_t check_time, char* args) {
     return ERROR;
   *delimiter = '\0';
   ++delimiter;
-  char const* output(strchr(delimiter, ';'));
+  char* output(strchr(delimiter, ';'));
   if (output) {
-    *const_cast<char*>(output) = '\0';
+    *output = '\0';
     ++output;
   } else
     output = "";
   int return_code(strtol(delimiter, nullptr, 0));
+
+  // replace \\n with \n
+  unescape(output);
 
   // Submit the passive check result.
   return process_passive_service_check(check_time, host_name, svc_description,
@@ -537,7 +542,8 @@ int process_passive_service_check(time_t check_time,
         << svc_description << "' on host '" << host_name
         << "', but the host could not be found!";
     log_v2::runtime()->warn(
-        "Warning:  Passive check result was received for service '{}' on host "
+        "Warning:  Passive check result was received for service '{}' on "
+        "host "
         "'{}', but the host could not be found!",
         svc_description, host_name);
     return ERROR;
@@ -552,7 +558,8 @@ int process_passive_service_check(time_t check_time,
         << svc_description << "' on host '" << host_name
         << "', but the service could not be found!";
     log_v2::runtime()->warn(
-        "Warning:  Passive check result was received for service '{}' on host "
+        "Warning:  Passive check result was received for service '{}' on "
+        "host "
         "'{}', but the service could not be found!",
         svc_description, host_name);
     return ERROR;
@@ -612,13 +619,16 @@ int cmd_process_host_check_result(int cmd, time_t check_time, char* args) {
     return ERROR;
   *delimiter = '\0';
   ++delimiter;
-  char const* output(strchr(delimiter, ';'));
+  char* output(strchr(delimiter, ';'));
   if (output) {
-    *const_cast<char*>(output) = '\0';
+    *output = '\0';
     ++output;
   } else
     output = "";
   int return_code(strtol(delimiter, nullptr, 0));
+
+  // replace \\n with \n
+  unescape(output);
 
   // Submit the check result.
   return (
@@ -1186,8 +1196,8 @@ int cmd_delete_downtime_by_host_name(int cmd, char* args) {
   return OK;
 }
 
-/* Deletes scheduled host and service downtime based on hostgroup and optionally
- * other filter arguments. */
+/* Deletes scheduled host and service downtime based on hostgroup and
+ * optionally other filter arguments. */
 int cmd_delete_downtime_by_hostgroup_name(int cmd, char* args) {
   char* temp_ptr(nullptr);
   char* end_ptr(nullptr);

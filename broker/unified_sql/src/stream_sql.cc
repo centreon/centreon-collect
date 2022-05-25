@@ -3031,8 +3031,6 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
       _sscr_update.bind_value_as_i64(8, sscr.last_time_warning());
       _sscr_update.bind_value_as_i64(9, sscr.last_time_critical());
       _sscr_update.bind_value_as_i64(10, sscr.last_time_unknown());
-      log_v2::sql()->info(" youpiiiiiii {}, {} ", sscr.output(),
-                          sscr.long_output());
       std::string full_output{
           fmt::format("{}\n{}", sscr.output(), sscr.long_output())};
       size_t size = misc::string::adjust_size_utf8(
@@ -3085,8 +3083,8 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
       _sscr_resources_update.bind_value_as_u32(6, sscr.check_attempt());
       _sscr_resources_update.bind_value_as_bool(7, sscr.perfdata() != "");
       _sscr_resources_update.bind_value_as_u32(8, sscr.check_type());
-      _sscr_resources_update.bind_value_as_u64(9, sscr.last_check());
-      log_v2::sql()->info(" youpiiiiiii {} ", sscr.output());
+      _sscr_resources_update.bind_value_as_u64(9, sscr.last_check(),
+                                               is_not_zero);
       _sscr_resources_update.bind_value_as_str(10, sscr.output());
       _sscr_resources_update.bind_value_as_u64(11, sscr.service_id());
       _sscr_resources_update.bind_value_as_u64(12, sscr.host_id());
