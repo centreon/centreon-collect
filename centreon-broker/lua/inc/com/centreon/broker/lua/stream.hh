@@ -23,9 +23,9 @@
 #include <atomic>
 #include <condition_variable>
 #include <deque>
-#include <nlohmann/json.hpp>
 #include <memory>
 #include <mutex>
+#include <nlohmann/json.hpp>
 #include <thread>
 #include <utility>
 
@@ -93,7 +93,7 @@ class stream : public io::stream {
 
  public:
   stream(std::string const& lua_script,
-         std::map<std::string, misc::variant> const& conf_params,
+         misc::string_to_variant_map const& conf_params,
          std::shared_ptr<persistent_cache> const& cache);
   stream& operator=(const stream&) = delete;
   stream(const stream&) = delete;

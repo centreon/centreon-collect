@@ -652,7 +652,8 @@ static int l_broker_md5(lua_State* L) {
  * @return 1
  */
 static int l_broker_bbdo_version(lua_State* L) {
-  lua_pushlstring(L, "2.0.0", 5);
+  static const char* bddo_version = "2.0.0";
+  ::lua_pushlstring(L, bddo_version, sizeof(bddo_version) - 1);
   return 1;
 }
 
@@ -663,14 +664,15 @@ static int l_broker_bbdo_version(lua_State* L) {
  *  @return The Lua interpreter as a lua_State*
  */
 void broker_utils::broker_utils_reg(lua_State* L) {
-  luaL_Reg s_broker_regs[] = {{"json_encode", l_broker_json_encode},
-                              {"json_decode", l_broker_json_decode},
-                              {"parse_perfdata", l_broker_parse_perfdata},
-                              {"url_encode", l_broker_url_encode},
-                              {"stat", l_broker_stat},
-                              {"md5", l_broker_md5},
-                              {"bbdo_version", l_broker_bbdo_version},
-                              {nullptr, nullptr}};
+  static const luaL_Reg s_broker_regs[] = {
+      {"json_encode", ::l_broker_json_encode},
+      {"json_decode", ::l_broker_json_decode},
+      {"parse_perfdata", ::l_broker_parse_perfdata},
+      {"url_encode", ::l_broker_url_encode},
+      {"stat", ::l_broker_stat},
+      {"md5", ::l_broker_md5},
+      {"bbdo_version", ::l_broker_bbdo_version},
+      {nullptr, nullptr}};
 
 #ifdef LUA51
   luaL_register(L, "broker", s_broker_regs);

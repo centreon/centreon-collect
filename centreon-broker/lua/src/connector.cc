@@ -52,10 +52,9 @@ connector::~connector() {}
  *                                     parameters
  *  @param[in] cache                   The cache
  */
-void connector::connect_to(
-    std::string const& lua_script,
-    std::map<std::string, misc::variant> const& cfg_params,
-    std::shared_ptr<persistent_cache> const& cache) {
+void connector::connect_to(std::string const& lua_script,
+                           misc::string_to_variant_map const& cfg_params,
+                           std::shared_ptr<persistent_cache> const& cache) {
   _conf_params = cfg_params;
   _lua_script = lua_script;
   _cache = cache;

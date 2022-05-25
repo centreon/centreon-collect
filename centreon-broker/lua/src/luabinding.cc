@@ -48,7 +48,7 @@ static int l_pairs(lua_State* L) {
  *  @param[in] cache the persistent cache.
  */
 luabinding::luabinding(std::string const& lua_script,
-                       std::map<std::string, misc::variant> const& conf_params,
+                       misc::string_to_variant_map const& conf_params,
                        macro_cache& cache)
     : _L{nullptr},
       _filter{false},
@@ -235,12 +235,10 @@ void luabinding::_load_script(const std::string& lua_script) {
  *  informations needed by the script to work.
  *
  */
-void luabinding::_init_script(
-    std::map<std::string, misc::variant> const& conf_params) {
+void luabinding::_init_script(misc::string_to_variant_map const& conf_params) {
   lua_getglobal(_L, "init");
   lua_newtable(_L);
-  for (std::map<std::string, misc::variant>::const_iterator
-           it(conf_params.begin()),
+  for (misc::string_to_variant_map::const_iterator it(conf_params.begin()),
        end(conf_params.end());
        it != end; ++it) {
     switch (it->second.user_type()) {
