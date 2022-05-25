@@ -97,17 +97,7 @@ conflict_manager::conflict_manager(database_config const& dbcfg,
       _max_pending_queries(dbcfg.get_queries_per_transaction()),
       _mysql{dbcfg},
       _instance_timeout{instance_timeout},
-      _store_in_db{true},
-      _rrd_len{0},
-      _interval_length{0},
-      _max_perfdata_queries{0},
-      _max_metrics_queries{0},
-      _max_cv_queries{0},
-      _max_log_queries{0},
       _stats{stats::center::instance().register_conflict_manager()},
-      _events_handled{0},
-      _speed{},
-      _stats_count_pos{0},
       _ref_count{0},
       _oldest_timestamp{std::numeric_limits<time_t>::max()} {
   log_v2::sql()->debug("conflict_manager: class instanciation");
@@ -171,6 +161,7 @@ bool conflict_manager::init_storage(bool store_in_db,
       _singleton->_max_metrics_queries = dbcfg.get_queries_per_transaction();
       _singleton->_max_cv_queries = dbcfg.get_queries_per_transaction();
       _singleton->_max_log_queries = dbcfg.get_queries_per_transaction();
+      _singleton->_max_downtime_queries = dbcfg.get_queries_per_transaction();
       _singleton->_ref_count++;
       _singleton->_thread =
           std::thread(&conflict_manager::_callback, _singleton);
@@ -491,6 +482,9 @@ void conflict_manager::_callback() {
         /* Time to send customvariables to database */
         _update_customvariables();
 
+        /* Time to send downtimes to database */
+        _update_downtimes();
+
         /* Time to send logs to database */
         _insert_logs();
 
@@ -528,9 +522,11 @@ void conflict_manager::_callback() {
         time_t next_update_metrics = next_insert_perfdatas;
         time_t next_update_cv = next_insert_perfdatas;
         time_t next_update_log = next_insert_perfdatas;
+        time_t next_update_downtime = next_insert_perfdatas;
 
         auto empty_caches = [this, &next_insert_perfdatas, &next_update_metrics,
-                             &next_update_cv, &next_update_log](
+                             &next_update_cv, &next_update_log,
+                             &next_update_downtime](
                                 std::chrono::system_clock::time_point now) {
           /* If there are too many perfdata to send, let's send them... */
           if (std::chrono::system_clock::to_time_t(now) >=
@@ -555,6 +551,15 @@ void conflict_manager::_callback() {
               _cv_queue.size() + _cvs_queue.size() > _max_cv_queries) {
             next_update_cv = std::chrono::system_clock::to_time_t(now) + 10;
             _update_customvariables();
+          }
+
+          /* Time to send downtimes to database */
+          if (std::chrono::system_clock::to_time_t(now) >=
+                  next_update_downtime ||
+              _downtimes_queue.size() > _max_downtime_queries) {
+            next_update_downtime =
+                std::chrono::system_clock::to_time_t(now) + 5;
+            _update_downtimes();
           }
 
           /* Time to send logs to database */
