@@ -415,3 +415,37 @@ void string::unescape(char* buffer) {
     current_pos = strchr(current_pos + 1, '\\');
   }
 }
+
+void string::unescape1(char* buffer) {
+  char* read_pos = strchr(buffer, '\\');
+  char* prev_read_pos = nullptr;
+  while (read_pos) {
+    if (read_pos[1] == 'n') {
+      if (prev_read_pos) {
+        size_t len = read_pos - prev_read_pos;
+        memmove(buffer, prev_read_pos, len);
+        buffer += len;
+      }
+      else
+        buffer = read_pos;
+
+      prev_read_pos = read_pos + 2;
+
+      *buffer = '\n';
+      ++buffer;
+    }
+    else if (read_pos[1] == 0)
+      break;
+    read_pos = strchr(read_pos + 2, '\\');
+  }
+  if (read_pos == nullptr)
+    *buffer = 0;
+  else if (prev_read_pos) {
+    size_t len = read_pos - prev_read_pos + 1;
+    if (len) {
+      memmove(buffer, prev_read_pos, len);
+      buffer += len;
+    }
+    *buffer = 0;
+  }
+}

@@ -172,3 +172,45 @@ TEST(string_utils, c_strtok_test7) {
   ASSERT_EQ(val, 1);
   ASSERT_FALSE(parse.extract(';'));
 }
+
+TEST(string_utils, unescape) {
+  char str[100];
+  strcpy(str, "az\\ner\\nty\\n");
+  string::unescape(str);
+  ASSERT_TRUE(strcmp(str, "az\ner\nty\n") == 0);
+}
+
+TEST(string_utils, unescape1) {
+  char str[100];
+  strcpy(str, "az\\ner\\nty\\n");
+  string::unescape1(str);
+  ASSERT_TRUE(strcmp(str, "az\ner\nty\n") == 0);
+}
+
+TEST(string_utils, unescape2) {
+  char str[100];
+  strcpy(str, "az\\ter\\tty\\n");
+  string::unescape1(str);
+  ASSERT_TRUE(strcmp(str, "az\\ter\\tty\n") == 0);
+}
+
+TEST(string_utils, unescape3) {
+  char str[100];
+  strcpy(str, "azerty\\");
+  string::unescape1(str);
+  ASSERT_TRUE(strcmp(str, "azerty\\") == 0);
+}
+
+TEST(string_utils, unescape4) {
+  char str[100];
+  strcpy(str, "az\\nerty\\");
+  string::unescape1(str);
+  ASSERT_TRUE(strcmp(str, "az\nerty\\") == 0);
+}
+
+TEST(string_utils, unescape5) {
+  char str[100];
+  strcpy(str, "az\\nerty\\\\\\");
+  string::unescape1(str);
+  ASSERT_TRUE(strcmp(str, "az\nerty\\\\\\") == 0);
+}
