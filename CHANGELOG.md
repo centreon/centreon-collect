@@ -19,7 +19,7 @@ If a logger was at the 'off'/'disabled' state, then broker did not start.
 #### Fixes
 *perl connector*
 
-add io_context fork notification
+Connector multiplexer rewritten using ASIO.
 
 ## 21.10.1
 
