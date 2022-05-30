@@ -204,6 +204,8 @@ std::string extract_perfdata(std::string const& perfdata,
                              std::string const& metric) noexcept;
 std::string& remove_thresholds(std::string& perfdata) noexcept;
 
+void unescape(char* buffer);
+
 /**
  * @brief this class is a thread safe replacement for my_strtok
  * An instance is not thread safe but sevaral instances can be used in different

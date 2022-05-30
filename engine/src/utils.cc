@@ -453,21 +453,3 @@ void free_memory(nagios_macros* mac) {
   clear_volatile_macros_r(mac);
   free_macrox_names();
 }
-
-/**
- *  Replace \\n with \n.
- *
- *  @param[in,out] buffer.
- *
- */
-void unescape(char* buffer) {
-  char* current_pos = strchr(buffer, '\\');
-  char* end_str = buffer + strlen(buffer);
-  while (current_pos) {
-    if (current_pos[1] == 'n') {
-      *current_pos = '\n';
-      memmove(current_pos + 1, current_pos + 2, end_str - current_pos - 1);
-    }
-    current_pos = strchr(current_pos + 1, '\\');
-  }
-}

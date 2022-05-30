@@ -71,7 +71,6 @@ int check_for_external_commands() {
   }
 
   /* process all commands found in the buffer */
-  char* buffer(nullptr);
   for (;;) {
     boost::optional<std::string> cmd = external_command_buffer.pop();
     if (!cmd) {
@@ -493,7 +492,7 @@ int cmd_process_service_check_result(int cmd, time_t check_time, char* args) {
   int return_code(strtol(delimiter, nullptr, 0));
 
   // replace \\n with \n
-  unescape(output);
+  string::unescape(output);
 
   // Submit the passive check result.
   return process_passive_service_check(check_time, host_name, svc_description,
@@ -625,7 +624,7 @@ int cmd_process_host_check_result(int cmd, time_t check_time, char* args) {
   int return_code(strtol(delimiter, nullptr, 0));
 
   // replace \\n with \n
-  unescape(output);
+  string::unescape(output);
 
   // Submit the check result.
   return (

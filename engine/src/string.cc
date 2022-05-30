@@ -397,3 +397,21 @@ bool string::c_strtok::extract(char sep, int& extracted) {
   _pos = absl::string_view::npos;
   return false;
 }
+
+/**
+ *  Replace \\n with \n.
+ *
+ *  @param[in,out] buffer.
+ *
+ */
+void string::unescape(char* buffer) {
+  char* current_pos = strchr(buffer, '\\');
+  char* end_str = buffer + strlen(buffer);
+  while (current_pos) {
+    if (current_pos[1] == 'n') {
+      *current_pos = '\n';
+      memmove(current_pos + 1, current_pos + 2, end_str - current_pos - 1);
+    }
+    current_pos = strchr(current_pos + 1, '\\');
+  }
+}

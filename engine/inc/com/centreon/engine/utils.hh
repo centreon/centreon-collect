@@ -76,8 +76,6 @@ void parse_check_output(std::string const& buffer,
                         bool escape_newlines_please,
                         bool newlines_are_escaped);
 
-void unescape(char* buffer);
-
 #ifdef __cplusplus
 }
 #endif  // C++
