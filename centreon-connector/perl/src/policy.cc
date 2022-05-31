@@ -72,16 +72,21 @@ void policy::start_second_timer() {
  *
  */
 void policy::wait_pid() {
-  pid_t child;
-  int exit_code;
-  while ((child = waitpid(-1, &exit_code, WNOHANG)) > 0) {
-    pid_to_check_map::iterator ended = _checks.find(child);
+  siginfo_t child_info;
+  child_info.si_pid = 0;
+  while (!waitid(P_ALL, 0, &child_info, WNOHANG | WEXITED)) {
+    if (!child_info.si_pid) {  // no exited child
+      break;
+    }
+    pid_to_check_map::iterator ended = _checks.find(child_info.si_pid);
     if (ended == _checks.end()) {
-      log::core()->error("pid {} inconnu", child);
+      log::core()->error("pid {} inconnu", child_info.si_pid);
+      child_info.si_pid = 0;
       continue;
     }
-    ended->second->set_exit_code(exit_code);
+    ended->second->set_exit_code(child_info.si_status);
     _checks.erase(ended);
+    child_info.si_pid = 0;
   }
 }
 
