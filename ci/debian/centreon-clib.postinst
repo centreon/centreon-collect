@@ -1,6 +1,7 @@
 #!/bin/sh
 
 if [ "$1" = "configure" ] ; then
+    echo "/usr/lib64" >> /etc/ld.so.conf.d/centreon.conf
     /sbin/ldconfig
 fi
 
