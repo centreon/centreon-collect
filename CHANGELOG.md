@@ -14,6 +14,12 @@ Unknown filters applied in the configuration file do not hang broker anymore.
 
 If a logger was at the 'off'/'disabled' state, then broker did not start.
 
+#### Improvements
+
+*lua*
+
+New function `broker.bbdo_version()` implemented in broker streamconnector.
+
 ### centreon-connector
 
 #### Fixes
