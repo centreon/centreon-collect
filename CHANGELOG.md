@@ -30,6 +30,12 @@ Connections are consumed in the same order they are created.
 The downtime full delete external command did not work correctly and filtered
 too much.
 
+#### Improvements
+
+*lua*
+
+New function `broker.bbdo_version()` implemented in broker streamconnector.
+
 ### centreon-engine
 
 Service status could be sent twice to cbd. This is fixed now.
