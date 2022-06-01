@@ -139,9 +139,10 @@ bool kpi::operator==(kpi const& other) const {
          _acknowledged == other._acknowledged &&
          _ignore_downtime == other._ignore_downtime &&
          _ignore_acknowledgement == other._ignore_acknowledgement &&
-         std::abs(_impact_warning-other._impact_warning) < eps &&
-         std::abs( _impact_critical-other._impact_critical) < eps &&
-         std::abs(_impact_unknown-other._impact_unknown) < eps && _event == other._event;
+         std::abs(_impact_warning - other._impact_warning) < eps &&
+         std::abs(_impact_critical - other._impact_critical) < eps &&
+         std::abs(_impact_unknown - other._impact_unknown) < eps &&
+         _event == other._event;
 }
 
 /**

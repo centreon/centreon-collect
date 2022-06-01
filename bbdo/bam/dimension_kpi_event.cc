@@ -73,18 +73,17 @@ dimension_kpi_event::dimension_kpi_event(dimension_kpi_event const& other)
  *  @return  True if the two objects are equal.
  */
 bool dimension_kpi_event::operator==(dimension_kpi_event const& other) const {
-  return (kpi_id == other.kpi_id) && (ba_id == other.ba_id) &&
-         (ba_name == other.ba_name) && (host_id == other.host_id) &&
-         (host_name == other.host_name) && (service_id == other.service_id) &&
-         (service_description==other.service_description) &&
-         (kpi_ba_id == other.kpi_ba_id) && (kpi_ba_name == other.kpi_ba_name) &&
-         (meta_service_id == other.meta_service_id) &&
-         (meta_service_name == other.meta_service_name) &&
-         (boolean_id == other.boolean_id) &&
-         (boolean_name == other.boolean_name) &&
-         (std::abs(impact_warning-other.impact_warning) < eps) &&
-         (std::abs(impact_critical-other.impact_critical) < eps) &&
-         (std::abs(impact_unknown-other.impact_unknown) < eps);
+  return kpi_id == other.kpi_id && ba_id == other.ba_id &&
+         ba_name == other.ba_name && host_id == other.host_id &&
+         host_name == other.host_name && service_id == other.service_id &&
+         service_description == other.service_description &&
+         kpi_ba_id == other.kpi_ba_id && kpi_ba_name == other.kpi_ba_name &&
+         meta_service_id == other.meta_service_id &&
+         meta_service_name == other.meta_service_name &&
+         boolean_id == other.boolean_id && boolean_name == other.boolean_name &&
+         std::abs(impact_warning - other.impact_warning) < eps &&
+         std::abs(impact_critical - other.impact_critical) < eps &&
+         std::abs(impact_unknown - other.impact_unknown) < eps;
 }
 
 // Mapping.

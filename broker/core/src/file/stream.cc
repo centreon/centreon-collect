@@ -171,7 +171,7 @@ void stream::_update_stats() {
     double b = static_cast<double>(woffset) + static_cast<double>(wid) * mm;
     double m, p;
 
-    if (std::abs(b - 0) >= eps) {
+    if (std::abs(b) >= eps) {
       double perc = 100.0 * a / b;
       double advance = b - a;
       bool reg = false;

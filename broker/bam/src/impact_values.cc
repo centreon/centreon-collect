@@ -71,9 +71,9 @@ impact_values& impact_values::operator=(impact_values const& other) {
 bool impact_values::operator==(impact_values const& other) const throw() {
   if (this == &other)
     return true;
-  return (std::abs(_acknowledgement-other._acknowledgement) < eps &&
-          std::abs(_downtime-other._downtime) < eps && std::abs(_nominal-other._nominal) < eps &&
-          _state == other._state);
+  return (std::abs(_acknowledgement - other._acknowledgement) < eps &&
+          std::abs(_downtime - other._downtime) < eps &&
+          std::abs(_nominal - other._nominal) < eps && _state == other._state);
 }
 
 /**
