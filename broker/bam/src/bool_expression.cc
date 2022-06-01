@@ -56,7 +56,8 @@ bool bool_expression::child_has_update(computable* child, io::stream* visitor) {
  *  @return Either OK (0) or CRITICAL (2).
  */
 state bool_expression::get_state() const {
-  return (_expression->value_hard() == _impact_if) ? state_critical : state_ok;
+  bool v = _expression->value_hard() > 0.5;
+  return v == _impact_if ? state_critical : state_ok;
 }
 
 /**
