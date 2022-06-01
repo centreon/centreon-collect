@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 - 2014, 2017, 2020 Centreon (https://www.centreon.com/)
+ * Copyright 2011-2014, 2017, 2020-2022 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -399,48 +399,46 @@ bool string::c_strtok::extract(char sep, int& extracted) {
 }
 
 /**
- *  Replace \\n with \n.
+ * @brief Unescape the string buffer. Works with \t, \n, \r and \\. The buffer
+ * is directly changed. No copy is made.
  *
- *  @param[in,out] buffer.
- *
+ * @param buffer
  */
 void string::unescape(char* buffer) {
-  char* current_pos = strchr(buffer, '\\');
-  char* end_str = buffer + strlen(buffer);
-  while (current_pos) {
-    if (current_pos[1] == 'n') {
-      *current_pos = '\n';
-      memmove(current_pos + 1, current_pos + 2, end_str - current_pos - 1);
-    }
-    current_pos = strchr(current_pos + 1, '\\');
-  }
-}
-
-void string::unescape1(char* buffer) {
-  char* read_pos = strchr(buffer, '\\');
+  char* read_pos = strchrnul(buffer, '\\');
   char* prev_read_pos = nullptr;
-  while (read_pos) {
-    if (read_pos[1] == 'n') {
+  while (*read_pos) {
+    char c = read_pos[1];
+    if (c == 'n' || c == 'r' || c == 't' || c == '\\') {
       if (prev_read_pos) {
         size_t len = read_pos - prev_read_pos;
         memmove(buffer, prev_read_pos, len);
         buffer += len;
-      }
-      else
+      } else
         buffer = read_pos;
 
       prev_read_pos = read_pos + 2;
 
-      *buffer = '\n';
+      switch (c) {
+        case 'n':
+          *buffer = '\n';
+          break;
+        case 'r':
+          *buffer = '\r';
+          break;
+        case 't':
+          *buffer = '\t';
+          break;
+        case '\\':
+          *buffer = '\\';
+          break;
+      }
       ++buffer;
-    }
-    else if (read_pos[1] == 0)
+    } else if (read_pos[1] == 0)
       break;
-    read_pos = strchr(read_pos + 2, '\\');
+    read_pos = strchrnul(read_pos + 2, '\\');
   }
-  if (read_pos == nullptr)
-    *buffer = 0;
-  else if (prev_read_pos) {
+  if (prev_read_pos) {
     size_t len = read_pos - prev_read_pos + 1;
     if (len) {
       memmove(buffer, prev_read_pos, len);

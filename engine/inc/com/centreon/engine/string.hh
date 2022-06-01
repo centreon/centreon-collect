@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013,2017 Centreon
+** Copyright 2011-2013,2017-2022 Centreon
 **
 ** This file is part of Centreon Engine.
 **
@@ -205,7 +205,6 @@ std::string extract_perfdata(std::string const& perfdata,
 std::string& remove_thresholds(std::string& perfdata) noexcept;
 
 void unescape(char* buffer);
-void unescape1(char* buffer);
 
 /**
  * @brief this class is a thread safe replacement for my_strtok
