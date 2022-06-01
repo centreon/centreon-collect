@@ -71,7 +71,7 @@ void kpi::set_initial_event(const kpi_event& e) {
         _event->in_downtime ? impacts.get_downtime() : impacts.get_nominal();
     // If the new impact is not equal to the impact saved in the initial event,
     // then close the initial event and open a new event.
-    if (!(std::abs(new_impact_level-_event->impact_level) < eps) &&
+    if (std::abs(new_impact_level - _event->impact_level) >= eps &&
         _event->impact_level != -1) {
       time_t now = ::time(nullptr);
       std::shared_ptr<kpi_event> new_event = std::make_shared<kpi_event>(e);
