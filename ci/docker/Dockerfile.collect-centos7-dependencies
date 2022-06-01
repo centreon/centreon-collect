@@ -34,7 +34,6 @@ RUN yum-config-manager --enable rhel-server-rhscl-7-rpms
 RUN yum -y install devtoolset-9 \
     rh-python38 \
     MariaDB*.rpm \
-    rh-python38 \
     cmake3 \
     gcc \
     gcc-c++ \
