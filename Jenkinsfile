@@ -28,12 +28,6 @@ if (env.BRANCH_NAME.startsWith('release-')) {
   env.BUILD = 'CI'
 }
 
-// Skip sonarQ analysis on branch without PR  - Unable to merge
-def securityAnalysisRequired = 'yes'
-if (!env.CHANGE_ID && env.BUILD == 'CI') {
-    securityAnalysisRequired = 'no'
-}
-
 /*
 ** Pipeline code.
 */
@@ -61,37 +55,21 @@ stage('Build / Unit tests // Packaging / Signing') {
   },
   'centos7 SQ analysis': {
     node("C++") {
-      if (securityAnalysisRequired == 'no') {
-        Utils.markStageSkippedForConditional('centos7 SQ analysis')
-      } else {
-        dir('centreon-collect-centos7') {
-          checkout scm
-          loadCommonScripts()
-          sh 'ci/scripts/collect-sonar-scanner-common.sh "install"'
-          withSonarQubeEnv('SonarQubeDev') {
-            if (env.CHANGE_ID) {
-              sh 'ci/scripts/collect-sonar-scanner-common.sh "get"'
-              sh 'docker run -i --entrypoint /src/ci/scripts/collect-sources-analysis.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:22.04 "PR" "$SONAR_AUTH_TOKEN" "$SONAR_HOST_URL" "$VERSION" "$CHANGE_TARGET" "$CHANGE_BRANCH" "$CHANGE_ID"'
-            } else {
-              sh 'docker run -i --entrypoint /src/ci/scripts/collect-sources-analysis.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:22.04 "NotPR" "$SONAR_AUTH_TOKEN" "$SONAR_HOST_URL" "$VERSION" "$BRANCH_NAME"'
-            }
-            if (env.BUILD == "REFERENCE" || env.BUILD == "QA") {
-              // Saving cache's tarball if generated
-              sh 'ci/scripts/collect-sonar-scanner-common.sh "set"'
-            }
+      dir('centreon-collect-centos7') {
+        checkout scm
+        loadCommonScripts()
+        withSonarQubeEnv('SonarQubeDev') {
+          sh 'ci/scripts/collect-sonar-scanner-common.sh "get" "master"'
+          if (env.CHANGE_ID) {
+            sh 'docker run -i --entrypoint /src/ci/scripts/collect-sources-analysis.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:22.04 "PR" "$SONAR_AUTH_TOKEN" "$SONAR_HOST_URL" "$VERSION" "$CHANGE_TARGET" "$CHANGE_BRANCH" "$CHANGE_ID"'
+          } else {
+            sh 'docker run -i --entrypoint /src/ci/scripts/collect-sources-analysis.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:22.04 "NotPR" "$SONAR_AUTH_TOKEN" "$SONAR_HOST_URL" "$VERSION" "$BRANCH_NAME"'
           }
+          sh 'ci/scripts/collect-sonar-scanner-common.sh "set"'
         }
       }
     }
-  },/*
-  'centos8 Build and UT': {
-    node("C++") {
-      dir('centreon-collect-centos8') {
-        checkout scm
-        sh 'docker run -i --entrypoint /src/ci/scripts/collect-unit-tests.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos8-dependencies:22.04-testdocker'
-      }
-    }
-  },*/
+  },
   'centos7 rpm packaging and signing': {
     node("C++") {
       dir('centreon-collect-centos7') {
@@ -147,27 +125,23 @@ stage('Build / Unit tests // Packaging / Signing') {
       dir('centreon-collect') {
         checkout scm
       }
-      sh 'docker run -i --entrypoint /src/centreon-collect/ci/scripts/collect-deb-package.sh -v "$PWD:/src" -e DISTRIB="Debian11" -e VERSION=$VERSION -e RELEASE=$RELEASE registry.centreon.com/centreon-collect-debian11-dependencies:22.04'
-      stash name: 'Debian11', includes: 'Debian11/*.deb'
-      archiveArtifacts artifacts: "Debian11/*"
+      sh 'docker run -i --entrypoint /src/centreon-collect/ci/scripts/collect-deb-package.sh -v "$PWD:/src" -e DISTRIB="bullseye" -e VERSION=$VERSION -e RELEASE=$RELEASE registry.centreon.com/centreon-collect-debian11-dependencies:22.04'
+      stash name: 'Debian11', includes: 'bullseye/*.deb'
+      archiveArtifacts artifacts: "bullseye/*"
     }
   }
 }
 
 stage('Quality Gate') {
   node("C++") {
-    if (securityAnalysisRequired == 'no') {
-      Utils.markStageSkippedForConditional('Quality Gate')
-    } else {
-      timeout(time: 10, unit: 'MINUTES') {
-        def qualityGate = waitForQualityGate()
-        if (qualityGate.status != 'OK') {
-          error "Pipeline aborted due to quality gate failure: ${qualityGate.status}"
-        }
+    timeout(time: 10, unit: 'MINUTES') {
+      def qualityGate = waitForQualityGate()
+      if (qualityGate.status != 'OK') {
+        error "Pipeline aborted due to quality gate failure: ${qualityGate.status}"
       }
-      if ((currentBuild.result ?: 'SUCCESS') != 'SUCCESS') {
-        error("Quality gate failure: ${qualityGate.status}.");
-      }
+    }
+    if ((currentBuild.result ?: 'SUCCESS') != 'SUCCESS') {
+      error("Quality gate failure: ${qualityGate.status}.");
     }
   }
 }

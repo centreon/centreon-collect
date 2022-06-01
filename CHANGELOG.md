@@ -4,10 +4,27 @@
 
 ### Fixes
 
-*storage*
+#### Broker
 
-Waiting longer for conflict manager to be connected
+*stream gRPC*
 
-*tls*
+A gRPC stream connector did not stop correctly on cbd stop.
 
-Printing encrypted write log on trace level only
+*BAM*
+
+On BAM misconfiguration, cbd could crash. This is fixed now. That was due to
+an issue in mysql code with promises handling.
+
+### Enhancements
+
+#### Broker
+
+*downtimes*
+
+They are inserted in bulk now.
+
+#### Engine
+
+*comments*
+
+They are sent only once to broker.

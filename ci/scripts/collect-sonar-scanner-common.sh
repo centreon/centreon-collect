@@ -3,7 +3,7 @@
 set -e
 
 source common.sh
-
+CACHE_REFERENCE="$2"
 # Check arguments.
 if [[ -z "$VERSION" ]] ; then
   echo "ERROR: You need to specify VERSION environment variable."
@@ -21,44 +21,34 @@ else
   TARGET="$BRANCH_NAME"
 fi
 
-install_scanner() {
-  echo "INFO: Cleaning tmp ..."
-  sudo rm -rf "/$WORKSPACE/centreon-collect-centos7/tmp"
-  mkdir tmp
-  cd tmp
-
-  echo "INFO: Installing missing requirements ..."
-  sudo apt-get install unzip || exit
-
-  echo "INFO: Getting latest archive ..."
-  curl https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.7.0.2747-linux.zip --output sonar-scanner-cli-4.7.0.2747-linux.zip
-  echo "INFO: Inflating files ..."
-  unzip -q sonar-scanner-cli-4.7.0.2747-linux.zip
-  echo "INFO: Cleaning again ..."
-  sudo rm -rf sonar-scanner-cli-4.7.0.2747-linux.zip sonar-scanner
-  sudo mv sonar-scanner-4.7.0.2747-linux sonar-scanner
-}
-
 get_cache() {
-  cd tmp
-
   echo "INFO: Cleaning before pulling tarball ..."
   rm -f "$PROJECT-SQ-cache-$TARGET.tar.gz"
 
-  CACHE_PATH="SQ-cache/$PROJECT/$PROJECT-SQ-cache-$TARGET.tar.gz"
-  CACHE_URL="http://srvi-repo.int.centreon.com/sources/internal/$CACHE_PATH"
-
+  TAR_NAME="$PROJECT-SQ-cache-$TARGET.tar.gz"
+  CACHE_URL="http://srvi-repo.int.centreon.com/sources/internal/SQ-cache/$PROJECT/$TAR_NAME"
   if validate_file_exists "$CACHE_URL"; then
     echo "INFO: Pulling tarball ..."
     wget -q "$CACHE_URL"
   else
-    echo "WARNING: File not found. Skipping $TARGET's cache on $VERSION"
+    TAR_NAME="$PROJECT-SQ-cache-$CACHE_REFERENCE.tar.gz"
+    CACHE_URL="http://srvi-repo.int.centreon.com/sources/internal/SQ-cache/$PROJECT/$TAR_NAME"
+    if validate_file_exists "$CACHE_URL"; then
+      echo "INFO: Pulling tarball $CACHE_REFERENCE ..."
+      wget -q "$CACHE_URL"
+    else
+      echo "WARNING: File not found. Skipping $TARGET's cache on $CACHE_REFERENCE"
+      return 0
+    fi 
   fi
+  tar xzf "$TAR_NAME"
+  mkdir build
+  mv cache build/
+  rm -rf "$TAR_NAME"
 }
 
 set_cache() {
   cd tmp
-
   if [[ -z "$TARGET" ]]; then
     echo "ERROR: Target's name is empty. Skipping $VERSION's cache"
     exit
@@ -83,7 +73,5 @@ if [[ -n "$1" ]]; then
     get_cache
   elif [[ "set" == "$1" ]]; then
     set_cache
-  elif [[ "install" == "$1" ]]; then
-    install_scanner
   fi
 fi
