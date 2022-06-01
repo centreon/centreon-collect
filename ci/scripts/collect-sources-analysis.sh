@@ -41,11 +41,11 @@ if [[ "PR" == "$MODE" ]] ; then
 
   echo "INFO: Running SQ in PR mode ..."
   cd /src
-  /sonar-scanner/bin/sonar-scanner -X -Dsonar.scm.forceReloadAll=true -Dsonar.cfamily.threads="$PROC_NBR" -Dsonar.scm.provider=git -Dsonar.login="$AUTH_TOKEN" -Dsonar.host.url="$URL" -Dsonar.projectVersion="$VERSION" -Dsonar.pullrequest.base="$TARGET" -Dsonar.pullrequest.branch="$PR_BRANCH" -Dsonar.pullrequest.key="$PR_KEY"
+  /sonar-scanner/bin/sonar-scanner -Dsonar.scm.forceReloadAll=true -Dsonar.cfamily.threads="$PROC_NBR" -Dsonar.scm.provider=git -Dsonar.login="$AUTH_TOKEN" -Dsonar.host.url="$URL" -Dsonar.projectVersion="$VERSION" -Dsonar.pullrequest.base="$TARGET" -Dsonar.pullrequest.branch="$PR_BRANCH" -Dsonar.pullrequest.key="$PR_KEY"
 else
   echo "INFO: Running SQ in branch mode ..."
   cd /src
-  /sonar-scanner/bin/sonar-scanner -X -Dsonar.scm.forceReloadAll=true -Dsonar.cfamily.threads="$PROC_NBR" -Dsonar.scm.provider=git -Dsonar.login="$AUTH_TOKEN" -Dsonar.host.url="$URL" -Dsonar.projectVersion="$VERSION" -Dsonar.branch.name="$TARGET"
+  /sonar-scanner/bin/sonar-scanner -Dsonar.scm.forceReloadAll=true -Dsonar.cfamily.threads="$PROC_NBR" -Dsonar.scm.provider=git -Dsonar.login="$AUTH_TOKEN" -Dsonar.host.url="$URL" -Dsonar.projectVersion="$VERSION" -Dsonar.branch.name="$TARGET"
 fi
 
 mkdir tmp
