@@ -20,6 +20,8 @@
 
 using namespace com::centreon::broker::bam;
 
+static constexpr double eps = 0.000001;
+
 /**
  *  Constructor.
  *
@@ -69,8 +71,8 @@ impact_values& impact_values::operator=(impact_values const& other) {
 bool impact_values::operator==(impact_values const& other) const throw() {
   if (this == &other)
     return true;
-  return (_acknowledgement == other._acknowledgement &&
-          _downtime == other._downtime && _nominal == other._nominal &&
+  return (std::abs(_acknowledgement-other._acknowledgement) < eps &&
+          std::abs(_downtime-other._downtime) < eps && std::abs(_nominal-other._nominal) < eps &&
           _state == other._state);
 }
 
