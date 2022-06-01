@@ -756,8 +756,8 @@ anomalydetection::parse_perfdata(std::string const& perfdata,
 void anomalydetection::init_thresholds() {
   std::lock_guard<std::mutex> lock(_thresholds_m);
 
-  logger(log_info_message, basic)
-      << "Trying to read thresholds file '" << _thresholds_file << "'";
+  logger(dbg_config, most) << "Trying to read thresholds file '"
+                           << _thresholds_file << "'";
   std::ifstream t(_thresholds_file);
   if (!t)
     return;
@@ -795,7 +795,7 @@ void anomalydetection::init_thresholds() {
     }
     if (host_id == get_host_id() && service_id == get_service_id() &&
         item["metric_name"].get<std::string>() == _metric_name) {
-      logger(log_info_message, basic)
+      logger(dbg_config, most)
           << "Filling thresholds in anomaly detection (host_id: "
           << get_host_id() << ", service_id: " << get_service_id()
           << ", metric: " << _metric_name << ")";
@@ -814,10 +814,10 @@ void anomalydetection::init_thresholds() {
     }
   }
   if (count > 1) {
-    logger(log_info_message, most) << "Number of rows in memory: " << count;
+    logger(dbg_config, most) << "Number of rows in memory: " << count;
     _thresholds_file_viable = true;
   } else
-    logger(log_info_message, most) << "Nothing in memory";
+    logger(dbg_config, most) << "Nothing in memory";
 }
 
 /**

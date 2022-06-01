@@ -67,15 +67,25 @@ if [ -r /etc/centos-release ] ; then
       cmake='cmake'
     fi
   fi
-  if [[ ! -x /usr/bin/python3 ]] ; then
-    yum -y install python3
+  if [ $maj = "centos7" ] ; then
+    if [[ ! -x /opt/rh/rh-python38 ]] ; then
+      yum -y install centos-release-scl
+      yum -y install rh-python38
+      source /opt/rh/rh-python38/enable
+    else
+      echo "python38 already installed"
+    fi
   else
-    echo "python3 already installed"
-  fi
-  if ! rpm -q python3-pip ; then
-    yum -y install python3-pip
-  else
-    echo "pip3 already installed"
+    if [[ ! -x /usr/bin/python3 ]] ; then
+      yum -y install python3
+    else
+      echo "python3 already installed"
+    fi
+    if ! rpm -q python3-pip ; then
+      yum -y install python3-pip
+    else
+      echo "pip3 already installed"
+    fi
   fi
 
   good=$(gcc --version | awk '/gcc/ && ($3+0)>5.0{print 1}')

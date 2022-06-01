@@ -1086,8 +1086,7 @@ int cmd_delete_downtime_full(int cmd, char* args) {
       return ERROR;
     if (*temp_ptr)
       criterias.push_back(downtime_finder::criteria("service", temp_ptr));
-  } else
-    criterias.push_back(downtime_finder::criteria("service", ""));
+  }
 
   // Start time.
   if (!(temp_ptr = my_strtok(nullptr, ";")))
