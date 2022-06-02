@@ -228,3 +228,16 @@ TEST(string_utils, unescape7) {
   string::unescape(str);
   ASSERT_TRUE(strcmp(str, "az\nerty\\\\\\az\\") == 0);
 }
+
+TEST(string_utils, unescape8) {
+  char str[100];
+  strcpy(str, "");
+  string::unescape(str);
+  ASSERT_TRUE(strcmp(str, "") == 0);
+}
+
+TEST(string_utils, unescape9) {
+  char* s = nullptr;
+  string::unescape(s);
+  ASSERT_EQ(s, nullptr);
+}

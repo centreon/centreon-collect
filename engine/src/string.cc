@@ -405,6 +405,8 @@ bool string::c_strtok::extract(char sep, int& extracted) {
  * @param buffer
  */
 void string::unescape(char* buffer) {
+  if (buffer == nullptr)
+    return;
   char* read_pos = strchrnul(buffer, '\\');
   char* prev_read_pos = nullptr;
   while (*read_pos) {
