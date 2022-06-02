@@ -28,3 +28,7 @@ They are inserted in bulk now.
 *comments*
 
 They are sent only once to broker.
+
+*multiline passive checks*
+
+Escaped characters were not unescaped and we could not get them back.
