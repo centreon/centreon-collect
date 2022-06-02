@@ -366,7 +366,7 @@ void string::unescape(char* buffer) {
           break;
       }
       ++buffer;
-    } else if (read_pos[1] == 0)
+    } else if (c == 0)
       break;
     read_pos = strchrnul(read_pos + 2, '\\');
   }
