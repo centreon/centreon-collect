@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013,2017 Centreon
+** Copyright 2011-2013,2017-2022 Centreon
 **
 ** This file is part of Centreon Engine.
 **
@@ -204,6 +204,8 @@ std::string& trim_right(std::string& str) noexcept;
 std::string extract_perfdata(std::string const& perfdata,
                              std::string const& metric) noexcept;
 std::string& remove_thresholds(std::string& perfdata) noexcept;
+
+void unescape(char* buffer);
 }  // namespace string
 
 CCE_END()
