@@ -2737,11 +2737,9 @@ int32_t neb::callback_pb_service_status(int callback_type
   sscr.set_no_more_notifications(es->get_no_more_notifications());
   if (!es->get_plugin_output().empty())
     sscr.set_output(misc::string::check_string_utf8(es->get_plugin_output()));
-
   if (!es->get_long_plugin_output().empty())
     sscr.set_long_output(
         misc::string::check_string_utf8(es->get_long_plugin_output()));
-
   sscr.set_percent_state_change(es->get_percent_state_change());
   if (!es->get_perf_data().empty()) {
     sscr.set_perfdata(misc::string::check_string_utf8(es->get_perf_data()));
