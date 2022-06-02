@@ -21,7 +21,6 @@ set(INC_DIR "${PROJECT_SOURCE_DIR}/neb/inc")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/neb/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/neb/test")
 include_directories("${INC_DIR}")
-include_directories("${CMAKE_SOURCE_DIR}/clib/inc")
 
 # NEB sources.
 set(NEB_SOURCES
