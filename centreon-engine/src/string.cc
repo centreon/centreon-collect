@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 - 2014, 2017, 2020 Centreon (https://www.centreon.com/)
+ * Copyright 2011 - 2014, 2017, 2020-2022 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -326,4 +326,56 @@ std::string& string::remove_thresholds(std::string& perfdata) noexcept {
 
   perfdata.replace(pos1, pos3 - pos1, ";;");
   return perfdata;
+}
+
+/**
+ * @brief Unescape the string buffer. Works with \t, \n, \r and \\. The buffer
+ * is directly changed. No copy is made.
+ *
+ * @param buffer
+ */
+void string::unescape(char* buffer) {
+  if (buffer == nullptr)
+    return;
+  char* read_pos = strchrnul(buffer, '\\');
+  char* prev_read_pos = nullptr;
+  while (*read_pos) {
+    char c = read_pos[1];
+    if (c == 'n' || c == 'r' || c == 't' || c == '\\') {
+      if (prev_read_pos) {
+        size_t len = read_pos - prev_read_pos;
+        memmove(buffer, prev_read_pos, len);
+        buffer += len;
+      } else
+        buffer = read_pos;
+
+      prev_read_pos = read_pos + 2;
+
+      switch (c) {
+        case 'n':
+          *buffer = '\n';
+          break;
+        case 'r':
+          *buffer = '\r';
+          break;
+        case 't':
+          *buffer = '\t';
+          break;
+        case '\\':
+          *buffer = '\\';
+          break;
+      }
+      ++buffer;
+    } else if (read_pos[1] == 0)
+      break;
+    read_pos = strchrnul(read_pos + 2, '\\');
+  }
+  if (prev_read_pos) {
+    size_t len = read_pos - prev_read_pos + 1;
+    if (len) {
+      memmove(buffer, prev_read_pos, len);
+      buffer += len;
+    }
+    *buffer = 0;
+  }
 }
