@@ -72,7 +72,6 @@ int check_for_external_commands() {
   }
 
   /* process all commands found in the buffer */
-  char* buffer(nullptr);
   for (;;) {
     boost::optional<std::string> cmd = external_command_buffer.pop();
     if (!cmd) {
