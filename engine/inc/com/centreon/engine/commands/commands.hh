@@ -137,17 +137,19 @@ void enable_contact_service_notifications(
 void disable_contact_service_notifications(
     com::centreon::engine::contact*
         cntct);  // disables service notifications for a specific contact
-void schedule_and_propagate_downtime(
-    com::centreon::engine::host* temp_host,
-    time_t entry_time,
-    char const* author,
-    char const* comment_data,
-    time_t start_time,
-    time_t end_time,
-    int fixed,
-    unsigned long triggered_by,
-    unsigned long
-        duration);  // schedules downtime for all hosts beyond a given host
+void schedule_and_propagate_downtime(com::centreon::engine::host* temp_host,
+                                     time_t entry_time,
+                                     char const* author,
+                                     char const* comment_data,
+                                     time_t start_time,
+                                     time_t end_time,
+                                     int fixed,
+                                     unsigned long triggered_by,
+                                     unsigned long duration);  // schedules
+                                                               // downtime for
+                                                               // all hosts
+                                                               // beyond a given
+                                                               // host
 void acknowledge_host_problem(com::centreon::engine::host* hst,
                               const std::string& ack_author,
                               const std::string& ack_data,

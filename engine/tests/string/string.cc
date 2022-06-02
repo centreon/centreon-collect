@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Centreon (https://www.centreon.com/)
+ * Copyright 2020-2022 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -171,4 +171,73 @@ TEST(string_utils, c_strtok_test7) {
   ASSERT_TRUE(parse.extract(';', val));
   ASSERT_EQ(val, 1);
   ASSERT_FALSE(parse.extract(';'));
+}
+
+TEST(string_utils, unescape) {
+  char str[100];
+  strcpy(str, "az\\ner\\nty\\n");
+  string::unescape(str);
+  ASSERT_TRUE(strcmp(str, "az\ner\nty\n") == 0);
+}
+
+TEST(string_utils, unescape1) {
+  char str[100];
+  strcpy(str, "az\\ner\\nty\\n");
+  string::unescape(str);
+  ASSERT_TRUE(strcmp(str, "az\ner\nty\n") == 0);
+}
+
+TEST(string_utils, unescape2) {
+  char str[100];
+  strcpy(str, "az\\ter\\tty\\n");
+  string::unescape(str);
+  ASSERT_TRUE(strcmp(str, "az\ter\tty\n") == 0);
+}
+
+TEST(string_utils, unescape3) {
+  char str[100];
+  strcpy(str, "azerty\\");
+  string::unescape(str);
+  ASSERT_TRUE(strcmp(str, "azerty\\") == 0);
+}
+
+TEST(string_utils, unescape4) {
+  char str[100];
+  strcpy(str, "az\\nerty\\");
+  string::unescape(str);
+  ASSERT_TRUE(strcmp(str, "az\nerty\\") == 0);
+}
+
+TEST(string_utils, unescape5) {
+  char str[100];
+  strcpy(str, "az\\nerty\\\\\\\\\\a");
+  string::unescape(str);
+  ASSERT_TRUE(strcmp(str, "az\nerty\\\\\\a") == 0);
+}
+
+TEST(string_utils, unescape6) {
+  char str[100];
+  strcpy(str, "az\\nerty\\\\\\\\\\az");
+  string::unescape(str);
+  ASSERT_TRUE(strcmp(str, "az\nerty\\\\\\az") == 0);
+}
+
+TEST(string_utils, unescape7) {
+  char str[100];
+  strcpy(str, "az\\nerty\\\\\\\\\\az\\");
+  string::unescape(str);
+  ASSERT_TRUE(strcmp(str, "az\nerty\\\\\\az\\") == 0);
+}
+
+TEST(string_utils, unescape8) {
+  char str[100];
+  strcpy(str, "");
+  string::unescape(str);
+  ASSERT_TRUE(strcmp(str, "") == 0);
+}
+
+TEST(string_utils, unescape9) {
+  char* s = nullptr;
+  string::unescape(s);
+  ASSERT_EQ(s, nullptr);
 }

@@ -90,7 +90,8 @@ set(protobuf_MODULE_COMPATIBLE True)
 add_definitions(${spdlog_DEFINITIONS})
 
 include_directories(${CMAKE_SOURCE_DIR}
-                    ${CONAN_INCLUDE_DIRS})
+                    ${CONAN_INCLUDE_DIRS}
+                    ${CMAKE_SOURCE_DIR}/clib/inc)
 
 add_subdirectory(bbdo)
 add_subdirectory(broker)
