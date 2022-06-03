@@ -19,6 +19,19 @@
 #include "com/centreon/broker/io/data.hh"
 #include <cassert>
 
+CCB_BEGIN()
+
+namespace io {
+std::ostream& operator<<(std::ostream& s, const data& d) {
+  s << "type:" << d.type() << " src_id:" << d.source_id
+    << " dst_id:" << d.destination_id << " broker_id:" << d.broker_id;
+  return s;
+}
+
+};  // namespace io
+
+CCB_END()
+
 using namespace com::centreon::broker::io;
 
 uint32_t data::broker_id(0);

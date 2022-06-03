@@ -20,6 +20,18 @@
 
 #include "com/centreon/broker/log_v2.hh"
 
+CCB_BEGIN()
+
+namespace io {
+std::ostream& operator<<(std::ostream& s, const raw& d) {
+  s << static_cast<const data&>(d) << " buffer_length:" << d.size();
+  return s;
+}
+
+};  // namespace io
+
+CCB_END()
+
 using namespace com::centreon::broker::io;
 
 /**
