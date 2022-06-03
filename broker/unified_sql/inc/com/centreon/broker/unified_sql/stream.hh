@@ -291,6 +291,7 @@ class stream : public io::stream {
   database::mysql_stmt _severity_update;
   database::mysql_stmt _tag_insert;
   database::mysql_stmt _tag_update;
+  database::mysql_stmt _tag_delete;
   database::mysql_stmt _resources_tags_insert;
   database::mysql_stmt _resources_host_insert;
   database::mysql_stmt _resources_host_update;

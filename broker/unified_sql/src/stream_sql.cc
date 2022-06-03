@@ -3218,6 +3218,9 @@ void stream::_process_tag(const std::shared_ptr<io::data>& d) {
     _tag_insert = _mysql.prepare_query(
         "INSERT INTO tags (id,type,name) "
         "VALUES(?,?,?)");
+  if (!_tag_delete.prepared())
+    _tag_delete =
+        _mysql.prepare_query("DELETE FROM resources_tags WHERE tag_id=?");
 
   // Processed object.
   auto s{static_cast<const neb::pb_tag*>(d.get())};
@@ -3270,7 +3273,21 @@ void stream::_process_tag(const std::shared_ptr<io::data>& d) {
             "unified sql: unable to modify tag ({}, {}): not in cache", tg.id(),
             tg.type());
       break;
-      break;
+    case Tag_Action_DELETE: {
+      auto it = _tags_cache.find({tg.id(), tg.type()});
+      if (it != _tags_cache.end()) {
+        uint64_t id = it->second;
+        log_v2::sql()->trace("SQL: delete tag {}", id);
+        _tag_delete.bind_value_as_u64(0, tg.id());
+        _mysql.run_statement(_tag_delete,
+                             database::mysql_error::delete_resources_tags,
+                             false, conn);
+        _tags_cache.erase(it);
+      } else
+        log_v2::sql()->warn(
+            "SQL: unable to delete tag ({}, {}): it does not exist in cache",
+            tg.id(), tg.type());
+    } break;
     default:
       log_v2::sql()->error("Bad action in tag object");
       break;
