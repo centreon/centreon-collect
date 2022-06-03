@@ -10,8 +10,8 @@ License:        ASL 2.0
 Source: %{name}-%{version}.tar.gz
 Source1: centreonengine_integrate_centreon_engine2centreon.sh
 
-%define thismajor 22.04.0
-%define nextmajor 22.05.0
+%define thismajor 22.10.0
+%define nextmajor 22.11.0
 
 Group: Applications/Communications
 URL: https://github.com/centreon/centreon-collect.git
