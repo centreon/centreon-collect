@@ -497,13 +497,16 @@ int cmd_process_service_check_result(int cmd, time_t check_time, char* args) {
     return ERROR;
   *delimiter = '\0';
   ++delimiter;
-  char const* output(strchr(delimiter, ';'));
+  char* output(strchr(delimiter, ';'));
   if (output) {
-    *const_cast<char*>(output) = '\0';
+    *output = '\0';
     ++output;
   } else
     output = "";
   int return_code(strtol(delimiter, nullptr, 0));
+
+  // replace \\n with \n
+  string::unescape(output);
 
   // Submit the passive check result.
   return process_passive_service_check(check_time, host_name, svc_description,
@@ -616,14 +619,17 @@ int cmd_process_host_check_result(int cmd, time_t check_time, char* args) {
     return ERROR;
   *delimiter = '\0';
   ++delimiter;
-  char const* output(strchr(delimiter, ';'));
+  char* output(strchr(delimiter, ';'));
   if (output) {
-    *const_cast<char*>(output) = '\0';
+    *output = '\0';
     ++output;
   } else
     output = "";
   int return_code(strtol(delimiter, nullptr, 0));
 
+  // replace \\n with \n
+  string::unescape(output);
+  
   // Submit the check result.
   return (
       process_passive_host_check(check_time, host_name, return_code, output));
