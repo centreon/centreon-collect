@@ -1240,7 +1240,7 @@ def remove_tags_from_services(poller: int, type: str):
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
-    r = re.compile("r\"^\s*{}\s*\d+$\"".format(type))
+    r = re.compile(r"^\s*" + type + r"\s*[0-9,]+$")
     lines = [l for l in lines if not r.match(l)]
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "w")
     ff.writelines(lines)
@@ -1251,7 +1251,7 @@ def remove_tags_from_hosts(poller: int, type: str):
     ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
     ff.close()
-    r = re.compile("r\"^\s*{}\s*\d+$\"".format(type))
+    r = re.compile(r"^\s*" + type + r"\s*[0-9,]+$")
     lines = [l for l in lines if not r.match(l)]
     ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "w")
     ff.writelines(lines)
