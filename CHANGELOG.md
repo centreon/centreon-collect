@@ -19,6 +19,10 @@ an issue in mysql code with promises handling.
 
 Default configuration files were not installed on a Debian fresh install.
 
+*unified_sql*
+
+tags are well removed now.
+
 #### Enhancements
 
 *downtimes*

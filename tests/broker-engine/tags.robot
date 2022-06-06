@@ -26,7 +26,6 @@ BETAG1
 	Broker Config Log	module0	neb	debug
 	Broker Config Log	central	sql	debug
 	Clear Retention
-	${start}=	Get Current Date
 	Start Broker
 	Start Engine
 	${result}=	check tag With Timeout	tag20	3	30
@@ -48,9 +47,8 @@ BETAG2
 	Broker Config Log	module0	neb	debug
 	Broker Config Log	central	sql	debug
 	Clear Retention
-	${start}=	Get Current Date
-	Start Engine
 	Sleep	1s
+	Start Engine
 	Start Broker
 	${result}=	check tag With Timeout	tag20	3	30
 	Should Be True	${result}	msg=tag20 should be of type 3
@@ -60,7 +58,7 @@ BETAG2
 	Kindly Stop Broker
 
 BEUTAG1
-	[Documentation]	Engine is configured with some tags. When broker receives them, it stores them in the centreon_storage.tags table. Broker is started before.
+	[Documentation]	Engine is configured with some tags. When broker receives them through unified_sql stream, it stores them in the centreon_storage.tags table. Broker is started before.
 	[Tags]	Broker	Engine	protobuf	bbdo	tags	unified_sql
 	Config Engine	${1}
 	Create Tags File	${0}	${20}
@@ -75,7 +73,6 @@ BEUTAG1
 	Broker Config Log	module0	neb	debug
 	Broker Config Log	central	sql	debug
 	Clear Retention
-	${start}=	Get Current Date
 	Start Broker
 	Start Engine
 	${result}=	check tag With Timeout	tag20	3	30
@@ -106,10 +103,9 @@ BEUTAG2
 	Broker Config Log	module0	neb	debug
 	Broker Config Log	central	sql	error
 	Clear Retention
-	${start}=	Get Current Date
 	Start Broker
 	Start Engine
-        Sleep	2s
+        Sleep	1s
 
         ${svc}=	Create Service	${0}	1     1
 	Add Tags To Services	${0}	group_tags	4	[${svc}]
@@ -139,9 +135,8 @@ BEUTAG3
 	Broker Config Log	module0	neb	debug
 	Broker Config Log	central	sql	debug
 	Clear Retention
-	${start}=	Get Current Date
-	Start Engine
 	Sleep	1s
+	Start Engine
 	Start Broker
 	${result}=	check tag With Timeout	tag20	3	30
 	Should Be True	${result}	msg=tag20 should be of type 3
@@ -169,7 +164,6 @@ BEUTAG4
 	Broker Config Log	module0	neb	debug
 	Broker Config Log	central	sql	debug
 	Clear Retention
-	${start}=	Get Current Date
 	Start Engine
 	Sleep	1s
 	Start Broker
@@ -203,9 +197,8 @@ BEUTAG5
 	Broker Config Log	module0	neb	debug
 	Broker Config Log	central	sql	debug
 	Clear Retention
-	${start}=	Get Current Date
-	Start Engine
 	Sleep	1s
+	Start Engine
 	Start Broker
 	${result}=	check resources tags With Timeout	0	1	hostgroup	[2,3]	60
 	Should Be True	${result}	msg=Host 1 should have hostgroup tags 2 and 3
@@ -239,9 +232,8 @@ BEUTAG6
 	Broker Config Log	module0	neb	debug
 	Broker Config Log	central	sql	debug
 	Clear Retention
-	${start}=	Get Current Date
-	Start Engine
 	Sleep	1s
+	Start Engine
 	Start Broker
 	${result}=	check resources tags With Timeout	0	1	hostgroup	[2,4]	60
 	Should Be True	${result}	msg=Host 1 should have hostgroup tag_id 2 and 4
@@ -280,7 +272,6 @@ BEUTAG7
 	Broker Config Log	module1	neb	debug
 	Broker Config Log	central	sql	trace
 	Clear Retention
-	${start}=	Get Current Date
 	Start Engine
 	Start Broker
 	Sleep	5s
@@ -347,7 +338,6 @@ BEUTAG8
 	Broker Config Log	module1	neb	debug
 	Broker Config Log	central	sql	trace
 	Clear Retention
-	${start}=	Get Current Date
 	Start Engine
 	Start Broker
 	Sleep	5s
@@ -400,9 +390,8 @@ BEUTAG9
 	Broker Config Log	module1	neb	debug
 	Broker Config Log	central	sql	trace
 	Clear Retention
-	${start}=	Get Current Date
+	Sleep	1s
 	Start Engine
-	Sleep	2s
 	Start Broker
 
 	# We need to wait a little before reloading Engine
@@ -432,3 +421,187 @@ BEUTAG9
 
 	Stop Engine
 	Kindly Stop Broker
+
+BEUTAG10
+	[Documentation]	some services are configured with tags on two pollers. Then tags are removed from some of them and in centreon_storage, we can observe resources_tags table updated.
+	[Tags]	Broker	Engine	protobuf	bbdo	tags
+	Config Engine	${2}
+	Create Tags File	${0}	${20}
+	Create Tags File	${1}	${20}
+	Config Engine Add Cfg File	${0}	tags.cfg
+	Config Engine Add Cfg File	${1}	tags.cfg
+	Engine Config Set Value	${0}	log_level_config	debug
+	Engine Config Set Value	${1}	log_level_config	debug
+	Add Tags To Services	${0}	group_tags	2,4	[1, 2, 3, 4]
+	Add Tags To Services	${0}	category_tags	3,5	[1, 2, 3, 4]
+	Add Tags To Services	${1}	group_tags	3,5	[501, 502, 503, 504]
+	Add Tags To Services	${1}	category_tags	2,4	[501, 502, 503, 504]
+	Config Broker	central
+	Config Broker	rrd
+	Config Broker	module	${2}
+	Config Broker Sql Output	central	unified_sql
+	Broker Config Add Item	module0	bbdo_version	3.0.0
+	Broker Config Add Item	module1	bbdo_version	3.0.0
+	Broker Config Add Item	central	bbdo_version	3.0.0
+	Broker Config Add Item	rrd	bbdo_version	3.0.0
+	Broker Config Log	module0	neb	debug
+	Broker Config Log	module1	neb	debug
+	Broker Config Log	central	sql	trace
+	Clear Retention
+	Start Engine
+	Start Broker
+	${result}=	check resources tags With Timeout	1	4	servicegroup	[2,4]	60
+	Should Be True	${result}	msg=First step: Service (1, 4) should have servicegroup tags 2 and 4
+	${result}=	check resources tags With Timeout	1	3	servicecategory	[3,5]	60
+	Should Be True	${result}	msg=First step: Service (1, 3) should have servicecategory tags 3 and 5
+
+	${result}=	check resources tags With Timeout	26	504	servicegroup	[3,5]	60
+	Should Be True	${result}	msg=First step: Service (26, 504) should have servicegroup tags 3 and 5.
+	${result}=	check resources tags With Timeout	26	503	servicecategory	[2,4]	60
+	Should Be True	${result}	msg=First step: Service (26, 503) should have servicecategory tags 2 and 4.
+
+	Remove Tags From Services	${0}	group_tags
+	Remove Tags From Services	${0}	category_tags
+	Remove Tags From Services	${1}	group_tags
+	Remove Tags From Services	${1}	category_tags
+	Create Tags File	${0}	${20}
+	Create Tags File	${1}	${20}
+	Add Tags To Services	${0}	group_tags	2,4	[1, 2, 3]
+	Add Tags To Services	${0}	category_tags	3,5	[1, 2, 4]
+	Add Tags To Services	${1}	group_tags	3,5	[501, 502, 503]
+	Add Tags To Services	${1}	category_tags	2,4	[501, 502, 504]
+	Reload Engine
+	Reload Broker
+	${result}=	check resources tags With Timeout	1	4	servicegroup	[2,4]	60	False
+	Should Be True	${result}	msg=Second step: Service (1, 4) should not have servicegroup tags 2 and 4
+
+	${result}=	check resources tags With Timeout	1	3	servicecategory	[3,5]	60	False
+	Should Be True	${result}	msg=Second step: Service (1, 3) should not have servicecategory tags 3 and 5
+
+	${result}=	check resources tags With Timeout	26	504	servicegroup	[3,5]	60	False
+	Should Be True	${result}	msg=Second step: Service (26, 504) should not have servicegroup tags 3 and 5
+
+	${result}=	check resources tags With Timeout	26	503	servicecategory	[3,5]	60	False
+	Should Be True	${result}	msg=Second step: Service (26, 503) should not have servicecategory tags 3 and 5
+
+	Stop Engine
+	Kindly Stop Broker
+
+BEUTAG11
+	[Documentation]	some services are configured with tags on two pollers. Then several tags are removed, and we can observe resources_tags table updated.
+	[Tags]	Broker	Engine	protobuf	bbdo	tags
+	Config Engine	${2}
+	Create Tags File	${0}	${20}
+	Create Tags File	${1}	${20}
+	Config Engine Add Cfg File	${0}	tags.cfg
+	Config Engine Add Cfg File	${1}	tags.cfg
+	Engine Config Set Value	${0}	log_level_config	debug
+	Engine Config Set Value	${1}	log_level_config	debug
+	Add Tags To Services	${0}	group_tags	2,4	[1, 2, 3, 4]
+	Add Tags To Services	${0}	category_tags	3,5	[1, 2, 3, 4]
+	Add Tags To Services	${1}	group_tags	3,5	[501, 502, 503, 504]
+	Add Tags To Services	${1}	category_tags	2,4	[501, 502, 503, 504]
+	Config Broker	central
+	Config Broker	rrd
+	Config Broker	module	${2}
+	Config Broker Sql Output	central	unified_sql
+	Broker Config Add Item	module0	bbdo_version	3.0.0
+	Broker Config Add Item	module1	bbdo_version	3.0.0
+	Broker Config Add Item	central	bbdo_version	3.0.0
+	Broker Config Add Item	rrd	bbdo_version	3.0.0
+	Broker Config Log	module0	neb	debug
+	Broker Config Log	module1	neb	debug
+	Broker Config Log	central	sql	trace
+	Clear Retention
+	Start Engine
+	Start Broker
+	${result}=	check resources tags With Timeout	1	4	servicegroup	[2,4]	60
+	Should Be True	${result}	msg=First step: Service (1, 4) should have servicegroup tags 2 and 4
+	${result}=	check resources tags With Timeout	1	3	servicecategory	[3,5]	60
+	Should Be True	${result}	msg=First step: Service (1, 3) should have servicecategory tags 3 and 5
+
+	${result}=	check resources tags With Timeout	26	504	servicegroup	[3,5]	60
+	Should Be True	${result}	msg=First step: Service (26, 504) should have servicegroup tags 3 and 5.
+	${result}=	check resources tags With Timeout	26	503	servicecategory	[2,4]	60
+	Should Be True	${result}	msg=First step: Service (26, 503) should have servicecategory tags 2 and 4.
+
+	Remove Tags From Services	${0}	group_tags
+	Remove Tags From Services	${0}	category_tags
+	Remove Tags From Services	${1}	group_tags
+	Remove Tags From Services	${1}	category_tags
+	Create Tags File	${0}	${18}
+	Create Tags File	${1}	${18}
+	Add Tags To Services	${0}	group_tags	2,4	[1, 2, 3, 4]
+	Add Tags To Services	${0}	category_tags	3	[1, 2, 3, 4]
+	Add Tags To Services	${1}	group_tags	3,5	[501, 502, 503]
+	Add Tags To Services	${1}	category_tags	2,4	[501, 502, 504]
+	Reload Engine
+	Reload Broker
+	${result}=	check resources tags With Timeout	1	4	servicegroup	[2,4]	60
+	Should Be True	${result}	msg=Second step: Service (1, 4) should not have servicegroup tags 2 and 4
+
+	${result}=	check resources tags With Timeout	1	3	servicecategory	[5]	60	False
+	Should Be True	${result}	msg=Second step: Service (1, 3) should not have servicecategory tags 5
+
+	${result}=	check resources tags With Timeout	26	504	servicegroup	[3,5]	60	False
+	Should Be True	${result}	msg=Second step: Service (26, 504) should not have servicegroup tags 3 and 5
+
+	${result}=	check resources tags With Timeout	26	503	servicecategory	[3,5]	60
+	Should Be True	${result}	msg=Second step: Service (26, 503) should not have servicecategory tags 3 and 5
+
+	Stop Engine
+	Kindly Stop Broker
+
+BEUTAG12
+	[Documentation]	Engine is configured with some tags. Group tags tag2, tag6 are set to hosts 1 and 2. Category tags tag4 and tag8 are added to hosts 2, 3, 4. The resources and resources_tags tables are well filled. The tag6 and tag8 are removed and resources_tags is also well updated.
+	[Tags]	Broker	Engine	protobuf	bbdo	tags
+	#Clear DB	tags
+	Config Engine	${1}
+	Create Tags File	${0}	${20}
+	Config Engine Add Cfg File	${0}	tags.cfg
+	Add Tags To Hosts	${0}	group_tags	2,3	[1, 2]
+	Add Tags To Hosts	${0}	category_tags	2,3	[2, 3, 4]
+	Config Broker	central
+	Config Broker	rrd
+	Config Broker	module
+	Config Broker Sql Output	central	unified_sql
+	Broker Config Add Item	module0	bbdo_version	3.0.0
+	Broker Config Add Item	central	bbdo_version	3.0.0
+	Broker Config Add Item	rrd	bbdo_version	3.0.0
+	Broker Config Log	module0	neb	debug
+	Broker Config Log	central	sql	debug
+	Clear Retention
+	Sleep	1s
+	Start Engine
+	Start Broker
+	${result}=	check resources tags With Timeout	0	1	hostgroup	[2,3]	60
+	Should Be True	${result}	msg=Host 1 should have hostgroup tags 2 and 3
+	${result}=	check resources tags With Timeout	0	2	hostgroup	[2,3]	60
+	Should Be True	${result}	msg=Host 2 should have hostgroup tags 2 and 3
+	${result}=	check resources tags With Timeout	0	2	hostcategory	[2, 3]	60
+	Should Be True	${result}	msg=Host 2 should have hostcategory tags 2 and 3
+	${result}=	check resources tags With Timeout	0	3	hostcategory	[2, 3]	60
+	Should Be True	${result}	msg=Host 3 should have hostcategory tags 2 and 3
+
+	Remove Tags From Hosts	${0}	group_tags
+	Remove Tags From Hosts	${0}	category_tags
+	Create Tags File	${0}	${5}
+	Config Engine Add Cfg File	${0}	tags.cfg
+
+	Reload Engine
+	Reload Broker
+
+	${result}=	check resources tags With Timeout	0	1	hostgroup	[2,3]	60	False
+	Should Be True	${result}	msg=Host 1 should not have hostgroup tags 2 nor 3
+	${result}=	check resources tags With Timeout	0	2	hostgroup	[2,3]	60	False
+	Should Be True	${result}	msg=Host 2 should not have hostgroup tags 2 nor 3
+	${result}=	check resources tags With Timeout	0	2	hostcategory	[2,3]	60	False
+	Should Be True	${result}	msg=Host 2 should not have hostgroup tags 2 nor 3
+	${result}=	check resources tags With Timeout	0	3	hostcategory	[2,3]	60	False
+	Should Be True	${result}	msg=Host 3 should not have hostgroup tags 2 nor 3
+	${result}=	check resources tags With Timeout	0	4	hostcategory	[2,3]	60	False
+	Should Be True	${result}	msg=Host 4 should not have hostgroup tags 2 nor 3
+
+	Stop Engine
+	Kindly Stop Broker
+
