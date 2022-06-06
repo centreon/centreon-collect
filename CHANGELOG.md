@@ -15,6 +15,10 @@ A gRPC stream connector did not stop correctly on cbd stop.
 On BAM misconfiguration, cbd could crash. This is fixed now. That was due to
 an issue in mysql code with promises handling.
 
+*Debian*
+
+Default configuration files were not installed on a Debian fresh install.
+
 #### Enhancements
 
 *downtimes*
