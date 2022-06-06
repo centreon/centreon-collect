@@ -2345,6 +2345,8 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
               "enabled=1 WHERE resource_id=?");
           _resources_disable = _mysql.prepare_query(
               "UPDATE resources SET enabled=0 WHERE resource_id=?");
+          _resources_tags_remove = _mysql.prepare_query(
+              "DELETE FROM resources_tags WHERE resource_id=?");
         }
       }
 
@@ -2518,6 +2520,10 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
                 "INSERT INTO resources_tags (tag_id,resource_id) VALUES(?,?)");
           }
           _finish_action(-1, actions::tags);
+          _resources_tags_remove.bind_value_as_u64(0, res_id);
+          _mysql.run_statement(_resources_tags_remove,
+                               database::mysql_error::delete_resources_tags,
+                               false, conn);
           for (auto& tag : ss.tags()) {
             auto it_tags_cache = _tags_cache.find({tag.id(), tag.type()});
 

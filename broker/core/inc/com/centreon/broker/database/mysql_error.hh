@@ -197,7 +197,7 @@ class mysql_error {
       "could not update resources: ",
       "could not insert host in resources: ",
       "could not insert tag in resources_tags table: ",
-      "could not delete tag in resources_tags table: ",
+      "could not delete entry in resources_tags table: ",
       "could not clean the resources table: ",
   };
 
