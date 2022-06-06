@@ -8,7 +8,7 @@ pipeline {
     stages {
       stage('Launch Centreon Tests') {
         agent any
-        when { anyOf { branch 'dev-21.10.x'; branch '21.10.x'; branch 'robot-nightly-21.10.x' } }
+        // when { anyOf { branch 'dev-21.10.x'; branch '21.10.x'; branch 'robot-nightly-21.10.x' } }
         // environment { JENKINS_USERNAME = "Service-Account-CI" BRANCHE= "dev-21.10.x" }
         steps {
           withCredentials([string(credentialsId: 'service-account-ci-token', variable: 'JENKINS_TOKEN')]) {
