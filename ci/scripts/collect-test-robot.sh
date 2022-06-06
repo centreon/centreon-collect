@@ -46,6 +46,7 @@ echo $USERNAME
 echo $TOKENJENKINS
 echo $BRANCH
 echo $TOKEN
+echo "https://$USERNAME:$TOKEN@jenkins.int.centreon.com/job/$BRANCH/lastSuccessfulBuild/artifact/*zip*/myfile.zip"
 curl https://$USERNAME:$TOKEN@jenkins.int.centreon.com/job/$BRANCH/lastSuccessfulBuild/artifact/*zip*/myfile.zip --output artifact.zip
 unzip artifact.zip
 cd artifact

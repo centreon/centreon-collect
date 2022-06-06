@@ -17,7 +17,7 @@ pipeline {
         steps {
           // withCredentials([string(credentialsId: 'service-account-ci-token', variable: 'JENKINS_TOKEN')]) {
             sh 'printenv'
-            sh "docker run -i --entrypoint /src/ci/scripts/collect-test-robot.sh -v $PWD:/src -e TOKEN=${JENKINS_TOKEN} registry.centreon.com/centreon-collect-centos7-dependencies:21.10 $JENKINS_USERNAME ${JENKINS_TOKEN} $BRANCHE"
+            sh 'docker run -i --entrypoint /src/ci/scripts/collect-test-robot.sh -v "$PWD:/src" -e TOKEN=$JENKINS_TOKEN registry.centreon.com/centreon-collect-centos7-dependencies:21.10 $JENKINS_USERNAME ${JENKINS_TOKEN} $BRANCHE'
             robot outputPath: 'tests', logFileName: 'log.html', outputFileName: 'output.xml', reportFileName: 'report.html', passThreshold: 100, unstableThreshold: 75.0
           // }
         }
