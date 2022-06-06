@@ -3,10 +3,22 @@ set -e
 
 export RUN_ENV=docker
 
+if [[ -n "$1" ]]; then
+    USERNAME = "$1"
+else
+    echo "ratéeeeeeeeeee1"
+fi
+if [[ -n "$2" ]]; then
+    TOKEN = "$2"
+else
+    echo "ratéeeeeeeeeee2"
+fi
+if [[ -n "$3" ]]; then
+    BRANCH = "$3"
+else
+    echo "ratéeeeeeeeeee3"
+fi
 
-TOKEN = "$2"
-BRANCH = "$3"
-USERNAME = "$1"
 
 echo "########################### configure and start sshd ############################"
 ssh-keygen -t rsa -f /etc/ssh/ssh_host_rsa_key
