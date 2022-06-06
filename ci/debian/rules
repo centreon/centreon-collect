@@ -19,6 +19,7 @@ override_dh_auto_configure:
 		-DWITH_BENCH=On \
 		-DWITH_CREATE_FILES=OFF \
 		-DWITH_CONFIG_FILES=y \
+		-DWITH_DAEMONS=y \
 		..
 
 override_dh_auto_build:
