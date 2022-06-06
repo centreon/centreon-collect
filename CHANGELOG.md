@@ -45,7 +45,7 @@ Service status could be sent twice to cbd. This is fixed now.
 #### Fixes
 *perl connector*
 
-add io_context fork notification
+Connector multiplexer rewritten using ASIO.
 
 ## 21.10.1
 
