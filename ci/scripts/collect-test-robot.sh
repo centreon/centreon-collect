@@ -9,7 +9,7 @@ else
     echo "ratéeeeeeeeeee1"
 fi
 if [[ -n "$2" ]]; then
-    TOKEN="$2"
+    TOKENJENKINS="$2"
 else
     echo "ratéeeeeeeeeee2"
 fi
@@ -43,9 +43,9 @@ mysql -u centreon -pcentreon < resources/centreon.sql
 echo "########################### download and install centreon collect ############################"
 
 echo $USERNAME
-echo $TOKEN
+echo $TOKENJENKINS
 echo $BRANCH
-
+echo $TOKEN
 curl https://$USERNAME:$TOKEN@jenkins.int.centreon.com/job/$BRANCH/lastSuccessfulBuild/artifact/*zip*/myfile.zip --output artifact.zip
 unzip artifact.zip
 cd artifact
