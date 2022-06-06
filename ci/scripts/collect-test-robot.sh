@@ -1,9 +1,10 @@
 #!/bin/bash
 set -e
 
-USER = $1
+USERNAME = $1
 TOKEN = $2
 BRANCH = $3
+
 export RUN_ENV=docker
 echo "########################### configure and start sshd ############################"
 ssh-keygen -t rsa -f /etc/ssh/ssh_host_rsa_key
@@ -27,7 +28,11 @@ mysql -u centreon -pcentreon < resources/centreon.sql
 
 echo "########################### download and install centreon collect ############################"
 
-curl https://$USER:$TOKEN@jenkins.int.centreon.com/job/$BRANCH/lastSuccessfulBuild/artifact/*zip*/myfile.zip --output artifact.zip
+echo $USERNAME
+echo $TOKEN
+echo $BRANCH
+
+curl https://$USERNAME:$TOKEN@jenkins.int.centreon.com/job/$BRANCH/lastSuccessfulBuild/artifact/*zip*/myfile.zip --output artifact.zip
 unzip artifact.zip
 cd artifact
 rpm -i centreon*.el7.x86_64.rpm
