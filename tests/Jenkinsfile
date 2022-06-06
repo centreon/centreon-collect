@@ -12,7 +12,7 @@ pipeline {
         environment { 
                       JENKINS_USERNAME = "Service-Account-CI" 
                       BRANCHE= "dev-21.10.x" 
-                      JENKINS_TOKEN = credentials('service-account-ci-token')
+                      JENKINS_TOKEN = credentials("service-account-ci-token")
                       }
         steps {
           // withCredentials([string(credentialsId: 'service-account-ci-token', variable: 'JENKINS_TOKEN')]) {
