@@ -552,3 +552,56 @@ BEUTAG11
 	Stop Engine
 	Kindly Stop Broker
 
+BEUTAG12
+	[Documentation]	Engine is configured with some tags. Group tags tag2, tag6 are set to hosts 1 and 2. Category tags tag4 and tag8 are added to hosts 2, 3, 4. The resources and resources_tags tables are well filled. The tag6 and tag8 are removed and resources_tags is also well updated.
+	[Tags]	Broker	Engine	protobuf	bbdo	tags
+	#Clear DB	tags
+	Config Engine	${1}
+	Create Tags File	${0}	${20}
+	Config Engine Add Cfg File	${0}	tags.cfg
+	Add Tags To Hosts	${0}	group_tags	2,3	[1, 2]
+	Add Tags To Hosts	${0}	category_tags	2,3	[2, 3, 4]
+	Config Broker	central
+	Config Broker	rrd
+	Config Broker	module
+	Config Broker Sql Output	central	unified_sql
+	Broker Config Add Item	module0	bbdo_version	3.0.0
+	Broker Config Add Item	central	bbdo_version	3.0.0
+	Broker Config Add Item	rrd	bbdo_version	3.0.0
+	Broker Config Log	module0	neb	debug
+	Broker Config Log	central	sql	debug
+	Clear Retention
+	Sleep	1s
+	Start Engine
+	Start Broker
+	${result}=	check resources tags With Timeout	0	1	hostgroup	[2,3]	60
+	Should Be True	${result}	msg=Host 1 should have hostgroup tags 2 and 3
+	${result}=	check resources tags With Timeout	0	2	hostgroup	[2,3]	60
+	Should Be True	${result}	msg=Host 2 should have hostgroup tags 2 and 3
+	${result}=	check resources tags With Timeout	0	2	hostcategory	[2, 3]	60
+	Should Be True	${result}	msg=Host 2 should have hostcategory tags 2 and 3
+	${result}=	check resources tags With Timeout	0	3	hostcategory	[2, 3]	60
+	Should Be True	${result}	msg=Host 3 should have hostcategory tags 2 and 3
+
+	Remove Tags From Hosts	${0}	group_tags
+	Remove Tags From Hosts	${0}	category_tags
+	Create Tags File	${0}	${5}
+	Config Engine Add Cfg File	${0}	tags.cfg
+
+	Reload Engine
+	Reload Broker
+
+	${result}=	check resources tags With Timeout	0	1	hostgroup	[2,3]	60	False
+	Should Be True	${result}	msg=Host 1 should not have hostgroup tags 2 nor 3
+	${result}=	check resources tags With Timeout	0	2	hostgroup	[2,3]	60	False
+	Should Be True	${result}	msg=Host 2 should not have hostgroup tags 2 nor 3
+	${result}=	check resources tags With Timeout	0	2	hostcategory	[2,3]	60	False
+	Should Be True	${result}	msg=Host 2 should not have hostgroup tags 2 nor 3
+	${result}=	check resources tags With Timeout	0	3	hostcategory	[2,3]	60	False
+	Should Be True	${result}	msg=Host 3 should not have hostgroup tags 2 nor 3
+	${result}=	check resources tags With Timeout	0	4	hostcategory	[2,3]	60	False
+	Should Be True	${result}	msg=Host 4 should not have hostgroup tags 2 nor 3
+
+	Stop Engine
+	Kindly Stop Broker
+
