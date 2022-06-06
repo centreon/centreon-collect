@@ -47,7 +47,7 @@ echo $TOKENJENKINS
 echo $BRANCH
 echo $TOKEN
 echo "https://$USERNAME:$TOKEN@jenkins.int.centreon.com/job/$BRANCH/lastSuccessfulBuild/artifact/*zip*/myfile.zip"
-curl https://$USERNAME:$TOKEN@jenkins.int.centreon.com/job/$BRANCH/lastSuccessfulBuild/artifact/*zip*/myfile.zip --output artifact.zip
+curl https://$USERNAME:$TOKEN@jenkins.int.centreon.com/job/centreon-collect/job/$BRANCH/lastSuccessfulBuild/artifact/*zip*/myfile.zip --output artifact.zip
 unzip artifact.zip
 cd artifact
 rpm -i centreon*.el7.x86_64.rpm
