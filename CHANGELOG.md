@@ -2,9 +2,9 @@
 
 ## 22.04.1
 
-### Fixes
+### Broker
 
-#### Broker
+#### Fixes
 
 *stream gRPC*
 
@@ -15,16 +15,19 @@ A gRPC stream connector did not stop correctly on cbd stop.
 On BAM misconfiguration, cbd could crash. This is fixed now. That was due to
 an issue in mysql code with promises handling.
 
-### Enhancements
+*unified_sql*
 
-#### Broker
+tags are well removed now.
+
+#### Enhancements
 
 *downtimes*
 
 They are inserted in bulk now.
 
-#### Engine
+### Engine
 
+#### Enhancements
 *comments*
 
 They are sent only once to broker.
