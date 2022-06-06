@@ -23,6 +23,10 @@ Default configuration files were not installed on a Debian fresh install.
 
 tags are well removed now.
 
+*Debian*
+
+Default configuration files were not installed on a Debian fresh install.
+
 #### Enhancements
 
 *downtimes*
