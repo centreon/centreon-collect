@@ -1,20 +1,23 @@
 @Library('centreon-shared-library') _
 
 pipeline {
-
+    JENKINS_USERNAME ="Service-Account-CI"
+    BRANCHE = branch
     agent none
     triggers {
         cron('0 0 * * *')
     }
     stages {
       stage('Launch Centreon Tests') {
+        withCredentials([string(credentialsId: 'service-account-ci-token', variable: 'JENKINS_TOKEN')]) {
           agent any
-          when { anyOf { branch 'dev-21.10.x'; branch '21.10.x' } }
+          when { anyOf { branch 'dev-21.10.x'; branch '21.10.x'; branch 'robot-nightly-21.10.x' } }
           steps {
-            sh 'docker run -i --entrypoint /src/ci/scripts/collect-test-robot.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:21.10'
+            sh 'docker run -i --entrypoint /src/ci/scripts/collect-test-robot.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:21.10 "$JENKINS_USERNAME" "$JENKINS_TOKEN" "$BRANCHE"'
             robot outputPath: 'tests', logFileName: 'log.html', outputFileName: 'output.xml', reportFileName: 'report.html', passThreshold: 100, unstableThreshold: 75.0
           }
           post { always { cleanWs() }}
+        }
       }
     }
 }
