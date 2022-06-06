@@ -564,7 +564,7 @@ def check_host_severity_with_timeout(host_id: int, severity_id, timeout: int):
     return False
 
 
-def check_resources_tags_with_timeout(parent_id: int, mid: int, typ: str, tag_ids: list, timeout: int):
+def check_resources_tags_with_timeout(parent_id: int, mid: int, typ: str, tag_ids: list, timeout: int, enabled: bool = True):
     if typ == 'servicegroup':
         t = 0
     elif typ == 'hostgroup':
@@ -584,20 +584,36 @@ def check_resources_tags_with_timeout(parent_id: int, mid: int, typ: str, tag_id
 
         with connection:
             with connection.cursor() as cursor:
+                logger.console("select t.id from resources r inner join resources_tags rt on r.resource_id=rt.resource_id inner join tags t on rt.tag_id=t.tag_id WHERE r.id={} and r.parent_id={} and t.type={}".format(
+                    mid, parent_id, t))
                 cursor.execute("select t.id from resources r inner join resources_tags rt on r.resource_id=rt.resource_id inner join tags t on rt.tag_id=t.tag_id WHERE r.id={} and r.parent_id={} and t.type={}".format(
                     mid, parent_id, t))
                 result = cursor.fetchall()
-                if len(result) > 0:
+                logger.console(result)
+                if not enabled:
+                    if len(result) == 0:
+                        return True
+                    else:
+                        for r in result:
+                            if r['id'] in tag_ids:
+                                logger.console(
+                                    "id {} is in tag ids".format(r['id']))
+                                break
+                        return True
+                elif enabled and len(result) > 0:
                     if len(result) == len(tag_ids):
                         for r in result:
                             if r['id'] not in tag_ids:
                                 logger.console(
                                     "id {} is not in tag ids".format(r['id']))
                                 break
-                            return True
+                        return True
                     else:
                         logger.console("different sizes: result:{} and tag_ids:{}".format(
                             len(result), len(tag_ids)))
+                else:
+                    logger.console("result")
+                    logger.console(result)
         time.sleep(1)
     return False
 

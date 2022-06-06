@@ -519,13 +519,10 @@ void applier::service::modify_object(configuration::service const& obj) {
   // add tags
   if (obj.tags() != obj_old.tags()) {
     s->mut_tags().clear();
-    for (std::set<std::pair<uint64_t, uint16_t>>::iterator
-             it = obj.tags().begin(),
-             end = obj.tags().end();
-         it != end; ++it) {
-      tag_map::iterator it_tag{engine::tag::tags.find(*it)};
+    for (auto& t : obj.tags()) {
+      tag_map::iterator it_tag{engine::tag::tags.find(t)};
       if (it_tag == engine::tag::tags.end())
-        throw engine_error() << "Could not find tag '" << it->first
+        throw engine_error() << "Could not find tag '" << t.first
                              << "' on which to apply service (" << obj.host_id()
                              << ", " << obj.service_id() << ")";
       else
