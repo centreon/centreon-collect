@@ -1,11 +1,11 @@
 #!/bin/bash
 set -e
 
-USERNAME = $1
+export RUN_ENV=docker
+
+USERTOKEN = $1
 TOKEN = $2
 BRANCH = $3
-
-export RUN_ENV=docker
 echo "########################### configure and start sshd ############################"
 ssh-keygen -t rsa -f /etc/ssh/ssh_host_rsa_key
 ssh-keygen -t ecdsa -f /etc/ssh/ssh_host_ecdsa_key
