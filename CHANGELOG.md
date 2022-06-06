@@ -25,9 +25,18 @@ tags are well removed now.
 
 They are inserted in bulk now.
 
+### Clib
+
+#### Fixes
+
+*Debian*
+
+Packaging did not follow Debian good practices.
+
 ### Engine
 
 #### Enhancements
+
 *comments*
 
 They are sent only once to broker.
