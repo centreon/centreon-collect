@@ -19,6 +19,10 @@ an issue in mysql code with promises handling.
 
 tags are well removed now.
 
+*Debian*
+
+Default configuration files were not installed on a Debian fresh install.
+
 #### Enhancements
 
 *downtimes*
