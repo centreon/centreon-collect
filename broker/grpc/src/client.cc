@@ -97,6 +97,9 @@ client::~client() {
 }
 
 void client::start_read(event_ptr& to_read, bool first_read) {
+  if (!is_alive()) {
+    return;
+  }
   StartRead(to_read.get());
   if (first_read) {
     StartCall();
@@ -108,9 +111,28 @@ void client::OnReadDone(bool ok) {
 }
 
 void client::start_write(const event_ptr& to_send) {
-  StartWrite(to_send.get());
+  std::lock_guard<std::recursive_mutex> l(_hold_mutex);
+  if (_hold_to_remove) {
+    StartWrite(to_send.get());
+  }
 }
 
 void client::OnWriteDone(bool ok) {
   on_write_done(ok);
+  if (!ok) {
+    remove_hold();
+  }
+}
+
+/**
+ * @brief Remove the hold obtain in the start_read method
+ * hold have to be removed after the last OnWriteDone
+ *
+ */
+void client::remove_hold() {
+  std::lock_guard<std::recursive_mutex> l(_hold_mutex);
+  if (_hold_to_remove) {
+    _hold_to_remove = false;
+    RemoveHold();
+  }
 }
