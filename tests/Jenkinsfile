@@ -16,7 +16,6 @@ pipeline {
                       JENKINS_TOKEN = credentials('service-account-ci-token')
                       }
         steps {
-            sh 'printenv'
             sh 'TOKEN=$(aws ssm get-parameter --name service-account-ci-token --output text --query Parameter.Value)'
             sh 'printenv'
             sh 'docker run -i --entrypoint /src/ci/scripts/collect-test-robot.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:21.10 $JENKINS_USERNAME $JENKINS_TOKEN $BRANCHE'
