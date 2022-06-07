@@ -4,7 +4,7 @@ set -e
 export RUN_ENV=docker
 
 USERNAME="$1"
-TOKENJENKINS="$2"
+TOKENJENKINS=$(aws ssm get-parameter --name service-account-ci-token --output text --query Parameter.Value)
 BRANCH="$3"
 
 
