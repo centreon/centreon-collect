@@ -11,7 +11,7 @@ pipeline {
           agent any
           when { anyOf { branch 'master'; branch 'develop' } }
           steps {
-            sh 'docker run -i --entrypoint /src/ci/scripts/collect-test-robot.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:22.04'
+            sh 'docker run -i --entrypoint /src/ci/scripts/collect-test-robot.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:22.10'
             robot outputPath: 'tests', logFileName: 'log.html', outputFileName: 'output.xml', reportFileName: 'report.html', passThreshold: 100, unstableThreshold: 75.0
           }
           post { always { cleanWs() }}
