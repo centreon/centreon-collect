@@ -4,13 +4,12 @@ import org.jenkinsci.plugins.pipeline.modeldefinition.Utils
 /*
 ** Variables.
 */
-
-env.REF_BRANCH = 'master'
 env.PROJECT='centreon-collect'
 def serie = '22.04'
 def maintenanceBranch = "${serie}.x"
 def qaBranch = "dev-${serie}.x"
 def buildBranch = env.BRANCH_NAME
+env.REF_BRANCH = '${serie}.x'
 if (env.CHANGE_BRANCH) {
   buildBranch = env.CHANGE_BRANCH
 }
