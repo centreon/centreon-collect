@@ -3,21 +3,10 @@ set -e
 
 export RUN_ENV=docker
 
-if [[ -n "$1" ]]; then
-    USERNAME="$1"
-else
-    echo "ratéeeeeeeeeee1"
-fi
-if [[ -n "$2" ]]; then
-    TOKENJENKINS="$2"
-else
-    echo "ratéeeeeeeeeee2"
-fi
-if [[ -n "$3" ]]; then
-    BRANCH="$3"
-else
-    echo "ratéeeeeeeeeee3"
-fi
+USERNAME="$1"
+TOKENJENKINS="$2"
+BRANCH="$3"
+
 
 
 echo "########################### configure and start sshd ############################"
@@ -43,18 +32,14 @@ mysql -u centreon -pcentreon < resources/centreon.sql
 echo "########################### download and install centreon collect ############################"
 
 echo $USERNAME
-echo $TOKENJENKINS
 echo $BRANCH
-echo $TOKEN
-echo "https://$USERNAME:$TOKEN@jenkins.int.centreon.com/job/$BRANCH/lastSuccessfulBuild/artifact/*zip*/myfile.zip"
-curl https://$USERNAME:$TOKEN@jenkins.int.centreon.com/job/centreon-collect/job/$BRANCH/lastSuccessfulBuild/artifact/*zip*/myfile.zip --output artifact.zip
+echo $TOKENJENKINS
+
+curl https://$USERNAME:$TOKENJENKINS@jenkins.int.centreon.com/job/centreon-collect/job/$BRANCH/lastSuccessfulBuild/artifact/*zip*/myfile.zip --output artifact.zip
 unzip artifact.zip
 cd artifact
 rpm -i centreon*.el7.x86_64.rpm
 
-#Build
-make -j9
-make -j9 install
 
 echo "########################### install robot framework ############################"
 cd /src/tests/
