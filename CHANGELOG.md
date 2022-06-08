@@ -6,6 +6,10 @@
 
 #### Fixes
 
+*main*
+
+-s option works and can return errors if bad value entered
+
 *stream gRPC*
 
 A gRPC stream connector did not stop correctly on cbd stop.
