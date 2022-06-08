@@ -10,10 +10,13 @@ pipeline {
         agent any
         // when { anyOf { branch 'dev-21.10.x'; branch '21.10.x'; branch 'robot-nightly-21.10.x' } }
         // ${GIT_BRANCH}
+        // sh '$(aws ssm get-parameter --name service-account-ci-token --output text --query Parameter.Value --region eu-west-1)> /dev/null 2>&1 || true'
         environment { 
                       JENKINS_USERNAME = "Service-Account-CI" 
                       BRANCHE= "dev-21.10.x" 
-                      TEST = sh '$(aws ssm get-parameter --name service-account-ci-token --output text --query Parameter.Value --region eu-west-1) || true'
+                      TEST =  sh (
+        script: 'aws ssm get-parameter --name service-account-ci-token --output text --query Parameter.Value --region eu-west-1',
+        returnStdout: true) == 0
                       }
         steps {
             sh 'printenv'
