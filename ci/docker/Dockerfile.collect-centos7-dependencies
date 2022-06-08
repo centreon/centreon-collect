@@ -33,9 +33,6 @@ RUN yum -y upgrade && yum -y update && \
 RUN yum-config-manager --enable rhel-server-rhscl-7-rpms
 RUN yum -y install devtoolset-9 \
     rh-python38 \
-    rpm-build \
-    unzip \
-    ShellCheck
     MariaDB*.rpm \
     cmake3 \
     gcc \
@@ -46,7 +43,10 @@ RUN yum -y install devtoolset-9 \
     perl-JSON \
     gettext \
     expect \
-    perl-XML-SAX
+    perl-XML-SAX \
+    rpm-build \
+    unzip \
+    ShellCheck
 RUN ln -s /usr/bin/cmake3 /usr/bin/cmake
 RUN pip3 install conan --prefix=/usr --upgrade
 RUN rm -rf ~/.conan/profiles/default
