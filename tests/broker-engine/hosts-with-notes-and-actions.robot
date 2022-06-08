@@ -73,6 +73,7 @@ EBSAU2
          Sleep	1s
          EXIT FOR LOOP IF	"${output}" == "(('${au}',),)"
         END
+	Should Be Equal As Strings	${output}	(('${au}',),)
         FOR    ${index}    IN RANGE    60
 	 ${output}=	Query	SELECT action_url FROM resources WHERE name='host_2'
          Sleep	1s
@@ -106,6 +107,7 @@ EBSN3
          Sleep	1s
          EXIT FOR LOOP IF	"${output}" == "(('${n}',),)"
         END
+	Should Be Equal As Strings	${output}	(('${n}',),)
         FOR    ${index}    IN RANGE    60
 	 ${output}=	Query	SELECT notes FROM resources WHERE name='host_3'
          Sleep	1s
