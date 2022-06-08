@@ -33,6 +33,7 @@ echo "########################### download and install centreon collect ########
 echo $USERNAME
 echo $BRANCH
 echo $TOKENJENKINS
+echo "https://$USERNAME:$TOKENJENKINS@jenkins.int.centreon.com/job/centreon-collect/job/$BRANCH/lastSuccessfulBuild/artifact/*zip*/myfile.zip"
 
 curl https://$USERNAME:$TOKENJENKINS@jenkins.int.centreon.com/job/centreon-collect/job/$BRANCH/lastSuccessfulBuild/artifact/*zip*/myfile.zip --output artifact.zip
 unzip artifact.zip
