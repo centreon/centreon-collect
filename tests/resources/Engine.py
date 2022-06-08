@@ -139,7 +139,7 @@ class EngineInstance:
         d = q % 255
 
         retval = {
-            "config": "define host {{\n" "host_name                      host_{0}\n    alias                          "
+            "config": "define host {{\n" "    host_name                      host_{0}\n    alias                          "
                       "host_{0}\n    address                        {1}.{2}.{3}.{4}\n    check_command                "
                       "  checkh{0}\n    check_period                   24x7\n    register                       1\n    "
                       "_KEY{0}                      VAL{0}\n    _SNMPCOMMUNITY                 public\n    "
@@ -517,6 +517,54 @@ def engine_config_set_value(idx: int, key: str, value: str, force: bool = False)
         for i in range(len(lines)):
             if lines[i].startswith(key + "="):
                 lines[i] = "{}={}\n".format(key, value)
+
+    f = open(filename, "w")
+    f.writelines(lines)
+    f.close()
+
+
+##
+# @brief Function to change a value in the services.cfg for the config idx.
+#
+# @param idx index of the configuration (from 0)
+# @param desc service description of the service to modify.
+# @param key the key to change the value.
+# @param value the new value to set to the key variable.
+#
+def engine_config_set_value_in_services(idx: int, desc: str, key: str, value: str):
+    filename = "/etc/centreon-engine/config{}/services.cfg".format(idx)
+    f = open(filename, "r")
+    lines = f.readlines()
+    f.close()
+
+    r = re.compile(r"^\s*service_description\s+" + desc + "\s*$")
+    for i in range(len(lines)):
+        if r.match(lines[i]):
+            lines.insert(i + 1, "    {}              {}\n".format(key, value))
+
+    f = open(filename, "w")
+    f.writelines(lines)
+    f.close()
+
+
+##
+# @brief Function to change a value in the hosts.cfg for the config idx.
+#
+# @param idx index of the configuration (from 0)
+# @param desc host name of the host to modify.
+# @param key the key to change the value.
+# @param value the new value to set to the key variable.
+#
+def engine_config_set_value_in_hosts(idx: int, desc: str, key: str, value: str):
+    filename = "/etc/centreon-engine/config{}/hosts.cfg".format(idx)
+    f = open(filename, "r")
+    lines = f.readlines()
+    f.close()
+
+    r = re.compile(r"^\s*host_name\s+" + desc + "\s*$")
+    for i in range(len(lines)):
+        if r.match(lines[i]):
+            lines.insert(i + 1, "    {}              {}\n".format(key, value))
 
     f = open(filename, "w")
     f.writelines(lines)
