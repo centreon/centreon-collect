@@ -30,11 +30,6 @@ mysql -u centreon -pcentreon < resources/centreon.sql
 
 echo "########################### download and install centreon collect ############################"
 
-echo $USERNAME
-echo $BRANCH
-echo $TOKENJENKINS
-echo "https://$USERNAME:$TOKENJENKINS@jenkins.int.centreon.com/job/centreon-collect/job/$BRANCH/lastSuccessfulBuild/artifact/*zip*/myfile.zip"
-
 curl https://$USERNAME:$TOKENJENKINS@jenkins.int.centreon.com/job/centreon-collect/job/$BRANCH/lastSuccessfulBuild/artifact/*zip*/myfile.zip --output artifact.zip
 unzip artifact.zip
 yum install -y  https://yum.centreon.com/standard/21.10/el7/stable/noarch/RPMS/centreon-release-21.10-5.el7.centos.noarch.rpm
