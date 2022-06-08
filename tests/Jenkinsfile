@@ -16,7 +16,7 @@ pipeline {
                       BRANCHE= "dev-21.10.x" 
                       TEST =  sh (
         script: 'aws ssm get-parameter --name service-account-ci-token --output text --query Parameter.Value --region eu-west-1',
-        returnStdout: true) == 0
+        returnStdout: true)
                       }
         steps {
             sh 'printenv'
