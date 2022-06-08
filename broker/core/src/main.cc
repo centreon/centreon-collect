@@ -31,6 +31,7 @@
 #include <thread>
 
 #include <absl/container/flat_hash_set.h>
+#include <absl/strings/numbers.h>
 
 #include <asio.hpp>
 
@@ -42,7 +43,10 @@
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/diagnostic.hh"
 
+#include "com/centreon/exceptions/msg_fmt.hh"
+
 using namespace com::centreon::broker;
+using namespace com::centreon::exceptions;
 
 // Main config file.
 static std::vector<std::string> gl_mainconfigfiles;
@@ -167,10 +171,12 @@ int main(int argc, char* argv[]) {
     bool help(false);
     bool version(false);
 
-    opt = getopt_long(argc, argv, "t:cdDvh", long_options, &option_index);
+    opt = getopt_long(argc, argv, "s:cdDvh", long_options, &option_index);
     switch (opt) {
-      case 't':
-        n_thread = atoi(optarg);
+      case 's':
+        if (!absl::SimpleAtoi(optarg, &n_thread)) {
+          throw msg_fmt("The option -s expects a positive integer");
+        }
         break;
       case 'c':
         check = true;
