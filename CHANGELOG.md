@@ -27,6 +27,9 @@ tags are well removed now.
 
 Default configuration files were not installed on a Debian fresh install.
 
+*GRPC stream*
+
+Don't coredump if connection fail on process start
 #### Enhancements
 
 *downtimes*
