@@ -1,0 +1,6 @@
+id service, id host , id metric, warning critical, timestamp,  min max, 5 en moyenne à 2000 floats 
+redimensionnement colonnes tables (ajout et suppression de métrique coût à évaluer)
+
+output | m1=12.2;20;40;0;100 m2=38.6m;40;60;18;100
+
+actuellement indexé par métrique id, voir si on peut indexer par id_service, id_host
