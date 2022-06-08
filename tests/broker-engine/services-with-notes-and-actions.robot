@@ -22,9 +22,9 @@ EBSNU1
 	Config Broker	rrd
 	Config Broker	central
 	Config Broker	module	${1}
-        Broker Config Add Item	module0	bbdo_version	3.0.0
-        Broker Config Add Item	central	bbdo_version	3.0.0
-        Broker Config Add Item	rrd	bbdo_version	3.0.0
+	Broker Config Add Item	module0	bbdo_version	3.0.0
+	Broker Config Add Item	central	bbdo_version	3.0.0
+	Broker Config Add Item	rrd	bbdo_version	3.0.0
 	Broker Config Log	central	sql	debug
 	Config Broker Sql Output	central	unified_sql
 	${nu}=	Evaluate	2000*"X"
@@ -34,17 +34,17 @@ EBSNU1
 	Start Engine
 
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
-        FOR    ${index}    IN RANGE    60
+	FOR    ${index}    IN RANGE    60
 	 ${output}=	Query	SELECT notes_url FROM services WHERE description='service_1'
-         Sleep	1s
-         EXIT FOR LOOP IF	"${output}" == "(('${nu}',),)"
-        END
+	 Sleep	1s
+	 EXIT FOR LOOP IF	"${output}" == "(('${nu}',),)"
+	END
 	Should Be Equal As Strings	${output}	(('${nu}',),)
-        FOR    ${index}    IN RANGE    60
+	FOR    ${index}    IN RANGE    60
 	 ${output}=	Query	SELECT notes_url FROM resources WHERE name='service_1'
-         Sleep	1s
-         EXIT FOR LOOP IF	"${output}" == "(('${nu}',),)"
-        END
+	 Sleep	1s
+	 EXIT FOR LOOP IF	"${output}" == "(('${nu}',),)"
+	END
 	Should Be Equal As Strings	${output}	(('${nu}',),)
 	Stop Engine
 	Kindly Stop Broker
@@ -56,9 +56,9 @@ EBSAU2
 	Config Broker	rrd
 	Config Broker	central
 	Config Broker	module	${1}
-        Broker Config Add Item	module0	bbdo_version	3.0.0
-        Broker Config Add Item	central	bbdo_version	3.0.0
-        Broker Config Add Item	rrd	bbdo_version	3.0.0
+	Broker Config Add Item	module0	bbdo_version	3.0.0
+	Broker Config Add Item	central	bbdo_version	3.0.0
+	Broker Config Add Item	rrd	bbdo_version	3.0.0
 	Broker Config Log	central	sql	debug
 	Config Broker Sql Output	central	unified_sql
 	${au}=	Evaluate	2000*"Y"
@@ -68,16 +68,17 @@ EBSAU2
 	Start Engine
 
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
-        FOR    ${index}    IN RANGE    60
+	FOR    ${index}    IN RANGE    60
 	 ${output}=	Query	SELECT action_url FROM services WHERE description='service_2'
-         Sleep	1s
-         EXIT FOR LOOP IF	"${output}" == "(('${au}',),)"
-        END
-        FOR    ${index}    IN RANGE    60
+	 Sleep	1s
+	 EXIT FOR LOOP IF	"${output}" == "(('${au}',),)"
+	END
+	Should Be Equal As Strings	${output}	(('${au}',),)
+	FOR    ${index}    IN RANGE    60
 	 ${output}=	Query	SELECT action_url FROM resources WHERE name='service_2'
-         Sleep	1s
-         EXIT FOR LOOP IF	"${output}" == "(('${au}',),)"
-        END
+	 Sleep	1s
+	 EXIT FOR LOOP IF	"${output}" == "(('${au}',),)"
+	END
 	Should Be Equal As Strings	${output}	(('${au}',),)
 	Stop Engine
 	Kindly Stop Broker
@@ -89,9 +90,9 @@ EBSN3
 	Config Broker	rrd
 	Config Broker	central
 	Config Broker	module	${1}
-        Broker Config Add Item	module0	bbdo_version	3.0.0
-        Broker Config Add Item	central	bbdo_version	3.0.0
-        Broker Config Add Item	rrd	bbdo_version	3.0.0
+	Broker Config Add Item	module0	bbdo_version	3.0.0
+	Broker Config Add Item	central	bbdo_version	3.0.0
+	Broker Config Add Item	rrd	bbdo_version	3.0.0
 	Broker Config Log	central	sql	debug
 	Config Broker Sql Output	central	unified_sql
 	${n}=	Evaluate	500*"Z"
@@ -101,16 +102,17 @@ EBSN3
 	Start Engine
 
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
-        FOR    ${index}    IN RANGE    60
+	FOR    ${index}    IN RANGE    60
 	 ${output}=	Query	SELECT notes FROM services WHERE description='service_3'
-         Sleep	1s
-         EXIT FOR LOOP IF	"${output}" == "(('${n}',),)"
-        END
-        FOR    ${index}    IN RANGE    60
+	 Sleep	1s
+	 EXIT FOR LOOP IF	"${output}" == "(('${n}',),)"
+	END
+	Should Be Equal As Strings	${output}	(('${n}',),)
+	FOR    ${index}    IN RANGE    60
 	 ${output}=	Query	SELECT notes FROM resources WHERE name='service_3'
-         Sleep	1s
-         EXIT FOR LOOP IF	"${output}" == "(('${n}',),)"
-        END
+	 Sleep	1s
+	 EXIT FOR LOOP IF	"${output}" == "(('${n}',),)"
+	END
 	Should Be Equal As Strings	${output}	(('${n}',),)
 	Stop Engine
 	Kindly Stop Broker
