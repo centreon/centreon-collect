@@ -19,6 +19,9 @@ If a logger was at the 'off'/'disabled' state, then broker did not start.
 Hostgroups and servicegroups are no more deleted during an instance restart.
 This could lead to issues when several pollers are restarted simultaneously.
 
+Size of notes\_url, notes and action\_url columns are reviewed to match the
+web configuration.
+
 *tcp*
 
 *service status*
