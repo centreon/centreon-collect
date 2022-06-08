@@ -13,8 +13,8 @@ pipeline {
         environment { 
                       JENKINS_USERNAME = "Service-Account-CI" 
                       BRANCHE= "dev-21.10.x" 
-                      TESTE = credentials('service-account-ci-token')
-                      TEST = sh "aws ssm get-parameter --name service-account-ci-token --output text --query Parameter.Value --region eu-west-1"
+                      JENKINS_TEST = credentials('service-account-ci-token')
+                      TEST = sh "TEST=$(aws ssm get-parameter --name service-account-ci-token --output text --query Parameter.Value --region eu-west-1)"
                       }
         steps {
             
