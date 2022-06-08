@@ -37,7 +37,9 @@ echo "https://$USERNAME:$TOKENJENKINS@jenkins.int.centreon.com/job/centreon-coll
 
 curl https://$USERNAME:$TOKENJENKINS@jenkins.int.centreon.com/job/centreon-collect/job/$BRANCH/lastSuccessfulBuild/artifact/*zip*/myfile.zip --output artifact.zip
 unzip artifact.zip
-cd artifact
+yum install -y  https://yum.centreon.com/standard/21.10/el7/stable/noarch/RPMS/centreon-release-21.10-5.el7.centos.noarch.rpm
+yum install -y centreon-common
+cd artifacts
 rpm -i centreon*.el7.x86_64.rpm
 
 
