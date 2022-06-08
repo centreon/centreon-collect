@@ -163,6 +163,20 @@ Here is the list of the currently implemented tests:
 - [x] **EBNSGU1**: New service group with several pollers and connections to DB with broker configured with unified_sql
 - [x] **EBNSGU2**: New service group with several pollers and connections to DB with broker configured with unified_sql
 - [x] **EBNSVC1**: New services with several pollers
+- [x] **BEPBBEE1**: central-module configured with bbdo_version 3.0 but not others. Unable to establish connection.
+- [x] **BEPBBEE2**: bbdo_version 3 not compatible with sql/storage
+- [x] **BEPBBEE3**: bbdo_version 3 generates new bbdo protobuf service status messages.
+- [x] **BEPBBEE4**: bbdo_version 3 generates new bbdo protobuf host status messages.
+- [x] **BEPBBEE5**: bbdo_version 3 generates new bbdo protobuf service messages.
+- [x] **BECC1**: Broker/Engine communication with compression between central and poller
+- [x] **EBNHG1**: New host group with several pollers and connections to DB
+- [x] **EBNHGU1**: New host group with several pollers and connections to DB with broker configured with unified_sql
+- [x] **EBNHGU2**: New host group with several pollers and connections to DB with broker configured with unified_sql
+- [x] **EBNHGU3**: New host group with several pollers and connections to DB with broker configured with unified_sql
+- [x] **EBNHG4**: New host group with several pollers and connections to DB with broker and rename this hostgroup
+- [x] **EBNHGU4**: New host group with several pollers and connections to DB with broker and rename this hostgroup
+- [x] **BERES1**: store_in_resources is enabled and store_in_hosts_services is not. Only writes into resources should be done (except hosts/services events that continue to be written in hosts/services tables)
+- [x] **BEHS1**: store_in_resources is enabled and store_in_hosts_services is not. Only writes into resources should be done (except hosts/services events that continue to be written in hosts/services tables)
 - [x] **BERD1**: Starting/stopping Broker does not create duplicated events.
 - [x] **BERD2**: Starting/stopping Engine does not create duplicated events.
 - [x] **BERDUC1**: Starting/stopping Broker does not create duplicated events in usual cases
@@ -173,6 +187,22 @@ Here is the list of the currently implemented tests:
 - [x] **BERDUC3U2**: Starting/stopping Engine does not create duplicated events in usual cases with unified_sql and BBDO 3.0
 - [x] **BEDTMASS1**: New services with several pollers
 - [x] **BEDTMASS2**: New services with several pollers
+- [x] **BRGC1**: Broker good reverse connection
+- [x] **BRCTS1**: Broker reverse connection too slow
+- [x] **BRCS1**: Broker reverse connection stopped
+- [x] **BRRDDM1**: RRD metrics deletion from metric ids.
+- [x] **BRRDDID1**: RRD metrics deletion from index ids.
+- [x] **BRRDDMID1**: RRD deletion of non existing metrics and indexes
+- [x] **BRRDDMU1**: RRD metric deletion on table metric with unified sql output
+- [x] **BRRDDIDU1**: RRD metrics deletion from index ids with unified sql output.
+- [x] **BRRDDMIDU1**: RRD deletion of non existing metrics and indexes
+- [x] **BRRDRM1**: RRD metric rebuild with gRPC API and unified sql
+- [x] **BRRDRMU1**: RRD metric rebuild with gRPC API and unified sql
+- [x] **ENRSCHE1**: check next check of reschedule is last_check+interval_check
+- [x] **EBNSG1**: New service group with several pollers and connections to DB
+- [x] **EBNSGU1**: New service group with several pollers and connections to DB with broker configured with unified_sql
+- [x] **EBNSGU2**: New service group with several pollers and connections to DB with broker configured with unified_sql
+- [x] **EBNSVC1**: New services with several pollers
 - [x] **BESS1**: Start-Stop Broker/Engine - Broker started first - Broker stopped first
 - [x] **BESS2**: Start-Stop Broker/Engine - Broker started first - Engine stopped first
 - [x] **BESS3**: Start-Stop Broker/Engine - Engine started first - Engine stopped first
