@@ -27,6 +27,8 @@ an issue in mysql code with promises handling.
 
 tags are well removed now.
 
+Columns notes, notes\_url and action\_url are resized.
+
 *Debian*
 
 Default configuration files were not installed on a Debian fresh install.
