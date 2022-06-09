@@ -2,6 +2,11 @@
 set -e
 
 export RUN_ENV=docker
+
+USERNAME="$1"
+TOKENJENKINS="$2"
+BRANCH="$3"
+
 echo "########################### configure and start sshd ############################"
 ssh-keygen -t rsa -f /etc/ssh/ssh_host_rsa_key
 ssh-keygen -t ecdsa -f /etc/ssh/ssh_host_ecdsa_key
@@ -22,25 +27,19 @@ mysql -e "GRANT SELECT,UPDATE,DELETE,INSERT,CREATE,DROP,INDEX,ALTER,LOCK TABLES,
 mysql -u centreon -pcentreon < resources/centreon_storage.sql
 mysql -u centreon -pcentreon < resources/centreon.sql
 
-echo "########################### build and install centreon collect ############################"
+echo "########################### download and install centreon collect ############################"
 
-rm -rf /src/build
-mkdir /src/build
-cd /src/build/
-DISTRIB=$(lsb_release -rs | cut -f1 -d.)
-if [ "$DISTRIB" = "7" ] ; then
-    source /opt/rh/devtoolset-9/enable
-fi 
-conan install .. -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
-if [ $(cat /etc/issue | awk '{print $1}') = "Debian" ] ; then
-    CXXFLAGS="-Wall -Wextra" cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug -DWITH_USER_BROKER=centreon-broker -DWITH_USER_ENGINE=centreon-engine -DWITH_GROUP_BROKER=centreon-broker -DWITH_GROUP_ENGINE=centreon-engine -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_BENCH=On -DWITH_CREATE_FILES=OFF ..
-else 
-    CXXFLAGS="-Wall -Wextra" cmake3 -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug -DWITH_USER_BROKER=centreon-broker -DWITH_USER_ENGINE=centreon-engine -DWITH_GROUP_BROKER=centreon-broker -DWITH_GROUP_ENGINE=centreon-engine -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_BENCH=On -DWITH_CREATE_FILES=OFF ..
-fi
-
-#Build
-make -j9
-make -j9 install
+curl https://$USERNAME:$TOKENJENKINS@jenkins.int.centreon.com/job/centreon-collect/job/$BRANCH/lastSuccessfulBuild/artifact/*zip*/myfile.zip --output artifact.zip
+unzip artifact.zip
+yum install -y  https://yum.centreon.com/standard/22.10/el7/stable/noarch/RPMS/centreon-release-22.10-1.el7.centos.noarch.rpm
+yum-config-manager --disable centreon-unstable\* centreon-testing\* centreon-stable\*
+yum-config-manager --enable centreon-canary-noarch
+yum-config-manager --enable centreon-canary
+yum clean all
+yum install -y centreon-common
+cd artifacts
+rm -rf centreon-collect-*
+rpm -i centreon*.el7.x86_64.rpm
 
 echo "########################### install robot framework ############################"
 cd /src/tests/
