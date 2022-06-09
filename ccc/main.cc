@@ -43,17 +43,31 @@ int main(int argc, char** argv) {
   }
   std::string url{absl::StrFormat("127.0.0.1:%d", port)};
   auto channel = grpc::CreateChannel(url, grpc::InsecureChannelCredentials());
-  if (!channel) {
-    std::cerr << "There is no gRPC broker/engine server available at " << url << std::endl;
-    exit(3);
+  auto stub_e = std::make_unique <Engine::Stub>(channel);
+//  if (channel->GetState(true) == GRPC_CHANNEL_IDLE) {
+//    std::cerr << "127.0.0.1:" << port << " engine seems inactive." << std::endl;
+//    exit(4);
+//  }
+
+  com::centreon::engine::Version version_e;
+  com::centreon::broker::Version version_b;
+  const ::google::protobuf::Empty e;
+  grpc::ClientContext context;
+  grpc::Status status = stub_e->GetVersion(&context, e, &version_e);
+  if (!status.ok()) {
+    std::cerr << "Engine GetVersion rpc failed." << std::endl;
   }
 
-  if (channel->GetState(true) == GRPC_CHANNEL_IDLE) {
-    std::cerr << "127.0.0.1:" << port << " seems inactive." << std::endl;
-    exit(4);
+  auto stub_b = std::make_unique <Broker::Stub>(channel);
+  status = stub_b->GetVersion(&context, e, &version_b);
+  if (!status.ok()) {
+    std::cerr << "Broker GetVersion rpc failed." << std::endl;
   }
+//  auto broker_c = std::make_unique<BrokerRPCClient>(channel);
+//  if (channel->GetState(true) == GRPC_CHANNEL_IDLE) {
+//    std::cerr << "127.0.0.1:" << port << " broker seems inactive." << std::endl;
+//    exit(4);
+//  }
 
-  auto engine_c = std::make_unique<EngineRPCClient>(channel);
-  auto broker_c = std::make_unique<BrokerRPCClient>(channel);
   return 0;
 }
