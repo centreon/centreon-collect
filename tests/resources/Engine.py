@@ -11,6 +11,7 @@ import stat
 
 CONF_DIR = "/etc/centreon-engine"
 ENGINE_HOME = "/var/lib/centreon-engine"
+ENGINE_LOG = "/var/log/centreon-engine"
 SCRIPT_DIR: str = dirname(__file__) + "/engine-scripts/"
 
 
@@ -367,7 +368,8 @@ passive_checks_enabled 1
             else:
                 nb_hosts = hosts
                 hosts = 0
-
+            if not exists("{}/config{}".format(ENGINE_LOG, inst)):
+                makedirs("{}/config{}".format(ENGINE_LOG, inst))
             config_dir = "{}/config{}".format(CONF_DIR, inst)
             makedirs(config_dir)
             f = open(config_dir + "/centengine.cfg", "w+")
