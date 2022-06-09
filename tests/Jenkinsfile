@@ -9,7 +9,7 @@ pipeline {
     stages {
     stage('Launch Centreon Tests') {
       agent any
-      when { anyOf { branch 'dev-22.04.x'; branch '22.04.x'} }
+      //when { anyOf { branch 'dev-22.04.x'; branch '22.04.x'} }
       environment { 
         JENKINS_USERNAME = "Service-Account-CI" 
         JENKINS_TOKEN =  sh (
