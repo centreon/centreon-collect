@@ -20,7 +20,7 @@ yum install "Development Tools" python3-devel -y
 pip3 install grpcio==1.33.2 grpcio_tools==1.33.2
 
 ./init-proto.sh
-./init-bam.sh
+./init-sql.sh
 ```
 
 On other rpm based distributions, you can try the following commands to initialize your robot tests:
@@ -33,7 +33,7 @@ yum install python3-devel -y
 pip3 install grpcio grpcio_tools
 
 ./init-proto.sh
-./init-bam.sh
+./init-sql.sh
 ```
 
 Then to run tests, you can use the following commands
