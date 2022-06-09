@@ -378,6 +378,8 @@ config = {
 }
 
 def config_broker(name, poller_inst: int = 1):
+    if not exists("/var/lib/centreon-broker/"):
+        makedirs("/var/lib/centreon-broker/")
     if name == 'central':
         broker_id = 1
         broker_name = "central-broker-master"
