@@ -32,7 +32,11 @@ echo "########################### download and install centreon collect ########
 curl https://$USERNAME:$TOKENJENKINS@jenkins.int.centreon.com/job/centreon-collect/job/$BRANCH/lastSuccessfulBuild/artifact/*zip*/myfile.zip --output artifact.zip
 unzip artifact.zip
 yum install -y  https://yum.centreon.com/standard/22.10/el7/stable/noarch/RPMS/centreon-release-22.10-1.el7.centos.noarch.rpm
-yum install -y  https://yum.centreon.com/standard/22.10/el7/testing/noarch/repo/centreon-release-22.10-1.el7.centos.noarch.rpm
+yum-config-manager --disable centreon-unstable\* centreon-testing\* centreon-stable\*
+yum-config-manager --enable centreon-canary-noarch
+yum-config-manager --enable centreon-canary
+yum clean all
+yum install -y centreon-common
 cd artifacts
 rm -rf centreon-collect-*
 rpm -i centreon*.el7.x86_64.rpm
