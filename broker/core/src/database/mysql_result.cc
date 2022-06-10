@@ -19,6 +19,9 @@
 
 #include "com/centreon/exceptions/msg_fmt.hh"
 
+#include <absl/strings/numbers.h>
+#include <assert.h>
+
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
@@ -107,13 +110,27 @@ bool mysql_result::value_as_bool(int idx) {
   bool retval;
   if (_bind)
     retval = _bind->value_as_bool(idx);
-  else if (_row)
-    retval = _row[idx] ? strtol(_row[idx], nullptr, 10) : 0;
-  else
+  else if (_row) {
+    if (_row[idx]) {
+      int tmp;
+      bool res;
+      !absl::SimpleAtob(_row[idx], &res);
+      if (!absl::SimpleAtoi(_row[idx], &tmp)) {
+        throw msg_fmt(
+            "mysql: result at index {} should be a boolean, the current value "
+            "is "
+            "'{}'",
+            idx, _row[idx]);
+      } else {
+        retval = tmp;
+        assert(res == retval);
+      }
+    } else
+      retval = 0;
+  } else
     throw msg_fmt("mysql: No row fetched in result");
   return retval;
 }
-
 /**
  *  Accessor to a column string value
  *
@@ -143,9 +160,17 @@ float mysql_result::value_as_f32(int idx) {
   float retval;
   if (_bind)
     retval = _bind->value_as_f32(idx);
-  else if (_row)
-    retval = _row[idx] ? atof(_row[idx]) : 0;
-  else
+  else if (_row) {
+    if (_row[idx]) {
+      if (!absl::SimpleAtof(_row[idx], &retval))
+        throw msg_fmt(
+            "mysql: result at index {} should be a float, the current value "
+            "is "
+            "'{}'",
+            idx, _row[idx]);
+    } else
+      retval = 0;
+  } else
     throw msg_fmt("mysql: No row fetched in result");
   return retval;
 }
@@ -161,9 +186,17 @@ double mysql_result::value_as_f64(int idx) {
   double retval;
   if (_bind)
     retval = _bind->value_as_f64(idx);
-  else if (_row)
-    retval = _row[idx] ? atof(_row[idx]) : 0;
-  else
+  else if (_row) {
+    if (_row[idx]) {
+      if (!absl::SimpleAtod(_row[idx], &retval))
+        throw msg_fmt(
+            "mysql: result at index {} should be a double, the current value "
+            "is "
+            "'{}'",
+            idx, _row[idx]);
+    } else
+      retval = 0;
+  } else
     throw msg_fmt("mysql: No row fetched in result");
   return retval;
 }
@@ -179,9 +212,18 @@ int mysql_result::value_as_i32(int idx) {
   int retval;
   if (_bind)
     retval = _bind->value_as_i32(idx);
-  else if (_row)
-    retval = _row[idx] ? strtol(_row[idx], nullptr, 10) : 0;
-  else
+  else if (_row) {
+    if (_row[idx]) {
+      if (!absl::SimpleAtoi(_row[idx], &retval))
+        throw msg_fmt(
+            "mysql: result at index {} should be an integer, the current "
+            "value "
+            "is "
+            "'{}'",
+            idx, _row[idx]);
+    } else
+      retval = 0;
+  } else
     throw msg_fmt("mysql: No row fetched in result");
   return retval;
 }
@@ -197,9 +239,19 @@ uint32_t mysql_result::value_as_u32(int idx) {
   uint32_t retval;
   if (_bind)
     retval = _bind->value_as_u32(idx);
-  else if (_row)
-    retval = _row[idx] ? strtoul(_row[idx], nullptr, 10) : 0;
-  else
+  else if (_row) {
+    if (_row[idx]) {
+      if (!absl::SimpleAtoi(_row[idx], &retval))
+        throw msg_fmt(
+            "mysql: result at index {} should be an unsigned integer, the "
+            "current "
+            "value "
+            "is "
+            "'{}'",
+            idx, _row[idx]);
+    } else
+      retval = 0;
+  } else
     throw msg_fmt("mysql: No row fetched in result");
   return retval;
 }
@@ -215,9 +267,18 @@ int64_t mysql_result::value_as_i64(int idx) {
   int64_t retval;
   if (_bind)
     retval = _bind->value_as_i64(idx);
-  else if (_row)
-    retval = _row[idx] ? strtoll(_row[idx], nullptr, 10) : 0;
-  else
+  else if (_row) {
+    if (_row[idx]) {
+      if (!absl::SimpleAtoi(_row[idx], &retval))
+        throw msg_fmt(
+            "mysql: result at index {} should be an integer, the current "
+            "value "
+            "is "
+            "'{}'",
+            idx, _row[idx]);
+    } else
+      retval = 0;
+  } else
     throw msg_fmt("mysql: No row fetched in result");
   return retval;
 }
@@ -233,9 +294,19 @@ uint64_t mysql_result::value_as_u64(int idx) {
   uint64_t retval;
   if (_bind)
     retval = _bind->value_as_u64(idx);
-  else if (_row)
-    retval = _row[idx] ? strtoull(_row[idx], nullptr, 10) : 0;
-  else
+  else if (_row) {
+    if (_row[idx]) {
+      if (!absl::SimpleAtoi(_row[idx], &retval))
+        throw msg_fmt(
+            "mysql: result at index {} should be an unsigned integer, the "
+            "current "
+            "value "
+            "is "
+            "'{}'",
+            idx, _row[idx]);
+    } else
+      retval = 0;
+  } else
     throw msg_fmt("mysql: No row fetched in result");
   return retval;
 }
