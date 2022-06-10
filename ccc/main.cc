@@ -44,10 +44,6 @@ int main(int argc, char** argv) {
   std::string url{absl::StrFormat("127.0.0.1:%d", port)};
   auto channel = grpc::CreateChannel(url, grpc::InsecureChannelCredentials());
   auto stub_e = std::make_unique <Engine::Stub>(channel);
-//  if (channel->GetState(true) == GRPC_CHANNEL_IDLE) {
-//    std::cerr << "127.0.0.1:" << port << " engine seems inactive." << std::endl;
-//    exit(4);
-//  }
 
   com::centreon::engine::Version version_e;
   com::centreon::broker::Version version_b;
@@ -58,6 +54,7 @@ int main(int argc, char** argv) {
     std::cerr << "Engine GetVersion rpc failed." << std::endl;
   }
 
+  channel = grpc::CreateChannel(url, grpc::InsecureChannelCredentials());
   auto stub_b = std::make_unique <Broker::Stub>(channel);
   status = stub_b->GetVersion(&context, e, &version_b);
   if (!status.ok()) {
