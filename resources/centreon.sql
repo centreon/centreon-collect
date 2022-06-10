@@ -1,5 +1,6 @@
 CREATE DATABASE IF NOT EXISTS `centreon`;
 
+
 USE centreon;
 
 SET FOREIGN_KEY_CHECKS=0;

@@ -1,5 +1,6 @@
 CREATE DATABASE IF NOT EXISTS `centreon_storage`;
 
+
 USE centreon_storage;
 
 SET FOREIGN_KEY_CHECKS=0;
