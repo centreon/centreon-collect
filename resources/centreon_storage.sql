@@ -1,4 +1,4 @@
-CREATE DATABASE `centreon_storage`;
+CREATE DATABASE IF NOT EXISTS `centreon_storage`;
 
 USE centreon_storage;
 
@@ -6,6 +6,7 @@ SET FOREIGN_KEY_CHECKS=0;
 --
 -- Holds acknowledgedments information.
 --
+DROP TABLE IF EXISTS acknowledgements;
 CREATE TABLE acknowledgements (
   acknowledgement_id int NOT NULL auto_increment,
   entry_time int NOT NULL,
@@ -36,6 +37,7 @@ CREATE TABLE acknowledgements (
 --
 -- Table structure for table `centreon_acl`
 --
+DROP TABLE IF EXISTS centreon_acl;
 CREATE TABLE `centreon_acl` (
   `group_id` int(11) NOT NULL,
   `host_id` int(11) NOT NULL,
@@ -48,6 +50,7 @@ CREATE TABLE `centreon_acl` (
 --
 -- Table structure for table `comments`
 --
+DROP TABLE IF EXISTS comments;
 CREATE TABLE `comments` (
   `comment_id` int(11) NOT NULL AUTO_INCREMENT,
   `entry_time` int(11) NOT NULL,
@@ -77,6 +80,7 @@ CREATE TABLE `comments` (
 --
 -- Table structure for table `config`
 --
+DROP TABLE IF EXISTS config;
 CREATE TABLE `config` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `RRDdatabase_path` varchar(255) DEFAULT NULL,
@@ -106,6 +110,7 @@ INSERT INTO `config` (`RRDdatabase_path`, `RRDdatabase_status_path`, `RRDdatabas
 -- Table structure for table `customvariables`
 --
 
+DROP TABLE IF EXISTS customvariables;
 CREATE TABLE `customvariables` (
   `customvariable_id` int(11) NOT NULL AUTO_INCREMENT,
   `host_id` int(11) DEFAULT NULL,
@@ -124,6 +129,7 @@ CREATE TABLE `customvariables` (
 -- Table structure for table `data_bin`
 --
 
+DROP TABLE IF EXISTS data_bin;
 CREATE TABLE `data_bin` (
   `id_metric` int(11) DEFAULT NULL,
   `ctime` int(11) DEFAULT NULL,
@@ -136,6 +142,7 @@ CREATE TABLE `data_bin` (
 -- Table structure for table `data_stats_daily`
 --
 
+DROP TABLE IF EXISTS data_stats_daily;
 CREATE TABLE `data_stats_daily` (
   `data_stats_daily_id` int(11) NOT NULL AUTO_INCREMENT,
   `metric_id` int(11) DEFAULT NULL,
@@ -152,6 +159,7 @@ CREATE TABLE `data_stats_daily` (
 -- Table structure for table `data_stats_monthly`
 --
 
+DROP TABLE IF EXISTS data_stats_monthly;
 CREATE TABLE `data_stats_monthly` (
   `data_stats_monthly_id` int(11) NOT NULL AUTO_INCREMENT,
   `metric_id` int(11) DEFAULT NULL,
@@ -168,6 +176,7 @@ CREATE TABLE `data_stats_monthly` (
 -- Table structure for table `data_stats_yearly`
 --
 
+DROP TABLE IF EXISTS `data_stats_yearly`;
 CREATE TABLE `data_stats_yearly` (
   `data_stats_yearly_id` int(11) NOT NULL AUTO_INCREMENT,
   `metric_id` int(11) DEFAULT NULL,
@@ -187,6 +196,7 @@ CREATE TABLE `data_stats_yearly` (
 
 
 
+DROP TABLE IF EXISTS `downtimes`;
 CREATE TABLE `downtimes` (
   `downtime_id` int(11) NOT NULL AUTO_INCREMENT,
   `entry_time` int(11) DEFAULT NULL,
@@ -222,6 +232,7 @@ CREATE TABLE `downtimes` (
 -- Table structure for table `eventhandlers`
 --
 
+DROP TABLE IF EXISTS `eventhandlers`;
 CREATE TABLE `eventhandlers` (
   `eventhandler_id` int(11) NOT NULL AUTO_INCREMENT,
   `host_id` int(11) DEFAULT NULL,
@@ -248,6 +259,7 @@ CREATE TABLE `eventhandlers` (
 -- Table structure for table `flappingstatuses`
 --
 
+DROP TABLE IF EXISTS `flappingstatuses`;
 CREATE TABLE `flappingstatuses` (
   `flappingstatus_id` int(11) NOT NULL AUTO_INCREMENT,
   `host_id` int(11) DEFAULT NULL,
@@ -271,6 +283,7 @@ CREATE TABLE `flappingstatuses` (
 -- Table structure for table `hostgroups`
 --
 
+DROP TABLE IF EXISTS `hostgroups`;
 CREATE TABLE `hostgroups` (
   `hostgroup_id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(255) NOT NULL,
@@ -282,13 +295,14 @@ CREATE TABLE `hostgroups` (
 -- Table structure for table `hosts`
 --
 
+DROP TABLE IF EXISTS `hosts`;
 CREATE TABLE `hosts` (
   `host_id` int(11) NOT NULL,
   `name` varchar(255) NOT NULL,
   `instance_id` int(11) NOT NULL,
   `acknowledged` tinyint(1) DEFAULT NULL,
   `acknowledgement_type` smallint(6) DEFAULT NULL,
-  `action_url` varchar(255) DEFAULT NULL,
+  `action_url` varchar(2048) DEFAULT NULL,
   `active_checks` tinyint(1) DEFAULT NULL,
   `address` varchar(75) DEFAULT NULL,
   `alias` varchar(100) DEFAULT NULL,
@@ -339,8 +353,8 @@ CREATE TABLE `hosts` (
   `next_check` int(11) DEFAULT NULL,
   `next_host_notification` int(11) DEFAULT NULL,
   `no_more_notifications` tinyint(1) DEFAULT NULL,
-  `notes` varchar(255) DEFAULT NULL,
-  `notes_url` varchar(255) DEFAULT NULL,
+  `notes` varchar(512) DEFAULT NULL,
+  `notes_url` varchar(2048) DEFAULT NULL,
   `notification_interval` double DEFAULT NULL,
   `notification_number` smallint(6) DEFAULT NULL,
   `notification_period` varchar(75) DEFAULT NULL,
@@ -380,6 +394,7 @@ CREATE TABLE `hosts` (
 -- Table structure for table `hosts_hostgroups`
 --
 
+DROP TABLE IF EXISTS `hosts_hostgroups`;
 CREATE TABLE `hosts_hostgroups` (
   `host_id` int(11) NOT NULL,
   `hostgroup_id` int(11) NOT NULL,
@@ -394,6 +409,7 @@ CREATE TABLE `hosts_hostgroups` (
 -- Table structure for table `hosts_hosts_dependencies`
 --
 
+DROP TABLE IF EXISTS `hosts_hosts_dependencies`;
 CREATE TABLE `hosts_hosts_dependencies` (
   `dependent_host_id` int(11) NOT NULL,
   `host_id` int(11) NOT NULL,
@@ -412,6 +428,7 @@ CREATE TABLE `hosts_hosts_dependencies` (
 -- Table structure for table `hosts_hosts_parents`
 --
 
+DROP TABLE IF EXISTS `hosts_hosts_parents`;
 CREATE TABLE `hosts_hosts_parents` (
   `child_id` int(11) NOT NULL,
   `parent_id` int(11) NOT NULL,
@@ -426,6 +443,7 @@ CREATE TABLE `hosts_hosts_parents` (
 -- Table structure for table `hoststateevents`
 --
 
+DROP TABLE IF EXISTS `hoststateevents`;
 CREATE TABLE `hoststateevents` (
   `hoststateevent_id` int(11) NOT NULL AUTO_INCREMENT,
   `end_time` int(11) DEFAULT NULL,
@@ -447,6 +465,7 @@ CREATE TABLE `hoststateevents` (
 -- Table structure for table `index_data`
 --
 
+DROP TABLE IF EXISTS `index_data`;
 CREATE TABLE `index_data` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `host_name` varchar(255) DEFAULT NULL,
@@ -477,6 +496,7 @@ CREATE TABLE `index_data` (
 -- Table structure for table `instances`
 --
 
+DROP TABLE IF EXISTS `instances`;
 CREATE TABLE `instances` (
   `instance_id` int(11) NOT NULL,
   `name` varchar(255) NOT NULL DEFAULT 'localhost',
@@ -519,6 +539,7 @@ CREATE TABLE `instances` (
 -- Table structure for table `issues`
 --
 
+DROP TABLE IF EXISTS `issues`;
 CREATE TABLE `issues` (
   `issue_id` int(11) NOT NULL AUTO_INCREMENT,
   `host_id` int(11) DEFAULT NULL,
@@ -537,6 +558,7 @@ CREATE TABLE `issues` (
 -- Table structure for table `issues_issues_parents`
 --
 
+DROP TABLE IF EXISTS `issues_issues_parents`;
 CREATE TABLE `issues_issues_parents` (
   `child_id` int(11) NOT NULL,
   `end_time` int(11) DEFAULT NULL,
@@ -553,6 +575,7 @@ CREATE TABLE `issues_issues_parents` (
 -- Table structure for table `log_action`
 --
 
+DROP TABLE IF EXISTS `log_action`;
 CREATE TABLE `log_action` (
   `action_log_id` int(11) NOT NULL AUTO_INCREMENT,
   `action_log_date` int(11) NOT NULL,
@@ -571,10 +594,11 @@ CREATE TABLE `log_action` (
 -- Table structure for table `log_action_modification`
 --
 
+DROP TABLE IF EXISTS `log_action_modification`;
 CREATE TABLE `log_action_modification` (
   `modification_id` int(11) NOT NULL AUTO_INCREMENT,
   `field_name` varchar(255) NOT NULL,
-  `field_value` varchar(255) NOT NULL,
+  `field_value` text NOT NULL,
   `action_log_id` int(11) NOT NULL,
   PRIMARY KEY (`modification_id`),
   KEY `action_log_id` (`action_log_id`)
@@ -585,7 +609,6 @@ CREATE TABLE `log_action_modification` (
 -- Table structure for table `log_archive_host`
 --
 DROP TABLE IF EXISTS `log_archive_host`;
-
 CREATE TABLE `log_archive_host` (
   `log_id` int(11) NOT NULL AUTO_INCREMENT,
   `host_id` int(11) DEFAULT NULL,
@@ -616,6 +639,7 @@ CREATE TABLE `log_archive_host` (
 -- Table structure for table `log_archive_last_status`
 --
 
+DROP TABLE IF EXISTS `log_archive_last_status`;
 CREATE TABLE `log_archive_last_status` (
   `host_id` int(11) DEFAULT NULL,
   `service_id` int(11) DEFAULT NULL,
@@ -630,6 +654,7 @@ CREATE TABLE `log_archive_last_status` (
 -- Table structure for table `log_archive_service`
 --
 
+DROP TABLE IF EXISTS `log_archive_service`;
 CREATE TABLE `log_archive_service` (
   `log_id` int(11) NOT NULL AUTO_INCREMENT,
   `host_id` int(11) NOT NULL DEFAULT '0',
@@ -691,8 +716,6 @@ CREATE TABLE `log_traps` (
 --
 
 DROP TABLE IF EXISTS `log_traps_args`;
-
-
 CREATE TABLE `log_traps_args` (
   `fk_log_traps` int(11) NOT NULL,
   `arg_number` int(11) DEFAULT NULL,
@@ -708,8 +731,6 @@ CREATE TABLE `log_traps_args` (
 --
 
 DROP TABLE IF EXISTS `logs`;
-
-
 CREATE TABLE `logs` (
   `log_id` int(11) NOT NULL AUTO_INCREMENT,
   `ctime` int(11) DEFAULT NULL,
@@ -741,8 +762,6 @@ CREATE TABLE `logs` (
 --
 
 DROP TABLE IF EXISTS `metrics`;
-
-
 CREATE TABLE `metrics` (
   `metric_id` int(11) NOT NULL AUTO_INCREMENT,
   `index_id` bigint unsigned DEFAULT NULL,
@@ -772,8 +791,6 @@ CREATE TABLE `metrics` (
 --
 
 DROP TABLE IF EXISTS `modules`;
-
-
 CREATE TABLE `modules` (
   `module_id` int(11) NOT NULL AUTO_INCREMENT,
   `instance_id` int(11) NOT NULL,
@@ -840,7 +857,6 @@ CREATE TABLE `schemaversion` (
 --
 
 DROP TABLE IF EXISTS `servicegroups`;
-
 CREATE TABLE `servicegroups` (
   `servicegroup_id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(255) NOT NULL,
@@ -852,14 +868,13 @@ CREATE TABLE `servicegroups` (
 --
 
 DROP TABLE IF EXISTS `services`;
-
 CREATE TABLE `services` (
   `host_id` int(11) NOT NULL,
   `description` varchar(255) NOT NULL,
   `service_id` int(11) NOT NULL,
   `acknowledged` tinyint(1) DEFAULT NULL,
   `acknowledgement_type` smallint(6) DEFAULT NULL,
-  `action_url` varchar(255) DEFAULT NULL,
+  `action_url` varchar(2048) DEFAULT NULL,
   `active_checks` tinyint(1) DEFAULT NULL,
   `check_attempt` smallint(6) DEFAULT NULL,
   `check_command` text,
@@ -911,8 +926,8 @@ CREATE TABLE `services` (
   `next_check` int(11) DEFAULT NULL,
   `next_notification` int(11) DEFAULT NULL,
   `no_more_notifications` tinyint(1) DEFAULT NULL,
-  `notes` varchar(255) DEFAULT NULL,
-  `notes_url` varchar(255) DEFAULT NULL,
+  `notes` varchar(512) DEFAULT NULL,
+  `notes_url` varchar(2048) DEFAULT NULL,
   `notification_interval` double DEFAULT NULL,
   `notification_number` smallint(6) DEFAULT NULL,
   `notification_period` varchar(75) DEFAULT NULL,
@@ -989,7 +1004,6 @@ CREATE TABLE `services_services_dependencies` (
 --
 
 DROP TABLE IF EXISTS `servicestateevents`;
-
 CREATE TABLE `servicestateevents` (
   `servicestateevent_id` int(11) NOT NULL AUTO_INCREMENT,
   `end_time` int(11) DEFAULT NULL,
@@ -1010,6 +1024,7 @@ CREATE TABLE `servicestateevents` (
 --
 -- Table structure for table `severities`
 --
+DROP TABLE IF EXISTS `severities`;
 CREATE TABLE `severities` (
   `severity_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   `id` bigint(20) unsigned NOT NULL,
@@ -1025,6 +1040,7 @@ CREATE TABLE `severities` (
 --
 -- Table structure for table `tags`
 --
+DROP TABLE IF EXISTS `tags`;
 CREATE TABLE `tags` (
   `tag_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   `id` bigint(20) unsigned NOT NULL,
@@ -1037,6 +1053,7 @@ CREATE TABLE `tags` (
 --
 -- Table structure for table `resources_tags`
 --
+DROP TABLE IF EXISTS `resources_tags`;
 CREATE TABLE `resources_tags` (
   `tag_id` bigint(20) unsigned NOT NULL,
   `resource_id` bigint(20) unsigned NOT NULL,
@@ -1050,6 +1067,7 @@ CREATE TABLE `resources_tags` (
 --
 -- Table structure for table `resources`
 --
+DROP TABLE IF EXISTS `resources`;
 CREATE TABLE `resources` (
   `resource_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   `id` bigint(20) unsigned NOT NULL,
@@ -1071,9 +1089,9 @@ CREATE TABLE `resources` (
   `address` varchar(255) DEFAULT NULL,
   `parent_name` varchar(255) DEFAULT NULL,
   `icon_id` bigint(20) unsigned DEFAULT NULL,
-  `notes_url` varchar(255) DEFAULT NULL,
-  `notes` varchar(255) DEFAULT NULL,
-  `action_url` varchar(255) DEFAULT NULL,
+  `notes_url` varchar(2048) DEFAULT NULL,
+  `notes` varchar(512) DEFAULT NULL,
+  `action_url` varchar(2048) DEFAULT NULL,
   `has_graph` tinyint(1) NOT NULL DEFAULT 0 COMMENT '0=false, 1=true',
   `notifications_enabled` tinyint(1) NOT NULL DEFAULT 0 COMMENT '0=false, 1=true',
   `passive_checks_enabled` tinyint(1) NOT NULL DEFAULT 0 COMMENT '0=false, 1=true',
@@ -1091,6 +1109,7 @@ CREATE TABLE `resources` (
 --
 -- BA / Group relations.
 --
+DROP TABLE IF EXISTS mod_bam_bagroup_ba_relation;
 CREATE TABLE mod_bam_bagroup_ba_relation (
   id_bgr int NOT NULL auto_increment,
   id_ba int NOT NULL,
@@ -1103,34 +1122,9 @@ CREATE TABLE mod_bam_bagroup_ba_relation (
     ON DELETE CASCADE
 ) ENGINE=InnoDB CHARACTER SET utf8;
 --
--- BA Groups (aka BV).
---
-CREATE TABLE mod_bam_ba_groups (
-  id_ba_group int NOT NULL auto_increment,
-
-  ba_group_name varchar(255) default NULL,
-  ba_group_description varchar(255) default NULL,
-  visible enum('0', '1') NOT NULL default '1',
-
-  PRIMARY KEY (id_ba_group)
-) ENGINE=InnoDB CHARACTER SET utf8;
---
--- BAM boolean expressions.
---
-CREATE TABLE mod_bam_boolean (
-  boolean_id int NOT NULL auto_increment,
-  name varchar(255) NOT NULL,
-
-  expression text NOT NULL,
-  bool_state boolean NOT NULL default 1,
-  comments text default NULL,
-  activate boolean NOT NULL default 0,
-
-  PRIMARY KEY (boolean_id)
-) ENGINE=InnoDB CHARACTER SET utf8;
---
 -- Impacts of KPI / boolean expressions.
 --
+DROP TABLE IF EXISTS mod_bam_impacts;
 CREATE TABLE mod_bam_impacts (
   id_impact int NOT NULL auto_increment,
   impact float NOT NULL,
@@ -1140,6 +1134,7 @@ CREATE TABLE mod_bam_impacts (
 --
 -- Key Performance Indicators.
 --
+DROP TABLE IF EXISTS mod_bam_kpi;
 CREATE TABLE mod_bam_kpi (
   kpi_id int NOT NULL auto_increment,
 
@@ -1185,6 +1180,7 @@ CREATE TABLE mod_bam_kpi (
 --
 -- BA/poller relation table.
 --
+DROP TABLE IF EXISTS mod_bam_poller_relations;
 CREATE TABLE mod_bam_poller_relations (
   ba_id int NOT NULL,
   poller_id int NOT NULL,
@@ -1195,6 +1191,7 @@ CREATE TABLE mod_bam_poller_relations (
 --
 -- BA / Timeperiod relations.
 --
+DROP TABLE IF EXISTS mod_bam_relations_ba_timeperiods;
 CREATE TABLE mod_bam_relations_ba_timeperiods (
   ba_id int NOT NULL,
   tp_id int NOT NULL,
@@ -1204,9 +1201,228 @@ CREATE TABLE mod_bam_relations_ba_timeperiods (
   FOREIGN KEY (tp_id) REFERENCES timeperiod (tp_id)
     ON DELETE CASCADE
 ) ENGINE=InnoDB CHARACTER SET utf8;
+
+-- 
+-- Structure de la table `mod_bam_reporting`
+-- 
+DROP TABLE IF EXISTS mod_bam_reporting;
+CREATE TABLE `mod_bam_reporting` (
+  `log_id` int(11) NOT NULL auto_increment,
+  `host_name` varchar(255) NOT NULL default '0',
+  `service_description` varchar(255) NOT NULL default '0',
+  `OKTimeScheduled` int(11) NOT NULL default '0',
+  `OKnbEvent` int(11) NOT NULL default '0',
+  `OKTimeAverageAck` int(11) NOT NULL,
+  `OKTimeAverageRecovery` int(11) NOT NULL,
+  `WARNINGTimeScheduled` int(11) NOT NULL default '0',
+  `WARNINGnbEvent` int(11) NOT NULL default '0',
+  `WARNINGTimeAverageAck` int(11) NOT NULL,
+  `WARNINGTimeAverageRecovery` int(11) NOT NULL,
+  `UNKNOWNTimeScheduled` int(11) NOT NULL default '0',
+  `UNKNOWNnbEvent` int(11) NOT NULL default '0',
+  `UNKNOWNTimeAverageAck` int(11) NOT NULL,
+  `UNKNOWNTimeAverageRecovery` int(11) NOT NULL,
+  `CRITICALTimeScheduled` int(11) NOT NULL default '0',
+  `CRITICALnbEvent` int(11) NOT NULL default '0',
+  `CRITICALTimeAverageAck` int(11) NOT NULL,
+  `CRITICALTimeAverageRecovery` int(11) NOT NULL,
+  `UNDETERMINEDTimeScheduled` int(11) NOT NULL default '0',
+  `date_start` int(11) default NULL,
+  `date_end` int(11) default NULL,
+  PRIMARY KEY  (`log_id`),
+  KEY `date_end_index` (`date_end`),
+  KEY `date_start_index` (`date_start`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- 
+-- Structure de la table `mod_bam_reporting_status`
+-- 
+DROP TABLE IF EXISTS mod_bam_reporting_status;
+CREATE TABLE `mod_bam_reporting_status` (
+  `id` int(11) NOT NULL,
+  `host_name` varchar(255) default NULL,
+  `service_description` varchar(255) default NULL,
+  `status` varchar(255) default NULL,
+  `ctime` int(11) default NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- 
+-- Structure de la table `mod_bam_kpi_logs`
+-- 
+
+DROP TABLE IF EXISTS mod_bam_kpi_logs;
+CREATE TABLE `mod_bam_kpi_logs` (
+  `kpi_id` int(11),
+  `boolean_id` int(11),
+  `ba_id` int(11),
+  `status` smallint(6) NOT NULL,
+  `ctime` int(11) NOT NULL,
+  `output` varchar(255) NOT NULL,
+  `kpi_name` varchar(255) NOT NULL,
+  `kpi_type` enum('0', '1', '2', '3') NOT NULL,
+  `impact` float NOT NULL default '0',
+  `in_downtime` enum('0', '1') NOT NULL default '0',
+  `downtime_flag` tinyint(1) NOT NULL default 0,
+  `perfdata` text
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+--
+-- Business Views.
+--
+DROP TABLE IF EXISTS mod_bam_reporting_bv;
+CREATE TABLE mod_bam_reporting_bv (
+  bv_id int NOT NULL auto_increment,
+  bv_name varchar(255) default NULL,
+
+  bv_description text default NULL,
+
+  PRIMARY KEY (bv_id),
+  UNIQUE (bv_name)
+) ENGINE=InnoDB CHARACTER SET utf8;
+
+-- 
+-- Structure de la table `mod_bam_logs`
+-- 
+
+DROP TABLE IF EXISTS mod_bam_logs;
+CREATE TABLE `mod_bam_logs` (
+  `status` varchar(255) NOT NULL,
+  `level` float NOT NULL,
+  `warning_thres` float NOT NULL,
+  `critical_thres` float NOT NULL,
+  `status_change_flag` enum('0','1') NOT NULL default '0',
+  `ctime` int(11) NOT NULL,
+  `ba_id` int(11) NOT NULL,
+  `in_downtime` tinyint(1) NOT NULL default 0,
+  `downtime_flag` tinyint(1) NOT NULL default 0,
+  KEY `ba_id` (`ba_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+--
+-- Business Activities.
+--
+DROP TABLE IF EXISTS mod_bam_reporting_ba;
+CREATE TABLE mod_bam_reporting_ba (
+  ba_id int NOT NULL,
+  ba_name varchar(254) default NULL,
+  ba_description text default NULL,
+  sla_month_percent_crit float default NULL,
+  sla_month_percent_warn float default NULL,
+  sla_month_duration_crit int default NULL,
+  sla_month_duration_warn int default NULL,
+
+  PRIMARY KEY (ba_id),
+  UNIQUE (ba_name)
+) ENGINE=InnoDB CHARACTER SET utf8;
+
+--
+-- Key Performance Indicators.
+--
+DROP TABLE IF EXISTS mod_bam_reporting_kpi;
+CREATE TABLE mod_bam_reporting_kpi (
+  kpi_id int NOT NULL,
+  kpi_name varchar(255) default NULL,
+
+  ba_id int default NULL,
+  ba_name varchar(254) default NULL,
+  host_id int default NULL,
+  host_name varchar(255) default NULL,
+  service_id int default NULL,
+  service_description varchar(255) default NULL,
+  kpi_ba_id int default NULL,
+  kpi_ba_name varchar(254) default NULL,
+  meta_service_id int default NULL,
+  meta_service_name varchar(254) default NULL,
+  boolean_id int default NULL,
+  boolean_name varchar(255) default NULL,
+  impact_warning float default NULL,
+  impact_critical float default NULL,
+  impact_unknown float default NULL,
+
+  PRIMARY KEY (kpi_id),
+  FOREIGN KEY (ba_id) REFERENCES mod_bam_reporting_ba (ba_id)
+    ON DELETE CASCADE,
+  FOREIGN KEY (kpi_ba_id) REFERENCES mod_bam_reporting_ba (ba_id)
+    ON DELETE CASCADE
+) ENGINE=InnoDB CHARACTER SET utf8;
+
+--
+-- Relations between BA and BV.
+--
+DROP TABLE IF EXISTS mod_bam_reporting_relations_ba_bv;
+CREATE TABLE mod_bam_reporting_relations_ba_bv (
+  ba_bv_id int NOT NULL auto_increment,
+  bv_id int NOT NULL,
+  ba_id int NOT NULL,
+
+  PRIMARY KEY (ba_bv_id),
+  FOREIGN KEY (bv_id) REFERENCES mod_bam_reporting_bv (bv_id)
+    ON DELETE CASCADE,
+  FOREIGN KEY (ba_id) REFERENCES mod_bam_reporting_ba (ba_id)
+    ON DELETE CASCADE
+) ENGINE=InnoDB CHARACTER SET utf8;
+
+--
+-- BA events.
+--
+DROP TABLE IF EXISTS mod_bam_reporting_ba_events;
+CREATE TABLE mod_bam_reporting_ba_events (
+  ba_event_id int NOT NULL auto_increment,
+  ba_id int NOT NULL,
+  start_time int NOT NULL,
+
+  first_level double default NULL,
+  end_time int default NULL,
+  status tinyint default NULL,
+  in_downtime boolean default NULL,
+
+  KEY `ba_id_start_time_index` (`ba_id`, `start_time`),
+  KEY `ba_id_end_time_index` (`ba_id`, `end_time`),
+
+  PRIMARY KEY (ba_event_id)
+) ENGINE=InnoDB CHARACTER SET utf8;
+
+--
+-- KPI events.
+--
+DROP TABLE IF EXISTS mod_bam_reporting_kpi_events;
+CREATE TABLE mod_bam_reporting_kpi_events (
+  kpi_event_id int NOT NULL auto_increment,
+  kpi_id int NOT NULL,
+  start_time int NOT NULL,
+
+  end_time int default NULL,
+  status tinyint default NULL,
+  in_downtime boolean default NULL,
+  impact_level tinyint default NULL,
+  first_output text default NULL,
+  first_perfdata varchar(45) default NULL,
+
+  KEY `kpi_id_start_time_index` (`kpi_id`, `start_time`),
+
+  PRIMARY KEY (kpi_event_id)
+) ENGINE=InnoDB CHARACTER SET utf8;
+
+--
+-- Relations between BA events and KPI events.
+--
+DROP TABLE IF EXISTS mod_bam_reporting_relations_ba_kpi_events;
+CREATE TABLE mod_bam_reporting_relations_ba_kpi_events (
+  relation_id BIGINT NOT NULL auto_increment,
+  ba_event_id int NOT NULL,
+  kpi_event_id int NOT NULL,
+
+  PRIMARY KEY (relation_id),
+  FOREIGN KEY (ba_event_id) REFERENCES mod_bam_reporting_ba_events (ba_event_id)
+    ON DELETE CASCADE,
+  FOREIGN KEY (kpi_event_id) REFERENCES mod_bam_reporting_kpi_events (kpi_event_id)
+    ON DELETE CASCADE
+) ENGINE=InnoDB CHARACTER SET utf8;
+
 --
 -- BA availabilities.
 --
+DROP TABLE IF EXISTS mod_bam_reporting_ba_availabilities;
 CREATE TABLE mod_bam_reporting_ba_availabilities (
   ba_id int NOT NULL,
   time_id int NOT NULL,
@@ -1228,6 +1444,7 @@ CREATE TABLE mod_bam_reporting_ba_availabilities (
 --
 -- BA events durations.
 --
+DROP TABLE IF EXISTS mod_bam_reporting_ba_events_durations;
 CREATE TABLE mod_bam_reporting_ba_events_durations (
   ba_event_id int NOT NULL,
   timeperiod_id int NOT NULL,
@@ -1243,127 +1460,11 @@ CREATE TABLE mod_bam_reporting_ba_events_durations (
     ON DELETE CASCADE,
   KEY (end_time, start_time)
 ) ENGINE=InnoDB CHARACTER SET utf8;
---
--- BA events.
---
-CREATE TABLE mod_bam_reporting_ba_events (
-  ba_event_id int NOT NULL auto_increment,
-  ba_id int NOT NULL,
-  start_time int NOT NULL,
 
-  first_level double default NULL,
-  end_time int default NULL,
-  status tinyint default NULL,
-  in_downtime boolean default NULL,
-
-  PRIMARY KEY (ba_event_id),
-  KEY (ba_id, start_time),
-  KEY (ba_id, end_time)
-) ENGINE=InnoDB CHARACTER SET utf8;
---
--- Business Activities.
---
-CREATE TABLE mod_bam_reporting_ba (
-  ba_id int NOT NULL,
-  ba_name varchar(45) default NULL,
-
-  ba_description text default NULL,
-  sla_month_percent_crit float default NULL,
-  sla_month_percent_warn float default NULL,
-  sla_month_duration_crit int default NULL,
-  sla_month_duration_warn int default NULL,
-
-  PRIMARY KEY (ba_id),
-  UNIQUE (ba_name)
-) ENGINE=InnoDB CHARACTER SET utf8;
---
--- Business Views.
---
-CREATE TABLE mod_bam_reporting_bv (
-  bv_id int NOT NULL auto_increment,
-  bv_name varchar(45) default NULL,
-
-  bv_description text default NULL,
-
-  PRIMARY KEY (bv_id),
-  UNIQUE (bv_name)
-) ENGINE=InnoDB CHARACTER SET utf8;
---
--- KPI events.
---
-CREATE TABLE mod_bam_reporting_kpi_events (
-  kpi_event_id int NOT NULL auto_increment,
-  kpi_id int NOT NULL,
-  start_time int NOT NULL,
-
-  end_time int default NULL,
-  status tinyint default NULL,
-  in_downtime boolean default NULL,
-  impact_level tinyint default NULL,
-  first_output text default NULL,
-  first_perfdata varchar(45) default NULL,
-
-  PRIMARY KEY (kpi_event_id),
-  KEY (kpi_id, start_time)
-) ENGINE=InnoDB CHARACTER SET utf8;
---
--- Key Performance Indicators.
---
-CREATE TABLE mod_bam_reporting_kpi (
-  kpi_id int NOT NULL,
-  kpi_name varchar(45) default NULL,
-
-  ba_id int default NULL,
-  ba_name varchar(45) default NULL,
-  host_id int default NULL,
-  host_name varchar(45) default NULL,
-  service_id int default NULL,
-  service_description varchar(45) default NULL,
-  kpi_ba_id int default NULL,
-  kpi_ba_name varchar(45) default NULL,
-  meta_service_id int default NULL,
-  meta_service_name varchar(45),
-  boolean_id int default NULL,
-  boolean_name varchar(45),
-  impact_warning float default NULL,
-  impact_critical float default NULL,
-  impact_unknown float default NULL,
-
-  PRIMARY KEY (kpi_id),
-  FOREIGN KEY (ba_id) REFERENCES mod_bam_reporting_ba (ba_id)
-    ON DELETE CASCADE,
-  FOREIGN KEY (kpi_ba_id) REFERENCES mod_bam_reporting_ba (ba_id)
-    ON DELETE CASCADE
-) ENGINE=InnoDB CHARACTER SET utf8;
---
--- Relations between BA and BV.
---
-CREATE TABLE mod_bam_reporting_relations_ba_bv (
-  ba_bv_id int NOT NULL auto_increment,
-  bv_id int NOT NULL,
-  ba_id int NOT NULL,
-
-  PRIMARY KEY (ba_bv_id),
-  FOREIGN KEY (bv_id) REFERENCES mod_bam_reporting_bv (bv_id)
-    ON DELETE CASCADE,
-  FOREIGN KEY (ba_id) REFERENCES mod_bam_reporting_ba (ba_id)
-    ON DELETE CASCADE
-) ENGINE=InnoDB CHARACTER SET utf8;
---
--- Relations between BA events and KPI events.
---
-CREATE TABLE mod_bam_reporting_relations_ba_kpi_events (
-  ba_event_id int NOT NULL,
-  kpi_event_id int NOT NULL,
-
-  FOREIGN KEY (ba_event_id) REFERENCES mod_bam_reporting_ba_events (ba_event_id)
-    ON DELETE CASCADE,
-  FOREIGN KEY (kpi_event_id) REFERENCES mod_bam_reporting_kpi_events (kpi_event_id)
-    ON DELETE CASCADE
-) ENGINE=InnoDB CHARACTER SET utf8;
 --
 -- BA/timeperiods relations.
 --
+DROP TABLE IF EXISTS mod_bam_reporting_relations_ba_timeperiods;
 CREATE TABLE mod_bam_reporting_relations_ba_timeperiods (
   ba_id int default NULL,
   timeperiod_id int default NULL,
@@ -1377,6 +1478,7 @@ CREATE TABLE mod_bam_reporting_relations_ba_timeperiods (
 --
 -- Timeperiods exceptions.
 --
+DROP TABLE IF EXISTS mod_bam_reporting_timeperiods_exceptions;
 CREATE TABLE mod_bam_reporting_timeperiods_exceptions (
   timeperiod_id int NOT NULL,
   daterange varchar(255) NOT NULL,
@@ -1388,6 +1490,7 @@ CREATE TABLE mod_bam_reporting_timeperiods_exceptions (
 --
 -- Timeperiods exclusions.
 --
+DROP TABLE IF EXISTS mod_bam_reporting_timeperiods_exclusions;
 CREATE TABLE mod_bam_reporting_timeperiods_exclusions (
   timeperiod_id int NOT NULL,
   excluded_timeperiod_id int NOT NULL,
@@ -1397,9 +1500,11 @@ CREATE TABLE mod_bam_reporting_timeperiods_exclusions (
   FOREIGN KEY (excluded_timeperiod_id) REFERENCES mod_bam_reporting_timeperiods (timeperiod_id)
     ON DELETE CASCADE
 ) ENGINE=InnoDB CHARACTER SET utf8;
+
 --
 -- Timeperiods.
 --
+DROP TABLE IF EXISTS mod_bam_reporting_timeperiods;
 CREATE TABLE mod_bam_reporting_timeperiods (
   timeperiod_id int NOT NULL,
   name varchar(200) default NULL,
@@ -1412,34 +1517,6 @@ CREATE TABLE mod_bam_reporting_timeperiods (
   saturday varchar(200) default NULL,
 
   PRIMARY KEY (timeperiod_id)
-) ENGINE=InnoDB CHARACTER SET utf8;
---
--- Business Activities.
---
-CREATE TABLE mod_bam (
-  ba_id int NOT NULL auto_increment,
-  name varchar(254) default NULL,
-  description varchar(254) default NULL,
-  level_w float default NULL,
-  level_c float default NULL,
-  sla_month_percent_warn float default NULL,
-  sla_month_percent_crit float default NULL,
-  sla_month_duration_warn int default NULL,
-  sla_month_duration_crit int default NULL,
-  current_level float default NULL,
-  downtime float default NULL,
-  acknowledged float default NULL,
-  activate enum('1','0') NOT NULL default '0',
-  last_state_change int default NULL,
-  current_status tinyint default NULL,
-  in_downtime boolean default NULL,
-  must_be_rebuild enum('0', '1', '2') NOT NULL default '0',
-  id_reporting_period int default NULL,
-
-  PRIMARY KEY (ba_id),
-  UNIQUE (name),
-  FOREIGN KEY (id_reporting_period) REFERENCES timeperiod (tp_id)
-    ON DELETE SET NULL
 ) ENGINE=InnoDB CHARACTER SET utf8;
 
 SET FOREIGN_KEY_CHECKS=1;
