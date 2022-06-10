@@ -14,6 +14,7 @@ fi
 
 mkdir centreon-broker-$VERSION
 cp -r centreon-broker/* centreon-broker-$VERSION
+cp -r resources centreon-broker-$VERSION
 cp conanfile.txt centreon-broker-$VERSION
 tar -czf centreon-broker-$VERSION.tar.gz centreon-broker-$VERSION cmake.sh
 mv centreon-broker-$VERSION.tar.gz /root/rpmbuild/SOURCES/
