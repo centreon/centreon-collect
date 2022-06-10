@@ -62,10 +62,10 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
         string(REGEX REPLACE "ID=\"(.*)\"" "\\1" id ${l})
       endif ()
     endforeach ()
-    message(STATUS "######### ${like} ########")
-    message(STATUS "######### ${id} ########")
+    string(TOLOWER "${like}" like)
+    string(TOLOWER "${id}" id)
 
-    if (${id} MATCHES "Debian" OR ${like} MATCHES "Debian")
+    if (${id} MATCHES "debian" OR ${like} MATCHES "debian" OR ${id} MATCHES "ubuntu" OR ${like} MATCHES "ubuntu")
       set(OS_DISTRIBUTOR "Debian")
     elseif (${id} MATCHES "centos" OR ${like} MATCHES "centos")
       set(OS_DISTRIBUTOR "CentOS")
@@ -78,7 +78,7 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
   set(OS_DISTRIBUTOR "${CMAKE_SYSTEM_NAME}")
 endif ()
 
-message(STATUS "${OS_DISTRIBUTOR} detected")
+message(STATUS "${id} detected (compatible with ${OS_DISTRIBUTOR})")
 
 # set -latomic if OS is Raspbian.
 if (CMAKE_SYSTEM_PROCESSOR MATCHES "arm")
