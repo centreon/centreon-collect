@@ -187,7 +187,8 @@ def check_engine_logs_are_duplicated(log: str, date):
         idx = find_line_from(lines, date)
         count_true = 0
         count_false = 0
-        logs = []
+        logs_old = []
+        logs_new = []
         old_log = re.compile(r"\[[^\]]*\] \[[^\]]*\] ([^\[].*)")
         new_log = re.compile(
             r"\[[^\]]*\] \[[^\]]*\] \[[^\]]*\] \[[^\]]*\] (.*)")
@@ -195,25 +196,26 @@ def check_engine_logs_are_duplicated(log: str, date):
             mo = old_log.match(l)
             mn = new_log.match(l)
             if mo is not None:
-                if mo.group(1) in logs:
-                    logs.remove(mo.group(1))
+                if mo.group(1) in logs_new:
+                    logs_new.remove(mo.group(1))
                 else:
-                    logs.append(mo.group(1))
+                    logs_old.append(mo.group(1))
             else:
                 mn = new_log.match(l)
                 if mn is not None:
-                    if mn.group(1) in logs:
-                        logs.remove(mn.group(1))
+                    if mn.group(1) in logs_old:
+                        logs_old.remove(mn.group(1))
                     else:
-                        logs.append(mn.group(1))
-        if len(logs) <= 1:
+                        logs_new.append(mn.group(1))
+        if len(logs_old) <= 1:
             # It is possible to miss one log because of the initial split of the
             # file.
             return True
         else:
-            logger.console("Logs not duplicated")
-            for l in logs:
+            logger.console("{} old logs are not duplicated".format(len(logs_old)))
+            for l in logs_old:
                 logger.console(l)
+            # We don't care about new logs not duplicated, in a future, we won't have any old logs
     except IOError:
         logger.console("The file '{}' does not exist".format(log))
         return False

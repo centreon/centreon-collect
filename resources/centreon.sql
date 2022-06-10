@@ -1,4 +1,4 @@
-CREATE DATABASE `centreon`;
+CREATE DATABASE IF NOT EXISTS `centreon`;
 
 USE centreon;
 
@@ -1607,6 +1607,9 @@ CREATE TABLE `meta_service_relation` (
   CONSTRAINT `meta_service_relation_ibfk_2` FOREIGN KEY (`meta_id`) REFERENCES `meta_service` (`meta_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+--
+-- Structure de la table `mod_bam`
+--
 DROP TABLE IF EXISTS `mod_bam`;
 CREATE TABLE `mod_bam` (
   `ba_id` int(11) NOT NULL AUTO_INCREMENT,
@@ -2664,64 +2667,6 @@ CREATE TABLE `ws_token` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 #############################################################################
---
--- Structure de la table `mod_bam`
---
-
-CREATE TABLE IF NOT EXISTS `mod_bam` (
-  `ba_id` int(11) NOT NULL AUTO_INCREMENT,
-  `name` varchar(254) DEFAULT NULL,
-  `state_source` int NOT NULL DEFAULT '0',
-  `description` varchar(254) DEFAULT NULL,
-  `infrastructure_view` varchar(254) DEFAULT NULL,
-  `level_w` float DEFAULT NULL,
-  `level_c` float DEFAULT NULL,
-  `sla_month_percent_warn` float DEFAULT NULL,
-  `sla_month_percent_crit` float DEFAULT NULL,
-  `sla_month_duration_warn` int DEFAULT NULL,
-  `sla_month_duration_crit` int DEFAULT NULL,
-  `id_notification_period` int(11) DEFAULT NULL,
-  `id_reporting_period` int(11) DEFAULT NULL,
-  `notification_interval` int(11) DEFAULT NULL,
-  `notification_options` varchar(255) DEFAULT NULL,
-  `notifications_enabled` enum('0','1','2') DEFAULT NULL,
-  `first_notification_delay` int(11) DEFAULT NULL,
-  `recovery_notification_delay` int(11) DEFAULT NULL,
-  `max_check_attempts` int(11) DEFAULT NULL,
-  `normal_check_interval` int(11) DEFAULT NULL,
-  `retry_check_interval` int(11) DEFAULT NULL,
-  `current_level` float DEFAULT NULL,
-  `calculate` enum('0','1') NOT NULL DEFAULT '0',
-  `downtime` float NOT NULL DEFAULT '0',
-  `acknowledged` float NOT NULL DEFAULT '0',
-  `must_be_rebuild` enum('0','1','2') DEFAULT '0',
-  `last_state_change` int default NULL,
-  `current_status` tinyint default NULL,
-  `in_downtime` BOOLEAN default NULL,
-  `dependency_dep_id` int(11) DEFAULT NULL,
-  `graph_id` int(11) DEFAULT NULL,
-  `icon_id` int(11) DEFAULT NULL,
-  `geo_coords` varchar(32) DEFAULT NULL,
-  `event_handler_enabled` enum('0', '1') DEFAULT NULL,
-  `event_handler_command` int(11) DEFAULT NULL,
-  `event_handler_args` varchar(254) DEFAULT NULL,
-  `graph_style` varchar(254) DEFAULT NULL,
-  `activate` enum('1','0') DEFAULT NULL,
-  `inherit_kpi_downtimes` BOOLEAN default 0,
-  `comment` text,
-  PRIMARY KEY (`ba_id`),
-  KEY `name_index` (`name`),
-  KEY `description_index` (`description`),
-  KEY `calculate_index` (`calculate`),
-  KEY `currentlevel_index` (`current_level`),
-  KEY `levelw_index` (`level_w`),
-  KEY `levelc_index` (`level_c`),
-  KEY `id_notification_period` (`id_notification_period`),
-  KEY `id_reporting_period` (`id_reporting_period`),
-  KEY `dependency_index` (`dependency_dep_id`),
-  KEY `icon_index` (`icon_id`),
-  KEY `graph_index` (`graph_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
 
 --
 -- Contraintes pour les tables exportées
@@ -2730,7 +2675,8 @@ CREATE TABLE IF NOT EXISTS `mod_bam` (
 --
 -- Structure de la table `mod_bam_relations_ba_timeperiods`
 --
-CREATE TABLE IF NOT EXISTS mod_bam_relations_ba_timeperiods (
+DROP TABLE IF EXISTS mod_bam_relations_ba_timeperiods;
+CREATE TABLE mod_bam_relations_ba_timeperiods (
 	`ba_id` int(11) NOT NULL,
 	`tp_id` int(11) NOT NULL,
 	KEY `ba_id` (`ba_id`),
@@ -2740,22 +2686,10 @@ CREATE TABLE IF NOT EXISTS mod_bam_relations_ba_timeperiods (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 --
--- Structure de la table `mod_bam_boolean`
---
-CREATE TABLE  IF NOT EXISTS `mod_bam_boolean` (
-    `boolean_id` INT( 11 ) NOT NULL AUTO_INCREMENT ,
-    `name` VARCHAR( 255 ) NOT NULL ,
-    `expression` TEXT NOT NULL ,
-    `bool_state` BOOL NOT NULL DEFAULT '1',
-    `comments` TEXT NULL ,
-    `activate` TINYINT NOT NULL ,
-    PRIMARY KEY (  `boolean_id` )
-) ENGINE=INNODB CHARACTER SET utf8 COLLATE utf8_general_ci;
-
---
 -- Structure de la table `mod_bam_impacts`
 --
-CREATE TABLE IF NOT EXISTS `mod_bam_impacts` (
+DROP TABLE IF EXISTS mod_bam_impacts;
+CREATE TABLE `mod_bam_impacts` (
   `id_impact` INT( 11 ) NOT NULL AUTO_INCREMENT PRIMARY KEY ,
   `code` TINYINT( 4 ) NOT NULL ,
   `impact` FLOAT NOT NULL,
@@ -2763,22 +2697,11 @@ CREATE TABLE IF NOT EXISTS `mod_bam_impacts` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- 
--- Structure de la table `mod_bam_ba_groups`
--- 
-
-CREATE TABLE IF NOT EXISTS `mod_bam_ba_groups` (
-  `id_ba_group` int(11) NOT NULL AUTO_INCREMENT,
-  `ba_group_name` varchar(255) default NULL,
-  `ba_group_description` varchar(255) default NULL,
-  `visible` enum('0','1') default NULL,
-  PRIMARY KEY  (`id_ba_group`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
--- 
 -- Structure de la table `mod_bam_bagroup_ba_relation`
 -- 
 
-CREATE TABLE IF NOT EXISTS `mod_bam_bagroup_ba_relation` (
+DROP TABLE IF EXISTS mod_bam_bagroup_ba_relation;
+CREATE TABLE `mod_bam_bagroup_ba_relation` (
   `id_bgr` int(11) NOT NULL auto_increment,
   `id_ba` int(11) NOT NULL,
   `id_ba_group` int(11) NOT NULL,
@@ -2788,7 +2711,8 @@ CREATE TABLE IF NOT EXISTS `mod_bam_bagroup_ba_relation` (
 --
 -- Create table for relation between contact and notification options
 --
-CREATE TABLE IF NOT EXISTS `mod_bam_contact_notification_options` (
+DROP TABLE IF EXISTS mod_bam_contact_notification_options;
+CREATE TABLE `mod_bam_contact_notification_options` (
   `contact_contact_id` INT(11) NOT NULL,
   `notification_options` VARCHAR(10) NOT NULL,
   INDEX `fk_mod_bam_notification_option_contact1_idx` (`contact_contact_id` ASC),
@@ -2803,7 +2727,8 @@ CREATE TABLE IF NOT EXISTS `mod_bam_contact_notification_options` (
 --
 -- Create relation between a contact and a command
 --
-CREATE TABLE IF NOT EXISTS `mod_bam_contact_command` (
+DROP TABLE IF EXISTS mod_bam_contact_command;
+CREATE TABLE `mod_bam_contact_command` (
   `contact_contact_id` INT(11) NOT NULL,
   `command_command_id` INT(11) NOT NULL,
   INDEX `fk_mod_bam_contact_command_contact1_idx` (`contact_contact_id` ASC),
@@ -2824,7 +2749,8 @@ CREATE TABLE IF NOT EXISTS `mod_bam_contact_command` (
 --
 -- Create a relation between a contact and a notification period
 --
-CREATE TABLE IF NOT EXISTS `mod_bam_contact_timeperiod` (
+DROP TABLE IF EXISTS mod_bam_contact_timeperiod;
+CREATE TABLE `mod_bam_contact_timeperiod` (
   `contact_contact_id` INT(11) NOT NULL,
   `timeperiod_tp_id` INT(11) NOT NULL,
   PRIMARY KEY (`contact_contact_id`),
@@ -2841,328 +2767,6 @@ CREATE TABLE IF NOT EXISTS `mod_bam_contact_timeperiod` (
      ON DELETE CASCADE
      ON UPDATE NO ACTION
 ) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8;
-
--- 
--- Structure de la table `mod_bam_reporting`
--- 
-
-CREATE TABLE IF NOT EXISTS centreon_storage.`mod_bam_reporting` (
-  `log_id` int(11) NOT NULL auto_increment,
-  `host_name` varchar(255) NOT NULL default '0',
-  `service_description` varchar(255) NOT NULL default '0',
-  `OKTimeScheduled` int(11) NOT NULL default '0',
-  `OKnbEvent` int(11) NOT NULL default '0',
-  `OKTimeAverageAck` int(11) NOT NULL,
-  `OKTimeAverageRecovery` int(11) NOT NULL,
-  `WARNINGTimeScheduled` int(11) NOT NULL default '0',
-  `WARNINGnbEvent` int(11) NOT NULL default '0',
-  `WARNINGTimeAverageAck` int(11) NOT NULL,
-  `WARNINGTimeAverageRecovery` int(11) NOT NULL,
-  `UNKNOWNTimeScheduled` int(11) NOT NULL default '0',
-  `UNKNOWNnbEvent` int(11) NOT NULL default '0',
-  `UNKNOWNTimeAverageAck` int(11) NOT NULL,
-  `UNKNOWNTimeAverageRecovery` int(11) NOT NULL,
-  `CRITICALTimeScheduled` int(11) NOT NULL default '0',
-  `CRITICALnbEvent` int(11) NOT NULL default '0',
-  `CRITICALTimeAverageAck` int(11) NOT NULL,
-  `CRITICALTimeAverageRecovery` int(11) NOT NULL,
-  `UNDETERMINEDTimeScheduled` int(11) NOT NULL default '0',
-  `date_start` int(11) default NULL,
-  `date_end` int(11) default NULL,
-  PRIMARY KEY  (`log_id`),
-  KEY `date_end_index` (`date_end`),
-  KEY `date_start_index` (`date_start`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
-
--- 
--- Structure de la table `mod_bam_reporting_status`
--- 
-
-CREATE TABLE IF NOT EXISTS centreon_storage.`mod_bam_reporting_status` (
-  `id` int(11) NOT NULL,
-  `host_name` varchar(255) default NULL,
-  `service_description` varchar(255) default NULL,
-  `status` varchar(255) default NULL,
-  `ctime` int(11) default NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
-
--- 
--- Structure de la table `mod_bam_logs`
--- 
-
-CREATE TABLE IF NOT EXISTS centreon_storage.`mod_bam_logs` (
-  `status` varchar(255) NOT NULL,
-  `level` float NOT NULL,
-  `warning_thres` float NOT NULL,
-  `critical_thres` float NOT NULL,
-  `status_change_flag` enum('0','1') NOT NULL default '0',
-  `ctime` int(11) NOT NULL,
-  `ba_id` int(11) NOT NULL,
-  `in_downtime` tinyint(1) NOT NULL default 0,
-  `downtime_flag` tinyint(1) NOT NULL default 0,
-  KEY `ba_id` (`ba_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
-
--- 
--- Structure de la table `mod_bam_kpi_logs`
--- 
-
-CREATE TABLE IF NOT EXISTS centreon_storage.`mod_bam_kpi_logs` (
-  `kpi_id` int(11),
-  `boolean_id` int(11),
-  `ba_id` int(11),
-  `status` smallint(6) NOT NULL,
-  `ctime` int(11) NOT NULL,
-  `output` varchar(255) NOT NULL,
-  `kpi_name` varchar(255) NOT NULL,
-  `kpi_type` enum('0', '1', '2', '3') NOT NULL,
-  `impact` float NOT NULL default '0',
-  `in_downtime` enum('0', '1') NOT NULL default '0',
-  `downtime_flag` tinyint(1) NOT NULL default 0,
-  `perfdata` text
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
---
--- Business Views.
---
-DROP TABLE IF EXISTS centreon_storage.mod_bam_reporting_bv;
-CREATE TABLE centreon_storage.mod_bam_reporting_bv (
-  bv_id int NOT NULL auto_increment,
-  bv_name varchar(255) default NULL,
-
-  bv_description text default NULL,
-
-  PRIMARY KEY (bv_id),
-  UNIQUE (bv_name)
-) ENGINE=InnoDB CHARACTER SET utf8;
-
---
--- Business Activities.
---
-DROP TABLE IF EXISTS centreon_storage.mod_bam_reporting_ba;
-CREATE TABLE centreon_storage.mod_bam_reporting_ba (
-  ba_id int NOT NULL,
-  ba_name varchar(254) default NULL,
-  ba_description text default NULL,
-  sla_month_percent_crit float default NULL,
-  sla_month_percent_warn float default NULL,
-  sla_month_duration_crit int default NULL,
-  sla_month_duration_warn int default NULL,
-
-  PRIMARY KEY (ba_id),
-  UNIQUE (ba_name)
-) ENGINE=InnoDB CHARACTER SET utf8;
-
---
--- Key Performance Indicators.
---
-DROP TABLE IF EXISTS centreon_storage.mod_bam_reporting_kpi;
-CREATE TABLE centreon_storage.mod_bam_reporting_kpi (
-  kpi_id int NOT NULL,
-  kpi_name varchar(255) default NULL,
-
-  ba_id int default NULL,
-  ba_name varchar(254) default NULL,
-  host_id int default NULL,
-  host_name varchar(255) default NULL,
-  service_id int default NULL,
-  service_description varchar(255) default NULL,
-  kpi_ba_id int default NULL,
-  kpi_ba_name varchar(254) default NULL,
-  meta_service_id int default NULL,
-  meta_service_name varchar(254) default NULL,
-  boolean_id int default NULL,
-  boolean_name varchar(255) default NULL,
-  impact_warning float default NULL,
-  impact_critical float default NULL,
-  impact_unknown float default NULL,
-
-  PRIMARY KEY (kpi_id),
-  FOREIGN KEY (ba_id) REFERENCES mod_bam_reporting_ba (ba_id)
-    ON DELETE CASCADE,
-  FOREIGN KEY (kpi_ba_id) REFERENCES mod_bam_reporting_ba (ba_id)
-    ON DELETE CASCADE
-) ENGINE=InnoDB CHARACTER SET utf8;
-
---
--- Relations between BA and BV.
---
-DROP TABLE IF EXISTS centreon_storage.mod_bam_reporting_relations_ba_bv;
-CREATE TABLE centreon_storage.mod_bam_reporting_relations_ba_bv (
-  ba_bv_id int NOT NULL auto_increment,
-  bv_id int NOT NULL,
-  ba_id int NOT NULL,
-
-  PRIMARY KEY (ba_bv_id),
-  FOREIGN KEY (bv_id) REFERENCES mod_bam_reporting_bv (bv_id)
-    ON DELETE CASCADE,
-  FOREIGN KEY (ba_id) REFERENCES mod_bam_reporting_ba (ba_id)
-    ON DELETE CASCADE
-) ENGINE=InnoDB CHARACTER SET utf8;
-
---
--- BA events.
---
-DROP TABLE IF EXISTS centreon_storage.mod_bam_reporting_ba_events;
-CREATE TABLE centreon_storage.mod_bam_reporting_ba_events (
-  ba_event_id int NOT NULL auto_increment,
-  ba_id int NOT NULL,
-  start_time int NOT NULL,
-
-  first_level double default NULL,
-  end_time int default NULL,
-  status tinyint default NULL,
-  in_downtime boolean default NULL,
-
-  KEY `ba_id_start_time_index` (`ba_id`, `start_time`),
-  KEY `ba_id_end_time_index` (`ba_id`, `end_time`),
-
-  PRIMARY KEY (ba_event_id)
-) ENGINE=InnoDB CHARACTER SET utf8;
-
---
--- KPI events.
---
-DROP TABLE IF EXISTS centreon_storage.mod_bam_reporting_kpi_events;
-CREATE TABLE centreon_storage.mod_bam_reporting_kpi_events (
-  kpi_event_id int NOT NULL auto_increment,
-  kpi_id int NOT NULL,
-  start_time int NOT NULL,
-
-  end_time int default NULL,
-  status tinyint default NULL,
-  in_downtime boolean default NULL,
-  impact_level tinyint default NULL,
-  first_output text default NULL,
-  first_perfdata varchar(45) default NULL,
-
-  KEY `kpi_id_start_time_index` (`kpi_id`, `start_time`),
-
-  PRIMARY KEY (kpi_event_id)
-) ENGINE=InnoDB CHARACTER SET utf8;
-
---
--- Relations between BA events and KPI events.
---
-DROP TABLE IF EXISTS centreon_storage.mod_bam_reporting_relations_ba_kpi_events;
-CREATE TABLE centreon_storage.mod_bam_reporting_relations_ba_kpi_events (
-  relation_id BIGINT NOT NULL auto_increment,
-  ba_event_id int NOT NULL,
-  kpi_event_id int NOT NULL,
-
-  PRIMARY KEY (relation_id),
-  FOREIGN KEY (ba_event_id) REFERENCES mod_bam_reporting_ba_events (ba_event_id)
-    ON DELETE CASCADE,
-  FOREIGN KEY (kpi_event_id) REFERENCES mod_bam_reporting_kpi_events (kpi_event_id)
-    ON DELETE CASCADE
-) ENGINE=InnoDB CHARACTER SET utf8;
-
---
--- Timeperiods.
---
-DROP TABLE IF EXISTS centreon_storage.mod_bam_reporting_timeperiods;
-CREATE TABLE centreon_storage.mod_bam_reporting_timeperiods (
-  timeperiod_id int NOT NULL,
-  name varchar(200) default NULL,
-  sunday varchar(200) default NULL,
-  monday varchar(200) default NULL,
-  tuesday varchar(200) default NULL,
-  wednesday varchar(200) default NULL,
-  thursday varchar(200) default NULL,
-  friday varchar(200) default NULL,
-  saturday varchar(200) default NULL,
-
-  PRIMARY KEY (timeperiod_id)
-) ENGINE=InnoDB CHARACTER SET utf8;
-
---
--- Timeperiods exceptions.
---
-DROP TABLE IF EXISTS centreon_storage.mod_bam_reporting_timeperiods_exceptions;
-CREATE TABLE centreon_storage.mod_bam_reporting_timeperiods_exceptions (
-  timeperiod_id int NOT NULL,
-  daterange varchar(255) NOT NULL,
-  timerange varchar(255) NOT NULL,
-
-  FOREIGN KEY (timeperiod_id) REFERENCES mod_bam_reporting_timeperiods (timeperiod_id)
-    ON DELETE CASCADE
-) ENGINE=InnoDB CHARACTER SET utf8;
-
---
--- Timeperiods exclusions.
---
-DROP TABLE IF EXISTS centreon_storage.mod_bam_reporting_timeperiods_exclusions;
-CREATE TABLE centreon_storage.mod_bam_reporting_timeperiods_exclusions (
-  timeperiod_id int NOT NULL,
-  excluded_timeperiod_id int NOT NULL,
-
-  FOREIGN KEY (timeperiod_id) REFERENCES mod_bam_reporting_timeperiods (timeperiod_id)
-    ON DELETE CASCADE,
-  FOREIGN KEY (excluded_timeperiod_id) REFERENCES mod_bam_reporting_timeperiods (timeperiod_id)
-    ON DELETE CASCADE
-) ENGINE=InnoDB CHARACTER SET utf8;
-
---
--- BA/timeperiods relations.
---
-DROP TABLE IF EXISTS centreon_storage.mod_bam_reporting_relations_ba_timeperiods;
-CREATE TABLE centreon_storage.mod_bam_reporting_relations_ba_timeperiods (
-  ba_id int default NULL,
-  timeperiod_id int default NULL,
-  is_default boolean default NULL,
-
-  FOREIGN KEY (ba_id) REFERENCES mod_bam_reporting_ba (ba_id)
-    ON DELETE CASCADE,
-  FOREIGN KEY (timeperiod_id) REFERENCES mod_bam_reporting_timeperiods (timeperiod_id)
-    ON DELETE CASCADE
-) ENGINE=InnoDB CHARACTER SET utf8;
-
---
--- BA events durations.
---
-DROP TABLE IF EXISTS centreon_storage.mod_bam_reporting_ba_events_durations;
-CREATE TABLE centreon_storage.mod_bam_reporting_ba_events_durations (
-  ba_event_id int NOT NULL,
-  timeperiod_id int NOT NULL,
-
-  start_time int default NULL,
-  end_time int default NULL,
-  duration int default NULL,
-  sla_duration int default NULL,
-  timeperiod_is_default boolean default NULL,
-
-  KEY `end_time_start_time_index` (`end_time`, `start_time`),
-
-  UNIQUE (ba_event_id, timeperiod_id),
-  FOREIGN KEY (ba_event_id) REFERENCES mod_bam_reporting_ba_events (ba_event_id)
-    ON DELETE CASCADE
-) ENGINE=InnoDB CHARACTER SET utf8;
-
---
--- BA availabilities.
---
-DROP TABLE IF EXISTS centreon_storage.mod_bam_reporting_ba_availabilities;
-CREATE TABLE centreon_storage.mod_bam_reporting_ba_availabilities (
-  ba_id int NOT NULL,
-  time_id int NOT NULL,
-  timeperiod_id int NOT NULL,
-
-  available int default NULL,
-  unavailable int default NULL,
-  degraded int default NULL,
-  unknown int default NULL,
-  downtime int default NULL,
-  alert_unavailable_opened int default NULL,
-  alert_degraded_opened int default NULL,
-  alert_unknown_opened int default NULL,
-  nb_downtime int default NULL,
-  timeperiod_is_default boolean default NULL,
-
-  UNIQUE (ba_id, time_id, timeperiod_id)
-) ENGINE=InnoDB CHARACTER SET utf8;
 
 INSERT INTO `command` (`command_name`,`command_line`,`command_type`,`enable_shell`,`command_example`,`graph_id`) VALUES 
 ('bam-notify-by-email', '/usr/bin/printf \"%b\" \"***** Centreon BAM *****\\n\\nNotification Type: \$NOTIFICATIONTYPE\$\\n\\nBusiness Activity: \$SERVICEDISPLAYNAME\$\\nState: \$SERVICESTATE\$\\n\\nDate: \$DATE\$ \$TIME\$\\n\\nAdditional Info:\\n\\n\$SERVICEOUTPUT\$\" | @MAILER@ -s \"** \$NOTIFICATIONTYPE\$ - \$SERVICEDISPLAYNAME\$ is \$SERVICESTATE\$ **\" \$CONTACTEMAIL\$',1,1,'',0);
