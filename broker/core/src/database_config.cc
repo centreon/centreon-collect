@@ -100,7 +100,7 @@ database_config::database_config(config::endpoint const& cfg) {
     if (it != end)
       _socket = it->second;
     else
-      _socket = "/var/lib/mysql/mysql.sock";
+      _socket = MYSQL_SOCKET;
   } else
     _socket = "";
 

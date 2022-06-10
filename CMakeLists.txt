@@ -39,6 +39,26 @@ set(ALLOW_DUPLICATE_EXECUTABLE TRUE)
 
 set(BUILD_ARGS "-w" "dupbuild=warn")
 
+#
+# Get distributions name
+#
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  message(STATUS "Attempting to determine OS distributor.")
+  execute_process(COMMAND "lsb_release" "--short" "--id"
+    RESULT_VARIABLE RETCODE
+    OUTPUT_VARIABLE OS_DISTRIBUTOR
+    ERROR_QUIET)
+  if (RETCODE EQUAL 0)
+    string(REGEX REPLACE "\n$" "" OS_DISTRIBUTOR "${OS_DISTRIBUTOR}")
+  else ()
+    message(WARNING "lsb_release in not installed")
+    set(OS_DISTRIBUTOR "${CMAKE_SYSTEM_NAME}")
+  endif ()
+elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  set(OS_DISTRIBUTOR "${CMAKE_SYSTEM_NAME}")
+endif ()
+
+
 # set -latomic if OS is Raspbian.
 if (CMAKE_SYSTEM_PROCESSOR MATCHES "arm")
   set(CMAKE_CXX_LINK_FLAGS "${CMAKE_CXX_LINK_FLAGS} -latomic")
@@ -50,7 +70,6 @@ set(COLLECT_MINOR 04)
 set(COLLECT_PATCH 1)
 set(COLLECT_VERSION "${COLLECT_MAJOR}.${COLLECT_MINOR}.${COLLECT_PATCH}")
 add_definitions(-DCENTREON_CONNECTOR_VERSION=\"${COLLECT_VERSION}\")
-# add_definitions(-DCENTREON_BROKER_VERSION=\"${COLLECT_VERSION}\")
 
 
 ############ CONSTANTS ###########

@@ -52,6 +52,18 @@ if (WITH_ASAN)
   set (CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
 endif ()
 
+# Default MySQL socket
+if (OS_DISTRIBUTOR STREQUAL "Debian" OR OS_DISTRIBUTOR STREQUAL "Ubuntu")
+  message(STATUS "deb based os")
+  add_definitions("-DMYSQL_SOCKET=\"/var/run/mysqld/mysqld.sock\"")
+elseif (OS_DISTRIBUTOR STREQUAL "CentOS" OR OS_DISTRIBUTOR STREQUAL "RedHat")
+  message(STATUS "rpm based os")
+  add_definitions("-DMYSQL_SOCKET=/var/lib/mysql/mysql.sock")
+else ()
+  message(STATUS "other os")
+  add_definitions("-DMYSQL_SOCKET=/tmp/mysql.sock")
+endif ()
+
 include_directories("${PROJECT_SOURCE_DIR}/core/inc")
 include_directories("${PROJECT_SOURCE_DIR}/neb/inc")
 include_directories("${CMAKE_SOURCE_DIR}/engine/inc")
@@ -125,26 +137,6 @@ include(cmake/tool.cmake)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 add_definitions("-DASIO_STANDALONE")
-
-#
-# Get distributions name
-#
-if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
-  message(STATUS "Attempting to determine OS distributor.")
-  execute_process(COMMAND "lsb_release" "--short" "--id"
-    RESULT_VARIABLE RETCODE
-    OUTPUT_VARIABLE OS_DISTRIBUTOR
-    ERROR_QUIET)
-  if (RETCODE EQUAL 0)
-    string(REGEX REPLACE "\n$" "" OS_DISTRIBUTOR "${OS_DISTRIBUTOR}")
-  else ()
-    message(WARNING "lsb_release in not installed")
-    set(OS_DISTRIBUTOR "${CMAKE_SYSTEM_NAME}")
-  endif ()
-elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
-  set(OS_DISTRIBUTOR "${CMAKE_SYSTEM_NAME}")
-endif ()
-
 
 #
 # Options.
