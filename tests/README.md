@@ -175,6 +175,16 @@ Here is the list of the currently implemented tests:
 - [x] **EBNHGU3**: New host group with several pollers and connections to DB with broker configured with unified_sql
 - [x] **EBNHG4**: New host group with several pollers and connections to DB with broker and rename this hostgroup
 - [x] **EBNHGU4**: New host group with several pollers and connections to DB with broker and rename this hostgroup
+- [x] **LOGV2EB1**: log-v2 enabled  old log disabled check broker sink
+- [x] **LOGV2DB1**: log-v2 disabled old log enabled check broker sink
+- [x] **LOGV2DB2**: log-v2 disabled old log disabled check broker sink
+- [x] **LOGV2EB2**: log-v2 enabled old log enabled check broker sink
+- [x] **LOGV2EF1**: log-v2 enabled  old log disabled check logfile sink
+- [x] **LOGV2DF1**: log-v2 disabled old log enabled check logfile sink
+- [x] **LOGV2DF2**: log-v2 disabled old log disabled check logfile sink
+- [x] **LOGV2EF2**: log-v2 enabled old log enabled check logfile sink
+- [x] **LOGV2BE2**: log-v2 enabled old log enabled check broker sink is equal
+- [x] **LOGV2FE2**: log-v2 enabled old log enabled check logfile sink
 - [x] **BERES1**: store_in_resources is enabled and store_in_hosts_services is not. Only writes into resources should be done (except hosts/services events that continue to be written in hosts/services tables)
 - [x] **BEHS1**: store_in_resources is enabled and store_in_hosts_services is not. Only writes into resources should be done (except hosts/services events that continue to be written in hosts/services tables)
 - [x] **BERD1**: Starting/stopping Broker does not create duplicated events.
