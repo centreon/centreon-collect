@@ -43,36 +43,27 @@ set(BUILD_ARGS "-w" "dupbuild=warn")
 # Get distributions name
 #
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
-  message(STATUS "Attempting to determine OS distributor.")
-  execute_process(COMMAND "lsb_release" "--short" "--id"
-    RESULT_VARIABLE RETCODE
-    OUTPUT_VARIABLE OS_DISTRIBUTOR
-    ERROR_QUIET)
-  if (RETCODE EQUAL 0)
-    string(REGEX REPLACE "\n$" "" OS_DISTRIBUTOR "${OS_DISTRIBUTOR}")
-  else ()
-    file(STRINGS "/etc/os-release" release
-         REGEX "^ID")
-    foreach (l ${release})
-      if (${l} MATCHES "ID_LIKE=.*")
-        string(REGEX REPLACE "ID_LIKE=\"(.*)\"" "\\1" like ${l})
-      endif ()
-
-      if (${l} MATCHES "ID=.*")
-        string(REGEX REPLACE "ID=\"(.*)\"" "\\1" id ${l})
-      endif ()
-    endforeach ()
-    string(TOLOWER "${like}" like)
-    string(TOLOWER "${id}" id)
-
-    if (${id} MATCHES "debian" OR ${like} MATCHES "debian" OR ${id} MATCHES "ubuntu" OR ${like} MATCHES "ubuntu")
-      set(OS_DISTRIBUTOR "Debian")
-    elseif (${id} MATCHES "centos" OR ${like} MATCHES "centos")
-      set(OS_DISTRIBUTOR "CentOS")
-    else ()
-      message(WARNING "lsb_release in not installed")
-      set(OS_DISTRIBUTOR "${CMAKE_SYSTEM_NAME}")
+  file(STRINGS "/etc/os-release" release
+       REGEX "^ID")
+  foreach (l ${release})
+    if (${l} MATCHES "ID_LIKE=.*")
+      string(REGEX REPLACE "ID_LIKE=\"(.*)\"" "\\1" like ${l})
     endif ()
+
+    if (${l} MATCHES "ID=.*")
+      string(REGEX REPLACE "ID=\"(.*)\"" "\\1" id ${l})
+    endif ()
+  endforeach ()
+  string(TOLOWER "${like}" like)
+  string(TOLOWER "${id}" id)
+
+  if (${id} MATCHES "debian" OR ${like} MATCHES "debian" OR ${id} MATCHES "ubuntu" OR ${like} MATCHES "ubuntu")
+    set(OS_DISTRIBUTOR "Debian")
+  elseif (${id} MATCHES "centos" OR ${like} MATCHES "centos")
+    set(OS_DISTRIBUTOR "CentOS")
+  else ()
+    message(WARNING "lsb_release in not installed")
+    set(OS_DISTRIBUTOR "${CMAKE_SYSTEM_NAME}")
   endif ()
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
   set(OS_DISTRIBUTOR "${CMAKE_SYSTEM_NAME}")
