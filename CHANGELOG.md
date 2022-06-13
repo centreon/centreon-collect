@@ -10,10 +10,6 @@
 
 -s option works and can return errors if bad value entered
 
-*main*
-
--s option works and can return errors if bad value entered
-
 *stream gRPC*
 
 A gRPC stream connector did not stop correctly on cbd stop.
@@ -40,6 +36,7 @@ Default configuration files were not installed on a Debian fresh install.
 *GRPC stream*
 
 Don't coredump if connection fail on process start
+
 #### Enhancements
 
 *downtimes*
