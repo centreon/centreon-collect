@@ -30,6 +30,8 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::file;
 
+static constexpr double eps = 0.000001;
+
 /**
  *  Constructor.
  *
@@ -165,11 +167,11 @@ void stream::_update_stats() {
     int32_t woffset = _file->get_woffset();
     int32_t wid = _file->get_wid();
     int32_t rid = _file->get_rid();
-    double a = (double)roffset + (double)rid * mm;
-    double b = (double)woffset + (double)wid * mm;
+    double a = static_cast<double>(roffset) + static_cast<double>(rid) * mm;
+    double b = static_cast<double>(woffset) + static_cast<double>(wid) * mm;
     double m, p;
 
-    if (b != 0) {
+    if (std::abs(b) >= eps) {
       double perc = 100.0 * a / b;
       double advance = b - a;
       bool reg = false;
