@@ -8,13 +8,16 @@
 static struct option long_options[] = {{"version", no_argument, 0, 'v'},
                                        {"help", no_argument, 0, 'h'},
                                        {"port", no_argument, 0, 'p'},
+                                       {"list", no_argument, 0, 'l'},
                                        {0, 0, 0, 0}};
 int main(int argc, char** argv) {
   int option_index = 0;
   int opt;
   int port = 0;
 
-  while ((opt = getopt_long(argc, argv, "vhp:", long_options, &option_index)) != -1) {
+  bool list = false;
+
+  while ((opt = getopt_long(argc, argv, "vhp:l", long_options, &option_index)) != -1) {
     switch (opt) {
       case 'v':
         std::cout << "ccc " << CENTREON_CONNECTOR_VERSION << "\n";
@@ -34,6 +37,8 @@ int main(int argc, char** argv) {
           exit(1);
         }
         break;
+      case 'l':
+        list = true;
     }
   }
 
@@ -62,13 +67,20 @@ int main(int argc, char** argv) {
       std::cerr << "Broker GetVersion rpc failed." << std::endl;
     }
   }
-  if (stub_e)
-    std::cout << "ccc connected to engine" << std::endl;
+
+  std::string name;
+
+  if (stub_e) {
+    name = "com.centreon.engine.Engine";
+  }
 
   if (stub_b) {
-    std::cout << "ccc connected to broker" << std::endl;
+    name = "com.centreon.broker.Broker";
+  }
+
+  if (list) {
     const google::protobuf::DescriptorPool* p = google::protobuf::DescriptorPool::generated_pool();
-    const google::protobuf::ServiceDescriptor* serviceDescriptor = p->FindServiceByName("com.centreon.broker.Broker");
+    const google::protobuf::ServiceDescriptor* serviceDescriptor = p->FindServiceByName(name);
     size_t size = serviceDescriptor->method_count();
     for (uint32_t i = 0; i < size; i++) {
       const google::protobuf::MethodDescriptor* method = serviceDescriptor->method(i);
