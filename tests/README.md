@@ -20,7 +20,7 @@ yum install "Development Tools" python3-devel -y
 pip3 install grpcio==1.33.2 grpcio_tools==1.33.2
 
 ./init-proto.sh
-./init-bam.sh
+./init-sql.sh
 ```
 
 On other rpm based distributions, you can try the following commands to initialize your robot tests:
@@ -33,7 +33,7 @@ yum install python3-devel -y
 pip3 install grpcio grpcio_tools
 
 ./init-proto.sh
-./init-bam.sh
+./init-sql.sh
 ```
 
 Then to run tests, you can use the following commands
@@ -163,6 +163,16 @@ Here is the list of the currently implemented tests:
 - [x] **EBNSGU1**: New service group with several pollers and connections to DB with broker configured with unified_sql
 - [x] **EBNSGU2**: New service group with several pollers and connections to DB with broker configured with unified_sql
 - [x] **EBNSVC1**: New services with several pollers
+- [x] **BERD1**: Starting/stopping Broker does not create duplicated events.
+- [x] **BERD2**: Starting/stopping Engine does not create duplicated events.
+- [x] **BERDUC1**: Starting/stopping Broker does not create duplicated events in usual cases
+- [x] **BERDUCU1**: Starting/stopping Broker does not create duplicated events in usual cases with unified_sql
+- [x] **BERDUC2**: Starting/stopping Engine does not create duplicated events in usual cases
+- [x] **BERDUCU2**: Starting/stopping Engine does not create duplicated events in usual cases with unified_sql
+- [x] **BERDUC3U1**: Starting/stopping Broker does not create duplicated events in usual cases with unified_sql and BBDO 3.0
+- [x] **BERDUC3U2**: Starting/stopping Engine does not create duplicated events in usual cases with unified_sql and BBDO 3.0
+- [x] **BEDTMASS1**: New services with several pollers
+- [x] **BEDTMASS2**: New services with several pollers
 - [x] **BESS1**: Start-Stop Broker/Engine - Broker started first - Broker stopped first
 - [x] **BESS2**: Start-Stop Broker/Engine - Broker started first - Engine stopped first
 - [x] **BESS3**: Start-Stop Broker/Engine - Engine started first - Engine stopped first
@@ -287,4 +297,3 @@ Here is the list of the currently implemented tests:
 - [x] **BEUSEV3**: Four services have a severity added. Then we remove the severity from service 1. Then we change severity 11 to severity7 for service 3.
 - [x] **BEUSEV4**: Seven services are configured with a severity on two pollers. Then we remove severities from the first and second services of the first poller but only the severity from the first service of the second poller. Then only severities no more used should be removed from the database.
 - [x] **BETUSEV1**: Services have severities provided by templates.
-
