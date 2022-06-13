@@ -195,22 +195,6 @@ else ()
   set(GROUP "root")
 endif ()
 
-# Check OS distributor.
-if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
-  message(STATUS "Attempting to determine OS distributor.")
-  execute_process(COMMAND "lsb_release" "--short" "--id"
-    RESULT_VARIABLE RETCODE
-    OUTPUT_VARIABLE OS_DISTRIBUTOR
-    ERROR_QUIET)
-  if (RETCODE EQUAL 0)
-    string(REGEX REPLACE "\n$" "" OS_DISTRIBUTOR "${OS_DISTRIBUTOR}")
-  else ()
-    set(OS_DISTRIBUTOR "${CMAKE_SYSTEM_NAME}")
-  endif ()
-elseif ()
-  set(OS_DISTRIBUTOR "${CMAKE_SYSTEM_NAME}")
-endif ()
-
 # Set startup script to auto if not define.
 if (NOT WITH_STARTUP_SCRIPT)
   set(WITH_STARTUP_SCRIPT "auto")
