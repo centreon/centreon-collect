@@ -49,6 +49,9 @@ class data {
 
   static uint32_t broker_id;
 };
+
+std::ostream& operator<<(std::ostream& s, const data& d);
+
 }  // namespace io
 
 CCB_END()

@@ -23,9 +23,11 @@
 
 #include "com/centreon/broker/grpc/client.hh"
 #include "com/centreon/broker/grpc/server.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::broker::grpc;
 using namespace com::centreon::broker;
+using namespace com::centreon::exceptions;
 
 com::centreon::broker::grpc::stream::stream(const grpc_config::pointer& conf)
     : io::stream("GRPC"), _accept(false) {
@@ -49,8 +51,15 @@ com::centreon::broker::grpc::stream::~stream() noexcept {
       d = std::make_shared<io::raw>();                                        \
       std::static_pointer_cast<io::raw>(d)->_buffer.assign(                   \
           to_convert.buffer().begin(), to_convert.buffer().end());            \
+      log_v2::grpc()->trace("stream::{} receive:{}", __FUNCTION__,            \
+                            *std::static_pointer_cast<io::raw>(d));           \
     } else {                                                                  \
       return false;                                                           \
+    }                                                                         \
+  } else {                                                                    \
+    if (_channel->is_down()) {                                                \
+      d.reset(new io::raw);                                                   \
+      throw msg_fmt("Connection lost");                                       \
     }                                                                         \
   }                                                                           \
   return read_res.second;
@@ -72,6 +81,9 @@ bool com::centreon::broker::grpc::stream::read(
 
 int32_t com::centreon::broker::grpc::stream::write(
     std::shared_ptr<io::data> const& d) {
+  if (_channel->is_down())
+    throw msg_fmt("Connection lost");
+
   event_ptr to_send(std::make_shared<grpc_event_type>());
 
   std::shared_ptr<io::raw> raw_src = std::static_pointer_cast<io::raw>(d);

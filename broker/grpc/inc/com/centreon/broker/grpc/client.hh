@@ -50,6 +50,8 @@ class client : public channel,
   void start_read(event_ptr& to_read, bool first_read) override;
   void start_write(const event_ptr& to_send) override;
 
+  void remove_hold();
+
  public:
   using pointer = std::shared_ptr<client>;
 

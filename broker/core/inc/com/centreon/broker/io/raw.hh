@@ -60,6 +60,9 @@ class raw : public data {
  public:
   std::vector<char> _buffer;
 };
+
+std::ostream& operator<<(std::ostream& s, const raw& d);
+
 }  // namespace io
 
 CCB_END()

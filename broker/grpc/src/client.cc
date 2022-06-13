@@ -28,7 +28,8 @@ using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::grpc;
 
-client::client(const grpc_config::pointer& conf) : channel("client", conf) {
+client::client(const grpc_config::pointer& conf)
+    : channel("client", conf), _hold_to_remove(false) {
   log_v2::grpc()->trace("{} this={:p}", __PRETTY_FUNCTION__,
                         static_cast<void*>(this));
   ::grpc::ChannelArguments args;
@@ -102,6 +103,8 @@ void client::start_read(event_ptr& to_read, bool first_read) {
   }
   StartRead(to_read.get());
   if (first_read) {
+    AddHold();
+    _hold_to_remove = true;
     StartCall();
   }
 }
