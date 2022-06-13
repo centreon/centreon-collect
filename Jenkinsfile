@@ -20,10 +20,12 @@ if (env.CHANGE_BRANCH) {
 */
 if (env.BRANCH_NAME.startsWith('release-')) {
   env.BUILD = 'RELEASE'
+  env.REPO = 'testing'
 } else if ((env.BRANCH_NAME == env.REF_BRANCH) || (env.BRANCH_NAME == maintenanceBranch)) {
   env.BUILD = 'REFERENCE'
 } else if ((env.BRANCH_NAME == 'develop') || (env.BRANCH_NAME == qaBranch)) {
   env.BUILD = 'QA'
+  env.REPO = 'unstable'
 } else {
   env.BUILD = 'CI'
 }
@@ -59,7 +61,7 @@ stage('Build / Unit tests // Packaging / Signing') {
         checkout scm
         loadCommonScripts()
         withSonarQubeEnv('SonarQubeDev') {
-          sh 'ci/scripts/collect-sonar-scanner-common.sh "get" "master"'
+          sh 'ci/scripts/collect-sonar-scanner-common.sh "get" "develop"'
           if (env.CHANGE_ID) {
             sh 'docker run -i --entrypoint /src/ci/scripts/collect-sources-analysis.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:22.10 "PR" "$SONAR_AUTH_TOKEN" "$SONAR_HOST_URL" "$VERSION" "$CHANGE_TARGET" "$CHANGE_BRANCH" "$CHANGE_ID"'
           } else {
@@ -146,16 +148,24 @@ stage('Quality Gate') {
   }
 }
 
-if ((env.BUILD == 'RELEASE') || (env.BUILD == 'QA')) {
-  stage('Delivery') {
-    node("C++") {
-      unstash 'el8-rpms'
-      unstash 'el7-rpms'
-      dir('centreon-collect-delivery') {
+stage('Delivery') {
+  node("C++") {
+    unstash 'el8-rpms'
+    unstash 'el7-rpms'
+    dir('centreon-collect-delivery') {
+      checkout scm
+      loadCommonScripts()
+      sh 'rm -rf output && mkdir output && mv ../*.rpm output'
+      sh './ci/scripts/collect-rpm-delivery.sh'
+      withCredentials([usernamePassword(credentialsId: 'nexus-credentials', passwordVariable: 'NEXUS_PASSWORD', usernameVariable: 'NEXUS_USERNAME')]) {
         checkout scm
-        loadCommonScripts()
-        sh 'rm -rf output && mkdir output && mv ../*.rpm output'
-        sh './ci/scripts/collect-rpm-delivery.sh'
+        unstash "Debian11"
+        sh 'mv bullseye/*.deb .'
+        sh '''for i in $(echo *.deb)
+              do 
+                curl -u $NEXUS_USERNAME:$NEXUS_PASSWORD -H "Content-Type: multipart/form-data" --data-binary "@./$i" https://apt.centreon.com/repository/22.10-$REPO/
+              done
+           '''    
       }
     }
   }
