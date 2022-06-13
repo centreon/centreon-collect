@@ -20,7 +20,6 @@
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 #include <absl/strings/numbers.h>
-#include <assert.h>
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
@@ -112,19 +111,11 @@ bool mysql_result::value_as_bool(int idx) {
     retval = _bind->value_as_bool(idx);
   else if (_row) {
     if (_row[idx]) {
-      int tmp;
-      bool res;
-      !absl::SimpleAtob(_row[idx], &res);
-      if (!absl::SimpleAtoi(_row[idx], &tmp)) {
+      if (!absl::SimpleAtob(_row[idx], &retval))
         throw msg_fmt(
             "mysql: result at index {} should be a boolean, the current value "
-            "is "
-            "'{}'",
+            "is '{}'",
             idx, _row[idx]);
-      } else {
-        retval = tmp;
-        assert(res == retval);
-      }
     } else
       retval = 0;
   } else
@@ -165,8 +156,7 @@ float mysql_result::value_as_f32(int idx) {
       if (!absl::SimpleAtof(_row[idx], &retval))
         throw msg_fmt(
             "mysql: result at index {} should be a float, the current value "
-            "is "
-            "'{}'",
+            "is '{}'",
             idx, _row[idx]);
     } else
       retval = 0;
@@ -191,8 +181,7 @@ double mysql_result::value_as_f64(int idx) {
       if (!absl::SimpleAtod(_row[idx], &retval))
         throw msg_fmt(
             "mysql: result at index {} should be a double, the current value "
-            "is "
-            "'{}'",
+            "is '{}'",
             idx, _row[idx]);
     } else
       retval = 0;
@@ -216,10 +205,8 @@ int mysql_result::value_as_i32(int idx) {
     if (_row[idx]) {
       if (!absl::SimpleAtoi(_row[idx], &retval))
         throw msg_fmt(
-            "mysql: result at index {} should be an integer, the current "
-            "value "
-            "is "
-            "'{}'",
+            "mysql: result at index {} should be an integer, the current value "
+            "is '{}'",
             idx, _row[idx]);
     } else
       retval = 0;
@@ -244,10 +231,7 @@ uint32_t mysql_result::value_as_u32(int idx) {
       if (!absl::SimpleAtoi(_row[idx], &retval))
         throw msg_fmt(
             "mysql: result at index {} should be an unsigned integer, the "
-            "current "
-            "value "
-            "is "
-            "'{}'",
+            "current value is '{}'",
             idx, _row[idx]);
     } else
       retval = 0;
@@ -271,10 +255,8 @@ int64_t mysql_result::value_as_i64(int idx) {
     if (_row[idx]) {
       if (!absl::SimpleAtoi(_row[idx], &retval))
         throw msg_fmt(
-            "mysql: result at index {} should be an integer, the current "
-            "value "
-            "is "
-            "'{}'",
+            "mysql: result at index {} should be an integer, the current value "
+            "is '{}'",
             idx, _row[idx]);
     } else
       retval = 0;
@@ -299,10 +281,7 @@ uint64_t mysql_result::value_as_u64(int idx) {
       if (!absl::SimpleAtoi(_row[idx], &retval))
         throw msg_fmt(
             "mysql: result at index {} should be an unsigned integer, the "
-            "current "
-            "value "
-            "is "
-            "'{}'",
+            "current value is '{}'",
             idx, _row[idx]);
     } else
       retval = 0;
