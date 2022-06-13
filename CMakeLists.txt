@@ -65,7 +65,7 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
     message(WARNING "lsb_release in not installed")
     set(OS_DISTRIBUTOR "${CMAKE_SYSTEM_NAME}")
   endif ()
-elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+else ()
   set(OS_DISTRIBUTOR "${CMAKE_SYSTEM_NAME}")
 endif ()
 
