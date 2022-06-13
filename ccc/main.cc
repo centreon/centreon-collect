@@ -43,28 +43,73 @@ int main(int argc, char** argv) {
   }
   std::string url{absl::StrFormat("127.0.0.1:%d", port)};
   auto channel = grpc::CreateChannel(url, grpc::InsecureChannelCredentials());
-  auto stub_e = std::make_unique <Engine::Stub>(channel);
+  auto stub_e = std::make_unique<Engine::Stub>(channel);
 
   com::centreon::engine::Version version_e;
   com::centreon::broker::Version version_b;
   const ::google::protobuf::Empty e;
-  grpc::ClientContext context;
-  grpc::Status status = stub_e->GetVersion(&context, e, &version_e);
-  if (!status.ok()) {
-    std::cerr << "Engine GetVersion rpc failed." << std::endl;
-  }
+  auto context = std::make_unique<grpc::ClientContext>();
+  grpc::Status status = stub_e->GetVersion(context.get(), e, &version_e);
 
-  channel = grpc::CreateChannel(url, grpc::InsecureChannelCredentials());
-  auto stub_b = std::make_unique <Broker::Stub>(channel);
-  status = stub_b->GetVersion(&context, e, &version_b);
+  std::unique_ptr<Broker::Stub> stub_b;
   if (!status.ok()) {
-    std::cerr << "Broker GetVersion rpc failed." << std::endl;
+    context = std::make_unique<grpc::ClientContext>();
+    stub_e.reset();
+    channel = grpc::CreateChannel(url, grpc::InsecureChannelCredentials());
+    stub_b = std::make_unique<Broker::Stub>(channel);
+    status = stub_b->GetVersion(context.get(), e, &version_b);
+    if (!status.ok()) {
+      std::cerr << "Broker GetVersion rpc failed." << std::endl;
+    }
   }
-//  auto broker_c = std::make_unique<BrokerRPCClient>(channel);
-//  if (channel->GetState(true) == GRPC_CHANNEL_IDLE) {
-//    std::cerr << "127.0.0.1:" << port << " broker seems inactive." << std::endl;
-//    exit(4);
-//  }
+  if (stub_e)
+    std::cout << "ccc connected to engine" << std::endl;
+
+  if (stub_b) {
+    std::cout << "ccc connected to broker" << std::endl;
+    const google::protobuf::DescriptorPool* p = google::protobuf::DescriptorPool::generated_pool();
+    const google::protobuf::ServiceDescriptor* serviceDescriptor = p->FindServiceByName("com.centreon.broker.Broker");
+    size_t size = serviceDescriptor->method_count();
+    for (uint32_t i = 0; i < size; i++) {
+      const google::protobuf::MethodDescriptor* method = serviceDescriptor->method(i);
+      std::cout << "* " << method->name() << std::endl;
+      const google::protobuf::Descriptor* message = method->input_type();
+      std::cout << "  - input: " << message->name() << std::endl;
+      for (int j = 0; j < message->field_count(); j++) {
+        auto f = message->field(j);
+        switch (f->type()) {
+      case google::protobuf::FieldDescriptor::TYPE_BOOL:
+        std::cout << "    " << f->name() << ": boolean" << std::endl;
+        break;
+      case google::protobuf::FieldDescriptor::TYPE_DOUBLE:
+        std::cout << "    " << f->name() << ": double" << std::endl;
+        break;
+      case google::protobuf::FieldDescriptor::TYPE_INT32:
+        std::cout << "    " << f->name() << ": int32" << std::endl;
+        break;
+      case google::protobuf::FieldDescriptor::TYPE_UINT32:
+        std::cout << "    " << f->name() << ": uint32" << std::endl;
+        break;
+      case google::protobuf::FieldDescriptor::TYPE_INT64:
+        std::cout << "    " << f->name() << ": int64" << std::endl;
+        break;
+      case google::protobuf::FieldDescriptor::TYPE_UINT64:
+        std::cout << "    " << f->name() << ": uint64" << std::endl;
+        break;
+      case google::protobuf::FieldDescriptor::TYPE_ENUM:
+        std::cout << "    " << f->name() << ": enum" << std::endl;
+        break;
+      case google::protobuf::FieldDescriptor::TYPE_STRING:
+        std::cout << "    " << f->name() << ": string" << std::endl;
+        break;
+      default:
+        std::cout << "    " << f->name() << ": unknown" << std::endl;
+        break;
+        }
+      }
+      std::cout << std::endl;
+    }
+  }
 
   return 0;
 }
