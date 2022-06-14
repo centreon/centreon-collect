@@ -1,5 +1,7 @@
 #include <absl/strings/numbers.h>
 #include <absl/strings/str_format.h>
+#include <absl/strings/string_view.h>
+#include <absl/strings/ascii.h>
 #include <iostream>
 #include <getopt.h>
 #include "broker_client.hh"
@@ -7,8 +9,9 @@
 
 static struct option long_options[] = {{"version", no_argument, 0, 'v'},
                                        {"help", no_argument, 0, 'h'},
-                                       {"port", no_argument, 0, 'p'},
+                                       {"port", required_argument, 0, 'p'},
                                        {"list", no_argument, 0, 'l'},
+                                       {"exec", required_argument, 0, 'e'},
                                        {0, 0, 0, 0}};
 int main(int argc, char** argv) {
   int option_index = 0;
@@ -16,8 +19,9 @@ int main(int argc, char** argv) {
   int port = 0;
 
   bool list = false;
+  std::string full_cmd;
 
-  while ((opt = getopt_long(argc, argv, "vhp:l", long_options, &option_index)) != -1) {
+  while ((opt = getopt_long(argc, argv, "vhp:le:", long_options, &option_index)) != -1) {
     switch (opt) {
       case 'v':
         std::cout << "ccc " << CENTREON_CONNECTOR_VERSION << "\n";
@@ -39,6 +43,10 @@ int main(int argc, char** argv) {
         break;
       case 'l':
         list = true;
+        break;
+      case 'e':
+        full_cmd = optarg;
+        break;
     }
   }
 
@@ -73,9 +81,12 @@ int main(int argc, char** argv) {
   if (stub_e) {
     name = "com.centreon.engine.Engine";
   }
-
-  if (stub_b) {
+  else if (stub_b) {
     name = "com.centreon.broker.Broker";
+  }
+  else {
+    std::cerr << "No connection established." << std::endl;
+    exit(3);
   }
 
   if (list) {
@@ -120,6 +131,21 @@ int main(int argc, char** argv) {
         }
       }
       std::cout << std::endl;
+    }
+  }
+  else if (!full_cmd.empty()) {
+    size_t pos = full_cmd.find("{");
+    absl::string_view cmd, args;
+    if (pos == std::string::npos) {
+      cmd = full_cmd;
+      std::cout << "command: " << cmd << std::endl;
+    }
+    else {
+      cmd = absl::string_view(full_cmd.c_str(), pos);
+      cmd = absl::StripLeadingAsciiWhitespace(absl::StripTrailingAsciiWhitespace(cmd));
+      std::cout << "command: " << cmd << std::endl;
+      args = absl::string_view(full_cmd.c_str() + pos, full_cmd.size() - pos);
+      std::cout << "args: " << args << std::endl;
     }
   }
 
