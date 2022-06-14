@@ -148,24 +148,26 @@ stage('Quality Gate') {
   }
 }
 
-stage('Delivery') {
-  node("C++") {
-    unstash 'el8-rpms'
-    unstash 'el7-rpms'
-    dir('centreon-collect-delivery') {
-      checkout scm
-      loadCommonScripts()
-      sh 'rm -rf output && mkdir output && mv ../*.rpm output'
-      sh './ci/scripts/collect-rpm-delivery.sh'
-      withCredentials([usernamePassword(credentialsId: 'nexus-credentials', passwordVariable: 'NEXUS_PASSWORD', usernameVariable: 'NEXUS_USERNAME')]) {
+if ((env.BUILD == 'RELEASE') || (env.BUILD == 'QA')) {
+  stage('Delivery') {
+    node("C++") {
+      unstash 'el8-rpms'
+      unstash 'el7-rpms'
+      dir('centreon-collect-delivery') {
         checkout scm
-        unstash "Debian11"
-        sh 'mv bullseye/*.deb .'
-        sh '''for i in $(echo *.deb)
-              do 
-                curl -u $NEXUS_USERNAME:$NEXUS_PASSWORD -H "Content-Type: multipart/form-data" --data-binary "@./$i" https://apt.centreon.com/repository/22.10-$REPO/
-              done
-           '''    
+        loadCommonScripts()
+        sh 'rm -rf output && mkdir output && mv ../*.rpm output'
+        sh './ci/scripts/collect-rpm-delivery.sh'
+        withCredentials([usernamePassword(credentialsId: 'nexus-credentials', passwordVariable: 'NEXUS_PASSWORD', usernameVariable: 'NEXUS_USERNAME')]) {
+          checkout scm
+          unstash "Debian11"
+          sh 'mv bullseye/*.deb .'
+          sh '''for i in $(echo *.deb)
+                do 
+                  curl -u $NEXUS_USERNAME:$NEXUS_PASSWORD -H "Content-Type: multipart/form-data" --data-binary "@./$i" https://apt.centreon.com/repository/22.10-$REPO/
+                done
+            '''    
+        }
       }
     }
   }
