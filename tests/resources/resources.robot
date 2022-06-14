@@ -133,5 +133,5 @@ ${logEngine2}	${ENGINE_LOG}/config2/centengine.log
 ${DBName}	centreon_storage
 ${DBHost}	localhost
 ${DBUser}	centreon
-${DBPass}	centreon
+${DBPass}	Fa@V@?L9@4Wfh70u
 ${DBPort}	3306
