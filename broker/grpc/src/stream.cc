@@ -87,11 +87,8 @@ int32_t com::centreon::broker::grpc::stream::write(
   event_ptr to_send(std::make_shared<grpc_event_type>());
 
   std::shared_ptr<io::raw> raw_src = std::static_pointer_cast<io::raw>(d);
-  if (raw_src) {
-    to_send->mutable_buffer()->assign(raw_src->_buffer.begin(),
-                                      raw_src->_buffer.end());
-  }
-
+  to_send->mutable_buffer()->assign(raw_src->_buffer.begin(),
+                                    raw_src->_buffer.end());
   return _channel->write(to_send);
 }
 
