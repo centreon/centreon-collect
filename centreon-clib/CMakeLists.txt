@@ -32,9 +32,20 @@ set(SCRIPT_DIR "${PROJECT_SOURCE_DIR}/script")
 
 
 # Version.
-set(CLIB_MAJOR 21)
-set(CLIB_MINOR 10)
-set(CLIB_PATCH 0)
+set(VERSION "$ENV{VERSION}")
+if ("${VERSION}" STREQUAL "")
+  set(CLIB_MAJOR ${COLLECT_MAJOR})
+  set(CLIB_MINOR ${COLLECT_MINOR})
+  set(CLIB_PATCH ${COLLECT_PATCH})
+else ()
+  string(REGEX MATCHALL "([0-9]*)\\.([0-9]*)\\.([0-9]*)" _ "${VERSION}")
+  # Version.
+
+  set(CLIB_MAJOR ${CMAKE_MATCH_1})
+  set(CLIB_MINOR ${CMAKE_MATCH_2})
+  set(CLIB_PATCH ${CMAKE_MATCH_3})
+endif ()
+
 set(CLIB_VERSION "${CLIB_MAJOR}.${CLIB_MINOR}.${CLIB_PATCH}")
 
 
