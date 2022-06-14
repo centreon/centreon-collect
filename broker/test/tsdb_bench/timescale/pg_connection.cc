@@ -1,6 +1,7 @@
 #include "libpq-fe.h"
 
 #include "pg_connection.hh"
+#include "pg_request.hh"
 
 namespace pg {
 namespace detail {
@@ -36,6 +37,8 @@ class result_collector {
   ret_type on_data_available();
 
   const pg_result_vect& get_result() const { return _res; }
+
+  const PGresult* get_last_result() const;
   bool is_error() const { return _error; }
 };
 
@@ -45,21 +48,38 @@ result_collector::~result_collector() {
   }
 }
 
+/**
+ * @brief consume input on socket for the current request
+ *  we may receive several status for one request
+ * @return std::pair<bool, PGresult*> first = true if all is received, second =
+ * received status
+ */
 std::pair<bool, PGresult*> result_collector::on_data_available() {
   int ok = PQconsumeInput(_conn);
   if (!ok) {
     _error = true;
   }
-  if (!PQisBusy(_conn)) {
+  while (!PQisBusy(_conn)) {
     PGresult* res = PQgetResult(_conn);
     if (res) {
+      ExecStatusType st = PQresultStatus(res);
+      if (st == PGRES_NONFATAL_ERROR || st == PGRES_FATAL_ERROR ||
+          st == PGRES_PIPELINE_ABORTED) {
+        _error = true;
+      }
       _res.push_back(res);
-      return std::make_pair(false, res);
     } else {
       return std::make_pair(true, res);
     }
   }
   return std::make_pair(false, nullptr);
+}
+
+const PGresult* result_collector::get_last_result() const {
+  if (!_res.empty()) {
+    return *_res.rbegin();
+  }
+  return nullptr;
 }
 
 }  // namespace detail
@@ -251,23 +271,24 @@ void pg_connection::execute() {
   }
   switch (to_execute->get_type()) {
     case request_base::e_request_type::simple_no_result_request:
+    case request_base::e_request_type::statement_request:
       send_no_result_request(to_execute);
       break;
     default:
+      SPDLOG_LOGGER_ERROR(_logger, "unsupported request {}", *to_execute);
       _io_context->post([to_execute]() {
+        std::error_code err = std::make_error_code(std::errc::not_supported);
         std::ostringstream detail;
-        detail << "unsupported request:" << to_execute->get_type();
-        to_execute->call_callback(
-            std::make_error_code(std::errc::not_supported), detail.str());
+        detail << "unsupported request:" << *to_execute;
+        to_execute->call_callback(err, detail.str());
       });
   }
 }
 
 void pg_connection::send_no_result_request(const request_base::pointer& req) {
   SPDLOG_LOGGER_DEBUG(_logger, "send request: {}", *req);
-  int res = PQsendQuery(
-      _conn,
-      std::static_pointer_cast<no_result_request>(req)->get_request().c_str());
+  int res = std::static_pointer_cast<no_result_request>(req)->send_query(*this);
+
   if (!res) {
     std::string err_detail =
         fmt::format("{} send_no_result_request, fail to send query: {}", *this,
@@ -314,7 +335,11 @@ void pg_connection::send_request_data(const request_base::pointer& req) {
 void pg_connection::start_read_result(const request_base::pointer& req) {
   detail::result_collector::pointer result =
       std::make_shared<detail::result_collector>(_conn);
-  start_read_result(req, result);
+  if (req->get_type() == request_base::e_request_type::load_request) {
+    start_first_copy_in_read_result(req, result);
+  } else {
+    start_read_result(req, result);
+  }
 }
 
 /**
@@ -327,7 +352,6 @@ void pg_connection::start_read_result(const request_base::pointer& req) {
 void pg_connection::start_read_result(
     const request_base::pointer& req,
     const std::shared_ptr<detail::result_collector>& coll) {
-  _logger->info("start of async wait");
   _socket.async_wait(
       socket_type::wait_read,
       [me = shared_from_this(), req, coll](const std::error_code& err) {
@@ -338,13 +362,58 @@ void pg_connection::start_read_result(
           req->call_callback(err, "fail to read socket");
           return;
         }
-        me->_logger->info("async wait completed");
         detail::result_collector::ret_type ended = coll->on_data_available();
         if (ended.first) {
-          SPDLOG_LOGGER_DEBUG(me->_logger, "request completed: {}", *req);
           me->completion_handler(req, coll);
         } else {  // not yet all received => we continue
           me->start_read_result(req, coll);
+        }
+      });
+}
+
+/**
+ * @brief after intitiated a async request we must receive an  PQgetResult
+ * that will give us informations about copy and that will let us send data
+ *
+ * @param req current request
+ * @param coll PGresult collector
+ */
+void pg_connection::start_first_copy_in_read_result(
+    const request_base::pointer& req,
+    const std::shared_ptr<detail::result_collector>& coll) {
+  _socket.async_wait(
+      socket_type::wait_read,
+      [me = shared_from_this(), req, coll, this](const std::error_code& err) {
+        if (err) {
+          SPDLOG_LOGGER_ERROR(_logger, "{} read error: {}", *me, err.message());
+          on_error(err, "fail to read socket");
+          req->call_callback(err, "fail to read socket");
+          return;
+        }
+        detail::result_collector::ret_type ended = coll->on_data_available();
+        if (ended.second && PQresultStatus(ended.second) == PGRES_COPY_IN) {
+          SPDLOG_LOGGER_DEBUG(_logger, "copy in data received: {}", *req);
+          std::pair<bool, std::string> res =
+              std::static_pointer_cast<pg_load_request>(req)->start_send_data(
+                  ended.second);
+          if (!res.first) {
+            SPDLOG_LOGGER_ERROR(_logger, "pb with copy first datas {} for {}",
+                                res.second, req);
+            std::error_code err =
+                std::make_error_code(std::errc::invalid_argument);
+            on_error(err, res.second);
+            req->call_callback(err, res.second);
+          }
+        } else {
+          std::string detail =
+              fmt::format("unexpected status received: {}:{} for {}",
+                          PQresStatus(PQresultStatus(ended.second)),
+                          PQresultErrorMessage(ended.second), *req);
+          SPDLOG_LOGGER_ERROR(me->_logger, detail);
+          std::error_code err =
+              std::make_error_code(std::errc::operation_not_supported);
+          on_error(err, detail);
+          req->call_callback(err, detail);
         }
       });
 }
@@ -367,11 +436,12 @@ void pg_connection::completion_handler(
   if (coll->get_result().empty()) {
     req->call_callback({}, {});
   } else {
-    const PGresult* res = *coll->get_result().rbegin();
-    ExecStatusType st = PQresultStatus(res);
-    if (st == PGRES_TUPLES_OK || st == PGRES_COMMAND_OK) {
+    if (!coll->is_error()) {
+      SPDLOG_LOGGER_DEBUG(_logger, "request completed: {}", *req);
       req->call_callback({}, {});
     } else {
+      const PGresult* res = coll->get_last_result();
+      ExecStatusType st = PQresultStatus(res);
       SPDLOG_LOGGER_ERROR(_logger, "{} fail to execute {}: {} {}", *this, *req,
                           PQresStatus(st), PQresultErrorMessage(res));
       req->call_callback(std::make_error_code(std::errc::invalid_argument),

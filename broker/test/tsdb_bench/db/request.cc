@@ -9,7 +9,7 @@ void request_base::call_callback(const std::error_code& err,
 }
 
 void request_base::dump(std::ostream& s) const {
-  s << "this:" << this;
+  s << _type << " this:" << this;
 }
 
 std::ostream& operator<<(std::ostream& s, const request_base& req) {
@@ -25,6 +25,8 @@ std::ostream& operator<<(std::ostream& s,
                          const request_base::e_request_type& req_type) {
   switch (req_type) {
     CASE_REQUEST_STR(simple_no_result_request);
+    CASE_REQUEST_STR(load_request);
+    CASE_REQUEST_STR(statement_request);
     default:
       s << "unknown value:" << (int)req_type;
   }

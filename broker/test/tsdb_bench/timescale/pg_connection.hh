@@ -24,6 +24,8 @@ class pg_connection : public ::connection {
                 const boost::json::object& conf,
                 const logger_ptr& logger);
 
+  PGconn* get_conn() { return _conn; }
+
   void execute() override;
 
   void send_no_result_request(const request_base::pointer& req);
@@ -35,9 +37,16 @@ class pg_connection : public ::connection {
   void start_read_result(const request_base::pointer& req,
                          const std::shared_ptr<detail::result_collector>& coll);
 
+  void start_first_copy_in_read_result(
+      const request_base::pointer& req,
+      const std::shared_ptr<detail::result_collector>& coll);
+
   void completion_handler(
       const request_base::pointer& req,
       const std::shared_ptr<detail::result_collector>& coll);
+
+  friend class pg_no_result_request;
+  friend class pg_no_result_statement_request;
 
  public:
   using pointer = std::shared_ptr<pg_connection>;
@@ -55,6 +64,7 @@ class pg_connection : public ::connection {
   void connect(const time_point& until,
                const connection_handler& handler) override;
 };
+
 }  // namespace pg
 
 #endif

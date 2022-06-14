@@ -13,6 +13,9 @@
 #include <random>
 #include <unordered_set>
 
+#include <absl/strings/numbers.h>
+#include <absl/strings/str_cat.h>
+
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
 
 #include <spdlog/common.h>
@@ -24,6 +27,9 @@
 #include <asio.hpp>
 #include <boost/beast.hpp>
 #include <boost/json.hpp>
+// #include <boost/leaf/error.hpp>
+// #include <boost/leaf/exception.hpp>
+// #include <boost/leaf/handle_errors.hpp>
 #include <boost/program_options.hpp>
 #include <boost/variant.hpp>
 
