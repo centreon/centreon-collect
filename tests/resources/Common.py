@@ -17,13 +17,6 @@ DB_PASS = BuiltIn().get_variable_value("${DBPass}")
 DB_HOST = BuiltIn().get_variable_value("${DBHost}")
 DB_PORT = BuiltIn().get_variable_value("${DBPort}")
 
-logger.console("DB_USER = {}".format(DB_USER))
-logger.console("DB_PASS = {}".format(DB_PASS))
-logger.console("DB_USER = {}".format(DB_NAME))
-logger.console("DB_USER = {}".format(DB_HOST))
-logger.console("DB_USER = {}".format(DB_PORT))
-
-
 def check_connection(port: int, pid1: int, pid2: int):
     limit = time.time() + TIMEOUT
     r = re.compile(r"^ESTAB.*127\.0\.0\.1\]*:{}\s".format(port))
