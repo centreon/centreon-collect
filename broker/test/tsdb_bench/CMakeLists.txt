@@ -14,6 +14,6 @@ add_definitions(${CONAN_DEFINES_SPDLOG})
 
 include_directories(${CONAN_INCLUDE_DIRS} db timescale)
 
-add_executable(tsdb_bench tsdb_bench.cc metric.cc db/connection.cc db/request.cc timescale/pg_connection.cc)
+add_executable(tsdb_bench tsdb_bench.cc metric.cc db/connection.cc db/request.cc timescale/pg_connection.cc timescale/pg_request.cc)
 target_link_libraries(tsdb_bench CONAN_PKG::abseil CONAN_PKG::boost CONAN_PKG::fmt CONAN_PKG::spdlog CONAN_PKG::libpq)
 target_precompile_headers(tsdb_bench PRIVATE precomp_inc.hh)

@@ -13,4 +13,7 @@ CREATE TABLE "metrics" (
     double_val DOUBLE PRECISION 
 );
 
-SELECT create_hypertable('metrics', 't', 'metric_id');
+/*
+partition by t and 20 sub partitions by metric_d
+*/
+SELECT create_hypertable('metrics', 't', 'metric_id', 20);

@@ -5,6 +5,7 @@
 #include "db/connection.hh"
 #include "metric.hh"
 #include "timescale/pg_connection.hh"
+#include "timescale/pg_request.hh"
 
 namespace po = boost::program_options;
 
@@ -25,10 +26,33 @@ void bench_timescale(const io_context_ptr& io_context,
         [conn, to_insert, to_insert_mut](const std::error_code& err,
                                          const std::string& err_detail) {
           if (!err) {
-            conn->start_request(std::make_shared<no_result_request>(
-                "select * from toto",
+            // conn->start_request(std::make_shared<pg::pg_no_result_request>(
+            //     "insert into rides (vendor_id, pickup_datetime, "
+            //     "dropoff_datetime) values('55','2022-06-13 "
+            //     "07:56:21','2022-06-13 "
+            //     "07:59:21')",
+            //     [](const std::error_code&, const std::string&,
+            //        const request_base::pointer&) {}));
+            std::vector<request_base::e_column_type> cols = {
+                request_base::e_column_type::int64_c,
+                request_base::e_column_type::timestamp_c,
+                request_base::e_column_type::timestamp_c};
+            // auto req = std::make_shared<pg::pg_no_result_statement_request>(
+            //     "",
+            //     "insert into rides (vendor_id, pickup_datetime, "
+            //     "dropoff_datetime) values($1,$2,$3)",
+            //     cols.begin(), cols.end(),
+            //     [](const std::error_code&, const std::string&,
+            //        const request_base::pointer&) {});
+
+            auto req = std::make_shared<pg::pg_load_request>(
+                "COPY rides FROM STDIN WITH BINARY", ' ', 1, cols.begin(),
+                cols.end(),
                 [](const std::error_code&, const std::string&,
-                   const request_base::pointer&) {}));
+                   const request_base::pointer&) {});
+            *req << 58l << system_clock::now()
+                 << system_clock::now() + std::chrono::hours(1);
+            conn->start_request(req);
           }
         });
   }

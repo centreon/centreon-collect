@@ -19,6 +19,19 @@ class metric {
   using metric_cont_ptr = std::shared_ptr<metric_cont>;
 
  protected:
+  template <class request_type>
+  class value_visitor : public boost::static_visitor<> {
+   protected:
+    request_type& _req;
+
+   public:
+    value_visitor(request_type& req) : _req(req) {}
+    template <typename T>
+    void operator()(const T& val) const {
+      _req.in(val);
+    }
+  };
+
   uint64_t _service_id;
   uint64_t _host_id;
   uint64_t _metric_id;
@@ -77,7 +90,20 @@ class metric {
   const time_point& get_time() const { return _time; }
   const metric_type& get_value() const { return _value; }
 
+  template <class request_type>
+  void get_value(request_type& request) const {
+    boost::apply_visitor(value_visitor<request_type>(request), _value);
+  }
+
   static metric_cont_ptr create_metrics(const metric_conf& conf);
 };
+
+template <class request_type>
+request_type& operator<<(request_type& req, const metric& data) {
+  req << data.get_time() << data.get_host_id() << data.get_service_id()
+      << data.get_metric_id();
+  data.get_value(req);
+  return req;
+}
 
 #endif
