@@ -4,8 +4,12 @@
 #include <absl/strings/ascii.h>
 #include <iostream>
 #include <getopt.h>
+#include <nlohmann/json.hpp>
 #include "broker_client.hh"
 #include "engine_client.hh"
+#include <grpcpp/generic/generic_stub.h>
+
+using namespace nlohmann;
 
 static struct option long_options[] = {{"version", no_argument, 0, 'v'},
                                        {"help", no_argument, 0, 'h'},
@@ -55,99 +59,134 @@ int main(int argc, char** argv) {
     exit(2);
   }
   std::string url{absl::StrFormat("127.0.0.1:%d", port)};
-  auto channel = grpc::CreateChannel(url, grpc::InsecureChannelCredentials());
-  auto stub_e = std::make_unique<Engine::Stub>(channel);
+  std::shared_ptr<grpc::Channel> channel = grpc::CreateChannel(url, grpc::InsecureChannelCredentials());
 
-  com::centreon::engine::Version version_e;
-  com::centreon::broker::Version version_b;
-  const ::google::protobuf::Empty e;
+  ///////////////////////////////////////
+  com::centreon::broker::Version version;
+  std::unique_ptr<grpc::GenericStub> stub = std::make_unique<grpc::GenericStub>(channel);
+  grpc::CompletionQueue cq;
   auto context = std::make_unique<grpc::ClientContext>();
-  grpc::Status status = stub_e->GetVersion(context.get(), e, &version_e);
+  grpc::ByteBuffer request_buf;
+  bool own_buffer = false;
+  const ::google::protobuf::Empty e;
+  grpc::Status status = grpc::GenericSerialize<grpc::ProtoBufferWriter,
+    google::protobuf::Message>(e, &request_buf, &own_buffer);
+  std::cout << "empty serialization ok ? " << status.ok() << std::endl;
+  auto resp = stub->PrepareUnaryCall(context.get(), "/com.centreon.broker.Broker/GetVersion", request_buf, &cq);
+  resp->StartCall();
+  grpc::ByteBuffer resp_buf;
+  resp->Finish(&resp_buf, &status, reinterpret_cast<void*>(1));
+  void *tag;
+  bool ok = false;
+  cq.Next(&tag, &ok);
+  std::cout << "Execution ok ? " << ok << std::endl;
+  grpc::ProtoBufferReader reader(&resp_buf);
+  version.ParseFromZeroCopyStream(&reader);
+  std::cout << version.major() << "." << version.minor() << "." << version.patch() << std::endl;
 
-  std::unique_ptr<Broker::Stub> stub_b;
-  if (!status.ok()) {
-    context = std::make_unique<grpc::ClientContext>();
-    stub_e.reset();
-    channel = grpc::CreateChannel(url, grpc::InsecureChannelCredentials());
-    stub_b = std::make_unique<Broker::Stub>(channel);
-    status = stub_b->GetVersion(context.get(), e, &version_b);
-    if (!status.ok()) {
-      std::cerr << "Broker GetVersion rpc failed." << std::endl;
-    }
-  }
+  ///////////////////////////////////////
 
-  std::string name;
-
-  if (stub_e) {
-    name = "com.centreon.engine.Engine";
-  }
-  else if (stub_b) {
-    name = "com.centreon.broker.Broker";
-  }
-  else {
-    std::cerr << "No connection established." << std::endl;
-    exit(3);
-  }
-
-  if (list) {
-    const google::protobuf::DescriptorPool* p = google::protobuf::DescriptorPool::generated_pool();
-    const google::protobuf::ServiceDescriptor* serviceDescriptor = p->FindServiceByName(name);
-    size_t size = serviceDescriptor->method_count();
-    for (uint32_t i = 0; i < size; i++) {
-      const google::protobuf::MethodDescriptor* method = serviceDescriptor->method(i);
-      std::cout << "* " << method->name() << std::endl;
-      const google::protobuf::Descriptor* message = method->input_type();
-      std::cout << "  - input: " << message->name() << std::endl;
-      for (int j = 0; j < message->field_count(); j++) {
-        auto f = message->field(j);
-        switch (f->type()) {
-      case google::protobuf::FieldDescriptor::TYPE_BOOL:
-        std::cout << "    " << f->name() << ": boolean" << std::endl;
-        break;
-      case google::protobuf::FieldDescriptor::TYPE_DOUBLE:
-        std::cout << "    " << f->name() << ": double" << std::endl;
-        break;
-      case google::protobuf::FieldDescriptor::TYPE_INT32:
-        std::cout << "    " << f->name() << ": int32" << std::endl;
-        break;
-      case google::protobuf::FieldDescriptor::TYPE_UINT32:
-        std::cout << "    " << f->name() << ": uint32" << std::endl;
-        break;
-      case google::protobuf::FieldDescriptor::TYPE_INT64:
-        std::cout << "    " << f->name() << ": int64" << std::endl;
-        break;
-      case google::protobuf::FieldDescriptor::TYPE_UINT64:
-        std::cout << "    " << f->name() << ": uint64" << std::endl;
-        break;
-      case google::protobuf::FieldDescriptor::TYPE_ENUM:
-        std::cout << "    " << f->name() << ": enum" << std::endl;
-        break;
-      case google::protobuf::FieldDescriptor::TYPE_STRING:
-        std::cout << "    " << f->name() << ": string" << std::endl;
-        break;
-      default:
-        std::cout << "    " << f->name() << ": unknown" << std::endl;
-        break;
-        }
-      }
-      std::cout << std::endl;
-    }
-  }
-  else if (!full_cmd.empty()) {
-    size_t pos = full_cmd.find("{");
-    absl::string_view cmd, args;
-    if (pos == std::string::npos) {
-      cmd = full_cmd;
-      std::cout << "command: " << cmd << std::endl;
-    }
-    else {
-      cmd = absl::string_view(full_cmd.c_str(), pos);
-      cmd = absl::StripLeadingAsciiWhitespace(absl::StripTrailingAsciiWhitespace(cmd));
-      std::cout << "command: " << cmd << std::endl;
-      args = absl::string_view(full_cmd.c_str() + pos, full_cmd.size() - pos);
-      std::cout << "args: " << args << std::endl;
-    }
-  }
+//  auto stub_e = std::make_unique<Engine::Stub>(channel);
+//
+//  com::centreon::broker::Version version_b;
+//  const ::google::protobuf::Empty e;
+//  auto context = std::make_unique<grpc::ClientContext>();
+//  grpc::Status status = stub_e->GetVersion(context.get(), e, &version_e);
+//
+//  std::unique_ptr<Broker::Stub> stub_b;
+//  if (!status.ok()) {
+//    context = std::make_unique<grpc::ClientContext>();
+//    stub_e.reset();
+//    channel = grpc::CreateChannel(url, grpc::InsecureChannelCredentials());
+//    stub_b = std::make_unique<Broker::Stub>(channel);
+//    status = stub_b->GetVersion(context.get(), e, &version_b);
+//    if (!status.ok()) {
+//      std::cerr << "Broker GetVersion rpc failed." << std::endl;
+//    }
+//  }
+//
+//  std::string name;
+//
+//  if (stub_e) {
+//    name = "com.centreon.engine.Engine";
+//  }
+//  else if (stub_b) {
+//    name = "com.centreon.broker.Broker";
+//  }
+//  else {
+//    std::cerr << "No connection established." << std::endl;
+//    exit(3);
+//  }
+//
+//  if (list) {
+//    const google::protobuf::DescriptorPool* p = google::protobuf::DescriptorPool::generated_pool();
+//    const google::protobuf::ServiceDescriptor* serviceDescriptor = p->FindServiceByName(name);
+//    size_t size = serviceDescriptor->method_count();
+//    for (uint32_t i = 0; i < size; i++) {
+//      const google::protobuf::MethodDescriptor* method = serviceDescriptor->method(i);
+//      std::cout << "* " << method->name() << std::endl;
+//      const google::protobuf::Descriptor* message = method->input_type();
+//      std::cout << "  - input: " << message->name() << std::endl;
+//      for (int j = 0; j < message->field_count(); j++) {
+//        auto f = message->field(j);
+//        switch (f->type()) {
+//      case google::protobuf::FieldDescriptor::TYPE_BOOL:
+//        std::cout << "    " << f->name() << ": boolean" << std::endl;
+//        break;
+//      case google::protobuf::FieldDescriptor::TYPE_DOUBLE:
+//        std::cout << "    " << f->name() << ": double" << std::endl;
+//        break;
+//      case google::protobuf::FieldDescriptor::TYPE_INT32:
+//        std::cout << "    " << f->name() << ": int32" << std::endl;
+//        break;
+//      case google::protobuf::FieldDescriptor::TYPE_UINT32:
+//        std::cout << "    " << f->name() << ": uint32" << std::endl;
+//        break;
+//      case google::protobuf::FieldDescriptor::TYPE_INT64:
+//        std::cout << "    " << f->name() << ": int64" << std::endl;
+//        break;
+//      case google::protobuf::FieldDescriptor::TYPE_UINT64:
+//        std::cout << "    " << f->name() << ": uint64" << std::endl;
+//        break;
+//      case google::protobuf::FieldDescriptor::TYPE_ENUM:
+//        std::cout << "    " << f->name() << ": enum" << std::endl;
+//        break;
+//      case google::protobuf::FieldDescriptor::TYPE_STRING:
+//        std::cout << "    " << f->name() << ": string" << std::endl;
+//        break;
+//      default:
+//        std::cout << "    " << f->name() << ": unknown" << std::endl;
+//        break;
+//        }
+//      }
+//      std::cout << std::endl;
+//    }
+//  }
+//  else if (!full_cmd.empty()) {
+//    //caller my_caller(channel);
+//    size_t pos = full_cmd.find("{");
+//    absl::string_view cmd, args;
+//    if (pos == std::string::npos) {
+//      cmd = full_cmd;
+//      std::cout << "command: " << cmd << std::endl;
+//
+//      //stub_b->PrepareCall(context.get(), cmd);
+//    }
+//    else {
+//      cmd = absl::string_view(full_cmd.c_str(), pos);
+//      cmd = absl::StripLeadingAsciiWhitespace(absl::StripTrailingAsciiWhitespace(cmd));
+//      std::cout << "command: " << cmd << std::endl;
+//      args = absl::string_view(full_cmd.c_str() + pos, full_cmd.size() - pos);
+//      std::cout << "args: " << args << std::endl;
+//      try {
+//        json json_doc = json::parse(args);
+//      } catch (const json::parse_error& e) {
+//        std::cerr << "Error while parsing the command arguments '" << args
+//          << "': " << e.what() << std::endl;
+//        exit(4);
+//      }
+//    }
+//  }
 
   return 0;
 }

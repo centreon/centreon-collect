@@ -41,6 +41,10 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/broker/core/src
     ${CMAKE_SOURCE_DIR}/engine/enginerpc
     )
-add_executable(ccc main.cc)
+set(ccc_files
+    main.cc
+   )
+
+add_executable(ccc ${ccc_files})
 target_link_libraries(ccc CONAN_PKG::grpc cerpc berpc CONAN_PKG::abseil)
 set_target_properties(ccc PROPERTIES COMPILE_FLAGS "-fPIC")
