@@ -17,8 +17,29 @@ import grpc
 import broker_pb2
 import broker_pb2_grpc
 from google.protobuf import empty_pb2
+from robot.libraries.BuiltIn import BuiltIn
+
 
 TIMEOUT = 30
+
+BuiltIn().import_resource('resources.robot')
+DB_NAME_STORAGE = BuiltIn().get_variable_value("${DBName_Storage}")
+DB_NAME = BuiltIn().get_variable_value("${DBName}")
+DB_USER = BuiltIn().get_variable_value("${DBUser}")
+DB_PASS = BuiltIn().get_variable_value("${DBPass}")
+DB_HOST = BuiltIn().get_variable_value("${DBHost}")
+DB_PORT = BuiltIn().get_variable_value("${DBPort}")
+
+
+logger.console("Broker.py")
+logger.console(BuiltIn().run_keyword_and_return_status("Kill Broker"))
+logger.console(BuiltIn().keyword_should_exist("Kill Broker"))
+logger.console("DB_NAME: "+DB_NAME)
+logger.console("DB_NAME_STORAGE: "+DB_NAME_STORAGE)
+logger.console("DB_USER: "+DB_USER)
+logger.console("DB_PAS: "+DB_PASS)
+logger.console("DB_HOST: "+DB_HOST)
+logger.console("DB_PORT: "+DB_PORT)
 
 config = {
     "central": """{{
@@ -71,11 +92,11 @@ config = {
                 "db_type": "mysql",
                 "retry_interval": "5",
                 "buffering_timeout": "0",
-                "db_host": "localhost",
-                "db_port": "3306",
-                "db_user": "centreon",
-                "db_password": "centreon",
-                "db_name": "centreon_storage",
+                "db_host": f"{DB_HOST}",
+                "db_port": f"{DB_PORT}",
+                "db_user": f"{DB_USER}",
+                "db_password": f"{DB_PASS}",
+                "db_name": f"{DB_NAME_STORAGE}",
                 "queries_per_transaction": "1000",
                 "connections_count": "3",
                 "read_timeout": "1",
@@ -101,11 +122,11 @@ config = {
                 "buffering_timeout": "0",
                 "length": "15552000",
                 "db_type": "mysql",
-                "db_host": "localhost",
-                "db_port": "3306",
-                "db_user": "centreon",
-                "db_password": "centreon",
-                "db_name": "centreon_storage",
+                "db_host": f"{DB_HOST}",
+                "db_port": f"{DB_PORT}",
+                "db_user": f"{DB_USER}",
+                "db_password": f"{DB_PASS}",
+                "db_name": f"{DB_NAME_STORAGE}",
                 "queries_per_transaction": "1000",
                 "read_timeout": "1",
                 "check_replication": "no",
@@ -305,11 +326,11 @@ config = {
                 "db_type": "mysql",
                 "retry_interval": "5",
                 "buffering_timeout": "0",
-                "db_host": "localhost",
-                "db_port": "3306",
-                "db_user": "centreon",
-                "db_password": "centreon",
-                "db_name": "centreon_storage",
+                "db_host": f"{DB_HOST}",
+                "db_port": f"{DB_PORT}",
+                "db_user": f"{DB_USER}",
+                "db_password": f"{DB_PASS}",
+                "db_name": f"{DB_NAME_STORAGE}",
                 "queries_per_transaction": "1000",
                 "connections_count": "3",
                 "read_timeout": "1",
@@ -347,11 +368,11 @@ config = {
                 "buffering_timeout": "0",
                 "length": "15552000",
                 "db_type": "mysql",
-                "db_host": "localhost",
-                "db_port": "3306",
-                "db_user": "centreon",
-                "db_password": "centreon",
-                "db_name": "centreon_storage",
+                "db_host": f"{DB_HOST}",
+                "db_port": f"{DB_PORT}",
+                "db_user": f"{DB_USER}",
+                "db_password": f"{DB_PASS}",
+                "db_name": f"{DB_NAME_STORAGE}",
                 "queries_per_transaction": "1000",
                 "read_timeout": "1",
                 "check_replication": "no",
@@ -483,11 +504,11 @@ def config_broker_sql_output(name, output):
         output_dict.append({
             "name": "central-broker-unified-sql",
             "db_type": "mysql",
-            "db_host": "localhost",
-            "db_port": "3306",
-            "db_user": "centreon",
-            "db_password": "centreon",
-            "db_name": "centreon_storage",
+            "db_host": f"{DB_HOST}",
+            "db_port": f"{DB_PORT}",
+            "db_user": f"{DB_USER}",
+            "db_password": f"{DB_PASS}",
+            "db_name": f"{DB_NAME_STORAGE}",
             "interval": "60",
             "length": "15552000",
             "queries_per_transaction": "20000",
@@ -506,11 +527,11 @@ def config_broker_sql_output(name, output):
             "db_type": "mysql",
             "retry_interval": "5",
             "buffering_timeout": "0",
-            "db_host": "localhost",
-            "db_port": "3306",
-            "db_user": "centreon",
-            "db_password": "centreon",
-            "db_name": "centreon_storage",
+            "db_host": f"{DB_HOST}",
+            "db_port": f"{DB_PORT}",
+            "db_user": f"{DB_USER}",
+            "db_password": f"{DB_PASS}",
+            "db_name": f"{DB_NAME_STORAGE}",
             "queries_per_transaction": "1000",
             "connections_count": "3",
             "read_timeout": "1",
@@ -523,11 +544,11 @@ def config_broker_sql_output(name, output):
             "buffering_timeout": "0",
             "length": "15552000",
             "db_type": "mysql",
-            "db_host": "localhost",
-            "db_port": "3306",
-            "db_user": "centreon",
-            "db_password": "centreon",
-            "db_name": "centreon_storage",
+            "db_host": f"{DB_HOST}",
+            "db_port": f"{DB_PORT}",
+            "db_user": f"{DB_USER}",
+            "db_password": f"{DB_PASS}",
+            "db_name": f"{DB_NAME_STORAGE}",
             "queries_per_transaction": "1000",
             "read_timeout": "1",
             "check_replication": "no",
@@ -825,10 +846,10 @@ def get_broker_stats_size(name, key, timeout=TIMEOUT):
 #
 def get_not_existing_indexes(count: int):
     # Connect to the database
-    connection = pymysql.connect(host='localhost',
-                                 user='centreon',
-                                 password='centreon',
-                                 database='centreon_storage',
+    connection = pymysql.connect(host=f"{DB_HOST}",
+                                 user=f"{DB_USER}",
+                                 password=f"{DB_PASS}",
+                                 database=f"{DB_NAME_STORAGE}",
                                  charset='utf8mb4',
                                  cursorclass=pymysql.cursors.DictCursor)
 
@@ -867,10 +888,10 @@ def get_indexes_to_delete(count: int):
     ids = [int(f.split(".")[0]) for f in files]
 
     # Connect to the database
-    connection = pymysql.connect(host='localhost',
-                                 user='centreon',
-                                 password='centreon',
-                                 database='centreon_storage',
+    connection = pymysql.connect(host=f"{DB_HOST}",
+                                 user=f"{DB_USER}",
+                                 password=f"{DB_PASS}",
+                                 database=f"{DB_NAME_STORAGE}",
                                  charset='utf8mb4',
                                  cursorclass=pymysql.cursors.DictCursor)
 
@@ -907,10 +928,10 @@ def get_not_existing_metrics(count: int):
     ids = [int(f.split(".")[0]) for f in files]
 
     # Connect to the database
-    connection = pymysql.connect(host='localhost',
-                                 user='centreon',
-                                 password='centreon',
-                                 database='centreon_storage',
+    connection = pymysql.connect(host=f"{DB_HOST}",
+                                 user=f"{DB_USER}",
+                                 password=f"{DB_PASS}",
+                                 database=f"{DB_NAME_STORAGE}",
                                  charset='utf8mb4',
                                  cursorclass=pymysql.cursors.DictCursor)
 
@@ -945,10 +966,10 @@ def get_metrics_to_delete(count: int):
     ids = [int(f.split(".")[0]) for f in files]
 
     # Connect to the database
-    connection = pymysql.connect(host='localhost',
-                                 user='centreon',
-                                 password='centreon',
-                                 database='centreon_storage',
+    connection = pymysql.connect(host=f"{DB_HOST}",
+                                 user=f"{DB_USER}",
+                                 password=f"{DB_PASS}",
+                                 database=f"{DB_NAME_STORAGE}",
                                  charset='utf8mb4',
                                  cursorclass=pymysql.cursors.DictCursor)
 
@@ -976,10 +997,10 @@ def create_metrics(count: int):
     ids = [int(f.split(".")[0]) for f in files]
 
     # Connect to the database
-    connection = pymysql.connect(host='localhost',
-                                 user='centreon',
-                                 password='centreon',
-                                 database='centreon_storage',
+    connection = pymysql.connect(host=f"{DB_HOST}",
+                                 user=f"{DB_USER}",
+                                 password=f"{DB_PASS}",
+                                 database=f"{DB_NAME_STORAGE}",
                                  charset='utf8mb4',
                                  cursorclass=pymysql.cursors.DictCursor)
 
@@ -1032,10 +1053,10 @@ def get_indexes_to_rebuild(count: int):
     ids = [int(f.split(".")[0]) for f in files]
 
     # Connect to the database
-    connection = pymysql.connect(host='localhost',
-                                 user='centreon',
-                                 password='centreon',
-                                 database='centreon_storage',
+    connection = pymysql.connect(host=f"{DB_HOST}",
+                                 user=f"{DB_USER}",
+                                 password=f"{DB_PASS}",
+                                 database=f"{DB_NAME_STORAGE}",
                                  charset='utf8mb4',
                                  cursorclass=pymysql.cursors.DictCursor)
     retval = []
@@ -1082,10 +1103,10 @@ def get_indexes_to_rebuild(count: int):
 # @return a list of metric ids.
 def get_metrics_matching_indexes(indexes):
     # Connect to the database
-    connection = pymysql.connect(host='localhost',
-                                 user='centreon',
-                                 password='centreon',
-                                 database='centreon_storage',
+    connection = pymysql.connect(host=f"{DB_HOST}",
+                                 user=f"{DB_USER}",
+                                 password=f"{DB_PASS}",
+                                 database=f"{DB_NAME_STORAGE}",
                                  charset='utf8mb4',
                                  cursorclass=pymysql.cursors.DictCursor)
     with connection:
@@ -1239,14 +1260,14 @@ def add_bam_config_to_broker(name):
         "cache": "yes",
         "check_replication": "no",
         "command_file": "/var/lib/centreon-engine/config0/rw/centengine.cmd",
-        "db_host": "127.0.0.1",
-        "db_name": "centreon",
-        "db_password": "centreon",
-        "db_port": "3306",
+        "db_host": f"{DB_HOST}",
+        "db_name": f"{DB_NAME}",
+        "db_password": f"{DB_PASS}",
+        "db_port": f"{DB_PORT}",
         "db_type": "mysql",
-        "db_user": "centreon",
+        "db_user": f"{DB_USER}",
         "queries_per_transaction": "0",
-        "storage_db_name": "centreon_storage",
+        "storage_db_name": f"{DB_NAME_STORAGE}",
         "type": "bam"
     })
     output_dict.append({
@@ -1257,12 +1278,12 @@ def add_bam_config_to_broker(name):
             ]
         },
         "check_replication": "no",
-        "db_host": "127.0.0.1",
-        "db_name": "centreon_storage",
-        "db_password": "centreon",
-        "db_port": "3306",
+        "db_host": f"{DB_HOST}",
+        "db_name": f"{DB_NAME_STORAGE}",
+        "db_password": f"{DB_PASS}",
+        "db_port": f"{DB_PORT}",
         "db_type": "mysql",
-        "db_user": "centreon",
+        "db_user": f"{DB_USER}",
         "queries_per_transaction": "0",
         "type": "bam_bi"
     })
