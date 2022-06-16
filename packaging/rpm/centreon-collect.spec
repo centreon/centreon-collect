@@ -227,8 +227,10 @@ Include files needed to develop a module Centreon Broker.
 
 
 %package -n centreon-collect-client
-Summary: Centreon Collect gRPC Client. It can be used to exchange with
-centreon-broker or with centreon-engine
+Summary: Centreon Collect gRPC Client. It can be used to exchange with cbd or centengine
+Group: Applications/Communications
+Requires: centreon-broker-core = %{version}-%{release}
+Requires: centreon-engine = %{version}-%{release}
 
 %description -n centreon-collect-client
 This software is a gRPC client designed to easily send commands to cbd or
