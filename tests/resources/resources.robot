@@ -1,4 +1,5 @@
 *** Settings ***
+Resource	./db_variables.robot
 Library	Process
 Library	OperatingSystem
 Library	Common.py
@@ -129,10 +130,3 @@ ${rrdLog}	${BROKER_LOG}/central-rrd-master.log
 ${logEngine0}	${ENGINE_LOG}/config0/centengine.log
 ${logEngine1}	${ENGINE_LOG}/config1/centengine.log
 ${logEngine2}	${ENGINE_LOG}/config2/centengine.log
-
-${DBName_Storage}	centreon_storage
-${DBName}	centreon
-${DBHost}	localhost
-${DBUser}	centreon
-${DBPass}	Fa@V@?L9@4Wfh70u
-${DBPort}	3306

@@ -11,7 +11,7 @@ from robot.libraries.BuiltIn import BuiltIn
 
 TIMEOUT = 30
 
-BuiltIn().import_resource('resources.robot')
+BuiltIn().import_resource('db_variables.robot')
 DB_NAME_STORAGE = BuiltIn().get_variable_value("${DBName_Storage}")
 DB_NAME = BuiltIn().get_variable_value("${DBName}")
 DB_USER = BuiltIn().get_variable_value("${DBUser}")
@@ -19,14 +19,6 @@ DB_PASS = BuiltIn().get_variable_value("${DBPass}")
 DB_HOST = BuiltIn().get_variable_value("${DBHost}")
 DB_PORT = BuiltIn().get_variable_value("${DBPort}")
 
-logger.console("Common.py")
-logger.console(BuiltIn().run_keyword_and_return_status("Kill Broker"))
-logger.console("DB_NAME: "+DB_NAME)
-logger.console("DB_NAME_STORAGE: "+DB_NAME_STORAGE)
-logger.console("DB_USER: "+DB_USER)
-logger.console("DB_PAS: "+DB_PASS)
-logger.console("DB_HOST: "+DB_HOST)
-logger.console("DB_PORT: "+DB_PORT)
 
 def check_connection(port: int, pid1: int, pid2: int):
     limit = time.time() + TIMEOUT
@@ -337,11 +329,11 @@ def set_command_status(cmd, status):
 def check_service_status_with_timeout(hostname: str, service_desc: str, status: int, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
-        connection = pymysql.connect(host=f"{DB_HOST}",
-                                     user=f"{DB_USER}",
-                                     password=f"{DB_PASS}",
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
                                      autocommit=True,
-                                     database=f"{DB_NAME_STORAGE}",
+                                     database=DB_NAME_STORAGE,
                                      charset='utf8mb4',
                                      cursorclass=pymysql.cursors.DictCursor)
 
@@ -359,10 +351,10 @@ def check_service_status_with_timeout(hostname: str, service_desc: str, status: 
 def check_severity_with_timeout(name: str, level, icon_id, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
-        connection = pymysql.connect(host=f"{DB_HOST}",
-                                     user=f"{DB_USER}",
-                                     password=f"{DB_PASS}",
-                                     database=f"{DB_NAME_STORAGE}",
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
                                      charset='utf8mb4',
                                      cursorclass=pymysql.cursors.DictCursor)
 
@@ -381,10 +373,10 @@ def check_severity_with_timeout(name: str, level, icon_id, timeout: int):
 def check_tag_with_timeout(name: str, typ, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
-        connection = pymysql.connect(host=f"{DB_HOST}",
-                                     user=f"{DB_USER}",
-                                     password=f"{DB_PASS}",
-                                     database=f"{DB_NAME_STORAGE}",
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
                                      charset='utf8mb4',
                                      cursorclass=pymysql.cursors.DictCursor)
 
@@ -403,10 +395,10 @@ def check_tag_with_timeout(name: str, typ, timeout: int):
 def check_severities_count(value: int, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
-        connection = pymysql.connect(host=f"{DB_HOST}",
-                                     user=f"{DB_USER}",
-                                     password=f"{DB_PASS}",
-                                     database=f"{DB_NAME_STORAGE}",
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
                                      charset='utf8mb4',
                                      cursorclass=pymysql.cursors.DictCursor)
 
@@ -424,10 +416,10 @@ def check_severities_count(value: int, timeout: int):
 def check_tags_count(value: int, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
-        connection = pymysql.connect(host=f"{DB_HOST}",
-                                     user=f"{DB_USER}",
-                                     password=f"{DB_PASS}",
-                                     database=f"{DB_NAME_STORAGE}",
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
                                      charset='utf8mb4',
                                      cursorclass=pymysql.cursors.DictCursor)
 
@@ -445,10 +437,10 @@ def check_tags_count(value: int, timeout: int):
 def check_ba_status_with_timeout(ba_name: str, status: int, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
-        connection = pymysql.connect(host=f"{DB_HOST}",
-                                     user=f"{DB_USER}",
-                                     password=f"{DB_PASS}",
-                                     database=f"{DB_NAME_STORAGE}",
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
                                      charset='utf8mb4',
                                      cursorclass=pymysql.cursors.DictCursor)
         with connection:
@@ -465,10 +457,10 @@ def check_ba_status_with_timeout(ba_name: str, status: int, timeout: int):
 def check_service_downtime_with_timeout(hostname: str, service_desc: str, enabled, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
-        connection = pymysql.connect(host=f"{DB_HOST}",
-                                     user=f"{DB_USER}",
-                                     password=f"{DB_PASS}",
-                                     database=f"{DB_NAME_STORAGE}",
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
                                      charset='utf8mb4',
                                      cursorclass=pymysql.cursors.DictCursor)
 
@@ -485,10 +477,10 @@ def check_service_downtime_with_timeout(hostname: str, service_desc: str, enable
 
 def delete_service_downtime(hst: str, svc: str):
     now = int(time.time())
-    connection = pymysql.connect(host=f"{DB_HOST}",
-                                 user=f"{DB_USER}",
-                                 password=f"{DB_PASS}",
-                                 database=f"{DB_NAME_STORAGE}",
+    connection = pymysql.connect(host=DB_HOST,
+                                 user=DB_USER,
+                                 password=DB_PASS,
+                                 database=DB_NAME_STORAGE,
                                  charset='utf8mb4',
                                  cursorclass=pymysql.cursors.DictCursor)
 
@@ -505,10 +497,10 @@ def delete_service_downtime(hst: str, svc: str):
 
 
 def number_of_downtimes_is(nb: int):
-    connection = pymysql.connect(host=f"{DB_HOST}",
-                                 user=f"{DB_USER}",
-                                 password=f"{DB_PASS}",
-                                 database=f"{DB_NAME_STORAGE}",
+    connection = pymysql.connect(host=DB_HOST,
+                                 user=DB_USER,
+                                 password=DB_PASS,
+                                 database=DB_NAME_STORAGE,
                                  charset='utf8mb4',
                                  cursorclass=pymysql.cursors.DictCursor)
 
@@ -521,10 +513,10 @@ def number_of_downtimes_is(nb: int):
 
 
 def clear_db(table: str):
-    connection = pymysql.connect(host=f"{DB_HOST}",
-                                 user=f"{DB_USER}",
-                                 password=f"{DB_PASS}",
-                                 database=f"{DB_NAME_STORAGE}",
+    connection = pymysql.connect(host=DB_HOST,
+                                 user=DB_USER,
+                                 password=DB_PASS,
+                                 database=DB_NAME_STORAGE,
                                  charset='utf8mb4',
                                  cursorclass=pymysql.cursors.DictCursor)
 
@@ -537,10 +529,10 @@ def clear_db(table: str):
 def check_service_severity_with_timeout(host_id: int, service_id: int, severity_id, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
-        connection = pymysql.connect(host=f"{DB_HOST}",
-                                     user=f"{DB_USER}",
-                                     password=f"{DB_PASS}",
-                                     database=f"{DB_NAME_STORAGE}",
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
                                      charset='utf8mb4',
                                      cursorclass=pymysql.cursors.DictCursor)
 
@@ -562,10 +554,10 @@ def check_service_severity_with_timeout(host_id: int, service_id: int, severity_
 def check_host_severity_with_timeout(host_id: int, severity_id, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
-        connection = pymysql.connect(host=f"{DB_HOST}",
-                                     user=f"{DB_USER}",
-                                     password=f"{DB_PASS}",
-                                     database=f"{DB_NAME_STORAGE}",
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
                                      charset='utf8mb4',
                                      autocommit=True,
                                      cursorclass=pymysql.cursors.DictCursor)
@@ -596,10 +588,10 @@ def check_resources_tags_with_timeout(parent_id: int, mid: int, typ: str, tag_id
         t = 3
     limit = time.time() + timeout
     while time.time() < limit:
-        connection = pymysql.connect(host=f"{DB_HOST}",
-                                     user=f"{DB_USER}",
-                                     password=f"{DB_PASS}",
-                                     database=f"{DB_NAME_STORAGE}",
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
                                      charset='utf8mb4',
                                      cursorclass=pymysql.cursors.DictCursor)
 
@@ -642,10 +634,10 @@ def check_resources_tags_with_timeout(parent_id: int, mid: int, typ: str, tag_id
 def check_host_tags_with_timeout(host_id: int, tag_id: int, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
-        connection = pymysql.connect(host=f"{DB_HOST}",
-                                     user=f"{DB_USER}",
-                                     password=f"{DB_PASS}",
-                                     database=f"{DB_NAME_STORAGE}",
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
                                      charset='utf8mb4',
                                      cursorclass=pymysql.cursors.DictCursor)
 
@@ -664,10 +656,10 @@ def check_host_tags_with_timeout(host_id: int, tag_id: int, timeout: int):
 def check_number_of_resources_monitored_by_poller_is(poller: int, value: int, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
-        connection = pymysql.connect(host=f"{DB_HOST}",
-                                     user=f"{DB_USER}",
-                                     password=f"{DB_PASS}",
-                                     database=f"{DB_NAME_STORAGE}",
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
                                      charset='utf8mb4',
                                      cursorclass=pymysql.cursors.DictCursor)
 
@@ -687,10 +679,10 @@ def check_number_of_downtimes(expected: int, start, timeout: int):
     limit = time.time() + timeout
     d = parser.parse(start).timestamp()
     while time.time() < limit:
-        connection = pymysql.connect(host=f"{DB_HOST}",
-                                     user=f"{DB_USER}",
-                                     password=f"{DB_PASS}",
-                                     database=f"{DB_NAME_STORAGE}",
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
                                      charset='utf8mb4',
                                      cursorclass=pymysql.cursors.DictCursor)
         with connection:
@@ -710,10 +702,10 @@ def check_number_of_downtimes(expected: int, start, timeout: int):
 def check_number_of_relations_between_hostgroup_and_hosts(hostgroup: int, value: int, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
-        connection = pymysql.connect(host=f"{DB_HOST}",
-                                     user=f"{DB_USER}",
-                                     password=f"{DB_PASS}",
-                                     database=f"{DB_NAME_STORAGE}",
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
                                      charset='utf8mb4',
                                      cursorclass=pymysql.cursors.DictCursor)
 
@@ -732,10 +724,10 @@ def check_number_of_relations_between_hostgroup_and_hosts(hostgroup: int, value:
 def check_number_of_relations_between_servicegroup_and_services(servicegroup: int, value: int, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
-        connection = pymysql.connect(host=f"{DB_HOST}",
-                                     user=f"{DB_USER}",
-                                     password=f"{DB_PASS}",
-                                     database=f"{DB_NAME_STORAGE}",
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
                                      charset='utf8mb4',
                                      cursorclass=pymysql.cursors.DictCursor)
 
@@ -754,10 +746,10 @@ def check_number_of_relations_between_servicegroup_and_services(servicegroup: in
 def check_host_status(host: str, value: int, t: int, in_resources: bool, timeout: int = TIMEOUT):
     limit = time.time() + timeout
     while time.time() < limit:
-        connection = pymysql.connect(host=f"{DB_HOST}",
-                                     user=f"{DB_USER}",
-                                     password=f"{DB_PASS}",
-                                     database=f"{DB_NAME_STORAGE}",
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
                                      charset='utf8mb4',
                                      cursorclass=pymysql.cursors.DictCursor)
 

@@ -7,7 +7,7 @@ from robot.libraries.BuiltIn import BuiltIn
 CONF_DIR = "/etc/centreon-engine"
 ENGINE_HOME = "/var/lib/centreon-engine"
 
-BuiltIn().import_resource('resources.robot')
+BuiltIn().import_resource('db_variables.robot')
 DB_NAME_STORAGE = BuiltIn().get_variable_value("${DBName_Storage}")
 DB_NAME = BuiltIn().get_variable_value("${DBName}")
 DB_USER = BuiltIn().get_variable_value("${DBUser}")
@@ -15,14 +15,6 @@ DB_PASS = BuiltIn().get_variable_value("${DBPass}")
 DB_HOST = BuiltIn().get_variable_value("${DBHost}")
 DB_PORT = BuiltIn().get_variable_value("${DBPort}")
 
-logger.console("db_conf.py")
-logger.console(BuiltIn().run_keyword_and_return_status("Kill Broker"))
-logger.console("DB_NAME: "+DB_NAME)
-logger.console("DB_NAME_STORAGE: "+DB_NAME_STORAGE)
-logger.console("DB_USER: "+DB_USER)
-logger.console("DB_PAS: "+DB_PASS)
-logger.console("DB_HOST: "+DB_HOST)
-logger.console("DB_PORT: "+DB_PORT)
 
 class DbConf:
     def __init__(self, engine):
@@ -44,10 +36,10 @@ class DbConf:
 
     def clear_db(self):
         # Connect to the database
-        connection = pymysql.connect(host=f"{DB_HOST}",
-                                     user=f"{DB_USER}",
-                                     password=f"{DB_PASS}",
-                                     database=f"{DB_NAME}",
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME,
                                      charset='utf8mb4',
                                      cursorclass=pymysql.cursors.DictCursor)
 
@@ -74,10 +66,10 @@ class DbConf:
             connection.commit()
 
     def init_bam(self):
-        connection = pymysql.connect(host=f"{DB_HOST}",
-                                     user=f"{DB_USER}",
-                                     password=f"{DB_PASS}",
-                                     database=f"{DB_NAME}",
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME,
                                      charset='utf8mb4',
                                      cursorclass=pymysql.cursors.DictCursor)
 
@@ -91,10 +83,10 @@ class DbConf:
         self.engine.centengine_conf_add_bam()
 
     def create_conf_db(self):
-        connection = pymysql.connect(host=f"{DB_HOST}",
-                                     user=f"{DB_USER}",
-                                     password=f"{DB_PASS}",
-                                     database=f"{DB_NAME}",
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME,
                                      charset='utf8mb4',
                                      cursorclass=pymysql.cursors.DictCursor)
 
@@ -179,10 +171,10 @@ class DbConf:
                     connection.commit()
 
     def create_ba_with_services(self, name:str, typ:str, svc:[(str,str)]):
-        connection = pymysql.connect(host=f"{DB_HOST}",
-                                     user=f"{DB_USER}",
-                                     password=f"{DB_PASS}",
-                                     database=f"{DB_NAME}",
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME,
                                      charset='utf8mb4',
                                      cursorclass=pymysql.cursors.DictCursor)
 
