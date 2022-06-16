@@ -116,10 +116,10 @@ int main(int argc, char** argv) {
   //
   //  const google::protobuf::DescriptorPool* p =
   //  google::protobuf::DescriptorPool::generated_pool(); const
-  //  google::protobuf::ServiceDescriptor* serviceDescriptor =
+  //  google::protobuf::ServiceDescriptor* service_descriptor =
   //  p->FindServiceByName(service_str); const
   //  google::protobuf::MethodDescriptor* method =
-  //  serviceDescriptor->FindMethodByName("GetVersion");
+  //  service_descriptor->FindMethodByName("GetVersion");
   ////  const google::protobuf::Descriptor* input_desc = method->input_type();
   //  const google::protobuf::Descriptor* output_desc = method->output_type();
   ////
@@ -183,11 +183,11 @@ int main(int argc, char** argv) {
   //  if (list) {
   //    const google::protobuf::DescriptorPool* p =
   //    google::protobuf::DescriptorPool::generated_pool(); const
-  //    google::protobuf::ServiceDescriptor* serviceDescriptor =
+  //    google::protobuf::ServiceDescriptor* service_descriptor =
   //    p->FindServiceByName(name); size_t size =
-  //    serviceDescriptor->method_count(); for (uint32_t i = 0; i < size; i++) {
+  //    service_descriptor->method_count(); for (uint32_t i = 0; i < size; i++) {
   //      const google::protobuf::MethodDescriptor* method =
-  //      serviceDescriptor->method(i); std::cout << "* " << method->name() <<
+  //      service_descriptor->method(i); std::cout << "* " << method->name() <<
   //      std::endl; const google::protobuf::Descriptor* message =
   //      method->input_type(); std::cout << "  - input: " << message->name() <<
   //      std::endl; for (int j = 0; j < message->field_count(); j++) {

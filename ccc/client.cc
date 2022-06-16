@@ -99,22 +99,22 @@ std::list<std::string> client::methods() const {
   std::list<std::string> retval;
   const google::protobuf::DescriptorPool* p =
       google::protobuf::DescriptorPool::generated_pool();
-  const google::protobuf::ServiceDescriptor* serviceDescriptor;
+  const google::protobuf::ServiceDescriptor* service_descriptor;
   switch (_server) {
     case CCC_BROKER:
-      serviceDescriptor = p->FindServiceByName("com.centreon.broker.Broker");
+      service_descriptor = p->FindServiceByName("com.centreon.broker.Broker");
       break;
     case CCC_ENGINE:
-      serviceDescriptor = p->FindServiceByName("com.centreon.engine.Engine");
+      service_descriptor = p->FindServiceByName("com.centreon.engine.Engine");
       break;
     default:
       // Should not occur
       assert(1 == 0);
   }
-  size_t size = serviceDescriptor->method_count();
+  size_t size = service_descriptor->method_count();
   for (uint32_t i = 0; i < size; i++) {
     const google::protobuf::MethodDescriptor* method =
-        serviceDescriptor->method(i);
+        service_descriptor->method(i);
     const google::protobuf::Descriptor* input_message = method->input_type();
     const google::protobuf::Descriptor* output_message = method->output_type();
     retval.emplace_back(absl::StrFormat(
