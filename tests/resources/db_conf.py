@@ -8,12 +8,12 @@ CONF_DIR = "/etc/centreon-engine"
 ENGINE_HOME = "/var/lib/centreon-engine"
 
 BuiltIn().import_resource('db_variables.robot')
-str DB_NAME_STORAGE = BuiltIn().get_variable_value("${DBName_Storage}")
-str DB_NAME = BuiltIn().get_variable_value("${DBName}")
-str DB_USER = BuiltIn().get_variable_value("${DBUser}")
-str DB_PASS = BuiltIn().get_variable_value("${DBPass}")
-str DB_HOST = BuiltIn().get_variable_value("${DBHost}")
-str DB_PORT = BuiltIn().get_variable_value("${DBPort}")
+DB_NAME_STORAGE = BuiltIn().get_variable_value("${DBName_Storage}")
+DB_NAME = BuiltIn().get_variable_value("${DBName}")
+DB_USER = BuiltIn().get_variable_value("${DBUser}")
+DB_PASS = BuiltIn().get_variable_value("${DBPass}")
+DB_HOST = BuiltIn().get_variable_value("${DBHost}")
+DB_PORT = BuiltIn().get_variable_value("${DBPort}")
 
 
 class DbConf:
