@@ -226,6 +226,15 @@ Group: Applications/Communications
 Include files needed to develop a module Centreon Broker.
 
 
+%package -n centreon-collect-client
+Summary: Centreon Collect gRPC Client. It can be used to exchange with
+centreon-broker or with centreon-engine
+
+%description -n centreon-collect-client
+This software is a gRPC client designed to easily send commands to cbd or
+centengine.
+
+
 %prep
 %setup -q -n %{name}-%{version}
 
@@ -451,6 +460,10 @@ fi
 %{_prefix}/include/centreon-broker
 %doc broker/LICENSE
 %{_includedir}/centreon-broker
+
+%files -n centreon-collect-client
+%defattr(-,root,root,-)
+%{_bindir}/ccc
 
 %files
 %{_exec_prefix}/lib/systemd/system/cbd.service
