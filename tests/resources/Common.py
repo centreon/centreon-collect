@@ -440,7 +440,7 @@ def check_ba_status_with_timeout(ba_name: str, status: int, timeout: int):
         connection = pymysql.connect(host=DB_HOST,
                                      user=DB_USER,
                                      password=DB_PASS,
-                                     database=DB_NAME_STORAGE,
+                                     database=DB_NAME,
                                      charset='utf8mb4',
                                      cursorclass=pymysql.cursors.DictCursor)
         with connection:
