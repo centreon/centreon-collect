@@ -23,6 +23,7 @@ if (env.BRANCH_NAME.startsWith('release-')) {
   env.REPO = 'testing'
 } else if ((env.BRANCH_NAME == env.REF_BRANCH) || (env.BRANCH_NAME == maintenanceBranch)) {
   env.BUILD = 'REFERENCE'
+  env.REPO = 'testing'
 } else if ((env.BRANCH_NAME == 'develop') || (env.BRANCH_NAME == qaBranch)) {
   env.BUILD = 'QA'
   env.REPO = 'unstable'
