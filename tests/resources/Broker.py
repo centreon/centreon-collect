@@ -23,13 +23,15 @@ from robot.libraries.BuiltIn import BuiltIn
 TIMEOUT = 30
 
 BuiltIn().import_resource('db_variables.robot')
-DB_NAME_STORAGE = BuiltIn().get_variable_value("${DBName_Storage}")
-DB_NAME = BuiltIn().get_variable_value("${DBName}")
+DB_NAME_STORAGE = BuiltIn().get_variable_value("${DBName}")
+DB_NAME_CONF = BuiltIn().get_variable_value("${DBNameConf}")
 DB_USER = BuiltIn().get_variable_value("${DBUser}")
 DB_PASS = BuiltIn().get_variable_value("${DBPass}")
 DB_HOST = BuiltIn().get_variable_value("${DBHost}")
 DB_PORT = BuiltIn().get_variable_value("${DBPort}")
 
+logger.console("DB_NAME_CONF"+DB_NAME_CONF)
+logger.console("DB_NAME_STORAGE"+DB_NAME_STORAGE)
 
 config = {
     "central": """{{
@@ -1251,7 +1253,7 @@ def add_bam_config_to_broker(name):
         "check_replication": "no",
         "command_file": "/var/lib/centreon-engine/config0/rw/centengine.cmd",
         "db_host": DB_HOST,
-        "db_name": DB_NAME,
+        "db_name": DB_NAME_CONF,
         "db_password": DB_PASS,
         "db_port": DB_PORT,
         "db_type": "mysql",

@@ -12,8 +12,8 @@ from robot.libraries.BuiltIn import BuiltIn
 TIMEOUT = 30
 
 BuiltIn().import_resource('db_variables.robot')
-DB_NAME_STORAGE = BuiltIn().get_variable_value("${DBName_Storage}")
-DB_NAME = BuiltIn().get_variable_value("${DBName}")
+DB_NAME_STORAGE = BuiltIn().get_variable_value("${DBName}")
+DB_NAME_CONF = BuiltIn().get_variable_value("${DBNameConf}")
 DB_USER = BuiltIn().get_variable_value("${DBUser}")
 DB_PASS = BuiltIn().get_variable_value("${DBPass}")
 DB_HOST = BuiltIn().get_variable_value("${DBHost}")
@@ -440,7 +440,7 @@ def check_ba_status_with_timeout(ba_name: str, status: int, timeout: int):
         connection = pymysql.connect(host=DB_HOST,
                                      user=DB_USER,
                                      password=DB_PASS,
-                                     database=DB_NAME,
+                                     database=DB_NAME_CONF,
                                      charset='utf8mb4',
                                      cursorclass=pymysql.cursors.DictCursor)
         with connection:
