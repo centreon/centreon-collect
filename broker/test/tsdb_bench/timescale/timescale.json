@@ -3,7 +3,7 @@
     "name": "timescale on docker",
     "host": "127.0.0.1",
     "port": 5432,
-    "dbname": "nyc_data",
+    "dbname": "centreon",
     "user": "postgres",
     "password": "password"
 }

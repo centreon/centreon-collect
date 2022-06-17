@@ -54,21 +54,21 @@ void expandable_buffer::hton_append16(uint16_t data) {
 void expandable_buffer::hton_append32(uint32_t data) {
   reserve(4);
   *(_buffer + _size++) = data >> 24;
-  *(_buffer + _size++) = (data >> 16) & 0x0F;
-  *(_buffer + _size++) = (data >> 8) & 0x0F;
-  *(_buffer + _size++) = data & 0x0F;
+  *(_buffer + _size++) = (data >> 16) & 0x0FF;
+  *(_buffer + _size++) = (data >> 8) & 0x0FF;
+  *(_buffer + _size++) = data & 0x0FF;
 }
 
 void expandable_buffer::hton_append64(uint64_t data) {
   reserve(8);
   *(_buffer + _size++) = data >> 56;
-  *(_buffer + _size++) = (data >> 48) & 0x0F;
-  *(_buffer + _size++) = (data >> 40) & 0x0F;
-  *(_buffer + _size++) = (data >> 32) & 0x0F;
-  *(_buffer + _size++) = (data >> 24) & 0x0F;
-  *(_buffer + _size++) = (data >> 16) & 0x0F;
-  *(_buffer + _size++) = (data >> 8) & 0x0F;
-  *(_buffer + _size++) = data & 0x0F;
+  *(_buffer + _size++) = (data >> 48) & 0x0FF;
+  *(_buffer + _size++) = (data >> 40) & 0x0FF;
+  *(_buffer + _size++) = (data >> 32) & 0x0FF;
+  *(_buffer + _size++) = (data >> 24) & 0x0FF;
+  *(_buffer + _size++) = (data >> 16) & 0x0FF;
+  *(_buffer + _size++) = (data >> 8) & 0x0FF;
+  *(_buffer + _size++) = data & 0x0FF;
 }
 
 /********************************************************************************

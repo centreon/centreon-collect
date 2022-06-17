@@ -55,11 +55,12 @@ class connection : public std::enable_shared_from_this<connection> {
 
   virtual ~connection();
 
-  const std::string& get_name() const { return _name; }
-  const std::string& get_host() const { return _host; }
-  const u_int16_t& get_port() const { return _port; }
-  const std::string& get_user() const { return _user; }
-  const std::string& get_password() const { return _password; }
+  logger_ptr get_logger() const { return _logger; }
+  constexpr const std::string& get_name() const { return _name; }
+  constexpr const std::string& get_host() const { return _host; }
+  constexpr const u_int16_t& get_port() const { return _port; }
+  constexpr const std::string& get_user() const { return _user; }
+  constexpr const std::string& get_password() const { return _password; }
 
   e_state get_state() const { return _state; }
 

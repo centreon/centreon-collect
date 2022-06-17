@@ -3,7 +3,6 @@ abseil/20211102.0
 boost/1.79.0
 spdlog/1.10.0
 fmt/8.1.1
-asio/1.22.1
 #postgres client
 libpq/14.2
 

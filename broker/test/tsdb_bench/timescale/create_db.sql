@@ -1,6 +1,3 @@
-CREATE DATABASE centreon;
-SET search_path TO centreon;
-
 CREATE EXTENSION IF NOT EXISTS timescaledb;
 DROP TABLE IF EXISTS "metrics";
 

@@ -1,0 +1,9 @@
+{
+    "database_type": "prometheus",
+    "name": "prometheus on docker",
+    "host": "127.0.0.1",
+    "port": 9091,
+    "dbname": "dummy",
+    "user": "dummy",
+    "password": "dummy"
+}

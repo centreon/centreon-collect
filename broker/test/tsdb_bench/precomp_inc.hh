@@ -24,12 +24,13 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 
-#include <asio.hpp>
+#include <boost/asio.hpp>
 #include <boost/beast.hpp>
 #include <boost/json.hpp>
 // #include <boost/leaf/error.hpp>
 // #include <boost/leaf/exception.hpp>
 // #include <boost/leaf/handle_errors.hpp>
+#include <boost/beast.hpp>
 #include <boost/program_options.hpp>
 #include <boost/variant.hpp>
 
@@ -37,7 +38,7 @@ using system_clock = std::chrono::system_clock;
 using time_point = system_clock::time_point;
 using duration = system_clock::duration;
 
-using io_context_ptr = std::shared_ptr<asio::io_context>;
+using io_context_ptr = std::shared_ptr<boost::asio::io_context>;
 using logger_ptr = std::shared_ptr<spdlog::logger>;
 
 #endif

@@ -106,4 +106,6 @@ request_type& operator<<(request_type& req, const metric& data) {
   return req;
 }
 
+std::ostream& operator<<(std::ostream& stream, const metric& data);
+
 #endif

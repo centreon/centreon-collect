@@ -62,9 +62,10 @@ class vector_size : public boost::static_visitor<size_t> {
 template <class vector_type, typename data_type>
 struct vector_filler {
   void operator()(vector_type& vect, data_type data) {
-    throw std::invalid_argument(fmt::format("can't fill {} with {} value",
-                                            typeid(vect).name(),
-                                            typeid(data).name()));
+    throw std::invalid_argument(
+        fmt::format("can't fill {} with {} value",
+                    boost::typeindex::type_id<vector_type>().pretty_name(),
+                    boost::typeindex::type_id<data_type>().pretty_name()));
   }
 };
 
@@ -178,7 +179,7 @@ std::pair<bool, std::string> pg_load_request::start_send_data(
 }
 
 constexpr char _binary_header[] = "PGCOPY\n\377\r\n\0\0\0\0\0\0\0\0";
-constexpr char _binary_trailer[] = "377\377";
+constexpr char _binary_trailer[] = "\377\377";
 
 void pg_load_request::create_binary_buffer(const PGresult* res) {
   std::vector<bool> txt_column;  // true if text format, false if binary
@@ -195,14 +196,10 @@ void pg_load_request::create_binary_buffer(const PGresult* res) {
   _pg_buffer.append(_binary_header, 19);
 
   for (size_t row_index = 0; row_index < nb_filled_row; ++row_index) {
-    std::vector<e_column_type>::const_iterator column_type_iter =
-        _columns.begin();
     std::vector<bool>::const_iterator txt_column_iter = txt_column.begin();
     data_matrix::iterator data_iter = _data.begin();
-
-    for (; data_iter != _data.end();
-         ++data_iter, ++txt_column_iter, ++column_type_iter) {
-      _pg_buffer.hton_append16(nb_col);
+    _pg_buffer.hton_append16(nb_col);
+    for (; data_iter != _data.end(); ++data_iter, ++txt_column_iter) {
       if (*txt_column_iter) {  // convert to string
         throw std::invalid_argument(
             "create_binary_buffer txt not implemented yet ");
@@ -214,6 +211,9 @@ void pg_load_request::create_binary_buffer(const PGresult* res) {
   }
 
   _pg_buffer.append(_binary_trailer, 2);
+  std::cerr << fmt::format("create_binary_buffer create a {} bytes buffer",
+                           _pg_buffer.size())
+            << std::endl;
 }
 
 int pg_load_request::send_query(connection& conn) {

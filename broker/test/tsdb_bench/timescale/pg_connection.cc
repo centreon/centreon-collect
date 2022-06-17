@@ -137,8 +137,8 @@ void pg_connection::connect(const time_point& until,
 
   std::vector<const char*> keys, values;
   // has to look-up name?
-  std::error_code err;
-  asio::ip::make_address(_host, err);
+  boost::system::error_code err;
+  boost::asio::ip::make_address(_host, err);
   if (err) {  // name to look up
     keys.push_back("host");
     values.push_back(_host.c_str());
@@ -209,7 +209,7 @@ void pg_connection::connect(const time_point& until,
 void pg_connection::connect_poll(const connection_handler& handler) {
   PostgresPollingStatusType poll_status = PQconnectPoll(_conn);
   if (_socket.native_handle() != PQsocket(_conn)) {
-    _socket.assign(asio::ip::tcp::v4(), PQsocket(_conn));
+    _socket.assign(boost::asio::ip::tcp::v4(), PQsocket(_conn));
   }
   switch (poll_status) {
     case PGRES_POLLING_WRITING:

@@ -10,7 +10,7 @@ namespace detail {
 class result_collector;
 };
 class pg_connection : public ::connection {
-  using socket_type = asio::ip::tcp::socket;
+  using socket_type = boost::asio::ip::tcp::socket;
   socket_type _socket;
   PGconn* _conn;
 

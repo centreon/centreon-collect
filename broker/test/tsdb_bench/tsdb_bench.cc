@@ -4,6 +4,8 @@
 
 #include "db/connection.hh"
 #include "metric.hh"
+#include "pg_metric.hh"
+#include "prometheus/pr_http_server.hh"
 #include "timescale/pg_connection.hh"
 #include "timescale/pg_request.hh"
 
@@ -11,64 +13,121 @@ namespace po = boost::program_options;
 
 using connection_cont = std::vector<connection::pointer>;
 
+/******************************************************************************************
+ *
+ *          timescale
+ *
+ ******************************************************************************************/
+void copy_to_timescale(const metric::metric_cont_ptr& to_insert,
+                       const connection::pointer& conn,
+                       unsigned bulk_size,
+                       unsigned offset) {
+  constexpr std::array<request_base::e_column_type, 6> cols = {
+      request_base::e_column_type::timestamp_c,
+      request_base::e_column_type::int64_c,
+      request_base::e_column_type::int64_c,
+      request_base::e_column_type::int64_c,
+      request_base::e_column_type::int64_c,
+      request_base::e_column_type::double_c,
+  };
+
+  unsigned end = offset + bulk_size;
+  if (end > to_insert->size()) {
+    end = to_insert->size();
+  }
+  if (end == offset) {
+    return;
+  }
+  auto req = std::make_shared<pg::pg_load_request>(
+      "COPY metrics FROM STDIN WITH BINARY", ' ', end - offset, cols.begin(),
+      cols.end(),
+      [to_insert, conn, bulk_size, end](const std::error_code& err,
+                                        const std::string& detail,
+                                        const request_base::pointer& req) {
+        if (err) {
+          SPDLOG_LOGGER_ERROR(conn->get_logger(),
+                              "copy_to_timescale fail to copy data {}, {}",
+                              err.message(), detail);
+          return;
+        }
+        copy_to_timescale(to_insert, conn, bulk_size, end);
+      });
+
+  for (; offset < end; ++offset) {
+    *req << (*to_insert)[offset];
+  }
+  conn->start_request(req);
+}
+
 void bench_timescale(const io_context_ptr& io_context,
                      const logger_ptr& logger,
-                     metric::metric_cont_ptr& to_insert,
+                     const metric::metric_cont_ptr& to_insert,
                      const boost::json::object& db_conf,
                      unsigned bulk_size,
                      unsigned nb_conn) {
-  std::shared_ptr<std::mutex> to_insert_mut;
   for (; nb_conn; --nb_conn) {
     connection::pointer conn =
         pg::pg_connection::create(io_context, db_conf, logger);
-    conn->connect(
-        system_clock::now() + std::chrono::seconds(30),
-        [conn, to_insert, to_insert_mut](const std::error_code& err,
-                                         const std::string& err_detail) {
-          if (!err) {
-            // conn->start_request(std::make_shared<pg::pg_no_result_request>(
-            //     "insert into rides (vendor_id, pickup_datetime, "
-            //     "dropoff_datetime) values('55','2022-06-13 "
-            //     "07:56:21','2022-06-13 "
-            //     "07:59:21')",
-            //     [](const std::error_code&, const std::string&,
-            //        const request_base::pointer&) {}));
-            std::vector<request_base::e_column_type> cols = {
-                request_base::e_column_type::int64_c,
-                request_base::e_column_type::timestamp_c,
-                request_base::e_column_type::timestamp_c};
-            // auto req = std::make_shared<pg::pg_no_result_statement_request>(
-            //     "",
-            //     "insert into rides (vendor_id, pickup_datetime, "
-            //     "dropoff_datetime) values($1,$2,$3)",
-            //     cols.begin(), cols.end(),
-            //     [](const std::error_code&, const std::string&,
-            //        const request_base::pointer&) {});
-
-            auto req = std::make_shared<pg::pg_load_request>(
-                "COPY rides FROM STDIN WITH BINARY", ' ', 1, cols.begin(),
-                cols.end(),
-                [](const std::error_code&, const std::string&,
-                   const request_base::pointer&) {});
-            *req << 58l << system_clock::now()
-                 << system_clock::now() + std::chrono::hours(1);
-            conn->start_request(req);
-          }
-        });
+    conn->connect(system_clock::now() + std::chrono::seconds(30),
+                  [conn, to_insert, bulk_size](const std::error_code& err,
+                                               const std::string& err_detail) {
+                    if (!err) {
+                      copy_to_timescale(to_insert, conn, bulk_size, 0);
+                      // conn->start_request(std::make_shared<pg::pg_no_result_request>(
+                      //     "insert into rides (vendor_id, pickup_datetime, "
+                      //     "dropoff_datetime) values('55','2022-06-13 "
+                      //     "07:56:21','2022-06-13 "
+                      //     "07:59:21')",
+                      //     [](const std::error_code&, const std::string&,
+                      //        const request_base::pointer&) {}));
+                      // auto req =
+                      // std::make_shared<pg::pg_no_result_statement_request>(
+                      //     "",
+                      //     "insert into rides (vendor_id, pickup_datetime, "
+                      //     "dropoff_datetime) values($1,$2,$3)",
+                      //     cols.begin(), cols.end(),
+                      //     [](const std::error_code&, const std::string&,
+                      //        const request_base::pointer&) {});
+                    }
+                  });
   }
 }
 
+/******************************************************************************************
+ *
+ *          prometheus
+ *
+ ******************************************************************************************/
+
+void bench_prometheus(const io_context_ptr& io_context,
+                      const logger_ptr& logger,
+                      const metric::metric_cont_ptr& to_insert,
+                      const boost::json::object& db_conf,
+                      unsigned bulk_size,
+                      unsigned nb_conn) {
+  prometheus::http_server::pointer prom_server =
+      std::make_shared<prometheus::http_server>(io_context, db_conf, logger,
+                                                bulk_size);
+  prom_server->push(to_insert->begin(), to_insert->end());
+  prom_server->start();
+}
+
+/******************************************************************************************
+ *
+ *          main
+ *
+ ******************************************************************************************/
 int main(int argc, char** argv) {
   auto stdout_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
   logger_ptr logger =
       std::make_shared<spdlog::logger>("tsdb_bench", stdout_sink);
   spdlog::register_logger(logger);
 
-  io_context_ptr io_context(std::make_shared<asio::io_context>());
+  io_context_ptr io_context(std::make_shared<boost::asio::io_context>());
 
   po::options_description desc("Allowed options");
   desc.add_options()("help", "produce help message")(
-      "metric-nb", po::value<uint>()->default_value(100000), "nb to insert")(
+      "metric-nb", po::value<uint>()->default_value(100), "nb to insert")(
       "metric-id-nb", po::value<uint>()->default_value(20), "nb metric id")(
       "nb-host", po::value<uint>()->default_value(100), "nb host")(
       "nb-service-by-host", po::value<uint>()->default_value(100),
@@ -158,13 +217,13 @@ int main(int argc, char** argv) {
   boost::json::object db_conf = connect_info.as_object();
   boost::json::string database_type = db_conf["database_type"].as_string();
 
-  SPDLOG_LOGGER_INFO(logger, "create metrics");
   metric_conf metric_cnf = {
       vm["metric-nb"].as<uint>(),     vm["metric-id-nb"].as<uint>(),
       vm["nb-host"].as<uint>(),       vm["nb-service-by-host"].as<uint>(),
       vm["float-percent"].as<uint>(), vm["double-percent"].as<uint>(),
       vm["int64-percent"].as<uint>()};
 
+  SPDLOG_LOGGER_INFO(logger, "create {} metrics", metric_cnf.metric_nb);
   metric::metric_cont_ptr to_insert = metric::create_metrics(metric_cnf);
   SPDLOG_LOGGER_INFO(logger, "bench begin on {}", database_type);
 
@@ -172,6 +231,9 @@ int main(int argc, char** argv) {
     if (database_type == "timescale" || database_type == "postgres") {
       bench_timescale(io_context, logger, to_insert, db_conf, bulk_size,
                       nb_conn);
+    } else if (database_type == "prometheus") {
+      bench_prometheus(io_context, logger, to_insert, db_conf, bulk_size,
+                       nb_conn);
     }
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(logger, "fail to connect {}", e.what());
