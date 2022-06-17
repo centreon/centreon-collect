@@ -19,7 +19,6 @@ import broker_pb2_grpc
 from google.protobuf import empty_pb2
 from robot.libraries.BuiltIn import BuiltIn
 
-
 TIMEOUT = 30
 
 BuiltIn().import_resource('db_variables.robot')
@@ -29,9 +28,6 @@ DB_USER = BuiltIn().get_variable_value("${DBUser}")
 DB_PASS = BuiltIn().get_variable_value("${DBPass}")
 DB_HOST = BuiltIn().get_variable_value("${DBHost}")
 DB_PORT = BuiltIn().get_variable_value("${DBPort}")
-
-logger.console("DB_NAME_CONF"+DB_NAME_CONF)
-logger.console("DB_NAME_STORAGE"+DB_NAME_STORAGE)
 
 config = {
     "central": """{{
