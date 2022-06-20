@@ -67,10 +67,12 @@ class checkable {
             bool obsess_over,
             std::string const& timezone,
             uint64_t icon_id);
-  virtual ~checkable() = default;
+  virtual ~checkable() noexcept = default;
 
   std::string const& get_display_name() const;
   void set_display_name(std::string const& name);
+  const std::string& name() const;
+  void set_name(const std::string& name);
   std::string const& check_command() const;
   void set_check_command(std::string const& check_command);
   uint32_t check_interval() const;
@@ -169,10 +171,8 @@ class checkable {
   const std::forward_list<std::shared_ptr<tag>>& tags() const;
   timeperiod* check_period_ptr;
 
- protected:
-  std::string _name;
-
  private:
+  std::string _name;
   std::string _display_name;
   std::string _check_command;
   uint32_t _check_interval;
