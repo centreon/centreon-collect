@@ -163,7 +163,7 @@ Description: This module of Centreon Broker allows you to write performance data
 Package: centreon-collect-client
 Architecture: any
 Depends:
-    centreon-broker (>= ${centreon:version}~)
+    centreon-broker (>= ${centreon:version}~),
     centreon-engine (>= ${centreon:version}~),
     ${misc:Depends},
     ${shlibs:Depends}
