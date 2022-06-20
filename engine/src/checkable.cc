@@ -527,3 +527,11 @@ std::forward_list<std::shared_ptr<tag>>& checkable::mut_tags() {
 const std::forward_list<std::shared_ptr<tag>>& checkable::tags() const {
   return _tags;
 }
+
+const std::string& checkable::name() const {
+  return _name;
+}
+
+void checkable::set_name(const std::string& name) {
+  _name = name;
+}
