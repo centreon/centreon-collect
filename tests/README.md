@@ -59,16 +59,6 @@ Here is the list of the currently implemented tests:
 ### Broker
 - [x] **BFC1**: Start broker with invalid filters but one filter ok
 - [x] **BFC2**: Start broker with only invalid filters on an output
-- [x] **BGRPCSS1**: Start-Stop two instances of broker configured with grpc stream and no coredump
-- [x] **BGRPCSS2**: Start/Stop 10 times broker configured with grpc stream with 300ms interval and no coredump
-- [x] **BGRPCSS3**: Start-Stop one instance of broker configured with grpc stream and no coredump
-- [x] **BGRPCSS4**: Start/Stop 10 times broker configured with grpc stream with 1sec interval and no coredump
-- [x] **BGRPCSS5**: Start-Stop with reversed connection on grpc acceptor with only one instance and no deadlock
-- [x] **BGRPCSSU1**: Start-Stop with unified_sql two instances of broker with grpc stream and no coredump
-- [x] **BGRPCSSU2**: Start/Stop with unified_sql 10 times broker configured with grpc stream with 300ms interval and no coredump
-- [x] **BGRPCSSU3**: Start-Stop with unified_sql one instance of broker configured with grpc and no coredump
-- [x] **BGRPCSSU4**: Start/Stop with unified_sql 10 times broker configured with grpc stream with 1sec interval and no coredump
-- [x] **BGRPCSSU5**: Start-Stop with unified_sql with reversed connection on grpc acceptor with only one instance and no deadlock
 - [x] **BLDIS1**: Start broker with core logs 'disabled'
 - [x] **BDB1**: Access denied when database name exists but is not the good one for sql output
 - [x] **BDB2**: Access denied when database name exists but is not the good one for storage output
@@ -102,6 +92,16 @@ Here is the list of the currently implemented tests:
 - [x] **BSSU5**: Start-Stop with unified_sql with reversed connection on TCP acceptor with only one instance and no deadlock
 - [x] **BCL1**: Starting broker with option '-s foobar' should return an error
 - [x] **BCL2**: Starting broker with option '-s 5' should work
+- [x] **BGRPCSS1**: Start-Stop two instances of broker configured with grpc stream and no coredump
+- [x] **BGRPCSS2**: Start/Stop 10 times broker configured with grpc stream with 300ms interval and no coredump
+- [x] **BGRPCSS3**: Start-Stop one instance of broker configured with grpc stream and no coredump
+- [x] **BGRPCSS4**: Start/Stop 10 times broker configured with grpc stream with 1sec interval and no coredump
+- [x] **BGRPCSS5**: Start-Stop with reversed connection on grpc acceptor with only one instance and no deadlock
+- [x] **BGRPCSSU1**: Start-Stop with unified_sql two instances of broker with grpc stream and no coredump
+- [x] **BGRPCSSU2**: Start/Stop with unified_sql 10 times broker configured with grpc stream with 300ms interval and no coredump
+- [x] **BGRPCSSU3**: Start-Stop with unified_sql one instance of broker configured with grpc and no coredump
+- [x] **BGRPCSSU4**: Start/Stop with unified_sql 10 times broker configured with grpc stream with 1sec interval and no coredump
+- [x] **BGRPCSSU5**: Start-Stop with unified_sql with reversed connection on grpc acceptor with only one instance and no deadlock
 
 ### Broker/database
 - [x] **NetworkDbFail1**: network failure test between broker and database (shutting down connection for 100ms)
@@ -163,16 +163,6 @@ Here is the list of the currently implemented tests:
 - [x] **EBNSGU1**: New service group with several pollers and connections to DB with broker configured with unified_sql
 - [x] **EBNSGU2**: New service group with several pollers and connections to DB with broker configured with unified_sql
 - [x] **EBNSVC1**: New services with several pollers
-- [x] **BERD1**: Starting/stopping Broker does not create duplicated events.
-- [x] **BERD2**: Starting/stopping Engine does not create duplicated events.
-- [x] **BERDUC1**: Starting/stopping Broker does not create duplicated events in usual cases
-- [x] **BERDUCU1**: Starting/stopping Broker does not create duplicated events in usual cases with unified_sql
-- [x] **BERDUC2**: Starting/stopping Engine does not create duplicated events in usual cases
-- [x] **BERDUCU2**: Starting/stopping Engine does not create duplicated events in usual cases with unified_sql
-- [x] **BERDUC3U1**: Starting/stopping Broker does not create duplicated events in usual cases with unified_sql and BBDO 3.0
-- [x] **BERDUC3U2**: Starting/stopping Engine does not create duplicated events in usual cases with unified_sql and BBDO 3.0
-- [x] **BEDTMASS1**: New services with several pollers
-- [x] **BEDTMASS2**: New services with several pollers
 - [x] **BESS1**: Start-Stop Broker/Engine - Broker started first - Broker stopped first
 - [x] **BESS2**: Start-Stop Broker/Engine - Broker started first - Engine stopped first
 - [x] **BESS3**: Start-Stop Broker/Engine - Engine started first - Engine stopped first
@@ -208,6 +198,9 @@ Here is the list of the currently implemented tests:
 - [x] **BEUTAG10**: some services are configured with tags on two pollers. Then tags are removed from some of them and in centreon_storage, we can observe resources_tags table updated.
 - [x] **BEUTAG11**: some services are configured with tags on two pollers. Then several tags are removed, and we can observe resources_tags table updated.
 - [x] **BEUTAG12**: Engine is configured with some tags. Group tags tag2, tag6 are set to hosts 1 and 2. Category tags tag4 and tag8 are added to hosts 2, 3, 4. The resources and resources_tags tables are well filled. The tag6 and tag8 are removed and resources_tags is also well updated.
+- [x] **EBSNU1**: New services with notes_url with more than 2000 characters
+- [x] **EBSAU2**: New services with action_url with more than 2000 characters
+- [x] **EBSN3**: New services with notes with more than 500 characters
 - [x] **BEEXTCMD1**: external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0
 - [x] **BEEXTCMD2**: external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo2.0
 - [x] **BEEXTCMD3**: external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo3.0
@@ -254,13 +247,10 @@ Here is the list of the currently implemented tests:
 - [x] **BEEXTCMD_GRPC2**: external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo2.0 and grpc
 - [x] **BEEXTCMD_GRPC3**: external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo3.0 and grpc
 - [x] **BEEXTCMD_GRPC4**: external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo2.0 and grpc
-- [x] **BEEXTCMD_REVERSE_GRPC1**: external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0 and reversed gRPC
+- [x] **BEEXTCMD_REVERSE_GRPC1**: external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0 and grpc reversed
 - [x] **BEEXTCMD_REVERSE_GRPC2**: external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo2.0 and grpc reversed
 - [x] **BEEXTCMD_REVERSE_GRPC3**: external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo3.0 and grpc reversed
 - [x] **BEEXTCMD_REVERSE_GRPC4**: external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo2.0 and grpc reversed
-- [x] **EBSNU1**: New services with notes_url with more than 2000 characters
-- [x] **EBSAU2**: New services with action_url with more than 2000 characters
-- [x] **EBSN3**: New services with notes with more than 500 characters
 
 ### Connector perl
 - [x] **test use connector perl exist script**: test exist script
@@ -297,3 +287,4 @@ Here is the list of the currently implemented tests:
 - [x] **BEUSEV3**: Four services have a severity added. Then we remove the severity from service 1. Then we change severity 11 to severity7 for service 3.
 - [x] **BEUSEV4**: Seven services are configured with a severity on two pollers. Then we remove severities from the first and second services of the first poller but only the severity from the first service of the second poller. Then only severities no more used should be removed from the database.
 - [x] **BETUSEV1**: Services have severities provided by templates.
+
