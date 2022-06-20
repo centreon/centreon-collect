@@ -117,7 +117,7 @@ bool mysql_result::value_as_bool(int idx) {
             "is '{}'",
             idx, _row[idx]);
     } else
-      retval = 0;
+      retval = false;
   } else
     throw msg_fmt("mysql: No row fetched in result");
   return retval;
