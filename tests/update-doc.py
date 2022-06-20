@@ -111,7 +111,9 @@ for k in keys:
     if isinstance(dico[k], str):
         out.write("- [x] **{}**: {}\n".format(k, dico[k]))
     else:
-        for kk in dico[k]:
+        tests = list(dico[k].keys())
+        tests.sort()
+        for kk in tests:
             if isinstance(dico[k][kk], str):
                 out.write("- [x] **{}**: {}\n".format(kk, dico[k][kk]))
             else:
