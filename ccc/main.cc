@@ -67,9 +67,12 @@ int main(int argc, char** argv) {
       case 'l':
         list = true;
         break;
-      case 'e':
-        full_cmd = optarg;
-        break;
+//      case 'e':
+//        full_cmd = optarg;
+//        break;
+      default:
+        std::cerr << "Unrecognized argument '" << opt << "'" << std::endl;
+        exit(3);
     }
   }
 
