@@ -97,6 +97,7 @@ class notifier : public checkable {
   typedef bool (notifier::*is_viable)(reason_type type, notification_option);
 
   notifier(notifier_type notification_flag,
+           const std::string& name,
            std::string const& display_name,
            std::string const& check_command,
            bool checks_enabled,

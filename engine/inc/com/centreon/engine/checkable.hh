@@ -43,7 +43,8 @@ class checkable {
 
   enum state_type { soft, hard };
 
-  checkable(std::string const& display_name,
+  checkable(const std::string& name,
+            std::string const& display_name,
             std::string const& check_command,
             bool checks_enabled,
             bool accept_passive_checks,
@@ -167,6 +168,9 @@ class checkable {
   std::forward_list<std::shared_ptr<tag>>& mut_tags();
   const std::forward_list<std::shared_ptr<tag>>& tags() const;
   timeperiod* check_period_ptr;
+
+ protected:
+  std::string _name;
 
  private:
   std::string _display_name;

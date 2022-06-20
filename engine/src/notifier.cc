@@ -64,6 +64,7 @@ std::array<notifier::is_viable, 6> const notifier::_is_notification_viable{{
 uint64_t notifier::_next_notification_id{1L};
 
 notifier::notifier(notifier::notifier_type notifier_type,
+                   const std::string& name,
                    std::string const& display_name,
                    std::string const& check_command,
                    bool checks_enabled,
@@ -97,7 +98,7 @@ notifier::notifier(notifier::notifier_type notifier_type,
                    bool retain_nonstatus_information,
                    bool is_volatile,
                    uint64_t icon_id)
-    : checkable{display_name,
+    : checkable{name, display_name,
                 check_command,
                 checks_enabled,
                 accept_passive_checks,
