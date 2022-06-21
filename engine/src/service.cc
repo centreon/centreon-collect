@@ -521,7 +521,7 @@ std::ostream& operator<<(std::ostream& os,
      << "\n  modified_attributes:                  "
      << obj.get_modified_attributes()
      << "\n  host_ptr:                             "
-     << (obj.get_host_ptr() ? obj.get_host_ptr()->get_name() : "\"nullptr\"")
+     << (obj.get_host_ptr() ? obj.get_host_ptr()->name() : "\"nullptr\"")
      << "\n  event_handler_ptr:                    " << evt_str
      << "\n  event_handler_args:                   "
      << obj.get_event_handler_args()
@@ -818,11 +818,11 @@ void service::check_for_expired_acknowledgement() {
       if (last_acknowledgement() + acknowledgement_timeout() >= now) {
         engine_logger(log_info_message, basic)
             << "Acknowledgement of service '" << get_description()
-            << "' on host '" << this->get_host_ptr()->get_name()
+            << "' on host '" << this->get_host_ptr()->name()
             << "' just expired";
         log_v2::events()->info(
             "Acknowledgement of service '{}' on host '{}' just expired",
-            get_description(), this->get_host_ptr()->get_name());
+            get_description(), this->get_host_ptr()->name());
         set_problem_has_been_acknowledged(false);
         set_acknowledgement_type(ACKNOWLEDGEMENT_NONE);
         // FIXME DBO: could be improved with something smaller.
@@ -2452,12 +2452,12 @@ int service::run_async_check(int check_options,
   if (!get_check_command_ptr()) {
     engine_logger(log_runtime_error, basic)
         << "Error: Attempt to run active check on service '"
-        << get_description() << "' on host '" << get_host_ptr()->get_name()
+        << get_description() << "' on host '" << get_host_ptr()->name()
         << "' with no check command";
     log_v2::runtime()->error(
         "Error: Attempt to run active check on service '{}' on host '{}' with "
         "no check command",
-        get_description(), get_host_ptr()->get_name());
+        get_description(), get_host_ptr()->name());
     return ERROR;
   }
 

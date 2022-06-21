@@ -245,11 +245,11 @@ void checker::run_sync(host* hst,
     throw engine_error() << "Attempt to run synchronous check on invalid host";
   if (!hst->get_check_command_ptr())
     throw engine_error() << "Attempt to run synchronous active check on host '"
-                         << hst->get_name() << "' with no check command";
+                         << hst->name() << "' with no check command";
 
   engine_logger(dbg_checks, basic)
-      << "** Run sync check of host '" << hst->get_name() << "'...";
-  log_v2::checks()->trace("** Run sync check of host '{}'...", hst->get_name());
+      << "** Run sync check of host '" << hst->name() << "'...";
+  log_v2::checks()->trace("** Run sync check of host '{}'...", hst->name());
 
   // Check if the host is viable now.
   if (!hst->verify_check_viability(check_options, nullptr, nullptr)) {
@@ -437,12 +437,12 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
     throw engine_error() << "Attempt to run synchronous check on invalid host";
   if (!hst->get_check_command_ptr())
     throw engine_error() << "Attempt to run synchronous active check on host '"
-                         << hst->get_name() << "' with no check command";
+                         << hst->name() << "' with no check command";
 
   engine_logger(dbg_checks, basic)
-      << "** Executing sync check of host '" << hst->get_name() << "'...";
+      << "** Executing sync check of host '" << hst->name() << "'...";
   log_v2::checks()->trace("** Executing sync check of host '{}'...",
-                          hst->get_name());
+                          hst->name());
 
   // Send broker event.
   timeval start_time;
@@ -568,12 +568,12 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
     res.output = oss.str();
     engine_logger(log_runtime_warning, basic)
         << "Warning: Host check command '" << processed_cmd << "' for host '"
-        << hst->get_name() << "' timed out after "
-        << config->host_check_timeout() << " seconds";
+        << hst->name() << "' timed out after " << config->host_check_timeout()
+        << " seconds";
     log_v2::runtime()->warn(
         "Warning: Host check command '{}' for host '{}' timed out after {} "
         "seconds",
-        processed_cmd, hst->get_name(), config->host_check_timeout());
+        processed_cmd, hst->name(), config->host_check_timeout());
   }
 
   // Update values.

@@ -121,8 +121,8 @@ TEST_F(MacroHostname, HostProblemId) {
                                    CHECK_OPTION_NONE, 0, true, 0);
     }
 
-    process_macros_r(mac, fmt::format("$HOSTPROBLEMID:{}$", hst->get_name()),
-                     out, 0);
+    process_macros_r(mac, fmt::format("$HOSTPROBLEMID:{}$", hst->name()), out,
+                     0);
     ASSERT_EQ(out, firstcheck);
 
     for (int i = 0; i < 2; i++) {

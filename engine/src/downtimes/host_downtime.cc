@@ -180,14 +180,14 @@ int host_downtime::unschedule() {
     /* log a notice - this is parsed by the history CGI */
     if (it->second->get_scheduled_downtime_depth() == 0) {
       engine_logger(log_info_message, basic)
-          << "HOST DOWNTIME ALERT: " << it->second->get_name()
+          << "HOST DOWNTIME ALERT: " << it->second->name()
           << ";CANCELLED; Scheduled downtime for host has been "
              "cancelled.";
       log_v2::events()->info(
           "HOST DOWNTIME ALERT: {};CANCELLED; Scheduled downtime for host has "
           "been "
           "cancelled.",
-          it->second->get_name());
+          it->second->name());
 
       /* send a notification */
       it->second->notify(notifier::reason_downtimecancelled, "", "",
@@ -241,9 +241,9 @@ int host_downtime::subscribe() {
   log_v2::downtimes()->trace("Scheduled Downtime Details:");
   engine_logger(dbg_downtime, basic) << " Type:        Host Downtime\n"
                                         " Host:        "
-                                     << hst->get_name();
+                                     << hst->name();
   log_v2::downtimes()->trace(" Type: Host Downtime ");
-  log_v2::downtimes()->trace(" Host: {}", hst->get_name());
+  log_v2::downtimes()->trace(" Host: {}", hst->name());
   engine_logger(dbg_downtime, basic)
       << " Fixed/Flex:  " << (is_fixed() ? "Fixed\n" : "Flexible\n")
       << " Start:       " << start_time_string
@@ -358,23 +358,23 @@ int host_downtime::handle() {
 
     if (it_hst->second->get_scheduled_downtime_depth() == 0) {
       engine_logger(dbg_downtime, basic)
-          << "Host '" << it_hst->second->get_name()
+          << "Host '" << it_hst->second->name()
           << "' has exited from a period of scheduled downtime (id="
           << get_downtime_id() << ").";
       log_v2::downtimes()->trace(
           "Host '{}' has exited from a period of scheduled downtime (id={}).",
-          it_hst->second->get_name(), get_downtime_id());
+          it_hst->second->name(), get_downtime_id());
 
       /* log a notice - this one is parsed by the history CGI */
       engine_logger(log_info_message, basic)
-          << "HOST DOWNTIME ALERT: " << it_hst->second->get_name()
+          << "HOST DOWNTIME ALERT: " << it_hst->second->name()
           << ";STOPPED; Host has exited from a period of scheduled "
              "downtime";
       log_v2::events()->info(
           "HOST DOWNTIME ALERT: {};STOPPED; Host has exited from a period of "
           "scheduled "
           "downtime",
-          it_hst->second->get_name());
+          it_hst->second->name());
 
       /* send a notification */
       it_hst->second->notify(notifier::reason_downtimeend, get_author(),
@@ -434,21 +434,21 @@ int host_downtime::handle() {
 
     if (it_hst->second->get_scheduled_downtime_depth() == 0) {
       engine_logger(dbg_downtime, basic)
-          << "Host '" << it_hst->second->get_name()
+          << "Host '" << it_hst->second->name()
           << "' has entered a period of scheduled downtime (id="
           << get_downtime_id() << ").";
       log_v2::downtimes()->trace(
           "Host '{}' has entered a period of scheduled downtime (id={}).",
-          it_hst->second->get_name(), get_downtime_id());
+          it_hst->second->name(), get_downtime_id());
 
       /* log a notice - this one is parsed by the history CGI */
       engine_logger(log_info_message, basic)
-          << "HOST DOWNTIME ALERT: " << it_hst->second->get_name()
+          << "HOST DOWNTIME ALERT: " << it_hst->second->name()
           << ";STARTED; Host has entered a period of scheduled downtime";
       log_v2::events()->info(
           "HOST DOWNTIME ALERT: {};STARTED; Host has entered a period of "
           "scheduled downtime",
-          it_hst->second->get_name());
+          it_hst->second->name());
 
       /* send a notification */
       it_hst->second->notify(notifier::reason_downtimestart, get_author(),

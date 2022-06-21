@@ -292,11 +292,11 @@ void timed_event::_exec_event_host_check() {
                             (double)(tv.tv_usec / 1000) / 1000.0);
 
   engine_logger(dbg_events, basic)
-      << "** Host Check Event ==> Host: '" << hst->get_name()
+      << "** Host Check Event ==> Host: '" << hst->name()
       << "', Options: " << event_options << ", Latency: " << latency << " sec";
   log_v2::events()->trace(
       "** Host Check Event ==> Host: '{}', Options: {}, Latency: {} sec",
-      hst->get_name(), event_options, latency);
+      hst->name(), event_options, latency);
 
   // run the host check.
   hst->run_scheduled_check(event_options, latency);

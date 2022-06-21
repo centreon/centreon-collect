@@ -97,7 +97,7 @@ void applier::host::add_object(configuration::host const& obj) {
       obj.retain_status_information(), obj.retain_nonstatus_information(),
       obj.obsess_over_host(), obj.timezone(), obj.icon_id())};
 
-  engine::host::hosts.insert({h->get_name(), h});
+  engine::host::hosts.insert({h->name(), h});
   engine::host::hosts_by_id.insert({obj.host_id(), h});
 
   h->set_initial_notif_time(0);
@@ -247,8 +247,8 @@ void applier::host::modify_object(configuration::host const& obj) {
   config->hosts().insert(obj);
 
   // Modify properties.
-  if (it_obj->second->get_name() != obj.host_name()) {
-    engine::host::hosts.erase(it_obj->second->get_name());
+  if (it_obj->second->name() != obj.host_name()) {
+    engine::host::hosts.erase(it_obj->second->name());
     engine::host::hosts.insert({obj.host_name(), it_obj->second});
   }
 
@@ -487,7 +487,7 @@ void applier::host::remove_object(configuration::host const& obj) {
 
     // remove host from hostgroup->members
     for (auto& it_h : it->second->get_parent_groups())
-      it_h->members.erase(it->second->get_name());
+      it_h->members.erase(it->second->name());
 
     // Notify event broker.
     timeval tv(get_broker_timestamp(nullptr));
@@ -503,7 +503,7 @@ void applier::host::remove_object(configuration::host const& obj) {
                               MODATTR_ALL, &tv);
 
     // Erase host object (will effectively delete the object).
-    engine::host::hosts.erase(it->second->get_name());
+    engine::host::hosts.erase(it->second->name());
     engine::host::hosts_by_id.erase(it);
   }
 

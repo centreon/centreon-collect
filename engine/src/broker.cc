@@ -591,7 +591,7 @@ int broker_contact_notification_data(int type,
     ds.output = const_cast<char*>(temp_service->get_plugin_output().c_str());
   } else {
     temp_host = (host*)data;
-    ds.host_name = const_cast<char*>(temp_host->get_name().c_str());
+    ds.host_name = const_cast<char*>(temp_host->name().c_str());
     ds.service_description = NULL;
     ds.state = temp_host->get_current_state();
     ds.output = const_cast<char*>(temp_host->get_plugin_output().c_str());
@@ -678,7 +678,7 @@ int broker_contact_notification_method_data(int type,
     ds.output = const_cast<char*>(temp_service->get_plugin_output().c_str());
   } else {
     temp_host = (host*)data;
-    ds.host_name = const_cast<char*>(temp_host->get_name().c_str());
+    ds.host_name = const_cast<char*>(temp_host->name().c_str());
     ds.service_description = NULL;
     ds.state = temp_host->get_current_state();
     ds.output = const_cast<char*>(temp_host->get_plugin_output().c_str());
@@ -903,7 +903,7 @@ int broker_event_handler(int type,
         const_cast<char*>(temp_service->get_description().c_str());
   } else {
     temp_host = (host*)data;
-    ds.host_name = const_cast<char*>(temp_host->get_name().c_str());
+    ds.host_name = const_cast<char*>(temp_host->name().c_str());
     ds.service_description = NULL;
   }
   ds.object_ptr = data;
@@ -1156,7 +1156,7 @@ int broker_host_check(int type,
   ds.flags = flags;
   ds.attr = attr;
   ds.timestamp = get_broker_timestamp(timestamp);
-  ds.host_name = const_cast<char*>(hst->get_name().c_str());
+  ds.host_name = const_cast<char*>(hst->name().c_str());
   ds.object_ptr = hst;
   ds.check_type = check_type;
   ds.current_attempt = hst->get_current_attempt();
@@ -1347,7 +1347,7 @@ int broker_notification_data(int type,
     ds.output = const_cast<char*>(temp_service->get_plugin_output().c_str());
   } else {
     temp_host = (host*)data;
-    ds.host_name = const_cast<char*>(temp_host->get_name().c_str());
+    ds.host_name = const_cast<char*>(temp_host->name().c_str());
     ds.service_description = NULL;
     ds.state = temp_host->get_current_state();
     ds.output = const_cast<char*>(temp_host->get_plugin_output().c_str());
@@ -1674,7 +1674,7 @@ void broker_statechange_data(int type,
     ds.output = const_cast<char*>(temp_service->get_plugin_output().c_str());
   } else {
     temp_host = (host*)data;
-    ds.host_name = const_cast<char*>(temp_host->get_name().c_str());
+    ds.host_name = const_cast<char*>(temp_host->name().c_str());
     ds.service_description = NULL;
     ds.output = const_cast<char*>(temp_host->get_plugin_output().c_str());
   }

@@ -225,8 +225,7 @@ static std::string get_host_children(host& hst, nagios_macros* mac) {
  */
 static std::string get_host_id(host& hst, nagios_macros* mac) {
   (void)mac;
-  return (
-      string::from(com::centreon::engine::get_host_id(hst.get_name())).c_str());
+  return (string::from(com::centreon::engine::get_host_id(hst.name())).c_str());
 }
 
 /**
@@ -256,7 +255,10 @@ struct grab_host_redirection {
       entry;
   entry routines{
       {MACRO_HOSTNAME,
-       {&get_member_as_string<host, std::string const&, &host::get_name>,
+       {&get_member_as_string<host,
+                              std::string const&,
+                              checkable,
+                              &checkable::name>,
         true}},
       {MACRO_HOSTDISPLAYNAME,
        {&get_member_as_string<host,

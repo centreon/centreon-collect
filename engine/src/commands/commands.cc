@@ -220,7 +220,7 @@ int cmd_add_comment(int cmd, time_t entry_time, char* args) {
 }
 
 /* removes a host or service comment from the status log */
-int cmd_delete_comment(int cmd[[maybe_unused]], char* args) {
+int cmd_delete_comment(int cmd [[maybe_unused]], char* args) {
   uint64_t comment_id{0};
 
   /* get the comment id we should delete */
@@ -732,7 +732,7 @@ int cmd_acknowledge_problem(int cmd, char* args) {
       return ERROR;
 
     /* verify that the service is valid */
-    found = service::services.find({it->second->get_name(), svc_description});
+    found = service::services.find({it->second->name(), svc_description});
 
     if (found == service::services.end() || !found->second)
       return ERROR;
@@ -799,7 +799,7 @@ int cmd_remove_acknowledgement(int cmd, char* args) {
       return ERROR;
 
     /* verify that the service is valid */
-    found = service::services.find({it->second->get_name(), svc_description});
+    found = service::services.find({it->second->name(), svc_description});
 
     if (found == service::services.end() || !found->second)
       return ERROR;
@@ -877,7 +877,7 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
 
       /* verify that the service is valid */
       service_map::const_iterator found(
-          service::services.find({temp_host->get_name(), svc_description}));
+          service::services.find({temp_host->name(), svc_description}));
 
       if (found == service::services.end() || !found->second)
         return ERROR;

@@ -194,7 +194,7 @@ static int handle_service_macro(nagios_macros* mac,
         retval = ERROR;
       else if (!arg2.empty()) {
         service_map::const_iterator found(
-            service::services.find({mac->host_ptr->get_name(), arg2}));
+            service::services.find({mac->host_ptr->name(), arg2}));
 
         if (found == service::services.end() || !found->second)
           retval = ERROR;
