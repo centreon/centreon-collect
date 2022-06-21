@@ -136,11 +136,11 @@ host_id_map host::hosts_by_id;
  *  @param[in] timezone                      The timezone to apply to the host
  */
 host::host(uint64_t host_id,
-           std::string const& name,
-           std::string const& display_name,
-           std::string const& alias,
-           std::string const& address,
-           std::string const& check_period,
+           const std::string& name,
+           const std::string& display_name,
+           const std::string& alias,
+           const std::string& address,
+           const std::string& check_period,
            enum host::host_state initial_state,
            uint32_t check_interval,
            uint32_t retry_interval,
@@ -153,12 +153,12 @@ host::host(uint64_t host_id,
            uint32_t notification_interval,
            uint32_t first_notification_delay,
            uint32_t recovery_notification_delay,
-           std::string const& notification_period,
+           const std::string& notification_period,
            bool notifications_enabled,
-           std::string const& check_command,
+           const std::string& check_command,
            bool checks_enabled,
            bool accept_passive_checks,
-           std::string const& event_handler,
+           const std::string& event_handler,
            bool event_handler_enabled,
            bool flap_detection_enabled,
            double low_flap_threshold,
@@ -172,13 +172,13 @@ host::host(uint64_t host_id,
            bool process_perfdata,
            bool check_freshness,
            int freshness_threshold,
-           std::string const& notes,
-           std::string const& notes_url,
-           std::string const& action_url,
-           std::string const& icon_image,
-           std::string const& icon_image_alt,
-           std::string const& vrml_image,
-           std::string const& statusmap_image,
+           const std::string& notes,
+           const std::string& notes_url,
+           const std::string& action_url,
+           const std::string& icon_image,
+           const std::string& icon_image_alt,
+           const std::string& vrml_image,
+           const std::string& statusmap_image,
            double x_2d,
            double y_2d,
            bool have_2d_coords,
@@ -190,10 +190,11 @@ host::host(uint64_t host_id,
            bool retain_status_information,
            bool retain_nonstatus_information,
            bool obsess_over_host,
-           std::string const& timezone,
+           const std::string& timezone,
            uint64_t icon_id)
     : notifier{host_notification,
-               !display_name.empty() ? display_name : name,
+               name,
+               display_name,
                check_command,
                checks_enabled,
                accept_passive_checks,
@@ -234,7 +235,6 @@ host::host(uint64_t host_id,
                false,
                icon_id},
       _id{host_id},
-      _name{name},
       _address{address},
       _process_performance_data{process_perfdata},
       _vrml_image{vrml_image},
@@ -319,7 +319,7 @@ void host::add_child_host(host* child) {
                        nullptr, child, nullptr, &tv);
 }
 
-void host::add_parent_host(std::string const& host_name) {
+void host::add_parent_host(const std::string& host_name) {
   // Make sure we have the data we need.
   if (host_name.empty()) {
     engine_logger(log_config_error, basic)
@@ -329,38 +329,38 @@ void host::add_parent_host(std::string const& host_name) {
   }
 
   // A host cannot be a parent/child of itself.
-  if (_name == host_name) {
+  if (name() == host_name) {
     engine_logger(log_config_error, basic)
-        << "Error: Host '" << _name << "' cannot be a child/parent of itself";
+        << "Error: Host '" << name() << "' cannot be a child/parent of itself";
     log_v2::config()->error(
-        "Error: Host '{}' cannot be a child/parent of itself", _name);
+        "Error: Host '{}' cannot be a child/parent of itself", name());
     throw engine_error() << "host is child/parent itself";
   }
 
   parent_hosts.insert({host_name, nullptr});
 }
 
-std::string const& host::get_name() const {
-  return _name;
+const std::string& host::get_name() const {
+  return name();
 }
 
-void host::set_name(std::string const& name) {
-  _name = name;
+void host::set_name(const std::string& name) {
+  set_name(name);
 }
 
-std::string const& host::get_alias() const {
+const std::string& host::get_alias() const {
   return _alias;
 }
 
-void host::set_alias(std::string const& alias) {
+void host::set_alias(const std::string& alias) {
   _alias = alias;
 }
 
-std::string const& host::get_address() const {
+const std::string& host::get_address() const {
   return _address;
 }
 
-void host::set_address(std::string const& address) {
+void host::set_address(const std::string& address) {
   _address = address;
 }
 
@@ -372,19 +372,19 @@ void host::set_process_performance_data(bool process_performance_data) {
   _process_performance_data = process_performance_data;
 }
 
-std::string const& host::get_vrml_image() const {
+const std::string& host::get_vrml_image() const {
   return _vrml_image;
 }
 
-void host::set_vrml_image(std::string const& image) {
+void host::set_vrml_image(const std::string& image) {
   _vrml_image = image;
 }
 
-std::string const& host::get_statusmap_image() const {
+const std::string& host::get_statusmap_image() const {
   return _statusmap_image;
 }
 
-void host::set_statusmap_image(std::string const& image) {
+void host::set_statusmap_image(const std::string& image) {
   _statusmap_image = image;
 }
 
@@ -1150,7 +1150,7 @@ bool engine::is_host_exist(uint64_t host_id) throw() {
  *
  *  @return  The host id or 0.
  */
-uint64_t engine::get_host_id(std::string const& name) {
+uint64_t engine::get_host_id(const std::string& name) {
   host_map::const_iterator found{host::hosts.find(name)};
   return found != host::hosts.end() ? found->second->get_host_id() : 0u;
 }
@@ -1185,7 +1185,7 @@ int host::log_event() {
     log_options = tab_host_states[get_current_state()].first;
     state = tab_host_states[get_current_state()].second.c_str();
   }
-  std::string const& state_type(tab_state_type[get_state_type()]);
+  const std::string& state_type(tab_state_type[get_state_type()]);
 
   engine_logger(log_options, basic)
       << "HOST ALERT: " << get_name() << ";" << state << ";" << state_type
@@ -2516,8 +2516,8 @@ void host::grab_macros_r(nagios_macros* mac) {
 int host::notify_contact(nagios_macros* mac,
                          contact* cntct,
                          notifier::reason_type type,
-                         std::string const& not_author,
-                         std::string const& not_data,
+                         const std::string& not_author,
+                         const std::string& not_data,
                          int options __attribute((unused)),
                          int escalated) {
   std::string raw_command;
@@ -2829,8 +2829,8 @@ bool host::is_result_fresh(time_t current_time, int log_this) {
   int tseconds = 0;
 
   engine_logger(dbg_checks, most)
-      << "Checking freshness of host '" << _name << "'...";
-  log_v2::checks()->debug("Checking freshness of host '{}'...", _name);
+      << "Checking freshness of host '" << name() << "'...";
+  log_v2::checks()->debug("Checking freshness of host '{}'...", name());
 
   /* use user-supplied freshness threshold or auto-calculate a freshness
    * threshold to use? */
@@ -2890,7 +2890,7 @@ bool host::is_result_fresh(time_t current_time, int log_this) {
     /* log a warning */
     if (log_this)
       engine_logger(log_runtime_warning, basic)
-          << "Warning: The results of host '" << _name << "' are stale by "
+          << "Warning: The results of host '" << name() << "' are stale by "
           << days << "d " << hours << "h " << minutes << "m " << seconds
           << "s (threshold=" << tdays << "d " << thours << "h " << tminutes
           << "m " << tseconds
@@ -2900,11 +2900,11 @@ bool host::is_result_fresh(time_t current_time, int log_this) {
         "Warning: The results of host '{}' are stale by {}d {}h {}m {}s "
         "(threshold={}d {}h {}m {}s).  I'm forcing an immediate check of the "
         "host.",
-        _name, days, hours, minutes, seconds, tdays, thours, tminutes,
+        name(), days, hours, minutes, seconds, tdays, thours, tminutes,
         tseconds);
 
     engine_logger(dbg_checks, more)
-        << "Check results for host '" << _name << "' are stale by " << days
+        << "Check results for host '" << name() << "' are stale by " << days
         << "d " << hours << "h " << minutes << "m " << seconds
         << "s (threshold=" << tdays << "d " << thours << "h " << tminutes
         << "m " << tseconds
@@ -2914,7 +2914,7 @@ bool host::is_result_fresh(time_t current_time, int log_this) {
         "Check results for host '{}' are stale by {}d {}h {}m {}s "
         "(threshold={}d {}h {}m {}s). Forcing an immediate check of the "
         "host...",
-        _name, days, hours, minutes, seconds, tdays, thours, tminutes,
+        name(), days, hours, minutes, seconds, tdays, thours, tminutes,
         tseconds);
 
     return false;
@@ -2989,8 +2989,8 @@ int host::perform_on_demand_check_3x(host::host_state* check_result_code,
   log_v2::functions()->trace("perform_on_demand_host_check_3x()");
 
   engine_logger(dbg_checks, basic)
-      << "** On-demand check for host '" << _name << "'...";
-  log_v2::checks()->trace("** On-demand check for host '{}'...", _name);
+      << "** On-demand check for host '" << name() << "'...";
+  log_v2::checks()->trace("** On-demand check for host '{}'...", name());
 
   /* check the status of the host */
   result = this->run_sync_check_3x(check_result_code, check_options,
@@ -3028,7 +3028,7 @@ int host::run_sync_check_3x(enum host::host_state* check_result_code,
 
 /* processes the result of a synchronous or asynchronous host check */
 int host::process_check_result_3x(enum host::host_state new_state,
-                                  std::string const& old_plugin_output,
+                                  const std::string& old_plugin_output,
                                   int check_options,
                                   int reschedule_check,
                                   int use_cached_result,
@@ -3049,7 +3049,7 @@ int host::process_check_result_3x(enum host::host_state new_state,
   log_v2::functions()->trace("process_host_check_result_3x()");
 
   engine_logger(dbg_checks, more)
-      << "HOST: " << _name << ", ATTEMPT=" << get_current_attempt() << "/"
+      << "HOST: " << name() << ", ATTEMPT=" << get_current_attempt() << "/"
       << max_check_attempts() << ", CHECK TYPE="
       << (get_check_type() == check_active ? "ACTIVE" : "PASSIVE")
       << ", STATE TYPE=" << (get_state_type() == hard ? "HARD" : "SOFT")
@@ -3057,7 +3057,7 @@ int host::process_check_result_3x(enum host::host_state new_state,
   log_v2::checks()->debug(
       "HOST: {}, ATTEMPT={}/{}, CHECK TYPE={}, STATE TYPE={}, OLD STATE={}, "
       "NEW STATE={}",
-      _name, get_current_attempt(), max_check_attempts(),
+      name(), get_current_attempt(), max_check_attempts(),
       get_check_type() == check_active ? "ACTIVE" : "PASSIVE",
       get_state_type() == hard ? "HARD" : "SOFT", get_current_state(),
       new_state);
@@ -3072,9 +3072,9 @@ int host::process_check_result_3x(enum host::host_state new_state,
   if (get_check_type() == check_passive) {
     if (config->log_passive_checks())
       engine_logger(log_passive_check, basic)
-          << "PASSIVE HOST CHECK: " << _name << ";" << new_state << ";"
+          << "PASSIVE HOST CHECK: " << name() << ";" << new_state << ";"
           << get_plugin_output();
-    log_v2::checks()->debug("PASSIVE HOST CHECK: {};{};{}", _name, new_state,
+    log_v2::checks()->debug("PASSIVE HOST CHECK: {};{};{}", name(), new_state,
                             get_plugin_output());
   }
 
@@ -3394,9 +3394,9 @@ int host::process_check_result_3x(enum host::host_state new_state,
               "one depends on...");
 
           for (hostdependency_mmap::const_iterator
-                   it{hostdependency::hostdependencies.find(_name)},
+                   it{hostdependency::hostdependencies.find(name())},
                end{hostdependency::hostdependencies.end()};
-               it != end && it->first == _name; ++it) {
+               it != end && it->first == name(); ++it) {
             hostdependency* temp_dependency(it->second.get());
             if (temp_dependency->dependent_host_ptr == this &&
                 temp_dependency->master_host_ptr != nullptr) {
@@ -3415,28 +3415,28 @@ int host::process_check_result_3x(enum host::host_state new_state,
   }
 
   engine_logger(dbg_checks, more)
-      << "Pre-handle_host_state() Host: " << _name
+      << "Pre-handle_host_state() Host: " << name()
       << ", Attempt=" << get_current_attempt() << "/" << max_check_attempts()
       << ", Type=" << (get_state_type() == hard ? "HARD" : "SOFT")
       << ", Final State=" << _current_state;
   log_v2::checks()->debug(
       "Pre-handle_host_state() Host: {}, Attempt={}/{}, Type={}, Final "
       "State={}",
-      _name, get_current_attempt(), max_check_attempts(),
+      name(), get_current_attempt(), max_check_attempts(),
       get_state_type() == hard ? "HARD" : "SOFT", _current_state);
 
   /* handle the host state */
   handle_state();
 
   engine_logger(dbg_checks, more)
-      << "Post-handle_host_state() Host: " << _name
+      << "Post-handle_host_state() Host: " << name()
       << ", Attempt=" << get_current_attempt() << "/" << max_check_attempts()
       << ", Type=" << (get_state_type() == hard ? "HARD" : "SOFT")
       << ", Final State=" << _current_state;
   log_v2::checks()->debug(
       "Post-handle_host_state() Host: {}, Attempt={}/{}, Type={}, Final "
       "State={}",
-      _name, get_current_attempt(), max_check_attempts(),
+      name(), get_current_attempt(), max_check_attempts(),
       get_state_type() == hard ? "HARD" : "SOFT", _current_state);
 
   /******************** POST-PROCESSING STUFF *********************/
@@ -3469,7 +3469,7 @@ int host::process_check_result_3x(enum host::host_state new_state,
         "Rescheduling next check of host: {} of last check at "
         "{:%Y-%m-%dT%H:%M:%S} and next "
         "check at {:%Y-%m-%dT%H:%M:%S}",
-        _name, fmt::localtime(get_last_check()), fmt::localtime(next_check));
+        name(), fmt::localtime(get_last_check()), fmt::localtime(next_check));
 
     /* default is to reschedule host check unless a test below fails... */
     set_should_be_scheduled(true);
@@ -3564,10 +3564,10 @@ enum host::host_state host::determine_host_reachability(
   engine_logger(dbg_functions, basic) << "determine_host_reachability()";
   log_v2::functions()->trace("determine_host_reachability()");
 
-  engine_logger(dbg_checks, most) << "Determining state of host '" << _name
+  engine_logger(dbg_checks, most) << "Determining state of host '" << name()
                                   << "': current state=" << new_state;
   log_v2::checks()->debug("Determining state of host '{}': current state= {}",
-                          _name, new_state);
+                          name(), new_state);
 
   /* host is UP - no translation needed */
   if (new_state == host::state_up) {
@@ -3636,7 +3636,7 @@ bool host::authorized_by_dependencies(dependency::types dependency_type) const {
   engine_logger(dbg_functions, basic) << "host::authorized_by_dependencies()";
   log_v2::functions()->trace("host::authorized_by_dependencies()");
 
-  auto p(hostdependency::hostdependencies.equal_range(_name));
+  auto p(hostdependency::hostdependencies.equal_range(name()));
   for (hostdependency_mmap::const_iterator it{p.first}, end{p.second};
        it != end; ++it) {
     hostdependency* dep{it->second.get()};
@@ -3756,14 +3756,14 @@ void host::adjust_check_attempt(bool is_active) {
   log_v2::functions()->trace("adjust_host_check_attempt_3x()");
 
   engine_logger(dbg_checks, most)
-      << "Adjusting check attempt number for host '" << _name
+      << "Adjusting check attempt number for host '" << name()
       << "': current attempt=" << get_current_attempt() << "/"
       << max_check_attempts() << ", state=" << _current_state
       << ", state type=" << get_state_type();
   log_v2::checks()->debug(
       "Adjusting check attempt number for host '{}': current attempt= {}/{}, "
       "state= {}, state type= {}",
-      _name, get_current_attempt(), max_check_attempts(), _current_state,
+      name(), get_current_attempt(), max_check_attempts(), _current_state,
       get_state_type());
   /* if host is in a hard state, reset current attempt number */
   if (get_state_type() == notifier::hard)
@@ -3849,7 +3849,7 @@ void host::check_for_orphaned() {
   }
 }
 
-std::string const& host::get_current_state_as_string() const {
+const std::string& host::get_current_state_as_string() const {
   return tab_host_states[get_current_state()].second;
 }
 
@@ -3878,26 +3878,26 @@ void host::resolve(int& w, int& e) {
     notifier::resolve(warnings, errors);
   } catch (std::exception const& e) {
     engine_logger(log_verification_error, basic)
-        << "Error: Host '" << _name
+        << "Error: Host '" << name()
         << "' has problem in its notifier part: " << e.what();
     log_v2::config()->error(
-        "Error: Host '{}' has problem in its notifier part: {}", _name,
+        "Error: Host '{}' has problem in its notifier part: {}", name(),
         e.what());
   }
 
   for (service_map::iterator it_svc{service::services.begin()},
        end_svc{service::services.end()};
        it_svc != end_svc; ++it_svc) {
-    if (_name == it_svc->first.first)
+    if (name() == it_svc->first.first)
       services.insert({it_svc->first, nullptr});
   }
 
   if (services.empty()) {
     engine_logger(log_verification_error, basic)
-        << "Warning: Host '" << _name
+        << "Warning: Host '" << name()
         << "' has no services associated with it!";
     log_v2::config()->warn(
-        "Warning: Host '{}' has no services associated with it!", _name);
+        "Warning: Host '{}' has no services associated with it!", name());
     ++w;
   } else {
     for (service_map_unsafe::iterator it{services.begin()}, end{services.end()};
@@ -3905,10 +3905,10 @@ void host::resolve(int& w, int& e) {
       service_map::const_iterator found{service::services.find(it->first)};
       if (found == service::services.end() || !found->second) {
         engine_logger(log_verification_error, basic)
-            << "Error: Host '" << _name << "' has a service '"
+            << "Error: Host '" << name() << "' has a service '"
             << it->first.second << "' that does not exist!";
         log_v2::config()->error(
-            "Error: Host '{}' has a service '{}' that does not exist!", _name,
+            "Error: Host '{}' has a service '{}' that does not exist!", name(),
             it->first.second);
         ++errors;
       } else {
@@ -3926,9 +3926,10 @@ void host::resolve(int& w, int& e) {
       engine_logger(log_verification_error, basic) << "Error: '" << it->first
                                                    << "' is not a "
                                                       "valid parent for host '"
-                                                   << _name << "'!";
+                                                   << name() << "'!";
       log_v2::config()->error(
-          "Error: '{}' is not a valid parent for host '{}'!", it->first, _name);
+          "Error: '{}' is not a valid parent for host '{}'!", it->first,
+          name());
       errors++;
     } else {
       it->second = it_host->second.get();
@@ -3938,13 +3939,13 @@ void host::resolve(int& w, int& e) {
   }
 
   /* check for illegal characters in host name */
-  if (contains_illegal_object_chars(_name.c_str())) {
+  if (contains_illegal_object_chars(name().c_str())) {
     engine_logger(log_verification_error, basic)
-        << "Error: The name of host '" << _name
+        << "Error: The name of host '" << name()
         << "' contains one or more illegal characters.";
     log_v2::config()->error(
         "Error: The name of host '{}' contains one or more illegal characters.",
-        _name);
+        name());
     errors++;
   }
 
@@ -3968,7 +3969,7 @@ void host::resolve(int& w, int& e) {
   e += errors;
 
   if (errors)
-    throw engine_error() << "Cannot resolve host '" << _name << "'";
+    throw engine_error() << "Cannot resolve host '" << name() << "'";
 }
 
 timeperiod* host::get_notification_timeperiod() const {
