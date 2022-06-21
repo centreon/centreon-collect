@@ -165,38 +165,40 @@ int main(int argc, char* argv[]) {
 
   try {
     // Check the command line.
-    bool check(false);
-    bool debug(false);
-    bool diagnose(false);
-    bool help(false);
-    bool version(false);
+    bool check{false};
+    bool debug{false};
+    bool diagnose{false};
+    bool help{false};
+    bool version{false};
 
-    opt = getopt_long(argc, argv, "s:cdDvh", long_options, &option_index);
-    switch (opt) {
-      case 's':
-        if (!absl::SimpleAtoi(optarg, &n_thread)) {
-          throw msg_fmt("The option -s expects a positive integer");
-        }
-        break;
-      case 'c':
-        check = true;
-        break;
-      case 'd':
-        debug = true;
-        break;
-      case 'D':
-        diagnose = true;
-        break;
-      case 'h':
-        help = true;
-        break;
-      case 'v':
-        version = true;
-        break;
-      default:
-        break;
+    while((opt = getopt_long(argc, argv, "s:cdDvh", long_options, &option_index)) != -1){
+      switch (opt) {
+        case 's':
+          if (!absl::SimpleAtoi(optarg, &n_thread)) {
+            throw msg_fmt("The option -s expects a positive integer");
+          }
+          break;
+        case 'c':
+          check = true;
+          break;
+        case 'd':
+          //debug is not used afterwards!
+          debug = true;
+          break;
+        case 'D':
+          diagnose = true;
+          break;
+        case 'h':
+          help = true;
+          break;
+        case 'v':
+          version = true;
+          break;
+        default:
+          throw msg_fmt("Enter allowed options : [-s <poolsize>] [-c] [-d] [-D] [-h] [-v]");
+          break;
+      }
     }
-
     if (optind < argc)
       while (optind < argc)
         gl_mainconfigfiles.push_back(argv[optind++]);
@@ -212,14 +214,14 @@ int main(int argc, char* argv[]) {
       diag.generate(gl_mainconfigfiles);
     } else if (help) {
       log_v2::core()->info(
-          "USAGE: {} [-t] [-c] [-d] [-D] [-h] [-v] [<configfile>]", argv[0]);
+          "USAGE: {} [-s <poolsize>] [-c] [-d] [-D] [-h] [-v] [<configfile>]", argv[0]);
 
-      log_v2::core()->info("  -t  Set x threads.");
-      log_v2::core()->info("  -c  Check configuration file.");
-      log_v2::core()->info("  -d  Enable debug mode.");
-      log_v2::core()->info("  -D  Generate a diagnostic file.");
-      log_v2::core()->info("  -h  Print this help.");
-      log_v2::core()->info("  -v  Print Centreon Broker version.");
+      log_v2::core()->info("  '-sx' or '-s x'  Set x threads.");
+      log_v2::core()->info("  '-c'  Check configuration file.");
+      log_v2::core()->info("  '-d'  Enable debug mode.");
+      log_v2::core()->info("  '-D'  Generate a diagnostic file.");
+      log_v2::core()->info("  '-h'  Print this help.");
+      log_v2::core()->info("  '-v'  Print Centreon Broker version.");
       log_v2::core()->info("Centreon Broker {}", CENTREON_BROKER_VERSION);
       log_v2::core()->info("Copyright 2009-2021 Centreon");
       log_v2::core()->info(
@@ -230,7 +232,7 @@ int main(int argc, char* argv[]) {
       retval = 0;
     } else if (gl_mainconfigfiles.empty()) {
       log_v2::core()->error(
-          "USAGE: {} [-c] [-d] [-D] [-h] [-v] [<configfile>]\n\n", argv[0]);
+          "USAGE: {} [-s <poolsize>] [-c] [-d] [-D] [-h] [-v] [<configfile>]\n\n", argv[0]);
       return 1;
     } else {
       log_v2::core()->info("Centreon Broker {}", CENTREON_BROKER_VERSION);
@@ -286,7 +288,7 @@ int main(int argc, char* argv[]) {
   }
   // Standard exception.
   catch (const std::exception& e) {
-    log_v2::core()->error("Error during cbd exit: {}", e.what());
+    log_v2::core()->error("Config parser {}", e.what());
     retval = EXIT_FAILURE;
   }
   // Unknown exception.

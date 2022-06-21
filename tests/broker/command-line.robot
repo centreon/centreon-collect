@@ -31,6 +31,26 @@ BCL2
 	Find in log with timeout	${centralLog}	${start}	${table}	30
 	Stop Broker With Args
 
+BCL3
+	[Documentation]	Starting broker with option '-s' without the number of threads should fail
+	[Tags]	Broker	start-stop
+	Config Broker	central
+	${start}=	Get Current Date	exclude_millis=True
+	Start Broker With Args	-s	/etc/centreon-broker/central-broker.json
+	${result}=	Wait For Broker
+	${expected}=	Evaluate	"The option -s expects a positive integer" in """${result}"""
+	Should be True	${expected}	msg=expected error 'The option -s expects a positive integer'
+
+BCL4
+	[Documentation]	Starting broker with options '-D' should work and activate diagnose mode
+	[Tags]	Broker	start-stop
+	Config Broker	central
+	${start}=	Get Current Date	exclude_millis=True
+	Start Broker With Args	-D	/etc/centreon-broker/central-broker.json
+	${table}=	"diagnostic:"
+	Find in log with timeout	${centralLog}	${start}	${table}	30
+
+
 *** Keywords ***
 Start Broker With Args
 	[Arguments]	@{options}
