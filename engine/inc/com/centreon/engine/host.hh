@@ -261,7 +261,6 @@ class host : public notifier {
 
  private:
   uint64_t _id;
-  std::string _name;
   std::string _alias;
   std::string _address;
   bool _process_performance_data;

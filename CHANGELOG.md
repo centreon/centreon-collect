@@ -67,6 +67,12 @@ Packaging did not follow Debian good practices.
 
 ### Engine
 
+#### Bugfixes
+
+*resources*
+
+The display\_name of resources could be emptied in several case of reload.
+
 #### Enhancements
 
 *comments*

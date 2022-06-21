@@ -202,7 +202,6 @@ class service : public notifier {
   uint64_t _host_id;
   uint64_t _service_id;
   std::string _hostname;
-  std::string _description;
   std::string _event_handler_args;
   std::string _check_command_args;
 
