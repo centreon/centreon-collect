@@ -13,18 +13,21 @@ add_definitions(${CONAN_DEFINES_SPDLOG})
 
 set(SRC_DIR "${PROJECT_SOURCE_DIR}")
 
-include_directories(${CONAN_INCLUDE_DIRS} ${SRC_DIR} ${SRC_DIR}/db ${SRC_DIR}/timescale)
+include_directories(${CONAN_INCLUDE_DIRS} ${SRC_DIR} ${SRC_DIR}/db ${SRC_DIR}/timescale ${SRC_DIR}/http_client ${SRC_DIR}/influxdb)
 
 set(SOURCES
     "${SRC_DIR}/tsdb_bench.cc"
     "${SRC_DIR}/metric.cc"
     "${SRC_DIR}/asio.cc"
     "${SRC_DIR}/beast.cc"
+    "${SRC_DIR}/db/db_conf.cc"
     "${SRC_DIR}/db/connection.cc"
     "${SRC_DIR}/db/request.cc"
     "${SRC_DIR}/timescale/pg_connection.cc"
     "${SRC_DIR}/timescale/pg_request.cc"
     "${SRC_DIR}/prometheus/pr_http_server.cc"
+    "${SRC_DIR}/http_client/http_connection.cc"
+    "${SRC_DIR}/influxdb/inf_http_client.cc"
 )
 
 add_executable(tsdb_bench ${SOURCES})

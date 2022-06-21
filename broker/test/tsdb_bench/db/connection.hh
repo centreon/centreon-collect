@@ -1,21 +1,17 @@
 #ifndef __TSDB__BENCH__CONNECTION_HH
 #define __TSDB__BENCH__CONNECTION_HH
 
+#include "db_conf.hh"
 #include "request.hh"
 
-class connection : public std::enable_shared_from_this<connection> {
+class connection : public std::enable_shared_from_this<connection>,
+                   public db_conf {
  public:
   enum class e_state { not_connected, connecting, idle, busy, error };
 
  protected:
   io_context_ptr _io_context;
   logger_ptr _logger;
-  std::string _name;
-  std::string _host;
-  u_int16_t _port;
-  std::string _user;
-  std::string _password;
-  boost::json::object _conf;
 
   volatile e_state _state;
   using request_queue = std::queue<request_base::pointer>;
@@ -56,11 +52,6 @@ class connection : public std::enable_shared_from_this<connection> {
   virtual ~connection();
 
   logger_ptr get_logger() const { return _logger; }
-  constexpr const std::string& get_name() const { return _name; }
-  constexpr const std::string& get_host() const { return _host; }
-  constexpr const u_int16_t& get_port() const { return _port; }
-  constexpr const std::string& get_user() const { return _user; }
-  constexpr const std::string& get_password() const { return _password; }
 
   e_state get_state() const { return _state; }
 

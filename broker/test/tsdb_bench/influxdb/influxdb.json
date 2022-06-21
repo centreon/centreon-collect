@@ -1,0 +1,9 @@
+{
+    "database_type": "influxdb",
+    "name": "centreon",
+    "host": "127.0.0.1",
+    "port": 8086,
+    "dbname": "",
+    "user": "bucket",
+    "password": "Can7j4VEmIJqd9aPSv3sM-uVA1K_1EzRNh7zAroskdyRo_LgdJ20VvlYLUfgF5lwLikBI4x6_zV6BtXRovVwHw=="
+}

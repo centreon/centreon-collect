@@ -3,6 +3,7 @@
 #include <boost/json/src.hpp>
 
 #include "db/connection.hh"
+#include "influxdb/inf_http_client.hh"
 #include "metric.hh"
 #include "pg_metric.hh"
 #include "prometheus/pr_http_server.hh"
@@ -110,6 +111,66 @@ void bench_prometheus(const io_context_ptr& io_context,
                                                 bulk_size);
   prom_server->push(to_insert->begin(), to_insert->end());
   prom_server->start();
+}
+
+/******************************************************************************************
+ *
+ *          influxdb
+ *
+ ******************************************************************************************/
+
+void send_to_influx_db(const influxdb::inf_client::pointer& client,
+                       metric::metric_cont_ptr to_insert,
+                       unsigned bulk_size,
+                       metric::metric_cont::const_iterator iter) {
+  unsigned reminder = std::distance(iter, to_insert->cend());
+  if (reminder <= bulk_size) {
+    metric::metric_cont::const_iterator end = iter;
+    std::advance(end, reminder);
+    client->send(iter, end,
+                 [client](const std::error_code&, const std::string&,
+                          const http_client::connection::response_ptr&) {
+
+                 });
+  } else {
+    metric::metric_cont::const_iterator end = iter;
+    std::advance(end, bulk_size);
+    client->send(iter, end,
+                 [client, to_insert, bulk_size, end](
+                     const std::error_code& err, const std::string&,
+                     const http_client::connection::response_ptr& response) {
+                   if (response->keep_alive()) {
+                     send_to_influx_db(client, to_insert, bulk_size, end);
+                   } else {
+                   }
+                 });
+  }
+}
+
+void bench_influxdb(const io_context_ptr& io_context,
+                    const logger_ptr& logger,
+                    metric::metric_cont_ptr to_insert,
+                    const boost::json::object& db_conf,
+                    unsigned bulk_size,
+                    unsigned nb_conn,
+                    metric::metric_cont::const_iterator iter) {
+  influxdb::inf_client::pointer client =
+      std::make_shared<influxdb::inf_client>(io_context, logger, db_conf);
+  client->connect(
+      [client, to_insert, bulk_size, iter](const boost::beast::error_code& err,
+                                           const std::string& detail) {
+        send_to_influx_db(client, to_insert, bulk_size, iter);
+      });
+}
+
+void bench_influxdb(const io_context_ptr& io_context,
+                    const logger_ptr& logger,
+                    metric::metric_cont_ptr to_insert,
+                    const boost::json::object& db_conf,
+                    unsigned bulk_size,
+                    unsigned nb_conn) {
+  bench_influxdb(io_context, logger, to_insert, db_conf, bulk_size, nb_conn,
+                 to_insert->begin());
 }
 
 /******************************************************************************************
@@ -234,6 +295,9 @@ int main(int argc, char** argv) {
     } else if (database_type == "prometheus") {
       bench_prometheus(io_context, logger, to_insert, db_conf, bulk_size,
                        nb_conn);
+    } else if (database_type == "influxdb") {
+      bench_influxdb(io_context, logger, to_insert, db_conf, bulk_size,
+                     nb_conn);
     }
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(logger, "fail to connect {}", e.what());

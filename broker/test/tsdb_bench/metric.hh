@@ -11,6 +11,36 @@ struct metric_conf {
   uint int64_percent;
 };
 
+namespace detail {
+template <class request_type>
+class value_visitor : public boost::static_visitor<> {
+ protected:
+  request_type& _req;
+
+ public:
+  value_visitor(request_type& req) : _req(req) {}
+  template <typename T>
+  void operator()(const T& val) const {
+    _req.in(val);
+  }
+};
+
+template <>
+class value_visitor<std::string> : public boost::static_visitor<> {
+ protected:
+  std::string& _str;
+
+ public:
+  value_visitor(std::string& str) : _str(str) {}
+
+  template <typename T>
+  void operator()(const T& val) const {
+    absl::StrAppend(&_str, val);
+  }
+};
+
+}  // namespace detail
+
 class metric {
  public:
   using metric_type = boost::variant<uint64_t, int64_t, float, double>;
@@ -19,19 +49,6 @@ class metric {
   using metric_cont_ptr = std::shared_ptr<metric_cont>;
 
  protected:
-  template <class request_type>
-  class value_visitor : public boost::static_visitor<> {
-   protected:
-    request_type& _req;
-
-   public:
-    value_visitor(request_type& req) : _req(req) {}
-    template <typename T>
-    void operator()(const T& val) const {
-      _req.in(val);
-    }
-  };
-
   uint64_t _service_id;
   uint64_t _host_id;
   uint64_t _metric_id;
@@ -92,7 +109,7 @@ class metric {
 
   template <class request_type>
   void get_value(request_type& request) const {
-    boost::apply_visitor(value_visitor<request_type>(request), _value);
+    boost::apply_visitor(detail::value_visitor<request_type>(request), _value);
   }
 
   static metric_cont_ptr create_metrics(const metric_conf& conf);

@@ -213,18 +213,18 @@ void pg_connection::connect_poll(const connection_handler& handler) {
   }
   switch (poll_status) {
     case PGRES_POLLING_WRITING:
-      _socket.async_wait(
-          socket_type::wait_write,
-          [me = shared_from_this(), handler](const std::error_code& err) {
-            me->connect_handler(err, handler);
-          });
+      _socket.async_wait(socket_type::wait_write,
+                         [me = shared_from_this(),
+                          _handler = handler](const std::error_code& err) {
+                           me->connect_handler(err, _handler);
+                         });
       break;
     case PGRES_POLLING_READING:
-      _socket.async_wait(
-          socket_type::wait_read,
-          [me = shared_from_this(), handler](const std::error_code& err) {
-            me->connect_handler(err, handler);
-          });
+      _socket.async_wait(socket_type::wait_read,
+                         [me = shared_from_this(),
+                          _handler = handler](const std::error_code& err) {
+                           me->connect_handler(err, _handler);
+                         });
       break;
     case PGRES_POLLING_OK:
       SPDLOG_LOGGER_INFO(_logger, "connected {}", *this);
