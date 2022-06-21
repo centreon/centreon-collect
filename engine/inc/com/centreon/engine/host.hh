@@ -176,8 +176,6 @@ class host : public notifier {
   std::string const& get_current_state_as_string() const override;
 
   // setters / getters
-  std::string const& get_name() const;
-  void set_name(std::string const& name);
   std::string const& get_alias() const;
   void set_alias(std::string const& alias);
   std::string const& get_address() const;

@@ -54,7 +54,7 @@ std::ostream& dump::comment(std::ostream& os,
     auto it = host::hosts_by_id.find(obj.get_host_id());
     if (it == host::hosts_by_id.end())
       return os;
-    host_name = it->second->get_name().c_str();
+    host_name = it->second->name().c_str();
     service_description = "";
     os << "hostcomment {\n";
   } else {
@@ -268,7 +268,7 @@ std::ostream& dump::host(std::ostream& os,
                          com::centreon::engine::host const& obj) {
   os << "host {\n"
         "host_name="
-     << obj.get_name()
+     << obj.name()
      << "\n"
         "host_id="
      << obj.get_host_id()
@@ -593,7 +593,7 @@ bool dump::save(std::string const& path) {
 std::ostream& dump::service(std::ostream& os, class service const& obj) {
   std::string hostname;
   if (obj.get_host_ptr())
-    hostname = obj.get_host_ptr()->get_name();
+    hostname = obj.get_host_ptr()->name();
 
   os << "service {\n"
         "host_name="

@@ -573,9 +573,8 @@ void applier::scheduler::_calculate_host_scheduling_params() {
     } else {
       hst.set_should_be_scheduled(false);
       engine_logger(dbg_events, more)
-          << "Host " << hst.get_name() << " should not be scheduled.";
-      log_v2::events()->debug("Host {} should not be scheduled.",
-                              hst.get_name());
+          << "Host " << hst.name() << " should not be scheduled.";
+      log_v2::events()->debug("Host {} should not be scheduled.", hst.name());
     }
 
     ++scheduling_info.total_hosts;
@@ -909,8 +908,8 @@ void applier::scheduler::_schedule_host_events(
   for (unsigned int i(0); i < end; ++i) {
     com::centreon::engine::host& hst(*hosts[i]);
 
-    engine_logger(dbg_events, most) << "Host '" << hst.get_name() << "'";
-    log_v2::events()->debug("Host '{}'", hst.get_name());
+    engine_logger(dbg_events, most) << "Host '" << hst.name() << "'";
+    log_v2::events()->debug("Host '{}'", hst.name());
 
     // skip hosts that shouldn't be scheduled.
     if (!hst.get_should_be_scheduled()) {
@@ -1041,8 +1040,9 @@ void applier::scheduler::_schedule_service_events(
                             ++interleave_block_index * total_interleave_blocks);
 
       // set the preferred next check time for the service.
-      s->set_next_check((time_t)(
-          now + mult_factor * scheduling_info.service_inter_check_delay));
+      s->set_next_check(
+          (time_t)(now +
+                   mult_factor * scheduling_info.service_inter_check_delay));
 
       // Make sure the service can actually be scheduled when we want.
       {

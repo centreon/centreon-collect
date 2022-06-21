@@ -223,7 +223,7 @@ grpc::Status engine_impl::GetHost(grpc::ServerContext* context
           return 1;
         }
 
-        host->set_name(selectedhost->get_name());
+        host->set_name(selectedhost->name());
         host->set_alias(selectedhost->get_alias());
         host->set_address(selectedhost->get_address());
         host->set_check_period(selectedhost->check_period());

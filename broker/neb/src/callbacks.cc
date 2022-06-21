@@ -300,9 +300,9 @@ int neb::callback_custom_variable(int callback_type, void* data) {
       // Host custom variable.
       if (NEBTYPE_HOSTCUSTOMVARIABLE_ADD == cvar->type) {
         engine::host* hst(static_cast<engine::host*>(cvar->object_ptr));
-        if (hst && !hst->get_name().empty()) {
+        if (hst && !hst->name().empty()) {
           // Fill custom variable event.
-          uint64_t host_id = engine::get_host_id(hst->get_name());
+          uint64_t host_id = engine::get_host_id(hst->name());
           if (host_id != 0) {
             std::shared_ptr<custom_variable> new_cvar(new custom_variable);
             new_cvar->enabled = true;
@@ -324,8 +324,8 @@ int neb::callback_custom_variable(int callback_type, void* data) {
         }
       } else if (NEBTYPE_HOSTCUSTOMVARIABLE_DELETE == cvar->type) {
         engine::host* hst(static_cast<engine::host*>(cvar->object_ptr));
-        if (hst && !hst->get_name().empty()) {
-          uint32_t host_id = engine::get_host_id(hst->get_name());
+        if (hst && !hst->name().empty()) {
+          uint32_t host_id = engine::get_host_id(hst->name());
           if (host_id != 0) {
             std::shared_ptr<custom_variable> old_cvar(new custom_variable);
             old_cvar->enabled = false;
@@ -1001,13 +1001,13 @@ int neb::callback_group_member(int callback_type, void* data) {
           static_cast<engine::host*>(member_data->object_ptr));
       engine::hostgroup const* hg(
           static_cast<engine::hostgroup*>(member_data->group_ptr));
-      if (!hst->get_name().empty() && !hg->get_group_name().empty()) {
+      if (!hst->name().empty() && !hg->get_group_name().empty()) {
         // Output variable.
         std::shared_ptr<neb::host_group_member> hgm(new neb::host_group_member);
         hgm->group_id = hg->get_id();
         hgm->group_name = misc::string::check_string_utf8(hg->get_group_name());
         hgm->poller_id = config::applier::state::instance().poller_id();
-        uint32_t host_id = engine::get_host_id(hst->get_name());
+        uint32_t host_id = engine::get_host_id(hst->name());
         if (host_id != 0 && hgm->group_id != 0) {
           hgm->host_id = host_id;
           if (member_data->type == NEBTYPE_HOSTGROUPMEMBER_DELETE) {
@@ -1152,8 +1152,8 @@ int neb::callback_host(int callback_type, void* data) {
     my_host->freshness_threshold = h->get_freshness_threshold();
     my_host->has_been_checked = h->has_been_checked();
     my_host->high_flap_threshold = h->get_high_flap_threshold();
-    if (!h->get_name().empty())
-      my_host->host_name = misc::string::check_string_utf8(h->get_name());
+    if (!h->name().empty())
+      my_host->host_name = misc::string::check_string_utf8(h->name());
     if (!h->get_icon_image().empty())
       my_host->icon_image =
           misc::string::check_string_utf8(h->get_icon_image());
@@ -1234,9 +1234,8 @@ int neb::callback_host(int callback_type, void* data) {
       /* No need to send this service custom variables changes, custom variables
        * are managed in a different loop. */
     } else
-      log_v2::neb()->error(
-          "callbacks: host '{}' has no ID (yet) defined",
-          (!h->get_name().empty() ? h->get_name() : "(unknown)"));
+      log_v2::neb()->error("callbacks: host '{}' has no ID (yet) defined",
+                           (!h->name().empty() ? h->name() : "(unknown)"));
   }
   // Avoid exception propagation to C code.
   catch (...) {
@@ -1305,19 +1304,18 @@ int neb::callback_pb_host(int callback_type, void* data) {
       assert(1 == 0);
     }
 
-    uint64_t host_id = engine::get_host_id(eh->get_name());
+    uint64_t host_id = engine::get_host_id(eh->name());
     if (host_id != 0) {
       hst.set_host_id(host_id);
 
       // Send host event.
       log_v2::neb()->info("callbacks:  new host {} ('{}') on instance {}",
-                          hst.host_id(), eh->get_name(),
+                          hst.host_id(), eh->name(),
                           config::applier::state::instance().poller_id());
       neb::gl_publisher.write(h);
     } else
-      log_v2::neb()->error(
-          "callbacks: host '{}' has no ID (yet) defined",
-          (!eh->get_name().empty() ? eh->get_name() : "(unknown)"));
+      log_v2::neb()->error("callbacks: host '{}' has no ID (yet) defined",
+                           (!eh->name().empty() ? eh->name() : "(unknown)"));
   } else {
     auto h{std::make_shared<neb::pb_host>()};
     Host& host = h.get()->mut_obj();
@@ -1373,8 +1371,8 @@ int neb::callback_pb_host(int callback_type, void* data) {
     host.set_freshness_threshold(eh->get_freshness_threshold());
     host.set_checked(eh->has_been_checked());
     host.set_high_flap_threshold(eh->get_high_flap_threshold());
-    if (!eh->get_name().empty())
-      host.set_name(misc::string::check_string_utf8(eh->get_name()));
+    if (!eh->name().empty())
+      host.set_name(misc::string::check_string_utf8(eh->name()));
     if (!eh->get_icon_image().empty())
       host.set_icon_image(
           misc::string::check_string_utf8(eh->get_icon_image()));
@@ -1462,9 +1460,8 @@ int neb::callback_pb_host(int callback_type, void* data) {
       /* No need to send this service custom variables changes, custom variables
        * are managed in a different loop. */
     } else
-      log_v2::neb()->error(
-          "callbacks: host '{}' has no ID (yet) defined",
-          (!eh->get_name().empty() ? eh->get_name() : "(unknown)"));
+      log_v2::neb()->error("callbacks: host '{}' has no ID (yet) defined",
+                           (!eh->name().empty() ? eh->name() : "(unknown)"));
   }
   return 0;
 }
@@ -1573,12 +1570,12 @@ int neb::callback_host_status(int callback_type, void* data) {
     host_status->execution_time = h->get_execution_time();
     host_status->flap_detection_enabled = h->flap_detection_enabled();
     host_status->has_been_checked = h->has_been_checked();
-    if (h->get_name().empty())
+    if (h->name().empty())
       throw msg_fmt("unnamed host");
     {
-      host_status->host_id = engine::get_host_id(h->get_name());
+      host_status->host_id = engine::get_host_id(h->name());
       if (host_status->host_id == 0)
-        throw msg_fmt("could not find ID of host '{}'", h->get_name());
+        throw msg_fmt("could not find ID of host '{}'", h->name());
     }
     host_status->is_flapping = h->get_is_flapping();
     host_status->last_check = h->get_last_check();
@@ -1669,7 +1666,7 @@ int neb::callback_pb_host_status(int callback_type, void* data) noexcept {
 
   hscr.set_host_id(eh->get_host_id());
   if (hscr.host_id() == 0)
-    log_v2::neb()->error("could not find ID of host '{}'", eh->get_name());
+    log_v2::neb()->error("could not find ID of host '{}'", eh->name());
 
   if (eh->problem_has_been_acknowledged())
     hscr.set_acknowledgement_type(
@@ -2032,8 +2029,8 @@ int neb::callback_relation(int callback_type, void* data) {
         int host_id;
         int parent_id;
         {
-          host_id = engine::get_host_id(relation->dep_hst->get_name());
-          parent_id = engine::get_host_id(relation->hst->get_name());
+          host_id = engine::get_host_id(relation->dep_hst->name());
+          parent_id = engine::get_host_id(relation->hst->name());
         }
         if (host_id && parent_id) {
           // Generate parent event.

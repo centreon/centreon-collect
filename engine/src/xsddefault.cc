@@ -293,7 +293,7 @@ int xsddefault_save_status_data() {
     stream
         << "hoststatus {\n"
            "\thost_name="
-        << it->second->get_name()
+        << it->second->name()
         << "\n"
            "\tmodified_attributes="
         << it->second->get_modified_attributes()

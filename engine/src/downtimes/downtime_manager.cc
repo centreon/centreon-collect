@@ -153,10 +153,10 @@ int downtime_manager::check_pending_flex_host_downtime(host* hst) {
           current_time <= it->second->get_end_time()) {
         engine_logger(dbg_downtime, basic)
             << "Flexible downtime (id=" << it->second->get_downtime_id()
-            << ") for host '" << hst->get_name() << "' starting now...";
+            << ") for host '" << hst->name() << "' starting now...";
         log_v2::downtimes()->trace(
             "Flexible downtime (id={}) for host '{}' starting now...",
-            it->second->get_downtime_id(), hst->get_name());
+            it->second->get_downtime_id(), hst->name());
 
         it->second->start_flex_downtime();
         it->second->handle();
