@@ -9,6 +9,7 @@
 #include "prometheus/pr_http_server.hh"
 #include "timescale/pg_connection.hh"
 #include "timescale/pg_request.hh"
+#include "warp10/warp10_http_client.hh"
 
 namespace po = boost::program_options;
 
@@ -175,6 +176,66 @@ void bench_influxdb(const io_context_ptr& io_context,
 
 /******************************************************************************************
  *
+ *          warp10
+ *
+ ******************************************************************************************/
+
+void send_to_warp10_db(const warp10::warp10_client::pointer& client,
+                       metric::metric_cont_ptr to_insert,
+                       unsigned bulk_size,
+                       metric::metric_cont::const_iterator iter) {
+  unsigned reminder = std::distance(iter, to_insert->cend());
+  if (reminder <= bulk_size) {
+    metric::metric_cont::const_iterator end = iter;
+    std::advance(end, reminder);
+    client->send(iter, end,
+                 [client](const std::error_code&, const std::string&,
+                          const http_client::connection::response_ptr&) {
+
+                 });
+  } else {
+    metric::metric_cont::const_iterator end = iter;
+    std::advance(end, bulk_size);
+    client->send(iter, end,
+                 [client, to_insert, bulk_size, end](
+                     const std::error_code& err, const std::string&,
+                     const http_client::connection::response_ptr& response) {
+                   if (response->keep_alive()) {
+                     send_to_warp10_db(client, to_insert, bulk_size, end);
+                   } else {
+                   }
+                 });
+  }
+}
+
+void bench_warp10(const io_context_ptr& io_context,
+                  const logger_ptr& logger,
+                  metric::metric_cont_ptr to_insert,
+                  const boost::json::object& db_conf,
+                  unsigned bulk_size,
+                  unsigned nb_conn,
+                  metric::metric_cont::const_iterator iter) {
+  warp10::warp10_client::pointer client =
+      std::make_shared<warp10::warp10_client>(io_context, logger, db_conf);
+  client->connect(
+      [client, to_insert, bulk_size, iter](const boost::beast::error_code& err,
+                                           const std::string& detail) {
+        send_to_warp10_db(client, to_insert, bulk_size, iter);
+      });
+}
+
+void bench_warp10(const io_context_ptr& io_context,
+                  const logger_ptr& logger,
+                  metric::metric_cont_ptr to_insert,
+                  const boost::json::object& db_conf,
+                  unsigned bulk_size,
+                  unsigned nb_conn) {
+  bench_warp10(io_context, logger, to_insert, db_conf, bulk_size, nb_conn,
+               to_insert->begin());
+}
+
+/******************************************************************************************
+ *
  *          main
  *
  ******************************************************************************************/
@@ -298,6 +359,8 @@ int main(int argc, char** argv) {
     } else if (database_type == "influxdb") {
       bench_influxdb(io_context, logger, to_insert, db_conf, bulk_size,
                      nb_conn);
+    } else if (database_type == "warp10") {
+      bench_warp10(io_context, logger, to_insert, db_conf, bulk_size, nb_conn);
     }
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(logger, "fail to connect {}", e.what());

@@ -1,0 +1,9 @@
+{
+    "database_type": "warp10",
+    "name": "warp10 on docker",
+    "host": "127.0.0.1",
+    "port": 8080,
+    "dbname": "dummy",
+    "user": "dummy",
+    "password": "T2S9QL1vrk7ABbUPIVFQP0HeiNvElNWVkKkpf340KFy1VGvALgU3RR_1PZTqtXRw34S_1NoIp7WKXvcsFih7trlQZjFAwjQhrA0Q2rARxjapTpP28zCmJV"
+}

@@ -28,6 +28,7 @@ set(SOURCES
     "${SRC_DIR}/prometheus/pr_http_server.cc"
     "${SRC_DIR}/http_client/http_connection.cc"
     "${SRC_DIR}/influxdb/inf_http_client.cc"
+    "${SRC_DIR}/warp10/warp10_http_client.cc"
 )
 
 add_executable(tsdb_bench ${SOURCES})
