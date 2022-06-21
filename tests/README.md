@@ -106,6 +106,29 @@ Here is the list of the currently implemented tests:
 - [x] **BDBU7**: Access denied when database user password is wrong for unified sql
 - [x] **BDBU10**: Connection should be established when user password is good for unified sql
 - [x] **BDBMU1**: start broker/engine with unified sql and then start MariaDB => connection is established
+- [x] **BSS1**: Start-Stop two instances of broker and no coredump
+- [x] **BSS2**: Start/Stop 10 times broker with 300ms interval and no coredump
+- [x] **BSS3**: Start-Stop one instance of broker and no coredump
+- [x] **BSS4**: Start/Stop 10 times broker with 1sec interval and no coredump
+- [x] **BSS5**: Start-Stop with reversed connection on TCP acceptor with only one instance and no deadlock
+- [x] **BSSU1**: Start-Stop with unified_sql two instances of broker and no coredump
+- [x] **BSSU2**: Start/Stop with unified_sql 10 times broker with 300ms interval and no coredump
+- [x] **BSSU3**: Start-Stop with unified_sql one instance of broker and no coredump
+- [x] **BSSU4**: Start/Stop with unified_sql 10 times broker with 1sec interval and no coredump
+- [x] **BSSU5**: Start-Stop with unified_sql with reversed connection on TCP acceptor with only one instance and no deadlock
+- [x] **BCL1**: Starting broker with option '-s foobar' should return an error
+- [x] **BCL2**: Starting broker with option '-s 5' should work
+- [x] **BGRPCSS1**: Start-Stop two instances of broker configured with grpc stream and no coredump
+- [x] **BGRPCSS2**: Start/Stop 10 times broker configured with grpc stream with 300ms interval and no coredump
+- [x] **BGRPCSS3**: Start-Stop one instance of broker configured with grpc stream and no coredump
+- [x] **BGRPCSS4**: Start/Stop 10 times broker configured with grpc stream with 1sec interval and no coredump
+- [x] **BGRPCSS5**: Start-Stop with reversed connection on grpc acceptor with only one instance and no deadlock
+- [x] **BGRPCSSU1**: Start-Stop with unified_sql two instances of broker with grpc stream and no coredump
+- [x] **BGRPCSSU2**: Start/Stop with unified_sql 10 times broker configured with grpc stream with 300ms interval and no coredump
+- [x] **BGRPCSSU3**: Start-Stop with unified_sql one instance of broker configured with grpc and no coredump
+- [x] **BGRPCSSU4**: Start/Stop with unified_sql 10 times broker configured with grpc stream with 1sec interval and no coredump
+- [x] **BGRPCSSU5**: Start-Stop with unified_sql with reversed connection on grpc acceptor with only one instance and no deadlock
+==== BASE ====
 
 ### Broker/database
 - [x] **NetworkDbFail1**: network failure test between broker and database (shutting down connection for 100ms)
