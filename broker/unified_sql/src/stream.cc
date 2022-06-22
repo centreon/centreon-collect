@@ -536,6 +536,8 @@ int32_t stream::write(const std::shared_ptr<io::data>& data) {
     _rebuilder.rebuild_rrd_graphs(data);
   else if (type == make_type(io::bbdo, bbdo::de_remove_graphs))
     remove_graphs(data);
+  else if (type == make_type(io::bbdo, bbdo::de_remove_poller))
+    remove_poller(data);
   else {
     log_v2::sql()->trace(
         "unified sql: event of type {} thrown away ; no need to store it in "
@@ -701,5 +703,130 @@ void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
       log_v2::sql()->info(
           "metrics {} and indexes {} do not appear in the storage database",
           mids_str, ids_str);
+  });
+}
+
+/**
+ * @brief process a remove poller message.
+ *
+ * @param d The BBDO message with the name or the id of the poller to remove.
+ */
+void stream::remove_poller(const std::shared_ptr<io::data>& d) {
+  asio::post(pool::instance().io_context(), [this, data = d] {
+    mysql ms(_dbcfg);
+    const bbdo::pb_remove_poller& poller =
+        *static_cast<const bbdo::pb_remove_poller*>(data.get());
+
+    try {
+      std::promise<database::mysql_result> promise;
+      std::future<mysql_result> future = promise.get_future();
+      int32_t conn = ms.choose_best_connection(-1);
+      uint64_t id;
+      uint32_t count = 0;
+      if (poller.obj().has_str()) {
+        ms.run_query_and_get_result(
+            fmt::format("SELECT instance_id from instances WHERE name={}",
+                        poller.obj().str()),
+            std::move(promise), conn);
+        database::mysql_result res(future.get());
+
+        while (ms.fetch_row(res)) {
+          count++;
+          id = res.value_as_u64(0);
+        }
+        if (count != 1) {
+          log_v2::sql()->error(
+              "Impossible to remove poller '{}', {} found in the database",
+              poller.obj().str(), count == 0 ? "none" : "more than one");
+          return;
+        }
+      } else
+        id = poller.obj().idx();
+
+      ms.run_query(
+          fmt::format("DELETE FROM instances WHERE instance_id={}", id),
+          database::mysql_error::del_inst, false, conn);
+
+    } catch (const std::exception& e) {
+      log_v2::sql()->error("Error encountered while removing a poller: {}",
+                           e.what());
+    }
+    //    std::set<uint64_t> indexes_to_delete;
+    //    std::set<uint64_t> metrics_to_delete;
+    //    try {
+    //      if (!ids.obj().index_ids().empty()) {
+    //        ms.run_query_and_get_result(
+    //            fmt::format("SELECT i.id,m.metric_id,
+    //            m.metric_name,i.host_id,"
+    //                        "i.service_id FROM index_data i LEFT JOIN metrics
+    //                        m ON " "i.id=m.index_id WHERE i.id IN ({})",
+    //                        fmt::join(ids.obj().index_ids(), ",")),
+    //            std::move(promise), conn);
+    //        database::mysql_result res(future.get());
+    //
+    //        std::lock_guard<misc::shared_mutex> lock(_metric_cache_m);
+    //        while (ms.fetch_row(res)) {
+    //          indexes_to_delete.insert(res.value_as_u64(0));
+    //          uint64_t mid = res.value_as_u64(1);
+    //          if (mid)
+    //            metrics_to_delete.insert(mid);
+    //
+    //          _metric_cache.erase({res.value_as_u64(0), res.value_as_str(2)});
+    //          _index_cache.erase({res.value_as_u32(3), res.value_as_u32(4)});
+    //        }
+    //      }
+    //
+    //      if (!ids.obj().metric_ids().empty()) {
+    //        promise = std::promise<database::mysql_result>();
+    //        std::future<mysql_result> future = promise.get_future();
+    //
+    //        ms.run_query_and_get_result(
+    //            fmt::format("SELECT index_id,metric_id,metric_name FROM
+    //            metrics "
+    //                        "WHERE metric_id IN ({})",
+    //                        fmt::join(ids.obj().metric_ids(), ",")),
+    //            std::move(promise), conn);
+    //        database::mysql_result res(future.get());
+    //
+    //        std::lock_guard<misc::shared_mutex> lock(_metric_cache_m);
+    //        while (ms.fetch_row(res)) {
+    //          metrics_to_delete.insert(res.value_as_u64(1));
+    //          _metric_cache.erase({res.value_as_u64(0), res.value_as_str(2)});
+    //        }
+    //      }
+    //    } catch (const std::exception& e) {
+    //      log_v2::sql()->error(
+    //          "could not query index / metrics table(s) to get index to
+    //          delete: "
+    //          "{} ",
+    //          e.what());
+    //    }
+    //
+    //    std::string mids_str{fmt::format("{}", fmt::join(metrics_to_delete,
+    //    ","))}; if (!metrics_to_delete.empty()) {
+    //      log_v2::sql()->info("metrics {} erased from database", mids_str);
+    //      ms.run_query(
+    //          fmt::format("DELETE FROM metrics WHERE metric_id in ({})",
+    //          mids_str), database::mysql_error::delete_metric, false);
+    //    }
+    //    std::string ids_str{fmt::format("{}", fmt::join(indexes_to_delete,
+    //    ","))}; if (!indexes_to_delete.empty()) {
+    //      log_v2::sql()->info("indexes {} erased from database", ids_str);
+    //      ms.run_query(
+    //          fmt::format("DELETE FROM index_data WHERE id in ({})", ids_str),
+    //          database::mysql_error::delete_index, false);
+    //    }
+    //
+    //    if (!metrics_to_delete.empty() || !indexes_to_delete.empty()) {
+    //      auto rmg{std::make_shared<storage::pb_remove_graph_message>()};
+    //      for (uint64_t i : metrics_to_delete)
+    //        rmg->mut_obj().add_metric_ids(i);
+    //      for (uint64_t i : indexes_to_delete)
+    //        rmg->mut_obj().add_index_ids(i);
+    //      multiplexing::publisher().write(rmg);
+    //    } else
+    //      log_v2::sql()->info(
+    //          "metrics {} and indexes {} do not appear in the storage
+    //          database", mids_str, ids_str);
   });
 }

@@ -86,6 +86,7 @@ enum data_element {
   de_stop = 3,
   de_rebuild_rrd_graphs = 4,
   de_remove_graphs = 5,
+  de_remove_poller = 6,
 };
 }
 namespace neb {

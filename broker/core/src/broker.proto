@@ -23,14 +23,30 @@ service Broker {
   rpc GetProcessingStats(google.protobuf.Empty) returns (ProcessingStats) {}
 
   /**
-   * @brief Rebuild RRD metric RRD files from data in the SQL database.
+   * @brief Rebuild RRD metric from data in the SQL database.
    *
    * @param IndexIds Message containing a vector of metric ids.
    *
    * @return An Empty object.
    */
   rpc RebuildRRDGraphs(IndexIds) returns (google.protobuf.Empty) {}
+  /**
+   * @brief Remove RRD files from index IDs.
+   *
+   * @param IndexIds Message containing a vector of metric ids.
+   *
+   * @return An Empty object.
+   */
   rpc RemoveGraphs(ToRemove) returns (google.protobuf.Empty) {}
+
+  /**
+   * @brief Remove a poller configuration from Broker and real time database.
+   *
+   * @param GenericNameOrIndex Message containing the poller name or its id.
+   *
+   * @return An Empty object.
+   */
+  rpc RemovePoller(GenericNameOrIndex) returns (google.protobuf.Empty) {}
 }
 
 message Version {
@@ -57,7 +73,7 @@ message GenericSize {
 message GenericNameOrIndex {
   oneof nameOrIndex {
     string str = 1;
-    uint32 idx = 2;
+    uint64 idx = 2;
   }
 }
 

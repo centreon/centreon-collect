@@ -1,5 +1,5 @@
 /*
-** Copyright 2013 Centreon
+** Copyright 2020-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -37,6 +37,9 @@ using pb_rebuild_rrd_graphs =
     io::protobuf<IndexIds, make_type(io::bbdo, bbdo::de_rebuild_rrd_graphs)>;
 using pb_remove_graphs =
     io::protobuf<ToRemove, make_type(io::bbdo, bbdo::de_remove_graphs)>;
+using pb_remove_poller =
+    io::protobuf<GenericNameOrIndex,
+                 make_type(io::bbdo, bbdo::de_remove_poller)>;
 }  // namespace bbdo
 
 namespace storage {
