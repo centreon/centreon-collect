@@ -26,8 +26,7 @@ BCL2
 	[Tags]	Broker	start-stop
 	Config Broker	central
 	${start}=	Get Current Date	exclude_millis=True
-	Log To console	${start}
-	Sleep	2s
+	Sleep	1s
 	Start Broker With Args	-s5	/etc/centreon-broker/central-broker.json
 	${table}=	Create List	Starting the TCP thread pool of 5 threads
 	${logger_res}=	Find in log with timeout	${centralLog}	${start}	${table}	30
@@ -39,7 +38,7 @@ BCL3
 	[Tags]	Broker	start-stop
 	Config Broker	central
 	${start}=	Get Current Date	exclude_millis=True
-	Sleep	5s
+	Sleep	1s
 	Start Broker With Args	-D	/etc/centreon-broker/central-broker.json
 	${result}=	Wait For Broker
 	${expected}=	Evaluate	"diagnostic:" in """${result}"""

@@ -169,7 +169,8 @@ int main(int argc, char* argv[]) {
     bool help{false};
     bool version{false};
 
-    while((opt = getopt_long(argc, argv, "s:cDvh", long_options, &option_index)) != -1){
+    while ((opt = getopt_long(argc, argv, "s:cDvh", long_options,
+                              &option_index)) != -1) {
       switch (opt) {
         case 's':
           if (!absl::SimpleAtoi(optarg, &n_thread)) {
@@ -189,7 +190,8 @@ int main(int argc, char* argv[]) {
           version = true;
           break;
         default:
-          throw msg_fmt("Enter allowed options : [-s <poolsize>] [-c] [-D] [-h] [-v]");
+          throw msg_fmt(
+              "Enter allowed options : [-s <poolsize>] [-c] [-D] [-h] [-v]");
           break;
       }
     }
@@ -208,7 +210,8 @@ int main(int argc, char* argv[]) {
       diag.generate(gl_mainconfigfiles);
     } else if (help) {
       log_v2::core()->info(
-          "USAGE: {} [-s <poolsize>] [-c] [-D] [-h] [-v] [<configfile>]", argv[0]);
+          "USAGE: {} [-s <poolsize>] [-c] [-D] [-h] [-v] [<configfile>]",
+          argv[0]);
 
       log_v2::core()->info("  '-sx' or '-s x'  Set x threads.");
       log_v2::core()->info("  '-c'  Check configuration file.");
@@ -225,7 +228,8 @@ int main(int argc, char* argv[]) {
       retval = 0;
     } else if (gl_mainconfigfiles.empty()) {
       log_v2::core()->error(
-          "USAGE: {} [-s <poolsize>] [-c] [-D] [-h] [-v] [<configfile>]\n\n", argv[0]);
+          "USAGE: {} [-s <poolsize>] [-c] [-D] [-h] [-v] [<configfile>]\n\n",
+          argv[0]);
       return 1;
     } else {
       log_v2::core()->info("Centreon Broker {}", CENTREON_BROKER_VERSION);
