@@ -4,6 +4,7 @@
 
 #include "db/connection.hh"
 #include "influxdb/inf_http_client.hh"
+#include "m3/m3_http_client.hh"
 #include "metric.hh"
 #include "pg_metric.hh"
 #include "prometheus/pr_http_server.hh"
@@ -23,7 +24,8 @@ using connection_cont = std::vector<connection::pointer>;
 void copy_to_timescale(const metric::metric_cont_ptr& to_insert,
                        const connection::pointer& conn,
                        unsigned bulk_size,
-                       unsigned offset) {
+                       unsigned offset,
+                       unsigned end_offset) {
   constexpr std::array<request_base::e_column_type, 6> cols = {
       request_base::e_column_type::timestamp_c,
       request_base::e_column_type::int64_c,
@@ -34,8 +36,8 @@ void copy_to_timescale(const metric::metric_cont_ptr& to_insert,
   };
 
   unsigned end = offset + bulk_size;
-  if (end > to_insert->size()) {
-    end = to_insert->size();
+  if (end > end_offset) {
+    end = end_offset;
   }
   if (end == offset) {
     return;
@@ -43,16 +45,16 @@ void copy_to_timescale(const metric::metric_cont_ptr& to_insert,
   auto req = std::make_shared<pg::pg_load_request>(
       "COPY metrics FROM STDIN WITH BINARY", ' ', end - offset, cols.begin(),
       cols.end(),
-      [to_insert, conn, bulk_size, end](const std::error_code& err,
-                                        const std::string& detail,
-                                        const request_base::pointer& req) {
+      [to_insert, conn, bulk_size, end, end_offset](
+          const std::error_code& err, const std::string& detail,
+          const request_base::pointer& req) {
         if (err) {
           SPDLOG_LOGGER_ERROR(conn->get_logger(),
                               "copy_to_timescale fail to copy data {}, {}",
                               err.message(), detail);
           return;
         }
-        copy_to_timescale(to_insert, conn, bulk_size, end);
+        copy_to_timescale(to_insert, conn, bulk_size, end, end_offset);
       });
 
   for (; offset < end; ++offset) {
@@ -67,31 +69,35 @@ void bench_timescale(const io_context_ptr& io_context,
                      const boost::json::object& db_conf,
                      unsigned bulk_size,
                      unsigned nb_conn) {
-  for (; nb_conn; --nb_conn) {
+  unsigned nb_metric_by_conn = to_insert->size() / nb_conn;
+  unsigned offset = 0;
+  for (; nb_conn; --nb_conn, offset += nb_metric_by_conn) {
     connection::pointer conn =
         pg::pg_connection::create(io_context, db_conf, logger);
-    conn->connect(system_clock::now() + std::chrono::seconds(30),
-                  [conn, to_insert, bulk_size](const std::error_code& err,
-                                               const std::string& err_detail) {
-                    if (!err) {
-                      copy_to_timescale(to_insert, conn, bulk_size, 0);
-                      // conn->start_request(std::make_shared<pg::pg_no_result_request>(
-                      //     "insert into rides (vendor_id, pickup_datetime, "
-                      //     "dropoff_datetime) values('55','2022-06-13 "
-                      //     "07:56:21','2022-06-13 "
-                      //     "07:59:21')",
-                      //     [](const std::error_code&, const std::string&,
-                      //        const request_base::pointer&) {}));
-                      // auto req =
-                      // std::make_shared<pg::pg_no_result_statement_request>(
-                      //     "",
-                      //     "insert into rides (vendor_id, pickup_datetime, "
-                      //     "dropoff_datetime) values($1,$2,$3)",
-                      //     cols.begin(), cols.end(),
-                      //     [](const std::error_code&, const std::string&,
-                      //        const request_base::pointer&) {});
-                    }
-                  });
+    conn->connect(
+        system_clock::now() + std::chrono::seconds(30),
+        [conn, to_insert, bulk_size, offset, nb_metric_by_conn](
+            const std::error_code& err, const std::string& err_detail) {
+          if (!err) {
+            copy_to_timescale(to_insert, conn, bulk_size, offset,
+                              offset + nb_metric_by_conn);
+            // conn->start_request(std::make_shared<pg::pg_no_result_request>(
+            //     "insert into rides (vendor_id, pickup_datetime, "
+            //     "dropoff_datetime) values('55','2022-06-13 "
+            //     "07:56:21','2022-06-13 "
+            //     "07:59:21')",
+            //     [](const std::error_code&, const std::string&,
+            //        const request_base::pointer&) {}));
+            // auto req =
+            // std::make_shared<pg::pg_no_result_statement_request>(
+            //     "",
+            //     "insert into rides (vendor_id, pickup_datetime, "
+            //     "dropoff_datetime) values($1,$2,$3)",
+            //     cols.begin(), cols.end(),
+            //     [](const std::error_code&, const std::string&,
+            //        const request_base::pointer&) {});
+          }
+        });
   }
 }
 
@@ -236,6 +242,66 @@ void bench_warp10(const io_context_ptr& io_context,
 
 /******************************************************************************************
  *
+ *          m3db
+ *
+ ******************************************************************************************/
+
+void send_to_m3db_db(const m3db::m3_client::pointer& client,
+                     metric::metric_cont_ptr to_insert,
+                     unsigned bulk_size,
+                     metric::metric_cont::const_iterator iter) {
+  unsigned reminder = std::distance(iter, to_insert->cend());
+  if (reminder <= bulk_size) {
+    metric::metric_cont::const_iterator end = iter;
+    std::advance(end, reminder);
+    client->send(iter, end,
+                 [client](const std::error_code&, const std::string&,
+                          const http_client::connection::response_ptr&) {
+
+                 });
+  } else {
+    metric::metric_cont::const_iterator end = iter;
+    std::advance(end, bulk_size);
+    client->send(iter, end,
+                 [client, to_insert, bulk_size, end](
+                     const std::error_code& err, const std::string&,
+                     const http_client::connection::response_ptr& response) {
+                   if (response->keep_alive()) {
+                     send_to_m3db_db(client, to_insert, bulk_size, end);
+                   } else {
+                   }
+                 });
+  }
+}
+
+void bench_m3db(const io_context_ptr& io_context,
+                const logger_ptr& logger,
+                metric::metric_cont_ptr to_insert,
+                const boost::json::object& db_conf,
+                unsigned bulk_size,
+                unsigned nb_conn,
+                metric::metric_cont::const_iterator iter) {
+  m3db::m3_client::pointer client =
+      std::make_shared<m3db::m3_client>(io_context, logger, db_conf);
+  client->connect(
+      [client, to_insert, bulk_size, iter](const boost::beast::error_code& err,
+                                           const std::string& detail) {
+        send_to_m3db_db(client, to_insert, bulk_size, iter);
+      });
+}
+
+void bench_m3db(const io_context_ptr& io_context,
+                const logger_ptr& logger,
+                metric::metric_cont_ptr to_insert,
+                const boost::json::object& db_conf,
+                unsigned bulk_size,
+                unsigned nb_conn) {
+  bench_m3db(io_context, logger, to_insert, db_conf, bulk_size, nb_conn,
+             to_insert->begin());
+}
+
+/******************************************************************************************
+ *
  *          main
  *
  ******************************************************************************************/
@@ -361,6 +427,8 @@ int main(int argc, char** argv) {
                      nb_conn);
     } else if (database_type == "warp10") {
       bench_warp10(io_context, logger, to_insert, db_conf, bulk_size, nb_conn);
+    } else if (database_type == "m3db") {
+      bench_m3db(io_context, logger, to_insert, db_conf, bulk_size, nb_conn);
     }
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(logger, "fail to connect {}", e.what());

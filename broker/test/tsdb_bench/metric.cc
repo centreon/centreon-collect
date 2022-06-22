@@ -64,7 +64,7 @@ metric::metric_cont_ptr metric::create_metrics(const metric_conf& conf) {
       metric_id_ind = 1;
     }
 
-    now += std::chrono::milliseconds(1);
+    now -= std::chrono::milliseconds(1);
     unsigned metric_type = metric_ind % 100;
     if (metric_type < float_end) {
       to_fill.emplace_back(service_index, host_index, metric_id_ind, now,

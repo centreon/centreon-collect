@@ -89,10 +89,28 @@ void http_socket::answer_builder::operator()(const metric& met) {
   boost::apply_visitor(value_to_string_visitor(&_response_body),
                        met.get_value());
   _response_body.push_back(' ');
-  absl::StrAppend(&_response_body,
-                  std::chrono::duration_cast<std::chrono::milliseconds>(
-                      met.get_time().time_since_epoch())
-                      .count());
+
+  // prometheus don't accept samples older than 10 minutes or newer than 2 minutes
+/*  time_point now = system_clock::now();
+  time_point low_limit = now - std::chrono::seconds(570);
+  time_point high_limit = now + std::chrono::seconds(10);
+
+  if (met.get_time() > high_limit) {
+    absl::StrAppend(&_response_body,
+                    std::chrono::duration_cast<std::chrono::milliseconds>(
+                        high_limit.time_since_epoch())
+                        .count());
+  } else if (met.get_time() < low_limit) {
+    absl::StrAppend(&_response_body,
+                    std::chrono::duration_cast<std::chrono::milliseconds>(
+                        low_limit.time_since_epoch())
+                        .count());
+  } else {
+    absl::StrAppend(&_response_body,
+                    std::chrono::duration_cast<std::chrono::milliseconds>(
+                        met.get_time().time_since_epoch())
+                        .count());
+  }*/
   _response_body.push_back('\n');
 }
 

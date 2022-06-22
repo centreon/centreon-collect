@@ -5,6 +5,9 @@ spdlog/1.10.0
 fmt/8.1.1
 #postgres client
 libpq/14.2
+#snappy used by m3db requests
+snappy/1.1.9
+protobuf/3.19.2
 
 [generators]
 cmake

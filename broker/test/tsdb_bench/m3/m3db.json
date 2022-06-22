@@ -1,0 +1,9 @@
+{
+    "database_type": "m3db",
+    "name": "centreon",
+    "host": "127.0.0.1",
+    "port": 7201,
+    "dbname": "",
+    "user": "bucket",
+    "password": ""
+}
