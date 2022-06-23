@@ -121,6 +121,15 @@ void broker_module_init(void const* arg) {
       e.register_event(make_type(io::storage, storage::de_remove_graph_message),
                        "RemoveGraphMessage",
                        &storage::pb_remove_graph_message::operations);
+
+      /* Let's register the pb_remove_graphs bbdo event. This is needed to send
+       * the remove graphs message from the gRPC interface. */
+      e.register_event(make_type(io::bbdo, bbdo::de_remove_poller),
+                       "remove_graphs", &bbdo::pb_remove_poller::operations);
+
+      /* Lets' register the remove_poller event.*/
+      e.register_event(make_type(io::bbdo, bbdo::de_remove_poller),
+                       "remove_poller", &bbdo::pb_remove_poller::operations);
     }
 
     // Register unified_sql layer.

@@ -44,9 +44,12 @@ brokerrpc::brokerrpc(const std::string& address,
                    &bbdo::pb_rebuild_rrd_graphs::operations);
 
   /* Lets' register the to_remove bbdo event.*/
-  e.register_event(make_type(io::bbdo, bbdo::de_remove_graphs),
-                   "remove_graphs",
+  e.register_event(make_type(io::bbdo, bbdo::de_remove_graphs), "remove_graphs",
                    &bbdo::pb_remove_graphs::operations);
+
+  /* Lets' register the remove_poller event.*/
+  e.register_event(make_type(io::bbdo, bbdo::de_remove_poller), "remove_poller",
+                   &bbdo::pb_remove_poller::operations);
 
   _service.set_broker_name(broker_name);
   std::string server_address{fmt::format("{}:{}", address, port)};
