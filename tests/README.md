@@ -58,7 +58,9 @@ Here is the list of the currently implemented tests:
 
 ### Broker
 - [x] **BCL1**: Starting broker with option '-s foobar' should return an error
-- [x] **BCL2**: Starting broker with option '-s 5' should work
+- [x] **BCL2**: Starting broker with option '-s5' should work
+- [x] **BCL3**: Starting broker with options '-D' should work and activate diagnose mode
+- [x] **BCL4**: Starting broker with options '-s2' and '-D' should work.
 - [x] **BDB1**: Access denied when database name exists but is not the good one for sql output
 - [x] **BDB10**: connection should be established when user password is good for sql/perfdata
 - [x] **BDB2**: Access denied when database name exists but is not the good one for storage output
