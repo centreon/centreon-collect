@@ -213,7 +213,7 @@ int main(int argc, char* argv[]) {
           "USAGE: {} [-s <poolsize>] [-c] [-D] [-h] [-v] [<configfile>]",
           argv[0]);
 
-      log_v2::core()->info("  '-sx' or '-s x'  Set x threads.");
+      log_v2::core()->info("  '-s<poolsize>'  Set poolsize threads.");
       log_v2::core()->info("  '-c'  Check configuration file.");
       log_v2::core()->info("  '-D'  Generate a diagnostic file.");
       log_v2::core()->info("  '-h'  Print this help.");
@@ -285,7 +285,7 @@ int main(int argc, char* argv[]) {
   }
   // Standard exception.
   catch (const std::exception& e) {
-    log_v2::core()->error("Config parser {}", e.what());
+    log_v2::core()->error("Error during cbd exit: {}", e.what());
     retval = EXIT_FAILURE;
   }
   // Unknown exception.
