@@ -13,7 +13,7 @@ logs/*
 
 workspace.*
 
-# ingore local env files
+# ignore local env files
 .env.local
 
 src/config/centreon-engine/*.cfg
@@ -22,3 +22,6 @@ tags
 .ctags
 
 *.pem
+
+### database personnal credentials ###
+resources/db_variables.robot
