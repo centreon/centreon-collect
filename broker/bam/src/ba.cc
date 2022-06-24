@@ -40,8 +40,8 @@ auto normalize = [](double d) -> double {
   return d;
 };
 
-static bool _every_kpi_in_dt(
-    std::unordered_map<kpi*, bam::ba::impact_info>& imp) {
+auto every_kpi_in_dt =
+    [](std::unordered_map<kpi*, bam::ba::impact_info>& imp) -> bool {
   if (imp.empty())
     return false;
 
@@ -69,31 +69,31 @@ ba::ba(uint32_t id,
        configuration::ba::state_source source,
        bool generate_virtual_status)
     : _id(id),
-      _state_source(source),
-      _host_id(host_id),
-      _service_id(service_id),
-      _generate_virtual_status(generate_virtual_status),
-      _computed_soft_state(source == configuration::ba::state_source_best
-                               ? state_critical
-                               : state_ok),
-      _computed_hard_state(source == configuration::ba::state_source_best
-                               ? state_critical
-                               : state_ok),
-      _num_soft_critical_childs{0.f},
-      _num_hard_critical_childs{0.f},
-      _acknowledgement_hard(0.0),
-      _acknowledgement_soft(0.0),
-      _downtime_hard(0.0),
-      _downtime_soft(0.0),
-      _in_downtime(false),
-      _last_kpi_update(0),
-      _level_critical(0.0),
-      _level_hard(100.0),
-      _level_soft(100.0),
-      _level_warning(0.0),
-      _recompute_count(0),
-      _valid(true),
-      _dt_behaviour{configuration::ba::dt_ignore} {
+     _state_source(source),
+     _host_id(host_id),
+     _service_id(service_id),
+     _generate_virtual_status(generate_virtual_status),
+     _computed_soft_state(source == configuration::ba::state_source_best
+                              ? state_critical
+                              : state_ok),
+     _computed_hard_state(source == configuration::ba::state_source_best
+                              ? state_critical
+                              : state_ok),
+     _num_soft_critical_childs{0.f},
+     _num_hard_critical_childs{0.f},
+     _acknowledgement_hard(0.0),
+     _acknowledgement_soft(0.0),
+     _downtime_hard(0.0),
+     _downtime_soft(0.0),
+     _in_downtime(false),
+     _last_kpi_update(0),
+     _level_critical(0.0),
+     _level_hard(100.0),
+     _level_soft(100.0),
+     _level_warning(0.0),
+     _recompute_count(0),
+     _valid(true),
+     _dt_behaviour{configuration::ba::dt_ignore} {
   assert(_host_id);
 }
 
@@ -326,7 +326,7 @@ state ba::get_state_hard() {
     case configuration::ba::state_source_best:
     case configuration::ba::state_source_worst:
       if (_dt_behaviour == configuration::ba::dt_ignore_kpi &&
-          _every_kpi_in_dt(_impacts))
+          every_kpi_in_dt(_impacts))
         state = state_ok;
       else
         state = _computed_hard_state;
