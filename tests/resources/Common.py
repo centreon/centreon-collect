@@ -240,7 +240,7 @@ def find_line_from(lines, date):
     start = 0
     end = len(lines) - 1
     idx = start
-    while end - start >= 1:
+    while end - start > 1:
         idx = (start + end) // 2
         m = p.match(lines[idx])
         while m is None:
