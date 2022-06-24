@@ -1,5 +1,5 @@
 /*
-** Copyright 2013,2017 Centreon
+** Copyright 2013,2017-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -147,6 +147,8 @@ class stream : public io::stream {
   bool _read_any(std::shared_ptr<io::data>& d, time_t deadline);
   void _send_event_stop_and_wait_for_ack();
   std::string _get_extension_names(bool mandatory) const;
+  std::string _poller_name;
+  uint64_t _poller_id = 0u;
 
  public:
   enum negotiation_type { negotiate_first = 1, negotiate_second, negotiated };

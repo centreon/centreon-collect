@@ -652,6 +652,7 @@ int32_t stream::stop() {
   /* We return the number of events handled by our stream. */
   int32_t retval = _acknowledged_events;
   _acknowledged_events = 0;
+  config::applier::state::instance().remove_poller(_poller_id);
   return retval;
 }
 
@@ -800,7 +801,7 @@ void stream::negotiate(stream::negotiation_type neg) {
     throw msg_fmt(msg);
   }
 
-  absl::string_view peer_extensions;
+  std::string peer_extensions;
   if (d->type() == version_response::static_type()) {
     std::shared_ptr<version_response> v(
         std::static_pointer_cast<version_response>(d));
@@ -885,6 +886,8 @@ void stream::negotiate(stream::negotiation_type neg) {
       _substream->flush();
     }
     peer_extensions = w->obj().extensions();
+    _poller_id = w->obj().poller_id();
+    _poller_name = w->obj().poller_name();
   }
 
   // Negotiation.
@@ -948,6 +951,7 @@ void stream::negotiate(stream::negotiation_type neg) {
 
   // Stream has now negotiated.
   _negotiated = true;
+  config::applier::state::instance().add_poller(_poller_id, _poller_name);
   log_v2::bbdo()->trace("Negotiation done.");
 }
 

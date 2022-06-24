@@ -239,3 +239,34 @@ void state::unload() {
 config::applier::modules& state::get_modules() {
   return _modules;
 }
+
+void state::add_poller(uint64_t poller_id, const std::string& poller_name) {
+  auto found = _connected_pollers.find(poller_id);
+  if (found == _connected_pollers.end()) {
+    log_v2::core()->info("Poller '{}' with id {} connected", poller_name,
+                         poller_id);
+    _connected_pollers[poller_id] = poller_name;
+  } else {
+    log_v2::core()->warn(
+        "Poller '{}' with id {} already known as connected. Replacing it with "
+        "'{}'",
+        _connected_pollers[poller_id], poller_id, poller_name);
+    found->second = poller_name;
+  }
+}
+
+void state::remove_poller(uint64_t poller_id) {
+  auto found = _connected_pollers.find(poller_id);
+  if (found == _connected_pollers.end())
+    log_v2::core()->warn("There is currently no poller {} connected",
+                         poller_id);
+  else {
+    log_v2::core()->info("Poller '{}' with id {} just disconnected",
+                         _connected_pollers[poller_id], poller_id);
+    _connected_pollers.erase(found);
+  }
+}
+
+bool state::has_connection_from_poller(uint64_t poller_id) const {
+  return _connected_pollers.contains(poller_id);
+}

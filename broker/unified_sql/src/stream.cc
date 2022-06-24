@@ -23,6 +23,7 @@
 
 #include "bbdo/remove_graph_message.pb.h"
 #include "bbdo/storage/index_mapping.hh"
+#include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/database/mysql_result.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/log_v2.hh"
@@ -713,7 +714,6 @@ void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
  * @param d The BBDO message with the name or the id of the poller to remove.
  */
 void stream::remove_poller(const std::shared_ptr<io::data>& d) {
-  //  asio::post(pool::instance().io_context(), [this, data = d] {
   const bbdo::pb_remove_poller& poller =
       *static_cast<const bbdo::pb_remove_poller*>(d.get());
 
@@ -721,7 +721,7 @@ void stream::remove_poller(const std::shared_ptr<io::data>& d) {
     std::promise<database::mysql_result> promise;
     std::future<mysql_result> future = promise.get_future();
     int32_t conn = _mysql.choose_best_connection(-1);
-    uint64_t id;
+    std::list<uint64_t> ids;
     uint32_t count = 0;
     if (poller.obj().has_str()) {
       _mysql.run_query_and_get_result(
@@ -733,35 +733,92 @@ void stream::remove_poller(const std::shared_ptr<io::data>& d) {
 
       while (_mysql.fetch_row(res)) {
         count++;
-        id = res.value_as_u64(0);
+        ids.push_back(res.value_as_u64(0));
       }
-      if (count != 1) {
-        log_v2::sql()->error(
-            "Impossible to remove poller '{}', {} not running found in the "
+      if (count == 0) {
+        log_v2::sql()->warn(
+            "Unable to remove poller '{}', {} not running found in the "
             "database",
             poller.obj().str(), count == 0 ? "none" : "more than one");
-        return;
+        std::promise<database::mysql_result> promise;
+        std::future<mysql_result> future = promise.get_future();
+        _mysql.run_query_and_get_result(
+            fmt::format("SELECT instance_id from instances WHERE name='{}'",
+                        poller.obj().str()),
+            std::move(promise), conn);
+        database::mysql_result res(future.get());
+
+        while (_mysql.fetch_row(res)) {
+          if (!config::applier::state::instance().has_connection_from_poller(
+                  res.value_as_u64(0))) {
+            log_v2::sql()->warn(
+                "The poller '{}' id {} is not connected (even if it looks "
+                "running or not deleted)",
+                poller.obj().str(), res.value_as_u64(0));
+            count++;
+            ids.push_back(res.value_as_u64(0));
+          }
+        }
       }
-    } else
-      id = poller.obj().idx();
+    } else {
+      _mysql.run_query_and_get_result(
+          fmt::format(
+              "SELECT instance_id from instances WHERE instance_id={} AND "
+              "(running=0 OR deleted=1)",
+              poller.obj().idx()),
+          std::move(promise), conn);
+      database::mysql_result res(future.get());
 
-    conn = _mysql.choose_connection_by_instance(id);
-    log_v2::sql()->info("unified sql: removing poller {}", id);
-    log_v2::sql()->trace("unified sql: removing poller {} from instances", id);
-    _mysql.run_query(
-        fmt::format("DELETE FROM instances WHERE instance_id={}", id),
-        database::mysql_error::delete_poller, false, conn);
-    log_v2::sql()->trace("unified sql: removing poller {} hosts", id);
-    _mysql.run_query(fmt::format("DELETE FROM hosts WHERE instance_id={}", id),
-                     database::mysql_error::delete_poller, false, conn);
+      while (_mysql.fetch_row(res)) {
+        count++;
+        ids.push_back(res.value_as_u64(0));
+      }
+      if (count == 0) {
+        log_v2::sql()->warn(
+            "Unable to remove poller '{}', {} not running found in the "
+            "database",
+            poller.obj().str(), count == 0 ? "none" : "more than one");
+        std::promise<database::mysql_result> promise;
+        std::future<mysql_result> future = promise.get_future();
+        _mysql.run_query_and_get_result(
+            fmt::format(
+                "SELECT name, instance_id from instances WHERE instance_id={}",
+                poller.obj().idx()),
+            std::move(promise), conn);
+        database::mysql_result res(future.get());
 
-    log_v2::sql()->trace("unified sql: removing poller {} resources", id);
-    _mysql.run_query(
-        fmt::format("DELETE FROM resources WHERE poller_id={}", id),
-        database::mysql_error::delete_poller, false, conn);
+        while (_mysql.fetch_row(res)) {
+          if (!config::applier::state::instance().has_connection_from_poller(
+                  res.value_as_u64(0))) {
+            log_v2::sql()->warn(
+                "The poller '{}' id {} is not connected (even if it looks "
+                "running or not deleted)",
+                res.value_as_str(0), poller.obj().idx());
+            count++;
+            ids.push_back(poller.obj().idx());
+          }
+        }
+      }
+    }
+
+    for (uint64_t id : ids) {
+      conn = _mysql.choose_connection_by_instance(id);
+      log_v2::sql()->info("unified sql: removing poller {}", id);
+      _mysql.run_query(
+          fmt::format("DELETE FROM instances WHERE instance_id={}", id),
+          database::mysql_error::delete_poller, false, conn);
+      log_v2::sql()->trace("unified sql: removing poller {} hosts", id);
+      _mysql.run_query(
+          fmt::format("DELETE FROM hosts WHERE instance_id={}", id),
+          database::mysql_error::delete_poller, false, conn);
+
+      log_v2::sql()->trace("unified sql: removing poller {} resources", id);
+      _mysql.run_query(
+          fmt::format("DELETE FROM resources WHERE poller_id={}", id),
+          database::mysql_error::delete_poller, false, conn);
+    }
   } catch (const std::exception& e) {
     log_v2::sql()->error("Error encountered while removing a poller: {}",
                          e.what());
   }
-  //  });
 }
