@@ -2622,7 +2622,7 @@ int service::run_async_check(int check_options,
  * no_update_status_now is true, if it should be sent.
  */
 bool service::schedule_check(time_t check_time,
-                             int options,
+                             uint32_t options,
                              bool no_update_status_now) {
   engine_logger(dbg_functions, basic) << "schedule_service_check()";
   log_v2::functions()->trace("schedule_service_check()");

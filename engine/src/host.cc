@@ -1841,7 +1841,7 @@ int host::run_async_check(int check_options,
  * @return a boolean telling if yes or not the host status is sent to broker.
  */
 bool host::schedule_check(time_t check_time,
-                          int options,
+                          uint32_t options,
                           bool no_update_status_now) {
   timed_event* temp_event = nullptr;
   int use_original_event = true;
