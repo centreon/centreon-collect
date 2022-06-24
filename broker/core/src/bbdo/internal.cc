@@ -19,9 +19,9 @@
 #include "com/centreon/broker/bbdo/internal.hh"
 
 #include "bbdo/bbdo/ack.hh"
-#include "com/centreon/broker/bbdo/factory.hh"
 #include "bbdo/bbdo/stop.hh"
 #include "bbdo/bbdo/version_response.hh"
+#include "com/centreon/broker/bbdo/factory.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/log_v2.hh"
@@ -44,6 +44,8 @@ void bbdo::load() {
   e.register_event(make_type(io::bbdo, bbdo::de_version_response),
                    "version_response", &version_response::operations,
                    version_response::entries);
+  e.register_event(make_type(io::bbdo, bbdo::de_welcome), "welcome",
+                   &bbdo::pb_welcome::operations);
   e.register_event(make_type(io::bbdo, bbdo::de_ack), "ack", &ack::operations,
                    ack::entries);
   e.register_event(make_type(io::bbdo, bbdo::de_stop), "stop",

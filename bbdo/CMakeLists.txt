@@ -23,6 +23,7 @@ set(protobuf_files
     host
     severity
     tag
+    welcome
    )
 
 foreach(name IN LISTS protobuf_files)
@@ -38,6 +39,14 @@ foreach(name IN LISTS protobuf_files)
 
     add_custom_target("target_${name}" DEPENDS "${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.cc" "${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.h")
 endforeach()
+
+add_library(
+    pb_welcome_lib STATIC
+      welcome.pb.cc
+      welcome.pb.h
+    )
+add_dependencies(pb_welcome_lib target_welcome)
+set_target_properties(pb_welcome_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 add_library(
     pb_service_lib STATIC

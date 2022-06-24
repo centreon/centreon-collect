@@ -18,6 +18,7 @@
 
 #include "com/centreon/broker/bbdo/stream.hh"
 
+#include <absl/strings/str_split.h>
 #include <arpa/inet.h>
 
 #include <cassert>
@@ -25,6 +26,7 @@
 #include "bbdo/bbdo/ack.hh"
 #include "bbdo/bbdo/stop.hh"
 #include "bbdo/bbdo/version_response.hh"
+#include "bbdo/welcome.pb.h"
 #include "com/centreon/broker/bbdo/internal.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/exceptions/timeout.hh"
@@ -583,6 +585,23 @@ static io::raw* serialize(const io::data& e) {
 }
 
 /**
+ * @brief Computes a number from the version given as (major, minor, patch).
+ * This number can be compared.
+ *
+ * @param major major version number
+ * @param minor minor version number
+ * @param patch patch version number
+ *
+ * @return A uint64_t number representing the version.
+ */
+constexpr static uint64_t compute_version(uint16_t major,
+                                          uint16_t minor,
+                                          uint16_t patch) {
+  return (static_cast<uint64_t>(major) << 40) |
+         (static_cast<uint64_t>(minor) << 20) | static_cast<uint64_t>(patch);
+}
+
+/**
  *  Default constructor.
  */
 stream::stream(bool is_input,
@@ -721,15 +740,36 @@ void stream::negotiate(stream::negotiation_type neg) {
   } else
     extensions = _get_extension_names(false);
 
+  uint64_t computed_version =
+      compute_version(std::get<0>(_bbdo_version), std::get<1>(_bbdo_version),
+                      std::get<2>(_bbdo_version));
+  constexpr uint64_t v300 = compute_version(3, 0, 0);
+
   // Send our own packet if we should be first.
   if (neg == negotiate_first) {
     log_v2::bbdo()->debug(
         "BBDO: sending welcome packet (available extensions: {})", extensions);
     /* if _negotiate, we send all the extensions we would like to have,
      * otherwise we only send the mandatory extensions */
-    auto welcome_packet{
-        std::make_shared<version_response>(_bbdo_version, extensions)};
-    _write(welcome_packet);
+    if (computed_version <= v300) {
+      auto welcome_packet{
+          std::make_shared<version_response>(_bbdo_version, extensions)};
+      _write(welcome_packet);
+    } else {
+      auto welcome{std::make_shared<pb_welcome>()};
+      welcome->mut_obj().mutable_version()->set_major(
+          std::get<0>(_bbdo_version));
+      welcome->mut_obj().mutable_version()->set_minor(
+          std::get<1>(_bbdo_version));
+      welcome->mut_obj().mutable_version()->set_patch(
+          std::get<2>(_bbdo_version));
+      welcome->mut_obj().set_extensions(extensions);
+      welcome->mut_obj().set_poller_id(
+          config::applier::state::instance().poller_id());
+      welcome->mut_obj().set_poller_name(
+          config::applier::state::instance().poller_name());
+      _write(welcome);
+    }
   }
 
   // Read peer packet.
@@ -742,64 +782,122 @@ void stream::negotiate(stream::negotiation_type neg) {
     deadline = time(nullptr) + _timeout;
 
   _read_any(d, deadline);
-  if (!d || d->type() != version_response::static_type()) {
+  if (!d || (d->type() != version_response::static_type() &&
+             d->type() != pb_welcome::static_type())) {
     std::string msg;
     if (d)
       msg = fmt::format(
           "BBDO: invalid protocol header, aborting connection: waiting for "
-          "message of type 'version_response' but received type is {}",
+          "message of type '{}' but received type is {}",
+          computed_version > v300 ? "pb_welcome" : "version_response",
           d->type());
     else
       msg = fmt::format(
           "BBDO: invalid protocol header, aborting connection: waiting for "
-          "message of type 'version_response' but nothing received");
+          "message of type '{}' but nothing received",
+          computed_version > v300 ? "pb_welcome" : "version_response");
     log_v2::bbdo()->error(msg);
     throw msg_fmt(msg);
   }
 
-  std::shared_ptr<version_response> v(
-      std::static_pointer_cast<version_response>(d));
-  if (v->bbdo_major != std::get<0>(_bbdo_version)) {
-    log_v2::bbdo()->error(
-        "BBDO: peer is using protocol version {}.{}.{} whereas we're using "
-        "protocol version {}.{}.{}",
+  absl::string_view peer_extensions;
+  if (d->type() == version_response::static_type()) {
+    std::shared_ptr<version_response> v(
+        std::static_pointer_cast<version_response>(d));
+    if (v->bbdo_major != std::get<0>(_bbdo_version)) {
+      log_v2::bbdo()->error(
+          "BBDO: peer is using protocol version {}.{}.{} whereas we're using "
+          "protocol version {}.{}.{}",
+          v->bbdo_major, v->bbdo_minor, v->bbdo_patch,
+          std::get<0>(_bbdo_version), std::get<1>(_bbdo_version),
+          std::get<2>(_bbdo_version));
+      throw msg_fmt(
+          "BBDO: peer is using protocol version {}.{}.{}"
+          " whereas we're using protocol version {}.{}.{}",
+          v->bbdo_major, v->bbdo_minor, v->bbdo_patch,
+          std::get<0>(_bbdo_version), std::get<1>(_bbdo_version),
+          std::get<2>(_bbdo_version));
+    }
+    log_v2::bbdo()->info(
+        "BBDO: peer is using protocol version {}.{}.{}, we're using version "
+        "{}.{}.{}",
         v->bbdo_major, v->bbdo_minor, v->bbdo_patch, std::get<0>(_bbdo_version),
         std::get<1>(_bbdo_version), std::get<2>(_bbdo_version));
-    throw msg_fmt(
-        "BBDO: peer is using protocol version {}.{}.{}"
-        " whereas we're using protocol version {}.{}.{}",
-        v->bbdo_major, v->bbdo_minor, v->bbdo_patch, std::get<0>(_bbdo_version),
-        std::get<1>(_bbdo_version), std::get<2>(_bbdo_version));
-  }
-  log_v2::bbdo()->info(
-      "BBDO: peer is using protocol version {}.{}.{}, we're using version "
-      "{}.{}.{}",
-      v->bbdo_major, v->bbdo_minor, v->bbdo_patch, std::get<0>(_bbdo_version),
-      std::get<1>(_bbdo_version), std::get<2>(_bbdo_version));
 
-  // Send our own packet if we should be second.
-  if (neg == negotiate_second) {
-    log_v2::bbdo()->debug(
-        "BBDO: sending welcome packet (available extensions: {})", extensions);
-    /* if _negotiate, we send all the extensions we would like to have,
-     * otherwise we only send the mandatory extensions */
-    auto welcome_packet(
-        std::make_shared<version_response>(_bbdo_version, extensions));
-    _write(welcome_packet);
-    _substream->flush();
+    // Send our own packet if we should be second.
+    if (neg == negotiate_second) {
+      log_v2::bbdo()->debug(
+          "BBDO: sending welcome packet (available extensions: {})",
+          extensions);
+      /* if _negotiate, we send all the extensions we would like to have,
+       * otherwise we only send the mandatory extensions */
+      auto welcome_packet(
+          std::make_shared<version_response>(_bbdo_version, extensions));
+      _write(welcome_packet);
+      _substream->flush();
+    }
+    peer_extensions = v->extensions;
+  } else {
+    std::shared_ptr<pb_welcome> w(std::static_pointer_cast<pb_welcome>(d));
+    const auto& pb_version = w->obj().version();
+    if (pb_version.major() != std::get<0>(_bbdo_version)) {
+      log_v2::bbdo()->error(
+          "BBDO: peer is using protocol version {}.{}.{} whereas we're using "
+          "protocol version {}.{}.{}",
+          pb_version.major(), pb_version.minor(), pb_version.patch(),
+          std::get<0>(_bbdo_version), std::get<1>(_bbdo_version),
+          std::get<2>(_bbdo_version));
+      throw msg_fmt(
+          "BBDO: peer is using protocol version {}.{}.{}"
+          " whereas we're using protocol version {}.{}.{}",
+          pb_version.major(), pb_version.minor(), pb_version.patch(),
+          std::get<0>(_bbdo_version), std::get<1>(_bbdo_version),
+          std::get<2>(_bbdo_version));
+    }
+    log_v2::bbdo()->info(
+        "BBDO: peer is using protocol version {}.{}.{}, we're using version "
+        "{}.{}.{}",
+        pb_version.major(), pb_version.minor(), pb_version.patch(),
+        std::get<0>(_bbdo_version), std::get<1>(_bbdo_version),
+        std::get<2>(_bbdo_version));
+
+    // Send our own packet if we should be second.
+    if (neg == negotiate_second) {
+      log_v2::bbdo()->debug(
+          "BBDO: sending welcome packet (available extensions: {})",
+          extensions);
+      /* if _negotiate, we send all the extensions we would like to have,
+       * otherwise we only send the mandatory extensions */
+      auto welcome(std::make_shared<pb_welcome>());
+      welcome->mut_obj().mutable_version()->set_major(
+          std::get<0>(_bbdo_version));
+      welcome->mut_obj().mutable_version()->set_minor(
+          std::get<1>(_bbdo_version));
+      welcome->mut_obj().mutable_version()->set_patch(
+          std::get<2>(_bbdo_version));
+      welcome->mut_obj().set_extensions(extensions);
+      welcome->mut_obj().set_poller_id(
+          config::applier::state::instance().poller_id());
+      welcome->mut_obj().set_poller_name(
+          config::applier::state::instance().poller_name());
+
+      _write(welcome);
+      _substream->flush();
+    }
+    peer_extensions = w->obj().extensions();
   }
 
   // Negotiation.
   std::list<std::string> running_config = get_running_config();
 
   // Apply negotiated extensions.
-  log_v2::bbdo()->info("BBDO: we have extensions '{}' and peer has '{}'",
-                       extensions, v->extensions);
-  std::list<std::string> peer_ext(misc::string::split(v->extensions, ' '));
+  log_v2::bbdo()->info(
+      "BBDO: we have extensions '{}' and peer has '{}'", extensions,
+      fmt::string_view(peer_extensions.data(), peer_extensions.size()));
+  std::list<absl::string_view> peer_ext{absl::StrSplit(peer_extensions, ' ')};
   for (auto& ext : _extensions) {
     // Find matching extension in peer extension list.
-    std::list<std::string>::const_iterator peer_it{
-        std::find(peer_ext.begin(), peer_ext.end(), ext->name())};
+    auto peer_it{std::find(peer_ext.begin(), peer_ext.end(), ext->name())};
     // Apply extension if found.
     if (peer_it != peer_ext.end()) {
       if (std::find(running_config.begin(), running_config.end(),
@@ -881,7 +979,7 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
   uint32_t event_id(!d ? 0 : d->type());
   while (!timed_out && ((event_id >> 16) == io::bbdo)) {
     // Version response.
-    if ((event_id & 0xffff) == 1) {
+    if ((event_id & 0xffff) == bbdo::de_version_response) {
       auto version(std::static_pointer_cast<version_response>(d));
       if (version->bbdo_major != std::get<0>(_bbdo_version)) {
         log_v2::bbdo()->error(
@@ -902,6 +1000,30 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
           "version "
           "{}.{}.{}",
           version->bbdo_major, version->bbdo_minor, version->bbdo_patch,
+          std::get<0>(_bbdo_version), std::get<1>(_bbdo_version),
+          std::get<2>(_bbdo_version));
+    } else if ((event_id & 0xffff) == bbdo::de_welcome) {
+      auto welcome(std::static_pointer_cast<pb_welcome>(d));
+      const auto& pb_version = welcome->obj().version();
+      if (pb_version.major() != std::get<0>(_bbdo_version)) {
+        log_v2::bbdo()->error(
+            "BBDO: peer is using protocol version {}.{}.{}, whereas we're "
+            "using protocol version {}.{}.{}",
+            pb_version.major(), pb_version.minor(), pb_version.patch(),
+            std::get<0>(_bbdo_version), std::get<1>(_bbdo_version),
+            std::get<2>(_bbdo_version));
+        throw msg_fmt(
+            "BBDO: peer is using protocol version {}.{}.{} "
+            "whereas we're using protocol version {}.{}.{}",
+            pb_version.major(), pb_version.minor(), pb_version.patch(),
+            std::get<0>(_bbdo_version), std::get<1>(_bbdo_version),
+            std::get<2>(_bbdo_version));
+      }
+      log_v2::bbdo()->info(
+          "BBDO: peer is using protocol version {}.{}.{} , we're using "
+          "version "
+          "{}.{}.{}",
+          pb_version.major(), pb_version.minor(), pb_version.patch(),
           std::get<0>(_bbdo_version), std::get<1>(_bbdo_version),
           std::get<2>(_bbdo_version));
     } else if ((event_id & 0xffff) == 2) {

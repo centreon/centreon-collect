@@ -725,9 +725,9 @@ void stream::remove_poller(const std::shared_ptr<io::data>& d) {
     uint32_t count = 0;
     if (poller.obj().has_str()) {
       _mysql.run_query_and_get_result(
-          fmt::format(
-              "SELECT instance_id from instances WHERE name='{}' AND running=0",
-              poller.obj().str()),
+          fmt::format("SELECT instance_id from instances WHERE name='{}' AND "
+                      "(running=0 OR deleted=1)",
+                      poller.obj().str()),
           std::move(promise), conn);
       database::mysql_result res(future.get());
 
