@@ -94,6 +94,7 @@ void channel::start() {
 constexpr unsigned second_delay_before_delete = 60u;
 
 void channel::to_trash() {
+  this->shutdown();
   _thrown = true;
   log_v2::grpc()->debug("{} this={:p}", __PRETTY_FUNCTION__,
                         static_cast<void*>(this));

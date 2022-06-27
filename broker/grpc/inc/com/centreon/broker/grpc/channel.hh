@@ -106,6 +106,7 @@ class channel : public std::enable_shared_from_this<channel> {
   virtual ~channel();
 
   void to_trash();
+  virtual void shutdown() = 0;
   bool is_down() const { return _error || _thrown; };
   bool is_alive() const { return !_error && !_thrown; }
 

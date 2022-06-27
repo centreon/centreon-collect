@@ -29,9 +29,15 @@ CCB_BEGIN()
 
 namespace grpc {
 
+using shared_bool = std::shared_ptr<bool>;
+
 class accepted_service
     : public ::grpc::ServerBidiReactor<grpc_event_type, grpc_event_type>,
       public channel {
+  shared_bool _server_finished;
+
+  std::atomic_bool _finished_called;
+
  public:
   using pointer = std::shared_ptr<accepted_service>;
 
@@ -40,13 +46,15 @@ class accepted_service
         channel::shared_from_this());
   }
 
-  accepted_service(const grpc_config::pointer& conf);
+  accepted_service(const grpc_config::pointer& conf,
+                   const shared_bool& server_finished);
   ~accepted_service();
 
   void start();
   void start_read(event_ptr&, bool first_read) override;
   void start_write(const event_ptr&) override;
   int stop() override;
+  void shutdown() override;
 
   void desactivate();
 
@@ -64,6 +72,7 @@ class server : public centreon_stream::centreon_bbdo::Service,
   std::unique_ptr<::grpc::Server> _server;
   std::queue<accepted_service::pointer> _accepted;
   grpc_config::pointer _conf;
+  shared_bool _server_finished;
   mutable std::mutex _protect;
   mutable std::condition_variable _accept_cond;
 

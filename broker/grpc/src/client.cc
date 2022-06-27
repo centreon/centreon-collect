@@ -89,12 +89,16 @@ client::pointer client::create(const grpc_config::pointer& conf) {
 }
 
 client::~client() {
-  if (_context) {
-    _context->TryCancel();
-  }
+  shutdown();
   _stub.reset();
   _channel.reset();
   _context.reset();
+}
+
+void client::shutdown() {
+  if (_context) {
+    _context->TryCancel();
+  }
 }
 
 void client::start_read(event_ptr& to_read, bool first_read) {
