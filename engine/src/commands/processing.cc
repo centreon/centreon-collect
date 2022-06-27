@@ -737,14 +737,12 @@ void processing::_wrapper_set_host_notification_number(host* hst, char* args) {
   if (hst && args) {
     int notification_number;
     if (!absl::SimpleAtoi(args, &notification_number)) {
-      engine_logger(log_runtime_error, basic)
-          << "Error: could not set host notification number: Command argument "
-             "must be an integer";
       log_v2::runtime()->error(
           "Error: could not set host notification number: Command argument "
-          "must be an integer");
-    }
-    hst->set_notification_number(notification_number);
+          "'{}' must be a positive integer",
+          args);
+    } else
+      hst->set_notification_number(notification_number);
   }
 }
 
@@ -825,14 +823,12 @@ void processing::_wrapper_set_service_notification_number(service* svc,
   int notification_number;
   if (svc && str) {
     if (!absl::SimpleAtoi(str, &notification_number)) {
-      engine_logger(log_runtime_error, basic)
-          << "Error: could not set service notification number: Command "
-             "argument must be an integer";
       log_v2::runtime()->error(
           "Error: could not set service notification number: Command argument "
-          "must be an integer");
-    }
-    svc->set_notification_number(notification_number);
+          "'{}' must be a positive integer",
+          str);
+    } else
+      svc->set_notification_number(notification_number);
   }
 }
 
@@ -843,15 +839,13 @@ void processing::_wrapper_send_custom_service_notification(service* svc,
   if ((buf[0] = my_strtok(args, ";")) && (buf[1] = my_strtok(NULL, ";")) &&
       (buf[2] = my_strtok(NULL, ";"))) {
     if (!absl::SimpleAtoi(buf[0], &notification_number)) {
-      engine_logger(log_runtime_error, basic)
-          << "Error: could not send custom service notification: Command "
-             "argument must be an integer";
       log_v2::runtime()->error(
           "Error: could not send custom service notification: Command argument "
-          "must be an integer");
-    }
-    svc->notify(
-        notifier::reason_custom, buf[1], buf[2],
-        static_cast<notifier::notification_option>(notification_number));
+          "'{}' must be a positive integer",
+          buf[0]);
+    } else
+      svc->notify(
+          notifier::reason_custom, buf[1], buf[2],
+          static_cast<notifier::notification_option>(notification_number));
   }
 }
