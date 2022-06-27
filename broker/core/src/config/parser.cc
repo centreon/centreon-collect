@@ -317,6 +317,10 @@ state parser::parse(std::string const& file) {
                 "number "
                 "of seconds (as number or string)");
 
+          conf.log_pid = conf_js.contains("log_pid") &&
+                         conf_js["log_pid"].is_boolean() &&
+                         conf_js["log_pid"].get<bool>();
+
           if (conf_js.contains("loggers") && conf_js["loggers"].is_object()) {
             conf.loggers.clear();
             for (auto it = conf_js["loggers"].begin();

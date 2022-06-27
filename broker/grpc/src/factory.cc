@@ -108,8 +108,9 @@ io::endpoint* factory::new_endpoint(
     crypted = !strcasecmp(it->second.c_str(), "yes");
   }
 
+  // public certificate
   std::string certificate;
-  it = cfg.params.find("certificate_path");
+  it = cfg.params.find("public_cert");
   if (it != cfg.params.end()) {
     try {
       certificate = read_file(it->second);
@@ -119,8 +120,9 @@ io::endpoint* factory::new_endpoint(
     }
   }
 
+  // private key
   std::string certificate_key;
-  it = cfg.params.find("certificate_key_path");
+  it = cfg.params.find("private_key");
   if (it != cfg.params.end()) {
     try {
       certificate_key = read_file(it->second);
@@ -130,8 +132,9 @@ io::endpoint* factory::new_endpoint(
     }
   }
 
+  // CA certificate.
   std::string certificate_authority;
-  it = cfg.params.find("certificate_authority_path");
+  it = cfg.params.find("ca_certificate");
   if (it != cfg.params.end()) {
     try {
       certificate_authority = read_file(it->second);

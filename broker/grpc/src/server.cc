@@ -31,10 +31,11 @@ using namespace com::centreon::exceptions;
 /****************************************************************************
  * accepted_service
  ****************************************************************************/
+static bool _server_finished = false;
 
 accepted_service::accepted_service(const grpc_config::pointer& conf)
     : channel("accepted_service", conf) {
-  log_v2::grpc()->trace("{} this={:p}", __PRETTY_FUNCTION__,
+  log_v2::grpc()->debug("{} this={:p}", __PRETTY_FUNCTION__,
                         static_cast<void*>(this));
 }
 
@@ -43,7 +44,7 @@ void accepted_service::start() {
 }
 
 accepted_service::~accepted_service() {
-  log_v2::grpc()->trace("{} this={:p}", __PRETTY_FUNCTION__,
+  log_v2::grpc()->debug("{} this={:p}", __PRETTY_FUNCTION__,
                         static_cast<void*>(this));
 }
 
@@ -52,11 +53,19 @@ void accepted_service::desactivate() {
 }
 
 void accepted_service::OnCancel() {
+  log_v2::grpc()->debug("{} this={:p}", __PRETTY_FUNCTION__,
+                        static_cast<void*>(this));
   desactivate();
 }
 
 void accepted_service::start_read(event_ptr& to_read, bool) {
-  StartRead(to_read.get());
+  if (_server_finished) {
+    log_v2::grpc()->debug("{} this={:p}  Finish", __PRETTY_FUNCTION__,
+                          static_cast<void*>(this));
+    Finish(::grpc::Status(::grpc::CANCELLED, "start_read server finished"));
+  } else {
+    StartRead(to_read.get());
+  }
 }
 
 void accepted_service::OnReadDone(bool ok) {
@@ -64,11 +73,24 @@ void accepted_service::OnReadDone(bool ok) {
 }
 
 void accepted_service::start_write(const event_ptr& to_send) {
-  StartWrite(to_send.get());
+  if (_server_finished) {
+    log_v2::grpc()->debug("{} this={:p} Finish", __PRETTY_FUNCTION__,
+                          static_cast<void*>(this));
+    Finish(::grpc::Status(::grpc::CANCELLED, "start_write server finished"));
+  } else {
+    StartWrite(to_send.get());
+  }
 }
 
 void accepted_service::OnWriteDone(bool ok) {
   on_write_done(ok);
+}
+
+int accepted_service::stop() {
+  log_v2::grpc()->debug("{} this={:p}", __PRETTY_FUNCTION__,
+                        static_cast<void*>(this));
+  Finish(::grpc::Status(::grpc::CANCELLED, "stop server finished"));
+  return channel::stop();
 }
 
 /****************************************************************************
@@ -209,4 +231,17 @@ std::unique_ptr<io::stream> server::open(
 bool server::is_ready() const {
   unique_lock l(_protect);
   return !_accepted.empty();
+}
+
+void server::shutdown() {
+  _server_finished = true;
+  std::unique_ptr<::grpc::Server> to_shutdown;
+  unique_lock l(_protect);
+  if (_server) {
+    to_shutdown = std::move(_server);
+  }
+  if (to_shutdown) {
+    to_shutdown->Shutdown(std::chrono::system_clock::now() +
+                          std::chrono::seconds(15));
+  }
 }

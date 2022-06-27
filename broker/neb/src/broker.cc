@@ -37,7 +37,7 @@ char const* broker_module_version = CENTREON_BROKER_VERSION;
 /**
  *  Module deinitialization routine.
  */
-void broker_module_deinit() {
+bool broker_module_deinit() {
   if (!--neb_instances) {
     //      // Remove factory.
     //      io::protocols::instance().unreg("node_events");
@@ -45,6 +45,7 @@ void broker_module_deinit() {
     // Remove events.
     io::events::instance().unregister_category(io::neb);
   }
+  return true;  // ok to be unloaded
 }
 
 /**

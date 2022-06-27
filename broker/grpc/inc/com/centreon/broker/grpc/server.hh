@@ -46,6 +46,7 @@ class accepted_service
   void start();
   void start_read(event_ptr&, bool first_read) override;
   void start_write(const event_ptr&) override;
+  int stop() override;
 
   void desactivate();
 
@@ -79,6 +80,8 @@ class server : public centreon_stream::centreon_bbdo::Service,
   static pointer create(const grpc_config::pointer& conf);
 
   ~server() = default;
+
+  void shutdown();
 
   bool is_ready() const;
 

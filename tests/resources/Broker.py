@@ -43,6 +43,8 @@ config = {
         "command_file": "/var/lib/centreon-broker/command.sock",
         "cache_directory": "/var/lib/centreon-broker",
         "log": {{
+            "log_pid": true,
+            "flush_period": 1,
             "directory": "/var/log/centreon-broker/",
             "filename": "",
             "max_size": 0,
@@ -57,7 +59,7 @@ config = {
                 "tls": "error",
                 "lua": "error",
                 "bam": "error",
-                "grpc": "error"
+                "grpc": "debug"
             }}
         }},
         "input": [
@@ -150,6 +152,8 @@ config = {
         "command_file": "",
         "cache_directory": "/var/lib/centreon-engine",
         "log": {{
+            "log_pid": true,
+            "flush_period": 1,
             "directory": "/var/log/centreon-broker/",
             "filename": "",
             "max_size": 0,
@@ -163,7 +167,8 @@ config = {
                 "tcp": "debug",
                 "tls": "debug",
                 "lua": "debug",
-                "bam": "debug"
+                "bam": "debug",
+                "grpc": "debug"
             }}
         }},
         "output": [
@@ -207,6 +212,8 @@ config = {
         "command_file": "",
         "cache_directory": "/var/lib/centreon-broker",
         "log": {{
+            "log_pid": true,
+            "flush_period": 1,
             "directory": "/var/log/centreon-broker/",
             "filename": "",
             "max_size": 0,
@@ -442,7 +449,8 @@ def config_broker(name, poller_inst: int = 1):
             f.close()
     else:
         f = open("/etc/centreon-broker/{}".format(filename), "w")
-        f.write(config[name].format(broker_id, broker_name, DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME_STORAGE))
+        f.write(config[name].format(broker_id, broker_name,
+                DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME_STORAGE))
         f.close()
 
 
@@ -462,6 +470,69 @@ def change_broker_tcp_input_to_grpc(name: str):
             if v["type"] == "ipv4":
                 v["type"] = "grpc"
     _apply_conf(name, input_to_grpc)
+
+
+def add_broker_crypto(json_dict, add_cert: bool, only_ca_cert: bool):
+    json_dict["crypted"] = "yes"
+    if (add_cert):
+        json_dict["ca_certificate"] = "/tmp/ca_1234.crt"
+        if (only_ca_cert == False):
+            json_dict["public_cert"] = "/tmp/server_1234.crt"
+            json_dict["private_key"] = "/tmp/server_1234.key"
+
+
+def add_broker_tcp_input_grpc_crypto(name: str, add_cert: bool, reversed: bool):
+    def crypto_modifier(conf):
+        input_dict = conf["centreonBroker"]["input"]
+        for i, v in enumerate(input_dict):
+            if v["type"] == "grpc":
+                add_broker_crypto(v, add_cert, reversed)
+    _apply_conf(name, crypto_modifier)
+
+
+def add_broker_tcp_output_grpc_crypto(name: str, add_cert: bool, reversed: bool):
+    def crypto_modifier(conf):
+        input_dict = conf["centreonBroker"]["output"]
+        for i, v in enumerate(input_dict):
+            if v["type"] == "grpc":
+                add_broker_crypto(v, add_cert, not reversed)
+    _apply_conf(name, crypto_modifier)
+
+
+def add_host_to_broker_output(name: str, output_name: str, host_ip: str):
+    def modifier(conf):
+        input_dict = conf["centreonBroker"]["output"]
+        for i, v in enumerate(input_dict):
+            if (v["name"] == output_name):
+                v["host"] = host_ip
+    _apply_conf(name, modifier)
+
+
+def add_host_to_broker_input(name: str, input_name: str, host_ip: str):
+    def modifier(conf):
+        input_dict = conf["centreonBroker"]["input"]
+        for i, v in enumerate(input_dict):
+            if (v["name"] == input_name):
+                v["host"] = host_ip
+    _apply_conf(name, modifier)
+
+
+def remove_host_from_broker_output(name: str, output_name: str):
+    def modifier(conf):
+        input_dict = conf["centreonBroker"]["output"]
+        for i, v in enumerate(input_dict):
+            if (v["name"] == output_name):
+                v.pop("host")
+    _apply_conf(name, modifier)
+
+
+def remove_host_from_broker_input(name: str, input_name: str):
+    def modifier(conf):
+        input_dict = conf["centreonBroker"]["input"]
+        for i, v in enumerate(input_dict):
+            if (v["name"] == input_name):
+                v.pop("host")
+    _apply_conf(name, modifier)
 
 
 def change_broker_compression_output(config_name: str, compression_value: str):

@@ -28,7 +28,9 @@ using namespace com::centreon::broker::grpc;
 acceptor::acceptor(const grpc_config::pointer& conf)
     : io::endpoint(true), _grpc_instance(server::create(conf)) {}
 
-acceptor::~acceptor() {}
+acceptor::~acceptor() {
+  _grpc_instance->shutdown();
+}
 
 std::unique_ptr<io::stream> acceptor::open() {
   return _grpc_instance->open(system_clock::now() + std::chrono::seconds(3));

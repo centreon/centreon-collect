@@ -46,12 +46,13 @@ const char* const* broker_module_parents() {
 /**
  *  Module deinitialization routine.
  */
-void broker_module_deinit() {
+bool broker_module_deinit() {
   // Decrement instance number.
   if (!--instances) {
     // Deregister storage layer.
     io::protocols::instance().unreg("graphite");
   }
+  return true;  // ok to be unloaded
 }
 
 /**
