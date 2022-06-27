@@ -1082,6 +1082,7 @@ def schedule_service_downtime(hst: str, svc: str, duration: int):
     f.write(cmd)
     f.close()
 
+
 def schedule_host_downtime(poller: int, hst: str, duration: int):
     now = int(time.time())
     cmd1 = "[{1}] SCHEDULE_HOST_DOWNTIME;{0};{1};{2};1;0;{3};admin;Downtime set by admin\n".format(
@@ -1092,6 +1093,7 @@ def schedule_host_downtime(poller: int, hst: str, duration: int):
     f.write(cmd1)
     f.write(cmd2)
     f.close()
+
 
 def delete_host_downtimes(poller: int, hst: str):
     now = int(time.time())
@@ -1348,3 +1350,12 @@ def config_engine_remove_cfg_file(poller: int, fic: str):
     ff = open("{}/config{}/centengine.cfg".format(CONF_DIR, poller), "w")
     ff.writelines(linesearch)
     ff.close()
+
+
+def send_custom_host_notification(hst, notification_option, author, comment):
+    now = int(time.time())
+    cmd = "[{}] SEND_CUSTOM_HOST_NOTIFICATION;{};{};{};{}\n".format(
+        now, hst, notification_option, author, comment)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
