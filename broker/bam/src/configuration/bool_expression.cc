@@ -141,10 +141,10 @@ void bool_expression::set_name(std::string const& name) {
 /**
  *  Set expression
  *
- *  @param[in]  exp Set the textual value for the expression.
+ *  @param[in]  expr Set the textual value for the expression.
  */
-void bool_expression::set_expression(std::string const& exp) {
-  _expression = exp;
+void bool_expression::set_expression(std::string const& expr) {
+  _expression = expr;
 }
 
 /**
