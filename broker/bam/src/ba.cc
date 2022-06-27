@@ -40,19 +40,6 @@ auto normalize = [](double d) -> double {
   return d;
 };
 
-auto every_kpi_in_dt =
-    [](std::unordered_map<kpi*, bam::ba::impact_info>& imp) -> bool {
-  if (imp.empty())
-    return false;
-
-  for (auto it = imp.begin(), end = imp.end(); it != end; ++it) {
-    if (!it->first->in_downtime())
-      return false;
-  }
-
-  return true;
-};
-
 /**
  *  Constructor.
  *
@@ -310,6 +297,19 @@ state ba::get_state_hard() {
     else if (num_critical >= level_warning)
       return state_warning;
     return state_ok;
+  };
+
+  auto every_kpi_in_dt =
+      [](std::unordered_map<kpi*, bam::ba::impact_info>& imp) -> bool {
+    if (imp.empty())
+      return false;
+
+    for (auto it = imp.begin(), end = imp.end(); it != end; ++it) {
+      if (!it->first->in_downtime())
+        return false;
+    }
+
+    return true;
   };
 
   switch (_state_source) {
