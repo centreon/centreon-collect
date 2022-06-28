@@ -349,8 +349,10 @@ int main(int argc, char* argv[]) {
           port = dis(gen);
         }
 
+        const std::string& listen_address = config.rpc_listen_address();
+
         std::unique_ptr<enginerpc, std::function<void(enginerpc*)> > rpc(
-            new enginerpc("0.0.0.0", port), [](enginerpc* rpc) {
+            new enginerpc(listen_address, port), [](enginerpc* rpc) {
               rpc->shutdown();
               delete rpc;
             });

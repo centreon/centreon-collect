@@ -11,6 +11,13 @@ established on engine or broker and is also able to list available methods.
 
 ### Broker
 
+#### Enhancements
+
+*grpc*
+
+The gRPC api only listens by default on localhost. This is customizable with
+the configuration file.
+
 #### Fixes
 
 *rrd*
@@ -21,9 +28,10 @@ Rebuilding/removing graphs is reenabled through database and a broker reload.
 
 -s option works and can return errors if bad value entered
 
-*stream gRPC*
+*GRPC stream*
 
-A gRPC stream connector did not stop correctly on cbd stop.
+* Doesn't coredump if connection fails on start process.
+* The gRPC stream connector did not stop correctly on cbd stop.
 
 *BAM*
 
@@ -43,14 +51,6 @@ Default configuration files were not installed on a Debian fresh install.
 tags are well removed now.
 
 Columns notes, notes\_url and action\_url are resized.
-
-*Debian*
-
-Default configuration files were not installed on a Debian fresh install.
-
-*GRPC stream*
-
-Don't coredump if connection fail on process start
 
 *Compression*
 In the bbdo negotiation, compression was never activated
@@ -85,6 +85,11 @@ Packaging did not follow Debian good practices.
 The display\_name of resources could be emptied in several case of reload.
 
 #### Enhancements
+
+*grpc*
+
+The gRPC api only listens by default on localhost. This is customizable with
+the configuration file.
 
 *comments*
 

@@ -37,6 +37,7 @@ namespace config {
 class state {
   int _broker_id;
   uint16_t _rpc_port;
+  std::string _listen_address;
   std::string _broker_name;
   std::tuple<uint16_t, uint16_t, uint16_t> _bbdo_version;
   std::string _cache_directory;
@@ -72,6 +73,8 @@ class state {
   int broker_id() const noexcept;
   void rpc_port(uint16_t port) noexcept;
   uint16_t rpc_port(void) const noexcept;
+  void listen_address(const std::string& listen_address) noexcept;
+  const std::string& listen_address() const noexcept;
   void broker_name(std::string const& name);
   const std::string& broker_name() const noexcept;
   void bbdo_version(std::tuple<uint16_t, uint16_t, uint16_t>&& v);
