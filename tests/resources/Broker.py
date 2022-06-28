@@ -1302,3 +1302,24 @@ def remove_poller(port, name, timeout=TIMEOUT):
                 break
             except:
                 logger.console("gRPC server not ready")
+
+##
+# @brief send a gRPC command to remove by id a poller
+#
+# @param port the gRPC port to use
+# @param name the poller name
+#
+def remove_poller_by_id(port, idx, timeout=TIMEOUT):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        logger.console("Try to call removePoller")
+        time.sleep(1)
+        with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            ref = broker_pb2.GenericNameOrIndex()
+            ref.idx = idx
+            try:
+                stub.RemovePoller(ref)
+                break
+            except:
+                logger.console("gRPC server not ready")

@@ -775,21 +775,20 @@ void stream::remove_poller(const std::shared_ptr<io::data>& d) {
       }
       if (count == 0) {
         log_v2::sql()->warn(
-            "Unable to remove poller '{}', {} not running found in the "
+            "Unable to remove poller {}, {} not running found in the "
             "database",
-            poller.obj().str(), count == 0 ? "none" : "more than one");
+            poller.obj().idx(), count == 0 ? "none" : "more than one");
         std::promise<database::mysql_result> promise;
         std::future<mysql_result> future = promise.get_future();
         _mysql.run_query_and_get_result(
-            fmt::format(
-                "SELECT name, instance_id from instances WHERE instance_id={}",
-                poller.obj().idx()),
+            fmt::format("SELECT name from instances WHERE instance_id={}",
+                        poller.obj().idx()),
             std::move(promise), conn);
         database::mysql_result res(future.get());
 
         while (_mysql.fetch_row(res)) {
           if (!config::applier::state::instance().has_connection_from_poller(
-                  res.value_as_u64(0))) {
+                  poller.obj().idx())) {
             log_v2::sql()->warn(
                 "The poller '{}' id {} is not connected (even if it looks "
                 "running or not deleted)",
