@@ -45,6 +45,7 @@ state::state()
 state::state(const state& other)
     : _broker_id(other._broker_id),
       _rpc_port(other._rpc_port),
+      _listen_address{other._listen_address},
       _broker_name(other._broker_name),
       _cache_directory(other._cache_directory),
       _command_file(other._command_file),
@@ -74,6 +75,7 @@ state& state::operator=(state const& other) {
   if (this != &other) {
     _broker_id = other._broker_id;
     _rpc_port = other._rpc_port;
+    _listen_address = other._listen_address;
     _broker_name = other._broker_name;
     _cache_directory = other._cache_directory;
     _command_file = other._command_file;
@@ -96,6 +98,7 @@ state& state::operator=(state const& other) {
 void state::clear() {
   _broker_id = 0;
   _rpc_port = 0;
+  _listen_address.resize(0);
   _broker_name.clear();
   _cache_directory.clear();
   _command_file.clear();
@@ -397,8 +400,28 @@ std::string const& state::poller_name() const noexcept {
 void state::rpc_port(uint16_t port) noexcept {
   _rpc_port = port;
 }
-uint16_t state::rpc_port(void) const noexcept {
+uint16_t state::rpc_port() const noexcept {
   return _rpc_port;
+}
+
+/**
+ * @brief Force the interface address to listen from for the gRPC API.
+ *
+ * @param listen_address An address or a hostname ("127.0.0.1", "localhost",
+ * ...)
+ */
+void state::listen_address(const std::string& listen_address) noexcept {
+  _listen_address = listen_address;
+}
+
+/**
+ * @brief Access to the configured listen address or an empty string if not
+ * defined. The behavior of broker in the latter is to listen from localhost.
+ *
+ * @return The listen address for the gRPC API.
+ */
+const std::string& state::listen_address() const noexcept {
+  return _listen_address;
 }
 
 state::log& state::log_conf() {
