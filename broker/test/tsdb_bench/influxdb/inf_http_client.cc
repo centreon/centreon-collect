@@ -30,8 +30,12 @@ inf_client::request_ptr inf_client::create_request(unsigned nb_metrics) {
   ret->body().reserve(100 * nb_metrics);
   ret->keep_alive(true);
   ret->method(boost::beast::http::verb::post);
-  ret->target("/api/v2/write?org=" + _name + "&bucket=" + _user +
-              "&precision=ms");
+  if (_conf["database_type"] == "influxdb") {
+    ret->target("/api/v2/write?org=" + _name + "&bucket=" + _user +
+                "&precision=ms");
+  } else {  // victoria metrics
+    ret->target("/write");
+  }
   SPDLOG_LOGGER_DEBUG(_logger, "create {} metrics request", nb_metrics);
 
   return ret;

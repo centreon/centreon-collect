@@ -422,7 +422,7 @@ int main(int argc, char** argv) {
     } else if (database_type == "prometheus") {
       bench_prometheus(io_context, logger, to_insert, db_conf, bulk_size,
                        nb_conn);
-    } else if (database_type == "influxdb") {
+    } else if (database_type == "influxdb" || database_type == "victoria") {
       bench_influxdb(io_context, logger, to_insert, db_conf, bulk_size,
                      nb_conn);
     } else if (database_type == "warp10") {

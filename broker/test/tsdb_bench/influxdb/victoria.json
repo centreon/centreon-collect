@@ -1,0 +1,9 @@
+{
+    "database_type": "victoria",
+    "name": "centreon",
+    "host": "127.0.0.1",
+    "port": 8428,
+    "dbname": "",
+    "user": "bucket",
+    "password": "gUR3L6RVlIDMuxzUkr7zOtEGIn_hhuJJZnlXxjiCYagYfkOGzQsbmEQnkzy0rQvnLSNN-KBkeJebntl_bQOZuQ=="
+}
