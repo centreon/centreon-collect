@@ -169,6 +169,7 @@ std::unordered_map<std::string, state::setter_func> const state::_setters{
     {"poller_name", SETTER(std::string const&, poller_name)},
     {"poller_id", SETTER(uint32_t, poller_id)},
     {"rpc_port", SETTER(uint16_t, rpc_port)},
+    {"rpc_listen_address", SETTER(const std::string&, rpc_listen_address)},
     {"precached_object_file",
      SETTER(std::string const&, _set_precached_object_file)},
     {"process_performance_data", SETTER(bool, process_performance_data)},
@@ -390,6 +391,7 @@ static std::string const default_log_level_process("info");
 static std::string const default_log_level_runtime("error");
 static std::string const default_use_timezone("");
 static bool const default_use_true_regexp_matching(false);
+static const std::string default_rpc_listen_address("localhost");
 
 /**
  *  Default constructor.
@@ -475,6 +477,7 @@ state::state()
       _poller_name{"unknown"},
       _poller_id{0},
       _rpc_port{0},
+      _rpc_listen_address{default_rpc_listen_address},
       _process_performance_data(default_process_performance_data),
       _retained_contact_host_attribute_mask(
           default_retained_contact_host_attribute_mask),
@@ -646,6 +649,7 @@ state& state::operator=(state const& right) {
     _poller_name = right._poller_name;
     _poller_id = right._poller_id;
     _rpc_port = right._rpc_port;
+    _rpc_listen_address = right._rpc_listen_address;
     _process_performance_data = right._process_performance_data;
     _retained_contact_host_attribute_mask =
         right._retained_contact_host_attribute_mask;
@@ -808,6 +812,7 @@ bool state::operator==(state const& right) const noexcept {
       _perfdata_timeout == right._perfdata_timeout &&
       _poller_name == right._poller_name && _poller_id == right._poller_id &&
       _rpc_port == right._rpc_port &&
+      _rpc_listen_address == right._rpc_listen_address &&
       _process_performance_data == right._process_performance_data &&
       _retained_contact_host_attribute_mask ==
           right._retained_contact_host_attribute_mask &&
@@ -2825,12 +2830,30 @@ uint16_t state::rpc_port() const noexcept {
 }
 
 /**
- *  Set poller_id value.
+ *  Set the rpc_port value.
  *
  *  @param[in] value The new poller_id value.
  */
 void state::rpc_port(uint16_t value) noexcept {
   _rpc_port = value;
+}
+
+/**
+ *  Get rpc_listen_address value.
+ *
+ *  @return The grpc api listen address value.
+ */
+const std::string& state::rpc_listen_address() const noexcept {
+  return _rpc_listen_address;
+}
+
+/**
+ *  Set grpc api listen_address value.
+ *
+ *  @param[in] value The new grpc api listen address.
+ */
+void state::rpc_listen_address(const std::string& listen_address) noexcept {
+  _rpc_listen_address = listen_address;
 }
 
 /**
