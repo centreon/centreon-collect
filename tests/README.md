@@ -229,6 +229,10 @@ Here is the list of the currently implemented tests:
 - [x] **BRRDDMU1**: RRD metric deletion on table metric with unified sql output
 - [x] **BRRDRM1**: RRD metric rebuild with gRPC API and unified sql
 - [x] **BRRDRMU1**: RRD metric rebuild with gRPC API and unified sql
+- [x] **EBDP1**: Four new pollers are started and then we remove Poller3.
+- [x] **EBDP2**: Three new pollers are started, then they are killed. After a simple restart of broker, it is still possible to remove Poller2 if removed from the configuration.
+- [x] **EBDP3**: Three new pollers are started, then they are killed. It is still possible to remove Poller2 if removed from the configuration.
+- [x] **EBDP4**: Four new pollers are started and then we remove Poller3 with its hosts and services. All service status/host status are then refused by broker.
 - [x] **EBNHG1**: New host group with several pollers and connections to DB
 - [x] **EBNHG4**: New host group with several pollers and connections to DB with broker and rename this hostgroup
 - [x] **EBNHGU1**: New host group with several pollers and connections to DB with broker configured with unified_sql

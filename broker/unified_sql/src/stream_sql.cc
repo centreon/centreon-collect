@@ -2937,10 +2937,6 @@ void stream::_process_service_status(const std::shared_ptr<io::data>& d) {
   log_v2::perfdata()->info("SQL: service status perfdata: <<{}>>",
                            ss.perf_data);
 
-  if (ss.host_id == 40 && ss.service_id == 781) {
-    log_v2::sql()->debug("we match the good service");
-  }
-
   if (!_host_instance_known(ss.host_id)) {
     log_v2::sql()->warn(
         "SQL: service status ({0}, {1}) thrown away because host {0} is not "
