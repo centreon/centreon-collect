@@ -125,8 +125,10 @@ ${ENGINE_LOG}	/var/log/centreon-engine
 ${SCRIPTS}	${CURDIR}${/}scripts${/}
 ${centralLog}	${BROKER_LOG}/central-broker-master.log
 ${moduleLog}	${BROKER_LOG}/central-module-master0.log
+${moduleLog3}	${BROKER_LOG}/central-module-master3.log
 ${rrdLog}	${BROKER_LOG}/central-rrd-master.log
 
 ${logEngine0}	${ENGINE_LOG}/config0/centengine.log
 ${logEngine1}	${ENGINE_LOG}/config1/centengine.log
 ${logEngine2}	${ENGINE_LOG}/config2/centengine.log
+${logEngine3}	${ENGINE_LOG}/config3/centengine.log

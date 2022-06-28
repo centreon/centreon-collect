@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 Centreon (https://www.centreon.com/)
+ * Copyright 2020-2022 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -259,5 +259,16 @@ grpc::Status broker_impl::GetProcessingStats(
     const ::google::protobuf::Empty* request __attribute__((unused)),
     ::ProcessingStats* response) {
   stats::center::instance().get_processing_stats(response);
+  return grpc::Status::OK;
+}
+
+grpc::Status broker_impl::RemovePoller(grpc::ServerContext* context
+                                       __attribute__((unused)),
+                                       const GenericNameOrIndex* request,
+                                       ::google::protobuf::Empty* response) {
+  log_v2::core()->info("Remove poller...");
+  multiplexing::publisher pblshr;
+  auto e{std::make_shared<bbdo::pb_remove_poller>(*request)};
+  pblshr.write(e);
   return grpc::Status::OK;
 }

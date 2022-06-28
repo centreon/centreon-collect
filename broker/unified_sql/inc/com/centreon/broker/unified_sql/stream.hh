@@ -211,7 +211,7 @@ class stream : public io::stream {
   /* Stats */
   ConflictManagerStats* _stats;
 
-  std::unordered_set<uint32_t> _cache_deleted_instance_id;
+  absl::flat_hash_set<uint32_t> _cache_deleted_instance_id;
   std::unordered_map<uint32_t, uint32_t> _cache_host_instance;
   absl::flat_hash_map<uint64_t, size_t> _cache_hst_cmd;
   absl::flat_hash_map<std::pair<uint64_t, uint64_t>, size_t> _cache_svc_cmd;
@@ -370,6 +370,8 @@ class stream : public io::stream {
   void _update_customvariables();
   void _insert_logs();
   // void __exit();
+  void _clear_instances_cache(const std::list<uint64_t>& ids);
+  bool _host_instance_known(uint64_t host_id) const;
 
  public:
   stream(database_config const& dbcfg,
@@ -396,6 +398,7 @@ class stream : public io::stream {
   int32_t stop() override;
   void statistics(nlohmann::json& tree) const;
   void remove_graphs(const std::shared_ptr<io::data>& d);
+  void remove_poller(const std::shared_ptr<io::data>& d);
 };
 }  // namespace unified_sql
 CCB_END()

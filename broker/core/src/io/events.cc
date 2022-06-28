@@ -221,6 +221,8 @@ events::events() {
   register_event(make_type(io::bbdo, bbdo::de_version_response),
                  "version_response", &bbdo::version_response::operations,
                  bbdo::version_response::entries);
+  register_event(make_type(io::bbdo, bbdo::de_welcome), "welcome",
+                 &bbdo::pb_welcome::operations);
   register_event(make_type(io::bbdo, bbdo::de_ack), "ack",
                  &bbdo::ack::operations, bbdo::ack::entries);
   register_event(make_type(io::bbdo, bbdo::de_stop), "stop",

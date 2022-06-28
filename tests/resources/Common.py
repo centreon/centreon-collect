@@ -248,7 +248,7 @@ def find_line_from(lines, date):
     start = 0
     end = len(lines) - 1
     idx = start
-    while end - start > 1:
+    while end > start:
         idx = (start + end) // 2
         m = p.match(lines[idx])
         while m is None:
@@ -261,10 +261,12 @@ def find_line_from(lines, date):
                 logger.console("We are at the first line and no date found")
 
         idx_d = get_date(m.group(1))
-        if my_date <= idx_d:
+        if my_date <= idx_d and end != idx:
             end = idx
-        elif my_date > idx_d:
+        elif my_date > idx_d and start != idx:
             start = idx
+        else:
+            break
     return idx
 
 

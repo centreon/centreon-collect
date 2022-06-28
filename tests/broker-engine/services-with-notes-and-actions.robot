@@ -22,10 +22,11 @@ EBSNU1
 	Config Broker	rrd
 	Config Broker	central
 	Config Broker	module	${1}
-	Broker Config Add Item	module0	bbdo_version	3.0.0
-	Broker Config Add Item	central	bbdo_version	3.0.0
-	Broker Config Add Item	rrd	bbdo_version	3.0.0
+	Broker Config Add Item	module0	bbdo_version	3.0.1
+	Broker Config Add Item	central	bbdo_version	3.0.1
+	Broker Config Add Item	rrd	bbdo_version	3.0.1
 	Broker Config Log	central	sql	debug
+	Broker Config Log	central	bbdo	debug
 	Config Broker Sql Output	central	unified_sql
 	${nu}=	Evaluate	2000*"X"
 	Engine Config set value in services	0	service_1	notes_url	${nu}
@@ -56,10 +57,11 @@ EBSAU2
 	Config Broker	rrd
 	Config Broker	central
 	Config Broker	module	${1}
-	Broker Config Add Item	module0	bbdo_version	3.0.0
-	Broker Config Add Item	central	bbdo_version	3.0.0
-	Broker Config Add Item	rrd	bbdo_version	3.0.0
+	Broker Config Add Item	module0	bbdo_version	3.0.1
+	Broker Config Add Item	central	bbdo_version	3.0.1
+	Broker Config Add Item	rrd	bbdo_version	3.0.1
 	Broker Config Log	central	sql	debug
+	Broker Config Log	central	bbdo	debug
 	Config Broker Sql Output	central	unified_sql
 	${au}=	Evaluate	2000*"Y"
 	Engine Config set value in services	0	service_2	action_url	${au}
@@ -90,10 +92,11 @@ EBSN3
 	Config Broker	rrd
 	Config Broker	central
 	Config Broker	module	${1}
-	Broker Config Add Item	module0	bbdo_version	3.0.0
-	Broker Config Add Item	central	bbdo_version	3.0.0
-	Broker Config Add Item	rrd	bbdo_version	3.0.0
+	Broker Config Add Item	module0	bbdo_version	3.0.1
+	Broker Config Add Item	central	bbdo_version	3.0.1
+	Broker Config Add Item	rrd	bbdo_version	3.0.1
 	Broker Config Log	central	sql	debug
+	Broker Config Log	central	bbdo	debug
 	Config Broker Sql Output	central	unified_sql
 	${n}=	Evaluate	500*"Z"
 	Engine Config set value in services	0	service_3	notes	${n}

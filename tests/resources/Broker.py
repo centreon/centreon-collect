@@ -442,6 +442,7 @@ def config_broker(name, poller_inst: int = 1):
             buf = config[name].format(
                 broker_id, "central-module-master{}".format(i))
             conf = json.loads(buf)
+            conf["centreonBroker"]["poller_name"] = f"Poller{i}"
             conf["centreonBroker"]["poller_id"] = i + 1
 
             f = open(broker_name, "w")
@@ -1197,6 +1198,7 @@ def remove_graphs(port, indexes, metrics, timeout=10):
             trm.metric_ids.extend(metrics)
             try:
                 stub.RemoveGraphs(trm)
+                break
             except:
                 logger.console("gRPC server not ready")
 
@@ -1220,6 +1222,7 @@ def rebuild_rrd_graphs(port, indexes, timeout: int = TIMEOUT):
             idx.index_id.extend(indexes)
             try:
                 stub.RebuildRRDGraphs(idx)
+                break
             except:
                 logger.console("gRPC server not ready")
 
@@ -1349,3 +1352,45 @@ def add_bam_config_to_broker(name):
     f = open("/etc/centreon-broker/{}".format(filename), "w")
     f.write(json.dumps(conf, indent=2))
     f.close()
+
+##
+# @brief send a gRPC command to remove by name a poller
+#
+# @param port the gRPC port to use
+# @param name the poller name
+#
+def remove_poller(port, name, timeout=TIMEOUT):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        logger.console("Try to call removePoller")
+        time.sleep(1)
+        with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            ref = broker_pb2.GenericNameOrIndex()
+            ref.str = name
+            try:
+                stub.RemovePoller(ref)
+                break
+            except:
+                logger.console("gRPC server not ready")
+
+##
+# @brief send a gRPC command to remove by id a poller
+#
+# @param port the gRPC port to use
+# @param name the poller name
+#
+def remove_poller_by_id(port, idx, timeout=TIMEOUT):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        logger.console("Try to call removePoller")
+        time.sleep(1)
+        with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            ref = broker_pb2.GenericNameOrIndex()
+            ref.idx = idx
+            try:
+                stub.RemovePoller(ref)
+                break
+            except:
+                logger.console("gRPC server not ready")

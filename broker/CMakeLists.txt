@@ -64,9 +64,9 @@ else ()
   add_definitions("-DMYSQL_SOCKET=/tmp/mysql.sock")
 endif ()
 
-include_directories("${PROJECT_SOURCE_DIR}/core/inc")
-include_directories("${PROJECT_SOURCE_DIR}/neb/inc")
-include_directories("${CMAKE_SOURCE_DIR}/engine/inc")
+include_directories("${PROJECT_SOURCE_DIR}/core/inc"
+                    "${PROJECT_SOURCE_DIR}/neb/inc"
+                    "${CMAKE_SOURCE_DIR}/engine/inc")
 set(INC_DIR "${PROJECT_SOURCE_DIR}/core/inc/com/centreon/broker")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/core/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/core/test")
@@ -449,7 +449,7 @@ add_library(rokerbase STATIC ${LIBROKER_SOURCES})
 set_target_properties(rokerbase PROPERTIES COMPILE_FLAGS "-fPIC")
 target_precompile_headers(rokerbase PRIVATE core/precomp_inc/precomp.hpp)
 add_dependencies(rokerbase berpc)
-target_link_libraries(rokerbase CONAN_PKG::zlib CONAN_PKG::spdlog CONAN_PKG::openssl CONAN_PKG::mariadb-connector-c pthread dl berpc bbdo_bbdo)
+target_link_libraries(rokerbase CONAN_PKG::zlib CONAN_PKG::spdlog CONAN_PKG::openssl CONAN_PKG::mariadb-connector-c pthread dl berpc bbdo_bbdo pb_welcome_lib)
 
 add_library(roker STATIC
   ${SRC_DIR}/config/applier/init.cc)

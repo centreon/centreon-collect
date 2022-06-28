@@ -115,6 +115,7 @@ class mysql_error {
     store_tags_resources_tags,
     delete_resources_tags,
     clean_resources,
+    delete_poller,
   };
 
   static constexpr const char* msg[]{
@@ -199,6 +200,7 @@ class mysql_error {
       "could not insert tag in resources_tags table: ",
       "could not delete entry in resources_tags table: ",
       "could not clean the resources table: ",
+      "could not delete poller: ",
   };
 
   mysql_error() : _active(false) {}
