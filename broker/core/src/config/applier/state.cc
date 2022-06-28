@@ -240,6 +240,12 @@ config::applier::modules& state::get_modules() {
   return _modules;
 }
 
+/**
+ * @brief Add a poller to the list of connected pollers.
+ *
+ * @param poller_id The id of the poller (an id by host)
+ * @param poller_name The name of the poller
+ */
 void state::add_poller(uint64_t poller_id, const std::string& poller_name) {
   auto found = _connected_pollers.find(poller_id);
   if (found == _connected_pollers.end()) {
@@ -255,6 +261,11 @@ void state::add_poller(uint64_t poller_id, const std::string& poller_name) {
   }
 }
 
+/**
+ * @brief Remove a poller from the list of connected pollers.
+ *
+ * @param poller_id The id of the poller to remove.
+ */
 void state::remove_poller(uint64_t poller_id) {
   auto found = _connected_pollers.find(poller_id);
   if (found == _connected_pollers.end())
@@ -267,6 +278,11 @@ void state::remove_poller(uint64_t poller_id) {
   }
 }
 
+/**
+ * @brief Check if a poller is currently connected.
+ *
+ * @param poller_id The poller to check.
+ */
 bool state::has_connection_from_poller(uint64_t poller_id) const {
   return _connected_pollers.contains(poller_id);
 }
