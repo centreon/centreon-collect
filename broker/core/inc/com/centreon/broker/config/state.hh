@@ -56,6 +56,7 @@ class state {
     std::string filename;
     std::size_t max_size;
     uint32_t flush_period;
+    bool log_pid;
     std::unordered_map<std::string, std::string> loggers;
 
     std::string log_path() const {

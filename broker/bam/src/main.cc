@@ -75,13 +75,14 @@ const char* const* broker_module_parents() {
 /**
  *  Module deinitialization routine.
  */
-void broker_module_deinit() {
+bool broker_module_deinit() {
   // Decrement instance number.
   if (!--instances) {
     io::protocols::instance().unreg(bam_module);
     // Deregister bam events.
     io::events::instance().unregister_category(io::bam);
   }
+  return true;  // ok to be unloaded
 }
 
 /**

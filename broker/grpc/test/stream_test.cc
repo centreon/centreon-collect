@@ -67,6 +67,7 @@ class grpc_test_server : public ::testing::TestWithParam<test_param> {
   static void SetUpTestSuite() {
     // log_v2::grpc()->set_level(spdlog::level::trace);
     s = std::make_unique<com::centreon::broker::grpc::acceptor>(conf);
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
     com::centreon::broker::pool::load(1);
   }
   static void TearDownTestSuite() { s.reset(); };

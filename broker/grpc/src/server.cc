@@ -31,10 +31,12 @@ using namespace com::centreon::exceptions;
 /****************************************************************************
  * accepted_service
  ****************************************************************************/
-
-accepted_service::accepted_service(const grpc_config::pointer& conf)
-    : channel("accepted_service", conf) {
-  log_v2::grpc()->trace("{} this={:p}", __PRETTY_FUNCTION__,
+accepted_service::accepted_service(const grpc_config::pointer& conf,
+                                   const shared_bool& server_finished)
+    : channel("accepted_service", conf),
+      _server_finished(server_finished),
+      _finished_called(false) {
+  log_v2::grpc()->debug("{} this={:p}", __PRETTY_FUNCTION__,
                         static_cast<void*>(this));
 }
 
@@ -43,7 +45,7 @@ void accepted_service::start() {
 }
 
 accepted_service::~accepted_service() {
-  log_v2::grpc()->trace("{} this={:p}", __PRETTY_FUNCTION__,
+  log_v2::grpc()->debug("{} this={:p}", __PRETTY_FUNCTION__,
                         static_cast<void*>(this));
 }
 
@@ -52,11 +54,22 @@ void accepted_service::desactivate() {
 }
 
 void accepted_service::OnCancel() {
+  log_v2::grpc()->debug("{} this={:p}", __PRETTY_FUNCTION__,
+                        static_cast<void*>(this));
   desactivate();
 }
 
 void accepted_service::start_read(event_ptr& to_read, bool) {
-  StartRead(to_read.get());
+  if (*_server_finished) {
+    bool expected = false;
+    if (_finished_called.compare_exchange_strong(expected, true)) {
+      log_v2::grpc()->debug("{} this={:p}  Finish", __PRETTY_FUNCTION__,
+                            static_cast<void*>(this));
+      Finish(::grpc::Status(::grpc::CANCELLED, "start_read server finished"));
+    }
+  } else {
+    StartRead(to_read.get());
+  }
 }
 
 void accepted_service::OnReadDone(bool ok) {
@@ -64,17 +77,44 @@ void accepted_service::OnReadDone(bool ok) {
 }
 
 void accepted_service::start_write(const event_ptr& to_send) {
-  StartWrite(to_send.get());
+  if (*_server_finished) {
+    bool expected = false;
+    if (_finished_called.compare_exchange_strong(expected, true)) {
+      log_v2::grpc()->debug("{} this={:p} Finish", __PRETTY_FUNCTION__,
+                            static_cast<void*>(this));
+      Finish(::grpc::Status(::grpc::CANCELLED, "start_write server finished"));
+    }
+  } else {
+    StartWrite(to_send.get());
+  }
 }
 
 void accepted_service::OnWriteDone(bool ok) {
   on_write_done(ok);
 }
 
+int accepted_service::stop() {
+  log_v2::grpc()->debug("{} this={:p}", __PRETTY_FUNCTION__,
+                        static_cast<void*>(this));
+  shutdown();
+  return channel::stop();
+}
+
+void accepted_service::shutdown() {
+  bool expected = false;
+  if (_finished_called.compare_exchange_strong(expected, true)) {
+    log_v2::grpc()->debug("{} this={:p}", __PRETTY_FUNCTION__,
+                          static_cast<void*>(this));
+    Finish(::grpc::Status(::grpc::CANCELLED, "stop server finished"));
+  }
+}
+
 /****************************************************************************
  *                              server
  ****************************************************************************/
-server::server(const grpc_config::pointer& conf) : _conf(conf) {}
+server::server(const grpc_config::pointer& conf) : _conf(conf) {
+  _server_finished = std::make_shared<bool>(false);
+}
 
 void server::start() {
   ::grpc::Service::MarkMethodCallback(
@@ -165,7 +205,7 @@ server::pointer server::create(const grpc_config::pointer& conf) {
   accepted_service::pointer serv;
   {
     unique_lock l(_protect);
-    serv = std::make_shared<accepted_service>(_conf);
+    serv = std::make_shared<accepted_service>(_conf, _server_finished);
     _accepted.push(serv);
     _accept_cond.notify_one();
   }
@@ -209,4 +249,17 @@ std::unique_ptr<io::stream> server::open(
 bool server::is_ready() const {
   unique_lock l(_protect);
   return !_accepted.empty();
+}
+
+void server::shutdown() {
+  *_server_finished = true;
+  std::unique_ptr<::grpc::Server> to_shutdown;
+  unique_lock l(_protect);
+  if (_server) {
+    to_shutdown = std::move(_server);
+  }
+  if (to_shutdown) {
+    to_shutdown->Shutdown(std::chrono::system_clock::now() +
+                          std::chrono::seconds(15));
+  }
 }

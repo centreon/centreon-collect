@@ -47,12 +47,13 @@ const char* const* broker_module_parents() {
 /**
  *  Module deinitialization routine.
  */
-void broker_module_deinit() {
+bool broker_module_deinit() {
   // Decrement instance number.
   if (!--instances) {
     // Unregister generic lua module.
     io::protocols::instance().unreg("lua");
   }
+  return true;  // ok to be unloaded
 }
 
 /**

@@ -23,11 +23,48 @@
 #include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 
+#include <grpc/impl/codegen/log.h>
+
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
 using namespace spdlog;
+
+/**
+ * @brief this function is passed to grpc in order to log grpc layer's events to
+ * logv2
+ *
+ * @param args grpc logging params
+ */
+static void grpc_logger(gpr_log_func_args* args) {
+  std::shared_ptr<spdlog::logger> logger = log_v2::grpc();
+  spdlog::level::level_enum grpc_level = logger->level();
+  switch (args->severity) {
+    case GPR_LOG_SEVERITY_DEBUG:
+      if (grpc_level == spdlog::level::trace ||
+          grpc_level == spdlog::level::debug) {
+        logger->debug("grpc ({}:{}) {}", args->file, args->line, args->message);
+      }
+      break;
+    case GPR_LOG_SEVERITY_INFO:
+      if (grpc_level == spdlog::level::trace ||
+          grpc_level == spdlog::level::debug ||
+          grpc_level == spdlog::level::info) {
+        logger->info("grpc ({}:{}) {}", args->file, args->line, args->message);
+      }
+      break;
+    case GPR_LOG_SEVERITY_ERROR:
+      if (grpc_level == spdlog::level::trace ||
+          grpc_level == spdlog::level::debug ||
+          grpc_level == spdlog::level::info ||
+          grpc_level == spdlog::level::warn ||
+          grpc_level == spdlog::level::err) {
+        logger->error("grpc ({}:{}) {}", args->file, args->line, args->message);
+      }
+      break;
+  }
+}
 
 log_v2& log_v2::instance() {
   static log_v2 instance;
@@ -61,6 +98,7 @@ log_v2::log_v2() : _running{false} {
   _log[log_v2::log_tcp] = create_logger("tcp");
   _log[log_v2::log_tls] = create_logger("tls");
   _log[log_v2::log_grpc] = create_logger("grpc");
+  gpr_set_log_function(grpc_logger);
   _running = true;
 }
 
@@ -89,8 +127,9 @@ void log_v2::apply(const config::state& conf) {
   else
     file_sink = std::make_shared<sinks::basic_file_sink_mt>(_log_name);
 
-  auto create_log = [&file_sink, flush_period = log.flush_period](
-                        const std::string& name, level::level_enum lvl) {
+  auto create_log = [&file_sink, log_pid = log.log_pid,
+                     flush_period = log.flush_period](const std::string& name,
+                                                      level::level_enum lvl) {
     spdlog::drop(name);
     auto log = std::make_shared<spdlog::logger>(name, file_sink);
     log->set_level(lvl);
@@ -99,8 +138,29 @@ void log_v2::apply(const config::state& conf) {
         log->flush_on(level::warn);
       else
         log->flush_on(lvl);
-      log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
+      if (log_pid)
+        log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%P] %v");
+      else
+        log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
     }
+
+    if (name == "grpc") {
+      switch (lvl) {
+        case level::level_enum::trace:
+        case level::level_enum::debug:
+          gpr_set_log_verbosity(GPR_LOG_SEVERITY_DEBUG);
+          break;
+        case level::level_enum::info:
+        case level::level_enum::warn:
+          gpr_set_log_verbosity(GPR_LOG_SEVERITY_INFO);
+          break;
+        case level::level_enum::err:
+        case level::level_enum::critical:
+          gpr_set_log_verbosity(GPR_LOG_SEVERITY_ERROR);
+          break;
+      }
+    }
+
     spdlog::register_logger(log);
     return log;
   };

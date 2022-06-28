@@ -22,17 +22,26 @@ DB_PORT = BuiltIn().get_variable_value("${DBPort}")
 
 def check_connection(port: int, pid1: int, pid2: int):
     limit = time.time() + TIMEOUT
-    r = re.compile(r"^ESTAB.*127\.0\.0\.1\]*:{}\s".format(port))
+    r = re.compile(
+        r"^ESTAB.*127\.0\.0\.1\]*:{}\s|^ESTAB.*\[::1\]*:{}\s".format(port, port))
+    p = re.compile(
+        r"127\.0\.0\.1\]*:(\d+)\s+.*127\.0\.0\.1\]*:(\d+)\s+.*,pid=(\d+)")
+    p_v6 = re.compile(
+        r"::1\]*:(\d+)\s+.*::1\]*:(\d+)\s+.*,pid=(\d+)")
     while time.time() < limit:
         out = getoutput("ss -plant")
         lst = out.split('\n')
         estab_port = list(filter(r.match, lst))
         if len(estab_port) >= 2:
             ok = [False, False]
-            p = re.compile(
-                r"127\.0\.0\.1\]*:(\d+)\s+.*127\.0\.0\.1\]*:(\d+)\s+.*,pid=(\d+)")
             for l in estab_port:
                 m = p.search(l)
+                if m is not None:
+                    if pid1 == int(m.group(3)):
+                        ok[0] = True
+                    if pid2 == int(m.group(3)):
+                        ok[1] = True
+                m = p_v6.search(l)
                 if m is not None:
                     if pid1 == int(m.group(3)):
                         ok[0] = True
@@ -41,7 +50,6 @@ def check_connection(port: int, pid1: int, pid2: int):
             if ok[0] and ok[1]:
                 return True
         time.sleep(1)
-
     return False
 
 

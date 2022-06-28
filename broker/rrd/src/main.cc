@@ -54,11 +54,12 @@ const char* const* broker_module_parents() {
 /**
  *  Module deinitialization routine.
  */
-void broker_module_deinit() {
+bool broker_module_deinit() {
   // Decrement instance number.
   if (!--instances)
     // Deregister RRD layer.
     io::protocols::instance().unreg("RRD");
+  return true;  // ok to be unloaded
 }
 
 /**

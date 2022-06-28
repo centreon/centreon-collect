@@ -56,7 +56,7 @@ const char* const* broker_module_parents() {
 /**
  *  Module deinitialization routine.
  */
-void broker_module_deinit() {
+bool broker_module_deinit() {
   // Decrement instance number.
   if (!--instances) {
     // Deregister unified_sql layer.
@@ -64,6 +64,7 @@ void broker_module_deinit() {
     io::events::instance().unregister_category(io::storage);
     io::protocols::instance().unreg("storage");
   }
+  return true;  // ok to be unloaded
 }
 
 /**

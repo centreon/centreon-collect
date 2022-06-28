@@ -63,11 +63,12 @@ void handle::_close() {
 
     // Find deinitialization routine.
     union {
-      void (*code)();
+      bool (*code)();
       void* data;
     } sym;
     sym.data = dlsym(_handle, deinitialization);
 
+    bool can_unload = true;
     // Could not find deinitialization routine.
     char const* error_str{dlerror()};
     if (error_str) {
@@ -79,9 +80,13 @@ void handle::_close() {
     else {
       log_v2::core()->debug("modules: running deinitialization routine of '{}'",
                             _filename);
-      (*(sym.code))();
+      can_unload = (*(sym.code))();
     }
 
+    if (!can_unload) {
+      log_v2::core()->debug("modules: don't unload library '{}'", _filename);
+      return;
+    }
     // Reset library handle.
     log_v2::core()->debug("modules: unloading library '{}'", _filename);
     // Library was not unloaded.

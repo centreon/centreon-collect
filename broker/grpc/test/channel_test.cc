@@ -67,6 +67,8 @@ class channel_test : public channel {
         [me = shared_from_this(), to_read]() { me->simul_on_read(); });
   }
 
+  void shutdown() override {}
+
   virtual void simul_on_read() {
     if (!to_read.empty()) {
       _read_current = to_read.front();
@@ -114,8 +116,12 @@ TEST_F(grpc_channel_tester, read_all) {
 
   ASSERT_FALSE(read_ret.second);
 
-  ASSERT_LE(std::chrono::milliseconds(9), read_end - read_start);
-  ASSERT_LE(read_end - read_start, std::chrono::milliseconds(50));
+  ASSERT_LE(std::chrono::milliseconds(9),
+            std::chrono::duration_cast<std::chrono::milliseconds>(read_end -
+                                                                  read_start));
+  ASSERT_LE(std::chrono::duration_cast<std::chrono::milliseconds>(read_end -
+                                                                  read_start),
+            std::chrono::milliseconds(200));
 }
 
 TEST_F(grpc_channel_tester, throw_read_after_failure) {

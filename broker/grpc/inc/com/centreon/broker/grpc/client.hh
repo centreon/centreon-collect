@@ -63,6 +63,8 @@ class client : public channel,
 
   ~client();
 
+  void shutdown() override;
+
   void OnReadDone(bool ok) override;
   void OnWriteDone(bool ok) override;
 };
