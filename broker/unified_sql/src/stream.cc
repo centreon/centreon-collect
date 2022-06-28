@@ -816,9 +816,52 @@ void stream::remove_poller(const std::shared_ptr<io::data>& d) {
       _mysql.run_query(
           fmt::format("DELETE FROM resources WHERE poller_id={}", id),
           database::mysql_error::delete_poller, false, conn);
+      _cache_deleted_instance_id.insert(id);
     }
+    _clear_instances_cache(ids);
   } catch (const std::exception& e) {
     log_v2::sql()->error("Error encountered while removing a poller: {}",
                          e.what());
+  }
+}
+
+void stream::_clear_instances_cache(const std::list<uint64_t>& ids) {
+  for (auto it = _cache_host_instance.begin();
+       it != _cache_host_instance.end();) {
+    if (std::find(ids.begin(), ids.end(), it->second) != ids.end()) {
+      uint64_t host_id = it->first;
+      _cache_hst_cmd.erase(host_id);
+      for (auto itt = _cache_svc_cmd.begin(); itt != _cache_svc_cmd.end();
+           ++itt) {
+        if (itt->first.first == host_id) {
+          uint64_t svc_id = itt->first.second;
+          auto ridx_it = _index_cache.find({host_id, svc_id});
+          uint64_t index_id = ridx_it->second.index_id;
+          for (auto idx_it = _index_cache.begin(); idx_it != _index_cache.end();
+               ++idx_it) {
+            if (idx_it->first.first == index_id)
+              _index_cache.erase(idx_it);
+            std::lock_guard<misc::shared_mutex> lock(_metric_cache_m);
+            for (auto metric_it = _metric_cache.begin();
+                 metric_it != _metric_cache.end(); ++metric_it) {
+              if (metric_it->first.first == index_id)
+                _metric_cache.erase(metric_it);
+            }
+          }
+          _index_cache.erase(ridx_it);
+          _cache_svc_cmd.erase(itt);
+
+          // resources
+          auto res_it = _resource_cache.find({svc_id, host_id});
+          if (res_it != _resource_cache.end())
+            _resource_cache.erase(res_it);
+        }
+        auto res_it = _resource_cache.find({host_id, 0});
+        if (res_it != _resource_cache.end())
+          _resource_cache.erase(res_it);
+      }
+      it = _cache_host_instance.erase(it);
+    } else
+      ++it;
   }
 }

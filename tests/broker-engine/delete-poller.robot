@@ -199,3 +199,88 @@ EBDP3
 	 EXIT FOR LOOP IF	"${output}" == "()"
 	END
 	Should Be Equal As Strings	${output}	()
+
+EBDP4
+	[Documentation]	Four new pollers are started and then we remove Poller3 with its hosts and services. All service status/host status are then refused by broker.
+	[Tags]	Broker	Engine	grpc
+	Config Engine	${4}	${50}	${20}
+	Config Broker	rrd
+	Config Broker	central
+	Config Broker	module	${4}
+	Broker Config Add Item	module0	bbdo_version	3.0.1
+	Broker Config Add Item	module1	bbdo_version	3.0.1
+	Broker Config Add Item	module2	bbdo_version	3.0.1
+	Broker Config Add Item	module3	bbdo_version	3.0.1
+	Broker Config Add Item	central	bbdo_version	3.0.1
+	Broker Config Add Item	rrd	bbdo_version	3.0.1
+	Broker Config Log	central	core	error
+	Broker Config Log	central	sql	trace
+	Broker Config Log	module3	neb	trace
+	Broker Config Flush log	central	0
+	Config Broker Sql Output	central	unified_sql
+	${start}=	Get Current Date
+	Start Broker
+	Start Engine
+
+	# Let's wait for the initial service states.
+        ${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
+        ${result}=	Find In Log with Timeout	${logEngine3}	${start}	${content}	60
+        Should Be True	${result}	msg=An Initial service state on service (50, 1000) should be raised before we can start external commands.
+
+	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+	FOR    ${index}    IN RANGE    60
+	 ${output}=	Query	SELECT instance_id FROM instances WHERE name='Poller3'
+	 Sleep	1s
+	 EXIT FOR LOOP IF	"${output}" != "()"
+	END
+	Should Be Equal As Strings	${output}	((4,),)
+
+	# Let's brutally kill the poller
+	${content}=	Create List	processing poller event (id: 4, name: Poller3, running:
+	${result}=	Find In log with timeout	${centralLog}	${start}	${content}	60
+        Should Be True	${result}	msg=We want the poller 4 event before stopping broker
+	Kindly Stop Broker
+	Clear Broker Logs
+
+	# Generation of many service status but kept in memory on poller3.
+	FOR	${i}	IN RANGE	200
+	 Process Service Check result	host_40	service_781	2	service_781 should fail	config3
+	 Process Service Check result	host_40	service_782	1	service_782 should fail	config3
+	END
+	${content}=	Create List	SERVICE ALERT: host_40;service_781;CRITICAL	SERVICE ALERT: host_40;service_782;WARNING
+	${result}=	Find In log with timeout	${logEngine3}	${start}	${content}	60
+        Should Be True	${result}	msg=Service alerts about service 781 and 782 should be raised
+
+	${content}=	Create List	callbacks: service (40, 781) has no perfdata	service (40, 782) has no perfdata
+	${result}=	Find In log with timeout	${moduleLog3}	${start}	${content}	60
+        Should Be True	${result}	msg=pb service status on services (40, 781) and (40, 782) should be generated
+	Stop Engine
+
+	# Because poller3 is going to be removed, we move its memory file to poller0, 1 and 2.
+	Move File	/var/lib/centreon-engine/central-module-master3.memory.central-module-master-output	/var/lib/centreon-engine/central-module-master0.memory.central-module-master-output
+
+	# Poller3 is removed from the engine configuration but still there in centreon_storage DB
+	Config Engine	${3}	${39}	${20}
+
+	# Restart Broker
+	Start Broker
+	Remove Poller	51001	Poller3
+	FOR    ${index}    IN RANGE    60
+	 ${output}=	Query	SELECT instance_id FROM instances WHERE name='Poller3'
+	 Sleep	1s
+	 EXIT FOR LOOP IF	"${output}" == "()"
+	END
+	Should Be Equal As Strings	${output}	()
+
+	Start Engine
+	# Let's wait for the initial service states.
+        ${content}=	Create List	INITIAL SERVICE STATE: host_13;service_260;
+        ${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+        Should Be True	${result}	msg=An Initial service state on service (13, 260) should be raised before we can start external commands.
+
+	${content}=	Create List	service status (40, 781) thrown away because host 40 is not known by any poller
+	log to console	date ${start}
+	${result}=	Find in Log With Timeout	${centralLog}	${start}	${content}	60
+	Should be True	${result}	msg=No message about these two wrong service status.
+	Stop Engine
+	Kindly Stop Broker

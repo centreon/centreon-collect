@@ -648,11 +648,11 @@ def get_command_id(service: int):
     return dbconf.command[cmd_name]
 
 
-def process_service_check_result(hst: str, svc: str, state: int, output: str):
+def process_service_check_result(hst: str, svc: str, state: int, output: str, config='config0'):
     now = int(time.time())
     cmd = "[{}] PROCESS_SERVICE_CHECK_RESULT;{};{};{};{}\n".format(
         now, hst, svc, state, output)
-    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f = open(f"/var/lib/centreon-engine/{config}/rw/centengine.cmd", "w")
     f.write(cmd)
     f.close()
 
