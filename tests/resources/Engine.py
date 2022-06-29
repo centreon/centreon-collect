@@ -1359,3 +1359,21 @@ def send_custom_host_notification(hst, notification_option, author, comment):
     f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
     f.write(cmd)
     f.close()
+
+
+def add_svc_comment(cmd, entry_time, args):
+    now = int(time.time())
+    cmd = "[{}] ADD_SVC_COMMENT;{};{};{}\n".format(
+        now, cmd, entry_time, args)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
+
+
+def add_host_comment(host_name, persistent, user_name, comment):
+    now = int(time.time())
+    cmd = "[{}] ADD_HOST_COMMENT;{};{};{};{}\n".format(
+        now, host_name, persistent, user_name, comment)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
