@@ -35,7 +35,11 @@
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/diagnostic.hh"
 
+#include "absl/strings/numbers.h"
+#include "com/centreon/exceptions/msg_fmt.hh"
+
 using namespace com::centreon::broker;
+using namespace com::centreon::exceptions;
 
 // Main config file.
 static std::vector<std::string> gl_mainconfigfiles;

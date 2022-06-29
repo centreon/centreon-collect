@@ -81,6 +81,8 @@ Here is the list of the currently implemented tests:
 - [x] **BSS5**: Start-Stop with reversed connection on TCP acceptor with only one instance and no deadlock
 - [x] **BCL1**: Starting broker with option '-s foobar' should return an error
 - [x] **BCL2**: Starting broker with option '-s5' should work
+- [x] **BCL3**: Starting broker with options '-D' should work and activate diagnose mode
+- [x] **BCL4**: Starting broker with options '-s2' and '-D' should work.
 
 ### Broker/database
 - [x] **NetworkDbFail1**: network failure test between broker and database (shutting down connection for 100ms)
