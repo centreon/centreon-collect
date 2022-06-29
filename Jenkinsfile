@@ -49,7 +49,6 @@ stage('Build / Unit tests // Packaging / Signing') {
       dir('centreon-collect-centos7') {
         checkout scm
         sh 'docker run -i --entrypoint /src/ci/scripts/collect-unit-tests.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:21.10'
-        sh "sudo apt-get install -y clang-tidy"
       }
     }
   },
