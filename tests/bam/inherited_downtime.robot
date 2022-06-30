@@ -128,7 +128,7 @@ BEBAMIDT2
 	Stop Engine
 	Stop Broker
 
-BEBAMIDT3
+BEBAMIGNDT1
 	[Documentation]	A BA of type 'worst' with two services is configured. The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in critical state, because of the second critical service. Then we apply two downtimes on this last one. The BA state is ok because of the policy on indicators. A first downtime is cancelled, the BA is still OK, but when the second downtime is cancelled, the BA should be CRITICAL.
 	[Tags]	broker	downtime	engine	bam
 	Clear Commands Status
@@ -141,7 +141,7 @@ BEBAMIDT3
 	Clone Engine Config To DB
 	Add Bam Config To Engine
 
-	@{svc}=	Set Variable	${{ [("host_16", "service_313"), ("host_16", "service_314"] }}
+	@{svc}=	Set Variable	${{ [("host_16", "service_313"), ("host_16", "service_314")] }}
 	Create BA With Services	test	worst	${svc}  ignore
 	Add Bam Config To Broker	central
 	# Command of service_314 is set to critical
@@ -168,22 +168,44 @@ BEBAMIDT3
 	# The BA should become critical
 	${result}=	Check Ba Status With Timeout	test	2	60
 	Should Be True	${result}	msg=The BA ba_1 is not CRITICAL as expected
+	Log To console	The BA is critical.
 
-	# Two downtime are applied on service_314
+	# Two downtimes are applied on service_314
 	Schedule Service Downtime	host_16	service_314	3600
 	${result}=	Check Service Downtime With Timeout	host_16	service_314	1	60
 	Should Be True	${result}	msg=The service (host_16, service_314) is not in downtime as it should be
+	Log to console	One downtime applied to service_314.
+
 	Schedule Service Downtime	host_16	service_314	1800
-	${result}=	Check Service Downtime With Timeout	host_16	service_314	1	60
+	${result}=	Check Service Downtime With Timeout	host_16	service_314	2	60
 	Should Be True	${result}	msg=The service (host_16, service_314) is not in downtime as it should be
-	${result}=	Check Service Downtime With Timeout	_Module_BAM_1	ba_1	1	60
-	Should Be True	${result}	msg=The BA ba_1 is not in downtime as it should
+	Log to console	Two downtimes applied to service_314.
+
+	${result}=	Check Service Downtime With Timeout	_Module_BAM_1	ba_1	0	60
+	Should Be True	${result}	msg=The BA ba_1 is in downtime but should not
+	Log to console	The BA is configured to ignore kpis in downtime
+
+	${result}=	Check Ba Status With Timeout	test	0	60
+	Should Be True	${result}	msg=The service in downtime should be ignored while computing the state of this BA.
+	Log to console	The BA is OK, since the critical service is in downtime.
 
 	# The first downtime is deleted
 	Delete Service Downtime	host_16	service_314
-	${result}=	Check Service State With Timeout	_Module_BAM_1	ba_1	0
-	Should Be True	${result}	msg=The BA ba_1 is in downtime as it should not
+
+	${result}=	Check Service Downtime With Timeout	host_16	service_314	1	60
+	Should Be True	${result}	msg=The service (host_16, service_314) does not contain 1 downtime as it should
+	Log to console	Still one downtime applied to service_314.
+
+	${result}=	Check Ba Status With Timeout	test	0	60
+	Should Be True	${result}	msg=The BA is not OK whereas the service_314 is still in downtime.
+	Log to console	The BA is still OK
+
+	# The second downtime is deleted
+	Delete Service Downtime	host_16	service_314
+	${result}=	Check Ba Status With Timeout	test	2	60
+	Should Be True	${result}	msg=The critical service is no more in downtime, the BA should be critical.
+	Log to console	The BA is now critical (no more downtime)
 
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker
 
