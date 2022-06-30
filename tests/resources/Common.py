@@ -340,7 +340,7 @@ def check_service_status_with_timeout(hostname: str, service_desc: str, status: 
                 cursor.execute("SELECT s.state FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description=\"{}\" AND h.name=\"{}\"".format(
                     service_desc, hostname))
                 result = cursor.fetchall()
-                if result[0]['state'] and int(result[0]['state']) == status:
+                if result[0]['state'] is not None and int(result[0]['state']) == int(status):
                     return True
         time.sleep(5)
     return False
@@ -446,7 +446,7 @@ def check_ba_status_with_timeout(ba_name: str, status: int, timeout: int):
                 cursor.execute(
                     "SELECT current_status FROM mod_bam WHERE name='{}'".format(ba_name))
                 result = cursor.fetchall()
-                if result[0]['current_status'] and int(result[0]['current_status']) == status:
+                if result[0]['current_status'] is not None and int(result[0]['current_status']) == status:
                     return True
         time.sleep(5)
     return False
@@ -484,7 +484,7 @@ def delete_service_downtime(hst: str, svc: str):
 
     with connection:
         with connection.cursor() as cursor:
-            cursor.execute("select d.internal_id from downtimes d inner join hosts h on d.host_id=h.host_id inner join services s on d.service_id=s.service_id where d.cancelled='0' and s.scheduled_downtime_depth='1' and s.description='{}' and h.name='{}'".format(svc, hst))
+            cursor.execute("select d.internal_id from downtimes d inner join hosts h on d.host_id=h.host_id inner join services s on d.service_id=s.service_id where d.cancelled='0' and s.scheduled_downtime_depth<>'0' and s.description='{}' and h.name='{}' LIMIT 1".format(svc, hst))
             result = cursor.fetchall()
             did = int(result[0]['internal_id'])
 
