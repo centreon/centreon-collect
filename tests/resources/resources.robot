@@ -130,3 +130,6 @@ ${rrdLog}	${BROKER_LOG}/central-rrd-master.log
 ${logEngine0}	${ENGINE_LOG}/config0/centengine.log
 ${logEngine1}	${ENGINE_LOG}/config1/centengine.log
 ${logEngine2}	${ENGINE_LOG}/config2/centengine.log
+${dbgEngine0}	${ENGINE_LOG}/config0/centengine.debug
+${dbgEngine1}	${ENGINE_LOG}/config1/centengine.debug
+${dbgEngine2}	${ENGINE_LOG}/config2/centengine.debug
