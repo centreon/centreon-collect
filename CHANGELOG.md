@@ -26,6 +26,10 @@ A gRPC stream connector did not stop correctly on cbd stop.
 On BAM misconfiguration, cbd could crash. This is fixed now. That was due to
 an issue in mysql code with promises handling.
 
+In a BA configured to ignore its kpi downtimes, if a kpi represented by a
+service has two overlapping downtimes applied. When the first one is cancelled,
+it is as if all the downtimes are removed. This is fixed with this new version.
+
 *Debian*
 
 Default configuration files were not installed on a Debian fresh install.
