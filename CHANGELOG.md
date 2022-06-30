@@ -1,5 +1,17 @@
 # Changelog
 
+## 21.10.3
+
+### centreon-broker
+
+#### Fixes
+
+*bam*
+
+If a service with two overlapping downtimes is a BA kpi. When the first downtime
+is cancelled from the service, it is as if all the downtimes are removed from
+the kpi. This new version fixes this issue.
+
 ## 21.10.2
 
 ### centreon-broker

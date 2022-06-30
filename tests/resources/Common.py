@@ -22,17 +22,26 @@ DB_PORT = BuiltIn().get_variable_value("${DBPort}")
 
 def check_connection(port: int, pid1: int, pid2: int):
     limit = time.time() + TIMEOUT
-    r = re.compile(r"^ESTAB.*127\.0\.0\.1\]*:{}\s".format(port))
+    r = re.compile(
+        r"^ESTAB.*127\.0\.0\.1\]*:{}\s|^ESTAB.*\[::1\]*:{}\s".format(port, port))
+    p = re.compile(
+        r"127\.0\.0\.1\]*:(\d+)\s+.*127\.0\.0\.1\]*:(\d+)\s+.*,pid=(\d+)")
+    p_v6 = re.compile(
+        r"::1\]*:(\d+)\s+.*::1\]*:(\d+)\s+.*,pid=(\d+)")
     while time.time() < limit:
         out = getoutput("ss -plant")
         lst = out.split('\n')
         estab_port = list(filter(r.match, lst))
         if len(estab_port) >= 2:
             ok = [False, False]
-            p = re.compile(
-                r"127\.0\.0\.1\]*:(\d+)\s+.*127\.0\.0\.1\]*:(\d+)\s+.*,pid=(\d+)")
             for l in estab_port:
                 m = p.search(l)
+                if m is not None:
+                    if pid1 == int(m.group(3)):
+                        ok[0] = True
+                    if pid2 == int(m.group(3)):
+                        ok[1] = True
+                m = p_v6.search(l)
                 if m is not None:
                     if pid1 == int(m.group(3)):
                         ok[0] = True
@@ -41,7 +50,6 @@ def check_connection(port: int, pid1: int, pid2: int):
             if ok[0] and ok[1]:
                 return True
         time.sleep(1)
-
     return False
 
 
@@ -240,7 +248,7 @@ def find_line_from(lines, date):
     start = 0
     end = len(lines) - 1
     idx = start
-    while end - start > 1:
+    while end > start:
         idx = (start + end) // 2
         m = p.match(lines[idx])
         while m is None:
@@ -253,10 +261,12 @@ def find_line_from(lines, date):
                 logger.console("We are at the first line and no date found")
 
         idx_d = get_date(m.group(1))
-        if my_date <= idx_d:
+        if my_date <= idx_d and end != idx:
             end = idx
-        elif my_date > idx_d:
+        elif my_date > idx_d and start != idx:
             start = idx
+        else:
+            break
     return idx
 
 
@@ -342,7 +352,7 @@ def check_service_status_with_timeout(hostname: str, service_desc: str, status: 
                 cursor.execute("SELECT s.state FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description=\"{}\" AND h.name=\"{}\"".format(
                     service_desc, hostname))
                 result = cursor.fetchall()
-                if result[0]['state'] and int(result[0]['state']) == status:
+                if result[0]['state'] is not None and int(result[0]['state']) == int(status):
                     return True
         time.sleep(5)
     return False
@@ -448,7 +458,7 @@ def check_ba_status_with_timeout(ba_name: str, status: int, timeout: int):
                 cursor.execute(
                     "SELECT current_status FROM mod_bam WHERE name='{}'".format(ba_name))
                 result = cursor.fetchall()
-                if result[0]['current_status'] and int(result[0]['current_status']) == status:
+                if result[0]['current_status'] is not None and int(result[0]['current_status']) == status:
                     return True
         time.sleep(5)
     return False
@@ -486,7 +496,7 @@ def delete_service_downtime(hst: str, svc: str):
 
     with connection:
         with connection.cursor() as cursor:
-            cursor.execute("select d.internal_id from downtimes d inner join hosts h on d.host_id=h.host_id inner join services s on d.service_id=s.service_id where d.cancelled='0' and s.scheduled_downtime_depth='1' and s.description='{}' and h.name='{}'".format(svc, hst))
+            cursor.execute("select d.internal_id from downtimes d inner join hosts h on d.host_id=h.host_id inner join services s on d.service_id=s.service_id where d.cancelled='0' and s.scheduled_downtime_depth<>'0' and s.description='{}' and h.name='{}' LIMIT 1".format(svc, hst))
             result = cursor.fetchall()
             did = int(result[0]['internal_id'])
 
