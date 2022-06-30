@@ -636,9 +636,9 @@ def add_bam_config_to_engine():
     dbconf.init_bam()
 
 
-def create_ba_with_services(name: str, typ: str, svc: list):
+def create_ba_with_services(name: str, typ: str, svc: list, dt_policy="inherit"):
     global dbconf
-    dbconf.create_ba_with_services(name, typ, svc)
+    dbconf.create_ba_with_services(name, typ, svc, dt_policy)
 
 
 def get_command_id(service: int):
