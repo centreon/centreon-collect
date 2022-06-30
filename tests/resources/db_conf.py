@@ -170,7 +170,7 @@ class DbConf:
                         hid += 1
                     connection.commit()
 
-    def create_ba_with_services(self, name:str, typ:str, svc:[(str,str)]):
+    def create_ba_with_services(self, name:str, typ:str, svc:[(str,str)], dt_policy):
         connection = pymysql.connect(host=DB_HOST,
                                      user=DB_USER,
                                      password=DB_PASS,
@@ -184,7 +184,14 @@ class DbConf:
             elif typ == 'worst':
                 t = 2
             with connection.cursor() as cursor:
-                cursor.execute("INSERT INTO mod_bam (name, state_source, activate,id_reporting_period,level_w,level_c,id_notification_period,notifications_enabled,event_handler_enabled, inherit_kpi_downtimes) VALUES ('{}',{},'1',1, 80, 70, 1,'0', '0','1')".format(name, t))
+                if dt_policy == "inherit":
+                    inherit_dt = 1
+                elif dt_policy == "ignore":
+                    inherit_dt = 2
+                else:
+                    inherit_dt = 0
+
+                cursor.execute("INSERT INTO mod_bam (name, state_source, activate,id_reporting_period,level_w,level_c,id_notification_period,notifications_enabled,event_handler_enabled, inherit_kpi_downtimes) VALUES ('{}',{},'1',1, 80, 70, 1,'0', '0','{}')".format(name, t, inherit_dt))
                 id_ba = cursor.lastrowid
                 sid = self.engine.create_bam_service("ba_{}".format(id_ba), name, "_Module_BAM_1", "centreon-bam-check!{}".format(id_ba))
                 cursor.execute("INSERT INTO service (service_id, service_description, display_name, service_active_checks_enabled, service_passive_checks_enabled,service_register) VALUES ({0}, \"ba_{1}\",\"{2}\",'2','2','2')".format(sid, id_ba, name))
