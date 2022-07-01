@@ -862,7 +862,7 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
   char* temp_ptr{nullptr};
   time_t start_time{0};
   time_t end_time{0};
-  int fixed{0};
+  bool fixed{false};
   uint64_t triggered_by{0};
   unsigned long duration{0};
   char* author{nullptr};
@@ -943,7 +943,7 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
   /* get the fixed flag */
   if ((temp_ptr = my_strtok(nullptr, ";")) == nullptr)
     return ERROR;
-  if (!absl::SimpleAtoi(temp_ptr, &fixed)) {
+  if (!absl::SimpleAtob(temp_ptr, &fixed)) {
     log_v2::runtime()->error(
         "Error: could not schedule downtime : Command argument '{}' must be 1 "
         "or 0",
@@ -991,7 +991,7 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
     return ERROR;
 
   /* duration should be auto-calculated, not user-specified */
-  if (fixed > 0)
+  if (fixed)
     duration = (unsigned long)(end_time - start_time);
 
   /* schedule downtime */
@@ -2499,7 +2499,7 @@ void schedule_and_propagate_downtime(host* temp_host,
                                      char const* comment_data,
                                      time_t start_time,
                                      time_t end_time,
-                                     int fixed,
+                                     bool fixed,
                                      unsigned long triggered_by,
                                      unsigned long duration) {
   /* check all child hosts... */
