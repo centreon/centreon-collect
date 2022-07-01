@@ -18,7 +18,7 @@ Library	../resources/Common.py
 BRRDDMDB1
 	Start Mysql
 	[Documentation]	RRD metrics deletion from metric ids with a query in centreon_storage.
-	[Tags]	RRD	metric	deletion	unified_sql
+	[Tags]	RRD	metric	deletion	unified_sql	mysql
 	Config Engine	${1}
 	Config Broker	rrd
 	Config Broker	central

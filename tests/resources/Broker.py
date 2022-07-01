@@ -1250,7 +1250,7 @@ def rebuild_rrd_graphs(port, indexes, timeout: int = TIMEOUT):
             stub = broker_pb2_grpc.BrokerStub(channel)
             k = 0.0
             idx = broker_pb2.IndexIds()
-            idx.index_id.extend(indexes)
+            idx.index_ids.extend(indexes)
             try:
                 stub.RebuildRRDGraphs(idx)
                 break
@@ -1298,7 +1298,7 @@ def compare_rrd_average_value(metric, value: float):
         res = float(lst[1].replace(',', '.'))
         err = abs(res - float(value)) / float(value)
         logger.console(f"expected value: {value} - result value: {res} - err: {err}")
-        return err
+        return err < 0.01
     else:
         logger.console(
             "It was impossible to get the average value from the file /var/lib/centreon/metrics/{}.rrd from the last 30 days".format(metric))
