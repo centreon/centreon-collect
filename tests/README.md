@@ -122,7 +122,7 @@ Here is the list of the currently implemented tests:
 - [x] **BEATOI12**: external command SEND_CUSTOM_HOST_NOTIFICATION with option_number>7 should fail
 - [x] **BEATOI13**: external command SEND_CUSTOM_HOST_NOTIFICATION with option_number=toto should fail
 - [x] **BEATOI21**: external command ADD_HOST_COMMENT with persistent=1 should work
-- [x] **BEATOI22**: external command ADD_HOST_COMMENT with persistent=4 should not work
+- [x] **BEATOI22**: external command ADD_HOST_COMMENT with persistent=4 should fail
 - [x] **BEATOI23**: external command ADD_SVC_COMMENT with persistent=0 should work
 - [x] **BECC1**: Broker/Engine communication with compression between central and poller
 - [x] **BECT1**: Broker/Engine communication with anonymous TLS between central and poller
