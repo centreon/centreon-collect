@@ -863,8 +863,6 @@ void stream::_clear_instances_cache(const std::list<uint64_t>& ids) {
 
 void stream::update() {
   log_v2::sql()->info("unified_sql stream update");
-  //  _check_deleted_index();
-  //	log_v2::sql()->info("unified_sql stream update 1");
+  _check_deleted_index();
   _check_rebuild_index();
-  log_v2::sql()->info("unified_sql stream update 2");
 }
