@@ -618,7 +618,7 @@ int32_t stream::stop() {
  *
  * @param d The BBDO message with all the metrics/indexes to remove.
  */
-void stream::remove_graphs(std::shared_ptr<io::data> d) {
+void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
   log_v2::sql()->info("remove graphs call");
   asio::post(pool::instance().io_context(), [this, data = d] {
     mysql ms(_dbcfg);

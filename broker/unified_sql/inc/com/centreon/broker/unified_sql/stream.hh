@@ -397,7 +397,7 @@ class stream : public io::stream {
   bool read(std::shared_ptr<io::data>& d, time_t deadline = -1) override;
   int32_t stop() override;
   void statistics(nlohmann::json& tree) const;
-  void remove_graphs(std::shared_ptr<io::data> d);
+  void remove_graphs(const std::shared_ptr<io::data>& d);
   void remove_poller(const std::shared_ptr<io::data>& d);
   void update() override;
 };
