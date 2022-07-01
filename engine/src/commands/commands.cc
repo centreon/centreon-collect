@@ -221,7 +221,7 @@ int cmd_add_comment(int cmd, time_t entry_time, char* args) {
       comment::user, temp_host->get_host_id(), service_id, entry_time, user,
       comment_data, persistent, comment::external, false, (time_t)0)};
   comment::comments.insert({com->get_comment_id(), com});
-  log_v2::external_command()->debug("{} finished", command_name);
+  log_v2::external_command()->info("{} finished", command_name);
   return OK;
 }
 
@@ -233,7 +233,7 @@ int cmd_delete_comment(int cmd [[maybe_unused]], char* args) {
   if (!absl::SimpleAtoi(args, &comment_id)) {
     log_v2::runtime()->error(
         "Error: could not add comment : Command argument '{}' must be an "
-        "unsigned integer",
+        "integer >= 0",
         args);
     return ERROR;
   }
@@ -957,7 +957,7 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
   if (!absl::SimpleAtoi(temp_ptr, &triggered_by)) {
     log_v2::runtime()->error(
         "Error: could not schedule downtime : Command argument '{}' must be an "
-        "unsigned integer",
+        "integer >= 0",
         temp_ptr);
     return ERROR;
   }
@@ -968,7 +968,7 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
   if (!absl::SimpleAtoi(temp_ptr, &duration)) {
     log_v2::runtime()->error(
         "Error: could not schedule downtime : Command argument '{}' must be an "
-        "unsigned long",
+        "integer >= 0",
         temp_ptr);
     return ERROR;
   }
@@ -1127,7 +1127,7 @@ int cmd_delete_downtime(int cmd, char* args) {
   if (!absl::SimpleAtoi(temp_ptr, &downtime_id)) {
     log_v2::runtime()->error(
         "Error: could not delete downtime : Command argument '{}' must be an "
-        "unsigned integer",
+        "integer >= 0",
         temp_ptr);
     return ERROR;
   }
