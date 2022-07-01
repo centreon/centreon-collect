@@ -457,10 +457,6 @@ void output<T>::_rebuild_data(const RebuildMessage& rm) {
                              data_source_type);
     }
     if (!query.empty()) {
-      //      try {
-      //        log_v2::rrd()->debug("RRD file '{}' already exists", path);
-      //        _backend.open(path);
-      //      } catch (const exceptions::open& ex) {
       time_t start_time;
       if (!p.second.pts().empty())
         start_time = p.second.pts()[0].ctime() - 1;
@@ -471,7 +467,6 @@ void output<T>::_rebuild_data(const RebuildMessage& rm) {
                                                   : 60};
       _backend.open(path, p.second.rrd_retention(), start_time, interval,
                     p.second.data_source_type(), true);
-      //      }
       log_v2::rrd()->trace("{} points added to file '{}'", query.size(), path);
       _backend.update(query);
     } else
