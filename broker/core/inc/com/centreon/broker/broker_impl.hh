@@ -28,11 +28,11 @@
 CCB_BEGIN()
 
 /**
- * Here is a declaration of pb_rebuild_rrd_graphs which is a bbdo event we use
+ * Here is a declaration of pb_rebuild_graphs which is a bbdo event we use
  * to ask rebuild of metrics. MetricIds is a vector of metric ids to rebuild. */
 namespace bbdo {
-using pb_rebuild_rrd_graphs =
-    io::protobuf<IndexIds, make_type(io::bbdo, bbdo::de_rebuild_rrd_graphs)>;
+using pb_rebuild_graphs =
+    io::protobuf<IndexIds, make_type(io::bbdo, bbdo::de_rebuild_graphs)>;
 using pb_remove_graphs =
     io::protobuf<ToRemove, make_type(io::bbdo, bbdo::de_remove_graphs)>;
 using pb_remove_poller =

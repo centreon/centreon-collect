@@ -36,6 +36,7 @@ class client {
  public:
   client(std::shared_ptr<grpc::Channel> channel);
   std::list<std::string> methods() const;
+  std::string call(const std::string& full_cmd);
 };
 }  // namespace ccc
 }  // namespace centreon

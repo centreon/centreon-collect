@@ -118,7 +118,6 @@ stream::stream(const database_config& dbcfg,
       _next_insert_perfdatas{std::time_t(nullptr) + 10},
       _next_update_metrics{std::time_t(nullptr) + 10},
       _next_loop_timeout{std::time_t(nullptr) + _loop_timeout},
-      _timer{pool::io_context()},
       _queues_timer{pool::io_context()},
       _stop_check_queues{false},
       _check_queues_stopped{false},
@@ -140,9 +139,6 @@ stream::stream(const database_config& dbcfg,
     log_v2::sql()->error("error while loading caches: {}", e.what());
     throw;
   }
-  _timer.expires_after(std::chrono::minutes(5));
-  _timer.async_wait(
-      std::bind(&stream::_check_deleted_index, this, std::placeholders::_1));
   _queues_timer.expires_after(std::chrono::seconds(queue_timer_duration));
   _queues_timer.async_wait(
       std::bind(&stream::_check_queues, this, std::placeholders::_1));
@@ -151,8 +147,8 @@ stream::stream(const database_config& dbcfg,
 
 stream::~stream() noexcept {
   std::promise<void> p;
-  asio::post(_timer.get_executor(), [this, &p] {
-    _timer.cancel();
+  asio::post(_queues_timer.get_executor(), [this, &p] {
+    _queues_timer.cancel();
     p.set_value();
   });
   p.get_future().wait();
@@ -533,8 +529,8 @@ int32_t stream::write(const std::shared_ptr<io::data>& data) {
   uint16_t elem = element_of_type(type);
   if (cat == io::neb) {
     (this->*(_neb_processing_table[elem]))(data);
-  } else if (type == make_type(io::bbdo, bbdo::de_rebuild_rrd_graphs))
-    _rebuilder.rebuild_rrd_graphs(data);
+  } else if (type == make_type(io::bbdo, bbdo::de_rebuild_graphs))
+    _rebuilder.rebuild_graphs(data);
   else if (type == make_type(io::bbdo, bbdo::de_remove_graphs))
     remove_graphs(data);
   else if (type == make_type(io::bbdo, bbdo::de_remove_poller)) {
@@ -622,11 +618,12 @@ int32_t stream::stop() {
  *
  * @param d The BBDO message with all the metrics/indexes to remove.
  */
-void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
+void stream::remove_graphs(std::shared_ptr<io::data> d) {
+  log_v2::sql()->info("remove graphs call");
   asio::post(pool::instance().io_context(), [this, data = d] {
     mysql ms(_dbcfg);
-    const bbdo::pb_remove_graphs& ids =
-        *static_cast<const bbdo::pb_remove_graphs*>(data.get());
+    bbdo::pb_remove_graphs* ids =
+        static_cast<bbdo::pb_remove_graphs*>(data.get());
 
     std::promise<database::mysql_result> promise;
     std::future<mysql_result> future = promise.get_future();
@@ -634,13 +631,13 @@ void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
     std::set<uint64_t> indexes_to_delete;
     std::set<uint64_t> metrics_to_delete;
     try {
-      if (!ids.obj().index_ids().empty()) {
-        ms.run_query_and_get_result(
+      if (!ids->obj().index_ids().empty()) {
+        std::string query{
             fmt::format("SELECT i.id,m.metric_id, m.metric_name,i.host_id,"
                         "i.service_id FROM index_data i LEFT JOIN metrics m ON "
                         "i.id=m.index_id WHERE i.id IN ({})",
-                        fmt::join(ids.obj().index_ids(), ",")),
-            std::move(promise), conn);
+                        fmt::join(ids->obj().index_ids(), ","))};
+        ms.run_query_and_get_result(query, std::move(promise), conn);
         database::mysql_result res(future.get());
 
         std::lock_guard<misc::shared_mutex> lock(_metric_cache_m);
@@ -655,15 +652,15 @@ void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
         }
       }
 
-      if (!ids.obj().metric_ids().empty()) {
+      if (!ids->obj().metric_ids().empty()) {
         promise = std::promise<database::mysql_result>();
         std::future<mysql_result> future = promise.get_future();
 
-        ms.run_query_and_get_result(
+        std::string query{
             fmt::format("SELECT index_id,metric_id,metric_name FROM metrics "
                         "WHERE metric_id IN ({})",
-                        fmt::join(ids.obj().metric_ids(), ",")),
-            std::move(promise), conn);
+                        fmt::join(ids->obj().metric_ids(), ","))};
+        ms.run_query_and_get_result(query, std::move(promise), conn);
         database::mysql_result res(future.get());
 
         std::lock_guard<misc::shared_mutex> lock(_metric_cache_m);
@@ -700,6 +697,9 @@ void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
         rmg->mut_obj().add_metric_ids(i);
       for (uint64_t i : indexes_to_delete)
         rmg->mut_obj().add_index_ids(i);
+      log_v2::sql()->info(
+          "publishing pb remove graph with {} metrics and {} indexes",
+          metrics_to_delete.size(), indexes_to_delete.size());
       multiplexing::publisher().write(rmg);
     } else
       log_v2::sql()->info(
@@ -863,4 +863,12 @@ void stream::_clear_instances_cache(const std::list<uint64_t>& ids) {
     } else
       ++it;
   }
+}
+
+void stream::update() {
+  log_v2::sql()->info("unified_sql stream update");
+  //  _check_deleted_index();
+  //	log_v2::sql()->info("unified_sql stream update 1");
+  _check_rebuild_index();
+  log_v2::sql()->info("unified_sql stream update 2");
 }
