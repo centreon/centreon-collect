@@ -58,13 +58,13 @@ rebuilder::rebuilder(const database_config& db_cfg,
  *
  * @param d The BBDO message with all the metric ids to rebuild.
  */
-void rebuilder::rebuild_rrd_graphs(const std::shared_ptr<io::data>& d) {
+void rebuilder::rebuild_graphs(std::shared_ptr<io::data> d) {
   asio::post(pool::io_context(), [this, data = d] {
-    const bbdo::pb_rebuild_rrd_graphs& ids =
-        *static_cast<const bbdo::pb_rebuild_rrd_graphs*>(data.get());
+    const bbdo::pb_rebuild_graphs& ids =
+        *static_cast<const bbdo::pb_rebuild_graphs*>(data.get());
 
     std::string ids_str{
-        fmt::format("{}", fmt::join(ids.obj().index_id(), ","))};
+        fmt::format("{}", fmt::join(ids.obj().index_ids(), ","))};
     log_v2::sql()->debug(
         "Metric rebuild: Rebuild metrics event received for metrics ({})",
         ids_str);

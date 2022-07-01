@@ -619,8 +619,8 @@ void conflict_manager::_callback() {
                        type == neb::service_status::static_type())
               _storage_process_service_status(tpl);
             else if (std::get<1>(tpl) == storage &&
-                     type == make_type(io::bbdo, bbdo::de_rebuild_rrd_graphs)) {
-              _rebuilder->rebuild_rrd_graphs(d);
+                     type == make_type(io::bbdo, bbdo::de_rebuild_graphs)) {
+              _rebuilder->rebuild_graphs(d);
               *std::get<2>(tpl) = true;
             } else if (std::get<1>(tpl) == storage &&
                        type == make_type(io::bbdo, bbdo::de_remove_graphs)) {
@@ -954,7 +954,8 @@ void conflict_manager::remove_graphs(const std::shared_ptr<io::data>& d) {
 
       if (!ids.obj().metric_ids().empty()) {
         std::promise<database::mysql_result> promise_metrics;
-        std::future<database::mysql_result> future_metrics = promise_metrics.get_future();
+        std::future<database::mysql_result> future_metrics =
+            promise_metrics.get_future();
 
         ms.run_query_and_get_result(
             fmt::format("SELECT index_id,metric_id,metric_name FROM metrics "

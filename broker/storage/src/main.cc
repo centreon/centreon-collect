@@ -104,9 +104,8 @@ void broker_module_init(void const* arg) {
 
       /* Let's register the rebuild_metrics bbdo event. This is needed to send
        * the rebuild message from the gRPC interface. */
-      e.register_event(make_type(io::bbdo, bbdo::de_rebuild_rrd_graphs),
-                       "rebuild_metrics",
-                       &bbdo::pb_rebuild_rrd_graphs::operations);
+      e.register_event(make_type(io::bbdo, bbdo::de_rebuild_graphs),
+                       "rebuild_metrics", &bbdo::pb_rebuild_graphs::operations);
 
       /* Let's register the message to start rebuilds, send rebuilds and
        * terminate rebuilds. This is pb_rebuild_message. */
