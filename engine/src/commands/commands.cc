@@ -165,7 +165,7 @@ int cmd_add_comment(int cmd, time_t entry_time, char* args) {
   char* comment_data(nullptr);
   bool persistent{false};
   uint64_t service_id = 0;
-  char* command_name(nullptr);
+  char* command_name;
 
   /* get the host name */
   if ((host_name = my_strtok(args, ";")) == nullptr)
