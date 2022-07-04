@@ -218,6 +218,7 @@ void options::parse(std::string const& cmdline) {
         break;
 
       case 'p':  // Set port.
+      {
         unsigned int temp;
         if (!absl::SimpleAtoi(optarg, &temp)) {
           throw basic_error() << "the argument '" << optarg
@@ -228,7 +229,7 @@ void options::parse(std::string const& cmdline) {
                               << "' must be an integer between 0 and 65535";
         }
         _port = temp;
-        break;
+      } break;
 
       case '4':  // Enable IPv4.
         _ip_protocol = ip_v4;

@@ -741,8 +741,9 @@ void processing::_wrapper_set_host_notification_number(host* hst, char* args) {
           "Error: could not set host notification number: Command argument "
           "'{}' must be a positive integer",
           args);
-    } else
-      hst->set_notification_number(notification_number);
+      return;
+    }
+    hst->set_notification_number(notification_number);
   }
 }
 
@@ -827,8 +828,9 @@ void processing::_wrapper_set_service_notification_number(service* svc,
           "Error: could not set service notification number: Command argument "
           "'{}' must be a positive integer",
           str);
-    } else
-      svc->set_notification_number(notification_number);
+      return;
+    }
+    svc->set_notification_number(notification_number);
   }
 }
 
@@ -841,11 +843,17 @@ void processing::_wrapper_send_custom_service_notification(service* svc,
     if (!absl::SimpleAtoi(buf[0], &notification_number)) {
       log_v2::runtime()->error(
           "Error: could not send custom service notification: Command argument "
-          "'{}' must be a positive integer",
+          "'{}' must be an integer between 0 and 7",
           buf[0]);
-    } else
+    } else if (notification_number >= 0 && notification_number <= 7) {
       svc->notify(
           notifier::reason_custom, buf[1], buf[2],
           static_cast<notifier::notification_option>(notification_number));
+    } else {
+      log_v2::runtime()->error(
+          "Error: could not send custom service notification: Command argument "
+          "'{}' must be an integer between 0 and 7",
+          buf[0]);
+    }
   }
 }
