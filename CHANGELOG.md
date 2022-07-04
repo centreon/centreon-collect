@@ -13,6 +13,10 @@ established on engine or broker and is also able to list available methods.
 
 #### Fixes
 
+*rrd*
+
+Rebuilding/removing graphs is reenabled through database and a broker reload.
+
 *main*
 
 -s option works and can return errors if bad value entered
