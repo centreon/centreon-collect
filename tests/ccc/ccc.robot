@@ -40,7 +40,7 @@ BECCC1
 
 BECCC2
 	[Documentation]	ccc with -p 51001 connects to central cbd gRPC server.
-	[Tags]	Broker	Engine	protobuf	bbdo
+	[Tags]	Broker	Engine	protobuf	bbdo	ccc
 	Config Engine	${1}
 	Config Broker	central
 	Config Broker	module
@@ -65,7 +65,7 @@ BECCC2
 	 EXIT FOR LOOP IF	len("${content.strip()}") > 0
 	 Sleep	1s
 	END
-	Should Be Equal As Strings	${content.strip()}	Connected to a Broker 22.10.0 gRPC server
+	Should Be Equal As Strings	${content.strip()}	Connected to a Centreon Broker 22.10.0 gRPC server
 	Stop Engine
 	Kindly Stop Broker
 	Remove File	/tmp/output.txt
@@ -97,7 +97,137 @@ BECCC3
 	 EXIT FOR LOOP IF	len("${content.strip()}") > 0
 	 Sleep	1s
 	END
-	Should Be Equal As Strings	${content.strip()}	Connected to an Engine 22.10.0 gRPC server
+	Should Be Equal As Strings	${content.strip()}	Connected to a Centreon Engine 22.10.0 gRPC server
+	Stop Engine
+	Kindly Stop Broker
+	Remove File	/tmp/output.txt
+
+BECCC4
+	[Documentation]	ccc with -p 51001 -l returns the available functions from Broker gRPC server
+	[Tags]	Broker	Engine	protobuf	bbdo	ccc
+	Config Engine	${1}
+	Config Broker	central
+	Config Broker	module
+	Config Broker	rrd
+        Broker Config Add Item	module0	bbdo_version	3.0.0
+        Broker Config Add Item	central	bbdo_version	3.0.0
+        Broker Config Add Item	rrd	bbdo_version	3.0.0
+	Broker Config Log	central	sql	trace
+	Config Broker Sql Output	central	unified_sql
+        Broker Config Output Set	central	central-broker-unified-sql	store_in_resources	yes
+        Broker Config Output Set	central	central-broker-unified-sql	store_in_hosts_services	no
+	Clear Retention
+	${start}=	Get Current Date
+        Sleep	1s
+	Start Broker
+	Start Engine
+	Sleep	3s
+	Start Process	/usr/bin/ccc	-p 51001	-l	stdout=/tmp/output.txt
+	FOR	${i}	IN RANGE	10
+	 Wait Until Created	/tmp/output.txt
+	 ${content}=	Get File	/tmp/output.txt
+	 EXIT FOR LOOP IF	len("""${content.strip()}""") > 0
+	 Sleep	1s
+	END
+	${contains}=	Evaluate	"GetVersion" in """${content}""" and "RemovePoller" in """${content}"""
+	Should Be True	${contains}	msg=The list of methods should contain GetVersion(Empty)
+	Stop Engine
+	Kindly Stop Broker
+	Remove File	/tmp/output.txt
+
+BECCC5
+	[Documentation]	ccc with -p 51001 -l GetVersion returns an error because we can't execute a command with -l.
+	[Tags]	Broker	Engine	protobuf	bbdo	ccc
+	Config Engine	${1}
+	Config Broker	central
+	Config Broker	module
+	Config Broker	rrd
+        Broker Config Add Item	module0	bbdo_version	3.0.0
+        Broker Config Add Item	central	bbdo_version	3.0.0
+        Broker Config Add Item	rrd	bbdo_version	3.0.0
+	Broker Config Log	central	sql	trace
+	Config Broker Sql Output	central	unified_sql
+        Broker Config Output Set	central	central-broker-unified-sql	store_in_resources	yes
+        Broker Config Output Set	central	central-broker-unified-sql	store_in_hosts_services	no
+	Clear Retention
+	${start}=	Get Current Date
+        Sleep	1s
+	Start Broker
+	Start Engine
+	Sleep	3s
+	Start Process	/usr/bin/ccc	-p 51001	-l	GetVersion	stderr=/tmp/output.txt
+	FOR	${i}	IN RANGE	10
+	 Wait Until Created	/tmp/output.txt
+	 ${content}=	Get File	/tmp/output.txt
+	 EXIT FOR LOOP IF	len("""${content.strip()}""") > 0
+	 Sleep	1s
+	END
+	${contains}=	Evaluate	"The list argument expects no command" in """${content}"""
+	Should Be True	${contains}	msg=When -l option is applied, we can't call a command.
+	Stop Engine
+	Kindly Stop Broker
+	Remove File	/tmp/output.txt
+
+BECCC6
+	[Documentation]	ccc with -p 51001 GetVersion{} calls the GetVersion command
+	[Tags]	Broker	Engine	protobuf	bbdo	ccc
+	Config Engine	${1}
+	Config Broker	central
+	Config Broker	module
+	Config Broker	rrd
+        Broker Config Add Item	module0	bbdo_version	3.0.0
+        Broker Config Add Item	central	bbdo_version	3.0.0
+        Broker Config Add Item	rrd	bbdo_version	3.0.0
+	Broker Config Log	central	sql	trace
+	Config Broker Sql Output	central	unified_sql
+        Broker Config Output Set	central	central-broker-unified-sql	store_in_resources	yes
+        Broker Config Output Set	central	central-broker-unified-sql	store_in_hosts_services	no
+	Clear Retention
+	${start}=	Get Current Date
+        Sleep	1s
+	Start Broker
+	Start Engine
+	Sleep	3s
+	Start Process	/usr/bin/ccc	-p 51001	GetVersion{}	stdout=/tmp/output.txt
+	FOR	${i}	IN RANGE	10
+	 Wait Until Created	/tmp/output.txt
+	 ${content}=	Get File	/tmp/output.txt
+	 EXIT FOR LOOP IF	len("""${content.strip().split()}""") > 50
+	 Sleep	1s
+	END
+	Should Contain	${content}	{\n \"major\": 22,\n \"minor\": 10\n}	msg=A version as json string should be returned
+	Stop Engine
+	Kindly Stop Broker
+	Remove File	/tmp/output.txt
+
+BECCC7
+	[Documentation]	ccc with -p 51001 GetVersion{"idx":1} returns an error because the input message is wrong.
+	[Tags]	Broker	Engine	protobuf	bbdo	ccc
+	Config Engine	${1}
+	Config Broker	central
+	Config Broker	module
+	Config Broker	rrd
+        Broker Config Add Item	module0	bbdo_version	3.0.0
+        Broker Config Add Item	central	bbdo_version	3.0.0
+        Broker Config Add Item	rrd	bbdo_version	3.0.0
+	Broker Config Log	central	sql	trace
+	Config Broker Sql Output	central	unified_sql
+        Broker Config Output Set	central	central-broker-unified-sql	store_in_resources	yes
+        Broker Config Output Set	central	central-broker-unified-sql	store_in_hosts_services	no
+	Clear Retention
+	${start}=	Get Current Date
+        Sleep	1s
+	Start Broker
+	Start Engine
+	Sleep	3s
+	Start Process	/usr/bin/ccc	-p 51001	GetVersion{"idx":1}	stderr=/tmp/output.txt
+	FOR	${i}	IN RANGE	10
+	 Wait Until Created	/tmp/output.txt
+	 ${content}=	Get File	/tmp/output.txt
+	 EXIT FOR LOOP IF	len("""${content.strip().split()}""") > 10
+	 Sleep	1s
+	END
+	Should Contain	${content}	Error during the execution of '/com.centreon.broker.Broker/GetVersion' method:	msg=GetVersion{"idx":1} should return an error because the input message is incompatible with the expected one.
 	Stop Engine
 	Kindly Stop Broker
 	Remove File	/tmp/output.txt
