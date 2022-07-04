@@ -8,8 +8,8 @@ import org.jenkinsci.plugins.pipeline.modeldefinition.Utils
 env.REF_BRANCH = 'master'
 env.PROJECT='centreon-collect'
 def serie = '22.04'
-def maintenanceBranch = "${serie}.x"
-def qaBranch = "dev-${serie}.x"
+def maintenanceBranch = "master"
+def qaBranch = "develop"
 def buildBranch = env.BRANCH_NAME
 if (env.CHANGE_BRANCH) {
   buildBranch = env.CHANGE_BRANCH
@@ -20,20 +20,15 @@ if (env.CHANGE_BRANCH) {
 */
 if (env.BRANCH_NAME.startsWith('release-')) {
   env.BUILD = 'RELEASE'
-  env.REPO = "testing"
+  env.REPO = 'testing'
 } else if ((env.BRANCH_NAME == env.REF_BRANCH) || (env.BRANCH_NAME == maintenanceBranch)) {
   env.BUILD = 'REFERENCE'
+  env.REPO = 'testing'
 } else if ((env.BRANCH_NAME == 'develop') || (env.BRANCH_NAME == qaBranch)) {
   env.BUILD = 'QA'
-  env.REPO = "unstable"
+  env.REPO = 'unstable'
 } else {
   env.BUILD = 'CI'
-}
-
-// Skip sonarQ analysis on branch without PR  - Unable to merge
-def securityAnalysisRequired = 'yes'
-if (!env.CHANGE_ID && env.BUILD == 'CI') {
-    securityAnalysisRequired = 'no'
 }
 
 /*
@@ -63,37 +58,21 @@ stage('Build / Unit tests // Packaging / Signing') {
   },
   'centos7 SQ analysis': {
     node("C++") {
-      if (securityAnalysisRequired == 'no') {
-        Utils.markStageSkippedForConditional('centos7 SQ analysis')
-      } else {
-        dir('centreon-collect-centos7') {
-          checkout scm
-          loadCommonScripts()
-          sh 'ci/scripts/collect-sonar-scanner-common.sh "install"'
-          withSonarQubeEnv('SonarQubeDev') {
-            if (env.CHANGE_ID) {
-              sh 'ci/scripts/collect-sonar-scanner-common.sh "get"'
-              sh 'docker run -i --entrypoint /src/ci/scripts/collect-sources-analysis.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:22.04 "PR" "$SONAR_AUTH_TOKEN" "$SONAR_HOST_URL" "$VERSION" "$CHANGE_TARGET" "$CHANGE_BRANCH" "$CHANGE_ID"'
-            } else {
-              sh 'docker run -i --entrypoint /src/ci/scripts/collect-sources-analysis.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:22.04 "NotPR" "$SONAR_AUTH_TOKEN" "$SONAR_HOST_URL" "$VERSION" "$BRANCH_NAME"'
-            }
-            if (env.BUILD == "REFERENCE" || env.BUILD == "QA") {
-              // Saving cache's tarball if generated
-              sh 'ci/scripts/collect-sonar-scanner-common.sh "set"'
-            }
+      dir('centreon-collect-centos7') {
+        checkout scm
+        loadCommonScripts()
+        withSonarQubeEnv('SonarQubeDev') {
+          sh 'ci/scripts/collect-sonar-scanner-common.sh "get" "develop"'
+          if (env.CHANGE_ID) {
+            sh 'docker run -i --entrypoint /src/ci/scripts/collect-sources-analysis.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:22.04 "PR" "$SONAR_AUTH_TOKEN" "$SONAR_HOST_URL" "$VERSION" "$CHANGE_TARGET" "$CHANGE_BRANCH" "$CHANGE_ID"'
+          } else {
+            sh 'docker run -i --entrypoint /src/ci/scripts/collect-sources-analysis.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:22.04 "NotPR" "$SONAR_AUTH_TOKEN" "$SONAR_HOST_URL" "$VERSION" "$BRANCH_NAME"'
           }
+          sh 'ci/scripts/collect-sonar-scanner-common.sh "set"'
         }
       }
     }
-  },/*
-  'centos8 Build and UT': {
-    node("C++") {
-      dir('centreon-collect-centos8') {
-        checkout scm
-        sh 'docker run -i --entrypoint /src/ci/scripts/collect-unit-tests.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos8-dependencies:22.04-testdocker'
-      }
-    }
-  },*/
+  },
   'centos7 rpm packaging and signing': {
     node("C++") {
       dir('centreon-collect-centos7') {
@@ -149,27 +128,23 @@ stage('Build / Unit tests // Packaging / Signing') {
       dir('centreon-collect') {
         checkout scm
       }
-      sh 'docker run -i --entrypoint /src/centreon-collect/ci/scripts/collect-deb-package.sh -v "$PWD:/src" -e DISTRIB="Debian11" -e VERSION=$VERSION -e RELEASE=$RELEASE registry.centreon.com/centreon-collect-debian11-dependencies:22.04'
-      stash name: 'Debian11', includes: 'Debian11/*.deb'
-      archiveArtifacts artifacts: "Debian11/*"
+      sh 'docker run -i --entrypoint /src/centreon-collect/ci/scripts/collect-deb-package.sh -v "$PWD:/src" -e DISTRIB="bullseye" -e VERSION=$VERSION -e RELEASE=$RELEASE registry.centreon.com/centreon-collect-debian11-dependencies:22.04'
+      stash name: 'Debian11', includes: 'bullseye/*.deb'
+      archiveArtifacts artifacts: "bullseye/*"
     }
   }
 }
 
 stage('Quality Gate') {
   node("C++") {
-    if (securityAnalysisRequired == 'no') {
-      Utils.markStageSkippedForConditional('Quality Gate')
-    } else {
-      timeout(time: 10, unit: 'MINUTES') {
-        def qualityGate = waitForQualityGate()
-        if (qualityGate.status != 'OK') {
-          error "Pipeline aborted due to quality gate failure: ${qualityGate.status}"
-        }
+    timeout(time: 10, unit: 'MINUTES') {
+      def qualityGate = waitForQualityGate()
+      if (qualityGate.status != 'OK') {
+        error "Pipeline aborted due to quality gate failure: ${qualityGate.status}"
       }
-      if ((currentBuild.result ?: 'SUCCESS') != 'SUCCESS') {
-        error("Quality gate failure: ${qualityGate.status}.");
-      }
+    }
+    if ((currentBuild.result ?: 'SUCCESS') != 'SUCCESS') {
+      error("Quality gate failure: ${qualityGate.status}.");
     }
   }
 }
@@ -187,7 +162,7 @@ if ((env.BUILD == 'RELEASE') || (env.BUILD == 'QA')) {
         withCredentials([usernamePassword(credentialsId: 'nexus-credentials', passwordVariable: 'NEXUS_PASSWORD', usernameVariable: 'NEXUS_USERNAME')]) {
           checkout scm
           unstash "Debian11"
-          sh 'ls -lart'
+          sh 'mv bullseye/*.deb .'
           sh '''for i in $(echo *.deb)
                 do 
                   curl -u $NEXUS_USERNAME:$NEXUS_PASSWORD -H "Content-Type: multipart/form-data" --data-binary "@./$i" https://apt.centreon.com/repository/22.04-$REPO/
