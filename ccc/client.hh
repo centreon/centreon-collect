@@ -26,6 +26,11 @@
 namespace com {
 namespace centreon {
 namespace ccc {
+constexpr const char color_method[] = "\u001b[32;1m";
+constexpr const char* color_green = color_method;
+constexpr const char color_message[] = "\u001b[34;1m";
+constexpr const char color_reset[] = "\u001b[0m";
+constexpr const char color_error[] = "\u001b[31;1m";
 class client {
   enum type { CCC_NONE, CCC_BROKER, CCC_ENGINE };
   std::unique_ptr<grpc::GenericStub> _stub;
@@ -36,7 +41,7 @@ class client {
  public:
   client(std::shared_ptr<grpc::Channel> channel);
   std::list<std::string> methods() const;
-  std::string call(const std::string& full_cmd);
+  std::string call(const std::string& cmd, const std::string& args);
 };
 }  // namespace ccc
 }  // namespace centreon
