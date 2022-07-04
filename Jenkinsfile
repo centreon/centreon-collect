@@ -56,23 +56,6 @@ stage('Build / Unit tests // Packaging / Signing') {
       }
     }
   },
-  'centos7 SQ analysis': {
-    node("C++") {
-      dir('centreon-collect-centos7') {
-        checkout scm
-        loadCommonScripts()
-        withSonarQubeEnv('SonarQubeDev') {
-          sh 'ci/scripts/collect-sonar-scanner-common.sh "get" "develop"'
-          if (env.CHANGE_ID) {
-            sh 'docker run -i --entrypoint /src/ci/scripts/collect-sources-analysis.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:22.04 "PR" "$SONAR_AUTH_TOKEN" "$SONAR_HOST_URL" "$VERSION" "$CHANGE_TARGET" "$CHANGE_BRANCH" "$CHANGE_ID"'
-          } else {
-            sh 'docker run -i --entrypoint /src/ci/scripts/collect-sources-analysis.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:22.04 "NotPR" "$SONAR_AUTH_TOKEN" "$SONAR_HOST_URL" "$VERSION" "$BRANCH_NAME"'
-          }
-          sh 'ci/scripts/collect-sonar-scanner-common.sh "set"'
-        }
-      }
-    }
-  },
   'centos7 rpm packaging and signing': {
     node("C++") {
       dir('centreon-collect-centos7') {
@@ -131,20 +114,6 @@ stage('Build / Unit tests // Packaging / Signing') {
       sh 'docker run -i --entrypoint /src/centreon-collect/ci/scripts/collect-deb-package.sh -v "$PWD:/src" -e DISTRIB="bullseye" -e VERSION=$VERSION -e RELEASE=$RELEASE registry.centreon.com/centreon-collect-debian11-dependencies:22.04'
       stash name: 'Debian11', includes: 'bullseye/*.deb'
       archiveArtifacts artifacts: "bullseye/*"
-    }
-  }
-}
-
-stage('Quality Gate') {
-  node("C++") {
-    timeout(time: 10, unit: 'MINUTES') {
-      def qualityGate = waitForQualityGate()
-      if (qualityGate.status != 'OK') {
-        error "Pipeline aborted due to quality gate failure: ${qualityGate.status}"
-      }
-    }
-    if ((currentBuild.result ?: 'SUCCESS') != 'SUCCESS') {
-      error("Quality gate failure: ${qualityGate.status}.");
     }
   }
 }
