@@ -67,9 +67,9 @@ int main(int argc, char** argv) {
       case 'l':
         list = true;
         break;
-//      case 'e':
-//        full_cmd = optarg;
-//        break;
+      case 'e':
+        full_cmd = optarg;
+        break;
       default:
         std::cerr << "Unrecognized argument '" << opt << "'" << std::endl;
         exit(3);
@@ -92,6 +92,9 @@ int main(int argc, char** argv) {
 
       for (auto& m : methods)
         std::cout << " * " << m << std::endl;
+    } else if (!full_cmd.empty()) {
+      auto ret{clt.call(full_cmd)};
+      std::cout << ret << std::endl;
     }
   } catch (const std::exception& e) {
     std::cerr << e.what() << std::endl;
@@ -188,7 +191,8 @@ int main(int argc, char** argv) {
   //    google::protobuf::DescriptorPool::generated_pool(); const
   //    google::protobuf::ServiceDescriptor* service_descriptor =
   //    p->FindServiceByName(name); size_t size =
-  //    service_descriptor->method_count(); for (uint32_t i = 0; i < size; i++) {
+  //    service_descriptor->method_count(); for (uint32_t i = 0; i < size; i++)
+  //    {
   //      const google::protobuf::MethodDescriptor* method =
   //      service_descriptor->method(i); std::cout << "* " << method->name() <<
   //      std::endl; const google::protobuf::Descriptor* message =

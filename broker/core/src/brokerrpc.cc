@@ -39,9 +39,8 @@ brokerrpc::brokerrpc(const std::string& address,
 
   /* Lets' register the rebuild_metrics bbdo event. This is needed to send the
    * rebuild message. */
-  e.register_event(make_type(io::bbdo, bbdo::de_rebuild_rrd_graphs),
-                   "rebuild_rrd_graphs",
-                   &bbdo::pb_rebuild_rrd_graphs::operations);
+  e.register_event(make_type(io::bbdo, bbdo::de_rebuild_graphs),
+                   "rebuild_graphs", &bbdo::pb_rebuild_graphs::operations);
 
   /* Lets' register the to_remove bbdo event.*/
   e.register_event(make_type(io::bbdo, bbdo::de_remove_graphs), "remove_graphs",

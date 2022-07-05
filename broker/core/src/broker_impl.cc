@@ -238,7 +238,7 @@ grpc::Status broker_impl::RebuildRRDGraphs(grpc::ServerContext* context
                                            ::google::protobuf::Empty* response
                                            __attribute__((unused))) {
   multiplexing::publisher pblshr;
-  auto e{std::make_shared<bbdo::pb_rebuild_rrd_graphs>(*request)};
+  auto e{std::make_shared<bbdo::pb_rebuild_graphs>(*request)};
   pblshr.write(e);
   return grpc::Status::OK;
 }
