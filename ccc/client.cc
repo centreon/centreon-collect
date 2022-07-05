@@ -22,6 +22,7 @@
 #include <google/protobuf/text_format.h>
 #include <google/protobuf/util/json_util.h>
 #include <grpcpp/generic/generic_stub.h>
+#include <nlohmann/json.hpp>
 #include "broker/core/src/broker.grpc.pb.h"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "engine.grpc.pb.h"
@@ -124,7 +125,7 @@ std::list<std::string> client::methods() const {
 }
 
 std::string client::call(const std::string& cmd, const std::string& args) {
-  //grpc::CompletionQueue cq;
+  // grpc::CompletionQueue cq;
   const google::protobuf::DescriptorPool* p =
       google::protobuf::DescriptorPool::generated_pool();
   const google::protobuf::ServiceDescriptor* service_descriptor;
@@ -158,8 +159,9 @@ std::string client::call(const std::string& cmd, const std::string& args) {
       google::protobuf::util::JsonStringToMessage(args, input_message, options);
 
   if (status.code() != google::protobuf::util::status_internal::StatusCode::kOk)
-	  throw com::centreon::exceptions::msg_fmt("Error during the execution of '{}' method: {}",
-			  cmd_str, status.ToString());
+    throw com::centreon::exceptions::msg_fmt(
+        "Error during the execution of '{}' method: {}", cmd_str,
+        status.ToString());
 
   grpc::ByteBuffer request_buf;
   bool own_buffer = false;
@@ -191,4 +193,113 @@ std::string client::call(const std::string& cmd, const std::string& args) {
     return retval;
   }
   return "";
+}
+
+static void _message_description(const google::protobuf::Descriptor* desc,
+                                 nlohmann::json& j) {
+  // const google::protobuf::Reflection* refl = p->GetReflection();
+  bool one_of;
+  std::string one_of_name;
+  for (int i = 0; i < desc->field_count(); i++) {
+    auto f = desc->field(i);
+
+    auto oof = f->containing_oneof();
+    if (oof) {
+      one_of = true;
+      one_of_name = absl::StrFormat("oneof %s", oof->name());
+    } else
+      one_of = false;
+
+    const std::string& entry_name = f->name();
+    std::string value;
+    switch (f->type()) {
+      case google::protobuf::FieldDescriptor::TYPE_BOOL:
+        value = "bool";
+        break;
+      case google::protobuf::FieldDescriptor::TYPE_DOUBLE:
+        value = "double";
+        break;
+      case google::protobuf::FieldDescriptor::TYPE_INT32:
+        value = "int32";
+        break;
+      case google::protobuf::FieldDescriptor::TYPE_UINT32:
+        value = "uint32";
+        break;
+      case google::protobuf::FieldDescriptor::TYPE_INT64:
+        value = "int64";
+        break;
+      case google::protobuf::FieldDescriptor::TYPE_UINT64:
+        value = "uint64";
+        break;
+      case google::protobuf::FieldDescriptor::TYPE_ENUM:
+        value = "enum";
+        break;
+      case google::protobuf::FieldDescriptor::TYPE_STRING:
+        value = "string";
+        break;
+      case google::protobuf::FieldDescriptor::TYPE_MESSAGE:
+        throw com::centreon::exceptions::msg_fmt(
+            "google::protobuf::FieldDescriptor::TYPE_MESSAGE not implemented");
+
+        // if (f->is_repeated()) {
+        //   size_t s = refl->FieldSize(*p, f);
+        //   // const google::protobuf::Message& msg = refl->GetMessage(*p, f);
+        //   lua_newtable(L);
+        //   for (size_t i = 0; i < s; i++) {
+        //     lua_newtable(L);
+        //     _message_to_table(L, &refl->GetRepeatedMessage(*p, f, i));
+        //     lua_rawseti(L, -2, i + 1);
+        //   }
+        // }
+        break;
+      default:
+        throw com::centreon::exceptions::msg_fmt("{} not implemented",
+                                                 f->type());
+        break;
+    }
+    if (f->is_repeated()) {
+      if (one_of)
+        j[one_of_name][entry_name] = absl::StrFormat("[%s]", value);
+      else
+        j[entry_name] = absl::StrFormat("[%s]", value);
+    } else {
+      if (one_of)
+        j[one_of_name][entry_name] = value;
+      else
+        j[entry_name] = value;
+    }
+  }
+}
+
+std::string client::info_method(const std::string& cmd) const {
+  std::string retval;
+  const google::protobuf::DescriptorPool* p =
+      google::protobuf::DescriptorPool::generated_pool();
+  const google::protobuf::ServiceDescriptor* service_descriptor;
+  std::string cmd_str;
+  switch (_server) {
+    case CCC_BROKER:
+      service_descriptor = p->FindServiceByName("com.centreon.broker.Broker");
+      cmd_str = absl::StrFormat("/com.centreon.broker.Broker/%s", cmd);
+      break;
+    case CCC_ENGINE:
+      service_descriptor = p->FindServiceByName("com.centreon.engine.Engine");
+      cmd_str = absl::StrFormat("/com.centreon.engine.Engine/%s", cmd);
+      break;
+    default:
+      // Should not occur
+      assert(1 == 0);
+  }
+  auto method = service_descriptor->FindMethodByName(cmd);
+  if (method == nullptr)
+    throw com::centreon::exceptions::msg_fmt("The command '{}' doesn't exist",
+                                             cmd_str);
+
+  const google::protobuf::Descriptor* input_message = method->input_type();
+  nlohmann::json j;
+  _message_description(input_message, j);
+  retval = j.dump(1);
+  if (retval == "null")
+    retval = "{}";
+  return retval;
 }
