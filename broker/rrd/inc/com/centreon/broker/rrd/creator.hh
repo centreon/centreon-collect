@@ -43,7 +43,8 @@ class creator {
               uint32_t length,
               time_t from,
               uint32_t step,
-              short value_type);
+              short value_type,
+              bool without_cache = false);
 
  private:
   struct tmpl_info {

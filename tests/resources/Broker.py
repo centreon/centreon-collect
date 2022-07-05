@@ -53,11 +53,11 @@ config = {
                 "processing": "error",
                 "perfdata": "error",
                 "bbdo": "error",
-                "tcp": "error",
+                "tcp": "debug",
                 "tls": "error",
                 "lua": "error",
                 "bam": "error",
-                "grpc": "error"
+                "grpc": "off"
             }}
         }},
         "input": [
@@ -1008,18 +1008,18 @@ def create_metrics(count: int):
                 result = cursor.fetchall()
                 ids_index = [r['id'] for r in result]
                 if ids_index == []:
-                    sql = "INSERT INTO index_data (host_id, service_id) VALUES ('1', '1')"
+                    sql = "INSERT INTO index_data (host_id, service_id) VALUES (1, 1)"
                     cursor.execute(sql)
-                    ids_index = cursor.lastrowid
+                    ids_index.append(cursor.lastrowid)
                 for c in range(count):
                     sql = "INSERT INTO metrics (index_id,metric_name,unit_name,warn,warn_low,warn_threshold_mode,crit,crit_low,crit_threshold_mode,min,max,current_value,data_source_type) VALUES ('{}','metric_{}','unit_{}','10','1','0','1','1','0','0','100','25','0')".format(
                         ids_index[0], c, c)
                     cursor.execute(sql)
                     ids_metric = cursor.lastrowid
-                    connection.commit()
                     shutil.copy("/var/lib/centreon/metrics/tmpl_15552000_300_0.rrd",
                                 "/var/lib/centreon/metrics/{}.rrd".format(ids_metric))
                     logger.console("create metric file {}".format(ids_metric))
+                connection.commit()
 
 
 def run_reverse_bam(duration, interval):
@@ -1131,6 +1131,37 @@ def remove_graphs(port, indexes, metrics, timeout=10):
 
 
 ##
+# @brief send a query to the db to remove graphs (by indexes or by metrics)
+#
+# @param indexes a list of indexes
+# @param metrics a list of metrics
+#
+def remove_graphs_from_db(indexes, metrics, timeout=10):
+    logger.console("rem1")
+    connection = pymysql.connect(host=DB_HOST,
+                                 user=DB_USER,
+                                 password=DB_PASS,
+                                 database=DB_NAME_STORAGE,
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+    ids_db = []
+    with connection:
+        with connection.cursor() as cursor:
+            if len(indexes) > 0:
+                str_indexes = [str(i) for i in indexes]
+                sql = "UPDATE index_data SET to_delete=1 WHERE id in ({})".format(",".join(str_indexes))
+                logger.console(sql)
+                cursor.execute(sql)
+            if len(metrics) > 0:
+                str_metrics = [str(i) for i in metrics]
+                sql = "UPDATE metrics SET to_delete=1 WHERE metric_id in ({})".format(",".join(str_metrics))
+                logger.console(sql)
+                cursor.execute(sql)
+            connection.commit()
+
+
+##
 # @brief Execute the gRPC command RebuildRRDGraphs()
 #
 # @param port The port to use with gRPC.
@@ -1146,11 +1177,34 @@ def rebuild_rrd_graphs(port, indexes, timeout: int = TIMEOUT):
             stub = broker_pb2_grpc.BrokerStub(channel)
             k = 0.0
             idx = broker_pb2.IndexIds()
-            idx.index_id.extend(indexes)
+            idx.index_ids.extend(indexes)
             try:
                 stub.RebuildRRDGraphs(idx)
             except:
                 logger.console("gRPC server not ready")
+
+
+##
+# @brief Send a query to the db to rebuild graphs
+#
+# @param indexes The list of indexes corresponding to metrics to rebuild.
+#
+def rebuild_rrd_graphs_from_db(indexes, timeout: int = TIMEOUT):
+    connection = pymysql.connect(host=DB_HOST,
+                                 user=DB_USER,
+                                 password=DB_PASS,
+                                 database=DB_NAME_STORAGE,
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+    ids_db = []
+    with connection:
+        with connection.cursor() as cursor:
+            if len(indexes) > 0:
+                sql = "UPDATE index_data SET must_be_rebuild=1 WHERE id in ({})".format(",".join(map(str, indexes)))
+                logger.console(sql)
+                cursor.execute(sql)
+                connection.commit()
 
 
 ##
@@ -1168,7 +1222,9 @@ def compare_rrd_average_value(metric, value: float):
     lst = res.split('\n')
     if len(lst) >= 2:
         res = float(lst[1].replace(',', '.'))
-        return abs(res - float(value)) < 2
+        err = abs(res - float(value)) / float(value)
+        logger.console(f"expected value: {value} - result value: {res} - err: {err}")
+        return err < 0.01
     else:
         logger.console(
             "It was impossible to get the average value from the file /var/lib/centreon/metrics/{}.rrd from the last 30 days".format(metric))

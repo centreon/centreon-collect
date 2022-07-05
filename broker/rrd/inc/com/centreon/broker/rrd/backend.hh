@@ -49,7 +49,8 @@ class backend {
                     uint32_t length,
                     time_t from,
                     uint32_t step,
-                    short value_type = 0) = 0;
+                    short value_type = 0,
+                    bool without_cache = false) = 0;
   virtual void remove(std::string const& filename) = 0;
   virtual void update(time_t t, std::string const& value) = 0;
   virtual void update(const std::deque<std::string>& pts) = 0;

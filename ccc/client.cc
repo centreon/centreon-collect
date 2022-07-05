@@ -124,3 +124,12 @@ std::list<std::string> client::methods() const {
   }
   return retval;
 }
+
+std::string client::call(const std::string& full_cmd) {
+  absl::string_view cmd;
+  size_t pos = full_cmd.find("(");
+  if (pos != std::string::npos) {
+    cmd = absl::string_view(full_cmd.c_str(), pos);
+  }
+  return "";
+}

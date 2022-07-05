@@ -452,23 +452,21 @@ void output<T>::_rebuild_data(const RebuildMessage& rm) {
           query.emplace_back(fmt::format("{}:{}", pt.ctime(),
                                          static_cast<int64_t>(pt.value())));
         break;
+      default:
+        log_v2::rrd()->debug("data_source_type = {} is not managed",
+                             data_source_type);
     }
     if (!query.empty()) {
-      try {
-        _backend.open(path);
-      } catch (const exceptions::open& ex) {
-        log_v2::rrd()->debug("RRD file '{}' does not exist", path);
-        time_t start_time;
-        if (!p.second.pts().empty())
-          start_time = p.second.pts()[0].ctime() - 1;
-        else
-          start_time = std::time(nullptr);
-        log_v2::rrd()->trace("'{}' start date set to {}", path, start_time);
-        uint32_t interval{p.second.check_interval() ? p.second.check_interval()
-                                                    : 60};
-        _backend.open(path, p.second.rrd_retention(), start_time, interval,
-                      p.second.data_source_type());
-      }
+      time_t start_time;
+      if (!p.second.pts().empty())
+        start_time = p.second.pts()[0].ctime() - 1;
+      else
+        start_time = std::time(nullptr);
+      log_v2::rrd()->trace("'{}' start date set to {}", path, start_time);
+      uint32_t interval{p.second.check_interval() ? p.second.check_interval()
+                                                  : 60};
+      _backend.open(path, p.second.rrd_retention(), start_time, interval,
+                    p.second.data_source_type(), true);
       log_v2::rrd()->trace("{} points added to file '{}'", query.size(), path);
       _backend.update(query);
     } else

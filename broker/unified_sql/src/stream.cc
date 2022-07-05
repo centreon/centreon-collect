@@ -117,7 +117,6 @@ stream::stream(const database_config& dbcfg,
       _next_insert_perfdatas{std::time_t(nullptr) + 10},
       _next_update_metrics{std::time_t(nullptr) + 10},
       _next_loop_timeout{std::time_t(nullptr) + _loop_timeout},
-      _timer{pool::io_context()},
       _queues_timer{pool::io_context()},
       _stop_check_queues{false},
       _check_queues_stopped{false},
@@ -139,9 +138,6 @@ stream::stream(const database_config& dbcfg,
     log_v2::sql()->error("error while loading caches: {}", e.what());
     throw;
   }
-  _timer.expires_after(std::chrono::minutes(5));
-  _timer.async_wait(
-      std::bind(&stream::_check_deleted_index, this, std::placeholders::_1));
   _queues_timer.expires_after(std::chrono::seconds(queue_timer_duration));
   _queues_timer.async_wait(
       std::bind(&stream::_check_queues, this, std::placeholders::_1));
@@ -150,8 +146,8 @@ stream::stream(const database_config& dbcfg,
 
 stream::~stream() noexcept {
   std::promise<void> p;
-  asio::post(_timer.get_executor(), [this, &p] {
-    _timer.cancel();
+  asio::post(_queues_timer.get_executor(), [this, &p] {
+    _queues_timer.cancel();
     p.set_value();
   });
   p.get_future().wait();
@@ -532,8 +528,8 @@ int32_t stream::write(const std::shared_ptr<io::data>& data) {
   uint16_t elem = element_of_type(type);
   if (cat == io::neb) {
     (this->*(_neb_processing_table[elem]))(data);
-  } else if (type == make_type(io::bbdo, bbdo::de_rebuild_rrd_graphs))
-    _rebuilder.rebuild_rrd_graphs(data);
+  } else if (type == make_type(io::bbdo, bbdo::de_rebuild_graphs))
+    _rebuilder.rebuild_graphs(data);
   else if (type == make_type(io::bbdo, bbdo::de_remove_graphs))
     remove_graphs(data);
   else {
@@ -619,10 +615,11 @@ int32_t stream::stop() {
  * @param d The BBDO message with all the metrics/indexes to remove.
  */
 void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
+  log_v2::sql()->info("remove graphs call");
   asio::post(pool::instance().io_context(), [this, data = d] {
     mysql ms(_dbcfg);
-    const bbdo::pb_remove_graphs& ids =
-        *static_cast<const bbdo::pb_remove_graphs*>(data.get());
+    bbdo::pb_remove_graphs* ids =
+        static_cast<bbdo::pb_remove_graphs*>(data.get());
 
     std::promise<database::mysql_result> promise;
     std::future<mysql_result> future = promise.get_future();
@@ -630,13 +627,13 @@ void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
     std::set<uint64_t> indexes_to_delete;
     std::set<uint64_t> metrics_to_delete;
     try {
-      if (!ids.obj().index_ids().empty()) {
-        ms.run_query_and_get_result(
+      if (!ids->obj().index_ids().empty()) {
+        std::string query{
             fmt::format("SELECT i.id,m.metric_id, m.metric_name,i.host_id,"
                         "i.service_id FROM index_data i LEFT JOIN metrics m ON "
                         "i.id=m.index_id WHERE i.id IN ({})",
-                        fmt::join(ids.obj().index_ids(), ",")),
-            std::move(promise), conn);
+                        fmt::join(ids->obj().index_ids(), ","))};
+        ms.run_query_and_get_result(query, std::move(promise), conn);
         database::mysql_result res(future.get());
 
         std::lock_guard<misc::shared_mutex> lock(_metric_cache_m);
@@ -651,15 +648,15 @@ void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
         }
       }
 
-      if (!ids.obj().metric_ids().empty()) {
+      if (!ids->obj().metric_ids().empty()) {
         promise = std::promise<database::mysql_result>();
         std::future<mysql_result> future = promise.get_future();
 
-        ms.run_query_and_get_result(
+        std::string query{
             fmt::format("SELECT index_id,metric_id,metric_name FROM metrics "
                         "WHERE metric_id IN ({})",
-                        fmt::join(ids.obj().metric_ids(), ",")),
-            std::move(promise), conn);
+                        fmt::join(ids->obj().metric_ids(), ","))};
+        ms.run_query_and_get_result(query, std::move(promise), conn);
         database::mysql_result res(future.get());
 
         std::lock_guard<misc::shared_mutex> lock(_metric_cache_m);
@@ -696,10 +693,176 @@ void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
         rmg->mut_obj().add_metric_ids(i);
       for (uint64_t i : indexes_to_delete)
         rmg->mut_obj().add_index_ids(i);
+      log_v2::sql()->info(
+          "publishing pb remove graph with {} metrics and {} indexes",
+          metrics_to_delete.size(), indexes_to_delete.size());
       multiplexing::publisher().write(rmg);
     } else
       log_v2::sql()->info(
           "metrics {} and indexes {} do not appear in the storage database",
           mids_str, ids_str);
   });
+}
+
+/**
+ * @brief process a remove poller message.
+ *
+ * @param d The BBDO message with the name or the id of the poller to remove.
+ */
+void stream::remove_poller(const std::shared_ptr<io::data>& d) {
+  const bbdo::pb_remove_poller& poller =
+      *static_cast<const bbdo::pb_remove_poller*>(d.get());
+
+  try {
+    std::promise<database::mysql_result> promise;
+    std::future<mysql_result> future = promise.get_future();
+    int32_t conn = _mysql.choose_best_connection(-1);
+    std::list<uint64_t> ids;
+    uint32_t count = 0;
+    if (poller.obj().has_str()) {
+      _mysql.run_query_and_get_result(
+          fmt::format("SELECT instance_id from instances WHERE name='{}' AND "
+                      "(running=0 OR deleted=1)",
+                      poller.obj().str()),
+          std::move(promise), conn);
+      database::mysql_result res(future.get());
+
+      while (_mysql.fetch_row(res)) {
+        count++;
+        ids.push_back(res.value_as_u64(0));
+      }
+      if (count == 0) {
+        log_v2::sql()->warn(
+            "Unable to remove poller '{}', {} not running found in the "
+            "database",
+            poller.obj().str(), count == 0 ? "none" : "more than one");
+        std::promise<database::mysql_result> promise;
+        std::future<mysql_result> future = promise.get_future();
+        _mysql.run_query_and_get_result(
+            fmt::format("SELECT instance_id from instances WHERE name='{}'",
+                        poller.obj().str()),
+            std::move(promise), conn);
+        database::mysql_result res(future.get());
+
+        while (_mysql.fetch_row(res)) {
+          if (!config::applier::state::instance().has_connection_from_poller(
+                  res.value_as_u64(0))) {
+            log_v2::sql()->warn(
+                "The poller '{}' id {} is not connected (even if it looks "
+                "running or not deleted)",
+                poller.obj().str(), res.value_as_u64(0));
+            count++;
+            ids.push_back(res.value_as_u64(0));
+          }
+        }
+      }
+    } else {
+      _mysql.run_query_and_get_result(
+          fmt::format(
+              "SELECT instance_id from instances WHERE instance_id={} AND "
+              "(running=0 OR deleted=1)",
+              poller.obj().idx()),
+          std::move(promise), conn);
+      database::mysql_result res(future.get());
+
+      while (_mysql.fetch_row(res)) {
+        count++;
+        ids.push_back(res.value_as_u64(0));
+      }
+      if (count == 0) {
+        log_v2::sql()->warn(
+            "Unable to remove poller {}, {} not running found in the "
+            "database",
+            poller.obj().idx(), count == 0 ? "none" : "more than one");
+        std::promise<database::mysql_result> promise;
+        std::future<mysql_result> future = promise.get_future();
+        _mysql.run_query_and_get_result(
+            fmt::format("SELECT name from instances WHERE instance_id={}",
+                        poller.obj().idx()),
+            std::move(promise), conn);
+        database::mysql_result res(future.get());
+
+        while (_mysql.fetch_row(res)) {
+          if (!config::applier::state::instance().has_connection_from_poller(
+                  poller.obj().idx())) {
+            log_v2::sql()->warn(
+                "The poller '{}' id {} is not connected (even if it looks "
+                "running or not deleted)",
+                res.value_as_str(0), poller.obj().idx());
+            count++;
+            ids.push_back(poller.obj().idx());
+          }
+        }
+      }
+    }
+
+    for (uint64_t id : ids) {
+      conn = _mysql.choose_connection_by_instance(id);
+      log_v2::sql()->info("unified sql: removing poller {}", id);
+      _mysql.run_query(
+          fmt::format("DELETE FROM instances WHERE instance_id={}", id),
+          database::mysql_error::delete_poller, false, conn);
+      log_v2::sql()->trace("unified sql: removing poller {} hosts", id);
+      _mysql.run_query(
+          fmt::format("DELETE FROM hosts WHERE instance_id={}", id),
+          database::mysql_error::delete_poller, false, conn);
+
+      log_v2::sql()->trace("unified sql: removing poller {} resources", id);
+      _mysql.run_query(
+          fmt::format("DELETE FROM resources WHERE poller_id={}", id),
+          database::mysql_error::delete_poller, false, conn);
+      _cache_deleted_instance_id.insert(id);
+    }
+    _clear_instances_cache(ids);
+  } catch (const std::exception& e) {
+    log_v2::sql()->error("Error encountered while removing a poller: {}",
+                         e.what());
+  }
+}
+
+void stream::_clear_instances_cache(const std::list<uint64_t>& ids) {
+  for (auto it = _cache_host_instance.begin();
+       it != _cache_host_instance.end();) {
+    if (std::find(ids.begin(), ids.end(), it->second) != ids.end()) {
+      uint64_t host_id = it->first;
+      _cache_hst_cmd.erase(host_id);
+      for (auto itt = _cache_svc_cmd.begin(); itt != _cache_svc_cmd.end();
+           ++itt) {
+        if (itt->first.first == host_id) {
+          uint64_t svc_id = itt->first.second;
+          auto ridx_it = _index_cache.find({host_id, svc_id});
+          uint64_t index_id = ridx_it->second.index_id;
+          for (auto idx_it = _index_cache.begin(); idx_it != _index_cache.end();
+               ++idx_it) {
+            if (idx_it->first.first == index_id)
+              _index_cache.erase(idx_it);
+            std::lock_guard<misc::shared_mutex> lock(_metric_cache_m);
+            for (auto metric_it = _metric_cache.begin();
+                 metric_it != _metric_cache.end(); ++metric_it) {
+              if (metric_it->first.first == index_id)
+                _metric_cache.erase(metric_it);
+            }
+          }
+          _index_cache.erase(ridx_it);
+          _cache_svc_cmd.erase(itt);
+
+          // resources
+          auto res_it = _resource_cache.find({svc_id, host_id});
+          if (res_it != _resource_cache.end())
+            _resource_cache.erase(res_it);
+        }
+        auto res_it = _resource_cache.find({host_id, 0});
+        if (res_it != _resource_cache.end())
+          _resource_cache.erase(res_it);
+      }
+      it = _cache_host_instance.erase(it);
+    } else
+      ++it;
+  }
+}
+
+void stream::update() {
+  log_v2::sql()->info("unified_sql stream update");
+  _check_deleted_index();
+  _check_rebuild_index();
 }
