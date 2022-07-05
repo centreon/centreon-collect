@@ -459,7 +459,8 @@ void pg_connection::completion_handler(
     req->call_callback({}, {});
   } else {
     if (!coll->is_error()) {
-      SPDLOG_LOGGER_DEBUG(_logger, "request completed: {}", *req);
+      SPDLOG_LOGGER_DEBUG(_logger, "request completed: {}, {} nb_row received",
+                          *req, PQntuples(coll->get_last_result()));
       req->call_callback({}, {});
     } else {
       const PGresult* res = coll->get_last_result();

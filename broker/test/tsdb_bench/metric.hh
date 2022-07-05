@@ -2,6 +2,7 @@
 #define __TSDB__BENCH__METRIC_HH
 
 struct metric_conf {
+  // insert parameters
   uint metric_nb;
   uint metric_id_nb;
   uint nb_host;
@@ -9,6 +10,13 @@ struct metric_conf {
   uint float_percent;
   uint double_percent;
   uint int64_percent;
+  uint day_time_frame;
+
+  // select parameters
+  time_point select_begin;
+  time_point select_end;
+  unsigned metric_id;
+  unsigned nb_point;
 };
 
 namespace detail {

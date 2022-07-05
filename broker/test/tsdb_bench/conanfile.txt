@@ -8,6 +8,7 @@ libpq/14.2
 #snappy used by m3db requests
 snappy/1.1.9
 protobuf/3.19.2
+date/3.0.1
 
 [generators]
 cmake

@@ -33,6 +33,8 @@ set(SOURCES
     "${SRC_DIR}/m3/types.pb.cc"
     "${SRC_DIR}/m3/gogoproto/gogo.pb.cc"
     "${SRC_DIR}/m3/m3_http_client.cc"
+    "${SRC_DIR}/mimir/mimir.pb.cc"
+    "${SRC_DIR}/mimir/mimir_http_client.cc"
 )
 
 add_custom_command(
@@ -55,6 +57,14 @@ add_custom_command(
     ARGS --cpp_out=${SRC_DIR}/m3 --proto_path=${SRC_DIR}/m3 gogoproto/gogo.proto
 )
 
+add_custom_command(
+    DEPENDS ${SRC_DIR}/mimir/mimir.proto
+    COMMENT "Generating interface files of the mimir proto file"
+    OUTPUT ${SRC_DIR}/mimir/mimir.pb.cc ${SRC_DIR}/mimir/mimir.pb.h
+    COMMAND ${Protobuf_PROTOC_EXECUTABLE}
+    ARGS --cpp_out=${SRC_DIR}/mimir --proto_path=${SRC_DIR}/mimir --proto_path=${SRC_DIR}/m3 mimir.proto
+)
+
 add_custom_target(tsdb_bench_proto DEPENDS
     ${SRC_DIR}/m3/remote.pb.cc
     ${SRC_DIR}/m3/remote.pb.h
@@ -62,6 +72,8 @@ add_custom_target(tsdb_bench_proto DEPENDS
     ${SRC_DIR}/m3/types.pb.h
     ${SRC_DIR}/m3/gogoproto/gogo.pb.cc
     ${SRC_DIR}/m3/gogoproto/gogo.pb.h
+    ${SRC_DIR}/mimir/mimir.pb.cc
+    ${SRC_DIR}/mimir/mimir.pb.h
 )
 
 add_executable(tsdb_bench ${SOURCES})

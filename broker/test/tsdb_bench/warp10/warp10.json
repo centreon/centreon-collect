@@ -5,5 +5,6 @@
     "port": 8080,
     "dbname": "dummy",
     "user": "dummy",
-    "password": "ZP_Fod2FCMTo3pIJGrNr0m3WesOlfBsK1jLcoCs7t2c14neRVnYYwdVQrASNDx7ZYY6DKtRNZUTEPaa6oh4RbCMSR48OagFwticudISFbcJTj_FM6G255V"
+    "password": "pmlnmVazWypIvhPP9qSuSEitjEaw70FfmmeHERGYZZ7fHyZ1tVWiOKw0oPl1EJuZNyWEASqnsHpIeczB_ObqtAsusJZbaLPRnI2DN4N1Z2zgQwi2xTZMDV",
+    "read_token": "sOgyyZxXDokBy1FlUNWbd0M0dyy7CZ9tTplArh4aRSSqJ_nhn0UC3MN_McFgbLBtBo7cTufKY5Xsf5PgIGj8pTDguovDjLfI7kYUsQ8p9BQj6lGJ8bc5BwmyANanyzqgarSPPsW_YR3"
 }

@@ -80,7 +80,13 @@ void connection::on_read(const boost::beast::error_code& err,
     return;
   }
 
-  SPDLOG_LOGGER_DEBUG(_logger, "recv response from {} {}", _endpt, *resp);
+  if (resp->result_int() >= 400) {
+    SPDLOG_LOGGER_ERROR(_logger, "err response for {} \n\n {}", *request,
+                        *resp);
+
+  } else {
+    SPDLOG_LOGGER_DEBUG(_logger, "recv response from {} {}", _endpt, *resp);
+  }
 
   callback(err, {}, resp);
 }

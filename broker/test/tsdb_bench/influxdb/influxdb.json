@@ -3,7 +3,7 @@
     "name": "centreon",
     "host": "127.0.0.1",
     "port": 8086,
-    "dbname": "",
     "user": "bucket",
-    "password": "gUR3L6RVlIDMuxzUkr7zOtEGIn_hhuJJZnlXxjiCYagYfkOGzQsbmEQnkzy0rQvnLSNN-KBkeJebntl_bQOZuQ=="
+    "organization_id": "7646a52eec4ecf0d",
+    "password": "MsSoXR0NLgKIOdaHcZArJ4me4qPRC6YN6Or0tEgWxKfa-AGc7L2LKeM6dGcRr6AoQjklmMbemkSaeyf-VwNDwA=="
 }

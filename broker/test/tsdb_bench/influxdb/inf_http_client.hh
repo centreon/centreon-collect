@@ -9,6 +9,7 @@ class inf_client : public std::enable_shared_from_this<inf_client>,
                    public db_conf {
   http_client::connection::pointer _conn;
   logger_ptr _logger;
+  std::string _organization_id;
   using request_ptr = http_client::connection::request_ptr;
   using response_ptr = http_client::connection::response_ptr;
 
@@ -38,6 +39,24 @@ class inf_client : public std::enable_shared_from_this<inf_client>,
   void send(metric_iter begin,
             metric_iter end,
             http_client::connection::send_callback_type callback);
+
+  void select_influx_db(const time_point& begin,
+                        const time_point& end,
+                        uint64_t metric_id,
+                        unsigned nb_point,
+                        http_client::connection::send_callback_type callback);
+
+  void select(const time_point& begin,
+              const time_point& end,
+              uint64_t metric_id,
+              unsigned nb_point,
+              http_client::connection::send_callback_type callback);
+
+  void select_victoria(const time_point& begin,
+                       const time_point& end,
+                       uint64_t metric_id,
+                       unsigned nb_point,
+                       http_client::connection::send_callback_type callback);
 };
 
 template <class metric_iter>
