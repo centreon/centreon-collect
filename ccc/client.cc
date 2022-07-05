@@ -63,7 +63,7 @@ client::client(std::shared_ptr<grpc::Channel> channel)
         std::string output_str;
         google::protobuf::TextFormat::PrintToString(broker_v, &output_str);
         if (!output_str.empty()) {
-          std::cout << "Connected to a Centreon Broker "
+          std::cerr << "Connected to a Centreon Broker "
                     << absl::StrFormat("%02d.%02d.%d gRPC server",
                                        broker_v.major(), broker_v.minor(),
                                        broker_v.patch())
@@ -77,7 +77,7 @@ client::client(std::shared_ptr<grpc::Channel> channel)
         std::string output_str;
         google::protobuf::TextFormat::PrintToString(engine_v, &output_str);
         if (!output_str.empty()) {
-          std::cout << "Connected to a Centreon Engine "
+          std::cerr << "Connected to a Centreon Engine "
                     << absl::StrFormat("%02d.%02d.%d gRPC server",
                                        engine_v.major(), engine_v.minor(),
                                        engine_v.patch())
