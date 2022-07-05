@@ -54,6 +54,7 @@ int main(int argc, char** argv) {
   int port = 0;
 
   bool list = false;
+  bool help = false;
 
   while ((opt = getopt_long(argc, argv, "vhp:l", long_options,
                             &option_index)) != -1) {
@@ -62,7 +63,7 @@ int main(int argc, char** argv) {
         std::cout << "ccc " << CENTREON_CONNECTOR_VERSION << "\n";
         break;
       case 'h':
-        usage();
+        help = true;
         break;
       case 'p':
         if (!absl::SimpleAtoi(optarg, &port)) {
@@ -80,6 +81,11 @@ int main(int argc, char** argv) {
     }
   }
 
+  if (help && optind == argc) {
+    usage();
+    exit(0);
+  }
+
   if (port == 0) {
     std::cerr << "You must specify a port for the connection to the gRPC server"
               << std::endl;
@@ -91,7 +97,12 @@ int main(int argc, char** argv) {
 
   try {
     client clt(channel);
-    if (list) {
+    if (help) {
+      std::string message{clt.info_method(argv[optind])};
+      std::cout << color_blue << "Input message for this function:\n"
+                << color_reset << message << std::endl;
+      exit(0);
+    } else if (list) {
       if (optind < argc) {
         std::cerr << "\n"
                   << color_error << "Error: " << color_reset
