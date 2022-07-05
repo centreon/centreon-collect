@@ -259,6 +259,10 @@ Here is the list of the currently implemented tests:
 - [x] **BECCC1**: ccc without port fails with an error message
 - [x] **BECCC2**: ccc with -p 51001 connects to central cbd gRPC server.
 - [x] **BECCC3**: ccc with -p 50001 connects to centengine gRPC server.
+- [x] **BECCC4**: ccc with -p 51001 -l returns the available functions from Broker gRPC server
+- [x] **BECCC5**: ccc with -p 51001 -l GetVersion returns an error because we can't execute a command with -l.
+- [x] **BECCC6**: ccc with -p 51001 GetVersion{} calls the GetVersion command
+- [x] **BECCC7**: ccc with -p 51001 GetVersion{"idx":1} returns an error because the input message is wrong.
 
 ### Connector perl
 - [x] **test use connector perl exist script**: test exist script

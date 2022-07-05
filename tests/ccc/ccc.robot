@@ -58,7 +58,7 @@ BECCC2
 	Start Broker
 	Start Engine
 	Sleep	3s
-	Start Process	/usr/bin/ccc	-p 51001	stdout=/tmp/output.txt
+	Start Process	/usr/bin/ccc	-p 51001	stderr=/tmp/output.txt
 	FOR	${i}	IN RANGE	10
 	 Wait Until Created	/tmp/output.txt
 	 ${content}=	Get File	/tmp/output.txt
@@ -90,7 +90,7 @@ BECCC3
 	Start Broker
 	Start Engine
 	Sleep	3s
-	Start Process	/usr/bin/ccc	-p 50001	stdout=/tmp/output.txt
+	Start Process	/usr/bin/ccc	-p 50001	stderr=/tmp/output.txt
 	FOR	${i}	IN RANGE	10
 	 Wait Until Created	/tmp/output.txt
 	 ${content}=	Get File	/tmp/output.txt
