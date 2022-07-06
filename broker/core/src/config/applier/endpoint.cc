@@ -413,6 +413,8 @@ std::shared_ptr<io::endpoint> endpoint::_create_endpoint(config::endpoint& cfg,
       }
       endp = std::shared_ptr<io::endpoint>(
           it->second.endpntfactry->new_endpoint(cfg, is_acceptor, cache));
+      log_v2::config()->info(" create endpoint {} for endpoint '{}'", it->first,
+                             cfg.name);
       level = it->second.osi_to + 1;
       break;
     }
@@ -433,6 +435,8 @@ std::shared_ptr<io::endpoint> endpoint::_create_endpoint(config::endpoint& cfg,
           (it->second.endpntfactry->has_endpoint(cfg, nullptr))) {
         std::shared_ptr<io::endpoint> current(
             it->second.endpntfactry->new_endpoint(cfg, is_acceptor));
+        log_v2::config()->info(" create endpoint {} for endpoint '{}'",
+                               it->first, cfg.name);
         current->from(endp);
         endp = current;
         level = it->second.osi_to;

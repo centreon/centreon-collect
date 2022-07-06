@@ -2309,3 +2309,46 @@ BEEXTCMD_REVERSE_GRPC4
 		Stop Engine
 		Kindly Stop Broker
 	END
+
+
+BEEXTCMD_COMPRESS_GRPC1
+	[Documentation]	external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0 and compressed grpc
+	[Tags]	Broker	Engine	services	extcmd
+	Config Engine	${1}	${50}	${20}
+	Config Broker	rrd
+	Config Broker	central
+	Config Broker	module	${1}
+	Change Broker tcp output to grpc	module0
+	Change Broker tcp input to grpc     central
+	Change Broker Compression Output  module0  central-module-master-output  yes
+	Change Broker Compression Input  central  centreon-broker-master-input  yes
+	Broker Config Add Item	module0	bbdo_version	3.0.0
+	Broker Config Add Item	central	bbdo_version	3.0.0
+	Broker Config Add Item	rrd	bbdo_version	3.0.0
+	Broker Config Log	central	sql	debug
+	Config Broker Sql Output	central	unified_sql
+	FOR  ${use_grpc}  IN RANGE  0  2
+		Log To Console	external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0 use_grpc=${use_grpc}
+		Clear Retention
+		${start}=	Get Current Date
+		Start Broker
+		Start Engine
+			${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
+			${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+			Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
+		Change Normal Svc Check Interval  ${use_grpc}  host_1	service_1	10
+
+		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+
+		FOR	${index}	IN RANGE	300
+			Log To Console	SELECT s.check_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
+			${output}=	Query	SELECT s.check_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
+			Log To Console	${output}
+			Sleep	1s
+			EXIT FOR LOOP IF	"${output}" == "((10.0,),)"
+		END
+		Should Be Equal As Strings	${output}	((10.0,),)
+		Stop Engine
+		Kindly Stop Broker
+	END
+

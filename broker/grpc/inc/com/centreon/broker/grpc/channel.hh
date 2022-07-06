@@ -55,6 +55,15 @@ struct detail_centreon_event {
 
 const std::string authorization_header("authorization");
 
+constexpr uint32_t calc_accept_all_compression_mask() {
+  uint32_t ret = 0;
+  for (size_t algo_ind = 0; algo_ind < GRPC_COMPRESS_ALGORITHMS_COUNT;
+       algo_ind++) {
+    ret += (1u << algo_ind);
+  }
+  return ret;
+}
+
 /**
  * @brief base class of grpc communication final class server or client
  *

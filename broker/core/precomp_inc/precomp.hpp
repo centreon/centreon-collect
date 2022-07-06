@@ -58,4 +58,6 @@
 
 #include <asio.hpp>
 
+#include <boost/algorithm/string.hpp>
+
 #endif

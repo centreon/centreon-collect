@@ -474,7 +474,7 @@ def change_broker_tcp_input_to_grpc(name: str):
 
 
 def add_broker_crypto(json_dict, add_cert: bool, only_ca_cert: bool):
-    json_dict["crypted"] = "yes"
+    json_dict["encryption"] = "yes"
     if (add_cert):
         json_dict["ca_certificate"] = "/tmp/ca_1234.crt"
         if (only_ca_cert == False):
@@ -536,11 +536,21 @@ def remove_host_from_broker_input(name: str, input_name: str):
     _apply_conf(name, modifier)
 
 
-def change_broker_compression_output(config_name: str, compression_value: str):
+def change_broker_compression_output(config_name: str, output_name: str, compression_value: str):
     def compression_modifier(conf):
         output_dict = conf["centreonBroker"]["output"]
         for i, v in enumerate(output_dict):
-            v["compression"] = compression_value
+            if (v["name"] == output_name):
+                v["compression"] = compression_value
+    _apply_conf(config_name, compression_modifier)
+
+
+def change_broker_compression_input(config_name: str, input_name: str, compression_value: str):
+    def compression_modifier(conf):
+        input_dict = conf["centreonBroker"]["input"]
+        for i, v in enumerate(input_dict):
+            if (v["name"] == input_name):
+                v["compression"] = compression_value
     _apply_conf(config_name, compression_modifier)
 
 
@@ -1223,12 +1233,14 @@ def remove_graphs_from_db(indexes, metrics, timeout=10):
         with connection.cursor() as cursor:
             if len(indexes) > 0:
                 str_indexes = [str(i) for i in indexes]
-                sql = "UPDATE index_data SET to_delete=1 WHERE id in ({})".format(",".join(str_indexes))
+                sql = "UPDATE index_data SET to_delete=1 WHERE id in ({})".format(
+                    ",".join(str_indexes))
                 logger.console(sql)
                 cursor.execute(sql)
             if len(metrics) > 0:
                 str_metrics = [str(i) for i in metrics]
-                sql = "UPDATE metrics SET to_delete=1 WHERE metric_id in ({})".format(",".join(str_metrics))
+                sql = "UPDATE metrics SET to_delete=1 WHERE metric_id in ({})".format(
+                    ",".join(str_metrics))
                 logger.console(sql)
                 cursor.execute(sql)
             connection.commit()
@@ -1275,7 +1287,8 @@ def rebuild_rrd_graphs_from_db(indexes, timeout: int = TIMEOUT):
     with connection:
         with connection.cursor() as cursor:
             if len(indexes) > 0:
-                sql = "UPDATE index_data SET must_be_rebuild=1 WHERE id in ({})".format(",".join(map(str, indexes)))
+                sql = "UPDATE index_data SET must_be_rebuild=1 WHERE id in ({})".format(
+                    ",".join(map(str, indexes)))
                 logger.console(sql)
                 cursor.execute(sql)
                 connection.commit()
@@ -1297,7 +1310,8 @@ def compare_rrd_average_value(metric, value: float):
     if len(lst) >= 2:
         res = float(lst[1].replace(',', '.'))
         err = abs(res - float(value)) / float(value)
-        logger.console(f"expected value: {value} - result value: {res} - err: {err}")
+        logger.console(
+            f"expected value: {value} - result value: {res} - err: {err}")
         return err < 0.01
     else:
         logger.console(
@@ -1415,6 +1429,8 @@ def add_bam_config_to_broker(name):
 # @param port the gRPC port to use
 # @param name the poller name
 #
+
+
 def remove_poller(port, name, timeout=TIMEOUT):
     limit = time.time() + timeout
     while time.time() < limit:
@@ -1436,6 +1452,8 @@ def remove_poller(port, name, timeout=TIMEOUT):
 # @param port the gRPC port to use
 # @param name the poller name
 #
+
+
 def remove_poller_by_id(port, idx, timeout=TIMEOUT):
     limit = time.time() + timeout
     while time.time() < limit:

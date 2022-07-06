@@ -185,8 +185,8 @@ BESS_GRPC_COMPRESS1
 	Change Broker tcp output to grpc	module0
 	Change Broker tcp input to grpc     central
 	Change Broker tcp input to grpc     rrd
-	Change Broker Compression Output  module0  yes
-	Change Broker Compression Output  central  yes
+	Change Broker Compression Output  module0  central-module-master-output  yes
+	Change Broker Compression Input  central  centreon-broker-master-input  yes
 	Start Broker
 	Start Engine
 	${result}=	Check Connections

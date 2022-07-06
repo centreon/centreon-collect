@@ -26,31 +26,42 @@ class grpc_config {
   std::string _hostport;
   bool _crypted;
   std::string _certificate, _cert_key, _ca_cert, _authorization;
+  grpc_compression_level _compress_level;
 
  public:
   using pointer = std::shared_ptr<grpc_config>;
 
-  grpc_config() : _crypted(false) {}
-  grpc_config(const std::string& hostp) : _hostport(hostp), _crypted(false) {}
+  grpc_config() : _crypted(false), _compress_level(GRPC_COMPRESS_LEVEL_NONE) {}
+  grpc_config(const std::string& hostp)
+      : _hostport(hostp),
+        _crypted(false),
+        _compress_level(GRPC_COMPRESS_LEVEL_NONE) {}
   grpc_config(const std::string& hostp,
               bool crypted,
               const std::string& certificate,
               const std::string& cert_key,
               const std::string& ca_cert,
-              const std::string& authorization)
+              const std::string& authorization,
+              grpc_compression_level compress_level)
       : _hostport(hostp),
         _crypted(crypted),
         _certificate(certificate),
         _cert_key(cert_key),
         _ca_cert(ca_cert),
-        _authorization(authorization) {}
+        _authorization(authorization),
+        _compress_level(compress_level) {}
 
-  const std::string& get_hostport() const { return _hostport; }
-  bool is_crypted() const { return _crypted; }
-  const std::string& get_cert() const { return _certificate; }
-  const std::string& get_key() const { return _cert_key; }
-  const std::string& get_ca() const { return _ca_cert; }
-  const std::string& get_authorization() const { return _authorization; }
+  constexpr const std::string& get_hostport() const { return _hostport; }
+  constexpr bool is_crypted() const { return _crypted; }
+  constexpr const std::string& get_cert() const { return _certificate; }
+  constexpr const std::string& get_key() const { return _cert_key; }
+  constexpr const std::string& get_ca() const { return _ca_cert; }
+  constexpr const std::string& get_authorization() const {
+    return _authorization;
+  }
+  constexpr grpc_compression_level get_compress_level() const {
+    return _compress_level;
+  }
 
   friend class factory;
 };
