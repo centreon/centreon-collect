@@ -18,6 +18,7 @@
 
 #include "client.hh"
 #include <absl/strings/str_format.h>
+#include <absl/strings/str_join.h>
 #include <google/protobuf/dynamic_message.h>
 #include <google/protobuf/text_format.h>
 #include <google/protobuf/util/json_util.h>
@@ -196,19 +197,28 @@ std::string client::call(const std::string& cmd, const std::string& args) {
 }
 
 static void _message_description(const google::protobuf::Descriptor* desc,
-                                 nlohmann::json& j) {
-  // const google::protobuf::Reflection* refl = p->GetReflection();
-  bool one_of;
+                                 std::list<std::string>& output,
+                                 size_t level) {
+  std::string tab(level, static_cast<char>(' '));
+  bool one_of = false;
   std::string one_of_name;
   for (int i = 0; i < desc->field_count(); i++) {
     auto f = desc->field(i);
 
     auto oof = f->containing_oneof();
-    if (oof) {
+    if (!one_of && oof) {
+      output.emplace_back(absl::StrFormat("%s%soneof%s \"%s%s%s\" {", tab,
+                                          color_yellow, color_reset, color_blue,
+                                          oof->name(), color_reset));
+      level += 2;
+      tab += "  ";
       one_of = true;
-      one_of_name = absl::StrFormat("oneof %s", oof->name());
-    } else
+    } else if (one_of && !oof) {
+      level -= 2;
+      tab.resize(tab.size() - 2);
+      output.emplace_back(absl::StrFormat("%s}", tab));
       one_of = false;
+    }
 
     const std::string& entry_name = f->name();
     std::string value;
@@ -231,43 +241,39 @@ static void _message_description(const google::protobuf::Descriptor* desc,
       case google::protobuf::FieldDescriptor::TYPE_UINT64:
         value = "uint64";
         break;
-      case google::protobuf::FieldDescriptor::TYPE_ENUM:
-        value = "enum";
-        break;
+      case google::protobuf::FieldDescriptor::TYPE_ENUM: {
+        output.emplace_back(
+            absl::StrFormat("%senum \"%s\": {", tab, entry_name));
+        auto t_enum = f->enum_type();
+        for (int i = 0; i < t_enum->value_count(); i++) {
+          auto v = t_enum->value(i);
+          output.emplace_back(absl::StrFormat("  %s%s", tab, v->name()));
+        }
+        output.emplace_back(absl::StrFormat("%s}", tab));
+        continue;
+      } break;
       case google::protobuf::FieldDescriptor::TYPE_STRING:
         value = "string";
         break;
       case google::protobuf::FieldDescriptor::TYPE_MESSAGE:
-        throw com::centreon::exceptions::msg_fmt(
-            "google::protobuf::FieldDescriptor::TYPE_MESSAGE not implemented");
-
-        // if (f->is_repeated()) {
-        //   size_t s = refl->FieldSize(*p, f);
-        //   // const google::protobuf::Message& msg = refl->GetMessage(*p, f);
-        //   lua_newtable(L);
-        //   for (size_t i = 0; i < s; i++) {
-        //     lua_newtable(L);
-        //     _message_to_table(L, &refl->GetRepeatedMessage(*p, f, i));
-        //     lua_rawseti(L, -2, i + 1);
-        //   }
-        // }
+        output.emplace_back(absl::StrFormat("%s\"%s\": {", tab, entry_name));
+        _message_description(f->message_type(), output, level + 2);
+        output.emplace_back(absl::StrFormat("%s}", tab));
+        continue;
         break;
       default:
         throw com::centreon::exceptions::msg_fmt("{} not implemented",
                                                  f->type());
         break;
     }
-    if (f->is_repeated()) {
-      if (one_of)
-        j[one_of_name][entry_name] = absl::StrFormat("[%s]", value);
-      else
-        j[entry_name] = absl::StrFormat("[%s]", value);
-    } else {
-      if (one_of)
-        j[one_of_name][entry_name] = value;
-      else
-        j[entry_name] = value;
-    }
+    if (f->is_repeated())
+      output.emplace_back(absl::StrFormat("%s\"%s%s%s\": [%s%s%s]", tab,
+                                          color_blue, entry_name, color_reset,
+                                          color_green, value, color_reset));
+    else
+      output.emplace_back(absl::StrFormat("%s\"%s%s%s\": %s%s%s", tab,
+                                          color_blue, entry_name, color_reset,
+                                          color_green, value, color_reset));
   }
 }
 
@@ -296,10 +302,10 @@ std::string client::info_method(const std::string& cmd) const {
                                              cmd_str);
 
   const google::protobuf::Descriptor* input_message = method->input_type();
-  nlohmann::json j;
-  _message_description(input_message, j);
-  retval = j.dump(1);
-  if (retval == "null")
-    retval = "{}";
+  std::list<std::string> message{absl::StrFormat(
+      "\"%s%s%s\": {", color_blue, input_message->name(), color_reset)};
+  _message_description(input_message, message, 2);
+  message.push_back("}");
+  retval = absl::StrJoin(message, "\n");
   return retval;
 }

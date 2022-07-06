@@ -99,8 +99,7 @@ int main(int argc, char** argv) {
     client clt(channel);
     if (help) {
       std::string message{clt.info_method(argv[optind])};
-      std::cout << color_blue << "Input message for this function:\n"
-                << color_reset << message << std::endl;
+      std::cout << "Input message for this function:\n" << message << std::endl;
       exit(0);
     } else if (list) {
       if (optind < argc) {
