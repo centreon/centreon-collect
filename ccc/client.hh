@@ -26,12 +26,15 @@
 namespace com {
 namespace centreon {
 namespace ccc {
-constexpr const char color_method[] = "\u001b[32;1m";
-constexpr const char* color_green = color_method;
-constexpr const char color_message[] = "\u001b[34;1m";
-constexpr const char* color_blue = color_message;
+constexpr const char color_green[] = "\u001b[32;1m";
+constexpr const char color_blue[] = "\u001b[34;1m";
 constexpr const char color_reset[] = "\u001b[0m";
-constexpr const char color_error[] = "\u001b[31;1m";
+constexpr const char color_red[] = "\u001b[31;1m";
+constexpr const char color_yellow[] = "\u001b[33;1m";
+constexpr const char* color_message = color_green;
+constexpr const char* color_method = color_blue;
+constexpr const char* color_error = color_red;
+
 class client {
   enum type { CCC_NONE, CCC_BROKER, CCC_ENGINE };
   std::unique_ptr<grpc::GenericStub> _stub;
