@@ -30,6 +30,12 @@
 
 using namespace com::centreon::ccc;
 
+/**
+ * @brief Constructor
+ *
+ * @param channel The channel to use to the gRPC server.
+ * @param color_enabled A boolean telling if we should use colors or not.
+ */
 client::client(std::shared_ptr<grpc::Channel> channel, bool color_enabled)
     : _stub{std::make_unique<grpc::GenericStub>(channel)},
       _server{CCC_NONE},
@@ -130,6 +136,14 @@ std::list<std::string> client::methods() const {
   return retval;
 }
 
+/**
+ * @brief Call the gRPC method cmd with the given arguments as a JSON string.
+ *
+ * @param cmd The name of the method to call.
+ * @param args The arguments as a JSON string.
+ *
+ * @return A JSON string with the output message.
+ */
 std::string client::call(const std::string& cmd, const std::string& args) {
   const google::protobuf::DescriptorPool* p =
       google::protobuf::DescriptorPool::generated_pool();
@@ -200,10 +214,20 @@ std::string client::call(const std::string& cmd, const std::string& args) {
   return "";
 }
 
-void message_description(const google::protobuf::Descriptor* desc,
-                         std::list<std::string>& output,
-                         bool color_enabled,
-                         size_t level) {
+/**
+ * @brief Return the description of a message as a list of strings. This is
+ * needed because this function is recursive. This function should only be
+ * used by the info_method() method.
+ *
+ * @param desc The descriptor of the message
+ * @param output The output list.
+ * @param color_enabled Should we use ASCII colors or not?
+ * @param level the indentation to apply to each line.
+ */
+static void message_description(const google::protobuf::Descriptor* desc,
+                                std::list<std::string>& output,
+                                bool color_enabled,
+                                size_t level) {
   std::string tab(level, static_cast<char>(' '));
   bool one_of = false;
   std::string one_of_name;
@@ -290,6 +314,13 @@ void message_description(const google::protobuf::Descriptor* desc,
   }
 }
 
+/**
+ * @brief Return some information about the gRPC method given as a string.
+ *
+ * @param cmd The gRPC method to describe.
+ *
+ * @return A string with the method informations.
+ */
 std::string client::info_method(const std::string& cmd) const {
   std::string retval;
   const google::protobuf::DescriptorPool* p =
