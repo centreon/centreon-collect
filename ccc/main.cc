@@ -31,18 +31,35 @@
 using namespace nlohmann;
 using namespace com::centreon::ccc;
 
-static struct option long_options[] = {{"version", no_argument, 0, 'v'},
-                                       {"help", no_argument, 0, 'h'},
-                                       {"port", required_argument, 0, 'p'},
-                                       {"list", no_argument, 0, 'l'},
-                                       {0, 0, 0, 0}};
+static struct option long_options[] = {
+    {"version", no_argument, 0, 'v'},    {"help", no_argument, 0, 'h'},
+    {"port", required_argument, 0, 'p'}, {"list", no_argument, 0, 'l'},
+    {"nocolor", no_argument, 0, 'n'},    {0, 0, 0, 0}};
 
-static void usage() {
-  std::cout << color_method << "Use: " << color_reset
+static void usage(bool color_enabled) {
+  std::cout << color<color_method>(color_enabled)
+            << "Use: " << color<color_reset>(color_enabled)
             << "ccc [OPTIONS...] [COMMANDS]\n"
                "'ccc' uses centreon-broker or centreon-engine gRPC api "
                "to communicate with them\n"
-               "\nExamples:\n"
+               "\n"
+            << color<color_method>(color_enabled)
+            << "Options:" << color<color_reset>(color_enabled)
+            << "\n"
+               "  -v, --version\n"
+               "    Displays the version of ccc.\n"
+               "  -h, --help [COMMAND]\n"
+               "    Displays a general help or a help message on the command.\n"
+               "  -p, --port <NUMBER>\n"
+               "    Specifies the gRPC server port to connect to.\n"
+               "  -l, --list\n"
+               "    Displays the available methods.\n"
+               "  -n, --nocolor\n"
+               "    Outputs are displayed with the current color.\n"
+               "\n"
+            << color<color_method>(color_enabled)
+            << "Examples:" << color<color_reset>(color_enabled)
+            << "\n"
                "  ccc -p 51001 --list       # Lists available functions "
                "from gRPC interface at port 51000\n"
                "  ccc -p 51001 GetVersion{} # Calls the GetVersion method.\n";
@@ -55,15 +72,20 @@ int main(int argc, char** argv) {
 
   bool list = false;
   bool help = false;
+  bool color_enabled = true;
 
-  while ((opt = getopt_long(argc, argv, "vhp:l", long_options,
+  while ((opt = getopt_long(argc, argv, "vhnp:l", long_options,
                             &option_index)) != -1) {
     switch (opt) {
       case 'v':
         std::cout << "ccc " << CENTREON_CONNECTOR_VERSION << "\n";
+        exit(0);
         break;
       case 'h':
         help = true;
+        break;
+      case 'n':
+        color_enabled = false;
         break;
       case 'p':
         if (!absl::SimpleAtoi(optarg, &port)) {
@@ -82,7 +104,7 @@ int main(int argc, char** argv) {
   }
 
   if (help && optind == argc) {
-    usage();
+    usage(color_enabled);
     exit(0);
   }
 
@@ -96,7 +118,7 @@ int main(int argc, char** argv) {
       grpc::CreateChannel(url, grpc::InsecureChannelCredentials());
 
   try {
-    client clt(channel);
+    client clt(channel, color_enabled);
     if (help) {
       std::string message{clt.info_method(argv[optind])};
       std::cout << "Input message for this function:\n" << message << std::endl;
@@ -104,10 +126,11 @@ int main(int argc, char** argv) {
     } else if (list) {
       if (optind < argc) {
         std::cerr << "\n"
-                  << color_error << "Error: " << color_reset
+                  << color<color_error>(color_enabled)
+                  << "Error: " << color<color_reset>(color_enabled)
                   << "The list argument expects no command.\n"
                   << std::endl;
-        usage();
+        usage(color_enabled);
         exit(4);
       }
       auto methods{clt.methods()};
@@ -132,7 +155,8 @@ int main(int argc, char** argv) {
       }
     }
   } catch (const std::exception& e) {
-    std::cerr << color_error << "Error: " << color_reset << e.what()
+    std::cerr << color<color_error>(color_enabled)
+              << "Error: " << color<color_reset>(color_enabled) << e.what()
               << std::endl;
     exit(1);
   }

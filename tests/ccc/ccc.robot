@@ -231,3 +231,35 @@ BECCC7
 	Stop Engine
 	Kindly Stop Broker
 	Remove File	/tmp/output.txt
+
+BECCC8
+	[Documentation]	ccc with -p 50001 EnableServiceNotifications{"names":{"host_name": "host_1", "service_name": "service_1"}} works and returns an empty message.
+	[Tags]	Broker	Engine	protobuf	bbdo	ccc
+	Config Engine	${1}
+	Config Broker	central
+	Config Broker	module
+	Config Broker	rrd
+        Broker Config Add Item	module0	bbdo_version	3.0.0
+        Broker Config Add Item	central	bbdo_version	3.0.0
+        Broker Config Add Item	rrd	bbdo_version	3.0.0
+	Broker Config Log	central	sql	trace
+	Config Broker Sql Output	central	unified_sql
+        Broker Config Output Set	central	central-broker-unified-sql	store_in_resources	yes
+        Broker Config Output Set	central	central-broker-unified-sql	store_in_hosts_services	no
+	Clear Retention
+	${start}=	Get Current Date
+        Sleep	1s
+	Start Broker
+	Start Engine
+	Sleep	3s
+	Start Process	/usr/bin/ccc	-p 50001	EnableServiceNotifications{"names":{"host_name": "host_1", "service_name": "service_1"}}  stdout=/tmp/output.txt
+	FOR	${i}	IN RANGE	10
+	 Wait Until Created	/tmp/output.txt
+	 ${content}=	Get File	/tmp/output.txt
+	 EXIT FOR LOOP IF	len("""${content.strip().split()}""") > 2
+	 Sleep	1s
+	END
+	Should Contain	${content}	{}
+	Stop Engine
+	Kindly Stop Broker
+	Remove File	/tmp/output.txt

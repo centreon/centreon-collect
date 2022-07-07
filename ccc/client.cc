@@ -30,8 +30,10 @@
 
 using namespace com::centreon::ccc;
 
-client::client(std::shared_ptr<grpc::Channel> channel)
-    : _stub{std::make_unique<grpc::GenericStub>(channel)}, _server{CCC_NONE} {
+client::client(std::shared_ptr<grpc::Channel> channel, bool color_enabled)
+    : _stub{std::make_unique<grpc::GenericStub>(channel)},
+      _server{CCC_NONE},
+      _color_enabled{color_enabled} {
   const ::google::protobuf::Empty e;
   com::centreon::broker::Version broker_v;
   com::centreon::engine::Version engine_v;
@@ -118,15 +120,17 @@ std::list<std::string> client::methods() const {
     const google::protobuf::Descriptor* input_message = method->input_type();
     const google::protobuf::Descriptor* output_message = method->output_type();
     retval.emplace_back(absl::StrFormat(
-        "%s%s%s(%s%s%s) -> %s%s%s", color_method, method->name(), color_reset,
-        color_message, input_message->name(), color_reset, color_message,
-        output_message->name(), color_reset));
+        "%s%s%s(%s%s%s) -> %s%s%s", color<color_method>(_color_enabled),
+        method->name(), color<color_reset>(_color_enabled),
+        color<color_message>(_color_enabled), input_message->name(),
+        color<color_reset>(_color_enabled),
+        color<color_message>(_color_enabled), output_message->name(),
+        color<color_reset>(_color_enabled)));
   }
   return retval;
 }
 
 std::string client::call(const std::string& cmd, const std::string& args) {
-  // grpc::CompletionQueue cq;
   const google::protobuf::DescriptorPool* p =
       google::protobuf::DescriptorPool::generated_pool();
   const google::protobuf::ServiceDescriptor* service_descriptor;
@@ -196,9 +200,10 @@ std::string client::call(const std::string& cmd, const std::string& args) {
   return "";
 }
 
-static void _message_description(const google::protobuf::Descriptor* desc,
-                                 std::list<std::string>& output,
-                                 size_t level) {
+void message_description(const google::protobuf::Descriptor* desc,
+                         std::list<std::string>& output,
+                         bool color_enabled,
+                         size_t level) {
   std::string tab(level, static_cast<char>(' '));
   bool one_of = false;
   std::string one_of_name;
@@ -207,9 +212,10 @@ static void _message_description(const google::protobuf::Descriptor* desc,
 
     auto oof = f->containing_oneof();
     if (!one_of && oof) {
-      output.emplace_back(absl::StrFormat("%s%soneof%s \"%s%s%s\" {", tab,
-                                          color_yellow, color_reset, color_blue,
-                                          oof->name(), color_reset));
+      output.emplace_back(absl::StrFormat(
+          "%s%soneof%s \"%s%s%s\" {", tab, color<color_yellow>(color_enabled),
+          color<color_reset>(color_enabled), color<color_blue>(color_enabled),
+          oof->name(), color<color_reset>(color_enabled)));
       level += 2;
       tab += "  ";
       one_of = true;
@@ -256,8 +262,11 @@ static void _message_description(const google::protobuf::Descriptor* desc,
         value = "string";
         break;
       case google::protobuf::FieldDescriptor::TYPE_MESSAGE:
-        output.emplace_back(absl::StrFormat("%s\"%s\": {", tab, entry_name));
-        _message_description(f->message_type(), output, level + 2);
+        output.emplace_back(absl::StrFormat(
+            "%s\"%s%s%s\": {", tab, color<color_blue>(color_enabled),
+            entry_name, color<color_reset>(color_enabled)));
+        message_description(f->message_type(), output, color_enabled,
+                            level + 2);
         output.emplace_back(absl::StrFormat("%s}", tab));
         continue;
         break;
@@ -267,13 +276,17 @@ static void _message_description(const google::protobuf::Descriptor* desc,
         break;
     }
     if (f->is_repeated())
-      output.emplace_back(absl::StrFormat("%s\"%s%s%s\": [%s%s%s]", tab,
-                                          color_blue, entry_name, color_reset,
-                                          color_green, value, color_reset));
+      output.emplace_back(absl::StrFormat(
+          "%s\"%s%s%s\": [%s%s%s]", tab, color<color_blue>(color_enabled),
+          entry_name, color<color_reset>(color_enabled),
+          color<color_green>(color_enabled), value,
+          color<color_reset>(color_enabled)));
     else
-      output.emplace_back(absl::StrFormat("%s\"%s%s%s\": %s%s%s", tab,
-                                          color_blue, entry_name, color_reset,
-                                          color_green, value, color_reset));
+      output.emplace_back(absl::StrFormat(
+          "%s\"%s%s%s\": %s%s%s", tab, color<color_blue>(color_enabled),
+          entry_name, color<color_reset>(color_enabled),
+          color<color_green>(color_enabled), value,
+          color<color_reset>(color_enabled)));
   }
 }
 
@@ -303,8 +316,9 @@ std::string client::info_method(const std::string& cmd) const {
 
   const google::protobuf::Descriptor* input_message = method->input_type();
   std::list<std::string> message{absl::StrFormat(
-      "\"%s%s%s\": {", color_blue, input_message->name(), color_reset)};
-  _message_description(input_message, message, 2);
+      "\"%s%s%s\": {", color<color_blue>(_color_enabled), input_message->name(),
+      color<color_reset>(_color_enabled))};
+  message_description(input_message, message, _color_enabled, 2);
   message.push_back("}");
   retval = absl::StrJoin(message, "\n");
   return retval;
