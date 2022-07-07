@@ -281,6 +281,7 @@ Here is the list of the currently implemented tests:
 - [x] **BECCC5**: ccc with -p 51001 -l GetVersion returns an error because we can't execute a command with -l.
 - [x] **BECCC6**: ccc with -p 51001 GetVersion{} calls the GetVersion command
 - [x] **BECCC7**: ccc with -p 51001 GetVersion{"idx":1} returns an error because the input message is wrong.
+- [x] **BECCC8**: ccc with -p 50001 EnableServiceNotifications{"names":{"host_name": "host_1", "service_name": "service_1"}} works and returns an empty message.
 
 ### Connector perl
 - [x] **test use connector perl exist script**: test exist script
