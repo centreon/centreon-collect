@@ -52,6 +52,9 @@ Default configuration files were not installed on a Debian fresh install.
 
 Don't coredump if connection fail on process start
 
+*Compression*
+In the bbdo negotiation, compression was never activated
+
 #### Enhancements
 
 *downtimes*
