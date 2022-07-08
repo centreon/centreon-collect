@@ -26,17 +26,35 @@
 namespace com {
 namespace centreon {
 namespace ccc {
+constexpr const char color_green[] = "\u001b[32;1m";
+constexpr const char color_blue[] = "\u001b[34;1m";
+constexpr const char color_reset[] = "\u001b[0m";
+constexpr const char color_red[] = "\u001b[31;1m";
+constexpr const char color_yellow[] = "\u001b[33;1m";
+constexpr const char color_message[] = "\u001b[32;1m";
+constexpr const char color_method[] = "\u001b[34;1m";
+constexpr const char color_error[] = "\u001b[31;1m";
+
+template <const char* C>
+const char* color(bool enabled) {
+  if (enabled)
+    return C;
+  else
+    return "";
+}
+
 class client {
   enum type { CCC_NONE, CCC_BROKER, CCC_ENGINE };
   std::unique_ptr<grpc::GenericStub> _stub;
   type _server;
+  bool _color_enabled;
   grpc::CompletionQueue _cq;
-  std::unique_ptr<grpc::ClientContext> _context;
 
  public:
-  client(std::shared_ptr<grpc::Channel> channel);
+  client(std::shared_ptr<grpc::Channel> channel, bool color_enabled = true);
   std::list<std::string> methods() const;
-  std::string call(const std::string& full_cmd);
+  std::string call(const std::string& cmd, const std::string& args);
+  std::string info_method(const std::string& cmd) const;
 };
 }  // namespace ccc
 }  // namespace centreon

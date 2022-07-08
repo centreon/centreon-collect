@@ -229,11 +229,15 @@ Here is the list of the currently implemented tests:
 - [x] **BRCTS1**: Broker reverse connection too slow
 - [x] **BRGC1**: Broker good reverse connection
 - [x] **BRRDDID1**: RRD metrics deletion from index ids.
+- [x] **BRRDDIDDB1**: RRD metrics deletion from index ids with a query in centreon_storage.
 - [x] **BRRDDIDU1**: RRD metrics deletion from index ids with unified sql output.
 - [x] **BRRDDM1**: RRD metrics deletion from metric ids.
+- [x] **BRRDDMDB1**: RRD metrics deletion from metric ids with a query in centreon_storage.
 - [x] **BRRDDMID1**: RRD deletion of non existing metrics and indexes
 - [x] **BRRDDMIDU1**: RRD deletion of non existing metrics and indexes
 - [x] **BRRDDMU1**: RRD metric deletion on table metric with unified sql output
+- [x] **BRRDRBDB1**: RRD metric rebuild with a query in centreon_storage and unified sql
+- [x] **BRRDRBUDB1**: RRD metric rebuild with a query in centreon_storage and unified sql
 - [x] **BRRDRM1**: RRD metric rebuild with gRPC API and unified sql
 - [x] **BRRDRMU1**: RRD metric rebuild with gRPC API and unified sql
 - [x] **EBDP1**: Four new pollers are started and then we remove Poller3.
@@ -273,6 +277,11 @@ Here is the list of the currently implemented tests:
 - [x] **BECCC1**: ccc without port fails with an error message
 - [x] **BECCC2**: ccc with -p 51001 connects to central cbd gRPC server.
 - [x] **BECCC3**: ccc with -p 50001 connects to centengine gRPC server.
+- [x] **BECCC4**: ccc with -p 51001 -l returns the available functions from Broker gRPC server
+- [x] **BECCC5**: ccc with -p 51001 -l GetVersion returns an error because we can't execute a command with -l.
+- [x] **BECCC6**: ccc with -p 51001 GetVersion{} calls the GetVersion command
+- [x] **BECCC7**: ccc with -p 51001 GetVersion{"idx":1} returns an error because the input message is wrong.
+- [x] **BECCC8**: ccc with -p 50001 EnableServiceNotifications{"names":{"host_name": "host_1", "service_name": "service_1"}} works and returns an empty message.
 
 ### Connector perl
 - [x] **test use connector perl exist script**: test exist script
