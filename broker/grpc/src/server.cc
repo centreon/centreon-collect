@@ -140,7 +140,8 @@ void server::start() {
     creds_opts.set_root_cert_name("Root");
     server_creds = ::grpc::experimental::TlsServerCredentials(creds_opts);
 #else
-  if (!_conf->get_cert().empty() && !_conf->get_key().empty()) {
+  if (_conf->is_crypted() && !_conf->get_cert().empty() &&
+      !_conf->get_key().empty()) {
     ::grpc::SslServerCredentialsOptions::PemKeyCertPair pkcp = {
         _conf->get_key(), _conf->get_cert()};
 
@@ -170,6 +171,20 @@ void server::start() {
   builder.AddChannelArgument(GRPC_ARG_HTTP2_MAX_PINGS_WITHOUT_DATA, 0);
   builder.AddChannelArgument(
       GRPC_ARG_HTTP2_MIN_RECV_PING_INTERVAL_WITHOUT_DATA_MS, 60000);
+
+  if (_conf->get_compress_level() > GRPC_COMPRESS_LEVEL_NONE) {
+    grpc_compression_algorithm algo = grpc_compression_algorithm_for_level(
+        _conf->get_compress_level(), calc_accept_all_compression_mask());
+    const char* algo_name;
+    if (grpc_compression_algorithm_name(algo, &algo_name)) {
+      log_v2::grpc()->debug("server default compression {}", algo_name);
+    } else {
+      log_v2::grpc()->debug("server default compression unknown");
+    }
+
+    builder.SetDefaultCompressionAlgorithm(algo);
+    builder.SetDefaultCompressionLevel(_conf->get_compress_level());
+  }
   _server = std::unique_ptr<::grpc::Server>(builder.BuildAndStart());
 }
 

@@ -103,7 +103,7 @@ io::endpoint* factory::new_endpoint(
   }
 
   bool crypted = false;
-  it = cfg.params.find("crypted");
+  it = cfg.params.find("encryption");
   if (it != cfg.params.end()) {
     crypted = !strcasecmp(it->second.c_str(), "yes");
   }
@@ -150,9 +150,28 @@ io::endpoint* factory::new_endpoint(
     authorization = it->second;
   }
 
-  grpc_config::pointer conf(
-      std::make_shared<grpc_config>("", crypted, certificate, certificate_key,
-                                    certificate_authority, authorization));
+  grpc_compression_level compression_level(GRPC_COMPRESS_LEVEL_NONE);
+  it = cfg.params.find("compression");
+  if (it != cfg.params.end() && !strcasecmp(it->second.c_str(), "yes")) {
+    compression_level = GRPC_COMPRESS_LEVEL_HIGH;
+  }
+
+  it = cfg.params.find("compression_level");
+  if (it != cfg.params.end()) {
+    unsigned val;
+    if (!absl::SimpleAtoi(it->second, &val) || val > GRPC_COMPRESS_LEVEL_HIGH) {
+      log_v2::grpc()->error(
+          "{} compression_level must be a positive integer less than or equal "
+          "to {} => use GRPC_COMPRESS_LEVEL_HIGH",
+          __PRETTY_FUNCTION__, GRPC_COMPRESS_LEVEL_HIGH);
+    } else {
+      compression_level = static_cast<grpc_compression_level>(val);
+    }
+  }
+
+  grpc_config::pointer conf(std::make_shared<grpc_config>(
+      "", crypted, certificate, certificate_key, certificate_authority,
+      authorization, compression_level));
 
   // Acceptor.
   std::unique_ptr<io::endpoint> endp;

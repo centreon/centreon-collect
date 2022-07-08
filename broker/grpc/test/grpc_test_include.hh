@@ -34,6 +34,7 @@
 
 #include "../src/grpc_stream.pb.h"
 
+#include <grpc/impl/codegen/compression_types.h>
 #include <grpcpp/create_channel.h>
 
 using system_clock = std::chrono::system_clock;

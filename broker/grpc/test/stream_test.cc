@@ -24,12 +24,14 @@ using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
 
 com::centreon::broker::grpc::grpc_config::pointer conf(
-    std::make_shared<com::centreon::broker::grpc::grpc_config>("127.0.0.1:4444",
-                                                               false,
-                                                               "",
-                                                               "",
-                                                               "",
-                                                               "my_aut"));
+    std::make_shared<com::centreon::broker::grpc::grpc_config>(
+        "127.0.0.1:4444",
+        false,
+        "",
+        "",
+        "",
+        "my_aut",
+        GRPC_COMPRESS_LEVEL_NONE));
 
 static constexpr unsigned relay_listen_port = 5123u;
 static constexpr unsigned server_listen_port = 5124u;
@@ -336,7 +338,8 @@ com::centreon::broker::grpc::grpc_config::pointer conf_crypted_server1234(
         read_file("tests/grpc_test_keys/server_1234.crt"),
         read_file("tests/grpc_test_keys/server_1234.key"),
         read_file("tests/grpc_test_keys/ca_1234.crt"),
-        "my_auth"));
+        "my_auth",
+        GRPC_COMPRESS_LEVEL_NONE));
 
 com::centreon::broker::grpc::grpc_config::pointer conf_crypted_client1234(
     std::make_shared<com::centreon::broker::grpc::grpc_config>(
@@ -345,7 +348,8 @@ com::centreon::broker::grpc::grpc_config::pointer conf_crypted_client1234(
         read_file("tests/grpc_test_keys/client_1234.crt"),
         read_file("tests/grpc_test_keys/client_1234.key"),
         read_file("tests/grpc_test_keys/ca_1234.crt"),
-        "my_auth"));
+        "my_auth",
+        GRPC_COMPRESS_LEVEL_NONE));
 
 class grpc_test_server_crypted : public ::testing::TestWithParam<test_param> {
  protected:
@@ -406,7 +410,8 @@ com::centreon::broker::grpc::grpc_config::pointer
             read_file("tests/grpc_test_keys/client_1234.crt"),
             read_file("tests/grpc_test_keys/client_1234.key"),
             read_file("tests/grpc_test_keys/ca_1234.crt"),
-            "my_auth_pasbon"));
+            "my_auth_pasbon",
+            GRPC_COMPRESS_LEVEL_NONE));
 
 TEST_P(grpc_test_server_crypted, ServerToClientWithKeyAndBadAuthorization) {
   com::centreon::broker::grpc::stream client(conf_crypted_client1234_bad_auth);
