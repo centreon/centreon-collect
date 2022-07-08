@@ -53,7 +53,7 @@ RUN rm -rf ~/.conan/profiles/default
 COPY conanfile.txt .
 RUN cat conanfile.txt
 RUN source /opt/rh/devtoolset-9/enable && source /opt/rh/rh-python38/enable && \
-    conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build='*'
+    conan install . -s compiler.cppstd=17 -s compiler.libcxx=libstdc++11 --build='*'
 
 RUN unzip -q sonar-scanner-cli-4.7.0.2747-linux.zip
 RUN rm -rf sonar-scanner-cli-4.7.0.2747-linux.zip
