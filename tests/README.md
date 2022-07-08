@@ -177,6 +177,10 @@ Here is the list of the currently implemented tests:
 - [x] **BECT_GRPC3**: Broker/Engine communication with anonymous TLS and ca certificate
 - [x] **BECT_GRPC4**: Broker/Engine communication with TLS between central and poller with key/cert and hostname forced
 - [x] **BECC1**: Broker/Engine communication with compression between central and poller
+- [x] **BRRDDMDB1**: RRD metrics deletion from metric ids with a query in centreon_storage.
+- [x] **BRRDDIDDB1**: RRD metrics deletion from index ids with a query in centreon_storage.
+- [x] **BRRDRBDB1**: RRD metric rebuild with a query in centreon_storage and unified sql
+- [x] **BRRDRBUDB1**: RRD metric rebuild with a query in centreon_storage and unified sql
 - [x] **EBSNU1**: New services with notes_url with more than 2000 characters
 - [x] **EBSAU2**: New services with action_url with more than 2000 characters
 - [x] **EBSN3**: New services with notes with more than 500 characters
@@ -259,6 +263,11 @@ Here is the list of the currently implemented tests:
 - [x] **BECCC1**: ccc without port fails with an error message
 - [x] **BECCC2**: ccc with -p 51001 connects to central cbd gRPC server.
 - [x] **BECCC3**: ccc with -p 50001 connects to centengine gRPC server.
+- [x] **BECCC4**: ccc with -p 51001 -l returns the available functions from Broker gRPC server
+- [x] **BECCC5**: ccc with -p 51001 -l GetVersion returns an error because we can't execute a command with -l.
+- [x] **BECCC6**: ccc with -p 51001 GetVersion{} calls the GetVersion command
+- [x] **BECCC7**: ccc with -p 51001 GetVersion{"idx":1} returns an error because the input message is wrong.
+- [x] **BECCC8**: ccc with -p 50001 EnableServiceNotifications{"names":{"host_name": "host_1", "service_name": "service_1"}} works and returns an empty message.
 
 ### Connector perl
 - [x] **test use connector perl exist script**: test exist script
