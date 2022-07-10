@@ -1,5 +1,5 @@
 /*
-** Copyright 2014-2015, 2021 Centreon
+** Copyright 2014-2015, 2021-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -181,7 +181,7 @@ bool kpi_service::is_acknowledged() const {
  *  @param[out] visitor  Object that will receive events.
  */
 void kpi_service::service_update(
-    std::shared_ptr<neb::service_status> const& status,
+    const std::shared_ptr<neb::service_status>& status,
     io::stream* visitor) {
   if (status && status->host_id == _host_id &&
       status->service_id == _service_id) {
@@ -298,7 +298,7 @@ void kpi_service::service_update(
  *  @param[in]  dt
  *  @param[out] visitor  Object that will receive events.
  */
-void kpi_service::service_update(std::shared_ptr<neb::downtime> const& dt,
+void kpi_service::service_update(const std::shared_ptr<neb::downtime>& dt,
                                  io::stream* visitor) {
   assert(dt && dt->host_id == _host_id && dt->service_id == _service_id);
   // Update information.
