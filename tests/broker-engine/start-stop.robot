@@ -23,7 +23,7 @@ BESS1
 	Start Engine
 	${result}=	Check Connections
 	Should Be True	${result}
-	Stop Broker
+	Kindly Stop Broker
 	Stop Engine
 
 BESS2
@@ -38,7 +38,7 @@ BESS2
 	${result}=	Check Connections
 	Should Be True	${result}
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker
 
 BESS3
 	[Documentation]	Start-Stop Broker/Engine - Engine started first - Engine stopped first
@@ -52,7 +52,7 @@ BESS3
 	${result}=	Check Connections
 	Should Be True	${result}
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker
 
 BESS4
 	[Documentation]	Start-Stop Broker/Engine - Engine started first - Broker stopped first
@@ -65,7 +65,7 @@ BESS4
 	Start Broker
 	${result}=	Check Connections
 	Should Be True	${result}
-	Stop Broker
+	Kindly Stop Broker
 	Stop Engine
 
 BESS5
@@ -80,7 +80,7 @@ BESS5
 	Start Engine
 	${result}=	Check Connections
 	Should Be True	${result}
-	Stop Broker
+	Kindly Stop Broker
 	Stop Engine
 
 BESS_GRPC1
@@ -98,7 +98,7 @@ BESS_GRPC1
 	Start Engine
 	${result}=	Check Connections
 	Should Be True	${result}
-	Stop Broker
+	Kindly Stop Broker
 	Stop Engine
 
 BESS_GRPC2
@@ -117,7 +117,7 @@ BESS_GRPC2
 	${result}=	Check Connections
 	Should Be True	${result}
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker
 
 BESS_GRPC3
 	[Documentation]	Start-Stop grpc version Broker/Engine - Engine started first - Engine stopped first
@@ -135,7 +135,7 @@ BESS_GRPC3
 	${result}=	Check Connections
 	Should Be True	${result}
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker
 
 BESS_GRPC4
 	[Documentation]	Start-Stop grpc version Broker/Engine - Engine started first - Broker stopped first
@@ -152,7 +152,7 @@ BESS_GRPC4
 	Start Broker
 	${result}=	Check Connections
 	Should Be True	${result}
-	Stop Broker
+	Kindly Stop Broker
 	Stop Engine
 
 BESS_GRPC5
@@ -171,7 +171,7 @@ BESS_GRPC5
 	Start Engine
 	${result}=	Check Connections
 	Should Be True	${result}
-	Stop Broker
+	Kindly Stop Broker
 	Stop Engine
 
 BESS_GRPC_COMPRESS1
@@ -191,7 +191,7 @@ BESS_GRPC_COMPRESS1
 	Start Engine
 	${result}=	Check Connections
 	Should Be True	${result}
-	Stop Broker
+	Kindly Stop Broker
 	Stop Engine
 
 
@@ -218,7 +218,7 @@ BESS_CRYPTED_GRPC1
 		Start Engine
 		${result}=	Check Connections
 		Should Be True	${result}
-		Stop Broker
+		Kindly Stop Broker
 		Stop Engine
 	END
 
@@ -241,7 +241,7 @@ BESS_CRYPTED_GRPC2
 		Start Broker
 		Start Engine
 		Sleep  2s
-		Stop Broker
+		Kindly Stop Broker
 		Stop Engine
 	END
 
@@ -264,7 +264,7 @@ BESS_CRYPTED_GRPC3
 		Start Broker
 		Start Engine
 		Sleep  2s
-		Stop Broker
+		Kindly Stop Broker
 		Stop Engine
 	END
 
@@ -292,7 +292,7 @@ BESS_CRYPTED_REVERSED_GRPC1
 		${result}=	Check Connections
 		Should Be True	${result}
 		Sleep  2s
-		Stop Broker
+		Kindly Stop Broker
 		Stop Engine
 	END
 
@@ -317,7 +317,7 @@ BESS_CRYPTED_REVERSED_GRPC2
 		Start Broker
 		Start Engine
 		Sleep  5s
-		Stop Broker
+		Kindly Stop Broker
 		Stop Engine
 	END
 
@@ -340,7 +340,7 @@ BESS_CRYPTED_REVERSED_GRPC3
 		Start Broker
 		Start Engine
 		Sleep  5s
-		Stop Broker
+		Kindly Stop Broker
 		Stop Engine
 	END
 

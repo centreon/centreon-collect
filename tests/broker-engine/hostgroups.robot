@@ -40,7 +40,7 @@ EBNHG1
 	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	45
 	Should Be True	${result}	msg=One of the new host groups not found in logs.
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker
 
 EBNHGU1
 	[Documentation]	New host group with several pollers and connections to DB with broker configured with unified_sql
