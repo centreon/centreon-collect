@@ -40,6 +40,9 @@ RUN pip3 install conan --prefix=/usr --upgrade
 RUN rm -rf ~/.conan/profiles/default
 COPY conanfile.txt .
 RUN cat conanfile.txt
+# For the old versions (before 22.04)
+RUN conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build='*'
+# For the new ones
 RUN conan install . -s compiler.cppstd=17 -s compiler.libcxx=libstdc++11 --build='*'
 
 WORKDIR /src
