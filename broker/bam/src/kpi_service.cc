@@ -306,7 +306,7 @@ void kpi_service::service_update(const std::shared_ptr<neb::downtime>& dt,
   if (!_downtimed && downtimed)
     _downtimed = true;
 
-  if (_downtime_ids.contains(dt->internal_id) && !dt->was_cancelled) {
+  if (_downtime_ids.contains(dt->internal_id) && dt->deletion_time.is_null()) {
     log_v2::bam()->trace("Downtime {} already handled in this kpi service",
                          dt->internal_id);
     return;

@@ -496,7 +496,7 @@ def delete_service_downtime(hst: str, svc: str):
 
     with connection:
         with connection.cursor() as cursor:
-            cursor.execute("select d.internal_id from downtimes d inner join hosts h on d.host_id=h.host_id inner join services s on d.service_id=s.service_id where d.cancelled='0' and s.scheduled_downtime_depth<>'0' and s.description='{}' and h.name='{}' LIMIT 1".format(svc, hst))
+            cursor.execute("select d.internal_id from downtimes d inner join hosts h on d.host_id=h.host_id inner join services s on d.service_id=s.service_id where d.deletion_time is null and s.scheduled_downtime_depth<>'0' and s.description='{}' and h.name='{}' LIMIT 1".format(svc, hst))
             result = cursor.fetchall()
             did = int(result[0]['internal_id'])
 
