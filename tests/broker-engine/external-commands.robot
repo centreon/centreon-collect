@@ -2405,17 +2405,13 @@ BEATOI21
 	Sleep	1s
 	Start Broker
 	Start Engine
-	Log To Console	date=${start}
 	ADD HOST COMMENT	host_1	1	user	comment
 	${content}=	Create List	ADD_HOST_COMMENT, comment_id: 1, data: comment
 	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 	Should Be True	${result}	msg=the comment with id:1 was not added.
 	${com_id}=	Find Internal Id		${start}	True	30
-	Log To Console	id=${com_id}
 	DEL HOST COMMENT	${com_id}
-	sleep	1s
 	${result}=	Find Internal Id	${start}	False	30
-	Log To Console	result:${result}
 	Should Be True	${result}	msg=the comment with id:${com_id} was not deleted.
 	Stop Engine
 	Kindly Stop Broker
@@ -2434,7 +2430,6 @@ BEATOI22
 	Start Broker
 	Start Engine
 	${date}=	Get Current Date	result_format=epoch
-	Log To Console	${date}
 	ADD SVC COMMENT	host_1	service_1	0	user	comment
 	${content}=	Create List	ADD_SVC_COMMENT, comment_id: 1, data: comment
 	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60

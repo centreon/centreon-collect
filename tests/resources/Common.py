@@ -807,11 +807,10 @@ def find_internal_id(date, exists=True, timeout: int = TIMEOUT):
                 cursor.execute(
                     "select internal_id from comments where entry_time >= {} and deletion_time is null".format(my_date))
                 result = cursor.fetchall()
-                logger.console(result)
                 if len(result) > 0 and exists:
                     return result[0]['internal_id']
                 elif len(result) == 0:
-                    logger.console("Query on the internal_id failed")
+                    logger.console("Query to find the internal_id failed")
                     if not exists:
                         return True
         time.sleep(1)
