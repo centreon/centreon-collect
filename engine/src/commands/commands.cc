@@ -946,8 +946,7 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
     return ERROR;
   if (!absl::SimpleAtob(temp_ptr, &fixed)) {
     log_v2::external_command()->error(
-        "Error: could not schedule downtime : fixed '{}' must be 1 "
-        "or 0",
+        "Error: could not schedule downtime : fixed '{}' must be 1 or 0",
         temp_ptr);
     return ERROR;
   }
@@ -968,8 +967,8 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
     return ERROR;
   if (!absl::SimpleAtoi(temp_ptr, &duration)) {
     log_v2::external_command()->error(
-        "Error: could not schedule downtime : duration '{}' must be an "
-        "integer >= 0",
+        "Error: could not schedule downtime : duration '{}' must be an integer "
+        ">= 0",
         temp_ptr);
     return ERROR;
   }

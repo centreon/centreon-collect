@@ -2392,6 +2392,27 @@ BEATOI12
 	Kindly Stop Broker
 
 
+BEATOI13
+	[Documentation]	external command SCHEDULE SERVICE DOWNTIME with duration<0 should fail
+	[Tags]	Broker	Engine	host	extcmd
+	Config Engine	${1}	${50}	${20}
+	Config Broker	rrd
+	Config Broker	central
+	Config Broker	module	${1}
+	Broker Config Log	central	core	error
+	Broker Config Log	central	sql	debug
+	${start}=	Get Current Date
+	Start Broker
+	Start Engine
+	${date}=	Get Current Date	result_format=epoch
+	SCHEDULE SERVICE DOWNTIME	host_1	service_1	-1
+	${content}=	Create List	Error: could not schedule downtime : duration
+	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	Should Be True	${result}	msg=command argument duration must be an integer >= 0.
+	Stop Engine
+	Kindly Stop Broker
+
+
 BEATOI21
 	[Documentation]	external command ADD_HOST_COMMENT and DEL_HOST_COMMENT should work
 	[Tags]	Broker	Engine	host	extcmd
@@ -2418,6 +2439,34 @@ BEATOI21
 
 
 BEATOI22
+	[Documentation]	external command DEL_HOST_COMMENT with internal_id<0 should fail
+	[Tags]	Broker	Engine	host	extcmd
+	Config Engine	${1}	${50}	${20}
+	Config Broker	rrd
+	Config Broker	central
+	Config Broker	module	${1}
+	Broker Config Log	central	core	error
+	Broker Config Log	central	sql	debug
+	${start}=	Get Current Date
+	Sleep	1s
+	Start Broker
+	Start Engine
+	ADD HOST COMMENT	host_1	1	user	comment
+	${content}=	Create List	ADD_HOST_COMMENT, comment_id: 1, data: comment
+	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	Should Be True	${result}	msg=the comment with id:1 was not added.
+	${com_id}=	Find Internal Id		${start}	True	30
+	DEL HOST COMMENT	-1
+	${content}=	Create List	Error: could not delete comment : comment_id
+	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	Should Be True	${result}	msg=comment_id must be an unsigned integer.
+	${result}=	Find Internal Id	${start}	True	30
+	Should Be True	${result}	msg=comment with id:-1 was deleted.
+	Stop Engine
+	Kindly Stop Broker
+
+
+BEATOI23
 	[Documentation]	external command ADD_SVC_COMMENT with persistent=0 should work
 	[Tags]	Broker	Engine	host	extcmd
 	Config Engine	${1}	${50}	${20}
@@ -2438,22 +2487,4 @@ BEATOI22
 	Kindly Stop Broker
 
 
-BEATOI23
-	[Documentation]	external command SCHEDULE SERVICE DOWNTIME with duration<0 should fail
-	[Tags]	Broker	Engine	host	extcmd
-	Config Engine	${1}	${50}	${20}
-	Config Broker	rrd
-	Config Broker	central
-	Config Broker	module	${1}
-	Broker Config Log	central	core	error
-	Broker Config Log	central	sql	debug
-	${start}=	Get Current Date
-	Start Broker
-	Start Engine
-	${date}=	Get Current Date	result_format=epoch
-	SCHEDULE SERVICE DOWNTIME	host_1	service_1	-1
-	${content}=	Create List	Error: could not schedule downtime : duration
-	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
-	Should Be True	${result}	msg=command argument duration must be an integer >= 0.
-	Stop Engine
-	Kindly Stop Broker
+
