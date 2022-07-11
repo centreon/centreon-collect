@@ -247,12 +247,12 @@ cd build
 if [ $maj = "centos7" ] ; then
   rm -rf ~/.conan/profiles/default
   if [ "$CONAN_REBUILD" = "1" ] ; then
-    $conan install .. -s compiler.cppstd=17 -s compiler.libcxx=libstdc++11 --build="*"
+    $conan install .. -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build="*"
   else
-    $conan install .. -s compiler.cppstd=17 -s compiler.libcxx=libstdc++11 --build=missing
+    $conan install .. -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
   fi
 else
-    $conan install .. -s compiler.cppstd=17 -s compiler.libcxx=libstdc++11 --build=missing
+    $conan install .. -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
 fi
 
 if [ $maj = "Raspbian" ] ; then
