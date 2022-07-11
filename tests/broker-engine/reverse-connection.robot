@@ -33,7 +33,7 @@ BRGC1
 
 	Run Reverse Bam	${50}	${0.2}
 
-	Stop Broker
+	Kindly Stop Broker
 	Stop Engine
 
 	${content}=	Create List	New incoming connection 'centreon-broker-master-map-2'	file: end of file '/var/lib/centreon-broker//central-broker-master.queue.centreon-broker-master-map-2' reached, erasing it
@@ -61,7 +61,7 @@ BRCTS1
 
 	Run Reverse Bam	${150}	${10}
 
-	Stop Broker
+	Kindly Stop Broker
 	Stop Engine
 
 	${content}=	Create List	New incoming connection 'centreon-broker-master-map-2'	file: end of file '/var/lib/centreon-broker//central-broker-master.queue.centreon-broker-master-map-2' reached, erasing it
@@ -87,7 +87,7 @@ BRCS1
 	${result}=	Check Connections
 	Should Be True	${result}	msg=Engine and Broker not connected
 
-	Stop Broker
+	Kindly Stop Broker
 	Stop Engine
 
 	${content}=	Create List	New incoming connection 'centreon-broker-master-map-2'	file: end of file '/var/lib/centreon-broker//central-broker-master.queue.centreon-broker-master-map-2' reached, erasing it

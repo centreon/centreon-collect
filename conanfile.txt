@@ -4,8 +4,8 @@ asio/1.22.1
 fmt/8.1.1
 spdlog/1.10.0
 nlohmann_json/3.10.5
-openssl/1.1.1n
-grpc/1.43.0
+openssl/1.1.1o
+grpc/1.46.3
 mariadb-connector-c/3.1.12
 zlib/1.2.12
 boost/1.79.0
@@ -15,7 +15,13 @@ libssh2/1.10.0
 cmake
 
 [options]
-grpc:secure=True
 boost:header_only=True
+grpc:csharp_ext=False
+grpc:csharp_plugin=False
+grpc:node_plugin=False
+grpc:objective_c_plugin=False
+grpc:php_plugin=False
+grpc:python_plugin=True
+grpc:ruby_plugin=False
+grpc:secure=True
 libssh2:shared=False
-
