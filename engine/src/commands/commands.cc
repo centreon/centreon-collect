@@ -200,10 +200,11 @@ int cmd_add_comment(int cmd, time_t entry_time, char* args) {
   /* get the persistent flag */
   if ((temp_ptr = my_strtok(nullptr, ";")) == nullptr)
     return ERROR;
+
   if (!absl::SimpleAtob(temp_ptr, &persistent)) {
-    log_v2::runtime()->error(
-        "Error: could not {} : Command argument '{}' must be 1 or 0",
-        command_name, temp_ptr);
+    log_v2::external_command()->error(
+        "Error: could not {} : persistent '{}' must be 1 or 0", command_name,
+        temp_ptr);
     return ERROR;
   }
 
@@ -220,27 +221,27 @@ int cmd_add_comment(int cmd, time_t entry_time, char* args) {
       (cmd == CMD_ADD_HOST_COMMENT) ? comment::host : comment::service,
       comment::user, temp_host->get_host_id(), service_id, entry_time, user,
       comment_data, persistent, comment::external, false, (time_t)0)};
-  comment::comments.insert({com->get_comment_id(), com});
-  log_v2::external_command()->info("{} finished", command_name);
+  uint64_t internal_id = com->get_comment_id();
+  comment::comments.insert({internal_id, com});
+  log_v2::external_command()->trace("{}, internal_id: {}, data: {}",
+                                    command_name, internal_id,
+                                    com->get_comment_data());
   return OK;
 }
 
 /* removes a host or service comment from the status log */
 int cmd_delete_comment(int cmd [[maybe_unused]], char* args) {
-  uint64_t comment_id{0};
-
+  uint64_t internal_id{0};
   /* get the comment id we should delete */
-  if (!absl::SimpleAtoi(args, &comment_id)) {
-    log_v2::runtime()->error(
-        "Error: could not add comment : Command argument '{}' must be an "
+  if (!absl::SimpleAtoi(args, &internal_id)) {
+    log_v2::external_command()->error(
+        "Error: could not delete comment : internal_id '{}' must be an "
         "integer >= 0",
         args);
     return ERROR;
   }
-
   /* delete the specified comment */
-  comment::delete_comment(comment_id);
-
+  comment::delete_comment(internal_id);
   return OK;
 }
 
@@ -324,8 +325,8 @@ int cmd_delay_notification(int cmd, char* args) {
   if ((temp_ptr = my_strtok(nullptr, "\n")) == nullptr)
     return ERROR;
   if (!absl::SimpleAtoi(temp_ptr, &delay_time)) {
-    log_v2::runtime()->error(
-        "Error: could not delay notification : Command argument '{}' must be "
+    log_v2::external_command()->error(
+        "Error: could not delay notification : delay_time '{}' must be "
         "an integer",
         temp_ptr);
     return ERROR;
@@ -379,8 +380,8 @@ int cmd_schedule_check(int cmd, char* args) {
   if ((temp_ptr = my_strtok(nullptr, "\n")) == nullptr)
     return ERROR;
   if (!absl::SimpleAtoi(temp_ptr, &delay_time)) {
-    log_v2::runtime()->error(
-        "Error: could not schedule check : Command argument '{}' must be "
+    log_v2::external_command()->error(
+        "Error: could not schedule check : delay_time '{}' must be "
         "an integer",
         temp_ptr);
     return ERROR;
@@ -440,8 +441,8 @@ int cmd_schedule_host_service_checks(int cmd, char* args, int force) {
   if ((temp_ptr = my_strtok(nullptr, "\n")) == nullptr)
     return ERROR;
   if (!absl::SimpleAtoi(temp_ptr, &delay_time)) {
-    log_v2::runtime()->error(
-        "Error: could not schedule host service checks : Command argument '{}' "
+    log_v2::external_command()->error(
+        "Error: could not schedule host service checks : delay_time '{}' "
         "must be an integer",
         temp_ptr);
     return ERROR;
@@ -469,8 +470,8 @@ void cmd_signal_process(int cmd, char* args) {
   if ((temp_ptr = my_strtok(args, "\n")) == nullptr)
     scheduled_time = 0L;
   else if (!absl::SimpleAtoi(temp_ptr, &scheduled_time)) {
-    log_v2::runtime()->error(
-        "Error: could not schedule host service checks : Command argument '{}' "
+    log_v2::external_command()->error(
+        "Error: could not signal process : scheduled_time '{}' "
         "must be an integer",
         temp_ptr);
     return;
@@ -922,8 +923,8 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
   if ((temp_ptr = my_strtok(nullptr, ";")) == nullptr)
     return ERROR;
   if (!absl::SimpleAtoi(temp_ptr, &start_time)) {
-    log_v2::runtime()->error(
-        "Error: could not schedule downtime : Command argument '{}' must be "
+    log_v2::external_command()->error(
+        "Error: could not schedule downtime : start_time '{}' must be "
         "an integer",
         temp_ptr);
     return ERROR;
@@ -933,8 +934,8 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
   if ((temp_ptr = my_strtok(nullptr, ";")) == nullptr)
     return ERROR;
   if (!absl::SimpleAtoi(temp_ptr, &end_time)) {
-    log_v2::runtime()->error(
-        "Error: could not schedule downtime : Command argument '{}' must be "
+    log_v2::external_command()->error(
+        "Error: could not schedule downtime : end_time '{}' must be "
         "an integer",
         temp_ptr);
     return ERROR;
@@ -944,8 +945,8 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
   if ((temp_ptr = my_strtok(nullptr, ";")) == nullptr)
     return ERROR;
   if (!absl::SimpleAtob(temp_ptr, &fixed)) {
-    log_v2::runtime()->error(
-        "Error: could not schedule downtime : Command argument '{}' must be 1 "
+    log_v2::external_command()->error(
+        "Error: could not schedule downtime : fixed '{}' must be 1 "
         "or 0",
         temp_ptr);
     return ERROR;
@@ -955,8 +956,8 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
   if ((temp_ptr = my_strtok(nullptr, ";")) == nullptr)
     return ERROR;
   if (!absl::SimpleAtoi(temp_ptr, &triggered_by)) {
-    log_v2::runtime()->error(
-        "Error: could not schedule downtime : Command argument '{}' must be an "
+    log_v2::external_command()->error(
+        "Error: could not schedule downtime : triggered_by '{}' must be an "
         "integer >= 0",
         temp_ptr);
     return ERROR;
@@ -966,8 +967,8 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
   if ((temp_ptr = my_strtok(nullptr, ";")) == nullptr)
     return ERROR;
   if (!absl::SimpleAtoi(temp_ptr, &duration)) {
-    log_v2::runtime()->error(
-        "Error: could not schedule downtime : Command argument '{}' must be an "
+    log_v2::external_command()->error(
+        "Error: could not schedule downtime : duration '{}' must be an "
         "integer >= 0",
         temp_ptr);
     return ERROR;
@@ -1125,8 +1126,8 @@ int cmd_delete_downtime(int cmd, char* args) {
     return ERROR;
 
   if (!absl::SimpleAtoi(temp_ptr, &downtime_id)) {
-    log_v2::runtime()->error(
-        "Error: could not delete downtime : Command argument '{}' must be an "
+    log_v2::external_command()->error(
+        "Error: could not delete downtime : downtime_id '{}' must be an "
         "integer >= 0",
         temp_ptr);
     return ERROR;

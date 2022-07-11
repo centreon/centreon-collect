@@ -749,18 +749,17 @@ void processing::_wrapper_set_host_notification_number(host* hst, char* args) {
 
 void processing::_wrapper_send_custom_host_notification(host* hst, char* args) {
   char* buf[3] = {NULL, NULL, NULL};
-  int notification_number;
+  int option;
   if ((buf[0] = my_strtok(args, ";")) && (buf[1] = my_strtok(NULL, ";")) &&
       (buf[2] = my_strtok(NULL, ";"))) {
-    if (!absl::SimpleAtoi(buf[0], &notification_number)) {
+    if (!absl::SimpleAtoi(buf[0], &option)) {
       log_v2::runtime()->error(
           "Error: could not send custom host notification: Command argument "
           "'{}' must be an integer between 0 and 7",
           buf[0]);
-    } else if (notification_number >= 0 && notification_number <= 7) {
-      hst->notify(
-          notifier::reason_custom, buf[1], buf[2],
-          static_cast<notifier::notification_option>(notification_number));
+    } else if (option >= 0 && option <= 7) {
+      hst->notify(notifier::reason_custom, buf[1], buf[2],
+                  static_cast<notifier::notification_option>(option));
     } else {
       log_v2::runtime()->error(
           "Error: could not send custom host notification: Command argument "

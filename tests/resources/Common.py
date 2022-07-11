@@ -561,7 +561,7 @@ def check_service_severity_with_timeout(host_id: int, service_id: int, severity_
     return False
 
 
-def check_host_severity_with_timeout(host_id: int, severity_id, timeout: int):
+def check_host_severity_with_timeout(host_id: int, severity_id, timeout: int = TIMEOUT):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -784,5 +784,35 @@ def check_host_status(host: str, value: int, t: int, in_resources: bool, timeout
                     else:
                         logger.console("Host '{}' has status '{}' with confirmed '{}'".format(
                             host, result[0][key], result[0][confirmed]))
+        time.sleep(1)
+    return False
+
+
+def find_internal_id(date, exists=True, timeout: int = TIMEOUT):
+    my_date = datetime.timestamp(parser.parse(date))
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     autocommit=True,
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                logger.console(
+                    "select internal_id from comments where entry_time >= {} and deletion_time is null".format(my_date))
+                cursor.execute(
+                    "select internal_id from comments where entry_time >= {} and deletion_time is null".format(my_date))
+                result = cursor.fetchall()
+                logger.console(result)
+                if len(result) > 0 and exists:
+                    return result[0]['internal_id']
+                elif len(result) == 0:
+                    logger.console("Query on the internal_id failed")
+                    if not exists:
+                        return True
         time.sleep(1)
     return False
