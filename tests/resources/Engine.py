@@ -1377,9 +1377,9 @@ def add_host_comment(host_name, persistent, user_name, comment):
     f.close()
 
 
-def del_host_comment(internal_id):
+def del_host_comment(comment_id):
     now = int(time.time())
-    cmd = f"[{now}] DEL_HOST_COMMENT;{internal_id}\n"
+    cmd = f"[{now}] DEL_HOST_COMMENT;{comment_id}\n"
     f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
     f.write(cmd)
     f.close()

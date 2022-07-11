@@ -221,27 +221,27 @@ int cmd_add_comment(int cmd, time_t entry_time, char* args) {
       (cmd == CMD_ADD_HOST_COMMENT) ? comment::host : comment::service,
       comment::user, temp_host->get_host_id(), service_id, entry_time, user,
       comment_data, persistent, comment::external, false, (time_t)0)};
-  uint64_t internal_id = com->get_comment_id();
-  comment::comments.insert({internal_id, com});
-  log_v2::external_command()->trace("{}, internal_id: {}, data: {}",
-                                    command_name, internal_id,
+  uint64_t comment_id = com->get_comment_id();
+  comment::comments.insert({comment_id, com});
+  log_v2::external_command()->trace("{}, comment_id: {}, data: {}",
+                                    command_name, comment_id,
                                     com->get_comment_data());
   return OK;
 }
 
 /* removes a host or service comment from the status log */
 int cmd_delete_comment(int cmd [[maybe_unused]], char* args) {
-  uint64_t internal_id{0};
+  uint64_t comment_id{0};
   /* get the comment id we should delete */
-  if (!absl::SimpleAtoi(args, &internal_id)) {
+  if (!absl::SimpleAtoi(args, &comment_id)) {
     log_v2::external_command()->error(
-        "Error: could not delete comment : internal_id '{}' must be an "
+        "Error: could not delete comment : comment_id '{}' must be an "
         "integer >= 0",
         args);
     return ERROR;
   }
   /* delete the specified comment */
-  comment::delete_comment(internal_id);
+  comment::delete_comment(comment_id);
   return OK;
 }
 

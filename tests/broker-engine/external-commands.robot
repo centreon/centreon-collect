@@ -2439,7 +2439,7 @@ BEATOI21
 
 
 BEATOI22
-	[Documentation]	external command DEL_HOST_COMMENT with internal_id<0 should fail
+	[Documentation]	external command DEL_HOST_COMMENT with comment_id<0 should fail
 	[Tags]	Broker	Engine	host	extcmd
 	Config Engine	${1}	${50}	${20}
 	Config Broker	rrd
