@@ -2385,7 +2385,7 @@ BEATOI12
 	Start Broker
 	Start Engine
 	SEND CUSTOM HOST NOTIFICATION	host_1	8	admin	foobar
-	${content}=	Create List	Error: could not send custom host notification: Command argument '8' must be an integer between 0 and 7
+	${content}=	Create List	Error: could not send custom host notification:
 	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 	Should Be True	${result}	msg=command argument notification_option must be an integer between 0 and 7.
 	Stop Engine
