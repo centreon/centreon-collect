@@ -55,7 +55,7 @@ LOGV2EB1
         END
 	Should Be Equal As Strings	${output}	((1,),)
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker
 
 LOGV2DB1
 	[Documentation]	log-v2 disabled old log enabled check broker sink
@@ -99,7 +99,7 @@ LOGV2DB1
         END
 	Should Be Equal As Strings	${output}	((1,),)
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker
 
 LOGV2DB2
 	[Documentation]	log-v2 disabled old log disabled check broker sink
@@ -142,7 +142,7 @@ LOGV2DB2
         END
 	Should Be Equal As Strings	${output}	((0,),)
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker
 
 LOGV2EB2
 	[Documentation]	log-v2 enabled old log enabled check broker sink
@@ -187,7 +187,7 @@ LOGV2EB2
 	Should Be Equal As Strings	${output}	((2,),)
 
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker
 
 LOGV2EF1
 	[Documentation]	log-v2 enabled  old log disabled check logfile sink
@@ -212,7 +212,7 @@ LOGV2EF1
 	${result1}=	Find In Log With Timeout	${logEngine0}	${start}	${content_v2}	30
 	Should Be True	${result1}
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker
 
 LOGV2DF1
 	[Documentation]	log-v2 disabled old log enabled check logfile sink
@@ -240,7 +240,7 @@ LOGV2DF1
 	Should Be True	${result1}
 	Should Not Be True	${result2}
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker
 
 LOGV2DF2
 	[Documentation]	log-v2 disabled old log disabled check logfile sink
@@ -268,7 +268,7 @@ LOGV2DF2
 	Should Not Be True	${result1}
 	Should Not Be True	${result2}
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker
 
 LOGV2EF2
 	[Documentation]	log-v2 enabled old log enabled check logfile sink
@@ -296,7 +296,7 @@ LOGV2EF2
 	Should Be True	${result1}
 	Should Be True	${result2}
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker
 
 LOGV2BE2
 	[Documentation]	log-v2 enabled old log enabled check broker sink is equal
@@ -329,7 +329,7 @@ LOGV2BE2
 	Should Be True	${res}	msg=one or other log are not duplicate in tables logs
 
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker
 
 LOGV2FE2
 	[Documentation]	log-v2 enabled old log enabled check logfile sink
@@ -359,4 +359,4 @@ LOGV2FE2
 	${res}=	check engine logs are duplicated	${logEngine0}	${start}
 	Should Be True	${res}	msg=one or other log are not duplicate in logsfile
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker
