@@ -74,6 +74,7 @@ if (WITH_TESTING)
     ${PROJECT_SOURCE_DIR}/ssh/test/orders.cc
     ${PROJECT_SOURCE_DIR}/ssh/test/reporter.cc
     ${PROJECT_SOURCE_DIR}/ssh/test/sessions.cc
+	${PROJECT_SOURCE_DIR}/ssh/test/options.cc
     )
   add_dependencies(ut_connector centreon_connector_perl)
   add_dependencies(ut_connector centreon_clib)

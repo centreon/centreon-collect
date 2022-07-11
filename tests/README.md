@@ -118,6 +118,12 @@ Here is the list of the currently implemented tests:
 - [x] **NetworkDbFail5**: network failure test between broker and database (shutting down connection for 60s)
 
 ### Broker/engine
+- [x] **BEATOI11**: external command SEND_CUSTOM_HOST_NOTIFICATION with option_number=1 should work
+- [x] **BEATOI12**: external command SEND_CUSTOM_HOST_NOTIFICATION with option_number>7 should fail
+- [x] **BEATOI13**: external command SCHEDULE SERVICE DOWNTIME with duration<0 should fail
+- [x] **BEATOI21**: external command ADD_HOST_COMMENT and DEL_HOST_COMMENT should work
+- [x] **BEATOI22**: external command DEL_HOST_COMMENT with comment_id<0 should fail
+- [x] **BEATOI23**: external command ADD_SVC_COMMENT with persistent=0 should work
 - [x] **BECC1**: Broker/Engine communication with compression between central and poller
 - [x] **BECT1**: Broker/Engine communication with anonymous TLS between central and poller
 - [x] **BECT2**: Broker/Engine communication with TLS between central and poller with key/cert
@@ -171,6 +177,7 @@ Here is the list of the currently implemented tests:
 - [x] **BEEXTCMD7**: external command CHANGE_RETRY_HOST_CHECK_INTERVAL on bbdo3.0
 - [x] **BEEXTCMD8**: external command CHANGE_RETRY_HOST_CHECK_INTERVAL on bbdo2.0
 - [x] **BEEXTCMD9**: external command CHANGE_MAX_SVC_CHECK_ATTEMPTS on bbdo3.0
+- [x] **BEEXTCMD_COMPRESS_GRPC1**: external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0 and compressed grpc
 - [x] **BEEXTCMD_GRPC1**: external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0 and grpc
 - [x] **BEEXTCMD_GRPC2**: external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo2.0 and grpc
 - [x] **BEEXTCMD_GRPC3**: external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo3.0 and grpc

@@ -980,7 +980,12 @@ int grab_macro_value_r(nagios_macros* mac,
   else if (macro_name.size() > 3 &&
            strncmp(macro_name.c_str(), "ARG", 3) == 0) {
     /* which arg do we want? */
-    x = atoi(macro_name.c_str() + 3);
+    if (!absl::SimpleAtoi(macro_name.c_str() + 3, &x)) {
+      log_v2::macros()->error(
+          "Error: could not grab macro value : '{}' must be a positive integer",
+          macro_name.c_str() + 3);
+      return ERROR;
+    }
 
     if (!x || x > MAX_COMMAND_ARGUMENTS) {
       delete[] buf;
@@ -995,7 +1000,12 @@ int grab_macro_value_r(nagios_macros* mac,
   else if (macro_name.size() > 4 &&
            strncmp(macro_name.c_str(), "USER", 4) == 0) {
     /* which macro do we want? */
-    x = atoi(macro_name.c_str() + 4);
+    if (!absl::SimpleAtoi(macro_name.c_str() + 4, &x)) {
+      log_v2::macros()->error(
+          "Error: could not grab macro value : '{}' must be a positive integer",
+          macro_name.c_str() + 4);
+      return ERROR;
+    }
 
     if (!x || x > MAX_USER_MACROS) {
       delete[] buf;
@@ -1012,7 +1022,13 @@ int grab_macro_value_r(nagios_macros* mac,
   else if (macro_name.size() > 14 &&
            strncmp(macro_name.c_str(), "CONTACTADDRESS", 14) == 0) {
     /* which address do we want? */
-    x = atoi(macro_name.c_str() + 14) - 1;
+    if (!absl::SimpleAtoi(macro_name.c_str() + 14, &x)) {
+      log_v2::macros()->error(
+          "Error: could not grab macro value : '{}' must be a positive integer",
+          macro_name.c_str() + 14);
+      return ERROR;
+    }
+    x -= 1;
 
     /* regular macro */
     if (arg[0] == nullptr) {

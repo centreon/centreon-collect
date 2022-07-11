@@ -1,5 +1,6 @@
 from os import makedirs, chmod
 from os.path import exists, dirname
+from xml.etree.ElementTree import Comment
 from robot.api import logger
 import db_conf
 import random
@@ -1082,6 +1083,7 @@ def schedule_service_downtime(hst: str, svc: str, duration: int):
     f.write(cmd)
     f.close()
 
+
 def schedule_host_downtime(poller: int, hst: str, duration: int):
     now = int(time.time())
     cmd1 = "[{1}] SCHEDULE_HOST_DOWNTIME;{0};{1};{2};1;0;{3};admin;Downtime set by admin\n".format(
@@ -1092,6 +1094,7 @@ def schedule_host_downtime(poller: int, hst: str, duration: int):
     f.write(cmd1)
     f.write(cmd2)
     f.close()
+
 
 def delete_host_downtimes(poller: int, hst: str):
     now = int(time.time())
@@ -1348,3 +1351,35 @@ def config_engine_remove_cfg_file(poller: int, fic: str):
     ff = open("{}/config{}/centengine.cfg".format(CONF_DIR, poller), "w")
     ff.writelines(linesearch)
     ff.close()
+
+
+def send_custom_host_notification(hst, notification_option, author, comment):
+    now = int(time.time())
+    cmd = f"[{now}] SEND_CUSTOM_HOST_NOTIFICATION;{hst};{notification_option};{author};{comment}\n"
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
+
+
+def add_svc_comment(host_name, svc_description, persistent, user_name, comment):
+    now = int(time.time())
+    cmd = f"[{now}] ADD_SVC_COMMENT;{host_name};{svc_description};{persistent};{user_name};{comment}\n"
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
+
+
+def add_host_comment(host_name, persistent, user_name, comment):
+    now = int(time.time())
+    cmd = f"[{now}] ADD_HOST_COMMENT;{host_name};{persistent};{user_name};{comment}\n"
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
+
+
+def del_host_comment(comment_id):
+    now = int(time.time())
+    cmd = f"[{now}] DEL_HOST_COMMENT;{comment_id}\n"
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
