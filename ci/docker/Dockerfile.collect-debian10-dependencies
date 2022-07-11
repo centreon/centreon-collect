@@ -40,10 +40,7 @@ RUN ln -s /usr/local/bin/conan /usr/bin/conan
 RUN rm -rf ~/.conan/profiles/default
 COPY conanfile.txt .
 RUN cat conanfile.txt
-# For the old versions
 RUN conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build='missing'
-# For the new ones (22.04 and next)
-RUN conan install . -s compiler.cppstd=17 -s compiler.libcxx=libstdc++11 --build='missing'
 WORKDIR /src
 
 
