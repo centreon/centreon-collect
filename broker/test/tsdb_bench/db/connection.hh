@@ -47,6 +47,11 @@ class connection : public std::enable_shared_from_this<connection>,
 
   connection(const io_context_ptr& io_context,
              const boost::json::object& conf,
+             const logger_ptr& logger)
+      : connection(io_context, db_conf(conf, logger), logger) {}
+
+  connection(const io_context_ptr& io_context,
+             const db_conf& conf,
              const logger_ptr& logger);
 
   virtual ~connection();

@@ -33,6 +33,15 @@ class value_visitor : public boost::static_visitor<> {
   }
 };
 
+template <typename value_type>
+class cast_visitor : public boost::static_visitor<value_type> {
+ public:
+  template <typename T>
+  value_type operator()(const T& val) const {
+    return static_cast<value_type>(val);
+  }
+};
+
 template <>
 class value_visitor<std::string> : public boost::static_visitor<> {
  protected:
@@ -118,6 +127,11 @@ class metric {
   template <class request_type>
   void get_value(request_type& request) const {
     boost::apply_visitor(detail::value_visitor<request_type>(request), _value);
+  }
+
+  template <typename value_type>
+  value_type cast_value() const {
+    return boost::apply_visitor(detail::cast_visitor<value_type>(), _value);
   }
 
   static metric_cont_ptr create_metrics(const metric_conf& conf);

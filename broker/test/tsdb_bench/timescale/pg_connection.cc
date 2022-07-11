@@ -103,8 +103,23 @@ pg_connection::pg_connection(const io_context_ptr& io_context,
   SPDLOG_LOGGER_INFO(_logger, "new pg_connection {}", *this);
 }
 
+pg_connection::pg_connection(const io_context_ptr& io_context,
+                             const db_conf& conf,
+                             const logger_ptr& logger)
+    : connection(io_context, conf, logger),
+      _socket(*io_context),
+      _conn(nullptr) {
+  SPDLOG_LOGGER_INFO(_logger, "new pg_connection {}", *this);
+}
+
 pg_connection::pointer pg_connection::create(const io_context_ptr& io_context,
                                              const boost::json::object& conf,
+                                             const logger_ptr& logger) {
+  return pg_connection::pointer(new pg_connection(io_context, conf, logger));
+}
+
+pg_connection::pointer pg_connection::create(const io_context_ptr& io_context,
+                                             const db_conf& conf,
                                              const logger_ptr& logger) {
   return pg_connection::pointer(new pg_connection(io_context, conf, logger));
 }

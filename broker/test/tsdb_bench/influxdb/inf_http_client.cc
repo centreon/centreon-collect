@@ -142,14 +142,22 @@ void inf_client::select_victoria(
     step = 1;
   }
 
+  time_point before_send_request = system_clock::now();
+
   request->target(fmt::format(
       "/api/v1/query_range?start={}Z&end={}Z&query=metric{}_val&step={}",
       date::format("%FT%T", begin), date::format("%FT%T", end), metric_id,
       step));
   _conn->send(request,
-              [me = shared_from_this(), request, callback](
+              [me = shared_from_this(), request, callback, before_send_request](
                   const boost::beast::error_code& err,
                   const std::string& detail, const response_ptr& response) {
+                if (!err) {
+                  std::cout
+                      << std::chrono::duration_cast<std::chrono::microseconds>(
+                             system_clock::now() - before_send_request)
+                             .count();
+                }
                 me->on_receive(err, detail, request, response, callback);
               });
 }

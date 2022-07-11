@@ -1,7 +1,7 @@
 project("tsdb_bench" CXX)
 cmake_minimum_required(VERSION 3.16)
 add_definitions("-D_GLIBCXX_USE_CXX11_ABI=1")
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -13,7 +13,13 @@ add_definitions(${CONAN_DEFINES_SPDLOG})
 
 set(SRC_DIR "${PROJECT_SOURCE_DIR}")
 
-include_directories(${CONAN_INCLUDE_DIRS} ${SRC_DIR} ${SRC_DIR}/db ${SRC_DIR}/timescale ${SRC_DIR}/http_client ${SRC_DIR}/influxdb ${SRC_DIR}/m3)
+if(NOT DEFINED ENV{QUESTDB_ILP_DIR})
+    message(FATAL_ERROR "environment variable QUESTDB_ILP_DIR is not defined,
+it should point to the compiled c-questdb-client project that you can obtain at
+https://github.com/questdb/c-questdb-client")
+endif()
+
+include_directories(${CONAN_INCLUDE_DIRS} ${SRC_DIR} ${SRC_DIR}/db ${SRC_DIR}/timescale ${SRC_DIR}/http_client ${SRC_DIR}/influxdb ${SRC_DIR}/m3 ${SRC_DIR}/quesdb $ENV{QUESTDB_ILP_DIR}/include)
 
 set(SOURCES
     "${SRC_DIR}/tsdb_bench.cc"
@@ -35,6 +41,7 @@ set(SOURCES
     "${SRC_DIR}/m3/m3_http_client.cc"
     "${SRC_DIR}/mimir/mimir.pb.cc"
     "${SRC_DIR}/mimir/mimir_http_client.cc"
+    "${SRC_DIR}/questdb/questdb.cc"
 )
 
 add_custom_command(
@@ -78,5 +85,5 @@ add_custom_target(tsdb_bench_proto DEPENDS
 
 add_executable(tsdb_bench ${SOURCES})
 add_definitions("-DBOOST_ASIO_SEPARATE_COMPILATION" "-DBOOST_BEAST_SEPARATE_COMPILATION")
-target_link_libraries(tsdb_bench CONAN_PKG::abseil CONAN_PKG::boost CONAN_PKG::fmt CONAN_PKG::spdlog CONAN_PKG::libpq CONAN_PKG::protobuf CONAN_PKG::snappy)
+target_link_libraries(tsdb_bench CONAN_PKG::abseil CONAN_PKG::boost CONAN_PKG::fmt CONAN_PKG::spdlog CONAN_PKG::libpq CONAN_PKG::protobuf CONAN_PKG::snappy $ENV{QUESTDB_ILP_DIR}/build/libquestdb_client.a dl)
 target_precompile_headers(tsdb_bench PRIVATE precomp_inc.hh)

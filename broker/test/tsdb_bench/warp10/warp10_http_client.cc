@@ -77,10 +77,18 @@ void warp10_client::select(
 
   request->target("/api/v0/exec");
   request->content_length(request->body().length());
+
+  time_point before_send_request = system_clock::now();
   _conn->send(request,
-              [me = shared_from_this(), request, callback](
+              [me = shared_from_this(), request, callback, before_send_request](
                   const boost::beast::error_code& err,
                   const std::string& detail, const response_ptr& response) {
+                if (!err) {
+                  std::cout
+                      << std::chrono::duration_cast<std::chrono::microseconds>(
+                             system_clock::now() - before_send_request)
+                             .count();
+                }
                 me->on_receive(err, detail, request, response, callback);
               });
 }

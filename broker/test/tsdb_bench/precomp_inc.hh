@@ -13,6 +13,7 @@
 #include <random>
 #include <unordered_set>
 
+#include <absl/container/node_hash_set.h>
 #include <absl/strings/numbers.h>
 #include <absl/strings/str_cat.h>
 

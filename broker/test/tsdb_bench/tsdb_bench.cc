@@ -8,6 +8,7 @@
 #include "mimir/mimir_http_client.hh"
 #include "pg_metric.hh"
 #include "prometheus/pr_http_server.hh"
+#include "questdb/questdb.hh"
 #include "timescale/pg_connection.hh"
 #include "timescale/pg_request.hh"
 #include "warp10/warp10_http_client.hh"
@@ -465,13 +466,58 @@ void bench_mimir(const io_context_ptr& io_context,
 
 /******************************************************************************************
  *
+ *          questdb
+ *
+ ******************************************************************************************/
+void bench_questdb(const io_context_ptr& io_context,
+                   const logger_ptr& logger,
+                   metric::metric_cont_ptr to_insert,
+                   const boost::json::object& db_conf,
+                   unsigned bulk_size,
+                   unsigned nb_conn) {
+  questdb::questdb_client client(io_context, db_conf, logger);
+  client.connect_ingest();
+  for (unsigned offset = 0; offset < to_insert->size(); offset += bulk_size) {
+    client.send(to_insert, offset, bulk_size);
+  }
+}
+
+void select_questdb(const io_context_ptr& io_context,
+                    logger_ptr logger,
+                    const metric_conf& conf,
+                    const boost::json::object& db_conf) {
+  questdb::questdb_client::pointer conn =
+      std::make_shared<questdb::questdb_client>(io_context, db_conf, logger);
+  conn->connect_select([conn, logger, conf](const std::error_code& err,
+                                            const std::string& detail) {
+    if (err) {
+      SPDLOG_LOGGER_ERROR(logger, "fail to connect to questd database: {}:{}",
+                          err.message(), detail);
+      return;
+    }
+    conn->select(
+        conf.select_begin, conf.select_end, conf.metric_id, conf.nb_point,
+        [conn, logger](const std::error_code& err, const std::string& detail) {
+          if (err) {
+            SPDLOG_LOGGER_ERROR(logger,
+                                "fail to select from questd database: {}:{}",
+                                err.message(), detail);
+          } else {
+            SPDLOG_LOGGER_INFO(logger, "select ok from questd database");
+          }
+        });
+  });
+}
+
+/******************************************************************************************
+ *
  *          main
  *
  ******************************************************************************************/
 int main(int argc, char** argv) {
-  auto stdout_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+  auto stderr_sink = std::make_shared<spdlog::sinks::stderr_color_sink_mt>();
   logger_ptr logger =
-      std::make_shared<spdlog::logger>("tsdb_bench", stdout_sink);
+      std::make_shared<spdlog::logger>("tsdb_bench", stderr_sink);
   spdlog::register_logger(logger);
 
   io_context_ptr io_context(std::make_shared<boost::asio::io_context>());
@@ -489,11 +535,12 @@ int main(int argc, char** argv) {
       "db-conf", po::value<std::string>(),
       "path to the file that content informations used to connect to db")(
       "nb-conn", po::value<unsigned>()->default_value(1),
-      "number of simultaneous connections to database")(
-      "float-percent", po::value<unsigned>()->default_value(25),
-      "percent of float metrics")("double-percent",
-                                  po::value<unsigned>()->default_value(25),
-                                  "percent of double metrics")(
+      "number of simultaneous connections to database (only valid for "
+      "timescale insert)")("float-percent",
+                           po::value<unsigned>()->default_value(25),
+                           "percent of float metrics")(
+      "double-percent", po::value<unsigned>()->default_value(25),
+      "percent of double metrics")(
       "int64-percent", po::value<unsigned>()->default_value(25),
       "percent of int64 metrics the rest will be uint64 values")(
       "conf-file", po::value<std::string>(),
@@ -627,6 +674,8 @@ int main(int argc, char** argv) {
       } else if (database_type == "warp10") {
         select_warp10(io_context, logger, metric_cnf, db_conf);
       } else if (database_type == "m3db") {
+      } else if (database_type == "questdb") {
+        select_questdb(io_context, logger, metric_cnf, db_conf);
       }
     } else {  // insert bench
       if (database_type == "timescale" || database_type == "postgres") {
@@ -645,6 +694,9 @@ int main(int argc, char** argv) {
         bench_m3db(io_context, logger, to_insert, db_conf, bulk_size, nb_conn);
       } else if (database_type == "mimir") {
         bench_mimir(io_context, logger, to_insert, db_conf, bulk_size, nb_conn);
+      } else if (database_type == "questdb") {
+        bench_questdb(io_context, logger, to_insert, db_conf, bulk_size,
+                      nb_conn);
       }
     }
   } catch (const std::exception& e) {

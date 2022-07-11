@@ -1,9 +1,9 @@
 #include "connection.hh"
 
 connection::connection(const io_context_ptr& io_context,
-                       const boost::json::object& conf,
+                       const db_conf& conf,
                        const logger_ptr& logger)
-    : db_conf(conf, logger),
+    : db_conf(conf),
       _io_context(io_context),
       _logger(logger),
       _state(e_state::not_connected) {

@@ -24,6 +24,10 @@ class pg_connection : public ::connection {
                 const boost::json::object& conf,
                 const logger_ptr& logger);
 
+  pg_connection(const io_context_ptr& io_context,
+                const db_conf& conf,
+                const logger_ptr& logger);
+
   PGconn* get_conn() { return _conn; }
 
   void execute() override;
@@ -58,6 +62,10 @@ class pg_connection : public ::connection {
   static pointer create(const io_context_ptr& io_context,
                         const boost::json::object& conf,
                         const logger_ptr& logger);
+  static pointer create(const io_context_ptr& io_context,
+                        const db_conf& conf,
+                        const logger_ptr& logger);
+
   ~pg_connection();
 
   pointer shared_from_this() {
