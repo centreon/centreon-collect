@@ -32,7 +32,7 @@ BEPBBEE1
 	${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	30
 	Should Be True	${result}	msg=Message about not matching bbdo versions not available
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker
 
 BEPBBEE2
 	[Documentation]	bbdo_version 3 not compatible with sql/storage
@@ -74,7 +74,7 @@ BEPBBEE3
 	Start Engine
         Wait Until Created	/tmp/pbservicestatus.log	1m
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker
 
 BEPBBEE4
 	[Documentation]	bbdo_version 3 generates new bbdo protobuf host status messages.
@@ -96,7 +96,7 @@ BEPBBEE4
 	Start Engine
         Wait Until Created	/tmp/pbhoststatus.log	1m
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker
 
 BEPBBEE5
 	[Documentation]	bbdo_version 3 generates new bbdo protobuf service messages.
@@ -118,4 +118,4 @@ BEPBBEE5
 	Start Engine
         Wait Until Created	/tmp/pbservice.log	1m
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker
