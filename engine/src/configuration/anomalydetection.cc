@@ -2247,7 +2247,7 @@ bool anomalydetection::_set_category_tags(const std::string& value) {
   for (auto& tag : tags) {
     int64_t id;
     bool parse_ok;
-    parse_ok = SimpleAtoi(tag, &id);
+    parse_ok = absl::SimpleAtoi(tag, &id);
     if (parse_ok) {
       _tags.emplace(id, tag::servicecategory);
     } else {
@@ -2282,7 +2282,7 @@ bool anomalydetection::_set_group_tags(const std::string& value) {
   for (auto& tag : tags) {
     int64_t id;
     bool parse_ok;
-    parse_ok = SimpleAtoi(tag, &id);
+    parse_ok = absl::SimpleAtoi(tag, &id);
     if (parse_ok) {
       _tags.emplace(id, tag::servicegroup);
     } else {

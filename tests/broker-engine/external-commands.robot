@@ -33,7 +33,7 @@ BEEXTCMD1
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
-			${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+			${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
 			${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 			Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Normal Svc Check Interval  ${use_grpc}  host_1	service_1	10
@@ -41,8 +41,8 @@ BEEXTCMD1
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	300
-			Log To Console	select s.check_interval from services s,hosts h where s.description='service_1' and h.name='host_1' 
-			${output}=	Query	select s.check_interval from services s,hosts h where s.description='service_1' and h.name='host_1'
+			Log To Console	SELECT s.check_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description='service_1'
+			${output}=	Query	SELECT s.check_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description='service_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((10.0,),)"
@@ -65,7 +65,7 @@ BEEXTCMD2
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
-			${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+			${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
 			${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 			Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Normal Svc Check Interval  ${use_grpc}	host_1	service_1	15
@@ -73,8 +73,8 @@ BEEXTCMD2
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select s.check_interval from services s,hosts h where s.description='service_1' and h.name='host_1' 
-			${output}=	Query	select s.check_interval from services s,hosts h where s.description='service_1' and h.name='host_1'
+			Log To Console	SELECT s.check_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description='service_1'
+			${output}=	Query	SELECT s.check_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description='service_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((15.0,),)"
@@ -104,7 +104,7 @@ BEEXTCMD3
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
-			${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+			${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
 			${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 			Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Normal Host Check Interval  ${use_grpc}  host_1	10
@@ -112,8 +112,8 @@ BEEXTCMD3
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select check_interval from hosts where name='host_1' 
-			${output}=	Query	select check_interval from hosts where name='host_1' 
+			Log To Console	SELECT check_interval FROM hosts WHERE name='host_1'
+			${output}=	Query	SELECT check_interval FROM hosts WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((10.0,),)"
@@ -138,7 +138,7 @@ BEEXTCMD4
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
-			${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+			${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
 			${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 			Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Normal Host Check Interval  ${use_grpc}  host_1	15
@@ -146,8 +146,8 @@ BEEXTCMD4
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select check_interval from hosts where name='host_1' 
-			${output}=	Query	select check_interval from hosts where name='host_1' 
+			Log To Console	SELECT check_interval FROM hosts WHERE name='host_1'
+			${output}=	Query	SELECT check_interval FROM hosts WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((15.0,),)"
@@ -177,7 +177,7 @@ BEEXTCMD5
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
-			${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+			${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
 			${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 			Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Retry Svc Check Interval  ${use_grpc}  host_1	service_1	15
@@ -185,8 +185,8 @@ BEEXTCMD5
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select s.retry_interval from services s,hosts h where s.description='service_1' and h.name='host_1' 
-			${output}=	Query	select s.retry_interval from services s,hosts h where s.description='service_1' and h.name='host_1'
+			Log To Console	SELECT s.retry_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description='service_1'
+			${output}=	Query	SELECT s.retry_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description='service_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((15.0,),)"
@@ -210,7 +210,7 @@ BEEXTCMD6
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
-        ${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+	${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
         ${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
         Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Retry Svc Check Interval  ${use_grpc}  host_1	service_1	10
@@ -218,8 +218,8 @@ BEEXTCMD6
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select s.retry_interval from services s,hosts h where s.description='service_1' and h.name='host_1' 
-			${output}=	Query	select s.retry_interval from services s,hosts h where s.description='service_1' and h.name='host_1'
+			Log To Console	SELECT s.retry_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description='service_1'
+			${output}=	Query	SELECT s.retry_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description='service_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((10.0,),)"
@@ -249,7 +249,7 @@ BEEXTCMD7
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
-			${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+			${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
 			${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 			Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Retry Host Check Interval  ${use_grpc}  host_1	15
@@ -257,8 +257,8 @@ BEEXTCMD7
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select retry_interval from hosts where name='host_1' 
-			${output}=	Query	select retry_interval from hosts where name='host_1' 
+			Log To Console	SELECT retry_interval FROM hosts WHERE name='host_1'
+			${output}=	Query	SELECT retry_interval FROM hosts WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((15.0,),)"
@@ -283,7 +283,7 @@ BEEXTCMD8
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
-			${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+			${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
 			${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 			Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Retry Host Check Interval  ${use_grpc}  host_1	10
@@ -291,8 +291,8 @@ BEEXTCMD8
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select retry_interval from hosts where name='host_1' 
-			${output}=	Query	select retry_interval from hosts where name='host_1' 
+			Log To Console	SELECT retry_interval FROM hosts WHERE name='host_1'
+			${output}=	Query	SELECT retry_interval FROM hosts WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((10.0,),)"
@@ -320,7 +320,7 @@ BEEXTCMD9
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
-			${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+			${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
 			${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 			Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Max Svc Check Attempts  ${use_grpc}  host_1	service_1	15
@@ -328,8 +328,8 @@ BEEXTCMD9
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select s.max_check_attempts from services s,hosts h where s.description='service_1' and h.name='host_1' 
-			${output}=	Query	select s.max_check_attempts from services s,hosts h where s.description='service_1' and h.name='host_1'
+			Log To Console	SELECT s.max_check_attempts FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description='service_1'
+			${output}=	Query	SELECT s.max_check_attempts FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description='service_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((15,),)"
@@ -337,8 +337,8 @@ BEEXTCMD9
 		Should Be Equal As Strings	${output}	((15,),)
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select max_check_attempts from resources where name='service_1' and parent_name='host_1' 
-			${output}=	Query	select max_check_attempts from resources where name='service_1' and parent_name='host_1'
+			Log To Console	SELECT max_check_attempts FROM resources WHERE name='service_1' AND parent_name='host_1'
+			${output}=	Query	SELECT max_check_attempts FROM resources WHERE name='service_1' AND parent_name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((15,),)"
@@ -362,7 +362,7 @@ BEEXTCMD10
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
-			${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+			${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
 			${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 			Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Max Svc Check Attempts  ${use_grpc}  host_1	service_1	10
@@ -370,8 +370,8 @@ BEEXTCMD10
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select s.max_check_attempts from services s,hosts h where s.description='service_1' and h.name='host_1' 
-			${output}=	Query	select s.max_check_attempts from services s,hosts h where s.description='service_1' and h.name='host_1'
+			Log To Console	SELECT s.max_check_attempts FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description='service_1'
+			${output}=	Query	SELECT s.max_check_attempts FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description='service_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((10,),)"
@@ -401,7 +401,7 @@ BEEXTCMD11
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
-			${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+			${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
 			${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 			Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Max Host Check Attempts  ${use_grpc}  host_1	15
@@ -409,8 +409,8 @@ BEEXTCMD11
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select max_check_attempts from hosts where name='host_1' 
-			${output}=	Query	select max_check_attempts from hosts where name='host_1' 
+			Log To Console	SELECT max_check_attempts FROM hosts WHERE name='host_1'
+			${output}=	Query	SELECT max_check_attempts FROM hosts WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((15,),)"
@@ -418,8 +418,8 @@ BEEXTCMD11
 		Should Be Equal As Strings	${output}	((15,),)
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select max_check_attempts from resources where name='host_1' 
-			${output}=	Query	select max_check_attempts from resources where name='host_1' 
+			Log To Console	SELECT max_check_attempts FROM resources WHERE name='host_1'
+			${output}=	Query	SELECT max_check_attempts FROM resources WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((15,),)"
@@ -444,7 +444,7 @@ BEEXTCMD12
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
-			${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+			${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
 			${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 			Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Max Host Check Attempts  ${use_grpc}  host_1  10
@@ -452,8 +452,8 @@ BEEXTCMD12
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select max_check_attempts from hosts where name='host_1' 
-			${output}=	Query	select max_check_attempts from hosts where name='host_1' 
+			Log To Console	SELECT max_check_attempts FROM hosts WHERE name='host_1'
+			${output}=	Query	SELECT max_check_attempts FROM hosts WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((10,),)"
@@ -484,7 +484,7 @@ BEEXTCMD13
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
-			${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+			${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
 			${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 			Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Host Check Timeperiod  ${use_grpc}  host_1	24x6
@@ -492,8 +492,8 @@ BEEXTCMD13
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select check_period from hosts where name='host_1' 
-			${output}=	Query	select check_period from hosts where name='host_1' 
+			Log To Console	SELECT check_period FROM hosts WHERE name='host_1'
+			${output}=	Query	SELECT check_period FROM hosts WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "(('24x6',),)"
@@ -519,7 +519,7 @@ BEEXTCMD14
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
-			${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+			${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
 			${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 			Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Host Check Timeperiod  ${use_grpc}  host_1	24x6
@@ -527,8 +527,8 @@ BEEXTCMD14
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select check_period from hosts where name='host_1' 
-			${output}=	Query	select check_period from hosts where name='host_1' 
+			Log To Console	SELECT check_period FROM hosts WHERE name='host_1'
+			${output}=	Query	SELECT check_period FROM hosts WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "(('24x6',),)"
@@ -559,7 +559,7 @@ BEEXTCMD15
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
-			${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+			${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
 			${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 			Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Host Notification Timeperiod  ${use_grpc}  host_1	24x7
@@ -567,8 +567,8 @@ BEEXTCMD15
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select notification_period from hosts where name='host_1' 
-			${output}=	Query	select notification_period from hosts where name='host_1' 
+			Log To Console	SELECT notification_period FROM hosts WHERE name='host_1'
+			${output}=	Query	SELECT notification_period FROM hosts WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "(('24x7',),)"
@@ -594,7 +594,7 @@ BEEXTCMD16
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
-		${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
 		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Host Notification Timeperiod  ${use_grpc}  host_1	24x6
@@ -602,8 +602,8 @@ BEEXTCMD16
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select notification_period from hosts where name='host_1' 
-			${output}=	Query	select notification_period from hosts where name='host_1' 
+			Log To Console	SELECT notification_period FROM hosts WHERE name='host_1'
+			${output}=	Query	SELECT notification_period FROM hosts WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "(('24x6',),)"
@@ -634,7 +634,7 @@ BEEXTCMD17
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
-		${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
 		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Svc Check Timeperiod  ${use_grpc}  host_1	service_1	24x6
@@ -642,8 +642,8 @@ BEEXTCMD17
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select s.check_period from services s,hosts h where s.description='service_1' and h.name='host_1'
-			${output}=	Query	select s.check_period from services s,hosts h where s.description='service_1' and h.name='host_1' 
+			Log To Console	SELECT s.check_period FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
+			${output}=	Query	SELECT s.check_period FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "(('24x6',),)"
@@ -669,7 +669,7 @@ BEEXTCMD18
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
-		${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
 		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Svc Check Timeperiod  ${use_grpc}  host_1	service_1	24x7
@@ -677,8 +677,8 @@ BEEXTCMD18
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select s.check_period from services s,hosts h where s.description='service_1' and h.name='host_1'
-			${output}=	Query	select s.check_period from services s,hosts h where s.description='service_1' and h.name='host_1' 
+			Log To Console	SELECT s.check_period FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
+			${output}=	Query	SELECT s.check_period FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "(('24x7',),)"
@@ -709,7 +709,7 @@ BEEXTCMD19
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
-		${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
 		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Svc Notification Timeperiod  ${use_grpc}  host_1	service_1	24x7
@@ -717,8 +717,8 @@ BEEXTCMD19
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select s.notification_period from services s,hosts h where s.description='service_1' and h.name='host_1'
-			${output}=	Query	select s.notification_period from services s,hosts h where s.description='service_1' and h.name='host_1'
+			Log To Console	SELECT s.notification_period FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
+			${output}=	Query	SELECT s.notification_period FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "(('24x7',),)"
@@ -744,7 +744,7 @@ BEEXTCMD20
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
-		${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
 		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Svc Notification Timeperiod  ${use_grpc}  host_1	service_1	24x6
@@ -752,8 +752,8 @@ BEEXTCMD20
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select s.notification_period from services s,hosts h where s.description='service_1' and h.name='host_1' 
-			${output}=	Query	select s.notification_period from services s,hosts h where s.description='service_1' and h.name='host_1' 
+			Log To Console	SELECT s.notification_period FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
+			${output}=	Query	SELECT s.notification_period FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "(('24x6',),)"
@@ -784,7 +784,7 @@ BEEXTCMD21
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
-		${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
 		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Disable Host And child Notifications	${use_grpc}	host_1
@@ -792,8 +792,8 @@ BEEXTCMD21
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select notify from hosts where name='host_1' 
-			${output}=	Query	select notify from hosts where name='host_1'  
+			Log To Console	SELECT notify FROM hosts WHERE name='host_1'
+			${output}=	Query	SELECT notify FROM hosts WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((0,),)"
@@ -801,8 +801,8 @@ BEEXTCMD21
 		Should Be Equal As Strings	${output}	((0,),)
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select notifications_enabled from resources where name='host_1' 
-			${output}=	Query	select notifications_enabled from resources where name='host_1' 
+			Log To Console	SELECT notifications_enabled FROM resources WHERE name='host_1'
+			${output}=	Query	SELECT notifications_enabled FROM resources WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((0,),)"
@@ -812,8 +812,8 @@ BEEXTCMD21
 		Enable Host And child Notifications	${use_grpc}	host_1
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select notify from hosts where name='host_1' 
-			${output}=	Query	select notify from hosts where name='host_1'  
+			Log To Console	SELECT notify FROM hosts WHERE name='host_1'
+			${output}=	Query	SELECT notify FROM hosts WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((1,),)"
@@ -821,8 +821,8 @@ BEEXTCMD21
 		Should Be Equal As Strings	${output}	((1,),)
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select notifications_enabled from resources where name='host_1' 
-			${output}=	Query	select notifications_enabled from resources where name='host_1' 
+			Log To Console	SELECT notifications_enabled FROM resources WHERE name='host_1'
+			${output}=	Query	SELECT notifications_enabled FROM resources WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((1,),)"
@@ -848,7 +848,7 @@ BEEXTCMD22
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
-		${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
 		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Disable Host And child Notifications	${use_grpc}	host_1
@@ -856,8 +856,8 @@ BEEXTCMD22
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select notify from hosts where name='host_1' 
-			${output}=	Query	select notify from hosts where name='host_1'  
+			Log To Console	SELECT notify FROM hosts WHERE name='host_1'
+			${output}=	Query	SELECT notify FROM hosts WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((0,),)"
@@ -867,8 +867,8 @@ BEEXTCMD22
 		Enable Host And child Notifications	${use_grpc}	host_1
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select notify from hosts where name='host_1' 
-			${output}=	Query	select notify from hosts where name='host_1'  
+			Log To Console	SELECT notify FROM hosts WHERE name='host_1'
+			${output}=	Query	SELECT notify FROM hosts WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((1,),)"
@@ -898,7 +898,7 @@ BEEXTCMD23
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
-		${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
 		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Disable Host Check	${use_grpc}	host_1
@@ -906,8 +906,8 @@ BEEXTCMD23
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select active_checks from hosts where name='host_1' 
-			${output}=	Query	select active_checks from hosts where name='host_1'  
+			Log To Console	SELECT active_checks FROM hosts WHERE name='host_1'
+			${output}=	Query	SELECT active_checks FROM hosts WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((0,),)"
@@ -915,8 +915,8 @@ BEEXTCMD23
 		Should Be Equal As Strings	${output}	((0,),)
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select active_checks_enabled from resources where name='host_1' 
-			${output}=	Query	select active_checks_enabled from resources where name='host_1' 
+			Log To Console	SELECT active_checks_enabled FROM resources WHERE name='host_1'
+			${output}=	Query	SELECT active_checks_enabled FROM resources WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((0,),)"
@@ -924,8 +924,8 @@ BEEXTCMD23
 		Should Be Equal As Strings	${output}	((0,),)
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select should_be_scheduled from hosts where name='host_1' 
-			${output}=	Query	select should_be_scheduled from hosts where name='host_1'  
+			Log To Console	SELECT should_be_scheduled FROM hosts WHERE name='host_1'
+			${output}=	Query	SELECT should_be_scheduled FROM hosts WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((0,),)"
@@ -935,8 +935,8 @@ BEEXTCMD23
 		Enable Host Check	${use_grpc}	host_1
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select active_checks from hosts where name='host_1' 
-			${output}=	Query	select active_checks from hosts where name='host_1'  
+			Log To Console	SELECT active_checks FROM hosts WHERE name='host_1'
+			${output}=	Query	SELECT active_checks FROM hosts WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((1,),)"
@@ -944,8 +944,8 @@ BEEXTCMD23
 		Should Be Equal As Strings	${output}	((1,),)
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select active_checks_enabled from resources where name='host_1' 
-			${output}=	Query	select active_checks_enabled from resources where name='host_1' 
+			Log To Console	SELECT active_checks_enabled FROM resources WHERE name='host_1'
+			${output}=	Query	SELECT active_checks_enabled FROM resources WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((1,),)"
@@ -953,8 +953,8 @@ BEEXTCMD23
 		Should Be Equal As Strings	${output}	((1,),)
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select should_be_scheduled from hosts where name='host_1' 
-			${output}=	Query	select should_be_scheduled from hosts where name='host_1'  
+			Log To Console	SELECT should_be_scheduled FROM hosts WHERE name='host_1'
+			${output}=	Query	SELECT should_be_scheduled FROM hosts WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((1,),)"
@@ -978,7 +978,7 @@ BEEXTCMD24
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
-		${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
 		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Disable Host Check	${use_grpc}	host_1
@@ -986,8 +986,8 @@ BEEXTCMD24
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select active_checks from hosts where name='host_1' 
-			${output}=	Query	select active_checks from hosts where name='host_1'  
+			Log To Console	SELECT active_checks FROM hosts WHERE name='host_1'
+			${output}=	Query	SELECT active_checks FROM hosts WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((0,),)"
@@ -995,8 +995,8 @@ BEEXTCMD24
 		Should Be Equal As Strings	${output}	((0,),)
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select should_be_scheduled from hosts where name='host_1' 
-			${output}=	Query	select should_be_scheduled from hosts where name='host_1'  
+			Log To Console	SELECT should_be_scheduled FROM hosts WHERE name='host_1'
+			${output}=	Query	SELECT should_be_scheduled FROM hosts WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((0,),)"
@@ -1006,8 +1006,8 @@ BEEXTCMD24
 		Enable Host Check	${use_grpc}	host_1
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select active_checks from hosts where name='host_1' 
-			${output}=	Query	select active_checks from hosts where name='host_1'  
+			Log To Console	SELECT active_checks FROM hosts WHERE name='host_1'
+			${output}=	Query	SELECT active_checks FROM hosts WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((1,),)"
@@ -1015,8 +1015,8 @@ BEEXTCMD24
 		Should Be Equal As Strings	${output}	((1,),)
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select should_be_scheduled from hosts where name='host_1' 
-			${output}=	Query	select should_be_scheduled from hosts where name='host_1'  
+			Log To Console	SELECT should_be_scheduled FROM hosts WHERE name='host_1'
+			${output}=	Query	SELECT should_be_scheduled FROM hosts WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((1,),)"
@@ -1046,7 +1046,7 @@ BEEXTCMD25
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
-		${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
 		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Disable Host Event Handler	${use_grpc}	host_1
@@ -1054,8 +1054,8 @@ BEEXTCMD25
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select event_handler_enabled from hosts where name='host_1' 
-			${output}=	Query	select event_handler_enabled from hosts where name='host_1'  
+			Log To Console	SELECT event_handler_enabled FROM hosts WHERE name='host_1'
+			${output}=	Query	SELECT event_handler_enabled FROM hosts WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((0,),)"
@@ -1063,10 +1063,10 @@ BEEXTCMD25
 		Should Be Equal As Strings	${output}	((0,),)
 
 		Enable Host Event Handler	${use_grpc}	host_1
-		
+
 		FOR	${index}	IN RANGE	30
-			Log To Console	select event_handler_enabled from hosts where name='host_1' 
-			${output}=	Query	select event_handler_enabled from hosts where name='host_1'  
+			Log To Console	SELECT event_handler_enabled FROM hosts WHERE name='host_1'
+			${output}=	Query	SELECT event_handler_enabled FROM hosts WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((1,),)"
@@ -1091,7 +1091,7 @@ BEEXTCMD26
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
-		${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
 		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Disable Host Event Handler	${use_grpc}	host_1
@@ -1099,19 +1099,19 @@ BEEXTCMD26
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select event_handler_enabled from hosts where name='host_1' 
-			${output}=	Query	select event_handler_enabled from hosts where name='host_1'  
+			Log To Console	SELECT event_handler_enabled FROM hosts WHERE name='host_1'
+			${output}=	Query	SELECT event_handler_enabled FROM hosts WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((0,),)"
 		END
 		Should Be Equal As Strings	${output}	((0,),)
-		
+
 		Enable Host Event Handler	${use_grpc}	host_1
-		
+
 		FOR	${index}	IN RANGE	30
-			Log To Console	select event_handler_enabled from hosts where name='host_1' 
-			${output}=	Query	select event_handler_enabled from hosts where name='host_1'  
+			Log To Console	SELECT event_handler_enabled FROM hosts WHERE name='host_1'
+			${output}=	Query	SELECT event_handler_enabled FROM hosts WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((1,),)"
@@ -1141,7 +1141,7 @@ BEEXTCMD27
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
-		${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
 		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Disable Host Flap Detection	${use_grpc}	host_1
@@ -1149,8 +1149,8 @@ BEEXTCMD27
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select flap_detection from hosts where name='host_1' 
-			${output}=	Query	select flap_detection from hosts where name='host_1'  
+			Log To Console	SELECT flap_detection FROM hosts WHERE name='host_1'
+			${output}=	Query	SELECT flap_detection FROM hosts WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((0,),)"
@@ -1160,8 +1160,8 @@ BEEXTCMD27
 		Enable Host Flap Detection	${use_grpc}	host_1
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select flap_detection from hosts where name='host_1' 
-			${output}=	Query	select flap_detection from hosts where name='host_1'  
+			Log To Console	SELECT flap_detection FROM hosts WHERE name='host_1'
+			${output}=	Query	SELECT flap_detection FROM hosts WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((1,),)"
@@ -1186,7 +1186,7 @@ BEEXTCMD28
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
-		${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
 		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Disable Host Flap detection	${use_grpc}	host_1
@@ -1194,8 +1194,8 @@ BEEXTCMD28
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select flap_detection from hosts where name='host_1' 
-			${output}=	Query	select flap_detection from hosts where name='host_1'  
+			Log To Console	SELECT flap_detection FROM hosts WHERE name='host_1'
+			${output}=	Query	SELECT flap_detection FROM hosts WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((0,),)"
@@ -1205,8 +1205,8 @@ BEEXTCMD28
 		Enable Host Flap Detection	${use_grpc}	host_1
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select flap_detection from hosts where name='host_1' 
-			${output}=	Query	select flap_detection from hosts where name='host_1'  
+			Log To Console	SELECT flap_detection FROM hosts WHERE name='host_1'
+			${output}=	Query	SELECT flap_detection FROM hosts WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((1,),)"
@@ -1237,7 +1237,7 @@ BEEXTCMD29
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
-		${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
 		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Disable Host Notifications	${use_grpc}	host_1
@@ -1245,8 +1245,8 @@ BEEXTCMD29
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select notify from hosts where name='host_1' 
-			${output}=	Query	select notify from hosts where name='host_1'  
+			Log To Console	SELECT notify FROM hosts WHERE name='host_1'
+			${output}=	Query	SELECT notify FROM hosts WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((0,),)"
@@ -1254,8 +1254,8 @@ BEEXTCMD29
 		Should Be Equal As Strings	${output}	((0,),)
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select notifications_enabled from resources where name='host_1' 
-			${output}=	Query	select notifications_enabled from resources where name='host_1' 
+			Log To Console	SELECT notifications_enabled FROM resources WHERE name='host_1'
+			${output}=	Query	SELECT notifications_enabled FROM resources WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((0,),)"
@@ -1265,8 +1265,8 @@ BEEXTCMD29
 		Enable Host Notifications	${use_grpc}	host_1
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select notify from hosts where name='host_1' 
-			${output}=	Query	select notify from hosts where name='host_1'  
+			Log To Console	SELECT notify FROM hosts WHERE name='host_1'
+			${output}=	Query	SELECT notify FROM hosts WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((1,),)"
@@ -1274,8 +1274,8 @@ BEEXTCMD29
 		Should Be Equal As Strings	${output}	((1,),)
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select notifications_enabled from resources where name='host_1' 
-			${output}=	Query	select notifications_enabled from resources where name='host_1' 
+			Log To Console	SELECT notifications_enabled FROM resources WHERE name='host_1'
+			${output}=	Query	SELECT notifications_enabled FROM resources WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((1,),)"
@@ -1301,7 +1301,7 @@ BEEXTCMD30
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
-		${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
 		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Disable Host Notifications	${use_grpc}	host_1
@@ -1309,8 +1309,8 @@ BEEXTCMD30
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select notify from hosts where name='host_1' 
-			${output}=	Query	select notify from hosts where name='host_1'  
+			Log To Console	SELECT notify FROM hosts WHERE name='host_1'
+			${output}=	Query	SELECT notify FROM hosts WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((0,),)"
@@ -1320,8 +1320,8 @@ BEEXTCMD30
 		Enable Host Notifications	${use_grpc}	host_1
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select notify from hosts where name='host_1' 
-			${output}=	Query	select notify from hosts where name='host_1'  
+			Log To Console	SELECT notify FROM hosts WHERE name='host_1'
+			${output}=	Query	SELECT notify FROM hosts WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((1,),)"
@@ -1351,7 +1351,7 @@ BEEXTCMD31
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
-		${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
 		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Disable Host Svc Checks	${use_grpc}	host_1
@@ -1359,8 +1359,8 @@ BEEXTCMD31
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select s.active_checks from services s,hosts h where s.description='service_1' and h.name='host_1' 
-			${output}=	Query	select s.active_checks from services s,hosts h where s.description='service_1' and h.name='host_1'  
+			Log To Console	SELECT s.active_checks FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
+			${output}=	Query	SELECT s.active_checks FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((0,),)"
@@ -1368,8 +1368,8 @@ BEEXTCMD31
 		Should Be Equal As Strings	${output}	((0,),)
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select active_checks_enabled from resources where name='service_1' 
-			${output}=	Query	select active_checks_enabled from resources where name='service_1' 
+			Log To Console	SELECT active_checks_enabled FROM resources WHERE name='service_1'
+			${output}=	Query	SELECT active_checks_enabled FROM resources WHERE name='service_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((0,),)"
@@ -1377,8 +1377,8 @@ BEEXTCMD31
 		Should Be Equal As Strings	${output}	((0,),)
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select s.should_be_scheduled from services s,hosts h where s.description='service_1' and h.name='host_1' 
-			${output}=	Query	select s.should_be_scheduled from services s,hosts h where s.description='service_1' and h.name='host_1'  
+			Log To Console	SELECT s.should_be_scheduled FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
+			${output}=	Query	SELECT s.should_be_scheduled FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((0,),)"
@@ -1388,8 +1388,8 @@ BEEXTCMD31
 		Enable Host Svc Checks	${use_grpc}	host_1
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select s.active_checks from services s,hosts h where s.description='service_1' and h.name='host_1' 
-			${output}=	Query	select s.active_checks from services s,hosts h where s.description='service_1' and h.name='host_1'  
+			Log To Console	SELECT s.active_checks FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
+			${output}=	Query	SELECT s.active_checks FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((1,),)"
@@ -1397,8 +1397,8 @@ BEEXTCMD31
 		Should Be Equal As Strings	${output}	((1,),)
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select active_checks_enabled from resources where name='service_1' 
-			${output}=	Query	select active_checks_enabled from resources where name='service_1' 
+			Log To Console	SELECT active_checks_enabled FROM resources WHERE name='service_1'
+			${output}=	Query	SELECT active_checks_enabled FROM resources WHERE name='service_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((1,),)"
@@ -1406,8 +1406,8 @@ BEEXTCMD31
 		Should Be Equal As Strings	${output}	((1,),)
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select s.should_be_scheduled from services s,hosts h where s.description='service_1' and h.name='host_1' 
-			${output}=	Query	select s.should_be_scheduled from services s,hosts h where s.description='service_1' and h.name='host_1'  
+			Log To Console	SELECT s.should_be_scheduled FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
+			${output}=	Query	SELECT s.should_be_scheduled FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((1,),)"
@@ -1431,7 +1431,7 @@ BEEXTCMD32
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
-		${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
 		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Disable Host Svc Checks	${use_grpc}	host_1
@@ -1439,8 +1439,8 @@ BEEXTCMD32
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select s.s.active_checks from services s,hosts h where s.description='service_1' and h.name='host_1' 
-			${output}=	Query	select s.active_checks from services s,hosts h where s.description='service_1' and h.name='host_1'  
+			Log To Console	SELECT s.s.active_checks FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
+			${output}=	Query	SELECT s.active_checks FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((0,),)"
@@ -1448,8 +1448,8 @@ BEEXTCMD32
 		Should Be Equal As Strings	${output}	((0,),)
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select s.should_be_scheduled from services s,hosts h where s.description='service_1' and h.name='host_1' 
-			${output}=	Query	select s.should_be_scheduled from services s,hosts h where s.description='service_1' and h.name='host_1'  
+			Log To Console	SELECT s.should_be_scheduled FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
+			${output}=	Query	SELECT s.should_be_scheduled FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((0,),)"
@@ -1459,8 +1459,8 @@ BEEXTCMD32
 		Enable Host Svc Checks	${use_grpc}	host_1
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select s.active_checks from services s,hosts h where s.description='service_1' and h.name='host_1' 
-			${output}=	Query	select s.active_checks from services s,hosts h where s.description='service_1' and h.name='host_1'  
+			Log To Console	SELECT s.active_checks FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
+			${output}=	Query	SELECT s.active_checks FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((1,),)"
@@ -1468,8 +1468,8 @@ BEEXTCMD32
 		Should Be Equal As Strings	${output}	((1,),)
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select s.should_be_scheduled from services s,hosts h where s.description='service_1' and h.name='host_1' 
-			${output}=	Query	select s.should_be_scheduled from services s,hosts h where s.description='service_1' and h.name='host_1'  
+			Log To Console	SELECT s.should_be_scheduled FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
+			${output}=	Query	SELECT s.should_be_scheduled FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((1,),)"
@@ -1499,7 +1499,7 @@ BEEXTCMD33
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
-		${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
 		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Disable Host Svc Notifications	${use_grpc}	host_1
@@ -1507,8 +1507,8 @@ BEEXTCMD33
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select s.notify from services s,hosts h where s.description='service_1' and h.name='host_1' 
-			${output}=	Query	select s.notify from services s,hosts h where s.description='service_1' and h.name='host_1'  
+			Log To Console	SELECT s.notify FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
+			${output}=	Query	SELECT s.notify FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((0,),)"
@@ -1516,10 +1516,10 @@ BEEXTCMD33
 		Should Be Equal As Strings	${output}	((0,),)
 
 		Enable Host Svc Notifications	${use_grpc}	host_1
-		
+
 		FOR	${index}	IN RANGE	30
-			Log To Console	select s.notify from services s,hosts h where s.description='service_1' and h.name='host_1' 
-			${output}=	Query	select s.notify from services s,hosts h where s.description='service_1' and h.name='host_1'  
+			Log To Console	SELECT s.notify FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
+			${output}=	Query	SELECT s.notify FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((1,),)"
@@ -1544,7 +1544,7 @@ BEEXTCMD34
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
-		${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
 		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Disable Host Svc Notifications	${use_grpc}	host_1
@@ -1552,19 +1552,19 @@ BEEXTCMD34
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select s.notify from services s,hosts h where s.description='service_1' and h.name='host_1' 
-			${output}=	Query	select s.notify from services s,hosts h where s.description='service_1' and h.name='host_1'  
+			Log To Console	SELECT s.notify FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
+			${output}=	Query	SELECT s.notify FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((0,),)"
 		END
 		Should Be Equal As Strings	${output}	((0,),)
-		
+
 		Enable Host Svc Notifications	${use_grpc}	host_1
-		
+
 		FOR	${index}	IN RANGE	30
-			Log To Console	select s.notify from services s,hosts h where s.description='service_1' and h.name='host_1' 
-			${output}=	Query	select s.notify from services s,hosts h where s.description='service_1' and h.name='host_1'  
+			Log To Console	SELECT s.notify FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
+			${output}=	Query	SELECT s.notify FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((1,),)"
@@ -1594,7 +1594,7 @@ BEEXTCMD35
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
-		${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
 		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Disable Passive Host Checks	${use_grpc}	host_1
@@ -1602,8 +1602,8 @@ BEEXTCMD35
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select passive_checks from hosts where name='host_1' 
-			${output}=	Query	select passive_checks from hosts where name='host_1'  
+			Log To Console	SELECT passive_checks FROM hosts WHERE name='host_1'
+			${output}=	Query	SELECT passive_checks FROM hosts WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((0,),)"
@@ -1611,8 +1611,8 @@ BEEXTCMD35
 		Should Be Equal As Strings	${output}	((0,),)
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select passive_checks_enabled from resources where name='host_1' 
-			${output}=	Query	select passive_checks_enabled from resources where name='host_1' 
+			Log To Console	SELECT passive_checks_enabled FROM resources WHERE name='host_1'
+			${output}=	Query	SELECT passive_checks_enabled FROM resources WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((0,),)"
@@ -1622,8 +1622,8 @@ BEEXTCMD35
 		Enable Passive Host Checks	${use_grpc}	host_1
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select passive_checks from hosts where name='host_1' 
-			${output}=	Query	select passive_checks from hosts where name='host_1'  
+			Log To Console	SELECT passive_checks FROM hosts WHERE name='host_1'
+			${output}=	Query	SELECT passive_checks FROM hosts WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((1,),)"
@@ -1631,8 +1631,8 @@ BEEXTCMD35
 		Should Be Equal As Strings	${output}	((1,),)
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select passive_checks_enabled from resources where name='host_1' 
-			${output}=	Query	select passive_checks_enabled from resources where name='host_1' 
+			Log To Console	SELECT passive_checks_enabled FROM resources WHERE name='host_1'
+			${output}=	Query	SELECT passive_checks_enabled FROM resources WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((1,),)"
@@ -1657,7 +1657,7 @@ BEEXTCMD36
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
-		${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
 		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Disable Passive Host Checks	${use_grpc}	host_1
@@ -1665,8 +1665,8 @@ BEEXTCMD36
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select passive_checks from hosts where name='host_1' 
-			${output}=	Query	select passive_checks from hosts where name='host_1'  
+			Log To Console	SELECT passive_checks FROM hosts WHERE name='host_1'
+			${output}=	Query	SELECT passive_checks FROM hosts WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((0,),)"
@@ -1676,8 +1676,8 @@ BEEXTCMD36
 		Enable Passive Host Checks	${use_grpc}	host_1
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select passive_checks from hosts where name='host_1' 
-			${output}=	Query	select passive_checks from hosts where name='host_1'  
+			Log To Console	SELECT passive_checks FROM hosts WHERE name='host_1'
+			${output}=	Query	SELECT passive_checks FROM hosts WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((1,),)"
@@ -1707,7 +1707,7 @@ BEEXTCMD37
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
-		${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
 		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Disable Passive Svc Checks	${use_grpc}	host_1	service_1
@@ -1715,8 +1715,8 @@ BEEXTCMD37
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select s.passive_checks from services s,hosts h where s.description='service_1' and h.name='host_1' 
-			${output}=	Query	select s.passive_checks from services s,hosts h where s.description='service_1' and h.name='host_1'  
+			Log To Console	SELECT s.passive_checks FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
+			${output}=	Query	SELECT s.passive_checks FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((0,),)"
@@ -1724,8 +1724,8 @@ BEEXTCMD37
 		Should Be Equal As Strings	${output}	((0,),)
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select passive_checks_enabled from resources where name='service_1' 
-			${output}=	Query	select passive_checks_enabled from resources where name='service_1' 
+			Log To Console	SELECT passive_checks_enabled FROM resources WHERE name='service_1'
+			${output}=	Query	SELECT passive_checks_enabled FROM resources WHERE name='service_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((0,),)"
@@ -1735,8 +1735,8 @@ BEEXTCMD37
 		Enable Passive Svc Checks	${use_grpc}	host_1	service_1
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select s.passive_checks from services s,hosts h where s.description='service_1' and h.name='host_1' 
-			${output}=	Query	select s.passive_checks from services s,hosts h where s.description='service_1' and h.name='host_1'  
+			Log To Console	SELECT s.passive_checks FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
+			${output}=	Query	SELECT s.passive_checks FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((1,),)"
@@ -1744,8 +1744,8 @@ BEEXTCMD37
 		Should Be Equal As Strings	${output}	((1,),)
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select passive_checks_enabled from resources where name='service_1' 
-			${output}=	Query	select passive_checks_enabled from resources where name='service_1' 
+			Log To Console	SELECT passive_checks_enabled FROM resources WHERE name='service_1'
+			${output}=	Query	SELECT passive_checks_enabled FROM resources WHERE name='service_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((1,),)"
@@ -1770,7 +1770,7 @@ BEEXTCMD38
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
-		${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
 		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Disable Passive Svc Checks	${use_grpc}	host_1	service_1
@@ -1778,8 +1778,8 @@ BEEXTCMD38
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select s.passive_checks from services s,hosts h where s.description='service_1' and h.name='host_1' 
-			${output}=	Query	select s.passive_checks from services s,hosts h where s.description='service_1' and h.name='host_1'  
+			Log To Console	SELECT s.passive_checks FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
+			${output}=	Query	SELECT s.passive_checks FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((0,),)"
@@ -1789,8 +1789,8 @@ BEEXTCMD38
 		Enable Passive Svc Checks	${use_grpc}	host_1	service_1
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select s.passive_checks from services s,hosts h where s.description='service_1' and h.name='host_1' 
-			${output}=	Query	select s.passive_checks from services s,hosts h where s.description='service_1' and h.name='host_1'  
+			Log To Console	SELECT s.passive_checks FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
+			${output}=	Query	SELECT s.passive_checks FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((1,),)"
@@ -1820,7 +1820,7 @@ BEEXTCMD39
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
-		${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
 		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Stop Obsessing Over Host	${use_grpc}	host_1
@@ -1828,8 +1828,8 @@ BEEXTCMD39
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select obsess_over_host from hosts where name='host_1' 
-			${output}=	Query	select obsess_over_host from hosts where name='host_1'  
+			Log To Console	SELECT obsess_over_host FROM hosts WHERE name='host_1'
+			${output}=	Query	SELECT obsess_over_host FROM hosts WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((0,),)"
@@ -1839,8 +1839,8 @@ BEEXTCMD39
 		Start Obsessing Over Host	${use_grpc}	host_1
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select obsess_over_host from hosts where name='host_1' 
-			${output}=	Query	select obsess_over_host from hosts where name='host_1'  
+			Log To Console	SELECT obsess_over_host FROM hosts WHERE name='host_1'
+			${output}=	Query	SELECT obsess_over_host FROM hosts WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((1,),)"
@@ -1865,7 +1865,7 @@ BEEXTCMD40
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
-		${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
 		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Stop Obsessing Over Host	${use_grpc}	host_1
@@ -1873,8 +1873,8 @@ BEEXTCMD40
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select obsess_over_host from hosts where name='host_1' 
-			${output}=	Query	select obsess_over_host from hosts where name='host_1'  
+			Log To Console	SELECT obsess_over_host FROM hosts WHERE name='host_1'
+			${output}=	Query	SELECT obsess_over_host FROM hosts WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((0,),)"
@@ -1884,8 +1884,8 @@ BEEXTCMD40
 		Start Obsessing Over Host	${use_grpc}	host_1
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select obsess_over_host from hosts where name='host_1' 
-			${output}=	Query	select obsess_over_host from hosts where name='host_1'  
+			Log To Console	SELECT obsess_over_host FROM hosts WHERE name='host_1'
+			${output}=	Query	SELECT obsess_over_host FROM hosts WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((1,),)"
@@ -1915,7 +1915,7 @@ BEEXTCMD41
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
-		${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
 		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Stop Obsessing Over Svc	${use_grpc}	host_1	service_1
@@ -1923,8 +1923,8 @@ BEEXTCMD41
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select s.obsess_over_service from services s,hosts h where s.description='service_1' and h.name='host_1' 
-			${output}=	Query	select s.obsess_over_service from services s,hosts h where s.description='service_1' and h.name='host_1'  
+			Log To Console	SELECT s.obsess_over_service FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
+			${output}=	Query	SELECT s.obsess_over_service FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((0,),)"
@@ -1934,8 +1934,8 @@ BEEXTCMD41
 		Start Obsessing Over Svc	${use_grpc}	host_1	service_1
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select s.obsess_over_service from services s,hosts h where s.description='service_1' and h.name='host_1' 
-			${output}=	Query	select s.obsess_over_service from services s,hosts h where s.description='service_1' and h.name='host_1'  
+			Log To Console	SELECT s.obsess_over_service FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
+			${output}=	Query	SELECT s.obsess_over_service FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((1,),)"
@@ -1960,7 +1960,7 @@ BEEXTCMD42
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
-		${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
 		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Stop Obsessing Over Svc	${use_grpc}	host_1	service_1
@@ -1968,8 +1968,8 @@ BEEXTCMD42
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select s.obsess_over_service from services s,hosts h where s.description='service_1' and h.name='host_1' 
-			${output}=	Query	select s.obsess_over_service from services s,hosts h where s.description='service_1' and h.name='host_1'  
+			Log To Console	SELECT s.obsess_over_service FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
+			${output}=	Query	SELECT s.obsess_over_service FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((0,),)"
@@ -1979,8 +1979,8 @@ BEEXTCMD42
 		Start Obsessing Over Svc	${use_grpc}	host_1	service_1
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select s.obsess_over_service from services s,hosts h where s.description='service_1' and h.name='host_1' 
-			${output}=	Query	select s.obsess_over_service from services s,hosts h where s.description='service_1' and h.name='host_1'  
+			Log To Console	SELECT s.obsess_over_service FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
+			${output}=	Query	SELECT s.obsess_over_service FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((1,),)"
@@ -2011,7 +2011,7 @@ BEEXTCMD_GRPC1
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
-			${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+			${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
 			${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 			Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Normal Svc Check Interval  ${use_grpc}  host_1	service_1	10
@@ -2019,8 +2019,8 @@ BEEXTCMD_GRPC1
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	300
-			Log To Console	select s.check_interval from services s,hosts h where s.description='service_1' and h.name='host_1' 
-			${output}=	Query	select s.check_interval from services s,hosts h where s.description='service_1' and h.name='host_1'
+			Log To Console	SELECT s.check_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
+			${output}=	Query	SELECT s.check_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((10.0,),)"
@@ -2046,7 +2046,7 @@ BEEXTCMD_GRPC2
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
-			${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+			${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
 			${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 			Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Normal Svc Check Interval  ${use_grpc}	host_1	service_1	15
@@ -2054,8 +2054,8 @@ BEEXTCMD_GRPC2
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select s.check_interval from services s,hosts h where s.description='service_1' and h.name='host_1' 
-			${output}=	Query	select s.check_interval from services s,hosts h where s.description='service_1' and h.name='host_1'
+			Log To Console	SELECT s.check_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
+			${output}=	Query	SELECT s.check_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((15.0,),)"
@@ -2087,7 +2087,7 @@ BEEXTCMD_GRPC3
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
-			${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+			${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
 			${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 			Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Normal Host Check Interval  ${use_grpc}  host_1	10
@@ -2095,8 +2095,8 @@ BEEXTCMD_GRPC3
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select check_interval from hosts where name='host_1' 
-			${output}=	Query	select check_interval from hosts where name='host_1' 
+			Log To Console	SELECT check_interval FROM hosts WHERE name='host_1'
+			${output}=	Query	SELECT check_interval FROM hosts WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((10.0,),)"
@@ -2123,7 +2123,7 @@ BEEXTCMD_GRPC4
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
-			${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+			${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
 			${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 			Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Normal Host Check Interval  ${use_grpc}  host_1	15
@@ -2131,8 +2131,8 @@ BEEXTCMD_GRPC4
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select check_interval from hosts where name='host_1' 
-			${output}=	Query	select check_interval from hosts where name='host_1' 
+			Log To Console	SELECT check_interval FROM hosts WHERE name='host_1'
+			${output}=	Query	SELECT check_interval FROM hosts WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((15.0,),)"
@@ -2143,8 +2143,8 @@ BEEXTCMD_GRPC4
 	END
 
 BEEXTCMD_REVERSE_GRPC1
-	[Documentation]	external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0 and grpc reversed
-	[Tags]	Broker	Engine	services	extcmd
+	[Documentation]	external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0 and reversed gRPC
+	[Tags]	Broker	Engine	services	extcmd	bbdo3
 	Config Engine	${1}	${50}	${20}
 	Config Broker	rrd
 	Config Broker	central
@@ -2164,9 +2164,10 @@ BEEXTCMD_REVERSE_GRPC1
 		Log To Console	external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0 use_grpc=${use_grpc}
 		Clear Retention
 		${start}=	Get Current Date
+                Sleep	1s
 		Start Broker
 		Start Engine
-		${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
 		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Normal Svc Check Interval  ${use_grpc}  host_1	service_1	10
@@ -2174,8 +2175,8 @@ BEEXTCMD_REVERSE_GRPC1
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	300
-			Log To Console	select s.check_interval from services s,hosts h where s.description='service_1' and h.name='host_1' 
-			${output}=	Query	select s.check_interval from services s,hosts h where s.description='service_1' and h.name='host_1'
+			Log To Console	SELECT s.check_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description='service_1'
+			${output}=	Query	SELECT s.check_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description='service_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((10.0,),)"
@@ -2205,7 +2206,7 @@ BEEXTCMD_REVERSE_GRPC2
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
-		${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
 		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Normal Svc Check Interval  ${use_grpc}	host_1	service_1	15
@@ -2213,8 +2214,8 @@ BEEXTCMD_REVERSE_GRPC2
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select s.check_interval from services s,hosts h where s.description='service_1' and h.name='host_1' 
-			${output}=	Query	select s.check_interval from services s,hosts h where s.description='service_1' and h.name='host_1'
+			Log To Console	SELECT s.check_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description='service_1'
+			${output}=	Query	SELECT s.check_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description='service_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((15.0,),)"
@@ -2250,7 +2251,7 @@ BEEXTCMD_REVERSE_GRPC3
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
-		${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
 		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Normal Host Check Interval  ${use_grpc}  host_1	10
@@ -2258,8 +2259,8 @@ BEEXTCMD_REVERSE_GRPC3
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select check_interval from hosts where name='host_1' 
-			${output}=	Query	select check_interval from hosts where name='host_1' 
+			Log To Console	SELECT check_interval FROM hosts WHERE name='host_1'
+			${output}=	Query	SELECT check_interval FROM hosts WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((10.0,),)"
@@ -2290,7 +2291,7 @@ BEEXTCMD_REVERSE_GRPC4
 		${start}=	Get Current Date
 		Start Broker
 		Start Engine
-		${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1;
+		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
 		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Normal Host Check Interval  ${use_grpc}  host_1	15
@@ -2298,8 +2299,8 @@ BEEXTCMD_REVERSE_GRPC4
 		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 
 		FOR	${index}	IN RANGE	30
-			Log To Console	select check_interval from hosts where name='host_1' 
-			${output}=	Query	select check_interval from hosts where name='host_1' 
+			Log To Console	SELECT check_interval FROM hosts WHERE name='host_1'
+			${output}=	Query	SELECT check_interval FROM hosts WHERE name='host_1'
 			Log To Console	${output}
 			Sleep	1s
 			EXIT FOR LOOP IF	"${output}" == "((15.0,),)"
@@ -2308,3 +2309,182 @@ BEEXTCMD_REVERSE_GRPC4
 		Stop Engine
 		Kindly Stop Broker
 	END
+
+
+BEEXTCMD_COMPRESS_GRPC1
+	[Documentation]	external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0 and compressed grpc
+	[Tags]	Broker	Engine	services	extcmd
+	Config Engine	${1}	${50}	${20}
+	Config Broker	rrd
+	Config Broker	central
+	Config Broker	module	${1}
+	Change Broker tcp output to grpc	module0
+	Change Broker tcp input to grpc     central
+	Change Broker Compression Output  module0  central-module-master-output  yes
+	Change Broker Compression Input  central  centreon-broker-master-input  yes
+	Broker Config Add Item	module0	bbdo_version	3.0.0
+	Broker Config Add Item	central	bbdo_version	3.0.0
+	Broker Config Add Item	rrd	bbdo_version	3.0.0
+	Broker Config Log	central	sql	debug
+	Config Broker Sql Output	central	unified_sql
+	FOR  ${use_grpc}  IN RANGE  0  2
+		Log To Console	external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0 use_grpc=${use_grpc}
+		Clear Retention
+		${start}=	Get Current Date
+		Start Broker
+		Start Engine
+			${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
+			${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+			Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
+		Change Normal Svc Check Interval  ${use_grpc}  host_1	service_1	10
+
+		Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+
+		FOR	${index}	IN RANGE	300
+			Log To Console	SELECT s.check_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
+			${output}=	Query	SELECT s.check_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
+			Log To Console	${output}
+			Sleep	1s
+			EXIT FOR LOOP IF	"${output}" == "((10.0,),)"
+		END
+		Should Be Equal As Strings	${output}	((10.0,),)
+		Stop Engine
+		Kindly Stop Broker
+	END
+	
+
+BEATOI11
+	[Documentation]	external command SEND_CUSTOM_HOST_NOTIFICATION with option_number=1 should work
+	[Tags]	Broker	Engine	host	extcmd	Notification
+	Config Engine	${1}	${50}	${20}
+	Config Broker	rrd
+	Config Broker	central
+	Config Broker	module	${1}
+	Broker Config Log	central	core	error
+	Broker Config Log	central	sql	debug
+	${start}=	Get Current Date
+	Start Broker
+	Start Engine
+	SEND CUSTOM HOST NOTIFICATION	host_1	1	admin	foobar
+	${content}=	Create List	EXTERNAL COMMAND: SEND_CUSTOM_HOST_NOTIFICATION;host_1;1;admin;foobar
+	${result}=	Find In Log With Timeout	${logEngine0}	${start}	${content}	60
+	Should Be True	${result}	msg=command argument notification_option must be an integer between 0 and 7.
+	Stop Engine
+	Kindly Stop Broker
+
+BEATOI12
+	[Documentation]	external command SEND_CUSTOM_HOST_NOTIFICATION with option_number>7 should fail
+	[Tags]	Broker	Engine	host	extcmd	Notification
+	Config Engine	${1}	${50}	${20}
+	Config Broker	rrd
+	Config Broker	central
+	Config Broker	module	${1}
+	Broker Config Log	central	core	error
+	Broker Config Log	central	sql	debug
+	${start}=	Get Current Date
+	Start Broker
+	Start Engine
+	SEND CUSTOM HOST NOTIFICATION	host_1	8	admin	foobar
+	${content}=	Create List	Error: could not send custom host notification:
+	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	Should Be True	${result}	msg=command argument notification_option must be an integer between 0 and 7.
+	Stop Engine
+	Kindly Stop Broker
+
+
+BEATOI13
+	[Documentation]	external command SCHEDULE SERVICE DOWNTIME with duration<0 should fail
+	[Tags]	Broker	Engine	host	extcmd
+	Config Engine	${1}	${50}	${20}
+	Config Broker	rrd
+	Config Broker	central
+	Config Broker	module	${1}
+	Broker Config Log	central	core	error
+	Broker Config Log	central	sql	debug
+	${start}=	Get Current Date
+	Start Broker
+	Start Engine
+	${date}=	Get Current Date	result_format=epoch
+	SCHEDULE SERVICE DOWNTIME	host_1	service_1	-1
+	${content}=	Create List	Error: could not schedule downtime : duration
+	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	Should Be True	${result}	msg=command argument duration must be an integer >= 0.
+	Stop Engine
+	Kindly Stop Broker
+
+
+BEATOI21
+	[Documentation]	external command ADD_HOST_COMMENT and DEL_HOST_COMMENT should work
+	[Tags]	Broker	Engine	host	extcmd
+	Config Engine	${1}	${50}	${20}
+	Config Broker	rrd
+	Config Broker	central
+	Config Broker	module	${1}
+	Broker Config Log	central	core	error
+	Broker Config Log	central	sql	debug
+	${start}=	Get Current Date
+	Sleep	1s
+	Start Broker
+	Start Engine
+	ADD HOST COMMENT	host_1	1	user	comment
+	${content}=	Create List	ADD_HOST_COMMENT, comment_id: 1, data: comment
+	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	Should Be True	${result}	msg=the comment with id:1 was not added.
+	${com_id}=	Find Internal Id		${start}	True	30
+	DEL HOST COMMENT	${com_id}
+	${result}=	Find Internal Id	${start}	False	30
+	Should Be True	${result}	msg=the comment with id:${com_id} was not deleted.
+	Stop Engine
+	Kindly Stop Broker
+
+
+BEATOI22
+	[Documentation]	external command DEL_HOST_COMMENT with comment_id<0 should fail
+	[Tags]	Broker	Engine	host	extcmd
+	Config Engine	${1}	${50}	${20}
+	Config Broker	rrd
+	Config Broker	central
+	Config Broker	module	${1}
+	Broker Config Log	central	core	error
+	Broker Config Log	central	sql	debug
+	${start}=	Get Current Date
+	Sleep	1s
+	Start Broker
+	Start Engine
+	ADD HOST COMMENT	host_1	1	user	comment
+	${content}=	Create List	ADD_HOST_COMMENT, comment_id: 1, data: comment
+	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	Should Be True	${result}	msg=the comment with id:1 was not added.
+	${com_id}=	Find Internal Id		${start}	True	30
+	DEL HOST COMMENT	-1
+	${content}=	Create List	Error: could not delete comment : comment_id
+	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	Should Be True	${result}	msg=comment_id must be an unsigned integer.
+	${result}=	Find Internal Id	${start}	True	30
+	Should Be True	${result}	msg=comment with id:-1 was deleted.
+	Stop Engine
+	Kindly Stop Broker
+
+
+BEATOI23
+	[Documentation]	external command ADD_SVC_COMMENT with persistent=0 should work
+	[Tags]	Broker	Engine	host	extcmd
+	Config Engine	${1}	${50}	${20}
+	Config Broker	rrd
+	Config Broker	central
+	Config Broker	module	${1}
+	Broker Config Log	central	core	error
+	Broker Config Log	central	sql	debug
+	${start}=	Get Current Date
+	Start Broker
+	Start Engine
+	${date}=	Get Current Date	result_format=epoch
+	ADD SVC COMMENT	host_1	service_1	0	user	comment
+	${content}=	Create List	ADD_SVC_COMMENT, comment_id: 1, data: comment
+	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	Should Be True	${result}	msg=command argument persistent_flag must be 0 or 1.
+	Stop Engine
+	Kindly Stop Broker
+
+
+

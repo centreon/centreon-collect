@@ -734,16 +734,38 @@ void processing::_wrapper_enable_host_svc_checks(host* hst) {
 }
 
 void processing::_wrapper_set_host_notification_number(host* hst, char* args) {
-  if (hst && args)
-    hst->set_notification_number(atoi(args));
+  if (hst && args) {
+    int notification_number;
+    if (!absl::SimpleAtoi(args, &notification_number)) {
+      log_v2::runtime()->error(
+          "Error: could not set host notification number: '{}' must be a "
+          "positive integer",
+          args);
+      return;
+    }
+    hst->set_notification_number(notification_number);
+  }
 }
 
 void processing::_wrapper_send_custom_host_notification(host* hst, char* args) {
   char* buf[3] = {NULL, NULL, NULL};
+  int option;
   if ((buf[0] = my_strtok(args, ";")) && (buf[1] = my_strtok(NULL, ";")) &&
       (buf[2] = my_strtok(NULL, ";"))) {
-    hst->notify(notifier::reason_custom, buf[1], buf[2],
-                static_cast<notifier::notification_option>(atoi(buf[0])));
+    if (!absl::SimpleAtoi(buf[0], &option)) {
+      log_v2::runtime()->error(
+          "Error: could not send custom host notification: '{}' must be an "
+          "integer between 0 and 7",
+          buf[0]);
+    } else if (option >= 0 && option <= 7) {
+      hst->notify(notifier::reason_custom, buf[1], buf[2],
+                  static_cast<notifier::notification_option>(option));
+    } else {
+      log_v2::runtime()->error(
+          "Error: could not send custom host notification: '{}' must be an "
+          "integer between 0 and 7",
+          buf[0]);
+    }
   }
 }
 
@@ -798,16 +820,39 @@ void processing::_wrapper_disable_passive_service_checks(host* hst) {
 void processing::_wrapper_set_service_notification_number(service* svc,
                                                           char* args) {
   char* str(my_strtok(args, ";"));
-  if (svc && str)
-    svc->set_notification_number(atoi(str));
+  int notification_number;
+  if (svc && str) {
+    if (!absl::SimpleAtoi(str, &notification_number)) {
+      log_v2::runtime()->error(
+          "Error: could not set service notification number: '{}' must be a "
+          "positive integer",
+          str);
+      return;
+    }
+    svc->set_notification_number(notification_number);
+  }
 }
 
 void processing::_wrapper_send_custom_service_notification(service* svc,
                                                            char* args) {
   char* buf[3] = {NULL, NULL, NULL};
+  int notification_number;
   if ((buf[0] = my_strtok(args, ";")) && (buf[1] = my_strtok(NULL, ";")) &&
       (buf[2] = my_strtok(NULL, ";"))) {
-    svc->notify(notifier::reason_custom, buf[1], buf[2],
-                static_cast<notifier::notification_option>(atoi(buf[0])));
+    if (!absl::SimpleAtoi(buf[0], &notification_number)) {
+      log_v2::runtime()->error(
+          "Error: could not send custom service notification: '{}' must be an "
+          "integer between 0 and 7",
+          buf[0]);
+    } else if (notification_number >= 0 && notification_number <= 7) {
+      svc->notify(
+          notifier::reason_custom, buf[1], buf[2],
+          static_cast<notifier::notification_option>(notification_number));
+    } else {
+      log_v2::runtime()->error(
+          "Error: could not send custom service notification: '{}' must be an "
+          "integer between 0 and 7",
+          buf[0]);
+    }
   }
 }
