@@ -869,35 +869,9 @@ void anomalydetection::init_thresholds() {
     }
     if (host_id == get_host_id() && service_id == get_service_id() &&
         item["metric_name"].get<std::string>() == _metric_name) {
-      engine_logger(dbg_config, most)
-          << "Filling thresholds in anomaly detection (host_id: "
-          << get_host_id() << ", service_id: " << get_service_id()
-          << ", metric: " << _metric_name << ")";
-      log_v2::config()->debug(
-          "Filling thresholds in anomaly detection (host_id: {}, service_id: "
-          "{}, metric: {})",
-          get_host_id(), get_service_id(), _metric_name);
-      auto predict = item["predict"];
-      _thresholds.clear();
-      for (auto& i : predict) {
-        time_t timestamp = static_cast<time_t>(i["timestamp"].get<uint64_t>());
-        double upper = i["upper"].get<double>();
-        double lower = i["lower"].get<double>();
-        _thresholds.emplace_hint(
-            _thresholds.end(),
-            std::make_pair(timestamp, std::make_pair(lower, upper)));
-        count++;
-      }
+      set_thresholds_no_lock(_thresholds_file, item["predict"]);
       break;
     }
-  }
-  if (count > 1) {
-    engine_logger(dbg_config, most) << "Number of rows in memory: " << count;
-    log_v2::config()->debug("Number of rows in memory: {}", count);
-    _thresholds_file_viable = true;
-  } else {
-    engine_logger(dbg_config, most) << "Nothing in memory";
-    log_v2::config()->debug("Nothing in memory");
   }
 }
 
@@ -976,7 +950,13 @@ int anomalydetection::update_thresholds(const std::string& filename) {
       continue;
     }
     std::shared_ptr<anomalydetection> ad =
-        std::static_pointer_cast<anomalydetection>(found->second);
+        std::dynamic_pointer_cast<anomalydetection>(found->second);
+    if (!ad) {
+      log_v2::config()->error(
+          "host_id: {}, service_id: {} is not an anomaly detection service",
+          host_id, svc_id);
+      continue;
+    }
     const std::string& metric_name(item["metric_name"].get<std::string>());
     if (ad->get_metric_name() != metric_name) {
       engine_logger(log_config_error, basic)
@@ -1003,27 +983,51 @@ int anomalydetection::update_thresholds(const std::string& filename) {
         "metric: {})",
         ad->get_host_id(), ad->get_service_id(), ad->get_metric_name());
 
-    auto predict = item["predict"];
-    std::map<time_t, std::pair<double, double> > thresholds;
-    for (auto& i : predict) {
-      time_t timestamp = static_cast<time_t>(i["timestamp"].get<int64_t>());
-      double upper = i["upper"].get<double>();
-      double lower = i["lower"].get<double>();
-      thresholds.emplace_hint(
-          thresholds.end(),
-          std::make_pair(timestamp, std::make_pair(lower, upper)));
-    }
-    ad->set_thresholds(filename, std::move(thresholds));
+    ad->set_thresholds_lock(filename, item["predict"]);
   }
   return 0;
 }
 
-void anomalydetection::set_thresholds(
-    const std::string& filename,
-    std::map<time_t, std::pair<double, double> >&& thresholds) noexcept {
+void anomalydetection::set_thresholds_lock(const std::string& filename,
+                                           const nlohmann::json& thresholds) {
   std::lock_guard<std::mutex> _lock(_thresholds_m);
-  _thresholds_file = filename, _thresholds = thresholds;
-  _thresholds_file_viable = _thresholds.size() > 0;
+  set_thresholds_no_lock(filename, thresholds);
+}
+
+void anomalydetection::set_thresholds_no_lock(
+    const std::string& filename,
+    const nlohmann::json& thresholds) {
+  std::lock_guard<std::mutex> _lock(_thresholds_m);
+  if (_thresholds_file != filename) {
+    _thresholds_file = filename;
+  }
+  _thresholds.clear();
+  for (auto& threshold_obj : thresholds) {
+    time_t timestamp =
+        static_cast<time_t>(threshold_obj["timestamp"].get<uint64_t>());
+    double upper = threshold_obj["upper"].get<double>();
+    double lower = threshold_obj["lower"].get<double>();
+    _thresholds.emplace_hint(
+        _thresholds.end(),
+        std::make_pair(timestamp, std::make_pair(lower, upper)));
+  }
+  if (_thresholds.size() > 1) {
+    engine_logger(dbg_config, most)
+        << "host_id=" << get_host_id() << " serv_id=" << get_service_id()
+        << " Number of rows in memory: " << _thresholds.size();
+    log_v2::config()->debug(
+        "host_id={} serv_id={} Number of rows in memory: {}", get_host_id(),
+        get_service_id(), _thresholds.size());
+    _thresholds_file_viable = true;
+  } else {
+    engine_logger(dbg_config, most)
+        << "Nothing in memory " << _thresholds.size()
+        << " for host_id=" << get_host_id() << " serv_id=" << get_service_id();
+    log_v2::config()->debug("Nothing in memory {} for host_id={} servid={}",
+                            _thresholds.size(), get_host_id(),
+                            get_service_id());
+    _thresholds_file_viable = false;
+  }
 }
 
 void anomalydetection::set_status_change(bool status_change) {

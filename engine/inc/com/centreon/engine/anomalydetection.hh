@@ -81,9 +81,12 @@ class anomalydetection : public service {
   void set_dependent_service(service* svc);
   void set_metric_name(std::string const& name);
   void set_thresholds_file(std::string const& file);
-  void set_thresholds(
-      const std::string& filename,
-      std::map<time_t, std::pair<double, double> >&& thresholds) noexcept;
+
+  void set_thresholds_lock(const std::string& filename,
+                           const nlohmann::json& thresholds);
+  void set_thresholds_no_lock(const std::string& filename,
+                              const nlohmann::json& thresholds);
+
   static int update_thresholds(const std::string& filename);
   virtual int run_async_check(int check_options,
                               double latency,
