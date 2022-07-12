@@ -2839,24 +2839,6 @@ void state::rpc_port(uint16_t value) {
 }
 
 /**
- *  Get rpc_listen_address value.
- *
- *  @return The grpc api listen address value.
- */
-const std::string& state::rpc_listen_address() const noexcept {
-  return _rpc_listen_address;
-}
-
-/**
- *  Set grpc api listen_address value.
- *
- *  @param[in] value The new grpc api listen address.
- */
-void state::rpc_listen_address(const std::string& listen_address) {
-  _rpc_listen_address = listen_address;
-}
-
-/**
  *  Get process_performance_data value.
  *
  *  @return The process_performance_data value.

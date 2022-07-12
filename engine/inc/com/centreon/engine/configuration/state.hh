@@ -298,8 +298,6 @@ class state {
   void poller_id(uint32_t value);
   uint16_t rpc_port() const noexcept;
   void rpc_port(uint16_t value);
-  const std::string& rpc_listen_address() const noexcept;
-  void rpc_listen_address(const std::string& listen_address);
   bool process_performance_data() const noexcept;
   void process_performance_data(bool value);
   std::list<std::string> const& resource_file() const noexcept;
