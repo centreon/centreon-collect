@@ -4,6 +4,13 @@
 
 ### centreon-broker
 
+#### Enhancements
+
+*grpc*
+
+The grpc api listens by default on localhost now. And it can be configured
+with the Broker configuration file.
+
 #### Fixes
 
 *bam*
@@ -11,6 +18,15 @@
 If a service with two overlapping downtimes is a BA kpi. When the first downtime
 is cancelled from the service, it is as if all the downtimes are removed from
 the kpi. This new version fixes this issue.
+
+### centreon-engine
+
+#### Enhancements
+
+*grpc*
+
+The grpc api listens by default on localhost now. And it can be configured
+with the Engine configuration file.
 
 ## 21.10.2
 
