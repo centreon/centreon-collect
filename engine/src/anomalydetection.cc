@@ -638,10 +638,10 @@ int anomalydetection::run_async_check(int check_options,
     without_thresholds = "";
 
   // Init check result info.
-  std::unique_ptr<check_result> check_result_info(
-      new check_result(service_check, this, checkable::check_active,
-                       check_options, reschedule_check, latency, start_time,
-                       start_time, false, true, service::state_ok, ""));
+  auto check_result_info = std::make_unique<check_result>(
+      service_check, this, checkable::check_active, check_options,
+      reschedule_check, latency, start_time, start_time, false, true,
+      service::state_ok, "");
 
   oss.str("");
   oss.setf(std::ios_base::fixed, std::ios_base::floatfield);

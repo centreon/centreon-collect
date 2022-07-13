@@ -1791,10 +1791,10 @@ int host::run_async_check(int check_options,
   std::unique_ptr<check_result> check_result_info;
   do {
     // Init check result info.
-    check_result_info.reset(
-        new check_result(host_check, this, checkable::check_active,
-                         check_options, reschedule_check, latency, start_time,
-                         start_time, false, true, service::state_ok, ""));
+    check_result_info = std::make_unique<check_result>(
+        host_check, this, checkable::check_active, check_options,
+        reschedule_check, latency, start_time, start_time, false, true,
+        service::state_ok, "");
 
     retry = false;
     try {
@@ -2175,10 +2175,10 @@ void host::set_flap(double percent_change,
       << "% threshold).  When the host state stabilizes and the "
       << "flapping stops, notifications will be re-enabled.";
 
-  std::shared_ptr<comment> com{
-      new comment(comment::host, comment::flapping, get_host_id(), 0,
-                  time(nullptr), "(Centreon Engine Process)", oss.str(), false,
-                  comment::internal, false, (time_t)0)};
+  auto com = std::make_shared<comment>(
+      comment::host, comment::flapping, get_host_id(), 0, time(nullptr),
+      "(Centreon Engine Process)", oss.str(), false, comment::internal, false,
+      (time_t)0);
 
   comment::comments.insert({com->get_comment_id(), com});
 
