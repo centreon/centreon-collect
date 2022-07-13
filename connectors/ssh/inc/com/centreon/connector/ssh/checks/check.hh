@@ -19,6 +19,8 @@
 #ifndef CCCS_CHECKS_CHECK_HH
 #define CCCS_CHECKS_CHECK_HH
 
+#include <libssh2.h>
+
 #include "com/centreon/connector/result.hh"
 #include "com/centreon/connector/ssh/namespace.hh"
 

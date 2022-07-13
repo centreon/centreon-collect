@@ -1,7 +1,5 @@
-/*
-** Copyright 2022 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
+/**Copyright 2022 Centreon ****Licensed under the Apache License,
+    Version 2.0(the "License");
 ** you may not use this file except in compliance with the License.
 ** You may obtain a copy of the License at
 **
@@ -16,45 +14,40 @@
 ** For more information : contact@centreon.com
 */
 
-#ifndef CC_PRECOMP_HH
-#define CC_PRECOMP_HH
+#ifndef CCCP_PRECOMP_HH
+#define CCCP_PRECOMP_HH
 
-#include <array>
-#include <atomic>
+#include <sys/wait.h>
+#include <unistd.h>
+
 #include <chrono>
-#include <condition_variable>
-#include <cstddef>
-#include <cstdint>
 #include <cstdio>
-#include <cstdlib>
-#include <cstring>
 #include <ctime>
-#include <deque>
-#include <exception>
 #include <fstream>
-#include <functional>
 #include <iostream>
-#include <limits>
 #include <list>
 #include <map>
 #include <memory>
-#include <mutex>
 #include <queue>
 #include <set>
 #include <sstream>
-#include <stack>
 #include <string>
-#include <thread>
-#include <unordered_map>
-#include <unordered_set>
-#include <utility>
-#include <vector>
-
-#include <absl/container/btree_map.h>
-#include <absl/container/btree_set.h>
-#include <absl/container/flat_hash_map.h>
-#include <absl/container/flat_hash_set.h>
 
 #include <asio.hpp>
 
-#endif
+#include <absl/container/flat_hash_map.h>
+#include <absl/container/flat_hash_set.h>
+
+#include <spdlog/common.h>
+#include <spdlog/fmt/ostr.h>
+#include <spdlog/spdlog.h>
+
+#include <boost/smart_ptr/shared_array.hpp>
+
+using shared_io_context = std::shared_ptr<asio::io_context>;
+
+using system_clock = std::chrono::system_clock;
+using time_point = system_clock::time_point;
+using duration = system_clock::duration;
+
+#endif  // CCCP_PRECOMP_HH

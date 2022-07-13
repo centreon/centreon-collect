@@ -34,6 +34,7 @@
 #include <exception>
 #include <fstream>
 #include <functional>
+#include <future>
 #include <iostream>
 #include <limits>
 #include <list>
@@ -55,6 +56,7 @@
 #include <absl/container/btree_set.h>
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
+#include <absl/strings/numbers.h>
 
 #include <asio.hpp>
 

@@ -19,6 +19,7 @@
 #include "com/centreon/connector/log.hh"
 #include "com/centreon/connector/ssh/options.hh"
 #include "com/centreon/connector/ssh/policy.hh"
+#include "com/centreon/connector/ssh/sessions/session.hh"
 #include "com/centreon/exceptions/basic.hh"
 
 using namespace com::centreon;

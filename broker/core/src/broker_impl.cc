@@ -265,7 +265,7 @@ grpc::Status broker_impl::GetProcessingStats(
 grpc::Status broker_impl::RemovePoller(grpc::ServerContext* context
                                        __attribute__((unused)),
                                        const GenericNameOrIndex* request,
-                                       ::google::protobuf::Empty* response) {
+                                       ::google::protobuf::Empty*) {
   log_v2::core()->info("Remove poller...");
   multiplexing::publisher pblshr;
   auto e{std::make_shared<bbdo::pb_remove_poller>(*request)};
