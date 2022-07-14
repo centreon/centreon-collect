@@ -2351,7 +2351,6 @@ BEEXTCMD_COMPRESS_GRPC1
 		Stop Engine
 		Kindly Stop Broker
 	END
-	
 
 BEATOI11
 	[Documentation]	external command SEND_CUSTOM_HOST_NOTIFICATION with option_number=1 should work
@@ -2365,6 +2364,9 @@ BEATOI11
 	${start}=	Get Current Date
 	Start Broker
 	Start Engine
+	${content}=	Create List	check_for_external_commands
+	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	Should Be True	${result}	msg=No check for external commands executed for 1mn.
 	SEND CUSTOM HOST NOTIFICATION	host_1	1	admin	foobar
 	${content}=	Create List	EXTERNAL COMMAND: SEND_CUSTOM_HOST_NOTIFICATION;host_1;1;admin;foobar
 	${result}=	Find In Log With Timeout	${logEngine0}	${start}	${content}	60
@@ -2384,6 +2386,9 @@ BEATOI12
 	${start}=	Get Current Date
 	Start Broker
 	Start Engine
+	${content}=	Create List	check_for_external_commands
+	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	Should Be True	${result}	msg=No check for external commands executed for 1mn.
 	SEND CUSTOM HOST NOTIFICATION	host_1	8	admin	foobar
 	${content}=	Create List	Error: could not send custom host notification: '8' must be an integer between 0 and 7
 	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
@@ -2404,6 +2409,10 @@ BEATOI13
 	${start}=	Get Current Date
 	Start Broker
 	Start Engine
+	${content}=	Create List	check_for_external_commands
+	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	Should Be True	${result}	msg=No check for external commands executed for 1mn.
+	${date}=	Get Current Date	result_format=epoch
 	SCHEDULE SERVICE DOWNTIME	host_1	service_1	-1
 	${content}=	Create List	Error: could not schedule downtime : duration
 	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
@@ -2425,6 +2434,9 @@ BEATOI21
 	Sleep	1s
 	Start Broker
 	Start Engine
+	${content}=	Create List	check_for_external_commands
+	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	Should Be True	${result}	msg=No check for external commands executed for 1mn.
 	ADD HOST COMMENT	host_1	1	user	comment
 	${content}=	Create List	ADD_HOST_COMMENT
 	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
@@ -2450,6 +2462,9 @@ BEATOI22
 	Sleep	1s
 	Start Broker
 	Start Engine
+	${content}=	Create List	check_for_external_commands
+	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	Should Be True	${result}	msg=No check for external commands executed for 1mn.
 	ADD HOST COMMENT	host_1	1	user	comment
 	${content}=	Create List	ADD_HOST_COMMENT
 	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
@@ -2473,18 +2488,17 @@ BEATOI23
 	Config Broker	central
 	Config Broker	module	${1}
 	Broker Config Log	central	core	error
-	Broker Config Log	central	sql	debug
+	Broker Config Log	central	sql	error
 	${start}=	Get Current Date
 	Start Broker
 	Start Engine
+	${content}=	Create List	check_for_external_commands
+	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	Should Be True	${result}	msg=No check for external commands executed for 1mn.
+	${date}=	Get Current Date	result_format=epoch
 	ADD SVC COMMENT	host_1	service_1	0	user	comment
 	${content}=	Create List	ADD_SVC_COMMENT
 	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 	Should Be True	${result}	msg=command argument persistent_flag must be 0 or 1.
 	Stop Engine
 	Kindly Stop Broker	
-
-
-
-
-

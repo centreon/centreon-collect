@@ -58,6 +58,7 @@ BERD2
 	Config Engine	${1}
 	Engine Config Set Value	${0}	log_legacy_enabled	${0}
 	Engine Config Set Value	${0}	log_v2_enabled	${1}
+	Engine Config Set Value	${0}	log_level_runtime	info
 	Config Broker	central
 	Broker Config Clear Outputs Except	central	["ipv4"]
 	Broker Config Add Lua Output	central	test-doubles	${SCRIPTS}test-doubles-c.lua
@@ -65,6 +66,7 @@ BERD2
 	Config Broker	module
 	Broker Config Add Lua Output	module0	test-doubles	${SCRIPTS}test-doubles.lua
 	Broker Config Log	module0	lua	debug
+	Broker Config Log	module0	neb	debug
 	Config Broker	rrd
 	Clear Retention
 	${start}=	Get Current Date
@@ -77,10 +79,8 @@ BERD2
 	Should Be True	${result}	msg=Lua not started in centengine
 	${result}=	Check Connections
 	Should Be True	${result}	msg=Engine and Broker not connected.
-	Sleep	5s
+	Sleep	15s
 	Stop Engine
-	Sleep	5s
-	Clear Cache
 	Start Engine
 	Sleep	25s
 	Stop Engine

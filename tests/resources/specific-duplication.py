@@ -131,7 +131,7 @@ def check_multiplicity_when_broker_restarted(file1: str, file2: str):
             m = r.match(l)
             if m:
                 type, md5, js = int(m.group(1)), m.group(2), m.group(3)
-                if type != 65544 and type != 4294901762 and type != 196613:
+                if type != 65544 and type != 4294901762 and type != 196613 and type != 65555:
                     if md5 in lst:
                         lst[md5] += 1
                     else:
@@ -182,7 +182,7 @@ def check_multiplicity_when_engine_restarted(file1: str, file2: str):
                    * modules
                    * host checks (they can be done several times
                 """
-                if type != 65544 and type != 4294901762 and type != 65554 and type != 65561:
+                if type != 65544 and type != 4294901762 and type != 65554 and type != 65561 and type != 65555:
                     if md5 in lst:
                         lst[md5] += 1
                     else:
