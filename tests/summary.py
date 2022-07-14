@@ -42,7 +42,7 @@ for f in content:
                         fail += 1
                         if p.attrib['name'] not in fail_dict:
                             fail_dict[p.attrib['name']] = []
-                        fail_dict[p.attrib['name']].append(int(starttime.timestamp()))
+                        fail_dict[p.attrib['name']].append(int(f))
                     if s.attrib['status'] == 'PASS':
                         success += 1
                     count += 1
@@ -74,11 +74,26 @@ if args.fail:
         d = f"############# {k} ##############\n * size = {s}\n * min = {m}\n * max = {M}\n"
         lst.append((s, m, M, d, n))
     lst.sort()
+    # We keep the last 10
+    lst = lst[-10:]
+    names = []
     for l in lst:
-        fail_x.append(l[4])
-        fail_y.append(l[0])
         print(l[3])
+        names.append(l[4])
+    for k in fail_dict:
+        if k in names:
+            for v in fail_dict[k]:
+                fail_y.append(k)
+                fail_x.append(v)
+    fail_xx = fail_x.copy()
+    fail_xx.sort()
+    fail_yy = []
+    for xx in fail_xx:
+        j = fail_x.index(xx)
+        fail_yy.append(fail_y[j])
+        fail_x[j] = None
 
+    fail_xx = list(map(str, fail_xx))
 tests.sort()
 x = []
 ys = []
@@ -115,8 +130,10 @@ ax[1].plot(x1, y1)
 ax[1].grid(color='gray', linestyle='dashed')
 
 if args.fail:
-    ax[2].bar(fail_x, fail_y, linewidth=2)
-    ax[2].set_ylabel('Fails count')
-    ax[2].tick_params(labelrotation=90, labelsize=8)
+    ax[2].set_title("Fail top 10")
+    ax[2].plot(fail_xx, fail_yy, 'ro')
+    ax[2].set_ylabel('Failed tests')
+    ax[2].tick_params(axis="x", labelrotation=45, labelsize=8)
+    ax[2].grid(color='gray', linestyle='dashed')
 
 plt.show()

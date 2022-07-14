@@ -649,15 +649,6 @@ def get_command_id(service: int):
     return dbconf.command[cmd_name]
 
 
-def process_service_check_result(hst: str, svc: str, state: int, output: str, config='config0'):
-    now = int(time.time())
-    cmd = "[{}] PROCESS_SERVICE_CHECK_RESULT;{};{};{};{}\n".format(
-        now, hst, svc, state, output)
-    f = open(f"/var/lib/centreon-engine/{config}/rw/centengine.cmd", "w")
-    f.write(cmd)
-    f.close()
-
-
 def change_normal_svc_check_interval(use_grpc: int, hst: str, svc: str, check_interval: int):
     if use_grpc > 0:
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
@@ -746,15 +737,6 @@ def change_max_host_check_attempts(use_grpc: int, hst: str, max_check_attempts: 
         f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
         f.write(cmd)
         f.close()
-
-
-def change_host_check_command(hst: str, Check_Command: str):
-    now = int(time.time())
-    cmd = "[{}] CHANGE_HOST_CHECK_COMMAND;{};{}\n".format(
-        now, hst, Check_Command)
-    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-    f.write(cmd)
-    f.close()
 
 
 def change_host_check_timeperiod(use_grpc: int, hst: str, check_timeperiod: str):
@@ -1353,33 +1335,42 @@ def config_engine_remove_cfg_file(poller: int, fic: str):
     ff.close()
 
 
+def external_command(func):
+    def wrapper(*args):
+        now = int(time.time())
+        cmd = f"[{now}] {func(*args)}"
+        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
+    return wrapper
+
+def process_service_check_result(hst: str, svc: str, state: int, output: str, config='config0'):
+    now = int(time.time())
+    cmd = "[{}] PROCESS_SERVICE_CHECK_RESULT;{};{};{};{}\n".format(
+        now, hst, svc, state, output)
+    f = open(f"/var/lib/centreon-engine/{config}/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
+
+
+@external_command
 def send_custom_host_notification(hst, notification_option, author, comment):
-    now = int(time.time())
-    cmd = f"[{now}] SEND_CUSTOM_HOST_NOTIFICATION;{hst};{notification_option};{author};{comment}\n"
-    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-    f.write(cmd)
-    f.close()
+    return f"SEND_CUSTOM_HOST_NOTIFICATION;{hst};{notification_option};{author};{comment}\n"
 
-
+@external_command
 def add_svc_comment(host_name, svc_description, persistent, user_name, comment):
-    now = int(time.time())
-    cmd = f"[{now}] ADD_SVC_COMMENT;{host_name};{svc_description};{persistent};{user_name};{comment}\n"
-    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-    f.write(cmd)
-    f.close()
+    return f"ADD_SVC_COMMENT;{host_name};{svc_description};{persistent};{user_name};{comment}\n"
 
-
+@external_command
 def add_host_comment(host_name, persistent, user_name, comment):
-    now = int(time.time())
-    cmd = f"[{now}] ADD_HOST_COMMENT;{host_name};{persistent};{user_name};{comment}\n"
-    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-    f.write(cmd)
-    f.close()
+    return f"ADD_HOST_COMMENT;{host_name};{persistent};{user_name};{comment}\n"
 
-
+@external_command
 def del_host_comment(comment_id):
-    now = int(time.time())
-    cmd = f"[{now}] DEL_HOST_COMMENT;{comment_id}\n"
-    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-    f.write(cmd)
-    f.close()
+    return f"DEL_HOST_COMMENT;{comment_id}\n"
+
+@external_command
+def change_host_check_command(hst: str, Check_Command: str):
+    return "CHANGE_HOST_CHECK_COMMAND;{};{}\n".format(
+        now, hst, Check_Command)

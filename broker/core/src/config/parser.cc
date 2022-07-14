@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013,2015,2017-2021 Centreon
+** Copyright 2011-2013,2015,2017-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -20,27 +20,17 @@
 
 #include <syslog.h>
 
+#include <absl/strings/match.h>
 #include <streambuf>
 
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/filesystem.hh"
 #include "com/centreon/broker/misc/string.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::config;
 using namespace nlohmann;
-
-/**
- *  Default constructor.
- */
-parser::parser() {}
-
-/**
- *  Destructor.
- */
-parser::~parser() {}
 
 template <typename T, typename U>
 static bool get_conf(std::pair<std::string const, json> const& obj,
@@ -50,15 +40,12 @@ static bool get_conf(std::pair<std::string const, json> const& obj,
                      bool (json::*is_goodtype)() const,
                      T (json::*get_value)() const) {
   if (obj.first == key) {
-    json const& value = obj.second;
+    const json& value = obj.second;
     if ((value.*is_goodtype)())
       (s.*set_state)((value.*get_value)());
     else
       throw msg_fmt(
-          "config parser: cannot parse key '{}': "
-          "value type is invalid",
-          key);
-    ;
+          "config parser: cannot parse key '{}': value type is invalid", key);
     return true;
   }
   return false;
@@ -71,7 +58,7 @@ static bool get_conf(std::pair<std::string const, json> const& obj,
                      void (U::*set_state)(const std::string&),
                      bool (json::*is_goodtype)() const) {
   if (obj.first == key) {
-    json const& value = obj.second;
+    const json& value = obj.second;
     if ((value.*is_goodtype)())
       (s.*set_state)(value.get<std::string>());
     else
@@ -83,6 +70,75 @@ static bool get_conf(std::pair<std::string const, json> const& obj,
     return true;
   }
   return false;
+}
+
+/**
+ * @brief Check if the json object elem contains an entry with the given key.
+ *        If it contains it, it gets it and returns it as a boolean. In case of
+ *        error, it throws an exception.
+ *        If the key doesn't exist, nothing is returned, that's the reason we
+ *        use absl::optional<>.
+ *
+ * @param elem The json object to work with.
+ * @param key  the key to obtain the value.
+ *
+ * @return an absl::optional<bool> containing the wanted value or empty if
+ *         nothing found.
+ */
+template <>
+absl::optional<bool> parser::check_and_read<bool>(const nlohmann::json& elem,
+                                                  const std::string& key) {
+  if (elem.contains(key)) {
+    auto& ret = elem[key];
+    if (ret.is_boolean())
+      return {ret};
+    if (ret.is_number())
+      return {ret};
+    else if (ret.is_string()) {
+      bool tmp;
+      if (!absl::SimpleAtob(ret, &tmp))
+        throw exceptions::msg_fmt(
+            "config parser: cannot parse key '{}': the string value must "
+            "contain a boolean (1/0, yes/no, true/false)",
+            key);
+      return {tmp};
+    } else
+      throw exceptions::msg_fmt(
+          "config parser: cannot parse key '{}': the content must be a boolean "
+          "(1/0, yes/no, true/false",
+          key);
+  }
+  return absl::nullopt;
+}
+
+/**
+ * @brief Check if the json object elem contains an entry with the given key.
+ *        If it contains it, it gets it and returns it as a string. In case of
+ *        error, it throws an exception.
+ *        If the key doesn't exist, nothing is returned, that's the reason we
+ *        use absl::optional<>.
+ *
+ * @param elem The json object to work with.
+ * @param key  the key to obtain the value.
+ *
+ * @return an absl::optional<std::string> containing the wanted value or empty
+ *         if nothing found.
+ */
+template <>
+absl::optional<std::string> parser::check_and_read<std::string>(
+    const nlohmann::json& elem,
+    const std::string& key) {
+  if (elem.contains(key)) {
+    auto& el = elem[key];
+    if (el.is_string())
+      return {el};
+    else
+      throw exceptions::msg_fmt(
+          "config parser: cannot parse key '{}': "
+          "the content must be a string",
+          key);
+  }
+  return absl::nullopt;
 }
 
 /**
@@ -202,7 +258,7 @@ state parser::parse(std::string const& file) {
           ;
         else if (it.key() == "output") {
           if (it.value().is_array()) {
-            for (json const& node : it.value()) {
+            for (const json& node : it.value()) {
               endpoint out(endpoint::io_type::output);
               out.read_filters.insert("all");
               out.write_filters.insert("all");
@@ -223,7 +279,7 @@ state parser::parse(std::string const& file) {
                 "'output':  value type must be an object");
         } else if (it.key() == "input") {
           if (it.value().is_array()) {
-            for (json const& node : it.value()) {
+            for (const json& node : it.value()) {
               endpoint in(endpoint::io_type::input);
               in.read_filters.insert("all");
               _parse_endpoint(node, in, module);
@@ -280,63 +336,22 @@ state parser::parse(std::string const& file) {
                 "'filename' key in the log configuration must contain the log "
                 "file name");
 
-          conf.max_size = 0u;
+          auto ms = check_and_read<int64_t>(conf_js, "max_size");
+          conf.max_size = ms ? ms.value() : 0u;
 
-          if (conf_js.contains("max_size") && conf_js["max_size"].is_string()) {
-            try {
-              conf.max_size =
-                  std::stoul(conf_js["max_size"].get<std::string>());
-            } catch (const std::exception& e) {
-              throw msg_fmt(
-                  "'max_size' key in the log configuration must contain a size "
-                  "in bytes");
-            }
-          } else if (conf_js.contains("max_size") &&
-                     conf_js["max_size"].is_number()) {
-            int64_t tmp = conf_js["max_size"].get<int>();
-            if (tmp < 0)
-              throw msg_fmt(
-                  "'max_size' key in the log configuration must contain a "
-                  "positive number.");
-            conf.max_size = tmp;
-          } else if (conf_js.contains("max_size") &&
-                     !conf_js["max_size"].is_null())
-            throw msg_fmt(
-                "'max_size' key in the log configuration must contain a size "
-                "in "
-                "bytes (as number or string)");
-
-          conf.flush_period = 0u;
-
-          if (conf_js.contains("flush_period") &&
-              conf_js["flush_period"].is_string()) {
-            try {
-              conf.flush_period =
-                  std::stoul(conf_js["flush_period"].get<std::string>());
-            } catch (const std::exception& e) {
-              throw msg_fmt(
-                  "'flush_period' key in the log configuration must contain a "
-                  "number "
-                  "of seconds (or 0 to flush everytime)");
-            }
-          } else if (conf_js.contains("flush_period") &&
-                     conf_js["flush_period"].is_number()) {
-            int64_t tmp = conf_js["flush_period"].get<int>();
-            if (tmp < 0)
+          auto fp = check_and_read<int64_t>(conf_js, "flush_period");
+          if (fp) {
+            if (fp.value() < 0)
               throw msg_fmt(
                   "'flush_period' key in the log configuration must contain a "
                   "positive number or 0.");
-            conf.flush_period = tmp;
-          } else if (conf_js.contains("flush_period") &&
-                     !conf_js["flush_period"].is_null())
-            throw msg_fmt(
-                "'flush_period' key in the log configuration must contain a "
-                "number "
-                "of seconds (as number or string)");
 
-          conf.log_pid = conf_js.contains("log_pid") &&
-                         conf_js["log_pid"].is_boolean() &&
-                         conf_js["log_pid"].get<bool>();
+            conf.flush_period = fp.value();
+          } else
+            conf.flush_period = 0u;
+
+          auto lp = check_and_read<bool>(conf_js, "log_pid");
+          conf.log_pid = lp ? lp.value() : false;
 
           if (conf_js.contains("loggers") && conf_js["loggers"].is_object()) {
             conf.loggers.clear();
@@ -377,56 +392,40 @@ state parser::parse(std::string const& file) {
   return retval;
 }
 
-/**
- *  Parse a boolean value.
- *
- *  @param[in] value String representation of the boolean.
- */
-bool parser::parse_boolean(std::string const& value) {
-  if (std::all_of(value.begin(), value.end(), ::isdigit))
-    return std::stol(value);
+void parser::_get_generic_endpoint_configuration(const json& elem,
+                                                 endpoint& e) {
+  e.cfg = elem;
 
-  return !strcasecmp(value.c_str(), "yes") ||
-         !strcasecmp(value.c_str(), "enable") ||
-         !strcasecmp(value.c_str(), "enabled") ||
-         !strcasecmp(value.c_str(), "true") || false;
+  auto bt = check_and_read<time_t>(elem, "buffering_timeout");
+  if (bt)
+    e.buffering_timeout = bt.value();
+  auto fo = check_and_read<std::string>(elem, "failover");
+  if (fo)
+    e.failovers.push_back(std::move(fo.value()));
+  auto n = check_and_read<std::string>(elem, "name");
+  if (n)
+    e.name = std::move(n.value());
+  auto rt = check_and_read<time_t>(elem, "read_timeout");
+  if (rt)
+    e.read_timeout = rt.value();
+  auto ri = check_and_read<int32_t>(elem, "retry_interval");
+  if (ri)
+    e.retry_interval = ri.value();
 }
 
 /**
  *  Parse the configuration of an endpoint.
  *
- *  @param[in]  elem XML element that have the endpoint configuration.
+ *  @param[in]  elem JSON element that has the endpoint configuration.
  *  @param[out] e    Element object.
  *  @param[out] module The module to load for this endpoint to work.
  */
-void parser::_parse_endpoint(json const& elem,
+void parser::_parse_endpoint(const json& elem,
                              endpoint& e,
                              std::string& module) {
-  e.cfg = elem;
-
+  _get_generic_endpoint_configuration(elem, e);
   for (auto it = elem.begin(); it != elem.end(); ++it) {
-    if (it.key() == "buffering_timeout")
-      e.buffering_timeout =
-          static_cast<time_t>(std::stoul(it.value().get<std::string>()));
-    else if (it.key() == "failover")
-      e.failovers.push_back(it.value().get<std::string>());
-    else if (it.key() == "name")
-      e.name = it.value().get<std::string>();
-    else if (it.key() == "read_timeout")
-      e.read_timeout =
-          static_cast<time_t>(std::stoi(it.value().get<std::string>()));
-    else if (it.key() == "retry_interval") {
-      try {
-        e.retry_interval =
-            static_cast<uint32_t>(std::stoul(it.value().get<std::string>()));
-      } catch (const std::exception& e) {
-        throw msg_fmt(
-            "config parser: cannot parse key "
-            "'retry_interval': value must be an integer");
-      }
-    }
-
-    else if (it.key() == "filters") {
+    if (it.key() == "filters") {
       std::set<std::string> endpoint::*member;
       if (e.write_filters.empty())  // Input.
         member = &endpoint::read_filters;
@@ -444,9 +443,10 @@ void parser::_parse_endpoint(json const& elem,
         throw msg_fmt(
             "config parser: cannot parse key "
             "'filters':  value is invalid");
-    } else if (it.key() == "cache")
-      e.cache_enabled = parse_boolean(it.value().get<std::string>());
-    else if (it.key() == "type") {
+    } else if (it.key() == "cache") {
+      auto cc = check_and_read<bool>(elem, "cache");
+      e.cache_enabled = cc ? cc.value() : false;
+    } else if (it.key() == "type") {
       e.type = it.value().get<std::string>();
       if (e.type == "ipv4" || e.type == "tcp" || e.type == "ipv6")
         module = "50-tcp.so";
@@ -472,8 +472,26 @@ void parser::_parse_endpoint(json const& elem,
         module = "70-influxdb.so";
       else if (e.type == "grpc")
         module = "50-grpc.so";
-      else
+      else if (e.type == "bbdo_server" || e.type == "bbdo_client") {
+        auto tp = check_and_read<std::string>(elem, "transport_protocol");
+        if (tp) {
+          if (absl::EqualsIgnoreCase(tp.value(), "tcp"))
+            module = "50-tcp.so";
+          else if (absl::EqualsIgnoreCase(tp.value(), "grpc"))
+            module = "50-grpc.so";
+          else
+            throw msg_fmt(
+                "config parser: 'transport_protocol' contains the value '{}' "
+                "which is wrong ; it may contain only 'tcp' or 'grpc'",
+                tp.value());
+        } else
+          throw msg_fmt(
+              "config parser: A '{}' endpoint must have an entry "
+              "'transport_protocol'",
+              e.type);
+      } else
         throw msg_fmt("config parser: endpoint of invalid type '{}'", e.type);
+    } else if (it.key() == "protocol_transport") {
     }
     if (it.value().is_string())
       e.params[it.key()] = it.value().get<std::string>();

@@ -124,12 +124,19 @@ io::endpoint* factory::new_endpoint(
   database_config dbcfg(cfg);
 
   // Store or not in data_bin.
-  bool store_in_data_bin(true);
+  bool store_in_data_bin{true};
   {
     std::map<std::string, std::string>::const_iterator it{
         cfg.params.find("store_in_data_bin")};
-    if (it != cfg.params.end())
-      store_in_data_bin = config::parser::parse_boolean(it->second);
+    if (it != cfg.params.end()) {
+      if (!absl::SimpleAtob(it->second, &store_in_data_bin)) {
+        log_v2::sql()->error(
+            "factory: cannot parse the 'store_in_data_bin' boolean: the "
+            "content is '{}'",
+            it->second);
+        store_in_data_bin = true;
+      }
+    }
   }
 
   // Connector.

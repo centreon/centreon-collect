@@ -120,8 +120,15 @@ io::endpoint* factory::new_endpoint(
   {
     std::map<std::string, std::string>::const_iterator it{
         cfg.params.find("store_in_data_bin")};
-    if (it != cfg.params.end())
-      store_in_data_bin = config::parser::parse_boolean(it->second);
+    if (it != cfg.params.end()) {
+      if (!absl::SimpleAtob(it->second, &store_in_data_bin)) {
+        log_v2::sql()->error(
+            "factory: cannot parse the 'store_in_data_bin' boolean: the "
+            "content is '{}'",
+            it->second);
+        store_in_data_bin = true;
+      }
+    }
   }
 
   // Store or not in resources.
@@ -129,8 +136,15 @@ io::endpoint* factory::new_endpoint(
   {
     std::map<std::string, std::string>::const_iterator it{
         cfg.params.find("store_in_resources")};
-    if (it != cfg.params.end())
-      store_in_resources = config::parser::parse_boolean(it->second);
+    if (it != cfg.params.end()) {
+      if (!absl::SimpleAtob(it->second, &store_in_resources)) {
+        log_v2::sql()->error(
+            "factory: cannot parse the 'store_in_resources' boolean: the "
+            "content is '{}'",
+            it->second);
+        store_in_resources = true;
+      }
+    }
   }
 
   // Store or not in hosts_services.
@@ -138,8 +152,15 @@ io::endpoint* factory::new_endpoint(
   {
     std::map<std::string, std::string>::const_iterator it{
         cfg.params.find("store_in_hosts_services")};
-    if (it != cfg.params.end())
-      store_in_hosts_services = config::parser::parse_boolean(it->second);
+    if (it != cfg.params.end()) {
+      if (!absl::SimpleAtob(it->second, &store_in_hosts_services)) {
+        log_v2::sql()->error(
+            "factory: cannot parse the 'store_in_hosts_services' boolean: the "
+            "content is '{}'",
+            it->second);
+        store_in_hosts_services = true;
+      }
+    }
   }
 
   log_v2::sql()->debug("SQL: store in hosts/services: {}",

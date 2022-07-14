@@ -19,6 +19,7 @@
 #include "com/centreon/broker/sql/factory.hh"
 
 #include "com/centreon/broker/config/parser.hh"
+#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/sql/connector.hh"
 
 using namespace com::centreon::broker;
@@ -94,12 +95,19 @@ io::endpoint* factory::new_endpoint(
   {
     std::map<std::string, std::string>::const_iterator it(
         cfg.params.find("with_state_events"));
-    if (it != cfg.params.end())
-      wse = config::parser::parse_boolean(it->second);
+    if (it != cfg.params.end()) {
+      if (!absl::SimpleAtob(it->second, &wse)) {
+        log_v2::rrd()->error(
+            "factory: cannot parse the 'with_state_events' boolean: the "
+            "content is '{}'",
+            it->second);
+        wse = false;
+      }
+    }
   }
 
   // Connector.
-  std::unique_ptr<sql::connector> c{new sql::connector};
+  auto c{std::make_unique<sql::connector>()};
   c->connect_to(dbcfg, cleanup_check_interval, loop_timeout, instance_timeout,
                 wse, enable_cmd_cache);
   is_acceptor = false;

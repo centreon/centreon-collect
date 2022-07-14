@@ -66,14 +66,20 @@ io::endpoint* factory::new_endpoint(
   (void)cache;
 
   // Return value.
-  io::endpoint* retval = nullptr;
+  std::unique_ptr<io::endpoint> retval;
 
   // Coarse endpoint ?
   bool coarse = false;
   {
     auto it = cfg.params.find("coarse");
-    if (it != cfg.params.end())
-      coarse = config::parser::parse_boolean(it->second);
+    if (it != cfg.params.end()) {
+      if (!absl::SimpleAtob(it->second, &coarse)) {
+        log_v2::bbdo()->error(
+            "factory: cannot parse the 'coarse' boolean: the content is '{}'",
+            it->second);
+        coarse = false;
+      }
+    }
   }
 
   // Negotiation allowed ?
@@ -117,8 +123,15 @@ io::endpoint* factory::new_endpoint(
     // otherwise we want it.
     bool keep_retention{false};
     auto it = cfg.params.find("one_peer_retention_mode");
-    if (it != cfg.params.end())
-      keep_retention = config::parser::parse_boolean(it->second);
+    if (it != cfg.params.end()) {
+      if (!absl::SimpleAtob(it->second, &keep_retention)) {
+        log_v2::bbdo()->error(
+            "factory: cannot parse the 'keep_retention' boolean: the content "
+            "is '{}'",
+            it->second);
+        keep_retention = false;
+      }
+    }
 
     // One peer retention mode? (i.e. keep_retention + acceptor_is_output)
     bool acceptor_is_output = cfg.get_io_type() == config::endpoint::output;
@@ -127,20 +140,20 @@ io::endpoint* factory::new_endpoint(
           "BBDO: Configuration error, the one peer retention mode should be "
           "set only when the connection is reversed");
 
-    retval = new bbdo::acceptor(cfg.name, negotiate, cfg.read_timeout,
-                                acceptor_is_output, coarse, ack_limit,
-                                std::move(extensions));
+    retval = std::make_unique<bbdo::acceptor>(
+        cfg.name, negotiate, cfg.read_timeout, acceptor_is_output, coarse,
+        ack_limit, std::move(extensions));
     if (acceptor_is_output && keep_retention)
       is_acceptor = false;
     log_v2::bbdo()->debug("BBDO: new acceptor {}", cfg.name);
   } else {
     bool connector_is_input = cfg.get_io_type() == config::endpoint::input;
-    retval =
-        new bbdo::connector(negotiate, cfg.read_timeout, connector_is_input,
-                            coarse, ack_limit, std::move(extensions));
+    retval = std::make_unique<bbdo::connector>(
+        negotiate, cfg.read_timeout, connector_is_input, coarse, ack_limit,
+        std::move(extensions));
     log_v2::bbdo()->debug("BBDO: new connector {}", cfg.name);
   }
-  return retval;
+  return retval.release();
 }
 
 /**

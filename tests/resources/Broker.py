@@ -554,6 +554,65 @@ def change_broker_compression_input(config_name: str, input_name: str, compressi
     _apply_conf(config_name, compression_modifier)
 
 
+def config_broker_bbdo_input(name, stream, port):
+    if stream != "bbdo_server" and stream != "bbdo_client":
+        raise Exception("config_broker_bbdo_input_output() function only accepts stream in ('bbdo_server', 'bbdo_client')")
+
+    if name == 'central':
+        filename = "central-broker.json"
+    elif name.startswith('module'):
+        filename = "central-{}.json".format(name)
+    else:
+        filename = "central-rrd.json"
+    f = open("/etc/centreon-broker/{}".format(filename), "r")
+    buf = f.read()
+    f.close()
+    conf = json.loads(buf)
+    io_dict = conf["centreonBroker"]["input"]
+    # Cleanup
+    for i, v in enumerate(io_dict):
+        if (v["type"] == "ipv4" or v["type"] == "grpc") and v["port"] == port:
+            io_dict.pop(i)
+    io_dict.append({
+            "name": f"{name}-broker-master-input",
+            "port": f"{port}",
+            "type": f"{stream}",
+            })
+    f = open("/etc/centreon-broker/{}".format(filename), "w")
+    f.write(json.dumps(conf, indent=2))
+    f.close()
+
+
+def config_broker_bbdo_output(name, stream, port, host):
+    if stream != "bbdo_server" and stream != "bbdo_client":
+        raise Exception("config_broker_bbdo_input_output() function only accepts stream in ('bbdo_server', 'bbdo_client')")
+
+    if name == 'central':
+        filename = "central-broker.json"
+    elif name.startswith('module'):
+        filename = "central-{}.json".format(name)
+    else:
+        filename = "central-rrd.json"
+    f = open("/etc/centreon-broker/{}".format(filename), "r")
+    buf = f.read()
+    f.close()
+    conf = json.loads(buf)
+    io_dict = conf["centreonBroker"]["output"]
+    # Cleanup
+    for i, v in enumerate(io_dict):
+        if (v["type"] == "ipv4" or v["type"] == "grpc") and v["port"] == port:
+            io_dict.pop(i)
+    io_dict.append({
+            "name": f"{name}-broker-master-output",
+            "port": port,
+            "type": stream,
+            "host": host,
+            })
+    f = open("/etc/centreon-broker/{}".format(filename), "w")
+    f.write(json.dumps(conf, indent=2))
+    f.close()
+
+
 def config_broker_sql_output(name, output):
     if name == 'central':
         filename = "central-broker.json"
