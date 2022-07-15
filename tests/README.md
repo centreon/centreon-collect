@@ -56,6 +56,7 @@ Here is the list of the currently implemented tests:
 - [x] **BEBAMIDT1**: A BA of type 'worst' with one service is configured. The BA is in critical state, because of its service. Then we set a downtime on this last one. An inherited downtime is set to the BA. The downtime is removed from the service, the inherited downtime is then deleted.
 - [x] **BEBAMIDT2**: A BA of type 'worst' with one service is configured. The BA is in critical state, because of its service. Then we set a downtime on this last one. An inherited downtime is set to the BA. Engine is restarted. Broker is restarted. The two downtimes are still there with no duplicates. The downtime is removed from the service, the inherited downtime is then deleted.
 - [x] **BEBAMIGNDT1**: A BA of type 'worst' with two services is configured. The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in critical state, because of the second critical service. Then we apply two downtimes on this last one. The BA state is ok because of the policy on indicators. A first downtime is cancelled, the BA is still OK, but when the second downtime is cancelled, the BA should be CRITICAL.
+- [x] **BEBAMIGNDT2**: A BA of type 'worst' with two services is configured. The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in critical state, because of the second critical service. Then we apply two downtimes on this last one. The BA state is ok because of the policy on indicators. The first downtime reaches its end, the BA is still OK, but when the second downtime reaches its end, the BA should be CRITICAL.
 
 ### Broker
 - [x] **BLDIS1**: Start broker with core logs 'disabled'
@@ -75,6 +76,16 @@ Here is the list of the currently implemented tests:
 - [x] **BGRPCSSU3**: Start-Stop with unified_sql one instance of broker configured with grpc and no coredump
 - [x] **BGRPCSSU4**: Start/Stop with unified_sql 10 times broker configured with grpc stream with 1sec interval and no coredump
 - [x] **BGRPCSSU5**: Start-Stop with unified_sql with reversed connection on grpc acceptor with only one instance and no deadlock
+- [x] **BSS1**: Start-Stop two instances of broker and no coredump
+- [x] **BSS2**: Start/Stop 10 times broker with 300ms interval and no coredump
+- [x] **BSS3**: Start-Stop one instance of broker and no coredump
+- [x] **BSS4**: Start/Stop 10 times broker with 1sec interval and no coredump
+- [x] **BSS5**: Start-Stop with reversed connection on TCP acceptor with only one instance and no deadlock
+- [x] **BSSU1**: Start-Stop with unified_sql two instances of broker and no coredump
+- [x] **BSSU2**: Start/Stop with unified_sql 10 times broker with 300ms interval and no coredump
+- [x] **BSSU3**: Start-Stop with unified_sql one instance of broker and no coredump
+- [x] **BSSU4**: Start/Stop with unified_sql 10 times broker with 1sec interval and no coredump
+- [x] **BSSU5**: Start-Stop with unified_sql with reversed connection on TCP acceptor with only one instance and no deadlock
 - [x] **BDB1**: Access denied when database name exists but is not the good one for sql output
 - [x] **BDB2**: Access denied when database name exists but is not the good one for storage output
 - [x] **BDB3**: Access denied when database name does not exist for sql output
@@ -95,16 +106,6 @@ Here is the list of the currently implemented tests:
 - [x] **BDBU7**: Access denied when database user password is wrong for unified sql
 - [x] **BDBU10**: Connection should be established when user password is good for unified sql
 - [x] **BDBMU1**: start broker/engine with unified sql and then start MariaDB => connection is established
-- [x] **BSS1**: Start-Stop two instances of broker and no coredump
-- [x] **BSS2**: Start/Stop 10 times broker with 300ms interval and no coredump
-- [x] **BSS3**: Start-Stop one instance of broker and no coredump
-- [x] **BSS4**: Start/Stop 10 times broker with 1sec interval and no coredump
-- [x] **BSS5**: Start-Stop with reversed connection on TCP acceptor with only one instance and no deadlock
-- [x] **BSSU1**: Start-Stop with unified_sql two instances of broker and no coredump
-- [x] **BSSU2**: Start/Stop with unified_sql 10 times broker with 300ms interval and no coredump
-- [x] **BSSU3**: Start-Stop with unified_sql one instance of broker and no coredump
-- [x] **BSSU4**: Start/Stop with unified_sql 10 times broker with 1sec interval and no coredump
-- [x] **BSSU5**: Start-Stop with unified_sql with reversed connection on TCP acceptor with only one instance and no deadlock
 
 ### Broker/database
 - [x] **NetworkDbFail1**: network failure test between broker and database (shutting down connection for 100ms)
@@ -118,31 +119,11 @@ Here is the list of the currently implemented tests:
 - [x] **NetworkDBFailU7**: network failure test between broker and database: we wait for the connection to be established and then we shut down the connection for 60s (with unified_sql)
 
 ### Broker/engine
-- [x] **BECC1**: Broker/Engine communication with compression between central and poller
 - [x] **BRRDDMDB1**: RRD metrics deletion from metric ids with a query in centreon_storage.
 - [x] **BRRDDIDDB1**: RRD metrics deletion from index ids with a query in centreon_storage.
 - [x] **BRRDRBDB1**: RRD metric rebuild with a query in centreon_storage and unified sql
 - [x] **BRRDRBUDB1**: RRD metric rebuild with a query in centreon_storage and unified sql
-- [x] **EBNSVC1**: New services with several pollers
-- [x] **BRGC1**: Broker good reverse connection
-- [x] **BRCTS1**: Broker reverse connection too slow
-- [x] **BRCS1**: Broker reverse connection stopped
-- [x] **BEPBBEE1**: central-module configured with bbdo_version 3.0 but not others. Unable to establish connection.
-- [x] **BEPBBEE2**: bbdo_version 3 not compatible with sql/storage
-- [x] **BEPBBEE3**: bbdo_version 3 generates new bbdo protobuf service status messages.
-- [x] **BEPBBEE4**: bbdo_version 3 generates new bbdo protobuf host status messages.
-- [x] **BEPBBEE5**: bbdo_version 3 generates new bbdo protobuf service messages.
-- [x] **BEDTMASS1**: New services with several pollers
-- [x] **BEDTMASS2**: New services with several pollers
-- [x] **EBNHG1**: New host group with several pollers and connections to DB
-- [x] **EBNHGU1**: New host group with several pollers and connections to DB with broker configured with unified_sql
-- [x] **EBNHGU2**: New host group with several pollers and connections to DB with broker configured with unified_sql
-- [x] **EBNHGU3**: New host group with several pollers and connections to DB with broker configured with unified_sql
-- [x] **EBNHG4**: New host group with several pollers and connections to DB with broker and rename this hostgroup
-- [x] **EBNHGU4**: New host group with several pollers and connections to DB with broker and rename this hostgroup
-- [x] **EBSNU1**: New services with notes_url with more than 2000 characters
-- [x] **EBSAU2**: New services with action_url with more than 2000 characters
-- [x] **EBSN3**: New services with notes with more than 500 characters
+- [x] **BECC1**: Broker/Engine communication with compression between central and poller
 - [x] **LOGV2EB1**: log-v2 enabled  old log disabled check broker sink
 - [x] **LOGV2DB1**: log-v2 disabled old log enabled check broker sink
 - [x] **LOGV2DB2**: log-v2 disabled old log disabled check broker sink
@@ -153,42 +134,9 @@ Here is the list of the currently implemented tests:
 - [x] **LOGV2EF2**: log-v2 enabled old log enabled check logfile sink
 - [x] **LOGV2BE2**: log-v2 enabled old log enabled check broker sink is equal
 - [x] **LOGV2FE2**: log-v2 enabled old log enabled check logfile sink
-- [x] **BERES1**: store_in_resources is enabled and store_in_hosts_services is not. Only writes into resources should be done (except hosts/services events that continue to be written in hosts/services tables)
-- [x] **BEHS1**: store_in_resources is enabled and store_in_hosts_services is not. Only writes into resources should be done (except hosts/services events that continue to be written in hosts/services tables)
-- [x] **BERD1**: Starting/stopping Broker does not create duplicated events.
-- [x] **BERD2**: Starting/stopping Engine does not create duplicated events.
-- [x] **BERDUC1**: Starting/stopping Broker does not create duplicated events in usual cases
-- [x] **BERDUCU1**: Starting/stopping Broker does not create duplicated events in usual cases with unified_sql
-- [x] **BERDUC2**: Starting/stopping Engine does not create duplicated events in usual cases
-- [x] **BERDUCU2**: Starting/stopping Engine does not create duplicated events in usual cases with unified_sql
-- [x] **BERDUC3U1**: Starting/stopping Broker does not create duplicated events in usual cases with unified_sql and BBDO 3.0
-- [x] **BERDUC3U2**: Starting/stopping Engine does not create duplicated events in usual cases with unified_sql and BBDO 3.0
-- [x] **ENRSCHE1**: check next check of reschedule is last_check+interval_check
-- [x] **EBNSG1**: New service group with several pollers and connections to DB
-- [x] **EBNSGU1**: New service group with several pollers and connections to DB with broker configured with unified_sql
-- [x] **EBNSGU2**: New service group with several pollers and connections to DB with broker configured with unified_sql
-- [x] **BETAG1**: Engine is configured with some tags. When broker receives them, it stores them in the centreon_storage.tags table. Broker is started before.
-- [x] **BETAG2**: Engine is configured with some tags. When broker receives them, it stores them in the centreon_storage.tags table. Engine is started before.
-- [x] **BEUTAG1**: Engine is configured with some tags. When broker receives them through unified_sql stream, it stores them in the centreon_storage.tags table. Broker is started before.
-- [x] **BEUTAG2**: Engine is configured with some tags. A new service is added with a tag. Broker should make the relations.
-- [x] **BEUTAG3**: Engine is configured with some tags. When broker receives them, it stores them in the centreon_storage.tags table. Engine is started before.
-- [x] **BEUTAG4**: Engine is configured with some tags. Group tags tag9, tag13 are set to services 1 and 3. Category tags tag3 and tag11 are added to services 1, 3, 5 and 6. The centreon_storage.resources and resources_tags tables are well filled.
-- [x] **BEUTAG5**: Engine is configured with some tags. Group tags tag2, tag6 are set to hosts 1 and 2. Category tags tag4 and tag8 are added to hosts 2, 3, 4. The resources and resources_tags tables are well filled.
-- [x] **BEUTAG6**: Engine is configured with some tags. When broker receives them, it stores them in the centreon_storage.resources_tags table. Engine is started before.
-- [x] **BEUTAG7**: some services are configured and deleted with tags on two pollers.
-- [x] **BEUTAG8**: Services have tags provided by templates.
-- [x] **BEUTAG9**: hosts have tags provided by templates.
-- [x] **BEUTAG10**: some services are configured with tags on two pollers. Then tags are removed from some of them and in centreon_storage, we can observe resources_tags table updated.
-- [x] **BEUTAG11**: some services are configured with tags on two pollers. Then several tags are removed, and we can observe resources_tags table updated.
-- [x] **BEUTAG12**: Engine is configured with some tags. Group tags tag2, tag6 are set to hosts 1 and 2. Category tags tag4 and tag8 are added to hosts 2, 3, 4. The resources and resources_tags tables are well filled. The tag6 and tag8 are removed and resources_tags is also well updated.
-- [x] **BECT1**: Broker/Engine communication with anonymous TLS between central and poller
-- [x] **BECT2**: Broker/Engine communication with TLS between central and poller with key/cert
-- [x] **BECT3**: Broker/Engine communication with anonymous TLS and ca certificate
-- [x] **BECT4**: Broker/Engine communication with TLS between central and poller with key/cert and hostname forced
-- [x] **BECT_GRPC1**: Broker/Engine communication with anonymous TLS between central and poller
-- [x] **BECT_GRPC2**: Broker/Engine communication with TLS between central and poller with key/cert
-- [x] **BECT_GRPC3**: Broker/Engine communication with anonymous TLS and ca certificate
-- [x] **BECT_GRPC4**: Broker/Engine communication with TLS between central and poller with key/cert and hostname forced
+- [x] **BRGC1**: Broker good reverse connection
+- [x] **BRCTS1**: Broker reverse connection too slow
+- [x] **BRCS1**: Broker reverse connection stopped
 - [x] **BRRDDM1**: RRD metrics deletion from metric ids.
 - [x] **BRRDDID1**: RRD metrics deletion from index ids.
 - [x] **BRRDDMID1**: RRD deletion of non existing metrics and indexes
@@ -197,17 +145,15 @@ Here is the list of the currently implemented tests:
 - [x] **BRRDDMIDU1**: RRD deletion of non existing metrics and indexes
 - [x] **BRRDRM1**: RRD metric rebuild with gRPC API and unified sql
 - [x] **BRRDRMU1**: RRD metric rebuild with gRPC API and unified sql
-- [x] **BESS1**: Start-Stop Broker/Engine - Broker started first - Broker stopped first
-- [x] **BESS2**: Start-Stop Broker/Engine - Broker started first - Engine stopped first
-- [x] **BESS3**: Start-Stop Broker/Engine - Engine started first - Engine stopped first
-- [x] **BESS4**: Start-Stop Broker/Engine - Engine started first - Broker stopped first
-- [x] **BESS5**: Start-Stop Broker/engine - Engine debug level is set to all, it should not hang
-- [x] **BESS_GRPC1**: Start-Stop grpc version Broker/Engine - Broker started first - Broker stopped first
-- [x] **BESS_GRPC2**: Start-Stop grpc version Broker/Engine - Broker started first - Engine stopped first
-- [x] **BESS_GRPC3**: Start-Stop grpc version Broker/Engine - Engine started first - Engine stopped first
-- [x] **BESS_GRPC4**: Start-Stop grpc version Broker/Engine - Engine started first - Broker stopped first
-- [x] **BESS_GRPC5**: Start-Stop grpc version Broker/engine - Engine debug level is set to all, it should not hang
-- [x] **BESS_GRPC_COMPRESS1**: Start-Stop grpc version Broker/Engine - Broker started first - Broker stopped first compression activated
+- [x] **EBSNU1**: New hosts with notes_url with more than 2000 characters
+- [x] **EBSAU2**: New hosts with action_url with more than 2000 characters
+- [x] **EBSN3**: New hosts with notes with more than 500 characters
+- [x] **BEATOI11**: external command SEND_CUSTOM_HOST_NOTIFICATION with option_number=1 should work
+- [x] **BEATOI12**: external command SEND_CUSTOM_HOST_NOTIFICATION with option_number>7 should fail
+- [x] **BEATOI13**: external command SCHEDULE SERVICE DOWNTIME with duration<0 should fail
+- [x] **BEATOI21**: external command ADD_HOST_COMMENT and DEL_HOST_COMMENT should work
+- [x] **BEATOI22**: external command DEL_HOST_COMMENT with comment_id<0 should fail
+- [x] **BEATOI23**: external command ADD_SVC_COMMENT with persistent=0 should work
 - [x] **BEEXTCMD1**: external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0
 - [x] **BEEXTCMD2**: external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo2.0
 - [x] **BEEXTCMD3**: external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo3.0
@@ -259,12 +205,73 @@ Here is the list of the currently implemented tests:
 - [x] **BEEXTCMD_REVERSE_GRPC3**: external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo3.0 and grpc reversed
 - [x] **BEEXTCMD_REVERSE_GRPC4**: external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo2.0 and grpc reversed
 - [x] **BEEXTCMD_COMPRESS_GRPC1**: external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0 and compressed grpc
-- [x] **BEATOI11**: external command SEND_CUSTOM_HOST_NOTIFICATION with option_number=1 should work
-- [x] **BEATOI12**: external command SEND_CUSTOM_HOST_NOTIFICATION with option_number>7 should fail
-- [x] **BEATOI13**: external command SCHEDULE SERVICE DOWNTIME with duration<0 should fail
-- [x] **BEATOI21**: external command ADD_HOST_COMMENT and DEL_HOST_COMMENT should work
-- [x] **BEATOI22**: external command DEL_HOST_COMMENT with comment_id<0 should fail
-- [x] **BEATOI23**: external command ADD_SVC_COMMENT with persistent=0 should work
+- [x] **BEDTMASS1**: New services with several pollers
+- [x] **BEDTMASS2**: New services with several pollers
+- [x] **BERES1**: store_in_resources is enabled and store_in_hosts_services is not. Only writes into resources should be done (except hosts/services events that continue to be written in hosts/services tables)
+- [x] **BEHS1**: store_in_resources is enabled and store_in_hosts_services is not. Only writes into resources should be done (except hosts/services events that continue to be written in hosts/services tables)
+- [x] **EBNSG1**: New service group with several pollers and connections to DB
+- [x] **EBNSGU1**: New service group with several pollers and connections to DB with broker configured with unified_sql
+- [x] **EBNSGU2**: New service group with several pollers and connections to DB with broker configured with unified_sql
+- [x] **BETAG1**: Engine is configured with some tags. When broker receives them, it stores them in the centreon_storage.tags table. Broker is started before.
+- [x] **BETAG2**: Engine is configured with some tags. When broker receives them, it stores them in the centreon_storage.tags table. Engine is started before.
+- [x] **BEUTAG1**: Engine is configured with some tags. When broker receives them through unified_sql stream, it stores them in the centreon_storage.tags table. Broker is started before.
+- [x] **BEUTAG2**: Engine is configured with some tags. A new service is added with a tag. Broker should make the relations.
+- [x] **BEUTAG3**: Engine is configured with some tags. When broker receives them, it stores them in the centreon_storage.tags table. Engine is started before.
+- [x] **BEUTAG4**: Engine is configured with some tags. Group tags tag9, tag13 are set to services 1 and 3. Category tags tag3 and tag11 are added to services 1, 3, 5 and 6. The centreon_storage.resources and resources_tags tables are well filled.
+- [x] **BEUTAG5**: Engine is configured with some tags. Group tags tag2, tag6 are set to hosts 1 and 2. Category tags tag4 and tag8 are added to hosts 2, 3, 4. The resources and resources_tags tables are well filled.
+- [x] **BEUTAG6**: Engine is configured with some tags. When broker receives them, it stores them in the centreon_storage.resources_tags table. Engine is started before.
+- [x] **BEUTAG7**: some services are configured and deleted with tags on two pollers.
+- [x] **BEUTAG8**: Services have tags provided by templates.
+- [x] **BEUTAG9**: hosts have tags provided by templates.
+- [x] **BEUTAG10**: some services are configured with tags on two pollers. Then tags are removed from some of them and in centreon_storage, we can observe resources_tags table updated.
+- [x] **BEUTAG11**: some services are configured with tags on two pollers. Then several tags are removed, and we can observe resources_tags table updated.
+- [x] **BEUTAG12**: Engine is configured with some tags. Group tags tag2, tag6 are set to hosts 1 and 2. Category tags tag4 and tag8 are added to hosts 2, 3, 4. The resources and resources_tags tables are well filled. The tag6 and tag8 are removed and resources_tags is also well updated.
+- [x] **BECT1**: Broker/Engine communication with anonymous TLS between central and poller
+- [x] **BECT2**: Broker/Engine communication with TLS between central and poller with key/cert
+- [x] **BECT3**: Broker/Engine communication with anonymous TLS and ca certificate
+- [x] **BECT4**: Broker/Engine communication with TLS between central and poller with key/cert and hostname forced
+- [x] **BECT_GRPC1**: Broker/Engine communication with anonymous TLS between central and poller
+- [x] **BECT_GRPC2**: Broker/Engine communication with TLS between central and poller with key/cert
+- [x] **BECT_GRPC3**: Broker/Engine communication with anonymous TLS and ca certificate
+- [x] **BECT_GRPC4**: Broker/Engine communication with TLS between central and poller with key/cert and hostname forced
+- [x] **BEPBBEE1**: central-module configured with bbdo_version 3.0 but not others. Unable to establish connection.
+- [x] **BEPBBEE2**: bbdo_version 3 not compatible with sql/storage
+- [x] **BEPBBEE3**: bbdo_version 3 generates new bbdo protobuf service status messages.
+- [x] **BEPBBEE4**: bbdo_version 3 generates new bbdo protobuf host status messages.
+- [x] **BEPBBEE5**: bbdo_version 3 generates new bbdo protobuf service messages.
+- [x] **EBNHG1**: New host group with several pollers and connections to DB
+- [x] **EBNHGU1**: New host group with several pollers and connections to DB with broker configured with unified_sql
+- [x] **EBNHGU2**: New host group with several pollers and connections to DB with broker configured with unified_sql
+- [x] **EBNHGU3**: New host group with several pollers and connections to DB with broker configured with unified_sql
+- [x] **EBNHG4**: New host group with several pollers and connections to DB with broker and rename this hostgroup
+- [x] **EBNHGU4**: New host group with several pollers and connections to DB with broker and rename this hostgroup
+- [x] **BERD1**: Starting/stopping Broker does not create duplicated events.
+- [x] **BERD2**: Starting/stopping Engine does not create duplicated events.
+- [x] **BERDUC1**: Starting/stopping Broker does not create duplicated events in usual cases
+- [x] **BERDUCU1**: Starting/stopping Broker does not create duplicated events in usual cases with unified_sql
+- [x] **BERDUC2**: Starting/stopping Engine does not create duplicated events in usual cases
+- [x] **BERDUCU2**: Starting/stopping Engine does not create duplicated events in usual cases with unified_sql
+- [x] **BERDUC3U1**: Starting/stopping Broker does not create duplicated events in usual cases with unified_sql and BBDO 3.0
+- [x] **BERDUC3U2**: Starting/stopping Engine does not create duplicated events in usual cases with unified_sql and BBDO 3.0
+- [x] **ENRSCHE1**: check next check of reschedule is last_check+interval_check
+- [x] **EBNSVC1**: New services with several pollers
+- [x] **BESS1**: Start-Stop Broker/Engine - Broker started first - Broker stopped first
+- [x] **BESS2**: Start-Stop Broker/Engine - Broker started first - Engine stopped first
+- [x] **BESS3**: Start-Stop Broker/Engine - Engine started first - Engine stopped first
+- [x] **BESS4**: Start-Stop Broker/Engine - Engine started first - Broker stopped first
+- [x] **BESS5**: Start-Stop Broker/engine - Engine debug level is set to all, it should not hang
+- [x] **BESS_GRPC1**: Start-Stop grpc version Broker/Engine - Broker started first - Broker stopped first
+- [x] **BESS_GRPC2**: Start-Stop grpc version Broker/Engine - Broker started first - Engine stopped first
+- [x] **BESS_GRPC3**: Start-Stop grpc version Broker/Engine - Engine started first - Engine stopped first
+- [x] **BESS_GRPC4**: Start-Stop grpc version Broker/Engine - Engine started first - Broker stopped first
+- [x] **BESS_GRPC5**: Start-Stop grpc version Broker/engine - Engine debug level is set to all, it should not hang
+- [x] **BESS_GRPC_COMPRESS1**: Start-Stop grpc version Broker/Engine - Broker started first - Broker stopped first compression activated
+- [x] **BESS_CRYPTED_GRPC1**: Start-Stop grpc version Broker/Engine - well configured
+- [x] **BESS_CRYPTED_GRPC2**: Start-Stop grpc version Broker/Engine only server crypted
+- [x] **BESS_CRYPTED_GRPC3**: Start-Stop grpc version Broker/Engine only engine crypted
+- [x] **BESS_CRYPTED_REVERSED_GRPC1**: Start-Stop grpc version Broker/Engine - well configured
+- [x] **BESS_CRYPTED_REVERSED_GRPC2**: Start-Stop grpc version Broker/Engine only engine server crypted
+- [x] **BESS_CRYPTED_REVERSED_GRPC3**: Start-Stop grpc version Broker/Engine only engine crypted
 
 ### Ccc
 - [x] **BECCC1**: ccc without port fails with an error message
