@@ -1495,7 +1495,7 @@ int neb::callback_host_check(int callback_type, void* data) {
   log_v2::neb()->info("callbacks: generating host check event");
 
   try {
-    std::shared_ptr<neb::host_check> host_check(new neb::host_check);
+    auto host_check = std::make_shared<neb::host_check>();
 
     // Fill output var.
     engine::host* h(static_cast<engine::host*>(hcdata->object_ptr));

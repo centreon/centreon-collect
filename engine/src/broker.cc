@@ -20,12 +20,13 @@
 */
 
 #include "com/centreon/engine/broker.hh"
+#include <absl/strings/str_split.h>
 #include <unistd.h>
+#include <com/centreon/engine/string.hh>
 #include "com/centreon/engine/flapping.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/nebstructs.hh"
 #include "com/centreon/engine/sehandlers.hh"
-#include "com/centreon/engine/string.hh"
 
 using namespace com::centreon::engine;
 
@@ -1123,7 +1124,6 @@ int broker_host_check(int type,
                       int state_type,
                       struct timeval start_time,
                       struct timeval end_time,
-                      char const* cmd,
                       double latency,
                       double exectime,
                       int timeout,
@@ -1140,16 +1140,6 @@ int broker_host_check(int type,
   if (!hst)
     return ERROR;
 
-  // Get command name/args.
-  char* command_buf(NULL);
-  char* command_name(NULL);
-  char* command_args(NULL);
-  if (cmd) {
-    command_buf = string::dup(cmd);
-    command_name = strtok(command_buf, "!");
-    command_args = strtok(NULL, "\x0");
-  }
-
   // Fill struct with relevant data.
   nebstruct_host_check_data ds;
   ds.type = type;
@@ -1164,8 +1154,6 @@ int broker_host_check(int type,
   ds.state = state;
   ds.state_type = state_type;
   ds.timeout = timeout;
-  ds.command_name = command_name;
-  ds.command_args = command_args;
   ds.command_line = cmdline;
   ds.start_time = start_time;
   ds.end_time = end_time;
@@ -1182,7 +1170,6 @@ int broker_host_check(int type,
   return_code = neb_make_callbacks(NEBCALLBACK_HOST_CHECK_DATA, &ds);
 
   // Free data.
-  delete[] command_buf;
   return return_code;
 }
 

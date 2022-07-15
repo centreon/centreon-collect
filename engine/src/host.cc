@@ -1528,16 +1528,15 @@ int host::handle_async_check_result_3x(check_result* queued_check_result) {
   gettimeofday(&end_time_hires, nullptr);
 
   /* send data to event broker */
-  broker_host_check(NEBTYPE_HOSTCHECK_PROCESSED, NEBFLAG_NONE, NEBATTR_NONE,
-                    this, get_check_type(), get_current_state(),
-                    get_state_type(), start_time_hires, end_time_hires,
-                    check_command().c_str(), get_latency(),
-                    get_execution_time(), config->host_check_timeout(),
-                    queued_check_result->get_early_timeout(),
-                    queued_check_result->get_return_code(), nullptr,
-                    const_cast<char*>(get_plugin_output().c_str()),
-                    const_cast<char*>(get_long_plugin_output().c_str()),
-                    const_cast<char*>(get_perf_data().c_str()), nullptr);
+  broker_host_check(
+      NEBTYPE_HOSTCHECK_PROCESSED, NEBFLAG_NONE, NEBATTR_NONE, this,
+      get_check_type(), get_current_state(), get_state_type(), start_time_hires,
+      end_time_hires, get_latency(), get_execution_time(),
+      config->host_check_timeout(), queued_check_result->get_early_timeout(),
+      queued_check_result->get_return_code(), nullptr,
+      const_cast<char*>(get_plugin_output().c_str()),
+      const_cast<char*>(get_long_plugin_output().c_str()),
+      const_cast<char*>(get_perf_data().c_str()), nullptr);
   return OK;
 }
 
@@ -1702,12 +1701,11 @@ int host::run_async_check(int check_options,
   timeval end_time;
   memset(&start_time, 0, sizeof(start_time));
   memset(&end_time, 0, sizeof(end_time));
-  int res = broker_host_check(NEBTYPE_HOSTCHECK_ASYNC_PRECHECK, NEBFLAG_NONE,
-                              NEBATTR_NONE, this, checkable::check_active,
-                              get_current_state(), get_state_type(), start_time,
-                              end_time, check_command().c_str(), get_latency(),
-                              0.0, config->host_check_timeout(), false, 0,
-                              nullptr, nullptr, nullptr, nullptr, nullptr);
+  int res = broker_host_check(
+      NEBTYPE_HOSTCHECK_ASYNC_PRECHECK, NEBFLAG_NONE, NEBATTR_NONE, this,
+      checkable::check_active, get_current_state(), get_state_type(),
+      start_time, end_time, get_latency(), 0.0, config->host_check_timeout(),
+      false, 0, nullptr, nullptr, nullptr, nullptr, nullptr);
 
   // Host check was cancel by NEB module. Reschedule check later.
   if (NEBERROR_CALLBACKCANCEL == res) {
@@ -1772,8 +1770,7 @@ int host::run_async_check(int check_options,
   // Send event broker.
   broker_host_check(NEBTYPE_HOSTCHECK_INITIATE, NEBFLAG_NONE, NEBATTR_NONE,
                     this, checkable::check_active, get_current_state(),
-                    get_state_type(), start_time, end_time,
-                    check_command().c_str(), get_latency(), 0.0,
+                    get_state_type(), start_time, end_time, get_latency(), 0.0,
                     config->host_check_timeout(), false, 0,
                     processed_cmd.c_str(), nullptr, nullptr, nullptr, nullptr);
 

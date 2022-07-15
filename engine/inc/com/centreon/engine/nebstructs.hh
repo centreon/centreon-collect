@@ -385,8 +385,6 @@ typedef struct nebstruct_host_check_struct {
   int state_type;
   int state;
   int timeout;
-  char* command_name;
-  char* command_args;
   const char* command_line;
   struct timeval start_time;
   struct timeval end_time;
