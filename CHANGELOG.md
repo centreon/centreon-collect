@@ -1,14 +1,14 @@
 # Changelog
 
-## 21.10.1
+## 22.04.1
 
-### Fixes
+### Broker
 
-*storage*
+#### Fixes
 
-Waiting longer for conflict manager to be connected
+*main*
 
-*tls*
+-s option works and can return errors if bad value entered
 
 *stream gRPC*
 

@@ -19,8 +19,6 @@
 #include "test/centengine.hh"
 #include <sys/stat.h>
 #include <csignal>
-#include <cstdlib>
-#include <fstream>
 #include <sstream>
 #include "com/centreon/broker/exceptions/msg.hh"
 #include "com/centreon/broker/misc/misc.hh"

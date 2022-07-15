@@ -19,8 +19,6 @@
 #ifndef CCB_MISC_MATH_HH
 #define CCB_MISC_MATH_HH
 
-#include <algorithm>
-#include <array>
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()

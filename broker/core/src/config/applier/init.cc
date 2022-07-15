@@ -16,9 +16,21 @@
 ** For more information : contact@centreon.com
 */
 
+#include <condition_variable>
+#include <deque>
+#include <future>
+#include <list>
+#include <stack>
+#include <thread>
+#include <vector>
+
+#include <absl/container/flat_hash_map.h>
+#include <absl/container/flat_hash_set.h>
+
+#include <asio.hpp>
+
 #include "com/centreon/broker/config/applier/init.hh"
-#include <cstdlib>
-#include <memory>
+
 #include "com/centreon/broker/config/applier/endpoint.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/io/events.hh"
@@ -40,7 +52,7 @@ std::atomic<config::applier::applier_state> config::applier::mode{not_started};
  * @param n_thread number of threads in the pool.
  * @param name The broker name to give to this cbd instance.
  */
-void config::applier::init(size_t n_thread, const std::string& name) {
+void config::applier::init(size_t n_thread, const std::string&) {
   // Load singletons.
   pool::load(n_thread);
   stats::center::load();

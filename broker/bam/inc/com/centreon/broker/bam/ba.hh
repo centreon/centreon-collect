@@ -19,11 +19,6 @@
 #ifndef CCB_BAM_BA_HH
 #define CCB_BAM_BA_HH
 
-#include <memory>
-#include <string>
-#include <unordered_map>
-#include <vector>
-
 #include "bbdo/bam/ba_duration_event.hh"
 #include "bbdo/bam/ba_event.hh"
 #include "bbdo/bam/inherited_downtime.hh"

@@ -25,8 +25,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include <cstring>
-
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 

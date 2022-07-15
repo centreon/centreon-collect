@@ -79,10 +79,9 @@ endif ()
 # Version.
 set(COLLECT_MAJOR 22)
 set(COLLECT_MINOR 04)
-set(COLLECT_PATCH 0)
+set(COLLECT_PATCH 1)
 set(COLLECT_VERSION "${COLLECT_MAJOR}.${COLLECT_MINOR}.${COLLECT_PATCH}")
 add_definitions(-DCENTREON_CONNECTOR_VERSION=\"${COLLECT_VERSION}\")
-# add_definitions(-DCENTREON_BROKER_VERSION=\"${COLLECT_VERSION}\")
 
 
 ############ CONSTANTS ###########
@@ -122,7 +121,8 @@ set(protobuf_MODULE_COMPATIBLE True)
 add_definitions(${spdlog_DEFINITIONS})
 
 include_directories(${CMAKE_SOURCE_DIR}
-                    ${CONAN_INCLUDE_DIRS})
+                    ${CONAN_INCLUDE_DIRS}
+                    ${CMAKE_SOURCE_DIR}/clib/inc)
 
 add_subdirectory(bbdo)
 add_subdirectory(broker)

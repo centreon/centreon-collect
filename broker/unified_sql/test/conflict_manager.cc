@@ -20,9 +20,6 @@
 
 #include <gtest/gtest.h>
 
-#include <cstdio>
-#include <fstream>
-
 #include "../../core/test/test_server.hh"
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/modules/loader.hh"

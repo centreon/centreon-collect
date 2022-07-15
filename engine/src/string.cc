@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 - 2014, 2017, 2020 Centreon (https://www.centreon.com/)
+ * Copyright 2011-2014, 2017, 2020-2022 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@
  * For more information : contact@centreon.com
  *
  */
+
+#include <absl/strings/numbers.h>
 
 #include "com/centreon/engine/string.hh"
 
@@ -324,4 +326,126 @@ std::string& string::remove_thresholds(std::string& perfdata) noexcept {
 
   perfdata.replace(pos1, pos3 - pos1, ";;");
   return perfdata;
+}
+
+/**
+ * @brief extract a part of the string_view passed in the construtor
+ * it allows empty field as my_strtok
+ *
+ * @param sep separator
+ * @param extracted field
+ * @return true extracted is valid
+ * @return false current pos is yet beyond string end
+ */
+bool string::c_strtok::extract(char sep, absl::string_view& extracted) {
+  if (_pos == absl::string_view::npos) {
+    return false;
+  }
+  size_type old_pos = _pos;
+  _pos = _src.find(sep, old_pos);
+  if (_pos != absl::string_view::npos) {
+    extracted = _src.substr(old_pos, (_pos++) - old_pos);
+  } else {
+    extracted = _src.substr(old_pos);
+  }
+  return true;
+}
+
+/**
+ * @brief extract a part of the string_view passed in the construtor
+ * it allows empty field as my_strtok
+ * if sep is not found it returns part from the current position to the end
+ * if current pos is yet beyond string end, it returns boost::none
+ *
+ * @param sep separator
+ * @return absl::string_view field extracted
+ */
+boost::optional<absl::string_view> string::c_strtok::extract(char sep) {
+  absl::string_view ret;
+  if (!extract(sep, ret)) {
+    return boost::none;
+  }
+  return ret;
+}
+
+/**
+ * @brief extract a part of the string_view passed in the construtor
+ * it allows empty field as my_strtok
+ *
+ * @param sep separator
+ * @param extracted field
+ * @return true extracted is valid
+ * @return false current pos is yet beyond string end
+ */
+bool string::c_strtok::extract(char sep, std::string& extracted) {
+  absl::string_view ret;
+  if (!extract(sep, ret)) {
+    return false;
+  }
+  extracted.assign(ret.begin(), ret.end());
+  return true;
+}
+
+bool string::c_strtok::extract(char sep, int& extracted) {
+  absl::string_view ret;
+  if (!extract(sep, ret)) {
+    return false;
+  }
+  if (absl::SimpleAtoi(ret, &extracted)) {
+    return true;
+  }
+  _pos = absl::string_view::npos;
+  return false;
+}
+
+/**
+ * @brief Unescape the string buffer. Works with \t, \n, \r and \\. The buffer
+ * is directly changed. No copy is made.
+ *
+ * @param buffer
+ */
+void string::unescape(char* buffer) {
+  if (buffer == nullptr)
+    return;
+  char* read_pos = strchrnul(buffer, '\\');
+  char* prev_read_pos = nullptr;
+  while (*read_pos) {
+    char c = read_pos[1];
+    if (c == 'n' || c == 'r' || c == 't' || c == '\\') {
+      if (prev_read_pos) {
+        size_t len = read_pos - prev_read_pos;
+        memmove(buffer, prev_read_pos, len);
+        buffer += len;
+      } else
+        buffer = read_pos;
+
+      prev_read_pos = read_pos + 2;
+
+      switch (c) {
+        case 'n':
+          *buffer = '\n';
+          break;
+        case 'r':
+          *buffer = '\r';
+          break;
+        case 't':
+          *buffer = '\t';
+          break;
+        case '\\':
+          *buffer = '\\';
+          break;
+      }
+      ++buffer;
+    } else if (read_pos[1] == 0)
+      break;
+    read_pos = strchrnul(read_pos + 2, '\\');
+  }
+  if (prev_read_pos) {
+    size_t len = read_pos - prev_read_pos + 1;
+    if (len) {
+      memmove(buffer, prev_read_pos, len);
+      buffer += len;
+    }
+    *buffer = 0;
+  }
 }

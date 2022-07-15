@@ -20,7 +20,6 @@
 
 #include <cassert>
 #include <cerrno>
-#include <cstring>
 
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"

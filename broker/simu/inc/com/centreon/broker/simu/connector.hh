@@ -19,7 +19,6 @@
 #ifndef CCB_SIMU_CONNECTOR_HH
 #define CCB_SIMU_CONNECTOR_HH
 
-#include <map>
 #include "com/centreon/broker/io/endpoint.hh"
 #include "com/centreon/broker/misc/variant.hh"
 

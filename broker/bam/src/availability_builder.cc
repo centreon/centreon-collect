@@ -18,8 +18,6 @@
 
 #include "com/centreon/broker/bam/availability_builder.hh"
 
-#include <ctime>
-
 #include "com/centreon/broker/log_v2.hh"
 
 using namespace com::centreon::broker;

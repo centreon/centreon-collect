@@ -23,7 +23,10 @@
 #include <getopt.h>
 #endif  // HAVE_GETOPT_H
 #include <unistd.h>
+#include <boost/circular_buffer.hpp>
+#include <boost/optional.hpp>
 #include <random>
+#include <string>
 
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/broker/loader.hh"

@@ -19,9 +19,6 @@
 #ifndef CCB_INFLUXDB_CONNECTOR_HH
 #define CCB_INFLUXDB_CONNECTOR_HH
 
-#include <ctime>
-#include <memory>
-#include <vector>
 #include "com/centreon/broker/database_config.hh"
 #include "com/centreon/broker/influxdb/column.hh"
 #include "com/centreon/broker/io/endpoint.hh"

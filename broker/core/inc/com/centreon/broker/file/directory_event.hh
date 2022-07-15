@@ -19,7 +19,6 @@
 #ifndef CCB_FILE_DIRECTORY_EVENT_HH
 #define CCB_FILE_DIRECTORY_EVENT_HH
 
-#include <string>
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()

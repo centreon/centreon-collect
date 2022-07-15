@@ -19,7 +19,6 @@
 
 #include "com/centreon/broker/time/timerange.hh"
 #include <gtest/gtest.h>
-#include <iostream>
 #include "com/centreon/broker/time/timeperiod.hh"
 
 using namespace com::centreon::broker::time;

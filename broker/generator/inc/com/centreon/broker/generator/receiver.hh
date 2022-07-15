@@ -19,9 +19,6 @@
 #ifndef CCB_GENERATOR_RECEIVER_HH
 #define CCB_GENERATOR_RECEIVER_HH
 
-#include <memory>
-#include <unordered_map>
-#include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()

@@ -19,9 +19,6 @@
 #ifndef CCB_MISC_PERFDATA_HH
 #define CCB_MISC_PERFDATA_HH
 
-#include <array>
-#include <string>
-
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()

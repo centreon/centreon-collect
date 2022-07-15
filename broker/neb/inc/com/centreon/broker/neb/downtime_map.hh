@@ -19,7 +19,6 @@
 #ifndef CCB_NEB_DOWNTIME_MAP_HH
 #define CCB_NEB_DOWNTIME_MAP_HH
 
-#include <unordered_map>
 #include "com/centreon/broker/misc/pair.hh"
 #include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/neb/downtime.hh"

@@ -19,9 +19,6 @@
 #ifndef CCB_BAM_COMPUTABLE_HH
 #define CCB_BAM_COMPUTABLE_HH
 
-#include <list>
-#include <memory>
-
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/persistent_cache.hh"

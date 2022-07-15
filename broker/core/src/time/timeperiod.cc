@@ -18,7 +18,6 @@
 
 #include "com/centreon/broker/time/timeperiod.hh"
 #include <fmt/format.h>
-#include <ctime>
 #include <stdexcept>
 #include "com/centreon/broker/time/timezone_locker.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"

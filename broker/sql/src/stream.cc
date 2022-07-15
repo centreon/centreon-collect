@@ -18,9 +18,6 @@
 
 #include "com/centreon/broker/sql/stream.hh"
 
-#include <ctime>
-#include <limits>
-
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/log_v2.hh"

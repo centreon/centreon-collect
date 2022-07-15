@@ -18,9 +18,6 @@
 
 #include "com/centreon/broker/compression/factory.hh"
 
-#include <cstring>
-#include <memory>
-
 #include "com/centreon/broker/compression/opener.hh"
 #include "com/centreon/broker/compression/stream.hh"
 #include "com/centreon/broker/config/parser.hh"

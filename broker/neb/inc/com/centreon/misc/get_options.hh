@@ -19,9 +19,6 @@
 #ifndef CC_MISC_GET_OPTIONS_HH
 #define CC_MISC_GET_OPTIONS_HH
 
-#include <map>
-#include <string>
-#include <vector>
 #include "com/centreon/misc/argument.hh"
 #include "com/centreon/namespace.hh"
 

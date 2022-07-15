@@ -19,11 +19,6 @@
 #ifndef CCB_MULTIPLEXING_ENGINE_HH
 #define CCB_MULTIPLEXING_ENGINE_HH
 
-#include <deque>
-#include <list>
-#include <memory>
-#include <mutex>
-
 #include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/persistent_cache.hh"
 #include "com/centreon/broker/stats/center.hh"

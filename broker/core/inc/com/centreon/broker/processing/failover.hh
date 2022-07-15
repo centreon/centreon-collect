@@ -20,10 +20,6 @@
 #define CCB_PROCESSING_FAILOVER_HH
 
 #include <climits>
-#include <ctime>
-#include <mutex>
-#include <string>
-#include <vector>
 #include "com/centreon/broker/io/endpoint.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"

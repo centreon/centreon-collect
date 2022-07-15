@@ -19,9 +19,6 @@
 #ifndef CCB_EXTCMD_COMMAND_CLIENT_HH
 #define CCB_EXTCMD_COMMAND_CLIENT_HH
 
-#include <asio.hpp>
-#include <memory>
-#include <string>
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/namespace.hh"
 

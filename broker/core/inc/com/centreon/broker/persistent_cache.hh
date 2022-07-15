@@ -19,7 +19,6 @@
 #ifndef CCB_PERSISTENT_CACHE_HH
 #define CCB_PERSISTENT_CACHE_HH
 
-#include <string>
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/namespace.hh"

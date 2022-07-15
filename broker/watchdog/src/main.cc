@@ -22,9 +22,6 @@
 #include <unistd.h>
 
 #include <csignal>
-#include <iostream>
-#include <set>
-#include <unordered_map>
 
 #include "com/centreon/broker/watchdog/configuration.hh"
 #include "com/centreon/broker/watchdog/configuration_parser.hh"

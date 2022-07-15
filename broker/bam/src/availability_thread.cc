@@ -18,8 +18,6 @@
 
 #include "com/centreon/broker/bam/availability_thread.hh"
 
-#include <ctime>
-
 #include "com/centreon/broker/database/mysql_error.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/time.hh"
@@ -188,8 +186,10 @@ void availability_thread::_build_availabilities(time_t midnight) {
         _bas_to_rebuild);
     try {
       std::promise<database::mysql_result> promise;
-      thread_id = _mysql->run_query_and_get_result(query_str, &promise);
-      database::mysql_result res(promise.get_future().get());
+      std::future<database::mysql_result> future = promise.get_future();
+      thread_id =
+          _mysql->run_query_and_get_result(query_str, std::move(promise));
+      database::mysql_result res(future.get());
       if (!_mysql->fetch_row(res))
         throw msg_fmt("no events matching BAs to rebuild");
       first_day = res.value_as_i32(0);
@@ -215,8 +215,10 @@ void availability_thread::_build_availabilities(time_t midnight) {
     query_str = "SELECT MAX(time_id) FROM mod_bam_reporting_ba_availabilities";
     try {
       std::promise<database::mysql_result> promise;
-      thread_id = _mysql->run_query_and_get_result(query_str, &promise);
-      database::mysql_result res(promise.get_future().get());
+      std::future<database::mysql_result> future = promise.get_future();
+      thread_id =
+          _mysql->run_query_and_get_result(query_str, std::move(promise));
+      database::mysql_result res(future.get());
       if (!_mysql->fetch_row(res)) {
         log_v2::bam()->error("no availability in table");
         throw msg_fmt("no availability in table");
@@ -277,13 +279,14 @@ void availability_thread::_build_daily_availabilities(int thread_id,
 
   log_v2::bam()->debug("Query: {}", query);
   std::promise<database::mysql_result> promise;
-  _mysql->run_query_and_get_result(query, &promise, thread_id);
+  std::future<database::mysql_result> future = promise.get_future();
+  _mysql->run_query_and_get_result(query, std::move(promise), thread_id);
 
   // Create a builder for each ba_id and associated timeperiod_id.
   std::map<std::pair<uint32_t, uint32_t>, std::unique_ptr<availability_builder>>
       builders;
   try {
-    database::mysql_result res(promise.get_future().get());
+    database::mysql_result res(future.get());
     while (_mysql->fetch_row(res)) {
       uint32_t ba_id = res.value_as_i32(1);
       uint32_t timeperiod_id = res.value_as_i32(6);
@@ -335,11 +338,12 @@ void availability_thread::_build_daily_availabilities(int thread_id,
                           : "");
   log_v2::bam()->debug("Query: {}", query);
 
-  promise = std::promise<database::mysql_result>();
-  _mysql->run_query_and_get_result(query, &promise, thread_id);
+  std::promise<database::mysql_result> promise_ba;
+  std::future<database::mysql_result> future_ba = promise_ba.get_future();
+  _mysql->run_query_and_get_result(query, std::move(promise_ba), thread_id);
 
   try {
-    database::mysql_result res(promise.get_future().get());
+    database::mysql_result res(future_ba.get());
     while (_mysql->fetch_row(res)) {
       uint32_t ba_id = res.value_as_i32(1);
       // Get all the timeperiods associated with the ba of this event.

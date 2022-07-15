@@ -21,9 +21,6 @@
 #include <gtest/gtest.h>
 
 #include <google/protobuf/util/message_differencer.h>
-#include <fstream>
-#include <list>
-#include <memory>
 
 #include "com/centreon/broker/bbdo/stream.hh"
 #include "com/centreon/broker/config/applier/init.hh"

@@ -19,9 +19,6 @@
 #ifndef CCB_BAM_EXP_TOKENIZER_HH
 #define CCB_BAM_EXP_TOKENIZER_HH
 
-#include <queue>
-#include <string>
-
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()

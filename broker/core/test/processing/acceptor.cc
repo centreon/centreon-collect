@@ -19,8 +19,6 @@
 
 #include "com/centreon/broker/processing/acceptor.hh"
 #include <gtest/gtest.h>
-#include <memory>
-#include <string>
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/io/raw.hh"
 #include "temporary_endpoint.hh"

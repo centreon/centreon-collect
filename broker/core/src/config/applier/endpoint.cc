@@ -18,13 +18,7 @@
 
 #include "com/centreon/broker/config/applier/endpoint.hh"
 
-#include <algorithm>
-#include <atomic>
 #include <cassert>
-#include <cstdlib>
-#include <list>
-#include <memory>
-#include <vector>
 
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/io/endpoint.hh"

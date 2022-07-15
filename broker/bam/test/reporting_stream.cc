@@ -20,10 +20,8 @@
 
 #include <gtest/gtest.h>
 
-#include <memory>
-
-#include "com/centreon/broker/bam/dimension_kpi_event.hh"
-#include "com/centreon/broker/bam/dimension_truncate_table_signal.hh"
+#include "bbdo/bam/dimension_kpi_event.hh"
+#include "bbdo/bam/dimension_truncate_table_signal.hh"
 #include "com/centreon/broker/persistent_cache.hh"
 
 using namespace com::centreon::broker;
@@ -34,10 +32,10 @@ class BamReportingStream : public testing::Test {
 };
 
 TEST_F(BamReportingStream, WriteKpi) {
-  database_config cfg("MySQL", "127.0.0.1", 3306, "centreon", "centreon",
+  database_config cfg("MySQL", "127.0.0.1", "", 3306, "centreon", "centreon",
                       "centreon");
-  database_config storage("MySQL", "127.0.0.1", 3306, "centreon", "centreon",
-                          "centreon_storage");
+  database_config storage("MySQL", "127.0.0.1", "", 3306, "centreon",
+                          "centreon", "centreon_storage");
 
   std::shared_ptr<persistent_cache> cache;
   std::unique_ptr<reporting_stream> rs;
@@ -45,12 +43,11 @@ TEST_F(BamReportingStream, WriteKpi) {
   ASSERT_NO_THROW(rs.reset(new reporting_stream(storage)));
 
   std::shared_ptr<dimension_kpi_event> st{
-      std::make_shared<dimension_kpi_event>(dimension_kpi_event())};
+      std::make_shared<dimension_kpi_event>(dimension_kpi_event(1))};
   rs->write(std::static_pointer_cast<io::data>(st));
 
   std::shared_ptr<dimension_truncate_table_signal> flush{
-      std::make_shared<dimension_truncate_table_signal>(
-          dimension_truncate_table_signal())};
+      std::make_shared<dimension_truncate_table_signal>(true)};
   flush->update_started = false;
   rs->write(std::static_pointer_cast<io::data>(flush));
 }

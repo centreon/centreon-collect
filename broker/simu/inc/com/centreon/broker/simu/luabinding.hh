@@ -19,8 +19,6 @@
 #ifndef CCB_SIMU_SIMUBINDING_HH
 #define CCB_SIMU_SIMUBINDING_HH
 
-#include <map>
-#include <memory>
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/misc/variant.hh"
 

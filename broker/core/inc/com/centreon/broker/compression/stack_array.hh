@@ -19,8 +19,6 @@
 #ifndef CCB_COMPRESSION_STACK_ARRAY_HH
 #define CCB_COMPRESSION_STACK_ARRAY_HH
 
-#include <string>
-#include <vector>
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()

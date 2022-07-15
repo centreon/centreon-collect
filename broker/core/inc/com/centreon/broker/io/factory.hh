@@ -19,8 +19,6 @@
 #ifndef CCB_IO_FACTORY_HH
 #define CCB_IO_FACTORY_HH
 
-#include <memory>
-#include <unordered_map>
 #include "com/centreon/broker/config/endpoint.hh"
 #include "com/centreon/broker/io/endpoint.hh"
 #include "com/centreon/broker/io/extension.hh"

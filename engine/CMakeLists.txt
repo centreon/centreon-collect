@@ -534,7 +534,6 @@ target_link_libraries(cce_core CONAN_PKG::nlohmann_json
 add_executable("centengine" "${SRC_DIR}/main.cc")
 set_property(TARGET "centengine" PROPERTY ENABLE_EXPORTS "1")
 add_dependencies(centengine centreon_clib)
-target_precompile_headers(centengine PRIVATE ${PRECOMP_HEADER})
 
 # Link centengine with required libraries.
 target_link_libraries(centengine "-export-dynamic" centreon_clib "-Wl,-whole-archive" enginerpc cce_core  "-Wl,-no-whole-archive" -L${CONAN_LIB_DIRS_GRPC} "-Wl,--whole-archive" grpc++ "-Wl,--no-whole-archive" CONAN_PKG::grpc ${absl_LIBS} CONAN_PKG::openssl ${c-ares_LIBS} CONAN_PKG::zlib dl)

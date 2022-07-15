@@ -7,7 +7,8 @@ RUN curl https://downloads.mariadb.com/MariaDB/mariadb-10.5.8/yum/centos7-amd64/
     curl https://downloads.mariadb.com/MariaDB/mariadb-10.5.8/yum/centos7-amd64/rpms/MariaDB-server-10.5.8-1.el7.centos.x86_64.rpm --output MariaDB-server-10.5.8-1.el7.centos.x86_64.rpm && \
     curl https://downloads.mariadb.com/MariaDB/mariadb-10.5.8/yum/centos7-amd64/rpms/galera-4-26.4.6-1.el7.centos.x86_64.rpm --output galera-4-26.4.6-1.el7.centos.x86_64.rpm && \
     curl http://yum-1.centreon.com/standard/21.10/el7/stable/x86_64/RPMS/rrdtool-devel-1.7.2-1.el7.centos.x86_64.rpm --output rrdtool-devel-1.7.2-1.el7.centos.x86_64.rpm && \
-    curl http://yum-1.centreon.com/standard/21.10/el7/stable/x86_64/RPMS/rrdtool-1.7.2-1.el7.centos.x86_64.rpm --output rrdtool-1.7.2-1.el7.centos.x86_64.rpm
+    curl http://yum-1.centreon.com/standard/21.10/el7/stable/x86_64/RPMS/rrdtool-1.7.2-1.el7.centos.x86_64.rpm --output rrdtool-1.7.2-1.el7.centos.x86_64.rpm && \
+    curl https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.7.0.2747-linux.zip --output sonar-scanner-cli-4.7.0.2747-linux.zip
 RUN yum -y upgrade && yum -y update && \
     yum -y install make \
     openssh-server \
@@ -54,6 +55,9 @@ RUN cat conanfile.txt
 RUN source /opt/rh/devtoolset-9/enable && source /opt/rh/rh-python38/enable && \
     conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build='*'
 
+RUN unzip -q sonar-scanner-cli-4.7.0.2747-linux.zip
+RUN rm -rf sonar-scanner-cli-4.7.0.2747-linux.zip
+RUN mv sonar-scanner-4.7.0.2747-linux sonar-scanner
 WORKDIR /src
 ENV PATH=/opt/rh/devtoolset-9/root/usr/bin:$PATH:/opt/rh/rh-php73/root/usr/bin
 ENV LD_LIBRARY_PATH=/opt/rh/devtoolset-9/root/usr/lib64:/opt/rh/devtoolset-9/root/usr/lib:/opt/rh/devtoolset-9/root/usr/lib64/dyninst:/opt/rh/devtoolset-9/root/usr/lib/dyninst:/opt/rh/devtoolset-9/root/usr/lib64:/opt/rh/devtoolset-9/root/usr/lib

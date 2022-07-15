@@ -18,7 +18,6 @@
  */
 
 #include <gtest/gtest.h>
-#include <cstdlib>
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 

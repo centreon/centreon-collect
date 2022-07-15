@@ -17,8 +17,6 @@
 */
 #include <errmsg.h>
 
-#include <cstring>
-
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/mysql_manager.hh"
@@ -211,11 +209,11 @@ void mysql_connection::_query_res(mysql_task* t) {
       set_error_message(err_msg);
 
     msg_fmt e(err_msg);
-    task->promise->set_exception(std::make_exception_ptr<msg_fmt>(e));
+    task->promise.set_exception(std::make_exception_ptr<msg_fmt>(e));
   } else {
     /* All is good here */
     _need_commit = true;
-    task->promise->set_value(mysql_result(this, mysql_store_result(_conn)));
+    task->promise.set_value(mysql_result(this, mysql_store_result(_conn)));
   }
 }
 
@@ -229,14 +227,14 @@ void mysql_connection::_query_int(mysql_task* t) {
       set_error_message(err_msg);
 
     msg_fmt e(err_msg);
-    task->promise->set_exception(std::make_exception_ptr<msg_fmt>(e));
+    task->promise.set_exception(std::make_exception_ptr<msg_fmt>(e));
   } else {
     /* All is good here */
     _need_commit = true;
     if (task->return_type == mysql_task::AFFECTED_ROWS)
-      task->promise->set_value(mysql_affected_rows(_conn));
+      task->promise.set_value(mysql_affected_rows(_conn));
     else /* LAST_INSERT_ID */
-      task->promise->set_value(mysql_insert_id(_conn));
+      task->promise.set_value(mysql_insert_id(_conn));
   }
 }
 
@@ -266,19 +264,11 @@ void mysql_connection::_commit(mysql_task* t) {
         fmt::format("Error during commit: {}", ::mysql_error(_conn)));
     log_v2::sql()->error("mysql_connection: {}", err_msg);
     set_error_message(err_msg);
-    int c = atomic_fetch_sub(&task->count, 1) - 1;
-    if (c == 0)
-      task->promise->set_value(true);
   } else {
     /* No more queries are waiting for a commit now. */
     _need_commit = false;
-
-    /* Commit is done on each connection. If task->count is 0, then we are on
-     * the last one. It's time to release the future boolean. */
-    int c = atomic_fetch_sub(&task->count, 1) - 1;
-    if (c == 0)
-      task->promise->set_value(true);
   }
+  task->set_value(true);
 }
 
 void mysql_connection::_prepare(mysql_task* t) {
@@ -375,7 +365,7 @@ void mysql_connection::_statement_res(mysql_task* t) {
   if (!stmt) {
     log_v2::sql()->error("mysql_connection: no statement to execute");
     msg_fmt e("statement not prepared");
-    task->promise->set_exception(std::make_exception_ptr<msg_fmt>(e));
+    task->promise.set_exception(std::make_exception_ptr<msg_fmt>(e));
     return;
   }
   MYSQL_BIND* bb(nullptr);
@@ -386,7 +376,7 @@ void mysql_connection::_statement_res(mysql_task* t) {
     std::string err_msg(::mysql_stmt_error(stmt));
     log_v2::sql()->error("mysql_connection: {}", err_msg);
     msg_fmt e("statement and get result failed: {}", err_msg);
-    task->promise->set_exception(std::make_exception_ptr<msg_fmt>(e));
+    task->promise.set_exception(std::make_exception_ptr<msg_fmt>(e));
   } else {
     int32_t attempts = 0;
     for (;;) {
@@ -395,7 +385,7 @@ void mysql_connection::_statement_res(mysql_task* t) {
         if (_server_error(mysql_stmt_errno(stmt))) {
           set_error_message(err_msg);
           msg_fmt e(err_msg);
-          task->promise->set_exception(std::make_exception_ptr<msg_fmt>(e));
+          task->promise.set_exception(std::make_exception_ptr<msg_fmt>(e));
           break;
         }
         if (mysql_stmt_errno(stmt) != 1213 &&
@@ -410,7 +400,7 @@ void mysql_connection::_statement_res(mysql_task* t) {
         log_v2::sql()->error("mysql_connection: {}", err_msg);
         if (++attempts >= MAX_ATTEMPTS) {
           msg_fmt e(err_msg);
-          task->promise->set_exception(std::make_exception_ptr<msg_fmt>(e));
+          task->promise.set_exception(std::make_exception_ptr<msg_fmt>(e));
           break;
         }
       } else {
@@ -422,9 +412,9 @@ void mysql_connection::_statement_res(mysql_task* t) {
           if (mysql_stmt_errno(stmt)) {
             std::string err_msg(::mysql_stmt_error(stmt));
             msg_fmt e(err_msg);
-            task->promise->set_exception(std::make_exception_ptr<msg_fmt>(e));
+            task->promise.set_exception(std::make_exception_ptr<msg_fmt>(e));
           } else
-            task->promise->set_value(nullptr);
+            task->promise.set_value(nullptr);
         } else {
           int size(mysql_num_fields(prepare_meta_result));
           std::unique_ptr<mysql_bind> bind(new mysql_bind(size, STR_SIZE));
@@ -432,7 +422,7 @@ void mysql_connection::_statement_res(mysql_task* t) {
           if (mysql_stmt_bind_result(stmt, bind->get_bind())) {
             std::string err_msg(::mysql_stmt_error(stmt));
             msg_fmt e(err_msg);
-            task->promise->set_exception(std::make_exception_ptr<msg_fmt>(e));
+            task->promise.set_exception(std::make_exception_ptr<msg_fmt>(e));
             return;
           } else {
             if (mysql_stmt_store_result(stmt)) {
@@ -440,7 +430,7 @@ void mysql_connection::_statement_res(mysql_task* t) {
               if (_server_error(::mysql_stmt_errno(stmt)))
                 set_error_message(err_msg);
               msg_fmt e(err_msg);
-              task->promise->set_exception(std::make_exception_ptr<msg_fmt>(e));
+              task->promise.set_exception(std::make_exception_ptr<msg_fmt>(e));
               return;
             }
             // Here, we have the first row.
@@ -448,7 +438,7 @@ void mysql_connection::_statement_res(mysql_task* t) {
             bind->set_empty(true);
           }
           res.set_bind(move(bind));
-          task->promise->set_value(std::move(res));
+          task->promise.set_value(std::move(res));
         }
         break;
       }
@@ -467,7 +457,7 @@ void mysql_connection::_statement_int(mysql_task* t) {
   if (!stmt) {
     log_v2::sql()->error("mysql_connection: no statement to execute");
     msg_fmt e("statement not prepared");
-    task->promise->set_exception(std::make_exception_ptr<msg_fmt>(e));
+    task->promise.set_exception(std::make_exception_ptr<msg_fmt>(e));
     return;
   }
   MYSQL_BIND* bb(nullptr);
@@ -478,7 +468,7 @@ void mysql_connection::_statement_int(mysql_task* t) {
     std::string err_msg(::mysql_stmt_error(stmt));
     log_v2::sql()->error("mysql_connection: {}", err_msg);
     msg_fmt e(err_msg);
-    task->promise->set_exception(std::make_exception_ptr<msg_fmt>(e));
+    task->promise.set_exception(std::make_exception_ptr<msg_fmt>(e));
   } else {
     int32_t attempts = 0;
     for (;;) {
@@ -487,7 +477,7 @@ void mysql_connection::_statement_int(mysql_task* t) {
         if (_server_error(mysql_stmt_errno(stmt))) {
           set_error_message(err_msg);
           msg_fmt e(err_msg);
-          task->promise->set_exception(std::make_exception_ptr<msg_fmt>(e));
+          task->promise.set_exception(std::make_exception_ptr<msg_fmt>(e));
           break;
         }
         if (mysql_stmt_errno(stmt) != 1213 &&
@@ -498,16 +488,16 @@ void mysql_connection::_statement_int(mysql_task* t) {
 
         if (++attempts >= MAX_ATTEMPTS) {
           msg_fmt e("run statement and get result failed: {}", err_msg);
-          task->promise->set_exception(std::make_exception_ptr<msg_fmt>(e));
+          task->promise.set_exception(std::make_exception_ptr<msg_fmt>(e));
           break;
         }
       } else {
         _need_commit = true;
         if (task->return_type == mysql_task::AFFECTED_ROWS)
-          task->promise->set_value(
+          task->promise.set_value(
               mysql_stmt_affected_rows(_stmt[task->statement_id]));
         else /* LAST_INSERT_ID */
-          task->promise->set_value(
+          task->promise.set_value(
               mysql_stmt_insert_id(_stmt[task->statement_id]));
         break;
       }
@@ -524,11 +514,11 @@ void mysql_connection::_fetch_row_sync(mysql_task* t) {
     int res(mysql_stmt_fetch(stmt));
     if (res != 0)
       task->result->get_bind()->set_empty(true);
-    task->promise->set_value(res == 0);
+    task->promise.set_value(res == 0);
   } else {
     MYSQL_ROW r(mysql_fetch_row(task->result->get()));
     task->result->set_row(r);
-    task->promise->set_value(r != nullptr);
+    task->promise.set_value(r != nullptr);
   }
 }
 
@@ -768,12 +758,11 @@ void mysql_connection::_push(std::unique_ptr<mysql_task>&& q) {
  *  So, this last method waits all the commits to be done ; the semaphore is
  * there for that purpose.
  *
- *  @param[out] promise This promise is set when count == 0
- *  @param count The integer counting how many queries are committed.
+ *  @param commit_data synchronisation data
  */
-void mysql_connection::commit(std::promise<bool>* promise,
-                              std::atomic_int& count) {
-  _push(std::make_unique<mysql_task_commit>(promise, count));
+void mysql_connection::commit(
+    const mysql_task_commit::mysql_task_commit_data::pointer& commit_data) {
+  _push(std::make_unique<mysql_task_commit>(commit_data));
 }
 
 void mysql_connection::prepare_query(int stmt_id, std::string const& query) {
@@ -797,14 +786,14 @@ void mysql_connection::run_query(std::string const& query,
 
 void mysql_connection::run_query_and_get_result(
     const std::string& query,
-    std::promise<mysql_result>* promise) {
-  _push(std::make_unique<mysql_task_run_res>(query, promise));
+    std::promise<mysql_result>&& promise) {
+  _push(std::make_unique<mysql_task_run_res>(query, std::move(promise)));
 }
 
 void mysql_connection::run_query_and_get_int(std::string const& query,
-                                             std::promise<int>* promise,
+                                             std::promise<int>&& promise,
                                              mysql_task::int_type type) {
-  _push(std::make_unique<mysql_task_run_int>(query, promise, type));
+  _push(std::make_unique<mysql_task_run_int>(query, std::move(promise), type));
 }
 
 void mysql_connection::run_statement(database::mysql_stmt& stmt,
@@ -815,8 +804,8 @@ void mysql_connection::run_statement(database::mysql_stmt& stmt,
 
 void mysql_connection::run_statement_and_get_result(
     database::mysql_stmt& stmt,
-    std::promise<mysql_result>* promise) {
-  _push(std::make_unique<mysql_task_statement_res>(stmt, promise));
+    std::promise<mysql_result>&& promise) {
+  _push(std::make_unique<mysql_task_statement_res>(stmt, std::move(promise)));
 }
 
 void mysql_connection::finish() {
@@ -827,8 +816,9 @@ void mysql_connection::finish() {
 
 bool mysql_connection::fetch_row(mysql_result& result) {
   std::promise<bool> promise;
-  _push(std::make_unique<mysql_task_fetch>(&result, &promise));
-  return promise.get_future().get();
+  auto future = promise.get_future();
+  _push(std::make_unique<mysql_task_fetch>(&result, std::move(promise)));
+  return future.get();
 }
 
 bool mysql_connection::match_config(database_config const& db_cfg) const {

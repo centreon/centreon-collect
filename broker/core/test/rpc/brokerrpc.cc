@@ -24,9 +24,6 @@
 #include <gtest/gtest.h>
 
 #include <fmt/format.h>
-#include <cstdio>
-#include <fstream>
-#include <iostream>
 
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"

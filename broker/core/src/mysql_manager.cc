@@ -17,8 +17,6 @@
 */
 #include "com/centreon/broker/mysql_manager.hh"
 
-#include <chrono>
-
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 

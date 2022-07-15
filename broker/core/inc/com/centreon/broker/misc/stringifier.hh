@@ -19,7 +19,6 @@
 #ifndef CCB_MISC_STRINGIFIER_HH_
 #define CCB_MISC_STRINGIFIER_HH_
 
-#include <string>
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()

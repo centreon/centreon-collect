@@ -18,8 +18,6 @@
 
 #include "com/centreon/broker/io/protocols.hh"
 #include <cassert>
-#include <cstdlib>
-#include <memory>
 #include "com/centreon/broker/compression/factory.hh"
 #include "com/centreon/broker/file/factory.hh"
 #include "com/centreon/broker/log_v2.hh"

@@ -18,8 +18,6 @@
 
 #include "com/centreon/broker/stats/helper.hh"
 
-#include <asio.hpp>
-
 #include "com/centreon/broker/config/applier/endpoint.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/config/endpoint.hh"

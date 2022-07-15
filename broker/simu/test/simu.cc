@@ -17,9 +17,6 @@
 */
 
 #include <gtest/gtest.h>
-#include <fstream>
-#include <list>
-#include <memory>
 #include "bbdo/storage/status.hh"
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/config/applier/modules.hh"

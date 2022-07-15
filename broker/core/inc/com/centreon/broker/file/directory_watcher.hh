@@ -19,9 +19,6 @@
 #ifndef CCB_FILE_DIRECTORY_WATCHER_HH
 #define CCB_FILE_DIRECTORY_WATCHER_HH
 
-#include <map>
-#include <string>
-#include <vector>
 #include "com/centreon/broker/file/directory_event.hh"
 #include "com/centreon/broker/namespace.hh"
 

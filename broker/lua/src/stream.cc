@@ -17,8 +17,6 @@
 */
 #include "com/centreon/broker/lua/stream.hh"
 
-#include <algorithm>
-
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/log_v2.hh"

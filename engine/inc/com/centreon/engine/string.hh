@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013,2017 Centreon
+** Copyright 2011-2013,2017-2022 Centreon
 **
 ** This file is part of Centreon Engine.
 **
@@ -203,6 +203,28 @@ std::string& trim_right(std::string& str) noexcept;
 std::string extract_perfdata(std::string const& perfdata,
                              std::string const& metric) noexcept;
 std::string& remove_thresholds(std::string& perfdata) noexcept;
+
+void unescape(char* buffer);
+
+/**
+ * @brief this class is a thread safe replacement for my_strtok
+ * An instance is not thread safe but sevaral instances can be used in different
+ * threads
+ */
+class c_strtok {
+  absl::string_view _src;
+  using size_type = absl::string_view::size_type;
+  size_type _pos;
+
+ public:
+  c_strtok(const absl::string_view src) : _src(src), _pos(0) {}
+
+  boost::optional<absl::string_view> extract(char sep);
+  bool extract(char sep, absl::string_view& extracted);
+  bool extract(char sep, std::string& extracted);
+  bool extract(char sep, int& extracted);
+};
+
 }  // namespace string
 
 CCE_END()

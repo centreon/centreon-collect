@@ -19,8 +19,6 @@
 #include <QCoreApplication>
 #include <QDir>
 #include <QFile>
-#include <cstdlib>
-#include <limits>
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/file/stream.hh"
 #include "com/centreon/broker/io/raw.hh"

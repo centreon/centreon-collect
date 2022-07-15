@@ -18,7 +18,6 @@
 
 #include "com/centreon/broker/io/events.hh"
 
-#include <algorithm>
 #include <cassert>
 #include "bbdo/bbdo/ack.hh"
 #include "bbdo/bbdo/stop.hh"

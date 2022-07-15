@@ -19,7 +19,6 @@
 #ifndef CC_MISC_COMMAND_LINE_HH
 #define CC_MISC_COMMAND_LINE_HH
 
-#include <string>
 #include "com/centreon/namespace.hh"
 
 CC_BEGIN()

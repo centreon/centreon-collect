@@ -20,9 +20,6 @@
 
 #include <syslog.h>
 
-#include <algorithm>
-#include <fstream>
-#include <iostream>
 #include <streambuf>
 
 #include "com/centreon/broker/log_v2.hh"

@@ -11,14 +11,17 @@ echo "################################################## PACKAGING COLLECT #####
 AUTHOR="Luiz Costa"
 AUTHOR_EMAIL="me@luizgustavo.pro.br"
 
+# fix version to debian format accept
+VERSION="$(echo $VERSION | sed 's/-/./g')"
+
 if [ -d centreon-collect/build ] ; then
     rm -rf centreon-collect/build
 fi
 tar czpf centreon-collect-$VERSION.tar.gz centreon-collect
 cd centreon-collect/
 cp -rf ci/debian .
-sed -i "s/^centreon:version=.*$/centreon:version=${VERSION}/" debian/substvars
-debmake -f "${AUTHOR}" -e "${AUTHOR_EMAIL}" -u "$VERSION" -r "$RELEASE"
+sed -i "s/^centreon:version=.*$/centreon:version=$(echo $VERSION | egrep -o '^[0-9][0-9].[0-9][0-9]')/" debian/substvars
+debmake -f "${AUTHOR}" -e "${AUTHOR_EMAIL}" -u "$VERSION" -r "$DISTRIB"
 debuild-pbuilder
 cd ../
 if [ -d "$DISTRIB" ] ; then

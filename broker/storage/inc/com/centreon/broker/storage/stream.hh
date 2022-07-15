@@ -19,8 +19,6 @@
 #ifndef CCB_STORAGE_STREAM_HH
 #define CCB_STORAGE_STREAM_HH
 
-#include <string>
-
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/mysql.hh"
 #include "com/centreon/broker/namespace.hh"

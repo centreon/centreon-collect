@@ -19,7 +19,6 @@
 #ifndef CCB_COMPRESSION_ZLIB_HH
 #define CCB_COMPRESSION_ZLIB_HH
 
-#include <vector>
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()

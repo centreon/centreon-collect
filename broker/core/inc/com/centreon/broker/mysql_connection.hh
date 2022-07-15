@@ -19,11 +19,7 @@
 #ifndef CCB_MYSQL_CONNECTION_HH
 #define CCB_MYSQL_CONNECTION_HH
 
-#include <condition_variable>
 #include <future>
-#include <list>
-#include <mutex>
-#include <unordered_map>
 
 #include "com/centreon/broker/database/mysql_error.hh"
 #include "com/centreon/broker/database/mysql_result.hh"
@@ -145,25 +141,27 @@ class mysql_connection {
   ~mysql_connection();
 
   void prepare_query(int id, std::string const& query);
-  void commit(std::promise<bool>* promise, std::atomic_int& count);
+  void commit(
+      const database::mysql_task_commit::mysql_task_commit_data::pointer&
+          commit_data);
   void run_query(std::string const& query, my_error::code ec, bool fatal);
   void run_query_and_get_result(std::string const& query,
-                                std::promise<database::mysql_result>* promise);
+                                std::promise<database::mysql_result>&& promise);
   void run_query_and_get_int(std::string const& query,
-                             std::promise<int>* promise,
+                             std::promise<int>&& promise,
                              database::mysql_task::int_type type);
 
   void run_statement(database::mysql_stmt& stmt, my_error::code ec, bool fatal);
   void run_statement_and_get_result(
       database::mysql_stmt& stmt,
-      std::promise<database::mysql_result>* promise);
+      std::promise<database::mysql_result>&& promise);
 
   template <typename T>
   void run_statement_and_get_int(database::mysql_stmt& stmt,
-                                 std::promise<T>* promise,
+                                 std::promise<T>&& promise,
                                  database::mysql_task::int_type type) {
-    _push(std::make_unique<database::mysql_task_statement_int<T>>(stmt, promise,
-                                                                  type));
+    _push(std::make_unique<database::mysql_task_statement_int<T>>(
+        stmt, std::move(promise), type));
   }
 
   void finish();

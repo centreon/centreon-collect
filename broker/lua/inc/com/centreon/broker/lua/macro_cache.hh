@@ -19,11 +19,6 @@
 #ifndef CCB_LUA_MACRO_CACHE_HH
 #define CCB_LUA_MACRO_CACHE_HH
 
-#include <absl/container/btree_map.h>
-#include <absl/container/flat_hash_map.h>
-#include <memory>
-#include <unordered_map>
-
 #include "bbdo/bam/dimension_ba_bv_relation_event.hh"
 #include "bbdo/bam/dimension_ba_event.hh"
 #include "bbdo/bam/dimension_bv_event.hh"

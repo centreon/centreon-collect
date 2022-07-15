@@ -24,6 +24,7 @@
 #include "../test_engine.hh"
 #include "../timeperiod/utils.hh"
 #include "com/centreon/engine/checks/checker.hh"
+#include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/configuration/applier/command.hh"
 #include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/contactgroup.hh"
@@ -37,7 +38,6 @@
 #include "com/centreon/engine/configuration/service.hh"
 #include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
-#include "com/centreon/engine/modules/external_commands/commands.hh"
 #include "com/centreon/engine/serviceescalation.hh"
 #include "com/centreon/engine/timezone_manager.hh"
 #include "helper.hh"
@@ -575,4 +575,26 @@ TEST_F(ServiceCheck, CheckRemoveCheck) {
   _svc.reset();
 
   checks::checker::instance().reap();
+}
+
+TEST_F(ServiceCheck, CheckUpdateMultilineOutput) {
+  set_time(50000);
+  _svc->set_current_state(engine::service::state_ok);
+  _svc->set_last_hard_state(engine::service::state_ok);
+  _svc->set_last_hard_state_change(50000);
+  _svc->set_state_type(checkable::hard);
+  _svc->set_accept_passive_checks(true);
+  _svc->set_current_attempt(1);
+
+  set_time(50500);
+  std::time_t now{std::time(nullptr)};
+  std::string cmd{fmt::format(
+      "[{}] PROCESS_SERVICE_CHECK_RESULT;test_host;test_svc;2;service "
+      "critical\\nline2\\nline3\\nline4\\nline5|res;2;5;5\\n",
+      now)};
+  process_external_command(cmd.c_str());
+  checks::checker::instance().reap();
+  ASSERT_EQ(_svc->get_plugin_output(), "service critical");
+  ASSERT_EQ(_svc->get_long_plugin_output(), "line2\\nline3\\nline4\\nline5");
+  ASSERT_EQ(_svc->get_perf_data(), "res;2;5;5");
 }

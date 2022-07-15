@@ -21,7 +21,6 @@
 #include <gtest/gtest.h>
 
 #include <cmath>
-#include <list>
 
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/misc/misc.hh"
@@ -227,7 +226,7 @@ TEST_F(MiscParserParsePerfdata, Simple1) {
 TEST_F(MiscParserParsePerfdata, Simple2) {
   // Parse perfdata.
   std::list<misc::perfdata> list{
-    misc::parse_perfdata(0, 0, "'ABCD12E'=18.00%;15:;10:;0;100")};
+      misc::parse_perfdata(0, 0, "'ABCD12E'=18.00%;15:;10:;0;100")};
 
   // Assertions.
   ASSERT_EQ(list.size(), 1u);
@@ -248,8 +247,7 @@ TEST_F(MiscParserParsePerfdata, Simple2) {
 
 TEST_F(MiscParserParsePerfdata, Complex1) {
   // Parse perfdata.
-  std::list<misc::perfdata> list{
-    misc::parse_perfdata(
+  std::list<misc::perfdata> list{misc::parse_perfdata(
       0, 0,
       "time=2.45698s;;nan;;inf d[metric]=239765B/s;5;;-inf; "
       "infotraffic=18x;;;; a[foo]=1234;10;11: c[bar]=1234;~:10;20:30 "
@@ -436,7 +434,8 @@ TEST_F(MiscParserParsePerfdata, Complex2) {
       0, 0,
       "'  \n time'=2,45698s;;nan;;inf d[metric]=239765B/s;5;;-inf; "
       "g[test]=8x;;;;"
-      " infotraffic=18,6x;;;; a[foo]=1234,17;10;11: c[bar]=1234,147;~:10;20:30")};
+      " infotraffic=18,6x;;;; a[foo]=1234,17;10;11: "
+      "c[bar]=1234,147;~:10;20:30")};
 
   // Assertions.
   ASSERT_EQ(list.size(), 6u);

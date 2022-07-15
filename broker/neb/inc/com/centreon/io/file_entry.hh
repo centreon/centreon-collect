@@ -21,7 +21,6 @@
 
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <string>
 #include "com/centreon/handle.hh"
 #include "com/centreon/namespace.hh"
 

@@ -20,8 +20,6 @@
 
 #include <gnutls/gnutls.h>
 
-#include <cstdlib>
-
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/tls/internal.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"

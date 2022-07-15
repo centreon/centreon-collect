@@ -21,6 +21,8 @@
 
 using namespace com::centreon::broker::bam::configuration;
 
+static constexpr double eps = 0.000001;
+
 /**
  *  Constructor.
  *
@@ -99,9 +101,9 @@ bool ba::operator==(const ba& right) const {
   return _id == right._id && _host_id == right._host_id &&
          _service_id == right._service_id && _name == right._name &&
          _state_source == right._state_source &&
-         _warning_level == right._warning_level &&
-         _critical_level == right._critical_level && _event == right._event &&
-         _dt_behaviour == right._dt_behaviour;
+         std::abs(_warning_level - right._warning_level) < eps &&
+         std::abs(_critical_level - right._critical_level) < eps &&
+         _event == right._event && _dt_behaviour == right._dt_behaviour;
 }
 
 /**

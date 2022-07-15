@@ -18,8 +18,6 @@
 
 #include "com/centreon/broker/watchdog/configuration_parser.hh"
 
-#include <cstring>
-#include <fstream>
 #include <streambuf>
 
 #include "com/centreon/broker/vars.hh"

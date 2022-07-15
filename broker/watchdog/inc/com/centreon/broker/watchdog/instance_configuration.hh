@@ -19,8 +19,6 @@
 #ifndef CCB_WATCHDOG_INSTANCE_CONFIGURATION_HH
 #define CCB_WATCHDOG_INSTANCE_CONFIGURATION_HH
 
-#include <string>
-
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()

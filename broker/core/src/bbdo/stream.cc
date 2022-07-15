@@ -20,13 +20,12 @@
 
 #include <arpa/inet.h>
 
-#include <algorithm>
 #include <cassert>
 
 #include "bbdo/bbdo/ack.hh"
-#include "com/centreon/broker/bbdo/internal.hh"
 #include "bbdo/bbdo/stop.hh"
 #include "bbdo/bbdo/version_response.hh"
+#include "com/centreon/broker/bbdo/internal.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/exceptions/timeout.hh"
 #include "com/centreon/broker/io/protocols.hh"

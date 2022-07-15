@@ -19,10 +19,6 @@
 #include <fmt/format.h>
 
 #include <cfloat>
-#include <cstring>
-#include <list>
-#include <set>
-#include <sstream>
 
 #include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric.hh"
@@ -152,11 +148,12 @@ void conflict_manager::_storage_process_service_status(
     _index_data_insert.bind_value_as_str(4, "0");
     _index_data_insert.bind_value_as_str(5, special ? "1" : "0");
     std::promise<uint64_t> promise;
+    std::future<uint64_t> future = promise.get_future();
     _mysql.run_statement_and_get_int<uint64_t>(
-        _index_data_insert, &promise, database::mysql_task::LAST_INSERT_ID,
-        conn);
+        _index_data_insert, std::move(promise),
+        database::mysql_task::LAST_INSERT_ID, conn);
     try {
-      index_id = promise.get_future().get();
+      index_id = future.get();
       add_metric_in_cache(index_id, host_id, service_id, ss, index_locked,
                           special, rrd_len);
     } catch (std::exception const& e) {
@@ -169,13 +166,14 @@ void conflict_manager::_storage_process_service_status(
         _index_data_query.bind_value_as_i32(1, service_id);
         {
           std::promise<database::mysql_result> promise;
+          std::future<database::mysql_result> future = promise.get_future();
           log_v2::sql()->debug(
               "Query for index_data for host_id={} and service_id={}", host_id,
               service_id);
-          _mysql.run_statement_and_get_result(_index_data_query, &promise,
-                                              conn);
+          _mysql.run_statement_and_get_result(_index_data_query,
+                                              std::move(promise), conn);
 
-          database::mysql_result res(promise.get_future().get());
+          database::mysql_result res(future.get());
           if (_mysql.fetch_row(res))
             index_id = res.value_as_u64(0);
           else
@@ -205,9 +203,10 @@ void conflict_manager::_storage_process_service_status(
         _index_data_update.bind_value_as_u64(4, index_id);
         {
           std::promise<database::mysql_result> promise;
-          _mysql.run_statement_and_get_result(_index_data_update, &promise,
-                                              conn);
-          promise.get_future().get();
+          std::future<database::mysql_result> future = promise.get_future();
+          _mysql.run_statement_and_get_result(_index_data_update,
+                                              std::move(promise), conn);
+          future.get();
         }
 
         add_metric_in_cache(index_id, host_id, service_id, ss, index_locked,
@@ -296,11 +295,12 @@ void conflict_manager::_storage_process_service_status(
 
           // Execute query.
           std::promise<int> promise;
+          std::future<int> future = promise.get_future();
           _mysql.run_statement_and_get_int<int>(
-              _metrics_insert, &promise, database::mysql_task::LAST_INSERT_ID,
-              conn);
+              _metrics_insert, std::move(promise),
+              database::mysql_task::LAST_INSERT_ID, conn);
           try {
-            metric_id = promise.get_future().get();
+            metric_id = future.get();
 
             // Insert metric in cache.
             log_v2::perfdata()->info(
@@ -407,10 +407,10 @@ void conflict_manager::_storage_process_service_status(
         // Send perfdata event to processing.
         if (!index_locked) {
           auto perf{std::make_shared<storage::metric>(
-                  ss.host_id, ss.service_id, pd.name(), ss.last_check,
-                  static_cast<uint32_t>(ss.check_interval * _interval_length),
-                  false, metric_id, rrd_len, pd.value(),
-                  static_cast<misc::perfdata::data_type>(pd.value_type()))};
+              ss.host_id, ss.service_id, pd.name(), ss.last_check,
+              static_cast<uint32_t>(ss.check_interval * _interval_length),
+              false, metric_id, rrd_len, pd.value(),
+              static_cast<misc::perfdata::data_type>(pd.value_type()))};
           log_v2::perfdata()->debug(
               "conflict_manager: generating perfdata event for metric {} "
               "(name '{}', time {}, value {}, rrd_len {}, data_type {})",
@@ -544,6 +544,7 @@ void conflict_manager::_check_deleted_index() {
   // Fetch next index to delete.
   {
     std::promise<database::mysql_result> promise;
+    std::future<database::mysql_result> future = promise.get_future();
     int32_t conn = _mysql.choose_best_connection(-1);
     std::unordered_set<uint64_t> index_to_delete;
     std::set<uint64_t> metrics_to_delete;
@@ -552,8 +553,8 @@ void conflict_manager::_check_deleted_index() {
           "SELECT m.index_id,m.metric_id, m.metric_name, i.host_id, "
           "i.service_id FROM metrics m LEFT JOIN index_data i ON "
           "i.id=m.index_id WHERE i.to_delete=1",
-          &promise, conn);
-      database::mysql_result res(promise.get_future().get());
+          std::move(promise), conn);
+      database::mysql_result res(future.get());
 
       std::lock_guard<std::mutex> lock(_metric_cache_m);
       while (_mysql.fetch_row(res)) {
@@ -562,11 +563,12 @@ void conflict_manager::_check_deleted_index() {
         _metric_cache.erase({res.value_as_u64(0), res.value_as_str(2)});
         _index_cache.erase({res.value_as_u32(3), res.value_as_u32(4)});
       }
-      promise = std::promise<database::mysql_result>();
+      std::promise<database::mysql_result> promise_m;
+      std::future<database::mysql_result> future_m = promise_m.get_future();
       _mysql.run_query_and_get_result(
           "SELECT metric_id, metric_name FROM metrics WHERE to_delete=1",
-          &promise, conn);
-      res = promise.get_future().get();
+          std::move(promise_m), conn);
+      res = future_m.get();
 
       while (_mysql.fetch_row(res)) {
         metrics_to_delete.insert(res.value_as_u64(0));

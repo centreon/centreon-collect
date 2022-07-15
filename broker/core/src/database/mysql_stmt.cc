@@ -20,7 +20,6 @@
 
 #include <cfloat>
 #include <cmath>
-#include <functional>
 
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protobuf.hh"

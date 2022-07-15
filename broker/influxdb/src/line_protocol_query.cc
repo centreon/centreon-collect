@@ -17,8 +17,6 @@
 */
 
 #include "com/centreon/broker/influxdb/line_protocol_query.hh"
-#include <algorithm>
-#include <sstream>
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"

@@ -1,5 +1,5 @@
 /*
-** Copyright 2019-2021 Centreon
+** Copyright 2019-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -17,16 +17,6 @@
 */
 #ifndef CCB_SQL_CONFLICT_MANAGER_HH
 #define CCB_SQL_CONFLICT_MANAGER_HH
-#include <array>
-#include <atomic>
-#include <condition_variable>
-#include <deque>
-#include <list>
-#include <memory>
-#include <mutex>
-#include <thread>
-#include <unordered_map>
-#include <unordered_set>
 
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/stream.hh"
@@ -175,13 +165,15 @@ class conflict_manager {
   int32_t _max_pending_queries;
   mysql _mysql;
   uint32_t _instance_timeout;
-  bool _store_in_db;
-  uint32_t _rrd_len;
-  uint32_t _interval_length;
-  uint32_t _max_perfdata_queries;
-  uint32_t _max_metrics_queries;
-  uint32_t _max_cv_queries;
-  uint32_t _max_log_queries;
+  bool _store_in_db = true;
+  uint32_t _rrd_len = 0u;
+  uint32_t _interval_length = 0u;
+  uint32_t _max_perfdata_queries = 0u;
+  uint32_t _max_metrics_queries = 0u;
+  uint32_t _max_cv_queries = 0u;
+  uint32_t _max_log_queries = 0u;
+  uint32_t _max_downtime_queries = 0u;
+
   std::unique_ptr<rebuilder> _rebuilder;
 
   std::thread _thread;
@@ -189,10 +181,10 @@ class conflict_manager {
   /* Stats */
   ConflictManagerStats* _stats;
   std::mutex _stat_m;
-  int32_t _events_handled;
-  float _speed;
+  int32_t _events_handled = 0;
+  float _speed = 0;
   std::array<float, 20> _stats_count;
-  int32_t _stats_count_pos;
+  int32_t _stats_count_pos = 0;
 
   /* How many streams are using this conflict_manager? */
   std::atomic<uint32_t> _ref_count;
@@ -232,6 +224,7 @@ class conflict_manager {
   std::deque<std::pair<bool*, std::string> > _cv_queue;
   std::deque<std::pair<bool*, std::string> > _cvs_queue;
   std::deque<std::pair<bool*, std::string> > _log_queue;
+  std::deque<std::pair<bool*, std::string> > _downtimes_queue;
 
   timestamp _oldest_timestamp;
   std::unordered_map<uint32_t, stored_timestamp> _stored_timestamps;
@@ -240,7 +233,6 @@ class conflict_manager {
   database::mysql_stmt _comment_insupdate;
   database::mysql_stmt _custom_variable_delete;
   database::mysql_stmt _custom_variable_status_insupdate;
-  database::mysql_stmt _downtime_insupdate;
   database::mysql_stmt _event_handler_insupdate;
   database::mysql_stmt _flapping_status_insupdate;
   database::mysql_stmt _host_check_update;
@@ -285,6 +277,7 @@ class conflict_manager {
   void _update_hosts_and_services_of_unresponsive_instances();
   void _update_hosts_and_services_of_instance(uint32_t id, bool responsive);
   void _update_timestamp(uint32_t instance_id);
+  void _update_downtimes();
   bool _is_valid_poller(uint32_t instance_id);
   void _check_deleted_index();
 

@@ -188,6 +188,52 @@ class engine_impl final : public Engine::Service {
   grpc::Status ShutdownProgram(grpc::ServerContext* context,
                                const ::google::protobuf::Empty*,
                                ::google::protobuf::Empty*) override;
+  ::grpc::Status EnableHostAndChildNotifications(
+      ::grpc::ServerContext* context,
+      const ::com::centreon::engine::HostIdentifier* request,
+      ::com::centreon::engine::CommandSuccess* response) override;
+  ::grpc::Status DisableHostAndChildNotifications(
+      ::grpc::ServerContext* context,
+      const ::com::centreon::engine::HostIdentifier* request,
+      ::com::centreon::engine::CommandSuccess* response) override;
+
+  ::grpc::Status DisableHostNotifications(
+      ::grpc::ServerContext* context,
+      const ::com::centreon::engine::HostIdentifier* request,
+      ::com::centreon::engine::CommandSuccess* response) override;
+
+  ::grpc::Status EnableHostNotifications(
+      ::grpc::ServerContext* context,
+      const ::com::centreon::engine::HostIdentifier* request,
+      ::com::centreon::engine::CommandSuccess* response) override;
+
+  ::grpc::Status DisableNotifications(
+      ::grpc::ServerContext* context,
+      const ::google::protobuf::Empty*,
+      ::com::centreon::engine::CommandSuccess* response) override;
+
+  ::grpc::Status EnableNotifications(
+      ::grpc::ServerContext* context,
+      const ::google::protobuf::Empty*,
+      ::com::centreon::engine::CommandSuccess* response) override;
+
+  ::grpc::Status DisableServiceNotifications(
+      ::grpc::ServerContext* context,
+      const ::com::centreon::engine::ServiceIdentifier* service,
+      ::com::centreon::engine::CommandSuccess* response) override;
+
+  ::grpc::Status EnableServiceNotifications(
+      ::grpc::ServerContext* context,
+      const ::com::centreon::engine::ServiceIdentifier* service,
+      ::com::centreon::engine::CommandSuccess* response) override;
+
+  static std::pair<std::shared_ptr<com::centreon::engine::host>,
+                   std::string /*error*/>
+  get_host(const ::com::centreon::engine::HostIdentifier& host_info);
+
+  static std::pair<std::shared_ptr<com::centreon::engine::service>,
+                   std::string /*error*/>
+  get_serv(const ::com::centreon::engine::ServiceIdentifier& serv_info);
 };
 
 CCE_END()

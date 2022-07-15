@@ -17,8 +17,6 @@
 */
 
 #include "test/file.hh"
-#include <cstdio>
-#include <fstream>
 #include "com/centreon/broker/exceptions/msg.hh"
 #include "com/centreon/broker/misc/misc.hh"
 #include "test/misc.hh"

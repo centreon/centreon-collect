@@ -19,8 +19,6 @@
 #ifndef CCB_MISC_FILESYSTEM_HH
 #define CCB_MISC_FILESYSTEM_HH
 
-#include <list>
-#include <string>
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()

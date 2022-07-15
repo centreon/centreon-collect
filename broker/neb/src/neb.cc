@@ -18,7 +18,6 @@
 
 #include <clocale>
 #include <csignal>
-#include <cstring>
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/config/parser.hh"

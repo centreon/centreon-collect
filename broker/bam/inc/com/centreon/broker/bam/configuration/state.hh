@@ -19,7 +19,6 @@
 #ifndef CCB_BAM_CONFIGURATION_STATE_HH
 #define CCB_BAM_CONFIGURATION_STATE_HH
 
-#include <map>
 #include "com/centreon/broker/bam/ba_svc_mapping.hh"
 #include "com/centreon/broker/bam/configuration/ba.hh"
 #include "com/centreon/broker/bam/configuration/bool_expression.hh"

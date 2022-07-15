@@ -18,7 +18,6 @@
 #ifndef CCB_MYSQL_RESULT_HH
 #define CCB_MYSQL_RESULT_HH
 
-#include <memory>
 #include "com/centreon/broker/database/mysql_bind.hh"
 
 CCB_BEGIN()

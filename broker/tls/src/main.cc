@@ -16,8 +16,6 @@
 ** For more information : contact@centreon.com
 */
 
-#include <memory>
-
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/tls/factory.hh"

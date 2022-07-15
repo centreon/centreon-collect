@@ -19,7 +19,6 @@
 #ifndef CCB_DATABASE_CONFIG_HH
 #define CCB_DATABASE_CONFIG_HH
 
-#include <string>
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()

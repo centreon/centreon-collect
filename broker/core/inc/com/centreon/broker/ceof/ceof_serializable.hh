@@ -19,8 +19,6 @@
 #ifndef CCB_CEOF_CEOF_SERIALIZABLE_HH
 #define CCB_CEOF_CEOF_SERIALIZABLE_HH
 
-#include <map>
-#include <string>
 #include "com/centreon/broker/ceof/ceof_iterator.hh"
 #include "com/centreon/broker/ceof/ceof_visitor.hh"
 #include "com/centreon/broker/ceof/ceof_writer.hh"

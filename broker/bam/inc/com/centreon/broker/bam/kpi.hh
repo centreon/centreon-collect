@@ -19,9 +19,6 @@
 #ifndef CCB_BAM_KPI_HH
 #define CCB_BAM_KPI_HH
 
-#include <memory>
-#include <vector>
-
 #include "bbdo/bam/kpi_event.hh"
 #include "com/centreon/broker/bam/computable.hh"
 #include "com/centreon/broker/io/stream.hh"

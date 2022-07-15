@@ -36,6 +36,10 @@ class client : public channel,
   channel_ptr _channel;
   std::unique_ptr<com::centreon::broker::stream::centreon_bbdo::Stub> _stub;
   std::unique_ptr<::grpc::ClientContext> _context;
+  bool _hold_to_remove;
+  // recursive_mutex is mandatory as we don't know if grpc layers can do a
+  // direct call from StartWrite to OnWriteDone
+  std::recursive_mutex _hold_mutex;
 
  protected:
   client& operator=(const client&) = delete;
@@ -45,6 +49,8 @@ class client : public channel,
 
   void start_read(event_ptr& to_read, bool first_read) override;
   void start_write(const event_ptr& to_send) override;
+
+  void remove_hold();
 
  public:
   using pointer = std::shared_ptr<client>;

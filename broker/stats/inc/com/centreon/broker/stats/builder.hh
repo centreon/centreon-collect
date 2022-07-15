@@ -20,9 +20,7 @@
 #ifndef CCB_STATS_BUILDER_HH
 #define CCB_STATS_BUILDER_HH
 
-#include <mutex>
 #include <nlohmann/json.hpp>
-#include <string>
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()

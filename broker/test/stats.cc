@@ -16,12 +16,6 @@
 ** For more information : contact@centreon.com
 */
 
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <fstream>
-#include <iostream>
-#include <string>
 #include "com/centreon/broker/exceptions/msg.hh"
 #include "test/cbd.hh"
 #include "test/misc.hh"

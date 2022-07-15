@@ -51,7 +51,7 @@ char* ochp_command(NULL);
 char* ocsp_command(NULL);
 char* use_timezone(NULL);
 check_stats check_statistics[MAX_CHECK_STATS_TYPES];
-circular_buffer external_command_buffer;
+circular_buffer<std::string> external_command_buffer;
 com::centreon::engine::commands::command* global_host_event_handler_ptr(NULL);
 com::centreon::engine::commands::command* global_service_event_handler_ptr(
     NULL);

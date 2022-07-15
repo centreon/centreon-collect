@@ -17,7 +17,6 @@
 */
 #include "com/centreon/broker/database/mysql_result.hh"
 
-#include <cstdlib>
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;

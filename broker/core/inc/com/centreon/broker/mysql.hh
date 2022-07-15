@@ -43,10 +43,10 @@ class mysql {
                 bool fatal = false,
                 int thread = -1);
   int run_query_and_get_result(std::string const& query,
-                               std::promise<database::mysql_result>* promise,
+                               std::promise<database::mysql_result>&& promise,
                                int thread = -1);
   int run_query_and_get_int(std::string const& query,
-                            std::promise<int>* promise,
+                            std::promise<int>&& promise,
                             database::mysql_task::int_type type,
                             int thread = -1);
 
@@ -57,12 +57,12 @@ class mysql {
 
   int run_statement_and_get_result(
       database::mysql_stmt& stmt,
-      std::promise<database::mysql_result>* promise,
+      std::promise<database::mysql_result>&& promise,
       int thread_id = -1);
 
   template <typename T>
   int run_statement_and_get_int(database::mysql_stmt& stmt,
-                                std::promise<T>* promise,
+                                std::promise<T>&& promise,
                                 database::mysql_task::int_type type,
                                 int thread_id = -1) {
     _check_errors();
@@ -70,7 +70,8 @@ class mysql {
       // Here, we use _current_thread
       thread_id = choose_best_connection(-1);
 
-    _connection[thread_id]->run_statement_and_get_int<T>(stmt, promise, type);
+    _connection[thread_id]->run_statement_and_get_int<T>(
+        stmt, std::move(promise), type);
     return thread_id;
   }
 

@@ -58,8 +58,13 @@ Test6Hosts
         schedule forced host check  ${host}  /tmp/test_connector_ssh/rw/centengine.cmd
     END
     Sleep  10 seconds  we wait engine forced checks 
-    ${search_result}=  check search  /tmp/test_connector_ssh/log/centengine.debug  /usr/lib64/nagios/plugins/check_by_ssh -H ::1
-    Should Contain  ${search_result}  output='toto=::1'  msg=check not found for ::1  
+    ${run_env}=	Run Env
+    IF	"${run_env}" == "docker"
+        Log To Console  test with ipv6 skipped in docker environment
+    ELSE 
+        ${search_result}=  check search  /tmp/test_connector_ssh/log/centengine.debug  /usr/lib64/nagios/plugins/check_by_ssh -H ::1
+        Should Contain  ${search_result}  output='toto=::1'  msg=check not found for ::1  
+    END 
 
     FOR	${idx}	IN RANGE	1	5
         ${expected_output}=  Catenate	SEPARATOR=  output='toto=127.0.0.  ${idx}

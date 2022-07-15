@@ -72,11 +72,11 @@ set(SRC_DIR "${PROJECT_SOURCE_DIR}/core/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/core/test")
 
 add_custom_command(
-  DEPENDS ${SRC_DIR}/database/table_max_size.py "${PROJECT_SOURCE_DIR}/simu/docker/installBroker.sql" "${PROJECT_SOURCE_DIR}/simu/docker/partitioning-logs.xml" "${PROJECT_SOURCE_DIR}/simu/docker/bam.sql" "${PROJECT_SOURCE_DIR}/simu/docker/createTablesCentstorage.sql"
+  DEPENDS ${SRC_DIR}/database/table_max_size.py "${CMAKE_SOURCE_DIR}/resources/centreon.sql" "${CMAKE_SOURCE_DIR}/resources/centreon_storage.sql"
   COMMENT "Generating table_max_size.hh"
   OUTPUT ${INC_DIR}/database/table_max_size.hh
   COMMAND python3
-  ARGS ${SRC_DIR}/database/table_max_size.py ${INC_DIR}/database/table_max_size.hh "${PROJECT_SOURCE_DIR}/simu/docker/installBroker.sql" "${PROJECT_SOURCE_DIR}/simu/docker/partitioning-logs.xml" "${PROJECT_SOURCE_DIR}/simu/docker/bam.sql" "${PROJECT_SOURCE_DIR}/simu/docker/createTablesCentstorage.sql"
+  ARGS ${SRC_DIR}/database/table_max_size.py ${INC_DIR}/database/table_max_size.hh "${CMAKE_SOURCE_DIR}/resources/centreon.sql" "${CMAKE_SOURCE_DIR}/resources/centreon_storage.sql"
 )
 
 add_custom_target(table_max_size DEPENDS ${INC_DIR}/database/table_max_size.hh)
@@ -447,13 +447,13 @@ set(LIBROKER_SOURCES
 # Static libraries.
 add_library(rokerbase STATIC ${LIBROKER_SOURCES})
 set_target_properties(rokerbase PROPERTIES COMPILE_FLAGS "-fPIC")
+target_precompile_headers(rokerbase PRIVATE core/precomp_inc/precomp.hpp)
 add_dependencies(rokerbase berpc)
 target_link_libraries(rokerbase CONAN_PKG::zlib CONAN_PKG::spdlog CONAN_PKG::openssl CONAN_PKG::mariadb-connector-c pthread dl berpc bbdo_bbdo)
 
 add_library(roker STATIC
   ${SRC_DIR}/config/applier/init.cc)
 target_link_libraries(roker rokerbase dl CONAN_PKG::openssl CONAN_PKG::grpc pthread)
-#target_link_libraries(roker rokerbase dl ${c-ares_LIBS} CONAN_PKG::openssl CONAN_PKG::grpc ${absl_LIBS} pthread)
 
 
 # Standalone binary.

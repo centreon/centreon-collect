@@ -19,11 +19,6 @@
 #ifndef CCB_IO_RAW_HH
 #define CCB_IO_RAW_HH
 
-#include <cstdint>
-#include <cstring>
-#include <string>
-#include <vector>
-
 #include "bbdo/events.hh"
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/io/events.hh"
@@ -65,6 +60,9 @@ class raw : public data {
  public:
   std::vector<char> _buffer;
 };
+
+std::ostream& operator<<(std::ostream& s, const raw& d);
+
 }  // namespace io
 
 CCB_END()

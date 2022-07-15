@@ -17,8 +17,6 @@
 */
 
 #include "com/centreon/broker/neb/set_log_data.hh"
-#include <cstdlib>
-#include <cstring>
 #include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/neb/log_entry.hh"
 #include "com/centreon/engine/host.hh"

@@ -18,10 +18,6 @@
 
 #include "com/centreon/broker/bam/exp_builder.hh"
 
-#include <cstdlib>
-#include <stack>
-#include <utility>
-
 #include "com/centreon/broker/bam/bool_and.hh"
 #include "com/centreon/broker/bam/bool_constant.hh"
 #include "com/centreon/broker/bam/bool_equal.hh"

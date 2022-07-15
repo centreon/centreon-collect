@@ -19,8 +19,6 @@
 #ifndef CCB_BBDO_INTERNAL_HH
 #define CCB_BBDO_INTERNAL_HH
 
-#include <cstdint>
-
 #include "com/centreon/broker/namespace.hh"
 
 #define BBDO_VERSION_MAJOR 2
@@ -31,7 +29,7 @@ constexpr uint32_t BBDO_HEADER_SIZE = 16u;
 CCB_BEGIN()
 
 namespace bbdo {
-//using pb_metric_ids = io::protobuf<MetricIds, bbdo_pb_metric_ids>;
+// using pb_metric_ids = io::protobuf<MetricIds, bbdo_pb_metric_ids>;
 
 // Load/unload of BBDO protocol.
 void load();

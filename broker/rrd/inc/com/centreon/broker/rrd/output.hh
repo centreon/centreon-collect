@@ -19,17 +19,12 @@
 #ifndef CCB_RRD_OUTPUT_HH
 #define CCB_RRD_OUTPUT_HH
 
-#include <list>
-#include <memory>
-#include <string>
-#include <unordered_map>
-
+#include "bbdo/rebuild_message.pb.h"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/rrd/backend.hh"
 #include "com/centreon/broker/rrd/cached.hh"
 #include "com/centreon/broker/rrd/lib.hh"
-#include "bbdo/rebuild_message.pb.h"
 
 CCB_BEGIN()
 
@@ -42,7 +37,8 @@ namespace rrd {
  */
 template <typename T>
 class output : public io::stream {
-  using rebuild_cache = std::unordered_map<std::string, std::list<std::shared_ptr<io::data>>>;
+  using rebuild_cache =
+      std::unordered_map<std::string, std::list<std::shared_ptr<io::data>>>;
 
   bool _ignore_update_errors;
   std::string _metrics_path;

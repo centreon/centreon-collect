@@ -20,7 +20,6 @@
 #define CCB_CONFIG_STATE_HH
 
 #include <fmt/format.h>
-#include <unordered_map>
 
 #include "com/centreon/broker/config/endpoint.hh"
 

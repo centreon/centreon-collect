@@ -19,9 +19,6 @@
 #include "com/centreon/broker/tls/stream.hh"
 
 #include <cerrno>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
 
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/raw.hh"
@@ -48,7 +45,7 @@ using namespace com::centreon::exceptions;
  *                   encryption that should be used.
  */
 stream::stream(gnutls_session_t* sess)
-    : io::stream("TLS"), _deadline((time_t) - 1), _session(sess) {}
+    : io::stream("TLS"), _deadline((time_t)-1), _session(sess) {}
 
 /**
  *  @brief Destructor.
@@ -128,8 +125,8 @@ long long stream::read_encrypted(void* buffer, long long size) {
     if (!timed_out && d && d->type() == io::raw::static_type()) {
       io::raw* r(static_cast<io::raw*>(d.get()));
       _buffer.reserve(_buffer.size() + r->get_buffer().size());
-      _buffer.insert(
-          _buffer.end(), r->get_buffer().begin(), r->get_buffer().end());
+      _buffer.insert(_buffer.end(), r->get_buffer().begin(),
+                     r->get_buffer().end());
       //_buffer.append(r->data(), r->size());
     } else if (timed_out)
       break;

@@ -19,8 +19,6 @@
 #ifndef CCB_INFLUXDB_INFLUXDB_HH
 #define CCB_INFLUXDB_INFLUXDB_HH
 
-#include <memory>
-#include <string>
 #include "bbdo/storage/metric.hh"
 #include "bbdo/storage/status.hh"
 #include "com/centreon/broker/namespace.hh"

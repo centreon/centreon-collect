@@ -19,9 +19,6 @@
 #ifndef CCB_EXTCMD_COMMAND_SERVER_HH
 #define CCB_EXTCMD_COMMAND_SERVER_HH
 
-#include <asio.hpp>
-#include <memory>
-#include <string>
 #include "com/centreon/broker/extcmd/command_listener.hh"
 #include "com/centreon/broker/extcmd/command_parser.hh"
 #include "com/centreon/broker/io/endpoint.hh"

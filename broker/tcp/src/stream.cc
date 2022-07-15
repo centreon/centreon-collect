@@ -22,12 +22,7 @@
 #include <sys/socket.h>
 #include <sys/time.h>
 
-#include <algorithm>
-#include <atomic>
-#include <cassert>
-#include <sstream>
 #include <system_error>
-#include <thread>
 
 #include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/log_v2.hh"

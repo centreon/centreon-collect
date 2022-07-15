@@ -17,7 +17,6 @@
 */
 
 #include "com/centreon/broker/misc/processing_speed_computer.hh"
-#include <cstring>
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::misc;

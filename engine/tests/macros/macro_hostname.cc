@@ -38,9 +38,9 @@
 #include "../test_engine.hh"
 #include "../timeperiod/utils.hh"
 #include "com/centreon/engine/checks/checker.hh"
+#include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/configuration/applier/contactgroup.hh"
 #include "com/centreon/engine/configuration/applier/serviceescalation.hh"
-#include "com/centreon/engine/modules/external_commands/commands.hh"
 #include "com/centreon/engine/timeperiod.hh"
 
 using namespace com::centreon;

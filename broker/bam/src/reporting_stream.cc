@@ -18,8 +18,6 @@
 
 #include "com/centreon/broker/bam/reporting_stream.hh"
 
-#include <cstdlib>
-
 #include "bbdo/bam/ba_duration_event.hh"
 #include "bbdo/bam/ba_event.hh"
 #include "bbdo/bam/dimension_ba_bv_relation_event.hh"
@@ -276,10 +274,11 @@ void reporting_stream::_close_inconsistent_events(char const* event_type,
                     "NULL AND e1.start_time!=e2.max_start_time",
                     id, table));
     std::promise<mysql_result> promise;
+    std::future<database::mysql_result> future = promise.get_future();
     log_v2::bam()->trace("reporting_stream: query: '{}'", query);
-    _mysql.run_query_and_get_result(query, &promise);
+    _mysql.run_query_and_get_result(query, std::move(promise));
     try {
-      mysql_result res(promise.get_future().get());
+      mysql_result res(future.get());
       while (_mysql.fetch_row(res))
         events.emplace_back(std::make_pair(
             res.value_as_u32(0), static_cast<time_t>(res.value_as_i32(1))));
@@ -298,9 +297,10 @@ void reporting_stream::_close_inconsistent_events(char const* event_type,
                       table, id, p.first, p.second));
       log_v2::bam()->trace("reporting_stream: query: '{}'", query_str);
       std::promise<mysql_result> promise;
-      _mysql.run_query_and_get_result(query_str, &promise);
+      std::future<database::mysql_result> future = promise.get_future();
+      _mysql.run_query_and_get_result(query_str, std::move(promise));
       try {
-        mysql_result res(promise.get_future().get());
+        mysql_result res(future.get());
         if (!_mysql.fetch_row(res))
           throw msg_fmt("no event following this one");
 
@@ -355,10 +355,11 @@ void reporting_stream::_load_timeperiods() {
         "SELECT timeperiod_id, name, sunday, monday, tuesday, wednesday, "
         "thursday, friday, saturday FROM mod_bam_reporting_timeperiods");
     std::promise<mysql_result> promise;
+    std::future<database::mysql_result> future = promise.get_future();
     log_v2::bam()->trace("reporting_stream: query: '{}'", query);
-    _mysql.run_query_and_get_result(query, &promise);
+    _mysql.run_query_and_get_result(query, std::move(promise));
     try {
-      mysql_result res(promise.get_future().get());
+      mysql_result res(future.get());
       while (_mysql.fetch_row(res)) {
         _timeperiods.add_timeperiod(
             res.value_as_u32(0),
@@ -379,10 +380,11 @@ void reporting_stream::_load_timeperiods() {
         "SELECT timeperiod_id, daterange, timerange FROM "
         "mod_bam_reporting_timeperiods_exceptions");
     std::promise<mysql_result> promise;
+    std::future<database::mysql_result> future = promise.get_future();
     log_v2::bam()->trace("reporting_stream: query: '{}'", query);
-    _mysql.run_query_and_get_result(query, &promise);
+    _mysql.run_query_and_get_result(query, std::move(promise));
     try {
-      mysql_result res(promise.get_future().get());
+      mysql_result res(future.get());
       while (_mysql.fetch_row(res)) {
         time::timeperiod::ptr tp =
             _timeperiods.get_timeperiod(res.value_as_u32(0));
@@ -405,10 +407,11 @@ void reporting_stream::_load_timeperiods() {
         "SELECT timeperiod_id, excluded_timeperiod_id"
         "  FROM mod_bam_reporting_timeperiods_exclusions");
     std::promise<mysql_result> promise;
+    std::future<database::mysql_result> future = promise.get_future();
     log_v2::bam()->trace("reporting_stream: query: '{}'", query);
-    _mysql.run_query_and_get_result(query, &promise);
+    _mysql.run_query_and_get_result(query, std::move(promise));
     try {
-      mysql_result res(promise.get_future().get());
+      mysql_result res(future.get());
       while (_mysql.fetch_row(res)) {
         time::timeperiod::ptr tp =
             _timeperiods.get_timeperiod(res.value_as_u32(0));
@@ -433,10 +436,11 @@ void reporting_stream::_load_timeperiods() {
         "SELECT ba_id, timeperiod_id, is_default"
         "  FROM mod_bam_reporting_relations_ba_timeperiods");
     std::promise<mysql_result> promise;
+    std::future<database::mysql_result> future = promise.get_future();
     log_v2::bam()->trace("reporting_stream: query: '{}'", query);
-    _mysql.run_query_and_get_result(query, &promise);
+    _mysql.run_query_and_get_result(query, std::move(promise));
     try {
-      mysql_result res(promise.get_future().get());
+      mysql_result res(future.get());
       while (_mysql.fetch_row(res))
         _timeperiods.add_relation(res.value_as_u32(0), res.value_as_u32(1),
                                   res.value_as_bool(2));
@@ -618,12 +622,13 @@ void reporting_stream::_process_ba_event(std::shared_ptr<io::data> const& e) {
       5, static_cast<uint64_t>(be.start_time.get_time_t()));
 
   std::promise<int> promise;
-  _mysql.run_statement_and_get_int<int>(_ba_event_update, &promise,
+  std::future<int> future = promise.get_future();
+  _mysql.run_statement_and_get_int<int>(_ba_event_update, std::move(promise),
                                         mysql_task::int_type::AFFECTED_ROWS);
 
   // Event was not found, insert one.
   try {
-    if (promise.get_future().get() == 0) {
+    if (future.get() == 0) {
       _ba_full_event_insert.bind_value_as_i32(0, be.ba_id);
       _ba_full_event_insert.bind_value_as_i32(1, be.first_level);
       _ba_full_event_insert.bind_value_as_u64(
@@ -638,9 +643,11 @@ void reporting_stream::_process_ba_event(std::shared_ptr<io::data> const& e) {
       _ba_full_event_insert.bind_value_as_bool(5, be.in_downtime);
 
       std::promise<uint32_t> result;
+      std::future<uint32_t> future_r = result.get_future();
       _mysql.run_statement_and_get_int<uint32_t>(
-          _ba_full_event_insert, &result, mysql_task::LAST_INSERT_ID, -1);
-      uint32_t newba = result.get_future().get();
+          _ba_full_event_insert, std::move(result), mysql_task::LAST_INSERT_ID,
+          -1);
+      uint32_t newba = future_r.get();
       // check events for BA
       if (_last_inserted_kpi.find(be.ba_id) != _last_inserted_kpi.end()) {
         std::map<std::time_t, uint64_t>& m_events =
@@ -702,12 +709,13 @@ void reporting_stream::_process_ba_duration_event(
   _ba_duration_event_update.bind_value_as_i32(7, bde.timeperiod_id);
 
   std::promise<int> promise;
+  std::future<int> future = promise.get_future();
   int thread_id(_mysql.run_statement_and_get_int<int>(
-      _ba_duration_event_update, &promise,
+      _ba_duration_event_update, std::move(promise),
       mysql_task::int_type::AFFECTED_ROWS));
   try {
     // Insert if no rows was updated.
-    if (promise.get_future().get() == 0) {
+    if (future.get() == 0) {
       _ba_duration_event_insert.bind_value_as_u64(
           0, static_cast<uint64_t>(bde.start_time.get_time_t()));
       _ba_duration_event_insert.bind_value_as_u64(
@@ -757,11 +765,13 @@ void reporting_stream::_process_kpi_event(std::shared_ptr<io::data> const& e) {
       5, static_cast<uint64_t>(ke.start_time.get_time_t()));
 
   std::promise<int> promise;
+  std::future<int> future = promise.get_future();
   int thread_id(_mysql.run_statement_and_get_int<int>(
-      _kpi_event_update, &promise, mysql_task::int_type::AFFECTED_ROWS));
+      _kpi_event_update, std::move(promise),
+      mysql_task::int_type::AFFECTED_ROWS));
   // No kpis were updated, insert one.
   try {
-    if (promise.get_future().get() == 0) {
+    if (future.get() == 0) {
       _kpi_full_event_insert.bind_value_as_i32(0, ke.kpi_id);
       _kpi_full_event_insert.bind_value_as_u64(
           1, static_cast<uint64_t>(ke.start_time.get_time_t()));
@@ -785,12 +795,13 @@ void reporting_stream::_process_kpi_event(std::shared_ptr<io::data> const& e) {
       _kpi_event_link.bind_value_as_u32(2, ke.ba_id);
 
       std::promise<uint64_t> result;
+      std::future<uint64_t> future_r = result.get_future();
       _mysql.run_statement_and_get_int<uint64_t>(
-          _kpi_event_link, &result, mysql_task::LAST_INSERT_ID, thread_id);
+          _kpi_event_link, std::move(result), mysql_task::LAST_INSERT_ID,
+          thread_id);
 
       uint64_t evt_id{
-          result.get_future()
-              .get()};  //_kpi_event_link.last_insert_id().toUInt()};
+          future_r.get()};  //_kpi_event_link.last_insert_id().toUInt()};
       _last_inserted_kpi[ke.ba_id].insert({ke.start_time.get_time_t(), evt_id});
     }
   } catch (std::exception const& e) {
@@ -1354,10 +1365,11 @@ void reporting_stream::_process_rebuild(std::shared_ptr<io::data> const& e) {
                       "IS NOT NULL AND ba_id IN ({})",
                       r.bas_to_rebuild));
       std::promise<mysql_result> promise;
+      std::future<mysql_result> future = promise.get_future();
       log_v2::bam()->trace("reporting_stream: query: '{}'", query);
-      _mysql.run_query_and_get_result(query, &promise);
+      _mysql.run_query_and_get_result(query, std::move(promise));
       try {
-        mysql_result res(promise.get_future().get());
+        mysql_result res(future.get());
 
         while (_mysql.fetch_row(res)) {
           std::shared_ptr<ba_event> baev(new ba_event);

@@ -19,14 +19,7 @@
 #ifndef CCB_LUA_STREAM_HH
 #define CCB_LUA_STREAM_HH
 
-#include <array>
-#include <atomic>
-#include <condition_variable>
-#include <deque>
-#include <memory>
-#include <mutex>
 #include <nlohmann/json.hpp>
-#include <utility>
 
 #include "com/centreon/broker/lua/luabinding.hh"
 #include "com/centreon/broker/lua/macro_cache.hh"

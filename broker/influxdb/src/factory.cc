@@ -17,11 +17,7 @@
 */
 
 #include "com/centreon/broker/influxdb/factory.hh"
-#include <cstring>
-#include <memory>
 #include <nlohmann/json.hpp>
-#include <sstream>
-#include <vector>
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/influxdb/column.hh"
 #include "com/centreon/broker/influxdb/connector.hh"

@@ -20,10 +20,8 @@
 
 #include <gtest/gtest.h>
 
-#include <memory>
-
-#include "com/centreon/broker/bam/ba_status.hh"
-#include "com/centreon/broker/bam/kpi_status.hh"
+#include "bbdo/bam/ba_status.hh"
+#include "bbdo/bam/kpi_status.hh"
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
 
@@ -36,26 +34,26 @@ class BamMonitoringStream : public testing::Test {
 };
 
 TEST_F(BamMonitoringStream, WriteKpi) {
-  database_config cfg("MySQL", "127.0.0.1", 3306, "centreon", "centreon",
+  database_config cfg("MySQL", "127.0.0.1", "", 3306, "centreon", "centreon",
                       "centreon");
-  database_config storage("MySQL", "127.0.0.1", 3306, "centreon", "centreon",
-                          "centreon_storage");
+  database_config storage("MySQL", "127.0.0.1", "", 3306, "centreon",
+                          "centreon", "centreon_storage");
 
   std::shared_ptr<persistent_cache> cache;
   std::unique_ptr<monitoring_stream> ms;
 
   ASSERT_NO_THROW(ms.reset(new monitoring_stream("", cfg, storage, cache)));
 
-  std::shared_ptr<kpi_status> st{std::make_shared<kpi_status>(kpi_status())};
+  std::shared_ptr<kpi_status> st{std::make_shared<kpi_status>(1)};
 
   ms->write(std::static_pointer_cast<io::data>(st));
 }
 
 TEST_F(BamMonitoringStream, WriteBA) {
-  database_config cfg("MySQL", "127.0.0.1", 3306, "centreon", "centreon",
+  database_config cfg("MySQL", "127.0.0.1", "", 3306, "centreon", "centreon",
                       "centreon");
-  database_config storage("MySQL", "127.0.0.1", 3306, "centreon", "centreon",
-                          "centreon_storage");
+  database_config storage("MySQL", "127.0.0.1", "", 3306, "centreon",
+                          "centreon", "centreon_storage");
   ;
   std::shared_ptr<persistent_cache> cache;
   std::unique_ptr<monitoring_stream> ms;

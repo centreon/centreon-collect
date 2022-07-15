@@ -21,17 +21,9 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#include <array>
 #include <cerrno>
-#include <chrono>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <map>
-#include <memory>
 #include <random>
 #include <stdexcept>
-#include <thread>
 
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"

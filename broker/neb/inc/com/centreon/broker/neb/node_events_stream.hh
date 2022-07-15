@@ -19,10 +19,6 @@
 #ifndef CCB_NEB_NODE_EVENTS_STREAM_HH
 #define CCB_NEB_NODE_EVENTS_STREAM_HH
 
-#include <memory>
-#include <string>
-#include <unordered_map>
-#include <vector>
 #include "com/centreon/broker/extcmd/command_request.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/namespace.hh"

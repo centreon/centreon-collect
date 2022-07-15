@@ -9,6 +9,10 @@ Clean Before Suite
 	Clear Engine Logs
 	Clear Broker Logs
 
+Clean Grpc Before Suite
+	set grpc port  0
+	Clean Before Suite
+
 Clean After Suite
 	# Remove Files	${ENGINE_LOG}${/}centengine.log ${ENGINE_LOG}${/}centengine.debug
 	# Remove Files	${BROKER_LOG}${/}central-broker-master.log	${BROKER_LOG}${/}central-rrd-master.log	${BROKER_LOG}${/}central-module-master.log
@@ -26,6 +30,9 @@ Clear Broker Logs
 Start Broker
 	Start Process	/usr/sbin/cbd	/etc/centreon-broker/central-broker.json	alias=b1
 	Start Process	/usr/sbin/cbd	/etc/centreon-broker/central-rrd.json	alias=b2
+#	${log_pid1}=  Get Process Id	b1
+#	${log_pid2}=  Get Process Id	b2
+#	Log To Console  \npidcentral=${log_pid1} pidrrd=${log_pid2}\n
 
 Reload Broker
 	Send Signal To Process	SIGHUP	b1
@@ -60,6 +67,8 @@ Start Engine
 	 Create Directory	${log}
 	 Create Directory	${lib}
 	 Start Process	/usr/sbin/centengine	${conf}	alias=${alias}
+#	 ${log_pid1}=  Get Process Id	${alias}
+#	 Log To Console  \npidengine${idx}=${log_pid1}\n
 	END
 
 Start Custom Engine

@@ -19,11 +19,6 @@
 #ifndef CCB_CONFIG_APPLIER_MODULES_HH
 #define CCB_CONFIG_APPLIER_MODULES_HH
 
-#include <list>
-#include <map>
-#include <memory>
-#include <mutex>
-#include <string>
 #include "com/centreon/broker/modules/handle.hh"
 #include "com/centreon/broker/namespace.hh"
 

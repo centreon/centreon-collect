@@ -99,6 +99,7 @@ if [ -r /etc/centos-release ] ; then
   fi
 
   pkgs=(
+    gcc-c++
     ninja-build
     rrdtool-devel
     gnutls-devel

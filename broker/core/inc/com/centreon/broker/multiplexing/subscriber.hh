@@ -19,9 +19,6 @@
 #ifndef CCB_MULTIPLEXING_SUBSCRIBER_HH
 #define CCB_MULTIPLEXING_SUBSCRIBER_HH
 
-#include <memory>
-#include <string>
-
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
 #include "com/centreon/broker/namespace.hh"

@@ -19,7 +19,6 @@
 #ifndef CCB_IO_DATA_HH
 #define CCB_IO_DATA_HH
 
-#include <cstdint>
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()
@@ -50,6 +49,9 @@ class data {
 
   static uint32_t broker_id;
 };
+
+std::ostream& operator<<(std::ostream& s, const data& d);
+
 }  // namespace io
 
 CCB_END()
