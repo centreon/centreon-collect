@@ -120,6 +120,7 @@ class EngineInstance:
                 "log_level_macros=info\n"
                 "log_level_process=info\n"
                 "log_level_runtime=info\n"
+                "log_flush_period=0\n"
                 "soft_state_dependencies=0\n"
                 "obsess_over_services=0\n"
                 "process_performance_data=0\n"
