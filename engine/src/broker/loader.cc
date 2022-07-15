@@ -46,7 +46,7 @@ using namespace com::centreon::engine::logging;
  */
 std::shared_ptr<broker::handle> loader::add_module(std::string const& filename,
                                                    std::string const& args) {
-  std::shared_ptr<handle> module(new handle(filename, args));
+  auto module = std::make_shared<handle>(filename, args);
   _modules.push_back(module);
   return module;
 }

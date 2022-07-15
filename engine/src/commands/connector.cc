@@ -131,7 +131,7 @@ uint64_t connector::run(const std::string& processed_cmd,
 
   // Set query informations.
   uint64_t command_id(get_uniq_id());
-  std::shared_ptr<query_info> info(new query_info);
+  auto info = std::make_shared<query_info>();
   info->processed_cmd = processed_cmd;
   info->start_time = timestamp::now();
   info->timeout = timeout;
@@ -197,7 +197,7 @@ void connector::run(const std::string& processed_cmd,
 
   // Set query informations.
   uint64_t command_id(get_uniq_id());
-  std::shared_ptr<query_info> info(new query_info);
+  auto info = std::make_shared<query_info>();
   info->processed_cmd = processed_cmd;
   info->start_time = timestamp::now();
   info->timeout = timeout;

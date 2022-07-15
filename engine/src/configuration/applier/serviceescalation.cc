@@ -64,7 +64,7 @@ void applier::serviceescalation::add_object(
   config->serviceescalations().insert(obj);
 
   // Create service escalation.
-  std::shared_ptr<engine::serviceescalation> se{new engine::serviceescalation(
+  auto se = std::make_shared<engine::serviceescalation>(
       obj.hosts().front(), obj.service_description().front(),
       obj.first_notification(), obj.last_notification(),
       obj.notification_interval(), obj.escalation_period(),
@@ -83,7 +83,7 @@ void applier::serviceescalation::add_object(
             configuration::serviceescalation::recovery)
                ? notifier::ok
                : notifier::none),
-      obj.uuid())};
+      obj.uuid());
 
   // Add new items to the global list.
   engine::serviceescalation::serviceescalations.insert(

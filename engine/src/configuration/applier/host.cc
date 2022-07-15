@@ -59,7 +59,7 @@ void applier::host::add_object(configuration::host const& obj) {
   config->hosts().insert(obj);
 
   // Create host.
-  std::shared_ptr<com::centreon::engine::host> h{new engine::host(
+  auto h = std::make_shared<com::centreon::engine::host>(
       obj.host_id(), obj.host_name(), obj.display_name(), obj.alias(),
       obj.address(), obj.check_period(),
       static_cast<engine::host::host_state>(obj.initial_state()),
@@ -95,7 +95,7 @@ void applier::host::add_object(configuration::host const& obj) {
       obj.have_coords_3d(),
       true,  // should_be_drawn, enabled by Nagios
       obj.retain_status_information(), obj.retain_nonstatus_information(),
-      obj.obsess_over_host(), obj.timezone(), obj.icon_id())};
+      obj.obsess_over_host(), obj.timezone(), obj.icon_id());
 
   engine::host::hosts.insert({h->name(), h});
   engine::host::hosts_by_id.insert({obj.host_id(), h});
