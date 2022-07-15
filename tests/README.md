@@ -56,6 +56,7 @@ Here is the list of the currently implemented tests:
 - [x] **BEBAMIDT1**: A BA of type 'worst' with one service is configured. The BA is in critical state, because of its service. Then we set a downtime on this last one. An inherited downtime is set to the BA. The downtime is removed from the service, the inherited downtime is then deleted.
 - [x] **BEBAMIDT2**: A BA of type 'worst' with one service is configured. The BA is in critical state, because of its service. Then we set a downtime on this last one. An inherited downtime is set to the BA. Engine is restarted. Broker is restarted. The two downtimes are still there with no duplicates. The downtime is removed from the service, the inherited downtime is then deleted.
 - [x] **BEBAMIGNDT1**: A BA of type 'worst' with two services is configured. The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in critical state, because of the second critical service. Then we apply two downtimes on this last one. The BA state is ok because of the policy on indicators. A first downtime is cancelled, the BA is still OK, but when the second downtime is cancelled, the BA should be CRITICAL.
+- [x] **BEBAMIGNDT2**: A BA of type 'worst' with two services is configured. The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in critical state, because of the second critical service. Then we apply two downtimes on this last one. The BA state is ok because of the policy on indicators. The first downtime reaches its end, the BA is still OK, but when the second downtime reaches its end, the BA should be CRITICAL.
 
 ### Broker
 - [x] **BCL1**: Starting broker with option '-s foobar' should return an error
@@ -265,9 +266,9 @@ Here is the list of the currently implemented tests:
 - [x] **EBNSGU1**: New service group with several pollers and connections to DB with broker configured with unified_sql
 - [x] **EBNSGU2**: New service group with several pollers and connections to DB with broker configured with unified_sql
 - [x] **EBNSVC1**: New services with several pollers
-- [x] **EBSAU2**: New services with action_url with more than 2000 characters
-- [x] **EBSN3**: New services with notes with more than 500 characters
-- [x] **EBSNU1**: New services with notes_url with more than 2000 characters
+- [x] **EBSAU2**: New hosts with action_url with more than 2000 characters
+- [x] **EBSN3**: New hosts with notes with more than 500 characters
+- [x] **EBSNU1**: New hosts with notes_url with more than 2000 characters
 - [x] **ENRSCHE1**: check next check of reschedule is last_check+interval_check
 - [x] **LOGV2BE2**: log-v2 enabled old log enabled check broker sink is equal
 - [x] **LOGV2DB1**: log-v2 disabled old log enabled check broker sink
