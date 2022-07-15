@@ -196,7 +196,7 @@ void handle::open() {
     return;
 
   try {
-    _handle = std::shared_ptr<library>(new library(_filename));
+    _handle = std::make_shared<library>(_filename);
     _handle->load();
 
     int api_version(*static_cast<int*>(_handle->resolve("__neb_api_version")));

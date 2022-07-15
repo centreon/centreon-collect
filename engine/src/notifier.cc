@@ -946,9 +946,9 @@ int notifier::notify(notifier::reason_type type,
       get_contacts_to_notify(cat, type, notification_interval, escalated)};
 
   _current_notification_id = _next_notification_id++;
-  std::unique_ptr<notification> notif{new notification(
+  auto notif = std::make_unique<notification>(
       this, type, not_author, not_data, options, _current_notification_id,
-      _notification_number, notification_interval, escalated)};
+      _notification_number, notification_interval, escalated);
 
   /* Let's make the notification. */
   int retval{notif->execute(to_notify)};
@@ -1782,10 +1782,9 @@ void notifier::set_notification(int32_t idx, std::string const& value) {
       }
     }
   }
-
-  _notification[idx].reset(new notification(this, type, author, "", options, id,
-                                            number, interval, escalated,
-                                            contacts));
+  _notification[idx] =
+      std::make_unique<notification>(this, type, author, "", options, id,
+                                     number, interval, escalated, contacts);
 }
 
 bool notifier::get_is_volatile() const noexcept {

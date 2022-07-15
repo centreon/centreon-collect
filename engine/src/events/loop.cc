@@ -332,9 +332,10 @@ void loop::_dispatching() {
           else {
             if (notifier::soft == temp_service->get_state_type() &&
                 temp_service->get_current_state() != service::state_ok)
-              temp_service->set_next_check((time_t)(
-                  temp_service->get_next_check() +
-                  temp_service->retry_interval() * config->interval_length()));
+              temp_service->set_next_check(
+                  (time_t)(temp_service->get_next_check() +
+                           temp_service->retry_interval() *
+                               config->interval_length()));
             else
               temp_service->set_next_check(
                   (time_t)(temp_service->get_next_check() +
