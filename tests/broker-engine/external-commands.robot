@@ -2355,7 +2355,7 @@ BEEXTCMD_COMPRESS_GRPC1
 
 BEATOI11
 	[Documentation]	external command SEND_CUSTOM_HOST_NOTIFICATION with option_number=1 should work
-	[Tags]	Broker	Engine	host	extcmd	Notification
+	[Tags]	Broker	Engine	host	extcmd	Notification	atoi
 	Config Engine	${1}	${50}	${20}
 	Config Broker	rrd
 	Config Broker	central
@@ -2374,7 +2374,7 @@ BEATOI11
 
 BEATOI12
 	[Documentation]	external command SEND_CUSTOM_HOST_NOTIFICATION with option_number>7 should fail
-	[Tags]	Broker	Engine	host	extcmd	Notification
+	[Tags]	Broker	Engine	host	extcmd	Notification	atoi
 	Config Engine	${1}	${50}	${20}
 	Config Broker	rrd
 	Config Broker	central
@@ -2385,7 +2385,7 @@ BEATOI12
 	Start Broker
 	Start Engine
 	SEND CUSTOM HOST NOTIFICATION	host_1	8	admin	foobar
-	${content}=	Create List	Error: could not send custom host notification: Command argument '8' must be an integer between 0 and 7
+	${content}=	Create List	Error: could not send custom host notification: '8' must be an integer between 0 and 7
 	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 	Should Be True	${result}	msg=command argument notification_option must be an integer between 0 and 7.
 	Stop Engine
@@ -2394,7 +2394,7 @@ BEATOI12
 
 BEATOI13
 	[Documentation]	external command SCHEDULE SERVICE DOWNTIME with duration<0 should fail
-	[Tags]	Broker	Engine	host	extcmd
+	[Tags]	Broker	Engine	host	extcmd	atoi
 	Config Engine	${1}	${50}	${20}
 	Config Broker	rrd
 	Config Broker	central
@@ -2404,7 +2404,6 @@ BEATOI13
 	${start}=	Get Current Date
 	Start Broker
 	Start Engine
-	${date}=	Get Current Date	result_format=epoch
 	SCHEDULE SERVICE DOWNTIME	host_1	service_1	-1
 	${content}=	Create List	Error: could not schedule downtime : duration
 	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
@@ -2415,7 +2414,7 @@ BEATOI13
 
 BEATOI21
 	[Documentation]	external command ADD_HOST_COMMENT and DEL_HOST_COMMENT should work
-	[Tags]	Broker	Engine	host	extcmd
+	[Tags]	Broker	Engine	host	extcmd	atoi
 	Config Engine	${1}	${50}	${20}
 	Config Broker	rrd
 	Config Broker	central
@@ -2427,7 +2426,7 @@ BEATOI21
 	Start Broker
 	Start Engine
 	ADD HOST COMMENT	host_1	1	user	comment
-	${content}=	Create List	ADD_HOST_COMMENT, comment_id: 1, data: comment
+	${content}=	Create List	ADD_HOST_COMMENT
 	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 	Should Be True	${result}	msg=the comment with id:1 was not added.
 	${com_id}=	Find Internal Id		${start}	True	30
@@ -2440,7 +2439,7 @@ BEATOI21
 
 BEATOI22
 	[Documentation]	external command DEL_HOST_COMMENT with comment_id<0 should fail
-	[Tags]	Broker	Engine	host	extcmd
+	[Tags]	Broker	Engine	host	extcmd	atoi
 	Config Engine	${1}	${50}	${20}
 	Config Broker	rrd
 	Config Broker	central
@@ -2452,7 +2451,7 @@ BEATOI22
 	Start Broker
 	Start Engine
 	ADD HOST COMMENT	host_1	1	user	comment
-	${content}=	Create List	ADD_HOST_COMMENT, comment_id: 1, data: comment
+	${content}=	Create List	ADD_HOST_COMMENT
 	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 	Should Be True	${result}	msg=the comment with id:1 was not added.
 	${com_id}=	Find Internal Id		${start}	True	30
@@ -2468,7 +2467,7 @@ BEATOI22
 
 BEATOI23
 	[Documentation]	external command ADD_SVC_COMMENT with persistent=0 should work
-	[Tags]	Broker	Engine	host	extcmd
+	[Tags]	Broker	Engine	host	extcmd	atoi
 	Config Engine	${1}	${50}	${20}
 	Config Broker	rrd
 	Config Broker	central
@@ -2478,13 +2477,14 @@ BEATOI23
 	${start}=	Get Current Date
 	Start Broker
 	Start Engine
-	${date}=	Get Current Date	result_format=epoch
 	ADD SVC COMMENT	host_1	service_1	0	user	comment
-	${content}=	Create List	ADD_SVC_COMMENT, comment_id: 1, data: comment
+	${content}=	Create List	ADD_SVC_COMMENT
 	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
 	Should Be True	${result}	msg=command argument persistent_flag must be 0 or 1.
 	Stop Engine
-	Kindly Stop Broker
+	Kindly Stop Broker	
+
+
 
 
 
