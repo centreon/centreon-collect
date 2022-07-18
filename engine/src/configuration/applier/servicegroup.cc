@@ -77,9 +77,9 @@ void applier::servicegroup::add_object(configuration::servicegroup const& obj) {
   config->servicegroups().insert(obj);
 
   // Create servicegroup.
-  std::shared_ptr<engine::servicegroup> sg{new engine::servicegroup(
+  auto sg = std::make_shared<engine::servicegroup>(
       obj.servicegroup_id(), obj.servicegroup_name(), obj.alias(), obj.notes(),
-      obj.notes_url(), obj.action_url())};
+      obj.notes_url(), obj.action_url());
 
   // Add  new items to the list.
   engine::servicegroup::servicegroups.insert({sg->get_group_name(), sg});

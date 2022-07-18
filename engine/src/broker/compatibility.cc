@@ -72,7 +72,7 @@ void compatibility::copyright_module(broker::handle* mod) {
 void compatibility::create_module(broker::handle* mod) {
   if (mod) {
     // Allocate memory.
-    std::unique_ptr<nebmodule> new_module(new nebmodule);
+    auto new_module = std::make_unique<nebmodule>();
 
     // Module parameters.
     new_module->filename = string::dup(mod->get_filename());

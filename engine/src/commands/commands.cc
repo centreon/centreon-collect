@@ -217,10 +217,10 @@ int cmd_add_comment(int cmd, time_t entry_time, char* args) {
     return ERROR;
 
   /* add the comment */
-  std::shared_ptr<comment> com{new comment(
+  auto com = std::make_shared<comment>(
       (cmd == CMD_ADD_HOST_COMMENT) ? comment::host : comment::service,
       comment::user, temp_host->get_host_id(), service_id, entry_time, user,
-      comment_data, persistent, comment::external, false, (time_t)0)};
+      comment_data, persistent, comment::external, false, (time_t)0);
   uint64_t comment_id = com->get_comment_id();
   comment::comments.insert({comment_id, com});
   log_v2::external_command()->trace("{}, comment_id: {}, data: {}",
