@@ -1948,7 +1948,7 @@ int service::handle_async_check_result(check_result* queued_check_result) {
   broker_service_check(
       NEBTYPE_SERVICECHECK_PROCESSED, NEBFLAG_NONE, NEBATTR_NONE, this,
       get_check_type(), queued_check_result->get_start_time(),
-      queued_check_result->get_finish_time(), nullptr, get_latency(),
+      queued_check_result->get_finish_time(), get_latency(),
       get_execution_time(), config->service_check_timeout(),
       queued_check_result->get_early_timeout(),
       queued_check_result->get_return_code(), nullptr, nullptr);
@@ -2477,8 +2477,8 @@ int service::run_async_check(int check_options,
   timeval end_time = {0, 0};
   int res = broker_service_check(
       NEBTYPE_SERVICECHECK_ASYNC_PRECHECK, NEBFLAG_NONE, NEBATTR_NONE, this,
-      checkable::check_active, start_time, end_time, check_command().c_str(),
-      get_latency(), 0.0, 0, false, 0, nullptr, nullptr);
+      checkable::check_active, start_time, end_time, get_latency(), 0.0, 0,
+      false, 0, nullptr, nullptr);
 
   // Service check was cancelled by NEB module. reschedule check later.
   if (NEBERROR_CALLBACKCANCEL == res) {
@@ -2546,11 +2546,11 @@ int service::run_async_check(int check_options,
   std::string processed_cmd(cmd->process_cmd(macros));
 
   // Send event broker.
-  res = broker_service_check(
-      NEBTYPE_SERVICECHECK_INITIATE, NEBFLAG_NONE, NEBATTR_NONE, this,
-      checkable::check_active, start_time, end_time, check_command().c_str(),
-      get_latency(), 0.0, config->service_check_timeout(), false, 0,
-      processed_cmd.c_str(), nullptr);
+  res = broker_service_check(NEBTYPE_SERVICECHECK_INITIATE, NEBFLAG_NONE,
+                             NEBATTR_NONE, this, checkable::check_active,
+                             start_time, end_time, get_latency(), 0.0,
+                             config->service_check_timeout(), false, 0,
+                             processed_cmd.c_str(), nullptr);
 
   // Restore latency.
   set_latency(old_latency);

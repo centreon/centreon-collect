@@ -1968,10 +1968,10 @@ int neb::callback_program_status(int callback_type, void* data) {
     is->check_services_freshness = check_service_freshness;
     is->event_handler_enabled = program_status_data->event_handlers_enabled;
     is->flap_detection_enabled = program_status_data->flap_detection_enabled;
-    if (program_status_data->global_host_event_handler)
+    if (!program_status_data->global_host_event_handler.empty())
       is->global_host_event_handler = misc::string::check_string_utf8(
           program_status_data->global_host_event_handler);
-    if (program_status_data->global_service_event_handler)
+    if (!program_status_data->global_service_event_handler.empty())
       is->global_service_event_handler = misc::string::check_string_utf8(
           program_status_data->global_service_event_handler);
     is->last_alive = time(nullptr);

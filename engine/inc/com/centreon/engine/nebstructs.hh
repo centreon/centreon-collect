@@ -485,8 +485,8 @@ typedef struct nebstruct_program_status_struct {
   int obsess_over_services;
   unsigned long modified_host_attributes;
   unsigned long modified_service_attributes;
-  char const* global_host_event_handler;
-  char const* global_service_event_handler;
+  std::string global_host_event_handler;
+  std::string global_service_event_handler;
 } nebstruct_program_status_data;
 
 /* Relation data structure. */
@@ -525,8 +525,6 @@ typedef struct nebstruct_service_check_struct {
   int state_type;
   int state;
   int timeout;
-  char* command_name;
-  char* command_args;
   const char* command_line;
   struct timeval start_time;
   struct timeval end_time;

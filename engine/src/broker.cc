@@ -1221,43 +1221,6 @@ void broker_log_data(int type,
 }
 
 /**
- *  Send module data to broker.
- *
- *  @param[in] type      Type.
- *  @param[in] flags     Flags.
- *  @param[in] attr      Attributes.
- *  @param[in] module    Module.
- *  @param[in] args      Module arguments.
- *  @param[in] timestamp Timestamp.
- */
-void broker_module_data(int type,
-                        int flags,
-                        int attr,
-                        char const* module,
-                        char const* args,
-                        struct timeval const* timestamp) {
-  // Config check.
-  if (!(config->event_broker_options() & BROKER_MODULE_DATA))
-    return;
-
-  // Fill struct with relevant data.
-  nebstruct_module_data ds;
-  ds.type = type;
-  ds.flags = flags;
-  ds.attr = attr;
-  ds.timestamp = get_broker_timestamp(timestamp);
-  ds.module = string::dup(module);
-  ds.args = string::dup(args);
-
-  // Make callbacks.
-  neb_make_callbacks(NEBCALLBACK_MODULE_DATA, &ds);
-
-  // Free memory.
-  delete[] ds.module;
-  delete[] ds.args;
-}
-
-/**
  *  Send notification data to broker.
  *
  *  @param[in] type              Type.
@@ -1396,17 +1359,11 @@ void broker_program_status(int type,
   ds.obsess_over_services = config->obsess_over_services();
   ds.modified_host_attributes = modified_host_process_attributes;
   ds.modified_service_attributes = modified_service_process_attributes;
-  ds.global_host_event_handler =
-      string::dup(config->global_host_event_handler());
-  ds.global_service_event_handler =
-      string::dup(config->global_service_event_handler());
+  ds.global_host_event_handler = config->global_host_event_handler();
+  ds.global_service_event_handler = config->global_service_event_handler();
 
   // Make callbacks.
   neb_make_callbacks(NEBCALLBACK_PROGRAM_STATUS_DATA, &ds);
-
-  // Free memory.
-  delete[] ds.global_host_event_handler;
-  delete[] ds.global_service_event_handler;
 }
 
 /**
@@ -1505,7 +1462,6 @@ int broker_service_check(int type,
                          int check_type,
                          struct timeval start_time,
                          struct timeval end_time,
-                         char const* cmd,
                          double latency,
                          double exectime,
                          int timeout,
@@ -1518,17 +1474,6 @@ int broker_service_check(int type,
     return OK;
   if (!svc)
     return ERROR;
-
-  // Get command name/args.
-
-  char* command_buf(NULL);
-  char* command_name(NULL);
-  char* command_args(NULL);
-  if (cmd) {
-    command_buf = string::dup(cmd);
-    command_name = strtok(command_buf, "!");
-    command_args = strtok(NULL, "\x0");
-  }
 
   // Fill struct with relevant data.
   nebstruct_service_check_data ds;
@@ -1545,8 +1490,6 @@ int broker_service_check(int type,
   ds.state = svc->get_current_state();
   ds.state_type = svc->get_state_type();
   ds.timeout = timeout;
-  ds.command_name = command_name;
-  ds.command_args = command_args;
   ds.command_line = cmdline;
   ds.start_time = start_time;
   ds.end_time = end_time;
@@ -1562,8 +1505,6 @@ int broker_service_check(int type,
   int return_code;
   return_code = neb_make_callbacks(NEBCALLBACK_SERVICE_CHECK_DATA, &ds);
 
-  // Free data.
-  delete[] command_buf;
   return return_code;
 }
 
