@@ -2550,8 +2550,8 @@ int host::notify_contact(nagios_macros* mac,
     neb_result = broker_contact_notification_method_data(
         NEBTYPE_CONTACTNOTIFICATIONMETHOD_START, NEBFLAG_NONE, NEBATTR_NONE,
         host_notification, type, method_start_time, method_end_time,
-        (void*)this, cntct, cmd->get_command_line().c_str(), not_author.c_str(),
-        not_data.c_str(), escalated, nullptr);
+        (void*)this, cntct, not_author.c_str(), not_data.c_str(), escalated,
+        nullptr);
     if (NEBERROR_CALLBACKCANCEL == neb_result)
       break;
     else if (NEBERROR_CALLBACKOVERRIDE == neb_result)
@@ -2649,8 +2649,8 @@ int host::notify_contact(nagios_macros* mac,
     broker_contact_notification_method_data(
         NEBTYPE_CONTACTNOTIFICATIONMETHOD_END, NEBFLAG_NONE, NEBATTR_NONE,
         host_notification, type, method_start_time, method_end_time,
-        (void*)this, cntct, cmd->get_command_line().c_str(), not_author.c_str(),
-        not_data.c_str(), escalated, nullptr);
+        (void*)this, cntct, not_author.c_str(), not_data.c_str(), escalated,
+        nullptr);
   }
 
   /* get end time */

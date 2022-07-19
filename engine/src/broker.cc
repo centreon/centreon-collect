@@ -636,7 +636,6 @@ int broker_contact_notification_method_data(int type,
                                             struct timeval end_time,
                                             void* data,
                                             contact* cntct,
-                                            char const* cmd,
                                             char const* ack_author,
                                             char const* ack_data,
                                             int escalated,
@@ -644,16 +643,6 @@ int broker_contact_notification_method_data(int type,
   // Config check.
   if (!(config->event_broker_options() & BROKER_NOTIFICATIONS))
     return OK;
-
-  // Get command name/args.
-  char* command_buf(NULL);
-  char* command_name(NULL);
-  char* command_args(NULL);
-  if (cmd) {
-    command_buf = string::dup(cmd);
-    command_name = strtok(command_buf, "!");
-    command_args = strtok(NULL, "\x0");
-  }
 
   // Fill struct with relevant data.
   nebstruct_contact_notification_method_data ds;
@@ -668,8 +657,6 @@ int broker_contact_notification_method_data(int type,
   ds.end_time = end_time;
   ds.reason_type = reason_type;
   ds.contact_name = const_cast<char*>(cntct->get_name().c_str());
-  ds.command_name = command_name;
-  ds.command_args = command_args;
   if (notification_type == notifier::service_notification) {
     temp_service = static_cast<service*>(data);
     ds.host_name = const_cast<char*>(temp_service->get_hostname().c_str());
@@ -694,9 +681,6 @@ int broker_contact_notification_method_data(int type,
   int return_code;
   return_code =
       neb_make_callbacks(NEBCALLBACK_CONTACT_NOTIFICATION_METHOD_DATA, &ds);
-
-  // Free memory.
-  delete[] command_buf;
 
   return (return_code);
 }
@@ -878,14 +862,12 @@ int broker_event_handler(int type,
     return ERROR;
 
   // Get command name/args.
-  char* command_buf(NULL);
-  char* command_name(NULL);
-  char* command_args(NULL);
-  if (cmd) {
-    command_buf = string::dup(cmd);
-    command_name = strtok(command_buf, "!");
-    command_args = strtok(NULL, "\x0");
-  }
+  std::vector<std::string> cmd_split =
+      absl::StrSplit(cmd, absl::MaxSplits('!', 1));
+  if (cmd_split.size() < 2)
+    return ERROR;
+  std::string& command_name = cmd_split[0];
+  std::string& command_args = cmd_split[1];
 
   // Fill struct with relevant data.
   nebstruct_event_handler_data ds;
@@ -913,8 +895,8 @@ int broker_event_handler(int type,
   ds.start_time = start_time;
   ds.end_time = end_time;
   ds.timeout = timeout;
-  ds.command_name = command_name;
-  ds.command_args = command_args;
+  ds.command_name = std::move(command_name);
+  ds.command_args = std::move(command_args);
   ds.command_line = cmdline;
   ds.early_timeout = early_timeout;
   ds.execution_time = exectime;
@@ -925,8 +907,6 @@ int broker_event_handler(int type,
   int return_code;
   return_code = neb_make_callbacks(NEBCALLBACK_EVENT_HANDLER_DATA, &ds);
 
-  // Free memory.
-  delete[] command_buf;
   return (return_code);
 }
 
@@ -1540,6 +1520,7 @@ int broker_service_check(int type,
     return ERROR;
 
   // Get command name/args.
+
   char* command_buf(NULL);
   char* command_name(NULL);
   char* command_args(NULL);

@@ -234,15 +234,12 @@ typedef struct nebstruct_contact_notification_method_struct {
   char* host_name;
   char* service_description;
   char* contact_name;
-  char* command_name;
-  char* command_args;
   int reason_type;
   int state;
   char* output;
   char* ack_author;
   char* ack_data;
   int escalated;
-
   void* object_ptr;
   void* contact_ptr;
 } nebstruct_contact_notification_method_data;
@@ -306,8 +303,8 @@ typedef struct nebstruct_event_handler_struct {
   int state_type;
   int state;
   int timeout;
-  char* command_name;
-  char* command_args;
+  std::string command_name;
+  std::string command_args;
   char* command_line;
   struct timeval start_time;
   struct timeval end_time;

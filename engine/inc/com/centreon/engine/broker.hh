@@ -440,7 +440,6 @@ int broker_contact_notification_method_data(
     struct timeval end_time,
     void* data,
     com::centreon::engine::contact* cntct,
-    char const* cmd,
     char const* ack_author,
     char const* ack_data,
     int escalated,
