@@ -534,8 +534,8 @@ int anomalydetection::run_async_check(int check_options,
   timeval end_time = {0, 0};
   int res = broker_service_check(
       NEBTYPE_SERVICECHECK_ASYNC_PRECHECK, NEBFLAG_NONE, NEBATTR_NONE, this,
-      checkable::check_active, start_time, end_time, check_command().c_str(),
-      get_latency(), 0.0, 0, false, 0, nullptr, nullptr);
+      checkable::check_active, start_time, end_time, get_latency(), 0.0, 0,
+      false, 0, nullptr, nullptr);
 
   // Anomalydetection check was cancelled by NEB module. reschedule check later.
   if (NEBERROR_CALLBACKCANCEL == res) {
@@ -607,9 +607,8 @@ int anomalydetection::run_async_check(int check_options,
   // Send event broker.
   res = broker_service_check(
       NEBTYPE_SERVICECHECK_INITIATE, NEBFLAG_NONE, NEBATTR_NONE, this,
-      checkable::check_active, start_time, end_time, check_command().c_str(),
-      get_latency(), 0.0, config->service_check_timeout(), false, 0,
-      oss.str().c_str(), nullptr);
+      checkable::check_active, start_time, end_time, get_latency(), 0.0,
+      config->service_check_timeout(), false, 0, oss.str().c_str(), nullptr);
 
   // Restore latency.
   set_latency(old_latency);
