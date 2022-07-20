@@ -23,6 +23,17 @@ BSCSS1
 	Broker Config Log	central	config	info
 	Repeat Keyword	5 times	Start Stop Service	0
 
+BSCSSP1
+	[Documentation]	Start-Stop two instances of broker and no coredump. The server contains a listen address
+	[Tags]	Broker	start-stop	bbdo_server	bbdo_client	tcp
+	Config Broker	central
+	Config Broker	rrd
+	Config Broker BBDO Input	central	bbdo_server	5669  tcp
+	Config Broker BBDO Output	central	bbdo_client	5670  tcp	localhost
+	Config Broker BBDO Input	rrd	bbdo_server	5670  tcp	localhost
+	Broker Config Log	central	config	info
+	Repeat Keyword	5 times	Start Stop Service	0
+
 BSCSS2
 	[Documentation]	Start/Stop 10 times broker with 300ms interval and no coredump
 	[Tags]	Broker	start-stop	bbdo_server	bbdo_client	tcp
@@ -239,6 +250,51 @@ BSCSSCG1
 	${content}=	Create List	activate compression deflate
 	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	30
 	Should Be True	${result}	msg=No compression enabled
+        Kindly Stop Broker
+
+BSCSSGA1
+	[Documentation]	Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with grpc transport protocol. An authorization token is added on the server. Error messages are raised.
+	[Tags]	Broker	start-stop	bbdo_server	bbdo_client	compression	tls
+	Config Broker	central
+	Config Broker	rrd
+	Config Broker BBDO Input	central	bbdo_server	5669  grpc
+	Config Broker BBDO Output	central	bbdo_client	5670  grpc	localhost
+	Config Broker BBDO Input	rrd	bbdo_server	5670  grpc
+	Broker Config input set	rrd	rrd-broker-master-input	authorization	titus
+	Broker Config Log	central	config	off
+	Broker Config Log	central	core	off
+	Broker Config Log	rrd	core	off
+	Broker Config Log	rrd	tls	debug
+	Broker Config Log	rrd	grpc	debug
+        Broker Config Flush Log	central	0
+	${start}=	Get Current Date
+	Start Broker
+	${content}=	Create List	header authorization don't match to titus
+	${result}=	Find In Log With Timeout	${rrdLog}	${start}	${content}	30
+	Should Be True	${result}	msg=An error message about the authorization token should be raised.
+        Kindly Stop Broker
+
+BSCSSGA2
+	[Documentation]	Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with grpc transport protocol. An authorization token is added on the server and also on the client. All looks ok.
+	[Tags]	Broker	start-stop	bbdo_server	bbdo_client	compression	tls
+	Config Broker	central
+	Config Broker	rrd
+	Config Broker BBDO Input	central	bbdo_server	5669  grpc
+	Config Broker BBDO Output	central	bbdo_client	5670  grpc	localhost
+	Config Broker BBDO Input	rrd	bbdo_server	5670  grpc
+	Broker Config input set	rrd	rrd-broker-master-input	authorization	titus
+	Broker Config output set	central	central-broker-master-output	authorization	titus
+	Broker Config Log	central	config	trace
+	Broker Config Log	central	core	trace
+	Broker Config Log	rrd	core	off
+	Broker Config Log	rrd	tls	debug
+	Broker Config Log	rrd	grpc	debug
+        Broker Config Flush Log	central	0
+	${start}=	Get Current Date
+	Start Broker
+	${content}=	Create List	accepted_service::on_read_done receive:buff
+	${result}=	Find In Log With Timeout	${rrdLog}	${start}	${content}	30
+	Should Be True	${result}	msg=If the authorization token is the same on both side, no issue
         Kindly Stop Broker
 
 *** Keywords ***
