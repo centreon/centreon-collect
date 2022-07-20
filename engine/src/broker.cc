@@ -22,11 +22,11 @@
 #include "com/centreon/engine/broker.hh"
 #include <absl/strings/str_split.h>
 #include <unistd.h>
-#include <com/centreon/engine/string.hh>
 #include "com/centreon/engine/flapping.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/nebstructs.hh"
 #include "com/centreon/engine/sehandlers.hh"
+#include "com/centreon/engine/string.hh"
 
 using namespace com::centreon::engine;
 
