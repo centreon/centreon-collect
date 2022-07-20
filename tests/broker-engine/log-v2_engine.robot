@@ -41,7 +41,7 @@ LOGV2EB1
 	${pid}=	Get Process Id	e0
 	${content}=	Create List	[process] [info] [${pid}] Configuration loaded, main loop starting.
 
-	${result1}=	Find In Log With Timeout	${logEngine0}	${start}	${content}	30
+	${result1}=	Find In Log With Timeout	${engineLog0}	${start}	${content}	30
 	Should Be True	${result1}	msg=No message telling configuration loaded.
 
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
@@ -83,8 +83,8 @@ LOGV2DB1
 	${content_v2}=	Create List	[process] [info] [${pid}] Configuration loaded, main loop starting.
 	${content_old}=	Create List	[${pid}] Configuration loaded, main loop starting.
 
-	${result1}=	Find In Log With Timeout	${logEngine0}	${start}	${content_v2}	15
-	${result2}=	Find In Log With Timeout	${logEngine0}	${start}	${content_old}	15
+	${result1}=	Find In Log With Timeout	${engineLog0}	${start}	${content_v2}	15
+	${result2}=	Find In Log With Timeout	${engineLog0}	${start}	${content_old}	15
 	Should Not Be True	${result1}
 	Should Be True	${result2}	msg=Old logs should be enabled.
 
@@ -126,8 +126,8 @@ LOGV2DB2
 	${content_v2}=	Create List	[process] [info] [${pid}] Configuration loaded, main loop starting.
 	${content_hold}=	Create List	[${pid}] Configuration loaded, main loop starting.
 
-	${result1}=	Find In Log With Timeout	${logEngine0}	${start}	${content_v2}	30
-	${result2}=	Find In Log With Timeout	${logEngine0}	${start}	${content_hold}	30
+	${result1}=	Find In Log With Timeout	${engineLog0}	${start}	${content_v2}	30
+	${result2}=	Find In Log With Timeout	${engineLog0}	${start}	${content_hold}	30
 	Should Not Be True	${result1}
 	Should Not Be True	${result2}
 
@@ -170,8 +170,8 @@ LOGV2EB2
 	${content_v2}=	Create List	[process] [info] [${pid}] Configuration loaded, main loop starting.
 	${content_hold}=	Create List	[${pid}] Configuration loaded, main loop starting.
 
-	${result1}=	Find In Log With Timeout	${logEngine0}	${start}	${content_v2}	30
-	${result2}=	Find In Log With Timeout	${logEngine0}	${start}	${content_hold}	30
+	${result1}=	Find In Log With Timeout	${engineLog0}	${start}	${content_v2}	30
+	${result2}=	Find In Log With Timeout	${engineLog0}	${start}	${content_hold}	30
 	Should Be True	${result1}
 	Should Be True	${result2}
 
@@ -209,7 +209,7 @@ LOGV2EF1
 	${pid}=	Get Process Id	e0
 	${content_v2}=	Create List	[process] [info] [${pid}] Configuration loaded, main loop starting.
 
-	${result1}=	Find In Log With Timeout	${logEngine0}	${start}	${content_v2}	30
+	${result1}=	Find In Log With Timeout	${engineLog0}	${start}	${content_v2}	30
 	Should Be True	${result1}
 	Stop Engine
 	Kindly Stop Broker
@@ -235,8 +235,8 @@ LOGV2DF1
 	${content_hold}=	Create List	[${pid}] Configuration loaded, main loop starting.
 	${content_v2}=	Create List	[process] [info] [${pid}] Configuration loaded, main loop starting.
 
-	${result1}=	Find In Log With Timeout	${logEngine0}	${start}	${content_hold}	30
-	${result2}=	Find In Log With Timeout	${logEngine0}	${start}	${content_v2}	30
+	${result1}=	Find In Log With Timeout	${engineLog0}	${start}	${content_hold}	30
+	${result2}=	Find In Log With Timeout	${engineLog0}	${start}	${content_v2}	30
 	Should Be True	${result1}
 	Should Not Be True	${result2}
 	Stop Engine
@@ -263,8 +263,8 @@ LOGV2DF2
 	${content_v2}=	Create List	[process] [info] [${pid}] Configuration loaded, main loop starting.
 	${content_hold}=	Create List	[${pid}] Configuration loaded, main loop starting.
 
-	${result1}=	Find In Log With Timeout	${logEngine0}	${start}	${content_v2}	15
-	${result2}=	Find In Log With Timeout	${logEngine0}	${start}	${content_hold}	15
+	${result1}=	Find In Log With Timeout	${engineLog0}	${start}	${content_v2}	15
+	${result2}=	Find In Log With Timeout	${engineLog0}	${start}	${content_hold}	15
 	Should Not Be True	${result1}
 	Should Not Be True	${result2}
 	Stop Engine
@@ -291,8 +291,8 @@ LOGV2EF2
 	${content_v2}=	Create List	[process] [info] [${pid}] Configuration loaded, main loop starting.
 	${content_hold}=	Create List	[${pid}] Configuration loaded, main loop starting.
 
-	${result1}=	Find In Log With Timeout	${logEngine0}	${start}	${content_v2}	15
-	${result2}=	Find In Log With Timeout	${logEngine0}	${start}	${content_hold}	15
+	${result1}=	Find In Log With Timeout	${engineLog0}	${start}	${content_v2}	15
+	${result2}=	Find In Log With Timeout	${engineLog0}	${start}	${content_hold}	15
 	Should Be True	${result1}
 	Should Be True	${result2}
 	Stop Engine
@@ -356,7 +356,7 @@ LOGV2FE2
 
 	Sleep	2m
 
-	${res}=	check engine logs are duplicated	${logEngine0}	${start}
+	${res}=	check engine logs are duplicated	${engineLog0}	${start}
 	Should Be True	${res}	msg=one or other log are not duplicate in logsfile
 	Stop Engine
 	Kindly Stop Broker

@@ -37,12 +37,22 @@ using namespace com::centreon::broker::bbdo;
  *  @return True if the configuration has this protocol.
  */
 bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
+  /* Legacy case: 'protocol' is set in the object and should be equal to "bbdo"
+   */
+  bool bbdo_protocol_found = false;
   std::map<std::string, std::string>::const_iterator it{
       cfg.params.find("protocol")};
+  bbdo_protocol_found = (it != cfg.params.end() && it->second == "bbdo");
+
+  /* New case: with bbdo_client and bbdo_server, bbdo is automatic. */
+  if (!bbdo_protocol_found)
+    bbdo_protocol_found =
+        (cfg.type == "bbdo_client" || cfg.type == "bbdo_server");
+
   if (ext)
     *ext = io::extension("BBDO", false, false);
 
-  return it != cfg.params.end() && it->second == "bbdo";
+  return bbdo_protocol_found;
 }
 
 /**

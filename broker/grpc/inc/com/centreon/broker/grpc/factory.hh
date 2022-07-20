@@ -32,6 +32,10 @@ namespace grpc {
  *  Build GRPC protocol objects.
  */
 class factory : public io::factory {
+  io::endpoint* _new_endpoint_bbdo_cs(
+      com::centreon::broker::config::endpoint& cfg,
+      bool& is_acceptor) const;
+
  public:
   factory() = default;
   factory(factory const& other) = delete;

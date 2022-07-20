@@ -69,33 +69,20 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
     throw msg_fmt(
         "state applier: poller information are "
         "not set: please fill poller_id and poller_name");
-  if (!s.broker_id() || s.broker_name().empty())
+  if (s.broker_name().find_first_not_of(allowed_chars) != std::string::npos)
     throw msg_fmt(
-        "state applier: instance information "
-        "are not set: please fill broker_id and broker_name");
-  for (std::string::const_iterator it(s.broker_name().begin()),
-       end(s.broker_name().end());
-       it != end; ++it)
-    if (!strchr(allowed_chars, *it))
+        "state applier: broker_name is not valid: allowed characters are {}",
+        allowed_chars);
+  for (auto& e : s.endpoints()) {
+    if (e.name.empty())
       throw msg_fmt(
-          "state applier: broker_name is not "
-          " valid: allowed characters are {}",
-          allowed_chars);
-  for (std::list<config::endpoint>::const_iterator it(s.endpoints().begin()),
-       end(s.endpoints().end());
-       it != end; ++it) {
-    if (it->name.empty())
+          "state applier: endpoint name is not set: please fill name of all "
+          "endpoints");
+    if (e.name.find_first_not_of(allowed_chars) != std::string::npos)
       throw msg_fmt(
-          "state applier: endpoint name is not set: "
-          "please fill name of all endpoints");
-    for (std::string::const_iterator it_name(it->name.begin()),
-         end_name(it->name.end());
-         it_name != end_name; ++it_name)
-      if (!strchr(allowed_chars, *it_name))
-        throw msg_fmt(
-            "state applier: endpoint name '{}'"
-            "' is not valid: allowed characters are '{}'",
-            *it_name, allowed_chars);
+          "state applier: endpoint name '{}' is not valid: allowed characters "
+          "are '{}'",
+          e.name, allowed_chars);
   }
 
   // Set Broker instance ID.

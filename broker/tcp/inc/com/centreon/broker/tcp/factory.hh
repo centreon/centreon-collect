@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013 Centreon
+** Copyright 2011-2013, 2020-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -32,10 +32,13 @@ namespace tcp {
  *  Build TCP protocol objects.
  */
 class factory : public io::factory {
+  io::endpoint* _new_endpoint_bbdo_cs(config::endpoint& cfg,
+                                      bool& is_acceptor) const;
+
  public:
   factory() = default;
   factory(factory const& other) = delete;
-  ~factory() = default;
+  ~factory() noexcept = default;
   factory& operator=(factory const& other) = delete;
   bool has_endpoint(config::endpoint& cfg, io::extension* ext) override;
   io::endpoint* new_endpoint(

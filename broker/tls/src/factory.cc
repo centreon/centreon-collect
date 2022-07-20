@@ -1,5 +1,5 @@
 /*
-** Copyright 2013 Centreon
+** Copyright 2013, 2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 */
 
 #include "com/centreon/broker/tls/factory.hh"
+#include <absl/strings/match.h>
 
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/log_v2.hh"
@@ -39,18 +40,42 @@ using namespace com::centreon::broker::tls;
  *  value.
  */
 bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
+  bool has_tls;
+  std::map<std::string, std::string>::iterator it;
+  bool legacy;
+
   if (ext) {
-    auto it = cfg.params.find("tls");
-    if (it == cfg.params.end() || strncasecmp(it->second.c_str(), "no", 3) == 0)
+    if (cfg.type == "bbdo_client" || cfg.type == "bbdo_server") {
+      it = cfg.params.find("encryption");
+      legacy = false;
+    } else {
+      it = cfg.params.find("tls");
+      legacy = true;
+    }
+
+    if (it == cfg.params.end())
+      has_tls = false;
+    else if (!absl::SimpleAtob(it->second, &has_tls)) {
+      if (legacy && absl::EqualsIgnoreCase(it->second, "auto"))
+        has_tls = true;
+      else {
+        log_v2::tls()->error(
+            "TLS: the field 'tls' in endpoint '{}' should be a boolean",
+            cfg.name);
+        has_tls = false;
+      }
+    }
+    if (!has_tls)
       *ext = io::extension("TLS", false, false);
     else {
-      log_v2::tls()->info("Configuration of TLS for endpoint '{}'",
-                          cfg.params["name"]);
-      if (strncasecmp(it->second.c_str(), "auto", 5) == 0)
+      log_v2::tls()->info("Configuration of TLS for endpoint '{}'", cfg.name);
+      if (absl::EqualsIgnoreCase(it->second, "auto"))
         *ext = io::extension("TLS", true, false);
-      else if (strncasecmp(it->second.c_str(), "yes", 4) == 0)
+      else
         *ext = io::extension("TLS", false, true);
+    }
 
+    if (has_tls) {
       // CA certificate.
       it = cfg.params.find("ca_certificate");
       if (it != cfg.params.end())
@@ -62,7 +87,10 @@ bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
         ext->mutable_options()["private_key"] = it->second;
 
       // Public certificate.
-      it = cfg.params.find("public_cert");
+      if (cfg.type != "bbdo_server" && cfg.type != "bbdo_client")
+        it = cfg.params.find("public_cert");
+      else
+        it = cfg.params.find("certificate");
       if (it != cfg.params.end())
         ext->mutable_options()["public_cert"] = it->second;
 
@@ -121,6 +149,10 @@ io::endpoint* factory::new_endpoint(
 
         // Public certificate.
         it = cfg.params.find("public_cert");
+        if (it != cfg.params.end())
+          public_cert = it->second;
+
+        it = cfg.params.find("certificate");
         if (it != cfg.params.end())
           public_cert = it->second;
 

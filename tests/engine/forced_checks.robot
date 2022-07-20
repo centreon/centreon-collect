@@ -31,7 +31,7 @@ EFHC1
         Should be true	${result}	msg=host_1 should be pending
 
         ${content}=	Create List	INITIAL HOST STATE: host_1;
-        ${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+        ${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
         Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
         Process host check result	host_1	0	host_1 UP
         FOR	${i}	IN RANGE	${4}
@@ -40,7 +40,7 @@ EFHC1
         END
         ${content}=	Create List	EXTERNAL COMMAND: SCHEDULE_FORCED_HOST_CHECK;host_1;	HOST ALERT: host_1;DOWN;SOFT;1;	EXTERNAL COMMAND: SCHEDULE_FORCED_HOST_CHECK;host_1;	HOST ALERT: host_1;DOWN;SOFT;2;	EXTERNAL COMMAND: SCHEDULE_FORCED_HOST_CHECK;host_1;    HOST ALERT: host_1;DOWN;HARD;3;
 
-        ${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+        ${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
         Should Be True	${result}	msg=Message about SCHEDULE FORCED CHECK and HOST ALERT should be available in log.
 
         ${result}=	Check host status	host_1	1	1	False
@@ -63,7 +63,7 @@ EFHC2
         Start Engine
         Start Broker
         ${content}=	Create List	INITIAL HOST STATE: host_1;
-        ${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+        ${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
         Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
         Process host check result	host_1	0	host_1 UP
         FOR	${i}	IN RANGE	${4}
@@ -72,7 +72,7 @@ EFHC2
         END
         ${content}=	Create List	EXTERNAL COMMAND: SCHEDULE_FORCED_HOST_CHECK;host_1;	HOST ALERT: host_1;DOWN;SOFT;1;	EXTERNAL COMMAND: SCHEDULE_FORCED_HOST_CHECK;host_1;	HOST ALERT: host_1;DOWN;SOFT;2;	EXTERNAL COMMAND: SCHEDULE_FORCED_HOST_CHECK;host_1;    HOST ALERT: host_1;DOWN;HARD;3;
 
-        ${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+        ${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
         Should Be True	${result}	msg=Message about SCHEDULE FORCED CHECK and HOST ALERT should be available in log.
 
         ${result}=	Check host status	host_1	1	1	False
@@ -104,7 +104,7 @@ EFHCU1
         ${result}=	Check host status	host_1	4	1	True
         Should be true	${result}	msg=host_1 should be pending
         ${content}=	Create List	INITIAL HOST STATE: host_1;
-        ${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+        ${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
         Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
         Process host check result	host_1	0	host_1 UP
         FOR	${i}	IN RANGE	${4}
@@ -113,7 +113,7 @@ EFHCU1
         END
         ${content}=	Create List	EXTERNAL COMMAND: SCHEDULE_FORCED_HOST_CHECK;host_1;	HOST ALERT: host_1;DOWN;SOFT;1;	EXTERNAL COMMAND: SCHEDULE_FORCED_HOST_CHECK;host_1;	HOST ALERT: host_1;DOWN;SOFT;2;	EXTERNAL COMMAND: SCHEDULE_FORCED_HOST_CHECK;host_1;    HOST ALERT: host_1;DOWN;HARD;3;
 
-        ${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+        ${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
         Should Be True	${result}	msg=Message about SCHEDULE FORCED CHECK and HOST ALERT should be available in log.
 
         ${result}=	Check host status	host_1	1	1	True
@@ -144,7 +144,7 @@ EFHCU2
         ${result}=	Check host status	host_1	4	1	True
         Should be true	${result}	msg=host_1 should be pending
         ${content}=	Create List	INITIAL HOST STATE: host_1;
-        ${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+        ${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
         Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
         Process host check result	host_1	0	host_1 UP
         FOR	${i}	IN RANGE	${4}
@@ -153,7 +153,7 @@ EFHCU2
         END
         ${content}=	Create List	EXTERNAL COMMAND: SCHEDULE_FORCED_HOST_CHECK;host_1;	HOST ALERT: host_1;DOWN;SOFT;1;	EXTERNAL COMMAND: SCHEDULE_FORCED_HOST_CHECK;host_1;	HOST ALERT: host_1;DOWN;SOFT;2;	EXTERNAL COMMAND: SCHEDULE_FORCED_HOST_CHECK;host_1;    HOST ALERT: host_1;DOWN;HARD;3;
 
-        ${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+        ${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
         Should Be True	${result}	msg=Message about SCHEDULE FORCED CHECK and HOST ALERT should be available in log.
 
         ${result}=	Check host status	host_1	1	1	True

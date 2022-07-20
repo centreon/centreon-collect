@@ -30,6 +30,10 @@ using namespace com::centreon::exceptions;
 
 /**
  *  Check if a configuration supports this protocol.
+ *  Possible endpoints are:
+ *   * grpc
+ *   * bbdo_server with 'grpc' transport_protocol
+ *   * bbdo_client with 'grpc' transport_protocol
  *
  *  @param[in] cfg  Object configuration.
  *
@@ -39,7 +43,17 @@ bool factory::has_endpoint(com::centreon::broker::config::endpoint& cfg,
                            io::extension* ext) {
   if (ext)
     *ext = io::extension("GRPC", false, false);
-  return cfg.type == "grpc";
+  /* Legacy case: we create a grpc endpoint */
+  if (cfg.type == "grpc")
+    return true;
+
+  /* New case: we create a bbdo_server or a bbdo_client with transport protocol
+   * set to 'grpc' */
+  if ((cfg.type == "bbdo_server" || cfg.type == "bbdo_client") &&
+      cfg.params["transport_protocol"] == "grpc")
+    return true;
+
+  return false;
 }
 
 static std::string read_file(const std::string& path) {
@@ -64,6 +78,9 @@ io::endpoint* factory::new_endpoint(
     bool& is_acceptor,
     std::shared_ptr<persistent_cache> cache) const {
   (void)cache;
+
+  if (cfg.type == "bbdo_server" || cfg.type == "bbdo_client")
+    return _new_endpoint_bbdo_cs(cfg, is_acceptor);
 
   std::map<std::string, std::string>::const_iterator it;
 
@@ -92,20 +109,28 @@ io::endpoint* factory::new_endpoint(
                           cfg.name);
     throw msg_fmt("GRPC: no 'port' defined for endpoint '{}'", cfg.name);
   }
-  try {
-    port = static_cast<uint16_t>(std::stol(it->second));
-  } catch (const std::exception& e) {
-    log_v2::grpc()->error(
-        "GRPC: 'port' must be an integer and not '{}' for endpoint '{}'",
-        it->second, cfg.name);
-    throw msg_fmt("GRPC: invalid port value '{}' defined for endpoint '{}'",
-                  it->second, cfg.name);
+  {
+    uint32_t port32;
+    if (!absl::SimpleAtoi(it->second, &port32)) {
+      log_v2::grpc()->error(
+          "GRPC: 'port' must be an integer and not '{}' for endpoint '{}'",
+          it->second, cfg.name);
+      throw msg_fmt("GRPC: invalid port value '{}' defined for endpoint '{}'",
+                    it->second, cfg.name);
+    }
+    if (port32 > 65535)
+      throw msg_fmt("GRPC: invalid port value '{}' defined for endpoint '{}'",
+                    it->second, cfg.name);
+    else
+      port = port32;
   }
 
-  bool crypted = false;
+  bool encrypted = false;
   it = cfg.params.find("encryption");
   if (it != cfg.params.end()) {
-    crypted = !strcasecmp(it->second.c_str(), "yes");
+    if (!absl::SimpleAtob(it->second, &encrypted))
+      throw msg_fmt("GRPC: 'encryption' field should be a boolean and not '{}'",
+                    it->second);
   }
 
   // public certificate
@@ -116,7 +141,7 @@ io::endpoint* factory::new_endpoint(
       certificate = read_file(it->second);
     } catch (const std::exception& e) {
       log_v2::grpc()->error("{} failed to open cert file from:{} {}",
-                            __PRETTY_FUNCTION__, it->second.c_str(), e.what());
+                            __PRETTY_FUNCTION__, it->second, e.what());
     }
   }
 
@@ -128,7 +153,7 @@ io::endpoint* factory::new_endpoint(
       certificate_key = read_file(it->second);
     } catch (const std::exception& e) {
       log_v2::grpc()->error("{} failed to open key file from:{} {}",
-                            __PRETTY_FUNCTION__, it->second.c_str(), e.what());
+                            __PRETTY_FUNCTION__, it->second, e.what());
     }
   }
 
@@ -140,7 +165,7 @@ io::endpoint* factory::new_endpoint(
       certificate_authority = read_file(it->second);
     } catch (const std::exception& e) {
       log_v2::grpc()->error("{} failed to open authority file from:{} {}",
-                            __PRETTY_FUNCTION__, it->second.c_str(), e.what());
+                            __PRETTY_FUNCTION__, it->second, e.what());
     }
   }
 
@@ -170,23 +195,227 @@ io::endpoint* factory::new_endpoint(
   }
 
   grpc_config::pointer conf(std::make_shared<grpc_config>(
-      "", crypted, certificate, certificate_key, certificate_authority,
+      "", encrypted, certificate, certificate_key, certificate_authority,
       authorization, compression_level));
 
-  // Acceptor.
   std::unique_ptr<io::endpoint> endp;
-  if (host.empty()) {
+  if (host.empty())
     is_acceptor = true;
-    conf->_hostport = "0.0.0.0:" + std::to_string(port);
-    std::unique_ptr<grpc::acceptor> a(new grpc::acceptor(conf));
-    endp.reset(a.release());
+  else
+    is_acceptor = false;
+
+  // Acceptor.
+  if (is_acceptor) {
+    log_v2::grpc()->debug("GRPC: encryption {} on gRPC server port {}",
+                          encrypted ? "enabled" : "disabled", port);
+    conf->_hostport = fmt::format("0.0.0.0:{}", port);
+    endp = std::make_unique<grpc::acceptor>(conf);
   }
   // Connector.
   else {
+    log_v2::grpc()->debug("GRPC: encryption {} on gRPC client port {}",
+                          encrypted ? "enabled" : "disabled", port);
+    conf->_hostport = fmt::format("{}:{}", host, port);
+    endp = std::make_unique<grpc::connector>(conf);
+  }
+
+  return endp.release();
+}
+
+/**
+ *  Create a new endpoint from a configuration.
+ *
+ *  @param[in]  cfg         Endpoint configuration.
+ *  @param[out] is_acceptor Set to true if the endpoint is an acceptor.
+ *  @param[in]  cache       Unused.
+ *
+ *  @return Endpoint matching configuration.
+ */
+io::endpoint* factory::_new_endpoint_bbdo_cs(
+    com::centreon::broker::config::endpoint& cfg,
+    bool& is_acceptor) const {
+  std::map<std::string, std::string>::const_iterator it;
+
+  // Find host (if exists).
+  std::string host;
+  it = cfg.params.find("host");
+  if (it != cfg.params.end())
+    host = it->second;
+  if (!host.empty() &&
+      (std::isspace(host[0]) || std::isspace(host[host.size() - 1]))) {
+    log_v2::grpc()->error(
+        "GRPC: 'host' must be a string matching a host, not beginning or "
+        "ending with spaces for endpoint {}, it contains '{}'",
+        cfg.name, host);
+    throw msg_fmt(
+        "GRPC: invalid host value '{}' defined for endpoint '{}"
+        "', it must not begin or end with spaces.",
+        host, cfg.name);
+  } else if (host.empty()) {
+    /* host is empty */
+    if (cfg.type == "bbdo_server")
+      host = "0.0.0.0";
+    else
+      throw msg_fmt("GRPC: you must specify a host to connect to.");
+  }
+
+  // Find port (must exist).
+  uint16_t port;
+  it = cfg.params.find("port");
+  if (it == cfg.params.end()) {
+    log_v2::grpc()->error("GRPC: no 'port' defined for endpoint '{}'",
+                          cfg.name);
+    throw msg_fmt("GRPC: no 'port' defined for endpoint '{}'", cfg.name);
+  }
+  {
+    uint32_t port32;
+    if (!absl::SimpleAtoi(it->second, &port32)) {
+      log_v2::grpc()->error(
+          "GRPC: 'port' must be an integer and not '{}' for endpoint '{}'",
+          it->second, cfg.name);
+      throw msg_fmt("GRPC: invalid port value '{}' defined for endpoint '{}'",
+                    it->second, cfg.name);
+    }
+    if (port32 > 65535)
+      throw msg_fmt("GRPC: invalid port value '{}' defined for endpoint '{}'",
+                    it->second, cfg.name);
+    else
+      port = port32;
+  }
+
+  // Find authorization token (if exists).
+  std::string authorization;
+  it = cfg.params.find("authorization");
+  if (it != cfg.params.end())
+    authorization = it->second;
+  log_v2::grpc()->debug("GRPC: 'authorization' field contains '{}'",
+                        authorization);
+
+  bool encryption = false;
+  it = cfg.params.find("encryption");
+  if (it != cfg.params.end()) {
+    if (!absl::SimpleAtob(it->second, &encryption)) {
+      log_v2::grpc()->error(
+          "GRPC: 'encryption' field should be a boolean and not '{}'",
+          it->second);
+      throw msg_fmt("GRPC: 'encryption' field should be a boolean and not '{}'",
+                    it->second);
+    }
+  }
+
+  // Find private key (if exists).
+  std::string private_key;
+  it = cfg.params.find("private_key");
+  if (it != cfg.params.end()) {
+    if (encryption) {
+      try {
+        private_key = read_file(it->second);
+      } catch (const std::exception& e) {
+        throw msg_fmt("GRPC: failed to open private key '{}' file: {}",
+                      it->second, e.what());
+      }
+    } else
+      log_v2::grpc()->warn(
+          "GRPC: 'private_key' ignored since 'encryption' is disabled");
+  }
+
+  // Certificate.
+  std::string certificate;
+  it = cfg.params.find("certificate");
+  if (it != cfg.params.end()) {
+    if (encryption) {
+      try {
+        certificate = read_file(it->second);
+      } catch (const std::exception& e) {
+        throw msg_fmt("GRPC: failed to open certificate '{}' file: {}",
+                      it->second, e.what());
+      }
+    } else
+      log_v2::grpc()->warn(
+          "GRPC: 'certificate' ignored since 'encryption' is disabled");
+  }
+
+  // CA Certificate.
+  std::string ca_certificate;
+  it = cfg.params.find("ca_certificate");
+  if (it != cfg.params.end()) {
+    if (encryption) {
+      try {
+        ca_certificate = read_file(it->second);
+      } catch (const std::exception& e) {
+        throw msg_fmt("GRPC: failed to open ca_certificate '{}' file: {}",
+                      it->second, e.what());
+      }
+    } else
+      log_v2::grpc()->warn(
+          "GRPC: 'ca_certificate' ignored since 'encryption' is disabled");
+  }
+
+  if (encryption && ca_certificate.empty() && cfg.type == "bbdo_client") {
+    log_v2::grpc()->error(
+        "GRPC: There is no ca certificate specified for bbdo_client '{}', the "
+        "connection won't be established.",
+        cfg.name);
+    throw msg_fmt(
+        "GRPC: There is no ca certificate specified for bbdo_client '{}', the "
+        "connection won't be established.",
+        cfg.name);
+  }
+
+  bool compression = false;
+  it = cfg.params.find("compression");
+  if (it != cfg.params.end()) {
+    if (!absl::SimpleAtob(it->second, &compression))
+      throw msg_fmt(
+          "GRPC: 'compression' field should be a boolean and not '{}'",
+          it->second);
+  }
+
+  bool enable_retention = false;
+  it = cfg.params.find("retention");
+  if (it != cfg.params.end()) {
+    if (!absl::SimpleAtob(it->second, &enable_retention))
+      throw msg_fmt("GRPC: 'retention' field should be a boolean and not '{}'",
+                    it->second);
+  }
+
+  grpc_compression_level compression_level{GRPC_COMPRESS_LEVEL_NONE};
+  it = cfg.params.find("compression");
+  if (it != cfg.params.end()) {
+    bool tmp;
+    if (!absl::SimpleAtob(it->second, &tmp)) {
+      throw msg_fmt(
+          "GRPC: 'compression' field should be a boolean and not '{}'",
+          it->second);
+    }
+    compression_level =
+        tmp ? GRPC_COMPRESS_LEVEL_HIGH : GRPC_COMPRESS_LEVEL_NONE;
+  }
+
+  grpc_config::pointer conf(std::make_shared<grpc_config>(
+      "", encryption, certificate, private_key, ca_certificate, authorization,
+      compression_level));
+
+  // Acceptor.
+  std::unique_ptr<io::endpoint> endp;
+  if (cfg.type == "bbdo_server")
+    is_acceptor = true;
+  else if (cfg.type == "bbdo_client")
     is_acceptor = false;
-    conf->_hostport = host + ':' + std::to_string(port);
-    std::unique_ptr<grpc::connector> c(new grpc::connector(conf));
-    endp.reset(c.release());
+
+  if (is_acceptor) {
+    log_v2::grpc()->debug("GRPC: encryption {} on gRPC server port {}",
+                          encryption ? "enabled" : "disabled", port);
+    conf->_hostport = fmt::format("{}:{}", host, port);
+    endp = std::make_unique<grpc::acceptor>(conf);
+  }
+
+  // Connector.
+  else {
+    log_v2::grpc()->debug("GRPC: encryption {} on gRPC client port {}",
+                          encryption ? "enabled" : "disabled", port);
+    conf->_hostport = fmt::format("{}:{}", host, port);
+    endp = std::make_unique<grpc::connector>(conf);
   }
 
   return endp.release();

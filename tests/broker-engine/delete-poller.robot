@@ -36,7 +36,7 @@ EBDP1
 
 	# Let's wait for the initial service states.
         ${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-        ${result}=	Find In Log with Timeout	${logEngine3}	${start}	${content}	60
+        ${result}=	Find In Log with Timeout	${engineLog3}	${start}	${content}	60
         Should Be True	${result}	msg=An Initial service state on service (50, 1000) should be raised before we can start external commands.
 
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
@@ -88,7 +88,7 @@ EBDP2
 
 	# Let's wait for the initial service states.
         ${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-        ${result}=	Find In Log with Timeout	${logEngine2}	${start}	${content}	60
+        ${result}=	Find In Log with Timeout	${engineLog2}	${start}	${content}	60
         Should Be True	${result}	msg=An Initial service state on service (50, 1000) should be raised before we can start external commands.
 
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
@@ -119,7 +119,7 @@ EBDP2
 
 	# Let's wait for the initial service states.
         ${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-        ${result}=	Find In Log with Timeout	${logEngine1}	${start}	${content}	60
+        ${result}=	Find In Log with Timeout	${engineLog1}	${start}	${content}	60
         Should Be True	${result}	msg=An Initial service state on service (50, 1000) should be raised before we can start external commands.
 
 	Remove Poller	51001	Poller2
@@ -155,7 +155,7 @@ EBDP3
 
 	# Let's wait for the initial service states.
         ${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-        ${result}=	Find In Log with Timeout	${logEngine2}	${start}	${content}	60
+        ${result}=	Find In Log with Timeout	${engineLog2}	${start}	${content}	60
         Should Be True	${result}	msg=An Initial service state on service (50, 1000) should be raised before we can start external commands.
 
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
@@ -184,7 +184,7 @@ EBDP3
 
 	# Let's wait for the initial service states.
         ${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-        ${result}=	Find In Log with Timeout	${logEngine1}	${start}	${content}	60
+        ${result}=	Find In Log with Timeout	${engineLog1}	${start}	${content}	60
         Should Be True	${result}	msg=An Initial service state on service (50, 1000) should be raised before we can start external commands.
 
 	Remove Poller	51001	Poller2
@@ -224,7 +224,7 @@ EBDP4
 
 	# Let's wait for the initial service states.
         ${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-        ${result}=	Find In Log with Timeout	${logEngine3}	${start}	${content}	60
+        ${result}=	Find In Log with Timeout	${engineLog3}	${start}	${content}	60
         Should Be True	${result}	msg=An Initial service state on service (50, 1000) should be raised before we can start external commands.
 
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
@@ -248,7 +248,7 @@ EBDP4
 	 Process Service Check result	host_40	service_782	1	service_782 should fail	config3
 	END
 	${content}=	Create List	SERVICE ALERT: host_40;service_781;CRITICAL	SERVICE ALERT: host_40;service_782;WARNING
-	${result}=	Find In log with timeout	${logEngine3}	${start}	${content}	60
+	${result}=	Find In log with timeout	${engineLog3}	${start}	${content}	60
         Should Be True	${result}	msg=Service alerts about service 781 and 782 should be raised
 
 	${content}=	Create List	callbacks: service (40, 781) has no perfdata	service (40, 782) has no perfdata
@@ -275,7 +275,7 @@ EBDP4
 	Start Engine
 	# Let's wait for the initial service states.
         ${content}=	Create List	INITIAL SERVICE STATE: host_13;service_260;
-        ${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+        ${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
         Should Be True	${result}	msg=An Initial service state on service (13, 260) should be raised before we can start external commands.
 
 	${content}=	Create List	service status (40, 781) thrown away because host 40 is not known by any poller
@@ -306,7 +306,7 @@ EBDP5
 
 	# Let's wait for the initial service states.
         ${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-        ${result}=	Find In Log with Timeout	${logEngine3}	${start}	${content}	60
+        ${result}=	Find In Log with Timeout	${engineLog3}	${start}	${content}	60
         Should Be True	${result}	msg=An Initial service state on service (50, 1000) should be raised before we can start external commands.
 
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
@@ -358,7 +358,7 @@ EBDP6
 
 	# Let's wait for the initial service states.
         ${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-        ${result}=	Find In Log with Timeout	${logEngine2}	${start}	${content}	60
+        ${result}=	Find In Log with Timeout	${engineLog2}	${start}	${content}	60
         Should Be True	${result}	msg=An Initial service state on service (50, 1000) should be raised before we can start external commands.
 
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
@@ -389,7 +389,7 @@ EBDP6
 
 	# Let's wait for the initial service states.
         ${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-        ${result}=	Find In Log with Timeout	${logEngine1}	${start}	${content}	60
+        ${result}=	Find In Log with Timeout	${engineLog1}	${start}	${content}	60
         Should Be True	${result}	msg=An Initial service state on service (50, 1000) should be raised before we can start external commands.
 
 	Remove Poller by id	51001	${3}
@@ -425,7 +425,7 @@ EBDP7
 
 	# Let's wait for the initial service states.
         ${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-        ${result}=	Find In Log with Timeout	${logEngine2}	${start}	${content}	60
+        ${result}=	Find In Log with Timeout	${engineLog2}	${start}	${content}	60
         Should Be True	${result}	msg=An Initial service state on service (50, 1000) should be raised before we can start external commands.
 
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
@@ -454,7 +454,7 @@ EBDP7
 
 	# Let's wait for the initial service states.
         ${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-        ${result}=	Find In Log with Timeout	${logEngine1}	${start}	${content}	60
+        ${result}=	Find In Log with Timeout	${engineLog1}	${start}	${content}	60
         Should Be True	${result}	msg=An Initial service state on service (50, 1000) should be raised before we can start external commands.
 
 	Remove Poller by id	51001	${3}
@@ -494,7 +494,7 @@ EBDP8
 
 	# Let's wait for the initial service states.
         ${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-        ${result}=	Find In Log with Timeout	${logEngine3}	${start}	${content}	60
+        ${result}=	Find In Log with Timeout	${engineLog3}	${start}	${content}	60
         Should Be True	${result}	msg=An Initial service state on service (50, 1000) should be raised before we can start external commands.
 
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
@@ -518,7 +518,7 @@ EBDP8
 	 Process Service Check result	host_40	service_782	1	service_782 should fail	config3
 	END
 	${content}=	Create List	SERVICE ALERT: host_40;service_781;CRITICAL	SERVICE ALERT: host_40;service_782;WARNING
-	${result}=	Find In log with timeout	${logEngine3}	${start}	${content}	60
+	${result}=	Find In log with timeout	${engineLog3}	${start}	${content}	60
         Should Be True	${result}	msg=Service alerts about service 781 and 782 should be raised
 
 	${content}=	Create List	callbacks: service (40, 781) has no perfdata	service (40, 782) has no perfdata
@@ -545,7 +545,7 @@ EBDP8
 	Start Engine
 	# Let's wait for the initial service states.
         ${content}=	Create List	INITIAL SERVICE STATE: host_13;service_260;
-        ${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+        ${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
         Should Be True	${result}	msg=An Initial service state on service (13, 260) should be raised before we can start external commands.
 
 	${content}=	Create List	service status (40, 781) thrown away because host 40 is not known by any poller

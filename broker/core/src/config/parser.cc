@@ -491,7 +491,6 @@ void parser::_parse_endpoint(const json& elem,
               e.type);
       } else
         throw msg_fmt("config parser: endpoint of invalid type '{}'", e.type);
-    } else if (it.key() == "protocol_transport") {
     }
     if (it.value().is_string())
       e.params[it.key()] = it.value().get<std::string>();

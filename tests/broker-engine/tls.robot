@@ -42,11 +42,9 @@ BECT1
 		ELSE IF	"${comp1}" == "no" and "${comp2}" == "yes"
 			Insert Into List	${content2}	${-1}	extension 'TLS' is set to 'yes' in the configuration but cannot be activated because of peer configuration
 		END
-		${log}=	Catenate	SEPARATOR=	${BROKER_LOG}	/central-broker-master.log
-		${result}=	Find In Log	${log}	${start}	${content1}
+		${result}=	Find In Log	${centralLog}	${start}	${content1}
 		Should Be True	${result}
-		${log}=	Catenate	SEPARATOR=	${BROKER_LOG}	/central-module-master0.log
-		${result}=	Find In Log	${log}	${start}	${content2}
+		${result}=	Find In Log	${moduleLog0}	${start}	${content2}
 		Should Be True	${result}
 	END
 	END
@@ -86,11 +84,9 @@ BECT2
 	${content2}=	Create List	we have extensions 'TLS' and peer has 'TLS'	using certificates as credentials
 	${content1}=	Combine Lists	${content1}	${LIST_HANDSHAKE}
 	${content2}=	Combine Lists	${content2}	${LIST_HANDSHAKE}
-	${log}=	Catenate	SEPARATOR=	${BROKER_LOG}	/central-broker-master.log
-	${result}=	Find In Log	${log}	${start}	${content1}
+	${result}=	Find In Log	${centralLog}	${start}	${content1}
 	Should Be True	${result}
-	${log}=	Catenate	SEPARATOR=	${BROKER_LOG}	/central-module-master0.log
-	${result}=	Find In Log	${log}	${start}	${content2}
+	${result}=	Find In Log	${moduleLog0}	${start}	${content2}
 	Should Be True	${result}
 
 BECT3
@@ -208,11 +204,9 @@ BECT_GRPC1
 		ELSE IF	"${comp1}" == "no" and "${comp2}" == "yes"
 			Insert Into List	${content2}	${-1}	extension 'TLS' is set to 'yes' in the configuration but cannot be activated because of peer configuration
 		END
-		${log}=	Catenate	SEPARATOR=	${BROKER_LOG}	/central-broker-master.log
-		${result}=	Find In Log	${log}	${start}	${content1}
+		${result}=	Find In Log	${centralLog}	${start}	${content1}
 		Should Be True	${result}
-		${log}=	Catenate	SEPARATOR=	${BROKER_LOG}	/central-module-master0.log
-		${result}=	Find In Log	${log}	${start}	${content2}
+		${result}=	Find In Log	${moduleLog0}	${start}	${content2}
 		Should Be True	${result}
 	END
 	END

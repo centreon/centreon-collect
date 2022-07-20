@@ -1,5 +1,5 @@
 /*
-** Copyright 2011, 2021 Centreon
+** Copyright 2011, 2021-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -32,19 +32,17 @@ namespace compression {
  *  Open a compression stream.
  */
 class opener : public io::endpoint {
-  int _level;
-  uint32_t _size;
+  const int _level;
+  const size_t _size;
 
   std::unique_ptr<io::stream> _open(std::shared_ptr<io::stream> stream);
 
  public:
-  opener();
+  opener(int32_t level = -1, size_t size = 0);
   ~opener() noexcept = default;
   opener(const opener&) = delete;
   opener& operator=(const opener&) = delete;
   std::unique_ptr<io::stream> open() override;
-  void set_level(int level = -1);
-  void set_size(uint32_t size = 0);
 };
 }  // namespace compression
 

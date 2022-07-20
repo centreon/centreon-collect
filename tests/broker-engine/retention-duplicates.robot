@@ -35,7 +35,7 @@ BERD1
 	${content}=	Create List	lua: initializing the Lua virtual machine
 	${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in cbd
-	${result}=	Find In Log with timeout	${moduleLog}	${start}	${content}	30
+	${result}=	Find In Log with timeout	${moduleLog0}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in centengine
 	${result}=	Check Connections
 	Should Be True	${result}	msg=Engine and Broker not connected.
@@ -75,7 +75,7 @@ BERD2
 	${content}=	Create List	lua: initializing the Lua virtual machine
 	${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in cbd
-	${result}=	Find In Log with timeout	${moduleLog}	${start}	${content}	30
+	${result}=	Find In Log with timeout	${moduleLog0}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in centengine
 	${result}=	Check Connections
 	Should Be True	${result}	msg=Engine and Broker not connected.
@@ -114,7 +114,7 @@ BERDUC1
 	${content}=	Create List	lua: initializing the Lua virtual machine
 	${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in cbd
-	${result}=	Find In Log with timeout	${moduleLog}	${start}	${content}	30
+	${result}=	Find In Log with timeout	${moduleLog0}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in centengine
 	${result}=	Check Connections
 	Should Be True	${result}	msg=Engine and Broker not connected.
@@ -150,7 +150,7 @@ BERDUCU1
 	${content}=	Create List	lua: initializing the Lua virtual machine
 	${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in cbd
-	${result}=	Find In Log with timeout	${moduleLog}	${start}	${content}	30
+	${result}=	Find In Log with timeout	${moduleLog0}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in centengine
 	${result}=	Check Connections
 	Should Be True	${result}	msg=Engine and Broker not connected.
@@ -185,7 +185,7 @@ BERDUC2
 	${content}=	Create List	lua: initializing the Lua virtual machine
 	${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in cbd
-	${result}=	Find In Log with timeout	${moduleLog}	${start}	${content}	30
+	${result}=	Find In Log with timeout	${moduleLog0}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in centengine
 	${result}=	Check Connections
 	Should Be True	${result}	msg=Engine and Broker not connected.
@@ -221,7 +221,7 @@ BERDUCU2
 	${content}=	Create List	lua: initializing the Lua virtual machine
 	${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in cbd
-	${result}=	Find In Log with timeout	${moduleLog}	${start}	${content}	30
+	${result}=	Find In Log with timeout	${moduleLog0}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in centengine
 	${result}=	Check Connections
 	Should Be True	${result}	msg=Engine and Broker not connected.
@@ -260,7 +260,7 @@ BERDUC3U1
 	${content}=	Create List	lua: initializing the Lua virtual machine
 	${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in cbd
-	${result}=	Find In Log with timeout	${moduleLog}	${start}	${content}	30
+	${result}=	Find In Log with timeout	${moduleLog0}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in centengine
 	${result}=	Check Connections
 	Should Be True	${result}	msg=Engine and Broker not connected.
@@ -299,7 +299,7 @@ BERDUC3U2
 	${content}=	Create List	lua: initializing the Lua virtual machine
 	${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in cbd
-	${result}=	Find In Log with timeout	${moduleLog}	${start}	${content}	30
+	${result}=	Find In Log with timeout	${moduleLog0}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in centengine
 	${result}=	Check Connections
 	Should Be True	${result}	msg=Engine and Broker not connected.

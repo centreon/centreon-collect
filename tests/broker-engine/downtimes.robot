@@ -42,7 +42,7 @@ BEDTMASS1
 	Start Engine
 	# Let's wait for the initial service states.
         ${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-        ${result}=	Find In Log with Timeout	${logEngine2}	${start}	${content}	60
+        ${result}=	Find In Log with Timeout	${engineLog2}	${start}	${content}	60
         Should Be True	${result}	msg=An Initial service state on service (50, 1000) should be raised before we can start external commands.
 
 	# It's time to schedule downtimes
@@ -96,7 +96,7 @@ BEDTMASS2
 	Start Engine
 	# Let's wait for the initial service states.
         ${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-        ${result}=	Find In Log with Timeout	${logEngine2}	${start}	${content}	60
+        ${result}=	Find In Log with Timeout	${engineLog2}	${start}	${content}	60
         Should Be True	${result}	msg=An Initial service state on service (50, 1000) should be raised before we can start external commands.
 
 	# It's time to schedule downtimes

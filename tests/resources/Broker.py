@@ -554,9 +554,11 @@ def change_broker_compression_input(config_name: str, input_name: str, compressi
     _apply_conf(config_name, compression_modifier)
 
 
-def config_broker_bbdo_input(name, stream, port):
+def config_broker_bbdo_input(name, stream, port, proto, host=None):
     if stream != "bbdo_server" and stream != "bbdo_client":
         raise Exception("config_broker_bbdo_input_output() function only accepts stream in ('bbdo_server', 'bbdo_client')")
+    if stream == "bbdo_client" and host is None:
+        raise Exception("A bbdo_client must specify a host to connect to")
 
     if name == 'central':
         filename = "central-broker.json"
@@ -573,19 +575,27 @@ def config_broker_bbdo_input(name, stream, port):
     for i, v in enumerate(io_dict):
         if (v["type"] == "ipv4" or v["type"] == "grpc") and v["port"] == port:
             io_dict.pop(i)
-    io_dict.append({
+    stream = {
             "name": f"{name}-broker-master-input",
             "port": f"{port}",
-            "type": f"{stream}",
-            })
+            "transport_protocol": proto,
+            "type": stream,
+            }
+    if host is not None:
+        stream["host"] = host
+    io_dict.append(stream)
     f = open("/etc/centreon-broker/{}".format(filename), "w")
     f.write(json.dumps(conf, indent=2))
     f.close()
 
 
-def config_broker_bbdo_output(name, stream, port, host):
+def config_broker_bbdo_output(name, stream, port, proto, host=None):
     if stream != "bbdo_server" and stream != "bbdo_client":
-        raise Exception("config_broker_bbdo_input_output() function only accepts stream in ('bbdo_server', 'bbdo_client')")
+        raise Exception("config_broker_bbdo_output() function only accepts stream in ('bbdo_server', 'bbdo_client')")
+    if stream == "bbdo_client" and host is None:
+        raise Exception("A bbdo_client must specify a host to connect to")
+    elif stream == "bbdo_server" and host is not None:
+        raise Exception("A bbdo_server must not specify a host to connect to")
 
     if name == 'central':
         filename = "central-broker.json"
@@ -602,12 +612,15 @@ def config_broker_bbdo_output(name, stream, port, host):
     for i, v in enumerate(io_dict):
         if (v["type"] == "ipv4" or v["type"] == "grpc") and v["port"] == port:
             io_dict.pop(i)
-    io_dict.append({
+    stream = {
             "name": f"{name}-broker-master-output",
-            "port": port,
+            "port": f"{port}",
+            "transport_protocol": proto,
             "type": stream,
-            "host": host,
-            })
+            }
+    if host is not None:
+        stream["host"] = host
+    io_dict.append(stream)
     f = open("/etc/centreon-broker/{}".format(filename), "w")
     f.write(json.dumps(conf, indent=2))
     f.close()

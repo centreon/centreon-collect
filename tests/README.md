@@ -96,6 +96,23 @@ Here is the list of the currently implemented tests:
 - [x] **BGRPCSSU4**: Start/Stop with unified_sql 10 times broker configured with grpc stream with 1sec interval and no coredump
 - [x] **BGRPCSSU5**: Start-Stop with unified_sql with reversed connection on grpc acceptor with only one instance and no deadlock
 - [x] **BLDIS1**: Start broker with core logs 'disabled'
+- [x] **BSCSS1**: Start-Stop two instances of broker and no coredump
+- [x] **BSCSS2**: Start/Stop 10 times broker with 300ms interval and no coredump
+- [x] **BSCSS3**: Start-Stop one instance of broker and no coredump
+- [x] **BSCSS4**: Start/Stop 10 times broker with 1sec interval and no coredump
+- [x] **BSCSSC1**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with tcp transport protocol. Compression is enabled on client side.
+- [x] **BSCSSC2**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with tcp transport protocol. Compression is disabled on client side.
+- [x] **BSCSSCG1**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with grpc transport protocol. Compression is enabled on client side.
+- [x] **BSCSSG1**: Start-Stop two instances of broker and no coredump
+- [x] **BSCSSG2**: Start/Stop 10 times broker with 300ms interval and no coredump
+- [x] **BSCSSG3**: Start-Stop one instance of broker and no coredump
+- [x] **BSCSSG4**: Start/Stop 10 times broker with 1sec interval and no coredump
+- [x] **BSCSSK1**: Start-Stop two instances of broker, server configured with grpc and client with tcp. No connectrion established and error raised on client side.
+- [x] **BSCSSK2**: Start-Stop two instances of broker, server configured with tcp and client with grpc. No connectrion established and error raised on client side.
+- [x] **BSCSST1**: Start-Stop two instances of broker and no coredump. Encryption is enabled on client side.
+- [x] **BSCSST2**: Start-Stop two instances of broker and no coredump. Encryption is enabled on client side.
+- [x] **BSCSSTG1**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with encryption enabled. This is not sufficient, then an error is raised.
+- [x] **BSCSSTG2**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with encryption enabled. It works with good certificates and keys.
 - [x] **BSS1**: Start-Stop two instances of broker and no coredump
 - [x] **BSS2**: Start/Stop 10 times broker with 300ms interval and no coredump
 - [x] **BSS3**: Start-Stop one instance of broker and no coredump

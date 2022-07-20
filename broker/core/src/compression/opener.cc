@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2012, 2021 Centreon
+** Copyright 2011-2012, 2021-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -23,9 +23,14 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::compression;
 
 /**
- *  Default constructor.
+ * @brief Constructor
+ *
+ * @param size Size of the compression buffer. Default value is 0.
+ * @param level Level of the compression function (in the range [-1, 9]). -1 is
+ * the default compression.
  */
-opener::opener() : io::endpoint(false), _level(-1), _size(0) {}
+opener::opener(int32_t level, size_t size)
+    : io::endpoint(false), _level(level), _size(size) {}
 
 /**
  *  Open a compression stream.
@@ -40,25 +45,6 @@ std::unique_ptr<io::stream> opener::open() {
 }
 
 /**
- *  Set the compression level.
- *
- *  @param[in] level Compression level (between 1 and 9, default is -1).
- */
-void opener::set_level(int level) {
-  _level = level;
-}
-
-/**
- *  Set the compression buffer size.
- *
- *  @param[in] size Compression buffer size (default is 0 which means no
- *                  buffering).
- */
-void opener::set_size(uint32_t size) {
-  _size = size;
-}
-
-/**
  *  Open a compression stream.
  *
  *  @return New compression object.
@@ -66,7 +52,7 @@ void opener::set_size(uint32_t size) {
 std::unique_ptr<io::stream> opener::_open(std::shared_ptr<io::stream> base) {
   std::unique_ptr<io::stream> retval;
   if (base) {
-    retval.reset(new stream(_level, _size));
+    retval = std::make_unique<stream>(_level, _size);
     retval->set_substream(base);
   }
   return retval;

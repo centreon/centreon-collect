@@ -47,9 +47,10 @@ const char* const* broker_module_parents() {
  */
 bool broker_module_deinit() {
   // Decrement instance number.
-  if (!--instances)
+  if (!--instances) {
     // Unregister TCP protocol.
     io::protocols::instance().unreg("TCP");
+  }
   tcp::tcp_async::unload();
   return true;  // ok to be unloaded
 }
@@ -69,8 +70,8 @@ void broker_module_init(void const* arg) {
                         CENTREON_BROKER_VERSION);
 
     // Register TCP protocol.
-    io::protocols::instance().reg("TCP", std::make_shared<tcp::factory>(), 1,
-                                  4);
+    auto f = std::make_shared<tcp::factory>();
+    io::protocols::instance().reg("TCP", f, 1, 4);
     tcp::tcp_async::load();
   }
 }

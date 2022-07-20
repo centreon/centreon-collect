@@ -28,11 +28,11 @@ BEATOI11
 	Start Broker
 	Start Engine
 	${content}=	Create List	check_for_external_commands
-	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 	Should Be True	${result}	msg=No check for external commands executed for 1mn.
 	SEND CUSTOM HOST NOTIFICATION	host_1	1	admin	BEATOI11
 	${content}=	Create List	EXTERNAL COMMAND: SEND_CUSTOM_HOST_NOTIFICATION;host_1;1;admin;BEATOI11
-	${result}=	Find In Log With Timeout	${logEngine0}	${start}	${content}	60
+	${result}=	Find In Log With Timeout	${engineLog0}	${start}	${content}	60
 	Should Be True	${result}	msg=command argument notification_option must be an integer between 0 and 7.
 	Stop Engine
 	Kindly Stop Broker
@@ -51,11 +51,11 @@ BEATOI12
 	Start Broker
 	Start Engine
 	${content}=	Create List	check_for_external_commands
-	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 	Should Be True	${result}	msg=No check for external commands executed for 1mn.
 	SEND CUSTOM HOST NOTIFICATION	host_1	8	admin	BEATOI12
 	${content}=	Create List	Error: could not send custom host notification: '8' must be an integer between 0 and 7
-	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 	Should Be True	${result}	msg=command argument notification_option must be an integer between 0 and 7.
 	Stop Engine
 	Kindly Stop Broker
@@ -74,12 +74,12 @@ BEATOI13
 	Start Broker
 	Start Engine
 	${content}=	Create List	check_for_external_commands
-	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 	Should Be True	${result}	msg=No check for external commands executed for 1mn.
 	${date}=	Get Current Date	result_format=epoch
 	SCHEDULE SERVICE DOWNTIME	host_1	service_1	-1
 	${content}=	Create List	Error: could not schedule downtime : duration
-	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 	Should Be True	${result}	msg=command argument duration must be an integer >= 0.
 	Stop Engine
 	Kindly Stop Broker
@@ -99,11 +99,11 @@ BEATOI21
 	Start Broker
 	Start Engine
 	${content}=	Create List	check_for_external_commands
-	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 	Should Be True	${result}	msg=No check for external commands executed for 1mn.
 	ADD HOST COMMENT	host_1	1	user	comment
 	${content}=	Create List	ADD_HOST_COMMENT, comment_id: 1, data: comment
-	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 	Should Be True	${result}	msg=the comment with id:1 was not added.
 	${com_id}=	Find Internal Id		${start}	True	30
 	DEL HOST COMMENT	${com_id}
@@ -127,16 +127,16 @@ BEATOI22
 	Start Broker
 	Start Engine
 	${content}=	Create List	check_for_external_commands
-	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 	Should Be True	${result}	msg=No check for external commands executed for 1mn.
 	ADD HOST COMMENT	host_1	1	user	BEATOI22
 	${content}=	Create List	ADD_HOST_COMMENT, comment_id:	, data: BEATOI22
-	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 	Should Be True	${result}	msg=the comment with BEATOI22 content was not added
 	${com_id}=	Find Internal Id	${start}	True	30
 	DEL HOST COMMENT	-1
 	${content}=	Create List	Error: could not delete comment : comment_id
-	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 	Should Be True	${result}	msg=comment_id must be an unsigned integer.
 	DEL HOST COMMENT	${com_id}
 	${result}=	Find Internal Id	${start}	False	30
@@ -159,11 +159,11 @@ BEATOI23
 	Start Broker
 	Start Engine
 	${content}=	Create List	check_for_external_commands
-	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 	Should Be True	${result}	msg=No check for external commands executed for 1mn.
 	ADD SVC COMMENT	host_1	service_1	0	user	comment
 	${content}=	Create List	ADD_SVC_COMMENT, comment_id: 1, data: comment
-	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 	Should Be True	${result}	msg=command argument persistent_flag must be 0 or 1.
 	Stop Engine
 	Kindly Stop Broker

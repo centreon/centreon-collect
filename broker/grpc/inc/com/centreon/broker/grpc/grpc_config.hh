@@ -24,14 +24,14 @@ CCB_BEGIN()
 namespace grpc {
 class grpc_config {
   std::string _hostport;
-  bool _crypted;
+  bool _crypted = false;
   std::string _certificate, _cert_key, _ca_cert, _authorization;
   grpc_compression_level _compress_level;
 
  public:
   using pointer = std::shared_ptr<grpc_config>;
 
-  grpc_config() : _crypted(false), _compress_level(GRPC_COMPRESS_LEVEL_NONE) {}
+  grpc_config() : _compress_level(GRPC_COMPRESS_LEVEL_NONE) {}
   grpc_config(const std::string& hostp)
       : _hostport(hostp),
         _crypted(false),

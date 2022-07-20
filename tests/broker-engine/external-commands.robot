@@ -34,7 +34,7 @@ BEEXTCMD1
 		Start Broker
 		Start Engine
 			${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-			${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+			${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 			Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Normal Svc Check Interval  ${use_grpc}  host_1	service_1	10
 
@@ -66,7 +66,7 @@ BEEXTCMD2
 		Start Broker
 		Start Engine
 			${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-			${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+			${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 			Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Normal Svc Check Interval  ${use_grpc}	host_1	service_1	15
 
@@ -105,7 +105,7 @@ BEEXTCMD3
 		Start Broker
 		Start Engine
 			${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-			${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+			${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 			Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Normal Host Check Interval  ${use_grpc}  host_1	10
 
@@ -139,7 +139,7 @@ BEEXTCMD4
 		Start Broker
 		Start Engine
 			${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-			${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+			${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 			Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Normal Host Check Interval  ${use_grpc}  host_1	15
 
@@ -178,7 +178,7 @@ BEEXTCMD5
 		Start Broker
 		Start Engine
 			${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-			${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+			${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 			Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Retry Svc Check Interval  ${use_grpc}  host_1	service_1	15
 
@@ -211,7 +211,7 @@ BEEXTCMD6
 		Start Broker
 		Start Engine
 	${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-        ${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+        ${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
         Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Retry Svc Check Interval  ${use_grpc}  host_1	service_1	10
 
@@ -250,7 +250,7 @@ BEEXTCMD7
 		Start Broker
 		Start Engine
 			${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-			${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+			${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 			Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Retry Host Check Interval  ${use_grpc}  host_1	15
 
@@ -284,7 +284,7 @@ BEEXTCMD8
 		Start Broker
 		Start Engine
 			${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-			${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+			${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 			Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Retry Host Check Interval  ${use_grpc}  host_1	10
 
@@ -321,7 +321,7 @@ BEEXTCMD9
 		Start Broker
 		Start Engine
 			${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-			${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+			${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 			Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Max Svc Check Attempts  ${use_grpc}  host_1	service_1	15
 
@@ -363,7 +363,7 @@ BEEXTCMD10
 		Start Broker
 		Start Engine
 			${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-			${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+			${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 			Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Max Svc Check Attempts  ${use_grpc}  host_1	service_1	10
 
@@ -402,7 +402,7 @@ BEEXTCMD11
 		Start Broker
 		Start Engine
 			${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-			${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+			${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 			Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Max Host Check Attempts  ${use_grpc}  host_1	15
 
@@ -445,7 +445,7 @@ BEEXTCMD12
 		Start Broker
 		Start Engine
 			${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-			${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+			${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 			Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Max Host Check Attempts  ${use_grpc}  host_1  10
 
@@ -485,7 +485,7 @@ BEEXTCMD13
 		Start Broker
 		Start Engine
 			${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-			${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+			${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 			Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Host Check Timeperiod  ${use_grpc}  host_1	24x6
 
@@ -520,7 +520,7 @@ BEEXTCMD14
 		Start Broker
 		Start Engine
 			${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-			${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+			${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 			Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Host Check Timeperiod  ${use_grpc}  host_1	24x6
 
@@ -560,7 +560,7 @@ BEEXTCMD15
 		Start Broker
 		Start Engine
 			${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-			${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+			${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 			Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Host Notification Timeperiod  ${use_grpc}  host_1	24x7
 
@@ -595,7 +595,7 @@ BEEXTCMD16
 		Start Broker
 		Start Engine
 		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+		${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Host Notification Timeperiod  ${use_grpc}  host_1	24x6
 
@@ -635,7 +635,7 @@ BEEXTCMD17
 		Start Broker
 		Start Engine
 		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+		${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Svc Check Timeperiod  ${use_grpc}  host_1	service_1	24x6
 
@@ -670,7 +670,7 @@ BEEXTCMD18
 		Start Broker
 		Start Engine
 		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+		${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Svc Check Timeperiod  ${use_grpc}  host_1	service_1	24x7
 
@@ -710,7 +710,7 @@ BEEXTCMD19
 		Start Broker
 		Start Engine
 		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+		${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Svc Notification Timeperiod  ${use_grpc}  host_1	service_1	24x7
 
@@ -745,7 +745,7 @@ BEEXTCMD20
 		Start Broker
 		Start Engine
 		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+		${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Svc Notification Timeperiod  ${use_grpc}  host_1	service_1	24x6
 
@@ -785,7 +785,7 @@ BEEXTCMD21
 		Start Broker
 		Start Engine
 		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+		${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Disable Host And child Notifications	${use_grpc}	host_1
 
@@ -849,7 +849,7 @@ BEEXTCMD22
 		Start Broker
 		Start Engine
 		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+		${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Disable Host And child Notifications	${use_grpc}	host_1
 
@@ -899,7 +899,7 @@ BEEXTCMD23
 		Start Broker
 		Start Engine
 		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+		${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Disable Host Check	${use_grpc}	host_1
 
@@ -979,7 +979,7 @@ BEEXTCMD24
 		Start Broker
 		Start Engine
 		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+		${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Disable Host Check	${use_grpc}	host_1
 
@@ -1047,7 +1047,7 @@ BEEXTCMD25
 		Start Broker
 		Start Engine
 		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+		${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Disable Host Event Handler	${use_grpc}	host_1
 
@@ -1092,7 +1092,7 @@ BEEXTCMD26
 		Start Broker
 		Start Engine
 		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+		${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Disable Host Event Handler	${use_grpc}	host_1
 
@@ -1142,7 +1142,7 @@ BEEXTCMD27
 		Start Broker
 		Start Engine
 		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+		${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Disable Host Flap Detection	${use_grpc}	host_1
 
@@ -1187,7 +1187,7 @@ BEEXTCMD28
 		Start Broker
 		Start Engine
 		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+		${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Disable Host Flap detection	${use_grpc}	host_1
 
@@ -1238,7 +1238,7 @@ BEEXTCMD29
 		Start Broker
 		Start Engine
 		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+		${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Disable Host Notifications	${use_grpc}	host_1
 
@@ -1302,7 +1302,7 @@ BEEXTCMD30
 		Start Broker
 		Start Engine
 		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+		${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Disable Host Notifications	${use_grpc}	host_1
 
@@ -1352,7 +1352,7 @@ BEEXTCMD31
 		Start Broker
 		Start Engine
 		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+		${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Disable Host Svc Checks	${use_grpc}	host_1
 
@@ -1432,7 +1432,7 @@ BEEXTCMD32
 		Start Broker
 		Start Engine
 		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+		${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Disable Host Svc Checks	${use_grpc}	host_1
 
@@ -1500,7 +1500,7 @@ BEEXTCMD33
 		Start Broker
 		Start Engine
 		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+		${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Disable Host Svc Notifications	${use_grpc}	host_1
 
@@ -1545,7 +1545,7 @@ BEEXTCMD34
 		Start Broker
 		Start Engine
 		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+		${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Disable Host Svc Notifications	${use_grpc}	host_1
 
@@ -1595,7 +1595,7 @@ BEEXTCMD35
 		Start Broker
 		Start Engine
 		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+		${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Disable Passive Host Checks	${use_grpc}	host_1
 
@@ -1658,7 +1658,7 @@ BEEXTCMD36
 		Start Broker
 		Start Engine
 		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+		${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Disable Passive Host Checks	${use_grpc}	host_1
 
@@ -1708,7 +1708,7 @@ BEEXTCMD37
 		Start Broker
 		Start Engine
 		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+		${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Disable Passive Svc Checks	${use_grpc}	host_1	service_1
 
@@ -1771,7 +1771,7 @@ BEEXTCMD38
 		Start Broker
 		Start Engine
 		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+		${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Disable Passive Svc Checks	${use_grpc}	host_1	service_1
 
@@ -1821,7 +1821,7 @@ BEEXTCMD39
 		Start Broker
 		Start Engine
 		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+		${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Stop Obsessing Over Host	${use_grpc}	host_1
 
@@ -1866,7 +1866,7 @@ BEEXTCMD40
 		Start Broker
 		Start Engine
 		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+		${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Stop Obsessing Over Host	${use_grpc}	host_1
 
@@ -1916,7 +1916,7 @@ BEEXTCMD41
 		Start Broker
 		Start Engine
 		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+		${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Stop Obsessing Over Svc	${use_grpc}	host_1	service_1
 
@@ -1961,7 +1961,7 @@ BEEXTCMD42
 		Start Broker
 		Start Engine
 		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+		${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Stop Obsessing Over Svc	${use_grpc}	host_1	service_1
 
@@ -2012,7 +2012,7 @@ BEEXTCMD_GRPC1
 		Start Broker
 		Start Engine
 			${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-			${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+			${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 			Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Normal Svc Check Interval  ${use_grpc}  host_1	service_1	10
 
@@ -2047,7 +2047,7 @@ BEEXTCMD_GRPC2
 		Start Broker
 		Start Engine
 			${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-			${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+			${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 			Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Normal Svc Check Interval  ${use_grpc}	host_1	service_1	15
 
@@ -2088,7 +2088,7 @@ BEEXTCMD_GRPC3
 		Start Broker
 		Start Engine
 			${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-			${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+			${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 			Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Normal Host Check Interval  ${use_grpc}  host_1	10
 
@@ -2124,7 +2124,7 @@ BEEXTCMD_GRPC4
 		Start Broker
 		Start Engine
 			${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-			${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+			${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 			Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Normal Host Check Interval  ${use_grpc}  host_1	15
 
@@ -2168,7 +2168,7 @@ BEEXTCMD_REVERSE_GRPC1
 		Start Broker
 		Start Engine
 		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+		${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Normal Svc Check Interval  ${use_grpc}  host_1	service_1	10
 
@@ -2207,7 +2207,7 @@ BEEXTCMD_REVERSE_GRPC2
 		Start Broker
 		Start Engine
 		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+		${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Normal Svc Check Interval  ${use_grpc}	host_1	service_1	15
 
@@ -2252,7 +2252,7 @@ BEEXTCMD_REVERSE_GRPC3
 		Start Broker
 		Start Engine
 		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+		${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Normal Host Check Interval  ${use_grpc}  host_1	10
 
@@ -2292,7 +2292,7 @@ BEEXTCMD_REVERSE_GRPC4
 		Start Broker
 		Start Engine
 		${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-		${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+		${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 		Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Normal Host Check Interval  ${use_grpc}  host_1	15
 
@@ -2334,7 +2334,7 @@ BEEXTCMD_COMPRESS_GRPC1
 		Start Broker
 		Start Engine
 			${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-			${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+			${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 			Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
 		Change Normal Svc Check Interval  ${use_grpc}  host_1	service_1	10
 
