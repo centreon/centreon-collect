@@ -167,7 +167,7 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
        * In case of an Engine making connection to Broker, usually Broker is an
        * acceptor and Engine not.
        * In case of one peer retention, each one keeps its role but the
-       * connection is reversed. To keep this behavior, Broker is still
+       * connection is reversed. To keep this behavior, Engine is still
        * considered as the connector and Broker the acceptor, is_acceptor is
        * then set to false.
        * In case of Broker connected to Map, Broker is a TCP acceptor, and
@@ -330,7 +330,7 @@ processing::failover* endpoint::_create_failover(
     std::shared_ptr<io::endpoint> endp,
     std::list<config::endpoint>& l) {
   // Debug message.
-  log_v2::config()->info("endpoint applier: creating new endpoint '{}'",
+  log_v2::config()->info("endpoint applier: creating new failover '{}'",
                          cfg.name);
 
   // Check that failover is configured.

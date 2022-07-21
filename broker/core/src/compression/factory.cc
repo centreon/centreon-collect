@@ -42,12 +42,11 @@ using namespace com::centreon::broker::compression;
  */
 bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
   if (ext) {
-    /* we consider bbdo_server as if compression is in "auto" */
-    if (cfg.type == "bbdo_server") {
-      *ext = io::extension("COMPRESSION", false, true);
-    }
-    /* bbdo_client can enable or disable compression, that's all */
-    else if (cfg.type == "bbdo_client") {
+    //    /* we consider bbdo_server as if compression is in "auto" */
+    //    if (cfg.type == "bbdo_server") {
+    //      *ext = io::extension("COMPRESSION", false, true);
+    //    }
+    if (cfg.type == "bbdo_server" || cfg.type == "bbdo_client") {
       auto it = cfg.params.find("compression");
       bool has_compression;
       if (it == cfg.params.end())
@@ -59,12 +58,13 @@ bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
         has_compression = false;
       }
 
-      if (!has_compression)
-        *ext = io::extension("COMPRESSION", false, false);
-      else {
-        /* no "auto" here, we considerer "yes", that's all */
+      if (cfg.get_io_type() == config::endpoint::output) {
+        if (!has_compression)
+          *ext = io::extension("COMPRESSION", false, false);
+        else
+          *ext = io::extension("COMPRESSION", false, true);
+      } else
         *ext = io::extension("COMPRESSION", false, true);
-      }
     } else {
       /* legacy case */
       auto it = cfg.params.find("compression");

@@ -156,9 +156,32 @@ bool tcp_async::contains_available_acceptor_connections(
  * @return The created acceptor as a shared_ptr.
  */
 std::shared_ptr<asio::ip::tcp::acceptor> tcp_async::create_acceptor(
+    const std::string& listen_address,
     uint16_t port) {
-  auto retval(std::make_shared<asio::ip::tcp::acceptor>(
-      pool::io_context(), asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port)));
+  asio::ip::tcp::endpoint listen_endpoint;
+  if (listen_address.empty())
+    listen_endpoint = asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port);
+  else {
+    asio::ip::tcp::resolver::query query(listen_address, std::to_string(port));
+    asio::ip::tcp::resolver resolver(pool::io_context());
+    asio::error_code ec;
+    asio::ip::tcp::resolver::iterator it = resolver.resolve(query, ec), end;
+    if (ec) {
+      log_v2::tcp()->error("TCP: error while resolving '{}' name: {}",
+                           listen_address, ec.message());
+      listen_endpoint = asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port);
+    } else {
+      for (; it != end; ++it) {
+        listen_endpoint = *it;
+        log_v2::tcp()->info("TCP: {} gives address {}", listen_address,
+                            listen_endpoint.address().to_string());
+        if (listen_endpoint.address().is_v4())
+          break;
+      }
+    }
+  }
+  auto retval{std::make_shared<asio::ip::tcp::acceptor>(pool::io_context(),
+                                                        listen_endpoint)};
 
   asio::ip::tcp::acceptor::reuse_address option(true);
   retval->set_option(option);

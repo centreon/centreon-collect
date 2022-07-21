@@ -35,8 +35,13 @@ using namespace com::centreon::broker::tcp;
  * @param port A port.
  * @param read_timeout A duration in seconds.
  */
-acceptor::acceptor(uint16_t port, int32_t read_timeout)
-    : io::endpoint(true), _port(port), _read_timeout(read_timeout) {}
+acceptor::acceptor(const std::string& listen_address,
+                   uint16_t port,
+                   int32_t read_timeout)
+    : io::endpoint(true),
+      _listen_address(listen_address),
+      _port(port),
+      _read_timeout(read_timeout) {}
 
 /**
  *  Destructor.
@@ -64,7 +69,7 @@ void acceptor::add_child(std::string const& child) {
  */
 std::unique_ptr<io::stream> acceptor::open() {
   if (!_acceptor) {
-    _acceptor = tcp_async::instance().create_acceptor(_port);
+    _acceptor = tcp_async::instance().create_acceptor(_listen_address, _port);
     tcp_async::instance().start_acceptor(_acceptor);
   }
 

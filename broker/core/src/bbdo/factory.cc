@@ -132,12 +132,29 @@ io::endpoint* factory::new_endpoint(
     // When the connection is made to the map server, no retention is needed,
     // otherwise we want it.
     bool keep_retention{false};
-    auto it = cfg.params.find("one_peer_retention_mode");
+    auto it = cfg.params.find("retention");
+    if (it != cfg.params.end()) {
+      if (cfg.type == "bbdo_server") {
+        if (!absl::SimpleAtob(it->second, &keep_retention)) {
+          log_v2::bbdo()->error(
+              "BBDO: cannot parse the 'retention' boolean: its content is '{}'",
+              it->second);
+          keep_retention = false;
+        }
+      } else {
+        log_v2::bbdo()->error(
+            "BBDO: Configuration error, the 'retention' mode should be "
+            "set only on a bbdo_server");
+        keep_retention = false;
+      }
+    }
+
+    it = cfg.params.find("one_peer_retention_mode");
     if (it != cfg.params.end()) {
       if (!absl::SimpleAtob(it->second, &keep_retention)) {
         log_v2::bbdo()->error(
-            "factory: cannot parse the 'keep_retention' boolean: the content "
-            "is '{}'",
+            "BBDO: cannot parse the 'one_peer_retention_mode' boolean: the "
+            "content is '{}'",
             it->second);
         keep_retention = false;
       }

@@ -147,7 +147,7 @@ io::endpoint* factory::new_endpoint(
     is_acceptor = false;
 
   if (is_acceptor)
-    endp = std::make_unique<tcp::acceptor>(port, read_timeout);
+    endp = std::make_unique<tcp::acceptor>(host, port, read_timeout);
   else
     endp = std::make_unique<tcp::connector>(host, port, read_timeout);
   return endp.release();
@@ -250,7 +250,7 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
 
   int read_timeout = -1;
   if (is_acceptor)
-    endp = std::make_unique<tcp::acceptor>(port, read_timeout);
+    endp = std::make_unique<tcp::acceptor>(host, port, read_timeout);
   else
     endp = std::make_unique<tcp::connector>(host, port, read_timeout);
   return endp.release();

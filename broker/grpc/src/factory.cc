@@ -164,8 +164,9 @@ io::endpoint* factory::new_endpoint(
     try {
       certificate_authority = read_file(it->second);
     } catch (const std::exception& e) {
-      log_v2::grpc()->error("{} failed to open authority file from:{} {}",
-                            __PRETTY_FUNCTION__, it->second, e.what());
+      log_v2::grpc()->error(
+          "{} failed to open authority certificate from:{} {}",
+          __PRETTY_FUNCTION__, it->second, e.what());
     }
   }
 
@@ -175,28 +176,20 @@ io::endpoint* factory::new_endpoint(
     authorization = it->second;
   }
 
-  grpc_compression_level compression_level(GRPC_COMPRESS_LEVEL_NONE);
+  bool compression = false;
   it = cfg.params.find("compression");
-  if (it != cfg.params.end() && !strcasecmp(it->second.c_str(), "yes")) {
-    compression_level = GRPC_COMPRESS_LEVEL_HIGH;
-  }
+  if (it != cfg.params.end() && !strcasecmp(it->second.c_str(), "yes"))
+    compression = true;
 
-  it = cfg.params.find("compression_level");
-  if (it != cfg.params.end()) {
-    unsigned val;
-    if (!absl::SimpleAtoi(it->second, &val) || val > GRPC_COMPRESS_LEVEL_HIGH) {
-      log_v2::grpc()->error(
-          "{} compression_level must be a positive integer less than or equal "
-          "to {} => use GRPC_COMPRESS_LEVEL_HIGH",
-          __PRETTY_FUNCTION__, GRPC_COMPRESS_LEVEL_HIGH);
-    } else {
-      compression_level = static_cast<grpc_compression_level>(val);
-    }
-  }
+  grpc_config::compression_active enable_compression;
+  if (cfg.get_io_type() == config::endpoint::output)
+    enable_compression = compression ? grpc_config::YES : grpc_config::NO;
+  else
+    enable_compression = grpc_config::AUTO;
 
   grpc_config::pointer conf(std::make_shared<grpc_config>(
       "", encrypted, certificate, certificate_key, certificate_authority,
-      authorization, compression_level));
+      authorization, enable_compression));
 
   std::unique_ptr<io::endpoint> endp;
   if (host.empty())
@@ -343,6 +336,9 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
       try {
         ca_certificate = read_file(it->second);
       } catch (const std::exception& e) {
+        log_v2::grpc()->error(
+            "GRPC: failed to open ca_certificate '{}' file: {}", it->second,
+            e.what());
         throw msg_fmt("GRPC: failed to open ca_certificate '{}' file: {}",
                       it->second, e.what());
       }
@@ -371,6 +367,12 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
           it->second);
   }
 
+  grpc_config::compression_active enable_compression;
+  if (cfg.get_io_type() == config::endpoint::output)
+    enable_compression = compression ? grpc_config::YES : grpc_config::NO;
+  else
+    enable_compression = grpc_config::AUTO;
+
   bool enable_retention = false;
   it = cfg.params.find("retention");
   if (it != cfg.params.end()) {
@@ -379,22 +381,9 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
                     it->second);
   }
 
-  grpc_compression_level compression_level{GRPC_COMPRESS_LEVEL_NONE};
-  it = cfg.params.find("compression");
-  if (it != cfg.params.end()) {
-    bool tmp;
-    if (!absl::SimpleAtob(it->second, &tmp)) {
-      throw msg_fmt(
-          "GRPC: 'compression' field should be a boolean and not '{}'",
-          it->second);
-    }
-    compression_level =
-        tmp ? GRPC_COMPRESS_LEVEL_HIGH : GRPC_COMPRESS_LEVEL_NONE;
-  }
-
   grpc_config::pointer conf(std::make_shared<grpc_config>(
       "", encryption, certificate, private_key, ca_certificate, authorization,
-      compression_level));
+      enable_compression));
 
   // Acceptor.
   std::unique_ptr<io::endpoint> endp;

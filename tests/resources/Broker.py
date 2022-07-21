@@ -594,8 +594,6 @@ def config_broker_bbdo_output(name, stream, port, proto, host=None):
         raise Exception("config_broker_bbdo_output() function only accepts stream in ('bbdo_server', 'bbdo_client')")
     if stream == "bbdo_client" and host is None:
         raise Exception("A bbdo_client must specify a host to connect to")
-    elif stream == "bbdo_server" and host is not None:
-        raise Exception("A bbdo_server must not specify a host to connect to")
 
     if name == 'central':
         filename = "central-broker.json"

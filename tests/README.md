@@ -107,8 +107,11 @@ Here is the list of the currently implemented tests:
 - [x] **BSCSSG2**: Start/Stop 10 times broker with 300ms interval and no coredump
 - [x] **BSCSSG3**: Start-Stop one instance of broker and no coredump
 - [x] **BSCSSG4**: Start/Stop 10 times broker with 1sec interval and no coredump
+- [x] **BSCSSGA1**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with grpc transport protocol. An authorization token is added on the server. Error messages are raised.
+- [x] **BSCSSGA2**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with grpc transport protocol. An authorization token is added on the server and also on the client. All looks ok.
 - [x] **BSCSSK1**: Start-Stop two instances of broker, server configured with grpc and client with tcp. No connectrion established and error raised on client side.
 - [x] **BSCSSK2**: Start-Stop two instances of broker, server configured with tcp and client with grpc. No connectrion established and error raised on client side.
+- [x] **BSCSSP1**: Start-Stop two instances of broker and no coredump. The server contains a listen address
 - [x] **BSCSST1**: Start-Stop two instances of broker and no coredump. Encryption is enabled on client side.
 - [x] **BSCSST2**: Start-Stop two instances of broker and no coredump. Encryption is enabled on client side.
 - [x] **BSCSSTG1**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with encryption enabled. This is not sufficient, then an error is raised.
@@ -283,9 +286,9 @@ Here is the list of the currently implemented tests:
 - [x] **EBNSGU1**: New service group with several pollers and connections to DB with broker configured with unified_sql
 - [x] **EBNSGU2**: New service group with several pollers and connections to DB with broker configured with unified_sql
 - [x] **EBNSVC1**: New services with several pollers
-- [x] **EBSAU2**: New hosts with action_url with more than 2000 characters
-- [x] **EBSN3**: New hosts with notes with more than 500 characters
-- [x] **EBSNU1**: New hosts with notes_url with more than 2000 characters
+- [x] **EBSAU2**: New services with action_url with more than 2000 characters
+- [x] **EBSN3**: New services with notes with more than 500 characters
+- [x] **EBSNU1**: New services with notes_url with more than 2000 characters
 - [x] **ENRSCHE1**: check next check of reschedule is last_check+interval_check
 - [x] **LOGV2BE2**: log-v2 enabled old log enabled check broker sink is equal
 - [x] **LOGV2DB1**: log-v2 disabled old log enabled check broker sink
