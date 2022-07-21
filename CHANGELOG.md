@@ -43,6 +43,13 @@ Don't coredump if connection fail on process start
 
 They are inserted in bulk now.
 
+*sql*
+
+The mysql socket is defined with:
+* /var/run/mysqld/mysqld.sock on Debian and similar distribs
+* /var/lib/mysql/mysql.sock on RH and similar distribs
+* /tmp/mysql.sock on others
+
 ### Clib
 
 #### Fixes
