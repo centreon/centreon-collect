@@ -62,65 +62,6 @@ BSCSSK2
 
 	Kindly Stop Broker
 
-#BSCSS2
-#	[Documentation]	Start/Stop 10 times broker with 300ms interval and no coredump
-#	[Tags]	Broker	start-stop	bbdo_server	bbdo_client	tcp
-#	Config Broker	central
-#	Config Broker BBDO Input	central	bbdo_server	5669  tcp
-#	Config Broker BBDO Output	central	bbdo_client	5670  tcp	localhost
-#	Repeat Keyword	10 times	Start Stop Instance	300ms
-#
-#BSCSS3
-#	[Documentation]	Start-Stop one instance of broker and no coredump
-#	[Tags]	Broker	start-stop	bbdo_server	bbdo_client	tcp
-#	Config Broker	central
-#	Config Broker BBDO Input	central	bbdo_server	5669  tcp
-#	Config Broker BBDO Output	central	bbdo_client	5670  tcp	localhost
-#	Repeat Keyword	5 times	Start Stop Instance	0
-#
-#BSCSS4
-#	[Documentation]	Start/Stop 10 times broker with 1sec interval and no coredump
-#	[Tags]	Broker	start-stop	bbdo_server	bbdo_client	tcp
-#	Config Broker	central
-#	Config Broker BBDO Input	central	bbdo_server	5669  tcp
-#	Config Broker BBDO Output	central	bbdo_client	5670  tcp	localhost
-#	Repeat Keyword	10 times	Start Stop Instance	1s
-#
-#BSCSSG1
-#	[Documentation]	Start-Stop two instances of broker and no coredump
-#	[Tags]	Broker	start-stop	bbdo_server	bbdo_client	grpc
-#	Config Broker	central
-#	Config Broker	rrd
-#	Config Broker BBDO Input	central	bbdo_server	5669  grpc
-#	Config Broker BBDO Output	central	bbdo_client	5670  grpc	localhost
-#	Config Broker BBDO Input	rrd	bbdo_server	5670  grpc
-#        Broker Config Log	central	config	info
-#	Repeat Keyword	5 times	Start Stop Service	0
-#
-#BSCSSG2
-#	[Documentation]	Start/Stop 10 times broker with 300ms interval and no coredump
-#	[Tags]	Broker	start-stop	bbdo_server	bbdo_client	grpc
-#	Config Broker	central
-#	Config Broker BBDO Input	central	bbdo_server	5669  grpc
-#	Config Broker BBDO Output	central	bbdo_client	5670  grpc	localhost
-#	Repeat Keyword	10 times	Start Stop Instance	300ms
-#
-#BSCSSG3
-#	[Documentation]	Start-Stop one instance of broker and no coredump
-#	[Tags]	Broker	start-stop	bbdo_server	bbdo_client	grpc
-#	Config Broker	central
-#	Config Broker BBDO Input	central	bbdo_server	5669  grpc
-#	Config Broker BBDO Output	central	bbdo_client	5670  grpc	localhost
-#	Repeat Keyword	5 times	Start Stop Instance	0
-#
-#BSCSSG4
-#	[Documentation]	Start/Stop 10 times broker with 1sec interval and no coredump
-#	[Tags]	Broker	start-stop	bbdo_server	bbdo_client	grpc
-#	Config Broker	central
-#	Config Broker BBDO Input	central	bbdo_server	5669  grpc
-#	Config Broker BBDO Output	central	bbdo_client	5670  grpc	localhost
-#	Repeat Keyword	10 times	Start Stop Instance	1s
-
 *** Keywords ***
 Start Stop Service
 	[Arguments]	${interval}
