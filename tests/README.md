@@ -103,19 +103,31 @@ Here is the list of the currently implemented tests:
 - [x] **BSCSSC1**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with tcp transport protocol. Compression is enabled on client side.
 - [x] **BSCSSC2**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with tcp transport protocol. Compression is disabled on client side.
 - [x] **BSCSSCG1**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with grpc transport protocol. Compression is enabled on client side.
+- [x] **BSCSSCGRR1**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with grpc transport protocol. Compression is enabled on output side. Reversed connection with retention and grpc transport protocol.
+- [x] **BSCSSCGRR2**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with grpc transport protocol. Compression is enabled on output side. Reversed connection with retention and grpc transport protocol.
+- [x] **BSCSSCRR1**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with tcp transport protocol. Compression is enabled on client side. Connection reversed with retention.
+- [x] **BSCSSCRR2**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with tcp transport protocol. Compression is disabled on client side. Connection reversed with retention.
 - [x] **BSCSSG1**: Start-Stop two instances of broker and no coredump
 - [x] **BSCSSG2**: Start/Stop 10 times broker with 300ms interval and no coredump
 - [x] **BSCSSG3**: Start-Stop one instance of broker and no coredump
 - [x] **BSCSSG4**: Start/Stop 10 times broker with 1sec interval and no coredump
 - [x] **BSCSSGA1**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with grpc transport protocol. An authorization token is added on the server. Error messages are raised.
 - [x] **BSCSSGA2**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with grpc transport protocol. An authorization token is added on the server and also on the client. All looks ok.
+- [x] **BSCSSGRR1**: Start-Stop two instances of broker and no coredump, reversed and retention, with transport protocol grpc, start-stop 5 times.
 - [x] **BSCSSK1**: Start-Stop two instances of broker, server configured with grpc and client with tcp. No connectrion established and error raised on client side.
 - [x] **BSCSSK2**: Start-Stop two instances of broker, server configured with tcp and client with grpc. No connectrion established and error raised on client side.
 - [x] **BSCSSP1**: Start-Stop two instances of broker and no coredump. The server contains a listen address
+- [x] **BSCSSPRR1**: Start-Stop two instances of broker and no coredump. The server contains a listen address, reversed and retention. central-broker-master-output is then a failover.
+- [x] **BSCSSR1**: Start-Stop two instances of broker and no coredump. Connection with bbdo_server/bbdo_client and reversed.
+- [x] **BSCSSRR1**: Start-Stop two instances of broker and no coredump. Connection with bbdo_server/bbdo_client, reversed and retention. central-broker-master-output is then a failover.
+- [x] **BSCSSRR2**: Start/Stop 10 times broker with 300ms interval and no coredump, reversed and retention. central-broker-master-output is then a failover.
 - [x] **BSCSST1**: Start-Stop two instances of broker and no coredump. Encryption is enabled on client side.
 - [x] **BSCSST2**: Start-Stop two instances of broker and no coredump. Encryption is enabled on client side.
 - [x] **BSCSSTG1**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with encryption enabled. This is not sufficient, then an error is raised.
 - [x] **BSCSSTG2**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with encryption enabled. It works with good certificates and keys.
+- [x] **BSCSSTGRR2**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with encryption enabled. It works with good certificates and keys. Reversed grpc connection with retention.
+- [x] **BSCSSTRR1**: Start-Stop two instances of broker and no coredump. Encryption is enabled. transport protocol is tcp, reversed and retention.
+- [x] **BSCSSTRR2**: Start-Stop two instances of broker and no coredump. Encryption is enabled.
 - [x] **BSS1**: Start-Stop two instances of broker and no coredump
 - [x] **BSS2**: Start/Stop 10 times broker with 300ms interval and no coredump
 - [x] **BSS3**: Start-Stop one instance of broker and no coredump
@@ -266,8 +278,8 @@ Here is the list of the currently implemented tests:
 - [x] **BRRDDMU1**: RRD metric deletion on table metric with unified sql output
 - [x] **BRRDRBDB1**: RRD metric rebuild with a query in centreon_storage and unified sql
 - [x] **BRRDRBUDB1**: RRD metric rebuild with a query in centreon_storage and unified sql
-- [x] **BRRDRM1**: RRD metric rebuild with gRPC API and unified sql
-- [x] **BRRDRMU1**: RRD metric rebuild with gRPC API and unified sql
+- [x] **BRRDRM1**: RRD metric rebuild with gRPC API. 3 indexes are selected then a message to rebuild them is sent. This is done with storage/sql sql output.
+- [x] **BRRDRMU1**: RRD metric rebuild with gRPC API. 3 indexes are selected then a message to rebuild them is sent. This is done with unified_sql output.
 - [x] **EBDP1**: Four new pollers are started and then we remove Poller3.
 - [x] **EBDP2**: Three new pollers are started, then they are killed. After a simple restart of broker, it is still possible to remove Poller2 if removed from the configuration.
 - [x] **EBDP3**: Three new pollers are started, then they are killed. It is still possible to remove Poller2 if removed from the configuration.
