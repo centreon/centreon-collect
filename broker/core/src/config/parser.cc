@@ -134,8 +134,7 @@ absl::optional<std::string> parser::check_and_read<std::string>(
       return {el};
     else
       throw exceptions::msg_fmt(
-          "config parser: cannot parse key '{}': "
-          "the content must be a string",
+          "config parser: cannot parse key '{}': the content must be a string",
           key);
   }
   return absl::nullopt;
