@@ -42,10 +42,6 @@ using namespace com::centreon::broker::compression;
  */
 bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
   if (ext) {
-    //    /* we consider bbdo_server as if compression is in "auto" */
-    //    if (cfg.type == "bbdo_server") {
-    //      *ext = io::extension("COMPRESSION", false, true);
-    //    }
     if (cfg.type == "bbdo_server" || cfg.type == "bbdo_client") {
       auto it = cfg.params.find("compression");
       bool has_compression;
