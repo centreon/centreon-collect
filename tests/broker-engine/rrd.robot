@@ -214,7 +214,7 @@ BRRDDMIDU1
 
 
 BRRDRM1
-	[Documentation]	RRD metric rebuild with gRPC API and unified sql
+	[Documentation]	RRD metric rebuild with gRPC API. 3 indexes are selected then a message to rebuild them is sent. This is done with storage/sql sql output.
 	[Tags]	RRD	metric	rebuild	grpc
 	Config Engine	${1}
 	Config Broker	rrd
@@ -258,15 +258,17 @@ BRRDRM1
 	END
 
 BRRDRMU1
-	[Documentation]	RRD metric rebuild with gRPC API and unified sql
+	[Documentation]	RRD metric rebuild with gRPC API. 3 indexes are selected then a message to rebuild them is sent. This is done with unified_sql output.
 	[Tags]	RRD	metric	rebuild	unified_sql	grpc
 	Config Engine	${1}
 	Config Broker	rrd
 	Config Broker	central
-	Config Broker Sql Output	central	unified_sql
 	Config Broker	module
+	Config Broker Sql Output	central	unified_sql
 	Broker Config Log	rrd	rrd	trace
 	Broker Config Log	central	sql	trace
+        Broker Config Flush Log	central	0
+        Broker Config Flush Log	rrd	0
 	Create Metrics	3
 
 	${start}=	Get Current Date
@@ -286,11 +288,11 @@ BRRDRMU1
 	Should Be True	${result}	msg=Central did not send metrics to rebuild
 
 	${content1}=	Create List	RRD: Starting to rebuild metrics
-	${result}=	Find In Log With Timeout	${rrdLog}	${start}	${content1}	30
+	${result}=	Find In Log With Timeout	${rrdLog}	${start}	${content1}	45
 	Should Be True	${result}	msg=RRD cbd did not receive metrics to rebuild START
 
 	${content1}=	Create List	RRD: Rebuilding metric
-	${result}=	Find In Log With Timeout	${rrdLog}	${start}	${content1}	30
+	${result}=	Find In Log With Timeout	${rrdLog}	${start}	${content1}	45
 	Should Be True	${result}	msg=RRD cbd did not receive metrics to rebuild DATA
 
 	${content1}=	Create List	RRD: Finishing to rebuild metrics

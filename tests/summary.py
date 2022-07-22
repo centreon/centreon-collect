@@ -146,6 +146,7 @@ if args.count:
     AX.stackplot(x, ys, yf, labels=['Success', 'failure'])
     AX.legend(loc='upper left')
     AX.grid(color='gray', linestyle='dashed')
+    AX.axis(ymin=min(ys))
     idx += 1
 
 if args.slow:

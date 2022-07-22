@@ -33,7 +33,7 @@ namespace compression {
  *  Compress and uncompress data.
  */
 class stream : public io::stream {
-  int _level;
+  const int _level;
   stack_array _rbuffer;
   bool _shutdown;
   size_t _size;
