@@ -39,6 +39,8 @@ class timestamp {
  public:
   timestamp(time_t secs = 0, int32_t usecs = 0);
   timestamp(const timestamp& right);
+  timestamp(const struct timeval& right)
+      : _secs(right.tv_sec), _usecs(right.tv_usec) {}
   ~timestamp() noexcept = default;
   timestamp& operator=(const timestamp& right);
   bool operator==(const timestamp& right) const noexcept;

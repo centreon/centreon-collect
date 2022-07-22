@@ -130,7 +130,8 @@ class service : public notifier {
   int get_current_state_int() const override;
   std::string const& get_current_state_as_string() const override;
 
-  int handle_async_check_result(check_result* queued_check_result);
+  virtual int handle_async_check_result(
+      const check_result& queued_check_result);
   int log_event();
   void check_for_flapping(bool update, bool allow_flapstart_notification);
   int handle_service_event();

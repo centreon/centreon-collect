@@ -165,7 +165,7 @@ int cmd_add_comment(int cmd, time_t entry_time, char* args) {
   char* comment_data(nullptr);
   bool persistent{false};
   uint64_t service_id = 0;
-  char* command_name;
+  const char* command_name;
 
   /* get the host name */
   if ((host_name = my_strtok(args, ";")) == nullptr)
@@ -1860,7 +1860,7 @@ int cmd_change_object_char_var(int cmd, char* args) {
 
     case CMD_CHANGE_HOST_CHECK_COMMAND:
       temp_host->set_check_command(temp_ptr);
-      temp_host->set_check_command_ptr(cmd_found->second.get());
+      temp_host->set_check_command_ptr(cmd_found->second);
       attr = MODATTR_CHECK_COMMAND;
       break;
 
@@ -1884,7 +1884,7 @@ int cmd_change_object_char_var(int cmd, char* args) {
 
     case CMD_CHANGE_SVC_CHECK_COMMAND:
       found_svc->second->set_check_command(temp_ptr);
-      found_svc->second->set_check_command_ptr(cmd_found->second.get());
+      found_svc->second->set_check_command_ptr(cmd_found->second);
       attr = MODATTR_CHECK_COMMAND;
       break;
 

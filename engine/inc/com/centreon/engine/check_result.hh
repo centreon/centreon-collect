@@ -44,9 +44,6 @@ class check_result {
                bool exited_ok,
                int return_code,
                std::string const& output);
-  check_result(check_result const&) = delete;
-  check_result(check_result&&) = delete;
-  check_result& operator=(check_result const&) = delete;
 
   enum check_source get_object_check_type() const;
   void set_object_check_type(enum check_source object_check_type);

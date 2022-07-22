@@ -158,8 +158,11 @@ class checkable {
   virtual bool is_in_downtime() const = 0;
   void set_event_handler_ptr(commands::command* cmd);
   commands::command* get_event_handler_ptr() const;
-  void set_check_command_ptr(commands::command* cmd);
-  commands::command* get_check_command_ptr() const;
+  void set_check_command_ptr(const std::shared_ptr<commands::command>& cmd);
+  constexpr const std::shared_ptr<commands::command>& get_check_command_ptr()
+      const {
+    return _check_command_ptr;
+  }
   bool get_is_executing() const;
   void set_is_executing(bool is_executing);
   void set_severity(std::shared_ptr<severity> sv);
@@ -214,7 +217,7 @@ class checkable {
   enum state_type _state_type;
   double _percent_state_change;
   commands::command* _event_handler_ptr;
-  commands::command* _check_command_ptr;
+  std::shared_ptr<commands::command> _check_command_ptr;
   bool _is_executing;
   std::shared_ptr<severity> _severity;
   uint64_t _icon_id;

@@ -1368,7 +1368,7 @@ void notifier::resolve(int& w, int& e) {
       errors++;
     } else
       /* save the pointer to the check command for later */
-      set_check_command_ptr(cmd_found->second.get());
+      set_check_command_ptr(cmd_found->second);
   }
 
   if (check_period().empty()) {

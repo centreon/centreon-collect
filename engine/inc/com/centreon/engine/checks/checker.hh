@@ -38,7 +38,7 @@ class checker : public commands::command_listener {
 
  public:
   static checker& instance();
-  static void init();
+  static void init(bool used_by_test = false);
   static void deinit();
 
   void clear() noexcept;
@@ -52,8 +52,10 @@ class checker : public commands::command_listener {
   void add_check_result_to_reap(check_result* result) noexcept;
   static void forget(notifier* n) noexcept;
 
+  void wait_completion();
+
  private:
-  checker();
+  checker(bool used_by_test);
   checker(checker const& right);
   ~checker() noexcept override;
   checker& operator=(checker const& right);
@@ -79,6 +81,13 @@ class checker : public commands::command_listener {
   /* Due to reloads of centengine we have the following list with notifiers
    * that should be forgotten if notifiers are removed. */
   std::deque<notifier*> _to_forget;
+
+  /**
+   * used only for test in order to wait for completion
+   */
+  const bool _used_by_test;
+  std::condition_variable _finish_cond;
+  bool _finished;
 };
 }  // namespace checks
 

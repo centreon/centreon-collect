@@ -17,6 +17,7 @@
  *
  */
 #include "com/centreon/engine/commands/result.hh"
+#include "com/centreon/engine/check_result.hh"
 
 #include "com/centreon/timestamp.hh"
 
@@ -42,6 +43,14 @@ result::result() : command_id(0), exit_code(0), exit_status(process::normal) {}
 result::result(result const& right) {
   _internal_copy(right);
 }
+
+result::result(const check_result& check_res)
+    : command_id(0),
+      end_time(check_res.get_finish_time()),
+      exit_code(check_res.get_return_code()),
+      start_time(check_res.get_start_time()),
+      exit_status(check_res.get_exited_ok() ? process::normal : process::crash),
+      output(check_res.get_output()) {}
 
 /**
  *  Destructor.

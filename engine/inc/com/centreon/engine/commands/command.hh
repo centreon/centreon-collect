@@ -54,6 +54,8 @@ class command {
   std::string _name;
 
  public:
+  using pointer = std::shared_ptr<command>;
+
   command(const std::string& name,
           const std::string& command_line,
           command_listener* listener = nullptr);
@@ -76,6 +78,14 @@ class command {
   void set_listener(command_listener* listener) noexcept;
   static command_map commands;
 };
+
+std::ostream& operator<<(std::ostream& s, const command& cmd);
+
+inline std::ostream& operator<<(std::ostream& s, const command::pointer& cmd) {
+  s << *cmd;
+  return s;
+}
+
 }  // namespace commands
 
 CCE_END()

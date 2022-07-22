@@ -2671,7 +2671,7 @@ grpc::Status engine_impl::ChangeHostObjectCharVar(
         break;
       case ChangeObjectChar_Mode_CHANGE_CHECK_COMMAND:
         temp_host->set_check_command(request->charval());
-        temp_host->set_check_command_ptr(cmd_found->second.get());
+        temp_host->set_check_command_ptr(cmd_found->second);
         attr = MODATTR_CHECK_COMMAND;
         /* send data to event broker */
         broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
@@ -2778,7 +2778,7 @@ grpc::Status engine_impl::ChangeServiceObjectCharVar(
       attr = MODATTR_EVENT_HANDLER_COMMAND;
     } else if (request->mode() == ChangeObjectChar_Mode_CHANGE_CHECK_COMMAND) {
       temp_service->set_check_command(request->charval());
-      temp_service->set_check_command_ptr(cmd_found->second.get());
+      temp_service->set_check_command_ptr(cmd_found->second);
       attr = MODATTR_CHECK_COMMAND;
     } else if (request->mode() ==
                ChangeObjectChar_Mode_CHANGE_CHECK_TIMEPERIOD) {

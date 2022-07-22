@@ -132,7 +132,7 @@ void commands::command::set_listener(
  */
 std::string commands::command::process_cmd(nagios_macros* macros) const {
   std::string command_line;
-  process_macros_r(macros, _command_line, command_line, 0);
+  process_macros_r(macros, this->get_command_line(), command_line, 0);
   return command_line;
 }
 
@@ -144,3 +144,15 @@ std::string commands::command::process_cmd(nagios_macros* macros) const {
 uint64_t commands::command::get_uniq_id() {
   return ++_id;
 }
+
+CCE_BEGIN()
+namespace commands {
+
+std::ostream& operator<<(std::ostream& s, const commands::command& cmd) {
+  s << "cmd_name:" << cmd.get_name() << " cmd_line:" << cmd.get_command_line();
+  return s;
+}
+
+}  // namespace commands
+
+CCE_END()

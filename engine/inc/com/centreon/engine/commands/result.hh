@@ -27,7 +27,10 @@
 
 CCE_BEGIN()
 
+class check_result;
+
 namespace commands {
+
 /**
  *  @class result result.hh
  *  @brief Result contain the result of execution process.
@@ -41,6 +44,7 @@ class result {
  public:
   result();
   result(result const& right);
+  result(const check_result& check_res);
   ~result() noexcept;
   result& operator=(result const& right);
   bool operator==(result const& right) const noexcept;
