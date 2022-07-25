@@ -629,27 +629,24 @@ static int l_broker_parse_perfdata(lua_State* L) {
  * @return 1
  */
 static int l_broker_url_encode(lua_State* L) {
-  char const* str = lua_tostring(L, -1);
+  size_t len;
+  char const* str = lua_tolstring(L, -1, &len);
 
-  std::ostringstream escaped;
-  escaped.fill('0');
-  escaped << std::hex;
-
+  std::string retval;
+  retval.reserve(len * 1.5);
   for (char const* cc = str; *cc; ++cc) {
     char c = *cc;
     // Keep alphanumeric and other accepted characters intact
     if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
-      escaped << c;
+      retval.push_back(c);
       continue;
     }
 
     // Any other characters are percent-encoded
-    escaped << std::uppercase;
-    escaped << '%' << std::setw(2) << int((unsigned char)c);
-    escaped << std::nouppercase;
+    retval.append(fmt::format("\%{:02X}", int((unsigned char)c)));
   }
 
-  lua_pushstring(L, escaped.str().c_str());
+  lua_pushstring(L, retval.c_str());
   return 1;
 }
 

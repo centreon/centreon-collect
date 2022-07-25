@@ -81,13 +81,6 @@ int32_t luabinding::stop() {
 }
 
 /**
- *  Destructor
- */
-luabinding::~luabinding() {
-  assert(_L == nullptr);
-}
-
-/**
  *  This function updates the Lua variables package.path and package.cpath so
  *  that a script in that directory can be called without difficulty.
  *
