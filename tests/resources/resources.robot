@@ -118,6 +118,15 @@ Reset Eth Connection
 	Run	iptables -F
 	Run	iptables -X
 
+Save Logs If failed
+	Run Keyword If Test Failed	Save Logs
+
+Save Logs
+	Create Directory	failed
+        ${failDir}=	Catenate	SEPARATOR=	failed/	${Test Name}
+        Create Directory	${failDir}
+        Copy files	${centralLog}	${failDir}
+
 *** Variables ***
 ${BROKER_LOG}	/var/log/centreon-broker
 ${ENGINE_LOG}	/var/log/centreon-engine

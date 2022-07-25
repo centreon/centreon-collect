@@ -3,6 +3,7 @@ Resource	../resources/resources.robot
 Suite Setup	Clean Before Suite
 Suite Teardown	Clean After Suite
 Test Setup	Stop Processes
+Test Teardown	Save logs If Failed
 
 Documentation	Centreon Broker RRD metric deletion
 Library	DatabaseLibrary
@@ -236,7 +237,7 @@ BRRDRM1
 	Log To Console	Indexes to rebuild: ${index}
 	${metrics}=	Get Metrics Matching Indexes	${index}
 	Log To Console	Metrics to rebuild: ${metrics}
-	${content}=	Create List	Metric rebuild: metric	is sent to rebuild	Metric rebuild: Rebuild of metrics from the following indexes
+	${content}=	Create List	Metric rebuild: metric	is sent to rebuild
 	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	30
 	Should Be True	${result}	msg=Central did not send metrics to rebuild
 
@@ -283,7 +284,7 @@ BRRDRMU1
 	Log To Console	Indexes to rebuild: ${index}
 	${metrics}=	Get Metrics Matching Indexes	${index}
 	Log To Console	Metrics to rebuild: ${metrics}
-	${content}=	Create List	Metric rebuild: metric	is sent to rebuild	Metric rebuild: Rebuild of metrics from the following indexes
+	${content}=	Create List	Metric rebuild: metric	is sent to rebuild
 	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	30
 	Should Be True	${result}	msg=Central did not send metrics to rebuild
 

@@ -1,7 +1,7 @@
 *** Settings ***
 
 # FIXME DBO
-Force Tags        excluded
+#Force Tags        excluded
 
 Resource	../resources/resources.robot
 Library     ../resources/Engine.py
