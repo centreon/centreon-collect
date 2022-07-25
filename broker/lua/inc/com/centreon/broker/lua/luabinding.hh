@@ -117,6 +117,7 @@ class luabinding {
   int32_t write(std::shared_ptr<io::data> const& data) noexcept;
   bool has_flush() const noexcept;
   int32_t flush() noexcept;
+  int32_t stop();
 };
 
 // Event conversion to Lua table.

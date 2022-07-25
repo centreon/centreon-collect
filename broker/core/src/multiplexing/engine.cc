@@ -267,6 +267,10 @@ engine::engine()
                                    EngineStats::NOT_STARTED);
 }
 
+engine::~engine() noexcept {
+  log_v2::core()->debug("core: cbd engine destroyed.");
+}
+
 /**
  *  Generate path to the multiplexing engine cache file.
  *

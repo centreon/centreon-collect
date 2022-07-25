@@ -99,7 +99,7 @@ class engine {
 
   engine(const engine&) = delete;
   engine& operator=(const engine&) = delete;
-  ~engine() noexcept = default;
+  ~engine() noexcept;
 
   void clear();
   void publish(const std::shared_ptr<io::data>& d);

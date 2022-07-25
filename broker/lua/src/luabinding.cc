@@ -71,12 +71,20 @@ luabinding::luabinding(std::string const& lua_script,
   }
 }
 
+int32_t luabinding::stop() {
+  int32_t retval = flush();
+  if (_L) {
+    lua_close(_L);
+    _L = nullptr;
+  }
+  return retval;
+}
+
 /**
  *  Destructor
  */
 luabinding::~luabinding() {
-  if (_L)
-    lua_close(_L);
+  assert(_L == nullptr);
 }
 
 /**
