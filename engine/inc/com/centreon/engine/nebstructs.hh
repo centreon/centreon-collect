@@ -234,15 +234,12 @@ typedef struct nebstruct_contact_notification_method_struct {
   char* host_name;
   char* service_description;
   char* contact_name;
-  char* command_name;
-  char* command_args;
   int reason_type;
   int state;
   char* output;
   char* ack_author;
   char* ack_data;
   int escalated;
-
   void* object_ptr;
   void* contact_ptr;
 } nebstruct_contact_notification_method_data;
@@ -306,8 +303,8 @@ typedef struct nebstruct_event_handler_struct {
   int state_type;
   int state;
   int timeout;
-  char* command_name;
-  char* command_args;
+  std::string command_name;
+  std::string command_args;
   char* command_line;
   struct timeval start_time;
   struct timeval end_time;
@@ -385,8 +382,6 @@ typedef struct nebstruct_host_check_struct {
   int state_type;
   int state;
   int timeout;
-  char* command_name;
-  char* command_args;
   const char* command_line;
   struct timeval start_time;
   struct timeval end_time;
@@ -490,8 +485,8 @@ typedef struct nebstruct_program_status_struct {
   int obsess_over_services;
   unsigned long modified_host_attributes;
   unsigned long modified_service_attributes;
-  char const* global_host_event_handler;
-  char const* global_service_event_handler;
+  std::string global_host_event_handler;
+  std::string global_service_event_handler;
 } nebstruct_program_status_data;
 
 /* Relation data structure. */
@@ -530,8 +525,6 @@ typedef struct nebstruct_service_check_struct {
   int state_type;
   int state;
   int timeout;
-  char* command_name;
-  char* command_args;
   const char* command_line;
   struct timeval start_time;
   struct timeval end_time;

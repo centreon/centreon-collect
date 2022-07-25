@@ -24,9 +24,8 @@ Clear Engine Logs
 	Create Directory	${ENGINE_LOG}
 
 Clear Broker Logs
-	Remove Files	${BROKER_LOG}${/}central-broker-master.log	${BROKER_LOG}${/}central-rrd-master.log	${BROKER_LOG}${/}central-module-master.log*
-	Remove Files	${BROKER_LOG}${/}central-module-master.log	${BROKER_LOG}${/}central-rrd-master.log	${BROKER_LOG}${/}central-module-master.log*
-	Remove Files	${BROKER_LOG}${/}central-rrd-master.log	${BROKER_LOG}${/}central-rrd-master.log	${BROKER_LOG}${/}central-module-master.log*
+	Remove Directory	${BROKER_LOG}	Recursive=True
+	Create Directory	${BROKER_LOG}
 
 Start Broker
 	Start Process	/usr/sbin/cbd	/etc/centreon-broker/central-broker.json	alias=b1
