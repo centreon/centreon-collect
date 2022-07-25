@@ -66,6 +66,14 @@ void protocols::load() {
 }
 
 /**
+ *  Unload the singleton.
+ */
+void protocols::unload() {
+  delete gl_protocols;
+  gl_protocols = nullptr;
+}
+
+/**
  *  Register a protocol.
  *
  *  @param[in] name         Protocol name.
@@ -88,14 +96,6 @@ void protocols::reg(std::string const& name,
   log_v2::core()->info("protocols: registering protocol ('{}' (layers {}-{})",
                        name, osi_from, osi_to);
   _protocols[name] = p;
-}
-
-/**
- *  Unload the singleton.
- */
-void protocols::unload() {
-  delete gl_protocols;
-  gl_protocols = nullptr;
 }
 
 /**

@@ -1,5 +1,5 @@
 /*
-** Copyright 2020-2021 Centreon
+** Copyright 2020-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -136,7 +136,7 @@ pool::~pool() noexcept {
  * @brief Stop the thread pool.
  */
 void pool::_stop() {
-  log_v2::core()->trace("Stopping the TCP thread pool");
+  log_v2::core()->debug("Stopping the thread pool");
   std::lock_guard<std::mutex> lock(_closed_m);
   if (!_closed) {
     _closed = true;
@@ -145,7 +145,7 @@ void pool::_stop() {
       if (t.joinable())
         t.join();
   }
-  log_v2::core()->trace("No remaining thread in the pool");
+  log_v2::core()->debug("No remaining thread in the pool");
 }
 
 /**

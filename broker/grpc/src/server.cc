@@ -172,9 +172,9 @@ void server::start() {
   builder.AddChannelArgument(
       GRPC_ARG_HTTP2_MIN_RECV_PING_INTERVAL_WITHOUT_DATA_MS, 60000);
 
-  if (_conf->get_compress_level() > GRPC_COMPRESS_LEVEL_NONE) {
+  if (_conf->get_compression() == grpc_config::YES) {
     grpc_compression_algorithm algo = grpc_compression_algorithm_for_level(
-        _conf->get_compress_level(), calc_accept_all_compression_mask());
+        GRPC_COMPRESS_LEVEL_HIGH, calc_accept_all_compression_mask());
     const char* algo_name;
     if (grpc_compression_algorithm_name(algo, &algo_name)) {
       log_v2::grpc()->debug("server default compression {}", algo_name);
@@ -183,7 +183,7 @@ void server::start() {
     }
 
     builder.SetDefaultCompressionAlgorithm(algo);
-    builder.SetDefaultCompressionLevel(_conf->get_compress_level());
+    builder.SetDefaultCompressionLevel(GRPC_COMPRESS_LEVEL_HIGH);
   }
   _server = std::unique_ptr<::grpc::Server>(builder.BuildAndStart());
 }

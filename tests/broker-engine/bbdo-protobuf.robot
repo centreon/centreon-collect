@@ -3,6 +3,7 @@ Resource	../resources/resources.robot
 Suite Setup	Clean Before Suite
 Suite Teardown	Clean After Suite
 Test Setup	Stop Processes
+Test Teardown	Save logs If Failed
 
 Documentation	Engine/Broker tests on bbdo_version 3.0.0 and protobuf bbdo embedded events.
 Library	Process
@@ -28,7 +29,7 @@ BEPBBEE1
 	${start}=	Get Current Date
 	Start Broker
 	Start Engine
-	${content}=	Create List	[bbdo] [error] BBDO: peer is using protocol version 3.0.0 whereas we're using protocol version 2.0.0
+	${content}=	Create List	BBDO: peer is using protocol version 3.0.0 whereas we're using protocol version 2.0.0
 	${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	30
 	Should Be True	${result}	msg=Message about not matching bbdo versions not available
 	Stop Engine
@@ -45,11 +46,12 @@ BEPBBEE2
         Broker Config Add Item	central	bbdo_version	3.0.0
         Broker Config Add Item	rrd	bbdo_version	3.0.0
 	Broker Config Log	central	sql	debug
+        Broker Config Flush Log	central	0
 	Clear Retention
 	${start}=	Get Current Date
 	Start Broker
 	Start Engine
-	${content}=	Create List	[config] [error] Configuration check error: bbdo versions >= 3.0.0 need the unified_sql module to be configured.
+	${content}=	Create List	Configuration check error: bbdo versions >= 3.0.0 need the unified_sql module to be configured.
 	${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	30
 	Should Be True	${result}	msg=Message about a missing config of unified_sql not available.
 	Stop Engine

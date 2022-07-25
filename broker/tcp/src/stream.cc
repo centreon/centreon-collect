@@ -117,7 +117,6 @@ std::string stream::peer() const {
  *
  *  @return Respects io::stream::read()'s return value.
  */
-
 bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
   log_v2::tcp()->trace("read on stream");
 

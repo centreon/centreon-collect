@@ -23,33 +23,36 @@ CCB_BEGIN()
 
 namespace grpc {
 class grpc_config {
+ public:
+  enum compression_active { NO = 0, AUTO = 1, YES = 2 };
+
+ private:
   std::string _hostport;
-  bool _crypted;
+  bool _crypted = false;
   std::string _certificate, _cert_key, _ca_cert, _authorization;
-  grpc_compression_level _compress_level;
+  // grpc_compression_level _compress_level;
+  compression_active _compress;
 
  public:
   using pointer = std::shared_ptr<grpc_config>;
 
-  grpc_config() : _crypted(false), _compress_level(GRPC_COMPRESS_LEVEL_NONE) {}
+  grpc_config() : _compress(NO) {}
   grpc_config(const std::string& hostp)
-      : _hostport(hostp),
-        _crypted(false),
-        _compress_level(GRPC_COMPRESS_LEVEL_NONE) {}
+      : _hostport(hostp), _crypted(false), _compress(NO) {}
   grpc_config(const std::string& hostp,
               bool crypted,
               const std::string& certificate,
               const std::string& cert_key,
               const std::string& ca_cert,
               const std::string& authorization,
-              grpc_compression_level compress_level)
+              compression_active compression)
       : _hostport(hostp),
         _crypted(crypted),
         _certificate(certificate),
         _cert_key(cert_key),
         _ca_cert(ca_cert),
         _authorization(authorization),
-        _compress_level(compress_level) {}
+        _compress(compression) {}
 
   constexpr const std::string& get_hostport() const { return _hostport; }
   constexpr bool is_crypted() const { return _crypted; }
@@ -59,9 +62,7 @@ class grpc_config {
   constexpr const std::string& get_authorization() const {
     return _authorization;
   }
-  constexpr grpc_compression_level get_compress_level() const {
-    return _compress_level;
-  }
+  constexpr compression_active get_compression() const { return _compress; }
 
   friend class factory;
 };

@@ -37,20 +37,19 @@ client::client(const grpc_config::pointer& conf)
   args.SetInt(GRPC_ARG_KEEPALIVE_TIME_MS, 30000);
   args.SetInt(GRPC_ARG_KEEPALIVE_TIMEOUT_MS, 10000);
   args.SetInt(GRPC_ARG_HTTP2_MAX_PINGS_WITHOUT_DATA, 0);
-  if (conf->get_compress_level() != GRPC_COMPRESS_LEVEL_NONE) {
+  if (conf->get_compression() == grpc_config::YES) {
     grpc_compression_algorithm algo = grpc_compression_algorithm_for_level(
-        conf->get_compress_level(), calc_accept_all_compression_mask());
-    if (algo != GRPC_COMPRESS_NONE) {
-      const char* algo_name;
-      if (grpc_compression_algorithm_name(algo, &algo_name)) {
-        log_v2::grpc()->debug("client this={:p} activate compression {}",
-                              static_cast<void*>(this), algo_name);
-      } else {
-        log_v2::grpc()->debug("client this={:p} activate compression unknown",
-                              static_cast<void*>(this));
-      }
-      args.SetCompressionAlgorithm(algo);
+        GRPC_COMPRESS_LEVEL_HIGH, calc_accept_all_compression_mask());
+
+    const char* algo_name;
+    if (grpc_compression_algorithm_name(algo, &algo_name)) {
+      log_v2::grpc()->debug("client this={:p} activate compression {}",
+                            static_cast<void*>(this), algo_name);
+    } else {
+      log_v2::grpc()->debug("client this={:p} activate compression unknown",
+                            static_cast<void*>(this));
     }
+    args.SetCompressionAlgorithm(algo);
   }
   std::shared_ptr<::grpc::ChannelCredentials> creds;
 #ifdef USE_TLS

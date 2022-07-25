@@ -10,6 +10,8 @@ import matplotlib.pyplot as plt
 parser = argparse.ArgumentParser(prog='summary.py', description='Draw a summary on the tests historical.')
 parser.add_argument('--fail', '-f', action='store_true', help='Add a summary on tests that failed.')
 parser.add_argument('--slow', '-s', action='store_true', help='Add a summary on slow tests.')
+parser.add_argument('--count', '-c', action='store_true', help='Display some stack bars with successes and failures.')
+parser.add_argument('--top', '-t', type=int, default=10, help='Comes with --fail option. Limits the display to the top N.')
 args = parser.parse_args()
 
 content = os.listdir('.')
@@ -20,6 +22,8 @@ gl_durations = []
 gl_avg_duration = []
 fail_dict = {}
 
+top = args.top
+
 for f in content:
     durations = []
     success = 0
@@ -28,6 +32,7 @@ for f in content:
     if r.match(f):
         if os.path.isdir(f):
             dirs.append(f)
+            print(f"reading {f}/output.xml")
             tree = ET.parse(f + '/output.xml')
             root = tree.getroot()
             total_duration = 0
@@ -42,7 +47,7 @@ for f in content:
                         fail += 1
                         if p.attrib['name'] not in fail_dict:
                             fail_dict[p.attrib['name']] = []
-                        fail_dict[p.attrib['name']].append(int(starttime.timestamp()))
+                        fail_dict[p.attrib['name']].append(int(f))
                     if s.attrib['status'] == 'PASS':
                         success += 1
                     count += 1
@@ -74,11 +79,26 @@ if args.fail:
         d = f"############# {k} ##############\n * size = {s}\n * min = {m}\n * max = {M}\n"
         lst.append((s, m, M, d, n))
     lst.sort()
+    # We keep the last 10
+    lst = lst[-top:]
+    names = []
     for l in lst:
-        fail_x.append(l[4])
-        fail_y.append(l[0])
         print(l[3])
+        names.append(l[4])
+    for k in fail_dict:
+        if k in names:
+            for v in fail_dict[k]:
+                fail_y.append(k)
+                fail_x.append(v)
+    fail_xx = fail_x.copy()
+    fail_xx.sort()
+    fail_yy = []
+    for xx in fail_xx:
+        j = fail_x.index(xx)
+        fail_yy.append(fail_y[j])
+        fail_x[j] = None
 
+    fail_xx = list(map(str, fail_xx))
 tests.sort()
 x = []
 ys = []
@@ -95,28 +115,66 @@ for xx in gl_avg_duration:
     x1.append(xx[0])
     y1.append(xx[1])
 
+size = 0
+if args.count:
+    size += 1
 if args.fail:
-    fig, ax = plt.subplots(3)
+    size += 1
+if args.slow:
+    size += 1
+
+if size == 0:
+    exit(0)
+
+if size == 1:
+    fig, ax = plt.subplots()
 else:
-    fig, ax = plt.subplots(2)
+    fig, ax = plt.subplots(size)
 fig.suptitle("Centreon-Tests")
-ax[0].set_ylabel('tests')
-ax[0].set_xlabel('date')
-ax[0].tick_params(labelrotation=45)
 fig.tight_layout()
-ax[0].stackplot(x, ys, yf, labels=['Success', 'failure'])
-ax[0].legend(loc='upper left')
-ax[0].grid(color='gray', linestyle='dashed')
 
-ax[1].set_ylabel('average duration(s)')
-ax[1].set_xlabel('date')
-ax[1].tick_params(labelrotation=45)
-ax[1].plot(x1, y1)
-ax[1].grid(color='gray', linestyle='dashed')
+idx = 0
+if args.count:
+    if size == 1:
+        AX = ax
+    else:
+        AX = ax[idx]
+    AX.set_ylabel('tests')
+    AX.set_xlabel('date')
+    AX.tick_params(labelrotation=45)
+
+    AX.stackplot(x, ys, yf, labels=['Success', 'failure'])
+    AX.legend(loc='upper left')
+    AX.grid(color='gray', linestyle='dashed')
+    AX.axis(ymin=min(ys))
+    idx += 1
+
+if args.slow:
+    if size == 1:
+        AX = ax
+    else:
+        AX = ax[idx]
+
+    AX.set_ylabel('average duration(s)')
+    AX.set_xlabel('date')
+    AX.tick_params(labelrotation=45)
+    AX.plot(x1, y1)
+    AX.grid(color='gray', linestyle='dashed')
+    idx += 1
 
 if args.fail:
-    ax[2].bar(fail_x, fail_y, linewidth=2)
-    ax[2].set_ylabel('Fails count')
-    ax[2].tick_params(labelrotation=90, labelsize=8)
+    if size == 1:
+        AX = ax
+    else:
+        AX = ax[idx]
+
+    AX.set_xlabel('date')
+    AX.set_ylabel('Failed tests')
+    AX.set_title("Fail top 10")
+    AX.tick_params(axis="x", labelrotation=45, labelsize=8)
+
+    AX.plot(fail_xx, fail_yy, 'ro')
+    AX.grid(color='gray', linestyle='dashed')
+    idx += 1
 
 plt.show()

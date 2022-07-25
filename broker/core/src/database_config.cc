@@ -146,17 +146,20 @@ database_config::database_config(config::endpoint const& cfg) {
 
   // check_replication
   it = cfg.params.find("check_replication");
-  if (it != end)
-    _check_replication = config::parser::parse_boolean(it->second);
-  else
+  if (it != end) {
+    if (!absl::SimpleAtob(it->second, &_check_replication)) {
+      log_v2::core()->error(
+          "check_replication is a string containing a boolean. If not "
+          "specified, it will be considered as \"true\".");
+      _check_replication = true;
+    }
+  } else
     _check_replication = true;
 
   // connections_count
   it = cfg.params.find("connections_count");
   if (it != end) {
-    try {
-      _connections_count = std::stoul(it->second);
-    } catch (std::exception const& e) {
+    if (!absl::SimpleAtoi(it->second, &_connections_count)) {
       log_v2::core()->error(
           "connections_count is a string "
           "containing an integer. If not "

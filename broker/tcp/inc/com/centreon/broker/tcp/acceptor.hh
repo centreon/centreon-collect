@@ -32,6 +32,7 @@ namespace tcp {
  *  Accept TCP connections.
  */
 class acceptor : public io::endpoint {
+  const std::string _listen_address;
   const uint16_t _port;
   const int32_t _read_timeout;
 
@@ -40,7 +41,9 @@ class acceptor : public io::endpoint {
   std::shared_ptr<asio::ip::tcp::acceptor> _acceptor;
 
  public:
-  acceptor(uint16_t port, int32_t read_timeout);
+  acceptor(const std::string& listen_address,
+           uint16_t port,
+           int32_t read_timeout);
   ~acceptor() noexcept;
 
   acceptor(const acceptor&) = delete;

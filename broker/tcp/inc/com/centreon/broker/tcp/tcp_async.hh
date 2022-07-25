@@ -83,7 +83,9 @@ class tcp_async {
 
   tcp_async(const tcp_async&) = delete;
   tcp_async& operator=(const tcp_async&) = delete;
-  std::shared_ptr<asio::ip::tcp::acceptor> create_acceptor(uint16_t port);
+  std::shared_ptr<asio::ip::tcp::acceptor> create_acceptor(
+      const std::string& listen_address,
+      uint16_t port);
   void start_acceptor(std::shared_ptr<asio::ip::tcp::acceptor> acceptor);
   void stop_acceptor(std::shared_ptr<asio::ip::tcp::acceptor> acceptor);
 

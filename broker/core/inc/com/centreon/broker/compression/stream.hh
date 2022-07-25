@@ -33,6 +33,15 @@ namespace compression {
  *  Compress and uncompress data.
  */
 class stream : public io::stream {
+  const int _level;
+  stack_array _rbuffer;
+  bool _shutdown;
+  size_t _size;
+  std::vector<char> _wbuffer;
+
+  void _flush();
+  void _get_data(int size, time_t timeout);
+
  public:
   static size_t const max_data_size;
 
@@ -46,16 +55,6 @@ class stream : public io::stream {
             time_t deadline = (time_t)-1) override;
   void statistics(nlohmann::json& tree) const override;
   int write(std::shared_ptr<io::data> const& d) override;
-
- private:
-  void _flush();
-  void _get_data(int size, time_t timeout);
-
-  int _level;
-  stack_array _rbuffer;
-  bool _shutdown;
-  size_t _size;
-  std::vector<char> _wbuffer;
 };
 }  // namespace compression
 

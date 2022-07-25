@@ -991,3 +991,265 @@ TEST(parser, grpc_in_error) {
   // Remove temporary file.
   ::remove(config_file.c_str());
 }
+
+TEST(parser, flush_period) {
+  // File name.
+  std::string config_file(misc::temp_path());
+
+  // Open file.
+  FILE* file_stream(fopen(config_file.c_str(), "w"));
+  if (!file_stream)
+    throw msg_fmt("could not open '{}'", config_file);
+  // Data.
+  std::string data{
+      "{"
+      "    \"centreonBroker\": {\n"
+      "        \"broker_id\": 1,\n"
+      "        \"broker_name\": \"central-broker-master\",\n"
+      "        \"poller_id\": 1,\n"
+      "        \"bbdo_version\": \"3.1.2\",\n"
+      "        \"poller_name\": \"Central\",\n"
+      "        \"module_directory\": "
+      "\"/etc\",\n"
+      "        \"log_timestamp\": true,\n"
+      "        \"log_thread_id\": false,\n"
+      "        \"event_queue_max_size\": 100000,\n"
+      "        \"command_file\": \"/var/lib/centreon-broker/command.sock\",\n"
+      "        \"cache_directory\": \"/tmp\",\n"
+      "        \"input\": [\n"
+      "            {\n"
+      "                \"name\": \"connection-to-local\",\n"
+      "                \"port\": \"5668\",\n"
+      "                \"transport_protocol\": \"tcp\",\n"
+      "                \"type\": \"bbdo_server\"\n"
+      "            }\n"
+      "        ],\n"
+      "        \"log\": {\n"
+      "          \"flush_period\": -12\n"
+      "        },\n"
+      "        \"logger\": [\n"
+      "            {\n"
+      "                \"name\": "
+      "\"/var/log/centreon-broker/central-broker-master.log\",\n"
+      "                \"config\": \"yes\",\n"
+      "                \"debug\": \"no\",\n"
+      "                \"error\": \"yes\",\n"
+      "                \"info\": \"no\",\n"
+      "                \"level\": \"low\",\n"
+      "                \"type\": \"file\"\n"
+      "            }\n"
+      "        ],\n"
+      "        \"output\": [\n"
+      "            {\n"
+      "                \"name\": \"centreon-broker-master-rrd\",\n"
+      "                \"port\": \"5670\",\n"
+      "                \"host\": \"localhost\",\n"
+      "                \"transport_protocol\": \"tcp\",\n"
+      "                \"type\": \"bbdo_client\"\n"
+      "            }\n"
+      "        ],\n"
+      "        \"stats\": [\n"
+      "            {\n"
+      "                \"type\": \"stats\",\n"
+      "                \"name\": \"central-broker-master-stats\",\n"
+      "                \"json_fifo\": "
+      "\"/var/lib/centreon-broker/central-broker-master-stats.json\"\n"
+      "            }\n"
+      "        ],\n"
+      "        \"grpc\": {\n"
+      "            \"port\": 51001\n"
+      "        }\n"
+      "    }\n"
+      "}"};
+
+  // Write data.
+  if (fwrite(data.c_str(), data.size(), 1, file_stream) != 1)
+    throw msg_fmt("could not write content of '{}'", config_file);
+
+  // Close file.
+  fclose(file_stream);
+
+  // Parse.
+  config::parser p;
+  ASSERT_THROW(p.parse(config_file), std::exception);
+  // Remove temporary file.
+  ::remove(config_file.c_str());
+}
+
+TEST(parser, boolean1) {
+  // File name.
+  std::string config_file(misc::temp_path());
+
+  // Open file.
+  FILE* file_stream(fopen(config_file.c_str(), "w"));
+  if (!file_stream)
+    throw msg_fmt("could not open '{}'", config_file);
+  // Data.
+  std::string data{
+      "{"
+      "    \"centreonBroker\": {\n"
+      "        \"broker_id\": 1,\n"
+      "        \"broker_name\": \"central-broker-master\",\n"
+      "        \"poller_id\": 1,\n"
+      "        \"bbdo_version\": \"3.1.2\",\n"
+      "        \"poller_name\": \"Central\",\n"
+      "        \"module_directory\": "
+      "\"/etc\",\n"
+      "        \"log_timestamp\": true,\n"
+      "        \"log_thread_id\": false,\n"
+      "        \"event_queue_max_size\": 100000,\n"
+      "        \"command_file\": \"/var/lib/centreon-broker/command.sock\",\n"
+      "        \"cache_directory\": \"/tmp\",\n"
+      "        \"input\": [\n"
+      "            {\n"
+      "                \"name\": \"connection-to-local\",\n"
+      "                \"port\": \"5668\",\n"
+      "                \"transport_protocol\": \"tcp\",\n"
+      "                \"type\": \"bbdo_server\"\n"
+      "            }\n"
+      "        ],\n"
+      "        \"log\": {\n"
+      "          \"flush_period\": 12,\n"
+      "          \"log_pid\": \"yes\"\n"
+      "        },\n"
+      "        \"logger\": [\n"
+      "            {\n"
+      "                \"name\": "
+      "\"/var/log/centreon-broker/central-broker-master.log\",\n"
+      "                \"config\": \"yes\",\n"
+      "                \"debug\": \"no\",\n"
+      "                \"error\": \"yes\",\n"
+      "                \"info\": \"no\",\n"
+      "                \"level\": \"low\",\n"
+      "                \"type\": \"file\"\n"
+      "            }\n"
+      "        ],\n"
+      "        \"output\": [\n"
+      "            {\n"
+      "                \"name\": \"centreon-broker-master-rrd\",\n"
+      "                \"port\": \"5670\",\n"
+      "                \"host\": \"localhost\",\n"
+      "                \"transport_protocol\": \"tcp\",\n"
+      "                \"type\": \"bbdo_client\"\n"
+      "            }\n"
+      "        ],\n"
+      "        \"stats\": [\n"
+      "            {\n"
+      "                \"type\": \"stats\",\n"
+      "                \"name\": \"central-broker-master-stats\",\n"
+      "                \"json_fifo\": "
+      "\"/var/lib/centreon-broker/central-broker-master-stats.json\"\n"
+      "            }\n"
+      "        ],\n"
+      "        \"grpc\": {\n"
+      "            \"port\": 51001\n"
+      "        }\n"
+      "    }\n"
+      "}"};
+
+  // Write data.
+  if (fwrite(data.c_str(), data.size(), 1, file_stream) != 1)
+    throw msg_fmt("could not write content of '{}'", config_file);
+
+  // Close file.
+  fclose(file_stream);
+
+  // Parse.
+  config::parser p;
+  config::state s{p.parse(config_file)};
+
+  // Remove temporary file.
+  ::remove(config_file.c_str());
+
+  // Check global params
+  ASSERT_TRUE(s.log_conf().log_pid);
+}
+
+TEST(parser, boolean2) {
+  // File name.
+  std::string config_file(misc::temp_path());
+
+  // Open file.
+  FILE* file_stream(fopen(config_file.c_str(), "w"));
+  if (!file_stream)
+    throw msg_fmt("could not open '{}'", config_file);
+  // Data.
+  std::string data{
+      "{"
+      "    \"centreonBroker\": {\n"
+      "        \"broker_id\": 1,\n"
+      "        \"broker_name\": \"central-broker-master\",\n"
+      "        \"poller_id\": 1,\n"
+      "        \"bbdo_version\": \"3.1.2\",\n"
+      "        \"poller_name\": \"Central\",\n"
+      "        \"module_directory\": "
+      "\"/etc\",\n"
+      "        \"log_timestamp\": true,\n"
+      "        \"log_thread_id\": false,\n"
+      "        \"event_queue_max_size\": 100000,\n"
+      "        \"command_file\": \"/var/lib/centreon-broker/command.sock\",\n"
+      "        \"cache_directory\": \"/tmp\",\n"
+      "        \"input\": [\n"
+      "            {\n"
+      "                \"name\": \"connection-to-local\",\n"
+      "                \"port\": \"5668\",\n"
+      "                \"transport_protocol\": \"tcp\",\n"
+      "                \"type\": \"bbdo_server\"\n"
+      "            }\n"
+      "        ],\n"
+      "        \"log\": {\n"
+      "          \"flush_period\": 12,\n"
+      "          \"log_pid\": \"n\"\n"
+      "        },\n"
+      "        \"logger\": [\n"
+      "            {\n"
+      "                \"name\": "
+      "\"/var/log/centreon-broker/central-broker-master.log\",\n"
+      "                \"config\": \"yes\",\n"
+      "                \"debug\": \"no\",\n"
+      "                \"error\": \"yes\",\n"
+      "                \"info\": \"no\",\n"
+      "                \"level\": \"low\",\n"
+      "                \"type\": \"file\"\n"
+      "            }\n"
+      "        ],\n"
+      "        \"output\": [\n"
+      "            {\n"
+      "                \"name\": \"centreon-broker-master-rrd\",\n"
+      "                \"port\": \"5670\",\n"
+      "                \"host\": \"localhost\",\n"
+      "                \"transport_protocol\": \"tcp\",\n"
+      "                \"type\": \"bbdo_client\"\n"
+      "            }\n"
+      "        ],\n"
+      "        \"stats\": [\n"
+      "            {\n"
+      "                \"type\": \"stats\",\n"
+      "                \"name\": \"central-broker-master-stats\",\n"
+      "                \"json_fifo\": "
+      "\"/var/lib/centreon-broker/central-broker-master-stats.json\"\n"
+      "            }\n"
+      "        ],\n"
+      "        \"grpc\": {\n"
+      "            \"port\": 51001\n"
+      "        }\n"
+      "    }\n"
+      "}"};
+
+  // Write data.
+  if (fwrite(data.c_str(), data.size(), 1, file_stream) != 1)
+    throw msg_fmt("could not write content of '{}'", config_file);
+
+  // Close file.
+  fclose(file_stream);
+
+  // Parse.
+  config::parser p;
+  config::state s{p.parse(config_file)};
+
+  // Remove temporary file.
+  ::remove(config_file.c_str());
+
+  // Check global params
+  ASSERT_FALSE(s.log_conf().log_pid);
+}
