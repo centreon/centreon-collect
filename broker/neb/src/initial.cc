@@ -180,9 +180,6 @@ static void send_host_dependencies_list() {
       nebstruct_adaptive_dependency_data nsadd;
       memset(&nsadd, 0, sizeof(nsadd));
       nsadd.type = NEBTYPE_HOSTDEPENDENCY_ADD;
-      nsadd.flags = NEBFLAG_NONE;
-      nsadd.attr = NEBATTR_NONE;
-      nsadd.timestamp.tv_sec = time(nullptr);
       nsadd.object_ptr = it->second.get();
 
       // Callback.
@@ -414,9 +411,6 @@ static void send_service_dependencies_list() {
       nebstruct_adaptive_dependency_data nsadd;
       memset(&nsadd, 0, sizeof(nsadd));
       nsadd.type = NEBTYPE_SERVICEDEPENDENCY_ADD;
-      nsadd.flags = NEBFLAG_NONE;
-      nsadd.attr = NEBATTR_NONE;
-      nsadd.timestamp.tv_sec = time(nullptr);
       nsadd.object_ptr = it->second.get();
 
       // Callback.
