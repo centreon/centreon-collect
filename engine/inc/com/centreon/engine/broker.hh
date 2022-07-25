@@ -319,16 +319,13 @@ extern "C" {
 #endif /* C++ */
 
 void broker_acknowledgement_data(int type,
-                                 int flags,
-                                 int attr,
                                  int acknowledgement_type,
                                  void* data,
                                  const char* ack_author,
                                  const char* ack_data,
                                  int subtype,
                                  int notify_contacts,
-                                 int persistent_comment,
-                                 struct timeval const* timestamp);
+                                 int persistent_comment);
 void broker_adaptive_contact_data(int type,
                                   int flags,
                                   int attr,
@@ -341,21 +338,9 @@ void broker_adaptive_contact_data(int type,
                                   unsigned long modsattr,
                                   unsigned long modsattrs,
                                   struct timeval const* timestamp);
-void broker_adaptive_severity_data(int type,
-                                   int flags,
-                                   int attr,
-                                   void* data,
-                                   const struct timeval* timestamp);
-void broker_adaptive_tag_data(int type,
-                              int flags,
-                              int attr,
-                              void* data,
-                              const struct timeval* timestamp);
-void broker_adaptive_dependency_data(int type,
-                                     int flags,
-                                     int attr,
-                                     void* data,
-                                     struct timeval const* timestamp);
+void broker_adaptive_severity_data(int type, void* data);
+void broker_adaptive_tag_data(int type, void* data);
+void broker_adaptive_dependency_data(int type, void* data);
 void broker_adaptive_escalation_data(int type,
                                      int flags,
                                      int attr,

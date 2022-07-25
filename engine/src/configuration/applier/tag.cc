@@ -58,9 +58,7 @@ void applier::tag::add_object(const configuration::tag& obj) {
         "Could not insert tag ({},{}) into cache because it already exists",
         obj.key().first, obj.key().second);
 
-  timeval tv(get_broker_timestamp(nullptr));
-  broker_adaptive_tag_data(NEBTYPE_TAG_ADD, NEBFLAG_NONE, NEBATTR_NONE,
-                           tg.get(), &tv);
+  broker_adaptive_tag_data(NEBTYPE_TAG_ADD, tg.get());
 }
 
 /**
@@ -107,9 +105,7 @@ void applier::tag::modify_object(const configuration::tag& obj) {
     t->set_name(obj.name());
 
     // Notify event broker.
-    timeval tv(get_broker_timestamp(nullptr));
-    broker_adaptive_tag_data(NEBTYPE_TAG_UPDATE, NEBFLAG_NONE, NEBATTR_NONE, t,
-                             &tv);
+    broker_adaptive_tag_data(NEBTYPE_TAG_UPDATE, t);
   } else
     log_v2::config()->debug("Tag ({},{}) did not change", obj.key().first,
                             obj.key().second);
@@ -131,9 +127,7 @@ void applier::tag::remove_object(const configuration::tag& obj) {
     engine::tag* tg(it->second.get());
 
     // Notify event broker.
-    timeval tv(get_broker_timestamp(nullptr));
-    broker_adaptive_tag_data(NEBTYPE_TAG_DELETE, NEBFLAG_NONE, NEBATTR_NONE, tg,
-                             &tv);
+    broker_adaptive_tag_data(NEBTYPE_TAG_DELETE, tg);
 
     // Erase tag object (this will effectively delete the object).
     engine::tag::tags.erase(it);

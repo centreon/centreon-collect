@@ -54,9 +54,7 @@ void applier::severity::add_object(const configuration::severity& obj) {
   // Add new items to the configuration state.
   engine::severity::severities.insert({obj.key(), sv});
 
-  timeval tv(get_broker_timestamp(nullptr));
-  broker_adaptive_severity_data(NEBTYPE_SEVERITY_ADD, NEBFLAG_NONE,
-                                NEBATTR_NONE, sv.get(), &tv);
+  broker_adaptive_severity_data(NEBTYPE_SEVERITY_ADD, sv.get());
 }
 
 /**
@@ -104,9 +102,7 @@ void applier::severity::modify_object(const configuration::severity& obj) {
     s->set_icon_id(obj.icon_id());
 
     // Notify event broker.
-    timeval tv(get_broker_timestamp(nullptr));
-    broker_adaptive_severity_data(NEBTYPE_SEVERITY_UPDATE, NEBFLAG_NONE,
-                                  NEBATTR_NONE, s, &tv);
+    broker_adaptive_severity_data(NEBTYPE_SEVERITY_UPDATE, s);
   } else
     log_v2::config()->debug("Severity ({}, {}) did not change", obj.key().first,
                             obj.key().second);
@@ -128,9 +124,7 @@ void applier::severity::remove_object(const configuration::severity& obj) {
     engine::severity* sv(it->second.get());
 
     // Notify event broker.
-    timeval tv(get_broker_timestamp(nullptr));
-    broker_adaptive_severity_data(NEBTYPE_SEVERITY_DELETE, NEBFLAG_NONE,
-                                  NEBATTR_NONE, sv, &tv);
+    broker_adaptive_severity_data(NEBTYPE_SEVERITY_DELETE, sv);
 
     // Erase severity object (this will effectively delete the object).
     engine::severity::severities.erase(it);

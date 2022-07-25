@@ -27,10 +27,6 @@
 /* Acknowledgement structure. */
 typedef struct nebstruct_acknowledgement_struct {
   int type;
-  int flags;
-  int attr;
-  struct timeval timestamp;
-
   int acknowledgement_type;
   uint64_t host_id;
   uint64_t service_id;
@@ -40,45 +36,17 @@ typedef struct nebstruct_acknowledgement_struct {
   int is_sticky;
   int persistent_comment;
   int notify_contacts;
-
-  void* object_ptr;
 } nebstruct_acknowledgement_data;
-
-/* Adaptive contact data structure. */
-typedef struct nebstruct_adaptive_contact_data_struct {
-  int type;
-  int flags;
-  int attr;
-  struct timeval timestamp;
-
-  int command_type;
-  unsigned long modified_attribute;
-  unsigned long modified_attributes;
-  unsigned long modified_host_attribute;
-  unsigned long modified_host_attributes;
-  unsigned long modified_service_attribute;
-  unsigned long modified_service_attributes;
-
-  void* object_ptr;
-} nebstruct_adaptive_contact_data;
 
 /* Adaptive severity data structure. */
 typedef struct nebstruct_adaptive_severity_data_struct {
   int type;
-  int flags;
-  int attr;
-  struct timeval timestamp;
-
   void* object_ptr;
 } nebstruct_adaptive_severity_data;
 
 /* Adaptive tag data structure. */
 typedef struct nebstruct_adaptive_tag_data_struct {
   int type;
-  int flags;
-  int attr;
-  struct timeval timestamp;
-
   void* object_ptr;
 } nebstruct_adaptive_tag_data;
 

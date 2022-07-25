@@ -846,10 +846,10 @@ grpc::Status engine_impl::AcknowledgementHostProblem(
     temp_host->schedule_acknowledgement_expiration();
     /* send data to event broker */
     broker_acknowledgement_data(
-        NEBTYPE_ACKNOWLEDGEMENT_ADD, NEBFLAG_NONE, NEBATTR_NONE,
-        HOST_ACKNOWLEDGEMENT, static_cast<void*>(temp_host.get()),
-        request->ack_author().c_str(), request->ack_data().c_str(),
-        request->type(), request->notify(), request->persistent(), nullptr);
+        NEBTYPE_ACKNOWLEDGEMENT_ADD, HOST_ACKNOWLEDGEMENT,
+        static_cast<void*>(temp_host.get()), request->ack_author().c_str(),
+        request->ack_data().c_str(), request->type(), request->notify(),
+        request->persistent());
     /* send out an acknowledgement notification */
     if (request->notify())
       temp_host->notify(notifier::reason_acknowledgement, request->ack_author(),
@@ -911,10 +911,10 @@ grpc::Status engine_impl::AcknowledgementServiceProblem(
     temp_service->schedule_acknowledgement_expiration();
     /* send data to event broker */
     broker_acknowledgement_data(
-        NEBTYPE_ACKNOWLEDGEMENT_ADD, NEBFLAG_NONE, NEBATTR_NONE,
-        SERVICE_ACKNOWLEDGEMENT, static_cast<void*>(temp_service.get()),
-        request->ack_author().c_str(), request->ack_data().c_str(),
-        request->type(), request->notify(), request->persistent(), nullptr);
+        NEBTYPE_ACKNOWLEDGEMENT_ADD, SERVICE_ACKNOWLEDGEMENT,
+        static_cast<void*>(temp_service.get()), request->ack_author().c_str(),
+        request->ack_data().c_str(), request->type(), request->notify(),
+        request->persistent());
     /* send out an acknowledgement notification */
     if (request->notify())
       temp_service->notify(notifier::reason_acknowledgement,

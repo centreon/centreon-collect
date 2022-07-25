@@ -250,12 +250,10 @@ static void send_severity_list() {
   /* Start log message. */
   log_v2::neb()->info("init: beginning severity dump");
 
-  timeval timestamp = get_broker_timestamp(nullptr);
   for (auto it = com::centreon::engine::severity::severities.begin(),
             end = com::centreon::engine::severity::severities.end();
        it != end; ++it) {
-    broker_adaptive_severity_data(NEBTYPE_SEVERITY_ADD, NEBFLAG_NONE,
-                                  NEBATTR_NONE, it->second.get(), &timestamp);
+    broker_adaptive_severity_data(NEBTYPE_SEVERITY_ADD, it->second.get());
   }
 }
 
@@ -266,12 +264,10 @@ static void send_tag_list() {
   /* Start log message. */
   log_v2::neb()->info("init: beginning tag dump");
 
-  timeval timestamp = get_broker_timestamp(nullptr);
   for (auto it = com::centreon::engine::tag::tags.begin(),
             end = com::centreon::engine::tag::tags.end();
        it != end; ++it) {
-    broker_adaptive_tag_data(NEBTYPE_TAG_ADD, NEBFLAG_NONE, NEBATTR_NONE,
-                             it->second.get(), &timestamp);
+    broker_adaptive_tag_data(NEBTYPE_TAG_ADD, it->second.get());
   }
 }
 

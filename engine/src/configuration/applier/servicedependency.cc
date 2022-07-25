@@ -134,9 +134,7 @@ void applier::servicedependency::add_object(
        sd});
 
   // Notify event broker.
-  timeval tv(get_broker_timestamp(nullptr));
-  broker_adaptive_dependency_data(NEBTYPE_SERVICEDEPENDENCY_ADD, NEBFLAG_NONE,
-                                  NEBATTR_NONE, sd.get(), &tv);
+  broker_adaptive_dependency_data(NEBTYPE_SERVICEDEPENDENCY_ADD, sd.get());
 }
 
 /**
@@ -260,8 +258,7 @@ void applier::servicedependency::remove_object(
     // Notify event broker.
     timeval tv(get_broker_timestamp(nullptr));
     broker_adaptive_dependency_data(NEBTYPE_SERVICEDEPENDENCY_DELETE,
-                                    NEBFLAG_NONE, NEBATTR_NONE,
-                                    it->second.get(), &tv);
+                                    it->second.get());
 
     // Remove service dependency from its list.
     engine::servicedependency::servicedependencies.erase(it);

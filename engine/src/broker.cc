@@ -36,27 +36,21 @@ extern "C" {
  *  Send acknowledgement data to broker.
  *
  *  @param[in] type                 Type.
- *  @param[in] flags                Flags.
- *  @param[in] attr                 Attributes.
  *  @param[in] acknowledgement_type Type (sticky or not).
  *  @param[in] data                 Data.
  *  @param[in] ack_author           Author.
  *  @param[in] ack_data             Acknowledgement text.
  *  @param[in] subtype              Subtype.
  *  @param[in] notify_contacts      Should we notify contacts.
- *  @param[in] timestamp            Timestamp.
  */
 void broker_acknowledgement_data(int type,
-                                 int flags,
-                                 int attr,
                                  int acknowledgement_type,
                                  void* data,
                                  const char* ack_author,
                                  const char* ack_data,
                                  int subtype,
                                  int notify_contacts,
-                                 int persistent_comment,
-                                 struct timeval const* timestamp) {
+                                 int persistent_comment) {
   // Config check.
   if (!(config->event_broker_options() & BROKER_ACKNOWLEDGEMENT_DATA))
     return;
@@ -66,9 +60,6 @@ void broker_acknowledgement_data(int type,
   com::centreon::engine::service* temp_service(NULL);
   nebstruct_acknowledgement_data ds;
   ds.type = type;
-  ds.flags = flags;
-  ds.attr = attr;
-  ds.timestamp = get_broker_timestamp(timestamp);
   ds.acknowledgement_type = acknowledgement_type;
   if (acknowledgement_type == SERVICE_ACKNOWLEDGEMENT) {
     temp_service = (com::centreon::engine::service*)data;
@@ -81,7 +72,6 @@ void broker_acknowledgement_data(int type,
     ds.service_id = 0;
     ds.state = temp_host->get_current_state();
   }
-  ds.object_ptr = data;
   ds.author_name = ack_author;
   ds.comment_data = ack_data;
   ds.is_sticky = (subtype == ACKNOWLEDGEMENT_STICKY) ? true : false;
@@ -119,29 +109,7 @@ void broker_adaptive_contact_data(int type,
                                   unsigned long modhattrs,
                                   unsigned long modsattr,
                                   unsigned long modsattrs,
-                                  struct timeval const* timestamp) {
-  // Config check.
-  if (!(config->event_broker_options() & BROKER_ADAPTIVE_DATA))
-    return;
-
-  // Fill struct with relevant data.
-  nebstruct_adaptive_contact_data ds;
-  ds.type = type;
-  ds.flags = flags;
-  ds.attr = attr;
-  ds.timestamp = get_broker_timestamp(timestamp);
-  ds.command_type = command_type;
-  ds.modified_attribute = modattr;
-  ds.modified_attributes = modattrs;
-  ds.modified_host_attribute = modhattr;
-  ds.modified_host_attributes = modhattrs;
-  ds.modified_service_attribute = modsattr;
-  ds.modified_service_attributes = modsattrs;
-  ds.object_ptr = cntct;
-
-  // Make callbacks.
-  neb_make_callbacks(NEBCALLBACK_ADAPTIVE_CONTACT_DATA, &ds);
-}
+                                  struct timeval const* timestamp) {}
 
 /**
  * @brief Send adaptive severity updates to broker.
@@ -152,11 +120,7 @@ void broker_adaptive_contact_data(int type,
  * @param data      Target severity.
  * @param timestamp Timestamp.
  */
-void broker_adaptive_severity_data(int type,
-                                   int flags,
-                                   int attr,
-                                   void* data,
-                                   const struct timeval* timestamp) {
+void broker_adaptive_severity_data(int type, void* data) {
   /* Config check. */
   if (!(config->event_broker_options() & BROKER_ADAPTIVE_DATA))
     return;
@@ -164,9 +128,6 @@ void broker_adaptive_severity_data(int type,
   /* Fill struct with relevant data. */
   nebstruct_adaptive_severity_data ds;
   ds.type = type;
-  ds.flags = flags;
-  ds.attr = attr;
-  ds.timestamp = get_broker_timestamp(timestamp);
   ds.object_ptr = data;
 
   /* Make callbacks. */
@@ -182,11 +143,7 @@ void broker_adaptive_severity_data(int type,
  * @param data      Target tag.
  * @param timestamp Timestamp.
  */
-void broker_adaptive_tag_data(int type,
-                              int flags,
-                              int attr,
-                              void* data,
-                              const struct timeval* timestamp) {
+void broker_adaptive_tag_data(int type, void* data) {
   /* Config check. */
   if (!(config->event_broker_options() & BROKER_ADAPTIVE_DATA))
     return;
@@ -194,9 +151,6 @@ void broker_adaptive_tag_data(int type,
   /* Fill struct with relevant data. */
   nebstruct_adaptive_tag_data ds;
   ds.type = type;
-  ds.flags = flags;
-  ds.attr = attr;
-  ds.timestamp = get_broker_timestamp(timestamp);
   ds.object_ptr = data;
 
   /* Make callbacks. */
@@ -212,11 +166,7 @@ void broker_adaptive_tag_data(int type,
  *  @param[in] data      Target dependency.
  *  @param[in] timestamp Timestamp.
  */
-void broker_adaptive_dependency_data(int type,
-                                     int flags,
-                                     int attr,
-                                     void* data,
-                                     struct timeval const* timestamp) {
+void broker_adaptive_dependency_data(int type, void* data) {
   // Config check.
   if (!(config->event_broker_options() & BROKER_ADAPTIVE_DATA))
     return;
@@ -224,9 +174,6 @@ void broker_adaptive_dependency_data(int type,
   // Fill struct with relevant data.
   nebstruct_adaptive_dependency_data ds;
   ds.type = type;
-  ds.flags = flags;
-  ds.attr = attr;
-  ds.timestamp = get_broker_timestamp(timestamp);
   ds.object_ptr = data;
 
   // Make callbacks.

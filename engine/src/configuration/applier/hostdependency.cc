@@ -109,9 +109,7 @@ void applier::hostdependency::add_object(
   engine::hostdependency::hostdependencies.insert(
       {*obj.dependent_hosts().begin(), hd});
 
-  timeval tv(get_broker_timestamp(nullptr));
-  broker_adaptive_dependency_data(NEBTYPE_HOSTDEPENDENCY_ADD, NEBFLAG_NONE,
-                                  NEBATTR_NONE, hd.get(), &tv);
+  broker_adaptive_dependency_data(NEBTYPE_HOSTDEPENDENCY_ADD, hd.get());
 }
 
 /**
@@ -216,9 +214,7 @@ void applier::hostdependency::remove_object(
     com::centreon::engine::hostdependency* dependency(it->second.get());
 
     // Notify event broker.
-    timeval tv(get_broker_timestamp(nullptr));
-    broker_adaptive_dependency_data(NEBTYPE_HOSTDEPENDENCY_DELETE, NEBFLAG_NONE,
-                                    NEBATTR_NONE, dependency, &tv);
+    broker_adaptive_dependency_data(NEBTYPE_HOSTDEPENDENCY_DELETE, dependency);
 
     // Remove host dependency from its list.
     engine::hostdependency::hostdependencies.erase(it);
