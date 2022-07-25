@@ -48,8 +48,9 @@ class checker : public commands::command_listener {
                 int check_options,
                 int use_cached_result,
                 unsigned long check_timestamp_horizon);
-  void add_check_result(uint64_t id, check_result* result) noexcept;
-  void add_check_result_to_reap(check_result* result) noexcept;
+  void add_check_result(uint64_t id,
+                        const check_result::pointer result) noexcept;
+  void add_check_result_to_reap(const check_result::pointer result) noexcept;
   static void forget(notifier* n) noexcept;
 
   void wait_completion();
@@ -68,15 +69,15 @@ class checker : public commands::command_listener {
    * Here is the list of prepared check results but with a command being
    * running. When the command will be finished, each check result is get back
    * updated and moved to _to_reap_partial list. */
-  std::unordered_map<uint64_t, check_result*> _waiting_check_result;
+  std::unordered_map<uint64_t, check_result::pointer> _waiting_check_result;
   /* This queue is filled during a cycle. When it is time to reap, its elements
    * are passed to _to_reap. It can then be filled in parallel during the
    * _to_reap treatment. */
-  std::deque<check_result*> _to_reap_partial;
+  std::deque<check_result::pointer> _to_reap_partial;
   /*
    * The list of check_results to reap: they contain data that have to be
    * translated to services/hosts. */
-  std::deque<check_result*> _to_reap;
+  std::deque<check_result::pointer> _to_reap;
 
   /* Due to reloads of centengine we have the following list with notifiers
    * that should be forgotten if notifiers are removed. */

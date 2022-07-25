@@ -71,21 +71,9 @@ void checker::deinit() {
 void checker::clear() noexcept {
   try {
     std::lock_guard<std::mutex> lock(_mut_reap);
-    while (!_to_reap_partial.empty()) {
-      check_result* result = _to_reap_partial.front();
-      _to_reap_partial.pop_front();
-      delete result;
-    }
-    while (!_to_reap.empty()) {
-      check_result* result = _to_reap.front();
-      _to_reap.pop_front();
-      delete result;
-    }
-    auto it = _waiting_check_result.begin();
-    while (it != _waiting_check_result.end()) {
-      delete it->second;
-      it = _waiting_check_result.erase(it);
-    }
+    _to_reap_partial.clear();
+    _to_reap.clear();
+    _waiting_check_result.clear();
     _to_forget.clear();
   } catch (...) {
   }
@@ -115,7 +103,6 @@ void checker::reap() {
           for (auto it = _waiting_check_result.begin();
                it != _waiting_check_result.end();) {
             if (it->second->get_notifier() == n) {
-              delete it->second;
               it = _waiting_check_result.erase(it);
             } else
               ++it;
@@ -123,7 +110,6 @@ void checker::reap() {
           for (auto it = _to_reap_partial.begin();
                it != _to_reap_partial.end();) {
             if ((*it)->get_notifier() == n) {
-              delete *it;
               it = _to_reap_partial.erase(it);
             } else
               ++it;
@@ -143,7 +129,7 @@ void checker::reap() {
       SPDLOG_LOGGER_TRACE(log_v2::checks(),
                           "Found a check result (#{}) to handle...",
                           reaped_checks);
-      check_result* result = _to_reap.front();
+      check_result::pointer result = _to_reap.front();
       _to_reap.pop_front();
 
       // Service check result->
@@ -178,7 +164,7 @@ void checker::reap() {
           SPDLOG_LOGGER_DEBUG(log_v2::checks(),
                               "Handling check result for host {}...",
                               hst->get_host_id());
-          hst->handle_async_check_result_3x(result);
+          hst->handle_async_check_result_3x(*result);
         } catch (std::exception const& e) {
           engine_logger(log_runtime_error, basic)
               << "Check result queue errors for "
@@ -187,8 +173,6 @@ void checker::reap() {
                                    hst->get_host_id(), e.what());
         }
       }
-
-      delete result;
 
       // Check if reaping has timed out.
       time_t current_time;
@@ -414,7 +398,7 @@ void checker::finished(commands::result const& res) noexcept {
   }
 
   // Find check result.
-  check_result* result = it_id->second;
+  check_result::pointer result = it_id->second;
   _waiting_check_result.erase(it_id);
   lock.unlock();
 
@@ -676,8 +660,9 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
  * @param id A command id
  * @param check_result A check_result coming from a service or a host.
  */
-void checker::add_check_result(uint64_t id,
-                               check_result* check_result) noexcept {
+void checker::add_check_result(
+    uint64_t id,
+    const check_result::pointer check_result) noexcept {
   std::lock_guard<std::mutex> lock(_mut_reap);
   _waiting_check_result[id] = check_result;
 }
@@ -688,7 +673,8 @@ void checker::add_check_result(uint64_t id,
  *
  * @param check_result The check_result already finished.
  */
-void checker::add_check_result_to_reap(check_result* check_result) noexcept {
+void checker::add_check_result_to_reap(
+    const check_result::pointer check_result) noexcept {
   std::lock_guard<std::mutex> lock(_mut_reap);
   _to_reap_partial.push_back(check_result);
 }

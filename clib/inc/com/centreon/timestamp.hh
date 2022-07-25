@@ -21,6 +21,7 @@
 
 #include <cstdint>
 #include <ctime>
+#include <ostream>
 #include "com/centreon/namespace.hh"
 
 CC_BEGIN()
@@ -67,6 +68,8 @@ class timestamp {
   time_t to_seconds() const noexcept;
   int64_t to_useconds() const noexcept;
 };
+
+std::ostream& operator<<(std::ostream& s, const timestamp& to_dump);
 
 CC_END()
 

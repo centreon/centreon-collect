@@ -47,7 +47,7 @@ class cancellable_command : public command {
    * @brief if _fake_result is set, check isn't executed
    *
    */
-  std::unique_ptr<check_result> _fake_result;
+  check_result::pointer _fake_result;
 
   static const std::string _empty;
 
@@ -58,9 +58,7 @@ class cancellable_command : public command {
                 original_command ? original_command->get_command_line() : ""),
         _original_command(original_command) {}
 
-  void set_fake_result(std::unique_ptr<check_result>&& res) {
-    _fake_result = std::move(res);
-  }
+  void set_fake_result(const check_result::pointer& res) { _fake_result = res; }
   void reset_fake_result() { _fake_result.reset(); }
 
   void set_original_command(const command::pointer& original_command) {
@@ -76,25 +74,41 @@ class cancellable_command : public command {
 
   uint64_t run(const std::string& processed_cmd,
                nagios_macros& macors,
-               uint32_t timeout);
+               uint32_t timeout,
+               const check_result::pointer& to_push_to_checker,
+               const void* caller = nullptr) override;
   void run(const std::string& process_cmd,
            nagios_macros& macros,
            uint32_t timeout,
-           result& res);
+           result& res) override;
 };
 
 const std::string cancellable_command::_empty;
 
-uint64_t cancellable_command::run(const std::string& processed_cmd,
-                                  nagios_macros& macors,
-                                  uint32_t timeout) {
+/**
+ *  Run a command.
+ *
+ *  @param[in] args    The command arguments.
+ *  @param[in] macros  The macros data struct.
+ *  @param[in] timeout The command timeout.
+ *  @param[in] to_push_to_checker This check_result will be pushed to checher.
+ *  @param[in] caller  pointer to the caller
+ *
+ *  @return The command id or 0 if it uses the perf_data of dependent_service
+ */
+uint64_t cancellable_command::run(
+    const std::string& processed_cmd,
+    nagios_macros& macors,
+    uint32_t timeout,
+    const check_result::pointer& to_push_to_checker,
+    const void* caller) {
   if (_fake_result) {
-    checks::checker::instance().add_check_result_to_reap(
-        _fake_result.release());
+    checks::checker::instance().add_check_result_to_reap(_fake_result);
     return 0;  // no command => no async result
   } else {
     if (_original_command) {
-      uint64_t id = _original_command->run(processed_cmd, macors, timeout);
+      uint64_t id = _original_command->run(processed_cmd, macors, timeout,
+                                           to_push_to_checker, caller);
       log_v2::checks()->debug(
           "cancellable_command::run command launched id={} cmd {}", id,
           _original_command);
@@ -650,6 +664,9 @@ int anomalydetection::run_async_check(int check_options,
   if (!get_check_command_ptr()) {
     set_check_command_ptr(std::make_shared<commands::cancellable_command>(
         _dependent_service->get_check_command_ptr()));
+    service* group[2] = {this, _dependent_service};
+    _dependent_service->get_check_command_ptr()->add_caller_group(group,
+                                                                  group + 2);
   }
   if (std::static_pointer_cast<commands::cancellable_command>(
           get_check_command_ptr())
@@ -658,6 +675,9 @@ int anomalydetection::run_async_check(int check_options,
     std::static_pointer_cast<commands::cancellable_command>(
         get_check_command_ptr())
         ->set_original_command(_dependent_service->get_check_command_ptr());
+    service* group[2] = {this, _dependent_service};
+    _dependent_service->get_check_command_ptr()->add_caller_group(group,
+                                                                  group + 2);
   }
 
   if (get_current_state() == service::service_state::state_ok) {
@@ -665,7 +685,7 @@ int anomalydetection::run_async_check(int check_options,
     std::string dependent_perf_data = _dependent_service->get_perf_data();
     struct timeval now;
     gettimeofday(&now, nullptr);
-    std::unique_ptr<check_result> fake_res = std::make_unique<check_result>(
+    check_result::pointer fake_res = std::make_shared<check_result>(
         check_source::service_check, this, checkable::check_active,
         check_options, reschedule_check, latency, now, now, true, false,
         service_state::state_unknown,
@@ -682,7 +702,7 @@ int anomalydetection::run_async_check(int check_options,
     }
     std::static_pointer_cast<commands::cancellable_command>(
         get_check_command_ptr())
-        ->set_fake_result(std::move(fake_res));
+        ->set_fake_result(fake_res);
   } else {
     if (!std::static_pointer_cast<commands::cancellable_command>(
              get_check_command_ptr())
@@ -921,9 +941,16 @@ void anomalydetection::init_thresholds() {
       << "Trying to read thresholds file '" << _thresholds_file << "'";
   SPDLOG_LOGGER_DEBUG(log_v2::config(), "Trying to read thresholds file '{}'",
                       _thresholds_file);
-  std::ifstream t(_thresholds_file);
-  if (!t)
+  std::ifstream t;
+  t.exceptions(t.exceptions() | std::ios::failbit);
+  try {
+    t.open(_thresholds_file);
+  } catch (const std::system_error& e) {
+    SPDLOG_LOGGER_ERROR(log_v2::config(),
+                        "Fail to read thresholds file '{}' : {}",
+                        _thresholds_file, e.code().message());
     return;
+  }
 
   std::stringstream buffer;
   buffer << t.rdbuf();
@@ -952,7 +979,7 @@ void anomalydetection::init_thresholds() {
     return;
   }
 
-  int count = 0;
+  bool found = false;
   for (auto it = json.begin(); it != json.end(); ++it) {
     uint64_t host_id, service_id;
     auto item = it.value();
@@ -973,8 +1000,21 @@ void anomalydetection::init_thresholds() {
     if (host_id == get_host_id() && service_id == get_service_id() &&
         item["metric_name"].get<std::string>() == _metric_name) {
       set_thresholds_no_lock(_thresholds_file, item["predict"]);
+      if (!_thresholds_file_viable) {
+        SPDLOG_LOGGER_ERROR(log_v2::config(),
+                            "{} don't contain at least 2 thresholds datas for "
+                            "host_id {} and service_id {}",
+                            _thresholds_file, get_host_id(), get_service_id());
+      }
+      found = true;
       break;
     }
+  }
+  if (!found) {
+    SPDLOG_LOGGER_ERROR(
+        log_v2::config(),
+        "{} don't contain datas for host_id {} and service_id {}",
+        _thresholds_file, get_host_id(), get_service_id());
   }
 }
 
@@ -989,13 +1029,15 @@ int anomalydetection::update_thresholds(const std::string& filename) {
       << "Reading thresholds file '" << filename << "'.";
   SPDLOG_LOGGER_INFO(log_v2::checks(), "Reading thresholds file '{}'.",
                      filename);
-  std::ifstream t(filename);
-  if (!t) {
-    engine_logger(log_config_error, basic)
-        << "Error: Unable to read the thresholds file '" << filename << "'.";
+
+  std::ifstream t;
+  t.exceptions(t.exceptions() | std::ios::failbit);
+  try {
+    t.open(filename);
+  } catch (const std::system_error& e) {
     SPDLOG_LOGGER_ERROR(log_v2::config(),
-                        "Error: Unable to read the thresholds file '{}'.",
-                        filename);
+                        "Fail to read thresholds file '{}' : {}", filename,
+                        e.code().message());
     return -1;
   }
 
@@ -1133,7 +1175,7 @@ void anomalydetection::set_thresholds_no_lock(
     engine_logger(dbg_config, most)
         << "Nothing in memory " << _thresholds.size()
         << " for host_id=" << get_host_id() << " serv_id=" << get_service_id();
-    SPDLOG_LOGGER_DEBUG(log_v2::config(),
+    SPDLOG_LOGGER_ERROR(log_v2::config(),
                         "Nothing in memory {} for host_id={} servid={}",
                         _thresholds.size(), get_host_id(), get_service_id());
     _thresholds_file_viable = false;

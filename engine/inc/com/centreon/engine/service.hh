@@ -93,7 +93,7 @@ class service : public notifier {
           bool obsess_over,
           std::string const& timezone,
           uint64_t icon_id);
-  ~service() noexcept = default;
+  ~service() noexcept;
   void set_host_id(uint64_t host_id);
   uint64_t get_host_id() const;
   void set_service_id(uint64_t service_id);

@@ -113,3 +113,17 @@ void result::_internal_copy(result const& right) {
   start_time = right.start_time;
   output = right.output;
 }
+
+CCE_BEGIN()
+namespace commands {
+std::ostream& operator<<(std::ostream& s, const result& to_dump) {
+  s << "start_time=" << to_dump.start_time << ", end_time=" << to_dump.end_time
+    << ", exit_code=" << to_dump.exit_code
+    << ", exit_status=" << to_dump.exit_status << ", output='" << to_dump.output
+    << '\'';
+  return s;
+}
+
+}  // namespace commands
+
+CCE_END()

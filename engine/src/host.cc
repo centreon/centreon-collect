@@ -1182,15 +1182,16 @@ int host::log_event() {
   engine_logger(log_options, basic)
       << "HOST ALERT: " << name() << ";" << state << ";" << state_type << ";"
       << get_current_attempt() << ";" << get_plugin_output();
-  log_v2::events()->info("HOST ALERT: {};{};{};{};{}", name(), state,
-                         state_type, get_current_attempt(),
-                         get_plugin_output());
+  SPDLOG_LOGGER_INFO(log_v2::events(), "HOST ALERT: {};{};{};{};{}", name(),
+                     state, state_type, get_current_attempt(),
+                     get_plugin_output());
 
   return OK;
 }
 
 /* process results of an asynchronous host check */
-int host::handle_async_check_result_3x(check_result* queued_check_result) {
+int host::handle_async_check_result_3x(
+    const check_result& queued_check_result) {
   enum service::service_state svc_res{service::state_ok};
   enum host::host_state hst_res{host::state_up};
   int reschedule_check{false};
@@ -1202,18 +1203,14 @@ int host::handle_async_check_result_3x(check_result* queued_check_result) {
   SPDLOG_LOGGER_TRACE(log_v2::functions(),
                       "handle_async_host_check_result_3x()");
 
-  /* make sure we have what we need */
-  if (!queued_check_result)
-    return ERROR;
-
   /* get the current time */
   time_t current_time = std::time(nullptr);
 
   double execution_time =
-      static_cast<double>(queued_check_result->get_finish_time().tv_sec -
-                          queued_check_result->get_start_time().tv_sec) +
-      static_cast<double>(queued_check_result->get_finish_time().tv_usec -
-                          queued_check_result->get_start_time().tv_usec) /
+      static_cast<double>(queued_check_result.get_finish_time().tv_sec -
+                          queued_check_result.get_start_time().tv_sec) +
+      static_cast<double>(queued_check_result.get_finish_time().tv_usec -
+                          queued_check_result.get_start_time().tv_usec) /
           1000000.0;
   if (execution_time < 0.0)
     execution_time = 0.0;
@@ -1226,54 +1223,54 @@ int host::handle_async_check_result_3x(check_result* queued_check_result) {
 
   engine_logger(dbg_checks, most)
       << "\tCheck Type:         "
-      << (queued_check_result->get_check_type() == check_active ? "Active"
-                                                                : "Passive")
+      << (queued_check_result.get_check_type() == check_active ? "Active"
+                                                               : "Passive")
       << "\n"
-      << "\tCheck Options:      " << queued_check_result->get_check_options()
+      << "\tCheck Options:      " << queued_check_result.get_check_options()
       << "\n"
       << "\tReschedule Check?:  "
-      << (queued_check_result->get_reschedule_check() ? "Yes" : "No") << "\n"
+      << (queued_check_result.get_reschedule_check() ? "Yes" : "No") << "\n"
       << "\tShould Reschedule Current Host Check?:"
       << get_should_reschedule_current_check() << "\tExited OK?:         "
-      << (queued_check_result->get_exited_ok() ? "Yes" : "No") << "\n"
+      << (queued_check_result.get_exited_ok() ? "Yes" : "No") << "\n"
       << com::centreon::logging::setprecision(3)
       << "\tExec Time:          " << execution_time << "\n"
-      << "\tLatency:            " << queued_check_result->get_latency() << "\n"
-      << "\treturn Status:      " << queued_check_result->get_return_code()
+      << "\tLatency:            " << queued_check_result.get_latency() << "\n"
+      << "\treturn Status:      " << queued_check_result.get_return_code()
       << "\n"
-      << "\tOutput:             " << queued_check_result->get_output();
+      << "\tOutput:             " << queued_check_result.get_output();
 
   SPDLOG_LOGGER_DEBUG(log_v2::checks(), "Check Type: {}",
-                      queued_check_result->get_check_type() == check_active
+                      queued_check_result.get_check_type() == check_active
                           ? "Active"
                           : "Passive");
   SPDLOG_LOGGER_DEBUG(log_v2::checks(), "Check Options: {}",
-                      queued_check_result->get_check_options());
+                      queued_check_result.get_check_options());
   SPDLOG_LOGGER_DEBUG(
       log_v2::checks(), "Reschedule Check?:  {}",
-      queued_check_result->get_reschedule_check() ? "Yes" : "No");
+      queued_check_result.get_reschedule_check() ? "Yes" : "No");
   SPDLOG_LOGGER_DEBUG(
       log_v2::checks(), "Should Reschedule Current Host Check?: {}",
-      queued_check_result->get_reschedule_check() ? "Yes" : "No");
+      queued_check_result.get_reschedule_check() ? "Yes" : "No");
   SPDLOG_LOGGER_DEBUG(log_v2::checks(), "Exited OK?:         {}",
-                      queued_check_result->get_exited_ok() ? "Yes" : "No");
+                      queued_check_result.get_exited_ok() ? "Yes" : "No");
   SPDLOG_LOGGER_DEBUG(log_v2::checks(), "Exec Time:          {:.3f}",
                       execution_time);
   SPDLOG_LOGGER_DEBUG(log_v2::checks(), "Latency:            {}",
-                      queued_check_result->get_latency());
+                      queued_check_result.get_latency());
   SPDLOG_LOGGER_DEBUG(log_v2::checks(), "return Status:      {}",
-                      queued_check_result->get_return_code());
+                      queued_check_result.get_return_code());
   SPDLOG_LOGGER_DEBUG(log_v2::checks(), "Output:             {}",
-                      queued_check_result->get_output());
+                      queued_check_result.get_output());
   /* decrement the number of host checks still out there... */
-  if (queued_check_result->get_check_type() == check_active &&
+  if (queued_check_result.get_check_type() == check_active &&
       currently_running_host_checks > 0)
     currently_running_host_checks--;
 
   /*
    * skip this host check results if its passive and we aren't accepting passive
    * check results */
-  if (queued_check_result->get_check_type() == check_passive) {
+  if (queued_check_result.get_check_type() == check_passive) {
     if (!config->accept_passive_host_checks()) {
       engine_logger(dbg_checks, basic)
           << "Discarding passive host check result because passive host "
@@ -1300,7 +1297,7 @@ int host::handle_async_check_result_3x(check_result* queued_check_result) {
   /*
    * clear the freshening flag (it would have been set if this host was
    * determined to be stale) */
-  if (queued_check_result->get_check_options() & CHECK_OPTION_FRESHNESS_CHECK)
+  if (queued_check_result.get_check_options() & CHECK_OPTION_FRESHNESS_CHECK)
     set_is_being_freshened(false);
 
   /* DISCARD INVALID FRESHNESS CHECK RESULTS */
@@ -1311,7 +1308,7 @@ int host::handle_async_check_result_3x(check_result* queued_check_result) {
   ** make the host fresh again, so we do a quick check to make sure the
   ** host is still stale before we accept the check result.
   */
-  if ((queued_check_result->get_check_options() &
+  if ((queued_check_result.get_check_options() &
        CHECK_OPTION_FRESHNESS_CHECK) &&
       is_result_fresh(current_time, false)) {
     engine_logger(dbg_checks, basic)
@@ -1331,18 +1328,18 @@ int host::handle_async_check_result_3x(check_result* queued_check_result) {
     set_last_hard_state_change(get_last_check());
 
   /* was this check passive or active? */
-  set_check_type((queued_check_result->get_check_type() == check_active)
+  set_check_type((queued_check_result.get_check_type() == check_active)
                      ? check_active
                      : check_passive);
 
   /* update check statistics for passive results */
-  if (queued_check_result->get_check_type() == check_passive)
+  if (queued_check_result.get_check_type() == check_passive)
     update_check_stats(PASSIVE_HOST_CHECK_STATS,
-                       queued_check_result->get_start_time().tv_sec);
+                       queued_check_result.get_start_time().tv_sec);
 
   /* should we reschedule the next check of the host? NOTE: this might be
    * overridden later... */
-  reschedule_check = queued_check_result->get_reschedule_check();
+  reschedule_check = queued_check_result.get_reschedule_check();
 
   // Inherit the should reschedule flag from the host. It is used when
   // rescheduled checks were discarded because only one check can be executed
@@ -1350,14 +1347,14 @@ int host::handle_async_check_result_3x(check_result* queued_check_result) {
   // and this check should be rescheduled regardless of what it was meant
   // to initially.
   if (get_should_reschedule_current_check() &&
-      !queued_check_result->get_reschedule_check())
+      !queued_check_result.get_reschedule_check())
     reschedule_check = true;
 
   // Clear the should reschedule flag.
   set_should_reschedule_current_check(false);
 
   /* check latency is passed to us for both active and passive checks */
-  set_latency(queued_check_result->get_latency());
+  set_latency(queued_check_result.get_latency());
 
   /* update the execution time for this check (millisecond resolution) */
   set_execution_time(execution_time);
@@ -1366,14 +1363,14 @@ int host::handle_async_check_result_3x(check_result* queued_check_result) {
   set_has_been_checked(true);
 
   /* clear the execution flag if this was an active check */
-  if (queued_check_result->get_check_type() == check_active)
+  if (queued_check_result.get_check_type() == check_active)
     set_is_executing(false);
 
   /* get the last check time */
-  set_last_check(queued_check_result->get_start_time().tv_sec);
+  set_last_check(queued_check_result.get_start_time().tv_sec);
 
   /* was this check passive or active? */
-  set_check_type((queued_check_result->get_check_type() == check_active)
+  set_check_type((queued_check_result.get_check_type() == check_active)
                      ? check_active
                      : check_passive);
 
@@ -1389,7 +1386,7 @@ int host::handle_async_check_result_3x(check_result* queued_check_result) {
   /* parse check output to get: (1) short output, (2) long output, (3) perf data
    */
 
-  std::string output{queued_check_result->get_output()};
+  std::string output{queued_check_result.get_output()};
   std::string plugin_output;
   std::string long_plugin_output;
   std::string perf_data;
@@ -1429,15 +1426,15 @@ int host::handle_async_check_result_3x(check_result* queued_check_result) {
   /* get the unprocessed return code */
   /* NOTE: for passive checks, this is the final/processed state */
   svc_res = static_cast<enum service::service_state>(
-      queued_check_result->get_return_code());
-  hst_res = static_cast<enum host::host_state>(
-      queued_check_result->get_return_code());
+      queued_check_result.get_return_code());
+  hst_res =
+      static_cast<enum host::host_state>(queued_check_result.get_return_code());
 
   /* adjust return code (active checks only) */
-  if (queued_check_result->get_check_type() == check_active) {
+  if (queued_check_result.get_check_type() == check_active) {
     /* if there was some error running the command, just skip it (this shouldn't
      * be happening) */
-    if (!queued_check_result->get_exited_ok()) {
+    if (!queued_check_result.get_exited_ok()) {
       engine_logger(log_runtime_warning, basic)
           << "Warning:  Check of host '" << name()
           << "' did not exit properly!";
@@ -1453,14 +1450,14 @@ int host::handle_async_check_result_3x(check_result* queued_check_result) {
     }
 
     /* make sure the return code is within bounds */
-    else if (queued_check_result->get_return_code() < 0 ||
-             queued_check_result->get_return_code() > 3) {
+    else if (queued_check_result.get_return_code() < 0 ||
+             queued_check_result.get_return_code() > 3) {
       engine_logger(log_runtime_warning, basic)
           << "Warning: return (code of "
-          << queued_check_result->get_return_code() << " for check of host '"
+          << queued_check_result.get_return_code() << " for check of host '"
           << name() << "' was out of bounds."
-          << ((queued_check_result->get_return_code() == 126 ||
-               queued_check_result->get_return_code() == 127)
+          << ((queued_check_result.get_return_code() == 126 ||
+               queued_check_result.get_return_code() == 127)
                   ? " Make sure the plugin you're trying to run actually "
                     "exists."
                   : "");
@@ -1468,17 +1465,17 @@ int host::handle_async_check_result_3x(check_result* queued_check_result) {
           log_v2::runtime(),
           "Warning: return (code of {} for check of host '{}' was out of "
           "bounds.",
-          queued_check_result->get_return_code(), name(),
-          (queued_check_result->get_return_code() == 126 ||
-           queued_check_result->get_return_code() == 127)
+          queued_check_result.get_return_code(), name(),
+          (queued_check_result.get_return_code() == 126 ||
+           queued_check_result.get_return_code() == 127)
               ? " Make sure the plugin you're trying to run actually exists."
               : "");
 
       std::ostringstream oss;
-      oss << "(Return code of " << queued_check_result->get_return_code()
+      oss << "(Return code of " << queued_check_result.get_return_code()
           << " is out of bounds"
-          << ((queued_check_result->get_return_code() == 126 ||
-               queued_check_result->get_return_code() == 127)
+          << ((queued_check_result.get_return_code() == 126 ||
+               queued_check_result.get_return_code() == 127)
                   ? " - plugin may be missing"
                   : "")
           << ")";
@@ -1501,7 +1498,7 @@ int host::handle_async_check_result_3x(check_result* queued_check_result) {
    * determination is made later */
   /* NOTE: only do this for active checks - passive check results already have
    * the final state */
-  if (queued_check_result->get_check_type() == check_active) {
+  if (queued_check_result.get_check_type() == check_active) {
     /* Let WARNING states indicate the host is up
      * (fake the result to be state_ok) */
     if (svc_res == service::state_warning)
@@ -1532,7 +1529,7 @@ int host::handle_async_check_result_3x(check_result* queued_check_result) {
       get_current_state());
 
   /* high resolution start time for event broker */
-  start_time_hires = queued_check_result->get_start_time();
+  start_time_hires = queued_check_result.get_start_time();
 
   /* high resolution end time for event broker */
   gettimeofday(&end_time_hires, nullptr);
@@ -1542,8 +1539,8 @@ int host::handle_async_check_result_3x(check_result* queued_check_result) {
       NEBTYPE_HOSTCHECK_PROCESSED, NEBFLAG_NONE, NEBATTR_NONE, this,
       get_check_type(), get_current_state(), get_state_type(), start_time_hires,
       end_time_hires, get_latency(), get_execution_time(),
-      config->host_check_timeout(), queued_check_result->get_early_timeout(),
-      queued_check_result->get_return_code(), nullptr,
+      config->host_check_timeout(), queued_check_result.get_early_timeout(),
+      queued_check_result.get_return_code(), nullptr,
       const_cast<char*>(get_plugin_output().c_str()),
       const_cast<char*>(get_long_plugin_output().c_str()),
       const_cast<char*>(get_perf_data().c_str()), nullptr);
@@ -1804,10 +1801,10 @@ int host::run_async_check(int check_options,
 
   // Run command.
   bool retry;
-  std::unique_ptr<check_result> check_result_info;
+  check_result::pointer check_result_info;
   do {
     // Init check result info.
-    check_result_info = std::make_unique<check_result>(
+    check_result_info = std::make_shared<check_result>(
         host_check, this, checkable::check_active, check_options,
         reschedule_check, latency, start_time, start_time, false, true,
         service::state_ok, "");
@@ -1815,11 +1812,8 @@ int host::run_async_check(int check_options,
     retry = false;
     try {
       // Run command.
-      uint64_t id =
-          cmd->run(processed_cmd, *macros, config->host_check_timeout());
-      if (id != 0)
-        checks::checker::instance().add_check_result(
-            id, check_result_info.release());
+      uint64_t id = cmd->run(processed_cmd, *macros,
+                             config->host_check_timeout(), check_result_info);
     } catch (com::centreon::exceptions::interruption const& e) {
       retry = true;
     } catch (std::exception const& e) {
@@ -1833,8 +1827,7 @@ int host::run_async_check(int check_options,
       check_result_info->set_output("(Execute command failed)");
 
       // Queue check result.
-      checks::checker::instance().add_check_result_to_reap(
-          check_result_info.release());
+      checks::checker::instance().add_check_result_to_reap(check_result_info);
 
       engine_logger(log_runtime_warning, basic)
           << "Error: Host check command execution failed: " << e.what();
@@ -2241,7 +2234,8 @@ void host::clear_flap(double percent_change,
       << "HOST FLAPPING ALERT: " << name()
       << ";STOPPED; Host appears to have stopped flapping (" << percent_change
       << "% change < " << low_threshold << "% threshold)";
-  log_v2::events()->info(
+  SPDLOG_LOGGER_INFO(
+      log_v2::events(),
       "HOST FLAPPING ALERT: {};STOPPED; Host appears to have stopped flapping "
       "({:.1f}% change < {:.1f}% threshold)",
       name(), percent_change, low_threshold);
@@ -2285,8 +2279,8 @@ void host::check_for_expired_acknowledgement() {
       if (last_acknowledgement() + acknowledgement_timeout() >= now) {
         engine_logger(log_info_message, basic)
             << "Acknowledgement of host '" << name() << "' just expired";
-        log_v2::events()->info("Acknowledgement of host '{}' just expired",
-                               name());
+        SPDLOG_LOGGER_INFO(log_v2::events(),
+                           "Acknowledgement of host '{}' just expired", name());
         set_problem_has_been_acknowledged(false);
         set_acknowledgement_type(ACKNOWLEDGEMENT_NONE);
         // FIXME DBO: could be improved with something smaller.
@@ -2969,7 +2963,8 @@ void host::handle_flap_detection_disabled() {
     engine_logger(log_info_message, basic)
         << "HOST FLAPPING ALERT: " << this->name()
         << ";DISABLED; Flap detection has been disabled";
-    log_v2::events()->info(
+    SPDLOG_LOGGER_INFO(
+        log_v2::events(),
         "HOST FLAPPING ALERT: {};DISABLED; Flap detection has been disabled",
         this->name());
 

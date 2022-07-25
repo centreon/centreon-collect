@@ -142,6 +142,12 @@ service::service(const std::string& hostname,
   set_current_attempt(initial_state == service::state_ok ? 1 : max_attempts);
 }
 
+service::~service() noexcept {
+  if (get_check_command_ptr()) {
+    get_check_command_ptr()->remove_caller(this);
+  }
+}
+
 time_t service::get_last_time_ok() const {
   return _last_time_ok;
 }
@@ -2596,25 +2602,23 @@ int service::run_async_check(int check_options,
                      start_time.tv_sec);
 
   bool retry;
-  std::unique_ptr<check_result> check_result_info;
+  check_result::pointer check_result_info;
   do {
     // Init check result info.
-    check_result_info.reset(
-        new check_result(service_check, this, checkable::check_active,
-                         check_options, reschedule_check, latency, start_time,
-                         start_time, false, true, service::state_ok, ""));
+    check_result_info = std::make_shared<check_result>(
+        service_check, this, checkable::check_active, check_options,
+        reschedule_check, latency, start_time, start_time, false, true,
+        service::state_ok, "");
 
     retry = false;
     try {
       // Run command.
       uint64_t id =
-          cmd->run(processed_cmd, *macros, config->service_check_timeout());
+          cmd->run(processed_cmd, *macros, config->service_check_timeout(),
+                   check_result_info, this);
       SPDLOG_LOGGER_DEBUG(log_v2::checks(),
                           "run id={} {} for service {} host {}", id,
                           processed_cmd, _service_id, _hostname);
-      if (id != 0)
-        checks::checker::instance().add_check_result(
-            id, check_result_info.release());
     } catch (com::centreon::exceptions::interruption const& e) {
       retry = true;
     } catch (std::exception const& e) {
@@ -2628,8 +2632,7 @@ int service::run_async_check(int check_options,
       check_result_info->set_output("(Execute command failed)");
 
       // Queue check result.
-      checks::checker::instance().add_check_result_to_reap(
-          check_result_info.release());
+      checks::checker::instance().add_check_result_to_reap(check_result_info);
 
       engine_logger(log_runtime_warning, basic)
           << "Error: Service check command execution failed: " << e.what();

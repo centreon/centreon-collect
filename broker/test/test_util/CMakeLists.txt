@@ -34,6 +34,5 @@ set(HEADERS
 
 add_library("test_util" STATIC ${SOURCES} ${HEADERS})
 target_link_libraries("test_util" CONAN_PKG::spdlog)
-set_target_properties("test_util" PROPERTIES COMPILE_FLAGS "-fPIC")
 
-target_precompile_headers("test_util" REUSE_FROM rokerbase)
+target_precompile_headers("test_util" PRIVATE precomp_inc/precomp.hh)

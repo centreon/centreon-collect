@@ -31,7 +31,9 @@ CCE_BEGIN()
 class notifier;
 class check_result {
  public:
-  check_result() = delete;
+  using pointer = std::shared_ptr<check_result>;
+
+  check_result();
   check_result(enum check_source object_check_type,
                notifier* notifier,
                enum checkable::check_type check_type,

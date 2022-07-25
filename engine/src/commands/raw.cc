@@ -75,12 +75,16 @@ raw::~raw() noexcept {
  *  @param[in] args    The command arguments.
  *  @param[in] macros  The macros data struct.
  *  @param[in] timeout The command timeout.
+ *  @param[in] to_push_to_checker This check_result will be pushed to checher.
+ *  @param[in] caller  pointer to the caller
  *
  *  @return The command id.
  */
 uint64_t raw::run(std::string const& processed_cmd,
                   nagios_macros& macros,
-                  uint32_t timeout) {
+                  uint32_t timeout,
+                  const check_result::pointer& to_push_to_checker,
+                  const void* caller) {
   engine_logger(dbg_commands, basic)
       << "raw::run: cmd='" << processed_cmd << "', timeout=" << timeout;
   SPDLOG_LOGGER_TRACE(log_v2::commands(), "raw::run: cmd='{}', timeout={}",
@@ -89,6 +93,10 @@ uint64_t raw::run(std::string const& processed_cmd,
   // Get process and put into the busy list.
   process* p;
   uint64_t command_id(get_uniq_id());
+
+  if (!gest_call_interval(command_id, to_push_to_checker, caller)) {
+    return command_id;
+  }
   {
     std::lock_guard<std::mutex> lock(_lock);
     p = _get_free_process();
@@ -210,15 +218,8 @@ void raw::run(std::string const& processed_cmd,
                                      << res.output << "'";
   SPDLOG_LOGGER_TRACE(log_v2::commands(),
                       "raw::run: end process: "
-                      "id={}, "
-                      "start_time={}, "
-                      "end_time={}, "
-                      "exit_code={}, "
-                      "exit_status={}, "
-                      "output='{}'",
-                      command_id, res.start_time.to_mseconds(),
-                      res.end_time.to_mseconds(), res.exit_code,
-                      res.exit_status, res.output);
+                      "id={}, {}",
+                      command_id, res);
 }
 
 /**************************************
@@ -317,12 +318,10 @@ void raw::finished(process& p) noexcept {
         << ", exit_code=" << res.exit_code
         << ", exit_status=" << res.exit_status << ", output='" << res.output
         << "'";
-    SPDLOG_LOGGER_TRACE(
-        log_v2::commands(),
-        "raw::finished: id={}, start_time={}, end_time={}, exit_code={}, "
-        "exit_status={}, output='{}'",
-        command_id, res.start_time.to_mseconds(), res.end_time.to_mseconds(),
-        res.exit_code, res.exit_status, res.output);
+    SPDLOG_LOGGER_TRACE(log_v2::commands(), "raw::finished: id={}, {}",
+                        command_id, res);
+
+    update_result_cache(command_id, res);
 
     // Forward result to the listener.
     if (_listener)

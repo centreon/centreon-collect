@@ -56,6 +56,9 @@ class result {
   timestamp start_time;
   std::string output;
 };
+
+std::ostream& operator<<(std::ostream& s, const result& to_dump);
+
 }  // namespace commands
 
 CCE_END()
