@@ -1174,46 +1174,7 @@ int broker_notification_data(int type,
                              char const* ack_data,
                              int escalated,
                              int contacts_notified,
-                             struct timeval const* timestamp) {
-  // Config check.
-  if (!(config->event_broker_options() & BROKER_NOTIFICATIONS))
-    return OK;
-
-  // Fill struct with relevant data.
-  nebstruct_notification_data ds;
-  host* temp_host(NULL);
-  com::centreon::engine::service* temp_service(NULL);
-  ds.type = type;
-  ds.flags = flags;
-  ds.attr = attr;
-  ds.timestamp = get_broker_timestamp(timestamp);
-  ds.notification_type = notification_type;
-  ds.start_time = start_time;
-  ds.end_time = end_time;
-  ds.reason_type = reason_type;
-  if (notification_type == notifier::service_notification) {
-    temp_service = (com::centreon::engine::service*)data;
-    ds.host_name = const_cast<char*>(temp_service->get_hostname().c_str());
-    ds.service_description =
-        const_cast<char*>(temp_service->get_description().c_str());
-    ds.state = temp_service->get_current_state();
-    ds.output = const_cast<char*>(temp_service->get_plugin_output().c_str());
-  } else {
-    temp_host = (host*)data;
-    ds.host_name = const_cast<char*>(temp_host->name().c_str());
-    ds.service_description = NULL;
-    ds.state = temp_host->get_current_state();
-    ds.output = const_cast<char*>(temp_host->get_plugin_output().c_str());
-  }
-  ds.object_ptr = data;
-  ds.ack_author = const_cast<char*>(ack_author);
-  ds.ack_data = const_cast<char*>(ack_data);
-  ds.escalated = escalated;
-  ds.contacts_notified = contacts_notified;
-
-  // Make callbacks.
-  return (neb_make_callbacks(NEBCALLBACK_NOTIFICATION_DATA, &ds));
-}
+                             struct timeval const* timestamp) {}
 
 /**
  *  Sends program data (starts, restarts, stops, etc.) to broker.
@@ -1379,19 +1340,9 @@ void broker_retention_data(int type,
  *  @return Return value can override service check.
  */
 int broker_service_check(int type,
-                         int flags,
-                         int attr,
                          com::centreon::engine::service* svc,
                          int check_type,
-                         struct timeval start_time,
-                         struct timeval end_time,
-                         double latency,
-                         double exectime,
-                         int timeout,
-                         int early_timeout,
-                         int retcode,
-                         const char* cmdline,
-                         struct timeval const* timestamp) {
+                         const char* cmdline) {
   // Config check.
   if (!(config->event_broker_options() & BROKER_SERVICE_CHECKS))
     return OK;
@@ -1401,28 +1352,12 @@ int broker_service_check(int type,
   // Fill struct with relevant data.
   nebstruct_service_check_data ds;
   ds.type = type;
-  ds.flags = flags;
-  ds.attr = attr;
-  ds.timestamp = get_broker_timestamp(timestamp);
   ds.host_id = svc->get_host_id();
   ds.service_id = svc->get_service_id();
   ds.object_ptr = svc;
   ds.check_type = check_type;
-  ds.current_attempt = svc->get_current_attempt();
-  ds.max_attempts = svc->max_check_attempts();
-  ds.state = svc->get_current_state();
-  ds.state_type = svc->get_state_type();
-  ds.timeout = timeout;
   ds.command_line = cmdline;
-  ds.start_time = start_time;
-  ds.end_time = end_time;
-  ds.early_timeout = early_timeout;
-  ds.execution_time = exectime;
-  ds.latency = latency;
-  ds.return_code = retcode;
   ds.output = const_cast<char*>(svc->get_plugin_output().c_str());
-  ds.long_output = const_cast<char*>(svc->get_long_plugin_output().c_str());
-  ds.perf_data = const_cast<char*>(svc->get_perf_data().c_str());
 
   // Make callbacks.
   int return_code;
@@ -1484,41 +1419,7 @@ void broker_statechange_data(int type,
                              int state_type,
                              int current_attempt,
                              int max_attempts,
-                             struct timeval const* timestamp) {
-  // Config check.
-  if (!(config->event_broker_options() & BROKER_STATECHANGE_DATA))
-    return;
-
-  // Fill struct with relevant data.
-  nebstruct_statechange_data ds;
-  host* temp_host(NULL);
-  com::centreon::engine::service* temp_service(NULL);
-  ds.type = type;
-  ds.flags = flags;
-  ds.attr = attr;
-  ds.timestamp = get_broker_timestamp(timestamp);
-  ds.statechange_type = statechange_type;
-  if (statechange_type == SERVICE_STATECHANGE) {
-    temp_service = (com::centreon::engine::service*)data;
-    ds.host_name = const_cast<char*>(temp_service->get_hostname().c_str());
-    ds.service_description =
-        const_cast<char*>(temp_service->get_description().c_str());
-    ds.output = const_cast<char*>(temp_service->get_plugin_output().c_str());
-  } else {
-    temp_host = (host*)data;
-    ds.host_name = const_cast<char*>(temp_host->name().c_str());
-    ds.service_description = NULL;
-    ds.output = const_cast<char*>(temp_host->get_plugin_output().c_str());
-  }
-  ds.object_ptr = data;
-  ds.state = state;
-  ds.state_type = state_type;
-  ds.current_attempt = current_attempt;
-  ds.max_attempts = max_attempts;
-
-  // Make callbacks.
-  neb_make_callbacks(NEBCALLBACK_STATE_CHANGE_DATA, &ds);
-}
+                             struct timeval const* timestamp) {}
 
 /**
  *  Send system command data to broker.
@@ -1547,31 +1448,7 @@ void broker_system_command(int type,
                            int retcode,
                            const char* cmd,
                            char* output,
-                           struct timeval const* timestamp) {
-  // Config check.
-  if (!(config->event_broker_options() & BROKER_SYSTEM_COMMANDS))
-    return;
-  if (!cmd)
-    return;
-
-  // Fill struct with relevant data.
-  nebstruct_system_command_data ds;
-  ds.type = type;
-  ds.flags = flags;
-  ds.attr = attr;
-  ds.timestamp = get_broker_timestamp(timestamp);
-  ds.start_time = start_time;
-  ds.end_time = end_time;
-  ds.timeout = timeout;
-  ds.command_line = cmd;
-  ds.early_timeout = early_timeout;
-  ds.execution_time = exectime;
-  ds.return_code = retcode;
-  ds.output = output;
-
-  // Make callbacks.
-  neb_make_callbacks(NEBCALLBACK_SYSTEM_COMMAND_DATA, &ds);
-}
+                           struct timeval const* timestamp) {}
 
 /**
  *  Send timed event data to broker.
@@ -1586,28 +1463,7 @@ void broker_timed_event(int type,
                         int flags,
                         int attr,
                         com::centreon::engine::timed_event* event,
-                        struct timeval const* timestamp) {
-  // Config check.
-  if (!(config->event_broker_options() & BROKER_TIMED_EVENTS))
-    return;
-  if (!event)
-    return;
-
-  // Fill struct with relevant data.
-  nebstruct_timed_event_data ds;
-  ds.type = type;
-  ds.flags = flags;
-  ds.attr = attr;
-  ds.timestamp = get_broker_timestamp(timestamp);
-  ds.event_type = event->event_type;
-  ds.recurring = event->recurring;
-  ds.run_time = event->run_time;
-  ds.event_data = event->event_data;
-  ds.event_ptr = event;
-
-  // Make callbacks.
-  neb_make_callbacks(NEBCALLBACK_TIMED_EVENT_DATA, &ds);
-}
+                        struct timeval const* timestamp) {}
 
 /**
  *  Gets timestamp for use by broker.

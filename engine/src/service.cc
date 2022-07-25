@@ -1574,8 +1574,9 @@ int service::handle_async_check_result(
     set_no_more_notifications(false);
 
     if (reschedule_check)
-      next_service_check = (time_t)(
-          get_last_check() + check_interval() * config->interval_length());
+      next_service_check =
+          (time_t)(get_last_check() +
+                   check_interval() * config->interval_length());
   }
 
   /*******************************************/
@@ -1760,8 +1761,9 @@ int service::handle_async_check_result(
         /* the host is not up, so reschedule the next service check at regular
          * interval */
         if (reschedule_check)
-          next_service_check = (time_t)(
-              get_last_check() + check_interval() * config->interval_length());
+          next_service_check =
+              (time_t)(get_last_check() +
+                       check_interval() * config->interval_length());
 
         /* log the problem as a hard state if the host just went down */
         if (hard_state_change) {
@@ -1791,8 +1793,9 @@ int service::handle_async_check_result(
         handle_service_event();
 
         if (reschedule_check)
-          next_service_check = (time_t)(
-              get_last_check() + retry_interval() * config->interval_length());
+          next_service_check =
+              (time_t)(get_last_check() +
+                       retry_interval() * config->interval_length());
       }
 
       /* perform dependency checks on the second to last check of the service */
@@ -1892,8 +1895,9 @@ int service::handle_async_check_result(
 
       /* reschedule the next check at the regular interval */
       if (reschedule_check)
-        next_service_check = (time_t)(
-            get_last_check() + check_interval() * config->interval_length());
+        next_service_check =
+            (time_t)(get_last_check() +
+                     check_interval() * config->interval_length());
     }
 
     /* should we obsessive over service checks? */
@@ -1966,13 +1970,8 @@ int service::handle_async_check_result(
   }
 
   /* send data to event broker */
-  broker_service_check(NEBTYPE_SERVICECHECK_PROCESSED, NEBFLAG_NONE,
-                       NEBATTR_NONE, this, get_check_type(),
-                       queued_check_result.get_start_time(),
-                       queued_check_result.get_finish_time(), get_latency(),
-                       get_execution_time(), config->service_check_timeout(),
-                       queued_check_result.get_early_timeout(),
-                       queued_check_result.get_return_code(), nullptr, nullptr);
+  broker_service_check(NEBTYPE_SERVICECHECK_PROCESSED, this, get_check_type(),
+                       nullptr);
 
   if (!(reschedule_check && get_should_be_scheduled() && has_been_checked()) ||
       !active_checks_enabled()) {
@@ -2508,10 +2507,8 @@ int service::run_async_check(int check_options,
   // Send broker event.
   timeval start_time = {0, 0};
   timeval end_time = {0, 0};
-  int res = broker_service_check(
-      NEBTYPE_SERVICECHECK_ASYNC_PRECHECK, NEBFLAG_NONE, NEBATTR_NONE, this,
-      checkable::check_active, start_time, end_time, get_latency(), 0.0, 0,
-      false, 0, nullptr, nullptr);
+  int res = broker_service_check(NEBTYPE_SERVICECHECK_ASYNC_PRECHECK, this,
+                                 checkable::check_active, nullptr);
 
   // Service check was cancelled by NEB module. reschedule check later.
   if (NEBERROR_CALLBACKCANCEL == res) {
@@ -2581,11 +2578,8 @@ int service::run_async_check(int check_options,
   std::string processed_cmd(cmd->process_cmd(macros));
 
   // Send event broker.
-  res = broker_service_check(NEBTYPE_SERVICECHECK_INITIATE, NEBFLAG_NONE,
-                             NEBATTR_NONE, this, checkable::check_active,
-                             start_time, end_time, get_latency(), 0.0,
-                             config->service_check_timeout(), false, 0,
-                             processed_cmd.c_str(), nullptr);
+  res = broker_service_check(NEBTYPE_SERVICECHECK_INITIATE, this,
+                             checkable::check_active, processed_cmd.c_str());
 
   // Restore latency.
   set_latency(old_latency);
@@ -3397,9 +3391,9 @@ bool service::is_result_fresh(time_t current_time, int log_this) {
    * suggested by Altinity */
   else if (this->active_checks_enabled() && event_start > get_last_check() &&
            this->get_freshness_threshold() == 0)
-    expiration_time = (time_t)(
-        event_start + freshness_threshold +
-        (config->max_service_check_spread() * config->interval_length()));
+    expiration_time = (time_t)(event_start + freshness_threshold +
+                               (config->max_service_check_spread() *
+                                config->interval_length()));
   else
     expiration_time = (time_t)(get_last_check() + freshness_threshold);
 

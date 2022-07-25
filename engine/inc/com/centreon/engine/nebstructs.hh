@@ -383,29 +383,6 @@ typedef struct nebstruct_module_struct {
   char* args;
 } nebstruct_module_data;
 
-/* Notification data structure. */
-typedef struct nebstruct_notification_struct {
-  int type;
-  int flags;
-  int attr;
-  struct timeval timestamp;
-
-  int notification_type;
-  struct timeval start_time;
-  struct timeval end_time;
-  char* host_name;
-  char* service_description;
-  int reason_type;
-  int state;
-  char* output;
-  char* ack_author;
-  char* ack_data;
-  int escalated;
-  int contacts_notified;
-
-  void* object_ptr;
-} nebstruct_notification_data;
-
 /* Process data structure. */
 typedef struct nebstruct_process_struct {
   int type;
@@ -467,29 +444,11 @@ typedef struct nebstruct_retention_struct {
 /* Service check structure. */
 typedef struct nebstruct_service_check_struct {
   int type;
-  int flags;
-  int attr;
-  struct timeval timestamp;
-
   uint64_t host_id;
   uint64_t service_id;
   int check_type;
-  int current_attempt;
-  int max_attempts;
-  int state_type;
-  int state;
-  int timeout;
   const char* command_line;
-  struct timeval start_time;
-  struct timeval end_time;
-  int early_timeout;
-  double execution_time;
-  double latency;
-  int return_code;
   char* output;
-  char* long_output;
-  char* perf_data;
-
   void* object_ptr;
 } nebstruct_service_check_data;
 
@@ -502,56 +461,5 @@ typedef struct nebstruct_service_status_struct {
 
   void* object_ptr;
 } nebstruct_service_status_data;
-
-/* State change structure. */
-typedef struct nebstruct_statechange_struct {
-  int type;
-  int flags;
-  int attr;
-  struct timeval timestamp;
-
-  int statechange_type;
-  char* host_name;
-  char* service_description;
-  int state;
-  int state_type;
-  int current_attempt;
-  int max_attempts;
-  char* output;
-
-  void* object_ptr;
-} nebstruct_statechange_data;
-
-/* System command structure. */
-typedef struct nebstruct_system_command_struct {
-  int type;
-  int flags;
-  int attr;
-  struct timeval timestamp;
-
-  struct timeval start_time;
-  struct timeval end_time;
-  int timeout;
-  const char* command_line;
-  int early_timeout;
-  double execution_time;
-  int return_code;
-  char* output;
-} nebstruct_system_command_data;
-
-/* Timed event data structure. */
-typedef struct nebstruct_timed_event_struct {
-  int type;
-  int flags;
-  int attr;
-  struct timeval timestamp;
-
-  int event_type;
-  int recurring;
-  time_t run_time;
-  void* event_data;
-
-  void* event_ptr;
-} nebstruct_timed_event_data;
 
 #endif /* !CCE_NEBSTRUCTS_HH */
