@@ -184,7 +184,7 @@ BSCSSTG2
 	Broker Config Input set	rrd	rrd-broker-master-input	certificate	/etc/centreon-broker/client.crt
 	${start}=	Get Current Date
 	Start Broker
-	${content}=	Create List	start_write() write:buff:	write done :buff:
+	${content}=	Create List	crypted connexion	start_write() write:buff:	write done :buff:
 	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	30
 	Should Be True	${result}	msg=No information about TLS activation.
 	Kindly Stop Broker
@@ -240,7 +240,7 @@ BSCSSCG1
 	Config Broker BBDO Input	rrd	bbdo_server	5670  grpc
 	Broker Config Output set	central	central-broker-master-output	compression	yes
 	Broker Config Log	central	config	off
-	Broker Config Log	central	core	off
+	Broker Config Log	central	core	trace
 	Broker Config Log	rrd	core	off
 	Broker Config Log	central	tls	debug
 	Broker Config Log	central	grpc	debug

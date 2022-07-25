@@ -22,7 +22,7 @@
 using namespace com::centreon::broker::config;
 
 /**
- * @brief const endpointructor. It stores the direction of data, way may be
+ * @brief endpoint constructor. It stores the direction of data, way may be
  * input or output, this corresponds to the broker configuration files.
  *
  * @param way io_type::input or io_type::output.
