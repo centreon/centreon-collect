@@ -39,6 +39,7 @@ class state {
   uint16_t _rpc_port;
   std::string _listen_address;
   std::string _broker_name;
+  uint64_t _event_queues_total_size = 0u;
   std::tuple<uint16_t, uint16_t, uint16_t> _bbdo_version;
   std::string _cache_directory;
   std::string _command_file;
@@ -78,6 +79,8 @@ class state {
   const std::string& listen_address() const noexcept;
   void broker_name(std::string const& name);
   const std::string& broker_name() const noexcept;
+  void event_queues_total_size(uint64_t size);
+  uint64_t event_queues_total_size() const noexcept;
   void bbdo_version(std::tuple<uint16_t, uint16_t, uint16_t>&& v);
   const std::tuple<uint16_t, uint16_t, uint16_t>& bbdo_version() const noexcept;
   void cache_directory(std::string const& dir);
