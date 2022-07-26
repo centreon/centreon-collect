@@ -1,5 +1,5 @@
 /*
-** Copyright 2020 Centreon
+** Copyright 2020-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -44,7 +44,6 @@ using namespace com::centreon::broker::file;
  *                            read.
  */
 splitter::splitter(std::string const& path,
-                   fs_file::open_mode mode,
                    uint32_t max_file_size,
                    bool auto_delete)
     : _auto_delete{auto_delete},
@@ -59,8 +58,6 @@ splitter::splitter(std::string const& path,
       _wmutex{nullptr},
       _wid{0},
       _woffset{0} {
-  (void)mode;
-
   // Get IDs of already existing file parts. File parts are suffixed
   // with their order number. A file named /var/lib/foo would have
   // parts named /var/lib/foo, /var/lib/foo1, /var/lib/foo2, ...
@@ -88,7 +85,7 @@ splitter::splitter(std::string const& path,
     const char* ptr{f.c_str() + offset};
     int val = 0;
     if (*ptr) {  // Not empty, conversion needed.
-      char* endptr(nullptr);
+      char* endptr = nullptr;
       val = strtol(ptr, &endptr, 10);
       if (endptr && *endptr)  // Invalid conversion.
         continue;
@@ -98,6 +95,10 @@ splitter::splitter(std::string const& path,
       _rid = val;
     if (val > _wid)
       _wid = val;
+
+    struct stat file_stat;
+    if (stat(f.c_str(), &file_stat) == 0)
+      _size += file_stat.st_size;
   }
 
   if (_rid == std::numeric_limits<int>::max() || _rid < 0)
@@ -161,6 +162,9 @@ long splitter::read(void* buffer, long max_size) {
       if (_auto_delete) {
         log_v2::bbdo()->info("file: end of file '{}' reached, erasing it",
                              file_path);
+        struct stat file_stat;
+        if (stat(file_path.c_str(), &file_stat) == 0)
+          _size -= file_stat.st_size;
         std::remove(file_path.c_str());
       }
       if (_rid < _wid) {
@@ -240,6 +244,7 @@ long splitter::write(void const* buffer, long size) {
     remaining -= wb;
     _woffset += wb;
   }
+  _size += size;
   return size;
 }
 
@@ -403,5 +408,16 @@ void splitter::_open_write_file() {
       size +=
           fwrite(header.bytes + size, 1, sizeof(header) - size, _wfile.get());
     _woffset = 2 * sizeof(uint32_t);
+    _size += size;
   }
+}
+
+/**
+ * @brief Accessor to the size of this splitter in bytes, ie the total size
+ * occupied by the set of files constituting this splitter.
+ *
+ * @return a positive integer representing a size in bytes.
+ */
+size_t splitter::size() const {
+  return _size;
 }

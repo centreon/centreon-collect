@@ -48,6 +48,7 @@ class persistent_file : public io::stream {
   void statistics(nlohmann::json& tree) const override;
   int32_t write(const std::shared_ptr<io::data>& d) override;
   int32_t stop() override;
+  size_t size() const;
 };
 
 CCB_END()

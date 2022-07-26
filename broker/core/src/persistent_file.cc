@@ -37,8 +37,7 @@ persistent_file::persistent_file(const std::string& path, QueueFileStats* stats)
     : io::stream("persistent_file") {
   // On-disk file.
   constexpr uint32_t max_size{100000000u};
-  _splitter = std::make_shared<file::stream>(
-      path, file::fs_file::open_read_write_truncate, stats, max_size, true);
+  _splitter = std::make_shared<file::stream>(path, stats, max_size, true);
 
   // Compression layer.
   auto cs{std::make_shared<compression::stream>()};

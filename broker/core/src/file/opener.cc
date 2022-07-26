@@ -54,8 +54,7 @@ opener::~opener() {}
 std::unique_ptr<io::stream> opener::open() {
   // Open splitted file.
   std::unique_ptr<io::stream> retval{
-      std::make_unique<stream>(_filename, fs_file::open_read_write_truncate,
-                               nullptr, _max_size, _auto_delete)};
+      std::make_unique<stream>(_filename, nullptr, _max_size, _auto_delete)};
   return retval;
 }
 

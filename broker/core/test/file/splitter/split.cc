@@ -33,8 +33,7 @@ class FileSplitterSplit : public ::testing::Test {
       for (std::string const& f : parts)
         std::remove(f.c_str());
     }
-    _file.reset(new file::splitter(
-        _path, file::fs_file::open_read_write_truncate, 10008, true));
+    _file = std::make_unique<file::splitter>(_path, 10008, true);
     char buffer[10];
     for (int i(0); i < 10; ++i)
       buffer[i] = i;

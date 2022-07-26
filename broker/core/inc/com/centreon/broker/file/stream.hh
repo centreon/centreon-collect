@@ -34,7 +34,7 @@ namespace file {
  *  Read and write data to a stream.
  */
 class stream : public io::stream {
-  splitter _file;
+  splitter _splitter;
   QueueFileStats* _stats;
   std::time_t _last_stats;
   std::time_t _last_stats_perc;
@@ -49,7 +49,6 @@ class stream : public io::stream {
 
  public:
   stream(const std::string& path,
-         fs_file::open_mode mode,
          QueueFileStats* s,
          uint32_t max_file_size = 100000000u,
          bool auto_delete = false);
@@ -63,6 +62,7 @@ class stream : public io::stream {
   int32_t write(std::shared_ptr<io::data> const& d) override;
   int32_t stop() override;
   uint32_t max_file_size() const;
+  size_t size() const;
 };
 }  // namespace file
 

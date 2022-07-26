@@ -250,6 +250,11 @@ state parser::parse(std::string const& file) {
         else if (get_conf<state>({it.key(), it.value()}, "command_file", retval,
                                  &state::command_file, &json::is_string))
           ;
+        else if (get_conf<int, state>({it.key(), it.value()},
+                                      "event_queue_max_size", retval,
+                                      &state::event_queue_max_size,
+                                      &json::is_number, &json::get<int>))
+          ;
         else if (it.key() == "event_queues_total_size") {
           auto eqts = check_and_read<uint64_t>(json_document["centreonBroker"],
                                                "event_queues_total_size");

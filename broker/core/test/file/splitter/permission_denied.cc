@@ -41,8 +41,6 @@ class FileSplitterPermissionDenied : public ::testing::Test {
 // Then the creation does not crash
 TEST_F(FileSplitterPermissionDenied, DefaultFile) {
   if (getuid() != 0) {
-    ASSERT_THROW(new splitter(_path, file::fs_file::open_read_write_truncate,
-                              10000, true),
-                 msg_fmt);
+    ASSERT_THROW(new splitter(_path, 10000, true), msg_fmt);
   }
 }

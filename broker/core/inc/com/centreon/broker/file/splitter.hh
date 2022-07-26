@@ -76,13 +76,13 @@ class splitter : public fs_file {
   std::mutex _mutex1;
   std::mutex _mutex2;
   std::mutex _id_m;
+  size_t _size = 0u;
 
   void _open_read_file();
   void _open_write_file();
 
  public:
-  splitter(std::string const& path,
-           fs_file::open_mode mode,
+  splitter(const std::string& path,
            uint32_t max_file_size = 100000000u,
            bool auto_delete = false);
   ~splitter();
@@ -103,6 +103,7 @@ class splitter : public fs_file {
   long get_roffset() const;
   int32_t get_wid() const;
   long get_woffset() const;
+  size_t size() const;
 };
 }  // namespace file
 
