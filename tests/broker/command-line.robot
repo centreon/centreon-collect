@@ -27,10 +27,10 @@ BCL2
 	Config Broker	central
 	${start}=	Get Current Date	exclude_millis=True
 	Sleep	1s
-	Start Broker With Args	-s5	/etc/centreon-broker/central-broker.json
+	Start Broker With Args	-s5	${EtcRoot}/centreon-broker/central-broker.json
 	${table}=	Create List	Starting the TCP thread pool of 5 threads
 	${logger_res}=	Find in log with timeout	${centralLog}	${start}	${table}	30
-	Should be True	${logger_res}	msg=Didn't found 5 threads in /var/log/centreon-broker/central-broker-master.log
+	Should be True	${logger_res}	msg=Didn't found 5 threads in ${VarRoot}/log/centreon-broker/central-broker-master.log
 	Stop Broker With Args
 
 BCL3
@@ -39,7 +39,7 @@ BCL3
 	Config Broker	central
 	${start}=	Get Current Date	exclude_millis=True
 	Sleep	1s
-	Start Broker With Args	-D	/etc/centreon-broker/central-broker.json
+	Start Broker With Args	-D	${EtcRoot}/centreon-broker/central-broker.json
 	${result}=	Wait For Broker
 	${expected}=	Evaluate	"diagnostic:" in """${result}"""
 	Should be True	${expected}	msg=diagnostic mode didn't launch
@@ -48,7 +48,7 @@ BCL4
 	[Documentation]	Starting broker with options '-s2' and '-D' should work.
 	[Tags]	Broker	start-stop
 	Config Broker	central
-	Start Broker With Args	-s2	-D	/etc/centreon-broker/central-broker.json
+	Start Broker With Args	-s2	-D	${EtcRoot}/centreon-broker/central-broker.json
 	${result}=	Wait For Broker
 	${expected}=	Evaluate	"diagnostic:" in """${result}"""
 	Should be True	${expected}	msg=diagnostic mode didn't launch

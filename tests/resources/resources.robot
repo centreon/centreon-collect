@@ -28,8 +28,8 @@ Clear Broker Logs
 	Create Directory	${BROKER_LOG}
 
 Start Broker
-	Start Process	/usr/sbin/cbd	/etc/centreon-broker/central-broker.json	alias=b1
-	Start Process	/usr/sbin/cbd	/etc/centreon-broker/central-rrd.json	alias=b2
+	Start Process	/usr/sbin/cbd	${EtcRoot}/centreon-broker/central-broker.json	alias=b1
+	Start Process	/usr/sbin/cbd	${EtcRoot}/centreon-broker/central-rrd.json	alias=b2
 #	${log_pid1}=  Get Process Id	b1
 #	${log_pid2}=  Get Process Id	b2
 #	Log To Console  \npidcentral=${log_pid1} pidrrd=${log_pid2}\n
@@ -61,9 +61,9 @@ Start Engine
 	${count}=	Get Engines Count
 	FOR	${idx}	IN RANGE	0	${count}
 	 ${alias}=	Catenate	SEPARATOR=	e	${idx}
-	 ${conf}=	Catenate	SEPARATOR=	/etc/centreon-engine/config	${idx}	/centengine.cfg
-	 ${log}=	Catenate	SEPARATOR=	/var/log/centreon-engine/config	${idx}
-	 ${lib}=	Catenate	SEPARATOR=	/var/lib/centreon-engine/config	${idx}
+	 ${conf}=	Catenate	SEPARATOR=	${EtcRoot}  /centreon-engine/config	${idx}	/centengine.cfg
+	 ${log}=	Catenate	SEPARATOR=	${VarRoot}  /log/centreon-engine/config	${idx}
+	 ${lib}=	Catenate	SEPARATOR=	${VarRoot}  /lib/centreon-engine/config	${idx}
 	 Create Directory	${log}
 	 Create Directory	${lib}
 	 Start Process	/usr/sbin/centengine	${conf}	alias=${alias}
@@ -126,10 +126,12 @@ Save Logs
         ${failDir}=	Catenate	SEPARATOR=	failed/	${Test Name}
         Create Directory	${failDir}
         Copy files	${centralLog}	${failDir}
+        Copy files	${moduleLog0}	${failDir}
+        Copy files	${engineLog0}	${failDir}
 
 *** Variables ***
-${BROKER_LOG}	/var/log/centreon-broker
-${ENGINE_LOG}	/var/log/centreon-engine
+${BROKER_LOG}	${VarRoot}/log/centreon-broker
+${ENGINE_LOG}	${VarRoot}/log/centreon-engine
 ${SCRIPTS}	${CURDIR}${/}scripts${/}
 ${centralLog}	${BROKER_LOG}/central-broker-master.log
 ${moduleLog0}	${BROKER_LOG}/central-module-master0.log

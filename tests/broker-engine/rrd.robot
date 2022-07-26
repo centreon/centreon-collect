@@ -46,8 +46,8 @@ BRRDDM1
 	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	30
 	Should Be True	${result}	msg=No log message telling about metrics ${metrics_str} deletion.
 	FOR	${m}	IN	@{metrics}
-		Log to Console	Waiting for /var/lib/centreon/metrics/${m}.rrd to be deleted
-		Wait Until Removed	/var/lib/centreon/metrics/${m}.rrd      20s
+		Log to Console	Waiting for ${VarRoot}/lib/centreon/metrics/${m}.rrd to be deleted
+		Wait Until Removed	${VarRoot}/lib/centreon/metrics/${m}.rrd      20s
 	END
 
 BRRDDID1
@@ -81,12 +81,12 @@ BRRDDID1
 	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	30
 	Should Be True	${result}	msg=No log message telling about indexes ${indexes_str} deletion.
 	FOR	${i}	IN	@{indexes}
-		log to console	Wait for /var/lib/centreon/status/${i}.rrd to be deleted
-		Wait Until Removed	/var/lib/centreon/status/${i}.rrd	20s
+		log to console	Wait for ${VarRoot}/lib/centreon/status/${i}.rrd to be deleted
+		Wait Until Removed	${VarRoot}/lib/centreon/status/${i}.rrd	20s
 	END
 	FOR	${m}	IN	@{metrics}
-		log to console	Wait for /var/lib/centreon/metrics/${m}.rrd to be deleted
-		Wait Until Removed	/var/lib/centreon/metrics/${m}.rrd	20s
+		log to console	Wait for ${VarRoot}/lib/centreon/metrics/${m}.rrd to be deleted
+		Wait Until Removed	${VarRoot}/lib/centreon/metrics/${m}.rrd	20s
 	END
 
 BRRDDMID1
@@ -146,7 +146,7 @@ BRRDDMU1
 	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	50
 	Should Be True	${result}	msg=No log message telling about metrics ${metrics_str} deletion.
 	FOR	${m}	IN	@{metrics}
-		Wait Until Removed	/var/lib/centreon/metrics/${m}.rrd	20s
+		Wait Until Removed	${VarRoot}/lib/centreon/metrics/${m}.rrd	20s
 	END
 
 BRRDDIDU1
@@ -180,10 +180,10 @@ BRRDDIDU1
 	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	30
 	Should Be True	${result}	msg=No log message telling about indexes ${indexes_str} deletion.
 	FOR	${i}	IN	@{indexes}
-		Wait Until Removed	/var/lib/centreon/status/${i}.rrd	20s
+		Wait Until Removed	${VarRoot}/lib/centreon/status/${i}.rrd	20s
 	END
 	FOR	${m}	IN	@{metrics}
-		Wait Until Removed	/var/lib/centreon/metrics/${m}.rrd	20s
+		Wait Until Removed	${VarRoot}/lib/centreon/metrics/${m}.rrd	20s
 	END
 
 BRRDDMIDU1

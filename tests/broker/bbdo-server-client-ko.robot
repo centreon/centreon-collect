@@ -65,8 +65,8 @@ BSCSSK2
 *** Keywords ***
 Start Stop Service
 	[Arguments]	${interval}
-	Start Process	/usr/sbin/cbd	/etc/centreon-broker/central-broker.json	alias=b1
-	Start Process	/usr/sbin/cbd	/etc/centreon-broker/central-rrd.json	alias=b2
+	Start Process	/usr/sbin/cbd	${EtcRoot}/centreon-broker/central-broker.json	alias=b1
+	Start Process	/usr/sbin/cbd	${EtcRoot}/centreon-broker/central-rrd.json	alias=b2
 	Sleep	${interval}
         ${pid1}=	Get Process Id	b1
         ${pid2}=	Get Process Id	b2
@@ -82,7 +82,7 @@ Start Stop Service
 
 Start Stop Instance
 	[Arguments]	${interval}
-	Start Process	/usr/sbin/cbd	/etc/centreon-broker/central-broker.json	alias=b1
+	Start Process	/usr/sbin/cbd	${EtcRoot}/centreon-broker/central-broker.json	alias=b1
 	Sleep	${interval}
 	Send Signal To Process	SIGTERM	b1
 	${result}=	Wait For Process	b1	timeout=60s	on_timeout=kill
