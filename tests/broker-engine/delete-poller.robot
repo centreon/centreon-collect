@@ -36,7 +36,7 @@ EBDP1
 	Start Engine
 
 	# Let's wait for the initial service states.
-	${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
+	${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;	check_for_external_commands()
 	${result}=	Find In Log with Timeout	${engineLog3}	${start}	${content}	60
 	Should Be True	${result}	msg=An Initial service state on service (50, 1000) should be raised before we can start external commands.
 
@@ -56,6 +56,11 @@ EBDP1
 	Start Broker
 	Start Engine
 
+	# Let's wait for the initial service states.
+	${content}=	Create List	check_for_external_commands()
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+	Should Be True	${result}	msg=check_for_external_commands is missing.
+	
 	Remove Poller	51001	Poller3	
 	Sleep	6s
 
@@ -306,9 +311,9 @@ EBDP5
 	Start Engine
 
 	# Let's wait for the initial service states.
-	${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
+	${content}=	Create List	check_for_external_commands
 	${result}=	Find In Log with Timeout	${engineLog3}	${start}	${content}	60
-	Should Be True	${result}	msg=An Initial service state on service (50, 1000) should be raised before we can start external commands.
+	Should Be True	${result}	msg=check_for_external_commands is missing.
 
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 	FOR    ${index}    IN RANGE    60
@@ -325,6 +330,11 @@ EBDP5
 	${start}=	Get Current Date
 	Start Broker
 	Start Engine
+
+	# Let's wait for the initial service states.
+	${content}=	Create List	check_for_external_commands
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+	Should Be True	${result}	msg=check_for_external_commands is missing.
 
 	Remove Poller by id	51001	${4}
 	Sleep	6s
