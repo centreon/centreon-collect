@@ -45,7 +45,7 @@ class stream : public io::stream {
 
  public:
   stream(std::string const& host, uint16_t port, int32_t read_timeout);
-  stream(tcp_connection::pointer conn, int32_t read_timeout);
+  stream(const tcp_connection::pointer& conn, int32_t read_timeout);
   ~stream() noexcept;
   stream& operator=(const stream&) = delete;
   stream(const stream&) = delete;

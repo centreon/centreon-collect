@@ -111,7 +111,7 @@ tcp_async::~tcp_async() noexcept {
  * @return A shared_ptr to a connection or nothing.
  */
 tcp_connection::pointer tcp_async::get_connection(
-    std::shared_ptr<asio::ip::tcp::acceptor> acceptor,
+    const std::shared_ptr<asio::ip::tcp::acceptor>& acceptor,
     uint32_t timeout_s) {
   auto end = std::chrono::system_clock::now() + std::chrono::seconds{timeout_s};
   do {
@@ -227,7 +227,7 @@ void tcp_async::_clear_available_con(asio::error_code ec) {
  * @param acceptor The acceptor that you want it to accept.
  */
 void tcp_async::start_acceptor(
-    std::shared_ptr<asio::ip::tcp::acceptor> acceptor) {
+    const std::shared_ptr<asio::ip::tcp::acceptor>& acceptor) {
   log_v2::tcp()->trace("Start acceptor");
   if (!_timer)
     _timer =

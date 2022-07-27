@@ -61,7 +61,7 @@ monitoring_stream::monitoring_stream(std::string const& ext_cmd_file,
       _mysql(db_cfg),
       _pending_events(0),
       _storage_db_cfg(storage_db_cfg),
-      _cache(cache) {
+      _cache(std::move(cache)) {
   log_v2::bam()->trace("BAM: monitoring_stream constructor");
   // Prepare queries.
   _prepare();
