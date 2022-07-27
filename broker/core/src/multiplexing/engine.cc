@@ -334,6 +334,15 @@ void engine::_send_to_subscribers() {
       promise.set_value();
 
     promise.get_future().wait();
+
+    /* What's the total size of the queue files */
+    size_t files_size = 0u;
+    for (auto m : _muxers)
+      files_size += m->file_size();
+    _files_size = files_size;
+    log_v2::core()->info("engine: files_size = {}", files_size);
+    stats::center::instance().update(&EngineStats::set_queue_size, _stats,
+                                     files_size);
   }
 
   /* The strand is necessary for the order of data */
@@ -348,14 +357,10 @@ void engine::clear() {
 }
 
 /**
- * @brief Compute the total size of the queue files used by all the muxers
- * under the multiplexing engine.
+ * @brief Return the total size occupied by the queue files.
  *
  * @return a size_t integer.
  */
 size_t engine::files_size() const {
-  size_t retval = 0u;
-  for (auto& m : _muxers)
-    retval += m->file_size();
-  return retval;
+  return _files_size;
 }

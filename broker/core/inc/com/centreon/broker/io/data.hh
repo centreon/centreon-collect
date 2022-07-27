@@ -40,7 +40,7 @@ class data {
   data() = delete;
   data(uint32_t type = 0);
   data(data const& other);
-  virtual ~data();
+  virtual ~data() = default;
   data& operator=(data const& other);
   constexpr uint32_t type() const noexcept { return _type; }
 

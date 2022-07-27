@@ -215,7 +215,10 @@ void muxer::publish(const std::shared_ptr<io::data> event) {
         _file_size = _file->size();
       }
 
-      _file_size += _file->write(event);
+      _file->write(event);
+      _file_size = _file->size();
+      log_v2::core()->info("multiplexing: muxer '{}' with file size = {}",
+                           _name, _file_size);
     } else
       _push_to_queue(event);
     _update_stats();
@@ -501,5 +504,6 @@ const std::string& muxer::name() const {
 }
 
 size_t muxer::file_size() const {
+  log_v2::core()->info("multiplexing: '{}' file size = {}", _name, _file_size);
   return _file_size;
 }

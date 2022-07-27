@@ -78,6 +78,7 @@ class engine {
 
   // Subscriber.
   std::vector<muxer*> _muxers;
+  std::atomic<size_t> _files_size;
 
   // Statistics.
   EngineStats* _stats;
