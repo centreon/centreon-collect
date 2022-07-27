@@ -107,6 +107,7 @@ class engine {
   void stop();
   void subscribe(muxer* subscriber);
   void unsubscribe(muxer* subscriber);
+  size_t files_size() const;
 };
 }  // namespace multiplexing
 

@@ -81,6 +81,7 @@ muxer::muxer(std::string name,
     QueueFileStats* stats =
         stats::center::instance().muxer_stats(_name)->mutable_queue_file();
     _file = std::make_unique<persistent_file>(_queue_file_name, stats);
+    _file_size = _file->size();
     std::shared_ptr<io::data> e;
     // The following do-while might read an extra event from the queue
     // file back in memory. However this is necessary to ensure that a
@@ -145,7 +146,7 @@ void muxer::ack_events(int count) {
       --_events_size;
     }
     log_v2::core()->trace("multiplexing: still {} events in {} event queue",
-                              _events_size, _name);
+                          _events_size, _name);
 
     // Fill memory from file.
     std::shared_ptr<io::data> e;
@@ -211,9 +212,10 @@ void muxer::publish(const std::shared_ptr<io::data> event) {
         QueueFileStats* s =
             stats::center::instance().muxer_stats(_name)->mutable_queue_file();
         _file = std::make_unique<persistent_file>(_queue_file_name, s);
+        _file_size = _file->size();
       }
 
-      _file->write(event);
+      _file_size += _file->write(event);
     } else
       _push_to_queue(event);
     _update_stats();
@@ -369,6 +371,7 @@ int muxer::write(std::shared_ptr<io::data> const& d) {
  */
 void muxer::_clean() {
   _file.reset();
+  _file_size = 0u;
   stats::center::instance().clear_muxer_queue_file(_name);
   //  stats::center::instance().execute([name=this->_name] {
   //      stats::center::instance().muxer_stats(name)->mutable_queue_file()->Clear();
@@ -409,10 +412,12 @@ void muxer::_get_event_from_file(std::shared_ptr<io::data>& event) {
       do {
         _file->read(event);
       } while (!event);
+      _file_size = _file->size();
     } catch (exceptions::shutdown const& e) {
       // The file end was reach.
       (void)e;
       _file.reset();
+      _file_size = 0u;
       stats::center::instance().clear_muxer_queue_file(_name);
     }
   }
@@ -493,4 +498,8 @@ void muxer::remove_queue_files() {
 
 const std::string& muxer::name() const {
   return _name;
+}
+
+size_t muxer::file_size() const {
+  return _file_size;
 }

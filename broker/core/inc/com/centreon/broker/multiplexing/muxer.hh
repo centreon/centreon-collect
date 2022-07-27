@@ -63,6 +63,11 @@ class muxer : public io::stream {
   const bool _persistent;
 
   std::unique_ptr<persistent_file> _file;
+  /* We keep _file_size in memory, otherwise we should lock _mutex each time
+   * we need to know it. Here, each time _file is modified we can update
+   * _file_size, _mutex is already locked. */
+  std::atomic<size_t> _file_size;
+
   std::condition_variable _cv;
   mutable std::mutex _mutex;
   std::list<std::shared_ptr<io::data>> _events;
@@ -104,6 +109,7 @@ class muxer : public io::stream {
   int32_t write(std::shared_ptr<io::data> const& d) override;
   int32_t stop() override;
   const std::string& name() const;
+  size_t file_size() const;
 };
 }  // namespace multiplexing
 

@@ -107,3 +107,13 @@ int32_t persistent_file::stop() {
 void persistent_file::remove_all_files() {
   _splitter->remove_all_files();
 }
+
+/**
+ * @brief Accessor to the total size of the persistent file, ie all the size
+ * of all the files created for this persistent file.
+ *
+ * @return a size_t integer.
+ */
+size_t persistent_file::size() const {
+  return _splitter->size();
+}
