@@ -76,7 +76,7 @@ class splitter : public fs_file {
   std::mutex _mutex1;
   std::mutex _mutex2;
   std::mutex _id_m;
-  size_t _size = 0u;
+  std::atomic<size_t> _size;
 
   void _open_read_file();
   void _open_write_file();

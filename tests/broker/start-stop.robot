@@ -90,10 +90,10 @@ Start Stop Service
 	Sleep	${interval}
 	Send Signal To Process	SIGTERM	b1
 	${result}=	Wait For Process	b1	timeout=60s	on_timeout=kill
-	Should Be True	${result.rc} == -15 or ${result.rc} == 0	msg=Broker service badly stopped
+	Should Be True	${result.rc} == -15 or ${result.rc} == 0	msg=Broker service badly stopped with code ${result.rc}
 	Send Signal To Process	SIGTERM	b2
 	${result}=	Wait For Process	b2	timeout=60s	on_timeout=kill
-	Should Be True	${result.rc} == -15 or ${result.rc} == 0	msg=Broker service badly stopped
+	Should Be True	${result.rc} == -15 or ${result.rc} == 0	msg=Broker service badly stopped with code ${result.rc}
 
 Start Stop Instance
 	[Arguments]	${interval}
@@ -101,5 +101,4 @@ Start Stop Instance
 	Sleep	${interval}
 	Send Signal To Process	SIGTERM	b1
 	${result}=	Wait For Process	b1	timeout=60s	on_timeout=kill
-	Should Be True	${result.rc} == -15 or ${result.rc} == 0	msg=Broker instance badly stopped
-
+	Should Be True	${result.rc} == -15 or ${result.rc} == 0	msg=Broker instance badly stopped with code ${result.rc}

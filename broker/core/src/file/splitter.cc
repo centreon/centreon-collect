@@ -57,7 +57,8 @@ splitter::splitter(std::string const& path,
       _wfile{},
       _wmutex{nullptr},
       _wid{0},
-      _woffset{0} {
+      _woffset{0},
+      _size{0u} {
   // Get IDs of already existing file parts. File parts are suffixed
   // with their order number. A file named /var/lib/foo would have
   // parts named /var/lib/foo, /var/lib/foo1, /var/lib/foo2, ...

@@ -30,6 +30,8 @@ BRRDDMDB1
 	Broker Config Log	central	core	error
 	Broker Config Log	rrd	rrd	debug
 	Broker Config Log	rrd	core	error
+        Broker Config Flush Log	central	0
+        Broker Config Flush Log	rrd	0
 	Create Metrics	3
 	${start}=	Get Current Date
 	Start Broker
@@ -65,6 +67,8 @@ BRRDDIDDB1
 	Broker Config Log	central	sql	info
 	Broker Config Log	rrd	rrd	debug
 	Broker Config Log	rrd	core	error
+        Broker Config Flush Log	central	0
+        Broker Config Flush Log	rrd	0
 	Create Metrics	3
 
 	${start}=	Get Current Date
@@ -108,6 +112,8 @@ BRRDRBDB1
 	Config Broker	module
 	Broker Config Log	rrd	rrd	trace
 	Broker Config Log	central	sql	trace
+        Broker Config Flush Log	central	0
+        Broker Config Flush Log	rrd	0
 	Create Metrics	3
 
 	${start}=	Get Current Date
@@ -155,6 +161,8 @@ BRRDRBUDB1
 	Config Broker	module
 	Broker Config Log	rrd	rrd	trace
 	Broker Config Log	central	sql	trace
+        Broker Config Flush Log	central	0
+        Broker Config Flush Log	rrd	0
         Broker Config Add Item	module0	bbdo_version	3.0.1
         Broker Config Add Item	rrd	bbdo_version	3.0.1
         Broker Config Add Item	central	bbdo_version	3.0.1
