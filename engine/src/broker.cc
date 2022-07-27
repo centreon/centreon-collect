@@ -1019,24 +1019,10 @@ void broker_group_member(int type,
  *  @return Return value can override host check.
  */
 int broker_host_check(int type,
-                      int flags,
-                      int attr,
                       host* hst,
                       int check_type,
-                      int state,
-                      int state_type,
-                      struct timeval start_time,
-                      struct timeval end_time,
-                      double latency,
-                      double exectime,
-                      int timeout,
-                      int early_timeout,
-                      int retcode,
                       char const* cmdline,
-                      char* output,
-                      char* long_output,
-                      char* perfdata,
-                      struct timeval const* timestamp) {
+                      char* output) {
   // Config check.
   if (!(config->event_broker_options() & BROKER_HOST_CHECKS))
     return OK;
@@ -1046,27 +1032,11 @@ int broker_host_check(int type,
   // Fill struct with relevant data.
   nebstruct_host_check_data ds;
   ds.type = type;
-  ds.flags = flags;
-  ds.attr = attr;
-  ds.timestamp = get_broker_timestamp(timestamp);
   ds.host_name = const_cast<char*>(hst->name().c_str());
   ds.object_ptr = hst;
   ds.check_type = check_type;
-  ds.current_attempt = hst->get_current_attempt();
-  ds.max_attempts = hst->max_check_attempts();
-  ds.state = state;
-  ds.state_type = state_type;
-  ds.timeout = timeout;
   ds.command_line = cmdline;
-  ds.start_time = start_time;
-  ds.end_time = end_time;
-  ds.early_timeout = early_timeout;
-  ds.execution_time = exectime;
-  ds.latency = latency;
-  ds.return_code = retcode;
   ds.output = output;
-  ds.long_output = long_output;
-  ds.perf_data = perfdata;
 
   // Make callbacks.
   int return_code;

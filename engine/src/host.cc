@@ -1535,15 +1535,8 @@ int host::handle_async_check_result_3x(
   gettimeofday(&end_time_hires, nullptr);
 
   /* send data to event broker */
-  broker_host_check(
-      NEBTYPE_HOSTCHECK_PROCESSED, NEBFLAG_NONE, NEBATTR_NONE, this,
-      get_check_type(), get_current_state(), get_state_type(), start_time_hires,
-      end_time_hires, get_latency(), get_execution_time(),
-      config->host_check_timeout(), queued_check_result.get_early_timeout(),
-      queued_check_result.get_return_code(), nullptr,
-      const_cast<char*>(get_plugin_output().c_str()),
-      const_cast<char*>(get_long_plugin_output().c_str()),
-      const_cast<char*>(get_perf_data().c_str()), nullptr);
+  broker_host_check(NEBTYPE_HOSTCHECK_PROCESSED, this, get_check_type(),
+                    nullptr, const_cast<char*>(get_plugin_output().c_str()));
   return OK;
 }
 
@@ -1712,15 +1705,9 @@ int host::run_async_check(int check_options,
   }
 
   // Send broker event.
-  timeval start_time;
-  timeval end_time;
-  memset(&start_time, 0, sizeof(start_time));
-  memset(&end_time, 0, sizeof(end_time));
-  int res = broker_host_check(
-      NEBTYPE_HOSTCHECK_ASYNC_PRECHECK, NEBFLAG_NONE, NEBATTR_NONE, this,
-      checkable::check_active, get_current_state(), get_state_type(),
-      start_time, end_time, get_latency(), 0.0, config->host_check_timeout(),
-      false, 0, nullptr, nullptr, nullptr, nullptr, nullptr);
+  timeval start_time{0, 0};
+  int res = broker_host_check(NEBTYPE_HOSTCHECK_ASYNC_PRECHECK, this,
+                              checkable::check_active, nullptr, nullptr);
 
   // Host check was cancel by NEB module. Reschedule check later.
   if (NEBERROR_CALLBACKCANCEL == res) {
@@ -1784,11 +1771,8 @@ int host::run_async_check(int check_options,
   std::string processed_cmd(cmd->process_cmd(macros));
 
   // Send event broker.
-  broker_host_check(NEBTYPE_HOSTCHECK_INITIATE, NEBFLAG_NONE, NEBATTR_NONE,
-                    this, checkable::check_active, get_current_state(),
-                    get_state_type(), start_time, end_time, get_latency(), 0.0,
-                    config->host_check_timeout(), false, 0,
-                    processed_cmd.c_str(), nullptr, nullptr, nullptr, nullptr);
+  broker_host_check(NEBTYPE_HOSTCHECK_INITIATE, this, checkable::check_active,
+                    processed_cmd.c_str(), nullptr);
 
   // Restore latency.
   set_latency(old_latency);
@@ -3854,9 +3838,10 @@ void host::check_for_orphaned() {
 
     /* determine the time at which the check results should have come in (allow
      * 10 minutes slack time) */
-    expected_time = (time_t)(
-        it->second->get_next_check() + it->second->get_latency() +
-        config->host_check_timeout() + config->check_reaper_interval() + 600);
+    expected_time =
+        (time_t)(it->second->get_next_check() + it->second->get_latency() +
+                 config->host_check_timeout() +
+                 config->check_reaper_interval() + 600);
 
     /* this host was supposed to have executed a while ago, but for some reason
      * the results haven't come back in... */

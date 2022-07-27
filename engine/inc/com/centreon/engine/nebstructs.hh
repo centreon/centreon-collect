@@ -325,28 +325,10 @@ typedef struct nebstruct_group_member_struct {
 /* Host check structure. */
 typedef struct nebstruct_host_check_struct {
   int type;
-  int flags;
-  int attr;
-  struct timeval timestamp;
-
   char* host_name;
-  int current_attempt;
   int check_type;
-  int max_attempts;
-  int state_type;
-  int state;
-  int timeout;
   const char* command_line;
-  struct timeval start_time;
-  struct timeval end_time;
-  int early_timeout;
-  double execution_time;
-  double latency;
-  int return_code;
   char* output;
-  char* long_output;
-  char* perf_data;
-
   void* object_ptr;
 } nebstruct_host_check_data;
 

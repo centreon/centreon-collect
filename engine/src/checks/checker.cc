@@ -317,13 +317,8 @@ void checker::run_sync(host* hst,
   hst->set_check_type(checkable::check_active);
 
   // Send broker event.
-  timeval end_time;
-  memset(&end_time, 0, sizeof(end_time));
-  broker_host_check(NEBTYPE_HOSTCHECK_INITIATE, NEBFLAG_NONE, NEBATTR_NONE, hst,
-                    checkable::check_active, hst->get_current_state(),
-                    hst->get_state_type(), start_time, end_time,
-                    hst->get_latency(), 0.0, config->host_check_timeout(),
-                    false, 0, nullptr, nullptr, nullptr, nullptr, nullptr);
+  broker_host_check(NEBTYPE_HOSTCHECK_INITIATE, hst, checkable::check_active,
+                    nullptr, nullptr);
 
   // Execute command synchronously.
   host::host_state host_result(_execute_sync(hst));
@@ -341,18 +336,10 @@ void checker::run_sync(host* hst,
   SPDLOG_LOGGER_DEBUG(log_v2::checks(), "* Sync host check done: new state={}",
                       hst->get_current_state());
 
-  // Get the end time of command.
-  gettimeofday(&end_time, nullptr);
-
   // Send event broker.
-  broker_host_check(
-      NEBTYPE_HOSTCHECK_PROCESSED, NEBFLAG_NONE, NEBATTR_NONE, hst,
-      checkable::check_active, hst->get_current_state(), hst->get_state_type(),
-      start_time, end_time, hst->get_latency(), hst->get_execution_time(),
-      config->host_check_timeout(), false, hst->get_current_state(), nullptr,
-      const_cast<char*>(hst->get_plugin_output().c_str()),
-      const_cast<char*>(hst->get_long_plugin_output().c_str()),
-      const_cast<char*>(hst->get_perf_data().c_str()), nullptr);
+  broker_host_check(NEBTYPE_HOSTCHECK_PROCESSED, hst, checkable::check_active,
+                    nullptr,
+                    const_cast<char*>(hst->get_plugin_output().c_str()));
 }
 
 /**************************************
@@ -458,16 +445,10 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
                       "** Executing sync check of host '{}'...", hst->name());
 
   // Send broker event.
-  timeval start_time;
-  timeval end_time;
-  memset(&start_time, 0, sizeof(start_time));
-  memset(&end_time, 0, sizeof(end_time));
-  int ret(broker_host_check(NEBTYPE_HOSTCHECK_SYNC_PRECHECK, NEBFLAG_NONE,
-                            NEBATTR_NONE, hst, checkable::check_active,
-                            hst->get_current_state(), hst->get_state_type(),
-                            start_time, end_time, hst->get_latency(), 0.0,
-                            config->host_check_timeout(), false, 0, nullptr,
-                            nullptr, nullptr, nullptr, nullptr));
+  timeval start_time{0, 0};
+  timeval end_time{0, 0};
+  int ret(broker_host_check(NEBTYPE_HOSTCHECK_SYNC_PRECHECK, hst,
+                            checkable::check_active, nullptr, nullptr));
 
   // Host sync check was cancelled or overriden by NEB module.
   if ((NEBERROR_CALLBACKCANCEL == ret) || (NEBERROR_CALLBACKOVERRIDE == ret))
@@ -492,14 +473,9 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
   const char* tmp_processed_cmd = processed_cmd.c_str();
 
   // Send broker event.
-  broker_host_check(NEBTYPE_HOSTCHECK_RAW_START, NEBFLAG_NONE, NEBATTR_NONE,
-                    hst, checkable::check_active, host::state_up,
-                    hst->get_state_type(), start_time, end_time, 0.0, 0.0,
-                    config->host_check_timeout(), false, service::state_ok,
+  broker_host_check(NEBTYPE_HOSTCHECK_RAW_START, hst, checkable::check_active,
                     processed_cmd.c_str(),
-                    const_cast<char*>(hst->get_plugin_output().c_str()),
-                    const_cast<char*>(hst->get_long_plugin_output().c_str()),
-                    const_cast<char*>(hst->get_perf_data().c_str()), nullptr);
+                    const_cast<char*>(hst->get_plugin_output().c_str()));
 
   // Debug messages.
   engine_logger(dbg_commands, more)
@@ -520,9 +496,8 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
 
   // Send broker event.
   timeval start_cmd;
-  timeval end_cmd;
+  timeval end_cmd{0, 0};
   gettimeofday(&start_cmd, nullptr);
-  memset(&end_cmd, 0, sizeof(end_cmd));
   broker_system_command(NEBTYPE_SYSTEM_COMMAND_START, NEBFLAG_NONE,
                         NEBATTR_NONE, start_cmd, end_cmd, 0,
                         config->host_check_timeout(), false, 0,
@@ -634,14 +609,9 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
   gettimeofday(&end_time, nullptr);
 
   // Send broker event.
-  broker_host_check(
-      NEBTYPE_HOSTCHECK_RAW_END, NEBFLAG_NONE, NEBATTR_NONE, hst,
-      checkable::check_active, return_result, hst->get_state_type(), start_time,
-      end_time, 0.0, execution_time, config->host_check_timeout(),
-      res.exit_status == process::timeout, res.exit_code, tmp_processed_cmd,
-      const_cast<char*>(hst->get_plugin_output().c_str()),
-      const_cast<char*>(hst->get_long_plugin_output().c_str()),
-      const_cast<char*>(hst->get_perf_data().c_str()), nullptr);
+  broker_host_check(NEBTYPE_HOSTCHECK_RAW_END, hst, checkable::check_active,
+                    tmp_processed_cmd,
+                    const_cast<char*>(hst->get_plugin_output().c_str()));
 
   // Termination.
   engine_logger(dbg_checks, basic)
