@@ -3791,9 +3791,8 @@ void service::resolve(int& w, int& e) {
       it->second->services.insert({{_hostname, name()}, this});
 
       // Notify event broker.
-      timeval tv(get_broker_timestamp(NULL));
-      broker_relation_data(NEBTYPE_PARENT_ADD, NEBFLAG_NONE, NEBATTR_NONE,
-                           get_host_ptr(), NULL, NULL, this, &tv);
+      broker_relation_data(NEBTYPE_PARENT_ADD, get_host_ptr(), NULL, NULL,
+                           this);
     }
   }
 

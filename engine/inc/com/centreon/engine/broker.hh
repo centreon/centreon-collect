@@ -537,13 +537,10 @@ void broker_program_status(int type,
                            int attr,
                            struct timeval const* timestamp);
 void broker_relation_data(int type,
-                          int flags,
-                          int attr,
                           com::centreon::engine::host* hst,
                           com::centreon::engine::service* svc,
                           com::centreon::engine::host* dep_hst,
-                          com::centreon::engine::service* dep_svc,
-                          struct timeval const* timestamp);
+                          com::centreon::engine::service* dep_svc);
 void broker_retention_data(int type,
                            int flags,
                            int attr,

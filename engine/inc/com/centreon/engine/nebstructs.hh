@@ -405,10 +405,6 @@ typedef struct nebstruct_program_status_struct {
 /* Relation data structure. */
 typedef struct nebstruct_relation_struct {
   int type;
-  int flags;
-  int attr;
-  struct timeval timestamp;
-
   com::centreon::engine::host* hst;
   com::centreon::engine::service* svc;
   com::centreon::engine::host* dep_hst;

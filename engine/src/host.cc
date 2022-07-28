@@ -314,9 +314,7 @@ void host::add_child_host(host* child) {
   child_hosts.insert({child->name(), child});
 
   // Notify event broker.
-  timeval tv(get_broker_timestamp(nullptr));
-  broker_relation_data(NEBTYPE_PARENT_ADD, NEBFLAG_NONE, NEBATTR_NONE, this,
-                       nullptr, child, nullptr, &tv);
+  broker_relation_data(NEBTYPE_PARENT_ADD, this, nullptr, child, nullptr);
 }
 
 void host::add_parent_host(const std::string& host_name) {

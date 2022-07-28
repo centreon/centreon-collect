@@ -344,9 +344,6 @@ static void send_host_parents_list() {
         nebstruct_relation_data nsrd;
         memset(&nsrd, 0, sizeof(nsrd));
         nsrd.type = NEBTYPE_PARENT_ADD;
-        nsrd.flags = NEBFLAG_NONE;
-        nsrd.attr = NEBATTR_NONE;
-        nsrd.timestamp.tv_sec = time(nullptr);
         nsrd.hst = pit->second;
         nsrd.dep_hst = it->second.get();
 

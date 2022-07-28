@@ -1134,7 +1134,9 @@ int broker_notification_data(int type,
                              char const* ack_data,
                              int escalated,
                              int contacts_notified,
-                             struct timeval const* timestamp) {}
+                             struct timeval const* timestamp) {
+  return 0;
+}
 
 /**
  *  Sends program data (starts, restarts, stops, etc.) to broker.
@@ -1214,22 +1216,16 @@ void broker_program_status(int type,
  *  Send relationship data to broker.
  *
  *  @param[in] type      Type.
- *  @param[in] flags     Flags.
- *  @param[in] attr      Attributes.
  *  @param[in] hst       Host.
  *  @param[in] svc       Service (might be null).
  *  @param[in] dep_hst   Dependant host object.
  *  @param[in] dep_svc   Dependant service object (might be null).
- *  @param[in] timestamp Timestamp.
  */
 void broker_relation_data(int type,
-                          int flags,
-                          int attr,
                           host* hst,
                           com::centreon::engine::service* svc,
                           host* dep_hst,
-                          com::centreon::engine::service* dep_svc,
-                          struct timeval const* timestamp) {
+                          com::centreon::engine::service* dep_svc) {
   // Config check.
   if (!(config->event_broker_options() & BROKER_RELATION_DATA))
     return;
@@ -1239,9 +1235,6 @@ void broker_relation_data(int type,
   // Fill struct with relevant data.
   nebstruct_relation_data ds;
   ds.type = type;
-  ds.flags = flags;
-  ds.attr = attr;
-  ds.timestamp = get_broker_timestamp(timestamp);
   ds.hst = hst;
   ds.svc = svc;
   ds.dep_hst = dep_hst;
@@ -1262,21 +1255,7 @@ void broker_relation_data(int type,
 void broker_retention_data(int type,
                            int flags,
                            int attr,
-                           struct timeval const* timestamp) {
-  // Config check.
-  if (!(config->event_broker_options() & BROKER_RETENTION_DATA))
-    return;
-
-  // Fill struct with relevant data.
-  nebstruct_retention_data ds;
-  ds.type = type;
-  ds.flags = flags;
-  ds.attr = attr;
-  ds.timestamp = get_broker_timestamp(timestamp);
-
-  // Make callbacks.
-  neb_make_callbacks(NEBCALLBACK_RETENTION_DATA, &ds);
-}
+                           struct timeval const* timestamp) {}
 
 /**
  *  Send service check data to broker.

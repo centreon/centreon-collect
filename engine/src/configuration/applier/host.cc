@@ -423,13 +423,11 @@ void applier::host::modify_object(configuration::host const& obj) {
   if (obj.parents() != obj_old.parents()) {
     // Delete old parents.
     {
-      timeval tv(get_broker_timestamp(nullptr));
       for (host_map_unsafe::iterator it(it_obj->second->parent_hosts.begin()),
            end(it_obj->second->parent_hosts.end());
            it != end; it++)
-        broker_relation_data(NEBTYPE_PARENT_DELETE, NEBFLAG_NONE, NEBATTR_NONE,
-                             it->second, nullptr, it_obj->second.get(), nullptr,
-                             &tv);
+        broker_relation_data(NEBTYPE_PARENT_DELETE, it->second, nullptr,
+                             it_obj->second.get(), nullptr);
     }
     it_obj->second->parent_hosts.clear();
 
