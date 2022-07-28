@@ -151,30 +151,6 @@ typedef struct nebstruct_comment_struct {
   void* object_ptr; /* not implemented yet */
 } nebstruct_comment_data;
 
-/* Contact notification data structure. */
-typedef struct nebstruct_contact_notification_struct {
-  int type;
-  int flags;
-  int attr;
-  struct timeval timestamp;
-
-  int notification_type;
-  struct timeval start_time;
-  struct timeval end_time;
-  char* host_name;
-  char* service_description;
-  char* contact_name;
-  int reason_type;
-  int state;
-  char* output;
-  char* ack_author;
-  char* ack_data;
-  int escalated;
-
-  void* object_ptr;
-  void* contact_ptr;
-} nebstruct_contact_notification_data;
-
 /* Contact notification method data structure. */
 typedef struct nebstruct_contact_notification_method_struct {
   int type;
@@ -375,16 +351,7 @@ typedef struct nebstruct_process_struct {
 
 /* Program status structure. */
 typedef struct nebstruct_program_status_struct {
-  int type;
-  int flags;
-  int attr;
-  struct timeval timestamp;
-
-  time_t program_start;
-  int pid;
-  int daemon_mode;
   time_t last_command_check;
-  time_t last_log_rotation;
   int notifications_enabled;
   int active_service_checks_enabled;
   int passive_service_checks_enabled;
@@ -392,12 +359,8 @@ typedef struct nebstruct_program_status_struct {
   int passive_host_checks_enabled;
   int event_handlers_enabled;
   int flap_detection_enabled;
-  int failure_prediction_enabled;
-  int process_performance_data;
   int obsess_over_hosts;
   int obsess_over_services;
-  unsigned long modified_host_attributes;
-  unsigned long modified_service_attributes;
   std::string global_host_event_handler;
   std::string global_service_event_handler;
 } nebstruct_program_status_data;

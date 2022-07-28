@@ -1954,11 +1954,11 @@ int neb::callback_program_status(int callback_type, void* data) {
 
   try {
     // In/Out variables.
-    nebstruct_program_status_data const* program_status_data;
     auto is{std::make_shared<neb::instance_status>()};
 
     // Fill output var.
-    program_status_data = static_cast<nebstruct_program_status_data*>(data);
+    nebstruct_program_status_data const* program_status_data =
+        static_cast<nebstruct_program_status_data*>(data);
     is->poller_id = config::applier::state::instance().poller_id();
     is->active_host_checks_enabled =
         program_status_data->active_host_checks_enabled;

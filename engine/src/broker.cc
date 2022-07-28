@@ -321,23 +321,7 @@ void broker_adaptive_timeperiod_data(int type,
                                      int attr,
                                      timeperiod* tp,
                                      int command_type,
-                                     struct timeval const* timestamp) {
-  // Config check.
-  if (!(config->event_broker_options() & BROKER_ADAPTIVE_DATA))
-    return;
-
-  // Fill struct with relevant data.
-  nebstruct_adaptive_timeperiod_data ds;
-  ds.type = type;
-  ds.flags = flags;
-  ds.attr = attr;
-  ds.timestamp = get_broker_timestamp(timestamp);
-  ds.command_type = command_type;
-  ds.object_ptr = tp;
-
-  // Make callbacks.
-  neb_make_callbacks(NEBCALLBACK_ADAPTIVE_TIMEPERIOD_DATA, &ds);
-}
+                                     struct timeval const* timestamp) {}
 
 /**
  *  Brokers aggregated status dumps.
@@ -489,45 +473,7 @@ int broker_contact_notification_data(int type,
                                      char const* ack_data,
                                      int escalated,
                                      struct timeval const* timestamp) {
-  // Config check.
-  if (!(config->event_broker_options() & BROKER_NOTIFICATIONS))
-    return OK;
-
-  // Fill struct with relevant data.
-  nebstruct_contact_notification_data ds;
-  host* temp_host(NULL);
-  com::centreon::engine::service* temp_service(NULL);
-  ds.type = type;
-  ds.flags = flags;
-  ds.attr = attr;
-  ds.timestamp = get_broker_timestamp(timestamp);
-  ds.notification_type = notification_type;
-  ds.start_time = start_time;
-  ds.end_time = end_time;
-  ds.reason_type = reason_type;
-  ds.contact_name = const_cast<char*>(cntct->get_name().c_str());
-  if (notification_type == notifier::service_notification) {
-    temp_service = (com::centreon::engine::service*)data;
-    ds.host_name = const_cast<char*>(temp_service->get_hostname().c_str());
-    ds.service_description =
-        const_cast<char*>(temp_service->get_description().c_str());
-    ds.state = temp_service->get_current_state();
-    ds.output = const_cast<char*>(temp_service->get_plugin_output().c_str());
-  } else {
-    temp_host = (host*)data;
-    ds.host_name = const_cast<char*>(temp_host->name().c_str());
-    ds.service_description = NULL;
-    ds.state = temp_host->get_current_state();
-    ds.output = const_cast<char*>(temp_host->get_plugin_output().c_str());
-  }
-  ds.object_ptr = data;
-  ds.contact_ptr = cntct;
-  ds.ack_author = const_cast<char*>(ack_author);
-  ds.ack_data = const_cast<char*>(ack_data);
-  ds.escalated = escalated;
-
-  // Make callbacks.
-  return (neb_make_callbacks(NEBCALLBACK_CONTACT_NOTIFICATION_DATA, &ds));
+  return 0;
 }
 
 /**
@@ -1167,31 +1113,15 @@ void broker_program_state(int type,
 
 /**
  *  Sends program status updates to broker.
- *
- *  @param[in] type      Type.
- *  @param[in] flags     Flags.
- *  @param[in] attr      Attributes.
- *  @param[in] timestamp Timestamp.
  */
-void broker_program_status(int type,
-                           int flags,
-                           int attr,
-                           struct timeval const* timestamp) {
+void broker_program_status() {
   // Config check.
   if (!(config->event_broker_options() & BROKER_STATUS_DATA))
     return;
 
   // Fill struct with relevant data.
   nebstruct_program_status_data ds;
-  ds.type = type;
-  ds.flags = flags;
-  ds.attr = attr;
-  ds.timestamp = get_broker_timestamp(timestamp);
-  ds.program_start = program_start;
-  ds.pid = getpid();
-  ds.daemon_mode = 0;
   ds.last_command_check = last_command_check;
-  ds.last_log_rotation = last_log_rotation;
   ds.notifications_enabled = config->enable_notifications();
   ds.active_service_checks_enabled = config->execute_service_checks();
   ds.passive_service_checks_enabled = config->accept_passive_service_checks();
@@ -1199,12 +1129,8 @@ void broker_program_status(int type,
   ds.passive_host_checks_enabled = config->accept_passive_host_checks();
   ds.event_handlers_enabled = config->enable_event_handlers();
   ds.flap_detection_enabled = config->enable_flap_detection();
-  ds.failure_prediction_enabled = false;
-  ds.process_performance_data = config->process_performance_data();
   ds.obsess_over_hosts = config->obsess_over_hosts();
   ds.obsess_over_services = config->obsess_over_services();
-  ds.modified_host_attributes = modified_host_process_attributes;
-  ds.modified_service_attributes = modified_service_process_attributes;
   ds.global_host_event_handler = config->global_host_event_handler();
   ds.global_service_event_handler = config->global_service_event_handler();
 

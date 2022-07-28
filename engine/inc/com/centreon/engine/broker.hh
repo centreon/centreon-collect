@@ -532,10 +532,7 @@ void broker_program_state(int type,
                           int flags,
                           int attr,
                           struct timeval const* timestamp);
-void broker_program_status(int type,
-                           int flags,
-                           int attr,
-                           struct timeval const* timestamp);
+void broker_program_status();
 void broker_relation_data(int type,
                           com::centreon::engine::host* hst,
                           com::centreon::engine::service* svc,
