@@ -190,7 +190,7 @@ EBDP3
 
 	# Let's wait until engine listens to external_commands.
 	${content}=	Create List	check_for_external_commands()
-	${result}=	Find In Log with Timeout	${engineLog1}	${start}	${content}	60
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 	Should Be True	${result}	msg=check_for_external_commands is missing.
 
 	Remove Poller	51001	Poller2
@@ -273,7 +273,7 @@ EBDP4
 
 	# Let's wait until engine listens to external_commands.
 	${content}=	Create List	check_for_external_commands()
-	${result}=	Find In Log with Timeout	${engineLog3}	${start}	${content}	60
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 	Should Be True	${result}	msg=check_for_external_commands is missing.
 
 	Remove Poller	51001	Poller3
@@ -406,7 +406,7 @@ EBDP6
 
 	# Let's wait until engine listens to external_commands.
 	${content}=	Create List	check_for_external_commands()
-	${result}=	Find In Log with Timeout	${engineLog1}	${start}	${content}	60
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 	Should Be True	${result}	msg=check_for_external_commands is missing.
 
 	Remove Poller by id	51001	${3}
@@ -471,7 +471,7 @@ EBDP7
 
 	# Let's wait until engine listens to external_commands.
 	${content}=	Create List	check_for_external_commands()
-	${result}=	Find In Log with Timeout	${engineLog1}	${start}	${content}	60
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 	Should Be True	${result}	msg=check_for_external_commands is missing.
 
 	Remove Poller by id	51001	${3}
