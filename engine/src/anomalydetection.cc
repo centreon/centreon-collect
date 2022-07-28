@@ -17,8 +17,6 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <spdlog/fmt/ostr.h>
-
 #include "com/centreon/engine/anomalydetection.hh"
 
 #include "com/centreon/engine/broker.hh"
@@ -68,7 +66,7 @@ class cancellable_command : public command {
   const std::string& get_command_line() const noexcept override;
   void set_command_line(const std::string& command_line) noexcept override;
 
-  constexpr const command::pointer& get_original_command() const {
+  inline const command::pointer& get_original_command() const {
     return _original_command;
   }
 
@@ -950,6 +948,11 @@ void anomalydetection::init_thresholds() {
                         "Fail to read thresholds file '{}' : {}",
                         _thresholds_file, e.code().message());
     return;
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(log_v2::config(),
+                        "Fail to read thresholds file '{}' : {}",
+                        _thresholds_file, e.what());
+    return;
   }
 
   std::stringstream buffer;
@@ -1038,6 +1041,11 @@ int anomalydetection::update_thresholds(const std::string& filename) {
     SPDLOG_LOGGER_ERROR(log_v2::config(),
                         "Fail to read thresholds file '{}' : {}", filename,
                         e.code().message());
+    return -1;
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(log_v2::config(),
+                        "Fail to read thresholds file '{}' : {}", filename,
+                        e.what());
     return -1;
   }
 

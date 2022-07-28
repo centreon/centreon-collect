@@ -256,7 +256,7 @@ class state {
   void log_passive_checks(bool value);
   bool log_pid() const noexcept;
   void log_pid(bool value);
-  constexpr bool log_file_line() const { return _log_file_line; }
+  inline bool log_file_line() const { return _log_file_line; }
   void log_file_line(bool value);
   bool log_service_retries() const noexcept;
   void log_service_retries(bool value);

@@ -312,6 +312,10 @@ Here is the list of the currently implemented tests:
 - [x] **LOGV2EF1**: log-v2 enabled  old log disabled check logfile sink
 - [x] **LOGV2EF2**: log-v2 enabled old log enabled check logfile sink
 - [x] **LOGV2FE2**: log-v2 enabled old log enabled check logfile sink
+- [x] **ANO_NOFILE**: anomaly is checked but threshold file doesn't exist
+- [x] **ANO_TOO_OLD_FILE**: anomaly is checked but the last timestamp of threshold file is too old
+- [x] **ANO_OUT_LOWER_THAN_LIMIT**: metric is beyond lower limit
+- [x] **ANO_OUT_UPPER_THAN_LIMIT**: metric is beyond upper limit
 
 ### Ccc
 - [x] **BECCC1**: ccc without port fails with an error message

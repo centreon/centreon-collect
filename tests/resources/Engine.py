@@ -1,3 +1,4 @@
+from array import array
 from os import makedirs, chmod
 from os.path import exists, dirname
 from xml.etree.ElementTree import Comment
@@ -187,15 +188,16 @@ class EngineInstance:
     def create_anomaly_detection(self, host_id: int, dependent_service_id: int, metric_name: string):
         self.last_service_id += 1
         service_id = self.last_service_id
-        retval = """define anomalydetection {
+        retval = """define anomalydetection {{
     host_id {0}
-    host_name anomaly_{0}
+    host_name host_{0}
     service_id {1}
+    service_description      anomaly_{1}
     dependent_service_id {2}
     metric_name {3}
     status_change 1
     thresholds_file /tmp/anomaly_threshold.json
-} """.format(host_id, service_id, dependent_service_id, metric_name)
+}} """.format(host_id, service_id, dependent_service_id, metric_name)
         return retval
 
     def create_bam_timeperiod(self):
@@ -512,10 +514,9 @@ define timeperiod {
         f = open(config_dir + "/centengine.cfg", "r")
         lines = f.readlines()
         f.close
-
         f = open(config_dir + "/centengine.cfg", "w")
-        f.writelines("cfg_file=" + ETC_ROOT +
-                     "/config{0/anomaly_detection.cfg\n")
+        f.writelines("cfg_file=" + config_dir +
+                     "/anomaly_detection.cfg\n")
         f.writelines(lines)
         f.close()
 
@@ -1442,3 +1443,29 @@ def del_host_comment(comment_id):
 def change_host_check_command(hst: str, Check_Command: str):
     return "CHANGE_HOST_CHECK_COMMAND;{};{}\n".format(
         now, hst, Check_Command)
+
+
+def create_anomaly_threshold_file(path: string, host_id: int, service_id: int, metric_name: string, values: array):
+    f = open(path, "w")
+    f.write("""[
+    {{
+        "host_id": "{0}",
+        "service_id": "{1}",
+        "metric_name": "{2}",
+        "predict": [
+            """.format(host_id, service_id, metric_name))
+    sep = ""
+    for ts_lower_upper in values:
+        f.write(sep)
+        sep = ","
+        f.write("""
+            {{
+                "timestamp": {0},
+                "lower": {1},
+                "upper": {2}
+            }}""".format(ts_lower_upper[0], ts_lower_upper[1], ts_lower_upper[2]))
+    f.write("""
+        ]
+    }
+]
+""")

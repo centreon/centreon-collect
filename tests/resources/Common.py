@@ -352,7 +352,7 @@ def check_service_status_with_timeout(hostname: str, service_desc: str, status: 
                 cursor.execute("SELECT s.state FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description=\"{}\" AND h.name=\"{}\"".format(
                     service_desc, hostname))
                 result = cursor.fetchall()
-                if result[0]['state'] is not None and int(result[0]['state']) == int(status):
+                if len(result) > 0 and result[0]['state'] is not None and int(result[0]['state']) == int(status):
                     return True
         time.sleep(5)
     return False

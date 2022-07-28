@@ -159,7 +159,7 @@ class checkable {
   void set_event_handler_ptr(commands::command* cmd);
   commands::command* get_event_handler_ptr() const;
   void set_check_command_ptr(const std::shared_ptr<commands::command>& cmd);
-  constexpr const std::shared_ptr<commands::command>& get_check_command_ptr()
+  inline const std::shared_ptr<commands::command>& get_check_command_ptr()
       const {
     return _check_command_ptr;
   }
