@@ -2506,7 +2506,6 @@ int service::run_async_check(int check_options,
 
   // Send broker event.
   timeval start_time = {0, 0};
-  timeval end_time = {0, 0};
   int res = broker_service_check(NEBTYPE_SERVICECHECK_ASYNC_PRECHECK, this,
                                  checkable::check_active, nullptr);
 
@@ -2983,8 +2982,7 @@ void service::disable_flap_detection() {
  * @brief Updates service status info. Send data to event broker.
  */
 void service::update_status() {
-  broker_service_status(NEBTYPE_SERVICESTATUS_UPDATE, NEBFLAG_NONE,
-                        NEBATTR_NONE, this, nullptr);
+  broker_service_status(NEBTYPE_SERVICESTATUS_UPDATE, this);
 }
 
 /**

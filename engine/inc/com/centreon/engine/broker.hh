@@ -429,11 +429,7 @@ int broker_contact_notification_method_data(
     char const* ack_data,
     int escalated,
     struct timeval const* timestamp);
-void broker_contact_status(int type,
-                           int flags,
-                           int attr,
-                           com::centreon::engine::contact* cntct,
-                           struct timeval const* timestamp);
+void broker_contact_status(int type, com::centreon::engine::contact* cntct);
 void broker_custom_variable(int type,
                             int flags,
                             int attr,
@@ -556,11 +552,7 @@ int broker_service_check(int type,
                          com::centreon::engine::service* svc,
                          int check_type,
                          const char* cmdline);
-void broker_service_status(int type,
-                           int flags,
-                           int attr,
-                           com::centreon::engine::service* svc,
-                           struct timeval const* timestamp);
+void broker_service_status(int type, com::centreon::engine::service* svc);
 void broker_statechange_data(int type,
                              int flags,
                              int attr,

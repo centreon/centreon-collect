@@ -612,16 +612,9 @@ int broker_contact_notification_method_data(int type,
  *  Sends contact status updates to broker.
  *
  *  @param[in] type      Type.
- *  @param[in] flags     Flags.
- *  @param[in] attr      Attributes.
  *  @param[in] cntct     Target contact.
- *  @param[in] timestamp Timestamp.
  */
-void broker_contact_status(int type,
-                           int flags,
-                           int attr,
-                           contact* cntct,
-                           struct timeval const* timestamp) {
+void broker_contact_status(int type, contact* cntct) {
   // Config check.
   if (!(config->event_broker_options() & BROKER_STATUS_DATA))
     return;
@@ -629,9 +622,6 @@ void broker_contact_status(int type,
   // Fill struct with relevant data.
   nebstruct_service_status_data ds;
   ds.type = type;
-  ds.flags = flags;
-  ds.attr = attr;
-  ds.timestamp = get_broker_timestamp(timestamp);
   ds.object_ptr = cntct;
 
   // Make callbacks.
@@ -1340,16 +1330,9 @@ int broker_service_check(int type,
  *  Sends service status updates to broker.
  *
  *  @param[in] type      Type.
- *  @param[in] flags     Flags.
- *  @param[in] attr      Attributes.
  *  @param[in] svc       Target service.
- *  @param[in] timestamp Timestamp.
  */
-void broker_service_status(int type,
-                           int flags,
-                           int attr,
-                           com::centreon::engine::service* svc,
-                           struct timeval const* timestamp) {
+void broker_service_status(int type, com::centreon::engine::service* svc) {
   // Config check.
   if (!(config->event_broker_options() & BROKER_STATUS_DATA))
     return;
@@ -1357,9 +1340,6 @@ void broker_service_status(int type,
   // Fill struct with relevant data.
   nebstruct_service_status_data ds;
   ds.type = type;
-  ds.flags = flags;
-  ds.attr = attr;
-  ds.timestamp = get_broker_timestamp(timestamp);
   ds.object_ptr = svc;
 
   // Make callbacks.

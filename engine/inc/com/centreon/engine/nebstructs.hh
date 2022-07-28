@@ -437,10 +437,6 @@ typedef struct nebstruct_service_check_struct {
 /* Service status structure. */
 typedef struct nebstruct_service_status_struct {
   int type;
-  int flags;
-  int attr;
-  struct timeval timestamp;
-
   void* object_ptr;
 } nebstruct_service_status_data;
 
