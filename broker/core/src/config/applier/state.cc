@@ -234,6 +234,7 @@ config::applier::modules& state::get_modules() {
  * @param poller_name The name of the poller
  */
 void state::add_poller(uint64_t poller_id, const std::string& poller_name) {
+  std::lock_guard<std::mutex> lck(_connected_pollers_m);
   auto found = _connected_pollers.find(poller_id);
   if (found == _connected_pollers.end()) {
     log_v2::core()->info("Poller '{}' with id {} connected", poller_name,
@@ -254,6 +255,7 @@ void state::add_poller(uint64_t poller_id, const std::string& poller_name) {
  * @param poller_id The id of the poller to remove.
  */
 void state::remove_poller(uint64_t poller_id) {
+  std::lock_guard<std::mutex> lck(_connected_pollers_m);
   auto found = _connected_pollers.find(poller_id);
   if (found == _connected_pollers.end())
     log_v2::core()->warn("There is currently no poller {} connected",
@@ -271,5 +273,6 @@ void state::remove_poller(uint64_t poller_id) {
  * @param poller_id The poller to check.
  */
 bool state::has_connection_from_poller(uint64_t poller_id) const {
+  std::lock_guard<std::mutex> lck(_connected_pollers_m);
   return _connected_pollers.contains(poller_id);
 }
