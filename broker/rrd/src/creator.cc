@@ -147,9 +147,9 @@ void creator::create(std::string const& filename,
     }
     // No more space in the cache, juste create rrd file.
     else
-      _open(filename, length, from, step, value_type);
+      _open(filename, length, from - 1, step, value_type);
   } else
-    _open(filename, length, from, step, value_type);
+    _open(filename, length, from - 1, step, value_type);
 }
 
 /**
