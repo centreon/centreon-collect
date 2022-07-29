@@ -48,12 +48,10 @@ RUN yum -y install devtoolset-9 \
     unzip \
     ShellCheck
 RUN ln -s /usr/bin/cmake3 /usr/bin/cmake
-RUN pip3 install conan --prefix=/usr --upgrade
-RUN rm -rf ~/.conan/profiles/default
 COPY conanfile.txt .
 RUN cat conanfile.txt
 RUN source /opt/rh/devtoolset-9/enable && source /opt/rh/rh-python38/enable && \
-    conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build='*'
+    pip3 install conan --upgrade && conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build='*'
 
 RUN unzip -q sonar-scanner-cli-4.7.0.2747-linux.zip
 RUN rm -rf sonar-scanner-cli-4.7.0.2747-linux.zip
