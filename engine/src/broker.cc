@@ -246,26 +246,7 @@ void broker_adaptive_program_data(int type,
                                   unsigned long modhattrs,
                                   unsigned long modsattr,
                                   unsigned long modsattrs,
-                                  struct timeval const* timestamp) {
-  // Config check.
-  if (!(config->event_broker_options() & BROKER_ADAPTIVE_DATA))
-    return;
-
-  // Fill struct with relevant data.
-  nebstruct_adaptive_program_data ds;
-  ds.type = type;
-  ds.flags = flags;
-  ds.attr = attr;
-  ds.timestamp = get_broker_timestamp(timestamp);
-  ds.command_type = command_type;
-  ds.modified_host_attribute = modhattr;
-  ds.modified_host_attributes = modhattrs;
-  ds.modified_service_attribute = modsattr;
-  ds.modified_service_attributes = modsattrs;
-
-  // Make callbacks.
-  neb_make_callbacks(NEBCALLBACK_ADAPTIVE_PROGRAM_DATA, &ds);
-}
+                                  struct timeval const* timestamp) {}
 
 /**
  *  Sends adaptive service updates to broker.

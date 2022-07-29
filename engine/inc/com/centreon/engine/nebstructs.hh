@@ -70,20 +70,6 @@ typedef struct nebstruct_adaptive_host_data_struct {
   void* object_ptr;
 } nebstruct_adaptive_host_data;
 
-/* Adaptive program data structure. */
-typedef struct nebstruct_adaptive_program_data_struct {
-  int type;
-  int flags;
-  int attr;
-  struct timeval timestamp;
-
-  int command_type;
-  unsigned long modified_host_attribute;
-  unsigned long modified_host_attributes;
-  unsigned long modified_service_attribute;
-  unsigned long modified_service_attributes;
-} nebstruct_adaptive_program_data;
-
 /* Adaptive service data structure. */
 typedef struct nebstruct_adaptive_service_data_struct {
   int type;
