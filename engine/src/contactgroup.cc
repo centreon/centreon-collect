@@ -58,8 +58,7 @@ contactgroup::contactgroup(configuration::contactgroup const& obj)
     throw engine_error() << "contactgroup: Contact group name is empty";
 
   // Notify event broker.
-  timeval tv(get_broker_timestamp(NULL));
-  broker_group(NEBTYPE_CONTACTGROUP_ADD, NEBFLAG_NONE, NEBATTR_NONE, this, &tv);
+  broker_group(NEBTYPE_CONTACTGROUP_ADD, this);
 }
 
 /**

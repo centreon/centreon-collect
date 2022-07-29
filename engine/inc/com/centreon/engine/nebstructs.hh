@@ -280,10 +280,6 @@ typedef struct nebstruct_flapping_struct {
 /* Group structure. */
 typedef struct nebstruct_group_struct {
   int type;
-  int flags;
-  int attr;
-  struct timeval timestamp;
-
   void* object_ptr;
 } nebstruct_group_data;
 

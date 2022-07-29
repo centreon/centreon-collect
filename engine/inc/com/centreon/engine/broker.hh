@@ -487,11 +487,7 @@ void broker_flapping_data(int type,
                           double high_threshold,
                           double low_threshold,
                           struct timeval const* timestamp);
-void broker_group(int type,
-                  int flags,
-                  int attr,
-                  void* data,
-                  struct timeval const* timestamp);
+void broker_group(int type, void* data);
 void broker_group_member(int type, void* object, void* group);
 int broker_host_check(int type,
                       com::centreon::engine::host* hst,

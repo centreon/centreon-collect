@@ -869,16 +869,10 @@ void broker_flapping_data(int type,
  *  Send group update to broker.
  *
  *  @param[in] type      Type.
- *  @param[in] flags     Flags.
- *  @param[in] attr      Attributes.
  *  @param[in] data      Host group or service group.
- *  @param[in] timestamp Timestamp.
+
  */
-void broker_group(int type,
-                  int flags,
-                  int attr,
-                  void* data,
-                  struct timeval const* timestamp) {
+void broker_group(int type, void* data) {
   // Config check.
   if (!(config->event_broker_options() & BROKER_GROUP_DATA))
     return;
@@ -886,9 +880,6 @@ void broker_group(int type,
   // Fill struct with relevant data.
   nebstruct_group_data ds;
   ds.type = type;
-  ds.flags = flags;
-  ds.attr = attr;
-  ds.timestamp = get_broker_timestamp(timestamp);
   ds.object_ptr = data;
 
   // Make callbacks.
