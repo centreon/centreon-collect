@@ -24,8 +24,6 @@
 
 #include <cctype>
 #include <cerrno>
-#include <cstdio>
-#include <cstring>
 
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/rrd/exceptions/open.hh"
@@ -34,12 +32,6 @@
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::rrd;
-
-/**************************************
- *                                     *
- *           Public Methods            *
- *                                     *
- **************************************/
 
 /**
  *  Constructor.
@@ -109,13 +101,14 @@ void lib::open(std::string const& filename,
                uint32_t length,
                time_t from,
                uint32_t step,
-               short value_type) {
+               short value_type,
+               bool without_cache) {
   // Close previous file.
   this->close();
 
   // Remember informations for further operations.
   _filename = filename;
-  _creator.create(filename, length, from, step, value_type);
+  _creator.create(filename, length, from, step, value_type, without_cache);
 }
 
 /**

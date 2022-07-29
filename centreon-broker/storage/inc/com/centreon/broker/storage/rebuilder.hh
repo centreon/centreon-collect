@@ -1,5 +1,5 @@
 /*
-** Copyright 2012-2015,2017-2021 Centreon
+** Copyright 2012-2015,2017-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -93,6 +93,7 @@ class rebuilder {
   ~rebuilder();
   rebuilder(const rebuilder&) = delete;
   rebuilder& operator=(const rebuilder&) = delete;
+  void force_check_rebuild_index();
 };
 }  // namespace storage
 

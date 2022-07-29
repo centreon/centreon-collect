@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2015,2017 Centreon
+** Copyright 2011-2015,2017, 2020-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -18,10 +18,10 @@
 
 #include "com/centreon/broker/rrd/output.hh"
 
+#include <fmt/format.h>
 #include <cassert>
 #include <cstdlib>
 #include <iomanip>
-#include <sstream>
 
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"
@@ -189,8 +189,8 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
         std::string metric_path(
             fmt::format("{}{}.rrd", _metrics_path, e->metric_id));
 
-        // Check that metric is not being rebuild.
-        rebuild_cache::iterator it(_metrics_rebuild.find(metric_path));
+        // Check that metric is not being rebuilt.
+        rebuild_cache::iterator it = _metrics_rebuild.find(metric_path);
         if (e->is_for_rebuild || it == _metrics_rebuild.end()) {
           // Write metrics RRD.
           try {
@@ -201,39 +201,39 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
             _backend.open(metric_path, e->rrd_len, e->ctime - 1, interval,
                           e->value_type);
           }
-          std::ostringstream oss;
+          std::string v;
           switch (e->value_type) {
             case storage::perfdata::gauge:
-              oss << std::fixed << e->value;
+              v = fmt::format("{:f}", e->value);
               log_v2::rrd()->trace(
                   "RRD: update metric {} of type GAUGE with {}", e->metric_id,
-                  oss.str());
+                  v);
               break;
             case storage::perfdata::counter:
-              oss << static_cast<uint64_t>(e->value);
+              v = fmt::format("{}", static_cast<uint64_t>(e->value));
               log_v2::rrd()->trace(
                   "RRD: update metric {} of type COUNTER with {}", e->metric_id,
-                  oss.str());
+                  v);
               break;
             case storage::perfdata::derive:
-              oss << static_cast<int64_t>(e->value);
+              v = fmt::format("{}", static_cast<int64_t>(e->value));
               log_v2::rrd()->trace(
                   "RRD: update metric {} of type DERIVE with {}", e->metric_id,
-                  oss.str());
+                  v);
               break;
             case storage::perfdata::absolute:
-              oss << static_cast<uint64_t>(e->value);
+              v = fmt::format("{}", static_cast<uint64_t>(e->value));
               log_v2::rrd()->trace(
                   "RRD: update metric {} of type ABSOLUTE with {}",
-                  e->metric_id, oss.str());
+                  e->metric_id, v);
               break;
             default:
-              oss << std::fixed << e->value;
+              v = fmt::format("{:f}", e->value);
               log_v2::rrd()->trace("RRD: update metric {} of type {} with {}",
-                                   e->metric_id, e->value_type, oss.str());
+                                   e->metric_id, e->value_type, v);
               break;
           }
-          _backend.update(e->ctime, oss.str());
+          _backend.update(e->ctime, v);
         } else
           // Cache value.
           it->second.push_back(d);
@@ -261,7 +261,11 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
           } catch (exceptions::open const& b) {
             time_t interval(e->interval ? e->interval : 60);
             assert(e->rrd_len);
-            _backend.open(status_path, e->rrd_len, e->ctime - 1, interval);
+            /* In case of a rebuild, we must not use the cache of rrd files,
+             * otherwise there is a risk its creation date is too recent.
+             * That's why, we use this last argument e->is_for_rebuild. */
+            _backend.open(status_path, e->rrd_len, e->ctime - 1, interval,
+                          e->is_for_rebuild);
           }
           std::string value;
           if (e->state == 0)
@@ -313,7 +317,7 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
           } else {
             it = _metrics_rebuild.find(path);
             if (it != _metrics_rebuild.end()) {
-              l = it->second;
+              l = std::move(it->second);
               _metrics_rebuild.erase(it);
             }
           }
@@ -327,6 +331,7 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
       }
     } break;
     case storage::remove_graph::static_type(): {
+      log_v2::rrd()->info("storage::remove_graph");
       // Debug message.
       std::shared_ptr<storage::remove_graph> e(
           std::static_pointer_cast<storage::remove_graph>(d));

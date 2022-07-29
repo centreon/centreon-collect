@@ -28,12 +28,6 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::rrd;
 
-/**************************************
- *                                     *
- *           Public Methods            *
- *                                     *
- **************************************/
-
 /**
  *  Default constructor.
  */
@@ -58,17 +52,18 @@ connector::~connector() {}
 std::unique_ptr<io::stream> connector::open() {
   std::unique_ptr<io::stream> retval;
   if (!_cached_local.empty())
-    retval.reset(new output<cached<asio::local::stream_protocol::socket>>(
-        _metrics_path, _status_path, _cache_size, _ignore_update_errors,
-        _cached_local, _write_metrics, _write_status));
+    retval =
+        std::make_unique<output<cached<asio::local::stream_protocol::socket>>>(
+            _metrics_path, _status_path, _cache_size, _ignore_update_errors,
+            _cached_local, _write_metrics, _write_status);
   else if (_cached_port)
-    retval.reset(new output<cached<asio::ip::tcp::socket>>(
+    retval = std::make_unique<output<cached<asio::ip::tcp::socket>>>(
         _metrics_path, _status_path, _cache_size, _ignore_update_errors,
-        _cached_port, _write_metrics, _write_status));
+        _cached_port, _write_metrics, _write_status);
   else
-    retval.reset(new output<lib>(_metrics_path, _status_path, _cache_size,
-                                 _ignore_update_errors, _write_metrics,
-                                 _write_status));
+    retval = std::make_unique<output<lib>>(_metrics_path, _status_path,
+                                           _cache_size, _ignore_update_errors,
+                                           _write_metrics, _write_status);
   return retval;
 }
 
