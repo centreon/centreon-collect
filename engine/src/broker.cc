@@ -1092,10 +1092,7 @@ int broker_notification_data(int type,
  *  @param[in] attr      Attributes.
  *  @param[in] timestamp Timestamp.
  */
-void broker_program_state(int type,
-                          int flags,
-                          int attr,
-                          struct timeval const* timestamp) {
+void broker_program_state(int type, int flags) {
   // Config check.
   if (!(config->event_broker_options() & BROKER_PROGRAM_STATE))
     return;
@@ -1104,8 +1101,6 @@ void broker_program_state(int type,
   nebstruct_process_data ds;
   ds.type = type;
   ds.flags = flags;
-  ds.attr = attr;
-  ds.timestamp = get_broker_timestamp(timestamp);
 
   // Make callbacks.
   neb_make_callbacks(NEBCALLBACK_PROCESS_DATA, &ds);

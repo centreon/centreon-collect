@@ -414,8 +414,7 @@ int main(int argc, char* argv[]) {
         update_all_status_data();
 
         // Send program data to broker.
-        broker_program_state(NEBTYPE_PROCESS_EVENTLOOPSTART, NEBFLAG_NONE,
-                             NEBATTR_NONE, NULL);
+        broker_program_state(NEBTYPE_PROCESS_EVENTLOOPSTART, NEBFLAG_NONE);
 
         // Get event start time and save as macro.
         event_start = time(NULL);
@@ -436,11 +435,10 @@ int main(int argc, char* argv[]) {
                                   sigs[sig_id]);
         }
         // Send program data to broker.
-        broker_program_state(NEBTYPE_PROCESS_EVENTLOOPEND, NEBFLAG_NONE,
-                             NEBATTR_NONE, NULL);
+        broker_program_state(NEBTYPE_PROCESS_EVENTLOOPEND, NEBFLAG_NONE);
         if (sigshutdown)
-          broker_program_state(NEBTYPE_PROCESS_SHUTDOWN, NEBFLAG_USER_INITIATED,
-                               NEBATTR_SHUTDOWN_NORMAL, NULL);
+          broker_program_state(NEBTYPE_PROCESS_SHUTDOWN,
+                               NEBFLAG_USER_INITIATED);
 
         // Save service and host state information.
         retention::dump::save(::config->state_retention_file());
@@ -464,8 +462,7 @@ int main(int argc, char* argv[]) {
         log_v2::process()->error("Error: {}", e.what());
         // Send program data to broker.
         broker_program_state(NEBTYPE_PROCESS_SHUTDOWN,
-                             NEBFLAG_PROCESS_INITIATED,
-                             NEBATTR_SHUTDOWN_ABNORMAL, NULL);
+                             NEBFLAG_PROCESS_INITIATED);
       }
     }
 

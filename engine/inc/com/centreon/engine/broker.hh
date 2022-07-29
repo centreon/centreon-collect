@@ -528,10 +528,7 @@ int broker_notification_data(int type,
                              int escalated,
                              int contacts_notified,
                              struct timeval const* timestamp);
-void broker_program_state(int type,
-                          int flags,
-                          int attr,
-                          struct timeval const* timestamp);
+void broker_program_state(int type, int flags);
 void broker_program_status();
 void broker_relation_data(int type,
                           com::centreon::engine::host* hst,

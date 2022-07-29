@@ -345,8 +345,6 @@ typedef struct nebstruct_module_struct {
 typedef struct nebstruct_process_struct {
   int type;
   int flags;
-  int attr;
-  struct timeval timestamp;
 } nebstruct_process_data;
 
 /* Program status structure. */
