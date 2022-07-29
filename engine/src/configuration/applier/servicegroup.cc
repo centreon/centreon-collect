@@ -169,9 +169,7 @@ void applier::servicegroup::modify_object(
     for (service_map_unsafe::iterator it(it_obj->second->members.begin()),
          end(it_obj->second->members.end());
          it != end; ++it) {
-      timeval tv(get_broker_timestamp(NULL));
-      broker_group_member(NEBTYPE_SERVICEGROUPMEMBER_DELETE, NEBFLAG_NONE,
-                          NEBATTR_NONE, it->second, sg, &tv);
+      broker_group_member(NEBTYPE_SERVICEGROUPMEMBER_DELETE, it->second, sg);
     }
     it_obj->second->members.clear();
 

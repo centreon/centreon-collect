@@ -145,9 +145,8 @@ void applier::hostgroup::modify_object(configuration::hostgroup const& obj) {
     for (host_map_unsafe::iterator it(it_obj->second->members.begin()),
          end(it_obj->second->members.end());
          it != end; ++it) {
-      timeval tv(get_broker_timestamp(NULL));
-      broker_group_member(NEBTYPE_HOSTGROUPMEMBER_DELETE, NEBFLAG_NONE,
-                          NEBATTR_NONE, it->second, it_obj->second.get(), &tv);
+      broker_group_member(NEBTYPE_HOSTGROUPMEMBER_DELETE, it->second,
+                          it_obj->second.get());
     }
     it_obj->second->members.clear();
 

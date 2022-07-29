@@ -290,10 +290,6 @@ typedef struct nebstruct_group_struct {
 /* Group member structure. */
 typedef struct nebstruct_group_member_struct {
   int type;
-  int flags;
-  int attr;
-  struct timeval timestamp;
-
   void* object_ptr;
   void* group_ptr;
 } nebstruct_group_member_data;

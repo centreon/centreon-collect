@@ -899,18 +899,10 @@ void broker_group(int type,
  *  Send group membership to broker.
  *
  *  @param[in] type      Type.
- *  @param[in] flags     Flags.
- *  @param[in] attr      Attributes.
  *  @param[in] object    Member (host or service).
  *  @param[in] group     Group (host or service).
- *  @param[in] timestamp Timestamp.
  */
-void broker_group_member(int type,
-                         int flags,
-                         int attr,
-                         void* object,
-                         void* group,
-                         struct timeval const* timestamp) {
+void broker_group_member(int type, void* object, void* group) {
   // Config check.
   if (!(config->event_broker_options() & BROKER_GROUP_MEMBER_DATA))
     return;
@@ -918,9 +910,6 @@ void broker_group_member(int type,
   // Fill struct will relevant data.
   nebstruct_group_member_data ds;
   ds.type = type;
-  ds.flags = flags;
-  ds.attr = attr;
-  ds.timestamp = get_broker_timestamp(timestamp);
   ds.object_ptr = object;
   ds.group_ptr = group;
 

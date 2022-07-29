@@ -492,12 +492,7 @@ void broker_group(int type,
                   int attr,
                   void* data,
                   struct timeval const* timestamp);
-void broker_group_member(int type,
-                         int flags,
-                         int attr,
-                         void* object,
-                         void* group,
-                         struct timeval const* timestamp);
+void broker_group_member(int type, void* object, void* group);
 int broker_host_check(int type,
                       com::centreon::engine::host* hst,
                       int check_type,
