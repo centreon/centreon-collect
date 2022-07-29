@@ -1089,8 +1089,6 @@ int broker_notification_data(int type,
  *
  *  @param[in] type      Type.
  *  @param[in] flags     Flags.
- *  @param[in] attr      Attributes.
- *  @param[in] timestamp Timestamp.
  */
 void broker_program_state(int type, int flags) {
   // Config check.

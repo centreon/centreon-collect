@@ -333,10 +333,6 @@ typedef struct nebstruct_log_struct {
 /* Module data structure. */
 typedef struct nebstruct_module_struct {
   int type;
-  int flags;
-  int attr;
-  struct timeval timestamp;
-
   char* module;
   char* args;
 } nebstruct_module_data;
@@ -371,14 +367,6 @@ typedef struct nebstruct_relation_struct {
   com::centreon::engine::host* dep_hst;
   com::centreon::engine::service* dep_svc;
 } nebstruct_relation_data;
-
-/* Retention data structure. */
-typedef struct nebstruct_retention_struct {
-  int type;
-  int flags;
-  int attr;
-  struct timeval timestamp;
-} nebstruct_retention_data;
 
 /* Service check structure. */
 typedef struct nebstruct_service_check_struct {
