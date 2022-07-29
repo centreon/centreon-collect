@@ -261,6 +261,9 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
           } catch (exceptions::open const& b) {
             time_t interval(e->interval ? e->interval : 60);
             assert(e->rrd_len);
+            /* In case of a rebuild, we must not use the cache of rrd files,
+             * otherwise there is a risk its creation date is too recent.
+             * That's why, we use this last argument e->is_for_rebuild. */
             _backend.open(status_path, e->rrd_len, e->ctime - 1, interval,
                           e->is_for_rebuild);
           }

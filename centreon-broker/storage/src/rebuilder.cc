@@ -413,6 +413,10 @@ void rebuilder::_set_index_rebuild(mysql& ms, uint64_t index_id, short state) {
   ms.run_query(query, database::mysql_error::update_index_state, false);
 }
 
+/**
+ * @brief Force a check of index to rebuild. This method is called on cbd
+ * reload.
+ */
 void rebuilder::force_check_rebuild_index() {
   log_v2::sql()->info("rebuilder: force check of rebuild indexes");
   _timer.expires_after(std::chrono::seconds(1));

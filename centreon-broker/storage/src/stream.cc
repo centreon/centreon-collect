@@ -173,6 +173,9 @@ void stream::_update_status(std::string const& status) {
   _status = status;
 }
 
+/**
+ * @brief Method called each time cbd is reloaded.
+ */
 void stream::update() {
   log_v2::sql()->info("storage stream update");
   _rebuilder.force_check_rebuild_index();
