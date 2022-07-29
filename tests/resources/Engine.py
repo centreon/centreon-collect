@@ -1469,3 +1469,4 @@ def create_anomaly_threshold_file(path: string, host_id: int, service_id: int, m
     }
 ]
 """)
+    f.close()
