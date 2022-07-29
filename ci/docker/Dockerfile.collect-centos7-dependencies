@@ -48,7 +48,7 @@ RUN yum -y install devtoolset-9 \
     unzip \
     ShellCheck
 RUN ln -s /usr/bin/cmake3 /usr/bin/cmake
-RUN source /opt/rh/devtoolset-9/enable && source /opt/rh/rh-python38/enable
+ENV source /opt/rh/devtoolset-9/enable && source /opt/rh/rh-python38/enable
 RUN pip3 install conan --prefix=/usr --upgrade
 RUN rm -rf ~/.conan/profiles/default
 COPY conanfile.txt .
