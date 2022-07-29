@@ -41,18 +41,19 @@ class lib : public backend {
   lib(lib const& l) = delete;
   ~lib() = default;
   lib& operator=(lib const& l) = delete;
-  void begin();
-  void clean();
-  void close();
-  void commit();
-  void open(std::string const& filename);
+  void begin() override;
+  void clean() override;
+  void close() override;
+  void commit() override;
+  void open(std::string const& filename) override;
   void open(std::string const& filename,
             uint32_t length,
             time_t from,
             uint32_t step,
-            short value_type = 0);
-  void remove(std::string const& filename);
-  void update(time_t t, std::string const& value);
+            short value_type = 0,
+            bool without_cache = false) override;
+  void remove(std::string const& filename) override;
+  void update(time_t t, std::string const& value) override;
 
  private:
   creator _creator;

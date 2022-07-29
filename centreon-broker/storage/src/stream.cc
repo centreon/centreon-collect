@@ -172,3 +172,8 @@ void stream::_update_status(std::string const& status) {
   std::lock_guard<std::mutex> lock(_statusm);
   _status = status;
 }
+
+void stream::update() {
+  log_v2::sql()->info("storage stream update");
+  _rebuilder.force_check_rebuild_index();
+}

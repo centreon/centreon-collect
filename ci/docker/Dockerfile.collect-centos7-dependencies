@@ -48,7 +48,7 @@ RUN yum -y install devtoolset-9 \
     unzip \
     ShellCheck
 RUN ln -s /usr/bin/cmake3 /usr/bin/cmake
-RUN pip3 install conan --prefix=/usr --upgrade
+RUN pip3 install conan --upgrade
 RUN rm -rf ~/.conan/profiles/default
 COPY conanfile.txt .
 RUN cat conanfile.txt

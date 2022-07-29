@@ -79,7 +79,8 @@ class cached : public backend {
             uint32_t length,
             time_t from,
             uint32_t step,
-            short value_type = 0) {
+            short value_type = 0,
+            bool without_cache = false) {
     // Close previous file.
     this->close();
 
@@ -89,7 +90,7 @@ class cached : public backend {
     /* We are unfortunately forced to use librrd to create RRD file as
     ** rrdcached does not support RRD file creation.
     */
-    _lib.open(filename, length, from, step, value_type);
+    _lib.open(filename, length, from, step, value_type, without_cache);
   }
 
   /**
@@ -130,7 +131,7 @@ class cached : public backend {
    *
    *  @param[in] command Command to send.
    */
-  void _send_to_cached(std::string const& command) {
+  void _send_to_cached(const std::string& command) {
     std::error_code err;
 
     asio::write(_socket, asio::buffer(command), asio::transfer_all(), err);
