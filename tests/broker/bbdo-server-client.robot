@@ -125,11 +125,11 @@ BSCSST2
 	Broker Config Log	central	config	off
 	Broker Config Log	central	core	off
 	Broker Config Log	central	tls	debug
-	Broker Config Output set	central	central-broker-master-output	private_key	/etc/centreon-broker/server.key
-	Broker Config Output set	central	central-broker-master-output	certificate	/etc/centreon-broker/server.crt
-	Broker Config Output set	central	central-broker-master-output	ca_certificate	/etc/centreon-broker/client.crt
-	Broker Config Input set	rrd	rrd-broker-master-input	private_key	/etc/centreon-broker/client.key
-	Broker Config Input set	rrd	rrd-broker-master-input	certificate	/etc/centreon-broker/client.crt
+	Broker Config Output set	central	central-broker-master-output	private_key	${EtcRoot}/centreon-broker/server.key
+	Broker Config Output set	central	central-broker-master-output	certificate	${EtcRoot}/centreon-broker/server.crt
+	Broker Config Output set	central	central-broker-master-output	ca_certificate	${EtcRoot}/centreon-broker/client.crt
+	Broker Config Input set	rrd	rrd-broker-master-input	private_key	${EtcRoot}/centreon-broker/client.key
+	Broker Config Input set	rrd	rrd-broker-master-input	certificate	${EtcRoot}/centreon-broker/client.crt
 	${start}=	Get Current Date
 	Repeat Keyword	5 times	Start Stop Service	0
 	${content}=	Create List	TLS: successful handshake
@@ -173,15 +173,14 @@ BSCSSTG2
 	Broker Config Log	rrd	core	off
 	Broker Config Log	central	tls	debug
 	Broker Config Log	central	grpc	debug
-	${hostname}=	Get Hostname
-	Create Key And Certificate	${hostname}	/etc/centreon-broker/server.key	/etc/centreon-broker/server.crt
-	Create Key And Certificate	${hostname}	/etc/centreon-broker/client.key	/etc/centreon-broker/client.crt
+	Create Key And Certificate	localhost	${EtcRoot}/centreon-broker/server.key	${EtcRoot}/centreon-broker/server.crt
+	Create Key And Certificate	localhost	${EtcRoot}/centreon-broker/client.key	${EtcRoot}/centreon-broker/client.crt
 
-	Broker Config Output set	central	central-broker-master-output	private_key	/etc/centreon-broker/server.key
-	Broker Config Output set	central	central-broker-master-output	certificate	/etc/centreon-broker/server.crt
-	Broker Config Output set	central	central-broker-master-output	ca_certificate	/etc/centreon-broker/client.crt
-	Broker Config Input set	rrd	rrd-broker-master-input	private_key	/etc/centreon-broker/client.key
-	Broker Config Input set	rrd	rrd-broker-master-input	certificate	/etc/centreon-broker/client.crt
+	Broker Config Output set	central	central-broker-master-output	private_key	${EtcRoot}/centreon-broker/server.key
+	Broker Config Output set	central	central-broker-master-output	certificate	${EtcRoot}/centreon-broker/server.crt
+	Broker Config Output set	central	central-broker-master-output	ca_certificate	${EtcRoot}/centreon-broker/client.crt
+	Broker Config Input set	rrd	rrd-broker-master-input	private_key	${EtcRoot}/centreon-broker/client.key
+	Broker Config Input set	rrd	rrd-broker-master-input	certificate	${EtcRoot}/centreon-broker/client.crt
 	${start}=	Get Current Date
 	Start Broker
 	${content}=	Create List	crypted connexion	start_write() write:buff:	write done :buff:
@@ -300,8 +299,8 @@ BSCSSGA2
 *** Keywords ***
 Start Stop Service
 	[Arguments]	${interval}
-	Start Process	/usr/sbin/cbd	/etc/centreon-broker/central-broker.json	alias=b1
-	Start Process	/usr/sbin/cbd	/etc/centreon-broker/central-rrd.json	alias=b2
+	Start Process	/usr/sbin/cbd	${EtcRoot}/centreon-broker/central-broker.json	alias=b1
+	Start Process	/usr/sbin/cbd	${EtcRoot}/centreon-broker/central-rrd.json	alias=b2
 	Sleep	${interval}
 	${pid1}=	Get Process Id	b1
 	${pid2}=	Get Process Id	b2
@@ -317,7 +316,7 @@ Start Stop Service
 
 Start Stop Instance
 	[Arguments]	${interval}
-	Start Process	/usr/sbin/cbd	/etc/centreon-broker/central-broker.json	alias=b1
+	Start Process	/usr/sbin/cbd	${EtcRoot}/centreon-broker/central-broker.json	alias=b1
 	Sleep	${interval}
 	Send Signal To Process	SIGTERM	b1
 	${result}=	Wait For Process	b1	timeout=60s	on_timeout=kill

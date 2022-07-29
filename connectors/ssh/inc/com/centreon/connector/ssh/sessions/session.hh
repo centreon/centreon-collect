@@ -19,6 +19,8 @@
 #ifndef CCCS_SESSIONS_SESSION_HH
 #define CCCS_SESSIONS_SESSION_HH
 
+#include <libssh2.h>
+
 #include "com/centreon/connector/ssh/namespace.hh"
 #include "com/centreon/connector/ssh/sessions/credentials.hh"
 

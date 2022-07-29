@@ -1,4 +1,6 @@
 *** Variables ***
+${EtcRoot}  /tmp/etc
+${VarRoot}  /tmp/var
 ${DBName}	centreon_storage
 ${DBNameConf}	centreon
 ${DBHost}	localhost

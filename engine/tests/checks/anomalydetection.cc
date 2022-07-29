@@ -37,6 +37,7 @@
 #include "com/centreon/engine/configuration/host.hh"
 #include "com/centreon/engine/configuration/service.hh"
 #include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/engine/log_v2.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -48,6 +49,9 @@ class AnomalydetectionCheck : public TestEngine {
  public:
   void SetUp() override {
     init_config_state();
+
+    log_v2::checks()->set_level(spdlog::level::trace);
+    log_v2::commands()->set_level(spdlog::level::trace);
 
     configuration::applier::contact ct_aply;
     configuration::contact ctct{new_configuration_contact("admin", true)};
@@ -115,23 +119,27 @@ class AnomalydetectionCheck : public TestEngine {
   std::shared_ptr<engine::anomalydetection> _ad;
 };
 
+// clang-format off
+
 /* The following test comes from this array (inherited from Nagios behaviour):
  *
- * | Time | Check # | State | State type | State change |
- * ------------------------------------------------------
- * | 0    | 1       | OK    | HARD       | No           |
- * | 1    | 1       | CRTCL | SOFT       | Yes          |
- * | 2    | 2       | CRTCL | SOFT       | Yes          |
- * | 3    | 3       | CRTCL | HARD       | Yes          |
- * | 4    | 3       | CRTCL | HARD       | Yes          |
- * | 5    | 3       | CRTCL | HARD       | No           |
- * | 6    | 1       | OK    | HARD       | Yes          |
- * | 7    | 1       | OK    | HARD       | No           |
- * | 8    | 1       | CRTCL | SOFT       | Yes          |
- * | 9    | 2       | OK    | SOFT       | Yes          |
- * | 10   | 1       | OK    | HARD       | No           |
- * ------------------------------------------------------
+ * | Time | Check # | State | State type | State change | perf data in range | ad State  | ad state type | ad do check   
+ * --------------------------------------------------------------------------------------------------------------------                
+ * | 0    | 1       | OK    | HARD       | No           |  Y                 |  OK       | H             |  N
+ * | 1    | 1       | CRTCL | SOFT       | Yes          |  Y                 |  OK       | H             |  N
+ * | 2    | 2       | CRTCL | SOFT       | No           |  Y                 |  OK       | H             |  N
+ * | 3    | 3       | CRTCL | HARD       | Yes          |  Y                 |  OK       | H             |  N
+ * | 4    | 3       | OK    | HARD       | Yes          |  Y                 |  OK       | H             |  N
+ * | 5    | 3       | OK    | HARD       | No           |  N                 |  CRTCL    | S             |  Y
+ * | 6    | 1       | OK    | HARD       | No           |  N                 |  CRTCL    | S             |  Y
+ * | 7    | 1       | OK    | HARD       | No           |  N                 |  CRTCL    | H             |  Y
+ * | 8    | 1       | OK    | HARD       | No           |  Y                 |  OK       | H             |  Y
+ * | 9    | 1       | OK    | HARD       | No           |  Y                 |  OK       | H             |  N
+ * --------------------------------------------------------------------------------------------------------------------
  */
+
+// clang-format on
+
 TEST_F(AnomalydetectionCheck, StatusChanges) {
   CreateFile(
       "/tmp/thresholds_status_change.json",
@@ -158,15 +166,17 @@ TEST_F(AnomalydetectionCheck, StatusChanges) {
   _ad->set_current_state(engine::service::state_ok);
   _ad->set_last_hard_state(engine::service::state_ok);
   _ad->set_last_hard_state_change(50000);
+  _ad->set_last_state_change(50000);
   _ad->set_state_type(checkable::hard);
   _ad->set_current_attempt(1);
   _ad->set_last_check(50000);
 
+  // --- 1 ----
   set_time(50500);
   time_t now = std::time(nullptr);
   std::string cmd(fmt::format(
       "[{}] PROCESS_SERVICE_CHECK_RESULT;test_host;test_svc;2;service "
-      "critical| metric=90;25;60",
+      "critical| metric=80;25;60",
       now));
   process_external_command(cmd.c_str());
   checks::checker::instance().reap();
@@ -175,7 +185,7 @@ TEST_F(AnomalydetectionCheck, StatusChanges) {
   ASSERT_EQ(_svc->get_last_state_change(), now);
   ASSERT_EQ(_svc->get_current_attempt(), 1);
   ASSERT_EQ(_svc->get_plugin_output(), "service critical");
-  ASSERT_EQ(_svc->get_perf_data(), "metric=90;25;60");
+  ASSERT_EQ(_svc->get_perf_data(), "metric=80;25;60");
   int check_options = 0;
   int latency = 0;
   bool time_is_valid;
@@ -183,181 +193,189 @@ TEST_F(AnomalydetectionCheck, StatusChanges) {
   _ad->run_async_check(check_options, latency, true, true, &time_is_valid,
                        &preferred_time);
   checks::checker::instance().reap();
-  ASSERT_EQ(_ad->get_state_type(), checkable::soft);
-  ASSERT_EQ(_ad->get_current_state(), engine::service::state_critical);
-  ASSERT_EQ(_ad->get_last_state_change(), now);
+  ASSERT_EQ(_ad->get_state_type(), checkable::hard);
+  ASSERT_EQ(_ad->get_current_state(), engine::service::state_ok);
+  ASSERT_EQ(_ad->get_last_state_change(), 50000);
   ASSERT_EQ(_ad->get_current_attempt(), 1);
-  ASSERT_EQ(_ad->get_plugin_output(),
-            "NON-OK: Unusual activity, the actual value of metric is 90.00 "
-            "which is outside the forecasting range [73.31 : 83.26]");
+  ASSERT_EQ(_ad->get_plugin_output(), "OK: Regular activity, metric=80.00");
   ASSERT_EQ(_ad->get_perf_data(),
-            "metric=90 metric_lower_thresholds=73.31 "
+            "metric=80 metric_lower_thresholds=73.31 "
             "metric_upper_thresholds=83.26");
 
+  // --- 2 ----
   set_time(51000);
 
   now = std::time(nullptr);
   cmd = fmt::format(
-      "[{}] PROCESS_SERVICE_CHECK_RESULT;test_host;test_svc;1;service warning| "
-      "metric=50;25;60",
+      "[{}] PROCESS_SERVICE_CHECK_RESULT;test_host;test_svc;2;service "
+      "critical| "
+      "metric=80;25;60",
       now);
   process_external_command(cmd.c_str());
   checks::checker::instance().reap();
   ASSERT_EQ(_svc->get_state_type(), checkable::soft);
-  ASSERT_EQ(_svc->get_current_state(), engine::service::state_warning);
-  ASSERT_EQ(_svc->get_last_state_change(), now);
+  ASSERT_EQ(_svc->get_current_state(), engine::service::state_critical);
+  ASSERT_EQ(_svc->get_last_state_change(), 50500);
   ASSERT_EQ(_svc->get_current_attempt(), 2);
   _ad->run_async_check(check_options, latency, true, true, &time_is_valid,
                        &preferred_time);
   checks::checker::instance().reap();
-  ASSERT_EQ(_ad->get_state_type(), checkable::soft);
-  ASSERT_EQ(_ad->get_current_state(), engine::service::state_critical);
-  ASSERT_EQ(_ad->get_plugin_output(),
-            "NON-OK: Unusual activity, the actual value of metric is 50.00 "
-            "which is outside the forecasting range [72.62 : 82.52]");
+  ASSERT_EQ(_ad->get_state_type(), checkable::hard);
+  ASSERT_EQ(_ad->get_current_state(), engine::service::state_ok);
+  ASSERT_EQ(_ad->get_last_state_change(), 50000);
+  ASSERT_EQ(_ad->get_current_attempt(), 1);
+  ASSERT_EQ(_ad->get_plugin_output(), "OK: Regular activity, metric=80.00");
   ASSERT_EQ(_ad->get_perf_data(),
-            "metric=50 metric_lower_thresholds=72.62 "
+            "metric=80 metric_lower_thresholds=72.62 "
             "metric_upper_thresholds=82.52");
-  ASSERT_EQ(_ad->get_current_attempt(), 2);
 
-  set_time(51500);
+  // --- 3 ----
+  set_time(51250);
 
   now = std::time(nullptr);
-  time_t previous = now;
   cmd = fmt::format(
       "[{}] PROCESS_SERVICE_CHECK_RESULT;test_host;test_svc;2;service "
       "critical| "
-      "metric=110foo;25;60",
+      "metric=80;25;60",
       now);
   process_external_command(cmd.c_str());
   checks::checker::instance().reap();
   ASSERT_EQ(_svc->get_state_type(), checkable::hard);
   ASSERT_EQ(_svc->get_current_state(), engine::service::state_critical);
-  ASSERT_EQ(_svc->get_last_hard_state_change(), now);
+  ASSERT_EQ(_svc->get_last_state_change(), 50500);
   ASSERT_EQ(_svc->get_current_attempt(), 3);
   _ad->run_async_check(check_options, latency, true, true, &time_is_valid,
                        &preferred_time);
   checks::checker::instance().reap();
-  ASSERT_EQ(_ad->get_current_state(), engine::service::state_critical);
-  ASSERT_EQ(_ad->get_last_hard_state_change(), now);
   ASSERT_EQ(_ad->get_state_type(), checkable::hard);
-  ASSERT_EQ(_ad->get_plugin_output(),
-            "NON-OK: Unusual activity, the actual value of metric is 110.00foo "
-            "which is outside the forecasting range [71.93foo : 81.78foo]");
+  ASSERT_EQ(_ad->get_current_state(), engine::service::state_ok);
+  ASSERT_EQ(_ad->get_last_state_change(), 50000);
+  ASSERT_EQ(_ad->get_current_attempt(), 1);
+  ASSERT_EQ(_ad->get_plugin_output(), "OK: Regular activity, metric=80.00");
   ASSERT_EQ(_ad->get_perf_data(),
-            "metric=110foo metric_lower_thresholds=71.93foo "
-            "metric_upper_thresholds=81.78foo");
-  ASSERT_EQ(_ad->get_current_attempt(), 3);
+            "metric=80 metric_lower_thresholds=72.28 "
+            "metric_upper_thresholds=82.15");
 
+  // --- 4 ----
   set_time(52000);
 
   now = std::time(nullptr);
+  time_t previous = now;
   cmd = fmt::format(
-      "[{}] PROCESS_SERVICE_CHECK_RESULT;test_host;test_svc;1;service warning| "
+      "[{}] PROCESS_SERVICE_CHECK_RESULT;test_host;test_svc;0;service "
+      "ok| "
+      "metric=80foo;25;60",
+      now);
+  process_external_command(cmd.c_str());
+  checks::checker::instance().reap();
+  ASSERT_EQ(_svc->get_state_type(), checkable::hard);
+  ASSERT_EQ(_svc->get_current_state(), engine::service::state_ok);
+  ASSERT_EQ(_svc->get_last_hard_state_change(), now);
+  ASSERT_EQ(_svc->get_current_attempt(), 1);
+  _ad->run_async_check(check_options, latency, true, true, &time_is_valid,
+                       &preferred_time);
+  checks::checker::instance().reap();
+  ASSERT_EQ(_ad->get_state_type(), checkable::hard);
+  ASSERT_EQ(_ad->get_current_state(), engine::service::state_ok);
+  ASSERT_EQ(_ad->get_last_state_change(), 50000);
+  ASSERT_EQ(_ad->get_current_attempt(), 1);
+  ASSERT_EQ(_ad->get_plugin_output(), "OK: Regular activity, metric=80.00foo");
+  ASSERT_EQ(_ad->get_perf_data(),
+            "metric=80foo metric_lower_thresholds=71.24foo "
+            "metric_upper_thresholds=81.04foo");
+
+  // --- 5 ----
+  set_time(52500);
+
+  now = std::time(nullptr);
+  cmd = fmt::format(
+      "[{}] PROCESS_SERVICE_CHECK_RESULT;test_host;test_svc;0;service ok| "
       "metric=30%;25;60",
       now);
   process_external_command(cmd.c_str());
   checks::checker::instance().reap();
   ASSERT_EQ(_svc->get_state_type(), checkable::hard);
-  ASSERT_EQ(_svc->get_current_state(), engine::service::state_warning);
-  ASSERT_EQ(_svc->get_last_hard_state_change(), now);
-  ASSERT_EQ(_svc->get_current_attempt(), 3);
+  ASSERT_EQ(_svc->get_current_state(), engine::service::state_ok);
+  ASSERT_EQ(_svc->get_last_hard_state_change(), 52000);
+  ASSERT_EQ(_svc->get_last_state_change(), 52000);
+  ASSERT_EQ(_svc->get_current_attempt(), 1);
   _ad->run_async_check(check_options, latency, true, true, &time_is_valid,
                        &preferred_time);
   checks::checker::instance().reap();
-  ASSERT_EQ(_ad->get_state_type(), checkable::hard);
+  ASSERT_EQ(_ad->get_state_type(), checkable::soft);
   ASSERT_EQ(_ad->get_current_state(), engine::service::state_critical);
-  ASSERT_EQ(_ad->get_last_hard_state_change(), previous);
+  ASSERT_EQ(_ad->get_last_state_change(), now);
   ASSERT_EQ(_ad->get_plugin_output(),
             "NON-OK: Unusual activity, the actual value of metric is 30.00% "
-            "which is outside the forecasting range [71.24% : 81.04%]");
-  ASSERT_EQ(_ad->get_perf_data(),
-            "metric=30% metric_lower_thresholds=71.24% "
-            "metric_upper_thresholds=81.04%");
-  ASSERT_EQ(_ad->get_current_attempt(), 3);
-
-  set_time(52500);
-
-  previous = now;
-  now = std::time(nullptr);
-  cmd = fmt::format(
-      "[{}] PROCESS_SERVICE_CHECK_RESULT;test_host;test_svc;1;service warning| "
-      "metric=35%;25;60",
-      now);
-  process_external_command(cmd.c_str());
-  checks::checker::instance().reap();
-  ASSERT_EQ(_svc->get_state_type(), checkable::hard);
-  ASSERT_EQ(_svc->get_current_state(), engine::service::state_warning);
-  ASSERT_EQ(_svc->get_last_hard_state_change(), previous);
-  ASSERT_EQ(_svc->get_current_attempt(), 3);
-  ASSERT_EQ(_svc->get_plugin_output(), "service warning");
-  ASSERT_EQ(_svc->get_perf_data(), "metric=35%;25;60");
-  _ad->run_async_check(check_options, latency, true, true, &time_is_valid,
-                       &preferred_time);
-  checks::checker::instance().reap();
-  ASSERT_EQ(_ad->get_state_type(), checkable::hard);
-  ASSERT_EQ(_ad->get_current_state(), engine::service::state_critical);
-  ASSERT_EQ(_ad->get_plugin_output(),
-            "NON-OK: Unusual activity, the actual value of metric is 35.00% "
             "which is outside the forecasting range [70.55% : 80.30%]");
   ASSERT_EQ(_ad->get_perf_data(),
-            "metric=35% metric_lower_thresholds=70.55% "
+            "metric=30% metric_lower_thresholds=70.55% "
             "metric_upper_thresholds=80.30%");
-  ASSERT_EQ(_ad->get_current_attempt(), 3);
+  ASSERT_EQ(_ad->get_current_attempt(), 1);
 
+  // --- 6 ----
   set_time(53000);
 
   previous = now;
   now = std::time(nullptr);
-  cmd = fmt::format(
-      "[{}] PROCESS_SERVICE_CHECK_RESULT;test_host;test_svc;0;service ok| "
-      "metric=70%;80;90",
-      now);
-  process_external_command(cmd.c_str());
-  checks::checker::instance().reap();
-  ASSERT_EQ(_svc->get_state_type(), checkable::hard);
-  ASSERT_EQ(_svc->get_current_state(), engine::service::state_ok);
-  ASSERT_EQ(_svc->get_last_hard_state_change(), now);
-  ASSERT_EQ(_svc->get_current_attempt(), 1);
   _ad->run_async_check(check_options, latency, true, true, &time_is_valid,
                        &preferred_time);
+  checks::checker::instance().wait_completion();
   checks::checker::instance().reap();
-  ASSERT_EQ(_ad->get_state_type(), checkable::hard);
-  ASSERT_EQ(_ad->get_current_state(), engine::service::state_ok);
-  ASSERT_EQ(_ad->get_last_hard_state_change(), now);
-  ASSERT_EQ(_ad->get_plugin_output(), "OK: Regular activity, metric=70.00%");
+  ASSERT_EQ(_ad->get_state_type(), checkable::soft);
+  ASSERT_EQ(_ad->get_current_state(), engine::service::state_critical);
+  ASSERT_EQ(_ad->get_last_state_change(), previous);
+  ASSERT_EQ(_ad->get_plugin_output(),
+            "NON-OK: Unusual activity, the actual value of metric is 12.00 "
+            "which is outside the forecasting range [69.86 : 79.56]");
   ASSERT_EQ(_ad->get_perf_data(),
-            "metric=70% metric_lower_thresholds=69.86% "
-            "metric_upper_thresholds=79.56%");
-  ASSERT_EQ(_ad->get_current_attempt(), 1);
+            "metric=12 metric_lower_thresholds=69.86 "
+            "metric_upper_thresholds=79.56");
+  ASSERT_EQ(_ad->get_current_attempt(), 2);
 
+  // --- 7 ----
   set_time(53500);
 
   previous = now;
   now = std::time(nullptr);
-  cmd = fmt::format(
-      "[{}] PROCESS_SERVICE_CHECK_RESULT;test_host;test_svc;0;service ok| "
-      "metric=71%;80;90",
-      now);
-  process_external_command(cmd.c_str());
-  checks::checker::instance().reap();
-  ASSERT_EQ(_svc->get_state_type(), checkable::hard);
-  ASSERT_EQ(_svc->get_current_state(), engine::service::state_ok);
-  ASSERT_EQ(_svc->get_last_hard_state_change(), previous);
-  ASSERT_EQ(_svc->get_current_attempt(), 1);
   _ad->run_async_check(check_options, latency, true, true, &time_is_valid,
                        &preferred_time);
+  checks::checker::instance().wait_completion();
+  checks::checker::instance().reap();
+  ASSERT_EQ(_ad->get_state_type(), checkable::hard);
+  ASSERT_EQ(_ad->get_current_state(), engine::service::state_critical);
+  ASSERT_EQ(_ad->get_last_hard_state_change(), now);
+  ASSERT_EQ(_ad->get_last_state_change(), 52500);
+  ASSERT_EQ(_ad->get_plugin_output(),
+            "NON-OK: Unusual activity, the actual value of metric is 12.00 "
+            "which is outside the forecasting range [69.17 : 78.82]");
+  ASSERT_EQ(_ad->get_perf_data(),
+            "metric=12 metric_lower_thresholds=69.17 "
+            "metric_upper_thresholds=78.82");
+  ASSERT_EQ(_ad->get_current_attempt(), 3);
+
+  // --- 8 ----
+  set_time(54000);
+  _ad->get_check_command_ptr()->set_command_line(
+      "echo 'output| metric=70%;50;75'");
+  previous = now;
+  now = std::time(nullptr);
+  _ad->run_async_check(check_options, latency, true, true, &time_is_valid,
+                       &preferred_time);
+  checks::checker::instance().wait_completion();
   checks::checker::instance().reap();
   ASSERT_EQ(_ad->get_state_type(), checkable::hard);
   ASSERT_EQ(_ad->get_current_state(), engine::service::state_ok);
-  ASSERT_EQ(_ad->get_last_hard_state_change(), previous);
-  ASSERT_EQ(_ad->get_plugin_output(), "OK: Regular activity, metric=71.00%");
+  ASSERT_EQ(_ad->get_last_hard_state_change(), now);
+  ASSERT_EQ(_ad->get_last_state_change(), now);
+  ASSERT_EQ(_ad->get_plugin_output(), "OK: Regular activity, metric=70.00%");
   ASSERT_EQ(_ad->get_perf_data(),
-            "metric=71% metric_lower_thresholds=69.17% "
-            "metric_upper_thresholds=78.82%");
+            "metric=70% metric_lower_thresholds=68.48% "
+            "metric_upper_thresholds=78.08%");
   ASSERT_EQ(_ad->get_current_attempt(), 1);
 
-  set_time(54000);
+  // --- 9 ----
+  set_time(54500);
 
   previous = now;
   now = std::time(nullptr);
@@ -368,70 +386,21 @@ TEST_F(AnomalydetectionCheck, StatusChanges) {
   checks::checker::instance().reap();
   ASSERT_EQ(_svc->get_state_type(), checkable::soft);
   ASSERT_EQ(_svc->get_current_state(), engine::service::state_unknown);
-  ASSERT_EQ(_svc->get_last_hard_state_change(), now - 1000);
+  ASSERT_EQ(_svc->get_last_hard_state_change(), 52000);
   ASSERT_EQ(_svc->get_last_state_change(), now);
   ASSERT_EQ(_svc->get_current_attempt(), 1);
+  ASSERT_EQ(_svc->get_plugin_output(), "service unknown");
   _ad->run_async_check(check_options, latency, true, true, &time_is_valid,
                        &preferred_time);
   checks::checker::instance().reap();
   ASSERT_EQ(_ad->get_state_type(), checkable::soft);
   ASSERT_EQ(_ad->get_current_state(), engine::service::state_unknown);
-  ASSERT_EQ(_ad->get_last_hard_state_change(), now - 1000);
+  ASSERT_EQ(_ad->get_last_hard_state_change(), 54000);
+  ASSERT_EQ(_svc->get_last_state_change(), now);
   ASSERT_EQ(_ad->get_plugin_output(),
             "UNKNOWN: Unknown activity, metric did not return any values");
   ASSERT_EQ(_ad->get_current_attempt(), 1);
 
-  set_time(54500);
-
-  previous = now;
-  now = std::time(nullptr);
-  cmd = fmt::format(
-      "[{}] PROCESS_SERVICE_CHECK_RESULT;test_host;test_svc;0;service ok| "
-      "metric=72%;80;90",
-      now);
-  process_external_command(cmd.c_str());
-  checks::checker::instance().reap();
-  ASSERT_EQ(_svc->get_state_type(), checkable::soft);
-  ASSERT_EQ(_svc->get_current_state(), engine::service::state_ok);
-  ASSERT_EQ(_svc->get_last_state_change(), now);
-  ASSERT_EQ(_svc->get_current_attempt(), 2);
-  _ad->run_async_check(check_options, latency, true, true, &time_is_valid,
-                       &preferred_time);
-  checks::checker::instance().reap();
-  ASSERT_EQ(_ad->get_state_type(), checkable::soft);
-  ASSERT_EQ(_ad->get_current_state(), engine::service::state_ok);
-  ASSERT_EQ(_ad->get_last_state_change(), now);
-  ASSERT_EQ(_ad->get_plugin_output(), "OK: Regular activity, metric=72.00%");
-  ASSERT_EQ(_ad->get_perf_data(),
-            "metric=72% metric_lower_thresholds=67.79% "
-            "metric_upper_thresholds=77.34%");
-  ASSERT_EQ(_ad->get_current_attempt(), 2);
-
-  set_time(55000);
-
-  previous = now;
-  now = std::time(nullptr);
-  cmd = fmt::format(
-      "[{}] PROCESS_SERVICE_CHECK_RESULT;test_host;test_svc;0;service ok| "
-      "metric=71.7%;80;90;10;100",
-      now);
-  process_external_command(cmd.c_str());
-  checks::checker::instance().reap();
-  ASSERT_EQ(_svc->get_state_type(), checkable::hard);
-  ASSERT_EQ(_svc->get_current_state(), engine::service::state_ok);
-  ASSERT_EQ(_svc->get_last_hard_state_change(), now);
-  ASSERT_EQ(_svc->get_current_attempt(), 1);
-  _ad->run_async_check(check_options, latency, true, true, &time_is_valid,
-                       &preferred_time);
-  checks::checker::instance().reap();
-  ASSERT_EQ(_ad->get_state_type(), checkable::hard);
-  ASSERT_EQ(_ad->get_current_state(), engine::service::state_ok);
-  ASSERT_EQ(_ad->get_last_hard_state_change(), now);
-  ASSERT_EQ(_ad->get_plugin_output(), "OK: Regular activity, metric=71.70%");
-  ASSERT_EQ(_ad->get_perf_data(),
-            "metric=71.7%;;;10;100 metric_lower_thresholds=67.10%;;;10;100 "
-            "metric_upper_thresholds=76.60%;;;10;100");
-  ASSERT_EQ(_ad->get_current_attempt(), 1);
   ::unlink("/tmp/thresholds_status_change.json");
 }
 
@@ -486,6 +455,7 @@ TEST_F(AnomalydetectionCheck, MetricWithQuotes) {
   time_t preferred_time;
   _ad->run_async_check(check_options, latency, true, true, &time_is_valid,
                        &preferred_time);
+  checks::checker::instance().wait_completion();
   checks::checker::instance().reap();
   ASSERT_EQ(_ad->get_state_type(), checkable::soft);
   ASSERT_EQ(_ad->get_current_state(), engine::service::state_critical);
@@ -497,4 +467,130 @@ TEST_F(AnomalydetectionCheck, MetricWithQuotes) {
   ASSERT_EQ(_ad->get_perf_data(),
             "'metric'=90MT;;;0;100 metric_lower_thresholds=73.31MT;;;0;100 "
             "metric_upper_thresholds=83.26MT;;;0;100");
+
+  ::unlink("/tmp/thresholds_status_change.json");
+}
+
+TEST_F(AnomalydetectionCheck, BadThresholdsFile) {
+  ::unlink("/tmp/thresholds_status_change.json");
+  set_time(50000);
+  std::time_t now{std::time(nullptr)};
+  _svc->set_current_state(engine::service::state_ok);
+  _svc->set_last_hard_state(engine::service::state_ok);
+  _svc->set_last_hard_state_change(50000);
+  _svc->set_state_type(checkable::hard);
+  _svc->set_accept_passive_checks(true);
+  _svc->set_current_attempt(1);
+  _svc->set_last_check(50000);
+  _svc->set_perf_data("metric=90MT;25;60;0;100");
+
+  _ad->set_current_state(engine::service::state_ok);
+  _ad->set_last_hard_state(engine::service::state_ok);
+  _ad->set_last_hard_state_change(50000);
+  _ad->set_state_type(checkable::hard);
+  _ad->set_current_attempt(1);
+  _ad->set_last_check(50000);
+
+  int check_options = 0;
+  int latency = 0;
+  bool time_is_valid;
+  time_t preferred_time;
+  _ad->run_async_check(check_options, latency, true, true, &time_is_valid,
+                       &preferred_time);
+  checks::checker::instance().reap();
+  ASSERT_EQ(_ad->get_state_type(), checkable::soft);
+  ASSERT_EQ(_ad->get_current_state(), engine::service::state_unknown);
+  ASSERT_EQ(_ad->get_last_state_change(), now);
+  ASSERT_EQ(_ad->get_current_attempt(), 1);
+  ASSERT_EQ(_ad->get_plugin_output(),
+            "The thresholds file is not viable for metric metric");
+  ASSERT_EQ(_ad->get_perf_data(), "metric=90MT;25;60;0;100");
+
+  set_time(51000);
+  now = std::time(nullptr);
+  // _ad is not OK so _ad will do the check
+  _ad->get_check_command_ptr()->set_command_line(
+      "echo 'output| metric=70%;50;75'");
+
+  _ad->run_async_check(check_options, latency, true, true, &time_is_valid,
+                       &preferred_time);
+  checks::checker::instance().wait_completion();
+  checks::checker::instance().reap();
+  ASSERT_EQ(_ad->get_state_type(), checkable::soft);
+  ASSERT_EQ(_ad->get_current_state(), engine::service::state_unknown);
+  ASSERT_EQ(_ad->get_last_state_change(), 50000);
+  ASSERT_EQ(_ad->get_current_attempt(), 2);
+  ASSERT_EQ(_ad->get_plugin_output(),
+            "The thresholds file is not viable for metric metric");
+  ASSERT_EQ(_ad->get_perf_data(), "metric=70%;50;75");
+
+  ::unlink("/tmp/thresholds_status_change.json");
+}
+
+TEST_F(AnomalydetectionCheck, FileTooOld) {
+  CreateFile(
+      "/tmp/thresholds_status_change.json",
+      "[{\n \"host_id\": \"12\",\n \"service_id\": \"9\",\n \"metric_name\": "
+      "\"metric\",\n \"predict\": [{\n \"timestamp\": 50000,\n \"upper\": "
+      "84,\n \"lower\": 74,\n \"fit\": 79\n }, {\n \"timestamp\": 100000,\n "
+      "\"upper\": 10,\n \"lower\": 5,\n \"fit\": 51.5\n }, {\n \"timestamp\": "
+      "150000,\n \"upper\": 100,\n \"lower\": 93,\n \"fit\": 96.5\n }, {\n "
+      "\"timestamp\": 200000,\n \"upper\": 100,\n \"lower\": 97,\n \"fit\": "
+      "98.5\n }, {\n \"timestamp\": 250000,\n \"upper\": 100,\n \"lower\": "
+      "21,\n \"fit\": 60.5\n }\n]}]");
+  _ad->init_thresholds();
+  _ad->set_status_change(true);
+
+  set_time(300000);
+  _svc->set_current_state(engine::service::state_ok);
+  _svc->set_last_hard_state(engine::service::state_ok);
+  _svc->set_last_hard_state_change(300000);
+  _svc->set_state_type(checkable::hard);
+  _svc->set_accept_passive_checks(true);
+  _svc->set_current_attempt(1);
+  _svc->set_last_check(300000);
+  _svc->set_perf_data("metric=90MT;25;60;0;100");
+
+  _ad->set_current_state(engine::service::state_ok);
+  _ad->set_last_hard_state(engine::service::state_ok);
+  _ad->set_last_hard_state_change(300000);
+  _ad->set_state_type(checkable::hard);
+  _ad->set_current_attempt(1);
+  _ad->set_last_check(300000);
+
+  int check_options = 0;
+  int latency = 0;
+  bool time_is_valid;
+  time_t preferred_time;
+  _ad->run_async_check(check_options, latency, true, true, &time_is_valid,
+                       &preferred_time);
+  checks::checker::instance().reap();
+  ASSERT_EQ(_ad->get_state_type(), checkable::soft);
+  ASSERT_EQ(_ad->get_current_state(), engine::service::state_unknown);
+  ASSERT_EQ(_ad->get_last_state_change(), 300000);
+  ASSERT_EQ(_ad->get_current_attempt(), 1);
+  ASSERT_EQ(_ad->get_plugin_output(),
+            "The thresholds file is too old compared to the check timestamp "
+            "300000 for metric metric");
+  ASSERT_EQ(_ad->get_perf_data(), "metric=90MT;25;60;0;100");
+
+  set_time(301000);
+  // _ad is not OK so _ad will do the check
+  _ad->get_check_command_ptr()->set_command_line(
+      "echo 'output| metric=70%;50;75'");
+
+  _ad->run_async_check(check_options, latency, true, true, &time_is_valid,
+                       &preferred_time);
+  checks::checker::instance().wait_completion();
+  checks::checker::instance().reap();
+  ASSERT_EQ(_ad->get_state_type(), checkable::soft);
+  ASSERT_EQ(_ad->get_current_state(), engine::service::state_unknown);
+  ASSERT_EQ(_ad->get_last_state_change(), 300000);
+  ASSERT_EQ(_ad->get_current_attempt(), 2);
+  ASSERT_EQ(_ad->get_plugin_output(),
+            "The thresholds file is too old compared to the check timestamp "
+            "301000 for metric metric");
+  ASSERT_EQ(_ad->get_perf_data(), "metric=70%;50;75");
+
+  ::unlink("/tmp/thresholds_status_change.json");
 }

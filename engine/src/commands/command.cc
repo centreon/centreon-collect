@@ -18,8 +18,11 @@
 */
 
 #include "com/centreon/engine/commands/command.hh"
+#include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros/grab.hh"
 
@@ -132,7 +135,7 @@ void commands::command::set_listener(
  */
 std::string commands::command::process_cmd(nagios_macros* macros) const {
   std::string command_line;
-  process_macros_r(macros, _command_line, command_line, 0);
+  process_macros_r(macros, this->get_command_line(), command_line, 0);
   return command_line;
 }
 
@@ -144,3 +147,77 @@ std::string commands::command::process_cmd(nagios_macros* macros) const {
 uint64_t commands::command::get_uniq_id() {
   return ++_id;
 }
+
+void commands::command::remove_caller(void* caller) {
+  std::unique_lock<std::mutex> l(_lock);
+  _result_cache.erase(caller);
+}
+
+/**
+ * @brief ensure that checks isn't used to often
+ *
+ * @param command_id
+ * @param to_push_to_checker check_result to push to checks::checker
+ * @param caller pointer of the caller object as a service or anomalydetection
+ * @return true check can ben done
+ * @return false check musn't be done, the previous result is pushed to
+ * checks::checker
+ */
+bool commands::command::gest_call_interval(
+    uint64_t command_id,
+    const check_result::pointer& to_push_to_checker,
+    const void* caller) {
+  std::shared_ptr<result> result_to_reuse;
+
+  {
+    std::lock_guard<std::mutex> lock(_lock);
+    // are we allowed to execute command
+    caller_to_last_call_map::iterator group_search = _result_cache.find(caller);
+    if (group_search != _result_cache.end()) {
+      time_t now = time(nullptr);
+      if (group_search->second->launch_time + config->interval_length() >=
+              now &&
+          group_search->second->res) {  // old check is too recent
+        result_to_reuse = std::make_shared<result>(*group_search->second->res);
+        result_to_reuse->command_id = command_id;
+        result_to_reuse->start_time = timestamp::now();
+        result_to_reuse->end_time = timestamp::now();
+      } else {
+        // old check is old enough => we do the check
+        group_search->second->launch_time = now;
+        _current[command_id] = group_search->second;
+      }
+    }
+  }
+
+  checks::checker::instance().add_check_result(command_id, to_push_to_checker);
+  if (_listener && result_to_reuse) {
+    _listener->finished(*result_to_reuse);
+    SPDLOG_LOGGER_TRACE(log_v2::commands(),
+                        "command::run: id={} , reuse result", command_id);
+    return false;
+  }
+  return true;
+}
+
+void commands::command::update_result_cache(uint64_t command_id,
+                                            const result& res) {
+  std::lock_guard<std::mutex> lock(_lock);
+  cmdid_to_last_call_map::iterator to_update = _current.find(command_id);
+  if (to_update != _current.end()) {
+    to_update->second->res = std::make_shared<result>(res);
+    _current.erase(to_update);
+  }
+}
+
+CCE_BEGIN()
+namespace commands {
+
+std::ostream& operator<<(std::ostream& s, const commands::command& cmd) {
+  s << "cmd_name:" << cmd.get_name() << " cmd_line:" << cmd.get_command_line();
+  return s;
+}
+
+}  // namespace commands
+
+CCE_END()

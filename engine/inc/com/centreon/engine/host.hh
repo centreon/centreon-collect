@@ -109,7 +109,7 @@ class host : public notifier {
   void add_child_host(host* child);
   void add_parent_host(std::string const& host_name);
   int log_event();
-  int handle_async_check_result_3x(check_result* queued_check_result);
+  int handle_async_check_result_3x(const check_result& queued_check_result);
   int run_scheduled_check(int check_options, double latency);
   int run_async_check(int check_options,
                       double latency,

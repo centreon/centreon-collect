@@ -37,11 +37,11 @@ BRGC1
 	Kindly Stop Broker
 	Stop Engine
 
-	${content}=	Create List	New incoming connection 'centreon-broker-master-map-2'	file: end of file '/var/lib/centreon-broker//central-broker-master.queue.centreon-broker-master-map-2' reached, erasing it
+	${content}=	Create List	New incoming connection 'centreon-broker-master-map-2'	file: end of file '${VarRoot}/lib/centreon-broker//central-broker-master.queue.centreon-broker-master-map-2' reached, erasing it
 	${log}=	Catenate	SEPARATOR=	${BROKER_LOG}	/central-broker-master.log
 	${result}=	Find In Log With Timeout	${log}	${start}	${content}	40
 	Should Be True	${result}	msg=Connection to map has failed.
-	File Should Not Exist	/var/lib/centreon-broker/central-broker-master.queue.centreon-broker-master-map*	msg=There should not exist que map files.
+	File Should Not Exist	${VarRoot}/lib/centreon-broker/central-broker-master.queue.centreon-broker-master-map*	msg=There should not exist que map files.
 
 
 BRCTS1
@@ -65,11 +65,11 @@ BRCTS1
 	Kindly Stop Broker
 	Stop Engine
 
-	${content}=	Create List	New incoming connection 'centreon-broker-master-map-2'	file: end of file '/var/lib/centreon-broker//central-broker-master.queue.centreon-broker-master-map-2' reached, erasing it
+	${content}=	Create List	New incoming connection 'centreon-broker-master-map-2'	file: end of file '${VarRoot}/lib/centreon-broker//central-broker-master.queue.centreon-broker-master-map-2' reached, erasing it
 	${log}=	Catenate	SEPARATOR=	${BROKER_LOG}	/central-broker-master.log
 	${result}=	Find In Log With Timeout	${log}	${start}	${content}	40
 	Should Be True	${result}	msg=Connection to map has failed
-	File Should Not Exist	/var/lib/centreon-broker/central-broker-master.queue.centreon-broker-master-map*	msg=There should not exist queue map files.
+	File Should Not Exist	${VarRoot}/lib/centreon-broker/central-broker-master.queue.centreon-broker-master-map*	msg=There should not exist queue map files.
 
 
 BRCS1
@@ -91,8 +91,8 @@ BRCS1
 	Kindly Stop Broker
 	Stop Engine
 
-	${content}=	Create List	New incoming connection 'centreon-broker-master-map-2'	file: end of file '/var/lib/centreon-broker//central-broker-master.queue.centreon-broker-master-map-2' reached, erasing it
+	${content}=	Create List	New incoming connection 'centreon-broker-master-map-2'	file: end of file '${VarRoot}/lib/centreon-broker//central-broker-master.queue.centreon-broker-master-map-2' reached, erasing it
 	${log}=	Catenate	SEPARATOR=	${BROKER_LOG}	/central-broker-master.log
 	${result}=	Find In Log With Timeout	${log}	${start}	${content}	40
 	Should Not Be True	${result}	msg=Connection to map has failed
-	File Should Not Exist	/var/lib/centreon-broker/central-broker-master.queue.centreon-broker-master-map-2	msg=There should not exist queue map files.
+	File Should Not Exist	${VarRoot}/lib/centreon-broker/central-broker-master.queue.centreon-broker-master-map-2	msg=There should not exist queue map files.

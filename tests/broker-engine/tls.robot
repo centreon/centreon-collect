@@ -59,15 +59,15 @@ BECT2
 	Config Broker	module
 
 	${hostname}=	Get Hostname
-	Create Key And Certificate	${hostname}	/etc/centreon-broker/server.key	/etc/centreon-broker/server.crt
-	Create Key And Certificate	${hostname}	/etc/centreon-broker/client.key	/etc/centreon-broker/client.crt
+	Create Key And Certificate	localhost	${EtcRoot}/centreon-broker/server.key	${EtcRoot}/centreon-broker/server.crt
+	Create Key And Certificate	localhost	${EtcRoot}/centreon-broker/client.key	${EtcRoot}/centreon-broker/client.crt
 
-	Broker Config Input set	central	central-broker-master-input	private_key	/etc/centreon-broker/client.key
-	Broker Config Input set	central	central-broker-master-input	public_cert	/etc/centreon-broker/client.crt
-	Broker Config Input set	central	central-broker-master-input	ca_certificate	/etc/centreon-broker/server.crt
-	Broker Config Output set	module0	central-module-master-output	private_key	/etc/centreon-broker/server.key
-	Broker Config Output set	module0	central-module-master-output	public_cert	/etc/centreon-broker/server.crt
-	Broker Config Output set	module0	central-module-master-output	ca_certificate	/etc/centreon-broker/client.crt
+	Broker Config Input set	central	central-broker-master-input	private_key	${EtcRoot}/centreon-broker/client.key
+	Broker Config Input set	central	central-broker-master-input	public_cert	${EtcRoot}/centreon-broker/client.crt
+	Broker Config Input set	central	central-broker-master-input	ca_certificate	${EtcRoot}/centreon-broker/server.crt
+	Broker Config Output set	module0	central-module-master-output	private_key	${EtcRoot}/centreon-broker/server.key
+	Broker Config Output set	module0	central-module-master-output	public_cert	${EtcRoot}/centreon-broker/server.crt
+	Broker Config Output set	module0	central-module-master-output	ca_certificate	${EtcRoot}/centreon-broker/client.crt
 	Broker Config Log	central	tls	debug
 	Broker Config Log	module0	tls	debug
 	Broker Config Log	central	bbdo	info
@@ -99,11 +99,11 @@ BECT3
 	Config Broker	module
 
 	${hostname}=	Get Hostname
-	Create Certificate	${hostname}	/etc/centreon-broker/server.crt
-	Create Certificate	${hostname}	/etc/centreon-broker/client.crt
+	Create Certificate	${hostname}	${EtcRoot}/centreon-broker/server.crt
+	Create Certificate	${hostname}	${EtcRoot}/centreon-broker/client.crt
 
-	Broker Config Input set	central	central-broker-master-input	ca_certificate	/etc/centreon-broker/server.crt
-	Broker Config Output set	module0	central-module-master-output	ca_certificate	/etc/centreon-broker/client.crt
+	Broker Config Input set	central	central-broker-master-input	ca_certificate	${EtcRoot}/centreon-broker/server.crt
+	Broker Config Output set	module0	central-module-master-output	ca_certificate	${EtcRoot}/centreon-broker/client.crt
 	Broker Config Log	central	tls	debug
 	Broker Config Log	module0	tls	debug
 	Broker Config Log	central	bbdo	info
@@ -138,24 +138,24 @@ BECT4
 	Config Broker	module
 
 	Set Local Variable	${hostname}	centreon
-	Create Key And Certificate	${hostname}	/etc/centreon-broker/server.key	/etc/centreon-broker/server.crt
-	Create Key And Certificate	${hostname}	/etc/centreon-broker/client.key	/etc/centreon-broker/client.crt
+	Create Key And Certificate	${hostname}	${EtcRoot}/centreon-broker/server.key	${EtcRoot}/centreon-broker/server.crt
+	Create Key And Certificate	${hostname}	${EtcRoot}/centreon-broker/client.key	${EtcRoot}/centreon-broker/client.crt
 
-	Broker Config Input set	central	central-broker-master-input	ca_certificate	/etc/centreon-broker/server.crt
-	Broker Config Output set	module0	central-module-master-output	ca_certificate	/etc/centreon-broker/client.crt
+	Broker Config Input set	central	central-broker-master-input	ca_certificate	${EtcRoot}/centreon-broker/server.crt
+	Broker Config Output set	module0	central-module-master-output	ca_certificate	${EtcRoot}/centreon-broker/client.crt
 	Broker Config Log	central	tls	debug
 	Broker Config Log	module0	tls	debug
 	Broker Config Log	central	bbdo	info
 	Broker Config Log	module0	bbdo	info
 	Broker Config Input set	central	central-broker-master-input	tls	yes
-	Broker Config Input set	central	central-broker-master-input	private_key	/etc/centreon-broker/client.key
-	Broker Config Input set	central	central-broker-master-input	public_cert	/etc/centreon-broker/client.crt
-	Broker Config Input set	central	central-broker-master-input	ca_certificate	/etc/centreon-broker/server.crt
+	Broker Config Input set	central	central-broker-master-input	private_key	${EtcRoot}/centreon-broker/client.key
+	Broker Config Input set	central	central-broker-master-input	public_cert	${EtcRoot}/centreon-broker/client.crt
+	Broker Config Input set	central	central-broker-master-input	ca_certificate	${EtcRoot}/centreon-broker/server.crt
 	Broker Config Input set	central	central-broker-master-input	tls_hostname	centreon
 	Broker Config Output set	module0	central-module-master-output	tls	yes
-	Broker Config Output set	module0	central-module-master-output	private_key	/etc/centreon-broker/server.key
-	Broker Config Output set	module0	central-module-master-output	public_cert	/etc/centreon-broker/server.crt
-	Broker Config Output set	module0	central-module-master-output	ca_certificate	/etc/centreon-broker/client.crt
+	Broker Config Output set	module0	central-module-master-output	private_key	${EtcRoot}/centreon-broker/server.key
+	Broker Config Output set	module0	central-module-master-output	public_cert	${EtcRoot}/centreon-broker/server.crt
+	Broker Config Output set	module0	central-module-master-output	ca_certificate	${EtcRoot}/centreon-broker/client.crt
         # We get the current date just before starting broker
 	${start}=	Get Current Date
 	Start Broker
@@ -220,16 +220,15 @@ BECT_GRPC2
 	Config Broker	central
 	Config Broker	module
 
-	${hostname}=	Get Hostname
-	Create Key And Certificate	${hostname}	/etc/centreon-broker/server.key	/etc/centreon-broker/server.crt
-	Create Key And Certificate	${hostname}	/etc/centreon-broker/client.key	/etc/centreon-broker/client.crt
+	Create Key And Certificate	localhost	${EtcRoot}/centreon-broker/server.key	${EtcRoot}/centreon-broker/server.crt
+	Create Key And Certificate	localhost	${EtcRoot}/centreon-broker/client.key	${EtcRoot}/centreon-broker/client.crt
 
-	Broker Config Input set	central	central-broker-master-input	private_key	/etc/centreon-broker/client.key
-	Broker Config Input set	central	central-broker-master-input	public_cert	/etc/centreon-broker/client.crt
-	Broker Config Input set	central	central-broker-master-input	ca_certificate	/etc/centreon-broker/server.crt
-	Broker Config Output set	module0	central-module-master-output	private_key	/etc/centreon-broker/server.key
-	Broker Config Output set	module0	central-module-master-output	public_cert	/etc/centreon-broker/server.crt
-	Broker Config Output set	module0	central-module-master-output	ca_certificate	/etc/centreon-broker/client.crt
+	Broker Config Input set	central	central-broker-master-input	private_key	${EtcRoot}/centreon-broker/client.key
+	Broker Config Input set	central	central-broker-master-input	public_cert	${EtcRoot}/centreon-broker/client.crt
+	Broker Config Input set	central	central-broker-master-input	ca_certificate	${EtcRoot}/centreon-broker/server.crt
+	Broker Config Output set	module0	central-module-master-output	private_key	${EtcRoot}/centreon-broker/server.key
+	Broker Config Output set	module0	central-module-master-output	public_cert	${EtcRoot}/centreon-broker/server.crt
+	Broker Config Output set	module0	central-module-master-output	ca_certificate	${EtcRoot}/centreon-broker/client.crt
 	Broker Config Log	central	tls	debug
 	Broker Config Log	module0	tls	debug
 	Broker Config Log	central	bbdo	info
@@ -265,11 +264,11 @@ BECT_GRPC3
 	Config Broker	module
 
 	${hostname}=	Get Hostname
-	Create Certificate	${hostname}	/etc/centreon-broker/server.crt
-	Create Certificate	${hostname}	/etc/centreon-broker/client.crt
+	Create Certificate	${hostname}	${EtcRoot}/centreon-broker/server.crt
+	Create Certificate	${hostname}	${EtcRoot}/centreon-broker/client.crt
 
-	Broker Config Input set	central	central-broker-master-input	ca_certificate	/etc/centreon-broker/server.crt
-	Broker Config Output set	module0	central-module-master-output	ca_certificate	/etc/centreon-broker/client.crt
+	Broker Config Input set	central	central-broker-master-input	ca_certificate	${EtcRoot}/centreon-broker/server.crt
+	Broker Config Output set	module0	central-module-master-output	ca_certificate	${EtcRoot}/centreon-broker/client.crt
 	Broker Config Log	central	tls	debug
 	Broker Config Log	module0	tls	debug
 	Broker Config Log	central	bbdo	info
@@ -306,11 +305,11 @@ BECT_GRPC4
 	Config Broker	module
 
 	Set Local Variable	${hostname}	centreon
-	Create Key And Certificate	${hostname}	/etc/centreon-broker/server.key	/etc/centreon-broker/server.crt
-	Create Key And Certificate	${hostname}	/etc/centreon-broker/client.key	/etc/centreon-broker/client.crt
+	Create Key And Certificate	${hostname}	${EtcRoot}/centreon-broker/server.key	${EtcRoot}/centreon-broker/server.crt
+	Create Key And Certificate	${hostname}	${EtcRoot}/centreon-broker/client.key	${EtcRoot}/centreon-broker/client.crt
 
-	Broker Config Input set	central	central-broker-master-input	ca_certificate	/etc/centreon-broker/server.crt
-	Broker Config Output set	module0	central-module-master-output	ca_certificate	/etc/centreon-broker/client.crt
+	Broker Config Input set	central	central-broker-master-input	ca_certificate	${EtcRoot}/centreon-broker/server.crt
+	Broker Config Output set	module0	central-module-master-output	ca_certificate	${EtcRoot}/centreon-broker/client.crt
 	Broker Config Log	central	tls	debug
 	Broker Config Log	module0	tls	debug
 	Broker Config Log	central	bbdo	info
@@ -318,14 +317,14 @@ BECT_GRPC4
 	Change Broker tcp output to grpc	module0
 	Change Broker tcp input to grpc     central
 	Broker Config Input set	central	central-broker-master-input	tls	yes
-	Broker Config Input set	central	central-broker-master-input	private_key	/etc/centreon-broker/client.key
-	Broker Config Input set	central	central-broker-master-input	public_cert	/etc/centreon-broker/client.crt
-	Broker Config Input set	central	central-broker-master-input	ca_certificate	/etc/centreon-broker/server.crt
+	Broker Config Input set	central	central-broker-master-input	private_key	${EtcRoot}/centreon-broker/client.key
+	Broker Config Input set	central	central-broker-master-input	public_cert	${EtcRoot}/centreon-broker/client.crt
+	Broker Config Input set	central	central-broker-master-input	ca_certificate	${EtcRoot}/centreon-broker/server.crt
 	Broker Config Input set	central	central-broker-master-input	tls_hostname	centreon
 	Broker Config Output set	module0	central-module-master-output	tls	yes
-	Broker Config Output set	module0	central-module-master-output	private_key	/etc/centreon-broker/server.key
-	Broker Config Output set	module0	central-module-master-output	public_cert	/etc/centreon-broker/server.crt
-	Broker Config Output set	module0	central-module-master-output	ca_certificate	/etc/centreon-broker/client.crt
+	Broker Config Output set	module0	central-module-master-output	private_key	${EtcRoot}/centreon-broker/server.key
+	Broker Config Output set	module0	central-module-master-output	public_cert	${EtcRoot}/centreon-broker/server.crt
+	Broker Config Output set	module0	central-module-master-output	ca_certificate	${EtcRoot}/centreon-broker/client.crt
         # We get the current date just before starting broker
 	${start}=	Get Current Date
 	Start Broker

@@ -258,7 +258,7 @@ EBDP4
 	Stop Engine
 
 	# Because poller3 is going to be removed, we move its memory file to poller0, 1 and 2.
-	Move File	/var/lib/centreon-engine/central-module-master3.memory.central-module-master-output	/var/lib/centreon-engine/central-module-master0.memory.central-module-master-output
+	Move File	${VarRoot}/lib/centreon-engine/central-module-master3.memory.central-module-master-output	${VarRoot}/lib/centreon-engine/central-module-master0.memory.central-module-master-output
 
 	# Poller3 is removed from the engine configuration but still there in centreon_storage DB
 	Config Engine	${3}	${39}	${20}
@@ -528,7 +528,7 @@ EBDP8
 	Stop Engine
 
 	# Because poller3 is going to be removed, we move its memory file to poller0, 1 and 2.
-	Move File	/var/lib/centreon-engine/central-module-master3.memory.central-module-master-output	/var/lib/centreon-engine/central-module-master0.memory.central-module-master-output
+	Move File	${VarRoot}/lib/centreon-engine/central-module-master3.memory.central-module-master-output	${VarRoot}/lib/centreon-engine/central-module-master0.memory.central-module-master-output
 
 	# Poller3 is removed from the engine configuration but still there in centreon_storage DB
 	Config Engine	${3}	${39}	${20}

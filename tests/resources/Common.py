@@ -18,6 +18,7 @@ DB_USER = BuiltIn().get_variable_value("${DBUser}")
 DB_PASS = BuiltIn().get_variable_value("${DBPass}")
 DB_HOST = BuiltIn().get_variable_value("${DBHost}")
 DB_PORT = BuiltIn().get_variable_value("${DBPort}")
+VAR_ROOT = BuiltIn().get_variable_value("${VarRoot}")
 
 
 def check_connection(port: int, pid1: int, pid2: int):
@@ -176,17 +177,16 @@ def kill_engine():
 
 
 def clear_retention():
-    getoutput("find /var -name '*.cache.*' -delete")
+    getoutput("find " + VAR_ROOT + " -name '*.cache.*' -delete")
     getoutput("find /tmp -name 'lua*' -delete")
-    getoutput("find /tmp -name 'central-*' -delete")
-    getoutput("find /var -name '*.memory.*' -delete")
-    getoutput("find /var -name '*.queue.*' -delete")
-    getoutput("find /var -name '*.unprocessed*' -delete")
-    getoutput("find /var -name 'retention.dat' -delete")
+    getoutput("find " + VAR_ROOT + " -name '*.memory.*' -delete")
+    getoutput("find " + VAR_ROOT + " -name '*.queue.*' -delete")
+    getoutput("find " + VAR_ROOT + " -name '*.unprocessed*' -delete")
+    getoutput("find " + VAR_ROOT + " -name 'retention.dat' -delete")
 
 
 def clear_cache():
-    getoutput("find /var -name '*.cache.*' -delete")
+    getoutput("find " + VAR_ROOT + " -name '*.cache.*' -delete")
 
 
 def engine_log_table_duplicate(result: list):
@@ -352,7 +352,7 @@ def check_service_status_with_timeout(hostname: str, service_desc: str, status: 
                 cursor.execute("SELECT s.state FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description=\"{}\" AND h.name=\"{}\"".format(
                     service_desc, hostname))
                 result = cursor.fetchall()
-                if result[0]['state'] is not None and int(result[0]['state']) == int(status):
+                if len(result) > 0 and result[0]['state'] is not None and int(result[0]['state']) == int(status):
                     return True
         time.sleep(5)
     return False
@@ -501,7 +501,7 @@ def delete_service_downtime(hst: str, svc: str):
             did = int(result[0]['internal_id'])
 
     cmd = "[{}] DEL_SVC_DOWNTIME;{}".format(now, did)
-    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
     f.write(cmd)
     f.close()
 

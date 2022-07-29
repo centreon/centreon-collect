@@ -93,7 +93,7 @@ class service : public notifier {
           bool obsess_over,
           std::string const& timezone,
           uint64_t icon_id);
-  ~service() noexcept = default;
+  ~service() noexcept;
   void set_host_id(uint64_t host_id);
   uint64_t get_host_id() const;
   void set_service_id(uint64_t service_id);
@@ -130,7 +130,8 @@ class service : public notifier {
   int get_current_state_int() const override;
   std::string const& get_current_state_as_string() const override;
 
-  int handle_async_check_result(check_result* queued_check_result);
+  virtual int handle_async_check_result(
+      const check_result& queued_check_result);
   int log_event();
   void check_for_flapping(bool update, bool allow_flapstart_notification);
   int handle_service_event();

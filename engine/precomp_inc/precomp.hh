@@ -62,6 +62,7 @@
 #include <absl/strings/string_view.h>
 
 #include <boost/circular_buffer.hpp>
+#include <boost/container/flat_map.hpp>
 #include <boost/optional.hpp>
 
 #include "com/centreon/engine/namespace.hh"
