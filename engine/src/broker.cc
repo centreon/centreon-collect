@@ -1015,21 +1015,10 @@ void broker_host_status(int type,
 /**
  *  Send log data to broker.
  *
- *  @param[in] type       Type.
- *  @param[in] flags      Flags.
- *  @param[in] attr       Attributes.
  *  @param[in] data       Log entry.
- *  @param[in] data_type  Log type.
  *  @param[in] entry_time Entry time.
- *  @param[in] timestamp  Timestamp.
  */
-void broker_log_data(int type,
-                     int flags,
-                     int attr,
-                     char* data,
-                     unsigned long data_type,
-                     time_t entry_time,
-                     struct timeval const* timestamp) {
+void broker_log_data(char* data, time_t entry_time) {
   // Config check.
   if (!(config->event_broker_options() & BROKER_LOGGED_DATA) ||
       !config->log_legacy_enabled())
@@ -1037,12 +1026,7 @@ void broker_log_data(int type,
 
   // Fill struct with relevant data.
   nebstruct_log_data ds;
-  ds.type = type;
-  ds.flags = flags;
-  ds.attr = attr;
-  ds.timestamp = get_broker_timestamp(timestamp);
   ds.entry_time = entry_time;
-  ds.data_type = data_type;
   ds.data = data;
 
   // Make callbacks.

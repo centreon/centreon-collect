@@ -320,13 +320,7 @@ typedef struct nebstruct_host_status_struct {
 
 /* Log data structure. */
 typedef struct nebstruct_log_struct {
-  int type;
-  int flags;
-  int attr;
-  struct timeval timestamp;
-
   time_t entry_time;
-  int data_type;
   const char* data;
 } nebstruct_log_data;
 

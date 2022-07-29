@@ -508,13 +508,7 @@ void broker_host_status(int type,
                         int attr,
                         com::centreon::engine::host* hst,
                         struct timeval const* timestamp);
-void broker_log_data(int type,
-                     int flags,
-                     int attr,
-                     char* data,
-                     unsigned long data_type,
-                     time_t entry_time,
-                     struct timeval const* timestamp);
+void broker_log_data(char* data, time_t entry_time);
 int broker_notification_data(int type,
                              int flags,
                              int attr,

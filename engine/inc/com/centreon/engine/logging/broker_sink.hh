@@ -40,12 +40,7 @@ class broker_sink : public spdlog::sinks::base_sink<Mutex> {
     // before sending it to its final destination:
     if (this->should_log(msg.level)) {
       std::string message{fmt::to_string(msg.payload)};
-      nebstruct_log_data ds{.type = NEBTYPE_LOG_DATA,
-                            .flags = NEBFLAG_NONE,
-                            .attr = NEBATTR_NONE,
-                            .timestamp = get_broker_timestamp(nullptr),
-                            .entry_time = time(nullptr),
-                            .data_type = logging::log_all,
+      nebstruct_log_data ds{.entry_time = time(nullptr),
                             .data = message.c_str()};
 
       // Make callbacks.
