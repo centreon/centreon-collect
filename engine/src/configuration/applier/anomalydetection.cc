@@ -195,9 +195,8 @@ void applier::anomalydetection::add_object(
   }
 
   // Notify event broker.
-  timeval tv(get_broker_timestamp(NULL));
   broker_adaptive_service_data(NEBTYPE_SERVICE_ADD, NEBFLAG_NONE, NEBATTR_NONE,
-                               ad, CMD_NONE, MODATTR_ALL, MODATTR_ALL, &tv);
+                               ad, MODATTR_ALL);
 }
 
 /**
@@ -427,10 +426,8 @@ void applier::anomalydetection::modify_object(
   }
 
   // Notify event broker.
-  timeval tv(get_broker_timestamp(NULL));
   broker_adaptive_service_data(NEBTYPE_SERVICE_UPDATE, NEBFLAG_NONE,
-                               NEBATTR_NONE, s.get(), CMD_NONE, MODATTR_ALL,
-                               MODATTR_ALL, &tv);
+                               NEBATTR_NONE, s.get(), MODATTR_ALL);
 }
 
 /**
@@ -476,10 +473,8 @@ void applier::anomalydetection::remove_object(
       it_s->members.erase({host_name, service_description});
 
     // Notify event broker.
-    timeval tv(get_broker_timestamp(NULL));
     broker_adaptive_service_data(NEBTYPE_SERVICE_DELETE, NEBFLAG_NONE,
-                                 NEBATTR_NONE, ad.get(), CMD_NONE, MODATTR_ALL,
-                                 MODATTR_ALL, &tv);
+                                 NEBATTR_NONE, ad.get(), MODATTR_ALL);
 
     // Unregister anomalydetection.
     engine::anomalydetection::services.erase({host_name, service_description});

@@ -193,19 +193,13 @@ void broker_adaptive_escalation_data(int type,
  *  @param[in] flags        Flags.
  *  @param[in] attr         Attributes.
  *  @param[in] hst          Target host.
- *  @param[in] command_type Command type.
  *  @param[in] modattr      Global host modified attributes.
- *  @param[in] modattrs     Target host modified attributes.
- *  @param[in] timestamp    Timestamp.
  */
 void broker_adaptive_host_data(int type,
                                int flags,
                                int attr,
                                host* hst,
-                               int command_type,
-                               unsigned long modattr,
-                               unsigned long modattrs,
-                               struct timeval const* timestamp) {
+                               unsigned long modattr) {
   // Config check.
   if (!(config->event_broker_options() & BROKER_ADAPTIVE_DATA))
     return;
@@ -215,10 +209,7 @@ void broker_adaptive_host_data(int type,
   ds.type = type;
   ds.flags = flags;
   ds.attr = attr;
-  ds.timestamp = get_broker_timestamp(timestamp);
-  ds.command_type = command_type;
   ds.modified_attribute = modattr;
-  ds.modified_attributes = modattrs;
   ds.object_ptr = hst;
 
   // Make callbacks.
@@ -255,19 +246,13 @@ void broker_adaptive_program_data(int type,
  *  @param[in] flags        Flags.
  *  @param[in] attr         Attributes.
  *  @param[in] svc          Target service.
- *  @param[in] command_type Command type.
  *  @param[in] modattr      Global service modified attributes.
- *  @param[in] modattrs     Target service modified attributes.
- *  @param[in] timestamp    Timestamp.
  */
 void broker_adaptive_service_data(int type,
                                   int flags,
                                   int attr,
                                   com::centreon::engine::service* svc,
-                                  int command_type,
-                                  unsigned long modattr,
-                                  unsigned long modattrs,
-                                  struct timeval const* timestamp) {
+                                  unsigned long modattr) {
   // Config check.
   if (!(config->event_broker_options() & BROKER_ADAPTIVE_DATA))
     return;
@@ -277,10 +262,7 @@ void broker_adaptive_service_data(int type,
   ds.type = type;
   ds.flags = flags;
   ds.attr = attr;
-  ds.timestamp = get_broker_timestamp(timestamp);
-  ds.command_type = command_type;
   ds.modified_attribute = modattr;
-  ds.modified_attributes = modattrs;
   ds.object_ptr = svc;
 
   // Make callbacks.

@@ -1503,8 +1503,7 @@ int cmd_change_object_int_var(int cmd, char* args) {
                                     CHECK_OPTION_NONE);
       }
       broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                                NEBATTR_NONE, temp_host, CMD_NONE, attr,
-                                temp_host->get_modified_attributes(), nullptr);
+                                NEBATTR_NONE, temp_host, attr);
 
       /* We need check result to handle next check */
       temp_host->update_status();
@@ -1516,8 +1515,7 @@ int cmd_change_object_int_var(int cmd, char* args) {
       temp_host->set_modified_attributes(temp_host->get_modified_attributes() |
                                          attr);
       broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                                NEBATTR_NONE, temp_host, CMD_NONE, attr,
-                                temp_host->get_modified_attributes(), nullptr);
+                                NEBATTR_NONE, temp_host, attr);
       break;
 
     case CMD_CHANGE_MAX_HOST_CHECK_ATTEMPTS:
@@ -1527,8 +1525,7 @@ int cmd_change_object_int_var(int cmd, char* args) {
                                          attr);
 
       broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                                NEBATTR_NONE, temp_host, CMD_NONE, attr,
-                                temp_host->get_modified_attributes(), nullptr);
+                                NEBATTR_NONE, temp_host, attr);
 
       /* adjust current attempt number if in a hard state */
       if (temp_host->get_state_type() == notifier::hard &&
@@ -1572,10 +1569,8 @@ int cmd_change_object_int_var(int cmd, char* args) {
       }
       found_svc->second->set_modified_attributes(
           found_svc->second->get_modified_attributes() | attr);
-      broker_adaptive_service_data(
-          NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
-          found_svc->second.get(), CMD_NONE, attr,
-          found_svc->second->get_modified_attributes(), nullptr);
+      broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
+                                   NEBATTR_NONE, found_svc->second.get(), attr);
 
       /* We need check result to handle next check */
       found_svc->second->update_status();
@@ -1586,10 +1581,8 @@ int cmd_change_object_int_var(int cmd, char* args) {
       attr = MODATTR_RETRY_CHECK_INTERVAL;
       found_svc->second->set_modified_attributes(
           found_svc->second->get_modified_attributes() | attr);
-      broker_adaptive_service_data(
-          NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
-          found_svc->second.get(), CMD_NONE, attr,
-          found_svc->second->get_modified_attributes(), nullptr);
+      broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
+                                   NEBATTR_NONE, found_svc->second.get(), attr);
       break;
 
     case CMD_CHANGE_MAX_SVC_CHECK_ATTEMPTS:
@@ -1598,10 +1591,8 @@ int cmd_change_object_int_var(int cmd, char* args) {
       found_svc->second->set_modified_attributes(
           found_svc->second->get_modified_attributes() | attr);
       /* send data to event broker */
-      broker_adaptive_service_data(
-          NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
-          found_svc->second.get(), cmd, attr,
-          found_svc->second->get_modified_attributes(), nullptr);
+      broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
+                                   NEBATTR_NONE, found_svc->second.get(), attr);
 
       /* adjust current attempt number if in a hard state */
       if (found_svc->second->get_state_type() == notifier::hard &&
@@ -1619,8 +1610,7 @@ int cmd_change_object_int_var(int cmd, char* args) {
       temp_host->set_modified_attributes(attr);
       /* send data to event broker */
       broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                                NEBATTR_NONE, temp_host, cmd, attr,
-                                temp_host->get_modified_attributes(), nullptr);
+                                NEBATTR_NONE, temp_host, attr);
       break;
 
     case CMD_CHANGE_SVC_MODATTR:
@@ -1628,10 +1618,8 @@ int cmd_change_object_int_var(int cmd, char* args) {
       found_svc->second->set_modified_attributes(attr);
 
       /* send data to event broker */
-      broker_adaptive_service_data(
-          NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
-          found_svc->second.get(), cmd, attr,
-          found_svc->second->get_modified_attributes(), nullptr);
+      broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
+                                   NEBATTR_NONE, found_svc->second.get(), attr);
       break;
 
     case CMD_CHANGE_CONTACT_MODATTR:
@@ -1954,10 +1942,8 @@ int cmd_change_object_char_var(int cmd, char* args) {
       found_svc->second->add_modified_attributes(attr);
 
       /* send data to event broker */
-      broker_adaptive_service_data(
-          NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
-          found_svc->second.get(), cmd, attr,
-          found_svc->second->get_modified_attributes(), nullptr);
+      broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
+                                   NEBATTR_NONE, found_svc->second.get(), attr);
       break;
 
     case CMD_CHANGE_HOST_EVENT_HANDLER:
@@ -1969,8 +1955,7 @@ int cmd_change_object_char_var(int cmd, char* args) {
 
       /* send data to event broker */
       broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                                NEBATTR_NONE, temp_host, cmd, attr,
-                                temp_host->get_modified_attributes(), nullptr);
+                                NEBATTR_NONE, temp_host, attr);
       break;
 
     case CMD_CHANGE_CONTACT_HOST_NOTIFICATION_TIMEPERIOD:
@@ -2132,8 +2117,7 @@ void disable_service_checks(service* svc) {
 
   /* send data to event broker */
   broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
-                               NEBATTR_NONE, svc, CMD_NONE, attr,
-                               svc->get_modified_attributes(), nullptr);
+                               NEBATTR_NONE, svc, attr);
 }
 
 /* enables a service check */
@@ -2172,8 +2156,7 @@ void enable_service_checks(service* svc) {
 
   /* send data to event broker */
   broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
-                               NEBATTR_NONE, svc, CMD_NONE, attr,
-                               svc->get_modified_attributes(), nullptr);
+                               NEBATTR_NONE, svc, attr);
 
   /* update the status log with the host info */
   svc->update_status();
@@ -2245,8 +2228,7 @@ void enable_service_notifications(service* svc) {
 
   /* send data to event broker */
   broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
-                               NEBATTR_NONE, svc, CMD_NONE, attr,
-                               svc->get_modified_attributes(), nullptr);
+                               NEBATTR_NONE, svc, attr);
 }
 
 /* disables notifications for a service */
@@ -2265,8 +2247,7 @@ void disable_service_notifications(service* svc) {
 
   /* send data to event broker */
   broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
-                               NEBATTR_NONE, svc, CMD_NONE, attr,
-                               svc->get_modified_attributes(), nullptr);
+                               NEBATTR_NONE, svc, attr);
 }
 
 /* enables notifications for a host */
@@ -2285,8 +2266,7 @@ void enable_host_notifications(host* hst) {
 
   /* send data to event broker */
   broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                            NEBATTR_NONE, hst, CMD_NONE, attr,
-                            hst->get_modified_attributes(), nullptr);
+                            NEBATTR_NONE, hst, attr);
 }
 
 /* disables notifications for a host */
@@ -2305,8 +2285,7 @@ void disable_host_notifications(host* hst) {
 
   /* send data to event broker */
   broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                            NEBATTR_NONE, hst, CMD_NONE, attr,
-                            hst->get_modified_attributes(), nullptr);
+                            NEBATTR_NONE, hst, attr);
 }
 
 /* enables notifications for all hosts and services "beyond" a given host */
@@ -2748,8 +2727,7 @@ void enable_passive_service_checks(service* svc) {
 
   /* send data to event broker */
   broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
-                               NEBATTR_NONE, svc, CMD_NONE, attr,
-                               svc->get_modified_attributes(), nullptr);
+                               NEBATTR_NONE, svc, attr);
 }
 
 /* disables passive service checks for a particular service */
@@ -2768,8 +2746,7 @@ void disable_passive_service_checks(service* svc) {
 
   /* send data to event broker */
   broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
-                               NEBATTR_NONE, svc, CMD_NONE, attr,
-                               svc->get_modified_attributes(), nullptr);
+                               NEBATTR_NONE, svc, attr);
 }
 
 /* starts executing host checks */
@@ -2883,8 +2860,7 @@ void enable_passive_host_checks(host* hst) {
 
   /* send data to event broker */
   broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                            NEBATTR_NONE, hst, CMD_NONE, attr,
-                            hst->get_modified_attributes(), nullptr);
+                            NEBATTR_NONE, hst, attr);
 }
 
 /* disables passive host checks for a particular host */
@@ -2903,8 +2879,7 @@ void disable_passive_host_checks(host* hst) {
 
   /* send data to event broker */
   broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                            NEBATTR_NONE, hst, CMD_NONE, attr,
-                            hst->get_modified_attributes(), nullptr);
+                            NEBATTR_NONE, hst, attr);
 }
 
 /* enables event handlers on a program-wide basis */
@@ -2973,8 +2948,7 @@ void enable_service_event_handler(service* svc) {
 
   /* send data to event broker */
   broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
-                               NEBATTR_NONE, svc, CMD_NONE, attr,
-                               svc->get_modified_attributes(), nullptr);
+                               NEBATTR_NONE, svc, attr);
 }
 
 /* disables the event handler for a particular service */
@@ -2993,8 +2967,7 @@ void disable_service_event_handler(service* svc) {
 
   /* send data to event broker */
   broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
-                               NEBATTR_NONE, svc, CMD_NONE, attr,
-                               svc->get_modified_attributes(), nullptr);
+                               NEBATTR_NONE, svc, attr);
 }
 
 /* enables the event handler for a particular host */
@@ -3013,8 +2986,7 @@ void enable_host_event_handler(host* hst) {
 
   /* send data to event broker */
   broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                            NEBATTR_NONE, hst, CMD_NONE, attr,
-                            hst->get_modified_attributes(), nullptr);
+                            NEBATTR_NONE, hst, attr);
 }
 
 /* disables the event handler for a particular host */
@@ -3033,8 +3005,7 @@ void disable_host_event_handler(host* hst) {
 
   /* send data to event broker */
   broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                            NEBATTR_NONE, hst, CMD_NONE, attr,
-                            hst->get_modified_attributes(), nullptr);
+                            NEBATTR_NONE, hst, attr);
 }
 
 /* disables checks of a particular host */
@@ -3054,8 +3025,7 @@ void disable_host_checks(host* hst) {
 
   /* send data to event broker */
   broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                            NEBATTR_NONE, hst, CMD_NONE, attr,
-                            hst->get_modified_attributes(), nullptr);
+                            NEBATTR_NONE, hst, attr);
 }
 
 /* enables checks of a particular host */
@@ -3094,8 +3064,7 @@ void enable_host_checks(host* hst) {
 
   /* send data to event broker */
   broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                            NEBATTR_NONE, hst, CMD_NONE, attr,
-                            hst->get_modified_attributes(), nullptr);
+                            NEBATTR_NONE, hst, attr);
 
   /* update the status log with the host info */
   hst->update_status();
@@ -3356,8 +3325,7 @@ void start_obsessing_over_service(service* svc) {
 
   /* send data to event broker */
   broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
-                               NEBATTR_NONE, svc, CMD_NONE, attr,
-                               svc->get_modified_attributes(), nullptr);
+                               NEBATTR_NONE, svc, attr);
 }
 
 /* stop obsessing over a particular service */
@@ -3376,8 +3344,7 @@ void stop_obsessing_over_service(service* svc) {
 
   /* send data to event broker */
   broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
-                               NEBATTR_NONE, svc, CMD_NONE, attr,
-                               svc->get_modified_attributes(), nullptr);
+                               NEBATTR_NONE, svc, attr);
 }
 
 /* start obsessing over a particular host */
@@ -3396,8 +3363,7 @@ void start_obsessing_over_host(host* hst) {
 
   /* send data to event broker */
   broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                            NEBATTR_NONE, hst, CMD_NONE, attr,
-                            hst->get_modified_attributes(), nullptr);
+                            NEBATTR_NONE, hst, attr);
 }
 
 /* stop obsessing over a particular host */
@@ -3416,8 +3382,7 @@ void stop_obsessing_over_host(host* hst) {
 
   /* send data to event broker */
   broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                            NEBATTR_NONE, hst, CMD_NONE, attr,
-                            hst->get_modified_attributes(), nullptr);
+                            NEBATTR_NONE, hst, attr);
 }
 
 void new_thresholds_file(char* filename) {

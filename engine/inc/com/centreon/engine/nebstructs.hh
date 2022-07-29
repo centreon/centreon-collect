@@ -75,12 +75,7 @@ typedef struct nebstruct_adaptive_service_data_struct {
   int type;
   int flags;
   int attr;
-  struct timeval timestamp;
-
-  int command_type;
   unsigned long modified_attribute;
-  unsigned long modified_attributes;
-
   void* object_ptr;
 } nebstruct_adaptive_service_data;
 

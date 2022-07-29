@@ -227,9 +227,8 @@ void applier::service::add_object(configuration::service const& obj) {
   }
 
   // Notify event broker.
-  timeval tv(get_broker_timestamp(NULL));
   broker_adaptive_service_data(NEBTYPE_SERVICE_ADD, NEBFLAG_NONE, NEBATTR_NONE,
-                               svc, CMD_NONE, MODATTR_ALL, MODATTR_ALL, &tv);
+                               svc, MODATTR_ALL);
 }
 
 /**
@@ -530,10 +529,8 @@ void applier::service::modify_object(configuration::service const& obj) {
     }
   }
   // Notify event broker.
-  timeval tv(get_broker_timestamp(NULL));
   broker_adaptive_service_data(NEBTYPE_SERVICE_UPDATE, NEBFLAG_NONE,
-                               NEBATTR_NONE, s.get(), CMD_NONE, MODATTR_ALL,
-                               MODATTR_ALL, &tv);
+                               NEBATTR_NONE, s.get(), MODATTR_ALL);
 }
 
 /**
@@ -586,10 +583,8 @@ void applier::service::remove_object(configuration::service const& obj) {
       it_s->members.erase({host_name, service_description});
 
     // Notify event broker.
-    timeval tv(get_broker_timestamp(NULL));
     broker_adaptive_service_data(NEBTYPE_SERVICE_DELETE, NEBFLAG_NONE,
-                                 NEBATTR_NONE, svc.get(), CMD_NONE, MODATTR_ALL,
-                                 MODATTR_ALL, &tv);
+                                 NEBATTR_NONE, svc.get(), MODATTR_ALL);
 
     // Unregister service.
     engine::service::services.erase({host_name, service_description});

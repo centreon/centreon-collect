@@ -350,10 +350,7 @@ void broker_adaptive_host_data(int type,
                                int flags,
                                int attr,
                                com::centreon::engine::host* hst,
-                               int command_type,
-                               unsigned long modattr,
-                               unsigned long modattrs,
-                               struct timeval const* timestamp);
+                               unsigned long modattr);
 void broker_adaptive_program_data(int type,
                                   int flags,
                                   int attr,
@@ -367,10 +364,7 @@ void broker_adaptive_service_data(int type,
                                   int flags,
                                   int attr,
                                   com::centreon::engine::service* svc,
-                                  int command_type,
-                                  unsigned long modattr,
-                                  unsigned long modattrs,
-                                  struct timeval const* timestamp);
+                                  unsigned long modattr);
 void broker_adaptive_timeperiod_data(int type,
                                      int flags,
                                      int attr,

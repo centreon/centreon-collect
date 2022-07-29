@@ -483,9 +483,7 @@ static void send_service_list() {
     nebstruct_adaptive_service_data nsasd;
     memset(&nsasd, 0, sizeof(nsasd));
     nsasd.type = NEBTYPE_SERVICE_ADD;
-    nsasd.command_type = CMD_NONE;
     nsasd.modified_attribute = MODATTR_ALL;
-    nsasd.modified_attributes = MODATTR_ALL;
     nsasd.object_ptr = it->second.get();
 
     // Callback.
@@ -512,9 +510,7 @@ static void send_pb_service_list() {
     nebstruct_adaptive_service_data nsasd;
     memset(&nsasd, 0, sizeof(nsasd));
     nsasd.type = NEBTYPE_SERVICE_ADD;
-    nsasd.command_type = CMD_NONE;
     nsasd.modified_attribute = MODATTR_ALL;
-    nsasd.modified_attributes = MODATTR_ALL;
     nsasd.object_ptr = it->second.get();
 
     // Callback.
