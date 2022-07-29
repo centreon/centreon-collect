@@ -155,9 +155,9 @@ TEST_F(SimpleCommand, TooRecentDoubleCommand) {
 
   const char* path = "/tmp/TooRecentDoubleCommand";
   ::unlink(path);
-  std::unique_ptr<my_listener> lstnr(new my_listener);
-  std::unique_ptr<commands::command> cmd{
-      new commands::raw("test", "/bin/sh /tmp/TooRecentDoubleCommand.sh")};
+  std::unique_ptr<my_listener> lstnr(std::make_unique<my_listener>());
+  std::unique_ptr<commands::command> cmd{std::make_unique<commands::raw>(
+      "test", "/bin/sh /tmp/TooRecentDoubleCommand.sh")};
   cmd->set_listener(lstnr.get());
   const void* caller[] = {nullptr, path};
   cmd->add_caller_group(caller, caller + 2);
@@ -197,9 +197,9 @@ TEST_F(SimpleCommand, SufficientOldDoubleCommand) {
 
   const char* path = "/tmp/TooRecentDoubleCommand";
   ::unlink(path);
-  std::unique_ptr<my_listener> lstnr(new my_listener);
-  std::unique_ptr<commands::command> cmd{
-      new commands::raw("test", "/bin/sh /tmp/TooRecentDoubleCommand.sh")};
+  std::unique_ptr<my_listener> lstnr(std::make_unique<my_listener>());
+  std::unique_ptr<commands::command> cmd{std::make_unique<commands::raw>(
+      "test", "/bin/sh /tmp/TooRecentDoubleCommand.sh")};
   cmd->set_listener(lstnr.get());
   const void* caller[] = {nullptr, path};
   cmd->add_caller_group(caller, caller + 2);

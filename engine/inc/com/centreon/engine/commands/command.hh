@@ -72,10 +72,12 @@ class command {
    * insure that both don't call check too often
    *
    */
-  using caller_to_last_call_map = std::map<const void*, last_call::pointer>;
+  using caller_to_last_call_map =
+      boost::container::flat_map<const void*, last_call::pointer>;
   caller_to_last_call_map _result_cache;
 
-  using cmdid_to_last_call_map = std::map<uint64_t, last_call::pointer>;
+  using cmdid_to_last_call_map =
+      boost::container::flat_map<uint64_t, last_call::pointer>;
   cmdid_to_last_call_map _current;
 
   bool gest_call_interval(uint64_t command_id,

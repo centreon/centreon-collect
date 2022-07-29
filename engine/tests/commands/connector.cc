@@ -123,7 +123,7 @@ TEST_F(Connector, RunWithConnectorSwitchedOff) {
   connector cmd_connector("RunWithConnectorSwitchedOff",
                           "tests/bin_connector_test_run");
   {
-    std::unique_ptr<my_listener> lstnr(new my_listener);
+    std::unique_ptr<my_listener> lstnr(std::make_unique<my_listener>());
     nagios_macros macros = nagios_macros();
     cmd_connector.set_listener(lstnr.get());
     cmd_connector.run("commande --kill=1", macros, 1,
