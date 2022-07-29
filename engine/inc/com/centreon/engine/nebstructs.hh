@@ -151,29 +151,6 @@ typedef struct nebstruct_comment_struct {
   void* object_ptr; /* not implemented yet */
 } nebstruct_comment_data;
 
-/* Contact notification method data structure. */
-typedef struct nebstruct_contact_notification_method_struct {
-  int type;
-  int flags;
-  int attr;
-  struct timeval timestamp;
-
-  int notification_type;
-  struct timeval start_time;
-  struct timeval end_time;
-  char* host_name;
-  char* service_description;
-  char* contact_name;
-  int reason_type;
-  int state;
-  char* output;
-  char* ack_author;
-  char* ack_data;
-  int escalated;
-  void* object_ptr;
-  void* contact_ptr;
-} nebstruct_contact_notification_method_data;
-
 /* Contact status structure. */
 typedef struct nebstruct_contact_status_struct {
   int type;

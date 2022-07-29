@@ -509,49 +509,7 @@ int broker_contact_notification_method_data(int type,
                                             char const* ack_data,
                                             int escalated,
                                             struct timeval const* timestamp) {
-  // Config check.
-  if (!(config->event_broker_options() & BROKER_NOTIFICATIONS))
-    return OK;
-
-  // Fill struct with relevant data.
-  nebstruct_contact_notification_method_data ds;
-  host* temp_host(NULL);
-  com::centreon::engine::service* temp_service(NULL);
-  ds.type = type;
-  ds.flags = flags;
-  ds.attr = attr;
-  ds.timestamp = get_broker_timestamp(timestamp);
-  ds.notification_type = notification_type;
-  ds.start_time = start_time;
-  ds.end_time = end_time;
-  ds.reason_type = reason_type;
-  ds.contact_name = const_cast<char*>(cntct->get_name().c_str());
-  if (notification_type == notifier::service_notification) {
-    temp_service = static_cast<service*>(data);
-    ds.host_name = const_cast<char*>(temp_service->get_hostname().c_str());
-    ds.service_description =
-        const_cast<char*>(temp_service->get_description().c_str());
-    ds.state = temp_service->get_current_state();
-    ds.output = const_cast<char*>(temp_service->get_plugin_output().c_str());
-  } else {
-    temp_host = (host*)data;
-    ds.host_name = const_cast<char*>(temp_host->name().c_str());
-    ds.service_description = NULL;
-    ds.state = temp_host->get_current_state();
-    ds.output = const_cast<char*>(temp_host->get_plugin_output().c_str());
-  }
-  ds.object_ptr = data;
-  ds.contact_ptr = cntct;
-  ds.ack_author = const_cast<char*>(ack_author);
-  ds.ack_data = const_cast<char*>(ack_data);
-  ds.escalated = escalated;
-
-  // Make callbacks.
-  int return_code;
-  return_code =
-      neb_make_callbacks(NEBCALLBACK_CONTACT_NOTIFICATION_METHOD_DATA, &ds);
-
-  return (return_code);
+  return 0;
 }
 
 /**
