@@ -966,16 +966,9 @@ int broker_host_check(int type,
  *  Sends host status updates to broker.
  *
  *  @param[in] type      Type.
- *  @param[in] flags     Flags.
- *  @param[in] attr      Attributes.
  *  @param[in] hst       Host.
- *  @param[in] timestamp Timestamp.
  */
-void broker_host_status(int type,
-                        int flags,
-                        int attr,
-                        host* hst,
-                        struct timeval const* timestamp) {
+void broker_host_status(int type, host* hst) {
   // Config check.
   if (!(config->event_broker_options() & BROKER_STATUS_DATA))
     return;
@@ -983,9 +976,6 @@ void broker_host_status(int type,
   // Fill struct with relevant data.
   nebstruct_host_status_data ds;
   ds.type = type;
-  ds.flags = flags;
-  ds.attr = attr;
-  ds.timestamp = get_broker_timestamp(timestamp);
   ds.object_ptr = hst;
 
   // Make callbacks.

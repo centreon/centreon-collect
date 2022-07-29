@@ -303,10 +303,6 @@ typedef struct nebstruct_host_check_struct {
 /* Host status structure. */
 typedef struct nebstruct_host_status_struct {
   int type;
-  int flags;
-  int attr;
-  struct timeval timestamp;
-
   void* object_ptr;
 } nebstruct_host_status_data;
 
