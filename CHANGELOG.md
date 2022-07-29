@@ -13,6 +13,10 @@ with the Broker configuration file.
 
 #### Fixes
 
+*rrd*
+
+Rebuild of graphs should work better.
+
 *bam*
 
 If a service with two overlapping downtimes is a BA kpi. When the first downtime
