@@ -3,6 +3,7 @@ Resource	../resources/resources.robot
 Suite Setup	Clean Before Suite
 Suite Teardown	Clean After Suite
 Test Setup	BAM Setup
+Test Teardown	Save logs If Failed
 
 Documentation	Centreon Broker and BAM
 Library	Process

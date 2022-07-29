@@ -165,7 +165,7 @@ int cmd_add_comment(int cmd, time_t entry_time, char* args) {
   char* comment_data(nullptr);
   bool persistent{false};
   uint64_t service_id = 0;
-  char* command_name;
+  const char* command_name;
 
   /* get the host name */
   if ((host_name = my_strtok(args, ";")) == nullptr)
@@ -605,12 +605,12 @@ int process_passive_service_check(time_t check_time,
 
   timeval set_tv = {.tv_sec = check_time, .tv_usec = 0};
 
-  check_result* result =
-      new check_result(service_check, found->second.get(),
-                       checkable::check_passive, CHECK_OPTION_NONE, false,
-                       static_cast<double>(tv.tv_sec - check_time) +
-                           static_cast<double>(tv.tv_usec / 1000000.0),
-                       set_tv, set_tv, false, true, return_code, output);
+  check_result::pointer result = std::make_shared<check_result>(
+      service_check, found->second.get(), checkable::check_passive,
+      CHECK_OPTION_NONE, false,
+      static_cast<double>(tv.tv_sec - check_time) +
+          static_cast<double>(tv.tv_usec / 1000000.0),
+      set_tv, set_tv, false, true, return_code, output);
 
   /* make sure the return code is within bounds */
   if (result->get_return_code() < 0 || result->get_return_code() > 3) {
@@ -719,12 +719,12 @@ int process_passive_host_check(time_t check_time,
   gettimeofday(&tv, nullptr);
   timeval tv_start = {.tv_sec = check_time, .tv_usec = 0};
 
-  check_result* result =
-      new check_result(host_check, it->second.get(), checkable::check_passive,
-                       CHECK_OPTION_NONE, false,
-                       static_cast<double>(tv.tv_sec - check_time) +
-                           static_cast<double>(tv.tv_usec / 1000000.0),
-                       tv_start, tv_start, false, true, return_code, output);
+  check_result::pointer result = std::make_shared<check_result>(
+      host_check, it->second.get(), checkable::check_passive, CHECK_OPTION_NONE,
+      false,
+      static_cast<double>(tv.tv_sec - check_time) +
+          static_cast<double>(tv.tv_usec / 1000000.0),
+      tv_start, tv_start, false, true, return_code, output);
 
   /* make sure the return code is within bounds */
   if (result->get_return_code() < 0 || result->get_return_code() > 3)
@@ -1860,7 +1860,7 @@ int cmd_change_object_char_var(int cmd, char* args) {
 
     case CMD_CHANGE_HOST_CHECK_COMMAND:
       temp_host->set_check_command(temp_ptr);
-      temp_host->set_check_command_ptr(cmd_found->second.get());
+      temp_host->set_check_command_ptr(cmd_found->second);
       attr = MODATTR_CHECK_COMMAND;
       break;
 
@@ -1884,7 +1884,7 @@ int cmd_change_object_char_var(int cmd, char* args) {
 
     case CMD_CHANGE_SVC_CHECK_COMMAND:
       found_svc->second->set_check_command(temp_ptr);
-      found_svc->second->set_check_command_ptr(cmd_found->second.get());
+      found_svc->second->set_check_command_ptr(cmd_found->second);
       attr = MODATTR_CHECK_COMMAND;
       break;
 

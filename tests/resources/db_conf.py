@@ -4,9 +4,6 @@ import pymysql.cursors
 from robot.libraries.BuiltIn import BuiltIn
 
 
-CONF_DIR = "/etc/centreon-engine"
-ENGINE_HOME = "/var/lib/centreon-engine"
-
 BuiltIn().import_resource('db_variables.robot')
 DB_NAME_STORAGE = BuiltIn().get_variable_value("${DBName}")
 DB_NAME_CONF = BuiltIn().get_variable_value("${DBNameConf}")
@@ -14,6 +11,11 @@ DB_USER = BuiltIn().get_variable_value("${DBUser}")
 DB_PASS = BuiltIn().get_variable_value("${DBPass}")
 DB_HOST = BuiltIn().get_variable_value("${DBHost}")
 DB_PORT = BuiltIn().get_variable_value("${DBPort}")
+VAR_ROOT = BuiltIn().get_variable_value("${VarRoot}")
+ETC_ROOT = BuiltIn().get_variable_value("${EtcRoot}")
+
+CONF_DIR = ETC_ROOT + "/centreon-engine"
+ENGINE_HOME = VAR_ROOT + "/lib/centreon-engine"
 
 
 class DbConf:

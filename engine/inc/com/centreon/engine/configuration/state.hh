@@ -256,6 +256,8 @@ class state {
   void log_passive_checks(bool value);
   bool log_pid() const noexcept;
   void log_pid(bool value);
+  inline bool log_file_line() const { return _log_file_line; }
+  void log_file_line(bool value);
   bool log_service_retries() const noexcept;
   void log_service_retries(bool value);
   float low_host_flap_threshold() const noexcept;
@@ -578,6 +580,7 @@ class state {
   bool _log_notifications;
   bool _log_passive_checks;
   bool _log_pid;
+  bool _log_file_line;
   bool _log_service_retries;
   float _low_host_flap_threshold;
   float _low_service_flap_threshold;
