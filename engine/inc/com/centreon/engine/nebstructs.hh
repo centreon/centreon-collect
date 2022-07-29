@@ -131,10 +131,6 @@ typedef struct nebstruct_command_struct {
 /* Comment data structure. */
 typedef struct nebstruct_comment_struct {
   int type;
-  int flags;
-  int attr;
-  struct timeval timestamp;
-
   int comment_type;
   uint64_t host_id;
   uint64_t service_id;
@@ -147,8 +143,6 @@ typedef struct nebstruct_comment_struct {
   int expires;
   time_t expire_time;
   unsigned long comment_id;
-
-  void* object_ptr; /* not implemented yet */
 } nebstruct_comment_data;
 
 /* Contact status structure. */

@@ -384,8 +384,6 @@ void broker_command_data(int type,
  *  Send comment data to broker.
  *
  *  @param[in] type            Type.
- *  @param[in] flags           Flags.
- *  @param[in] attr            Attributes.
  *  @param[in] comment_type    Comment type.
  *  @param[in] entry_type      Entry type.
  *  @param[in] host_name       Host name.
@@ -397,11 +395,8 @@ void broker_command_data(int type,
  *  @param[in] expires         Does this comment expire ?
  *  @param[in] expire_time     Comment expiration time.
  *  @param[in] comment_id      Comment ID.
- *  @param[in] timestamp       Timestamp.
  */
 void broker_comment_data(int type,
-                         int flags,
-                         int attr,
                          int comment_type,
                          int entry_type,
                          uint64_t host_id,
@@ -413,8 +408,7 @@ void broker_comment_data(int type,
                          int source,
                          int expires,
                          time_t expire_time,
-                         unsigned long comment_id,
-                         struct timeval const* timestamp) {
+                         unsigned long comment_id) {
   // Config check.
   if (!(config->event_broker_options() & BROKER_COMMENT_DATA))
     return;
@@ -422,14 +416,10 @@ void broker_comment_data(int type,
   // Fill struct with relevant data.
   nebstruct_comment_data ds;
   ds.type = type;
-  ds.flags = flags;
-  ds.attr = attr;
-  ds.timestamp = get_broker_timestamp(timestamp);
   ds.comment_type = comment_type;
   ds.entry_type = entry_type;
   ds.host_id = host_id;
   ds.service_id = service_id;
-  ds.object_ptr = NULL;  // Not implemented yet.
   ds.entry_time = entry_time;
   ds.author_name = author_name;
   ds.comment_data = comment_data;

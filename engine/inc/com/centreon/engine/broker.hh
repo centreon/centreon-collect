@@ -387,8 +387,6 @@ void broker_command_data(int type,
                          com::centreon::engine::commands::command* cmd,
                          struct timeval const* timestamp);
 void broker_comment_data(int type,
-                         int flags,
-                         int attr,
                          int comment_type,
                          int entry_type,
                          uint64_t host_id,
@@ -400,8 +398,7 @@ void broker_comment_data(int type,
                          int source,
                          int expires,
                          time_t expire_time,
-                         unsigned long comment_id,
-                         struct timeval const* timestamp);
+                         unsigned long comment_id);
 int broker_contact_notification_data(int type,
                                      int flags,
                                      int attr,
