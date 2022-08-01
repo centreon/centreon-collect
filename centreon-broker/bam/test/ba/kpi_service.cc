@@ -971,6 +971,7 @@ TEST_F(BamBA, KpiServiceDt) {
     std::cout << "service_update 1" << std::endl;
     kpis[0]->service_update(dt, _visitor.get());
 
+    dt->deletion_time = now + 2 + 10 * i + 5;
     dt->actual_end_time = now + 2 + 10 * i + 5;
     dt->was_cancelled = true;
     std::cout << "service_update 2" << std::endl;
