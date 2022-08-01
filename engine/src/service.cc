@@ -2853,9 +2853,8 @@ void service::set_flap(double percent_change,
   set_is_flapping(true);
 
   /* send data to event broker */
-  broker_flapping_data(NEBTYPE_FLAPPING_START, NEBFLAG_NONE, NEBATTR_NONE,
-                       SERVICE_FLAPPING, this, percent_change, high_threshold,
-                       low_threshold, nullptr);
+  broker_flapping_data(NEBTYPE_FLAPPING_START, SERVICE_FLAPPING, this,
+                       percent_change, high_threshold, low_threshold, nullptr);
 
   /* send a notification */
   if (allow_flapstart_notification)
@@ -2896,8 +2895,7 @@ void service::clear_flap(double percent_change,
   set_is_flapping(false);
 
   /* send data to event broker */
-  broker_flapping_data(NEBTYPE_FLAPPING_STOP, NEBFLAG_NONE,
-                       NEBATTR_FLAPPING_STOP_NORMAL, SERVICE_FLAPPING, this,
+  broker_flapping_data(NEBTYPE_FLAPPING_STOP, SERVICE_FLAPPING, this,
                        percent_change, high_threshold, low_threshold, nullptr);
 
   /* send a notification */
@@ -3487,8 +3485,7 @@ void service::handle_flap_detection_disabled() {
         this->get_hostname(), this->get_description());
 
     /* send data to event broker */
-    broker_flapping_data(NEBTYPE_FLAPPING_STOP, NEBFLAG_NONE,
-                         NEBATTR_FLAPPING_STOP_DISABLED, SERVICE_FLAPPING, this,
+    broker_flapping_data(NEBTYPE_FLAPPING_STOP, SERVICE_FLAPPING, this,
                          get_percent_state_change(), 0.0, 0.0, nullptr);
 
     /* send a notification */

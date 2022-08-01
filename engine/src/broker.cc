@@ -723,8 +723,6 @@ void broker_external_command(int type,
  *  Send flapping data to broker.
  *
  *  @param[in] type           Type.
- *  @param[in] flags          Flags.
- *  @param[in] attr           Attributes.
  *  @param[in] flapping_type  Flapping type.
  *  @param[in] data           Data.
  *  @param[in] percent_change Percent change.
@@ -733,8 +731,6 @@ void broker_external_command(int type,
  *  @param[in] timestamp      Timestamp.
  */
 void broker_flapping_data(int type,
-                          int flags,
-                          int attr,
                           unsigned int flapping_type,
                           void* data,
                           double percent_change,
@@ -752,22 +748,17 @@ void broker_flapping_data(int type,
   host* temp_host(NULL);
   com::centreon::engine::service* temp_service(NULL);
   ds.type = type;
-  ds.flags = flags;
-  ds.attr = attr;
   ds.timestamp = get_broker_timestamp(timestamp);
   ds.flapping_type = flapping_type;
   if (flapping_type == SERVICE_FLAPPING) {
     temp_service = (com::centreon::engine::service*)data;
     ds.host_id = temp_service->get_host_id();
     ds.service_id = temp_service->get_service_id();
-    ds.comment_id = temp_service->get_flapping_comment_id();
   } else {
     temp_host = (host*)data;
     ds.host_id = temp_host->get_host_id();
     ds.service_id = 0;
-    ds.comment_id = temp_host->get_flapping_comment_id();
   }
-  ds.object_ptr = data;
   ds.percent_change = percent_change;
   ds.high_threshold = high_threshold;
   ds.low_threshold = low_threshold;

@@ -470,8 +470,6 @@ void broker_external_command(int type,
                              char* command_args,
                              struct timeval const* timestamp);
 void broker_flapping_data(int type,
-                          int flags,
-                          int attr,
                           unsigned int flapping_type,
                           void* data,
                           double percent_change,

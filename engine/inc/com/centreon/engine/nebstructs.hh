@@ -79,18 +79,6 @@ typedef struct nebstruct_adaptive_service_data_struct {
   void* object_ptr;
 } nebstruct_adaptive_service_data;
 
-/* Adaptive timeperiod data structure. */
-typedef struct nebstruct_adaptive_timeperiod_data_struct {
-  int type;
-  int flags;
-  int attr;
-  struct timeval timestamp;
-
-  int command_type;
-
-  void* object_ptr;
-} nebstruct_adaptive_timeperiod_data;
-
 /* Aggregated status data structure. */
 typedef struct nebstruct_aggregated_status_struct {
   int type;
@@ -214,19 +202,13 @@ typedef struct nebstruct_external_command_struct {
 /* Flapping data structure. */
 typedef struct nebstruct_flapping_struct {
   int type;
-  int flags;
-  int attr;
   struct timeval timestamp;
-
   int flapping_type;
   uint64_t host_id;
   uint64_t service_id;
   double percent_change;
   double high_threshold;
   double low_threshold;
-  unsigned long comment_id;
-
-  void* object_ptr;
 } nebstruct_flapping_data;
 
 /* Group structure. */
