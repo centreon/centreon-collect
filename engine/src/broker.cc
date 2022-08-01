@@ -42,6 +42,7 @@ extern "C" {
  *  @param[in] ack_data             Acknowledgement text.
  *  @param[in] subtype              Subtype.
  *  @param[in] notify_contacts      Should we notify contacts.
+ *  @param[in] persistent_comment   Persistent comment
  */
 void broker_acknowledgement_data(int type,
                                  int acknowledgement_type,
@@ -320,8 +321,9 @@ void broker_command_data(int type,
  *  @param[in] type            Type.
  *  @param[in] comment_type    Comment type.
  *  @param[in] entry_type      Entry type.
- *  @param[in] host_name       Host name.
- *  @param[in] svc_description Service description.
+ *  @param[in] host_id         Host id.
+ *  @param[in] svc_id          Service id.
+ *  @param[in] entry_time      Entry time.
  *  @param[in] author_name     Author name.
  *  @param[in] comment_data    Comment data.
  *  @param[in] persistent      Is this comment persistent.
@@ -412,7 +414,6 @@ int broker_contact_notification_data(int type,
  *  @param[in] end_time          End time.
  *  @param[in] data              Data.
  *  @param[in] cntct             Target contact.
- *  @param[in] cmd               Notification command.
  *  @param[in] ack_author        Author.
  *  @param[in] ack_data          Data.
  *  @param[in] escalated         Escalated ?
@@ -490,7 +491,6 @@ void broker_custom_variable(int type,
  *  Send downtime data to broker.
  *
  *  @param[in] type            Type.
- *  @param[in] flags           Flags.
  *  @param[in] attr            Attributes.
  *  @param[in] downtime_type   Downtime type.
  *  @param[in] host_name       Host name.
@@ -507,7 +507,6 @@ void broker_custom_variable(int type,
  *  @param[in] timestamp       Timestamp.
  */
 void broker_downtime_data(int type,
-                          int flags,
                           int attr,
                           int downtime_type,
                           char const* host_name,
@@ -529,13 +528,11 @@ void broker_downtime_data(int type,
   // Fill struct with relevant data.
   nebstruct_downtime_data ds;
   ds.type = type;
-  ds.flags = flags;
   ds.attr = attr;
   ds.timestamp = get_broker_timestamp(timestamp);
   ds.downtime_type = downtime_type;
   ds.host_name = host_name;
   ds.service_description = svc_description;
-  ds.object_ptr = NULL;  // Not implemented yet.
   ds.entry_time = entry_time;
   ds.author_name = author_name;
   ds.comment_data = comment_data;
@@ -757,25 +754,10 @@ void broker_group_member(int type, void* object, void* group) {
  *  Send host check data to broker.
  *
  *  @param[in] type          Type.
- *  @param[in] flags         Flags.
- *  @param[in] attr          Attributes.
  *  @param[in] hst           Host.
  *  @param[in] check_type    Check type.
- *  @param[in] state         State.
- *  @param[in] state_type    State type.
- *  @param[in] start_time    Start time.
- *  @param[in] end_time      End time.
- *  @param[in] cmd           Check command.
- *  @param[in] latency       Latency.
- *  @param[in] exectime      Execution time.
- *  @param[in] timeout       Timeout.
- *  @param[in] early_timeout Early timeout.
- *  @param[in] retcode       Return code.
  *  @param[in] cmdline       Command line.
  *  @param[in] output        Output.
- *  @param[in] long_output   Long output.
- *  @param[in] perfdata      Perfdata.
- *  @param[in] timestamp     Timestamp.
  *
  *  @return Return value can override host check.
  */
@@ -979,20 +961,9 @@ void broker_retention_data(int type,
  *  Send service check data to broker.
  *
  *  @param[in] type          Type.
- *  @param[in] flags         Flags.
- *  @param[in] attr          Attributes.
  *  @param[in] svc           Target service.
  *  @param[in] check_type    Check type.
- *  @param[in] start_time    Start time.
- *  @param[in] end_time      End time.
- *  @param[in] cmd           Service check command.
- *  @param[in] latency       Latency.
- *  @param[in] exectime      Execution time.
- *  @param[in] timeout       Timeout.
- *  @param[in] early_timeout Early timeout.
- *  @param[in] retcode       Return code.
  *  @param[in] cmdline       Check command line.
- *  @param[in] timestamp     Timestamp.
  *
  *  @return Return value can override service check.
  */

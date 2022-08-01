@@ -152,7 +152,6 @@ static void send_downtimes_list() {
     nsdd.duration = p.second->get_duration();
     nsdd.triggered_by = p.second->get_triggered_by();
     nsdd.downtime_id = p.second->get_downtime_id();
-    nsdd.object_ptr = p.second.get();
 
     // Callback.
     neb::callback_downtime(NEBCALLBACK_DOWNTIME_DATA, &nsdd);

@@ -94,23 +94,17 @@ typedef struct nebstruct_comment_struct {
 /* Custom variable structure. */
 typedef struct nebstruct_custom_variable_struct {
   int type;
-  int flags;
-  int attr;
   struct timeval timestamp;
-
   char* var_name;
   char* var_value;
-
   void* object_ptr;
 } nebstruct_custom_variable_data;
 
 /* Downtime data structure. */
 typedef struct nebstruct_downtime_struct {
   int type;
-  int flags;
   int attr;
   struct timeval timestamp;
-
   int downtime_type;
   char const* host_name;
   char const* service_description;
@@ -123,8 +117,6 @@ typedef struct nebstruct_downtime_struct {
   unsigned long duration;
   unsigned long triggered_by;
   unsigned long downtime_id;
-
-  void* object_ptr; /* not implemented yet */
 } nebstruct_downtime_data;
 
 /* Event handler structure. */

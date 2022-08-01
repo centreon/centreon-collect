@@ -69,11 +69,11 @@ service_downtime::~service_downtime() {
   comment::delete_comment(_get_comment_id());
   /* send data to event broker */
   broker_downtime_data(
-      NEBTYPE_DOWNTIME_DELETE, NEBFLAG_NONE, NEBATTR_NONE,
-      downtime::service_downtime, get_hostname().c_str(),
-      get_service_description().c_str(), _entry_time, get_author().c_str(),
-      get_comment().c_str(), get_start_time(), get_end_time(), is_fixed(),
-      get_triggered_by(), get_duration(), get_downtime_id(), nullptr);
+      NEBTYPE_DOWNTIME_DELETE, NEBATTR_NONE, downtime::service_downtime,
+      get_hostname().c_str(), get_service_description().c_str(), _entry_time,
+      get_author().c_str(), get_comment().c_str(), get_start_time(),
+      get_end_time(), is_fixed(), get_triggered_by(), get_duration(),
+      get_downtime_id(), nullptr);
 }
 
 /**
@@ -195,11 +195,11 @@ int service_downtime::unschedule() {
   if (is_in_effect()) {
     /* send data to event broker */
     broker_downtime_data(
-        NEBTYPE_DOWNTIME_STOP, NEBFLAG_NONE, NEBATTR_DOWNTIME_STOP_CANCELLED,
-        get_type(), get_hostname().c_str(), get_service_description().c_str(),
-        _entry_time, get_author().c_str(), get_comment().c_str(),
-        get_start_time(), get_end_time(), is_fixed(), get_triggered_by(),
-        get_duration(), get_downtime_id(), nullptr);
+        NEBTYPE_DOWNTIME_STOP, NEBATTR_DOWNTIME_STOP_CANCELLED, get_type(),
+        get_hostname().c_str(), get_service_description().c_str(), _entry_time,
+        get_author().c_str(), get_comment().c_str(), get_start_time(),
+        get_end_time(), is_fixed(), get_triggered_by(), get_duration(),
+        get_downtime_id(), nullptr);
 
     found->second->dec_scheduled_downtime_depth();
     found->second->update_status();
@@ -382,11 +382,10 @@ int service_downtime::handle() {
     /* send data to event broker */
     attr = NEBATTR_DOWNTIME_STOP_NORMAL;
     broker_downtime_data(
-        NEBTYPE_DOWNTIME_STOP, NEBFLAG_NONE, attr, this->get_type(),
-        get_hostname().c_str(), get_service_description().c_str(), _entry_time,
-        get_author().c_str(), get_comment().c_str(), get_start_time(),
-        get_end_time(), is_fixed(), get_triggered_by(), get_duration(),
-        get_downtime_id(), nullptr);
+        NEBTYPE_DOWNTIME_STOP, attr, this->get_type(), get_hostname().c_str(),
+        get_service_description().c_str(), _entry_time, get_author().c_str(),
+        get_comment().c_str(), get_start_time(), get_end_time(), is_fixed(),
+        get_triggered_by(), get_duration(), get_downtime_id(), nullptr);
 
     /* decrement the downtime depth variable */
     found->second->dec_scheduled_downtime_depth();
@@ -466,7 +465,7 @@ int service_downtime::handle() {
   else {
     /* send data to event broker */
     broker_downtime_data(
-        NEBTYPE_DOWNTIME_START, NEBFLAG_NONE, NEBATTR_NONE, get_type(),
+        NEBTYPE_DOWNTIME_START, NEBATTR_NONE, get_type(),
         get_hostname().c_str(), get_service_description().c_str(), _entry_time,
         get_author().c_str(), get_comment().c_str(), get_start_time(),
         get_end_time(), is_fixed(), get_triggered_by(), get_duration(),
@@ -553,10 +552,9 @@ void service_downtime::schedule() {
   downtime_manager::instance().add_downtime(this);
 
   /* send data to event broker */
-  broker_downtime_data(NEBTYPE_DOWNTIME_LOAD, NEBFLAG_NONE, NEBATTR_NONE,
-                       downtime::service_downtime, _hostname.c_str(),
-                       _service_description.c_str(), _entry_time,
-                       _author.c_str(), _comment.c_str(), _start_time,
-                       _end_time, _fixed, _triggered_by, _duration,
-                       _downtime_id, nullptr);
+  broker_downtime_data(
+      NEBTYPE_DOWNTIME_LOAD, NEBATTR_NONE, downtime::service_downtime,
+      _hostname.c_str(), _service_description.c_str(), _entry_time,
+      _author.c_str(), _comment.c_str(), _start_time, _end_time, _fixed,
+      _triggered_by, _duration, _downtime_id, nullptr);
 }

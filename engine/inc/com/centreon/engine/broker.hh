@@ -427,7 +427,6 @@ void broker_custom_variable(int type,
                             char const* varvalue,
                             struct timeval const* timestamp);
 void broker_downtime_data(int type,
-                          int flags,
                           int attr,
                           int downtime_type,
                           char const* host_name,
