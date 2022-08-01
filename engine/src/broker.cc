@@ -460,16 +460,12 @@ void broker_contact_status(int type, contact* cntct) {
  *  Sends host custom variables updates to broker.
  *
  *  @param[in] type      Type.
- *  @param[in] flags     Flags.
- *  @param[in] attr      Attributes.
  *  @param[in] data      Host or service.
  *  @param[in] varname   Variable name.
  *  @param[in] varvalue  Variable value.
  *  @param[in] timestamp Timestamp.
  */
 void broker_custom_variable(int type,
-                            int flags,
-                            int attr,
                             void* data,
                             char const* varname,
                             char const* varvalue,
@@ -481,8 +477,6 @@ void broker_custom_variable(int type,
   // Fill struct with relevant data.
   nebstruct_custom_variable_data ds;
   ds.type = type;
-  ds.flags = flags;
-  ds.attr = attr;
   ds.timestamp = get_broker_timestamp(timestamp);
   ds.object_ptr = data;
   ds.var_name = const_cast<char*>(varname);

@@ -422,8 +422,6 @@ int broker_contact_notification_method_data(
     struct timeval const* timestamp);
 void broker_contact_status(int type, com::centreon::engine::contact* cntct);
 void broker_custom_variable(int type,
-                            int flags,
-                            int attr,
                             void* data,
                             char const* varname,
                             char const* varvalue,

@@ -127,9 +127,9 @@ void applier::host::add_object(configuration::host const& obj) {
 
     if (it->second.is_sent()) {
       timeval tv(get_broker_timestamp(nullptr));
-      broker_custom_variable(NEBTYPE_HOSTCUSTOMVARIABLE_ADD, NEBFLAG_NONE,
-                             NEBATTR_NONE, h.get(), it->first.c_str(),
-                             it->second.get_value().c_str(), &tv);
+      broker_custom_variable(NEBTYPE_HOSTCUSTOMVARIABLE_ADD, h.get(),
+                             it->first.c_str(), it->second.get_value().c_str(),
+                             &tv);
     }
   }
 
@@ -380,10 +380,9 @@ void applier::host::modify_object(configuration::host const& obj) {
     for (auto& c : it_obj->second->custom_variables) {
       if (c.second.is_sent()) {
         timeval tv(get_broker_timestamp(nullptr));
-        broker_custom_variable(NEBTYPE_HOSTCUSTOMVARIABLE_DELETE, NEBFLAG_NONE,
-                               NEBATTR_NONE, it_obj->second.get(),
-                               c.first.c_str(), c.second.get_value().c_str(),
-                               &tv);
+        broker_custom_variable(NEBTYPE_HOSTCUSTOMVARIABLE_DELETE,
+                               it_obj->second.get(), c.first.c_str(),
+                               c.second.get_value().c_str(), &tv);
       }
     }
     it_obj->second->custom_variables.clear();
@@ -393,10 +392,9 @@ void applier::host::modify_object(configuration::host const& obj) {
 
       if (c.second.is_sent()) {
         timeval tv(get_broker_timestamp(nullptr));
-        broker_custom_variable(NEBTYPE_HOSTCUSTOMVARIABLE_ADD, NEBFLAG_NONE,
-                               NEBATTR_NONE, it_obj->second.get(),
-                               c.first.c_str(), c.second.get_value().c_str(),
-                               &tv);
+        broker_custom_variable(NEBTYPE_HOSTCUSTOMVARIABLE_ADD,
+                               it_obj->second.get(), c.first.c_str(),
+                               c.second.get_value().c_str(), &tv);
       }
     }
   }
