@@ -283,9 +283,7 @@ static void send_host_list() {
     nebstruct_adaptive_host_data nsahd;
     memset(&nsahd, 0, sizeof(nsahd));
     nsahd.type = NEBTYPE_HOST_ADD;
-    nsahd.command_type = CMD_NONE;
     nsahd.modified_attribute = MODATTR_ALL;
-    nsahd.modified_attributes = MODATTR_ALL;
     nsahd.object_ptr = it->second.get();
 
     // Callback.
@@ -311,9 +309,7 @@ static void send_pb_host_list() {
     nebstruct_adaptive_host_data nsahd;
     memset(&nsahd, 0, sizeof(nsahd));
     nsahd.type = NEBTYPE_HOST_ADD;
-    nsahd.command_type = CMD_NONE;
     nsahd.modified_attribute = MODATTR_ALL;
-    nsahd.modified_attributes = MODATTR_ALL;
     nsahd.object_ptr = it->second.get();
 
     // Callback.

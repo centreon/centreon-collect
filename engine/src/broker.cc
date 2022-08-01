@@ -297,21 +297,7 @@ void broker_adaptive_timeperiod_data(int type,
 void broker_aggregated_status_data(int type,
                                    int flags,
                                    int attr,
-                                   struct timeval const* timestamp) {
-  // Config check.
-  if (!(config->event_broker_options() & BROKER_STATUS_DATA))
-    return;
-
-  // Fill struct with relevant data.
-  nebstruct_aggregated_status_data ds;
-  ds.type = type;
-  ds.flags = flags;
-  ds.attr = attr;
-  ds.timestamp = get_broker_timestamp(timestamp);
-
-  // Make callbacks.
-  neb_make_callbacks(NEBCALLBACK_AGGREGATED_STATUS_DATA, &ds);
-}
+                                   struct timeval const* timestamp) {}
 
 /**
  *  Send command data to broker.

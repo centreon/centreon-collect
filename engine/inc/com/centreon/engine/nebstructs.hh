@@ -61,12 +61,7 @@ typedef struct nebstruct_adaptive_host_data_struct {
   int type;
   int flags;
   int attr;
-  struct timeval timestamp;
-
-  int command_type;
   unsigned long modified_attribute;
-  unsigned long modified_attributes;
-
   void* object_ptr;
 } nebstruct_adaptive_host_data;
 
@@ -78,14 +73,6 @@ typedef struct nebstruct_adaptive_service_data_struct {
   unsigned long modified_attribute;
   void* object_ptr;
 } nebstruct_adaptive_service_data;
-
-/* Aggregated status data structure. */
-typedef struct nebstruct_aggregated_status_struct {
-  int type;
-  int flags;
-  int attr;
-  struct timeval timestamp;
-} nebstruct_aggregated_status_data;
 
 /* Comment data structure. */
 typedef struct nebstruct_comment_struct {
