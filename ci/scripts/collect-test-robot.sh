@@ -45,7 +45,7 @@ rpm -i centreon-broker*.el7.x86_64.rpm \
 
 echo "########################### install robot framework ############################"
 cd /src/tests/
-pip3 install -U robotframework robotframework-databaselibrary pymysql dateutil
+pip3 install -U robotframework robotframework-databaselibrary pymysql python-dateutil
 
 yum install "Development Tools" python3-devel -y
 
