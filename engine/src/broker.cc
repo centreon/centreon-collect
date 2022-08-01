@@ -574,8 +574,6 @@ void broker_downtime_data(int type,
  *  Send event handler data to broker.
  *
  *  @param[in] type              Type.
- *  @param[in] flags             Flags.
- *  @param[in] attr              Attributes.
  *  @param[in] eventhandler_type Event handler type.
  *  @param[in] data              Event handler data.
  *  @param[in] state             State.
@@ -589,13 +587,10 @@ void broker_downtime_data(int type,
  *  @param[in] cmd               Event handler command.
  *  @param[in] cmdline           Command line.
  *  @param[in] output            Output.
- *  @param[in] timestamp         Timestamp.
  *
  *  @return Return value can override event handler execution.
  */
 int broker_event_handler(int type,
-                         int flags,
-                         int attr,
                          unsigned int eventhandler_type,
                          void* data,
                          int state,
@@ -608,8 +603,7 @@ int broker_event_handler(int type,
                          int retcode,
                          char const* cmd,
                          char* cmdline,
-                         char* output,
-                         struct timeval const* timestamp) {
+                         char* output) {
   // Config check.
   if (!(config->event_broker_options() & BROKER_EVENT_HANDLERS))
     return OK;
@@ -629,9 +623,6 @@ int broker_event_handler(int type,
   host* temp_host(NULL);
   com::centreon::engine::service* temp_service(NULL);
   ds.type = type;
-  ds.flags = flags;
-  ds.attr = attr;
-  ds.timestamp = get_broker_timestamp(timestamp);
   ds.eventhandler_type = eventhandler_type;
   if ((eventhandler_type == SERVICE_EVENTHANDLER) ||
       (eventhandler_type == GLOBAL_SERVICE_EVENTHANDLER)) {
@@ -644,7 +635,6 @@ int broker_event_handler(int type,
     ds.host_name = const_cast<char*>(temp_host->name().c_str());
     ds.service_description = NULL;
   }
-  ds.object_ptr = data;
   ds.state = state;
   ds.state_type = state_type;
   ds.start_time = start_time;

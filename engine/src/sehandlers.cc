@@ -211,12 +211,11 @@ int run_global_service_event_handler(nagios_macros* mac,
   end_time.tv_sec = 0L;
   end_time.tv_usec = 0L;
   neb_result = broker_event_handler(
-      NEBTYPE_EVENTHANDLER_START, NEBFLAG_NONE, NEBATTR_NONE,
-      GLOBAL_SERVICE_EVENTHANDLER, (void*)svc, svc->get_current_state(),
-      svc->get_state_type(), start_time, end_time, exectime,
-      config->event_handler_timeout(), early_timeout, result,
+      NEBTYPE_EVENTHANDLER_START, GLOBAL_SERVICE_EVENTHANDLER, (void*)svc,
+      svc->get_current_state(), svc->get_state_type(), start_time, end_time,
+      exectime, config->event_handler_timeout(), early_timeout, result,
       config->global_service_event_handler().c_str(),
-      const_cast<char*>(processed_command.c_str()), nullptr, nullptr);
+      const_cast<char*>(processed_command.c_str()), nullptr);
 
   /* neb module wants to override (or cancel) the event handler - perhaps it
    * will run the eventhandler itself */
@@ -256,14 +255,13 @@ int run_global_service_event_handler(nagios_macros* mac,
   gettimeofday(&end_time, nullptr);
 
   /* send event data to broker */
-  broker_event_handler(NEBTYPE_EVENTHANDLER_END, NEBFLAG_NONE, NEBATTR_NONE,
-                       GLOBAL_SERVICE_EVENTHANDLER, (void*)svc,
-                       svc->get_current_state(), svc->get_state_type(),
-                       start_time, end_time, exectime,
+  broker_event_handler(NEBTYPE_EVENTHANDLER_END, GLOBAL_SERVICE_EVENTHANDLER,
+                       (void*)svc, svc->get_current_state(),
+                       svc->get_state_type(), start_time, end_time, exectime,
                        config->event_handler_timeout(), early_timeout, result,
                        config->global_service_event_handler().c_str(),
                        const_cast<char*>(processed_command.c_str()),
-                       const_cast<char*>(command_output.c_str()), nullptr);
+                       const_cast<char*>(command_output.c_str()));
 
   return OK;
 }
@@ -340,12 +338,11 @@ int run_service_event_handler(nagios_macros* mac,
   end_time.tv_sec = 0L;
   end_time.tv_usec = 0L;
   neb_result = broker_event_handler(
-      NEBTYPE_EVENTHANDLER_START, NEBFLAG_NONE, NEBATTR_NONE,
-      SERVICE_EVENTHANDLER, (void*)svc, svc->get_current_state(),
-      svc->get_state_type(), start_time, end_time, exectime,
-      config->event_handler_timeout(), early_timeout, result,
+      NEBTYPE_EVENTHANDLER_START, SERVICE_EVENTHANDLER, (void*)svc,
+      svc->get_current_state(), svc->get_state_type(), start_time, end_time,
+      exectime, config->event_handler_timeout(), early_timeout, result,
       svc->event_handler().c_str(),
-      const_cast<char*>(processed_command.c_str()), nullptr, nullptr);
+      const_cast<char*>(processed_command.c_str()), nullptr);
 
   /* neb module wants to override (or cancel) the event handler - perhaps it
    * will run the eventhandler itself */
@@ -383,14 +380,13 @@ int run_service_event_handler(nagios_macros* mac,
   gettimeofday(&end_time, nullptr);
 
   /* send event data to broker */
-  broker_event_handler(NEBTYPE_EVENTHANDLER_END, NEBFLAG_NONE, NEBATTR_NONE,
-                       SERVICE_EVENTHANDLER, (void*)svc,
-                       svc->get_current_state(), svc->get_state_type(),
-                       start_time, end_time, exectime,
+  broker_event_handler(NEBTYPE_EVENTHANDLER_END, SERVICE_EVENTHANDLER,
+                       (void*)svc, svc->get_current_state(),
+                       svc->get_state_type(), start_time, end_time, exectime,
                        config->event_handler_timeout(), early_timeout, result,
                        svc->event_handler().c_str(),
                        const_cast<char*>(processed_command.c_str()),
-                       const_cast<char*>(command_output.c_str()), nullptr);
+                       const_cast<char*>(command_output.c_str()));
 
   return OK;
 }
@@ -514,12 +510,11 @@ int run_global_host_event_handler(nagios_macros* mac,
   end_time.tv_sec = 0L;
   end_time.tv_usec = 0L;
   neb_result = broker_event_handler(
-      NEBTYPE_EVENTHANDLER_START, NEBFLAG_NONE, NEBATTR_NONE,
-      GLOBAL_HOST_EVENTHANDLER, (void*)hst, hst->get_current_state(),
-      hst->get_state_type(), start_time, end_time, exectime,
-      config->event_handler_timeout(), early_timeout, result,
+      NEBTYPE_EVENTHANDLER_START, GLOBAL_HOST_EVENTHANDLER, (void*)hst,
+      hst->get_current_state(), hst->get_state_type(), start_time, end_time,
+      exectime, config->event_handler_timeout(), early_timeout, result,
       config->global_host_event_handler().c_str(),
-      const_cast<char*>(processed_command.c_str()), nullptr, nullptr);
+      const_cast<char*>(processed_command.c_str()), nullptr);
 
   /* neb module wants to override (or cancel) the event handler - perhaps it
    * will run the eventhandler itself */
@@ -557,14 +552,13 @@ int run_global_host_event_handler(nagios_macros* mac,
   gettimeofday(&end_time, nullptr);
 
   /* send event data to broker */
-  broker_event_handler(NEBTYPE_EVENTHANDLER_END, NEBFLAG_NONE, NEBATTR_NONE,
-                       GLOBAL_HOST_EVENTHANDLER, (void*)hst,
-                       hst->get_current_state(), hst->get_state_type(),
-                       start_time, end_time, exectime,
+  broker_event_handler(NEBTYPE_EVENTHANDLER_END, GLOBAL_HOST_EVENTHANDLER,
+                       (void*)hst, hst->get_current_state(),
+                       hst->get_state_type(), start_time, end_time, exectime,
                        config->event_handler_timeout(), early_timeout, result,
                        config->global_host_event_handler().c_str(),
                        const_cast<char*>(processed_command.c_str()),
-                       const_cast<char*>(command_output.c_str()), nullptr);
+                       const_cast<char*>(command_output.c_str()));
 
   return OK;
 }
@@ -638,11 +632,11 @@ int run_host_event_handler(nagios_macros* mac,
   end_time.tv_sec = 0L;
   end_time.tv_usec = 0L;
   neb_result = broker_event_handler(
-      NEBTYPE_EVENTHANDLER_START, NEBFLAG_NONE, NEBATTR_NONE, HOST_EVENTHANDLER,
-      (void*)hst, hst->get_current_state(), hst->get_state_type(), start_time,
-      end_time, exectime, config->event_handler_timeout(), early_timeout,
-      result, hst->event_handler().c_str(),
-      const_cast<char*>(processed_command.c_str()), nullptr, nullptr);
+      NEBTYPE_EVENTHANDLER_START, HOST_EVENTHANDLER, (void*)hst,
+      hst->get_current_state(), hst->get_state_type(), start_time, end_time,
+      exectime, config->event_handler_timeout(), early_timeout, result,
+      hst->event_handler().c_str(),
+      const_cast<char*>(processed_command.c_str()), nullptr);
 
   /* neb module wants to override (or cancel) the event handler - perhaps it
    * will run the eventhandler itself */
@@ -679,13 +673,13 @@ int run_host_event_handler(nagios_macros* mac,
   gettimeofday(&end_time, nullptr);
 
   /* send event data to broker */
-  broker_event_handler(NEBTYPE_EVENTHANDLER_END, NEBFLAG_NONE, NEBATTR_NONE,
-                       HOST_EVENTHANDLER, (void*)hst, hst->get_current_state(),
-                       hst->get_state_type(), start_time, end_time, exectime,
+  broker_event_handler(NEBTYPE_EVENTHANDLER_END, HOST_EVENTHANDLER, (void*)hst,
+                       hst->get_current_state(), hst->get_state_type(),
+                       start_time, end_time, exectime,
                        config->event_handler_timeout(), early_timeout, result,
                        hst->event_handler().c_str(),
                        const_cast<char*>(processed_command.c_str()),
-                       const_cast<char*>(command_output.c_str()), nullptr);
+                       const_cast<char*>(command_output.c_str()));
 
   return OK;
 }

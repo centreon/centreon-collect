@@ -143,10 +143,6 @@ typedef struct nebstruct_downtime_struct {
 /* Event handler structure. */
 typedef struct nebstruct_event_handler_struct {
   int type;
-  int flags;
-  int attr;
-  struct timeval timestamp;
-
   int eventhandler_type;
   char* host_name;
   char* service_description;
@@ -162,8 +158,6 @@ typedef struct nebstruct_event_handler_struct {
   double execution_time;
   int return_code;
   char* output;
-
-  void* object_ptr;
 } nebstruct_event_handler_data;
 
 /* External command data structure. */

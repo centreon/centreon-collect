@@ -445,8 +445,6 @@ void broker_downtime_data(int type,
                           unsigned long downtime_id,
                           struct timeval const* timestamp);
 int broker_event_handler(int type,
-                         int flags,
-                         int attr,
                          unsigned int eventhandler_type,
                          void* data,
                          int state,
@@ -459,8 +457,7 @@ int broker_event_handler(int type,
                          int retcode,
                          char const* cmd,
                          char* cmdline,
-                         char* output,
-                         struct timeval const* timestamp);
+                         char* output);
 void broker_external_command(int type,
                              int command_type,
                              char* command_args,
