@@ -462,11 +462,7 @@ int broker_event_handler(int type,
                          char* output,
                          struct timeval const* timestamp);
 void broker_external_command(int type,
-                             int flags,
-                             int attr,
                              int command_type,
-                             time_t entry_time,
-                             char* command_string,
                              char* command_args,
                              struct timeval const* timestamp);
 void broker_flapping_data(int type,

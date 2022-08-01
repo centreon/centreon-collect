@@ -65,9 +65,7 @@ int callback_external_command(int callback_type, void* data) {
   nebstruct_external_command_data* neb_data =
       static_cast<nebstruct_external_command_data*>(data);
   if (neb_data->type != NEBTYPE_EXTERNALCOMMAND_CHECK ||
-      neb_data->flags != NEBFLAG_NONE || neb_data->attr != NEBATTR_NONE ||
-      neb_data->command_type != CMD_NONE || neb_data->command_string != NULL ||
-      neb_data->command_args != NULL)
+      neb_data->command_type != CMD_NONE || neb_data->command_args != NULL)
     return (0);
 
   try {

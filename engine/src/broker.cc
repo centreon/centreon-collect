@@ -326,22 +326,7 @@ void broker_command_data(int type,
                          int flags,
                          int attr,
                          commands::command* cmd,
-                         struct timeval const* timestamp) {
-  // Config check.
-  if (!(config->event_broker_options() & BROKER_COMMAND_DATA))
-    return;
-
-  // Fill struct with relevant data.
-  nebstruct_command_data ds;
-  ds.type = type;
-  ds.flags = flags;
-  ds.attr = attr;
-  ds.timestamp = get_broker_timestamp(timestamp);
-  ds.cmd = cmd;
-
-  // Make callback.
-  neb_make_callbacks(NEBCALLBACK_COMMAND_DATA, &ds);
-}
+                         struct timeval const* timestamp) {}
 
 /**
  *  Send comment data to broker.
@@ -684,20 +669,12 @@ int broker_event_handler(int type,
  *  Sends external commands to broker.
  *
  *  @param[in] type           Type.
- *  @param[in] flags          Flags.
- *  @param[in] attr           Attributes.
  *  @param[in] command_type   Command type.
- *  @param[in] entry_time     Entry time.
- *  @param[in] command_string Command string.
  *  @param[in] command_args   Command args.
  *  @param[in] timestamp      Timestamp.
  */
 void broker_external_command(int type,
-                             int flags,
-                             int attr,
                              int command_type,
-                             time_t entry_time,
-                             char* command_string,
                              char* command_args,
                              struct timeval const* timestamp) {
   // Config check.
@@ -707,12 +684,8 @@ void broker_external_command(int type,
   // Fill struct with relevant data.
   nebstruct_external_command_data ds;
   ds.type = type;
-  ds.flags = flags;
-  ds.attr = attr;
   ds.timestamp = get_broker_timestamp(timestamp);
   ds.command_type = command_type;
-  ds.entry_time = entry_time;
-  ds.command_string = command_string;
   ds.command_args = command_args;
 
   // Make callbacks.

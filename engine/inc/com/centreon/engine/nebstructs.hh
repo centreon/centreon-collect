@@ -87,16 +87,6 @@ typedef struct nebstruct_aggregated_status_struct {
   struct timeval timestamp;
 } nebstruct_aggregated_status_data;
 
-/* Command data structure. */
-typedef struct nebstruct_command_struct {
-  int type;
-  int flags;
-  int attr;
-  struct timeval timestamp;
-
-  com::centreon::engine::commands::command* cmd;
-} nebstruct_command_data;
-
 /* Comment data structure. */
 typedef struct nebstruct_comment_struct {
   int type;
@@ -113,16 +103,6 @@ typedef struct nebstruct_comment_struct {
   time_t expire_time;
   unsigned long comment_id;
 } nebstruct_comment_data;
-
-/* Contact status structure. */
-typedef struct nebstruct_contact_status_struct {
-  int type;
-  int flags;
-  int attr;
-  struct timeval timestamp;
-
-  void* object_ptr;
-} nebstruct_contact_status_data;
 
 /* Custom variable structure. */
 typedef struct nebstruct_custom_variable_struct {
@@ -189,13 +169,8 @@ typedef struct nebstruct_event_handler_struct {
 /* External command data structure. */
 typedef struct nebstruct_external_command_struct {
   int type;
-  int flags;
-  int attr;
   struct timeval timestamp;
-
   int command_type;
-  time_t entry_time;
-  char* command_string;
   char* command_args;
 } nebstruct_external_command_data;
 
