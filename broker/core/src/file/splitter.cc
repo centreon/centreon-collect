@@ -80,7 +80,7 @@ splitter::splitter(std::string const& path,
   _rid = std::numeric_limits<int>::max();
   _wid = 0;
   size_t offset{base_dir.size() + base_name.size()};
-  if (base_dir.back() != '/')
+  if (!base_dir.empty() && base_dir.back() != '/')
     offset++;
   size_t size = 0;
   struct stat file_stat;
