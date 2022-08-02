@@ -42,9 +42,9 @@ class BamBA : public ::testing::Test {
     // Initialization.
     config::applier::init(0, "test_broker", 0);
 
-    _aply_state.reset(new bam::configuration::applier::state);
-    _state.reset(new bam::configuration::state);
-    _visitor.reset(new test_visitor("test-visitor"));
+    _aply_state = std::make_unique<bam::configuration::applier::state>();
+    _state = std::make_unique<bam::configuration::state>();
+    _visitor = std::make_unique<test_visitor>("test-visitor");
   }
 
   void TearDown() override {
