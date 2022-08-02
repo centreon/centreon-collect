@@ -62,7 +62,7 @@ void config::applier::init(size_t n_thread,
   mysql_manager::load();
   config::applier::state::load();
   file::disk_accessor::load(event_queues_total_size);
-  multiplexing::engine::load(event_queues_total_size);
+  multiplexing::engine::load();
   io::protocols::load();
   io::events::load();
   config::applier::endpoint::load();

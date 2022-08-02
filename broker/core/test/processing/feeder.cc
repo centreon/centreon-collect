@@ -48,7 +48,7 @@ class TestFeeder : public ::testing::Test {
     stats::center::load();
     config::applier::state::load();
     file::disk_accessor::load(10000);
-    multiplexing::engine::load(0);
+    multiplexing::engine::load();
     io::protocols::load();
     io::events::load();
 

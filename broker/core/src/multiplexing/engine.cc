@@ -48,14 +48,12 @@ engine& engine::instance() {
 /**
  * @brief Load engine instance. The argument is the total size allowed for
  * queue files.
- *
- * @param event_queues_total_size A size in bytes.
  */
-void engine::load(size_t event_queues_total_size) {
+void engine::load() {
   log_v2::core()->trace("multiplexing: loading engine");
   std::lock_guard<std::mutex> lk(_load_m);
   if (!_instance)
-    _instance = new engine(event_queues_total_size);
+    _instance = new engine();
 }
 
 /**
@@ -264,17 +262,14 @@ void engine::unsubscribe(muxer* subscriber) {
 /**
  * @brief Constructor of the multiplexing engine. The argument is the total
  * size allowed for the queue files. If 0 is specified, no limit is given.
- *
- * @param event_queues_total_size A size in bytes.
  */
-engine::engine(size_t event_queues_total_size)
+engine::engine()
     : _state{not_started},
       _strand(pool::instance().io_context()),
       _muxers{},
       _stats{stats::center::instance().register_engine()},
       _unprocessed_events{0u},
-      _sending_to_subscribers{false},
-      _event_queues_total_size{event_queues_total_size} {
+      _sending_to_subscribers{false} {
   stats::center::instance().update(&EngineStats::set_mode, _stats,
                                    EngineStats::NOT_STARTED);
 }
