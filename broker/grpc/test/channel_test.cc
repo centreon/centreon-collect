@@ -178,7 +178,7 @@ TEST_F(grpc_channel_tester, throw_write_after_failure) {
 
   int failure_ind = channel->failure_ind = rand() % 100 + 10;
 
-  for (unsigned ii = 0; ii <= failure_ind; ++ii) {
+  for (int32_t ii = 0; ii <= failure_ind; ++ii) {
     channel->write(std::make_shared<grpc_event_type>());
   }
   std::this_thread::sleep_for(std::chrono::milliseconds(20));

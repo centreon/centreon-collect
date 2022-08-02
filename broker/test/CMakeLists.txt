@@ -78,12 +78,14 @@ add_executable(ut_broker
   ${TESTS_DIR}/compression/zlib/zlib.cc
   ${TESTS_DIR}/config/init.cc
   ${TESTS_DIR}/config/parser.cc
+  ${TESTS_DIR}/file/disk_accessor.cc
   ${TESTS_DIR}/file/splitter/concurrent.cc
   ${TESTS_DIR}/file/splitter/default.cc
   ${TESTS_DIR}/file/splitter/more_than_max_size.cc
   ${TESTS_DIR}/file/splitter/permission_denied.cc
   ${TESTS_DIR}/file/splitter/resume.cc
   ${TESTS_DIR}/file/splitter/split.cc
+  ${TESTS_DIR}/file/splitter/split_limited.cc
   ${TESTS_DIR}/misc/buffer.cc
   ${TESTS_DIR}/misc/exec.cc
   ${TESTS_DIR}/misc/filesystem.cc

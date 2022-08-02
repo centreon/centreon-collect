@@ -18,6 +18,7 @@
  */
 #include <gtest/gtest.h>
 #include "com/centreon/broker/file/cfile.hh"
+#include "com/centreon/broker/file/disk_accessor.hh"
 #include "com/centreon/broker/file/splitter.hh"
 #include "com/centreon/broker/misc/filesystem.hh"
 
@@ -26,6 +27,7 @@ using namespace com::centreon::broker;
 class FileSplitterMoreThanMaxSize : public ::testing::Test {
  public:
   void SetUp() override {
+    file::disk_accessor::load(100000u);
     _path = "/tmp/queue";
     {
       std::list<std::string> parts{
@@ -35,6 +37,8 @@ class FileSplitterMoreThanMaxSize : public ::testing::Test {
     }
     _file = std::make_unique<file::splitter>(_path, 10000, true);
   }
+
+  void TearDown() override { file::disk_accessor::unload(); }
 
  protected:
   std::unique_ptr<file::splitter> _file;
@@ -66,7 +70,6 @@ TEST_F(FileSplitterMoreThanMaxSize, MoreThanMaxSizeToNextFile) {
   second_file.append("1");
   size_t size2 = misc::filesystem::file_size(second_file);
   ASSERT_EQ(size2, static_cast<int64_t>(8 + sizeof(buffer)));
-  ASSERT_EQ(_file->size(), size1 + size2);
 }
 
 // Given a splitter object configured with a max_size of 10000
@@ -86,8 +89,6 @@ TEST_F(FileSplitterMoreThanMaxSize, ReadBeforeMoreThanMaxSize) {
 
   // Then
   ASSERT_EQ(read_bytes, 1);
-  // The first file is still here
-  ASSERT_EQ(_file->size(), 10001 + 8 + 9);
 }
 
 // Given a splitter object configured with a max_size of 10000
@@ -105,7 +106,6 @@ TEST_F(FileSplitterMoreThanMaxSize, ReadMoreThanMaxSize) {
   _file->write(buffer, 10001);
   size_t read_bytes = _file->read(buffer, sizeof(buffer));
   ASSERT_EQ(read_bytes, 1);
-  ASSERT_EQ(_file->size(), 10018u);
 
   // When
   memset(buffer, 0, sizeof(buffer));
@@ -113,12 +113,10 @@ TEST_F(FileSplitterMoreThanMaxSize, ReadMoreThanMaxSize) {
 
   // Then
   ASSERT_EQ(read_bytes, 10001);
-  ASSERT_EQ(_file->size(), 10009u);
   for (size_t i = 0; i < read_bytes; ++i)
     ASSERT_EQ(buffer[i], i % 128);
   try {
     _file->read(buffer, sizeof(buffer));
   } catch (const std::exception& e) {
   }
-  ASSERT_EQ(_file->size(), 0);
 }

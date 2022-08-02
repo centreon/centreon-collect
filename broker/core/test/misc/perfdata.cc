@@ -194,7 +194,7 @@ TEST(MiscPerfdata, DefaultCtor) {
 
 class MiscParserParsePerfdata : public testing::Test {
  public:
-  void SetUp() override { config::applier::init(0, "test_broker"); }
+  void SetUp() override { config::applier::init(0, "test_broker", 0); }
   void TearDown() override { config::applier::deinit(); };
 };
 

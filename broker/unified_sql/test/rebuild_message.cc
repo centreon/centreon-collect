@@ -74,7 +74,7 @@ class UnifiedSqlRebuild2Test : public ::testing::Test {
   void SetUp() override {
     io::data::broker_id = 0;
     try {
-      config::applier::init(0, "broker_test");
+      config::applier::init(0, "broker_test", 0);
     } catch (std::exception const& e) {
       (void)e;
     }

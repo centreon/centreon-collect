@@ -327,6 +327,7 @@ set(LIBROKER_SOURCES
   ${SRC_DIR}/config/state.cc
   ${SRC_DIR}/database_config.cc
   ${SRC_DIR}/file/cfile.cc
+  ${SRC_DIR}/file/disk_accessor.cc
   ${SRC_DIR}/file/directory_event.cc
   ${SRC_DIR}/file/directory_watcher.cc
   ${SRC_DIR}/file/factory.cc
@@ -482,7 +483,7 @@ set(LIBROKER_SOURCES
 add_library(rokerbase STATIC ${LIBROKER_SOURCES})
 set_target_properties(rokerbase PROPERTIES COMPILE_FLAGS "-fPIC")
 target_precompile_headers(rokerbase PRIVATE core/precomp_inc/precomp.hpp)
-add_dependencies(rokerbase berpc pb_welcome_lib)
+add_dependencies(rokerbase berpc)
 target_link_libraries(rokerbase CONAN_PKG::zlib CONAN_PKG::spdlog CONAN_PKG::openssl CONAN_PKG::mariadb-connector-c pthread dl berpc bbdo_bbdo pb_welcome_lib)
 
 add_library(roker STATIC

@@ -27,6 +27,8 @@ BRRDDM1
 	Broker Config Log	central	sql	info
 	Broker Config Log	rrd	rrd	debug
 	Broker Config Log	rrd	core	error
+        Broker Config Flush Log	central	0
+        Broker Config Flush Log	rrd	0
 	Create Metrics	3
 	${start}=	Get Current Date
 	Start Broker
@@ -99,6 +101,8 @@ BRRDDMID1
 	Broker Config Log	central	sql	info
 	Broker Config Log	rrd	rrd	debug
 	Broker Config Log	rrd	core	error
+        Broker Config Flush Log	central	0
+        Broker Config Flush Log	rrd	0
 
 	${start}=	Get Current Date
 	Start Broker
@@ -126,6 +130,8 @@ BRRDDMU1
 	Broker Config Log	central	sql	info
 	Broker Config Log	rrd	rrd	debug
 	Broker Config Log	rrd	core	error
+        Broker Config Flush Log	central	0
+        Broker Config Flush Log	rrd	0
 	Create Metrics	3
 
 	${start}=	Get Current Date
@@ -160,6 +166,8 @@ BRRDDIDU1
 	Broker Config Log	central	sql	info
 	Broker Config Log	rrd	rrd	debug
 	Broker Config Log	rrd	core	error
+        Broker Config Flush Log	central	0
+        Broker Config Flush Log	rrd	0
 	Create Metrics	3
 
 	${start}=	Get Current Date
@@ -197,6 +205,8 @@ BRRDDMIDU1
 	Broker Config Log	central	sql	info
 	Broker Config Log	rrd	rrd	debug
 	Broker Config Log	rrd	core	error
+        Broker Config Flush Log	central	0
+        Broker Config Flush Log	rrd	0
 
 	${start}=	Get Current Date
 	Start Broker
@@ -223,6 +233,8 @@ BRRDRM1
 	Config Broker	module
 	Broker Config Log	rrd	rrd	trace
 	Broker Config Log	central	sql	trace
+        Broker Config Flush Log	central	0
+        Broker Config Flush Log	rrd	0
 	Create Metrics	3
 
 	${start}=	Get Current Date
@@ -268,6 +280,8 @@ BRRDRMU1
 	Config Broker Sql Output	central	unified_sql
 	Broker Config Log	rrd	rrd	trace
 	Broker Config Log	central	sql	trace
+        Broker Config Flush Log	central	0
+        Broker Config Flush Log	rrd	0
         Broker Config Flush Log	central	0
         Broker Config Flush Log	rrd	0
 	Create Metrics	3

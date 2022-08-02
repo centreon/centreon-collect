@@ -20,6 +20,7 @@
 #include "com/centreon/broker/processing/feeder.hh"
 #include <gtest/gtest.h>
 #include "com/centreon/broker/config/applier/state.hh"
+#include "com/centreon/broker/file/disk_accessor.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
@@ -46,7 +47,8 @@ class TestFeeder : public ::testing::Test {
     pool::load(0);
     stats::center::load();
     config::applier::state::load();
-    multiplexing::engine::load();
+    file::disk_accessor::load(10000);
+    multiplexing::engine::load(0);
     io::protocols::load();
     io::events::load();
 
@@ -64,6 +66,7 @@ class TestFeeder : public ::testing::Test {
     io::events::unload();
     io::protocols::unload();
     stats::center::unload();
+    file::disk_accessor::unload();
     pool::unload();
   }
 };

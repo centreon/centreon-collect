@@ -196,7 +196,7 @@ TEST(UnifiedSqlPerfdata, DefaultCtor) {
 
 class UnifiedSqlParserParsePerfdata : public testing::Test {
  public:
-  void SetUp() override { config::applier::init(0, "test_broker"); }
+  void SetUp() override { config::applier::init(0, "test_broker", 0); }
   void TearDown() override { config::applier::deinit(); };
 };
 
@@ -204,7 +204,8 @@ class UnifiedSqlParserParsePerfdata : public testing::Test {
 // When parse_perfdata() is called with a valid perfdata string
 // Then perfdata are returned in a list
 TEST_F(UnifiedSqlParserParsePerfdata, Simple1) {
-  auto lst{misc::parse_perfdata(0, 0, "time=2.45698s;2.000000;5.000000;0.000000;10.000000")};
+  auto lst{misc::parse_perfdata(
+      0, 0, "time=2.45698s;2.000000;5.000000;0.000000;10.000000")};
 
   // Assertions.
   ASSERT_EQ(lst.size(), 1u);
@@ -428,7 +429,8 @@ TEST_F(UnifiedSqlParserParsePerfdata, Complex2) {
       0, 0,
       "'  \n time'=2,45698s;;nan;;inf d[metric]=239765B/s;5;;-inf; "
       "g[test]=8x;;;;"
-      " infotraffic=18,6x;;;; a[foo]=1234,17;10;11: c[bar]=1234,147;~:10;20:30")};
+      " infotraffic=18,6x;;;; a[foo]=1234,17;10;11: "
+      "c[bar]=1234,147;~:10;20:30")};
 
   // Assertions.
   ASSERT_EQ(list.size(), 6u);
@@ -545,7 +547,7 @@ TEST_F(UnifiedSqlParserParsePerfdata, BadMetric) {
 }
 
 TEST_F(UnifiedSqlParserParsePerfdata, BadMetric1) {
-      auto lst{misc::parse_perfdata(0, 0, "user1=1 user2=2 user4= user3=3")};
+  auto lst{misc::parse_perfdata(0, 0, "user1=1 user2=2 user4= user3=3")};
 
   // Assertions.
   ASSERT_EQ(lst.size(), 3u);

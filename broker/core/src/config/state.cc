@@ -156,7 +156,7 @@ std::string const& state::broker_name() const noexcept {
  *
  *  @param[in] size  the size in bytes.
  */
-void state::event_queues_total_size(uint64_t size) {
+void state::event_queues_total_size(size_t size) {
   _event_queues_total_size = size;
 }
 
@@ -166,7 +166,7 @@ void state::event_queues_total_size(uint64_t size) {
  *
  *  @return a size in bytes.
  */
-uint64_t state::event_queues_total_size() const noexcept {
+size_t state::event_queues_total_size() const noexcept {
   return _event_queues_total_size;
 }
 

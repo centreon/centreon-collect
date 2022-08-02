@@ -25,6 +25,7 @@
 
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/file/cfile.hh"
+#include "com/centreon/broker/file/disk_accessor.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/filesystem.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -57,8 +58,7 @@ splitter::splitter(std::string const& path,
       _wfile{},
       _wmutex{nullptr},
       _wid{0},
-      _woffset{0},
-      _size{0u} {
+      _woffset{0} {
   // Get IDs of already existing file parts. File parts are suffixed
   // with their order number. A file named /var/lib/foo would have
   // parts named /var/lib/foo, /var/lib/foo1, /var/lib/foo2, ...
@@ -98,8 +98,10 @@ splitter::splitter(std::string const& path,
       _wid = val;
 
     struct stat file_stat;
+    size_t size = 0;
     if (stat(f.c_str(), &file_stat) == 0)
-      _size += file_stat.st_size;
+      size += file_stat.st_size;
+    disk_accessor::instance().set_current_size(size);
   }
 
   if (_rid == std::numeric_limits<int>::max() || _rid < 0)
@@ -154,7 +156,7 @@ long splitter::read(void* buffer, long max_size) {
   fseek(_rfile.get(), _roffset, SEEK_SET);
 
   // Read data.
-  long rb = fread(buffer, 1, max_size, _rfile.get());
+  long rb = disk_accessor::instance().fread(buffer, 1, max_size, _rfile.get());
   std::string file_path(get_file_path(_rid));
   log_v2::bbdo()->debug("file: read {} bytes from '{}'", rb, file_path);
   _roffset += rb;
@@ -163,10 +165,7 @@ long splitter::read(void* buffer, long max_size) {
       if (_auto_delete) {
         log_v2::bbdo()->info("file: end of file '{}' reached, erasing it",
                              file_path);
-        struct stat file_stat;
-        if (stat(file_path.c_str(), &file_stat) == 0)
-          _size -= file_stat.st_size;
-        std::remove(file_path.c_str());
+        disk_accessor::instance().remove(file_path);
       }
       if (_rid < _wid) {
         _rid++;
@@ -230,6 +229,11 @@ long splitter::write(void const* buffer, long size) {
     }
   }
   std::unique_lock<std::mutex> lck(*_wmutex);
+  if (!_wfile) {
+    log_v2::core()->error("file: data of size {} lost", size);
+    return size;
+  }
+
   // Otherwise seek to end of file.
 
   fseek(_wfile.get(), _woffset, SEEK_SET);
@@ -239,13 +243,15 @@ long splitter::write(void const* buffer, long size) {
                         get_file_path(_wid));
 
   // Write data.
-  long remaining = size;
-  while (remaining > 0) {
-    long wb = fwrite(buffer, 1, remaining, _wfile.get());
-    remaining -= wb;
+  size_t wb = disk_accessor::instance().fwrite(buffer, 1, size, _wfile.get());
+  if (wb > 0)
     _woffset += wb;
+  else {
+    log_v2::core()->error(
+        "file: error while writing event into the file '{}' - event lost: {}",
+        get_file_path(_wid), strerror(errno));
   }
-  _size += size;
+
   return size;
 }
 
@@ -275,7 +281,7 @@ std::string splitter::get_file_path(int id) const {
  *
  *  @return Max file size.
  */
-uint32_t splitter::max_file_size() const {
+size_t splitter::max_file_size() const {
   return _max_file_size;
 }
 
@@ -336,8 +342,8 @@ void splitter::remove_all_files() {
   }
   std::list<std::string> parts{
       misc::filesystem::dir_content_with_filter(base_dir, base_name + '*')};
-  for (std::string const& f : parts)
-    std::remove(f.c_str());
+  for (const std::string& f : parts)
+    disk_accessor::instance().remove(f);
 }
 
 /**
@@ -351,7 +357,7 @@ void splitter::_open_read_file() {
       _rmutex = _wmutex;
     } else {
       std::string fname(get_file_path(_rid));
-      FILE* f = fopen(fname.c_str(), "r+");
+      FILE* f = disk_accessor::instance().fopen(fname, "r+");
       _rfile = f ? std::shared_ptr<FILE>(f, fclose) : std::shared_ptr<FILE>();
       if (_rfile)
         _rmutex = &_mutex1;
@@ -381,7 +387,7 @@ void splitter::_open_write_file() {
       _wmutex = _rmutex;
     } else {
       std::string fname(get_file_path(_wid));
-      FILE* f = fopen(fname.c_str(), "a+");
+      FILE* f = disk_accessor::instance().fopen(fname, "a+");
       _wfile = f ? std::shared_ptr<FILE>(f, fclose) : std::shared_ptr<FILE>();
       _wmutex = &_mutex2;
     }
@@ -404,21 +410,15 @@ void splitter::_open_write_file() {
     } header;
     header.integers[0] = 0;
     header.integers[1] = htonl(2 * sizeof(uint32_t));
-    size_t size = 0;
-    while (size < sizeof(header))
-      size +=
-          fwrite(header.bytes + size, 1, sizeof(header) - size, _wfile.get());
-    _woffset = 2 * sizeof(uint32_t);
-    _size += size;
+    size_t size = disk_accessor::instance().fwrite(
+        header.bytes, 1, sizeof(header), _wfile.get());
+    if (size > 0)
+      _woffset = 2 * sizeof(uint32_t);
+    else {
+      log_v2::core()->error("file: could not create file '{}': {}",
+                            get_file_path(_wid), strerror(errno));
+      _wfile.reset();
+      _woffset = 0;
+    }
   }
-}
-
-/**
- * @brief Accessor to the size of this splitter in bytes, ie the total size
- * occupied by the set of files constituting this splitter.
- *
- * @return a positive integer representing a size in bytes.
- */
-size_t splitter::size() const {
-  return _size;
 }

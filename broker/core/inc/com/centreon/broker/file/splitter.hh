@@ -76,7 +76,6 @@ class splitter : public fs_file {
   std::mutex _mutex1;
   std::mutex _mutex2;
   std::mutex _id_m;
-  std::atomic<size_t> _size;
 
   void _open_read_file();
   void _open_write_file();
@@ -98,12 +97,11 @@ class splitter : public fs_file {
   void flush() override;
 
   std::string get_file_path(int id = 0) const;
-  uint32_t max_file_size() const;
   int32_t get_rid() const;
   long get_roffset() const;
   int32_t get_wid() const;
   long get_woffset() const;
-  size_t size() const;
+  size_t max_file_size() const;
 };
 }  // namespace file
 

@@ -125,6 +125,7 @@ message EngineStats {
   Mode mode = 1;
   uint32 processed_events = 2;
   uint64 queue_size = 3;
+  uint64 available = 4;
 }
 
 message QueueFileStats {

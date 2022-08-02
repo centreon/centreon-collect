@@ -62,7 +62,6 @@ class stream : public io::stream {
   int32_t write(std::shared_ptr<io::data> const& d) override;
   int32_t stop() override;
   uint32_t max_file_size() const;
-  size_t size() const;
 };
 }  // namespace file
 

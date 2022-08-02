@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 - 2019 Centreon (https://www.centreon.com/)
+ * Copyright 2011 - 2019-2022 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@
 
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/file/cfile.hh"
+#include "com/centreon/broker/file/disk_accessor.hh"
 #include "com/centreon/broker/file/splitter.hh"
 #include "com/centreon/broker/file/stream.hh"
 #include "com/centreon/broker/misc/filesystem.hh"
@@ -92,11 +93,14 @@ class write_thread {
 class FileSplitterConcurrent : public ::testing::Test {
  public:
   void SetUp() override {
+    file::disk_accessor::load(100000u);
     _path = RETENTION_DIR RETENTION_FILE;
     _remove_files();
 
     _file = std::make_unique<file::splitter>(_path, 10000, true);
   }
+
+  void TearDown() override { file::disk_accessor::unload(); }
 
  protected:
   std::unique_ptr<file::splitter> _file;

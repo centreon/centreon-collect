@@ -31,7 +31,7 @@ class CompressionStreamWrite : public ::testing::Test {
  public:
   void SetUp() override {
     try {
-      config::applier::init(0, "test_broker");
+      config::applier::init(0, "test_broker", 0);
     } catch (const std::exception& e) {
       (void)e;
     }

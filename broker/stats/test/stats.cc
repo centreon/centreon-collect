@@ -25,6 +25,7 @@
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
+#include "com/centreon/broker/file/disk_accessor.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/factory.hh"
 #include "com/centreon/broker/io/protocols.hh"
@@ -48,7 +49,8 @@ class StatsTest : public ::testing::Test {
     stats::center::load();
     mysql_manager::load();
     config::applier::state::load();
-    multiplexing::engine::load();
+    file::disk_accessor::load(10000);
+    multiplexing::engine::load(0);
     io::protocols::load();
     io::events::load();
     config::applier::endpoint::load();
@@ -63,6 +65,7 @@ class StatsTest : public ::testing::Test {
     io::protocols::unload();
     mysql_manager::unload();
     stats::center::unload();
+    file::disk_accessor::unload();
     pool::unload();
   }
 };

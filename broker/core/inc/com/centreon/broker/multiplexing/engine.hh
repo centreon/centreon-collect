@@ -85,18 +85,20 @@ class engine {
   uint32_t _unprocessed_events;
 
   std::atomic_bool _sending_to_subscribers;
+  const size_t _event_queues_total_size;
 
-  engine();
+  engine(size_t event_queues_total_size);
   std::string _cache_file_path() const;
   void _send_to_subscribers();
 
   void (engine::*_write_func)(std::shared_ptr<io::data> const&);
 
  public:
-  static void load();
+  static void load(size_t event_queues_total_size);
   static void unload();
   static engine& instance();
 
+  engine() = delete;
   engine(const engine&) = delete;
   engine& operator=(const engine&) = delete;
   ~engine() noexcept;

@@ -300,13 +300,3 @@ void stream::remove_all_files() {
 uint32_t stream::max_file_size() const {
   return _splitter.max_file_size();
 }
-
-/**
- * @brief Accessor to the size of this stream in bytes, ie the total size
- * occupied by the set of files constituting this stream.
- *
- * @return a positive integer representing a size in bytes.
- */
-size_t stream::size() const {
-  return _splitter.size();
-}
