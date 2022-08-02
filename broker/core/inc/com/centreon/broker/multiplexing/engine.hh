@@ -78,7 +78,6 @@ class engine {
 
   // Subscriber.
   std::vector<muxer*> _muxers;
-  std::atomic<size_t> _files_size;
 
   // Statistics.
   EngineStats* _stats;
@@ -108,7 +107,6 @@ class engine {
   void stop();
   void subscribe(muxer* subscriber);
   void unsubscribe(muxer* subscriber);
-  size_t files_size() const;
 };
 }  // namespace multiplexing
 

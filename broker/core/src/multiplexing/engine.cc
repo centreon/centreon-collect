@@ -259,10 +259,6 @@ void engine::unsubscribe(muxer* subscriber) {
 /**
  *  Default constructor.
  */
-/**
- * @brief Constructor of the multiplexing engine. The argument is the total
- * size allowed for the queue files. If 0 is specified, no limit is given.
- */
 engine::engine()
     : _state{not_started},
       _strand(pool::instance().io_context()),
@@ -350,13 +346,4 @@ void engine::_send_to_subscribers() {
  */
 void engine::clear() {
   _kiew.clear();
-}
-
-/**
- * @brief Return the total size occupied by the queue files.
- *
- * @return a size_t integer.
- */
-size_t engine::files_size() const {
-  return _files_size;
 }

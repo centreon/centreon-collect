@@ -82,6 +82,8 @@ splitter::splitter(std::string const& path,
   size_t offset{base_dir.size() + base_name.size()};
   if (base_dir.back() != '/')
     offset++;
+  size_t size = 0;
+  struct stat file_stat;
   for (auto& f : parts) {
     const char* ptr{f.c_str() + offset};
     int val = 0;
@@ -97,12 +99,10 @@ splitter::splitter(std::string const& path,
     if (val > _wid)
       _wid = val;
 
-    struct stat file_stat;
-    size_t size = 0;
     if (stat(f.c_str(), &file_stat) == 0)
       size += file_stat.st_size;
-    disk_accessor::instance().set_current_size(size);
   }
+  disk_accessor::instance().set_current_size(size);
 
   if (_rid == std::numeric_limits<int>::max() || _rid < 0)
     _rid = 0;

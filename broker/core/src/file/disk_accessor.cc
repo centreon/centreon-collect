@@ -37,6 +37,9 @@ void disk_accessor::load(size_t limit_size) {
     log_v2::core()->warn("disk accessor already loaded");
 }
 
+/**
+ * @brief Static function used to unload the disk accessor instance.
+ */
 void disk_accessor::unload() {
   if (_instance) {
     delete _instance;
@@ -44,6 +47,11 @@ void disk_accessor::unload() {
   }
 }
 
+/**
+ * @brief Accessor to the disk accessor instance.
+ *
+ * @return The instance reference.
+ */
 disk_accessor& disk_accessor::instance() {
   assert(_instance);
   return *_instance;
@@ -88,10 +96,28 @@ size_t disk_accessor::fwrite(const void* ptr,
   }
 }
 
+/**
+ * @brief Call the libc fread function. Its interest is to gather all the needed
+ * functions into one class, to plan evolutions for later. Why not an
+ * asynchronous api.
+ *
+ * @param ptr
+ * @param size
+ * @param nmemb
+ * @param stream
+ *
+ * @return 
+ */
 size_t disk_accessor::fread(void* ptr, size_t size, size_t nmemb, fd stream) {
   return ::fread(ptr, size, nmemb, stream);
 }
 
+/**
+ * @brief Call the standard remove() function. Moreover it is linked to the
+ * current_size of the disk_accessor that is updated when a file is removed.
+ *
+ * @param name The name of the file to remove.
+ */
 void disk_accessor::remove(const std::string& name) {
   struct stat file_stat;
   if (stat(name.c_str(), &file_stat) == 0)
@@ -99,15 +125,33 @@ void disk_accessor::remove(const std::string& name) {
   std::remove(name.c_str());
 }
 
+/**
+ * @brief Accessor to the current used size.
+ *
+ * @return A size in bytes.
+ */
 size_t disk_accessor::current_size() const {
   return _current_size;
 }
 
+/**
+ * @brief A binding to the libc fopen() function.
+ *
+ * @param name
+ * @param mode
+ *
+ * @return 
+ */
 disk_accessor::fd disk_accessor::fopen(const std::string& name,
                                        const char* mode) {
   return ::fopen(name.c_str(), mode);
 }
 
+/**
+ * @brief A binding to the standard fclose() function.
+ *
+ * @param f
+ */
 void disk_accessor::fclose(disk_accessor::fd f) {
   ::fclose(f);
 }
