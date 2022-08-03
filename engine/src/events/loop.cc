@@ -440,8 +440,7 @@ void loop::_dispatching() {
       // often as possible.
       if (config->command_check_interval() == -1) {
         // Send data to event broker.
-        broker_external_command(NEBTYPE_EXTERNALCOMMAND_CHECK, NEBFLAG_NONE,
-                                NEBATTR_NONE, CMD_NONE, time(nullptr), nullptr,
+        broker_external_command(NEBTYPE_EXTERNALCOMMAND_CHECK, CMD_NONE,
                                 nullptr, nullptr);
       }
 

@@ -444,7 +444,7 @@ downtime* downtime_manager::add_new_host_downtime(std::string const& host_name,
     *downtime_id = new_downtime_id;
 
   /* send data to event broker */
-  broker_downtime_data(NEBTYPE_DOWNTIME_ADD, NEBFLAG_NONE, NEBATTR_NONE,
+  broker_downtime_data(NEBTYPE_DOWNTIME_ADD, NEBATTR_NONE,
                        downtime::host_downtime, host_name.c_str(), nullptr,
                        entry_time, author, comment_data, start_time, end_time,
                        fixed, triggered_by, duration, new_downtime_id, nullptr);
@@ -482,7 +482,7 @@ downtime* downtime_manager::add_new_service_downtime(
     *downtime_id = new_downtime_id;
 
   /* send data to event broker */
-  broker_downtime_data(NEBTYPE_DOWNTIME_ADD, NEBFLAG_NONE, NEBATTR_NONE,
+  broker_downtime_data(NEBTYPE_DOWNTIME_ADD, NEBATTR_NONE,
                        downtime::service_downtime, host_name.c_str(),
                        service_description.c_str(), entry_time, author.c_str(),
                        comment_data.c_str(), start_time, end_time, fixed,

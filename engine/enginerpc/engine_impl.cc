@@ -846,10 +846,10 @@ grpc::Status engine_impl::AcknowledgementHostProblem(
     temp_host->schedule_acknowledgement_expiration();
     /* send data to event broker */
     broker_acknowledgement_data(
-        NEBTYPE_ACKNOWLEDGEMENT_ADD, NEBFLAG_NONE, NEBATTR_NONE,
-        HOST_ACKNOWLEDGEMENT, static_cast<void*>(temp_host.get()),
-        request->ack_author().c_str(), request->ack_data().c_str(),
-        request->type(), request->notify(), request->persistent(), nullptr);
+        NEBTYPE_ACKNOWLEDGEMENT_ADD, HOST_ACKNOWLEDGEMENT,
+        static_cast<void*>(temp_host.get()), request->ack_author().c_str(),
+        request->ack_data().c_str(), request->type(), request->notify(),
+        request->persistent());
     /* send out an acknowledgement notification */
     if (request->notify())
       temp_host->notify(notifier::reason_acknowledgement, request->ack_author(),
@@ -911,10 +911,10 @@ grpc::Status engine_impl::AcknowledgementServiceProblem(
     temp_service->schedule_acknowledgement_expiration();
     /* send data to event broker */
     broker_acknowledgement_data(
-        NEBTYPE_ACKNOWLEDGEMENT_ADD, NEBFLAG_NONE, NEBATTR_NONE,
-        SERVICE_ACKNOWLEDGEMENT, static_cast<void*>(temp_service.get()),
-        request->ack_author().c_str(), request->ack_data().c_str(),
-        request->type(), request->notify(), request->persistent(), nullptr);
+        NEBTYPE_ACKNOWLEDGEMENT_ADD, SERVICE_ACKNOWLEDGEMENT,
+        static_cast<void*>(temp_service.get()), request->ack_author().c_str(),
+        request->ack_data().c_str(), request->type(), request->notify(),
+        request->persistent());
     /* send out an acknowledgement notification */
     if (request->notify())
       temp_service->notify(notifier::reason_acknowledgement,
@@ -2344,9 +2344,7 @@ grpc::Status engine_impl::ChangeHostObjectIntVar(grpc::ServerContext* context
                                       CHECK_OPTION_NONE);
         }
         broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                                  NEBATTR_NONE, temp_host.get(), CMD_NONE, attr,
-                                  temp_host->get_modified_attributes(),
-                                  nullptr);
+                                  NEBATTR_NONE, temp_host.get(), attr);
 
         /* We need check result to handle next check */
         temp_host->update_status();
@@ -2358,9 +2356,7 @@ grpc::Status engine_impl::ChangeHostObjectIntVar(grpc::ServerContext* context
         temp_host->set_modified_attributes(
             temp_host->get_modified_attributes() | attr);
         broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                                  NEBATTR_NONE, temp_host.get(), CMD_NONE, attr,
-                                  temp_host->get_modified_attributes(),
-                                  nullptr);
+                                  NEBATTR_NONE, temp_host.get(), attr);
         break;
 
       case ChangeObjectInt_Mode_MAX_ATTEMPTS:
@@ -2370,9 +2366,7 @@ grpc::Status engine_impl::ChangeHostObjectIntVar(grpc::ServerContext* context
             temp_host->get_modified_attributes() | attr);
 
         broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                                  NEBATTR_NONE, temp_host.get(), CMD_NONE, attr,
-                                  temp_host->get_modified_attributes(),
-                                  nullptr);
+                                  NEBATTR_NONE, temp_host.get(), attr);
 
         /* adjust current attempt number if in a hard state */
         if (temp_host->get_state_type() == notifier::hard &&
@@ -2389,9 +2383,7 @@ grpc::Status engine_impl::ChangeHostObjectIntVar(grpc::ServerContext* context
         temp_host->set_modified_attributes(attr);
         /* send data to event broker */
         broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                                  NEBATTR_NONE, temp_host.get(), CMD_NONE, attr,
-                                  temp_host->get_modified_attributes(),
-                                  nullptr);
+                                  NEBATTR_NONE, temp_host.get(), attr);
         break;
 
       default:
@@ -2464,10 +2456,9 @@ grpc::Status engine_impl::ChangeServiceObjectIntVar(
         }
         temp_service->set_modified_attributes(
             temp_service->get_modified_attributes() | attr);
-        broker_adaptive_service_data(
-            NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
-            temp_service.get(), CMD_NONE, attr,
-            temp_service->get_modified_attributes(), nullptr);
+        broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE,
+                                     NEBFLAG_NONE, NEBATTR_NONE,
+                                     temp_service.get(), attr);
 
         /* We need check result to handle next check */
         temp_service->update_status();
@@ -2478,10 +2469,9 @@ grpc::Status engine_impl::ChangeServiceObjectIntVar(
         temp_service->set_modified_attributes(
             temp_service->get_modified_attributes() | attr);
         /* send data to event broker */
-        broker_adaptive_service_data(
-            NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
-            temp_service.get(), CMD_NONE, attr,
-            temp_service->get_modified_attributes(), nullptr);
+        broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE,
+                                     NEBFLAG_NONE, NEBATTR_NONE,
+                                     temp_service.get(), attr);
         break;
 
       case ChangeObjectInt_Mode_MAX_ATTEMPTS:
@@ -2490,10 +2480,9 @@ grpc::Status engine_impl::ChangeServiceObjectIntVar(
         temp_service->set_modified_attributes(
             temp_service->get_modified_attributes() | attr);
 
-        broker_adaptive_service_data(
-            NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
-            temp_service.get(), CMD_NONE, attr,
-            temp_service->get_modified_attributes(), nullptr);
+        broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE,
+                                     NEBFLAG_NONE, NEBATTR_NONE,
+                                     temp_service.get(), attr);
 
         /* adjust current attempt number if in a hard state */
         if (temp_service->get_state_type() == notifier::hard &&
@@ -2509,10 +2498,9 @@ grpc::Status engine_impl::ChangeServiceObjectIntVar(
         attr = request->intval();
         temp_service->set_modified_attributes(attr);
         /* send data to event broker */
-        broker_adaptive_service_data(
-            NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
-            temp_service.get(), CMD_NONE, attr,
-            temp_service->get_modified_attributes(), nullptr);
+        broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE,
+                                     NEBFLAG_NONE, NEBATTR_NONE,
+                                     temp_service.get(), attr);
         break;
       default:
         err = "no mode informed for method ChangeServiceObjectIntVar";
@@ -2665,9 +2653,7 @@ grpc::Status engine_impl::ChangeHostObjectCharVar(
         temp_host->add_modified_attributes(attr);
         /* send data to event broker */
         broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                                  NEBATTR_NONE, temp_host.get(), CMD_NONE, attr,
-                                  temp_host->get_modified_attributes(),
-                                  nullptr);
+                                  NEBATTR_NONE, temp_host.get(), attr);
         break;
       case ChangeObjectChar_Mode_CHANGE_CHECK_COMMAND:
         temp_host->set_check_command(request->charval());
@@ -2675,9 +2661,7 @@ grpc::Status engine_impl::ChangeHostObjectCharVar(
         attr = MODATTR_CHECK_COMMAND;
         /* send data to event broker */
         broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                                  NEBATTR_NONE, temp_host.get(), CMD_NONE, attr,
-                                  temp_host->get_modified_attributes(),
-                                  nullptr);
+                                  NEBATTR_NONE, temp_host.get(), attr);
         break;
       case ChangeObjectChar_Mode_CHANGE_CHECK_TIMEPERIOD:
         temp_host->set_check_period(request->charval());
@@ -2685,9 +2669,7 @@ grpc::Status engine_impl::ChangeHostObjectCharVar(
         attr = MODATTR_CHECK_TIMEPERIOD;
         /* send data to event broker */
         broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                                  NEBATTR_NONE, temp_host.get(), CMD_NONE, attr,
-                                  temp_host->get_modified_attributes(),
-                                  nullptr);
+                                  NEBATTR_NONE, temp_host.get(), attr);
         break;
       case ChangeObjectChar_Mode_CHANGE_NOTIFICATION_TIMEPERIOD:
         temp_host->set_notification_period(request->charval());
@@ -2695,9 +2677,7 @@ grpc::Status engine_impl::ChangeHostObjectCharVar(
         attr = MODATTR_NOTIFICATION_TIMEPERIOD;
         /* send data to event broker */
         broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                                  NEBATTR_NONE, temp_host.get(), CMD_NONE, attr,
-                                  temp_host->get_modified_attributes(),
-                                  nullptr);
+                                  NEBATTR_NONE, temp_host.get(), attr);
         break;
       default:
         err = "no mode informed for method ChangeHostObjectCharVar";
@@ -2813,10 +2793,8 @@ grpc::Status engine_impl::ChangeServiceObjectCharVar(
       temp_service->add_modified_attributes(attr);
 
       /* send data to event broker */
-      broker_adaptive_service_data(
-          NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
-          temp_service.get(), CMD_NONE, attr,
-          temp_service->get_modified_attributes(), nullptr);
+      broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
+                                   NEBATTR_NONE, temp_service.get(), attr);
     }
     return 0;
   });

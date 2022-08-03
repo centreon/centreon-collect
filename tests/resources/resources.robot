@@ -84,7 +84,11 @@ Stop Engine
 	${count}=	Get Engines Count
 	FOR	${idx}	IN RANGE	0	${count}
 	 ${alias}=	Catenate	SEPARATOR=	e	${idx}
-	 ${result}=	Terminate Process	${alias}
+	 Send Signal To Process	SIGTERM	${alias}
+	END
+	FOR	${idx}	IN RANGE	0	${count}
+	 ${alias}=	Catenate	SEPARATOR=	e	${idx}
+	 ${result}=	Wait For Process	${alias}	timeout=60s	on_timeout=kill
 	 Should Be True	${result.rc} == -15 or ${result.rc} == 0	msg=Engine badly stopped with ${count} instances - code returned ${result.rc}.
 	END
 

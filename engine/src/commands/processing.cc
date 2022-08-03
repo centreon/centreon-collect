@@ -635,18 +635,14 @@ bool processing::execute(const std::string& cmdstr) {
   log_v2::external_command()->debug("Command arguments: {}", args);
 
   // Send data to event broker.
-  broker_external_command(NEBTYPE_EXTERNALCOMMAND_START, NEBFLAG_NONE,
-                          NEBATTR_NONE, command_id, entry_time,
-                          const_cast<char*>(command_name.c_str()),
+  broker_external_command(NEBTYPE_EXTERNALCOMMAND_START, command_id,
                           const_cast<char*>(args.c_str()), nullptr);
 
   if (it != _lst_command.end())
     (*it->second.func)(command_id, entry_time, const_cast<char*>(args.c_str()));
 
   // Send data to event broker.
-  broker_external_command(NEBTYPE_EXTERNALCOMMAND_END, NEBFLAG_NONE,
-                          NEBATTR_NONE, command_id, entry_time,
-                          const_cast<char*>(command_name.c_str()),
+  broker_external_command(NEBTYPE_EXTERNALCOMMAND_END, command_id,
                           const_cast<char*>(args.c_str()), nullptr);
   return true;
 }

@@ -152,7 +152,6 @@ static void send_downtimes_list() {
     nsdd.duration = p.second->get_duration();
     nsdd.triggered_by = p.second->get_triggered_by();
     nsdd.downtime_id = p.second->get_downtime_id();
-    nsdd.object_ptr = p.second.get();
 
     // Callback.
     neb::callback_downtime(NEBCALLBACK_DOWNTIME_DATA, &nsdd);
@@ -180,9 +179,6 @@ static void send_host_dependencies_list() {
       nebstruct_adaptive_dependency_data nsadd;
       memset(&nsadd, 0, sizeof(nsadd));
       nsadd.type = NEBTYPE_HOSTDEPENDENCY_ADD;
-      nsadd.flags = NEBFLAG_NONE;
-      nsadd.attr = NEBATTR_NONE;
-      nsadd.timestamp.tv_sec = time(nullptr);
       nsadd.object_ptr = it->second.get();
 
       // Callback.
@@ -250,12 +246,10 @@ static void send_severity_list() {
   /* Start log message. */
   log_v2::neb()->info("init: beginning severity dump");
 
-  timeval timestamp = get_broker_timestamp(nullptr);
   for (auto it = com::centreon::engine::severity::severities.begin(),
             end = com::centreon::engine::severity::severities.end();
        it != end; ++it) {
-    broker_adaptive_severity_data(NEBTYPE_SEVERITY_ADD, NEBFLAG_NONE,
-                                  NEBATTR_NONE, it->second.get(), &timestamp);
+    broker_adaptive_severity_data(NEBTYPE_SEVERITY_ADD, it->second.get());
   }
 }
 
@@ -266,12 +260,10 @@ static void send_tag_list() {
   /* Start log message. */
   log_v2::neb()->info("init: beginning tag dump");
 
-  timeval timestamp = get_broker_timestamp(nullptr);
   for (auto it = com::centreon::engine::tag::tags.begin(),
             end = com::centreon::engine::tag::tags.end();
        it != end; ++it) {
-    broker_adaptive_tag_data(NEBTYPE_TAG_ADD, NEBFLAG_NONE, NEBATTR_NONE,
-                             it->second.get(), &timestamp);
+    broker_adaptive_tag_data(NEBTYPE_TAG_ADD, it->second.get());
   }
 }
 
@@ -290,9 +282,7 @@ static void send_host_list() {
     nebstruct_adaptive_host_data nsahd;
     memset(&nsahd, 0, sizeof(nsahd));
     nsahd.type = NEBTYPE_HOST_ADD;
-    nsahd.command_type = CMD_NONE;
     nsahd.modified_attribute = MODATTR_ALL;
-    nsahd.modified_attributes = MODATTR_ALL;
     nsahd.object_ptr = it->second.get();
 
     // Callback.
@@ -318,9 +308,7 @@ static void send_pb_host_list() {
     nebstruct_adaptive_host_data nsahd;
     memset(&nsahd, 0, sizeof(nsahd));
     nsahd.type = NEBTYPE_HOST_ADD;
-    nsahd.command_type = CMD_NONE;
     nsahd.modified_attribute = MODATTR_ALL;
-    nsahd.modified_attributes = MODATTR_ALL;
     nsahd.object_ptr = it->second.get();
 
     // Callback.
@@ -351,9 +339,6 @@ static void send_host_parents_list() {
         nebstruct_relation_data nsrd;
         memset(&nsrd, 0, sizeof(nsrd));
         nsrd.type = NEBTYPE_PARENT_ADD;
-        nsrd.flags = NEBFLAG_NONE;
-        nsrd.attr = NEBATTR_NONE;
-        nsrd.timestamp.tv_sec = time(nullptr);
         nsrd.hst = pit->second;
         nsrd.dep_hst = it->second.get();
 
@@ -418,9 +403,6 @@ static void send_service_dependencies_list() {
       nebstruct_adaptive_dependency_data nsadd;
       memset(&nsadd, 0, sizeof(nsadd));
       nsadd.type = NEBTYPE_SERVICEDEPENDENCY_ADD;
-      nsadd.flags = NEBFLAG_NONE;
-      nsadd.attr = NEBATTR_NONE;
-      nsadd.timestamp.tv_sec = time(nullptr);
       nsadd.object_ptr = it->second.get();
 
       // Callback.
@@ -496,9 +478,7 @@ static void send_service_list() {
     nebstruct_adaptive_service_data nsasd;
     memset(&nsasd, 0, sizeof(nsasd));
     nsasd.type = NEBTYPE_SERVICE_ADD;
-    nsasd.command_type = CMD_NONE;
     nsasd.modified_attribute = MODATTR_ALL;
-    nsasd.modified_attributes = MODATTR_ALL;
     nsasd.object_ptr = it->second.get();
 
     // Callback.
@@ -525,9 +505,7 @@ static void send_pb_service_list() {
     nebstruct_adaptive_service_data nsasd;
     memset(&nsasd, 0, sizeof(nsasd));
     nsasd.type = NEBTYPE_SERVICE_ADD;
-    nsasd.command_type = CMD_NONE;
     nsasd.modified_attribute = MODATTR_ALL;
-    nsasd.modified_attributes = MODATTR_ALL;
     nsasd.object_ptr = it->second.get();
 
     // Callback.

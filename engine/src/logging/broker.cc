@@ -101,8 +101,7 @@ void broker::log(uint64_t types,
       copy.get()[size] = 0;
 
       // Event broker callback.
-      broker_log_data(NEBTYPE_LOG_DATA, NEBFLAG_NONE, NEBATTR_NONE, copy.get(),
-                      types, time(NULL), NULL);
+      broker_log_data(copy.get(), time(NULL));
       _thread_id = std::thread::id();
     }
   }

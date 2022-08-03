@@ -127,9 +127,9 @@ void applier::host::add_object(configuration::host const& obj) {
 
     if (it->second.is_sent()) {
       timeval tv(get_broker_timestamp(nullptr));
-      broker_custom_variable(NEBTYPE_HOSTCUSTOMVARIABLE_ADD, NEBFLAG_NONE,
-                             NEBATTR_NONE, h.get(), it->first.c_str(),
-                             it->second.get_value().c_str(), &tv);
+      broker_custom_variable(NEBTYPE_HOSTCUSTOMVARIABLE_ADD, h.get(),
+                             it->first.c_str(), it->second.get_value().c_str(),
+                             &tv);
     }
   }
 
@@ -166,9 +166,8 @@ void applier::host::add_object(configuration::host const& obj) {
   }
 
   // Notify event broker.
-  timeval tv(get_broker_timestamp(nullptr));
   broker_adaptive_host_data(NEBTYPE_HOST_ADD, NEBFLAG_NONE, NEBATTR_NONE,
-                            h.get(), CMD_NONE, MODATTR_ALL, MODATTR_ALL, &tv);
+                            h.get(), MODATTR_ALL);
 }
 
 /**
@@ -381,10 +380,9 @@ void applier::host::modify_object(configuration::host const& obj) {
     for (auto& c : it_obj->second->custom_variables) {
       if (c.second.is_sent()) {
         timeval tv(get_broker_timestamp(nullptr));
-        broker_custom_variable(NEBTYPE_HOSTCUSTOMVARIABLE_DELETE, NEBFLAG_NONE,
-                               NEBATTR_NONE, it_obj->second.get(),
-                               c.first.c_str(), c.second.get_value().c_str(),
-                               &tv);
+        broker_custom_variable(NEBTYPE_HOSTCUSTOMVARIABLE_DELETE,
+                               it_obj->second.get(), c.first.c_str(),
+                               c.second.get_value().c_str(), &tv);
       }
     }
     it_obj->second->custom_variables.clear();
@@ -394,10 +392,9 @@ void applier::host::modify_object(configuration::host const& obj) {
 
       if (c.second.is_sent()) {
         timeval tv(get_broker_timestamp(nullptr));
-        broker_custom_variable(NEBTYPE_HOSTCUSTOMVARIABLE_ADD, NEBFLAG_NONE,
-                               NEBATTR_NONE, it_obj->second.get(),
-                               c.first.c_str(), c.second.get_value().c_str(),
-                               &tv);
+        broker_custom_variable(NEBTYPE_HOSTCUSTOMVARIABLE_ADD,
+                               it_obj->second.get(), c.first.c_str(),
+                               c.second.get_value().c_str(), &tv);
       }
     }
   }
@@ -423,13 +420,11 @@ void applier::host::modify_object(configuration::host const& obj) {
   if (obj.parents() != obj_old.parents()) {
     // Delete old parents.
     {
-      timeval tv(get_broker_timestamp(nullptr));
       for (host_map_unsafe::iterator it(it_obj->second->parent_hosts.begin()),
            end(it_obj->second->parent_hosts.end());
            it != end; it++)
-        broker_relation_data(NEBTYPE_PARENT_DELETE, NEBFLAG_NONE, NEBATTR_NONE,
-                             it->second, nullptr, it_obj->second.get(), nullptr,
-                             &tv);
+        broker_relation_data(NEBTYPE_PARENT_DELETE, it->second, nullptr,
+                             it_obj->second.get(), nullptr);
     }
     it_obj->second->parent_hosts.clear();
 
@@ -454,10 +449,8 @@ void applier::host::modify_object(configuration::host const& obj) {
     it_obj->second->set_severity(nullptr);
 
   // Notify event broker.
-  timeval tv(get_broker_timestamp(nullptr));
   broker_adaptive_host_data(NEBTYPE_HOST_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
-                            it_obj->second.get(), CMD_NONE, MODATTR_ALL,
-                            MODATTR_ALL, &tv);
+                            it_obj->second.get(), MODATTR_ALL);
 }
 
 /**
@@ -490,17 +483,13 @@ void applier::host::remove_object(configuration::host const& obj) {
       it_h->members.erase(it->second->name());
 
     // Notify event broker.
-    timeval tv(get_broker_timestamp(nullptr));
-
     for (auto it_s = it->second->services.begin();
          it_s != it->second->services.end(); ++it_s)
       broker_adaptive_service_data(NEBTYPE_SERVICE_DELETE, NEBFLAG_NONE,
-                                   NEBATTR_NONE, it_s->second, CMD_NONE,
-                                   MODATTR_ALL, MODATTR_ALL, &tv);
+                                   NEBATTR_NONE, it_s->second, MODATTR_ALL);
 
     broker_adaptive_host_data(NEBTYPE_HOST_DELETE, NEBFLAG_NONE, NEBATTR_NONE,
-                              it->second.get(), CMD_NONE, MODATTR_ALL,
-                              MODATTR_ALL, &tv);
+                              it->second.get(), MODATTR_ALL);
 
     // Erase host object (will effectively delete the object).
     engine::host::hosts.erase(it->second->name());

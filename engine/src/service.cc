@@ -1574,8 +1574,9 @@ int service::handle_async_check_result(
     set_no_more_notifications(false);
 
     if (reschedule_check)
-      next_service_check = (time_t)(
-          get_last_check() + check_interval() * config->interval_length());
+      next_service_check =
+          (time_t)(get_last_check() +
+                   check_interval() * config->interval_length());
   }
 
   /*******************************************/
@@ -1760,8 +1761,9 @@ int service::handle_async_check_result(
         /* the host is not up, so reschedule the next service check at regular
          * interval */
         if (reschedule_check)
-          next_service_check = (time_t)(
-              get_last_check() + check_interval() * config->interval_length());
+          next_service_check =
+              (time_t)(get_last_check() +
+                       check_interval() * config->interval_length());
 
         /* log the problem as a hard state if the host just went down */
         if (hard_state_change) {
@@ -1791,8 +1793,9 @@ int service::handle_async_check_result(
         handle_service_event();
 
         if (reschedule_check)
-          next_service_check = (time_t)(
-              get_last_check() + retry_interval() * config->interval_length());
+          next_service_check =
+              (time_t)(get_last_check() +
+                       retry_interval() * config->interval_length());
       }
 
       /* perform dependency checks on the second to last check of the service */
@@ -1892,8 +1895,9 @@ int service::handle_async_check_result(
 
       /* reschedule the next check at the regular interval */
       if (reschedule_check)
-        next_service_check = (time_t)(
-            get_last_check() + check_interval() * config->interval_length());
+        next_service_check =
+            (time_t)(get_last_check() +
+                     check_interval() * config->interval_length());
     }
 
     /* should we obsessive over service checks? */
@@ -1966,13 +1970,8 @@ int service::handle_async_check_result(
   }
 
   /* send data to event broker */
-  broker_service_check(NEBTYPE_SERVICECHECK_PROCESSED, NEBFLAG_NONE,
-                       NEBATTR_NONE, this, get_check_type(),
-                       queued_check_result.get_start_time(),
-                       queued_check_result.get_finish_time(), get_latency(),
-                       get_execution_time(), config->service_check_timeout(),
-                       queued_check_result.get_early_timeout(),
-                       queued_check_result.get_return_code(), nullptr, nullptr);
+  broker_service_check(NEBTYPE_SERVICECHECK_PROCESSED, this, get_check_type(),
+                       nullptr);
 
   if (!(reschedule_check && get_should_be_scheduled() && has_been_checked()) ||
       !active_checks_enabled()) {
@@ -2230,9 +2229,8 @@ int service::handle_service_event() {
   clear_volatile_macros_r(mac);
 
   /* send data to event broker */
-  broker_external_command(NEBTYPE_EXTERNALCOMMAND_CHECK, NEBFLAG_NONE,
-                          NEBATTR_NONE, CMD_NONE, time(nullptr), nullptr,
-                          nullptr, nullptr);
+  broker_external_command(NEBTYPE_EXTERNALCOMMAND_CHECK, CMD_NONE, nullptr,
+                          nullptr);
 
   return OK;
 }
@@ -2507,11 +2505,8 @@ int service::run_async_check(int check_options,
 
   // Send broker event.
   timeval start_time = {0, 0};
-  timeval end_time = {0, 0};
-  int res = broker_service_check(
-      NEBTYPE_SERVICECHECK_ASYNC_PRECHECK, NEBFLAG_NONE, NEBATTR_NONE, this,
-      checkable::check_active, start_time, end_time, get_latency(), 0.0, 0,
-      false, 0, nullptr, nullptr);
+  int res = broker_service_check(NEBTYPE_SERVICECHECK_ASYNC_PRECHECK, this,
+                                 checkable::check_active, nullptr);
 
   // Service check was cancelled by NEB module. reschedule check later.
   if (NEBERROR_CALLBACKCANCEL == res) {
@@ -2581,11 +2576,8 @@ int service::run_async_check(int check_options,
   std::string processed_cmd(cmd->process_cmd(macros));
 
   // Send event broker.
-  res = broker_service_check(NEBTYPE_SERVICECHECK_INITIATE, NEBFLAG_NONE,
-                             NEBATTR_NONE, this, checkable::check_active,
-                             start_time, end_time, get_latency(), 0.0,
-                             config->service_check_timeout(), false, 0,
-                             processed_cmd.c_str(), nullptr);
+  res = broker_service_check(NEBTYPE_SERVICECHECK_INITIATE, this,
+                             checkable::check_active, processed_cmd.c_str());
 
   // Restore latency.
   set_latency(old_latency);
@@ -2860,9 +2852,8 @@ void service::set_flap(double percent_change,
   set_is_flapping(true);
 
   /* send data to event broker */
-  broker_flapping_data(NEBTYPE_FLAPPING_START, NEBFLAG_NONE, NEBATTR_NONE,
-                       SERVICE_FLAPPING, this, percent_change, high_threshold,
-                       low_threshold, nullptr);
+  broker_flapping_data(NEBTYPE_FLAPPING_START, SERVICE_FLAPPING, this,
+                       percent_change, high_threshold, low_threshold, nullptr);
 
   /* send a notification */
   if (allow_flapstart_notification)
@@ -2903,8 +2894,7 @@ void service::clear_flap(double percent_change,
   set_is_flapping(false);
 
   /* send data to event broker */
-  broker_flapping_data(NEBTYPE_FLAPPING_STOP, NEBFLAG_NONE,
-                       NEBATTR_FLAPPING_STOP_NORMAL, SERVICE_FLAPPING, this,
+  broker_flapping_data(NEBTYPE_FLAPPING_STOP, SERVICE_FLAPPING, this,
                        percent_change, high_threshold, low_threshold, nullptr);
 
   /* send a notification */
@@ -2940,8 +2930,7 @@ void service::enable_flap_detection() {
 
   /* send data to event broker */
   broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
-                               NEBATTR_NONE, this, CMD_NONE, attr,
-                               get_modified_attributes(), nullptr);
+                               NEBATTR_NONE, this, attr);
 
   /* check for flapping */
   check_for_flapping(false, true);
@@ -2978,8 +2967,7 @@ void service::disable_flap_detection() {
 
   /* send data to event broker */
   broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
-                               NEBATTR_NONE, this, CMD_NONE, attr,
-                               get_modified_attributes(), nullptr);
+                               NEBATTR_NONE, this, attr);
 
   /* handle the details... */
   handle_flap_detection_disabled();
@@ -2989,8 +2977,7 @@ void service::disable_flap_detection() {
  * @brief Updates service status info. Send data to event broker.
  */
 void service::update_status() {
-  broker_service_status(NEBTYPE_SERVICESTATUS_UPDATE, NEBFLAG_NONE,
-                        NEBATTR_NONE, this, nullptr);
+  broker_service_status(NEBTYPE_SERVICESTATUS_UPDATE, this);
 }
 
 /**
@@ -3002,9 +2989,9 @@ void service::update_status() {
  */
 void service::update_adaptive_data() {
   /* send data to event broker */
-  broker_adaptive_service_data(
-      NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE, NEBATTR_BBDO3_ONLY, this,
-      CMD_NONE, get_modified_attributes(), get_modified_attributes(), nullptr);
+  broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
+                               NEBATTR_BBDO3_ONLY, this,
+                               get_modified_attributes());
 }
 
 /* checks viability of performing a service check */
@@ -3397,9 +3384,9 @@ bool service::is_result_fresh(time_t current_time, int log_this) {
    * suggested by Altinity */
   else if (this->active_checks_enabled() && event_start > get_last_check() &&
            this->get_freshness_threshold() == 0)
-    expiration_time = (time_t)(
-        event_start + freshness_threshold +
-        (config->max_service_check_spread() * config->interval_length()));
+    expiration_time = (time_t)(event_start + freshness_threshold +
+                               (config->max_service_check_spread() *
+                                config->interval_length()));
   else
     expiration_time = (time_t)(get_last_check() + freshness_threshold);
 
@@ -3497,8 +3484,7 @@ void service::handle_flap_detection_disabled() {
         this->get_hostname(), this->get_description());
 
     /* send data to event broker */
-    broker_flapping_data(NEBTYPE_FLAPPING_STOP, NEBFLAG_NONE,
-                         NEBATTR_FLAPPING_STOP_DISABLED, SERVICE_FLAPPING, this,
+    broker_flapping_data(NEBTYPE_FLAPPING_STOP, SERVICE_FLAPPING, this,
                          get_percent_state_change(), 0.0, 0.0, nullptr);
 
     /* send a notification */
@@ -3799,9 +3785,8 @@ void service::resolve(int& w, int& e) {
       it->second->services.insert({{_hostname, name()}, this});
 
       // Notify event broker.
-      timeval tv(get_broker_timestamp(NULL));
-      broker_relation_data(NEBTYPE_PARENT_ADD, NEBFLAG_NONE, NEBATTR_NONE,
-                           get_host_ptr(), NULL, NULL, this, &tv);
+      broker_relation_data(NEBTYPE_PARENT_ADD, get_host_ptr(), NULL, NULL,
+                           this);
     }
   }
 

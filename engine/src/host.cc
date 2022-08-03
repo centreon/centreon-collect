@@ -314,9 +314,7 @@ void host::add_child_host(host* child) {
   child_hosts.insert({child->name(), child});
 
   // Notify event broker.
-  timeval tv(get_broker_timestamp(nullptr));
-  broker_relation_data(NEBTYPE_PARENT_ADD, NEBFLAG_NONE, NEBATTR_NONE, this,
-                       nullptr, child, nullptr, &tv);
+  broker_relation_data(NEBTYPE_PARENT_ADD, this, nullptr, child, nullptr);
 }
 
 void host::add_parent_host(const std::string& host_name) {
@@ -1535,15 +1533,8 @@ int host::handle_async_check_result_3x(
   gettimeofday(&end_time_hires, nullptr);
 
   /* send data to event broker */
-  broker_host_check(
-      NEBTYPE_HOSTCHECK_PROCESSED, NEBFLAG_NONE, NEBATTR_NONE, this,
-      get_check_type(), get_current_state(), get_state_type(), start_time_hires,
-      end_time_hires, get_latency(), get_execution_time(),
-      config->host_check_timeout(), queued_check_result.get_early_timeout(),
-      queued_check_result.get_return_code(), nullptr,
-      const_cast<char*>(get_plugin_output().c_str()),
-      const_cast<char*>(get_long_plugin_output().c_str()),
-      const_cast<char*>(get_perf_data().c_str()), nullptr);
+  broker_host_check(NEBTYPE_HOSTCHECK_PROCESSED, this, get_check_type(),
+                    nullptr, const_cast<char*>(get_plugin_output().c_str()));
   return OK;
 }
 
@@ -1712,15 +1703,9 @@ int host::run_async_check(int check_options,
   }
 
   // Send broker event.
-  timeval start_time;
-  timeval end_time;
-  memset(&start_time, 0, sizeof(start_time));
-  memset(&end_time, 0, sizeof(end_time));
-  int res = broker_host_check(
-      NEBTYPE_HOSTCHECK_ASYNC_PRECHECK, NEBFLAG_NONE, NEBATTR_NONE, this,
-      checkable::check_active, get_current_state(), get_state_type(),
-      start_time, end_time, get_latency(), 0.0, config->host_check_timeout(),
-      false, 0, nullptr, nullptr, nullptr, nullptr, nullptr);
+  timeval start_time{0, 0};
+  int res = broker_host_check(NEBTYPE_HOSTCHECK_ASYNC_PRECHECK, this,
+                              checkable::check_active, nullptr, nullptr);
 
   // Host check was cancel by NEB module. Reschedule check later.
   if (NEBERROR_CALLBACKCANCEL == res) {
@@ -1784,11 +1769,8 @@ int host::run_async_check(int check_options,
   std::string processed_cmd(cmd->process_cmd(macros));
 
   // Send event broker.
-  broker_host_check(NEBTYPE_HOSTCHECK_INITIATE, NEBFLAG_NONE, NEBATTR_NONE,
-                    this, checkable::check_active, get_current_state(),
-                    get_state_type(), start_time, end_time, get_latency(), 0.0,
-                    config->host_check_timeout(), false, 0,
-                    processed_cmd.c_str(), nullptr, nullptr, nullptr, nullptr);
+  broker_host_check(NEBTYPE_HOSTCHECK_INITIATE, this, checkable::check_active,
+                    processed_cmd.c_str(), nullptr);
 
   // Restore latency.
   set_latency(old_latency);
@@ -2208,9 +2190,8 @@ void host::set_flap(double percent_change,
   set_is_flapping(true);
 
   /* send data to event broker */
-  broker_flapping_data(NEBTYPE_FLAPPING_START, NEBFLAG_NONE, NEBATTR_NONE,
-                       HOST_FLAPPING, this, percent_change, high_threshold,
-                       low_threshold, nullptr);
+  broker_flapping_data(NEBTYPE_FLAPPING_START, HOST_FLAPPING, this,
+                       percent_change, high_threshold, low_threshold, nullptr);
 
   /* send a notification */
   if (allow_flapstart_notification)
@@ -2249,8 +2230,7 @@ void host::clear_flap(double percent_change,
   set_is_flapping(false);
 
   /* send data to event broker */
-  broker_flapping_data(NEBTYPE_FLAPPING_STOP, NEBFLAG_NONE,
-                       NEBATTR_FLAPPING_STOP_NORMAL, HOST_FLAPPING, this,
+  broker_flapping_data(NEBTYPE_FLAPPING_STOP, HOST_FLAPPING, this,
                        percent_change, high_threshold, low_threshold, nullptr);
 
   /* send a notification */
@@ -2264,8 +2244,7 @@ void host::clear_flap(double percent_change,
  * @brief Updates host status info. Data are sent to event broker.
  */
 void host::update_status() {
-  broker_host_status(NEBTYPE_HOSTSTATUS_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
-                     this, nullptr);
+  broker_host_status(NEBTYPE_HOSTSTATUS_UPDATE, this);
 }
 
 /**
@@ -2446,9 +2425,9 @@ void host::update_performance_data() {
  */
 void host::update_adaptive_data() {
   /* send data to event broker */
-  broker_adaptive_host_data(
-      NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE, NEBATTR_BBDO3_ONLY, this,
-      CMD_NONE, get_modified_attributes(), get_modified_attributes(), nullptr);
+  broker_adaptive_host_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
+                            NEBATTR_BBDO3_ONLY, this,
+                            get_modified_attributes());
 }
 
 /* checks viability of performing a host check */
@@ -2722,8 +2701,7 @@ void host::disable_flap_detection() {
 
   /* send data to event broker */
   broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                            NEBATTR_NONE, this, CMD_NONE, attr,
-                            get_modified_attributes(), nullptr);
+                            NEBATTR_NONE, this, attr);
 
   /* handle the details... */
   handle_flap_detection_disabled();
@@ -2753,8 +2731,7 @@ void host::enable_flap_detection() {
 
   /* send data to event broker */
   broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                            NEBATTR_NONE, this, CMD_NONE, attr,
-                            get_modified_attributes(), nullptr);
+                            NEBATTR_NONE, this, attr);
 
   /* check for flapping */
   check_for_flapping(false, false, true);
@@ -2969,8 +2946,7 @@ void host::handle_flap_detection_disabled() {
         this->name());
 
     /* send data to event broker */
-    broker_flapping_data(NEBTYPE_FLAPPING_STOP, NEBFLAG_NONE,
-                         NEBATTR_FLAPPING_STOP_DISABLED, HOST_FLAPPING, this,
+    broker_flapping_data(NEBTYPE_FLAPPING_STOP, HOST_FLAPPING, this,
                          this->get_percent_state_change(), 0.0, 0.0, nullptr);
 
     /* send a notification */
@@ -3854,9 +3830,10 @@ void host::check_for_orphaned() {
 
     /* determine the time at which the check results should have come in (allow
      * 10 minutes slack time) */
-    expected_time = (time_t)(
-        it->second->get_next_check() + it->second->get_latency() +
-        config->host_check_timeout() + config->check_reaper_interval() + 600);
+    expected_time =
+        (time_t)(it->second->get_next_check() + it->second->get_latency() +
+                 config->host_check_timeout() +
+                 config->check_reaper_interval() + 600);
 
     /* this host was supposed to have executed a while ago, but for some reason
      * the results haven't come back in... */
