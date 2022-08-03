@@ -20,6 +20,7 @@
 #include <gtest/gtest.h>
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/file/cfile.hh"
+#include "com/centreon/broker/file/disk_accessor.hh"
 #include "com/centreon/broker/file/splitter.hh"
 #include "com/centreon/broker/misc/filesystem.hh"
 
@@ -28,6 +29,7 @@ using namespace com::centreon::broker;
 class FileSplitterResume : public ::testing::Test {
  public:
   void SetUp() override {
+    file::disk_accessor::load(100000u);
     std::list<std::string> lst{
         misc::filesystem::dir_content_with_filter("/tmp/", "queue*")};
     for (std::string const& f : lst)
@@ -37,26 +39,28 @@ class FileSplitterResume : public ::testing::Test {
     // Create 7 files.
     std::unique_ptr<file::fs_file> f;
     char buffer[10008];
-    for (int i(2); i < 10; ++i) {
+    for (int i = 2; i < 10; ++i) {
       memset(buffer, i, sizeof(buffer));
       std::string ff{fmt::format("{}{}", _path, i)};
-      f.reset(new file::cfile(ff, file::fs_file::open_read_write_truncate));
+      f = std::make_unique<file::cfile>(
+          ff, file::fs_file::open_read_write_truncate);
       f->write(buffer, sizeof(buffer));
     }
 
     // Create the last file.
     std::string last_file(_path);
     last_file.append("10");
-    f.reset(
-        new file::cfile(last_file, file::fs_file::open_read_write_truncate));
+    f = std::make_unique<file::cfile>(last_file,
+                                      file::fs_file::open_read_write_truncate);
     memset(buffer, 10, sizeof(buffer));
     f->write(buffer, 108);
     f.reset();
 
     // Create new splitter.
-    _file.reset(new file::splitter(
-        _path, file::fs_file::open_read_write_truncate, 10000, true));
+    _file = std::make_unique<file::splitter>(_path, 10000, true);
   }
+
+  void TearDown() override { file::disk_accessor::unload(); }
 
  protected:
   std::unique_ptr<file::splitter> _file;

@@ -55,11 +55,6 @@ data::data(data const& other)
       destination_id(other.destination_id) {}
 
 /**
- *  Destructor.
- */
-data::~data() {}
-
-/**
  *  Assignment operator.
  *
  *  @param[in] other  Object to copy.

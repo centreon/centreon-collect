@@ -257,7 +257,7 @@ void kpi_ba::_fill_impact(impact_values& impact,
 void kpi_ba::_open_new_event(io::stream* visitor,
                              int impact,
                              state ba_state,
-                             timestamp event_start_time) {
+                             const timestamp& event_start_time) {
   _event = std::make_shared<kpi_event>(_id, _ba_id, event_start_time);
   _event->impact_level = impact;
   _event->in_downtime = _ba->get_in_downtime();

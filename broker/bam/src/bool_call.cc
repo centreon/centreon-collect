@@ -104,7 +104,7 @@ std::string const& bool_call::get_name() const {
  *  @param[in] expression  The expression.
  */
 void bool_call::set_expression(std::shared_ptr<bool_value> expression) {
-  _expression = expression;
+  _expression = std::move(expression);
 }
 
 /**
@@ -118,5 +118,5 @@ void bool_call::set_expression(std::shared_ptr<bool_value> expression) {
 bool bool_call::child_has_update(computable* child, io::stream* visitor) {
   (void)child;
   (void)visitor;
-  return (true);
+  return true;
 }

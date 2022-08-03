@@ -34,18 +34,14 @@ using namespace com::centreon::broker;
  * used to access the statistics in the stats center.
  */
 persistent_file::persistent_file(const std::string& path, QueueFileStats* stats)
-    : io::stream("persistent_file"), _stats(stats) {
+    : io::stream("persistent_file") {
   // On-disk file.
   constexpr uint32_t max_size{100000000u};
-  auto fs = std::make_shared<file::stream>(
-      new file::splitter(path, file::fs_file::open_read_write_truncate,
-                         max_size, true),
-      _stats);
-  _splitter = std::static_pointer_cast<file::stream>(fs);
+  _splitter = std::make_shared<file::stream>(path, stats, max_size, true);
 
   // Compression layer.
   auto cs{std::make_shared<compression::stream>()};
-  cs->set_substream(fs);
+  cs->set_substream(_splitter);
 
   // BBDO layer.
   auto bs{std::make_shared<bbdo::stream>(true)};
@@ -55,12 +51,11 @@ persistent_file::persistent_file(const std::string& path, QueueFileStats* stats)
 
   // Set stream.
   io::stream::set_substream(bs);
-  if (_stats)
+  if (stats)
     stats::center::instance().execute(
-        [p = path, s = this->_stats,
-         max_file_size = _splitter->max_file_size()] {
-          s->set_name(p);
-          s->set_max_file_size(max_file_size);
+        [path, stats, max_file_size = _splitter->max_file_size()] {
+          stats->set_name(path);
+          stats->set_max_file_size(max_file_size);
         });
 }
 

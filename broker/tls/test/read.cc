@@ -42,7 +42,7 @@ class TlsStreamRead : public ::testing::Test {
  public:
   void SetUp() override {
     try {
-      config::applier::init(0, "test_broker");
+      config::applier::init(0, "test_broker", 0);
     } catch (const std::exception& e) {
       (void)e;
     }
@@ -59,7 +59,6 @@ class TlsStreamRead : public ::testing::Test {
     _connector = std::make_unique<tls2::connector>("", "", "", "");
     _substream_con = std::make_shared<StreamMemoryStream>();
     _stream_con = _connector->open(_substream_con);
-
   }
 
   void TearDown() override { config::applier::deinit(); }

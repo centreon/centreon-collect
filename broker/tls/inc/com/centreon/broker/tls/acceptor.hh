@@ -51,7 +51,7 @@ class acceptor : public io::endpoint {
   acceptor(acceptor const& right) = delete;
   acceptor& operator=(acceptor const&) = delete;
   std::unique_ptr<io::stream> open() override;
-  std::unique_ptr<io::stream> open(std::shared_ptr<io::stream> lower);
+  std::unique_ptr<io::stream> open(const std::shared_ptr<io::stream>& lower);
 };
 }  // namespace tls
 

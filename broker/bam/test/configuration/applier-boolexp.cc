@@ -28,7 +28,7 @@ class ApplierBoolexp : public ::testing::Test {
  public:
   void SetUp() override {
     // Initialization.
-    config::applier::init(0, "test_broker");
+    config::applier::init(0, "test_broker", 0);
 
     _aply_state.reset(new bam::configuration::applier::state);
     _state.reset(new bam::configuration::state);

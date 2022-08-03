@@ -81,8 +81,7 @@ class splitter : public fs_file {
   void _open_write_file();
 
  public:
-  splitter(std::string const& path,
-           fs_file::open_mode mode,
+  splitter(const std::string& path,
            uint32_t max_file_size = 100000000u,
            bool auto_delete = false);
   ~splitter();
@@ -98,11 +97,11 @@ class splitter : public fs_file {
   void flush() override;
 
   std::string get_file_path(int id = 0) const;
-  uint32_t max_file_size() const;
   int32_t get_rid() const;
   long get_roffset() const;
   int32_t get_wid() const;
   long get_woffset() const;
+  size_t max_file_size() const;
 };
 }  // namespace file
 

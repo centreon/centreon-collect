@@ -327,6 +327,7 @@ set(LIBROKER_SOURCES
   ${SRC_DIR}/config/state.cc
   ${SRC_DIR}/database_config.cc
   ${SRC_DIR}/file/cfile.cc
+  ${SRC_DIR}/file/disk_accessor.cc
   ${SRC_DIR}/file/directory_event.cc
   ${SRC_DIR}/file/directory_watcher.cc
   ${SRC_DIR}/file/factory.cc

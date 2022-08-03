@@ -172,10 +172,18 @@ bool filesystem::mkpath(std::string const& path) {
   }
 }
 
-int64_t filesystem::file_size(std::string const& path) {
-  std::ifstream file{path, std::ios::binary | std::ios::ate};
-  int64_t size{file.tellg()};
-  return size;
+/**
+ * @brief Get the file size of the file whose path is given.
+ *
+ * @param path The file name.
+ *
+ * @return the size in bytes of the file or -1 on error.
+ */
+int64_t filesystem::file_size(const std::string& path) noexcept {
+  struct stat file_stat;
+  if (stat(path.c_str(), &file_stat) == 0)
+    return file_stat.st_size;
+  return -1;
 }
 
 /**

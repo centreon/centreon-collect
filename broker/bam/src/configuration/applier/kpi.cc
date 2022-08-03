@@ -267,9 +267,9 @@ std::shared_ptr<bam::kpi> applier::kpi::_new_kpi(
     log_v2::bam()->info(
         "BAM: creating new KPI {} of service ({}, {}) impacting BA {}",
         cfg.get_id(), cfg.get_host_id(), cfg.get_service_id(), cfg.get_ba_id());
-    auto obj{std::make_shared<bam::kpi_service>(
-        cfg.get_id(), cfg.get_ba_id(), cfg.get_host_id(),
-        cfg.get_service_id())};
+    auto obj{std::make_shared<bam::kpi_service>(cfg.get_id(), cfg.get_ba_id(),
+                                                cfg.get_host_id(),
+                                                cfg.get_service_id())};
     obj->set_acknowledged(cfg.is_acknowledged());
     obj->set_downtimed(cfg.is_downtimed());
     obj->set_impact_critical(cfg.get_impact_critical());
@@ -312,7 +312,7 @@ std::shared_ptr<bam::kpi> applier::kpi::_new_kpi(
  * @param kpi The Kpi itself.
  */
 void applier::kpi::_resolve_kpi(configuration::kpi const& cfg,
-                                std::shared_ptr<bam::kpi> kpi) {
+                                const std::shared_ptr<bam::kpi>& kpi) {
   // Find target BA.
   uint32_t ba_id = cfg.get_ba_id();
   std::shared_ptr<bam::ba> my_ba(_bas->find_ba(ba_id));

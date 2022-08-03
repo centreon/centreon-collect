@@ -255,7 +255,11 @@ state parser::parse(std::string const& file) {
                                       &state::event_queue_max_size,
                                       &json::is_number, &json::get<int>))
           ;
-        else if (it.key() == "output") {
+        else if (it.key() == "event_queues_total_size") {
+          auto eqts = check_and_read<uint64_t>(json_document["centreonBroker"],
+                                               "event_queues_total_size");
+          retval.event_queues_total_size(eqts.value());
+        } else if (it.key() == "output") {
           if (it.value().is_array()) {
             for (const json& node : it.value()) {
               endpoint out(endpoint::io_type::output);

@@ -970,8 +970,8 @@ void stream::_check_rebuild_index() {
   std::set<uint64_t> index_to_rebuild;
   try {
     _mysql.run_query_and_get_result(
-        "SELECT id FROM index_data WHERE must_be_rebuild='1'", std::move(promise),
-        conn);
+        "SELECT id FROM index_data WHERE must_be_rebuild='1'",
+        std::move(promise), conn);
     database::mysql_result res(future.get());
 
     while (_mysql.fetch_row(res)) {

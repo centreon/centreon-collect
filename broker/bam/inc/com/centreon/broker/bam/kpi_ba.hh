@@ -54,7 +54,7 @@ class kpi_ba : public kpi {
   void _open_new_event(io::stream* visitor,
                        int impact,
                        state ba_state,
-                       timestamp event_start_time);
+                       const timestamp& event_start_time);
 
  public:
   kpi_ba(uint32_t kpi_id, uint32_t ba_id);

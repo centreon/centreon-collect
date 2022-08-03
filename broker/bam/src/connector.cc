@@ -45,7 +45,7 @@ void connector::connect_monitoring(std::string const& ext_cmd_file,
   _type = bam_monitoring_type;
   _ext_cmd_file = ext_cmd_file;
   _db_cfg = db_cfg;
-  _cache = cache;
+  _cache = std::move(cache);
   if (storage_db_name.empty())
     _storage_db_name = db_cfg.get_name();
   else

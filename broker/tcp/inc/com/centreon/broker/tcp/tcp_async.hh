@@ -86,7 +86,7 @@ class tcp_async {
   std::shared_ptr<asio::ip::tcp::acceptor> create_acceptor(
       const std::string& listen_address,
       uint16_t port);
-  void start_acceptor(std::shared_ptr<asio::ip::tcp::acceptor> acceptor);
+  void start_acceptor(const std::shared_ptr<asio::ip::tcp::acceptor>& acceptor);
   void stop_acceptor(std::shared_ptr<asio::ip::tcp::acceptor> acceptor);
 
   std::shared_ptr<tcp_connection> create_connection(std::string const& address,
@@ -96,7 +96,7 @@ class tcp_async {
                      tcp_connection::pointer new_connection,
                      const asio::error_code& error);
   tcp_connection::pointer get_connection(
-      std::shared_ptr<asio::ip::tcp::acceptor> acceptor,
+      const std::shared_ptr<asio::ip::tcp::acceptor>& acceptor,
       uint32_t timeout_s);
   bool contains_available_acceptor_connections(
       asio::ip::tcp::acceptor* acceptor) const;

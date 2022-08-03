@@ -43,6 +43,7 @@ class state {
   size_t _pool_size;
   modules _modules;
   absl::flat_hash_map<uint64_t, std::string> _connected_pollers;
+  mutable std::mutex _connected_pollers_m;
 
   state();
   ~state() noexcept = default;

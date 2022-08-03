@@ -46,13 +46,14 @@ engine& engine::instance() {
 }
 
 /**
- *  Load engine instance.
+ * @brief Load engine instance. The argument is the total size allowed for
+ * queue files.
  */
 void engine::load() {
   log_v2::core()->trace("multiplexing: loading engine");
   std::lock_guard<std::mutex> lk(_load_m);
   if (!_instance)
-    _instance = new engine;
+    _instance = new engine();
 }
 
 /**
@@ -172,7 +173,9 @@ void engine::start() {
 }
 
 /**
- *  Stop multiplexing.
+ * @brief Stop multiplexing. After a call to this function, all published events
+ * are sent to an unprocessed persistent file. These events are not lost and
+ * will be handled at the next cbd start.
  */
 void engine::stop() {
   std::unique_lock<std::mutex> lock(_engine_m);
@@ -202,7 +205,7 @@ void engine::stop() {
     // while the engine is stopped. It will be replayed next time
     // the engine is started.
     try {
-      _cache_file.reset(new persistent_cache(_cache_file_path()));
+      _cache_file = std::make_unique<persistent_cache>(_cache_file_path());
       _cache_file->transaction();
     } catch (const std::exception& e) {
       log_v2::perfdata()->error("multiplexing: could not open cache file: {}",

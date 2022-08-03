@@ -63,6 +63,7 @@ class muxer : public io::stream {
   const bool _persistent;
 
   std::unique_ptr<persistent_file> _file;
+
   std::condition_variable _cv;
   mutable std::mutex _mutex;
   std::list<std::shared_ptr<io::data>> _events;

@@ -92,7 +92,7 @@ com::centreon::broker::time::timeperiod::ptr timeperiod_map::get_timeperiod(
  *  @param[in] ptr  A ptr to the timeperiod to add.
  */
 void timeperiod_map::add_timeperiod(uint32_t id, time::timeperiod::ptr ptr) {
-  _map[id] = ptr;
+  _map[id] = std::move(ptr);
 }
 
 /**

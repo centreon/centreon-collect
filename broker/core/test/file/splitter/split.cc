@@ -18,6 +18,7 @@
  */
 #include <gtest/gtest.h>
 #include "com/centreon/broker/file/cfile.hh"
+#include "com/centreon/broker/file/disk_accessor.hh"
 #include "com/centreon/broker/file/splitter.hh"
 #include "com/centreon/broker/misc/filesystem.hh"
 
@@ -26,6 +27,7 @@ using namespace com::centreon::broker;
 class FileSplitterSplit : public ::testing::Test {
  public:
   void SetUp() override {
+    file::disk_accessor::load(200000);
     _path = "/tmp/queue";
     {
       std::list<std::string> parts{
@@ -33,15 +35,16 @@ class FileSplitterSplit : public ::testing::Test {
       for (std::string const& f : parts)
         std::remove(f.c_str());
     }
-    _file.reset(new file::splitter(
-        _path, file::fs_file::open_read_write_truncate, 10008, true));
+    _file = std::make_unique<file::splitter>(_path, 10008, true);
     char buffer[10];
-    for (int i(0); i < 10; ++i)
+    for (int i = 0; i < 10; ++i)
       buffer[i] = i;
-    for (int i(0); i < 10001; ++i)
+    for (int i = 0; i < 10001; ++i)
       _file->write(buffer, sizeof(buffer));
     _file->flush();
   }
+
+  void TearDown() override { file::disk_accessor::unload(); }
 
  protected:
   std::unique_ptr<file::splitter> _file;
