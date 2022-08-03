@@ -176,6 +176,13 @@ io::endpoint* factory::new_endpoint(
     authorization = it->second;
   }
 
+  std::string ca_name;
+  it = cfg.params.find("ca_name");
+  if (it == cfg.params.end())
+    it = cfg.params.find("tls_hostname");
+  if (it != cfg.params.end())
+    ca_name = it->second;
+
   bool compression = false;
   it = cfg.params.find("compression");
   if (it != cfg.params.end() && !strcasecmp(it->second.c_str(), "yes"))
@@ -189,7 +196,7 @@ io::endpoint* factory::new_endpoint(
 
   grpc_config::pointer conf(std::make_shared<grpc_config>(
       "", encrypted, certificate, certificate_key, certificate_authority,
-      authorization, enable_compression));
+      authorization, ca_name, enable_compression));
 
   std::unique_ptr<io::endpoint> endp;
   if (host.empty())
@@ -283,6 +290,17 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
     authorization = it->second;
   log_v2::grpc()->debug("GRPC: 'authorization' field contains '{}'",
                         authorization);
+
+  // Find ca_name token (if exists).
+  std::string ca_name;
+  it = cfg.params.find("ca_name");
+  if (it == cfg.params.end())
+    it = cfg.params.find("tls_hostname");
+  if (it != cfg.params.end())
+    ca_name = it->second;
+
+  log_v2::grpc()->debug("GRPC: 'ca_name' field contains '{}'",
+                        ca_name);
 
   bool encryption = false;
   it = cfg.params.find("encryption");
@@ -383,7 +401,7 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
 
   grpc_config::pointer conf(std::make_shared<grpc_config>(
       "", encryption, certificate, private_key, ca_certificate, authorization,
-      enable_compression));
+      ca_name, enable_compression));
 
   // Acceptor.
   std::unique_ptr<io::endpoint> endp;

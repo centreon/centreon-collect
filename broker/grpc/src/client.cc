@@ -37,6 +37,8 @@ client::client(const grpc_config::pointer& conf)
   args.SetInt(GRPC_ARG_KEEPALIVE_TIME_MS, 30000);
   args.SetInt(GRPC_ARG_KEEPALIVE_TIMEOUT_MS, 10000);
   args.SetInt(GRPC_ARG_HTTP2_MAX_PINGS_WITHOUT_DATA, 0);
+  if (!conf->get_ca_name().empty())
+    args.SetString(GRPC_SSL_TARGET_NAME_OVERRIDE_ARG, conf->get_ca_name());
   if (conf->get_compression() == grpc_config::YES) {
     grpc_compression_algorithm algo = grpc_compression_algorithm_for_level(
         GRPC_COMPRESS_LEVEL_HIGH, calc_accept_all_compression_mask());
