@@ -365,17 +365,6 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
           "GRPC: 'ca_certificate' ignored since 'encryption' is disabled");
   }
 
-  if (encryption && ca_certificate.empty() && cfg.type == "bbdo_client") {
-    log_v2::grpc()->error(
-        "GRPC: There is no ca certificate specified for bbdo_client '{}', the "
-        "connection won't be established.",
-        cfg.name);
-    throw msg_fmt(
-        "GRPC: There is no ca certificate specified for bbdo_client '{}', the "
-        "connection won't be established.",
-        cfg.name);
-  }
-
   bool compression = false;
   it = cfg.params.find("compression");
   if (it != cfg.params.end()) {
