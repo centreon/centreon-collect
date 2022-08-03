@@ -18,21 +18,31 @@ DB_USER = BuiltIn().get_variable_value("${DBUser}")
 DB_PASS = BuiltIn().get_variable_value("${DBPass}")
 DB_HOST = BuiltIn().get_variable_value("${DBHost}")
 DB_PORT = BuiltIn().get_variable_value("${DBPort}")
+VAR_ROOT = BuiltIn().get_variable_value("${VarRoot}")
 
 
 def check_connection(port: int, pid1: int, pid2: int):
     limit = time.time() + TIMEOUT
-    r = re.compile(r"^ESTAB.*127\.0\.0\.1\]*:{}\s".format(port))
+    r = re.compile(
+        r"^ESTAB.*127\.0\.0\.1\]*:{}\s|^ESTAB.*\[::1\]*:{}\s".format(port, port))
+    p = re.compile(
+        r"127\.0\.0\.1\]*:(\d+)\s+.*127\.0\.0\.1\]*:(\d+)\s+.*,pid=(\d+)")
+    p_v6 = re.compile(
+        r"::1\]*:(\d+)\s+.*::1\]*:(\d+)\s+.*,pid=(\d+)")
     while time.time() < limit:
         out = getoutput("ss -plant")
         lst = out.split('\n')
         estab_port = list(filter(r.match, lst))
         if len(estab_port) >= 2:
             ok = [False, False]
-            p = re.compile(
-                r"127\.0\.0\.1\]*:(\d+)\s+.*127\.0\.0\.1\]*:(\d+)\s+.*,pid=(\d+)")
             for l in estab_port:
                 m = p.search(l)
+                if m is not None:
+                    if pid1 == int(m.group(3)):
+                        ok[0] = True
+                    if pid2 == int(m.group(3)):
+                        ok[1] = True
+                m = p_v6.search(l)
                 if m is not None:
                     if pid1 == int(m.group(3)):
                         ok[0] = True
@@ -41,7 +51,6 @@ def check_connection(port: int, pid1: int, pid2: int):
             if ok[0] and ok[1]:
                 return True
         time.sleep(1)
-
     return False
 
 
@@ -168,17 +177,16 @@ def kill_engine():
 
 
 def clear_retention():
-    getoutput("find /var -name '*.cache.*' -delete")
+    getoutput("find " + VAR_ROOT + " -name '*.cache.*' -delete")
     getoutput("find /tmp -name 'lua*' -delete")
-    getoutput("find /tmp -name 'central-*' -delete")
-    getoutput("find /var -name '*.memory.*' -delete")
-    getoutput("find /var -name '*.queue.*' -delete")
-    getoutput("find /var -name '*.unprocessed*' -delete")
-    getoutput("find /var -name 'retention.dat' -delete")
+    getoutput("find " + VAR_ROOT + " -name '*.memory.*' -delete")
+    getoutput("find " + VAR_ROOT + " -name '*.queue.*' -delete")
+    getoutput("find " + VAR_ROOT + " -name '*.unprocessed*' -delete")
+    getoutput("find " + VAR_ROOT + " -name 'retention.dat' -delete")
 
 
 def clear_cache():
-    getoutput("find /var -name '*.cache.*' -delete")
+    getoutput("find " + VAR_ROOT + " -name '*.cache.*' -delete")
 
 
 def engine_log_table_duplicate(result: list):
@@ -197,7 +205,8 @@ def check_engine_logs_are_duplicated(log: str, date):
         idx = find_line_from(lines, date)
         count_true = 0
         count_false = 0
-        logs = []
+        logs_old = []
+        logs_new = []
         old_log = re.compile(r"\[[^\]]*\] \[[^\]]*\] ([^\[].*)")
         new_log = re.compile(
             r"\[[^\]]*\] \[[^\]]*\] \[[^\]]*\] \[[^\]]*\] (.*)")
@@ -205,18 +214,18 @@ def check_engine_logs_are_duplicated(log: str, date):
             mo = old_log.match(l)
             mn = new_log.match(l)
             if mo is not None:
-                if mo.group(1) in logs:
-                    logs.remove(mo.group(1))
+                if mo.group(1) in logs_new:
+                    logs_new.remove(mo.group(1))
                 else:
-                    logs.append(mo.group(1))
+                    logs_old.append(mo.group(1))
             else:
                 mn = new_log.match(l)
                 if mn is not None:
-                    if mn.group(1) in logs:
-                        logs.remove(mn.group(1))
+                    if mn.group(1) in logs_old:
+                        logs_old.remove(mn.group(1))
                     else:
-                        logs.append(mn.group(1))
-        if len(logs) <= 1:
+                        logs_new.append(mn.group(1))
+        if len(logs_old) <= 1:
             # It is possible to miss one log because of the initial split of the
             # file.
             return True
@@ -225,6 +234,7 @@ def check_engine_logs_are_duplicated(log: str, date):
                 "{} old logs are not duplicated".format(len(logs_old)))
             for l in logs_old:
                 logger.console(l)
+            # We don't care about new logs not duplicated, in a future, we won't have any old logs
     except IOError:
         logger.console("The file '{}' does not exist".format(log))
         return False
@@ -340,7 +350,7 @@ def check_service_status_with_timeout(hostname: str, service_desc: str, status: 
                 cursor.execute("SELECT s.state FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description=\"{}\" AND h.name=\"{}\"".format(
                     service_desc, hostname))
                 result = cursor.fetchall()
-                if result[0]['state'] is not None and int(result[0]['state']) == int(status):
+                if len(result) > 0 and result[0]['state'] is not None and int(result[0]['state']) == int(status):
                     return True
         time.sleep(5)
     return False
@@ -489,7 +499,7 @@ def delete_service_downtime(hst: str, svc: str):
             did = int(result[0]['internal_id'])
 
     cmd = "[{}] DEL_SVC_DOWNTIME;{}".format(now, did)
-    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
     f.write(cmd)
     f.close()
 

@@ -140,6 +140,7 @@ std::unordered_map<std::string, state::setter_func> const state::_setters{
     {"log_notifications", SETTER(bool, log_notifications)},
     {"log_passive_checks", SETTER(bool, log_passive_checks)},
     {"log_pid", SETTER(bool, log_pid)},
+    {"log_file_line", SETTER(bool, log_file_line)},
     {"log_rotation_method",
      SETTER(std::string const&, _set_log_rotation_method)},
     {"log_service_retries", SETTER(bool, log_service_retries)},
@@ -457,6 +458,7 @@ state::state()
       _log_notifications(default_log_notifications),
       _log_passive_checks(default_log_passive_checks),
       _log_pid(default_log_pid),
+      _log_file_line(false),
       _log_service_retries(default_log_service_retries),
       _low_host_flap_threshold(default_low_host_flap_threshold),
       _low_service_flap_threshold(default_low_service_flap_threshold),
@@ -629,6 +631,7 @@ state& state::operator=(state const& right) {
     _log_notifications = right._log_notifications;
     _log_passive_checks = right._log_passive_checks;
     _log_pid = right._log_pid;
+    _log_file_line = right._log_file_line;
     _log_service_retries = right._log_service_retries;
     _low_host_flap_threshold = right._low_host_flap_threshold;
     _low_service_flap_threshold = right._low_service_flap_threshold;
@@ -792,7 +795,7 @@ bool state::operator==(state const& right) const noexcept {
       _log_host_retries == right._log_host_retries &&
       _log_notifications == right._log_notifications &&
       _log_passive_checks == right._log_passive_checks &&
-      _log_pid == right._log_pid &&
+      _log_pid == right._log_pid && _log_file_line == right._log_file_line &&
       _log_service_retries == right._log_service_retries &&
       _low_host_flap_threshold == right._low_host_flap_threshold &&
       _low_service_flap_threshold == right._low_service_flap_threshold &&
@@ -2460,6 +2463,15 @@ bool state::log_pid() const noexcept {
  */
 void state::log_pid(bool value) {
   _log_pid = value;
+}
+
+/**
+ *  Set the log file line value.
+ *
+ *  @param[in] value  The new log file line value.
+ */
+void state::log_file_line(bool value) {
+  _log_file_line = value;
 }
 
 /**

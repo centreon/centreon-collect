@@ -319,3 +319,18 @@ time_t timestamp::to_seconds() const noexcept {
 int64_t timestamp::to_useconds() const noexcept {
   return _secs * 1000000ll + _usecs;
 }
+
+CC_BEGIN()
+
+std::ostream& operator<<(std::ostream& s, const timestamp& to_dump) {
+  struct tm tmp;
+  time_t seconds = to_dump.to_seconds();
+  localtime_r(&seconds, &tmp);
+  char buf[80];
+  strftime(buf, sizeof(buf), "%c: ", &tmp);
+  s << buf;
+
+  return s;
+}
+
+CC_END()

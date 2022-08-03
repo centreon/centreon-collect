@@ -3,6 +3,7 @@ Resource	../resources/resources.robot
 Suite Setup	Clean Before Suite
 Suite Teardown	Clean After Suite
 Test Setup	Stop Processes
+Test Teardown	Save logs If Failed
 
 Documentation	Centreon Broker RRD metric deletion from the legacy query made by the php.
 Library	DatabaseLibrary
@@ -49,8 +50,8 @@ BRRDDMDB1
 	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	30
 	Should Be True	${result}	msg=No log message telling about metrics ${metrics_str} deletion.
 	FOR	${m}	IN	@{metrics}
-		Log to Console	Waiting for /var/lib/centreon/metrics/${m}.rrd to be deleted
-		Wait Until Removed	/var/lib/centreon/metrics/${m}.rrd      20s
+		Log to Console	Waiting for ${VarRoot}/lib/centreon/metrics/${m}.rrd to be deleted
+		Wait Until Removed	${VarRoot}/lib/centreon/metrics/${m}.rrd      20s
 	END
 
 BRRDDIDDB1
@@ -89,12 +90,12 @@ BRRDDIDDB1
 	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	30
 	Should Be True	${result}	msg=No log message telling about indexes ${indexes_str} deletion.
 	FOR	${i}	IN	@{indexes}
-		log to console	Wait for /var/lib/centreon/status/${i}.rrd to be deleted
-		Wait Until Removed	/var/lib/centreon/status/${i}.rrd	20s
+		log to console	Wait for ${VarRoot}/lib/centreon/status/${i}.rrd to be deleted
+		Wait Until Removed	${VarRoot}/lib/centreon/status/${i}.rrd	20s
 	END
 	FOR	${m}	IN	@{metrics}
-		log to console	Wait for /var/lib/centreon/metrics/${m}.rrd to be deleted
-		Wait Until Removed	/var/lib/centreon/metrics/${m}.rrd	20s
+		log to console	Wait for ${VarRoot}/lib/centreon/metrics/${m}.rrd to be deleted
+		Wait Until Removed	${VarRoot}/lib/centreon/metrics/${m}.rrd	20s
 	END
 
 BRRDRBDB1
