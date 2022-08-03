@@ -64,7 +64,7 @@ void broker_module_init(void const* arg) {
   // Increment instance number.
   if (!instances++) {
     // TCP module.
-    log_v2::grpc()->info("GRPC: module for Centreon Broker {}",
+    log_v2::grpc()->info("Module for Centreon Broker {}",
                          CENTREON_BROKER_VERSION);
 
     // Register TCP protocol.

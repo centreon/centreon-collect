@@ -41,7 +41,7 @@ connector::connector(const grpc_config::pointer& conf)
  * @return std::unique_ptr<io::stream>
  */
 std::unique_ptr<io::stream> connector::open() {
-  log_v2::grpc()->info("TCP: connecting to {}", _conf->get_hostport());
+  log_v2::grpc()->info("Connecting to {}", _conf->get_hostport());
   try {
     return limit_endpoint::open();
   } catch (const std::exception& e) {
