@@ -208,7 +208,7 @@ void channel::on_write_done(bool ok) {
     {
       lock_guard l(_protect);
       _write_pending = false;
-      SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "write done :{}", *_write_current);
+      SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "write done: {}", *_write_current);
 
       _write_queue.pop_front();
       data_to_write = !_write_queue.empty();

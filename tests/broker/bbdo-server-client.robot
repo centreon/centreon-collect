@@ -183,7 +183,7 @@ BSCSSTG2
 	Broker Config Input set	rrd	rrd-broker-master-input	certificate	${EtcRoot}/centreon-broker/client.crt
 	${start}=	Get Current Date
 	Start Broker
-	${content}=	Create List	crypted connexion	start_write() write:buff:	write done :buff:
+	${content}=	Create List	encrypted connection	write: buff:	write done: buff:
 	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	30
 	Should Be True	${result}	msg=No information about TLS activation.
 	Kindly Stop Broker
