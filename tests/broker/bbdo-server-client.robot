@@ -294,7 +294,7 @@ BSCSSGA2
         Broker Config Source Log	rrd	1
 	${start}=	Get Current Date
 	Start Broker
-	${content}=	Create List	accepted_service::on_read_done receive:buff
+	${content}=	Create List	receive: buff
 	${result}=	Find In Log With Timeout	${rrdLog}	${start}	${content}	30
 	Should Be True	${result}	msg=If the authorization token is the same on both side, no issue
         Kindly Stop Broker
