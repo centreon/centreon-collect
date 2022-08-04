@@ -57,5 +57,6 @@ using system_clock = std::chrono::system_clock;
 using time_point = system_clock::time_point;
 using duration = system_clock::duration;
 using unique_lock = std::unique_lock<std::mutex>;
+using lock_guard = std::lock_guard<std::mutex>;
 
 #endif  // CCB_GRPC_PRECOMP_HH

@@ -79,12 +79,13 @@ channel::channel(const std::string& class_name,
       _error(false),
       _thrown(false),
       _conf(conf) {
-  log_v2::grpc()->debug("channel::channel this={:p}", static_cast<void*>(this));
+        SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "channel::channel this={:p}",
+                      static_cast<void*>(this));
 }
 
 channel::~channel() {
-  log_v2::grpc()->debug("channel::~channel this={:p}",
-                        static_cast<void*>(this));
+  SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "channel::~channel this={:p}",
+                      static_cast<void*>(this));
 }
 
 void channel::start() {
@@ -96,8 +97,7 @@ constexpr unsigned second_delay_before_delete = 60u;
 void channel::to_trash() {
   this->shutdown();
   _thrown = true;
-  log_v2::grpc()->debug("{} this={:p}", __PRETTY_FUNCTION__,
-                        static_cast<void*>(this));
+  SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "to_trash this={:p}", static_cast<void*>(this));
   _trash->to_trash(shared_from_this(),
                    time(nullptr) + second_delay_before_delete);
 }

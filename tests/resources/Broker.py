@@ -40,13 +40,14 @@ config = {
         "poller_id": 1,
         "poller_name": "Central",
         "module_directory": "/usr/share/centreon/lib/centreon-broker",
-        "log_timestamp": true,
-        "log_thread_id": false,
+        "log_timestamp": "yes",
+        "log_thread_id": "no",
         "event_queue_max_size": 100000,
         "command_file": "{7}/lib/centreon-broker/command.sock",
         "cache_directory": "{7}/lib/centreon-broker",
         "log": {{
-            "log_pid": true,
+            "log_pid": "yes",
+            "log_source": "no",
             "flush_period": 1,
             "directory": "{7}/log/centreon-broker/",
             "filename": "",
@@ -155,7 +156,7 @@ config = {
         "command_file": "",
         "cache_directory": "{7}/lib/centreon-engine",
         "log": {{
-            "log_pid": true,
+            "log_pid": "yes",
             "flush_period": 1,
             "directory": "{7}/log/centreon-broker/",
             "filename": "",
@@ -215,7 +216,8 @@ config = {
         "command_file": "",
         "cache_directory": "{7}/lib/centreon-broker",
         "log": {{
-            "log_pid": true,
+            "log_pid": "yes",
+            "log_source": "no",
             "flush_period": 1,
             "directory": "{7}/log/centreon-broker/",
             "filename": "",
@@ -923,6 +925,24 @@ def broker_config_flush_log(name, value):
     conf = json.loads(buf)
     log = conf["centreonBroker"]["log"]
     log["flush_period"] = value
+    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "w")
+    f.write(json.dumps(conf, indent=2))
+    f.close()
+
+
+def broker_config_source_log(name, value):
+    if name == 'central':
+        filename = "central-broker.json"
+    elif name.startswith('module'):
+        filename = "central-{}.json".format(name)
+    else:
+        filename = "central-rrd.json"
+    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r")
+    buf = f.read()
+    f.close()
+    conf = json.loads(buf)
+    log = conf["centreonBroker"]["log"]
+    log["log_source"] = value
     f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "w")
     f.write(json.dumps(conf, indent=2))
     f.close()

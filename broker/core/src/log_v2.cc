@@ -128,6 +128,7 @@ void log_v2::apply(const config::state& conf) {
     file_sink = std::make_shared<sinks::basic_file_sink_mt>(_log_name);
 
   auto create_log = [&file_sink, log_pid = log.log_pid,
+                     log_source = log.log_source,
                      flush_period = log.flush_period](const std::string& name,
                                                       level::level_enum lvl) {
     spdlog::drop(name);
@@ -138,10 +139,18 @@ void log_v2::apply(const config::state& conf) {
         log->flush_on(level::warn);
       else
         log->flush_on(lvl);
-      if (log_pid)
-        log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%P] %v");
-      else
-        log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
+      if (log_pid) {
+        if (log_source)
+          log->set_pattern(
+              "[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%s:%#] [%P] %v");
+        else
+          log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%P] %v");
+      } else {
+        if (log_source)
+          log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%s:%#] %v");
+        else
+          log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
+      }
     }
 
     if (name == "grpc") {

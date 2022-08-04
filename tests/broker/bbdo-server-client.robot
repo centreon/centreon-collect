@@ -264,8 +264,9 @@ BSCSSGA1
 	Broker Config Log	central	core	off
 	Broker Config Log	rrd	core	off
 	Broker Config Log	rrd	tls	debug
-	Broker Config Log	rrd	grpc	debug
+	Broker Config Log	rrd	grpc	trace
         Broker Config Flush Log	central	0
+        Broker Config Flush Log	rrd	0
 	${start}=	Get Current Date
 	Start Broker
 	${content}=	Create List	header authorization don't match to titus
@@ -287,8 +288,10 @@ BSCSSGA2
 	Broker Config Log	central	core	trace
 	Broker Config Log	rrd	core	off
 	Broker Config Log	rrd	tls	debug
-	Broker Config Log	rrd	grpc	debug
+	Broker Config Log	rrd	grpc	trace
         Broker Config Flush Log	central	0
+        Broker Config Flush Log	rrd	0
+        Broker Config Source Log	rrd	1
 	${start}=	Get Current Date
 	Start Broker
 	${content}=	Create List	accepted_service::on_read_done receive:buff

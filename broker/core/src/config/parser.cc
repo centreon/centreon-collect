@@ -356,6 +356,9 @@ state parser::parse(std::string const& file) {
           auto lp = check_and_read<bool>(conf_js, "log_pid");
           conf.log_pid = lp ? lp.value() : false;
 
+          auto ls = check_and_read<bool>(conf_js, "log_source");
+          conf.log_source = ls ? ls.value() : false;
+
           if (conf_js.contains("loggers") && conf_js["loggers"].is_object()) {
             conf.loggers.clear();
             for (auto it = conf_js["loggers"].begin();

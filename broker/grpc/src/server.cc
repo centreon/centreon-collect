@@ -36,8 +36,7 @@ accepted_service::accepted_service(const grpc_config::pointer& conf,
     : channel("accepted_service", conf),
       _server_finished(server_finished),
       _finished_called(false) {
-  log_v2::grpc()->debug("{} this={:p}", __PRETTY_FUNCTION__,
-                        static_cast<void*>(this));
+  SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "this={:p}", static_cast<void*>(this));
 }
 
 void accepted_service::start() {

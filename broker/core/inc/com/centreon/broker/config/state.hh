@@ -19,6 +19,7 @@
 #ifndef CCB_CONFIG_STATE_HH
 #define CCB_CONFIG_STATE_HH
 
+#include <absl/container/flat_hash_map.h>
 #include <fmt/format.h>
 
 #include "com/centreon/broker/config/endpoint.hh"
@@ -59,7 +60,8 @@ class state {
     std::size_t max_size;
     uint32_t flush_period;
     bool log_pid;
-    std::unordered_map<std::string, std::string> loggers;
+    bool log_source;
+    absl::flat_hash_map<std::string, std::string> loggers;
 
     std::string log_path() const {
       return fmt::format("{}/{}", directory, filename);
