@@ -70,7 +70,8 @@ class loop {
   timed_event_list::iterator find_event(priority priority,
                                         uint32_t event_type,
                                         void* data);
-  const timed_event_list::iterator list_end(priority priority) const noexcept {
+  const timed_event_list::const_iterator list_end(
+      priority priority) const noexcept {
     if (priority == low)
       return _event_list_low.end();
     else

@@ -1155,7 +1155,7 @@ void host::schedule_acknowledgement_expiration() {
         timed_event::EVENT_EXPIRE_HOST_ACK,
         last_acknowledgement() + acknowledgement_timeout(), false, 0, nullptr,
         true, this, nullptr, 0)};
-    events::loop::instance().schedule(evt, false);
+    events::loop::instance().schedule(std::move(evt), false);
   }
 }
 
