@@ -818,7 +818,8 @@ void loop::compensate_for_system_time_change(unsigned long last_time,
  *  @param[in] event_list      The head of the event list.
  *  @param[in] event_list_tail The tail of the event list.
  */
-void loop::add_event(timed_event* event, loop::priority priority) {
+void loop::add_event(std::unique_ptr<timed_event>&& event,
+                     loop::priority priority) {
   engine_logger(dbg_functions, basic) << "add_event()";
   log_v2::functions()->trace("add_event()");
 
@@ -843,8 +844,8 @@ void loop::add_event(timed_event* event, loop::priority priority) {
   else {
     // start from the end of the list, as new events are likely to
     // be executed in the future, rather than now...
-    for (timed_event_list::reverse_iterator it(list->rbegin()),
-         end(list->rend());
+    for (timed_event_list::reverse_iterator it = list->rbegin(),
+                                            end = list->rend();
          it != end; ++it) {
       if (event->run_time >= (*it)->run_time) {
         list->insert(it.base(), event);
@@ -852,10 +853,6 @@ void loop::add_event(timed_event* event, loop::priority priority) {
       }
     }
   }
-
-  // send event data to broker.
-  broker_timed_event(NEBTYPE_TIMEDEVENT_ADD, NEBFLAG_NONE, NEBATTR_NONE, event,
-                     nullptr);
 }
 
 void loop::remove_downtime(uint64_t downtime_id) {
@@ -877,35 +874,20 @@ void loop::remove_downtime(uint64_t downtime_id) {
 }
 
 /**
- *  Remove an event from the queue.
+ *  Remove an event given by its iterator from the queue.
  *
- *  @param[in]     event           The event to remove.
- *  @param[in,out] event_list      The head of the event list.
- *  @param[in,out] event_list_tail The tail of the event list.
+ *  @param[in]     it              The iterator to the event to remove.
+ *  @param[in]     priority        This to now which list to work with.
  */
-void loop::remove_event(timed_event* event, loop::priority priority) {
+void loop::remove_event(timed_event_list::iterator& it,
+                        loop::priority priority) {
   engine_logger(dbg_functions, basic) << "loop::remove_event()";
   log_v2::functions()->trace("loop::remove_event()");
 
-  // send event data to broker.
-  broker_timed_event(NEBTYPE_TIMEDEVENT_REMOVE, NEBFLAG_NONE, NEBATTR_NONE,
-                     event, NULL);
-
-  if (!event)
-    return;
-
-  auto eraser = [](timed_event_list& l, timed_event* event) {
-    for (auto it = l.begin(), end = l.end(); it != end; ++it) {
-      if (*it == event) {
-        l.erase(it);
-        break;
-      }
-    }
-  };
   if (priority == loop::low)
-    eraser(_event_list_low, event);
+    _event_list_low.erase(it);
   else
-    eraser(_event_list_high, event);
+    _event_list_high.erase(it);
 }
 
 void loop::remove_events(loop::priority priority,
@@ -924,9 +906,9 @@ void loop::remove_events(loop::priority priority,
     }
 }
 
-timed_event* loop::find_event(loop::priority priority,
-                              uint32_t event_type,
-                              void* data) {
+timed_event_list::iterator loop::find_event(loop::priority priority,
+                                            uint32_t event_type,
+                                            void* data) {
   timed_event_list* list;
 
   engine_logger(dbg_functions, basic) << "resort_event_list()";
@@ -940,9 +922,9 @@ timed_event* loop::find_event(loop::priority priority,
 
   for (auto it = list->begin(), end = list->end(); it != end; ++it)
     if ((*it)->event_type == event_type && (*it)->event_data == data)
-      return *it;
+      return it;
 
-  return nullptr;
+  return list->end();
 }
 
 /**
@@ -952,7 +934,8 @@ timed_event* loop::find_event(loop::priority priority,
  *  @param[in,out] event_list      The head of the event list.
  *  @param[in,out] event_list_tail The tail of the event list.
  */
-void loop::reschedule_event(timed_event* event, loop::priority priority) {
+void loop::reschedule_event(std::unique_ptr<timed_event>&& event,
+                            loop::priority priority) {
   engine_logger(dbg_functions, basic) << "reschedule_event()";
   log_v2::functions()->trace("reschedule_event()");
 
@@ -1017,7 +1000,7 @@ void loop::resort_event_list(loop::priority priority) {
  *
  * @param high_priority Priority list.
  */
-void loop::schedule(timed_event* evt, bool high_priority) {
+void loop::schedule(std::unique_ptr<timed_event>&& evt, bool high_priority) {
   // add the event to the event list.
   if (high_priority)
     add_event(evt, loop::high);
