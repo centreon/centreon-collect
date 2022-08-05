@@ -1247,19 +1247,20 @@ int service::handle_async_check_result(
     engine_logger(dbg_checks, most)
         << "Parsing check output...\n"
         << "Short Output:\n"
-        << (get_plugin_output().empty() ? "NULL" : get_plugin_output()) << "\n"
+        << (get_plugin_output().empty() ? "nullptr" : get_plugin_output())
+        << "\n"
         << "Long Output:\n"
-        << (get_long_plugin_output().empty() ? "NULL"
+        << (get_long_plugin_output().empty() ? "nullptr"
                                              : get_long_plugin_output())
         << "\n"
         << "Perf Data:\n"
-        << (get_perf_data().empty() ? "NULL" : get_perf_data());
+        << (get_perf_data().empty() ? "nullptr" : get_perf_data());
     SPDLOG_LOGGER_DEBUG(
         log_v2::checks(),
         "Parsing check output Short Output: {} Long Output: {} Perf Data: {}",
-        get_plugin_output().empty() ? "NULL" : get_plugin_output(),
-        get_long_plugin_output().empty() ? "NULL" : get_long_plugin_output(),
-        get_perf_data().empty() ? "NULL" : get_perf_data());
+        get_plugin_output().empty() ? "nullptr" : get_plugin_output(),
+        get_long_plugin_output().empty() ? "nullptr" : get_long_plugin_output(),
+        get_perf_data().empty() ? "nullptr" : get_perf_data());
 
     /* grab the return code */
     _current_state = static_cast<service::service_state>(
@@ -3785,7 +3786,7 @@ void service::resolve(int& w, int& e) {
       it->second->services.insert({{_hostname, name()}, this});
 
       // Notify event broker.
-      broker_relation_data(NEBTYPE_PARENT_ADD, get_host_ptr(), NULL, NULL,
+      broker_relation_data(NEBTYPE_PARENT_ADD, get_host_ptr(), nullptr, nullptr,
                            this);
     }
   }

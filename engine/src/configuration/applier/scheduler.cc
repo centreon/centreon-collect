@@ -322,7 +322,7 @@ applier::scheduler::~scheduler() noexcept {}
  */
 void applier::scheduler::_apply_misc_event() {
   // Get current time.
-  time_t const now(time(NULL));
+  time_t const now(time(nullptr));
 
   // Remove and add check result reaper event.
   if (!_evt_check_reaper ||
@@ -560,7 +560,7 @@ void applier::scheduler::_calculate_host_scheduling_params() {
   log_v2::events()->debug("Determining host scheduling parameters...");
 
   // get current time.
-  time_t const now(time(NULL));
+  time_t const now(time(nullptr));
 
   // get total hosts and total scheduled hosts.
   for (host_map::const_iterator it(engine::host::hosts.begin()),
@@ -715,7 +715,7 @@ void applier::scheduler::_calculate_service_scheduling_params() {
   log_v2::events()->debug("Determining service scheduling parameters...");
 
   // get current time.
-  time_t const now(time(NULL));
+  time_t const now(time(nullptr));
 
   // get total services and total scheduled services.
   for (service_id_map::const_iterator
@@ -901,7 +901,7 @@ applier::scheduler::_get_anomalydetections(set_anomalydetection const& ad_cfg,
 void applier::scheduler::_remove_misc_event(timed_event*& evt) {
   if (evt) {
     events::loop::instance().remove_event(evt, events::loop::high);
-    evt = NULL;
+    evt = nullptr;
   }
 }
 
@@ -916,7 +916,7 @@ void applier::scheduler::_schedule_host_events(
   log_v2::events()->debug("Scheduling host checks...");
 
   // get current time.
-  time_t const now(time(NULL));
+  time_t const now(time(nullptr));
 
   unsigned int const end(hosts.size());
 
@@ -1001,10 +1001,11 @@ void applier::scheduler::_schedule_host_events(
     com::centreon::engine::host& hst(*it->second);
 
     // Schedule a new host check event.
-    timed_event* evt = new timed_event(
-        timed_event::EVENT_HOST_CHECK, hst.get_next_check(), false, 0, nullptr,
-        true, (void*)&hst, NULL, hst.get_check_options());
-    events::loop::instance().schedule(evt, false);
+    events::loop::instance().schedule(
+        std::make_unique<timed_event>(
+            timed_event::EVENT_HOST_CHECK, hst.get_next_check(), false, 0,
+            nullptr, true, (void*)&hst, nullptr, hst.get_check_options()),
+        false);
   }
 
   // Schedule acknowledgement expirations.
@@ -1027,7 +1028,7 @@ void applier::scheduler::_schedule_service_events(
   log_v2::events()->debug("Scheduling service checks...");
 
   // get current time.
-  time_t const now(time(NULL));
+  time_t const now(time(nullptr));
 
   int total_interleave_blocks(scheduling_info.total_scheduled_services);
   // calculate number of service interleave blocks.
@@ -1107,10 +1108,11 @@ void applier::scheduler::_schedule_service_events(
        it != end; ++it) {
     engine::service* s(it->second);
     // Create a new service check event.
-    timed_event* evt(new timed_event(
-        timed_event::EVENT_SERVICE_CHECK, s->get_next_check(), false, 0,
-        nullptr, true, (void*)s, nullptr, s->get_check_options()));
-    events::loop::instance().schedule(evt, false);
+    events::loop::instance().schedule(
+        std::make_unique<timed_event>(
+            timed_event::EVENT_SERVICE_CHECK, s->get_next_check(), false, 0,
+            nullptr, true, (void*)s, nullptr, s->get_check_options()),
+        false);
   }
 
   // Schedule acknowledgement expirations.

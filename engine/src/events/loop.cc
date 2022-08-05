@@ -502,7 +502,7 @@ void loop::adjust_check_scheduling() {
   */
 
   // determine our adjustment window.
-  time_t current_time(time(NULL));
+  time_t current_time(time(nullptr));
   time_t first_window_time(current_time);
   time_t last_window_time(first_window_time +
                           config->auto_rescheduling_window());

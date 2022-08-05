@@ -598,21 +598,21 @@ std::ostream& operator<<(std::ostream& os, const host& obj) {
   std::string child_oss;
 
   if (obj.get_contactgroups().empty())
-    cg_oss = "\"NULL\"";
+    cg_oss = "\"nullptr\"";
   else {
     std::ostringstream oss;
     oss << obj.get_contactgroups();
     cg_oss = oss.str();
   }
   if (obj.contacts().empty())
-    c_oss = "\"NULL\"";
+    c_oss = "\"nullptr\"";
   else {
     std::ostringstream oss;
     oss << obj.contacts();
     c_oss = oss.str();
   }
   if (obj.parent_hosts.empty())
-    p_oss = "\"NULL\"";
+    p_oss = "\"nullptr\"";
   else {
     std::ostringstream oss;
     oss << obj.parent_hosts;
@@ -620,7 +620,7 @@ std::ostream& operator<<(std::ostream& os, const host& obj) {
   }
 
   if (obj.child_hosts.empty())
-    child_oss = "\"NULL\"";
+    child_oss = "\"nullptr\"";
   else {
     std::ostringstream oss;
     oss << obj.child_hosts;
@@ -1409,19 +1409,20 @@ int host::handle_async_check_result_3x(
   engine_logger(dbg_checks, most)
       << "Parsing check output...\n"
       << "Short Output:\n"
-      << (get_plugin_output().empty() ? "NULL" : get_plugin_output()) << "\n"
+      << (get_plugin_output().empty() ? "nullptr" : get_plugin_output()) << "\n"
       << "Long Output:\n"
-      << (get_long_plugin_output().empty() ? "NULL" : get_long_plugin_output())
+      << (get_long_plugin_output().empty() ? "nullptr"
+                                           : get_long_plugin_output())
       << "\n"
       << "Perf Data:\n"
-      << (get_perf_data().empty() ? "NULL" : get_perf_data());
+      << (get_perf_data().empty() ? "nullptr" : get_perf_data());
   SPDLOG_LOGGER_DEBUG(
       log_v2::checks(),
       "Parsing check output... Short Output: {}  Long Output: {} "
       "Perf Data: {}",
-      get_plugin_output().empty() ? "NULL" : get_plugin_output(),
-      get_long_plugin_output().empty() ? "NULL" : get_long_plugin_output(),
-      get_perf_data().empty() ? "NULL" : get_perf_data());
+      get_plugin_output().empty() ? "nullptr" : get_plugin_output(),
+      get_long_plugin_output().empty() ? "nullptr" : get_long_plugin_output(),
+      get_perf_data().empty() ? "nullptr" : get_perf_data());
   /* get the unprocessed return code */
   /* NOTE: for passive checks, this is the final/processed state */
   svc_res = static_cast<enum service::service_state>(
@@ -1486,7 +1487,7 @@ int host::handle_async_check_result_3x(
       svc_res = service::state_unknown;
     }
 
-    /* a NULL host check command means we should assume the host is UP */
+    /* a nullptr host check command means we should assume the host is UP */
     if (check_command().empty()) {
       set_plugin_output("(Host assumed to be UP)");
       svc_res = service::state_ok;
