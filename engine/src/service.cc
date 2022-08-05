@@ -2752,6 +2752,7 @@ bool service::schedule_check(time_t check_time,
     }
 
     if (!use_original_event) {
+      // We're using the new event, so remove the old one.
       events::loop::instance().remove_event(found, events::loop::low);
       no_update_status_now = true;
     } else {

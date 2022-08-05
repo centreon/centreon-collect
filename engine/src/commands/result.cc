@@ -24,12 +24,6 @@
 using namespace com::centreon;
 using namespace com::centreon::engine::commands;
 
-/**************************************
- *                                     *
- *           Public Methods            *
- *                                     *
- **************************************/
-
 /**
  *  Constructor.
  */
@@ -48,8 +42,8 @@ result::result(const check_result& check_res)
     : command_id(0),
       end_time(check_res.get_finish_time()),
       exit_code(check_res.get_return_code()),
-      start_time(check_res.get_start_time()),
       exit_status(check_res.get_exited_ok() ? process::normal : process::crash),
+      start_time(check_res.get_start_time()),
       output(check_res.get_output()) {}
 
 /**

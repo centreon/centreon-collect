@@ -77,14 +77,11 @@ void applier::scheduler::apply(
     host_map const& hosts{engine::host::hosts};
     host_map::const_iterator hst(hosts.find(it->host_name().c_str()));
     if (hst != hosts.end()) {
-      bool has_event;
-      timed_event_list::iterator found = events::loop::instance().find_event(
-          events::loop::low, timed_event::EVENT_HOST_CHECK, hst->second.get());
-      if (found != events::loop::instance().list_end(events::loop::low))
-        has_event = true;
-      else
-        has_event = false;
-      bool should_schedule(it->checks_active() && (it->check_interval() > 0));
+      bool has_event(events::loop::instance().find_event(
+                         events::loop::low, timed_event::EVENT_HOST_CHECK,
+                         hst->second.get()) !=
+                     events::loop::instance().list_end(events::loop::low));
+      bool should_schedule(it->checks_active() && it->check_interval() > 0);
       if (has_event && should_schedule) {
         hst_to_unschedule.insert(*it);
         hst_to_schedule.insert(*it);
@@ -102,14 +99,10 @@ void applier::scheduler::apply(
     service_id_map::const_iterator svc(engine::service::services_by_id.find(
         {it->host_id(), it->service_id()}));
     if (svc != services.end()) {
-      bool has_event;
-      timed_event_list::iterator found = events::loop::instance().find_event(
-          events::loop::low, timed_event::EVENT_SERVICE_CHECK,
-          svc->second.get());
-      if (found != events::loop::instance().list_end(events::loop::low))
-        has_event = true;
-      else
-        has_event = false;
+      bool has_event(events::loop::instance().find_event(
+                         events::loop::low, timed_event::EVENT_SERVICE_CHECK,
+                         svc->second.get()) !=
+                     events::loop::instance().list_end(events::loop::low));
       bool should_schedule(it->checks_active() && (it->check_interval() > 0));
       if (has_event && should_schedule) {
         svc_to_unschedule.insert(*it);
@@ -130,15 +123,10 @@ void applier::scheduler::apply(
     service_id_map::const_iterator svc(engine::service::services_by_id.find(
         {it->host_id(), it->service_id()}));
     if (svc != services.end()) {
-      bool has_event;
-      timed_event_list::iterator found = events::loop::instance().find_event(
-          events::loop::low, timed_event::EVENT_SERVICE_CHECK,
-          svc->second.get());
-      if (found != events::loop::instance().list_end(events::loop::low)) {
-        has_event = true;
-      } else {
-        has_event = false;
-      }
+      bool has_event(events::loop::instance().find_event(
+                         events::loop::low, timed_event::EVENT_SERVICE_CHECK,
+                         svc->second.get()) !=
+                     events::loop::instance().list_end(events::loop::low));
       bool should_schedule(it->checks_active() && (it->check_interval() > 0));
       if (has_event && should_schedule) {
         ad_to_unschedule.insert(*it);
@@ -326,7 +314,7 @@ void applier::scheduler::_apply_misc_event() {
 
   // Remove and add check result reaper event.
   if (!_evt_check_reaper ||
-      (_old_check_reaper_interval != _config->check_reaper_interval())) {
+      _old_check_reaper_interval != _config->check_reaper_interval()) {
     _remove_misc_event(_evt_check_reaper);
     _evt_check_reaper = _create_misc_event(
         timed_event::EVENT_CHECK_REAPER, now + _config->check_reaper_interval(),
