@@ -901,7 +901,7 @@ void loop::remove_events(loop::priority priority,
 
   for (auto it = list->begin(), end = list->end(); it != end; ++it)
     if ((*it)->event_type == event_type && (*it)->event_data == data) {
-      delete *it;
+      (*it).reset();
       list->erase(it);
     }
 }
@@ -962,7 +962,7 @@ void loop::reschedule_event(std::unique_ptr<timed_event>&& event,
   }
 
   // add the event to the event list.
-  add_event(event, priority);
+  add_event(std::move(event), priority);
 }
 
 /**

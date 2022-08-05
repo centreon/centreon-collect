@@ -314,10 +314,11 @@ int service_downtime::subscribe() {
   /* only non-triggered downtime is scheduled... */
   if (get_triggered_by() == 0) {
     uint64_t* new_downtime_id{new uint64_t{get_downtime_id()}};
-    timed_event* evt = new timed_event(
-        timed_event::EVENT_SCHEDULED_DOWNTIME, get_start_time(), false, 0,
-        nullptr, false, (void*)new_downtime_id, nullptr, 0);
-    events::loop::instance().schedule(evt, true);
+    events::loop::instance().schedule(
+        std::make_unique<timed_event>(
+            timed_event::EVENT_SCHEDULED_DOWNTIME, get_start_time(), false, 0,
+            nullptr, false, (void*)new_downtime_id, nullptr, 0),
+        true);
   }
 
 #ifdef PROBABLY_NOT_NEEDED
@@ -368,10 +369,11 @@ int service_downtime::handle() {
           temp = get_end_time() + 1;
         /*** Sometimes, get_end_time() == longlong::max(), if we add 1 to it,
          * it becomes < 0 ***/
-        timed_event* evt =
-            new timed_event(timed_event::EVENT_EXPIRE_DOWNTIME, temp, false, 0,
-                            nullptr, false, nullptr, nullptr, 0);
-        events::loop::instance().schedule(evt, true);
+        events::loop::instance().schedule(
+            std::make_unique<timed_event>(timed_event::EVENT_EXPIRE_DOWNTIME,
+                                          temp, false, 0, nullptr, false,
+                                          nullptr, nullptr, 0),
+            true);
         return OK;
       }
     }
@@ -524,10 +526,11 @@ int service_downtime::handle() {
     }
 
     uint64_t* new_downtime_id{new uint64_t{get_downtime_id()}};
-    timed_event* evt = new timed_event(timed_event::EVENT_SCHEDULED_DOWNTIME,
-                                       event_time, false, 0, nullptr, false,
-                                       (void*)new_downtime_id, nullptr, 0);
-    events::loop::instance().schedule(evt, true);
+    events::loop::instance().schedule(
+        std::make_unique<timed_event>(timed_event::EVENT_SCHEDULED_DOWNTIME,
+                                      event_time, false, 0, nullptr, false,
+                                      (void*)new_downtime_id, nullptr, 0),
+        true);
 
     /* handle (start) downtime that is triggered by this one */
     std::multimap<time_t, std::shared_ptr<downtime>>::const_iterator it,

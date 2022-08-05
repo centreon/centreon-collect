@@ -81,7 +81,7 @@ bool host_downtime::is_stale() const {
   if (it == host::hosts.end() || it->second == nullptr)
     retval = true;
   /* delete downtimes that have expired */
-  else if (get_end_time() < time(NULL))
+  else if (get_end_time() < time(nullptr))
     retval = true;
 
   return retval;
@@ -266,7 +266,7 @@ int host_downtime::subscribe() {
   /* add a non-persistent comment to the host or service regarding the scheduled
    * outage */
   auto com = std::make_shared<comment>(
-      comment::host, comment::downtime, hst->get_host_id(), 0, time(NULL),
+      comment::host, comment::downtime, hst->get_host_id(), 0, time(nullptr),
       "(Centreon Engine Process)", oss.str(), false, comment::internal, false,
       (time_t)0);
 
@@ -279,10 +279,11 @@ int host_downtime::subscribe() {
   /* only non-triggered downtime is scheduled... */
   if (get_triggered_by() == 0) {
     uint64_t* new_downtime_id{new uint64_t{get_downtime_id()}};
-    auto evt{std::make_unique<timed_event>(
-        timed_event::EVENT_SCHEDULED_DOWNTIME, get_start_time(), false, 0,
-        nullptr, false, (void*)new_downtime_id, nullptr, 0)};
-    events::loop::instance().schedule(std::move(evt), true);
+    events::loop::instance().schedule(
+        std::make_unique<timed_event>(
+            timed_event::EVENT_SCHEDULED_DOWNTIME, get_start_time(), false, 0,
+            nullptr, false, (void*)new_downtime_id, nullptr, 0),
+        true);
   }
 
 #ifdef PROBABLY_NOT_NEEDED
@@ -332,10 +333,11 @@ int host_downtime::handle() {
           temp = get_end_time() + 1;
         /*** Sometimes, get_end_time() == longlong::max(), if we add 1 to it,
          * it becomes < 0 ***/
-        auto evt{std::make_unique<timed_event>(
-            timed_event::EVENT_EXPIRE_DOWNTIME, temp, false, 0, NULL, false,
-            NULL, NULL, 0)};
-        events::loop::instance().schedule(std::move(evt), true);
+        events::loop::instance().schedule(
+            std::make_unique<timed_event>(timed_event::EVENT_EXPIRE_DOWNTIME,
+                                          temp, false, 0, nullptr, false,
+                                          nullptr, nullptr, 0),
+            true);
         return OK;
       }
     }
@@ -349,7 +351,7 @@ int host_downtime::handle() {
         NEBTYPE_DOWNTIME_STOP, attr, get_type(), get_hostname().c_str(),
         nullptr, _entry_time, get_author().c_str(), get_comment().c_str(),
         get_start_time(), get_end_time(), is_fixed(), get_triggered_by(),
-        get_duration(), get_downtime_id(), NULL);
+        get_duration(), get_downtime_id(), nullptr);
 
     /* decrement the downtime depth variable */
     it_hst->second->dec_scheduled_downtime_depth();
@@ -465,7 +467,7 @@ int host_downtime::handle() {
 
     /* schedule an event */
     if (!is_fixed())
-      event_time = (time_t)((uint64_t)time(NULL) + get_duration());
+      event_time = (time_t)((uint64_t)time(nullptr) + get_duration());
     else {
       /* Sometimes, get_end_time() == longlong::max(), if we add 1 to it, it
        * becomes < 0 */
@@ -476,10 +478,11 @@ int host_downtime::handle() {
     }
 
     uint64_t* new_downtime_id{new uint64_t{get_downtime_id()}};
-    auto evt{std::make_unique<time_event>(timed_event::EVENT_SCHEDULED_DOWNTIME,
-                                          event_time, false, 0, NULL, false,
-                                          (void*)new_downtime_id, NULL, 0)};
-    events::loop::instance().schedule(std::move(evt), true);
+    events::loop::instance().schedule(
+        std::make_unique<timed_event>(timed_event::EVENT_SCHEDULED_DOWNTIME,
+                                      event_time, false, 0, nullptr, false,
+                                      (void*)new_downtime_id, nullptr, 0),
+        true);
 
     /* handle (start) downtime that is triggered by this one */
     std::multimap<time_t, std::shared_ptr<downtime>>::const_iterator it,

@@ -1151,11 +1151,12 @@ uint64_t engine::get_host_id(const std::string& name) {
  */
 void host::schedule_acknowledgement_expiration() {
   if (acknowledgement_timeout() > 0 && last_acknowledgement() != (time_t)0) {
-    auto evt{std::make_unique<timed_event>(
-        timed_event::EVENT_EXPIRE_HOST_ACK,
-        last_acknowledgement() + acknowledgement_timeout(), false, 0, nullptr,
-        true, this, nullptr, 0)};
-    events::loop::instance().schedule(std::move(evt), false);
+    events::loop::instance().schedule(
+        std::make_unique<timed_event>(
+            timed_event::EVENT_EXPIRE_HOST_ACK,
+            last_acknowledgement() + acknowledgement_timeout(), false, 0,
+            nullptr, true, this, nullptr, 0),
+        false);
   }
 }
 
@@ -1674,7 +1675,7 @@ int host::run_async_check(int check_options,
   }
 
   engine_logger(dbg_checks, basic)
-      << "** Running async check of host '" << name() << "'...";
+      << "** Running async check of host q'" << name() << "'...";
   SPDLOG_LOGGER_TRACE(log_v2::checks(),
                       "** Running async check of host '{}'...", name());
 
@@ -1972,7 +1973,8 @@ bool host::schedule_check(time_t check_time,
         timed_event::EVENT_HOST_CHECK, get_next_check(), false, 0L, nullptr,
         true, (void*)this, nullptr, options)};
 
-    events::loop::instance().reschedule_event(new_event, events::loop::low);
+    events::loop::instance().reschedule_event(std::move(new_event),
+                                              events::loop::low);
   }
 
   /* update the status log */
