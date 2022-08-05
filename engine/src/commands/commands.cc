@@ -478,11 +478,12 @@ void cmd_signal_process(int cmd, char* args) {
   }
 
   /* add a scheduled program shutdown or restart to the event list */
-  timed_event* evt = new timed_event(
-      (cmd == CMD_SHUTDOWN_PROCESS) ? timed_event::EVENT_PROGRAM_SHUTDOWN
-                                    : timed_event::EVENT_PROGRAM_RESTART,
-      scheduled_time, false, 0, nullptr, false, nullptr, nullptr, 0);
-  events::loop::instance().schedule(evt, true);
+  events::loop::instance().schedule(
+      std::make_unique<timed_event>(
+          (cmd == CMD_SHUTDOWN_PROCESS) ? timed_event::EVENT_PROGRAM_SHUTDOWN
+                                        : timed_event::EVENT_PROGRAM_RESTART,
+          scheduled_time, false, 0, nullptr, false, nullptr, nullptr, 0),
+      true);
 }
 
 /**

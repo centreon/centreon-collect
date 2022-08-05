@@ -77,8 +77,13 @@ void applier::scheduler::apply(
     host_map const& hosts{engine::host::hosts};
     host_map::const_iterator hst(hosts.find(it->host_name().c_str()));
     if (hst != hosts.end()) {
-      bool has_event(events::loop::instance().find_event(
-          events::loop::low, timed_event::EVENT_HOST_CHECK, hst->second.get()));
+      bool has_event;
+      timed_event_list::iterator found = events::loop::instance().find_event(
+          events::loop::low, timed_event::EVENT_HOST_CHECK, hst->second.get());
+      if (found != events::loop::instance().list_end(events::loop::low))
+        has_event = true;
+      else
+        has_event = false;
       bool should_schedule(it->checks_active() && (it->check_interval() > 0));
       if (has_event && should_schedule) {
         hst_to_unschedule.insert(*it);
@@ -97,9 +102,14 @@ void applier::scheduler::apply(
     service_id_map::const_iterator svc(engine::service::services_by_id.find(
         {it->host_id(), it->service_id()}));
     if (svc != services.end()) {
-      bool has_event(events::loop::instance().find_event(
+      bool has_event;
+      timed_event_list::iterator found = events::loop::instance().find_event(
           events::loop::low, timed_event::EVENT_SERVICE_CHECK,
-          svc->second.get()));
+          svc->second.get());
+      if (found != events::loop::instance().list_end(events::loop::low))
+        has_event = true;
+      else
+        has_event = false;
       bool should_schedule(it->checks_active() && (it->check_interval() > 0));
       if (has_event && should_schedule) {
         svc_to_unschedule.insert(*it);
@@ -120,9 +130,15 @@ void applier::scheduler::apply(
     service_id_map::const_iterator svc(engine::service::services_by_id.find(
         {it->host_id(), it->service_id()}));
     if (svc != services.end()) {
-      bool has_event(events::loop::instance().find_event(
+      bool has_event;
+      timed_event_list::iterator found = events::loop::instance().find_event(
           events::loop::low, timed_event::EVENT_SERVICE_CHECK,
-          svc->second.get()));
+          svc->second.get());
+      if (found != events::loop::instance().list_end(events::loop::low)) {
+        has_event = true;
+      } else {
+        has_event = false;
+      }
       bool should_schedule(it->checks_active() && (it->check_interval() > 0));
       if (has_event && should_schedule) {
         ad_to_unschedule.insert(*it);
