@@ -781,10 +781,11 @@ timed_event* applier::scheduler::_create_misc_event(int type,
                                                     time_t start,
                                                     unsigned long interval,
                                                     void* data) {
-  timed_event* evt(new timed_event(type, start, true, interval, nullptr, true,
-                                   data, NULL, 0));
-  events::loop::instance().schedule(evt, true);
-  return evt;
+  auto evt{std::make_unique<timed_event>(type, start, true, interval, nullptr,
+                                         true, data, nullptr, 0)};
+  timed_event* retval = evt.get();
+  events::loop::instance().schedule(std::move(evt), true);
+  return retval;
 }
 
 /**

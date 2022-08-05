@@ -66,6 +66,7 @@ class loop {
                                          unsigned long current_time);
   void remove_downtime(uint64_t downtime_id);
   void remove_event(timed_event_list::iterator& it, priority priority);
+  void remove_event(timed_event* evt, loop::priority priority);
   void remove_events(priority, uint32_t event_type, void* data) noexcept;
   timed_event_list::iterator find_event(priority priority,
                                         uint32_t event_type,

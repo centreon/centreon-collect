@@ -890,6 +890,26 @@ void loop::remove_event(timed_event_list::iterator& it,
     _event_list_high.erase(it);
 }
 
+/**
+ *  Remove an event given by its iterator from the queue.
+ *
+ *  @param[in]     evt             Pointer to timed_event.
+ *  @param[in]     priority        This is to know which list to work with.
+ */
+void loop::remove_event(timed_event* evt, loop::priority priority) {
+  engine_logger(dbg_functions, basic) << "loop::remove_event()";
+  log_v2::functions()->trace("loop::remove_event()");
+  timed_event_list* list;
+  if (priority == loop::low)
+    list = &_event_list_low;
+  else
+    list = &_event_list_high;
+
+  std::remove_if(
+      list->begin(), list->end(),
+      [evt](const std::unique_ptr<timed_event> e) { return evt == e.get(); });
+}
+
 void loop::remove_events(loop::priority priority,
                          uint32_t event_type,
                          void* data) noexcept {
@@ -899,11 +919,10 @@ void loop::remove_events(loop::priority priority,
   else
     list = &_event_list_high;
 
-  for (auto it = list->begin(), end = list->end(); it != end; ++it)
-    if ((*it)->event_type == event_type && (*it)->event_data == data) {
-      (*it).reset();
-      list->erase(it);
-    }
+  std::remove_if(list->begin(), list->end(),
+                 [event_type, data](const std::unique_ptr<timed_event> e) {
+                   return e->event_type == event_type && e->event_data == data;
+                 });
 }
 
 timed_event_list::iterator loop::find_event(loop::priority priority,
