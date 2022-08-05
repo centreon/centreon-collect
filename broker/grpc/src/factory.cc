@@ -58,10 +58,13 @@ bool factory::has_endpoint(com::centreon::broker::config::endpoint& cfg,
 
 static std::string read_file(const std::string& path) {
   std::ifstream file(path);
-  std::stringstream ss;
-  ss << file.rdbuf();
-  file.close();
-  return ss.str();
+  if (file.is_open()) {
+    std::stringstream ss;
+    ss << file.rdbuf();
+    file.close();
+    return ss.str();
+  } else
+    throw msg_fmt("Cannot open file '{}': {}", path, strerror(errno));
 }
 
 /**
@@ -140,8 +143,9 @@ io::endpoint* factory::new_endpoint(
     try {
       certificate = read_file(it->second);
     } catch (const std::exception& e) {
-      log_v2::grpc()->error("{} failed to open cert file from:{} {}",
-                            __PRETTY_FUNCTION__, it->second, e.what());
+      SPDLOG_LOGGER_ERROR(log_v2::grpc(), "Failed to open cert file '{}': {}",
+                          it->second, e.what());
+      throw msg_fmt("Failed to open cert file '{}': {}", it->second, e.what());
     }
   }
 
@@ -152,8 +156,11 @@ io::endpoint* factory::new_endpoint(
     try {
       certificate_key = read_file(it->second);
     } catch (const std::exception& e) {
-      log_v2::grpc()->error("{} failed to open key file from:{} {}",
-                            __PRETTY_FUNCTION__, it->second, e.what());
+      SPDLOG_LOGGER_ERROR(log_v2::grpc(),
+                          "Failed to open certificate key file '{}': {}",
+                          it->second, e.what());
+      throw msg_fmt("Failed to open certificate key file '{}': {}", it->second,
+                    e.what());
     }
   }
 
@@ -164,9 +171,11 @@ io::endpoint* factory::new_endpoint(
     try {
       certificate_authority = read_file(it->second);
     } catch (const std::exception& e) {
-      log_v2::grpc()->error(
-          "{} failed to open authority certificate from:{} {}",
-          __PRETTY_FUNCTION__, it->second, e.what());
+      SPDLOG_LOGGER_ERROR(log_v2::grpc(),
+                          "Failed to open authority certificate file '{}': {}",
+                          it->second, e.what());
+      throw msg_fmt("Failed to open authority certificate file '{}': {}",
+                    it->second, e.what());
     }
   }
 
@@ -299,8 +308,7 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
   if (it != cfg.params.end())
     ca_name = it->second;
 
-  log_v2::grpc()->debug("GRPC: 'ca_name' field contains '{}'",
-                        ca_name);
+  log_v2::grpc()->debug("GRPC: 'ca_name' field contains '{}'", ca_name);
 
   bool encryption = false;
   it = cfg.params.find("encryption");
@@ -322,8 +330,11 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
       try {
         private_key = read_file(it->second);
       } catch (const std::exception& e) {
-        throw msg_fmt("GRPC: failed to open private key '{}' file: {}",
-                      it->second, e.what());
+        SPDLOG_LOGGER_ERROR(log_v2::grpc(),
+                            "Failed to open private key file '{}': {}",
+                            it->second, e.what());
+        throw msg_fmt("Failed to open private key file '{}': {}", it->second,
+                      e.what());
       }
     } else
       log_v2::grpc()->warn(
@@ -338,8 +349,11 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
       try {
         certificate = read_file(it->second);
       } catch (const std::exception& e) {
-        throw msg_fmt("GRPC: failed to open certificate '{}' file: {}",
-                      it->second, e.what());
+        SPDLOG_LOGGER_ERROR(log_v2::grpc(),
+                            "Failed to open certificate file '{}': {}",
+                            it->second, e.what());
+        throw msg_fmt("Failed to open certificate file '{}': {}", it->second,
+                      e.what());
       }
     } else
       log_v2::grpc()->warn(
@@ -354,10 +368,11 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
       try {
         ca_certificate = read_file(it->second);
       } catch (const std::exception& e) {
-        log_v2::grpc()->error(
-            "GRPC: failed to open ca_certificate '{}' file: {}", it->second,
+        SPDLOG_LOGGER_ERROR(
+            log_v2::grpc(),
+            "Failed to open authority certificate file '{}': {}", it->second,
             e.what());
-        throw msg_fmt("GRPC: failed to open ca_certificate '{}' file: {}",
+        throw msg_fmt("Failed to open authority certificate file '{}': {}",
                       it->second, e.what());
       }
     } else

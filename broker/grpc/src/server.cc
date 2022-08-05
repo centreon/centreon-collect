@@ -36,7 +36,8 @@ accepted_service::accepted_service(const grpc_config::pointer& conf,
     : channel("accepted_service", conf),
       _server_finished(server_finished),
       _finished_called(false) {
-  SPDLOG_LOGGER_TRACE(log_v2::grpc(), "accepted_service construction this={:p}", static_cast<void*>(this));
+  SPDLOG_LOGGER_TRACE(log_v2::grpc(), "accepted_service construction this={:p}",
+                      static_cast<void*>(this));
 }
 
 void accepted_service::start() {
@@ -44,7 +45,8 @@ void accepted_service::start() {
 }
 
 accepted_service::~accepted_service() {
-  SPDLOG_LOGGER_TRACE(log_v2::grpc(), "accepted_service desctruction this={:p}", static_cast<void*>(this));
+  SPDLOG_LOGGER_TRACE(log_v2::grpc(), "accepted_service desctruction this={:p}",
+                      static_cast<void*>(this));
 }
 
 void accepted_service::desactivate() {
@@ -154,7 +156,7 @@ void server::start() {
     server_creds = ::grpc::SslServerCredentials(ssl_opts);
 #endif
   } else {
-    SPDLOG_LOGGER_INFO(log_v2::grpc(), "uncrypted server listening on {}",
+    SPDLOG_LOGGER_INFO(log_v2::grpc(), "unencrypted server listening on {}",
                        _conf->get_hostport());
     server_creds = ::grpc::InsecureServerCredentials();
   }
@@ -205,8 +207,7 @@ server::pointer server::create(const grpc_config::pointer& conf) {
     bool found = false;
     for (; header_search != metas.end() && !found; ++header_search) {
       if (header_search->first != authorization_header) {
-        SPDLOG_LOGGER_ERROR(log_v2::grpc(), "header {} don't match to {}",
-                            authorization_header, _conf->get_authorization());
+        SPDLOG_LOGGER_ERROR(log_v2::grpc(), "Wrong client authorization token");
         return nullptr;
       }
       found = _conf->get_authorization() == header_search->second;

@@ -18,6 +18,7 @@
 
 #include "com/centreon/broker/log_v2.hh"
 
+#include <absl/strings/str_split.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/null_sink.h>
 #include <spdlog/sinks/rotating_file_sink.h>
@@ -40,28 +41,34 @@ using namespace spdlog;
 static void grpc_logger(gpr_log_func_args* args) {
   std::shared_ptr<spdlog::logger> logger = log_v2::grpc();
   spdlog::level::level_enum grpc_level = logger->level();
+  const char* start;
+  if (grpc_level == spdlog::level::off)
+    return;
+  else if (grpc_level > spdlog::level::debug) {
+    start = strstr(args->message, "}: ");
+    if (!start)
+      return;
+    start += 3;
+  } else
+    start = args->message;
   switch (args->severity) {
     case GPR_LOG_SEVERITY_DEBUG:
       if (grpc_level == spdlog::level::trace ||
           grpc_level == spdlog::level::debug) {
-        logger->debug("grpc ({}:{}) {}", args->file, args->line, args->message);
+        SPDLOG_LOGGER_DEBUG(logger, "{} ({}:{})", start, args->file,
+                            args->line);
       }
       break;
     case GPR_LOG_SEVERITY_INFO:
       if (grpc_level == spdlog::level::trace ||
           grpc_level == spdlog::level::debug ||
           grpc_level == spdlog::level::info) {
-        logger->info("grpc ({}:{}) {}", args->file, args->line, args->message);
+        if (start)
+          SPDLOG_LOGGER_INFO(logger, "{}", start);
       }
       break;
     case GPR_LOG_SEVERITY_ERROR:
-      if (grpc_level == spdlog::level::trace ||
-          grpc_level == spdlog::level::debug ||
-          grpc_level == spdlog::level::info ||
-          grpc_level == spdlog::level::warn ||
-          grpc_level == spdlog::level::err) {
-        logger->error("grpc ({}:{}) {}", args->file, args->line, args->message);
-      }
+      SPDLOG_LOGGER_ERROR(logger, "{}", start);
       break;
   }
 }
@@ -165,6 +172,7 @@ void log_v2::apply(const config::state& conf) {
           break;
         case level::level_enum::err:
         case level::level_enum::critical:
+        case level::level_enum::off:
           gpr_set_log_verbosity(GPR_LOG_SEVERITY_ERROR);
           break;
       }

@@ -68,7 +68,7 @@ bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
         else
           *ext = io::extension("COMPRESSION", false, true);
       } else
-        *ext = io::extension("COMPRESSION", false, true);
+        *ext = io::extension("COMPRESSION", true, false);
     } else {
       /* legacy case */
       auto it = cfg.params.find("compression");

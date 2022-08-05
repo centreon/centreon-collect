@@ -82,7 +82,7 @@ client::client(const grpc_config::pointer& conf)
 #endif
 #endif
   } else {
-    SPDLOG_LOGGER_INFO(log_v2::grpc(), "uncrypted connection to {}",
+    SPDLOG_LOGGER_INFO(log_v2::grpc(), "unencrypted connection to {}",
                        conf->get_hostport());
     creds = ::grpc::InsecureChannelCredentials();
   }
@@ -142,6 +142,9 @@ void client::start_write(const event_ptr& to_send) {
 void client::OnWriteDone(bool ok) {
   on_write_done(ok);
   if (!ok) {
+    SPDLOG_LOGGER_ERROR(log_v2::grpc(),
+                        "Write failed, server logs should help to understand "
+                        "what's gone wrong");
     remove_hold();
   }
 }

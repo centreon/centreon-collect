@@ -124,15 +124,11 @@ BRRDRBDB1
 
 	# We get 3 indexes to rebuild
 	${index}=	Get Indexes To Rebuild	3
-	Rebuild Rrd Graphs from DB	${index}	1
-	Reload Broker
+	Rebuild Rrd Graphs from DB	${index}
 	Log To Console	Indexes to rebuild: ${index}
 	${metrics}=	Get Metrics Matching Indexes	${index}
 	Log To Console	Metrics to rebuild: ${metrics}
-#	log to console	Coucou4
-#	${content}=	Create List	Metric rebuild: metric	is sent to rebuild
-#	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	30
-#	Should Be True	${result}	msg=Central did not send metrics to rebuild
+	Reload Broker
 
 	${content1}=	Create List	RRD: Starting to rebuild metrics
 	${result}=	Find In Log With Timeout	${rrdLog}	${start}	${content1}	45
@@ -176,14 +172,10 @@ BRRDRBUDB1
 
 	# We get 3 indexes to rebuild
 	${index}=	Get Indexes To Rebuild	3
-	Rebuild Rrd Graphs from DB	${index}	1
+	Rebuild Rrd Graphs from DB	${index}
 	Reload Broker
 	Log To Console	Indexes to rebuild: ${index}
 	${metrics}=	Get Metrics Matching Indexes	${index}
-#	Log To Console	Metrics to rebuild: ${metrics}
-#	${content}=	Create List	Metric rebuild: metric	is sent to rebuild
-#	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	30
-#	Should Be True	${result}	msg=Central did not send metrics to rebuild
 
 	${content1}=	Create List	RRD: Starting to rebuild metrics
 	${result}=	Find In Log With Timeout	${rrdLog}	${start}	${content1}	30
