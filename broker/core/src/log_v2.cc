@@ -18,7 +18,6 @@
 
 #include "com/centreon/broker/log_v2.hh"
 
-#include <absl/strings/str_split.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/null_sink.h>
 #include <spdlog/sinks/rotating_file_sink.h>
