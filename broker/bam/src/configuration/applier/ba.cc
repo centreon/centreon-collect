@@ -17,6 +17,7 @@
 */
 
 #include "com/centreon/broker/bam/configuration/applier/ba.hh"
+#include "com/centreon/broker/bam/ba_impact.hh"
 #include <fmt/format.h>
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/log_v2.hh"
@@ -318,9 +319,18 @@ void applier::ba::_internal_copy(applier::ba const& other) {
  */
 std::shared_ptr<bam::ba> applier::ba::_new_ba(configuration::ba const& cfg,
                                               service_book& book) {
-  std::shared_ptr<bam::ba> obj{std::make_shared<bam::ba>(
-      cfg.get_id(), cfg.get_host_id(), cfg.get_service_id(),
-      cfg.get_state_source(), false)};
+  std::shared_ptr<bam::ba> obj;
+  switch (cfg.get_state_source()) {
+    case configuration::ba::state_source_impact:
+      obj = std::make_shared<bam::ba_impact>(
+          cfg.get_id(), cfg.get_host_id(), cfg.get_service_id(), false);
+      break;
+    default:
+      obj = std::make_shared<bam::ba>(
+          cfg.get_id(), cfg.get_host_id(), cfg.get_service_id(),
+          cfg.get_state_source(), false);
+      break;
+  }
   obj->set_name(cfg.get_name());
   obj->set_level_warning(cfg.get_warning_level());
   obj->set_level_critical(cfg.get_critical_level());

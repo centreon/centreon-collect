@@ -60,39 +60,43 @@ class ba : public computable, public service_listener {
   };
 
  private:
-  static int const _recompute_limit = 100;
 
-  void _apply_impact(kpi* kpi_ptr, impact_info& impact);
   void _open_new_event(io::stream* visitor, short service_hard_state);
-  void _recompute();
-  void _unapply_impact(kpi* kpi_ptr, impact_info& impact);
   void _compute_inherited_downtime(io::stream* visitor);
 
-  state _computed_soft_state;
-  state _computed_hard_state;
   float _num_soft_critical_childs;
   float _num_hard_critical_childs;
-  double _acknowledgement_hard;
-  double _acknowledgement_soft;
-  double _downtime_hard;
-  double _downtime_soft;
   std::shared_ptr<ba_event> _event;
-  std::unordered_map<kpi*, impact_info> _impacts;
   bool _in_downtime;
   timestamp _last_kpi_update;
-  double _level_critical;
-  double _level_hard;
-  double _level_soft;
-  double _level_warning;
   std::string _name;
-  int _recompute_count;
-  bool _valid;
-  configuration::ba::downtime_behaviour _dt_behaviour;
   std::unique_ptr<inherited_downtime> _inherited_downtime;
 
   void _commit_initial_events(io::stream* visitor);
 
   std::vector<std::shared_ptr<ba_event> > _initial_events;
+
+ protected:
+  constexpr static int _recompute_limit = 100;
+
+  std::unordered_map<kpi*, impact_info> _impacts;
+  bool _valid{true};
+  double _level_hard{100.0};
+  double _level_soft{100.0};
+  double _level_critical{0.0};
+  double _level_warning{0.0};
+  double _acknowledgement_hard{0.0};
+  double _acknowledgement_soft{0.0};
+  double _downtime_hard{0.0};
+  double _downtime_soft{0.0};
+  configuration::ba::downtime_behaviour _dt_behaviour{configuration::ba::dt_ignore};
+  int _recompute_count{0};
+  state _computed_soft_state;
+  state _computed_hard_state;
+
+  virtual void _apply_impact(kpi* kpi_ptr, impact_info& impact);
+  virtual void _unapply_impact(kpi* kpi_ptr, impact_info& impact);
+  virtual void _recompute();
 
  public:
   ba(uint32_t id,
@@ -101,7 +105,7 @@ class ba : public computable, public service_listener {
      configuration::ba::state_source source,
      bool generate_virtual_status = true);
   ba(const ba&) = delete;
-  ~ba() noexcept = default;
+  virtual ~ba() noexcept = default;
   ba& operator=(ba const& other) = delete;
   void add_impact(std::shared_ptr<kpi> const& impact);
   bool child_has_update(computable* child,
@@ -119,8 +123,8 @@ class ba : public computable, public service_listener {
   std::string const& get_name() const;
   std::string get_output() const;
   std::string get_perfdata() const;
-  state get_state_hard();
-  state get_state_soft();
+  virtual state get_state_hard();
+  virtual state get_state_soft();
   configuration::ba::state_source get_state_source() const;
   void remove_impact(std::shared_ptr<kpi> const& impact);
   void set_level_critical(double level);
