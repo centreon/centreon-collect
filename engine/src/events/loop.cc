@@ -49,14 +49,6 @@ loop& loop::instance() {
 }
 
 void loop::clear() {
-  for (timed_event* ev : _event_list_low) {
-    delete ev;
-    ev = nullptr;
-  }
-  for (timed_event* ev : _event_list_high) {
-    delete ev;
-    ev = nullptr;
-  }
   _event_list_low.clear();
   _event_list_high.clear();
 
@@ -228,9 +220,9 @@ void loop::_dispatching() {
     // Handle high priority events.
     bool run_event(true);
     if (!_event_list_high.empty() &&
-        (current_time >= (*_event_list_high.begin())->run_time)) {
+        current_time >= _event_list_high.front()->run_time) {
       // Remove the first event from the timing loop.
-      timed_event* temp_event(*_event_list_high.begin());
+      auto temp_event = std::move(_event_list_high.front());
 
       _event_list_high.pop_front();
       // We may have just removed the only item from the list.
@@ -240,19 +232,16 @@ void loop::_dispatching() {
 
       // Reschedule the event if necessary.
       if (temp_event->recurring)
-        reschedule_event(temp_event, events::loop::high);
-      // Else free memory associated with the event.
-      else
-        delete temp_event;
+        reschedule_event(std::move(temp_event), events::loop::high);
     }
     // Handle low priority events.
     else if (!_event_list_low.empty() &&
-             (current_time >= (*_event_list_low.begin())->run_time)) {
+             current_time >= _event_list_low.front()->run_time) {
       // Default action is to execute the event.
       run_event = true;
 
       // Run a few checks before executing a service check...
-      if ((*_event_list_low.begin())->event_type ==
+      if (_event_list_low.front()->event_type ==
           timed_event::EVENT_SERVICE_CHECK) {
         int nudge_seconds(0);
         service* temp_service(
@@ -319,7 +308,7 @@ void loop::_dispatching() {
           // reschedule it for a later time. Since event was not
           // executed, it needs to be remove()'ed to maintain sync with
           // event broker modules.
-          timed_event* temp_event{_event_list_low.front()};
+          auto temp_event = std::move(_event_list_low.front());
           _event_list_low.pop_front();
 
           // We nudge the next check time when it is
@@ -343,18 +332,18 @@ void loop::_dispatching() {
                             config->interval_length())));
           }
           temp_event->run_time = temp_service->get_next_check();
-          reschedule_event(temp_event, events::loop::low);
+          reschedule_event(std::move(temp_event), events::loop::low);
           temp_service->update_status();
           run_event = false;
         }
       }
       // Run a few checks before executing a host check...
       else if (timed_event::EVENT_HOST_CHECK ==
-               (*_event_list_low.begin())->event_type) {
+               _event_list_low.front()->event_type) {
         // Default action is to execute the event.
         run_event = true;
         host* temp_host(
-            static_cast<host*>((*_event_list_low.begin())->event_data));
+            static_cast<host*>(_event_list_low.front()->event_data));
 
         // Don't run a host check if active checks are disabled.
         if (!config->execute_host_checks()) {
@@ -377,7 +366,7 @@ void loop::_dispatching() {
           // it for a later time. Since event was not executed, it needs
           // to be remove()'ed to maintain sync with event broker
           // modules.
-          timed_event* temp_event(*_event_list_low.begin());
+          auto temp_event = std::move(_event_list_low.front());
           _event_list_low.pop_front();
 
           // Reschedule.
@@ -391,7 +380,7 @@ void loop::_dispatching() {
                                                temp_host->check_interval() *
                                                    config->interval_length()));
           temp_event->run_time = temp_host->get_next_check();
-          reschedule_event(temp_event, events::loop::low);
+          reschedule_event(std::move(temp_event), events::loop::low);
           temp_host->update_status();
           run_event = false;
         }
@@ -400,7 +389,7 @@ void loop::_dispatching() {
       // Run the event.
       if (run_event) {
         // Remove the first event from the timing loop.
-        timed_event* temp_event(*_event_list_low.begin());
+        auto temp_event = std::move(_event_list_low.front());
         _event_list_low.pop_front();
         // We may have just removed the only item from the list.
 
@@ -411,10 +400,7 @@ void loop::_dispatching() {
 
         // Reschedule the event if necessary.
         if (temp_event->recurring)
-          reschedule_event(temp_event, events::loop::low);
-        // Else free memory associated with the event.
-        else
-          delete temp_event;
+          reschedule_event(std::move(temp_event), events::loop::low);
       }
       // Wait a while so we don't hog the CPU...
       else {
@@ -834,11 +820,11 @@ void loop::add_event(std::unique_ptr<timed_event>&& event,
   // add the event to the head of the list if there are
   // no other events.
   if (list->empty())
-    list->push_front(event);
+    list->push_front(std::move(event));
 
   // add event to head of the list if it should be executed first.
   else if (event->run_time < (*list->begin())->run_time)
-    list->push_front(event);
+    list->push_front(std::move(event));
 
   // else place the event according to next execution time.
   else {
@@ -848,7 +834,7 @@ void loop::add_event(std::unique_ptr<timed_event>&& event,
                                             end = list->rend();
          it != end; ++it) {
       if (event->run_time >= (*it)->run_time) {
-        list->insert(it.base(), event);
+        list->insert(it.base(), std::move(event));
         break;
       }
     }
@@ -866,7 +852,7 @@ void loop::remove_downtime(uint64_t downtime_id) {
     if (((uint64_t)(*it)->event_data) == downtime_id) {
       // send event data to broker.
       broker_timed_event(NEBTYPE_TIMEDEVENT_REMOVE, NEBFLAG_NONE, NEBATTR_NONE,
-                         *it, nullptr);
+                         it->get(), nullptr);
       _event_list_high.erase(it);
       break;
     }
@@ -907,7 +893,7 @@ void loop::remove_event(timed_event* evt, loop::priority priority) {
 
   std::remove_if(
       list->begin(), list->end(),
-      [evt](const std::unique_ptr<timed_event> e) { return evt == e.get(); });
+      [evt](const std::unique_ptr<timed_event>& e) { return evt == e.get(); });
 }
 
 void loop::remove_events(loop::priority priority,
@@ -920,7 +906,7 @@ void loop::remove_events(loop::priority priority,
     list = &_event_list_high;
 
   std::remove_if(list->begin(), list->end(),
-                 [event_type, data](const std::unique_ptr<timed_event> e) {
+                 [event_type, data](const std::unique_ptr<timed_event>& e) {
                    return e->event_type == event_type && e->event_data == data;
                  });
 }
@@ -1004,14 +990,15 @@ void loop::resort_event_list(loop::priority priority) {
     list = &_event_list_high;
 
   std::sort(list->begin(), list->end(),
-            [](timed_event* const& first, timed_event* const& second) {
+            [](const std::unique_ptr<timed_event>& first,
+               const std::unique_ptr<timed_event>& second) {
               return first->run_time < second->run_time;
             });
 
   // send event data to broker.
   for (auto& evt : *list)
-    broker_timed_event(NEBTYPE_TIMEDEVENT_ADD, NEBFLAG_NONE, NEBATTR_NONE, evt,
-                       nullptr);
+    broker_timed_event(NEBTYPE_TIMEDEVENT_ADD, NEBFLAG_NONE, NEBATTR_NONE,
+                       evt.get(), nullptr);
 }
 
 /**
@@ -1022,7 +1009,7 @@ void loop::resort_event_list(loop::priority priority) {
 void loop::schedule(std::unique_ptr<timed_event>&& evt, bool high_priority) {
   // add the event to the event list.
   if (high_priority)
-    add_event(evt, loop::high);
+    add_event(std::move(evt), loop::high);
   else
-    add_event(evt, loop::low);
+    add_event(std::move(evt), loop::low);
 }
