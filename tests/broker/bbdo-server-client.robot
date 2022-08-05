@@ -305,7 +305,7 @@ BSCSSGA1
         Broker Config Flush Log	rrd	0
 	${start}=	Get Current Date
 	Start Broker
-	${content}=	Create List	header authorization don't match to titus
+	${content}=	Create List	Wrong client authorization token
 	${result}=	Find In Log With Timeout	${rrdLog}	${start}	${content}	30
 	Should Be True	${result}	msg=An error message about the authorization token should be raised.
         Kindly Stop Broker
