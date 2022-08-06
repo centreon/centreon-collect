@@ -891,9 +891,11 @@ void loop::remove_event(timed_event* evt, loop::priority priority) {
   else
     list = &_event_list_high;
 
-  std::remove_if(
-      list->begin(), list->end(),
-      [evt](const std::unique_ptr<timed_event>& e) { return evt == e.get(); });
+  list->erase(std::remove_if(list->begin(), list->end(),
+                             [evt](const std::unique_ptr<timed_event>& e) {
+                               return evt == e.get();
+                             }),
+              list->end());
 }
 
 void loop::remove_events(loop::priority priority,
@@ -905,10 +907,12 @@ void loop::remove_events(loop::priority priority,
   else
     list = &_event_list_high;
 
-  std::remove_if(list->begin(), list->end(),
-                 [event_type, data](const std::unique_ptr<timed_event>& e) {
-                   return e->event_type == event_type && e->event_data == data;
-                 });
+  list->erase(std::remove_if(
+                  list->begin(), list->end(),
+                  [event_type, data](const std::unique_ptr<timed_event>& e) {
+                    return e->event_type == event_type && e->event_data == data;
+                  }),
+              list->end());
 }
 
 timed_event_list::iterator loop::find_event(loop::priority priority,
