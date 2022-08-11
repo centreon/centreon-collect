@@ -120,8 +120,8 @@ if [ -r /etc/centos-release ] ; then
     fi
   done
 elif [ -r /etc/issue ] ; then
-  maj=$(cat /etc/issue | awk '{print $1}')
-  version=$(cat /etc/issue | awk '{print $3}')
+  maj=$(head -1 /etc/issue | awk '{print $1}')
+  version=$(head -1 /etc/issue | awk '{print $3}')
   if [[ "$version" == "9" ]] ; then
     dpkg="dpkg"
   else
