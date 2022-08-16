@@ -877,7 +877,7 @@ void loop::remove_event(timed_event_list::iterator& it,
 }
 
 /**
- *  Remove an event given by its iterator from the queue.
+ *  Remove an event given from the queue.
  *
  *  @param[in]     evt             Pointer to timed_event.
  *  @param[in]     priority        This is to know which list to work with.

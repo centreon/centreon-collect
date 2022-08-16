@@ -1676,7 +1676,7 @@ int host::run_async_check(int check_options,
   }
 
   engine_logger(dbg_checks, basic)
-      << "** Running async check of host q'" << name() << "'...";
+      << "** Running async check of host '" << name() << "'...";
   SPDLOG_LOGGER_TRACE(log_v2::checks(),
                       "** Running async check of host '{}'...", name());
 
