@@ -230,38 +230,8 @@ void downtime_manager::clear_scheduled_downtimes() {
   _scheduled_downtimes.clear();
 }
 
-void downtime_manager::add_downtime(std::shared_ptr<downtime>&& dt) noexcept {
-  downtime* dtt = dt.get();
-  _scheduled_downtimes.insert({dt->get_start_time(), std::move(dt)});
-  /* send data to event broker */
-  switch (dtt->get_type()) {
-    case downtime::service_downtime:
-      log_v2::functions()->trace(
-          "downtime_manager::add_downtime => service_downtime");
-      broker_downtime_data(
-          NEBTYPE_DOWNTIME_LOAD, NEBATTR_NONE, downtime::service_downtime,
-          dtt->get_hostname().c_str(), dtt->service_description(),
-          dtt->get_entry_time(), dtt->get_author().c_str(),
-          dtt->get_comment().c_str(), dtt->get_start_time(),
-          dtt->get_end_time(), dtt->is_fixed(), dtt->get_triggered_by(),
-          dtt->get_duration(), dtt->get_downtime_id(), nullptr);
-      break;
-    case downtime::host_downtime:
-      log_v2::functions()->trace(
-          "downtime_manager::add_downtime => host_downtime");
-      broker_downtime_data(
-          NEBTYPE_DOWNTIME_LOAD, NEBATTR_NONE, downtime::host_downtime,
-          dtt->get_hostname().c_str(), nullptr, dtt->get_entry_time(),
-          dtt->get_author().c_str(), dtt->get_comment().c_str(),
-          dtt->get_start_time(), dtt->get_end_time(), dtt->is_fixed(),
-          dtt->get_triggered_by(), dtt->get_duration(), dtt->get_downtime_id(),
-          nullptr);
-      break;
-    default:
-      log_v2::functions()->error(
-          "downtime_manager::add_downtime => bad downtime type");
-      break;
-  }
+void downtime_manager::add_downtime(std::shared_ptr<downtime> dt) noexcept {
+  _scheduled_downtimes.insert({dt->get_start_time(), dt});
 }
 
 int downtime_manager::check_for_expired_downtime() {

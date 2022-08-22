@@ -27,7 +27,7 @@
 CCE_BEGIN()
 
 namespace downtimes {
-class downtime {
+class downtime : public std::enable_shared_from_this<downtime> {
  public:
   enum type { service_downtime = 1, host_downtime = 2, any_downtime = 3 };
   downtime(type type,
