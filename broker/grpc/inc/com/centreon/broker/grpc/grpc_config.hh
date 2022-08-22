@@ -31,6 +31,7 @@ class grpc_config {
   bool _crypted = false;
   std::string _certificate, _cert_key, _ca_cert, _authorization;
   // grpc_compression_level _compress_level;
+  std::string _ca_name;
   compression_active _compress;
 
  public:
@@ -45,6 +46,7 @@ class grpc_config {
               const std::string& cert_key,
               const std::string& ca_cert,
               const std::string& authorization,
+              const std::string& ca_name,
               compression_active compression)
       : _hostport(hostp),
         _crypted(crypted),
@@ -52,6 +54,7 @@ class grpc_config {
         _cert_key(cert_key),
         _ca_cert(ca_cert),
         _authorization(authorization),
+        _ca_name(ca_name),
         _compress(compression) {}
 
   constexpr const std::string& get_hostport() const { return _hostport; }
@@ -62,6 +65,7 @@ class grpc_config {
   constexpr const std::string& get_authorization() const {
     return _authorization;
   }
+  const std::string& get_ca_name() const { return _ca_name; }
   constexpr compression_active get_compression() const { return _compress; }
 
   friend class factory;

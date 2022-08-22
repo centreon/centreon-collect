@@ -40,28 +40,34 @@ using namespace spdlog;
 static void grpc_logger(gpr_log_func_args* args) {
   std::shared_ptr<spdlog::logger> logger = log_v2::grpc();
   spdlog::level::level_enum grpc_level = logger->level();
+  const char* start;
+  if (grpc_level == spdlog::level::off)
+    return;
+  else if (grpc_level > spdlog::level::debug) {
+    start = strstr(args->message, "}: ");
+    if (!start)
+      return;
+    start += 3;
+  } else
+    start = args->message;
   switch (args->severity) {
     case GPR_LOG_SEVERITY_DEBUG:
       if (grpc_level == spdlog::level::trace ||
           grpc_level == spdlog::level::debug) {
-        logger->debug("grpc ({}:{}) {}", args->file, args->line, args->message);
+        SPDLOG_LOGGER_DEBUG(logger, "{} ({}:{})", start, args->file,
+                            args->line);
       }
       break;
     case GPR_LOG_SEVERITY_INFO:
       if (grpc_level == spdlog::level::trace ||
           grpc_level == spdlog::level::debug ||
           grpc_level == spdlog::level::info) {
-        logger->info("grpc ({}:{}) {}", args->file, args->line, args->message);
+        if (start)
+          SPDLOG_LOGGER_INFO(logger, "{}", start);
       }
       break;
     case GPR_LOG_SEVERITY_ERROR:
-      if (grpc_level == spdlog::level::trace ||
-          grpc_level == spdlog::level::debug ||
-          grpc_level == spdlog::level::info ||
-          grpc_level == spdlog::level::warn ||
-          grpc_level == spdlog::level::err) {
-        logger->error("grpc ({}:{}) {}", args->file, args->line, args->message);
-      }
+      SPDLOG_LOGGER_ERROR(logger, "{}", start);
       break;
   }
 }
@@ -128,6 +134,7 @@ void log_v2::apply(const config::state& conf) {
     file_sink = std::make_shared<sinks::basic_file_sink_mt>(_log_name);
 
   auto create_log = [&file_sink, log_pid = log.log_pid,
+                     log_source = log.log_source,
                      flush_period = log.flush_period](const std::string& name,
                                                       level::level_enum lvl) {
     spdlog::drop(name);
@@ -138,10 +145,18 @@ void log_v2::apply(const config::state& conf) {
         log->flush_on(level::warn);
       else
         log->flush_on(lvl);
-      if (log_pid)
-        log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%P] %v");
-      else
-        log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
+      if (log_pid) {
+        if (log_source)
+          log->set_pattern(
+              "[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%s:%#] [%P] %v");
+        else
+          log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%P] %v");
+      } else {
+        if (log_source)
+          log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%s:%#] %v");
+        else
+          log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
+      }
     }
 
     if (name == "grpc") {
@@ -156,6 +171,7 @@ void log_v2::apply(const config::state& conf) {
           break;
         case level::level_enum::err:
         case level::level_enum::critical:
+        case level::level_enum::off:
           gpr_set_log_verbosity(GPR_LOG_SEVERITY_ERROR);
           break;
       }

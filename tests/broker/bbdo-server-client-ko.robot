@@ -38,7 +38,7 @@ BSCSSK1
 	Kindly Stop Broker
 
 BSCSSK2
-	[Documentation]	Start-Stop two instances of broker, server configured with tcp and client with grpc. No connectrion established and error raised on client side.
+	[Documentation]	Start-Stop two instances of broker, server configured with tcp and client with grpc. No connection established and error raised on client side.
 	[Tags]	Broker	start-stop	bbdo_server	bbdo_client	tcp
 	Config Broker	central
 	Config Broker	rrd

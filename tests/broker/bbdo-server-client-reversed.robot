@@ -3,6 +3,7 @@ Resource	../resources/resources.robot
 Suite Setup	Clean Before Suite
 Suite Teardown	Clean After Suite
 Test Setup	Stop Processes
+Test Teardown	Save logs If Failed
 
 Documentation	Centreon Broker start/stop tests with bbdo_server and bbdo_client input/output streams. Only these streams are used instead of grpc and tcp.
 Library	DateTime
@@ -146,7 +147,7 @@ BSCSSTGRR2
 	Broker Config Input set	rrd	rrd-broker-master-input	ca_certificate	${EtcRoot}/centreon-broker/server.crt
 	${start}=	Get Current Date
 	Start Broker
-	${content}=	Create List	start_write() write:buff:	write done :buff:
+	${content}=	Create List	write: buff:	write done: buff:
 	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	30
 	Should Be True	${result}	msg=No information about TLS activation.
 	Kindly Stop Broker

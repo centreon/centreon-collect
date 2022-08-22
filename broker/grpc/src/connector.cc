@@ -41,11 +41,12 @@ connector::connector(const grpc_config::pointer& conf)
  * @return std::unique_ptr<io::stream>
  */
 std::unique_ptr<io::stream> connector::open() {
-  log_v2::grpc()->info("TCP: connecting to {}", _conf->get_hostport());
+  SPDLOG_LOGGER_INFO(log_v2::grpc(), "Connecting to {}", _conf->get_hostport());
   try {
     return limit_endpoint::open();
   } catch (const std::exception& e) {
-    log_v2::tcp()->debug(
+    SPDLOG_LOGGER_DEBUG(
+        log_v2::tcp(),
         "Unable to establish the connection to {} (attempt {}): {}",
         _conf->get_hostport(), _is_ready_count, e.what());
     return nullptr;

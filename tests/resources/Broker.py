@@ -40,13 +40,14 @@ config = {
         "poller_id": 1,
         "poller_name": "Central",
         "module_directory": "/usr/share/centreon/lib/centreon-broker",
-        "log_timestamp": true,
-        "log_thread_id": false,
+        "log_timestamp": "yes",
+        "log_thread_id": "no",
         "event_queue_max_size": 100000,
         "command_file": "{7}/lib/centreon-broker/command.sock",
         "cache_directory": "{7}/lib/centreon-broker",
         "log": {{
-            "log_pid": true,
+            "log_pid": "yes",
+            "log_source": "no",
             "flush_period": 1,
             "directory": "{7}/log/centreon-broker/",
             "filename": "",
@@ -155,7 +156,7 @@ config = {
         "command_file": "",
         "cache_directory": "{7}/lib/centreon-engine",
         "log": {{
-            "log_pid": true,
+            "log_pid": "yes",
             "flush_period": 1,
             "directory": "{7}/log/centreon-broker/",
             "filename": "",
@@ -215,7 +216,8 @@ config = {
         "command_file": "",
         "cache_directory": "{7}/lib/centreon-broker",
         "log": {{
-            "log_pid": true,
+            "log_pid": "yes",
+            "log_source": "no",
             "flush_period": 1,
             "directory": "{7}/log/centreon-broker/",
             "filename": "",
@@ -928,6 +930,24 @@ def broker_config_flush_log(name, value):
     f.close()
 
 
+def broker_config_source_log(name, value):
+    if name == 'central':
+        filename = "central-broker.json"
+    elif name.startswith('module'):
+        filename = "central-{}.json".format(name)
+    else:
+        filename = "central-rrd.json"
+    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r")
+    buf = f.read()
+    f.close()
+    conf = json.loads(buf)
+    log = conf["centreonBroker"]["log"]
+    log["log_source"] = value
+    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "w")
+    f.write(json.dumps(conf, indent=2))
+    f.close()
+
+
 def check_broker_stats_exist(name, key1, key2, timeout=TIMEOUT):
     limit = time.time() + timeout
     while time.time() < limit:
@@ -1356,7 +1376,7 @@ def rebuild_rrd_graphs(port, indexes, timeout: int = TIMEOUT):
 #
 # @param indexes The list of indexes corresponding to metrics to rebuild.
 #
-def rebuild_rrd_graphs_from_db(indexes, timeout: int = TIMEOUT):
+def rebuild_rrd_graphs_from_db(indexes):
     connection = pymysql.connect(host=DB_HOST,
                                  user=DB_USER,
                                  password=DB_PASS,
@@ -1368,7 +1388,7 @@ def rebuild_rrd_graphs_from_db(indexes, timeout: int = TIMEOUT):
     with connection:
         with connection.cursor() as cursor:
             if len(indexes) > 0:
-                sql = "UPDATE index_data SET must_be_rebuild=1 WHERE id in ({})".format(
+                sql = "UPDATE index_data SET must_be_rebuild='1' WHERE id in ({})".format(
                     ",".join(map(str, indexes)))
                 logger.console(sql)
                 cursor.execute(sql)
@@ -1394,7 +1414,7 @@ def compare_rrd_average_value(metric, value: float):
         err = abs(res - float(value)) / float(value)
         logger.console(
             f"expected value: {value} - result value: {res} - err: {err}")
-        return err < 0.01
+        return err < 0.05
     else:
         logger.console(
             "It was impossible to get the average value from the file " + VAR_ROOT + "/lib/centreon/metrics/{}.rrd from the last 30 days".format(metric))

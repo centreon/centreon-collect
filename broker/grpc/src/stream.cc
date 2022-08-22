@@ -51,7 +51,7 @@ com::centreon::broker::grpc::stream::~stream() noexcept {
       d = std::make_shared<io::raw>();                                        \
       std::static_pointer_cast<io::raw>(d)->_buffer.assign(                   \
           to_convert.buffer().begin(), to_convert.buffer().end());            \
-      log_v2::grpc()->trace("stream::{} receive:{}", __FUNCTION__,            \
+      SPDLOG_LOGGER_TRACE(log_v2::grpc(), "receive:{}",                       \
                             *std::static_pointer_cast<io::raw>(d));           \
     } else {                                                                  \
       return false;                                                           \

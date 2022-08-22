@@ -151,10 +151,14 @@ BSCSSTG1
 	Broker Config Log	rrd	core	off
 	Broker Config Log	central	tls	debug
 	Broker Config Log	central	grpc	debug
+	Broker Config Log	rrd	grpc	debug
         Broker Config Flush Log	central	0
+        Broker Config Source Log	central	1
+        Broker Config Flush Log	rrd	0
+        Broker Config Source Log	rrd	1
 	${start}=	Get Current Date
 	Start Broker
-	${content}=	Create List	There is no ca certificate specified for bbdo_client
+	${content}=	Create List	Handshake failed
 	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	30
 	Should Be True	${result}	msg=No information about TLS activation.
 
@@ -172,6 +176,7 @@ BSCSSTG2
 	Broker Config Log	central	core	off
 	Broker Config Log	rrd	core	off
 	Broker Config Log	central	tls	debug
+	Broker Config Log	rrd	grpc	debug
 	Broker Config Log	central	grpc	debug
 	Create Key And Certificate	localhost	${EtcRoot}/centreon-broker/server.key	${EtcRoot}/centreon-broker/server.crt
 	Create Key And Certificate	localhost	${EtcRoot}/centreon-broker/client.key	${EtcRoot}/centreon-broker/client.crt
@@ -183,10 +188,40 @@ BSCSSTG2
 	Broker Config Input set	rrd	rrd-broker-master-input	certificate	${EtcRoot}/centreon-broker/client.crt
 	${start}=	Get Current Date
 	Start Broker
-	${content}=	Create List	crypted connexion	start_write() write:buff:	write done :buff:
+	${content}=	Create List	encrypted connection	write: buff:	write done: buff:
 	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	30
 	Should Be True	${result}	msg=No information about TLS activation.
 	Kindly Stop Broker
+
+BSCSSTG3
+	[Documentation]	Start-Stop two instances of broker. The connection cannot be established if the server private key is missing and an error message explains this issue.
+	[Tags]	Broker	start-stop	bbdo_server	bbdo_client	grpc	tls
+	Config Broker	central
+	Config Broker	rrd
+	Config Broker BBDO Input	central	bbdo_server	5669  grpc
+	Config Broker BBDO Output	central	bbdo_client	5670  grpc	localhost
+	Config Broker BBDO Input	rrd	bbdo_server	5670  grpc
+	Broker Config Output set	central	central-broker-master-output	encryption	yes
+	Broker Config Input set	rrd	rrd-broker-master-input	encryption	yes
+	Broker Config Log	central	config	off
+	Broker Config Log	central	core	off
+	Broker Config Log	rrd	core	off
+	Broker Config Log	central	tls	debug
+	Broker Config Log	central	grpc	debug
+	Broker Config Log	rrd	grpc	debug
+	Create Key And Certificate	localhost	${EtcRoot}/centreon-broker/server.key	${EtcRoot}/centreon-broker/server.crt
+	Create Key And Certificate	localhost	${EtcRoot}/centreon-broker/client.key	${EtcRoot}/centreon-broker/client.crt
+
+	Broker Config Output set	central	central-broker-master-output	private_key	${EtcRoot}/centreon-broker/server.key
+	Broker Config Output set	central	central-broker-master-output	certificate	${EtcRoot}/centreon-broker/server.crt
+	Broker Config Output set	central	central-broker-master-output	ca_certificate	${EtcRoot}/centreon-broker/client.crt
+	Broker Config Input set	rrd	rrd-broker-master-input	private_key	${EtcRoot}/centreon-broker/missing-client.key
+	Broker Config Input set	rrd	rrd-broker-master-input	certificate	${EtcRoot}/centreon-broker/client.crt
+	${start}=	Get Current Date
+	Start Broker
+	${content}=	Create List	Cannot open file '/tmp/etc/centreon-broker/missing-client.key': No such file or directory
+	${result}=	Find In Log With Timeout	${rrdLog}	${start}	${content}	30
+	Should Be True	${result}	msg=No information about the missing private key on server.
 
 BSCSSC1
 	[Documentation]	Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with tcp transport protocol. Compression is enabled on client side.
@@ -242,6 +277,7 @@ BSCSSCG1
 	Broker Config Log	central	core	trace
 	Broker Config Log	rrd	core	off
 	Broker Config Log	central	tls	debug
+	Broker Config Log	rrd	grpc	debug
 	Broker Config Log	central	grpc	debug
         Broker Config Flush Log	central	0
 	${start}=	Get Current Date
@@ -264,11 +300,12 @@ BSCSSGA1
 	Broker Config Log	central	core	off
 	Broker Config Log	rrd	core	off
 	Broker Config Log	rrd	tls	debug
-	Broker Config Log	rrd	grpc	debug
+	Broker Config Log	rrd	grpc	trace
         Broker Config Flush Log	central	0
+        Broker Config Flush Log	rrd	0
 	${start}=	Get Current Date
 	Start Broker
-	${content}=	Create List	header authorization don't match to titus
+	${content}=	Create List	Wrong client authorization token
 	${result}=	Find In Log With Timeout	${rrdLog}	${start}	${content}	30
 	Should Be True	${result}	msg=An error message about the authorization token should be raised.
         Kindly Stop Broker
@@ -288,10 +325,13 @@ BSCSSGA2
 	Broker Config Log	rrd	core	off
 	Broker Config Log	rrd	tls	debug
 	Broker Config Log	rrd	grpc	debug
+	Broker Config Log	central	grpc	debug
         Broker Config Flush Log	central	0
+        Broker Config Flush Log	rrd	0
+        Broker Config Source Log	rrd	1
 	${start}=	Get Current Date
 	Start Broker
-	${content}=	Create List	accepted_service::on_read_done receive:buff
+	${content}=	Create List	receive: buff
 	${result}=	Find In Log With Timeout	${rrdLog}	${start}	${content}	30
 	Should Be True	${result}	msg=If the authorization token is the same on both side, no issue
         Kindly Stop Broker

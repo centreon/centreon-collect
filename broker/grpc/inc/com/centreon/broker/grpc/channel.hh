@@ -65,7 +65,7 @@ constexpr uint32_t calc_accept_all_compression_mask() {
 }
 
 /**
- * @brief base class of grpc communication final class server or client
+ * @brief Abstract base class of grpc communication final class server or client
  *
  */
 class channel : public std::enable_shared_from_this<channel> {

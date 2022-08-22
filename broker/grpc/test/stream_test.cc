@@ -31,6 +31,7 @@ com::centreon::broker::grpc::grpc_config::pointer conf(
         "",
         "",
         "my_aut",
+        "",
         com::centreon::broker::grpc::grpc_config::NO));
 
 static constexpr unsigned relay_listen_port = 5123u;
@@ -339,6 +340,7 @@ com::centreon::broker::grpc::grpc_config::pointer conf_crypted_server1234(
         read_file("tests/grpc_test_keys/server_1234.key"),
         read_file("tests/grpc_test_keys/ca_1234.crt"),
         "my_auth",
+        "",
         com::centreon::broker::grpc::grpc_config::NO));
 
 com::centreon::broker::grpc::grpc_config::pointer conf_crypted_client1234(
@@ -349,6 +351,7 @@ com::centreon::broker::grpc::grpc_config::pointer conf_crypted_client1234(
         read_file("tests/grpc_test_keys/client_1234.key"),
         read_file("tests/grpc_test_keys/ca_1234.crt"),
         "my_auth",
+        "",
         com::centreon::broker::grpc::grpc_config::NO));
 
 class grpc_test_server_crypted : public ::testing::TestWithParam<test_param> {
@@ -411,6 +414,7 @@ com::centreon::broker::grpc::grpc_config::pointer
             read_file("tests/grpc_test_keys/client_1234.key"),
             read_file("tests/grpc_test_keys/ca_1234.crt"),
             "my_auth_pasbon",
+            "",
             com::centreon::broker::grpc::grpc_config::NO));
 
 TEST_P(grpc_test_server_crypted, ServerToClientWithKeyAndBadAuthorization) {

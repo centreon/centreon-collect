@@ -35,7 +35,7 @@ state::state()
       _event_queue_max_size{10000},
       _poller_id{0},
       _pool_size{0},
-      _log_conf{"/var/log/centreon-broker", "", 0u, 5u, false, {}} {}
+      _log_conf{"/var/log/centreon-broker", "", 0u, 5u, false, false, {}} {}
 
 /**
  *  Copy constructor.

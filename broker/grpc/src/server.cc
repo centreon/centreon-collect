@@ -36,8 +36,8 @@ accepted_service::accepted_service(const grpc_config::pointer& conf,
     : channel("accepted_service", conf),
       _server_finished(server_finished),
       _finished_called(false) {
-  log_v2::grpc()->debug("{} this={:p}", __PRETTY_FUNCTION__,
-                        static_cast<void*>(this));
+  SPDLOG_LOGGER_TRACE(log_v2::grpc(), "accepted_service construction this={:p}",
+                      static_cast<void*>(this));
 }
 
 void accepted_service::start() {
@@ -45,8 +45,8 @@ void accepted_service::start() {
 }
 
 accepted_service::~accepted_service() {
-  log_v2::grpc()->debug("{} this={:p}", __PRETTY_FUNCTION__,
-                        static_cast<void*>(this));
+  SPDLOG_LOGGER_TRACE(log_v2::grpc(), "accepted_service desctruction this={:p}",
+                      static_cast<void*>(this));
 }
 
 void accepted_service::desactivate() {
@@ -54,8 +54,7 @@ void accepted_service::desactivate() {
 }
 
 void accepted_service::OnCancel() {
-  log_v2::grpc()->debug("{} this={:p}", __PRETTY_FUNCTION__,
-                        static_cast<void*>(this));
+  SPDLOG_LOGGER_TRACE(log_v2::grpc(), "this={:p}", static_cast<void*>(this));
   desactivate();
 }
 
@@ -63,8 +62,8 @@ void accepted_service::start_read(event_ptr& to_read, bool) {
   if (*_server_finished) {
     bool expected = false;
     if (_finished_called.compare_exchange_strong(expected, true)) {
-      log_v2::grpc()->debug("{} this={:p}  Finish", __PRETTY_FUNCTION__,
-                            static_cast<void*>(this));
+      SPDLOG_LOGGER_TRACE(log_v2::grpc(), "this={:p}  Finish",
+                          static_cast<void*>(this));
       Finish(::grpc::Status(::grpc::CANCELLED, "start_read server finished"));
     }
   } else {
@@ -80,8 +79,8 @@ void accepted_service::start_write(const event_ptr& to_send) {
   if (*_server_finished) {
     bool expected = false;
     if (_finished_called.compare_exchange_strong(expected, true)) {
-      log_v2::grpc()->debug("{} this={:p} Finish", __PRETTY_FUNCTION__,
-                            static_cast<void*>(this));
+      SPDLOG_LOGGER_TRACE(log_v2::grpc(), "this={:p} Finish",
+                          static_cast<void*>(this));
       Finish(::grpc::Status(::grpc::CANCELLED, "start_write server finished"));
     }
   } else {
@@ -94,8 +93,7 @@ void accepted_service::OnWriteDone(bool ok) {
 }
 
 int accepted_service::stop() {
-  log_v2::grpc()->debug("{} this={:p}", __PRETTY_FUNCTION__,
-                        static_cast<void*>(this));
+  SPDLOG_LOGGER_TRACE(log_v2::grpc(), "this={:p}", static_cast<void*>(this));
   shutdown();
   return channel::stop();
 }
@@ -103,8 +101,8 @@ int accepted_service::stop() {
 void accepted_service::shutdown() {
   bool expected = false;
   if (_finished_called.compare_exchange_strong(expected, true)) {
-    log_v2::grpc()->debug("{} this={:p}", __PRETTY_FUNCTION__,
-                          static_cast<void*>(this));
+    SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "{} this={:p}",
+                        static_cast<void*>(this));
     Finish(::grpc::Status(::grpc::CANCELLED, "stop server finished"));
   }
 }
@@ -145,11 +143,11 @@ void server::start() {
     ::grpc::SslServerCredentialsOptions::PemKeyCertPair pkcp = {
         _conf->get_key(), _conf->get_cert()};
 
-    log_v2::grpc()->info(
-        "{} crypted server listen on {} cert: {}..., key: {}..., ca: {}....",
-        __PRETTY_FUNCTION__, _conf->get_hostport(),
-        _conf->get_cert().substr(0, 10), _conf->get_key().substr(0, 10),
-        _conf->get_ca().substr(0, 10));
+    SPDLOG_LOGGER_INFO(
+        log_v2::grpc(),
+        "encrypted server listening on {} cert: {}..., key: {}..., ca: {}....",
+        _conf->get_hostport(), _conf->get_cert().substr(0, 10),
+        _conf->get_key().substr(0, 10), _conf->get_ca().substr(0, 10));
 
     ::grpc::SslServerCredentialsOptions ssl_opts;
     ssl_opts.pem_root_certs = _conf->get_ca();
@@ -158,8 +156,8 @@ void server::start() {
     server_creds = ::grpc::SslServerCredentials(ssl_opts);
 #endif
   } else {
-    log_v2::grpc()->info("{} uncrypted server listen on {}",
-                         __PRETTY_FUNCTION__, _conf->get_hostport());
+    SPDLOG_LOGGER_INFO(log_v2::grpc(), "unencrypted server listening on {}",
+                       _conf->get_hostport());
     server_creds = ::grpc::InsecureServerCredentials();
   }
   builder.AddListeningPort(_conf->get_hostport(), server_creds);
@@ -176,11 +174,11 @@ void server::start() {
     grpc_compression_algorithm algo = grpc_compression_algorithm_for_level(
         GRPC_COMPRESS_LEVEL_HIGH, calc_accept_all_compression_mask());
     const char* algo_name;
-    if (grpc_compression_algorithm_name(algo, &algo_name)) {
-      log_v2::grpc()->debug("server default compression {}", algo_name);
-    } else {
-      log_v2::grpc()->debug("server default compression unknown");
-    }
+    if (grpc_compression_algorithm_name(algo, &algo_name))
+      SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "server default compression {}",
+                          algo_name);
+    else
+      SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "server default compression unknown");
 
     builder.SetDefaultCompressionAlgorithm(algo);
     builder.SetDefaultCompressionLevel(GRPC_COMPRESS_LEVEL_HIGH);
@@ -202,16 +200,14 @@ server::pointer server::create(const grpc_config::pointer& conf) {
 
     auto header_search = metas.lower_bound(authorization_header);
     if (header_search == metas.end()) {
-      log_v2::grpc()->error("{} header {} not found", __PRETTY_FUNCTION__,
-                            authorization_header);
+      SPDLOG_LOGGER_ERROR(log_v2::grpc(), "header {} not found",
+                          authorization_header);
       return nullptr;
     }
     bool found = false;
     for (; header_search != metas.end() && !found; ++header_search) {
       if (header_search->first != authorization_header) {
-        log_v2::grpc()->error("{} header {} don't match to {}",
-                              __PRETTY_FUNCTION__, authorization_header,
-                              _conf->get_authorization());
+        SPDLOG_LOGGER_ERROR(log_v2::grpc(), "Wrong client authorization token");
         return nullptr;
       }
       found = _conf->get_authorization() == header_search->second;
