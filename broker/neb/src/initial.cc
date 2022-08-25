@@ -140,8 +140,7 @@ static void send_downtimes_list() {
                 com::centreon::engine::downtimes::downtime::service_downtime
             ? std::static_pointer_cast<
                   com::centreon::engine::downtimes::service_downtime>(p.second)
-                  ->get_service_description()
-                  .c_str()
+                  ->service_description()
             : nullptr;
     nsdd.entry_time = p.second->get_entry_time();
     nsdd.author_name = p.second->get_author().c_str();

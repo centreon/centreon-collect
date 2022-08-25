@@ -111,6 +111,16 @@ std::string const& downtime::get_hostname() const {
 }
 
 /**
+ * @brief Get the service description of the service associated with this
+ * downtime. If the downtime set on a host, null is returned.
+ *
+ * @return a const char* pointer.
+ */
+const char* downtime::service_description() const {
+  return nullptr;
+}
+
+/**
  * @brief stream operator to output a downtime.
  *
  * @param os The output stream

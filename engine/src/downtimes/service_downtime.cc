@@ -70,7 +70,7 @@ service_downtime::~service_downtime() {
   /* send data to event broker */
   broker_downtime_data(
       NEBTYPE_DOWNTIME_DELETE, NEBATTR_NONE, downtime::service_downtime,
-      get_hostname().c_str(), get_service_description().c_str(), _entry_time,
+      get_hostname().c_str(), service_description(), _entry_time,
       get_author().c_str(), get_comment().c_str(), get_start_time(),
       get_end_time(), is_fixed(), get_triggered_by(), get_duration(),
       get_downtime_id(), nullptr);
@@ -87,7 +87,7 @@ bool service_downtime::is_stale() const {
   host_map::const_iterator it(host::hosts.find(get_hostname()));
 
   service_map::const_iterator found(
-      service::services.find({get_hostname(), get_service_description()}));
+      service::services.find({get_hostname(), service_description()}));
 
   /* delete downtimes with invalid host names */
   if (it == host::hosts.end() || !it->second)
@@ -113,7 +113,7 @@ bool service_downtime::is_stale() const {
 void service_downtime::retention(std::ostream& os) const {
   os << "servicedowntime {\n";
   os << "host_name=" << get_hostname() << "\n";
-  os << "service_description=" << get_service_description() << "\n";
+  os << "service_description=" << service_description() << "\n";
   os << "author=" << get_author()
      << "\n"
         "comment="
@@ -146,7 +146,7 @@ void service_downtime::retention(std::ostream& os) const {
 void service_downtime::print(std::ostream& os) const {
   os << "servicedowntime {\n";
   os << "\thost_name=" << get_hostname() << "\n";
-  os << "\tservice_description=" << get_service_description() << "\n";
+  os << "\tservice_description=" << service_description() << "\n";
   os << "\tdowntime_id=" << get_downtime_id()
      << "\n"
         "\tentry_time="
@@ -180,7 +180,7 @@ int service_downtime::unschedule() {
   engine_logger(dbg_functions, basic) << "service_downtime::unschedule()";
   log_v2::functions()->trace("service_downtime::unschedule()");
   service_map::const_iterator found(
-      service::services.find({get_hostname(), get_service_description()}));
+      service::services.find({get_hostname(), service_description()}));
 
   /* find the host or service associated with this downtime */
   if (found == service::services.end() || !found->second.get())
@@ -196,7 +196,7 @@ int service_downtime::unschedule() {
     /* send data to event broker */
     broker_downtime_data(
         NEBTYPE_DOWNTIME_STOP, NEBATTR_DOWNTIME_STOP_CANCELLED, get_type(),
-        get_hostname().c_str(), get_service_description().c_str(), _entry_time,
+        get_hostname().c_str(), service_description(), _entry_time,
         get_author().c_str(), get_comment().c_str(), get_start_time(),
         get_end_time(), is_fixed(), get_triggered_by(), get_duration(),
         get_downtime_id(), nullptr);
@@ -229,7 +229,7 @@ int service_downtime::subscribe() {
   log_v2::functions()->trace("service_downtime::subscribe()");
 
   service_map::const_iterator found(
-      service::services.find({get_hostname(), get_service_description()}));
+      service::services.find({get_hostname(), service_description()}));
 
   /* find the host or service associated with this downtime */
   if (found == service::services.end() || !found->second)
@@ -341,7 +341,7 @@ int service_downtime::handle() {
   log_v2::functions()->trace("handle_downtime()");
 
   service_map::const_iterator found(
-      service::services.find({get_hostname(), get_service_description()}));
+      service::services.find({get_hostname(), service_description()}));
 
   /* find the host or service associated with this downtime */
   if (found == service::services.end() || !found->second)
@@ -385,7 +385,7 @@ int service_downtime::handle() {
     attr = NEBATTR_DOWNTIME_STOP_NORMAL;
     broker_downtime_data(
         NEBTYPE_DOWNTIME_STOP, attr, this->get_type(), get_hostname().c_str(),
-        get_service_description().c_str(), _entry_time, get_author().c_str(),
+        service_description(), _entry_time, get_author().c_str(),
         get_comment().c_str(), get_start_time(), get_end_time(), is_fixed(),
         get_triggered_by(), get_duration(), get_downtime_id(), nullptr);
 
@@ -468,7 +468,7 @@ int service_downtime::handle() {
     /* send data to event broker */
     broker_downtime_data(
         NEBTYPE_DOWNTIME_START, NEBATTR_NONE, get_type(),
-        get_hostname().c_str(), get_service_description().c_str(), _entry_time,
+        get_hostname().c_str(), service_description(), _entry_time,
         get_author().c_str(), get_comment().c_str(), get_start_time(),
         get_end_time(), is_fixed(), get_triggered_by(), get_duration(),
         get_downtime_id(), nullptr);
@@ -545,19 +545,19 @@ int service_downtime::handle() {
   return OK;
 }
 
-std::string const& service_downtime::get_service_description() const {
-  return _service_description;
+const char* service_downtime::service_description() const {
+  return _service_description.c_str();
 }
 
-void service_downtime::schedule() {
-  engine_logger(dbg_functions, basic) << "service_downtime::schedule()";
-  log_v2::functions()->trace("service_downtime::schedule()");
-  downtime_manager::instance().add_downtime(this);
-
-  /* send data to event broker */
-  broker_downtime_data(
-      NEBTYPE_DOWNTIME_LOAD, NEBATTR_NONE, downtime::service_downtime,
-      _hostname.c_str(), _service_description.c_str(), _entry_time,
-      _author.c_str(), _comment.c_str(), _start_time, _end_time, _fixed,
-      _triggered_by, _duration, _downtime_id, nullptr);
-}
+//void service_downtime::schedule() {
+//  engine_logger(dbg_functions, basic) << "service_downtime::schedule()";
+//  log_v2::functions()->trace("service_downtime::schedule()");
+//  downtime_manager::instance().add_downtime(this);
+//
+//  /* send data to event broker */
+//  broker_downtime_data(
+//      NEBTYPE_DOWNTIME_LOAD, NEBATTR_NONE, downtime::service_downtime,
+//      _hostname.c_str(), _service_description.c_str(), _entry_time,
+//      _author.c_str(), _comment.c_str(), _start_time, _end_time, _fixed,
+//      _triggered_by, _duration, _downtime_id, nullptr);
+//}

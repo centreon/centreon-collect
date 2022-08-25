@@ -47,11 +47,12 @@ class downtime {
 
   type get_type() const;
   virtual bool is_stale() const = 0;
-  virtual void schedule() = 0;
+  //virtual void schedule() = 0;
   virtual int unschedule() = 0;
   virtual int subscribe() = 0;
   virtual int handle() = 0;
   std::string const& get_hostname() const;
+  virtual const char* service_description() const;
   virtual void print(std::ostream& os) const = 0;
   virtual void retention(std::ostream& os) const = 0;
   std::string const& get_author() const;

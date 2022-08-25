@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Centreon (https://www.centreon.com/)
+ * Copyright 2019-2022 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -197,7 +197,7 @@ int downtime_manager::check_pending_flex_service_downtime(service* svc) {
         *std::static_pointer_cast<service_downtime>(it->second));
 
     service_map::const_iterator found(service::services.find(
-        {dt.get_hostname(), dt.get_service_description()}));
+        {dt.get_hostname(), dt.service_description()}));
 
     /* this entry matches our service! */
     if (found != service::services.end() && found->second.get() == svc) {
@@ -230,9 +230,37 @@ void downtime_manager::clear_scheduled_downtimes() {
   _scheduled_downtimes.clear();
 }
 
-void downtime_manager::add_downtime(downtime* dt) noexcept {
-  _scheduled_downtimes.insert(
-      {dt->get_start_time(), std::shared_ptr<downtime>(dt)});
+void downtime_manager::add_downtime(std::shared_ptr<downtime>&& dt) noexcept {
+  downtime* dtt = dt.get();
+  _scheduled_downtimes.insert({dt->get_start_time(), std::move(dt)});
+  /* send data to event broker */
+  switch (dtt->get_type()) {
+    case downtime::service_downtime:
+      log_v2::functions()->trace(
+          "downtime_manager::add_downtime => service_downtime");
+      broker_downtime_data(
+          NEBTYPE_DOWNTIME_LOAD, NEBATTR_NONE, downtime::service_downtime,
+          dtt->get_hostname().c_str(), dtt->service_description(),
+          dtt->get_entry_time(), dtt->get_author().c_str(),
+          dtt->get_comment().c_str(), dtt->get_start_time(),
+          dtt->get_end_time(), dtt->is_fixed(), dtt->get_triggered_by(),
+          dtt->get_duration(), dtt->get_downtime_id(), nullptr);
+      break;
+    case downtime::host_downtime:
+      log_v2::functions()->trace(
+          "downtime_manager::add_downtime => host_downtime");
+      broker_downtime_data(
+          NEBTYPE_DOWNTIME_LOAD, NEBATTR_NONE, downtime::host_downtime,
+          dtt->get_hostname().c_str(), nullptr, dtt->get_entry_time(),
+          dtt->get_author().c_str(), dtt->get_comment().c_str(),
+          dtt->get_start_time(), dtt->get_end_time(), dtt->is_fixed(),
+          dtt->get_triggered_by(), dtt->get_duration(), dtt->get_downtime_id(),
+          nullptr);
+      break;
+    default:
+      log_v2::functions()->error("downtime_manager::add_downtime => bad downtime type");
+      break;
+  }
 }
 
 int downtime_manager::check_for_expired_downtime() {
@@ -321,7 +349,7 @@ int downtime_manager::
         service_downtime* svc{
             dynamic_cast<service_downtime*>(it->second.get())};
 
-        if (!svc || svc->get_service_description() != service_description)
+        if (!svc || std::string(svc->service_description()) != service_description)
           continue;
       }
     }
@@ -416,7 +444,7 @@ uint64_t downtime_manager::get_next_downtime_id() {
 }
 
 /* saves a host downtime entry */
-downtime* downtime_manager::add_new_host_downtime(std::string const& host_name,
+void downtime_manager::add_new_host_downtime(std::string const& host_name,
                                                   time_t entry_time,
                                                   char const* author,
                                                   char const* comment_data,
@@ -434,10 +462,10 @@ downtime* downtime_manager::add_new_host_downtime(std::string const& host_name,
   uint64_t new_downtime_id{get_next_downtime_id()};
 
   /* add downtime to list in memory */
-  host_downtime* retval{new host_downtime(
+  auto retval{std::make_shared<host_downtime>(
       host_name, entry_time, author, comment_data, start_time, end_time, fixed,
       triggered_by, duration, new_downtime_id)};
-  retval->schedule();
+  add_downtime(std::move(retval));
 
   /* save downtime id */
   if (downtime_id)
@@ -448,11 +476,10 @@ downtime* downtime_manager::add_new_host_downtime(std::string const& host_name,
                        downtime::host_downtime, host_name.c_str(), nullptr,
                        entry_time, author, comment_data, start_time, end_time,
                        fixed, triggered_by, duration, new_downtime_id, nullptr);
-  return retval;
 }
 
 /* saves a service downtime entry */
-downtime* downtime_manager::add_new_service_downtime(
+void downtime_manager::add_new_service_downtime(
     std::string const& host_name,
     std::string const& service_description,
     time_t entry_time,
@@ -472,10 +499,10 @@ downtime* downtime_manager::add_new_service_downtime(
   uint64_t new_downtime_id{get_next_downtime_id()};
 
   /* add downtime to list in memory */
-  service_downtime* retval{new service_downtime(
+  auto retval{std::make_shared<service_downtime>(
       host_name, service_description, entry_time, author, comment_data,
       start_time, end_time, fixed, triggered_by, duration, new_downtime_id)};
-  retval->schedule();
+  add_downtime(std::move(retval));
 
   /* save downtime id */
   if (downtime_id)
@@ -487,8 +514,6 @@ downtime* downtime_manager::add_new_service_downtime(
                        service_description.c_str(), entry_time, author.c_str(),
                        comment_data.c_str(), start_time, end_time, fixed,
                        triggered_by, duration, new_downtime_id, nullptr);
-
-  return retval;
 }
 
 /* schedules a host or service downtime */

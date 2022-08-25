@@ -99,18 +99,18 @@ void broker_acknowledgement_data(int type,
  *  @param[in] modsattrs    Target contact modified service attributes.
  *  @param[in] timestamp    Timestamp.
  */
-void broker_adaptive_contact_data(int type,
-                                  int flags,
-                                  int attr,
-                                  contact* cntct,
-                                  int command_type,
-                                  unsigned long modattr,
-                                  unsigned long modattrs,
-                                  unsigned long modhattr,
-                                  unsigned long modhattrs,
-                                  unsigned long modsattr,
-                                  unsigned long modsattrs,
-                                  struct timeval const* timestamp) {}
+void broker_adaptive_contact_data(int type __attribute__((unused)),
+                                  int flags __attribute__((unused)),
+                                  int attr __attribute__((unused)),
+                                  contact* cntct __attribute__((unused)),
+                                  int command_type __attribute__((unused)),
+                                  unsigned long modattr __attribute__((unused)),
+                                  unsigned long modattrs __attribute__((unused)),
+                                  unsigned long modhattr __attribute__((unused)),
+                                  unsigned long modhattrs __attribute__((unused)),
+                                  unsigned long modsattr __attribute__((unused)),
+                                  unsigned long modsattrs __attribute__((unused)),
+                                  struct timeval const* timestamp __attribute__((unused))) {}
 
 /**
  * @brief Send adaptive severity updates to broker.
@@ -181,11 +181,12 @@ void broker_adaptive_dependency_data(int type, void* data) {
  *  @param[in] data      Target escalation.
  *  @param[in] timestamp Timestamp.
  */
-void broker_adaptive_escalation_data(int type,
-                                     int flags,
-                                     int attr,
-                                     void* data,
-                                     struct timeval const* timestamp) {}
+void broker_adaptive_escalation_data(int type __attribute__((unused)),
+                                     int flags __attribute__((unused)),
+                                     int attr __attribute__((unused)),
+                                     void* data __attribute__((unused)),
+                                     struct timeval const* timestamp
+                                     __attribute__((unused))) {}
 
 /**
  *  Sends adaptive host updates to broker.

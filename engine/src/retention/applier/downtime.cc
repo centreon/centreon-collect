@@ -49,28 +49,28 @@ void applier::downtime::apply(list_downtime const& lst) {
  *  @param[in] obj The downtime to add into the host.
  */
 void applier::downtime::_add_host_downtime(
-    retention::downtime const& obj) throw() {
-  downtimes::host_downtime* dt{new downtimes::host_downtime(
+    retention::downtime const& obj) noexcept {
+  auto dt{std::make_shared<downtimes::host_downtime>(
       obj.host_name(), obj.entry_time(), obj.author(), obj.comment_data(),
       obj.start_time(), obj.end_time(), obj.fixed(), obj.triggered_by(),
       obj.duration(), obj.downtime_id())};
-  dt->schedule();
+  downtimes::downtime_manager::instance().add_downtime(dt);
   downtimes::downtime_manager::instance().register_downtime(
       downtimes::downtime::host_downtime, obj.downtime_id());
 }
 
 /**
- *  Add serivce downtime.
+ *  Add service downtime.
  *
  *  @param[in] obj The downtime to add into the service.
  */
 void applier::downtime::_add_service_downtime(
-    retention::downtime const& obj) throw() {
-  downtimes::service_downtime* dt{new downtimes::service_downtime(
+    retention::downtime const& obj) noexcept {
+  auto dt{std::make_shared<downtimes::service_downtime>(
       obj.host_name(), obj.service_description(), obj.entry_time(),
       obj.author(), obj.comment_data(), obj.start_time(), obj.end_time(),
       obj.fixed(), obj.triggered_by(), obj.duration(), obj.downtime_id())};
-  dt->schedule();
+  downtimes::downtime_manager::instance().add_downtime(dt);
   downtimes::downtime_manager::instance().register_downtime(
       downtimes::downtime::service_downtime, obj.downtime_id());
 }

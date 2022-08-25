@@ -1749,8 +1749,8 @@ grpc::Status engine_impl::DeleteServiceDowntimeFull(
       if (!(request->host_name().empty()) &&
           (dt->get_hostname() != request->host_name()))
         continue;
-      if (!(request->service_desc().empty()) &&
-          (dt->get_service_description() != request->service_desc()))
+      if (!request->service_desc().empty() &&
+          std::string(dt->service_description()) != request->service_desc())
         continue;
       if (request->has_start() &&
           dt->get_start_time() != request->start().value())

@@ -40,7 +40,7 @@ class host_downtime : public downtime {
   virtual ~host_downtime();
 
   virtual bool is_stale() const override;
-  virtual void schedule() override;
+  //virtual void schedule() override;
   virtual int unschedule() override;
   virtual int subscribe() override;
   virtual int handle() override;

@@ -154,7 +154,7 @@ bool downtime_finder::_match_criteria(service_downtime const& dt,
   if (crit.first == "host") {
     retval = (crit.second == dt.get_hostname());
   } else if (crit.first == "service") {
-    retval = (crit.second == dt.get_service_description());
+    retval = (crit.second == std::string(dt.service_description()));
   } else if (crit.first == "start") {
     time_t expected(std::stoull(crit.second, nullptr, 0));
     retval = (expected == dt.get_start_time());

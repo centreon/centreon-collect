@@ -497,13 +497,13 @@ int host_downtime::handle() {
   return OK;
 }
 
-void host_downtime::schedule() {
-  downtime_manager::instance().add_downtime(this);
-
-  /* send data to event broker */
-  broker_downtime_data(NEBTYPE_DOWNTIME_LOAD, NEBATTR_NONE,
-                       downtime::host_downtime, _hostname.c_str(), nullptr,
-                       _entry_time, _author.c_str(), _comment.c_str(),
-                       _start_time, _end_time, _fixed, _triggered_by, _duration,
-                       _downtime_id, nullptr);
-}
+//void host_downtime::schedule() {
+//  downtime_manager::instance().add_downtime(this);
+//
+//  /* send data to event broker */
+//  broker_downtime_data(NEBTYPE_DOWNTIME_LOAD, NEBATTR_NONE,
+//                       downtime::host_downtime, _hostname.c_str(), nullptr,
+//                       _entry_time, _author.c_str(), _comment.c_str(),
+//                       _start_time, _end_time, _fixed, _triggered_by, _duration,
+//                       _downtime_id, nullptr);
+//}
