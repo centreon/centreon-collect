@@ -909,11 +909,12 @@ uint64_t engine::get_service_id(const std::string& host,
  */
 void service::schedule_acknowledgement_expiration() {
   if (acknowledgement_timeout() > 0 && last_acknowledgement() != (time_t)0) {
-    timed_event* evt =
-        new timed_event(timed_event::EVENT_EXPIRE_SERVICE_ACK,
-                        last_acknowledgement() + acknowledgement_timeout(),
-                        false, 0, nullptr, true, this, nullptr, 0);
-    events::loop::instance().schedule(evt, false);
+    events::loop::instance().schedule(
+        std::make_unique<timed_event>(
+            timed_event::EVENT_EXPIRE_SERVICE_ACK,
+            last_acknowledgement() + acknowledgement_timeout(), false, 0,
+            nullptr, true, this, nullptr, 0),
+        false);
   }
 }
 
@@ -1246,19 +1247,20 @@ int service::handle_async_check_result(
     engine_logger(dbg_checks, most)
         << "Parsing check output...\n"
         << "Short Output:\n"
-        << (get_plugin_output().empty() ? "NULL" : get_plugin_output()) << "\n"
+        << (get_plugin_output().empty() ? "nullptr" : get_plugin_output())
+        << "\n"
         << "Long Output:\n"
-        << (get_long_plugin_output().empty() ? "NULL"
+        << (get_long_plugin_output().empty() ? "nullptr"
                                              : get_long_plugin_output())
         << "\n"
         << "Perf Data:\n"
-        << (get_perf_data().empty() ? "NULL" : get_perf_data());
+        << (get_perf_data().empty() ? "nullptr" : get_perf_data());
     SPDLOG_LOGGER_DEBUG(
         log_v2::checks(),
         "Parsing check output Short Output: {} Long Output: {} Perf Data: {}",
-        get_plugin_output().empty() ? "NULL" : get_plugin_output(),
-        get_long_plugin_output().empty() ? "NULL" : get_long_plugin_output(),
-        get_perf_data().empty() ? "NULL" : get_perf_data());
+        get_plugin_output().empty() ? "nullptr" : get_plugin_output(),
+        get_long_plugin_output().empty() ? "nullptr" : get_long_plugin_output(),
+        get_perf_data().empty() ? "nullptr" : get_perf_data());
 
     /* grab the return code */
     _current_state = static_cast<service::service_state>(
@@ -2678,12 +2680,13 @@ bool service::schedule_check(time_t check_time,
 
   // Default is to use the new event.
   bool use_original_event = false;
-  timed_event* temp_event = events::loop::instance().find_event(
+  timed_event_list::iterator found = events::loop::instance().find_event(
       events::loop::low, timed_event::EVENT_SERVICE_CHECK, this);
 
   // We found another service check event for this service in
   // the queue - what should we do?
-  if (temp_event) {
+  if (found != events::loop::instance().list_end(events::loop::low)) {
+    auto& temp_event = *found;
     engine_logger(dbg_checks, most)
         << "Found another service check event for this service @ "
         << my_ctime(&temp_event->run_time);
@@ -2747,6 +2750,21 @@ bool service::schedule_check(time_t check_time,
             "so we'll ignore it.");
       }
     }
+
+    if (!use_original_event) {
+      // We're using the new event, so remove the old one.
+      events::loop::instance().remove_event(found, events::loop::low);
+      no_update_status_now = true;
+    } else {
+      // Reset the next check time (it may be out of sync).
+      set_next_check(temp_event->run_time);
+
+      engine_logger(dbg_checks, most)
+          << "Keeping original service check event (ignoring the new one).";
+      SPDLOG_LOGGER_DEBUG(
+          log_v2::checks(),
+          "Keeping original service check event (ignoring the new one).");
+    }
   }
 
   // Save check options for retention purposes.
@@ -2754,13 +2772,6 @@ bool service::schedule_check(time_t check_time,
 
   // Schedule a new event.
   if (!use_original_event) {
-    // We're using the new event, so remove the old one.
-    if (temp_event) {
-      events::loop::instance().remove_event(temp_event, events::loop::low);
-      temp_event = nullptr;
-      no_update_status_now = true;
-    }
-
     engine_logger(dbg_checks, most) << "Scheduling new service check event.";
     SPDLOG_LOGGER_DEBUG(log_v2::checks(),
                         "Scheduling new service check event.");
@@ -2771,11 +2782,12 @@ bool service::schedule_check(time_t check_time,
       set_next_check(check_time);
 
       // Place the new event in the event queue.
-      timed_event* new_event =
-          new timed_event(timed_event::EVENT_SERVICE_CHECK, get_next_check(),
-                          false, 0L, nullptr, true, this, nullptr, options);
+      auto new_event{std::make_unique<timed_event>(
+          timed_event::EVENT_SERVICE_CHECK, get_next_check(), false, 0L,
+          nullptr, true, this, nullptr, options)};
 
-      events::loop::instance().reschedule_event(new_event, events::loop::low);
+      events::loop::instance().reschedule_event(std::move(new_event),
+                                                events::loop::low);
 
       if (!active_checks_enabled())
         no_update_status_now = true;
@@ -2784,16 +2796,6 @@ bool service::schedule_check(time_t check_time,
       update_status();
       throw;
     }
-  } else {
-    // Reset the next check time (it may be out of sync).
-    if (temp_event)
-      set_next_check(temp_event->run_time);
-
-    engine_logger(dbg_checks, most)
-        << "Keeping original service check event (ignoring the new one).";
-    SPDLOG_LOGGER_DEBUG(
-        log_v2::checks(),
-        "Keeping original service check event (ignoring the new one).");
   }
 
   // Update the status log.
@@ -3785,7 +3787,7 @@ void service::resolve(int& w, int& e) {
       it->second->services.insert({{_hostname, name()}, this});
 
       // Notify event broker.
-      broker_relation_data(NEBTYPE_PARENT_ADD, get_host_ptr(), NULL, NULL,
+      broker_relation_data(NEBTYPE_PARENT_ADD, get_host_ptr(), nullptr, nullptr,
                            this);
     }
   }

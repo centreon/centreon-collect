@@ -42,6 +42,13 @@ class result {
   void _internal_copy(result const& right);
 
  public:
+  uint64_t command_id;
+  timestamp end_time;
+  int exit_code;
+  process::status exit_status;
+  timestamp start_time;
+  std::string output;
+
   result();
   result(result const& right);
   result(const check_result& check_res);
@@ -49,12 +56,6 @@ class result {
   result& operator=(result const& right);
   bool operator==(result const& right) const noexcept;
   bool operator!=(result const& right) const noexcept;
-  uint64_t command_id;
-  timestamp end_time;
-  int exit_code;
-  process::status exit_status;
-  timestamp start_time;
-  std::string output;
 };
 
 std::ostream& operator<<(std::ostream& s, const result& to_dump);

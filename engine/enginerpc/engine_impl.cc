@@ -2143,23 +2143,23 @@ grpc::Status engine_impl::SignalProcess(grpc::ServerContext* context
                                         __attribute__((unused))) {
   std::string err;
   auto fn = std::packaged_task<int32_t(void)>([&err, request]() -> int32_t {
-    timed_event* evt;
+    std::unique_ptr<timed_event> evt;
     if (EngineSignalProcess::Process_Name(request->process()) == "SHUTDOWN") {
       /* add a scheduled program shutdown or restart to the event list */
-      evt = new timed_event(timed_event::EVENT_PROGRAM_SHUTDOWN,
-                            request->scheduled_time(), false, 0, nullptr, false,
-                            nullptr, nullptr, 0);
+      evt = std::make_unique<timed_event>(timed_event::EVENT_PROGRAM_SHUTDOWN,
+                                          request->scheduled_time(), false, 0,
+                                          nullptr, false, nullptr, nullptr, 0);
     } else if (EngineSignalProcess::Process_Name(request->process()) ==
                "RESTART") {
-      evt = new timed_event(timed_event::EVENT_PROGRAM_RESTART,
-                            request->scheduled_time(), false, 0, nullptr, false,
-                            nullptr, nullptr, 0);
+      evt = std::make_unique<timed_event>(timed_event::EVENT_PROGRAM_RESTART,
+                                          request->scheduled_time(), false, 0,
+                                          nullptr, false, nullptr, nullptr, 0);
     } else {
       err = "no signal informed, you should inform a restart or a shutdown";
       return 1;
     }
 
-    events::loop::instance().schedule(evt, true);
+    events::loop::instance().schedule(std::move(evt), true);
     return 0;
   });
 

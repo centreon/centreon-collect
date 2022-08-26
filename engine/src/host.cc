@@ -598,21 +598,21 @@ std::ostream& operator<<(std::ostream& os, const host& obj) {
   std::string child_oss;
 
   if (obj.get_contactgroups().empty())
-    cg_oss = "\"NULL\"";
+    cg_oss = "\"nullptr\"";
   else {
     std::ostringstream oss;
     oss << obj.get_contactgroups();
     cg_oss = oss.str();
   }
   if (obj.contacts().empty())
-    c_oss = "\"NULL\"";
+    c_oss = "\"nullptr\"";
   else {
     std::ostringstream oss;
     oss << obj.contacts();
     c_oss = oss.str();
   }
   if (obj.parent_hosts.empty())
-    p_oss = "\"NULL\"";
+    p_oss = "\"nullptr\"";
   else {
     std::ostringstream oss;
     oss << obj.parent_hosts;
@@ -620,7 +620,7 @@ std::ostream& operator<<(std::ostream& os, const host& obj) {
   }
 
   if (obj.child_hosts.empty())
-    child_oss = "\"NULL\"";
+    child_oss = "\"nullptr\"";
   else {
     std::ostringstream oss;
     oss << obj.child_hosts;
@@ -1151,11 +1151,12 @@ uint64_t engine::get_host_id(const std::string& name) {
  */
 void host::schedule_acknowledgement_expiration() {
   if (acknowledgement_timeout() > 0 && last_acknowledgement() != (time_t)0) {
-    timed_event* evt =
-        new timed_event(timed_event::EVENT_EXPIRE_HOST_ACK,
-                        last_acknowledgement() + acknowledgement_timeout(),
-                        false, 0, nullptr, true, this, nullptr, 0);
-    events::loop::instance().schedule(evt, false);
+    events::loop::instance().schedule(
+        std::make_unique<timed_event>(
+            timed_event::EVENT_EXPIRE_HOST_ACK,
+            last_acknowledgement() + acknowledgement_timeout(), false, 0,
+            nullptr, true, this, nullptr, 0),
+        false);
   }
 }
 
@@ -1408,19 +1409,20 @@ int host::handle_async_check_result_3x(
   engine_logger(dbg_checks, most)
       << "Parsing check output...\n"
       << "Short Output:\n"
-      << (get_plugin_output().empty() ? "NULL" : get_plugin_output()) << "\n"
+      << (get_plugin_output().empty() ? "nullptr" : get_plugin_output()) << "\n"
       << "Long Output:\n"
-      << (get_long_plugin_output().empty() ? "NULL" : get_long_plugin_output())
+      << (get_long_plugin_output().empty() ? "nullptr"
+                                           : get_long_plugin_output())
       << "\n"
       << "Perf Data:\n"
-      << (get_perf_data().empty() ? "NULL" : get_perf_data());
+      << (get_perf_data().empty() ? "nullptr" : get_perf_data());
   SPDLOG_LOGGER_DEBUG(
       log_v2::checks(),
       "Parsing check output... Short Output: {}  Long Output: {} "
       "Perf Data: {}",
-      get_plugin_output().empty() ? "NULL" : get_plugin_output(),
-      get_long_plugin_output().empty() ? "NULL" : get_long_plugin_output(),
-      get_perf_data().empty() ? "NULL" : get_perf_data());
+      get_plugin_output().empty() ? "nullptr" : get_plugin_output(),
+      get_long_plugin_output().empty() ? "nullptr" : get_long_plugin_output(),
+      get_perf_data().empty() ? "nullptr" : get_perf_data());
   /* get the unprocessed return code */
   /* NOTE: for passive checks, this is the final/processed state */
   svc_res = static_cast<enum service::service_state>(
@@ -1485,7 +1487,7 @@ int host::handle_async_check_result_3x(
       svc_res = service::state_unknown;
     }
 
-    /* a NULL host check command means we should assume the host is UP */
+    /* a nullptr host check command means we should assume the host is UP */
     if (check_command().empty()) {
       set_plugin_output("(Host assumed to be UP)");
       svc_res = service::state_ok;
@@ -1835,9 +1837,6 @@ int host::run_async_check(int check_options,
 bool host::schedule_check(time_t check_time,
                           uint32_t options,
                           bool no_update_status_now) {
-  timed_event* temp_event = nullptr;
-  int use_original_event = true;
-
   engine_logger(dbg_functions, basic) << "schedule_host_check()";
   SPDLOG_LOGGER_TRACE(log_v2::functions(), "schedule_host_check()");
 
@@ -1861,7 +1860,7 @@ bool host::schedule_check(time_t check_time,
   }
 
   /* default is to use the new event */
-  use_original_event = false;
+  int use_original_event = false;
 
 #ifdef PERFORMANCE_INCREASE_BUT_VERY_BAD_IDEA_INDEED
 /* WARNING! 1/19/07 on-demand async host checks will end up causing mutliple
@@ -1871,12 +1870,13 @@ bool host::schedule_check(time_t check_time,
 #endif
 
   /* see if there are any other scheduled checks of this host in the queue */
-  temp_event = events::loop::instance().find_event(
+  timed_event_list::iterator found = events::loop::instance().find_event(
       events::loop::low, timed_event::EVENT_HOST_CHECK, this);
 
   /* we found another host check event for this host in the queue - what should
    * we do? */
-  if (temp_event) {
+  if (found != events::loop::instance().list_end(events::loop::low)) {
+    auto& temp_event = *found;
     engine_logger(dbg_checks, most)
         << "Found another host check event for this host @ "
         << my_ctime(&temp_event->run_time);
@@ -1943,7 +1943,19 @@ bool host::schedule_check(time_t check_time,
     }
 
     if (!use_original_event)
-      events::loop::instance().remove_event(temp_event, events::loop::low);
+      events::loop::instance().remove_event(found, events::loop::low);
+    else {
+      /* reset the next check time (it may be out of sync) */
+      set_next_check(temp_event->run_time);
+
+      engine_logger(dbg_checks, most)
+          << "Keeping original host check event (ignoring the new one).";
+      SPDLOG_LOGGER_DEBUG(
+          log_v2::checks(),
+          "Keeping original host check event at {:%Y-%m-%dT%H:%M:%S} (ignoring "
+          "the new one at {:%Y-%m-%dT%H:%M:%S}).",
+          fmt::localtime(get_next_check()), fmt::localtime(check_time));
+    }
   }
 
   /* save check options for retention purposes */
@@ -1958,23 +1970,12 @@ bool host::schedule_check(time_t check_time,
     set_next_check(check_time);
 
     /* place the new event in the event queue */
-    timed_event* new_event =
-        new timed_event(timed_event::EVENT_HOST_CHECK, get_next_check(), false,
-                        0L, nullptr, true, (void*)this, nullptr, options);
+    auto new_event{std::make_unique<timed_event>(
+        timed_event::EVENT_HOST_CHECK, get_next_check(), false, 0L, nullptr,
+        true, (void*)this, nullptr, options)};
 
-    events::loop::instance().reschedule_event(new_event, events::loop::low);
-  } else {
-    /* reset the next check time (it may be out of sync) */
-    if (temp_event != nullptr)
-      set_next_check(temp_event->run_time);
-
-    engine_logger(dbg_checks, most)
-        << "Keeping original host check event (ignoring the new one).";
-    SPDLOG_LOGGER_DEBUG(
-        log_v2::checks(),
-        "Keeping original host check event at {:%Y-%m-%dT%H:%M:%S} (ignoring "
-        "the new one at {:%Y-%m-%dT%H:%M:%S}).",
-        fmt::localtime(get_next_check()), fmt::localtime(check_time));
+    events::loop::instance().reschedule_event(std::move(new_event),
+                                              events::loop::low);
   }
 
   /* update the status log */

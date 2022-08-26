@@ -66,7 +66,7 @@ class scheduler {
   timed_event* _create_misc_event(int type,
                                   time_t start,
                                   unsigned long interval,
-                                  void* data = NULL);
+                                  void* data = nullptr);
   std::vector<com::centreon::engine::host*> _get_hosts(
       set_host const& hst_added,
       bool throw_if_not_found = true);

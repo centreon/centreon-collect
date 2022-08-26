@@ -78,8 +78,10 @@ void applier::scheduler::apply(
     host_map::const_iterator hst(hosts.find(it->host_name().c_str()));
     if (hst != hosts.end()) {
       bool has_event(events::loop::instance().find_event(
-          events::loop::low, timed_event::EVENT_HOST_CHECK, hst->second.get()));
-      bool should_schedule(it->checks_active() && (it->check_interval() > 0));
+                         events::loop::low, timed_event::EVENT_HOST_CHECK,
+                         hst->second.get()) !=
+                     events::loop::instance().list_end(events::loop::low));
+      bool should_schedule(it->checks_active() && it->check_interval() > 0);
       if (has_event && should_schedule) {
         hst_to_unschedule.insert(*it);
         hst_to_schedule.insert(*it);
@@ -98,8 +100,9 @@ void applier::scheduler::apply(
         {it->host_id(), it->service_id()}));
     if (svc != services.end()) {
       bool has_event(events::loop::instance().find_event(
-          events::loop::low, timed_event::EVENT_SERVICE_CHECK,
-          svc->second.get()));
+                         events::loop::low, timed_event::EVENT_SERVICE_CHECK,
+                         svc->second.get()) !=
+                     events::loop::instance().list_end(events::loop::low));
       bool should_schedule(it->checks_active() && (it->check_interval() > 0));
       if (has_event && should_schedule) {
         svc_to_unschedule.insert(*it);
@@ -121,8 +124,9 @@ void applier::scheduler::apply(
         {it->host_id(), it->service_id()}));
     if (svc != services.end()) {
       bool has_event(events::loop::instance().find_event(
-          events::loop::low, timed_event::EVENT_SERVICE_CHECK,
-          svc->second.get()));
+                         events::loop::low, timed_event::EVENT_SERVICE_CHECK,
+                         svc->second.get()) !=
+                     events::loop::instance().list_end(events::loop::low));
       bool should_schedule(it->checks_active() && (it->check_interval() > 0));
       if (has_event && should_schedule) {
         ad_to_unschedule.insert(*it);
@@ -306,11 +310,11 @@ applier::scheduler::~scheduler() noexcept {}
  */
 void applier::scheduler::_apply_misc_event() {
   // Get current time.
-  time_t const now(time(NULL));
+  time_t const now(time(nullptr));
 
   // Remove and add check result reaper event.
   if (!_evt_check_reaper ||
-      (_old_check_reaper_interval != _config->check_reaper_interval())) {
+      _old_check_reaper_interval != _config->check_reaper_interval()) {
     _remove_misc_event(_evt_check_reaper);
     _evt_check_reaper = _create_misc_event(
         timed_event::EVENT_CHECK_REAPER, now + _config->check_reaper_interval(),
@@ -544,7 +548,7 @@ void applier::scheduler::_calculate_host_scheduling_params() {
   log_v2::events()->debug("Determining host scheduling parameters...");
 
   // get current time.
-  time_t const now(time(NULL));
+  time_t const now(time(nullptr));
 
   // get total hosts and total scheduled hosts.
   for (host_map::const_iterator it(engine::host::hosts.begin()),
@@ -699,7 +703,7 @@ void applier::scheduler::_calculate_service_scheduling_params() {
   log_v2::events()->debug("Determining service scheduling parameters...");
 
   // get current time.
-  time_t const now(time(NULL));
+  time_t const now(time(nullptr));
 
   // get total services and total scheduled services.
   for (service_id_map::const_iterator
@@ -781,10 +785,11 @@ timed_event* applier::scheduler::_create_misc_event(int type,
                                                     time_t start,
                                                     unsigned long interval,
                                                     void* data) {
-  timed_event* evt(new timed_event(type, start, true, interval, nullptr, true,
-                                   data, NULL, 0));
-  events::loop::instance().schedule(evt, true);
-  return evt;
+  auto evt{std::make_unique<timed_event>(type, start, true, interval, nullptr,
+                                         true, data, nullptr, 0)};
+  timed_event* retval = evt.get();
+  events::loop::instance().schedule(std::move(evt), true);
+  return retval;
 }
 
 /**
@@ -884,7 +889,7 @@ applier::scheduler::_get_anomalydetections(set_anomalydetection const& ad_cfg,
 void applier::scheduler::_remove_misc_event(timed_event*& evt) {
   if (evt) {
     events::loop::instance().remove_event(evt, events::loop::high);
-    evt = NULL;
+    evt = nullptr;
   }
 }
 
@@ -899,7 +904,7 @@ void applier::scheduler::_schedule_host_events(
   log_v2::events()->debug("Scheduling host checks...");
 
   // get current time.
-  time_t const now(time(NULL));
+  time_t const now(time(nullptr));
 
   unsigned int const end(hosts.size());
 
@@ -984,10 +989,11 @@ void applier::scheduler::_schedule_host_events(
     com::centreon::engine::host& hst(*it->second);
 
     // Schedule a new host check event.
-    timed_event* evt = new timed_event(
-        timed_event::EVENT_HOST_CHECK, hst.get_next_check(), false, 0, nullptr,
-        true, (void*)&hst, NULL, hst.get_check_options());
-    events::loop::instance().schedule(evt, false);
+    events::loop::instance().schedule(
+        std::make_unique<timed_event>(
+            timed_event::EVENT_HOST_CHECK, hst.get_next_check(), false, 0,
+            nullptr, true, (void*)&hst, nullptr, hst.get_check_options()),
+        false);
   }
 
   // Schedule acknowledgement expirations.
@@ -1010,7 +1016,7 @@ void applier::scheduler::_schedule_service_events(
   log_v2::events()->debug("Scheduling service checks...");
 
   // get current time.
-  time_t const now(time(NULL));
+  time_t const now(time(nullptr));
 
   int total_interleave_blocks(scheduling_info.total_scheduled_services);
   // calculate number of service interleave blocks.
@@ -1090,10 +1096,11 @@ void applier::scheduler::_schedule_service_events(
        it != end; ++it) {
     engine::service* s(it->second);
     // Create a new service check event.
-    timed_event* evt(new timed_event(
-        timed_event::EVENT_SERVICE_CHECK, s->get_next_check(), false, 0,
-        nullptr, true, (void*)s, nullptr, s->get_check_options()));
-    events::loop::instance().schedule(evt, false);
+    events::loop::instance().schedule(
+        std::make_unique<timed_event>(
+            timed_event::EVENT_SERVICE_CHECK, s->get_next_check(), false, 0,
+            nullptr, true, (void*)s, nullptr, s->get_check_options()),
+        false);
   }
 
   // Schedule acknowledgement expirations.
