@@ -32,7 +32,6 @@
 #include "com/centreon/engine/utils.hh"
 #include "common.h"
 #include "config.h"
-#include "embedded_perl.h"
 #include "locations.h"
 #include "logging.h"
 #include "macros.h"
