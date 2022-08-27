@@ -27,12 +27,10 @@ set(
   ${FILES}
 
   # Sources.
-  "${SRC_DIR}/compatibility.cc"
   "${SRC_DIR}/loader.cc"
   "${SRC_DIR}/handle.cc"
 
   # Headers.
-  "${INC_DIR}/compatibility.hh"
   "${INC_DIR}/handle.hh"
   "${INC_DIR}/loader.hh"
 

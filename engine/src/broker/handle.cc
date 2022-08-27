@@ -18,7 +18,6 @@
 */
 
 #include "com/centreon/engine/broker/handle.hh"
-#include "com/centreon/engine/broker/compatibility.hh"
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/log_v2.hh"
@@ -35,16 +34,12 @@ using namespace com::centreon::engine::logging;
  *  @param[in] args     The module args.
  */
 handle::handle(const std::string& filename, const std::string& args)
-    : _args(args), _filename(filename), _name(filename) {
-  broker::compatibility::instance().create_module(this);
-}
+    : _args(args), _filename(filename), _name(filename) {}
 
 /**
  *  Destructor.
  */
-handle::~handle() noexcept {
-  broker::compatibility::instance().destroy_module(this);
-}
+handle::~handle() noexcept {}
 
 /**
  *  Default egality operator.
@@ -95,7 +90,6 @@ void handle::close() {
     }
     _handle.reset();
   }
-  broker::compatibility::instance().unloaded_module(this);
 }
 
 /**
@@ -212,7 +206,6 @@ void handle::open() {
       throw(engine_error() << "Function nebmodule_init "
                               "returned an error");
 
-    broker::compatibility::instance().loaded_module(this);
   } catch (std::exception const&) {
     close();
     throw;
@@ -254,7 +247,6 @@ void handle::reload() {
  */
 void handle::set_author(const std::string& author) {
   _author = author;
-  broker::compatibility::instance().author_module(this);
 }
 
 /**
@@ -264,7 +256,6 @@ void handle::set_author(const std::string& author) {
  */
 void handle::set_copyright(const std::string& copyright) {
   _copyright = copyright;
-  broker::compatibility::instance().copyright_module(this);
 }
 
 /**
@@ -274,7 +265,6 @@ void handle::set_copyright(const std::string& copyright) {
  */
 void handle::set_description(const std::string& description) {
   _description = description;
-  broker::compatibility::instance().description_module(this);
 }
 
 /**
@@ -284,7 +274,6 @@ void handle::set_description(const std::string& description) {
  */
 void handle::set_license(const std::string& license) {
   _license = license;
-  broker::compatibility::instance().license_module(this);
 }
 
 /**
@@ -294,7 +283,6 @@ void handle::set_license(const std::string& license) {
  */
 void handle::set_name(const std::string& name) {
   _name = name;
-  broker::compatibility::instance().name_module(this);
 }
 
 /**
@@ -304,5 +292,4 @@ void handle::set_name(const std::string& name) {
  */
 void handle::set_version(const std::string& version) {
   _version = version;
-  broker::compatibility::instance().version_module(this);
 }

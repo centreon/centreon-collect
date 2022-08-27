@@ -37,7 +37,6 @@ set(
   "${SRC_DIR}/logging.cc"
   "${SRC_DIR}/mmap.cc"
   "${SRC_DIR}/sighandlers.cc"
-  "${SRC_DIR}/utils.cc"
 
   # Headers.
   "${INC_DIR}/broker.h"

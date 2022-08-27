@@ -70,60 +70,6 @@ char* my_strtok(char const* buffer, char const* tokens) {
   return sequence_head;
 }
 
-/* strip newline, carriage return, and tab characters from beginning and end of
- * a string */
-void strip(char* buffer) {
-  int x, z;
-  int len;
-
-  if (buffer == NULL || buffer[0] == '\x0')
-    return;
-
-  /* strip end of string */
-  len = (int)strlen(buffer);
-  for (x = len - 1; x >= 0; x--) {
-    switch (buffer[x]) {
-      case ' ':
-      case '\n':
-      case '\r':
-      case '\t':
-        buffer[x] = '\x0';
-        continue;
-    }
-    break;
-  }
-
-  /* if we stripped all of it, just return */
-  if (!x)
-    return;
-
-  /* save last position for later... */
-  z = x;
-
-  /* strip beginning of string (by shifting) */
-  /* NOTE: this is very expensive to do, so avoid it whenever possible */
-  for (x = 0;; x++) {
-    switch (buffer[x]) {
-      case ' ':
-      case '\n':
-      case '\r':
-      case '\t':
-        continue;
-    }
-    break;
-  }
-
-  if (x > 0 && z > 0) {
-    /* new length of the string after we stripped the end */
-    len = z + 1;
-
-    /* shift chars towards beginning of string to remove leading whitespace */
-    for (z = x; z < len; z++)
-      buffer[z - x] = buffer[z];
-    buffer[len - x] = '\x0';
-  }
-}
-
 /**************************************************
  *************** HASH FUNCTIONS *******************
  **************************************************/
@@ -269,20 +215,6 @@ void get_time_breakdown(unsigned long raw_time,
   *hours = temp_hours;
   *minutes = temp_minutes;
   *seconds = temp_seconds;
-}
-
-char* resize_string(char* str, size_t size) {
-  if (size == 0) {
-    delete[] str;
-    return nullptr;
-  }
-  if (str == nullptr)
-    return new char[size];
-  char* new_str = new char[size];
-  strncpy(new_str, str, size - 2);
-  new_str[size - 1] = 0;
-  delete[] str;
-  return new_str;
 }
 
 Uuid::Uuid() {

@@ -101,7 +101,7 @@ TEST_F(Connector, RunWithTimeout) {
 }
 
 TEST_F(Connector, RunConnectorAsync) {
-  std::unique_ptr<my_listener> lstnr(new my_listener);
+  auto lstnr{std::make_unique<my_listener>()};
   nagios_macros macros = nagios_macros();
   connector cmd_connector("RunConnectorAsync", "tests/bin_connector_test_run");
   cmd_connector.set_listener(lstnr.get());

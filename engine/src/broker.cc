@@ -99,18 +99,19 @@ void broker_acknowledgement_data(int type,
  *  @param[in] modsattrs    Target contact modified service attributes.
  *  @param[in] timestamp    Timestamp.
  */
-void broker_adaptive_contact_data(int type __attribute__((unused)),
-                                  int flags __attribute__((unused)),
-                                  int attr __attribute__((unused)),
-                                  contact* cntct __attribute__((unused)),
-                                  int command_type __attribute__((unused)),
-                                  unsigned long modattr __attribute__((unused)),
-                                  unsigned long modattrs __attribute__((unused)),
-                                  unsigned long modhattr __attribute__((unused)),
-                                  unsigned long modhattrs __attribute__((unused)),
-                                  unsigned long modsattr __attribute__((unused)),
-                                  unsigned long modsattrs __attribute__((unused)),
-                                  struct timeval const* timestamp __attribute__((unused))) {}
+void broker_adaptive_contact_data(
+    int type __attribute__((unused)),
+    int flags __attribute__((unused)),
+    int attr __attribute__((unused)),
+    contact* cntct __attribute__((unused)),
+    int command_type __attribute__((unused)),
+    unsigned long modattr __attribute__((unused)),
+    unsigned long modattrs __attribute__((unused)),
+    unsigned long modhattr __attribute__((unused)),
+    unsigned long modhattrs __attribute__((unused)),
+    unsigned long modsattr __attribute__((unused)),
+    unsigned long modsattrs __attribute__((unused)),
+    struct timeval const* timestamp __attribute__((unused))) {}
 
 /**
  * @brief Send adaptive severity updates to broker.
@@ -231,15 +232,16 @@ void broker_adaptive_host_data(int type,
  *  @param[in] modsattrs    Specific service modified attributes.
  *  @param[in] timestamp    Timestamp.
  */
-void broker_adaptive_program_data(int type,
-                                  int flags,
-                                  int attr,
-                                  int command_type,
-                                  unsigned long modhattr,
-                                  unsigned long modhattrs,
-                                  unsigned long modsattr,
-                                  unsigned long modsattrs,
-                                  struct timeval const* timestamp) {}
+void broker_adaptive_program_data(
+    int type __attribute__((unused)),
+    int flags __attribute__((unused)),
+    int attr __attribute__((unused)),
+    int command_type __attribute__((unused)),
+    unsigned long modhattr __attribute__((unused)),
+    unsigned long modhattrs __attribute__((unused)),
+    unsigned long modsattr __attribute__((unused)),
+    unsigned long modsattrs __attribute__((unused)),
+    struct timeval const* timestamp __attribute__((unused))) {}
 
 /**
  *  Sends adaptive service updates to broker.
@@ -281,12 +283,13 @@ void broker_adaptive_service_data(int type,
  *  @param[in] command_type Command type.
  *  @param[in] timestamp    Timestamp.
  */
-void broker_adaptive_timeperiod_data(int type,
-                                     int flags,
-                                     int attr,
-                                     timeperiod* tp,
-                                     int command_type,
-                                     struct timeval const* timestamp) {}
+void broker_adaptive_timeperiod_data(int type __attribute__((unused)),
+                                     int flags __attribute__((unused)),
+                                     int attr __attribute__((unused)),
+                                     timeperiod* tp __attribute__((unused)),
+                                     int command_type __attribute__((unused)),
+                                     struct timeval const* timestamp
+                                     __attribute__((unused))) {}
 
 /**
  *  Brokers aggregated status dumps.
@@ -296,10 +299,11 @@ void broker_adaptive_timeperiod_data(int type,
  *  @param[in] attr      Attributes
  *  @param[in] timestamp Timestamp.
  */
-void broker_aggregated_status_data(int type,
-                                   int flags,
-                                   int attr,
-                                   struct timeval const* timestamp) {}
+void broker_aggregated_status_data(int type __attribute__((unused)),
+                                   int flags __attribute__((unused)),
+                                   int attr __attribute__((unused)),
+                                   struct timeval const* timestamp
+                                   __attribute__((unused))) {}
 
 /**
  *  Send command data to broker.
@@ -310,11 +314,12 @@ void broker_aggregated_status_data(int type,
  *  @param[in] cmd       The command.
  *  @param[in] timestamp Timestamp.
  */
-void broker_command_data(int type,
-                         int flags,
-                         int attr,
-                         commands::command* cmd,
-                         struct timeval const* timestamp) {}
+void broker_command_data(int type __attribute__((unused)),
+                         int flags __attribute__((unused)),
+                         int attr __attribute__((unused)),
+                         commands::command* cmd __attribute__((unused)),
+                         struct timeval const* timestamp
+                         __attribute__((unused))) {}
 
 /**
  *  Send comment data to broker.
@@ -953,10 +958,11 @@ void broker_relation_data(int type,
  *  @param[in] attr      Attributes.
  *  @param[in] timestamp Timestamp.
  */
-void broker_retention_data(int type,
-                           int flags,
-                           int attr,
-                           struct timeval const* timestamp) {}
+void broker_retention_data(int type __attribute__((unused)),
+                           int flags __attribute__((unused)),
+                           int attr __attribute__((unused)),
+                           struct timeval const* timestamp
+                           __attribute__((unused))) {}
 
 /**
  *  Send service check data to broker.
@@ -1029,16 +1035,17 @@ void broker_service_status(int type, com::centreon::engine::service* svc) {
  *  @param[in] max_attempts     Max attempts.
  *  @param[in] timestamp        Timestamp.
  */
-void broker_statechange_data(int type,
-                             int flags,
-                             int attr,
-                             int statechange_type,
-                             void* data,
-                             int state,
-                             int state_type,
-                             int current_attempt,
-                             int max_attempts,
-                             struct timeval const* timestamp) {}
+void broker_statechange_data(int type __attribute__((unused)),
+                             int flags __attribute__((unused)),
+                             int attr __attribute__((unused)),
+                             int statechange_type __attribute__((unused)),
+                             void* data __attribute__((unused)),
+                             int state __attribute__((unused)),
+                             int state_type __attribute__((unused)),
+                             int current_attempt __attribute__((unused)),
+                             int max_attempts __attribute__((unused)),
+                             struct timeval const* timestamp
+                             __attribute__((unused))) {}
 
 /**
  *  Send system command data to broker.
@@ -1056,18 +1063,19 @@ void broker_statechange_data(int type,
  *  @param[in] output        Output.
  *  @param[in] timestamp     Timestamp.
  */
-void broker_system_command(int type,
-                           int flags,
-                           int attr,
-                           struct timeval start_time,
-                           struct timeval end_time,
-                           double exectime,
-                           int timeout,
-                           int early_timeout,
-                           int retcode,
-                           const char* cmd,
-                           char* output,
-                           struct timeval const* timestamp) {}
+void broker_system_command(int type __attribute__((unused)),
+                           int flags __attribute__((unused)),
+                           int attr __attribute__((unused)),
+                           struct timeval start_time __attribute__((unused)),
+                           struct timeval end_time __attribute__((unused)),
+                           double exectime __attribute__((unused)),
+                           int timeout __attribute__((unused)),
+                           int early_timeout __attribute__((unused)),
+                           int retcode __attribute__((unused)),
+                           const char* cmd __attribute__((unused)),
+                           char* output __attribute__((unused)),
+                           struct timeval const* timestamp
+                           __attribute__((unused))) {}
 
 /**
  *  Send timed event data to broker.
@@ -1078,11 +1086,13 @@ void broker_system_command(int type,
  *  @param[in] event     Target event.
  *  @param[in] timestamp Timestamp.
  */
-void broker_timed_event(int type,
-                        int flags,
-                        int attr,
-                        com::centreon::engine::timed_event* event,
-                        struct timeval const* timestamp) {}
+void broker_timed_event(int type __attribute__((unused)),
+                        int flags __attribute__((unused)),
+                        int attr __attribute__((unused)),
+                        com::centreon::engine::timed_event* event
+                        __attribute__((unused)),
+                        struct timeval const* timestamp
+                        __attribute__((unused))) {}
 
 /**
  *  Gets timestamp for use by broker.
