@@ -64,8 +64,6 @@ class ba : public computable, public service_listener {
   void _open_new_event(io::stream* visitor, short service_hard_state);
   void _compute_inherited_downtime(io::stream* visitor);
 
-  float _num_soft_critical_childs;
-  float _num_hard_critical_childs;
   std::shared_ptr<ba_event> _event;
   bool _in_downtime;
   timestamp _last_kpi_update;
@@ -93,8 +91,10 @@ class ba : public computable, public service_listener {
   int _recompute_count{0};
   state _computed_soft_state;
   state _computed_hard_state;
+  float _num_soft_critical_childs;
+  float _num_hard_critical_childs;
 
-  virtual void _apply_impact(kpi* kpi_ptr, impact_info& impact);
+  virtual void _apply_impact(kpi* kpi_ptr, impact_info& impact) = 0;
   virtual void _unapply_impact(kpi* kpi_ptr, impact_info& impact);
   virtual void _recompute();
 
@@ -123,8 +123,8 @@ class ba : public computable, public service_listener {
   std::string const& get_name() const;
   std::string get_output() const;
   std::string get_perfdata() const;
-  virtual state get_state_hard();
-  virtual state get_state_soft();
+  virtual state get_state_hard() = 0;
+  virtual state get_state_soft() = 0;
   configuration::ba::state_source get_state_source() const;
   void remove_impact(std::shared_ptr<kpi> const& impact);
   void set_level_critical(double level);

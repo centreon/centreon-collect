@@ -19,7 +19,8 @@
 #include "com/centreon/broker/bam/kpi_ba.hh"
 #include <fmt/format.h>
 #include <gtest/gtest.h>
-#include "com/centreon/broker/bam/ba.hh"
+#include "com/centreon/broker/bam/ba_worst.hh"
+#include "com/centreon/broker/bam/ba_impact.hh"
 #include "com/centreon/broker/bam/configuration/applier/state.hh"
 #include "com/centreon/broker/bam/kpi_service.hh"
 #include "com/centreon/broker/config/applier/init.hh"
@@ -61,7 +62,7 @@ class KpiBA : public ::testing::Test {
  */
 TEST_F(KpiBA, KpiBa) {
   /* Construction of BA1 */
-  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba>(
+  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba_worst>(
       1, 5, 13, bam::configuration::ba::state_source_worst)};
   test_ba->set_name("test-ba");
   test_ba->set_state_source(bam::configuration::ba::state_source_worst);
@@ -70,7 +71,7 @@ TEST_F(KpiBA, KpiBa) {
   test_ba->set_downtime_behaviour(bam::configuration::ba::dt_inherit);
 
   /* Construction of BA2 */
-  std::shared_ptr<bam::ba> test_ba_child{std::make_shared<bam::ba>(
+  std::shared_ptr<bam::ba> test_ba_child{std::make_shared<bam::ba_worst>(
       2, 5, 14, bam::configuration::ba::state_source_worst)};
   test_ba_child->set_name("test-ba-child");
   test_ba_child->set_level_critical(100);
@@ -168,7 +169,7 @@ TEST_F(KpiBA, KpiBa) {
  */
 TEST_F(KpiBA, KpiBaPb) {
   /* Construction of BA1 */
-  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba>(
+  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba_worst>(
       1, 5, 13, bam::configuration::ba::state_source_worst)};
   test_ba->set_name("test-ba");
   test_ba->set_state_source(bam::configuration::ba::state_source_worst);
@@ -177,7 +178,7 @@ TEST_F(KpiBA, KpiBaPb) {
   test_ba->set_downtime_behaviour(bam::configuration::ba::dt_inherit);
 
   /* Construction of BA2 */
-  std::shared_ptr<bam::ba> test_ba_child{std::make_shared<bam::ba>(
+  std::shared_ptr<bam::ba> test_ba_child{std::make_shared<bam::ba_worst>(
       2, 5, 14, bam::configuration::ba::state_source_worst)};
   test_ba_child->set_name("test-ba-child");
   test_ba_child->set_level_critical(100);
@@ -275,7 +276,7 @@ TEST_F(KpiBA, KpiBaPb) {
  */
 TEST_F(KpiBA, KpiBaDt) {
   /* Construction of BA1 */
-  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba>(
+  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba_worst>(
       1, 5, 13, bam::configuration::ba::state_source_worst)};
   test_ba->set_name("test-ba");
   test_ba->set_state_source(bam::configuration::ba::state_source_worst);
@@ -284,7 +285,7 @@ TEST_F(KpiBA, KpiBaDt) {
   test_ba->set_downtime_behaviour(bam::configuration::ba::dt_inherit);
 
   /* Construction of BA2 */
-  std::shared_ptr<bam::ba> test_ba_child{std::make_shared<bam::ba>(
+  std::shared_ptr<bam::ba> test_ba_child{std::make_shared<bam::ba_worst>(
       2, 5, 14, bam::configuration::ba::state_source_worst)};
   test_ba_child->set_name("test-ba-child");
   test_ba_child->set_level_critical(100);
@@ -390,7 +391,7 @@ TEST_F(KpiBA, KpiBaDt) {
  */
 TEST_F(KpiBA, KpiBaDtPb) {
   /* Construction of BA1 */
-  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba>(
+  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba_worst>(
       1, 5, 13, bam::configuration::ba::state_source_worst)};
   test_ba->set_name("test-ba");
   test_ba->set_state_source(bam::configuration::ba::state_source_worst);
@@ -399,7 +400,7 @@ TEST_F(KpiBA, KpiBaDtPb) {
   test_ba->set_downtime_behaviour(bam::configuration::ba::dt_inherit);
 
   /* Construction of BA2 */
-  std::shared_ptr<bam::ba> test_ba_child{std::make_shared<bam::ba>(
+  std::shared_ptr<bam::ba> test_ba_child{std::make_shared<bam::ba_worst>(
       2, 5, 14, bam::configuration::ba::state_source_worst)};
   test_ba_child->set_name("test-ba-child");
   test_ba_child->set_level_critical(100);
@@ -505,7 +506,7 @@ TEST_F(KpiBA, KpiBaDtPb) {
  */
 TEST_F(KpiBA, KpiBaDtOff) {
   /* Construction of BA1 */
-  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba>(
+  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba_worst>(
       1, 5, 13, bam::configuration::ba::state_source_worst)};
   test_ba->set_name("test-ba");
   test_ba->set_state_source(bam::configuration::ba::state_source_worst);
@@ -514,7 +515,7 @@ TEST_F(KpiBA, KpiBaDtOff) {
   test_ba->set_downtime_behaviour(bam::configuration::ba::dt_inherit);
 
   /* Construction of BA2 */
-  std::shared_ptr<bam::ba> test_ba_child{std::make_shared<bam::ba>(
+  std::shared_ptr<bam::ba> test_ba_child{std::make_shared<bam::ba_worst>(
       2, 5, 14, bam::configuration::ba::state_source_worst)};
   test_ba_child->set_name("test-ba-child");
   test_ba_child->set_level_critical(100);
@@ -630,7 +631,7 @@ TEST_F(KpiBA, KpiBaDtOff) {
  */
 TEST_F(KpiBA, KpiBaDtOffPb) {
   /* Construction of BA1 */
-  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba>(
+  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba_worst>(
       1, 5, 13, bam::configuration::ba::state_source_worst)};
   test_ba->set_name("test-ba");
   test_ba->set_state_source(bam::configuration::ba::state_source_worst);
@@ -639,7 +640,7 @@ TEST_F(KpiBA, KpiBaDtOffPb) {
   test_ba->set_downtime_behaviour(bam::configuration::ba::dt_inherit);
 
   /* Construction of BA2 */
-  std::shared_ptr<bam::ba> test_ba_child{std::make_shared<bam::ba>(
+  std::shared_ptr<bam::ba> test_ba_child{std::make_shared<bam::ba_worst>(
       2, 5, 14, bam::configuration::ba::state_source_worst)};
   test_ba_child->set_name("test-ba-child");
   test_ba_child->set_level_critical(100);
@@ -755,7 +756,7 @@ TEST_F(KpiBA, KpiBaDtOffPb) {
  */
 TEST_F(KpiBA, KpiBaOkDtOff) {
   /* Construction of BA1 */
-  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba>(
+  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba_worst>(
       1, 5, 13, bam::configuration::ba::state_source_worst)};
   test_ba->set_name("test-ba");
   test_ba->set_state_source(bam::configuration::ba::state_source_worst);
@@ -764,7 +765,7 @@ TEST_F(KpiBA, KpiBaOkDtOff) {
   test_ba->set_downtime_behaviour(bam::configuration::ba::dt_inherit);
 
   /* Construction of BA2 */
-  std::shared_ptr<bam::ba> test_ba_child{std::make_shared<bam::ba>(
+  std::shared_ptr<bam::ba> test_ba_child{std::make_shared<bam::ba_worst>(
       2, 5, 14, bam::configuration::ba::state_source_worst)};
   test_ba_child->set_name("test-ba-child");
   test_ba_child->set_level_critical(100);
@@ -864,7 +865,7 @@ TEST_F(KpiBA, KpiBaOkDtOff) {
  */
 TEST_F(KpiBA, KpiBaOkDtOffPb) {
   /* Construction of BA1 */
-  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba>(
+  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba_worst>(
       1, 5, 13, bam::configuration::ba::state_source_worst)};
   test_ba->set_name("test-ba");
   test_ba->set_state_source(bam::configuration::ba::state_source_worst);
@@ -873,7 +874,7 @@ TEST_F(KpiBA, KpiBaOkDtOffPb) {
   test_ba->set_downtime_behaviour(bam::configuration::ba::dt_inherit);
 
   /* Construction of BA2 */
-  std::shared_ptr<bam::ba> test_ba_child{std::make_shared<bam::ba>(
+  std::shared_ptr<bam::ba> test_ba_child{std::make_shared<bam::ba_worst>(
       2, 5, 14, bam::configuration::ba::state_source_worst)};
   test_ba_child->set_name("test-ba-child");
   test_ba_child->set_level_critical(100);
@@ -973,7 +974,7 @@ TEST_F(KpiBA, KpiBaOkDtOffPb) {
  */
 TEST_F(KpiBA, KpiBaWorstImpact) {
   /* Construction of BA1 */
-  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba>(
+  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba_impact>(
       1, 5, 13, bam::configuration::ba::state_source_impact)};
   test_ba->set_name("test-ba");
   test_ba->set_state_source(bam::configuration::ba::state_source_worst);
@@ -982,7 +983,7 @@ TEST_F(KpiBA, KpiBaWorstImpact) {
   test_ba->set_downtime_behaviour(bam::configuration::ba::dt_inherit);
 
   /* Construction of BA2 */
-  std::shared_ptr<bam::ba> test_ba_child{std::make_shared<bam::ba>(
+  std::shared_ptr<bam::ba> test_ba_child{std::make_shared<bam::ba_impact>(
       2, 5, 14, bam::configuration::ba::state_source_worst)};
   test_ba_child->set_name("test-ba-child");
   test_ba_child->set_level_critical(100);
@@ -1068,7 +1069,7 @@ TEST_F(KpiBA, KpiBaWorstImpact) {
  */
 TEST_F(KpiBA, KpiBaWorstImpactPb) {
   /* Construction of BA1 */
-  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba>(
+  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba_impact>(
       1, 5, 13, bam::configuration::ba::state_source_impact)};
   test_ba->set_name("test-ba");
   test_ba->set_state_source(bam::configuration::ba::state_source_worst);
@@ -1077,7 +1078,7 @@ TEST_F(KpiBA, KpiBaWorstImpactPb) {
   test_ba->set_downtime_behaviour(bam::configuration::ba::dt_inherit);
 
   /* Construction of BA2 */
-  std::shared_ptr<bam::ba> test_ba_child{std::make_shared<bam::ba>(
+  std::shared_ptr<bam::ba> test_ba_child{std::make_shared<bam::ba_worst>(
       2, 5, 14, bam::configuration::ba::state_source_worst)};
   test_ba_child->set_name("test-ba-child");
   test_ba_child->set_level_critical(100);

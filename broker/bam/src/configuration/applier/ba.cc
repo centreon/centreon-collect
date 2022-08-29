@@ -18,6 +18,10 @@
 
 #include "com/centreon/broker/bam/configuration/applier/ba.hh"
 #include "com/centreon/broker/bam/ba_impact.hh"
+#include "com/centreon/broker/bam/ba_best.hh"
+#include "com/centreon/broker/bam/ba_worst.hh"
+#include "com/centreon/broker/bam/ba_ratio_number.hh"
+#include "com/centreon/broker/bam/ba_ratio_percent.hh"
 #include <fmt/format.h>
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/log_v2.hh"
@@ -325,10 +329,25 @@ std::shared_ptr<bam::ba> applier::ba::_new_ba(configuration::ba const& cfg,
       obj = std::make_shared<bam::ba_impact>(
           cfg.get_id(), cfg.get_host_id(), cfg.get_service_id(), false);
       break;
+    case configuration::ba::state_source_best:
+      obj = std::make_shared<bam::ba_best>(
+          cfg.get_id(), cfg.get_host_id(), cfg.get_service_id(), false);
+      break;
+    case configuration::ba::state_source_worst:
+      obj = std::make_shared<bam::ba_worst>(
+          cfg.get_id(), cfg.get_host_id(), cfg.get_service_id(), false);
+      break;
+    case configuration::ba::state_source_ratio_percent:
+      obj = std::make_shared<bam::ba_ratio_percent>(
+          cfg.get_id(), cfg.get_host_id(), cfg.get_service_id(), false);
+      break;
+    case configuration::ba::state_source_ratio_number:
+      obj = std::make_shared<bam::ba_ratio_number>(
+          cfg.get_id(), cfg.get_host_id(), cfg.get_service_id(), false);
+      break;
     default:
-      obj = std::make_shared<bam::ba>(
-          cfg.get_id(), cfg.get_host_id(), cfg.get_service_id(),
-          cfg.get_state_source(), false);
+      /* Should not arrive */
+      assert(1 == 0);
       break;
   }
   obj->set_name(cfg.get_name());

@@ -20,7 +20,11 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 #include "bbdo/bam/state.hh"
-#include "com/centreon/broker/bam/ba.hh"
+#include "com/centreon/broker/bam/ba_impact.hh"
+#include "com/centreon/broker/bam/ba_best.hh"
+#include "com/centreon/broker/bam/ba_worst.hh"
+#include "com/centreon/broker/bam/ba_ratio_number.hh"
+#include "com/centreon/broker/bam/ba_ratio_percent.hh"
 #include "com/centreon/broker/bam/configuration/applier/state.hh"
 #include "com/centreon/broker/bam/kpi_ba.hh"
 #include "com/centreon/broker/config/applier/init.hh"
@@ -59,7 +63,7 @@ class BamBA : public ::testing::Test {
  */
 TEST_F(BamBA, KpiServiceRecompute) {
   // Build BAM objects.
-  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba>(
+  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba_impact>(
       1, 1, 1, bam::configuration::ba::state_source_impact)};
 
   std::shared_ptr<bam::kpi_service> kpi{
@@ -104,7 +108,7 @@ TEST_F(BamBA, KpiServiceRecompute) {
  */
 TEST_F(BamBA, KpiServiceImpactState) {
   // Build BAM objects.
-  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba>(
+  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba_impact>(
       1, 1, 2, bam::configuration::ba::state_source_impact)};
 
   std::vector<std::shared_ptr<bam::kpi_service>> kpis;
@@ -205,7 +209,7 @@ TEST_F(BamBA, KpiServiceImpactState) {
  */
 TEST_F(BamBA, KpiServiceBestState) {
   // Build BAM objects.
-  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba>(
+  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba_best>(
       1, 1, 3, bam::configuration::ba::state_source_best)};
 
   std::vector<std::shared_ptr<bam::kpi_service>> kpis;
@@ -261,7 +265,7 @@ TEST_F(BamBA, KpiServiceBestState) {
  */
 TEST_F(BamBA, KpiServiceWorstState) {
   // Build BAM objects.
-  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba>(
+  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba_worst>(
       1, 1, 4, bam::configuration::ba::state_source_worst)};
 
   std::vector<std::shared_ptr<bam::kpi_service>> kpis;
@@ -357,7 +361,7 @@ TEST_F(BamBA, KpiServiceWorstState) {
  */
 TEST_F(BamBA, KpiServiceRatioNum) {
   // Build BAM objects.
-  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba>(
+  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba_ratio_number>(
       1, 1, 4, bam::configuration::ba::state_source_ratio_number)};
   test_ba->set_level_critical(4);
   test_ba->set_level_warning(2);
@@ -418,7 +422,7 @@ TEST_F(BamBA, KpiServiceRatioNum) {
  */
 TEST_F(BamBA, KpiServiceRatioPercent) {
   // Build BAM objects.
-  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba>(
+  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba_ratio_percent>(
       1, 1, 4, bam::configuration::ba::state_source_ratio_percent)};
   test_ba->set_level_critical(100);
   test_ba->set_level_warning(75);
@@ -463,7 +467,7 @@ TEST_F(BamBA, KpiServiceRatioPercent) {
 }
 
 TEST_F(BamBA, KpiServiceDtInheritAllCritical) {
-  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba>(
+  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba_ratio_percent>(
       1, 1, 4, bam::configuration::ba::state_source_ratio_percent)};
   test_ba->set_level_critical(100);
   test_ba->set_level_warning(75);
@@ -515,7 +519,7 @@ TEST_F(BamBA, KpiServiceDtInheritAllCritical) {
 }
 
 TEST_F(BamBA, KpiServiceDtInheritOneOK) {
-  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba>(
+  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba_ratio_percent>(
       1, 1, 4, bam::configuration::ba::state_source_ratio_percent)};
   test_ba->set_level_critical(100);
   test_ba->set_level_warning(90);
@@ -575,7 +579,7 @@ TEST_F(BamBA, KpiServiceDtInheritOneOK) {
 }
 
 TEST_F(BamBA, KpiServiceIgnoreDt) {
-  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba>(
+  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba_ratio_percent>(
       1, 1, 4, bam::configuration::ba::state_source_ratio_percent)};
   test_ba->set_level_critical(100);
   test_ba->set_level_warning(75);
@@ -627,7 +631,7 @@ TEST_F(BamBA, KpiServiceIgnoreDt) {
 }
 
 TEST_F(BamBA, KpiServiceDtIgnoreKpi) {
-  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba>(
+  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba_ratio_percent>(
       1, 1, 4, bam::configuration::ba::state_source_ratio_percent)};
   test_ba->set_level_critical(100);
   test_ba->set_level_warning(75);
@@ -679,7 +683,7 @@ TEST_F(BamBA, KpiServiceDtIgnoreKpi) {
 }
 
 TEST_F(BamBA, KpiServiceDtIgnoreKpiImpact) {
-  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba>(
+  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba_impact>(
       1, 1, 4, bam::configuration::ba::state_source_impact)};
   test_ba->set_level_critical(50);
   test_ba->set_level_warning(75);
@@ -738,7 +742,7 @@ TEST_F(BamBA, KpiServiceDtIgnoreKpiImpact) {
 }
 
 TEST_F(BamBA, KpiServiceDtIgnoreKpiBest) {
-  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba>(
+  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba_best>(
       1, 1, 4, bam::configuration::ba::state_source_best)};
   test_ba->set_downtime_behaviour(bam::configuration::ba::dt_ignore_kpi);
 
@@ -799,7 +803,7 @@ TEST_F(BamBA, KpiServiceDtIgnoreKpiBest) {
 }
 
 TEST_F(BamBA, KpiServiceDtIgnoreKpiWorst) {
-  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba>(
+  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba_worst>(
       1, 1, 4, bam::configuration::ba::state_source_worst)};
   test_ba->set_downtime_behaviour(bam::configuration::ba::dt_ignore_kpi);
 
@@ -860,7 +864,7 @@ TEST_F(BamBA, KpiServiceDtIgnoreKpiWorst) {
 }
 
 TEST_F(BamBA, KpiServiceDtIgnoreKpiRatio) {
-  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba>(
+  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba_ratio_number>(
       1, 1, 4, bam::configuration::ba::state_source_ratio_number)};
   test_ba->set_downtime_behaviour(bam::configuration::ba::dt_ignore_kpi);
   test_ba->set_level_warning(1);
@@ -912,7 +916,7 @@ TEST_F(BamBA, KpiServiceDtIgnoreKpiRatio) {
 }
 
 TEST_F(BamBA, KpiServiceDt) {
-  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba>(
+  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba_ratio_percent>(
       1, 1, 4, bam::configuration::ba::state_source_ratio_percent)};
   test_ba->set_level_critical(100);
   test_ba->set_level_warning(75);
@@ -1073,7 +1077,7 @@ TEST_F(BamBA, KpiServiceDt) {
 }
 
 TEST_F(BamBA, KpiServiceDtInherited_set) {
-  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba>(
+  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba_ratio_percent>(
       1, 1, 4, bam::configuration::ba::state_source_ratio_percent)};
   test_ba->set_level_critical(100);
   test_ba->set_level_warning(75);
@@ -1132,7 +1136,7 @@ TEST_F(BamBA, KpiServiceDtInherited_set) {
 }
 
 TEST_F(BamBA, KpiServiceDtInherited_unset) {
-  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba>(
+  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba_ratio_percent>(
       1, 2, 4, bam::configuration::ba::state_source_ratio_percent)};
   test_ba->set_level_critical(100);
   test_ba->set_level_warning(75);
@@ -1177,7 +1181,7 @@ TEST_F(BamBA, KpiServiceDtInherited_unset) {
 }
 
 TEST_F(BamBA, KpiServiceAcknowledgement) {
-  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba>(
+  std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba_ratio_percent>(
       1, 2, 4, bam::configuration::ba::state_source_ratio_percent)};
   test_ba->set_level_critical(100);
   test_ba->set_level_warning(75);
