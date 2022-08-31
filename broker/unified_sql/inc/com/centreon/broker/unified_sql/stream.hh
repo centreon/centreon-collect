@@ -201,7 +201,6 @@ class stream : public io::stream {
   std::time_t _next_loop_timeout;
   std::time_t _next_update_downtimes;
 
-  asio::steady_timer _timer;
   asio::steady_timer _queues_timer;
   /* To give the order to stop the check_queues */
   std::atomic_bool _stop_check_queues;
@@ -313,7 +312,8 @@ class stream : public io::stream {
   void _update_downtimes();
   bool _is_valid_poller(uint32_t instance_id);
   void _check_queues(asio::error_code ec);
-  void _check_deleted_index(asio::error_code ec);
+  void _check_deleted_index();
+  void _check_rebuild_index();
 
   void _process_acknowledgement(const std::shared_ptr<io::data>& d);
   void _process_comment(const std::shared_ptr<io::data>& d);
@@ -396,6 +396,7 @@ class stream : public io::stream {
   int32_t stop() override;
   void statistics(nlohmann::json& tree) const;
   void remove_graphs(const std::shared_ptr<io::data>& d);
+  void update() override;
 };
 }  // namespace unified_sql
 CCB_END()

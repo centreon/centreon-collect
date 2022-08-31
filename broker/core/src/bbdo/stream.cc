@@ -809,7 +809,7 @@ void stream::negotiate(stream::negotiation_type neg) {
                  proto_it = io::protocols::instance().begin(),
                  proto_end = io::protocols::instance().end();
              proto_it != proto_end; ++proto_it)
-          if (proto_it->first == ext->name()) {
+          if (boost::iequals(proto_it->first, ext->name())) {
             std::shared_ptr<io::stream> s{
                 proto_it->second.endpntfactry->new_stream(
                     _substream, neg == negotiate_second, ext->options())};

@@ -60,8 +60,8 @@ void applier::connector::add_object(configuration::connector const& obj) {
   config->connectors().insert(obj);
 
   // Create connector.
-  std::shared_ptr<commands::connector> cmd(new commands::connector(
-      obj.connector_name(), processed_cmd, &checks::checker::instance()));
+  auto cmd = std::make_shared<commands::connector>(
+      obj.connector_name(), processed_cmd, &checks::checker::instance());
   commands::connector::connectors[obj.connector_name()] = cmd;
 }
 

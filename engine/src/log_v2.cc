@@ -103,6 +103,7 @@ void log_v2::apply(const configuration::state& config) {
     sinks.push_back(std::make_shared<sinks::null_sink_mt>());
 
   auto create_logger = [&sinks, log_pid = config.log_pid(),
+                        log_file_line = config.log_file_line(),
                         log_flush_period = config.log_flush_period()](
                            const std::string& name, level::level_enum lvl) {
     spdlog::drop(name);
@@ -113,10 +114,19 @@ void log_v2::apply(const configuration::state& config) {
     else
       log->flush_on(lvl);
 
-    if (log_pid)
-      log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%P] %v");
-    else
-      log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
+    if (log_pid) {
+      if (log_file_line) {
+        log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%s:%#] [%n] [%l] [%P] %v");
+      } else {
+        log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%P] %v");
+      }
+    } else {
+      if (log_file_line) {
+        log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%s:%#] [%n] [%l] %v");
+      } else {
+        log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
+      }
+    }
     spdlog::register_logger(log);
     return log;
   };

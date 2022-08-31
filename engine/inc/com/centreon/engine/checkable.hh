@@ -43,7 +43,8 @@ class checkable {
 
   enum state_type { soft, hard };
 
-  checkable(std::string const& display_name,
+  checkable(const std::string& name,
+            std::string const& display_name,
             std::string const& check_command,
             bool checks_enabled,
             bool accept_passive_checks,
@@ -66,10 +67,12 @@ class checkable {
             bool obsess_over,
             std::string const& timezone,
             uint64_t icon_id);
-  virtual ~checkable() = default;
+  virtual ~checkable() noexcept = default;
 
   std::string const& get_display_name() const;
   void set_display_name(std::string const& name);
+  const std::string& name() const;
+  void set_name(const std::string& name);
   std::string const& check_command() const;
   void set_check_command(std::string const& check_command);
   uint32_t check_interval() const;
@@ -155,8 +158,11 @@ class checkable {
   virtual bool is_in_downtime() const = 0;
   void set_event_handler_ptr(commands::command* cmd);
   commands::command* get_event_handler_ptr() const;
-  void set_check_command_ptr(commands::command* cmd);
-  commands::command* get_check_command_ptr() const;
+  void set_check_command_ptr(const std::shared_ptr<commands::command>& cmd);
+  inline const std::shared_ptr<commands::command>& get_check_command_ptr()
+      const {
+    return _check_command_ptr;
+  }
   bool get_is_executing() const;
   void set_is_executing(bool is_executing);
   void set_severity(std::shared_ptr<severity> sv);
@@ -169,6 +175,7 @@ class checkable {
   timeperiod* check_period_ptr;
 
  private:
+  std::string _name;
   std::string _display_name;
   std::string _check_command;
   uint32_t _check_interval;
@@ -210,7 +217,7 @@ class checkable {
   enum state_type _state_type;
   double _percent_state_change;
   commands::command* _event_handler_ptr;
-  commands::command* _check_command_ptr;
+  std::shared_ptr<commands::command> _check_command_ptr;
   bool _is_executing;
   std::shared_ptr<severity> _severity;
   uint64_t _icon_id;

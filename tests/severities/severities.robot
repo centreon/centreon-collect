@@ -35,7 +35,7 @@ BESEV1
 	${result}=	check severity With Timeout	severity1	1	5	30
 	Should Be True	${result}	msg=severity1 should be of level 1 with icon_id 5
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker
 
 BESEV2
 	[Documentation]	Engine is configured with some severities. When broker receives them, it stores them in the centreon_storage.severities table. Engine is started before.
@@ -59,7 +59,7 @@ BESEV2
 	${result}=	check severity With Timeout	severity1	1	5	30
 	Should Be True	${result}	msg=severity1 should be of level 1 with icon_id 5
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker
 
 BEUSEV1
 	[Documentation]	Engine is configured with some severities. When broker receives them, it stores them in the centreon_storage.severities table. Broker is started before.
@@ -86,7 +86,7 @@ BEUSEV1
 	${result}=	check severity With Timeout	severity1	1	5	30
 	Should Be True	${result}	msg=severity1 should be of level 1 with icon_id 5
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker
 
 BEUSEV2
 	[Documentation]	Engine is configured with some severities. When broker receives them, it stores them in the centreon_storage.severities table. Engine is started before.
@@ -114,7 +114,7 @@ BEUSEV2
 	${result}=	check severity With Timeout	severity1	1	5	30
 	Should Be True	${result}	msg=severity1 should be of level 1 with icon_id 5
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker
 
 BEUSEV3
 	[Documentation]	Four services have a severity added. Then we remove the severity from service 1. Then we change severity 11 to severity7 for service 3.

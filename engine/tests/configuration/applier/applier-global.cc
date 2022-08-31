@@ -88,3 +88,39 @@ TEST_F(ApplierGlobal, RpcPort) {
 
   ASSERT_EQ(st.rpc_port(), 42u);
 }
+
+TEST_F(ApplierGlobal, RpcListenAddress) {
+  configuration::parser parser;
+  configuration::state st;
+
+  ASSERT_EQ(st.rpc_port(), 0u);
+
+  std::remove("/tmp/test-config.cfg");
+
+  std::ofstream ofs("/tmp/test-config.cfg");
+  ofs << "rpc_listen_address=10.11.12.13" << std::endl;
+  ofs.close();
+
+  parser.parse("/tmp/test-config.cfg", st);
+  std::remove("/tmp/test-config.cfg");
+
+  ASSERT_EQ(st.rpc_listen_address(), "10.11.12.13");
+}
+
+TEST_F(ApplierGlobal, NotDefinedRpcListenAddress) {
+  configuration::parser parser;
+  configuration::state st;
+
+  ASSERT_EQ(st.rpc_port(), 0u);
+
+  std::remove("/tmp/test-config.cfg");
+
+  std::ofstream ofs("/tmp/test-config.cfg");
+  ofs << "rpc_port=42" << std::endl;
+  ofs.close();
+
+  parser.parse("/tmp/test-config.cfg", st);
+  std::remove("/tmp/test-config.cfg");
+
+  ASSERT_EQ(st.rpc_listen_address(), "localhost");
+}

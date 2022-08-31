@@ -300,11 +300,11 @@ int neb::callback_custom_variable(int callback_type, void* data) {
       // Host custom variable.
       if (NEBTYPE_HOSTCUSTOMVARIABLE_ADD == cvar->type) {
         engine::host* hst(static_cast<engine::host*>(cvar->object_ptr));
-        if (hst && !hst->get_name().empty()) {
+        if (hst && !hst->name().empty()) {
           // Fill custom variable event.
-          uint64_t host_id = engine::get_host_id(hst->get_name());
+          uint64_t host_id = engine::get_host_id(hst->name());
           if (host_id != 0) {
-            std::shared_ptr<custom_variable> new_cvar(new custom_variable);
+            auto new_cvar{std::make_shared<custom_variable>()};
             new_cvar->enabled = true;
             new_cvar->host_id = host_id;
             new_cvar->modified = false;
@@ -324,10 +324,10 @@ int neb::callback_custom_variable(int callback_type, void* data) {
         }
       } else if (NEBTYPE_HOSTCUSTOMVARIABLE_DELETE == cvar->type) {
         engine::host* hst(static_cast<engine::host*>(cvar->object_ptr));
-        if (hst && !hst->get_name().empty()) {
-          uint32_t host_id = engine::get_host_id(hst->get_name());
+        if (hst && !hst->name().empty()) {
+          uint32_t host_id = engine::get_host_id(hst->name());
           if (host_id != 0) {
-            std::shared_ptr<custom_variable> old_cvar(new custom_variable);
+            auto old_cvar{std::make_shared<custom_variable>()};
             old_cvar->enabled = false;
             old_cvar->host_id = host_id;
             old_cvar->name = misc::string::check_string_utf8(cvar->var_name);
@@ -352,7 +352,7 @@ int neb::callback_custom_variable(int callback_type, void* data) {
           p = engine::get_host_and_service_id(svc->get_hostname(),
                                               svc->get_description());
           if (p.first && p.second) {
-            std::shared_ptr<custom_variable> new_cvar(new custom_variable);
+            auto new_cvar{std::make_shared<custom_variable>()};
             new_cvar->enabled = true;
             new_cvar->host_id = p.first;
             new_cvar->modified = false;
@@ -378,7 +378,7 @@ int neb::callback_custom_variable(int callback_type, void* data) {
           std::pair<uint64_t, uint64_t> p{engine::get_host_and_service_id(
               svc->get_hostname(), svc->get_description())};
           if (p.first && p.second) {
-            std::shared_ptr<custom_variable> old_cvar(new custom_variable);
+            auto old_cvar{std::make_shared<custom_variable>()};
             old_cvar->enabled = false;
             old_cvar->host_id = p.first;
             old_cvar->modified = true;
@@ -453,7 +453,7 @@ int neb::callback_dependency(int callback_type, void* data) {
       }
 
       // Generate service dependency event.
-      std::shared_ptr<host_dependency> hst_dep(new host_dependency);
+      auto hst_dep{std::make_shared<host_dependency>()};
       hst_dep->host_id = host_id;
       hst_dep->dependent_host_id = dep_host_id;
       hst_dep->enabled = (nsadd->type != NEBTYPE_HOSTDEPENDENCY_DELETE);
@@ -513,7 +513,7 @@ int neb::callback_dependency(int callback_type, void* data) {
       }
 
       // Generate service dependency event.
-      std::shared_ptr<service_dependency> svc_dep(new service_dependency);
+      auto svc_dep{std::make_shared<service_dependency>()};
       svc_dep->host_id = ids.first;
       svc_dep->service_id = ids.second;
       svc_dep->dependent_host_id = dep_ids.first;
@@ -682,11 +682,11 @@ int neb::callback_event_handler(int callback_type, void* data) {
   try {
     // In/Out variables.
     nebstruct_event_handler_data const* event_handler_data;
-    std::shared_ptr<neb::event_handler> event_handler(new neb::event_handler);
+    auto event_handler = std::make_shared<neb::event_handler>();
 
     // Fill output var.
     event_handler_data = static_cast<nebstruct_event_handler_data*>(data);
-    if (event_handler_data->command_args)
+    if (!event_handler_data->command_args.empty())
       event_handler->command_args =
           misc::string::check_string_utf8(event_handler_data->command_args);
     if (event_handler_data->command_line)
@@ -781,8 +781,7 @@ int neb::callback_external_command(int callback_type, void* data) {
             uint64_t host_id = engine::get_host_id(host);
             if (host_id != 0) {
               // Fill custom variable.
-              std::shared_ptr<neb::custom_variable_status> cvs{
-                  new neb::custom_variable_status};
+              auto cvs = std::make_shared<neb::custom_variable_status>();
               cvs->host_id = host_id;
               cvs->modified = true;
               cvs->name = var_name;
@@ -818,8 +817,7 @@ int neb::callback_external_command(int callback_type, void* data) {
                 engine::get_host_and_service_id(host, service)};
             if (p.first && p.second) {
               // Fill custom variable.
-              std::shared_ptr<neb::custom_variable_status> cvs{
-                  new neb::custom_variable_status};
+              auto cvs{std::make_shared<neb::custom_variable_status>()};
               cvs->host_id = p.first;
               cvs->modified = true;
               cvs->name = var_name;
@@ -862,8 +860,7 @@ int neb::callback_flapping_status(int callback_type, void* data) {
   try {
     // In/Out variables.
     nebstruct_flapping_data const* flapping_data;
-    std::shared_ptr<neb::flapping_status> flapping_status(
-        new neb::flapping_status);
+    auto flapping_status{std::make_shared<neb::flapping_status>()};
 
     // Fill output var.
     flapping_data = static_cast<nebstruct_flapping_data*>(data);
@@ -923,7 +920,7 @@ int neb::callback_group(int callback_type, void* data) {
       engine::hostgroup const* host_group(
           static_cast<engine::hostgroup*>(group_data->object_ptr));
       if (!host_group->get_group_name().empty()) {
-        std::shared_ptr<neb::host_group> new_hg(new neb::host_group);
+        auto new_hg{std::make_shared<neb::host_group>()};
         new_hg->poller_id = config::applier::state::instance().poller_id();
         new_hg->id = host_group->get_id();
         new_hg->enabled = (group_data->type != NEBTYPE_HOSTGROUP_DELETE &&
@@ -947,7 +944,7 @@ int neb::callback_group(int callback_type, void* data) {
       engine::servicegroup const* service_group(
           static_cast<engine::servicegroup*>(group_data->object_ptr));
       if (!service_group->get_group_name().empty()) {
-        std::shared_ptr<neb::service_group> new_sg(new neb::service_group);
+        auto new_sg{std::make_shared<neb::service_group>()};
         new_sg->poller_id = config::applier::state::instance().poller_id();
         new_sg->id = service_group->get_id();
         new_sg->enabled = (group_data->type != NEBTYPE_SERVICEGROUP_DELETE &&
@@ -1001,13 +998,13 @@ int neb::callback_group_member(int callback_type, void* data) {
           static_cast<engine::host*>(member_data->object_ptr));
       engine::hostgroup const* hg(
           static_cast<engine::hostgroup*>(member_data->group_ptr));
-      if (!hst->get_name().empty() && !hg->get_group_name().empty()) {
+      if (!hst->name().empty() && !hg->get_group_name().empty()) {
         // Output variable.
-        std::shared_ptr<neb::host_group_member> hgm(new neb::host_group_member);
+        auto hgm{std::make_shared<neb::host_group_member>()};
         hgm->group_id = hg->get_id();
         hgm->group_name = misc::string::check_string_utf8(hg->get_group_name());
         hgm->poller_id = config::applier::state::instance().poller_id();
-        uint32_t host_id = engine::get_host_id(hst->get_name());
+        uint32_t host_id = engine::get_host_id(hst->name());
         if (host_id != 0 && hgm->group_id != 0) {
           hgm->host_id = host_id;
           if (member_data->type == NEBTYPE_HOSTGROUPMEMBER_DELETE) {
@@ -1039,8 +1036,7 @@ int neb::callback_group_member(int callback_type, void* data) {
       if (!svc->get_description().empty() && !sg->get_group_name().empty() &&
           !svc->get_hostname().empty()) {
         // Output variable.
-        std::shared_ptr<neb::service_group_member> sgm(
-            new neb::service_group_member);
+        auto sgm{std::make_shared<neb::service_group_member>()};
         sgm->group_id = sg->get_id();
         sgm->group_name = misc::string::check_string_utf8(sg->get_group_name());
         sgm->poller_id = config::applier::state::instance().poller_id();
@@ -1152,8 +1148,8 @@ int neb::callback_host(int callback_type, void* data) {
     my_host->freshness_threshold = h->get_freshness_threshold();
     my_host->has_been_checked = h->has_been_checked();
     my_host->high_flap_threshold = h->get_high_flap_threshold();
-    if (!h->get_name().empty())
-      my_host->host_name = misc::string::check_string_utf8(h->get_name());
+    if (!h->name().empty())
+      my_host->host_name = misc::string::check_string_utf8(h->name());
     if (!h->get_icon_image().empty())
       my_host->icon_image =
           misc::string::check_string_utf8(h->get_icon_image());
@@ -1234,9 +1230,8 @@ int neb::callback_host(int callback_type, void* data) {
       /* No need to send this service custom variables changes, custom variables
        * are managed in a different loop. */
     } else
-      log_v2::neb()->error(
-          "callbacks: host '{}' has no ID (yet) defined",
-          (!h->get_name().empty() ? h->get_name() : "(unknown)"));
+      log_v2::neb()->error("callbacks: host '{}' has no ID (yet) defined",
+                           (!h->name().empty() ? h->name() : "(unknown)"));
   }
   // Avoid exception propagation to C code.
   catch (...) {
@@ -1305,19 +1300,18 @@ int neb::callback_pb_host(int callback_type, void* data) {
       assert(1 == 0);
     }
 
-    uint64_t host_id = engine::get_host_id(eh->get_name());
+    uint64_t host_id = engine::get_host_id(eh->name());
     if (host_id != 0) {
       hst.set_host_id(host_id);
 
       // Send host event.
       log_v2::neb()->info("callbacks:  new host {} ('{}') on instance {}",
-                          hst.host_id(), eh->get_name(),
+                          hst.host_id(), eh->name(),
                           config::applier::state::instance().poller_id());
       neb::gl_publisher.write(h);
     } else
-      log_v2::neb()->error(
-          "callbacks: host '{}' has no ID (yet) defined",
-          (!eh->get_name().empty() ? eh->get_name() : "(unknown)"));
+      log_v2::neb()->error("callbacks: host '{}' has no ID (yet) defined",
+                           (!eh->name().empty() ? eh->name() : "(unknown)"));
   } else {
     auto h{std::make_shared<neb::pb_host>()};
     Host& host = h.get()->mut_obj();
@@ -1373,8 +1367,8 @@ int neb::callback_pb_host(int callback_type, void* data) {
     host.set_freshness_threshold(eh->get_freshness_threshold());
     host.set_checked(eh->has_been_checked());
     host.set_high_flap_threshold(eh->get_high_flap_threshold());
-    if (!eh->get_name().empty())
-      host.set_name(misc::string::check_string_utf8(eh->get_name()));
+    if (!eh->name().empty())
+      host.set_name(misc::string::check_string_utf8(eh->name()));
     if (!eh->get_icon_image().empty())
       host.set_icon_image(
           misc::string::check_string_utf8(eh->get_icon_image()));
@@ -1462,9 +1456,8 @@ int neb::callback_pb_host(int callback_type, void* data) {
       /* No need to send this service custom variables changes, custom variables
        * are managed in a different loop. */
     } else
-      log_v2::neb()->error(
-          "callbacks: host '{}' has no ID (yet) defined",
-          (!eh->get_name().empty() ? eh->get_name() : "(unknown)"));
+      log_v2::neb()->error("callbacks: host '{}' has no ID (yet) defined",
+                           (!eh->name().empty() ? eh->name() : "(unknown)"));
   }
   return 0;
 }
@@ -1498,7 +1491,7 @@ int neb::callback_host_check(int callback_type, void* data) {
   log_v2::neb()->info("callbacks: generating host check event");
 
   try {
-    std::shared_ptr<neb::host_check> host_check(new neb::host_check);
+    auto host_check{std::make_shared<neb::host_check>()};
 
     // Fill output var.
     engine::host* h(static_cast<engine::host*>(hcdata->object_ptr));
@@ -1547,7 +1540,7 @@ int neb::callback_host_status(int callback_type, void* data) {
 
   try {
     // In/Out variables.
-    std::shared_ptr<neb::host_status> host_status(new neb::host_status);
+    auto host_status{std::make_shared<neb::host_status>()};
 
     // Fill output var.
     const engine::host* h = static_cast<engine::host*>(
@@ -1573,12 +1566,12 @@ int neb::callback_host_status(int callback_type, void* data) {
     host_status->execution_time = h->get_execution_time();
     host_status->flap_detection_enabled = h->flap_detection_enabled();
     host_status->has_been_checked = h->has_been_checked();
-    if (h->get_name().empty())
+    if (h->name().empty())
       throw msg_fmt("unnamed host");
     {
-      host_status->host_id = engine::get_host_id(h->get_name());
+      host_status->host_id = engine::get_host_id(h->name());
       if (host_status->host_id == 0)
-        throw msg_fmt("could not find ID of host '{}'", h->get_name());
+        throw msg_fmt("could not find ID of host '{}'", h->name());
     }
     host_status->is_flapping = h->get_is_flapping();
     host_status->last_check = h->get_last_check();
@@ -1669,7 +1662,7 @@ int neb::callback_pb_host_status(int callback_type, void* data) noexcept {
 
   hscr.set_host_id(eh->get_host_id());
   if (hscr.host_id() == 0)
-    log_v2::neb()->error("could not find ID of host '{}'", eh->get_name());
+    log_v2::neb()->error("could not find ID of host '{}'", eh->name());
 
   if (eh->problem_has_been_acknowledged())
     hscr.set_acknowledgement_type(
@@ -1749,7 +1742,7 @@ int neb::callback_log(int callback_type, void* data) {
   try {
     // In/Out variables.
     nebstruct_log_data const* log_data;
-    std::shared_ptr<neb::log_entry> le(new neb::log_entry);
+    auto le{std::make_shared<neb::log_entry>()};
 
     // Fill output var.
     log_data = static_cast<nebstruct_log_data*>(data);
@@ -1790,7 +1783,7 @@ int neb::callback_module(int callback_type, void* data) {
   try {
     // In/Out variables.
     nebstruct_module_data const* module_data;
-    std::shared_ptr<neb::module> me(new neb::module);
+    auto me{std::make_shared<neb::module>()};
 
     // Fill output var.
     module_data = static_cast<nebstruct_module_data*>(data);
@@ -1899,7 +1892,7 @@ int neb::callback_process(int callback_type, void* data) {
       }
 
       // Output variable.
-      std::shared_ptr<neb::instance> instance(new neb::instance);
+      auto instance{std::make_shared<neb::instance>()};
       instance->poller_id = config::applier::state::instance().poller_id();
       instance->engine = "Centreon Engine";
       instance->is_running = true;
@@ -1918,7 +1911,7 @@ int neb::callback_process(int callback_type, void* data) {
     } else if (NEBTYPE_PROCESS_EVENTLOOPEND == process_data->type) {
       log_v2::neb()->info("callbacks: generating process end event");
       // Output variable.
-      std::shared_ptr<neb::instance> instance(new neb::instance);
+      auto instance{std::make_shared<neb::instance>()};
 
       // Fill output var.
       instance->poller_id = config::applier::state::instance().poller_id();
@@ -1962,7 +1955,7 @@ int neb::callback_program_status(int callback_type, void* data) {
   try {
     // In/Out variables.
     nebstruct_program_status_data const* program_status_data;
-    std::shared_ptr<neb::instance_status> is(new neb::instance_status);
+    auto is{std::make_shared<neb::instance_status>()};
 
     // Fill output var.
     program_status_data = static_cast<nebstruct_program_status_data*>(data);
@@ -1975,10 +1968,10 @@ int neb::callback_program_status(int callback_type, void* data) {
     is->check_services_freshness = check_service_freshness;
     is->event_handler_enabled = program_status_data->event_handlers_enabled;
     is->flap_detection_enabled = program_status_data->flap_detection_enabled;
-    if (program_status_data->global_host_event_handler)
+    if (!program_status_data->global_host_event_handler.empty())
       is->global_host_event_handler = misc::string::check_string_utf8(
           program_status_data->global_host_event_handler);
-    if (program_status_data->global_service_event_handler)
+    if (!program_status_data->global_service_event_handler.empty())
       is->global_service_event_handler = misc::string::check_string_utf8(
           program_status_data->global_service_event_handler);
     is->last_alive = time(nullptr);
@@ -2032,12 +2025,12 @@ int neb::callback_relation(int callback_type, void* data) {
         int host_id;
         int parent_id;
         {
-          host_id = engine::get_host_id(relation->dep_hst->get_name());
-          parent_id = engine::get_host_id(relation->hst->get_name());
+          host_id = engine::get_host_id(relation->dep_hst->name());
+          parent_id = engine::get_host_id(relation->hst->name());
         }
         if (host_id && parent_id) {
           // Generate parent event.
-          std::shared_ptr<host_parent> new_host_parent(new host_parent);
+          auto new_host_parent{std::make_shared<host_parent>()};
           new_host_parent->enabled = (relation->type != NEBTYPE_PARENT_DELETE);
           new_host_parent->host_id = host_id;
           new_host_parent->parent_id = parent_id;
@@ -2542,9 +2535,7 @@ int neb::callback_service_check(int callback_type, void* data) {
 
   try {
     // In/Out variables.
-    std::shared_ptr<neb::service_check> service_check(
-        std::make_shared<neb::service_check>());
-
+    auto service_check{std::make_shared<neb::service_check>()};
     // Fill output var.
     engine::service* s{static_cast<engine::service*>(scdata->object_ptr)};
     if (scdata->command_line) {
@@ -2831,7 +2822,7 @@ int neb::callback_service_status(int callback_type, void* data) {
 
   try {
     // In/Out variables.
-    auto service_status = std::make_shared<neb::service_status>();
+    auto service_status{std::make_shared<neb::service_status>()};
 
     // Fill output var.
     engine::service const* s{static_cast<engine::service*>(

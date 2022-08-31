@@ -1,5 +1,5 @@
 /*
-** Copyright 2014-2015, 2021 Centreon
+** Copyright 2014-2015, 2021-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -181,7 +181,7 @@ bool kpi_service::is_acknowledged() const {
  *  @param[out] visitor  Object that will receive events.
  */
 void kpi_service::service_update(
-    std::shared_ptr<neb::service_status> const& status,
+    const std::shared_ptr<neb::service_status>& status,
     io::stream* visitor) {
   if (status && status->host_id == _host_id &&
       status->service_id == _service_id) {
@@ -298,18 +298,21 @@ void kpi_service::service_update(
  *  @param[in]  dt
  *  @param[out] visitor  Object that will receive events.
  */
-void kpi_service::service_update(std::shared_ptr<neb::downtime> const& dt,
+void kpi_service::service_update(const std::shared_ptr<neb::downtime>& dt,
                                  io::stream* visitor) {
   assert(dt && dt->host_id == _host_id && dt->service_id == _service_id);
   // Update information.
-  _downtimed = dt->was_started && dt->actual_end_time.is_null();
-  if (_downtime_ids.contains(dt->internal_id) && !dt->was_cancelled) {
+  bool downtimed = dt->was_started && dt->actual_end_time.is_null();
+  if (!_downtimed && downtimed)
+    _downtimed = true;
+
+  if (_downtime_ids.contains(dt->internal_id) && dt->deletion_time.is_null()) {
     log_v2::bam()->trace("Downtime {} already handled in this kpi service",
                          dt->internal_id);
     return;
   }
 
-  if (_downtimed) {
+  if (downtimed) {
     log_v2::bam()->trace("adding in kpi service the impacting downtime {}",
                          dt->internal_id);
     _downtime_ids.insert(dt->internal_id);
@@ -317,6 +320,7 @@ void kpi_service::service_update(std::shared_ptr<neb::downtime> const& dt,
     log_v2::bam()->trace("removing from kpi service the impacting downtime {}",
                          dt->internal_id);
     _downtime_ids.erase(dt->internal_id);
+    _downtimed = !_downtime_ids.empty();
   }
 
   if (!_event || _event->in_downtime != _downtimed) {

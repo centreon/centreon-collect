@@ -49,12 +49,12 @@ void log_host_state(unsigned int type, com::centreon::engine::host* hst) {
     state = host::tab_host_states[hst->get_current_state()].second.c_str();
   std::string const& state_type{host::tab_state_type[hst->get_state_type()]};
   engine_logger(log_info_message, basic)
-      << type_str << " HOST STATE: " << hst->get_name() << ";" << state << ";"
+      << type_str << " HOST STATE: " << hst->name() << ";" << state << ";"
       << state_type << ";" << hst->get_current_attempt() << ";"
       << hst->get_plugin_output();
-  log_v2::events()->info("{} HOST STATE: {};{};{};{};{}", type_str,
-                         hst->get_name(), state, state_type,
-                         hst->get_current_attempt(), hst->get_plugin_output());
+  log_v2::events()->info("{} HOST STATE: {};{};{};{};{}", type_str, hst->name(),
+                         state, state_type, hst->get_current_attempt(),
+                         hst->get_plugin_output());
 }
 
 /**

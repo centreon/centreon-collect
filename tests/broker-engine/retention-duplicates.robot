@@ -3,6 +3,7 @@ Resource	../resources/resources.robot
 Suite Setup	Clean Before Suite
 Suite Teardown	Clean After Suite
 Test Setup	Stop Processes
+Test Teardown	Save logs If Failed
 
 Documentation	Centreon Broker tests on dublicated data that could come from retention when centengine or cbd are restarted
 Library	Process
@@ -40,13 +41,13 @@ BERD1
 	${result}=	Check Connections
 	Should Be True	${result}	msg=Engine and Broker not connected.
 	Sleep	5s
-	Stop Broker
+	Kindly Stop Broker
 	Sleep	5s
 	Clear Cache
 	Start Broker
 	Sleep	25s
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker
 	${result}=	Files Contain Same Json	/tmp/lua-engine.log	/tmp/lua.log
 	Should Be True	${result}	msg=Contents of /tmp/lua.log and /tmp/lua-engine.log do not match.
 	${result}=	Check Multiplicity When Broker Restarted	/tmp/lua-engine.log	/tmp/lua.log
@@ -84,7 +85,7 @@ BERD2
 	Start Engine
 	Sleep	25s
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker
 	${result}=	Files Contain Same Json	/tmp/lua-engine.log	/tmp/lua.log
 	Should Be True	${result}	msg=Contents of /tmp/lua.log and /tmp/lua-engine.log do not match.
 	${result}=	Check Multiplicity When Engine Restarted	/tmp/lua-engine.log	/tmp/lua.log
@@ -119,13 +120,13 @@ BERDUC1
 	${result}=	Check Connections
 	Should Be True	${result}	msg=Engine and Broker not connected.
 	Sleep	5s
-	Stop Broker
+	Kindly Stop Broker
 	Sleep	5s
 	Clear Cache
 	Start Broker
 	Sleep	25s
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker
 	${result}=	Check Multiplicity When Broker Restarted	/tmp/lua-engine.log	/tmp/lua.log
 	Should Be True	${result}	msg=There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
@@ -155,13 +156,13 @@ BERDUCU1
 	${result}=	Check Connections
 	Should Be True	${result}	msg=Engine and Broker not connected.
 	Sleep	5s
-	Stop Broker
+	Kindly Stop Broker
 	Sleep	5s
 	Clear Cache
 	Start Broker
 	Sleep	25s
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker
 	${result}=	Check Multiplicity When Broker Restarted	/tmp/lua-engine.log	/tmp/lua.log
 	Should Be True	${result}	msg=There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
@@ -196,7 +197,7 @@ BERDUC2
 	Start Engine
 	Sleep	25s
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker
 	${result}=	Check Multiplicity When Engine Restarted	/tmp/lua-engine.log	/tmp/lua.log
 	Should Be True	${result}	msg=There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
@@ -232,7 +233,7 @@ BERDUCU2
 	Start Engine
 	Sleep	25s
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker
 	${result}=	Check Multiplicity When Engine Restarted	/tmp/lua-engine.log	/tmp/lua.log
 	Should Be True	${result}	msg=There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
@@ -265,13 +266,13 @@ BERDUC3U1
 	${result}=	Check Connections
 	Should Be True	${result}	msg=Engine and Broker not connected.
 	Sleep	5s
-	Stop Broker
+	Kindly Stop Broker
 	Sleep	5s
 	Clear Cache
 	Start Broker
 	Sleep	25s
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker
 	${result}=	Check Multiplicity When Broker Restarted	/tmp/lua-engine.log	/tmp/lua.log
 	Should Be True	${result}	msg=There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
@@ -310,7 +311,7 @@ BERDUC3U2
 	Start Engine
 	Sleep	25s
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker
 	${result}=	Check Multiplicity When Engine Restarted	/tmp/lua-engine.log	/tmp/lua.log
 	Should Be True	${result}	msg=There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 

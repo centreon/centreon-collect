@@ -3,6 +3,7 @@ Resource	../resources/resources.robot
 Suite Setup	Clean Before Suite
 Suite Teardown	Clean After Suite
 Test Setup	Stop Processes
+Test Teardown	Save logs If Failed
 
 Documentation	Centreon Broker and Engine log_v2
 Library	DatabaseLibrary
@@ -41,4 +42,4 @@ ENRSCHE1
 	Should Be True	${result1}	msg=the delta of last_check and next_check is not equal to 60.
 	Should Be True	${result2}	msg=the delta of last_check and next_check is not equal to 300.
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker

@@ -1,5 +1,5 @@
 /*
-** Copyright 2014-2016, 2021 Centreon
+** Copyright 2014-2016, 2021-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -39,19 +39,6 @@ auto normalize = [](double d) -> double {
     d = 0.0;
   return d;
 };
-
-static bool _every_kpi_in_dt(
-    std::unordered_map<kpi*, bam::ba::impact_info>& imp) {
-  if (imp.empty())
-    return false;
-
-  for (auto it = imp.begin(), end = imp.end(); it != end; ++it) {
-    if (!it->first->in_downtime())
-      return false;
-  }
-
-  return true;
-}
 
 /**
  *  Constructor.
@@ -312,6 +299,19 @@ state ba::get_state_hard() {
     return state_ok;
   };
 
+  auto every_kpi_in_dt =
+      [](std::unordered_map<kpi*, bam::ba::impact_info>& imp) -> bool {
+    if (imp.empty())
+      return false;
+
+    for (auto it = imp.begin(), end = imp.end(); it != end; ++it) {
+      if (!it->first->in_downtime())
+        return false;
+    }
+
+    return true;
+  };
+
   switch (_state_source) {
     case configuration::ba::state_source_impact:
       if (!_valid)
@@ -326,7 +326,7 @@ state ba::get_state_hard() {
     case configuration::ba::state_source_best:
     case configuration::ba::state_source_worst:
       if (_dt_behaviour == configuration::ba::dt_ignore_kpi &&
-          _every_kpi_in_dt(_impacts))
+          every_kpi_in_dt(_impacts))
         state = state_ok;
       else
         state = _computed_hard_state;

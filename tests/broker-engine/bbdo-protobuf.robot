@@ -3,6 +3,7 @@ Resource	../resources/resources.robot
 Suite Setup	Clean Before Suite
 Suite Teardown	Clean After Suite
 Test Setup	Stop Processes
+Test Teardown	Save logs If Failed
 
 Documentation	Engine/Broker tests on bbdo_version 3.0.0 and protobuf bbdo embedded events.
 Library	Process
@@ -32,7 +33,7 @@ BEPBBEE1
 	${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	30
 	Should Be True	${result}	msg=Message about not matching bbdo versions not available
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker
 
 BEPBBEE2
 	[Documentation]	bbdo_version 3 not compatible with sql/storage
@@ -45,6 +46,7 @@ BEPBBEE2
         Broker Config Add Item	central	bbdo_version	3.0.0
         Broker Config Add Item	rrd	bbdo_version	3.0.0
 	Broker Config Log	central	sql	debug
+        Broker Config Flush Log	central	0
 	Clear Retention
 	${start}=	Get Current Date
 	Start Broker
@@ -74,7 +76,7 @@ BEPBBEE3
 	Start Engine
         Wait Until Created	/tmp/pbservicestatus.log	1m
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker
 
 BEPBBEE4
 	[Documentation]	bbdo_version 3 generates new bbdo protobuf host status messages.
@@ -96,7 +98,7 @@ BEPBBEE4
 	Start Engine
         Wait Until Created	/tmp/pbhoststatus.log	1m
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker
 
 BEPBBEE5
 	[Documentation]	bbdo_version 3 generates new bbdo protobuf service messages.
@@ -118,4 +120,4 @@ BEPBBEE5
 	Start Engine
         Wait Until Created	/tmp/pbservice.log	1m
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker

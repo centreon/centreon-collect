@@ -256,6 +256,8 @@ class state {
   void log_passive_checks(bool value);
   bool log_pid() const noexcept;
   void log_pid(bool value);
+  inline bool log_file_line() const { return _log_file_line; }
+  void log_file_line(bool value);
   bool log_service_retries() const noexcept;
   void log_service_retries(bool value);
   float low_host_flap_threshold() const noexcept;
@@ -293,11 +295,13 @@ class state {
   int perfdata_timeout() const noexcept;
   void perfdata_timeout(int value);
   std::string const& poller_name() const noexcept;
-  void poller_name(std::string const& value) noexcept;
+  void poller_name(std::string const& value);
   uint32_t poller_id() const noexcept;
-  void poller_id(uint32_t value) noexcept;
+  void poller_id(uint32_t value);
   uint16_t rpc_port() const noexcept;
-  void rpc_port(uint16_t value) noexcept;
+  void rpc_port(uint16_t value);
+  const std::string& rpc_listen_address() const noexcept;
+  void rpc_listen_address(const std::string& listen_address);
   bool process_performance_data() const noexcept;
   void process_performance_data(bool value);
   std::list<std::string> const& resource_file() const noexcept;
@@ -576,6 +580,7 @@ class state {
   bool _log_notifications;
   bool _log_passive_checks;
   bool _log_pid;
+  bool _log_file_line;
   bool _log_service_retries;
   float _low_host_flap_threshold;
   float _low_service_flap_threshold;
@@ -597,6 +602,7 @@ class state {
   std::string _poller_name;
   uint32_t _poller_id;
   uint16_t _rpc_port;
+  std::string _rpc_listen_address;
   bool _process_performance_data;
   std::list<std::string> _resource_file;
   unsigned long _retained_contact_host_attribute_mask;

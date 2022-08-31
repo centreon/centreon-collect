@@ -22,14 +22,36 @@ BCL1
 	Should be True	${expected}	msg=expected error 'The option -s expects a positive integer'
 
 BCL2
-	[Documentation]	Starting broker with option '-s 5' should work
+	[Documentation]	Starting broker with option '-s5' should work
 	[Tags]	Broker	start-stop
 	Config Broker	central
 	${start}=	Get Current Date	exclude_millis=True
-	Start Broker With Args	-s5	/etc/centreon-broker/central-broker.json
+	Sleep	1s
+	Start Broker With Args	-s5	${EtcRoot}/centreon-broker/central-broker.json
 	${table}=	Create List	Starting the TCP thread pool of 5 threads
-	Find in log with timeout	${centralLog}	${start}	${table}	30
+	${logger_res}=	Find in log with timeout	${centralLog}	${start}	${table}	30
+	Should be True	${logger_res}	msg=Didn't found 5 threads in ${VarRoot}/log/centreon-broker/central-broker-master.log
 	Stop Broker With Args
+
+BCL3
+	[Documentation]	Starting broker with options '-D' should work and activate diagnose mode
+	[Tags]	Broker	start-stop
+	Config Broker	central
+	${start}=	Get Current Date	exclude_millis=True
+	Sleep	1s
+	Start Broker With Args	-D	${EtcRoot}/centreon-broker/central-broker.json
+	${result}=	Wait For Broker
+	${expected}=	Evaluate	"diagnostic:" in """${result}"""
+	Should be True	${expected}	msg=diagnostic mode didn't launch
+
+BCL4
+	[Documentation]	Starting broker with options '-s2' and '-D' should work.
+	[Tags]	Broker	start-stop
+	Config Broker	central
+	Start Broker With Args	-s2	-D	${EtcRoot}/centreon-broker/central-broker.json
+	${result}=	Wait For Broker
+	${expected}=	Evaluate	"diagnostic:" in """${result}"""
+	Should be True	${expected}	msg=diagnostic mode didn't launch
 
 *** Keywords ***
 Start Broker With Args

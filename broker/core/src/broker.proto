@@ -146,7 +146,7 @@ message BrokerStats {
 }
 
 message IndexIds {
-  repeated uint64 index_id = 1;
+  repeated uint64 index_ids = 1;
 }
 
 message ToRemove {

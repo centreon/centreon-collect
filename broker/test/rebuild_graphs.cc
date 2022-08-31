@@ -256,7 +256,7 @@ int main() {
     // Launch rebuild.
     {
       QSqlQuery q(*db.centreon_db());
-      if (!q.exec("UPDATE rt_index_data SET must_be_rebuild=1"))
+      if (!q.exec("UPDATE rt_index_data SET must_be_rebuild='1'"))
         throw(exceptions::msg() << "cannot launch rebuild from DB: "
                                 << qPrintable(q.lastError().text()));
       sleep_for(15);

@@ -23,10 +23,12 @@
 #include <getopt.h>
 #endif  // HAVE_GETOPT_H
 #include <unistd.h>
-#include <boost/circular_buffer.hpp>
-#include <boost/optional.hpp>
 #include <random>
 #include <string>
+
+#include <boost/circular_buffer.hpp>
+#include <boost/container/flat_map.hpp>
+#include <boost/optional.hpp>
 
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/broker/loader.hh"
@@ -349,8 +351,10 @@ int main(int argc, char* argv[]) {
           port = dis(gen);
         }
 
+        const std::string& listen_address = config.rpc_listen_address();
+
         std::unique_ptr<enginerpc, std::function<void(enginerpc*)> > rpc(
-            new enginerpc("0.0.0.0", port), [](enginerpc* rpc) {
+            new enginerpc(listen_address, port), [](enginerpc* rpc) {
               rpc->shutdown();
               delete rpc;
             });

@@ -109,7 +109,7 @@ class host : public notifier {
   void add_child_host(host* child);
   void add_parent_host(std::string const& host_name);
   int log_event();
-  int handle_async_check_result_3x(check_result* queued_check_result);
+  int handle_async_check_result_3x(const check_result& queued_check_result);
   int run_scheduled_check(int check_options, double latency);
   int run_async_check(int check_options,
                       double latency,
@@ -118,7 +118,7 @@ class host : public notifier {
                       bool* time_is_valid,
                       time_t* preferred_time) noexcept;
   bool schedule_check(time_t check_time,
-                      int options,
+                      uint32_t options,
                       bool no_update_status_now = false) override;
   void check_for_flapping(bool update,
                           bool actual_check,
@@ -176,8 +176,6 @@ class host : public notifier {
   std::string const& get_current_state_as_string() const override;
 
   // setters / getters
-  std::string const& get_name() const;
-  void set_name(std::string const& name);
   std::string const& get_alias() const;
   void set_alias(std::string const& alias);
   std::string const& get_address() const;
@@ -261,7 +259,6 @@ class host : public notifier {
 
  private:
   uint64_t _id;
-  std::string _name;
   std::string _alias;
   std::string _address;
   bool _process_performance_data;

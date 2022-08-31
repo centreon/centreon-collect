@@ -118,11 +118,11 @@ int obsessive_compulsive_host_check_processor(
   if (early_timeout == true)
     engine_logger(log_runtime_warning, basic)
         << "Warning: OCHP command '" << processed_command << "' for host '"
-        << hst->get_name() << "' timed out after " << config->ochp_timeout()
+        << hst->name() << "' timed out after " << config->ochp_timeout()
         << " seconds";
   log_v2::runtime()->warn(
       "Warning: OCHP command '{}' for host '{}' timed out after {} seconds",
-      processed_command, hst->get_name(), config->ochp_timeout());
+      processed_command, hst->name(), config->ochp_timeout());
 
   return OK;
 }
@@ -469,9 +469,9 @@ int run_global_host_event_handler(nagios_macros* mac,
     return ERROR;
 
   engine_logger(dbg_eventhandlers, more)
-      << "Running global event handler for host '" << hst->get_name() << "'...";
+      << "Running global event handler for host '" << hst->name() << "'...";
   log_v2::events()->debug("Running global event handler for host '{}'...",
-                          hst->get_name());
+                          hst->name());
 
   /* get start time */
   gettimeofday(&start_time, nullptr);
@@ -503,7 +503,7 @@ int run_global_host_event_handler(nagios_macros* mac,
 
   if (config->log_event_handlers() == true) {
     std::ostringstream oss;
-    oss << "GLOBAL HOST EVENT HANDLER: " << hst->get_name()
+    oss << "GLOBAL HOST EVENT HANDLER: " << hst->name()
         << "$HOSTSTATE$;$HOSTSTATETYPE$;$HOSTATTEMPT$;"
         << config->global_host_event_handler();
     process_macros_r(mac, oss.str(), processed_logentry, macro_options);
@@ -596,9 +596,9 @@ int run_host_event_handler(nagios_macros* mac,
     return ERROR;
 
   engine_logger(dbg_eventhandlers, more)
-      << "Running event handler for host '" << hst->get_name() << "'...";
+      << "Running event handler for host '" << hst->name() << "'...";
   log_v2::events()->debug("Running event handler for host '{}'...",
-                          hst->get_name());
+                          hst->name());
 
   /* get start time */
   gettimeofday(&start_time, nullptr);
@@ -627,7 +627,7 @@ int run_host_event_handler(nagios_macros* mac,
 
   if (config->log_event_handlers() == true) {
     std::ostringstream oss;
-    oss << "HOST EVENT HANDLER: " << hst->get_name()
+    oss << "HOST EVENT HANDLER: " << hst->name()
         << ";$HOSTSTATE$;$HOSTSTATETYPE$;$HOSTATTEMPT$;"
         << hst->event_handler();
     process_macros_r(mac, oss.str(), processed_logentry, macro_options);

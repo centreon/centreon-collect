@@ -84,8 +84,7 @@ void applier::contactgroup::add_object(configuration::contactgroup const& obj) {
   config->contactgroups().insert(obj);
 
   // Create contact group.
-  std::shared_ptr<engine::contactgroup> cg{new engine::contactgroup(obj)};
-
+  auto cg = std::make_shared<engine::contactgroup>(obj);
   for (set_string::const_iterator it(obj.members().begin()),
        end(obj.members().end());
        it != end; ++it) {

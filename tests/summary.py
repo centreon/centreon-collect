@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+import argparse
 import datetime
 import os
 import re
@@ -6,12 +7,18 @@ from xml.etree import ElementTree as ET
 
 import matplotlib.pyplot as plt
 
+parser = argparse.ArgumentParser(prog='summary.py', description='Draw a summary on the tests historical.')
+parser.add_argument('--fail', '-f', action='store_true', help='Add a summary on tests that failed.')
+parser.add_argument('--slow', '-s', action='store_true', help='Add a summary on slow tests.')
+args = parser.parse_args()
+
 content = os.listdir('.')
 r = re.compile(r"\d+")
 dirs = []
 tests = []
 gl_durations = []
 gl_avg_duration = []
+fail_dict = {}
 
 for f in content:
     durations = []
@@ -33,6 +40,9 @@ for f in content:
                     durations.append((duration, p.attrib['name'], s.attrib['status']))
                     if s.attrib['status'] == 'FAIL':
                         fail += 1
+                        if p.attrib['name'] not in fail_dict:
+                            fail_dict[p.attrib['name']] = []
+                        fail_dict[p.attrib['name']].append(int(starttime.timestamp()))
                     if s.attrib['status'] == 'PASS':
                         success += 1
                     count += 1
@@ -44,12 +54,30 @@ for f in content:
             print("%s: %d/%d passed tests" % (f, success, count))
 
 # Display the arrays of longest tests
-for i in range(len(gl_durations)):
-    t = gl_durations[i]
-    print("############# {:12} ##############".format(dirs[i]))
-    for tt in t:
-        print("{}: {:20}: {}".format(str(tt[0]), tt[1], tt[2]))
-print("#" * 40)
+if args.slow:
+    for i in range(len(gl_durations)):
+        t = gl_durations[i]
+        print("############# {:12} ##############".format(dirs[i]))
+        for tt in t:
+            print("{}: {:20}: {}".format(str(tt[0]), tt[1], tt[2]))
+    print("#" * 40)
+
+if args.fail:
+    lst = []
+    fail_x = []
+    fail_y = []
+    for k in fail_dict:
+        s = len(fail_dict[k])
+        m = min(fail_dict[k])
+        M = max(fail_dict[k])
+        n = k
+        d = f"############# {k} ##############\n * size = {s}\n * min = {m}\n * max = {M}\n"
+        lst.append((s, m, M, d, n))
+    lst.sort()
+    for l in lst:
+        fail_x.append(l[4])
+        fail_y.append(l[0])
+        print(l[3])
 
 tests.sort()
 x = []
@@ -67,7 +95,10 @@ for xx in gl_avg_duration:
     x1.append(xx[0])
     y1.append(xx[1])
 
-fig, ax = plt.subplots(2)
+if args.fail:
+    fig, ax = plt.subplots(3)
+else:
+    fig, ax = plt.subplots(2)
 fig.suptitle("Centreon-Tests")
 ax[0].set_ylabel('tests')
 ax[0].set_xlabel('date')
@@ -82,5 +113,10 @@ ax[1].set_xlabel('date')
 ax[1].tick_params(labelrotation=45)
 ax[1].plot(x1, y1)
 ax[1].grid(color='gray', linestyle='dashed')
+
+if args.fail:
+    ax[2].bar(fail_x, fail_y, linewidth=2)
+    ax[2].set_ylabel('Fails count')
+    ax[2].tick_params(labelrotation=90, labelsize=8)
 
 plt.show()

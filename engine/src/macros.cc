@@ -139,7 +139,7 @@ int grab_custom_macro_value_r(nagios_macros* mac,
         return ERROR;
 
       service_map::const_iterator found = service::services.find(
-          {mac->host_ptr ? mac->host_ptr->get_name() : "", arg2});
+          {mac->host_ptr ? mac->host_ptr->name() : "", arg2});
 
       if (found != service::services.end() && found->second) {
         /* get the service macro value */

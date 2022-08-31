@@ -548,7 +548,7 @@ std::shared_ptr<contact> add_contact(
   }
 
   // Allocate memory for a new contact.
-  std::shared_ptr<contact> obj(new contact);
+  auto obj = std::make_shared<contact>();
 
   try {
     // Duplicate vars.

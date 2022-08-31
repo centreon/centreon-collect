@@ -1,4 +1,5 @@
 *** Settings ***
+Resource	./db_variables.robot
 Library	Process
 Library	OperatingSystem
 Library	Common.py
@@ -23,13 +24,12 @@ Clear Engine Logs
 	Create Directory	${ENGINE_LOG}
 
 Clear Broker Logs
-	Remove Files	${BROKER_LOG}${/}central-broker-master.log	${BROKER_LOG}${/}central-rrd-master.log	${BROKER_LOG}${/}central-module-master.log*
-	Remove Files	${BROKER_LOG}${/}central-module-master.log	${BROKER_LOG}${/}central-rrd-master.log	${BROKER_LOG}${/}central-module-master.log*
-	Remove Files	${BROKER_LOG}${/}central-rrd-master.log	${BROKER_LOG}${/}central-rrd-master.log	${BROKER_LOG}${/}central-module-master.log*
+	Remove Directory	${BROKER_LOG}	Recursive=True
+	Create Directory	${BROKER_LOG}
 
 Start Broker
-	Start Process	/usr/sbin/cbd	/etc/centreon-broker/central-broker.json	alias=b1
-	Start Process	/usr/sbin/cbd	/etc/centreon-broker/central-rrd.json	alias=b2
+	Start Process	/usr/sbin/cbd	${EtcRoot}/centreon-broker/central-broker.json	alias=b1
+	Start Process	/usr/sbin/cbd	${EtcRoot}/centreon-broker/central-rrd.json	alias=b2
 #	${log_pid1}=  Get Process Id	b1
 #	${log_pid2}=  Get Process Id	b2
 #	Log To Console  \npidcentral=${log_pid1} pidrrd=${log_pid2}\n
@@ -61,9 +61,9 @@ Start Engine
 	${count}=	Get Engines Count
 	FOR	${idx}	IN RANGE	0	${count}
 	 ${alias}=	Catenate	SEPARATOR=	e	${idx}
-	 ${conf}=	Catenate	SEPARATOR=	/etc/centreon-engine/config	${idx}	/centengine.cfg
-	 ${log}=	Catenate	SEPARATOR=	/var/log/centreon-engine/config	${idx}
-	 ${lib}=	Catenate	SEPARATOR=	/var/lib/centreon-engine/config	${idx}
+	 ${conf}=	Catenate	SEPARATOR=	${EtcRoot}  /centreon-engine/config	${idx}	/centengine.cfg
+	 ${log}=	Catenate	SEPARATOR=	${VarRoot}  /log/centreon-engine/config	${idx}
+	 ${lib}=	Catenate	SEPARATOR=	${VarRoot}  /lib/centreon-engine/config	${idx}
 	 Create Directory	${log}
 	 Create Directory	${lib}
 	 Start Process	/usr/sbin/centengine	${conf}	alias=${alias}
@@ -118,9 +118,20 @@ Reset Eth Connection
 	Run	iptables -F
 	Run	iptables -X
 
+Save Logs If failed
+	Run Keyword If Test Failed	Save Logs
+
+Save Logs
+	Create Directory	failed
+        ${failDir}=	Catenate	SEPARATOR=	failed/	${Test Name}
+        Create Directory	${failDir}
+        Copy files	${centralLog}	${failDir}
+        Copy files	${moduleLog}	${failDir}
+        Copy files	${logEngine0}	${failDir}
+
 *** Variables ***
-${BROKER_LOG}	/var/log/centreon-broker
-${ENGINE_LOG}	/var/log/centreon-engine
+${BROKER_LOG}	${VarRoot}/log/centreon-broker
+${ENGINE_LOG}	${VarRoot}/log/centreon-engine
 ${SCRIPTS}	${CURDIR}${/}scripts${/}
 ${centralLog}	${BROKER_LOG}/central-broker-master.log
 ${moduleLog}	${BROKER_LOG}/central-module-master0.log
@@ -129,9 +140,3 @@ ${rrdLog}	${BROKER_LOG}/central-rrd-master.log
 ${logEngine0}	${ENGINE_LOG}/config0/centengine.log
 ${logEngine1}	${ENGINE_LOG}/config1/centengine.log
 ${logEngine2}	${ENGINE_LOG}/config2/centengine.log
-
-${DBName}	centreon_storage
-${DBHost}	localhost
-${DBUser}	centreon
-${DBPass}	centreon
-${DBPort}	3306

@@ -6,23 +6,43 @@ import time
 from dateutil import parser
 from datetime import datetime
 import pymysql.cursors
+from robot.libraries.BuiltIn import BuiltIn
+
 
 TIMEOUT = 30
+
+BuiltIn().import_resource('db_variables.robot')
+DB_NAME_STORAGE = BuiltIn().get_variable_value("${DBName}")
+DB_NAME_CONF = BuiltIn().get_variable_value("${DBNameConf}")
+DB_USER = BuiltIn().get_variable_value("${DBUser}")
+DB_PASS = BuiltIn().get_variable_value("${DBPass}")
+DB_HOST = BuiltIn().get_variable_value("${DBHost}")
+DB_PORT = BuiltIn().get_variable_value("${DBPort}")
+VAR_ROOT = BuiltIn().get_variable_value("${VarRoot}")
 
 
 def check_connection(port: int, pid1: int, pid2: int):
     limit = time.time() + TIMEOUT
-    r = re.compile(r"^ESTAB.*127\.0\.0\.1\]*:{}\s".format(port))
+    r = re.compile(
+        r"^ESTAB.*127\.0\.0\.1\]*:{}\s|^ESTAB.*\[::1\]*:{}\s".format(port, port))
+    p = re.compile(
+        r"127\.0\.0\.1\]*:(\d+)\s+.*127\.0\.0\.1\]*:(\d+)\s+.*,pid=(\d+)")
+    p_v6 = re.compile(
+        r"::1\]*:(\d+)\s+.*::1\]*:(\d+)\s+.*,pid=(\d+)")
     while time.time() < limit:
         out = getoutput("ss -plant")
         lst = out.split('\n')
         estab_port = list(filter(r.match, lst))
         if len(estab_port) >= 2:
             ok = [False, False]
-            p = re.compile(
-                r"127\.0\.0\.1\]*:(\d+)\s+.*127\.0\.0\.1\]*:(\d+)\s+.*,pid=(\d+)")
             for l in estab_port:
                 m = p.search(l)
+                if m is not None:
+                    if pid1 == int(m.group(3)):
+                        ok[0] = True
+                    if pid2 == int(m.group(3)):
+                        ok[1] = True
+                m = p_v6.search(l)
                 if m is not None:
                     if pid1 == int(m.group(3)):
                         ok[0] = True
@@ -31,7 +51,6 @@ def check_connection(port: int, pid1: int, pid2: int):
             if ok[0] and ok[1]:
                 return True
         time.sleep(1)
-
     return False
 
 
@@ -158,17 +177,16 @@ def kill_engine():
 
 
 def clear_retention():
-    getoutput("find /var -name '*.cache.*' -delete")
+    getoutput("find " + VAR_ROOT + " -name '*.cache.*' -delete")
     getoutput("find /tmp -name 'lua*' -delete")
-    getoutput("find /tmp -name 'central-*' -delete")
-    getoutput("find /var -name '*.memory.*' -delete")
-    getoutput("find /var -name '*.queue.*' -delete")
-    getoutput("find /var -name '*.unprocessed*' -delete")
-    getoutput("find /var -name 'retention.dat' -delete")
+    getoutput("find " + VAR_ROOT + " -name '*.memory.*' -delete")
+    getoutput("find " + VAR_ROOT + " -name '*.queue.*' -delete")
+    getoutput("find " + VAR_ROOT + " -name '*.unprocessed*' -delete")
+    getoutput("find " + VAR_ROOT + " -name 'retention.dat' -delete")
 
 
 def clear_cache():
-    getoutput("find /var -name '*.cache.*' -delete")
+    getoutput("find " + VAR_ROOT + " -name '*.cache.*' -delete")
 
 
 def engine_log_table_duplicate(result: list):
@@ -187,7 +205,8 @@ def check_engine_logs_are_duplicated(log: str, date):
         idx = find_line_from(lines, date)
         count_true = 0
         count_false = 0
-        logs = []
+        logs_old = []
+        logs_new = []
         old_log = re.compile(r"\[[^\]]*\] \[[^\]]*\] ([^\[].*)")
         new_log = re.compile(
             r"\[[^\]]*\] \[[^\]]*\] \[[^\]]*\] \[[^\]]*\] (.*)")
@@ -195,25 +214,27 @@ def check_engine_logs_are_duplicated(log: str, date):
             mo = old_log.match(l)
             mn = new_log.match(l)
             if mo is not None:
-                if mo.group(1) in logs:
-                    logs.remove(mo.group(1))
+                if mo.group(1) in logs_new:
+                    logs_new.remove(mo.group(1))
                 else:
-                    logs.append(mo.group(1))
+                    logs_old.append(mo.group(1))
             else:
                 mn = new_log.match(l)
                 if mn is not None:
-                    if mn.group(1) in logs:
-                        logs.remove(mn.group(1))
+                    if mn.group(1) in logs_old:
+                        logs_old.remove(mn.group(1))
                     else:
-                        logs.append(mn.group(1))
-        if len(logs) <= 1:
+                        logs_new.append(mn.group(1))
+        if len(logs_old) <= 1:
             # It is possible to miss one log because of the initial split of the
             # file.
             return True
         else:
-            logger.console("Logs not duplicated")
-            for l in logs:
+            logger.console(
+                "{} old logs are not duplicated".format(len(logs_old)))
+            for l in logs_old:
                 logger.console(l)
+            # We don't care about new logs not duplicated, in a future, we won't have any old logs
     except IOError:
         logger.console("The file '{}' does not exist".format(log))
         return False
@@ -316,11 +337,11 @@ def set_command_status(cmd, status):
 def check_service_status_with_timeout(hostname: str, service_desc: str, status: int, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
-        connection = pymysql.connect(host='localhost',
-                                     user='centreon',
-                                     password='centreon',
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
                                      autocommit=True,
-                                     database='centreon_storage',
+                                     database=DB_NAME_STORAGE,
                                      charset='utf8mb4',
                                      cursorclass=pymysql.cursors.DictCursor)
 
@@ -329,7 +350,7 @@ def check_service_status_with_timeout(hostname: str, service_desc: str, status: 
                 cursor.execute("SELECT s.state FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description=\"{}\" AND h.name=\"{}\"".format(
                     service_desc, hostname))
                 result = cursor.fetchall()
-                if result[0]['state'] and int(result[0]['state']) == status:
+                if len(result) > 0 and result[0]['state'] is not None and int(result[0]['state']) == int(status):
                     return True
         time.sleep(5)
     return False
@@ -338,10 +359,10 @@ def check_service_status_with_timeout(hostname: str, service_desc: str, status: 
 def check_severity_with_timeout(name: str, level, icon_id, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
-        connection = pymysql.connect(host='localhost',
-                                     user='centreon',
-                                     password='centreon',
-                                     database='centreon_storage',
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
                                      charset='utf8mb4',
                                      cursorclass=pymysql.cursors.DictCursor)
 
@@ -360,10 +381,10 @@ def check_severity_with_timeout(name: str, level, icon_id, timeout: int):
 def check_tag_with_timeout(name: str, typ, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
-        connection = pymysql.connect(host='localhost',
-                                     user='centreon',
-                                     password='centreon',
-                                     database='centreon_storage',
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
                                      charset='utf8mb4',
                                      cursorclass=pymysql.cursors.DictCursor)
 
@@ -382,10 +403,10 @@ def check_tag_with_timeout(name: str, typ, timeout: int):
 def check_severities_count(value: int, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
-        connection = pymysql.connect(host='localhost',
-                                     user='centreon',
-                                     password='centreon',
-                                     database='centreon_storage',
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
                                      charset='utf8mb4',
                                      cursorclass=pymysql.cursors.DictCursor)
 
@@ -403,10 +424,10 @@ def check_severities_count(value: int, timeout: int):
 def check_tags_count(value: int, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
-        connection = pymysql.connect(host='localhost',
-                                     user='centreon',
-                                     password='centreon',
-                                     database='centreon_storage',
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
                                      charset='utf8mb4',
                                      cursorclass=pymysql.cursors.DictCursor)
 
@@ -424,10 +445,10 @@ def check_tags_count(value: int, timeout: int):
 def check_ba_status_with_timeout(ba_name: str, status: int, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
-        connection = pymysql.connect(host='localhost',
-                                     user='centreon',
-                                     password='centreon',
-                                     database='centreon',
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_CONF,
                                      charset='utf8mb4',
                                      cursorclass=pymysql.cursors.DictCursor)
         with connection:
@@ -435,7 +456,7 @@ def check_ba_status_with_timeout(ba_name: str, status: int, timeout: int):
                 cursor.execute(
                     "SELECT current_status FROM mod_bam WHERE name='{}'".format(ba_name))
                 result = cursor.fetchall()
-                if result[0]['current_status'] and int(result[0]['current_status']) == status:
+                if result[0]['current_status'] is not None and int(result[0]['current_status']) == status:
                     return True
         time.sleep(5)
     return False
@@ -444,10 +465,10 @@ def check_ba_status_with_timeout(ba_name: str, status: int, timeout: int):
 def check_service_downtime_with_timeout(hostname: str, service_desc: str, enabled, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
-        connection = pymysql.connect(host='localhost',
-                                     user='centreon',
-                                     password='centreon',
-                                     database='centreon_storage',
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
                                      charset='utf8mb4',
                                      cursorclass=pymysql.cursors.DictCursor)
 
@@ -464,30 +485,30 @@ def check_service_downtime_with_timeout(hostname: str, service_desc: str, enable
 
 def delete_service_downtime(hst: str, svc: str):
     now = int(time.time())
-    connection = pymysql.connect(host='localhost',
-                                 user='centreon',
-                                 password='centreon',
-                                 database='centreon_storage',
+    connection = pymysql.connect(host=DB_HOST,
+                                 user=DB_USER,
+                                 password=DB_PASS,
+                                 database=DB_NAME_STORAGE,
                                  charset='utf8mb4',
                                  cursorclass=pymysql.cursors.DictCursor)
 
     with connection:
         with connection.cursor() as cursor:
-            cursor.execute("select d.internal_id from downtimes d inner join hosts h on d.host_id=h.host_id inner join services s on d.service_id=s.service_id where d.cancelled='0' and s.scheduled_downtime_depth='1' and s.description='{}' and h.name='{}'".format(svc, hst))
+            cursor.execute("select d.internal_id from downtimes d inner join hosts h on d.host_id=h.host_id inner join services s on d.service_id=s.service_id where d.deletion_time is null and s.scheduled_downtime_depth<>'0' and s.description='{}' and h.name='{}' LIMIT 1".format(svc, hst))
             result = cursor.fetchall()
             did = int(result[0]['internal_id'])
 
     cmd = "[{}] DEL_SVC_DOWNTIME;{}".format(now, did)
-    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
     f.write(cmd)
     f.close()
 
 
 def number_of_downtimes_is(nb: int):
-    connection = pymysql.connect(host='localhost',
-                                 user='centreon',
-                                 password='centreon',
-                                 database='centreon_storage',
+    connection = pymysql.connect(host=DB_HOST,
+                                 user=DB_USER,
+                                 password=DB_PASS,
+                                 database=DB_NAME_STORAGE,
                                  charset='utf8mb4',
                                  cursorclass=pymysql.cursors.DictCursor)
 
@@ -500,10 +521,10 @@ def number_of_downtimes_is(nb: int):
 
 
 def clear_db(table: str):
-    connection = pymysql.connect(host='localhost',
-                                 user='centreon',
-                                 password='centreon',
-                                 database='centreon_storage',
+    connection = pymysql.connect(host=DB_HOST,
+                                 user=DB_USER,
+                                 password=DB_PASS,
+                                 database=DB_NAME_STORAGE,
                                  charset='utf8mb4',
                                  cursorclass=pymysql.cursors.DictCursor)
 
@@ -516,10 +537,10 @@ def clear_db(table: str):
 def check_service_severity_with_timeout(host_id: int, service_id: int, severity_id, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
-        connection = pymysql.connect(host='localhost',
-                                     user='centreon',
-                                     password='centreon',
-                                     database='centreon_storage',
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
                                      charset='utf8mb4',
                                      cursorclass=pymysql.cursors.DictCursor)
 
@@ -538,13 +559,13 @@ def check_service_severity_with_timeout(host_id: int, service_id: int, severity_
     return False
 
 
-def check_host_severity_with_timeout(host_id: int, severity_id, timeout: int):
+def check_host_severity_with_timeout(host_id: int, severity_id, timeout: int = TIMEOUT):
     limit = time.time() + timeout
     while time.time() < limit:
-        connection = pymysql.connect(host='localhost',
-                                     user='centreon',
-                                     password='centreon',
-                                     database='centreon_storage',
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
                                      charset='utf8mb4',
                                      autocommit=True,
                                      cursorclass=pymysql.cursors.DictCursor)
@@ -575,10 +596,10 @@ def check_resources_tags_with_timeout(parent_id: int, mid: int, typ: str, tag_id
         t = 3
     limit = time.time() + timeout
     while time.time() < limit:
-        connection = pymysql.connect(host='localhost',
-                                     user='centreon',
-                                     password='centreon',
-                                     database='centreon_storage',
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
                                      charset='utf8mb4',
                                      cursorclass=pymysql.cursors.DictCursor)
 
@@ -621,10 +642,10 @@ def check_resources_tags_with_timeout(parent_id: int, mid: int, typ: str, tag_id
 def check_host_tags_with_timeout(host_id: int, tag_id: int, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
-        connection = pymysql.connect(host='localhost',
-                                     user='centreon',
-                                     password='centreon',
-                                     database='centreon_storage',
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
                                      charset='utf8mb4',
                                      cursorclass=pymysql.cursors.DictCursor)
 
@@ -643,10 +664,10 @@ def check_host_tags_with_timeout(host_id: int, tag_id: int, timeout: int):
 def check_number_of_resources_monitored_by_poller_is(poller: int, value: int, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
-        connection = pymysql.connect(host='localhost',
-                                     user='centreon',
-                                     password='centreon',
-                                     database='centreon_storage',
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
                                      charset='utf8mb4',
                                      cursorclass=pymysql.cursors.DictCursor)
 
@@ -666,10 +687,10 @@ def check_number_of_downtimes(expected: int, start, timeout: int):
     limit = time.time() + timeout
     d = parser.parse(start).timestamp()
     while time.time() < limit:
-        connection = pymysql.connect(host='localhost',
-                                     user='centreon',
-                                     password='centreon',
-                                     database='centreon_storage',
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
                                      charset='utf8mb4',
                                      cursorclass=pymysql.cursors.DictCursor)
         with connection:
@@ -689,10 +710,10 @@ def check_number_of_downtimes(expected: int, start, timeout: int):
 def check_number_of_relations_between_hostgroup_and_hosts(hostgroup: int, value: int, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
-        connection = pymysql.connect(host='localhost',
-                                     user='centreon',
-                                     password='centreon',
-                                     database='centreon_storage',
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
                                      charset='utf8mb4',
                                      cursorclass=pymysql.cursors.DictCursor)
 
@@ -711,10 +732,10 @@ def check_number_of_relations_between_hostgroup_and_hosts(hostgroup: int, value:
 def check_number_of_relations_between_servicegroup_and_services(servicegroup: int, value: int, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
-        connection = pymysql.connect(host='localhost',
-                                     user='centreon',
-                                     password='centreon',
-                                     database='centreon_storage',
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
                                      charset='utf8mb4',
                                      cursorclass=pymysql.cursors.DictCursor)
 
@@ -733,10 +754,10 @@ def check_number_of_relations_between_servicegroup_and_services(servicegroup: in
 def check_host_status(host: str, value: int, t: int, in_resources: bool, timeout: int = TIMEOUT):
     limit = time.time() + timeout
     while time.time() < limit:
-        connection = pymysql.connect(host='localhost',
-                                     user='centreon',
-                                     password='centreon',
-                                     database='centreon_storage',
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
                                      charset='utf8mb4',
                                      cursorclass=pymysql.cursors.DictCursor)
 
@@ -761,5 +782,34 @@ def check_host_status(host: str, value: int, t: int, in_resources: bool, timeout
                     else:
                         logger.console("Host '{}' has status '{}' with confirmed '{}'".format(
                             host, result[0][key], result[0][confirmed]))
+        time.sleep(1)
+    return False
+
+
+def find_internal_id(date, exists=True, timeout: int = TIMEOUT):
+    my_date = datetime.timestamp(parser.parse(date))
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     autocommit=True,
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                logger.console(
+                    "select internal_id from comments where entry_time >= {} and deletion_time is null".format(my_date))
+                cursor.execute(
+                    "select internal_id from comments where entry_time >= {} and deletion_time is null".format(my_date))
+                result = cursor.fetchall()
+                if len(result) > 0 and exists:
+                    return result[0]['internal_id']
+                elif len(result) == 0:
+                    logger.console("Query to find the internal_id failed")
+                    if not exists:
+                        return True
         time.sleep(1)
     return False

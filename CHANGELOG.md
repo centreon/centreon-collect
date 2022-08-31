@@ -2,22 +2,45 @@
 
 ## 22.04.1
 
+### ccc
+
+First version of ccc. Here is a client that can connect to broker or engine
+through the gRPC server. Its goal is then to execute available methods on
+these interfaces. At the moment, it checks the connection, tells if it was
+established on engine or broker and is also able to list available methods.
+
 ### Broker
 
+#### Enhancements
+
+*grpc*
+
+The gRPC api only listens by default on localhost. This is customizable with
+the configuration file.
+
 #### Fixes
+
+*rrd*
+
+Rebuilding/removing graphs is reenabled through database and a broker reload.
 
 *main*
 
 -s option works and can return errors if bad value entered
 
-*stream gRPC*
+*GRPC stream*
 
-A gRPC stream connector did not stop correctly on cbd stop.
+* Doesn't coredump if connection fails on start process.
+* The gRPC stream connector did not stop correctly on cbd stop.
 
 *BAM*
 
 On BAM misconfiguration, cbd could crash. This is fixed now. That was due to
 an issue in mysql code with promises handling.
+
+In a BA configured to ignore its kpi downtimes, if a kpi represented by a
+service has two overlapping downtimes applied. When the first one is cancelled,
+it is as if all the downtimes are removed. This is fixed with this new version.
 
 *Debian*
 
@@ -29,13 +52,8 @@ tags are well removed now.
 
 Columns notes, notes\_url and action\_url are resized.
 
-*Debian*
-
-Default configuration files were not installed on a Debian fresh install.
-
-*GRPC stream*
-
-Don't coredump if connection fail on process start
+*Compression*
+In the bbdo negotiation, compression was never activated
 
 #### Enhancements
 
@@ -60,7 +78,18 @@ Packaging did not follow Debian good practices.
 
 ### Engine
 
+#### Bugfixes
+
+*resources*
+
+The display\_name of resources could be emptied in several case of reload.
+
 #### Enhancements
+
+*grpc*
+
+The gRPC api only listens by default on localhost. This is customizable with
+the configuration file.
 
 *comments*
 

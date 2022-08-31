@@ -3,6 +3,7 @@ Resource	../resources/resources.robot
 Suite Setup	Clean Before Suite
 Suite Teardown	Clean After Suite
 Test Setup	Stop Processes
+Test Teardown	Save logs If Failed
 
 Documentation	Centreon Broker and Engine add Hostgroup
 Library	DatabaseLibrary
@@ -40,7 +41,7 @@ EBNHG1
 	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	45
 	Should Be True	${result}	msg=One of the new host groups not found in logs.
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker
 
 EBNHGU1
 	[Documentation]	New host group with several pollers and connections to DB with broker configured with unified_sql

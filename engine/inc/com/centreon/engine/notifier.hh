@@ -97,6 +97,7 @@ class notifier : public checkable {
   typedef bool (notifier::*is_viable)(reason_type type, notification_option);
 
   notifier(notifier_type notification_flag,
+           const std::string& name,
            std::string const& display_name,
            std::string const& check_command,
            bool checks_enabled,
@@ -167,7 +168,7 @@ class notifier : public checkable {
   void set_last_problem_id(unsigned long last_problem_id) noexcept;
 
   virtual bool schedule_check(time_t check_time,
-                              int options,
+                              uint32_t options,
                               bool no_update_status_now) = 0;
   virtual void update_status() = 0;
   int notify(reason_type type,
