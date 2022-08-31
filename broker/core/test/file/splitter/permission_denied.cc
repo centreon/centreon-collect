@@ -19,6 +19,7 @@
 #include <gtest/gtest.h>
 #include "com/centreon/broker/file/splitter.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "com/centreon/broker/file/disk_accessor.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
@@ -30,7 +31,12 @@ using namespace com::centreon::broker::file;
 
 class FileSplitterPermissionDenied : public ::testing::Test {
  public:
-  void SetUp() override { _path = FILE_WITH_BAD_PERMISSION; }
+  void SetUp() override {
+    file::disk_accessor::load(100000);
+    _path = FILE_WITH_BAD_PERMISSION;
+  }
+
+  void TearDown() override { file::disk_accessor::unload(); }
 
  protected:
   std::string _path;
