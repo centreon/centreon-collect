@@ -437,7 +437,8 @@ void downtime_manager::add_new_host_downtime(std::string const& host_name,
   auto retval{std::make_shared<host_downtime>(
       host_name, entry_time, author, comment_data, start_time, end_time, fixed,
       triggered_by, duration, new_downtime_id)};
-  add_downtime(std::move(retval));
+  instance().add_downtime(retval);
+  retval->schedule();
 
   /* save downtime id */
   if (downtime_id)
@@ -474,7 +475,8 @@ void downtime_manager::add_new_service_downtime(
   auto retval{std::make_shared<service_downtime>(
       host_name, service_description, entry_time, author, comment_data,
       start_time, end_time, fixed, triggered_by, duration, new_downtime_id)};
-  add_downtime(std::move(retval));
+  instance().add_downtime(retval);
+  retval->schedule();
 
   /* save downtime id */
   if (downtime_id)
