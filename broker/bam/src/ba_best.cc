@@ -43,22 +43,25 @@ using namespace com::centreon::broker::bam;
  *                                      virtual hosts and services.
  */
 ba_best::ba_best(uint32_t id,
-       uint32_t host_id,
-       uint32_t service_id,
-       bool generate_virtual_status)
-    : ba(id, host_id, service_id, configuration::ba::state_source_best, generate_virtual_status)
-      {}
+                 uint32_t host_id,
+                 uint32_t service_id,
+                 bool generate_virtual_status)
+    : ba(id,
+         host_id,
+         service_id,
+         configuration::ba::state_source_best,
+         generate_virtual_status) {}
 
 /**
  *  Get BA hard state.
  *
  *  @return BA hard state.
  */
-state ba_best::get_state_hard() {
+state ba_best::get_state_hard() const {
   bam::state state;
 
   auto every_kpi_in_dt =
-      [](std::unordered_map<kpi*, bam::ba::impact_info>& imp) -> bool {
+      [](const std::unordered_map<kpi*, bam::ba::impact_info>& imp) -> bool {
     if (imp.empty())
       return false;
 
@@ -83,7 +86,7 @@ state ba_best::get_state_hard() {
  *
  *  @return BA soft state.
  */
-state ba_best::get_state_soft() {
+state ba_best::get_state_soft() const {
   return _computed_soft_state;
 }
 
@@ -93,13 +96,8 @@ state ba_best::get_state_soft() {
  *  @param[in] impact Impact information.
  */
 void ba_best::_apply_impact(kpi* kpi_ptr __attribute__((unused)),
-                       ba::impact_info& impact) {
+                            ba::impact_info& impact) {
   const std::array<short, 5> order{0, 3, 4, 2, 1};
-  auto is_state_worse = [&](short current_state, short new_state) -> bool {
-    assert((unsigned int)current_state < order.size());
-    assert((unsigned int)new_state < order.size());
-    return order[new_state] > order[current_state];
-  };
 
   auto is_state_better = [&](short current_state, short new_state) -> bool {
     assert((unsigned int)current_state < order.size());
@@ -107,16 +105,8 @@ void ba_best::_apply_impact(kpi* kpi_ptr __attribute__((unused)),
     return order[new_state] < order[current_state];
   };
 
-  // Adjust values.
-  _acknowledgement_hard += impact.hard_impact.get_acknowledgement();
-  _acknowledgement_soft += impact.soft_impact.get_acknowledgement();
-  _downtime_hard += impact.hard_impact.get_downtime();
-  _downtime_soft += impact.soft_impact.get_downtime();
-
   if (_dt_behaviour == configuration::ba::dt_ignore_kpi && impact.in_downtime)
     return;
-  _level_hard -= impact.hard_impact.get_nominal();
-  _level_soft -= impact.soft_impact.get_nominal();
 
   if (is_state_better(_computed_soft_state, impact.soft_impact.get_state()))
     _computed_soft_state = impact.soft_impact.get_state();
@@ -129,9 +119,10 @@ void ba_best::_apply_impact(kpi* kpi_ptr __attribute__((unused)),
  *
  *  @param[in] impact Impact information.
  */
-void ba_best::_unapply_impact(kpi* kpi_ptr, ba::impact_info& impact) {
+void ba_best::_unapply_impact(kpi* kpi_ptr,
+                              ba::impact_info& impact [[maybe_unused]]) {
   // Prevent derive of values.
-      _computed_soft_state = _computed_hard_state = state_critical;
+  _computed_soft_state = _computed_hard_state = state_critical;
 
   // We recompute all impacts, except the one to unapply...
   for (std::unordered_map<kpi*, impact_info>::iterator it(_impacts.begin()),
@@ -139,4 +130,27 @@ void ba_best::_unapply_impact(kpi* kpi_ptr, ba::impact_info& impact) {
        it != end; ++it)
     if (it->first != kpi_ptr)
       _apply_impact(it->first, it->second);
+}
+
+/**
+ *  Get the output.
+ *
+ *  @return Service output.
+ */
+std::string ba_best::get_output() const {
+  return fmt::format("BA : {} - current_level = {}%", _name,
+                     static_cast<int>(_normalize(_level_hard)));
+}
+
+/**
+ *  Get the performance data.
+ *
+ *  @return Performance data.
+ */
+std::string ba_best::get_perfdata() const {
+  return fmt::format("BA_Level={}%;{};{};0;100 BA_Downtime={}",
+                     static_cast<int>(_normalize(_level_hard)),
+                     static_cast<int>(_level_warning),
+                     static_cast<int>(_level_critical),
+                     static_cast<int>(_normalize(_downtime_hard)));
 }

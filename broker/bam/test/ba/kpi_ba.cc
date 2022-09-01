@@ -19,8 +19,8 @@
 #include "com/centreon/broker/bam/kpi_ba.hh"
 #include <fmt/format.h>
 #include <gtest/gtest.h>
-#include "com/centreon/broker/bam/ba_worst.hh"
 #include "com/centreon/broker/bam/ba_impact.hh"
+#include "com/centreon/broker/bam/ba_worst.hh"
 #include "com/centreon/broker/bam/configuration/applier/state.hh"
 #include "com/centreon/broker/bam/kpi_service.hh"
 #include "com/centreon/broker/config/applier/init.hh"
@@ -65,7 +65,6 @@ TEST_F(KpiBA, KpiBa) {
   std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba_worst>(
       1, 5, 13, bam::configuration::ba::state_source_worst)};
   test_ba->set_name("test-ba");
-  test_ba->set_state_source(bam::configuration::ba::state_source_worst);
   test_ba->set_level_critical(100);
   test_ba->set_level_warning(75);
   test_ba->set_downtime_behaviour(bam::configuration::ba::dt_inherit);
@@ -172,7 +171,6 @@ TEST_F(KpiBA, KpiBaPb) {
   std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba_worst>(
       1, 5, 13, bam::configuration::ba::state_source_worst)};
   test_ba->set_name("test-ba");
-  test_ba->set_state_source(bam::configuration::ba::state_source_worst);
   test_ba->set_level_critical(100);
   test_ba->set_level_warning(75);
   test_ba->set_downtime_behaviour(bam::configuration::ba::dt_inherit);
@@ -279,7 +277,6 @@ TEST_F(KpiBA, KpiBaDt) {
   std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba_worst>(
       1, 5, 13, bam::configuration::ba::state_source_worst)};
   test_ba->set_name("test-ba");
-  test_ba->set_state_source(bam::configuration::ba::state_source_worst);
   test_ba->set_level_critical(100);
   test_ba->set_level_warning(75);
   test_ba->set_downtime_behaviour(bam::configuration::ba::dt_inherit);
@@ -394,7 +391,6 @@ TEST_F(KpiBA, KpiBaDtPb) {
   std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba_worst>(
       1, 5, 13, bam::configuration::ba::state_source_worst)};
   test_ba->set_name("test-ba");
-  test_ba->set_state_source(bam::configuration::ba::state_source_worst);
   test_ba->set_level_critical(100);
   test_ba->set_level_warning(75);
   test_ba->set_downtime_behaviour(bam::configuration::ba::dt_inherit);
@@ -509,7 +505,6 @@ TEST_F(KpiBA, KpiBaDtOff) {
   std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba_worst>(
       1, 5, 13, bam::configuration::ba::state_source_worst)};
   test_ba->set_name("test-ba");
-  test_ba->set_state_source(bam::configuration::ba::state_source_worst);
   test_ba->set_level_critical(100);
   test_ba->set_level_warning(75);
   test_ba->set_downtime_behaviour(bam::configuration::ba::dt_inherit);
@@ -634,7 +629,6 @@ TEST_F(KpiBA, KpiBaDtOffPb) {
   std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba_worst>(
       1, 5, 13, bam::configuration::ba::state_source_worst)};
   test_ba->set_name("test-ba");
-  test_ba->set_state_source(bam::configuration::ba::state_source_worst);
   test_ba->set_level_critical(100);
   test_ba->set_level_warning(75);
   test_ba->set_downtime_behaviour(bam::configuration::ba::dt_inherit);
@@ -759,7 +753,6 @@ TEST_F(KpiBA, KpiBaOkDtOff) {
   std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba_worst>(
       1, 5, 13, bam::configuration::ba::state_source_worst)};
   test_ba->set_name("test-ba");
-  test_ba->set_state_source(bam::configuration::ba::state_source_worst);
   test_ba->set_level_critical(100);
   test_ba->set_level_warning(75);
   test_ba->set_downtime_behaviour(bam::configuration::ba::dt_inherit);
@@ -868,7 +861,6 @@ TEST_F(KpiBA, KpiBaOkDtOffPb) {
   std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba_worst>(
       1, 5, 13, bam::configuration::ba::state_source_worst)};
   test_ba->set_name("test-ba");
-  test_ba->set_state_source(bam::configuration::ba::state_source_worst);
   test_ba->set_level_critical(100);
   test_ba->set_level_warning(75);
   test_ba->set_downtime_behaviour(bam::configuration::ba::dt_inherit);
@@ -977,7 +969,6 @@ TEST_F(KpiBA, KpiBaWorstImpact) {
   std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba_impact>(
       1, 5, 13, bam::configuration::ba::state_source_impact)};
   test_ba->set_name("test-ba");
-  test_ba->set_state_source(bam::configuration::ba::state_source_worst);
   test_ba->set_level_critical(100);
   test_ba->set_level_warning(75);
   test_ba->set_downtime_behaviour(bam::configuration::ba::dt_inherit);
@@ -1072,7 +1063,6 @@ TEST_F(KpiBA, KpiBaWorstImpactPb) {
   std::shared_ptr<bam::ba> test_ba{std::make_shared<bam::ba_impact>(
       1, 5, 13, bam::configuration::ba::state_source_impact)};
   test_ba->set_name("test-ba");
-  test_ba->set_state_source(bam::configuration::ba::state_source_worst);
   test_ba->set_level_critical(100);
   test_ba->set_level_warning(75);
   test_ba->set_downtime_behaviour(bam::configuration::ba::dt_inherit);

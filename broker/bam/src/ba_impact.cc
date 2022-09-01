@@ -43,18 +43,21 @@ using namespace com::centreon::broker::bam;
  *                                      virtual hosts and services.
  */
 ba_impact::ba_impact(uint32_t id,
-       uint32_t host_id,
-       uint32_t service_id,
-       bool generate_virtual_status)
-    : ba(id, host_id, service_id, configuration::ba::state_source_impact, generate_virtual_status)
-      {}
+                     uint32_t host_id,
+                     uint32_t service_id,
+                     bool generate_virtual_status)
+    : ba(id,
+         host_id,
+         service_id,
+         configuration::ba::state_source_impact,
+         generate_virtual_status) {}
 
 /**
  *  Get BA hard state.
  *
  *  @return BA hard state.
  */
-state ba_impact::get_state_hard() {
+state ba_impact::get_state_hard() const {
   bam::state state;
 
   if (!_valid)
@@ -74,7 +77,7 @@ state ba_impact::get_state_hard() {
  *
  *  @return BA soft state.
  */
-state ba_impact::get_state_soft() {
+state ba_impact::get_state_soft() const {
   bam::state state;
 
   if (!_valid)
@@ -95,7 +98,7 @@ state ba_impact::get_state_soft() {
  *  @param[in] impact Impact information.
  */
 void ba_impact::_apply_impact(kpi* kpi_ptr __attribute__((unused)),
-                       ba::impact_info& impact) {
+                              ba::impact_info& impact) {
   // Adjust values.
   _acknowledgement_hard += impact.hard_impact.get_acknowledgement();
   _acknowledgement_soft += impact.soft_impact.get_acknowledgement();
@@ -113,20 +116,62 @@ void ba_impact::_apply_impact(kpi* kpi_ptr __attribute__((unused)),
  *
  *  @param[in] impact Impact information.
  */
-void ba_impact::_unapply_impact(kpi* kpi_ptr, ba::impact_info& impact) {
+void ba_impact::_unapply_impact(kpi* kpi_ptr [[maybe_unused]],
+                                ba::impact_info& impact) {
   // Prevent derive of values.
-      ++_recompute_count;
-      if (_recompute_count >= _recompute_limit)
-        _recompute();
+  ++_recompute_count;
+  if (_recompute_count >= _recompute_limit)
+    _recompute();
 
-      // Adjust values.
-      _acknowledgement_hard -= impact.hard_impact.get_acknowledgement();
-      _acknowledgement_soft -= impact.soft_impact.get_acknowledgement();
-      _downtime_hard -= impact.hard_impact.get_downtime();
-      _downtime_soft -= impact.soft_impact.get_downtime();
-      if (_dt_behaviour == configuration::ba::dt_ignore_kpi &&
-          impact.in_downtime)
-        return;
-      _level_hard += impact.hard_impact.get_nominal();
-      _level_soft += impact.soft_impact.get_nominal();
+  // Adjust values.
+  _acknowledgement_hard -= impact.hard_impact.get_acknowledgement();
+  _acknowledgement_soft -= impact.soft_impact.get_acknowledgement();
+  _downtime_hard -= impact.hard_impact.get_downtime();
+  _downtime_soft -= impact.soft_impact.get_downtime();
+  if (_dt_behaviour == configuration::ba::dt_ignore_kpi && impact.in_downtime)
+    return;
+  _level_hard += impact.hard_impact.get_nominal();
+  _level_soft += impact.soft_impact.get_nominal();
+}
+
+/**
+ *
+ *  Get the hard impact introduced by acknowledged KPI.
+ *
+ *  @return Hard impact introduced by acknowledged KPI.
+ */
+double ba_impact::get_ack_impact_hard() {
+  return _acknowledgement_hard;
+}
+
+/**
+ *  Get the soft impact introduced by acknowledged KPI.
+ *
+ *  @return Soft impact introduced by acknowledged KPI.
+ */
+double ba_impact::get_ack_impact_soft() {
+  return _acknowledgement_soft;
+}
+
+/**
+ *  Get the output.
+ *
+ *  @return Service output.
+ */
+std::string ba_impact::get_output() const {
+  return fmt::format("BA : {} - current_level = {}%", _name,
+                     static_cast<int>(_normalize(_level_hard)));
+}
+
+/**
+ *  Get the performance data.
+ *
+ *  @return Performance data.
+ */
+std::string ba_impact::get_perfdata() const {
+  return fmt::format("BA_Level={}%;{};{};0;100 BA_Downtime={}",
+                     static_cast<int>(_normalize(_level_hard)),
+                     static_cast<int>(_level_warning),
+                     static_cast<int>(_level_critical),
+                     static_cast<int>(_normalize(_downtime_hard)));
 }

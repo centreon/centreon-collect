@@ -1,5 +1,5 @@
 /*
-** Copyright 2014-2015, 2021 Centreon
+** Copyright 2014-2015, 2021-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@
 
 #include "bbdo/bam/ba_duration_event.hh"
 #include "bbdo/bam/ba_event.hh"
+#include "bbdo/bam/ba_status.hh"
 #include "bbdo/bam/inherited_downtime.hh"
 #include "bbdo/bam/state.hh"
 #include "com/centreon/broker/bam/computable.hh"
@@ -41,15 +42,23 @@ class kpi;
  *  @class ba ba.hh "com/centreon/broker/bam/ba.hh"
  *  @brief Business activity.
  *
- *  Represents a BA that gets computed every time an impact change
+ *  Represents a BA that gets computed every time an impact changes
  *  of value.
  */
 class ba : public computable, public service_listener {
   const uint32_t _id;
-  configuration::ba::state_source _state_source;
+  const configuration::ba::state_source _state_source;
   const uint32_t _host_id;
   const uint32_t _service_id;
   const bool _generate_virtual_status;
+  bool _in_downtime;
+  timestamp _last_kpi_update;
+  std::unique_ptr<inherited_downtime> _inherited_downtime;
+  std::vector<std::shared_ptr<ba_event>> _initial_events;
+
+  void _open_new_event(io::stream* visitor, short service_hard_state);
+  void _compute_inherited_downtime(io::stream* visitor);
+  void _commit_initial_events(io::stream* visitor);
 
  public:
   struct impact_info {
@@ -59,44 +68,33 @@ class ba : public computable, public service_listener {
     bool in_downtime;
   };
 
- private:
-
-  void _open_new_event(io::stream* visitor, short service_hard_state);
-  void _compute_inherited_downtime(io::stream* visitor);
-
-  std::shared_ptr<ba_event> _event;
-  bool _in_downtime;
-  timestamp _last_kpi_update;
-  std::string _name;
-  std::unique_ptr<inherited_downtime> _inherited_downtime;
-
-  void _commit_initial_events(io::stream* visitor);
-
-  std::vector<std::shared_ptr<ba_event> > _initial_events;
-
  protected:
+  double _level_hard{100.0};
+  double _level_soft{100.0};
+  std::shared_ptr<ba_event> _event;
+  std::string _name;
   constexpr static int _recompute_limit = 100;
+  double _level_critical{0.0};
+  double _level_warning{0.0};
+  double _downtime_hard{0.0};
+  double _downtime_soft{0.0};
+  double _acknowledgement_hard{0.0};
+  double _acknowledgement_soft{0.0};
 
   std::unordered_map<kpi*, impact_info> _impacts;
   bool _valid{true};
-  double _level_hard{100.0};
-  double _level_soft{100.0};
-  double _level_critical{0.0};
-  double _level_warning{0.0};
-  double _acknowledgement_hard{0.0};
-  double _acknowledgement_soft{0.0};
-  double _downtime_hard{0.0};
-  double _downtime_soft{0.0};
-  configuration::ba::downtime_behaviour _dt_behaviour{configuration::ba::dt_ignore};
+  configuration::ba::downtime_behaviour _dt_behaviour{
+      configuration::ba::dt_ignore};
   int _recompute_count{0};
   state _computed_soft_state;
   state _computed_hard_state;
-  float _num_soft_critical_childs;
-  float _num_hard_critical_childs;
 
+  static double _normalize(double d);
   virtual void _apply_impact(kpi* kpi_ptr, impact_info& impact) = 0;
-  virtual void _unapply_impact(kpi* kpi_ptr, impact_info& impact);
+  virtual void _unapply_impact(kpi* kpi_ptr, impact_info& impact) = 0;
   virtual void _recompute();
+  std::shared_ptr<ba_status> _generate_ba_status(bool state_changed) const;
+  std::shared_ptr<io::data> _generate_virtual_service_status() const;
 
  public:
   ba(uint32_t id,
@@ -110,21 +108,21 @@ class ba : public computable, public service_listener {
   void add_impact(std::shared_ptr<kpi> const& impact);
   bool child_has_update(computable* child,
                         io::stream* visitor = nullptr) override;
-  double get_ack_impact_hard();
-  double get_ack_impact_soft();
+  virtual double get_downtime_impact_hard() { return 0.0; }
+  virtual double get_downtime_impact_soft() { return 0.0; }
+  virtual double get_ack_impact_hard() { return 0.0; }
+  virtual double get_ack_impact_soft() { return 0.0; }
   ba_event* get_ba_event();
-  double get_downtime_impact_hard();
-  double get_downtime_impact_soft();
-  uint32_t get_id();
+  uint32_t get_id() const;
   uint32_t get_host_id() const;
   uint32_t get_service_id() const;
   bool get_in_downtime() const;
   timestamp get_last_kpi_update() const;
   std::string const& get_name() const;
-  std::string get_output() const;
-  std::string get_perfdata() const;
-  virtual state get_state_hard() = 0;
-  virtual state get_state_soft() = 0;
+  virtual std::string get_output() const = 0;
+  virtual std::string get_perfdata() const = 0;
+  virtual state get_state_hard() const = 0;
+  virtual state get_state_soft() const = 0;
   configuration::ba::state_source get_state_source() const;
   void remove_impact(std::shared_ptr<kpi> const& impact);
   void set_level_critical(double level);

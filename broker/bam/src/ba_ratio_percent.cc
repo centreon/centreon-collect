@@ -43,33 +43,30 @@ using namespace com::centreon::broker::bam;
  *                                      virtual hosts and services.
  */
 ba_ratio_percent::ba_ratio_percent(uint32_t id,
-       uint32_t host_id,
-       uint32_t service_id,
-       bool generate_virtual_status)
-    : ba(id, host_id, service_id, configuration::ba::state_source_ratio_percent, generate_virtual_status)
-      {}
+                                   uint32_t host_id,
+                                   uint32_t service_id,
+                                   bool generate_virtual_status)
+    : ba(id,
+         host_id,
+         service_id,
+         configuration::ba::state_source_ratio_percent,
+         generate_virtual_status),
+      _num_soft_critical_children{0.f},
+      _num_hard_critical_children{0.f} {}
 
 /**
  *  Get BA hard state.
  *
  *  @return BA hard state.
  */
-state ba_ratio_percent::get_state_hard() {
-  bam::state state;
-
-  auto update_state = [&](float num_critical, float level_crit,
-                          float level_warning) -> bam::state {
-    if (num_critical >= level_crit)
-      return state_critical;
-    else if (num_critical >= level_warning)
-      return state_warning;
+state ba_ratio_percent::get_state_hard() const {
+  float num_critical = _num_hard_critical_children / _impacts.size() * 100;
+  if (num_critical >= _level_critical)
+    return state_critical;
+  else if (num_critical >= _level_warning)
+    return state_warning;
+  else
     return state_ok;
-  };
-
-  state = update_state(_num_hard_critical_childs / _impacts.size() * 100, _level_critical,
-                       _level_warning);
-
-  return state;
 }
 
 /**
@@ -77,22 +74,14 @@ state ba_ratio_percent::get_state_hard() {
  *
  *  @return BA soft state.
  */
-state ba_ratio_percent::get_state_soft() {
-  bam::state state;
-
-  auto update_state = [&](float num_critical, float level_crit,
-                          float level_warning) -> bam::state {
-    if (num_critical >= level_crit)
-      return state_critical;
-    else if (num_critical >= level_warning)
-      return state_warning;
+state ba_ratio_percent::get_state_soft() const {
+  float num_critical = _num_soft_critical_children / _impacts.size() * 100;
+  if (num_critical >= _level_critical)
+    return state_critical;
+  else if (num_critical >= _level_warning)
+    return state_warning;
+  else
     return state_ok;
-  };
-
-  state = update_state(_num_soft_critical_childs / _impacts.size() * 100, _level_critical,
-                       _level_warning);
-
-  return state;
 }
 
 /**
@@ -101,33 +90,64 @@ state ba_ratio_percent::get_state_soft() {
  *  @param[in] impact Impact information.
  */
 void ba_ratio_percent::_apply_impact(kpi* kpi_ptr __attribute__((unused)),
-                       ba::impact_info& impact) {
-  const std::array<short, 5> order{0, 3, 4, 2, 1};
-  auto is_state_worse = [&](short current_state, short new_state) -> bool {
-    assert((unsigned int)current_state < order.size());
-    assert((unsigned int)new_state < order.size());
-    return order[new_state] > order[current_state];
-  };
-
-  auto is_state_better = [&](short current_state, short new_state) -> bool {
-    assert((unsigned int)current_state < order.size());
-    assert((unsigned int)new_state < order.size());
-    return order[new_state] < order[current_state];
-  };
-
-  // Adjust values.
-  _acknowledgement_hard += impact.hard_impact.get_acknowledgement();
-  _acknowledgement_soft += impact.soft_impact.get_acknowledgement();
-  _downtime_hard += impact.hard_impact.get_downtime();
-  _downtime_soft += impact.soft_impact.get_downtime();
-
+                                     ba::impact_info& impact) {
   if (_dt_behaviour == configuration::ba::dt_ignore_kpi && impact.in_downtime)
     return;
-  _level_hard -= impact.hard_impact.get_nominal();
-  _level_soft -= impact.soft_impact.get_nominal();
 
   if (impact.soft_impact.get_state() == state_critical)
-    _num_soft_critical_childs++;
+    _num_soft_critical_children++;
   if (impact.hard_impact.get_state() == state_critical)
-    _num_hard_critical_childs++;
+    _num_hard_critical_children++;
+}
+
+/**
+ *  Unapply some impact.
+ *
+ *  @param[in] impact Impact information.
+ */
+void ba_ratio_percent::_unapply_impact(kpi* kpi_ptr,
+                                       ba::impact_info& impact
+                                       [[maybe_unused]]) {
+  _num_soft_critical_children = 0.f;
+  _num_hard_critical_children = 0.f;
+
+  // We recompute all impact, except the one to unapply...
+  for (std::unordered_map<kpi*, impact_info>::iterator it = _impacts.begin(),
+                                                       end = _impacts.end();
+       it != end; ++it)
+    if (it->first != kpi_ptr)
+      _apply_impact(it->first, it->second);
+}
+
+void ba_ratio_percent::_recompute() {
+  _num_hard_critical_children = 0.0f;
+  _num_soft_critical_children = 0.0f;
+  for (std::unordered_map<kpi*, impact_info>::iterator it(_impacts.begin()),
+       end(_impacts.end());
+       it != end; ++it)
+    _apply_impact(it->first, it->second);
+  _recompute_count = 0;
+}
+
+/**
+ *  Get the output.
+ *
+ *  @return Service output.
+ */
+std::string ba_ratio_percent::get_output() const {
+  return fmt::format("BA : {} - current_level = {}%", _name,
+                     static_cast<int>(_normalize(_level_hard)));
+}
+
+/**
+ *  Get the performance data.
+ *
+ *  @return Performance data.
+ */
+std::string ba_ratio_percent::get_perfdata() const {
+  return fmt::format("BA_Level={}%;{};{};0;100 BA_Downtime={}",
+                     static_cast<int>(_normalize(_level_hard)),
+                     static_cast<int>(_level_warning),
+                     static_cast<int>(_level_critical),
+                     static_cast<int>(_normalize(_downtime_hard)));
 }

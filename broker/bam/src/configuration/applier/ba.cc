@@ -17,12 +17,12 @@
 */
 
 #include "com/centreon/broker/bam/configuration/applier/ba.hh"
-#include "com/centreon/broker/bam/ba_impact.hh"
+#include <fmt/format.h>
 #include "com/centreon/broker/bam/ba_best.hh"
-#include "com/centreon/broker/bam/ba_worst.hh"
+#include "com/centreon/broker/bam/ba_impact.hh"
 #include "com/centreon/broker/bam/ba_ratio_number.hh"
 #include "com/centreon/broker/bam/ba_ratio_percent.hh"
-#include <fmt/format.h>
+#include "com/centreon/broker/bam/ba_worst.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
@@ -94,8 +94,15 @@ void applier::ba::apply(bam::configuration::state::bas const& my_bas,
     // Found = modify (or not).
     if (cfg_it != to_delete.end()) {
       // Configuration mismatch, modify object.
-      if (cfg_it->second.cfg != it->second)
-        to_modify.push_back(it->second);
+      if (cfg_it->second.cfg != it->second) {
+        if (cfg_it->second.cfg.get_state_source() ==
+            it->second.get_state_source())
+          to_modify.push_back(it->second);
+        else {
+          ++it;
+          continue;
+        }
+      }
       to_delete.erase(cfg_it);
       it = to_create.erase(it);
     }
@@ -162,29 +169,27 @@ void applier::ba::apply(bam::configuration::state::bas const& my_bas,
   }
 
   // Modify existing objects.
-  for (std::list<bam::configuration::ba>::iterator it(to_modify.begin()),
-       end(to_modify.end());
-       it != end; ++it) {
-    std::map<uint32_t, applied>::iterator pos(_applied.find(it->get_id()));
+  for (auto& b : to_modify) {
+    std::map<uint32_t, applied>::iterator pos = _applied.find(b.get_id());
     if (pos != _applied.end()) {
-      log_v2::bam()->info("BAM: modifying BA {}", it->get_id());
-      pos->second.obj->set_name(it->get_name());
-      pos->second.obj->set_state_source(it->get_state_source());
-      pos->second.obj->set_level_warning(it->get_warning_level());
-      pos->second.obj->set_level_critical(it->get_critical_level());
-      pos->second.cfg = *it;
+      log_v2::bam()->info("BAM: modifying BA {}", b.get_id());
+      pos->second.obj->set_name(b.get_name());
+      assert(pos->second.obj->get_state_source() == b.get_state_source());
+      pos->second.obj->set_level_warning(b.get_warning_level());
+      pos->second.obj->set_level_critical(b.get_critical_level());
+      pos->second.cfg = b;
     } else
       log_v2::bam()->error(
           "BAM: attempting to modify BA {}, however associated object was not "
           "found. This is likely a software bug that you should report to "
           "Centreon Broker developers",
-          it->get_id());
+          b.get_id());
   }
 
   // Set all BA objects as valid. Invalid BAs will be reset as invalid
   // on KPI application.
-  for (std::map<uint32_t, applied>::iterator it(_applied.begin()),
-       end(_applied.end());
+  for (std::map<uint32_t, applied>::iterator it = _applied.begin(),
+                                             end = _applied.end();
        it != end; ++it)
     it->second.obj->set_valid(true);
 }
@@ -326,16 +331,16 @@ std::shared_ptr<bam::ba> applier::ba::_new_ba(configuration::ba const& cfg,
   std::shared_ptr<bam::ba> obj;
   switch (cfg.get_state_source()) {
     case configuration::ba::state_source_impact:
-      obj = std::make_shared<bam::ba_impact>(
-          cfg.get_id(), cfg.get_host_id(), cfg.get_service_id(), false);
+      obj = std::make_shared<bam::ba_impact>(cfg.get_id(), cfg.get_host_id(),
+                                             cfg.get_service_id(), false);
       break;
     case configuration::ba::state_source_best:
-      obj = std::make_shared<bam::ba_best>(
-          cfg.get_id(), cfg.get_host_id(), cfg.get_service_id(), false);
+      obj = std::make_shared<bam::ba_best>(cfg.get_id(), cfg.get_host_id(),
+                                           cfg.get_service_id(), false);
       break;
     case configuration::ba::state_source_worst:
-      obj = std::make_shared<bam::ba_worst>(
-          cfg.get_id(), cfg.get_host_id(), cfg.get_service_id(), false);
+      obj = std::make_shared<bam::ba_worst>(cfg.get_id(), cfg.get_host_id(),
+                                            cfg.get_service_id(), false);
       break;
     case configuration::ba::state_source_ratio_percent:
       obj = std::make_shared<bam::ba_ratio_percent>(

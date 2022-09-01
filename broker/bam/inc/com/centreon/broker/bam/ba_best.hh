@@ -42,18 +42,19 @@ class ba_best : public ba {
 
   std::vector<std::shared_ptr<ba_event> > _initial_events;
 
-
-  protected:
+ protected:
   virtual void _apply_impact(kpi* kpi_ptr, impact_info& impact) override;
   virtual void _unapply_impact(kpi* kpi_ptr, impact_info& impact) override;
 
  public:
   ba_best(uint32_t id,
-     uint32_t host_id,
-     uint32_t service_id,
-     bool generate_virtual_status = true);
-  state get_state_hard() override;
-  state get_state_soft() override;
+          uint32_t host_id,
+          uint32_t service_id,
+          bool generate_virtual_status = true);
+  state get_state_hard() const override;
+  state get_state_soft() const override;
+  std::string get_output() const override;
+  std::string get_perfdata() const override;
 };
 }  // namespace bam
 

@@ -35,21 +35,22 @@ class kpi;
  *  of value.
  */
 class ba_ratio_percent : public ba {
-  void _open_new_event(io::stream* visitor, short service_hard_state);
-  void _compute_inherited_downtime(io::stream* visitor);
+  float _num_soft_critical_children;
+  float _num_hard_critical_children;
 
-  void _commit_initial_events(io::stream* visitor);
-
-  std::vector<std::shared_ptr<ba_event> > _initial_events;
-
+  void _apply_impact(kpi* kpi_ptr, ba::impact_info& impact) override;
+  void _unapply_impact(kpi* kpi_ptr, ba::impact_info& impact) override;
+  void _recompute() override;
 
  public:
   ba_ratio_percent(uint32_t id,
-     uint32_t host_id,
-     uint32_t service_id,
-     bool generate_virtual_status = true);
-  state get_state_hard() override;
-  state get_state_soft() override;
+                   uint32_t host_id,
+                   uint32_t service_id,
+                   bool generate_virtual_status = true);
+  state get_state_hard() const override;
+  state get_state_soft() const override;
+  std::string get_output() const override;
+  std::string get_perfdata() const override;
 };
 }  // namespace bam
 

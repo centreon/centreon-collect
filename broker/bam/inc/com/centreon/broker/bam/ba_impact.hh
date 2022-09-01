@@ -35,25 +35,21 @@ class kpi;
  *  of value.
  */
 class ba_impact : public ba {
-  void _open_new_event(io::stream* visitor, short service_hard_state);
-  void _compute_inherited_downtime(io::stream* visitor);
-
-  void _commit_initial_events(io::stream* visitor);
-
-  std::vector<std::shared_ptr<ba_event> > _initial_events;
-
-
-  protected:
-  virtual void _apply_impact(kpi* kpi_ptr, impact_info& impact) override;
-  virtual void _unapply_impact(kpi* kpi_ptr, impact_info& impact) override;
+ protected:
+  void _apply_impact(kpi* kpi_ptr, impact_info& impact) override;
+  void _unapply_impact(kpi* kpi_ptr, impact_info& impact) override;
 
  public:
   ba_impact(uint32_t id,
-     uint32_t host_id,
-     uint32_t service_id,
-     bool generate_virtual_status = true);
-  state get_state_hard() override;
-  state get_state_soft() override;
+            uint32_t host_id,
+            uint32_t service_id,
+            bool generate_virtual_status = true);
+  state get_state_hard() const override;
+  state get_state_soft() const override;
+  double get_ack_impact_hard() override;
+  double get_ack_impact_soft() override;
+  std::string get_output() const override;
+  std::string get_perfdata() const override;
 };
 }  // namespace bam
 
