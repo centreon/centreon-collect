@@ -60,13 +60,7 @@ ba::ba(uint32_t id,
       _service_id(service_id),
       _generate_virtual_status(generate_virtual_status),
       _in_downtime(false),
-      _last_kpi_update(0),
-      _computed_soft_state(source == configuration::ba::state_source_best
-                               ? state_critical
-                               : state_ok),
-      _computed_hard_state(source == configuration::ba::state_source_best
-                               ? state_critical
-                               : state_ok) {
+      _last_kpi_update(0) {
   assert(_host_id);
 }
 
@@ -230,24 +224,6 @@ void ba::remove_impact(std::shared_ptr<kpi> const& impact) {
     _unapply_impact(it->first, it->second);
     _impacts.erase(it);
   }
-}
-
-/**
- *  Set critical level.
- *
- *  @param[in] level  Critical level.
- */
-void ba::set_level_critical(double level) {
-  _level_critical = level;
-}
-
-/**
- *  Set warning level.
- *
- *  @param[in] level  Warning level.
- */
-void ba::set_level_warning(double level) {
-  _level_warning = level;
 }
 
 /**
@@ -441,6 +417,10 @@ void ba::_open_new_event(io::stream* visitor, short service_hard_state) {
  *  much from their true value due to the caching system.
  */
 void ba::_recompute() {
+  _acknowledgement_hard = 0.0;
+  _acknowledgement_soft = 0.0;
+  _downtime_hard = 0.0;
+  _downtime_soft = 0.0;
   _level_hard = 100.0;
   _level_soft = 100.0;
   for (std::unordered_map<kpi*, impact_info>::iterator it(_impacts.begin()),
@@ -552,7 +532,6 @@ std::shared_ptr<io::data> ba::_generate_virtual_service_status() const {
     status->has_been_checked = true;
     status->host_id = _host_id;
     status->downtime_depth = _in_downtime;
-    // status->host_name = XXX;
     status->is_flapping = false;
     if (_event)
       status->last_check = _event->start_time;
@@ -561,17 +540,11 @@ std::shared_ptr<io::data> ba::_generate_virtual_service_status() const {
     status->last_hard_state = get_state_hard();
     status->last_hard_state_change = status->last_check;
     status->last_state_change = status->last_check;
-    // status->last_time_critical = XXX;
-    // status->last_time_unknown = XXX;
-    // status->last_time_warning = XXX;
     status->last_update = time(nullptr);
     status->latency = 0.0;
     status->max_check_attempts = 1;
     status->obsess_over = false;
-    status->output =
-        fmt::format("BA : Business Activity {} - current_level = {}%", _id,
-                    static_cast<int>(_normalize(_level_hard)));
-    // status->percent_state_chagne = XXX;
+    status->output = get_output();
     status->perf_data = fmt::format(
         "BA_Level={}%;{};{};0;100", static_cast<int>(_normalize(_level_hard)),
         static_cast<int>(_level_warning), static_cast<int>(_level_critical));
@@ -593,11 +566,10 @@ std::shared_ptr<io::data> ba::_generate_virtual_service_status() const {
       o.set_last_check(_event->start_time);
     else
       o.set_last_check(_last_kpi_update);
-    o.set_last_hard_state(ServiceStatus_State_OK);
+    o.set_last_hard_state(static_cast<ServiceStatus_State>(get_state_hard()));
     o.set_last_hard_state_change(o.last_check());
     o.set_last_state_change(o.last_check());
-    o.set_output(fmt::format("BA : Business Activity {} - current_level = {}%",
-                             _id, static_cast<int>(_normalize(_level_hard))));
+    o.set_output(get_output());
     o.set_perfdata(fmt::format(
         "BA_Level={}%;{};{};0;100", static_cast<int>(_normalize(_level_hard)),
         static_cast<int>(_level_warning), static_cast<int>(_level_critical)));
@@ -605,4 +577,22 @@ std::shared_ptr<io::data> ba::_generate_virtual_service_status() const {
     o.set_state_type(ServiceStatus_StateType_HARD);
     return status;
   }
+}
+
+/**
+ *  Set critical level.
+ *
+ *  @param[in] level  Critical level.
+ */
+void ba::set_level_critical(double level) {
+  _level_critical = level;
+}
+
+/**
+ *  Set warning level.
+ *
+ *  @param[in] level  Warning level.
+ */
+void ba::set_level_warning(double level) {
+  _level_warning = level;
 }

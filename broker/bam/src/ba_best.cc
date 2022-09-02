@@ -78,6 +78,7 @@ state ba_best::get_state_hard() const {
     state = state_ok;
   else
     state = _computed_hard_state;
+
   return state;
 }
 
@@ -125,9 +126,7 @@ void ba_best::_unapply_impact(kpi* kpi_ptr,
   _computed_soft_state = _computed_hard_state = state_critical;
 
   // We recompute all impacts, except the one to unapply...
-  for (std::unordered_map<kpi*, impact_info>::iterator it(_impacts.begin()),
-       end(_impacts.end());
-       it != end; ++it)
+  for (auto it = _impacts.begin(), end = _impacts.end(); it != end; ++it)
     if (it->first != kpi_ptr)
       _apply_impact(it->first, it->second);
 }
@@ -153,4 +152,12 @@ std::string ba_best::get_perfdata() const {
                      static_cast<int>(_level_warning),
                      static_cast<int>(_level_critical),
                      static_cast<int>(_normalize(_downtime_hard)));
+}
+
+void ba_best::_recompute() {
+  _computed_soft_state = state_critical;
+  _computed_hard_state = state_critical;
+  for (auto it = _impacts.begin(), end = _impacts.end(); it != end; ++it)
+    _apply_impact(it->first, it->second);
+  _recompute_count = 0;
 }

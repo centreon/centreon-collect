@@ -135,8 +135,22 @@ void ba_ratio_percent::_recompute() {
  *  @return Service output.
  */
 std::string ba_ratio_percent::get_output() const {
-  return fmt::format("BA : {} - current_level = {}%", _name,
-                     static_cast<int>(_normalize(_level_hard)));
+  state state = get_state_hard();
+  std::string retval;
+  switch (state) {
+    case state_unknown:
+      retval = "Status is UNKNOWN";
+      break;
+    default:
+      retval = fmt::format(
+          "Status is {} - {} \% of KPIs are in a CRITICAL state (warn: {} "
+          "- crit: {})",
+          state_str[state], _num_hard_critical_children, _level_warning,
+          _level_critical);
+      break;
+  }
+
+  return retval;
 }
 
 /**

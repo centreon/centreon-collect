@@ -35,6 +35,9 @@ class kpi;
  *  of value.
  */
 class ba_worst : public ba {
+  state _computed_soft_state = state_ok;
+  state _computed_hard_state = state_ok;
+
   void _open_new_event(io::stream* visitor, short service_hard_state);
   void _compute_inherited_downtime(io::stream* visitor);
 
@@ -43,8 +46,9 @@ class ba_worst : public ba {
   std::vector<std::shared_ptr<ba_event> > _initial_events;
 
  protected:
-  virtual void _apply_impact(kpi* kpi_ptr, impact_info& impact) override;
-  virtual void _unapply_impact(kpi* kpi_ptr, impact_info& impact) override;
+  void _apply_impact(kpi* kpi_ptr, impact_info& impact) override;
+  void _unapply_impact(kpi* kpi_ptr, impact_info& impact) override;
+  void _recompute() override;
 
  public:
   ba_worst(uint32_t id,
@@ -53,8 +57,8 @@ class ba_worst : public ba {
            bool generate_virtual_status = true);
   state get_state_hard() const override;
   state get_state_soft() const override;
-  virtual std::string get_output() const override;
-  virtual std::string get_perfdata() const override;
+  std::string get_output() const override;
+  std::string get_perfdata() const override;
 };
 }  // namespace bam
 

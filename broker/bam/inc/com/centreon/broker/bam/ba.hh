@@ -69,13 +69,27 @@ class ba : public computable, public service_listener {
   };
 
  protected:
-  double _level_hard{100.0};
-  double _level_soft{100.0};
   std::shared_ptr<ba_event> _event;
   std::string _name;
   constexpr static int _recompute_limit = 100;
+
+  /* _level_critical and _level_warning are given by the configuration.
+   * levels are used in:
+   * * ba_impact: Here _level_critical <= _level_warning. Each kpi soustracts
+   *   some points to the current level.
+   * * ba_ratio_percent: Here _level_critical and _level_warning are numbers
+   *   between 0 and 100. And _level_warning <= _level_critical
+   * * ba_ratio_number: Here, it is almost the same as ratio_percent but we
+   *   work with the number of kpis.
+   **/
   double _level_critical{0.0};
   double _level_warning{0.0};
+
+  /* _level_hard and _level_soft are the current levels of the ba, the soft one
+   * and the hard one. */
+  double _level_hard{100.0};
+  double _level_soft{100.0};
+
   double _downtime_hard{0.0};
   double _downtime_soft{0.0};
   double _acknowledgement_hard{0.0};
@@ -86,8 +100,6 @@ class ba : public computable, public service_listener {
   configuration::ba::downtime_behaviour _dt_behaviour{
       configuration::ba::dt_ignore};
   int _recompute_count{0};
-  state _computed_soft_state;
-  state _computed_hard_state;
 
   static double _normalize(double d);
   virtual void _apply_impact(kpi* kpi_ptr, impact_info& impact) = 0;
@@ -125,8 +137,6 @@ class ba : public computable, public service_listener {
   virtual state get_state_soft() const = 0;
   configuration::ba::state_source get_state_source() const;
   void remove_impact(std::shared_ptr<kpi> const& impact);
-  void set_level_critical(double level);
-  void set_level_warning(double level);
   void set_initial_event(ba_event const& event);
   void set_name(std::string const& name);
   void set_valid(bool valid);
@@ -137,6 +147,8 @@ class ba : public computable, public service_listener {
                       io::stream* visitor) override;
   void save_inherited_downtime(persistent_cache& cache) const;
   void set_inherited_downtime(inherited_downtime const& dwn);
+  void set_level_critical(double level);
+  void set_level_warning(double level);
 };
 }  // namespace bam
 

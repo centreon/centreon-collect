@@ -30,7 +30,10 @@ enum state {
   state_critical = 2,
   state_unknown = 3,
 };
-}
+
+constexpr std::array<const char*, 4> state_str{"OK", "WARNING", "CRITICAL",
+                                               "UNKNOWN"};
+}  // namespace bam
 
 CCB_END()
 

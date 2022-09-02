@@ -99,6 +99,7 @@ state ba_worst::get_state_soft() const {
 void ba_worst::_apply_impact(kpi* kpi_ptr __attribute__((unused)),
                              ba::impact_info& impact) {
   const std::array<short, 5> order{0, 3, 4, 2, 1};
+
   auto is_state_worse = [&](short current_state, short new_state) -> bool {
     assert((unsigned int)current_state < order.size());
     assert((unsigned int)new_state < order.size());
@@ -124,10 +125,8 @@ void ba_worst::_unapply_impact(kpi* kpi_ptr,
   // Prevent derive of values.
   _computed_soft_state = _computed_hard_state = state_ok;
 
-  // We recompute all impact, except the one to unapply...
-  for (std::unordered_map<kpi*, impact_info>::iterator it(_impacts.begin()),
-       end(_impacts.end());
-       it != end; ++it)
+  // We recompute all impacts, except the one to unapply...
+  for (auto it = _impacts.begin(), end = _impacts.end(); it != end; ++it)
     if (it->first != kpi_ptr)
       _apply_impact(it->first, it->second);
 }
@@ -138,8 +137,40 @@ void ba_worst::_unapply_impact(kpi* kpi_ptr,
  *  @return Service output.
  */
 std::string ba_worst::get_output() const {
-  return fmt::format("BA : {} - current_level = {}%", _name,
-                     static_cast<int>(_normalize(_level_hard)));
+  std::string retval;
+  auto not_ok_kpis = [this]() {
+    std::list<std::string> retval;
+    for (auto it = _impacts.begin(), end = _impacts.end(); it != end; ++it) {
+      state state = it->second.hard_impact.get_state();
+      assert(static_cast<uint32_t>(state) < 4);
+      if (state != state_ok) {
+        retval.emplace_back(fmt::format("KPI{} is in {} state",
+                                        it->first->get_id(), state_str[state]));
+      }
+    }
+    return retval;
+  };
+
+  state state = get_state_hard();
+  switch (state) {
+    case state_unknown:
+      retval = "Status is unknown";
+      break;
+    case state_ok:
+      retval = "Status is OK - All KPIs are in an OK state";
+      break;
+    case state_warning:
+      retval = fmt::format(
+          "Status is WARNING - At least one KPI is in a WARNING state: {}",
+          fmt::join(not_ok_kpis(), ", "));
+      break;
+    case state_critical:
+      retval = fmt::format(
+          "Status is CRITICAL - At least one KPI is in a CRITICAL state: {}",
+          fmt::join(not_ok_kpis(), ", "));
+      break;
+  }
+  return retval;
 }
 
 /**
@@ -153,4 +184,12 @@ std::string ba_worst::get_perfdata() const {
                      static_cast<int>(_level_warning),
                      static_cast<int>(_level_critical),
                      static_cast<int>(_normalize(_downtime_hard)));
+}
+
+void ba_worst::_recompute() {
+  _computed_soft_state = state_ok;
+  _computed_hard_state = state_ok;
+  for (auto it = _impacts.begin(), end = _impacts.end(); it != end; ++it)
+    _apply_impact(it->first, it->second);
+  _recompute_count = 0;
 }

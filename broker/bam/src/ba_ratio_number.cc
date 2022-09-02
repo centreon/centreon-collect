@@ -50,9 +50,7 @@ ba_ratio_number::ba_ratio_number(uint32_t id,
          host_id,
          service_id,
          configuration::ba::state_source_ratio_number,
-         generate_virtual_status),
-      _num_soft_critical_children{0.f},
-      _num_hard_critical_children{0.f} {}
+         generate_virtual_status) {}
 
 /**
  *  Get BA hard state.
@@ -133,8 +131,23 @@ void ba_ratio_number::_recompute() {
  *  @return Service output.
  */
 std::string ba_ratio_number::get_output() const {
-  return fmt::format("BA : {} - current_level = {}%", _name,
-                     static_cast<int>(_normalize(_level_hard)));
+  state state = get_state_hard();
+  uint32_t s = _impacts.size();
+  std::string retval;
+  switch (state) {
+    case state_unknown:
+      retval = "Status is UNKNOWN";
+      break;
+    default:
+      retval = fmt::format(
+          "Status is {} - {} out of {} KPI{} are in a CRITICAL state (warn: {} "
+          "- crit: {})",
+          state_str[state], _num_hard_critical_children, s, s > 1 ? "s" : "",
+          _level_warning, _level_critical);
+      break;
+  }
+
+  return retval;
 }
 
 /**

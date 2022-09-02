@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 - 2019 Centreon (https://www.centreon.com/)
+ * Copyright 2011 - 2022 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,9 +17,9 @@
  *
  */
 #include <gtest/gtest.h>
+#include "com/centreon/broker/file/disk_accessor.hh"
 #include "com/centreon/broker/file/splitter.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
-#include "com/centreon/broker/file/disk_accessor.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
