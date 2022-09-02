@@ -47,7 +47,7 @@ class downtime {
 
   type get_type() const;
   virtual bool is_stale() const = 0;
-  //virtual void schedule() = 0;
+  virtual void schedule() = 0;
   virtual int unschedule() = 0;
   virtual int subscribe() = 0;
   virtual int handle() = 0;

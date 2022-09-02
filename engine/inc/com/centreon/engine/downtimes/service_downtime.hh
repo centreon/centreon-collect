@@ -43,7 +43,7 @@ class service_downtime : public downtime {
   virtual ~service_downtime();
   const char* service_description() const;
   virtual bool is_stale() const override;
-  //virtual void schedule() override;
+  virtual void schedule() override;
   virtual int unschedule() override;
   virtual int subscribe() override;
   virtual int handle() override;
