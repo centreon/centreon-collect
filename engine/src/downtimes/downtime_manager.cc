@@ -196,8 +196,8 @@ int downtime_manager::check_pending_flex_service_downtime(service* svc) {
     service_downtime& dt(
         *std::static_pointer_cast<service_downtime>(it->second));
 
-    service_map::const_iterator found(service::services.find(
-        {dt.get_hostname(), dt.service_description()}));
+    service_map::const_iterator found(
+        service::services.find({dt.get_hostname(), dt.service_description()}));
 
     /* this entry matches our service! */
     if (found != service::services.end() && found->second.get() == svc) {
@@ -258,7 +258,8 @@ void downtime_manager::add_downtime(std::shared_ptr<downtime>&& dt) noexcept {
           nullptr);
       break;
     default:
-      log_v2::functions()->error("downtime_manager::add_downtime => bad downtime type");
+      log_v2::functions()->error(
+          "downtime_manager::add_downtime => bad downtime type");
       break;
   }
 }
@@ -349,7 +350,8 @@ int downtime_manager::
         service_downtime* svc{
             dynamic_cast<service_downtime*>(it->second.get())};
 
-        if (!svc || std::string(svc->service_description()) != service_description)
+        if (!svc ||
+            std::string(svc->service_description()) != service_description)
           continue;
       }
     }
@@ -445,15 +447,15 @@ uint64_t downtime_manager::get_next_downtime_id() {
 
 /* saves a host downtime entry */
 void downtime_manager::add_new_host_downtime(std::string const& host_name,
-                                                  time_t entry_time,
-                                                  char const* author,
-                                                  char const* comment_data,
-                                                  time_t start_time,
-                                                  time_t end_time,
-                                                  bool fixed,
-                                                  uint64_t triggered_by,
-                                                  unsigned long duration,
-                                                  uint64_t* downtime_id) {
+                                             time_t entry_time,
+                                             char const* author,
+                                             char const* comment_data,
+                                             time_t start_time,
+                                             time_t end_time,
+                                             bool fixed,
+                                             uint64_t triggered_by,
+                                             unsigned long duration,
+                                             uint64_t* downtime_id) {
   if (host_name.empty())
     throw engine_error()
         << "can not create a host downtime on host with empty name";
@@ -540,7 +542,8 @@ int downtime_manager::schedule_downtime(downtime::type type,
 
   if (start_time > 4102441200) {
     engine_logger(log_verification_error, basic)
-        << "SCHEDULE DOWNTIME ALERT : start time is out of range and setted to "
+        << "SCHEDULE DOWNTIME ALERT : start time is out of range and setted "
+           "to "
            "1/1/2100 00:00";
     log_v2::config()->warn(
         "SCHEDULE DOWNTIME ALERT : start time is out of range and setted to "
