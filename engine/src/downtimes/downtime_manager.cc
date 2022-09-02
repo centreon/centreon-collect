@@ -230,7 +230,8 @@ void downtime_manager::clear_scheduled_downtimes() {
   _scheduled_downtimes.clear();
 }
 
-void downtime_manager::add_downtime(std::shared_ptr<downtime> dt) noexcept {
+void downtime_manager::add_downtime(
+    const std::shared_ptr<downtime>& dt) noexcept {
   _scheduled_downtimes.insert({dt->get_start_time(), dt});
 }
 
