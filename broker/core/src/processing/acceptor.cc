@@ -248,3 +248,19 @@ void acceptor::_callback() noexcept {
   _state = acceptor::finished;
   _state_cv.notify_all();
 }
+
+/**
+ * @brief
+ *
+ * @param ms_timeout
+ * @return true
+ * @return false
+ */
+bool acceptor::wait_for_all_events_written(unsigned ms_timeout) {
+  std::lock_guard<std::mutex> lock(_stat_mutex);
+  bool ret = true;
+  for (processing::feeder* to_wait : _feeders) {
+    ret &= to_wait->wait_for_all_events_written(ms_timeout);
+  }
+  return ret;
+}
