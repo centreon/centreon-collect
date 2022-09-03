@@ -31,6 +31,7 @@ set(
   ${FILES}
 
   # Sources.
+  "${SRC_DIR}/common.cc"
   "${SRC_DIR}/globals.cc"
   "${SRC_DIR}/logging.cc"
   "${SRC_DIR}/mmap.cc"
