@@ -45,7 +45,7 @@ bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
     if (cfg.type == "bbdo_server" || cfg.type == "bbdo_client") {
       auto it = cfg.params.find("transport_protocol");
       if (it != cfg.params.end()) {
-        if (cfg.params["transport_protocol"] == "grpc") {
+        if (absl::EqualsIgnoreCase(cfg.params["transport_protocol"], "grpc")) {
           *ext = io::extension("COMPRESSION", false, false);
           return false;
         }
