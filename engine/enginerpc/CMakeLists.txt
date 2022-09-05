@@ -30,8 +30,6 @@ include_directories(
 )
 
 
-find_package(Protobuf REQUIRED)
-
 include_directories(${CONAN_INCLUDE_DIRS_GRPC})
 
 add_custom_command(
