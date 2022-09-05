@@ -206,6 +206,7 @@ if(WITH_GROUP_ENGINE)
   set(GROUP "${WITH_GROUP_ENGINE}")
 else()
   set(GROUP "root")
+
 endif()
 
 # Set startup script to auto if not define.
