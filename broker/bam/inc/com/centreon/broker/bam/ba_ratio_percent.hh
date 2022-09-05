@@ -36,7 +36,6 @@ class kpi;
  */
 class ba_ratio_percent : public ba {
   float _num_soft_critical_children;
-  float _num_hard_critical_children;
 
   void _apply_impact(kpi* kpi_ptr, ba::impact_info& impact) override;
   void _unapply_impact(kpi* kpi_ptr, ba::impact_info& impact) override;

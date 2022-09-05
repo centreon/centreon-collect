@@ -35,9 +35,6 @@ class kpi;
  *  of value.
  */
 class ba_ratio_number : public ba {
-  float _num_soft_critical_children = 0.f;
-  float _num_hard_critical_children = 0.f;
-
   void _apply_impact(kpi* kpi_ptr, impact_info& impact) override;
   void _unapply_impact(kpi* kpi_ptr, impact_info& impact) override;
   void _recompute() override;

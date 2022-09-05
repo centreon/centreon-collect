@@ -58,9 +58,9 @@ ba_ratio_number::ba_ratio_number(uint32_t id,
  *  @return BA hard state.
  */
 state ba_ratio_number::get_state_hard() const {
-  if (_num_hard_critical_children >= _level_critical)
+  if (_level_hard >= _level_critical)
     return state_critical;
-  else if (_num_hard_critical_children >= _level_warning)
+  else if (_level_hard >= _level_warning)
     return state_warning;
   else
     return state_ok;
@@ -72,9 +72,9 @@ state ba_ratio_number::get_state_hard() const {
  *  @return BA soft state.
  */
 state ba_ratio_number::get_state_soft() const {
-  if (_num_soft_critical_children >= _level_critical)
+  if (_level_soft >= _level_critical)
     return state_critical;
-  else if (_num_soft_critical_children >= _level_warning)
+  else if (_level_soft >= _level_warning)
     return state_warning;
   else
     return state_ok;
@@ -91,9 +91,9 @@ void ba_ratio_number::_apply_impact(kpi* kpi_ptr __attribute__((unused)),
     return;
 
   if (impact.soft_impact.get_state() == state_critical)
-    _num_soft_critical_children++;
+    _level_soft++;
   if (impact.hard_impact.get_state() == state_critical)
-    _num_hard_critical_children++;
+    _level_hard++;
 }
 
 /**
@@ -104,8 +104,8 @@ void ba_ratio_number::_apply_impact(kpi* kpi_ptr __attribute__((unused)),
 void ba_ratio_number::_unapply_impact(kpi* kpi_ptr,
                                       ba::impact_info& impact
                                       __attribute__((unused))) {
-  _num_soft_critical_children = 0.f;
-  _num_hard_critical_children = 0.f;
+  _level_soft = 0.;
+  _level_hard = 0.;
 
   // We recompute all impact, except the one to unapply...
   for (std::unordered_map<kpi*, impact_info>::iterator it = _impacts.begin(),
@@ -116,8 +116,8 @@ void ba_ratio_number::_unapply_impact(kpi* kpi_ptr,
 }
 
 void ba_ratio_number::_recompute() {
-  _num_hard_critical_children = 0.0f;
-  _num_soft_critical_children = 0.0f;
+  _level_hard = 0.0;
+  _level_soft = 0.0f;
   for (std::unordered_map<kpi*, impact_info>::iterator it(_impacts.begin()),
        end(_impacts.end());
        it != end; ++it)
@@ -142,8 +142,8 @@ std::string ba_ratio_number::get_output() const {
       retval = fmt::format(
           "Status is {} - {} out of {} KPI{} are in a CRITICAL state (warn: {} "
           "- crit: {})",
-          state_str[state], _num_hard_critical_children, s, s > 1 ? "s" : "",
-          _level_warning, _level_critical);
+          state_str[state], _level_hard, s, s > 1 ? "s" : "", _level_warning,
+          _level_critical);
       break;
   }
 
@@ -156,9 +156,7 @@ std::string ba_ratio_number::get_output() const {
  *  @return Performance data.
  */
 std::string ba_ratio_number::get_perfdata() const {
-  return fmt::format("BA_Level={}%;{};{};0;100 BA_Downtime={}",
-                     static_cast<int>(_normalize(_level_hard)),
+  return fmt::format("BA_Level={};{};{};0;100", static_cast<int>(_level_hard),
                      static_cast<int>(_level_warning),
-                     static_cast<int>(_level_critical),
-                     static_cast<int>(_normalize(_downtime_hard)));
+                     static_cast<int>(_level_critical));
 }

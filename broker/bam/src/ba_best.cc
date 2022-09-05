@@ -137,8 +137,27 @@ void ba_best::_unapply_impact(kpi* kpi_ptr,
  *  @return Service output.
  */
 std::string ba_best::get_output() const {
-  return fmt::format("BA : {} - current_level = {}%", _name,
-                     static_cast<int>(_normalize(_level_hard)));
+  state state = get_state_hard();
+  std::string retval;
+  switch (state) {
+    case state_unknown:
+      retval =
+          "Status is UNKNOWN - All KPIs are in an UNKNOWN state or worse "
+          "(WARNING or CRITICAL)";
+      break;
+    case state_ok:
+      retval = "Status is OK - At least one KPI is in an OK state";
+      break;
+    case state_warning:
+      retval =
+          "Status is WARNING - All KPIs are in a WARNING state or worse "
+          "(CRITICAL)";
+      break;
+    case state_critical:
+      retval = "Status is CRITICAL - All KPIs are in a CRITICAL state";
+      break;
+  }
+  return retval;
 }
 
 /**
@@ -147,11 +166,7 @@ std::string ba_best::get_output() const {
  *  @return Performance data.
  */
 std::string ba_best::get_perfdata() const {
-  return fmt::format("BA_Level={}%;{};{};0;100 BA_Downtime={}",
-                     static_cast<int>(_normalize(_level_hard)),
-                     static_cast<int>(_level_warning),
-                     static_cast<int>(_level_critical),
-                     static_cast<int>(_normalize(_downtime_hard)));
+  return {};
 }
 
 void ba_best::_recompute() {

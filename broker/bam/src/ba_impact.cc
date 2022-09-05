@@ -226,9 +226,7 @@ std::string ba_impact::get_output() const {
  *  @return Performance data.
  */
 std::string ba_impact::get_perfdata() const {
-  return fmt::format("BA_Level={}%;{};{};0;100 BA_Downtime={}",
-                     static_cast<int>(_normalize(_level_hard)),
-                     static_cast<int>(_level_warning),
-                     static_cast<int>(_level_critical),
-                     static_cast<int>(_normalize(_downtime_hard)));
+  return fmt::format(
+      "BA_Level={};{};{};0;100", static_cast<int>(_normalize(_level_hard)),
+      static_cast<int>(_level_warning), static_cast<int>(_level_critical));
 }

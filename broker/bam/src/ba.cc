@@ -570,9 +570,7 @@ std::shared_ptr<io::data> ba::_generate_virtual_service_status() const {
     o.set_last_hard_state_change(o.last_check());
     o.set_last_state_change(o.last_check());
     o.set_output(get_output());
-    o.set_perfdata(fmt::format(
-        "BA_Level={}%;{};{};0;100", static_cast<int>(_normalize(_level_hard)),
-        static_cast<int>(_level_warning), static_cast<int>(_level_critical)));
+    o.set_perfdata(get_perfdata());
     o.set_service_id(_service_id);
     o.set_state_type(ServiceStatus_StateType_HARD);
     return status;
