@@ -132,6 +132,8 @@ Save Logs
         Copy files	${centralLog}	${failDir}
         Copy files	${moduleLog0}	${failDir}
         Copy files	${engineLog0}	${failDir}
+        Copy Files	${EtcRoot}/centreon-engine/config0/*.cfg	${failDir}/etc/centreon-engine/config0
+        Copy Files	${EtcRoot}/centreon-broker/*.json	${failDir}/etc/centreon-broker
 
 *** Variables ***
 ${BROKER_LOG}	${VarRoot}/log/centreon-broker

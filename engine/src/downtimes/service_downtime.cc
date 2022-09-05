@@ -549,15 +549,13 @@ const char* service_downtime::service_description() const {
   return _service_description.c_str();
 }
 
-//void service_downtime::schedule() {
-//  engine_logger(dbg_functions, basic) << "service_downtime::schedule()";
-//  log_v2::functions()->trace("service_downtime::schedule()");
-//  downtime_manager::instance().add_downtime(this);
-//
-//  /* send data to event broker */
-//  broker_downtime_data(
-//      NEBTYPE_DOWNTIME_LOAD, NEBATTR_NONE, downtime::service_downtime,
-//      _hostname.c_str(), _service_description.c_str(), _entry_time,
-//      _author.c_str(), _comment.c_str(), _start_time, _end_time, _fixed,
-//      _triggered_by, _duration, _downtime_id, nullptr);
-//}
+void service_downtime::schedule() {
+  log_v2::functions()->trace("service_downtime::schedule()");
+
+  /* send data to event broker */
+  broker_downtime_data(
+      NEBTYPE_DOWNTIME_LOAD, NEBATTR_NONE, downtime::service_downtime,
+      _hostname.c_str(), _service_description.c_str(), _entry_time,
+      _author.c_str(), _comment.c_str(), _start_time, _end_time, _fixed,
+      _triggered_by, _duration, _downtime_id, nullptr);
+}

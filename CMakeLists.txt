@@ -94,6 +94,7 @@ set(USER_ENGINE centreon-engine)
 include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup(TARGETS)
 
+find_package(Protobuf REQUIRED)
 include(GNUInstallDirs)
 
 # var directories.
