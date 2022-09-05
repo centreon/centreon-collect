@@ -209,7 +209,6 @@ else()
 
 endif()
 
-
 # Set startup script to auto if not define.
 if(NOT WITH_STARTUP_SCRIPT)
   set(WITH_STARTUP_SCRIPT "auto")

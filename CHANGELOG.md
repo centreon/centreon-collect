@@ -55,9 +55,6 @@ Columns notes, notes\_url and action\_url are resized.
 *Compression*
 In the bbdo negotiation, compression was never activated
 
-*Compression*
-In the bbdo negotiation, compression was never activated
-
 #### Enhancements
 
 *downtimes*
