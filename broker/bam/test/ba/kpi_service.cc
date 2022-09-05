@@ -92,6 +92,7 @@ TEST_F(BamBA, KpiServiceRecompute) {
       ASSERT_EQ(test_ba->get_output(),
                 "Status is CRITICAL - Level = 0 - 1 KPI out of 1 impacts the "
                 "BA for 100 points - KPI1 (impact: 100)");
+      ASSERT_EQ(test_ba->get_perfdata(), "BA_Level=0;25;0;0;100");
     }
   }
 
@@ -160,6 +161,7 @@ TEST_F(BamBA, KpiServiceImpactState) {
             ASSERT_EQ(test_ba->get_output(),
                       "Status is OK - Level = 90 (warn: 70 - crit: 40 - 1 KPI "
                       "out of 3 impacts the BA: KPI1 (impact: 10)");
+            ASSERT_EQ(test_ba->get_perfdata(), "BA_Level=90;70;40;0;100");
             break;
           case 2:
             /* Here is an occasion to test get_output for a status WARNING */
@@ -167,6 +169,7 @@ TEST_F(BamBA, KpiServiceImpactState) {
                       "Status is WARNING - Level = 70 - 3 KPIs out of 3 impact "
                       "the BA for 30 points - KPI3 (impact: 10), KPI2 (impact: "
                       "10), KPI1 (impact: 10)");
+            ASSERT_EQ(test_ba->get_perfdata(), "BA_Level=70;70;40;0;100");
             break;
           default:
             break;
@@ -271,6 +274,7 @@ TEST_F(BamBA, KpiServiceBestState) {
       short val = *it;
       ASSERT_EQ(test_ba->get_state_soft(), val);
       ASSERT_EQ(test_ba->get_state_hard(), val);
+      ASSERT_EQ(test_ba->get_perfdata(), "");
       ++it;
     }
   }

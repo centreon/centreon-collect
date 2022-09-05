@@ -156,6 +156,8 @@ TEST_F(KpiBA, KpiBa) {
   ASSERT_EQ(test_ba->get_output(),
             "Status is CRITICAL - At least one KPI is in a CRITICAL state: "
             "KPI3 is in CRITICAL state");
+  /* No perfdata on Worst BA */
+  ASSERT_EQ(test_ba->get_perfdata(), "");
 }
 
 /**
@@ -1009,6 +1011,7 @@ TEST_F(KpiBA, KpiBaWorstImpact) {
   ASSERT_EQ(test_ba->get_output(),
             "Status is OK - Level = 100 (warn: 25 - crit: 0) - none of the 1 "
             "KPI is impacting the BA right now");
+  ASSERT_EQ(test_ba->get_perfdata(), "BA_Level=100;25;0;0;100");
 
   auto ss = std::make_shared<neb::service_status>();
   ss->host_id = 3;
