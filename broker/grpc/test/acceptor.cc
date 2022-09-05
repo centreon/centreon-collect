@@ -124,83 +124,83 @@ static auto read_file = [](const std::string& path) {
 //  cbd.join();
 //}
 
-TEST_F(GrpcTlsTest, TlsStreamCaHostname) {
-  /* Let's prepare certificates */
-  const static std::string s_hostname{"saperlifragilistic"};
-  const static std::string c_hostname{"foobar"};
-  std::string server_cmd(
-      fmt::format("openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 "
-                  "-keyout /tmp/server.key -out /tmp/server.crt -subj '/CN={}'",
-                  s_hostname));
-  std::cout << server_cmd << std::endl;
-  system(server_cmd.c_str());
-
-  std::string client_cmd(
-      fmt::format("openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 "
-                  "-keyout /tmp/client.key -out /tmp/client.crt -subj '/CN={}'",
-                  c_hostname));
-  std::cout << client_cmd << std::endl;
-  system(client_cmd.c_str());
-
-  std::atomic_bool cbd_finished{false};
-
-  std::thread cbd([&cbd_finished] {
-    auto conf{std::make_shared<grpc_config>(
-        "0.0.0.0:4141", true, read_file("/tmp/server.crt"),
-        read_file("/tmp/server.key"), read_file("/tmp/client.crt"), "",
-        "centreon", grpc_config::NO)};
-    auto a{std::make_unique<acceptor>(conf)};
-
-    /* Nominal case, cbd is acceptor and read on the socket */
-    std::shared_ptr<io::stream> tls_cbd;
-    do {
-      tls_cbd = a->open();
-    } while (!tls_cbd);
-
-    do {
-      std::shared_ptr<io::data> d;
-      bool no_timeout = tls_cbd->read(d, 0);
-      if (no_timeout) {
-        io::raw* rr = static_cast<io::raw*>(d.get());
-        ASSERT_EQ(strncmp(rr->data(), "Hello cbd", 0), 0);
-        break;
-      }
-      std::this_thread::yield();
-    } while (true);
-
-    cbd_finished = true;
-  });
-
-  std::thread centengine([&cbd_finished] {
-    auto conf{std::make_shared<grpc_config>(
-        "localhost:4141", true, read_file("/tmp/client.crt"),
-        read_file("/tmp/client.key"), read_file("/tmp/server.crt"), "",
-        s_hostname, grpc_config::NO)};
-    auto c{std::make_unique<connector>(conf)};
-
-    /* Nominal case, centengine is connector and write on the socket */
-    std::shared_ptr<io::stream> tls_centengine;
-    do {
-      tls_centengine = c->open();
-    } while (!tls_centengine);
-
-    std::vector<char> v{'H', 'e', 'l', 'l', 'o', ' ', 'c', 'b', 'd'};
-    auto packet = std::make_shared<io::raw>(std::move(v));
-
-    /* This is not representative of a real stream. Here we have to call write
-     * several times, so that the SSL library makes its work in the back */
-    do {
-      try {
-        tls_centengine->write(packet);
-      } catch (const std::exception& e) {
-      }
-      std::this_thread::yield();
-    } while (!cbd_finished);
-  });
-
-  centengine.join();
-  cbd.join();
-}
+//TEST_F(GrpcTlsTest, TlsStreamCaHostname) {
+//  /* Let's prepare certificates */
+//  const static std::string s_hostname{"saperlifragilistic"};
+//  const static std::string c_hostname{"foobar"};
+//  std::string server_cmd(
+//      fmt::format("openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 "
+//                  "-keyout /tmp/server.key -out /tmp/server.crt -subj '/CN={}'",
+//                  s_hostname));
+//  std::cout << server_cmd << std::endl;
+//  system(server_cmd.c_str());
+//
+//  std::string client_cmd(
+//      fmt::format("openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 "
+//                  "-keyout /tmp/client.key -out /tmp/client.crt -subj '/CN={}'",
+//                  c_hostname));
+//  std::cout << client_cmd << std::endl;
+//  system(client_cmd.c_str());
+//
+//  std::atomic_bool cbd_finished{false};
+//
+//  std::thread cbd([&cbd_finished] {
+//    auto conf{std::make_shared<grpc_config>(
+//        "0.0.0.0:4141", true, read_file("/tmp/server.crt"),
+//        read_file("/tmp/server.key"), read_file("/tmp/client.crt"), "",
+//        "centreon", grpc_config::NO)};
+//    auto a{std::make_unique<acceptor>(conf)};
+//
+//    /* Nominal case, cbd is acceptor and read on the socket */
+//    std::shared_ptr<io::stream> tls_cbd;
+//    do {
+//      tls_cbd = a->open();
+//    } while (!tls_cbd);
+//
+//    do {
+//      std::shared_ptr<io::data> d;
+//      bool no_timeout = tls_cbd->read(d, 0);
+//      if (no_timeout) {
+//        io::raw* rr = static_cast<io::raw*>(d.get());
+//        ASSERT_EQ(strncmp(rr->data(), "Hello cbd", 0), 0);
+//        break;
+//      }
+//      std::this_thread::yield();
+//    } while (true);
+//
+//    cbd_finished = true;
+//  });
+//
+//  std::thread centengine([&cbd_finished] {
+//    auto conf{std::make_shared<grpc_config>(
+//        "localhost:4141", true, read_file("/tmp/client.crt"),
+//        read_file("/tmp/client.key"), read_file("/tmp/server.crt"), "",
+//        s_hostname, grpc_config::NO)};
+//    auto c{std::make_unique<connector>(conf)};
+//
+//    /* Nominal case, centengine is connector and write on the socket */
+//    std::shared_ptr<io::stream> tls_centengine;
+//    do {
+//      tls_centengine = c->open();
+//    } while (!tls_centengine);
+//
+//    std::vector<char> v{'H', 'e', 'l', 'l', 'o', ' ', 'c', 'b', 'd'};
+//    auto packet = std::make_shared<io::raw>(std::move(v));
+//
+//    /* This is not representative of a real stream. Here we have to call write
+//     * several times, so that the SSL library makes its work in the back */
+//    do {
+//      try {
+//        tls_centengine->write(packet);
+//      } catch (const std::exception& e) {
+//      }
+//      std::this_thread::yield();
+//    } while (!cbd_finished);
+//  });
+//
+//  centengine.join();
+//  cbd.join();
+//}
 
 TEST_F(GrpcTlsTest, TlsStreamBadCaHostname) {
   /* Let's prepare certificates */
