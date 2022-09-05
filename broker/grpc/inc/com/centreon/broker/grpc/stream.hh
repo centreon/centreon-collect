@@ -53,6 +53,8 @@ class stream : public io::stream {
   int32_t stop() override;
 
   bool is_down() const;
+
+  bool wait_for_all_events_written(unsigned ms_timeout) override;
 };
 }  // namespace grpc
 

@@ -80,6 +80,8 @@ class acceptor : public endpoint {
   void set_read_filters(const absl::flat_hash_set<uint32_t>& filters);
   void set_retry_interval(time_t retry_interval);
   void set_write_filters(const absl::flat_hash_set<uint32_t>& filters);
+
+  bool wait_for_all_events_written(unsigned ms_timeout) override;
 };
 }  // namespace processing
 

@@ -344,7 +344,7 @@ void failover::_run() {
             we = _stream->flush();
           }
           _muxer->ack_events(we);
-          ::usleep(100000);
+          ::usleep(idle_microsec_wait_idle_thread_delay);
         }
       }
     }
@@ -575,4 +575,12 @@ void failover::start() {
  */
 bool failover::should_exit() const {
   return _should_exit;
+}
+
+bool failover::wait_for_all_events_written(unsigned ms_timeout) {
+  std::lock_guard<std::timed_mutex> stream_lock(_stream_m);
+  if (_stream) {
+    return _stream->wait_for_all_events_written(ms_timeout);
+  }
+  return true;
 }

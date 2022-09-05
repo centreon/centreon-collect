@@ -38,7 +38,11 @@ BESS2
 	Start Engine
 	${result}=	Check Connections
 	Should Be True	${result}
+	${result}=  Check Poller Enabled In Database  1  10
+	Should Be True	${result}
 	Stop Engine
+	${result}=  Check Poller Disabled In Database  1  10
+	Should Be True	${result}
 	Kindly Stop Broker
 
 BESS3
@@ -52,7 +56,11 @@ BESS3
 	Start Broker
 	${result}=	Check Connections
 	Should Be True	${result}
+	${result}=  Check Poller Enabled In Database  1  10
+	Should Be True	${result}
 	Stop Engine
+	${result}=  Check Poller Disabled In Database  1  10
+	Should Be True	${result}
 	Kindly Stop Broker
 
 BESS4
@@ -65,6 +73,8 @@ BESS4
 	Start Engine
 	Start Broker
 	${result}=	Check Connections
+	Should Be True	${result}
+	${result}=  Check Poller Enabled In Database  1  10
 	Should Be True	${result}
 	Kindly Stop Broker
 	Stop Engine
@@ -117,7 +127,11 @@ BESS_GRPC2
 	Start Engine
 	${result}=	Check Connections
 	Should Be True	${result}
+	${result}=  Check Poller Enabled In Database  1  10
+	Should Be True	${result}
 	Stop Engine
+	${result}=  Check Poller Disabled In Database  1  10
+	Should Be True	${result}
 	Kindly Stop Broker
 
 BESS_GRPC3
@@ -135,7 +149,11 @@ BESS_GRPC3
 	Start Broker
 	${result}=	Check Connections
 	Should Be True	${result}
+	${result}=  Check Poller Enabled In Database  1  10
+	Should Be True	${result}
 	Stop Engine
+	${result}=  Check Poller Disabled In Database  1  10
+	Should Be True	${result}
 	Kindly Stop Broker
 
 BESS_GRPC4
@@ -172,11 +190,15 @@ BESS_GRPC5
 	Start Engine
 	${result}=	Check Connections
 	Should Be True	${result}
-	Kindly Stop Broker
+	${result}=  Check Poller Enabled In Database  1  10
+	Should Be True	${result}
 	Stop Engine
+	${result}=  Check Poller Disabled In Database  1  10
+	Should Be True	${result}
+	Kindly Stop Broker
 
 BESS_GRPC_COMPRESS1
-	[Documentation]	Start-Stop grpc version Broker/Engine - Broker started first - Broker stopped first compression activated
+	[Documentation]	Start-Stop grpc version Broker/Engine - Broker started first - Broker stopped last compression activated
 	[Tags]	Broker	Engine	start-stop
 	Config Engine	${1}
 	Config Broker	central
@@ -192,8 +214,12 @@ BESS_GRPC_COMPRESS1
 	Start Engine
 	${result}=	Check Connections
 	Should Be True	${result}
-	Kindly Stop Broker
+	${result}=  Check Poller Enabled In Database  1  10
+	Should Be True	${result}
 	Stop Engine
+	${result}=  Check Poller Disabled In Database  1  10
+	Should Be True	${result}
+	Kindly Stop Broker
 
 
 BESS_CRYPTED_GRPC1
@@ -219,8 +245,12 @@ BESS_CRYPTED_GRPC1
 		Start Engine
 		${result}=	Check Connections
 		Should Be True	${result}
-		Kindly Stop Broker
+		${result}=  Check Poller Enabled In Database  1  10
+		Should Be True	${result}
 		Stop Engine
+		${result}=  Check Poller Disabled In Database  1  10
+		Should Be True	${result}
+		Kindly Stop Broker
 	END
 
 BESS_CRYPTED_GRPC2

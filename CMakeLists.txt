@@ -24,11 +24,13 @@
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 cmake_minimum_required(VERSION 3.16)
 project("Centreon Collect" C CXX)
+
 if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT CMAKE_CXX_COMPILER_ID
-                                                STREQUAL "Clang")
+  STREQUAL "Clang")
   message(
     FATAL_ERROR "You can build broker with g++ or clang++. CMake will exit.")
 endif()
+
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -stdlib=libc++")
 # set(CMAKE_CXX_COMPILER "clang++")
 add_definitions("-D_GLIBCXX_USE_CXX11_ABI=1")
@@ -45,6 +47,7 @@ set(BUILD_ARGS "-w" "dupbuild=warn")
 #
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   file(STRINGS "/etc/os-release" release REGEX "^ID")
+
   foreach(line ${release})
     if(${line} MATCHES "ID_LIKE=.*")
       string(REGEX REPLACE "ID_LIKE=\"(.*)\"" "\\1" like ${line})
@@ -54,15 +57,16 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
       string(REGEX REPLACE "ID=\"(.*)\"" "\\1" id ${line})
     endif()
   endforeach()
+
   string(TOLOWER "${like}" like)
   string(TOLOWER "${id}" id)
 
   if(("${id}" MATCHES "debian")
-     OR ("${like}" MATCHES "debian")
-     OR ("${id}" MATCHES "ubuntu")
-     OR ("${like}" MATCHES "ubuntu"))
+    OR("${like}" MATCHES "debian")
+    OR("${id}" MATCHES "ubuntu")
+    OR("${like}" MATCHES "ubuntu"))
     set(OS_DISTRIBUTOR "Debian")
-  elseif(("${id}" MATCHES "centos") OR ("${like}" MATCHES "centos"))
+  elseif(("${id}" MATCHES "centos") OR("${like}" MATCHES "centos"))
     set(OS_DISTRIBUTOR "CentOS")
   else()
     message(WARNING "lsb_release in not installed")
@@ -89,25 +93,28 @@ add_definitions(-DCENTREON_CONNECTOR_VERSION=\"${COLLECT_VERSION}\")
 # ########### CONSTANTS ###########
 set(USER_BROKER centreon-broker)
 set(USER_ENGINE centreon-engine)
-# ##############################################################################
 
+# ##############################################################################
 include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup(TARGETS)
 
 find_package(Protobuf REQUIRED)
+
+message(NOTICE "-- use protoc compiler: ${Protobuf_PROTOC_EXECUTABLE}")
+
 include(GNUInstallDirs)
 
 # var directories.
 set(BROKER_VAR_LOG_DIR
-    "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/log/centreon-broker")
+  "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/log/centreon-broker")
 set(BROKER_VAR_LIB_DIR
-    "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/lib/centreon-broker")
+  "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/lib/centreon-broker")
 set(ENGINE_VAR_LOG_DIR
-    "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/log/centreon-engine")
+  "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/log/centreon-engine")
 set(ENGINE_VAR_LOG_ARCHIVE_DIR
-    "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/log/centreon-engine/archives")
+  "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/log/centreon-engine/archives")
 set(ENGINE_VAR_LIB_DIR
-    "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/lib/centreon-engine")
+  "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/lib/centreon-engine")
 
 set(CMAKE_INSTALL_PREFIX "/usr")
 option(WITH_TESTING "Build unit tests." OFF)
@@ -116,6 +123,7 @@ option(WITH_CONF "Install configuration files." ON)
 
 # Code coverage on unit tests
 option(WITH_COVERAGE "Add code coverage on unit tests." OFF)
+
 if(WITH_TESTING AND WITH_COVERAGE)
   set(CMAKE_BUILD_TYPE "Debug")
   include(cmake/CodeCoverage.cmake)
@@ -127,7 +135,7 @@ set(protobuf_MODULE_COMPATIBLE True)
 add_definitions(${spdlog_DEFINITIONS})
 
 include_directories(${CMAKE_SOURCE_DIR} ${CONAN_INCLUDE_DIRS}
-                    ${CMAKE_SOURCE_DIR}/clib/inc)
+  ${CMAKE_SOURCE_DIR}/clib/inc)
 
 add_subdirectory(bbdo)
 add_subdirectory(broker)
@@ -144,4 +152,4 @@ add_custom_target(test-connector COMMAND tests/ut_connector)
 add_custom_target(test DEPENDS test-broker test-engine test-clib test-connector)
 
 add_custom_target(test-coverage DEPENDS broker-test-coverage
-                                        engine-test-coverage clib-test-coverage)
+  engine-test-coverage clib-test-coverage)
