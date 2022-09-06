@@ -65,6 +65,8 @@ TEST_F(BamBA, KpiServiceRecompute) {
   // Build BAM objects.
   std::shared_ptr<bam::ba> test_ba{
       std::make_shared<bam::ba_impact>(1, 1, 1, true)};
+  test_ba->set_level_critical(0);
+  test_ba->set_level_warning(25);
 
   std::shared_ptr<bam::kpi_service> kpi{
       std::make_shared<bam::kpi_service>(1, 1, 1, 1)};
@@ -80,7 +82,7 @@ TEST_F(BamBA, KpiServiceRecompute) {
   // for the test to be correct.
   time_t now(time(nullptr));
   for (int i = 0; i < 100 + 2; ++i) {
-    std::shared_ptr<neb::service_status> ss(new neb::service_status);
+    auto ss{std::make_shared<neb::service_status>()};
     ss->host_id = 1;
     ss->service_id = 1;
     ss->last_check = now + i;
