@@ -234,6 +234,7 @@ anomalydetection::anomalydetection(anomalydetection const& other)
       _service_description(other._service_description),
       _host_id(other._host_id),
       _service_id(other._service_id),
+      _internal_id(other._internal_id),
       _dependent_service_id(other._dependent_service_id),
       _stalking_options(other._stalking_options),
       _timezone(other._timezone),
@@ -299,6 +300,7 @@ anomalydetection& anomalydetection::operator=(anomalydetection const& other) {
     _service_description = other._service_description;
     _host_id = other._host_id;
     _service_id = other._service_id;
+    _internal_id = other._internal_id;
     _dependent_service_id = other._dependent_service_id;
     _stalking_options = other._stalking_options;
     _timezone = other._timezone;
