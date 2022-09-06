@@ -832,15 +832,14 @@ def check_types_in_resources(lst: list):
             result = cursor.fetchall()
             if len(result) > 0:
                 for t in lst:
-                    logger.console(f"Testing value {t}")
                     found = False
                     for r in result:
-                        v = result[0]['type']
-                        if v == t:
+                        v = r['type']
+                        if int(v) == int(t):
                             found = True
                             break
                     if not found:
-                        logger.console(f"Value {t} not found in resulkt of query 'select distinct type from resources'")
+                        logger.console(f"Value {t} not found in result of query 'select distinct type from resources'")
                         return False
                 return True
     return False

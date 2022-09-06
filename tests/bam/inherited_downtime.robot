@@ -404,7 +404,8 @@ BEBAMIGNDTU1
 	Stop Engine
 	Kindly Stop Broker
         ${lst}=	Create List	1	0	3
-        Check Types in resources	${lst}
+        ${result}=	Check Types in resources	${lst}
+	Should Be True	${result}	msg=The table 'resources' should contain rows of types SERVICE, HOST and BA.
 
 *** Keywords ***
 BAM Setup

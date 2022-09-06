@@ -199,6 +199,7 @@ configuration::anomalydetection TestEngine::new_configuration_anomalydetection(
   ad.parse("_SERVICE_ID", std::to_string(svc_id).c_str());
   ad.parse("contacts", contacts.c_str());
   ad.parse("metric_name", "metric");
+  ad.parse("internal_id", "1234");
   ad.parse("thresholds_file", thresholds_file.c_str());
 
   // We fake here the expand_object on configuration::service

@@ -100,6 +100,7 @@ TEST_F(ApplierAnomalydetection, NewADFromConfig) {
   ASSERT_NO_THROW(svc_aply.add_object(svc));
 
   ASSERT_TRUE(ad.parse("service_description", "test description"));
+  ASSERT_TRUE(ad.parse("internal_id", "112"));
   ASSERT_TRUE(ad.parse("dependent_service_id", "13"));
   ASSERT_TRUE(ad.parse("service_id", "4"));
   ASSERT_TRUE(ad.parse("host_id", "12"));
@@ -120,6 +121,10 @@ TEST_F(ApplierAnomalydetection, NewADFromConfig) {
 
   // Service is not resolved, host is null now.
   ASSERT_TRUE(!my_ad->second->get_host_ptr());
+  ASSERT_EQ(std::static_pointer_cast<com::centreon::engine::anomalydetection>(
+                my_ad->second)
+                ->get_internal_id(),
+            112u);
   ASSERT_TRUE(my_ad->second->get_description() == "test description");
 }
 

@@ -113,7 +113,9 @@ class anomalydetection : public object {
   std::string const& service_description() const noexcept;
   uint64_t service_id() const noexcept;
   bool set_service_id(uint64_t value);
+  uint64_t internal_id() const noexcept;
   uint64_t dependent_service_id() const noexcept;
+  bool set_internal_id(uint64_t value);
   bool set_dependent_service_id(uint64_t value);
   unsigned short stalking_options() const noexcept;
   void timezone(std::string const& time_zone);
@@ -220,6 +222,7 @@ class anomalydetection : public object {
   std::string _service_description;
   uint64_t _host_id;
   uint64_t _service_id;
+  uint64_t _internal_id;
   uint64_t _dependent_service_id;
   static std::unordered_map<std::string, setter_func> const _setters;
   opt<unsigned short> _stalking_options;

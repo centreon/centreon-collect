@@ -35,6 +35,7 @@ class EngineInstance:
         self.commands_count = 50
         self.instances = count
         self.service_cmd = {}
+        self.anomaly_detection_internal_id = 1
         self.build_configs(hosts, srv_by_host)
         makedirs(ETC_ROOT, mode=0o777, exist_ok=True)
         makedirs(VAR_ROOT, mode=0o777, exist_ok=True)
@@ -191,13 +192,15 @@ class EngineInstance:
         retval = """define anomalydetection {{
     host_id {0}
     host_name host_{0}
+    internal_id {4}
     service_id {1}
     service_description      anomaly_{1}
     dependent_service_id {2}
     metric_name {3}
     status_change 1
     thresholds_file /tmp/anomaly_threshold.json
-}} """.format(host_id, service_id, dependent_service_id, metric_name)
+}} """.format(host_id, service_id, dependent_service_id, metric_name, self.anomaly_detection_internal_id)
+        self.anomaly_detection_internal_id += 1
         return retval
 
     def create_bam_timeperiod(self):

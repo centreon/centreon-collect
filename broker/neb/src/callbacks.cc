@@ -2407,7 +2407,7 @@ int neb::callback_pb_service(int callback_type, void* data) {
           {
             auto ad =
                 static_cast<const com::centreon::engine::anomalydetection*>(es);
-            srv.set_internal_id(ad->get_dependent_service()->get_service_id());
+            srv.set_internal_id(ad->get_internal_id());
           }
           break;
         default:

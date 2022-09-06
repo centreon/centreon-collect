@@ -49,6 +49,7 @@ std::unordered_map<std::string, anomalydetection::setter_func> const
         {"service_id", SETTER(uint64_t, set_service_id)},
         {"_SERVICE_ID", SETTER(uint64_t, set_service_id)},
         {"dependent_service_id", SETTER(uint64_t, set_dependent_service_id)},
+        {"internal_id", SETTER(uint64_t, set_internal_id)},
         {"acknowledgement_timeout", SETTER(int, set_acknowledgement_timeout)},
         {"description", SETTER(std::string const&, _set_service_description)},
         {"display_name", SETTER(std::string const&, _set_display_name)},
@@ -690,6 +691,12 @@ bool anomalydetection::operator==(
     log_v2::config()->debug(
         "configuration::anomalydetection::"
         "equality => service_id don't match");
+    return false;
+  }
+  if (_internal_id != other._internal_id) {
+    log_v2::config()->debug(
+        "configuration::anomalydetection::equality => internal_id "
+        "don't match");
     return false;
   }
   if (_dependent_service_id != other._dependent_service_id) {
@@ -1487,6 +1494,15 @@ uint64_t anomalydetection::service_id() const noexcept {
 }
 
 /**
+ *  Get the internal id.
+ *
+ *  @return  The internal id.
+ */
+uint64_t anomalydetection::internal_id() const noexcept {
+  return _internal_id;
+}
+
+/**
  *  Get the dependent service id.
  *
  *  @return  The dependent service id.
@@ -2165,6 +2181,18 @@ bool anomalydetection::_set_service_description(std::string const& value) {
  */
 bool anomalydetection::set_service_id(uint64_t value) {
   _service_id = value;
+  return true;
+}
+
+/**
+ *  Set internal_id value.
+ *
+ *  @param[in] value The new internal_id value.
+ *
+ *  @return True on success, otherwise false.
+ */
+bool anomalydetection::set_internal_id(uint64_t value) {
+  _internal_id = value;
   return true;
 }
 
