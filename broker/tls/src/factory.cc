@@ -48,7 +48,7 @@ bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
     if (cfg.type == "bbdo_client" || cfg.type == "bbdo_server") {
       it = cfg.params.find("transport_protocol");
       if (it != cfg.params.end()) {
-        if (cfg.params["transport_protocol"] == "grpc") {
+        if (absl::EqualsIgnoreCase(cfg.params["transport_protocol"], "grpc")) {
           *ext = io::extension("TLS", false, false);
           return false;
         }

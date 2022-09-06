@@ -63,9 +63,9 @@ BSCSSG1
 	[Tags]	Broker	start-stop	bbdo_server	bbdo_client	grpc
 	Config Broker	central
 	Config Broker	rrd
-	Config Broker BBDO Input	central	bbdo_server	5669  grpc	localhost
-	Config Broker BBDO Output	central	bbdo_client	5670  grpc	localhost
-	Config Broker BBDO Input	rrd	bbdo_server	5670  grpc
+	Config Broker BBDO Input	central	bbdo_server	5669  gRPC	localhost
+	Config Broker BBDO Output	central	bbdo_client	5670  gRPC	localhost
+	Config Broker BBDO Input	rrd	bbdo_server	5670  gRPC
 	Broker Config Log	central	config	info
 	Repeat Keyword	5 times	Start Stop Service	0
 
@@ -73,24 +73,24 @@ BSCSSG2
 	[Documentation]	Start/Stop 10 times broker with 300ms interval and no coredump
 	[Tags]	Broker	start-stop	bbdo_server	bbdo_client	grpc
 	Config Broker	central
-	Config Broker BBDO Input	central	bbdo_server	5669  grpc	localhost
-	Config Broker BBDO Output	central	bbdo_client	5670  grpc	localhost
+	Config Broker BBDO Input	central	bbdo_server	5669  gRPC	localhost
+	Config Broker BBDO Output	central	bbdo_client	5670  gRPC	localhost
 	Repeat Keyword	10 times	Start Stop Instance	300ms
 
 BSCSSG3
 	[Documentation]	Start-Stop one instance of broker and no coredump
 	[Tags]	Broker	start-stop	bbdo_server	bbdo_client	grpc
 	Config Broker	central
-	Config Broker BBDO Input	central	bbdo_server	5669  grpc
-	Config Broker BBDO Output	central	bbdo_client	5670  grpc	localhost
+	Config Broker BBDO Input	central	bbdo_server	5669  gRPC
+	Config Broker BBDO Output	central	bbdo_client	5670  gRPC	localhost
 	Repeat Keyword	5 times	Start Stop Instance	0
 
 BSCSSG4
 	[Documentation]	Start/Stop 10 times broker with 1sec interval and no coredump
 	[Tags]	Broker	start-stop	bbdo_server	bbdo_client	grpc
 	Config Broker	central
-	Config Broker BBDO Input	central	bbdo_server	5669  grpc
-	Config Broker BBDO Output	central	bbdo_client	5670  grpc	localhost
+	Config Broker BBDO Input	central	bbdo_server	5669  gRPC
+	Config Broker BBDO Output	central	bbdo_client	5670  gRPC	localhost
 	Repeat Keyword	10 times	Start Stop Instance	1s
 
 BSCSST1
@@ -141,9 +141,9 @@ BSCSSTG1
 	[Tags]	Broker	start-stop	bbdo_server	bbdo_client	grpc	tls
 	Config Broker	central
 	Config Broker	rrd
-	Config Broker BBDO Input	central	bbdo_server	5669  grpc
-	Config Broker BBDO Output	central	bbdo_client	5670  grpc	localhost
-	Config Broker BBDO Input	rrd	bbdo_server	5670  grpc
+	Config Broker BBDO Input	central	bbdo_server	5669  gRPC
+	Config Broker BBDO Output	central	bbdo_client	5670  gRPC	localhost
+	Config Broker BBDO Input	rrd	bbdo_server	5670  gRPC
 	Broker Config Output set	central	central-broker-master-output	encryption	yes
 	Broker Config Input set	rrd	rrd-broker-master-input	encryption	yes
 	Broker Config Log	central	config	off
