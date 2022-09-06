@@ -30,6 +30,7 @@
 #include "com/centreon/broker/neb/initial.hh"
 #include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/neb/set_log_data.hh"
+#include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/events/loop.hh"
@@ -2368,8 +2369,8 @@ int neb::callback_pb_service(int callback_type, void* data) {
 
     if (!es->get_hostname().empty()) {
       std::string name{misc::string::check_string_utf8(es->get_hostname())};
-      if (strncmp(name.c_str(), "_Module_Meta", 13) == 0) {
-        if (strncmp(srv.description().c_str(), "meta_", 5) == 0) {
+      switch (es->get_service_type()) {
+        case com::centreon::engine::service_type::METASERVICE: {
           srv.set_type(METASERVICE);
           uint64_t iid = 0;
           for (auto c = srv.description().begin() + 5;
@@ -2384,9 +2385,8 @@ int neb::callback_pb_service(int callback_type, void* data) {
             iid = 10 * iid + (*c - '0');
           }
           srv.set_internal_id(iid);
-        }
-      } else if (strncmp(name.c_str(), "_Module_BAM", 11) == 0) {
-        if (strncmp(srv.description().c_str(), "ba_", 3) == 0) {
+        } break;
+        case com::centreon::engine::service_type::BA: {
           srv.set_type(BA);
           uint64_t iid = 0;
           for (auto c = srv.description().begin() + 3;
@@ -2401,7 +2401,18 @@ int neb::callback_pb_service(int callback_type, void* data) {
             iid = 10 * iid + (*c - '0');
           }
           srv.set_internal_id(iid);
-        }
+        } break;
+        case com::centreon::engine::service_type::ANOMALY_DETECTION:
+          srv.set_type(ANOMALY_DETECTION);
+          {
+            auto ad =
+                static_cast<const com::centreon::engine::anomalydetection*>(es);
+            srv.set_internal_id(ad->get_dependent_service()->get_service_id());
+          }
+          break;
+        default:
+          srv.set_type(SERVICE);
+          break;
       }
       *srv.mutable_host_name() = std::move(name);
     }

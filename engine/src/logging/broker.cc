@@ -84,7 +84,7 @@ void broker::close() noexcept {
  *  @param[in] message  Message to log.
  *  @param[in] size     Message length.
  */
-void broker::log(uint64_t types,
+void broker::log(uint64_t types [[maybe_unused]],
                  uint32_t verbose,
                  char const* message,
                  uint32_t size) noexcept {

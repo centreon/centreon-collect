@@ -392,19 +392,21 @@ void broker_comment_data(int type,
  *  @param[in] escalated         Escalated ?
  *  @param[in] timestamp         Timestamp.
  */
-int broker_contact_notification_data(int type,
-                                     int flags,
-                                     int attr,
-                                     unsigned int notification_type,
-                                     int reason_type,
-                                     struct timeval start_time,
-                                     struct timeval end_time,
-                                     void* data,
-                                     contact* cntct,
-                                     char const* ack_author,
-                                     char const* ack_data,
-                                     int escalated,
-                                     struct timeval const* timestamp) {
+int broker_contact_notification_data(int type [[maybe_unused]],
+                                     int flags [[maybe_unused]],
+                                     int attr [[maybe_unused]],
+                                     unsigned int notification_type
+                                     [[maybe_unused]],
+                                     int reason_type [[maybe_unused]],
+                                     struct timeval start_time [[maybe_unused]],
+                                     struct timeval end_time [[maybe_unused]],
+                                     void* data [[maybe_unused]],
+                                     contact* cntct [[maybe_unused]],
+                                     char const* ack_author [[maybe_unused]],
+                                     char const* ack_data [[maybe_unused]],
+                                     int escalated [[maybe_unused]],
+                                     struct timeval const* timestamp
+                                     [[maybe_unused]]) {
   return 0;
 }
 
@@ -427,19 +429,20 @@ int broker_contact_notification_data(int type,
  *
  *  @return Return value can override notification.
  */
-int broker_contact_notification_method_data(int type,
-                                            int flags,
-                                            int attr,
-                                            unsigned int notification_type,
-                                            int reason_type,
-                                            struct timeval start_time,
-                                            struct timeval end_time,
-                                            void* data,
-                                            contact* cntct,
-                                            char const* ack_author,
-                                            char const* ack_data,
-                                            int escalated,
-                                            struct timeval const* timestamp) {
+int broker_contact_notification_method_data(
+    int type [[maybe_unused]],
+    int flags [[maybe_unused]],
+    int attr [[maybe_unused]],
+    unsigned int notification_type [[maybe_unused]],
+    int reason_type [[maybe_unused]],
+    struct timeval start_time [[maybe_unused]],
+    struct timeval end_time [[maybe_unused]],
+    void* data [[maybe_unused]],
+    contact* cntct [[maybe_unused]],
+    char const* ack_author [[maybe_unused]],
+    char const* ack_data [[maybe_unused]],
+    int escalated [[maybe_unused]],
+    struct timeval const* timestamp [[maybe_unused]]) {
   return 0;
 }
 
@@ -855,19 +858,19 @@ void broker_log_data(char* data, time_t entry_time) {
  *
  *  @return Return value can override notification.
  */
-int broker_notification_data(int type,
-                             int flags,
-                             int attr,
-                             unsigned int notification_type,
-                             int reason_type,
-                             struct timeval start_time,
-                             struct timeval end_time,
-                             void* data,
-                             char const* ack_author,
-                             char const* ack_data,
-                             int escalated,
-                             int contacts_notified,
-                             struct timeval const* timestamp) {
+int broker_notification_data(int type [[maybe_unused]],
+                             int flags [[maybe_unused]],
+                             int attr [[maybe_unused]],
+                             unsigned int notification_type [[maybe_unused]],
+                             int reason_type [[maybe_unused]],
+                             struct timeval start_time [[maybe_unused]],
+                             struct timeval end_time [[maybe_unused]],
+                             void* data [[maybe_unused]],
+                             char const* ack_author [[maybe_unused]],
+                             char const* ack_data [[maybe_unused]],
+                             int escalated [[maybe_unused]],
+                             int contacts_notified [[maybe_unused]],
+                             struct timeval const* timestamp [[maybe_unused]]) {
   return 0;
 }
 
