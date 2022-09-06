@@ -114,12 +114,13 @@ TEST_F(ApplierAnomalydetection, NewADFromConfig) {
   ad_aply.add_object(ad);
   service_id_map const& sm(engine::service::services_by_id);
   ASSERT_EQ(sm.size(), 2u);
-  ASSERT_EQ(sm.begin()->first.first, 12u);
-  ASSERT_EQ(sm.begin()->first.second, 4u);
+  auto my_ad = sm.find({12u, 4u});
+  ASSERT_EQ(my_ad->first.first, 12u);
+  ASSERT_EQ(my_ad->first.second, 4u);
 
   // Service is not resolved, host is null now.
-  ASSERT_TRUE(!sm.begin()->second->get_host_ptr());
-  ASSERT_TRUE(sm.begin()->second->get_description() == "test description");
+  ASSERT_TRUE(!my_ad->second->get_host_ptr());
+  ASSERT_TRUE(my_ad->second->get_description() == "test description");
 }
 
 // Given service configuration without service_id
