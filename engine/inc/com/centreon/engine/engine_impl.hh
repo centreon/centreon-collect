@@ -227,6 +227,11 @@ class engine_impl final : public Engine::Service {
       const ::com::centreon::engine::ServiceIdentifier* service,
       ::com::centreon::engine::CommandSuccess* response) override;
 
+  ::grpc::Status ChangeAnomalyDetectionSensitivity(
+      ::grpc::ServerContext* context,
+      const ::com::centreon::engine::ChangeServiceNumber* serv_and_value,
+      ::com::centreon::engine::CommandSuccess* response) override;
+
   static std::pair<std::shared_ptr<com::centreon::engine::host>,
                    std::string /*error*/>
   get_host(const ::com::centreon::engine::HostIdentifier& host_info);

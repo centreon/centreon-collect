@@ -59,6 +59,7 @@
 
 #include <fmt/format.h>
 
+#include <absl/strings/numbers.h>
 #include <absl/strings/string_view.h>
 
 #include <boost/circular_buffer.hpp>

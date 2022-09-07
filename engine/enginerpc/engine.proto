@@ -113,6 +113,7 @@ service Engine {
   rpc EnableNotifications(google.protobuf.Empty) returns (CommandSuccess) {}
   rpc DisableServiceNotifications(ServiceIdentifier) returns (CommandSuccess) {}
   rpc EnableServiceNotifications(ServiceIdentifier) returns (CommandSuccess) {}
+  rpc ChangeAnomalyDetectionSensitivity(ChangeServiceNumber) returns (CommandSuccess) {}
 }
 
 message GenericString {
@@ -487,6 +488,16 @@ message ChangeObjectInt {
   uint32 intval = 4;
   double dval = 5;
 }
+
+/* used for a host or a service */
+message ChangeServiceNumber {
+  ServiceIdentifier serv = 1;
+  oneof value {
+    uint32 intval = 2;
+    double dval = 3;
+  }
+}
+
 
 /* used for a contact */
 message ChangeContactObjectInt {

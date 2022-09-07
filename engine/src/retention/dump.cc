@@ -19,6 +19,7 @@
 
 #include "com/centreon/engine/retention/dump.hh"
 #include <fstream>
+#include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
@@ -586,16 +587,20 @@ bool dump::save(std::string const& path) {
  *  Dump retention of service.
  *
  *  @param[out] os  The output stream.
+ *  @param[in]  class_name class name service or anomalydetection.
  *  @param[in]  obj The service to dump.
  *
  *  @return The output stream.
  */
-std::ostream& dump::service(std::ostream& os, class service const& obj) {
+std::ostream& dump::service(std::ostream& os,
+                            const absl::string_view& class_name,
+                            class service const& obj) {
   std::string hostname;
   if (obj.get_host_ptr())
     hostname = obj.get_host_ptr()->name();
 
-  os << "service {\n"
+  os << class_name
+     << " {\n"
         "host_name="
      << obj.get_hostname()
      << "\n"
@@ -774,7 +779,22 @@ std::ostream& dump::service(std::ostream& os, class service const& obj) {
 
   dump::notifications(os, obj.get_current_notifications());
   dump::customvariables(os, obj.custom_variables);
+  return os;
+}
+
+std::ostream& dump::service(std::ostream& os,
+                            com::centreon::engine::service const& obj) {
+  service(os, "service", obj);
   os << "}\n";
+  return os;
+}
+
+std::ostream& dump::anomalydetection(
+    std::ostream& os,
+    com::centreon::engine::anomalydetection const& obj) {
+  service(os, "anomalydetection", obj);
+  os << "sensitivity=" << obj.get_sensitivity() << "\n"
+     << "}\n";
   return os;
 }
 
@@ -788,7 +808,15 @@ std::ostream& dump::service(std::ostream& os, class service const& obj) {
 std::ostream& dump::services(std::ostream& os) {
   for (service_map::iterator it(service::services.begin()),
        end(service::services.end());
-       it != end; ++it)
-    dump::service(os, *it->second);
+       it != end; ++it) {
+    std::shared_ptr<com::centreon::engine::anomalydetection> anomaly =
+        std::dynamic_pointer_cast<com::centreon::engine::anomalydetection>(
+            it->second);
+    if (anomaly) {
+      dump::anomalydetection(os, *anomaly);
+    } else {
+      dump::service(os, *it->second);
+    }
+  }
   return os;
 }

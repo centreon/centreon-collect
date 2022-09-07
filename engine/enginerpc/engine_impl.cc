@@ -3032,24 +3032,28 @@ grpc::Status engine_impl::ShutdownProgram(
   return grpc::Status::OK;
 }
 
-#define HOST_METHOD_BEGIN                                                    \
-  log_v2::external_command()->debug("{}({})", __FUNCTION__, *request);       \
-  auto host_info = get_host(*request);                                       \
-  if (!host_info.second.empty()) {                                           \
-    log_v2::external_command()->error("{}({}) : {}", __FUNCTION__, *request, \
-                                      host_info.second);                     \
-    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,                \
-                        host_info.second);                                   \
+#define HOST_METHOD_BEGIN                                                   \
+  SPDLOG_LOGGER_DEBUG(log_v2::external_command(), "{}({})", __FUNCTION__,   \
+                      *request);                                            \
+  auto host_info = get_host(*request);                                      \
+  if (!host_info.second.empty()) {                                          \
+    SPDLOG_LOGGER_ERROR(log_v2::external_command(),                         \
+                        "{}({}) : unknown host {}", __FUNCTION__, *request, \
+                        host_info.second);                                  \
+    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,               \
+                        host_info.second);                                  \
   }
 
-#define SERV_METHOD_BEGIN                                                    \
-  log_v2::external_command()->debug("{}({})", __FUNCTION__, *request);       \
-  auto serv_info = get_serv(*request);                                       \
-  if (!serv_info.second.empty()) {                                           \
-    log_v2::external_command()->error("{}({}) : {}", __FUNCTION__, *request, \
-                                      serv_info.second);                     \
-    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,                \
-                        serv_info.second);                                   \
+#define SERV_METHOD_BEGIN                                                   \
+  SPDLOG_LOGGER_DEBUG(log_v2::external_command(), "{}({})", __FUNCTION__,   \
+                      *request);                                            \
+  auto serv_info = get_serv(*request);                                      \
+  if (!serv_info.second.empty()) {                                          \
+    SPDLOG_LOGGER_ERROR(log_v2::external_command(),                         \
+                        "{}({}) : unknown serv {}", __FUNCTION__, *request, \
+                        serv_info.second);                                  \
+    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,               \
+                        serv_info.second);                                  \
   }
 
 ::grpc::Status engine_impl::EnableHostAndChildNotifications(
@@ -3122,6 +3126,43 @@ grpc::Status engine_impl::ShutdownProgram(
   SERV_METHOD_BEGIN
   enable_service_notifications(serv_info.first.get());
   return grpc::Status::OK;
+}
+
+::grpc::Status engine_impl::ChangeAnomalyDetectionSensitivity(
+    ::grpc::ServerContext* context,
+    const ::com::centreon::engine::ChangeServiceNumber* serv_and_value,
+    ::com::centreon::engine::CommandSuccess* response) {
+  SPDLOG_LOGGER_DEBUG(log_v2::external_command(), "{}({})", __FUNCTION__,
+                      serv_and_value->serv());
+  auto serv_info = get_serv(serv_and_value->serv());
+  if (!serv_info.second.empty()) {
+    SPDLOG_LOGGER_ERROR(log_v2::external_command(), "{}({}) : unknown serv {}",
+                        __FUNCTION__, serv_and_value->serv(), serv_info.second);
+    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, serv_info.second);
+  }
+
+  std::shared_ptr<anomalydetection> ano =
+      std::dynamic_pointer_cast<anomalydetection>(serv_info.first);
+  if (!ano) {
+    SPDLOG_LOGGER_ERROR(log_v2::external_command(),
+                        "{}({}) : {} is not an anomalydetection", __FUNCTION__,
+                        serv_and_value->serv(), serv_info.second);
+    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, serv_info.second);
+  }
+
+  if (serv_and_value->has_dval()) {
+    ano->set_sensitivity(serv_and_value->dval());
+    return grpc::Status::OK;
+  }
+
+  if (serv_and_value->has_intval()) {
+    ano->set_sensitivity(serv_and_value->intval());
+    return grpc::Status::OK;
+  }
+  SPDLOG_LOGGER_ERROR(log_v2::external_command(), "{}({}) : no value provided",
+                      __FUNCTION__, serv_and_value->serv());
+  return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
+                      "no value provided");
 }
 
 /**

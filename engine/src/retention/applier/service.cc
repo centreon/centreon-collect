@@ -46,7 +46,7 @@ void applier::service::apply(configuration::state const& config,
       std::pair<uint64_t, uint64_t> id{
           get_host_and_service_id(s->host_name(), s->service_description())};
       engine::service& svc(find_service(id.first, id.second));
-      _update(config, *s, svc, scheduling_info_is_ok);
+      update(config, *s, svc, scheduling_info_is_ok);
     } catch (...) {
       // ignore exception for the retention.
     }
@@ -62,10 +62,10 @@ void applier::service::apply(configuration::state const& config,
  *  @param[in]      scheduling_info_is_ok True if the retention is
  *                                        not outdated.
  */
-void applier::service::_update(configuration::state const& config,
-                               retention::service const& state,
-                               engine::service& obj,
-                               bool scheduling_info_is_ok) {
+void applier::service::update(configuration::state const& config,
+                              retention::service const& state,
+                              engine::service& obj,
+                              bool scheduling_info_is_ok) {
   if (state.modified_attributes().is_set()) {
     obj.set_modified_attributes(*state.modified_attributes());
     // mask out attributes we don't want to retain.
