@@ -552,6 +552,7 @@ def change_broker_compression_output(config_name: str, output_name: str, compres
                 v["compression"] = compression_value
     _apply_conf(config_name, compression_modifier)
 
+
 def change_broker_compression_input(config_name: str, input_name: str, compression_value: str):
     def compression_modifier(conf):
         input_dict = conf["centreonBroker"]["input"]
@@ -559,6 +560,7 @@ def change_broker_compression_input(config_name: str, input_name: str, compressi
             if (v["name"] == input_name):
                 v["compression"] = compression_value
     _apply_conf(config_name, compression_modifier)
+
 
 def config_broker_sql_output(name, output):
     if name == 'central':
@@ -1239,12 +1241,14 @@ def remove_graphs_from_db(indexes, metrics, timeout=10):
         with connection.cursor() as cursor:
             if len(indexes) > 0:
                 str_indexes = [str(i) for i in indexes]
-                sql = "UPDATE index_data SET to_delete=1 WHERE id in ({})".format(",".join(str_indexes))
+                sql = "UPDATE index_data SET to_delete=1 WHERE id in ({})".format(
+                    ",".join(str_indexes))
                 logger.console(sql)
                 cursor.execute(sql)
             if len(metrics) > 0:
                 str_metrics = [str(i) for i in metrics]
-                sql = "UPDATE metrics SET to_delete=1 WHERE metric_id in ({})".format(",".join(str_metrics))
+                sql = "UPDATE metrics SET to_delete=1 WHERE metric_id in ({})".format(
+                    ",".join(str_metrics))
                 logger.console(sql)
                 cursor.execute(sql)
             connection.commit()
@@ -1291,7 +1295,8 @@ def rebuild_rrd_graphs_from_db(indexes, timeout: int = TIMEOUT):
     with connection:
         with connection.cursor() as cursor:
             if len(indexes) > 0:
-                sql = "UPDATE index_data SET must_be_rebuild=1 WHERE id in ({})".format(",".join(map(str, indexes)))
+                sql = "UPDATE index_data SET must_be_rebuild='1' WHERE id in ({})".format(
+                    ",".join(map(str, indexes)))
                 logger.console(sql)
                 cursor.execute(sql)
                 connection.commit()
@@ -1426,3 +1431,45 @@ def add_bam_config_to_broker(name):
     f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "w")
     f.write(json.dumps(conf, indent=2))
     f.close()
+
+
+def check_poller_disabled_in_database(poller_id: int, timeout: int):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT DISTINCT enabled FROM hosts WHERE instance_id = {} AND enabled > 0".format(poller_id))
+                result = cursor.fetchall()
+                if len(result) == 0:
+                    return True
+        time.sleep(5)
+    return False
+
+
+def check_poller_enabled_in_database(poller_id: int, timeout: int):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT DISTINCT enabled FROM hosts WHERE instance_id = {} AND enabled > 0".format(poller_id))
+                result = cursor.fetchall()
+                if len(result) > 0:
+                    return True
+        time.sleep(5)
+    return False
