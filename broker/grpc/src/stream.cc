@@ -103,3 +103,19 @@ int32_t com::centreon::broker::grpc::stream::stop() {
 bool com::centreon::broker::grpc::stream::is_down() const {
   return _channel->is_down();
 }
+
+/**
+ * @brief wait for connection write queue empty
+ *
+ * @param ms_timeout
+ * @return true queue is empty
+ * @return false timeout expired
+ */
+bool com::centreon::broker::grpc::stream::wait_for_all_events_written(
+    unsigned ms_timeout) {
+  if (_channel->is_down()) {
+    return true;
+  }
+
+  return _channel->wait_for_all_events_written(ms_timeout);
+}

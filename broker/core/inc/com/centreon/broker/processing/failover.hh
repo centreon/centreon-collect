@@ -75,6 +75,7 @@ class failover : public endpoint {
   void set_failover(std::shared_ptr<processing::failover> fo);
   void set_retry_interval(time_t retry_interval);
   void update() override;
+  bool wait_for_all_events_written(unsigned ms_timeout) override;
 
  protected:
   // From stat_visitable

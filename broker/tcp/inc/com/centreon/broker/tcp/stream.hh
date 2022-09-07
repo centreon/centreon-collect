@@ -55,6 +55,7 @@ class stream : public io::stream {
   int32_t flush() override;
   int32_t stop() override;
   int32_t write(std::shared_ptr<io::data> const& d) override;
+  bool wait_for_all_events_written(unsigned ms_timeout) override;
 };
 }  // namespace tcp
 

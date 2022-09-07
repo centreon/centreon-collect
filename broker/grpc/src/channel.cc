@@ -213,6 +213,7 @@ void channel::on_write_done(bool ok) {
       _write_queue.pop_front();
       data_to_write = !_write_queue.empty();
     }
+    _write_cond.notify_all();
     if (data_to_write) {
       start_write();
     }
@@ -225,4 +226,19 @@ void channel::on_write_done(bool ok) {
 
 int channel::flush() {
   return 0;
+}
+
+/**
+ * @brief wait for all events sent on the wire
+ *
+ * @param ms_timeout
+ * @return true if all events are sent
+ * @return false if timeout expires
+ */
+bool channel::wait_for_all_events_written(unsigned ms_timeout) {
+  log_v2::grpc()->trace("wait_for_all_events_written _write_queue.size()={}",
+                        _write_queue.size());
+  unique_lock l(_protect);
+  return _write_cond.wait_for(l, std::chrono::milliseconds(ms_timeout),
+                              [this]() { return _write_queue.empty(); });
 }

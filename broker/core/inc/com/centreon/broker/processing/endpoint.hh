@@ -36,6 +36,8 @@ class endpoint : public stat_visitable {
   virtual void update() {}
   virtual void start() = 0;
   virtual void exit() = 0;
+
+  virtual bool wait_for_all_events_written(unsigned) { return true; }
 };
 }  // namespace processing
 

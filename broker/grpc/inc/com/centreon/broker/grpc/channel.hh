@@ -94,7 +94,7 @@ class channel : public std::enable_shared_from_this<channel> {
   grpc_config::pointer _conf;
 
   mutable std::mutex _protect;
-  mutable std::condition_variable _read_cond;
+  mutable std::condition_variable _read_cond, _write_cond;
 
   channel(const std::string& class_name, const grpc_config::pointer& conf);
 
@@ -130,6 +130,8 @@ class channel : public std::enable_shared_from_this<channel> {
   int write(const event_ptr&);
   int flush();
   virtual int stop();
+
+  bool wait_for_all_events_written(unsigned ms_timeout);
 };
 }  // namespace grpc
 

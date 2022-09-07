@@ -1570,3 +1570,45 @@ def remove_poller_by_id(port, idx, timeout=TIMEOUT):
                 break
             except:
                 logger.console("gRPC server not ready")
+
+
+def check_poller_disabled_in_database(poller_id: int, timeout: int):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT DISTINCT enabled FROM hosts WHERE instance_id = {} AND enabled > 0".format(poller_id))
+                result = cursor.fetchall()
+                if len(result) == 0:
+                    return True
+        time.sleep(5)
+    return False
+
+
+def check_poller_enabled_in_database(poller_id: int, timeout: int):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT DISTINCT enabled FROM hosts WHERE instance_id = {} AND enabled > 0".format(poller_id))
+                result = cursor.fetchall()
+                if len(result) > 0:
+                    return True
+        time.sleep(5)
+    return False

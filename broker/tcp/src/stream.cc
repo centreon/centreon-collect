@@ -193,3 +193,18 @@ int32_t stream::write(std::shared_ptr<io::data> const& d) {
   }
   return 1;
 }
+
+/**
+ * @brief wait for connection write queue empty
+ *
+ * @param ms_timeout
+ * @return true queue is empty
+ * @return false timeout expired
+ */
+bool stream::wait_for_all_events_written(unsigned ms_timeout) {
+  if (_connection->is_closed()) {
+    return true;
+  }
+
+  return _connection->wait_for_all_events_written(ms_timeout);
+}

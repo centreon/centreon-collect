@@ -85,13 +85,16 @@ void engine::publish(const std::shared_ptr<io::data>& e) {
   std::lock_guard<std::mutex> lock(_engine_m);
   switch (_state) {
     case stopped:
+      log_v2::core()->trace("engine::publish one event to file");
       _cache_file->add(e);
       _unprocessed_events++;
       break;
     case not_started:
+      log_v2::core()->trace("engine::publish one event to queue");
       _kiew.push_back(e);
       break;
     default:
+      log_v2::core()->trace("engine::publish one event to queue_");
       _kiew.push_back(e);
       if (!_sending_to_subscribers) {
         _sending_to_subscribers = true;
@@ -105,16 +108,22 @@ void engine::publish(const std::list<std::shared_ptr<io::data>>& to_publish) {
   std::lock_guard<std::mutex> lock(_engine_m);
   switch (_state) {
     case stopped:
+      log_v2::core()->trace("engine::publish {} event to file",
+                            to_publish.size());
       for (auto& e : to_publish) {
         _cache_file->add(e);
         _unprocessed_events++;
       }
       break;
     case not_started:
+      log_v2::core()->trace("engine::publish {} event to queue",
+                            to_publish.size());
       for (auto& e : to_publish)
         _kiew.push_back(e);
       break;
     default:
+      log_v2::core()->trace("engine::publish {} event to queue_",
+                            to_publish.size());
       for (auto& e : to_publish)
         _kiew.push_back(e);
       if (!_sending_to_subscribers) {
@@ -187,7 +196,9 @@ void engine::stop() {
       // Make sure that no more data is available.
       if (!_sending_to_subscribers) {
         log_v2::core()->info(
-            "multiplexing: sending events to muxers for the last time");
+            "multiplexing: sending events to muxers for the last time {} "
+            "events to send",
+            _kiew.size());
         _sending_to_subscribers = true;
         lock.unlock();
         std::promise<void> promise;
