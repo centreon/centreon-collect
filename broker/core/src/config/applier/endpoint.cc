@@ -206,6 +206,9 @@ void endpoint::_discard() {
   _discarding = true;
   log_v2::config()->debug("endpoint applier: destruction");
 
+  // wait for failover and feeder to push endloop event
+  ::usleep(processing::stat_visitable::idle_microsec_wait_idle_thread_delay +
+           100000);
   // Exit threads.
   {
     log_v2::config()->debug("endpoint applier: requesting threads termination");
@@ -215,6 +218,7 @@ void endpoint::_discard() {
     // We begin with feeders
     for (auto it = _endpoints.begin(); it != _endpoints.end();) {
       if (it->second->is_feeder()) {
+        it->second->wait_for_all_events_written(5000);
         log_v2::config()->trace(
             "endpoint applier: send exit signal to endpoint '{}'",
             it->second->get_name());
@@ -240,6 +244,7 @@ void endpoint::_discard() {
 
     // We continue with failovers
     for (auto it = _endpoints.begin(); it != _endpoints.end();) {
+      it->second->wait_for_all_events_written(5000);
       log_v2::config()->trace(
           "endpoint applier: send exit signal on endpoint '{}'",
           it->second->get_name());

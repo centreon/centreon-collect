@@ -1,5 +1,12 @@
 # Changelog
 
+## 22.04.2
+
+### engine
+
+#### Fixes
+
+engine waits up to 5 seconds to send bye event to broker
 ## 22.04.1
 
 ### ccc

@@ -74,6 +74,8 @@ class feeder : public stat_visitable {
   feeder& operator=(const feeder&) = delete;
   bool is_finished() const noexcept;
   const char* get_state() const;
+
+  bool wait_for_all_events_written(unsigned ms_timeout);
 };
 }  // namespace processing
 

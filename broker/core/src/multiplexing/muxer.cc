@@ -145,7 +145,7 @@ void muxer::ack_events(int count) {
       --_events_size;
     }
     log_v2::core()->trace("multiplexing: still {} events in {} event queue",
-                              _events_size, _name);
+                          _events_size, _name);
 
     // Fill memory from file.
     std::shared_ptr<io::data> e;
@@ -200,6 +200,7 @@ uint32_t muxer::event_queue_max_size() noexcept {
  */
 void muxer::publish(const std::shared_ptr<io::data> event) {
   if (event) {
+    log_v2::core()->trace("muxer::publish {} publish one event", _name);
     std::lock_guard<std::mutex> lock(_mutex);
     // Check if we should process this event.
     if (_write_filters.find(event->type()) == _write_filters.end())

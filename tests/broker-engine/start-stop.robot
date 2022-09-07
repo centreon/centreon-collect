@@ -38,7 +38,11 @@ BESS2
 	Start Engine
 	${result}=	Check Connections
 	Should Be True	${result}
+	${result}=  Check Poller Enabled In Database  1  5
+	Should Be True	${result}
 	Stop Engine
+	${result}=  Check Poller Disabled In Database  1  5
+	Should Be True	${result}
 	Kindly Stop Broker
 
 BESS3
@@ -52,7 +56,11 @@ BESS3
 	Start Broker
 	${result}=	Check Connections
 	Should Be True	${result}
+	${result}=  Check Poller Enabled In Database  1  10
+	Should Be True	${result}
 	Stop Engine
+	${result}=  Check Poller Disabled In Database  1  5
+	Should Be True	${result}
 	Kindly Stop Broker
 
 BESS4
@@ -65,6 +73,8 @@ BESS4
 	Start Engine
 	Start Broker
 	${result}=	Check Connections
+	Should Be True	${result}
+	${result}=  Check Poller Enabled In Database  1  10
 	Should Be True	${result}
 	Kindly Stop Broker
 	Stop Engine
@@ -84,263 +94,3 @@ BESS5
 	Kindly Stop Broker
 	Stop Engine
 
-BESS_GRPC1
-	[Documentation]	Start-Stop grpc version Broker/Engine - Broker started first - Broker stopped first
-	[Tags]	Broker	Engine	start-stop
-	Config Engine	${1}
-	Config Broker	central
-	Config Broker	module
-	Config Broker	rrd
-	Change Broker tcp output to grpc	central
-	Change Broker tcp output to grpc	module0
-	Change Broker tcp input to grpc     central
-	Change Broker tcp input to grpc     rrd
-	Start Broker
-	Start Engine
-	${result}=	Check Connections
-	Should Be True	${result}
-	Kindly Stop Broker
-	Stop Engine
-
-BESS_GRPC2
-	[Documentation]	Start-Stop grpc version Broker/Engine - Broker started first - Engine stopped first
-	[Tags]	Broker	Engine	start-stop
-	Config Engine	${1}
-	Config Broker	central
-	Config Broker	module
-	Config Broker	rrd
-	Change Broker tcp output to grpc	central
-	Change Broker tcp output to grpc	module0
-	Change Broker tcp input to grpc     central
-	Change Broker tcp input to grpc     rrd
-	Start Broker
-	Start Engine
-	${result}=	Check Connections
-	Should Be True	${result}
-	Stop Engine
-	Kindly Stop Broker
-
-BESS_GRPC3
-	[Documentation]	Start-Stop grpc version Broker/Engine - Engine started first - Engine stopped first
-	[Tags]	Broker	Engine	start-stop
-	Config Engine	${1}
-	Config Broker	central
-	Config Broker	module
-	Config Broker	rrd
-	Change Broker tcp output to grpc	central
-	Change Broker tcp output to grpc	module0
-	Change Broker tcp input to grpc     central
-	Change Broker tcp input to grpc     rrd
-	Start Engine
-	Start Broker
-	${result}=	Check Connections
-	Should Be True	${result}
-	Stop Engine
-	Kindly Stop Broker
-
-BESS_GRPC4
-	[Documentation]	Start-Stop grpc version Broker/Engine - Engine started first - Broker stopped first
-	[Tags]	Broker	Engine	start-stop
-	Config Engine	${1}
-	Config Broker	central
-	Config Broker	module
-	Config Broker	rrd
-	Change Broker tcp output to grpc	central
-	Change Broker tcp output to grpc	module0
-	Change Broker tcp input to grpc     central
-	Change Broker tcp input to grpc     rrd
-	Start Engine
-	Start Broker
-	${result}=	Check Connections
-	Should Be True	${result}
-	Kindly Stop Broker
-	Stop Engine
-
-BESS_GRPC5
-	[Documentation]	Start-Stop grpc version Broker/engine - Engine debug level is set to all, it should not hang
-	[Tags]	Broker	Engine	start-stop
-	Config Engine	${1}
-	Config Broker	central
-	Config Broker	module
-	Config Broker	rrd
-	Engine Config Set Value	${0}	debug_level	${-1}
-	Change Broker tcp output to grpc	central
-	Change Broker tcp output to grpc	module0
-	Change Broker tcp input to grpc     central
-	Change Broker tcp input to grpc     rrd
-	Start Broker
-	Start Engine
-	${result}=	Check Connections
-	Should Be True	${result}
-	Kindly Stop Broker
-	Stop Engine
-
-BESS_GRPC_COMPRESS1
-	[Documentation]	Start-Stop grpc version Broker/Engine - Broker started first - Broker stopped first compression activated
-	[Tags]	Broker	Engine	start-stop
-	Config Engine	${1}
-	Config Broker	central
-	Config Broker	module
-	Config Broker	rrd
-	Change Broker tcp output to grpc	central
-	Change Broker tcp output to grpc	module0
-	Change Broker tcp input to grpc     central
-	Change Broker tcp input to grpc     rrd
-	Change Broker Compression Output  module0  yes
-	Change Broker Compression Output  central  yes
-	Start Broker
-	Start Engine
-	${result}=	Check Connections
-	Should Be True	${result}
-	Kindly Stop Broker
-	Stop Engine
-
-
-BESS_CRYPTED_GRPC1
-	[Documentation]	Start-Stop grpc version Broker/Engine - well configured
-	[Tags]	Broker	Engine	start-stop
-	Config Engine	${1}
-	Config Broker	central
-	Config Broker	module
-	Config Broker	rrd
-	Copy File  ../broker/grpc/test/grpc_test_keys/ca_1234.crt  /tmp/
-	Copy File  ../broker/grpc/test/grpc_test_keys/server_1234.key  /tmp/
-	Copy File  ../broker/grpc/test/grpc_test_keys/server_1234.crt  /tmp/
-	Change Broker tcp output to grpc	central
-	Change Broker tcp output to grpc	module0
-	Change Broker tcp input to grpc     central
-	Change Broker tcp input to grpc     rrd
-	Add Broker tcp output grpc crypto  module0  True  False
-	Add Broker tcp input grpc crypto  central  True  False
-	Remove Host from broker output  module0  central-module-master-output
-	Add Host to broker output  module0  central-module-master-output  localhost
-	FOR	${i}	IN RANGE	0	5
-		Start Broker
-		Start Engine
-		${result}=	Check Connections
-		Should Be True	${result}
-		Kindly Stop Broker
-		Stop Engine
-	END
-
-BESS_CRYPTED_GRPC2
-	[Documentation]	Start-Stop grpc version Broker/Engine only server crypted
-	[Tags]	Broker	Engine	start-stop
-	Config Engine	${1}
-	Config Broker	central
-	Config Broker	module
-	Config Broker	rrd
-	Copy File  ../broker/grpc/test/grpc_test_keys/ca_1234.crt  /tmp/
-	Copy File  ../broker/grpc/test/grpc_test_keys/server_1234.key  /tmp/
-	Copy File  ../broker/grpc/test/grpc_test_keys/server_1234.crt  /tmp/
-	Change Broker tcp output to grpc	central
-	Change Broker tcp output to grpc	module0
-	Change Broker tcp input to grpc     central
-	Change Broker tcp input to grpc     rrd
-	Add Broker tcp input grpc crypto  central  True  False
-	FOR	${i}	IN RANGE	0	5
-		Start Broker
-		Start Engine
-		Sleep  2s
-		Kindly Stop Broker
-		Stop Engine
-	END
-
-BESS_CRYPTED_GRPC3
-	[Documentation]	Start-Stop grpc version Broker/Engine only engine crypted
-	[Tags]	Broker	Engine	start-stop
-	Config Engine	${1}
-	Config Broker	central
-	Config Broker	module
-	Config Broker	rrd
-	Copy File  ../broker/grpc/test/grpc_test_keys/ca_1234.crt  /tmp/
-	Copy File  ../broker/grpc/test/grpc_test_keys/server_1234.key  /tmp/
-	Copy File  ../broker/grpc/test/grpc_test_keys/server_1234.crt  /tmp/
-	Change Broker tcp output to grpc	central
-	Change Broker tcp output to grpc	module0
-	Change Broker tcp input to grpc     central
-	Change Broker tcp input to grpc     rrd
-	Add Broker tcp output grpc crypto  module0  True  False
-	FOR	${i}	IN RANGE	0	5
-		Start Broker
-		Start Engine
-		Sleep  2s
-		Kindly Stop Broker
-		Stop Engine
-	END
-
-BESS_CRYPTED_REVERSED_GRPC1
-	[Documentation]	Start-Stop grpc version Broker/Engine - well configured
-	[Tags]	Broker	Engine	start-stop
-	Config Engine	${1}
-	Config Broker	central
-	Config Broker	module
-	Config Broker	rrd
-	Copy File  ../broker/grpc/test/grpc_test_keys/ca_1234.crt  /tmp/
-	Copy File  ../broker/grpc/test/grpc_test_keys/server_1234.key  /tmp/
-	Copy File  ../broker/grpc/test/grpc_test_keys/server_1234.crt  /tmp/
-	Change Broker tcp output to grpc	central
-	Change Broker tcp output to grpc	module0
-	Change Broker tcp input to grpc     central
-	Change Broker tcp input to grpc     rrd
-	Add Broker tcp output grpc crypto  module0  True  True
-	Add Broker tcp input grpc crypto  central  True  True 
-	Add Host to broker input  central  central-broker-master-input  localhost
-	Remove Host from broker output  module0  central-module-master-output
-	FOR	${i}	IN RANGE	0	5
-		Start Broker
-		Start Engine
-		${result}=	Check Connections
-		Should Be True	${result}
-		Sleep  2s
-		Kindly Stop Broker
-		Stop Engine
-	END
-
-BESS_CRYPTED_REVERSED_GRPC2
-	[Documentation]	Start-Stop grpc version Broker/Engine only engine server crypted
-	[Tags]	Broker	Engine	start-stop
-	Config Engine	${1}
-	Config Broker	central
-	Config Broker	module
-	Config Broker	rrd
-	Copy File  ../broker/grpc/test/grpc_test_keys/ca_1234.crt  /tmp/
-	Copy File  ../broker/grpc/test/grpc_test_keys/server_1234.key  /tmp/
-	Copy File  ../broker/grpc/test/grpc_test_keys/server_1234.crt  /tmp/
-	Change Broker tcp output to grpc	central
-	Change Broker tcp output to grpc	module0
-	Change Broker tcp input to grpc     central
-	Change Broker tcp input to grpc     rrd
-	Add Broker tcp output grpc crypto  module0  True  True
-	Add Host to broker input  central  central-broker-master-input  localhost
-	Remove Host from broker output  module0  central-module-master-output
-	FOR	${i}	IN RANGE	0	5
-		Start Broker
-		Start Engine
-		Sleep  5s
-		Kindly Stop Broker
-		Stop Engine
-	END
-
-BESS_CRYPTED_REVERSED_GRPC3
-	[Documentation]	Start-Stop grpc version Broker/Engine only engine crypted
-	[Tags]	Broker	Engine	start-stop
-	Config Engine	${1}
-	Config Broker	central
-	Config Broker	module
-	Config Broker	rrd
-	Copy File  ../broker/grpc/test/grpc_test_keys/ca_1234.crt  /tmp/
-	Change Broker tcp output to grpc	central
-	Change Broker tcp output to grpc	module0
-	Change Broker tcp input to grpc     central
-	Change Broker tcp input to grpc     rrd
-	Add Broker tcp input grpc crypto  central  True  True 
-	Add Host to broker input  central  central-broker-master-input  localhost
-	Remove Host from broker output  module0  central-module-master-output
-	FOR	${i}	IN RANGE	0	5
-		Start Broker
-		Start Engine
-		Sleep  5s
-		Kindly Stop Broker
-		Stop Engine
-	END
