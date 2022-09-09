@@ -48,7 +48,8 @@ anomalydetection::threshold_point::threshold_point(time_t timepoint)
       _upper(0.0),
       _fit(0.0),
       _lower_margin(0.0),
-      _upper_margin(0.0) {}
+      _upper_margin(0.0),
+      _format(e_format::V1) {}
 
 anomalydetection::threshold_point::threshold_point(
     time_t timepoint,

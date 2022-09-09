@@ -816,6 +816,7 @@ def find_internal_id(date, exists=True, timeout: int = TIMEOUT):
         time.sleep(1)
     return False
 
+
 def check_types_in_resources(lst: list):
     connection = pymysql.connect(host=DB_HOST,
                                  user=DB_USER,
@@ -839,7 +840,16 @@ def check_types_in_resources(lst: list):
                             found = True
                             break
                     if not found:
-                        logger.console(f"Value {t} not found in result of query 'select distinct type from resources'")
+                        logger.console(
+                            f"Value {t} not found in result of query 'select distinct type from resources'")
                         return False
                 return True
     return False
+
+
+def grep(file_path: str, pattern: str):
+    with open(file_path, "r") as file:
+        for line in file:
+            if re.search(pattern, line):
+                return line.strip()
+    return ""
