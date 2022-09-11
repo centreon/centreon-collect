@@ -57,6 +57,7 @@ Here is the list of the currently implemented tests:
 - [x] **BEBAMIDT2**: A BA of type 'worst' with one service is configured. The BA is in critical state, because of its service. Then we set a downtime on this last one. An inherited downtime is set to the BA. Engine is restarted. Broker is restarted. The two downtimes are still there with no duplicates. The downtime is removed from the service, the inherited downtime is then deleted.
 - [x] **BEBAMIGNDT1**: A BA of type 'worst' with two services is configured. The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in critical state, because of the second critical service. Then we apply two downtimes on this last one. The BA state is ok because of the policy on indicators. A first downtime is cancelled, the BA is still OK, but when the second downtime is cancelled, the BA should be CRITICAL.
 - [x] **BEBAMIGNDT2**: A BA of type 'worst' with two services is configured. The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in critical state, because of the second critical service. Then we apply two downtimes on this last one. The BA state is ok because of the policy on indicators. The first downtime reaches its end, the BA is still OK, but when the second downtime reaches its end, the BA should be CRITICAL.
+- [x] **BEBAMIGNDTU1**: A BA of type 'worst' with two services is configured. The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in critical state, because of the second critical service. Then we apply two downtimes on this last one. The BA state is ok because of the policy on indicators. The first downtime reaches its end, the BA is still OK, but when the second downtime reaches its end, the BA should be CRITICAL.
 
 ### Broker
 - [x] **BCL1**: Starting broker with option '-s foobar' should return an error
@@ -115,7 +116,7 @@ Here is the list of the currently implemented tests:
 - [x] **BSCSSGA2**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with grpc transport protocol. An authorization token is added on the server and also on the client. All looks ok.
 - [x] **BSCSSGRR1**: Start-Stop two instances of broker and no coredump, reversed and retention, with transport protocol grpc, start-stop 5 times.
 - [x] **BSCSSK1**: Start-Stop two instances of broker, server configured with grpc and client with tcp. No connectrion established and error raised on client side.
-- [x] **BSCSSK2**: Start-Stop two instances of broker, server configured with tcp and client with grpc. No connectrion established and error raised on client side.
+- [x] **BSCSSK2**: Start-Stop two instances of broker, server configured with tcp and client with grpc. No connection established and error raised on client side.
 - [x] **BSCSSP1**: Start-Stop two instances of broker and no coredump. The server contains a listen address
 - [x] **BSCSSPRR1**: Start-Stop two instances of broker and no coredump. The server contains a listen address, reversed and retention. central-broker-master-output is then a failover.
 - [x] **BSCSSR1**: Start-Stop two instances of broker and no coredump. Connection with bbdo_server/bbdo_client and reversed.
@@ -125,6 +126,7 @@ Here is the list of the currently implemented tests:
 - [x] **BSCSST2**: Start-Stop two instances of broker and no coredump. Encryption is enabled on client side.
 - [x] **BSCSSTG1**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with encryption enabled. This is not sufficient, then an error is raised.
 - [x] **BSCSSTG2**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with encryption enabled. It works with good certificates and keys.
+- [x] **BSCSSTG3**: Start-Stop two instances of broker. The connection cannot be established if the server private key is missing and an error message explains this issue.
 - [x] **BSCSSTGRR2**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with encryption enabled. It works with good certificates and keys. Reversed grpc connection with retention.
 - [x] **BSCSSTRR1**: Start-Stop two instances of broker and no coredump. Encryption is enabled. transport protocol is tcp, reversed and retention.
 - [x] **BSCSSTRR2**: Start-Stop two instances of broker and no coredump. Encryption is enabled.
@@ -151,6 +153,11 @@ Here is the list of the currently implemented tests:
 - [x] **NetworkDbFail5**: network failure test between broker and database (shutting down connection for 60s)
 
 ### Broker/engine
+- [x] **ANO_NOFILE**: an anomaly detection without threshold file must be in unknown state
+- [x] **ANO_OUT_LOWER_THAN_LIMIT**: an anomaly detection with a perfdata lower than lower limit make a critical state
+- [x] **ANO_OUT_UPPER_THAN_LIMIT**: an anomaly detection with a perfdata upper than upper limit make a critical state
+- [x] **ANO_TOO_OLD_FILE**: an anomaly detection with an oldest threshold file must be in unknown state
+- [x] **AOUTLU1**: an anomaly detection with a perfdata upper than upper limit make a critical state with bbdo 3
 - [x] **BEATOI11**: external command SEND_CUSTOM_HOST_NOTIFICATION with option_number=1 should work
 - [x] **BEATOI12**: external command SEND_CUSTOM_HOST_NOTIFICATION with option_number>7 should fail
 - [x] **BEATOI13**: external command SCHEDULE SERVICE DOWNTIME with duration<0 should fail
@@ -312,10 +319,6 @@ Here is the list of the currently implemented tests:
 - [x] **LOGV2EF1**: log-v2 enabled  old log disabled check logfile sink
 - [x] **LOGV2EF2**: log-v2 enabled old log enabled check logfile sink
 - [x] **LOGV2FE2**: log-v2 enabled old log enabled check logfile sink
-- [x] **ANO_NOFILE**: anomaly is checked but threshold file doesn't exist
-- [x] **ANO_TOO_OLD_FILE**: anomaly is checked but the last timestamp of threshold file is too old
-- [x] **ANO_OUT_LOWER_THAN_LIMIT**: metric is beyond lower limit
-- [x] **ANO_OUT_UPPER_THAN_LIMIT**: metric is beyond upper limit
 
 ### Ccc
 - [x] **BECCC1**: ccc without port fails with an error message

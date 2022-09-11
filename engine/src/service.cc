@@ -19,6 +19,8 @@
 
 #include "com/centreon/engine/service.hh"
 
+#include <absl/strings/match.h>
+
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/deleter/listmember.hh"
@@ -88,7 +90,8 @@ service::service(const std::string& hostname,
                  int freshness_threshold,
                  bool obsess_over,
                  const std::string& timezone,
-                 uint64_t icon_id)
+                 uint64_t icon_id,
+                 service_type st)
     : notifier{service_notification,
                description,
                display_name,
@@ -124,6 +127,7 @@ service::service(const std::string& hostname,
                0,
                is_volatile,
                icon_id},
+      _service_type{st},
       _host_id{0},
       _service_id{0},
       _hostname{hostname},
@@ -139,6 +143,16 @@ service::service(const std::string& hostname,
       _last_state{initial_state},
       _host_ptr{nullptr},
       _host_problem_at_last_check{false} {
+  if (st == NONE) {
+    if (absl::StartsWith(hostname, "_Module_Meta") &&
+        absl::StartsWith(description, "meta_"))
+      _service_type = METASERVICE;
+    else if (absl::StartsWith(hostname, "_Module_BAM") &&
+             absl::StartsWith(description, "ba_"))
+      _service_type = BA;
+    else
+      _service_type = SERVICE;
+  }
   set_current_attempt(initial_state == service::state_ok ? 1 : max_attempts);
 }
 
@@ -3850,4 +3864,14 @@ void service::resolve(int& w, int& e) {
 
 bool service::get_host_problem_at_last_check() const {
   return _host_problem_at_last_check;
+}
+
+/**
+ * @brief Accessor to the service type: SERVICE, METASERVICE, ANOMALY DETECTION
+ * or BA.
+ *
+ * @return the service sype.
+ */
+service_type service::get_service_type() const {
+  return _service_type;
 }

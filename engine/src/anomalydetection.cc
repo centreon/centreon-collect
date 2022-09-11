@@ -162,6 +162,7 @@ CCE_END()
  *                                          service is running on.
  *  @param[in] description                  Service description.
  *  @param[in] display_name                 Display name.
+ *  @param[in] internal_id                  Configuration AD unique id
  *  @param[in] dependent_service            Dependent service
  *  @param[in] metric_name                  Metric to consider.
  *  @param[in] thresholds_file              Full path of the file containing
@@ -238,6 +239,7 @@ anomalydetection::anomalydetection(uint64_t host_id,
                                    std::string const& hostname,
                                    std::string const& description,
                                    std::string const& display_name,
+                                   uint64_t internal_id,
                                    service* dependent_service,
                                    std::string const& metric_name,
                                    std::string const& thresholds_file,
@@ -300,7 +302,9 @@ anomalydetection::anomalydetection(uint64_t host_id,
               freshness_threshold,
               obsess_over,
               timezone,
-              icon_id},
+              icon_id,
+              ANOMALY_DETECTION},
+      _internal_id{internal_id},
       _metric_name{metric_name},
       _thresholds_file{thresholds_file},
       _status_change{status_change},
@@ -318,6 +322,7 @@ anomalydetection::anomalydetection(uint64_t host_id,
  *                                          service is running on.
  *  @param[in] description                  Service description.
  *  @param[in] display_name                 Display name.
+ *  @param[in] internal_id                  Configuration id of this AD
  *  @param[in] dependent_service_id         Dependent service id.
  *  @param[in] metric_name                  Metric to consider.
  *  @param[in] thresholds_file,             fullname to the thresholds file.
@@ -394,6 +399,7 @@ com::centreon::engine::anomalydetection* add_anomalydetection(
     std::string const& host_name,
     std::string const& description,
     std::string const& display_name,
+    uint64_t internal_id,
     uint64_t dependent_service_id,
     std::string const& metric_name,
     std::string const& thresholds_file,
@@ -477,6 +483,15 @@ com::centreon::engine::anomalydetection* add_anomalydetection(
     }
   }
 
+  if (internal_id == 0) {
+    engine_logger(log_config_error, basic)
+        << "Error: The internal_id in the anomaly detection configuration is "
+           "mandatory";
+    SPDLOG_LOGGER_ERROR(log_v2::config(),
+                        "Error: The internal_id in the anomaly detection "
+                        "configuration is mandatory");
+    return nullptr;
+  }
   auto it = service::services_by_id.find({host_id, dependent_service_id});
   if (it == service::services_by_id.end()) {
     engine_logger(log_config_error, basic)
@@ -546,15 +561,16 @@ com::centreon::engine::anomalydetection* add_anomalydetection(
   // Allocate memory.
   auto obj{std::make_shared<anomalydetection>(
       host_id, service_id, host_name, description,
-      display_name.empty() ? description : display_name, dependent_service,
-      metric_name, thresholds_file, status_change, checks_enabled,
-      accept_passive_checks, initial_state, check_interval, retry_interval,
-      notification_interval, max_attempts, first_notification_delay,
-      recovery_notification_delay, notification_period, notifications_enabled,
-      is_volatile, event_handler, event_handler_enabled, notes, notes_url,
-      action_url, icon_image, icon_image_alt, flap_detection_enabled,
-      low_flap_threshold, high_flap_threshold, check_freshness,
-      freshness_threshold, obsess_over_service, timezone, icon_id)};
+      display_name.empty() ? description : display_name, internal_id,
+      dependent_service, metric_name, thresholds_file, status_change,
+      checks_enabled, accept_passive_checks, initial_state, check_interval,
+      retry_interval, notification_interval, max_attempts,
+      first_notification_delay, recovery_notification_delay,
+      notification_period, notifications_enabled, is_volatile, event_handler,
+      event_handler_enabled, notes, notes_url, action_url, icon_image,
+      icon_image_alt, flap_detection_enabled, low_flap_threshold,
+      high_flap_threshold, check_freshness, freshness_threshold,
+      obsess_over_service, timezone, icon_id)};
   try {
     obj->set_acknowledgement_type(ACKNOWLEDGEMENT_NONE);
     obj->set_check_options(CHECK_OPTION_NONE);
@@ -607,8 +623,16 @@ com::centreon::engine::anomalydetection* add_anomalydetection(
   return obj.get();
 }
 
+uint64_t anomalydetection::get_internal_id() const {
+  return _internal_id;
+}
+
 service* anomalydetection::get_dependent_service() const {
   return _dependent_service;
+}
+
+void anomalydetection::set_internal_id(uint64_t id) {
+  _internal_id = id;
 }
 
 void anomalydetection::set_dependent_service(service* svc) {

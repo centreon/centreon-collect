@@ -31,6 +31,7 @@ enum ServiceType {
   SERVICE = 0;
   METASERVICE = 2;
   BA = 3;
+  ANOMALY_DETECTION = 4;
 }
 
 message Service {

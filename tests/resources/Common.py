@@ -815,3 +815,31 @@ def find_internal_id(date, exists=True, timeout: int = TIMEOUT):
                         return True
         time.sleep(1)
     return False
+
+def check_types_in_resources(lst: list):
+    connection = pymysql.connect(host=DB_HOST,
+                                 user=DB_USER,
+                                 password=DB_PASS,
+                                 database=DB_NAME_STORAGE,
+                                 charset='utf8mb4',
+                                 autocommit=True,
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+    with connection:
+        with connection.cursor() as cursor:
+            logger.console("select distinct type from resources")
+            cursor.execute("select distinct type from resources")
+            result = cursor.fetchall()
+            if len(result) > 0:
+                for t in lst:
+                    found = False
+                    for r in result:
+                        v = r['type']
+                        if int(v) == int(t):
+                            found = True
+                            break
+                    if not found:
+                        logger.console(f"Value {t} not found in result of query 'select distinct type from resources'")
+                        return False
+                return True
+    return False

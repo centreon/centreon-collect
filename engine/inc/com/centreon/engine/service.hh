@@ -39,22 +39,30 @@ class servicegroup;
 class serviceescalation;
 CCE_END()
 
-typedef std::unordered_map<std::pair<std::string, std::string>,
-                           std::shared_ptr<com::centreon::engine::service>,
-                           pair_hash>
+typedef absl::flat_hash_map<std::pair<std::string, std::string>,
+                            std::shared_ptr<com::centreon::engine::service>>
     service_map;
-typedef std::unordered_map<std::pair<std::string, std::string>,
-                           com::centreon::engine::service*,
-                           pair_hash>
+typedef absl::flat_hash_map<std::pair<std::string, std::string>,
+                            com::centreon::engine::service*>
     service_map_unsafe;
-typedef std::unordered_map<std::pair<uint64_t, uint64_t>,
-                           std::shared_ptr<com::centreon::engine::service>,
-                           pair_hash>
+typedef absl::flat_hash_map<std::pair<uint64_t, uint64_t>,
+                            std::shared_ptr<com::centreon::engine::service>>
     service_id_map;
 
 CCE_BEGIN()
 
+enum service_type {
+  NONE = -1,
+  SERVICE = 0,
+  METASERVICE = 2,
+  BA = 3,
+  ANOMALY_DETECTION = 4,
+};
+
 class service : public notifier {
+ protected:
+  service_type _service_type;
+
  public:
   static std::array<std::pair<uint32_t, std::string>, 4> const
       tab_service_states;
@@ -92,12 +100,14 @@ class service : public notifier {
           int freshness_threshold,
           bool obsess_over,
           std::string const& timezone,
-          uint64_t icon_id);
+          uint64_t icon_id,
+          service_type st = NONE);
   ~service() noexcept;
   void set_host_id(uint64_t host_id);
   uint64_t get_host_id() const;
   void set_service_id(uint64_t service_id);
   uint64_t get_service_id() const;
+  service_type get_service_type() const;
   void set_hostname(std::string const& name);
   std::string const& get_hostname() const;
   void set_description(std::string const& desc);
