@@ -19,6 +19,8 @@
 
 #include "com/centreon/broker/tcp/factory.hh"
 
+#include <absl/strings/match.h>
+
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/tcp/acceptor.hh"
@@ -52,7 +54,7 @@ bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
   /* New case: we create a bbdo_server or a bbdo_client with transport protocol
    * set to 'grpc' */
   if ((cfg.type == "bbdo_server" || cfg.type == "bbdo_client") &&
-      cfg.params["transport_protocol"] == "tcp")
+      absl::EqualsIgnoreCase(cfg.params["transport_protocol"], "tcp"))
     return true;
 
   return false;
