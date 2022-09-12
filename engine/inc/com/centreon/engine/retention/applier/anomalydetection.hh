@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013 Merethis
+** Copyright 2022 Centreon
 **
 ** This file is part of Centreon Engine.
 **
@@ -17,15 +17,15 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CCE_RETENTION_APPLIER_SERVICE_HH
-#define CCE_RETENTION_APPLIER_SERVICE_HH
+#ifndef CCE_RETENTION_APPLIER_ANOMALYDETECTION_HH
+#define CCE_RETENTION_APPLIER_ANOMALYDETECTION_HH
 
-#include "com/centreon/engine/retention/service.hh"
+#include "com/centreon/engine/retention/anomalydetection.hh"
 
 // Forward declaration.
 
 CCE_BEGIN()
-class service;
+class anomalydetection;
 
 // Forward declaration.
 namespace configuration {
@@ -34,20 +34,21 @@ class state;
 
 namespace retention {
 namespace applier {
-class service {
+class anomalydetection {
  public:
   static void apply(configuration::state const& config,
-                    list_service const& lst,
+                    list_anomalydetection const& lst,
                     bool scheduling_info_is_ok);
 
-  static void update(configuration::state const& config,
-                     retention::service const& state,
-                     com::centreon::engine::service& obj,
-                     bool scheduling_info_is_ok);
+ private:
+  static void _update(configuration::state const& config,
+                      retention::anomalydetection const& state,
+                      com::centreon::engine::anomalydetection& obj,
+                      bool scheduling_info_is_ok);
 };
 }  // namespace applier
 }  // namespace retention
 
 CCE_END()
 
-#endif  // !CCE_RETENTION_APPLIER_SERVICE_HH
+#endif  // !CCE_RETENTION_APPLIER_ANOMALYDETECTION_HH

@@ -56,6 +56,7 @@ state& state::operator=(state const& right) {
     _hosts = right._hosts;
     _info = right._info;
     _services = right._services;
+    _anomalydetection = right._anomalydetection;
   }
   return (*this);
 }
@@ -71,7 +72,8 @@ bool state::operator==(state const& right) const throw() {
   return (_comments == right._comments && _contacts == right._contacts &&
           _downtimes == right._downtimes && _globals == right._globals &&
           _hosts == right._hosts && _info == right._info &&
-          _services == right._services);
+          _services == right._services &&
+          _anomalydetection == right._anomalydetection);
 }
 
 /**

@@ -1,3 +1,7 @@
+import Common
+import grpc
+import engine_pb2
+import engine_pb2_grpc
 from array import array
 from os import makedirs, chmod
 from os.path import exists, dirname
@@ -13,9 +17,7 @@ import re
 import stat
 import string
 
-import grpc
-import engine_pb2
-import engine_pb2_grpc
+sys.path.append('.')
 
 
 SCRIPT_DIR: str = dirname(__file__) + "/engine-scripts/"
@@ -186,7 +188,7 @@ class EngineInstance:
             host_id, service_id, self.service_cmd[service_id])
         return retval
 
-    def create_anomaly_detection(self, host_id: int, dependent_service_id: int, metric_name: string):
+    def create_anomaly_detection(self, host_id: int, dependent_service_id: int, metric_name: string, sensitivity: float = 0.0):
         self.last_service_id += 1
         service_id = self.last_service_id
         retval = """define anomalydetection {{
@@ -197,9 +199,10 @@ class EngineInstance:
     service_description      anomaly_{1}
     dependent_service_id {2}
     metric_name {3}
+    sensitivity {5}
     status_change 1
     thresholds_file /tmp/anomaly_threshold.json
-}} """.format(host_id, service_id, dependent_service_id, metric_name, self.anomaly_detection_internal_id)
+}} """.format(host_id, service_id, dependent_service_id, metric_name, self.anomaly_detection_internal_id, sensitivity)
         self.anomaly_detection_internal_id += 1
         return retval
 
@@ -662,11 +665,11 @@ def create_service(index: int, host_id: int, cmd_id: int):
     return retval
 
 
-def create_anomaly_detection(index: int, host_id: int, dependent_service_id: int, metric_name: string):
+def create_anomaly_detection(index: int, host_id: int, dependent_service_id: int, metric_name: string, sensitivity: float = 0.0):
     f = open(
         ETC_ROOT + "/centreon-engine/config{}/anomaly_detection.cfg".format(index), "a+")
     to_append = engine.create_anomaly_detection(
-        host_id, dependent_service_id, metric_name)
+        host_id, dependent_service_id, metric_name, sensitivity)
     lst = to_append.split('\n')
     good = [l for l in lst if "service_id" in l][0]
     m = re.search(r"service_id\s+([^\s]*)$", good)
@@ -978,6 +981,21 @@ def enable_host_notifications(use_grpc: int, hst: str):
         now = int(time.time())
         cmd = "[{}] ENABLE_HOST_NOTIFICATIONS;{}\n".format(
             now, hst)
+        f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+        f.write(cmd)
+        f.close()
+
+
+def update_ano_sensitivity(use_grpc: int, hst: str, serv: str, sensitivity: float):
+    if use_grpc > 0:
+        with grpc.insecure_channel("127.0.0.1:50001") as channel:
+            stub = engine_pb2_grpc.EngineStub(channel)
+            stub.ChangeAnomalyDetectionSensitivity(engine_pb2.ChangeServiceNumber(serv=engine_pb2.ServiceIdentifier(
+                names=engine_pb2.NameIdentifier(host_name=hst, service_name=serv)), dval=sensitivity))
+    else:
+        now = int(time.time())
+        cmd = "[{}] CHANGE_ANOMALYDETECTION_SENSITIVITY;{};{};{}\n".format(
+            now, hst, serv, sensitivity)
         f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
         f.write(cmd)
         f.close()
@@ -1473,3 +1491,36 @@ def create_anomaly_threshold_file(path: string, host_id: int, service_id: int, m
 ]
 """)
     f.close()
+
+
+def create_anomaly_threshold_file_V2(path: string, host_id: int, service_id: int, metric_name: string, sensitivity: float, values: array):
+    f = open(path, "w")
+    f.write("""[
+    {{
+        "host_id": "{0}",
+        "service_id": "{1}",
+        "metric_name": "{2}",
+        "sensitivity": {3},
+        "predict": [
+            """.format(host_id, service_id, metric_name, sensitivity))
+    sep = ""
+    for ts_fit_lower_upper in values:
+        f.write(sep)
+        sep = ","
+        f.write("""
+            {{
+                "timestamp": {0},
+                "fit": {1},
+                "lower_margin": {2},
+                "upper_margin": {3}
+            }}""".format(ts_fit_lower_upper[0], ts_fit_lower_upper[1], ts_fit_lower_upper[2], ts_fit_lower_upper[3]))
+    f.write("""
+        ]
+    }
+]
+""")
+    f.close()
+
+
+def grep_retention(poller: int, pattern: str):
+    return Common.grep("{}/log/centreon-engine/config{}/retention.dat".format(VAR_ROOT, poller), pattern)

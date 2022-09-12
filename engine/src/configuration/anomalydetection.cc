@@ -112,6 +112,7 @@ std::unordered_map<std::string, anomalydetection::setter_func> const
         {"category_tags", SETTER(std::string const&, _set_category_tags)},
         {"group_tags", SETTER(std::string const&, _set_group_tags)},
         {"icon_id", SETTER(uint64_t, _set_icon_id)},
+        {"sensitivity", SETTER(double, _set_sensitivity)},
     };
 
 // Default values.
@@ -182,7 +183,8 @@ anomalydetection::anomalydetection()
       _dependent_service_id(0),
       _stalking_options(default_stalking_options),
       _severity_id{0u},
-      _icon_id{0u} {}
+      _icon_id{0u},
+      _sensitivity(0.0) {}
 
 /**
  *  Copy constructor.
@@ -240,7 +242,8 @@ anomalydetection::anomalydetection(anomalydetection const& other)
       _timezone(other._timezone),
       _severity_id{other._severity_id},
       _icon_id{other._icon_id},
-      _tags{other._tags} {}
+      _tags{other._tags},
+      _sensitivity(other._sensitivity) {}
 
 /**
  *  Destructor.
@@ -307,6 +310,7 @@ anomalydetection& anomalydetection::operator=(anomalydetection const& other) {
     _severity_id = other._severity_id;
     _icon_id = other._icon_id;
     _tags = other._tags;
+    _sensitivity = other._sensitivity;
   }
   return *this;
 }
@@ -747,6 +751,13 @@ bool anomalydetection::operator==(
         "configuration::anomalydetection::equality => tags don't match");
     return false;
   }
+  if (_sensitivity != other._sensitivity) {
+    engine_logger(dbg_config, more) << "configuration::anomalydetection::"
+                                       "equality => sensitivity don't match";
+    log_v2::config()->debug(
+        "configuration::anomalydetection::equality => sensitivity don't match");
+    return false;
+  }
   engine_logger(dbg_config, more)
       << "configuration::anomalydetection::equality => OK";
   log_v2::config()->debug("configuration::anomalydetection::equality => OK");
@@ -871,6 +882,8 @@ bool anomalydetection::operator<(anomalydetection const& other) const noexcept {
     return _severity_id < other._severity_id;
   else if (_icon_id != other._icon_id)
     return _icon_id < other._icon_id;
+  else if (_sensitivity != other._sensitivity)
+    return _sensitivity < other._sensitivity;
   return _tags < other._tags;
 }
 
@@ -976,6 +989,7 @@ void anomalydetection::merge(object const& obj) {
   MRG_OPTION(_timezone);
   MRG_OPTION(_severity_id);
   MRG_OPTION(_icon_id);
+  MRG_OPTION(_sensitivity);
   MRG_MAP(_tags);
 }
 
@@ -2377,4 +2391,15 @@ bool anomalydetection::_set_icon_id(uint64_t icon_id) {
  */
 uint64_t anomalydetection::icon_id() const noexcept {
   return _icon_id;
+}
+
+/**
+ * @brief sensitivity setter
+ *
+ * @param value
+ * @return true on success
+ */
+bool anomalydetection::_set_sensitivity(double value) {
+  _sensitivity = value;
+  return true;
 }

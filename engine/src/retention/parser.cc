@@ -34,7 +34,10 @@ parser::store parser::_store[] = {
     &parser::_store_into_list<list_host, host, &state::hosts>,
     &parser::_store_object<info, &state::informations>,
     &parser::_store_object<program, &state::globals>,
-    &parser::_store_into_list<list_service, service, &state::services>};
+    &parser::_store_into_list<list_service, service, &state::services>,
+    &parser::_store_into_list<list_anomalydetection,
+                              anomalydetection,
+                              &state::anomalydetection>};
 
 /**
  *  Default constructor.

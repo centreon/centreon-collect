@@ -153,10 +153,13 @@ Here is the list of the currently implemented tests:
 - [x] **NetworkDbFail5**: network failure test between broker and database (shutting down connection for 60s)
 
 ### Broker/engine
-- [x] **ANO_NOFILE**: an anomaly detection without threshold file must be in unknown state
-- [x] **ANO_OUT_LOWER_THAN_LIMIT**: an anomaly detection with a perfdata lower than lower limit make a critical state
-- [x] **ANO_OUT_UPPER_THAN_LIMIT**: an anomaly detection with a perfdata upper than upper limit make a critical state
-- [x] **ANO_TOO_OLD_FILE**: an anomaly detection with an oldest threshold file must be in unknown state
+- [x] **ANO_CFG_SENSITIVITY_SAVED**: cfg sensitivity parameter must be saved in retention
+- [x] **ANO_EXTCMD_SENSITIVITY_SAVED**: when user modify senstivity parameter with external command grpc or rw, the new value must be set in retention
+- [x] **ANO_NOFILE**: anomaly is checked but threshold file doesn't exist
+- [x] **ANO_JSON_SENSITIVITY_NOT_SAVED**: json sensitivity parameter is only a default parameter and musn't be saved in retention
+- [x] **ANO_OUT_LOWER_THAN_LIMIT**: metric is beyond lower limit
+- [x] **ANO_OUT_UPPER_THAN_LIMIT**: metric is beyond upper limit
+- [x] **ANO_TOO_OLD_FILE**: anomaly is checked but the last timestamp of threshold file is too old
 - [x] **AOUTLU1**: an anomaly detection with a perfdata upper than upper limit make a critical state with bbdo 3
 - [x] **BEATOI11**: external command SEND_CUSTOM_HOST_NOTIFICATION with option_number=1 should work
 - [x] **BEATOI12**: external command SEND_CUSTOM_HOST_NOTIFICATION with option_number>7 should fail

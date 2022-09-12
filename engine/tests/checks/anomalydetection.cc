@@ -140,17 +140,15 @@ class AnomalydetectionCheck : public TestEngine {
 
 // clang-format on
 
-TEST_F(AnomalydetectionCheck, StatusChanges) {
-  CreateFile(
-      "/tmp/thresholds_status_change.json",
-      "[{\n \"host_id\": \"12\",\n \"service_id\": \"9\",\n \"metric_name\": "
-      "\"metric\",\n \"predict\": [{\n \"timestamp\": 50000,\n \"upper\": "
-      "84,\n \"lower\": 74,\n \"fit\": 79\n }, {\n \"timestamp\": 100000,\n "
-      "\"upper\": 10,\n \"lower\": 5,\n \"fit\": 51.5\n }, {\n \"timestamp\": "
-      "150000,\n \"upper\": 100,\n \"lower\": 93,\n \"fit\": 96.5\n }, {\n "
-      "\"timestamp\": 200000,\n \"upper\": 100,\n \"lower\": 97,\n \"fit\": "
-      "98.5\n }, {\n \"timestamp\": 250000,\n \"upper\": 100,\n \"lower\": "
-      "21,\n \"fit\": 60.5\n }\n]}]");
+enum class e_json_version { V1, V2 };
+
+class AnomalydetectionCheckStatusChange
+    : public AnomalydetectionCheck,
+      public testing::WithParamInterface<
+          std::pair<e_json_version, const char*>> {};
+
+TEST_P(AnomalydetectionCheckStatusChange, StatusChanges) {
+  CreateFile("/tmp/thresholds_status_change.json", GetParam().second);
   _ad->init_thresholds();
   _ad->set_status_change(true);
 
@@ -198,9 +196,17 @@ TEST_F(AnomalydetectionCheck, StatusChanges) {
   ASSERT_EQ(_ad->get_last_state_change(), 50000);
   ASSERT_EQ(_ad->get_current_attempt(), 1);
   ASSERT_EQ(_ad->get_plugin_output(), "OK: Regular activity, metric=80.00");
-  ASSERT_EQ(_ad->get_perf_data(),
-            "metric=80 metric_lower_thresholds=73.31 "
-            "metric_upper_thresholds=83.26");
+  if (GetParam().first == e_json_version::V1) {
+    ASSERT_EQ(_ad->get_perf_data(),
+              "metric=80 metric_lower_thresholds=73.31 "
+              "metric_upper_thresholds=83.26 metric_fit=78.26 "
+              "metric_lower_margin=0.00 metric_upper_margin=0.00");
+  } else {
+    ASSERT_EQ(_ad->get_perf_data(),
+              "metric=80 metric_lower_thresholds=73.31 "
+              "metric_upper_thresholds=83.26 metric_fit=78.26 "
+              "metric_lower_margin=-4.95 metric_upper_margin=5.00");
+  }
 
   // --- 2 ----
   set_time(51000);
@@ -225,10 +231,17 @@ TEST_F(AnomalydetectionCheck, StatusChanges) {
   ASSERT_EQ(_ad->get_last_state_change(), 50000);
   ASSERT_EQ(_ad->get_current_attempt(), 1);
   ASSERT_EQ(_ad->get_plugin_output(), "OK: Regular activity, metric=80.00");
-  ASSERT_EQ(_ad->get_perf_data(),
-            "metric=80 metric_lower_thresholds=72.62 "
-            "metric_upper_thresholds=82.52");
-
+  if (GetParam().first == e_json_version::V1) {
+    ASSERT_EQ(_ad->get_perf_data(),
+              "metric=80 metric_lower_thresholds=72.62 "
+              "metric_upper_thresholds=82.52 metric_fit=77.52 "
+              "metric_lower_margin=0.00 metric_upper_margin=0.00");
+  } else {
+    ASSERT_EQ(_ad->get_perf_data(),
+              "metric=80 metric_lower_thresholds=72.62 "
+              "metric_upper_thresholds=82.52 metric_fit=77.52 "
+              "metric_lower_margin=-4.90 metric_upper_margin=5.00");
+  }
   // --- 3 ----
   set_time(51250);
 
@@ -252,10 +265,17 @@ TEST_F(AnomalydetectionCheck, StatusChanges) {
   ASSERT_EQ(_ad->get_last_state_change(), 50000);
   ASSERT_EQ(_ad->get_current_attempt(), 1);
   ASSERT_EQ(_ad->get_plugin_output(), "OK: Regular activity, metric=80.00");
-  ASSERT_EQ(_ad->get_perf_data(),
-            "metric=80 metric_lower_thresholds=72.28 "
-            "metric_upper_thresholds=82.15");
-
+  if (GetParam().first == e_json_version::V1) {
+    ASSERT_EQ(_ad->get_perf_data(),
+              "metric=80 metric_lower_thresholds=72.28 "
+              "metric_upper_thresholds=82.15 metric_fit=77.15 "
+              "metric_lower_margin=0.00 metric_upper_margin=0.00");
+  } else {
+    ASSERT_EQ(_ad->get_perf_data(),
+              "metric=80 metric_lower_thresholds=72.28 "
+              "metric_upper_thresholds=82.15 metric_fit=77.15 "
+              "metric_lower_margin=-4.88 metric_upper_margin=5.00");
+  }
   // --- 4 ----
   set_time(52000);
 
@@ -280,10 +300,17 @@ TEST_F(AnomalydetectionCheck, StatusChanges) {
   ASSERT_EQ(_ad->get_last_state_change(), 50000);
   ASSERT_EQ(_ad->get_current_attempt(), 1);
   ASSERT_EQ(_ad->get_plugin_output(), "OK: Regular activity, metric=80.00foo");
-  ASSERT_EQ(_ad->get_perf_data(),
-            "metric=80foo metric_lower_thresholds=71.24foo "
-            "metric_upper_thresholds=81.04foo");
-
+  if (GetParam().first == e_json_version::V1) {
+    ASSERT_EQ(_ad->get_perf_data(),
+              "metric=80foo metric_lower_thresholds=71.24foo "
+              "metric_upper_thresholds=81.04foo metric_fit=76.04foo "
+              "metric_lower_margin=0.00foo metric_upper_margin=0.00foo");
+  } else {
+    ASSERT_EQ(_ad->get_perf_data(),
+              "metric=80foo metric_lower_thresholds=71.24foo "
+              "metric_upper_thresholds=81.04foo metric_fit=76.04foo "
+              "metric_lower_margin=-4.80foo metric_upper_margin=5.00foo");
+  }
   // --- 5 ----
   set_time(52500);
 
@@ -308,9 +335,18 @@ TEST_F(AnomalydetectionCheck, StatusChanges) {
   ASSERT_EQ(_ad->get_plugin_output(),
             "NON-OK: Unusual activity, the actual value of metric is 30.00% "
             "which is outside the forecasting range [70.55% : 80.30%]");
-  ASSERT_EQ(_ad->get_perf_data(),
-            "metric=30% metric_lower_thresholds=70.55% "
-            "metric_upper_thresholds=80.30%");
+  if (GetParam().first == e_json_version::V1) {
+    ASSERT_EQ(_ad->get_perf_data(),
+              "metric=30% metric_lower_thresholds=70.55% "
+              "metric_upper_thresholds=80.30% metric_fit=75.30% "
+              "metric_lower_margin=0.00% metric_upper_margin=0.00%");
+  } else {
+    ASSERT_EQ(_ad->get_perf_data(),
+              "metric=30% metric_lower_thresholds=70.55% "
+              "metric_upper_thresholds=80.30% metric_fit=75.30% "
+              "metric_lower_margin=-4.75% metric_upper_margin=5.00%");
+  }
+
   ASSERT_EQ(_ad->get_current_attempt(), 1);
 
   // --- 6 ----
@@ -328,9 +364,18 @@ TEST_F(AnomalydetectionCheck, StatusChanges) {
   ASSERT_EQ(_ad->get_plugin_output(),
             "NON-OK: Unusual activity, the actual value of metric is 12.00 "
             "which is outside the forecasting range [69.86 : 79.56]");
-  ASSERT_EQ(_ad->get_perf_data(),
-            "metric=12 metric_lower_thresholds=69.86 "
-            "metric_upper_thresholds=79.56");
+  if (GetParam().first == e_json_version::V1) {
+    ASSERT_EQ(_ad->get_perf_data(),
+              "metric=12 metric_lower_thresholds=69.86 "
+              "metric_upper_thresholds=79.56 metric_fit=74.56 "
+              "metric_lower_margin=0.00 metric_upper_margin=0.00");
+
+  } else {
+    ASSERT_EQ(_ad->get_perf_data(),
+              "metric=12 metric_lower_thresholds=69.86 "
+              "metric_upper_thresholds=79.56 metric_fit=74.56 "
+              "metric_lower_margin=-4.70 metric_upper_margin=5.00");
+  }
   ASSERT_EQ(_ad->get_current_attempt(), 2);
 
   // --- 7 ----
@@ -349,9 +394,17 @@ TEST_F(AnomalydetectionCheck, StatusChanges) {
   ASSERT_EQ(_ad->get_plugin_output(),
             "NON-OK: Unusual activity, the actual value of metric is 12.00 "
             "which is outside the forecasting range [69.17 : 78.82]");
-  ASSERT_EQ(_ad->get_perf_data(),
-            "metric=12 metric_lower_thresholds=69.17 "
-            "metric_upper_thresholds=78.82");
+  if (GetParam().first == e_json_version::V1) {
+    ASSERT_EQ(_ad->get_perf_data(),
+              "metric=12 metric_lower_thresholds=69.17 "
+              "metric_upper_thresholds=78.82 metric_fit=73.82 "
+              "metric_lower_margin=0.00 metric_upper_margin=0.00");
+  } else {
+    ASSERT_EQ(_ad->get_perf_data(),
+              "metric=12 metric_lower_thresholds=69.17 "
+              "metric_upper_thresholds=78.82 metric_fit=73.82 "
+              "metric_lower_margin=-4.65 metric_upper_margin=5.00");
+  }
   ASSERT_EQ(_ad->get_current_attempt(), 3);
 
   // --- 8 ----
@@ -369,9 +422,17 @@ TEST_F(AnomalydetectionCheck, StatusChanges) {
   ASSERT_EQ(_ad->get_last_hard_state_change(), now);
   ASSERT_EQ(_ad->get_last_state_change(), now);
   ASSERT_EQ(_ad->get_plugin_output(), "OK: Regular activity, metric=70.00%");
-  ASSERT_EQ(_ad->get_perf_data(),
-            "metric=70% metric_lower_thresholds=68.48% "
-            "metric_upper_thresholds=78.08%");
+  if (GetParam().first == e_json_version::V1) {
+    ASSERT_EQ(_ad->get_perf_data(),
+              "metric=70% metric_lower_thresholds=68.48% "
+              "metric_upper_thresholds=78.08% metric_fit=73.08% "
+              "metric_lower_margin=0.00% metric_upper_margin=0.00%");
+  } else {
+    ASSERT_EQ(_ad->get_perf_data(),
+              "metric=70% metric_lower_thresholds=68.48% "
+              "metric_upper_thresholds=78.08% metric_fit=73.08% "
+              "metric_lower_margin=-4.60% metric_upper_margin=5.00%");
+  }
   ASSERT_EQ(_ad->get_current_attempt(), 1);
 
   // --- 9 ----
@@ -404,17 +465,55 @@ TEST_F(AnomalydetectionCheck, StatusChanges) {
   ::unlink("/tmp/thresholds_status_change.json");
 }
 
-TEST_F(AnomalydetectionCheck, MetricWithQuotes) {
-  CreateFile(
-      "/tmp/thresholds_status_change.json",
-      "[{\n \"host_id\": \"12\",\n \"service_id\": \"9\",\n \"metric_name\": "
-      "\"metric\",\n \"predict\": [{\n \"timestamp\": 50000,\n \"upper\": "
-      "84,\n \"lower\": 74,\n \"fit\": 79\n }, {\n \"timestamp\": 100000,\n "
-      "\"upper\": 10,\n \"lower\": 5,\n \"fit\": 51.5\n }, {\n \"timestamp\": "
-      "150000,\n \"upper\": 100,\n \"lower\": 93,\n \"fit\": 96.5\n }, {\n "
-      "\"timestamp\": 200000,\n \"upper\": 100,\n \"lower\": 97,\n \"fit\": "
-      "98.5\n }, {\n \"timestamp\": 250000,\n \"upper\": 100,\n \"lower\": "
-      "21,\n \"fit\": 60.5\n }\n]}]");
+INSTANTIATE_TEST_SUITE_P(
+    AnomalydetectionCheckStatusChange,
+    AnomalydetectionCheckStatusChange,
+    testing::Values(
+        std::make_pair(
+            e_json_version::V1,
+            "[{\n \"host_id\": \"12\",\n \"service_id\": \"9\",\n "
+            "\"metric_name\": "
+            "\"metric\",\n \"predict\": [{\n \"timestamp\": 50000,\n "
+            "\"upper\": "
+            "84,\n \"lower\": 74,\n \"fit\": 79\n }, {\n \"timestamp\": "
+            "100000,\n "
+            "\"upper\": 10,\n \"lower\": 5,\n \"fit\": 5\n }, {\n "
+            "\"timestamp\": "
+            "150000,\n \"upper\": 100,\n \"lower\": 93,\n \"fit\": 96.5\n }, "
+            "{\n "
+            "\"timestamp\": 200000,\n \"upper\": 100,\n \"lower\": 97,\n "
+            "\"fit\": "
+            "98.5\n }, {\n \"timestamp\": 250000,\n \"upper\": 100,\n "
+            "\"lower\": "
+            "21,\n \"fit\": 60.5\n }\n]}]"),
+        std::make_pair(
+            e_json_version::V2,
+            "[{\n \"host_id\": \"12\",\n \"service_id\": \"9\",\n "
+            "\"metric_name\": "
+            "\"metric\",\n \"sensitivity\":1,\n \"predict\": [{\n "
+            "\"timestamp\": "
+            "50000,\n \"upper_margin\": "
+            "5,\n \"lower_margin\": -5,\n \"fit\": 79\n }, {\n \"timestamp\": "
+            "100000,\n "
+            "\"upper_margin\": 5,\n \"lower_margin\": 0,\n \"fit\": 5\n }, {\n "
+            "\"timestamp\": "
+            "150000,\n \"upper\": 3.5,\n \"lower\": -3.5,\n \"fit\": 96.5\n }, "
+            "{\n "
+            "\"timestamp\": 200000,\n \"upper_margin\": 1.5,\n "
+            "\"lower_margin\": "
+            "-1.5,\n \"fit\": "
+            "98.5\n }, {\n \"timestamp\": 250000,\n \"upper_margin\": 39.5,\n "
+            "\"lower_margin\": "
+            "-39.5,\n \"fit\": 60.5\n }\n]}]")));
+
+class AnomalydetectionCheckMetricWithQuotes
+    : public AnomalydetectionCheck,
+      public testing::WithParamInterface<
+          std::pair<e_json_version, const char*>> {};
+
+TEST_P(AnomalydetectionCheckMetricWithQuotes, MetricWithQuotes) {
+  CreateFile("/tmp/thresholds_status_change.json", GetParam().second);
+
   _ad->init_thresholds();
   _ad->set_status_change(true);
 
@@ -464,12 +563,64 @@ TEST_F(AnomalydetectionCheck, MetricWithQuotes) {
   ASSERT_EQ(_ad->get_plugin_output(),
             "NON-OK: Unusual activity, the actual value of metric is 90.00MT "
             "which is outside the forecasting range [73.31MT : 83.26MT]");
-  ASSERT_EQ(_ad->get_perf_data(),
-            "'metric'=90MT;;;0;100 metric_lower_thresholds=73.31MT;;;0;100 "
-            "metric_upper_thresholds=83.26MT;;;0;100");
+  if (GetParam().first == e_json_version::V1) {
+    ASSERT_EQ(_ad->get_perf_data(),
+              "'metric'=90MT;;;0;100 metric_lower_thresholds=73.31MT;;;0;100 "
+              "metric_upper_thresholds=83.26MT;;;0;100 "
+              "metric_fit=78.26MT;;;0;100 metric_lower_margin=0.00MT;;;0;100 "
+              "metric_upper_margin=0.00MT;;;0;100");
+  } else {
+    ASSERT_EQ(_ad->get_perf_data(),
+              "'metric'=90MT;;;0;100 metric_lower_thresholds=73.31MT;;;0;100 "
+              "metric_upper_thresholds=83.26MT;;;0;100 "
+              "metric_fit=78.26MT;;;0;100 metric_lower_margin=-4.95MT;;;0;100 "
+              "metric_upper_margin=5.00MT;;;0;100");
+  }
 
   ::unlink("/tmp/thresholds_status_change.json");
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    AnomalydetectionCheckMetricWithQuotes,
+    AnomalydetectionCheckMetricWithQuotes,
+    testing::Values(
+        std::make_pair(
+            e_json_version::V1,
+            "[{\n \"host_id\": \"12\",\n \"service_id\": \"9\",\n "
+            "\"metric_name\": "
+            "\"metric\",\n \"predict\": [{\n \"timestamp\": 50000,\n "
+            "\"upper\": "
+            "84,\n \"lower\": 74,\n \"fit\": 79\n }, {\n \"timestamp\": "
+            "100000,\n "
+            "\"upper\": 10,\n \"lower\": 5,\n \"fit\": 5\n }, {\n "
+            "\"timestamp\": "
+            "150000,\n \"upper\": 100,\n \"lower\": 93,\n \"fit\": 96.5\n }, "
+            "{\n "
+            "\"timestamp\": 200000,\n \"upper\": 100,\n \"lower\": 97,\n "
+            "\"fit\": "
+            "98.5\n }, {\n \"timestamp\": 250000,\n \"upper\": 100,\n "
+            "\"lower\": "
+            "21,\n \"fit\": 60.5\n }\n]}]"),
+        std::make_pair(
+            e_json_version::V2,
+            "[{\n \"host_id\": \"12\",\n \"service_id\": \"9\",\n "
+            "\"metric_name\": "
+            "\"metric\",\n \"sensitivity\":1,\n \"predict\": [{\n "
+            "\"timestamp\": "
+            "50000,\n \"upper_margin\": "
+            "5,\n \"lower_margin\": -5,\n \"fit\": 79\n }, {\n \"timestamp\": "
+            "100000,\n "
+            "\"upper_margin\": 5,\n \"lower_margin\": 0,\n \"fit\": 5\n }, {\n "
+            "\"timestamp\": "
+            "150000,\n \"upper_margin\": 3.5,\n \"lower_margin\": -3.5,\n "
+            "\"fit\": "
+            "96.5\n }, {\n "
+            "\"timestamp\": 200000,\n \"upper_margin\": 1.5,\n "
+            "\"lower_margin\": "
+            "-1.5,\n \"fit\": "
+            "98.5\n }, {\n \"timestamp\": 250000,\n \"upper_margin\": 39.5,\n "
+            "\"lower_margin\": "
+            "-39.5,\n \"fit\": 60.5\n }\n]}]")));
 
 TEST_F(AnomalydetectionCheck, BadThresholdsFile) {
   ::unlink("/tmp/thresholds_status_change.json");
@@ -527,17 +678,13 @@ TEST_F(AnomalydetectionCheck, BadThresholdsFile) {
   ::unlink("/tmp/thresholds_status_change.json");
 }
 
-TEST_F(AnomalydetectionCheck, FileTooOld) {
-  CreateFile(
-      "/tmp/thresholds_status_change.json",
-      "[{\n \"host_id\": \"12\",\n \"service_id\": \"9\",\n \"metric_name\": "
-      "\"metric\",\n \"predict\": [{\n \"timestamp\": 50000,\n \"upper\": "
-      "84,\n \"lower\": 74,\n \"fit\": 79\n }, {\n \"timestamp\": 100000,\n "
-      "\"upper\": 10,\n \"lower\": 5,\n \"fit\": 51.5\n }, {\n \"timestamp\": "
-      "150000,\n \"upper\": 100,\n \"lower\": 93,\n \"fit\": 96.5\n }, {\n "
-      "\"timestamp\": 200000,\n \"upper\": 100,\n \"lower\": 97,\n \"fit\": "
-      "98.5\n }, {\n \"timestamp\": 250000,\n \"upper\": 100,\n \"lower\": "
-      "21,\n \"fit\": 60.5\n }\n]}]");
+class AnomalydetectionCheckFileTooOld
+    : public AnomalydetectionCheck,
+      public testing::WithParamInterface<
+          std::pair<e_json_version, const char*>> {};
+
+TEST_P(AnomalydetectionCheckFileTooOld, FileTooOld) {
+  CreateFile("/tmp/thresholds_status_change.json", GetParam().second);
   _ad->init_thresholds();
   _ad->set_status_change(true);
 
@@ -594,3 +741,45 @@ TEST_F(AnomalydetectionCheck, FileTooOld) {
 
   ::unlink("/tmp/thresholds_status_change.json");
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    FileTooOld,
+    AnomalydetectionCheckFileTooOld,
+    testing::Values(
+        std::make_pair(
+            e_json_version::V1,
+            "[{\n \"host_id\": \"12\",\n \"service_id\": \"9\",\n "
+            "\"metric_name\": "
+            "\"metric\",\n \"predict\": [{\n \"timestamp\": 50000,\n "
+            "\"upper\": "
+            "84,\n \"lower\": 74,\n \"fit\": 79\n }, {\n \"timestamp\": "
+            "100000,\n "
+            "\"upper\": 10,\n \"lower\": 5,\n \"fit\": 51.5\n }, {\n "
+            "\"timestamp\": "
+            "150000,\n \"upper\": 100,\n \"lower\": 93,\n \"fit\": 96.5\n }, "
+            "{\n "
+            "\"timestamp\": 200000,\n \"upper\": 100,\n \"lower\": 97,\n "
+            "\"fit\": "
+            "98.5\n }, {\n \"timestamp\": 250000,\n \"upper\": 100,\n "
+            "\"lower\": "
+            "21,\n \"fit\": 60.5\n }\n]}]"),
+        std::make_pair(
+            e_json_version::V2,
+            "[{\n \"host_id\": \"12\",\n \"service_id\": \"9\",\n "
+            "\"metric_name\": "
+            "\"metric\",\n \"sensitivity\":1,\n \"predict\": [{\n "
+            "\"timestamp\": "
+            "50000,\n \"upper_margin\": "
+            "5,\n \"lower_margin\": -5,\n \"fit\": 79\n }, {\n \"timestamp\": "
+            "100000,\n "
+            "\"upper_margin\": 5,\n \"lower\": 0,\n \"fit\": 5\n }, {\n "
+            "\"timestamp\": "
+            "150000,\n \"upper_margin\": 3.5,\n \"lower_margin\": -3.5,\n "
+            "\"fit\": "
+            "96.5\n }, {\n "
+            "\"timestamp\": 200000,\n \"upper_margin\": 1.5,\n "
+            "\"lower_margin\": "
+            "-1.5,\n \"fit\": "
+            "98.5\n }, {\n \"timestamp\": 250000,\n \"upper_margin\": 39.5,\n "
+            "\"lower_margin\": "
+            "-39.5,\n \"fit\": 60.5\n }\n]}]")));

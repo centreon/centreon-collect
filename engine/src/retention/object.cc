@@ -19,6 +19,7 @@
 
 #include "com/centreon/engine/retention/object.hh"
 
+#include "com/centreon/engine/retention/anomalydetection.hh"
 #include "com/centreon/engine/retention/comment.hh"
 #include "com/centreon/engine/retention/contact.hh"
 #include "com/centreon/engine/retention/downtime.hh"
@@ -95,6 +96,8 @@ retention::object_ptr retention::object::create(std::string const& type_name) {
   object_ptr obj;
   if (type_name == "service")
     obj = std::make_shared<retention::service>();
+  if (type_name == "anomalydetection")
+    obj = std::make_shared<retention::anomalydetection>();
   else if (type_name == "host")
     obj = std::make_shared<retention::host>();
   else if (type_name == "contact")

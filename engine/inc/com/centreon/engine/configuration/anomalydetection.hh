@@ -126,6 +126,7 @@ class anomalydetection : public object {
   uint64_t severity_id() const noexcept;
   uint64_t icon_id() const noexcept;
   const std::set<std::pair<uint64_t, uint16_t>>& tags() const noexcept;
+  double sensitivity() const { return _sensitivity; }
 
  private:
   typedef bool (*setter_func)(anomalydetection&, char const*);
@@ -178,6 +179,7 @@ class anomalydetection : public object {
   bool _set_icon_id(uint64_t icon_id);
   bool _set_category_tags(const std::string& value);
   bool _set_group_tags(const std::string& value);
+  bool _set_sensitivity(double value);
 
   opt<int> _acknowledgement_timeout;
   std::string _action_url;
@@ -230,6 +232,7 @@ class anomalydetection : public object {
   opt<uint64_t> _severity_id;
   opt<uint64_t> _icon_id;
   std::set<std::pair<uint64_t, uint16_t>> _tags;
+  opt<double> _sensitivity;
 };
 
 typedef std::shared_ptr<anomalydetection> anomalydetection_ptr;

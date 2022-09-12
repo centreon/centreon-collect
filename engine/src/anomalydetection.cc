@@ -37,7 +37,99 @@ using namespace com::centreon::engine;
 using namespace com::centreon::engine::logging;
 
 CCE_BEGIN()
+
+/****************************************************************
+ * anomalydetection::threshold_point
+ ****************************************************************/
+
+anomalydetection::threshold_point::threshold_point(time_t timepoint)
+    : _timepoint(timepoint),
+      _lower(0.0),
+      _upper(0.0),
+      _fit(0.0),
+      _lower_margin(0.0),
+      _upper_margin(0.0),
+      _format(e_format::V1) {}
+
+anomalydetection::threshold_point::threshold_point(
+    time_t timepoint,
+    double factor,
+    const nlohmann::json& json_data)
+    : threshold_point(timepoint) {
+  if (json_data.contains("upper") && json_data.contains("lower")) {
+    _upper = json_data.at("upper").get<double>();
+    _lower = json_data.at("lower").get<double>();
+    if (json_data.contains("fit")) {
+      _fit = json_data.at("fit").get<double>();
+    }
+    _format = e_format::V1;
+  } else {
+    _fit = json_data.at("fit").get<double>();
+    _lower_margin = json_data.at("lower_margin").get<double>();
+    _upper_margin = json_data.at("upper_margin").get<double>();
+    _format = e_format::V2;
+    set_factor(factor);
+  }
+}
+
+void anomalydetection::threshold_point::set_factor(double factor) {
+  if (_format == e_format::V2) {
+    _lower = _fit + factor * _lower_margin;
+    _upper = _fit + factor * _upper_margin;
+  }
+}
+
+/* The check time is probably between two timestamps stored in _thresholds.
+ *
+ *   |                    d2 +
+ *   |            dc+
+ *   |   d1 +
+ *   |
+ *   +------+-------+--------+-->
+ *         t1       tc       t2
+ *
+ * For both lower bound and upper bound, we get values d1 and d2
+ * respectively corresponding to timestamp t1 and t2.
+ * We have a check_time tc between them, and we would like a value dc
+ * corresponding to this timestamp.
+ *
+ * The linear approximation gives the formula:
+ *                       dc = (d2-d1) * (tc-t1) / (t2-t1) + d1
+ */
+
+#define INTERPOL(member) \
+  ret.member = (member - left.member) * bary + left.member
+/**
+ * @brief interpolate all bounds using timepoint parameter
+ *
+ * @param timepoint tile of the check
+ * @param left previous threshold_point
+ * @return anomalydetection::threshold_point
+ */
+anomalydetection::threshold_point anomalydetection::threshold_point::interpoll(
+    time_t timepoint,
+    const anomalydetection::threshold_point& left) const {
+  anomalydetection::threshold_point ret(timepoint);
+  double bary =
+      ((double)(timepoint - left._timepoint)) / (_timepoint - left._timepoint);
+  INTERPOL(_lower);
+  INTERPOL(_upper);
+  INTERPOL(_fit);
+  INTERPOL(_lower_margin);
+  INTERPOL(_upper_margin);
+  return ret;
+}
+
+/****************************************************************
+ * anomalydetection cancellable_command
+ ****************************************************************/
+
 namespace commands {
+/**
+ * @brief this class is used by anomaly detection to avoid axecution of command
+ * if perfdata is ok
+ *
+ */
 class cancellable_command : public command {
   command::pointer _original_command;
 
@@ -155,6 +247,10 @@ void cancellable_command::set_command_line(
 
 CCE_END()
 
+/****************************************************************
+ * anomalydetection
+ ****************************************************************/
+
 /**
  *  Anomaly detection constructor
  *
@@ -270,7 +366,8 @@ anomalydetection::anomalydetection(uint64_t host_id,
                                    int freshness_threshold,
                                    bool obsess_over,
                                    std::string const& timezone,
-                                   uint64_t icon_id)
+                                   uint64_t icon_id,
+                                   double sensitivity)
     : service{hostname,
               description,
               display_name,
@@ -308,7 +405,8 @@ anomalydetection::anomalydetection(uint64_t host_id,
       _metric_name{metric_name},
       _thresholds_file{thresholds_file},
       _status_change{status_change},
-      _thresholds_file_viable{false} {
+      _thresholds_file_viable{false},
+      _sensitivity(sensitivity) {
   set_host_id(host_id);
   set_service_id(service_id);
   init_thresholds();
@@ -427,7 +525,18 @@ com::centreon::engine::anomalydetection* add_anomalydetection(
     bool flap_detection_enabled,
     double low_flap_threshold,
     double high_flap_threshold,
-    bool flap_detection_on_ok,
+    bool flap_detection_on_ok, /**
+                                * @brief Parse the given perfdata. The only
+                                * metric parsed is the one whose name is
+                                * _metric_name.
+                                *
+                                * @param perfdata A string containing perfdata.
+                                *
+                                * @return A tuple containing the status, the
+                                * value, its unit, the lower bound and the upper
+                                * bound
+                                */
+
     bool flap_detection_on_warning,
     bool flap_detection_on_unknown,
     bool flap_detection_on_critical,
@@ -447,7 +556,8 @@ com::centreon::engine::anomalydetection* add_anomalydetection(
     int retain_nonstatus_information,
     bool obsess_over_service,
     std::string const& timezone,
-    uint64_t icon_id) {
+    uint64_t icon_id,
+    double sensitivity) {
   // Make sure we have everything we need.
   if (!service_id) {
     engine_logger(log_config_error, basic)
@@ -570,7 +680,7 @@ com::centreon::engine::anomalydetection* add_anomalydetection(
       event_handler_enabled, notes, notes_url, action_url, icon_image,
       icon_image_alt, flap_detection_enabled, low_flap_threshold,
       high_flap_threshold, check_freshness, freshness_threshold,
-      obsess_over_service, timezone, icon_id)};
+      obsess_over_service, timezone, icon_id, sensitivity)};
   try {
     obj->set_acknowledgement_type(ACKNOWLEDGEMENT_NONE);
     obj->set_check_options(CHECK_OPTION_NONE);
@@ -750,6 +860,12 @@ int anomalydetection::run_async_check(int check_options,
                                   preferred_time);
 }
 
+/**
+ * @brief handle of check result, called by command executors
+ *
+ * @param queued_check_result
+ * @return int
+ */
 int anomalydetection::handle_async_check_result(
     const check_result& queued_check_result) {
   std::string output{queued_check_result.get_output()};
@@ -776,11 +892,11 @@ int anomalydetection::handle_async_check_result(
  * is _metric_name.
  *
  * @param perfdata A string containing perfdata.
- *
- * @return A tuple containing the status, the value, its unit, the lower bound
- * and the upper bound
+ * @param check_time time point of the check
+ * @param calculated_result result calculated as if it was a real service
+ * @return true
+ * @return false an error occured in parse or calculation
  */
-// std::tuple<service::service_state, double, std::string, double, double>
 bool anomalydetection::parse_perfdata(std::string const& perfdata,
                                       time_t check_time,
                                       check_result& calculated_result) {
@@ -833,26 +949,9 @@ bool anomalydetection::parse_perfdata(std::string const& perfdata,
 
   service::service_state status;
 
-  /* The check time is probably between two timestamps stored in _thresholds.
-   *
-   *   |                    d2 +
-   *   |            dc+
-   *   |   d1 +
-   *   |
-   *   +------+-------+--------+-->
-   *         t1       tc       t2
-   *
-   * For both lower bound and upper bound, we get values d1 and d2
-   * respectively corresponding to timestamp t1 and t2.
-   * We have a check_time tc between them, and we would like a value dc
-   * corresponding to this timestamp.
-   *
-   * The linear approximation gives the formula:
-   *                       dc = (d2-d1) * (tc-t1) / (t2-t1) + d1
-   */
-  auto it2 = _thresholds.upper_bound(check_time);
-  auto it1 = it2;
-  if (it2 == _thresholds.end()) {
+  threshold_point_map::const_iterator next_iter =
+      _thresholds.lower_bound(check_time);
+  if (next_iter == _thresholds.end()) {
     engine_logger(log_runtime_error, basic)
         << "Error: the thresholds file is too old "
            "compared to the check timestamp "
@@ -868,9 +967,12 @@ bool anomalydetection::parse_perfdata(std::string const& perfdata,
     calculated_result.set_return_code(service_state::state_unknown);
     return false;
   }
-  if (it1 != _thresholds.begin())
-    --it1;
-  else {
+
+  threshold_point_map::const_iterator prev_iter;
+  if (next_iter != _thresholds.begin()) {
+    prev_iter = next_iter;
+    --prev_iter;
+  } else {
     engine_logger(log_runtime_error, basic)
         << "Error: timestamp " << check_time
         << " too old compared with the thresholds file";
@@ -887,20 +989,15 @@ bool anomalydetection::parse_perfdata(std::string const& perfdata,
     return false;
   }
 
-  /* Now it1.first <= check_time < it2.first */
-  double upper = (it2->second.second - it1->second.second) *
-                     (check_time - it1->first) / (it2->first - it1->first) +
-                 it1->second.second;
-  double lower = (it2->second.first - it1->second.first) *
-                     (check_time - it1->first) / (it2->first - it1->first) +
-                 it1->second.first;
+  threshold_point interpoll =
+      next_iter->second.interpoll(check_time, prev_iter->second);
 
   if (!_status_change)
     status = service::state_ok;
   else {
     if (std::isnan(value))
       status = service::state_unknown;
-    else if (value >= lower && value <= upper)
+    else if (value >= interpoll.get_lower() && value <= interpoll.get_upper())
       status = service::state_ok;
     else
       status = service::state_critical;
@@ -919,11 +1016,8 @@ bool anomalydetection::parse_perfdata(std::string const& perfdata,
   else {
     oss << "NON-OK: Unusual activity, the actual value of " << _metric_name
         << " is " << value << uom;
-    if (!std::isnan(lower) && !std::isnan(upper))
-      oss << " which is outside the forecasting range [" << lower << uom
-          << " ; " << upper << uom << "] |";
-    else
-      oss << " and the forecasting range is unknown |";
+    oss << " which is outside the forecasting range [" << interpoll.get_lower()
+        << uom << " ; " << interpoll.get_upper() << uom << "] |";
   }
 
   calculated_result.set_return_code(status);
@@ -935,14 +1029,16 @@ bool anomalydetection::parse_perfdata(std::string const& perfdata,
   if (pos != std::string::npos)
     without_thresholds_nor_value = without_thresholds.substr(pos);
 
-  if (!std::isnan(lower)) {
-    oss << ' ' << _metric_name << "_lower_thresholds=" << lower << uom
-        << without_thresholds_nor_value;
-  }
-  if (!std::isnan(upper)) {
-    oss << ' ' << _metric_name << "_upper_thresholds=" << upper << uom
-        << without_thresholds_nor_value;
-  }
+  oss << ' ' << _metric_name << "_lower_thresholds=" << interpoll.get_lower()
+      << uom << without_thresholds_nor_value;
+  oss << ' ' << _metric_name << "_upper_thresholds=" << interpoll.get_upper()
+      << uom << without_thresholds_nor_value;
+  oss << ' ' << _metric_name << "_fit=" << interpoll.get_fit() << uom
+      << without_thresholds_nor_value;
+  oss << ' ' << _metric_name << "_lower_margin=" << interpoll.get_lower_margin()
+      << uom << without_thresholds_nor_value;
+  oss << ' ' << _metric_name << "_upper_margin=" << interpoll.get_upper_margin()
+      << uom << without_thresholds_nor_value;
   /* We should master this string, so no need to check if it is utf-8 */
   calculated_result.set_output(oss.str());
 
@@ -1009,24 +1105,35 @@ void anomalydetection::init_thresholds() {
   bool found = false;
   for (auto it = json.begin(); it != json.end(); ++it) {
     uint64_t host_id, service_id;
+    std::string metric_name;
+    nlohmann::json predict;
     auto item = it.value();
+    double sensitivity = 0.0;
     try {
-      host_id = stoull(item["host_id"].get<std::string>());
-      service_id = stoull(item["service_id"].get<std::string>());
+      host_id = stoull(item.at("host_id").get<std::string>());
+      service_id = stoull(item.at("service_id").get<std::string>());
+      metric_name = item.at("metric_name").get<std::string>();
+      predict = item.at("predict");
+      try {
+        sensitivity = item.at("sensitivity").get<double>();
+      } catch (std::exception const&) {  // json sensitivity is not mandatory
+      }
     } catch (std::exception const& e) {
       engine_logger(log_config_error, basic)
-          << "Error: host_id and service_id must "
+          << "Error: metric_name and predict are mandatory and host_id, "
+             "service_id must "
              "be strings containing integers: "
           << e.what();
       SPDLOG_LOGGER_ERROR(log_v2::config(),
-                          "Error: host_id and service_id must "
+                          "Error: metric_name and predict are mandatory and "
+                          "host_id and service_id must "
                           "be strings containing integers: {}",
                           e.what());
       return;
     }
     if (host_id == get_host_id() && service_id == get_service_id() &&
-        item["metric_name"].get<std::string>() == _metric_name) {
-      set_thresholds_no_lock(_thresholds_file, item["predict"]);
+        metric_name == _metric_name) {
+      set_thresholds_no_lock(_thresholds_file, sensitivity, predict);
       if (!_thresholds_file_viable) {
         SPDLOG_LOGGER_ERROR(log_v2::config(),
                             "{} don't contain at least 2 thresholds datas for "
@@ -1048,6 +1155,8 @@ void anomalydetection::init_thresholds() {
 /**
  * @brief Update all the anomaly detection services concerned by one thresholds
  *        file. The file has already been parsed and is translated into json.
+ *        if sensitivity in json file is a default value taken into account
+ *        if conf value is null
  *
  * @param filename The fullname of the file to parse.
  */
@@ -1104,16 +1213,27 @@ int anomalydetection::update_thresholds(const std::string& filename) {
   for (auto it = json.begin(); it != json.end(); ++it) {
     uint64_t host_id, svc_id;
     auto item = it.value();
+    double sensitivity = 0.0;
+    std::string metric_name;
+    nlohmann::json predict;
     try {
-      host_id = stoull(item["host_id"].get<std::string>());
-      svc_id = stoull(item["service_id"].get<std::string>());
+      host_id = stoull(item.at("host_id").get<std::string>());
+      svc_id = stoull(item.at("service_id").get<std::string>());
+      metric_name = item.at("metric_name");
+      predict = item.at("predict");
+      try {
+        sensitivity = item.at("sensitivity").get<double>();
+      } catch (const std::exception&) {  // sensitivity is not mandatory
+      }
     } catch (std::exception const& e) {
       engine_logger(log_config_error, basic)
-          << "Error: host_id and service_id must "
+          << "Error: metric_name and predict are mandatory, host_id and "
+             "service_id must "
              "be strings containing integers: "
           << e.what();
       SPDLOG_LOGGER_ERROR(log_v2::config(),
-                          "Error: host_id and service_id must "
+                          "Error: metric_name and predict are mandatory, "
+                          "host_id and service_id must "
                           "be strings containing integers: {}",
                           e.what());
       continue;
@@ -1131,16 +1251,16 @@ int anomalydetection::update_thresholds(const std::string& filename) {
           host_id, svc_id);
       continue;
     }
-    std::shared_ptr<anomalydetection> ad =
-        std::dynamic_pointer_cast<anomalydetection>(found->second);
-    if (!ad) {
+    if (found->second->get_service_type() != service_type::ANOMALY_DETECTION) {
       SPDLOG_LOGGER_ERROR(
           log_v2::config(),
           "host_id: {}, service_id: {} is not an anomaly detection service",
           host_id, svc_id);
       continue;
     }
-    const std::string& metric_name(item["metric_name"].get<std::string>());
+    std::shared_ptr<anomalydetection> ad =
+        std::static_pointer_cast<anomalydetection>(found->second);
+
     if (ad->get_metric_name() != metric_name) {
       engine_logger(log_config_error, basic)
           << "Error: The thresholds file contains thresholds for the anomaly "
@@ -1168,32 +1288,56 @@ int anomalydetection::update_thresholds(const std::string& filename) {
         "metric: {})",
         ad->get_host_id(), ad->get_service_id(), ad->get_metric_name());
 
-    ad->set_thresholds_lock(filename, item["predict"]);
+    ad->set_thresholds_lock(filename, sensitivity, predict);
   }
   return 0;
 }
 
 void anomalydetection::set_thresholds_lock(const std::string& filename,
+                                           double json_sensitivity,
                                            const nlohmann::json& thresholds) {
   std::lock_guard<std::mutex> _lock(_thresholds_m);
-  set_thresholds_no_lock(filename, thresholds);
+  set_thresholds_no_lock(filename, json_sensitivity, thresholds);
 }
 
+/**
+ * @brief update thresholds with new json content
+ *
+ * @param filename
+ * @param json_sensitivity sensitivity found in json
+ * @param thresholds //predict data
+ */
 void anomalydetection::set_thresholds_no_lock(
     const std::string& filename,
+    double json_sensitivity,
     const nlohmann::json& thresholds) {
   if (_thresholds_file != filename) {
     _thresholds_file = filename;
   }
   _thresholds.clear();
-  for (auto& threshold_obj : thresholds) {
-    time_t timestamp =
-        static_cast<time_t>(threshold_obj["timestamp"].get<uint64_t>());
-    double upper = threshold_obj["upper"].get<double>();
-    double lower = threshold_obj["lower"].get<double>();
-    _thresholds.emplace_hint(
-        _thresholds.end(),
-        std::make_pair(timestamp, std::make_pair(lower, upper)));
+  // json sensitivity is only a default value used only if conf or retention
+  // sensitivity value is null json sensitivity is not saved in retention
+  double sensitivity = json_sensitivity;
+  if (_sensitivity > 0) {
+    sensitivity = _sensitivity;
+  }
+  for (const nlohmann::json& threshold_obj : thresholds) {
+    try {
+      time_t timepoint =
+          static_cast<time_t>(threshold_obj.at("timestamp").get<uint64_t>());
+      _thresholds.emplace_hint(
+          _thresholds.end(), timepoint,
+          threshold_point(timepoint, sensitivity, threshold_obj));
+    } catch (const nlohmann::json::exception& e) {
+      SPDLOG_LOGGER_ERROR(log_v2::config(), "fail to parse predict:{} cause:{}",
+                          threshold_obj.dump(), e.what());
+    } catch (const std::exception& e) {
+      SPDLOG_LOGGER_ERROR(log_v2::config(), "fail to parse predict:{} cause {}",
+                          threshold_obj.dump(), e.what());
+    } catch (...) {
+      SPDLOG_LOGGER_ERROR(log_v2::config(), "unknown exception {}",
+                          threshold_obj.dump());
+    }
   }
   if (_thresholds.size() > 1) {
     engine_logger(dbg_config, most)
@@ -1229,4 +1373,17 @@ const std::string& anomalydetection::get_thresholds_file() const {
 void anomalydetection::resolve(int& w, int& e) {
   set_check_period(_dependent_service->check_period());
   service::resolve(w, e);
+}
+
+/**
+ * @brief update sensitivity member and recalculate all bounds
+ *
+ * @param sensitivity
+ */
+void anomalydetection::set_sensitivity(double sensitivity) {
+  _sensitivity = sensitivity;
+  std::lock_guard<std::mutex> _lock(_thresholds_m);
+  for (auto& toupdate : _thresholds) {
+    toupdate.second.set_factor(sensitivity);
+  }
 }

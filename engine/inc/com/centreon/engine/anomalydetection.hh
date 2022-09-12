@@ -31,13 +31,45 @@
 CCE_BEGIN()
 
 class anomalydetection : public service {
+ public:
+  class threshold_point {
+    time_t _timepoint;
+    double _lower, _upper, _fit, _lower_margin, _upper_margin;
+
+    enum class e_format { V1, V2 };
+
+    e_format _format;
+
+   public:
+    threshold_point(time_t timepoint,
+                    double factor,
+                    const nlohmann::json& json_data);
+    threshold_point(time_t timepoint);
+
+    void set_factor(double factor);
+
+    time_t get_timepoint() const { return _timepoint; }
+    double get_lower() const { return _lower; }
+    double get_upper() const { return _upper; }
+    double get_fit() const { return _fit; }
+    double get_lower_margin() const { return _lower_margin; }
+    double get_upper_margin() const { return _upper_margin; }
+
+    threshold_point interpoll(time_t timepoint,
+                              const threshold_point& left) const;
+  };
+
+ protected:
   service* _dependent_service;
   uint64_t _internal_id;
   std::string _metric_name;
   std::string _thresholds_file;
   bool _status_change;
   bool _thresholds_file_viable;
-  std::map<time_t, std::pair<double, double> > _thresholds;
+  double _sensitivity;
+
+  using threshold_point_map = std::map<time_t, threshold_point>;
+  threshold_point_map _thresholds;
   std::mutex _thresholds_m;
 
  public:
@@ -77,7 +109,8 @@ class anomalydetection : public service {
                    int freshness_threshold,
                    bool obsess_over,
                    std::string const& timezone,
-                   uint64_t icon_id);
+                   uint64_t icon_id,
+                   double sensitivity);
   ~anomalydetection() = default;
   uint64_t get_internal_id() const;
   void set_internal_id(uint64_t id);
@@ -87,9 +120,14 @@ class anomalydetection : public service {
   void set_thresholds_file(std::string const& file);
 
   void set_thresholds_lock(const std::string& filename,
+                           double json_sensitivity,
                            const nlohmann::json& thresholds);
   void set_thresholds_no_lock(const std::string& filename,
+                              double json_sensitivity,
                               const nlohmann::json& thresholds);
+
+  void set_sensitivity(double sensitivity);
+  double get_sensitivity() const { return _sensitivity; }
 
   static int update_thresholds(const std::string& filename);
   virtual int run_async_check(int check_options,
@@ -165,6 +203,7 @@ com::centreon::engine::anomalydetection* add_anomalydetection(
     int retain_nonstatus_information,
     bool obsess_over,
     std::string const& timezone,
-    uint64_t icon_id);
+    uint64_t icon_id,
+    double sensitivity);
 
 #endif  // !CCE_ANOMALYDETECTION_HH
