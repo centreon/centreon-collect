@@ -809,10 +809,10 @@ std::ostream& dump::services(std::ostream& os) {
   for (service_map::iterator it(service::services.begin()),
        end(service::services.end());
        it != end; ++it) {
-    std::shared_ptr<com::centreon::engine::anomalydetection> anomaly =
-        std::dynamic_pointer_cast<com::centreon::engine::anomalydetection>(
-            it->second);
-    if (anomaly) {
+    if (it->second->get_service_type() == service_type::ANOMALY_DETECTION) {
+      std::shared_ptr<com::centreon::engine::anomalydetection> anomaly =
+          std::static_pointer_cast<com::centreon::engine::anomalydetection>(
+              it->second);
       dump::anomalydetection(os, *anomaly);
     } else {
       dump::service(os, *it->second);

@@ -3141,14 +3141,15 @@ grpc::Status engine_impl::ShutdownProgram(
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, serv_info.second);
   }
 
-  std::shared_ptr<anomalydetection> ano =
-      std::dynamic_pointer_cast<anomalydetection>(serv_info.first);
-  if (!ano) {
+  if (serv_info.first->get_service_type() != service_type::ANOMALY_DETECTION) {
     SPDLOG_LOGGER_ERROR(log_v2::external_command(),
                         "{}({}) : {} is not an anomalydetection", __FUNCTION__,
                         serv_and_value->serv(), serv_info.second);
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, serv_info.second);
   }
+
+  std::shared_ptr<anomalydetection> ano =
+      std::static_pointer_cast<anomalydetection>(serv_info.first);
 
   if (serv_and_value->has_dval()) {
     ano->set_sensitivity(serv_and_value->dval());

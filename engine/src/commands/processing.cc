@@ -779,14 +779,14 @@ void processing::_redirector_anomalydetection(int id,
     return;
   }
 
-  std::shared_ptr<anomalydetection> ano =
-      std::dynamic_pointer_cast<anomalydetection>(found->second);
-  if (!ano) {
+  if (found->second->get_service_type() != service_type::ANOMALY_DETECTION) {
     SPDLOG_LOGGER_ERROR(log_v2::external_command(),
                         "{}@{} is not an anomalydetection", description, name);
     return;
   }
 
+  std::shared_ptr<anomalydetection> ano =
+      std::static_pointer_cast<anomalydetection>(found->second);
   (*fptr)(ano.get(), args + name.length() + description.length() + 2);
 }
 

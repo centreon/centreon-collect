@@ -990,8 +990,8 @@ def update_ano_sensitivity(use_grpc: int, hst: str, serv: str, sensitivity: floa
     if use_grpc > 0:
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
-            stub.ChangeAnomalyDetectionSensitivity(engine_pb2.ChangeServiceNumber(names=engine_pb2.ServiceIdentifier(
-                engine_pb2.NameIdentifier(host_name=hst, service_name=serv)), dval=sensitivity))
+            stub.ChangeAnomalyDetectionSensitivity(engine_pb2.ChangeServiceNumber(serv=engine_pb2.ServiceIdentifier(
+                names=engine_pb2.NameIdentifier(host_name=hst, service_name=serv)), dval=sensitivity))
     else:
         now = int(time.time())
         cmd = "[{}] CHANGE_ANOMALYDETECTION_SENSITIVITY;{};{};{}\n".format(

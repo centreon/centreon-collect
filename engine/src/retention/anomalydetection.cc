@@ -29,7 +29,7 @@ anomalydetection::anomalydetection(anomalydetection const& right)
     : service(right), _sensitivity(right._sensitivity) {}
 
 anomalydetection& anomalydetection::operator=(anomalydetection const& right) {
-  static_cast<service&>(*this) = right;
+  service::operator=(right);
   _sensitivity = right._sensitivity;
   return *this;
 }

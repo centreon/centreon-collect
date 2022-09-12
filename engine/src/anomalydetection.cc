@@ -1251,15 +1251,16 @@ int anomalydetection::update_thresholds(const std::string& filename) {
           host_id, svc_id);
       continue;
     }
-    std::shared_ptr<anomalydetection> ad =
-        std::dynamic_pointer_cast<anomalydetection>(found->second);
-    if (!ad) {
+    if (found->second->get_service_type() != service_type::ANOMALY_DETECTION) {
       SPDLOG_LOGGER_ERROR(
           log_v2::config(),
           "host_id: {}, service_id: {} is not an anomaly detection service",
           host_id, svc_id);
       continue;
     }
+    std::shared_ptr<anomalydetection> ad =
+        std::static_pointer_cast<anomalydetection>(found->second);
+
     if (ad->get_metric_name() != metric_name) {
       engine_logger(log_config_error, basic)
           << "Error: The thresholds file contains thresholds for the anomaly "
