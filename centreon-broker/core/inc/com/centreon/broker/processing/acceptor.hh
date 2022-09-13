@@ -88,6 +88,7 @@ class acceptor : public endpoint {
   void set_read_filters(std::unordered_set<uint32_t> const& filters);
   void set_retry_interval(time_t retry_interval);
   void set_write_filters(std::unordered_set<uint32_t> const& filters);
+  bool wait_for_all_events_written(unsigned ms_timeout) override;
 };
 }  // namespace processing
 

@@ -192,7 +192,7 @@ void feeder::_callback() noexcept {
         log_v2::processing()->trace(
             "feeder '{}': timeout on stream and muxer, waiting for 100000µs",
             _name);
-        ::usleep(100000);
+        ::usleep(idle_microsec_wait_idle_thread_delay);
       }
     }
   } catch (exceptions::shutdown const& e) {
@@ -254,4 +254,12 @@ const char* feeder::get_state() const {
       return "finished";
   }
   return "unknown";
+}
+
+bool feeder::wait_for_all_events_written(unsigned ms_timeout) {
+  misc::read_lock lock(_client_m);
+  if (_client) {
+    return _client->wait_for_all_events_written(ms_timeout);
+  }
+  return true;
 }
