@@ -163,9 +163,16 @@ void stream::_load_deleted_instances() {
   _mysql.run_query_and_get_result(query, std::move(promise));
   try {
     mysql_result res(future.get());
-    while (_mysql.fetch_row(res))
-      _cache_deleted_instance_id.insert(res.value_as_u32(0));
-  } catch (std::exception const& e) {
+    while (_mysql.fetch_row(res)) {
+      int32_t instance_id = res.value_as_i32(0);
+      if (instance_id <= 0)
+        log_v2::sql()->error(
+            "unified_sql: The 'instances' table contains rows with instance_id "
+            "<= 0 ; you should remove them.");
+      else
+        _cache_deleted_instance_id.insert(instance_id);
+    }
+  } catch (const std::exception& e) {
     throw msg_fmt("could not get list of deleted instances: {}", e.what());
   }
 }
@@ -278,18 +285,31 @@ void stream::_load_caches() {
           .special = res.value_as_bool(7),
           .locked = res.value_as_bool(8),
       };
-      uint32_t host_id(res.value_as_u32(1));
-      uint32_t service_id(res.value_as_u32(2));
-      log_v2::perfdata()->debug(
-          "unified_sql: loaded index {} of ({}, {}) with rrd_len={}",
-          info.index_id, host_id, service_id, info.rrd_retention);
-      _index_cache[{host_id, service_id}] = std::move(info);
+      int32_t host_id = res.value_as_i32(1);
+      int32_t service_id = res.value_as_i32(2);
+      if (host_id <= 0 || service_id <= 0) {
+        if (host_id <= 0)
+          log_v2::sql()->error(
+              "unified_sql: the 'index_data' table contains rows with host_id "
+              "<= "
+              "0, you should remove them.");
+        if (service_id <= 0)
+          log_v2::sql()->error(
+              "unified_sql: the 'index_data' table contains rows with "
+              "service_id "
+              "<= 0, you should remove them.");
+      } else {
+        log_v2::perfdata()->debug(
+            "unified_sql: loaded index {} of ({}, {}) with rrd_len={}",
+            info.index_id, host_id, service_id, info.rrd_retention);
+        _index_cache[{host_id, service_id}] = std::move(info);
 
-      // Create the metric mapping.
-      auto im{std::make_shared<storage::index_mapping>(info.index_id, host_id,
-                                                       service_id)};
-      multiplexing::publisher pblshr;
-      pblshr.write(im);
+        // Create the metric mapping.
+        auto im{std::make_shared<storage::index_mapping>(info.index_id, host_id,
+                                                         service_id)};
+        multiplexing::publisher pblshr;
+        pblshr.write(im);
+      }
     }
   } catch (std::exception const& e) {
     throw msg_fmt("unified_sql: could not fetch index list from data DB: {}",
@@ -300,8 +320,22 @@ void stream::_load_caches() {
   _cache_host_instance.clear();
   try {
     mysql_result res(future_hi.get());
-    while (_mysql.fetch_row(res))
-      _cache_host_instance[res.value_as_u32(0)] = res.value_as_u32(1);
+    while (_mysql.fetch_row(res)) {
+      int32_t host_id = res.value_as_i32(0);
+      int32_t instance_id = res.value_as_i32(1);
+      if (host_id > 0 && instance_id > 0)
+        _cache_host_instance[host_id] = instance_id;
+      else {
+        if (host_id <= 0)
+          log_v2::sql()->error(
+              "unified_sql: the 'hosts' table contains rows with host_id <= 0, "
+              "you should remove them.");
+        if (instance_id <= 0)
+          log_v2::sql()->error(
+              "unified_sql: the 'hosts' table contains rows with instance_id "
+              "<= 0, you should remove them.");
+      }
+    }
   } catch (std::exception const& e) {
     throw msg_fmt("SQL: could not get the list of host/instance pairs: {}",
                   e.what());
@@ -311,9 +345,16 @@ void stream::_load_caches() {
   _hostgroup_cache.clear();
   try {
     mysql_result res(future_hg.get());
-    while (_mysql.fetch_row(res))
-      _hostgroup_cache.insert(res.value_as_u32(0));
-  } catch (std::exception const& e) {
+    while (_mysql.fetch_row(res)) {
+      int32_t hg_id = res.value_as_i32(0);
+      if (hg_id > 0)
+        _hostgroup_cache.insert(hg_id);
+      else
+        log_v2::sql()->error(
+            "unified_sql: the table 'hostgroups' contains rows with "
+            "hostgroup_id <= 0, you should remove them.");
+    }
+  } catch (const std::exception& e) {
     throw msg_fmt("SQL: could not get the list of hostgroups id: {}", e.what());
   }
 
@@ -321,8 +362,15 @@ void stream::_load_caches() {
   _servicegroup_cache.clear();
   try {
     mysql_result res(future_sg.get());
-    while (_mysql.fetch_row(res))
-      _servicegroup_cache.insert(res.value_as_u32(0));
+    while (_mysql.fetch_row(res)) {
+      int32_t sg_id = res.value_as_i32(0);
+      if (sg_id <= 0)
+        log_v2::sql()->error(
+            "unified_sql: the 'servicegroups' table contains rows with "
+            "servicegroup_id <= 0, you should remove them.");
+      else
+        _servicegroup_cache.insert(sg_id);
+    }
   } catch (std::exception const& e) {
     throw msg_fmt("SQL: could not get the list of servicegroups id: {}",
                   e.what());
@@ -344,21 +392,29 @@ void stream::_load_caches() {
       mysql_result res{future_metrics.get()};
       while (_mysql.fetch_row(res)) {
         metric_info info;
-        info.metric_id = res.value_as_u32(0);
-        info.locked = false;
-        info.unit_name = res.value_as_str(3);
-        info.warn = res.value_as_f32(4);
-        info.warn_low = res.value_as_f32(5);
-        info.warn_mode = res.value_as_i32(6);
-        info.crit = res.value_as_f32(7);
-        info.crit_low = res.value_as_f32(8);
-        info.crit_mode = res.value_as_i32(9);
-        info.min = res.value_as_f32(10);
-        info.max = res.value_as_f32(11);
-        info.value = res.value_as_f32(12);
-        info.type = res.value_as_str(13)[0] - '0';
-        info.metric_mapping_sent = false;
-        _metric_cache[{res.value_as_u64(1), res.value_as_str(2)}] = info;
+        int32_t metric_id = res.value_as_i32(0);
+
+        if (metric_id <= 0)
+          log_v2::sql()->error(
+              "unified_sql: the 'metrics' table contains row with metric_id "
+              "<= 0 ; you should remove them.");
+        else {
+          info.metric_id = metric_id;
+          info.locked = false;
+          info.unit_name = res.value_as_str(3);
+          info.warn = res.value_as_f32(4);
+          info.warn_low = res.value_as_f32(5);
+          info.warn_mode = res.value_as_i32(6);
+          info.crit = res.value_as_f32(7);
+          info.crit_low = res.value_as_f32(8);
+          info.crit_mode = res.value_as_i32(9);
+          info.min = res.value_as_f32(10);
+          info.max = res.value_as_f32(11);
+          info.value = res.value_as_f32(12);
+          info.type = res.value_as_str(13)[0] - '0';
+          info.metric_mapping_sent = false;
+          _metric_cache[{res.value_as_u64(1), res.value_as_str(2)}] = info;
+        }
       }
     } catch (std::exception const& e) {
       throw msg_fmt("unified sql: could not get the list of metrics: {}",
@@ -639,12 +695,28 @@ void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
         std::lock_guard<misc::shared_mutex> lock(_metric_cache_m);
         while (ms.fetch_row(res)) {
           indexes_to_delete.insert(res.value_as_u64(0));
-          uint64_t mid = res.value_as_u64(1);
-          if (mid)
+          int64_t mid = res.value_as_i32(1);
+          int32_t host_id = res.value_as_i32(3);
+          int32_t service_id = res.value_as_i32(4);
+          if (mid <= 0 || host_id <= 0 || service_id <= 0) {
+            if (mid <= 0)
+              log_v2::sql()->error(
+                  "unified_sql: the 'metrics' table contains rows with "
+                  "metric_id <= 0 ; you should remove them.");
+            if (host_id <= 0)
+              log_v2::sql()->error(
+                  "unified_sql: the 'metrics' table contains rows with host_id "
+                  "<= 0 ; you should remove them.");
+            if (service_id <= 0)
+              log_v2::sql()->error(
+                  "unified_sql: the 'metrics' table contains rows with "
+                  "service_id <= 0 ; you should remove them.");
+          } else {
             metrics_to_delete.insert(mid);
 
-          _metric_cache.erase({res.value_as_u64(0), res.value_as_str(2)});
-          _index_cache.erase({res.value_as_u32(3), res.value_as_u32(4)});
+            _metric_cache.erase({res.value_as_u64(0), res.value_as_str(2)});
+            _index_cache.erase({host_id, service_id});
+          }
         }
       }
 
@@ -661,8 +733,15 @@ void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
 
         std::lock_guard<misc::shared_mutex> lock(_metric_cache_m);
         while (ms.fetch_row(res)) {
-          metrics_to_delete.insert(res.value_as_u64(1));
-          _metric_cache.erase({res.value_as_u64(0), res.value_as_str(2)});
+          int32_t metric_id = res.value_as_i32(1);
+          if (metric_id <= 0)
+            log_v2::sql()->error(
+                "unified_sql: the 'metrics' table contains rows with metric_id "
+                "<= 0 ; you should remove them.");
+          else {
+            metrics_to_delete.insert(metric_id);
+            _metric_cache.erase({res.value_as_u64(0), res.value_as_str(2)});
+          }
         }
       }
     } catch (const std::exception& e) {
