@@ -83,18 +83,14 @@ io::endpoint* factory::new_endpoint(
     throw msg_fmt("lua: couldn't read a configuration json");
 
   if (js.is_object()) {
-    json const& name{js["name"]};
-    json const& type{js["type"]};
-    json const& value{js["value"]};
+    json const& name{js.at("name")};
+    json const& type{js.at("type")};
+    json const& value{js.at("value")};
 
     if (name.get<std::string>().empty())
       throw msg_fmt(
           "lua: couldn't read a configuration field because"
           " its name is empty");
-    if (value.get<std::string>().empty())
-      throw msg_fmt(
-          "lua: couldn't read a configuration field because"
-          "' configuration field because its value is empty");
     std::string t((type.get<std::string>().empty()) ? "string"
                                                     : type.get<std::string>());
     if (t == "string" || t == "password")
@@ -131,18 +127,14 @@ io::endpoint* factory::new_endpoint(
     }
   } else if (js.is_array()) {
     for (json const& obj : js) {
-      json const& name{obj["name"]};
-      json const& type{obj["type"]};
-      json const& value{obj["value"]};
+      json const& name{obj.at("name")};
+      json const& type{obj.at("type")};
+      json const& value{obj.at("value")};
 
       if (name.get<std::string>().empty())
         throw msg_fmt(
             "lua: couldn't read a configuration field because"
             " its name is empty");
-      if (value.get<std::string>().empty())
-        throw msg_fmt(
-            "lua: couldn't read a configuration field because"
-            " its value is empty");
       std::string t((type.get<std::string>().empty())
                         ? "string"
                         : type.get<std::string>());
