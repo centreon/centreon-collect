@@ -153,13 +153,13 @@ Here is the list of the currently implemented tests:
 - [x] **NetworkDbFail5**: network failure test between broker and database (shutting down connection for 60s)
 
 ### Broker/engine
-- [x] **ANO_CFG_SENSITIVITY_SAVED**: cfg sensitivity parameter must be saved in retention
-- [x] **ANO_EXTCMD_SENSITIVITY_SAVED**: when user modify senstivity parameter with external command grpc or rw, the new value must be set in retention
-- [x] **ANO_NOFILE**: anomaly is checked but threshold file doesn't exist
-- [x] **ANO_JSON_SENSITIVITY_NOT_SAVED**: json sensitivity parameter is only a default parameter and musn't be saved in retention
-- [x] **ANO_OUT_LOWER_THAN_LIMIT**: metric is beyond lower limit
-- [x] **ANO_OUT_UPPER_THAN_LIMIT**: metric is beyond upper limit
-- [x] **ANO_TOO_OLD_FILE**: anomaly is checked but the last timestamp of threshold file is too old
+- [x] **ANO_CFG_SENSITIVITY_SAVED**: cfg sensitivity saved in retention
+- [x] **ANO_EXTCMD_SENSITIVITY_SAVED**: extcmd sensitivity saved in retention
+- [x] **ANO_JSON_SENSITIVITY_NOT_SAVED**: json sensitivity not saved in retention
+- [x] **ANO_NOFILE**: an anomaly detection without threshold file must be in unknown state
+- [x] **ANO_OUT_LOWER_THAN_LIMIT**: an anomaly detection with a perfdata lower than lower limit make a critical state
+- [x] **ANO_OUT_UPPER_THAN_LIMIT**: an anomaly detection with a perfdata upper than upper limit make a critical state
+- [x] **ANO_TOO_OLD_FILE**: an anomaly detection with an oldest threshold file must be in unknown state
 - [x] **AOUTLU1**: an anomaly detection with a perfdata upper than upper limit make a critical state with bbdo 3
 - [x] **BEATOI11**: external command SEND_CUSTOM_HOST_NOTIFICATION with option_number=1 should work
 - [x] **BEATOI12**: external command SEND_CUSTOM_HOST_NOTIFICATION with option_number>7 should fail
@@ -260,7 +260,7 @@ Here is the list of the currently implemented tests:
 - [x] **BESS_GRPC3**: Start-Stop grpc version Broker/Engine - Engine started first - Engine stopped first
 - [x] **BESS_GRPC4**: Start-Stop grpc version Broker/Engine - Engine started first - Broker stopped first
 - [x] **BESS_GRPC5**: Start-Stop grpc version Broker/engine - Engine debug level is set to all, it should not hang
-- [x] **BESS_GRPC_COMPRESS1**: Start-Stop grpc version Broker/Engine - Broker started first - Broker stopped first compression activated
+- [x] **BESS_GRPC_COMPRESS1**: Start-Stop grpc version Broker/Engine - Broker started first - Broker stopped last compression activated
 - [x] **BETAG1**: Engine is configured with some tags. When broker receives them, it stores them in the centreon_storage.tags table. Broker is started before.
 - [x] **BETAG2**: Engine is configured with some tags. When broker receives them, it stores them in the centreon_storage.tags table. Engine is started before.
 - [x] **BEUTAG1**: Engine is configured with some tags. When broker receives them through unified_sql stream, it stores them in the centreon_storage.tags table. Broker is started before.
@@ -278,6 +278,18 @@ Here is the list of the currently implemented tests:
 - [x] **BRCS1**: Broker reverse connection stopped
 - [x] **BRCTS1**: Broker reverse connection too slow
 - [x] **BRGC1**: Broker good reverse connection
+- [x] **BRRDCDDID1**: RRD metrics deletion from index ids with rrdcached.
+- [x] **BRRDCDDIDDB1**: RRD metrics deletion from index ids with a query in centreon_storage with rrdcached.
+- [x] **BRRDCDDIDU1**: RRD metrics deletion from index ids with unified sql output with rrdcached.
+- [x] **BRRDCDDM1**: RRD metrics deletion from metric ids with rrdcached.
+- [x] **BRRDCDDMDB1**: RRD metrics deletion from metric ids with a query in centreon_storage and rrdcached.
+- [x] **BRRDCDDMID1**: RRD deletion of non existing metrics and indexes with rrdcached
+- [x] **BRRDCDDMIDU1**: RRD deletion of non existing metrics and indexes with rrdcached
+- [x] **BRRDCDDMU1**: RRD metric deletion on table metric with unified sql output with rrdcached
+- [x] **BRRDCDRB1**: RRD metric rebuild with gRPC API. 3 indexes are selected then a message to rebuild them is sent. This is done with storage/sql sql output and rrdcached.
+- [x] **BRRDCDRBDB1**: RRD metric rebuild with a query in centreon_storage and unified sql with rrdcached
+- [x] **BRRDCDRBU1**: RRD metric rebuild with gRPC API. 3 indexes are selected then a message to rebuild them is sent. This is done with unified_sql output and rrdcached.
+- [x] **BRRDCDRBUDB1**: RRD metric rebuild with a query in centreon_storage and unified sql with rrdcached
 - [x] **BRRDDID1**: RRD metrics deletion from index ids.
 - [x] **BRRDDIDDB1**: RRD metrics deletion from index ids with a query in centreon_storage.
 - [x] **BRRDDIDU1**: RRD metrics deletion from index ids with unified sql output.
