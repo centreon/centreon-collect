@@ -163,6 +163,10 @@ def stop_mysql():
         getoutput(
             "kill -9 $(ps aux | grep 'mariadbd --user=root' | grep -v grep | awk '{print $2}')")
 
+def stop_rrdcached():
+        getoutput(
+            "kill -9 $(ps ax | grep '.usr.bin.rrdcached' | grep -v grep | awk '{print $1}')")
+
 
 def kill_broker():
     getoutput(
