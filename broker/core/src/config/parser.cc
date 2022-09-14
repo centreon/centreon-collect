@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013,2015,2017-2021 Centreon
+** Copyright 2011-2013,2015,2017-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@
 
 #include <streambuf>
 
+#include "com/centreon/broker/exceptions/deprecated.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/filesystem.hh"
 #include "com/centreon/broker/misc/string.hh"
@@ -31,6 +32,9 @@ using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::config;
 using namespace nlohmann;
+
+using msg_fmt = com::centreon::exceptions::msg_fmt;
+using deprecated = com::centreon::broker::exceptions::deprecated;
 
 /**
  *  Default constructor.
@@ -50,15 +54,12 @@ static bool get_conf(std::pair<std::string const, json> const& obj,
                      bool (json::*is_goodtype)() const,
                      T (json::*get_value)() const) {
   if (obj.first == key) {
-    json const& value = obj.second;
+    const json& value = obj.second;
     if ((value.*is_goodtype)())
       (s.*set_state)((value.*get_value)());
     else
       throw msg_fmt(
-          "config parser: cannot parse key '{}': "
-          "value type is invalid",
-          key);
-    ;
+          "config parser: cannot parse key '{}': value type is invalid", key);
     return true;
   }
   return false;
@@ -71,7 +72,7 @@ static bool get_conf(std::pair<std::string const, json> const& obj,
                      void (U::*set_state)(const std::string&),
                      bool (json::*is_goodtype)() const) {
   if (obj.first == key) {
-    json const& value = obj.second;
+    const json& value = obj.second;
     if ((value.*is_goodtype)())
       (s.*set_state)(value.get<std::string>());
     else
@@ -203,20 +204,32 @@ state parser::parse(std::string const& file) {
         else if (it.key() == "output") {
           if (it.value().is_array()) {
             for (json const& node : it.value()) {
+              try {
+                endpoint out(endpoint::io_type::output);
+                out.read_filters.insert("all");
+                out.write_filters.insert("all");
+                _parse_endpoint(node, out, module);
+                retval.add_module(std::move(module));
+                retval.add_endpoint(std::move(out));
+              } catch (const deprecated& e) {
+                log_v2::config()->warn(
+                    "Deprecated endpoint found in the output configuration: {}",
+                    e.what());
+              }
+            }
+          } else if (it.value().is_object()) {
+            try {
               endpoint out(endpoint::io_type::output);
               out.read_filters.insert("all");
               out.write_filters.insert("all");
-              _parse_endpoint(node, out, module);
+              _parse_endpoint(it.value(), out, module);
               retval.add_module(std::move(module));
               retval.add_endpoint(std::move(out));
+            } catch (const deprecated& e) {
+              log_v2::config()->warn(
+                  "Deprecated endpoint found in the output configuration: {}",
+                  e.what());
             }
-          } else if (it.value().is_object()) {
-            endpoint out(endpoint::io_type::output);
-            out.read_filters.insert("all");
-            out.write_filters.insert("all");
-            _parse_endpoint(it.value(), out, module);
-            retval.add_module(std::move(module));
-            retval.add_endpoint(std::move(out));
           } else
             throw msg_fmt(
                 "config parser: cannot parse key '"
@@ -224,18 +237,30 @@ state parser::parse(std::string const& file) {
         } else if (it.key() == "input") {
           if (it.value().is_array()) {
             for (json const& node : it.value()) {
-              endpoint in(endpoint::io_type::input);
-              in.read_filters.insert("all");
-              _parse_endpoint(node, in, module);
-              retval.add_module(std::move(module));
-              retval.add_endpoint(std::move(in));
+              try {
+                endpoint in(endpoint::io_type::input);
+                in.read_filters.insert("all");
+                _parse_endpoint(node, in, module);
+                retval.add_module(std::move(module));
+                retval.add_endpoint(std::move(in));
+              } catch (const deprecated& e) {
+                log_v2::config()->warn(
+                    "Deprecated endpoint found in the input configuration: {}",
+                    e.what());
+              }
             }
           } else if (it.value().is_object()) {
-            endpoint in(endpoint::io_type::input);
-            in.read_filters.insert("all");
-            _parse_endpoint(it.value(), in, module);
-            retval.add_module(std::move(module));
-            retval.add_endpoint(std::move(in));
+            try {
+              endpoint in(endpoint::io_type::input);
+              in.read_filters.insert("all");
+              _parse_endpoint(it.value(), in, module);
+              retval.add_module(std::move(module));
+              retval.add_endpoint(std::move(in));
+            } catch (const deprecated& e) {
+              log_v2::config()->warn(
+                  "Deprecated endpoint found in the input configuration: {}",
+                  e.what());
+            }
           } else
             throw msg_fmt(
                 "config parser: cannot parse key '"
@@ -468,6 +493,9 @@ void parser::_parse_endpoint(json const& elem,
         module = "70-influxdb.so";
       else if (e.type == "grpc")
         module = "50-grpc.so";
+      else if (e.type == "file")
+        throw deprecated(
+            "'file' endpoint is deprecated and should not be used anymore");
       else
         throw msg_fmt("config parser: endpoint of invalid type '{}'", e.type);
     }
