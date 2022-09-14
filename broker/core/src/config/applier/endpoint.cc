@@ -345,40 +345,42 @@ processing::failover* endpoint::_create_failover(
     std::list<config::endpoint>::iterator it(
         std::find_if(l.begin(), l.end(), failover_match_name(front_failover)));
     if (it == l.end())
-      throw msg_fmt(
+      log_v2::config()->error(
           "endpoint applier: could not find failover '{}' for endpoint '{}'",
           front_failover, cfg.name);
-    bool is_acceptor;
-    std::shared_ptr<io::endpoint> e(_create_endpoint(*it, is_acceptor));
-    if (is_acceptor)
-      throw msg_fmt(
-          "endpoint applier: cannot allow acceptor '{}' "
-          "as failover for endpoint '{}'",
-          front_failover, cfg.name);
-    failovr =
-        std::shared_ptr<processing::failover>(_create_failover(*it, mux, e, l));
-
-    // Add secondary failovers
-    for (std::list<std::string>::const_iterator
-             failover_it(++cfg.failovers.begin()),
-         failover_end(cfg.failovers.end());
-         failover_it != failover_end; ++failover_it) {
-      auto it =
-          std::find_if(l.begin(), l.end(), failover_match_name(*failover_it));
-      if (it == l.end())
+    else {
+      bool is_acceptor;
+      std::shared_ptr<io::endpoint> e(_create_endpoint(*it, is_acceptor));
+      if (is_acceptor)
         throw msg_fmt(
-            "endpoint applier: could not find "
-            "secondary failover '{}' for endpoint '{}'",
-            *failover_it, cfg.name);
-      bool is_acceptor{false};
-      std::shared_ptr<io::endpoint> endp(_create_endpoint(*it, is_acceptor));
-      if (is_acceptor) {
-        log_v2::config()->error(
-            "endpoint applier: secondary failover '{}' is an acceptor and "
-            "cannot therefore be instantiated for endpoint '{}'",
-            *failover_it, cfg.name);
+            "endpoint applier: cannot allow acceptor '{}' as failover for "
+            "endpoint '{}'",
+            front_failover, cfg.name);
+      failovr = std::shared_ptr<processing::failover>(
+          _create_failover(*it, mux, e, l));
+
+      // Add secondary failovers
+      for (std::list<std::string>::const_iterator
+               failover_it(++cfg.failovers.begin()),
+           failover_end(cfg.failovers.end());
+           failover_it != failover_end; ++failover_it) {
+        auto it =
+            std::find_if(l.begin(), l.end(), failover_match_name(*failover_it));
+        if (it == l.end())
+          throw msg_fmt(
+              "endpoint applier: could not find secondary failover '{}' for "
+              "endpoint '{}'",
+              *failover_it, cfg.name);
+        bool is_acceptor{false};
+        std::shared_ptr<io::endpoint> endp(_create_endpoint(*it, is_acceptor));
+        if (is_acceptor) {
+          log_v2::config()->error(
+              "endpoint applier: secondary failover '{}' is an acceptor and "
+              "cannot therefore be instantiated for endpoint '{}'",
+              *failover_it, cfg.name);
+        }
+        failovr->add_secondary_endpoint(endp);
       }
-      failovr->add_secondary_endpoint(endp);
     }
   }
 
@@ -500,12 +502,14 @@ void endpoint::_diff_endpoints(
           list_it = std::find_if(new_ep.begin(), new_ep.end(),
                                  failover_match_name(failover));
           if (list_it == new_ep.end())
-            throw msg_fmt(
-                "endpoint applier: could not find failover '{}'"
-                "' for endpoint '{}'",
+            log_v2::config()->error(
+                "endpoint applier: could not find failover '{}' for endpoint "
+                "'{}'",
                 failover, entry.name);
-          entries.push_back(*list_it);
-          new_ep.erase(list_it);
+          else {
+            entries.push_back(*list_it);
+            new_ep.erase(list_it);
+          }
         }
     }
 
