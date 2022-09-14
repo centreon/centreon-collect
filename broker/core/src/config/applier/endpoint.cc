@@ -160,14 +160,14 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
           ep.name, _filters(ep.read_filters), _filters(ep.write_filters),
           true)};
       bool is_acceptor;
-      std::shared_ptr<io::endpoint> e(_create_endpoint(ep, is_acceptor));
+      std::shared_ptr<io::endpoint> e{_create_endpoint(ep, is_acceptor)};
       std::unique_ptr<processing::endpoint> endp;
       /* Input or output? */
       /* This is tricky, one day we will make better... I hope.
        * In case of an Engine making connection to Broker, usually Broker is an
        * acceptor and Engine not.
        * In case of one peer retention, each one keeps its role but the
-       * connection is reversed. To keep this behavior, Broker is still
+       * connection is reversed. To keep this behavior, Engine is still
        * considered as the connector and Broker the acceptor, is_acceptor is
        * then set to false.
        * In case of Broker connected to Map, Broker is a TCP acceptor, and
@@ -335,7 +335,7 @@ processing::failover* endpoint::_create_failover(
     std::shared_ptr<io::endpoint> endp,
     std::list<config::endpoint>& l) {
   // Debug message.
-  log_v2::config()->info("endpoint applier: creating new endpoint '{}'",
+  log_v2::config()->info("endpoint applier: creating new failover '{}'",
                          cfg.name);
 
   // Check that failover is configured.
@@ -345,40 +345,42 @@ processing::failover* endpoint::_create_failover(
     std::list<config::endpoint>::iterator it(
         std::find_if(l.begin(), l.end(), failover_match_name(front_failover)));
     if (it == l.end())
-      throw msg_fmt(
+      log_v2::config()->error(
           "endpoint applier: could not find failover '{}' for endpoint '{}'",
           front_failover, cfg.name);
-    bool is_acceptor;
-    std::shared_ptr<io::endpoint> e(_create_endpoint(*it, is_acceptor));
-    if (is_acceptor)
-      throw msg_fmt(
-          "endpoint applier: cannot allow acceptor '{}' "
-          "as failover for endpoint '{}'",
-          front_failover, cfg.name);
-    failovr =
-        std::shared_ptr<processing::failover>(_create_failover(*it, mux, e, l));
-
-    // Add secondary failovers
-    for (std::list<std::string>::const_iterator
-             failover_it(++cfg.failovers.begin()),
-         failover_end(cfg.failovers.end());
-         failover_it != failover_end; ++failover_it) {
-      auto it =
-          std::find_if(l.begin(), l.end(), failover_match_name(*failover_it));
-      if (it == l.end())
+    else {
+      bool is_acceptor;
+      std::shared_ptr<io::endpoint> e(_create_endpoint(*it, is_acceptor));
+      if (is_acceptor)
         throw msg_fmt(
-            "endpoint applier: could not find "
-            "secondary failover '{}' for endpoint '{}'",
-            *failover_it, cfg.name);
-      bool is_acceptor{false};
-      std::shared_ptr<io::endpoint> endp(_create_endpoint(*it, is_acceptor));
-      if (is_acceptor) {
-        log_v2::config()->error(
-            "endpoint applier: secondary failover '{}' is an acceptor and "
-            "cannot therefore be instantiated for endpoint '{}'",
-            *failover_it, cfg.name);
+            "endpoint applier: cannot allow acceptor '{}' as failover for "
+            "endpoint '{}'",
+            front_failover, cfg.name);
+      failovr = std::shared_ptr<processing::failover>(
+          _create_failover(*it, mux, e, l));
+
+      // Add secondary failovers
+      for (std::list<std::string>::const_iterator
+               failover_it(++cfg.failovers.begin()),
+           failover_end(cfg.failovers.end());
+           failover_it != failover_end; ++failover_it) {
+        auto it =
+            std::find_if(l.begin(), l.end(), failover_match_name(*failover_it));
+        if (it == l.end())
+          throw msg_fmt(
+              "endpoint applier: could not find secondary failover '{}' for "
+              "endpoint '{}'",
+              *failover_it, cfg.name);
+        bool is_acceptor{false};
+        std::shared_ptr<io::endpoint> endp(_create_endpoint(*it, is_acceptor));
+        if (is_acceptor) {
+          log_v2::config()->error(
+              "endpoint applier: secondary failover '{}' is an acceptor and "
+              "cannot therefore be instantiated for endpoint '{}'",
+              *failover_it, cfg.name);
+        }
+        failovr->add_secondary_endpoint(endp);
       }
-      failovr->add_secondary_endpoint(endp);
     }
   }
 
@@ -404,20 +406,21 @@ std::shared_ptr<io::endpoint> endpoint::_create_endpoint(config::endpoint& cfg,
   std::shared_ptr<io::endpoint> endp;
   int level{0};
   for (std::map<std::string, io::protocols::protocol>::const_iterator
-           it(io::protocols::instance().begin()),
-       end(io::protocols::instance().end());
+           it = io::protocols::instance().begin(),
+           end = io::protocols::instance().end();
        it != end; ++it) {
     if (it->second.osi_from == 1 &&
         it->second.endpntfactry->has_endpoint(cfg, nullptr)) {
       std::shared_ptr<persistent_cache> cache;
-      if (cfg.cache_enabled) {
-        std::string cache_path(config::applier::state::instance().cache_dir());
-        cache_path.append(".cache.");
-        cache_path.append(cfg.name);
-        cache = std::make_shared<persistent_cache>(cache_path);
-      }
+      if (cfg.cache_enabled)
+        cache = std::make_shared<persistent_cache>(fmt::format(
+            "{}.cache.{}", config::applier::state::instance().cache_dir(),
+            cfg.name));
+
       endp = std::shared_ptr<io::endpoint>(
           it->second.endpntfactry->new_endpoint(cfg, is_acceptor, cache));
+      log_v2::config()->info(" create endpoint {} for endpoint '{}'", it->first,
+                             cfg.name);
       level = it->second.osi_to + 1;
       break;
     }
@@ -438,6 +441,8 @@ std::shared_ptr<io::endpoint> endpoint::_create_endpoint(config::endpoint& cfg,
           (it->second.endpntfactry->has_endpoint(cfg, nullptr))) {
         std::shared_ptr<io::endpoint> current(
             it->second.endpntfactry->new_endpoint(cfg, is_acceptor));
+        log_v2::config()->info(" create endpoint {} for endpoint '{}'",
+                               it->first, cfg.name);
         current->from(endp);
         endp = current;
         level = it->second.osi_to;
@@ -497,12 +502,14 @@ void endpoint::_diff_endpoints(
           list_it = std::find_if(new_ep.begin(), new_ep.end(),
                                  failover_match_name(failover));
           if (list_it == new_ep.end())
-            throw msg_fmt(
-                "endpoint applier: could not find failover '{}'"
-                "' for endpoint '{}'",
+            log_v2::config()->error(
+                "endpoint applier: could not find failover '{}' for endpoint "
+                "'{}'",
                 failover, entry.name);
-          entries.push_back(*list_it);
-          new_ep.erase(list_it);
+          else {
+            entries.push_back(*list_it);
+            new_ep.erase(list_it);
+          }
         }
     }
 
@@ -535,8 +542,8 @@ absl::flat_hash_set<uint32_t> endpoint::_filters(
              it = tmp_elements.cbegin(),
              end = tmp_elements.cend();
          it != end; ++it) {
-      log_v2::config()->info("endpoint applier: new filtering element: {}",
-                             it->first);
+      log_v2::config()->debug("endpoint applier: new filtering element: {}",
+                              it->first);
       elements.insert(it->first);
       retval = true;
     }
