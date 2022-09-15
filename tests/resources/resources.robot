@@ -10,6 +10,11 @@ Clean Before Suite
 	Clear Engine Logs
 	Clear Broker Logs
 
+Clean Before Suite With rrdcached
+	Clean Before Suite
+        log to console	Starting RRDCached
+	Run Process	/usr/bin/rrdcached	-l	unix:${BROKER_LIB}/rrdcached.sock	-V	LOG_DEBUG	-F
+
 Clean Grpc Before Suite
 	set grpc port  0
 	Clean Before Suite
@@ -18,6 +23,11 @@ Clean After Suite
 	# Remove Files	${ENGINE_LOG}${/}centengine.log ${ENGINE_LOG}${/}centengine.debug
 	# Remove Files	${BROKER_LOG}${/}central-broker-master.log	${BROKER_LOG}${/}central-rrd-master.log	${BROKER_LOG}${/}central-module-master.log
 	Terminate All Processes	kill=True
+
+Clean After Suite With rrdcached
+        Clean after Suite
+        log to console	Stopping RRDCached
+        Stop rrdcached
 
 Clear Engine Logs
 	Remove Directory	${ENGINE_LOG}	Recursive=True
@@ -131,6 +141,7 @@ Save Logs
 
 *** Variables ***
 ${BROKER_LOG}	${VarRoot}/log/centreon-broker
+${BROKER_LIB}	${VarRoot}/lib/centreon-broker
 ${ENGINE_LOG}	${VarRoot}/log/centreon-engine
 ${SCRIPTS}	${CURDIR}${/}scripts${/}
 ${centralLog}	${BROKER_LOG}/central-broker-master.log
