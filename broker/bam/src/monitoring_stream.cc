@@ -325,7 +325,7 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
             "Broker BAM Module;Automatic downtime triggered by BA downtime "
             "inheritance",
             now, config::applier::state::instance().poller_id(), dwn.ba_id, now,
-            std::numeric_limits<int32_t>::max());
+            4102444799);
       else
         cmd = fmt::format(
             "[{}] DEL_SVC_DOWNTIME_FULL;_Module_BAM_{};ba_{};;;1;0;;Centreon "
