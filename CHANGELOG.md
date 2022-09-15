@@ -4,6 +4,11 @@
 
 ### Broker
 
+#### Enhancements
+
+*lua*
+stream connector accepts empty parameter values
+
 #### Fixes
 
 * Broker is no more blocked when rows with unexpected values are encountered.
@@ -16,9 +21,18 @@
 
 ### Engine
 
+#### Enhancements
+
+Anomaly detection can do the check if it's in a no ok state
 #### Fixes
 
 Engine waits up to 5 seconds to send bye event to broker
+
+### perl connector
+
+#### Fixes
+
+correct status is forwarded to engine
 
 ## 22.04.1
 
