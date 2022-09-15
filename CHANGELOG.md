@@ -2,11 +2,24 @@
 
 ## 22.04.2
 
-### engine
+### Broker
 
 #### Fixes
 
-engine waits up to 5 seconds to send bye event to broker
+* Broker is no more blocked when rows with unexpected values are encountered.
+  An error log is raised to help the user to fix it, that's all.
+* File failovers have been no more supported for an almost long time now. In
+  this new version, this is not a blocking point. Some error logs are raised to
+  help the user to fix his configuration but Broker does not stop.
+* RRD graphs rebuilds flush data when the rebuild is over. This seems to improve
+  the user experience.
+
+### Engine
+
+#### Fixes
+
+Engine waits up to 5 seconds to send bye event to broker
+
 ## 22.04.1
 
 ### ccc

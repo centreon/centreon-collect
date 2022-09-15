@@ -102,6 +102,7 @@ Here is the list of the currently implemented tests:
 
 keys = list(dico.keys())
 keys.sort()
+count = 0
 
 for k in keys:
     name = k[2:]
@@ -110,13 +111,18 @@ for k in keys:
     out.write("### {}\n".format(name))
     if isinstance(dico[k], str):
         out.write("- [x] **{}**: {}\n".format(k, dico[k]))
+        count += 1
     else:
-        for kk in dico[k]:
+        tests = list(dico[k].keys())
+        tests.sort()
+        for kk in tests:
             if isinstance(dico[k][kk], str):
                 out.write("- [x] **{}**: {}\n".format(kk, dico[k][kk]))
+                count += 1
             else:
                 print("This tree is too deep")
                 exit(1)
         out.write("\n")
 
 out.close()
+print(f"{count} tests are documented now.")
