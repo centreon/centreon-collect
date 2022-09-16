@@ -59,8 +59,7 @@ client::client(std::shared_ptr<grpc::Channel> channel, bool color_enabled)
         &context, absl::StrFormat("/%s/GetVersion", sn), request_buf, &_cq);
     resp->StartCall();
     grpc::ByteBuffer resp_buf;
-    grpc::Status status1;
-    resp->Finish(&resp_buf, &status1, reinterpret_cast<void*>(1));
+    resp->Finish(&resp_buf, &status, reinterpret_cast<void*>(1));
 
     google::protobuf::DynamicMessageFactory factory;
 
@@ -192,7 +191,7 @@ std::string client::call(const std::string& cmd, const std::string& args) {
   auto resp = _stub->PrepareUnaryCall(&context, cmd_str, request_buf, &_cq);
   resp->StartCall();
   grpc::ByteBuffer resp_buf;
-  resp->Finish(&resp_buf, &status_res, static_cast<void*>(this));
+  resp->Finish(&resp_buf, &status_res, reinterpret_cast<void*>(1));
 
   void* tag;
   bool ok = false;
