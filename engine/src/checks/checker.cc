@@ -524,9 +524,6 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
         "Error: Synchronous host check command execution failed: {}", e.what());
   }
 
-  // Get output.
-  char* output(string::dup(res.output));
-
   unsigned int execution_time(0);
   if (res.end_time >= res.start_time)
     execution_time = res.end_time.to_seconds() - res.start_time.to_seconds();
@@ -543,18 +540,15 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
                         start_cmd, end_cmd, execution_time,
                         config->host_check_timeout(),
                         res.exit_status == process::timeout, res.exit_code,
-                        tmp_processed_cmd, output, nullptr);
+                        tmp_processed_cmd, res.output.c_str(), nullptr);
 
   // Cleanup.
-  delete[] output;
   clear_volatile_macros_r(macros);
 
   // If the command timed out.
   if (res.exit_status == process::timeout) {
-    std::ostringstream oss;
-    oss << "Host check timed out after " << config->host_check_timeout()
-        << "  seconds";
-    res.output = oss.str();
+    res.output = fmt::format("Host check timed out after {}  seconds",
+                             config->host_check_timeout());
     engine_logger(log_runtime_warning, basic)
         << "Warning: Host check command '" << processed_cmd << "' for host '"
         << hst->name() << "' timed out after " << config->host_check_timeout()

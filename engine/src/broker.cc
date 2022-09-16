@@ -1076,7 +1076,7 @@ void broker_system_command(int type __attribute__((unused)),
                            int early_timeout __attribute__((unused)),
                            int retcode __attribute__((unused)),
                            const char* cmd __attribute__((unused)),
-                           char* output __attribute__((unused)),
+                           const char* output __attribute__((unused)),
                            struct timeval const* timestamp
                            __attribute__((unused))) {}
 

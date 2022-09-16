@@ -524,7 +524,7 @@ void broker_system_command(int type,
                            int early_timeout,
                            int retcode,
                            const char* cmd,
-                           char* output,
+                           const char* output,
                            struct timeval const* timestamp);
 void broker_timed_event(int type,
                         int flags,

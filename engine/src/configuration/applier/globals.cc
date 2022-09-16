@@ -109,7 +109,7 @@ applier::globals::globals() {}
 /**
  *  Destructor.
  */
-applier::globals::~globals() throw() {
+applier::globals::~globals() noexcept {
   clear();
 }
 
