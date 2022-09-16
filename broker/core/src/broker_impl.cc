@@ -304,10 +304,10 @@ grpc::Status broker_impl::SetLogLevel(grpc::ServerContext* context
                                       [[maybe_unused]],
                                       const LogLevel* request,
                                       ::google::protobuf::Empty*) {
-  const std::string& logger = request->logger();
-  const std::string& level = request->level();
+  const std::string& logger_name{request->logger()};
+  const std::string& level{request->level()};
   try {
-    log_v2::instance().set_level(logger, level);
+    log_v2::instance().set_level(logger_name, level);
   } catch (const std::exception& e) {
     return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what());
   }
