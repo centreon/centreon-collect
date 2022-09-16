@@ -272,3 +272,44 @@ grpc::Status broker_impl::RemovePoller(grpc::ServerContext* context
   pblshr.write(e);
   return grpc::Status::OK;
 }
+
+grpc::Status broker_impl::GetLogInfo(grpc::ServerContext* context
+                                     [[maybe_unused]],
+                                     const GenericString* request,
+                                     LogInfo* response) {
+  auto& name{request->str_arg()};
+  auto& map = *response->mutable_level();
+  auto lvs = log_v2::instance().levels();
+  response->set_log_file(log_v2::instance().log_name());
+  if (!name.empty()) {
+    auto found = std::find_if(lvs.begin(), lvs.end(),
+                              [&name](std::pair<std::string, std::string>& p) {
+                                return p.first == name;
+                              });
+    if (found != lvs.end()) {
+      map[name] = std::move(found->second);
+      return grpc::Status::OK;
+    } else {
+      std::string msg{fmt::format("'{}' is not a logger in broker", name)};
+      return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, msg);
+    }
+  } else {
+    for (auto& p : lvs)
+      map[p.first] = p.second;
+    return grpc::Status::OK;
+  }
+}
+
+grpc::Status broker_impl::SetLogLevel(grpc::ServerContext* context
+                                      [[maybe_unused]],
+                                      const LogLevel* request,
+                                      ::google::protobuf::Empty*) {
+  const std::string& logger_name{request->logger()};
+  const std::string& level{request->level()};
+  try {
+    log_v2::instance().set_level(logger_name, level);
+  } catch (const std::exception& e) {
+    return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what());
+  }
+  return grpc::Status::OK;
+}

@@ -79,6 +79,8 @@ class log_v2 {
   static std::shared_ptr<spdlog::logger> grpc();
   static bool contains_logger(const std::string& logger);
   static bool contains_level(const std::string& level);
+  std::vector<std::pair<std::string, std::string>> levels() const;
+  void set_level(const std::string& logger, const std::string& level);
 };
 
 CCB_END();

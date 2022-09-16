@@ -1620,3 +1620,42 @@ def check_poller_enabled_in_database(poller_id: int, timeout: int):
                     return True
         time.sleep(5)
     return False
+
+def get_broker_log_level(port, name, log, timeout=TIMEOUT):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        logger.console("Try to call GetLogInfo")
+        time.sleep(1)
+        with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            ref = broker_pb2.GenericString()
+            ref.str_arg = log
+            try:
+                res = stub.GetLogInfo(ref)
+                res = res.level[log]
+                return res
+                break
+            except:
+                logger.console("gRPC server not ready")
+
+
+def set_broker_log_level(port, name, log, level, timeout=TIMEOUT):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        logger.console("Try to call SetLogLevel")
+        time.sleep(1)
+        with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            ref = broker_pb2.LogLevel()
+            ref.logger = log
+            ref.level = level
+            try:
+                res = stub.SetLogLevel(ref)
+                break
+            except grpc.RpcError as rpc_error:
+                if rpc_error.code() == grpc.StatusCode.INVALID_ARGUMENT:
+                    res = rpc_error.details()
+                break
+            except:
+                logger.console("gRPC server not ready")
+    return res

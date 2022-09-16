@@ -94,6 +94,12 @@ class broker_impl final : public Broker::Service {
                             __attribute__((unused)),
                             const GenericNameOrIndex* request,
                             ::google::protobuf::Empty* response) override;
+  grpc::Status GetLogInfo(grpc::ServerContext* context [[maybe_unused]],
+                          const GenericString* request,
+                          LogInfo* response) override;
+  grpc::Status SetLogLevel(grpc::ServerContext* context [[maybe_unused]],
+                           const LogLevel* request,
+                           ::google::protobuf::Empty*) override;
 
  public:
   void set_broker_name(const std::string& s);
