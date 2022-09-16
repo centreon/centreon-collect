@@ -47,12 +47,33 @@ service Broker {
    * @return An Empty object.
    */
   rpc RemovePoller(GenericNameOrIndex) returns (google.protobuf.Empty) {}
+
+  /**
+   * @brief Retrieve some informations about loggers. If a name is specified,
+   * Informations are concentrated on the logger of that name.
+   *
+   * @param A logger name.
+   *
+   * @return A LogInfo message.
+   */
+  rpc GetLogInfo(GenericString) returns (LogInfo) {}
+  rpc SetLogLevel(LogLevel) returns (google.protobuf.Empty) {}
 }
 
 message Version {
   int32 major = 1;
   int32 minor = 2;
   int32 patch = 3;
+}
+
+message LogInfo {
+  string log_file = 1;
+  map<string, string> level = 2;
+}
+
+message LogLevel {
+  string logger = 1;
+  string level = 2;
 }
 
 message GenericString {

@@ -59,7 +59,8 @@ client::client(std::shared_ptr<grpc::Channel> channel, bool color_enabled)
         &context, absl::StrFormat("/%s/GetVersion", sn), request_buf, &_cq);
     resp->StartCall();
     grpc::ByteBuffer resp_buf;
-    resp->Finish(&resp_buf, &status, reinterpret_cast<void*>(1));
+    grpc::Status status1;
+    resp->Finish(&resp_buf, &status1, reinterpret_cast<void*>(1));
 
     google::protobuf::DynamicMessageFactory factory;
 
@@ -191,11 +192,15 @@ std::string client::call(const std::string& cmd, const std::string& args) {
   auto resp = _stub->PrepareUnaryCall(&context, cmd_str, request_buf, &_cq);
   resp->StartCall();
   grpc::ByteBuffer resp_buf;
-  resp->Finish(&resp_buf, &status_res, reinterpret_cast<void*>(1));
+  resp->Finish(&resp_buf, &status_res, static_cast<void*>(this));
 
   void* tag;
   bool ok = false;
   _cq.Next(&tag, &ok);
+  if (!status_res.ok())
+    throw com::centreon::exceptions::msg_fmt(
+        "In call of the '{}' method: {}", cmd_str, status_res.error_message());
+
   grpc::ProtoBufferReader reader(&resp_buf);
 
   const google::protobuf::Descriptor* output_desc = method->output_type();

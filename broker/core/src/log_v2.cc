@@ -236,6 +236,19 @@ bool log_v2::contains_logger(const std::string& logger) {
   return std::find(loggers.begin(), loggers.end(), logger) != loggers.end();
 }
 
+std::vector<std::pair<std::string, std::string>> log_v2::levels() const {
+  std::vector<std::pair<std::string, std::string>> retval;
+  if (_running) {
+    retval.reserve(_log.size());
+    for (auto& l : _log) {
+      spdlog::level::level_enum level = l->level();
+      auto& lv = to_string_view(level);
+      retval.emplace_back(l->name(), std::string(lv.data(), lv.size()));
+    }
+  }
+  return retval;
+}
+
 /**
  * @brief Check if the given level makes part of the available levels.
  *
@@ -407,4 +420,26 @@ std::shared_ptr<spdlog::logger> log_v2::grpc() {
 
 const std::string& log_v2::log_name() const {
   return _log_name;
+}
+
+void log_v2::set_level(const std::string& logger, const std::string& level) {
+  if (_running) {
+    bool found = false;
+    for (auto l : _log) {
+      if (l->name() == logger) {
+        found = true;
+        level::level_enum lvl = level::from_str(level);
+        if (lvl == level::off && level != "off")
+          throw msg_fmt("The '{}' level is unknown", level);
+        l->set_level(lvl);
+        break;
+      }
+    }
+    if (!found)
+      throw msg_fmt("The '{}' logger does not exist", logger);
+  } else
+    throw msg_fmt(
+        "Unable to change '{}' logger level, the logger is not running for now "
+        "- try later.",
+        logger);
 }
