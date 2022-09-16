@@ -418,10 +418,21 @@ std::shared_ptr<spdlog::logger> log_v2::grpc() {
   }
 }
 
+/**
+ * @brief Accessor to the log file.
+ *
+ * @return 
+ */
 const std::string& log_v2::log_name() const {
   return _log_name;
 }
 
+/**
+ * @brief Set the level of a logger.
+ *
+ * @param logger The logger name
+ * @param level The level as a string
+ */
 void log_v2::set_level(const std::string& logger, const std::string& level) {
   if (_running) {
     bool found = false;
