@@ -93,7 +93,6 @@ add_executable(ut_broker
   ${TESTS_DIR}/misc/misc.cc
   ${TESTS_DIR}/misc/perfdata.cc
   ${TESTS_DIR}/misc/string.cc
-  ${TESTS_DIR}/misc/stringifier.cc
   ${TESTS_DIR}/modules/module.cc
   ${TESTS_DIR}/multiplexing/engine/start_stop.cc
   ${TESTS_DIR}/multiplexing/muxer/read.cc
