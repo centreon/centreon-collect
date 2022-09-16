@@ -176,3 +176,169 @@ AOUTLU1
 	${result}=	Check Types in resources	${lst}
 	Should Be True	${result}	msg=The table 'resources' should contain rows of types SERVICE, HOST and ANOMALY_DETECTION.
 
+ANO_DT1
+	[Documentation]	downtime on dependent service is inherited by ano
+	[Tags]  Broker	Engine	Anomaly
+	Config Engine	${1}	${50}	${20}
+	Config Broker	central
+	Config Broker	rrd
+	Config Broker	module	${1}
+	Broker Config Log	central	sql	debug
+	Config Broker Sql Output	central	unified_sql
+	Broker Config Add Item	module0	bbdo_version	3.0.1
+	Broker Config Add Item	rrd	bbdo_version	3.0.1
+	Broker Config Add Item	central	bbdo_version	3.0.1
+	${serv_id}=  Create Anomaly Detection  ${0}  ${1}  ${1}  metric
+	${predict_data} =  Evaluate  [[0,50,52],[2648812678,50,63]]
+	Create Anomaly Threshold File  /tmp/anomaly_threshold.json  ${1}  ${serv_id}  metric  ${predict_data}
+	Clear Retention
+	Clear Db  services
+	Start Broker
+	${start}=	Get Current Date
+	Start Engine
+	# Let's wait for the initial service states.
+	${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+	Should Be True	${result}	msg=An Initial service state on service (50, 1000) should be raised before we can start external commands.
+
+    #create dependent service downtime
+    SCHEDULE SERVICE DOWNTIME	host_1	service_1  3600
+
+    ${result}=  CHECK SERVICE DOWNTIME WITH TIMEOUT  host_1	service_1  1  10
+	Should Be True	${result}	msg=dependent service must be in downtime
+    ${result}=  CHECK SERVICE DOWNTIME WITH TIMEOUT  host_1	anomaly_${serv_id}  1  5
+	Should Be True	${result}	msg=anomaly service must be in downtime
+
+	Stop Engine
+	Kindly Stop Broker
+
+ANO_DT2
+	[Documentation]	delete downtime on dependent service delete one on ano serv
+	[Tags]  Broker	Engine	Anomaly
+	Config Engine	${1}	${50}	${20}
+	Config Broker	central
+	Config Broker	rrd
+	Config Broker	module	${1}
+	Broker Config Log	central	sql	debug
+	Config Broker Sql Output	central	unified_sql
+	Broker Config Add Item	module0	bbdo_version	3.0.1
+	Broker Config Add Item	rrd	bbdo_version	3.0.1
+	Broker Config Add Item	central	bbdo_version	3.0.1
+	${serv_id}=  Create Anomaly Detection  ${0}  ${1}  ${1}  metric
+	${predict_data} =  Evaluate  [[0,50,52],[2648812678,50,63]]
+	Create Anomaly Threshold File  /tmp/anomaly_threshold.json  ${1}  ${serv_id}  metric  ${predict_data}
+	Clear Retention
+	Clear Db  services
+	Start Broker
+	${start}=	Get Current Date
+	Start Engine
+	# Let's wait for the initial service states.
+	${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+	Should Be True	${result}	msg=An Initial service state on service (50, 1000) should be raised before we can start external commands.
+
+    #create dependent service downtime
+    SCHEDULE SERVICE DOWNTIME	host_1	service_1  3600
+
+    ${result}=  CHECK SERVICE DOWNTIME WITH TIMEOUT  host_1	anomaly_${serv_id}  1  10
+	Should Be True	${result}	msg=anomaly service must be in downtime
+
+    DELETE SERVICE DOWNTIME  host_1	service_1
+    ${result}=  CHECK SERVICE DOWNTIME WITH TIMEOUT  host_1	service_1  0  10
+	Should Be True	${result}	msg=dependent service must be in downtime
+    ${result}=  CHECK SERVICE DOWNTIME WITH TIMEOUT  host_1	anomaly_${serv_id}  0  5
+	Should Be True	${result}	msg=anomaly service must be in downtime
+
+
+	Stop Engine
+	Kindly Stop Broker
+
+ANO_DT3
+	[Documentation]	delete downtime on anomaly don t delete dependent service one
+	[Tags]  Broker	Engine	Anomaly
+	Config Engine	${1}	${50}	${20}
+	Config Broker	central
+	Config Broker	rrd
+	Config Broker	module	${1}
+	Broker Config Log	central	sql	debug
+	Config Broker Sql Output	central	unified_sql
+	Broker Config Add Item	module0	bbdo_version	3.0.1
+	Broker Config Add Item	rrd	bbdo_version	3.0.1
+	Broker Config Add Item	central	bbdo_version	3.0.1
+	${serv_id}=  Create Anomaly Detection  ${0}  ${1}  ${1}  metric
+	${predict_data} =  Evaluate  [[0,50,52],[2648812678,50,63]]
+	Create Anomaly Threshold File  /tmp/anomaly_threshold.json  ${1}  ${serv_id}  metric  ${predict_data}
+	Clear Retention
+	Clear Db  services
+	Start Broker
+	${start}=	Get Current Date
+	Start Engine
+	# Let's wait for the initial service states.
+	${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+	Should Be True	${result}	msg=An Initial service state on service (50, 1000) should be raised before we can start external commands.
+
+    #create dependent service downtime
+    SCHEDULE SERVICE DOWNTIME	host_1	service_1  3600
+
+    ${result}=  CHECK SERVICE DOWNTIME WITH TIMEOUT  host_1	anomaly_${serv_id}  1  10
+	Should Be True	${result}	msg=anomaly service must be in downtime
+
+    DELETE SERVICE DOWNTIME  host_1	anomaly_${serv_id}
+    ${result}=  CHECK SERVICE DOWNTIME WITH TIMEOUT  host_1	anomaly_${serv_id}  0  10
+	Should Be True	${result}	msg=anomaly service must be in downtime
+    Sleep  2s
+    ${result}=  CHECK SERVICE DOWNTIME WITH TIMEOUT  host_1	service_1  1  1
+	Should Be True	${result}	msg=dependent service must be in downtime
+
+
+	Stop Engine
+	Kindly Stop Broker
+
+
+ANO_DT4
+	[Documentation]	set dt on anomaly and on dependent service, delete last one don t delete first one
+	[Tags]  Broker	Engine	Anomaly
+	Config Engine	${1}	${50}	${20}
+	Config Broker	central
+	Config Broker	rrd
+	Config Broker	module	${1}
+	Broker Config Log	central	sql	debug
+	Config Broker Sql Output	central	unified_sql
+	Broker Config Add Item	module0	bbdo_version	3.0.1
+	Broker Config Add Item	rrd	bbdo_version	3.0.1
+	Broker Config Add Item	central	bbdo_version	3.0.1
+	${serv_id}=  Create Anomaly Detection  ${0}  ${1}  ${1}  metric
+	${predict_data} =  Evaluate  [[0,50,52],[2648812678,50,63]]
+	Create Anomaly Threshold File  /tmp/anomaly_threshold.json  ${1}  ${serv_id}  metric  ${predict_data}
+	Clear Retention
+	Clear Db  services
+	Start Broker
+	${start}=	Get Current Date
+	Start Engine
+	# Let's wait for the initial service states.
+	${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+	Should Be True	${result}	msg=An Initial service state on service (50, 1000) should be raised before we can start external commands.
+
+    #create dependent service downtime
+    SCHEDULE SERVICE DOWNTIME	host_1	service_1  3600
+    SCHEDULE SERVICE DOWNTIME	host_1	anomaly_${serv_id}  3600
+
+    ${result}=  CHECK SERVICE DOWNTIME WITH TIMEOUT  host_1	anomaly_${serv_id}  2  10
+	Should Be True	${result}	msg=anomaly service must be in double downtime
+
+    DELETE SERVICE DOWNTIME  host_1	service_1
+    ${result}=  CHECK SERVICE DOWNTIME WITH TIMEOUT  host_1	service_1  0  10
+	Should Be True	${result}	msg=dependent service mustn t be in downtime
+    ${result}=  CHECK SERVICE DOWNTIME WITH TIMEOUT  host_1	anomaly_${serv_id}  1  1
+	Should Be True	${result}	msg=anomaly service must be in simple downtime  
+
+
+	Stop Engine
+	Kindly Stop Broker
+
+
+
+
+
