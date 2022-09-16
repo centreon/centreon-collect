@@ -251,6 +251,58 @@ CCE_END()
  * anomalydetection
  ****************************************************************/
 
+using dependentservice_to_anomaly_map =
+    std::map<uint64_t, anomalydetection::pointer_set>;
+/**
+ * @brief sometimes we need to know the list of anomalydetection that depend of
+ * a service, this is the goal of this container
+ *
+ */
+static dependentservice_to_anomaly_map _dependentservice_to_anomaly;
+
+/**
+ * @brief update _dependentservice_to_anomaly
+ *
+ * @param dependent_service_id  new dependent service od
+ * @param old_dependent_service_id old dependent service od
+ * @param ano anomalydetection
+ */
+static void _register_dependent_to_anomaly(uint64_t dependent_service_id,
+                                           uint64_t old_dependent_service_id,
+                                           anomalydetection* ano) {
+  if (old_dependent_service_id) {
+    dependentservice_to_anomaly_map::iterator to_clean =
+        _dependentservice_to_anomaly.find(old_dependent_service_id);
+    if (to_clean != _dependentservice_to_anomaly.end()) {
+      to_clean->second.erase(ano);
+      if (to_clean->second.empty()) {
+        _dependentservice_to_anomaly.erase(to_clean);
+      }
+    }
+  }
+  if (dependent_service_id) {
+    _dependentservice_to_anomaly[dependent_service_id].insert(ano);
+  }
+}
+
+static const anomalydetection::pointer_set _empty_set;
+
+/**
+ * @brief get all anomalydetection dependent of one service id
+ *
+ * @param dependent_service_id
+ * @return const anomalydetection::pointer_set&
+ */
+const anomalydetection::pointer_set& anomalydetection::get_anomaly(
+    uint64_t dependent_service_id) {
+  dependentservice_to_anomaly_map::const_iterator search =
+      _dependentservice_to_anomaly.find(dependent_service_id);
+  if (search != _dependentservice_to_anomaly.end()) {
+    return search->second;
+  }
+  return _empty_set;
+}
+
 /**
  *  Anomaly detection constructor
  *
@@ -406,11 +458,18 @@ anomalydetection::anomalydetection(uint64_t host_id,
       _thresholds_file{thresholds_file},
       _status_change{status_change},
       _thresholds_file_viable{false},
-      _sensitivity(sensitivity) {
+      _sensitivity(sensitivity),
+      _dependent_service_id(0) {
   set_host_id(host_id);
   set_service_id(service_id);
   init_thresholds();
   set_dependent_service(dependent_service);
+}
+
+anomalydetection::~anomalydetection() {
+  if (_dependent_service_id) {
+    _register_dependent_to_anomaly(0, _dependent_service_id, this);
+  }
 }
 
 /**
@@ -746,6 +805,10 @@ void anomalydetection::set_internal_id(uint64_t id) {
 }
 
 void anomalydetection::set_dependent_service(service* svc) {
+  uint64_t old_dep_serv_id = _dependent_service_id;
+  _dependent_service_id = svc ? svc->get_service_id() : 0;
+
+  _register_dependent_to_anomaly(_dependent_service_id, old_dep_serv_id, this);
   _dependent_service = svc;
 }
 

@@ -28,11 +28,11 @@ namespace retention {
 namespace applier {
 class downtime {
  public:
-  void apply(list_downtime const& lst);
+  static void apply(list_downtime const& lst);
 
  private:
-  void _add_host_downtime(retention::downtime const& obj) throw();
-  void _add_service_downtime(retention::downtime const& obj) throw();
+  static void _add_host_downtime(retention::downtime const& obj) throw();
+  static void _add_service_downtime(retention::downtime const& obj) throw();
 };
 }  // namespace applier
 }  // namespace retention
