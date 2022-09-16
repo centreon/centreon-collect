@@ -18,6 +18,8 @@
 
 #include "com/centreon/broker/sql/factory.hh"
 
+#include <absl/strings/match.h>
+
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/sql/connector.hh"
@@ -35,7 +37,7 @@ using namespace com::centreon::broker::sql;
 bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
   if (ext)
     *ext = io::extension("SQL", false, false);
-  bool is_sql{!strncasecmp(cfg.type.c_str(), "sql", 4)};
+  bool is_sql{absl::EqualsIgnoreCase(cfg.type, "sql")};
   return is_sql;
 }
 

@@ -18,6 +18,7 @@
 
 #include "com/centreon/broker/unified_sql/factory.hh"
 
+#include <absl/strings/match.h>
 #include <cstring>
 #include <memory>
 
@@ -59,7 +60,7 @@ static std::string const& find_param(config::endpoint const& cfg,
 bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
   if (ext)
     *ext = io::extension("STORAGE", false, false);
-  bool is_unified_sql(!strncasecmp(cfg.type.c_str(), "unified_sql", 8));
+  bool is_unified_sql{absl::EqualsIgnoreCase(cfg.type, "unified_sql")};
   return is_unified_sql;
 }
 

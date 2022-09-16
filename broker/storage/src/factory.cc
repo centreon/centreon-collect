@@ -18,6 +18,8 @@
 
 #include "com/centreon/broker/storage/factory.hh"
 
+#include <absl/strings/match.h>
+
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/storage/connector.hh"
@@ -68,7 +70,7 @@ static std::string const& find_param(config::endpoint const& cfg,
 bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
   if (ext)
     *ext = io::extension("STORAGE", false, false);
-  bool is_storage(!strncasecmp(cfg.type.c_str(), "storage", 8));
+  bool is_storage{absl::EqualsIgnoreCase(cfg.type, "storage")};
   return is_storage;
 }
 

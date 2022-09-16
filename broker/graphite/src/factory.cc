@@ -17,6 +17,7 @@
 */
 
 #include "com/centreon/broker/graphite/factory.hh"
+#include <absl/strings/match.h>
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/graphite/connector.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -24,12 +25,6 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::graphite;
 using namespace com::centreon::exceptions;
-
-/**************************************
- *                                     *
- *           Static Objects            *
- *                                     *
- **************************************/
 
 /**
  *  Find a parameter in configuration.
@@ -109,7 +104,7 @@ static uint32_t get_uint_param(config::endpoint const& cfg,
 bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
   if (ext)
     *ext = io::extension("GRAPHITE", false, false);
-  bool is_gpdb{!strncasecmp(cfg.type.c_str(), "graphite", 9)};
+  bool is_gpdb{absl::EqualsIgnoreCase(cfg.type, "graphite")};
   if (is_gpdb) {
     cfg.params["cache"] = "yes";
     cfg.cache_enabled = true;

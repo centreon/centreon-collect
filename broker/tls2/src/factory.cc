@@ -44,14 +44,14 @@ using namespace com::centreon::broker::tls2;
 bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
   if (ext) {
     auto it = cfg.params.find("tls2");
-    if (it == cfg.params.end() || strncasecmp(it->second.c_str(), "no", 3) == 0)
+    if (it == cfg.params.end() || absl::EqualsIgnoreCase(it->second, "no"))
       *ext = io::extension("TLS", false, false);
     else {
       log_v2::tls()->info("Configuration of TLS for endpoint '{}'",
                           cfg.params["name"]);
-      if (strncasecmp(it->second.c_str(), "auto", 5) == 0)
+      if (absl::EqualsIgnoreCase(it->second, "auto"))
         *ext = io::extension("TLS", true, false);
-      else if (strncasecmp(it->second.c_str(), "yes", 4) == 0)
+      else if (absl::EqualsIgnoreCase(it->second, "yes"))
         *ext = io::extension("TLS", false, true);
 
       // CA certificate.

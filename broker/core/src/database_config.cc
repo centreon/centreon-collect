@@ -106,9 +106,17 @@ database_config::database_config(config::endpoint const& cfg) {
 
   // db_port
   it = cfg.params.find("db_port");
-  if (it != end)
-    _port = std::stol(it->second);
-  else
+  if (it != end) {
+    uint32_t port;
+    if (!absl::SimpleAtoi(it->second, &port)) {
+      log_v2::config()->error(
+          "In the database configuration, 'db_port' should be a number, and "
+          "not '{}'",
+          it->second);
+      _port = 0;
+    } else
+      _port = port;
+  } else
     _port = 0;
 
   // db_user
