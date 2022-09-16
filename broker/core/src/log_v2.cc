@@ -236,6 +236,12 @@ bool log_v2::contains_logger(const std::string& logger) {
   return std::find(loggers.begin(), loggers.end(), logger) != loggers.end();
 }
 
+/**
+ * @brief Accessor to the various levels of loggers
+ *
+ * @return A vector of pairs of strings. The first string is the logger name and
+ * the second string is its level.
+ */
 std::vector<std::pair<std::string, std::string>> log_v2::levels() const {
   std::vector<std::pair<std::string, std::string>> retval;
   if (_running) {
