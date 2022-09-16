@@ -57,6 +57,14 @@ service Broker {
    * @return A LogInfo message.
    */
   rpc GetLogInfo(GenericString) returns (LogInfo) {}
+
+  /**
+   * @brief Set a new level to the given logger.
+   *
+   * @param A message with a logger and a level as strings.
+   *
+   * @return nothing.
+   */
   rpc SetLogLevel(LogLevel) returns (google.protobuf.Empty) {}
 }
 
