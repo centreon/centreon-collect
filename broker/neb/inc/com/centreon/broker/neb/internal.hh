@@ -19,13 +19,13 @@
 #ifndef CCB_NEB_INTERNAL_HH
 #define CCB_NEB_INTERNAL_HH
 
+#include <absl/hash/hash.h>
 #include "bbdo/events.hh"
 #include "bbdo/host.pb.h"
 #include "bbdo/service.pb.h"
 #include "bbdo/severity.pb.h"
 #include "bbdo/tag.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
-#include "com/centreon/broker/misc/pair.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/neb/callback.hh"
@@ -46,7 +46,9 @@ extern multiplexing::publisher gl_publisher;
 extern std::list<std::unique_ptr<neb::callback>> gl_registered_callbacks;
 
 // Acknowledgement list.
-extern std::unordered_map<std::pair<uint32_t, uint32_t>, neb::acknowledgement>
+extern std::unordered_map<std::pair<uint32_t, uint32_t>,
+                          neb::acknowledgement,
+                          absl::Hash<std::pair<uint32_t, uint32_t>>>
     gl_acknowledgements;
 
 using pb_service =

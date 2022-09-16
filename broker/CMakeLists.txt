@@ -431,7 +431,6 @@ set(LIBROKER_SOURCES
     ${INC_DIR}/misc/diagnostic.hh
     ${INC_DIR}/misc/filesystem.hh
     ${INC_DIR}/misc/misc.hh
-    ${INC_DIR}/misc/pair.hh
     ${INC_DIR}/misc/perfdata.hh
     ${INC_DIR}/misc/processing_speed_computer.hh
     ${INC_DIR}/misc/shared_mutex.hh

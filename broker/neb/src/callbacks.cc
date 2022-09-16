@@ -52,7 +52,9 @@ using namespace com::centreon::exceptions;
 extern nebmodule* neb_module_list;
 
 // Acknowledgement list.
-std::unordered_map<std::pair<uint32_t, uint32_t>, neb::acknowledgement>
+std::unordered_map<std::pair<uint32_t, uint32_t>,
+                   neb::acknowledgement,
+                   absl::Hash<std::pair<uint32_t, uint32_t>>>
     neb::gl_acknowledgements;
 
 // Downtime list.

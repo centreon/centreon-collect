@@ -25,7 +25,6 @@
 #include "bbdo/bam/dimension_truncate_table_signal.hh"
 #include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric_mapping.hh"
-#include "com/centreon/broker/misc/pair.hh"
 #include "com/centreon/broker/neb/custom_variable.hh"
 #include "com/centreon/broker/neb/host.hh"
 #include "com/centreon/broker/neb/host_group.hh"
