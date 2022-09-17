@@ -97,6 +97,9 @@ Here is the list of the currently implemented tests:
 - [x] **BGRPCSSU4**: Start/Stop with unified_sql 10 times broker configured with grpc stream with 1sec interval and no coredump
 - [x] **BGRPCSSU5**: Start-Stop with unified_sql with reversed connection on grpc acceptor with only one instance and no deadlock
 - [x] **BLDIS1**: Start broker with core logs 'disabled'
+- [x] **BLEC1**: Change live the core level log from trace to debug
+- [x] **BLEC2**: Change live the core level log from trace to foo raises an error
+- [x] **BLEC3**: Change live the foo level log to trace raises an error
 - [x] **BSCSS1**: Start-Stop two instances of broker and no coredump
 - [x] **BSCSS2**: Start/Stop 10 times broker with 300ms interval and no coredump
 - [x] **BSCSS3**: Start-Stop one instance of broker and no coredump
@@ -320,9 +323,9 @@ Here is the list of the currently implemented tests:
 - [x] **EBNSGU1**: New service group with several pollers and connections to DB with broker configured with unified_sql
 - [x] **EBNSGU2**: New service group with several pollers and connections to DB with broker configured with unified_sql
 - [x] **EBNSVC1**: New services with several pollers
-- [x] **EBSAU2**: New services with action_url with more than 2000 characters
-- [x] **EBSN3**: New services with notes with more than 500 characters
-- [x] **EBSNU1**: New services with notes_url with more than 2000 characters
+- [x] **EBSAU2**: New hosts with action_url with more than 2000 characters
+- [x] **EBSN3**: New hosts with notes with more than 500 characters
+- [x] **EBSNU1**: New hosts with notes_url with more than 2000 characters
 - [x] **ENRSCHE1**: check next check of reschedule is last_check+interval_check
 - [x] **LOGV2BE2**: log-v2 enabled old log enabled check broker sink is equal
 - [x] **LOGV2DB1**: log-v2 disabled old log enabled check broker sink
