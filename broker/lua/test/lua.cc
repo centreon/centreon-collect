@@ -20,13 +20,14 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
+#include <absl/strings/str_split.h>
+
 #include "../../core/test/test_server.hh"
 #include "bbdo/storage/status.hh"
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/config/applier/modules.hh"
 #include "com/centreon/broker/lua/luabinding.hh"
 #include "com/centreon/broker/lua/macro_cache.hh"
-#include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/misc/variant.hh"
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/neb/instance.hh"
@@ -34,7 +35,6 @@
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
-using namespace com::centreon::broker::misc;
 using namespace com::centreon::broker::lua;
 
 #define FILE1 CENTREON_BROKER_LUA_SCRIPT_PATH "/test1.lua"
@@ -200,7 +200,7 @@ TEST_F(LuaTest, SimpleScript) {
   bnd->write(svc);
 
   std::string result(ReadFile("/tmp/test.log"));
-  std::list<std::string> lst{misc::string::split(result, '\n')};
+  std::list<absl::string_view> lst{absl::StrSplit(result, '\n')};
   // 85 lines and one empty line.
   ASSERT_EQ(lst.size(), 86u);
   size_t pos1 = result.find("INFO: init: address => 127.0.0.1");
@@ -241,7 +241,7 @@ TEST_F(LuaTest, WriteAcknowledgement) {
 
   std::string result{ReadFile("/tmp/test.log")};
   {
-    std::list<std::string> lst{misc::string::split(result, '\n')};
+    std::list<absl::string_view> lst{absl::StrSplit(result, '\n')};
     // 20 = 19 lines + 1 empty line
     std::cout << result << std::endl;
     ASSERT_EQ(lst.size(), 20u);

@@ -21,12 +21,12 @@
 #include <syslog.h>
 
 #include <absl/strings/match.h>
+#include <absl/strings/str_split.h>
 #include <streambuf>
 
 #include "com/centreon/broker/exceptions/deprecated.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/filesystem.hh"
-#include "com/centreon/broker/misc/string.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
@@ -212,18 +212,34 @@ state parser::parse(std::string const& file) {
         } else if (it.key() == "bbdo_version" && it.value().is_string()) {
           std::string version = json_document["centreonBroker"]["bbdo_version"]
                                     .get<std::string>();
-          std::list<fmt::string_view> v = misc::string::split_sv(version, '.');
+          std::list<absl::string_view> v = absl::StrSplit(version, '.');
           if (v.size() != 3)
             throw msg_fmt("config parser: cannot parse bbdo_version '{}'",
                           version);
 
           auto it = v.begin();
-          uint16_t major = atoi(it->data());
+          uint32_t major;
+          uint32_t minor;
+          uint32_t patch;
+          if (!absl::SimpleAtoi(*it, &major))
+            throw msg_fmt(
+                "config parser: cannot parse major value of bbdo_version '{}'",
+                version);
           ++it;
-          uint16_t minor = atoi(it->data());
+          if (!absl::SimpleAtoi(*it, &minor))
+            throw msg_fmt(
+                "config parser: cannot parse minor value of bbdo_version '{}'",
+                version);
           ++it;
-          uint16_t patch = atoi(it->data());
-          retval.bbdo_version({major, minor, patch});
+          if (!absl::SimpleAtoi(*it, &patch))
+            throw msg_fmt(
+                "config parser: cannot parse patch value of bbdo_version '{}'",
+                version);
+          ++it;
+
+          retval.bbdo_version({static_cast<uint16_t>(major),
+                               static_cast<uint16_t>(minor),
+                               static_cast<uint16_t>(patch)});
         } else if (get_conf<state>({it.key(), it.value()}, "broker_name",
                                    retval, &state::broker_name,
                                    &json::is_string))

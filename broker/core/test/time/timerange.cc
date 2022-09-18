@@ -65,3 +65,19 @@ TEST(Timerange, ParseWrongTimerange) {
   ASSERT_FALSE(t.build_timeranges_from_string("08abcd:00-12:00", l));
   ASSERT_FALSE(t.build_timeranges_from_string("  :00-12:00", l));
 }
+
+TEST(Timerange, ParseGoodTimerange) {
+  timerange t(10, 60);
+  std::list<timerange> l;
+  ASSERT_TRUE(t.build_timeranges_from_string("08:00-12:00", l));
+  ASSERT_TRUE(t.build_timeranges_from_string("13:00-14:00,15:00-17:00", l));
+  ASSERT_TRUE(t.build_timeranges_from_string("18:00-19:30", l));
+  ASSERT_EQ(l.size(), 4u);
+
+  int index = 0;
+  std::vector<std::string> v{"18:00-19:30", "15:00-17:00", "13:00-14:00",
+                             "08:00-12:00"};
+  for (auto& tt : l) {
+    ASSERT_EQ(tt.to_string(), v[index++]);
+  }
+}
