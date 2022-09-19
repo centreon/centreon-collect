@@ -59,8 +59,7 @@ void applier::state::apply(configuration::state& config,
     applier::comment app_comments;
     app_comments.apply(state.comments());
 
-    applier::downtime app_downtimes;
-    app_downtimes.apply(state.downtimes());
+    applier::downtime::apply(state.downtimes());
 
     applier::contact app_contacts;
     app_contacts.apply(config, state.contacts());

@@ -32,6 +32,8 @@ CCE_BEGIN()
 
 class anomalydetection : public service {
  public:
+  using pointer_set = std::set<anomalydetection*>;
+
   class threshold_point {
     time_t _timepoint;
     double _lower, _upper, _fit, _lower_margin, _upper_margin;
@@ -67,6 +69,7 @@ class anomalydetection : public service {
   bool _status_change;
   bool _thresholds_file_viable;
   double _sensitivity;
+  uint64_t _dependent_service_id;
 
   using threshold_point_map = std::map<time_t, threshold_point>;
   threshold_point_map _thresholds;
@@ -111,7 +114,7 @@ class anomalydetection : public service {
                    std::string const& timezone,
                    uint64_t icon_id,
                    double sensitivity);
-  ~anomalydetection() = default;
+  ~anomalydetection();
   uint64_t get_internal_id() const;
   void set_internal_id(uint64_t id);
   service* get_dependent_service() const;
@@ -146,6 +149,8 @@ class anomalydetection : public service {
   const std::string& get_metric_name() const;
   const std::string& get_thresholds_file() const;
   void resolve(int& w, int& e);
+
+  static const pointer_set& get_anomaly(uint64_t dependent_service_id);
 };
 CCE_END()
 

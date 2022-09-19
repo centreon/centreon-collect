@@ -163,9 +163,10 @@ def stop_mysql():
         getoutput(
             "kill -9 $(ps aux | grep 'mariadbd --user=root' | grep -v grep | awk '{print $2}')")
 
+
 def stop_rrdcached():
-        getoutput(
-            "kill -9 $(ps ax | grep '.usr.bin.rrdcached' | grep -v grep | awk '{print $1}')")
+    getoutput(
+        "kill -9 $(ps ax | grep '.usr.bin.rrdcached' | grep -v grep | awk '{print $1}')")
 
 
 def kill_broker():
@@ -483,7 +484,7 @@ def check_service_downtime_with_timeout(hostname: str, service_desc: str, enable
                 cursor.execute("SELECT s.scheduled_downtime_depth from services s LEFT JOIN hosts h ON s.host_id=h.host_id wHERE s.description='{}' AND h.name='{}'".format(
                     service_desc, hostname))
                 result = cursor.fetchall()
-                if not result[0]['scheduled_downtime_depth'] is None and result[0]['scheduled_downtime_depth'] == int(enabled):
+                if len(result) > 0 and not result[0]['scheduled_downtime_depth'] is None and result[0]['scheduled_downtime_depth'] == int(enabled):
                     return True
         time.sleep(5)
     return False

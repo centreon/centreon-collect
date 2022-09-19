@@ -18,6 +18,7 @@
  */
 
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
+#include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/downtimes/host_downtime.hh"
@@ -417,16 +418,16 @@ uint64_t downtime_manager::get_next_downtime_id() {
 }
 
 /* saves a host downtime entry */
-void downtime_manager::add_new_host_downtime(std::string const& host_name,
-                                             time_t entry_time,
-                                             char const* author,
-                                             char const* comment_data,
-                                             time_t start_time,
-                                             time_t end_time,
-                                             bool fixed,
-                                             uint64_t triggered_by,
-                                             unsigned long duration,
-                                             uint64_t* downtime_id) {
+std::shared_ptr<host_downtime> downtime_manager::add_new_host_downtime(
+    std::string const& host_name,
+    time_t entry_time,
+    char const* author,
+    char const* comment_data,
+    time_t start_time,
+    time_t end_time,
+    bool fixed,
+    uint64_t triggered_by,
+    unsigned long duration) {
   if (host_name.empty())
     throw engine_error()
         << "can not create a host downtime on host with empty name";
@@ -441,19 +442,16 @@ void downtime_manager::add_new_host_downtime(std::string const& host_name,
   instance().add_downtime(retval);
   retval->schedule();
 
-  /* save downtime id */
-  if (downtime_id)
-    *downtime_id = new_downtime_id;
-
   /* send data to event broker */
   broker_downtime_data(NEBTYPE_DOWNTIME_ADD, NEBATTR_NONE,
                        downtime::host_downtime, host_name.c_str(), nullptr,
                        entry_time, author, comment_data, start_time, end_time,
                        fixed, triggered_by, duration, new_downtime_id, nullptr);
+  return retval;
 }
 
 /* saves a service downtime entry */
-void downtime_manager::add_new_service_downtime(
+std::shared_ptr<service_downtime> downtime_manager::add_new_service_downtime(
     std::string const& host_name,
     std::string const& service_description,
     time_t entry_time,
@@ -463,8 +461,7 @@ void downtime_manager::add_new_service_downtime(
     time_t end_time,
     bool fixed,
     uint64_t triggered_by,
-    unsigned long duration,
-    uint64_t* downtime_id) {
+    unsigned long duration) {
   if (host_name.empty() || service_description.empty())
     throw engine_error() << "can not create a service downtime on host with "
                             "empty name or service with empty description";
@@ -479,16 +476,13 @@ void downtime_manager::add_new_service_downtime(
   instance().add_downtime(retval);
   retval->schedule();
 
-  /* save downtime id */
-  if (downtime_id)
-    *downtime_id = new_downtime_id;
-
   /* send data to event broker */
   broker_downtime_data(NEBTYPE_DOWNTIME_ADD, NEBATTR_NONE,
                        downtime::service_downtime, host_name.c_str(),
                        service_description.c_str(), entry_time, author.c_str(),
                        comment_data.c_str(), start_time, end_time, fixed,
                        triggered_by, duration, new_downtime_id, nullptr);
+  return retval;
 }
 
 /* schedules a host or service downtime */
@@ -504,8 +498,6 @@ int downtime_manager::schedule_downtime(downtime::type type,
                                         uint64_t triggered_by,
                                         unsigned long duration,
                                         uint64_t* new_downtime_id) {
-  uint64_t downtime_id{0L};
-
   engine_logger(dbg_functions, basic) << "schedule_downtime()";
   log_v2::functions()->trace("schedule_downtime()");
 
@@ -542,22 +534,42 @@ int downtime_manager::schedule_downtime(downtime::type type,
     duration = 31622400;
   }
 
+  std::shared_ptr<downtime> dt;
   /* add a new downtime entry */
-  if (type == downtime::host_downtime)
-    add_new_host_downtime(host_name, entry_time, author, comment_data,
-                          start_time, end_time, fixed, triggered_by, duration,
-                          &downtime_id);
-  else
-    add_new_service_downtime(host_name, service_description, entry_time, author,
-                             comment_data, start_time, end_time, fixed,
-                             triggered_by, duration, &downtime_id);
+  if (type == downtime::host_downtime) {
+    dt = add_new_host_downtime(host_name, entry_time, author, comment_data,
+                               start_time, end_time, fixed, triggered_by,
+                               duration);
+  } else {
+    std::shared_ptr<service_downtime> sdt = add_new_service_downtime(
+        host_name, service_description, entry_time, author, comment_data,
+        start_time, end_time, fixed, triggered_by, duration);
+    dt = sdt;
 
-  /* register the scheduled downtime */
-  register_downtime(type, downtime_id);
+    // anomalydetection to put in downtime?
+    service_map::const_iterator found(
+        service::services.find({host_name, service_description}));
 
+    if (found != service::services.end() || found->second) {
+      const anomalydetection::pointer_set& anos =
+          anomalydetection::get_anomaly(found->second->get_service_id());
+      for (const anomalydetection* ano : anos) {
+        uint64_t ano_downtime_id;
+        downtime_manager::instance().schedule_downtime(
+            downtime::service_downtime, ano->get_hostname(),
+            ano->get_description(), entry_time, author, comment_data,
+            start_time, end_time, fixed, dt->get_downtime_id(), duration,
+            &ano_downtime_id);
+      }
+    }
+  }
   /* return downtime id */
   if (new_downtime_id)
-    *new_downtime_id = downtime_id;
+    *new_downtime_id = dt->get_downtime_id();
+
+  /* register the scheduled downtime */
+  register_downtime(type, dt->get_downtime_id());
+
   return OK;
 }
 
