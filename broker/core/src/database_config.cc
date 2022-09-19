@@ -137,12 +137,12 @@ database_config::database_config(config::endpoint const& cfg) {
     } catch (std::exception const& e) {
       log_v2::core()->error(
           "queries_per_transaction is a number but must be given as a string. "
-          "Unable to read the value '{}' - value 10000 taken by default.",
+          "Unable to read the value '{}' - value 2000 taken by default.",
           it->second);
-      _queries_per_transaction = 10000;
+      _queries_per_transaction = 2000;
     }
   } else
-    _queries_per_transaction = 10000;
+    _queries_per_transaction = 2000;
 
   // check_replication
   it = cfg.params.find("check_replication");
