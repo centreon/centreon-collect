@@ -91,14 +91,11 @@ io::endpoint* factory::new_endpoint(
 
   // Find RRD length.
   uint32_t rrd_length;
-  try {
-    rrd_length = static_cast<uint32_t>(std::stoul(find_param(cfg, "length")));
-  } catch (std::exception const& e) {
+  if (!absl::SimpleAtoi(find_param(cfg, "length"), &rrd_length)) {
     rrd_length = 15552000;
     log_v2::sql()->error(
-        "storage: the length field should contain "
-        "a string containing a number. We use the "
-        "default value in replacement 15552000.");
+        "storage: the length field should contain a string containing a "
+        "number. We use the default value in replacement 15552000.");
   }
 
   // Find interval length if set.
@@ -107,15 +104,11 @@ io::endpoint* factory::new_endpoint(
     std::map<std::string, std::string>::const_iterator it{
         cfg.params.find("interval")};
     if (it != cfg.params.end()) {
-      try {
-        interval_length = std::stoul(it->second);
-      } catch (std::exception const& e) {
+      if (!absl::SimpleAtoi(it->second, &interval_length)) {
         interval_length = 60;
         log_v2::sql()->error(
-            "storage: the interval field should "
-            "contain a string containing a "
-            "number. We use the default value in "
-            "replacement 60.");
+            "storage: the interval field should contain a string containing a "
+            "number. We use the default value in replacement 60.");
       }
     }
     if (!interval_length)

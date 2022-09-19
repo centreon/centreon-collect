@@ -81,15 +81,12 @@ io::endpoint* factory::new_endpoint(
 
   // Find RRD length.
   uint32_t rrd_length;
-  try {
-    rrd_length = static_cast<uint32_t>(std::stoul(find_param(cfg, "length")));
-  } catch (std::exception const& e) {
+  if (!absl::SimpleAtoi(find_param(cfg, "length"), &rrd_length)) {
     /* This default length represents 180 days. */
     rrd_length = 15552000;
     log_v2::sql()->error(
-        "unified_sql: the length field should contain "
-        "a string containing a number. We use the "
-        "default value in replacement 15552000.");
+        "unified_sql: the length field should contain a string containing a "
+        "number. We use the default value in replacement 15552000.");
   }
 
   // Find interval length if set.
@@ -98,15 +95,11 @@ io::endpoint* factory::new_endpoint(
     std::map<std::string, std::string>::const_iterator it{
         cfg.params.find("interval")};
     if (it != cfg.params.end()) {
-      try {
-        interval_length = std::stoul(it->second);
-      } catch (std::exception const& e) {
+      if (!absl::SimpleAtoi(it->second, &interval_length)) {
         interval_length = 60;
         log_v2::sql()->error(
-            "unified_sql: the interval field should "
-            "contain a string containing a "
-            "number. We use the default value in "
-            "replacement 60.");
+            "unified_sql: the interval field should contain a string "
+            "containing a number. We use the default value in replacement 60.");
       }
     }
     if (!interval_length)
@@ -180,8 +173,13 @@ io::endpoint* factory::new_endpoint(
   uint32_t instance_timeout = 5 * 60;
   {
     auto it = cfg.params.find("instance_timeout");
-    if (it != cfg.params.end())
-      instance_timeout = std::stoul(it->second);
+    if (it != cfg.params.end() &&
+        !absl::SimpleAtoi(it->second, &instance_timeout)) {
+      log_v2::sql()->error(
+          "factory: cannot parse the 'instance_timeout' value. It should be an "
+          "unsigned integer. 300 is set by default.");
+      instance_timeout = 300;
+    }
   }
 
   // Connector.

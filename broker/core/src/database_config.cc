@@ -140,9 +140,7 @@ database_config::database_config(config::endpoint const& cfg) {
   // queries_per_transaction
   it = cfg.params.find("queries_per_transaction");
   if (it != end) {
-    try {
-      _queries_per_transaction = std::stoul(it->second);
-    } catch (std::exception const& e) {
+    if (!absl::SimpleAtoi(it->second, &_queries_per_transaction)) {
       log_v2::core()->error(
           "queries_per_transaction is a number but must be given as a string. "
           "Unable to read the value '{}' - value 10000 taken by default.",

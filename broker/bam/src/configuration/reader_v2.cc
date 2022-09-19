@@ -282,26 +282,25 @@ void reader_v2::_load(state::bas& bas, bam::ba_svc_mapping& mapping) {
       service_description.erase(0, strlen("ba_"));
 
       if (!service_description.empty()) {
-        try {
-          uint32_t ba_id = std::stoul(service_description);
-          state::bas::iterator found = bas.find(ba_id);
-          if (found == bas.end()) {
-            log_v2::bam()->info(
-                "BAM: virtual BA service '{}' of host '{}' references an "
-                "unknown BA ({})",
-                res.value_as_str(1), res.value_as_str(0), ba_id);
-            continue;
-          }
-          found->second.set_host_id(host_id);
-          found->second.set_service_id(service_id);
-          mapping.set(ba_id, res.value_as_str(0), res.value_as_str(1));
-        } catch (std::exception const& e) {
+        uint32_t ba_id;
+        if (!absl::SimpleAtoi(service_description, &ba_id)) {
           log_v2::bam()->info(
               "BAM: service '{}' of host '{}' is not a valid virtual BA "
               "service",
               res.value_as_str(1), res.value_as_str(0));
           continue;
         }
+        state::bas::iterator found = bas.find(ba_id);
+        if (found == bas.end()) {
+          log_v2::bam()->info(
+              "BAM: virtual BA service '{}' of host '{}' references an "
+              "unknown BA ({})",
+              res.value_as_str(1), res.value_as_str(0), ba_id);
+          continue;
+        }
+        found->second.set_host_id(host_id);
+        found->second.set_service_id(service_id);
+        mapping.set(ba_id, res.value_as_str(0), res.value_as_str(1));
       }
     }
   } catch (reader_exception const& e) {
@@ -313,7 +312,7 @@ void reader_v2::_load(state::bas& bas, bam::ba_svc_mapping& mapping) {
   }
 
   // Test for BA without service ID.
-  for (state::bas::const_iterator it(bas.begin()), end(bas.end()); it != end;
+  for (state::bas::const_iterator it = bas.begin(), end = bas.end(); it != end;
        ++it)
     if (it->second.get_service_id() == 0)
       throw reader_exception("BAM: BA {} has no associated service",

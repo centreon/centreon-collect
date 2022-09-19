@@ -99,20 +99,18 @@ io::endpoint* factory::new_endpoint(
     }
   }
 
-  uint32_t queries_per_transaction(0);
+  uint32_t queries_per_transaction;
   {
     std::map<std::string, std::string>::const_iterator it{
         cfg.params.find("queries_per_transaction")};
-    if (it != cfg.params.end())
-      try {
-        queries_per_transaction = std::stoul(it->second);
-      } catch (std::exception const& ex) {
+    if (it != cfg.params.end()) {
+      if (!absl::SimpleAtoi(it->second, &queries_per_transaction)) {
         throw msg_fmt(
             "influxdb: couldn't parse queries_per_transaction '{}' defined for "
             "endpoint '{}'",
             it->second, cfg.name);
       }
-    else
+    } else
       queries_per_transaction = 1000;
   }
 

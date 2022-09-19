@@ -74,25 +74,18 @@ static uint32_t get_uint_param(config::endpoint const& cfg,
                                std::string const& key,
                                uint32_t def) {
   std::map<std::string, std::string>::const_iterator it(cfg.params.find(key));
+  uint32_t retval = 0;
   if (cfg.params.end() == it)
-    return (def);
+    return def;
   else {
-    try {
-      return std::stoul(it->second);
-    } catch (std::exception const& ex) {
+    if (!absl::SimpleAtoi(it->second, &retval)) {
       throw msg_fmt("graphite: '{}' must be numeric for endpoint '{}'", key,
                     cfg.name);
     }
   }
 
-  return 0;
+  return retval;
 }
-
-/**************************************
- *                                     *
- *           Public Methods            *
- *                                     *
- **************************************/
 
 /**
  *  Check if a configuration match the storage layer.

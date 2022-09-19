@@ -60,20 +60,30 @@ io::endpoint* factory::new_endpoint(
   database_config dbcfg(cfg);
 
   // Cleanup check interval.
-  uint32_t cleanup_check_interval(0);
+  uint32_t cleanup_check_interval = 0;
   {
     std::map<std::string, std::string>::const_iterator it{
         cfg.params.find("cleanup_check_interval")};
-    if (it != cfg.params.end())
-      cleanup_check_interval = std::stoul(it->second);
+    if (it != cfg.params.end() &&
+        !absl::SimpleAtoi(it->second, &cleanup_check_interval)) {
+      log_v2::sql()->error(
+          "sql: the 'cleanup_check_interval' value must be a positive integer. "
+          "Otherwise, 0 is used for its value.");
+      cleanup_check_interval = 0u;
+    }
   }
 
-  bool enable_cmd_cache(false);
+  bool enable_cmd_cache = false;
   {
     std::map<std::string, std::string>::const_iterator it(
         cfg.params.find("enable_command_cache"));
-    if (it != cfg.params.end())
-      enable_cmd_cache = std::stoul(it->second);
+    if (it != cfg.params.end() &&
+        !absl::SimpleAtob(it->second, &enable_cmd_cache)) {
+      log_v2::sql()->error(
+          "sql: the 'enable_command_cache' value must be a boolean. Otherwise "
+          "'false' is used for its value.");
+      enable_cmd_cache = false;
+    }
   }
 
   // Loop timeout
@@ -88,12 +98,17 @@ io::endpoint* factory::new_endpoint(
   {
     std::map<std::string, std::string>::const_iterator it(
         cfg.params.find("instance_timeout"));
-    if (it != cfg.params.end())
-      instance_timeout = std::stoul(it->second);
+    if (it != cfg.params.end() &&
+        !absl::SimpleAtoi(it->second, &instance_timeout)) {
+      log_v2::sql()->error(
+          "sql: the 'instance_timeout' value must be a positive integer. "
+          "Otherwise, 300 is used for its value.");
+      instance_timeout = 300;
+    }
   }
 
   // Use state events ?
-  bool wse(false);
+  bool wse = false;
   {
     std::map<std::string, std::string>::const_iterator it(
         cfg.params.find("with_state_events"));

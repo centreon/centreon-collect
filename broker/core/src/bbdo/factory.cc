@@ -108,13 +108,11 @@ io::endpoint* factory::new_endpoint(
   {
     std::map<std::string, std::string>::const_iterator it(
         cfg.params.find("ack_limit"));
-    if (it != cfg.params.end())
-      try {
-        ack_limit = std::stoul(it->second);
-      } catch (const std::exception& e) {
-        log_v2::bbdo()->error(
-            "BBDO: Bad value for ack_limit, it must be an integer.");
-      }
+    if (it != cfg.params.end() && !absl::SimpleAtoi(it->second, &ack_limit)) {
+      log_v2::bbdo()->error(
+          "BBDO: Bad value for ack_limit, it must be an integer.");
+      ack_limit = 1000;
+    }
   }
 
   // Create object.
