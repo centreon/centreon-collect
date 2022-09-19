@@ -550,7 +550,7 @@ int downtime_manager::schedule_downtime(downtime::type type,
     service_map::const_iterator found(
         service::services.find({host_name, service_description}));
 
-    if (found != service::services.end() || found->second) {
+    if (found != service::services.end() && found->second) {
       const anomalydetection::pointer_set& anos =
           anomalydetection::get_anomaly(found->second->get_service_id());
       for (const anomalydetection* ano : anos) {
