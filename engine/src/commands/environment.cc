@@ -95,9 +95,9 @@ bool environment::operator!=(environment const& right) const throw() {
 }
 
 /**
- *  Add an environement variable.
+ *  Add an environment variable.
  *
- *  @param[in] line  The nane and value on form (name=value).
+ *  @param[in] line  The name and value on form (name=value).
  */
 void environment::add(char const* line) {
   if (!line)
@@ -119,10 +119,10 @@ void environment::add(char const* line) {
 }
 
 /**
- *  Add an environement variable.
+ *  Add an environment variable.
  *
- *  @param[in] name   The name of the environement variable.
- *  @param[in] value  The environement varaible value.
+ *  @param[in] name   The name of the environment variable.
+ *  @param[in] value  The environment variable value.
  */
 void environment::add(char const* name, char const* value) {
   if (!name || !value)
@@ -148,9 +148,9 @@ void environment::add(char const* name, char const* value) {
 }
 
 /**
- *  Add an environement variable.
+ *  Add an environment variable.
  *
- *  @param[in] The nane and value on form (name=value).
+ *  @param[in] line The name and value on form (name=value).
  */
 void environment::add(std::string const& line) {
   if (line.empty())
@@ -171,10 +171,10 @@ void environment::add(std::string const& line) {
 }
 
 /**
- *  Add an environement variable.
+ *  Add an environment variable.
  *
- *  @param[in] name   The name of the environement variable.
- *  @param[in] value  The environement varaible value.
+ *  @param[in] name   The name of the environment variable.
+ *  @param[in] value  The environment varaible value.
  */
 void environment::add(std::string const& name, std::string const& value) {
   if (name.empty())
@@ -199,7 +199,7 @@ void environment::add(std::string const& name, std::string const& value) {
 }
 
 /**
- *  Get environement.
+ *  Get environment.
  */
 char** environment::data() throw() {
   return (_env);
@@ -264,7 +264,7 @@ void environment::_realoc_env(uint32_t size) {
 }
 
 /**
- *  Rebuild environement array.
+ *  Rebuild environment array.
  */
 void environment::_rebuild_env() {
   if (!_env)

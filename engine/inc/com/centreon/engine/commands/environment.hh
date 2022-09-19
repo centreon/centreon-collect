@@ -42,7 +42,7 @@ class environment {
   void add(char const* name, char const* value);
   void add(std::string const& line);
   void add(std::string const& name, std::string const& value);
-  char** data() throw();
+  char** data() noexcept;
 
  private:
   void _internal_copy(environment const& right);
