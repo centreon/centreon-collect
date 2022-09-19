@@ -83,8 +83,7 @@ static void parse_file(char const* filename, options& opt) {
     size_t pos(line.find_first_of('='));
     if (pos == std::string::npos)
       throw msg_fmt(
-          "parsing of file '{}'"
-          " failed because of line: {}",
+          "parsing of file '{}' failed because of line: {}",
           filename, line);
     std::string key(line.substr(0, pos));
     std::string value(line.substr(pos + 1));
