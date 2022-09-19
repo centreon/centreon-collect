@@ -1048,7 +1048,9 @@ TEST_F(EngineRpc, ScheduleServiceDowntime) {
   oss << "ScheduleServiceDowntime test_host test_svc " << now << " " << now + 1
       << " 0 0 10000 admin host " << now;
   output = execute(oss.str());
-  ASSERT_EQ(1u, downtime_manager::instance().get_scheduled_downtimes().size());
+  ASSERT_EQ(2u, downtime_manager::instance()
+                    .get_scheduled_downtimes()
+                    .size());  // one for service and one for ano
   ASSERT_EQ("ScheduleServiceDowntime 1", output.back());
 
   oss.str("");
@@ -1127,7 +1129,9 @@ TEST_F(EngineRpc, ScheduleHostServicesDowntime) {
   oss << "ScheduleHostServicesDowntime test_host " << now << " " << now + 1
       << " 0 0 10000 admin host " << now;
   output = execute(oss.str());
-  ASSERT_EQ(2u, downtime_manager::instance().get_scheduled_downtimes().size());
+  ASSERT_EQ(3u, downtime_manager::instance()
+                    .get_scheduled_downtimes()
+                    .size());  // one for service and one for ano
   ASSERT_EQ("ScheduleHostServicesDowntime 1", output.back());
 
   oss2 << "DeleteServiceDowntimeFull test_host undef undef undef"
@@ -1211,7 +1215,9 @@ TEST_F(EngineRpc, ScheduleHostGroupServicesDowntime) {
   oss << "ScheduleHostGroupServicesDowntime test_hg " << now << " " << now + 1
       << " 0 0 10000 admin host " << now;
   output = execute(oss.str());
-  ASSERT_EQ(2u, downtime_manager::instance().get_scheduled_downtimes().size());
+  ASSERT_EQ(3u, downtime_manager::instance()
+                    .get_scheduled_downtimes()
+                    .size());  // one for service and one for ano
   ASSERT_EQ("ScheduleHostGroupServicesDowntime 1", output.back());
 
   oss.str("");
@@ -1299,7 +1305,9 @@ TEST_F(EngineRpc, ScheduleServiceGroupServicesDowntime) {
   oss << "ScheduleServiceGroupServicesDowntime test_sg " << now << " "
       << now + 1 << " 0 0 10000 admin host " << now;
   output = execute(oss.str());
-  ASSERT_EQ(1u, downtime_manager::instance().get_scheduled_downtimes().size());
+  ASSERT_EQ(2u, downtime_manager::instance()
+                    .get_scheduled_downtimes()
+                    .size());  // one for service and one for ano
   ASSERT_EQ("ScheduleServiceGroupServicesDowntime 1", output.back());
 
   uint64_t id = downtime_manager::instance()
