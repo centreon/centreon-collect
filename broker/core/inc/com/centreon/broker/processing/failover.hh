@@ -96,7 +96,7 @@ class failover : public endpoint {
   bool _failover_launched;
   volatile bool _initialized;
   time_t _next_timeout;
-  volatile time_t _retry_interval;
+  volatile time_t _retry_interval = 15;
   std::shared_ptr<multiplexing::muxer> _muxer;
   volatile bool _update;
 
