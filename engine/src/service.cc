@@ -3161,7 +3161,7 @@ int service::notify_contact(nagios_macros* mac,
 
     engine_logger(dbg_notifications, most)
         << "Raw notification command: " << raw_command;
-    log_v2::notifications()->info("Raw notification command: {}", raw_command);
+    log_v2::notifications()->debug("Raw notification command: {}", raw_command);
 
     /* process any macros contained in the argument */
     process_macros_r(mac, raw_command, processed_command, macro_options);
@@ -3172,7 +3172,7 @@ int service::notify_contact(nagios_macros* mac,
 
     engine_logger(dbg_notifications, most)
         << "Processed notification command: " << processed_command;
-    log_v2::notifications()->info("Processed notification command: {}",
+    log_v2::notifications()->trace("Processed notification command: {}",
                                   processed_command);
 
     /* log the notification to program log file */
