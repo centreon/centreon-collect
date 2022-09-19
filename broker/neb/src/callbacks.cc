@@ -18,6 +18,7 @@
 
 #include "com/centreon/broker/neb/callbacks.hh"
 
+#include <absl/strings/str_split.h>
 #include <unistd.h>
 
 #include "com/centreon/broker/config/applier/state.hh"
@@ -52,7 +53,9 @@ using namespace com::centreon::exceptions;
 extern nebmodule* neb_module_list;
 
 // Acknowledgement list.
-std::unordered_map<std::pair<uint32_t, uint32_t>, neb::acknowledgement>
+std::unordered_map<std::pair<uint32_t, uint32_t>,
+                   neb::acknowledgement,
+                   absl::Hash<std::pair<uint32_t, uint32_t>>>
     neb::gl_acknowledgements;
 
 // Downtime list.
@@ -767,16 +770,18 @@ int neb::callback_external_command(int callback_type, void* data) {
 
         // Split argument string.
         if (necd->command_args) {
-          std::list<std::string> l{misc::string::split(
+          std::list<std::string> l{absl::StrSplit(
               misc::string::check_string_utf8(necd->command_args), ';')};
           if (l.size() != 3)
             log_v2::neb()->error(
                 "callbacks: invalid host custom variable command");
           else {
             std::list<std::string>::iterator it(l.begin());
-            std::string host{*it++};
-            std::string var_name{*it++};
-            std::string var_value{*it};
+            std::string host{std::move(*it)};
+            ++it;
+            std::string var_name{std::move(*it)};
+            ++it;
+            std::string var_value{std::move(*it)};
 
             // Find host ID.
             uint64_t host_id = engine::get_host_id(host);
@@ -801,17 +806,20 @@ int neb::callback_external_command(int callback_type, void* data) {
 
         // Split argument string.
         if (necd->command_args) {
-          std::list<std::string> l{misc::string::split(
+          std::list<std::string> l{absl::StrSplit(
               misc::string::check_string_utf8(necd->command_args), ';')};
           if (l.size() != 4)
             log_v2::neb()->error(
                 "callbacks: invalid service custom variable command");
           else {
             std::list<std::string>::iterator it{l.begin()};
-            std::string host{*it++};
-            std::string service{*it++};
-            std::string var_name{*it++};
-            std::string var_value{*it};
+            std::string host{std::move(*it)};
+            ++it;
+            std::string service{std::move(*it)};
+            ++it;
+            std::string var_name{std::move(*it)};
+            ++it;
+            std::string var_value{std::move(*it)};
 
             // Find host/service IDs.
             std::pair<uint64_t, uint64_t> p{

@@ -19,10 +19,10 @@
 #ifndef CCB_INFLUXDB_MACRO_CACHE_HH
 #define CCB_INFLUXDB_MACRO_CACHE_HH
 
+#include <absl/container/flat_hash_map.h>
 #include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric_mapping.hh"
 #include "com/centreon/broker/io/factory.hh"
-#include "com/centreon/broker/misc/pair.hh"
 #include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/neb/host.hh"
 #include "com/centreon/broker/neb/instance.hh"
@@ -40,7 +40,7 @@ class macro_cache {
   std::shared_ptr<persistent_cache> _cache;
   std::unordered_map<uint64_t, std::shared_ptr<neb::instance>> _instances;
   std::unordered_map<uint64_t, std::shared_ptr<io::data>> _hosts;
-  std::unordered_map<std::pair<uint64_t, uint64_t>, std::shared_ptr<io::data>>
+  absl::flat_hash_map<std::pair<uint64_t, uint64_t>, std::shared_ptr<io::data>>
       _services;
   std::unordered_map<uint64_t, std::shared_ptr<storage::index_mapping>>
       _index_mappings;

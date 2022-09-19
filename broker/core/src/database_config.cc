@@ -106,9 +106,17 @@ database_config::database_config(config::endpoint const& cfg) {
 
   // db_port
   it = cfg.params.find("db_port");
-  if (it != end)
-    _port = std::stol(it->second);
-  else
+  if (it != end) {
+    uint32_t port;
+    if (!absl::SimpleAtoi(it->second, &port)) {
+      log_v2::config()->error(
+          "In the database configuration, 'db_port' should be a number, and "
+          "not '{}'",
+          it->second);
+      _port = 0;
+    } else
+      _port = port;
+  } else
     _port = 0;
 
   // db_user
@@ -132,9 +140,7 @@ database_config::database_config(config::endpoint const& cfg) {
   // queries_per_transaction
   it = cfg.params.find("queries_per_transaction");
   if (it != end) {
-    try {
-      _queries_per_transaction = std::stoul(it->second);
-    } catch (std::exception const& e) {
+    if (!absl::SimpleAtoi(it->second, &_queries_per_transaction)) {
       log_v2::core()->error(
           "queries_per_transaction is a number but must be given as a string. "
           "Unable to read the value '{}' - value 2000 taken by default.",

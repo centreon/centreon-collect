@@ -352,9 +352,7 @@ set(LIBROKER_SOURCES
     ${SRC_DIR}/misc/perfdata.cc
     ${SRC_DIR}/misc/processing_speed_computer.cc
     ${SRC_DIR}/misc/string.cc
-    ${SRC_DIR}/misc/stringifier.cc
     ${SRC_DIR}/misc/time.cc
-    ${SRC_DIR}/misc/tokenizer.cc
     ${SRC_DIR}/misc/uuid.cc
     ${SRC_DIR}/misc/variant.cc
     ${SRC_DIR}/modules/handle.cc
@@ -432,14 +430,11 @@ set(LIBROKER_SOURCES
     ${INC_DIR}/misc/diagnostic.hh
     ${INC_DIR}/misc/filesystem.hh
     ${INC_DIR}/misc/misc.hh
-    ${INC_DIR}/misc/pair.hh
     ${INC_DIR}/misc/perfdata.hh
     ${INC_DIR}/misc/processing_speed_computer.hh
     ${INC_DIR}/misc/shared_mutex.hh
     ${INC_DIR}/misc/string.hh
-    ${INC_DIR}/misc/stringifier.hh
     ${INC_DIR}/misc/time.hh
-    ${INC_DIR}/misc/tokenizer.hh
     ${INC_DIR}/misc/trash.hh
     ${INC_DIR}/misc/variant.hh
     ${INC_DIR}/modules/handle.hh

@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013,2015 Centreon
+** Copyright 2017-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 */
 
 #include "com/centreon/broker/simu/factory.hh"
+#include <absl/strings/match.h>
 #include <nlohmann/json.hpp>
 #include "com/centreon/broker/misc/variant.hh"
 #include "com/centreon/broker/simu/connector.hh"
@@ -53,7 +54,7 @@ static std::string find_param(config::endpoint const& cfg,
 bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
   if (ext)
     *ext = io::extension("SIMU", false, false);
-  bool is_simu{!strncasecmp(cfg.type.c_str(), "simu", 5)};
+  bool is_simu{absl::EqualsIgnoreCase(cfg.type, "simu")};
   if (is_simu) {
     cfg.params["cache"] = "yes";
     cfg.cache_enabled = true;
@@ -78,25 +79,20 @@ io::endpoint* factory::new_endpoint(config::endpoint& cfg,
   std::string err;
 
   std::string filename(find_param(cfg, "path"));
-
   json const& js{cfg.cfg["lua_parameter"]};
 
   if (!err.empty())
     throw msg_fmt("simu: couldn't read a configuration json");
 
   if (js.is_object()) {
-    json const& name{js["name"]};
-    json const& type{js["type"]};
-    json const& value{js["value"]};
+    json const& name{js.at("name")};
+    json const& type{js.at("type")};
+    json const& value{js.at("value")};
 
     if (name.get<std::string>().empty())
       throw msg_fmt(
           "simu: couldn't read a configuration field because"
           " its name is empty");
-    if (value.get<std::string>().empty())
-      throw msg_fmt(
-          "simu: couldn't read a configuration field because"
-          "' configuration field because its value is empty");
     std::string t((type.get<std::string>().empty()) ? "string"
                                                     : type.get<std::string>());
     if (t == "string" || t == "password")
@@ -104,49 +100,36 @@ io::endpoint* factory::new_endpoint(config::endpoint& cfg,
           {name.get<std::string>(), misc::variant(value.get<std::string>())});
     else if (t == "number") {
       bool ko = false;
-      size_t pos;
       std::string const& v(value.get<std::string>());
-      try {
-        int val = std::stol(v, &pos);
-        if (pos == v.size())  // All the string is read
-          conf_map.insert({name.get<std::string>(), misc::variant(val)});
-        else
-          ko = true;
-      } catch (std::exception const& e) {
+      int32_t val;
+      if (!absl::SimpleAtoi(v, &val))
         ko = true;
-      }
+      else
+        conf_map.insert({name.get<std::string>(), misc::variant(val)});
+
       // Second attempt using floating point numbers
       if (ko) {
-        try {
-          double val = std::stod(v, &pos);
-          if (pos == v.size())  // All the string is read
-            conf_map.insert({name.get<std::string>(), misc::variant(val)});
-          else
-            ko = true;
-        } catch (std::exception const& e) {
+        double val;
+        if (absl::SimpleAtod(v, &val)) {
+          conf_map.insert({name.get<std::string>(), misc::variant(val)});
+          ko = false;
+        } else
           ko = true;
-        }
       }
       if (ko)
-        throw msg_fmt(
-            "simu: unable to read '{}' content ({}"
-            ") as a number",
-            name.get<std::string>(), value.get<std::string>());
+        throw msg_fmt("simu: unable to read '{}' content ({}) as a number",
+                      name.get<std::string>(), value.get<std::string>());
     }
   } else if (js.is_array()) {
     for (json const& obj : js) {
-      json const& name{obj["name"]};
-      json const& type{obj["type"]};
-      json const& value{obj["value"]};
+      json const& name{obj.at("name")};
+      json const& type{obj.at("type")};
+      json const& value{obj.at("value")};
 
       if (name.get<std::string>().empty())
         throw msg_fmt(
             "lua: couldn't read a configuration field because"
             " its name is empty");
-      if (value.get<std::string>().empty())
-        throw msg_fmt(
-            "simu: couldn't read a configuration field because"
-            "' configuration field because its value is empty");
       std::string t((type.get<std::string>().empty())
                         ? "string"
                         : type.get<std::string>());
@@ -154,20 +137,17 @@ io::endpoint* factory::new_endpoint(config::endpoint& cfg,
         conf_map.insert(
             {name.get<std::string>(), misc::variant(value.get<std::string>())});
       else if (t == "number") {
-        try {
-          int val = std::stol(value.get<std::string>());
+        int32_t val;
+        if (absl::SimpleAtoi(value.get<std::string>(), &val))
           conf_map.insert({name.get<std::string>(), misc::variant(val)});
-        } catch (std::exception const& e) {
-          throw msg_fmt(
-              "lua: unable to read '{}' content ({}"
-              ") as a number",
-              name.get<std::string>(), value.get<std::string>());
-        }
+        else
+          throw msg_fmt("lua: unable to read '{}' content ({}) as a number",
+                        name.get<std::string>(), value.get<std::string>());
       }
     }
   }
   // Connector.
-  std::unique_ptr<simu::connector> c(new simu::connector);
+  auto c{std::make_unique<simu::connector>()};
   c->connect_to(filename, conf_map);
   is_acceptor = false;
   return c.release();

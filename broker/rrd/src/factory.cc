@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2015 Centreon
+** Copyright 2011-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -26,12 +26,6 @@
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::rrd;
-
-/**************************************
- *                                     *
- *            Local Objects            *
- *                                     *
- **************************************/
 
 /**
  *  Search for a property value.
@@ -90,35 +84,19 @@ io::endpoint* factory::new_endpoint(
   std::string path{find_param(cfg, "path", false)};
 
   // Network connection.
-  unsigned short port{0};
-  {
-    try {
-      port = static_cast<uint16_t>(
-          std::stoul(find_param(cfg, "port", false, "0")));
-    } catch (...) {
-      throw msg_fmt(
-          "RRD: bad port"
-          " defined "
-          " for endpoint '{}'",
-          cfg.name);
-    }
+  uint32_t port = 0;
+  if (!absl::SimpleAtoi(find_param(cfg, "port", false, "0"), &port)) {
+    throw msg_fmt("RRD: bad port defined for endpoint '{}'", cfg.name);
   }
 
   // Get rrd creator cache size.
-  uint32_t cache_size(16);
+  uint32_t cache_size = 16;
   {
     std::map<std::string, std::string>::const_iterator it{
         cfg.params.find("cache_size")};
-    if (it != cfg.params.end())
-      try {
-        cache_size = std::stoul(it->second);
-      } catch (std::exception const& e) {
-        throw msg_fmt(
-            "RRD: bad port"
-            " defined "
-            " for endpoint '{}'",
-            cfg.name);
-      }
+    if (it != cfg.params.end() && !absl::SimpleAtoi(it->second, &cache_size)) {
+      throw msg_fmt("RRD: bad port defined for endpoint '{}'", cfg.name);
+    }
   }
 
   // Should metrics be written ?

@@ -17,7 +17,9 @@
 */
 
 #include "com/centreon/broker/influxdb/factory.hh"
+#include <absl/strings/match.h>
 #include <nlohmann/json.hpp>
+
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/influxdb/column.hh"
 #include "com/centreon/broker/influxdb/connector.hh"
@@ -52,7 +54,7 @@ static std::string find_param(config::endpoint const& cfg,
  *  @return True if the configuration matches the storage layer.
  */
 bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
-  bool is_ifdb{!strncasecmp(cfg.type.c_str(), "influxdb", 9)};
+  bool is_ifdb{absl::EqualsIgnoreCase(cfg.type, "influxdb")};
   if (ext)
     *ext = io::extension("INFLUXDB", false, false);
   if (is_ifdb) {
@@ -97,20 +99,18 @@ io::endpoint* factory::new_endpoint(
     }
   }
 
-  uint32_t queries_per_transaction(0);
+  uint32_t queries_per_transaction;
   {
     std::map<std::string, std::string>::const_iterator it{
         cfg.params.find("queries_per_transaction")};
-    if (it != cfg.params.end())
-      try {
-        queries_per_transaction = std::stoul(it->second);
-      } catch (std::exception const& ex) {
+    if (it != cfg.params.end()) {
+      if (!absl::SimpleAtoi(it->second, &queries_per_transaction)) {
         throw msg_fmt(
             "influxdb: couldn't parse queries_per_transaction '{}' defined for "
             "endpoint '{}'",
             it->second, cfg.name);
       }
-    else
+    } else
       queries_per_transaction = 1000;
   }
 

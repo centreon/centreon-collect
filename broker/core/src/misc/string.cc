@@ -45,41 +45,6 @@ std::string& string::trim(std::string& str) noexcept {
   return str;
 }
 
-std::list<std::string> string::split(const std::string& str, char sep) {
-  std::list<std::string> retval;
-  size_t pos = 0;
-  while (pos != std::string::npos) {
-    size_t new_pos = str.find(sep, pos);
-    if (new_pos != std::string::npos) {
-      retval.push_back(str.substr(pos, new_pos - pos));
-      pos = new_pos + 1;
-    } else {
-      retval.push_back(str.substr(pos));
-      pos = new_pos;
-    }
-  }
-
-  return retval;
-}
-
-std::list<fmt::string_view> string::split_sv(const std::string& str, char sep) {
-  std::list<fmt::string_view> retval;
-  size_t pos = 0;
-
-  while (pos != std::string::npos) {
-    size_t new_pos = str.find(sep, pos);
-    if (new_pos != std::string::npos) {
-      retval.emplace_back(str.data() + pos, new_pos - pos);
-      pos = new_pos + 1;
-    } else {
-      retval.emplace_back(str.data() + pos, str.size() - pos);
-      pos = new_pos;
-    }
-  }
-
-  return retval;
-}
-
 std::string string::base64_encode(const std::string& str) {
   static const std::string b =
       "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
