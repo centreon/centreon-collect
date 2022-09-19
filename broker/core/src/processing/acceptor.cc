@@ -38,8 +38,7 @@ acceptor::acceptor(std::shared_ptr<io::endpoint> endp, std::string const& name)
     : endpoint(true, name),
       _state(stopped),
       _should_exit(false),
-      _endp(endp),
-      _retry_interval(30) {}
+      _endp(endp) {}
 
 /**
  *  Destructor.

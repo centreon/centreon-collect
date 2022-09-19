@@ -46,7 +46,6 @@ failover::failover(std::shared_ptr<io::endpoint> endp,
       _failover_launched(false),
       _initialized(false),
       _next_timeout(0),
-      _retry_interval(30),
       _muxer(mux),
       _update(false) {
   log_v2::core()->trace("failover '{}' construction.", _name);
