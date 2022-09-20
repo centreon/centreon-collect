@@ -10,8 +10,6 @@ import re
 import stat
 
 import grpc
-import engine_pb2
-import engine_pb2_grpc
 
 
 CONF_DIR = "/etc/centreon-engine"
@@ -1082,6 +1080,7 @@ def schedule_service_downtime(hst: str, svc: str, duration: int):
     f.write(cmd)
     f.close()
 
+
 def schedule_host_downtime(poller: int, hst: str, duration: int):
     now = int(time.time())
     cmd1 = "[{1}] SCHEDULE_HOST_DOWNTIME;{0};{1};{2};1;0;{3};admin;Downtime set by admin\n".format(
@@ -1092,6 +1091,7 @@ def schedule_host_downtime(poller: int, hst: str, duration: int):
     f.write(cmd1)
     f.write(cmd2)
     f.close()
+
 
 def delete_host_downtimes(poller: int, hst: str):
     now = int(time.time())
