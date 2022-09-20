@@ -56,7 +56,7 @@ impact_values& impact_values::operator=(impact_values const& other) {
     _nominal = other._nominal;
     _state = other._state;
   }
-  return (*this);
+  return *this;
 }
 
 /**
@@ -66,12 +66,25 @@ impact_values& impact_values::operator=(impact_values const& other) {
  *
  *  @return True if equal.
  */
-bool impact_values::operator==(impact_values const& other) const throw() {
+bool impact_values::operator!=(impact_values const& other) const noexcept {
+  return _acknowledgement != other._acknowledgement ||
+         _downtime != other._downtime || _nominal != other._nominal ||
+         _state != other._state;
+}
+
+/**
+ *  Comparison operator.
+ *
+ *  @param[in] other   Object to compare to.
+ *
+ *  @return True if equal.
+ */
+bool impact_values::operator==(impact_values const& other) const noexcept {
   if (this == &other)
     return true;
-  return (_acknowledgement == other._acknowledgement &&
-          _downtime == other._downtime && _nominal == other._nominal &&
-          _state == other._state);
+  return _acknowledgement == other._acknowledgement &&
+         _downtime == other._downtime && _nominal == other._nominal &&
+         _state == other._state;
 }
 
 /**
@@ -80,7 +93,7 @@ bool impact_values::operator==(impact_values const& other) const throw() {
  *  @return Impact induced by some acknowledgement.
  */
 double impact_values::get_acknowledgement() const {
-  return (_acknowledgement);
+  return _acknowledgement;
 }
 
 /**
@@ -89,7 +102,7 @@ double impact_values::get_acknowledgement() const {
  *  @return Impact induced by some downtime.
  */
 double impact_values::get_downtime() const {
-  return (_downtime);
+  return _downtime;
 }
 
 /**
@@ -98,7 +111,7 @@ double impact_values::get_downtime() const {
  *  @return Nominal impact.
  */
 double impact_values::get_nominal() const {
-  return (_nominal);
+  return _nominal;
 }
 
 /**
@@ -107,7 +120,7 @@ double impact_values::get_nominal() const {
  *  @return State impact.
  */
 impact_values::state impact_values::get_state() const {
-  return (_state);
+  return _state;
 }
 
 /**
@@ -117,7 +130,6 @@ impact_values::state impact_values::get_state() const {
  */
 void impact_values::set_acknowledgement(double acknowledgement) {
   _acknowledgement = acknowledgement;
-  return;
 }
 
 /**
@@ -127,7 +139,6 @@ void impact_values::set_acknowledgement(double acknowledgement) {
  */
 void impact_values::set_downtime(double downtime) {
   _downtime = downtime;
-  return;
 }
 
 /**
@@ -137,7 +148,6 @@ void impact_values::set_downtime(double downtime) {
  */
 void impact_values::set_nominal(double nominal) {
   _nominal = nominal;
-  return;
 }
 
 /**
@@ -147,5 +157,4 @@ void impact_values::set_nominal(double nominal) {
  */
 void impact_values::set_state(impact_values::state state) {
   _state = state;
-  return;
 }

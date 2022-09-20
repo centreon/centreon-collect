@@ -159,10 +159,11 @@ bool ba::child_has_update(computable* child, io::stream* visitor) {
 
     // Apply new data.
     log_v2::bam()->trace(
-        "BAM: BA {} changes: hard impact {} => {}, soft impact {} => {}, "
+        "BAM: BA {} changes: hard impact change: {}, soft impact changed {}, "
         "downtime {} => {}",
-        _id, it->second.hard_impact, new_hard_impact, it->second.soft_impact,
-        new_soft_impact, it->second.in_downtime, kpi_in_downtime);
+        _id, it->second.hard_impact != new_hard_impact,
+        it->second.soft_impact != new_soft_impact, it->second.in_downtime,
+        kpi_in_downtime);
     it->second.hard_impact = new_hard_impact;
     it->second.soft_impact = new_soft_impact;
     it->second.in_downtime = kpi_in_downtime;
