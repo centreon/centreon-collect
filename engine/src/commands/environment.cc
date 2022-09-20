@@ -43,32 +43,11 @@ environment::environment(char** env)
 }
 
 /**
- *  Copy constructor.
- *
- *  @param[in] right  The object to copy.
- */
-environment::environment(environment const& right) {
-  _internal_copy(right);
-}
-
-/**
  *  Destructor.
  */
-environment::~environment() throw() {
+environment::~environment() noexcept {
   delete[] _buffer;
   delete[] _env;
-}
-
-/**
- *  Copy operator.
- *
- *  @param[in] right  The object to copy.
- *
- *  @return This object.
- */
-environment& environment::operator=(environment const& right) {
-  _internal_copy(right);
-  return (*this);
 }
 
 /**
@@ -78,7 +57,7 @@ environment& environment::operator=(environment const& right) {
  *
  *  @return True if is the same object, otherwise false.
  */
-bool environment::operator==(environment const& right) const throw() {
+bool environment::operator==(environment const& right) const noexcept {
   return (_pos_buffer == right._pos_buffer && _pos_env == right._pos_env &&
           !strncmp(_buffer, right._buffer, _pos_buffer));
 }
@@ -90,7 +69,7 @@ bool environment::operator==(environment const& right) const throw() {
  *
  *  @return True if is not the same object, otherwise false.
  */
-bool environment::operator!=(environment const& right) const throw() {
+bool environment::operator!=(environment const& right) const noexcept {
   return (!operator==(right));
 }
 
@@ -203,26 +182,6 @@ void environment::add(std::string const& name, std::string const& value) {
  */
 char** environment::data() throw() {
   return (_env);
-}
-
-/**
- *  Internal copy
- *
- *  @param[in] right  The object to copy.
- */
-void environment::_internal_copy(environment const& right) {
-  if (this != &right) {
-    delete[] _buffer;
-    delete[] _env;
-    _pos_buffer = right._pos_buffer;
-    _pos_env = right._pos_env;
-    _size_buffer = right._size_buffer;
-    _size_env = right._size_env;
-    _buffer = new char[_size_buffer];
-    _env = new char*[_size_env];
-    memcpy(_buffer, right._buffer, _pos_buffer);
-    _rebuild_env();
-  }
 }
 
 /**

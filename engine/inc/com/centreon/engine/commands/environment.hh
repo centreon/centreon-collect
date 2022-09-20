@@ -31,25 +31,6 @@ namespace commands {
  *  This class allow to get and set environment.
  */
 class environment {
- public:
-  environment(char** env = NULL);
-  environment(environment const& right);
-  ~environment() throw();
-  environment& operator=(environment const& right);
-  bool operator==(environment const& right) const throw();
-  bool operator!=(environment const& right) const throw();
-  void add(char const* line);
-  void add(char const* name, char const* value);
-  void add(std::string const& line);
-  void add(std::string const& name, std::string const& value);
-  char** data() noexcept;
-
- private:
-  void _internal_copy(environment const& right);
-  void _realoc_buffer(uint32_t size);
-  void _realoc_env(uint32_t size);
-  void _rebuild_env();
-
   char* _buffer;
   // _env is used in clib/src/process.cc in a system call. Must be char** !
   char** _env;
@@ -57,6 +38,23 @@ class environment {
   uint32_t _pos_env;
   uint32_t _size_buffer;
   uint32_t _size_env;
+
+  void _realoc_buffer(uint32_t size);
+  void _realoc_env(uint32_t size);
+  void _rebuild_env();
+
+ public:
+  environment(char** env = NULL);
+  environment(const environment&) = delete;
+  ~environment() noexcept;
+  environment& operator=(const environment&) = delete;
+  bool operator==(environment const& right) const noexcept;
+  bool operator!=(environment const& right) const noexcept;
+  void add(char const* line);
+  void add(char const* name, char const* value);
+  void add(std::string const& line);
+  void add(std::string const& name, std::string const& value);
+  char** data() noexcept;
 };
 }  // namespace commands
 
