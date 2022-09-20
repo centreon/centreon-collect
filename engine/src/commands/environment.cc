@@ -51,29 +51,6 @@ environment::~environment() noexcept {
 }
 
 /**
- *  Equal operator.
- *
- *  @param[in] right  The object to compare.
- *
- *  @return True if is the same object, otherwise false.
- */
-bool environment::operator==(environment const& right) const noexcept {
-  return (_pos_buffer == right._pos_buffer && _pos_env == right._pos_env &&
-          !strncmp(_buffer, right._buffer, _pos_buffer));
-}
-
-/**
- *  Not equal operator.
- *
- *  @param[in] right  The object to compare.
- *
- *  @return True if is not the same object, otherwise false.
- */
-bool environment::operator!=(environment const& right) const noexcept {
-  return (!operator==(right));
-}
-
-/**
  *  Add an environment variable.
  *
  *  @param[in] line  The name and value on form (name=value).
@@ -131,6 +108,7 @@ void environment::add(char const* name, char const* value) {
  *
  *  @param[in] line The name and value on form (name=value).
  */
+
 void environment::add(std::string const& line) {
   if (line.empty())
     return;
@@ -155,6 +133,7 @@ void environment::add(std::string const& line) {
  *  @param[in] name   The name of the environment variable.
  *  @param[in] value  The environment varaible value.
  */
+
 void environment::add(std::string const& name, std::string const& value) {
   if (name.empty())
     return;

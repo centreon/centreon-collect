@@ -48,8 +48,8 @@ class environment {
   environment(const environment&) = delete;
   ~environment() noexcept;
   environment& operator=(const environment&) = delete;
-  bool operator==(environment const& right) const noexcept;
-  bool operator!=(environment const& right) const noexcept;
+  bool operator==(environment const&) = delete;
+  bool operator!=(environment const&) = delete;
   void add(char const* line);
   void add(char const* name, char const* value);
   void add(std::string const& line);
