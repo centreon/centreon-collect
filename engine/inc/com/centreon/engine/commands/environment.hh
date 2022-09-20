@@ -51,6 +51,7 @@ class environment {
   void _rebuild_env();
 
   char* _buffer;
+  // _env is used in clib/src/process.cc in a system call. Must be char** !
   char** _env;
   uint32_t _pos_buffer;
   uint32_t _pos_env;
