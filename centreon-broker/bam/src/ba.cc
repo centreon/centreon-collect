@@ -845,6 +845,10 @@ void ba::_compute_inherited_downtime(io::stream* visitor) {
            end = _impacts.end();
        it != end; ++it) {
     if (!it->first->ok_state() && !it->first->in_downtime()) {
+      log_v2::bam()->trace(
+          "ba: every kpi in downtime ? no, kpi {} is not ok and not in "
+          "downtime",
+          it->first->get_id());
       every_kpi_in_downtime = false;
       break;
     }
