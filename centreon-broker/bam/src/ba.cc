@@ -146,8 +146,10 @@ bool ba::child_has_update(computable* child, io::stream* visitor) {
     // If the new impact is the same as the old, don't update.
     if (it->second.hard_impact == new_hard_impact &&
         it->second.soft_impact == new_soft_impact &&
-        it->second.in_downtime == kpi_in_downtime)
+        it->second.in_downtime == kpi_in_downtime) {
+      log_v2::bam()->debug("BAM: BA {} has no changes since last update", _id);
       return false;
+    }
     timestamp last_state_change(it->second.kpi_ptr->get_last_state_change());
     if (!last_state_change.is_null())
       _last_kpi_update = std::max(_last_kpi_update, last_state_change);
@@ -156,6 +158,11 @@ bool ba::child_has_update(computable* child, io::stream* visitor) {
     _unapply_impact(it->first, it->second);
 
     // Apply new data.
+    log_v2::bam()->trace(
+        "BAM: BA {} changes: hard impact {} => {}, soft impact {} => {}, "
+        "downtime {} => {}",
+        _id, it->second.hard_impact, new_hard_impact, it->second.soft_impact,
+        new_soft_impact, it->second.in_downtime, kpi_in_downtime);
     it->second.hard_impact = new_hard_impact;
     it->second.soft_impact = new_soft_impact;
     it->second.in_downtime = kpi_in_downtime;
