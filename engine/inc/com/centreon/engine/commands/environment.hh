@@ -54,7 +54,7 @@ class environment {
   void add(char const* name, char const* value);
   void add(std::string const& line);
   void add(std::string const& name, std::string const& value);
-  char** data() noexcept;
+  char** data() const noexcept;
 };
 }  // namespace commands
 

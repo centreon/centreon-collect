@@ -180,7 +180,7 @@ void environment::add(std::string const& name, std::string const& value) {
 /**
  *  Get environment.
  */
-char** environment::data() throw() {
+char** environment::data() const noexcept {
   return (_env);
 }
 
