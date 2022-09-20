@@ -286,9 +286,7 @@ void kpi_service::service_update(const std::shared_ptr<neb::downtime>& dt,
   // Log message.
   log_v2::bam()->debug(
       "BAM: KPI {} is getting notified of a downtime ({}) on its service ({}, "
-      "{}), "
-      "in "
-      "downtime: {} at {}",
+      "{}), in downtime: {} at {}",
       _id, dt->internal_id, _host_id, _service_id, _downtimed, _last_check);
 
   // Generate status event.

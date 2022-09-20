@@ -159,7 +159,7 @@ bool ba::child_has_update(computable* child, io::stream* visitor) {
 
     // Apply new data.
     log_v2::bam()->trace(
-        "BAM: BA {} changes: hard impact change: {}, soft impact changed {}, "
+        "BAM: BA {} changes: hard impact changed {}, soft impact changed {}, "
         "downtime {} => {}",
         _id, it->second.hard_impact != new_hard_impact,
         it->second.soft_impact != new_soft_impact, it->second.in_downtime,
@@ -833,8 +833,10 @@ void ba::_commit_initial_events(io::stream* visitor) {
  */
 void ba::_compute_inherited_downtime(io::stream* visitor) {
   // kpi downtime heritance deactived. Do nothing.
-  if (_dt_behaviour != configuration::ba::dt_inherit)
+  if (_dt_behaviour != configuration::ba::dt_inherit) {
+    log_v2::bam()->trace("ba: BA {} doesn't inherite downtimes", _id);
     return;
+  }
 
   // Check if every impacting child KPIs are in downtime.
   bool every_kpi_in_downtime(!_impacts.empty());
@@ -852,15 +854,15 @@ void ba::_compute_inherited_downtime(io::stream* visitor) {
   //         Put the BA in downtime.
   bool state_ok{get_state_hard() == ba::state::state_ok};
   if (!state_ok && every_kpi_in_downtime && !_inherited_downtime) {
-    _inherited_downtime.reset(new inherited_downtime);
+    _inherited_downtime = std::make_unique<inherited_downtime>();
     _inherited_downtime->ba_id = _id;
     _inherited_downtime->in_downtime = true;
     log_v2::bam()->trace("ba: inherited downtime computation downtime true");
     _in_downtime = true;
 
     if (visitor)
-      visitor->write(std::shared_ptr<inherited_downtime>(
-          std::make_shared<inherited_downtime>(*_inherited_downtime)));
+      visitor->write(
+          std::make_shared<inherited_downtime>(*_inherited_downtime));
   }
   // Case 2: state ok or not every kpi in downtime, actual downtime.
   //         Remove the downtime.
@@ -872,5 +874,8 @@ void ba::_compute_inherited_downtime(io::stream* visitor) {
     if (visitor)
       visitor->write(std::move(_inherited_downtime));
     _inherited_downtime.reset();
-  }
+  } else
+    log_v2::bam()->trace(
+        "ba: inherited downtime computation downtime not changed ({})",
+        _in_downtime);
 }
