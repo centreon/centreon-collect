@@ -31,7 +31,7 @@ endpoint::endpoint(endpoint::io_type way)
     : _type(way),
       buffering_timeout(0),
       read_timeout((time_t)-1),
-      retry_interval(30),
+      retry_interval(15),
       cache_enabled(false) {}
 
 /**
