@@ -48,7 +48,8 @@ class impact_values {
   impact_values(impact_values const& other) = delete;
   ~impact_values();
   impact_values& operator=(impact_values const& other);
-  bool operator==(impact_values const& other) const throw();
+  bool operator==(impact_values const& other) const noexcept;
+  bool operator!=(impact_values const& other) const noexcept;
   double get_acknowledgement() const;
   double get_downtime() const;
   double get_nominal() const;
