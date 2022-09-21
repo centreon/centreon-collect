@@ -31,31 +31,30 @@ namespace commands {
  *  This class allow to get and set environment.
  */
 class environment {
- public:
-  environment(char** env = NULL);
-  environment(environment const& right);
-  ~environment() throw();
-  environment& operator=(environment const& right);
-  bool operator==(environment const& right) const throw();
-  bool operator!=(environment const& right) const throw();
-  void add(char const* line);
-  void add(char const* name, char const* value);
-  void add(std::string const& line);
-  void add(std::string const& name, std::string const& value);
-  char** data() throw();
+  char* _buffer = nullptr;
+  // _env is used in clib/src/process.cc in a system call. Must be char** !
+  char** _env = nullptr;
+  uint32_t _pos_buffer = 0;
+  uint32_t _pos_env = 0;
+  uint32_t _size_buffer = 0;
+  uint32_t _size_env = 0;
 
- private:
-  void _internal_copy(environment const& right);
-  void _realoc_buffer(uint32_t size);
-  void _realoc_env(uint32_t size);
+  void _realloc_buffer(uint32_t size);
+  void _realloc_env(uint32_t size);
   void _rebuild_env();
 
-  char* _buffer;
-  char** _env;
-  uint32_t _pos_buffer;
-  uint32_t _pos_env;
-  uint32_t _size_buffer;
-  uint32_t _size_env;
+ public:
+  environment() = default;
+  environment(const environment&) = delete;
+  ~environment() noexcept;
+  environment& operator=(const environment&) = delete;
+  bool operator==(const environment&) = delete;
+  bool operator!=(const environment&) = delete;
+  void add(const char* line);
+  void add(const char* name, const char* value);
+  void add(const std::string& line);
+  void add(const std::string& name, const std::string& value);
+  char** data() const noexcept;
 };
 }  // namespace commands
 
