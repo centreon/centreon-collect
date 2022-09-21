@@ -1706,7 +1706,7 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
       _hscr_update.bind_value_as_i64(17, hscr.next_check());
       _hscr_update.bind_value_as_bool(18, hscr.should_be_scheduled());
       _hscr_update.bind_value_as_i32(19, hscr.check_attempt());
-      _hscr_update.bind_value_as_i32(20, hscr.notification_number());
+      _hscr_update.bind_value_as_u64(20, hscr.notification_number());
       _hscr_update.bind_value_as_bool(21, hscr.no_more_notifications());
       _hscr_update.bind_value_as_i64(22, hscr.last_notification());
       _hscr_update.bind_value_as_i64(23, hscr.next_host_notification());
@@ -3111,7 +3111,7 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
       _sscr_update.bind_value_as_i64(18, sscr.next_check());
       _sscr_update.bind_value_as_bool(19, sscr.should_be_scheduled());
       _sscr_update.bind_value_as_i32(20, sscr.check_attempt());
-      _sscr_update.bind_value_as_i32(21, sscr.notification_number());
+      _sscr_update.bind_value_as_u64(21, sscr.notification_number());
       _sscr_update.bind_value_as_bool(22, sscr.no_more_notifications());
       _sscr_update.bind_value_as_i64(23, sscr.last_notification());
       _sscr_update.bind_value_as_i64(24, sscr.next_notification());
