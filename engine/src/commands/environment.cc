@@ -28,21 +28,6 @@ static uint32_t const EXTRA_SIZE_ENV = 128;
 static uint32_t const EXTRA_SIZE_BUFFER = 4096;
 
 /**
- *  Constructor.
- */
-environment::environment(char** env)
-    : _buffer(nullptr),
-      _env(nullptr),
-      _pos_buffer(0),
-      _pos_env(0),
-      _size_buffer(0),
-      _size_env(0) {
-  if (env)
-    for (uint32_t i = 0; env[i]; ++i)
-      add(env[i]);
-}
-
-/**
  *  Destructor.
  */
 environment::~environment() noexcept {
@@ -62,13 +47,13 @@ void environment::add(char const* line) {
   uint32_t new_pos = _pos_buffer + size + 1;
   if (new_pos > _size_buffer) {
     if (new_pos < _size_buffer + EXTRA_SIZE_BUFFER)
-      _realoc_buffer(_size_buffer + EXTRA_SIZE_BUFFER);
+      _realloc_buffer(_size_buffer + EXTRA_SIZE_BUFFER);
     else
-      _realoc_buffer(new_pos + EXTRA_SIZE_BUFFER);
+      _realloc_buffer(new_pos + EXTRA_SIZE_BUFFER);
   }
   memcpy(_buffer + _pos_buffer, line, size + 1);
   if (_pos_env + 1 >= _size_env)
-    _realoc_env(_size_env + EXTRA_SIZE_ENV);
+    _realloc_env(_size_env + EXTRA_SIZE_ENV);
   _env[_pos_env++] = _buffer + _pos_buffer;
   _env[_pos_env] = nullptr;
   _pos_buffer += size + 1;
@@ -88,19 +73,18 @@ void environment::add(char const* name, char const* value) {
   uint32_t new_pos(_pos_buffer + size_name + size_value + 2);
   if (new_pos > _size_buffer) {
     if (new_pos < _size_buffer + EXTRA_SIZE_BUFFER)
-      _realoc_buffer(_size_buffer + EXTRA_SIZE_BUFFER);
+      _realloc_buffer(_size_buffer + EXTRA_SIZE_BUFFER);
     else
-      _realoc_buffer(new_pos + EXTRA_SIZE_BUFFER);
+      _realloc_buffer(new_pos + EXTRA_SIZE_BUFFER);
   }
   memcpy(_buffer + _pos_buffer, name, size_name + 1);
   _buffer[_pos_buffer + size_name] = '=';
   memcpy(_buffer + _pos_buffer + size_name + 1, value, size_value + 1);
   if (_pos_env + 1 >= _size_env)
-    _realoc_env(_size_env + EXTRA_SIZE_ENV);
+    _realloc_env(_size_env + EXTRA_SIZE_ENV);
   _env[_pos_env++] = _buffer + _pos_buffer;
   _env[_pos_env] = nullptr;
   _pos_buffer += size_name + size_value + 2;
-  return;
 }
 
 /**
@@ -115,13 +99,13 @@ void environment::add(std::string const& line) {
   uint32_t new_pos(_pos_buffer + line.size() + 1);
   if (new_pos > _size_buffer) {
     if (new_pos < _size_buffer + EXTRA_SIZE_BUFFER)
-      _realoc_buffer(_size_buffer + EXTRA_SIZE_BUFFER);
+      _realloc_buffer(_size_buffer + EXTRA_SIZE_BUFFER);
     else
-      _realoc_buffer(new_pos + EXTRA_SIZE_BUFFER);
+      _realloc_buffer(new_pos + EXTRA_SIZE_BUFFER);
   }
   memcpy(_buffer + _pos_buffer, line.c_str(), line.size() + 1);
   if (_pos_env + 1 >= _size_env)
-    _realoc_env(_size_env + EXTRA_SIZE_ENV);
+    _realloc_env(_size_env + EXTRA_SIZE_ENV);
   _env[_pos_env++] = _buffer + _pos_buffer;
   _env[_pos_env] = nullptr;
   _pos_buffer += line.size() + 1;
@@ -140,27 +124,26 @@ void environment::add(std::string const& name, std::string const& value) {
   uint32_t new_pos(_pos_buffer + name.size() + value.size() + 2);
   if (new_pos > _size_buffer) {
     if (new_pos < _size_buffer + EXTRA_SIZE_BUFFER)
-      _realoc_buffer(_size_buffer + EXTRA_SIZE_BUFFER);
+      _realloc_buffer(_size_buffer + EXTRA_SIZE_BUFFER);
     else
-      _realoc_buffer(new_pos + EXTRA_SIZE_BUFFER);
+      _realloc_buffer(new_pos + EXTRA_SIZE_BUFFER);
   }
   memcpy(_buffer + _pos_buffer, name.c_str(), name.size() + 1);
   _buffer[_pos_buffer + name.size()] = '=';
   memcpy(_buffer + _pos_buffer + name.size() + 1, value.c_str(),
          value.size() + 1);
   if (_pos_env + 1 >= _size_env)
-    _realoc_env(_size_env + EXTRA_SIZE_ENV);
+    _realloc_env(_size_env + EXTRA_SIZE_ENV);
   _env[_pos_env++] = _buffer + _pos_buffer;
   _env[_pos_env] = nullptr;
   _pos_buffer += name.size() + value.size() + 2;
-  return;
 }
 
 /**
  *  Get environment.
  */
 char** environment::data() const noexcept {
-  return (_env);
+  return _env;
 }
 
 /**
@@ -168,11 +151,11 @@ char** environment::data() const noexcept {
  *
  *  @param[in] size  New size.
  */
-void environment::_realoc_buffer(uint32_t size) {
+void environment::_realloc_buffer(uint32_t size) {
   if (_size_buffer >= size)
-    throw(
+    throw
         engine_error() << "Invalid size for command environment reallocation: "
-                       << "Buffer size is greater than the requested size");
+                       << "Buffer size is greater than the requested size";
   char* new_buffer(new char[size]);
   if (_buffer)
     memcpy(new_buffer, _buffer, _pos_buffer);
@@ -187,7 +170,7 @@ void environment::_realoc_buffer(uint32_t size) {
  *
  *  @param[in] size  New size.
  */
-void environment::_realoc_env(uint32_t size) {
+void environment::_realloc_env(uint32_t size) {
   if (_size_env >= size)
     throw(engine_error()
           << "Invalid size for command environment reallocation: "
@@ -207,10 +190,7 @@ void environment::_realoc_env(uint32_t size) {
 void environment::_rebuild_env() {
   if (!_env)
     return;
-  for (uint32_t i(0), pos(0); i < _pos_env; ++i) {
-    _env[i] = _buffer + pos;
-    pos += strlen(_buffer + pos + 1) + 2;
-  }
-  _env[_pos_env] = nullptr;
-  return;
+  int64_t delta = _env[0] - _buffer;
+  for (size_t i = 0; i < _pos_env; ++i)
+    _env[i] -= delta;
 }

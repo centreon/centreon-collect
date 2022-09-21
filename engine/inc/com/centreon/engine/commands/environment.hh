@@ -31,29 +31,29 @@ namespace commands {
  *  This class allow to get and set environment.
  */
 class environment {
-  char* _buffer;
+  char* _buffer = nullptr;
   // _env is used in clib/src/process.cc in a system call. Must be char** !
-  char** _env;
-  uint32_t _pos_buffer;
-  uint32_t _pos_env;
-  uint32_t _size_buffer;
-  uint32_t _size_env;
+  char** _env = nullptr;
+  uint32_t _pos_buffer = 0;
+  uint32_t _pos_env = 0;
+  uint32_t _size_buffer = 0;
+  uint32_t _size_env = 0;
 
-  void _realoc_buffer(uint32_t size);
-  void _realoc_env(uint32_t size);
+  void _realloc_buffer(uint32_t size);
+  void _realloc_env(uint32_t size);
   void _rebuild_env();
 
  public:
-  environment(char** env = NULL);
+  environment() = default;
   environment(const environment&) = delete;
   ~environment() noexcept;
   environment& operator=(const environment&) = delete;
-  bool operator==(environment const&) = delete;
-  bool operator!=(environment const&) = delete;
-  void add(char const* line);
-  void add(char const* name, char const* value);
-  void add(std::string const& line);
-  void add(std::string const& name, std::string const& value);
+  bool operator==(const environment&) = delete;
+  bool operator!=(const environment&) = delete;
+  void add(const char* line);
+  void add(const char* name, const char* value);
+  void add(const std::string& line);
+  void add(const std::string& name, const std::string& value);
   char** data() const noexcept;
 };
 }  // namespace commands
