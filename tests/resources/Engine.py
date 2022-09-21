@@ -1524,3 +1524,45 @@ def create_anomaly_threshold_file_V2(path: string, host_id: int, service_id: int
 
 def grep_retention(poller: int, pattern: str):
     return Common.grep("{}/log/centreon-engine/config{}/retention.dat".format(VAR_ROOT, poller), pattern)
+
+def modify_retention_dat(poller, host, service, key, value):
+    if host != "" and host != "":
+        # We want a service
+        ff = open(f"{VAR_ROOT}/log/centreon-engine/config{poller}/retention.dat", "r")
+        lines = ff.readlines()
+        ff.close()
+
+        r_hst = re.compile(r"^\s*host_name=(.*)$")
+        r_svc = re.compile(r"^\s*service_description=(.*)$")
+        in_block = False
+        hst = ""
+        svc = ""
+        for i in range(len(lines)):
+            l = lines[i]
+            if not in_block:
+                if l == "service {\n":
+                    in_block = True
+                    continue
+            else:
+                if l == "}\n":
+                    in_block = False
+                    hst = ""
+                    svc = ""
+                    continue
+                m = r_hst.match(l)
+                if m:
+                    hst = m.group(1)
+                    continue
+                m = r_svc.match(l)
+                if m:
+                    svc = m.group(1)
+                    continue
+                if l.startswith(f"{key}=") and host == hst and svc == service:
+                    logger.console(f"key '{key}' found !")
+                    lines[i] = f"{key}={value}\n"
+                    hst = ""
+                    svc = ""
+
+        ff = open(f"{VAR_ROOT}/log/centreon-engine/config{poller}/retention.dat", "w")
+        ff.writelines(lines)
+        ff.close()
