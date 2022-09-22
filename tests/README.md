@@ -262,9 +262,9 @@ Here is the list of the currently implemented tests:
 - [x] **EBNSGU1**: New service group with several pollers and connections to DB with broker configured with unified_sql
 - [x] **EBNSGU2**: New service group with several pollers and connections to DB with broker configured with unified_sql
 - [x] **EBNSVC1**: New services with several pollers
-- [x] **EBSAU2**: New hosts with action_url with more than 2000 characters
-- [x] **EBSN3**: New hosts with notes with more than 500 characters
-- [x] **EBSNU1**: New hosts with notes_url with more than 2000 characters
+- [x] **EBSAU2**: New services with action_url with more than 2000 characters
+- [x] **EBSN3**: New services with notes with more than 500 characters
+- [x] **EBSNU1**: New services with notes_url with more than 2000 characters
 - [x] **ENRSCHE1**: check next check of reschedule is last_check+interval_check
 - [x] **LOGV2BE2**: log-v2 enabled old log enabled check broker sink is equal
 - [x] **LOGV2DB1**: log-v2 disabled old log enabled check broker sink
