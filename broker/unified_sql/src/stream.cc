@@ -122,6 +122,7 @@ stream::stream(const database_config& dbcfg,
       _stop_check_queues{false},
       _check_queues_stopped{false},
       _stats{stats::center::instance().register_conflict_manager()},
+      _group_clean_timer{pool::io_context()},
       _oldest_timestamp{std::numeric_limits<time_t>::max()} {
   log_v2::sql()->debug("unified sql: stream class instanciation");
   stats::center::instance().execute([stats = _stats,
@@ -146,6 +147,10 @@ stream::stream(const database_config& dbcfg,
 }
 
 stream::~stream() noexcept {
+  {
+    std::lock_guard<std::mutex> l(_group_clean_timer_m);
+    _group_clean_timer.cancel();
+  }
   std::promise<void> p;
   asio::post(_queues_timer.get_executor(), [this, &p] {
     _queues_timer.cancel();
