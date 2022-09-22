@@ -97,7 +97,8 @@ constexpr unsigned second_delay_before_delete = 60u;
 void channel::to_trash() {
   this->shutdown();
   _thrown = true;
-  SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "to_trash this={:p}", static_cast<void*>(this));
+  SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "to_trash this={:p}",
+                      static_cast<void*>(this));
   _trash->to_trash(shared_from_this(),
                    time(nullptr) + second_delay_before_delete);
 }

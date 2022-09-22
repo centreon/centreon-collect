@@ -829,6 +829,8 @@ void conflict_manager::_add_action(int32_t conn, actions action) {
 void conflict_manager::__exit() {
   {
     std::lock_guard<std::mutex> lock(_loop_m);
+    log_v2::sql()->debug("conflict_manager::__exit still {} events",
+                         _fifo.get_events().size());
     _exit = true;
     _loop_cv.notify_all();
   }

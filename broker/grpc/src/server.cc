@@ -270,6 +270,7 @@ void server::shutdown() {
     to_shutdown = std::move(_server);
   }
   if (to_shutdown) {
+    SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "grpc server shutdown");
     to_shutdown->Shutdown(std::chrono::system_clock::now() +
                           std::chrono::seconds(15));
   }
