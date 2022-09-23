@@ -140,16 +140,6 @@ bool monitoring_stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
   throw exceptions::shutdown("cannot read from BAM monitoring stream");
   return true;
 }
-/**
- *  Get endpoint statistics.
- *
- *  @param[out] tree Output tree.
- */
-// void monitoring_stream::statistics(nlohmann::json& tree) const {
-//   std::lock_guard<std::mutex> lock(_statusm);
-//   if (!_status.empty())
-//     tree["status"] = _status;
-// }
 
 /**
  *  Rebuild index and metrics cache.
@@ -405,17 +395,6 @@ void monitoring_stream::_rebuild() {
     _mysql.run_query(query, database::mysql_error::rebuild_ba);
   }
 }
-
-/**
- *  Update status of endpoint.
- *
- *  @param[in] status New status.
- */
-// void monitoring_stream::_update_status(std::string const& status) {
-//   log_v2::bam()->trace("BAM: monitoring stream _update_status");
-//   std::lock_guard<std::mutex> lock(_statusm);
-//   _status = status;
-// }
 
 /**
  *  Write an external command to Engine.

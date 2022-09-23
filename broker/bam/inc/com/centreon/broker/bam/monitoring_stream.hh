@@ -78,7 +78,6 @@ class monitoring_stream : public io::stream {
   int32_t stop() override;
   void initialize();
   bool read(std::shared_ptr<io::data>& d, time_t deadline) override;
-  // void statistics(nlohmann::json& tree) const override;
   void update() override final;
   int write(std::shared_ptr<io::data> const& d) override;
 

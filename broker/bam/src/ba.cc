@@ -81,11 +81,6 @@ void ba::add_impact(std::shared_ptr<kpi> const& impact) {
     timestamp last_state_change(impact->get_last_state_change());
     if (!last_state_change.is_null())
       _last_kpi_update = std::max(_last_kpi_update, last_state_change);
-
-    /*        // Generate BA status event.
-            auto status{_generate_ba_status(true)};
-            multiplexing::publisher pblshr;
-            pblshr.write(status);*/
   }
 }
 
