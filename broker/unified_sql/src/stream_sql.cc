@@ -45,6 +45,12 @@ static inline bool is_not_zero(const int64_t& value) {
  *  @param[in] instance_id Instance ID to remove.
  */
 void stream::_clean_tables(uint32_t instance_id) {
+  // no hostgroup and servicegroup clean during this function
+  {
+    std::lock_guard<std::mutex> l(_group_clean_timer_m);
+    _group_clean_timer.cancel();
+  }
+
   /* Database version. */
 
   int32_t conn;
@@ -190,6 +196,35 @@ void stream::_clean_tables(uint32_t instance_id) {
   _mysql.run_query(query, database::mysql_error::clean_customvariables, false,
                    conn);
   _add_action(conn, actions::custom_variables);
+
+  std::lock_guard<std::mutex> l(_group_clean_timer_m);
+  _group_clean_timer.expires_after(std::chrono::minutes(1));
+  _group_clean_timer.async_wait([this](const asio::error_code& err) {
+    if (!err) {
+      _clean_group_table();
+    }
+  });
+}
+
+void stream::_clean_group_table() {
+  int32_t conn = _mysql.choose_best_connection(-1);
+  /* Remove host groups. */
+  log_v2::sql()->debug("unified_sql: remove empty host groups ");
+  _mysql.run_query(
+      "DELETE hg FROM hostgroups AS hg LEFT JOIN hosts_hostgroups AS hhg ON "
+      "hg.hostgroup_id=hhg.hostgroup_id WHERE hhg.hostgroup_id IS NULL",
+      database::mysql_error::clean_empty_hostgroups, false, conn);
+  _add_action(conn, actions::hostgroups);
+
+  /* Remove service groups. */
+  log_v2::sql()->debug("unified_sql: remove empty service groups");
+
+  _mysql.run_query(
+      "DELETE sg FROM servicegroups AS sg LEFT JOIN services_servicegroups as "
+      "ssg ON sg.servicegroup_id=ssg.servicegroup_id WHERE ssg.servicegroup_id "
+      "IS NULL",
+      database::mysql_error::clean_empty_servicegroups, false, conn);
+  _add_action(conn, actions::servicegroups);
 }
 
 /**
