@@ -142,7 +142,7 @@ Save Logs
         Copy files	${centralLog}	${failDir}
         Copy files	${moduleLog0}	${failDir}
         Copy files	${engineLog0}	${failDir}
-        Copy files	${ENGINE_LOG}/config0/backtrace.*	${failDir}
+        Copy files	${ENGINE_LOG}/config0/gcore_*	${failDir}
         Copy Files	${EtcRoot}/centreon-engine/config0/*.cfg	${failDir}/etc/centreon-engine/config0
         Copy Files	${EtcRoot}/centreon-broker/*.json	${failDir}/etc/centreon-broker
 
@@ -153,7 +153,7 @@ Wait Or Dump And Kill Process
 	${test_none}=  Set Variable If  $result is None  "not killed"  "killed"
 	IF  ${test_none} == "not killed"
 		${pid}=  Get Process Id  ${process_name}
-		Run Process  ${CURDIR}/process_backtrace.sh  ${pid}  stdout=${ENGINE_LOG}/config0/backtrace.${pid}
+		Run Process  gcore  -o  ${ENGINE_LOG}/config0/gcore_${process_name}  ${pid}
 		${result}=	Wait For Process	${process_name}	timeout=1s	on_timeout=kill
 	END
 	[Return]	${result}

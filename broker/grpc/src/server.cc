@@ -59,7 +59,7 @@ void accepted_service::OnCancel() {
 }
 
 void accepted_service::start_read(event_ptr& to_read, bool) {
-  if (*_server_finished) {
+  if (*_server_finished || _thrown) {
     bool expected = false;
     if (_finished_called.compare_exchange_strong(expected, true)) {
       SPDLOG_LOGGER_TRACE(log_v2::grpc(), "this={:p}  Finish",
@@ -76,7 +76,7 @@ void accepted_service::OnReadDone(bool ok) {
 }
 
 void accepted_service::start_write(const event_ptr& to_send) {
-  if (*_server_finished) {
+  if (*_server_finished || _thrown) {
     bool expected = false;
     if (_finished_called.compare_exchange_strong(expected, true)) {
       SPDLOG_LOGGER_TRACE(log_v2::grpc(), "this={:p} Finish",
@@ -265,9 +265,20 @@ bool server::is_ready() const {
 void server::shutdown() {
   *_server_finished = true;
   std::unique_ptr<::grpc::Server> to_shutdown;
-  unique_lock l(_protect);
-  if (_server) {
-    to_shutdown = std::move(_server);
+  std::queue<accepted_service::pointer> accepted_to_shutdown;
+  {
+    unique_lock l(_protect);
+    if (!_accepted.empty()) {
+      accepted_to_shutdown.swap(_accepted);
+    }
+    if (_server) {
+      to_shutdown = std::move(_server);
+    }
+  }
+  while (!accepted_to_shutdown.empty()) {
+    auto svc = accepted_to_shutdown.front();
+    accepted_to_shutdown.pop();
+    svc->shutdown();
   }
   if (to_shutdown) {
     SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "grpc server shutdown");
