@@ -162,7 +162,6 @@ void monitoring_stream::update() {
     r.read(s);
     _applier.apply(s);
     _ba_mapping = s.get_ba_svc_mapping();
-    _meta_mapping = s.get_meta_svc_mapping();
     _rebuild();
     initialize();
   } catch (std::exception const& e) {
