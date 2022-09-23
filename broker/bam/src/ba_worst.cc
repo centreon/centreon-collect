@@ -96,7 +96,7 @@ state ba_worst::get_state_soft() const {
  *
  *  @param[in] impact Impact information.
  */
-void ba_worst::_apply_impact(kpi* kpi_ptr __attribute__((unused)),
+void ba_worst::_apply_impact(kpi* kpi_ptr [[maybe_unused]],
                              ba::impact_info& impact) {
   const std::array<short, 5> order{0, 3, 4, 2, 1};
 
