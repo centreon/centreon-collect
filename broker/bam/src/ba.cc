@@ -70,8 +70,7 @@ ba::ba(uint32_t id,
  *  @param[in] impact KPI that will impact BA.
  */
 void ba::add_impact(std::shared_ptr<kpi> const& impact) {
-  std::unordered_map<kpi*, impact_info>::iterator it(
-      _impacts.find(impact.get()));
+  auto it = _impacts.find(impact.get());
   if (it == _impacts.end()) {
     impact_info& ii(_impacts[impact.get()]);
     ii.kpi_ptr = impact;
@@ -82,6 +81,11 @@ void ba::add_impact(std::shared_ptr<kpi> const& impact) {
     timestamp last_state_change(impact->get_last_state_change());
     if (!last_state_change.is_null())
       _last_kpi_update = std::max(_last_kpi_update, last_state_change);
+
+    /*        // Generate BA status event.
+            auto status{_generate_ba_status(true)};
+            multiplexing::publisher pblshr;
+            pblshr.write(status);*/
   }
 }
 

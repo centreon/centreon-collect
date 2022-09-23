@@ -19,6 +19,7 @@
 #ifndef CCB_BAM_MONITORING_STREAM_HH
 #define CCB_BAM_MONITORING_STREAM_HH
 
+#include <absl/hash/hash.h>
 #include "com/centreon/broker/bam/configuration/applier/state.hh"
 #include "com/centreon/broker/database/mysql_stmt.hh"
 #include "com/centreon/broker/database_config.hh"
@@ -38,9 +39,11 @@ namespace bam {
  *  metrics table of a centbam DB.
  */
 class monitoring_stream : public io::stream {
+  const std::string _ext_cmd_file;
   configuration::applier::state _applier;
-  std::string _status;
-  std::string _ext_cmd_file;
+  /* This mutex is to protect writes to the external command named pipe. */
+  mutable std::mutex _ext_cmd_file_m;
+
   ba_svc_mapping _ba_mapping;
   ba_svc_mapping _meta_mapping;
   mutable std::mutex _statusm;
@@ -50,6 +53,11 @@ class monitoring_stream : public io::stream {
   int32_t _pending_events;
   database_config _storage_db_cfg;
   std::shared_ptr<persistent_cache> _cache;
+  asio::system_timer _forced_svc_checks_timer;
+  std::mutex _forced_svc_checks_m;
+  std::unordered_set<std::pair<std::string, std::string>,
+                     absl::Hash<std::pair<std::string, std::string>>>
+      _forced_svc_checks;
 
  public:
   monitoring_stream(std::string const& ext_cmd_file,
@@ -63,7 +71,7 @@ class monitoring_stream : public io::stream {
   int32_t stop() override;
   void initialize();
   bool read(std::shared_ptr<io::data>& d, time_t deadline) override;
-  void statistics(nlohmann::json& tree) const override;
+  // void statistics(nlohmann::json& tree) const override;
   void update() override final;
   int write(std::shared_ptr<io::data> const& d) override;
 
@@ -71,8 +79,10 @@ class monitoring_stream : public io::stream {
   void _check_replication();
   void _prepare();
   void _rebuild();
-  void _update_status(std::string const& status);
-  void _write_external_command(std::string& cmd);
+  // void _update_status(std::string const& status);
+  void _write_external_command(const std::string& cmd);
+  void _write_forced_svc_check(const std::string& host,
+                               const std::string& description);
 
   void _read_cache();
   void _write_cache();

@@ -158,8 +158,9 @@ void applier::kpi::apply(bam::configuration::state::kpis const& my_kpis,
   //
   // OBJECT RESOLUTION
   //
-  for (std::map<uint32_t, applied>::const_iterator kpi_it(_applied.begin()),
-       next_kpi_it(_applied.begin());
+  for (std::map<uint32_t, applied>::const_iterator
+           kpi_it = _applied.begin(),
+           next_kpi_it = _applied.begin();
        kpi_it != _applied.end(); kpi_it = next_kpi_it) {
     ++next_kpi_it;
     configuration::kpi const& cfg(kpi_it->second.cfg);

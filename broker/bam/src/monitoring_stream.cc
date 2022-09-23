@@ -52,16 +52,17 @@ using namespace com::centreon::broker::database;
  *                             configuration.
  *  @param[in] cache           The persistent cache.
  */
-monitoring_stream::monitoring_stream(std::string const& ext_cmd_file,
-                                     database_config const& db_cfg,
-                                     database_config const& storage_db_cfg,
+monitoring_stream::monitoring_stream(const std::string& ext_cmd_file,
+                                     const database_config& db_cfg,
+                                     const database_config& storage_db_cfg,
                                      std::shared_ptr<persistent_cache> cache)
     : io::stream("BAM"),
       _ext_cmd_file(ext_cmd_file),
       _mysql(db_cfg),
       _pending_events(0),
       _storage_db_cfg(storage_db_cfg),
-      _cache(std::move(cache)) {
+      _cache(std::move(cache)),
+      _forced_svc_checks_timer{pool::io_context()} {
   log_v2::bam()->trace("BAM: monitoring_stream constructor");
   // Prepare queries.
   _prepare();
@@ -84,6 +85,7 @@ monitoring_stream::~monitoring_stream() {
   } catch (std::exception const& e) {
     log_v2::bam()->error("BAM: can't save cache: '{}'", e.what());
   }
+  _forced_svc_checks_timer.cancel();
   log_v2::sql()->debug("bam: monitoring_stream destruction");
 }
 
@@ -143,11 +145,11 @@ bool monitoring_stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
  *
  *  @param[out] tree Output tree.
  */
-void monitoring_stream::statistics(nlohmann::json& tree) const {
-  std::lock_guard<std::mutex> lock(_statusm);
-  if (!_status.empty())
-    tree["status"] = _status;
-}
+// void monitoring_stream::statistics(nlohmann::json& tree) const {
+//   std::lock_guard<std::mutex> lock(_statusm);
+//   if (!_status.empty())
+//     tree["status"] = _status;
+// }
 
 /**
  *  Rebuild index and metrics cache.
@@ -277,10 +279,10 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
               status->ba_id);
         } else {
           time_t now = time(nullptr);
-          std::string cmd(fmt::format("[{}] SCHEDULE_FORCED_SVC_CHECK;{};{};{}",
-                                      now, ba_svc_name.first,
-                                      ba_svc_name.second, now));
-          _write_external_command(cmd);
+          std::string cmd(
+              fmt::format("[{}] SCHEDULE_FORCED_SVC_CHECK;{};{};{}\n", now,
+                          ba_svc_name.first, ba_svc_name.second, now));
+          _write_forced_svc_check(ba_svc_name.first, ba_svc_name.second);
         }
       }
     } break;
@@ -323,14 +325,14 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
             "[{}] "
             "SCHEDULE_SVC_DOWNTIME;_Module_BAM_{};ba_{};{};{};1;0;0;Centreon "
             "Broker BAM Module;Automatic downtime triggered by BA downtime "
-            "inheritance",
+            "inheritance\n",
             now, config::applier::state::instance().poller_id(), dwn.ba_id, now,
             4102444799);
       else
         cmd = fmt::format(
             "[{}] DEL_SVC_DOWNTIME_FULL;_Module_BAM_{};ba_{};;;1;0;;Centreon "
             "Broker BAM Module;Automatic downtime triggered by BA downtime "
-            "inheritance",
+            "inheritance\n",
             now, config::applier::state::instance().poller_id(), dwn.ba_id);
       _write_external_command(cmd);
     } break;
@@ -410,10 +412,60 @@ void monitoring_stream::_rebuild() {
  *
  *  @param[in] status New status.
  */
-void monitoring_stream::_update_status(std::string const& status) {
-  log_v2::bam()->trace("BAM: monitoring stream _update_status");
-  std::lock_guard<std::mutex> lock(_statusm);
-  _status = status;
+// void monitoring_stream::_update_status(std::string const& status) {
+//   log_v2::bam()->trace("BAM: monitoring stream _update_status");
+//   std::lock_guard<std::mutex> lock(_statusm);
+//   _status = status;
+// }
+
+/**
+ *  Write an external command to Engine.
+ *
+ *  @param[in] cmd  Command to write to the external command pipe.
+ */
+void monitoring_stream::_write_forced_svc_check(
+    const std::string& host,
+    const std::string& description) {
+  log_v2::bam()->trace("BAM: monitoring stream _write_forced_svc_check");
+  std::lock_guard<std::mutex> lck(_forced_svc_checks_m);
+  _forced_svc_checks.emplace(host, description);
+  _forced_svc_checks_timer.expires_after(std::chrono::seconds(5));
+  _forced_svc_checks_timer.async_wait([this](const asio::error_code& err) {
+    if (!err) {
+      std::unordered_set<std::pair<std::string, std::string>,
+                         absl::Hash<std::pair<std::string, std::string>>>
+          forced_svc_checks;
+      {
+        std::lock_guard<std::mutex> lck(_forced_svc_checks_m);
+        forced_svc_checks.swap(_forced_svc_checks);
+      }
+      std::ofstream ofs;
+      std::lock_guard<std::mutex> lock(_ext_cmd_file_m);
+      ofs.open(_ext_cmd_file);
+      if (!ofs.good()) {
+        log_v2::bam()->error(
+            "BAM: could not write BA check result to command file '{}'",
+            _ext_cmd_file);
+      } else {
+        log_v2::bam()->trace("BAM: {} forced checks to schedule",
+                             forced_svc_checks.size());
+        for (auto& p : forced_svc_checks) {
+          time_t now = time(nullptr);
+          std::string cmd{
+              fmt::format("[{}] SCHEDULE_FORCED_SVC_CHECK;{};{};{}\n", now,
+                          p.first, p.second, now)};
+          ofs.write(cmd.c_str(), cmd.size());
+          if (!ofs.good())
+            log_v2::bam()->error(
+                "BAM: could not write BA check result to command file '{}'",
+                _ext_cmd_file);
+          else
+            log_v2::bam()->debug("BAM: sent external command '{}'", cmd);
+        }
+        ofs.close();
+      }
+    }
+  });
 }
 
 /**
@@ -421,11 +473,12 @@ void monitoring_stream::_update_status(std::string const& status) {
  *
  *  @param[in] cmd  Command to write to the external command pipe.
  */
-void monitoring_stream::_write_external_command(std::string& cmd) {
-  log_v2::bam()->trace("BAM: monitoring stream _write_external_command");
-  cmd.append("\n");
+void monitoring_stream::_write_external_command(const std::string& cmd) {
+  log_v2::bam()->trace("BAM: monitoring stream _write_external_command <<{}>>",
+                       cmd);
   std::ofstream ofs;
-  ofs.open(_ext_cmd_file.c_str());
+  std::lock_guard<std::mutex> lock(_ext_cmd_file_m);
+  ofs.open(_ext_cmd_file);
   if (!ofs.good()) {
     log_v2::bam()->error(
         "BAM: could not write BA check result to command file '{}'",
