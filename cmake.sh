@@ -9,6 +9,7 @@ This program build Centreon-broker
     -f|--force    : force rebuild
     -r|--release  : Build on release mode
     -fcr|--force-conan-rebuild : rebuild conan data
+    -ng           : C++17 standard
     -h|--help     : help
 EOF
 }
@@ -24,19 +25,30 @@ for i in $(cat conanfile.txt) ; do
   fi
 done
 
+STD=14
+
 for i in "$@"
 do
   case "$i" in
     -f|--force)
+      echo "Forced rebuild"
       force=1
       shift
       ;;
+    -ng)
+      echo "C++17 applied on this compilation"
+      STD="17"
+      shift
+      ;;
     -r|--release)
+      echo "Release build"
       BUILD_TYPE="Release"
       shift
       ;;
     -fcr|--force-conan-rebuild)
+      echo "Forced conan rebuild"
       CONAN_REBUILD="1"
+      shift
       ;;
     -h|--help)
       show_help
@@ -247,18 +259,24 @@ cd build
 if [[ "$maj" == "centos7" ]] ; then
   rm -rf ~/.conan/profiles/default
   if [[ "$CONAN_REBUILD" == "1" ]] ; then
-    $conan install .. -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build="*"
+    $conan install .. -s compiler.cppstd=$STD -s compiler.libcxx=libstdc++11 --build="*"
   else
-    $conan install .. -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
+    $conan install .. -s compiler.cppstd=$STD -s compiler.libcxx=libstdc++11 --build=missing
   fi
 else
-    $conan install .. -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
+    $conan install .. -s compiler.cppstd=$STD -s compiler.libcxx=libstdc++11 --build=missing
+fi
+
+if [[ $STD -eq 17 ]] ; then
+  NG="-DNG=ON"
+else
+  NG="-DNG=OFF"
 fi
 
 if [[ "$maj" == "Raspbian" ]] ; then
-  CXXFLAGS="-Wall -Wextra" $cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_BENCH=On -DWITH_CREATE_FILES=OFF $* ..
+  CXXFLAGS="-Wall -Wextra" $cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_BENCH=On -DWITH_CREATE_FILES=OFF $NG $* ..
 elif [[ "$maj" == "Debian" ]] ; then
-  CXXFLAGS="-Wall -Wextra" $cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_USER_BROKER=centreon-broker -DWITH_USER_ENGINE=centreon-engine -DWITH_GROUP_BROKER=centreon-broker -DWITH_GROUP_ENGINE=centreon-engine -DWITH_TESTING=On -DWITH_PREFIX_LIB_CLIB=/usr/lib64/ -DWITH_MODULE_SIMU=On -DWITH_BENCH=On -DWITH_CREATE_FILES=OFF $* ..
+  CXXFLAGS="-Wall -Wextra" $cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_USER_BROKER=centreon-broker -DWITH_USER_ENGINE=centreon-engine -DWITH_GROUP_BROKER=centreon-broker -DWITH_GROUP_ENGINE=centreon-engine -DWITH_TESTING=On -DWITH_PREFIX_LIB_CLIB=/usr/lib64/ -DWITH_MODULE_SIMU=On -DWITH_BENCH=On -DWITH_CREATE_FILES=OFF $NG $* ..
 else
-  CXXFLAGS="-Wall -Wextra" $cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_USER_BROKER=centreon-broker -DWITH_USER_ENGINE=centreon-engine -DWITH_GROUP_BROKER=centreon-broker -DWITH_GROUP_ENGINE=centreon-engine -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_BENCH=On -DWITH_CREATE_FILES=OFF -DWITH_CONF=OFF $* ..
+  CXXFLAGS="-Wall -Wextra" $cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_USER_BROKER=centreon-broker -DWITH_USER_ENGINE=centreon-engine -DWITH_GROUP_BROKER=centreon-broker -DWITH_GROUP_ENGINE=centreon-engine -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_BENCH=On -DWITH_CREATE_FILES=OFF -DWITH_CONF=OFF $NG $* ..
 fi

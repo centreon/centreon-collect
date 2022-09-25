@@ -54,7 +54,9 @@ class state {
   info const& informations() const throw();
   list_service& services() throw();
   list_service const& services() const throw();
-  list_anomalydetection& anomalydetection() { return _anomalydetection; }
+  list_anomalydetection& anomalydetection() noexcept {
+    return _anomalydetection;
+  }
   list_anomalydetection const& anomalydetection() const {
     return _anomalydetection;
   }
