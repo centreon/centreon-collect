@@ -35,7 +35,11 @@
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/diagnostic.hh"
 
+#include "absl/strings/numbers.h"
+#include "com/centreon/exceptions/msg_fmt.hh"
+
 using namespace com::centreon::broker;
+using namespace com::centreon::exceptions;
 
 // Main config file.
 static std::vector<std::string> gl_mainconfigfiles;
@@ -44,7 +48,6 @@ static std::atomic_bool gl_term{false};
 
 static struct option long_options[] = {{"pool_size", required_argument, 0, 's'},
                                        {"check", no_argument, 0, 'c'},
-                                       {"debug", no_argument, 0, 'd'},
                                        {"diagnose", no_argument, 0, 'D'},
                                        {"version", no_argument, 0, 'v'},
                                        {"help", no_argument, 0, 'h'},
@@ -132,6 +135,7 @@ int main(int argc, char* argv[]) {
   int opt, option_index = 0, n_thread = 0;
   std::string broker_name{"unknown"};
   uint16_t default_port{51000};
+  std::string default_listen_address{"localhost"};
 
   // Set configuration update handler.
   if (signal(SIGHUP, hup_handler) == SIG_ERR) {
@@ -155,33 +159,35 @@ int main(int argc, char* argv[]) {
   try {
     // Check the command line.
     bool check(false);
-    bool debug(false);
     bool diagnose(false);
     bool help(false);
     bool version(false);
 
-    opt = getopt_long(argc, argv, "t:cdDvh", long_options, &option_index);
-    switch (opt) {
-      case 't':
-        n_thread = atoi(optarg);
-        break;
-      case 'c':
-        check = true;
-        break;
-      case 'd':
-        debug = true;
-        break;
-      case 'D':
-        diagnose = true;
-        break;
-      case 'h':
-        help = true;
-        break;
-      case 'v':
-        version = true;
-        break;
-      default:
-        break;
+    while ((opt = getopt_long(argc, argv, "s:cDvh", long_options,
+                              &option_index)) != -1) {
+      switch (opt) {
+        case 's':
+          if (!absl::SimpleAtoi(optarg, &n_thread)) {
+            throw msg_fmt("The option -s expects a positive integer");
+          }
+          break;
+        case 'c':
+          check = true;
+          break;
+        case 'D':
+          diagnose = true;
+          break;
+        case 'h':
+          help = true;
+          break;
+        case 'v':
+          version = true;
+          break;
+        default:
+          throw msg_fmt(
+              "Enter allowed options : [-s <poolsize>] [-c] [-D] [-h] [-v]");
+          break;
+      }
     }
 
     if (optind < argc)
@@ -199,14 +205,13 @@ int main(int argc, char* argv[]) {
       diag.generate(gl_mainconfigfiles);
     } else if (help) {
       log_v2::core()->info(
-          "USAGE: {} [-t] [-c] [-d] [-D] [-h] [-v] [<configfile>]", argv[0]);
-
-      log_v2::core()->info("  -t  Set x threads.");
-      log_v2::core()->info("  -c  Check configuration file.");
-      log_v2::core()->info("  -d  Enable debug mode.");
-      log_v2::core()->info("  -D  Generate a diagnostic file.");
-      log_v2::core()->info("  -h  Print this help.");
-      log_v2::core()->info("  -v  Print Centreon Broker version.");
+          "USAGE: {} [-s <poolsize>] [-c] [-D] [-h] [-v] [<configfile>]",
+          argv[0]);
+      log_v2::core()->info("  '-s<poolsize>'  Set poolsize threads.");
+      log_v2::core()->info("  '-c'  Check configuration file.");
+      log_v2::core()->info("  '-D'  Generate a diagnostic file.");
+      log_v2::core()->info("  '-h'  Print this help.");
+      log_v2::core()->info("  '-v'  Print Centreon Broker version.");
       log_v2::core()->info("Centreon Broker {}", CENTREON_BROKER_VERSION);
       log_v2::core()->info("Copyright 2009-2021 Centreon");
       log_v2::core()->info(
@@ -217,7 +222,8 @@ int main(int argc, char* argv[]) {
       retval = 0;
     } else if (gl_mainconfigfiles.empty()) {
       log_v2::core()->error(
-          "USAGE: {} [-c] [-d] [-D] [-h] [-v] [<configfile>]\n\n", argv[0]);
+          "USAGE: {} [-s <poolsize>] [-c] [-D] [-h] [-v] [<configfile>]\n\n",
+          argv[0]);
       return 1;
     } else {
       log_v2::core()->info("Centreon Broker {}", CENTREON_BROKER_VERSION);
@@ -248,12 +254,15 @@ int main(int argc, char* argv[]) {
         gl_state = conf;
       }
 
+      if (!gl_state.listen_address().empty())
+        default_listen_address = gl_state.listen_address();
+
       if (gl_state.rpc_port() == 0)
         default_port += gl_state.broker_id();
       else
         default_port = gl_state.rpc_port();
       std::unique_ptr<brokerrpc, std::function<void(brokerrpc*)> > rpc(
-          new brokerrpc("0.0.0.0", default_port, broker_name),
+          new brokerrpc(default_listen_address, default_port, broker_name),
           [](brokerrpc* rpc) {
             rpc->shutdown();
             delete rpc;

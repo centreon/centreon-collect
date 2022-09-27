@@ -1,4 +1,5 @@
 *** Settings ***
+Resource	./db_variables.robot
 Library	Process
 Library	OperatingSystem
 Library	Common.py
@@ -8,6 +9,10 @@ Clean Before Suite
 	Stop Processes
 	Clear Engine Logs
 	Clear Broker Logs
+
+Clean Grpc Before Suite
+	set grpc port  0
+	Clean Before Suite
 
 Clean After Suite
 	# Remove Files	${ENGINE_LOG}${/}centengine.log ${ENGINE_LOG}${/}centengine.debug
@@ -26,6 +31,9 @@ Clear Broker Logs
 Start Broker
 	Start Process	/usr/sbin/cbd	/etc/centreon-broker/central-broker.json	alias=b1
 	Start Process	/usr/sbin/cbd	/etc/centreon-broker/central-rrd.json	alias=b2
+#	${log_pid1}=  Get Process Id	b1
+#	${log_pid2}=  Get Process Id	b2
+#	Log To Console  \npidcentral=${log_pid1} pidrrd=${log_pid2}\n
 
 Reload Broker
 	Send Signal To Process	SIGHUP	b1
@@ -60,6 +68,8 @@ Start Engine
 	 Create Directory	${log}
 	 Create Directory	${lib}
 	 Start Process	/usr/sbin/centengine	${conf}	alias=${alias}
+#	 ${log_pid1}=  Get Process Id	${alias}
+#	 Log To Console  \npidengine${idx}=${log_pid1}\n
 	END
 
 Start Custom Engine
@@ -123,9 +133,3 @@ ${logEngine2}	${ENGINE_LOG}/config2/centengine.log
 ${dbgEngine0}	${ENGINE_LOG}/config0/centengine.debug
 ${dbgEngine1}	${ENGINE_LOG}/config1/centengine.debug
 ${dbgEngine2}	${ENGINE_LOG}/config2/centengine.debug
-
-${DBName}	centreon_storage
-${DBHost}	localhost
-${DBUser}	centreon
-${DBPass}	centreon
-${DBPort}	3306

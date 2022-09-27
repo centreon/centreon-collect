@@ -1,5 +1,5 @@
 ##
-## Copyright 2009-2021 Centreon
+## Copyright 2009-2022 Centreon
 ##
 ## Licensed under the Apache License, Version 2.0 (the "License");
 ## you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@ endif ()
 # Version.
 set(COLLECT_MAJOR 21)
 set(COLLECT_MINOR 10)
-set(COLLECT_PATCH 2)
+set(COLLECT_PATCH 3)
 set(COLLECT_VERSION "${COLLECT_MAJOR}.${COLLECT_MINOR}.${COLLECT_PATCH}")
 add_definitions(-DCENTREON_CONNECTOR_VERSION=\"${COLLECT_VERSION}\")
 # add_definitions(-DCENTREON_BROKER_VERSION=\"${COLLECT_VERSION}\")

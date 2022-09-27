@@ -122,6 +122,7 @@ void rebuilder::_run(asio::error_code ec) {
                 info.host_id, info.service_id);
           std::promise<database::mysql_result> promise;
           std::future<database::mysql_result> future(promise.get_future());
+          log_v2::sql()->trace("rebuilder: fetch check interval <<{}>>", query);
           ms.run_query_and_get_result(query, std::move(promise));
           database::mysql_result res(future.get());
           if (ms.fetch_row(res))
@@ -147,6 +148,8 @@ void rebuilder::_run(asio::error_code ec) {
 
             std::promise<database::mysql_result> promise;
             std::future<database::mysql_result> future(promise.get_future());
+            log_v2::sql()->trace("rebuilder: fetch metrics to rebuild <<{}>>",
+                                 query);
             ms.run_query_and_get_result(query, std::move(promise));
             try {
               database::mysql_result res(future.get());
@@ -408,4 +411,14 @@ void rebuilder::_set_index_rebuild(mysql& ms, uint64_t index_id, short state) {
       fmt::format("UPDATE index_data SET must_be_rebuild='{}' WHERE id={}",
                   state, index_id));
   ms.run_query(query, database::mysql_error::update_index_state, false);
+}
+
+/**
+ * @brief Force a check of index to rebuild. This method is called on cbd
+ * reload.
+ */
+void rebuilder::force_check_rebuild_index() {
+  log_v2::sql()->info("rebuilder: force check of rebuild indexes");
+  _timer.expires_after(std::chrono::seconds(1));
+  _timer.async_wait(std::bind(&rebuilder::_run, this, std::placeholders::_1));
 }

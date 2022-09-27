@@ -22,6 +22,7 @@ fi
 DISTRIB=$( lsb_release -rs | cut -f1 -d. )
 if [[ "$DISTRIB" = "7" ]] ; then
     source /opt/rh/devtoolset-9/enable
+    source /opt/rh/rh-python38/enable
 fi
 
 # Prepare compilation

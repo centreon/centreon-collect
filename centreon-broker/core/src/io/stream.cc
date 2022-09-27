@@ -106,3 +106,18 @@ bool stream::validate(std::shared_ptr<io::data> const& d,
   }
   return true;
 }
+
+/**
+ * @brief if it has a substream, it waits until the substream has sent all data
+ * on the wire
+ *
+ * @param ms_timeout
+ * @return true all data sent
+ * @return false timeout expires
+ */
+bool stream::wait_for_all_events_written(unsigned ms_timeout) {
+  if (_substream) {
+    return _substream->wait_for_all_events_written(ms_timeout);
+  }
+  return true;
+}

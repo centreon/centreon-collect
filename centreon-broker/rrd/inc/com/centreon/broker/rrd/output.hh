@@ -41,11 +41,9 @@ namespace rrd {
  */
 template <typename T>
 class output : public io::stream {
- public:
-  typedef std::unordered_map<std::string, std::list<std::shared_ptr<io::data>>>
-      rebuild_cache;
+  using rebuild_cache =
+      std::unordered_map<std::string, std::list<std::shared_ptr<io::data>>>;
 
- private:
   bool _ignore_update_errors;
   std::string _metrics_path;
   rebuild_cache _metrics_rebuild;

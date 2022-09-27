@@ -1,10 +1,20 @@
 #!/usr/bin/python3
 from robot.api import logger
-import sys
 import pymysql.cursors
+from robot.libraries.BuiltIn import BuiltIn
+
 
 CONF_DIR = "/etc/centreon-engine"
 ENGINE_HOME = "/var/lib/centreon-engine"
+
+BuiltIn().import_resource('db_variables.robot')
+DB_NAME_STORAGE = BuiltIn().get_variable_value("${DBName}")
+DB_NAME_CONF = BuiltIn().get_variable_value("${DBNameConf}")
+DB_USER = BuiltIn().get_variable_value("${DBUser}")
+DB_PASS = BuiltIn().get_variable_value("${DBPass}")
+DB_HOST = BuiltIn().get_variable_value("${DBHost}")
+DB_PORT = BuiltIn().get_variable_value("${DBPort}")
+
 
 class DbConf:
     def __init__(self, engine):
@@ -26,10 +36,10 @@ class DbConf:
 
     def clear_db(self):
         # Connect to the database
-        connection = pymysql.connect(host='localhost',
-                                     user='centreon',
-                                     password='centreon',
-                                     database='centreon',
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_CONF,
                                      charset='utf8mb4',
                                      cursorclass=pymysql.cursors.DictCursor)
 
@@ -56,10 +66,10 @@ class DbConf:
             connection.commit()
 
     def init_bam(self):
-        connection = pymysql.connect(host='localhost',
-                                     user='centreon',
-                                     password='centreon',
-                                     database='centreon',
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_CONF,
                                      charset='utf8mb4',
                                      cursorclass=pymysql.cursors.DictCursor)
 
@@ -73,10 +83,10 @@ class DbConf:
         self.engine.centengine_conf_add_bam()
 
     def create_conf_db(self):
-        connection = pymysql.connect(host='localhost',
-                                     user='centreon',
-                                     password='centreon',
-                                     database='centreon',
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_CONF,
                                      charset='utf8mb4',
                                      cursorclass=pymysql.cursors.DictCursor)
 
@@ -160,11 +170,11 @@ class DbConf:
                         hid += 1
                     connection.commit()
 
-    def create_ba_with_services(self, name:str, typ:str, svc:[(str,str)]):
-        connection = pymysql.connect(host='localhost',
-                                     user='centreon',
-                                     password='centreon',
-                                     database='centreon',
+    def create_ba_with_services(self, name:str, typ:str, svc:[(str,str)], dt_policy):
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_CONF,
                                      charset='utf8mb4',
                                      cursorclass=pymysql.cursors.DictCursor)
 
@@ -174,7 +184,14 @@ class DbConf:
             elif typ == 'worst':
                 t = 2
             with connection.cursor() as cursor:
-                cursor.execute("INSERT INTO mod_bam (name, state_source, activate,id_reporting_period,level_w,level_c,id_notification_period,notifications_enabled,event_handler_enabled, inherit_kpi_downtimes) VALUES ('{}',{},'1',1, 80, 70, 1,'0', '0','1')".format(name, t))
+                if dt_policy == "inherit":
+                    inherit_dt = 1
+                elif dt_policy == "ignore":
+                    inherit_dt = 2
+                else:
+                    inherit_dt = 0
+
+                cursor.execute("INSERT INTO mod_bam (name, state_source, activate,id_reporting_period,level_w,level_c,id_notification_period,notifications_enabled,event_handler_enabled, inherit_kpi_downtimes) VALUES ('{}',{},'1',1, 80, 70, 1,'0', '0','{}')".format(name, t, inherit_dt))
                 id_ba = cursor.lastrowid
                 sid = self.engine.create_bam_service("ba_{}".format(id_ba), name, "_Module_BAM_1", "centreon-bam-check!{}".format(id_ba))
                 cursor.execute("INSERT INTO service (service_id, service_description, display_name, service_active_checks_enabled, service_passive_checks_enabled,service_register) VALUES ({0}, \"ba_{1}\",\"{2}\",'2','2','2')".format(sid, id_ba, name))
