@@ -243,10 +243,10 @@ Start Stop Service
 	Start Process	/usr/sbin/cbd	${EtcRoot}/centreon-broker/central-broker.json	alias=b1
 	Start Process	/usr/sbin/cbd	${EtcRoot}/centreon-broker/central-rrd.json	alias=b2
 	Sleep	${interval}
-	${pid1}=	Get Process Id	b1
-	${pid2}=	Get Process Id	b2
-	${result}=	check connection	5670	${pid1}	${pid2}
-	Should Be True	${result}	msg=The connection between cbd central and rrd is not established.
+        ${pid1}=	Get Process Id	b1
+        ${pid2}=	Get Process Id	b2
+        ${result}=	check connection	5670	${pid1}	${pid2}
+        Should Be True	${result}	msg=The connection between cbd central and rrd is not established.
 
 	Send Signal To Process	SIGTERM	b1
 	${result}=  Wait Or Dump And Kill Process  b1  60s
