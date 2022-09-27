@@ -97,7 +97,8 @@ constexpr unsigned second_delay_before_delete = 60u;
 void channel::to_trash() {
   this->shutdown();
   _thrown = true;
-  SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "to_trash this={:p}", static_cast<void*>(this));
+  SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "to_trash this={:p}",
+                      static_cast<void*>(this));
   _trash->to_trash(shared_from_this(),
                    time(nullptr) + second_delay_before_delete);
 }
@@ -236,9 +237,9 @@ int channel::flush() {
  * @return false if timeout expires
  */
 bool channel::wait_for_all_events_written(unsigned ms_timeout) {
+  unique_lock l(_protect);
   log_v2::grpc()->trace("wait_for_all_events_written _write_queue.size()={}",
                         _write_queue.size());
-  unique_lock l(_protect);
   return _write_cond.wait_for(l, std::chrono::milliseconds(ms_timeout),
                               [this]() { return _write_queue.empty(); });
 }

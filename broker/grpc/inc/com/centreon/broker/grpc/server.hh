@@ -70,7 +70,8 @@ class accepted_service
 class server : public centreon_stream::centreon_bbdo::Service,
                public std::enable_shared_from_this<server> {
   std::unique_ptr<::grpc::Server> _server;
-  std::queue<accepted_service::pointer> _accepted;
+  using accepted_queue = std::queue<accepted_service::pointer>;
+  accepted_queue _accepted;
   grpc_config::pointer _conf;
   shared_bool _server_finished;
   mutable std::mutex _protect;

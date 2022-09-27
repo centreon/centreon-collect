@@ -63,7 +63,7 @@ config = {
                 "tls": "error",
                 "lua": "error",
                 "bam": "error",
-                "grpc": "off"
+                "grpc": "debug"
             }}
         }},
         "input": [
@@ -473,6 +473,7 @@ def change_broker_tcp_output_to_grpc(name: str):
             if v["type"] == "ipv4":
                 v["type"] = "grpc"
     _apply_conf(name, output_to_grpc)
+
 
 def add_path_to_rrd_output(name: str, path: str):
     def rrd_output(conf):
@@ -1620,6 +1621,7 @@ def check_poller_enabled_in_database(poller_id: int, timeout: int):
                     return True
         time.sleep(5)
     return False
+
 
 def get_broker_log_level(port, name, log, timeout=TIMEOUT):
     limit = time.time() + timeout
