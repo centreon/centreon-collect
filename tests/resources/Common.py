@@ -341,7 +341,7 @@ def set_command_status(cmd, status):
     f.close()
 
 
-def check_service_status_with_timeout(hostname: str, service_desc: str, status: int, timeout: int, state_type:str = "SOFT"):
+def check_service_status_with_timeout(hostname: str, service_desc: str, status: int, timeout: int, state_type: str = "SOFT"):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -354,10 +354,12 @@ def check_service_status_with_timeout(hostname: str, service_desc: str, status: 
 
         with connection:
             with connection.cursor() as cursor:
-                cursor.execute(f"SELECT s.state, s.state_type FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description=\"{service_desc}\" AND h.name=\"{hostname}\"")
+                cursor.execute(
+                    f"SELECT s.state, s.state_type FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description=\"{service_desc}\" AND h.name=\"{hostname}\"")
                 result = cursor.fetchall()
                 if len(result) > 0 and result[0]['state'] is not None and int(result[0]['state']) == int(status):
-                    logger.console(f"status={result[0]['state']} and state_type={result[0]['state_type']}")
+                    logger.console(
+                        f"status={result[0]['state']} and state_type={result[0]['state_type']}")
                     if state_type == 'HARD' and int(result[0]['state_type']) == 1:
                         return True
                     elif state_type != 'HARD':
@@ -504,7 +506,8 @@ def delete_service_downtime(hst: str, svc: str):
 
     with connection:
         with connection.cursor() as cursor:
-            cursor.execute(f"select d.internal_id from downtimes d inner join hosts h on d.host_id=h.host_id inner join services s on d.service_id=s.service_id where d.deletion_time is null and s.scheduled_downtime_depth<>'0' and s.description='{svc}' and h.name='{hst}' LIMIT 1")
+            cursor.execute(
+                f"select d.internal_id from downtimes d inner join hosts h on d.host_id=h.host_id inner join services s on d.service_id=s.service_id where d.deletion_time is null and s.scheduled_downtime_depth<>'0' and s.description='{svc}' and h.name='{hst}' LIMIT 1")
             result = cursor.fetchall()
             did = int(result[0]['internal_id'])
 
@@ -514,7 +517,7 @@ def delete_service_downtime(hst: str, svc: str):
     f.close()
 
 
-def number_of_downtimes_is(nb: int, timeout:int = TIMEOUT):
+def number_of_downtimes_is(nb: int, timeout: int = TIMEOUT):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,

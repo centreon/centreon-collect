@@ -17,7 +17,8 @@ from datetime import datetime
 #
 # @return A boolean True on success
 def files_contain_same_json(file_e: str, file_b: str):
-    new_inst = { "_type": 4294901762, "category": 65535, "element": 2, "broker_id":1, "broker_name":"", "enabled":True, "poller_id":1, "poller_name":"Central"}
+    new_inst = {"_type": 4294901762, "category": 65535, "element": 2, "broker_id": 1,
+                "broker_name": "", "enabled": True, "poller_id": 1, "poller_name": "Central"}
 
     f1 = open(file_e)
     content1 = f1.readlines()
@@ -34,14 +35,16 @@ def files_contain_same_json(file_e: str, file_b: str):
         if m1 is not None:
             c1 = m1.group(1)
         else:
-            logger.console("content at line {} of '{}' is not JSON: {}".format(idx1, file_e, content1[idx1]))
+            logger.console("content at line {} of '{}' is not JSON: {}".format(
+                idx1, file_e, content1[idx1]))
             idx1 += 1
             continue
         m2 = r.match(content2[idx2])
         if m2 is not None:
             c2 = m2.group(1)
         else:
-            logger.console("content at line {} of '{}' is not JSON: {}".format(idx2, file_b, content2[idx2]))
+            logger.console("content at line {} of '{}' is not JSON: {}".format(
+                idx2, file_b, content2[idx2]))
             idx2 += 1
             continue
 
@@ -71,9 +74,11 @@ def files_contain_same_json(file_e: str, file_b: str):
             idx2 += 1
     retval = idx1 == len(content1) or idx2 == len(content2)
     if not retval:
-        logger.console("not at the end of files idx1 = {}/{} or idx2 = {}/{}".format(idx1, len(content1), idx2, len(content2)))
+        logger.console("not at the end of files idx1 = {}/{} or idx2 = {}/{}".format(
+            idx1, len(content1), idx2, len(content2)))
         return False
     return True
+
 
 def files_contain_same_md5_1(file_e: str, file_b: str):
 
@@ -116,6 +121,8 @@ def files_contain_same_md5_1(file_e: str, file_b: str):
 # @param str The second file name
 #
 # @return A boolean True on success
+
+
 def check_multiplicity_when_broker_restarted(file1: str, file2: str):
     f1 = open(file1)
     content1 = f1.readlines()
@@ -147,10 +154,12 @@ def check_multiplicity_when_broker_restarted(file1: str, file2: str):
     if len(res1) != 1 or len(res2) != 1:
         for k in lst1:
             if lst1[k] != 1:
-                logger.console("In lst1: Bad {} {} with type {:x}".format(k, lst1[k], typ1[k]))
+                logger.console(
+                    "In lst1: Bad {} {} with type {:x}".format(k, lst1[k], typ1[k]))
         for k in lst2:
             if lst2[k] != 1:
-                logger.console("In lst2: Bad {} {} with type {:x}".format(k, lst2[k], typ2[k]))
+                logger.console(
+                    "In lst2: Bad {} {} with type {:x}".format(k, lst2[k], typ2[k]))
     return len(res1) == 1 and len(res2) == 1
 
 ##
@@ -161,6 +170,8 @@ def check_multiplicity_when_broker_restarted(file1: str, file2: str):
 # @param str The second file name
 #
 # @return A boolean True on success
+
+
 def check_multiplicity_when_engine_restarted(file1: str, file2: str):
     f1 = open(file1)
     content1 = f1.readlines()
@@ -198,10 +209,12 @@ def check_multiplicity_when_engine_restarted(file1: str, file2: str):
     if len(res1) != 1 or len(res2) != 1:
         for k in lst1:
             if lst1[k] != 1:
-                logger.console("In lst1: Bad {} {} with type {:x}".format(k, lst1[k], typ1[k]))
+                logger.console(
+                    "In lst1: Bad {} {} with type {:x}".format(k, lst1[k], typ1[k]))
         for k in lst2:
             if lst2[k] != 1:
-                logger.console("In lst2: Bad {} {} with type {:x}".format(k, lst2[k], typ2[k]))
+                logger.console(
+                    "In lst2: Bad {} {} with type {:x}".format(k, lst2[k], typ2[k]))
     return len(res1) == 1 and len(res2) == 1
 
 #print(files_contain_same_json("/tmp/lua-engine.log", "/tmp/lua.log"))
