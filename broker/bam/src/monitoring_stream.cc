@@ -417,6 +417,16 @@ void monitoring_stream::_rebuild() {
   }
 }
 
+/**
+ * @brief This internal function is called by the _forced_svc_checks_timer. It
+ * empties the set _forced_svc_checks, fills the set _timer_forced_svc_checks
+ * and sends all its contents to centengine, using a misc::fifo_client object
+ * to avoid getting stuck. If at a moment, it fails to send queries, the
+ * function is rescheduled in 5s.
+ *
+ * @param ec asio::error_code to handle errors due to asio, not the files sent
+ * to centengine. Usually, "operation aborted" when cbd stops.
+ */
 void monitoring_stream::_explicitly_send_forced_svc_checks(
     const asio::error_code& ec) {
   static int count = 0;
