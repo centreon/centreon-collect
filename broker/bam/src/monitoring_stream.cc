@@ -465,7 +465,6 @@ void monitoring_stream::_write_forced_svc_check(
   log_v2::bam()->trace("BAM: monitoring stream _write_forced_svc_check");
   std::lock_guard<std::mutex> lck(_forced_svc_checks_m);
   if (!_stopped) {
-    _forced_svc_checks_count++;
     _forced_svc_checks.emplace(host, description);
     _forced_svc_checks_timer.expires_after(std::chrono::seconds(5));
     _forced_svc_checks_timer.async_wait(

@@ -61,7 +61,6 @@ class monitoring_stream : public io::stream {
    * * the mutex is needed to manage the set.
    * * the set contains the services to force (hostname, service description) */
   asio::steady_timer _forced_svc_checks_timer;
-  uint32_t _forced_svc_checks_count = 0u;
   std::mutex _forced_svc_checks_m;
   std::unordered_set<std::pair<std::string, std::string>,
                      absl::Hash<std::pair<std::string, std::string>>>
