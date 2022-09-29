@@ -1,6 +1,6 @@
 *** Settings ***
 Resource	../resources/resources.robot
-Suite Setup	Clean Before Suite
+Suite Setup	Prepare Suite
 Suite Teardown	Clean After Suite
 Test Setup	Stop Processes
 Test Teardown	Save logs If Failed
@@ -262,3 +262,9 @@ Start Stop Instance
 	Send Signal To Process	SIGTERM	b1
 	${result}=  Wait Or Dump And Kill Process  b1  60s
 	Should Be True	${result.rc} == -15 or ${result.rc} == 0	msg=Broker instance badly stopped
+
+Prepare Suite
+	Clean Before Suite
+	Create Key And Certificate	localhost	${EtcRoot}/centreon-broker/server.key	${EtcRoot}/centreon-broker/server.crt
+	Create Key And Certificate	localhost	${EtcRoot}/centreon-broker/client.key	${EtcRoot}/centreon-broker/client.crt
+	
