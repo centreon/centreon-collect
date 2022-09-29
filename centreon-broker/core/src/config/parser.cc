@@ -440,6 +440,9 @@ void parser::_parse_endpoint(json const& elem,
         module = "70-graphite.so";
       else if (e.type == "influxdb")
         module = "70-influxdb.so";
+      else if (e.type == "file")
+        throw deprecated(
+            "'file' endpoint is deprecated and should not be used anymore");
       else
         throw msg_fmt("config parser: endpoint of invalid type '{}'", e.type);
     }
