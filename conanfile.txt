@@ -4,7 +4,7 @@ asio/1.24.0
 fmt/8.1.1
 spdlog/1.10.0
 nlohmann_json/3.10.5
-openssl/1.1.1o
+openssl/1.1.1q
 grpc/1.46.3
 mariadb-connector-c/3.1.12
 zlib/1.2.12
