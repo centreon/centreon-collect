@@ -37,6 +37,28 @@ namespace bam {
  *
  *  Handle perfdata and insert proper informations in index_data and
  *  metrics table of a centbam DB.
+ *
+ *  This class also sends external commands to centengine, to kinds of commands:
+ *  * **forced service checks** because each BA is represented by a service on
+ *  centengine side and when a BA changes of state, the service has also to be
+ *  updated.
+ *  * **downtimes** because if an inherited downtime is set on a BA, we have to
+ *  apply a "downtime" on its service.
+ *
+ *  Forced checks can be numerous and we see sometimes many forced checks on the
+ *  same service, this is because of the tree structure of BAs. To avoid asking
+ *  centengine too many forced checks, broker stores them in the
+ *  _forced_svc_checks set, keeping them during 5s and each time a new check is
+ *  added to that set, the scheduling is reset to a new duration of 5s. Then
+ *  thanks to the structure of a set we are sure each service will receive a
+ *  forced check only once. As the timer that sends messages is in another
+ *  thread, we have to protect _forced_svc_checks with a mutex
+ *  _forced_svc_checks_m.
+ *  There is also another set named _timer_forced_svc_checks. This one is the
+ *  property of the timer. When it is launched, _forced_svc_checks data are
+ *  transfered to _timer_forced_svc_checks. We keep this set as attribute in
+ *  case of the timer fails to send messages. The function is not blocking and
+ *  will just make a new attempt in 5s.
  */
 class monitoring_stream : public io::stream {
   const std::string _ext_cmd_file;
@@ -53,13 +75,6 @@ class monitoring_stream : public io::stream {
   database_config _storage_db_cfg;
   std::shared_ptr<persistent_cache> _cache;
 
-  /* Each time a forced check is done on a service, we store the service in
-   * the _forced_svc_checks table. And a timer is scheduled to execute the
-   * post in 5s. As services are stored in a set, even if the are added several
-   * times, they will be stored in the set once.
-   * * the timer is used to schedule the post in 5s.
-   * * the mutex is needed to manage the set.
-   * * the set contains the services to force (hostname, service description) */
   asio::steady_timer _forced_svc_checks_timer;
   std::mutex _forced_svc_checks_m;
   std::unordered_set<std::pair<std::string, std::string>,
