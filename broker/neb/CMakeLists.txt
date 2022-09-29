@@ -105,7 +105,9 @@ target_link_libraries(nebbase
   pb_service_lib
   pb_host_lib
   pb_severity_lib
-  pb_tag_lib)
+  pb_tag_lib
+  pb_comment_lib
+  pb_header_lib)
 
 set(NEBBASE_CXXFLAGS "${NEBBASE_CXXFLAGS} -fPIC")
 set_property(TARGET nebbase PROPERTY COMPILE_FLAGS ${NEBBASE_CXXFLAGS})

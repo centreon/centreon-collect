@@ -169,6 +169,9 @@ void broker_module_init(void const* arg) {
 
       e.register_event(make_type(io::neb, neb::de_pb_tag), "Tag",
                        &neb::pb_tag::operations, "tags");
+
+      e.register_event(make_type(io::neb, neb::de_pb_comment), "Comment",
+                       &neb::pb_comment::operations, "comments");
     }
   }
 }

@@ -2926,6 +2926,147 @@ TEST_F(LuaTest, PbTestHostApiV2) {
   RemoveFile("/tmp/event_log");
 }
 
+TEST_F(LuaTest, PbTestCommentApiV1) {
+  config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  auto hst{std::make_shared<neb::pb_comment>()};
+  hst->mut_obj().mutable_header()->set_conf_version(5);
+  hst->mut_obj().set_author("toto");
+  hst->mut_obj().set_data("titi");
+  hst->mut_obj().set_type(com::centreon::broker::Comment_Type_SERVICE);
+  hst->mut_obj().set_entry_time(2);
+  hst->mut_obj().set_entry_type(
+      com::centreon::broker::Comment_EntryType_FLAPPING);
+  hst->mut_obj().set_expire_time(4);
+  hst->mut_obj().set_expires(false);
+  hst->mut_obj().set_host_id(6);
+  hst->mut_obj().set_service_id(7);
+  hst->mut_obj().set_instance_id(8);
+  hst->mut_obj().set_internal_id(9);
+  hst->mut_obj().set_persistent(true);
+  hst->mut_obj().set_source(com::centreon::broker::Comment_Src_EXTERNAL);
+  std::string filename("/tmp/cache_test.lua");
+  RemoveFile("/tmp/event_log");
+  CreateScript(filename,
+               "broker_api_version=1\n\n"
+               "function init(conf)\n"
+               "  broker_log:set_parameters(3, '/tmp/event_log')\n"
+               "end\n\n"
+               "function dump(o)\n"
+               "  if type(o) == 'table' then\n"
+               "    local s = '{ '\n"
+               "    for k,v in pairs(o) do\n"
+               "       if type(k) ~= 'number' then k = '\"'..k..'\"' end\n"
+               "       s = s .. '['..k..'] = ' .. dump(v) .. ','\n"
+               "    end\n"
+               "    return s .. '} '\n"
+               "  else\n"
+               "    return tostring(o)\n"
+               "  end\n"
+               "end\n"
+               "function write(d)\n"
+               "  broker_log:info(0, 'type of d = ' .. type(d))\n"
+               "  broker_log:info(0, 'd = ' .. dump(d))\n"
+               "  for key, value in pairs(d) do broker_log:info(0, key .. \" "
+               "= \" .. tostring(value)) end\n"
+               "  broker_log:info(0, 'conf_version = ' .. "
+               "d['header']['conf_version'])\n"
+               " return true\n"
+               "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  binding->write(hst);
+  std::string lst(ReadFile("/tmp/event_log"));
+  ASSERT_NE(lst.find("type of d = table"), std::string::npos);
+  ASSERT_NE(lst.find("author = toto"), std::string::npos);
+  ASSERT_NE(lst.find("data = titi"), std::string::npos);
+  ASSERT_NE(lst.find("type = 2"), std::string::npos);
+  ASSERT_NE(lst.find("entry_time = 2"), std::string::npos);
+  ASSERT_NE(lst.find("entry_type = 3"), std::string::npos);
+  ASSERT_NE(lst.find("expire_time = 4"), std::string::npos);
+  ASSERT_NE(lst.find("expires = false"), std::string::npos);
+  ASSERT_NE(lst.find("host_id = 6"), std::string::npos);
+  ASSERT_NE(lst.find("service_id = 7"), std::string::npos);
+  ASSERT_NE(lst.find("service_id = 7"), std::string::npos);
+  ASSERT_NE(lst.find("instance_id = 8"), std::string::npos);
+  ASSERT_NE(lst.find("internal_id = 9"), std::string::npos);
+  ASSERT_NE(lst.find("persistent = true"), std::string::npos);
+  ASSERT_NE(lst.find("source = 1"), std::string::npos);
+  ASSERT_NE(lst.find("conf_version = 5"), std::string::npos);
+  RemoveFile(filename);
+  RemoveFile("/tmp/event_log");
+}
+
+TEST_F(LuaTest, PbTestCommentApiV2) {
+  config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  auto hst{std::make_shared<neb::pb_comment>()};
+  hst->mut_obj().mutable_header()->set_conf_version(5);
+  hst->mut_obj().set_author("toto");
+  hst->mut_obj().set_data("titi");
+  hst->mut_obj().set_type(com::centreon::broker::Comment_Type_HOST);
+  hst->mut_obj().set_entry_time(2);
+  hst->mut_obj().set_entry_type(
+      com::centreon::broker::Comment_EntryType_DOWNTIME);
+  hst->mut_obj().set_expire_time(4);
+  hst->mut_obj().set_expires(false);
+  hst->mut_obj().set_host_id(6);
+  hst->mut_obj().set_service_id(7);
+  hst->mut_obj().set_instance_id(8);
+  hst->mut_obj().set_internal_id(9);
+  hst->mut_obj().set_persistent(true);
+  hst->mut_obj().set_source(com::centreon::broker::Comment_Src_INTERNAL);
+  std::string filename("/tmp/cache_test.lua");
+  RemoveFile("/tmp/event_log");
+
+  CreateScript(
+      filename,
+      "broker_api_version=2\n\n"
+      "function init(conf)\n"
+      "  broker_log:set_parameters(3, '/tmp/event_log')\n"
+      "end\n\n"
+      "function write(d)\n"
+      "  broker_log:info(0, 'type of d = ' .. type(d))\n"
+      "  broker_log:info(0, 'author = ' .. d.author)\n"
+      "  broker_log:info(0, 'data = ' .. d.data)\n"
+      "  broker_log:info(0, 'type = ' .. d.type)\n"
+      "  broker_log:info(0, 'entry_time = ' .. d.entry_time)\n"
+      "  broker_log:info(0, 'entry_type = ' .. d.entry_type)\n"
+      "  broker_log:info(0, 'expire_time = ' .. d.expire_time)\n"
+      "  broker_log:info(0, 'expires = ' .. tostring(d.expires))\n"
+      "  broker_log:info(0, 'host_id = ' .. d.host_id)\n"
+      "  broker_log:info(0, 'service_id = ' .. d.service_id)\n"
+      "  broker_log:info(0, 'instance_id = ' .. d.instance_id)\n"
+      "  broker_log:info(0, 'internal_id = ' .. d.internal_id)\n"
+      "  broker_log:info(0, 'persistent = ' .. tostring(d.persistent))\n"
+      "  broker_log:info(0, 'source = ' .. d.source)\n"
+      "  broker_log:info(0, 'conf_version = ' .. d.header.conf_version)\n"
+      "  return true\n"
+      "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  binding->write(hst);
+  std::string lst(ReadFile("/tmp/event_log"));
+  ASSERT_NE(lst.find("type of d = userdata"), std::string::npos);
+  ASSERT_NE(lst.find("author = toto"), std::string::npos);
+  ASSERT_NE(lst.find("data = titi"), std::string::npos);
+  ASSERT_NE(lst.find("type = 1"), std::string::npos);
+  ASSERT_NE(lst.find("entry_time = 2"), std::string::npos);
+  ASSERT_NE(lst.find("entry_type = 2"), std::string::npos);
+  ASSERT_NE(lst.find("expire_time = 4"), std::string::npos);
+  ASSERT_NE(lst.find("expires = false"), std::string::npos);
+  ASSERT_NE(lst.find("host_id = 6"), std::string::npos);
+  ASSERT_NE(lst.find("service_id = 7"), std::string::npos);
+  ASSERT_NE(lst.find("service_id = 7"), std::string::npos);
+  ASSERT_NE(lst.find("instance_id = 8"), std::string::npos);
+  ASSERT_NE(lst.find("internal_id = 9"), std::string::npos);
+  ASSERT_NE(lst.find("persistent = true"), std::string::npos);
+  ASSERT_NE(lst.find("source = 0"), std::string::npos);
+  ASSERT_NE(lst.find("conf_version = 5"), std::string::npos);
+  RemoveFile(filename);
+  RemoveFile("/tmp/event_log");
+}
+
 TEST_F(LuaTest, TestSvcApiV2) {
   config::applier::modules modules;
   modules.load_file("./lib/10-neb.so");

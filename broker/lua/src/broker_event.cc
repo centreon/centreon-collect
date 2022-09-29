@@ -98,6 +98,9 @@ static void _message_to_table(lua_State* L,
             _message_to_table(L, &refl->GetRepeatedMessage(*p, f, i));
             lua_rawseti(L, -2, i + 1);
           }
+        } else {
+          lua_newtable(L);
+          _message_to_table(L, &refl->GetMessage(*p, f));
         }
         break;
       default:
@@ -724,6 +727,9 @@ static int l_broker_event_index(lua_State* L) {
                 _message_to_table(L, &refl->GetRepeatedMessage(*p, f, i));
                 lua_rawseti(L, -2, i + 1);
               }
+            } else {
+              lua_newtable(L);
+              _message_to_table(L, &refl->GetMessage(*p, f));
             }
             break;
           default:

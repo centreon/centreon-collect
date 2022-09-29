@@ -87,6 +87,8 @@ class protobuf : public protobuf_base {
   T _obj;
 
  public:
+  using pb_type = T;
+
   /**
    * @brief Default constructor
    */

@@ -339,15 +339,15 @@ void broker_command_data(int type __attribute__((unused)),
  *  @param[in] comment_id      Comment ID.
  */
 void broker_comment_data(int type,
-                         int comment_type,
-                         int entry_type,
+                         com::centreon::engine::comment::type comment_type,
+                         com::centreon::engine::comment::e_type entry_type,
                          uint64_t host_id,
                          uint64_t service_id,
                          time_t entry_time,
                          char const* author_name,
                          char const* comment_data,
                          int persistent,
-                         int source,
+                         com::centreon::engine::comment::src source,
                          int expires,
                          time_t expire_time,
                          unsigned long comment_id) {

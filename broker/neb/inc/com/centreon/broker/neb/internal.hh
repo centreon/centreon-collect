@@ -20,6 +20,7 @@
 #define CCB_NEB_INTERNAL_HH
 
 #include <absl/hash/hash.h>
+#include "bbdo/comment.pb.h"
 #include "bbdo/events.hh"
 #include "bbdo/host.pb.h"
 #include "bbdo/service.pb.h"
@@ -70,6 +71,8 @@ using pb_severity =
     io::protobuf<Severity, make_type(io::neb, neb::de_pb_severity)>;
 using pb_tag = io::protobuf<Tag, make_type(io::neb, neb::de_pb_tag)>;
 
+using pb_comment =
+    io::protobuf<Comment, make_type(io::neb, neb::de_pb_comment)>;
 }  // namespace neb
 
 CCB_END()
