@@ -48,7 +48,7 @@ config = {
         "log": {{
             "log_pid": "yes",
             "log_source": "no",
-            "flush_period": 1,
+            "flush_period": 0,
             "directory": "{7}/log/centreon-broker/",
             "filename": "",
             "max_size": 0,
@@ -157,7 +157,7 @@ config = {
         "cache_directory": "{7}/lib/centreon-engine",
         "log": {{
             "log_pid": "yes",
-            "flush_period": 1,
+            "flush_period": 0,
             "directory": "{7}/log/centreon-broker/",
             "filename": "",
             "max_size": 0,
@@ -219,7 +219,7 @@ config = {
         "log": {{
             "log_pid": "yes",
             "log_source": "no",
-            "flush_period": 1,
+            "flush_period": 0,
             "directory": "{7}/log/centreon-broker/",
             "filename": "",
             "max_size": 0,

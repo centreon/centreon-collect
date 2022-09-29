@@ -7,11 +7,16 @@ from xml.etree import ElementTree as ET
 
 import matplotlib.pyplot as plt
 
-parser = argparse.ArgumentParser(prog='summary.py', description='Draw a summary on the tests historical.')
-parser.add_argument('--fail', '-f', action='store_true', help='Add a summary on tests that failed.')
-parser.add_argument('--slow', '-s', action='store_true', help='Add a summary on slow tests.')
-parser.add_argument('--count', '-c', action='store_true', help='Display some stack bars with successes and failures.')
-parser.add_argument('--top', '-t', type=int, default=10, help='Comes with --fail option. Limits the display to the top N.')
+parser = argparse.ArgumentParser(
+    prog='summary.py', description='Draw a summary on the tests historical.')
+parser.add_argument('--fail', '-f', action='store_true',
+                    help='Add a summary on tests that failed.')
+parser.add_argument('--slow', '-s', action='store_true',
+                    help='Add a summary on slow tests.')
+parser.add_argument('--count', '-c', action='store_true',
+                    help='Display some stack bars with successes and failures.')
+parser.add_argument('--top', '-t', type=int, default=10,
+                    help='Comes with --fail option. Limits the display to the top N.')
 args = parser.parse_args()
 
 content = os.listdir('.')
@@ -38,11 +43,14 @@ for f in content:
             total_duration = 0
             for p in root.findall('.//test'):
                 for s in p.findall('./status'):
-                    starttime = datetime.datetime.strptime(s.attrib['starttime'], '%Y%m%d %H:%M:%S.%f')
-                    endtime = datetime.datetime.strptime(s.attrib['endtime'], '%Y%m%d %H:%M:%S.%f')
+                    starttime = datetime.datetime.strptime(
+                        s.attrib['starttime'], '%Y%m%d %H:%M:%S.%f')
+                    endtime = datetime.datetime.strptime(
+                        s.attrib['endtime'], '%Y%m%d %H:%M:%S.%f')
                     duration = endtime - starttime
                     total_duration += duration.total_seconds()
-                    durations.append((duration, p.attrib['name'], s.attrib['status']))
+                    durations.append(
+                        (duration, p.attrib['name'], s.attrib['status']))
                     if s.attrib['status'] == 'FAIL':
                         fail += 1
                         if p.attrib['name'] not in fail_dict:

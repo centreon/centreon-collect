@@ -68,7 +68,7 @@ class pool {
   const size_t _pool_size;
 
   asio::io_context _io_context;
-  std::unique_ptr<asio::io_context::work> _worker;
+  asio::executor_work_guard<asio::io_context::executor_type> _worker;
   std::vector<std::thread> _pool;
   bool _closed;
   mutable std::mutex _closed_m;

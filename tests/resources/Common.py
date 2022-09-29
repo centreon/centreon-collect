@@ -341,7 +341,7 @@ def set_command_status(cmd, status):
     f.close()
 
 
-def check_service_status_with_timeout(hostname: str, service_desc: str, status: int, timeout: int):
+def check_service_status_with_timeout(hostname: str, service_desc: str, status: int, timeout: int, state_type: str = "SOFT"):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -354,12 +354,17 @@ def check_service_status_with_timeout(hostname: str, service_desc: str, status: 
 
         with connection:
             with connection.cursor() as cursor:
-                cursor.execute("SELECT s.state FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description=\"{}\" AND h.name=\"{}\"".format(
-                    service_desc, hostname))
+                cursor.execute(
+                    f"SELECT s.state, s.state_type FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description=\"{service_desc}\" AND h.name=\"{hostname}\"")
                 result = cursor.fetchall()
                 if len(result) > 0 and result[0]['state'] is not None and int(result[0]['state']) == int(status):
-                    return True
-        time.sleep(5)
+                    logger.console(
+                        f"status={result[0]['state']} and state_type={result[0]['state_type']}")
+                    if state_type == 'HARD' and int(result[0]['state_type']) == 1:
+                        return True
+                    elif state_type != 'HARD':
+                        return True
+        time.sleep(1)
     return False
 
 
@@ -463,7 +468,7 @@ def check_ba_status_with_timeout(ba_name: str, status: int, timeout: int):
                 cursor.execute(
                     "SELECT current_status FROM mod_bam WHERE name='{}'".format(ba_name))
                 result = cursor.fetchall()
-                if result[0]['current_status'] is not None and int(result[0]['current_status']) == status:
+                if result[0]['current_status'] is not None and int(result[0]['current_status']) == int(status):
                     return True
         time.sleep(5)
     return False
@@ -501,30 +506,37 @@ def delete_service_downtime(hst: str, svc: str):
 
     with connection:
         with connection.cursor() as cursor:
-            cursor.execute("select d.internal_id from downtimes d inner join hosts h on d.host_id=h.host_id inner join services s on d.service_id=s.service_id where d.deletion_time is null and s.scheduled_downtime_depth<>'0' and s.description='{}' and h.name='{}' LIMIT 1".format(svc, hst))
+            cursor.execute(
+                f"select d.internal_id from downtimes d inner join hosts h on d.host_id=h.host_id inner join services s on d.service_id=s.service_id where d.deletion_time is null and s.scheduled_downtime_depth<>'0' and s.description='{svc}' and h.name='{hst}' LIMIT 1")
             result = cursor.fetchall()
             did = int(result[0]['internal_id'])
 
-    cmd = "[{}] DEL_SVC_DOWNTIME;{}".format(now, did)
+    cmd = f"[{now}] DEL_SVC_DOWNTIME;{did}"
     f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
     f.write(cmd)
     f.close()
 
 
-def number_of_downtimes_is(nb: int):
-    connection = pymysql.connect(host=DB_HOST,
-                                 user=DB_USER,
-                                 password=DB_PASS,
-                                 database=DB_NAME_STORAGE,
-                                 charset='utf8mb4',
-                                 cursorclass=pymysql.cursors.DictCursor)
+def number_of_downtimes_is(nb: int, timeout: int = TIMEOUT):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
 
-    with connection:
-        with connection.cursor() as cursor:
-            cursor.execute(
-                "SELECT count(*) from services WHERE scheduled_downtime_depth='1'")
-            result = cursor.fetchall()
-            return int(result[0]['count(*)']) == int(nb)
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT count(*) from services WHERE enabled='1' AND scheduled_downtime_depth='1'")
+                result = cursor.fetchall()
+                logger.console(f"count(*) = {result[0]['count(*)']}")
+                if int(result[0]['count(*)']) == int(nb):
+                    return True
+        time.sleep(1)
+    return False
 
 
 def clear_db(table: str):
@@ -703,7 +715,7 @@ def check_number_of_downtimes(expected: int, start, timeout: int):
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    "SELECT count(*) FROM downtimes WHERE start_time >= {} AND deletion_time IS NULL".format(d))
+                    "SELECT count(*) FROM downtimes WHERE enabled='1' AND start_time >= {} AND deletion_time IS NULL".format(d))
                 result = cursor.fetchall()
                 if len(result) > 0:
                     logger.console(

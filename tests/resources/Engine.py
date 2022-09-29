@@ -1170,7 +1170,7 @@ def delete_host_downtimes(poller: int, hst: str):
     f.close()
 
 
-def schedule_forced_svc_check(host: str, svc: str, pipe: str = VAR_ROOT + "/lib/centreon-engine/rw/centengine.cmd"):
+def schedule_forced_svc_check(host: str, svc: str, pipe: str = VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd"):
     now = int(time.time())
     f = open(pipe, "w")
     cmd = "[{2}] SCHEDULE_FORCED_SVC_CHECK;{0};{1};{2}\n".format(
@@ -1180,7 +1180,7 @@ def schedule_forced_svc_check(host: str, svc: str, pipe: str = VAR_ROOT + "/lib/
     time.sleep(0.05)
 
 
-def schedule_forced_host_check(host: str, pipe: str = VAR_ROOT + "/lib/centreon-engine/rw/centengine.cmd"):
+def schedule_forced_host_check(host: str, pipe: str = VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd"):
     now = int(time.time())
     f = open(pipe, "w")
     cmd = "[{1}] SCHEDULE_FORCED_HOST_CHECK;{0};{1}\n".format(host, now)
@@ -1433,10 +1433,9 @@ def external_command(func):
 
 def process_service_check_result(hst: str, svc: str, state: int, output: str, config='config0'):
     now = int(time.time())
-    cmd = "[{}] PROCESS_SERVICE_CHECK_RESULT;{};{};{};{}\n".format(
-        now, hst, svc, state, output)
+    cmd = f"[{now}] PROCESS_SERVICE_CHECK_RESULT;{hst};{svc};{state};{output}\n"
     f = open(
-        VAR_ROOT + f"/lib/centreon-engine/{config}/rw/centengine.cmd", "w")
+        f"{VAR_ROOT}/lib/centreon-engine/{config}/rw/centengine.cmd", "w")
     f.write(cmd)
     f.close()
 
