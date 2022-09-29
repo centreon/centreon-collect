@@ -76,14 +76,7 @@ class monitoring_stream : public io::stream {
   database_config _storage_db_cfg;
   std::shared_ptr<persistent_cache> _cache;
 
-  /* Each time a forced check is done on a service, we store the service in
-   * the _forced_svc_checks table. And a timer is scheduled to execute the
-   * post in 5s. As services are stored in a set, even if the are added several
-   * times, they will be stored in the set once.
-   * * the timer is used to schedule the post in 5s.
-   * * the mutex is needed to manage the set.
-   * * the set contains the services to force (hostname, service description) */
-  asio::system_timer _forced_svc_checks_timer;
+  asio::steady_timer _forced_svc_checks_timer;
   std::mutex _forced_svc_checks_m;
   std::unordered_set<std::pair<std::string, std::string>,
                      absl::Hash<std::pair<std::string, std::string>>>
