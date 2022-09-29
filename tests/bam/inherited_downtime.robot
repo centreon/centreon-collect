@@ -239,7 +239,6 @@ BEBAMIGNDT1
 	# The second downtime is deleted
 	Delete Service Downtime	host_16	service_314
 
-	#Schedule Forced Svc Check	host_16	service_314
 	${result}=	Check Service Downtime With Timeout	host_16	service_314	0	60
 	Should Be True	${result}	msg=The service (host_16, service_314) does not contain 0 downtime as it should
 	Log to console	No more downtime applied to service_314.
