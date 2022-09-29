@@ -44,7 +44,7 @@ namespace bam {
  *  centengine side and when a BA changes of state, the service has also to be
  *  updated.
  *  * **downtimes** because if an inherited downtime is set on a BA, we have to
- *  apply a "downtime" on its service.
+ *  apply a "downtime" on its corresponding service.
  *
  *  Forced checks can be numerous and we see sometimes many forced checks on the
  *  same service, this is because of the tree structure of BAs. To avoid asking
@@ -84,7 +84,6 @@ class monitoring_stream : public io::stream {
   std::unordered_set<std::pair<std::string, std::string>,
                      absl::Hash<std::pair<std::string, std::string>>>
       _timer_forced_svc_checks;
-  bool _stopped = false;
 
   void _check_replication();
   void _prepare();

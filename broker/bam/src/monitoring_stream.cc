@@ -122,7 +122,6 @@ int32_t monitoring_stream::stop() {
       _explicitly_send_forced_svc_checks(ec);
       {
         std::lock_guard<std::mutex> lck(_forced_svc_checks_m);
-        //_stopped = true;
         _forced_svc_checks_timer.cancel();
       }
       p.set_value();
@@ -421,13 +420,11 @@ void monitoring_stream::_explicitly_send_forced_svc_checks(
   static int count = 0;
   log_v2::bam()->error("BAM: time to send forced service checks {}", count++);
   if (!ec) {
-    bool stopped;
     if (_timer_forced_svc_checks.empty()) {
       std::lock_guard<std::mutex> lck(_forced_svc_checks_m);
       _timer_forced_svc_checks.swap(_forced_svc_checks);
-      // stopped = _stopped;
     }
-    if (/*!stopped &&*/ !_timer_forced_svc_checks.empty()) {
+    if (!_timer_forced_svc_checks.empty()) {
       std::lock_guard<std::mutex> lock(_ext_cmd_file_m);
       log_v2::bam()->info("opening {}", _ext_cmd_file);
       misc::fifo_client fc(_ext_cmd_file);
@@ -464,16 +461,11 @@ void monitoring_stream::_write_forced_svc_check(
     const std::string& description) {
   log_v2::bam()->trace("BAM: monitoring stream _write_forced_svc_check");
   std::lock_guard<std::mutex> lck(_forced_svc_checks_m);
-  // if (!_stopped) {
   _forced_svc_checks.emplace(host, description);
   _forced_svc_checks_timer.expires_after(std::chrono::seconds(5));
   _forced_svc_checks_timer.async_wait(
       std::bind(&monitoring_stream::_explicitly_send_forced_svc_checks, this,
                 std::placeholders::_1));
-  /*} else
-    log_v2::bam()->info(
-        "BAM: monitoring_stream - no more forced service checks to send, "
-        "stream is stopping");*/
 }
 
 /**
