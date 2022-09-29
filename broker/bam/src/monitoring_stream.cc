@@ -116,7 +116,7 @@ int32_t monitoring_stream::stop() {
   {
     log_v2::bam()->info(
         "bam: monitoring_stream - waiting for forced service checks to be "
-        "gone");
+        "done");
     std::lock_guard<std::mutex> lck(_forced_svc_checks_m);
     _forced_svc_checks_timer.expires_after(std::chrono::seconds(0));
     _forced_svc_checks_timer.async_wait([this, &p](const asio::error_code& ec) {
