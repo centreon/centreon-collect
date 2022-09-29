@@ -29,6 +29,7 @@
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/log_v2.hh"
+#include "com/centreon/broker/misc/fifo_client.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/downtime.hh"
@@ -85,8 +86,7 @@ monitoring_stream::~monitoring_stream() {
   } catch (std::exception const& e) {
     log_v2::bam()->error("BAM: can't save cache: '{}'", e.what());
   }
-  _forced_svc_checks_timer.cancel();
-  log_v2::sql()->debug("bam: monitoring_stream destruction");
+  log_v2::bam()->debug("BAM: monitoring_stream destruction done");
 }
 
 /**
@@ -111,6 +111,26 @@ int32_t monitoring_stream::stop() {
   int32_t retval = flush();
   log_v2::core()->info("monitoring stream: stopped with {} events acknowledged",
                        retval);
+  std::promise<void> p;
+  {
+    log_v2::bam()->info(
+        "bam: monitoring_stream - waiting for forced service checks to be "
+        "gone");
+    std::lock_guard<std::mutex> lck(_forced_svc_checks_m);
+    _forced_svc_checks_timer.expires_after(std::chrono::seconds(0));
+    _forced_svc_checks_timer.async_wait([this, &p](const asio::error_code& ec) {
+      _explicitly_send_forced_svc_checks(ec);
+      {
+        std::lock_guard<std::mutex> lck(_forced_svc_checks_m);
+        _stopped = true;
+        _forced_svc_checks_timer.cancel();
+      }
+      p.set_value();
+    });
+  }
+  p.get_future().wait();
+  log_v2::bam()->info("bam: monitoring_stream - stop finished");
+
   return retval;
 }
 
@@ -396,6 +416,44 @@ void monitoring_stream::_rebuild() {
   }
 }
 
+void monitoring_stream::_explicitly_send_forced_svc_checks(
+    const asio::error_code& ec) {
+  static int count = 0;
+  log_v2::bam()->error("BAM: time to send forced service checks {}", count++);
+  if (!ec) {
+    bool stopped;
+    if (_timer_forced_svc_checks.empty()) {
+      std::lock_guard<std::mutex> lck(_forced_svc_checks_m);
+      _timer_forced_svc_checks.swap(_forced_svc_checks);
+      stopped = _stopped;
+    }
+    if (!stopped && !_timer_forced_svc_checks.empty()) {
+      std::lock_guard<std::mutex> lock(_ext_cmd_file_m);
+      log_v2::bam()->info("opening {}", _ext_cmd_file);
+      misc::fifo_client fc(_ext_cmd_file);
+      log_v2::bam()->trace("BAM: {} forced checks to schedule",
+                           _timer_forced_svc_checks.size());
+      for (auto& p : _timer_forced_svc_checks) {
+        time_t now = time(nullptr);
+        std::string cmd{fmt::format("[{}] SCHEDULE_FORCED_SVC_CHECK;{};{};{}\n",
+                                    now, p.first, p.second, now)};
+        log_v2::bam()->info("writing in {}", _ext_cmd_file);
+        if (fc.write(cmd) < 0) {
+          log_v2::bam()->error(
+              "BAM: could not write forced service check to command file '{}'",
+              _ext_cmd_file);
+          _forced_svc_checks_timer.expires_after(std::chrono::seconds(5));
+          _forced_svc_checks_timer.async_wait(
+              std::bind(&monitoring_stream::_explicitly_send_forced_svc_checks,
+                        this, std::placeholders::_1));
+          break;
+        } else
+          log_v2::bam()->debug("BAM: sent external command '{}'", cmd);
+      }
+    }
+  }
+}
+
 /**
  *  Write an external command to Engine.
  *
@@ -406,44 +464,17 @@ void monitoring_stream::_write_forced_svc_check(
     const std::string& description) {
   log_v2::bam()->trace("BAM: monitoring stream _write_forced_svc_check");
   std::lock_guard<std::mutex> lck(_forced_svc_checks_m);
-  _forced_svc_checks.emplace(host, description);
-  _forced_svc_checks_timer.expires_after(std::chrono::seconds(5));
-  _forced_svc_checks_timer.async_wait([this](const asio::error_code& err) {
-    if (!err) {
-      std::unordered_set<std::pair<std::string, std::string>,
-                         absl::Hash<std::pair<std::string, std::string>>>
-          forced_svc_checks;
-      {
-        std::lock_guard<std::mutex> lck(_forced_svc_checks_m);
-        forced_svc_checks.swap(_forced_svc_checks);
-      }
-      std::ofstream ofs;
-      std::lock_guard<std::mutex> lock(_ext_cmd_file_m);
-      ofs.open(_ext_cmd_file);
-      if (!ofs.good()) {
-        log_v2::bam()->error(
-            "BAM: could not write BA check result to command file '{}'",
-            _ext_cmd_file);
-      } else {
-        log_v2::bam()->trace("BAM: {} forced checks to schedule",
-                             forced_svc_checks.size());
-        for (auto& p : forced_svc_checks) {
-          time_t now = time(nullptr);
-          std::string cmd{
-              fmt::format("[{}] SCHEDULE_FORCED_SVC_CHECK;{};{};{}\n", now,
-                          p.first, p.second, now)};
-          ofs.write(cmd.c_str(), cmd.size());
-          if (!ofs.good())
-            log_v2::bam()->error(
-                "BAM: could not write BA check result to command file '{}'",
-                _ext_cmd_file);
-          else
-            log_v2::bam()->debug("BAM: sent external command '{}'", cmd);
-        }
-        ofs.close();
-      }
-    }
-  });
+  if (!_stopped) {
+    _forced_svc_checks_count++;
+    _forced_svc_checks.emplace(host, description);
+    _forced_svc_checks_timer.expires_after(std::chrono::seconds(5));
+    _forced_svc_checks_timer.async_wait(
+        std::bind(&monitoring_stream::_explicitly_send_forced_svc_checks, this,
+                  std::placeholders::_1));
+  } else
+    log_v2::bam()->info(
+        "BAM: monitoring_stream - no more forced service checks to send, "
+        "stream is stopping");
 }
 
 /**
@@ -454,23 +485,14 @@ void monitoring_stream::_write_forced_svc_check(
 void monitoring_stream::_write_external_command(const std::string& cmd) {
   log_v2::bam()->trace("BAM: monitoring stream _write_external_command <<{}>>",
                        cmd);
-  std::ofstream ofs;
   std::lock_guard<std::mutex> lock(_ext_cmd_file_m);
-  ofs.open(_ext_cmd_file);
-  if (!ofs.good()) {
+  misc::fifo_client fc(_ext_cmd_file);
+  if (fc.write(cmd) < 0) {
     log_v2::bam()->error(
         "BAM: could not write BA check result to command file '{}'",
         _ext_cmd_file);
-  } else {
-    ofs.write(cmd.c_str(), cmd.size());
-    if (!ofs.good())
-      log_v2::bam()->error(
-          "BAM: could not write BA check result to command file '{}'",
-          _ext_cmd_file);
-    else
-      log_v2::bam()->debug("BAM: sent external command '{}'", cmd);
-    ofs.close();
-  }
+  } else
+    log_v2::bam()->debug("BAM: sent external command '{}'", cmd);
 }
 
 /**

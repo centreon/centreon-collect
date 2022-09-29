@@ -60,11 +60,27 @@ class monitoring_stream : public io::stream {
    * * the timer is used to schedule the post in 5s.
    * * the mutex is needed to manage the set.
    * * the set contains the services to force (hostname, service description) */
-  asio::system_timer _forced_svc_checks_timer;
+  asio::steady_timer _forced_svc_checks_timer;
+  uint32_t _forced_svc_checks_count = 0u;
   std::mutex _forced_svc_checks_m;
   std::unordered_set<std::pair<std::string, std::string>,
                      absl::Hash<std::pair<std::string, std::string>>>
       _forced_svc_checks;
+  std::unordered_set<std::pair<std::string, std::string>,
+                     absl::Hash<std::pair<std::string, std::string>>>
+      _timer_forced_svc_checks;
+  bool _stopped = false;
+
+  void _check_replication();
+  void _prepare();
+  void _rebuild();
+  void _write_external_command(const std::string& cmd);
+  void _write_forced_svc_check(const std::string& host,
+                               const std::string& description);
+  void _explicitly_send_forced_svc_checks(const asio::error_code& ec);
+
+  void _read_cache();
+  void _write_cache();
 
  public:
   monitoring_stream(std::string const& ext_cmd_file,
@@ -80,18 +96,6 @@ class monitoring_stream : public io::stream {
   bool read(std::shared_ptr<io::data>& d, time_t deadline) override;
   void update() override final;
   int write(std::shared_ptr<io::data> const& d) override;
-
- private:
-  void _check_replication();
-  void _prepare();
-  void _rebuild();
-  // void _update_status(std::string const& status);
-  void _write_external_command(const std::string& cmd);
-  void _write_forced_svc_check(const std::string& host,
-                               const std::string& description);
-
-  void _read_cache();
-  void _write_cache();
 };
 }  // namespace bam
 

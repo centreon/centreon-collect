@@ -542,7 +542,7 @@ void conflict_manager::_process_downtime(
     std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t) {
   auto& d = std::get<0>(t);
   // Cast object.
-  neb::downtime const& dd = *static_cast<neb::downtime const*>(d.get());
+  const neb::downtime& dd = *static_cast<const neb::downtime*>(d.get());
 
   // Log message.
   log_v2::sql()->info(
@@ -1921,6 +1921,7 @@ void conflict_manager::_update_customvariables() {
  * When we exit the function, the downtimes queue is empty.
  */
 void conflict_manager::_update_downtimes() {
+  log_v2::sql()->debug("sql: update downtimes");
   int32_t conn = special_conn::downtime % _mysql.connections_count();
   _finish_action(-1, actions::hosts | actions::instances | actions::downtimes |
                          actions::host_parents | actions::host_dependencies |

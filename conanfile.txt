@@ -1,6 +1,6 @@
 [requires]
 gtest/cci.20210126
-asio/1.22.1
+asio/1.24.0
 fmt/8.1.1
 spdlog/1.10.0
 nlohmann_json/3.10.5

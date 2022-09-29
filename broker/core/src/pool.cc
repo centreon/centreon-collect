@@ -76,7 +76,7 @@ pool::pool(size_t size)
       _pool_size{size == 0 ? std::max(std::thread::hardware_concurrency(), 3u)
                            : size},
       _io_context(_pool_size),
-      _worker(new asio::io_context::work(_io_context)),
+      _worker{asio::make_work_guard(_io_context)},
       _closed(true),
       _timer(_io_context),
       _stats_running{false} {

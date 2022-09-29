@@ -1202,8 +1202,8 @@ int cmd_delete_downtime_full(int cmd, char* args) {
   downtime_finder dtf(
       downtimes::downtime_manager::instance().get_scheduled_downtimes());
   downtime_finder::result_set result(dtf.find_matching_all(criterias));
-  for (downtime_finder::result_set::const_iterator it(result.begin()),
-       end(result.end());
+  for (downtime_finder::result_set::const_iterator it = result.begin(),
+                                                   end = result.end();
        it != end; ++it) {
     downtime_manager::instance().unschedule_downtime(*it);
   }
