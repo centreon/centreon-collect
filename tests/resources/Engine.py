@@ -1525,6 +1525,7 @@ def create_anomaly_threshold_file_V2(path: string, host_id: int, service_id: int
 def grep_retention(poller: int, pattern: str):
     return Common.grep("{}/log/centreon-engine/config{}/retention.dat".format(VAR_ROOT, poller), pattern)
 
+
 def modify_retention_dat(poller, host, service, key, value):
     if host != "" and host != "":
         # We want a service
