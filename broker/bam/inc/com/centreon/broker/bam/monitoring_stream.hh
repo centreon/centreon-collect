@@ -38,7 +38,8 @@ namespace bam {
  *  Handle perfdata and insert proper informations in index_data and
  *  metrics table of a centbam DB.
  *
- *  This class also sends external commands to centengine, to kinds of commands:
+ *  This class also sends external commands to centengine, two kinds of
+ *  commands:
  *  * **forced service checks** because each BA is represented by a service on
  *  centengine side and when a BA changes of state, the service has also to be
  *  updated.
