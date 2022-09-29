@@ -172,7 +172,8 @@ config = {
                 "tls": "debug",
                 "lua": "debug",
                 "bam": "debug",
-                "grpc": "debug"
+                "grpc": "debug",
+                "neb": "debug"
             }}
         }},
         "output": [

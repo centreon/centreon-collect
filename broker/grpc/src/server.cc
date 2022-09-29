@@ -278,7 +278,7 @@ void server::shutdown() {
   while (!accepted_to_shutdown.empty()) {
     auto svc = accepted_to_shutdown.front();
     accepted_to_shutdown.pop();
-    svc->shutdown();
+    svc->to_trash();
   }
   if (to_shutdown) {
     SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "grpc server shutdown");
