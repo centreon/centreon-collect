@@ -111,6 +111,7 @@ int32_t monitoring_stream::stop() {
   int32_t retval = flush();
   log_v2::core()->info("monitoring stream: stopped with {} events acknowledged",
                        retval);
+  /* I want to be sure the timer is really stopped. */
   std::promise<void> p;
   {
     log_v2::bam()->info(
@@ -128,6 +129,7 @@ int32_t monitoring_stream::stop() {
     });
   }
   p.get_future().wait();
+  /* Now, it is really cancelled. */
   log_v2::bam()->info("bam: monitoring_stream - stop finished");
 
   return retval;
