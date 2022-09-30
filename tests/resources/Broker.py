@@ -436,23 +436,22 @@ def config_broker(name, poller_inst: int = 1):
         broker_name = "central-module-master"
         filename = "central-module0.json"
     else:
-        if not exists(VAR_ROOT + "/lib/centreon/metrics/"):
-            makedirs(VAR_ROOT + "/lib/centreon/metrics/")
-        if not exists(VAR_ROOT + "/lib/centreon/status/"):
-            makedirs(VAR_ROOT + "/lib/centreon/status/")
-        if not exists(VAR_ROOT + "/lib/centreon/metrics/tmpl_15552000_300_0.rrd"):
+        if not exists(f"{VAR_ROOT}/lib/centreon/metrics/"):
+            makedirs(f"{VAR_ROOT}/lib/centreon/metrics/")
+        if not exists(f"{VAR_ROOT}/lib/centreon/status/"):
+            makedirs(f"{VAR_ROOT}/lib/centreon/status/")
+        if not exists(f"{VAR_ROOT}/lib/centreon/metrics/tmpl_15552000_300_0.rrd"):
             getoutput(
-                "rrdcreate " + VAR_ROOT + "/lib/centreon/metrics/tmpl_15552000_300_0.rrd DS:value:ABSOLUTE:3000:U:U RRA:AVERAGE:0.5:1:864000")
+                f"rrdcreate {VAR_ROOT}/lib/centreon/metrics/tmpl_15552000_300_0.rrd DS:value:ABSOLUTE:3000:U:U RRA:AVERAGE:0.5:1:864000")
         broker_id = 2
         broker_name = "central-rrd-master"
         filename = "central-rrd.json"
 
     if name == 'module':
         for i in range(poller_inst):
-            broker_name = ETC_ROOT + "/centreon-broker/central-module{}.json".format(
-                i)
+            broker_name = f"{ETC_ROOT}/centreon-broker/central-module{i}.json"
             buf = config[name].format(
-                broker_id, "central-module-master{}".format(i), "", "", "", "", "", VAR_ROOT)
+                broker_id, f"central-module-master{i}", "", "", "", "", "", VAR_ROOT)
             conf = json.loads(buf)
             conf["centreonBroker"]["poller_name"] = f"Poller{i}"
             conf["centreonBroker"]["poller_id"] = i + 1
@@ -461,7 +460,7 @@ def config_broker(name, poller_inst: int = 1):
             f.write(json.dumps(conf, indent=2))
             f.close()
     else:
-        f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "w")
+        f = open(f"{ETC_ROOT}/centreon-broker/{filename}", "w")
         f.write(config[name].format(broker_id, broker_name,
                 DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME_STORAGE, VAR_ROOT))
         f.close()
