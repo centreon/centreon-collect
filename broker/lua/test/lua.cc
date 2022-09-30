@@ -4504,3 +4504,73 @@ TEST_F(LuaTest, HostStatusObjectMatchBetweenBbdoVersions) {
   RemoveFile(filename);
   RemoveFile("/tmp/log");
 }
+
+// When a pb_downtime event arrives
+// Then the stream is able to understand it.
+TEST_F(LuaTest, PbDowntime) {
+  config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  std::string filename("/tmp/cache_test.lua");
+  auto dt{std::make_shared<neb::pb_downtime>()};
+
+  auto& downtime = dt->mut_obj();
+  downtime.set_id(1u);
+  downtime.set_host_id(2u);
+  downtime.set_service_id(3u);
+  downtime.set_type(Downtime_DowntimeType_SERVICE);
+
+  CreateScript(filename,
+               "broker_api_version = 1\n"
+               "function init(conf)\n"
+               "  broker_log:set_parameters(3, '/tmp/log')\n"
+               "end\n\n"
+               "function write(d)\n"
+               "  broker_log:info(1, 'downtime is ' .. broker.json_encode(d))\n"
+               "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  binding->write(dt);
+  std::string lst(ReadFile("/tmp/log"));
+  std::cout << lst << std::endl;
+  ASSERT_NE(lst.find("\"id\":1"), std::string::npos);
+  ASSERT_NE(lst.find("\"host_id\":2"), std::string::npos);
+  ASSERT_NE(lst.find("\"service_id\":3"), std::string::npos);
+  ASSERT_NE(lst.find("\"type\":1"), std::string::npos);
+  RemoveFile(filename);
+  RemoveFile("/tmp/log");
+}
+
+// When a pb_downtime event arrives
+// Then the stream is able to understand it.
+TEST_F(LuaTest, PbDowntimeV2) {
+  config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  std::string filename("/tmp/cache_test.lua");
+  auto dt{std::make_shared<neb::pb_downtime>()};
+
+  auto& downtime = dt->mut_obj();
+  downtime.set_id(1u);
+  downtime.set_host_id(2u);
+  downtime.set_service_id(3u);
+  downtime.set_type(Downtime_DowntimeType_SERVICE);
+
+  CreateScript(filename,
+               "broker_api_version = 2\n"
+               "function init(conf)\n"
+               "  broker_log:set_parameters(3, '/tmp/log')\n"
+               "end\n\n"
+               "function write(d)\n"
+               "  broker_log:info(1, 'downtime is ' .. broker.json_encode(d))\n"
+               "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  binding->write(dt);
+  std::string lst(ReadFile("/tmp/log"));
+  std::cout << lst << std::endl;
+  ASSERT_NE(lst.find("\"id\":1"), std::string::npos);
+  ASSERT_NE(lst.find("\"host_id\":2"), std::string::npos);
+  ASSERT_NE(lst.find("\"service_id\":3"), std::string::npos);
+  ASSERT_NE(lst.find("\"type\":1"), std::string::npos);
+  RemoveFile(filename);
+  RemoveFile("/tmp/log");
+}

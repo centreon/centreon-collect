@@ -343,6 +343,57 @@ void kpi_service::service_update(const std::shared_ptr<neb::downtime>& dt,
 }
 
 /**
+ *  Service got a downtime (protobuf).
+ *
+ *  @param[in]  dt
+ *  @param[out] visitor  Object that will receive events.
+ */
+void kpi_service::service_update(const std::shared_ptr<neb::pb_downtime>& dt,
+                                 io::stream* visitor) {
+  auto& downtime = dt->obj();
+  // Update information.
+  bool downtimed = downtime.started() && !downtime.actual_end_time();
+  if (!_downtimed && downtimed)
+    _downtimed = true;
+
+  if (_downtime_ids.contains(downtime.id()) && !downtime.deletion_time()) {
+    log_v2::bam()->trace("Downtime {} already handled in this kpi service",
+                         downtime.id());
+    return;
+  }
+
+  if (downtimed) {
+    log_v2::bam()->trace("adding in kpi service the impacting downtime {}",
+                         downtime.id());
+    _downtime_ids.insert(downtime.id());
+  } else {
+    log_v2::bam()->trace("removing from kpi service the impacting downtime {}",
+                         downtime.id());
+    _downtime_ids.erase(downtime.id());
+    _downtimed = !_downtime_ids.empty();
+  }
+
+  if (!_event || _event->in_downtime != _downtimed) {
+    _last_check =
+        _downtimed ? downtime.actual_start_time() : downtime.actual_end_time();
+    log_v2::bam()->trace("kpi service {} update, last check set to {}", _id,
+                         _last_check);
+  }
+
+  // Log message.
+  log_v2::bam()->debug(
+      "BAM: KPI {} is getting notified of a downtime ({}) on its service ({}, "
+      "{}), in downtime: {} at {}",
+      _id, downtime.id(), _host_id, _service_id, _downtimed, _last_check);
+
+  // Generate status event.
+  visit(visitor);
+
+  // Propagate change.
+  propagate_update(visitor);
+}
+
+/**
  *  Set service as acknowledged.
  *
  *  @param[in] acknowledged Acknowledged flag.

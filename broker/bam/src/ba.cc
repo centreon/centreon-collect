@@ -376,6 +376,41 @@ void ba::service_update(const std::shared_ptr<neb::downtime>& dt,
 }
 
 /**
+ *  @brief Notify BA of a downtime (protobuf)
+ *
+ *  Used to watch for downtime.
+ *
+ *  @param dt       Downtime of the service.
+ *  @param visitor  Visitor that will receive events.
+ */
+void ba::service_update(const std::shared_ptr<neb::pb_downtime>& dt,
+                        io::stream* visitor) {
+  (void)visitor;
+  auto& downtime = dt->obj();
+  assert(downtime.host_id() == _host_id &&
+         downtime.service_id() == _service_id);
+
+  // Log message.
+  log_v2::bam()->debug(
+      "BAM: BA {} '{}' is getting notified of a downtime (pb) on its service "
+      "({}, {})",
+      _id, _name, _host_id, _service_id);
+
+  // Check if there was a change.
+  bool in_downtime(downtime.started() && downtime.actual_end_time() == 0);
+  if (_in_downtime != in_downtime) {
+    log_v2::bam()->trace("ba: service_update downtime: {}", _in_downtime);
+    _in_downtime = in_downtime;
+
+    // Generate status event.
+    visit(visitor);
+
+    // Propagate change.
+    propagate_update(visitor);
+  }
+}
+
+/**
  *  Save the inherited downtime to the cache.
  *
  *  @param[in] cache  The cache.

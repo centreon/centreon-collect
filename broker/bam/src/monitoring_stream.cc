@@ -260,6 +260,20 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
       _applier.book_service().update(dt, &ev_cache);
       ev_cache.commit_to(pblshr);
     } break;
+    case neb::pb_downtime::static_type(): {
+      std::shared_ptr<neb::pb_downtime> dt(
+          std::static_pointer_cast<neb::pb_downtime>(data));
+      auto& downtime = dt->obj();
+      log_v2::bam()->trace(
+          "BAM: processing downtime (pb) ({}) on service ({}, {}) started: {}, "
+          "stopped: {}",
+          downtime.id(), downtime.host_id(), downtime.service_id(),
+          downtime.started(), downtime.cancelled());
+      multiplexing::publisher pblshr;
+      event_cache_visitor ev_cache;
+      _applier.book_service().update(dt, &ev_cache);
+      ev_cache.commit_to(pblshr);
+    } break;
     case bam::ba_status::static_type(): {
       ba_status* status(static_cast<ba_status*>(data.get()));
       log_v2::bam()->trace(

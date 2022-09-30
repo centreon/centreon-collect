@@ -97,6 +97,24 @@ void service_book::update(const std::shared_ptr<neb::downtime>& t,
 }
 
 /**
+ * @brief Propagate events of type neb::pb_downtime to the concerned services
+ * and then to the corresponding kpi.
+ *
+ * @param t The event to handle.
+ * @param visitor The stream to write into.
+ */
+void service_book::update(const std::shared_ptr<neb::pb_downtime>& t,
+                          io::stream* visitor) {
+  auto& downtime = t->obj();
+  std::pair<multimap::iterator, multimap::iterator> range{_book.equal_range(
+      std::make_pair(downtime.host_id(), downtime.service_id()))};
+  while (range.first != range.second) {
+    range.first->second->service_update(t, visitor);
+    ++range.first;
+  }
+}
+
+/**
  * @brief Propagate events of type neb::service_status to the concerned services
  * and then to the corresponding kpi.
  *
