@@ -20,7 +20,7 @@
 #define CCB_STATS_CENTER_HH
 
 #include "broker.pb.h"
-#include "com/centreon/broker/pool.hh"
+#include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()
 
