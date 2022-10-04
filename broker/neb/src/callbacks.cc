@@ -84,6 +84,7 @@ static struct {
     {NEBCALLBACK_COMMENT_DATA, &neb::callback_comment},
     {NEBCALLBACK_DOWNTIME_DATA, &neb::callback_downtime},
     {NEBCALLBACK_EVENT_HANDLER_DATA, &neb::callback_event_handler},
+    {NEBCALLBACK_EXTERNAL_COMMAND_DATA, &neb::callback_external_command},
     {NEBCALLBACK_FLAPPING_DATA, &neb::callback_flapping_status},
     {NEBCALLBACK_HOST_CHECK_DATA, &neb::callback_host_check},
     {NEBCALLBACK_HOST_STATUS_DATA, &neb::callback_host_status},
@@ -1139,10 +1140,6 @@ int neb::callback_external_command(int callback_type, void* data) {
           if (l.size() != 4)
             SPDLOG_LOGGER_ERROR(
                 log_v2::neb(),
-                "callbacks: invalid service custom variable command");
-          else {
-            std::list<std::string>::iterator it{l.begin()};
-            std::string host{std::move(*it)};
             ++it;
             std::string service{std::move(*it)};
             ++it;
@@ -1166,15 +1163,15 @@ int neb::callback_external_command(int callback_type, void* data) {
               // Send event.
               gl_publisher.write(cvs);
             }
-          }
         }
       }
     }
-    // Avoid exception propagation in C code.
-    catch (...) {
-    }
   }
-  return 0;
+  // Avoid exception propagation in C code.
+  catch (...) {
+  }
+}
+return 0;
 }
 
 /**
