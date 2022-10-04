@@ -25,10 +25,7 @@ set(protobuf_files
   severity
   tag
   welcome
-<<<<<<< HEAD
-=======
   comment
->>>>>>> MON-15246 add protobuf custom variable
   neb_proto
   storage_proto
 )
