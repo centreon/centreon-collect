@@ -23,6 +23,45 @@ import "proto_header.proto";
 package com.centreon.broker;
 
 
+message Comment {
+    BBDOHeader header = 1;
+
+    enum Src {
+        INTERNAL = 0;
+        EXTERNAL = 1;
+    }
+
+    enum Type {
+        NO_TYPE = 0;
+        HOST = 1;
+        SERVICE = 2;
+    }
+
+    enum EntryType {
+        NO_ENTRY_TYPE = 0;
+        USER = 1;
+        DOWNTIME = 2;
+        FLAPPING = 3;
+        ACKNOWLEDGMENT = 4;
+    }
+
+    string author = 2;
+    Type type = 3;
+    string data = 4;
+    uint64 deletion_time = 5;
+    uint64 entry_time = 6;
+    EntryType entry_type = 7;
+    uint64 expire_time = 8;
+    bool expires = 9;
+    uint64 host_id = 10;
+    uint64 internal_id = 11;
+    bool persistent = 12;
+    uint64 instance_id = 13;
+    uint64 service_id = 14;
+    Src source = 15;
+  
+}
+
 
 message CustomVariable {
     enum VarType {

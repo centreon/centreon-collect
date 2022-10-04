@@ -84,6 +84,7 @@ static struct {
     {NEBCALLBACK_COMMENT_DATA, &neb::callback_comment},
     {NEBCALLBACK_DOWNTIME_DATA, &neb::callback_downtime},
     {NEBCALLBACK_EVENT_HANDLER_DATA, &neb::callback_event_handler},
+    {NEBCALLBACK_EXTERNAL_COMMAND_DATA, &neb::callback_external_command},
     {NEBCALLBACK_FLAPPING_DATA, &neb::callback_flapping_status},
     {NEBCALLBACK_HOST_CHECK_DATA, &neb::callback_host_check},
     {NEBCALLBACK_HOST_STATUS_DATA, &neb::callback_host_status},
@@ -102,6 +103,7 @@ static struct {
     {NEBCALLBACK_COMMENT_DATA, &neb::callback_pb_comment},
     {NEBCALLBACK_DOWNTIME_DATA, &neb::callback_downtime},
     {NEBCALLBACK_EVENT_HANDLER_DATA, &neb::callback_event_handler},
+    {NEBCALLBACK_EXTERNAL_COMMAND_DATA, &neb::callback_external_command},
     {NEBCALLBACK_FLAPPING_DATA, &neb::callback_flapping_status},
     {NEBCALLBACK_HOST_CHECK_DATA, &neb::callback_host_check},
     {NEBCALLBACK_HOST_STATUS_DATA, &neb::callback_pb_host_status},
@@ -947,6 +949,112 @@ int neb::callback_event_handler(int callback_type, void* data) {
   }
   // Avoid exception propagation in C code.
   catch (...) {
+  }
+  return 0;
+}
+
+/**
+ *  @brief Function that process external commands.
+ *
+ *  This function is called by the monitoring engine when some external
+ *  command is received.
+ *
+ *  @param[in] callback_type Type of the callback
+ *                           (NEBCALLBACK_EXTERNALCOMMAND_DATA).
+ *  @param[in] data          A pointer to a nebstruct_externalcommand_data
+ *                           containing the external command data.
+ *
+ *  @return 0 on success.
+ */
+int neb::callback_external_command(int callback_type, void* data) {
+  // Log message.
+  log_v2::neb()->debug("callbacks: external command data");
+  (void)callback_type;
+
+  nebstruct_external_command_data* necd(
+      static_cast<nebstruct_external_command_data*>(data));
+  if (necd && (necd->type == NEBTYPE_EXTERNALCOMMAND_START)) {
+    try {
+      if (necd->command_type == CMD_CHANGE_CUSTOM_HOST_VAR) {
+        log_v2::neb()->info(
+            "callbacks: generating host custom variable update event");
+
+        // Split argument string.
+        if (necd->command_args) {
+          std::list<std::string> l{absl::StrSplit(
+              misc::string::check_string_utf8(necd->command_args), ';')};
+          if (l.size() != 3)
+            log_v2::neb()->error(
+                "callbacks: invalid host custom variable command");
+          else {
+            std::list<std::string>::iterator it(l.begin());
+            std::string host{std::move(*it)};
+            ++it;
+            std::string var_name{std::move(*it)};
+            ++it;
+            std::string var_value{std::move(*it)};
+
+            // Find host ID.
+            uint64_t host_id = engine::get_host_id(host);
+            if (host_id != 0) {
+              // Fill custom variable.
+              auto cvs = std::make_shared<neb::custom_variable_status>();
+              cvs->host_id = host_id;
+              cvs->modified = true;
+              cvs->name = var_name;
+              cvs->service_id = 0;
+              cvs->update_time = necd->timestamp.tv_sec;
+              cvs->value = var_value;
+
+              // Send event.
+              gl_publisher.write(cvs);
+            }
+          }
+        }
+      } else if (necd->command_type == CMD_CHANGE_CUSTOM_SVC_VAR) {
+        log_v2::neb()->info(
+            "callbacks: generating service custom variable update event");
+
+        // Split argument string.
+        if (necd->command_args) {
+          std::list<std::string> l{absl::StrSplit(
+              misc::string::check_string_utf8(necd->command_args), ';')};
+          if (l.size() != 4)
+            log_v2::neb()->error(
+                "callbacks: invalid service custom variable command");
+          else {
+            std::list<std::string>::iterator it{l.begin()};
+            std::string host{std::move(*it)};
+            ++it;
+            std::string service{std::move(*it)};
+            ++it;
+            std::string var_name{std::move(*it)};
+            ++it;
+            std::string var_value{std::move(*it)};
+
+            // Find host/service IDs.
+            std::pair<uint64_t, uint64_t> p{
+                engine::get_host_and_service_id(host, service)};
+            if (p.first && p.second) {
+              // Fill custom variable.
+              auto cvs{std::make_shared<neb::custom_variable_status>()};
+              cvs->host_id = p.first;
+              cvs->modified = true;
+              cvs->name = var_name;
+              cvs->service_id = p.second;
+              cvs->update_time = necd->timestamp.tv_sec;
+              cvs->value = var_value;
+
+              // Send event.
+              gl_publisher.write(cvs);
+            }
+          }
+        }
+      }
+    }
+    // Avoid exception propagation in C code.
+    catch (...) {
+    }
   }
   return 0;
 }

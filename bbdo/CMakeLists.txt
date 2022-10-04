@@ -25,7 +25,6 @@ set(protobuf_files
   severity
   tag
   welcome
-  comment
   neb_proto
 )
 
@@ -42,14 +41,6 @@ foreach(name IN LISTS protobuf_files)
 
   add_custom_target("target_${name}" DEPENDS "${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.cc" "${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.h")
 endforeach()
-
-add_library(
-  pb_comment_lib STATIC
-  comment.pb.cc
-  comment.pb.h
-)
-add_dependencies(pb_comment_lib target_comment)
-set_target_properties(pb_comment_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 add_library(
   pb_header_lib STATIC

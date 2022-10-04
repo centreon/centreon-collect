@@ -20,7 +20,6 @@
 #define CCB_NEB_INTERNAL_HH
 
 #include <absl/hash/hash.h>
-#include "bbdo/comment.pb.h"
 #include "bbdo/events.hh"
 #include "bbdo/host.pb.h"
 #include "bbdo/neb_proto.pb.h"

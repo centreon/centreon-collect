@@ -72,7 +72,6 @@ class fifo_client {
           _step = step::WRITE;
         }
       case step::WRITE:
-        printf(buffer.c_str());
         if (::write(_fd, buffer.c_str(), buffer.size()) !=
             static_cast<ssize_t>(buffer.size())) {
           fprintf(stderr, "%s\n", strerror(errno));

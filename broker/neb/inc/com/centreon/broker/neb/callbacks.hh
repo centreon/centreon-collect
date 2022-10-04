@@ -35,6 +35,7 @@ int callback_pb_custom_variable(int callback_type, void* data);
 int callback_dependency(int callback_type, void* data);
 int callback_downtime(int callback_type, void* data);
 int callback_event_handler(int callback_type, void* data);
+int callback_external_command(int callback_type, void* data);
 int callback_flapping_status(int callback_type, void* data);
 int callback_group(int callback_type, void* data);
 int callback_group_member(int callback_type, void* data);

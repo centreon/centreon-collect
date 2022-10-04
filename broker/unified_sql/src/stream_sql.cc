@@ -588,70 +588,17 @@ void stream::_process_pb_comment(const std::shared_ptr<io::data>& d) {
 }
 
 /**
- *  Process a comment event.
- *
- *  @param[in] e  Uncasted comment.
- *
- * @return The number of events that can be acknowledged.
- */
-void stream::_process_pb_comment(const std::shared_ptr<io::data>& d) {
-  auto comm_obj{static_cast<const neb::pb_comment*>(d.get())};
-  const neb::pb_comment::pb_type& comm = comm_obj->obj();
-
-  // Log message.
-  SPDLOG_LOGGER_INFO(
-      log_v2::sql(),
-      "SQL: processing pb comment (poller: {}, host: {}, serv: {})",
-      comm.instance_id(), comm.host_id(), comm.service_id());
-
-  // Processing
-  if (_is_valid_poller(comm.instance_id())) {
-    int32_t conn = _mysql.choose_connection_by_instance(comm.instance_id());
-
-    // Prepare queries.
-    if (!_pb_comment_insupdate.prepared()) {
-      query_preparator::event_pb_unique unique{
-          {10, "host_id", io::protobuf_base::invalid_on_zero, 0},
-          {14, "service_id", io::protobuf_base::invalid_on_zero, 0},
-          {6, "entry_time", io::protobuf_base::invalid_on_zero, 0},
-          {13, "instance_id", io::protobuf_base::invalid_on_zero, 0},
-          {11, "internal_id", io::protobuf_base::invalid_on_zero, 0}};
-      query_preparator qp(neb::pb_comment::static_type(), unique);
-      _pb_comment_insupdate = qp.prepare_insert_or_update_table(
-          _mysql, "comments",
-          {{2, "author", 0, get_comments_col_size(comments_author)},
-           {3, "type", 0, 0},
-           {4, "data", 0, get_comments_col_size(comments_data)},
-           {5, "deletion_time", 0, 0},
-           {6, "entry_time", 0, 0},
-           {7, "entry_type", 0, 0},
-           {8, "expire_time", 0, 0},
-           {9, "expires", 0, 0},
-           {10, "host_id", io::protobuf_base::invalid_on_zero, 0},
-           {11, "internal_id", io::protobuf_base::invalid_on_zero, 0},
-           {12, "persistent", 0, 0},
-           {13, "instance_id", io::protobuf_base::invalid_on_zero, 0},
-           {14, "service_id", 0, 0},
-           {15, "source", 0, 0}});
-    }
-    // Process object.
-    _pb_comment_insupdate << *comm_obj;
-    _mysql.run_statement(_pb_comment_insupdate,
-                         database::mysql_error::store_comment, false, conn);
-    _add_action(conn, actions::comments);
-  }
-}
-
-/**
  *  Process a custom variable event.
  *
  *  @param[in] e Uncasted custom variable.
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_pb_custom_variable(const std::shared_ptr<io::data>& d) {
-  const CustomVariable& cv =
-      std::static_pointer_cast<neb::pb_custom_variable>(d)->obj();
+void stream::_process_custom_variable(const std::shared_ptr<io::data>& d) {
+  // Cast object.
+  neb::custom_variable const& cv{
+      *static_cast<neb::custom_variable const*>(d.get())};
+
   // Prepare queries.
   if (!_custom_variable_delete.prepared()) {
     query_preparator::event_unique unique;
@@ -663,21 +610,17 @@ void stream::_process_pb_custom_variable(const std::shared_ptr<io::data>& d) {
   }
 
   // Processing.
-  if (cv.enabled()) {
-    SPDLOG_LOGGER_INFO(log_v2::sql(),
-                       "SQL: enable custom variable '{}' of ({}, {})",
-                       cv.name(), cv.host_id(), cv.service_id());
-
+  if (cv.enabled) {
     std::lock_guard<std::mutex> lck(_queues_m);
     _cv_queue.emplace_back(fmt::format(
         "('{}',{},{},'{}',{},{},{},'{}')",
         misc::string::escape(
-            cv.name(), get_customvariables_col_size(customvariables_name)),
-        cv.host_id(), cv.service_id(),
+            cv.name, get_customvariables_col_size(customvariables_name)),
+        cv.host_id, cv.service_id,
         misc::string::escape(
-            cv.default_value(),
+            cv.default_value,
             get_customvariables_col_size(customvariables_default_value)),
-        cv.modified() ? 1 : 0, cv.var_type(), cv.update_time(),
+        cv.modified ? 1 : 0, cv.var_type, cv.update_time,
         misc::string::escape(
             cv.value, get_customvariables_col_size(customvariables_value))));
     /* Here, we do not update the custom variable boolean ack flag,
