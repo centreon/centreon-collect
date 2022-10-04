@@ -127,6 +127,7 @@ enum data_element {
   de_pb_host_status = 32,
   de_pb_severity = 33,
   de_pb_tag = 34,
+  de_pb_comment = 35
 };
 }  // namespace neb
 namespace storage {

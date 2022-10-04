@@ -504,7 +504,7 @@ static int l_broker_json_decode(lua_State* L) {
  *
  * @param L The Lua state machine
  */
-static auto l_stacktrace = [](lua_State* L) -> void {
+static void l_stacktrace(lua_State* L) {
   int n = lua_gettop(L);  // number of arguments
   for (int i = 1; i <= n; i++) {
     int t = lua_type(L, i);

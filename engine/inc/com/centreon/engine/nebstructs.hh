@@ -21,6 +21,7 @@
 #ifndef CCE_NEBSTRUCTS_HH
 #define CCE_NEBSTRUCTS_HH
 
+#include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/service.hh"
 
@@ -77,15 +78,15 @@ typedef struct nebstruct_adaptive_service_data_struct {
 /* Comment data structure. */
 typedef struct nebstruct_comment_struct {
   int type;
-  int comment_type;
+  com::centreon::engine::comment::type comment_type;
   uint64_t host_id;
   uint64_t service_id;
   time_t entry_time;
   char const* author_name;
   char const* comment_data;
   int persistent;
-  int source;
-  int entry_type;
+  com::centreon::engine::comment::src source;
+  com::centreon::engine::comment::e_type entry_type;
   int expires;
   time_t expire_time;
   unsigned long comment_id;

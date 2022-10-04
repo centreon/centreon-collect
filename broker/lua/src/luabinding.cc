@@ -60,7 +60,8 @@ luabinding::luabinding(std::string const& lua_script,
   _L = _load_interpreter();
   _update_lua_path(path);
 
-  log_v2::lua()->debug("lua: initializing the Lua virtual machine");
+  SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+                      "lua: initializing the Lua virtual machine");
 
   try {
     _load_script(lua_script);
@@ -159,7 +160,8 @@ void luabinding::_load_script(const std::string& lua_script) {
   // Checking for filter() availability: this function is optional
   lua_getglobal(_L, "filter");
   if (!lua_isfunction(_L, lua_gettop(_L))) {
-    log_v2::lua()->debug(
+    SPDLOG_LOGGER_DEBUG(
+        log_v2::lua(),
         "lua: filter() global function is missing, the write() function will "
         "be called for each event");
     _filter = false;
@@ -170,7 +172,8 @@ void luabinding::_load_script(const std::string& lua_script) {
   // Checking for flush() availability: this function is optional
   lua_getglobal(_L, "flush");
   if (!lua_isfunction(_L, lua_gettop(_L))) {
-    log_v2::lua()->debug("lua: flush() global function is not defined");
+    SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+                        "lua: flush() global function is not defined");
     _flush = false;
   } else
     _flush = true;
@@ -192,7 +195,8 @@ void luabinding::_load_script(const std::string& lua_script) {
   }
 
   if (_broker_api_version != 1 && _broker_api_version != 2) {
-    log_v2::lua()->error(
+    SPDLOG_LOGGER_ERROR(
+        log_v2::lua(),
         "broker_api_version represents the Lua broker api to use, it must be "
         "one of (1, 2) and not '{}'. Setting it to 1",
         _broker_api_version);
@@ -209,7 +213,8 @@ void luabinding::_load_script(const std::string& lua_script) {
   }
 #endif
 
-  log_v2::lua()->info("Lua broker_api_version set to {}", _broker_api_version);
+  SPDLOG_LOGGER_INFO(log_v2::lua(), "Lua broker_api_version set to {}",
+                     _broker_api_version);
 
   // Registers the broker_log object
   broker_log::broker_log_reg(_L);
@@ -285,7 +290,7 @@ void luabinding::_init_script(
  */
 int luabinding::write(std::shared_ptr<io::data> const& data) noexcept {
   int retval = 0;
-  log_v2::lua()->debug("lua: luabinding::write call");
+  SPDLOG_LOGGER_DEBUG(log_v2::lua(), "lua: luabinding::write call");
 
   // Give data to cache.
   _cache.write(data);
@@ -307,19 +312,20 @@ int luabinding::write(std::shared_ptr<io::data> const& data) noexcept {
     lua_pushinteger(_L, elem);
 
     if (lua_pcall(_L, 2, 1, 0) != 0) {
-      log_v2::lua()->error("lua: error while running function `filter()': {}",
-                           lua_tostring(_L, -1));
+      SPDLOG_LOGGER_ERROR(log_v2::lua(),
+                          "lua: error while running function `filter()': {}",
+                          lua_tostring(_L, -1));
       return 0;
     }
 
     if (!lua_isboolean(_L, -1)) {
-      log_v2::lua()->error("lua: `filter' must return a boolean");
+      SPDLOG_LOGGER_ERROR(log_v2::lua(), "lua: `filter' must return a boolean");
       return 0;
     }
 
     execute_write = lua_toboolean(_L, -1);
-    log_v2::lua()->debug("lua: `filter' returned {}",
-                         (execute_write ? "true" : "false"));
+    SPDLOG_LOGGER_DEBUG(log_v2::lua(), "lua: `filter' returned {}",
+                        (execute_write ? "true" : "false"));
     lua_pop(_L, -1);
   }
 
@@ -343,13 +349,13 @@ int luabinding::write(std::shared_ptr<io::data> const& data) noexcept {
   }
 
   if (lua_pcall(_L, 1, 1, 0) != 0) {
-    log_v2::lua()->error("lua: error running function `write' {}",
-                         lua_tostring(_L, -1));
+    SPDLOG_LOGGER_ERROR(log_v2::lua(), "lua: error running function `write' {}",
+                        lua_tostring(_L, -1));
     return 0;
   }
 
   if (!lua_isboolean(_L, -1)) {
-    log_v2::lua()->error("lua: `write' must return a boolean");
+    SPDLOG_LOGGER_ERROR(log_v2::lua(), "lua: `write' must return a boolean");
     return 0;
   }
   int acknowledge = lua_toboolean(_L, -1);
@@ -384,12 +390,12 @@ int32_t luabinding::flush() noexcept {
   // Let's get the function to call
   lua_getglobal(_L, "flush");
   if (lua_pcall(_L, 0, 1, 0) != 0) {
-    log_v2::lua()->error("lua: error running function `flush' {}",
-                         lua_tostring(_L, -1));
+    SPDLOG_LOGGER_ERROR(log_v2::lua(), "lua: error running function `flush' {}",
+                        lua_tostring(_L, -1));
     return 0;
   }
   if (!lua_isboolean(_L, -1)) {
-    log_v2::lua()->error("lua: `flush' must return a boolean");
+    SPDLOG_LOGGER_ERROR(log_v2::lua(), "lua: `flush' must return a boolean");
     return 0;
   }
   bool acknowledge = lua_toboolean(_L, -1);

@@ -100,7 +100,7 @@ static struct {
   int (*callback)(int, void*);
 } const gl_pb_callbacks[] = {
     {NEBCALLBACK_ACKNOWLEDGEMENT_DATA, &neb::callback_acknowledgement},
-    {NEBCALLBACK_COMMENT_DATA, &neb::callback_comment},
+    {NEBCALLBACK_COMMENT_DATA, &neb::callback_pb_comment},
     {NEBCALLBACK_DOWNTIME_DATA, &neb::callback_downtime},
     {NEBCALLBACK_EVENT_HANDLER_DATA, &neb::callback_event_handler},
     {NEBCALLBACK_EXTERNAL_COMMAND_DATA, &neb::callback_external_command},
@@ -251,7 +251,7 @@ int neb::callback_comment(int callback_type, void* data) {
     if (comment_data->service_id) {
       comment->host_id = comment_data->host_id;
       comment->service_id = comment_data->service_id;
-      if (!comment->host_id || !comment->service_id)
+      if (!comment->host_id)
         throw msg_fmt(
             "comment created from a service with host_id/service_id 0");
     } else {
@@ -274,6 +274,92 @@ int neb::callback_comment(int callback_type, void* data) {
   // Avoid exception propagation in C code.
   catch (...) {
   }
+  return 0;
+}
+
+/**
+ *  @brief Function that process comment data.
+ *
+ *  This function is called by Nagios when some comment data are available.
+ *
+ *  @param[in] callback_type Type of the callback (NEBCALLBACK_COMMENT_DATA).
+ *  @param[in] data          A pointer to a nebstruct_comment_data containing
+ *                           the comment data.
+ *
+ *  @return 0 on success.
+ */
+int neb::callback_pb_comment(int, void* data) {
+  // Log message.
+  log_v2::neb()->info("callbacks: generating pb comment event");
+
+  const nebstruct_comment_data* comment_data =
+      static_cast<nebstruct_comment_data*>(data);
+  ;
+
+  auto h{std::make_shared<neb::pb_comment>()};
+  Comment& comment = h.get()->mut_obj();
+
+  // Fill output var.
+  if (comment_data->author_name)
+    comment.set_author(
+        misc::string::check_string_utf8(comment_data->author_name));
+  if (comment_data->comment_data)
+    comment.set_data(
+        misc::string::check_string_utf8(comment_data->comment_data));
+  comment.set_type(
+      (comment_data->comment_type == com::centreon::engine::comment::type::host)
+          ? com::centreon::broker::Comment_Type_HOST
+          : com::centreon::broker::Comment_Type_SERVICE);
+  if (NEBTYPE_COMMENT_DELETE == comment_data->type)
+    comment.set_deletion_time(time(nullptr));
+  comment.set_entry_time(comment_data->entry_time);
+  switch (comment_data->entry_type) {
+    case com::centreon::engine::comment::e_type::user:
+      comment.set_entry_type(com::centreon::broker::Comment_EntryType_USER);
+      break;
+    case com::centreon::engine::comment::e_type::downtime:
+      comment.set_entry_type(com::centreon::broker::Comment_EntryType_DOWNTIME);
+      break;
+    case com::centreon::engine::comment::e_type::flapping:
+      comment.set_entry_type(com::centreon::broker::Comment_EntryType_FLAPPING);
+      break;
+    case com::centreon::engine::comment::e_type::acknowledgment:
+      comment.set_entry_type(
+          com::centreon::broker::Comment_EntryType_ACKNOWLEDGMENT);
+      break;
+    default:
+      break;
+  }
+  comment.set_expire_time(comment_data->expire_time);
+  comment.set_expires(comment_data->expires);
+  if (comment_data->service_id) {
+    if (!comment_data->host_id) {
+      SPDLOG_LOGGER_ERROR(
+          log_v2::neb(),
+          "comment created from a service with host_id/service_id 0");
+      return 0;
+    }
+    comment.set_host_id(comment_data->host_id);
+    comment.set_service_id(comment_data->service_id);
+  } else {
+    if (comment_data->host_id == 0) {
+      SPDLOG_LOGGER_ERROR(log_v2::neb(),
+                          "comment created from a host with host_id 0");
+      return 0;
+    }
+    comment.set_host_id(comment_data->host_id);
+    comment.set_service_id(0);
+  }
+  comment.set_instance_id(config::applier::state::instance().poller_id());
+  comment.set_internal_id(comment_data->comment_id);
+  comment.set_persistent(comment_data->persistent);
+  comment.set_source(comment_data->source ==
+                             com::centreon::engine::comment::src::internal
+                         ? com::centreon::broker::Comment_Src_INTERNAL
+                         : com::centreon::broker::Comment_Src_EXTERNAL);
+
+  // Send event.
+  gl_publisher.write(h);
   return 0;
 }
 

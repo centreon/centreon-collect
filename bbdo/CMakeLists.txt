@@ -5,7 +5,7 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,6 +17,7 @@
 #
 
 set(protobuf_files
+  proto_header
   rebuild_message
   remove_graph_message
   service
@@ -24,6 +25,7 @@ set(protobuf_files
   severity
   tag
   welcome
+  comment
 )
 
 foreach(name IN LISTS protobuf_files)
@@ -39,6 +41,22 @@ foreach(name IN LISTS protobuf_files)
 
   add_custom_target("target_${name}" DEPENDS "${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.cc" "${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.h")
 endforeach()
+
+add_library(
+  pb_comment_lib STATIC
+  comment.pb.cc
+  comment.pb.h
+)
+add_dependencies(pb_comment_lib target_comment)
+set_target_properties(pb_comment_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+add_library(
+  pb_header_lib STATIC
+  proto_header.pb.cc
+  proto_header.pb.h
+)
+add_dependencies(pb_header_lib target_proto_header)
+set_target_properties(pb_header_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 add_library(
   pb_welcome_lib STATIC

@@ -84,7 +84,7 @@ void (stream::*const stream::_neb_processing_table[])(
     &stream::_process_pb_host_status,
     &stream::_process_severity,
     &stream::_process_tag,
-};
+    &stream::_process_pb_comment};
 
 stream::stream(const database_config& dbcfg,
                uint32_t rrd_len,

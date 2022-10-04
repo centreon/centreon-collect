@@ -23,6 +23,7 @@
 #define CCE_BROKER_HH
 
 #include "com/centreon/engine/commands/command.hh"
+#include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/events/timed_event.hh"
 #include "com/centreon/engine/timeperiod.hh"
 
@@ -381,15 +382,15 @@ void broker_command_data(int type,
                          com::centreon::engine::commands::command* cmd,
                          struct timeval const* timestamp);
 void broker_comment_data(int type,
-                         int comment_type,
-                         int entry_type,
+                         com::centreon::engine::comment::type comment_type,
+                         com::centreon::engine::comment::e_type entry_type,
                          uint64_t host_id,
                          uint64_t service_id,
                          time_t entry_time,
                          char const* author_name,
                          char const* comment_data,
                          int persistent,
-                         int source,
+                         com::centreon::engine::comment::src source,
                          int expires,
                          time_t expire_time,
                          unsigned long comment_id);

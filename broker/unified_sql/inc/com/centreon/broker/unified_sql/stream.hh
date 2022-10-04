@@ -260,6 +260,7 @@ class stream : public io::stream {
 
   database::mysql_stmt _acknowledgement_insupdate;
   database::mysql_stmt _comment_insupdate;
+  database::mysql_stmt _pb_comment_insupdate;
   database::mysql_stmt _custom_variable_delete;
   database::mysql_stmt _custom_variable_status_insupdate;
   database::mysql_stmt _downtime_insupdate;
@@ -319,6 +320,7 @@ class stream : public io::stream {
 
   void _process_acknowledgement(const std::shared_ptr<io::data>& d);
   void _process_comment(const std::shared_ptr<io::data>& d);
+  void _process_pb_comment(const std::shared_ptr<io::data>& d);
   void _process_custom_variable(const std::shared_ptr<io::data>& d);
   void _process_custom_variable_status(const std::shared_ptr<io::data>& d);
   void _process_downtime(const std::shared_ptr<io::data>& d);

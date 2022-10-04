@@ -135,11 +135,13 @@ bool mysql_connection::_try_to_reconnect() {
   std::lock_guard<std::mutex> lck(_start_m);
 
   _clear_connection();
-  log_v2::sql()->info(
+  SPDLOG_LOGGER_INFO(
+      log_v2::sql(),
       "mysql_connection: server has gone away, attempt to reconnect");
   _conn = mysql_init(nullptr);
   if (!_conn) {
-    log_v2::sql()->error("mysql_connection: reconnection failed.");
+    SPDLOG_LOGGER_ERROR(log_v2::sql(),
+                        "mysql_connection: reconnection failed.");
     return false;
   }
 
@@ -150,7 +152,8 @@ bool mysql_connection::_try_to_reconnect() {
                           _name.c_str(), _port,
                           (_socket == "" ? nullptr : _socket.c_str()),
                           CLIENT_FOUND_ROWS)) {
-    log_v2::sql()->error(
+    SPDLOG_LOGGER_ERROR(
+        log_v2::sql(),
         "mysql_connection: The mysql/mariadb database seems not started.");
     return false;
   }
@@ -164,13 +167,15 @@ bool mysql_connection::_try_to_reconnect() {
        ++itq) {
     MYSQL_STMT* s = mysql_stmt_init(_conn);
     if (!s) {
-      log_v2::sql()->error(
+      SPDLOG_LOGGER_ERROR(
+          log_v2::sql(),
           "mysql_connection: impossible to reset prepared statements");
       fail = true;
       break;
     } else {
       if (mysql_stmt_prepare(s, itq->second.c_str(), itq->second.size())) {
-        log_v2::sql()->error("mysql_connection: {}", mysql_stmt_error(s));
+        SPDLOG_LOGGER_ERROR(log_v2::sql(), "mysql_connection: {}",
+                            mysql_stmt_error(s));
         fail = true;
         break;
       } else
@@ -188,11 +193,12 @@ bool mysql_connection::_try_to_reconnect() {
 
 void mysql_connection::_query(mysql_task* t) {
   mysql_task_run* task(static_cast<mysql_task_run*>(t));
-  log_v2::sql()->debug("mysql_connection: run query: {}", task->query);
+  SPDLOG_LOGGER_DEBUG(log_v2::sql(), "mysql_connection: run query: {}",
+                      task->query);
   if (mysql_query(_conn, task->query.c_str())) {
     const char* m = mysql_error::msg[task->error_code];
     std::string err_msg(fmt::format("{} {}", m, ::mysql_error(_conn)));
-    log_v2::sql()->error("mysql_connection: {}", err_msg);
+    SPDLOG_LOGGER_ERROR(log_v2::sql(), "mysql_connection: {}", err_msg);
     if (task->fatal || _server_error(::mysql_errno(_conn)))
       set_error_message(err_msg);
   } else
@@ -201,10 +207,11 @@ void mysql_connection::_query(mysql_task* t) {
 
 void mysql_connection::_query_res(mysql_task* t) {
   mysql_task_run_res* task(static_cast<mysql_task_run_res*>(t));
-  log_v2::sql()->debug("mysql_connection: run query: {}", task->query);
+  SPDLOG_LOGGER_DEBUG(log_v2::sql(), "mysql_connection: run query: {}",
+                      task->query);
   if (mysql_query(_conn, task->query.c_str())) {
     std::string err_msg(::mysql_error(_conn));
-    log_v2::sql()->error("mysql_connection: {}", err_msg);
+    SPDLOG_LOGGER_ERROR(log_v2::sql(), "mysql_connection: {}", err_msg);
     if (_server_error(mysql_errno(_conn)))
       set_error_message(err_msg);
 
@@ -219,10 +226,11 @@ void mysql_connection::_query_res(mysql_task* t) {
 
 void mysql_connection::_query_int(mysql_task* t) {
   mysql_task_run_int* task(static_cast<mysql_task_run_int*>(t));
-  log_v2::sql()->debug("mysql_connection: run query: {}", task->query);
+  SPDLOG_LOGGER_DEBUG(log_v2::sql(), "mysql_connection: run query: {}",
+                      task->query);
   if (mysql_query(_conn, task->query.c_str())) {
     std::string err_msg(::mysql_error(_conn));
-    log_v2::sql()->error("mysql_connection: {}", err_msg);
+    SPDLOG_LOGGER_ERROR(log_v2::sql(), "mysql_connection: {}", err_msg);
     if (_server_error(::mysql_errno(_conn)))
       set_error_message(err_msg);
 
@@ -244,14 +252,14 @@ void mysql_connection::_commit(mysql_task* t) {
   int res;
   std::string err_msg;
   if (_need_commit) {
-    log_v2::sql()->debug("mysql_connection: commit");
+    SPDLOG_LOGGER_DEBUG(log_v2::sql(), "mysql_connection: commit");
     while (attempts++ < MAX_ATTEMPTS && (res = mysql_commit(_conn))) {
       err_msg = ::mysql_error(_conn);
       if (_server_error(::mysql_errno(_conn))) {
         set_error_message(err_msg);
         break;
       }
-      log_v2::sql()->error("mysql_connection: {}", err_msg);
+      SPDLOG_LOGGER_ERROR(log_v2::sql(), "mysql_connection: {}", err_msg);
       std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
     if (res == 0)
@@ -262,7 +270,7 @@ void mysql_connection::_commit(mysql_task* t) {
   if (res) {
     std::string err_msg(
         fmt::format("Error during commit: {}", ::mysql_error(_conn)));
-    log_v2::sql()->error("mysql_connection: {}", err_msg);
+    SPDLOG_LOGGER_ERROR(log_v2::sql(), "mysql_connection: {}", err_msg);
     set_error_message(err_msg);
   } else {
     /* No more queries are waiting for a commit now. */
@@ -274,23 +282,24 @@ void mysql_connection::_commit(mysql_task* t) {
 void mysql_connection::_prepare(mysql_task* t) {
   mysql_task_prepare* task(static_cast<mysql_task_prepare*>(t));
   if (_stmt.find(task->id) != _stmt.end()) {
-    log_v2::sql()->error(
-        "mysql_connection: Statement already prepared: {} ({})", task->id,
-        task->query);
+    SPDLOG_LOGGER_ERROR(log_v2::sql(),
+                        "mysql_connection: Statement already prepared: {} ({})",
+                        task->id, task->query);
     assert(1 == 0);
     return;
   }
 
   _stmt_query[task->id] = task->query;
-  log_v2::sql()->debug("mysql_connection: prepare statement {}: {}", task->id,
-                       task->query);
+  SPDLOG_LOGGER_DEBUG(log_v2::sql(),
+                      "mysql_connection: prepare statement {}: {}", task->id,
+                      task->query);
   MYSQL_STMT* stmt(mysql_stmt_init(_conn));
   if (!stmt)
     set_error_message("statement initialization failed: insuffisant memory");
   else {
     if (mysql_stmt_prepare(stmt, task->query.c_str(), task->query.size())) {
       std::string err_msg(::mysql_stmt_error(stmt));
-      log_v2::sql()->error("mysql_connection: {}", err_msg);
+      SPDLOG_LOGGER_ERROR(log_v2::sql(), "mysql_connection: {}", err_msg);
       set_error_message(err_msg);
     } else
       _stmt[task->id] = stmt;
@@ -299,11 +308,13 @@ void mysql_connection::_prepare(mysql_task* t) {
 
 void mysql_connection::_statement(mysql_task* t) {
   mysql_task_statement* task(static_cast<mysql_task_statement*>(t));
-  log_v2::sql()->debug("mysql_connection: execute statement {}: {}",
-                       task->statement_id, _stmt_query[task->statement_id]);
+  SPDLOG_LOGGER_DEBUG(log_v2::sql(),
+                      "mysql_connection: execute statement {}: {}",
+                      task->statement_id, _stmt_query[task->statement_id]);
   MYSQL_STMT* stmt(_stmt[task->statement_id]);
   if (!stmt) {
-    log_v2::sql()->error("mysql_connection: no statement to execute");
+    SPDLOG_LOGGER_ERROR(log_v2::sql(),
+                        "mysql_connection: no statement to execute");
     set_error_message("statement {} not prepared", task->statement_id);
     return;
   }
@@ -313,11 +324,12 @@ void mysql_connection::_statement(mysql_task* t) {
 
   if (bb && mysql_stmt_bind_param(stmt, bb)) {
     std::string err_msg(::mysql_stmt_error(stmt));
-    log_v2::sql()->error("mysql_connection: {}", err_msg);
+    SPDLOG_LOGGER_ERROR(log_v2::sql(), "mysql_connection: {}", err_msg);
     if (task->fatal)
       set_error_message(err_msg);
     else {
-      log_v2::sql()->error(
+      SPDLOG_LOGGER_ERROR(
+          log_v2::sql(),
           "mysql_connection: Error while binding values in statement: {}",
           err_msg);
     }
@@ -341,7 +353,7 @@ void mysql_connection::_statement(mysql_task* t) {
           break;
         }
 
-        log_v2::sql()->error("mysql_connection: {}", err_msg);
+        SPDLOG_LOGGER_ERROR(log_v2::sql(), "mysql_connection: {}", err_msg);
         if (++attempts >= MAX_ATTEMPTS) {
           if (task->fatal || _server_error(::mysql_stmt_errno(stmt)))
             set_error_message("{} {}", mysql_error::msg[task->error_code],
@@ -359,11 +371,13 @@ void mysql_connection::_statement(mysql_task* t) {
 
 void mysql_connection::_statement_res(mysql_task* t) {
   mysql_task_statement_res* task(static_cast<mysql_task_statement_res*>(t));
-  log_v2::sql()->debug("mysql_connection: execute statement {}: {}",
-                       task->statement_id, _stmt_query[task->statement_id]);
+  SPDLOG_LOGGER_DEBUG(log_v2::sql(),
+                      "mysql_connection: execute statement {}: {}",
+                      task->statement_id, _stmt_query[task->statement_id]);
   MYSQL_STMT* stmt(_stmt[task->statement_id]);
   if (!stmt) {
-    log_v2::sql()->error("mysql_connection: no statement to execute");
+    SPDLOG_LOGGER_ERROR(log_v2::sql(),
+                        "mysql_connection: no statement to execute");
     msg_fmt e("statement not prepared");
     task->promise.set_exception(std::make_exception_ptr<msg_fmt>(e));
     return;
@@ -374,7 +388,7 @@ void mysql_connection::_statement_res(mysql_task* t) {
 
   if (bb && mysql_stmt_bind_param(stmt, bb)) {
     std::string err_msg(::mysql_stmt_error(stmt));
-    log_v2::sql()->error("mysql_connection: {}", err_msg);
+    SPDLOG_LOGGER_ERROR(log_v2::sql(), "mysql_connection: {}", err_msg);
     msg_fmt e("statement and get result failed: {}", err_msg);
     task->promise.set_exception(std::make_exception_ptr<msg_fmt>(e));
   } else {
@@ -397,7 +411,7 @@ void mysql_connection::_statement_res(mysql_task* t) {
           break;
         }
 
-        log_v2::sql()->error("mysql_connection: {}", err_msg);
+        SPDLOG_LOGGER_ERROR(log_v2::sql(), "mysql_connection: {}", err_msg);
         if (++attempts >= MAX_ATTEMPTS) {
           msg_fmt e(err_msg);
           task->promise.set_exception(std::make_exception_ptr<msg_fmt>(e));
@@ -451,11 +465,13 @@ template <typename T>
 void mysql_connection::_statement_int(mysql_task* t) {
   mysql_task_statement_int<T>* task(
       static_cast<mysql_task_statement_int<T>*>(t));
-  log_v2::sql()->debug("mysql_connection: execute statement {}: {}",
-                       task->statement_id, _stmt_query[task->statement_id]);
+  SPDLOG_LOGGER_DEBUG(log_v2::sql(),
+                      "mysql_connection: execute statement {}: {}",
+                      task->statement_id, _stmt_query[task->statement_id]);
   MYSQL_STMT* stmt(_stmt[task->statement_id]);
   if (!stmt) {
-    log_v2::sql()->error("mysql_connection: no statement to execute");
+    SPDLOG_LOGGER_ERROR(log_v2::sql(),
+                        "mysql_connection: no statement to execute");
     msg_fmt e("statement not prepared");
     task->promise.set_exception(std::make_exception_ptr<msg_fmt>(e));
     return;
@@ -466,7 +482,7 @@ void mysql_connection::_statement_int(mysql_task* t) {
 
   if (bb && mysql_stmt_bind_param(stmt, bb)) {
     std::string err_msg(::mysql_stmt_error(stmt));
-    log_v2::sql()->error("mysql_connection: {}", err_msg);
+    SPDLOG_LOGGER_ERROR(log_v2::sql(), "mysql_connection: {}", err_msg);
     msg_fmt e(err_msg);
     task->promise.set_exception(std::make_exception_ptr<msg_fmt>(e));
   } else {
@@ -618,7 +634,7 @@ void mysql_connection::_run() {
   }
 
   if (config::applier::mode == config::applier::finished) {
-    log_v2::sql()->debug("Connection over.");
+    SPDLOG_LOGGER_DEBUG(log_v2::sql(), "Connection over.");
     _state = finished;
     _start_condition.notify_all();
     lck.unlock();
@@ -654,17 +670,18 @@ void mysql_connection::_run() {
           _state = finished;
         else if (now >= _last_access + 30) {
           lock.unlock();
-          log_v2::sql()->trace("SQL: performing mysql_ping.");
+          SPDLOG_LOGGER_TRACE(log_v2::sql(), "SQL: performing mysql_ping.");
           if (mysql_ping(_conn)) {
             if (!_try_to_reconnect())
-              log_v2::sql()->error("SQL: Reconnection failed.");
+              SPDLOG_LOGGER_ERROR(log_v2::sql(), "SQL: Reconnection failed.");
           } else {
-            log_v2::sql()->trace("SQL: connection always alive");
+            SPDLOG_LOGGER_TRACE(log_v2::sql(), "SQL: connection always alive");
             _last_access = now;
           }
           lock.lock();
         } else
-          log_v2::sql()->trace(
+          SPDLOG_LOGGER_TRACE(
+              log_v2::sql(),
               "SQL: last access to the database for this connection for {}s",
               now - _last_access);
         continue;
@@ -679,7 +696,8 @@ void mysql_connection::_run() {
         if (_task_processing_table[task->type])
           (this->*(_task_processing_table[task->type]))(task.get());
         else {
-          log_v2::sql()->error("mysql_connection: Error type not managed...");
+          SPDLOG_LOGGER_ERROR(log_v2::sql(),
+                              "mysql_connection: Error type not managed...");
         }
       }
 
@@ -715,16 +733,17 @@ mysql_connection::mysql_connection(database_config const& db_cfg,
       _last_stats{std::time(nullptr)},
       _qps(db_cfg.get_queries_per_transaction()) {
   std::unique_lock<std::mutex> lck(_start_m);
-  log_v2::sql()->info("mysql_connection: starting connection");
+  SPDLOG_LOGGER_INFO(log_v2::sql(), "mysql_connection: starting connection");
   _thread = std::make_unique<std::thread>(&mysql_connection::_run, this);
   _start_condition.wait(lck, [this] { return _state != not_started; });
   if (_state == finished) {
     _thread->join();
-    log_v2::sql()->error("mysql_connection: error while starting connection");
+    SPDLOG_LOGGER_ERROR(log_v2::sql(),
+                        "mysql_connection: error while starting connection");
     throw msg_fmt("mysql_connection: error while starting connection");
   }
   pthread_setname_np(_thread->native_handle(), "mysql_connect");
-  log_v2::sql()->info("mysql_connection: connection started");
+  SPDLOG_LOGGER_INFO(log_v2::sql(), "mysql_connection: connection started");
   stats::center::instance().update(&SqlConnectionStats::set_waiting_tasks,
                                    _stats, 0);
 }
@@ -734,7 +753,7 @@ mysql_connection::mysql_connection(database_config const& db_cfg,
  * the end will occur only when all the queries will be played.
  */
 mysql_connection::~mysql_connection() {
-  log_v2::sql()->info("mysql_connection: finished");
+  SPDLOG_LOGGER_INFO(log_v2::sql(), "mysql_connection: finished");
   stats::center::instance().remove_connection(_stats);
   finish();
   _thread->join();
