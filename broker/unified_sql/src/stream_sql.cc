@@ -598,11 +598,9 @@ void stream::_process_pb_comment(const std::shared_ptr<io::data>& d) {
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_custom_variable(const std::shared_ptr<io::data>& d) {
-  // Cast object.
-  neb::custom_variable const& cv{
-      *static_cast<neb::custom_variable const*>(d.get())};
-
+void stream::_process_pb_custom_variable(const std::shared_ptr<io::data>& d) {
+  const CustomVariable& cv =
+      std::static_pointer_cast<neb::pb_custom_variable>(d)->obj();
   // Prepare queries.
   if (!_custom_variable_delete.prepared()) {
     query_preparator::event_unique unique;
@@ -614,17 +612,21 @@ void stream::_process_custom_variable(const std::shared_ptr<io::data>& d) {
   }
 
   // Processing.
-  if (cv.enabled) {
+  if (cv.enabled()) {
+    SPDLOG_LOGGER_INFO(log_v2::sql(),
+                       "SQL: enable custom variable '{}' of ({}, {})",
+                       cv.name(), cv.host_id(), cv.service_id());
+
     std::lock_guard<std::mutex> lck(_queues_m);
     _cv_queue.emplace_back(fmt::format(
         "('{}',{},{},'{}',{},{},{},'{}')",
         misc::string::escape(
-            cv.name, get_customvariables_col_size(customvariables_name)),
-        cv.host_id, cv.service_id,
+            cv.name(), get_customvariables_col_size(customvariables_name)),
+        cv.host_id(), cv.service_id(),
         misc::string::escape(
-            cv.default_value,
+            cv.default_value(),
             get_customvariables_col_size(customvariables_default_value)),
-        cv.modified ? 1 : 0, cv.var_type, cv.update_time,
+        cv.modified() ? 1 : 0, cv.var_type(), cv.update_time(),
         misc::string::escape(
             cv.value, get_customvariables_col_size(customvariables_value))));
     /* Here, we do not update the custom variable boolean ack flag,
