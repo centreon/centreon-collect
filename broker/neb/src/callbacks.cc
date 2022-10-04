@@ -84,7 +84,6 @@ static struct {
     {NEBCALLBACK_COMMENT_DATA, &neb::callback_comment},
     {NEBCALLBACK_DOWNTIME_DATA, &neb::callback_downtime},
     {NEBCALLBACK_EVENT_HANDLER_DATA, &neb::callback_event_handler},
-    {NEBCALLBACK_EXTERNAL_COMMAND_DATA, &neb::callback_external_command},
     {NEBCALLBACK_FLAPPING_DATA, &neb::callback_flapping_status},
     {NEBCALLBACK_HOST_CHECK_DATA, &neb::callback_host_check},
     {NEBCALLBACK_HOST_STATUS_DATA, &neb::callback_host_status},
@@ -427,6 +426,7 @@ int neb::callback_pb_custom_variable(int, void* data) {
           }
           ok_to_send = true;
         }
+        ok_to_send = true;
       }
     }
     // Service custom variable.
