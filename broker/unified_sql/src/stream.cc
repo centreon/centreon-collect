@@ -53,7 +53,7 @@ void (stream::*const stream::_neb_processing_table[])(
     &stream::_process_acknowledgement,
     &stream::_process_comment,
     &stream::_process_custom_variable,
-    &stream::_process_custom_variable_status,
+    nullptr,
     &stream::_process_downtime,
     &stream::_process_event_handler,
     nullptr,
