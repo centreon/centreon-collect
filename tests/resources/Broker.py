@@ -1257,7 +1257,7 @@ def get_indexes_to_rebuild(count: int):
                     value = value1
                     cursor.execute("DELETE FROM data_bin WHERE id_metric={} AND ctime >= {}".format(
                         r['metric_id'], start))
-                    for i in range(0, 24 * 60 * 60 * 30, 60 * 5):
+                    for i in range(0, 24 * 60 * 60 * 31, 60 * 5):
                         cursor.execute("INSERT INTO data_bin (id_metric, ctime, value, status) VALUES ({},{},{},'0')".format(
                             r['metric_id'], start + i, value))
                         if value == value1:
@@ -1426,7 +1426,7 @@ def compare_rrd_average_value(metric, value: float):
         return err < 0.05
     else:
         logger.console(
-            "It was impossible to get the average value from the file " + VAR_ROOT + "/lib/centreon/metrics/{}.rrd from the last 30 days".format(metric))
+           f"It was impossible to get the average value from the file {VAR_ROOT}/lib/centreon/metrics/{metric}.rrd from the last 30 days")
         return True
 
 
@@ -1493,7 +1493,7 @@ def add_bam_config_to_broker(name):
     else:
         filename = "central-rrd.json"
 
-    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r")
+    f = open(f"{ETC_ROOT}/centreon-broker/{filename}", "r")
     buf = f.read()
     f.close()
     conf = json.loads(buf)

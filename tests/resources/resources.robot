@@ -159,6 +159,7 @@ Save Logs
 	${failDir}=	Catenate	SEPARATOR=	failed/	${Test Name}
 	Create Directory	${failDir}
 	Copy files	${centralLog}	${failDir}
+	Copy files	${rrdLog}	${failDir}
 	Copy files	${moduleLog0}	${failDir}
 	Copy files	${engineLog0}	${failDir}
 	Copy files	${ENGINE_LOG}/config0/gcore_*	${failDir}
