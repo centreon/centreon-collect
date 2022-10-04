@@ -85,7 +85,7 @@ void (stream::*const stream::_neb_processing_table[])(
     &stream::_process_severity,
     &stream::_process_tag,
     &stream::_process_pb_comment,
-    nullptr,
+    &stream::_process_pb_downtime,
     &stream::_process_pb_custom_variable,
     &stream::_process_pb_custom_variable_status,
 

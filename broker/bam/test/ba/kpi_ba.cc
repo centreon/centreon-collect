@@ -459,12 +459,13 @@ TEST_F(KpiBA, KpiBaDtPb) {
   kpis[0]->service_update(ss, _visitor.get());
 
   /* Let's put a downtime on the service. */
-  auto dt = std::make_shared<neb::downtime>();
-  dt->host_id = 3;
-  dt->service_id = 1;
-  dt->entry_time = now + 12;
-  dt->actual_start_time = now + 12;
-  dt->was_started = true;
+  auto dt = std::make_shared<neb::pb_downtime>();
+  auto& dt_obj = dt->mut_obj();
+  dt_obj.set_host_id(3);
+  dt_obj.set_service_id(1);
+  dt_obj.set_entry_time(now + 12);
+  dt_obj.set_actual_start_time(now + 12);
+  dt_obj.set_started(true);
   kpis[0]->service_update(dt, _visitor.get());
 
   auto events = _visitor->queue();
@@ -688,25 +689,31 @@ TEST_F(KpiBA, KpiBaDtOffPb) {
   kpis[0]->service_update(ss, _visitor.get());
 
   /* Let's put a downtime on the service. */
-  auto dt = std::make_shared<neb::downtime>();
-  dt->host_id = 3;
-  dt->service_id = 1;
-  dt->entry_time = now + 12;
-  dt->actual_start_time = now + 12;
-  dt->actual_end_time = -1;
-  dt->was_started = true;
-  kpis[0]->service_update(dt, _visitor.get());
+  auto dt = std::make_shared<neb::pb_downtime>();
+  {
+    auto& dt_obj = dt->mut_obj();
+    dt_obj.set_host_id(3);
+    dt_obj.set_service_id(1);
+    dt_obj.set_entry_time(now + 12);
+    dt_obj.set_actual_start_time(now + 12);
+    dt_obj.set_actual_end_time(-1);
+    dt_obj.set_started(true);
+    kpis[0]->service_update(dt, _visitor.get());
+  }
 
   /* Let's remove the downtime from the service. */
-  dt = std::make_shared<neb::downtime>();
-  dt->host_id = 3;
-  dt->service_id = 1;
-  dt->entry_time = now + 12;
-  dt->actual_end_time = now + 20;
-  dt->deletion_time = now + 20;
-  dt->was_started = true;
-  dt->was_cancelled = true;
-  kpis[0]->service_update(dt, _visitor.get());
+  dt = std::make_shared<neb::pb_downtime>();
+  {
+    auto& dt_obj = dt->mut_obj();
+    dt_obj.set_host_id(3);
+    dt_obj.set_service_id(1);
+    dt_obj.set_entry_time(now + 12);
+    dt_obj.set_actual_end_time(now + 20);
+    dt_obj.set_deletion_time(now + 20);
+    dt_obj.set_started(true);
+    dt_obj.set_cancelled(true);
+    kpis[0]->service_update(dt, _visitor.get());
+  }
   ASSERT_TRUE(!test_ba->get_in_downtime());
 
   auto events = _visitor->queue();
@@ -907,26 +914,32 @@ TEST_F(KpiBA, KpiBaOkDtOffPb) {
   ss->mut_obj().set_service_id(1);
 
   /* Let's put a downtime on the service. */
-  auto dt = std::make_shared<neb::downtime>();
-  dt->host_id = 3;
-  dt->service_id = 1;
-  dt->entry_time = now + 12;
-  dt->actual_start_time = now + 12;
-  dt->actual_end_time = -1;
-  dt->was_started = true;
-  kpis[0]->service_update(dt, _visitor.get());
+  auto dt = std::make_shared<neb::pb_downtime>();
+  {
+    auto& dt_obj = dt->mut_obj();
+    dt_obj.set_host_id(3);
+    dt_obj.set_service_id(1);
+    dt_obj.set_entry_time(now + 12);
+    dt_obj.set_actual_start_time(now + 12);
+    dt_obj.set_actual_end_time(-1);
+    dt_obj.set_started(true);
+    kpis[0]->service_update(dt, _visitor.get());
+  }
   ASSERT_FALSE(test_ba->get_in_downtime());
 
   /* Let's remove the downtime from the service. */
-  dt = std::make_shared<neb::downtime>();
-  dt->host_id = 3;
-  dt->service_id = 1;
-  dt->entry_time = now + 12;
-  dt->actual_end_time = now + 20;
-  dt->deletion_time = now + 20;
-  dt->was_started = true;
-  dt->was_cancelled = true;
-  kpis[0]->service_update(dt, _visitor.get());
+  dt = std::make_shared<neb::pb_downtime>();
+  {
+    auto& dt_obj = dt->mut_obj();
+    dt_obj.set_host_id(3);
+    dt_obj.set_service_id(1);
+    dt_obj.set_entry_time(now + 12);
+    dt_obj.set_actual_end_time(now + 20);
+    dt_obj.set_deletion_time(now + 20);
+    dt_obj.set_started(true);
+    dt_obj.set_cancelled(true);
+    kpis[0]->service_update(dt, _visitor.get());
+  }
   ASSERT_FALSE(test_ba->get_in_downtime());
 }
 

@@ -272,24 +272,23 @@ void kpi_service::service_update(
  *  @param[out] visitor  Object that will receive events.
  */
 void kpi_service::service_update(
-    std::shared_ptr<neb::acknowledgement> const& ack,
+    const std::shared_ptr<neb::acknowledgement>& ack,
     io::stream* visitor) {
-  if (ack && ack->host_id == _host_id && ack->service_id == _service_id) {
-    // Log message.
-    log_v2::bam()->debug(
-        "BAM: KPI {} is getting an acknowledgement event for service ({}, {}) "
-        "entry_time {} ; deletion_time {}",
-        _id, _host_id, _service_id, ack->entry_time, ack->deletion_time);
+  assert(ack && ack->host_id == _host_id && ack->service_id == _service_id);
+  // Log message.
+  log_v2::bam()->debug(
+      "BAM: KPI {} is getting an acknowledgement event for service ({}, {}) "
+      "entry_time {} ; deletion_time {}",
+      _id, _host_id, _service_id, ack->entry_time, ack->deletion_time);
 
-    // Update information.
-    _acknowledged = ack->deletion_time.is_null();
+  // Update information.
+  _acknowledged = ack->deletion_time.is_null();
 
-    // Generate status event.
-    visit(visitor);
+  // Generate status event.
+  visit(visitor);
 
-    // Propagate change.
-    propagate_update(visitor);
-  }
+  // Propagate change.
+  propagate_update(visitor);
 }
 
 /**

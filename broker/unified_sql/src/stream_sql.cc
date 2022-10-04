@@ -713,7 +713,7 @@ void stream::_process_pb_custom_variable_status(
  */
 void stream::_process_downtime(const std::shared_ptr<io::data>& d) {
   // Cast object.
-  neb::downtime const& dd = *static_cast<neb::downtime const*>(d.get());
+  const neb::downtime& dd = *static_cast<neb::downtime const*>(d.get());
 
   // Log message.
   SPDLOG_LOGGER_INFO(log_v2::sql(),
@@ -749,6 +749,62 @@ void stream::_process_downtime(const std::shared_ptr<io::data>& d) {
         dd.triggered_by == 0 ? "NULL" : fmt::format("{}", dd.triggered_by),
         dd.was_cancelled, dd.was_started,
         misc::string::escape(dd.comment,
+                             get_downtimes_col_size(downtimes_comment_data))));
+  }
+}
+
+/**
+ *  Process a downtime (protobuf) event.
+ *
+ *  @param[in] e Uncasted downtime.
+ *
+ * @return The number of events that can be acknowledged.
+ */
+void stream::_process_pb_downtime(const std::shared_ptr<io::data>& d) {
+  // Cast object.
+  const neb::pb_downtime& dd = *static_cast<neb::pb_downtime const*>(d.get());
+  auto& dt_obj = dd.obj();
+
+  // Log message.
+  log_v2::sql()->info(
+      "SQL: processing pb downtime event (poller: {}"
+      ", host: {}, service: {}, start time: {}, end_time: {}"
+      ", actual start time: {}"
+      ", actual end time: {}"
+      ", duration: {}, entry time: {}"
+      ", deletion time: {})",
+      dt_obj.instance_id(), dt_obj.host_id(), dt_obj.service_id(),
+      dt_obj.start_time(), dt_obj.end_time(), dt_obj.actual_start_time(),
+      dt_obj.actual_end_time(), dt_obj.duration(), dt_obj.entry_time(),
+      dt_obj.deletion_time());
+
+  // Check if poller is valid.
+  if (_is_valid_poller(dt_obj.instance_id())) {
+    _downtimes_queue.emplace_back(fmt::format(
+        "({},{},'{}',{},{},{},{},{},{},{},{},{},{},{},{},{},{},'{}')",
+        dt_obj.actual_end_time() == 0
+            ? "NULL"
+            : fmt::format("{}", dt_obj.actual_end_time()),
+        dt_obj.actual_start_time() == 0
+            ? "NULL"
+            : fmt::format("{}", dt_obj.actual_start_time()),
+        misc::string::escape(dt_obj.author(),
+                             get_downtimes_col_size(downtimes_author)),
+        dt_obj.type(),
+        dt_obj.deletion_time() == 0 ? "NULL"
+                                    : fmt::format("{}", dt_obj.deletion_time()),
+        dt_obj.duration(),
+        dt_obj.end_time() == 0 ? "NULL" : fmt::format("{}", dt_obj.end_time()),
+        dt_obj.entry_time() == 0 ? "NULL"
+                                 : fmt::format("{}", dt_obj.entry_time()),
+        dt_obj.fixed(), dt_obj.host_id(), dt_obj.instance_id(), dt_obj.id(),
+        dt_obj.service_id(),
+        dt_obj.start_time() == 0 ? "NULL"
+                                 : fmt::format("{}", dt_obj.start_time()),
+        dt_obj.triggered_by() == 0 ? "NULL"
+                                   : fmt::format("{}", dt_obj.triggered_by()),
+        dt_obj.cancelled(), dt_obj.started(),
+        misc::string::escape(dt_obj.comment_data(),
                              get_downtimes_col_size(downtimes_comment_data))));
   }
 }
