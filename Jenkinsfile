@@ -18,7 +18,11 @@ if (env.CHANGE_BRANCH) {
 /*
 ** Branch management
 */
-if (env.BRANCH_NAME.startsWith('release-')) {
+
+if (env.BRANCH_NAME.startsWith('release-22.10.0-next')) {
+  env.BUILD = 'QA'
+  env.REPO = 'unstable'
+} else if (env.BRANCH_NAME.startsWith('release-')) {
   env.BUILD = 'RELEASE'
   env.REPO = 'testing'
 } else if ((env.BRANCH_NAME == env.REF_BRANCH) || (env.BRANCH_NAME == maintenanceBranch)) {
