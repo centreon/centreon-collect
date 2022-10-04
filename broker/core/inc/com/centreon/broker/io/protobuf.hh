@@ -88,6 +88,8 @@ class protobuf : public protobuf_base {
 
  public:
   using pb_type = T;
+  using this_type = protobuf<T, Typ>;
+  using shared_ptr = std::shared_ptr<this_type>;
 
   /**
    * @brief Default constructor

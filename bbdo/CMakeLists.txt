@@ -26,6 +26,7 @@ set(protobuf_files
   tag
   welcome
   comment
+  neb_proto
 )
 
 foreach(name IN LISTS protobuf_files)
@@ -57,6 +58,14 @@ add_library(
 )
 add_dependencies(pb_header_lib target_proto_header)
 set_target_properties(pb_header_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+add_library(
+  pb_neb_proto_lib STATIC
+  neb_proto.pb.cc
+  neb_proto.pb.h
+)
+add_dependencies(pb_neb_proto_lib target_neb_proto target_proto_header)
+set_target_properties(pb_neb_proto_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 add_library(
   pb_welcome_lib STATIC

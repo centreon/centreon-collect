@@ -53,7 +53,7 @@ void (stream::*const stream::_neb_processing_table[])(
     &stream::_process_acknowledgement,
     &stream::_process_comment,
     &stream::_process_custom_variable,
-    &stream::_process_custom_variable_status,
+    nullptr,
     &stream::_process_downtime,
     &stream::_process_event_handler,
     &stream::_process_flapping_status,
@@ -84,7 +84,11 @@ void (stream::*const stream::_neb_processing_table[])(
     &stream::_process_pb_host_status,
     &stream::_process_severity,
     &stream::_process_tag,
-    &stream::_process_pb_comment};
+    &stream::_process_pb_comment,
+    nullptr,
+    &stream::_process_pb_custom_variable,
+
+};
 
 stream::stream(const database_config& dbcfg,
                uint32_t rrd_len,
@@ -124,7 +128,7 @@ stream::stream(const database_config& dbcfg,
       _stats{stats::center::instance().register_conflict_manager()},
       _group_clean_timer{pool::io_context()},
       _oldest_timestamp{std::numeric_limits<time_t>::max()} {
-  log_v2::sql()->debug("unified sql: stream class instanciation");
+  SPDLOG_LOGGER_DEBUG(log_v2::sql(), "unified sql: stream class instanciation");
   stats::center::instance().execute([stats = _stats,
                                      loop_timeout = _loop_timeout,
                                      max_queries = _max_pending_queries] {
@@ -137,13 +141,14 @@ stream::stream(const database_config& dbcfg,
   try {
     _load_caches();
   } catch (const std::exception& e) {
-    log_v2::sql()->error("error while loading caches: {}", e.what());
+    SPDLOG_LOGGER_ERROR(log_v2::sql(), "error while loading caches: {}",
+                        e.what());
     throw;
   }
   _queues_timer.expires_after(std::chrono::seconds(queue_timer_duration));
   _queues_timer.async_wait(
       std::bind(&stream::_check_queues, this, std::placeholders::_1));
-  log_v2::sql()->info("Unified sql stream running");
+  SPDLOG_LOGGER_INFO(log_v2::sql(), "Unified sql stream running");
 }
 
 stream::~stream() noexcept {
@@ -158,7 +163,7 @@ stream::~stream() noexcept {
   });
   p.get_future().wait();
 
-  log_v2::sql()->debug("unified sql: stream destruction");
+  SPDLOG_LOGGER_DEBUG(log_v2::sql(), "unified sql: stream destruction");
 }
 
 void stream::_load_deleted_instances() {
@@ -172,7 +177,8 @@ void stream::_load_deleted_instances() {
     while (_mysql.fetch_row(res)) {
       int32_t instance_id = res.value_as_i32(0);
       if (instance_id <= 0)
-        log_v2::sql()->error(
+        SPDLOG_LOGGER_ERROR(
+            log_v2::sql(),
             "unified_sql: The 'instances' table contains rows with instance_id "
             "<= 0 ; you should remove them.");
       else
@@ -295,12 +301,14 @@ void stream::_load_caches() {
       int32_t service_id = res.value_as_i32(2);
       if (host_id <= 0 || service_id <= 0) {
         if (host_id <= 0)
-          log_v2::sql()->error(
+          SPDLOG_LOGGER_ERROR(
+              log_v2::sql(),
               "unified_sql: the 'index_data' table contains rows with host_id "
               "<= "
               "0, you should remove them.");
         if (service_id <= 0)
-          log_v2::sql()->error(
+          SPDLOG_LOGGER_ERROR(
+              log_v2::sql(),
               "unified_sql: the 'index_data' table contains rows with "
               "service_id "
               "<= 0, you should remove them.");
@@ -333,11 +341,13 @@ void stream::_load_caches() {
         _cache_host_instance[host_id] = instance_id;
       else {
         if (host_id <= 0)
-          log_v2::sql()->error(
+          SPDLOG_LOGGER_ERROR(
+              log_v2::sql(),
               "unified_sql: the 'hosts' table contains rows with host_id <= 0, "
               "you should remove them.");
         if (instance_id <= 0)
-          log_v2::sql()->error(
+          SPDLOG_LOGGER_ERROR(
+              log_v2::sql(),
               "unified_sql: the 'hosts' table contains rows with instance_id "
               "<= 0, you should remove them.");
       }
@@ -356,7 +366,8 @@ void stream::_load_caches() {
       if (hg_id > 0)
         _hostgroup_cache.insert(hg_id);
       else
-        log_v2::sql()->error(
+        SPDLOG_LOGGER_ERROR(
+            log_v2::sql(),
             "unified_sql: the table 'hostgroups' contains rows with "
             "hostgroup_id <= 0, you should remove them.");
     }
@@ -371,7 +382,8 @@ void stream::_load_caches() {
     while (_mysql.fetch_row(res)) {
       int32_t sg_id = res.value_as_i32(0);
       if (sg_id <= 0)
-        log_v2::sql()->error(
+        SPDLOG_LOGGER_ERROR(
+            log_v2::sql(),
             "unified_sql: the 'servicegroups' table contains rows with "
             "servicegroup_id <= 0, you should remove them.");
       else
@@ -401,7 +413,8 @@ void stream::_load_caches() {
         int32_t metric_id = res.value_as_i32(0);
 
         if (metric_id <= 0)
-          log_v2::sql()->error(
+          SPDLOG_LOGGER_ERROR(
+              log_v2::sql(),
               "unified_sql: the 'metrics' table contains row with metric_id "
               "<= 0 ; you should remove them.");
         else {
@@ -516,13 +529,14 @@ void stream::_finish_action(int32_t conn, uint32_t action) {
  *  events.
  */
 void stream::_finish_actions() {
-  log_v2::sql()->trace("unified sql: finish actions");
+  SPDLOG_LOGGER_TRACE(log_v2::sql(), "unified sql: finish actions");
   _mysql.commit();
   for (uint32_t& v : _action)
     v = actions::none;
   _ack += _processed;
   _processed = 0;
-  log_v2::sql()->trace("finish actions processed = {}", _processed);
+  SPDLOG_LOGGER_TRACE(log_v2::sql(), "finish actions processed = {}",
+                      _processed);
 }
 
 /**
@@ -581,24 +595,29 @@ int32_t stream::write(const std::shared_ptr<io::data>& data) {
   ++_pending_events;
   assert(data);
 
-  log_v2::sql()->trace("unified sql: write event category:{}, element:{}",
-                       category_of_type(data->type()),
-                       element_of_type(data->type()));
+  SPDLOG_LOGGER_TRACE(
+      log_v2::sql(), "unified sql: write event category:{}, element:{}",
+      category_of_type(data->type()), element_of_type(data->type()));
 
   uint32_t type = data->type();
   uint16_t cat = category_of_type(type);
   uint16_t elem = element_of_type(type);
   if (cat == io::neb) {
-    (this->*(_neb_processing_table[elem]))(data);
+    if (_neb_processing_table[elem]) {
+      (this->*(_neb_processing_table[elem]))(data);
+    } else {
+      SPDLOG_LOGGER_ERROR(log_v2::sql(), "unknown neb event type: {}", elem);
+    }
   } else if (type == make_type(io::bbdo, bbdo::de_rebuild_graphs))
     _rebuilder.rebuild_graphs(data);
   else if (type == make_type(io::bbdo, bbdo::de_remove_graphs))
     remove_graphs(data);
   else if (type == make_type(io::bbdo, bbdo::de_remove_poller)) {
-    log_v2::sql()->info("remove poller...");
+    SPDLOG_LOGGER_INFO(log_v2::sql(), "remove poller...");
     remove_poller(data);
   } else {
-    log_v2::sql()->trace(
+    SPDLOG_LOGGER_TRACE(
+        log_v2::sql(),
         "unified sql: event of type {} thrown away ; no need to store it in "
         "the database.",
         type);
@@ -632,8 +651,8 @@ int32_t stream::flush() {
   _ack -= retval;
   _pending_events -= retval;
   // Event acknowledgement.
-  log_v2::sql()->trace("SQL: {} / {} events acknowledged", retval,
-                       _pending_events);
+  SPDLOG_LOGGER_TRACE(log_v2::sql(), "SQL: {} / {} events acknowledged", retval,
+                      _pending_events);
   return retval;
 }
 
@@ -666,9 +685,10 @@ int32_t stream::stop() {
   std::unique_lock<std::mutex> lck(_queues_m);
   if (_queues_cond_var.wait_for(lck, std::chrono::seconds(queue_timer_duration),
                                 [this] { return _check_queues_stopped; })) {
-    log_v2::sql()->info("SQL: stream correctly stopped");
+    SPDLOG_LOGGER_INFO(log_v2::sql(), "SQL: stream correctly stopped");
   } else {
-    log_v2::sql()->error("SQL: stream queues check still running...");
+    SPDLOG_LOGGER_ERROR(log_v2::sql(),
+                        "SQL: stream queues check still running...");
   }
 
   return retval;
@@ -680,7 +700,7 @@ int32_t stream::stop() {
  * @param d The BBDO message with all the metrics/indexes to remove.
  */
 void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
-  log_v2::sql()->info("remove graphs call");
+  SPDLOG_LOGGER_INFO(log_v2::sql(), "remove graphs call");
   asio::post(pool::instance().io_context(), [this, data = d] {
     mysql ms(_dbcfg);
     bbdo::pb_remove_graphs* ids =
@@ -709,15 +729,18 @@ void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
           int32_t service_id = res.value_as_i32(4);
           if (mid <= 0 || host_id <= 0 || service_id <= 0) {
             if (mid <= 0)
-              log_v2::sql()->error(
+              SPDLOG_LOGGER_ERROR(
+                  log_v2::sql(),
                   "unified_sql: the 'metrics' table contains rows with "
                   "metric_id <= 0 ; you should remove them.");
             if (host_id <= 0)
-              log_v2::sql()->error(
+              SPDLOG_LOGGER_ERROR(
+                  log_v2::sql(),
                   "unified_sql: the 'metrics' table contains rows with host_id "
                   "<= 0 ; you should remove them.");
             if (service_id <= 0)
-              log_v2::sql()->error(
+              SPDLOG_LOGGER_ERROR(
+                  log_v2::sql(),
                   "unified_sql: the 'metrics' table contains rows with "
                   "service_id <= 0 ; you should remove them.");
           } else {
@@ -744,7 +767,8 @@ void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
         while (ms.fetch_row(res)) {
           int32_t metric_id = res.value_as_i32(1);
           if (metric_id <= 0)
-            log_v2::sql()->error(
+            SPDLOG_LOGGER_ERROR(
+                log_v2::sql(),
                 "unified_sql: the 'metrics' table contains rows with metric_id "
                 "<= 0 ; you should remove them.");
           else {
@@ -754,7 +778,8 @@ void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
         }
       }
     } catch (const std::exception& e) {
-      log_v2::sql()->error(
+      SPDLOG_LOGGER_ERROR(
+          log_v2::sql(),
           "could not query index / metrics table(s) to get index to delete: "
           "{} ",
           e.what());
@@ -762,14 +787,16 @@ void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
 
     std::string mids_str{fmt::format("{}", fmt::join(metrics_to_delete, ","))};
     if (!metrics_to_delete.empty()) {
-      log_v2::sql()->info("metrics {} erased from database", mids_str);
+      SPDLOG_LOGGER_INFO(log_v2::sql(), "metrics {} erased from database",
+                         mids_str);
       ms.run_query(
           fmt::format("DELETE FROM metrics WHERE metric_id in ({})", mids_str),
           database::mysql_error::delete_metric, false);
     }
     std::string ids_str{fmt::format("{}", fmt::join(indexes_to_delete, ","))};
     if (!indexes_to_delete.empty()) {
-      log_v2::sql()->info("indexes {} erased from database", ids_str);
+      SPDLOG_LOGGER_INFO(log_v2::sql(), "indexes {} erased from database",
+                         ids_str);
       ms.run_query(
           fmt::format("DELETE FROM index_data WHERE id in ({})", ids_str),
           database::mysql_error::delete_index, false);
@@ -781,12 +808,14 @@ void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
         rmg->mut_obj().add_metric_ids(i);
       for (uint64_t i : indexes_to_delete)
         rmg->mut_obj().add_index_ids(i);
-      log_v2::sql()->info(
+      SPDLOG_LOGGER_INFO(
+          log_v2::sql(),
           "publishing pb remove graph with {} metrics and {} indexes",
           metrics_to_delete.size(), indexes_to_delete.size());
       multiplexing::publisher().write(rmg);
     } else
-      log_v2::sql()->info(
+      SPDLOG_LOGGER_INFO(
+          log_v2::sql(),
           "metrics {} and indexes {} do not appear in the storage database",
           mids_str, ids_str);
   });
@@ -820,7 +849,8 @@ void stream::remove_poller(const std::shared_ptr<io::data>& d) {
         ids.push_back(res.value_as_u64(0));
       }
       if (count == 0) {
-        log_v2::sql()->warn(
+        SPDLOG_LOGGER_WARN(
+            log_v2::sql(),
             "Unable to remove poller '{}', {} not running found in the "
             "database",
             poller.obj().str(), count == 0 ? "none" : "more than one");
@@ -835,7 +865,8 @@ void stream::remove_poller(const std::shared_ptr<io::data>& d) {
         while (_mysql.fetch_row(res)) {
           if (!config::applier::state::instance().has_connection_from_poller(
                   res.value_as_u64(0))) {
-            log_v2::sql()->warn(
+            SPDLOG_LOGGER_WARN(
+                log_v2::sql(),
                 "The poller '{}' id {} is not connected (even if it looks "
                 "running or not deleted)",
                 poller.obj().str(), res.value_as_u64(0));
@@ -858,7 +889,8 @@ void stream::remove_poller(const std::shared_ptr<io::data>& d) {
         ids.push_back(res.value_as_u64(0));
       }
       if (count == 0) {
-        log_v2::sql()->warn(
+        SPDLOG_LOGGER_WARN(
+            log_v2::sql(),
             "Unable to remove poller {}, {} not running found in the "
             "database",
             poller.obj().idx(), count == 0 ? "none" : "more than one");
@@ -873,7 +905,8 @@ void stream::remove_poller(const std::shared_ptr<io::data>& d) {
         while (_mysql.fetch_row(res)) {
           if (!config::applier::state::instance().has_connection_from_poller(
                   poller.obj().idx())) {
-            log_v2::sql()->warn(
+            SPDLOG_LOGGER_WARN(
+                log_v2::sql(),
                 "The poller '{}' id {} is not connected (even if it looks "
                 "running or not deleted)",
                 res.value_as_str(0), poller.obj().idx());
@@ -886,16 +919,18 @@ void stream::remove_poller(const std::shared_ptr<io::data>& d) {
 
     for (uint64_t id : ids) {
       conn = _mysql.choose_connection_by_instance(id);
-      log_v2::sql()->info("unified sql: removing poller {}", id);
+      SPDLOG_LOGGER_INFO(log_v2::sql(), "unified sql: removing poller {}", id);
       _mysql.run_query(
           fmt::format("DELETE FROM instances WHERE instance_id={}", id),
           database::mysql_error::delete_poller, false, conn);
-      log_v2::sql()->trace("unified sql: removing poller {} hosts", id);
+      SPDLOG_LOGGER_TRACE(log_v2::sql(),
+                          "unified sql: removing poller {} hosts", id);
       _mysql.run_query(
           fmt::format("DELETE FROM hosts WHERE instance_id={}", id),
           database::mysql_error::delete_poller, false, conn);
 
-      log_v2::sql()->trace("unified sql: removing poller {} resources", id);
+      SPDLOG_LOGGER_TRACE(log_v2::sql(),
+                          "unified sql: removing poller {} resources", id);
       _mysql.run_query(
           fmt::format("DELETE FROM resources WHERE poller_id={}", id),
           database::mysql_error::delete_poller, false, conn);
@@ -903,8 +938,9 @@ void stream::remove_poller(const std::shared_ptr<io::data>& d) {
     }
     _clear_instances_cache(ids);
   } catch (const std::exception& e) {
-    log_v2::sql()->error("Error encountered while removing a poller: {}",
-                         e.what());
+    SPDLOG_LOGGER_ERROR(log_v2::sql(),
+                        "Error encountered while removing a poller: {}",
+                        e.what());
   }
 }
 
@@ -950,7 +986,7 @@ void stream::_clear_instances_cache(const std::list<uint64_t>& ids) {
 }
 
 void stream::update() {
-  log_v2::sql()->info("unified_sql stream update");
+  SPDLOG_LOGGER_INFO(log_v2::sql(), "unified_sql stream update");
   _check_deleted_index();
   _check_rebuild_index();
 }

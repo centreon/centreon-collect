@@ -474,6 +474,120 @@ void stream::_process_comment(const std::shared_ptr<io::data>& d) {
 }
 
 /**
+ *  Process a custom variable event (protobuf version).
+ *
+ *  @param[in] e Uncasted custom variable.
+ *
+ * @return The number of events that can be acknowledged.
+ */
+void stream::_process_pb_custom_variable(const std::shared_ptr<io::data>& d) {
+  const CustomVariable& cv =
+      std::static_pointer_cast<neb::pb_custom_variable>(d)->obj();
+  // Prepare queries.
+  if (!_custom_variable_delete.prepared()) {
+    query_preparator::event_unique unique;
+    unique.insert("host_id");
+    unique.insert("name");
+    unique.insert("service_id");
+    query_preparator qp(neb::custom_variable::static_type(), unique);
+    _custom_variable_delete = qp.prepare_delete(_mysql);
+  }
+
+  // Processing.
+  if (cv.enabled()) {
+    SPDLOG_LOGGER_INFO(log_v2::sql(),
+                       "SQL: enable custom variable '{}' of ({}, {})",
+                       cv.name(), cv.host_id(), cv.service_id());
+
+    std::lock_guard<std::mutex> lck(_queues_m);
+    _cv_queue.emplace_back(fmt::format(
+        "('{}',{},{},'{}',{},{},{},'{}')",
+        misc::string::escape(
+            cv.name(), get_customvariables_col_size(customvariables_name)),
+        cv.host_id(), cv.service_id(),
+        misc::string::escape(
+            cv.default_value(),
+            get_customvariables_col_size(customvariables_default_value)),
+        cv.modified() ? 1 : 0, cv.var_type(), cv.update_time(),
+        misc::string::escape(
+            cv.value(), get_customvariables_col_size(customvariables_value))));
+    /* Here, we do not update the custom variable boolean ack flag, because
+     * it will be updated later when the bulk query will be done:
+     * stream::_update_customvariables() */
+  } else {
+    int conn = special_conn::custom_variable % _mysql.connections_count();
+    _finish_action(-1, actions::custom_variables);
+
+    SPDLOG_LOGGER_INFO(log_v2::sql(),
+                       "SQL: disabling custom variable '{}' of ({}, {})",
+                       cv.name(), cv.host_id(), cv.service_id());
+    _custom_variable_delete.bind_value_as_i32(":host_id", cv.host_id());
+    _custom_variable_delete.bind_value_as_i32(":service_id", cv.service_id());
+    _custom_variable_delete.bind_value_as_str(":name", cv.name());
+
+    _mysql.run_statement(_custom_variable_delete,
+                         database::mysql_error::remove_customvariable, false,
+                         conn);
+    _add_action(conn, actions::custom_variables);
+  }
+}
+
+/**
+ *  Process a comment event.
+ *
+ *  @param[in] e  Uncasted comment.
+ *
+ * @return The number of events that can be acknowledged.
+ */
+void stream::_process_pb_comment(const std::shared_ptr<io::data>& d) {
+  auto comm_obj{static_cast<const neb::pb_comment*>(d.get())};
+  const neb::pb_comment::pb_type& comm = comm_obj->obj();
+
+  // Log message.
+  SPDLOG_LOGGER_INFO(
+      log_v2::sql(),
+      "SQL: processing pb comment (poller: {}, host: {}, serv: {})",
+      comm.instance_id(), comm.host_id(), comm.service_id());
+
+  // Processing
+  if (_is_valid_poller(comm.instance_id())) {
+    int32_t conn = _mysql.choose_connection_by_instance(comm.instance_id());
+
+    // Prepare queries.
+    if (!_pb_comment_insupdate.prepared()) {
+      query_preparator::event_pb_unique unique{
+          {10, "host_id", io::protobuf_base::invalid_on_zero, 0},
+          {14, "service_id", io::protobuf_base::invalid_on_zero, 0},
+          {6, "entry_time", io::protobuf_base::invalid_on_zero, 0},
+          {13, "instance_id", io::protobuf_base::invalid_on_zero, 0},
+          {11, "internal_id", io::protobuf_base::invalid_on_zero, 0}};
+      query_preparator qp(neb::pb_comment::static_type(), unique);
+      _pb_comment_insupdate = qp.prepare_insert_or_update_table(
+          _mysql, "comments",
+          {{2, "author", 0, get_comments_col_size(comments_author)},
+           {3, "type", 0, 0},
+           {4, "data", 0, get_comments_col_size(comments_data)},
+           {5, "deletion_time", 0, 0},
+           {6, "entry_time", 0, 0},
+           {7, "entry_type", 0, 0},
+           {8, "expire_time", 0, 0},
+           {9, "expires", 0, 0},
+           {10, "host_id", io::protobuf_base::invalid_on_zero, 0},
+           {11, "internal_id", io::protobuf_base::invalid_on_zero, 0},
+           {12, "persistent", 0, 0},
+           {13, "instance_id", io::protobuf_base::invalid_on_zero, 0},
+           {14, "service_id", 0, 0},
+           {15, "source", 0, 0}});
+    }
+    // Process object.
+    _pb_comment_insupdate << *comm_obj;
+    _mysql.run_statement(_pb_comment_insupdate,
+                         database::mysql_error::store_comment, false, conn);
+    _add_action(conn, actions::comments);
+  }
+}
+
+/**
  *  Process a comment event.
  *
  *  @param[in] e  Uncasted comment.
@@ -535,11 +649,9 @@ void stream::_process_pb_comment(const std::shared_ptr<io::data>& d) {
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_custom_variable(const std::shared_ptr<io::data>& d) {
-  // Cast object.
-  neb::custom_variable const& cv{
-      *static_cast<neb::custom_variable const*>(d.get())};
-
+void stream::_process_pb_custom_variable(const std::shared_ptr<io::data>& d) {
+  const CustomVariable& cv =
+      std::static_pointer_cast<neb::pb_custom_variable>(d)->obj();
   // Prepare queries.
   if (!_custom_variable_delete.prepared()) {
     query_preparator::event_unique unique;
@@ -551,17 +663,21 @@ void stream::_process_custom_variable(const std::shared_ptr<io::data>& d) {
   }
 
   // Processing.
-  if (cv.enabled) {
+  if (cv.enabled()) {
+    SPDLOG_LOGGER_INFO(log_v2::sql(),
+                       "SQL: enable custom variable '{}' of ({}, {})",
+                       cv.name(), cv.host_id(), cv.service_id());
+
     std::lock_guard<std::mutex> lck(_queues_m);
     _cv_queue.emplace_back(fmt::format(
         "('{}',{},{},'{}',{},{},{},'{}')",
         misc::string::escape(
-            cv.name, get_customvariables_col_size(customvariables_name)),
-        cv.host_id, cv.service_id,
+            cv.name(), get_customvariables_col_size(customvariables_name)),
+        cv.host_id(), cv.service_id(),
         misc::string::escape(
-            cv.default_value,
+            cv.default_value(),
             get_customvariables_col_size(customvariables_default_value)),
-        cv.modified ? 1 : 0, cv.var_type, cv.update_time,
+        cv.modified() ? 1 : 0, cv.var_type(), cv.update_time(),
         misc::string::escape(
             cv.value, get_customvariables_col_size(customvariables_value))));
     /* Here, we do not update the custom variable boolean ack flag,
@@ -583,35 +699,6 @@ void stream::_process_custom_variable(const std::shared_ptr<io::data>& d) {
                          conn);
     _add_action(conn, actions::custom_variables);
   }
-}
-
-/**
- *  Process a custom variable status event.
- *
- *  @param[in] e Uncasted custom variable status.
- *
- * @return The number of events that can be acknowledged.
- */
-void stream::_process_custom_variable_status(
-    const std::shared_ptr<io::data>& d) {
-  // Cast object.
-  neb::custom_variable_status const& cv{
-      *static_cast<neb::custom_variable_status const*>(d.get())};
-
-  {
-    std::lock_guard<std::mutex> lck(_queues_m);
-    _cvs_queue.emplace_back(fmt::format(
-        "('{}',{},{},{},{},'{}')",
-        misc::string::escape(
-            cv.name, get_customvariables_col_size(customvariables_name)),
-        cv.host_id, cv.service_id, cv.modified ? 1 : 0, cv.update_time,
-        misc::string::escape(
-            cv.value, get_customvariables_col_size(customvariables_value))));
-  }
-
-  SPDLOG_LOGGER_INFO(log_v2::sql(),
-                     "SQL: updating custom variable '{}' of ({}, {})", cv.name,
-                     cv.host_id, cv.service_id);
 }
 
 /**
@@ -690,9 +777,9 @@ void stream::_process_event_handler(const std::shared_ptr<io::data>& d) {
                      eh.host_id, eh.service_id, eh.start_time);
 
   if (!_host_instance_known(eh.host_id)) {
-    log_v2::sql()->warn(
-        "SQL: event handler for service ({0}, {1}) thrown away because "
-        "host "
+    SPDLOG_LOGGER_WARN(
+        log_v2::sql(),
+        "SQL: event handler for service ({0}, {1}) thrown away because host "
         "{0} is not known by any poller",
         eh.host_id, eh.service_id);
     return;
@@ -730,15 +817,14 @@ void stream::_process_flapping_status(const std::shared_ptr<io::data>& d) {
   // Log message.
   SPDLOG_LOGGER_INFO(
       log_v2::sql(),
-      "SQL: processing flapping status event (host: {}, service: {}, "
-      "entry "
+      "SQL: processing flapping status event (host: {}, service: {}, entry "
       "time: {})",
       fs.host_id, fs.service_id, fs.event_time);
 
   if (!_host_instance_known(fs.host_id)) {
-    log_v2::sql()->warn(
-        "SQL: service status ({0}, {1}) thrown away because host {0} "
-        "is not "
+    SPDLOG_LOGGER_WARN(
+        log_v2::sql(),
+        "SQL: service status ({0}, {1}) thrown away because host {0} is not "
         "known by any poller",
         fs.host_id, fs.service_id);
     return;
@@ -778,9 +864,9 @@ void stream::_process_host_check(const std::shared_ptr<io::data>& d) {
   // Cast object.
   neb::host_check const& hc = *static_cast<neb::host_check const*>(d.get());
   if (!_host_instance_known(hc.host_id)) {
-    log_v2::sql()->warn(
-        "SQL: host check for host{} thrown away because host is not "
-        "known by "
+    SPDLOG_LOGGER_WARN(
+        log_v2::sql(),
+        "SQL: host check for host{} thrown away because host is not known by "
         "any poller",
         hc.host_id);
     return;
@@ -831,8 +917,7 @@ void stream::_process_host_check(const std::shared_ptr<io::data>& d) {
     // Do nothing.
     SPDLOG_LOGGER_INFO(
         log_v2::sql(),
-        "SQL: not processing host check event (host: {}, command: {}, "
-        "check "
+        "SQL: not processing host check event (host: {}, command: {}, check "
         "type: {}, next check: {}, now: {})",
         hc.host_id, hc.command_line, hc.check_type, hc.next_check, now);
 }
@@ -882,11 +967,10 @@ void stream::_process_host_dependency(const std::shared_ptr<io::data>& d) {
     SPDLOG_LOGGER_INFO(log_v2::sql(),
                        "SQL: removing host dependency of {} on {}",
                        hd.dependent_host_id, hd.host_id);
-    std::string query(
-        fmt::format("DELETE FROM hosts_hosts_dependencies WHERE "
-                    "dependent_host_id={}"
-                    " AND host_id={}",
-                    hd.dependent_host_id, hd.host_id));
+    std::string query(fmt::format(
+        "DELETE FROM hosts_hosts_dependencies WHERE dependent_host_id={}"
+        " AND host_id={}",
+        hd.dependent_host_id, hd.host_id));
     _mysql.run_query(query, database::mysql_error::empty, false, conn);
     _add_action(conn, actions::host_dependencies);
   }
@@ -955,9 +1039,9 @@ void stream::_process_host_group_member(const std::shared_ptr<io::data>& d) {
       *static_cast<const neb::host_group_member*>(d.get())};
 
   if (!_host_instance_known(hgm.host_id)) {
-    log_v2::sql()->warn(
-        "SQL: host {0} not added to hostgroup {1} because host {0} is "
-        "not "
+    SPDLOG_LOGGER_WARN(
+        log_v2::sql(),
+        "SQL: host {0} not added to hostgroup {1} because host {0} is not "
         "known by any poller",
         hgm.host_id, hgm.group_id);
     return;
@@ -966,8 +1050,7 @@ void stream::_process_host_group_member(const std::shared_ptr<io::data>& d) {
     // Log message.
     SPDLOG_LOGGER_INFO(
         log_v2::sql(),
-        "SQL: enabling membership of host {} to host group {} on "
-        "instance {}",
+        "SQL: enabling membership of host {} to host group {} on instance {}",
         hgm.host_id, hgm.group_id, hgm.poller_id);
 
     // We only need to try to insert in this table as the
@@ -985,8 +1068,7 @@ void stream::_process_host_group_member(const std::shared_ptr<io::data>& d) {
       if (_hostgroup_cache.find(hgm.group_id) == _hostgroup_cache.end()) {
         SPDLOG_LOGGER_ERROR(
             log_v2::sql(),
-            "SQL: host group {} does not exist - insertion before "
-            "insertion of "
+            "SQL: host group {} does not exist - insertion before insertion of "
             "members",
             hgm.group_id);
         _prepare_hg_insupdate_statement();
@@ -1012,10 +1094,8 @@ void stream::_process_host_group_member(const std::shared_ptr<io::data>& d) {
     } else
       SPDLOG_LOGGER_ERROR(
           log_v2::sql(),
-          "SQL: host with host_id = {} does not exist - unable to "
-          "store "
-          "unexisting host in a hostgroup. You should restart "
-          "centengine.",
+          "SQL: host with host_id = {} does not exist - unable to store "
+          "unexisting host in a hostgroup. You should restart centengine.",
           hgm.host_id);
   }
   // Delete.
@@ -1023,8 +1103,7 @@ void stream::_process_host_group_member(const std::shared_ptr<io::data>& d) {
     // Log message.
     SPDLOG_LOGGER_INFO(
         log_v2::sql(),
-        "SQL: disabling membership of host {} to host group {} on "
-        "instance {}",
+        "SQL: disabling membership of host {} to host group {} on instance {}",
         hgm.host_id, hgm.group_id, hgm.poller_id);
 
     if (!_host_group_member_delete.prepared()) {
@@ -1092,8 +1171,7 @@ void stream::_process_host(const std::shared_ptr<io::data>& d) {
     } else
       SPDLOG_LOGGER_TRACE(
           log_v2::sql(),
-          "SQL: host '{}' of poller {} has no ID nor alias, probably "
-          "bam "
+          "SQL: host '{}' of poller {} has no ID nor alias, probably bam "
           "fake host",
           h.host_name, h.poller_id);
   }
@@ -1175,9 +1253,9 @@ void stream::_process_host_status(const std::shared_ptr<io::data>& d) {
   neb::host_status const& hs(*static_cast<neb::host_status const*>(d.get()));
 
   if (!_host_instance_known(hs.host_id)) {
-    log_v2::sql()->warn(
-        "SQL: host status {0} thrown away because host {0} is not "
-        "known by any "
+    SPDLOG_LOGGER_WARN(
+        log_v2::sql(),
+        "SQL: host status {0} thrown away because host {0} is not known by any "
         "poller",
         hs.host_id);
     return;
@@ -1191,8 +1269,7 @@ void stream::_process_host_status(const std::shared_ptr<io::data>& d) {
     // Apply to DB.
     SPDLOG_LOGGER_INFO(
         log_v2::sql(),
-        "processing host status event (host: {}, last check: {}, state "
-        "({}, "
+        "processing host status event (host: {}, last check: {}, state ({}, "
         "{}))",
         hs.host_id, hs.last_check, hs.current_state, hs.state_type);
 
@@ -1215,8 +1292,7 @@ void stream::_process_host_status(const std::shared_ptr<io::data>& d) {
     // Do nothing.
     SPDLOG_LOGGER_INFO(
         log_v2::sql(),
-        "SQL: not processing host status event (id: {}, check type: "
-        "{}, last "
+        "SQL: not processing host status event (id: {}, check type: {}, last "
         "check: {}, next check: {}, now: {}, state: ({}, {}))",
         hs.host_id, hs.check_type, hs.last_check, hs.next_check, now,
         hs.current_state, hs.state_type);
@@ -1488,8 +1564,7 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
                   found = r.first;
                   SPDLOG_LOGGER_DEBUG(
                       log_v2::sql(),
-                      "Host resource (host {}) found in database with "
-                      "id {}",
+                      "Host resource (host {}) found in database with id {}",
                       h.host_id(), found->second);
                 }
               } catch (const std::exception& e) {
@@ -1569,8 +1644,7 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
             if (it_tags_cache == _tags_cache.end()) {
               SPDLOG_LOGGER_ERROR(
                   log_v2::sql(),
-                  "SQL: could not find in cache the tag ({}, {}) for "
-                  "host "
+                  "SQL: could not find in cache the tag ({}, {}) for host "
                   "'{}': "
                   "trying to add it.",
                   tag.id(), tag.type(), h.host_id());
@@ -1603,8 +1677,7 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
               _resources_tags_insert.bind_value_as_u64(1, res_id);
               SPDLOG_LOGGER_DEBUG(
                   log_v2::sql(),
-                  "SQL: new relation between host (resource_id: {}, "
-                  "host_id: "
+                  "SQL: new relation between host (resource_id: {}, host_id: "
                   "{}) "
                   "and tag ({},{})",
                   res_id, h.host_id(), tag.id(), tag.type());
@@ -1635,8 +1708,7 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
     } else
       SPDLOG_LOGGER_TRACE(
           log_v2::sql(),
-          "SQL: host '{}' of poller {} has no ID nor alias, probably "
-          "bam "
+          "SQL: host '{}' of poller {} has no ID nor alias, probably bam "
           "fake host",
           h.name(), h.instance_id());
   }
@@ -1657,9 +1729,9 @@ void stream::_process_pb_adaptive_host(const std::shared_ptr<io::data>& d) {
   auto h{static_cast<const neb::pb_adaptive_host*>(d.get())};
   auto& ah = h->obj();
   if (!_host_instance_known(ah.host_id())) {
-    log_v2::sql()->warn(
-        "SQL: adaptive host on host {} thrown away because host not "
-        "known",
+    SPDLOG_LOGGER_WARN(
+        log_v2::sql(),
+        "SQL: adaptive host on host {} thrown away because host not known",
         ah.host_id());
     return;
   }
@@ -1775,9 +1847,9 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
                       hscr.perfdata());
 
   if (!_host_instance_known(hscr.host_id())) {
-    log_v2::sql()->warn(
-        "SQL: pb host status {} thrown away because host {} is not "
-        "known by "
+    SPDLOG_LOGGER_WARN(
+        log_v2::sql(),
+        "SQL: pb host status {} thrown away because host {} is not known by "
         "any poller",
         hscr.host_id(), hscr.host_id());
     return;
@@ -1789,8 +1861,7 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
     // Apply to DB.
     SPDLOG_LOGGER_INFO(
         log_v2::sql(),
-        "SQL: processing host status check result event proto (host: "
-        "{}, "
+        "SQL: processing host status check result event proto (host: {}, "
         "last check: {}, state ({}, {}))",
         hscr.host_id(), hscr.last_check(), hscr.state(), hscr.state_type());
 
@@ -1924,10 +1995,8 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
     // Do nothing.
     SPDLOG_LOGGER_INFO(
         log_v2::sql(),
-        "SQL: not processing pb host status check result event (host: "
-        "{}, "
-        "check type: {}, last check: {}, next check: {}, now: {}, "
-        "state ({}, "
+        "SQL: not processing pb host status check result event (host: {}, "
+        "check type: {}, last check: {}, next check: {}, now: {}, state ({}, "
         "{}))",
         hscr.host_id(), hscr.check_type(), hscr.last_check(), hscr.next_check(),
         now, hscr.state(), hscr.state_type());
@@ -2073,8 +2142,7 @@ void stream::_process_module(const std::shared_ptr<io::data>& d) {
   // Log message.
   SPDLOG_LOGGER_INFO(
       log_v2::sql(),
-      "SQL: processing module event (poller: {}, filename: {}, loaded: "
-      "{})",
+      "SQL: processing module event (poller: {}, filename: {}, loaded: {})",
       m.poller_id, m.filename, m.loaded ? "yes" : "no");
 
   // Processing.
@@ -2127,9 +2195,9 @@ void stream::_process_service_check(const std::shared_ptr<io::data>& d) {
       *static_cast<neb::service_check const*>(d.get()));
 
   if (!_host_instance_known(sc.host_id)) {
-    log_v2::sql()->warn(
-        "SQL: service check on service ({}, {}) thrown away because "
-        "host "
+    SPDLOG_LOGGER_WARN(
+        log_v2::sql(),
+        "SQL: service check on service ({}, {}) thrown away because host "
         "unknown",
         sc.host_id, sc.service_id);
     return;
@@ -2144,8 +2212,7 @@ void stream::_process_service_check(const std::shared_ptr<io::data>& d) {
     // Apply to DB.
     SPDLOG_LOGGER_INFO(
         log_v2::sql(),
-        "SQL: processing service check event (host: {}, service: {}, "
-        "command: "
+        "SQL: processing service check event (host: {}, service: {}, command: "
         "{})",
         sc.host_id, sc.service_id, sc.command_line);
 
@@ -2180,8 +2247,7 @@ void stream::_process_service_check(const std::shared_ptr<io::data>& d) {
     // Do nothing.
     SPDLOG_LOGGER_INFO(
         log_v2::sql(),
-        "SQL: not processing service check event (host: {}, service: "
-        "{}, "
+        "SQL: not processing service check event (host: {}, service: {}, "
         "command: {}, check_type: {}, next_check: {}, now: {})",
         sc.host_id, sc.service_id, sc.command_line, sc.check_type,
         sc.next_check, now);
@@ -2319,8 +2385,7 @@ void stream::_process_service_group_member(const std::shared_ptr<io::data>& d) {
     // Log message.
     SPDLOG_LOGGER_INFO(
         log_v2::sql(),
-        "SQL: enabling membership of service ({}, {}) to service group "
-        "{} on "
+        "SQL: enabling membership of service ({}, {}) to service group {} on "
         "instance {}",
         sgm.host_id, sgm.service_id, sgm.group_id, sgm.poller_id);
 
@@ -2339,8 +2404,7 @@ void stream::_process_service_group_member(const std::shared_ptr<io::data>& d) {
     if (_servicegroup_cache.find(sgm.group_id) == _servicegroup_cache.end()) {
       SPDLOG_LOGGER_ERROR(
           log_v2::sql(),
-          "SQL: service group {} does not exist - insertion before "
-          "insertion "
+          "SQL: service group {} does not exist - insertion before insertion "
           "of members",
           sgm.group_id);
       _prepare_sg_insupdate_statement();
@@ -2369,8 +2433,7 @@ void stream::_process_service_group_member(const std::shared_ptr<io::data>& d) {
     // Log message.
     SPDLOG_LOGGER_INFO(
         log_v2::sql(),
-        "SQL: disabling membership of service ({}, {}) to service "
-        "group {} on "
+        "SQL: disabling membership of service ({}, {}) to service group {} on "
         "instance {}",
         sgm.host_id, sgm.service_id, sgm.group_id, sgm.poller_id);
 
@@ -2405,7 +2468,8 @@ void stream::_process_service(const std::shared_ptr<io::data>& d) {
   // Processed object.
   const neb::service& s(*static_cast<neb::service const*>(d.get()));
   if (!_host_instance_known(s.host_id)) {
-    log_v2::sql()->warn(
+    SPDLOG_LOGGER_WARN(
+        log_v2::sql(),
         "SQL: service ({0}, {1}) thrown away because host {0} unknown",
         s.host_id, s.service_id);
     return;
@@ -2436,8 +2500,7 @@ void stream::_process_service(const std::shared_ptr<io::data>& d) {
   } else
     SPDLOG_LOGGER_TRACE(
         log_v2::sql(),
-        "SQL: service '{}' has no host ID, service ID nor hostname, "
-        "probably "
+        "SQL: service '{}' has no host ID, service ID nor hostname, probably "
         "bam fake service",
         s.service_description);
 }
@@ -2461,7 +2524,8 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
                       s.output());
   // Processed object.
   if (!_host_instance_known(s.host_id())) {
-    log_v2::sql()->warn(
+    SPDLOG_LOGGER_WARN(
+        log_v2::sql(),
         "pb service ({0}, {1}) thrown away because host {0} unknown",
         s.host_id(), s.service_id());
     return;
@@ -2691,8 +2755,7 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
           } catch (const std::exception& e) {
             SPDLOG_LOGGER_CRITICAL(
                 log_v2::sql(),
-                "SQL: unable to insert new service resource ({}, {}): "
-                "{}",
+                "SQL: unable to insert new service resource ({}, {}): {}",
                 s.host_id(), s.service_id(), e.what());
 
             std::promise<mysql_result> promise_resource;
@@ -2711,15 +2774,13 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
                 found = r.first;
                 SPDLOG_LOGGER_DEBUG(
                     log_v2::sql(),
-                    "Service resource ({}, {}) found in database with "
-                    "id {}",
+                    "Service resource ({}, {}) found in database with id {}",
                     s.host_id(), s.service_id(), found->second);
               }
             } catch (const std::exception& e) {
               SPDLOG_LOGGER_CRITICAL(
                   log_v2::sql(),
-                  "No service resource in database with id ({}, {}): "
-                  "{}",
+                  "No service resource in database with id ({}, {}): {}",
                   s.host_id(), s.service_id(), e.what());
               return;
             }
@@ -2795,8 +2856,7 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
           if (it_tags_cache == _tags_cache.end()) {
             SPDLOG_LOGGER_ERROR(
                 log_v2::sql(),
-                "SQL: could not find in cache the tag ({}, {}) for "
-                "service "
+                "SQL: could not find in cache the tag ({}, {}) for service "
                 "({},{}): trying to add it.",
                 tag.id(), tag.type(), s.host_id(), s.service_id());
             if (!_tag_insert.prepared())
@@ -2826,8 +2886,7 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
             _resources_tags_insert.bind_value_as_u64(1, res_id);
             SPDLOG_LOGGER_DEBUG(
                 log_v2::sql(),
-                "SQL: new relation between service (resource_id: {},  "
-                "({}, "
+                "SQL: new relation between service (resource_id: {},  ({}, "
                 "{})) and tag ({},{})",
                 res_id, s.host_id(), s.service_id(), tag.id(), tag.type());
             _mysql.run_statement(
@@ -2837,8 +2896,7 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
           } else {
             SPDLOG_LOGGER_ERROR(
                 log_v2::sql(),
-                "SQL: could not find the tag ({}, {}) in cache for "
-                "host '{}'",
+                "SQL: could not find the tag ({}, {}) in cache for host '{}'",
                 tag.id(), tag.type(), s.service_id());
           }
         }
@@ -2863,8 +2921,7 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
   } else
     SPDLOG_LOGGER_TRACE(
         log_v2::sql(),
-        "SQL: service '{}' has no host ID, service ID nor hostname, "
-        "probably "
+        "SQL: service '{}' has no host ID, service ID nor hostname, probably "
         "bam fake service",
         s.description());
 }
@@ -2884,9 +2941,9 @@ void stream::_process_pb_adaptive_service(const std::shared_ptr<io::data>& d) {
   auto s{static_cast<const neb::pb_adaptive_service*>(d.get())};
   auto& as = s->obj();
   if (!_host_instance_known(as.host_id())) {
-    log_v2::sql()->warn(
-        "SQL: pb adaptive service on service ({0}, {1}) thrown away "
-        "because "
+    SPDLOG_LOGGER_WARN(
+        log_v2::sql(),
+        "SQL: pb adaptive service on service ({0}, {1}) thrown away because "
         "host {0} unknown",
         as.host_id(), as.service_id());
     return;
@@ -3075,8 +3132,7 @@ void stream::_check_and_update_index_cache(const Service& ss) {
       std::future<database::mysql_result> future_pq = pq.get_future();
       SPDLOG_LOGGER_DEBUG(
           log_v2::sql(),
-          "Attempt to get the index from the database for service ({}, "
-          "{})",
+          "Attempt to get the index from the database for service ({}, {})",
           ss.host_id(), ss.service_id());
 
       _mysql.run_statement_and_get_result(_index_data_query, std::move(pq),
@@ -3098,8 +3154,7 @@ void stream::_check_and_update_index_cache(const Service& ss) {
           };
           SPDLOG_LOGGER_DEBUG(
               log_v2::sql(),
-              "sql: loaded index {} of ({}, {}) with rrd_len={}, "
-              "special={}, "
+              "sql: loaded index {} of ({}, {}) with rrd_len={}, special={}, "
               "locked={}",
               index_id, ss.host_id(), ss.service_id(), info.rrd_retention,
               info.special, info.locked);
@@ -3145,8 +3200,7 @@ void stream::_check_and_update_index_cache(const Service& ss) {
       it_index_cache->second.interval = ss.check_interval();
       SPDLOG_LOGGER_DEBUG(
           log_v2::sql(),
-          "Updating index_data for host_id={} and service_id={}: "
-          "host_name={}, "
+          "Updating index_data for host_id={} and service_id={}: host_name={}, "
           "service_description={}, check_interval={}",
           ss.host_id(), ss.service_id(), it_index_cache->second.host_name,
           it_index_cache->second.service_description,
@@ -3178,9 +3232,9 @@ void stream::_process_service_status(const std::shared_ptr<io::data>& d) {
                            ss.perf_data);
 
   if (!_host_instance_known(ss.host_id)) {
-    log_v2::sql()->warn(
-        "SQL: service status ({0}, {1}) thrown away because host {0} "
-        "is not "
+    SPDLOG_LOGGER_WARN(
+        log_v2::sql(),
+        "SQL: service status ({0}, {1}) thrown away because host {0} is not "
         "known by any poller",
         ss.host_id, ss.service_id);
     return;
@@ -3194,8 +3248,7 @@ void stream::_process_service_status(const std::shared_ptr<io::data>& d) {
     // Apply to DB.
     SPDLOG_LOGGER_INFO(
         log_v2::sql(),
-        "SQL: processing service status event (host: {}, service: {}, "
-        "last "
+        "SQL: processing service status event (host: {}, service: {}, last "
         "check: {}, state ({}, {}))",
         ss.host_id, ss.service_id, ss.last_check, ss.current_state,
         ss.state_type);
@@ -3221,10 +3274,8 @@ void stream::_process_service_status(const std::shared_ptr<io::data>& d) {
     // Do nothing.
     SPDLOG_LOGGER_INFO(
         log_v2::sql(),
-        "SQL: not processing service status event (host: {}, service: "
-        "{}, "
-        "check type: {}, last check: {}, next check: {}, now: {}, "
-        "state ({}, "
+        "SQL: not processing service status event (host: {}, service: {}, "
+        "check type: {}, last check: {}, next check: {}, now: {}, state ({}, "
         "{}))",
         ss.host_id, ss.service_id, ss.check_type, ss.last_check, ss.next_check,
         now, ss.current_state, ss.state_type);
@@ -3257,9 +3308,9 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
       sscr.host_id(), sscr.service_id(), sscr.perfdata());
 
   if (!_host_instance_known(sscr.host_id())) {
-    log_v2::sql()->warn(
-        "SQL: pb service status ({}, {}) thrown away because host {} "
-        "is not "
+    SPDLOG_LOGGER_WARN(
+        log_v2::sql(),
+        "SQL: pb service status ({}, {}) thrown away because host {} is not "
         "known by any poller",
         sscr.host_id(), sscr.service_id(), sscr.host_id());
     return;
@@ -3271,8 +3322,7 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
     // Apply to DB.
     SPDLOG_LOGGER_INFO(
         log_v2::sql(),
-        "SQL: processing service status check result event proto "
-        "(host: {}, "
+        "SQL: processing service status check result event proto (host: {}, "
         "service: {}, "
         "last check: {}, state ({}, {}))",
         sscr.host_id(), sscr.service_id(), sscr.last_check(), sscr.state(),
@@ -3413,8 +3463,7 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
     // Do nothing.
     SPDLOG_LOGGER_INFO(
         log_v2::sql(),
-        "SQL: not processing service status check result event (host: "
-        "{}, "
+        "SQL: not processing service status check result event (host: {}, "
         "service: {}, "
         "check type: {}, last check: {}, next check: {}, now: {}, "
         "state ({}, "
@@ -3448,8 +3497,7 @@ void stream::_process_severity(const std::shared_ptr<io::data>& d) {
   auto& sv = s->obj();
   SPDLOG_LOGGER_TRACE(
       log_v2::sql(),
-      "SQL: severity event with id={}, type={}, name={}, level={}, "
-      "icon_id={}",
+      "SQL: severity event with id={}, type={}, name={}, level={}, icon_id={}",
       sv.id(), sv.type(), sv.name(), sv.level(), sv.icon_id());
   uint64_t severity_id = _severity_cache[{sv.id(), sv.type()}];
   int32_t conn = special_conn::severity % _mysql.connections_count();
@@ -3508,16 +3556,15 @@ void stream::_process_severity(const std::shared_ptr<io::data>& d) {
       } else
         SPDLOG_LOGGER_ERROR(
             log_v2::sql(),
-            "unified sql: unable to modify severity ({}, {}): not in "
-            "cache",
+            "unified sql: unable to modify severity ({}, {}): not in cache",
             sv.id(), sv.type());
       break;
     case Severity_Action_DELETE:
       SPDLOG_LOGGER_TRACE(log_v2::sql(),
                           "SQL: remove severity {}: not implemented", sv.id());
-      // FIXME DBO: Delete should be implemented later. This case is
-      // difficult particularly when several pollers are running and
-      // some of them can be stopped...
+      // FIXME DBO: Delete should be implemented later. This case is difficult
+      // particularly when several pollers are running and some of them can
+      // be stopped...
       break;
     default:
       SPDLOG_LOGGER_ERROR(log_v2::sql(), "Bad action in severity object");
@@ -3610,9 +3657,9 @@ void stream::_process_tag(const std::shared_ptr<io::data>& d) {
                              false, conn);
         _tags_cache.erase(it);
       } else
-        log_v2::sql()->warn(
-            "SQL: unable to delete tag ({}, {}): it does not exist in "
-            "cache",
+        SPDLOG_LOGGER_WARN(
+            log_v2::sql(),
+            "SQL: unable to delete tag ({}, {}): it does not exist in cache",
             tg.id(), tg.type());
     } break;
     default:
