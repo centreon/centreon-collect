@@ -189,8 +189,8 @@ BECT_GRPC1
 		Broker Config Output set	module0	central-module-master-output	tls	${comp2}
 		Broker Config Log	central	bbdo	info
 		Broker Config Log	module0	bbdo	info
-		Broker Config Log	central	grpc	info
-		Broker Config Log	module0	grpc	info
+		Broker Config Log	central	grpc	debug
+		Broker Config Log	module0	grpc	debug
 		Change Broker tcp output to grpc	module0
 		Change Broker tcp input to grpc     central
 		${start}=	Get Current Date

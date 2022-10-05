@@ -288,11 +288,16 @@ void tcp_async::handle_accept(std::shared_ptr<asio::ip::tcp::acceptor> acceptor,
       std::time_t now = std::time(nullptr);
       asio::ip::tcp::socket& sock = new_connection->socket();
       asio::socket_base::keep_alive option{true};
-      sock.set_option(option);
-      _strand.post([new_connection, now, acceptor, this] {
-        _acceptor_available_con.insert(std::make_pair(
-            acceptor.get(), std::make_pair(new_connection, now)));
-      });
+      try {
+        sock.set_option(option);
+        _strand.post([new_connection, now, acceptor, this] {
+          _acceptor_available_con.insert(std::make_pair(
+              acceptor.get(), std::make_pair(new_connection, now)));
+        });
+      } catch (const std::exception& e) {
+        log_v2::tcp()->error(
+            "fail to activate keepalive on accepted connection");
+      }
       start_acceptor(acceptor);
     }
   } else

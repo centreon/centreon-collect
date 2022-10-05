@@ -29,12 +29,14 @@
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/log_v2.hh"
+#include "com/centreon/broker/misc/fifo_client.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/neb/service.hh"
 #include "com/centreon/broker/neb/service_status.hh"
+#include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/timestamp.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
@@ -52,16 +54,17 @@ using namespace com::centreon::broker::database;
  *                             configuration.
  *  @param[in] cache           The persistent cache.
  */
-monitoring_stream::monitoring_stream(std::string const& ext_cmd_file,
-                                     database_config const& db_cfg,
-                                     database_config const& storage_db_cfg,
+monitoring_stream::monitoring_stream(const std::string& ext_cmd_file,
+                                     const database_config& db_cfg,
+                                     const database_config& storage_db_cfg,
                                      std::shared_ptr<persistent_cache> cache)
     : io::stream("BAM"),
       _ext_cmd_file(ext_cmd_file),
       _mysql(db_cfg),
       _pending_events(0),
       _storage_db_cfg(storage_db_cfg),
-      _cache(std::move(cache)) {
+      _cache(std::move(cache)),
+      _forced_svc_checks_timer{pool::io_context()} {
   log_v2::bam()->trace("BAM: monitoring_stream constructor");
   // Prepare queries.
   _prepare();
@@ -84,7 +87,7 @@ monitoring_stream::~monitoring_stream() {
   } catch (std::exception const& e) {
     log_v2::bam()->error("BAM: can't save cache: '{}'", e.what());
   }
-  log_v2::sql()->debug("bam: monitoring_stream destruction");
+  log_v2::bam()->debug("BAM: monitoring_stream destruction done");
 }
 
 /**
@@ -109,6 +112,27 @@ int32_t monitoring_stream::stop() {
   int32_t retval = flush();
   log_v2::core()->info("monitoring stream: stopped with {} events acknowledged",
                        retval);
+  /* I want to be sure the timer is really stopped. */
+  std::promise<void> p;
+  {
+    log_v2::bam()->info(
+        "bam: monitoring_stream - waiting for forced service checks to be "
+        "done");
+    std::lock_guard<std::mutex> lck(_forced_svc_checks_m);
+    _forced_svc_checks_timer.expires_after(std::chrono::seconds(0));
+    _forced_svc_checks_timer.async_wait([this, &p](const asio::error_code& ec) {
+      _explicitly_send_forced_svc_checks(ec);
+      {
+        std::lock_guard<std::mutex> lck(_forced_svc_checks_m);
+        _forced_svc_checks_timer.cancel();
+      }
+      p.set_value();
+    });
+  }
+  p.get_future().wait();
+  /* Now, it is really cancelled. */
+  log_v2::bam()->info("bam: monitoring_stream - stop finished");
+
   return retval;
 }
 
@@ -138,16 +162,6 @@ bool monitoring_stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
   throw exceptions::shutdown("cannot read from BAM monitoring stream");
   return true;
 }
-/**
- *  Get endpoint statistics.
- *
- *  @param[out] tree Output tree.
- */
-void monitoring_stream::statistics(nlohmann::json& tree) const {
-  std::lock_guard<std::mutex> lock(_statusm);
-  if (!_status.empty())
-    tree["status"] = _status;
-}
 
 /**
  *  Rebuild index and metrics cache.
@@ -160,7 +174,6 @@ void monitoring_stream::update() {
     r.read(s);
     _applier.apply(s);
     _ba_mapping = s.get_ba_svc_mapping();
-    _meta_mapping = s.get_meta_svc_mapping();
     _rebuild();
     initialize();
   } catch (std::exception const& e) {
@@ -277,10 +290,10 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
               status->ba_id);
         } else {
           time_t now = time(nullptr);
-          std::string cmd(fmt::format("[{}] SCHEDULE_FORCED_SVC_CHECK;{};{};{}",
-                                      now, ba_svc_name.first,
-                                      ba_svc_name.second, now));
-          _write_external_command(cmd);
+          std::string cmd(
+              fmt::format("[{}] SCHEDULE_FORCED_SVC_CHECK;{};{};{}\n", now,
+                          ba_svc_name.first, ba_svc_name.second, now));
+          _write_forced_svc_check(ba_svc_name.first, ba_svc_name.second);
         }
       }
     } break;
@@ -323,14 +336,14 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
             "[{}] "
             "SCHEDULE_SVC_DOWNTIME;_Module_BAM_{};ba_{};{};{};1;0;0;Centreon "
             "Broker BAM Module;Automatic downtime triggered by BA downtime "
-            "inheritance",
+            "inheritance\n",
             now, config::applier::state::instance().poller_id(), dwn.ba_id, now,
             4102444799);
       else
         cmd = fmt::format(
             "[{}] DEL_SVC_DOWNTIME_FULL;_Module_BAM_{};ba_{};;;1;0;;Centreon "
             "Broker BAM Module;Automatic downtime triggered by BA downtime "
-            "inheritance",
+            "inheritance\n",
             now, config::applier::state::instance().poller_id(), dwn.ba_id);
       _write_external_command(cmd);
     } break;
@@ -406,14 +419,49 @@ void monitoring_stream::_rebuild() {
 }
 
 /**
- *  Update status of endpoint.
+ * @brief This internal function is called by the _forced_svc_checks_timer. It
+ * empties the set _forced_svc_checks, fills the set _timer_forced_svc_checks
+ * and sends all its contents to centengine, using a misc::fifo_client object
+ * to avoid getting stuck. If at a moment, it fails to send queries, the
+ * function is rescheduled in 5s.
  *
- *  @param[in] status New status.
+ * @param ec asio::error_code to handle errors due to asio, not the files sent
+ * to centengine. Usually, "operation aborted" when cbd stops.
  */
-void monitoring_stream::_update_status(std::string const& status) {
-  log_v2::bam()->trace("BAM: monitoring stream _update_status");
-  std::lock_guard<std::mutex> lock(_statusm);
-  _status = status;
+void monitoring_stream::_explicitly_send_forced_svc_checks(
+    const asio::error_code& ec) {
+  static int count = 0;
+  log_v2::bam()->error("BAM: time to send forced service checks {}", count++);
+  if (!ec) {
+    if (_timer_forced_svc_checks.empty()) {
+      std::lock_guard<std::mutex> lck(_forced_svc_checks_m);
+      _timer_forced_svc_checks.swap(_forced_svc_checks);
+    }
+    if (!_timer_forced_svc_checks.empty()) {
+      std::lock_guard<std::mutex> lock(_ext_cmd_file_m);
+      log_v2::bam()->info("opening {}", _ext_cmd_file);
+      misc::fifo_client fc(_ext_cmd_file);
+      log_v2::bam()->trace("BAM: {} forced checks to schedule",
+                           _timer_forced_svc_checks.size());
+      for (auto& p : _timer_forced_svc_checks) {
+        time_t now = time(nullptr);
+        std::string cmd{fmt::format("[{}] SCHEDULE_FORCED_SVC_CHECK;{};{};{}\n",
+                                    now, p.first, p.second, now)};
+        log_v2::bam()->info("writing in {}", _ext_cmd_file);
+        if (fc.write(cmd) < 0) {
+          log_v2::bam()->error(
+              "BAM: could not write forced service check to command file '{}'",
+              _ext_cmd_file);
+          _forced_svc_checks_timer.expires_after(std::chrono::seconds(5));
+          _forced_svc_checks_timer.async_wait(
+              std::bind(&monitoring_stream::_explicitly_send_forced_svc_checks,
+                        this, std::placeholders::_1));
+          break;
+        } else
+          log_v2::bam()->debug("BAM: sent external command '{}'", cmd);
+      }
+    }
+  }
 }
 
 /**
@@ -421,25 +469,34 @@ void monitoring_stream::_update_status(std::string const& status) {
  *
  *  @param[in] cmd  Command to write to the external command pipe.
  */
-void monitoring_stream::_write_external_command(std::string& cmd) {
-  log_v2::bam()->trace("BAM: monitoring stream _write_external_command");
-  cmd.append("\n");
-  std::ofstream ofs;
-  ofs.open(_ext_cmd_file.c_str());
-  if (!ofs.good()) {
+void monitoring_stream::_write_forced_svc_check(
+    const std::string& host,
+    const std::string& description) {
+  log_v2::bam()->trace("BAM: monitoring stream _write_forced_svc_check");
+  std::lock_guard<std::mutex> lck(_forced_svc_checks_m);
+  _forced_svc_checks.emplace(host, description);
+  _forced_svc_checks_timer.expires_after(std::chrono::seconds(5));
+  _forced_svc_checks_timer.async_wait(
+      std::bind(&monitoring_stream::_explicitly_send_forced_svc_checks, this,
+                std::placeholders::_1));
+}
+
+/**
+ *  Write an external command to Engine.
+ *
+ *  @param[in] cmd  Command to write to the external command pipe.
+ */
+void monitoring_stream::_write_external_command(const std::string& cmd) {
+  log_v2::bam()->trace("BAM: monitoring stream _write_external_command <<{}>>",
+                       cmd);
+  std::lock_guard<std::mutex> lock(_ext_cmd_file_m);
+  misc::fifo_client fc(_ext_cmd_file);
+  if (fc.write(cmd) < 0) {
     log_v2::bam()->error(
         "BAM: could not write BA check result to command file '{}'",
         _ext_cmd_file);
-  } else {
-    ofs.write(cmd.c_str(), cmd.size());
-    if (!ofs.good())
-      log_v2::bam()->error(
-          "BAM: could not write BA check result to command file '{}'",
-          _ext_cmd_file);
-    else
-      log_v2::bam()->debug("BAM: sent external command '{}'", cmd);
-    ofs.close();
-  }
+  } else
+    log_v2::bam()->debug("BAM: sent external command '{}'", cmd);
 }
 
 /**

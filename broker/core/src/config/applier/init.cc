@@ -82,8 +82,8 @@ void config::applier::deinit() {
   mysql_manager::unload();
   stats::center::unload();
   file::disk_accessor::unload();
-  pool::unload();
   multiplexing::engine::unload();
+  pool::unload();
 }
 
 /**

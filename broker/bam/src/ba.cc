@@ -70,8 +70,7 @@ ba::ba(uint32_t id,
  *  @param[in] impact KPI that will impact BA.
  */
 void ba::add_impact(std::shared_ptr<kpi> const& impact) {
-  std::unordered_map<kpi*, impact_info>::iterator it(
-      _impacts.find(impact.get()));
+  auto it = _impacts.find(impact.get());
   if (it == _impacts.end()) {
     impact_info& ii(_impacts[impact.get()]);
     ii.kpi_ptr = impact;
@@ -114,8 +113,10 @@ bool ba::child_has_update(computable* child, io::stream* visitor) {
     // If the new impact is the same as the old, don't update.
     if (it->second.hard_impact == new_hard_impact &&
         it->second.soft_impact == new_soft_impact &&
-        it->second.in_downtime == kpi_in_downtime)
+        it->second.in_downtime == kpi_in_downtime) {
+      log_v2::bam()->debug("BAM: BA {} has no changes since last update", _id);
       return false;
+    }
     timestamp last_state_change(it->second.kpi_ptr->get_last_state_change());
     if (!last_state_change.is_null())
       _last_kpi_update = std::max(_last_kpi_update, last_state_change);
@@ -124,6 +125,12 @@ bool ba::child_has_update(computable* child, io::stream* visitor) {
     _unapply_impact(it->first, it->second);
 
     // Apply new data.
+    log_v2::bam()->trace(
+        "BAM: BA {} changes: hard impact changed {}, soft impact changed {}, "
+        "downtime {} => {}",
+        _id, it->second.hard_impact != new_hard_impact,
+        it->second.soft_impact != new_soft_impact, it->second.in_downtime,
+        kpi_in_downtime);
     it->second.hard_impact = new_hard_impact;
     it->second.soft_impact = new_soft_impact;
     it->second.in_downtime = kpi_in_downtime;
@@ -454,8 +461,10 @@ void ba::_commit_initial_events(io::stream* visitor) {
  */
 void ba::_compute_inherited_downtime(io::stream* visitor) {
   // kpi downtime heritance deactived. Do nothing.
-  if (_dt_behaviour != configuration::ba::dt_inherit)
+  if (_dt_behaviour != configuration::ba::dt_inherit) {
+    log_v2::bam()->trace("ba: BA {} doesn't inherite downtimes", _id);
     return;
+  }
 
   // Check if every impacting child KPIs are in downtime.
   bool every_kpi_in_downtime(!_impacts.empty());
@@ -464,6 +473,10 @@ void ba::_compute_inherited_downtime(io::stream* visitor) {
            end = _impacts.end();
        it != end; ++it) {
     if (!it->first->ok_state() && !it->first->in_downtime()) {
+      log_v2::bam()->trace(
+          "ba: every kpi in downtime ? no, kpi {} is not ok and not in "
+          "downtime",
+          it->first->get_id());
       every_kpi_in_downtime = false;
       break;
     }
@@ -473,15 +486,15 @@ void ba::_compute_inherited_downtime(io::stream* visitor) {
   //         Put the BA in downtime.
   bool s_ok{get_state_hard() == state_ok};
   if (!s_ok && every_kpi_in_downtime && !_inherited_downtime) {
-    _inherited_downtime.reset(new inherited_downtime);
+    _inherited_downtime = std::make_unique<inherited_downtime>();
     _inherited_downtime->ba_id = _id;
     _inherited_downtime->in_downtime = true;
     log_v2::bam()->trace("ba: inherited downtime computation downtime true");
     _in_downtime = true;
 
     if (visitor)
-      visitor->write(std::shared_ptr<inherited_downtime>(
-          std::make_shared<inherited_downtime>(*_inherited_downtime)));
+      visitor->write(
+          std::make_shared<inherited_downtime>(*_inherited_downtime));
   }
   // Case 2: state ok or not every kpi in downtime, actual downtime.
   //         Remove the downtime.
@@ -493,7 +506,10 @@ void ba::_compute_inherited_downtime(io::stream* visitor) {
     if (visitor)
       visitor->write(std::move(_inherited_downtime));
     _inherited_downtime.reset();
-  }
+  } else
+    log_v2::bam()->trace(
+        "ba: inherited downtime computation downtime not changed ({})",
+        _in_downtime);
 }
 
 std::shared_ptr<ba_status> ba::_generate_ba_status(bool state_changed) const {

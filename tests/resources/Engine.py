@@ -1141,7 +1141,7 @@ def process_host_check_result(hst: str, state: int, output: str):
 
 def schedule_service_downtime(hst: str, svc: str, duration: int):
     now = int(time.time())
-    cmd = "[{2}] SCHEDULE_SVC_DOWNTIME;{0};{1};{2};{3};1;0;{4};admin;Downtime set by admin".format(
+    cmd = "[{2}] SCHEDULE_SVC_DOWNTIME;{0};{1};{2};{3};1;0;{4};admin;Downtime set by admin\n".format(
         hst, svc, now, now + duration, duration)
     f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
     f.write(cmd)
@@ -1170,19 +1170,20 @@ def delete_host_downtimes(poller: int, hst: str):
     f.close()
 
 
-def schedule_forced_svc_check(host: str, svc: str, pipe: str = VAR_ROOT + "/lib/centreon-engine/rw/centengine.cmd"):
+def schedule_forced_svc_check(host: str, svc: str, pipe: str = VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd"):
     now = int(time.time())
     f = open(pipe, "w")
-    cmd = "[{2}] SCHEDULE_FORCED_SVC_CHECK;{0};{1};{2}".format(host, svc, now)
+    cmd = "[{2}] SCHEDULE_FORCED_SVC_CHECK;{0};{1};{2}\n".format(
+        host, svc, now)
     f.write(cmd)
     f.close()
     time.sleep(0.05)
 
 
-def schedule_forced_host_check(host: str, pipe: str = VAR_ROOT + "/lib/centreon-engine/rw/centengine.cmd"):
+def schedule_forced_host_check(host: str, pipe: str = VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd"):
     now = int(time.time())
     f = open(pipe, "w")
-    cmd = "[{1}] SCHEDULE_FORCED_HOST_CHECK;{0};{1}".format(host, now)
+    cmd = "[{1}] SCHEDULE_FORCED_HOST_CHECK;{0};{1}\n".format(host, now)
     f.write(cmd)
     f.close()
     time.sleep(0.05)
@@ -1432,10 +1433,9 @@ def external_command(func):
 
 def process_service_check_result(hst: str, svc: str, state: int, output: str, config='config0'):
     now = int(time.time())
-    cmd = "[{}] PROCESS_SERVICE_CHECK_RESULT;{};{};{};{}\n".format(
-        now, hst, svc, state, output)
+    cmd = f"[{now}] PROCESS_SERVICE_CHECK_RESULT;{hst};{svc};{state};{output}\n"
     f = open(
-        VAR_ROOT + f"/lib/centreon-engine/{config}/rw/centengine.cmd", "w")
+        f"{VAR_ROOT}/lib/centreon-engine/{config}/rw/centengine.cmd", "w")
     f.write(cmd)
     f.close()
 
@@ -1524,3 +1524,48 @@ def create_anomaly_threshold_file_V2(path: string, host_id: int, service_id: int
 
 def grep_retention(poller: int, pattern: str):
     return Common.grep("{}/log/centreon-engine/config{}/retention.dat".format(VAR_ROOT, poller), pattern)
+
+
+def modify_retention_dat(poller, host, service, key, value):
+    if host != "" and host != "":
+        # We want a service
+        ff = open(
+            f"{VAR_ROOT}/log/centreon-engine/config{poller}/retention.dat", "r")
+        lines = ff.readlines()
+        ff.close()
+
+        r_hst = re.compile(r"^\s*host_name=(.*)$")
+        r_svc = re.compile(r"^\s*service_description=(.*)$")
+        in_block = False
+        hst = ""
+        svc = ""
+        for i in range(len(lines)):
+            l = lines[i]
+            if not in_block:
+                if l == "service {\n":
+                    in_block = True
+                    continue
+            else:
+                if l == "}\n":
+                    in_block = False
+                    hst = ""
+                    svc = ""
+                    continue
+                m = r_hst.match(l)
+                if m:
+                    hst = m.group(1)
+                    continue
+                m = r_svc.match(l)
+                if m:
+                    svc = m.group(1)
+                    continue
+                if l.startswith(f"{key}=") and host == hst and svc == service:
+                    logger.console(f"key '{key}' found !")
+                    lines[i] = f"{key}={value}\n"
+                    hst = ""
+                    svc = ""
+
+        ff = open(
+            f"{VAR_ROOT}/log/centreon-engine/config{poller}/retention.dat", "w")
+        ff.writelines(lines)
+        ff.close()

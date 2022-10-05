@@ -45,6 +45,12 @@ static inline bool is_not_zero(const int64_t& value) {
  *  @param[in] instance_id Instance ID to remove.
  */
 void stream::_clean_tables(uint32_t instance_id) {
+  // no hostgroup and servicegroup clean during this function
+  {
+    std::lock_guard<std::mutex> l(_group_clean_timer_m);
+    _group_clean_timer.cancel();
+  }
+
   /* Database version. */
 
   int32_t conn;
@@ -190,6 +196,35 @@ void stream::_clean_tables(uint32_t instance_id) {
   _mysql.run_query(query, database::mysql_error::clean_customvariables, false,
                    conn);
   _add_action(conn, actions::custom_variables);
+
+  std::lock_guard<std::mutex> l(_group_clean_timer_m);
+  _group_clean_timer.expires_after(std::chrono::minutes(1));
+  _group_clean_timer.async_wait([this](const asio::error_code& err) {
+    if (!err) {
+      _clean_group_table();
+    }
+  });
+}
+
+void stream::_clean_group_table() {
+  int32_t conn = _mysql.choose_best_connection(-1);
+  /* Remove host groups. */
+  log_v2::sql()->debug("unified_sql: remove empty host groups ");
+  _mysql.run_query(
+      "DELETE hg FROM hostgroups AS hg LEFT JOIN hosts_hostgroups AS hhg ON "
+      "hg.hostgroup_id=hhg.hostgroup_id WHERE hhg.hostgroup_id IS NULL",
+      database::mysql_error::clean_empty_hostgroups, false, conn);
+  _add_action(conn, actions::hostgroups);
+
+  /* Remove service groups. */
+  log_v2::sql()->debug("unified_sql: remove empty service groups");
+
+  _mysql.run_query(
+      "DELETE sg FROM servicegroups AS sg LEFT JOIN services_servicegroups as "
+      "ssg ON sg.servicegroup_id=ssg.servicegroup_id WHERE ssg.servicegroup_id "
+      "IS NULL",
+      database::mysql_error::clean_empty_servicegroups, false, conn);
+  _add_action(conn, actions::servicegroups);
 }
 
 /**
@@ -377,7 +412,7 @@ void stream::_process_acknowledgement(const std::shared_ptr<io::data>& d) {
     // Process object.
     _acknowledgement_insupdate << ack;
     _mysql.run_statement(_acknowledgement_insupdate,
-                         database::mysql_error::store_acknowledgement, true,
+                         database::mysql_error::store_acknowledgement, false,
                          conn);
   }
 }
@@ -418,7 +453,7 @@ void stream::_process_comment(const std::shared_ptr<io::data>& d) {
   // Processing.
   _comment_insupdate << cmmnt;
   _mysql.run_statement(_comment_insupdate, database::mysql_error::store_comment,
-                       true, conn);
+                       false, conn);
   _add_action(conn, actions::comments);
 }
 
@@ -472,7 +507,7 @@ void stream::_process_custom_variable(const std::shared_ptr<io::data>& d) {
     _custom_variable_delete.bind_value_as_str(":name", cv.name);
 
     _mysql.run_statement(_custom_variable_delete,
-                         database::mysql_error::remove_customvariable, true,
+                         database::mysql_error::remove_customvariable, false,
                          conn);
     _add_action(conn, actions::custom_variables);
   }
@@ -601,7 +636,8 @@ void stream::_process_event_handler(const std::shared_ptr<io::data>& d) {
   // Processing.
   _event_handler_insupdate << eh;
   _mysql.run_statement(
-      _event_handler_insupdate, database::mysql_error::store_eventhandler, true,
+      _event_handler_insupdate, database::mysql_error::store_eventhandler,
+      false,
       _mysql.choose_connection_by_instance(_cache_host_instance[eh.host_id]));
 }
 
@@ -646,7 +682,7 @@ void stream::_process_flapping_status(const std::shared_ptr<io::data>& d) {
   int32_t conn =
       _mysql.choose_connection_by_instance(_cache_host_instance[fs.host_id]);
   _mysql.run_statement(_flapping_status_insupdate,
-                       database::mysql_error::store_flapping, true, conn);
+                       database::mysql_error::store_flapping, false, conn);
   _add_action(conn, actions::hosts);
 }
 
@@ -708,7 +744,8 @@ void stream::_process_host_check(const std::shared_ptr<io::data>& d) {
       _host_check_update << hc;
       std::promise<int> promise;
       _mysql.run_statement(_host_check_update,
-                           database::mysql_error::store_host_check, true, conn);
+                           database::mysql_error::store_host_check, false,
+                           conn);
       _add_action(conn, actions::hosts);
     }
   } else
@@ -754,7 +791,7 @@ void stream::_process_host_dependency(const std::shared_ptr<io::data>& d) {
     // Process object.
     _host_dependency_insupdate << hd;
     _mysql.run_statement(_host_dependency_insupdate,
-                         database::mysql_error::store_host_dependency, true,
+                         database::mysql_error::store_host_dependency, false,
                          conn);
     _add_action(conn, actions::host_dependencies);
   }
@@ -766,7 +803,7 @@ void stream::_process_host_dependency(const std::shared_ptr<io::data>& d) {
         "DELETE FROM hosts_hosts_dependencies WHERE dependent_host_id={}"
         " AND host_id={}",
         hd.dependent_host_id, hd.host_id));
-    _mysql.run_query(query, database::mysql_error::empty, true, conn);
+    _mysql.run_query(query, database::mysql_error::empty, false, conn);
     _add_action(conn, actions::host_dependencies);
   }
 }
@@ -945,7 +982,7 @@ void stream::_process_host(const std::shared_ptr<io::data>& d) {
       // Process object.
       _host_insupdate << h;
       _mysql.run_statement(_host_insupdate, database::mysql_error::store_host,
-                           true, conn);
+                           false, conn);
       _add_action(conn, actions::hosts);
 
       // Fill the cache...
@@ -1067,7 +1104,7 @@ void stream::_process_host_status(const std::shared_ptr<io::data>& d) {
     int32_t conn =
         _mysql.choose_connection_by_instance(_cache_host_instance[hs.host_id]);
     _mysql.run_statement(_host_status_update,
-                         database::mysql_error::store_host_status, true, conn);
+                         database::mysql_error::store_host_status, false, conn);
     _add_action(conn, actions::hosts);
   } else
     // Do nothing.
@@ -1236,7 +1273,7 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
       // Process object.
       _pb_host_insupdate << *hst;
       _mysql.run_statement(_pb_host_insupdate,
-                           database::mysql_error::store_host, true, conn);
+                           database::mysql_error::store_host, false, conn);
       _add_action(conn, actions::hosts);
 
       // Fill the cache...
@@ -1389,7 +1426,7 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
 
             _mysql.run_statement(_resources_host_update,
                                  database::mysql_error::store_host_resources,
-                                 true, conn);
+                                 false, conn);
             _add_action(conn, actions::resources);
           }
 
@@ -1704,7 +1741,7 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
       _hscr_update.bind_value_as_i64(17, hscr.next_check());
       _hscr_update.bind_value_as_bool(18, hscr.should_be_scheduled());
       _hscr_update.bind_value_as_i32(19, hscr.check_attempt());
-      _hscr_update.bind_value_as_i32(20, hscr.notification_number());
+      _hscr_update.bind_value_as_u64(20, hscr.notification_number());
       _hscr_update.bind_value_as_bool(21, hscr.no_more_notifications());
       _hscr_update.bind_value_as_i64(22, hscr.last_notification());
       _hscr_update.bind_value_as_i64(23, hscr.next_host_notification());
@@ -1797,7 +1834,7 @@ void stream::_process_instance(const std::shared_ptr<io::data>& d) {
     // Process object.
     _instance_insupdate << i;
     _mysql.run_statement(_instance_insupdate,
-                         database::mysql_error::store_poller, true, conn);
+                         database::mysql_error::store_poller, false, conn);
     _add_action(conn, actions::instances);
   }
 }
@@ -1837,7 +1874,7 @@ void stream::_process_instance_status(const std::shared_ptr<io::data>& d) {
     // Process object.
     _instance_status_insupdate << is;
     _mysql.run_statement(_instance_status_insupdate,
-                         database::mysql_error::update_poller, true, conn);
+                         database::mysql_error::update_poller, false, conn);
     _add_action(conn, actions::instances);
   }
 }
@@ -1908,7 +1945,7 @@ void stream::_process_module(const std::shared_ptr<io::data>& d) {
     if (m.enabled) {
       _module_insert << m;
       _mysql.run_statement(_module_insert, database::mysql_error::store_module,
-                           true, conn);
+                           false, conn);
       _add_action(conn, actions::modules);
     } else {
       const std::string* ptr_filename;
@@ -2040,7 +2077,7 @@ void stream::_process_service_dependency(const std::shared_ptr<io::data>& d) {
     // Process object.
     _service_dependency_insupdate << sd;
     _mysql.run_statement(_service_dependency_insupdate,
-                         database::mysql_error::store_service_dependency, true,
+                         database::mysql_error::store_service_dependency, false,
                          conn);
     _add_action(conn, actions::service_dependencies);
   }
@@ -2232,7 +2269,7 @@ void stream::_process_service(const std::shared_ptr<io::data>& d) {
 
     _service_insupdate << s;
     _mysql.run_statement(_service_insupdate,
-                         database::mysql_error::store_service, true, conn);
+                         database::mysql_error::store_service, false, conn);
     _add_action(conn, actions::services);
   } else
     log_v2::sql()->trace(
@@ -2405,7 +2442,7 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
     // Process object.
     _pb_service_insupdate << *svc;
     _mysql.run_statement(_pb_service_insupdate,
-                         database::mysql_error::store_service, true, conn);
+                         database::mysql_error::store_service, false, conn);
     _add_action(conn, actions::services);
 
     _check_and_update_index_cache(s);
@@ -2556,7 +2593,7 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
           _resources_service_update.bind_value_as_u64(21, res_id);
 
           _mysql.run_statement(_resources_service_update,
-                               database::mysql_error::store_service, true,
+                               database::mysql_error::store_service, false,
                                conn);
           _add_action(conn, actions::resources);
         }
@@ -3109,7 +3146,7 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
       _sscr_update.bind_value_as_i64(18, sscr.next_check());
       _sscr_update.bind_value_as_bool(19, sscr.should_be_scheduled());
       _sscr_update.bind_value_as_i32(20, sscr.check_attempt());
-      _sscr_update.bind_value_as_i32(21, sscr.notification_number());
+      _sscr_update.bind_value_as_u64(21, sscr.notification_number());
       _sscr_update.bind_value_as_bool(22, sscr.no_more_notifications());
       _sscr_update.bind_value_as_i64(23, sscr.last_notification());
       _sscr_update.bind_value_as_i64(24, sscr.next_notification());
@@ -3399,8 +3436,8 @@ void stream::_update_customvariables() {
         "default_value=VALUES(default_VALUE),modified=VALUES(modified),type="
         "VALUES(type),update_time=VALUES(update_time),value=VALUES(value)",
         fmt::join(cv_queue, ","))};
-    _mysql.run_query(query, database::mysql_error::update_customvariables, true,
-                     conn);
+    _mysql.run_query(query, database::mysql_error::update_customvariables,
+                     false, conn);
     _add_action(conn, actions::custom_variables);
     log_v2::sql()->debug("{} new custom variables inserted", cv_queue.size());
     log_v2::sql()->trace("sending query << {} >>", query);
@@ -3414,8 +3451,8 @@ void stream::_update_customvariables() {
         "modified=VALUES(modified),update_time=VALUES(update_time),value="
         "VALUES(value)",
         fmt::join(cvs_queue, ","))};
-    _mysql.run_query(query, database::mysql_error::update_customvariables, true,
-                     conn);
+    _mysql.run_query(query, database::mysql_error::update_customvariables,
+                     false, conn);
     _add_action(conn, actions::custom_variables);
     log_v2::sql()->debug("{} new custom variable status inserted",
                          cvs_queue.size());
@@ -3457,7 +3494,7 @@ void stream::_update_downtimes() {
       "started),triggered_by=VALUES(triggered_by), type=VALUES(type)",
       fmt::join(dt_queue, ","))};
 
-  _mysql.run_query(query, database::mysql_error::store_downtime, true, conn);
+  _mysql.run_query(query, database::mysql_error::store_downtime, false, conn);
   log_v2::sql()->debug("{} new downtimes inserted", dt_queue.size());
   log_v2::sql()->trace("sending query << {} >>", query);
   _add_action(conn, actions::downtimes);
@@ -3486,7 +3523,7 @@ void stream::_insert_logs() {
       "status,output) VALUES {}",
       fmt::join(log_queue, ","))};
 
-  _mysql.run_query(query, database::mysql_error::update_logs, true, conn);
+  _mysql.run_query(query, database::mysql_error::update_logs, false, conn);
   log_v2::sql()->debug("{} new logs inserted", log_queue.size());
   log_v2::sql()->trace("sending query << {} >>", query);
 }

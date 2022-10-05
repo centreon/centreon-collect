@@ -100,7 +100,7 @@ absl::optional<bool> parser::check_and_read<bool>(const nlohmann::json& elem,
       return {ret};
     else if (ret.is_string()) {
       bool tmp;
-      if (!absl::SimpleAtob(ret, &tmp))
+      if (!absl::SimpleAtob(ret.get<absl::string_view>(), &tmp))
         throw msg_fmt(
             "config parser: cannot parse key '{}': the string value must "
             "contain a boolean (1/0, yes/no, true/false)",

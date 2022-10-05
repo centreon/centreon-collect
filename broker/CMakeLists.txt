@@ -475,7 +475,7 @@ set(LIBROKER_SOURCES
 add_library(rokerbase STATIC ${LIBROKER_SOURCES})
 set_target_properties(rokerbase PROPERTIES COMPILE_FLAGS "-fPIC")
 target_precompile_headers(rokerbase PRIVATE core/precomp_inc/precomp.hpp)
-add_dependencies(rokerbase berpc)
+add_dependencies(rokerbase berpc target_welcome)
 target_link_libraries(
   rokerbase
   CONAN_PKG::zlib

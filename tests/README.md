@@ -1,6 +1,8 @@
 # Centreon Tests
 
 This sub-project contains functional tests for Centreon Broker, Engine and Connectors.
+It is based on the [Robot Framework](https://robotframework.org/) with Python functions
+we can find in the resources directory. The Python code is formatted using autopep8.
 
 ## Getting Started
 
@@ -157,6 +159,10 @@ Here is the list of the currently implemented tests:
 
 ### Broker/engine
 - [x] **ANO_CFG_SENSITIVITY_SAVED**: cfg sensitivity saved in retention
+- [x] **ANO_DT1**: downtime on dependent service is inherited by ano
+- [x] **ANO_DT2**: delete downtime on dependent service delete one on ano serv
+- [x] **ANO_DT3**: delete downtime on anomaly don t delete dependent service one
+- [x] **ANO_DT4**: set dt on anomaly and on dependent service, delete last one don t delete first one
 - [x] **ANO_EXTCMD_SENSITIVITY_SAVED**: extcmd sensitivity saved in retention
 - [x] **ANO_JSON_SENSITIVITY_NOT_SAVED**: json sensitivity not saved in retention
 - [x] **ANO_NOFILE**: an anomaly detection without threshold file must be in unknown state

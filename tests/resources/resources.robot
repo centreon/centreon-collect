@@ -12,7 +12,7 @@ Clean Before Suite
 
 Clean Before Suite With rrdcached
 	Clean Before Suite
-        log to console	Starting RRDCached
+	log to console	Starting RRDCached
 	Run Process	/usr/bin/rrdcached	-l	unix:${BROKER_LIB}/rrdcached.sock	-V	LOG_DEBUG	-F
 
 Clean Grpc Before Suite
@@ -25,9 +25,9 @@ Clean After Suite
 	Terminate All Processes	kill=True
 
 Clean After Suite With rrdcached
-        Clean after Suite
-        log to console	Stopping RRDCached
-        Stop rrdcached
+	Clean after Suite
+	log to console	Stopping RRDCached
+	Stop rrdcached
 
 Clear Engine Logs
 	Remove Directory	${ENGINE_LOG}	Recursive=True
@@ -40,9 +40,6 @@ Clear Broker Logs
 Start Broker
 	Start Process	/usr/sbin/cbd	${EtcRoot}/centreon-broker/central-broker.json	alias=b1
 	Start Process	/usr/sbin/cbd	${EtcRoot}/centreon-broker/central-rrd.json	alias=b2
-#	${log_pid1}=  Get Process Id	b1
-#	${log_pid2}=  Get Process Id	b2
-#	Log To Console  \npidcentral=${log_pid1} pidrrd=${log_pid2}\n
 
 Reload Broker
 	Send Signal To Process	SIGHUP	b1
@@ -51,10 +48,25 @@ Reload Broker
 Kindly Stop Broker
 	Send Signal To Process	SIGTERM	b1
 	Send Signal To Process	SIGTERM	b2
-	${result}=	Wait For Process	b1	timeout=60s	on_timeout=kill
-	Should Be Equal As Integers	${result.rc}	0
+	${result}=	Wait For Process	b1	timeout=60s
+	# In case of process not stopping
+	IF	"${result}" == "${None}"
+	  Dump Process	b1	broker-central
+	  Send Signal To Process	SIGKILL	b1
+	  Fail	Central Broker not correctly stopped (coredump generated)
+	ELSE
+	  Should Be Equal As Integers	${result.rc}	0	msg=Central Broker not correctly stopped
+	END
+
 	${result}=	Wait For Process	b2	timeout=60s	on_timeout=kill
-	Should Be Equal As Integers	${result.rc}	0
+	# In case of process not stopping
+	IF	"${result}" == "${None}"
+	  Dump Process	b2	broker-rrd
+	  Send Signal To Process	SIGKILL	b2
+	  Fail	RRD Broker not correctly stopped (coredump generated)
+  	ELSE
+	  Should Be Equal As Integers	${result.rc}	0	msg=RRD Broker not correctly stopped
+	END
 
 Stop Broker
 	${result}=	Terminate Process	b1	kill=False
@@ -77,8 +89,6 @@ Start Engine
 	 Create Directory	${log}
 	 Create Directory	${lib}
 	 Start Process	/usr/sbin/centengine	${conf}	alias=${alias}
-#	 ${log_pid1}=  Get Process Id	${alias}
-#	 Log To Console  \npidengine${idx}=${log_pid1}\n
 	END
 
 Start Custom Engine
@@ -98,8 +108,15 @@ Stop Engine
 	END
 	FOR	${idx}	IN RANGE	0	${count}
 	 ${alias}=	Catenate	SEPARATOR=	e	${idx}
-	 ${result}=	Wait For Process	${alias}	timeout=60s	on_timeout=kill
-	 Should Be True	${result.rc} == -15 or ${result.rc} == 0	msg=Engine badly stopped with ${count} instances - code returned ${result.rc}.
+	 ${result}=	Wait For Process	${alias}	timeout=60s
+	 IF	"${result}" == "${None}"
+	   ${name}=	Catenate	SEPARATOR=	centengine	${idx}
+	   Dump Process	${alias}	${name}
+	   Send Signal To Process	SIGKILL	${alias}
+	   Fail	${name} not correctly stopped (coredump generated)
+  	 ELSE
+	  Should Be True	${result.rc} == -15 or ${result.rc} == 0	msg=Engine badly stopped with ${count} instances - code returned ${result.rc}.
+	 END
 	END
 
 Reload Engine
@@ -115,10 +132,12 @@ Check Connections
 	FOR	${idx}	IN RANGE	0	${count}
 	 ${alias}=	Catenate	SEPARATOR=	e	${idx}
 	 ${pid2}=	Get Process Id	${alias}
+	 Log to console	Check Connection 5669 ${pid1} ${pid2}
 	 ${retval}=	Check Connection	5669	${pid1}	${pid2}
 	 Return from Keyword If	${retval} == ${False}	${False}
 	END
 	${pid2}=	Get Process Id	b2
+	Log to console	Check Connection 5670 ${pid1} ${pid2}
 	${retval}=	Check Connection	5670	${pid1}	${pid2}
 	[Return]	${retval}
 
@@ -137,13 +156,37 @@ Save Logs If failed
 
 Save Logs
 	Create Directory	failed
-        ${failDir}=	Catenate	SEPARATOR=	failed/	${Test Name}
-        Create Directory	${failDir}
-        Copy files	${centralLog}	${failDir}
-        Copy files	${moduleLog0}	${failDir}
-        Copy files	${engineLog0}	${failDir}
-        Copy Files	${EtcRoot}/centreon-engine/config0/*.cfg	${failDir}/etc/centreon-engine/config0
-        Copy Files	${EtcRoot}/centreon-broker/*.json	${failDir}/etc/centreon-broker
+	${failDir}=	Catenate	SEPARATOR=	failed/	${Test Name}
+	Create Directory	${failDir}
+	Copy files	${centralLog}	${failDir}
+	Copy files	${moduleLog0}	${failDir}
+	Copy files	${engineLog0}	${failDir}
+	Copy files	${ENGINE_LOG}/config0/gcore_*	${failDir}
+	Copy Files	${EtcRoot}/centreon-engine/config0/*.cfg	${failDir}/etc/centreon-engine/config0
+	Copy Files	${EtcRoot}/centreon-broker/*.json	${failDir}/etc/centreon-broker
+
+
+Dump Process
+	[Arguments]	${process_name}	${name}
+	${pid}=	Get Process Id	${process_name}
+	${failDir}=	Catenate	SEPARATOR=	failed/	${Test Name}
+	Create Directory	${failDir}
+	${output}=	Catenate	SEPARATOR=	${failDir}	/core-	${name}
+	Log To Console	Creation of core ${output}.${pid} to debug
+	Run Process	gcore	-o	${output}	${pid}
+	Log To Console	Done...
+
+
+Wait Or Dump And Kill Process
+	[Arguments]  ${process_name}  ${timeout}
+	${result}=      Wait For Process	${process_name}	timeout=${timeout}      on_timeout=continu
+	${test_none}=  Set Variable If  $result is None  "not killed"  "killed"
+	IF  ${test_none} == "not killed"
+		${pid}=  Get Process Id  ${process_name}
+		Run Process  gcore  -o  ${ENGINE_LOG}/config0/gcore_${process_name}  ${pid}
+		${result}=      Wait For Process	${process_name}	timeout=1s      on_timeout=kill
+	END
+	[Return]	${result}
 
 *** Variables ***
 ${BROKER_LOG}	${VarRoot}/log/centreon-broker

@@ -1,5 +1,5 @@
 /*
-** Copyright 2019 Centreon
+** Copyright 2019-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -115,10 +115,16 @@ TEST(WatchdogTest, SimpleConfig) {
   kill(pid, SIGTERM);
 
   // We wait for the next event
-  sleep(5);
-  r = misc::exec("ps ax | grep tester | grep -v grep | awk '{print $1}'");
-  lst = absl::StrSplit(r, '\n');
-  // There are still 3 elements, the lost child is resurrected
+  time = 0;
+  for (;;) {
+    r = misc::exec("ps ax | grep tester | grep -v grep | awk '{print $1}'");
+    lst = absl::StrSplit(r, '\n');
+    // There are still 3 elements, the lost child is resurrected
+    if (lst.size() == 3u || time > 10)
+      break;
+    sleep(1);
+    time++;
+  }
   ASSERT_EQ(lst.size(), 3u);
   ASSERT_TRUE(lst.back().empty());
 
@@ -126,10 +132,16 @@ TEST(WatchdogTest, SimpleConfig) {
   r = misc::exec("ps ax | grep bin/cbwd | grep -v grep | awk '{print $1}'");
   pid = std::stol(r);
   kill(pid, SIGTERM);
-  sleep(2);
 
-  // No tester anymore.
-  r = misc::exec("ps ax | grep tester | grep -v grep | awk '{print $1}'");
+  time = 0;
+  for (;;) {
+    // No tester anymore.
+    r = misc::exec("ps ax | grep tester | grep -v grep | awk '{print $1}'");
+    if (r == "" || time > 10)
+      break;
+    sleep(1);
+    time++;
+  }
   ASSERT_EQ(r, "");
 
   r = misc::exec("ps ax | grep bin/cbwd | grep -v grep | awk '{print $1}'");

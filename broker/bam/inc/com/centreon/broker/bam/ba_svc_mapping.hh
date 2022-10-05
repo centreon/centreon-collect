@@ -33,18 +33,15 @@ namespace bam {
  *  by a BA ID.
  */
 class ba_svc_mapping {
+  std::unordered_map<uint32_t, std::pair<std::string, std::string>> _mapping;
+
  public:
-  ba_svc_mapping();
+  ba_svc_mapping() = default;
   ba_svc_mapping(ba_svc_mapping const& other);
-  ~ba_svc_mapping();
+  ~ba_svc_mapping() noexcept = default;
   ba_svc_mapping& operator=(ba_svc_mapping const& other);
   std::pair<std::string, std::string> get_service(uint32_t ba_id);
   void set(uint32_t ba_id, std::string const& hst, std::string const& svc);
-
- private:
-  void _internal_copy(ba_svc_mapping const& other);
-
-  std::map<uint32_t, std::pair<std::string, std::string> > _mapping;
 };
 }  // namespace bam
 

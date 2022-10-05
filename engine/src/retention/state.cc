@@ -209,6 +209,6 @@ list_service& state::services() throw() {
  *
  *  @return The service list.
  */
-list_service const& state::services() const throw() {
+list_service const& state::services() const noexcept {
   return (_services);
 }

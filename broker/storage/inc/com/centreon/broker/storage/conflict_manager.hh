@@ -205,6 +205,9 @@ class conflict_manager {
   absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t> _severity_cache;
   absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t> _tags_cache;
 
+  std::mutex _group_clean_timer_m;
+  asio::system_timer _group_clean_timer;
+
   std::unordered_set<uint32_t> _hostgroup_cache;
   std::unordered_set<uint32_t> _servicegroup_cache;
 
@@ -346,6 +349,7 @@ class conflict_manager {
   void _load_deleted_instances();
   void _load_caches();
   void _clean_tables(uint32_t instance_id);
+  void _clean_group_table();
   void _prepare_hg_insupdate_statement();
   void _prepare_sg_insupdate_statement();
   void _finish_action(int32_t conn, uint32_t action);
