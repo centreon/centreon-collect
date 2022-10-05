@@ -103,7 +103,7 @@ static struct {
     {NEBCALLBACK_COMMENT_DATA, &neb::callback_pb_comment},
     {NEBCALLBACK_DOWNTIME_DATA, &neb::callback_downtime},
     {NEBCALLBACK_EVENT_HANDLER_DATA, &neb::callback_event_handler},
-    {NEBCALLBACK_EXTERNAL_COMMAND_DATA, &neb::callback_external_command},
+    {NEBCALLBACK_EXTERNAL_COMMAND_DATA, &neb::callback_pb_external_command},
     {NEBCALLBACK_FLAPPING_DATA, &neb::callback_flapping_status},
     {NEBCALLBACK_HOST_CHECK_DATA, &neb::callback_host_check},
     {NEBCALLBACK_HOST_STATUS_DATA, &neb::callback_pb_host_status},
@@ -293,7 +293,7 @@ int neb::callback_comment(int callback_type, void* data) {
  */
 int neb::callback_pb_comment(int, void* data) {
   // Log message.
-  log_v2::neb()->info("callbacks: generating pb comment event");
+  SPDLOG_LOGGER_INFO(log_v2::neb(), "callbacks: generating pb comment event");
 
   const nebstruct_comment_data* comment_data =
       static_cast<nebstruct_comment_data*>(data);
@@ -405,11 +405,12 @@ int neb::callback_pb_custom_variable(int, void* data) {
       if (hst && !hst->name().empty()) {
         uint64_t host_id = engine::get_host_id(hst->name());
         if (host_id != 0) {
+          std::string name(misc::string::check_string_utf8(cvar->var_name));
           bool add = NEBTYPE_HOSTCUSTOMVARIABLE_ADD == cvar->type;
           obj.set_enabled(add);
           obj.set_host_id(host_id);
           obj.set_modified(!add);
-          obj.set_name(misc::string::check_string_utf8(cvar->var_name));
+          obj.set_name(name);
           obj.set_var_type(com::centreon::broker::CustomVariable_VarType_HOST);
           obj.set_update_time(cvar->timestamp.tv_sec);
           if (add) {
@@ -417,13 +418,12 @@ int neb::callback_pb_custom_variable(int, void* data) {
                 misc::string::check_string_utf8(cvar->var_value));
             SPDLOG_LOGGER_INFO(log_v2::neb(),
                                "callbacks: new custom variable '{}' on host {}",
-                               obj.name(), host_id);
-
+                               name, host_id);
           } else {
             SPDLOG_LOGGER_INFO(
                 log_v2::neb(),
-                "callbacks: deleted custom variable '{}' on host {}",
-                obj.name(), host_id);
+                "callbacks: deleted custom variable '{}' on host {}", name,
+                host_id);
           }
           ok_to_send = true;
         }
@@ -440,28 +440,30 @@ int neb::callback_pb_custom_variable(int, void* data) {
         p = engine::get_host_and_service_id(svc->get_hostname(),
                                             svc->get_description());
         if (p.first && p.second) {
+          std::string name(misc::string::check_string_utf8(cvar->var_name));
           bool add = NEBTYPE_SERVICECUSTOMVARIABLE_ADD == cvar->type;
           obj.set_enabled(add);
           obj.set_host_id(p.first);
           obj.set_modified(!add);
           obj.set_service_id(p.second);
-          obj.set_name(misc::string::check_string_utf8(cvar->var_name));
+          obj.set_name(name);
           obj.set_var_type(
               com::centreon::broker::CustomVariable_VarType_SERVICE);
           obj.set_update_time(cvar->timestamp.tv_sec);
           if (add) {
-            obj.set_value(misc::string::check_string_utf8(cvar->var_value));
-            obj.set_default_value(obj.value());
+            std::string value(misc::string::check_string_utf8(cvar->var_value));
+            obj.set_value(value);
+            obj.set_default_value(value);
             SPDLOG_LOGGER_INFO(
                 log_v2::neb(),
-                "callbacks: new custom variable '{}' on service ({}, {})",
-                obj.name(), p.first, p.second);
+                "callbacks: new custom variable '{}' on service ({}, {})", name,
+                p.first, p.second);
 
           } else {
             SPDLOG_LOGGER_INFO(
                 log_v2::neb(),
                 "callbacks: deleted custom variable '{}' on service ({},{})",
-                obj.name(), p.first, p.second);
+                name, p.first, p.second);
           }
           ok_to_send = true;
         }
@@ -968,7 +970,7 @@ int neb::callback_event_handler(int callback_type, void* data) {
  */
 int neb::callback_external_command(int callback_type, void* data) {
   // Log message.
-  log_v2::neb()->debug("callbacks: external command data");
+  SPDLOG_LOGGER_DEBUG(log_v2::neb(), "callbacks: external command data");
   (void)callback_type;
 
   nebstruct_external_command_data* necd(
@@ -976,7 +978,8 @@ int neb::callback_external_command(int callback_type, void* data) {
   if (necd && (necd->type == NEBTYPE_EXTERNALCOMMAND_START)) {
     try {
       if (necd->command_type == CMD_CHANGE_CUSTOM_HOST_VAR) {
-        log_v2::neb()->info(
+        SPDLOG_LOGGER_INFO(
+            log_v2::neb(),
             "callbacks: generating host custom variable update event");
 
         // Split argument string.
@@ -984,7 +987,8 @@ int neb::callback_external_command(int callback_type, void* data) {
           std::list<std::string> l{absl::StrSplit(
               misc::string::check_string_utf8(necd->command_args), ';')};
           if (l.size() != 3)
-            log_v2::neb()->error(
+            SPDLOG_LOGGER_ERROR(
+                log_v2::neb(),
                 "callbacks: invalid host custom variable command");
           else {
             std::list<std::string>::iterator it(l.begin());
@@ -1012,7 +1016,8 @@ int neb::callback_external_command(int callback_type, void* data) {
           }
         }
       } else if (necd->command_type == CMD_CHANGE_CUSTOM_SVC_VAR) {
-        log_v2::neb()->info(
+        SPDLOG_LOGGER_INFO(
+            log_v2::neb(),
             "callbacks: generating service custom variable update event");
 
         // Split argument string.
@@ -1020,7 +1025,8 @@ int neb::callback_external_command(int callback_type, void* data) {
           std::list<std::string> l{absl::StrSplit(
               misc::string::check_string_utf8(necd->command_args), ';')};
           if (l.size() != 4)
-            log_v2::neb()->error(
+            SPDLOG_LOGGER_ERROR(
+                log_v2::neb(),
                 "callbacks: invalid service custom variable command");
           else {
             std::list<std::string>::iterator it{l.begin()};
@@ -1047,6 +1053,116 @@ int neb::callback_external_command(int callback_type, void* data) {
 
               // Send event.
               gl_publisher.write(cvs);
+            }
+          }
+        }
+      }
+    }
+    // Avoid exception propagation in C code.
+    catch (...) {
+    }
+  }
+  return 0;
+}
+
+/**
+ *  @brief Function that process external commands.
+ *
+ *  This function is called by the monitoring engine when some external
+ *  command is received.
+ *
+ *  @param[in] callback_type Type of the callback
+ *                           (NEBCALLBACK_EXTERNALCOMMAND_DATA).
+ *  @param[in] data          A pointer to a nebstruct_externalcommand_data
+ *                           containing the external command data.
+ *
+ *  @return 0 on success.
+ */
+int neb::callback_pb_external_command(int, void* data) {
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(log_v2::neb(), "callbacks: external command data");
+
+  nebstruct_external_command_data* necd(
+      static_cast<nebstruct_external_command_data*>(data));
+  if (necd && (necd->type == NEBTYPE_EXTERNALCOMMAND_START)) {
+    try {
+      auto args = absl::StrSplit(
+          misc::string::check_string_utf8(necd->command_args), ';');
+      size_t args_size = std::distance(args.begin(), args.end());
+      auto split_iter = args.begin();
+      if (necd->command_type == CMD_CHANGE_CUSTOM_HOST_VAR) {
+        SPDLOG_LOGGER_INFO(
+            log_v2::neb(),
+            "callbacks: generating host custom variable update event");
+
+        // Split argument string.
+        if (necd->command_args) {
+          if (args_size != 3)
+            SPDLOG_LOGGER_ERROR(
+                log_v2::neb(),
+                "callbacks: invalid host custom variable command {}",
+                necd->command_args);
+          else {
+            std::string host(*(split_iter++));
+            // Find host ID.
+            uint64_t host_id = engine::get_host_id(host);
+            if (host_id != 0) {
+              // Fill custom variable.
+              neb::pb_custom_variable_status::shared_ptr cvs =
+                  std::make_shared<neb::pb_custom_variable_status>();
+              CustomVariableStatus& data = cvs->mut_obj();
+              data.set_host_id(host_id);
+              data.set_modified(true);
+              data.set_name(split_iter->data(), split_iter->length());
+              ++split_iter;
+              data.set_update_time(necd->timestamp.tv_sec);
+              data.set_value(split_iter->data(), split_iter->length());
+
+              // Send event.
+              gl_publisher.write(cvs);
+            } else {
+              SPDLOG_LOGGER_ERROR(log_v2::neb(), "callbacks: unknown host {} ",
+                                  host);
+            }
+          }
+        }
+      } else if (necd->command_type == CMD_CHANGE_CUSTOM_SVC_VAR) {
+        SPDLOG_LOGGER_INFO(
+            log_v2::neb(),
+            "callbacks: generating service custom variable update event");
+
+        // Split argument string.
+        if (necd->command_args) {
+          if (args_size != 4)
+            SPDLOG_LOGGER_ERROR(
+                log_v2::neb(),
+                "callbacks: invalid service custom variable command {}",
+                necd->command_args);
+          else {
+            std::string host(*(split_iter++));
+            std::string service(*(split_iter++));
+            // Find host/service IDs.
+            std::pair<uint64_t, uint64_t> p{
+                engine::get_host_and_service_id(host, service)};
+            if (p.first && p.second) {
+              // Fill custom variable.
+              neb::pb_custom_variable_status::shared_ptr cvs =
+                  std::make_shared<neb::pb_custom_variable_status>();
+              CustomVariableStatus& data = cvs->mut_obj();
+              data.set_host_id(p.first);
+              data.set_modified(true);
+              data.set_name(split_iter->data(), split_iter->length());
+              ++split_iter;
+              data.set_service_id(p.second);
+              data.set_update_time(necd->timestamp.tv_sec);
+              data.set_value(split_iter->data(), split_iter->length());
+
+              // Send event.
+              gl_publisher.write(cvs);
+            } else {
+              SPDLOG_LOGGER_ERROR(log_v2::neb(),
+                                  "callbacks: unknown host  {} service {}",
+                                  host, service);
             }
           }
         }

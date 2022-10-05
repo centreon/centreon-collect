@@ -645,6 +645,66 @@ void stream::_process_custom_variable(const std::shared_ptr<io::data>& d) {
 }
 
 /**
+ *  Process a custom variable status event.
+ *
+ *  @param[in] e Uncasted custom variable status.
+ *
+ * @return The number of events that can be acknowledged.
+ */
+void stream::_process_custom_variable_status(
+    const std::shared_ptr<io::data>& d) {
+  // Cast object.
+  neb::custom_variable_status const& cv{
+      *static_cast<neb::custom_variable_status const*>(d.get())};
+
+  {
+    std::lock_guard<std::mutex> lck(_queues_m);
+    _cvs_queue.emplace_back(fmt::format(
+        "('{}',{},{},{},{},'{}')",
+        misc::string::escape(
+            cv.name, get_customvariables_col_size(customvariables_name)),
+        cv.host_id, cv.service_id, cv.modified ? 1 : 0, cv.update_time,
+        misc::string::escape(
+            cv.value, get_customvariables_col_size(customvariables_value))));
+  }
+
+  SPDLOG_LOGGER_INFO(log_v2::sql(),
+                     "SQL: updating custom variable '{}' of ({}, {})", cv.name,
+                     cv.host_id, cv.service_id);
+}
+
+/**
+ *  Process a custom variable status event.
+ *
+ *  @param[in] e Uncasted custom variable status.
+ *
+ * @return The number of events that can be acknowledged.
+ */
+void stream::_process_pb_custom_variable_status(
+    const std::shared_ptr<io::data>& d) {
+  // Cast object.
+  const neb::pb_custom_variable_status& cv{
+      *static_cast<neb::pb_custom_variable_status const*>(d.get())};
+
+  const com::centreon::broker::CustomVariableStatus& data = cv.obj();
+  {
+    std::lock_guard<std::mutex> lck(_queues_m);
+    _cvs_queue.emplace_back(fmt::format(
+        "('{}',{},{},{},{},'{}')",
+        misc::string::escape(
+            data.name(), get_customvariables_col_size(customvariables_name)),
+        data.host_id(), data.service_id(), data.modified() ? 1 : 0,
+        data.update_time(),
+        misc::string::escape(data.value(), get_customvariables_col_size(
+                                               customvariables_value))));
+  }
+
+  SPDLOG_LOGGER_INFO(log_v2::sql(),
+                     "SQL: updating custom variable '{}' of ({}, {})",
+                     data.name(), data.host_id(), data.service_id());
+}
+
+/**
  *  Process a downtime event.
  *
  *  @param[in] e Uncasted downtime.

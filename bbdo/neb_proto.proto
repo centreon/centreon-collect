@@ -63,6 +63,16 @@ message Comment {
 }
 
 
+message CustomVariableStatus {
+    BBDOHeader header = 1;
+    uint64 host_id = 2;
+    uint64 service_id = 3;
+    bool modified = 4;
+    string name = 5;
+    uint64 update_time = 6;
+    string value = 7;
+}
+
 message CustomVariable {
     enum VarType {
         HOST = 0;
@@ -76,7 +86,6 @@ message CustomVariable {
     string name = 5;
     uint64 update_time = 6;
     string value = 7;
-
     string default_value = 8;
     bool enabled = 9;
     bool password = 10;

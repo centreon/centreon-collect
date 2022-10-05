@@ -1466,6 +1466,16 @@ def change_host_check_command(hst: str, Check_Command: str):
         now, hst, Check_Command)
 
 
+@external_command
+def change_custom_host_var_command(hst: str, var_name: str, var_value):
+    return "CHANGE_CUSTOM_HOST_VAR;{};{};{}\n".format(hst, var_name, var_value)
+
+
+@external_command
+def change_custom_svc_var_command(hst: str, svc: str, var_name: str, var_value):
+    return "CHANGE_CUSTOM_SVC_VAR;{};{};{};{}\n".format(hst, svc, var_name, var_value)
+
+
 def create_anomaly_threshold_file(path: string, host_id: int, service_id: int, metric_name: string, values: array):
     f = open(path, "w")
     f.write("""[
