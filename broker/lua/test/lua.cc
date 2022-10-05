@@ -3231,12 +3231,12 @@ TEST_F(LuaTest, PbTestCustomVariableApiV1) {
   std::map<std::string, misc::variant> conf;
   auto hst{std::make_shared<neb::pb_custom_variable>()};
   hst->mut_obj().mutable_header()->set_conf_version(5);
-  hst->mut_obj().set_host_id(1);
-  hst->mut_obj().set_service_id(2);
-  hst->mut_obj().set_modified(true);
-  hst->mut_obj().set_name("toto");
-  hst->mut_obj().set_update_time(4);
-  hst->mut_obj().set_value("titi");
+  hst->mut_obj().mutable_data()->set_host_id(1);
+  hst->mut_obj().mutable_data()->set_service_id(2);
+  hst->mut_obj().mutable_data()->set_modified(true);
+  hst->mut_obj().mutable_data()->set_name("toto");
+  hst->mut_obj().mutable_data()->set_update_time(4);
+  hst->mut_obj().mutable_data()->set_value("titi");
   hst->mut_obj().set_default_value("tata");
   hst->mut_obj().set_enabled(false);
   hst->mut_obj().set_password(true);

@@ -499,16 +499,16 @@ void stream::_process_pb_custom_variable(const std::shared_ptr<io::data>& d) {
 
   // Processing.
   if (cv.enabled()) {
-    SPDLOG_LOGGER_INFO(log_v2::sql(),
-                       "SQL: enable custom variable '{}' of ({}, {})",
-                       cv.name(), cv.host_id(), cv.service_id());
+    SPDLOG_LOGGER_INFO(
+        log_v2::sql(), "SQL: enable custom variable '{}' of ({}, {})",
+        cv.data().name(), cv.data().host_id(), cv.data().service_id());
 
     std::lock_guard<std::mutex> lck(_queues_m);
     _cv_queue.emplace_back(fmt::format(
         "('{}',{},{},'{}',{},{},{},'{}')",
-        misc::string::escape(
-            cv.name(), get_customvariables_col_size(customvariables_name)),
-        cv.host_id(), cv.service_id(),
+        misc::string::escape(cv.data().name(), get_customvariables_col_size(
+                                                   customvariables_name)),
+        cv.data().host_id(), cv.data().service_id(),
         misc::string::escape(
             cv.default_value(),
             get_customvariables_col_size(customvariables_default_value)),
@@ -522,12 +522,13 @@ void stream::_process_pb_custom_variable(const std::shared_ptr<io::data>& d) {
     int conn = special_conn::custom_variable % _mysql.connections_count();
     _finish_action(-1, actions::custom_variables);
 
-    SPDLOG_LOGGER_INFO(log_v2::sql(),
-                       "SQL: disabling custom variable '{}' of ({}, {})",
-                       cv.name(), cv.host_id(), cv.service_id());
-    _custom_variable_delete.bind_value_as_i32(":host_id", cv.host_id());
-    _custom_variable_delete.bind_value_as_i32(":service_id", cv.service_id());
-    _custom_variable_delete.bind_value_as_str(":name", cv.name());
+    SPDLOG_LOGGER_INFO(
+        log_v2::sql(), "SQL: disabling custom variable '{}' of ({}, {})",
+        cv.data().name(), cv.data().host_id(), cv.data().service_id());
+    _custom_variable_delete.bind_value_as_i32(":host_id", cv.data().host_id());
+    _custom_variable_delete.bind_value_as_i32(":service_id",
+                                              cv.data().service_id());
+    _custom_variable_delete.bind_value_as_str(":name", cv.data().name());
 
     _mysql.run_statement(_custom_variable_delete,
                          database::mysql_error::remove_customvariable, false,
