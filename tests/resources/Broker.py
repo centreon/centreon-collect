@@ -1252,18 +1252,12 @@ def get_indexes_to_rebuild(count: int):
                         "building data for metric {}".format(r['metric_id']))
                     start = int(time.time()) - 24 * 60 * 60 * 30
                     # We go back to 30 days with steps of 5 mn
-                    value1 = int(r['metric_id'])
-                    value2 = 0
-                    value = value1
+                    value = int(r['metric_id']) // 2
                     cursor.execute("DELETE FROM data_bin WHERE id_metric={} AND ctime >= {}".format(
                         r['metric_id'], start))
                     for i in range(0, 24 * 60 * 60 * 31, 60 * 5):
                         cursor.execute("INSERT INTO data_bin (id_metric, ctime, value, status) VALUES ({},{},{},'0')".format(
                             r['metric_id'], start + i, value))
-                        if value == value1:
-                            value = value2
-                        else:
-                            value = value1
                     connection.commit()
                     retval.append(int(r['index_id']))
 

@@ -39,6 +39,10 @@ double ba::_normalize(double d) {
   return d;
 };
 
+static bool time_is_undefined(uint64_t t) {
+  return t == 0 || t == static_cast<uint64_t>(-1);
+}
+
 /**
  *  Constructor.
  *
@@ -397,7 +401,8 @@ void ba::service_update(const std::shared_ptr<neb::pb_downtime>& dt,
       _id, _name, _host_id, _service_id);
 
   // Check if there was a change.
-  bool in_downtime(downtime.started() && downtime.actual_end_time() == 0);
+  bool in_downtime(downtime.started() &&
+                   time_is_undefined(downtime.actual_end_time()));
   if (_in_downtime != in_downtime) {
     log_v2::bam()->trace("ba: service_update downtime: {}", _in_downtime);
     _in_downtime = in_downtime;

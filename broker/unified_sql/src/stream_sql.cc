@@ -36,6 +36,10 @@ static inline bool is_not_zero(const int64_t& value) {
   return value != 0;
 }
 
+static bool time_is_undefined(uint64_t t) {
+  return t == 0 || t == static_cast<uint64_t>(-1);
+}
+
 /**
  *  @brief Clean tables with data associated to the instance.
  *
@@ -782,27 +786,33 @@ void stream::_process_pb_downtime(const std::shared_ptr<io::data>& d) {
   if (_is_valid_poller(dt_obj.instance_id())) {
     _downtimes_queue.emplace_back(fmt::format(
         "({},{},'{}',{},{},{},{},{},{},{},{},{},{},{},{},{},{},'{}')",
-        dt_obj.actual_end_time() == 0
+        time_is_undefined(dt_obj.actual_end_time())
             ? "NULL"
             : fmt::format("{}", dt_obj.actual_end_time()),
-        dt_obj.actual_start_time() == 0
+        time_is_undefined(dt_obj.actual_start_time())
             ? "NULL"
             : fmt::format("{}", dt_obj.actual_start_time()),
         misc::string::escape(dt_obj.author(),
                              get_downtimes_col_size(downtimes_author)),
         dt_obj.type(),
-        dt_obj.deletion_time() == 0 ? "NULL"
-                                    : fmt::format("{}", dt_obj.deletion_time()),
+        time_is_undefined(dt_obj.deletion_time())
+            ? "NULL"
+            : fmt::format("{}", dt_obj.deletion_time()),
         dt_obj.duration(),
-        dt_obj.end_time() == 0 ? "NULL" : fmt::format("{}", dt_obj.end_time()),
-        dt_obj.entry_time() == 0 ? "NULL"
-                                 : fmt::format("{}", dt_obj.entry_time()),
+        time_is_undefined(dt_obj.end_time())
+            ? "NULL"
+            : fmt::format("{}", dt_obj.end_time()),
+        time_is_undefined(dt_obj.entry_time())
+            ? "NULL"
+            : fmt::format("{}", dt_obj.entry_time()),
         dt_obj.fixed(), dt_obj.host_id(), dt_obj.instance_id(), dt_obj.id(),
         dt_obj.service_id(),
-        dt_obj.start_time() == 0 ? "NULL"
-                                 : fmt::format("{}", dt_obj.start_time()),
-        dt_obj.triggered_by() == 0 ? "NULL"
-                                   : fmt::format("{}", dt_obj.triggered_by()),
+        time_is_undefined(dt_obj.start_time())
+            ? "NULL"
+            : fmt::format("{}", dt_obj.start_time()),
+        time_is_undefined(dt_obj.triggered_by())
+            ? "NULL"
+            : fmt::format("{}", dt_obj.triggered_by()),
         dt_obj.cancelled(), dt_obj.started(),
         misc::string::escape(dt_obj.comment_data(),
                              get_downtimes_col_size(downtimes_comment_data))));

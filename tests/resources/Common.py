@@ -474,6 +474,27 @@ def check_ba_status_with_timeout(ba_name: str, status: int, timeout: int):
     return False
 
 
+def check_downtimes_with_timeout(nb: int, timeout: int):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT count(*) FROM downtimes WHERE deletion_time IS NULL")
+                result = cursor.fetchall()
+                if len(result) > 0 and not result[0]['count(*)'] is None:
+                    if result[0]['count(*)'] == int(nb):
+                        return True
+                    else:
+                        logger.console(f"We should have {nb} downtimes but we have {result[0]['count(*)']}")
+        time.sleep(2)
+    return False
 def check_service_downtime_with_timeout(hostname: str, service_desc: str, enabled, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
@@ -495,6 +516,23 @@ def check_service_downtime_with_timeout(hostname: str, service_desc: str, enable
     return False
 
 
+def show_downtimes():
+    connection = pymysql.connect(host=DB_HOST,
+                                 user=DB_USER,
+                                 password=DB_PASS,
+                                 database=DB_NAME_STORAGE,
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                f"select * FROM downtimes WHERE deletion_time is null")
+            result = cursor.fetchall()
+
+    for r in result:
+        logger.console(f" >> {r}")
+
 def delete_service_downtime(hst: str, svc: str):
     now = int(time.time())
     connection = pymysql.connect(host=DB_HOST,
@@ -511,7 +549,7 @@ def delete_service_downtime(hst: str, svc: str):
             result = cursor.fetchall()
             did = int(result[0]['internal_id'])
 
-    cmd = f"[{now}] DEL_SVC_DOWNTIME;{did}"
+    cmd = f"[{now}] DEL_SVC_DOWNTIME;{did}\n"
     f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
     f.write(cmd)
     f.close()

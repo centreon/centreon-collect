@@ -32,6 +32,10 @@ using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;
 
+static bool time_is_undefined(uint64_t t) {
+  return t == 0 || t == static_cast<uint64_t>(-1);
+}
+
 /**
  *  Default constructor.
  */
@@ -351,11 +355,13 @@ void kpi_service::service_update(const std::shared_ptr<neb::pb_downtime>& dt,
                                  io::stream* visitor) {
   auto& downtime = dt->obj();
   // Update information.
-  bool downtimed = downtime.started() && !downtime.actual_end_time();
+  bool downtimed =
+      downtime.started() && time_is_undefined(downtime.actual_end_time());
   if (!_downtimed && downtimed)
     _downtimed = true;
 
-  if (_downtime_ids.contains(downtime.id()) && !downtime.deletion_time()) {
+  if (_downtime_ids.contains(downtime.id()) &&
+      time_is_undefined(downtime.deletion_time())) {
     log_v2::bam()->trace("Downtime {} already handled in this kpi service",
                          downtime.id());
     return;

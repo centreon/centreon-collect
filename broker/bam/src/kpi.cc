@@ -19,6 +19,7 @@
 #include "com/centreon/broker/bam/kpi.hh"
 
 #include "com/centreon/broker/bam/ba.hh"
+#include "com/centreon/broker/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;
@@ -63,6 +64,7 @@ timestamp kpi::get_last_state_change() const {
  *  @param[in] e  The kpi event.
  */
 void kpi::set_initial_event(const kpi_event& e) {
+  log_v2::bam()->trace("bam: kpi::set_initial_event");
   if (!_event) {
     _event = std::make_shared<kpi_event>(e);
     impact_values impacts;
@@ -74,13 +76,13 @@ void kpi::set_initial_event(const kpi_event& e) {
     if (std::abs(new_impact_level - _event->impact_level) >= eps &&
         _event->impact_level != -1) {
       time_t now = ::time(nullptr);
-      std::shared_ptr<kpi_event> new_event = std::make_shared<kpi_event>(e);
+      auto new_event = std::make_shared<kpi_event>(e);
       new_event->end_time = now;
       _initial_events.push_back(new_event);
       new_event = std::make_shared<kpi_event>(e);
       new_event->start_time = now;
       _initial_events.push_back(new_event);
-      _event = new_event;
+      _event = std::move(new_event);
     } else
       _initial_events.push_back(_event);
     ;
@@ -99,8 +101,8 @@ void kpi::commit_initial_events(io::stream* visitor) {
 
   if (visitor) {
     for (std::vector<std::shared_ptr<kpi_event> >::const_iterator
-             it(_initial_events.begin()),
-         end(_initial_events.end());
+             it = _initial_events.begin(),
+             end = _initial_events.end();
          it != end; ++it)
       visitor->write(std::make_shared<kpi_event>(**it));
   }
