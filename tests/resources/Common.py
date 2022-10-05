@@ -489,7 +489,6 @@ def check_downtimes_with_timeout(nb: int, timeout: int):
                 cursor.execute("SELECT count(*) FROM downtimes WHERE deletion_time IS NULL")
                 result = cursor.fetchall()
                 if len(result) > 0 and not result[0]['count(*)'] is None:
-                    logger.console(result[0]['count(*)'])
                     if result[0]['count(*)'] == int(nb):
                         return True
                     else:
