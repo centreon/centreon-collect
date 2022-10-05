@@ -47,6 +47,7 @@ test-coverage
 test/python/*.crt
 test/python/*.key
 ut
+tests/failed
 ### 
 apps/
 build/*
