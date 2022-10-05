@@ -967,75 +967,79 @@ int neb::callback_external_command(int callback_type, void* data) {
         SPDLOG_LOGGER_INFO(
             log_v2::neb(),
             "callbacks: generating host custom variable update event");
-        std::list<std::string> l{absl::StrSplit(
-            misc::string::check_string_utf8(necd->command_args), ';')};
-        if (l.size() != 3)
-          SPDLOG_LOGGER_ERROR(
-              log_v2::neb(), "callbacks: invalid host custom variable command");
-        else {
-          std::list<std::string>::iterator it(l.begin());
-          std::string host{std::move(*it)};
-          ++it;
-          std::string var_name{std::move(*it)};
-          ++it;
-          std::string var_value{std::move(*it)};
 
-          // Find host ID.
-          uint64_t host_id = engine::get_host_id(host);
-          if (host_id != 0) {
-            // Fill custom variable.
-            auto cvs = std::make_shared<neb::custom_variable_status>();
-            cvs->host_id = host_id;
-            cvs->modified = true;
-            cvs->name = var_name;
-            cvs->service_id = 0;
-            cvs->update_time = necd->timestamp.tv_sec;
-            cvs->value = var_value;
+        // Split argument string.
+        if (necd->command_args) {
+          std::list<std::string> l{absl::StrSplit(
+              misc::string::check_string_utf8(necd->command_args), ';')};
+          if (l.size() != 3)
+            SPDLOG_LOGGER_ERROR(
+                log_v2::neb(),
+                "callbacks: invalid host custom variable command");
+          else {
+            std::list<std::string>::iterator it(l.begin());
+            std::string host{std::move(*it)};
+            ++it;
+            std::string var_name{std::move(*it)};
+            ++it;
+            std::string var_value{std::move(*it)};
 
-            // Send event.
-            gl_publisher.write(cvs);
+            // Find host ID.
+            uint64_t host_id = engine::get_host_id(host);
+            if (host_id != 0) {
+              // Fill custom variable.
+              auto cvs = std::make_shared<neb::custom_variable_status>();
+              cvs->host_id = host_id;
+              cvs->modified = true;
+              cvs->name = var_name;
+              cvs->service_id = 0;
+              cvs->update_time = necd->timestamp.tv_sec;
+              cvs->value = var_value;
+
+              // Send event.
+              gl_publisher.write(cvs);
+            }
           }
         }
-      }
-    }
-    else if (necd->command_type == CMD_CHANGE_CUSTOM_SVC_VAR) {
-      SPDLOG_LOGGER_INFO(
-          log_v2::neb(),
-          "callbacks: generating service custom variable update event");
+      } else if (necd->command_type == CMD_CHANGE_CUSTOM_SVC_VAR) {
+        SPDLOG_LOGGER_INFO(
+            log_v2::neb(),
+            "callbacks: generating service custom variable update event");
 
-      // Split argument string.
-      if (necd->command_args) {
-        std::list<std::string> l{absl::StrSplit(
-            misc::string::check_string_utf8(necd->command_args), ';')};
-        if (l.size() != 4)
-          SPDLOG_LOGGER_ERROR(
-              log_v2::neb(),
-              "callbacks: invalid service custom variable command");
-        else {
-          std::list<std::string>::iterator it{l.begin()};
-          std::string host{std::move(*it)};
-          ++it;
-          std::string service{std::move(*it)};
-          ++it;
-          std::string var_name{std::move(*it)};
-          ++it;
-          std::string var_value{std::move(*it)};
+        // Split argument string.
+        if (necd->command_args) {
+          std::list<std::string> l{absl::StrSplit(
+              misc::string::check_string_utf8(necd->command_args), ';')};
+          if (l.size() != 4)
+            SPDLOG_LOGGER_ERROR(
+                log_v2::neb(),
+                "callbacks: invalid service custom variable command");
+          else {
+            std::list<std::string>::iterator it{l.begin()};
+            std::string host{std::move(*it)};
+            ++it;
+            std::string service{std::move(*it)};
+            ++it;
+            std::string var_name{std::move(*it)};
+            ++it;
+            std::string var_value{std::move(*it)};
 
-          // Find host/service IDs.
-          std::pair<uint64_t, uint64_t> p{
-              engine::get_host_and_service_id(host, service)};
-          if (p.first && p.second) {
-            // Fill custom variable.
-            auto cvs{std::make_shared<neb::custom_variable_status>()};
-            cvs->host_id = p.first;
-            cvs->modified = true;
-            cvs->name = var_name;
-            cvs->service_id = p.second;
-            cvs->update_time = necd->timestamp.tv_sec;
-            cvs->value = var_value;
+            // Find host/service IDs.
+            std::pair<uint64_t, uint64_t> p{
+                engine::get_host_and_service_id(host, service)};
+            if (p.first && p.second) {
+              // Fill custom variable.
+              auto cvs{std::make_shared<neb::custom_variable_status>()};
+              cvs->host_id = p.first;
+              cvs->modified = true;
+              cvs->name = var_name;
+              cvs->service_id = p.second;
+              cvs->update_time = necd->timestamp.tv_sec;
+              cvs->value = var_value;
 
-            // Send event.
-            gl_publisher.write(cvs);
+              // Send event.
+              gl_publisher.write(cvs);
+            }
           }
         }
       }
