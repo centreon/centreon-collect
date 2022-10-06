@@ -131,6 +131,9 @@ enum data_element {
   de_pb_downtime = 36,
   de_pb_custom_variable = 37,
   de_pb_custom_variable_status = 38,
+  de_pb_host_check = 39,
+  de_pb_service_check = 40
+
 };
 }  // namespace neb
 namespace storage {

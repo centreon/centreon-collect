@@ -111,4 +111,29 @@ message CustomVariable {
   VarType type = 11;
 }
 
+enum CheckType {
+    CheckActive = 0;
+    CheckPassive = 1;
+}
 
+
+message HostCheck {
+    BBDOHeader header = 1;
+
+    bool active_checks_enabled = 2;
+    CheckType check_type = 3;
+    string command_line = 4;
+    uint64 host_id = 5;
+    uint64 next_check = 6;
+}
+
+message ServiceCheck {
+    BBDOHeader header = 1;
+
+    bool active_checks_enabled = 2;
+    CheckType check_type = 3;
+    string command_line = 4;
+    uint64 host_id = 5;
+    uint64 next_check = 6;
+    uint64 service_id = 7;
+}

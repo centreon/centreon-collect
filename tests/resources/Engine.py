@@ -756,6 +756,11 @@ def get_command_id(service: int):
     return dbconf.command[cmd_name]
 
 
+def get_command_service_param(service: int):
+    global engine
+    return engine.service_cmd[service][8:]
+
+
 def change_normal_svc_check_interval(use_grpc: int, hst: str, svc: str, check_interval: int):
     if use_grpc > 0:
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
