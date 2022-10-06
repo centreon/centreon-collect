@@ -85,7 +85,6 @@ static struct {
     {NEBCALLBACK_DOWNTIME_DATA, &neb::callback_downtime},
     {NEBCALLBACK_EVENT_HANDLER_DATA, &neb::callback_event_handler},
     {NEBCALLBACK_EXTERNAL_COMMAND_DATA, &neb::callback_external_command},
-    {NEBCALLBACK_FLAPPING_DATA, &neb::callback_flapping_status},
     {NEBCALLBACK_HOST_CHECK_DATA, &neb::callback_host_check},
     {NEBCALLBACK_HOST_STATUS_DATA, &neb::callback_host_status},
     {NEBCALLBACK_PROGRAM_STATUS_DATA, &neb::callback_program_status},
@@ -104,7 +103,6 @@ static struct {
     {NEBCALLBACK_DOWNTIME_DATA, &neb::callback_pb_downtime},
     {NEBCALLBACK_EVENT_HANDLER_DATA, &neb::callback_event_handler},
     {NEBCALLBACK_EXTERNAL_COMMAND_DATA, &neb::callback_pb_external_command},
-    {NEBCALLBACK_FLAPPING_DATA, &neb::callback_flapping_status},
     {NEBCALLBACK_HOST_CHECK_DATA, &neb::callback_host_check},
     {NEBCALLBACK_HOST_STATUS_DATA, &neb::callback_pb_host_status},
     {NEBCALLBACK_PROGRAM_STATUS_DATA, &neb::callback_program_status},
@@ -1385,59 +1383,6 @@ int neb::callback_pb_external_command(int, void* data) {
     // Avoid exception propagation in C code.
     catch (...) {
     }
-  }
-  return 0;
-}
-
-/**
- *  @brief Function that process flapping status data.
- *
- *  This function is called by Nagios when some flapping status data is
- *  available.
- *
- *  @param[in] callback_type Type of the callback
- *                           (NEBCALLBACK_FLAPPING_DATA).
- *  @param[in] data          A pointer to a nebstruct_flapping_data
- *                           containing the flapping status data.
- *
- *  @return 0 on success.
- */
-int neb::callback_flapping_status(int callback_type, void* data) {
-  // Log message.
-  SPDLOG_LOGGER_INFO(log_v2::neb(), "callbacks: generating flapping event");
-  (void)callback_type;
-
-  try {
-    // In/Out variables.
-    nebstruct_flapping_data const* flapping_data;
-    auto flapping_status{std::make_shared<neb::flapping_status>()};
-
-    // Fill output var.
-    flapping_data = static_cast<nebstruct_flapping_data*>(data);
-    flapping_status->event_time = flapping_data->timestamp.tv_sec;
-    flapping_status->event_type = flapping_data->type;
-    flapping_status->high_threshold = flapping_data->high_threshold;
-    if (flapping_data->service_id == 0) {
-      flapping_status->host_id = flapping_data->host_id;
-    } else {
-      flapping_status->host_id = flapping_data->host_id;
-      flapping_status->service_id = flapping_data->service_id;
-    }
-    flapping_status->low_threshold = flapping_data->low_threshold;
-    flapping_status->percent_state_change = flapping_data->percent_change;
-    // flapping_status->reason_type = XXX;
-    flapping_status->flapping_type = flapping_data->flapping_type;
-
-    // Send event.
-    gl_publisher.write(flapping_status);
-  } catch (std::exception const& e) {
-    SPDLOG_LOGGER_ERROR(
-        log_v2::neb(),
-        "callbacks: error occurred while generating flapping event: {}",
-        e.what());
-  }
-  // Avoid exception propagation to C code.
-  catch (...) {
   }
   return 0;
 }

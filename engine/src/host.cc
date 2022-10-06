@@ -2190,10 +2190,6 @@ void host::set_flap(double percent_change,
   /* set the flapping indicator */
   set_is_flapping(true);
 
-  /* send data to event broker */
-  broker_flapping_data(NEBTYPE_FLAPPING_START, HOST_FLAPPING, this,
-                       percent_change, high_threshold, low_threshold, nullptr);
-
   /* send a notification */
   if (allow_flapstart_notification)
     notify(reason_flappingstart, "", "", notifier::notification_option_none);
@@ -2229,10 +2225,6 @@ void host::clear_flap(double percent_change,
 
   /* clear the flapping indicator */
   set_is_flapping(false);
-
-  /* send data to event broker */
-  broker_flapping_data(NEBTYPE_FLAPPING_STOP, HOST_FLAPPING, this,
-                       percent_change, high_threshold, low_threshold, nullptr);
 
   /* send a notification */
   notify(reason_flappingstop, "", "", notifier::notification_option_none);
@@ -2581,7 +2573,7 @@ int host::notify_contact(nagios_macros* mac,
     engine_logger(dbg_notifications, most)
         << "Processed notification command: " << processed_command;
     log_v2::notifications()->trace("Processed notification command: {}",
-                                  processed_command);
+                                   processed_command);
 
     /* log the notification to program log file */
     if (config->log_notifications()) {
@@ -2946,10 +2938,6 @@ void host::handle_flap_detection_disabled() {
         log_v2::events(),
         "HOST FLAPPING ALERT: {};DISABLED; Flap detection has been disabled",
         this->name());
-
-    /* send data to event broker */
-    broker_flapping_data(NEBTYPE_FLAPPING_STOP, HOST_FLAPPING, this,
-                         this->get_percent_state_change(), 0.0, 0.0, nullptr);
 
     /* send a notification */
     notify(reason_flappingdisabled, "", "", notifier::notification_option_none);
@@ -3832,10 +3820,9 @@ void host::check_for_orphaned() {
 
     /* determine the time at which the check results should have come in (allow
      * 10 minutes slack time) */
-    expected_time =
-        (time_t)(it->second->get_next_check() + it->second->get_latency() +
-                 config->host_check_timeout() +
-                 config->check_reaper_interval() + 600);
+    expected_time = (time_t)(
+        it->second->get_next_check() + it->second->get_latency() +
+        config->host_check_timeout() + config->check_reaper_interval() + 600);
 
     /* this host was supposed to have executed a while ago, but for some reason
      * the results haven't come back in... */

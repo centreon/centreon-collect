@@ -873,53 +873,6 @@ void stream::_process_event_handler(const std::shared_ptr<io::data>& d) {
 }
 
 /**
- *  Process a flapping status event.
- *
- *  @param[in] e Uncasted flapping status.
- *
- * @return The number of events that can be acknowledged.
- */
-void stream::_process_flapping_status(const std::shared_ptr<io::data>& d) {
-  // Cast object.
-  neb::flapping_status const& fs(
-      *static_cast<neb::flapping_status const*>(d.get()));
-
-  // Log message.
-  SPDLOG_LOGGER_INFO(
-      log_v2::sql(),
-      "SQL: processing flapping status event (host: {}, service: {}, entry "
-      "time: {})",
-      fs.host_id, fs.service_id, fs.event_time);
-
-  if (!_host_instance_known(fs.host_id)) {
-    SPDLOG_LOGGER_WARN(
-        log_v2::sql(),
-        "SQL: service status ({0}, {1}) thrown away because host {0} is not "
-        "known by any poller",
-        fs.host_id, fs.service_id);
-    return;
-  }
-
-  // Prepare queries.
-  if (!_flapping_status_insupdate.prepared()) {
-    query_preparator::event_unique unique;
-    unique.insert("host_id");
-    unique.insert("service_id");
-    unique.insert("event_time");
-    query_preparator qp(neb::flapping_status::static_type(), unique);
-    _flapping_status_insupdate = qp.prepare_insert_or_update(_mysql);
-  }
-
-  // Processing.
-  _flapping_status_insupdate << fs;
-  int32_t conn =
-      _mysql.choose_connection_by_instance(_cache_host_instance[fs.host_id]);
-  _mysql.run_statement(_flapping_status_insupdate,
-                       database::mysql_error::store_flapping, false, conn);
-  _add_action(conn, actions::hosts);
-}
-
-/**
  *  Process an host check event.
  *
  *  @param[in] e Uncasted host check.

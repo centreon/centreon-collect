@@ -36,7 +36,7 @@
 #define BROKER_EVENT_HANDLERS (1 << 4)
 #define BROKER_LOGGED_DATA (1 << 5)
 #define BROKER_NOTIFICATIONS (1 << 6)
-#define BROKER_FLAPPING_DATA (1 << 7)
+#define BROKER_FLAPPING_DATA (1 << 7) /*not used from 2022-10-06*/
 #define BROKER_COMMENT_DATA (1 << 8)
 #define BROKER_DOWNTIME_DATA (1 << 9)
 #define BROKER_SYSTEM_COMMANDS (1 << 10)
@@ -460,13 +460,6 @@ void broker_external_command(int type,
                              int command_type,
                              char* command_args,
                              struct timeval const* timestamp);
-void broker_flapping_data(int type,
-                          unsigned int flapping_type,
-                          void* data,
-                          double percent_change,
-                          double high_threshold,
-                          double low_threshold,
-                          struct timeval const* timestamp);
 void broker_group(int type, void* data);
 void broker_group_member(int type, void* object, void* group);
 int broker_host_check(int type,

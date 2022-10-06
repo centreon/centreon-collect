@@ -112,9 +112,6 @@ void randomize_init() {
   e.register_event(make_type(io::neb, neb::de_event_handler), "event_handler",
                    &neb::event_handler::operations,
                    neb::event_handler::entries);
-  e.register_event(make_type(io::neb, neb::de_flapping_status),
-                   "flapping_status", &neb::flapping_status::operations,
-                   neb::flapping_status::entries);
   e.register_event(make_type(io::neb, neb::de_host_check), "host_check",
                    &neb::host_check::operations, neb::host_check::entries);
   e.register_event(make_type(io::neb, neb::de_host_dependency),

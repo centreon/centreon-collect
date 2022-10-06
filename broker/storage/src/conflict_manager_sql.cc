@@ -624,46 +624,6 @@ void conflict_manager::_process_event_handler(
 }
 
 /**
- *  Process a flapping status event.
- *
- *  @param[in] e Uncasted flapping status.
- *
- * @return The number of events that can be acknowledged.
- */
-void conflict_manager::_process_flapping_status(
-    std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t) {
-  auto& d = std::get<0>(t);
-  // Cast object.
-  neb::flapping_status const& fs(
-      *static_cast<neb::flapping_status const*>(d.get()));
-
-  // Log message.
-  log_v2::sql()->info(
-      "SQL: processing flapping status event (host: {}, service: {}, entry "
-      "time: {})",
-      fs.host_id, fs.service_id, fs.event_time);
-
-  // Prepare queries.
-  if (!_flapping_status_insupdate.prepared()) {
-    query_preparator::event_unique unique;
-    unique.insert("host_id");
-    unique.insert("service_id");
-    unique.insert("event_time");
-    query_preparator qp(neb::flapping_status::static_type(), unique);
-    _flapping_status_insupdate = qp.prepare_insert_or_update(_mysql);
-  }
-
-  // Processing.
-  _flapping_status_insupdate << fs;
-  int32_t conn =
-      _mysql.choose_connection_by_instance(_cache_host_instance[fs.host_id]);
-  _mysql.run_statement(_flapping_status_insupdate,
-                       database::mysql_error::store_flapping, true, conn);
-  _add_action(conn, actions::hosts);
-  *std::get<2>(t) = true;
-}
-
-/**
  *  Process an host check event.
  *
  *  @param[in] e Uncasted host check.

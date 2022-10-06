@@ -1590,9 +1590,8 @@ int service::handle_async_check_result(
     set_no_more_notifications(false);
 
     if (reschedule_check)
-      next_service_check =
-          (time_t)(get_last_check() +
-                   check_interval() * config->interval_length());
+      next_service_check = (time_t)(
+          get_last_check() + check_interval() * config->interval_length());
   }
 
   /*******************************************/
@@ -1777,9 +1776,8 @@ int service::handle_async_check_result(
         /* the host is not up, so reschedule the next service check at regular
          * interval */
         if (reschedule_check)
-          next_service_check =
-              (time_t)(get_last_check() +
-                       check_interval() * config->interval_length());
+          next_service_check = (time_t)(
+              get_last_check() + check_interval() * config->interval_length());
 
         /* log the problem as a hard state if the host just went down */
         if (hard_state_change) {
@@ -1809,9 +1807,8 @@ int service::handle_async_check_result(
         handle_service_event();
 
         if (reschedule_check)
-          next_service_check =
-              (time_t)(get_last_check() +
-                       retry_interval() * config->interval_length());
+          next_service_check = (time_t)(
+              get_last_check() + retry_interval() * config->interval_length());
       }
 
       /* perform dependency checks on the second to last check of the service */
@@ -1911,9 +1908,8 @@ int service::handle_async_check_result(
 
       /* reschedule the next check at the regular interval */
       if (reschedule_check)
-        next_service_check =
-            (time_t)(get_last_check() +
-                     check_interval() * config->interval_length());
+        next_service_check = (time_t)(
+            get_last_check() + check_interval() * config->interval_length());
     }
 
     /* should we obsessive over service checks? */
@@ -2867,10 +2863,6 @@ void service::set_flap(double percent_change,
   /* set the flapping indicator */
   set_is_flapping(true);
 
-  /* send data to event broker */
-  broker_flapping_data(NEBTYPE_FLAPPING_START, SERVICE_FLAPPING, this,
-                       percent_change, high_threshold, low_threshold, nullptr);
-
   /* send a notification */
   if (allow_flapstart_notification)
     notify(reason_flappingstart, "", "", notification_option_none);
@@ -2908,10 +2900,6 @@ void service::clear_flap(double percent_change,
 
   /* clear the flapping indicator */
   set_is_flapping(false);
-
-  /* send data to event broker */
-  broker_flapping_data(NEBTYPE_FLAPPING_STOP, SERVICE_FLAPPING, this,
-                       percent_change, high_threshold, low_threshold, nullptr);
 
   /* send a notification */
   notify(reason_flappingstop, "", "", notification_option_none);
@@ -3174,7 +3162,7 @@ int service::notify_contact(nagios_macros* mac,
     engine_logger(dbg_notifications, most)
         << "Processed notification command: " << processed_command;
     log_v2::notifications()->trace("Processed notification command: {}",
-                                  processed_command);
+                                   processed_command);
 
     /* log the notification to program log file */
     if (config->log_notifications()) {
@@ -3401,9 +3389,9 @@ bool service::is_result_fresh(time_t current_time, int log_this) {
    * suggested by Altinity */
   else if (this->active_checks_enabled() && event_start > get_last_check() &&
            this->get_freshness_threshold() == 0)
-    expiration_time = (time_t)(event_start + freshness_threshold +
-                               (config->max_service_check_spread() *
-                                config->interval_length()));
+    expiration_time = (time_t)(
+        event_start + freshness_threshold +
+        (config->max_service_check_spread() * config->interval_length()));
   else
     expiration_time = (time_t)(get_last_check() + freshness_threshold);
 
@@ -3499,10 +3487,6 @@ void service::handle_flap_detection_disabled() {
         "SERVICE FLAPPING ALERT: {};{};DISABLED; Flap detection has been "
         "disabled",
         this->get_hostname(), this->get_description());
-
-    /* send data to event broker */
-    broker_flapping_data(NEBTYPE_FLAPPING_STOP, SERVICE_FLAPPING, this,
-                         get_percent_state_change(), 0.0, 0.0, nullptr);
 
     /* send a notification */
     notify(reason_flappingdisabled, "", "", notification_option_none);
