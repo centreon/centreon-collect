@@ -499,16 +499,16 @@ void stream::_process_pb_custom_variable(const std::shared_ptr<io::data>& d) {
 
   // Processing.
   if (cv.enabled()) {
-    SPDLOG_LOGGER_INFO(
-        log_v2::sql(), "SQL: enable custom variable '{}' of ({}, {})",
-        cv.data().name(), cv.data().host_id(), cv.data().service_id());
+    SPDLOG_LOGGER_INFO(log_v2::sql(),
+                       "SQL: enable custom variable '{}' of ({}, {})",
+                       cv.name(), cv.host_id(), cv.service_id());
 
     std::lock_guard<std::mutex> lck(_queues_m);
     _cv_queue.emplace_back(fmt::format(
         "('{}',{},{},'{}',{},{},{},'{}')",
-        misc::string::escape(cv.data().name(), get_customvariables_col_size(
-                                                   customvariables_name)),
-        cv.data().host_id(), cv.data().service_id(),
+        misc::string::escape(
+            cv.name(), get_customvariables_col_size(customvariables_name)),
+        cv.host_id(), cv.service_id(),
         misc::string::escape(
             cv.default_value(),
             get_customvariables_col_size(customvariables_default_value)),
@@ -522,13 +522,12 @@ void stream::_process_pb_custom_variable(const std::shared_ptr<io::data>& d) {
     int conn = special_conn::custom_variable % _mysql.connections_count();
     _finish_action(-1, actions::custom_variables);
 
-    SPDLOG_LOGGER_INFO(
-        log_v2::sql(), "SQL: disabling custom variable '{}' of ({}, {})",
-        cv.data().name(), cv.data().host_id(), cv.data().service_id());
-    _custom_variable_delete.bind_value_as_i32(":host_id", cv.data().host_id());
-    _custom_variable_delete.bind_value_as_i32(":service_id",
-                                              cv.data().service_id());
-    _custom_variable_delete.bind_value_as_str(":name", cv.data().name());
+    SPDLOG_LOGGER_INFO(log_v2::sql(),
+                       "SQL: disabling custom variable '{}' of ({}, {})",
+                       cv.name(), cv.host_id(), cv.service_id());
+    _custom_variable_delete.bind_value_as_i32(":host_id", cv.host_id());
+    _custom_variable_delete.bind_value_as_i32(":service_id", cv.service_id());
+    _custom_variable_delete.bind_value_as_str(":name", cv.name());
 
     _mysql.run_statement(_custom_variable_delete,
                          database::mysql_error::remove_customvariable, false,
@@ -826,50 +825,6 @@ bool stream::_host_instance_known(uint64_t host_id) const {
   if (retval)
     assert(_cache_host_instance.at(static_cast<uint32_t>(host_id)) > 0);
   return retval;
-}
-
-/**
- *  Process an event handler event.
- *
- *  @param[in] e Uncasted event handler.
- *
- * @return The number of events that can be acknowledged.
- */
-void stream::_process_event_handler(const std::shared_ptr<io::data>& d) {
-  // Cast object.
-  neb::event_handler const& eh =
-      *static_cast<neb::event_handler const*>(d.get());
-
-  // Log message.
-  SPDLOG_LOGGER_INFO(log_v2::sql(),
-                     "SQL: processing event handler event (host: {}"
-                     ", service: {}, start time {})",
-                     eh.host_id, eh.service_id, eh.start_time);
-
-  if (!_host_instance_known(eh.host_id)) {
-    SPDLOG_LOGGER_WARN(
-        log_v2::sql(),
-        "SQL: event handler for service ({0}, {1}) thrown away because host "
-        "{0} is not known by any poller",
-        eh.host_id, eh.service_id);
-    return;
-  }
-  // Prepare queries.
-  if (!_event_handler_insupdate.prepared()) {
-    query_preparator::event_unique unique;
-    unique.insert("host_id");
-    unique.insert("service_id");
-    unique.insert("start_time");
-    query_preparator qp(neb::event_handler::static_type(), unique);
-    _event_handler_insupdate = qp.prepare_insert_or_update(_mysql);
-  }
-
-  // Processing.
-  _event_handler_insupdate << eh;
-  _mysql.run_statement(
-      _event_handler_insupdate, database::mysql_error::store_eventhandler,
-      false,
-      _mysql.choose_connection_by_instance(_cache_host_instance[eh.host_id]));
 }
 
 /**

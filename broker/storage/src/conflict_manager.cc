@@ -52,7 +52,7 @@ void (conflict_manager::*const conflict_manager::_neb_processing_table[])(
     &conflict_manager::_process_custom_variable,
     &conflict_manager::_process_custom_variable_status,
     &conflict_manager::_process_downtime,
-    &conflict_manager::_process_event_handler,
+    nullptr,
     nullptr,
     &conflict_manager::_process_host_check,
     &conflict_manager::_process_host_dependency,

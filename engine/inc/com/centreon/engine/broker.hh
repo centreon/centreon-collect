@@ -33,7 +33,7 @@
 #define BROKER_TIMED_EVENTS (1 << 1)
 #define BROKER_SERVICE_CHECKS (1 << 2)
 #define BROKER_HOST_CHECKS (1 << 3)
-#define BROKER_EVENT_HANDLERS (1 << 4)
+#define BROKER_EVENT_HANDLERS (1 << 4)  // not used since 2022-10-06
 #define BROKER_LOGGED_DATA (1 << 5)
 #define BROKER_NOTIFICATIONS (1 << 6)
 #define BROKER_FLAPPING_DATA (1 << 7) /*not used from 2022-10-06*/
@@ -442,20 +442,6 @@ void broker_downtime_data(int type,
                           unsigned long duration,
                           unsigned long downtime_id,
                           struct timeval const* timestamp);
-int broker_event_handler(int type,
-                         unsigned int eventhandler_type,
-                         void* data,
-                         int state,
-                         int state_type,
-                         struct timeval start_time,
-                         struct timeval end_time,
-                         double exectime,
-                         int timeout,
-                         int early_timeout,
-                         int retcode,
-                         char const* cmd,
-                         char* cmdline,
-                         char* output);
 void broker_external_command(int type,
                              int command_type,
                              char* command_args,

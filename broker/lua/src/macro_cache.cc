@@ -172,7 +172,6 @@ int32_t macro_cache::get_severity(uint64_t host_id, uint64_t service_id) const {
     if (absl::SimpleAtoi(
             std::static_pointer_cast<neb::pb_custom_variable>(found->second)
                 ->obj()
-                .data()
                 .value(),
             &ret)) {
       return ret;
@@ -958,26 +957,23 @@ void macro_cache::_process_pb_custom_variable(
     std::shared_ptr<io::data> const& data) {
   neb::pb_custom_variable::shared_ptr cv =
       std::static_pointer_cast<neb::pb_custom_variable>(data);
-  if (cv->obj().data().name() == "CRITICALITY_LEVEL") {
+  if (cv->obj().name() == "CRITICALITY_LEVEL") {
     int32_t value;
     if (absl::SimpleAtoi(cv->obj().value(), &value)) {
       SPDLOG_LOGGER_DEBUG(log_v2::lua(),
                           "lua: processing custom variable representing a "
                           "criticality level for "
                           "host_id {} and service_id {} and level {}",
-                          cv->obj().data().host_id(),
-                          cv->obj().data().service_id(), value);
+                          cv->obj().host_id(), cv->obj().service_id(), value);
       if (value)
-        _custom_vars[{cv->obj().data().host_id(),
-                      cv->obj().data().service_id()}] = cv;
+        _custom_vars[{cv->obj().host_id(), cv->obj().service_id()}] = cv;
     } else {
       SPDLOG_LOGGER_ERROR(log_v2::lua(),
                           "lua: processing custom variable representing a "
                           "criticality level for "
                           "host_id {} and service_id {} incorrect value {}",
-                          cv->obj().data().host_id(),
-                          cv->obj().data().service_id(),
-                          cv->obj().data().value());
+                          cv->obj().host_id(), cv->obj().service_id(),
+                          cv->obj().value());
     }
   }
 }

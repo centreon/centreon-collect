@@ -19,6 +19,7 @@
 
 #include "com/centreon/broker/neb/custom_variable.hh"
 #include <gtest/gtest.h>
+#include <cmath>
 #include "randomize.hh"
 
 using namespace com::centreon::broker;
