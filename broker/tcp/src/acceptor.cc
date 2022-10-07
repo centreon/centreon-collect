@@ -78,7 +78,8 @@ std::unique_ptr<io::stream> acceptor::open() {
   auto conn = tcp_async::instance().get_connection(_acceptor, timeout_s);
   if (conn) {
     assert(conn->port());
-    log_v2::tcp()->info("acceptor gets a new connection from {}", conn->peer());
+    log_v2::tcp()->info("acceptor gets a new connection from {}",
+                         conn->peer());
     return std::make_unique<stream>(conn, -1);
   }
   return nullptr;
