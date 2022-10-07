@@ -399,7 +399,7 @@ void command_manager::schedule_and_propagate_downtime(
 
     /* schedule downtime for this host */
     downtime_manager::instance().schedule_downtime(
-        downtime::host_downtime, it->first, "", entry_time, author,
+        downtime::host_downtime, it->second->host_id(), 0, entry_time, author,
         comment_data, start_time, end_time, fixed, triggered_by, duration,
         nullptr);
   }

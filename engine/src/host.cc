@@ -279,7 +279,7 @@ host::host(uint64_t host_id,
 
   // Check if the host already exists.
   uint64_t id{host_id};
-  if (is_host_exist(id)) {
+  if (host_exists(id)) {
     engine_logger(log_config_error, basic)
         << "Error: Host '" << name << "' has already been defined";
     log_v2::config()->error("Error: Host '{}' has already been defined", name);
@@ -298,7 +298,7 @@ host::host(uint64_t host_id,
                 (flap_detection_on_up > 0 ? up : 0));
 }
 
-uint64_t host::get_host_id(void) const {
+uint64_t host::host_id() const {
   return _id;
 }
 
@@ -559,7 +559,7 @@ std::ostream& operator<<(std::ostream& os, host_map_unsafe const& obj) {
   for (host_map_unsafe::const_iterator it{obj.begin()}, end{obj.end()};
        it != end; ++it) {
     os << it->first;
-    if (next(it) != end)
+    if (std::next(it) != end)
       os << ", ";
     else
       os << "";
@@ -1128,7 +1128,7 @@ host& engine::find_host(uint64_t host_id) {
  *
  *  @return True if the host is found, otherwise false.
  */
-bool engine::is_host_exist(uint64_t host_id) throw() {
+bool engine::host_exists(uint64_t host_id) noexcept {
   host_id_map::const_iterator it(host::hosts_by_id.find(host_id));
   return it != host::hosts_by_id.end();
 }
@@ -1142,7 +1142,23 @@ bool engine::is_host_exist(uint64_t host_id) throw() {
  */
 uint64_t engine::get_host_id(const std::string& name) {
   host_map::const_iterator found{host::hosts.find(name)};
-  return found != host::hosts.end() ? found->second->get_host_id() : 0u;
+  return found != host::hosts.end() ? found->second->host_id() : 0u;
+}
+
+/**
+ *  Get the name associated with a host (from its id).
+ *
+ *  @param[in] host_id  The id of the host.
+ *
+ *  @return  The host name or "" if it does not exist.
+ */
+std::string engine::get_host_name(const uint64_t host_id) {
+  auto it = host::hosts_by_id.find(host_id);
+  std::string retval;
+  if (it != host::hosts_by_id.end())
+    retval = it->second->name();
+
+  return retval;
 }
 
 /**
@@ -2178,7 +2194,7 @@ void host::set_flap(double percent_change,
       << "flapping stops, notifications will be re-enabled.";
 
   auto com = std::make_shared<comment>(
-      comment::host, comment::flapping, get_host_id(), 0, time(nullptr),
+      comment::host, comment::flapping, host_id(), 0, time(nullptr),
       "(Centreon Engine Process)", oss.str(), false, comment::internal, false,
       (time_t)0);
 

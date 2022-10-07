@@ -272,7 +272,7 @@ std::ostream& dump::host(std::ostream& os,
      << obj.name()
      << "\n"
         "host_id="
-     << obj.get_host_id()
+     << obj.host_id()
      << "\n"
         "acknowledgement_type="
      << obj.get_acknowledgement_type()
@@ -608,10 +608,10 @@ std::ostream& dump::service(std::ostream& os,
      << obj.get_description()
      << "\n"
         "host_id="
-     << service::services[{hostname, obj.get_description()}]->get_host_id()
+     << service::services[{hostname, obj.get_description()}]->host_id()
      << "\n"
         "service_id="
-     << service::services[{hostname, obj.get_description()}]->get_service_id()
+     << service::services[{hostname, obj.get_description()}]->service_id()
      << "\n"
         "acknowledgement_type="
      << obj.get_acknowledgement_type()

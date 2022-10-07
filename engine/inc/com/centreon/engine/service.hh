@@ -39,15 +39,15 @@ class servicegroup;
 class serviceescalation;
 CCE_END()
 
-typedef absl::flat_hash_map<std::pair<std::string, std::string>,
-                            std::shared_ptr<com::centreon::engine::service>>
-    service_map;
-typedef absl::flat_hash_map<std::pair<std::string, std::string>,
-                            com::centreon::engine::service*>
-    service_map_unsafe;
-typedef absl::flat_hash_map<std::pair<uint64_t, uint64_t>,
-                            std::shared_ptr<com::centreon::engine::service>>
-    service_id_map;
+using service_map =
+    absl::flat_hash_map<std::pair<std::string, std::string>,
+                        std::shared_ptr<com::centreon::engine::service>>;
+using service_map_unsafe =
+    absl::flat_hash_map<std::pair<std::string, std::string>,
+                        com::centreon::engine::service*>;
+using service_id_map =
+    absl::flat_hash_map<std::pair<uint64_t, uint64_t>,
+                        std::shared_ptr<com::centreon::engine::service>>;
 
 CCE_BEGIN()
 
@@ -104,9 +104,9 @@ class service : public notifier {
           service_type st = NONE);
   ~service() noexcept;
   void set_host_id(uint64_t host_id);
-  uint64_t get_host_id() const;
+  uint64_t host_id() const;
   void set_service_id(uint64_t service_id);
-  uint64_t get_service_id() const;
+  uint64_t service_id() const;
   service_type get_service_type() const;
   void set_hostname(std::string const& name);
   std::string const& get_hostname() const;
@@ -297,6 +297,9 @@ com::centreon::engine::service& find_service(uint64_t host_id,
 bool is_service_exist(std::pair<uint64_t, uint64_t> const& id);
 std::pair<uint64_t, uint64_t> get_host_and_service_id(std::string const& host,
                                                       std::string const& svc);
+std::pair<std::string, std::string> get_host_and_service_names(
+    const uint64_t host_id,
+    const uint64_t service_id);
 uint64_t get_service_id(std::string const& host, std::string const& svc);
 
 CCE_END()

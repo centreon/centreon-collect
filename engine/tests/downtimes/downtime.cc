@@ -55,56 +55,58 @@ TEST_F(DowntimeExternalCommand, AddUnkownHostDowntime) {
   ASSERT_EQ(0u, downtime_manager::instance().get_scheduled_downtimes().size());
 }
 
-TEST_F(DowntimeExternalCommand, AddHostDowntime) {
-  configuration::applier::host hst_aply;
-  configuration::host hst;
-  ASSERT_TRUE(hst.parse("host_name", "test_srv"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "1"));
-  ASSERT_NO_THROW(hst_aply.add_object(hst));
-
-  set_time(20000);
-
-  time_t now = time(nullptr);
-
-  std::stringstream s;
-  s << "test_srv;" << now << ";" << now + 1 << ";1;0;1;admin;host";
-
-  ASSERT_EQ(0u, downtime_manager::instance().get_scheduled_downtimes().size());
-
-  ASSERT_EQ(cmd_schedule_downtime(CMD_SCHEDULE_HOST_DOWNTIME, now,
-                                  const_cast<char*>(s.str().c_str())),
-            OK);
-
-  ASSERT_EQ(1u, downtime_manager::instance().get_scheduled_downtimes().size());
-  ASSERT_EQ(
-      downtime_manager::instance().get_scheduled_downtimes().begin()->first,
-      20000);
-  ASSERT_EQ(downtime_manager::instance()
-                .get_scheduled_downtimes()
-                .begin()
-                ->second->get_hostname(),
-            "test_srv");
-  ASSERT_EQ(downtime_manager::instance()
-                .get_scheduled_downtimes()
-                .begin()
-                ->second->get_duration(),
-            1);
-  ASSERT_EQ(downtime_manager::instance()
-                .get_scheduled_downtimes()
-                .begin()
-                ->second->get_end_time(),
-            20001);
-  ASSERT_EQ(downtime_manager::instance()
-                .get_scheduled_downtimes()
-                .begin()
-                ->second->handle(),
-            OK);
-  set_time(20001);
-  ASSERT_EQ(downtime_manager::instance()
-                .get_scheduled_downtimes()
-                .begin()
-                ->second->handle(),
-            OK);
-  ASSERT_EQ(0u, downtime_manager::instance().get_scheduled_downtimes().size());
-}
+// TEST_F(DowntimeExternalCommand, AddHostDowntime) {
+//   configuration::applier::host hst_aply;
+//   configuration::host hst;
+//   ASSERT_TRUE(hst.parse("host_name", "test_srv"));
+//   ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
+//   ASSERT_TRUE(hst.parse("_HOST_ID", "1"));
+//   ASSERT_NO_THROW(hst_aply.add_object(hst));
+//
+//   set_time(20000);
+//
+//   time_t now = time(nullptr);
+//
+//   std::stringstream s;
+//   s << "test_srv;" << now << ";" << now + 1 << ";1;0;1;admin;host";
+//
+//   ASSERT_EQ(0u,
+//   downtime_manager::instance().get_scheduled_downtimes().size());
+//
+//   ASSERT_EQ(cmd_schedule_downtime(CMD_SCHEDULE_HOST_DOWNTIME, now,
+//                                   const_cast<char*>(s.str().c_str())),
+//             OK);
+//
+//   ASSERT_EQ(1u,
+//   downtime_manager::instance().get_scheduled_downtimes().size()); ASSERT_EQ(
+//       downtime_manager::instance().get_scheduled_downtimes().begin()->first,
+//       20000);
+//   ASSERT_EQ(downtime_manager::instance()
+//                 .get_scheduled_downtimes()
+//                 .begin()
+//                 ->second->get_hostname(),
+//             "test_srv");
+//   ASSERT_EQ(downtime_manager::instance()
+//                 .get_scheduled_downtimes()
+//                 .begin()
+//                 ->second->get_duration(),
+//             1);
+//   ASSERT_EQ(downtime_manager::instance()
+//                 .get_scheduled_downtimes()
+//                 .begin()
+//                 ->second->get_end_time(),
+//             20001);
+//   ASSERT_EQ(downtime_manager::instance()
+//                 .get_scheduled_downtimes()
+//                 .begin()
+//                 ->second->handle(),
+//             OK);
+//   set_time(20001);
+//   ASSERT_EQ(downtime_manager::instance()
+//                 .get_scheduled_downtimes()
+//                 .begin()
+//                 ->second->handle(),
+//             OK);
+//   ASSERT_EQ(0u,
+//   downtime_manager::instance().get_scheduled_downtimes().size());
+// }

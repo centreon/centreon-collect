@@ -64,12 +64,12 @@ void broker_acknowledgement_data(int type,
   ds.acknowledgement_type = acknowledgement_type;
   if (acknowledgement_type == SERVICE_ACKNOWLEDGEMENT) {
     temp_service = (com::centreon::engine::service*)data;
-    ds.host_id = temp_service->get_host_id();
-    ds.service_id = temp_service->get_service_id();
+    ds.host_id = temp_service->host_id();
+    ds.service_id = temp_service->service_id();
     ds.state = temp_service->get_current_state();
   } else {
     temp_host = (host*)data;
-    ds.host_id = temp_host->get_host_id();
+    ds.host_id = temp_host->host_id();
     ds.service_id = 0;
     ds.state = temp_host->get_current_state();
   }
@@ -518,8 +518,8 @@ void broker_custom_variable(int type,
 void broker_downtime_data(int type,
                           int attr,
                           int downtime_type,
-                          char const* host_name,
-                          char const* svc_description,
+                          uint64_t host_id,
+                          uint64_t service_id,
                           time_t entry_time,
                           char const* author_name,
                           char const* comment_data,
@@ -540,8 +540,8 @@ void broker_downtime_data(int type,
   ds.attr = attr;
   ds.timestamp = get_broker_timestamp(timestamp);
   ds.downtime_type = downtime_type;
-  ds.host_name = host_name;
-  ds.service_description = svc_description;
+  ds.host_id = host_id;
+  ds.service_id = service_id;
   ds.entry_time = entry_time;
   ds.author_name = author_name;
   ds.comment_data = comment_data;
@@ -857,8 +857,8 @@ int broker_service_check(int type,
   // Fill struct with relevant data.
   nebstruct_service_check_data ds;
   ds.type = type;
-  ds.host_id = svc->get_host_id();
-  ds.service_id = svc->get_service_id();
+  ds.host_id = svc->host_id();
+  ds.service_id = svc->service_id();
   ds.object_ptr = svc;
   ds.check_type = check_type;
   ds.command_line = cmdline;

@@ -778,7 +778,7 @@ int neb::callback_downtime(int callback_type, void* data) {
   // Log message.
   SPDLOG_LOGGER_INFO(log_v2::neb(), "callbacks: generating downtime event");
   (void)callback_type;
-  nebstruct_downtime_data const* downtime_data{
+  const nebstruct_downtime_data* downtime_data{
       static_cast<nebstruct_downtime_data*>(data)};
   if (downtime_data->type == NEBTYPE_DOWNTIME_LOAD)
     return 0;
@@ -799,25 +799,8 @@ int neb::callback_downtime(int callback_type, void* data) {
     downtime->end_time = downtime_data->end_time;
     downtime->entry_time = downtime_data->entry_time;
     downtime->fixed = downtime_data->fixed;
-    if (!downtime_data->host_name)
-      throw msg_fmt("unnamed host");
-    if (downtime_data->service_description) {
-      std::pair<uint32_t, uint32_t> p;
-      p = engine::get_host_and_service_id(downtime_data->host_name,
-                                          downtime_data->service_description);
-      downtime->host_id = p.first;
-      downtime->service_id = p.second;
-      if (!downtime->host_id || !downtime->service_id)
-        throw msg_fmt("could not find ID of service ('{}', '{}')",
-                      downtime_data->host_name,
-                      downtime_data->service_description);
-
-    } else {
-      downtime->host_id = engine::get_host_id(downtime_data->host_name);
-      if (downtime->host_id == 0)
-        throw msg_fmt("could not find ID of host '{}'",
-                      downtime_data->host_name);
-    }
+    downtime->host_id = downtime_data->host_id;
+    downtime->service_id = downtime_data->service_id;
     downtime->poller_id = config::applier::state::instance().poller_id();
     downtime->internal_id = downtime_data->downtime_id;
     downtime->start_time = downtime_data->start_time;
@@ -847,7 +830,7 @@ int neb::callback_downtime(int callback_type, void* data) {
         break;
       default:
         throw msg_fmt("Downtime with not managed type {}.",
-                      downtime_data->host_name);
+                      downtime_data->downtime_id);
     }
     downtime->actual_start_time = params.start_time;
     downtime->actual_end_time = params.end_time;
@@ -910,34 +893,8 @@ int neb::callback_pb_downtime(int callback_type, void* data) {
   downtime.set_end_time(downtime_data->end_time);
   downtime.set_entry_time(downtime_data->entry_time);
   downtime.set_fixed(downtime_data->fixed);
-  if (!downtime_data->host_name) {
-    log_v2::neb()->error(
-        "callbacks: error occurred while generating downtime event: unnamed "
-        "host");
-    return 0;
-  }
-  if (downtime_data->service_description) {
-    std::pair<uint64_t, uint64_t> p;
-    p = engine::get_host_and_service_id(downtime_data->host_name,
-                                        downtime_data->service_description);
-    downtime.set_host_id(p.first);
-    downtime.set_service_id(p.second);
-    if (!downtime.host_id() || !downtime.service_id()) {
-      log_v2::neb()->error(
-          "callbacks: error occurred while generating downtime event: "
-          "could not find ID of service ('{}', '{}')",
-          downtime_data->host_name, downtime_data->service_description);
-      return 0;
-    }
-  } else {
-    downtime.set_host_id(engine::get_host_id(downtime_data->host_name));
-    if (downtime.host_id() == 0)
-      log_v2::neb()->error(
-          "callbacks: error occurred while generating downtime event: "
-          "could not find ID of host '{}'",
-          downtime_data->host_name);
-    return 0;
-  }
+  downtime.set_host_id(downtime_data->host_id);
+  downtime.set_service_id(downtime_data->service_id);
   downtime.set_instance_id(config::applier::state::instance().poller_id());
   downtime.set_start_time(downtime_data->start_time);
   downtime.set_triggered_by(downtime_data->triggered_by);
@@ -967,8 +924,8 @@ int neb::callback_pb_downtime(int callback_type, void* data) {
     default:
       log_v2::neb()->error(
           "callbacks: error occurred while generating downtime event: "
-          "Downtime with not managed type {}.",
-          downtime_data->host_name);
+          "Downtime {} with not managed type.",
+          downtime_data->downtime_id);
       return 0;
   }
   downtime.set_actual_start_time(params.start_time);
@@ -1986,7 +1943,7 @@ int neb::callback_pb_host_status(int callback_type, void* data) noexcept {
   auto h{std::make_shared<neb::pb_host_status>()};
   HostStatus& hscr = h.get()->mut_obj();
 
-  hscr.set_host_id(eh->get_host_id());
+  hscr.set_host_id(eh->host_id());
   if (hscr.host_id() == 0)
     SPDLOG_LOGGER_ERROR(log_v2::neb(), "could not find ID of host '{}'",
                         eh->name());
@@ -3053,9 +3010,9 @@ int32_t neb::callback_pb_service_status(int callback_type
   auto s{std::make_shared<neb::pb_service_status>()};
   ServiceStatus& sscr = s.get()->mut_obj();
 
-  sscr.set_host_id(es->get_host_id());
-  sscr.set_service_id(es->get_service_id());
-  if (es->get_host_id() == 0 || es->get_service_id() == 0)
+  sscr.set_host_id(es->host_id());
+  sscr.set_service_id(es->service_id());
+  if (es->host_id() == 0 || es->service_id() == 0)
     SPDLOG_LOGGER_ERROR(log_v2::neb(),
                         "could not find ID of service ('{}', '{}')",
                         es->get_hostname(), es->get_description());
@@ -3099,11 +3056,11 @@ int32_t neb::callback_pb_service_status(int callback_type
     sscr.set_perfdata(misc::string::check_string_utf8(es->get_perf_data()));
     SPDLOG_LOGGER_TRACE(
         log_v2::neb(), "callbacks: service ({}, {}) has perfdata <<{}>>",
-        es->get_host_id(), es->get_service_id(), es->get_perf_data());
+        es->host_id(), es->service_id(), es->get_perf_data());
   } else {
     SPDLOG_LOGGER_TRACE(log_v2::neb(),
                         "callbacks: service ({}, {}) has no perfdata",
-                        es->get_host_id(), es->get_service_id());
+                        es->host_id(), es->service_id());
   }
   sscr.set_should_be_scheduled(es->get_should_be_scheduled());
   sscr.set_state_type(static_cast<ServiceStatus_StateType>(

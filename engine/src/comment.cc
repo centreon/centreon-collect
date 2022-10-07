@@ -146,7 +146,7 @@ void comment::delete_host_acknowledgement_comments(engine::host* hst) {
 
   while (it != comments.end()) {
     if (it->second->get_comment_type() == comment::host &&
-        it->second->get_host_id() == hst->get_host_id() &&
+        it->second->get_host_id() == hst->host_id() &&
         it->second->get_entry_type() ==
             com::centreon::engine::comment::acknowledgment &&
         !it->second->get_persistent()) {
@@ -170,8 +170,8 @@ void comment::delete_service_acknowledgement_comments(::service* svc) {
 
   while (it != comments.end()) {
     if (it->second->get_comment_type() == comment::service &&
-        it->second->get_host_id() == svc->get_host_id() &&
-        it->second->get_service_id() == svc->get_service_id() &&
+        it->second->get_host_id() == svc->host_id() &&
+        it->second->get_service_id() == svc->service_id() &&
         it->second->get_entry_type() ==
             com::centreon::engine::comment::acknowledgment &&
         !it->second->get_persistent()) {

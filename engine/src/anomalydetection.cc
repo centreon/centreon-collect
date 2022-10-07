@@ -806,7 +806,7 @@ void anomalydetection::set_internal_id(uint64_t id) {
 
 void anomalydetection::set_dependent_service(service* svc) {
   uint64_t old_dep_serv_id = _dependent_service_id;
-  _dependent_service_id = svc ? svc->get_service_id() : 0;
+  _dependent_service_id = svc ? svc->service_id() : 0;
 
   _register_dependent_to_anomaly(_dependent_service_id, old_dep_serv_id, this);
   _dependent_service = svc;
@@ -1194,14 +1194,15 @@ void anomalydetection::init_thresholds() {
                           e.what());
       return;
     }
-    if (host_id == get_host_id() && service_id == get_service_id() &&
+    if (host_id == this->host_id() && service_id == this->service_id() &&
         metric_name == _metric_name) {
       set_thresholds_no_lock(_thresholds_file, sensitivity, predict);
       if (!_thresholds_file_viable) {
         SPDLOG_LOGGER_ERROR(log_v2::config(),
                             "{} don't contain at least 2 thresholds datas for "
                             "host_id {} and service_id {}",
-                            _thresholds_file, get_host_id(), get_service_id());
+                            _thresholds_file, this->host_id(),
+                            this->service_id());
       }
       found = true;
       break;
@@ -1211,7 +1212,7 @@ void anomalydetection::init_thresholds() {
     SPDLOG_LOGGER_ERROR(
         log_v2::config(),
         "{} don't contain datas for host_id {} and service_id {}",
-        _thresholds_file, get_host_id(), get_service_id());
+        _thresholds_file, host_id(), this->service_id());
   }
 }
 
@@ -1328,7 +1329,7 @@ int anomalydetection::update_thresholds(const std::string& filename) {
       engine_logger(log_config_error, basic)
           << "Error: The thresholds file contains thresholds for the anomaly "
              "detection service (host_id: "
-          << ad->get_host_id() << ", service_id: " << ad->get_service_id()
+          << ad->host_id() << ", service_id: " << ad->service_id()
           << ") with metric_name='" << metric_name
           << "' whereas the configured metric name is '"
           << ad->get_metric_name() << "'";
@@ -1337,19 +1338,18 @@ int anomalydetection::update_thresholds(const std::string& filename) {
           "Error: The thresholds file contains thresholds for the anomaly "
           "detection service (host_id: {}, service_id: {}) with "
           "metric_name='{}' whereas the configured metric name is '{}'",
-          ad->get_host_id(), ad->get_service_id(), metric_name,
-          ad->get_metric_name());
+          ad->host_id(), ad->service_id(), metric_name, ad->get_metric_name());
       continue;
     }
     engine_logger(log_info_message, basic)
-        << "Filling thresholds in anomaly detection (host_id: "
-        << ad->get_host_id() << ", service_id: " << ad->get_service_id()
+        << "Filling thresholds in anomaly detection (host_id: " << ad->host_id()
+        << ", service_id: " << ad->service_id()
         << ", metric: " << ad->get_metric_name() << ")";
     SPDLOG_LOGGER_INFO(
         log_v2::checks(),
         "Filling thresholds in anomaly detection (host_id: {}, service_id: {}, "
         "metric: {})",
-        ad->get_host_id(), ad->get_service_id(), ad->get_metric_name());
+        ad->host_id(), ad->service_id(), ad->get_metric_name());
 
     ad->set_thresholds_lock(filename, sensitivity, predict);
   }
@@ -1404,19 +1404,19 @@ void anomalydetection::set_thresholds_no_lock(
   }
   if (_thresholds.size() > 1) {
     engine_logger(dbg_config, most)
-        << "host_id=" << get_host_id() << " serv_id=" << get_service_id()
+        << "host_id=" << host_id() << " serv_id=" << service_id()
         << " Number of rows in memory: " << _thresholds.size();
     SPDLOG_LOGGER_DEBUG(log_v2::config(),
                         "host_id={} serv_id={} Number of rows in memory: {}",
-                        get_host_id(), get_service_id(), _thresholds.size());
+                        host_id(), service_id(), _thresholds.size());
     _thresholds_file_viable = true;
   } else {
     engine_logger(dbg_config, most)
         << "Nothing in memory " << _thresholds.size()
-        << " for host_id=" << get_host_id() << " serv_id=" << get_service_id();
+        << " for host_id=" << host_id() << " serv_id=" << service_id();
     SPDLOG_LOGGER_ERROR(log_v2::config(),
                         "Nothing in memory {} for host_id={} servid={}",
-                        _thresholds.size(), get_host_id(), get_service_id());
+                        _thresholds.size(), host_id(), service_id());
     _thresholds_file_viable = false;
   }
 }

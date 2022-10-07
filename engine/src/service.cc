@@ -899,9 +899,28 @@ std::pair<uint64_t, uint64_t> engine::get_host_and_service_id(
     const std::string& svc) {
   service_map::const_iterator found = service::services.find({host, svc});
   return found != service::services.end()
-             ? std::pair<uint64_t, uint64_t>{found->second->get_host_id(),
-                                             found->second->get_service_id()}
+             ? std::pair<uint64_t, uint64_t>{found->second->host_id(),
+                                             found->second->service_id()}
              : std::pair<uint64_t, uint64_t>{0u, 0u};
+}
+
+/**
+ * Get the host and service names of a service given by its ids.
+ *
+ *  @param[in] host  The host id.
+ *  @param[in] svc   The service id.
+ *
+ *  @return  Pair of strings if found, pair of empty strings otherwise.
+ */
+std::pair<std::string, std::string> engine::get_host_and_service_names(
+    const uint64_t host_id,
+    const uint64_t service_id) {
+  auto it = service::services_by_id.find(std::make_pair(host_id, service_id));
+  if (it != service::services_by_id.end())
+    return std::make_pair(it->second->get_hostname(),
+                          it->second->get_description());
+  else
+    return {"", ""};
 }
 
 /**
@@ -936,7 +955,7 @@ void service::set_host_id(uint64_t host_id) {
   _host_id = host_id;
 }
 
-uint64_t service::get_host_id() const {
+uint64_t service::host_id() const {
   return _host_id;
 }
 
@@ -944,7 +963,7 @@ void service::set_service_id(uint64_t service_id) {
   _service_id = service_id;
 }
 
-uint64_t service::get_service_id() const {
+uint64_t service::service_id() const {
   return _service_id;
 }
 
@@ -2852,7 +2871,7 @@ void service::set_flap(double percent_change,
       << "stops, notifications will be re-enabled.";
 
   auto com{std::make_shared<comment>(
-      comment::service, comment::flapping, get_host_id(), _service_id,
+      comment::service, comment::flapping, host_id(), _service_id,
       time(nullptr), "(Centreon Engine Process)", oss.str(), false,
       comment::internal, false, (time_t)0)};
 

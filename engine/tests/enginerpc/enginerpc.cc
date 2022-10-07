@@ -141,7 +141,7 @@ class EngineRpc : public TestEngine {
     service_map const& sm{engine::service::services};
     for (auto& p : sm) {
       std::shared_ptr<engine::service> svc = p.second;
-      if (svc->get_service_id() == 12)
+      if (svc->service_id() == 12)
         _ad = std::static_pointer_cast<engine::anomalydetection>(svc);
       else
         _svc = svc;
@@ -673,8 +673,8 @@ TEST_F(EngineRpc, DeleteComment) {
   std::ostringstream oss;
   oss << "my comment ";
   auto cmt = std::make_shared<comment>(
-      comment::host, comment::user, _host->get_host_id(), 0, 10000,
-      "test-admin", oss.str(), true, comment::external, false, 0);
+      comment::host, comment::user, _host->host_id(), 0, 10000, "test-admin",
+      oss.str(), true, comment::external, false, 0);
   comment::comments.insert({cmt->get_comment_id(), cmt});
 
   call_command_manager(th, &condvar, &mutex, &continuerunning);
@@ -732,8 +732,8 @@ TEST_F(EngineRpc, DeleteAllHostComments) {
     std::ostringstream oss;
     oss << "my host comment " << i;
     auto cmt = std::make_shared<comment>(
-        comment::host, comment::user, _host->get_host_id(), 0, 10000,
-        "test-admin", oss.str(), true, comment::external, false, 0);
+        comment::host, comment::user, _host->host_id(), 0, 10000, "test-admin",
+        oss.str(), true, comment::external, false, 0);
     comment::comments.insert({cmt->get_comment_id(), cmt});
   }
   ASSERT_EQ(comment::comments.size(), 10u);
@@ -747,8 +747,8 @@ TEST_F(EngineRpc, DeleteAllHostComments) {
     std::ostringstream oss;
     oss << "my host comment " << i;
     auto cmt = std::make_shared<comment>(
-        comment::host, comment::user, _host->get_host_id(), 0, 10000,
-        "test-admin", oss.str(), true, comment::external, false, 0);
+        comment::host, comment::user, _host->host_id(), 0, 10000, "test-admin",
+        oss.str(), true, comment::external, false, 0);
     comment::comments.insert({cmt->get_comment_id(), cmt});
   }
   ASSERT_EQ(comment::comments.size(), 10u);
@@ -778,9 +778,8 @@ TEST_F(EngineRpc, DeleteAllServiceComments) {
     std::ostringstream oss;
     oss << "my service comment " << i;
     auto cmt = std::make_shared<comment>(
-        comment::service, comment::user, _host->get_host_id(),
-        _svc->get_service_id(), 10000, "test-admin", oss.str(), true,
-        comment::external, false, 0);
+        comment::service, comment::user, _host->host_id(), _svc->service_id(),
+        10000, "test-admin", oss.str(), true, comment::external, false, 0);
     comment::comments.insert({cmt->get_comment_id(), cmt});
   }
   ASSERT_EQ(comment::comments.size(), 10u);
@@ -794,9 +793,8 @@ TEST_F(EngineRpc, DeleteAllServiceComments) {
     std::ostringstream oss;
     oss << "my service comment " << i;
     auto cmt = std::make_shared<comment>(
-        comment::service, comment::user, _host->get_host_id(),
-        _svc->get_service_id(), 10000, "test-admin", oss.str(), true,
-        comment::external, false, 0);
+        comment::service, comment::user, _host->host_id(), _svc->service_id(),
+        10000, "test-admin", oss.str(), true, comment::external, false, 0);
     comment::comments.insert({cmt->get_comment_id(), cmt});
   }
   ASSERT_EQ(comment::comments.size(), 10u);
@@ -824,7 +822,7 @@ TEST_F(EngineRpc, RemoveHostAcknowledgement) {
   _host->set_problem_has_been_acknowledged(true);
   // create comment
   auto cmt = std::make_shared<comment>(
-      comment::host, comment::acknowledgment, _host->get_host_id(), 0, 10000,
+      comment::host, comment::acknowledgment, _host->host_id(), 0, 10000,
       "test-admin", oss.str(), false, comment::external, false, 0);
   comment::comments.insert({cmt->get_comment_id(), cmt});
 
@@ -836,7 +834,7 @@ TEST_F(EngineRpc, RemoveHostAcknowledgement) {
   // second test
   _host->set_problem_has_been_acknowledged(true);
   cmt = std::make_shared<comment>(
-      comment::host, comment::acknowledgment, _host->get_host_id(), 0, 10000,
+      comment::host, comment::acknowledgment, _host->host_id(), 0, 10000,
       "test-admin", oss.str(), false, comment::external, false, 0);
   comment::comments.insert({cmt->get_comment_id(), cmt});
 
@@ -863,8 +861,8 @@ TEST_F(EngineRpc, RemoveServiceAcknowledgement) {
   oss << "my comment ";
   _svc->set_problem_has_been_acknowledged(true);
   auto cmt = std::make_shared<comment>(
-      comment::service, comment::acknowledgment, _host->get_host_id(),
-      _svc->get_service_id(), 10000, "test-admin", oss.str(), false,
+      comment::service, comment::acknowledgment, _host->host_id(),
+      _svc->service_id(), 10000, "test-admin", oss.str(), false,
       comment::external, false, 0);
   comment::comments.insert({cmt->get_comment_id(), cmt});
 
@@ -878,8 +876,8 @@ TEST_F(EngineRpc, RemoveServiceAcknowledgement) {
 
   _svc->set_problem_has_been_acknowledged(true);
   cmt = std::make_shared<comment>(comment::service, comment::acknowledgment,
-                                  _host->get_host_id(), _svc->get_service_id(),
-                                  10000, "test-admin", oss.str(), false,
+                                  _host->host_id(), _svc->service_id(), 10000,
+                                  "test-admin", oss.str(), false,
                                   comment::external, false, 0);
   comment::comments.insert({cmt->get_comment_id(), cmt});
 
