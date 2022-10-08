@@ -1390,7 +1390,7 @@ TEST_F(MacroHostname, HostGroupMembers) {
   std::string out;
   nagios_macros* mac(get_global_macros());
   process_macros_r(mac, "$HOSTGROUPMEMBERS:temphg$", out, 0);
-  ASSERT_EQ(out, "c,a");
+  ASSERT_TRUE(out == "c,a" || out == "a,c");
 }
 
 TEST_F(MacroHostname, LastHostProblemId) {

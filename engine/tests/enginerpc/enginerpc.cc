@@ -770,35 +770,39 @@ TEST_F(EngineRpc, DeleteAllServiceComments) {
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
+  auto svc = _svc;
+  auto hit = engine::host::hosts_by_id.find(svc->host_id());
+  auto hst = hit->second;
 
   // first test
   ASSERT_EQ(comment::comments.size(), 0u);
   // create some comments
   for (int i = 0; i < 10; ++i) {
-    std::ostringstream oss;
-    oss << "my service comment " << i;
+    std::string cmt_str{fmt::format("my service comment {} on service ({}, {})",
+                                    i, svc->host_id(), svc->service_id())};
     auto cmt = std::make_shared<comment>(
-        comment::service, comment::user, _host->host_id(), _svc->service_id(),
-        10000, "test-admin", oss.str(), true, comment::external, false, 0);
+        comment::service, comment::user, svc->host_id(), svc->service_id(),
+        10000, "test-admin", cmt_str, true, comment::external, false, 0);
     comment::comments.insert({cmt->get_comment_id(), cmt});
   }
   ASSERT_EQ(comment::comments.size(), 10u);
 
   call_command_manager(th, &condvar, &mutex, &continuerunning);
-  auto output = execute("DeleteAllServiceComments byids 12 13");
+  auto output = execute(fmt::format("DeleteAllServiceComments byids {} {}",
+                                    svc->host_id(), svc->service_id()));
 
   ASSERT_EQ(comment::comments.size(), 0u);
   // second test
   for (int i = 0; i < 10; ++i) {
-    std::ostringstream oss;
-    oss << "my service comment " << i;
+    std::string cmt_str{fmt::format("my service comment {}", i)};
     auto cmt = std::make_shared<comment>(
-        comment::service, comment::user, _host->host_id(), _svc->service_id(),
-        10000, "test-admin", oss.str(), true, comment::external, false, 0);
+        comment::service, comment::user, svc->host_id(), svc->service_id(),
+        10000, "test-admin", cmt_str, true, comment::external, false, 0);
     comment::comments.insert({cmt->get_comment_id(), cmt});
   }
   ASSERT_EQ(comment::comments.size(), 10u);
-  output = execute("DeleteAllServiceComments bynames test_host test_svc");
+  output = execute(fmt::format("DeleteAllServiceComments bynames {} {}",
+                               hst->name(), svc->get_description()));
   {
     std::lock_guard<std::mutex> lock(mutex);
     continuerunning = true;
