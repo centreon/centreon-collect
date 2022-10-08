@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Centreon (https://www.centreon.com/)
+ * Copyright 2019-2022 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -729,30 +729,30 @@ TEST_F(EngineRpc, DeleteAllHostComments) {
   ASSERT_EQ(comment::comments.size(), 0u);
   // create some comments
   for (int i = 0; i < 10; ++i) {
-    std::ostringstream oss;
-    oss << "my host comment " << i;
+    std::string cmt_str{fmt::format("my host comment {}", i)};
     auto cmt = std::make_shared<comment>(
         comment::host, comment::user, _host->host_id(), 0, 10000, "test-admin",
-        oss.str(), true, comment::external, false, 0);
+        cmt_str, true, comment::external, false, 0);
     comment::comments.insert({cmt->get_comment_id(), cmt});
   }
   ASSERT_EQ(comment::comments.size(), 10u);
 
   call_command_manager(th, &condvar, &mutex, &continuerunning);
-  auto output = execute("DeleteAllHostComments byhostid 12");
+  auto output = execute(
+      fmt::format("DeleteAllHostComments byhostid {}", _host->host_id()));
 
   ASSERT_EQ(comment::comments.size(), 0u);
   // second test
   for (int i = 0; i < 10; ++i) {
-    std::ostringstream oss;
-    oss << "my host comment " << i;
+    std::string cmt_str{fmt::format("my host comment {}", i)};
     auto cmt = std::make_shared<comment>(
         comment::host, comment::user, _host->host_id(), 0, 10000, "test-admin",
-        oss.str(), true, comment::external, false, 0);
+        cmt_str, true, comment::external, false, 0);
     comment::comments.insert({cmt->get_comment_id(), cmt});
   }
   ASSERT_EQ(comment::comments.size(), 10u);
-  output = execute("DeleteAllHostComments byhostname test_host");
+  output = execute(
+      fmt::format("DeleteAllHostComments byhostname {}", _host->name()));
   {
     std::lock_guard<std::mutex> lock(mutex);
     continuerunning = true;
