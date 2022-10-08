@@ -268,9 +268,9 @@ void applier::anomalydetection::modify_object(
 
   // Modify properties.
   if (it_obj->second->get_hostname() != obj.host_name() ||
-      it_obj->second->get_description() != obj.service_description()) {
+      it_obj->second->description() != obj.service_description()) {
     engine::service::services.erase(
-        {it_obj->second->get_hostname(), it_obj->second->get_description()});
+        {it_obj->second->get_hostname(), it_obj->second->description()});
     engine::service::services.insert(
         {{obj.host_name(), obj.service_description()}, it_obj->second});
   }

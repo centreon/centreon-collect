@@ -547,12 +547,12 @@ int neb::callback_custom_variable(int callback_type, void* data) {
       // Service custom variable.
       else if (NEBTYPE_SERVICECUSTOMVARIABLE_ADD == cvar->type) {
         engine::service* svc{static_cast<engine::service*>(cvar->object_ptr)};
-        if (svc && !svc->get_description().empty() &&
+        if (svc && !svc->description().empty() &&
             !svc->get_hostname().empty()) {
           // Fill custom variable event.
           std::pair<uint32_t, uint32_t> p;
           p = engine::get_host_and_service_id(svc->get_hostname(),
-                                              svc->get_description());
+                                              svc->description());
           if (p.first && p.second) {
             auto new_cvar{std::make_shared<custom_variable>()};
             new_cvar->enabled = true;
@@ -576,10 +576,10 @@ int neb::callback_custom_variable(int callback_type, void* data) {
         }
       } else if (NEBTYPE_SERVICECUSTOMVARIABLE_DELETE == cvar->type) {
         engine::service* svc{static_cast<engine::service*>(cvar->object_ptr)};
-        if (svc && !svc->get_description().empty() &&
+        if (svc && !svc->description().empty() &&
             !svc->get_hostname().empty()) {
           std::pair<uint64_t, uint64_t> p{engine::get_host_and_service_id(
-              svc->get_hostname(), svc->get_description())};
+              svc->get_hostname(), svc->description())};
           if (p.first && p.second) {
             auto old_cvar{std::make_shared<custom_variable>()};
             old_cvar->enabled = false;
@@ -1302,7 +1302,7 @@ int neb::callback_group_member(int callback_type, void* data) {
           static_cast<engine::service*>(member_data->object_ptr));
       engine::servicegroup const* sg(
           static_cast<engine::servicegroup*>(member_data->group_ptr));
-      if (!svc->get_description().empty() && !sg->get_group_name().empty() &&
+      if (!svc->description().empty() && !sg->get_group_name().empty() &&
           !svc->get_hostname().empty()) {
         // Output variable.
         auto sgm{std::make_shared<neb::service_group_member>()};
@@ -1311,7 +1311,7 @@ int neb::callback_group_member(int callback_type, void* data) {
         sgm->poller_id = config::applier::state::instance().poller_id();
         std::pair<uint32_t, uint32_t> p;
         p = engine::get_host_and_service_id(svc->get_hostname(),
-                                            svc->get_description());
+                                            svc->description());
         sgm->host_id = p.first;
         sgm->service_id = p.second;
         if (sgm->host_id && sgm->service_id && sgm->group_id) {
@@ -2480,9 +2480,9 @@ int neb::callback_service(int callback_type, void* data) {
         s->get_retain_nonstatus_information();
     my_service->retain_status_information = s->get_retain_status_information();
     my_service->retry_interval = s->retry_interval();
-    if (!s->get_description().empty())
+    if (!s->description().empty())
       my_service->service_description =
-          misc::string::check_string_utf8(s->get_description());
+          misc::string::check_string_utf8(s->description());
     my_service->should_be_scheduled = s->get_should_be_scheduled();
     my_service->stalk_on_critical = s->get_stalk_on(engine::notifier::critical);
     my_service->stalk_on_ok = s->get_stalk_on(engine::notifier::ok);
@@ -2493,8 +2493,7 @@ int neb::callback_service(int callback_type, void* data) {
 
     // Search host ID and service ID.
     std::pair<uint64_t, uint64_t> p;
-    p = engine::get_host_and_service_id(s->get_hostname(),
-                                        s->get_description());
+    p = engine::get_host_and_service_id(s->get_hostname(), s->description());
     my_service->host_id = p.first;
     my_service->service_id = p.second;
     if (my_service->host_id && my_service->service_id) {
@@ -2513,8 +2512,8 @@ int neb::callback_service(int callback_type, void* data) {
           "callbacks: service has no host ID or no service ID (yet) (host "
           "'{}', service '{}')",
           (!s->get_hostname().empty() ? my_service->host_name : "(unknown)"),
-          (!s->get_description().empty() ? my_service->service_description
-                                         : "(unknown)"));
+          (!s->description().empty() ? my_service->service_description
+                                     : "(unknown)"));
   }
   // Avoid exception propagation in C code.
   catch (...) {
@@ -2586,15 +2585,15 @@ int neb::callback_pb_service(int callback_type, void* data) {
                           "callbacks: adaptive service not implemented.");
       assert(1 == 0);
     }
-    std::pair<uint64_t, uint64_t> p{engine::get_host_and_service_id(
-        es->get_hostname(), es->get_description())};
+    std::pair<uint64_t, uint64_t> p{
+        engine::get_host_and_service_id(es->get_hostname(), es->description())};
     if (p.first && p.second) {
       srv.set_host_id(p.first);
       srv.set_service_id(p.second);
       // Send service event.
       SPDLOG_LOGGER_INFO(
           log_v2::neb(), "callbacks: new service {} ('{}') on host {}",
-          srv.service_id(), es->get_description(), srv.host_id());
+          srv.service_id(), es->description(), srv.host_id());
       neb::gl_publisher.write(s);
 
       /* No need to send this service custom variables changes, custom
@@ -2605,7 +2604,7 @@ int neb::callback_pb_service(int callback_type, void* data) {
           "callbacks: service has no host ID or no service ID (yet) (host "
           "'{}', service '{}')",
           !es->get_hostname().empty() ? es->get_hostname() : "(unknown)",
-          !es->get_description().empty() ? es->get_description() : "(unknown)");
+          !es->description().empty() ? es->description() : "(unknown)");
   } else {
     auto s{std::make_shared<neb::pb_service>()};
     Service& srv = s.get()->mut_obj();
@@ -2659,9 +2658,8 @@ int neb::callback_pb_service(int callback_type, void* data) {
     srv.set_freshness_threshold(es->get_freshness_threshold());
     srv.set_checked(es->has_been_checked());
     srv.set_high_flap_threshold(es->get_high_flap_threshold());
-    if (!es->get_description().empty())
-      srv.set_description(
-          misc::string::check_string_utf8(es->get_description()));
+    if (!es->description().empty())
+      srv.set_description(misc::string::check_string_utf8(es->description()));
 
     if (!es->get_hostname().empty()) {
       std::string name{misc::string::check_string_utf8(es->get_hostname())};
@@ -2790,8 +2788,7 @@ int neb::callback_pb_service(int callback_type, void* data) {
 
     // Search host ID and service ID.
     std::pair<uint64_t, uint64_t> p;
-    p = engine::get_host_and_service_id(es->get_hostname(),
-                                        es->get_description());
+    p = engine::get_host_and_service_id(es->get_hostname(), es->description());
     srv.set_host_id(p.first);
     srv.set_service_id(p.second);
     if (srv.host_id() && srv.service_id())
@@ -2813,7 +2810,7 @@ int neb::callback_pb_service(int callback_type, void* data) {
           "callbacks: service has no host ID or no service ID (yet) (host "
           "'{}', service '{}')",
           (!es->get_hostname().empty() ? srv.host_name() : "(unknown)"),
-          (!es->get_description().empty() ? srv.description() : "(unknown)"));
+          (!es->description().empty() ? srv.description() : "(unknown)"));
   }
   return 0;
 }
@@ -3015,7 +3012,7 @@ int32_t neb::callback_pb_service_status(int callback_type
   if (es->host_id() == 0 || es->service_id() == 0)
     SPDLOG_LOGGER_ERROR(log_v2::neb(),
                         "could not find ID of service ('{}', '{}')",
-                        es->get_hostname(), es->get_description());
+                        es->get_hostname(), es->description());
 
   if (es->problem_has_been_acknowledged())
     sscr.set_acknowledgement_type(
@@ -3069,17 +3066,17 @@ int32_t neb::callback_pb_service_status(int callback_type
 
   if (!es->get_hostname().empty()) {
     if (strncmp(es->get_hostname().c_str(), "_Module_Meta", 13) == 0) {
-      if (strncmp(es->get_description().c_str(), "meta_", 5) == 0) {
+      if (strncmp(es->description().c_str(), "meta_", 5) == 0) {
         sscr.set_type(METASERVICE);
         uint64_t iid = 0;
-        for (auto c = es->get_description().begin() + 5;
-             c != es->get_description().end(); ++c) {
+        for (auto c = es->description().begin() + 5;
+             c != es->description().end(); ++c) {
           if (!isdigit(*c)) {
             SPDLOG_LOGGER_ERROR(
                 log_v2::neb(),
                 "callbacks: service ('{}', '{}') looks like a meta-service "
                 "but its name is malformed",
-                es->get_hostname(), es->get_description());
+                es->get_hostname(), es->description());
             break;
           }
           iid = 10 * iid + (*c - '0');
@@ -3087,16 +3084,16 @@ int32_t neb::callback_pb_service_status(int callback_type
         sscr.set_internal_id(iid);
       }
     } else if (strncmp(es->get_hostname().c_str(), "_Module_BAM", 11) == 0) {
-      if (strncmp(es->get_description().c_str(), "ba_", 3) == 0) {
+      if (strncmp(es->description().c_str(), "ba_", 3) == 0) {
         sscr.set_type(BA);
         uint64_t iid = 0;
-        for (auto c = es->get_description().begin() + 3;
-             c != es->get_description().end(); ++c) {
+        for (auto c = es->description().begin() + 3;
+             c != es->description().end(); ++c) {
           if (!isdigit(*c)) {
             SPDLOG_LOGGER_ERROR(log_v2::neb(),
                                 "callbacks: service ('{}', '{}') looks like a "
                                 "business-activity but its name is malformed",
-                                es->get_hostname(), es->get_description());
+                                es->get_hostname(), es->description());
             break;
           }
           iid = 10 * iid + (*c - '0');
@@ -3207,15 +3204,15 @@ int neb::callback_service_status(int callback_type, void* data) {
     service_status->retry_interval = s->retry_interval();
     if (s->get_hostname().empty())
       throw msg_fmt("unnamed host");
-    if (s->get_description().empty())
+    if (s->description().empty())
       throw msg_fmt("unnamed service");
     service_status->host_name =
         misc::string::check_string_utf8(s->get_hostname());
     service_status->service_description =
-        misc::string::check_string_utf8(s->get_description());
+        misc::string::check_string_utf8(s->description());
     {
-      std::pair<uint64_t, uint64_t> p{engine::get_host_and_service_id(
-          s->get_hostname(), s->get_description())};
+      std::pair<uint64_t, uint64_t> p{
+          engine::get_host_and_service_id(s->get_hostname(), s->description())};
       service_status->host_id = p.first;
       service_status->service_id = p.second;
       if (!service_status->host_id || !service_status->service_id)

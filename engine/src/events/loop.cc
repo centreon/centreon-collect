@@ -260,14 +260,14 @@ void loop::_dispatching() {
               << currently_running_service_checks << "/"
               << config->max_parallel_service_checks()
               << ") has been reached!  Nudging " << temp_service->get_hostname()
-              << ":" << temp_service->get_description() << " by "
-              << nudge_seconds << " seconds...";
+              << ":" << temp_service->description() << " by " << nudge_seconds
+              << " seconds...";
           log_v2::events()->trace(
               "**WARNING** Max concurrent service checks ({}/{}) has been "
               "reached!  Nudging {}:{} by {} seconds...",
               currently_running_service_checks,
               config->max_parallel_service_checks(),
-              temp_service->get_hostname(), temp_service->get_description(),
+              temp_service->get_hostname(), temp_service->description(),
               nudge_seconds);
 
           engine_logger(log_runtime_warning, basic)
@@ -275,14 +275,14 @@ void loop::_dispatching() {
               << currently_running_service_checks << "/"
               << config->max_parallel_service_checks()
               << ") has been reached.  Nudging " << temp_service->get_hostname()
-              << ":" << temp_service->get_description() << " by "
-              << nudge_seconds << " seconds...";
+              << ":" << temp_service->description() << " by " << nudge_seconds
+              << " seconds...";
           log_v2::runtime()->warn(
               "\tMax concurrent service checks ({}/{}) has been reached.  "
               "Nudging {}:{} by {} seconds...",
               currently_running_service_checks,
               config->max_parallel_service_checks(),
-              temp_service->get_hostname(), temp_service->get_description(),
+              temp_service->get_hostname(), temp_service->description(),
               nudge_seconds);
           run_event = false;
         }

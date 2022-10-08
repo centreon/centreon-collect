@@ -152,13 +152,13 @@ std::ostream& operator<<(std::ostream& os, servicedependency const& obj) {
   if (obj.dependent_service_ptr) {
     dependent_svc_str = obj.dependent_service_ptr->get_hostname();
     dependent_svc_str += ", ";
-    dependent_svc_str += obj.dependent_service_ptr->get_description();
+    dependent_svc_str += obj.dependent_service_ptr->description();
   }
   std::string master_svc_str("\"NULL\"");
   if (obj.master_service_ptr) {
     master_svc_str = obj.master_service_ptr->get_hostname();
     master_svc_str += ", ";
-    master_svc_str += obj.master_service_ptr->get_description();
+    master_svc_str += obj.master_service_ptr->description();
   }
 
   os << "servicedependency {\n"

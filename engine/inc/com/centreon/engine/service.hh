@@ -111,7 +111,7 @@ class service : public notifier {
   void set_hostname(std::string const& name);
   std::string const& get_hostname() const;
   void set_description(std::string const& desc);
-  std::string const& get_description() const;
+  const std::string& description() const;
   void set_event_handler_args(std::string const& event_hdl_args);
   std::string const& get_event_handler_args() const;
   void set_check_command_args(std::string const& cmd_args);

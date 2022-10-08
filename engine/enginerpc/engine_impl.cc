@@ -308,7 +308,7 @@ grpc::Status engine_impl::GetService(grpc::ServerContext* context
         service->set_host_id(selectedservice->host_id());
         service->set_service_id(selectedservice->service_id());
         service->set_host_name(selectedservice->get_hostname());
-        service->set_description(selectedservice->get_description());
+        service->set_description(selectedservice->description());
         service->set_check_period(selectedservice->check_period());
         service->set_current_state(static_cast<EngineService::State>(
             selectedservice->get_current_state()));

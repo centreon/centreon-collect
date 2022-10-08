@@ -346,9 +346,9 @@ void applier::service::modify_object(configuration::service const& obj) {
 
   // Modify properties.
   if (it_obj->second->get_hostname() != *obj.hosts().begin() ||
-      it_obj->second->get_description() != obj.service_description()) {
+      it_obj->second->description() != obj.service_description()) {
     engine::service::services.erase(
-        {it_obj->second->get_hostname(), it_obj->second->get_description()});
+        {it_obj->second->get_hostname(), it_obj->second->description()});
     engine::service::services.insert(
         {{*obj.hosts().begin(), obj.service_description()}, it_obj->second});
   }

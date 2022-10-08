@@ -326,7 +326,7 @@ std::ostream& operator<<(std::ostream& os,
      << obj.get_hostname()
      << "\n"
         "  description:                          "
-     << obj.get_description()
+     << obj.description()
      << "\n"
         "  display_name:                         "
      << obj.get_display_name()
@@ -818,7 +818,7 @@ com::centreon::engine::service* add_service(
     //   obj->state_history[x] = state_ok;
 
     // Add new items to the list.
-    service::services[{obj->get_hostname(), obj->get_description()}] = obj;
+    service::services[{obj->get_hostname(), obj->description()}] = obj;
     service::services_by_id[{host_id, service_id}] = obj;
   } catch (...) {
     obj.reset();
@@ -837,13 +837,12 @@ void service::check_for_expired_acknowledgement() {
       time_t now = time(nullptr);
       if (last_acknowledgement() + acknowledgement_timeout() >= now) {
         engine_logger(log_info_message, basic)
-            << "Acknowledgement of service '" << get_description()
-            << "' on host '" << this->get_host_ptr()->name()
-            << "' just expired";
+            << "Acknowledgement of service '" << description() << "' on host '"
+            << this->get_host_ptr()->name() << "' just expired";
         SPDLOG_LOGGER_INFO(
             log_v2::events(),
             "Acknowledgement of service '{}' on host '{}' just expired",
-            get_description(), this->get_host_ptr()->name());
+            description(), this->get_host_ptr()->name());
         set_problem_has_been_acknowledged(false);
         set_acknowledgement_type(ACKNOWLEDGEMENT_NONE);
         // FIXME DBO: could be improved with something smaller.
@@ -918,7 +917,7 @@ std::pair<std::string, std::string> engine::get_host_and_service_names(
   auto it = service::services_by_id.find(std::make_pair(host_id, service_id));
   if (it != service::services_by_id.end())
     return std::make_pair(it->second->get_hostname(),
-                          it->second->get_description());
+                          it->second->description());
   else
     return {"", ""};
 }
@@ -989,7 +988,7 @@ void service::set_description(const std::string& desc) {
  *
  * @return A string reference to the description.
  */
-const std::string& service::get_description() const {
+const std::string& service::description() const {
   return name();
 }
 
@@ -1855,13 +1854,12 @@ int service::handle_async_check_result(
             master_service = temp_dependency->master_service_ptr;
             engine_logger(dbg_checks, most)
                 << "Predictive check of service '"
-                << master_service->get_description() << "' on host '"
+                << master_service->description() << "' on host '"
                 << master_service->get_hostname() << "' queued.";
             SPDLOG_LOGGER_DEBUG(
                 log_v2::checks(),
                 "Predictive check of service '{}' on host '{}' queued.",
-                master_service->get_description(),
-                master_service->get_hostname());
+                master_service->description(), master_service->get_hostname());
             check_servicelist.push_back(master_service);
           }
         }
@@ -2512,23 +2510,22 @@ int service::run_async_check(int check_options,
   // Preamble.
   if (!get_check_command_ptr()) {
     engine_logger(log_runtime_error, basic)
-        << "Error: Attempt to run active check on service '"
-        << get_description() << "' on host '" << get_host_ptr()->name()
-        << "' with no check command";
+        << "Error: Attempt to run active check on service '" << description()
+        << "' on host '" << get_host_ptr()->name() << "' with no check command";
     SPDLOG_LOGGER_ERROR(
         log_v2::runtime(),
         "Error: Attempt to run active check on service '{}' on host '{}' with "
         "no check command",
-        get_description(), get_host_ptr()->name());
+        description(), get_host_ptr()->name());
     return ERROR;
   }
 
   engine_logger(dbg_checks, basic)
-      << "** Running async check of service '" << get_description()
-      << "' on host '" << get_hostname() << "'...";
+      << "** Running async check of service '" << description() << "' on host '"
+      << get_hostname() << "'...";
   SPDLOG_LOGGER_TRACE(log_v2::checks(),
                       "** Running async check of service '{} on host '{}'...",
-                      get_description(), get_hostname());
+                      description(), get_hostname());
 
   // Check if the service is viable now.
   if (!verify_check_viability(check_options, time_is_valid, preferred_time))
@@ -2546,32 +2543,32 @@ int service::run_async_check(int check_options,
           static_cast<time_t>(check_interval() * config->interval_length());
     engine_logger(log_runtime_error, basic)
         << "Error: Some broker module cancelled check of service '"
-        << get_description() << "' on host '" << get_hostname();
+        << description() << "' on host '" << get_hostname();
     SPDLOG_LOGGER_ERROR(
         log_v2::runtime(),
         "Error: Some broker module cancelled check of service '{}' on host "
         "'{}'",
-        get_description(), get_hostname());
+        description(), get_hostname());
     return ERROR;
   }
   // Service check was override by NEB module.
   else if (NEBERROR_CALLBACKOVERRIDE == res) {
     engine_logger(dbg_functions, basic)
-        << "Some broker module overrode check of service '" << get_description()
+        << "Some broker module overrode check of service '" << description()
         << "' on host '" << get_hostname() << "' so we'll bail out";
     SPDLOG_LOGGER_TRACE(
         log_v2::functions(),
         "Some broker module overrode check of service '{}' on host '{}' so "
         "we'll bail out",
-        get_description(), get_hostname());
+        description(), get_hostname());
     return OK;
   }
 
   // Checking starts.
-  engine_logger(dbg_checks, basic) << "Checking service '" << get_description()
+  engine_logger(dbg_checks, basic) << "Checking service '" << description()
                                    << "' on host '" << get_hostname() << "'...";
   SPDLOG_LOGGER_TRACE(log_v2::checks(), "Checking service '{}' on host '{}'...",
-                      get_description(), get_hostname());
+                      description(), get_hostname());
 
   // Clear check options.
   if (scheduled_check)
@@ -3210,12 +3207,12 @@ int service::notify_contact(nagios_macros* mac,
 
       engine_logger(log_service_notification, basic)
           << "SERVICE NOTIFICATION: " << cntct->get_name() << ';'
-          << get_hostname() << ';' << get_description() << ';'
+          << get_hostname() << ';' << description() << ';'
           << service_notification_state << ";" << cmd->get_name() << ';'
           << get_plugin_output() << info;
       log_v2::notifications()->info(
           "SERVICE NOTIFICATION: {};{};{};{};{};{};{}", cntct->get_name(),
-          get_hostname(), get_description(), service_notification_state,
+          get_hostname(), description(), service_notification_state,
           cmd->get_name(), get_plugin_output(), info);
     }
 
@@ -3363,11 +3360,11 @@ bool service::is_result_fresh(time_t current_time, int log_this) {
   int tseconds = 0;
 
   engine_logger(dbg_checks, most)
-      << "Checking freshness of service '" << this->get_description()
+      << "Checking freshness of service '" << this->description()
       << "' on host '" << this->get_hostname() << "'...";
   SPDLOG_LOGGER_DEBUG(log_v2::checks(),
                       "Checking freshness of service '{}' on host '{}'...",
-                      this->get_description(), this->get_hostname());
+                      this->description(), this->get_hostname());
 
   /* use user-supplied freshness threshold or auto-calculate a freshness
    * threshold to use? */
@@ -3433,7 +3430,7 @@ bool service::is_result_fresh(time_t current_time, int log_this) {
     /* log a warning */
     if (log_this)
       engine_logger(log_runtime_warning, basic)
-          << "Warning: The results of service '" << this->get_description()
+          << "Warning: The results of service '" << this->description()
           << "' on host '" << this->get_hostname() << "' are stale by " << days
           << "d " << hours << "h " << minutes << "m " << seconds
           << "s (threshold=" << tdays << "d " << thours << "h " << tminutes
@@ -3446,15 +3443,14 @@ bool service::is_result_fresh(time_t current_time, int log_this) {
         "{}h {}m {}s (threshold={}d {}h {}m {}s).  I'm forcing an immediate "
         "check "
         "of the service.",
-        this->get_description(), this->get_hostname(), days, hours, minutes,
+        this->description(), this->get_hostname(), days, hours, minutes,
         seconds, tdays, thours, tminutes, tseconds);
 
     engine_logger(dbg_checks, more)
-        << "Check results for service '" << this->get_description()
-        << "' on host '" << this->get_hostname() << "' are stale by " << days
-        << "d " << hours << "h " << minutes << "m " << seconds
-        << "s (threshold=" << tdays << "d " << thours << "h " << tminutes
-        << "m " << tseconds
+        << "Check results for service '" << this->description() << "' on host '"
+        << this->get_hostname() << "' are stale by " << days << "d " << hours
+        << "h " << minutes << "m " << seconds << "s (threshold=" << tdays
+        << "d " << thours << "h " << tminutes << "m " << tseconds
         << "s).  Forcing an immediate check of "
            "the service...";
     SPDLOG_LOGGER_DEBUG(
@@ -3462,18 +3458,18 @@ bool service::is_result_fresh(time_t current_time, int log_this) {
         "Check results for service '{}' on host '{}' are stale by {}d {}h {}m "
         "{}s (threshold={}d {}h {}m {}s). Forcing an immediate check of the "
         "service...",
-        this->get_description(), this->get_hostname(), days, hours, minutes,
+        this->description(), this->get_hostname(), days, hours, minutes,
         seconds, tdays, thours, tminutes, tseconds);
 
     return false;
   }
 
   engine_logger(dbg_checks, more)
-      << "Check results for service '" << this->get_description()
-      << "' on host '" << this->get_hostname() << "' are fresh.";
+      << "Check results for service '" << this->description() << "' on host '"
+      << this->get_hostname() << "' are fresh.";
   SPDLOG_LOGGER_DEBUG(log_v2::checks(),
                       "Check results for service '{}' on host '{}' are fresh.",
-                      this->get_description(), this->get_hostname());
+                      this->description(), this->get_hostname());
 
   return true;
 }
@@ -3500,12 +3496,11 @@ void service::handle_flap_detection_disabled() {
     /* log a notice - this one is parsed by the history CGI */
     engine_logger(log_info_message, basic)
         << "SERVICE FLAPPING ALERT: " << this->get_hostname() << ";"
-        << this->get_description()
-        << ";DISABLED; Flap detection has been disabled";
+        << this->description() << ";DISABLED; Flap detection has been disabled";
     log_v2::events()->debug(
         "SERVICE FLAPPING ALERT: {};{};DISABLED; Flap detection has been "
         "disabled",
-        this->get_hostname(), this->get_description());
+        this->get_hostname(), this->description());
 
     /* send a notification */
     notify(reason_flappingdisabled, "", "", notification_option_none);

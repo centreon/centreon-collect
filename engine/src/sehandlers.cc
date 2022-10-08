@@ -161,11 +161,11 @@ int run_global_service_event_handler(nagios_macros* mac,
     return ERROR;
 
   engine_logger(dbg_eventhandlers, more)
-      << "Running global event handler for service '" << svc->get_description()
+      << "Running global event handler for service '" << svc->description()
       << "' on host '" << svc->get_hostname() << "'...";
   log_v2::events()->debug(
       "Running global event handler for service '{}' on host '{}'...",
-      svc->get_description(), svc->get_hostname());
+      svc->description(), svc->get_hostname());
 
   /* get start time */
   gettimeofday(&start_time, nullptr);
@@ -199,7 +199,7 @@ int run_global_service_event_handler(nagios_macros* mac,
   if (config->log_event_handlers()) {
     std::ostringstream oss;
     oss << "GLOBAL SERVICE EVENT HANDLER: " << svc->get_hostname() << ';'
-        << svc->get_description()
+        << svc->description()
         << ";$SERVICESTATE$;$SERVICESTATETYPE$;$SERVICEATTEMPT$;"
         << config->global_service_event_handler();
     process_macros_r(mac, oss.str(), processed_logentry, macro_options);
@@ -263,11 +263,11 @@ int run_service_event_handler(nagios_macros* mac,
     return ERROR;
 
   engine_logger(dbg_eventhandlers, more)
-      << "Running event handler for service '" << svc->get_description()
+      << "Running event handler for service '" << svc->description()
       << "' on host '" << svc->get_hostname() << "'...";
   log_v2::events()->debug(
       "Running event handler for service '{}' on host '{}'...",
-      svc->get_description(), svc->get_hostname());
+      svc->description(), svc->get_hostname());
 
   /* get start time */
   gettimeofday(&start_time, nullptr);
@@ -297,7 +297,7 @@ int run_service_event_handler(nagios_macros* mac,
   if (config->log_event_handlers() == true) {
     std::ostringstream oss;
     oss << "SERVICE EVENT HANDLER: " << svc->get_hostname() << ';'
-        << svc->get_description()
+        << svc->description()
         << ";$SERVICESTATE$;$SERVICESTATETYPE$;$SERVICEATTEMPT$;"
         << svc->event_handler();
     process_macros_r(mac, oss.str(), processed_logentry, macro_options);

@@ -207,12 +207,12 @@ int downtime_manager::check_pending_flex_service_downtime(service* svc) {
           current_time <= dt.get_end_time()) {
         engine_logger(dbg_downtime, basic)
             << "Flexible downtime (id=" << dt.get_downtime_id()
-            << ") for service '" << svc->get_description() << "' on host '"
+            << ") for service '" << svc->description() << "' on host '"
             << svc->get_hostname() << "' starting now...";
         log_v2::downtimes()->trace(
             "Flexible downtime (id={}) for service '{}' on host '{}' starting "
             "now...",
-            dt.get_downtime_id(), svc->get_description(), svc->get_hostname());
+            dt.get_downtime_id(), svc->description(), svc->get_hostname());
 
         dt.start_flex_downtime();
         dt.handle();

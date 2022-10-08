@@ -734,10 +734,10 @@ void applier::scheduler::_calculate_service_scheduling_params() {
     } else {
       svc.set_should_be_scheduled(false);
       engine_logger(dbg_events, more)
-          << "Service " << svc.get_description() << " on host "
+          << "Service " << svc.description() << " on host "
           << svc.get_hostname() << " should not be scheduled.";
       log_v2::events()->debug("Service {} on host {} should not be scheduled.",
-                              svc.get_description(), svc.get_hostname());
+                              svc.description(), svc.get_hostname());
     }
     ++scheduling_info.total_services;
   }

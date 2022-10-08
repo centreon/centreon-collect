@@ -783,7 +783,7 @@ com::centreon::engine::anomalydetection* add_anomalydetection(
     //   obj->state_history[x] = state_ok;
 
     // Add new items to the list.
-    service::services[{obj->get_hostname(), obj->get_description()}] = obj;
+    service::services[{obj->get_hostname(), obj->description()}] = obj;
     service::services_by_id[{host_id, service_id}] = obj;
   } catch (...) {
     obj.reset();
@@ -843,13 +843,13 @@ int anomalydetection::run_async_check(int check_options,
       check_options, latency, scheduled_check, reschedule_check);
 
   engine_logger(dbg_checks, basic)
-      << "** Running async check of anomalydetection '" << get_description()
+      << "** Running async check of anomalydetection '" << description()
       << "' on host '" << get_hostname() << "'...";
 
   SPDLOG_LOGGER_TRACE(
       log_v2::checks(),
       "** Running async check of anomalydetection '{} ' on host '{}'...",
-      get_description(), get_hostname());
+      description(), get_hostname());
 
   // Check if the service is viable now.
   if (!verify_check_viability(check_options, time_is_valid, preferred_time))
@@ -893,7 +893,7 @@ int anomalydetection::run_async_check(int check_options,
           log_v2::checks(),
           "** Running async check of anomalydetection '{} ' on host '{}'... "
           "without check",
-          get_description(), get_hostname());
+          description(), get_hostname());
     }
     std::static_pointer_cast<commands::cancellable_command>(
         get_check_command_ptr())
@@ -912,7 +912,7 @@ int anomalydetection::run_async_check(int check_options,
         log_v2::checks(),
         "** Running async check of anomalydetection '{} ' on host '{}'... with "
         "check",
-        get_description(), get_hostname());
+        description(), get_hostname());
     std::static_pointer_cast<commands::cancellable_command>(
         get_check_command_ptr())
         ->reset_fake_result();  // execute original commands

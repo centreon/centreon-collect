@@ -192,13 +192,13 @@ int service_downtime::unschedule() {
     if (found->second->get_scheduled_downtime_depth() == 0) {
       engine_logger(log_info_message, basic)
           << "SERVICE DOWNTIME ALERT: " << found->second->get_hostname() << ";"
-          << found->second->get_description()
+          << found->second->description()
           << ";CANCELLED; Scheduled downtime "
              "for service has been cancelled.";
       log_v2::events()->info(
           "SERVICE DOWNTIME ALERT: {};{};CANCELLED; Scheduled downtime "
           "for service has been cancelled.",
-          found->second->get_hostname(), found->second->get_description());
+          found->second->get_hostname(), found->second->description());
 
       /* send a notification */
       found->second->notify(notifier::reason_downtimecancelled, "", "",
@@ -254,10 +254,10 @@ int service_downtime::subscribe() {
                                      << found->second->get_hostname()
                                      << "\n"
                                         " Service:     "
-                                     << found->second->get_description();
+                                     << found->second->description();
   log_v2::downtimes()->trace(" Type: Service Downtime");
   log_v2::downtimes()->trace(" Host: {}", found->second->get_hostname());
-  log_v2::downtimes()->trace(" Service: {}", found->second->get_description());
+  log_v2::downtimes()->trace(" Service: {}", found->second->description());
 
   engine_logger(dbg_downtime, basic)
       << " Fixed/Flex:  " << (is_fixed() ? "Fixed\n" : "Flexible\n")
@@ -375,7 +375,7 @@ int service_downtime::handle() {
 
     if (found->second->get_scheduled_downtime_depth() == 0) {
       engine_logger(dbg_downtime, basic)
-          << "Service '" << found->second->get_description() << "' on host '"
+          << "Service '" << found->second->description() << "' on host '"
           << found->second->get_hostname()
           << "' has exited from a period of "
              "scheduled downtime (id="
@@ -383,20 +383,20 @@ int service_downtime::handle() {
       log_v2::downtimes()->trace(
           "Service '{}' on host '{}' has exited from a period of "
           "scheduled downtime (id={}).",
-          found->second->get_description(), found->second->get_hostname(),
+          found->second->description(), found->second->get_hostname(),
           get_downtime_id());
 
       /* log a notice - this one is parsed by the history CGI */
       engine_logger(log_info_message, basic)
           << "SERVICE DOWNTIME ALERT: " << found->second->get_hostname() << ";"
-          << found->second->get_description()
+          << found->second->description()
           << ";STOPPED; Service has exited from a period of scheduled "
              "downtime";
       log_v2::events()->info(
           "SERVICE DOWNTIME ALERT: {};{};STOPPED; Service has exited from a "
           "period of scheduled "
           "downtime",
-          found->second->get_hostname(), found->second->get_description());
+          found->second->get_hostname(), found->second->description());
 
       /* send a notification */
       found->second->notify(notifier::reason_downtimeend, get_author(),
@@ -455,7 +455,7 @@ int service_downtime::handle() {
 
     if (found->second->get_scheduled_downtime_depth() == 0) {
       engine_logger(dbg_downtime, basic)
-          << "Service '" << found->second->get_description() << "' on host '"
+          << "Service '" << found->second->description() << "' on host '"
           << found->second->get_hostname()
           << "' has entered a period of scheduled "
              "downtime (id="
@@ -463,20 +463,20 @@ int service_downtime::handle() {
       log_v2::downtimes()->trace(
           "Service '{}' on host '{}' has entered a period of scheduled "
           "downtime (id={}).",
-          found->second->get_description(), found->second->get_hostname(),
+          found->second->description(), found->second->get_hostname(),
           get_downtime_id());
 
       /* log a notice - this one is parsed by the history CGI */
       engine_logger(log_info_message, basic)
           << "SERVICE DOWNTIME ALERT: " << found->second->get_hostname() << ";"
-          << found->second->get_description()
+          << found->second->description()
           << ";STARTED; Service has entered a period of scheduled "
              "downtime";
       log_v2::events()->info(
           "SERVICE DOWNTIME ALERT: {};{};STARTED; Service has entered a period "
           "of scheduled "
           "downtime",
-          found->second->get_hostname(), found->second->get_description());
+          found->second->get_hostname(), found->second->description());
 
       /* send a notification */
       found->second->notify(notifier::reason_downtimestart, get_author(),

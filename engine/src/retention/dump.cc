@@ -64,7 +64,7 @@ std::ostream& dump::comment(std::ostream& os,
     if (it == service::services_by_id.end())
       return os;
     host_name = it->second->get_hostname().c_str();
-    service_description = it->second->get_description().c_str();
+    service_description = it->second->description().c_str();
     os << "servicecomment {\n";
   }
   os << "host_name=" << host_name << "\n";
@@ -605,13 +605,13 @@ std::ostream& dump::service(std::ostream& os,
      << obj.get_hostname()
      << "\n"
         "service_description="
-     << obj.get_description()
+     << obj.description()
      << "\n"
         "host_id="
-     << service::services[{hostname, obj.get_description()}]->host_id()
+     << service::services[{hostname, obj.description()}]->host_id()
      << "\n"
         "service_id="
-     << service::services[{hostname, obj.get_description()}]->service_id()
+     << service::services[{hostname, obj.description()}]->service_id()
      << "\n"
         "acknowledgement_type="
      << obj.get_acknowledgement_type()

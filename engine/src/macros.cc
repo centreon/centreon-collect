@@ -165,9 +165,9 @@ int grab_custom_macro_value_r(nagios_macros* mac,
             continue;
 
           /* get the macro value for this service */
-          grab_custom_macro_value_r(
-              mac, macro_name, temp_service->get_hostname(),
-              temp_service->get_description(), temp_buffer);
+          grab_custom_macro_value_r(mac, macro_name,
+                                    temp_service->get_hostname(),
+                                    temp_service->description(), temp_buffer);
 
           if (temp_buffer.empty())
             continue;

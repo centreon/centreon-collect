@@ -465,7 +465,7 @@ int xsddefault_save_status_data() {
            << it->second->get_hostname()
            << "\n"
               "\tservice_description="
-           << it->second->get_description()
+           << it->second->description()
            << "\n"
               "\tmodified_attributes="
            << it->second->get_modified_attributes()
