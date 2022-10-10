@@ -25,7 +25,6 @@ set(protobuf_files
   severity
   tag
   welcome
-  comment
   neb_proto
   storage_proto
 )
