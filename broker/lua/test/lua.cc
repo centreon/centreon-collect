@@ -3299,7 +3299,7 @@ TEST_F(LuaTest, PbTestCustomVariableApiV2) {
   hst->mut_obj().set_modified(true);
   hst->mut_obj().set_name("toto");
   hst->mut_obj().set_update_time(4);
-  hst->mut_obj().set_value("titi");
+  hst->mut_obj().set_value("5");
   hst->mut_obj().set_default_value("tata");
   hst->mut_obj().set_enabled(false);
   hst->mut_obj().set_password(true);
@@ -3336,13 +3336,77 @@ TEST_F(LuaTest, PbTestCustomVariableApiV2) {
   ASSERT_NE(lst.find("modified = true"), std::string::npos);
   ASSERT_NE(lst.find("name = toto"), std::string::npos);
   ASSERT_NE(lst.find("update_time = 4"), std::string::npos);
-  ASSERT_NE(lst.find("value = titi"), std::string::npos);
+  ASSERT_NE(lst.find("value = 5"), std::string::npos);
   ASSERT_NE(lst.find("default_value = tata"), std::string::npos);
   ASSERT_NE(lst.find("enabled = false"), std::string::npos);
   ASSERT_NE(lst.find("password = true"), std::string::npos);
   ASSERT_NE(lst.find("var_type = 1"), std::string::npos);
   RemoveFile(filename);
   RemoveFile("/tmp/event_log");
+}
+
+TEST_F(LuaTest, PbTestCustomVariableNoIntValueNoRecordedInCache) {
+  config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  auto hst{std::make_shared<neb::pb_custom_variable>()};
+  hst->mut_obj().mutable_header()->set_conf_version(5);
+  hst->mut_obj().set_host_id(1);
+  hst->mut_obj().set_service_id(2);
+  hst->mut_obj().set_modified(true);
+  hst->mut_obj().set_name("CRITICALITY_LEVEL");
+  hst->mut_obj().set_update_time(4);
+  hst->mut_obj().set_value("titi");
+  hst->mut_obj().set_default_value("tata");
+  hst->mut_obj().set_enabled(false);
+  hst->mut_obj().set_password(true);
+  hst->mut_obj().set_var_type(
+      com::centreon::broker::CustomVariable_VarType_SERVICE);
+  std::string filename("/tmp/cache_test.lua");
+
+  CreateScript(filename,
+               "broker_api_version=2\n\n"
+               "function init(conf)\n"
+               "end\n\n"
+               "function write(d)\n"
+               "  return true\n"
+               "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  binding->write(hst);
+  ASSERT_THROW(_cache->get_severity(1, 2), msg_fmt);
+  RemoveFile(filename);
+}
+
+TEST_F(LuaTest, PbTestCustomVariableIntValueRecordedInCache) {
+  config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  auto hst{std::make_shared<neb::pb_custom_variable>()};
+  hst->mut_obj().mutable_header()->set_conf_version(5);
+  hst->mut_obj().set_host_id(1);
+  hst->mut_obj().set_service_id(2);
+  hst->mut_obj().set_modified(true);
+  hst->mut_obj().set_name("CRITICALITY_LEVEL");
+  hst->mut_obj().set_update_time(4);
+  hst->mut_obj().set_value("5");
+  hst->mut_obj().set_default_value("tata");
+  hst->mut_obj().set_enabled(false);
+  hst->mut_obj().set_password(true);
+  hst->mut_obj().set_var_type(
+      com::centreon::broker::CustomVariable_VarType_SERVICE);
+  std::string filename("/tmp/cache_test.lua");
+
+  CreateScript(filename,
+               "broker_api_version=2\n\n"
+               "function init(conf)\n"
+               "end\n\n"
+               "function write(d)\n"
+               "  return true\n"
+               "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  binding->write(hst);
+  ASSERT_EQ(_cache->get_severity(1, 2), 5);
+  RemoveFile(filename);
 }
 
 TEST_F(LuaTest, PbBrokerEventCache) {

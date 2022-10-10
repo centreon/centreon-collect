@@ -959,7 +959,7 @@ void macro_cache::_process_pb_custom_variable(
       std::static_pointer_cast<neb::pb_custom_variable>(data);
   if (cv->obj().name() == "CRITICALITY_LEVEL") {
     int32_t value;
-    if (!absl::SimpleAtoi(cv->obj().value(), &value)) {
+    if (absl::SimpleAtoi(cv->obj().value(), &value)) {
       SPDLOG_LOGGER_DEBUG(log_v2::lua(),
                           "lua: processing custom variable representing a "
                           "criticality level for "

@@ -78,7 +78,7 @@ using pb_custom_variable =
     io::protobuf<CustomVariable,
                  make_type(io::neb, neb::de_pb_custom_variable)>;
 using pb_custom_variable_status =
-    io::protobuf<CustomVariableStatus,
+    io::protobuf<CustomVariable,
                  make_type(io::neb, neb::de_pb_custom_variable_status)>;
 }  // namespace neb
 

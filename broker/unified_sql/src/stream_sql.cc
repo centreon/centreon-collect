@@ -686,7 +686,7 @@ void stream::_process_pb_custom_variable_status(
   const neb::pb_custom_variable_status& cv{
       *static_cast<neb::pb_custom_variable_status const*>(d.get())};
 
-  const com::centreon::broker::CustomVariableStatus& data = cv.obj();
+  const com::centreon::broker::CustomVariable& data = cv.obj();
   {
     std::lock_guard<std::mutex> lck(_queues_m);
     _cvs_queue.emplace_back(fmt::format(
