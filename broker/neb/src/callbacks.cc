@@ -429,12 +429,12 @@ int neb::callback_pb_custom_variable(int, void* data) {
     else if (NEBTYPE_SERVICECUSTOMVARIABLE_ADD == cvar->type ||
              NEBTYPE_SERVICECUSTOMVARIABLE_DELETE == cvar->type) {
       engine::service* svc{static_cast<engine::service*>(cvar->object_ptr)};
-      if (svc && !svc->get_description().empty() &&
+      if (svc && !svc->description().empty() &&
           !svc->get_hostname().empty()) {
         // Fill custom variable event.
-        std::pair<uint32_t, uint32_t> p;
+        std::pair<uint64_t, uint64_t> p;
         p = engine::get_host_and_service_id(svc->get_hostname(),
-                                            svc->get_description());
+                                            svc->description());
         if (p.first && p.second) {
           std::string name(misc::string::check_string_utf8(cvar->var_name));
           bool add = NEBTYPE_SERVICECUSTOMVARIABLE_ADD == cvar->type;
