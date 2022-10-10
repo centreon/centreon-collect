@@ -20,9 +20,9 @@
 #define CCB_NEB_INTERNAL_HH
 
 #include <absl/hash/hash.h>
-#include "bbdo/comment.pb.h"
 #include "bbdo/events.hh"
 #include "bbdo/host.pb.h"
+#include "bbdo/neb_proto.pb.h"
 #include "bbdo/service.pb.h"
 #include "bbdo/severity.pb.h"
 #include "bbdo/tag.pb.h"
@@ -73,6 +73,13 @@ using pb_tag = io::protobuf<Tag, make_type(io::neb, neb::de_pb_tag)>;
 
 using pb_comment =
     io::protobuf<Comment, make_type(io::neb, neb::de_pb_comment)>;
+
+using pb_custom_variable =
+    io::protobuf<CustomVariable,
+                 make_type(io::neb, neb::de_pb_custom_variable)>;
+using pb_custom_variable_status =
+    io::protobuf<CustomVariable,
+                 make_type(io::neb, neb::de_pb_custom_variable_status)>;
 }  // namespace neb
 
 CCB_END()

@@ -3225,6 +3225,190 @@ TEST_F(LuaTest, PbTestSvcApiV1) {
   RemoveFile("/tmp/event_log");
 }
 
+TEST_F(LuaTest, PbTestCustomVariableApiV1) {
+  config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  auto hst{std::make_shared<neb::pb_custom_variable>()};
+  hst->mut_obj().mutable_header()->set_conf_version(5);
+  hst->mut_obj().set_host_id(1);
+  hst->mut_obj().set_service_id(2);
+  hst->mut_obj().set_modified(true);
+  hst->mut_obj().set_name("toto");
+  hst->mut_obj().set_update_time(4);
+  hst->mut_obj().set_value("titi");
+  hst->mut_obj().set_default_value("tata");
+  hst->mut_obj().set_enabled(false);
+  hst->mut_obj().set_password(true);
+  hst->mut_obj().set_var_type(
+      com::centreon::broker::CustomVariable_VarType_SERVICE);
+  std::string filename("/tmp/cache_test.lua");
+  RemoveFile("/tmp/event_log");
+  CreateScript(filename,
+               "broker_api_version=1\n\n"
+               "function init(conf)\n"
+               "  broker_log:set_parameters(3, '/tmp/event_log')\n"
+               "end\n\n"
+               "function dump(o)\n"
+               "  if type(o) == 'table' then\n"
+               "    local s = '{ '\n"
+               "    for k,v in pairs(o) do\n"
+               "       if type(k) ~= 'number' then k = '\"'..k..'\"' end\n"
+               "       s = s .. '['..k..'] = ' .. dump(v) .. ','\n"
+               "    end\n"
+               "    return s .. '} '\n"
+               "  else\n"
+               "    return tostring(o)\n"
+               "  end\n"
+               "end\n"
+               "function write(d)\n"
+               "  broker_log:info(0, 'type of d = ' .. type(d))\n"
+               "  broker_log:info(0, 'd = ' .. dump(d))\n"
+               "  for key, value in pairs(d) do broker_log:info(0, key .. \" "
+               "= \" .. tostring(value)) end\n"
+               "  broker_log:info(0, 'conf_version = ' .. "
+               "d['header']['conf_version'])\n"
+               " return true\n"
+               "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  binding->write(hst);
+  std::string lst(ReadFile("/tmp/event_log"));
+  ASSERT_NE(lst.find("type of d = table"), std::string::npos);
+  ASSERT_NE(lst.find("host_id = 1"), std::string::npos);
+  ASSERT_NE(lst.find("service_id = 2"), std::string::npos);
+  ASSERT_NE(lst.find("modified = true"), std::string::npos);
+  ASSERT_NE(lst.find("name = toto"), std::string::npos);
+  ASSERT_NE(lst.find("update_time = 4"), std::string::npos);
+  ASSERT_NE(lst.find("value = titi"), std::string::npos);
+  ASSERT_NE(lst.find("default_value = tata"), std::string::npos);
+  ASSERT_NE(lst.find("enabled = false"), std::string::npos);
+  ASSERT_NE(lst.find("password = true"), std::string::npos);
+  ASSERT_NE(lst.find("var_type = 1"), std::string::npos);
+  RemoveFile(filename);
+  RemoveFile("/tmp/event_log");
+}
+
+TEST_F(LuaTest, PbTestCustomVariableApiV2) {
+  config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  auto hst{std::make_shared<neb::pb_custom_variable>()};
+  hst->mut_obj().mutable_header()->set_conf_version(5);
+  hst->mut_obj().set_host_id(1);
+  hst->mut_obj().set_service_id(2);
+  hst->mut_obj().set_modified(true);
+  hst->mut_obj().set_name("toto");
+  hst->mut_obj().set_update_time(4);
+  hst->mut_obj().set_value("5");
+  hst->mut_obj().set_default_value("tata");
+  hst->mut_obj().set_enabled(false);
+  hst->mut_obj().set_password(true);
+  hst->mut_obj().set_var_type(
+      com::centreon::broker::CustomVariable_VarType_SERVICE);
+  std::string filename("/tmp/cache_test.lua");
+  RemoveFile("/tmp/event_log");
+
+  CreateScript(filename,
+               "broker_api_version=2\n\n"
+               "function init(conf)\n"
+               "  broker_log:set_parameters(3, '/tmp/event_log')\n"
+               "end\n\n"
+               "function write(d)\n"
+               "  broker_log:info(0, 'type of d = ' .. type(d))\n"
+               "  broker_log:info(0, 'host_id = ' .. d.host_id)\n"
+               "  broker_log:info(0, 'service_id = ' .. d.service_id)\n"
+               "  broker_log:info(0, 'modified = ' .. tostring(d.modified))\n"
+               "  broker_log:info(0, 'name = ' .. d.name)\n"
+               "  broker_log:info(0, 'update_time = ' .. d.update_time)\n"
+               "  broker_log:info(0, 'value = ' .. d.value)\n"
+               "  broker_log:info(0, 'default_value = ' .. d.default_value)\n"
+               "  broker_log:info(0, 'enabled = ' .. tostring(d.enabled))\n"
+               "  broker_log:info(0, 'password = ' .. tostring(d.password))\n"
+               "  broker_log:info(0, 'var_type = ' .. d.var_type)\n"
+               "  return true\n"
+               "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  binding->write(hst);
+  std::string lst(ReadFile("/tmp/event_log"));
+  ASSERT_NE(lst.find("type of d = userdata"), std::string::npos);
+  ASSERT_NE(lst.find("host_id = 1"), std::string::npos);
+  ASSERT_NE(lst.find("service_id = 2"), std::string::npos);
+  ASSERT_NE(lst.find("modified = true"), std::string::npos);
+  ASSERT_NE(lst.find("name = toto"), std::string::npos);
+  ASSERT_NE(lst.find("update_time = 4"), std::string::npos);
+  ASSERT_NE(lst.find("value = 5"), std::string::npos);
+  ASSERT_NE(lst.find("default_value = tata"), std::string::npos);
+  ASSERT_NE(lst.find("enabled = false"), std::string::npos);
+  ASSERT_NE(lst.find("password = true"), std::string::npos);
+  ASSERT_NE(lst.find("var_type = 1"), std::string::npos);
+  RemoveFile(filename);
+  RemoveFile("/tmp/event_log");
+}
+
+TEST_F(LuaTest, PbTestCustomVariableNoIntValueNoRecordedInCache) {
+  config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  auto hst{std::make_shared<neb::pb_custom_variable>()};
+  hst->mut_obj().mutable_header()->set_conf_version(5);
+  hst->mut_obj().set_host_id(1);
+  hst->mut_obj().set_service_id(2);
+  hst->mut_obj().set_modified(true);
+  hst->mut_obj().set_name("CRITICALITY_LEVEL");
+  hst->mut_obj().set_update_time(4);
+  hst->mut_obj().set_value("titi");
+  hst->mut_obj().set_default_value("tata");
+  hst->mut_obj().set_enabled(false);
+  hst->mut_obj().set_password(true);
+  hst->mut_obj().set_var_type(
+      com::centreon::broker::CustomVariable_VarType_SERVICE);
+  std::string filename("/tmp/cache_test.lua");
+
+  CreateScript(filename,
+               "broker_api_version=2\n\n"
+               "function init(conf)\n"
+               "end\n\n"
+               "function write(d)\n"
+               "  return true\n"
+               "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  binding->write(hst);
+  ASSERT_THROW(_cache->get_severity(1, 2), msg_fmt);
+  RemoveFile(filename);
+}
+
+TEST_F(LuaTest, PbTestCustomVariableIntValueRecordedInCache) {
+  config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  auto hst{std::make_shared<neb::pb_custom_variable>()};
+  hst->mut_obj().mutable_header()->set_conf_version(5);
+  hst->mut_obj().set_host_id(1);
+  hst->mut_obj().set_service_id(2);
+  hst->mut_obj().set_modified(true);
+  hst->mut_obj().set_name("CRITICALITY_LEVEL");
+  hst->mut_obj().set_update_time(4);
+  hst->mut_obj().set_value("5");
+  hst->mut_obj().set_default_value("tata");
+  hst->mut_obj().set_enabled(false);
+  hst->mut_obj().set_password(true);
+  hst->mut_obj().set_var_type(
+      com::centreon::broker::CustomVariable_VarType_SERVICE);
+  std::string filename("/tmp/cache_test.lua");
+
+  CreateScript(filename,
+               "broker_api_version=2\n\n"
+               "function init(conf)\n"
+               "end\n\n"
+               "function write(d)\n"
+               "  return true\n"
+               "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  binding->write(hst);
+  ASSERT_EQ(_cache->get_severity(1, 2), 5);
+  RemoveFile(filename);
+}
+
 TEST_F(LuaTest, PbBrokerEventCache) {
   config::applier::modules modules;
   modules.load_file("./lib/10-neb.so");

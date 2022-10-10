@@ -50,8 +50,7 @@ class macro_cache {
   absl::btree_map<std::pair<uint64_t, uint64_t>,
                   std::shared_ptr<neb::host_group_member>>
       _host_group_members;
-  absl::flat_hash_map<std::pair<uint64_t, uint64_t>,
-                      std::shared_ptr<neb::custom_variable>>
+  absl::flat_hash_map<std::pair<uint64_t, uint64_t>, std::shared_ptr<io::data>>
       _custom_vars;
   absl::flat_hash_map<std::pair<uint64_t, uint64_t>, std::shared_ptr<io::data>>
       _services;
@@ -122,6 +121,7 @@ class macro_cache {
   void _process_host_group(std::shared_ptr<io::data> const& data);
   void _process_host_group_member(std::shared_ptr<io::data> const& data);
   void _process_custom_variable(std::shared_ptr<io::data> const& data);
+  void _process_pb_custom_variable(std::shared_ptr<io::data> const& data);
   void _process_service(std::shared_ptr<io::data> const& data);
   void _process_pb_service(std::shared_ptr<io::data> const& data);
   void _process_pb_adaptive_service(std::shared_ptr<io::data> const& data);

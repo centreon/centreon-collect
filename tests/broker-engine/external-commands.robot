@@ -2504,3 +2504,69 @@ BEATOI23
 	Should Be True	${result}	msg=command argument persistent_flag must be 0 or 1.
 	Stop Engine
 	Kindly Stop Broker
+
+BECUSTOMHOSTVAR
+	[Documentation]	external command CHANGE_CUSTOM_HOST_VAR on SNMPVERSION
+	[Tags]	Broker	Engine	host	extcmd	atoi
+	Config Engine	${1}	${50}	${20}
+	Config Broker	central
+	Config Broker	module	${1}
+	Broker Config Log	central	sql	trace
+	Broker Config Add Item	module0	bbdo_version	3.0.0
+	Broker Config Add Item	central	bbdo_version	3.0.0
+	Config Broker Sql Output	central	unified_sql
+	${start}=	Get Current Date
+	Start Broker
+	Start Engine
+	${content}=	Create List	check_for_external_commands
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+	Should Be True	${result}	msg=No check for external commands executed for 1mn.
+	${date}=	Get Current Date	result_format=epoch
+	CHANGE CUSTOM HOST VAR COMMAND  host_1  SNMPVERSION  789456
+
+	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+
+	FOR	${index}	IN RANGE	300
+		Log To Console	SELECT c.value FROM customvariables c LEFT JOIN hosts h ON c.host_id=h.host_id WHERE h.name='host_1' && c.name='SNMPVERSION'
+		${output}=	Query	SELECT c.value FROM customvariables c LEFT JOIN hosts h ON c.host_id=h.host_id WHERE h.name='host_1' && c.name='SNMPVERSION'
+		Log To Console	${output}
+		Sleep	1s
+		EXIT FOR LOOP IF	"${output}" == "(('789456',),)"
+	END
+	Should Be Equal As Strings	${output}	(('789456',),)
+
+	Stop Engine
+	Kindly Stop Broker
+
+BECUSTOMSVCVAR
+	[Documentation]	external command CHANGE_CUSTOM_SVC_VAR on CRITICAL
+	[Tags]	Broker	Engine	host	extcmd	atoi
+	Config Engine	${1}	${50}	${20}
+	Config Broker	central
+	Config Broker	module	${1}
+	Broker Config Log	central	sql	trace
+	Broker Config Add Item	module0	bbdo_version	3.0.0
+	Broker Config Add Item	central	bbdo_version	3.0.0
+	Config Broker Sql Output	central	unified_sql
+	${start}=	Get Current Date
+	Start Broker
+	Start Engine
+	${content}=	Create List	check_for_external_commands
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+	Should Be True	${result}	msg=No check for external commands executed for 1mn.
+	${date}=	Get Current Date	result_format=epoch
+	CHANGE CUSTOM SVC VAR COMMAND  host_1  service_1  CRITICAL  456123
+
+	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+
+	FOR	${index}	IN RANGE	300
+		Log To Console	SELECT c.value FROM customvariables c JOIN hosts h ON c.host_id=h.host_id JOIN services s ON c.service_id = s.service_id and h.host_id = s.service_id WHERE h.name='host_1' && s.description = 'service_1' && c.name='CRITICAL'
+		${output}=	Query	SELECT c.value FROM customvariables c JOIN hosts h ON c.host_id=h.host_id JOIN services s ON c.service_id = s.service_id and h.host_id = s.service_id WHERE h.name='host_1' && s.description = 'service_1' && c.name='CRITICAL'
+		Log To Console	${output}
+		Sleep	1s
+		EXIT FOR LOOP IF	"${output}" == "(('456123',),)"
+	END
+	Should Be Equal As Strings	${output}	(('456123',),)
+
+	Stop Engine
+	Kindly Stop Broker

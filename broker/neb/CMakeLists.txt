@@ -106,7 +106,7 @@ target_link_libraries(nebbase
   pb_host_lib
   pb_severity_lib
   pb_tag_lib
-  pb_comment_lib
+  pb_neb_proto_lib
   pb_header_lib)
 
 set(NEBBASE_CXXFLAGS "${NEBBASE_CXXFLAGS} -fPIC")

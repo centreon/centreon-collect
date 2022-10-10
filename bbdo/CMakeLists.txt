@@ -25,7 +25,7 @@ set(protobuf_files
   severity
   tag
   welcome
-  comment
+  neb_proto
 )
 
 foreach(name IN LISTS protobuf_files)
@@ -43,20 +43,20 @@ foreach(name IN LISTS protobuf_files)
 endforeach()
 
 add_library(
-  pb_comment_lib STATIC
-  comment.pb.cc
-  comment.pb.h
-)
-add_dependencies(pb_comment_lib target_comment)
-set_target_properties(pb_comment_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
-
-add_library(
   pb_header_lib STATIC
   proto_header.pb.cc
   proto_header.pb.h
 )
 add_dependencies(pb_header_lib target_proto_header)
 set_target_properties(pb_header_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+add_library(
+  pb_neb_proto_lib STATIC
+  neb_proto.pb.cc
+  neb_proto.pb.h
+)
+add_dependencies(pb_neb_proto_lib target_neb_proto target_proto_header)
+set_target_properties(pb_neb_proto_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 add_library(
   pb_welcome_lib STATIC

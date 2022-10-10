@@ -172,6 +172,15 @@ void broker_module_init(void const* arg) {
 
       e.register_event(make_type(io::neb, neb::de_pb_comment), "Comment",
                        &neb::pb_comment::operations, "comments");
+
+      e.register_event(make_type(io::neb, neb::de_pb_custom_variable),
+                       "CustomVariables", &neb::pb_custom_variable::operations,
+                       "customvariables");
+
+      e.register_event(make_type(io::neb, neb::de_pb_custom_variable_status),
+                       "CustomVariablesStatus",
+                       &neb::pb_custom_variable_status::operations,
+                       "customvariables");
     }
   }
 }

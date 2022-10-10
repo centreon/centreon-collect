@@ -53,7 +53,10 @@ nebmodule* neb_module_list;
 /**
  *  Send to the global publisher the list of custom variables.
  */
-static void send_custom_variables_list() {
+
+typedef int (*neb_sender)(int, void*);
+static void send_custom_variables_list(
+    neb_sender sender = neb::callback_custom_variable) {
   // Start log message.
   log_v2::neb()->info("init: beginning custom variables dump");
 
@@ -78,7 +81,7 @@ static void send_custom_variables_list() {
         nscvd.object_ptr = it->second.get();
 
         // Callback.
-        neb::callback_custom_variable(NEBCALLBACK_CUSTOM_VARIABLE_DATA, &nscvd);
+        sender(NEBCALLBACK_CUSTOM_VARIABLE_DATA, &nscvd);
       }
     }
   }
@@ -105,13 +108,17 @@ static void send_custom_variables_list() {
         nscvd.object_ptr = it->second.get();
 
         // Callback.
-        neb::callback_custom_variable(NEBCALLBACK_CUSTOM_VARIABLE_DATA, &nscvd);
+        sender(NEBCALLBACK_CUSTOM_VARIABLE_DATA, &nscvd);
       }
     }
   }
 
   // End log message.
   log_v2::neb()->info("init: end of custom variables dump");
+}
+
+static void send_pb_custom_variables_list() {
+  send_custom_variables_list(neb::callback_pb_custom_variable);
 }
 
 /**
@@ -269,7 +276,7 @@ static void send_tag_list() {
 /**
  *  Send to the global publisher the list of hosts within Nagios.
  */
-static void send_host_list() {
+static void send_host_list(neb_sender sender = neb::callback_host) {
   // Start log message.
   log_v2::neb()->info("init: beginning host dump");
 
@@ -285,7 +292,7 @@ static void send_host_list() {
     nsahd.object_ptr = it->second.get();
 
     // Callback.
-    neb::callback_host(NEBCALLBACK_ADAPTIVE_HOST_DATA, &nsahd);
+    sender(NEBCALLBACK_ADAPTIVE_HOST_DATA, &nsahd);
   }
 
   // End log message.
@@ -296,26 +303,7 @@ static void send_host_list() {
  *  Send to the global publisher the list of hosts within Nagios.
  */
 static void send_pb_host_list() {
-  // Start log message.
-  log_v2::neb()->info("init: beginning pb host dump");
-
-  // Loop through all hosts.
-  for (host_map::iterator it{com::centreon::engine::host::hosts.begin()},
-       end{com::centreon::engine::host::hosts.end()};
-       it != end; ++it) {
-    // Fill callback struct.
-    nebstruct_adaptive_host_data nsahd;
-    memset(&nsahd, 0, sizeof(nsahd));
-    nsahd.type = NEBTYPE_HOST_ADD;
-    nsahd.modified_attribute = MODATTR_ALL;
-    nsahd.object_ptr = it->second.get();
-
-    // Callback.
-    neb::callback_pb_host(NEBCALLBACK_ADAPTIVE_HOST_DATA, &nsahd);
-  }
-
-  // End log message.
-  log_v2::neb()->info("init: end of pb host dump");
+  send_host_list(neb::callback_pb_host);
 }
 
 /**
@@ -464,7 +452,7 @@ static void send_service_group_list() {
 /**
  *  Send to the global publisher the list of services within Nagios.
  */
-static void send_service_list() {
+static void send_service_list(neb_sender sender = neb::callback_service) {
   // Start log message.
   log_v2::neb()->info("init: beginning service dump");
 
@@ -481,7 +469,7 @@ static void send_service_list() {
     nsasd.object_ptr = it->second.get();
 
     // Callback.
-    neb::callback_service(NEBCALLBACK_ADAPTIVE_SERVICE_DATA, &nsasd);
+    sender(NEBCALLBACK_ADAPTIVE_SERVICE_DATA, &nsasd);
   }
 
   // End log message.
@@ -492,27 +480,7 @@ static void send_service_list() {
  *  Send to the global publisher the list of services within Nagios.
  */
 static void send_pb_service_list() {
-  // Start log message.
-  log_v2::neb()->info("init: beginning pb service dump");
-
-  // Loop through all services.
-  for (service_map::const_iterator
-           it{com::centreon::engine::service::services.begin()},
-       end{com::centreon::engine::service::services.end()};
-       it != end; ++it) {
-    // Fill callback struct.
-    nebstruct_adaptive_service_data nsasd;
-    memset(&nsasd, 0, sizeof(nsasd));
-    nsasd.type = NEBTYPE_SERVICE_ADD;
-    nsasd.modified_attribute = MODATTR_ALL;
-    nsasd.object_ptr = it->second.get();
-
-    // Callback.
-    neb::callback_pb_service(NEBCALLBACK_ADAPTIVE_SERVICE_DATA, &nsasd);
-  }
-
-  // End log message.
-  log_v2::neb()->info("init: end of pb services dump");
+  send_service_list(neb::callback_pb_service);
 }
 
 /**
@@ -567,7 +535,7 @@ void neb::send_initial_pb_configuration() {
   send_tag_list();
   send_pb_host_list();
   send_pb_service_list();
-  send_custom_variables_list();
+  send_pb_custom_variables_list();
   send_downtimes_list();
   send_host_parents_list();
   send_host_group_list();
