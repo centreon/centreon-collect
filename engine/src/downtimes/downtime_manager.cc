@@ -42,6 +42,7 @@ using namespace com::centreon::engine::logging;
  *
  */
 void downtime_manager::delete_downtime(uint64_t downtime_id) {
+  log_v2::functions()->trace("delete_downtime({})", downtime_id);
   /* find the downtime we should remove */
   for (auto it = _scheduled_downtimes.begin(), end = _scheduled_downtimes.end();
        it != end; ++it) {

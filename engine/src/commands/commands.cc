@@ -1147,57 +1147,75 @@ int cmd_delete_downtime(int cmd, char* args) {
  *  @param[in] args  Command arguments.
  */
 int cmd_delete_downtime_full(int cmd, char* args) {
-  char* temp_ptr(nullptr);
+  log_v2::functions()->trace("cmd_delete_downtime_full() args = {}", args);
   downtime_finder::criteria_set criterias;
 
+  std::vector<absl::string_view> a{absl::StrSplit(args, ';')};
+  auto it = a.begin();
+
   // Host name.
-  if (!(temp_ptr = my_strtok(args, ";")))
+  if (it == a.end())
     return ERROR;
-  if (*temp_ptr)
-    criterias.push_back(downtime_finder::criteria("host", temp_ptr));
+  if (!it->empty())
+    criterias.emplace_back("host", std::string(it->data(), it->size()));
+
+  ++it;
+
   // Service description and downtime type.
   if (cmd == CMD_DEL_SVC_DOWNTIME_FULL) {
-    if (!(temp_ptr = my_strtok(nullptr, ";")))
-      return ERROR;
-    if (*temp_ptr)
-      criterias.push_back(downtime_finder::criteria("service", temp_ptr));
+    if (!it->empty())
+      criterias.emplace_back("service", std::string(it->data(), it->size()));
+    ++it;
   }
 
   // Start time.
-  if (!(temp_ptr = my_strtok(nullptr, ";")))
+  if (it == a.end())
     return ERROR;
-  if (*temp_ptr)
-    criterias.push_back(downtime_finder::criteria("start", temp_ptr));
+  if (!it->empty())
+    criterias.emplace_back("start", std::string(it->data(), it->size()));
+  ++it;
+
   // End time.
-  if (!(temp_ptr = my_strtok(nullptr, ";")))
+  if (it == a.end())
     return ERROR;
-  if (*temp_ptr)
-    criterias.push_back(downtime_finder::criteria("end", temp_ptr));
+  if (!it->empty())
+    criterias.emplace_back("end", std::string(it->data(), it->size()));
+  ++it;
+
   // Fixed.
-  if (!(temp_ptr = my_strtok(nullptr, ";")))
+  if (it == a.end())
     return ERROR;
-  if (*temp_ptr)
-    criterias.push_back(downtime_finder::criteria("fixed", temp_ptr));
+  if (!it->empty())
+    criterias.emplace_back("fixed", std::string(it->data(), it->size()));
+  ++it;
+
   // Trigger ID.
-  if (!(temp_ptr = my_strtok(nullptr, ";")))
+  if (it == a.end())
     return ERROR;
-  if (*temp_ptr)
-    criterias.push_back(downtime_finder::criteria("triggered_by", temp_ptr));
+  if (!it->empty())
+    criterias.emplace_back("triggered_by", std::string(it->data(), it->size()));
+  ++it;
+
   // Duration.
-  if (!(temp_ptr = my_strtok(nullptr, ";")))
+  if (it == a.end())
     return ERROR;
-  if (*temp_ptr)
-    criterias.push_back(downtime_finder::criteria("duration", temp_ptr));
+  if (!it->empty())
+    criterias.emplace_back("duration", std::string(it->data(), it->size()));
+  ++it;
+
   // Author.
-  if (!(temp_ptr = my_strtok(nullptr, ";")))
+  if (it == a.end())
     return ERROR;
-  if (*temp_ptr)
-    criterias.push_back(downtime_finder::criteria("author", temp_ptr));
+  if (!it->empty())
+    criterias.emplace_back("author", std::string(it->data(), it->size()));
+  ++it;
+
   // Comment.
-  if (!(temp_ptr = my_strtok(nullptr, ";")))
+  if (it == a.end())
     return ERROR;
-  if (*temp_ptr)
-    criterias.push_back(downtime_finder::criteria("comment", temp_ptr));
+  if (!it->empty())
+    criterias.emplace_back("comment", std::string(it->data(), it->size()));
+  ++it;
 
   // Find downtimes.
   downtime_finder dtf(
