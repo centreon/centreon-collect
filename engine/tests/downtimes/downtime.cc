@@ -85,27 +85,26 @@ TEST_F(DowntimeExternalCommand, AddHostDowntime) {
                 .begin()
                 ->second->host_id(),
             1);
-  //   ASSERT_EQ(downtime_manager::instance()
-  //                 .get_scheduled_downtimes()
-  //                 .begin()
-  //                 ->second->get_duration(),
-  //             1);
-  //   ASSERT_EQ(downtime_manager::instance()
-  //                 .get_scheduled_downtimes()
-  //                 .begin()
-  //                 ->second->get_end_time(),
-  //             20001);
-  //   ASSERT_EQ(downtime_manager::instance()
-  //                 .get_scheduled_downtimes()
-  //                 .begin()
-  //                 ->second->handle(),
-  //             OK);
-  //   set_time(20001);
-  //   ASSERT_EQ(downtime_manager::instance()
-  //                 .get_scheduled_downtimes()
-  //                 .begin()
-  //                 ->second->handle(),
-  //             OK);
-  //   ASSERT_EQ(0u,
-  //   downtime_manager::instance().get_scheduled_downtimes().size());
+  ASSERT_EQ(downtime_manager::instance()
+                .get_scheduled_downtimes()
+                .begin()
+                ->second->get_duration(),
+            1);
+  ASSERT_EQ(downtime_manager::instance()
+                .get_scheduled_downtimes()
+                .begin()
+                ->second->get_end_time(),
+            20001);
+  ASSERT_EQ(downtime_manager::instance()
+                .get_scheduled_downtimes()
+                .begin()
+                ->second->handle(),
+            OK);
+  set_time(20001);
+  ASSERT_EQ(downtime_manager::instance()
+                .get_scheduled_downtimes()
+                .begin()
+                ->second->handle(),
+            OK);
+  ASSERT_EQ(0u, downtime_manager::instance().get_scheduled_downtimes().size());
 }
