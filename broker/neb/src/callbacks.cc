@@ -104,7 +104,7 @@ static struct {
     {NEBCALLBACK_HOST_CHECK_DATA, &neb::callback_host_check},
     {NEBCALLBACK_HOST_CHECK_DATA, &neb::callback_pb_host_check},
     {NEBCALLBACK_HOST_STATUS_DATA, &neb::callback_pb_host_status},
-    {NEBCALLBACK_PROGRAM_STATUS_DATA, &neb::callback_program_status},
+    {NEBCALLBACK_PROGRAM_STATUS_DATA, &neb::callback_pb_program_status},
     {NEBCALLBACK_SERVICE_CHECK_DATA, &neb::callback_pb_service_check},
     {NEBCALLBACK_SERVICE_STATUS_DATA, &neb::callback_pb_service_status},
     {NEBCALLBACK_ADAPTIVE_SEVERITY_DATA, &neb::callback_severity},
@@ -2379,6 +2379,62 @@ int neb::callback_program_status(int callback_type, void* data) {
   // Avoid exception propagation in C code.
   catch (...) {
   }
+  return 0;
+}
+
+/**
+ *  @brief Function that process instance status data.
+ *
+ *  This function is called by Nagios when some instance status data are
+ *  available.
+ *
+ *  @param[in] callback_type Type of the callback
+ *                           (NEBCALLBACK_PROGRAM_STATUS_DATA).
+ *  @param[in] data          A pointer to a nebstruct_program_status_data
+ *                           containing the program status data.
+ *
+ *  @return 0 on success.
+ */
+int neb::callback_pb_program_status(int, void* data) {
+  // Log message.
+  SPDLOG_LOGGER_INFO(log_v2::neb(),
+                     "callbacks: generating pb instance status event");
+
+  // In/Out variables.
+  std::shared_ptr<neb::pb_instance_status> is_obj{
+      std::make_shared<neb::pb_instance_status>()};
+  InstanceStatus& is(is_obj->mut_obj());
+
+  // Fill output var.
+  const nebstruct_program_status_data& program_status_data =
+      *static_cast<nebstruct_program_status_data*>(data);
+  is.set_poller_id(config::applier::state::instance().poller_id());
+  is.set_active_host_checks_enabled(
+      program_status_data.active_host_checks_enabled);
+  is.set_active_service_checks_enabled(
+      program_status_data.active_service_checks_enabled);
+  is.set_check_hosts_freshness(check_host_freshness);
+  is.set_check_services_freshness(check_service_freshness);
+  is.set_event_handler_enabled(program_status_data.event_handlers_enabled);
+  is.set_flap_detection_enabled(program_status_data.flap_detection_enabled);
+  if (!program_status_data.global_host_event_handler.empty())
+    is.set_global_host_event_handler(misc::string::check_string_utf8(
+        program_status_data.global_host_event_handler));
+  if (!program_status_data.global_service_event_handler.empty())
+    is.set_global_service_event_handler(misc::string::check_string_utf8(
+        program_status_data.global_service_event_handler));
+  is.set_last_alive(time(nullptr));
+  is.set_last_command_check(program_status_data.last_command_check);
+  is.set_notifications_enabled(program_status_data.notifications_enabled);
+  is.set_obsess_over_hosts(program_status_data.obsess_over_hosts);
+  is.set_obsess_over_services(program_status_data.obsess_over_services);
+  is.set_passive_host_checks_enabled(
+      program_status_data.passive_host_checks_enabled);
+  is.set_passive_service_checks_enabled(
+      program_status_data.passive_service_checks_enabled);
+
+  // Send event.
+  gl_publisher.write(is_obj);
   return 0;
 }
 

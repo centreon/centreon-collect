@@ -339,6 +339,7 @@ class stream : public io::stream {
   void _process_host_status(const std::shared_ptr<io::data>& d);
   void _process_instance(const std::shared_ptr<io::data>& d);
   void _process_instance_status(const std::shared_ptr<io::data>& d);
+  void _process_pb_instance_status(const std::shared_ptr<io::data>& d);
   void _process_log(const std::shared_ptr<io::data>& d);
   void _process_module(const std::shared_ptr<io::data>& d);
   void _process_service_check(const std::shared_ptr<io::data>& d);

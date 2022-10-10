@@ -188,6 +188,9 @@ void broker_module_init(void const* arg) {
       e.register_event(make_type(io::neb, neb::de_pb_log_entry), "LogEntry",
                        &neb::pb_log_entry::operations, "logs");
 
+      e.register_event(make_type(io::neb, neb::de_pb_instance_status),
+                       "instance_status", &neb::pb_instance_status::operations,
+                       "instances");
     }
   }
 }

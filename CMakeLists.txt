@@ -22,6 +22,7 @@
 
 # Set necessary settings.
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_COLOR_DIAGNOSTICS ON)
 cmake_minimum_required(VERSION 3.16)
 project("Centreon Collect" C CXX)
 
@@ -35,11 +36,12 @@ endif()
 # set(CMAKE_CXX_COMPILER "clang++")
 add_definitions("-D_GLIBCXX_USE_CXX11_ABI=1")
 option(NG "C++17 build." OFF)
-if (NG)
+
+if(NG)
   set(CMAKE_CXX_STANDARD 17)
-else ()
+else()
   set(CMAKE_CXX_STANDARD 14)
-endif ()
+endif()
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)

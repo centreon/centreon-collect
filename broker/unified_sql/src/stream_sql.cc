@@ -2145,6 +2145,47 @@ void stream::_process_instance_status(const std::shared_ptr<io::data>& d) {
 }
 
 /**
+ *  Process an instance status event. To work on an instance status, we must
+ *  be sure the instance already exists in the database. So this query must
+ *  be done by the same thread as the one that created the instance.
+ *
+ *  @param[in] e Uncasted instance status.
+ *
+ * @return The number of events that can be acknowledged.
+ */
+void stream::_process_pb_instance_status(const std::shared_ptr<io::data>& d) {
+  neb::instance_status& is = *static_cast<neb::instance_status*>(d.get());
+  int32_t conn = _mysql.choose_connection_by_instance(is.poller_id);
+
+  _finish_action(-1, actions::hosts | actions::acknowledgements |
+                         actions::modules | actions::downtimes |
+                         actions::comments);
+
+  // Log message.
+  SPDLOG_LOGGER_INFO(
+      log_v2::sql(),
+      "SQL: processing poller status event (id: {}, last alive: {})",
+      is.poller_id, is.last_alive);
+
+  // Processing.
+  if (_is_valid_poller(is.poller_id)) {
+    // Prepare queries.
+    if (!_instance_status_insupdate.prepared()) {
+      query_preparator::event_unique unique;
+      unique.insert("instance_id");
+      query_preparator qp(neb::instance_status::static_type(), unique);
+      _instance_status_insupdate = qp.prepare_insert_or_update(_mysql);
+    }
+
+    // Process object.
+    _instance_status_insupdate << is;
+    _mysql.run_statement(_instance_status_insupdate,
+                         database::mysql_error::update_poller, false, conn);
+    _add_action(conn, actions::instances);
+  }
+}
+
+/**
  *  Process a log event.
  *
  *  @param[in] e Uncasted log.
