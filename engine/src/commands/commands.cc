@@ -866,7 +866,7 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
   uint64_t downtime_id{0};
   servicegroup_map::const_iterator sg_it;
 
-  std::vector<absl::string_view> a{absl::StrSplit(args, ';')};
+  auto a{absl::StrSplit(args, ';')};
   auto ait = a.begin();
 
   if (ait == a.end())
@@ -1149,7 +1149,7 @@ int cmd_delete_downtime_full(int cmd, char* args) {
   log_v2::functions()->trace("cmd_delete_downtime_full() args = {}", args);
   downtime_finder::criteria_set criterias;
 
-  std::vector<absl::string_view> a{absl::StrSplit(args, ';')};
+  auto a{absl::StrSplit(args, ';')};
   auto it = a.begin();
 
   // Host name.
