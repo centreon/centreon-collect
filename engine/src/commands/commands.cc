@@ -858,130 +858,126 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
   service* temp_service{nullptr};
   host* last_host{nullptr};
   hostgroup* hg{nullptr};
-  char* host_name{nullptr};
-  char* hostgroup_name{nullptr};
-  char* servicegroup_name{nullptr};
-  char* svc_description{nullptr};
-  char* temp_ptr{nullptr};
   time_t start_time{0};
   time_t end_time{0};
   bool fixed{false};
   uint64_t triggered_by{0};
   unsigned long duration{0};
-  char* author{nullptr};
-  char* comment_data{nullptr};
   uint64_t downtime_id{0};
   servicegroup_map::const_iterator sg_it;
+
+  std::vector<absl::string_view> a{absl::StrSplit(args, ';')};
+  auto ait = a.begin();
+
+  if (ait == a.end())
+    return ERROR;
 
   if (cmd == CMD_SCHEDULE_HOSTGROUP_HOST_DOWNTIME ||
       cmd == CMD_SCHEDULE_HOSTGROUP_SVC_DOWNTIME) {
     /* get the hostgroup name */
-    if ((hostgroup_name = my_strtok(args, ";")) == nullptr)
-      return ERROR;
-
-    hostgroup_map::const_iterator it(
-        hostgroup::hostgroups.find(hostgroup_name));
+    hostgroup_map::const_iterator it = hostgroup::hostgroups.find(*ait);
     if (it == hostgroup::hostgroups.end() || !it->second)
       return ERROR;
     hg = it->second.get();
+    ++ait;
   } else if (cmd == CMD_SCHEDULE_SERVICEGROUP_HOST_DOWNTIME ||
              cmd == CMD_SCHEDULE_SERVICEGROUP_SVC_DOWNTIME) {
     /* get the servicegroup name */
-    if ((servicegroup_name = my_strtok(args, ";")) == nullptr)
-      return ERROR;
-
-    /* verify that the servicegroup is valid */
-    sg_it = servicegroup::servicegroups.find(servicegroup_name);
+    sg_it = servicegroup::servicegroups.find(*ait);
     if (sg_it == servicegroup::servicegroups.end() || !sg_it->second)
       return ERROR;
+    ++ait;
   } else {
     /* get the host name */
-    if ((host_name = my_strtok(args, ";")) == nullptr)
-      return ERROR;
-
-    /* verify that the host is valid */
-    host_map::const_iterator it{host::hosts.find(host_name)};
+    host_map::const_iterator it{host::hosts.find(*ait)};
     if (it == host::hosts.end() || !it->second)
       return ERROR;
+    ++ait;
     temp_host = it->second.get();
 
     /* this is a service downtime */
     if (cmd == CMD_SCHEDULE_SVC_DOWNTIME) {
       /* get the service name */
-      if ((svc_description = my_strtok(nullptr, ";")) == nullptr)
+      if (ait == a.end())
         return ERROR;
-
-      /* verify that the service is valid */
-      service_map::const_iterator found(
-          service::services.find({temp_host->name(), svc_description}));
+      service_map::const_iterator found = service::services.find(
+          {temp_host->name(), std::string(ait->data(), ait->size())});
 
       if (found == service::services.end() || !found->second)
         return ERROR;
+      ++ait;
       temp_service = found->second.get();
     }
   }
 
   /* get the start time */
-  if ((temp_ptr = my_strtok(nullptr, ";")) == nullptr)
+  if (ait == a.end())
     return ERROR;
-  if (!absl::SimpleAtoi(temp_ptr, &start_time)) {
+  if (!absl::SimpleAtoi(*ait, &start_time)) {
     log_v2::external_command()->error(
         "Error: could not schedule downtime : start_time '{}' must be "
         "an integer",
-        temp_ptr);
+        *ait);
     return ERROR;
   }
+  ++ait;
 
   /* get the end time */
-  if ((temp_ptr = my_strtok(nullptr, ";")) == nullptr)
+  if (ait == a.end())
     return ERROR;
-  if (!absl::SimpleAtoi(temp_ptr, &end_time)) {
+  if (!absl::SimpleAtoi(*ait, &end_time)) {
     log_v2::external_command()->error(
         "Error: could not schedule downtime : end_time '{}' must be "
         "an integer",
-        temp_ptr);
+        *ait);
     return ERROR;
   }
+  ++ait;
 
   /* get the fixed flag */
-  if ((temp_ptr = my_strtok(nullptr, ";")) == nullptr)
+  if (ait == a.end())
     return ERROR;
-  if (!absl::SimpleAtob(temp_ptr, &fixed)) {
+  if (!absl::SimpleAtob(*ait, &fixed)) {
     log_v2::external_command()->error(
-        "Error: could not schedule downtime : fixed '{}' must be 1 or 0",
-        temp_ptr);
+        "Error: could not schedule downtime : fixed '{}' must be 1 or 0", *ait);
     return ERROR;
   }
+  ++ait;
 
   /* get the trigger id */
-  if ((temp_ptr = my_strtok(nullptr, ";")) == nullptr)
+  if (ait == a.end())
     return ERROR;
-  if (!absl::SimpleAtoi(temp_ptr, &triggered_by)) {
+  if (!absl::SimpleAtoi(*ait, &triggered_by)) {
     log_v2::external_command()->error(
         "Error: could not schedule downtime : triggered_by '{}' must be an "
         "integer >= 0",
-        temp_ptr);
+        *ait);
     return ERROR;
   }
+  ++ait;
 
   /* get the duration */
-  if ((temp_ptr = my_strtok(nullptr, ";")) == nullptr)
+  if (ait == a.end())
     return ERROR;
-  if (!absl::SimpleAtoi(temp_ptr, &duration)) {
+  if (!absl::SimpleAtoi(*ait, &duration)) {
     log_v2::external_command()->error(
         "Error: could not schedule downtime : duration '{}' must be an integer "
         ">= 0",
-        temp_ptr);
+        *ait);
     return ERROR;
   }
+  ++ait;
 
   /* get the author */
-  if ((author = my_strtok(nullptr, ";")) == nullptr)
+  if (ait == a.end())
     return ERROR;
+  std::string author(ait->data(), ait->size());
+  ++ait;
 
   /* get the comment */
-  if ((comment_data = my_strtok(nullptr, ";")) == nullptr)
+  if (ait == a.end())
     return ERROR;
+  std::string comment_data(ait->data(), ait->size());
 
   /* check if flexible downtime demanded and duration set to non-zero.
   ** according to the documentation, a flexible downtime is started
@@ -1000,16 +996,17 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
   switch (cmd) {
     case CMD_SCHEDULE_HOST_DOWNTIME:
       downtime_manager::instance().schedule_downtime(
-          downtime::host_downtime, temp_host->host_id(), 0, entry_time, author,
-          comment_data, start_time, end_time, fixed, triggered_by, duration,
-          &downtime_id);
+          downtime::host_downtime, temp_host->host_id(), 0, entry_time,
+          author.c_str(), comment_data.c_str(), start_time, end_time, fixed,
+          triggered_by, duration, &downtime_id);
       break;
 
     case CMD_SCHEDULE_SVC_DOWNTIME:
       downtime_manager::instance().schedule_downtime(
           downtime::service_downtime, temp_service->host_id(),
-          temp_service->service_id(), entry_time, author, comment_data,
-          start_time, end_time, fixed, triggered_by, duration, &downtime_id);
+          temp_service->service_id(), entry_time, author.c_str(),
+          comment_data.c_str(), start_time, end_time, fixed, triggered_by,
+          duration, &downtime_id);
       break;
 
     case CMD_SCHEDULE_HOST_SVC_DOWNTIME:
@@ -1020,8 +1017,9 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
           continue;
         downtime_manager::instance().schedule_downtime(
             downtime::service_downtime, temp_host->host_id(),
-            it->second->service_id(), entry_time, author, comment_data,
-            start_time, end_time, fixed, triggered_by, duration, &downtime_id);
+            it->second->service_id(), entry_time, author.c_str(),
+            comment_data.c_str(), start_time, end_time, fixed, triggered_by,
+            duration, &downtime_id);
       }
       break;
 
@@ -1031,8 +1029,8 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
            it != end; ++it)
         downtime_manager::instance().schedule_downtime(
             downtime::host_downtime, it->second->host_id(), 0, entry_time,
-            author, comment_data, start_time, end_time, fixed, triggered_by,
-            duration, &downtime_id);
+            author.c_str(), comment_data.c_str(), start_time, end_time, fixed,
+            triggered_by, duration, &downtime_id);
       break;
 
     case CMD_SCHEDULE_HOSTGROUP_SVC_DOWNTIME:
@@ -1048,9 +1046,9 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
             continue;
           downtime_manager::instance().schedule_downtime(
               downtime::service_downtime, it2->second->host_id(),
-              it2->second->service_id(), entry_time, author, comment_data,
-              start_time, end_time, fixed, triggered_by, duration,
-              &downtime_id);
+              it2->second->service_id(), entry_time, author.c_str(),
+              comment_data.c_str(), start_time, end_time, fixed, triggered_by,
+              duration, &downtime_id);
         }
       }
       break;
@@ -1069,8 +1067,8 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
           continue;
         downtime_manager::instance().schedule_downtime(
             downtime::host_downtime, it->second->host_id(), 0, entry_time,
-            author, comment_data, start_time, end_time, fixed, triggered_by,
-            duration, &downtime_id);
+            author.c_str(), comment_data.c_str(), start_time, end_time, fixed,
+            triggered_by, duration, &downtime_id);
         last_host = temp_host;
       }
       break;
@@ -1081,34 +1079,35 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
            it != end; ++it)
         downtime_manager::instance().schedule_downtime(
             downtime::service_downtime, it->second->host_id(),
-            it->second->service_id(), entry_time, author, comment_data,
-            start_time, end_time, fixed, triggered_by, duration, &downtime_id);
+            it->second->service_id(), entry_time, author.c_str(),
+            comment_data.c_str(), start_time, end_time, fixed, triggered_by,
+            duration, &downtime_id);
       break;
 
     case CMD_SCHEDULE_AND_PROPAGATE_HOST_DOWNTIME:
       /* schedule downtime for "parent" host */
       downtime_manager::instance().schedule_downtime(
-          downtime::host_downtime, temp_host->host_id(), 0, entry_time, author,
-          comment_data, start_time, end_time, fixed, triggered_by, duration,
-          &downtime_id);
+          downtime::host_downtime, temp_host->host_id(), 0, entry_time,
+          author.c_str(), comment_data.c_str(), start_time, end_time, fixed,
+          triggered_by, duration, &downtime_id);
 
       /* schedule (non-triggered) downtime for all child hosts */
-      schedule_and_propagate_downtime(temp_host, entry_time, author,
-                                      comment_data, start_time, end_time, fixed,
-                                      0, duration);
+      schedule_and_propagate_downtime(temp_host, entry_time, author.c_str(),
+                                      comment_data.c_str(), start_time,
+                                      end_time, fixed, 0, duration);
       break;
 
     case CMD_SCHEDULE_AND_PROPAGATE_TRIGGERED_HOST_DOWNTIME:
       /* schedule downtime for "parent" host */
       downtime_manager::instance().schedule_downtime(
-          downtime::host_downtime, temp_host->host_id(), 0, entry_time, author,
-          comment_data, start_time, end_time, fixed, triggered_by, duration,
-          &downtime_id);
+          downtime::host_downtime, temp_host->host_id(), 0, entry_time,
+          author.c_str(), comment_data.c_str(), start_time, end_time, fixed,
+          triggered_by, duration, &downtime_id);
 
       /* schedule triggered downtime for all child hosts */
-      schedule_and_propagate_downtime(temp_host, entry_time, author,
-                                      comment_data, start_time, end_time, fixed,
-                                      downtime_id, duration);
+      schedule_and_propagate_downtime(temp_host, entry_time, author.c_str(),
+                                      comment_data.c_str(), start_time,
+                                      end_time, fixed, downtime_id, duration);
       break;
 
     default:

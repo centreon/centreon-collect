@@ -80,10 +80,7 @@ TEST_F(ApplierServicegroup, ModifyServicegroupFromConfig) {
   configuration::servicegroup sg("test");
   ASSERT_TRUE(sg.parse("members", "host1,service1"));
   aply.add_object(sg);
-  std::unordered_map<
-      std::string,
-      std::shared_ptr<com::centreon::engine::servicegroup> >::const_iterator it{
-      engine::servicegroup::servicegroups.find("test")};
+  auto it = engine::servicegroup::servicegroups.find("test");
   ASSERT_TRUE(it->second->get_alias() == "test");
 
   ASSERT_TRUE(sg.parse("alias", "test_renamed"));

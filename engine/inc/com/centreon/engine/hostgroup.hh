@@ -27,9 +27,9 @@ CCE_BEGIN()
 class hostgroup;
 CCE_END()
 
-typedef std::unordered_map<std::string,
-                           std::shared_ptr<com::centreon::engine::hostgroup>>
-    hostgroup_map;
+using hostgroup_map =
+    absl::flat_hash_map<std::string,
+                        std::shared_ptr<com::centreon::engine::hostgroup>>;
 
 CCE_BEGIN()
 class hostgroup {
