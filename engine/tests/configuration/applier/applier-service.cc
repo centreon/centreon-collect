@@ -104,7 +104,7 @@ TEST_F(ApplierService, NewServiceFromConfig) {
 
   // Service is not resolved, host is null now.
   ASSERT_TRUE(!sm.begin()->second->get_host_ptr());
-  ASSERT_TRUE(sm.begin()->second->get_description() == "test description");
+  ASSERT_TRUE(sm.begin()->second->description() == "test description");
 }
 
 // Given service configuration with a host defined
@@ -146,10 +146,10 @@ TEST_F(ApplierService, RenameServiceFromConfig) {
 
   // Service is not resolved, host is null now.
   ASSERT_TRUE(!sm.begin()->second->get_host_ptr());
-  ASSERT_TRUE(sm.begin()->second->get_description() == "test description2");
+  ASSERT_TRUE(sm.begin()->second->description() == "test description2");
 
   std::string s{engine::service::services[{"test_host", "test description2"}]
-                    ->get_description()};
+                    ->description()};
   ASSERT_TRUE(s == "test description2");
 }
 
@@ -199,10 +199,10 @@ TEST_F(ApplierService, RemoveServiceFromConfig) {
 
   // Service is not resolved, host is null now.
   ASSERT_TRUE(!sm.begin()->second->get_host_ptr());
-  ASSERT_TRUE(sm.begin()->second->get_description() == "test description2");
+  ASSERT_TRUE(sm.begin()->second->description() == "test description2");
 
   std::string s{engine::service::services[{"test_host", "test description2"}]
-                    ->get_description()};
+                    ->description()};
   ASSERT_TRUE(s == "test description2");
 }
 
@@ -475,10 +475,10 @@ TEST_F(ApplierService, StalkingOptionsWhenServiceIsModified) {
   serv = sm.begin()->second;
 
   ASSERT_TRUE(!serv->get_host_ptr());
-  ASSERT_TRUE(serv->get_description() == "test description2");
+  ASSERT_TRUE(serv->description() == "test description2");
 
   std::string s{engine::service::services[{"test_host", "test description2"}]
-                    ->get_description()};
+                    ->description()};
   ASSERT_TRUE(s == "test description2");
 
   ASSERT_FALSE(serv->get_stalk_on(engine::service::ok));
@@ -546,7 +546,7 @@ TEST_F(ApplierService, NewServiceFromConfigTags) {
 
   // Service is not resolved, host is null now.
   ASSERT_TRUE(!sm.begin()->second->get_host_ptr());
-  ASSERT_TRUE(sm.begin()->second->get_description() == "test description");
+  ASSERT_TRUE(sm.begin()->second->description() == "test description");
 }
 
 // Given service configuration with a host defined
@@ -606,10 +606,10 @@ TEST_F(ApplierService, RenameServiceFromConfigTags) {
 
   // Service is not resolved, host is null now.
   ASSERT_TRUE(!sm.begin()->second->get_host_ptr());
-  ASSERT_TRUE(sm.begin()->second->get_description() == "test description2");
+  ASSERT_TRUE(sm.begin()->second->description() == "test description2");
 
   std::string s{engine::service::services[{"test_host", "test description2"}]
-                    ->get_description()};
+                    ->description()};
   ASSERT_TRUE(s == "test description2");
 }
 
@@ -677,10 +677,10 @@ TEST_F(ApplierService, RemoveServiceFromConfigTags) {
 
   // Service is not resolved, host is null now.
   ASSERT_TRUE(!sm.begin()->second->get_host_ptr());
-  ASSERT_TRUE(sm.begin()->second->get_description() == "test description2");
+  ASSERT_TRUE(sm.begin()->second->description() == "test description2");
 
   std::string s{engine::service::services[{"test_host", "test description2"}]
-                    ->get_description()};
+                    ->description()};
   ASSERT_TRUE(s == "test description2");
 }
 

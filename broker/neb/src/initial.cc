@@ -141,14 +141,14 @@ static void send_downtimes_list() {
     nsdd.type = NEBTYPE_DOWNTIME_ADD;
     nsdd.timestamp.tv_sec = time(nullptr);
     nsdd.downtime_type = p.second->get_type();
-    nsdd.host_name = p.second->get_hostname().c_str();
-    nsdd.service_description =
+    nsdd.host_id = p.second->host_id();
+    nsdd.service_id =
         p.second->get_type() ==
                 com::centreon::engine::downtimes::downtime::service_downtime
             ? std::static_pointer_cast<
                   com::centreon::engine::downtimes::service_downtime>(p.second)
-                  ->service_description()
-            : nullptr;
+                  ->service_id()
+            : 0;
     nsdd.entry_time = p.second->get_entry_time();
     nsdd.author_name = p.second->get_author().c_str();
     nsdd.comment_data = p.second->get_comment().c_str();

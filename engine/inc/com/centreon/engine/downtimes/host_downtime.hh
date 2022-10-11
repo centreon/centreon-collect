@@ -27,7 +27,7 @@ CCE_BEGIN()
 namespace downtimes {
 class host_downtime : public downtime {
  public:
-  host_downtime(std::string const& host_name,
+  host_downtime(const uint64_t host_id,
                 time_t entry_time,
                 std::string const& author,
                 std::string const& comment,

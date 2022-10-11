@@ -107,8 +107,8 @@ typedef struct nebstruct_downtime_struct {
   int attr;
   struct timeval timestamp;
   int downtime_type;
-  char const* host_name;
-  char const* service_description;
+  uint64_t host_id;
+  uint64_t service_id;
   time_t entry_time;
   char const* author_name;
   char const* comment_data;

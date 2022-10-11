@@ -74,9 +74,9 @@ void log_service_state(unsigned int type, com::centreon::engine::service* svc) {
   std::string const& output{svc->get_plugin_output()};
   engine_logger(log_info_message, basic)
       << type_str << " SERVICE STATE: " << svc->get_hostname() << ";"
-      << svc->get_description() << ";" << state << ";" << state_type << ";"
+      << svc->description() << ";" << state << ";" << state_type << ";"
       << svc->get_current_attempt() << ";" << output;
   log_v2::events()->info("{} SERVICE STATE: {};{};{};{};{};{}", type_str,
-                         svc->get_hostname(), svc->get_description(), state,
+                         svc->get_hostname(), svc->description(), state,
                          state_type, svc->get_current_attempt(), output);
 }

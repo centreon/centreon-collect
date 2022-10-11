@@ -125,7 +125,7 @@ TEST_F(ApplierAnomalydetection, NewADFromConfig) {
                 my_ad->second)
                 ->get_internal_id(),
             112u);
-  ASSERT_TRUE(my_ad->second->get_description() == "test description");
+  ASSERT_TRUE(my_ad->second->description() == "test description");
 }
 
 // Given service configuration without service_id

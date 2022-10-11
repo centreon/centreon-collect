@@ -640,6 +640,46 @@ def rename_host_group(index: int, id_host_group: int, name: str, members: list):
     f.close()
 
 
+def rename_service(index: int, hst: str, svc: str, new_svc: str):
+    f = open(f"{ETC_ROOT}/centreon-engine/config{index}/services.cfg", "r")
+    ll = f.readlines()
+    f.close()
+    rs_start = re.compile(r"^\s*define service {")
+    rs_end = re.compile(r"^\s*}")
+    rs_hst = re.compile(r"^\s*host_name\s+([a-z_0-9]+)")
+    rs_svc = re.compile(r"^\s*service_description\s+([a-z_0-9]+)")
+    inside = False
+    my_hst = None
+    my_svc = None
+    l_svc = None
+
+    for i in range(len(ll)):
+        l = ll[i]
+        if inside:
+            if rs_end.match(l):
+                inside = False
+                if svc == my_svc and hst == my_hst:
+                    ll[l_svc] = f"    service_description\t{new_svc}\n"
+                svc, hst, l_svc = None, None, None
+                continue
+            m = rs_hst.search(l)
+            if m:
+                my_hst = m.group(1)
+            else:
+                m = rs_svc.search(l)
+                if m:
+                    my_svc = m.group(1)
+                    l_svc = i
+
+        else:
+            if rs_start.match(l):
+                inside = True
+
+    f = open(f"{ETC_ROOT}/centreon-engine/config{index}/services.cfg", "w")
+    f.writelines(ll)
+    f.close()
+
+
 def add_service_group(index: int, id_service_group: int, members: list):
     f = open(
         ETC_ROOT + "/centreon-engine/config{}/servicegroups.cfg".format(index), "a+")
@@ -1165,7 +1205,15 @@ def delete_host_downtimes(poller: int, hst: str):
     now = int(time.time())
     cmd = "[{}] DEL_HOST_DOWNTIME_FULL;{};;;;;;;;\n".format(now, hst)
     f = open(
-        VAR_ROOT + "/lib/centreon-engine/config{}/rw/centengine.cmd".format(poller), "w")
+        f"{VAR_ROOT}/lib/centreon-engine/config{poller}/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
+
+
+def delete_service_downtime_full(poller: int, hst: str, svc: str):
+    now = int(time.time())
+    cmd = f"[{now}] DEL_SVC_DOWNTIME_FULL;{hst};{svc};;;;;;;\n"
+    f = open(f"{VAR_ROOT}/lib/centreon-engine/config{poller}/rw/centengine.cmd", "w")
     f.write(cmd)
     f.close()
 

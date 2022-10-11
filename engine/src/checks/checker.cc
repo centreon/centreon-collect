@@ -138,20 +138,19 @@ void checker::reap() {
         try {
           // Check if the service exists.
           engine_logger(dbg_checks, more)
-              << "Handling check result for service " << svc->get_host_id()
-              << "/" << svc->get_service_id() << "...";
+              << "Handling check result for service " << svc->host_id() << "/"
+              << svc->service_id() << "...";
           SPDLOG_LOGGER_DEBUG(log_v2::checks(),
                               "Handling check result for service {}/{}...",
-                              svc->get_host_id(), svc->get_service_id());
+                              svc->host_id(), svc->service_id());
           svc->handle_async_check_result(*result);
         } catch (std::exception const& e) {
           engine_logger(log_runtime_warning, basic)
-              << "Check result queue errors for service " << svc->get_host_id()
-              << "/" << svc->get_service_id() << " : " << e.what();
+              << "Check result queue errors for service " << svc->host_id()
+              << "/" << svc->service_id() << " : " << e.what();
           SPDLOG_LOGGER_WARN(log_v2::runtime(),
                              "Check result queue errors for service {}/{} : {}",
-                             svc->get_host_id(), svc->get_service_id(),
-                             e.what());
+                             svc->host_id(), svc->service_id(), e.what());
         }
       }
       // Host check result->
@@ -159,18 +158,18 @@ void checker::reap() {
         host* hst = static_cast<host*>(result->get_notifier());
         try {
           // Process the check result->
-          engine_logger(dbg_checks, more) << "Handling check result for host "
-                                          << hst->get_host_id() << "...";
+          engine_logger(dbg_checks, more)
+              << "Handling check result for host " << hst->host_id() << "...";
           SPDLOG_LOGGER_DEBUG(log_v2::checks(),
                               "Handling check result for host {}...",
-                              hst->get_host_id());
+                              hst->host_id());
           hst->handle_async_check_result_3x(*result);
         } catch (std::exception const& e) {
           engine_logger(log_runtime_error, basic)
               << "Check result queue errors for "
-              << "host " << hst->get_host_id() << " : " << e.what();
+              << "host " << hst->host_id() << " : " << e.what();
           log_v2::runtime()->error("Check result queue errors for host {} : {}",
-                                   hst->get_host_id(), e.what());
+                                   hst->host_id(), e.what());
         }
       }
 

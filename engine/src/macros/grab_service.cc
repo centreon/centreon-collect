@@ -137,8 +137,8 @@ static std::string get_service_state(com::centreon::engine::service& svc,
 static std::string get_service_id(com::centreon::engine::service& svc,
                                   nagios_macros* mac) {
   (void)mac;
-  return string::from(com::centreon::engine::get_service_id(
-      svc.get_hostname(), svc.get_description()));
+  return string::from(com::centreon::engine::get_service_id(svc.get_hostname(),
+                                                            svc.description()));
 }
 
 /**
@@ -175,7 +175,7 @@ struct grab_service_redirection {
       {MACRO_SERVICEDESC,
        {&get_member_as_string<service,
                               std::string const&,
-                              &service::get_description>,
+                              &service::description>,
         true}},
       // Display name.
       {MACRO_SERVICEDISPLAYNAME,

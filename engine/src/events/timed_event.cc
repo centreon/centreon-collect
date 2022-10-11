@@ -104,12 +104,12 @@ void timed_event::_exec_event_service_check() {
 
   engine_logger(dbg_events, basic)
       << "** Service Check Event ==> Host: '" << svc->get_hostname()
-      << "', Service: '" << svc->get_description()
+      << "', Service: '" << svc->description()
       << "', Options: " << event_options << ", Latency: " << latency << " sec";
   log_v2::events()->trace(
       "** Service Check Event ==> Host: '{}', Service: '{}', Options: {}, "
       "Latency: {} sec",
-      svc->get_hostname(), svc->get_description(), event_options, latency);
+      svc->get_hostname(), svc->description(), event_options, latency);
 
   // run the service check.
   svc->run_scheduled_check(event_options, latency);

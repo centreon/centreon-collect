@@ -351,13 +351,13 @@ int xpddefault_run_service_performance_data_command(
   if (early_timeout == true)
     engine_logger(log_runtime_warning, basic)
         << "Warning: Service performance data command '"
-        << processed_command_line << "' for service '" << svc->get_description()
+        << processed_command_line << "' for service '" << svc->description()
         << "' on host '" << svc->get_hostname() << "' timed out after "
         << config->perfdata_timeout() << " seconds";
   log_v2::runtime()->warn(
       "Warning: Service performance data command '{}' for service '{}' on host "
       "'{}' timed out after {} seconds",
-      processed_command_line, svc->get_description(), svc->get_hostname(),
+      processed_command_line, svc->description(), svc->get_hostname(),
       config->perfdata_timeout());
 
   return result;

@@ -30,14 +30,13 @@ class hostgroup;
 class hostescalation;
 CCE_END()
 
-typedef std::unordered_map<std::string,
-                           std::shared_ptr<com::centreon::engine::host>>
-    host_map;
-typedef std::unordered_map<std::string, com::centreon::engine::host*>
-    host_map_unsafe;
-typedef std::unordered_map<uint64_t,
-                           std::shared_ptr<com::centreon::engine::host>>
-    host_id_map;
+using host_map =
+    absl::flat_hash_map<std::string,
+                        std::shared_ptr<com::centreon::engine::host>>;
+using host_map_unsafe =
+    absl::flat_hash_map<std::string, com::centreon::engine::host*>;
+using host_id_map =
+    absl::flat_hash_map<uint64_t, std::shared_ptr<com::centreon::engine::host>>;
 
 CCE_BEGIN()
 class host : public notifier {
@@ -104,7 +103,7 @@ class host : public notifier {
        std::string const& timezone,
        uint64_t icon_id);
   ~host() noexcept = default;
-  uint64_t get_host_id(void) const;
+  uint64_t host_id() const;
   void set_host_id(uint64_t id);
   void add_child_host(host* child);
   void add_parent_host(std::string const& host_name);
@@ -308,8 +307,9 @@ CCE_BEGIN()
 
 void check_for_expired_acknowledgement(com::centreon::engine::host* h);
 com::centreon::engine::host& find_host(uint64_t host_id);
-bool is_host_exist(uint64_t host_id) throw();
+bool host_exists(uint64_t host_id) noexcept;
 uint64_t get_host_id(std::string const& name);
+std::string get_host_name(const uint64_t host_id);
 
 CCE_END()
 

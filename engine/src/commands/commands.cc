@@ -184,7 +184,7 @@ int cmd_add_comment(int cmd, time_t entry_time, char* args) {
         service::services.find({host_name, svc_description}));
     if (found == service::services.end() || !found->second)
       return ERROR;
-    service_id = found->second->get_service_id();
+    service_id = found->second->service_id();
   } else {
     command_name = "ADD_HOST_COMMENT";
   }
@@ -219,7 +219,7 @@ int cmd_add_comment(int cmd, time_t entry_time, char* args) {
   /* add the comment */
   auto com = std::make_shared<comment>(
       (cmd == CMD_ADD_HOST_COMMENT) ? comment::host : comment::service,
-      comment::user, temp_host->get_host_id(), service_id, entry_time, user,
+      comment::user, temp_host->host_id(), service_id, entry_time, user,
       comment_data, persistent, comment::external, false, (time_t)0);
   uint64_t comment_id = com->get_comment_id();
   comment::comments.insert({comment_id, com});
@@ -270,8 +270,8 @@ int cmd_delete_all_comments(int cmd, char* args) {
     if (temp_service == nullptr)
       return ERROR;
     /* delete comments */
-    comment::delete_service_comments(temp_service->get_host_id(),
-                                     temp_service->get_service_id());
+    comment::delete_service_comments(temp_service->host_id(),
+                                     temp_service->service_id());
   } else {
     /* else verify that the host is valid */
     host_map::const_iterator it(host::hosts.find(host_name));
@@ -280,7 +280,7 @@ int cmd_delete_all_comments(int cmd, char* args) {
     if (temp_host == nullptr)
       return ERROR;
     /* delete comments */
-    comment::delete_host_comments(temp_host->get_host_id());
+    comment::delete_host_comments(temp_host->host_id());
   }
   return OK;
 }
@@ -855,132 +855,129 @@ int cmd_remove_acknowledgement(int cmd, char* args) {
 /* schedules downtime for a specific host or service */
 int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
   host* temp_host{nullptr};
+  service* temp_service{nullptr};
   host* last_host{nullptr};
   hostgroup* hg{nullptr};
-  char* host_name{nullptr};
-  char* hostgroup_name{nullptr};
-  char* servicegroup_name{nullptr};
-  char* svc_description{nullptr};
-  char* temp_ptr{nullptr};
   time_t start_time{0};
   time_t end_time{0};
   bool fixed{false};
   uint64_t triggered_by{0};
   unsigned long duration{0};
-  char* author{nullptr};
-  char* comment_data{nullptr};
   uint64_t downtime_id{0};
   servicegroup_map::const_iterator sg_it;
+
+  auto a{absl::StrSplit(args, ';')};
+  auto ait = a.begin();
+
+  if (ait == a.end())
+    return ERROR;
 
   if (cmd == CMD_SCHEDULE_HOSTGROUP_HOST_DOWNTIME ||
       cmd == CMD_SCHEDULE_HOSTGROUP_SVC_DOWNTIME) {
     /* get the hostgroup name */
-    if ((hostgroup_name = my_strtok(args, ";")) == nullptr)
-      return ERROR;
-
-    hostgroup_map::const_iterator it(
-        hostgroup::hostgroups.find(hostgroup_name));
+    hostgroup_map::const_iterator it = hostgroup::hostgroups.find(*ait);
     if (it == hostgroup::hostgroups.end() || !it->second)
       return ERROR;
     hg = it->second.get();
+    ++ait;
   } else if (cmd == CMD_SCHEDULE_SERVICEGROUP_HOST_DOWNTIME ||
              cmd == CMD_SCHEDULE_SERVICEGROUP_SVC_DOWNTIME) {
     /* get the servicegroup name */
-    if ((servicegroup_name = my_strtok(args, ";")) == nullptr)
-      return ERROR;
-
-    /* verify that the servicegroup is valid */
-    sg_it = servicegroup::servicegroups.find(servicegroup_name);
+    sg_it = servicegroup::servicegroups.find(*ait);
     if (sg_it == servicegroup::servicegroups.end() || !sg_it->second)
       return ERROR;
+    ++ait;
   } else {
     /* get the host name */
-    if ((host_name = my_strtok(args, ";")) == nullptr)
-      return ERROR;
-
-    /* verify that the host is valid */
-    temp_host = nullptr;
-    host_map::const_iterator it{host::hosts.find(host_name)};
+    host_map::const_iterator it{host::hosts.find(*ait)};
     if (it == host::hosts.end() || !it->second)
       return ERROR;
+    ++ait;
     temp_host = it->second.get();
 
     /* this is a service downtime */
     if (cmd == CMD_SCHEDULE_SVC_DOWNTIME) {
       /* get the service name */
-      if ((svc_description = my_strtok(nullptr, ";")) == nullptr)
+      if (ait == a.end())
         return ERROR;
-
-      /* verify that the service is valid */
-      service_map::const_iterator found(
-          service::services.find({temp_host->name(), svc_description}));
+      service_map::const_iterator found = service::services.find(
+          {temp_host->name(), std::string(ait->data(), ait->size())});
 
       if (found == service::services.end() || !found->second)
         return ERROR;
+      ++ait;
+      temp_service = found->second.get();
     }
   }
 
   /* get the start time */
-  if ((temp_ptr = my_strtok(nullptr, ";")) == nullptr)
+  if (ait == a.end())
     return ERROR;
-  if (!absl::SimpleAtoi(temp_ptr, &start_time)) {
+  if (!absl::SimpleAtoi(*ait, &start_time)) {
     log_v2::external_command()->error(
         "Error: could not schedule downtime : start_time '{}' must be "
         "an integer",
-        temp_ptr);
+        *ait);
     return ERROR;
   }
+  ++ait;
 
   /* get the end time */
-  if ((temp_ptr = my_strtok(nullptr, ";")) == nullptr)
+  if (ait == a.end())
     return ERROR;
-  if (!absl::SimpleAtoi(temp_ptr, &end_time)) {
+  if (!absl::SimpleAtoi(*ait, &end_time)) {
     log_v2::external_command()->error(
         "Error: could not schedule downtime : end_time '{}' must be "
         "an integer",
-        temp_ptr);
+        *ait);
     return ERROR;
   }
+  ++ait;
 
   /* get the fixed flag */
-  if ((temp_ptr = my_strtok(nullptr, ";")) == nullptr)
+  if (ait == a.end())
     return ERROR;
-  if (!absl::SimpleAtob(temp_ptr, &fixed)) {
+  if (!absl::SimpleAtob(*ait, &fixed)) {
     log_v2::external_command()->error(
-        "Error: could not schedule downtime : fixed '{}' must be 1 or 0",
-        temp_ptr);
+        "Error: could not schedule downtime : fixed '{}' must be 1 or 0", *ait);
     return ERROR;
   }
+  ++ait;
 
   /* get the trigger id */
-  if ((temp_ptr = my_strtok(nullptr, ";")) == nullptr)
+  if (ait == a.end())
     return ERROR;
-  if (!absl::SimpleAtoi(temp_ptr, &triggered_by)) {
+  if (!absl::SimpleAtoi(*ait, &triggered_by)) {
     log_v2::external_command()->error(
         "Error: could not schedule downtime : triggered_by '{}' must be an "
         "integer >= 0",
-        temp_ptr);
+        *ait);
     return ERROR;
   }
+  ++ait;
 
   /* get the duration */
-  if ((temp_ptr = my_strtok(nullptr, ";")) == nullptr)
+  if (ait == a.end())
     return ERROR;
-  if (!absl::SimpleAtoi(temp_ptr, &duration)) {
+  if (!absl::SimpleAtoi(*ait, &duration)) {
     log_v2::external_command()->error(
         "Error: could not schedule downtime : duration '{}' must be an integer "
         ">= 0",
-        temp_ptr);
+        *ait);
     return ERROR;
   }
+  ++ait;
 
   /* get the author */
-  if ((author = my_strtok(nullptr, ";")) == nullptr)
+  if (ait == a.end())
     return ERROR;
+  std::string author(ait->data(), ait->size());
+  ++ait;
 
   /* get the comment */
-  if ((comment_data = my_strtok(nullptr, ";")) == nullptr)
+  if (ait == a.end())
     return ERROR;
+  std::string comment_data(ait->data(), ait->size());
 
   /* check if flexible downtime demanded and duration set to non-zero.
   ** according to the documentation, a flexible downtime is started
@@ -999,39 +996,41 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
   switch (cmd) {
     case CMD_SCHEDULE_HOST_DOWNTIME:
       downtime_manager::instance().schedule_downtime(
-          downtime::host_downtime, host_name, "", entry_time, author,
-          comment_data, start_time, end_time, fixed, triggered_by, duration,
-          &downtime_id);
+          downtime::host_downtime, temp_host->host_id(), 0, entry_time,
+          author.c_str(), comment_data.c_str(), start_time, end_time, fixed,
+          triggered_by, duration, &downtime_id);
       break;
 
     case CMD_SCHEDULE_SVC_DOWNTIME:
       downtime_manager::instance().schedule_downtime(
-          downtime::service_downtime, host_name, svc_description, entry_time,
-          author, comment_data, start_time, end_time, fixed, triggered_by,
+          downtime::service_downtime, temp_service->host_id(),
+          temp_service->service_id(), entry_time, author.c_str(),
+          comment_data.c_str(), start_time, end_time, fixed, triggered_by,
           duration, &downtime_id);
       break;
 
     case CMD_SCHEDULE_HOST_SVC_DOWNTIME:
-      for (service_map_unsafe::iterator it(temp_host->services.begin()),
-           end(temp_host->services.end());
+      for (service_map_unsafe::iterator it = temp_host->services.begin(),
+                                        end = temp_host->services.end();
            it != end; ++it) {
         if (!it->second)
           continue;
         downtime_manager::instance().schedule_downtime(
-            downtime::service_downtime, host_name,
-            it->second->get_description(), entry_time, author, comment_data,
-            start_time, end_time, fixed, triggered_by, duration, &downtime_id);
+            downtime::service_downtime, temp_host->host_id(),
+            it->second->service_id(), entry_time, author.c_str(),
+            comment_data.c_str(), start_time, end_time, fixed, triggered_by,
+            duration, &downtime_id);
       }
       break;
 
     case CMD_SCHEDULE_HOSTGROUP_HOST_DOWNTIME:
-      for (host_map_unsafe::iterator it(hg->members.begin()),
-           end(hg->members.end());
+      for (host_map_unsafe::iterator it = hg->members.begin(),
+                                     end = hg->members.end();
            it != end; ++it)
         downtime_manager::instance().schedule_downtime(
-            downtime::host_downtime, it->first, "", entry_time, author,
-            comment_data, start_time, end_time, fixed, triggered_by, duration,
-            &downtime_id);
+            downtime::host_downtime, it->second->host_id(), 0, entry_time,
+            author.c_str(), comment_data.c_str(), start_time, end_time, fixed,
+            triggered_by, duration, &downtime_id);
       break;
 
     case CMD_SCHEDULE_HOSTGROUP_SVC_DOWNTIME:
@@ -1040,16 +1039,16 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
            it != end; ++it) {
         if (!it->second)
           continue;
-        for (service_map_unsafe::iterator it2(it->second->services.begin()),
-             end2(it->second->services.end());
+        for (service_map_unsafe::iterator it2 = it->second->services.begin(),
+                                          end2 = it->second->services.end();
              it2 != end2; ++it2) {
           if (!it2->second)
             continue;
           downtime_manager::instance().schedule_downtime(
-              downtime::service_downtime, it2->second->get_hostname(),
-              it2->second->get_description(), entry_time, author, comment_data,
-              start_time, end_time, fixed, triggered_by, duration,
-              &downtime_id);
+              downtime::service_downtime, it2->second->host_id(),
+              it2->second->service_id(), entry_time, author.c_str(),
+              comment_data.c_str(), start_time, end_time, fixed, triggered_by,
+              duration, &downtime_id);
         }
       }
       break;
@@ -1060,16 +1059,16 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
            end(sg_it->second->members.end());
            it != end; ++it) {
         temp_host = nullptr;
-        host_map::const_iterator found(host::hosts.find(it->first.first));
+        host_map::const_iterator found = host::hosts.find(it->first.first);
         if (found == host::hosts.end() || !found->second)
           continue;
         temp_host = found->second.get();
         if (last_host == temp_host)
           continue;
         downtime_manager::instance().schedule_downtime(
-            downtime::host_downtime, it->first.first, "", entry_time, author,
-            comment_data, start_time, end_time, fixed, triggered_by, duration,
-            &downtime_id);
+            downtime::host_downtime, it->second->host_id(), 0, entry_time,
+            author.c_str(), comment_data.c_str(), start_time, end_time, fixed,
+            triggered_by, duration, &downtime_id);
         last_host = temp_host;
       }
       break;
@@ -1079,35 +1078,36 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
            end(sg_it->second->members.end());
            it != end; ++it)
         downtime_manager::instance().schedule_downtime(
-            downtime::service_downtime, it->first.first, it->first.second,
-            entry_time, author, comment_data, start_time, end_time, fixed,
-            triggered_by, duration, &downtime_id);
+            downtime::service_downtime, it->second->host_id(),
+            it->second->service_id(), entry_time, author.c_str(),
+            comment_data.c_str(), start_time, end_time, fixed, triggered_by,
+            duration, &downtime_id);
       break;
 
     case CMD_SCHEDULE_AND_PROPAGATE_HOST_DOWNTIME:
       /* schedule downtime for "parent" host */
       downtime_manager::instance().schedule_downtime(
-          downtime::host_downtime, host_name, "", entry_time, author,
-          comment_data, start_time, end_time, fixed, triggered_by, duration,
-          &downtime_id);
+          downtime::host_downtime, temp_host->host_id(), 0, entry_time,
+          author.c_str(), comment_data.c_str(), start_time, end_time, fixed,
+          triggered_by, duration, &downtime_id);
 
       /* schedule (non-triggered) downtime for all child hosts */
-      schedule_and_propagate_downtime(temp_host, entry_time, author,
-                                      comment_data, start_time, end_time, fixed,
-                                      0, duration);
+      schedule_and_propagate_downtime(temp_host, entry_time, author.c_str(),
+                                      comment_data.c_str(), start_time,
+                                      end_time, fixed, 0, duration);
       break;
 
     case CMD_SCHEDULE_AND_PROPAGATE_TRIGGERED_HOST_DOWNTIME:
       /* schedule downtime for "parent" host */
       downtime_manager::instance().schedule_downtime(
-          downtime::host_downtime, host_name, "", entry_time, author,
-          comment_data, start_time, end_time, fixed, triggered_by, duration,
-          &downtime_id);
+          downtime::host_downtime, temp_host->host_id(), 0, entry_time,
+          author.c_str(), comment_data.c_str(), start_time, end_time, fixed,
+          triggered_by, duration, &downtime_id);
 
       /* schedule triggered downtime for all child hosts */
-      schedule_and_propagate_downtime(temp_host, entry_time, author,
-                                      comment_data, start_time, end_time, fixed,
-                                      downtime_id, duration);
+      schedule_and_propagate_downtime(temp_host, entry_time, author.c_str(),
+                                      comment_data.c_str(), start_time,
+                                      end_time, fixed, downtime_id, duration);
       break;
 
     default:
@@ -1146,57 +1146,75 @@ int cmd_delete_downtime(int cmd, char* args) {
  *  @param[in] args  Command arguments.
  */
 int cmd_delete_downtime_full(int cmd, char* args) {
-  char* temp_ptr(nullptr);
+  log_v2::functions()->trace("cmd_delete_downtime_full() args = {}", args);
   downtime_finder::criteria_set criterias;
 
+  auto a{absl::StrSplit(args, ';')};
+  auto it = a.begin();
+
   // Host name.
-  if (!(temp_ptr = my_strtok(args, ";")))
+  if (it == a.end())
     return ERROR;
-  if (*temp_ptr)
-    criterias.push_back(downtime_finder::criteria("host", temp_ptr));
+  if (!it->empty())
+    criterias.emplace_back("host", std::string(it->data(), it->size()));
+
+  ++it;
+
   // Service description and downtime type.
   if (cmd == CMD_DEL_SVC_DOWNTIME_FULL) {
-    if (!(temp_ptr = my_strtok(nullptr, ";")))
-      return ERROR;
-    if (*temp_ptr)
-      criterias.push_back(downtime_finder::criteria("service", temp_ptr));
+    if (!it->empty())
+      criterias.emplace_back("service", std::string(it->data(), it->size()));
+    ++it;
   }
 
   // Start time.
-  if (!(temp_ptr = my_strtok(nullptr, ";")))
+  if (it == a.end())
     return ERROR;
-  if (*temp_ptr)
-    criterias.push_back(downtime_finder::criteria("start", temp_ptr));
+  if (!it->empty())
+    criterias.emplace_back("start", std::string(it->data(), it->size()));
+  ++it;
+
   // End time.
-  if (!(temp_ptr = my_strtok(nullptr, ";")))
+  if (it == a.end())
     return ERROR;
-  if (*temp_ptr)
-    criterias.push_back(downtime_finder::criteria("end", temp_ptr));
+  if (!it->empty())
+    criterias.emplace_back("end", std::string(it->data(), it->size()));
+  ++it;
+
   // Fixed.
-  if (!(temp_ptr = my_strtok(nullptr, ";")))
+  if (it == a.end())
     return ERROR;
-  if (*temp_ptr)
-    criterias.push_back(downtime_finder::criteria("fixed", temp_ptr));
+  if (!it->empty())
+    criterias.emplace_back("fixed", std::string(it->data(), it->size()));
+  ++it;
+
   // Trigger ID.
-  if (!(temp_ptr = my_strtok(nullptr, ";")))
+  if (it == a.end())
     return ERROR;
-  if (*temp_ptr)
-    criterias.push_back(downtime_finder::criteria("triggered_by", temp_ptr));
+  if (!it->empty())
+    criterias.emplace_back("triggered_by", std::string(it->data(), it->size()));
+  ++it;
+
   // Duration.
-  if (!(temp_ptr = my_strtok(nullptr, ";")))
+  if (it == a.end())
     return ERROR;
-  if (*temp_ptr)
-    criterias.push_back(downtime_finder::criteria("duration", temp_ptr));
+  if (!it->empty())
+    criterias.emplace_back("duration", std::string(it->data(), it->size()));
+  ++it;
+
   // Author.
-  if (!(temp_ptr = my_strtok(nullptr, ";")))
+  if (it == a.end())
     return ERROR;
-  if (*temp_ptr)
-    criterias.push_back(downtime_finder::criteria("author", temp_ptr));
+  if (!it->empty())
+    criterias.emplace_back("author", std::string(it->data(), it->size()));
+  ++it;
+
   // Comment.
-  if (!(temp_ptr = my_strtok(nullptr, ";")))
+  if (it == a.end())
     return ERROR;
-  if (*temp_ptr)
-    criterias.push_back(downtime_finder::criteria("comment", temp_ptr));
+  if (!it->empty())
+    criterias.emplace_back("comment", std::string(it->data(), it->size()));
+  ++it;
 
   // Find downtimes.
   downtime_finder dtf(
@@ -2496,7 +2514,7 @@ void schedule_and_propagate_downtime(host* temp_host,
 
     /* schedule downtime for this host */
     downtime_manager::instance().schedule_downtime(
-        downtime::host_downtime, it->first, "", entry_time, author,
+        downtime::host_downtime, it->second->host_id(), 0, entry_time, author,
         comment_data, start_time, end_time, fixed, triggered_by, duration,
         nullptr);
   }
@@ -2540,10 +2558,9 @@ void acknowledge_host_problem(host* hst,
   hst->update_status();
 
   /* add a comment for the acknowledgement */
-  auto com{std::make_shared<comment>(comment::host, comment::acknowledgment,
-                                     hst->get_host_id(), 0, current_time,
-                                     ack_author, ack_data, persistent,
-                                     comment::internal, false, (time_t)0)};
+  auto com{std::make_shared<comment>(
+      comment::host, comment::acknowledgment, hst->host_id(), 0, current_time,
+      ack_author, ack_data, persistent, comment::internal, false, (time_t)0)};
   comment::comments.insert({com->get_comment_id(), com});
 }
 
@@ -2586,8 +2603,8 @@ void acknowledge_service_problem(service* svc,
 
   /* add a comment for the acknowledgement */
   auto com{std::make_shared<comment>(
-      comment::service, comment::acknowledgment, svc->get_host_id(),
-      svc->get_service_id(), current_time, ack_author, ack_data, persistent,
+      comment::service, comment::acknowledgment, svc->host_id(),
+      svc->service_id(), current_time, ack_author, ack_data, persistent,
       comment::internal, false, (time_t)0)};
   comment::comments.insert({com->get_comment_id(), com});
 }

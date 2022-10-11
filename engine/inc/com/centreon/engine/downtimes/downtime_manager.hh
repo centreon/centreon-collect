@@ -56,8 +56,8 @@ class downtime_manager {
   int xdddefault_validate_downtime_data();
   uint64_t get_next_downtime_id();
   int schedule_downtime(downtime::type type,
-                        std::string const& host_name,
-                        std::string const& service_description,
+                        const uint64_t host_id,
+                        const uint64_t service_id,
                         time_t entry_time,
                         char const* author,
                         char const* comment_data,
@@ -70,22 +70,21 @@ class downtime_manager {
   int register_downtime(downtime::type type, uint64_t downtime_id);
 
  protected:
-  std::shared_ptr<host_downtime> add_new_host_downtime(
-      std::string const& host_name,
-      time_t entry_time,
-      char const* author,
-      char const* comment_data,
-      time_t start_time,
-      time_t end_time,
-      bool fixed,
-      uint64_t triggered_by,
-      unsigned long duration);
+  std::shared_ptr<host_downtime> add_new_host_downtime(const uint64_t host_id,
+                                                       time_t entry_time,
+                                                       char const* author,
+                                                       char const* comment_data,
+                                                       time_t start_time,
+                                                       time_t end_time,
+                                                       bool fixed,
+                                                       uint64_t triggered_by,
+                                                       unsigned long duration);
   std::shared_ptr<service_downtime> add_new_service_downtime(
-      std::string const& host_name,
-      std::string const& service_description,
+      const uint64_t host_id,
+      const uint64_t service_id,
       time_t entry_time,
-      std::string const& author,
-      std::string const& comment_data,
+      const std::string& author,
+      const std::string& comment_data,
       time_t start_time,
       time_t end_time,
       bool fixed,

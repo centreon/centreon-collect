@@ -553,9 +553,9 @@ TEST_F(ServiceRetention, RetentionWithMultilineOutput) {
       std::string::npos);
 
   std::shared_ptr<comment> cmt = std::make_shared<comment>(
-      comment::service, comment::flapping, _svc->get_host_id(),
-      _svc->get_service_id(), time(nullptr), "test1", "test2", false,
-      comment::internal, false, (time_t)0);
+      comment::service, comment::flapping, _svc->host_id(), _svc->service_id(),
+      time(nullptr), "test1", "test2", false, comment::internal, false,
+      (time_t)0);
 
   comment::comments.insert({cmt->get_comment_id(), cmt});
 
