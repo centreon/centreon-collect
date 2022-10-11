@@ -108,7 +108,7 @@ message CustomVariable {
   string default_value = 8;
   bool enabled = 9;
   bool password = 10;
-  VarType var_type = 11;
+  VarType type = 11;
 }
 
 

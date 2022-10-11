@@ -512,7 +512,7 @@ void stream::_process_pb_custom_variable(const std::shared_ptr<io::data>& d) {
         misc::string::escape(
             cv.default_value(),
             get_customvariables_col_size(customvariables_default_value)),
-        cv.modified() ? 1 : 0, cv.var_type(), cv.update_time(),
+        cv.modified() ? 1 : 0, cv.type(), cv.update_time(),
         misc::string::escape(
             cv.value(), get_customvariables_col_size(customvariables_value))));
     /* Here, we do not update the custom variable boolean ack flag, because
