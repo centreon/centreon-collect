@@ -278,7 +278,6 @@ void kpi_service::service_update(
 void kpi_service::service_update(
     const std::shared_ptr<neb::acknowledgement>& ack,
     io::stream* visitor) {
-  assert(ack && ack->host_id == _host_id && ack->service_id == _service_id);
   // Log message.
   log_v2::bam()->debug(
       "BAM: KPI {} is getting an acknowledgement event for service ({}, {}) "
