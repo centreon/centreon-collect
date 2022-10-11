@@ -179,37 +179,6 @@ target_precompile_headers(${CBMOD} REUSE_FROM nebbase)
 
 # Testing.
 if(WITH_TESTING)
-<<<<<<< HEAD
-  set(TESTS_SOURCES
-    ${TESTS_SOURCES}
-    ${SRC_DIR}/set_log_data.cc
-
-    # Actual tests
-    ${TEST_DIR}/custom_variable.cc
-    ${TEST_DIR}/custom_variable_status.cc
-    ${TEST_DIR}/event_handler.cc
-    ${TEST_DIR}/flapping_status.cc
-    ${TEST_DIR}/host.cc
-    ${TEST_DIR}/host_check.cc
-    ${TEST_DIR}/host_dependency.cc
-    ${TEST_DIR}/host_parent.cc
-    ${TEST_DIR}/host_status.cc
-    ${TEST_DIR}/instance.cc
-    ${TEST_DIR}/instance_status.cc
-    ${TEST_DIR}/log_entry.cc
-    ${TEST_DIR}/module.cc
-    ${TEST_DIR}/randomize.cc
-    ${TEST_DIR}/randomize.hh
-    ${TEST_DIR}/service.cc
-    ${TEST_DIR}/service_check.cc
-    ${TEST_DIR}/service_dependency.cc
-    ${TEST_DIR}/service_status.cc
-    ${TEST_DIR}/set_log_data.cc
-    PARENT_SCOPE)
-  set(TESTS_LIBRARIES
-    ${TESTS_LIBRARIES} ${NEB}
-    PARENT_SCOPE)
-=======
   set(
     TESTS_SOURCES
     ${TESTS_SOURCES}
@@ -243,7 +212,6 @@ if(WITH_TESTING)
     ${NEB}
     PARENT_SCOPE
   )
->>>>>>> MON-15277 flapping_status not used => remove bbdo version
 endif()
 
 # Install rules.
