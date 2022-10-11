@@ -24,61 +24,91 @@ package com.centreon.broker;
 
 
 message Comment {
-    BBDOHeader header = 1;
+  BBDOHeader header = 1;
 
-    enum Src {
-        INTERNAL = 0;
-        EXTERNAL = 1;
-    }
+  enum Src {
+    INTERNAL = 0;
+    EXTERNAL = 1;
+  }
 
-    enum Type {
-        NO_TYPE = 0;
-        HOST = 1;
-        SERVICE = 2;
-    }
+  enum Type {
+    NO_TYPE = 0;
+    HOST = 1;
+    SERVICE = 2;
+  }
 
-    enum EntryType {
-        NO_ENTRY_TYPE = 0;
-        USER = 1;
-        DOWNTIME = 2;
-        FLAPPING = 3;
-        ACKNOWLEDGMENT = 4;
-    }
+  enum EntryType {
+    NO_ENTRY_TYPE = 0;
+    USER = 1;
+    DOWNTIME = 2;
+    FLAPPING = 3;
+    ACKNOWLEDGMENT = 4;
+  }
 
-    string author = 2;
-    Type type = 3;
-    string data = 4;
-    uint64 deletion_time = 5;
-    uint64 entry_time = 6;
-    EntryType entry_type = 7;
-    uint64 expire_time = 8;
-    bool expires = 9;
-    uint64 host_id = 10;
-    uint64 internal_id = 11;
-    bool persistent = 12;
-    uint64 instance_id = 13;
-    uint64 service_id = 14;
-    Src source = 15;
-  
+  string author = 2;
+  Type type = 3;
+  string data = 4;
+  uint64 deletion_time = 5;
+  uint64 entry_time = 6;
+  EntryType entry_type = 7;
+  uint64 expire_time = 8;
+  bool expires = 9;
+  uint64 host_id = 10;
+  uint64 internal_id = 11;
+  bool persistent = 12;
+  uint64 instance_id = 13;
+  uint64 service_id = 14;
+  Src source = 15;
+}
+
+/**
+ * @brief A downtime is applied on a resource when we don't want notifications
+ * concerning bad states on this resource.
+ */
+message Downtime {
+  enum DowntimeType {
+  NOT_USED = 0;
+  SERVICE = 1;
+  HOST = 2;
+  ANY = 3;
+  };
+  uint64 id = 1;
+  uint64 instance_id = 2;
+  uint64 host_id = 3;
+  uint64 service_id = 4;
+  string author = 5;
+  string comment_data = 6;
+  DowntimeType type = 7;
+  uint32 duration = 8;
+  uint64 triggered_by = 9;
+  int64 entry_time = 10;
+  uint64 actual_start_time = 11;
+  uint64 actual_end_time = 12;
+  uint64 start_time = 13;
+  uint64 deletion_time = 14;
+  uint64 end_time = 15;
+  bool started = 16;
+  bool cancelled = 17;
+  bool fixed = 18;
 }
 
 message CustomVariable {
-    enum VarType {
-        HOST = 0;
-        SERVICE = 1;
-    }
+  enum VarType {
+    HOST = 0;
+    SERVICE = 1;
+  }
 
-    BBDOHeader header = 1;
-    uint64 host_id = 2;
-    uint64 service_id = 3;
-    bool modified = 4;
-    string name = 5;
-    uint64 update_time = 6;
-    string value = 7;
-    string default_value = 8;
-    bool enabled = 9;
-    bool password = 10;
-    VarType var_type = 11;
+  BBDOHeader header = 1;
+  uint64 host_id = 2;
+  uint64 service_id = 3;
+  bool modified = 4;
+  string name = 5;
+  uint64 update_time = 6;
+  string value = 7;
+  string default_value = 8;
+  bool enabled = 9;
+  bool password = 10;
+  VarType var_type = 11;
 }
 
 

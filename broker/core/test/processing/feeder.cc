@@ -24,6 +24,7 @@
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
+#include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/stats/center.hh"
 
 using namespace com::centreon::broker;

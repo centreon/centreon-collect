@@ -60,6 +60,8 @@ class service_book {
               io::stream* visitor = nullptr);
   void update(const std::shared_ptr<neb::downtime>& t,
               io::stream* visitor = nullptr);
+  void update(const std::shared_ptr<neb::pb_downtime>& t,
+              io::stream* visitor = nullptr);
   void update(const std::shared_ptr<neb::service_status>& t,
               io::stream* visitor = nullptr);
   void update(const std::shared_ptr<neb::pb_service>& t,

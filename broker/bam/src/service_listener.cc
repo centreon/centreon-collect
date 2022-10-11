@@ -114,3 +114,16 @@ void service_listener::service_update(std::shared_ptr<neb::downtime> const& dt,
   (void)dt;
   (void)visitor;
 }
+
+/**
+ *  Notify of a downtime (protobuf).
+ *
+ *  @param[in]  dt       Downtime.
+ *  @param[out] visitor  Visitor.
+ */
+void service_listener::service_update(
+    const std::shared_ptr<neb::pb_downtime>& dt,
+    io::stream* visitor) {
+  (void)dt;
+  (void)visitor;
+}

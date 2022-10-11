@@ -5,7 +5,7 @@ Suite Teardown	Clean After Suite
 Test Setup	BAM Setup
 Test Teardown	Save logs If Failed
 
-Documentation	Centreon Broker and BAM
+Documentation	Centreon Broker and BAM with bbdo version 3.0.1
 Library	Process
 Library	DatabaseLibrary
 Library	DateTime
@@ -15,14 +15,18 @@ Library	../resources/Engine.py
 
 
 *** Test Cases ***
-BEBAMIDT1
-	[Documentation]	A BA of type 'worst' with one service is configured. The BA is in critical state, because of its service. Then we set a downtime on this last one. An inherited downtime is set to the BA. The downtime is removed from the service, the inherited downtime is then deleted.
+BEBAMIDTU1
+	[Documentation]	With bbdo version 3.0.1, a BA of type 'worst' with one service is configured. The BA is in critical state, because of its service. Then we set a downtime on this last one. An inherited downtime is set to the BA. The downtime is removed from the service, the inherited downtime is then deleted.
 	[Tags]	Broker	downtime	engine	bam
 	Clear Commands Status
 	Config Broker	module
 	Config Broker	central
-	Broker Config Log	central	bam	trace
 	Config Broker	rrd
+	Broker Config Log	central	bam	trace
+	Config Broker Sql Output	central	unified_sql
+        Broker Config Add Item	module0	bbdo_version	3.0.1
+        Broker Config Add Item	rrd	bbdo_version	3.0.1
+        Broker Config Add Item	central	bbdo_version	3.0.1
 	Config Engine	${1}
 
 	Clone Engine Config To DB
@@ -65,22 +69,25 @@ BEBAMIDT1
 	Should Be True	${result}	msg=The service (host_16, service_314) is in downtime and should not.
 
 	${result}=	Check Downtimes With Timeout	0	60
-	Should Be True	${result}	msg=We should have no more running downtimes
-
+	Should Be True	${result}	msg=No downtime should still be running.
 	${result}=	Check Service Downtime With Timeout	_Module_BAM_1	ba_1	0	60
 	Should Be True	${result}	msg=The BA ba_1 is in downtime as it should not
 
 	Stop Engine
 	Kindly Stop Broker
 
-BEBAMIDT2
-	[Documentation]	A BA of type 'worst' with one service is configured. The BA is in critical state, because of its service. Then we set a downtime on this last one. An inherited downtime is set to the BA. Engine is restarted. Broker is restarted. The two downtimes are still there with no duplicates. The downtime is removed from the service, the inherited downtime is then deleted.
+BEBAMIDTU2
+	[Documentation]	With bbdo version 3.0.1, a BA of type 'worst' with one service is configured. The BA is in critical state, because of its service. Then we set a downtime on this last one. An inherited downtime is set to the BA. Engine is restarted. Broker is restarted. The two downtimes are still there with no duplicates. The downtime is removed from the service, the inherited downtime is then deleted.
 	[Tags]	Broker	downtime	engine	bam	start	stop
 	Clear Commands Status
 	Config Broker	module
 	Config Broker	central
-	Broker Config Log	central	bam	trace
 	Config Broker	rrd
+	Broker Config Log	central	bam	trace
+	Config Broker Sql Output	central	unified_sql
+        Broker Config Add Item	module0	bbdo_version	3.0.1
+        Broker Config Add Item	rrd	bbdo_version	3.0.1
+        Broker Config Add Item	central	bbdo_version	3.0.1
 	Config Engine	${1}
 
 	Clone Engine Config To DB
@@ -114,10 +121,6 @@ BEBAMIDT2
 	Schedule Service Downtime	host_16	service_314	3600
 	${result}=	Check Service Downtime With Timeout	host_16	service_314	1	60
 	Should Be True	${result}	msg=The service (host_16, service_314) is not in downtime as it should be
-
-	${result}=	Check Downtimes With Timeout	2	60
-	Should Be True	${result}	msg=We should have one running downtime
-
 	${result}=	Check Service Downtime With Timeout	_Module_BAM_1	ba_1	1	60
 	Should Be True	${result}	msg=The BA ba_1 is not in downtime as it should
 
@@ -139,25 +142,26 @@ BEBAMIDT2
 	END
 
 	# There are still two downtimes: the one on the ba and the one on the kpi.
-	${result}=	Check Downtimes With Timeout	2	60
-	Should Be True	${result}	msg=We should have two downtimes
+	${result}=	Number Of Downtimes is	2	60
+	Should Be True	${result}	msg=We should only have only two downtimes
 
 	# The downtime is deleted
 	Delete Service Downtime	host_16	service_314
 	${result}=	Check Service Downtime With Timeout	host_16	service_314	0	60
 	Should Be True	${result}	msg=The service (host_16, service_314) is in downtime and should not.
-	${result}=	Check Downtimes With Timeout	0	60
-	Should Be True	${result}	msg=We should have no more downtime
-
 	${result}=	Check Service Downtime With Timeout	_Module_BAM_1	ba_1	0	60
 	Should Be True	${result}	msg=The BA ba_1 is in downtime as it should not
+
+	# We should have no more downtime
+	${result}=	Number Of Downtimes Is	0	60
+	Should Be True	${result}	msg=We should have no more downtime
 
         log to console	Broker is stopped (end of BEBAMIDT2)
 	Stop Engine
 	Kindly Stop Broker
 
-BEBAMIGNDT1
-	[Documentation]	A BA of type 'worst' with two services is configured. The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in critical state, because of the second critical service. Then we apply two downtimes on this last one. The BA state is ok because of the policy on indicators. A first downtime is cancelled, the BA is still OK, but when the second downtime is cancelled, the BA should be CRITICAL.
+BEBAMIGNDTU1
+	[Documentation]	With bbdo version 3.0.1, a BA of type 'worst' with two services is configured. The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in critical state, because of the second critical service. Then we apply two downtimes on this last one. The BA state is ok because of the policy on indicators. A first downtime is cancelled, the BA is still OK, but when the second downtime is cancelled, the BA should be CRITICAL.
 	[Tags]	broker	downtime	engine	bam
 	Clear Commands Status
 	Config Broker	module
@@ -167,6 +171,10 @@ BEBAMIGNDT1
         Broker Config Flush Log	module0	0
 	Broker Config Log	module0	neb	trace
 	Config Broker	rrd
+	Config Broker Sql Output	central	unified_sql
+        Broker Config Add Item	module0	bbdo_version	3.0.1
+        Broker Config Add Item	rrd	bbdo_version	3.0.1
+        Broker Config Add Item	central	bbdo_version	3.0.1
 	Config Engine	${1}
 	Engine Config Set Value	${0}	log_legacy_enabled	${0}
 	Engine Config Set Value	${0}	log_v2_enabled	${1}
@@ -239,12 +247,12 @@ BEBAMIGNDT1
 	Should Be True	${result}	msg=The service (host_16, service_314) does not contain 1 downtime as it should
 	Log to console	Still one downtime applied to service_314.
 
-	${result}=	Check Downtimes With Timeout	1	60
-	Should Be True	${result}	msg=We should have one downtime
-
 	${result}=	Check Ba Status With Timeout	test	0	60
 	Should Be True	${result}	msg=The BA is not OK whereas the service_314 is still in downtime.
 	Log to console	The BA is still OK
+
+	${result}=	Check Downtimes With Timeout	1	60
+	Should Be True	${result}	msg=We should have one running downtime
 
 	# The second downtime is deleted
 	Delete Service Downtime	host_16	service_314
@@ -263,8 +271,8 @@ BEBAMIGNDT1
 	Stop Engine
 	Kindly Stop Broker
 
-BEBAMIGNDT2
-	[Documentation]	A BA of type 'worst' with two services is configured. The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in critical state, because of the second critical service. Then we apply two downtimes on this last one. The BA state is ok because of the policy on indicators. The first downtime reaches its end, the BA is still OK, but when the second downtime reaches its end, the BA should be CRITICAL.
+BEBAMIGNDTU2
+	[Documentation]	With bbdo version 3.0.1, a BA of type 'worst' with two services is configured. The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in critical state, because of the second critical service. Then we apply two downtimes on this last one. The BA state is ok because of the policy on indicators. The first downtime reaches its end, the BA is still OK, but when the second downtime reaches its end, the BA should be CRITICAL.
 	[Tags]	broker	downtime	engine	bam
 	Clear Commands Status
 	Config Broker	module
@@ -272,6 +280,10 @@ BEBAMIGNDT2
 	Broker Config Log	central	core	error
 	Broker Config Log	central	bam	trace
 	Config Broker	rrd
+	Config Broker Sql Output	central	unified_sql
+        Broker Config Add Item	module0	bbdo_version	3.0.1
+        Broker Config Add Item	rrd	bbdo_version	3.0.1
+        Broker Config Add Item	central	bbdo_version	3.0.1
 	Config Engine	${1}
 
 	Clone Engine Config To DB
@@ -341,9 +353,6 @@ BEBAMIGNDT2
 	Should Be True	${result}	msg=The BA is not OK whereas the service_314 is still in downtime.
 	Log to console	The BA is still OK
 
-	${result}=	Check Downtimes With Timeout	0	60
-	Should Be True	${result}	msg=We should have no more running downtimes
-
 	# The second downtime finishes
 	${result}=	Check Ba Status With Timeout	test	2	60
 	Should Be True	${result}	msg=The critical service is no more in downtime, the BA should be critical.
@@ -357,5 +366,5 @@ BAM Setup
 	Stop Processes
         Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
         ${date}=	Get Current Date  result_format=epoch
-        log to console    date=${date}
+        log to console    Cleaning downtimes at date=${date}
 	Execute SQL String	UPDATE downtimes SET deletion_time=${date}, actual_end_time=${date} WHERE actual_end_time is null

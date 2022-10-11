@@ -101,7 +101,7 @@ static struct {
 } const gl_pb_callbacks[] = {
     {NEBCALLBACK_ACKNOWLEDGEMENT_DATA, &neb::callback_acknowledgement},
     {NEBCALLBACK_COMMENT_DATA, &neb::callback_pb_comment},
-    {NEBCALLBACK_DOWNTIME_DATA, &neb::callback_downtime},
+    {NEBCALLBACK_DOWNTIME_DATA, &neb::callback_pb_downtime},
     {NEBCALLBACK_EVENT_HANDLER_DATA, &neb::callback_event_handler},
     {NEBCALLBACK_EXTERNAL_COMMAND_DATA, &neb::callback_pb_external_command},
     {NEBCALLBACK_FLAPPING_DATA, &neb::callback_flapping_status},
@@ -790,7 +790,7 @@ int neb::callback_downtime(int callback_type, void* data) {
 
   try {
     // In/Out variables.
-    std::shared_ptr<neb::downtime> downtime(std::make_shared<neb::downtime>());
+    auto downtime{std::make_shared<neb::downtime>()};
 
     // Fill output var.
     if (downtime_data->author_name)
@@ -873,6 +873,119 @@ int neb::callback_downtime(int callback_type, void* data) {
   // Avoid exception propagation in C code.
   catch (...) {
   }
+  return 0;
+}
+
+/**
+ *  @brief Function that processes downtime data.
+ *
+ *  This function is called by Nagios when some downtime data are available.
+ *
+ *  @param[in] callback_type Type of the callback (NEBCALLBACK_DOWNTIME_DATA).
+ *  @param[in] data          A pointer to a nebstruct_downtime_data containing
+ *                           the downtime data.
+ *
+ *  @return 0 on success.
+ */
+int neb::callback_pb_downtime(int callback_type, void* data) {
+  // Log message.
+  log_v2::neb()->info("callbacks: generating pb downtime event");
+  (void)callback_type;
+
+  const nebstruct_downtime_data* downtime_data =
+      static_cast<nebstruct_downtime_data*>(data);
+  if (downtime_data->type == NEBTYPE_DOWNTIME_LOAD)
+    return 0;
+
+  // In/Out variables.
+  auto d{std::make_shared<neb::pb_downtime>()};
+  Downtime& downtime = d.get()->mut_obj();
+
+  // Fill output var.
+  if (downtime_data->author_name)
+    downtime.set_author(
+        misc::string::check_string_utf8(downtime_data->author_name));
+  if (downtime_data->comment_data)
+    downtime.set_comment_data(
+        misc::string::check_string_utf8(downtime_data->comment_data));
+  downtime.set_id(downtime_data->downtime_id);
+  downtime.set_type(
+      static_cast<Downtime_DowntimeType>(downtime_data->downtime_type));
+  downtime.set_duration(downtime_data->duration);
+  downtime.set_end_time(downtime_data->end_time);
+  downtime.set_entry_time(downtime_data->entry_time);
+  downtime.set_fixed(downtime_data->fixed);
+  if (!downtime_data->host_name) {
+    log_v2::neb()->error(
+        "callbacks: error occurred while generating downtime event: unnamed "
+        "host");
+    return 0;
+  }
+  if (downtime_data->service_description) {
+    std::pair<uint64_t, uint64_t> p;
+    p = engine::get_host_and_service_id(downtime_data->host_name,
+                                        downtime_data->service_description);
+    downtime.set_host_id(p.first);
+    downtime.set_service_id(p.second);
+    if (!downtime.host_id() || !downtime.service_id()) {
+      log_v2::neb()->error(
+          "callbacks: error occurred while generating downtime event: "
+          "could not find ID of service ('{}', '{}')",
+          downtime_data->host_name, downtime_data->service_description);
+      return 0;
+    }
+  } else {
+    downtime.set_host_id(engine::get_host_id(downtime_data->host_name));
+    if (downtime.host_id() == 0)
+      log_v2::neb()->error(
+          "callbacks: error occurred while generating downtime event: "
+          "could not find ID of host '{}'",
+          downtime_data->host_name);
+    return 0;
+  }
+  downtime.set_instance_id(config::applier::state::instance().poller_id());
+  downtime.set_start_time(downtime_data->start_time);
+  downtime.set_triggered_by(downtime_data->triggered_by);
+  private_downtime_params& params = downtimes[downtime.id()];
+  switch (downtime_data->type) {
+    case NEBTYPE_DOWNTIME_ADD:
+      params.cancelled = false;
+      params.deletion_time = -1;
+      params.end_time = -1;
+      params.started = false;
+      params.start_time = -1;
+      break;
+    case NEBTYPE_DOWNTIME_START:
+      params.started = true;
+      params.start_time = downtime_data->timestamp.tv_sec;
+      break;
+    case NEBTYPE_DOWNTIME_STOP:
+      if (NEBATTR_DOWNTIME_STOP_CANCELLED == downtime_data->attr)
+        params.cancelled = true;
+      params.end_time = downtime_data->timestamp.tv_sec;
+      break;
+    case NEBTYPE_DOWNTIME_DELETE:
+      if (!params.started)
+        params.cancelled = true;
+      params.deletion_time = downtime_data->timestamp.tv_sec;
+      break;
+    default:
+      log_v2::neb()->error(
+          "callbacks: error occurred while generating downtime event: "
+          "Downtime with not managed type {}.",
+          downtime_data->host_name);
+      return 0;
+  }
+  downtime.set_actual_start_time(params.start_time);
+  downtime.set_actual_end_time(params.end_time);
+  downtime.set_deletion_time(params.deletion_time);
+  downtime.set_cancelled(params.cancelled);
+  downtime.set_started(params.started);
+  if (NEBTYPE_DOWNTIME_DELETE == downtime_data->type)
+    downtimes.erase(downtime.id());
+
+  // Send event.
+  gl_publisher.write(d);
   return 0;
 }
 

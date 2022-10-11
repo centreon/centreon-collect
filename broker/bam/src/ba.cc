@@ -39,6 +39,10 @@ double ba::_normalize(double d) {
   return d;
 };
 
+static bool time_is_undefined(uint64_t t) {
+  return t == 0 || t == static_cast<uint64_t>(-1);
+}
+
 /**
  *  Constructor.
  *
@@ -373,6 +377,42 @@ void ba::service_update(const std::shared_ptr<neb::downtime>& dt,
         "happen. Check your database: got (host {}, service {}) expected ({}, "
         "{})",
         _id, _name, dt->host_id, dt->service_id, _host_id, _service_id);
+}
+
+/**
+ *  @brief Notify BA of a downtime (protobuf)
+ *
+ *  Used to watch for downtime.
+ *
+ *  @param dt       Downtime of the service.
+ *  @param visitor  Visitor that will receive events.
+ */
+void ba::service_update(const std::shared_ptr<neb::pb_downtime>& dt,
+                        io::stream* visitor) {
+  (void)visitor;
+  auto& downtime = dt->obj();
+  assert(downtime.host_id() == _host_id &&
+         downtime.service_id() == _service_id);
+
+  // Log message.
+  log_v2::bam()->debug(
+      "BAM: BA {} '{}' is getting notified of a downtime (pb) on its service "
+      "({}, {})",
+      _id, _name, _host_id, _service_id);
+
+  // Check if there was a change.
+  bool in_downtime(downtime.started() &&
+                   time_is_undefined(downtime.actual_end_time()));
+  if (_in_downtime != in_downtime) {
+    log_v2::bam()->trace("ba: service_update downtime: {}", _in_downtime);
+    _in_downtime = in_downtime;
+
+    // Generate status event.
+    visit(visitor);
+
+    // Propagate change.
+    propagate_update(visitor);
+  }
 }
 
 /**

@@ -32,6 +32,10 @@ using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;
 
+static bool time_is_undefined(uint64_t t) {
+  return t == 0 || t == static_cast<uint64_t>(-1);
+}
+
 /**
  *  Default constructor.
  */
@@ -272,24 +276,22 @@ void kpi_service::service_update(
  *  @param[out] visitor  Object that will receive events.
  */
 void kpi_service::service_update(
-    std::shared_ptr<neb::acknowledgement> const& ack,
+    const std::shared_ptr<neb::acknowledgement>& ack,
     io::stream* visitor) {
-  if (ack && ack->host_id == _host_id && ack->service_id == _service_id) {
-    // Log message.
-    log_v2::bam()->debug(
-        "BAM: KPI {} is getting an acknowledgement event for service ({}, {}) "
-        "entry_time {} ; deletion_time {}",
-        _id, _host_id, _service_id, ack->entry_time, ack->deletion_time);
+  // Log message.
+  log_v2::bam()->debug(
+      "BAM: KPI {} is getting an acknowledgement event for service ({}, {}) "
+      "entry_time {} ; deletion_time {}",
+      _id, _host_id, _service_id, ack->entry_time, ack->deletion_time);
 
-    // Update information.
-    _acknowledged = ack->deletion_time.is_null();
+  // Update information.
+  _acknowledged = ack->deletion_time.is_null();
 
-    // Generate status event.
-    visit(visitor);
+  // Generate status event.
+  visit(visitor);
 
-    // Propagate change.
-    propagate_update(visitor);
-  }
+  // Propagate change.
+  propagate_update(visitor);
 }
 
 /**
@@ -334,6 +336,59 @@ void kpi_service::service_update(const std::shared_ptr<neb::downtime>& dt,
       "BAM: KPI {} is getting notified of a downtime ({}) on its service ({}, "
       "{}), in downtime: {} at {}",
       _id, dt->internal_id, _host_id, _service_id, _downtimed, _last_check);
+
+  // Generate status event.
+  visit(visitor);
+
+  // Propagate change.
+  propagate_update(visitor);
+}
+
+/**
+ *  Service got a downtime (protobuf).
+ *
+ *  @param[in]  dt
+ *  @param[out] visitor  Object that will receive events.
+ */
+void kpi_service::service_update(const std::shared_ptr<neb::pb_downtime>& dt,
+                                 io::stream* visitor) {
+  auto& downtime = dt->obj();
+  // Update information.
+  bool downtimed =
+      downtime.started() && time_is_undefined(downtime.actual_end_time());
+  if (!_downtimed && downtimed)
+    _downtimed = true;
+
+  if (_downtime_ids.contains(downtime.id()) &&
+      time_is_undefined(downtime.deletion_time())) {
+    log_v2::bam()->trace("Downtime {} already handled in this kpi service",
+                         downtime.id());
+    return;
+  }
+
+  if (downtimed) {
+    log_v2::bam()->trace("adding in kpi service the impacting downtime {}",
+                         downtime.id());
+    _downtime_ids.insert(downtime.id());
+  } else {
+    log_v2::bam()->trace("removing from kpi service the impacting downtime {}",
+                         downtime.id());
+    _downtime_ids.erase(downtime.id());
+    _downtimed = !_downtime_ids.empty();
+  }
+
+  if (!_event || _event->in_downtime != _downtimed) {
+    _last_check =
+        _downtimed ? downtime.actual_start_time() : downtime.actual_end_time();
+    log_v2::bam()->trace("kpi service {} update, last check set to {}", _id,
+                         _last_check);
+  }
+
+  // Log message.
+  log_v2::bam()->debug(
+      "BAM: KPI {} is getting notified of a downtime ({}) on its service ({}, "
+      "{}), in downtime: {} at {}",
+      _id, downtime.id(), _host_id, _service_id, _downtimed, _last_check);
 
   // Generate status event.
   visit(visitor);

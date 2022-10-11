@@ -146,6 +146,8 @@ void broker_module_init(void const* arg) {
                        &neb::responsive_instance::operations,
                        neb::responsive_instance::entries);
 
+      e.register_event(make_type(io::neb, neb::de_pb_downtime), "Downtime",
+                       &neb::pb_downtime::operations, "downtimes");
       e.register_event(make_type(io::neb, neb::de_pb_service), "Service",
                        &neb::pb_service::operations, "services");
       e.register_event(make_type(io::neb, neb::de_pb_adaptive_service),

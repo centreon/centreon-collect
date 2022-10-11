@@ -436,23 +436,22 @@ def config_broker(name, poller_inst: int = 1):
         broker_name = "central-module-master"
         filename = "central-module0.json"
     else:
-        if not exists(VAR_ROOT + "/lib/centreon/metrics/"):
-            makedirs(VAR_ROOT + "/lib/centreon/metrics/")
-        if not exists(VAR_ROOT + "/lib/centreon/status/"):
-            makedirs(VAR_ROOT + "/lib/centreon/status/")
-        if not exists(VAR_ROOT + "/lib/centreon/metrics/tmpl_15552000_300_0.rrd"):
+        if not exists(f"{VAR_ROOT}/lib/centreon/metrics/"):
+            makedirs(f"{VAR_ROOT}/lib/centreon/metrics/")
+        if not exists(f"{VAR_ROOT}/lib/centreon/status/"):
+            makedirs(f"{VAR_ROOT}/lib/centreon/status/")
+        if not exists(f"{VAR_ROOT}/lib/centreon/metrics/tmpl_15552000_300_0.rrd"):
             getoutput(
-                "rrdcreate " + VAR_ROOT + "/lib/centreon/metrics/tmpl_15552000_300_0.rrd DS:value:ABSOLUTE:3000:U:U RRA:AVERAGE:0.5:1:864000")
+                f"rrdcreate {VAR_ROOT}/lib/centreon/metrics/tmpl_15552000_300_0.rrd DS:value:ABSOLUTE:3000:U:U RRA:AVERAGE:0.5:1:864000")
         broker_id = 2
         broker_name = "central-rrd-master"
         filename = "central-rrd.json"
 
     if name == 'module':
         for i in range(poller_inst):
-            broker_name = ETC_ROOT + "/centreon-broker/central-module{}.json".format(
-                i)
+            broker_name = f"{ETC_ROOT}/centreon-broker/central-module{i}.json"
             buf = config[name].format(
-                broker_id, "central-module-master{}".format(i), "", "", "", "", "", VAR_ROOT)
+                broker_id, f"central-module-master{i}", "", "", "", "", "", VAR_ROOT)
             conf = json.loads(buf)
             conf["centreonBroker"]["poller_name"] = f"Poller{i}"
             conf["centreonBroker"]["poller_id"] = i + 1
@@ -461,7 +460,7 @@ def config_broker(name, poller_inst: int = 1):
             f.write(json.dumps(conf, indent=2))
             f.close()
     else:
-        f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "w")
+        f = open(f"{ETC_ROOT}/centreon-broker/{filename}", "w")
         f.write(config[name].format(broker_id, broker_name,
                 DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME_STORAGE, VAR_ROOT))
         f.close()
@@ -1253,18 +1252,12 @@ def get_indexes_to_rebuild(count: int):
                         "building data for metric {}".format(r['metric_id']))
                     start = int(time.time()) - 24 * 60 * 60 * 30
                     # We go back to 30 days with steps of 5 mn
-                    value1 = int(r['metric_id'])
-                    value2 = 0
-                    value = value1
+                    value = int(r['metric_id']) // 2
                     cursor.execute("DELETE FROM data_bin WHERE id_metric={} AND ctime >= {}".format(
                         r['metric_id'], start))
-                    for i in range(0, 24 * 60 * 60 * 30, 60 * 5):
+                    for i in range(0, 24 * 60 * 60 * 31, 60 * 5):
                         cursor.execute("INSERT INTO data_bin (id_metric, ctime, value, status) VALUES ({},{},{},'0')".format(
                             r['metric_id'], start + i, value))
-                        if value == value1:
-                            value = value2
-                        else:
-                            value = value1
                     connection.commit()
                     retval.append(int(r['index_id']))
 
@@ -1427,7 +1420,7 @@ def compare_rrd_average_value(metric, value: float):
         return err < 0.05
     else:
         logger.console(
-            "It was impossible to get the average value from the file " + VAR_ROOT + "/lib/centreon/metrics/{}.rrd from the last 30 days".format(metric))
+           f"It was impossible to get the average value from the file {VAR_ROOT}/lib/centreon/metrics/{metric}.rrd from the last 30 days")
         return True
 
 
@@ -1494,7 +1487,7 @@ def add_bam_config_to_broker(name):
     else:
         filename = "central-rrd.json"
 
-    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r")
+    f = open(f"{ETC_ROOT}/centreon-broker/{filename}", "r")
     buf = f.read()
     f.close()
     conf = json.loads(buf)

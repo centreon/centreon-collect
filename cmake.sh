@@ -63,8 +63,12 @@ done
 # Am I root?
 my_id=$(id -u)
 
-if [ -r /etc/centos-release ] ; then
-  maj="centos$(cat /etc/centos-release | awk '{print $4}' | cut -f1 -d'.')"
+if [ -r /etc/centos-release -o -r /etc/almalinux-release ] ; then
+  if [ -r /etc/centos-release ] ; then
+    maj="centos$(cat /etc/centos-release | awk '{print $4}' | cut -f1 -d'.')"
+  else
+    maj="centos$(cat /etc/almalinux-release | awk '{print $3}' | cut -f1 -d'.')"
+  fi
   v=$(cmake --version)
   if [[ "$v" =~ "version 3" ]] ; then
     cmake='cmake'
@@ -88,6 +92,7 @@ if [ -r /etc/centos-release ] ; then
       echo "python38 already installed"
     fi
   else
+    yum -y install gcc-c++
     if [[ ! -x /usr/bin/python3 ]] ; then
       yum -y install python3
     else
@@ -126,8 +131,10 @@ if [ -r /etc/centos-release ] ; then
     if ! rpm -q $i ; then
       if [[ "$maj" == 'centos7' ]] ; then
         yum install -y $i
-      else
+      elif [[ "$maj" == 'centos8' ]] ; then
         dnf -y --enablerepo=PowerTools install $i
+      else
+        dnf -y install $i
       fi
     fi
   done

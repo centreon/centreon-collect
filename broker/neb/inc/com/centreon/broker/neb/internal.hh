@@ -52,6 +52,15 @@ extern std::unordered_map<std::pair<uint32_t, uint32_t>,
                           absl::Hash<std::pair<uint32_t, uint32_t>>>
     gl_acknowledgements;
 
+using pb_downtime =
+    io::protobuf<Downtime, make_type(io::neb, neb::de_pb_downtime)>;
+
+using pb_host_status =
+    io::protobuf<HostStatus, make_type(io::neb, neb::de_pb_host_status)>;
+using pb_host = io::protobuf<Host, make_type(io::neb, neb::de_pb_host)>;
+using pb_adaptive_host =
+    io::protobuf<AdaptiveHost, make_type(io::neb, neb::de_pb_adaptive_host)>;
+
 using pb_service =
     io::protobuf<Service, make_type(io::neb, neb::de_pb_service)>;
 using pb_adaptive_service =
@@ -61,14 +70,9 @@ using pb_adaptive_service =
 using pb_service_status =
     io::protobuf<ServiceStatus, make_type(io::neb, neb::de_pb_service_status)>;
 
-using pb_host_status =
-    io::protobuf<HostStatus, make_type(io::neb, neb::de_pb_host_status)>;
-using pb_host = io::protobuf<Host, make_type(io::neb, neb::de_pb_host)>;
-using pb_adaptive_host =
-    io::protobuf<AdaptiveHost, make_type(io::neb, neb::de_pb_adaptive_host)>;
-
 using pb_severity =
     io::protobuf<Severity, make_type(io::neb, neb::de_pb_severity)>;
+
 using pb_tag = io::protobuf<Tag, make_type(io::neb, neb::de_pb_tag)>;
 
 using pb_comment =

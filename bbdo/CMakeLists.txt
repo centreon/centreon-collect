@@ -106,18 +106,6 @@ macro(get_protobuf_files name)
     "${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.h")
 endmacro()
 
-macro(get_protobuf_accessor name)
-  set(proto_file "${name}.proto")
-  set(full_proto_file "${CMAKE_SOURCE_DIR}/bbdo/${name}.proto")
-  add_custom_command(OUTPUT "${CMAKE_SOURCE_DIR}/bbdo/${name}_accessor.hh"
-    DEPENDS ${full_proto_file}
-    COMMENT "Generating accessor to protobuf message ${proto_file}"
-    COMMAND python3
-    ARGS ${full_proto_file}
-    VERBATIM
-  )
-endmacro()
-
 include_directories("${CMAKE_SOURCE_DIR}/broker/core/inc")
 
 add_library(

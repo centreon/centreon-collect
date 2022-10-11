@@ -36,6 +36,7 @@
 #include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/neb/service.hh"
 #include "com/centreon/broker/neb/service_status.hh"
+#include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/timestamp.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
@@ -254,6 +255,20 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
           "stopped: {}",
           dt->internal_id, dt->host_id, dt->service_id, dt->was_started,
           dt->was_cancelled);
+      multiplexing::publisher pblshr;
+      event_cache_visitor ev_cache;
+      _applier.book_service().update(dt, &ev_cache);
+      ev_cache.commit_to(pblshr);
+    } break;
+    case neb::pb_downtime::static_type(): {
+      std::shared_ptr<neb::pb_downtime> dt(
+          std::static_pointer_cast<neb::pb_downtime>(data));
+      auto& downtime = dt->obj();
+      log_v2::bam()->trace(
+          "BAM: processing downtime (pb) ({}) on service ({}, {}) started: {}, "
+          "stopped: {}",
+          downtime.id(), downtime.host_id(), downtime.service_id(),
+          downtime.started(), downtime.cancelled());
       multiplexing::publisher pblshr;
       event_cache_visitor ev_cache;
       _applier.book_service().update(dt, &ev_cache);

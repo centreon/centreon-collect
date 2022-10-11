@@ -74,7 +74,7 @@ BRCTS1
 
 BRCS1
 	[Documentation]	Broker reverse connection stopped
-	[Tags]	Broker	map	reverse connection stopped
+	[Tags]	Broker	map	reversed
 	Config Engine	${1}
 	Config Broker	rrd
 	Config Broker	central_map

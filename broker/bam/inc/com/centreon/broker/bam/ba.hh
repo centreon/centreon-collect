@@ -145,6 +145,8 @@ class ba : public computable, public service_listener {
   void visit(io::stream* visitor);
   void service_update(std::shared_ptr<neb::downtime> const& dt,
                       io::stream* visitor) override;
+  void service_update(std::shared_ptr<neb::pb_downtime> const& dt,
+                      io::stream* visitor) override;
   void save_inherited_downtime(persistent_cache& cache) const;
   void set_inherited_downtime(inherited_downtime const& dwn);
   void set_level_critical(double level);

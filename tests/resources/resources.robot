@@ -132,10 +132,12 @@ Check Connections
 	FOR	${idx}	IN RANGE	0	${count}
 	 ${alias}=	Catenate	SEPARATOR=	e	${idx}
 	 ${pid2}=	Get Process Id	${alias}
+	 Log to console	Check Connection 5669 ${pid1} ${pid2}
 	 ${retval}=	Check Connection	5669	${pid1}	${pid2}
 	 Return from Keyword If	${retval} == ${False}	${False}
 	END
 	${pid2}=	Get Process Id	b2
+	Log to console	Check Connection 5670 ${pid1} ${pid2}
 	${retval}=	Check Connection	5670	${pid1}	${pid2}
 	[Return]	${retval}
 
@@ -157,6 +159,7 @@ Save Logs
 	${failDir}=	Catenate	SEPARATOR=	failed/	${Test Name}
 	Create Directory	${failDir}
 	Copy files	${centralLog}	${failDir}
+	Copy files	${rrdLog}	${failDir}
 	Copy files	${moduleLog0}	${failDir}
 	Copy files	${engineLog0}	${failDir}
 	Copy files	${ENGINE_LOG}/config0/gcore_*	${failDir}
