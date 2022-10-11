@@ -429,8 +429,7 @@ int neb::callback_pb_custom_variable(int, void* data) {
     else if (NEBTYPE_SERVICECUSTOMVARIABLE_ADD == cvar->type ||
              NEBTYPE_SERVICECUSTOMVARIABLE_DELETE == cvar->type) {
       engine::service* svc{static_cast<engine::service*>(cvar->object_ptr)};
-      if (svc && !svc->description().empty() &&
-          !svc->get_hostname().empty()) {
+      if (svc && !svc->description().empty() && !svc->get_hostname().empty()) {
         // Fill custom variable event.
         std::pair<uint64_t, uint64_t> p;
         p = engine::get_host_and_service_id(svc->get_hostname(),
@@ -578,7 +577,7 @@ int neb::callback_custom_variable(int callback_type, void* data) {
         engine::service* svc{static_cast<engine::service*>(cvar->object_ptr)};
         if (svc && !svc->description().empty() &&
             !svc->get_hostname().empty()) {
-          std::pair<uint64_t, uint64_t> p{engine::get_host_and_service_id(
+          const std::pair<uint64_t, uint64_t> p{engine::get_host_and_service_id(
               svc->get_hostname(), svc->description())};
           if (p.first && p.second) {
             auto old_cvar{std::make_shared<custom_variable>()};
@@ -2591,9 +2590,9 @@ int neb::callback_pb_service(int callback_type, void* data) {
       srv.set_host_id(p.first);
       srv.set_service_id(p.second);
       // Send service event.
-      SPDLOG_LOGGER_INFO(
-          log_v2::neb(), "callbacks: new service {} ('{}') on host {}",
-          srv.service_id(), es->description(), srv.host_id());
+      SPDLOG_LOGGER_INFO(log_v2::neb(),
+                         "callbacks: new service {} ('{}') on host {}",
+                         srv.service_id(), es->description(), srv.host_id());
       neb::gl_publisher.write(s);
 
       /* No need to send this service custom variables changes, custom
@@ -3051,9 +3050,9 @@ int32_t neb::callback_pb_service_status(int callback_type
   sscr.set_percent_state_change(es->get_percent_state_change());
   if (!es->get_perf_data().empty()) {
     sscr.set_perfdata(misc::string::check_string_utf8(es->get_perf_data()));
-    SPDLOG_LOGGER_TRACE(
-        log_v2::neb(), "callbacks: service ({}, {}) has perfdata <<{}>>",
-        es->host_id(), es->service_id(), es->get_perf_data());
+    SPDLOG_LOGGER_TRACE(log_v2::neb(),
+                        "callbacks: service ({}, {}) has perfdata <<{}>>",
+                        es->host_id(), es->service_id(), es->get_perf_data());
   } else {
     SPDLOG_LOGGER_TRACE(log_v2::neb(),
                         "callbacks: service ({}, {}) has no perfdata",
