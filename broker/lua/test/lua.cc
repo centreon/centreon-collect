@@ -3240,7 +3240,7 @@ TEST_F(LuaTest, PbTestCustomVariableApiV1) {
   hst->mut_obj().set_default_value("tata");
   hst->mut_obj().set_enabled(false);
   hst->mut_obj().set_password(true);
-  hst->mut_obj().set_var_type(
+  hst->mut_obj().set_type(
       com::centreon::broker::CustomVariable_VarType_SERVICE);
   std::string filename("/tmp/cache_test.lua");
   RemoveFile("/tmp/event_log");
@@ -3283,7 +3283,7 @@ TEST_F(LuaTest, PbTestCustomVariableApiV1) {
   ASSERT_NE(lst.find("default_value = tata"), std::string::npos);
   ASSERT_NE(lst.find("enabled = false"), std::string::npos);
   ASSERT_NE(lst.find("password = true"), std::string::npos);
-  ASSERT_NE(lst.find("var_type = 1"), std::string::npos);
+  ASSERT_NE(lst.find("type = 1"), std::string::npos);
   RemoveFile(filename);
   RemoveFile("/tmp/event_log");
 }
@@ -3303,7 +3303,7 @@ TEST_F(LuaTest, PbTestCustomVariableApiV2) {
   hst->mut_obj().set_default_value("tata");
   hst->mut_obj().set_enabled(false);
   hst->mut_obj().set_password(true);
-  hst->mut_obj().set_var_type(
+  hst->mut_obj().set_type(
       com::centreon::broker::CustomVariable_VarType_SERVICE);
   std::string filename("/tmp/cache_test.lua");
   RemoveFile("/tmp/event_log");
@@ -3324,7 +3324,7 @@ TEST_F(LuaTest, PbTestCustomVariableApiV2) {
                "  broker_log:info(0, 'default_value = ' .. d.default_value)\n"
                "  broker_log:info(0, 'enabled = ' .. tostring(d.enabled))\n"
                "  broker_log:info(0, 'password = ' .. tostring(d.password))\n"
-               "  broker_log:info(0, 'var_type = ' .. d.var_type)\n"
+               "  broker_log:info(0, 'type = ' .. d.type)\n"
                "  return true\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
@@ -3340,7 +3340,7 @@ TEST_F(LuaTest, PbTestCustomVariableApiV2) {
   ASSERT_NE(lst.find("default_value = tata"), std::string::npos);
   ASSERT_NE(lst.find("enabled = false"), std::string::npos);
   ASSERT_NE(lst.find("password = true"), std::string::npos);
-  ASSERT_NE(lst.find("var_type = 1"), std::string::npos);
+  ASSERT_NE(lst.find("type = 1"), std::string::npos);
   RemoveFile(filename);
   RemoveFile("/tmp/event_log");
 }
@@ -3360,7 +3360,7 @@ TEST_F(LuaTest, PbTestCustomVariableNoIntValueNoRecordedInCache) {
   hst->mut_obj().set_default_value("tata");
   hst->mut_obj().set_enabled(false);
   hst->mut_obj().set_password(true);
-  hst->mut_obj().set_var_type(
+  hst->mut_obj().set_type(
       com::centreon::broker::CustomVariable_VarType_SERVICE);
   std::string filename("/tmp/cache_test.lua");
 
@@ -3392,7 +3392,7 @@ TEST_F(LuaTest, PbTestCustomVariableIntValueRecordedInCache) {
   hst->mut_obj().set_default_value("tata");
   hst->mut_obj().set_enabled(false);
   hst->mut_obj().set_password(true);
-  hst->mut_obj().set_var_type(
+  hst->mut_obj().set_type(
       com::centreon::broker::CustomVariable_VarType_SERVICE);
   std::string filename("/tmp/cache_test.lua");
 

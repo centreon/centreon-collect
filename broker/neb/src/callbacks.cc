@@ -411,7 +411,7 @@ int neb::callback_pb_custom_variable(int, void* data) {
           obj.set_host_id(host_id);
           obj.set_modified(!add);
           obj.set_name(name);
-          obj.set_var_type(com::centreon::broker::CustomVariable_VarType_HOST);
+          obj.set_type(com::centreon::broker::CustomVariable_VarType_HOST);
           obj.set_update_time(cvar->timestamp.tv_sec);
           if (add) {
             obj.set_default_value(
@@ -447,8 +447,7 @@ int neb::callback_pb_custom_variable(int, void* data) {
           obj.set_modified(!add);
           obj.set_service_id(p.second);
           obj.set_name(name);
-          obj.set_var_type(
-              com::centreon::broker::CustomVariable_VarType_SERVICE);
+          obj.set_type(com::centreon::broker::CustomVariable_VarType_SERVICE);
           obj.set_update_time(cvar->timestamp.tv_sec);
           if (add) {
             std::string value(misc::string::check_string_utf8(cvar->var_value));
