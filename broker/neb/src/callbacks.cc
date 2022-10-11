@@ -1849,7 +1849,7 @@ int neb::callback_pb_host_check(int callback_type, void* data) {
             : com::centreon::broker::CheckPassive);
     host_check->mut_obj().set_command_line(
         misc::string::check_string_utf8(hcdata->command_line));
-    host_check->mut_obj().set_host_id(h->get_host_id());
+    host_check->mut_obj().set_host_id(h->host_id());
     host_check->mut_obj().set_next_check(h->get_next_check());
 
     // Send event.

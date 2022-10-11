@@ -3348,6 +3348,7 @@ TEST_F(LuaTest, PbTestCustomVariableApiV2) {
 TEST_F(LuaTest, PbTestCustomVariableNoIntValueNoRecordedInCache) {
   config::applier::modules modules;
   modules.load_file("./lib/10-neb.so");
+  std::map<std::string, misc::variant> conf;
   auto hst{std::make_shared<neb::pb_custom_variable>()};
   hst->mut_obj().mutable_header()->set_conf_version(5);
   hst->mut_obj().set_host_id(1);
@@ -3410,6 +3411,8 @@ TEST_F(LuaTest, PbTestCustomVariableIntValueRecordedInCache) {
 
 TEST_F(LuaTest, PbBrokerEventCache) {
   config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  std::map<std::string, misc::variant> conf;
   auto svc{std::make_shared<neb::pb_service>()};
   auto& obj = svc->mut_obj();
   obj.set_host_id(1);

@@ -486,15 +486,19 @@ def check_downtimes_with_timeout(nb: int, timeout: int):
 
         with connection:
             with connection.cursor() as cursor:
-                cursor.execute("SELECT count(*) FROM downtimes WHERE deletion_time IS NULL")
+                cursor.execute(
+                    "SELECT count(*) FROM downtimes WHERE deletion_time IS NULL")
                 result = cursor.fetchall()
                 if len(result) > 0 and not result[0]['count(*)'] is None:
                     if result[0]['count(*)'] == int(nb):
                         return True
                     else:
-                        logger.console(f"We should have {nb} downtimes but we have {result[0]['count(*)']}")
+                        logger.console(
+                            f"We should have {nb} downtimes but we have {result[0]['count(*)']}")
         time.sleep(2)
     return False
+
+
 def check_service_downtime_with_timeout(hostname: str, service_desc: str, enabled, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
@@ -516,8 +520,7 @@ def check_service_downtime_with_timeout(hostname: str, service_desc: str, enable
     return False
 
 
-def check_service_check_with_timeout(hostname: str, service_desc: str,  timeout: int, command_line: str, next_check_second_offset: int):
-    next_check_expected = time.time() + next_check_second_offset
+def check_service_check_with_timeout(hostname: str, service_desc: str,  timeout: int, command_line: str):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -531,19 +534,18 @@ def check_service_check_with_timeout(hostname: str, service_desc: str,  timeout:
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    f"SELECT s.command_line, s.next_check FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description=\"{service_desc}\" AND h.name=\"{hostname}\"")
+                    f"SELECT s.command_line FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description=\"{service_desc}\" AND h.name=\"{hostname}\"")
                 result = cursor.fetchall()
                 if len(result) > 0:
                     logger.console(
-                        f"command_line={result[0]['command_line']} and next_check={result[0]['next_check']} next_check_expected={next_check_expected}")
-                    if result[0]['command_line'] is not None and result[0]['command_line'] == command_line and abs(int(result[0]['next_check']) - next_check_expected) < 5:
+                        f"command_line={result[0]['command_line']}")
+                    if result[0]['command_line'] is not None and result[0]['command_line'] == command_line:
                         return True
         time.sleep(1)
     return False
 
 
-def check_host_check_with_timeout(hostname: str, timeout: int, command_line: str, next_check_second_offset: int):
-    next_check_expected = time.time() + next_check_second_offset
+def check_host_check_with_timeout(hostname: str, timeout: int, command_line: str):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -557,12 +559,12 @@ def check_host_check_with_timeout(hostname: str, timeout: int, command_line: str
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    f"SELECT h.command_line, h.next_check FROM hosts h WHERE  h.name=\"{hostname}\"")
+                    f"SELECT h.command_line FROM hosts h WHERE  h.name=\"{hostname}\"")
                 result = cursor.fetchall()
                 if len(result) > 0:
                     logger.console(
-                        f"command_line={result[0]['command_line']} and next_check={result[0]['next_check']} next_check_expected={next_check_expected}")
-                    if result[0]['command_line'] is not None and result[0]['command_line'] == command_line and abs(int(result[0]['next_check']) - next_check_expected) < 5:
+                        f"command_line={result[0]['command_line']} ")
+                    if result[0]['command_line'] is not None and result[0]['command_line'] == command_line:
                         return True
         time.sleep(1)
     return False
@@ -584,6 +586,7 @@ def show_downtimes():
 
     for r in result:
         logger.console(f" >> {r}")
+
 
 def delete_service_downtime(hst: str, svc: str):
     now = int(time.time())

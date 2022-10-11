@@ -567,7 +567,7 @@ void stream::_process_pb_comment(const std::shared_ptr<io::data>& d) {
           {11, "internal_id", io::protobuf_base::invalid_on_zero, 0}};
       query_preparator qp(neb::pb_comment::static_type(), unique);
       _pb_comment_insupdate = qp.prepare_insert_or_update_table(
-          _mysql, "comments",
+          _mysql, "comments ",
           {{2, "author", 0, get_comments_col_size(comments_author)},
            {3, "type", 0, 0},
            {4, "data", 0, get_comments_col_size(comments_data)},
@@ -914,7 +914,7 @@ void stream::_process_pb_host_check(const std::shared_ptr<io::data>& d) {
   // Cast object.
   const neb::pb_host_check& hc_obj =
       *static_cast<neb::pb_host_check const*>(d.get());
-  const HostCheck& hc = hc_obj.obj();
+  const Check& hc = hc_obj.obj();
   if (!_host_instance_known(hc.host_id())) {
     SPDLOG_LOGGER_WARN(
         log_v2::sql(),
@@ -941,13 +941,12 @@ void stream::_process_pb_host_check(const std::shared_ptr<io::data>& d) {
     if (!_pb_host_check_update.prepared()) {
       query_preparator::event_pb_unique unique{
           {5, "host_id", io::protobuf_base::invalid_on_zero, 0}};
-      query_preparator qp(neb::pb_comment::static_type(), unique);
+      query_preparator qp(neb::pb_host_check::static_type(), unique);
       _pb_host_check_update = qp.prepare_update_table(
-          _mysql, "hosts",
+          _mysql, "hosts ", /*space is mandatory to avoid conflict with
+                               _process_host_check request*/
           {{5, "host_id", io::protobuf_base::invalid_on_zero, 0},
-           {3, "check_type", 0, 0},
-           {4, "command_line", 0, get_hosts_col_size(hosts_command_line)},
-           {6, "next_check", 0, 0}});
+           {4, "command_line", 0, get_hosts_col_size(hosts_command_line)}});
     }
 
     // Processing.
@@ -2324,7 +2323,7 @@ void stream::_process_pb_service_check(const std::shared_ptr<io::data>& d) {
   // Cast object.
   const neb::pb_service_check& pb_sc(
       *static_cast<neb::pb_service_check const*>(d.get()));
-  const ServiceCheck& sc(pb_sc.obj());
+  const Check& sc(pb_sc.obj());
 
   if (!_host_instance_known(sc.host_id())) {
     SPDLOG_LOGGER_WARN(
@@ -2354,14 +2353,14 @@ void stream::_process_pb_service_check(const std::shared_ptr<io::data>& d) {
       query_preparator::event_pb_unique unique{
           {5, "host_id", io::protobuf_base::invalid_on_zero, 0},
           {7, "service_id", io::protobuf_base::invalid_on_zero, 0}};
-      query_preparator qp(neb::pb_comment::static_type(), unique);
+      query_preparator qp(neb::pb_service_check::static_type(), unique);
       _pb_service_check_update = qp.prepare_update_table(
-          _mysql, "services",
+          _mysql, "services ", /*space is mandatory to avoid conflict with
+                              _process_host_check request*/
           {{5, "host_id", io::protobuf_base::invalid_on_zero, 0},
            {7, "service_id", io::protobuf_base::invalid_on_zero, 0},
-           {3, "check_type", 0, 0},
-           {4, "command_line", 0, get_services_col_size(services_command_line)},
-           {6, "next_check", 0, 0}});
+           {4, "command_line", 0,
+            get_services_col_size(services_command_line)}});
     }
 
     // Processing.

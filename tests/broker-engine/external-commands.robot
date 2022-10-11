@@ -2588,12 +2588,10 @@ BESERVCHECK
 	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 	Should Be True	${result}	msg=No check for external commands executed for 1mn.
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
-	Query	UPDATE services set command_line='toto', next_check=0 where service_id=1 and host_id=1
-	${start}=	Get Current Date  result_format=epoch
-	Log To Console  now=${start}
+	Execute SQL String	UPDATE services set command_line='toto', next_check=0 where service_id=1 and host_id=1
 	schedule_forced_svc_check  host_1  service_1
 	${command_param}=  get_command_service_param  1
-	${result}=  check_service_check_with_timeout  host_1  service_1  30  ${VarRoot}/lib/centreon-engine/check.pl ${command_param}  0
+	${result}=  check_service_check_with_timeout  host_1  service_1  30  ${VarRoot}/lib/centreon-engine/check.pl ${command_param}  
 	Should Be True	${result}	msg=service table not updated
 
 BEHOSTCHECK
@@ -2613,7 +2611,7 @@ BEHOSTCHECK
 	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 	Should Be True	${result}	msg=No check for external commands executed for 1mn.
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
-	Query	UPDATE hosts set command_line='toto', next_check=0 where host_id=1
+	Execute SQL String	UPDATE hosts set command_line='toto' where name='host_1'
 	schedule_forced_host_check  host_1
-	${result}=  check_host_check_with_timeout  host_1  30  ${VarRoot}/lib/centreon-engine/check.pl 0 1  0
+	${result}=  check_host_check_with_timeout  host_1  30  ${VarRoot}/lib/centreon-engine/check.pl 0 1  
 	Should Be True	${result}	msg=hosts table not updated
