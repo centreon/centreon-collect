@@ -25,7 +25,6 @@
 #include "com/centreon/broker/neb/custom_variable_status.hh"
 #include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/event_handler.hh"
-#include "com/centreon/broker/neb/flapping_status.hh"
 #include "com/centreon/broker/neb/host.hh"
 #include "com/centreon/broker/neb/host_check.hh"
 #include "com/centreon/broker/neb/host_dependency.hh"

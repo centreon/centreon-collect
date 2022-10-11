@@ -56,7 +56,7 @@ void (stream::*const stream::_neb_processing_table[])(
     &stream::_process_custom_variable_status,
     &stream::_process_downtime,
     &stream::_process_event_handler,
-    &stream::_process_flapping_status,
+    nullptr,
     &stream::_process_host_check,
     &stream::_process_host_dependency,
     &stream::_process_host_group,

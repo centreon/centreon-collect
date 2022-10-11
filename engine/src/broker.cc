@@ -669,54 +669,6 @@ void broker_external_command(int type,
 }
 
 /**
- *  Send flapping data to broker.
- *
- *  @param[in] type           Type.
- *  @param[in] flapping_type  Flapping type.
- *  @param[in] data           Data.
- *  @param[in] percent_change Percent change.
- *  @param[in] high_threshold High threshold.
- *  @param[in] low_threshold  Low threshold.
- *  @param[in] timestamp      Timestamp.
- */
-void broker_flapping_data(int type,
-                          unsigned int flapping_type,
-                          void* data,
-                          double percent_change,
-                          double high_threshold,
-                          double low_threshold,
-                          struct timeval const* timestamp) {
-  // Config check.
-  if (!(config->event_broker_options() & BROKER_FLAPPING_DATA))
-    return;
-  if (!data)
-    return;
-
-  // Fill struct with relevant data.
-  nebstruct_flapping_data ds;
-  host* temp_host(NULL);
-  com::centreon::engine::service* temp_service(NULL);
-  ds.type = type;
-  ds.timestamp = get_broker_timestamp(timestamp);
-  ds.flapping_type = flapping_type;
-  if (flapping_type == SERVICE_FLAPPING) {
-    temp_service = (com::centreon::engine::service*)data;
-    ds.host_id = temp_service->get_host_id();
-    ds.service_id = temp_service->get_service_id();
-  } else {
-    temp_host = (host*)data;
-    ds.host_id = temp_host->get_host_id();
-    ds.service_id = 0;
-  }
-  ds.percent_change = percent_change;
-  ds.high_threshold = high_threshold;
-  ds.low_threshold = low_threshold;
-
-  // Make callbacks.
-  neb_make_callbacks(NEBCALLBACK_FLAPPING_DATA, &ds);
-}
-
-/**
  *  Send group update to broker.
  *
  *  @param[in] type      Type.
