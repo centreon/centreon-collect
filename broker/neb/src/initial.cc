@@ -134,7 +134,7 @@ static void send_downtimes_list() {
       com::centreon::engine::downtimes::downtime_manager::instance()
           .get_scheduled_downtimes()};
   // Iterate through all downtimes.
-  for (auto& p : dts) {
+  for (const auto& p : dts) {
     // Fill callback struct.
     nebstruct_downtime_data nsdd;
     memset(&nsdd, 0, sizeof(nsdd));
