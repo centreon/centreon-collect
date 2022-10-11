@@ -327,7 +327,6 @@ class stream : public io::stream {
   void _process_pb_custom_variable_status(const std::shared_ptr<io::data>& d);
   void _process_downtime(const std::shared_ptr<io::data>& d);
   void _process_pb_downtime(const std::shared_ptr<io::data>& d);
-  void _process_event_handler(const std::shared_ptr<io::data>& d);
   void _process_host_check(const std::shared_ptr<io::data>& d);
   void _process_host_dependency(const std::shared_ptr<io::data>& d);
   void _process_host_group(const std::shared_ptr<io::data>& d);

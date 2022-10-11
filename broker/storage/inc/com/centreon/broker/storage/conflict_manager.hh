@@ -299,8 +299,6 @@ class conflict_manager {
       std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
   void _process_downtime(
       std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
-  void _process_event_handler(
-      std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
   void _process_host_check(
       std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
   void _process_host_dependency(

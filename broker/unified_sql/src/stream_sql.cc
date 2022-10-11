@@ -828,50 +828,6 @@ bool stream::_host_instance_known(uint64_t host_id) const {
 }
 
 /**
- *  Process an event handler event.
- *
- *  @param[in] e Uncasted event handler.
- *
- * @return The number of events that can be acknowledged.
- */
-void stream::_process_event_handler(const std::shared_ptr<io::data>& d) {
-  // Cast object.
-  neb::event_handler const& eh =
-      *static_cast<neb::event_handler const*>(d.get());
-
-  // Log message.
-  SPDLOG_LOGGER_INFO(log_v2::sql(),
-                     "SQL: processing event handler event (host: {}"
-                     ", service: {}, start time {})",
-                     eh.host_id, eh.service_id, eh.start_time);
-
-  if (!_host_instance_known(eh.host_id)) {
-    SPDLOG_LOGGER_WARN(
-        log_v2::sql(),
-        "SQL: event handler for service ({0}, {1}) thrown away because host "
-        "{0} is not known by any poller",
-        eh.host_id, eh.service_id);
-    return;
-  }
-  // Prepare queries.
-  if (!_event_handler_insupdate.prepared()) {
-    query_preparator::event_unique unique;
-    unique.insert("host_id");
-    unique.insert("service_id");
-    unique.insert("start_time");
-    query_preparator qp(neb::event_handler::static_type(), unique);
-    _event_handler_insupdate = qp.prepare_insert_or_update(_mysql);
-  }
-
-  // Processing.
-  _event_handler_insupdate << eh;
-  _mysql.run_statement(
-      _event_handler_insupdate, database::mysql_error::store_eventhandler,
-      false,
-      _mysql.choose_connection_by_instance(_cache_host_instance[eh.host_id]));
-}
-
-/**
  *  Process an host check event.
  *
  *  @param[in] e Uncasted host check.

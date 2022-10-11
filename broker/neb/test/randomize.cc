@@ -109,9 +109,6 @@ void randomize_init() {
                    neb::custom_variable_status::entries);
   e.register_event(make_type(io::neb, neb::de_downtime), "downtime",
                    &neb::downtime::operations, neb::downtime::entries);
-  e.register_event(make_type(io::neb, neb::de_event_handler), "event_handler",
-                   &neb::event_handler::operations,
-                   neb::event_handler::entries);
   e.register_event(make_type(io::neb, neb::de_host_check), "host_check",
                    &neb::host_check::operations, neb::host_check::entries);
   e.register_event(make_type(io::neb, neb::de_host_dependency),

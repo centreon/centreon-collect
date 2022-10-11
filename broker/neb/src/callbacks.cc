@@ -83,7 +83,6 @@ static struct {
     {NEBCALLBACK_ACKNOWLEDGEMENT_DATA, &neb::callback_acknowledgement},
     {NEBCALLBACK_COMMENT_DATA, &neb::callback_comment},
     {NEBCALLBACK_DOWNTIME_DATA, &neb::callback_downtime},
-    {NEBCALLBACK_EVENT_HANDLER_DATA, &neb::callback_event_handler},
     {NEBCALLBACK_EXTERNAL_COMMAND_DATA, &neb::callback_external_command},
     {NEBCALLBACK_HOST_CHECK_DATA, &neb::callback_host_check},
     {NEBCALLBACK_HOST_STATUS_DATA, &neb::callback_host_status},
@@ -101,7 +100,6 @@ static struct {
     {NEBCALLBACK_ACKNOWLEDGEMENT_DATA, &neb::callback_acknowledgement},
     {NEBCALLBACK_COMMENT_DATA, &neb::callback_pb_comment},
     {NEBCALLBACK_DOWNTIME_DATA, &neb::callback_pb_downtime},
-    {NEBCALLBACK_EVENT_HANDLER_DATA, &neb::callback_event_handler},
     {NEBCALLBACK_EXTERNAL_COMMAND_DATA, &neb::callback_pb_external_command},
     {NEBCALLBACK_HOST_CHECK_DATA, &neb::callback_host_check},
     {NEBCALLBACK_HOST_STATUS_DATA, &neb::callback_pb_host_status},
@@ -983,85 +981,6 @@ int neb::callback_pb_downtime(int callback_type, void* data) {
 
   // Send event.
   gl_publisher.write(d);
-  return 0;
-}
-
-/**
- *  @brief Function that process event handler data.
- *
- *  This function is called by Nagios when some event handler data are
- *  available.
- *
- *  @param[in] callback_type Type of the callback
- *                           (NEBCALLBACK_EVENT_HANDLER_DATA).
- *  @param[in] data          A pointer to a nebstruct_event_handler_data
- *                           containing the event handler data.
- *
- *  @return 0 on success.
- */
-int neb::callback_event_handler(int callback_type, void* data) {
-  // Log message.
-  SPDLOG_LOGGER_INFO(log_v2::neb(),
-                     "callbacks: generating event handler event");
-  (void)callback_type;
-
-  try {
-    // In/Out variables.
-    nebstruct_event_handler_data const* event_handler_data;
-    auto event_handler = std::make_shared<neb::event_handler>();
-
-    // Fill output var.
-    event_handler_data = static_cast<nebstruct_event_handler_data*>(data);
-    if (!event_handler_data->command_args.empty())
-      event_handler->command_args =
-          misc::string::check_string_utf8(event_handler_data->command_args);
-    if (event_handler_data->command_line)
-      event_handler->command_line =
-          misc::string::check_string_utf8(event_handler_data->command_line);
-    event_handler->early_timeout = event_handler_data->early_timeout;
-    event_handler->end_time = event_handler_data->end_time.tv_sec;
-    event_handler->execution_time = event_handler_data->execution_time;
-    if (!event_handler_data->host_name)
-      throw msg_fmt("unnamed host");
-    if (event_handler_data->service_description) {
-      std::pair<uint32_t, uint32_t> p;
-      p = engine::get_host_and_service_id(
-          event_handler_data->host_name,
-          event_handler_data->service_description);
-      event_handler->host_id = p.first;
-      event_handler->service_id = p.second;
-      if (!event_handler->host_id || !event_handler->service_id)
-        throw msg_fmt("could not find ID of service ('{}', '{}')",
-                      event_handler_data->host_name,
-                      event_handler_data->service_description);
-    } else {
-      event_handler->host_id =
-          engine::get_host_id(event_handler_data->host_name);
-      if (event_handler->host_id == 0)
-        throw msg_fmt("could not find ID of host '{}'",
-                      event_handler_data->host_name);
-    }
-    if (event_handler_data->output)
-      event_handler->output =
-          misc::string::check_string_utf8(event_handler_data->output);
-    event_handler->return_code = event_handler_data->return_code;
-    event_handler->start_time = event_handler_data->start_time.tv_sec;
-    event_handler->state = event_handler_data->state;
-    event_handler->state_type = event_handler_data->state_type;
-    event_handler->timeout = event_handler_data->timeout;
-    event_handler->handler_type = event_handler_data->eventhandler_type;
-
-    // Send event.
-    gl_publisher.write(event_handler);
-  } catch (std::exception const& e) {
-    SPDLOG_LOGGER_ERROR(
-        log_v2::neb(),
-        "callbacks: error occurred while generating event handler event: {}",
-        e.what());
-  }
-  // Avoid exception propagation in C code.
-  catch (...) {
-  }
   return 0;
 }
 
