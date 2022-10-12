@@ -71,24 +71,6 @@ static int status_id(const absl::string_view& status) {
 }
 
 /**
- *  Get the id of a log status.
- */
-static int status_id(char const* status) {
-  int id;
-  if (!strcmp(status, "DOWN") || !strcmp(status, "WARNING"))
-    id = 1;
-  else if (!strcmp(status, "UNREACHABLE") || !strcmp(status, "CRITICAL"))
-    id = 2;
-  else if (!strcmp(status, "UNKNOWN"))
-    id = 3;
-  else if (!strcmp(status, "PENDING"))
-    id = 4;
-  else
-    id = 0;
-  return id;
-}
-
-/**
  *  Get the notification status of a log.
  */
 static int notification_status_id(const absl::string_view& status) {
@@ -104,23 +86,6 @@ static int notification_status_id(const absl::string_view& status) {
 }
 
 /**
- *  Get the notification status of a log.
- */
-static int notification_status_id(char const* status) {
-  char const* ptr(strchr(status, '('));
-  int id;
-  if (ptr) {
-    std::string substatus(ptr + 1);
-    size_t it(substatus.find_first_of(')'));
-    if (it != std::string::npos)
-      substatus.erase(it);
-    id = status_id(substatus.c_str());
-  } else
-    id = status_id(status);
-  return id;
-}
-
-/**
  *  Get the id of a log type.
  */
 static LogEntry_LogType type_id(const absl::string_view& type) {
@@ -129,18 +94,6 @@ static LogEntry_LogType type_id(const absl::string_view& type) {
     id = LogEntry_LogType_HARD;
   else
     id = LogEntry_LogType_SOFT;
-  return id;
-}
-
-/**
- *  Get the id of a log type.
- */
-static int type_id(char const* type) {
-  int id;
-  if (!strcmp(type, "HARD"))
-    id = 1;
-  else
-    id = 0;
   return id;
 }
 
@@ -276,6 +229,11 @@ void neb::set_log_data(neb::log_entry& le, char const* log_data) {
   le.service_id = engine::get_service_id(le.host_name, le.service_description);
 }
 
+#define test_fail(name)                                                   \
+  if (ait == args.end()) {                                                \
+    log_v2::neb()->error("Missing " name " in log message '{}'", output); \
+    return false;                                                         \
+  }
 /**
  *  Extract Nagios-formated log data to the C++ object.
  *
@@ -297,43 +255,23 @@ bool neb::set_pb_log_data(neb::pb_log_entry& le, const std::string& output) {
 
   if (typ == "SERVICE ALERT") {
     le_obj.set_msg_type(LogEntry_MsgType_SERVICE_ALERT);
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing host name in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
-    le_obj.set_host_name(std::string(ait->data(), ait->size()));
+    test_fail("host name");
+    le_obj.set_host_name(ait->data(), ait->size());
     ++ait;
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing service description in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
-    le_obj.set_service_description(std::string(ait->data(), ait->size()));
+    test_fail("service description");
+    le_obj.set_service_description(ait->data(), ait->size());
     ++ait;
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing status in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
+    test_fail("status");
     le_obj.set_status(status_id(*ait));
     ++ait;
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing log type in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
+    test_fail("log type");
     le_obj.set_type(type_id(*ait));
     ++ait;
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing retry value in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
+    test_fail("retry value");
     int retry;
     if (!absl::SimpleAtoi(*ait, &retry)) {
       log_v2::neb()->error(
@@ -344,43 +282,23 @@ bool neb::set_pb_log_data(neb::pb_log_entry& le, const std::string& output) {
     le_obj.set_retry(retry);
     ++ait;
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing output in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
-    le_obj.set_output(std::string(ait->data(), ait->size()));
+    test_fail("output");
+    le_obj.set_output(ait->data(), ait->size());
   } else if (typ == "HOST ALERT") {
     le_obj.set_msg_type(LogEntry_MsgType_HOST_ALERT);
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing host name in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
-    le_obj.set_host_name(std::string(ait->data(), ait->size()));
+    test_fail("host name");
+    le_obj.set_host_name(ait->data(), ait->size());
     ++ait;
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing status in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
+    test_fail("status");
     le_obj.set_status(status_id(*ait));
     ++ait;
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing log type in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
+    test_fail("log type");
     le_obj.set_type(type_id(*ait));
     ++ait;
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing retry value in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
+    test_fail("retry value");
     int retry;
     if (!absl::SimpleAtoi(*ait, &retry)) {
       log_v2::neb()->error(
@@ -391,134 +309,70 @@ bool neb::set_pb_log_data(neb::pb_log_entry& le, const std::string& output) {
     le_obj.set_retry(retry);
     ++ait;
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing output in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
-    le_obj.set_output(std::string(ait->data(), ait->size()));
+    test_fail("output");
+    le_obj.set_output(ait->data(), ait->size());
   } else if (typ == "SERVICE NOTIFICATION") {
     le_obj.set_msg_type(LogEntry_MsgType_SERVICE_NOTIFICATION);
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing notification contact in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
-    le_obj.set_notification_contact(std::string(ait->data(), ait->size()));
+    test_fail("notification contact");
+    le_obj.set_notification_contact(ait->data(), ait->size());
     ++ait;
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing host name in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
-    le_obj.set_host_name(std::string(ait->data(), ait->size()));
+    test_fail("host name");
+    le_obj.set_host_name(ait->data(), ait->size());
     ++ait;
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing service description in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
-    le_obj.set_service_description(std::string(ait->data(), ait->size()));
+    test_fail("service description");
+    le_obj.set_service_description(ait->data(), ait->size());
     ++ait;
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing status in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
+    test_fail("status");
     le_obj.set_status(notification_status_id(*ait));
     ++ait;
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing notification command in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
-    le_obj.set_notification_cmd(std::string(ait->data(), ait->size()));
+    test_fail("notification command");
+    le_obj.set_notification_cmd(ait->data(), ait->size());
     ++ait;
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing output in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
-    le_obj.set_output(std::string(ait->data(), ait->size()));
+    test_fail("output");
+    le_obj.set_output(ait->data(), ait->size());
   } else if (typ == "HOST NOTIFICATION") {
     le_obj.set_msg_type(LogEntry_MsgType_HOST_NOTIFICATION);
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing notification contact in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
-    le_obj.set_notification_contact(std::string(ait->data(), ait->size()));
+    test_fail("notification contact");
+    le_obj.set_notification_contact(ait->data(), ait->size());
     ++ait;
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing host name in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
-    le_obj.set_host_name(std::string(ait->data(), ait->size()));
+    test_fail("host name");
+    le_obj.set_host_name(ait->data(), ait->size());
     ++ait;
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing status in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
+    test_fail("status");
     le_obj.set_status(notification_status_id(*ait));
     ++ait;
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing notification command in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
-    le_obj.set_notification_cmd(std::string(ait->data(), ait->size()));
+    test_fail("notification command");
+    le_obj.set_notification_cmd(ait->data(), ait->size());
     ++ait;
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing output in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
-    le_obj.set_output(std::string(ait->data(), ait->size()));
+    test_fail("output");
+    le_obj.set_output(ait->data(), ait->size());
   } else if (typ == "INITIAL HOST STATE") {
     le_obj.set_msg_type(LogEntry_MsgType_HOST_INITIAL_STATE);
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing host name in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
-    le_obj.set_host_name(std::string(ait->data(), ait->size()));
+    test_fail("host name");
+    le_obj.set_host_name(ait->data(), ait->size());
     ++ait;
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing status in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
+    test_fail("status");
     le_obj.set_status(notification_status_id(*ait));
     ++ait;
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing log type in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
+    test_fail("log type");
     le_obj.set_type(type_id(*ait));
     ++ait;
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing retry value in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
+    test_fail("retry value");
     int retry;
     if (!absl::SimpleAtoi(*ait, &retry)) {
       log_v2::neb()->error(
@@ -529,52 +383,28 @@ bool neb::set_pb_log_data(neb::pb_log_entry& le, const std::string& output) {
     le_obj.set_retry(retry);
     ++ait;
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing output in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
-    le_obj.set_output(std::string(ait->data(), ait->size()));
+    test_fail("output");
+    le_obj.set_output(ait->data(), ait->size());
   } else if (typ == "INITIAL SERVICE STATE") {
     le_obj.set_msg_type(LogEntry_MsgType_SERVICE_INITIAL_STATE);
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing host name in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
-    le_obj.set_host_name(std::string(ait->data(), ait->size()));
+    test_fail("host name");
+    le_obj.set_host_name(ait->data(), ait->size());
     ++ait;
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing service description in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
-    le_obj.set_service_description(std::string(ait->data(), ait->size()));
+    test_fail("service description");
+    le_obj.set_service_description(ait->data(), ait->size());
     ++ait;
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing status in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
+    test_fail("status");
     le_obj.set_status(status_id(*ait));
     ++ait;
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing log type in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
+    test_fail("log type");
     le_obj.set_type(type_id(*ait));
     ++ait;
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing retry value in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
+    test_fail("retry value");
     int retry;
     if (!absl::SimpleAtoi(*ait, &retry)) {
       log_v2::neb()->error(
@@ -585,95 +415,51 @@ bool neb::set_pb_log_data(neb::pb_log_entry& le, const std::string& output) {
     le_obj.set_retry(retry);
     ++ait;
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing output in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
-    le_obj.set_output(std::string(ait->data(), ait->size()));
+    test_fail("output");
+    le_obj.set_output(ait->data(), ait->size());
   } else if (typ == "EXTERNAL COMMAND") {
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing acknowledge type in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
+    test_fail("acknowledge type");
     auto& data = *ait;
     ++ait;
     if (data == "ACKNOWLEDGE_SVC_PROBLEM") {
       le_obj.set_msg_type(LogEntry_MsgType_SERVICE_ACKNOWLEDGE_PROBLEM);
-      if (ait == args.end()) {
-        log_v2::neb()->error("Missing host name in log message '{}'",
-                             le_obj.output());
-        return false;
-      }
-      le_obj.set_host_name(std::string(ait->data(), ait->size()));
+      test_fail("host name");
+      le_obj.set_host_name(ait->data(), ait->size());
       ++ait;
 
-      if (ait == args.end()) {
-        log_v2::neb()->error("Missing service description in log message '{}'",
-                             le_obj.output());
-        return false;
-      }
-      le_obj.set_service_description(std::string(ait->data(), ait->size()));
+      test_fail("service description");
+      le_obj.set_service_description(ait->data(), ait->size());
       ++ait;
 
       for (int i = 0; i < 3; i++) {
-        if (ait == args.end()) {
-          log_v2::neb()->error("Missing data in log message '{}'",
-                               le_obj.output());
-          return false;
-        }
+        test_fail("data");
         ++ait;
       }
 
-      if (ait == args.end()) {
-        log_v2::neb()->error("Missing notification contact in log message '{}'",
-                             le_obj.output());
-        return false;
-      }
-      le_obj.set_notification_contact(std::string(ait->data(), ait->size()));
+      test_fail("notification contact");
+      le_obj.set_notification_contact(ait->data(), ait->size());
       ++ait;
 
-      if (ait == args.end()) {
-        log_v2::neb()->error("Missing output in log message '{}'",
-                             le_obj.output());
-        return false;
-      }
-      le_obj.set_output(std::string(ait->data(), ait->size()));
+      test_fail("output");
+      le_obj.set_output(ait->data(), ait->size());
     } else if (data == "ACKNOWLEDGE_HOST_PROBLEM") {
       le_obj.set_msg_type(LogEntry_MsgType_HOST_ACKNOWLEDGE_PROBLEM);
 
-      if (ait == args.end()) {
-        log_v2::neb()->error("Missing host name in log message '{}'",
-                             le_obj.output());
-        return false;
-      }
-      le_obj.set_host_name(std::string(ait->data(), ait->size()));
+      test_fail("host name");
+      le_obj.set_host_name(ait->data(), ait->size());
       ++ait;
 
       for (int i = 0; i < 3; i++) {
-        if (ait == args.end()) {
-          log_v2::neb()->error("Missing data in log message '{}'",
-                               le_obj.output());
-          return false;
-        }
+        test_fail("data");
         ++ait;
       }
 
-      if (ait == args.end()) {
-        log_v2::neb()->error("Missing notification contact in log message '{}'",
-                             le_obj.output());
-        return false;
-      }
-      le_obj.set_notification_contact(std::string(ait->data(), ait->size()));
+      test_fail("notification contact");
+      le_obj.set_notification_contact(ait->data(), ait->size());
       ++ait;
 
-      if (ait == args.end()) {
-        log_v2::neb()->error("Missing output in log message '{}'",
-                             le_obj.output());
-        return false;
-      }
-      le_obj.set_output(std::string(ait->data(), ait->size()));
+      test_fail("output");
+      le_obj.set_output(ait->data(), ait->size());
     } else {
       le_obj.set_msg_type(LogEntry_MsgType_OTHER);
       le_obj.set_output(output);
@@ -681,35 +467,19 @@ bool neb::set_pb_log_data(neb::pb_log_entry& le, const std::string& output) {
   } else if (typ == "HOST EVENT HANDLER") {
     le_obj.set_msg_type(LogEntry_MsgType_HOST_EVENT_HANDLER);
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing host name in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
-    le_obj.set_host_name(std::string(ait->data(), ait->size()));
+    test_fail("host name");
+    le_obj.set_host_name(ait->data(), ait->size());
     ++ait;
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing status in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
+    test_fail("status");
     le_obj.set_status(status_id(*ait));
     ++ait;
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing log type in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
+    test_fail("log type");
     le_obj.set_type(type_id(*ait));
     ++ait;
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing retry value in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
+    test_fail("retry value");
     int retry;
     if (!absl::SimpleAtoi(*ait, &retry)) {
       log_v2::neb()->error(
@@ -720,52 +490,28 @@ bool neb::set_pb_log_data(neb::pb_log_entry& le, const std::string& output) {
     le_obj.set_retry(retry);
     ++ait;
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing output in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
-    le_obj.set_output(std::string(ait->data(), ait->size()));
+    test_fail("output");
+    le_obj.set_output(ait->data(), ait->size());
   } else if (typ == "SERVICE EVENT HANDLER") {
     le_obj.set_msg_type(LogEntry_MsgType_SERVICE_EVENT_HANDLER);
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing host name in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
-    le_obj.set_host_name(std::string(ait->data(), ait->size()));
+    test_fail("host name");
+    le_obj.set_host_name(ait->data(), ait->size());
     ++ait;
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing service description in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
-    le_obj.set_service_description(std::string(ait->data(), ait->size()));
+    test_fail("service description");
+    le_obj.set_service_description(ait->data(), ait->size());
     ++ait;
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing status in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
+    test_fail("status");
     le_obj.set_status(status_id(*ait));
     ++ait;
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing log type in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
+    test_fail("log type");
     le_obj.set_type(type_id(*ait));
     ++ait;
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing retry value in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
+    test_fail("retry value");
     int retry;
     if (!absl::SimpleAtoi(*ait, &retry)) {
       log_v2::neb()->error(
@@ -776,44 +522,24 @@ bool neb::set_pb_log_data(neb::pb_log_entry& le, const std::string& output) {
     le_obj.set_retry(retry);
     ++ait;
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing output in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
-    le_obj.set_output(std::string(ait->data(), ait->size()));
+    test_fail("output");
+    le_obj.set_output(ait->data(), ait->size());
   } else if (typ == "GLOBAL HOST EVENT HANDLER") {
     le_obj.set_msg_type(LogEntry_MsgType_GLOBAL_HOST_EVENT_HANDLER);
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing host name in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
-    le_obj.set_host_name(std::string(ait->data(), ait->size()));
+    test_fail("host name");
+    le_obj.set_host_name(ait->data(), ait->size());
     ++ait;
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing status in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
+    test_fail("status");
     le_obj.set_status(status_id(*ait));
     ++ait;
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing log type in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
+    test_fail("log type");
     le_obj.set_type(type_id(*ait));
     ++ait;
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing retry value in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
+    test_fail("retry value");
     int retry;
     if (!absl::SimpleAtoi(*ait, &retry)) {
       log_v2::neb()->error(
@@ -824,52 +550,28 @@ bool neb::set_pb_log_data(neb::pb_log_entry& le, const std::string& output) {
     le_obj.set_retry(retry);
     ++ait;
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing output in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
-    le_obj.set_output(std::string(ait->data(), ait->size()));
+    test_fail("output");
+    le_obj.set_output(ait->data(), ait->size());
   } else if (typ == "GLOBAL SERVICE EVENT HANDLER") {
     le_obj.set_msg_type(LogEntry_MsgType_GLOBAL_SERVICE_EVENT_HANDLER);
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing host name in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
-    le_obj.set_host_name(std::string(ait->data(), ait->size()));
+    test_fail("host name");
+    le_obj.set_host_name(ait->data(), ait->size());
     ++ait;
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing service description in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
-    le_obj.set_service_description(std::string(ait->data(), ait->size()));
+    test_fail("service description");
+    le_obj.set_service_description(ait->data(), ait->size());
     ++ait;
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing status in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
+    test_fail("status");
     le_obj.set_status(status_id(*ait));
     ++ait;
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing log type in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
+    test_fail("log type");
     le_obj.set_type(type_id(*ait));
     ++ait;
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing retry value in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
+    test_fail("retry value");
     int retry;
     if (!absl::SimpleAtoi(*ait, &retry)) {
       log_v2::neb()->error(
@@ -880,15 +582,11 @@ bool neb::set_pb_log_data(neb::pb_log_entry& le, const std::string& output) {
     le_obj.set_retry(retry);
     ++ait;
 
-    if (ait == args.end()) {
-      log_v2::neb()->error("Missing output in log message '{}'",
-                           le_obj.output());
-      return false;
-    }
-    le_obj.set_output(std::string(ait->data(), ait->size()));
+    test_fail("output");
+    le_obj.set_output(ait->data(), ait->size());
   } else if (typ == "Warning") {
     le_obj.set_msg_type(LogEntry_MsgType_WARNING);
-    le_obj.set_output(std::string(lasts.data(), lasts.size()));
+    le_obj.set_output(lasts.data(), lasts.size());
   } else {
     le_obj.set_msg_type(LogEntry_MsgType_OTHER);
     le_obj.set_output(output);

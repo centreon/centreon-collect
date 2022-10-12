@@ -124,6 +124,19 @@ TEST(SetLogData, HostAlertPb) {
 }
 
 /**
+ *  Check that a host alert log is properly parsed.
+ *
+ *  @return 0 on success.
+ */
+TEST(SetLogData, HostAlertPbError) {
+  // Log entry.
+  neb::pb_log_entry le;
+
+  // Parse a host alert line.
+  ASSERT_FALSE(neb::set_pb_log_data(le, "HOST ALERT: myserver;UNREACHABLE;"));
+}
+
+/**
  *  Check that a initial host state log is properly parsed.
  */
 TEST(SetLogData, InititalHostState) {
