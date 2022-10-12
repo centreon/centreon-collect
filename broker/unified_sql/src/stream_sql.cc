@@ -2182,6 +2182,45 @@ void stream::_process_log(const std::shared_ptr<io::data>& d) {
 }
 
 /**
+ *  Process a log event.
+ *
+ *  @param[in] e Uncasted log.
+ *
+ * @return The number of events that can be acknowledged.
+ */
+void stream::_process_pb_log(const std::shared_ptr<io::data>& d) {
+  // Fetch proper structure.
+  const neb::pb_log_entry& le = *static_cast<neb::pb_log_entry const*>(d.get());
+  const auto& le_obj = le.obj();
+
+  // Log message.
+  SPDLOG_LOGGER_INFO(
+      log_v2::sql(),
+      "SQL: processing pb log of poller '{}' generated at {} (type {})",
+      le_obj.instance_name(), le_obj.ctime(), le_obj.msg_type());
+
+  std::lock_guard<std::mutex> lck(_queues_m);
+  // Run query.
+  _log_queue.emplace_back(fmt::format(
+      "({},{},{},'{}','{}',{},{},'{}','{}',{},'{}',{},'{}')", le_obj.ctime(),
+      le_obj.host_id(), le_obj.service_id(),
+      misc::string::escape(le_obj.host_name(),
+                           get_logs_col_size(logs_host_name)),
+      misc::string::escape(le_obj.instance_name(),
+                           get_logs_col_size(logs_instance_name)),
+      le_obj.type(), le_obj.msg_type(),
+      misc::string::escape(le_obj.notification_cmd(),
+                           get_logs_col_size(logs_notification_cmd)),
+      misc::string::escape(le_obj.notification_contact(),
+                           get_logs_col_size(logs_notification_contact)),
+      le_obj.retry(),
+      misc::string::escape(le_obj.service_description(),
+                           get_logs_col_size(logs_service_description)),
+      le_obj.status(),
+      misc::string::escape(le_obj.output(), get_logs_col_size(logs_output))));
+}
+
+/**
  *  Process a module event. We must take care of the thread id sending the
  *  query because the modules table has a constraint on
  * instances.instance_id

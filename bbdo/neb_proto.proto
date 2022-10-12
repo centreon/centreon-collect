@@ -126,3 +126,40 @@ message Check {
     uint64 next_check = 6;
     uint64 service_id = 7;
 }
+
+message LogEntry {
+  enum LogType {
+    SOFT = 0;
+    HARD = 1;
+  }
+  enum MsgType {
+    SERVICE_ALERT = 0;
+    HOST_ALERT = 1;
+    SERVICE_NOTIFICATION = 2;
+    HOST_NOTIFICATION = 3;
+    WARNING = 4;
+    OTHER = 5;
+    SERVICE_INITIAL_STATE = 8;
+    HOST_INITIAL_STATE = 9;
+    SERVICE_ACKNOWLEDGE_PROBLEM = 10;
+    HOST_ACKNOWLEDGE_PROBLEM = 11;
+    SERVICE_EVENT_HANDLER = 12;
+    HOST_EVENT_HANDLER = 13;
+    GLOBAL_SERVICE_EVENT_HANDLER = 14;
+    GLOBAL_HOST_EVENT_HANDLER = 15;
+  }
+
+  uint64 ctime = 1;
+  string instance_name = 2;
+  string output = 3;
+  uint64 host_id = 4;
+  uint64 service_id = 5;
+  string host_name = 6;
+  string service_description = 7;
+  string notification_contact = 8;
+  string notification_cmd = 9;
+  LogType type = 10;
+  MsgType msg_type = 11;
+  int32 status = 12;
+  int32 retry = 13;
+}
