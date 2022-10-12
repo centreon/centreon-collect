@@ -567,7 +567,7 @@ void stream::_process_pb_comment(const std::shared_ptr<io::data>& d) {
           {11, "internal_id", io::protobuf_base::invalid_on_zero, 0}};
       query_preparator qp(neb::pb_comment::static_type(), unique);
       _pb_comment_insupdate = qp.prepare_insert_or_update_table(
-          _mysql, "comments",
+          _mysql, "comments ",
           {{2, "author", 0, get_comments_col_size(comments_author)},
            {3, "type", 0, 0},
            {4, "data", 0, get_comments_col_size(comments_data)},
@@ -885,7 +885,6 @@ void stream::_process_host_check(const std::shared_ptr<io::data>& d) {
           _cache_host_instance[hc.host_id]);
 
       _host_check_update << hc;
-      std::promise<int> promise;
       _mysql.run_statement(_host_check_update,
                            database::mysql_error::store_host_check, false,
                            conn);
@@ -898,6 +897,85 @@ void stream::_process_host_check(const std::shared_ptr<io::data>& d) {
         "SQL: not processing host check event (host: {}, command: {}, check "
         "type: {}, next check: {}, now: {})",
         hc.host_id, hc.command_line, hc.check_type, hc.next_check, now);
+}
+
+/**
+ *  Process an host check event.
+ *
+ *  @param[in] e Uncasted host check.
+ *
+ * @return The number of events that can be acknowledged.
+ */
+void stream::_process_pb_host_check(const std::shared_ptr<io::data>& d) {
+  _finish_action(-1, actions::instances | actions::downtimes |
+                         actions::comments | actions::host_dependencies |
+                         actions::host_parents | actions::service_dependencies);
+
+  // Cast object.
+  const neb::pb_host_check& hc_obj =
+      *static_cast<neb::pb_host_check const*>(d.get());
+  const Check& hc = hc_obj.obj();
+  if (!_host_instance_known(hc.host_id())) {
+    SPDLOG_LOGGER_WARN(
+        log_v2::sql(),
+        "SQL: host check for host{} thrown away because host is not known by "
+        "any poller",
+        hc.host_id());
+    return;
+  }
+
+  time_t now = time(nullptr);
+  if (hc.check_type() ==
+          com::centreon::broker::CheckPassive ||  // - passive result
+      !hc.active_checks_enabled() ||      // - active checks are disabled,
+                                          //   status might not be updated
+      hc.next_check() >= now - 5 * 60 ||  // - normal case
+      !hc.next_check()) {                 // - initial state
+    // Apply to DB.
+    SPDLOG_LOGGER_INFO(
+        log_v2::sql(),
+        "SQL: processing host check event (host: {}, command: {}", hc.host_id(),
+        hc.command_line());
+
+    // Prepare queries.
+    if (!_pb_host_check_update.prepared()) {
+      query_preparator::event_pb_unique unique{
+          {5, "host_id", io::protobuf_base::invalid_on_zero, 0}};
+      query_preparator qp(neb::pb_host_check::static_type(), unique);
+      _pb_host_check_update = qp.prepare_update_table(
+          _mysql, "hosts ", /*space is mandatory to avoid conflict with
+                               _process_host_check request*/
+          {{5, "host_id", io::protobuf_base::invalid_on_zero, 0},
+           {4, "command_line", 0, get_hosts_col_size(hosts_command_line)}});
+    }
+
+    // Processing.
+    bool store;
+    size_t str_hash = std::hash<std::string>{}(hc.command_line());
+    // Did the command changed since last time?
+    if (_cache_hst_cmd[hc.host_id()] != str_hash) {
+      store = true;
+      _cache_hst_cmd[hc.host_id()] = str_hash;
+    } else
+      store = false;
+
+    if (store) {
+      int32_t conn = _mysql.choose_connection_by_instance(
+          _cache_host_instance[hc.host_id()]);
+
+      _pb_host_check_update << hc_obj;
+      _mysql.run_statement(_pb_host_check_update,
+                           database::mysql_error::store_host_check, false,
+                           conn);
+      _add_action(conn, actions::hosts);
+    }
+  } else
+    // Do nothing.
+    SPDLOG_LOGGER_INFO(
+        log_v2::sql(),
+        "SQL: not processing host check event (host: {}, command: {}, check "
+        "type: {}, next check: {}, now: {})",
+        hc.host_id(), hc.command_line(), hc.check_type(), hc.next_check(), now);
 }
 
 /**
@@ -2214,7 +2292,6 @@ void stream::_process_service_check(const std::shared_ptr<io::data>& d) {
 
     if (store) {
       _service_check_update << sc;
-      std::promise<int> promise;
       int32_t conn = _mysql.choose_connection_by_instance(
           _cache_host_instance[sc.host_id]);
       _mysql.run_statement(_service_check_update,
@@ -2229,6 +2306,88 @@ void stream::_process_service_check(const std::shared_ptr<io::data>& d) {
         "command: {}, check_type: {}, next_check: {}, now: {})",
         sc.host_id, sc.service_id, sc.command_line, sc.check_type,
         sc.next_check, now);
+}
+
+/**
+ *  Process a service check event.
+ *
+ *  @param[in] e Uncasted service check.
+ *
+ * @return The number of events that can be acknowledged.
+ */
+void stream::_process_pb_service_check(const std::shared_ptr<io::data>& d) {
+  _finish_action(-1, actions::downtimes | actions::comments |
+                         actions::host_dependencies | actions::host_parents |
+                         actions::service_dependencies);
+
+  // Cast object.
+  const neb::pb_service_check& pb_sc(
+      *static_cast<neb::pb_service_check const*>(d.get()));
+  const Check& sc(pb_sc.obj());
+
+  if (!_host_instance_known(sc.host_id())) {
+    SPDLOG_LOGGER_WARN(
+        log_v2::sql(),
+        "SQL: service check on service ({}, {}) thrown away because host "
+        "unknown",
+        sc.host_id(), sc.service_id());
+    return;
+  }
+  time_t now{time(nullptr)};
+  if (sc.check_type() ==
+          com::centreon::broker::CheckPassive  // - passive result
+      || !sc.active_checks_enabled()           // - active checks are disabled,
+                                               //   status might not be updated
+                                               // - normal case
+      || (sc.next_check() >= now - 5 * 60) ||
+      !sc.next_check()) {  // - initial state
+    // Apply to DB.
+    SPDLOG_LOGGER_INFO(
+        log_v2::sql(),
+        "SQL: processing service check event (host: {}, service: {}, command: "
+        "{})",
+        sc.host_id(), sc.service_id(), sc.command_line());
+
+    // Prepare queries.
+    if (!_pb_service_check_update.prepared()) {
+      query_preparator::event_pb_unique unique{
+          {5, "host_id", io::protobuf_base::invalid_on_zero, 0},
+          {7, "service_id", io::protobuf_base::invalid_on_zero, 0}};
+      query_preparator qp(neb::pb_service_check::static_type(), unique);
+      _pb_service_check_update = qp.prepare_update_table(
+          _mysql, "services ", /*space is mandatory to avoid conflict with
+                              _process_host_check request*/
+          {{5, "host_id", io::protobuf_base::invalid_on_zero, 0},
+           {7, "service_id", io::protobuf_base::invalid_on_zero, 0},
+           {4, "command_line", 0,
+            get_services_col_size(services_command_line)}});
+    }
+
+    // Processing.
+    bool store = true;
+    size_t str_hash = std::hash<std::string>{}(sc.command_line());
+    // Did the command changed since last time?
+    if (_cache_svc_cmd[{sc.host_id(), sc.service_id()}] != str_hash)
+      _cache_svc_cmd[std::make_pair(sc.host_id(), sc.service_id())] = str_hash;
+    else
+      store = false;
+
+    if (store) {
+      _pb_service_check_update << pb_sc;
+      int32_t conn = _mysql.choose_connection_by_instance(
+          _cache_host_instance[sc.host_id()]);
+      _mysql.run_statement(_pb_service_check_update,
+                           database::mysql_error::store_service_check_command,
+                           false, conn);
+    }
+  } else
+    // Do nothing.
+    SPDLOG_LOGGER_INFO(
+        log_v2::sql(),
+        "SQL: not processing service check event (host: {}, service: {}, "
+        "command: {}, check_type: {}, next_check: {}, now: {})",
+        sc.host_id(), sc.service_id(), sc.command_line(), sc.check_type(),
+        sc.next_check(), now);
 }
 
 /**

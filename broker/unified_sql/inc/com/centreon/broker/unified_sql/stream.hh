@@ -267,6 +267,7 @@ class stream : public io::stream {
   database::mysql_stmt _event_handler_insupdate;
   database::mysql_stmt _flapping_status_insupdate;
   database::mysql_stmt _host_check_update;
+  database::mysql_stmt _pb_host_check_update;
   database::mysql_stmt _host_dependency_insupdate;
   database::mysql_stmt _host_group_insupdate;
   database::mysql_stmt _host_group_member_delete;
@@ -280,6 +281,7 @@ class stream : public io::stream {
   database::mysql_stmt _instance_status_insupdate;
   database::mysql_stmt _module_insert;
   database::mysql_stmt _service_check_update;
+  database::mysql_stmt _pb_service_check_update;
   database::mysql_stmt _service_dependency_insupdate;
   database::mysql_stmt _service_group_insupdate;
   database::mysql_stmt _service_group_member_delete;
@@ -328,6 +330,7 @@ class stream : public io::stream {
   void _process_downtime(const std::shared_ptr<io::data>& d);
   void _process_pb_downtime(const std::shared_ptr<io::data>& d);
   void _process_host_check(const std::shared_ptr<io::data>& d);
+  void _process_pb_host_check(const std::shared_ptr<io::data>& d);
   void _process_host_dependency(const std::shared_ptr<io::data>& d);
   void _process_host_group(const std::shared_ptr<io::data>& d);
   void _process_host_group_member(const std::shared_ptr<io::data>& d);
@@ -339,6 +342,7 @@ class stream : public io::stream {
   void _process_log(const std::shared_ptr<io::data>& d);
   void _process_module(const std::shared_ptr<io::data>& d);
   void _process_service_check(const std::shared_ptr<io::data>& d);
+  void _process_pb_service_check(const std::shared_ptr<io::data>& d);
   void _process_service_dependency(const std::shared_ptr<io::data>& d);
   void _process_service_group(const std::shared_ptr<io::data>& d);
   void _process_service_group_member(const std::shared_ptr<io::data>& d);

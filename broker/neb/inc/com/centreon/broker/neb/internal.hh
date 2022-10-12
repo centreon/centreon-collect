@@ -84,6 +84,13 @@ using pb_custom_variable =
 using pb_custom_variable_status =
     io::protobuf<CustomVariable,
                  make_type(io::neb, neb::de_pb_custom_variable_status)>;
+
+using pb_host_check =
+    io::protobuf<Check, make_type(io::neb, neb::de_pb_host_check)>;
+
+using pb_service_check =
+    io::protobuf<Check, make_type(io::neb, neb::de_pb_service_check)>;
+
 }  // namespace neb
 
 CCB_END()

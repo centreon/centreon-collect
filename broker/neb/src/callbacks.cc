@@ -102,9 +102,10 @@ static struct {
     {NEBCALLBACK_DOWNTIME_DATA, &neb::callback_pb_downtime},
     {NEBCALLBACK_EXTERNAL_COMMAND_DATA, &neb::callback_pb_external_command},
     {NEBCALLBACK_HOST_CHECK_DATA, &neb::callback_host_check},
+    {NEBCALLBACK_HOST_CHECK_DATA, &neb::callback_pb_host_check},
     {NEBCALLBACK_HOST_STATUS_DATA, &neb::callback_pb_host_status},
     {NEBCALLBACK_PROGRAM_STATUS_DATA, &neb::callback_program_status},
-    {NEBCALLBACK_SERVICE_CHECK_DATA, &neb::callback_service_check},
+    {NEBCALLBACK_SERVICE_CHECK_DATA, &neb::callback_pb_service_check},
     {NEBCALLBACK_SERVICE_STATUS_DATA, &neb::callback_pb_service_status},
     {NEBCALLBACK_ADAPTIVE_SEVERITY_DATA, &neb::callback_severity},
     {NEBCALLBACK_ADAPTIVE_TAG_DATA, &neb::callback_tag}};
@@ -1800,6 +1801,64 @@ int neb::callback_host_check(int callback_type, void* data) {
 }
 
 /**
+ *  @brief Function that process host check data.
+ *
+ *  This function is called by Nagios when some host check data are available.
+ *
+ *  @param[in] callback_type Type of the callback
+ *                           (NEBCALLBACK_HOST_CHECK_DATA).
+ *  @param[in] data          A pointer to a nebstruct_host_check_data
+ *                           containing the host check data.
+ *
+ *  @return 0 on success.
+ */
+int neb::callback_pb_host_check(int callback_type, void* data) {
+  (void)callback_type;
+
+  // In/Out variables.
+  nebstruct_host_check_data const* hcdata =
+      static_cast<nebstruct_host_check_data*>(data);
+
+  /* For each check, this event is received three times one precheck, one
+   * initiate and one processed. We just keep the initiate one. At the
+   * processed one we also received the host status. */
+  if (hcdata->type != NEBTYPE_HOSTCHECK_INITIATE)
+    return 0;
+
+  // Log message.
+  if (log_v2::neb()->level() <= spdlog::level::debug) {
+    SPDLOG_LOGGER_DEBUG(
+        log_v2::neb(),
+        "callbacks: generating host check event for {} command_line={}",
+        hcdata->host_name, hcdata->command_line);
+  } else {
+    SPDLOG_LOGGER_INFO(log_v2::neb(), "callbacks: generating host check event");
+  }
+
+  std::shared_ptr<neb::pb_host_check> host_check{
+      std::make_shared<neb::pb_host_check>()};
+
+  // Fill output var.
+  engine::host* h(static_cast<engine::host*>(hcdata->object_ptr));
+  if (hcdata->command_line) {
+    host_check->mut_obj().set_active_checks_enabled(h->active_checks_enabled());
+    host_check->mut_obj().set_check_type(
+        hcdata->check_type ==
+                com::centreon::engine::checkable::check_type::check_active
+            ? com::centreon::broker::CheckActive
+            : com::centreon::broker::CheckPassive);
+    host_check->mut_obj().set_command_line(
+        misc::string::check_string_utf8(hcdata->command_line));
+    host_check->mut_obj().set_host_id(h->host_id());
+    host_check->mut_obj().set_next_check(h->get_next_check());
+
+    // Send event.
+    gl_publisher.write(host_check);
+  }
+  return 0;
+}
+
+/**
  *  @brief Function that process host status data.
  *
  *  This function is called by Nagios when some host status data are
@@ -2871,6 +2930,66 @@ int neb::callback_service_check(int callback_type, void* data) {
   }
   // Avoid exception propagation in C code.
   catch (...) {
+  }
+  return 0;
+}
+
+/**
+ *  @brief Function that process service check data.
+ *
+ *  This function is called by Nagios when some service check data are
+ *  available.
+ *
+ *  @param[in] callback_type Type of the callback
+ *                           (NEBCALLBACK_SERVICE_CHECK_DATA).
+ *  @param[in] data          A pointer to a nebstruct_service_check_data
+ *                           containing the service check data.
+ *
+ *  @return 0 on success.
+ */
+int neb::callback_pb_service_check(int, void* data) {
+  const nebstruct_service_check_data* scdata =
+      static_cast<nebstruct_service_check_data*>(data);
+
+  /* For each check, this event is received three times one precheck, one
+   * initiate and one processed. We just keep the initiate one. At the
+   * processed one we also received the service status. */
+  if (scdata->type != NEBTYPE_SERVICECHECK_INITIATE)
+    return 0;
+
+  // Log message.
+  if (log_v2::neb()->level() <= spdlog::level::debug) {
+    SPDLOG_LOGGER_DEBUG(log_v2::neb(),
+                        "callbacks: generating service check event host {} "
+                        "service {} command_line={}",
+                        scdata->host_id, scdata->service_id,
+                        scdata->command_line);
+  } else {
+    SPDLOG_LOGGER_INFO(log_v2::neb(),
+                       "callbacks: generating service check event");
+  }
+
+  // In/Out variables.
+  std::shared_ptr<neb::pb_service_check> service_check{
+      std::make_shared<neb::pb_service_check>()};
+  // Fill output var.
+  engine::service* s{static_cast<engine::service*>(scdata->object_ptr)};
+  if (scdata->command_line) {
+    service_check->mut_obj().set_active_checks_enabled(
+        s->active_checks_enabled());
+    service_check->mut_obj().set_check_type(
+        scdata->check_type ==
+                com::centreon::engine::checkable::check_type::check_active
+            ? com::centreon::broker::CheckActive
+            : com::centreon::broker::CheckPassive);
+    service_check->mut_obj().set_command_line(
+        misc::string::check_string_utf8(scdata->command_line));
+    service_check->mut_obj().set_host_id(scdata->host_id);
+    service_check->mut_obj().set_service_id(scdata->service_id);
+    service_check->mut_obj().set_next_check(s->get_next_check());
+
+    // Send event.
+    gl_publisher.write(service_check);
   }
   return 0;
 }

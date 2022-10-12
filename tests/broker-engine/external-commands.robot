@@ -2570,3 +2570,48 @@ BECUSTOMSVCVAR
 
 	Stop Engine
 	Kindly Stop Broker
+
+BESERVCHECK
+	[Documentation]	external command CHECK_SERVICE_RESULT 
+	[Tags]	Broker	Engine	host	extcmd	atoi
+	Config Engine	${1}	${50}	${20}
+	Config Broker	central
+	Config Broker	module	${1}
+	Broker Config Log	central	sql	trace
+	Broker Config Add Item	module0	bbdo_version	3.0.0
+	Broker Config Add Item	central	bbdo_version	3.0.0
+	Config Broker Sql Output	central	unified_sql
+	${start}=	Get Current Date
+	Start Broker
+	Start Engine
+	${content}=	Create List	check_for_external_commands
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+	Should Be True	${result}	msg=No check for external commands executed for 1mn.
+	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+	Execute SQL String	UPDATE services set command_line='toto', next_check=0 where service_id=1 and host_id=1
+	schedule_forced_svc_check  host_1  service_1
+	${command_param}=  get_command_service_param  1
+	${result}=  check_service_check_with_timeout  host_1  service_1  30  ${VarRoot}/lib/centreon-engine/check.pl ${command_param}  
+	Should Be True	${result}	msg=service table not updated
+
+BEHOSTCHECK
+	[Documentation]	external command CHECK_SERVICE_RESULT 
+	[Tags]	Broker	Engine	host	extcmd	atoi
+	Config Engine	${1}	${50}	${20}
+	Config Broker	central
+	Config Broker	module	${1}
+	Broker Config Log	central	sql	trace
+	Broker Config Add Item	module0	bbdo_version	3.0.0
+	Broker Config Add Item	central	bbdo_version	3.0.0
+	Config Broker Sql Output	central	unified_sql
+	${start}=	Get Current Date
+	Start Broker
+	Start Engine
+	${content}=	Create List	check_for_external_commands
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+	Should Be True	${result}	msg=No check for external commands executed for 1mn.
+	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+	Execute SQL String	UPDATE hosts set command_line='toto' where name='host_1'
+	schedule_forced_host_check  host_1
+	${result}=  check_host_check_with_timeout  host_1  30  ${VarRoot}/lib/centreon-engine/check.pl 0 1  
+	Should Be True	${result}	msg=hosts table not updated
