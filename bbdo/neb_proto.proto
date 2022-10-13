@@ -185,3 +185,22 @@ message InstanceStatus {
     uint64 instance_id = 17;
   
 }
+<<<<<<< HEAD
+=======
+
+
+
+message Instance {
+  BBDOHeader header = 1;
+
+  string engine = 2;
+  bool running = 3;
+  string name = 4;
+  int64 pid = 5;
+  uint64 instance_id = 6;
+  int64 end_time = 7;
+  int64 start_time = 8;
+  string version = 9;
+}
+
+>>>>>>> Mon 15407 add protobuf instance status message (#405)

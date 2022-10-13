@@ -390,7 +390,11 @@ std::string const& macro_cache::get_instance(uint64_t instance_id) const {
   if (found == _instances.end())
     throw msg_fmt("lua: could not find information on instance {}",
                   instance_id);
-  return found->second->name;
+  return found->second->type() == neb::instance::static_type()
+             ? std::static_pointer_cast<neb::instance>(found->second)->name
+             : std::static_pointer_cast<neb::pb_instance>(found->second)
+                   ->obj()
+                   .name();
 }
 
 /**
@@ -450,6 +454,9 @@ void macro_cache::write(std::shared_ptr<io::data> const& data) {
   switch (data->type()) {
     case neb::instance::static_type():
       _process_instance(data);
+      break;
+    case neb::pb_instance::static_type():
+      _process_pb_instance(data);
       break;
     case neb::host::static_type():
       _process_host(data);
@@ -525,6 +532,16 @@ void macro_cache::_process_instance(std::shared_ptr<io::data> const& data) {
   std::shared_ptr<neb::instance> const& in =
       std::static_pointer_cast<neb::instance>(data);
   _instances[in->poller_id] = in;
+}
+
+/**
+ *  Process an instance event.
+ *
+ *  @param in  The event.
+ */
+void macro_cache::_process_pb_instance(std::shared_ptr<io::data> const& data) {
+  auto const& in = std::static_pointer_cast<neb::pb_instance>(data);
+  _instances[in->obj().instance_id()] = in;
 }
 
 /**

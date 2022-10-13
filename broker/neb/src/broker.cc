@@ -181,9 +181,8 @@ void broker_module_init(void const* arg) {
       e.register_event(make_type(io::neb, neb::de_pb_host_check), "Check",
                        &neb::pb_host_check::operations, "hosts");
 
-      e.register_event(make_type(io::neb, neb::de_pb_service_check),
-                       "Check", &neb::pb_service_check::operations,
-                       "services");
+      e.register_event(make_type(io::neb, neb::de_pb_service_check), "Check",
+                       &neb::pb_service_check::operations, "services");
 
       e.register_event(make_type(io::neb, neb::de_pb_log_entry), "LogEntry",
                        &neb::pb_log_entry::operations, "logs");
@@ -191,6 +190,9 @@ void broker_module_init(void const* arg) {
       e.register_event(make_type(io::neb, neb::de_pb_instance_status),
                        "InstanceStatus", &neb::pb_instance_status::operations,
                        "instances");
+
+      e.register_event(make_type(io::neb, neb::de_pb_instance), "Instance",
+                       &neb::pb_instance::operations, "instances");
     }
   }
 }
