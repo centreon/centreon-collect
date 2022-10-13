@@ -867,6 +867,29 @@ def check_number_of_relations_between_servicegroup_and_services(servicegroup: in
     return False
 
 
+def check_field_db_value(request: str, value, timeout: int):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4')
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(request)
+                result = cursor.fetchall()
+                if len(result) > 0:
+                    if result[0][0] == value:
+                        return True
+                    else:
+                        logger.console(
+                            f"result[0][0]={result[0][0]} expected={value}")
+        time.sleep(1)
+    return False
+
+
 def check_host_status(host: str, value: int, t: int, in_resources: bool, timeout: int = TIMEOUT):
     limit = time.time() + timeout
     while time.time() < limit:

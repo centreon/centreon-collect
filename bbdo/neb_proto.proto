@@ -167,12 +167,11 @@ message LogEntry {
 message InstanceStatus {
     BBDOHeader header = 1;
 
-    bool event_handler_enabled = 2;
-    bool flap_detection_enabled = 3;
-    bool notifications_enabled = 4;
-  
-    bool active_host_checks_enabled = 5;
-    bool active_service_checks_enabled = 6;
+    bool event_handlers = 2;
+    bool flap_detection = 3;
+    bool notifications = 4;
+    bool active_host_checks = 5;
+    bool active_service_checks = 6;
     bool check_hosts_freshness = 7;
     bool check_services_freshness =  8;
     string global_host_event_handler = 9;
@@ -181,8 +180,8 @@ message InstanceStatus {
     uint64 last_command_check = 12;
     bool obsess_over_hosts = 13;
     bool obsess_over_services = 14;
-    bool passive_host_checks_enabled = 15;
-    bool passive_service_checks_enabled = 16;
-    uint64 poller_id = 17;
+    bool passive_host_checks = 15;
+    bool passive_service_checks = 16;
+    uint64 instance_id = 17;
   
 }

@@ -279,6 +279,7 @@ class stream : public io::stream {
   database::mysql_stmt _host_status_update;
   database::mysql_stmt _instance_insupdate;
   database::mysql_stmt _instance_status_insupdate;
+  database::mysql_stmt _pb_instance_status_insupdate;
   database::mysql_stmt _module_insert;
   database::mysql_stmt _service_check_update;
   database::mysql_stmt _pb_service_check_update;

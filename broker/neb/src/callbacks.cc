@@ -962,84 +962,90 @@ int neb::callback_external_command(int callback_type, void* data) {
   nebstruct_external_command_data* necd(
       static_cast<nebstruct_external_command_data*>(data));
   if (necd && (necd->type == NEBTYPE_EXTERNALCOMMAND_START)) {
-    if (necd->command_type == CMD_CHANGE_CUSTOM_HOST_VAR) {
-      SPDLOG_LOGGER_INFO(
-          log_v2::neb(),
-          "callbacks: generating host custom variable update event");
+    try {
+      if (necd->command_type == CMD_CHANGE_CUSTOM_HOST_VAR) {
+        SPDLOG_LOGGER_INFO(
+            log_v2::neb(),
+            "callbacks: generating host custom variable update event");
 
-      // Split argument string.
-      if (necd->command_args) {
-        std::list<std::string> l{absl::StrSplit(
-            misc::string::check_string_utf8(necd->command_args), ';')};
-        if (l.size() != 3)
-          SPDLOG_LOGGER_ERROR(
-              log_v2::neb(), "callbacks: invalid host custom variable command");
-        else {
-          std::list<std::string>::iterator it(l.begin());
-          std::string host{std::move(*it)};
-          ++it;
-          std::string var_name{std::move(*it)};
-          ++it;
-          std::string var_value{std::move(*it)};
+        // Split argument string.
+        if (necd->command_args) {
+          std::list<std::string> l{absl::StrSplit(
+              misc::string::check_string_utf8(necd->command_args), ';')};
+          if (l.size() != 3)
+            SPDLOG_LOGGER_ERROR(
+                log_v2::neb(),
+                "callbacks: invalid host custom variable command");
+          else {
+            std::list<std::string>::iterator it(l.begin());
+            std::string host{std::move(*it)};
+            ++it;
+            std::string var_name{std::move(*it)};
+            ++it;
+            std::string var_value{std::move(*it)};
 
-          // Find host ID.
-          uint64_t host_id = engine::get_host_id(host);
-          if (host_id != 0) {
-            // Fill custom variable.
-            auto cvs = std::make_shared<neb::custom_variable_status>();
-            cvs->host_id = host_id;
-            cvs->modified = true;
-            cvs->name = var_name;
-            cvs->service_id = 0;
-            cvs->update_time = necd->timestamp.tv_sec;
-            cvs->value = var_value;
+            // Find host ID.
+            uint64_t host_id = engine::get_host_id(host);
+            if (host_id != 0) {
+              // Fill custom variable.
+              auto cvs = std::make_shared<neb::custom_variable_status>();
+              cvs->host_id = host_id;
+              cvs->modified = true;
+              cvs->name = var_name;
+              cvs->service_id = 0;
+              cvs->update_time = necd->timestamp.tv_sec;
+              cvs->value = var_value;
 
-            // Send event.
-            gl_publisher.write(cvs);
+              // Send event.
+              gl_publisher.write(cvs);
+            }
+          }
+        }
+      } else if (necd->command_type == CMD_CHANGE_CUSTOM_SVC_VAR) {
+        SPDLOG_LOGGER_INFO(
+            log_v2::neb(),
+            "callbacks: generating service custom variable update event");
+
+        // Split argument string.
+        if (necd->command_args) {
+          std::list<std::string> l{absl::StrSplit(
+              misc::string::check_string_utf8(necd->command_args), ';')};
+          if (l.size() != 4)
+            SPDLOG_LOGGER_ERROR(
+                log_v2::neb(),
+                "callbacks: invalid service custom variable command");
+          else {
+            std::list<std::string>::iterator it{l.begin()};
+            std::string host{std::move(*it)};
+            ++it;
+            std::string service{std::move(*it)};
+            ++it;
+            std::string var_name{std::move(*it)};
+            ++it;
+            std::string var_value{std::move(*it)};
+
+            // Find host/service IDs.
+            std::pair<uint64_t, uint64_t> p{
+                engine::get_host_and_service_id(host, service)};
+            if (p.first && p.second) {
+              // Fill custom variable.
+              auto cvs{std::make_shared<neb::custom_variable_status>()};
+              cvs->host_id = p.first;
+              cvs->modified = true;
+              cvs->name = var_name;
+              cvs->service_id = p.second;
+              cvs->update_time = necd->timestamp.tv_sec;
+              cvs->value = var_value;
+
+              // Send event.
+              gl_publisher.write(cvs);
+            }
           }
         }
       }
-    } else if (necd->command_type == CMD_CHANGE_CUSTOM_SVC_VAR) {
-      SPDLOG_LOGGER_INFO(
-          log_v2::neb(),
-          "callbacks: generating service custom variable update event");
-
-      // Split argument string.
-      if (necd->command_args) {
-        std::list<std::string> l{absl::StrSplit(
-            misc::string::check_string_utf8(necd->command_args), ';')};
-        if (l.size() != 4)
-          SPDLOG_LOGGER_ERROR(
-              log_v2::neb(),
-              "callbacks: invalid service custom variable command");
-        else {
-          std::list<std::string>::iterator it{l.begin()};
-          std::string host{std::move(*it)};
-          ++it;
-          std::string service{std::move(*it)};
-          ++it;
-          std::string var_name{std::move(*it)};
-          ++it;
-          std::string var_value{std::move(*it)};
-
-          // Find host/service IDs.
-          std::pair<uint64_t, uint64_t> p{
-              engine::get_host_and_service_id(host, service)};
-          if (p.first && p.second) {
-            // Fill custom variable.
-            auto cvs{std::make_shared<neb::custom_variable_status>()};
-            cvs->host_id = p.first;
-            cvs->modified = true;
-            cvs->name = var_name;
-            cvs->service_id = p.second;
-            cvs->update_time = necd->timestamp.tv_sec;
-            cvs->value = var_value;
-
-            // Send event.
-            gl_publisher.write(cvs);
-          }
-        }
-      }
+    }
+    // Avoid exception propagation in C code.
+    catch (...) {
     }
   }
   return 0;
@@ -2401,15 +2407,20 @@ int neb::callback_pb_program_status(int, void* data) {
   // Fill output var.
   const nebstruct_program_status_data& program_status_data =
       *static_cast<nebstruct_program_status_data*>(data);
-  is.set_poller_id(config::applier::state::instance().poller_id());
-  is.set_active_host_checks_enabled(
-      program_status_data.active_host_checks_enabled);
-  is.set_active_service_checks_enabled(
+
+  SPDLOG_LOGGER_INFO(log_v2::neb(),
+                     "callbacks: generating pb instance status event "
+                     "global_service_event_handler={}",
+                     program_status_data.global_host_event_handler);
+
+  is.set_instance_id(config::applier::state::instance().poller_id());
+  is.set_active_host_checks(program_status_data.active_host_checks_enabled);
+  is.set_active_service_checks(
       program_status_data.active_service_checks_enabled);
   is.set_check_hosts_freshness(check_host_freshness);
   is.set_check_services_freshness(check_service_freshness);
-  is.set_event_handler_enabled(program_status_data.event_handlers_enabled);
-  is.set_flap_detection_enabled(program_status_data.flap_detection_enabled);
+  is.set_event_handlers(program_status_data.event_handlers_enabled);
+  is.set_flap_detection(program_status_data.flap_detection_enabled);
   if (!program_status_data.global_host_event_handler.empty())
     is.set_global_host_event_handler(misc::string::check_string_utf8(
         program_status_data.global_host_event_handler));
@@ -2418,12 +2429,11 @@ int neb::callback_pb_program_status(int, void* data) {
         program_status_data.global_service_event_handler));
   is.set_last_alive(time(nullptr));
   is.set_last_command_check(program_status_data.last_command_check);
-  is.set_notifications_enabled(program_status_data.notifications_enabled);
+  is.set_notifications(program_status_data.notifications_enabled);
   is.set_obsess_over_hosts(program_status_data.obsess_over_hosts);
   is.set_obsess_over_services(program_status_data.obsess_over_services);
-  is.set_passive_host_checks_enabled(
-      program_status_data.passive_host_checks_enabled);
-  is.set_passive_service_checks_enabled(
+  is.set_passive_host_checks(program_status_data.passive_host_checks_enabled);
+  is.set_passive_service_checks(
       program_status_data.passive_service_checks_enabled);
 
   // Send event.

@@ -73,3 +73,60 @@ BEHS1
         END
 	Stop Engine
 	Kindly Stop Broker
+
+
+BEINSTANCESTATUS
+	[Documentation]	Instance status to bdd 
+	[Tags]	Broker	Engine	
+	Config Engine	${1}	${50}	${20}
+	engine_config_set_value  0  enable_flap_detection  1  True
+	engine_config_set_value  0  enable_notifications  0  True
+	engine_config_set_value  0  execute_host_checks  0  True
+	engine_config_set_value  0  execute_service_checks  0  True
+	engine_config_set_value  0  global_host_event_handler  command_1  True
+	engine_config_set_value  0  global_service_event_handler  command_2  True
+	engine_config_set_value  0  instance_heartbeat_interval  1  True
+	engine_config_set_value  0  obsess_over_hosts  1  True
+	engine_config_set_value  0  obsess_over_services  1  True
+	engine_config_set_value  0  accept_passive_host_checks  0  True
+	engine_config_set_value  0  accept_passive_service_checks  0  True
+	
+	Config Broker	central
+	Config Broker	module	${1}
+	Broker Config Log	central	sql	trace
+	Broker Config Add Item	module0	bbdo_version	3.0.0
+	Broker Config Add Item	central	bbdo_version	3.0.0
+	Config Broker Sql Output	central	unified_sql
+	${start}=	Get Current Date
+	Start Broker
+	Start Engine
+	${content}=	Create List	check_for_external_commands
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+	Should Be True	${result}	msg=No check for external commands executed for 1mn.
+	${result}=  check_field_db_value  SELECT global_host_event_handler FROM instances WHERE instance_id=1  command_1  30
+	Should Be True	${result}	msg=global_host_event_handler not updated.
+	${result}=  check_field_db_value  SELECT global_service_event_handler FROM instances WHERE instance_id=1  command_2  2
+	Should Be True	${result}	msg=global_service_event_handler not updated.
+	${result}=  check_field_db_value  SELECT flap_detection FROM instances WHERE instance_id=1  ${1}  3
+	Should Be True	${result}	msg=flap_detection not updated.
+	${result}=  check_field_db_value  SELECT notifications FROM instances WHERE instance_id=1  ${0}  3
+	Should Be True	${result}	msg=notifications not updated.
+	${result}=  check_field_db_value  SELECT active_host_checks FROM instances WHERE instance_id=1  ${0}  3
+	Should Be True	${result}	msg=active_host_checks not updated.
+	${result}=  check_field_db_value  SELECT active_service_checks FROM instances WHERE instance_id=1  ${0}  3
+	Should Be True	${result}	msg=active_service_checks not updated.
+	${result}=  check_field_db_value  SELECT check_hosts_freshness FROM instances WHERE instance_id=1  ${0}  3
+	Should Be True	${result}	msg=check_hosts_freshness not updated.
+	${result}=  check_field_db_value  SELECT check_services_freshness FROM instances WHERE instance_id=1  ${1}  3
+	Should Be True	${result}	msg=check_services_freshness not updated.
+	${result}=  check_field_db_value  SELECT obsess_over_hosts FROM instances WHERE instance_id=1  ${1}  3
+	Should Be True	${result}	msg=obsess_over_hosts not updated.
+	${result}=  check_field_db_value  SELECT obsess_over_services FROM instances WHERE instance_id=1  ${1}  3
+	Should Be True	${result}	msg=obsess_over_services not updated.
+	${result}=  check_field_db_value  SELECT passive_host_checks FROM instances WHERE instance_id=1  ${0}  3
+	Should Be True	${result}	msg=passive_host_checks not updated.
+	${result}=  check_field_db_value  SELECT passive_service_checks FROM instances WHERE instance_id=1  ${0}  3
+	Should Be True	${result}	msg=passive_service_checks not updated.
+	Stop Engine
+	Kindly Stop Broker
+
