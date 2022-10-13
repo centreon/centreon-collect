@@ -147,6 +147,7 @@ enum data_element {
   de_rebuild_message = 7,
   de_remove_graph_message = 8,
   de_pb_metric = 9,
+  de_pb_status = 10,
 };
 }
 namespace bam {

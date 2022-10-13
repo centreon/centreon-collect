@@ -305,6 +305,45 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
           it->second.push_back(d);
       }
       break;
+    case storage::pb_status::static_type():
+      if (_write_status) {
+        // Debug message.
+        std::shared_ptr<storage::pb_status> e(
+            std::static_pointer_cast<storage::pb_status>(d));
+        const auto& s = e->obj();
+        log_v2::rrd()->debug("RRD: new pb status data for index {} (state {})",
+                             s.index_id(), s.state());
+
+        // Status path.
+        std::string status_path(
+            fmt::format("{}{}.rrd", _status_path, s.index_id()));
+
+        // Check that status is not begin rebuild.
+        rebuild_cache::iterator it(_status_rebuild.find(status_path));
+        if (it == _status_rebuild.end()) {
+          // Write status RRD.
+          try {
+            _backend.open(status_path);
+          } catch (exceptions::open const& b) {
+            time_t interval(s.interval() ? s.interval() : 60);
+            assert(s.rrd_len());
+            _backend.open(status_path, s.rrd_len(), s.time() - 1, interval);
+          }
+          std::string value;
+          if (s.state() == 0)
+            value = "100";
+          else if (s.state() == 1)
+            value = "75";
+          else if (s.state() == 2)
+            value = "0";
+          else
+            value = "";
+          _backend.update(s.time(), value);
+        } else
+          // Cache value.
+          it->second.push_back(d);
+      }
+      break;
     case storage::status::static_type():
       if (_write_status) {
         // Debug message.

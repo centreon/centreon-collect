@@ -55,6 +55,8 @@ using pb_remove_graph_message =
                  make_type(io::storage, storage::de_remove_graph_message)>;
 using pb_metric =
     io::protobuf<Metric, make_type(io::storage, storage::de_pb_metric)>;
+using pb_status =
+    io::protobuf<Status, make_type(io::storage, storage::de_pb_status)>;
 }  // namespace storage
 CCB_END()
 
