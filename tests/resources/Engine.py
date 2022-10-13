@@ -558,12 +558,14 @@ def engine_config_set_value(idx: int, key: str, value: str, force: bool = False)
     lines = f.readlines()
     f.close()
 
-    if force:
+    replaced = False
+    for i in range(len(lines)):
+        if lines[i].startswith(key + "="):
+            lines[i] = "{}={}\n".format(key, value)
+            replaced = True
+
+    if not replaced and force:
         lines.append("{}={}\n".format(key, value))
-    else:
-        for i in range(len(lines)):
-            if lines[i].startswith(key + "="):
-                lines[i] = "{}={}\n".format(key, value)
 
     f = open(filename, "w")
     f.writelines(lines)
@@ -1218,7 +1220,8 @@ def delete_host_downtimes(poller: int, hst: str):
 def delete_service_downtime_full(poller: int, hst: str, svc: str):
     now = int(time.time())
     cmd = f"[{now}] DEL_SVC_DOWNTIME_FULL;{hst};{svc};;;;;;;\n"
-    f = open(f"{VAR_ROOT}/lib/centreon-engine/config{poller}/rw/centengine.cmd", "w")
+    f = open(
+        f"{VAR_ROOT}/lib/centreon-engine/config{poller}/rw/centengine.cmd", "w")
     f.write(cmd)
     f.close()
 
@@ -1527,6 +1530,16 @@ def change_custom_host_var_command(hst: str, var_name: str, var_value):
 @external_command
 def change_custom_svc_var_command(hst: str, svc: str, var_name: str, var_value):
     return "CHANGE_CUSTOM_SVC_VAR;{};{};{};{}\n".format(hst, svc, var_name, var_value)
+
+
+@external_command
+def change_global_host_event_handler(var_value: str):
+    return "CHANGE_GLOBAL_HOST_EVENT_HANDLER;{}\n".format(var_value)
+
+
+@external_command
+def change_global_svc_event_handler(var_value: str):
+    return "CHANGE_GLOBAL_SVC_EVENT_HANDLER;{}\n".format(var_value)
 
 
 def create_anomaly_threshold_file(path: string, host_id: int, service_id: int, metric_name: string, values: array):

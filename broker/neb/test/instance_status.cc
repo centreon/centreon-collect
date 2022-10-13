@@ -25,7 +25,7 @@
 
 using namespace com::centreon::broker;
 
-class InstanceStatus : public ::testing::Test {
+class TestInstanceStatus : public ::testing::Test {
   void SetUp() override { randomize_init(); };
 
   void TearDown() override { randomize_cleanup(); };
@@ -34,7 +34,7 @@ class InstanceStatus : public ::testing::Test {
 /**
  *  Check instance_status's assignment operator.
  */
-TEST_F(InstanceStatus, Assign) {
+TEST_F(TestInstanceStatus, Assign) {
   // Object #1.
   neb::instance_status is1;
   std::vector<randval> randvals1;
@@ -59,7 +59,7 @@ TEST_F(InstanceStatus, Assign) {
 /**
  *  Check instance_status's copy constructor.
  */
-TEST_F(InstanceStatus, CopyCtor) {
+TEST_F(TestInstanceStatus, CopyCtor) {
   // Object #1.
   neb::instance_status is1;
   std::vector<randval> randvals1;
@@ -80,7 +80,7 @@ TEST_F(InstanceStatus, CopyCtor) {
 /**
  *  Check instance_status's default constructor.
  */
-TEST_F(InstanceStatus, DefaultCtor) {
+TEST_F(TestInstanceStatus, DefaultCtor) {
   // Object.
   neb::instance_status is;
 

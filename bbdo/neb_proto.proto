@@ -163,3 +163,25 @@ message LogEntry {
   int32 status = 12;
   int32 retry = 13;
 }
+
+message InstanceStatus {
+    BBDOHeader header = 1;
+
+    bool event_handlers = 2;
+    bool flap_detection = 3;
+    bool notifications = 4;
+    bool active_host_checks = 5;
+    bool active_service_checks = 6;
+    bool check_hosts_freshness = 7;
+    bool check_services_freshness =  8;
+    string global_host_event_handler = 9;
+    string global_service_event_handler = 10;
+    uint64 last_alive = 11;
+    uint64 last_command_check = 12;
+    bool obsess_over_hosts = 13;
+    bool obsess_over_services = 14;
+    bool passive_host_checks = 15;
+    bool passive_service_checks = 16;
+    uint64 instance_id = 17;
+  
+}
