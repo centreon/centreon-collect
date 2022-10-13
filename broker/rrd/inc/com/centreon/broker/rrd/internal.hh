@@ -22,6 +22,7 @@
 #include "bbdo/events.hh"
 #include "bbdo/rebuild_message.pb.h"
 #include "bbdo/remove_graph_message.pb.h"
+#include "bbdo/storage_proto.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
 CCB_BEGIN()
 
@@ -38,6 +39,9 @@ using pb_rebuild_message =
 using pb_remove_graph_message =
     io::protobuf<RemoveGraphMessage,
                  make_type(io::storage, storage::de_remove_graph_message)>;
+
+using pb_metric =
+    io::protobuf<Metric, make_type(io::storage, storage::de_pb_metric)>;
 }  // namespace storage
 CCB_END()
 

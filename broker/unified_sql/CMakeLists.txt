@@ -1,5 +1,5 @@
 ##
-## Copyright 2021 Centreon
+## Copyright 2021-2022 Centreon
 ##
 ## Licensed under the Apache License, Version 2.0 (the "License");
 ## you may not use this file except in compliance with the License.
@@ -62,8 +62,10 @@ target_link_libraries(${UNIFIED_SQL}
     bbdo_storage
     CONAN_PKG::spdlog
     CONAN_PKG::abseil
-    pb_service_lib 
-    pb_host_lib)
+    pb_service_lib
+    pb_host_lib
+    pb_storage_proto_lib
+)
 
 # Testing.
 if (WITH_TESTING)

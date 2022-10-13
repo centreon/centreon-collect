@@ -52,6 +52,31 @@ BRRDDM1
 		Wait Until Removed	${VarRoot}/lib/centreon/metrics/${m}.rrd      20s
 	END
 
+BRRDWM1
+	[Documentation]	We are working with BBDO3. This test checks protobuf metrics and status are sent to cbd RRD.
+	[Tags]	RRD	metric	bbdo3	unified_sql
+	Config Engine	${1}
+	Config Broker	rrd
+	Config Broker	central
+	Config Broker	module
+	Config BBDO3	${1}
+	Broker Config Log	central	sql	info
+	Broker Config Log	rrd	rrd	debug
+	Broker Config Log	rrd	core	error
+        Broker Config Flush Log	central	0
+        Broker Config Flush Log	rrd	0
+
+	${start}=	Get Current Date
+	Start Broker
+	Start Engine
+	${result}=	Check Connections
+	Should Be True	${result}	msg=Engine and Broker not connected
+
+	${content}=	Create List	RRD: new pb data for metric
+
+	${result}=	Find In Log With Timeout	${rrdLog}	${start}	${content}	120
+	Should Be True	${result}	msg=No protobuf metric sent to cbd RRD for 60s.
+
 BRRDDID1
 	[Documentation]	RRD metrics deletion from index ids.
 	[Tags]	RRD	metric	deletion
@@ -125,8 +150,8 @@ BRRDDMU1
 	Config Engine	${1}
 	Config Broker	rrd
 	Config Broker	central
-	Config Broker Sql Output	central	unified_sql
 	Config Broker	module
+	Config BBDO3	${1}
 	Broker Config Log	central	sql	info
 	Broker Config Log	rrd	rrd	debug
 	Broker Config Log	rrd	core	error
@@ -161,8 +186,8 @@ BRRDDIDU1
 	Config Engine	${1}
 	Config Broker	rrd
 	Config Broker	central
-	Config Broker Sql Output	central	unified_sql
 	Config Broker	module
+	Config BBDO3	${1}
 	Broker Config Log	central	sql	info
 	Broker Config Log	rrd	rrd	debug
 	Broker Config Log	rrd	core	error
@@ -200,8 +225,8 @@ BRRDDMIDU1
 	Config Engine	${1}
 	Config Broker	rrd
 	Config Broker	central
-	Config Broker Sql Output	central	unified_sql
 	Config Broker	module
+	Config BBDO3	${1}
 	Broker Config Log	central	sql	info
 	Broker Config Log	rrd	rrd	debug
 	Broker Config Log	rrd	core	error
@@ -277,7 +302,7 @@ BRRDRMU1
 	Config Broker	rrd
 	Config Broker	central
 	Config Broker	module
-	Config Broker Sql Output	central	unified_sql
+	Config BBDO3	${1}
 	Broker Config Log	rrd	rrd	trace
 	Broker Config Log	central	sql	trace
         Broker Config Flush Log	central	0
