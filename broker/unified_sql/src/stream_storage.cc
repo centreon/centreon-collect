@@ -295,9 +295,6 @@ void stream::_unified_sql_process_pb_service_status(
         if (!index_locked) {
           auto perf{std::make_shared<storage::pb_metric>()};
           auto& m = perf->mut_obj();
-          m.set_host_id(ss.host_id());
-          m.set_service_id(ss.service_id());
-          m.set_name(pd.name());
           m.set_time(ss.last_check());
           m.set_interval(interval);
           m.set_metric_id(metric_id);
@@ -307,7 +304,7 @@ void stream::_unified_sql_process_pb_service_status(
           log_v2::perfdata()->debug(
               "unified sql: generating perfdata event for metric {} "
               "(name '{}', time {}, value {}, rrd_len {}, data_type {})",
-              m.metric_id(), m.name(), m.time(), m.value(), rrd_len,
+              m.metric_id(), pd.name(), m.time(), m.value(), rrd_len,
               m.value_type());
           to_publish.emplace_back(std::move(perf));
         } else {

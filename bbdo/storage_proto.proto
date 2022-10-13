@@ -28,9 +28,6 @@ message Metric {
     ABSOLUTE = 3;
     AUTOMATIC = 4;
   }
-  uint64 host_id = 1;
-  uint64 service_id = 2;
-  string name = 3;
   uint64 metric_id = 4;
   int32 rrd_len = 5;
   int32 interval = 6;

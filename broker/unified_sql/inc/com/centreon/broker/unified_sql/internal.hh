@@ -41,8 +41,6 @@ using pb_remove_graphs =
 using pb_remove_poller =
     io::protobuf<GenericNameOrIndex,
                  make_type(io::bbdo, bbdo::de_remove_poller)>;
-using pb_metric =
-    io::protobuf<Metric, make_type(io::storage, storage::de_pb_metric)>;
 }  // namespace bbdo
 
 namespace storage {
