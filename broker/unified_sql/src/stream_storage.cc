@@ -293,16 +293,23 @@ void stream::_unified_sql_process_pb_service_status(
 
         // Send perfdata event to processing.
         if (!index_locked) {
-          auto perf{std::make_shared<storage::metric>(
-              ss.host_id(), ss.service_id(), pd.name(), ss.last_check(),
-              interval, false, metric_id, rrd_len, pd.value(),
-              static_cast<misc::perfdata::data_type>(pd.value_type()))};
+          auto perf{std::make_shared<storage::pb_metric>()};
+          auto& m = perf->mut_obj();
+          m.set_host_id(ss.host_id());
+          m.set_service_id(ss.service_id());
+          m.set_name(pd.name());
+          m.set_time(ss.last_check());
+          m.set_interval(interval);
+          m.set_metric_id(metric_id);
+          m.set_rrd_len(rrd_len);
+          m.set_value(pd.value());
+          m.set_value_type(static_cast<Metric_ValueType>(pd.value_type()));
           log_v2::perfdata()->debug(
               "unified sql: generating perfdata event for metric {} "
               "(name '{}', time {}, value {}, rrd_len {}, data_type {})",
-              perf->metric_id, perf->name, perf->time, perf->value, rrd_len,
-              perf->value_type);
-          to_publish.emplace_back(perf);
+              m.metric_id(), m.name(), m.time(), m.value(), rrd_len,
+              m.value_type());
+          to_publish.emplace_back(std::move(perf));
         } else {
           log_v2::perfdata()->trace(
               "unified sql: index {} is locked, so metric {} event not sent "

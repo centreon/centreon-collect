@@ -179,6 +179,69 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
     return 1;
 
   switch (d->type()) {
+    case storage::pb_metric::static_type():
+      if (_write_metrics) {
+        // Debug message.
+        std::shared_ptr<storage::pb_metric> e(
+            std::static_pointer_cast<storage::pb_metric>(d));
+        auto& m = e->obj();
+        log_v2::rrd()->debug("RRD: new pb data for metric {} (time {})",
+                             m.metric_id(), m.time());
+
+        // Metric path.
+        std::string metric_path(
+            fmt::format("{}{}.rrd", _metrics_path, m.metric_id()));
+
+        // Check that metric is not being rebuilt.
+        rebuild_cache::iterator it = _metrics_rebuild.find(metric_path);
+        if (it == _metrics_rebuild.end()) {
+          // Write metrics RRD.
+          try {
+            _backend.open(metric_path);
+          } catch (exceptions::open const& b) {
+            time_t interval(m.interval() ? m.interval() : 60);
+            assert(m.rrd_len());
+            _backend.open(metric_path, m.rrd_len(), m.time() - 1, interval,
+                          m.value_type());
+          }
+          std::string v;
+          switch (m.value_type()) {
+            case misc::perfdata::gauge:
+              v = fmt::format("{:f}", m.value());
+              log_v2::rrd()->trace(
+                  "RRD: update metric {} of type GAUGE with {}", m.metric_id(),
+                  v);
+              break;
+            case misc::perfdata::counter:
+              v = fmt::format("{}", static_cast<uint64_t>(m.value()));
+              log_v2::rrd()->trace(
+                  "RRD: update metric {} of type COUNTER with {}",
+                  m.metric_id(), v);
+              break;
+            case misc::perfdata::derive:
+              v = fmt::format("{}", static_cast<int64_t>(m.value()));
+              log_v2::rrd()->trace(
+                  "RRD: update metric {} of type DERIVE with {}", m.metric_id(),
+                  v);
+              break;
+            case misc::perfdata::absolute:
+              v = fmt::format("{}", static_cast<uint64_t>(m.value()));
+              log_v2::rrd()->trace(
+                  "RRD: update metric {} of type ABSOLUTE with {}",
+                  m.metric_id(), v);
+              break;
+            default:
+              v = fmt::format("{:f}", m.value());
+              log_v2::rrd()->trace("RRD: update metric {} of type {} with {}",
+                                   m.metric_id(), m.value_type(), v);
+              break;
+          }
+          _backend.update(m.time(), v);
+        } else
+          // Cache value.
+          it->second.push_back(d);
+      }
+      break;
     case storage::metric::static_type():
       if (_write_metrics) {
         // Debug message.

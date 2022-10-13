@@ -127,9 +127,13 @@ void broker_module_init(void const* arg) {
       e.register_event(make_type(io::bbdo, bbdo::de_remove_poller),
                        "remove_graphs", &bbdo::pb_remove_poller::operations);
 
-      /* Lets' register the remove_poller event.*/
+      /* Let's register the remove_poller event. */
       e.register_event(make_type(io::bbdo, bbdo::de_remove_poller),
                        "remove_poller", &bbdo::pb_remove_poller::operations);
+
+      /* Let's register the pb_metric event. */
+      e.register_event(make_type(io::storage, storage::de_pb_metric),
+                       "pb_metric", &storage::pb_metric::operations);
     }
 
     // Register unified_sql layer.
