@@ -116,9 +116,13 @@ void stream::_unified_sql_process_pb_service_status(
         "with index_id {}, rrd_len: {}",
         host_id, service_id, index_id, rrd_len);
     if (ss.checked()) {
-      auto status(std::make_shared<storage::status>(ss.last_check(), index_id,
-                                                    interval, false, rrd_len,
-                                                    ss.last_hard_state()));
+      auto status{std::make_shared<storage::pb_status>()};
+      auto& s = status->mut_obj();
+      s.set_index_id(index_id);
+      s.set_interval(interval);
+      s.set_rrd_len(rrd_len);
+      s.set_time(ss.last_check());
+      s.set_state(ss.last_hard_state());
       multiplexing::publisher().write(status);
     }
 

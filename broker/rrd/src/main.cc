@@ -117,6 +117,8 @@ void broker_module_init(void const* arg) {
 
       e.register_event(make_type(io::storage, storage::de_pb_metric),
                        "pb_metric", &storage::pb_metric::operations);
+      e.register_event(make_type(io::storage, storage::de_pb_status),
+                       "pb_status", &storage::pb_status::operations);
     }
 
     // Register RRD layer.
