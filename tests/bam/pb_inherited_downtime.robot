@@ -23,10 +23,7 @@ BEBAMIDTU1
 	Config Broker	central
 	Config Broker	rrd
 	Broker Config Log	central	bam	trace
-	Config Broker Sql Output	central	unified_sql
-        Broker Config Add Item	module0	bbdo_version	3.0.1
-        Broker Config Add Item	rrd	bbdo_version	3.0.1
-        Broker Config Add Item	central	bbdo_version	3.0.1
+        Config BBDO3	${1}
 	Config Engine	${1}
 
 	Clone Engine Config To DB

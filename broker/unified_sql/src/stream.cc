@@ -89,8 +89,8 @@ void (stream::*const stream::_neb_processing_table[])(
     &stream::_process_pb_custom_variable,
     &stream::_process_pb_custom_variable_status,
     &stream::_process_pb_host_check,
-    &stream::_process_pb_service_check
-
+    &stream::_process_pb_service_check,
+    &stream::_process_pb_log,
 };
 
 stream::stream(const database_config& dbcfg,

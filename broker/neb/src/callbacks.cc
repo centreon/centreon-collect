@@ -2105,6 +2105,45 @@ int neb::callback_log(int callback_type, void* data) {
 }
 
 /**
+ *  @brief Function that process log data.
+ *
+ *  This function is called by Nagios when some log data are available.
+ *
+ *  @param[in] callback_type Type of the callback (NEBCALLBACK_LOG_DATA).
+ *  @param[in] data          A pointer to a nebstruct_log_data containing the
+ *                           log data.
+ *
+ *  @return 0 on success.
+ */
+int neb::callback_pb_log(int callback_type [[maybe_unused]], void* data) {
+  // Log message.
+  SPDLOG_LOGGER_INFO(log_v2::neb(), "callbacks: generating pb log event");
+
+  try {
+    // In/Out variables.
+    nebstruct_log_data const* log_data;
+    auto le{std::make_shared<neb::pb_log_entry>()};
+    auto& le_obj = le->mut_obj();
+
+    // Fill output var.
+    log_data = static_cast<nebstruct_log_data*>(data);
+    le_obj.set_ctime(log_data->entry_time);
+    le_obj.set_instance_name(config::applier::state::instance().poller_name());
+    if (log_data->data)
+      if (!set_pb_log_data(*le,
+                           misc::string::check_string_utf8(log_data->data)))
+        return 0;
+
+    // Send event.
+    gl_publisher.write(le);
+  }
+  // Avoid exception propagation in C code.
+  catch (...) {
+  }
+  return 0;
+}
+
+/**
  *  @brief Function that process module data.
  *
  *  This function is called by Engine when some module data is
@@ -2593,7 +2632,7 @@ int neb::callback_service(int callback_type, void* data) {
  *
  *  @return 0 on success.
  */
-int neb::callback_pb_service(int callback_type, void* data) {
+int neb::callback_pb_service(int callback_type [[maybe_unused]], void* data) {
   SPDLOG_LOGGER_INFO(log_v2::neb(),
                      "callbacks: generating pb service event protobuf");
 

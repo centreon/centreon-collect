@@ -28,7 +28,8 @@ namespace centreon {
 namespace broker {
 namespace neb {
 void set_log_data(neb::log_entry& le, char const* log_data);
-}
+bool set_pb_log_data(neb::pb_log_entry& le, const std::string& output);
+}  // namespace neb
 }  // namespace broker
 }  // namespace centreon
 }  // namespace com
