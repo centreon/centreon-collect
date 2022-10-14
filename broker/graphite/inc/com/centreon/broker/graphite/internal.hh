@@ -1,5 +1,5 @@
 /*
-** Copyright 2013, 2022 Centreon
+** Copyright 2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -16,23 +16,20 @@
 ** For more information : contact@centreon.com
 */
 
-#ifndef CCB_STORAGE_INTERNAL_HH
-#define CCB_STORAGE_INTERNAL_HH
+#ifndef CCB_GRAPHITE_INTERNAL_HH
+#define CCB_GRAPHITE_INTERNAL_HH
 
 #include "bbdo/events.hh"
 #include "bbdo/storage_proto.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
-#include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()
 
 namespace storage {
-// Data elements.
 using pb_index_mapping =
     io::protobuf<IndexMapping,
                  make_type(io::storage, storage::de_pb_index_mapping)>;
 }  // namespace storage
-
 CCB_END()
 
-#endif  // !CCB_STORAGE_INTERNAL_HH
+#endif  // !CCB_GRAPHITE_INTERNAL_HH

@@ -85,6 +85,11 @@ void broker_module_init(void const* arg) {
       e.register_event(make_type(io::storage, storage::de_metric_mapping),
                        "metric_mapping", &storage::metric_mapping::operations,
                        storage::metric_mapping::entries);
+
+      /* Let's register the pb_index_mapping event. */
+      e.register_event(make_type(io::storage, storage::de_pb_index_mapping),
+                       "pb_index_mapping",
+                       &storage::pb_index_mapping::operations);
     }
 
     // Register storage layer.

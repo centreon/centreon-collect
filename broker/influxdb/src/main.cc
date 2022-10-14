@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013, 2020-2021 Centreon
+** Copyright 2011-2013, 2020-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -16,12 +16,13 @@
 ** For more information : contact@centreon.com
 */
 
+#include "bbdo/storage/index_mapping.hh"
 #include "com/centreon/broker/influxdb/factory.hh"
+#include "com/centreon/broker/influxdb/internal.hh"
 #include "com/centreon/broker/influxdb/stream.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/log_v2.hh"
-//#include "com/centreon/broker/storage/internal.hh"
 
 using namespace com::centreon::broker;
 
@@ -85,6 +86,11 @@ void broker_module_init(void const* arg) {
       e.register_event(make_type(io::storage, storage::de_metric_mapping),
                        "metric_mapping", &storage::metric_mapping::operations,
                        storage::metric_mapping::entries);
+
+      /* Let's register the pb_index_mapping event. */
+      e.register_event(make_type(io::storage, storage::de_pb_index_mapping),
+                       "pb_index_mapping",
+                       &storage::pb_index_mapping::operations);
     }
 
     // Register storage layer.
