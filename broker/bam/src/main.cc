@@ -32,7 +32,6 @@
 #include "bbdo/bam/kpi_status.hh"
 #include "bbdo/bam/rebuild.hh"
 #include "bbdo/events.hh"
-#include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric.hh"
 #include "bbdo/storage/metric_mapping.hh"
 #include "bbdo/storage/status.hh"
@@ -111,9 +110,6 @@ void broker_module_init(void const* arg) {
                        "rt_metrics");
       e.register_event(make_type(io::storage, storage::de_status), "status",
                        &storage::status::operations, storage::status::entries);
-      e.register_event(make_type(io::storage, storage::de_index_mapping),
-                       "index_mapping", &storage::index_mapping::operations,
-                       storage::index_mapping::entries);
       e.register_event(make_type(io::storage, storage::de_metric_mapping),
                        "metric_mapping", &storage::metric_mapping::operations,
                        storage::metric_mapping::entries);

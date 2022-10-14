@@ -83,23 +83,23 @@ class macro_cache {
   const std::shared_ptr<io::data>& get_host(uint64_t host_id) const;
   const std::shared_ptr<io::data>& get_service(uint64_t host_id,
                                                uint64_t service_id) const;
-  std::string const& get_host_name(uint64_t host_id) const;
-  std::string const& get_notes_url(uint64_t host_id, uint64_t service_id) const;
-  std::string const& get_notes(uint64_t host_id, uint64_t service_id) const;
-  std::string const& get_action_url(uint64_t host_id,
+  const std::string& get_host_name(uint64_t host_id) const;
+  const std::string& get_notes_url(uint64_t host_id, uint64_t service_id) const;
+  const std::string& get_notes(uint64_t host_id, uint64_t service_id) const;
+  const std::string& get_action_url(uint64_t host_id,
                                     uint64_t service_id) const;
   int32_t get_severity(uint64_t host_id, uint64_t service_id) const;
-  std::string const& get_host_group_name(uint64_t id) const;
+  const std::string& get_host_group_name(uint64_t id) const;
   absl::btree_map<std::pair<uint64_t, uint64_t>,
                   std::shared_ptr<neb::host_group_member>> const&
   get_host_group_members() const;
-  std::string const& get_service_description(uint64_t host_id,
+  const std::string& get_service_description(uint64_t host_id,
                                              uint64_t service_id) const;
-  std::string const& get_service_group_name(uint64_t id) const;
+  const std::string& get_service_group_name(uint64_t id) const;
   absl::btree_map<std::tuple<uint64_t, uint64_t, uint64_t>,
                   std::shared_ptr<neb::service_group_member>> const&
   get_service_group_members() const;
-  std::string const& get_instance(uint64_t instance_id) const;
+  const std::string& get_instance(uint64_t instance_id) const;
 
   const std::unordered_multimap<
       uint64_t,

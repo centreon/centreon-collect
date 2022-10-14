@@ -65,12 +65,12 @@ class macro_cache {
 
   void write(std::shared_ptr<io::data> const& data);
 
-  storage::pb_index_mapping const& get_index_mapping(uint64_t index_id) const;
-  storage::metric_mapping const& get_metric_mapping(uint64_t metric_id) const;
-  std::string const& get_host_name(uint64_t host_id) const;
-  std::string const& get_service_description(uint64_t host_id,
+  const storage::pb_index_mapping& get_index_mapping(uint64_t index_id) const;
+  const storage::metric_mapping& get_metric_mapping(uint64_t metric_id) const;
+  const std::string& get_host_name(uint64_t host_id) const;
+  const std::string& get_service_description(uint64_t host_id,
                                              uint64_t service_id) const;
-  std::string const& get_instance(uint64_t instance_id) const;
+  const std::string& get_instance(uint64_t instance_id) const;
 };
 }  // namespace graphite
 
