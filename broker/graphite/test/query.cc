@@ -20,6 +20,7 @@
 #include "com/centreon/broker/graphite/query.hh"
 #include <gtest/gtest.h>
 #include "bbdo/storage/index_mapping.hh"
+#include "bbdo/storage/metric_mapping.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
@@ -32,8 +33,7 @@ TEST(graphiteQuery, ComplexMetric) {
   std::shared_ptr<neb::host> host{std::make_shared<neb::host>()};
   std::shared_ptr<neb::service> svc{std::make_shared<neb::service>()};
   std::shared_ptr<neb::instance> instance{std::make_shared<neb::instance>()};
-  std::shared_ptr<storage::metric_mapping> metric_map{
-      std::make_shared<storage::metric_mapping>()};
+  auto metric_map{std::make_shared<storage::metric_mapping>()};
   auto index_map{std::make_shared<storage::index_mapping>()};
 
   m.source_id = 3;

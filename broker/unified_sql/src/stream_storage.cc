@@ -278,9 +278,13 @@ void stream::_unified_sql_process_pb_service_status(
                                       it_index_cache->second.metric_id);
           }
         }
-        if (need_metric_mapping)
-          to_publish.emplace_back(
-              std::make_shared<storage::metric_mapping>(index_id, metric_id));
+        if (need_metric_mapping) {
+          auto mm{std::make_shared<storage::pb_metric_mapping>()};
+          auto& mm_obj = mm->mut_obj();
+          mm_obj.set_index_id(index_id);
+          mm_obj.set_metric_id(metric_id);
+          to_publish.emplace_back(std::move(mm));
+        }
 
         if (_store_in_db) {
           // Append perfdata to queue.

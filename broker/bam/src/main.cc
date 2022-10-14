@@ -33,7 +33,6 @@
 #include "bbdo/bam/rebuild.hh"
 #include "bbdo/events.hh"
 #include "bbdo/storage/metric.hh"
-#include "bbdo/storage/metric_mapping.hh"
 #include "bbdo/storage/status.hh"
 #include "com/centreon/broker/bam/factory.hh"
 #include "com/centreon/broker/io/events.hh"
@@ -110,9 +109,6 @@ void broker_module_init(void const* arg) {
                        "rt_metrics");
       e.register_event(make_type(io::storage, storage::de_status), "status",
                        &storage::status::operations, storage::status::entries);
-      e.register_event(make_type(io::storage, storage::de_metric_mapping),
-                       "metric_mapping", &storage::metric_mapping::operations,
-                       storage::metric_mapping::entries);
 
       register_bam_event<bam::ba_status>(e, bam::de_ba_status, "ba_status");
       register_bam_event<bam::kpi_status>(e, bam::de_kpi_status, "kpi_status");
