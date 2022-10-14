@@ -23,8 +23,8 @@
 #include "bbdo/bam/dimension_ba_event.hh"
 #include "bbdo/bam/dimension_bv_event.hh"
 #include "bbdo/bam/dimension_truncate_table_signal.hh"
-#include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric_mapping.hh"
+#include "com/centreon/broker/lua/internal.hh"
 #include "com/centreon/broker/neb/custom_variable.hh"
 #include "com/centreon/broker/neb/host.hh"
 #include "com/centreon/broker/neb/host_group.hh"
@@ -59,7 +59,7 @@ class macro_cache {
   absl::btree_map<std::tuple<uint64_t, uint64_t, uint64_t>,
                   std::shared_ptr<neb::service_group_member>>
       _service_group_members;
-  absl::flat_hash_map<uint64_t, std::shared_ptr<storage::index_mapping>>
+  absl::flat_hash_map<uint64_t, std::shared_ptr<storage::pb_index_mapping>>
       _index_mappings;
   absl::flat_hash_map<uint64_t, std::shared_ptr<storage::metric_mapping>>
       _metric_mappings;
@@ -77,9 +77,9 @@ class macro_cache {
 
   void write(std::shared_ptr<io::data> const& data);
 
-  storage::index_mapping const& get_index_mapping(uint32_t index_id) const;
+  const storage::pb_index_mapping& get_index_mapping(uint64_t index_id) const;
   const std::shared_ptr<storage::metric_mapping>& get_metric_mapping(
-      uint32_t metric_id) const;
+      uint64_t metric_id) const;
   const std::shared_ptr<io::data>& get_host(uint64_t host_id) const;
   const std::shared_ptr<io::data>& get_service(uint64_t host_id,
                                                uint64_t service_id) const;

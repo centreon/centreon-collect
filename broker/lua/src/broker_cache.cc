@@ -287,16 +287,18 @@ static int l_broker_cache_get_index_mapping(lua_State* L) {
   int index_id(luaL_checkinteger(L, 2));
 
   try {
-    storage::index_mapping const& mapping(cache->get_index_mapping(index_id));
+    const storage::pb_index_mapping& mapping{
+        cache->get_index_mapping(index_id)};
+    const auto& m_obj = mapping.obj();
     lua_createtable(L, 0, 3);
 
-    lua_pushinteger(L, mapping.index_id);
+    lua_pushinteger(L, m_obj.index_id());
     lua_setfield(L, -2, "index_id");
 
-    lua_pushinteger(L, mapping.host_id);
+    lua_pushinteger(L, m_obj.host_id());
     lua_setfield(L, -2, "host_id");
 
-    lua_pushinteger(L, mapping.service_id);
+    lua_pushinteger(L, m_obj.service_id());
     lua_setfield(L, -2, "service_id");
   } catch (std::exception const& e) {
     (void)e;

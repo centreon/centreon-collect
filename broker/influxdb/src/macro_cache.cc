@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2015, 2019 Centreon
+** Copyright 2011-2015, 2019-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@ using namespace com::centreon::broker::influxdb;
  *
  *  @param[in] cache  Persistent cache used by the macro cache.
  */
-macro_cache::macro_cache(std::shared_ptr<persistent_cache> const& cache)
+macro_cache::macro_cache(const std::shared_ptr<persistent_cache>& cache)
     : _cache(cache) {
   if (_cache != nullptr) {
     std::shared_ptr<io::data> d;
@@ -64,7 +64,7 @@ macro_cache::~macro_cache() {
  */
 const storage::pb_index_mapping& macro_cache::get_index_mapping(
     uint64_t index_id) const {
-  auto const found = _index_mappings.find(index_id);
+  const auto found = _index_mappings.find(index_id);
   if (found == _index_mappings.end())
     throw msg_fmt("influxdb: could not find host/service of index {} ",
                   index_id);
@@ -78,7 +78,7 @@ const storage::pb_index_mapping& macro_cache::get_index_mapping(
  *
  *  @return               The metric mapping.
  */
-storage::metric_mapping const& macro_cache::get_metric_mapping(
+const storage::metric_mapping& macro_cache::get_metric_mapping(
     uint64_t metric_id) const {
   auto const found = _metric_mappings.find(metric_id);
   if (found == _metric_mappings.end())
