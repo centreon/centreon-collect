@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2015, 2019 Centreon
+** Copyright 2011-2015, 2019-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 */
 
 #include "com/centreon/broker/influxdb/macro_cache.hh"
+#include "bbdo/storage/index_mapping.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
@@ -29,7 +30,7 @@ using namespace com::centreon::broker::influxdb;
  *
  *  @param[in] cache  Persistent cache used by the macro cache.
  */
-macro_cache::macro_cache(std::shared_ptr<persistent_cache> const& cache)
+macro_cache::macro_cache(const std::shared_ptr<persistent_cache>& cache)
     : _cache(cache) {
   if (_cache != nullptr) {
     std::shared_ptr<io::data> d;
@@ -61,9 +62,9 @@ macro_cache::~macro_cache() {
  *
  *  @return               The status mapping.
  */
-storage::index_mapping const& macro_cache::get_index_mapping(
+const storage::pb_index_mapping& macro_cache::get_index_mapping(
     uint64_t index_id) const {
-  auto const found = _index_mappings.find(index_id);
+  const auto found = _index_mappings.find(index_id);
   if (found == _index_mappings.end())
     throw msg_fmt("influxdb: could not find host/service of index {} ",
                   index_id);
@@ -77,7 +78,7 @@ storage::index_mapping const& macro_cache::get_index_mapping(
  *
  *  @return               The metric mapping.
  */
-storage::metric_mapping const& macro_cache::get_metric_mapping(
+const storage::metric_mapping& macro_cache::get_metric_mapping(
     uint64_t metric_id) const {
   auto const found = _metric_mappings.find(metric_id);
   if (found == _metric_mappings.end())
@@ -149,7 +150,7 @@ std::string const& macro_cache::get_instance(uint64_t instance_id) const {
  *
  *  @param[in] data  The event to write.
  */
-void macro_cache::write(std::shared_ptr<io::data> const& data) {
+void macro_cache::write(const std::shared_ptr<io::data>& data) {
   if (!data)
     return;
 
@@ -168,6 +169,9 @@ void macro_cache::write(std::shared_ptr<io::data> const& data) {
       break;
     case neb::pb_service::static_type():
       _process_pb_service(data);
+      break;
+    case storage::pb_index_mapping::static_type():
+      _process_index_mapping(data);
       break;
     case storage::index_mapping::static_type():
       _process_index_mapping(data);
@@ -237,8 +241,25 @@ void macro_cache::_process_pb_service(std::shared_ptr<io::data> const& data) {
  */
 void macro_cache::_process_index_mapping(
     std::shared_ptr<io::data> const& data) {
-  auto const& im = std::static_pointer_cast<storage::index_mapping>(data);
-  _index_mappings[im->index_id] = im;
+  switch (data->type()) {
+    case storage::pb_index_mapping::static_type(): {
+      auto im = std::static_pointer_cast<storage::pb_index_mapping>(data);
+      _index_mappings[im->obj().index_id()] = im;
+    } break;
+    case storage::index_mapping::static_type(): {
+      const auto& im = std::static_pointer_cast<storage::index_mapping>(data);
+      auto pb_im = std::make_shared<storage::pb_index_mapping>();
+      auto& obj = pb_im->mut_obj();
+      obj.set_index_id(im->index_id);
+      obj.set_host_id(im->host_id);
+      obj.set_service_id(im->service_id);
+      _index_mappings[obj.index_id()] = pb_im;
+    } break;
+    default:
+      /* Should not arrive */
+      assert(1 == 0);
+      break;
+  }
 }
 
 /**
@@ -267,8 +288,8 @@ void macro_cache::_save_to_disk() {
   for (auto it(_services.begin()), end(_services.end()); it != end; ++it)
     _cache->add(it->second);
 
-  for (auto it(_index_mappings.begin()), end(_index_mappings.end()); it != end;
-       ++it)
+  for (auto it = _index_mappings.begin(), end = _index_mappings.end();
+       it != end; ++it)
     _cache->add(it->second);
 
   for (auto it = _metric_mappings.begin(), end = _metric_mappings.end();

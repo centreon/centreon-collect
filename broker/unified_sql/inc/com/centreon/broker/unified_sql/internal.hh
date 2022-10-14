@@ -57,6 +57,10 @@ using pb_metric =
     io::protobuf<Metric, make_type(io::storage, storage::de_pb_metric)>;
 using pb_status =
     io::protobuf<Status, make_type(io::storage, storage::de_pb_status)>;
+using pb_index_mapping =
+    io::protobuf<IndexMapping,
+                 make_type(io::storage, storage::de_pb_index_mapping)>;
+
 }  // namespace storage
 CCB_END()
 

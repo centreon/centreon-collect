@@ -431,7 +431,7 @@ void line_protocol_query::_get_index_id(io::data const& d, std::ostream& is) {
 void line_protocol_query::_get_host(io::data const& d, std::ostream& is) {
   if (_type == status)
     is << _cache->get_host_name(
-        _cache->get_index_mapping(_get_index_id(d)).host_id);
+        _cache->get_index_mapping(_get_index_id(d)).obj().host_id());
   else
     is << _cache->get_host_name(static_cast<storage::metric const&>(d).host_id);
 }
@@ -444,7 +444,7 @@ void line_protocol_query::_get_host(io::data const& d, std::ostream& is) {
  */
 void line_protocol_query::_get_host_id(io::data const& d, std::ostream& is) {
   if (_type == status)
-    is << _cache->get_index_mapping(_get_index_id(d)).host_id;
+    is << _cache->get_index_mapping(_get_index_id(d)).obj().host_id();
   else
     is << static_cast<storage::metric const&>(d).host_id;
 }
@@ -457,9 +457,10 @@ void line_protocol_query::_get_host_id(io::data const& d, std::ostream& is) {
  */
 void line_protocol_query::_get_service(io::data const& d, std::ostream& is) {
   if (_type == status) {
-    storage::index_mapping const& stm(
+    const storage::pb_index_mapping& stm(
         _cache->get_index_mapping(_get_index_id(d)));
-    is << _cache->get_service_description(stm.host_id, stm.service_id);
+    is << _cache->get_service_description(stm.obj().host_id(),
+                                          stm.obj().service_id());
   } else {
     is << _cache->get_service_description(
         static_cast<storage::metric const&>(d).host_id,
@@ -475,7 +476,7 @@ void line_protocol_query::_get_service(io::data const& d, std::ostream& is) {
  */
 void line_protocol_query::_get_service_id(io::data const& d, std::ostream& is) {
   if (_type == status)
-    is << _cache->get_index_mapping(_get_index_id(d)).service_id;
+    is << _cache->get_index_mapping(_get_index_id(d)).obj().service_id();
   else
     is << static_cast<storage::metric const&>(d).service_id;
 }

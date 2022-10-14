@@ -23,6 +23,7 @@
 #include <absl/strings/str_split.h>
 
 #include "../../core/test/test_server.hh"
+#include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/status.hh"
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/config/applier/modules.hh"
@@ -1023,7 +1024,7 @@ TEST_F(LuaTest, IndexMetricCacheTest) {
   hst->host_id = 1;
   hst->host_name = "host1";
   _cache->write(hst);
-  std::shared_ptr<storage::index_mapping> im(new storage::index_mapping);
+  auto im{std::make_shared<storage::index_mapping>()};
   im->index_id = 7;
   im->service_id = 14;
   im->host_id = 1;

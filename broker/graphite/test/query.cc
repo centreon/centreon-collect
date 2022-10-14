@@ -19,6 +19,7 @@
 
 #include "com/centreon/broker/graphite/query.hh"
 #include <gtest/gtest.h>
+#include "bbdo/storage/index_mapping.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
@@ -33,8 +34,7 @@ TEST(graphiteQuery, ComplexMetric) {
   std::shared_ptr<neb::instance> instance{std::make_shared<neb::instance>()};
   std::shared_ptr<storage::metric_mapping> metric_map{
       std::make_shared<storage::metric_mapping>()};
-  std::shared_ptr<storage::index_mapping> index_map{
-      std::make_shared<storage::index_mapping>()};
+  auto index_map{std::make_shared<storage::index_mapping>()};
 
   m.source_id = 3;
 
@@ -76,8 +76,7 @@ TEST(graphiteQuery, ComplexStatus) {
   std::shared_ptr<neb::host> host{std::make_shared<neb::host>()};
   std::shared_ptr<neb::service> svc{std::make_shared<neb::service>()};
   std::shared_ptr<neb::instance> instance{std::make_shared<neb::instance>()};
-  std::shared_ptr<storage::index_mapping> index_map{
-      std::make_shared<storage::index_mapping>()};
+  auto index_map{std::make_shared<storage::index_mapping>()};
 
   graphite::query q{
       "test . $HOST$ $HOSTID$ $SERVICE$ $SERVICEID$ $INSTANCE$ $INSTANCEID$ "

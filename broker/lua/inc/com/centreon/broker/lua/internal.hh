@@ -16,36 +16,20 @@
 ** For more information : contact@centreon.com
 */
 
-syntax = "proto3";
+#ifndef CCB_LUA_INTERNAL_HH
+#define CCB_LUA_INTERNAL_HH
 
-package com.centreon.broker;
+#include "bbdo/events.hh"
+#include "bbdo/storage_proto.pb.h"
+#include "com/centreon/broker/io/protobuf.hh"
 
-message Metric {
-  enum ValueType {
-    GAUGE = 0;
-    COUNTER = 1;
-    DERIVE = 2;
-    ABSOLUTE = 3;
-    AUTOMATIC = 4;
-  }
-  uint64 metric_id = 4;
-  int32 rrd_len = 5;
-  int32 interval = 6;
-  ValueType value_type = 7;
-  uint64 time = 8;
-  double value = 9;
-}
+CCB_BEGIN()
 
-message Status {
-  uint64 index_id = 1;
-  uint32 interval = 2;
-  uint32 rrd_len = 3;
-  uint64 time = 4;
-  uint32 state = 5;
-}
+namespace storage {
+using pb_index_mapping =
+    io::protobuf<IndexMapping,
+                 make_type(io::storage, storage::de_pb_index_mapping)>;
+}  // namespace storage
+CCB_END()
 
-message IndexMapping {
-  uint64 index_id = 1;
-  uint64 host_id = 2;
-  uint64 service_id = 3;
-}
+#endif  // !CCB_LUA_INTERNAL_HH

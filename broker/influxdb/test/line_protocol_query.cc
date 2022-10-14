@@ -19,6 +19,7 @@
 
 #include "com/centreon/broker/influxdb/line_protocol_query.hh"
 #include <gtest/gtest.h>
+#include "bbdo/storage/index_mapping.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
@@ -99,8 +100,7 @@ TEST(InfluxDBLineProtoQuery, ComplexMetric) {
   std::shared_ptr<neb::instance> instance{std::make_shared<neb::instance>()};
   std::shared_ptr<storage::metric_mapping> metric_map{
       std::make_shared<storage::metric_mapping>()};
-  std::shared_ptr<storage::index_mapping> index_map{
-      std::make_shared<storage::index_mapping>()};
+  auto index_map{std::make_shared<storage::pb_index_mapping>()};
 
   columns.push_back(
       influxdb::column{"host1", "42.0", true, influxdb::column::number});
@@ -126,7 +126,9 @@ TEST(InfluxDBLineProtoQuery, ComplexMetric) {
   metric_map->metric_id = 40;
   metric_map->index_id = 41;
 
-  index_map->index_id = 41;
+  index_map->mut_obj().set_index_id(41);
+  index_map->mut_obj().set_host_id(1);
+  index_map->mut_obj().set_service_id(1);
 
   cache.write(host);
   cache.write(svc);

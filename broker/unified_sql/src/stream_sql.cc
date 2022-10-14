@@ -24,6 +24,7 @@
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/query_preparator.hh"
+#include "com/centreon/broker/unified_sql/internal.hh"
 #include "com/centreon/broker/unified_sql/stream.hh"
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/service.hh"
@@ -3349,8 +3350,11 @@ void stream::_check_and_update_index_cache(const Service& ss) {
           index_id, ss.host_id(), ss.service_id(), info.rrd_retention);
       _index_cache[{ss.host_id(), ss.service_id()}] = std::move(info);
       // Create the metric mapping.
-      auto im{std::make_shared<storage::index_mapping>(
-          info.index_id, ss.host_id(), ss.service_id())};
+      auto im{std::make_shared<storage::pb_index_mapping>()};
+      auto& im_obj = im->mut_obj();
+      im_obj.set_index_id(info.index_id);
+      im_obj.set_host_id(ss.host_id());
+      im_obj.set_service_id(ss.service_id());
       multiplexing::publisher pblshr;
       pblshr.write(im);
     } catch (const std::exception& e) {
@@ -3400,8 +3404,11 @@ void stream::_check_and_update_index_cache(const Service& ss) {
               info.special, info.locked);
           _index_cache[{ss.host_id(), ss.service_id()}] = std::move(info);
           // Create the metric mapping.
-          auto im{std::make_shared<storage::index_mapping>(
-              info.index_id, ss.host_id(), ss.service_id())};
+          auto im{std::make_shared<storage::pb_index_mapping>()};
+          auto& im_obj = im->mut_obj();
+          im_obj.set_index_id(info.index_id);
+          im_obj.set_host_id(ss.host_id());
+          im_obj.set_service_id(ss.service_id());
           multiplexing::publisher pblshr;
           pblshr.write(im);
         }

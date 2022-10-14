@@ -1,5 +1,5 @@
 /*
-** Copyright 2017-2019 Centreon
+** Copyright 2017-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -17,13 +17,13 @@
 */
 
 #include "com/centreon/broker/lua/macro_cache.hh"
-
+#include "bbdo/storage/index_mapping.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::lua;
-using namespace com::centreon::exceptions;
 
 /**
  *  Construct a macro cache
@@ -31,7 +31,7 @@ using namespace com::centreon::exceptions;
  *  @param[in] cache  Persistent cache used by the macro cache.
  */
 macro_cache::macro_cache(const std::shared_ptr<persistent_cache>& cache)
-    : _cache(cache), _services{} {
+    : _cache(cache) {
   if (_cache != nullptr) {
     std::shared_ptr<io::data> d;
     do {
@@ -63,9 +63,9 @@ macro_cache::~macro_cache() {
  *
  *  @return               The status mapping.
  */
-storage::index_mapping const& macro_cache::get_index_mapping(
-    uint32_t index_id) const {
-  auto found = _index_mappings.find(index_id);
+const storage::pb_index_mapping& macro_cache::get_index_mapping(
+    uint64_t index_id) const {
+  const auto found = _index_mappings.find(index_id);
   if (found == _index_mappings.end())
     throw msg_fmt("lua: could not find host/service of index {}", index_id);
   return *found->second;
@@ -79,8 +79,8 @@ storage::index_mapping const& macro_cache::get_index_mapping(
  *  @return               The metric mapping.
  */
 const std::shared_ptr<storage::metric_mapping>& macro_cache::get_metric_mapping(
-    uint32_t metric_id) const {
-  auto found = _metric_mappings.find(metric_id);
+    uint64_t metric_id) const {
+  auto const found = _metric_mappings.find(metric_id);
   if (found == _metric_mappings.end())
     throw msg_fmt("lua: could not find index of metric {}", metric_id);
   return found->second;
@@ -836,14 +836,25 @@ void macro_cache::_process_service_group_member(
  */
 void macro_cache::_process_index_mapping(
     std::shared_ptr<io::data> const& data) {
-  std::shared_ptr<storage::index_mapping> const& im =
-      std::static_pointer_cast<storage::index_mapping>(data);
-  SPDLOG_LOGGER_DEBUG(
-      log_v2::lua(),
-      "lua: processing index mapping (index_id: {}, host_id: {}, service_id: "
-      "{})",
-      im->index_id, im->host_id, im->service_id);
-  _index_mappings[im->index_id] = im;
+  switch (data->type()) {
+    case storage::pb_index_mapping::static_type(): {
+      auto im = std::static_pointer_cast<storage::pb_index_mapping>(data);
+      _index_mappings[im->obj().index_id()] = im;
+    } break;
+    case storage::index_mapping::static_type(): {
+      const auto& im = std::static_pointer_cast<storage::index_mapping>(data);
+      auto pb_im = std::make_shared<storage::pb_index_mapping>();
+      auto& obj = pb_im->mut_obj();
+      obj.set_index_id(im->index_id);
+      obj.set_host_id(im->host_id);
+      obj.set_service_id(im->service_id);
+      _index_mappings[obj.index_id()] = pb_im;
+    } break;
+    default:
+      /* Should not arrive */
+      assert(1 == 0);
+      break;
+  }
 }
 
 /**
