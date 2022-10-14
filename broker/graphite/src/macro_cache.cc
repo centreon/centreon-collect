@@ -17,6 +17,7 @@
 */
 
 #include "com/centreon/broker/graphite/macro_cache.hh"
+#include "bbdo/storage/index_mapping.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
@@ -61,7 +62,7 @@ macro_cache::~macro_cache() {
  *
  *  @return               The status mapping.
  */
-storage::index_mapping const& macro_cache::get_index_mapping(
+const storage::pb_index_mapping& macro_cache::get_index_mapping(
     uint64_t index_id) const {
   auto found = _index_mappings.find(index_id);
   if (found == _index_mappings.end())
@@ -149,7 +150,7 @@ std::string const& macro_cache::get_instance(uint64_t instance_id) const {
  *
  *  @param[in] data  The event to write.
  */
-void macro_cache::write(std::shared_ptr<io::data> const& data) {
+void macro_cache::write(const std::shared_ptr<io::data>& data) {
   if (!data)
     return;
   switch (data->type()) {
@@ -167,6 +168,9 @@ void macro_cache::write(std::shared_ptr<io::data> const& data) {
       break;
     case neb::pb_service::static_type():
       _process_pb_service(data);
+      break;
+    case storage::pb_index_mapping::static_type():
+      _process_index_mapping(data);
       break;
     case storage::index_mapping::static_type():
       _process_index_mapping(data);
@@ -236,8 +240,27 @@ void macro_cache::_process_pb_service(std::shared_ptr<io::data> const& data) {
  */
 void macro_cache::_process_index_mapping(
     std::shared_ptr<io::data> const& data) {
-  auto const& im = std::static_pointer_cast<storage::index_mapping>(data);
-  _index_mappings[im->index_id] = im;
+  switch (data->type()) {
+    case storage::pb_index_mapping::static_type(): {
+      auto im = std::static_pointer_cast<storage::pb_index_mapping>(data);
+      _index_mappings[im->obj().index_id()] = im;
+    } break;
+    case storage::index_mapping::static_type(): {
+      /* To avoid conflicts and thinking about future we force all the cache
+       * to contain protobuf messages. */
+      const auto& im = std::static_pointer_cast<storage::index_mapping>(data);
+      auto pb_im = std::make_shared<storage::pb_index_mapping>();
+      auto& obj = pb_im->mut_obj();
+      obj.set_index_id(im->index_id);
+      obj.set_host_id(im->host_id);
+      obj.set_service_id(im->service_id);
+      _index_mappings[obj.index_id()] = pb_im;
+    } break;
+    default:
+      /* Should not arrive */
+      assert(1 == 0);
+      break;
+  }
 }
 
 /**
@@ -266,8 +289,8 @@ void macro_cache::_save_to_disk() {
   for (auto it(_services.begin()), end(_services.end()); it != end; ++it)
     _cache->add(it->second);
 
-  for (auto it(_index_mappings.begin()), end(_index_mappings.end()); it != end;
-       ++it)
+  for (auto it = _index_mappings.begin(), end = _index_mappings.end();
+       it != end; ++it)
     _cache->add(it->second);
 
   for (auto it = _metric_mappings.begin(), end = _metric_mappings.end();

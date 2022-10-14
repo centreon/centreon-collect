@@ -43,3 +43,9 @@ message Status {
   uint64 time = 4;
   uint32 state = 5;
 }
+
+message IndexMapping {
+  uint64 index_id = 1;
+  uint64 host_id = 2;
+  uint64 service_id = 3;
+}

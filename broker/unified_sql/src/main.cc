@@ -138,6 +138,11 @@ void broker_module_init(void const* arg) {
       /* Let's register the pb_status event. */
       e.register_event(make_type(io::storage, storage::de_pb_status),
                        "pb_status", &storage::pb_status::operations);
+
+      /* Let's register the pb_index_mapping event. */
+      e.register_event(make_type(io::storage, storage::de_pb_index_mapping),
+                       "pb_index_mapping",
+                       &storage::pb_index_mapping::operations);
     }
 
     // Register unified_sql layer.

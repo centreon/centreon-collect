@@ -16,6 +16,7 @@
 ** For more information : contact@centreon.com
 */
 
+#include "bbdo/storage/index_mapping.hh"
 #include "com/centreon/broker/graphite/factory.hh"
 #include "com/centreon/broker/graphite/stream.hh"
 #include "com/centreon/broker/io/events.hh"
