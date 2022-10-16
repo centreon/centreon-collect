@@ -134,7 +134,7 @@ static struct {
     {NEBCALLBACK_CUSTOM_VARIABLE_DATA, &neb::callback_pb_custom_variable},
     {NEBCALLBACK_GROUP_DATA, &neb::callback_group},
     {NEBCALLBACK_GROUP_MEMBER_DATA, &neb::callback_group_member},
-    {NEBCALLBACK_MODULE_DATA, &neb::callback_module},
+    {NEBCALLBACK_MODULE_DATA, &neb::callback_pb_module},
     {NEBCALLBACK_RELATION_DATA, &neb::callback_relation}};
 
 // Registered callbacks.
@@ -2182,6 +2182,43 @@ int neb::callback_module(int callback_type, void* data) {
   }
   // Avoid exception propagation in C code.
   catch (...) {
+  }
+  return 0;
+}
+/**
+ *  @brief Function that processes module data.
+ *
+ *  This function is called by Engine when some module data is
+ *  available.
+ *
+ *  @param[in] callback_type Type of the callback
+ *                           (NEBCALLBACK_MODULE_DATA).
+ *  @param[in] data          A pointer to a nebstruct_module_data
+ *                           containing the module data.
+ *
+ *  @return 0 on success.
+ */
+int neb::callback_pb_module(int callback_type [[maybe_unused]], void* data) {
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(log_v2::neb(), "callbacks: generating module event");
+
+  // In/Out variables.
+  const nebstruct_module_data* module_data;
+  auto me{std::make_shared<neb::pb_module>()};
+  auto& m_obj = me->mut_obj();
+
+  // Fill output var.
+  module_data = static_cast<nebstruct_module_data*>(data);
+  if (module_data->module) {
+    m_obj.set_instance_id(config::applier::state::instance().poller_id());
+    m_obj.set_filename(misc::string::check_string_utf8(module_data->module));
+    if (module_data->args)
+      m_obj.set_args(misc::string::check_string_utf8(module_data->args));
+    m_obj.set_loaded(!(module_data->type == NEBTYPE_MODULE_DELETE));
+    m_obj.set_should_be_loaded(true);
+
+    // Send events.
+    gl_publisher.write(me);
   }
   return 0;
 }

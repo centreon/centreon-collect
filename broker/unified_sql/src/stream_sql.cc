@@ -2389,27 +2389,55 @@ void stream::_process_module(const std::shared_ptr<io::data>& d) {
     }
 
     // Process object.
-    if (m.enabled) {
-      _module_insert << m;
-      _mysql.run_statement(_module_insert, database::mysql_error::store_module,
-                           false, conn);
-      _add_action(conn, actions::modules);
-    } else {
-      const std::string* ptr_filename;
-      if (m.filename.size() > get_modules_col_size(modules_filename)) {
-        std::string trunc_filename = m.filename;
-        misc::string::truncate(trunc_filename,
-                               get_modules_col_size(modules_filename));
-        ptr_filename = &trunc_filename;
-      } else
-        ptr_filename = &m.filename;
+    _module_insert << m;
+    _mysql.run_statement(_module_insert, database::mysql_error::store_module,
+                         false, conn);
+    _add_action(conn, actions::modules);
+  }
+}
 
-      std::string query(fmt::format(
-          "DELETE FROM modules WHERE instance_id={} AND filename='{}'",
-          m.poller_id, *ptr_filename));
-      _mysql.run_query(query, database::mysql_error::empty, false, conn);
-      _add_action(conn, actions::modules);
+/**
+ *  Process a module event. We must take care of the thread id sending the
+ *  query because the modules table has a constraint on
+ * instances.instance_id
+ *
+ *  @param[in] e Uncasted module.
+ *
+ * @return The number of events that can be acknowledged.
+ */
+void stream::_process_pb_module(const std::shared_ptr<io::data>& d) {
+  // Cast object.
+  const auto& m = *static_cast<const neb::pb_module*>(d.get());
+  const auto& m_obj = m.obj();
+  int32_t conn = _mysql.choose_connection_by_instance(m_obj.instance_id());
+
+  // Log message.
+  SPDLOG_LOGGER_INFO(
+      log_v2::sql(),
+      "SQL: processing module event (poller: {}, filename: {}, loaded: {})",
+      m_obj.instance_id(), m_obj.filename(), m_obj.loaded() ? "yes" : "no");
+
+  // Processing.
+  if (_is_valid_poller(m_obj.instance_id())) {
+    // Prepare queries.
+    if (!_module_insert.prepared()) {
+      query_preparator qp(neb::pb_module::static_type());
+      _pb_module_insert = qp.prepare_insert_into(
+          _mysql, "modules ", /* space is mandatory to avoid conflicts with
+                                 _process_module */
+          {{4, "instance_id", io::protobuf_base::invalid_on_zero, 0},
+           {1, "args", 0, get_modules_col_size(modules_args)},
+           {2, "filename", 0, get_modules_col_size(modules_filename)},
+           {3, "loaded", 0, 0},
+           {5, "should_be_loaded", 0, 0}},
+          true);
     }
+
+    // Process object.
+    _pb_module_insert << m;
+    _mysql.run_statement(_pb_module_insert, database::mysql_error::store_module,
+                         false, conn);
+    _add_action(conn, actions::modules);
   }
 }
 

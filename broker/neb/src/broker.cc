@@ -191,12 +191,17 @@ void broker_module_init(void const* arg) {
                        "InstanceStatus", &neb::pb_instance_status::operations,
                        "instances");
 
+      e.register_event(make_type(io::neb, neb::de_pb_module), "Module",
+                       &neb::pb_module::operations, "modules");
+
       e.register_event(make_type(io::neb, neb::de_pb_instance), "Instance",
                        &neb::pb_instance::operations, "instances");
 
       e.register_event(make_type(io::neb, neb::de_pb_responsive_instance),
                        "ResponsiveInstance",
                        &neb::pb_responsive_instance::operations, "instances");
+      e.register_event(make_type(io::neb, neb::de_pb_acknowledgement), "Acknowledgement",
+                       &neb::pb_instance::operations, "acknowledgements");
     }
   }
 }

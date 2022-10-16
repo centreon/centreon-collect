@@ -25,7 +25,7 @@
 
 using namespace com::centreon::broker;
 
-class Module : public ::testing::Test {
+class ModuleTest : public ::testing::Test {
   void SetUp() override { randomize_init(); };
 
   void TearDown() override { randomize_cleanup(); };
@@ -34,7 +34,7 @@ class Module : public ::testing::Test {
 /**
  *  Check module's assignment operator.
  */
-TEST_F(Module, Assign) {
+TEST_F(ModuleTest, Assign) {
   // Object #1.
   neb::module mod1;
   std::vector<randval> randvals1;
@@ -59,7 +59,7 @@ TEST_F(Module, Assign) {
 /**
  *  Check module's copy constructor.
  */
-TEST_F(Module, CopyCtor) {
+TEST_F(ModuleTest, CopyCtor) {
   // Object #1.
   neb::module mod1;
   std::vector<randval> randvals1;
@@ -80,7 +80,7 @@ TEST_F(Module, CopyCtor) {
 /**
  *  Check module's default constructor.
  */
-TEST_F(Module, DefaultCtor) {
+TEST_F(ModuleTest, DefaultCtor) {
   // Object.
   neb::module mod;
 

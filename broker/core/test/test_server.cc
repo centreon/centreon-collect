@@ -53,6 +53,12 @@ test_server::test_server()
        "HTTP/1.1 200\n"});
 }
 
+auto wait_for_connections = [](test_server& server, uint32_t nb) -> void {
+  for (int i = 0; i < 100 && server.get_num_connections() != nb; ++i) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(timeout_ms));
+  }
+};
+
 void test_server::init() {
   _ctx.reset(new asio::io_context());
   _acceptor.reset(new asio::ip::tcp::acceptor(*_ctx));
@@ -230,7 +236,7 @@ TEST_F(AsioTest, Ping) {
   std::this_thread::sleep_for(std::chrono::milliseconds{timeout_ms});
   ASSERT_EQ(_server.get_num_connections(), 1u);
   ASSERT_TRUE(_server.add_client(s2, io));
-  std::this_thread::sleep_for(std::chrono::milliseconds{timeout_ms});
+  wait_for_connections(_server, 2);
   ASSERT_EQ(_server.get_num_connections(), 2u);
 
   std::error_code err;
@@ -255,7 +261,6 @@ TEST_F(AsioTest, Ping) {
   ASSERT_EQ(_server.get_num_connections(), 1u);
   s2.close();
   std::this_thread::sleep_for(std::chrono::milliseconds{timeout_ms});
+  wait_for_connections(_server, 0);
   ASSERT_EQ(_server.get_num_connections(), 0u);
-
-  return;
 }

@@ -284,6 +284,7 @@ class stream : public io::stream {
   database::mysql_stmt _instance_status_insupdate;
   database::mysql_stmt _pb_instance_status_insupdate;
   database::mysql_stmt _module_insert;
+  database::mysql_stmt _pb_module_insert;
   database::mysql_stmt _service_check_update;
   database::mysql_stmt _pb_service_check_update;
   database::mysql_stmt _service_dependency_insupdate;
@@ -347,6 +348,7 @@ class stream : public io::stream {
   void _process_pb_instance_status(const std::shared_ptr<io::data>& d);
   void _process_log(const std::shared_ptr<io::data>& d);
   void _process_module(const std::shared_ptr<io::data>& d);
+  void _process_pb_module(const std::shared_ptr<io::data>& d);
   void _process_service_check(const std::shared_ptr<io::data>& d);
   void _process_pb_service_check(const std::shared_ptr<io::data>& d);
   void _process_service_dependency(const std::shared_ptr<io::data>& d);
