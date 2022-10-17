@@ -70,7 +70,7 @@ struct private_downtime_params {
 static std::unordered_map<uint32_t, private_downtime_params> downtimes;
 
 // Load flags.
-int neb::gl_mod_flags(0);
+unsigned neb::gl_mod_flags(0);
 
 // Module handle.
 void* neb::gl_mod_handle(nullptr);
@@ -2197,126 +2197,179 @@ int neb::callback_module(int callback_type, void* data) {
  *
  *  @return 0 on success.
  */
-int neb::callback_process(int callback_type, void* data) {
+int neb::callback_process(int, void* data) {
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(log_v2::neb(), "callbacks: process event callback");
+
+  // Input variables.
+  nebstruct_process_data const* process_data;
+  static time_t start_time;
+
+  // Check process event type.
+  process_data = static_cast<nebstruct_process_data*>(data);
+  if (NEBTYPE_PROCESS_EVENTLOOPSTART == process_data->type) {
+    SPDLOG_LOGGER_INFO(log_v2::neb(),
+                       "callbacks: generating process start event");
+
+    // Parse configuration file.
+    try {
+      config::parser parsr;
+      config::state conf{parsr.parse(gl_configuration_file)};
+
+      // Apply resulting configuration.
+      config::applier::state::instance().apply(conf);
+
+    } catch (msg_fmt const& e) {
+      SPDLOG_LOGGER_INFO(log_v2::neb(), e.what());
+      return 0;
+    }
+
+    // Register callbacks.
+    SPDLOG_LOGGER_DEBUG(
+        log_v2::neb(), "callbacks: registering callbacks for old BBDO version");
+    for (uint32_t i(0); i < sizeof(gl_callbacks) / sizeof(*gl_callbacks); ++i)
+      gl_registered_callbacks.emplace_back(std::make_unique<callback>(
+          gl_callbacks[i].macro, gl_mod_handle, gl_callbacks[i].callback));
+
+    // Register Engine-specific callbacks.
+    if (gl_mod_flags & NEBMODULE_ENGINE) {
+      // Register engine callbacks.
+      SPDLOG_LOGGER_DEBUG(
+          log_v2::neb(),
+          "callbacks: registering callbacks for old BBDO version");
+      for (uint32_t i = 0;
+           i < sizeof(gl_engine_callbacks) / sizeof(*gl_engine_callbacks); ++i)
+        gl_registered_callbacks.emplace_back(std::make_unique<callback>(
+            gl_engine_callbacks[i].macro, gl_mod_handle,
+            gl_engine_callbacks[i].callback));
+    }
+
+    // Output variable.
+    auto instance{std::make_shared<neb::instance>()};
+    instance->poller_id = config::applier::state::instance().poller_id();
+    instance->engine = "Centreon Engine";
+    instance->is_running = true;
+    instance->name = config::applier::state::instance().poller_name();
+    instance->pid = getpid();
+    instance->program_start = time(nullptr);
+    instance->version = get_program_version();
+    start_time = instance->program_start;
+
+    // Send initial event and then configuration.
+    gl_publisher.write(instance);
+    send_initial_configuration();
+  } else if (NEBTYPE_PROCESS_EVENTLOOPEND == process_data->type) {
+    SPDLOG_LOGGER_INFO(log_v2::neb(),
+                       "callbacks: generating process end event");
+    // Output variable.
+    auto instance{std::make_shared<neb::instance>()};
+
+    // Fill output var.
+    instance->poller_id = config::applier::state::instance().poller_id();
+    instance->engine = "Centreon Engine";
+    instance->is_running = false;
+    instance->name = config::applier::state::instance().poller_name();
+    instance->pid = getpid();
+    instance->program_end = time(nullptr);
+    instance->program_start = start_time;
+    instance->version = get_program_version();
+
+    // Send event.
+    gl_publisher.write(instance);
+  }
+  return 0;
+}
+
+/**
+ *  @brief Function that process process data.
+ *
+ *  This function is called by Nagios when some process data is available.
+ *
+ *  @param[in] callback_type Type of the callback (NEBCALLBACK_PROCESS_DATA).
+ *  @param[in] data          A pointer to a nebstruct_process_data containing
+ *                           the process data.
+ *
+ *  @return 0 on success.
+ */
+int neb::callback_pb_process(int callback_type, void* data) {
   // Log message.
   SPDLOG_LOGGER_DEBUG(log_v2::neb(), "callbacks: process event callback");
   (void)callback_type;
 
-  try {
-    // Input variables.
-    nebstruct_process_data const* process_data;
-    static time_t start_time;
+  // Input variables.
+  nebstruct_process_data const* process_data;
+  static time_t start_time;
 
-    // Check process event type.
-    process_data = static_cast<nebstruct_process_data*>(data);
-    if (NEBTYPE_PROCESS_EVENTLOOPSTART == process_data->type) {
-      SPDLOG_LOGGER_INFO(log_v2::neb(),
-                         "callbacks: generating process start event");
+  std::shared_ptr<pb_instance> inst_obj(std::make_shared<pb_instance>());
+  Instance& inst(inst_obj->mut_obj());
+  inst.set_engine("Centreon Engine");
+  inst.set_pid(getpid());
+  inst.set_version(get_program_version());
 
-      // Parse configuration file.
-      std::tuple<uint16_t, uint16_t, uint16_t> bbdo_version;
-      try {
-        config::parser parsr;
-        config::state conf{parsr.parse(gl_configuration_file)};
+  // Check process event type.
+  process_data = static_cast<nebstruct_process_data*>(data);
+  if (NEBTYPE_PROCESS_EVENTLOOPSTART == process_data->type) {
+    SPDLOG_LOGGER_INFO(log_v2::neb(),
+                       "callbacks: generating process start event");
 
-        bbdo_version = conf.bbdo_version();
+    // Parse configuration file.
+    try {
+      config::parser parsr;
+      config::state conf{parsr.parse(gl_configuration_file)};
 
-        // Apply resulting configuration.
-        config::applier::state::instance().apply(conf);
+      // Apply resulting configuration.
+      config::applier::state::instance().apply(conf);
 
-      } catch (msg_fmt const& e) {
-        SPDLOG_LOGGER_INFO(log_v2::neb(), e.what());
-        return 0;
-      }
-
-      if (std::get<0>(bbdo_version) > 2) {
-        // Register callbacks.
-        SPDLOG_LOGGER_DEBUG(
-            log_v2::neb(),
-            "callbacks: registering callbacks for new BBDO version");
-        for (uint32_t i = 0;
-             i < sizeof(gl_pb_callbacks) / sizeof(*gl_pb_callbacks); ++i)
-          gl_registered_callbacks.emplace_back(std::make_unique<callback>(
-              gl_pb_callbacks[i].macro, gl_mod_handle,
-              gl_pb_callbacks[i].callback));
-      } else {
-        // Register callbacks.
-        SPDLOG_LOGGER_DEBUG(
-            log_v2::neb(),
-            "callbacks: registering callbacks for old BBDO version");
-        for (uint32_t i(0); i < sizeof(gl_callbacks) / sizeof(*gl_callbacks);
-             ++i)
-          gl_registered_callbacks.emplace_back(std::make_unique<callback>(
-              gl_callbacks[i].macro, gl_mod_handle, gl_callbacks[i].callback));
-      }
-
-      // Register Engine-specific callbacks.
-      if (gl_mod_flags & NEBMODULE_ENGINE) {
-        if (std::get<0>(bbdo_version) > 2) {
-          // Register engine callbacks.
-          SPDLOG_LOGGER_DEBUG(
-              log_v2::neb(),
-              "callbacks: registering callbacks for new BBDO version");
-          for (uint32_t i = 0; i < sizeof(gl_pb_engine_callbacks) /
-                                       sizeof(*gl_pb_engine_callbacks);
-               ++i)
-            gl_registered_callbacks.emplace_back(std::make_unique<callback>(
-                gl_pb_engine_callbacks[i].macro, gl_mod_handle,
-                gl_pb_engine_callbacks[i].callback));
-        } else {
-          // Register engine callbacks.
-          SPDLOG_LOGGER_DEBUG(
-              log_v2::neb(),
-              "callbacks: registering callbacks for old BBDO version");
-          for (uint32_t i = 0;
-               i < sizeof(gl_engine_callbacks) / sizeof(*gl_engine_callbacks);
-               ++i)
-            gl_registered_callbacks.emplace_back(std::make_unique<callback>(
-                gl_engine_callbacks[i].macro, gl_mod_handle,
-                gl_engine_callbacks[i].callback));
-        }
-      }
-
-      // Output variable.
-      auto instance{std::make_shared<neb::instance>()};
-      instance->poller_id = config::applier::state::instance().poller_id();
-      instance->engine = "Centreon Engine";
-      instance->is_running = true;
-      instance->name = config::applier::state::instance().poller_name();
-      instance->pid = getpid();
-      instance->program_start = time(nullptr);
-      instance->version = get_program_version();
-      start_time = instance->program_start;
-
-      // Send initial event and then configuration.
-      gl_publisher.write(instance);
-      if (std::get<0>(bbdo_version) > 2)
-        send_initial_pb_configuration();
-      else
-        send_initial_configuration();
-    } else if (NEBTYPE_PROCESS_EVENTLOOPEND == process_data->type) {
-      SPDLOG_LOGGER_INFO(log_v2::neb(),
-                         "callbacks: generating process end event");
-      // Output variable.
-      auto instance{std::make_shared<neb::instance>()};
-
-      // Fill output var.
-      instance->poller_id = config::applier::state::instance().poller_id();
-      instance->engine = "Centreon Engine";
-      instance->is_running = false;
-      instance->name = config::applier::state::instance().poller_name();
-      instance->pid = getpid();
-      instance->program_end = time(nullptr);
-      instance->program_start = start_time;
-      instance->version = get_program_version();
-
-      // Send event.
-      gl_publisher.write(instance);
+    } catch (msg_fmt const& e) {
+      SPDLOG_LOGGER_INFO(log_v2::neb(), e.what());
+      return 0;
     }
-  }
-  // Avoid exception propagation in C code.
-  catch (...) {
-    unregister_callbacks();
+
+    // Register callbacks.
+    SPDLOG_LOGGER_DEBUG(
+        log_v2::neb(), "callbacks: registering callbacks for new BBDO version");
+    for (uint32_t i = 0; i < sizeof(gl_pb_callbacks) / sizeof(*gl_pb_callbacks);
+         ++i)
+      gl_registered_callbacks.emplace_back(
+          std::make_unique<callback>(gl_pb_callbacks[i].macro, gl_mod_handle,
+                                     gl_pb_callbacks[i].callback));
+
+    // Register Engine-specific callbacks.
+    if (gl_mod_flags & NEBMODULE_ENGINE) {
+      // Register engine callbacks.
+      SPDLOG_LOGGER_DEBUG(
+          log_v2::neb(),
+          "callbacks: registering callbacks for new BBDO version");
+      for (uint32_t i = 0;
+           i < sizeof(gl_pb_engine_callbacks) / sizeof(*gl_pb_engine_callbacks);
+           ++i)
+        gl_registered_callbacks.emplace_back(std::make_unique<callback>(
+            gl_pb_engine_callbacks[i].macro, gl_mod_handle,
+            gl_pb_engine_callbacks[i].callback));
+    }
+
+    // Output variable.
+    inst.set_instance_id(config::applier::state::instance().poller_id());
+    inst.set_running(true);
+    inst.set_name(config::applier::state::instance().poller_name());
+    start_time = time(nullptr);
+    inst.set_start_time(start_time);
+
+    // Send initial event and then configuration.
+    gl_publisher.write(inst_obj);
+    send_initial_pb_configuration();
+  } else if (NEBTYPE_PROCESS_EVENTLOOPEND == process_data->type) {
+    SPDLOG_LOGGER_INFO(log_v2::neb(),
+                       "callbacks: generating process end event");
+    // Fill output var.
+    inst.set_instance_id(config::applier::state::instance().poller_id());
+    inst.set_running(false);
+    inst.set_name(config::applier::state::instance().poller_name());
+    inst.set_end_time(time(nullptr));
+    inst.set_start_time(start_time);
+
+    // Send event.
+    gl_publisher.write(inst_obj);
   }
   return 0;
 }

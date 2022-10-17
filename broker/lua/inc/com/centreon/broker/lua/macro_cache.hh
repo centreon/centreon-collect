@@ -43,7 +43,7 @@ namespace lua {
  */
 class macro_cache {
   std::shared_ptr<persistent_cache> _cache;
-  absl::flat_hash_map<uint64_t, std::shared_ptr<neb::instance>> _instances;
+  absl::flat_hash_map<uint64_t, std::shared_ptr<io::data>> _instances;
   absl::flat_hash_map<uint64_t, std::shared_ptr<io::data>> _hosts;
   absl::flat_hash_map<uint64_t, std::shared_ptr<neb::host_group>> _host_groups;
   absl::btree_map<std::pair<uint64_t, uint64_t>,
@@ -114,6 +114,7 @@ class macro_cache {
   macro_cache& operator=(macro_cache const& f);
 
   void _process_instance(std::shared_ptr<io::data> const& data);
+  void _process_pb_instance(std::shared_ptr<io::data> const& data);
   void _process_host(std::shared_ptr<io::data> const& data);
   void _process_pb_host(std::shared_ptr<io::data> const& data);
   void _process_pb_adaptive_host(std::shared_ptr<io::data> const& data);

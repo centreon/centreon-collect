@@ -129,6 +129,11 @@ Stop Engine
 	 END
 	END
 
+Get Engine Pid
+	[Arguments]  ${process_alias}
+	${pid}=  Get Process Id  ${process_alias} 
+	[Return]  ${pid}
+	
 Reload Engine
 	${count}=	Get Engines Count
 	FOR	${idx}	IN RANGE	0	${count}

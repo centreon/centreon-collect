@@ -7,7 +7,9 @@ Test Teardown	Save logs If Failed
 
 Documentation	Engine/Broker tests on bbdo_version 3.0.0 and protobuf bbdo embedded events.
 Library	Process
+Library	String
 Library	DateTime
+Library	DatabaseLibrary
 Library	OperatingSystem
 Library	../resources/Engine.py
 Library	../resources/Broker.py
@@ -129,4 +131,37 @@ BEINSTANCESTATUS
 	Should Be True	${result}	msg=passive_service_checks not updated.
 	Stop Engine
 	Kindly Stop Broker
+
+BEINSTANCE
+	[Documentation]	Instance to bdd 
+	[Tags]	Broker	Engine	
+	Config Engine	${1}	${50}	${20}
+
+	Config Broker	central
+	Config Broker	module	${1}
+	Broker Config Log	central	sql	trace
+	Broker Config Add Item	module0	bbdo_version	3.0.0
+	Broker Config Add Item	central	bbdo_version	3.0.0
+	Config Broker Sql Output	central	unified_sql
+	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+	Execute SQL String	DELETE FROM instances
+
+	${start}=	Get Current Date  result_format=epoch  exclude_millis=True
+	Start Broker
+	Start Engine
+	${engine_pid}=  Get Engine Pid  e0
+	${result}=  check_field_db_value  SELECT pid FROM instances WHERE instance_id=1  ${engine_pid}  30
+	Should Be True	${result}	msg=no correct engine pid in instances table.
+	${result}=  check_field_db_value  SELECT engine FROM instances WHERE instance_id=1  Centreon Engine  3
+	Should Be True	${result}	msg=no correct engine in instances table.
+	${result}=  check_field_db_value  SELECT running FROM instances WHERE instance_id=1  ${1}  3
+	Should Be True	${result}	msg=no correct running in instances table.
+	${result}=  check_field_db_value  SELECT name FROM instances WHERE instance_id=1  Poller0  3
+	Should Be True	${result}	msg=no correct name in instances table.
+	${result}=  check_field_db_value  SELECT end_time FROM instances WHERE instance_id=1  ${0}  3
+	Should Be True	${result}	msg=no correct end_time in instances table.
+	@{bdd_start_time}=	Query	SELECT start_time FROM instances WHERE instance_id=1
+	${now}=	Get Current Date  result_format=epoch  exclude_millis=True
+	Should Be True  ${start} <= ${bdd_start_time[0][0]} and ${bdd_start_time[0][0]} <= ${now}  sg=no correct start_time in instances table.
+
 

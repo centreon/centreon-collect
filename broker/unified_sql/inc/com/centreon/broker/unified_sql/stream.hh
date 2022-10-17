@@ -278,6 +278,7 @@ class stream : public io::stream {
   database::mysql_stmt _host_parent_insert;
   database::mysql_stmt _host_status_update;
   database::mysql_stmt _instance_insupdate;
+  database::mysql_stmt _pb_instance_insupdate;
   database::mysql_stmt _instance_status_insupdate;
   database::mysql_stmt _pb_instance_status_insupdate;
   database::mysql_stmt _module_insert;
@@ -339,6 +340,7 @@ class stream : public io::stream {
   void _process_host_parent(const std::shared_ptr<io::data>& d);
   void _process_host_status(const std::shared_ptr<io::data>& d);
   void _process_instance(const std::shared_ptr<io::data>& d);
+  void _process_pb_instance(const std::shared_ptr<io::data>& d);
   void _process_instance_status(const std::shared_ptr<io::data>& d);
   void _process_pb_instance_status(const std::shared_ptr<io::data>& d);
   void _process_log(const std::shared_ptr<io::data>& d);

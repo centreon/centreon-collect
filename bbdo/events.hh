@@ -134,7 +134,8 @@ enum data_element {
   de_pb_host_check = 39,
   de_pb_service_check = 40,
   de_pb_log_entry = 41,
-  de_pb_instance_status = 42
+  de_pb_instance_status = 42,
+  de_pb_instance = 44
 };
 }  // namespace neb
 namespace storage {

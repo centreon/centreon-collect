@@ -24,7 +24,7 @@
 CCB_BEGIN()
 
 namespace neb {
-extern int gl_mod_flags;
+extern unsigned gl_mod_flags;
 extern void* gl_mod_handle;
 
 int callback_acknowledgement(int callback_type, void* data);
@@ -47,6 +47,7 @@ int callback_log(int callback_type, void* data);
 int callback_pb_log(int callback_type, void* data);
 int callback_module(int callback_type, void* data);
 int callback_process(int callback_type, void* data);
+int callback_pb_process(int callback_type, void* data);
 int callback_program_status(int callback_type, void* data);
 int callback_pb_program_status(int callback_type, void* data);
 int callback_relation(int callback_type, void* data);

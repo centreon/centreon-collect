@@ -1107,6 +1107,12 @@ TEST_F(LuaTest, InstanceNameCacheTest) {
   inst->poller_id = 18;
   inst->name = "MyPoller";
   _cache->write(inst);
+  auto inst_pb{std::make_shared<neb::pb_instance>()};
+  inst_pb->mut_obj().set_engine("engine name");
+  inst_pb->mut_obj().set_running(true);
+  inst_pb->mut_obj().set_instance_id(19);
+  inst_pb->mut_obj().set_name("MyPollerPB");
+  _cache->write(inst_pb);
 
   CreateScript(
       filename,
@@ -1114,6 +1120,9 @@ TEST_F(LuaTest, InstanceNameCacheTest) {
       "  broker_log:set_parameters(3, '/tmp/log')\n"
       "  local instance_name = broker_cache:get_instance_name(18)\n"
       "  broker_log:info(1, 'instance name is ' .. tostring(instance_name))\n"
+      "  local instance_name_pb = broker_cache:get_instance_name(19)\n"
+      "  broker_log:info(1, 'instance name pb is ' .. "
+      "tostring(instance_name_pb))\n"
       "end\n\n"
       "function write(d)\n"
       "end\n");
@@ -1121,6 +1130,7 @@ TEST_F(LuaTest, InstanceNameCacheTest) {
   std::string lst(ReadFile("/tmp/log"));
 
   ASSERT_NE(lst.find("instance name is MyPoller"), std::string::npos);
+  ASSERT_NE(lst.find("instance name pb is MyPollerPB"), std::string::npos);
   RemoveFile(filename);
   RemoveFile("/tmp/log");
 }
