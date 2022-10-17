@@ -86,6 +86,23 @@ void service_book::update(const std::shared_ptr<neb::pb_acknowledgement>& t,
  * @param t The event to handle.
  * @param visitor The stream to write into.
  */
+void service_book::update(const std::shared_ptr<neb::pb_acknowledgement>& t,
+                          io::stream* visitor) {
+  std::pair<multimap::iterator, multimap::iterator> range{_book.equal_range(
+      std::make_pair(t->obj().host_id(), t->obj().service_id()))};
+  while (range.first != range.second) {
+    range.first->second->service_update(t, visitor);
+    ++range.first;
+  }
+}
+
+/**
+ * @brief Propagate events of type neb::acknowledgement to the concerned
+ * services and then to the corresponding kpi.
+ *
+ * @param t The event to handle.
+ * @param visitor The stream to write into.
+ */
 void service_book::update(const std::shared_ptr<neb::acknowledgement>& t,
                           io::stream* visitor) {
   std::pair<multimap::iterator, multimap::iterator> range{
