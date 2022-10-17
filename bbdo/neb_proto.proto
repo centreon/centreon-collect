@@ -185,8 +185,6 @@ message InstanceStatus {
     uint64 instance_id = 17;
   
 }
-<<<<<<< HEAD
-=======
 
 
 
@@ -203,4 +201,3 @@ message Instance {
   string version = 9;
 }
 
->>>>>>> Mon 15407 add protobuf instance status message (#405)

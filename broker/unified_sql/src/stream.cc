@@ -91,15 +91,9 @@ void (stream::*const stream::_neb_processing_table[])(
     &stream::_process_pb_host_check,
     &stream::_process_pb_service_check,
     &stream::_process_pb_log,
-<<<<<<< HEAD
-    &stream::_process_pb_instance_status};
-=======
     &stream::_process_pb_instance_status,
     nullptr,
-    &stream::_process_pb_instance,
-
-};
->>>>>>> Mon 15407 add protobuf instance status message (#405)
+    &stream::_process_pb_instance};
 
 stream::stream(const database_config& dbcfg,
                uint32_t rrd_len,

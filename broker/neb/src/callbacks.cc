@@ -70,7 +70,7 @@ struct private_downtime_params {
 static std::unordered_map<uint32_t, private_downtime_params> downtimes;
 
 // Load flags.
-int neb::gl_mod_flags(0);
+unsigned neb::gl_mod_flags(0);
 
 // Module handle.
 void* neb::gl_mod_handle(nullptr);
