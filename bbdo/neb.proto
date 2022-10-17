@@ -212,3 +212,23 @@ message ResponsiveInstance {
   uint64 poller_id = 2;
   bool responsive = 3;
 }
+
+message Acknowledgement {
+  uint64 host_id = 1;
+  uint64 service_id = 2;
+  uint64 instance_id = 3;
+  enum AcknowledgementType {
+    NONE = 0;
+    NORMAL = 1;
+    STICKY = 2;
+  }
+  AcknowledgementType type = 4;
+  string author = 5;
+  string comment_data = 6;
+  bool sticky = 7;
+  bool notify_contacts = 8;
+  uint64 entry_time = 9;
+  uint64 deletion_time = 10;
+  bool persistent_comment = 11;
+  uint32 state = 12;
+}

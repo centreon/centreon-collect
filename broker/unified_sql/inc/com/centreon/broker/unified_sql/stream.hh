@@ -261,6 +261,7 @@ class stream : public io::stream {
   std::unordered_map<uint32_t, stored_timestamp> _stored_timestamps;
 
   database::mysql_stmt _acknowledgement_insupdate;
+  database::mysql_stmt _pb_acknowledgement_insupdate;
   database::mysql_stmt _comment_insupdate;
   database::mysql_stmt _pb_comment_insupdate;
   database::mysql_stmt _custom_variable_delete;
@@ -326,6 +327,7 @@ class stream : public io::stream {
   void _check_rebuild_index();
 
   void _process_acknowledgement(const std::shared_ptr<io::data>& d);
+  void _process_pb_acknowledgement(const std::shared_ptr<io::data>& d);
   void _process_comment(const std::shared_ptr<io::data>& d);
   void _process_pb_comment(const std::shared_ptr<io::data>& d);
   void _process_custom_variable(const std::shared_ptr<io::data>& d);

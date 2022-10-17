@@ -28,6 +28,7 @@ extern unsigned gl_mod_flags;
 extern void* gl_mod_handle;
 
 int callback_acknowledgement(int callback_type, void* data);
+int callback_pb_acknowledgement(int callback_type, void* data);
 int callback_comment(int callback_type, void* data);
 int callback_pb_comment(int callback_type, void* data);
 int callback_custom_variable(int callback_type, void* data);

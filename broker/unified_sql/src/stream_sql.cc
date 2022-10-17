@@ -458,6 +458,65 @@ void stream::_process_acknowledgement(const std::shared_ptr<io::data>& d) {
 }
 
 /**
+ *  Process an acknowledgement event.
+ *
+ *  @param[in] e Uncasted acknowledgement.
+ *
+ * @return The number of events that can be acknowledged.
+ */
+void stream::_process_pb_acknowledgement(const std::shared_ptr<io::data>& d) {
+  // Cast object.
+  const neb::pb_acknowledgement& ack =
+      *static_cast<const neb::pb_acknowledgement*>(d.get());
+  const auto& ack_obj = ack.obj();
+
+  // Log message.
+  SPDLOG_LOGGER_INFO(
+      log_v2::sql(),
+      "processing acknowledgement event (poller: {}, host: {}, service: {}, "
+      "entry time: {}, deletion time: {})",
+      ack_obj.instance_id(), ack_obj.host_id(), ack_obj.service_id(),
+      ack_obj.entry_time(), ack_obj.deletion_time());
+
+  // Processing.
+  if (_is_valid_poller(ack_obj.instance_id())) {
+    // Prepare queries.
+    if (!_pb_acknowledgement_insupdate.prepared()) {
+      query_preparator::event_pb_unique unique{
+          {9, "entry_time", io::protobuf_base::invalid_on_minus_one, 0},
+          {1, "host_id", io::protobuf_base::invalid_on_zero, 0},
+          {2, "service_id", io::protobuf_base::invalid_on_zero, 0}};
+      query_preparator qp(neb::pb_acknowledgement::static_type(), unique);
+      _pb_acknowledgement_insupdate = qp.prepare_insert_or_update_table(
+          _mysql, "acknowledgements ",
+          {
+              {1, "host_id", io::protobuf_base::invalid_on_zero, 0},
+              {2, "service_id", io::protobuf_base::invalid_on_zero, 0},
+              {3, "instance_id", io::protobuf_base::invalid_on_zero, 0},
+              {4, "type", 0, 0},
+              {5, "author", 0,
+               get_acknowledgements_col_size(acknowledgements_author)},
+              {6, "comment_data", 0,
+               get_acknowledgements_col_size(acknowledgements_comment_data)},
+              {7, "sticky", 0, 0},
+              {8, "notify_contacts", 0, 0},
+              {9, "entry_time", 0, 0},
+              {10, "deletion_time", 0, 0},
+              {11, "persistent_comment", 0, 0},
+              {12, "state", 0, 0},
+          });
+    }
+
+    int32_t conn = _mysql.choose_connection_by_instance(ack_obj.instance_id());
+    // Process object.
+    _pb_acknowledgement_insupdate << ack;
+    _mysql.run_statement(_pb_acknowledgement_insupdate,
+                         database::mysql_error::store_acknowledgement, false,
+                         conn);
+  }
+}
+
+/**
  *  Process a comment event.
  *
  *  @param[in] e  Uncasted comment.

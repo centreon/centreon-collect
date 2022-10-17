@@ -52,11 +52,10 @@ using namespace com::centreon::exceptions;
 // List of Nagios modules.
 extern nebmodule* neb_module_list;
 
-// Acknowledgement list.
-std::unordered_map<std::pair<uint32_t, uint32_t>,
-                   neb::acknowledgement,
-                   absl::Hash<std::pair<uint32_t, uint32_t>>>
-    neb::gl_acknowledgements;
+// Acknowledgements list.
+static absl::flat_hash_map<std::pair<uint64_t, uint64_t>,
+                           std::shared_ptr<io::data>>
+    gl_acknowledgements;
 
 // Downtime list.
 struct private_downtime_params {
@@ -97,7 +96,7 @@ static struct {
   uint32_t macro;
   int (*callback)(int, void*);
 } const gl_pb_callbacks[] = {
-    {NEBCALLBACK_ACKNOWLEDGEMENT_DATA, &neb::callback_acknowledgement},
+    {NEBCALLBACK_ACKNOWLEDGEMENT_DATA, &neb::callback_pb_acknowledgement},
     {NEBCALLBACK_COMMENT_DATA, &neb::callback_pb_comment},
     {NEBCALLBACK_DOWNTIME_DATA, &neb::callback_pb_downtime},
     {NEBCALLBACK_EXTERNAL_COMMAND_DATA, &neb::callback_pb_external_command},
@@ -195,7 +194,8 @@ int neb::callback_acknowledgement(int callback_type, void* data) {
     ack->notify_contacts = ack_data->notify_contacts;
     ack->persistent_comment = ack_data->persistent_comment;
     ack->state = ack_data->state;
-    gl_acknowledgements[std::make_pair(ack->host_id, ack->service_id)] = *ack;
+
+    gl_acknowledgements[{ack->host_id, ack->service_id}] = ack;
 
     // Send event.
     gl_publisher.write(ack);
@@ -208,6 +208,66 @@ int neb::callback_acknowledgement(int callback_type, void* data) {
   // Avoid exception propagation in C code.
   catch (...) {
   }
+  return 0;
+}
+
+/**
+ *  @brief Function that process acknowledgement data.
+ *
+ *  This function is called by Nagios when some acknowledgement data are
+ *  available.
+ *
+ *  @param[in] callback_type Type of the callback
+ *                           (NEBCALLBACK_ACKNOWLEDGEMENT_DATA).
+ *  @param[in] data          A pointer to a nebstruct_acknowledgement_data
+ *                           containing the acknowledgement data.
+ *
+ *  @return 0 on success.
+ */
+int neb::callback_pb_acknowledgement(int callback_type [[maybe_unused]],
+                                     void* data) {
+  // Log message.
+  SPDLOG_LOGGER_INFO(log_v2::neb(),
+                     "callbacks: generating pb acknowledgement event");
+
+  // In/Out variables.
+  auto ack{std::make_shared<neb::pb_acknowledgement>()};
+  auto& ack_obj = ack->mut_obj();
+
+  // Fill output var.
+  const nebstruct_acknowledgement_data* ack_data =
+      static_cast<nebstruct_acknowledgement_data*>(data);
+  ack_obj.set_type(static_cast<Acknowledgement_AcknowledgementType>(
+      ack_data->acknowledgement_type));
+  if (ack_data->author_name)
+    ack_obj.set_author(misc::string::check_string_utf8(ack_data->author_name));
+  if (ack_data->comment_data)
+    ack_obj.set_comment_data(
+        misc::string::check_string_utf8(ack_data->comment_data));
+  ack_obj.set_entry_time(time(nullptr));
+  if (!ack_data->host_id) {
+    SPDLOG_LOGGER_ERROR(log_v2::neb(),
+                        "callbacks: error occurred while generating "
+                        "acknowledgement event: host_id is null");
+    return 0;
+  }
+  if (ack_data->service_id) {
+    ack_obj.set_host_id(ack_data->host_id);
+    ack_obj.set_service_id(ack_data->service_id);
+  } else
+    ack_obj.set_host_id(ack_data->host_id);
+
+  ack_obj.set_instance_id(config::applier::state::instance().poller_id());
+  ack_obj.set_sticky(ack_data->is_sticky);
+  ack_obj.set_notify_contacts(ack_data->notify_contacts);
+  ack_obj.set_persistent_comment(ack_data->persistent_comment);
+  ack_obj.set_state(ack_data->state);
+
+  gl_acknowledgements[std::make_pair(ack_obj.host_id(), ack_obj.service_id())] =
+      ack;
+
+  // Send event.
+  gl_publisher.write(ack);
   return 0;
 }
 
@@ -1954,12 +2014,23 @@ int neb::callback_host_status(int callback_type, void* data) {
     auto it =
         gl_acknowledgements.find(std::make_pair(host_status->host_id, 0u));
     if (it != gl_acknowledgements.end() && !host_status->acknowledged) {
-      if (!(!host_status->current_state  // !(OK or (normal ack and NOK))
-            || (!it->second.is_sticky &&
-                (host_status->current_state != it->second.state)))) {
-        auto ack{std::make_shared<neb::acknowledgement>(it->second)};
-        ack->deletion_time = time(nullptr);
-        gl_publisher.write(ack);
+      if (it->second->type() == make_type(io::neb, de_pb_acknowledgement)) {
+        neb::pb_acknowledgement* a =
+            static_cast<neb::pb_acknowledgement*>(it->second.get());
+        if (!(!host_status->current_state  // !(OK or (normal ack and NOK))
+              || (!a->obj().sticky() &&
+                  host_status->current_state != a->obj().state()))) {
+          a->mut_obj().set_deletion_time(time(nullptr));
+          gl_publisher.write(std::move(it->second));
+        }
+      } else {
+        neb::acknowledgement* a =
+            static_cast<neb::acknowledgement*>(it->second.get());
+        if (!(!host_status->current_state  // !(OK or (normal ack and NOK))
+              || (!a->is_sticky && host_status->current_state != a->state))) {
+          a->deletion_time = time(nullptr);
+          gl_publisher.write(std::move(it->second));
+        }
       }
       gl_acknowledgements.erase(it);
     }
@@ -2054,11 +2125,26 @@ int neb::callback_pb_host_status(int callback_type, void* data) noexcept {
   auto it = gl_acknowledgements.find(std::make_pair(hscr.host_id(), 0u));
   if (it != gl_acknowledgements.end() &&
       hscr.acknowledgement_type() == HostStatus_AckType_NONE) {
-    if (!(!hscr.state()  // !(OK or (normal ack and NOK))
-          || (!it->second.is_sticky && (hscr.state() != it->second.state)))) {
-      auto ack = std::make_shared<neb::acknowledgement>(it->second);
-      ack->deletion_time = time(nullptr);
-      gl_publisher.write(ack);
+    if (it->second->type() == make_type(io::neb, de_pb_acknowledgement)) {
+      neb::pb_acknowledgement* a =
+          static_cast<neb::pb_acknowledgement*>(it->second.get());
+      if (!(!hscr.state()  // !(OK or (normal ack and NOK))
+            || (!a->obj().sticky() && hscr.state() != a->obj().state()))) {
+        auto ack = std::static_pointer_cast<neb::pb_acknowledgement>(
+            std::move(it->second));
+        ack->mut_obj().set_deletion_time(time(nullptr));
+        gl_publisher.write(ack);
+      }
+    } else {
+      neb::acknowledgement* a =
+          static_cast<neb::acknowledgement*>(it->second.get());
+      if (!(!hscr.state()  // !(OK or (normal ack and NOK))
+            || (!a->is_sticky && hscr.state() != a->state))) {
+        auto ack = std::static_pointer_cast<neb::acknowledgement>(
+            std::move(it->second));
+        ack->deletion_time = time(nullptr);
+        gl_publisher.write(ack);
+      }
     }
     gl_acknowledgements.erase(it);
   }
@@ -3417,11 +3503,27 @@ int32_t neb::callback_pb_service_status(int callback_type
       std::make_pair(sscr.host_id(), sscr.service_id()));
   if (it != gl_acknowledgements.end() &&
       sscr.acknowledgement_type() == ServiceStatus_AckType_NONE) {
-    if (!(!sscr.state()  // !(OK or (normal ack and NOK))
-          || (!it->second.is_sticky && (sscr.state() != it->second.state)))) {
-      auto ack = std::make_shared<neb::acknowledgement>(it->second);
-      ack->deletion_time = time(nullptr);
-      gl_publisher.write(ack);
+    if (it->second->type() == make_type(io::neb, de_pb_acknowledgement)) {
+      neb::pb_acknowledgement* a =
+          static_cast<neb::pb_acknowledgement*>(it->second.get());
+      if (!(!sscr.state()  // !(OK or (normal ack and NOK))
+            || (!a->obj().sticky() && sscr.state() != a->obj().state()))) {
+        auto ack = std::static_pointer_cast<neb::pb_acknowledgement>(
+            std::move(it->second));
+        ack->mut_obj().set_deletion_time(time(nullptr));
+        gl_publisher.write(ack);
+      }
+
+    } else {
+      neb::acknowledgement* a =
+          static_cast<neb::acknowledgement*>(it->second.get());
+      if (!(!sscr.state()  // !(OK or (normal ack and NOK))
+            || (!a->is_sticky && sscr.state() != a->state))) {
+        auto ack = std::static_pointer_cast<neb::acknowledgement>(
+            std::move(it->second));
+        ack->deletion_time = time(nullptr);
+        gl_publisher.write(ack);
+      }
     }
     gl_acknowledgements.erase(it);
   }
@@ -3538,12 +3640,28 @@ int neb::callback_service_status(int callback_type, void* data) {
     auto it = gl_acknowledgements.find(
         std::make_pair(service_status->host_id, service_status->service_id));
     if (it != gl_acknowledgements.end() && !service_status->acknowledged) {
-      if (!(!service_status->current_state  // !(OK or (normal ack and NOK))
-            || (!it->second.is_sticky &&
-                (service_status->current_state != it->second.state)))) {
-        auto ack{std::make_shared<neb::acknowledgement>(it->second)};
-        ack->deletion_time = time(nullptr);
-        gl_publisher.write(ack);
+      if (it->second->type() == make_type(io::neb, de_pb_acknowledgement)) {
+        neb::pb_acknowledgement* a =
+            static_cast<neb::pb_acknowledgement*>(it->second.get());
+        if (!(!service_status->current_state  // !(OK or (normal ack and NOK))
+              || (!a->obj().sticky() &&
+                  service_status->current_state != a->obj().state()))) {
+          auto ack = std::static_pointer_cast<neb::pb_acknowledgement>(
+              std::move(it->second));
+          ack->mut_obj().set_deletion_time(time(nullptr));
+          gl_publisher.write(ack);
+        }
+      } else {
+        neb::acknowledgement* a =
+            static_cast<neb::acknowledgement*>(it->second.get());
+        if (!(!service_status->current_state  // !(OK or (normal ack and NOK))
+              ||
+              (!a->is_sticky && service_status->current_state != a->state))) {
+          auto ack = std::static_pointer_cast<neb::acknowledgement>(
+              std::move(it->second));
+          ack->deletion_time = time(nullptr);
+          gl_publisher.write(ack);
+        }
       }
       gl_acknowledgements.erase(it);
     }
