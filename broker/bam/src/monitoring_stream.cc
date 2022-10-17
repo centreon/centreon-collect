@@ -240,6 +240,17 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
       _applier.book_service().update(s, &ev_cache);
       ev_cache.commit_to(pblshr);
     } break;
+    case neb::pb_acknowledgement::static_type(): {
+      std::shared_ptr<neb::pb_acknowledgement> ack(
+          std::static_pointer_cast<neb::pb_acknowledgement>(data));
+      log_v2::bam()->trace(
+          "BAM: processing acknowledgement on service ({}, {})",
+          ack->obj().host_id(), ack->obj().service_id());
+      multiplexing::publisher pblshr;
+      event_cache_visitor ev_cache;
+      _applier.book_service().update(ack, &ev_cache);
+      ev_cache.commit_to(pblshr);
+    } break;
     case neb::acknowledgement::static_type(): {
       std::shared_ptr<neb::acknowledgement> ack(
           std::static_pointer_cast<neb::acknowledgement>(data));

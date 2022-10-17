@@ -1497,6 +1497,11 @@ def process_service_check_result(hst: str, svc: str, state: int, output: str, co
 
 
 @external_command
+def acknowledge_service_problem(hst, service):
+    return f"ACKNOWLEDGE_SVC_PROBLEM;{hst};{service};0;0;0;admin;Service ({hst},{service}) acknowledged\n"
+
+
+@external_command
 def send_custom_host_notification(hst, notification_option, author, comment):
     return f"SEND_CUSTOM_HOST_NOTIFICATION;{hst};{notification_option};{author};{comment}\n"
 

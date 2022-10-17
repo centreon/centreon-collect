@@ -83,6 +83,8 @@ class kpi_service : public service_listener, public kpi {
                       io::stream* visitor = nullptr) override;
   void service_update(const std::shared_ptr<neb::pb_service_status>& status,
                       io::stream* visitor = nullptr) override;
+  void service_update(const std::shared_ptr<neb::pb_acknowledgement>& ack,
+                      io::stream* visitor = nullptr) override;
   void service_update(std::shared_ptr<neb::acknowledgement> const& ack,
                       io::stream* visitor = nullptr) override;
   void service_update(std::shared_ptr<neb::downtime> const& dt,

@@ -341,6 +341,83 @@ def set_command_status(cmd, status):
     f.close()
 
 
+def check_service_resource_status_with_timeout(hostname: str, service_desc: str, status: int, timeout: int, state_type: str = "SOFT"):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     autocommit=True,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                        f"SELECT r.status,r.status_confirmed FROM resources r LEFT JOIN services s ON r.id=s.service_id AND r.parent_id=s.host_id LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='{hostname}' AND s.description='{service_desc}'")
+                result = cursor.fetchall()
+                if len(result) > 0 and result[0]['status'] is not None and int(result[0]['status']) == int(status):
+                    logger.console(
+                        f"status={result[0]['status']} and status_confirmed={result[0]['status_confirmed']}")
+                    if state_type == 'HARD' and int(result[0]['status_confirmed']) == 1:
+                        return True
+                    elif state_type != 'HARD':
+                        return True
+        time.sleep(1)
+    return False
+
+
+def check_acknowledgement_with_timeout(hostname: str, service_desc: str, entry_time: int, status: int, timeout: int, state_type: str = "SOFT"):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     autocommit=True,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f"SELECT a.acknowledgement_id, a.state, a.type FROM acknowledgements a LEFT JOIN services s ON a.host_id=s.host_id AND a.service_id=s.service_id LEFT join hosts h ON s.host_id=h.host_id WHERE s.description='{service_desc}' AND h.name='{hostname}' AND entry_time >= {entry_time}")
+                result = cursor.fetchall()
+                if len(result) > 0 and result[0]['state'] is not None and int(result[0]['state']) == int(status):
+                    logger.console(
+                        f"status={result[0]['state']} and state_type={result[0]['type']}")
+                    if state_type == 'HARD' and int(result[0]['type']) == 1:
+                        return int(result[0]['acknowledgement_id'])
+                    elif state_type != 'HARD':
+                        return int(result[0]['acknowledgement_id'])
+        time.sleep(1)
+    return 0
+
+
+def check_acknowledgement_is_deleted_with_timeout(ack_id: int, timeout: int):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     autocommit=True,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(f"SELECT deletion_time FROM acknowledgements WHERE acknowledgement_id={ack_id}")
+                result = cursor.fetchall()
+                if len(result) > 0 and result[0]['deletion_time'] is not None:
+                    logger.console(
+                        f"Acknowledgement {ack_id} is deleted at {result[0]['deletion_time']}")
+                    return True
+        time.sleep(1)
+    return False
+
+
 def check_service_status_with_timeout(hostname: str, service_desc: str, status: int, timeout: int, state_type: str = "SOFT"):
     limit = time.time() + timeout
     while time.time() < limit:

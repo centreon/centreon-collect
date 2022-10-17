@@ -107,6 +107,10 @@ using pb_responsive_instance =
     io::protobuf<ResponsiveInstance,
                  make_type(io::neb, neb::de_pb_responsive_instance)>;
 
+using pb_acknowledgement =
+    io::protobuf<Acknowledgement,
+                 make_type(io::neb, neb::de_pb_acknowledgement)>;
+
 }  // namespace neb
 
 CCB_END()
