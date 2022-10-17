@@ -344,14 +344,15 @@ static int l_broker_cache_get_metric_mapping_v1(lua_State* L) {
   int metric_id(luaL_checkinteger(L, 2));
 
   try {
-    storage::metric_mapping const& mapping(
+    const storage::pb_metric_mapping& mapping(
         *cache->get_metric_mapping(metric_id));
+    const auto& m_obj = mapping.obj();
     lua_createtable(L, 0, 2);
 
-    lua_pushinteger(L, mapping.metric_id);
+    lua_pushinteger(L, m_obj.metric_id());
     lua_setfield(L, -2, "metric_id");
 
-    lua_pushinteger(L, mapping.index_id);
+    lua_pushinteger(L, m_obj.index_id());
     lua_setfield(L, -2, "index_id");
   } catch (std::exception const& e) {
     (void)e;
@@ -366,7 +367,7 @@ static int l_broker_cache_get_metric_mapping_v2(lua_State* L) {
   int metric_id(luaL_checkinteger(L, 2));
 
   try {
-    const std::shared_ptr<storage::metric_mapping>& mm{
+    const std::shared_ptr<storage::pb_metric_mapping>& mm{
         cache->get_metric_mapping(metric_id)};
     broker_event::create(L, mm);
   } catch (std::exception const& e) {

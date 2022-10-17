@@ -275,11 +275,12 @@ void query::_get_dollar_sign(io::data const& d, std::ostream& is) {
  */
 uint64_t query::_get_index_id(io::data const& d) {
   if (_type == status)
-    return static_cast<storage::status const&>(d).index_id;
+    return static_cast<const storage::status&>(d).index_id;
   else
     return _cache
         ->get_metric_mapping(static_cast<storage::metric const&>(d).metric_id)
-        .index_id;
+        .obj()
+        .index_id();
 }
 
 /**

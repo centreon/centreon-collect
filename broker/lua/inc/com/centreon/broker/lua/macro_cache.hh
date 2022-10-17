@@ -1,5 +1,5 @@
 /*
-** Copyright 2018 Centreon
+** Copyright 2018-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -23,7 +23,6 @@
 #include "bbdo/bam/dimension_ba_event.hh"
 #include "bbdo/bam/dimension_bv_event.hh"
 #include "bbdo/bam/dimension_truncate_table_signal.hh"
-#include "bbdo/storage/metric_mapping.hh"
 #include "com/centreon/broker/lua/internal.hh"
 #include "com/centreon/broker/neb/custom_variable.hh"
 #include "com/centreon/broker/neb/host.hh"
@@ -61,7 +60,7 @@ class macro_cache {
       _service_group_members;
   absl::flat_hash_map<uint64_t, std::shared_ptr<storage::pb_index_mapping>>
       _index_mappings;
-  absl::flat_hash_map<uint64_t, std::shared_ptr<storage::metric_mapping>>
+  absl::flat_hash_map<uint64_t, std::shared_ptr<storage::pb_metric_mapping>>
       _metric_mappings;
   absl::flat_hash_map<uint64_t, std::shared_ptr<bam::dimension_ba_event>>
       _dimension_ba_events;
@@ -78,7 +77,7 @@ class macro_cache {
   void write(std::shared_ptr<io::data> const& data);
 
   const storage::pb_index_mapping& get_index_mapping(uint64_t index_id) const;
-  const std::shared_ptr<storage::metric_mapping>& get_metric_mapping(
+  const std::shared_ptr<storage::pb_metric_mapping>& get_metric_mapping(
       uint64_t metric_id) const;
   const std::shared_ptr<io::data>& get_host(uint64_t host_id) const;
   const std::shared_ptr<io::data>& get_service(uint64_t host_id,

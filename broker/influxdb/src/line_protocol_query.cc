@@ -409,7 +409,8 @@ uint64_t line_protocol_query::_get_index_id(io::data const& d) {
   else
     return _cache
         ->get_metric_mapping(static_cast<storage::metric const&>(d).metric_id)
-        .index_id;
+        .obj()
+        .index_id();
 }
 
 /**

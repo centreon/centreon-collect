@@ -18,6 +18,7 @@
 
 #include "com/centreon/broker/graphite/macro_cache.hh"
 #include "bbdo/storage/index_mapping.hh"
+#include "bbdo/storage/metric_mapping.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
@@ -78,7 +79,7 @@ const storage::pb_index_mapping& macro_cache::get_index_mapping(
  *
  *  @return               The metric mapping.
  */
-storage::metric_mapping const& macro_cache::get_metric_mapping(
+const storage::pb_metric_mapping& macro_cache::get_metric_mapping(
     uint64_t metric_id) const {
   auto const found = _metric_mappings.find(metric_id);
   if (found == _metric_mappings.end())
@@ -175,6 +176,9 @@ void macro_cache::write(const std::shared_ptr<io::data>& data) {
     case storage::index_mapping::static_type():
       _process_index_mapping(data);
       break;
+    case storage::pb_metric_mapping::static_type():
+      _process_metric_mapping(data);
+      break;
     case storage::metric_mapping::static_type():
       _process_metric_mapping(data);
       break;
@@ -270,8 +274,27 @@ void macro_cache::_process_index_mapping(
  */
 void macro_cache::_process_metric_mapping(
     std::shared_ptr<io::data> const& data) {
-  auto const& mm = std::static_pointer_cast<storage::metric_mapping>(data);
-  _metric_mappings[mm->metric_id] = mm;
+  switch (data->type()) {
+    case storage::pb_metric_mapping::static_type(): {
+      const auto& mm =
+          std::static_pointer_cast<storage::pb_metric_mapping>(data);
+      _metric_mappings[mm->obj().metric_id()] = mm;
+    } break;
+    case storage::metric_mapping::static_type(): {
+      /* To avoid conflicts and thinking about future we force all the cache
+       * to contain protobuf messages. */
+      const auto& mm = std::static_pointer_cast<storage::metric_mapping>(data);
+      auto pb_mm = std::make_shared<storage::pb_metric_mapping>();
+      auto& obj = pb_mm->mut_obj();
+      obj.set_index_id(mm->index_id);
+      obj.set_metric_id(mm->metric_id);
+      _metric_mappings[obj.metric_id()] = pb_mm;
+    } break;
+    default:
+      /* Should not arrive */
+      assert(1 == 0);
+      break;
+  }
 }
 
 /**

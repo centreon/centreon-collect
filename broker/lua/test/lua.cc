@@ -24,6 +24,7 @@
 
 #include "../../core/test/test_server.hh"
 #include "bbdo/storage/index_mapping.hh"
+#include "bbdo/storage/metric_mapping.hh"
 #include "bbdo/storage/status.hh"
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/config/applier/modules.hh"
@@ -1130,7 +1131,7 @@ TEST_F(LuaTest, InstanceNameCacheTest) {
 TEST_F(LuaTest, MetricMappingCacheTestV1) {
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
-  std::shared_ptr<storage::metric_mapping> mm(new storage::metric_mapping);
+  auto mm{std::make_shared<storage::metric_mapping>()};
   mm->index_id = 19;
   mm->metric_id = 27;
   _cache->write(mm);
@@ -1157,10 +1158,10 @@ TEST_F(LuaTest, MetricMappingCacheTestV1) {
 
 TEST_F(LuaTest, MetricMappingCacheTestV2) {
   config::applier::modules modules;
-  modules.load_file("./lib/20-storage.so");
+  modules.load_file("./lib/20-unified_sql.so");
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
-  std::shared_ptr<storage::metric_mapping> mm(new storage::metric_mapping);
+  auto mm{std::make_shared<storage::metric_mapping>()};
   mm->index_id = 19;
   mm->metric_id = 27;
   _cache->write(mm);

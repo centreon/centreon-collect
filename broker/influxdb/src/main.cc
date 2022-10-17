@@ -17,6 +17,7 @@
 */
 
 #include "bbdo/storage/index_mapping.hh"
+#include "bbdo/storage/metric_mapping.hh"
 #include "com/centreon/broker/influxdb/factory.hh"
 #include "com/centreon/broker/influxdb/internal.hh"
 #include "com/centreon/broker/influxdb/stream.hh"
@@ -91,6 +92,11 @@ void broker_module_init(void const* arg) {
       e.register_event(make_type(io::storage, storage::de_pb_index_mapping),
                        "pb_index_mapping",
                        &storage::pb_index_mapping::operations);
+
+      /* Let's register the pb_metric_mapping event. */
+      e.register_event(make_type(io::storage, storage::de_pb_metric_mapping),
+                       "pb_metric_mapping",
+                       &storage::pb_metric_mapping::operations);
     }
 
     // Register storage layer.
