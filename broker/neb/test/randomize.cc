@@ -127,8 +127,6 @@ void randomize_init() {
                    neb::instance_status::entries);
   e.register_event(make_type(io::neb, neb::de_log_entry), "log_entry",
                    &neb::log_entry::operations, neb::log_entry::entries);
-  e.register_event(make_type(io::neb, neb::de_module), "module",
-                   &neb::module::operations, neb::module::entries);
   e.register_event(make_type(io::neb, neb::de_service_check), "service_check",
                    &neb::service_check::operations,
                    neb::service_check::entries);

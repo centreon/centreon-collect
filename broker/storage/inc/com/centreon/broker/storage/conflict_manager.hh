@@ -317,8 +317,6 @@ class conflict_manager {
   void _process_instance_status(
       std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
   void _process_log(std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
-  void _process_module(
-      std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
   void _process_service_check(
       std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
   void _process_service_dependency(

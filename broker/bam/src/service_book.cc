@@ -63,7 +63,7 @@ void service_book::unlisten(uint32_t host_id,
 }
 
 /**
- * @brief Propagate events of type neb::acknowledgement to the concerned
+ * @brief Propagate events of type neb::pb_acknowledgement to the concerned
  * services and then to the corresponding kpi.
  *
  * @param t The event to handle.

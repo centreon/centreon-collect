@@ -1140,60 +1140,6 @@ void conflict_manager::_process_log(
 }
 
 /**
- *  Process a module event. We must take care of the thread id sending the
- *  query because the modules table has a constraint on instances.instance_id
- *
- *  @param[in] e Uncasted module.
- *
- * @return The number of events that can be acknowledged.
- */
-void conflict_manager::_process_module(
-    std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t) {
-  auto& d = std::get<0>(t);
-  // Cast object.
-  neb::module const& m = *static_cast<neb::module const*>(d.get());
-  int32_t conn = _mysql.choose_connection_by_instance(m.poller_id);
-
-  // Log message.
-  log_v2::sql()->info(
-      "SQL: processing module event (poller: {}, filename: {}, loaded: {})",
-      m.poller_id, m.filename, m.loaded ? "yes" : "no");
-
-  // Processing.
-  if (_is_valid_poller(m.poller_id)) {
-    // Prepare queries.
-    if (!_module_insert.prepared()) {
-      query_preparator qp(neb::module::static_type());
-      _module_insert = qp.prepare_insert(_mysql);
-    }
-
-    // Process object.
-    if (m.enabled) {
-      _module_insert << m;
-      _mysql.run_statement(_module_insert, database::mysql_error::store_module,
-                           true, conn);
-      _add_action(conn, actions::modules);
-    } else {
-      const std::string* ptr_filename;
-      if (m.filename.size() > get_modules_col_size(modules_filename)) {
-        std::string trunc_filename = m.filename;
-        misc::string::truncate(trunc_filename,
-                               get_modules_col_size(modules_filename));
-        ptr_filename = &trunc_filename;
-      } else
-        ptr_filename = &m.filename;
-
-      std::string query(fmt::format(
-          "DELETE FROM modules WHERE instance_id={} AND filename='{}'",
-          m.poller_id, *ptr_filename));
-      _mysql.run_query(query, database::mysql_error::empty, false, conn);
-      _add_action(conn, actions::modules);
-    }
-  }
-  *std::get<2>(t) = true;
-}
-
-/**
  *  Process a service check event.
  *
  *  @param[in] e Uncasted service check.

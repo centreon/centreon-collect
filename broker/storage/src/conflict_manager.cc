@@ -64,7 +64,7 @@ void (conflict_manager::*const conflict_manager::_neb_processing_table[])(
     &conflict_manager::_process_instance,
     &conflict_manager::_process_instance_status,
     &conflict_manager::_process_log,
-    &conflict_manager::_process_module,
+    nullptr,
     &conflict_manager::_process_service_check,
     &conflict_manager::_process_service_dependency,
     &conflict_manager::_process_service_group,

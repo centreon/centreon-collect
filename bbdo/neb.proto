@@ -185,14 +185,6 @@ message InstanceStatus {
   uint64 instance_id = 17;
 }
 
-message Module {
-  string args = 1;
-  string filename = 2;
-  bool loaded = 3;
-  uint64 instance_id = 4;
-  bool should_be_loaded = 5;
-}
-
 message Instance {
   BBDOHeader header = 1;
 

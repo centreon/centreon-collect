@@ -90,7 +90,6 @@ using pb_log_entry =
 using pb_instance_status =
     io::protobuf<InstanceStatus,
                  make_type(io::neb, neb::de_pb_instance_status)>;
-using pb_module = io::protobuf<Module, make_type(io::neb, neb::de_pb_module)>;
 
 using pb_acknowledgement =
     io::protobuf<Acknowledgement,

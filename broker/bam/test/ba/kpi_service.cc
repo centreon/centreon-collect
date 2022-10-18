@@ -1937,7 +1937,7 @@ TEST_F(BamBA, KpiServiceAcknowledgementPb) {
   time_t now(time(nullptr));
 
   auto ss{std::make_shared<neb::pb_service_status>()};
-  auto ack{std::make_shared<neb::acknowledgement>()};
+  auto ack{std::make_shared<neb::pb_acknowledgement>()};
   auto& ss_obj = ss->mut_obj();
 
   ss_obj.set_service_id(1);
@@ -1948,11 +1948,11 @@ TEST_F(BamBA, KpiServiceAcknowledgementPb) {
     ss_obj.set_last_hard_state(ServiceStatus_State_CRITICAL);
     kpis[j]->service_update(ss, _visitor.get());
 
-    ack->poller_id = 1;
-    ack->host_id = ss_obj.host_id();
-    ack->service_id = 1;
-    ack->entry_time = now + 2;
-    ack->deletion_time = -1;
+    ack->mut_obj().set_instance_id(1);
+    ack->mut_obj().set_host_id(ss_obj.host_id());
+    ack->mut_obj().set_service_id(1);
+    ack->mut_obj().set_entry_time(now + 2);
+    ack->mut_obj().set_deletion_time(-1);
     kpis[j]->service_update(ack, _visitor.get());
   }
 
