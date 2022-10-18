@@ -132,6 +132,7 @@ stream::stream(const database_config& dbcfg,
       _check_queues_stopped{false},
       _stats{stats::center::instance().register_conflict_manager()},
       _group_clean_timer{pool::io_context()},
+      _loop_timer{pool::io_context()},
       _oldest_timestamp{std::numeric_limits<time_t>::max()} {
   SPDLOG_LOGGER_DEBUG(log_v2::sql(), "unified sql: stream class instanciation");
   stats::center::instance().execute([stats = _stats,
@@ -152,22 +153,18 @@ stream::stream(const database_config& dbcfg,
   }
   _queues_timer.expires_after(std::chrono::seconds(queue_timer_duration));
   _queues_timer.async_wait(
-      std::bind(&stream::_check_queues, this, std::placeholders::_1));
-  SPDLOG_LOGGER_INFO(log_v2::sql(), "Unified sql stream running");
+      [this](const asio::error_code& err) { _check_queues(err); });
+  _start_loop_timer();
+  SPDLOG_LOGGER_INFO(log_v2::sql(),
+                     "Unified sql stream running loop_interval={}",
+                     _loop_timeout);
 }
 
 stream::~stream() noexcept {
-  {
-    std::lock_guard<std::mutex> l(_group_clean_timer_m);
-    _group_clean_timer.cancel();
-  }
-  std::promise<void> p;
-  asio::post(_queues_timer.get_executor(), [this, &p] {
-    _queues_timer.cancel();
-    p.set_value();
-  });
-  p.get_future().wait();
-
+  std::lock_guard<std::mutex> l(_timer_m);
+  _group_clean_timer.cancel();
+  _queues_timer.cancel();
+  _loop_timer.cancel();
   SPDLOG_LOGGER_DEBUG(log_v2::sql(), "unified sql: stream destruction");
 }
 
@@ -994,4 +991,15 @@ void stream::update() {
   SPDLOG_LOGGER_INFO(log_v2::sql(), "unified_sql stream update");
   _check_deleted_index();
   _check_rebuild_index();
+}
+
+void stream::_start_loop_timer() {
+  _loop_timer.expires_from_now(std::chrono::seconds(_loop_timeout));
+  _loop_timer.async_wait([this](const asio::error_code& err) {
+    if (err) {
+      return;
+    }
+    _update_hosts_and_services_of_unresponsive_instances();
+    _start_loop_timer();
+  });
 }

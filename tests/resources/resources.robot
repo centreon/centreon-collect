@@ -48,16 +48,22 @@ Clear Broker Logs
 	Create Directory	${BROKER_LOG}
 
 Start Broker
+	[Arguments]	 ${only_central}=False
 	Start Process	/usr/sbin/cbd	${EtcRoot}/centreon-broker/central-broker.json	alias=b1
-	Start Process	/usr/sbin/cbd	${EtcRoot}/centreon-broker/central-rrd.json	alias=b2
+	IF  not ${only_central}
+		Start Process	/usr/sbin/cbd	${EtcRoot}/centreon-broker/central-rrd.json	alias=b2
+	END
 
 Reload Broker
 	Send Signal To Process	SIGHUP	b1
 	Send Signal To Process	SIGHUP	b2
 
 Kindly Stop Broker
+	[Arguments]	 ${only_central}=False
 	Send Signal To Process	SIGTERM	b1
-	Send Signal To Process	SIGTERM	b2
+	IF  not ${only_central}
+		Send Signal To Process	SIGTERM	b2
+	END
 	${result}=	Wait For Process	b1	timeout=60s
 	# In case of process not stopping
 	IF	"${result}" == "${None}"
@@ -68,14 +74,16 @@ Kindly Stop Broker
 	  Should Be Equal As Integers	${result.rc}	0	msg=Central Broker not correctly stopped
 	END
 
-	${result}=	Wait For Process	b2	timeout=60s	on_timeout=kill
-	# In case of process not stopping
-	IF	"${result}" == "${None}"
-	  Dump Process	b2	broker-rrd
-	  Send Signal To Process	SIGKILL	b2
-	  Fail	RRD Broker not correctly stopped (coredump generated)
-  	ELSE
-	  Should Be Equal As Integers	${result.rc}	0	msg=RRD Broker not correctly stopped
+	IF  not ${only_central}
+		${result}=	Wait For Process	b2	timeout=60s	on_timeout=kill
+		# In case of process not stopping
+		IF	"${result}" == "${None}"
+		Dump Process	b2	broker-rrd
+		Send Signal To Process	SIGKILL	b2
+		Fail	RRD Broker not correctly stopped (coredump generated)
+		ELSE
+		Should Be Equal As Integers	${result.rc}	0	msg=RRD Broker not correctly stopped
+		END
 	END
 
 Stop Broker

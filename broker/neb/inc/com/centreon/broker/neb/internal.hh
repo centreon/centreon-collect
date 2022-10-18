@@ -96,13 +96,12 @@ using pb_log_entry =
 using pb_instance_status =
     io::protobuf<InstanceStatus,
                  make_type(io::neb, neb::de_pb_instance_status)>;
-
-using pb_instance_status =
-    io::protobuf<InstanceStatus,
-                 make_type(io::neb, neb::de_pb_instance_status)>;
-
 using pb_instance =
     io::protobuf<Instance, make_type(io::neb, neb::de_pb_instance)>;
+
+using pb_responsive_instance =
+    io::protobuf<ResponsiveInstance,
+                 make_type(io::neb, neb::de_pb_responsive_instance)>;
 
 }  // namespace neb
 

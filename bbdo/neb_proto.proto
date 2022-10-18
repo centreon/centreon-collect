@@ -186,8 +186,6 @@ message InstanceStatus {
   
 }
 
-
-
 message Instance {
   BBDOHeader header = 1;
 
@@ -201,3 +199,9 @@ message Instance {
   string version = 9;
 }
 
+message ResponsiveInstance {
+  BBDOHeader header = 1;
+
+  uint64 poller_id = 2;
+  bool responsive = 3;
+}

@@ -224,8 +224,9 @@ class stream : public io::stream {
 
   absl::flat_hash_map<std::pair<uint64_t, uint64_t>, uint64_t> _resource_cache;
 
-  std::mutex _group_clean_timer_m;
+  mutable std::mutex _timer_m;
   asio::system_timer _group_clean_timer;
+  asio::system_timer _loop_timer;
 
   absl::flat_hash_set<uint32_t> _hostgroup_cache;
   absl::flat_hash_set<uint32_t> _servicegroup_cache;
@@ -256,6 +257,7 @@ class stream : public io::stream {
   std::deque<std::string> _downtimes_queue;
 
   timestamp _oldest_timestamp;
+  std::mutex _stored_timestamps_m;
   std::unordered_map<uint32_t, stored_timestamp> _stored_timestamps;
 
   database::mysql_stmt _acknowledgement_insupdate;
@@ -387,6 +389,8 @@ class stream : public io::stream {
   // void __exit();
   void _clear_instances_cache(const std::list<uint64_t>& ids);
   bool _host_instance_known(uint64_t host_id) const;
+
+  void _start_loop_timer();
 
  public:
   stream(database_config const& dbcfg,
