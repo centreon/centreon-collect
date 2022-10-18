@@ -1,5 +1,5 @@
 /*
-** Copyright 2020-2021 Centreon
+** Copyright 2020-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/filesystem.hh"
+#include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/version.hh"
 
 using namespace com::centreon::broker;
@@ -49,7 +50,7 @@ void center::unload() {
   _instance = nullptr;
 }
 
-center::center() : _strand(pool::instance().io_context()) {
+center::center() {
   *_stats.mutable_version() = version::string;
   *_stats.mutable_asio_version() =
       fmt::format("{}.{}.{}", ASIO_VERSION / 100000, ASIO_VERSION / 100 % 1000,
@@ -79,12 +80,6 @@ center::center() : _strand(pool::instance().io_context()) {
  * @brief The destructor.
  */
 center::~center() {
-  /* Before destroying the strand, we have to wait it is really empty. We post
-   * a last action and wait it is over. */
-  std::promise<bool> p;
-  std::future<bool> f{p.get_future()};
-  _strand.post([&p] { p.set_value(true); });
-  f.get();
   pool::instance().stop_stats();
 }
 
@@ -99,39 +94,24 @@ center::~center() {
  * @return A pointer to the engine statistics.
  */
 EngineStats* center::register_engine() {
-  std::promise<EngineStats*> p;
-  std::future<EngineStats*> retval = p.get_future();
-  _strand.post([this, &p] {
-    auto eng = _stats.mutable_processing()->mutable_engine();
-    p.set_value(eng);
-  });
-  return retval.get();
+  std::lock_guard<std::mutex> lck(_stats_m);
+  return _stats.mutable_processing()->mutable_engine();
 }
 
 SqlConnectionStats* center::add_connection() {
-  std::promise<SqlConnectionStats*> p;
-  std::future<SqlConnectionStats*> retval = p.get_future();
-  _strand.post([this, &p] {
-    auto m = _stats.mutable_sql_manager()->add_connections();
-    p.set_value(m);
-  });
-  return retval.get();
+  std::lock_guard<std::mutex> lck(_stats_m);
+  return _stats.mutable_sql_manager()->add_connections();
 }
 
 void center::remove_connection(SqlConnectionStats* stats) {
-  std::promise<void> p;
-  _strand.post([this, stats, &p] {
-    auto* mc = _stats.mutable_sql_manager()->mutable_connections();
-    for (auto it = mc->begin(); it != mc->end(); ++it) {
-      if (&(*it) == stats) {
-        mc->erase(it);
-        p.set_value();
-        return;
-      }
+  std::lock_guard<std::mutex> lck(_stats_m);
+  auto* c = _stats.mutable_sql_manager()->mutable_connections();
+  for (auto it = c->begin(); it != c->end(); ++it) {
+    if (&*it == stats) {
+      c->erase(it);
+      break;
     }
-    p.set_value();
-  });
-  return p.get_future().wait();
+  }
 }
 
 /**
@@ -143,14 +123,9 @@ void center::remove_connection(SqlConnectionStats* stats) {
  *
  * @return true on success (it never fails).
  */
-bool center::unregister_muxer(const std::string& name) {
-  std::promise<bool> p;
-  std::future<bool> retval = p.get_future();
-  _strand.post([this, &p, name] {
-    _stats.mutable_processing()->mutable_muxers()->erase(name);
-    p.set_value(true);
-  });
-  return retval.get();
+void center::unregister_muxer(const std::string& name) {
+  std::lock_guard<std::mutex> lck(_stats_m);
+  _stats.mutable_processing()->mutable_muxers()->erase(name);
 }
 
 /**
@@ -165,29 +140,26 @@ void center::update_muxer(std::string name,
                           std::string queue_file,
                           uint32_t size,
                           uint32_t unack) {
-  _strand.post([this, name = std::move(name), queue = std::move(queue_file),
-                size, unack] {
-    auto ms = &(*_stats.mutable_processing()->mutable_muxers())[name];
-    if (ms) {
-      ms->mutable_queue_file()->set_name(std::move(queue));
-      ms->set_total_events(size);
-      ms->set_unacknowledged_events(unack);
-    }
-  });
+  std::lock_guard<std::mutex> lck(_stats_m);
+  auto ms = &(*_stats.mutable_processing()->mutable_muxers())[std::move(name)];
+  if (ms) {
+    ms->mutable_queue_file()->set_name(std::move(queue_file));
+    ms->set_total_events(size);
+    ms->set_unacknowledged_events(unack);
+  }
 }
 
 void center::init_queue_file(std::string muxer,
                              std::string queue_file,
                              uint32_t max_file_size) {
-  _strand.post([this, name = std::move(muxer), queue = std::move(queue_file),
-                max_file_size] {
-    auto qfs = (&(*_stats.mutable_processing()->mutable_muxers())[name])
-                   ->mutable_queue_file();
-    if (qfs) {
-      qfs->set_name(std::move(queue));
-      qfs->set_max_file_size(max_file_size);
-    }
-  });
+  std::lock_guard<std::mutex> lck(_stats_m);
+  auto qfs =
+      (&(*_stats.mutable_processing()->mutable_muxers())[std::move(muxer)])
+          ->mutable_queue_file();
+  if (qfs) {
+    qfs->set_name(std::move(queue_file));
+    qfs->set_max_file_size(max_file_size);
+  }
 }
 
 /**
@@ -304,13 +276,8 @@ void center::init_queue_file(std::string muxer,
  * @return A pointer to the conflict_manager statistics.
  */
 ConflictManagerStats* center::register_conflict_manager() {
-  std::promise<ConflictManagerStats*> p;
-  std::future<ConflictManagerStats*> retval = p.get_future();
-  _strand.post([this, &p] {
-    auto cm = _stats.mutable_conflict_manager();
-    p.set_value(cm);
-  });
-  return retval.get();
+  std::lock_guard<std::mutex> lck(_stats_m);
+  return _stats.mutable_conflict_manager();
 }
 
 /**
@@ -337,55 +304,30 @@ ConflictManagerStats* center::register_conflict_manager() {
  * @return a string with the object in json format.
  */
 std::string center::to_string() {
-  std::promise<std::string> p;
-  std::future<std::string> retval = p.get_future();
-  _strand.post(
-      [&s = this->_stats, &p, &tmpnow = this->_json_stats_file_creation] {
-        const JsonPrintOptions options;
-        std::string retval;
-        std::time_t now;
-        time(&now);
-        tmpnow = (int)now;
-        s.set_now(now);
-        MessageToJsonString(s, &retval, options);
-        p.set_value(std::move(retval));
-      });
-
-  return retval.get();
+  const JsonPrintOptions options;
+  std::string retval;
+  std::time_t now;
+  time(&now);
+  std::lock_guard<std::mutex> lck(_stats_m);
+  _json_stats_file_creation = now;
+  _stats.set_now(now);
+  MessageToJsonString(_stats, &retval, options);
+  return retval;
 }
 
 void center::get_sql_manager_stats(SqlManagerStats* response) {
-  std::promise<void> p;
-  _strand.post([&s = this->_stats, &p, response] {
-    *response = s.sql_manager();
-    p.set_value();
-  });
-
-  // We wait for the response.
-  p.get_future().wait();
+  std::lock_guard<std::mutex> lck(_stats_m);
+  *response = _stats.sql_manager();
 }
 
 void center::get_sql_connection_size(GenericSize* response) {
-  std::promise<void> p;
-  _strand.post([&s = this->_stats, &p, response] {
-    response->set_size(s.sql_manager().connections().size());
-    p.set_value();
-  });
-
-  // We wait for the response.
-  p.get_future().wait();
+  std::lock_guard<std::mutex> lck(_stats_m);
+  response->set_size(_stats.sql_manager().connections().size());
 }
 
 void center::get_conflict_manager_stats(ConflictManagerStats* response) {
-  std::promise<bool> p;
-  std::future<bool> done = p.get_future();
-  _strand.post([&s = this->_stats, &p, response] {
-    *response = s.conflict_manager();
-    p.set_value(true);
-  });
-
-  // We wait for the response.
-  done.get();
+  std::lock_guard<std::mutex> lck(_stats_m);
+  *response = _stats.conflict_manager();
 }
 
 int center::get_json_stats_file_creation(void) {
@@ -393,47 +335,31 @@ int center::get_json_stats_file_creation(void) {
 }
 
 bool center::muxer_stats(const std::string& name, MuxerStats* response) {
-  std::promise<bool> p;
-  std::future<bool> done = p.get_future();
-  _strand.post([&s = this->_stats, &p, name, response] {
-    if (!s.processing().muxers().contains(name))
-      p.set_value(false);
-    else {
-      *response = s.processing().muxers().at(name);
-      p.set_value(true);
-    }
-  });
-  return done.get();
+  std::lock_guard<std::mutex> lck(_stats_m);
+  if (!_stats.processing().muxers().contains(name))
+    return false;
+  else {
+    *response = _stats.processing().muxers().at(name);
+    return true;
+  }
 }
 
 MuxerStats* center::muxer_stats(const std::string& name) {
-  std::promise<MuxerStats*> p;
-  _strand.post([&s = this->_stats, &p, &name] {
-    MuxerStats* ms = &(*s.mutable_processing()->mutable_muxers())[name];
-    p.set_value(ms);
-  });
-  return p.get_future().get();
+  std::lock_guard<std::mutex> lck(_stats_m);
+  return &(*_stats.mutable_processing()->mutable_muxers())[name];
 }
 
 void center::get_processing_stats(ProcessingStats* response) {
-  std::promise<void> p;
-  _strand.post([&s = this->_stats, &p, response] {
-    *response = s.processing();
-    p.set_value();
-  });
-  p.get_future().get();
+  std::lock_guard<std::mutex> lck(_stats_m);
+  *response = _stats.processing();
 }
 
 void center::clear_muxer_queue_file(const std::string& name) {
-  std::promise<void> p;
-  _strand.post([&s = this->_stats, &p, &name] {
-    if (s.processing().muxers().contains(name))
-      s.mutable_processing()
-          ->mutable_muxers()
-          ->at(name)
-          .mutable_queue_file()
-          ->Clear();
-    p.set_value();
-  });
-  p.get_future().wait();
+  std::lock_guard<std::mutex> lck(_stats_m);
+  if (_stats.processing().muxers().contains(name))
+    _stats.mutable_processing()
+        ->mutable_muxers()
+        ->at(name)
+        .mutable_queue_file()
+        ->Clear();
 }
