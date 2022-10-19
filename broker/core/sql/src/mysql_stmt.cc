@@ -172,7 +172,7 @@ void mysql_stmt::operator<<(io::data const& d) {
                 sv = fmt::string_view(v);
               uint32_t attr = current_entry->get_attribute();
 
-              if (attr & mapping::entry::invalid_on_zero && sv.size() == 0)
+              if ((attr & mapping::entry::invalid_on_zero) && sv.size() == 0)
                 bind_null_str_k(field);
               else
                 bind_value_as_str_k(field, sv);
