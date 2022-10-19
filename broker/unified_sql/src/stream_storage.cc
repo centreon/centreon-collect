@@ -907,9 +907,10 @@ void stream::_check_queues(asio::error_code ec) {
       duration = 1;
 
     if (!_stop_check_queues) {
+      std::lock_guard<std::mutex> l(_timer_m);
       _queues_timer.expires_after(std::chrono::seconds(duration));
       _queues_timer.async_wait(
-          std::bind(&stream::_check_queues, this, std::placeholders::_1));
+          [this](const asio::error_code& err) { _check_queues(err); });
     } else {
       log_v2::sql()->info("SQL: check_queues correctly interrupted.");
       _check_queues_stopped = true;

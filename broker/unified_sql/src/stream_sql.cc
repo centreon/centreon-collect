@@ -18,6 +18,7 @@
 #include <fmt/format.h>
 
 #include "bbdo/storage/index_mapping.hh"
+#include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/database/mysql_result.hh"
 #include "com/centreon/broker/database/table_max_size.hh"
 #include "com/centreon/broker/log_v2.hh"
@@ -52,7 +53,7 @@ static bool time_is_undefined(uint64_t t) {
 void stream::_clean_tables(uint32_t instance_id) {
   // no hostgroup and servicegroup clean during this function
   {
-    std::lock_guard<std::mutex> l(_group_clean_timer_m);
+    std::lock_guard<std::mutex> l(_timer_m);
     _group_clean_timer.cancel();
   }
 
@@ -213,7 +214,7 @@ void stream::_clean_tables(uint32_t instance_id) {
                    conn);
   _add_action(conn, actions::custom_variables);
 
-  std::lock_guard<std::mutex> l(_group_clean_timer_m);
+  std::lock_guard<std::mutex> l(_timer_m);
   _group_clean_timer.expires_after(std::chrono::minutes(1));
   _group_clean_timer.async_wait([this](const asio::error_code& err) {
     if (!err) {
@@ -248,8 +249,10 @@ void stream::_clean_group_table() {
  *  Update all the hosts and services of unresponsive instances.
  */
 void stream::_update_hosts_and_services_of_unresponsive_instances() {
-  SPDLOG_LOGGER_DEBUG(log_v2::sql(),
-                      "unified sql: checking for outdated instances");
+  SPDLOG_LOGGER_DEBUG(
+      log_v2::sql(),
+      "unified sql: checking for outdated instances instance_timeout={}",
+      _instance_timeout);
 
   /* Don't do anything if timeout is deactivated. */
   if (_instance_timeout == 0)
@@ -259,6 +262,7 @@ void stream::_update_hosts_and_services_of_unresponsive_instances() {
       std::difftime(std::time(nullptr), _oldest_timestamp) <= _instance_timeout)
     return;
 
+  std::lock_guard<std::mutex> l(_stored_timestamps_m);
   /* Update unresponsive instances which were responsive */
   for (std::unordered_map<uint32_t, stored_timestamp>::iterator
            it = _stored_timestamps.begin(),
@@ -296,6 +300,11 @@ void stream::_update_hosts_and_services_of_instance(uint32_t id,
   _finish_action(-1, actions::acknowledgements | actions::modules |
                          actions::downtimes | actions::comments);
 
+  SPDLOG_LOGGER_TRACE(log_v2::sql(),
+                      "_update_hosts_and_services_of_instance "
+                      "_stored_timestamps.size()={} id={}, responsive={}",
+                      _stored_timestamps.size(), id, responsive);
+
   std::string query;
   if (responsive) {
     query = fmt::format(
@@ -326,11 +335,24 @@ void stream::_update_hosts_and_services_of_instance(uint32_t id,
                      conn);
     _add_action(conn, actions::hosts);
   }
-  std::shared_ptr<neb::responsive_instance> ri =
-      std::make_shared<neb::responsive_instance>();
-  ri->poller_id = id;
-  ri->responsive = responsive;
-  multiplexing::publisher().write(ri);
+  auto& bbdo = config::applier::state::instance().bbdo_version();
+  SPDLOG_LOGGER_TRACE(
+      log_v2::sql(),
+      "unified sql: SendResponsiveInstance vers:{}  poller:{} alive:{}",
+      std::get<0>(bbdo), id, responsive);
+  if (std::get<0>(bbdo) < 3) {
+    std::shared_ptr<neb::responsive_instance> ri =
+        std::make_shared<neb::responsive_instance>();
+    ri->poller_id = id;
+    ri->responsive = responsive;
+    multiplexing::publisher().write(ri);
+  } else {
+    std::shared_ptr<neb::pb_responsive_instance> pb_ri =
+        std::make_shared<neb::pb_responsive_instance>();
+    pb_ri->mut_obj().set_poller_id(id);
+    pb_ri->mut_obj().set_responsive(responsive);
+    multiplexing::publisher().write(pb_ri);
+  }
 }
 
 /**
@@ -339,24 +361,22 @@ void stream::_update_hosts_and_services_of_instance(uint32_t id,
  *  @param instance_id The id of the instance to have its timestamp updated.
  */
 void stream::_update_timestamp(uint32_t instance_id) {
-  stored_timestamp::state_type s{stored_timestamp::responsive};
-
+  std::lock_guard<std::mutex> l(_stored_timestamps_m);
   // Find the state of an existing timestamp if it exists.
   std::unordered_map<uint32_t, stored_timestamp>::iterator found =
       _stored_timestamps.find(instance_id);
   if (found != _stored_timestamps.end()) {
-    s = found->second.get_state();
-
     // Update a suddenly alive instance
-    if (s == stored_timestamp::unresponsive) {
+    if (found->second.get_state() == stored_timestamp::unresponsive) {
       _update_hosts_and_services_of_instance(instance_id, true);
-      s = stored_timestamp::responsive;
     }
+  } else {
+    _update_hosts_and_services_of_instance(instance_id, true);
   }
 
   // Insert the timestamp and its state in the store.
   stored_timestamp& timestamp = _stored_timestamps[instance_id];
-  timestamp = stored_timestamp(instance_id, s);
+  timestamp = stored_timestamp(instance_id, stored_timestamp::responsive);
   if (_oldest_timestamp > timestamp.get_timestamp())
     _oldest_timestamp = timestamp.get_timestamp();
 }
