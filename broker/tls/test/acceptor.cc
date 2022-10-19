@@ -43,6 +43,11 @@ using namespace com::centreon::exceptions;
 const static std::string test_addr("127.0.0.1");
 constexpr static uint16_t test_port(4444);
 
+static tcp::tcp_config::pointer test_conf(
+    std::make_shared<tcp::tcp_config>(test_addr, test_port));
+static tcp::tcp_config::pointer test_conf2(
+    std::make_shared<tcp::tcp_config>(test_addr, 4141));
+
 class TlsTest : public ::testing::Test {
  public:
   void SetUp() override {
@@ -61,7 +66,7 @@ TEST_F(TlsTest, AnonTlsStream) {
   std::atomic_bool cbd_finished{false};
 
   std::thread cbd([&cbd_finished] {
-    auto a{std::make_unique<tcp::acceptor>("", 4141, -1)};
+    auto a{std::make_unique<tcp::acceptor>(test_conf2)};
 
     auto tls_a{std::make_unique<tls::acceptor>("", "", "", "")};
 
@@ -92,7 +97,7 @@ TEST_F(TlsTest, AnonTlsStream) {
   });
 
   std::thread centengine([&cbd_finished] {
-    auto c{std::make_unique<tcp::connector>("localhost", 4141, -1)};
+    auto c{std::make_unique<tcp::connector>(test_conf2)};
 
     auto tls_c{std::make_unique<tls::connector>("", "", "", "")};
 
@@ -128,7 +133,7 @@ TEST_F(TlsTest, AnonTlsStreamContinuous) {
   std::atomic_bool cbd_finished{false};
 
   std::thread cbd([&cbd_finished] {
-    auto a{std::make_unique<tcp::acceptor>("", 4141, -1)};
+    auto a{std::make_unique<tcp::acceptor>(test_conf2)};
 
     auto tls_a{std::make_unique<tls::acceptor>("", "", "", "")};
 
@@ -163,7 +168,7 @@ TEST_F(TlsTest, AnonTlsStreamContinuous) {
   });
 
   std::thread centengine([&cbd_finished] {
-    auto c{std::make_unique<tcp::connector>("localhost", 4141, -1)};
+    auto c{std::make_unique<tcp::connector>(test_conf2)};
 
     auto tls_c{std::make_unique<tls::connector>("", "", "", "")};
 
@@ -218,7 +223,7 @@ TEST_F(TlsTest, TlsStream) {
   std::atomic_bool cbd_finished{false};
 
   std::thread cbd([&cbd_finished] {
-    auto a{std::make_unique<tcp::acceptor>("", 4141, -1)};
+    auto a{std::make_unique<tcp::acceptor>(test_conf2)};
 
     auto tls_a{std::make_unique<tls::acceptor>("/tmp/server.crt",
                                                "/tmp/server.key", "", "")};
@@ -248,7 +253,7 @@ TEST_F(TlsTest, TlsStream) {
   });
 
   std::thread centengine([&cbd_finished] {
-    auto c{std::make_unique<tcp::connector>("localhost", 4141, -1)};
+    auto c{std::make_unique<tcp::connector>(test_conf2)};
 
     auto tls_c{std::make_unique<tls::connector>("/tmp/client.crt",
                                                 "/tmp/client.key", "", "")};
@@ -300,7 +305,7 @@ TEST_F(TlsTest, TlsStreamCa) {
   std::atomic_bool cbd_finished{false};
 
   std::thread cbd([&cbd_finished] {
-    auto a{std::make_unique<tcp::acceptor>("", 4141, -1)};
+    auto a{std::make_unique<tcp::acceptor>(test_conf2)};
 
     auto tls_a{std::make_unique<tls::acceptor>(
         "/tmp/server.crt", "/tmp/server.key", "/tmp/client.crt", "")};
@@ -330,7 +335,7 @@ TEST_F(TlsTest, TlsStreamCa) {
   });
 
   std::thread centengine([&cbd_finished] {
-    auto c{std::make_unique<tcp::connector>("localhost", 4141, -1)};
+    auto c{std::make_unique<tcp::connector>(test_conf2)};
 
     auto tls_c{std::make_unique<tls::connector>(
         "/tmp/client.crt", "/tmp/client.key", "/tmp/server.crt", "")};
@@ -382,7 +387,7 @@ TEST_F(TlsTest, TlsStreamCaError) {
   std::atomic_bool cbd_finished{false};
 
   std::thread cbd([&cbd_finished] {
-    auto a{std::make_unique<tcp::acceptor>("", 4141, -1)};
+    auto a{std::make_unique<tcp::acceptor>(test_conf2)};
 
     auto tls_a{std::make_unique<tls::acceptor>(
         "/tmp/server.crt", "/tmp/server.key", "/tmp/client.crt", "")};
@@ -413,7 +418,7 @@ TEST_F(TlsTest, TlsStreamCaError) {
   });
 
   std::thread centengine([&cbd_finished] {
-    auto c{std::make_unique<tcp::connector>("localhost", 4141, -1)};
+    auto c{std::make_unique<tcp::connector>(test_conf2)};
 
     /* the name does not match with the CN of the server certificate */
     auto tls_c{
@@ -455,7 +460,7 @@ TEST_F(TlsTest, TlsStreamCaHostname) {
   std::atomic_bool cbd_finished{false};
 
   std::thread cbd([&cbd_finished] {
-    auto a{std::make_unique<tcp::acceptor>("", 4141, -1)};
+    auto a{std::make_unique<tcp::acceptor>(test_conf2)};
 
     auto tls_a{std::make_unique<tls::acceptor>(
         "/tmp/server.crt", "/tmp/server.key", "/tmp/client.crt", "")};
@@ -485,7 +490,7 @@ TEST_F(TlsTest, TlsStreamCaHostname) {
   });
 
   std::thread centengine([&cbd_finished] {
-    auto c{std::make_unique<tcp::connector>("localhost", 4141, -1)};
+    auto c{std::make_unique<tcp::connector>(test_conf2)};
 
     auto tls_c{std::make_unique<tls::connector>(
         "/tmp/client.crt", "/tmp/client.key", "/tmp/server.crt", s_hostname)};
@@ -540,7 +545,7 @@ TEST_F(TlsTest, TlsStreamBigData) {
   std::atomic_bool cbd_finished{false};
 
   std::thread cbd([&cbd_finished] {
-    auto a{std::make_unique<tcp::acceptor>("", 4141, -1)};
+    auto a{std::make_unique<tcp::acceptor>(test_conf2)};
 
     auto tls_a{std::make_unique<tls::acceptor>(
         "/tmp/server.crt", "/tmp/server.key", "/tmp/client.crt", "")};
@@ -589,7 +594,7 @@ TEST_F(TlsTest, TlsStreamBigData) {
   });
 
   std::thread centengine([&cbd_finished] {
-    auto c{std::make_unique<tcp::connector>("localhost", 4141, -1)};
+    auto c{std::make_unique<tcp::connector>(test_conf2)};
 
     auto tls_c{std::make_unique<tls::connector>(
         "/tmp/client.crt", "/tmp/client.key", "/tmp/server.crt", s_hostname)};
@@ -651,7 +656,7 @@ TEST_F(TlsTest, TlsStreamLongData) {
   std::atomic_bool cbd_finished{false};
 
   std::thread cbd([&cbd_finished] {
-    auto a{std::make_unique<tcp::acceptor>("", 4141, -1)};
+    auto a{std::make_unique<tcp::acceptor>(test_conf2)};
 
     auto tls_a{std::make_unique<tls::acceptor>(
         "/tmp/server.crt", "/tmp/server.key", "/tmp/client.crt", "")};
@@ -701,7 +706,7 @@ TEST_F(TlsTest, TlsStreamLongData) {
   });
 
   std::thread centengine([&cbd_finished] {
-    auto c{std::make_unique<tcp::connector>("localhost", 4141, -1)};
+    auto c{std::make_unique<tcp::connector>(test_conf2)};
 
     auto tls_c{std::make_unique<tls::connector>(
         "/tmp/client.crt", "/tmp/client.key", "/tmp/server.crt", s_hostname)};

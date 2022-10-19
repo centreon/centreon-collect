@@ -33,13 +33,17 @@ class grpc_config {
   // grpc_compression_level _compress_level;
   std::string _ca_name;
   compression_active _compress;
+  int _second_keepalive_interval;
 
  public:
   using pointer = std::shared_ptr<grpc_config>;
 
-  grpc_config() : _compress(NO) {}
+  grpc_config() : _compress(NO), _second_keepalive_interval(30) {}
   grpc_config(const std::string& hostp)
-      : _hostport(hostp), _crypted(false), _compress(NO) {}
+      : _hostport(hostp),
+        _crypted(false),
+        _compress(NO),
+        _second_keepalive_interval(30) {}
   grpc_config(const std::string& hostp,
               bool crypted,
               const std::string& certificate,
@@ -47,7 +51,8 @@ class grpc_config {
               const std::string& ca_cert,
               const std::string& authorization,
               const std::string& ca_name,
-              compression_active compression)
+              compression_active compression,
+              int second_keepalive_interval = 30)
       : _hostport(hostp),
         _crypted(crypted),
         _certificate(certificate),
@@ -55,7 +60,8 @@ class grpc_config {
         _ca_cert(ca_cert),
         _authorization(authorization),
         _ca_name(ca_name),
-        _compress(compression) {}
+        _compress(compression),
+        _second_keepalive_interval(second_keepalive_interval) {}
 
   constexpr const std::string& get_hostport() const { return _hostport; }
   constexpr bool is_crypted() const { return _crypted; }
@@ -67,6 +73,10 @@ class grpc_config {
   }
   const std::string& get_ca_name() const { return _ca_name; }
   constexpr compression_active get_compression() const { return _compress; }
+
+  int get_second_keepalive_interval() const {
+    return _second_keepalive_interval;
+  }
 
   friend class factory;
 };

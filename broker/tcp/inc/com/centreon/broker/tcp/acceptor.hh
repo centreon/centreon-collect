@@ -21,6 +21,7 @@
 
 #include "com/centreon/broker/io/endpoint.hh"
 #include "com/centreon/broker/namespace.hh"
+#include "com/centreon/broker/tcp/tcp_config.hh"
 
 CCB_BEGIN()
 
@@ -32,18 +33,14 @@ namespace tcp {
  *  Accept TCP connections.
  */
 class acceptor : public io::endpoint {
-  const std::string _listen_address;
-  const uint16_t _port;
-  const int32_t _read_timeout;
+  tcp_config::pointer _conf;
 
   std::list<std::string> _children;
   std::mutex _childrenm;
   std::shared_ptr<asio::ip::tcp::acceptor> _acceptor;
 
  public:
-  acceptor(const std::string& listen_address,
-           uint16_t port,
-           int32_t read_timeout);
+  acceptor(const tcp_config::pointer& conf);
   ~acceptor() noexcept;
 
   acceptor(const acceptor&) = delete;

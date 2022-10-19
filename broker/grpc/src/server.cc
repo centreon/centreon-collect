@@ -163,8 +163,10 @@ void server::start() {
   builder.AddListeningPort(_conf->get_hostport(), server_creds);
   builder.RegisterService(this);
   builder.AddChannelArgument(GRPC_ARG_KEEPALIVE_PERMIT_WITHOUT_CALLS, 1);
-  builder.AddChannelArgument(GRPC_ARG_KEEPALIVE_TIME_MS, 30000);
-  builder.AddChannelArgument(GRPC_ARG_KEEPALIVE_TIMEOUT_MS, 10000);
+  builder.AddChannelArgument(GRPC_ARG_KEEPALIVE_TIME_MS,
+                             _conf->get_second_keepalive_interval() * 1000);
+  builder.AddChannelArgument(GRPC_ARG_KEEPALIVE_TIMEOUT_MS,
+                             _conf->get_second_keepalive_interval() * 300);
   builder.AddChannelArgument(GRPC_ARG_HTTP2_MAX_PING_STRIKES, 0);
   builder.AddChannelArgument(GRPC_ARG_HTTP2_MAX_PINGS_WITHOUT_DATA, 0);
   builder.AddChannelArgument(
