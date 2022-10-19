@@ -1,5 +1,5 @@
 /*
-** Copyright 2020-2021 Centreon
+** Copyright 2020-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -23,9 +23,9 @@
 
 #include "com/centreon/broker/config/applier/modules.hh"
 #include "com/centreon/broker/config/applier/state.hh"
+#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/filesystem.hh"
 #include "com/centreon/broker/version.hh"
-#include "com/centreon/broker/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::stats;
@@ -49,7 +49,7 @@ void center::unload() {
   _instance = nullptr;
 }
 
-center::center() : _strand(pool::instance().io_context()) {
+center::center() {
   *_stats.mutable_version() = version::string;
   *_stats.mutable_asio_version() =
       fmt::format("{}.{}.{}", ASIO_VERSION / 100000, ASIO_VERSION / 100 % 1000,
@@ -79,12 +79,6 @@ center::center() : _strand(pool::instance().io_context()) {
  * @brief The destructor.
  */
 center::~center() {
-  /* Before destroying the strand, we have to wait it is really empty. We post
-   * a last action and wait it is over. */
-  std::promise<bool> p;
-  std::future<bool> f{p.get_future()};
-  _strand.post([&p] { p.set_value(true); });
-  f.get();
   pool::instance().stop_stats();
 }
 
@@ -99,41 +93,25 @@ center::~center() {
  * @return A pointer to the engine statistics.
  */
 EngineStats* center::register_engine() {
-  std::promise<EngineStats*> p;
-  std::future<EngineStats*> retval = p.get_future();
-  _strand.post([this, &p] {
-    auto eng = _stats.mutable_engine();
-    p.set_value(eng);
-  });
-  return retval.get();
+  std::lock_guard<std::mutex> lck(_stats_m);
+  return _stats.mutable_engine();
 }
 
 SqlConnectionStats* center::add_connection() {
-  std::promise<SqlConnectionStats*> p;
-  std::future<SqlConnectionStats*> retval = p.get_future();
-  _strand.post([this, &p] {
-    auto m = _stats.mutable_sql_manager()->add_connections();
-    p.set_value(m);
-  });
-  return retval.get();
+  std::lock_guard<std::mutex> lck(_stats_m);
+  return _stats.mutable_sql_manager()->add_connections();
 }
 
 void center::remove_connection(SqlConnectionStats* stats) {
-  std::promise<void> p;
-  _strand.post([this, stats, &p] {
-    auto* mc = _stats.mutable_sql_manager()->mutable_connections();
-    for (auto it = mc->begin(); it != mc->end(); ++it) {
-      if (&(*it) == stats) {
-        mc->erase(it);
-        p.set_value();
-        return;
-      }
+  std::lock_guard<std::mutex> lck(_stats_m);
+  auto* mc = _stats.mutable_sql_manager()->mutable_connections();
+  for (auto it = mc->begin(); it != mc->end(); ++it) {
+    if (&(*it) == stats) {
+      mc->erase(it);
+      break;
     }
-    p.set_value();
-  });
-  return p.get_future().wait();
+  }
 }
-
 
 /**
  * @brief When a feeder needs to write statistics, it primarily has to
@@ -249,13 +227,8 @@ void center::remove_connection(SqlConnectionStats* stats) {
  * @return A pointer to the conflict_manager statistics.
  */
 ConflictManagerStats* center::register_conflict_manager() {
-  std::promise<ConflictManagerStats*> p;
-  std::future<ConflictManagerStats*> retval = p.get_future();
-  _strand.post([this, &p] {
-    auto cm = _stats.mutable_conflict_manager();
-    p.set_value(cm);
-  });
-  return retval.get();
+  std::lock_guard<std::mutex> lck(_stats_m);
+  return _stats.mutable_conflict_manager();
 }
 
 /**
@@ -282,62 +255,25 @@ ConflictManagerStats* center::register_conflict_manager() {
  * @return a string with the object in json format.
  */
 std::string center::to_string() {
-  std::promise<std::string> p;
-  std::future<std::string> retval = p.get_future();
-  _strand.post(
-      [&s = this->_stats, &p, &tmpnow = this->_json_stats_file_creation] {
-        const JsonPrintOptions options;
-        std::string retval;
-        std::time_t now;
-        time(&now);
-        tmpnow = (int)now;
-        s.set_now(now);
-        MessageToJsonString(s, &retval, options);
-        p.set_value(std::move(retval));
-      });
-
-  return retval.get();
+  const JsonPrintOptions options;
+  std::string retval;
+  std::time_t now;
+  time(&now);
+  std::lock_guard<std::mutex> lck(_stats_m);
+  _json_stats_file_creation = now;
+  _stats.set_now(now);
+  MessageToJsonString(_stats, &retval, options);
+  return retval;
 }
 
 void center::get_sql_manager_stats(SqlManagerStats* response) {
-  std::promise<void> p;
-  _strand.post([&s = this->_stats, &p, response] {
-    *response = s.sql_manager();
-    p.set_value();
-  });
-
-  // We wait for the response.
-  p.get_future().wait();
+  std::lock_guard<std::mutex> lck(_stats_m);
+  *response = _stats.sql_manager();
 }
 
-// void center::get_stats(const StatsQuery* request, BrokerStats* response) {
-//  std::promise<bool> p;
-//  std::future<bool> done = p.get_future();
-//  _strand.post([&s = this->_stats, &p, request, response] {
-//    for (auto& q : request->query()) {
-//      switch (q) {
-//        case StatsQuery::ENGINE:
-//          *response->mutable_engine() = s.engine();
-//          break;
-//      }
-//    }
-//    p.set_value(true);
-//  });
-//
-//  // We wait for the response.
-//  done.get();
-//}
-
 void center::get_conflict_manager_stats(ConflictManagerStats* response) {
-  std::promise<bool> p;
-  std::future<bool> done = p.get_future();
-  _strand.post([&s = this->_stats, &p, response] {
-    *response = s.conflict_manager();
-    p.set_value(true);
-  });
-
-  // We wait for the response.
-  done.get();
+  std::lock_guard<std::mutex> lck(_stats_m);
+  *response = _stats.conflict_manager();
 }
 
 int center::get_json_stats_file_creation(void) {
