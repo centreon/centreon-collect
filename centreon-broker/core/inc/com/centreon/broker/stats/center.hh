@@ -55,8 +55,8 @@ namespace stats {
  */
 class center {
   static center* _instance;
-  asio::io_context::strand _strand;
   BrokerStats _stats;
+  std::mutex _stats_m;
   int _json_stats_file_creation;
 
   center();
@@ -91,7 +91,8 @@ class center {
    */
   template <typename T>
   void update(T* ptr, T value) {
-    _strand.post([ptr, value = std::move(value)] { *ptr = value; });
+    std::lock_guard<std::mutex> lck(_stats_m);
+    *ptr = std::move(value);
   }
 
   /**
@@ -121,17 +122,19 @@ class center {
    */
   template <typename U, typename T>
   void update(void (U::*f)(T), U* ptr, T value) {
-    _strand.post([ptr, f, value] { (ptr->*f)(value); });
+    std::lock_guard<std::mutex> lck(_stats_m);
+    (ptr->*f)(value);
   }
 
-  void execute(std::function<void()> f) { _strand.post(f); }
+  void execute(std::function<void()> f) {
+    std::lock_guard<std::mutex> lck(_stats_m);
+    f();
+  }
 
   template <typename U, typename T>
   const T& get(T (U::*f)() const, const U* ptr) {
-    std::promise<T> p;
-    std::future<T> retval = p.get_future();
-    _strand.post([&p, ptr, f] { p.set_value((ptr->*f)()); });
-    return retval.get();
+    std::lock_guard<std::mutex> lck(_stats_m);
+    return (ptr->*f)();
   }
 };
 
