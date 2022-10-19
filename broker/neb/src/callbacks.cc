@@ -2019,6 +2019,8 @@ int neb::callback_host_status(int callback_type, void* data) {
               || (!a->obj().sticky() &&
                   host_status->current_state != a->obj().state()))) {
           a->mut_obj().set_deletion_time(time(nullptr));
+          log_v2::neb()->info("neb: pb acknowledgement deletion time {}",
+                              a->obj().deletion_time());
           gl_publisher.write(std::move(it->second));
         }
       } else {
@@ -2027,6 +2029,8 @@ int neb::callback_host_status(int callback_type, void* data) {
         if (!(!host_status->current_state  // !(OK or (normal ack and NOK))
               || (!a->is_sticky && host_status->current_state != a->state))) {
           a->deletion_time = time(nullptr);
+          log_v2::neb()->info("neb: acknowledgement deletion time {}",
+                              a->deletion_time);
           gl_publisher.write(std::move(it->second));
         }
       }
@@ -2128,20 +2132,20 @@ int neb::callback_pb_host_status(int callback_type, void* data) noexcept {
           static_cast<neb::pb_acknowledgement*>(it->second.get());
       if (!(!hscr.state()  // !(OK or (normal ack and NOK))
             || (!a->obj().sticky() && hscr.state() != a->obj().state()))) {
-        auto ack = std::static_pointer_cast<neb::pb_acknowledgement>(
-            std::move(it->second));
-        ack->mut_obj().set_deletion_time(time(nullptr));
-        gl_publisher.write(ack);
+        a->mut_obj().set_deletion_time(time(nullptr));
+        log_v2::neb()->info("neb: pb1 acknowledgement deletion time {}",
+                            a->obj().deletion_time());
+        gl_publisher.write(std::move(it->second));
       }
     } else {
       neb::acknowledgement* a =
           static_cast<neb::acknowledgement*>(it->second.get());
       if (!(!hscr.state()  // !(OK or (normal ack and NOK))
             || (!a->is_sticky && hscr.state() != a->state))) {
-        auto ack = std::static_pointer_cast<neb::acknowledgement>(
-            std::move(it->second));
-        ack->deletion_time = time(nullptr);
-        gl_publisher.write(ack);
+        a->deletion_time = time(nullptr);
+        log_v2::neb()->info("neb: 1 acknowledgement deletion time {}",
+                            a->deletion_time);
+        gl_publisher.write(std::move(it->second));
       }
     }
     gl_acknowledgements.erase(it);
@@ -3426,10 +3430,10 @@ int32_t neb::callback_pb_service_status(int callback_type
           static_cast<neb::pb_acknowledgement*>(it->second.get());
       if (!(!sscr.state()  // !(OK or (normal ack and NOK))
             || (!a->obj().sticky() && sscr.state() != a->obj().state()))) {
-        auto ack = std::static_pointer_cast<neb::pb_acknowledgement>(
-            std::move(it->second));
-        ack->mut_obj().set_deletion_time(time(nullptr));
-        gl_publisher.write(ack);
+        a->mut_obj().set_deletion_time(time(nullptr));
+        log_v2::neb()->info("neb: pb2 acknowledgement deletion time {}",
+                            a->obj().deletion_time());
+        gl_publisher.write(std::move(it->second));
       }
 
     } else {
@@ -3437,10 +3441,10 @@ int32_t neb::callback_pb_service_status(int callback_type
           static_cast<neb::acknowledgement*>(it->second.get());
       if (!(!sscr.state()  // !(OK or (normal ack and NOK))
             || (!a->is_sticky && sscr.state() != a->state))) {
-        auto ack = std::static_pointer_cast<neb::acknowledgement>(
-            std::move(it->second));
-        ack->deletion_time = time(nullptr);
-        gl_publisher.write(ack);
+        a->deletion_time = time(nullptr);
+        log_v2::neb()->info("neb: 2 acknowledgement deletion time {}",
+                            a->deletion_time);
+        gl_publisher.write(std::move(it->second));
       }
     }
     gl_acknowledgements.erase(it);
@@ -3564,10 +3568,10 @@ int neb::callback_service_status(int callback_type, void* data) {
         if (!(!service_status->current_state  // !(OK or (normal ack and NOK))
               || (!a->obj().sticky() &&
                   service_status->current_state != a->obj().state()))) {
-          auto ack = std::static_pointer_cast<neb::pb_acknowledgement>(
-              std::move(it->second));
-          ack->mut_obj().set_deletion_time(time(nullptr));
-          gl_publisher.write(ack);
+          a->mut_obj().set_deletion_time(time(nullptr));
+          log_v2::neb()->info("neb: pb3 acknowledgement deletion time {}",
+                              a->obj().deletion_time());
+          gl_publisher.write(std::move(it->second));
         }
       } else {
         neb::acknowledgement* a =
@@ -3575,10 +3579,10 @@ int neb::callback_service_status(int callback_type, void* data) {
         if (!(!service_status->current_state  // !(OK or (normal ack and NOK))
               ||
               (!a->is_sticky && service_status->current_state != a->state))) {
-          auto ack = std::static_pointer_cast<neb::acknowledgement>(
-              std::move(it->second));
-          ack->deletion_time = time(nullptr);
-          gl_publisher.write(ack);
+          a->deletion_time = time(nullptr);
+          log_v2::neb()->info("neb: 3 acknowledgement deletion time {}",
+                              a->deletion_time);
+          gl_publisher.write(std::move(it->second));
         }
       }
       gl_acknowledgements.erase(it);

@@ -17,12 +17,13 @@ Library	../resources/Common.py
 
 *** Test Cases ***
 BEACK1
-	[Documentation]	Engine has a critical service. An external command is sent to acknowledge it. The centreon_storage.acknowledgements table is then updated with this acknowledgement. The service is newly set to OK. And the acknowledgement in database is deleted.
+	[Documentation]	Engine has a critical service. An external command is sent to acknowledge it. The centreon_storage.acknowledgements table is then updated with this acknowledgement. The service is newly set to OK. And the acknowledgement in database is deleted from engine but still open on the database.
 	[Tags]	Broker	Engine	services	extcmd
 	Config Engine	${1}	${50}	${20}
 	Config Broker	rrd
 	Config Broker	central
 	Config Broker	module	${1}
+	Broker Config Log	module0	neb	debug
 	Broker Config Log	central	sql	debug
 
 	${start}=	Get Current Date
@@ -51,7 +52,8 @@ BEACK1
 	Should Be True	${result}	msg=Service (1;1) should be OK HARD
 
 	# Acknowledgement is deleted
-	Check Acknowledgement is deleted With Timeout	${ack_id}	60
+	${result}=	Check Acknowledgement is deleted With Timeout	${ack_id}	60
+	Should Be True	${result}	msg=The deletion time of acknowledgement ${ack_id} should be after the entry_time.
 
 BEACK2
 	[Documentation]	Configuration is made with BBDO3. Engine has a critical service. An external command is sent to acknowledge it. The centreon_storage.acknowledgements table is then updated with this acknowledgement. The service is newly set to OK. And the acknowledgement in database is deleted.
@@ -61,6 +63,7 @@ BEACK2
 	Config Broker	central
 	Config Broker	module	${1}
 	Config BBDO3	${1}
+	Broker Config Log	module0	neb	debug
 	Broker Config Log	central	sql	debug
 
 	${start}=	Get Current Date
@@ -89,4 +92,5 @@ BEACK2
 	Should Be True	${result}	msg=Service (1;1) should be OK HARD
 
 	# Acknowledgement is deleted
-	Check Acknowledgement is deleted With Timeout	${ack_id}	60
+	${result}=	Check Acknowledgement is deleted With Timeout	${ack_id}	60
+	Should Be True	${result}	msg=The deletion time of acknowledgement ${ack_id} should be after the entry_time.

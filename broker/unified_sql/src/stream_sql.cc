@@ -473,7 +473,7 @@ void stream::_process_pb_acknowledgement(const std::shared_ptr<io::data>& d) {
   // Log message.
   SPDLOG_LOGGER_INFO(
       log_v2::sql(),
-      "processing acknowledgement event (poller: {}, host: {}, service: {}, "
+      "processing pb acknowledgement event (poller: {}, host: {}, service: {}, "
       "entry time: {}, deletion time: {})",
       ack_obj.instance_id(), ack_obj.host_id(), ack_obj.service_id(),
       ack_obj.entry_time(), ack_obj.deletion_time());
@@ -483,7 +483,10 @@ void stream::_process_pb_acknowledgement(const std::shared_ptr<io::data>& d) {
     // Prepare queries.
     if (!_pb_acknowledgement_insupdate.prepared()) {
       query_preparator::event_pb_unique unique{
-          {9, "entry_time", io::protobuf_base::invalid_on_minus_one, 0},
+          {9, "entry_time",
+           io::protobuf_base::invalid_on_minus_one |
+               io::protobuf_base::invalid_on_zero,
+           0},
           {1, "host_id", io::protobuf_base::invalid_on_zero, 0},
           {2, "service_id", io::protobuf_base::invalid_on_zero, 0}};
       query_preparator qp(neb::pb_acknowledgement::static_type(), unique);
@@ -501,7 +504,10 @@ void stream::_process_pb_acknowledgement(const std::shared_ptr<io::data>& d) {
               {7, "sticky", 0, 0},
               {8, "notify_contacts", 0, 0},
               {9, "entry_time", 0, 0},
-              {10, "deletion_time", 0, 0},
+              {10, "deletion_time",
+               io::protobuf_base::invalid_on_zero |
+                   io::protobuf_base::invalid_on_minus_one,
+               0},
               {11, "persistent_comment", 0, 0},
               {12, "state", 0, 0},
           });

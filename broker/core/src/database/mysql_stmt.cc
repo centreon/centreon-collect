@@ -206,16 +206,18 @@ void mysql_stmt::operator<<(io::data const& d) {
               bind_value_as_f64(field, current_entry->get_double(d));
               break;
             case mapping::source::INT: {
-              int v(current_entry->get_int(d));
-              switch (current_entry->get_attribute()) {
-                case mapping::entry::invalid_on_zero:
-                  if (v == 0)
+              int v = current_entry->get_int(d);
+              switch (v) {
+                case 0:
+                  if (current_entry->get_attribute() &
+                      mapping::entry::invalid_on_zero)
                     bind_value_as_null(field);
                   else
                     bind_value_as_i32(field, v);
                   break;
-                case mapping::entry::invalid_on_minus_one:
-                  if (v == -1)
+                case -1:
+                  if (current_entry->get_attribute() &
+                      mapping::entry::invalid_on_minus_one)
                     bind_value_as_null(field);
                   else
                     bind_value_as_i32(field, v);
@@ -240,7 +242,7 @@ void mysql_stmt::operator<<(io::data const& d) {
                 sv = fmt::string_view(v.data(), max_len);
               } else
                 sv = fmt::string_view(v);
-              if (current_entry->get_attribute() ==
+              if (current_entry->get_attribute() &
                   mapping::entry::invalid_on_zero) {
                 if (sv.size() == 0)
                   bind_value_as_null(field);
@@ -251,15 +253,17 @@ void mysql_stmt::operator<<(io::data const& d) {
             } break;
             case mapping::source::TIME: {
               time_t v(current_entry->get_time(d));
-              switch (current_entry->get_attribute()) {
-                case mapping::entry::invalid_on_zero:
-                  if (v == 0)
+              switch (v) {
+                case 0:
+                  if (current_entry->get_attribute() &
+                      mapping::entry::invalid_on_zero)
                     bind_value_as_null(field);
                   else
                     bind_value_as_u32(field, v);
                   break;
-                case mapping::entry::invalid_on_minus_one:
-                  if (v == -1)
+                case -1:
+                  if (current_entry->get_attribute() &
+                      mapping::entry::invalid_on_minus_one)
                     bind_value_as_null(field);
                   else
                     bind_value_as_u32(field, v);
@@ -270,12 +274,17 @@ void mysql_stmt::operator<<(io::data const& d) {
             } break;
             case mapping::source::UINT: {
               uint32_t v(current_entry->get_uint(d));
-              switch (current_entry->get_attribute()) {
-                case mapping::entry::invalid_on_zero:
-                  bind_value_as_u32(field, v);
+              switch (v) {
+                case 0:
+                  if (current_entry->get_attribute() &
+                      mapping::entry::invalid_on_zero)
+                    bind_value_as_null(field);
+                  else
+                    bind_value_as_u32(field, v);
                   break;
-                case mapping::entry::invalid_on_minus_one:
-                  if (v == (uint32_t)-1)
+                case static_cast<uint32_t>(-1):
+                  if (current_entry->get_attribute() &
+                      mapping::entry::invalid_on_minus_one)
                     bind_value_as_null(field);
                   else
                     bind_value_as_u32(field, v);

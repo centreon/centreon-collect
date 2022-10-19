@@ -408,9 +408,9 @@ def check_acknowledgement_is_deleted_with_timeout(ack_id: int, timeout: int):
 
         with connection:
             with connection.cursor() as cursor:
-                cursor.execute(f"SELECT deletion_time FROM acknowledgements WHERE acknowledgement_id={ack_id}")
+                cursor.execute(f"SELECT entry_time,deletion_time FROM acknowledgements WHERE acknowledgement_id={ack_id}")
                 result = cursor.fetchall()
-                if len(result) > 0 and result[0]['deletion_time'] is not None:
+                if len(result) > 0 and result[0]['deletion_time'] is not None and int(result[0]['deletion_time']) > int(result[0]['entry_time']):
                     logger.console(
                         f"Acknowledgement {ack_id} is deleted at {result[0]['deletion_time']}")
                     return True
