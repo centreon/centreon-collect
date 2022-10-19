@@ -23,10 +23,10 @@
 
 #include <cassert>
 
+#include "bbdo/bbdo.pb.h"
 #include "bbdo/bbdo/ack.hh"
 #include "bbdo/bbdo/stop.hh"
 #include "bbdo/bbdo/version_response.hh"
-#include "bbdo/welcome.pb.h"
 #include "com/centreon/broker/bbdo/internal.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/exceptions/timeout.hh"

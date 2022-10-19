@@ -24,7 +24,7 @@ set(protobuf_files
   host
   severity
   tag
-  welcome
+  bbdo
   neb_proto
   storage_proto
 )
@@ -68,12 +68,12 @@ add_dependencies(pb_storage_proto_lib target_storage_proto target_proto_header)
 set_target_properties(pb_storage_proto_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 add_library(
-  pb_welcome_lib STATIC
-  welcome.pb.cc
-  welcome.pb.h
+  pb_bbdo_lib STATIC
+  bbdo.pb.cc
+  bbdo.pb.h
 )
-add_dependencies(pb_welcome_lib target_welcome)
-set_target_properties(pb_welcome_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
+add_dependencies(pb_bbdo_lib target_bbdo)
+set_target_properties(pb_bbdo_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 add_library(
   pb_service_lib STATIC

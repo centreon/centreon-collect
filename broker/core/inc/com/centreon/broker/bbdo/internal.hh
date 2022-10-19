@@ -19,8 +19,8 @@
 #ifndef CCB_BBDO_INTERNAL_HH
 #define CCB_BBDO_INTERNAL_HH
 
+#include "bbdo/bbdo.pb.h"
 #include "bbdo/events.hh"
-#include "bbdo/welcome.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
 #include "com/centreon/broker/namespace.hh"
 
