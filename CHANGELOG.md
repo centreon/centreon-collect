@@ -18,6 +18,7 @@ stream connector accepts empty parameter values
   help the user to fix his configuration but Broker does not stop.
 * RRD graphs rebuilds flush data when the rebuild is over. This seems to improve
   the user experience.
+* A possible deadlock has been removed from stats center.
 
 ### Engine
 
