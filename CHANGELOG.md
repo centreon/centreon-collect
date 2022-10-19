@@ -13,6 +13,10 @@ with the Broker configuration file.
 
 #### Fixes
 
+*core*
+
+A possible deadlock has been removed from stats center.
+
 *rrd*
 
 Rebuild of graphs should work better.
