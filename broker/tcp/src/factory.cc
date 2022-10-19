@@ -43,7 +43,8 @@ using namespace com::centreon::exceptions;
  *
  *  @return True if the configuration has this protocol.
  */
-bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
+bool factory::has_endpoint(com::centreon::broker::config::endpoint& cfg,
+                           io::extension* ext) {
   if (ext)
     *ext = io::extension("TCP", false, false);
   /* Legacy case: we create a tcp endpoint */
@@ -70,7 +71,7 @@ bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
  *  @return Endpoint matching configuration.
  */
 io::endpoint* factory::new_endpoint(
-    config::endpoint& cfg,
+    com::centreon::broker::config::endpoint& cfg,
     bool& is_acceptor,
     std::shared_ptr<persistent_cache> cache) const {
   (void)cache;
@@ -79,66 +80,88 @@ io::endpoint* factory::new_endpoint(
     return _new_endpoint_bbdo_cs(cfg, is_acceptor);
 
   // Find host (if exists).
+  std::map<std::string, std::string>::const_iterator it;
   std::string host;
-  {
-    auto it = cfg.params.find("host");
-    if (it != cfg.params.end())
-      host = it->second;
-    if (!host.empty() &&
-        (std::isspace(host[0]) || std::isspace(host[host.size() - 1]))) {
-      log_v2::tcp()->error(
-          "TCP: 'host' must be a string matching a host, not beginning or "
-          "ending with spaces for endpoint {}, it contains '{}'",
-          cfg.name, host);
-      throw msg_fmt(
-          "TCP: invalid host value '{}' defined for endpoint '{}"
-          "', it must not begin or end with spaces.",
-          host, cfg.name);
-    }
+  it = cfg.params.find("host");
+  if (it != cfg.params.end())
+    host = it->second;
+  if (!host.empty() &&
+      (std::isspace(host[0]) || std::isspace(host[host.size() - 1]))) {
+    log_v2::tcp()->error(
+        "TCP: 'host' must be a string matching a host, not beginning or "
+        "ending with spaces for endpoint {}, it contains '{}'",
+        cfg.name, host);
+    throw msg_fmt(
+        "TCP: invalid host value '{}' defined for endpoint '{}"
+        "', it must not begin or end with spaces.",
+        host, cfg.name);
   }
 
   // Find port (must exist).
   uint16_t port;
-  {
-    std::map<std::string, std::string>::const_iterator it{
-        cfg.params.find("port")};
-    if (it == cfg.params.end()) {
-      log_v2::tcp()->error("TCP: no 'port' defined for endpoint '{}'",
-                           cfg.name);
-      throw msg_fmt("TCP: no 'port' defined for endpoint '{}'", cfg.name);
-    }
-    uint32_t port32;
-    if (!absl::SimpleAtoi(it->second, &port32)) {
-      log_v2::tcp()->error(
-          "TCP: 'port' must be an integer and not '{}' for endpoint '{}'",
-          it->second, cfg.name);
-      throw msg_fmt("TCP: invalid port value '{}' defined for endpoint '{}'",
-                    it->second, cfg.name);
-    }
-    if (port32 > 65535)
-      throw msg_fmt("TCP: invalid port value '{}' defined for endpoint '{}'",
-                    it->second, cfg.name);
-    else
-      port = port32;
+  it = cfg.params.find("port");
+  if (it == cfg.params.end()) {
+    log_v2::tcp()->error("TCP: no 'port' defined for endpoint '{}'", cfg.name);
+    throw msg_fmt("TCP: no 'port' defined for endpoint '{}'", cfg.name);
   }
+  uint32_t port32;
+  if (!absl::SimpleAtoi(it->second, &port32)) {
+    log_v2::tcp()->error(
+        "TCP: 'port' must be an integer and not '{}' for endpoint '{}'",
+        it->second, cfg.name);
+    throw msg_fmt("TCP: invalid port value '{}' defined for endpoint '{}'",
+                  it->second, cfg.name);
+  }
+  if (port32 > 65535)
+    throw msg_fmt("TCP: invalid port value '{}' defined for endpoint '{}'",
+                  it->second, cfg.name);
+  else
+    port = port32;
 
   int read_timeout(-1);
-  {
-    std::map<std::string, std::string>::const_iterator it{
-        cfg.params.find("socket_read_timeout")};
-    if (it != cfg.params.end()) {
-      if (!absl::SimpleAtoi(it->second, &read_timeout)) {
-        log_v2::tcp()->error(
-            "TCP: 'socket_read_timeout' must be an integer and not '{}' for "
-            "endpoint '{}'",
-            it->second, cfg.name);
-        throw msg_fmt(
-            "TCP: invalid socket read timeout value '{}' defined for endpoint "
-            "'{}'",
-            it->second, cfg.name);
-      }
+  it = cfg.params.find("socket_read_timeout");
+  if (it != cfg.params.end()) {
+    if (!absl::SimpleAtoi(it->second, &read_timeout)) {
+      log_v2::tcp()->error(
+          "TCP: 'socket_read_timeout' must be an integer and not '{}' for "
+          "endpoint '{}'",
+          it->second, cfg.name);
+      throw msg_fmt(
+          "TCP: invalid socket read timeout value '{}' defined for endpoint "
+          "'{}'",
+          it->second, cfg.name);
     }
   }
+
+  // keepalive conf
+  int keepalive_count = 2;
+  it = cfg.params.find("keepalive_count");
+  if (it != cfg.params.end()) {
+    if (!absl::SimpleAtoi(it->second, &keepalive_count)) {
+      log_v2::tcp()->error(
+          "TCP: 'keepalive_count' field should be an integer and not '{}'",
+          it->second);
+      throw msg_fmt(
+          "TCP: 'keepalive_count' field should be an integer and not '{}'",
+          it->second);
+    }
+  }
+
+  int keepalive_interval = 30;
+  it = cfg.params.find("keepalive_interval");
+  if (it != cfg.params.end()) {
+    if (!absl::SimpleAtoi(it->second, &keepalive_interval)) {
+      log_v2::tcp()->error(
+          "TCP: 'keepalive_interval' field should be an integer and not '{}'",
+          it->second);
+      throw msg_fmt(
+          "TCP: 'keepalive_interval' field should be an integer and not '{}'",
+          it->second);
+    }
+  }
+
+  tcp_config::pointer conf(std::make_shared<tcp_config>(
+      host, port, read_timeout, keepalive_interval, keepalive_count));
 
   // Acceptor.
   std::unique_ptr<io::endpoint> endp;
@@ -149,9 +172,9 @@ io::endpoint* factory::new_endpoint(
     is_acceptor = false;
 
   if (is_acceptor)
-    endp = std::make_unique<tcp::acceptor>(host, port, read_timeout);
+    endp = std::make_unique<tcp::acceptor>(conf);
   else
-    endp = std::make_unique<tcp::connector>(host, port, read_timeout);
+    endp = std::make_unique<tcp::connector>(conf);
   return endp.release();
 }
 
@@ -251,9 +274,40 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
     is_acceptor = false;
 
   int read_timeout = -1;
+
+  // keepalive conf
+  int keepalive_count = 2;
+  it = cfg.params.find("keepalive_count");
+  if (it != cfg.params.end()) {
+    if (!absl::SimpleAtoi(it->second, &keepalive_count)) {
+      log_v2::tcp()->error(
+          "TCP: 'keepalive_count' field should be an integer and not '{}'",
+          it->second);
+      throw msg_fmt(
+          "TCP: 'keepalive_count' field should be an integer and not '{}'",
+          it->second);
+    }
+  }
+
+  int keepalive_interval = 30;
+  it = cfg.params.find("keepalive_interval");
+  if (it != cfg.params.end()) {
+    if (!absl::SimpleAtoi(it->second, &keepalive_interval)) {
+      log_v2::tcp()->error(
+          "TCP: 'keepalive_interval' field should be an integer and not '{}'",
+          it->second);
+      throw msg_fmt(
+          "TCP: 'keepalive_interval' field should be an integer and not '{}'",
+          it->second);
+    }
+  }
+
+  tcp_config::pointer conf(std::make_shared<tcp_config>(
+      host, port, read_timeout, keepalive_interval, keepalive_count));
+
   if (is_acceptor)
-    endp = std::make_unique<tcp::acceptor>(host, port, read_timeout);
+    endp = std::make_unique<tcp::acceptor>(conf);
   else
-    endp = std::make_unique<tcp::connector>(host, port, read_timeout);
+    endp = std::make_unique<tcp::connector>(conf);
   return endp.release();
 }

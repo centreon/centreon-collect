@@ -33,8 +33,10 @@ client::client(const grpc_config::pointer& conf)
   SPDLOG_LOGGER_TRACE(log_v2::grpc(), "this={:p}", static_cast<void*>(this));
   ::grpc::ChannelArguments args;
   args.SetInt(GRPC_ARG_KEEPALIVE_PERMIT_WITHOUT_CALLS, 1);
-  args.SetInt(GRPC_ARG_KEEPALIVE_TIME_MS, 30000);
-  args.SetInt(GRPC_ARG_KEEPALIVE_TIMEOUT_MS, 10000);
+  args.SetInt(GRPC_ARG_KEEPALIVE_TIME_MS,
+              conf->get_second_keepalive_interval() * 1000);
+  args.SetInt(GRPC_ARG_KEEPALIVE_TIMEOUT_MS,
+              conf->get_second_keepalive_interval() * 300);
   args.SetInt(GRPC_ARG_HTTP2_MAX_PINGS_WITHOUT_DATA, 0);
   if (!conf->get_ca_name().empty())
     args.SetString(GRPC_SSL_TARGET_NAME_OVERRIDE_ARG, conf->get_ca_name());

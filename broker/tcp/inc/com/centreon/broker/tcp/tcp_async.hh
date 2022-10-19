@@ -19,6 +19,7 @@
 #define CENTREON_BROKER_TCP_INC_COM_CENTREON_BROKER_TCP_TCP_ASYNC_HH_
 
 #include "com/centreon/broker/pool.hh"
+#include "com/centreon/broker/tcp/tcp_config.hh"
 #include "com/centreon/broker/tcp/tcp_connection.hh"
 
 CCB_BEGIN()
@@ -75,6 +76,9 @@ class tcp_async {
 
   void _clear_available_con(asio::error_code ec);
 
+  static void _set_sock_opt(asio::ip::tcp::socket& sock,
+                            const tcp_config::pointer& conf);
+
  public:
   static void load();
   static void unload();
@@ -84,17 +88,18 @@ class tcp_async {
   tcp_async(const tcp_async&) = delete;
   tcp_async& operator=(const tcp_async&) = delete;
   std::shared_ptr<asio::ip::tcp::acceptor> create_acceptor(
-      const std::string& listen_address,
-      uint16_t port);
-  void start_acceptor(const std::shared_ptr<asio::ip::tcp::acceptor>& acceptor);
+      const tcp_config::pointer& conf);
+  void start_acceptor(const std::shared_ptr<asio::ip::tcp::acceptor>& acceptor,
+                      const tcp_config::pointer& conf);
   void stop_acceptor(std::shared_ptr<asio::ip::tcp::acceptor> acceptor);
 
-  std::shared_ptr<tcp_connection> create_connection(std::string const& address,
-                                                    uint16_t port);
+  std::shared_ptr<tcp_connection> create_connection(
+      const tcp_config::pointer& conf);
   void remove_acceptor(std::shared_ptr<asio::ip::tcp::acceptor> acceptor);
   void handle_accept(std::shared_ptr<asio::ip::tcp::acceptor> acceptor,
                      tcp_connection::pointer new_connection,
-                     const asio::error_code& error);
+                     const asio::error_code& error,
+                     const tcp_config::pointer& conf);
   tcp_connection::pointer get_connection(
       const std::shared_ptr<asio::ip::tcp::acceptor>& acceptor,
       uint32_t timeout_s);

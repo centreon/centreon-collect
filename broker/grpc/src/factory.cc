@@ -205,9 +205,23 @@ io::endpoint* factory::new_endpoint(
   else
     enable_compression = grpc_config::AUTO;
 
+  // keepalive conf
+  int keepalive_interval = 30;
+  it = cfg.params.find("keepalive_interval");
+  if (it != cfg.params.end()) {
+    if (!absl::SimpleAtoi(it->second, &keepalive_interval)) {
+      log_v2::grpc()->error(
+          "GRPC: 'keepalive_interval' field should be an integer and not '{}'",
+          it->second);
+      throw msg_fmt(
+          "GRPC: 'keepalive_interval' field should be an integer and not '{}'",
+          it->second);
+    }
+  }
+
   grpc_config::pointer conf(std::make_shared<grpc_config>(
       "", encrypted, certificate, certificate_key, certificate_authority,
-      authorization, ca_name, enable_compression));
+      authorization, ca_name, enable_compression, keepalive_interval));
 
   std::unique_ptr<io::endpoint> endp;
   if (host.empty())
@@ -405,9 +419,23 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
                     it->second);
   }
 
+  // keepalive conf
+  int keepalive_interval = 30;
+  it = cfg.params.find("keepalive_interval");
+  if (it != cfg.params.end()) {
+    if (!absl::SimpleAtoi(it->second, &keepalive_interval)) {
+      log_v2::grpc()->error(
+          "GRPC: 'keepalive_interval' field should be an integer and not '{}'",
+          it->second);
+      throw msg_fmt(
+          "GRPC: 'keepalive_interval' field should be an integer and not '{}'",
+          it->second);
+    }
+  }
+
   grpc_config::pointer conf(std::make_shared<grpc_config>(
       "", encryption, certificate, private_key, ca_certificate, authorization,
-      ca_name, enable_compression));
+      ca_name, enable_compression, keepalive_interval));
 
   // Acceptor.
   std::unique_ptr<io::endpoint> endp;
