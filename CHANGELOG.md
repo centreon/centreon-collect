@@ -11,14 +11,23 @@ stream connector accepts empty parameter values
 
 #### Fixes
 
+*bam*
+
+last\_level in KPIs is a float number and must be read as such.
+
+*core*
+
 * Broker is no more blocked when rows with unexpected values are encountered.
   An error log is raised to help the user to fix it, that's all.
 * File failovers have been no more supported for an almost long time now. In
   this new version, this is not a blocking point. Some error logs are raised to
   help the user to fix his configuration but Broker does not stop.
+* A possible deadlock has been removed from stats center.
+
+*rrd*
+
 * RRD graphs rebuilds flush data when the rebuild is over. This seems to improve
   the user experience.
-* A possible deadlock has been removed from stats center.
 
 ### Engine
 
