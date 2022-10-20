@@ -1,20 +1,20 @@
-##
-## Copyright 2021-2022 Centreon
-##
-## Licensed under the Apache License, Version 2.0 (the "License");
-## you may not use this file except in compliance with the License.
-## You may obtain a copy of the License at
-##
-##     http://www.apache.org/licenses/LICENSE-2.0
-##
-## Unless required by applicable law or agreed to in writing, software
-## distributed under the License is distributed on an "AS IS" BASIS,
-## WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-## See the License for the specific language governing permissions and
-## limitations under the License.
-##
-## For more information : contact@centreon.com
-##
+# #
+# # Copyright 2021-2022 Centreon
+# #
+# # Licensed under the Apache License, Version 2.0 (the "License");
+# # you may not use this file except in compliance with the License.
+# # You may obtain a copy of the License at
+# #
+# #     http://www.apache.org/licenses/LICENSE-2.0
+# #
+# # Unless required by applicable law or agreed to in writing, software
+# # distributed under the License is distributed on an "AS IS" BASIS,
+# # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# # See the License for the specific language governing permissions and
+# # limitations under the License.
+# #
+# # For more information : contact@centreon.com
+# #
 
 # Global options.
 set(INC_DIR "${PROJECT_SOURCE_DIR}/unified_sql/inc")
@@ -32,6 +32,7 @@ get_protobuf_files(remove_graph_message)
 set(UNIFIED_SQL "20-unified_sql")
 set(UNIFIED_SQL "${UNIFIED_SQL}" PARENT_SCOPE)
 add_library("${UNIFIED_SQL}" SHARED
+
   # Sources.
   ${SRC_DIR}/connector.cc
   ${SRC_DIR}/factory.cc
@@ -43,6 +44,7 @@ add_library("${UNIFIED_SQL}" SHARED
   ${SRC_DIR}/stream_storage.cc
   ${proto_rebuild_message}
   ${proto_remove_graph_message}
+
   # Headers.
   ${INC_DIR}/connector.hh
   ${INC_DIR}/events.hh
@@ -53,25 +55,25 @@ add_library("${UNIFIED_SQL}" SHARED
   ${INC_DIR}/stream.hh
 )
 set_target_properties("${UNIFIED_SQL}" PROPERTIES
-    PREFIX ""
-    COMPILE_FLAGS "-fPIC")
+  PREFIX ""
+  COMPILE_FLAGS "-fPIC")
 add_dependencies("${UNIFIED_SQL}" target_rebuild_message target_remove_graph_message target_service target_host)
 target_precompile_headers(${UNIFIED_SQL} PRIVATE precomp_inc/precomp.hpp)
 target_link_libraries(${UNIFIED_SQL}
-    rokerbase
-    bbdo_storage
-    CONAN_PKG::spdlog
-    CONAN_PKG::abseil
-    pb_service_lib
-    pb_host_lib
-    pb_storage_proto_lib
+  rokerbase
+  bbdo_storage
+  CONAN_PKG::spdlog
+  CONAN_PKG::abseil
+  pb_service_lib
+  pb_host_lib
+  pb_storage_lib
 )
 
 # Testing.
-if (WITH_TESTING)
-  if (WITH_SQL_TESTS)
+if(WITH_TESTING)
+  if(WITH_SQL_TESTS)
     set(TEST_SOURCES ${TESTS_SOURCES} ${TEST_DIR}/conflict_manager.cc)
-  endif (WITH_SQL_TESTS)
+  endif(WITH_SQL_TESTS)
 
   # Testing.
   set(

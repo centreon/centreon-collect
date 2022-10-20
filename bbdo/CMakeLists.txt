@@ -17,7 +17,7 @@
 #
 
 set(protobuf_files
-  proto_header
+  header
   rebuild_message
   remove_graph_message
   service
@@ -25,8 +25,8 @@ set(protobuf_files
   severity
   tag
   bbdo
-  neb_proto
-  storage_proto
+  neb
+  storage
 )
 
 foreach(name IN LISTS protobuf_files)
@@ -45,27 +45,27 @@ endforeach()
 
 add_library(
   pb_header_lib STATIC
-  proto_header.pb.cc
-  proto_header.pb.h
+  header.pb.cc
+  header.pb.h
 )
-add_dependencies(pb_header_lib target_proto_header)
+add_dependencies(pb_header_lib target_header)
 set_target_properties(pb_header_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 add_library(
-  pb_neb_proto_lib STATIC
-  neb_proto.pb.cc
-  neb_proto.pb.h
+  pb_neb_lib STATIC
+  neb.pb.cc
+  neb.pb.h
 )
-add_dependencies(pb_neb_proto_lib target_neb_proto target_proto_header)
-set_target_properties(pb_neb_proto_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
+add_dependencies(pb_neb_lib target_neb target_header)
+set_target_properties(pb_neb_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 add_library(
-  pb_storage_proto_lib STATIC
-  storage_proto.pb.cc
-  storage_proto.pb.h
+  pb_storage_lib STATIC
+  storage.pb.cc
+  storage.pb.h
 )
-add_dependencies(pb_storage_proto_lib target_storage_proto target_proto_header)
-set_target_properties(pb_storage_proto_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
+add_dependencies(pb_storage_lib target_storage target_header)
+set_target_properties(pb_storage_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 add_library(
   pb_bbdo_lib STATIC
