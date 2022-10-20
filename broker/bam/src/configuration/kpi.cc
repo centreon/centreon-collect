@@ -34,7 +34,6 @@ kpi::kpi(uint32_t id,
          uint32_t meta_id,
          uint32_t boolexp_id,
          short status,
-         short last_level,
          bool downtimed,
          bool acknowledged,
          bool ignore_downtime,
@@ -51,7 +50,6 @@ kpi::kpi(uint32_t id,
       _meta_id(meta_id),
       _boolexp_id(boolexp_id),
       _status(status),
-      _last_level(last_level),
       _downtimed(downtimed),
       _acknowledged(acknowledged),
       _ignore_downtime(ignore_downtime),
@@ -76,7 +74,6 @@ kpi::kpi(kpi const& other)
       _meta_id(other._meta_id),
       _boolexp_id(other._boolexp_id),
       _status(other._status),
-      _last_level(other._last_level),
       _downtimed(other._downtimed),
       _acknowledged(other._acknowledged),
       _ignore_downtime(other._ignore_downtime),
@@ -109,7 +106,6 @@ kpi& kpi::operator=(kpi const& other) {
     _meta_id = other._meta_id;
     _boolexp_id = other._boolexp_id;
     _status = other._status;
-    _last_level = other._last_level;
     _downtimed = other._downtimed;
     _acknowledged = other._acknowledged;
     _ignore_downtime = other._ignore_downtime;
@@ -134,8 +130,7 @@ bool kpi::operator==(kpi const& other) const {
          _host_id == other._host_id && _service_id == other._service_id &&
          _ba_id == other._ba_id && _indicator_ba_id == other._indicator_ba_id &&
          _meta_id == other._meta_id && _boolexp_id == other._boolexp_id &&
-         _status == other._status && _last_level == other._last_level &&
-         _downtimed == other._downtimed &&
+         _status == other._status && _downtimed == other._downtimed &&
          _acknowledged == other._acknowledged &&
          _ignore_downtime == other._ignore_downtime &&
          _ignore_acknowledgement == other._ignore_acknowledgement &&
@@ -283,15 +278,6 @@ short kpi::get_status() const {
 }
 
 /**
- *  Get the last level of this kpi.
- *
- *  @return The last level of this kpi.
- */
-short kpi::get_last_level() const {
-  return _last_level;
-}
-
-/**
  *  Is this kpi set to downtime mode ?
  *
  *  @return Has this business interest been downtimed?
@@ -436,15 +422,6 @@ void kpi::set_boolexp_id(uint32_t boolexp_id) {
  */
 void kpi::set_status(short s) {
   _status = s;
-}
-
-/**
- *  Set last_level.
- *
- *  @param[in] s Set the last level of the kpi.
- */
-void kpi::set_last_level(short s) {
-  _last_level = s;
 }
 
 /**
