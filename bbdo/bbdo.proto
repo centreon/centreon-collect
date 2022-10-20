@@ -37,3 +37,6 @@ message Welcome {
 message Ack {
   uint32 acknowledged_events = 1;
 }
+
+message Stop {
+}

@@ -688,10 +688,17 @@ int stream::flush() {
  */
 void stream::_send_event_stop_and_wait_for_ack() {
   if (!_coarse) {
-    SPDLOG_LOGGER_DEBUG(log_v2::bbdo(), "BBDO: sending stop packet to peer");
-
-    std::shared_ptr<bbdo::stop> stop_packet{std::make_shared<bbdo::stop>()};
-    _write(stop_packet);
+    if (std::get<0>(_bbdo_version) >= 3) {
+      SPDLOG_LOGGER_DEBUG(log_v2::bbdo(),
+                          "BBDO: sending pb stop packet to peer");
+      std::shared_ptr<bbdo::pb_stop> stop_packet{
+          std::make_shared<bbdo::pb_stop>()};
+      _write(stop_packet);
+    } else {
+      SPDLOG_LOGGER_DEBUG(log_v2::bbdo(), "BBDO: sending stop packet to peer");
+      std::shared_ptr<bbdo::stop> stop_packet{std::make_shared<bbdo::stop>()};
+      _write(stop_packet);
+    }
 
     SPDLOG_LOGGER_DEBUG(log_v2::bbdo(),
                         "BBDO: retrieving ack packet from peer");
@@ -1102,6 +1109,11 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
         break;
       case stop::static_type(): {
         SPDLOG_LOGGER_INFO(log_v2::bbdo(), "BBDO: received stop from peer");
+        send_event_acknowledgement();
+        break;
+      }
+      case pb_stop::static_type(): {
+        SPDLOG_LOGGER_INFO(log_v2::bbdo(), "BBDO: received pb stop from peer");
         send_event_acknowledgement();
         break;
       }
