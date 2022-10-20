@@ -20,7 +20,7 @@
 #define CCB_INFLUXDB_INTERNAL_HH
 
 #include "bbdo/events.hh"
-#include "bbdo/storage_proto.pb.h"
+#include "bbdo/storage.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
 #include "com/centreon/broker/namespace.hh"
 

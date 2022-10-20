@@ -18,7 +18,7 @@
 
 syntax = "proto3";
 
-import "proto_header.proto";
+import "header.proto";
 
 package com.centreon.broker;
 

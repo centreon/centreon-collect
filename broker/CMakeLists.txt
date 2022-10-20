@@ -477,7 +477,7 @@ set(LIBROKER_SOURCES
 add_library(rokerbase STATIC ${LIBROKER_SOURCES})
 set_target_properties(rokerbase PROPERTIES COMPILE_FLAGS "-fPIC")
 target_precompile_headers(rokerbase PRIVATE core/precomp_inc/precomp.hpp)
-add_dependencies(rokerbase berpc target_welcome)
+add_dependencies(rokerbase berpc target_bbdo)
 target_link_libraries(
   rokerbase
   CONAN_PKG::zlib
@@ -488,7 +488,7 @@ target_link_libraries(
   dl
   berpc
   bbdo_bbdo
-  pb_welcome_lib)
+  pb_bbdo_lib)
 
 add_library(roker STATIC ${SRC_DIR}/config/applier/init.cc)
 target_link_libraries(roker rokerbase dl CONAN_PKG::openssl CONAN_PKG::grpc

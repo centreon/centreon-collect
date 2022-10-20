@@ -19,8 +19,8 @@
 #ifndef CCB_BBDO_INTERNAL_HH
 #define CCB_BBDO_INTERNAL_HH
 
+#include "bbdo/bbdo.pb.h"
 #include "bbdo/events.hh"
-#include "bbdo/welcome.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
 #include "com/centreon/broker/namespace.hh"
 
@@ -35,6 +35,14 @@ namespace bbdo {
 using pb_welcome =
     com::centreon::broker::io::protobuf<Welcome,
                                         make_type(io::bbdo, bbdo::de_welcome)>;
+
+using pb_ack =
+    com::centreon::broker::io::protobuf<Ack,
+                                        make_type(io::bbdo, bbdo::de_pb_ack)>;
+
+using pb_stop =
+    com::centreon::broker::io::protobuf<Stop,
+                                        make_type(io::bbdo, bbdo::de_pb_stop)>;
 
 // Load/unload of BBDO protocol.
 void load();

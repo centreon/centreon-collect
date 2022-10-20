@@ -98,7 +98,7 @@ add_library(nebbase STATIC ${NEB_SOURCES})
 add_dependencies(
   nebbase
   table_max_size
-  target_neb_proto
+  target_neb
   target_host
   target_service
   target_severity
@@ -111,7 +111,7 @@ target_link_libraries(
   pb_service_lib
   pb_severity_lib
   pb_tag_lib
-  pb_neb_proto_lib
+  pb_neb_lib
   pb_header_lib)
 
 set(NEBBASE_CXXFLAGS "${NEBBASE_CXXFLAGS} -fPIC")
