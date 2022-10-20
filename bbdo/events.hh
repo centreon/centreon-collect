@@ -88,6 +88,7 @@ enum data_element {
   de_remove_graphs = 5,
   de_remove_poller = 6,
   de_welcome = 7,
+  de_pb_ack = 8
 };
 }
 namespace neb {

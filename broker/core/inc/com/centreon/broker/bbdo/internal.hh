@@ -36,6 +36,10 @@ using pb_welcome =
     com::centreon::broker::io::protobuf<Welcome,
                                         make_type(io::bbdo, bbdo::de_welcome)>;
 
+using pb_ack =
+    com::centreon::broker::io::protobuf<Ack,
+                                        make_type(io::bbdo, bbdo::de_pb_ack)>;
+
 // Load/unload of BBDO protocol.
 void load();
 void unload();

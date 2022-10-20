@@ -32,3 +32,8 @@ message Welcome {
   uint64 poller_id = 3;
   string poller_name = 4;
 }
+
+
+message Ack {
+  uint32 acknowledged_events = 1;
+}
