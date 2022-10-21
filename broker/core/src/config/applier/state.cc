@@ -46,7 +46,7 @@ state::state() : _poller_id(0), _rpc_port(0), _bbdo_version{2u, 0u, 0u} {}
  */
 void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
   /* With bbdo 3.0, unified_sql must replace sql/storage */
-  if (std::get<0>(s.bbdo_version()) >= 3) {
+  if (s.get_bbdo_version().major_v >= 3) {
     auto& lst = s.module_list();
     bool found_sql =
         std::find(lst.begin(), lst.end(), "80-sql.so") != lst.end();
@@ -92,7 +92,7 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
   _poller_id = s.poller_id();
   _poller_name = s.poller_name();
   _rpc_port = s.rpc_port();
-  _bbdo_version = s.bbdo_version();
+  _bbdo_version = s.get_bbdo_version();
 
   // Thread pool size.
   _pool_size = s.pool_size();
@@ -155,8 +155,7 @@ const std::string& state::cache_dir() const noexcept {
  *
  * @return The bbdo version.
  */
-const std::tuple<uint16_t, uint16_t, uint16_t>& state::bbdo_version()
-    const noexcept {
+bbdo::bbdo_version state::get_bbdo_version() const noexcept {
   return _bbdo_version;
 }
 

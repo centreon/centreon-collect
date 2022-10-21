@@ -22,11 +22,13 @@
 #include <absl/container/flat_hash_map.h>
 #include <fmt/format.h>
 
+#include "bbdo/bbdo/bbdo_version.hh"
 #include "com/centreon/broker/config/endpoint.hh"
 
 CCB_BEGIN()
 
 namespace config {
+
 /**
  *  @class state state.hh "com/centreon/broker/config/state.hh"
  *  @brief Full configuration state.
@@ -41,7 +43,7 @@ class state {
   std::string _listen_address;
   std::string _broker_name;
   uint64_t _event_queues_total_size = 0u;
-  std::tuple<uint16_t, uint16_t, uint16_t> _bbdo_version;
+  bbdo::bbdo_version _bbdo_version;
   std::string _cache_directory;
   std::string _command_file;
   std::string _command_protocol;
@@ -83,8 +85,8 @@ class state {
   const std::string& broker_name() const noexcept;
   void event_queues_total_size(uint64_t size);
   uint64_t event_queues_total_size() const noexcept;
-  void bbdo_version(std::tuple<uint16_t, uint16_t, uint16_t>&& v);
-  const std::tuple<uint16_t, uint16_t, uint16_t>& bbdo_version() const noexcept;
+  void set_bbdo_version(bbdo::bbdo_version v);
+  bbdo::bbdo_version get_bbdo_version() const noexcept;
   void cache_directory(std::string const& dir);
   std::string const& cache_directory() const noexcept;
   void command_file(std::string const& file);

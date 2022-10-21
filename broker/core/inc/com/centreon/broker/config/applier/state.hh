@@ -38,7 +38,7 @@ class state {
   std::string _cache_dir;
   uint32_t _poller_id;
   uint32_t _rpc_port;
-  std::tuple<uint16_t, uint16_t, uint16_t> _bbdo_version;
+  bbdo::bbdo_version _bbdo_version;
   std::string _poller_name;
   size_t _pool_size;
   modules _modules;
@@ -59,7 +59,7 @@ class state {
   void apply(const config::state& s, bool run_mux = true);
   const std::string& cache_dir() const noexcept;
   uint32_t rpc_port() const noexcept;
-  const std::tuple<uint16_t, uint16_t, uint16_t>& bbdo_version() const noexcept;
+  bbdo::bbdo_version get_bbdo_version() const noexcept;
   uint32_t poller_id() const noexcept;
   size_t pool_size() const noexcept;
   const std::string& poller_name() const noexcept;

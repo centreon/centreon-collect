@@ -237,9 +237,7 @@ state parser::parse(std::string const& file) {
                 version);
           ++it;
 
-          retval.bbdo_version({static_cast<uint16_t>(major),
-                               static_cast<uint16_t>(minor),
-                               static_cast<uint16_t>(patch)});
+          retval.set_bbdo_version(bbdo::bbdo_version(major, minor, patch));
         } else if (get_conf<state>({it.key(), it.value()}, "broker_name",
                                    retval, &state::broker_name,
                                    &json::is_string))

@@ -606,8 +606,8 @@ std::shared_ptr<ba_status> ba::_generate_ba_status(bool state_changed) const {
 }
 
 std::shared_ptr<io::data> ba::_generate_virtual_service_status() const {
-  auto& bbdo = config::applier::state::instance().bbdo_version();
-  if (std::get<0>(bbdo) < 3) {
+  auto bbdo = config::applier::state::instance().get_bbdo_version();
+  if (bbdo.major_v < 3) {
     auto status{std::make_shared<neb::service_status>()};
     status->active_checks_enabled = false;
     status->check_interval = 0.0;

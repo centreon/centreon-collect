@@ -335,12 +335,12 @@ void stream::_update_hosts_and_services_of_instance(uint32_t id,
                      conn);
     _add_action(conn, actions::hosts);
   }
-  auto& bbdo = config::applier::state::instance().bbdo_version();
+  auto bbdo = config::applier::state::instance().get_bbdo_version();
   SPDLOG_LOGGER_TRACE(
       log_v2::sql(),
       "unified sql: SendResponsiveInstance vers:{}  poller:{} alive:{}",
-      std::get<0>(bbdo), id, responsive);
-  if (std::get<0>(bbdo) < 3) {
+      bbdo.major_v, id, responsive);
+  if (bbdo.major_v < 3) {
     std::shared_ptr<neb::responsive_instance> ri =
         std::make_shared<neb::responsive_instance>();
     ri->poller_id = id;

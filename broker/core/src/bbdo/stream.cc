@@ -598,23 +598,6 @@ static io::raw* serialize(const io::data& e) {
 }
 
 /**
- * @brief Computes a number from the version given as (major, minor, patch).
- * This number can be compared.
- *
- * @param major major version number
- * @param minor minor version number
- * @param patch patch version number
- *
- * @return A uint64_t number representing the version.
- */
-constexpr static uint64_t compute_version(uint16_t major,
-                                          uint16_t minor,
-                                          uint16_t patch) {
-  return (static_cast<uint64_t>(major) << 40) |
-         (static_cast<uint64_t>(minor) << 20) | static_cast<uint64_t>(patch);
-}
-
-/**
  *  Default constructor.
  */
 stream::stream(bool is_input,
@@ -630,7 +613,7 @@ stream::stream(bool is_input,
       _ack_limit(1000),
       _events_received_since_last_ack(0),
       _extensions{extensions},
-      _bbdo_version{config::applier::state::instance().bbdo_version()} {}
+      _bbdo_version(config::applier::state::instance().get_bbdo_version()) {}
 
 /**
  * @brief All the mecanism behind this stream is stopped once this method is
@@ -688,7 +671,7 @@ int stream::flush() {
  */
 void stream::_send_event_stop_and_wait_for_ack() {
   if (!_coarse) {
-    if (std::get<0>(_bbdo_version) >= 3) {
+    if (_bbdo_version.major_v >= 3) {
       SPDLOG_LOGGER_DEBUG(log_v2::bbdo(),
                           "BBDO: sending pb stop packet to peer");
       std::shared_ptr<bbdo::pb_stop> stop_packet{
@@ -779,10 +762,7 @@ void stream::negotiate(stream::negotiation_type neg) {
   } else
     extensions = _get_extension_names(false);
 
-  uint64_t computed_version =
-      compute_version(std::get<0>(_bbdo_version), std::get<1>(_bbdo_version),
-                      std::get<2>(_bbdo_version));
-  constexpr uint64_t v300 = compute_version(3, 0, 0);
+  bbdo::bbdo_version v300(3, 0, 0);
 
   // Send our own packet if we should be first.
   if (neg == negotiate_first) {
@@ -791,18 +771,15 @@ void stream::negotiate(stream::negotiation_type neg) {
         "BBDO: sending welcome packet (available extensions: {})", extensions);
     /* if _negotiate, we send all the extensions we would like to have,
      * otherwise we only send the mandatory extensions */
-    if (computed_version <= v300) {
+    if (_bbdo_version.total_version <= v300.total_version) {
       auto welcome_packet{
           std::make_shared<version_response>(_bbdo_version, extensions)};
       _write(welcome_packet);
     } else {
       auto welcome{std::make_shared<pb_welcome>()};
-      welcome->mut_obj().mutable_version()->set_major(
-          std::get<0>(_bbdo_version));
-      welcome->mut_obj().mutable_version()->set_minor(
-          std::get<1>(_bbdo_version));
-      welcome->mut_obj().mutable_version()->set_patch(
-          std::get<2>(_bbdo_version));
+      welcome->mut_obj().mutable_version()->set_major(_bbdo_version.major_v);
+      welcome->mut_obj().mutable_version()->set_minor(_bbdo_version.minor_v);
+      welcome->mut_obj().mutable_version()->set_patch(_bbdo_version.patch);
       welcome->mut_obj().set_extensions(extensions);
       welcome->mut_obj().set_poller_id(
           config::applier::state::instance().poller_id());
@@ -830,13 +807,16 @@ void stream::negotiate(stream::negotiation_type neg) {
       msg = fmt::format(
           "BBDO: invalid protocol header, aborting connection: waiting for "
           "message of type '{}' but received type is {}",
-          computed_version > v300 ? "pb_welcome" : "version_response",
+          _bbdo_version.total_version > v300.total_version ? "pb_welcome"
+                                                           : "version_response",
           d->type());
     else
       msg = fmt::format(
           "BBDO: invalid protocol header, aborting connection: waiting for "
           "message of type '{}' but nothing received",
-          computed_version > v300 ? "pb_welcome" : "version_response");
+          _bbdo_version.total_version > v300.total_version
+              ? "pb_welcome"
+              : "version_response");
     SPDLOG_LOGGER_ERROR(log_v2::bbdo(), msg);
     throw msg_fmt(msg);
   }
@@ -845,27 +825,25 @@ void stream::negotiate(stream::negotiation_type neg) {
   if (d->type() == version_response::static_type()) {
     std::shared_ptr<version_response> v(
         std::static_pointer_cast<version_response>(d));
-    if (v->bbdo_major != std::get<0>(_bbdo_version)) {
+    if (v->bbdo_major != _bbdo_version.major_v) {
       SPDLOG_LOGGER_ERROR(
           log_v2::bbdo(),
           "BBDO: peer is using protocol version {}.{}.{} whereas we're using "
           "protocol version {}.{}.{}",
-          v->bbdo_major, v->bbdo_minor, v->bbdo_patch,
-          std::get<0>(_bbdo_version), std::get<1>(_bbdo_version),
-          std::get<2>(_bbdo_version));
+          v->bbdo_major, v->bbdo_minor, v->bbdo_patch, _bbdo_version.major_v,
+          _bbdo_version.minor_v, _bbdo_version.patch);
       throw msg_fmt(
           "BBDO: peer is using protocol version {}.{}.{}"
           " whereas we're using protocol version {}.{}.{}",
-          v->bbdo_major, v->bbdo_minor, v->bbdo_patch,
-          std::get<0>(_bbdo_version), std::get<1>(_bbdo_version),
-          std::get<2>(_bbdo_version));
+          v->bbdo_major, v->bbdo_minor, v->bbdo_patch, _bbdo_version.major_v,
+          _bbdo_version.minor_v, _bbdo_version.patch);
     }
     SPDLOG_LOGGER_INFO(
         log_v2::bbdo(),
         "BBDO: peer is using protocol version {}.{}.{}, we're using version "
         "{}.{}.{}",
-        v->bbdo_major, v->bbdo_minor, v->bbdo_patch, std::get<0>(_bbdo_version),
-        std::get<1>(_bbdo_version), std::get<2>(_bbdo_version));
+        v->bbdo_major, v->bbdo_minor, v->bbdo_patch, _bbdo_version.major_v,
+        _bbdo_version.minor_v, _bbdo_version.patch);
 
     // Send our own packet if we should be second.
     if (neg == negotiate_second) {
@@ -884,28 +862,25 @@ void stream::negotiate(stream::negotiation_type neg) {
   } else {
     std::shared_ptr<pb_welcome> w(std::static_pointer_cast<pb_welcome>(d));
     const auto& pb_version = w->obj().version();
-    if (pb_version.major() != std::get<0>(_bbdo_version)) {
+    if (pb_version.major() != _bbdo_version.major_v) {
       SPDLOG_LOGGER_ERROR(
           log_v2::bbdo(),
           "BBDO: peer is using protocol version {}.{}.{} whereas we're using "
           "protocol version {}.{}.{}",
           pb_version.major(), pb_version.minor(), pb_version.patch(),
-          std::get<0>(_bbdo_version), std::get<1>(_bbdo_version),
-          std::get<2>(_bbdo_version));
+          _bbdo_version.major_v, _bbdo_version.minor_v, _bbdo_version.patch);
       throw msg_fmt(
           "BBDO: peer is using protocol version {}.{}.{}"
           " whereas we're using protocol version {}.{}.{}",
           pb_version.major(), pb_version.minor(), pb_version.patch(),
-          std::get<0>(_bbdo_version), std::get<1>(_bbdo_version),
-          std::get<2>(_bbdo_version));
+          _bbdo_version.major_v, _bbdo_version.minor_v, _bbdo_version.patch);
     }
     SPDLOG_LOGGER_INFO(
         log_v2::bbdo(),
         "BBDO: peer is using protocol version {}.{}.{}, we're using version "
         "{}.{}.{}",
         pb_version.major(), pb_version.minor(), pb_version.patch(),
-        std::get<0>(_bbdo_version), std::get<1>(_bbdo_version),
-        std::get<2>(_bbdo_version));
+        _bbdo_version.major_v, _bbdo_version.minor_v, _bbdo_version.patch);
 
     // Send our own packet if we should be second.
     if (neg == negotiate_second) {
@@ -916,12 +891,9 @@ void stream::negotiate(stream::negotiation_type neg) {
       /* if _negotiate, we send all the extensions we would like to have,
        * otherwise we only send the mandatory extensions */
       auto welcome(std::make_shared<pb_welcome>());
-      welcome->mut_obj().mutable_version()->set_major(
-          std::get<0>(_bbdo_version));
-      welcome->mut_obj().mutable_version()->set_minor(
-          std::get<1>(_bbdo_version));
-      welcome->mut_obj().mutable_version()->set_patch(
-          std::get<2>(_bbdo_version));
+      welcome->mut_obj().mutable_version()->set_major(_bbdo_version.major_v);
+      welcome->mut_obj().mutable_version()->set_minor(_bbdo_version.minor_v);
+      welcome->mut_obj().mutable_version()->set_patch(_bbdo_version.patch);
       welcome->mut_obj().set_extensions(extensions);
       welcome->mut_obj().set_poller_id(
           config::applier::state::instance().poller_id());
@@ -1037,20 +1009,20 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
     switch (event_id) {
       case version_response::static_type(): {
         auto version(std::static_pointer_cast<version_response>(d));
-        if (version->bbdo_major != std::get<0>(_bbdo_version)) {
+        if (version->bbdo_major != _bbdo_version.major_v) {
           SPDLOG_LOGGER_ERROR(
               log_v2::bbdo(),
               "BBDO: peer is using protocol version {}.{}.{}, whereas we're "
               "using protocol version {}.{}.{}",
               version->bbdo_major, version->bbdo_minor, version->bbdo_patch,
-              std::get<0>(_bbdo_version), std::get<1>(_bbdo_version),
-              std::get<2>(_bbdo_version));
+              _bbdo_version.major_v, _bbdo_version.minor_v,
+              _bbdo_version.patch);
           throw msg_fmt(
               "BBDO: peer is using protocol version {}.{}.{} "
               "whereas we're using protocol version {}.{}.{}",
               version->bbdo_major, version->bbdo_minor, version->bbdo_patch,
-              std::get<0>(_bbdo_version), std::get<1>(_bbdo_version),
-              std::get<2>(_bbdo_version));
+              _bbdo_version.major_v, _bbdo_version.minor_v,
+              _bbdo_version.patch);
         }
         SPDLOG_LOGGER_INFO(
             log_v2::bbdo(),
@@ -1058,28 +1030,27 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
             "version "
             "{}.{}.{}",
             version->bbdo_major, version->bbdo_minor, version->bbdo_patch,
-            std::get<0>(_bbdo_version), std::get<1>(_bbdo_version),
-            std::get<2>(_bbdo_version));
+            _bbdo_version.major_v, _bbdo_version.minor_v, _bbdo_version.patch);
 
         break;
       }
       case pb_welcome::static_type(): {
         auto welcome(std::static_pointer_cast<pb_welcome>(d));
         const auto& pb_version = welcome->obj().version();
-        if (pb_version.major() != std::get<0>(_bbdo_version)) {
+        if (pb_version.major() != _bbdo_version.major_v) {
           SPDLOG_LOGGER_ERROR(
               log_v2::bbdo(),
               "BBDO: peer is using protocol version {}.{}.{}, whereas we're "
               "using protocol version {}.{}.{}",
               pb_version.major(), pb_version.minor(), pb_version.patch(),
-              std::get<0>(_bbdo_version), std::get<1>(_bbdo_version),
-              std::get<2>(_bbdo_version));
+              _bbdo_version.major_v, _bbdo_version.minor_v,
+              _bbdo_version.patch);
           throw msg_fmt(
               "BBDO: peer is using protocol version {}.{}.{} "
               "whereas we're using protocol version {}.{}.{}",
               pb_version.major(), pb_version.minor(), pb_version.patch(),
-              std::get<0>(_bbdo_version), std::get<1>(_bbdo_version),
-              std::get<2>(_bbdo_version));
+              _bbdo_version.major_v, _bbdo_version.minor_v,
+              _bbdo_version.patch);
         }
         SPDLOG_LOGGER_INFO(
             log_v2::bbdo(),
@@ -1087,8 +1058,7 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
             "version "
             "{}.{}.{}",
             pb_version.major(), pb_version.minor(), pb_version.patch(),
-            std::get<0>(_bbdo_version), std::get<1>(_bbdo_version),
-            std::get<2>(_bbdo_version));
+            _bbdo_version.major_v, _bbdo_version.minor_v, _bbdo_version.patch);
         break;
       }
       case ack::static_type():
@@ -1458,7 +1428,7 @@ void stream::acknowledge_events(uint32_t events) {
  */
 void stream::send_event_acknowledgement() {
   if (!_coarse) {
-    if (std::get<0>(_bbdo_version) >= 3 && std::get<2>(_bbdo_version) >= 1) {
+    if (_bbdo_version.total_version >= 0x0300000001) {
       SPDLOG_LOGGER_DEBUG(log_v2::core(),
                           "send pb acknowledgement for {} events",
                           _events_received_since_last_ack);

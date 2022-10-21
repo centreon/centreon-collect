@@ -701,9 +701,10 @@ TEST(parser, unifiedSql) {
   // Parse.
   config::parser p;
   auto retval = p.parse(config_file);
-  ASSERT_EQ(std::get<0>(retval.bbdo_version()), 3u);
-  ASSERT_EQ(std::get<1>(retval.bbdo_version()), 1u);
-  ASSERT_EQ(std::get<2>(retval.bbdo_version()), 2u);
+  ASSERT_EQ(retval.get_bbdo_version().major_v, 3u);
+  ASSERT_EQ(retval.get_bbdo_version().minor_v, 1u);
+  ASSERT_EQ(retval.get_bbdo_version().patch, 2u);
+  ASSERT_EQ(retval.get_bbdo_version().total_version, 0x300010002);
   // Remove temporary file.
   ::remove(config_file.c_str());
 }

@@ -19,6 +19,7 @@
 #ifndef CCB_BBDO_STREAM_HH
 #define CCB_BBDO_STREAM_HH
 
+#include "bbdo/bbdo/bbdo_version.hh"
 #include "com/centreon/broker/io/extension.hh"
 #include "com/centreon/broker/io/stream.hh"
 
@@ -141,7 +142,7 @@ class stream : public io::stream {
    * their configuration.
    */
   std::list<std::shared_ptr<io::extension>> _extensions;
-  const std::tuple<uint16_t, uint16_t, uint16_t> _bbdo_version;
+  bbdo::bbdo_version _bbdo_version;
 
   void _write(std::shared_ptr<io::data> const& d);
   bool _read_any(std::shared_ptr<io::data>& d, time_t deadline);
