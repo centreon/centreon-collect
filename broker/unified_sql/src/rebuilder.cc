@@ -132,14 +132,18 @@ void rebuilder::rebuild_graphs(const std::shared_ptr<io::data>& d) {
 
         std::promise<database::mysql_result> promise_c;
         std::future<database::mysql_result> future_c = promise_c.get_future();
-        ms.run_query_and_get_result("SELECT len_storage_mysql FROM config",
-                                    std::move(promise_c), conn);
-        int64_t db_retention_day = 0;
+        ms.run_query_and_get_result(
+            "SELECT len_storage_mysql,len_storage_rrd FROM config",
+            std::move(promise_c), conn);
+        int32_t db_retention_day = 0;
 
         res = future_c.get();
         if (ms.fetch_row(res)) {
-          db_retention_day = res.value_as_i64(0);
-          log_v2::sql()->debug("Storage retention on Mysql: {} days",
+          db_retention_day = res.value_as_i32(0);
+          int32_t db_retention_day1 = res.value_as_i32(1);
+          if (db_retention_day1 < db_retention_day)
+            db_retention_day = db_retention_day1;
+          log_v2::sql()->debug("Storage retention on RRD: {} days",
                                db_retention_day);
         }
         if (db_retention_day) {
@@ -154,6 +158,8 @@ void rebuilder::rebuild_graphs(const std::shared_ptr<io::data>& d) {
             tmv.tm_mday -= db_retention_day;
             start = mktime(&tmv);
             while (db_retention_day >= 0) {
+              log_v2::sql()->trace("Metrics rebuild: db_retention_day = {}",
+                                   db_retention_day);
               tmv.tm_mday++;
               end = mktime(&tmv);
               db_retention_day--;

@@ -465,8 +465,14 @@ void output<T>::_rebuild_data(const RebuildMessage& rm) {
       log_v2::rrd()->trace("'{}' start date set to {}", path, start_time);
       uint32_t interval{p.second.check_interval() ? p.second.check_interval()
                                                   : 60};
-      _backend.open(path, p.second.rrd_retention(), start_time, interval,
-                    p.second.data_source_type(), true);
+      try {
+        /* Here, the file is opened only if it exists. */
+        _backend.open(path);
+      } catch (const exceptions::open& b) {
+        /* Here, the file is created. */
+        _backend.open(path, p.second.rrd_retention(), start_time, interval,
+                      p.second.data_source_type(), true);
+      }
       log_v2::rrd()->trace("{} points added to file '{}'", query.size(), path);
       _backend.update(query);
     } else
