@@ -711,6 +711,7 @@ void stream::_send_event_stop_and_wait_for_ack() {
           log_v2::bbdo(),
           "BBDO: no message received from peer. Cannot acknowledge properly "
           "waiting messages before stopping.");
+      return;
     }
 
     switch (d->type()) {
@@ -1457,7 +1458,7 @@ void stream::acknowledge_events(uint32_t events) {
  */
 void stream::send_event_acknowledgement() {
   if (!_coarse) {
-    if (std::get<0>(_bbdo_version) >= 3) {
+    if (std::get<0>(_bbdo_version) >= 3 && std::get<2>(_bbdo_version) >= 1) {
       SPDLOG_LOGGER_DEBUG(log_v2::core(),
                           "send pb acknowledgement for {} events",
                           _events_received_since_last_ack);

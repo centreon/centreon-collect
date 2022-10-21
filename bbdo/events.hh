@@ -175,7 +175,8 @@ enum data_element {
   de_dimension_ba_timeperiod_relation,
   de_dimension_timeperiod_exception,
   de_dimension_timeperiod_exclusion,
-  de_inherited_downtime
+  de_inherited_downtime,
+  de_pb_inherited_downtime = 18
 };
 }
 constexpr uint32_t make_type(io::data_category cat, uint32_t elem) {

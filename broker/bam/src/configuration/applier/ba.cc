@@ -392,24 +392,46 @@ void applier::ba::load_from_cache(persistent_cache& cache) {
   std::shared_ptr<io::data> d;
   cache.get(d);
   while (d) {
-    if (d->type() != inherited_downtime::static_type())
-      continue;
-    inherited_downtime const& dwn =
-        *std::static_pointer_cast<inherited_downtime const>(d);
-    std::map<uint32_t, applied>::iterator found = _applied.find(dwn.ba_id);
-    if (found != _applied.end()) {
-      log_v2::bam()->debug("BAM: found an inherited downtime for BA {}",
-                           found->first);
-      found->second.obj->set_inherited_downtime(dwn);
-      std::shared_ptr<io::data> s;
-      if (bbdo3_enabled)
-        s = _ba_pb_service(found->first, found->second.cfg.get_host_id(),
-                           found->second.cfg.get_service_id(), dwn.in_downtime);
-      else
-        s = _ba_service(found->first, found->second.cfg.get_host_id(),
-                        found->second.cfg.get_service_id(), dwn.in_downtime);
-      multiplexing::publisher().write(s);
+    if (d->type() == inherited_downtime::static_type()) {
+      inherited_downtime const& dwn =
+          *std::static_pointer_cast<inherited_downtime const>(d);
+      std::map<uint32_t, applied>::iterator found = _applied.find(dwn.ba_id);
+      if (found != _applied.end()) {
+        log_v2::bam()->debug("BAM: found an inherited downtime for BA {}",
+                             found->first);
+        found->second.obj->set_inherited_downtime(dwn);
+        std::shared_ptr<io::data> s;
+        if (bbdo3_enabled)
+          s = _ba_pb_service(found->first, found->second.cfg.get_host_id(),
+                             found->second.cfg.get_service_id(),
+                             dwn.in_downtime);
+        else
+          s = _ba_service(found->first, found->second.cfg.get_host_id(),
+                          found->second.cfg.get_service_id(), dwn.in_downtime);
+        multiplexing::publisher().write(s);
+      }
+      cache.get(d);
+    } else if (d->type() == pb_inherited_downtime::static_type()) {
+      pb_inherited_downtime const& dwn =
+          *std::static_pointer_cast<pb_inherited_downtime const>(d);
+      std::map<uint32_t, applied>::iterator found =
+          _applied.find(dwn.obj().ba_id());
+      if (found != _applied.end()) {
+        log_v2::bam()->debug("BAM: found an inherited downtime for BA {}",
+                             found->first);
+        found->second.obj->set_inherited_downtime(dwn);
+        std::shared_ptr<io::data> s;
+        if (bbdo3_enabled)
+          s = _ba_pb_service(found->first, found->second.cfg.get_host_id(),
+                             found->second.cfg.get_service_id(),
+                             dwn.obj().in_downtime());
+        else
+          s = _ba_service(found->first, found->second.cfg.get_host_id(),
+                          found->second.cfg.get_service_id(),
+                          dwn.obj().in_downtime());
+        multiplexing::publisher().write(s);
+      }
+      cache.get(d);
     }
-    cache.get(d);
   }
 }
