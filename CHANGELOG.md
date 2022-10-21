@@ -26,6 +26,7 @@ last\_level in KPIs is a float number and must be read as such.
 
 *rrd*
 
+* RRD graphs rebuilds are complete now.
 * RRD graphs rebuilds flush data when the rebuild is over. This seems to improve
   the user experience.
 
