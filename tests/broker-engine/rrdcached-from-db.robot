@@ -142,7 +142,7 @@ BRRDCDRBDB1
 	Should Be True	${result}	msg=RRD cbd did not receive metrics to rebuild DATA
 
 	${content1}=	Create List	RRD: Finishing to rebuild metrics
-	${result}=	Find In Log With Timeout	${rrdLog}	${start}	${content1}	240
+	${result}=	Find In Log With Timeout	${rrdLog}	${start}	${content1}	500
 	Should Be True	${result}	msg=RRD cbd did not receive metrics to rebuild END
 	FOR	${m}	IN	@{metrics}
 		${value}=	Evaluate	${m} / 2
@@ -190,7 +190,7 @@ BRRDCDRBUDB1
 	Should Be True	${result}	msg=RRD cbd did not receive metrics to rebuild DATA
 
 	${content1}=	Create List	RRD: Finishing to rebuild metrics
-	${result}=	Find In Log With Timeout	${rrdLog}	${start}	${content1}	240
+	${result}=	Find In Log With Timeout	${rrdLog}	${start}	${content1}	500
 	Should Be True	${result}	msg=RRD cbd did not receive metrics to rebuild END
         FOR	${m}	IN	@{metrics}
 		${value}=	Evaluate	${m} / 2
