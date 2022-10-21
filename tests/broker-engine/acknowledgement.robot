@@ -51,9 +51,7 @@ BEACK1
 	${result}=	Check Service Status With Timeout	host_1	service_1	${0}	60	HARD
 	Should Be True	${result}	msg=Service (1;1) should be OK HARD
 
-	# Acknowledgement is deleted
-	${result}=	Check Acknowledgement is deleted With Timeout	${ack_id}	60
-	Should Be True	${result}	msg=The deletion time of acknowledgement ${ack_id} should be after the entry_time.
+	# Acknowledgement is deleted but this is not visible in database.
 
 BEACK2
 	[Documentation]	Configuration is made with BBDO3. Engine has a critical service. An external command is sent to acknowledge it. The centreon_storage.acknowledgements table is then updated with this acknowledgement. The service is newly set to OK. And the acknowledgement in database is deleted.
@@ -91,6 +89,4 @@ BEACK2
 	${result}=	Check Service Resource Status With Timeout	host_1	service_1	${0}	60	HARD
 	Should Be True	${result}	msg=Service (1;1) should be OK HARD
 
-	# Acknowledgement is deleted
-	${result}=	Check Acknowledgement is deleted With Timeout	${ack_id}	60
-	Should Be True	${result}	msg=The deletion time of acknowledgement ${ack_id} should be after the entry_time.
+	# Acknowledgement is deleted but this is not visible in database.
