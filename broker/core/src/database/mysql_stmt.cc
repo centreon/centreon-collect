@@ -198,13 +198,11 @@ void mysql_stmt::operator<<(io::data const& d) {
                 sv = fmt::string_view(v.data(), max_len);
               } else
                 sv = fmt::string_view(v);
-              if (current_entry->get_attribute() &
-                  mapping::entry::invalid_on_zero) {
-                if (sv.size() == 0)
-                  bind_null_str_k(field);
-                else
-                  bind_value_as_str_k(field, sv);
-              } else
+              if ((current_entry->get_attribute() &
+                  mapping::entry::invalid_on_zero) &&
+                  sv.size() == 0)
+                bind_null_str_k(field);
+              else
                 bind_value_as_str_k(field, sv);
             } break;
             case mapping::source::TIME: {
