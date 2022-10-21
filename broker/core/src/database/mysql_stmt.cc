@@ -242,13 +242,11 @@ void mysql_stmt::operator<<(io::data const& d) {
                 sv = fmt::string_view(v.data(), max_len);
               } else
                 sv = fmt::string_view(v);
-              if (current_entry->get_attribute() &
-                  mapping::entry::invalid_on_zero) {
-                if (sv.size() == 0)
-                  bind_value_as_null(field);
-                else
-                  bind_value_as_str(field, sv);
-              } else
+              if ((current_entry->get_attribute() &
+                   mapping::entry::invalid_on_zero) &&
+                  sv.size() == 0)
+                bind_value_as_null(field);
+              else
                 bind_value_as_str(field, sv);
             } break;
             case mapping::source::TIME: {
@@ -322,16 +320,16 @@ void mysql_stmt::operator<<(io::data const& d) {
             bind_value_as_f64(field, refl->GetDouble(*p, f));
             break;
           case google::protobuf::FieldDescriptor::TYPE_INT32: {
-            int32_t v{refl->GetInt32(*p, f)};
-            switch (std::get<2>(pr)) {
-              case io::protobuf_base::invalid_on_zero:
-                if (v == 0)
+            int32_t v = refl->GetInt32(*p, f);
+            switch (v) {
+              case 0:
+                if (std::get<2>(pr) & mapping::entry::invalid_on_zero)
                   bind_value_as_null(field);
                 else
                   bind_value_as_i32(field, v);
                 break;
-              case io::protobuf_base::invalid_on_minus_one:
-                if (v == -1)
+              case -1:
+                if (std::get<2>(pr) & mapping::entry::invalid_on_minus_one)
                   bind_value_as_null(field);
                 else
                   bind_value_as_i32(field, v);
@@ -342,15 +340,15 @@ void mysql_stmt::operator<<(io::data const& d) {
           } break;
           case google::protobuf::FieldDescriptor::TYPE_UINT32: {
             uint32_t v{refl->GetUInt32(*p, f)};
-            switch (std::get<2>(pr)) {
-              case io::protobuf_base::invalid_on_zero:
-                if (v == 0)
+            switch (v) {
+              case 0:
+                if (std::get<2>(pr) & mapping::entry::invalid_on_zero)
                   bind_value_as_null(field);
                 else
                   bind_value_as_u32(field, v);
                 break;
-              case io::protobuf_base::invalid_on_minus_one:
-                if (v == (uint32_t)-1)
+              case static_cast<uint32_t>(-1):
+                if (std::get<2>(pr) & mapping::entry::invalid_on_minus_one)
                   bind_value_as_null(field);
                 else
                   bind_value_as_u32(field, v);
@@ -361,15 +359,15 @@ void mysql_stmt::operator<<(io::data const& d) {
           } break;
           case google::protobuf::FieldDescriptor::TYPE_INT64: {
             int64_t v{refl->GetInt64(*p, f)};
-            switch (std::get<2>(pr)) {
-              case io::protobuf_base::invalid_on_zero:
-                if (v == 0)
+            switch (v) {
+              case 0:
+                if (std::get<2>(pr) & mapping::entry::invalid_on_zero)
                   bind_value_as_null(field);
                 else
                   bind_value_as_i64(field, v);
                 break;
-              case io::protobuf_base::invalid_on_minus_one:
-                if (v == -1)
+              case -1:
+                if (std::get<2>(pr) & mapping::entry::invalid_on_minus_one)
                   bind_value_as_null(field);
                 else
                   bind_value_as_i64(field, v);
@@ -380,15 +378,15 @@ void mysql_stmt::operator<<(io::data const& d) {
           } break;
           case google::protobuf::FieldDescriptor::TYPE_UINT64: {
             uint64_t v{refl->GetUInt64(*p, f)};
-            switch (std::get<2>(pr)) {
-              case io::protobuf_base::invalid_on_zero:
-                if (v == 0)
+            switch (v) {
+              case 0:
+                if (std::get<2>(pr) & mapping::entry::invalid_on_zero)
                   bind_value_as_null(field);
                 else
                   bind_value_as_u64(field, v);
                 break;
-              case io::protobuf_base::invalid_on_minus_one:
-                if (v == (uint64_t)-1)
+              case static_cast<uint64_t>(-1):
+                if (std::get<2>(pr) & mapping::entry::invalid_on_minus_one)
                   bind_value_as_null(field);
                 else
                   bind_value_as_u64(field, v);
@@ -413,12 +411,10 @@ void mysql_stmt::operator<<(io::data const& d) {
               sv = fmt::string_view(v.data(), max_len);
             } else
               sv = fmt::string_view(v);
-            if (std::get<2>(pr) == io::protobuf_base::invalid_on_zero) {
-              if (sv.size() == 0)
-                bind_value_as_null(field);
-              else
-                bind_value_as_str(field, sv);
-            } else
+            if ((std::get<2>(pr) & io::protobuf_base::invalid_on_zero) &&
+                sv.size() == 0)
+              bind_value_as_null(field);
+            else
               bind_value_as_str(field, sv);
           } break;
           default:
