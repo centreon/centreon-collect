@@ -9,6 +9,11 @@
 *lua*
 stream connector accepts empty parameter values
 
+*sql*
+
+A SQL error is no more fatal for cbd. The stream should not restart when errors
+are raised.
+
 #### Fixes
 
 *bam*
