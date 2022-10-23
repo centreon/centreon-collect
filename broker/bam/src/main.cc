@@ -35,6 +35,7 @@
 #include "bbdo/storage/metric.hh"
 #include "bbdo/storage/status.hh"
 #include "com/centreon/broker/bam/factory.hh"
+#include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/log_v2.hh"
@@ -142,6 +143,10 @@ void broker_module_init(void const* arg) {
           "dimension_timeperiod_exclusion");
       register_bam_event<bam::inherited_downtime>(e, bam::de_inherited_downtime,
                                                   "inherited_downtime");
+      e.register_event(make_type(io::bam, bam::de_pb_inherited_downtime),
+                       "InheritedDowntime",
+                       &bam::pb_inherited_downtime::operations,
+                       "InheritedDowntime");
     }
   }
 }

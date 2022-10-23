@@ -54,6 +54,10 @@ class test_visitor : public io::stream {
         : typ{test_event::idt},
           ba_id{idt.ba_id},
           in_downtime{idt.in_downtime} {}
+    test_event(const bam::pb_inherited_downtime& idt)
+        : typ{test_event::idt},
+          ba_id{idt.obj().ba_id()},
+          in_downtime{idt.obj().in_downtime()} {}
   };
 
  private:
@@ -82,6 +86,11 @@ class test_visitor : public io::stream {
         _queue.emplace_back(
             *std::static_pointer_cast<bam::inherited_downtime>(d));
         break;
+      case bam::pb_inherited_downtime::static_type():
+        _queue.emplace_back(
+            *std::static_pointer_cast<bam::pb_inherited_downtime>(d));
+        break;
+
       default:
         break;
     }

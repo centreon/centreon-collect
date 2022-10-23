@@ -27,6 +27,7 @@ set(protobuf_files
   bbdo
   neb
   storage
+  bam
 )
 
 foreach(name IN LISTS protobuf_files)
@@ -107,6 +108,14 @@ add_library(
 add_dependencies(pb_tag_lib target_host)
 set_target_properties(pb_tag_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
+add_library(
+  pb_bam_lib STATIC
+  bam.pb.cc
+  bam.pb.h
+)
+add_dependencies(pb_bam_lib target_bam target_header)
+set_target_properties(pb_bam_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 macro(get_protobuf_files name)
   set_source_files_properties("${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.cc" PROPERTIES GENERATED TRUE)
   set_source_files_properties("${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.h" PROPERTIES GENERATED TRUE)
@@ -125,9 +134,11 @@ add_library(
   "bbdo/ack.hh"
   "bbdo/version_response.hh"
   "bbdo/stop.hh"
+  "bbdo/bbdo_version.hh"
 )
 set_target_properties(bbdo_bbdo PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_precompile_headers(bbdo_bbdo PRIVATE precomp_inc/precomp.hpp)
+add_dependencies(bbdo_bbdo target_bbdo)
 
 add_library(
   bbdo_storage STATIC

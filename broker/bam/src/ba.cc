@@ -108,7 +108,8 @@ bool ba::child_has_update(computable* child, io::stream* visitor) {
     bool kpi_in_downtime(it->second.kpi_ptr->in_downtime());
 
     // Logging.
-    log_v2::bam()->debug(
+    SPDLOG_LOGGER_DEBUG(
+        log_v2::bam(),
         "BAM: BA {}, '{}' is getting notified of child update (KPI {}, impact "
         "{}, last state change {}, downtime {})",
         _id, _name, it->second.kpi_ptr->get_id(), new_hard_impact.get_nominal(),
@@ -118,7 +119,8 @@ bool ba::child_has_update(computable* child, io::stream* visitor) {
     if (it->second.hard_impact == new_hard_impact &&
         it->second.soft_impact == new_soft_impact &&
         it->second.in_downtime == kpi_in_downtime) {
-      log_v2::bam()->debug("BAM: BA {} has no changes since last update", _id);
+      SPDLOG_LOGGER_DEBUG(log_v2::bam(),
+                          "BAM: BA {} has no changes since last update", _id);
       return false;
     }
     timestamp last_state_change(it->second.kpi_ptr->get_last_state_change());
@@ -129,7 +131,8 @@ bool ba::child_has_update(computable* child, io::stream* visitor) {
     _unapply_impact(it->first, it->second);
 
     // Apply new data.
-    log_v2::bam()->trace(
+    SPDLOG_LOGGER_TRACE(
+        log_v2::bam(),
         "BAM: BA {} changes: hard impact changed {}, soft impact changed {}, "
         "downtime {} => {}",
         _id, it->second.hard_impact != new_hard_impact,
@@ -245,7 +248,8 @@ void ba::remove_impact(std::shared_ptr<kpi> const& impact) {
  *  @param[in] event  The event to set.
  */
 void ba::set_initial_event(ba_event const& event) {
-  log_v2::bam()->trace(
+  SPDLOG_LOGGER_TRACE(
+      log_v2::bam(),
       "BAM: ba initial event set (ba_id:{}, start_time:{}, end_time:{}, "
       "in_downtime:{}, status:{})",
       event.ba_id, event.start_time, event.end_time, event.in_downtime,
@@ -254,11 +258,13 @@ void ba::set_initial_event(ba_event const& event) {
   if (!_event) {
     _event.reset(new ba_event(event));
     _in_downtime = event.in_downtime;
-    log_v2::bam()->trace("ba initial event downtime: {}", _in_downtime);
+    SPDLOG_LOGGER_TRACE(log_v2::bam(), "ba initial event downtime: {}",
+                        _in_downtime);
     _last_kpi_update = _event->start_time;
     _initial_events.push_back(_event);
   } else {
-    log_v2::bam()->error(
+    SPDLOG_LOGGER_ERROR(
+        log_v2::bam(),
         "BAM: impossible to set ba initial event (ba_id:{}, start_time:{}, "
         "end_time:{}, in_downtime:{}, status:{}): event already defined",
         event.ba_id, event.start_time, event.end_time, event.in_downtime,
@@ -309,7 +315,8 @@ void ba::visit(io::stream* visitor) {
     short hard_state(get_state_hard());
     bool state_changed(false);
     if (!_event) {
-      log_v2::bam()->trace("BAM: ba::visit no event => creation of one");
+      SPDLOG_LOGGER_TRACE(log_v2::bam(),
+                          "BAM: ba::visit no event => creation of one");
       if (_last_kpi_update.is_null())
         _last_kpi_update = time(nullptr);
       _open_new_event(visitor, hard_state);
@@ -317,7 +324,8 @@ void ba::visit(io::stream* visitor) {
     // If state changed, close event and open a new one.
     else if (_in_downtime != _event->in_downtime ||
              hard_state != _event->status) {
-      log_v2::bam()->trace(
+      SPDLOG_LOGGER_TRACE(
+          log_v2::bam(),
           "BAM: ba current event needs update? downtime?: {}, state?: {} ; "
           "dt:{}, state:{} ",
           _in_downtime != _event->in_downtime, hard_state != _event->status,
@@ -354,7 +362,8 @@ void ba::service_update(const std::shared_ptr<neb::downtime>& dt,
   (void)visitor;
   if (dt->host_id == _host_id && dt->service_id == _service_id) {
     // Log message.
-    log_v2::bam()->debug(
+    SPDLOG_LOGGER_DEBUG(
+        log_v2::bam(),
         "BAM: BA {} '{}' is getting notified of a downtime on its service ({}, "
         "{})",
         _id, _name, _host_id, _service_id);
@@ -362,7 +371,8 @@ void ba::service_update(const std::shared_ptr<neb::downtime>& dt,
     // Check if there was a change.
     bool in_downtime(dt->was_started && dt->actual_end_time.is_null());
     if (_in_downtime != in_downtime) {
-      log_v2::bam()->trace("ba: service_update downtime: {}", _in_downtime);
+      SPDLOG_LOGGER_TRACE(log_v2::bam(), "ba: service_update downtime: {}",
+                          _in_downtime);
       _in_downtime = in_downtime;
 
       // Generate status event.
@@ -372,7 +382,8 @@ void ba::service_update(const std::shared_ptr<neb::downtime>& dt,
       propagate_update(visitor);
     }
   } else
-    log_v2::bam()->debug(
+    SPDLOG_LOGGER_DEBUG(
+        log_v2::bam(),
         "BAM: BA {} '{}' has got an invalid downtime event. This should never "
         "happen. Check your database: got (host {}, service {}) expected ({}, "
         "{})",
@@ -395,7 +406,8 @@ void ba::service_update(const std::shared_ptr<neb::pb_downtime>& dt,
          downtime.service_id() == _service_id);
 
   // Log message.
-  log_v2::bam()->debug(
+  SPDLOG_LOGGER_DEBUG(
+      log_v2::bam(),
       "BAM: BA {} '{}' is getting notified of a downtime (pb) on its service "
       "({}, {})",
       _id, _name, _host_id, _service_id);
@@ -404,7 +416,8 @@ void ba::service_update(const std::shared_ptr<neb::pb_downtime>& dt,
   bool in_downtime(downtime.started() &&
                    time_is_undefined(downtime.actual_end_time()));
   if (_in_downtime != in_downtime) {
-    log_v2::bam()->trace("ba: service_update downtime: {}", _in_downtime);
+    SPDLOG_LOGGER_TRACE(log_v2::bam(), "ba: service_update downtime: {}",
+                        _in_downtime);
     _in_downtime = in_downtime;
 
     // Generate status event.
@@ -422,7 +435,19 @@ void ba::service_update(const std::shared_ptr<neb::pb_downtime>& dt,
  */
 void ba::save_inherited_downtime(persistent_cache& cache) const {
   if (_inherited_downtime)
-    cache.add(std::make_shared<inherited_downtime>(*_inherited_downtime));
+    cache.add(
+        std::make_shared<pb_inherited_downtime>(_inherited_downtime->obj()));
+}
+
+/**
+ *  Set the inherited downtime of this ba.
+ *
+ *  @param[in] dwn  The inherited downtime.
+ */
+void ba::set_inherited_downtime(const pb_inherited_downtime& dwn) {
+  _inherited_downtime.reset(new pb_inherited_downtime(dwn.obj()));
+  if (_inherited_downtime->obj().in_downtime())
+    _in_downtime = true;
 }
 
 /**
@@ -431,8 +456,10 @@ void ba::save_inherited_downtime(persistent_cache& cache) const {
  *  @param[in] dwn  The inherited downtime.
  */
 void ba::set_inherited_downtime(const inherited_downtime& dwn) {
-  _inherited_downtime.reset(new inherited_downtime(dwn));
-  if (_inherited_downtime->in_downtime)
+  _inherited_downtime.reset(new pb_inherited_downtime);
+  _inherited_downtime->mut_obj().set_ba_id(dwn.ba_id);
+  _inherited_downtime->mut_obj().set_in_downtime(dwn.in_downtime);
+  if (_inherited_downtime->obj().in_downtime())
     _in_downtime = true;
 }
 
@@ -443,8 +470,8 @@ void ba::set_inherited_downtime(const inherited_downtime& dwn) {
  *  @param[in]  service_hard_state  Hard state of virtual BA service.
  */
 void ba::_open_new_event(io::stream* visitor, short service_hard_state) {
-  log_v2::bam()->trace("new ba_event on ba {} with downtime = {}", _id,
-                       _in_downtime);
+  SPDLOG_LOGGER_TRACE(log_v2::bam(), "new ba_event on ba {} with downtime = {}",
+                      _id, _in_downtime);
   _event = std::make_shared<ba_event>();
   _event->ba_id = _id;
   _event->first_level = _level_hard < 0 ? 0 : _level_hard;
@@ -502,7 +529,8 @@ void ba::_commit_initial_events(io::stream* visitor) {
 void ba::_compute_inherited_downtime(io::stream* visitor) {
   // kpi downtime heritance deactived. Do nothing.
   if (_dt_behaviour != configuration::ba::dt_inherit) {
-    log_v2::bam()->trace("ba: BA {} doesn't inherite downtimes", _id);
+    SPDLOG_LOGGER_TRACE(log_v2::bam(), "ba: BA {} doesn't inherite downtimes",
+                        _id);
     return;
   }
 
@@ -513,7 +541,8 @@ void ba::_compute_inherited_downtime(io::stream* visitor) {
            end = _impacts.end();
        it != end; ++it) {
     if (!it->first->ok_state() && !it->first->in_downtime()) {
-      log_v2::bam()->trace(
+      SPDLOG_LOGGER_TRACE(
+          log_v2::bam(),
           "ba: every kpi in downtime ? no, kpi {} is not ok and not in "
           "downtime",
           it->first->get_id());
@@ -526,28 +555,31 @@ void ba::_compute_inherited_downtime(io::stream* visitor) {
   //         Put the BA in downtime.
   bool s_ok{get_state_hard() == state_ok};
   if (!s_ok && every_kpi_in_downtime && !_inherited_downtime) {
-    _inherited_downtime = std::make_unique<inherited_downtime>();
-    _inherited_downtime->ba_id = _id;
-    _inherited_downtime->in_downtime = true;
-    log_v2::bam()->trace("ba: inherited downtime computation downtime true");
+    _inherited_downtime = std::make_unique<pb_inherited_downtime>();
+    _inherited_downtime->mut_obj().set_ba_id(_id);
+    _inherited_downtime->mut_obj().set_in_downtime(true);
+    SPDLOG_LOGGER_TRACE(log_v2::bam(),
+                        "ba: inherited downtime computation downtime true");
     _in_downtime = true;
 
     if (visitor)
       visitor->write(
-          std::make_shared<inherited_downtime>(*_inherited_downtime));
+          std::make_shared<pb_inherited_downtime>(_inherited_downtime->obj()));
   }
   // Case 2: state ok or not every kpi in downtime, actual downtime.
   //         Remove the downtime.
   else if ((s_ok || !every_kpi_in_downtime) && _inherited_downtime) {
-    _inherited_downtime->in_downtime = false;
-    log_v2::bam()->trace("ba: inherited downtime computation downtime false");
+    _inherited_downtime->mut_obj().set_in_downtime(false);
+    SPDLOG_LOGGER_TRACE(log_v2::bam(),
+                        "ba: inherited downtime computation downtime false");
     _in_downtime = false;
 
     if (visitor)
       visitor->write(std::move(_inherited_downtime));
     _inherited_downtime.reset();
   } else
-    log_v2::bam()->trace(
+    SPDLOG_LOGGER_TRACE(
+        log_v2::bam(),
         "ba: inherited downtime computation downtime not changed ({})",
         _in_downtime);
 }
@@ -565,7 +597,8 @@ std::shared_ptr<ba_status> ba::_generate_ba_status(bool state_changed) const {
   status->level_nominal = _normalize(_level_hard);
   status->state = get_state_hard();
   status->state_changed = state_changed;
-  log_v2::bam()->debug(
+  SPDLOG_LOGGER_DEBUG(
+      log_v2::bam(),
       "BAM: generating status of BA {} '{}' (state {}, in downtime {}, "
       "level {})",
       _id, _name, status->state, status->in_downtime, status->level_nominal);
@@ -573,8 +606,8 @@ std::shared_ptr<ba_status> ba::_generate_ba_status(bool state_changed) const {
 }
 
 std::shared_ptr<io::data> ba::_generate_virtual_service_status() const {
-  auto& bbdo = config::applier::state::instance().bbdo_version();
-  if (std::get<0>(bbdo) < 3) {
+  auto bbdo = config::applier::state::instance().get_bbdo_version();
+  if (bbdo.major_v < 3) {
     auto status{std::make_shared<neb::service_status>()};
     status->active_checks_enabled = false;
     status->check_interval = 0.0;

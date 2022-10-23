@@ -27,6 +27,7 @@
 #include "com/centreon/broker/bam/computable.hh"
 #include "com/centreon/broker/bam/configuration/ba.hh"
 #include "com/centreon/broker/bam/impact_values.hh"
+#include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/bam/service_listener.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/namespace.hh"
@@ -53,7 +54,8 @@ class ba : public computable, public service_listener {
   const bool _generate_virtual_status;
   bool _in_downtime;
   timestamp _last_kpi_update;
-  std::unique_ptr<inherited_downtime> _inherited_downtime;
+  std::unique_ptr<pb_inherited_downtime> _inherited_downtime;
+
   std::vector<std::shared_ptr<ba_event>> _initial_events;
 
   void _open_new_event(io::stream* visitor, short service_hard_state);
@@ -149,6 +151,7 @@ class ba : public computable, public service_listener {
                       io::stream* visitor) override;
   void save_inherited_downtime(persistent_cache& cache) const;
   void set_inherited_downtime(inherited_downtime const& dwn);
+  void set_inherited_downtime(pb_inherited_downtime const& dwn);
   void set_level_critical(double level);
   void set_level_warning(double level);
 };

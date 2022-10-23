@@ -23,6 +23,7 @@
 
 using namespace com::centreon::broker::config;
 using namespace com::centreon::exceptions;
+using namespace com::centreon::broker;
 
 /**
  *  Default constructor.
@@ -30,7 +31,7 @@ using namespace com::centreon::exceptions;
 state::state()
     : _broker_id{0},
       _rpc_port{0},
-      _bbdo_version{BBDO_VERSION_MAJOR, BBDO_VERSION_MINOR, BBDO_VERSION_PATCH},
+      _bbdo_version(BBDO_VERSION_MAJOR, BBDO_VERSION_MINOR, BBDO_VERSION_PATCH),
       _command_protocol{"json"},
       _event_queue_max_size{10000},
       _poller_id{0},
@@ -175,8 +176,8 @@ size_t state::event_queues_total_size() const noexcept {
  *
  *  @param[in] v  bbdo version given as a tuple of uint16.
  */
-void state::bbdo_version(std::tuple<uint16_t, uint16_t, uint16_t>&& v) {
-  _bbdo_version = std::move(v);
+void state::set_bbdo_version(bbdo::bbdo_version v) {
+  _bbdo_version = v;
 }
 
 /**
@@ -184,8 +185,7 @@ void state::bbdo_version(std::tuple<uint16_t, uint16_t, uint16_t>&& v) {
  *
  *  @return bbdo version as a tuple of uint16.
  */
-const std::tuple<uint16_t, uint16_t, uint16_t>& state::bbdo_version()
-    const noexcept {
+bbdo::bbdo_version state::get_bbdo_version() const noexcept {
   return _bbdo_version;
 }
 

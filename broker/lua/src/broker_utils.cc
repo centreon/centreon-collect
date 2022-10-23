@@ -719,9 +719,8 @@ static int l_broker_md5(lua_State* L) {
  * @return 1
  */
 static int l_broker_bbdo_version(lua_State* L) {
-  auto& bbdo = config::applier::state::instance().bbdo_version();
-  std::string ret{fmt::format("{}.{}.{}", std::get<0>(bbdo), std::get<1>(bbdo),
-                              std::get<2>(bbdo))};
+  auto bbdo = config::applier::state::instance().get_bbdo_version();
+  std::string ret{fmt::format("{}.{}.{}", bbdo.major_v, bbdo.minor_v, bbdo.patch)};
   lua_pushlstring(L, ret.c_str(), ret.size());
   return 1;
 }

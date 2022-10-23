@@ -124,7 +124,6 @@ int nebmodule_init(int flags, char const* args, void* handle) {
       com::centreon::broker::config::state s{
           p.parse(neb::gl_configuration_file)};
 
-      std::tuple<uint16_t, uint16_t, uint16_t> bbdo_version = s.bbdo_version();
       // Initialization.
       com::centreon::broker::config::applier::init(s);
       try {
@@ -136,7 +135,7 @@ int nebmodule_init(int flags, char const* args, void* handle) {
       com::centreon::broker::config::applier::state::instance().apply(s);
 
       // Register process and log callback.
-      if (std::get<0>(bbdo_version) > 2) {
+      if (s.get_bbdo_version().major_v > 2) {
         neb::gl_registered_callbacks.emplace_back(
             std::make_unique<neb::callback>(NEBCALLBACK_PROCESS_DATA,
                                             neb::gl_mod_handle,
