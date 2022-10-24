@@ -284,8 +284,6 @@ class stream : public io::stream {
   database::mysql_stmt _pb_instance_insupdate;
   database::mysql_stmt _instance_status_insupdate;
   database::mysql_stmt _pb_instance_status_insupdate;
-  database::mysql_stmt _module_insert;
-  database::mysql_stmt _pb_module_insert;
   database::mysql_stmt _service_check_update;
   database::mysql_stmt _pb_service_check_update;
   database::mysql_stmt _service_dependency_insupdate;

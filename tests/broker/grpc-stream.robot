@@ -102,12 +102,6 @@ Start Stop Service
 	Start Process	/usr/sbin/cbd	${EtcRoot}/centreon-broker/central-rrd.json	alias=b2
 	Sleep	${interval}
 	Kindly Stop Broker
-	#Send Signal To Process	SIGTERM	b1
-	#${result}=	Wait For Process	b1	timeout=60s	on_timeout=kill
-	#Should Be True	${result.rc} == -15 or ${result.rc} == 0	msg=Broker service badly stopped
-	#Send Signal To Process	SIGTERM	b2
-	#${result}=	Wait For Process	b2	timeout=60s	on_timeout=kill
-	#Should Be True	${result.rc} == -15 or ${result.rc} == 0	msg=Broker service badly stopped
 
 Start Stop Instance
 	[Arguments]	${interval}
