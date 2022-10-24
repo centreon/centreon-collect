@@ -91,10 +91,6 @@ using pb_instance_status =
     io::protobuf<InstanceStatus,
                  make_type(io::neb, neb::de_pb_instance_status)>;
 
-using pb_acknowledgement =
-    io::protobuf<Acknowledgement,
-                 make_type(io::neb, neb::de_pb_acknowledgement)>;
-
 using pb_instance_status =
     io::protobuf<InstanceStatus,
                  make_type(io::neb, neb::de_pb_instance_status)>;
