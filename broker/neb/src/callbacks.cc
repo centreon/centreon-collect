@@ -172,7 +172,9 @@ int neb::callback_acknowledgement(int callback_type, void* data) {
 
     // Fill output var.
     ack_data = static_cast<nebstruct_acknowledgement_data*>(data);
-    ack->acknowledgement_type = short(ack_data->acknowledgement_type);
+    log_v2::neb()->trace("callbacks: acknowledgement sticky: {}",
+                         ack_data->is_sticky);
+    ack->acknowledgement_type = ack_data->acknowledgement_type;
     if (ack_data->author_name)
       ack->author = misc::string::check_string_utf8(ack_data->author_name);
     if (ack_data->comment_data)
@@ -3293,10 +3295,8 @@ int32_t neb::callback_pb_service_status(int callback_type [[maybe_unused]],
   const engine::service* es{static_cast<engine::service*>(
       static_cast<nebstruct_service_status_data*>(data)->object_ptr)};
   log_v2::neb()->info("callbacks: pb_service_status ({},{}) status {}, type {}",
-		  es->host_id(),
-		  es->service_id(),
-		  es->get_current_state(),
-                  es->get_check_type());
+                      es->host_id(), es->service_id(), es->get_current_state(),
+                      es->get_check_type());
 
   auto s{std::make_shared<neb::pb_service_status>()};
   ServiceStatus& sscr = s.get()->mut_obj();
