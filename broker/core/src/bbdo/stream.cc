@@ -695,34 +695,34 @@ void stream::_send_event_stop_and_wait_for_ack() {
           "BBDO: no message received from peer. Cannot acknowledge properly "
           "waiting messages before stopping.");
       return;
-    }
-
-    switch (d->type()) {
-      case ack::static_type():
-        SPDLOG_LOGGER_INFO(
-            log_v2::bbdo(),
-            "BBDO: received acknowledgement for {} events before finishing",
-            std::static_pointer_cast<ack const>(d)->acknowledged_events);
-        acknowledge_events(
-            std::static_pointer_cast<ack const>(d)->acknowledged_events);
-        break;
-      case pb_ack::static_type():
-        SPDLOG_LOGGER_INFO(
-            log_v2::bbdo(),
-            "BBDO: received acknowledgement for {} events before finishing",
-            std::static_pointer_cast<const pb_ack>(d)
-                ->obj()
-                .acknowledged_events());
-        acknowledge_events(std::static_pointer_cast<const pb_ack>(d)
-                               ->obj()
-                               .acknowledged_events());
-        break;
-      default:
-        SPDLOG_LOGGER_ERROR(
-            log_v2::bbdo(),
-            "BBDO: wrong message received (type {}) - expected ack event",
-            d->type());
-        break;
+    } else {
+      switch (d->type()) {
+        case ack::static_type():
+          SPDLOG_LOGGER_INFO(
+              log_v2::bbdo(),
+              "BBDO: received acknowledgement for {} events before finishing",
+              std::static_pointer_cast<ack const>(d)->acknowledged_events);
+          acknowledge_events(
+              std::static_pointer_cast<ack const>(d)->acknowledged_events);
+          break;
+        case pb_ack::static_type():
+          SPDLOG_LOGGER_INFO(
+              log_v2::bbdo(),
+              "BBDO: received acknowledgement for {} events before finishing",
+              std::static_pointer_cast<const pb_ack>(d)
+                  ->obj()
+                  .acknowledged_events());
+          acknowledge_events(std::static_pointer_cast<const pb_ack>(d)
+                                 ->obj()
+                                 .acknowledged_events());
+          break;
+        default:
+          SPDLOG_LOGGER_ERROR(
+              log_v2::bbdo(),
+              "BBDO: wrong message received (type {}) - expected ack event",
+              d->type());
+          break;
+      }
     }
   }
 }
