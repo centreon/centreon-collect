@@ -3671,8 +3671,10 @@ int32_t neb::callback_pb_service_status(int callback_type [[maybe_unused]],
   const engine::service* es{static_cast<engine::service*>(
       static_cast<nebstruct_service_status_data*>(data)->object_ptr)};
   log_v2::neb()->info("callbacks: pb_service_status ({},{}) status {}, type {}",
-                      es->host_id(), es->service_id(), es->get_current_state(),
-                      es->get_check_type());
+		  es->host_id(),
+		  es->service_id(),
+		  es->get_current_state(),
+                  es->get_check_type());
 
   auto s{std::make_shared<neb::pb_service_status>()};
   ServiceStatus& sscr = s.get()->mut_obj();
