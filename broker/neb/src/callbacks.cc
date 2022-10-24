@@ -168,8 +168,6 @@ int neb::callback_acknowledgement(int callback_type, void* data) {
 
     // Fill output var.
     ack_data = static_cast<nebstruct_acknowledgement_data*>(data);
-    log_v2::neb()->trace("callbacks: acknowledgement sticky: {}",
-                         ack_data->is_sticky);
     ack->acknowledgement_type = ack_data->acknowledgement_type;
     if (ack_data->author_name)
       ack->author = misc::string::check_string_utf8(ack_data->author_name);
@@ -2021,8 +2019,6 @@ int neb::callback_host_status(int callback_type, void* data) {
               || (!a->obj().sticky() &&
                   host_status->current_state != a->obj().state()))) {
           a->mut_obj().set_deletion_time(time(nullptr));
-          log_v2::neb()->info("neb: pb acknowledgement deletion time {}",
-                              a->obj().deletion_time());
           gl_publisher.write(std::move(it->second));
         }
       } else {
@@ -2031,8 +2027,6 @@ int neb::callback_host_status(int callback_type, void* data) {
         if (!(!host_status->current_state  // !(OK or (normal ack and NOK))
               || (!a->is_sticky && host_status->current_state != a->state))) {
           a->deletion_time = time(nullptr);
-          log_v2::neb()->info("neb: acknowledgement deletion time {}",
-                              a->deletion_time);
           gl_publisher.write(std::move(it->second));
         }
       }
