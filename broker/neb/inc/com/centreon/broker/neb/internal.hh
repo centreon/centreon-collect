@@ -87,9 +87,6 @@ using pb_service_check =
 
 using pb_log_entry =
     io::protobuf<LogEntry, make_type(io::neb, neb::de_pb_log_entry)>;
-using pb_instance_status =
-    io::protobuf<InstanceStatus,
-                 make_type(io::neb, neb::de_pb_instance_status)>;
 
 using pb_instance_status =
     io::protobuf<InstanceStatus,
