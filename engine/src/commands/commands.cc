@@ -23,6 +23,7 @@
 
 #include <absl/strings/escaping.h>
 #include <sys/time.h>
+#include <absl/strings/escaping.h>
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/commands/processing.hh"
