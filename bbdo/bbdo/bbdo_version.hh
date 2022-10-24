@@ -31,7 +31,7 @@ union bbdo_version {
     uint16_t patch;
     uint16_t minor_v;
     uint16_t major_v;
-    uint16_t dummy;
+    uint16_t dummy = 0;
 #pragma pack()
   };
 
@@ -40,7 +40,7 @@ union bbdo_version {
   bbdo_version() : total_version(0) {}
 
   bbdo_version(uint16_t maj, uint16_t min, uint16_t ptch)
-      : dummy(0), major_v(maj), minor_v(min), patch(ptch) {}
+      : patch(ptch), minor_v(min), major_v(maj) {}
 };
 
 }  // namespace bbdo

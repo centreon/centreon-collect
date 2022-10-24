@@ -95,6 +95,7 @@ void (stream::*const stream::_neb_processing_table[])(
     nullptr,
     &stream::_process_pb_instance,
     &stream::_process_pb_acknowledgement,
+    nullptr,
 };
 
 stream::stream(const database_config& dbcfg,

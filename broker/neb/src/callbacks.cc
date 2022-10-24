@@ -3199,7 +3199,7 @@ int neb::callback_pb_service_check(int, void* data) {
  *
  * @return 0 on success.
  */
-int32_t neb::callback_severity(int callback_type __attribute__((unused)),
+int32_t neb::callback_severity(int callback_type [[maybe_unused]],
                                void* data) noexcept {
   SPDLOG_LOGGER_INFO(log_v2::neb(),
                      "callbacks: generating protobuf severity event");
@@ -3250,7 +3250,7 @@ int32_t neb::callback_severity(int callback_type __attribute__((unused)),
  *
  * @return 0 on success.
  */
-int32_t neb::callback_tag(int callback_type __attribute__((unused)),
+int32_t neb::callback_tag(int callback_type [[maybe_unused]],
                           void* data) noexcept {
   SPDLOG_LOGGER_INFO(log_v2::neb(), "callbacks: generating protobuf tag event");
 
@@ -3309,15 +3309,19 @@ int32_t neb::callback_tag(int callback_type __attribute__((unused)),
   return 0;
 }
 
-int32_t neb::callback_pb_service_status(int callback_type
-                                        __attribute__((unused)),
+int32_t neb::callback_pb_service_status(int callback_type [[maybe_unused]],
                                         void* data) noexcept {
   SPDLOG_LOGGER_INFO(
       log_v2::neb(),
-      "callbacks: generating service status check result protobuf event");
+      "callbacks: generating pb service status check result event");
 
   const engine::service* es{static_cast<engine::service*>(
       static_cast<nebstruct_service_status_data*>(data)->object_ptr)};
+  log_v2::neb()->info("callbacks: pb_service_status ({},{}) status {}, type {}",
+		  es->host_id(),
+		  es->service_id(),
+		  es->get_current_state(),
+                  es->get_check_type());
 
   auto s{std::make_shared<neb::pb_service_status>()};
   ServiceStatus& sscr = s.get()->mut_obj();

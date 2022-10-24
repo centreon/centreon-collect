@@ -72,16 +72,16 @@ BEACK2
 	Should Be True	${result}	msg=An Initial service state on (host_50,service_1000) should be raised before we can start our external commands.
 
 	# Time to set the service to CRITICAL HARD.
-	Process Service Check Result	host_1	service_1	2	(1;1) is critical
-	${result}=	Check Service Resource Status With Timeout	host_1	service_1	${2}	60	SOFT
+	Process Service Check Result	host_1	service_1	${2}	(1;1) is critical
+	${result}=	Check Service Resource Status With Timeout	host_1	service_1	${2}	600	SOFT
 	Should Be True	${result}	msg=Service (1;1) should be critical
 	Repeat Keyword	2 times	Process Service Check Result	host_1	service_1	2	(1;1) is critical
 
-	${result}=	Check Service Resource Status With Timeout	host_1	service_1	${2}	60	HARD
+	${result}=	Check Service Resource Status With Timeout	host_1	service_1	${2}	600	HARD
 	Should Be True	${result}	msg=Service (1;1) should be critical HARD
 	${d}=	Get Current Date	result_format=epoch	exclude_millis=True
 	Acknowledge Service Problem	host_1	service_1
-	${ack_id}=	Check Acknowledgement With Timeout	host_1	service_1	${d}	2	60	HARD
+	${ack_id}=	Check Acknowledgement With Timeout	host_1	service_1	${d}	2	600	HARD
 	Should Be True	${ack_id} > 0	msg=No acknowledgement on service (1, 1).
 
 	# Service_1 is set back to OK.

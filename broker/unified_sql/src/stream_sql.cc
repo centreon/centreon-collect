@@ -3658,7 +3658,7 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
     // Apply to DB.
     SPDLOG_LOGGER_INFO(
         log_v2::sql(),
-        "SQL: processing service status check result event proto (host: {}, "
+        "SQL: processing pb service status check result event proto (host: {}, "
         "service: {}, "
         "last check: {}, state ({}, {}))",
         sscr.host_id(), sscr.service_id(), sscr.last_check(), sscr.state(),

@@ -45,7 +45,7 @@ class check_result {
                bool early_timeout,
                bool exited_ok,
                int return_code,
-               std::string const& output);
+               std::string output);
 
   inline enum check_source get_object_check_type() const {
     return _object_check_type;

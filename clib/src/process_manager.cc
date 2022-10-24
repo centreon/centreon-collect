@@ -68,6 +68,7 @@ process_manager::~process_manager() noexcept {
   // Waiting the end of the process manager thread.
   _running = false;
   _finished = true;
+  std::time(&_finished_time);
   _thread.join();
 
   // Waiting all process.
@@ -287,9 +288,16 @@ void process_manager::_run() {
       if (_finished)
         _stop_processes();
 
-      if (!_running && _fds.size() == 0 && _processes_pid.size() == 0 &&
-          _orphans_pid.size() == 0)
-        break;
+      if (!_running && _fds.size() == 0 && _processes_pid.size() == 0) {
+        if (_orphans_pid.size() == 0)
+          break;
+	else {
+	  std::time_t now;
+	  std::time(&now);
+	  if (now - _finished_time > 20)
+	    break;
+	}
+      }
 
       assert(_processes_fd.size() == _fds.size());
       int ret = poll(_fds.data(), _fds.size(), DEFAULT_TIMEOUT);
