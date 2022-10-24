@@ -396,7 +396,7 @@ def check_acknowledgement_with_timeout(hostname: str, service_desc: str, entry_t
     return 0
 
 
-def check_acknowledgement_is_deleted_with_timeout(ack_id: int, timeout: int):
+def check_acknowledgement_is_deleted_with_timeout(ack_id: int, timeout: int, which = 'COMMENTS'):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -409,11 +409,15 @@ def check_acknowledgement_is_deleted_with_timeout(ack_id: int, timeout: int):
 
         with connection:
             with connection.cursor() as cursor:
-                cursor.execute(f"SELECT entry_time,deletion_time FROM acknowledgements WHERE acknowledgement_id={ack_id}")
+                cursor.execute(f"SELECT c.deletion_time, a.entry_time, a.deletion_time FROM comments c LEFT JOIN acknowledgements a ON c.host_id=a.host_id AND c.service_id=a.service_id AND c.entry_time=a.entry_time WHERE c.entry_type=4 AND a.acknowledgement_id={ack_id}")
                 result = cursor.fetchall()
+                logger.console(result)
                 if len(result) > 0 and result[0]['deletion_time'] is not None and int(result[0]['deletion_time']) > int(result[0]['entry_time']):
-                    logger.console(
-                        f"Acknowledgement {ack_id} is deleted at {result[0]['deletion_time']}")
+                    if which == 'BOTH' and not result[0]['a.deletion_time']:
+                        logger.console(f"Acknowledgement {ack_id} is only deleted in comments")
+                    else:
+                        logger.console(
+                            f"Acknowledgement {ack_id} is deleted at {result[0]['deletion_time']}")
                     return True
         time.sleep(1)
     return False

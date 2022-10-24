@@ -21,8 +21,8 @@
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/commands/processing.hh"
 
-#include <sys/time.h>
 #include <absl/strings/escaping.h>
+#include <sys/time.h>
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/commands/processing.hh"
@@ -496,8 +496,9 @@ void cmd_signal_process(int cmd, char* args) {
  *
  *  @return OK on success.
  */
-int cmd_process_service_check_result(int cmd [[maybe_unused]], time_t check_time, char* args) {
-
+int cmd_process_service_check_result(int cmd [[maybe_unused]],
+                                     time_t check_time,
+                                     char* args) {
   /* skip this service check result if we aren't accepting passive service
    * checks */
   if (!config->accept_passive_service_checks())
@@ -506,17 +507,16 @@ int cmd_process_service_check_result(int cmd [[maybe_unused]], time_t check_time
   auto a{absl::StrSplit(args, absl::MaxSplits(';', 3))};
   auto ait = a.begin();
   if (ait == a.end())
-	  return ERROR;
+    return ERROR;
 
   std::string real_host_name;
   auto host_name = *ait;
   ++ait;
 
   if (ait == a.end())
-	  return ERROR;
+    return ERROR;
   std::string svc_description{ait->data(), ait->size()};
   ++ait;
-
 
   /* find the host by its name or address */
   host_map::const_iterator it(host::hosts.find(host_name));
@@ -540,9 +540,10 @@ int cmd_process_service_check_result(int cmd [[maybe_unused]], time_t check_time
         << svc_description << "' on host '" << real_host_name
         << "', but the host could not be found!";
     log_v2::runtime()->warn(
-        "Warning:  Passive check result was received for service '{}' on host '{}', but the host could not be found!",
+        "Warning:  Passive check result was received for service '{}' on host "
+        "'{}', but the host could not be found!",
         fmt::string_view(svc_description.data(), svc_description.size()),
-       fmt::string_view(host_name.data(), host_name.size()));
+        fmt::string_view(host_name.data(), host_name.size()));
     return ERROR;
   }
 
@@ -568,7 +569,7 @@ int cmd_process_service_check_result(int cmd [[maybe_unused]], time_t check_time
 
   int32_t return_code;
   if (!absl::SimpleAtoi(*ait, &return_code))
-	  return ERROR;
+    return ERROR;
   ++ait;
 
   // replace \\n with \n
@@ -843,6 +844,8 @@ int cmd_acknowledge_problem(int cmd, char* args) {
   /* get the type */
   if (!arg.extract(';', type))
     return ERROR;
+  log_v2::external_command()->error("Error: new acknowledgement with type {}",
+                                    type);
 
   /* get the notification option */
   int ival;
@@ -879,42 +882,40 @@ int cmd_acknowledge_problem(int cmd, char* args) {
 
 /* removes a host or service acknowledgement */
 int cmd_remove_acknowledgement(int cmd, char* args) {
-  std::string host_name;
-  std::string svc_description;
-  service_map::const_iterator found;
-
-  string::c_strtok arg(args);
-
-  /* get the host name */
-  if (!arg.extract(';', host_name))
+  auto a{absl::StrSplit(args, ';')};
+  auto ait = a.begin();
+  if (ait == a.end())
     return ERROR;
 
   /* verify that the host is valid */
-  host_map::const_iterator it(host::hosts.find(host_name));
-  if (it == host::hosts.end() || !it->second)
-    return ERROR;
+  auto hostname = *ait;
+  ++ait;
 
-  /* we are removing a service acknowledgement */
-  if (cmd == CMD_REMOVE_SVC_ACKNOWLEDGEMENT) {
-    /* get the service name */
-    if (!arg.extract(';', svc_description))
-      return ERROR;
+  switch (cmd) {
+    case CMD_REMOVE_HOST_ACKNOWLEDGEMENT: {
+      host_map::const_iterator hit = host::hosts.find(hostname);
+      if (hit == host::hosts.end() || !hit->second)
+        return ERROR;
+      remove_host_acknowledgement(hit->second.get());
+    } break;
+    case CMD_REMOVE_SVC_ACKNOWLEDGEMENT:
+      /* we are removing a service acknowledgement */
+      {
+        /* get the service name */
+        if (ait == a.end())
+          return ERROR;
 
-    /* verify that the service is valid */
-    found = service::services.find({it->second->name(), svc_description});
+        /* verify that the service is valid */
+        service_map::const_iterator sit = service::services.find(
+            std::make_pair(std::string(hostname.data(), hostname.size()),
+                           std::string(ait->data(), ait->size())));
 
-    if (found == service::services.end() || !found->second)
-      return ERROR;
+        if (sit == service::services.end() || !sit->second)
+          return ERROR;
+        remove_service_acknowledgement(sit->second.get());
+      }
+      break;
   }
-
-  /* acknowledge the host problem */
-  if (cmd == CMD_REMOVE_HOST_ACKNOWLEDGEMENT)
-    remove_host_acknowledgement(it->second.get());
-
-  /* acknowledge the service problem */
-  else
-    remove_service_acknowledgement(found->second.get());
-
   return OK;
 }
 

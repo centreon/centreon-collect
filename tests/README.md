@@ -175,6 +175,10 @@ Here is the list of the currently implemented tests:
 - [x] **AOUTLU1**: an anomaly detection with a perfdata upper than upper limit make a critical state with bbdo 3
 - [x] **BEACK1**: Engine has a critical service. An external command is sent to acknowledge it. The centreon_storage.acknowledgements table is then updated with this acknowledgement. The service is newly set to OK. And the acknowledgement in database is deleted from engine but still open on the database.
 - [x] **BEACK2**: Configuration is made with BBDO3. Engine has a critical service. An external command is sent to acknowledge it. The centreon_storage.acknowledgements table is then updated with this acknowledgement. The service is newly set to OK. And the acknowledgement in database is deleted.
+- [x] **BEACK3**: Engine has a critical service. An external command is sent to acknowledge it. The centreon_storage.acknowledgements table is then updated with this acknowledgement. The acknowledgement is removed and the comment in the comments table has its deletion_time column updated.
+- [x] **BEACK4**: Configuration is made with BBDO3. Engine has a critical service. An external command is sent to acknowledge it. The centreon_storage.acknowledgements table is then updated with this acknowledgement. The acknowledgement is removed and the comment in the comments table has its deletion_time column updated.
+- [x] **BEACK5**: Engine has a critical service. An external command is sent to acknowledge it ; the acknowledgement is sticky. The centreon_storage.acknowledgements table is then updated with this acknowledgement. The service is newly set to WARNING. And the acknowledgement in database is still there.
+- [x] **BEACK6**: Configuration is made with BBDO3. Engine has a critical service. An external command is sent to acknowledge it ; the acknowledgement is sticky. The centreon_storage.acknowledgements table is then updated with this acknowledgement. The service is newly set to WARNING. And the acknowledgement in database is still there.
 - [x] **BEATOI11**: external command SEND_CUSTOM_HOST_NOTIFICATION with option_number=1 should work
 - [x] **BEATOI12**: external command SEND_CUSTOM_HOST_NOTIFICATION with option_number>7 should fail
 - [x] **BEATOI13**: external command SCHEDULE SERVICE DOWNTIME with duration<0 should fail
@@ -255,6 +259,7 @@ Here is the list of the currently implemented tests:
 - [x] **BEPBBEE3**: bbdo_version 3 generates new bbdo protobuf service status messages.
 - [x] **BEPBBEE4**: bbdo_version 3 generates new bbdo protobuf host status messages.
 - [x] **BEPBBEE5**: bbdo_version 3 generates new bbdo protobuf service messages.
+- [x] **BEPBRI1**: bbdo_version 3 use pb_resource new bbdo protobuf ResponsiveInstance message.
 - [x] **BERD1**: Starting/stopping Broker does not create duplicated events.
 - [x] **BERD2**: Starting/stopping Engine does not create duplicated events.
 - [x] **BERDUC1**: Starting/stopping Broker does not create duplicated events in usual cases

@@ -291,12 +291,13 @@ void process_manager::_run() {
       if (!_running && _fds.size() == 0 && _processes_pid.size() == 0) {
         if (_orphans_pid.size() == 0)
           break;
-	else {
-	  std::time_t now;
-	  std::time(&now);
-	  if (now - _finished_time > 20)
-	    break;
-	}
+        else {
+          /* After 20s with only orphans pid, we quit if asked. */
+          std::time_t now;
+          std::time(&now);
+          if (now - _finished_time > 20)
+            break;
+        }
       }
 
       assert(_processes_fd.size() == _fds.size());
@@ -373,14 +374,17 @@ void process_manager::_wait_orphans_pid() noexcept {
         ++it;
         continue;
       }
+      int status = it->status;
+
+      // Erase orphan pid. If one of the following functions throws an
+      // exception, this entry will still be removed.
+      it = _orphans_pid.erase(it);
+
       process* p = it_p->second;
       _processes_pid.erase(it_p);
 
       // Update process.
-      _update_ending_process(p, it->status);
-
-      // Erase orphan pid.
-      it = _orphans_pid.erase(it);
+      _update_ending_process(p, status);
     }
   } catch (const std::exception& e) {
     log_error(logging::high) << e.what();
