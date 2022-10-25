@@ -517,7 +517,9 @@ target_link_libraries(
   ${SOCKET_LIBRARIES}
   centreon_clib
   ${fmt_LIBRARIES}
-  CONAN_PKG::spdlog)
+  CONAN_PKG::spdlog
+  pb_configuration_lib
+)
 
 # centengine target.
 add_executable("centengine" "${SRC_DIR}/main.cc")

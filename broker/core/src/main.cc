@@ -82,7 +82,8 @@ static struct option long_options[] = {{"pool_size", required_argument, 0, 's'},
  *
  *  @param[in] signum Signal number.
  */
-static void hup_handler(int) {
+static void hup_handler(int signum [[maybe_unused]]) {
+
   // Disable SIGHUP handling during handler execution.
   signal(SIGHUP, SIG_IGN);
 
