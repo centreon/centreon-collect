@@ -23,16 +23,6 @@ set(INC_DIR "${INC_DIR}/com/centreon/engine/configuration")
 # Subdirectory.
 add_subdirectory("applier")
 
-add_custom_command(OUTPUT ${SRC_DIR}/configuration.pb.cc ${SRC_DIR}/configuration.pb.h
-    DEPENDS ${SRC_DIR}/configuration.proto
-    COMMENT "Generating interface files of the engine configuration file"
-    COMMAND ${Protobuf_PROTOC_EXECUTABLE}
-    ARGS --cpp_out=${SRC_DIR} --proto_path=${SRC_DIR} configuration.proto
-    VERBATIM
-  )
-
-add_custom_target(target_configuration DEPENDS ${SRC_DIR}/configuration.pb.cc ${SRC_DIR}/configuration.pb.h)
-
 # Set files.
 set(FILES
     ${FILES}
