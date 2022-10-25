@@ -2484,6 +2484,34 @@ int service::run_async_check(int check_options,
                              bool reschedule_check,
                              bool* time_is_valid,
                              time_t* preferred_time) noexcept {
+  return run_async_check_local(check_options, latency, scheduled_check,
+                               reschedule_check, time_is_valid, preferred_time,
+                               this);
+}
+
+/**
+ * @brief The big work of run_async_check is done here. The function has been
+ * split because of anomalydetection that needs to call the same method but
+ * with its dependency service. Then, macros have to be computed with the
+ * dependency service.
+ *
+ * @param check_options
+ * @param latency
+ * @param scheduled_check
+ * @param reschedule_check
+ * @param time_is_valid
+ * @param preferred_time
+ * @param svc  A pointer to the service used to compute macros.
+ *
+ * @return OK or ERROR
+ */
+int service::run_async_check_local(int check_options,
+                                   double latency,
+                                   bool scheduled_check,
+                                   bool reschedule_check,
+                                   bool* time_is_valid,
+                                   time_t* preferred_time,
+                                   service* svc) noexcept {
   engine_logger(dbg_functions, basic)
       << "service::run_async_check, check_options=" << check_options
       << ", latency=" << latency << ", scheduled_check=" << scheduled_check
@@ -2568,8 +2596,8 @@ int service::run_async_check(int check_options,
 
   // Get current host and service macros.
   nagios_macros* macros(get_global_macros());
-  grab_host_macros_r(macros, get_host_ptr());
-  grab_service_macros_r(macros, this);
+  grab_host_macros_r(macros, svc->get_host_ptr());
+  grab_service_macros_r(macros, svc);
   std::string tmp;
   get_raw_command_line_r(macros, get_check_command_ptr(),
                          check_command().c_str(), tmp, 0);
@@ -3174,7 +3202,7 @@ int service::notify_contact(nagios_macros* mac,
     engine_logger(dbg_notifications, most)
         << "Processed notification command: " << processed_command;
     log_v2::notifications()->trace("Processed notification command: {}",
-                                  processed_command);
+                                   processed_command);
 
     /* log the notification to program log file */
     if (config->log_notifications()) {
@@ -3752,7 +3780,7 @@ void service::set_host_ptr(host* h) {
   _host_ptr = h;
 }
 
-host const* service::get_host_ptr() const {
+const host* service::get_host_ptr() const {
   return _host_ptr;
 }
 
