@@ -1,21 +1,21 @@
-# #
-# # Copyright 2011-2021 Centreon
-# #
-# # This file is part of Centreon Engine.
-# #
-# # Centreon Engine is free software: you can redistribute it and/or
-# # modify it under the terms of the GNU General Public License version 2
-# # as published by the Free Software Foundation.
-# #
-# # Centreon Engine is distributed in the hope that it will be useful,
-# # but WITHOUT ANY WARRANTY; without even the implied warranty of
-# # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-# # General Public License for more details.
-# #
-# # You should have received a copy of the GNU General Public License
-# # along with Centreon Engine. If not, see
-# # <http://www.gnu.org/licenses/>.
-# #
+#
+# Copyright 2011-2021 Centreon
+#
+# This file is part of Centreon Engine.
+#
+# Centreon Engine is free software: you can redistribute it and/or
+# modify it under the terms of the GNU General Public License version 2
+# as published by the Free Software Foundation.
+#
+# Centreon Engine is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Centreon Engine. If not, see
+# <http://www.gnu.org/licenses/>.
+#
 
 #
 # Global settings.
@@ -538,6 +538,7 @@ include_directories(enginerpc)
 add_library(cce_core ${LIBRARY_TYPE} ${FILES})
 add_dependencies(cce_core engine_rpc)
 add_dependencies(cce_core centreon_clib)
+add_dependencies(cce_core target_configuration)
 
 target_precompile_headers(cce_core PRIVATE ${PRECOMP_HEADER})
 
