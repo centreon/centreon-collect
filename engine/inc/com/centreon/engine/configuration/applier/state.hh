@@ -21,9 +21,9 @@
 #define CCE_CONFIGURATION_APPLIER_STATE_HH
 
 #include "com/centreon/engine/configuration/applier/difference.hh"
-#include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/engine/servicedependency.hh"
 #include "com/centreon/engine/timeperiod.hh"
+#include "configuration/configuration.pb.h"
 
 CCE_BEGIN()
 

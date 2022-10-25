@@ -550,6 +550,7 @@ target_link_libraries(cce_core CONAN_PKG::nlohmann_json
   centreon_clib
   ${fmt_LIBRARIES}
   CONAN_PKG::spdlog
+  pb_configuration_lib
 )
 
 # centengine target.
