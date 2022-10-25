@@ -2432,8 +2432,7 @@ BEATOI21
 	Config Broker	module	${1}
 	Broker Config Log	central	core	error
 	Broker Config Log	central	sql	debug
-	${start}=	Get Current Date
-	Sleep	1s
+	${start}=	Get Current Date	exclude_millis=True
 	Start Broker
 	Start Engine
 	${content}=	Create List	check_for_external_commands
@@ -2443,7 +2442,8 @@ BEATOI21
 	${content}=	Create List	ADD_HOST_COMMENT
 	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 	Should Be True	${result}	msg=the comment with id:1 was not added.
-	${com_id}=	Find Internal Id		${start}	True	30
+	${com_id}=	Find Internal Id	${start}	True	30
+	Should Be True	${com_id}>0	msg=Comment id should be a positive integer.
 	DEL HOST COMMENT	${com_id}
 	${result}=	Find Internal Id	${start}	False	30
 	Should Be True	${result}	msg=the comment with id:${com_id} was not deleted.
