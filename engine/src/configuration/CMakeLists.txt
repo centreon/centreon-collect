@@ -1,18 +1,19 @@
 #
-# Copyright 2011-2013 Merethis
+# Copyright 2009-2022 Centreon
 #
-# This file is part of Centreon Engine.
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License. You may obtain a copy of
+# the License at
 #
-# Centreon Engine is free software: you can redistribute it and/or modify it
-# under the terms of the GNU General Public License version 2 as published by
-# the Free Software Foundation.
+# http://www.apache.org/licenses/LICENSE-2.0
 #
-# Centreon Engine is distributed in the hope that it will be useful, but WITHOUT
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations under
+# the License.
 #
-# You should have received a copy of the GNU General Public License along with
-# Centreon Engine. If not, see <http://www.gnu.org/licenses/>.
+# For more information : contact@centreon.com
 #
 
 # Set directories.
@@ -21,6 +22,16 @@ set(INC_DIR "${INC_DIR}/com/centreon/engine/configuration")
 
 # Subdirectory.
 add_subdirectory("applier")
+
+add_custom_command(OUTPUT ${SRC_DIR}/configuration.pb.cc ${SRC_DIR}/configuration.pb.h
+    DEPENDS ${SRC_DIR}/configuration.proto
+    COMMENT "Generating interface files of the engine configuration file"
+    COMMAND ${Protobuf_PROTOC_EXECUTABLE}
+    ARGS --cpp_out=${SRC_DIR} --proto_path=${SRC_DIR} configuration.proto
+    VERBATIM
+  )
+
+add_custom_target(target_configuration DEPENDS ${SRC_DIR}/configuration.pb.cc ${SRC_DIR}/configuration.pb.h)
 
 # Set files.
 set(FILES

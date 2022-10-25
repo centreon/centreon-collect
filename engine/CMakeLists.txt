@@ -504,6 +504,7 @@ target_link_libraries(enginelog CONAN_PKG::spdlog)
 add_library(cce_core ${LIBRARY_TYPE} ${FILES})
 add_dependencies(cce_core engine_rpc)
 add_dependencies(cce_core centreon_clib)
+add_dependencies(cce_core target_configuration)
 
 target_precompile_headers(cce_core PRIVATE ${PRECOMP_HEADER})
 
