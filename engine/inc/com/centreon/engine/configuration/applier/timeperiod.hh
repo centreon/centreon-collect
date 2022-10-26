@@ -21,6 +21,7 @@
 #define CCE_CONFIGURATION_APPLIER_TIMEPERIOD_HH
 
 #include "com/centreon/engine/timeperiod.hh"
+#include "configuration/state.pb.h"
 
 // Forward declaration.
 CCE_BEGIN()
@@ -39,6 +40,7 @@ class timeperiod {
   timeperiod& operator=(timeperiod const& right);
   void add_object(configuration::timeperiod const& obj);
   void expand_objects(configuration::state& s);
+  void expand_objects(configuration::State& s);
   void modify_object(configuration::timeperiod const& obj);
   void remove_object(configuration::timeperiod const& obj);
   void resolve_object(configuration::timeperiod const& obj);
