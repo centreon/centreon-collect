@@ -1812,8 +1812,8 @@ int host::run_async_check(int check_options,
     retry = false;
     try {
       // Run command.
-      uint64_t id = cmd->run(processed_cmd, *macros,
-                             config->host_check_timeout(), check_result_info);
+      cmd->run(processed_cmd, *macros, config->host_check_timeout(),
+               check_result_info);
     } catch (com::centreon::exceptions::interruption const& e) {
       retry = true;
     } catch (std::exception const& e) {
