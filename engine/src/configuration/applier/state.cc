@@ -68,6 +68,14 @@ static bool has_already_been_loaded(false);
  *  @param[in] new_cfg        The new configuration.
  *  @param[in] waiting_thread True to wait thread after calulate differencies.
  */
+void applier::state::apply(configuration::State& new_cfg [[maybe_unused]]) {}
+
+/**
+ *  Apply new configuration.
+ *
+ *  @param[in] new_cfg        The new configuration.
+ *  @param[in] waiting_thread True to wait thread after calulate differencies.
+ */
 void applier::state::apply(configuration::state& new_cfg) {
   configuration::state save(*config);
   try {
@@ -1161,6 +1169,26 @@ void applier::state::_apply(configuration::state& new_cfg,
  *  @param[in,out] cfg       Configuration objects.
  */
 template <typename ConfigurationType, typename ApplierType>
+void applier::state::_expand(configuration::State& new_state) {
+  ApplierType aplyr;
+  try {
+    aplyr.expand_objects(new_state);
+  } catch (std::exception const& e) {
+    if (verify_config) {
+      ++config_errors;
+      std::cout << e.what();
+    } else
+      throw;
+  }
+}
+
+/**
+ *  Expand objects.
+ *
+ *  @param[in,out] new_state New configuration state.
+ *  @param[in,out] cfg       Configuration objects.
+ */
+template <typename ConfigurationType, typename ApplierType>
 void applier::state::_expand(configuration::state& new_state) {
   ApplierType aplyr;
   try {
@@ -1172,6 +1200,109 @@ void applier::state::_expand(configuration::state& new_state) {
     } else
       throw;
   }
+}
+
+/**
+ *  Process new configuration and apply it.
+ *
+ *  @param[in] new_cfg        The new configuration.
+ *  @param[in] state          The retention to use.
+ */
+void applier::state::_processing(configuration::State& new_cfg,
+                                 retention::state* state) {
+  // Timing.
+  struct timeval tv[5];
+
+  // Call prelauch broker event the first time to run applier state.
+  if (!has_already_been_loaded)
+    broker_program_state(NEBTYPE_PROCESS_PRELAUNCH, NEBFLAG_NONE);
+
+  //
+  // Expand all objects.
+  //
+  gettimeofday(tv, nullptr);
+
+  // Expand timeperiods.
+  _expand<configuration::Timeperiod, applier::timeperiod>(new_cfg);
+
+  // Expand connectors.
+  _expand<configuration::Connector, applier::connector>(new_cfg);
+
+  //
+  //  Build difference for all objects.
+  //
+
+  DiffState dstate = build_difference(pb_config, new_cfg);
+}
+
+/**
+ * @brief Compute the difference between the running configuration pb_config and
+ * the new one new_cfg.
+ *
+ * @param new_cfg The new configuration to compare with.
+ *
+ * @return An object with differences.
+ */
+DiffState applier::state::build_difference(
+    const configuration::State& cfg,
+    const configuration::State& new_cfg) const {
+  DiffState retval;
+
+  const auto& timeperiods = cfg.timeperiods();
+  const auto& new_timeperiods = new_cfg.timeperiods();
+
+  uint32_t index = 0, nindex = 0;
+  while (index < timeperiods.size() && nindex < new_timeperiods.size()) {
+    Timeperiod tp = timeperiods[index];
+    Timeperiod ntp = new_timeperiods[nindex];
+
+    index++;
+    nindex++;
+    const google::protobuf::Descriptor* desc = tp.GetDescriptor();
+    const google::protobuf::Reflection* refl = tp.GetReflection();
+    for (int i = 0; i < desc->field_count(); i++) {
+      std::string value_str1, value_str2;
+      auto f = desc->field(i);
+      int num = f->number();
+      switch (f->type()) {
+        case google::protobuf::FieldDescriptor::TYPE_BOOL: {
+          bool value = refl->GetBool(tp, f);
+          bool new_value = refl->GetBool(ntp, f);
+          if (value != new_value) {
+            auto to_modify = retval.mutable_dtimeperiods()->mutable_to_modify();
+            Changes& lst = (*to_modify)[num];
+            Changes_Pair* pair = lst.add_list();
+            pair->set_id(i);
+            pair->set_value_b(new_value);
+          }
+        } break;
+        case google::protobuf::FieldDescriptor::TYPE_STRING: {
+          const std::string& value =
+              refl->GetStringReference(tp, f, &value_str1);
+          const std::string& new_value =
+              refl->GetStringReference(ntp, f, &value_str2);
+          if (value != new_value) {
+            auto to_modify = retval.mutable_dtimeperiods()->mutable_to_modify();
+            Changes& lst = (*to_modify)[num];
+            Changes_Pair* pair = lst.add_list();
+            pair->set_id(i);
+            pair->set_value_str(new_value);
+          }
+        } break;
+        default:
+          assert(1 == 0);
+      }
+    }
+  }
+  // Are there removed timeperiods?
+  for (; index < timeperiods.size(); ++index)
+    retval.mutable_dtimeperiods()->mutable_to_remove()->Add(index);
+
+  for (; nindex < new_timeperiods.size(); ++nindex) {
+    configuration::Timeperiod* tp = retval.mutable_dtimeperiods()->add_to_add();
+    tp->CopyFrom(new_timeperiods.at(nindex));
+  }
+  return retval;
 }
 
 /**
