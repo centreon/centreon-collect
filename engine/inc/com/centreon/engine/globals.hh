@@ -31,6 +31,7 @@
 #include "com/centreon/engine/nebmods.hh"
 #include "com/centreon/engine/restart_stats.hh"
 #include "com/centreon/engine/utils.hh"
+#include "configuration/state.pb.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -42,6 +43,7 @@ extern int config_warnings;
 /* Start/Restart statistics */
 extern com::centreon::engine::restart_stats restart_apply_stats;
 
+extern com::centreon::engine::configuration::State pb_config;
 extern com::centreon::engine::configuration::state* config;
 extern char* config_file;
 
