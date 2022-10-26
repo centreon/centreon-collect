@@ -27,6 +27,7 @@
 
 using namespace com::centreon::engine;
 
+configuration::State pb_config;
 configuration::state* config(NULL);
 
 char const* sigs[] = {"EXIT", "HUP",    "INT",    "QUIT",  "ILL",    "TRAP",

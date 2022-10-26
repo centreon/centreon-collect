@@ -20,6 +20,7 @@
 #ifndef CCE_CONFIGURATION_APPLIER_CONNECTOR_HH
 #define CCE_CONFIGURATION_APPLIER_CONNECTOR_HH
 
+#include "configuration/state.pb.h"
 namespace com::centreon::engine {
 
 namespace configuration {
@@ -33,6 +34,7 @@ class connector {
   connector();
   ~connector() throw();
   void add_object(configuration::connector const& obj);
+  void expand_objects(configuration::State& s);
   void expand_objects(configuration::state& s);
   void modify_object(configuration::connector const& obj);
   void remove_object(configuration::connector const& obj);

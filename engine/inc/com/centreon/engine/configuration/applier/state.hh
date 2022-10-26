@@ -21,9 +21,10 @@
 #define CCE_CONFIGURATION_APPLIER_STATE_HH
 
 #include "com/centreon/engine/configuration/applier/difference.hh"
+#include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/engine/servicedependency.hh"
 #include "com/centreon/engine/timeperiod.hh"
-#include "configuration/configuration.pb.h"
+#include "configuration/state.pb.h"
 
 namespace com::centreon::engine {
 
@@ -47,6 +48,7 @@ namespace applier {
  */
 class state {
  public:
+  void apply(configuration::State& new_cfg);
   void apply(configuration::state& new_cfg);
   void apply(configuration::state& new_cfg, retention::state& state);
   static state& instance();
@@ -61,6 +63,9 @@ class state {
       std::string const& key) const;
   void lock();
   void unlock();
+  configuration::DiffState build_difference(
+      const configuration::State& cfg,
+      const configuration::State& new_cfg) const;
 
  private:
   enum processing_state {
@@ -88,8 +93,14 @@ class state {
   template <typename ConfigurationType, typename ApplierType>
   void _apply(difference<std::set<ConfigurationType>> const& diff);
   void _apply(configuration::state& new_cfg, retention::state& state);
+
   template <typename ConfigurationType, typename ApplierType>
   void _expand(configuration::state& new_state);
+
+  template <typename ConfigurationType, typename ApplierType>
+  void _expand(configuration::State& new_state);
+  void _processing(configuration::State& new_cfg,
+                   retention::state* state = NULL);
   void _processing(configuration::state& new_cfg,
                    retention::state* state = NULL);
   template <typename ConfigurationType, typename ApplierType>
