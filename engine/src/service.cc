@@ -2600,7 +2600,7 @@ int service::run_async_check_local(int check_options,
   grab_service_macros_r(macros, svc);
   std::string tmp;
   get_raw_command_line_r(macros, get_check_command_ptr(),
-                         check_command().c_str(), tmp, 0);
+                         svc->check_command().c_str(), tmp, 0);
 
   // Time to start command.
   gettimeofday(&start_time, nullptr);

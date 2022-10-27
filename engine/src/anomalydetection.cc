@@ -195,18 +195,16 @@ uint64_t cancellable_command::run(
   if (_fake_result) {
     checks::checker::instance().add_check_result_to_reap(_fake_result);
     return 0;  // no command => no async result
+  } else if (_original_command) {
+    uint64_t id = _original_command->run(processed_cmd, macros, timeout,
+                                         to_push_to_checker, caller);
+    log_v2::checks()->debug(
+        "cancellable_command::run command launched id={} cmd {}", id,
+        _original_command);
+    return id;
   } else {
-    if (_original_command) {
-      uint64_t id = _original_command->run(processed_cmd, macros, timeout,
-                                           to_push_to_checker, caller);
-      log_v2::checks()->debug(
-          "cancellable_command::run command launched id={} cmd {}", id,
-          _original_command);
-      return id;
-    } else {
-      log_v2::checks()->debug("cancellable_command::run no original command");
-      return 0;
-    }
+    log_v2::checks()->debug("cancellable_command::run no original command");
+    return 0;
   }
 }
 
