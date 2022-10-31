@@ -32,6 +32,7 @@ set(FILES
     "${SRC_DIR}/connector.cc"
     "${SRC_DIR}/contact.cc"
     "${SRC_DIR}/contactgroup.cc"
+    "${SRC_DIR}/diff_state.cc"
     "${SRC_DIR}/group.cc"
     "${SRC_DIR}/host.cc"
     "${SRC_DIR}/hostdependency.cc"

@@ -20,6 +20,7 @@
 #ifndef CCE_CONFIGURATION_APPLIER_CONNECTOR_HH
 #define CCE_CONFIGURATION_APPLIER_CONNECTOR_HH
 
+#include "com/centreon/engine/namespace.hh"
 #include "configuration/state.pb.h"
 namespace com::centreon::engine {
 

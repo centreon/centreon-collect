@@ -19,7 +19,7 @@
 
 #include "com/centreon/engine/configuration/applier/state.hh"
 
-#include "com/centreon/engine/log_v2.hh"
+#include <google/protobuf/util/message_differencer.h>
 
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/commands/connector.hh"
@@ -45,9 +45,11 @@
 #include "com/centreon/engine/configuration/applier/tag.hh"
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
 #include "com/centreon/engine/configuration/command.hh"
+#include "com/centreon/engine/configuration/diff_state.hh"
 #include "com/centreon/engine/configuration/whitelist.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/objects.hh"
@@ -1211,7 +1213,7 @@ void applier::state::_expand(configuration::state& new_state) {
  *  @param[in] state          The retention to use.
  */
 void applier::state::_processing(configuration::State& new_cfg,
-                                 retention::state* state) {
+                                 retention::state* /*state*/) {
   // Timing.
   struct timeval tv[5];
 
@@ -1248,63 +1250,13 @@ void applier::state::_processing(configuration::State& new_cfg,
 DiffState applier::state::build_difference(
     const configuration::State& cfg,
     const configuration::State& new_cfg) const {
-  DiffState retval;
+  diff_state dstate;
 
-  const auto& timeperiods = cfg.timeperiods();
-  const auto& new_timeperiods = new_cfg.timeperiods();
-
-  uint32_t index = 0, nindex = 0;
-  while (index < timeperiods.size() && nindex < new_timeperiods.size()) {
-    Timeperiod tp = timeperiods[index];
-    Timeperiod ntp = new_timeperiods[nindex];
-
-    index++;
-    nindex++;
-    const google::protobuf::Descriptor* desc = tp.GetDescriptor();
-    const google::protobuf::Reflection* refl = tp.GetReflection();
-    for (int i = 0; i < desc->field_count(); i++) {
-      std::string value_str1, value_str2;
-      auto f = desc->field(i);
-      int num = f->number();
-      switch (f->type()) {
-        case google::protobuf::FieldDescriptor::TYPE_BOOL: {
-          bool value = refl->GetBool(tp, f);
-          bool new_value = refl->GetBool(ntp, f);
-          if (value != new_value) {
-            auto to_modify = retval.mutable_dtimeperiods()->mutable_to_modify();
-            Changes& lst = (*to_modify)[num];
-            Changes_Pair* pair = lst.add_list();
-            pair->set_id(i);
-            pair->set_value_b(new_value);
-          }
-        } break;
-        case google::protobuf::FieldDescriptor::TYPE_STRING: {
-          const std::string& value =
-              refl->GetStringReference(tp, f, &value_str1);
-          const std::string& new_value =
-              refl->GetStringReference(ntp, f, &value_str2);
-          if (value != new_value) {
-            auto to_modify = retval.mutable_dtimeperiods()->mutable_to_modify();
-            Changes& lst = (*to_modify)[num];
-            Changes_Pair* pair = lst.add_list();
-            pair->set_id(i);
-            pair->set_value_str(new_value);
-          }
-        } break;
-        default:
-          assert(1 == 0);
-      }
-    }
-  }
-  // Are there removed timeperiods?
-  for (; index < timeperiods.size(); ++index)
-    retval.mutable_dtimeperiods()->mutable_to_remove()->Add(index);
-
-  for (; nindex < new_timeperiods.size(); ++nindex) {
-    configuration::Timeperiod* tp = retval.mutable_dtimeperiods()->add_to_add();
-    tp->CopyFrom(new_timeperiods.at(nindex));
-  }
-  return retval;
+  ::google::protobuf::util::MessageDifferencer differencer;
+  differencer.set_report_matches(false);
+  differencer.ReportDifferencesTo(&dstate);
+  differencer.Compare(cfg, new_cfg);
+  return dstate.report();
 }
 
 /**
