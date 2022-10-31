@@ -222,3 +222,36 @@ TEST_F(ApplierState, DiffOnContactOneNewAddress) {
   ASSERT_EQ(to_modify["name 3"].list().begin()->id(), 3);
   ASSERT_EQ(to_modify["name 3"].list().begin()->value_str(), "new address");
 }
+
+/**
+ * @brief Contact "name 3" has its first address removed. Addresses are stored
+ * in an array. We don't have the information if an address is added or removed
+ * so we send all the addresses in the difference. That's why the difference
+ * tells about 4 addresses as difference.
+ */
+TEST_F(ApplierState, DiffOnContactFirstAddressRemoved) {
+  configuration::State new_config;
+  new_config.CopyFrom(pb_config);
+  auto cts = new_config.mutable_contacts();
+  auto& ct = (*cts)["name 3"];
+  ct.mutable_address()->erase(ct.mutable_address()->begin());
+
+  std::string output;
+  MessageDifferencer differencer;
+  differencer.set_report_matches(false);
+  differencer.ReportDifferencesToString(&output);
+  // differencer.set_repeated_field_comparison(
+  //     util::MessageDifferencer::AS_SMART_LIST);
+  EXPECT_FALSE(differencer.Compare(pb_config, new_config));
+  std::cout << "Output= " << output << std::endl;
+
+  configuration::DiffState dstate =
+      configuration::applier::state::instance().build_difference(pb_config,
+                                                                 new_config);
+  ASSERT_TRUE(dstate.dcontacts().to_add().empty());
+  ASSERT_TRUE(dstate.dcontacts().to_remove().empty());
+  ASSERT_EQ(dstate.dcontacts().to_modify().size(), 1u);
+  auto to_modify = dstate.dcontacts().to_modify();
+  ASSERT_EQ(to_modify["name 3"].list().begin()->id(), 2);
+  ASSERT_EQ(to_modify["name 3"].list().begin()->value_str(), "address 2");
+}
