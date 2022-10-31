@@ -57,45 +57,126 @@ message Timeperiod {
 }
 
 message Connector {
-  string connector_name = 1;
-  string connector_line = 2;
+  string name = 1;
+  string line = 2;
 }
 
 message Command {
-  string command_line = 1;
-  string command_name = 2;
+  string line = 1;
+  string name = 2;
   string connector = 3;
+}
+
+message CustomVariable {
+  string name = 1;
+  string value = 2;
+  bool is_sent = 3;
+  bool modified = 4;
+}
+
+message Contact {
+  string name = 1;
+  string alias = 2;
+  repeated string address = 3;
+  optional bool can_submit_commands = 4;
+  repeated string contactgroups = 5;
+  repeated CustomVariable customvariables = 6;
+  string email = 7;
+
+  optional bool retain_nonstatus_information = 8;
+  optional bool retain_status_information = 9;
+  string pager = 10;
+
+  optional bool host_notifications_enabled = 11;
+  repeated string host_notification_commands = 12;
+  optional uint32 host_notification_options = 13;
+  string host_notification_period = 14;
+
+  optional bool service_notifications_enabled = 15;
+  repeated string service_notification_commands = 16;
+  optional uint32 service_notification_options = 17;
+  string service_notification_period = 18;
+
+  optional string timezone = 19;
 }
 
 message State {
   repeated Timeperiod timeperiods = 1;
   repeated Command commands = 2;
+  repeated Connector connectors = 3;
+  map<string, Contact> contacts = 4;
 }
 
-message Changes {
-  message Pair {
-    int32 id = 1;
-    oneof value {
-      bool value_b = 2;
-      int32 value_i32 = 3;
-      string value_str = 4;
-    }
+/**
+ * @brief This is a pair of key/value where value can be any of the scalar
+ * types or changes in repeated field.
+ */
+message Field {
+  uint32 id = 1;
+  enum Action {
+    ADD = 0;
+    DEL = 1;
+  };
+  Action action = 2;
+  oneof value {
+    bool value_b = 3;
+    int32 value_i32 = 4;
+    uint32 value_u32 = 5;
+    string value_str = 6;
+    RepeatedFieldChanges value_rf = 7;
   }
-  repeated Pair list = 5;
+}
+
+/**
+ * @brief This message is to modify a repeated field. id is the number
+ * identifier used to localize the repeated field. This field is a sort of
+ * vector. It is possible to remove items from it, the list of indices to
+ * remove is given by the to_remove field.
+ * There is also entries to add to this repeated field, they are listed with
+ * the to_add field.
+ */
+message RepeatedFieldChanges {
+  uint32 truncate_size = 1;
+  repeated Field to_add = 3;
+}
+
+/**
+ * @brief Message used to store changes in a message.
+ * All the non repeated fields are stored with a Pair id/value.
+ * For repeated fields, it is a trickier, look at RepeatedFieldChanges.
+ */
+message FieldChanges {
+  repeated Field list = 5;
 }
 
 message DiffTimeperiod {
-  repeated uint32 to_remove = 1;
+  repeated Timeperiod to_remove = 1;
   repeated Timeperiod to_add = 2;
-  map<int32, Changes> to_modify = 3;
+  map<int32, FieldChanges> to_modify = 3;
 }
 
 message DiffCommand {
   repeated Command to_remove = 1;
   repeated Command to_add = 2;
+  map<int32, FieldChanges> to_modify = 3;
+}
+
+message DiffConnector {
+  repeated Connector to_remove = 1;
+  repeated Connector to_add = 2;
+  map<int32, FieldChanges> to_modify = 3;
+}
+
+message DiffContact {
+  repeated string to_remove = 1;
+  map<string, Contact> to_add = 2;
+  map<string, FieldChanges> to_modify = 3;
 }
 
 message DiffState {
-  DiffTimeperiod dtimeperiods = 1;
-  DiffCommand dcommands = 2;
+  State to_add = 1;
+  DiffTimeperiod dtimeperiods = 2;
+  DiffCommand dcommands = 3;
+  DiffConnector dconnectors = 4;
+  DiffContact dcontacts = 5;
 }
