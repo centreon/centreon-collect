@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2017 Centreon
+** Copyright 2011-2022 Centreon
 **
 ** This file is part of Centreon Engine.
 **
