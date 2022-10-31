@@ -177,10 +177,28 @@ void diff_state::ReportDeleted(
             "Message '{}' not managed in diff_state: this is a bug.", name);
       }
     } else {
-      log_v2::config()->error("In ReportDeleted, case not implemented");
-      assert(1 == 0);
-      // TextFormat::PrintFieldValueToString(old_message, field, index,
-      // &output); printer_->PrintRaw(output);
+      const ::google::protobuf::Reflection* refl = old_message.GetReflection();
+      if (field->is_repeated()) {
+        if (field->cpp_type() ==
+            ::google::protobuf::FieldDescriptor::CPPTYPE_STRING) {
+          const Contact& new_contact = static_cast<const Contact&>(old_message);
+          log_v2::config()->debug(
+              "STRING '{}' at index {}",
+              refl->GetRepeatedString(old_message, field, index), index);
+          auto& v = (*_dstate.mutable_dcontacts()
+                          ->mutable_to_modify())[new_contact.name()];
+          Field* f = v.add_list();
+          f->set_id(index);
+          f->set_action(Field_Action_DEL);
+          f->set_value_str(refl->GetRepeatedString(old_message, field, index));
+        }
+      } else {
+        if (field->cpp_type() ==
+            ::google::protobuf::FieldDescriptor::CPPTYPE_STRING) {
+          log_v2::config()->debug("STRING '{}'",
+                                  refl->GetString(old_message, field));
+        }
+      }
     }
   } else {
     log_v2::config()->error("Removed message with unknown field");
