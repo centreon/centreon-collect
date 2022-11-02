@@ -26,7 +26,7 @@ using namespace com::centreon::exceptions;
 
 void load_library_success() {
   // create library object.
-  library lib("./test/libshared_testing_library.so");
+  library lib("./tests/libshared_testing_library.so");
   if (lib.is_loaded())
     throw(basic_error() << "constructor failed");
 
@@ -59,7 +59,7 @@ TEST(ClibLibrary, Load) {
 
 TEST(ClibLibrary, Resolve) {
   // create library object.
-  library lib("./test/libshared_testing_library.so");
+  library lib("./tests/libshared_testing_library.so");
 
   // load library.
   lib.load();

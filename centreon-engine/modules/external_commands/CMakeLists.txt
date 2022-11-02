@@ -1,21 +1,21 @@
-##
-## Copyright 2011-2013 Merethis
-##
-## This file is part of Centreon Engine.
-##
-## Centreon Engine is free software: you can redistribute it and/or
-## modify it under the terms of the GNU General Public License version 2
-## as published by the Free Software Foundation.
-##
-## Centreon Engine is distributed in the hope that it will be useful,
-## but WITHOUT ANY WARRANTY; without even the implied warranty of
-## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-## General Public License for more details.
-##
-## You should have received a copy of the GNU General Public License
-## along with Centreon Engine. If not, see
-## <http://www.gnu.org/licenses/>.
-##
+# #
+# # Copyright 2011-2013 Merethis
+# #
+# # This file is part of Centreon Engine.
+# #
+# # Centreon Engine is free software: you can redistribute it and/or
+# # modify it under the terms of the GNU General Public License version 2
+# # as published by the Free Software Foundation.
+# #
+# # Centreon Engine is distributed in the hope that it will be useful,
+# # but WITHOUT ANY WARRANTY; without even the implied warranty of
+# # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# # General Public License for more details.
+# #
+# # You should have received a copy of the GNU General Public License
+# # along with Centreon Engine. If not, see
+# # <http://www.gnu.org/licenses/>.
+# #
 
 # Set directories.
 set(MODULE_DIR "${PROJECT_SOURCE_DIR}/modules/external_commands")
@@ -24,7 +24,7 @@ set(INC_DIR "${MODULE_DIR}/inc/com/centreon/engine/modules/external_commands")
 
 # Include directories.
 include_directories("${MODULE_DIR}/inc")
-link_directories(${CMAKE_SOURCE_DIR}/build/centreon-clib/)
+link_directories(${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 
 # mod_externalcmd target.
 add_library(
@@ -44,8 +44,10 @@ add_library(
   "${INC_DIR}/processing.hh"
   "${INC_DIR}/utils.hh"
 )
+
 # Prettier name.
 set_property(TARGET "externalcmd" PROPERTY PREFIX "")
+
 # Location.
 get_property(
   EXTERNALCMD_MODULE

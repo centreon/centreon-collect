@@ -1,21 +1,21 @@
-##
-## Copyright 2011-2021 Centreon
-##
-## This file is part of Centreon Engine.
-##
-## Centreon Engine is free software: you can redistribute it and/or
-## modify it under the terms of the GNU General Public License version 2
-## as published by the Free Software Foundation.
-##
-## Centreon Engine is distributed in the hope that it will be useful,
-## but WITHOUT ANY WARRANTY; without even the implied warranty of
-## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-## General Public License for more details.
-##
-## You should have received a copy of the GNU General Public License
-## along with Centreon Engine. If not, see
-## <http://www.gnu.org/licenses/>.
-##
+# #
+# # Copyright 2011-2021 Centreon
+# #
+# # This file is part of Centreon Engine.
+# #
+# # Centreon Engine is free software: you can redistribute it and/or
+# # modify it under the terms of the GNU General Public License version 2
+# # as published by the Free Software Foundation.
+# #
+# # Centreon Engine is distributed in the hope that it will be useful,
+# # but WITHOUT ANY WARRANTY; without even the implied warranty of
+# # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# # General Public License for more details.
+# #
+# # You should have received a copy of the GNU General Public License
+# # along with Centreon Engine. If not, see
+# # <http://www.gnu.org/licenses/>.
+# #
 
 #
 # Global settings.
@@ -27,18 +27,19 @@ project("Centreon Engine" C CXX)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 
 # set -latomic if OS is Raspbian.
-if (CMAKE_SYSTEM_PROCESSOR MATCHES "arm")
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm")
   set(CMAKE_CXX_LINK_FLAGS "${CMAKE_CXX_LINK_FLAGS} -latomic")
-endif ()
+endif()
 
 # With libasan
 option(WITH_ASAN "Add the libasan to check memory leaks and other memory issues." OFF)
-if (WITH_ASAN)
+
+if(WITH_ASAN)
   set(CMAKE_BUILD_TYPE Debug)
-  set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
-  set (CMAKE_LINKER_FLAGS_DEBUG
-       "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
-endif ()
+  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+  set(CMAKE_LINKER_FLAGS_DEBUG
+    "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+endif()
 
 add_definitions("-D_GLIBCXX_USE_CXX11_ABI=1")
 set(INC_DIR "${PROJECT_SOURCE_DIR}/inc")
@@ -71,27 +72,30 @@ link_directories(${OpenSSL_LIB_DIRS})
 link_directories(${c-ares_LIB_DIRS})
 link_directories(${ZLIB_LIB_DIRS})
 link_directories(${nlohmann_json_LIB_DIRS})
-link_directories(${CMAKE_SOURCE_DIR}/build/centreon-clib/)
+link_directories(${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 
 # Version.
 set(VERSION "$ENV{VERSION}")
-if ("${VERSION}" STREQUAL "")
+
+if("${VERSION}" STREQUAL "")
   set(CENTREON_ENGINE_MAJOR ${COLLECT_MAJOR})
   set(CENTREON_ENGINE_MINOR ${COLLECT_MINOR})
   set(CENTREON_ENGINE_PATCH ${COLLECT_PATCH})
-else ()
+else()
   string(REGEX MATCHALL "([0-9]*)\\.([0-9]*)\\.([0-9]*)" _ "${VERSION}")
-  # Version.
 
+  # Version.
   set(CENTREON_ENGINE_MAJOR ${CMAKE_MATCH_1})
   set(CENTREON_ENGINE_MINOR ${CMAKE_MATCH_2})
   set(CENTREON_ENGINE_PATCH ${CMAKE_MATCH_3})
-endif ()
-if (CENTREON_ENGINE_PRERELEASE)
+endif()
+
+if(CENTREON_ENGINE_PRERELEASE)
   set(CENTREON_ENGINE_VERSION "${CENTREON_ENGINE_MAJOR}.${CENTREON_ENGINE_MINOR}.${CENTREON_ENGINE_PATCH}-${CENTREON_ENGINE_PRERELEASE}")
-else ()
+else()
   set(CENTREON_ENGINE_VERSION "${CENTREON_ENGINE_MAJOR}.${CENTREON_ENGINE_MINOR}.${CENTREON_ENGINE_PATCH}")
 endif()
+
 message(STATUS "Generating version header (${CENTREON_ENGINE_VERSION}).")
 configure_file("${INC_DIR}/com/centreon/engine/version.hh.in"
   "${INC_DIR}/com/centreon/engine/version.hh")
@@ -104,74 +108,87 @@ configure_file("${INC_DIR}/com/centreon/engine/version.hh.in"
 include(CheckLibraryExists)
 message(STATUS "Checking for libm.")
 check_library_exists("m" "ceil" "${CMAKE_LIBRARY_PATH}" MATH_LIB_FOUND)
-if (MATH_LIB_FOUND)
+
+if(MATH_LIB_FOUND)
   set(MATH_LIBRARIES "m")
-endif ()
+endif()
+
 message(STATUS "Checking for libnsl.")
 check_library_exists("nsl" "getservbyname" "${CMAKE_LIBRARY_PATH}" NSL_LIB_FOUND)
-if (NSL_LIB_FOUND)
+
+if(NSL_LIB_FOUND)
   set(NSL_LIBRARIES "nsl")
-endif ()
+endif()
+
 message(STATUS "Checking for libsocket.")
 check_library_exists("socket" "connect" "${CMAKE_LIBRARY_PATH}" SOCKET_LIB_FOUND)
-if (SOCKET_LIB_FOUND)
+
+if(SOCKET_LIB_FOUND)
   set(SOCKET_LIBRARIES "socket")
-endif ()
+endif()
 
 # Find pthreads.
 set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 include(FindThreads)
-if (NOT CMAKE_USE_PTHREADS_INIT)
+
+if(NOT CMAKE_USE_PTHREADS_INIT)
   message(FATAL_ERROR "Could not find pthread's library.")
-endif ()
+endif()
+
 set(PTHREAD_LIBRARIES "${CMAKE_THREAD_LIBS_INIT}")
 
 # Find Centreon Clib's headers.
-if (WITH_CENTREON_CLIB_INCLUDE_DIR)
+if(WITH_CENTREON_CLIB_INCLUDE_DIR)
   find_file(
     CLIB_HEADER_FOUND
     "com/centreon/clib/version.hh"
     PATHS "${WITH_CENTREON_CLIB_INCLUDE_DIR}"
     NO_DEFAULT_PATH)
-  if (NOT CLIB_HEADER_FOUND)
+
+  if(NOT CLIB_HEADER_FOUND)
     message(FATAL_ERROR "Could not find Centreon Clib's headers in ${WITH_CENTREON_CLIB_INCLUDE_DIR}.")
-  endif ()
+  endif()
+
   include_directories("${WITH_CENTREON_CLIB_INCLUDE_DIR}")
   set(CLIB_INCLUDE_DIR "${WITH_CENTREON_CLIB_INCLUDE_DIR}")
-elseif (CLIB_FOUND) # Was Centreon Clib detected with pkg-config ?
-  if (CMAKE_CXX_FLAGS)
+elseif(CLIB_FOUND) # Was Centreon Clib detected with pkg-config ?
+  if(CMAKE_CXX_FLAGS)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CLIB_CFLAGS}")
-  else ()
+  else()
     set(CMAKE_CXX_FLAGS "${CLIB_CFLAGS}")
-  endif ()
-else ()
+  endif()
+else()
   find_path(CLIB_INCLUDE_DIR "com/centreon/clib/version.hh" PATH_SUFFIXES "centreon-clib")
-  if (NOT CLIB_INCLUDE_DIR)
+
+  if(NOT CLIB_INCLUDE_DIR)
     message(FATAL_ERROR "Could not find Centreon Clib's headers (try WITH_CENTREON_CLIB_INCLUDE_DIR).")
-  endif ()
+  endif()
+
   include_directories("${CLIB_INCLUDE_DIR}")
-endif ()
+endif()
 
 # Find Centreon Clib's library.
-if (WITH_CENTREON_CLIB_LIBRARIES)
+if(WITH_CENTREON_CLIB_LIBRARIES)
   set(CLIB_LIBRARIES "${WITH_CENTREON_CLIB_LIBRARIES}")
-elseif (WITH_CENTREON_CLIB_LIBRARY_DIR)
+elseif(WITH_CENTREON_CLIB_LIBRARY_DIR)
   find_library(
     CLIB_LIBRARIES
     "centreon_clib"
     PATHS "${WITH_CENTREON_CLIB_LIBRARY_DIR}"
     NO_DEFAULT_PATH)
-  if (NOT CLIB_LIBRARIES)
+
+  if(NOT CLIB_LIBRARIES)
     message(FATAL_ERROR "Could not find Centreon Clib's library in ${WITH_CENTREON_CLIB_LIBRARY_DIR}.")
-  endif ()
-elseif (CLIB_FOUND) # Was Centreon Clib detected with pkg-config ?
+  endif()
+elseif(CLIB_FOUND) # Was Centreon Clib detected with pkg-config ?
   set(CLIB_LIBRARIES "${CLIB_LDFLAGS}")
-else ()
+else()
   find_library(CLIB_LIBRARIES "centreon_clib")
-  if (NOT CLIB_LIBRARIES)
+
+  if(NOT CLIB_LIBRARIES)
     message(FATAL_ERROR "Could not find Centreon Clib's library (try WITH_CENTREON_CLIB_LIBRARY_DIR or WITH_CENTREON_CLIB_LIBRARIES).")
-  endif ()
-endif ()
+  endif()
+endif()
 
 # Check functions.
 include(CheckIncludeFileCXX)
@@ -180,21 +197,26 @@ include(CheckStructHasMember)
 
 message(STATUS "Checking for tm_zone member in tm struct.")
 check_struct_has_member("tm" "tm_zone" "time.h" HAVE_TM_ZONE)
-if (HAVE_TM_ZONE)
+
+if(HAVE_TM_ZONE)
   add_definitions(-DHAVE_TM_ZONE)
-endif ()
+endif()
+
 include(CheckSymbolExists)
 message(STATUS "Checking for symbol tzname.")
 check_symbol_exists("tzname" "time.h" HAVE_TZNAME)
-if (HAVE_TZNAME)
+
+if(HAVE_TZNAME)
   add_definitions(-DHAVE_TZNAME)
-endif ()
+endif()
+
 message(STATUS "Checking for function getopt_long.")
 check_include_file_cxx("getopt.h" HAVE_GETOPT_H)
 check_function_exists("getopt_long" HAVE_GETOPT_LONG)
-if (HAVE_GETOPT_H AND HAVE_GETOPT_LONG)
+
+if(HAVE_GETOPT_H AND HAVE_GETOPT_LONG)
   add_definitions(-DHAVE_GETOPT_H)
-endif ()
+endif()
 
 #
 # Options.
@@ -208,41 +230,42 @@ option(WITH_CREATE_FILES "Create centreon-engine files." ON)
 set(CREATE_FILES "${WITH_CREATE_FILES}")
 
 # Main directory.
-if (WITH_PREFIX)
+if(WITH_PREFIX)
   set(CMAKE_INSTALL_PREFIX "${WITH_PREFIX}")
-endif ()
+endif()
 
 # Executable directory.
-if (WITH_PREFIX_BIN)
+if(WITH_PREFIX_BIN)
   set(PREFIX_BIN "${WITH_PREFIX_BIN}")
-else ()
+else()
   set(PREFIX_BIN "${CMAKE_INSTALL_PREFIX}/bin")
-endif ()
+endif()
 
 # Configuration directory.
-if (WITH_PREFIX_CONF_ENGINE)
+if(WITH_PREFIX_CONF_ENGINE)
   set(PREFIX_CONF "${WITH_PREFIX_CONF_ENGINE}")
-else ()
+else()
   set(PREFIX_CONF "${CMAKE_INSTALL_PREFIX}/etc")
-endif ()
+endif()
 
 # Library directory.
-if (WITH_PREFIX_LIB_ENGINE)
+if(WITH_PREFIX_LIB_ENGINE)
   set(PREFIX_LIB "${WITH_PREFIX_LIB_ENGINE}")
-else ()
+else()
   set(PREFIX_LIB "${CMAKE_INSTALL_PREFIX}/lib/centreon-engine")
-endif ()
+endif()
 
 # Development headers directory.
-if (WITH_PREFIX_INC)
+if(WITH_PREFIX_INC)
   set(PREFIX_INC "${WITH_PREFIX_INC}")
-else ()
+else()
   set(PREFIX_INC "${CMAKE_INSTALL_PREFIX}/include/centreon-engine")
-endif ()
+endif()
 
 # pkg-config directory.
 option(WITH_PKGCONFIG_SCRIPT "Generate and install pkg-config script." ON)
-if (WITH_PKGCONFIG_SCRIPT)
+
+if(WITH_PKGCONFIG_SCRIPT)
   # Generate pkg-config file.
   message(STATUS "Generating pkg-config file.")
   configure_file(
@@ -251,100 +274,101 @@ if (WITH_PKGCONFIG_SCRIPT)
     @ONLY)
 
   # pkg-config file install directory.
-  if (WITH_PKGCONFIG_DIR)
+  if(WITH_PKGCONFIG_DIR)
     set(PKGCONFIG_DIR "${WITH_PKGCONFIG_DIR}")
-  else ()
+  else()
     set(PKGCONFIG_DIR "${PREFIX_LIB}/pkgconfig")
-  endif ()
+  endif()
 
   # Install rule.
   install(FILES "${SCRIPT_DIR}/centengine.pc"
     DESTINATION "${PKGCONFIG_DIR}"
     COMPONENT "runtime")
-endif ()
+endif()
 
 # var directory.
-if (WITH_VAR_DIR)
+if(WITH_VAR_DIR)
   set(VAR_DIR "${WITH_VAR_DIR}")
-else ()
+else()
   set(VAR_DIR "${CMAKE_INSTALL_PREFIX}/var")
-endif ()
+endif()
 
 # Log archive dir.
-if (WITH_LOG_ARCHIVE_DIR)
+if(WITH_LOG_ARCHIVE_DIR)
   set(LOG_ARCHIVE_DIR "${WITH_LOG_ARCHIVE_DIR}")
-else ()
+else()
   set(LOG_ARCHIVE_DIR "${VAR_DIR}/archives")
-endif ()
+endif()
 
 # RW dir.
-if (WITH_RW_DIR)
+if(WITH_RW_DIR)
   set(RW_DIR "${WITH_RW_DIR}")
-else ()
+else()
   set(RW_DIR "${VAR_DIR}/rw")
-endif ()
+endif()
 
 # User used to run Centreon Engine.
-if (WITH_USER_ENGINE)
+if(WITH_USER_ENGINE)
   set(USER "${WITH_USER_ENGINE}")
-else ()
+else()
   set(USER "root")
-endif ()
+endif()
 
 # Group used to run Centreon Engine.
-if (WITH_GROUP_ENGINE)
+if(WITH_GROUP_ENGINE)
   set(GROUP "${WITH_GROUP_ENGINE}")
-else ()
+else()
   set(GROUP "root")
-endif ()
+endif()
 
 # Check OS distributor.
-if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   message(STATUS "Attempting to determine OS distributor.")
   execute_process(COMMAND "lsb_release" "--short" "--id"
     RESULT_VARIABLE RETCODE
     OUTPUT_VARIABLE OS_DISTRIBUTOR
     ERROR_QUIET)
-  if (RETCODE EQUAL 0)
+
+  if(RETCODE EQUAL 0)
     string(REGEX REPLACE "\n$" "" OS_DISTRIBUTOR "${OS_DISTRIBUTOR}")
-  else ()
+  else()
     set(OS_DISTRIBUTOR "${CMAKE_SYSTEM_NAME}")
-  endif ()
-elseif ()
+  endif()
+elseif()
   set(OS_DISTRIBUTOR "${CMAKE_SYSTEM_NAME}")
-endif ()
+endif()
 
 # Set startup script to auto if not define.
-if (NOT WITH_STARTUP_SCRIPT)
+if(NOT WITH_STARTUP_SCRIPT)
   set(WITH_STARTUP_SCRIPT "auto")
-endif ()
+endif()
 
 # Check which startup script to use.
-if (WITH_STARTUP_SCRIPT STREQUAL "auto")
-  if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    if (OS_DISTRIBUTOR STREQUAL "Ubuntu")
+if(WITH_STARTUP_SCRIPT STREQUAL "auto")
+  if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    if(OS_DISTRIBUTOR STREQUAL "Ubuntu")
       set(WITH_STARTUP_SCRIPT "upstart")
-    else ()
+    else()
       set(WITH_STARTUP_SCRIPT "sysv")
-    endif ()
-  else ()
+    endif()
+  else()
     message(STATUS "Centreon Engine does not provide startup script for ${CMAKE_SYSTEM_NAME}.")
-  endif ()
-endif ()
+  endif()
+endif()
 
 # Create upstart file.
-if (WITH_STARTUP_SCRIPT STREQUAL "upstart")
+if(WITH_STARTUP_SCRIPT STREQUAL "upstart")
   # Generate Upstart script.
   message(STATUS "Generating upstart script.")
   configure_file("${SCRIPT_DIR}/upstart.conf.in"
     "${SCRIPT_DIR}/upstart.conf")
 
   # Startup dir.
-  if (WITH_STARTUP_DIR)
+  if(WITH_STARTUP_DIR)
     set(STARTUP_DIR "${WITH_STARTUP_DIR}")
-  else ()
+  else()
     set(STARTUP_DIR "/etc/init")
-  endif ()
+  endif()
 
   # Script install rule.
   install(FILES "${SCRIPT_DIR}/upstart.conf"
@@ -356,27 +380,29 @@ if (WITH_STARTUP_SCRIPT STREQUAL "upstart")
   set(STARTUP_SCRIPT "Upstart configuration file")
 
 # Create SysV start script.
-elseif (WITH_STARTUP_SCRIPT STREQUAL "sysv")
+elseif(WITH_STARTUP_SCRIPT STREQUAL "sysv")
   # Lock file.
-  if (WITH_LOCK_FILE)
+  if(WITH_LOCK_FILE)
     set(LOCK_FILE "${WITH_LOCK_FILE}")
-  else ()
-    if (OS_DISTRIBUTOR STREQUAL "Ubuntu"
-	OR OS_DISTRIBUTOR STREQUAL "Debian"
-	OR OS_DISTRIBUTOR STREQUAL "SUSE LINUX")
+  else()
+    if(OS_DISTRIBUTOR STREQUAL "Ubuntu"
+      OR OS_DISTRIBUTOR STREQUAL "Debian"
+      OR OS_DISTRIBUTOR STREQUAL "SUSE LINUX")
       set(LOCK_FILE "/var/lock/centengine.lock")
-    else ()
+    else()
       set(LOCK_FILE "/var/lock/subsys/centengine.lock")
-    endif ()
-  endif ()
+    endif()
+  endif()
+
   string(REGEX REPLACE "/[^/]*$" "" LOCK_DIR "${LOCK_FILE}")
 
   # PID file.
-  if (WITH_PID_FILE)
+  if(WITH_PID_FILE)
     set(PID_FILE "${WITH_PID_FILE}")
-  else ()
+  else()
     set(PID_FILE "/var/run/centengine.pid")
-  endif ()
+  endif()
+
   string(REGEX REPLACE "/[^/]*$" "" PID_DIR "${PID_FILE}")
 
   # Generate SysV script.
@@ -385,11 +411,11 @@ elseif (WITH_STARTUP_SCRIPT STREQUAL "sysv")
     "${SCRIPT_DIR}/centengine.sh")
 
   # Startup dir.
-  if (WITH_STARTUP_DIR)
+  if(WITH_STARTUP_DIR)
     set(STARTUP_DIR "${WITH_STARTUP_DIR}")
-  else ()
+  else()
     set(STARTUP_DIR "/etc/init.d")
-  endif ()
+  endif()
 
   # Script install rule.
   install(PROGRAMS "${SCRIPT_DIR}/centengine.sh"
@@ -401,18 +427,18 @@ elseif (WITH_STARTUP_SCRIPT STREQUAL "sysv")
   set(STARTUP_SCRIPT "SysV-style script")
 
 # Create Systemd start script.
-elseif (WITH_STARTUP_SCRIPT STREQUAL "systemd")
+elseif(WITH_STARTUP_SCRIPT STREQUAL "systemd")
   # Generate Systemd script.
   message(STATUS "Generating systemd startup script.")
   configure_file("${SCRIPT_DIR}/centengine.service.in"
     "${SCRIPT_DIR}/centengine.service")
 
   # Startup dir.
-  if (WITH_STARTUP_DIR)
+  if(WITH_STARTUP_DIR)
     set(STARTUP_DIR "${WITH_STARTUP_DIR}")
-  else ()
+  else()
     set(STARTUP_DIR "/etc/systemd/system")
-  endif ()
+  endif()
 
   # Script install rule.
   install(PROGRAMS "${SCRIPT_DIR}/centengine.service"
@@ -422,40 +448,42 @@ elseif (WITH_STARTUP_SCRIPT STREQUAL "systemd")
   # String printed in summary.
   set(STARTUP_SCRIPT "Systemd script")
 
-else ()
+else()
   # Default.
   message(STATUS "Invalid value for option WITH_STARTUP_SCRIPT (must be one of 'auto', 'sysv' or 'upstart').")
   set(STARTUP_SCRIPT "disabled")
-endif ()
+endif()
 
 # logrotate directory.
 option(WITH_LOGROTATE_SCRIPT "Generate and install logrotate script." OFF)
-if (WITH_LOGROTATE_SCRIPT)
+
+if(WITH_LOGROTATE_SCRIPT)
   # Generate logrotate file.
   message(STATUS "Generating logrorate file.")
-  if (WITH_STARTUP_SCRIPT STREQUAL "upstart")
+
+  if(WITH_STARTUP_SCRIPT STREQUAL "upstart")
     configure_file(
       "${SCRIPT_DIR}/logrotate_upstart.conf.in"
       "${SCRIPT_DIR}/logrotate.conf"
       @ONLY)
-  elseif (WITH_STARTUP_SCRIPT STREQUAL "systemd")
+  elseif(WITH_STARTUP_SCRIPT STREQUAL "systemd")
     configure_file(
       "${SCRIPT_DIR}/logrotate_systemd.conf.in"
       "${SCRIPT_DIR}/logrotate.conf"
       @ONLY)
-  else ()
+  else()
     configure_file(
       "${SCRIPT_DIR}/logrotate_sysv.conf.in"
       "${SCRIPT_DIR}/logrotate.conf"
       @ONLY)
-  endif ()
+  endif()
 
   # logrotate file install directory.
-  if (WITH_LOGROTATE_DIR)
+  if(WITH_LOGROTATE_DIR)
     set(LOGROTATE_DIR "${WITH_LOGROTATE_DIR}")
-  else ()
+  else()
     set(LOGROTATE_DIR "/etc/logrotate.d")
-  endif ()
+  endif()
 
   # Install rule.
   install(
@@ -463,19 +491,21 @@ if (WITH_LOGROTATE_SCRIPT)
     DESTINATION "${LOGROTATE_DIR}"
     COMPONENT "runtime"
     RENAME "centengine"
-    )
-endif ()
+  )
+endif()
 
 option(WITH_SHARED_LIB "Define if the core library is to be build as a shared object or a static library." OFF)
-if (WITH_SHARED_LIB)
+
+if(WITH_SHARED_LIB)
   set(LIBRARY_TYPE SHARED)
-else ()
+else()
   set(LIBRARY_TYPE STATIC)
-endif ()
+endif()
 
 # Code coverage on unit tests
 option(WITH_COVERAGE "Add code coverage on unit tests." OFF)
-if (WITH_TESTING AND WITH_COVERAGE)
+
+if(WITH_TESTING AND WITH_COVERAGE)
   set(CMAKE_BUILD_TYPE "Debug")
   include(cmake/CodeCoverage.cmake)
   APPEND_COVERAGE_COMPILER_FLAGS()
@@ -483,18 +513,20 @@ endif()
 
 # Simumod module to simulate cbmod and catch its output
 option(WITH_SIMU "Add a module only used for tests to see data that cbmod should receive" OFF)
-if (WITH_SIMU)
+
+if(WITH_SIMU)
   set(CMAKE_BUILD_TYPE "Debug")
   add_subdirectory(src/simumod)
-endif ()
+endif()
 
 # DEBUG_CONFIG enables checks on configuration. Those checks are not free and
 # may slow down engine reloads. But it provides a way to check bugs in
 # the configuration system.
 option(WITH_DEBUG_CONFIG "Enables checks on configuration. This is an option for developers." OFF)
-if (WITH_DEBUG_CONFIG)
+
+if(WITH_DEBUG_CONFIG)
   add_definitions(-DDEBUG_CONFIG)
-endif ()
+endif()
 
 # Configure files.
 configure_file("${INC_DIR}/compatibility/common.h.in"
@@ -510,14 +542,13 @@ add_definitions(-DDEFAULT_COMMAND_FILE="${RW_DIR}/centengine.cmd")
 add_definitions(-DDEFAULT_CONFIG_FILE="${PREFIX_CONF}/centengine.cfg")
 
 # Add specific linker flags for Mac OS to build correctly shared libraries.
-if (APPLE)
+if(APPLE)
   set(CMAKE_SHARED_LINKER_FLAGS "-Wl,-undefined -Wl,dynamic_lookup")
-endif ()
+endif()
 
 #
 # Targets.
 #
-
 set(
   FILES
 
@@ -656,7 +687,7 @@ add_dependencies(centengine centreon_clib_shared)
 get_property(CENTENGINE_BINARY TARGET "centengine" PROPERTY LOCATION)
 
 # Link centengine with required libraries.
-target_link_libraries(centengine centreon_clib "-Wl,-whole-archive" enginerpc cce_core  "-Wl,-no-whole-archive" ${gRPC_LIBS} ${re2_LIBS} ${absl_LIBS} ${OpenSSL_LIBS} ${c-ares_LIBS} ${ZLIB_LIBS} dl)
+target_link_libraries(centengine centreon_clib "-Wl,-whole-archive" enginerpc cce_core "-Wl,-no-whole-archive" ${gRPC_LIBS} ${re2_LIBS} ${absl_LIBS} ${OpenSSL_LIBS} ${c-ares_LIBS} ${ZLIB_LIBS} dl)
 
 # centenginestats target.
 add_executable("centenginestats" "${SRC_DIR}/centenginestats.cc")
@@ -676,8 +707,8 @@ install(TARGETS "centengine" "centenginestats"
   DESTINATION "${PREFIX_BIN}"
   COMPONENT "runtime")
 
-## Create directories.
-if (CREATE_FILES)
+# # Create directories.
+if(CREATE_FILES)
   install(CODE "
   function(mkdir_chown user group path)
     if (APPLE OR (UNIX AND NOT CYGWIN))
@@ -722,7 +753,7 @@ if (CREATE_FILES)
   touch_chown(\"${USER}\" \"${GROUP}\" \"${VAR_DIR}/centengine.debug\")
   touch_chown(\"${USER}\" \"${GROUP}\" \"${VAR_DIR}/retention.dat\")
   ")
-endif ()
+endif()
 
 # Install header files for development.
 install(DIRECTORY "${INC_DIR}/"
@@ -735,13 +766,11 @@ install(DIRECTORY "${INC_DIR}/"
 #
 # Packaging.
 #
-
 include(cmake/package.cmake)
 
 #
 # Print summary.
 #
-
 message(STATUS "")
 message(STATUS "")
 message(STATUS "Configuration Summary")
@@ -759,32 +788,39 @@ message(STATUS "")
 message(STATUS "  Build")
 message(STATUS "    - Compiler                    ${CMAKE_CXX_COMPILER} (${CMAKE_CXX_COMPILER_ID})")
 message(STATUS "    - Extra compilation flags     ${CMAKE_CXX_FLAGS}")
-if (WITH_SHARED_LIB)
+
+if(WITH_SHARED_LIB)
   message(STATUS "    - Build static core library   no")
-else ()
+else()
   message(STATUS "    - Build static core library   yes")
-endif ()
+endif()
+
 message(STATUS "    - External commands module    enabled")
-if (WITH_TESTING)
+
+if(WITH_TESTING)
   message(STATUS "    - Unit tests                  enabled")
-  if (WITH_COVERAGE)
+
+  if(WITH_COVERAGE)
     message(STATUS "    - Code coverage               enabled")
-  else ()
+  else()
     message(STATUS "    - Code coverage               disabled")
-  endif ()
-else ()
+  endif()
+else()
   message(STATUS "    - Unit tests                  disabled")
-endif ()
-if (WITH_PKGCONFIG_SCRIPT)
+endif()
+
+if(WITH_PKGCONFIG_SCRIPT)
   message(STATUS "    - pkg-config script           enabled")
-else ()
+else()
   message(STATUS "    - pkg-config script           disabled")
-endif ()
-if (WITH_LOGROTATE_SCRIPT)
+endif()
+
+if(WITH_LOGROTATE_SCRIPT)
   message(STATUS "    - logrotate script            enabled")
-else ()
+else()
   message(STATUS "    - logrotate script            disabled")
-endif ()
+endif()
+
 message(STATUS "    - Startup script              ${STARTUP_SCRIPT}")
 message(STATUS "")
 message(STATUS "  Install")
@@ -796,18 +832,23 @@ message(STATUS "    - Include prefix              ${PREFIX_INC}")
 message(STATUS "    - var directory               ${VAR_DIR}")
 message(STATUS "    - Log archive directory       ${LOG_ARCHIVE_DIR}")
 message(STATUS "    - RW directory                ${RW_DIR}")
-if (LOCK_FILE)
+
+if(LOCK_FILE)
   message(STATUS "    - Lock prefix                 ${LOCK_FILE}")
-endif ()
-if (WITH_PKGCONFIG_SCRIPT)
+endif()
+
+if(WITH_PKGCONFIG_SCRIPT)
   message(STATUS "    - pkg-config directory        ${PKGCONFIG_DIR}")
-endif ()
-if (WITH_LOGROTATE_SCRIPT)
+endif()
+
+if(WITH_LOGROTATE_SCRIPT)
   message(STATUS "    - logrotate directory         ${LOGROTATE_DIR}")
-endif ()
-if (STARTUP_DIR)
+endif()
+
+if(STARTUP_DIR)
   message(STATUS "    - Startup directory           ${STARTUP_DIR}")
-endif ()
+endif()
+
 message(STATUS "    - User                        ${USER}")
 message(STATUS "    - Group                       ${GROUP}")
 message(STATUS "    - Package                     ${PACKAGE_LIST}")

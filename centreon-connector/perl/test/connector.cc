@@ -29,8 +29,7 @@
 using namespace com::centreon;
 using namespace com::centreon::connector;
 
-static std::string perl_connector =
-    BUILD_PATH "/centreon-connector/perl/centreon_connector_perl";
+static std::string perl_connector = BUILD_PATH "/bin/centreon_connector_perl";
 
 static constexpr const char cmd1[] =
     "2\x00"

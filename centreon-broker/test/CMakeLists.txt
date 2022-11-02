@@ -1,20 +1,20 @@
-##
-## Copyright 2016-2017 Centreon
-##
-## Licensed under the Apache License, Version 2.0 (the "License");
-## you may not use this file except in compliance with the License.
-## You may obtain a copy of the License at
-##
-##     http://www.apache.org/licenses/LICENSE-2.0
-##
-## Unless required by applicable law or agreed to in writing, software
-## distributed under the License is distributed on an "AS IS" BASIS,
-## WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-## See the License for the specific language governing permissions and
-## limitations under the License.
-##
-## For more information : contact@centreon.com
-##
+# #
+# # Copyright 2016-2017 Centreon
+# #
+# # Licensed under the Apache License, Version 2.0 (the "License");
+# # you may not use this file except in compliance with the License.
+# # You may obtain a copy of the License at
+# #
+# #     http://www.apache.org/licenses/LICENSE-2.0
+# #
+# # Unless required by applicable law or agreed to in writing, software
+# # distributed under the License is distributed on an "AS IS" BASIS,
+# # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# # See the License for the specific language governing permissions and
+# # limitations under the License.
+# #
+# # For more information : contact@centreon.com
+# #
 
 find_package(GTest REQUIRED)
 include_directories(${GTest_INCLUDE_DIRS})
@@ -48,17 +48,19 @@ add_definitions(-DCENTREON_BROKER_NEB_TEST="${PROJECT_SOURCE_DIR}/neb/test")
 
 add_library(null_module SHARED ${TEST_DIR}/modules/null_module.cc)
 add_library(bad_version_module SHARED ${TEST_DIR}/modules/bad_version_module.cc)
+
 # Unit test executable.
-if (WITH_SQL_TESTS)
+if(WITH_SQL_TESTS)
   set(TEST_SOURCES ${TESTS_SOURCES} ${TESTS_DIR}/mysql/mysql.cc)
-endif (WITH_SQL_TESTS)
+endif(WITH_SQL_TESTS)
 
 add_definitions(-DBROKERRPC_TESTS_PATH="${TESTS_DIR}/rpc")
 
 add_executable(rpc_client ${TESTS_DIR}/rpc/client.cc)
-target_link_libraries(rpc_client berpc ${gRPC_LIBS}  ${re2_LIBS} ${absl_LIBS} ${OpenSSL_LIBS} ${c-ares_LIBS} ${ZLIB_LIBS} dl pthread)
+target_link_libraries(rpc_client berpc ${gRPC_LIBS} ${re2_LIBS} ${absl_LIBS} ${OpenSSL_LIBS} ${c-ares_LIBS} ${ZLIB_LIBS} dl pthread)
 
-add_executable(ut
+add_executable(ut_broker
+
   # Core sources.
   ${TESTS_DIR}/bbdo/category.cc
   ${TESTS_DIR}/bbdo/output.cc
@@ -98,20 +100,24 @@ add_executable(ut
 
   # Module sources.
   ${TESTS_SOURCES}
-  )
+)
 
-#set_target_properties("ut" PROPERTIES COMPILE_FLAGS "${MYSQL_CFLAGS}")
+target_link_libraries(ut_broker rokerbase roker ${TESTS_LIBRARIES} conflictmgr
+  ${nlohmann_json_LIBS} ${asio_LIBS} ${fmt_LIBS} ${spdlog_LIBS} ${GTest_LIBS} ${mariadb-connector-c_LIBS} ${OpenSSL_LIBS} ${gRPC_LIBS} ${re2_LIBS} ${absl_LIBS})
 
-target_link_libraries(ut rokerbase roker ${TESTS_LIBRARIES} conflictmgr
-	${nlohmann_json_LIBS} ${asio_LIBS} ${fmt_LIBS} ${spdlog_LIBS} ${GTest_LIBS} ${mariadb-connector-c_LIBS} ${OpenSSL_LIBS} ${gRPC_LIBS} ${re2_LIBS} ${absl_LIBS} )
+add_test(NAME tests COMMAND ut_broker)
 
-add_test(NAME tests COMMAND ut)
-
-if (WITH_COVERAGE)
+if(WITH_COVERAGE)
   set(COVERAGE_EXCLUDES '*/main.cc' '*/test/*' '/usr/include/*' '${CMAKE_BINARY_DIR}/*')
   SETUP_TARGET_FOR_COVERAGE(
     NAME test-coverage
-    EXECUTABLE ut
-    DEPENDENCIES ut
+    EXECUTABLE ut_broker
+    DEPENDENCIES ut_broker
   )
-endif ()
+endif()
+
+set_target_properties(
+  ut_broker rpc_client
+  PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests
+)
