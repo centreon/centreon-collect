@@ -8,7 +8,6 @@ add_library(shared_testing_library
   ${PROJECT_SOURCE_DIR}/test/shared_testing_library.cc
 )
 
-
 include_directories(${PROJECT_SOURCE_DIR}/test/)
 
 add_executable(ut_clib
@@ -28,6 +27,7 @@ set_target_properties(
   ut_clib bin_test_process_output shared_testing_library
   PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests
+  LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests
   RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/tests
   RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/tests
   RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR}/tests

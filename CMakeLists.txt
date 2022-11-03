@@ -55,6 +55,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
 link_directories(${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 
 # #################################
+include_directories(${CMAKE_SOURCE_DIR}/centreon-clib/inc)
 add_subdirectory(centreon-broker)
 add_subdirectory(centreon-clib)
 add_subdirectory(centreon-engine)

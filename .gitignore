@@ -15,6 +15,7 @@ broker_pb2.pyc
 broker_pb2_grpc.py
 broker_pb2_grpc.pyc
 build
+build_my_host
 centreon-broker/core/inc/com/centreon/broker/database/table_max_size.hh
 centreon-broker/core/inc/com/centreon/broker/vars.hh
 centreon-broker/core/inc/com/centreon/broker/version.hh

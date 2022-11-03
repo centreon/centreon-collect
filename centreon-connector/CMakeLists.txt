@@ -22,7 +22,6 @@ endif()
 set(CONNECTOR_VERSION "${CONNECTOR_MAJOR}.${CONNECTOR_MINOR}.${CONNECTOR_PATCH}")
 add_definitions(-DCENTREON_CONNECTOR_VERSION=\"${CONNECTOR_VERSION}\")
 
-include(${PROJECT_SOURCE_DIR}/cmake/Findclib.cmake)
 include(${PROJECT_SOURCE_DIR}/cmake/Findperl.cmake)
 
 include(${CMAKE_BINARY_DIR}/conan_paths.cmake)
