@@ -208,7 +208,7 @@ TEST_F(TestConnector, ExecuteModuleLoading) {
   _write_file(script_path.c_str(),
               "#!/usr/bin/perl\n"
               "\n"
-              "use Error::Simple;\n"
+              "use Sys::Hostname;\n"
               "use IO::Socket;\n"
               "\n"
               "print \"Centreon is wonderful\\n\";\n"
