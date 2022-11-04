@@ -248,6 +248,7 @@ cmake3 \
         -DWITH_TESTING=0 \
         -DWITH_BENCH=1 \
         -DCMAKE_INSTALL_PREFIX=/usr \
+        -DWITH_PREFIX_LIB_CLIB=%{_libdir} \
         -DWITH_ENGINE_LOGROTATE_SCRIPT=1 \
         -DWITH_STARTUP_DIR=%{_unitdir} \
         -DWITH_STARTUP_SCRIPT=systemd \

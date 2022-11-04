@@ -176,11 +176,6 @@ option(BUILD_OFFLINE "Build offline" OFF)
 option(WITH_CREATE_FILES "Create centreon-engine files." ON)
 set(CREATE_FILES "${WITH_CREATE_FILES}")
 
-# Main directory.
-if(WITH_PREFIX)
-  set(CMAKE_INSTALL_PREFIX "${WITH_PREFIX}")
-endif()
-
 # Executable directory.
 if(WITH_PREFIX_BIN)
   set(PREFIX_BIN "${WITH_PREFIX_BIN}")

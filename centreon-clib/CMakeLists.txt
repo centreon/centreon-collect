@@ -124,7 +124,6 @@ endif()
 # Set path.
 if(WITH_PREFIX)
   set(PREFIX "${WITH_PREFIX}")
-  set(CMAKE_INSTALL_PREFIX "${PREFIX}")
 else()
   set(PREFIX "${CMAKE_INSTALL_PREFIX}")
 endif()
@@ -345,7 +344,7 @@ if(WITH_STATIC_LIB)
   # Install static library.
   install(
     TARGETS "centreon_clib_static"
-    DESTINATION "${CMAKE_INSTALL_FULL_LIBDIR}"
+    DESTINATION "${PREFIX_LIB}"
     COMPONENT "runtime"
   )
 endif()

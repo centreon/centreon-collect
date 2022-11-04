@@ -56,6 +56,7 @@ link_directories(${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 
 # #################################
 include_directories(${CMAKE_SOURCE_DIR}/centreon-clib/inc)
+set(CMAKE_INSTALL_PREFIX "/usr")
 add_subdirectory(centreon-broker)
 add_subdirectory(centreon-clib)
 add_subdirectory(centreon-engine)
