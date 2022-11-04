@@ -232,7 +232,7 @@ endif()
 if(WITH_VAR_DIR)
   set(VAR_DIR "${WITH_VAR_DIR}")
 else()
-  set(VAR_DIR "${CMAKE_INSTALL_PREFIX}/var")
+  set(VAR_DIR "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/log/centreon-engine")
 endif()
 
 # Log archive dir.

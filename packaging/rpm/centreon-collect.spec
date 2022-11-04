@@ -241,6 +241,7 @@ cmake3 \
         -DWITH_PREFIX_LIB_ENGINE=%{_libdir}/centreon-engine \
         -DWITH_PREFIX_MODULES=%{_datadir}/centreon/lib/centreon-broker \
         -DWITH_PREFIX_LIB_CLIB=%{_libdir} \
+        -DWITH_VAR_DIR=%{_localstatedir}/log/centreon-engine \
         -DWITH_ENGINE_LOGROTATE_SCRIPT=1 \
         -DWITH_STARTUP_DIR=%{_unitdir} \
         -DWITH_DAEMONS='central-rrd;central-broker' \
@@ -250,6 +251,7 @@ cmake3 \
         -DWITH_GROUP_BROKER=centreon-broker \
         -DWITH_USER_ENGINE=centreon-engine \
         -DWITH_GROUP_ENGINE=centreon-engine \
+        -DWITH_PKGCONFIG_SCRIPT=0 \
         -DWITH_CONFIG_FILES=y \
         -DCMAKE_BUILD_TYPE=RelWithDebInfo \
         .
