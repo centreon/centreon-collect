@@ -236,7 +236,11 @@ else()
 endif()
 
 # Modules directory.
-set(PREFIX_MODULES "${CMAKE_INSTALL_FULL_DATADIR}/centreon/lib/centreon-broker")
+if (WITH_PREFIX_MODULES)
+  set(PREFIX_MODULES "${WITH_PREFIX_MODULES}")
+else ()
+  set(PREFIX_MODULES "${PREFIX_LIB}/centreon-broker")
+endif ()
 set(PREFIX_CBMOD "${CMAKE_INSTALL_PREFIX}/lib64/nagios")
 
 # var directory.
@@ -690,8 +694,9 @@ install(CODE "
 
 # Install rule.
 install(TARGETS "${DAEMON}"
-  RUNTIME DESTINATION "${CMAKE_INSTALL_FULL_SBINDIR}"
-)
+  RUNTIME DESTINATION "${PREFIX_BIN}"
+  )
+
 
 # Install header files for development.
 install(DIRECTORY "${INC_DIR}/../../../"

@@ -312,7 +312,7 @@ if(WITH_SHARED_LIB)
   # Install shared library.
   install(
     TARGETS "centreon_clib_shared"
-    DESTINATION "${CMAKE_INSTALL_FULL_LIBDIR}"
+    DESTINATION "${PREFIX_LIB}"
     COMPONENT "runtime"
   )
 endif()
@@ -353,7 +353,7 @@ endif()
 # Install header files for devel.
 install(
   DIRECTORY "${INCLUDE_DIR}/"
-  DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/centreon-clib"
+  DESTINATION "${PREFIX_INC}"
   COMPONENT "development"
   FILES_MATCHING PATTERN "*.hh"
 )
