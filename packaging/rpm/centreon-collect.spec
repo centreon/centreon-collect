@@ -225,18 +225,6 @@ Group: Applications/Communications
 %description -n centreon-broker-devel
 Include files needed to develop a module Centreon Broker.
 
-
-%package -n centreon-collect-client
-Summary: Centreon Collect gRPC Client. It can be used to exchange with cbd or centengine
-Group: Applications/Communications
-Requires: centreon-broker-core = %{version}-%{release}
-Requires: centreon-engine = %{version}-%{release}
-
-%description -n centreon-collect-client
-This software is a gRPC client designed to easily send commands to cbd or
-centengine.
-
-
 %prep
 %setup -q -n %{name}-%{version}
 
@@ -255,12 +243,13 @@ cmake3 \
         -DWITH_PREFIX_LIB_CLIB=%{_libdir} \
         -DWITH_ENGINE_LOGROTATE_SCRIPT=1 \
         -DWITH_STARTUP_DIR=%{_unitdir} \
+        -DWITH_DAEMONS='central-rrd;central-broker' \
+        -DWITH_PREFIX_CONF_BROKER=%{_sysconfdir}/centreon-broker \
         -DWITH_STARTUP_SCRIPT=systemd \
         -DWITH_USER_BROKER=centreon-broker \
         -DWITH_GROUP_BROKER=centreon-broker \
         -DWITH_USER_ENGINE=centreon-engine \
         -DWITH_GROUP_ENGINE=centreon-engine \
-        -DWITH_DAEMONS=y \
         -DWITH_CONFIG_FILES=y \
         -DCMAKE_BUILD_TYPE=RelWithDebInfo \
         .
@@ -454,7 +443,7 @@ fi
 
 %files -n centreon-broker-cbmod
 %defattr(-,centreon-broker,centreon-broker,-)
-%attr(0664,centreon-broker,centreon-broker) %config(noreplace) %{_sysconfdir}/centreon-broker/central-module.json
+%attr(0664,centreon-broker,centreon-broker) %config(noreplace) %{_sysconfdir}/centreon-broker/poller-module.json
 %defattr(-,root,root,-)
 %{_libdir}/nagios/cbmod.so
 

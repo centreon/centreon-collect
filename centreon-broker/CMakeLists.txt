@@ -218,9 +218,9 @@ endif()
 
 # Configuration directory.
 if(WITH_PREFIX_CONF_BROKER)
-  set(PREFIX_CONF "${WITH_PREFIX_CONF_BROKER}")
+  set(PREFIX_BROKER_CONF "${WITH_PREFIX_CONF_BROKER}")
 else()
-  set(PREFIX_CONF "${CMAKE_INSTALL_PREFIX}/etc")
+  set(PREFIX_BROKER_CONF "${CMAKE_INSTALL_PREFIX}/etc")
 endif()
 
 # Library directory.
@@ -231,11 +231,12 @@ else()
 endif()
 
 # Modules directory.
-if (WITH_PREFIX_MODULES)
+if(WITH_PREFIX_MODULES)
   set(PREFIX_MODULES "${WITH_PREFIX_MODULES}")
-else ()
+else()
   set(PREFIX_MODULES "${PREFIX_LIB}/centreon-broker")
-endif ()
+endif()
+
 set(PREFIX_CBMOD "${CMAKE_INSTALL_PREFIX}/lib64/nagios")
 
 # var directory.
@@ -331,14 +332,14 @@ if(WITH_DAEMONS)
 
   foreach(DAEMON_NAME IN LISTS WITH_DAEMONS)
     set(DAEMONS_CONFIGURATION
-      "${DAEMONS_CONFIGURATION}  \"cbd\": [ { \"name\": \"${DAEMON_NAME}\", \"configuration_file\": \"${PREFIX_CONF}/${DAEMON_NAME}.json\", \"run\": true, \"reload\": true } ],\n")
+      "${DAEMONS_CONFIGURATION}  \"cbd\": [ { \"name\": \"${DAEMON_NAME}\", \"configuration_file\": \"${PREFIX_BROKER_CONF}/${DAEMON_NAME}.json\", \"run\": true, \"reload\": true } ],\n")
   endforeach()
 
   configure_file("${PROJECT_SOURCE_DIR}/script/watchdog.json.in"
     "${PROJECT_SOURCE_DIR}/script/watchdog.json"
     @ONLY)
   install(FILES "${PROJECT_SOURCE_DIR}/script/watchdog.json"
-    DESTINATION "${PREFIX_CONF}")
+    DESTINATION "${PREFIX_BROKER_CONF}")
 
   if(WITH_STARTUP_SCRIPT STREQUAL "sysv")
     install(PROGRAMS "${PROJECT_SOURCE_DIR}/script/cbd.init"
@@ -359,11 +360,11 @@ if(WITH_CONFIG_FILES)
     @ONLY)
 
   install(FILES "${PROJECT_SOURCE_DIR}/config/poller-module.json"
-    DESTINATION "${PREFIX_CONF}")
+    DESTINATION "${PREFIX_BROKER_CONF}")
   install(FILES "${PROJECT_SOURCE_DIR}/config/central-rrd.json"
-    DESTINATION "${PREFIX_CONF}")
+    DESTINATION "${PREFIX_BROKER_CONF}")
   install(FILES "${PROJECT_SOURCE_DIR}/config/central-broker.json"
-    DESTINATION "${PREFIX_CONF}")
+    DESTINATION "${PREFIX_BROKER_CONF}")
 endif()
 
 # Monitoring engine (for testing).
@@ -680,7 +681,7 @@ install(CODE "
   mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_MODULES}\")
   mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_CBMOD}\")
   mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_INC}\")
-  mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_CONF}\")
+  mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_BROKER_CONF}\")
   mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_VAR}\")
   if (WITH_STARTUP_SCRIPT STREQUAL \"sysv\")
     mkdir_chown(\"${USER}\" \"${GROUP}\" \"${STARTUP_DIR}\")
@@ -690,8 +691,7 @@ install(CODE "
 # Install rule.
 install(TARGETS "${DAEMON}"
   RUNTIME DESTINATION "${PREFIX_BIN}"
-  )
-
+)
 
 # Install header files for development.
 install(DIRECTORY "${INC_DIR}/../../../"
@@ -770,7 +770,7 @@ message(STATUS "    - Binary prefix              ${PREFIX_BIN}")
 message(STATUS "    - Library prefix             ${PREFIX_LIB}")
 message(STATUS "    - Modules prefix             ${PREFIX_MODULES}")
 message(STATUS "    - Include prefix             ${PREFIX_INC}")
-message(STATUS "    - Configuration prefix       ${PREFIX_CONF}")
+message(STATUS "    - Configuration prefix       ${PREFIX_BROKER_CONF}")
 
 if(NOT WITH_STARTUP_SCRIPT STREQUAL "no")
   message(STATUS "    - Startup dir                ${STARTUP_DIR}")
