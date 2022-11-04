@@ -248,6 +248,9 @@ cmake3 \
         -DWITH_TESTING=0 \
         -DWITH_BENCH=1 \
         -DCMAKE_INSTALL_PREFIX=/usr \
+        -DWITH_PREFIX_BIN=%{_sbindir} \
+        -DWITH_PREFIX_CONF_ENGINE=%{_sysconfdir}/centreon-engine \
+        -DWITH_PREFIX_LIB_ENGINE=%{_libdir}/centreon-engine \
         -DWITH_PREFIX_LIB_CLIB=%{_libdir} \
         -DWITH_ENGINE_LOGROTATE_SCRIPT=1 \
         -DWITH_STARTUP_DIR=%{_unitdir} \
@@ -365,8 +368,7 @@ fi
 %defattr(-,centreon-engine,centreon-engine,-)
 %attr(0664,centreon-engine,centreon-engine) %config(noreplace) %{_sysconfdir}/centreon-engine/centengine.cfg
 %attr(0664,centreon-engine,centreon-engine) %config(noreplace) %{_sysconfdir}/centreon-engine/resource.cfg
-%attr(0664,centreon-engine,centreon-engine) %config(noreplace) %{_sysconfdir}/centreon-engine/commands.cfg
-%attr(0664,centreon-engine,centreon-engine) %config(noreplace) %{_sysconfdir}/centreon-engine/timeperiods.cfg
+%attr(0664,centreon-engine,centreon-engine) %config(noreplace) %{_sysconfdir}/centreon-engine/objects/*.cfg
 
 %defattr(-,root,root,-)
 %config(noreplace) %{_sysconfdir}/logrotate.d/centengine

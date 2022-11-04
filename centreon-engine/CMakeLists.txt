@@ -180,14 +180,14 @@ set(CREATE_FILES "${WITH_CREATE_FILES}")
 if(WITH_PREFIX_BIN)
   set(PREFIX_BIN "${WITH_PREFIX_BIN}")
 else()
-  set(PREFIX_BIN "${CMAKE_INSTALL_PREFIX}/bin")
+  set(PREFIX_BIN "${CMAKE_INSTALL_PREFIX}/sbin")
 endif()
 
 # Configuration directory.
 if(WITH_PREFIX_CONF_ENGINE)
   set(PREFIX_CONF "${WITH_PREFIX_CONF_ENGINE}")
 else()
-  set(PREFIX_CONF "${CMAKE_INSTALL_PREFIX}/etc")
+  set(PREFIX_CONF "/etc/centreon-engine")
 endif()
 
 # Library directory.
@@ -397,9 +397,9 @@ else()
 endif()
 
 # logrotate directory.
-option(WITH_LOGROTATE_SCRIPT "Generate and install logrotate script." OFF)
+option(WITH_ENGINE_LOGROTATE_SCRIPT "Generate and install logrotate script." OFF)
 
-if(WITH_LOGROTATE_SCRIPT)
+if(WITH_ENGINE_LOGROTATE_SCRIPT)
   # Generate logrotate file.
   message(STATUS "Generating logrorate file.")
 
@@ -757,7 +757,7 @@ else()
   message(STATUS "    - pkg-config script           disabled")
 endif()
 
-if(WITH_LOGROTATE_SCRIPT)
+if(WITH_ENGINE_LOGROTATE_SCRIPT)
   message(STATUS "    - logrotate script            enabled")
 else()
   message(STATUS "    - logrotate script            disabled")
@@ -783,7 +783,7 @@ if(WITH_PKGCONFIG_SCRIPT)
   message(STATUS "    - pkg-config directory        ${PKGCONFIG_DIR}")
 endif()
 
-if(WITH_LOGROTATE_SCRIPT)
+if(WITH_ENGINE_LOGROTATE_SCRIPT)
   message(STATUS "    - logrotate directory         ${LOGROTATE_DIR}")
 endif()
 
