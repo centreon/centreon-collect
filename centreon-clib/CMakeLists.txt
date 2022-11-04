@@ -352,7 +352,7 @@ endif()
 # Install header files for devel.
 install(
   DIRECTORY "${INCLUDE_DIR}/"
-  DESTINATION "${PREFIX_INC}"
+  DESTINATION "${PREFIX_INC}/centreon-clib"
   COMPONENT "development"
   FILES_MATCHING PATTERN "*.hh"
 )

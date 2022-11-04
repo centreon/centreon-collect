@@ -209,11 +209,6 @@ endif()
 # Options.
 #
 
-# Main directory.
-if(WITH_PREFIX)
-  set(CMAKE_INSTALL_PREFIX "${WITH_PREFIX}")
-endif()
-
 # Executable directory.
 if(WITH_PREFIX_BIN)
   set(PREFIX_BIN "${WITH_PREFIX_BIN}")
