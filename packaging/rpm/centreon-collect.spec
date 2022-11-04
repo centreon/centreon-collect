@@ -251,6 +251,7 @@ cmake3 \
         -DWITH_PREFIX_BIN=%{_sbindir} \
         -DWITH_PREFIX_CONF_ENGINE=%{_sysconfdir}/centreon-engine \
         -DWITH_PREFIX_LIB_ENGINE=%{_libdir}/centreon-engine \
+        -DWITH_PREFIX_MODULES=%{_datadir}/centreon/lib/centreon-broker \
         -DWITH_PREFIX_LIB_CLIB=%{_libdir} \
         -DWITH_ENGINE_LOGROTATE_SCRIPT=1 \
         -DWITH_STARTUP_DIR=%{_unitdir} \
@@ -413,7 +414,6 @@ fi
 %files -n centreon-broker-storage
 %defattr(-,root,root,-)
 %{_datadir}/centreon/lib/centreon-broker/20-storage.so
-%{_datadir}/centreon/lib/centreon-broker/20-unified_sql.so
 %{_datadir}/centreon/lib/centreon-broker/70-rrd.so
 
 %files -n centreon-broker-graphite
@@ -444,7 +444,6 @@ fi
 %{_datadir}/centreon/lib/centreon-broker/15-stats.so
 %{_datadir}/centreon/lib/centreon-broker/20-bam.so
 %{_datadir}/centreon/lib/centreon-broker/50-tcp.so
-%{_datadir}/centreon/lib/centreon-broker/50-grpc.so
 %{_datadir}/centreon/lib/centreon-broker/60-tls.so
 %{_datadir}/centreon/lib/centreon-broker/70-lua.so
 %{_datadir}/centreon/lib/centreon-broker/80-sql.so
