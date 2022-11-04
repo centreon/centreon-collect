@@ -30,6 +30,9 @@ using pb_inherited_downtime =
     io::protobuf<InheritedDowntime,
                  make_type(io::bam, bam::de_pb_inherited_downtime)>;
 
+using pb_ba_status =
+    io::protobuf<BaStatus, make_type(io::bam, bam::de_pb_ba_status)>;
+
 }  // namespace bam
 
 CCB_END()
