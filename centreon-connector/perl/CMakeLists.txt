@@ -61,15 +61,10 @@ target_link_libraries(centreon_connector_perl centreon_clib ${PERL_LIBRARIES} ${
 
 target_precompile_headers(centreon_connector_perl PRIVATE precomp_inc/precomp.hh)
 
-# Installation path.
-if(WITH_PREFIX)
-  set(CMAKE_INSTALL_PREFIX "${WITH_PREFIX}")
-endif()
-
 if(WITH_PREFIX_BINARY)
   set(PREFIX_BINARY "${WITH_PREFIX_BINARY}")
 else()
-  set(PREFIX_BINARY "${CMAKE_INSTALL_PREFIX}/bin")
+  set(PREFIX_BINARY ${PREFIX_CONNECTORS})
 endif()
 
 # Install rules.

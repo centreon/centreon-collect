@@ -58,6 +58,13 @@ endif()
 # We will use pkg-config if available.
 include_directories(${PROJECT_SOURCE_DIR}/common/inc)
 
+# Installation path.
+if(WITH_PREFIX)
+  set(CMAKE_INSTALL_PREFIX "${WITH_PREFIX}")
+endif()
+
+set(PREFIX_CONNECTORS "${CMAKE_INSTALL_PREFIX}/lib64/centreon-connector/")
+
 add_subdirectory(perl)
 add_subdirectory(ssh)
 
