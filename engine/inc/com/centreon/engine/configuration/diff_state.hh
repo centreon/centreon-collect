@@ -35,6 +35,11 @@ class diff_state
     : public ::google::protobuf::util::MessageDifferencer::Reporter {
   DiffState _dstate;
 
+  void _build_path(
+      const std::vector<
+          google::protobuf::util::MessageDifferencer::SpecificField>&,
+      Path* path);
+
  public:
   void ReportAdded(
       const google::protobuf::Message&,
