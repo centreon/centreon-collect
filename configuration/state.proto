@@ -148,5 +148,5 @@ message PathWithPair {
 message DiffState {
   repeated PathWithValue to_add = 1;
   repeated Path to_remove = 2;
-  repeated PathWithPair to_modify = 3;
+  repeated PathWithValue to_modify = 3;
 }
