@@ -1,6 +1,6 @@
 /*
 ** Copyright 1999-2008           Ethan Galstad
-** Copyright 2011-2013,2015-2020 Centreon
+** Copyright 2011-2013,2015-2022 Centreon
 **
 ** This file is part of Centreon Engine.
 **
@@ -21,6 +21,7 @@
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/commands/processing.hh"
 
+#include <absl/strings/escaping.h>
 #include <sys/time.h>
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checks/checker.hh"
@@ -495,44 +496,110 @@ void cmd_signal_process(int cmd, char* args) {
  *
  *  @return OK on success.
  */
-int cmd_process_service_check_result(int cmd, time_t check_time, char* args) {
-  (void)cmd;
-
-  if (!args)
+int cmd_process_service_check_result(int cmd [[maybe_unused]],
+                                     time_t check_time,
+                                     char* args) {
+  /* skip this service check result if we aren't accepting passive service
+   * checks */
+  if (!config->accept_passive_service_checks())
     return ERROR;
-  char* delimiter;
 
-  // Get the host name.
-  char* host_name(args);
-
-  // Get the service description.
-  delimiter = strchr(host_name, ';');
-  if (!delimiter)
+  auto a{absl::StrSplit(args, absl::MaxSplits(';', 3))};
+  auto ait = a.begin();
+  if (ait == a.end())
     return ERROR;
-  *delimiter = '\0';
-  ++delimiter;
-  char* svc_description(delimiter);
 
-  // Get the service check return code and output.
-  delimiter = strchr(svc_description, ';');
-  if (!delimiter)
+  std::string real_host_name;
+  auto host_name = *ait;
+  ++ait;
+
+  if (ait == a.end())
     return ERROR;
-  *delimiter = '\0';
-  ++delimiter;
-  char* output(strchr(delimiter, ';'));
-  if (output) {
-    *output = '\0';
-    ++output;
-  } else
-    output = "";
-  int return_code(strtol(delimiter, nullptr, 0));
+  std::string svc_description{ait->data(), ait->size()};
+  ++ait;
+
+  /* find the host by its name or address */
+  host_map::const_iterator it(host::hosts.find(host_name));
+  if (it != host::hosts.end() && it->second)
+    real_host_name = std::string(host_name.data(), host_name.size());
+  else {
+    for (host_map::iterator itt = host::hosts.begin(), end = host::hosts.end();
+         itt != end; ++itt) {
+      if (itt->second && itt->second->get_address() == host_name) {
+        real_host_name = itt->first;
+        it = itt;
+        break;
+      }
+    }
+  }
+
+  /* we couldn't find the host */
+  if (real_host_name.empty()) {
+    engine_logger(log_runtime_warning, basic)
+        << "Warning:  Passive check result was received for service '"
+        << svc_description << "' on host '" << real_host_name
+        << "', but the host could not be found!";
+    log_v2::runtime()->warn(
+        "Warning:  Passive check result was received for service '{}' on host "
+        "'{}', but the host could not be found!",
+        fmt::string_view(svc_description.data(), svc_description.size()),
+        fmt::string_view(host_name.data(), host_name.size()));
+    return ERROR;
+  }
+
+  /* make sure the service exists */
+  service_map::const_iterator found(
+      service::services.find({real_host_name, svc_description}));
+  if (found == service::services.end() || !found->second) {
+    engine_logger(log_runtime_warning, basic)
+        << "Warning:  Passive check result was received for service '"
+        << svc_description << "' on host '" << real_host_name
+        << "', but the service could not be found!";
+    log_v2::runtime()->warn(
+        "Warning:  Passive check result was received for service '{}' on "
+        "host "
+        "'{}', but the service could not be found!",
+        svc_description, host_name);
+    return ERROR;
+  }
+
+  /* skip this is we aren't accepting passive checks for this service */
+  if (!found->second->passive_checks_enabled())
+    return ERROR;
+
+  int32_t return_code;
+  if (!absl::SimpleAtoi(*ait, &return_code))
+    return ERROR;
+  ++ait;
 
   // replace \\n with \n
-  string::unescape(output);
+  std::string output;
+  absl::CUnescape(*ait, &output);
 
-  // Submit the passive check result.
-  return process_passive_service_check(check_time, host_name, svc_description,
-                                       return_code, output);
+  timeval tv;
+  gettimeofday(&tv, nullptr);
+
+  timeval set_tv = {.tv_sec = check_time, .tv_usec = 0};
+
+  check_result::pointer result = std::make_shared<check_result>(
+      service_check, found->second.get(), checkable::check_passive,
+      CHECK_OPTION_NONE, false,
+      static_cast<double>(tv.tv_sec - check_time) +
+          static_cast<double>(tv.tv_usec / 1000000.0),
+      set_tv, set_tv, false, true, return_code, std::move(output));
+
+  /* make sure the return code is within bounds */
+  if (result->get_return_code() < 0 || result->get_return_code() > 3) {
+    result->set_return_code(service::state_unknown);
+  }
+
+  if (result->get_latency() < 0.0) {
+    result->set_latency(0.0);
+  }
+
+  checks::checker::instance().add_check_result_to_reap(result);
+
+  return OK;
 }
 
 /* submits a passive service check result for later processing */
@@ -777,6 +844,8 @@ int cmd_acknowledge_problem(int cmd, char* args) {
   /* get the type */
   if (!arg.extract(';', type))
     return ERROR;
+  log_v2::external_command()->error("Error: new acknowledgement with type {}",
+                                    type);
 
   /* get the notification option */
   int ival;
@@ -813,42 +882,40 @@ int cmd_acknowledge_problem(int cmd, char* args) {
 
 /* removes a host or service acknowledgement */
 int cmd_remove_acknowledgement(int cmd, char* args) {
-  std::string host_name;
-  std::string svc_description;
-  service_map::const_iterator found;
-
-  string::c_strtok arg(args);
-
-  /* get the host name */
-  if (!arg.extract(';', host_name))
+  auto a{absl::StrSplit(args, ';')};
+  auto ait = a.begin();
+  if (ait == a.end())
     return ERROR;
 
   /* verify that the host is valid */
-  host_map::const_iterator it(host::hosts.find(host_name));
-  if (it == host::hosts.end() || !it->second)
-    return ERROR;
+  auto hostname = *ait;
+  ++ait;
 
-  /* we are removing a service acknowledgement */
-  if (cmd == CMD_REMOVE_SVC_ACKNOWLEDGEMENT) {
-    /* get the service name */
-    if (!arg.extract(';', svc_description))
-      return ERROR;
+  switch (cmd) {
+    case CMD_REMOVE_HOST_ACKNOWLEDGEMENT: {
+      host_map::const_iterator hit = host::hosts.find(hostname);
+      if (hit == host::hosts.end() || !hit->second)
+        return ERROR;
+      remove_host_acknowledgement(hit->second.get());
+    } break;
+    case CMD_REMOVE_SVC_ACKNOWLEDGEMENT:
+      /* we are removing a service acknowledgement */
+      {
+        /* get the service name */
+        if (ait == a.end())
+          return ERROR;
 
-    /* verify that the service is valid */
-    found = service::services.find({it->second->name(), svc_description});
+        /* verify that the service is valid */
+        service_map::const_iterator sit = service::services.find(
+            std::make_pair(std::string(hostname.data(), hostname.size()),
+                           std::string(ait->data(), ait->size())));
 
-    if (found == service::services.end() || !found->second)
-      return ERROR;
+        if (sit == service::services.end() || !sit->second)
+          return ERROR;
+        remove_service_acknowledgement(sit->second.get());
+      }
+      break;
   }
-
-  /* acknowledge the host problem */
-  if (cmd == CMD_REMOVE_HOST_ACKNOWLEDGEMENT)
-    remove_host_acknowledgement(it->second.get());
-
-  /* acknowledge the service problem */
-  else
-    remove_service_acknowledgement(found->second.get());
-
   return OK;
 }
 

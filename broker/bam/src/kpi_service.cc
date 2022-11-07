@@ -270,6 +270,32 @@ void kpi_service::service_update(
 }
 
 /**
+ *  Service got a protobuf acknowledgement.
+ *
+ *  @param[in]  ack      Acknowledgement.
+ *  @param[out] visitor  Object that will receive events.
+ */
+void kpi_service::service_update(
+    const std::shared_ptr<neb::pb_acknowledgement>& ack,
+    io::stream* visitor) {
+  // Log message.
+  log_v2::bam()->debug(
+      "BAM: KPI {} is getting a pb acknowledgement event for service ({}, {}) "
+      "entry_time {} ; deletion_time {}",
+      _id, _host_id, _service_id, ack->obj().entry_time(),
+      ack->obj().deletion_time());
+
+  // Update information.
+  _acknowledged = time_is_undefined(ack->obj().deletion_time());
+
+  // Generate status event.
+  visit(visitor);
+
+  // Propagate change.
+  propagate_update(visitor);
+}
+
+/**
  *  Service got an acknowledgement.
  *
  *  @param[in]  ack      Acknowledgement.

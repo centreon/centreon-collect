@@ -165,25 +165,24 @@ message LogEntry {
 }
 
 message InstanceStatus {
-    BBDOHeader header = 1;
+  BBDOHeader header = 1;
 
-    bool event_handlers = 2;
-    bool flap_detection = 3;
-    bool notifications = 4;
-    bool active_host_checks = 5;
-    bool active_service_checks = 6;
-    bool check_hosts_freshness = 7;
-    bool check_services_freshness =  8;
-    string global_host_event_handler = 9;
-    string global_service_event_handler = 10;
-    uint64 last_alive = 11;
-    uint64 last_command_check = 12;
-    bool obsess_over_hosts = 13;
-    bool obsess_over_services = 14;
-    bool passive_host_checks = 15;
-    bool passive_service_checks = 16;
-    uint64 instance_id = 17;
-  
+  bool event_handlers = 2;
+  bool flap_detection = 3;
+  bool notifications = 4;
+  bool active_host_checks = 5;
+  bool active_service_checks = 6;
+  bool check_hosts_freshness = 7;
+  bool check_services_freshness =  8;
+  string global_host_event_handler = 9;
+  string global_service_event_handler = 10;
+  uint64 last_alive = 11;
+  uint64 last_command_check = 12;
+  bool obsess_over_hosts = 13;
+  bool obsess_over_services = 14;
+  bool passive_host_checks = 15;
+  bool passive_service_checks = 16;
+  uint64 instance_id = 17;
 }
 
 message Instance {
@@ -204,4 +203,24 @@ message ResponsiveInstance {
 
   uint64 poller_id = 2;
   bool responsive = 3;
+}
+
+message Acknowledgement {
+  uint64 host_id = 1;
+  uint64 service_id = 2;
+  uint64 instance_id = 3;
+  enum AcknowledgementType {
+    NONE = 0;
+    NORMAL = 1;
+    STICKY = 2;
+  }
+  AcknowledgementType type = 4;
+  string author = 5;
+  string comment_data = 6;
+  bool sticky = 7;
+  bool notify_contacts = 8;
+  uint64 entry_time = 9;
+  uint64 deletion_time = 10;
+  bool persistent_comment = 11;
+  uint32 state = 12;
 }

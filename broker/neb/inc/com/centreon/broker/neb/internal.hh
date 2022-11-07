@@ -1,5 +1,5 @@
 /*
-** Copyright 2009-2015, 2021 Centreon
+** Copyright 2009-2015, 2021-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -46,12 +46,6 @@ extern multiplexing::publisher gl_publisher;
 // Registered callbacks.
 extern std::list<std::unique_ptr<neb::callback>> gl_registered_callbacks;
 
-// Acknowledgement list.
-extern std::unordered_map<std::pair<uint32_t, uint32_t>,
-                          neb::acknowledgement,
-                          absl::Hash<std::pair<uint32_t, uint32_t>>>
-    gl_acknowledgements;
-
 using pb_downtime =
     io::protobuf<Downtime, make_type(io::neb, neb::de_pb_downtime)>;
 
@@ -93,15 +87,21 @@ using pb_service_check =
 
 using pb_log_entry =
     io::protobuf<LogEntry, make_type(io::neb, neb::de_pb_log_entry)>;
+
 using pb_instance_status =
     io::protobuf<InstanceStatus,
                  make_type(io::neb, neb::de_pb_instance_status)>;
+
 using pb_instance =
     io::protobuf<Instance, make_type(io::neb, neb::de_pb_instance)>;
 
 using pb_responsive_instance =
     io::protobuf<ResponsiveInstance,
                  make_type(io::neb, neb::de_pb_responsive_instance)>;
+
+using pb_acknowledgement =
+    io::protobuf<Acknowledgement,
+                 make_type(io::neb, neb::de_pb_acknowledgement)>;
 
 }  // namespace neb
 

@@ -1497,6 +1497,24 @@ def process_service_check_result(hst: str, svc: str, state: int, output: str, co
 
 
 @external_command
+def acknowledge_service_problem(hst, service, typ='NORMAL'):
+    if typ == 'NORMAL':
+        logger.console('acknowledgement is normal')
+        sticky = 1
+    elif typ == 'STICKY':
+        logger.console('acknowledgement is sticky')
+        sticky = 2
+    else:
+        logger.console('acknowledgement type is none')
+        sticky = 0
+
+    return f"ACKNOWLEDGE_SVC_PROBLEM;{hst};{service};{sticky};0;0;admin;Service ({hst},{service}) acknowledged\n"
+
+@external_command
+def remove_service_acknowledgement(hst, service):
+    return f"REMOVE_SVC_ACKNOWLEDGEMENT;{hst};{service}\n"
+
+@external_command
 def send_custom_host_notification(hst, notification_option, author, comment):
     return f"SEND_CUSTOM_HOST_NOTIFICATION;{hst};{notification_option};{author};{comment}\n"
 

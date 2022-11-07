@@ -58,6 +58,8 @@ class service_book {
                 service_listener* listnr);
   void update(const std::shared_ptr<neb::acknowledgement>& t,
               io::stream* visitor = nullptr);
+  void update(const std::shared_ptr<neb::pb_acknowledgement>& t,
+              io::stream* visitor = nullptr);
   void update(const std::shared_ptr<neb::downtime>& t,
               io::stream* visitor = nullptr);
   void update(const std::shared_ptr<neb::pb_downtime>& t,

@@ -261,6 +261,7 @@ class stream : public io::stream {
   std::unordered_map<uint32_t, stored_timestamp> _stored_timestamps;
 
   database::mysql_stmt _acknowledgement_insupdate;
+  database::mysql_stmt _pb_acknowledgement_insupdate;
   database::mysql_stmt _comment_insupdate;
   database::mysql_stmt _pb_comment_insupdate;
   database::mysql_stmt _custom_variable_delete;
@@ -283,7 +284,6 @@ class stream : public io::stream {
   database::mysql_stmt _pb_instance_insupdate;
   database::mysql_stmt _instance_status_insupdate;
   database::mysql_stmt _pb_instance_status_insupdate;
-  database::mysql_stmt _module_insert;
   database::mysql_stmt _service_check_update;
   database::mysql_stmt _pb_service_check_update;
   database::mysql_stmt _service_dependency_insupdate;
@@ -325,6 +325,7 @@ class stream : public io::stream {
   void _check_rebuild_index();
 
   void _process_acknowledgement(const std::shared_ptr<io::data>& d);
+  void _process_pb_acknowledgement(const std::shared_ptr<io::data>& d);
   void _process_comment(const std::shared_ptr<io::data>& d);
   void _process_pb_comment(const std::shared_ptr<io::data>& d);
   void _process_custom_variable(const std::shared_ptr<io::data>& d);
@@ -346,7 +347,6 @@ class stream : public io::stream {
   void _process_instance_status(const std::shared_ptr<io::data>& d);
   void _process_pb_instance_status(const std::shared_ptr<io::data>& d);
   void _process_log(const std::shared_ptr<io::data>& d);
-  void _process_module(const std::shared_ptr<io::data>& d);
   void _process_service_check(const std::shared_ptr<io::data>& d);
   void _process_pb_service_check(const std::shared_ptr<io::data>& d);
   void _process_service_dependency(const std::shared_ptr<io::data>& d);

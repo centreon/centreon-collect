@@ -346,31 +346,6 @@ static void send_host_parents_list() {
 }
 
 /**
- *  Send to the global publisher the list of modules loaded by Engine.
- */
-static void send_module_list() {
-  // Start log message.
-  log_v2::neb()->info("init: beginning modules dump");
-
-  // Browse module list.
-  for (nebmodule* nm(neb_module_list); nm; nm = nm->next)
-    if (nm->filename) {
-      // Fill callback struct.
-      nebstruct_module_data nsmd;
-      memset(&nsmd, 0, sizeof(nsmd));
-      nsmd.module = nm->filename;
-      nsmd.args = nm->args;
-      nsmd.type = NEBTYPE_MODULE_ADD;
-
-      // Callback.
-      neb::callback_module(NEBTYPE_MODULE_ADD, &nsmd);
-    }
-
-  // End log message.
-  log_v2::neb()->info("init: end of modules dump");
-}
-
-/**
  *  Send to the global publisher the list of service dependencies within
  *  Nagios.
  */
@@ -517,7 +492,6 @@ void neb::send_initial_configuration() {
   send_service_group_list();
   send_host_dependencies_list();
   send_service_dependencies_list();
-  send_module_list();
   send_instance_configuration();
 }
 
@@ -542,6 +516,5 @@ void neb::send_initial_pb_configuration() {
   send_service_group_list();
   send_host_dependencies_list();
   send_service_dependencies_list();
-  send_module_list();
   send_instance_configuration();
 }

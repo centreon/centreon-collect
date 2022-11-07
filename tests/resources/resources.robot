@@ -78,11 +78,11 @@ Kindly Stop Broker
 		${result}=	Wait For Process	b2	timeout=60s	on_timeout=kill
 		# In case of process not stopping
 		IF	"${result}" == "${None}"
-		Dump Process	b2	broker-rrd
-		Send Signal To Process	SIGKILL	b2
-		Fail	RRD Broker not correctly stopped (coredump generated)
+		  Dump Process	b2	broker-rrd
+		  Send Signal To Process	SIGKILL	b2
+		  Fail	RRD Broker not correctly stopped (coredump generated)
 		ELSE
-		Should Be Equal As Integers	${result.rc}	0	msg=RRD Broker not correctly stopped
+		  Should Be Equal As Integers	${result.rc}	0	msg=RRD Broker not correctly stopped
 		END
 	END
 

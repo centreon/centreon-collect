@@ -39,13 +39,13 @@ struct setprecision {
  */
 class temp_logger {
  public:
-  temp_logger(unsigned long long types, unsigned int verbose) throw();
+  temp_logger(unsigned long long types, unsigned int verbose) noexcept;
   temp_logger(temp_logger const& right);
   virtual ~temp_logger() throw();
   temp_logger& operator=(temp_logger const& right);
-  temp_logger& operator<<(setprecision const& obj) throw();
+  temp_logger& operator<<(setprecision const& obj) noexcept;
   template <typename T>
-  temp_logger& operator<<(T obj) throw() {
+  temp_logger& operator<<(T obj) noexcept {
     _buffer << obj;
     return (*this);
   }

@@ -49,7 +49,7 @@ check_result::check_result(enum check_source object_check_type,
                            bool early_timeout,
                            bool exited_ok,
                            int return_code,
-                           std::string const& output)
+                           std::string output)
     : _object_check_type{object_check_type},
       _notifier{notifier},
       _check_type(check_type),
@@ -61,7 +61,7 @@ check_result::check_result(enum check_source object_check_type,
       _early_timeout{early_timeout},
       _exited_ok{exited_ok},
       _return_code{return_code},
-      _output{output} {}
+      _output{std::move(output)} {}
 
 void check_result::set_object_check_type(enum check_source object_check_type) {
   _object_check_type = object_check_type;

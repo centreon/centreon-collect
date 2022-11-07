@@ -49,7 +49,6 @@ set(NEB_SOURCES
   ${SRC_DIR}/instance_configuration.cc
   ${SRC_DIR}/instance_status.cc
   ${SRC_DIR}/log_entry.cc
-  ${SRC_DIR}/module.cc
   ${SRC_DIR}/responsive_instance.cc
   ${SRC_DIR}/service.cc
   ${SRC_DIR}/service_check.cc
@@ -82,7 +81,6 @@ set(NEB_SOURCES
   ${INC_DIR}/com/centreon/broker/neb/instance_status.hh
   ${INC_DIR}/com/centreon/broker/neb/internal.hh
   ${INC_DIR}/com/centreon/broker/neb/log_entry.hh
-  ${INC_DIR}/com/centreon/broker/neb/module.hh
   ${INC_DIR}/com/centreon/broker/neb/responsive_instance.hh
   ${INC_DIR}/com/centreon/broker/neb/service.hh
   ${INC_DIR}/com/centreon/broker/neb/service_check.hh
@@ -201,7 +199,6 @@ if(WITH_TESTING)
     ${TEST_DIR}/instance.cc
     ${TEST_DIR}/instance_status.cc
     ${TEST_DIR}/log_entry.cc
-    ${TEST_DIR}/module.cc
     ${TEST_DIR}/randomize.cc
     ${TEST_DIR}/randomize.hh
     ${TEST_DIR}/service.cc

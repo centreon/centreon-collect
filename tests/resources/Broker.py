@@ -1250,12 +1250,13 @@ def get_indexes_to_rebuild(count: int):
                 if int(r['metric_id']) in ids:
                     logger.console(
                         "building data for metric {}".format(r['metric_id']))
-                    start = int(time.time()) - 24 * 60 * 60 * 30
-                    # We go back to 30 days with steps of 5 mn
+                    # We go back to 180 days with steps of 5 mn
+                    start = int(time.time()) - 24 * 60 * 60 * 180
                     value = int(r['metric_id']) // 2
                     cursor.execute("DELETE FROM data_bin WHERE id_metric={} AND ctime >= {}".format(
                         r['metric_id'], start))
-                    for i in range(0, 24 * 60 * 60 * 31, 60 * 5):
+                    # We set the value to a constant on 180 days
+                    for i in range(0, 24 * 60 * 60 * 180, 60 * 5):
                         cursor.execute("INSERT INTO data_bin (id_metric, ctime, value, status) VALUES ({},{},{},'0')".format(
                             r['metric_id'], start + i, value))
                     connection.commit()
@@ -1407,7 +1408,7 @@ def rebuild_rrd_graphs_from_db(indexes):
 #
 # @return A boolean.
 def compare_rrd_average_value(metric, value: float):
-    res = getoutput("rrdtool graph dummy --start=end-30d --end=now"
+    res = getoutput("rrdtool graph dummy --start=end-180d --end=now"
                     " DEF:x=" + VAR_ROOT +
                     "/lib/centreon/metrics/{}.rrd:value:AVERAGE VDEF:xa=x,AVERAGE PRINT:xa:%lf"
                     .format(metric))
@@ -1417,7 +1418,7 @@ def compare_rrd_average_value(metric, value: float):
         err = abs(res - float(value)) / float(value)
         logger.console(
             f"expected value: {value} - result value: {res} - err: {err}")
-        return err < 0.05
+        return err < 0.005
     else:
         logger.console(
            f"It was impossible to get the average value from the file {VAR_ROOT}/lib/centreon/metrics/{metric}.rrd from the last 30 days")
