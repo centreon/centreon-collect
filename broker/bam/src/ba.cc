@@ -584,25 +584,40 @@ void ba::_compute_inherited_downtime(io::stream* visitor) {
         _in_downtime);
 }
 
-std::shared_ptr<ba_status> ba::_generate_ba_status(bool state_changed) const {
-  auto status{std::make_shared<ba_status>()};
-  status->ba_id = get_id();
-  status->in_downtime = get_in_downtime();
+std::shared_ptr<pb_ba_status> ba::_generate_ba_status(
+    bool state_changed) const {
+  auto ret{std::make_shared<pb_ba_status>()};
+  BaStatus& status = ret->mut_obj();
+  status.set_ba_id(get_id());
+  status.set_in_downtime(get_in_downtime());
   if (_event)
-    status->last_state_change = _event->start_time;
+    status.set_last_state_change(_event->start_time);
   else
-    status->last_state_change = get_last_kpi_update();
-  status->level_acknowledgement = _normalize(_acknowledgement_hard);
-  status->level_downtime = _normalize(_downtime_hard);
-  status->level_nominal = _normalize(_level_hard);
-  status->state = get_state_hard();
-  status->state_changed = state_changed;
+    status.set_last_state_change(get_last_kpi_update());
+  status.set_level_acknowledgement(_normalize(_acknowledgement_hard));
+  status.set_level_downtime(_normalize(_downtime_hard));
+  status.set_level_nominal(_normalize(_level_hard));
+  switch (get_state_hard()) {
+    case state_ok:
+      status.set_state(com::centreon::broker::State::OK);
+      break;
+    case state_warning:
+      status.set_state(com::centreon::broker::State::WARNING);
+      break;
+    case state_critical:
+      status.set_state(com::centreon::broker::State::CRITICAL);
+      break;
+    case state_unknown:
+      status.set_state(com::centreon::broker::State::UNKNOWN);
+      break;
+  }
+  status.set_state_changed(state_changed);
   SPDLOG_LOGGER_DEBUG(
       log_v2::bam(),
       "BAM: generating status of BA {} '{}' (state {}, in downtime {}, "
       "level {})",
-      _id, _name, status->state, status->in_downtime, status->level_nominal);
-  return status;
+      _id, _name, status.state(), status.in_downtime(), status.level_nominal());
+  return ret;
 }
 
 std::shared_ptr<io::data> ba::_generate_virtual_service_status() const {

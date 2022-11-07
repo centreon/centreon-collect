@@ -147,6 +147,8 @@ void broker_module_init(void const* arg) {
                        "InheritedDowntime",
                        &bam::pb_inherited_downtime::operations,
                        "InheritedDowntime");
+      e.register_event(make_type(io::bam, bam::de_pb_ba_status), "BaStatus",
+                       &bam::pb_ba_status::operations, "BaStatus");
     }
   }
 }

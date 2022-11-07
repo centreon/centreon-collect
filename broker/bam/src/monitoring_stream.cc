@@ -329,6 +329,47 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
         }
       }
     } break;
+    case bam::pb_ba_status::static_type(): {
+      const BaStatus& status =
+          static_cast<const pb_ba_status*>(data.get())->obj();
+      SPDLOG_LOGGER_TRACE(log_v2::bam(),
+                          "BAM: processing pb BA status (id {}, nominal {}, "
+                          "acknowledgement {}, "
+                          "downtime {}) - in downtime {}, state {}",
+                          status.ba_id(), status.level_nominal(),
+                          status.level_acknowledgement(),
+                          status.level_downtime(), status.in_downtime(),
+                          status.state());
+      _ba_update.bind_value_as_f64(0, status.level_nominal());
+      _ba_update.bind_value_as_f64(1, status.level_acknowledgement());
+      _ba_update.bind_value_as_f64(2, status.level_downtime());
+      _ba_update.bind_value_as_u32(6, status.ba_id());
+      if (status.last_state_change() == 0)
+        _ba_update.bind_value_as_null(3);
+      else
+        _ba_update.bind_value_as_u64(3, status.last_state_change());
+      _ba_update.bind_value_as_bool(4, status.in_downtime());
+      _ba_update.bind_value_as_i32(5, status.state());
+
+      _mysql.run_statement(_ba_update, database::mysql_error::update_ba, true);
+
+      if (status.state_changed()) {
+        std::pair<std::string, std::string> ba_svc_name(
+            _ba_mapping.get_service(status.ba_id()));
+        if (ba_svc_name.first.empty() || ba_svc_name.second.empty()) {
+          log_v2::bam()->error(
+              "BAM: could not trigger check of virtual service of BA {}:"
+              "host name and service description were not found",
+              status.ba_id());
+        } else {
+          time_t now = time(nullptr);
+          std::string cmd(
+              fmt::format("[{}] SCHEDULE_FORCED_SVC_CHECK;{};{};{}\n", now,
+                          ba_svc_name.first, ba_svc_name.second, now));
+          _write_forced_svc_check(ba_svc_name.first, ba_svc_name.second);
+        }
+      }
+    } break;
     case bam::kpi_status::static_type(): {
       kpi_status* status(static_cast<kpi_status*>(data.get()));
       SPDLOG_LOGGER_DEBUG(
