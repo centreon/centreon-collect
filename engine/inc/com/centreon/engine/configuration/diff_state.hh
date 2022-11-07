@@ -39,6 +39,12 @@ class diff_state
       const std::vector<
           google::protobuf::util::MessageDifferencer::SpecificField>&,
       Path* path);
+  void _set_value(
+      const google::protobuf::Message& message,
+      const std::vector<
+          google::protobuf::util::MessageDifferencer::SpecificField>&,
+      bool left_side,
+      Value* value);
 
  public:
   void ReportAdded(
