@@ -71,9 +71,9 @@ TEST_F(ApplierState, DiffOnTimeperiod) {
   configuration::DiffState dstate =
       configuration::applier::state::instance().build_difference(pb_config,
                                                                  new_config);
-  //  ASSERT_TRUE(dstate.dtimeperiods().to_remove().empty());
-//  ASSERT_TRUE(dstate.dtimeperiods().to_add().empty());
-  //  ASSERT_TRUE(dstate.dtimeperiods().to_modify().empty());
+  ASSERT_TRUE(dstate.to_add().empty());
+  ASSERT_TRUE(dstate.to_remove().empty());
+  ASSERT_TRUE(dstate.to_modify().empty());
 }
 
 TEST_F(ApplierState, DiffOnTimeperiodOneRemoved) {
@@ -97,8 +97,8 @@ TEST_F(ApplierState, DiffOnTimeperiodOneRemoved) {
   ASSERT_EQ(dstate.to_remove()[0].key()[0].i32(), 1);
   ASSERT_EQ(dstate.to_remove()[0].key()[1].i32(), 9);
   ASSERT_EQ(dstate.to_remove()[0].key().size(), 2);
-//  ASSERT_TRUE(dstate.dtimeperiods().to_add().empty());
-  //  ASSERT_TRUE(dstate.dtimeperiods().to_modify().empty());
+  ASSERT_TRUE(dstate.to_add().empty());
+  ASSERT_TRUE(dstate.to_modify().empty());
 }
 
 TEST_F(ApplierState, DiffOnTimeperiodNewOne) {
@@ -121,9 +121,13 @@ TEST_F(ApplierState, DiffOnTimeperiodNewOne) {
   configuration::DiffState dstate =
       configuration::applier::state::instance().build_difference(pb_config,
                                                                  new_config);
-//  ASSERT_TRUE(dstate.dtimeperiods().to_remove().empty());
-//  ASSERT_EQ(dstate.dtimeperiods().to_add().size(), 1u);
-  //  ASSERT_TRUE(dstate.dtimeperiods().to_modify().empty());
+  ASSERT_TRUE(dstate.to_remove().empty());
+  ASSERT_TRUE(dstate.to_modify().empty());
+  ASSERT_EQ(dstate.to_add().size(), 1u);
+  ASSERT_TRUE(dstate.to_add()[0].val().has_value_tp());
+  const configuration::Timeperiod& new_tp = dstate.to_add()[0].val().value_tp();
+  ASSERT_EQ(new_tp.alias(), std::string("timeperiod 11"));
+  ASSERT_EQ(new_tp.name(), std::string("Timeperiod 11"));
 }
 
 TEST_F(ApplierState, DiffOnTimeperiodAliasRenamed) {
@@ -144,14 +148,22 @@ TEST_F(ApplierState, DiffOnTimeperiodAliasRenamed) {
   configuration::DiffState dstate =
       configuration::applier::state::instance().build_difference(pb_config,
                                                                  new_config);
-//  ASSERT_TRUE(dstate.dtimeperiods().to_remove().empty());
-//  ASSERT_TRUE(dstate.dtimeperiods().to_add().empty());
-  //  auto& to_modify = dstate.dtimeperiods().to_modify();
-  //  ASSERT_EQ(to_modify.size(), 1u);
-  //  ASSERT_EQ(to_modify.begin()->first, 7);
-  //  auto& change = to_modify.begin()->second;
-  //  ASSERT_EQ(change.list().begin()->id(), 1u);
-  //  ASSERT_TRUE(change.list().begin()->has_value_str());
+  ASSERT_TRUE(dstate.to_remove().empty());
+  ASSERT_TRUE(dstate.to_add().empty());
+  ASSERT_EQ(dstate.to_modify().size(), 1u);
+  const configuration::PathWithValue& path = dstate.to_modify()[0];
+  ASSERT_EQ(path.path().key().size(), 4u);
+  // number 1 => timeperiods
+  ASSERT_EQ(path.path().key()[0].i32(), 1);
+  // index 7 => timeperiods[7]
+  ASSERT_EQ(path.path().key()[1].i32(), 7);
+  // number 1 => timeperiods.alias
+  ASSERT_EQ(path.path().key()[2].i32(), 1);
+  // No more key...
+  ASSERT_EQ(path.path().key()[3].i32(), -1);
+  ASSERT_TRUE(path.val().has_value_str());
+  // The new value of timeperiods[7].alias is "timeperiod changed"
+  ASSERT_EQ(path.val().value_str(), std::string("timeperiod changed"));
 }
 
 TEST_F(ApplierState, DiffOnContactOneRemoved) {
@@ -174,18 +186,14 @@ TEST_F(ApplierState, DiffOnContactOneRemoved) {
                                                                  new_config);
   ASSERT_EQ(dstate.to_remove().size(), 1u);
 
-  /* One object to removed given by one path: 4, "name 4" ; The number in
-   * the State of the object, a contact number is 4 and in the map, the key of
-   * the message to remove: "name 4" */
-  for (auto& k : dstate.to_remove()[0].key())
-    if (k.has_i32())
-      std::cout << " * " << k.i32() << std::endl;
-    else if (k.has_str())
-      std::cout << " * " << k.str() << std::endl;
   ASSERT_EQ(dstate.to_remove()[0].key().size(), 2);
+  // number 4 => for contacts
   ASSERT_EQ(dstate.to_remove()[0].key()[0].i32(), 4);
+  // "name 4" => contacts["name 4"]
   ASSERT_EQ(dstate.to_remove()[0].key()[1].str(), std::string("name 4"));
-//  ASSERT_TRUE(dstate.dcontacts().to_add().empty());
+
+  ASSERT_TRUE(dstate.to_add().empty());
+  ASSERT_TRUE(dstate.to_modify().empty());
 }
 
 TEST_F(ApplierState, DiffOnContactOneAdded) {
@@ -206,8 +214,14 @@ TEST_F(ApplierState, DiffOnContactOneAdded) {
   configuration::DiffState dstate =
       configuration::applier::state::instance().build_difference(pb_config,
                                                                  new_config);
-//  ASSERT_EQ(dstate.dcontacts().to_add().size(), 1u);
-//  ASSERT_TRUE(dstate.dcontacts().to_remove().empty());
+  ASSERT_TRUE(dstate.to_remove().empty());
+  ASSERT_TRUE(dstate.to_modify().empty());
+  ASSERT_EQ(dstate.to_add().size(), 1u);
+  const configuration::PathWithValue& to_add = dstate.to_add()[0];
+  ASSERT_EQ(to_add.path().key().size(), 2u);
+  ASSERT_EQ(to_add.path().key()[0].i32(), 4);
+  // ASSERT_EQ(to_add.path().key()[1].str(), std::string("name 4"));
+  ASSERT_TRUE(to_add.val().has_value_ct());
 }
 
 /**
@@ -235,12 +249,12 @@ TEST_F(ApplierState, DiffOnContactOneNewAddress) {
   configuration::DiffState dstate =
       configuration::applier::state::instance().build_difference(pb_config,
                                                                  new_config);
-//  ASSERT_TRUE(dstate.dcontacts().to_add().empty());
-//  ASSERT_TRUE(dstate.dcontacts().to_remove().empty());
-//  ASSERT_EQ(dstate.dcontacts().to_modify().size(), 1u);
-//  auto to_modify = dstate.dcontacts().to_modify();
-//  ASSERT_EQ(to_modify["name 3"].list().begin()->id(), 3);
-//  ASSERT_EQ(to_modify["name 3"].list().begin()->value_str(), "new address");
+  //  ASSERT_TRUE(dstate.dcontacts().to_add().empty());
+  //  ASSERT_TRUE(dstate.dcontacts().to_remove().empty());
+  //  ASSERT_EQ(dstate.dcontacts().to_modify().size(), 1u);
+  //  auto to_modify = dstate.dcontacts().to_modify();
+  //  ASSERT_EQ(to_modify["name 3"].list().begin()->id(), 3);
+  //  ASSERT_EQ(to_modify["name 3"].list().begin()->value_str(), "new address");
 }
 
 /**
@@ -268,12 +282,12 @@ TEST_F(ApplierState, DiffOnContactFirstAddressRemoved) {
   configuration::DiffState dstate =
       configuration::applier::state::instance().build_difference(pb_config,
                                                                  new_config);
-//  ASSERT_TRUE(dstate.dcontacts().to_add().empty());
-//  ASSERT_TRUE(dstate.dcontacts().to_remove().empty());
-//  ASSERT_EQ(dstate.dcontacts().to_modify().size(), 1u);
-//  auto to_modify = dstate.dcontacts().to_modify();
-//  ASSERT_EQ(to_modify["name 3"].list().begin()->id(), 2);
-//  ASSERT_EQ(to_modify["name 3"].list().begin()->value_str(), "address 2");
+  //  ASSERT_TRUE(dstate.dcontacts().to_add().empty());
+  //  ASSERT_TRUE(dstate.dcontacts().to_remove().empty());
+  //  ASSERT_EQ(dstate.dcontacts().to_modify().size(), 1u);
+  //  auto to_modify = dstate.dcontacts().to_modify();
+  //  ASSERT_EQ(to_modify["name 3"].list().begin()->id(), 2);
+  //  ASSERT_EQ(to_modify["name 3"].list().begin()->value_str(), "address 2");
 }
 
 /**
@@ -301,12 +315,12 @@ TEST_F(ApplierState, DiffOnContactSecondAddressUpdated) {
   configuration::DiffState dstate =
       configuration::applier::state::instance().build_difference(pb_config,
                                                                  new_config);
-//  ASSERT_TRUE(dstate.dcontacts().to_add().empty());
-//  ASSERT_TRUE(dstate.dcontacts().to_remove().empty());
-//  ASSERT_EQ(dstate.dcontacts().to_modify().size(), 1u);
-//  auto to_modify = dstate.dcontacts().to_modify();
-//  ASSERT_EQ(to_modify["name 3"].list().begin()->id(), 2);
-//  ASSERT_EQ(to_modify["name 3"].list().begin()->value_str(), "address 2");
+  //  ASSERT_TRUE(dstate.dcontacts().to_add().empty());
+  //  ASSERT_TRUE(dstate.dcontacts().to_remove().empty());
+  //  ASSERT_EQ(dstate.dcontacts().to_modify().size(), 1u);
+  //  auto to_modify = dstate.dcontacts().to_modify();
+  //  ASSERT_EQ(to_modify["name 3"].list().begin()->id(), 2);
+  //  ASSERT_EQ(to_modify["name 3"].list().begin()->value_str(), "address 2");
 }
 
 TEST_F(ApplierState, DiffOnContactRemoveCustomvariable) {
@@ -328,10 +342,10 @@ TEST_F(ApplierState, DiffOnContactRemoveCustomvariable) {
   configuration::DiffState dstate =
       configuration::applier::state::instance().build_difference(pb_config,
                                                                  new_config);
-//  ASSERT_TRUE(dstate.dcontacts().to_add().empty());
-//  ASSERT_TRUE(dstate.dcontacts().to_remove().empty());
-//  ASSERT_EQ(dstate.dcontacts().to_modify().size(), 1u);
-//  auto to_modify = dstate.dcontacts().to_modify();
-//  ASSERT_EQ(to_modify["name 3"].list().begin()->id(), 2);
-//  ASSERT_EQ(to_modify["name 3"].list().begin()->value_str(), "address 2");
+  //  ASSERT_TRUE(dstate.dcontacts().to_add().empty());
+  //  ASSERT_TRUE(dstate.dcontacts().to_remove().empty());
+  //  ASSERT_EQ(dstate.dcontacts().to_modify().size(), 1u);
+  //  auto to_modify = dstate.dcontacts().to_modify();
+  //  ASSERT_EQ(to_modify["name 3"].list().begin()->id(), 2);
+  //  ASSERT_EQ(to_modify["name 3"].list().begin()->value_str(), "address 2");
 }
