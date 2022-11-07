@@ -18,14 +18,14 @@
  */
 
 #include "com/centreon/broker/brokerrpc.hh"
-#include "com/centreon/broker/stats/center.hh"
 #include "com/centreon/broker/pool.hh"
+#include "com/centreon/broker/stats/center.hh"
 
 #include <gtest/gtest.h>
 
+#include <fmt/format.h>
 #include <cstdio>
 #include <fstream>
-#include <fmt/format.h>
 #include <iostream>
 
 #include "com/centreon/broker/log_v2.hh"
@@ -50,7 +50,7 @@ class BrokerRpc : public ::testing::Test {
     std::list<std::string> retval;
     char path[1024];
     std::ostringstream oss;
-    oss << "test/rpc_client " << command;
+    oss << "tests/rpc_client " << command;
 
     FILE* fp = popen(oss.str().c_str(), "r");
     while (fgets(path, sizeof(path), fp) != nullptr) {
@@ -71,11 +71,13 @@ TEST_F(BrokerRpc, GetVersion) {
   auto output = execute("GetVersion");
 #if CENTREON_BROKER_PATCH == 0
   ASSERT_EQ(output.size(), 2u);
-  ASSERT_EQ(output.front(), fmt::format("GetVersion: major: {}\n", version::major));
+  ASSERT_EQ(output.front(),
+            fmt::format("GetVersion: major: {}\n", version::major));
   ASSERT_EQ(output.back(), fmt::format("minor: {}\n", version::minor));
 #else
   ASSERT_EQ(output.size(), 3u);
-  ASSERT_EQ(output.front(), fmt::format("GetVersion: major: {}\n", version::major));
+  ASSERT_EQ(output.front(),
+            fmt::format("GetVersion: major: {}\n", version::major));
   ASSERT_EQ(output.back(), fmt::format("patch: {}\n", version::patch));
 #endif
   brpc.shutdown();
@@ -86,13 +88,13 @@ TEST_F(BrokerRpc, GetConflictManagerStats) {
   ConflictManagerStats* _stats;
 
   _stats = stats::center::instance().register_conflict_manager();
-  stats::center::instance().update(&ConflictManagerStats::set_events_handled, _stats, 3);
+  stats::center::instance().update(&ConflictManagerStats::set_events_handled,
+                                   _stats, 3);
   stats::center::instance().update(&ConflictManagerStats::set_loop_timeout,
-                                         _stats, 30u);
+                                   _stats, 30u);
 
   auto output = execute("GetConflictManagerStats");
 
   std::cout << output.front();
   brpc.shutdown();
 }
-

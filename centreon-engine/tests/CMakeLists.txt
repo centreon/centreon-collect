@@ -1,52 +1,53 @@
-##
-## Copyright 2016, 2020-2021 Centreon
-##
+# #
+# # Copyright 2016, 2020-2021 Centreon
+# #
 
-## This file is part of Centreon Engine.
-##
-## Centreon Engine is free software : you can redistribute it and / or 
-## modify it under the terms of the GNU General Public License version 2
-## as published by the Free Software Foundation.
-##
-## Centreon Engine is distributed in the hope that it will be useful,
-## but WITHOUT ANY WARRANTY; without even the implied warranty of
-## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-## General Public License for more details.
-##
-## You should have received a copy of the GNU General Public License
-## along with Centreon Engine. If not, see
-## <http://www.gnu.org/licenses/>.
-##
+# # This file is part of Centreon Engine.
+# #
+# # Centreon Engine is free software : you can redistribute it and / or
+# # modify it under the terms of the GNU General Public License version 2
+# # as published by the Free Software Foundation.
+# #
+# # Centreon Engine is distributed in the hope that it will be useful,
+# # but WITHOUT ANY WARRANTY; without even the implied warranty of
+# # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# # General Public License for more details.
+# #
+# # You should have received a copy of the GNU General Public License
+# # along with Centreon Engine. If not, see
+# # <http://www.gnu.org/licenses/>.
+# #
 
 # Enable unit tests or not .
 option(WITH_TESTING "Build unit tests." OFF)
-if (WITH_TESTING)
 
+if(WITH_TESTING)
   find_package(GTest REQUIRED)
   include_directories(${GTest_INCLUDE_DIRS})
   link_directories(${GTest_LIB_DIRS})
 
-# Tests directory.
+  # Tests directory.
   # Add root inclusion direction.
   set(MODULE_DIR "${PROJECT_SOURCE_DIR}/modules/external_commands")
   set(INC_DIR "${MODULE_DIR}/inc/com/centreon/engine/modules/external_commands")
   include_directories(${PROJECT_SOURCE_DIR} ${MODULE_DIR}/inc)
 
-#Set directory.
+  # Set directory.
   set(TESTS_DIR "${PROJECT_SOURCE_DIR}/tests")
   include_directories(${PROJECT_SOURCE_DIR}/enginerpc)
   add_definitions(-DENGINERPC_TESTS_PATH="${TESTS_DIR}/enginerpc")
 
   add_executable(rpc_client_engine
-      ${TESTS_DIR}/enginerpc/client.cc)
+    ${TESTS_DIR}/enginerpc/client.cc)
 
   target_link_libraries(rpc_client_engine cerpc ${gRPC_LIBS} ${re2_LIBS} ${absl_LIBS} ${OpenSSL_LIBS} ${c-ares_LIBS} ${ZLIB_LIBS} dl pthread)
 
   add_executable("bin_connector_test_run"
-      "${TESTS_DIR}/commands/bin_connector_test_run.cc")
+    "${TESTS_DIR}/commands/bin_connector_test_run.cc")
   target_link_libraries(bin_connector_test_run cce_core pthread)
 
   set(ut_sources
+
     # Sources.
     "${PROJECT_SOURCE_DIR}/modules/external_commands/src/commands.cc"
     "${PROJECT_SOURCE_DIR}/modules/external_commands/src/internal.cc"
@@ -118,7 +119,8 @@ if (WITH_TESTING)
     "${TESTS_DIR}/timeperiod/get_next_valid_time/skip_interval.cc"
     "${TESTS_DIR}/timeperiod/get_next_valid_time/specific_month_date.cc"
     "${TESTS_DIR}/timeperiod/utils.cc"
-#    # Headers.
+
+    # # Headers.
     "${TESTS_DIR}/test_engine.hh"
     "${TESTS_DIR}/timeperiod/utils.hh"
   )
@@ -127,20 +129,27 @@ if (WITH_TESTING)
   include_directories(${TESTS_DIR})
 
   add_executable(ut_engine ${ut_sources})
-  #file used by timeperiod-test.cc
-  file(COPY ${TESTS_DIR}/configuration/timeperiods.cfg DESTINATION ${CMAKE_BINARY_DIR}/centreon-engine/tests/ ) 
+
+  # file used by timeperiod-test.cc
+  file(COPY ${TESTS_DIR}/configuration/timeperiods.cfg DESTINATION ${CMAKE_BINARY_DIR}/tests/)
 
   add_test(NAME tests COMMAND ut_engine)
 
-  if (WITH_COVERAGE)
+  if(WITH_COVERAGE)
     set(COVERAGE_EXCLUDES '${PROJECT_BINARY_DIR}/*' '${PROJECT_SOURCE_DIR}/tests/*' '/usr/include/* ')
     SETUP_TARGET_FOR_COVERAGE(
-        NAME test-coverage
-        EXECUTABLE ut_engine
-        DEPENDENCIES ut_engine
+      NAME test-coverage
+      EXECUTABLE ut_engine
+      DEPENDENCIES ut_engine
     )
     set(GCOV gcov)
-  endif ()
+  endif()
+
   target_link_libraries(ut_engine ${ENGINERPC} cce_core pthread ${GCOV} ${GTest_LIBS} ${gRPC_LIBS} ${re2_LIBS} ${absl_LIBS} ${OpenSSL_LIBS} ${c-ares_LIBS} ${ZLIB_LIBS} ${fmt_LIBS} dl)
 
-endif ()
+  set_target_properties(
+    ut_engine bin_connector_test_run rpc_client_engine
+    PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests
+  )
+endif()

@@ -24,7 +24,6 @@ RUN dnf clean all && dnf install -y cmake \
     make \
     maven \
     perl-ExtUtils-Embed.noarch \
-    libssh2-devel \
     python38 \
     python38-pip \
     perl-Thread-Queue \
@@ -41,6 +40,6 @@ RUN pip3 install conan --prefix=/usr --upgrade
 RUN rm -rf ~/.conan/profiles/default
 COPY conanfile.txt .
 RUN cat conanfile.txt
-RUN conan install . -s compiler.libcxx=libstdc++11 --build='*'
-    
+RUN conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build='*'
+
 WORKDIR /src

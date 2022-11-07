@@ -1,20 +1,20 @@
-##
-## Copyright 2009-2013,2015 Centreon
-##
-## Licensed under the Apache License, Version 2.0 (the "License");
-## you may not use this file except in compliance with the License.
-## You may obtain a copy of the License at
-##
-##     http://www.apache.org/licenses/LICENSE-2.0
-##
-## Unless required by applicable law or agreed to in writing, software
-## distributed under the License is distributed on an "AS IS" BASIS,
-## WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-## See the License for the specific language governing permissions and
-## limitations under the License.
-##
-## For more information : contact@centreon.com
-##
+# #
+# # Copyright 2009-2013,2015 Centreon
+# #
+# # Licensed under the Apache License, Version 2.0 (the "License");
+# # you may not use this file except in compliance with the License.
+# # You may obtain a copy of the License at
+# #
+# #     http://www.apache.org/licenses/LICENSE-2.0
+# #
+# # Unless required by applicable law or agreed to in writing, software
+# # distributed under the License is distributed on an "AS IS" BASIS,
+# # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# # See the License for the specific language governing permissions and
+# # limitations under the License.
+# #
+# # For more information : contact@centreon.com
+# #
 
 # Global options.
 set(INC_DIR "${PROJECT_SOURCE_DIR}/neb/inc")
@@ -24,6 +24,7 @@ include_directories("${INC_DIR}")
 
 # NEB sources.
 set(NEB_SOURCES
+
   # Sources.
   # Headers.
   ${SRC_DIR}/acknowledgement.cc
@@ -106,6 +107,7 @@ set_property(TARGET nebbase PROPERTY COMPILE_FLAGS ${NEBBASE_CXXFLAGS})
 set(NEB "10-neb")
 set(NEB "${NEB}" PARENT_SCOPE)
 add_library("${NEB}" SHARED
+
   # Main source.
   "${SRC_DIR}/broker.cc"
   "${SRC_DIR}/node_id.cc"
@@ -118,7 +120,8 @@ add_library("${NEB}" SHARED
 
 # Flags needed to include all symbols in binary.
 target_link_libraries(${NEB} nebbase)
-#  "-Wl,--whole-archive" nebbase "-Wl,--no-whole-archive")
+
+# "-Wl,--whole-archive" nebbase "-Wl,--no-whole-archive")
 set_target_properties("${NEB}" PROPERTIES PREFIX "")
 install(TARGETS "${NEB}"
   LIBRARY DESTINATION "${PREFIX_MODULES}"
@@ -127,6 +130,7 @@ install(TARGETS "${NEB}"
 # Centreon Engine/Nagios module.
 set(CBMOD "cbmod")
 add_library("${CBMOD}" SHARED
+
   # Sources.
   "${PROJECT_SOURCE_DIR}/core/src/config/applier/init.cc"
   "${SRC_DIR}/callback.cc"
@@ -166,6 +170,7 @@ add_library("${CBMOD}" SHARED
   "${SRC_DIR}/statistics/total_hosts.cc"
   "${SRC_DIR}/statistics/total_service_state_change.cc"
   "${SRC_DIR}/statistics/total_services.cc"
+
   # Headers.
   "${INC_DIR}/com/centreon/broker/neb/callback.hh"
   "${INC_DIR}/com/centreon/broker/neb/callbacks.hh"
@@ -211,53 +216,56 @@ get_property(CBMOD_DEFINES
 list(APPEND CBMOD_DEFINES CBMOD)
 set_property(TARGET "${CBMOD}"
   PROPERTY COMPILE_DEFINITIONS "${CBMOD_DEFINES}")
-if (CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   # Flags needed to include all symbols in shared library.
   target_link_libraries("${CBMOD}"
     "-Wl,--whole-archive" "rokerbase" "-Wl,--no-whole-archive" ${nlohmann_json_LIBS} ${fmt_LIBS} ${spdlog_LIBS} ${asio_LIBS} ${OpenSSL_LIBS})
-else ()
+else()
   target_link_libraries("${CBMOD}" "rokerbase" ${nlohmann_json_LIBS} ${fmt_LIBS} ${spdlog_LIBS} ${asio_LIBS} ${OpenSSL_LIBS})
-endif ()
+endif()
+
 set_target_properties("${CBMOD}" PROPERTIES PREFIX "")
 
 # Testing.
-if (WITH_TESTING)
+if(WITH_TESTING)
   set(
-      TESTS_SOURCES
-      ${TESTS_SOURCES}
-      ${SRC_DIR}/set_log_data.cc
-      #Actual tests
-      ${TEST_DIR}/custom_variable.cc
-      ${TEST_DIR}/custom_variable_status.cc
-      ${TEST_DIR}/event_handler.cc
-      ${TEST_DIR}/flapping_status.cc
-      ${TEST_DIR}/host.cc
-      ${TEST_DIR}/host_check.cc
-      ${TEST_DIR}/host_dependency.cc
-      ${TEST_DIR}/host_parent.cc
-      ${TEST_DIR}/host_status.cc
-      ${TEST_DIR}/instance.cc
-      ${TEST_DIR}/instance_status.cc
-      ${TEST_DIR}/log_entry.cc
-      ${TEST_DIR}/module.cc
-      ${TEST_DIR}/randomize.cc
-      ${TEST_DIR}/randomize.hh
-      ${TEST_DIR}/service.cc
-      ${TEST_DIR}/service_check.cc
-      ${TEST_DIR}/service_dependency.cc
-      ${TEST_DIR}/service_status.cc
-      ${TEST_DIR}/set_log_data.cc
-      PARENT_SCOPE
-     )
+    TESTS_SOURCES
+    ${TESTS_SOURCES}
+    ${SRC_DIR}/set_log_data.cc
+
+    # Actual tests
+    ${TEST_DIR}/custom_variable.cc
+    ${TEST_DIR}/custom_variable_status.cc
+    ${TEST_DIR}/event_handler.cc
+    ${TEST_DIR}/flapping_status.cc
+    ${TEST_DIR}/host.cc
+    ${TEST_DIR}/host_check.cc
+    ${TEST_DIR}/host_dependency.cc
+    ${TEST_DIR}/host_parent.cc
+    ${TEST_DIR}/host_status.cc
+    ${TEST_DIR}/instance.cc
+    ${TEST_DIR}/instance_status.cc
+    ${TEST_DIR}/log_entry.cc
+    ${TEST_DIR}/module.cc
+    ${TEST_DIR}/randomize.cc
+    ${TEST_DIR}/randomize.hh
+    ${TEST_DIR}/service.cc
+    ${TEST_DIR}/service_check.cc
+    ${TEST_DIR}/service_dependency.cc
+    ${TEST_DIR}/service_status.cc
+    ${TEST_DIR}/set_log_data.cc
+    PARENT_SCOPE
+  )
   set(
-      TESTS_LIBRARIES
-      ${TESTS_LIBRARIES}
-      ${NEB}
-      PARENT_SCOPE
-     )
+    TESTS_LIBRARIES
+    ${TESTS_LIBRARIES}
+    ${NEB}
+    PARENT_SCOPE
+  )
 endif()
 
 # Install rules.
 install(TARGETS "${CBMOD}"
-  LIBRARY DESTINATION "${PREFIX_LIB}"
+  LIBRARY DESTINATION "${PREFIX_CBMOD}"
 )

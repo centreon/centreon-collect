@@ -7,7 +7,6 @@ USERNAME="$1"
 TOKENJENKINS="$2"
 BRANCH="$3"
 
-
 echo "########################### configure and start sshd ############################"
 ssh-keygen -t rsa -f /etc/ssh/ssh_host_rsa_key
 ssh-keygen -t ecdsa -f /etc/ssh/ssh_host_ecdsa_key
@@ -20,9 +19,9 @@ sleep 5
 
 echo "########################### init centreon database ############################"
 
-mysql -e "CREATE USER IF NOT EXISTS 'centreon'@'localhost' IDENTIFIED BY 'centreon'"
+mysql -e "CREATE USER IF NOT EXISTS 'centreon'@'localhost' IDENTIFIED BY 'centreon';"
 
-mysql -e "GRANT SELECT,UPDATE,DELETE,INSERT,CREATE,DROP,INDEX,ALTER,LOCK TABLES,CREATE TEMPORARY TABLES, EVENT,CREATE VIEW ON *.* TO  'centreon'@'localhost'"
+mysql -e "GRANT SELECT,UPDATE,DELETE,INSERT,CREATE,DROP,INDEX,ALTER,LOCK TABLES,CREATE TEMPORARY TABLES, EVENT,CREATE VIEW ON *.* TO  'centreon'@'localhost';"
 
 mysql -u centreon -pcentreon < resources/centreon_storage.sql
 mysql -u centreon -pcentreon < resources/centreon.sql
@@ -31,11 +30,18 @@ echo "########################### download and install centreon collect ########
 
 curl https://$USERNAME:$TOKENJENKINS@jenkins.int.centreon.com/job/centreon-collect/job/$BRANCH/lastSuccessfulBuild/artifact/*zip*/myfile.zip --output artifact.zip
 unzip artifact.zip
-yum install -y  https://yum.centreon.com/standard/21.10/el7/stable/noarch/RPMS/centreon-release-21.10-5.el7.centos.noarch.rpm
+yum install -y  https://yum.centreon.com/standard/22.10/el7/stable/noarch/RPMS/centreon-release-22.10-1.el7.centos.noarch.rpm
+yum-config-manager --disable centreon-unstable\* centreon-testing\* centreon-stable\*
+yum-config-manager --enable centreon-canary-noarch
+yum-config-manager --enable centreon-canary
+yum clean all
 yum install -y centreon-common
 cd artifacts
-rpm -i centreon*.el7.x86_64.rpm
-
+rpm -i centreon-broker*.el7.x86_64.rpm \
+       centreon-clib*.el7.x86_64.rpm \
+       centreon-engine*.el7.x86_64.rpm \
+       centreon-connector*.el7.x86_64.rpm \
+       centreon-collect-client*.el7.x86_64.rpm
 
 echo "########################### install robot framework ############################"
 cd /src/tests/

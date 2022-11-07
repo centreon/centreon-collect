@@ -9,20 +9,32 @@ stage('Dependencies containers creation') {
         checkout scm
         dir ('ci/docker') {
           sh 'cp ../../conanfile.txt .'
-          sh 'docker build --no-cache . -f Dockerfile.collect-centos7-dependencies -t registry.centreon.com/centreon-collect-centos7-dependencies:21.10'
-          sh 'docker push registry.centreon.com/centreon-collect-centos7-dependencies:21.10'
+          sh 'docker build --no-cache . -f Dockerfile.collect-centos7-dependencies -t registry.centreon.com/centreon-collect-centos7-dependencies:22.10'
+          sh 'docker push registry.centreon.com/centreon-collect-centos7-dependencies:22.10'
         }
       }
     }
   },
-  'debian dependencies': {
+  'debian 10 dependencies': {
     node {
-      dir('centreon-collect-debian') {
+      dir('centreon-collect-debian10') {
         checkout scm
         dir ('ci/docker') {
           sh 'cp ../../conanfile.txt .'
-          sh 'docker build --no-cache . -f Dockerfile.collect-debian-dependencies -t registry.centreon.com/centreon-collect-debian-dependencies:21.10'
-          sh 'docker push registry.centreon.com/centreon-collect-debian-dependencies:21.10'
+          sh 'docker build --no-cache . -f Dockerfile.collect-debian10-dependencies -t registry.centreon.com/centreon-collect-debian10-dependencies:22.10'
+          sh 'docker push registry.centreon.com/centreon-collect-debian10-dependencies:22.10'
+        }
+      }
+    }
+  },
+  'debian 11 dependencies': {
+    node {
+      dir('centreon-collect-debian11') {
+        checkout scm
+        dir ('ci/docker') {
+          sh 'cp ../../conanfile.txt .'
+          sh 'docker build --no-cache . -f Dockerfile.collect-debian11-dependencies -t registry.centreon.com/centreon-collect-debian11-dependencies:22.10'
+          sh 'docker push registry.centreon.com/centreon-collect-debian11-dependencies:22.10'
         }
       }
     }
@@ -33,8 +45,8 @@ stage('Dependencies containers creation') {
         checkout scm
         dir ('ci/docker') {
           sh 'cp ../../conanfile.txt .'
-          sh 'docker build --no-cache . -f Dockerfile.collect-alma8-dependencies -t registry.centreon.com/centreon-collect-alma8-dependencies:21.10'
-          sh 'docker push registry.centreon.com/centreon-collect-alma8-dependencies:21.10'
+          sh 'docker build --no-cache . -f Dockerfile.collect-alma8-dependencies -t registry.centreon.com/centreon-collect-alma8-dependencies:22.10'
+          sh 'docker push registry.centreon.com/centreon-collect-alma8-dependencies:22.10'
         }
       }
     }

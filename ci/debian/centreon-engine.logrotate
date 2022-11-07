@@ -1,0 +1,25 @@
+/var/log/centreon-engine/centengine.log {
+  compress
+  create 640 centreon-engine centreon-engine
+  daily
+  delaycompress
+  missingok
+  olddir /var/log/centreon-engine/archives
+  rotate 365
+  postrotate
+    systemctl reload centengine
+  endscript
+}
+
+/var/log/centreon-engine/centengine.debug {
+  compress
+  create 640 centreon-engine centreon-engine
+  delaycompress
+  missingok
+  olddir /var/log/centreon-engine/archives
+  rotate 5
+  size   1G
+  postrotate
+    systemctl reload centengine
+  endscript
+}
