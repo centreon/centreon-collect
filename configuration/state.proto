@@ -107,76 +107,46 @@ message State {
   map<string, Contact> contacts = 4;
 }
 
-/**
- * @brief This is a pair of key/value where value can be any of the scalar
- * types or changes in repeated field.
- */
-message Field {
-  uint32 id = 1;
-  enum Action {
-    ADD = 0;
-    DEL = 1;
-  };
-  Action action = 2;
+message Value {
   oneof value {
-    bool value_b = 3;
-    int32 value_i32 = 4;
-    uint32 value_u32 = 5;
-    string value_str = 6;
-    RepeatedFieldChanges value_rf = 7;
+    bool value_b = 1;
+    int32 value_i32 = 2;
+    uint32 value_u32 = 3;
+    string value_str = 4;
+    TimeRange value_tr = 5;
+    DateRange value_dr = 6;
+    Timeperiod value_tp = 7;
+    Connector value_cn = 8;
+    Command value_co = 9;
+    CustomVariable value_cv = 10;
+    Contact value_ct = 11;
   }
 }
 
-/**
- * @brief This message is to modify a repeated field. id is the number
- * identifier used to localize the repeated field. This field is a sort of
- * vector. It is possible to remove items from it, the list of indices to
- * remove is given by the to_remove field.
- * There is also entries to add to this repeated field, they are listed with
- * the to_add field.
- */
-message RepeatedFieldChanges {
-  uint32 truncate_size = 1;
-  repeated Field to_add = 3;
+message Key {
+  oneof key {
+    int32 i32 = 1;
+    string str = 2;
+  }
 }
 
-/**
- * @brief Message used to store changes in a message.
- * All the non repeated fields are stored with a Pair id/value.
- * For repeated fields, it is a trickier, look at RepeatedFieldChanges.
- */
-message FieldChanges {
-  repeated Field list = 5;
+message Path {
+  repeated Key key = 1;
 }
 
-message DiffTimeperiod {
-  repeated Timeperiod to_remove = 1;
-  repeated Timeperiod to_add = 2;
-  map<int32, FieldChanges> to_modify = 3;
+message PathWithValue {
+  Path path = 1;
+  Value val = 2;
 }
 
-message DiffCommand {
-  repeated Command to_remove = 1;
-  repeated Command to_add = 2;
-  map<int32, FieldChanges> to_modify = 3;
-}
-
-message DiffConnector {
-  repeated Connector to_remove = 1;
-  repeated Connector to_add = 2;
-  map<int32, FieldChanges> to_modify = 3;
-}
-
-message DiffContact {
-  repeated string to_remove = 1;
-  map<string, Contact> to_add = 2;
-  map<string, FieldChanges> to_modify = 3;
+message PathWithPair {
+  Path path = 1;
+  Value val1 = 2;
+  Value val2 = 3;
 }
 
 message DiffState {
-  State to_add = 1;
-  DiffTimeperiod dtimeperiods = 2;
-  DiffCommand dcommands = 3;
-  DiffConnector dconnectors = 4;
-  DiffContact dcontacts = 5;
+  repeated PathWithValue to_add = 1;
+  repeated Path to_remove = 2;
+  repeated PathWithPair to_modify = 3;
 }
