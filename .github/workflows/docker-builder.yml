@@ -21,7 +21,7 @@ jobs:
   create-and-push-docker:
 #runs-on: [self-hosted, collect]
     runs-on: ubuntu-latest
-    continue-on-error: true
+    continue-on-error: false
     strategy:
       matrix:
         include:
@@ -54,8 +54,8 @@ jobs:
         uses: docker/login-action@v2
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.ARTI_USER }}
-          password: ${{ secrets.ARTI_PASSWD }}
+          username: ${{ secrets.REPOS_USERNAME }}
+          password: ${{ secrets.REPOS_PASSWORD }}
 #          registry: docker.registry.apps.centreon.com
 #          username: ${{ secrets.NEXUS_RPMS_REPOSITORY_USERNAME }}
 #          password: ${{ secrets.NEXUS_RPMS_REPOSITORY_PASSWORD }}
