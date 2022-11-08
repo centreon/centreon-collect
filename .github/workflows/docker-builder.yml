@@ -16,7 +16,7 @@ on:
       - 'ci/docker/**'
 
 env:
-  REGISTRY: registry-docker.centreon.com
+  REGISTRY: registry-docker.centreon.com/docker-global
 jobs:
   create-and-push-docker:
 #runs-on: [self-hosted, collect]
