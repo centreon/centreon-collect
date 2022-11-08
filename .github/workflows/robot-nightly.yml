@@ -12,6 +12,9 @@ on:
   schedule:
     - cron: '0 0 * * *'
 
+env:
+  version: test-22.10
+
 jobs:
   robot-test:
     runs-on: [self-hosted, collect]
@@ -20,7 +23,6 @@ jobs:
         # branch: [develop, master]
         include:
           - image: centreon-collect-centos7
-            version: test-22.10
             folder_report: tests/
     steps:
       - name: Checkout sources
@@ -33,7 +35,7 @@ jobs:
         with:
           script_name: /src/ci/scripts/collect-test-robot
           image_name: ${{ matrix.image }}
-          image_version: ${{ matrix.version }}
+          image_version: ${{ env.version }}
           params: ${{ matrix.branch }}
 
       - name: Send report to commit
