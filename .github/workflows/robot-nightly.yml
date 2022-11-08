@@ -14,7 +14,8 @@ on:
 
 jobs:
   robot-test:
-    runs-on: [self-hosted, collect]
+    runs-on: ubuntu-latest
+#runs-on: [self-hosted, collect]
     strategy:
       matrix:
         # branch: [develop, master]
