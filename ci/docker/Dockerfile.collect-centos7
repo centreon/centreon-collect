@@ -14,8 +14,6 @@ RUN yum -y upgrade && yum -y update && \
     openssh-server \
     epel-release \
     centos-release-scl \
-    python3 \
-    python3-pip \
     ninja-build \
     gnutls-devel \
     lua-devel \
@@ -31,12 +29,9 @@ RUN yum -y upgrade && yum -y update && \
     yum clean all
 RUN yum-config-manager --enable rhel-server-rhscl-7-rpms
 RUN yum -y install devtoolset-9 \
-    rh-python38 \
     MariaDB*.rpm \
     rh-python38 \
     cmake3 \
-    gcc \
-    gcc-c++ \
     perl-Ext* \
     perl-App-FatPacker \
     perl-File-Copy-Recursive \
@@ -51,7 +46,8 @@ RUN ln -s /usr/bin/cmake3 /usr/bin/cmake
 COPY conanfile.txt .
 RUN cat conanfile.txt
 RUN source /opt/rh/devtoolset-9/enable && source /opt/rh/rh-python38/enable && \
-    pip3 install conan --upgrade && conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build='*'
+    pip3 install conan --upgrade &&\
+    /opt/rh/rh-python38/root/usr/local/bin/conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build='*'
 
 RUN unzip -q sonar-scanner-cli-4.7.0.2747-linux.zip
 RUN rm -rf sonar-scanner-cli-4.7.0.2747-linux.zip

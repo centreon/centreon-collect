@@ -1,4 +1,4 @@
-FROM registry.centreon.com/almalinux:8.5
+FROM almalinux:8.5
 
 RUN dnf clean all
 
