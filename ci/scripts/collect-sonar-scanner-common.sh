@@ -42,9 +42,7 @@ get_cache() {
     fi 
   fi
   tar xzf "$TAR_NAME"
-  if [ ! -d build ] ; then
-    mkdir build
-  fi
+  mkdir build
   mv cache build/
   rm -rf "$TAR_NAME"
 }

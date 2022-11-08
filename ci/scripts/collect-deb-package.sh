@@ -17,15 +17,11 @@ VERSION="$(echo $VERSION | sed 's/-/./g')"
 if [ -d centreon-collect/build ] ; then
     rm -rf centreon-collect/build
 fi
+rm -rf centreon-collect/gorgone
 tar czpf centreon-collect-$VERSION.tar.gz centreon-collect
 cd centreon-collect/
-cp -rf ci/debian .
+cp -rf ci/debian-collect debian
 sed -i "s/^centreon:version=.*$/centreon:version=$(echo $VERSION | egrep -o '^[0-9][0-9].[0-9][0-9]')/" debian/substvars
 debmake -f "${AUTHOR}" -e "${AUTHOR_EMAIL}" -u "$VERSION" -r "$DISTRIB"
 debuild-pbuilder
 cd ../
-if [ -d "$DISTRIB" ] ; then
-  rm -rf "$DISTRIB"
-fi
-mkdir $DISTRIB
-mv *.deb $DISTRIB/
