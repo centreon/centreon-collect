@@ -17,6 +17,7 @@ on:
 
 env:
   REGISTRY: registry-docker.centreon.com/docker-global
+
 jobs:
   create-and-push-docker:
 #runs-on: [self-hosted, collect]
@@ -57,9 +58,6 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ secrets.REPOS_USERNAME }}
           password: ${{ secrets.REPOS_PASSWORD }}
-#          registry: docker.registry.apps.centreon.com
-#          username: ${{ secrets.NEXUS_RPMS_REPOSITORY_USERNAME }}
-#          password: ${{ secrets.NEXUS_RPMS_REPOSITORY_PASSWORD }}
 
       - name: build docker ${{ matrix.distrib }}
         run: docker build --no-cache . -f ci/docker/Dockerfile.${{ matrix.project }}-${{ matrix.distrib }} -t $REGISTRY/centreon-${{ matrix.project }}-${{ matrix.distrib }}:${{ matrix.version }}

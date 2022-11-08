@@ -13,6 +13,9 @@ on:
     paths-ignore:
       - 'gorgone/**'
 
+env:
+  REGISTRY: registry-docker.centreon.com/docker-global
+
 jobs:
   centreon-collect-test:
     runs-on: ubuntu-latest
@@ -34,9 +37,9 @@ jobs:
       - name: Login to Registry
         uses: docker/login-action@v2
         with:
-          registry: docker.registry.apps.centreon.com
-          username: ${{ secrets.NEXUS_RPMS_REPOSITORY_USERNAME }}
-          password: ${{ secrets.NEXUS_RPMS_REPOSITORY_PASSWORD }}
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.REPOS_USERNAME }}
+          password: ${{ secrets.REPOS_PASSWORD }}
       - name: Test ${{ matrix.image }}
         uses: ./.github/actions/runner-docker
         with:
@@ -45,7 +48,8 @@ jobs:
           image_version: ${{ matrix.version }}
 
   rpm-packaging:
-    runs-on: [self-hosted, collect]
+    runs-on: ubuntu-latest
+#runs-on: [self-hosted, collect]
     strategy:
       matrix:
         include:
@@ -61,7 +65,7 @@ jobs:
       - name: Login to Registry
         uses: docker/login-action@v2
         with:
-          registry: docker.registry.apps.centreon.com
+          registry: ${{ env.REGISTRY }}
           username: ${{ secrets.NEXUS_RPMS_REPOSITORY_USERNAME }}
           password: ${{ secrets.NEXUS_RPMS_REPOSITORY_PASSWORD }}
 
@@ -82,7 +86,8 @@ jobs:
           key: ${{ env.cache-name-rpmbuild }}
 
   debian-packaging:
-    runs-on: [self-hosted, collect]
+    runs-on: ubuntu-latest
+#runs-on: [self-hosted, collect]
     strategy:
       matrix:
         include:
@@ -100,7 +105,7 @@ jobs:
       - name: Login to Registry
         uses: docker/login-action@v2
         with:
-          registry: docker.registry.apps.centreon.com
+          registry: ${{ env.REGISTRY }}
           username: ${{ secrets.NEXUS_RPMS_REPOSITORY_USERNAME }}
           password: ${{ secrets.NEXUS_RPMS_REPOSITORY_PASSWORD }}
 
