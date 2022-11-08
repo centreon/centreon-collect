@@ -1,6 +1,6 @@
 name: Centreon collect
 
-on: 
+on:
   pull_request_target:
     types:
       - closed
@@ -13,36 +13,35 @@ on:
     paths-ignore:
       - 'gorgone/**'
 
+env:
+  REGISTRY: registry-docker.centreon.com/docker-global
+  version: test-22.10
+
 jobs:
   centreon-collect-test:
-    runs-on: ubuntu-latest
-#    runs-on: [self-hosted, collect]
+    runs-on: [self-hosted, collect]
     strategy:
       matrix:
         include:
           - image: centos7
-            version: test-22.10
           - image: alma8
-            version: test-22.10
           - image: debian-buster
-            version: test-22.10
           - image: debian-bullseye
-            version: test-22.10
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
       - name: Login to Registry
         uses: docker/login-action@v2
         with:
-          registry: docker.registry.apps.centreon.com
-          username: ${{ secrets.NEXUS_RPMS_REPOSITORY_USERNAME }}
-          password: ${{ secrets.NEXUS_RPMS_REPOSITORY_PASSWORD }}
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.REPOS_USERNAME }}
+          password: ${{ secrets.REPOS_PASSWORD }}
       - name: Test ${{ matrix.image }}
         uses: ./.github/actions/runner-docker
         with:
           script_name: /src/ci/scripts/collect-unit-tests
           image_name: centreon-collect-${{ matrix.image }}
-          image_version: ${{ matrix.version }}
+          image_version: ${{ env.version }}
 
   rpm-packaging:
     runs-on: [self-hosted, collect]
@@ -50,10 +49,8 @@ jobs:
       matrix:
         include:
           - image: centos7
-            version: test-22.10
             distrib: el7
           - image: alma8
-            version: test-22.10
             distrib: el8
     steps:
       - name: Checkout sources
@@ -61,16 +58,16 @@ jobs:
       - name: Login to Registry
         uses: docker/login-action@v2
         with:
-          registry: docker.registry.apps.centreon.com
-          username: ${{ secrets.NEXUS_RPMS_REPOSITORY_USERNAME }}
-          password: ${{ secrets.NEXUS_RPMS_REPOSITORY_PASSWORD }}
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.REPOS_USERNAME }}
+          password: ${{ secrets.REPOS_PASSWORD }}
 
       - name: make rpm ${{ matrix.image }}
         uses: ./.github/actions/runner-docker
         with:
           script_name: /src/ci/scripts/collect-rpm-package
           image_name: centreon-collect-${{ matrix.image }}
-          image_version: ${{ matrix.version }}
+          image_version: ${{ env.version }}
           env_variable: -e DISTRIB="${{ matrix.distrib }}" -e VERSION="22.10.1" -e RELEASE="1"
 
       - name: Use cache RPM files
@@ -87,10 +84,8 @@ jobs:
       matrix:
         include:
           - image: debian-buster
-            version: test-22.10
             distrib: buster
           - image: debian-bullseye
-            version: test-22.10
             distrib: bullseye
     steps:
       - name: Checkout sources
@@ -100,16 +95,16 @@ jobs:
       - name: Login to Registry
         uses: docker/login-action@v2
         with:
-          registry: docker.registry.apps.centreon.com
-          username: ${{ secrets.NEXUS_RPMS_REPOSITORY_USERNAME }}
-          password: ${{ secrets.NEXUS_RPMS_REPOSITORY_PASSWORD }}
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.REPOS_USERNAME }}
+          password: ${{ secrets.REPOS_PASSWORD }}
 
       - name: debmake ${{ matrix.image }}
         uses: ./centreon-collect/.github/actions/runner-docker
         with:
           script_name: /src/centreon-collect/ci/scripts/collect-deb-package
           image_name: centreon-collect-${{ matrix.image }}
-          image_version: ${{ matrix.version }}
+          image_version: ${{ env.version }}
           env_variable: -e DISTRIB="${{ matrix.distrib }}" -e VERSION="22.10.1" -e RELEASE="1"
 
       - name: Use cache DEB files
