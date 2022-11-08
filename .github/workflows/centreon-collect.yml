@@ -15,7 +15,8 @@ on:
 
 jobs:
   centreon-collect-test:
-    runs-on: [self-hosted, collect]
+    runs-on: ubuntu-latest
+#    runs-on: [self-hosted, collect]
     strategy:
       matrix:
         include:
