@@ -55,7 +55,7 @@ jobs:
         with:
           registry: $REGISTRY
           username: ${{ secrets.ARTI_USER }}
-          password: ${{ secrets.ARTI_PWD }}
+          password: ${{ secrets.ARTI_PASSWD }}
 #          registry: docker.registry.apps.centreon.com
 #          username: ${{ secrets.NEXUS_RPMS_REPOSITORY_USERNAME }}
 #          password: ${{ secrets.NEXUS_RPMS_REPOSITORY_PASSWORD }}
