@@ -18,8 +18,7 @@ env:
 
 jobs:
   centreon-collect-test:
-    runs-on: ubuntu-latest
-#    runs-on: [self-hosted, collect]
+    runs-on: [self-hosted, collect]
     strategy:
       matrix:
         include:
@@ -48,8 +47,7 @@ jobs:
           image_version: ${{ matrix.version }}
 
   rpm-packaging:
-    runs-on: ubuntu-latest
-#runs-on: [self-hosted, collect]
+    runs-on: [self-hosted, collect]
     strategy:
       matrix:
         include:
@@ -86,8 +84,7 @@ jobs:
           key: ${{ env.cache-name-rpmbuild }}
 
   debian-packaging:
-    runs-on: ubuntu-latest
-#runs-on: [self-hosted, collect]
+    runs-on: [self-hosted, collect]
     strategy:
       matrix:
         include:

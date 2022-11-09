@@ -20,8 +20,7 @@ env:
 
 jobs:
   create-and-push-docker:
-#runs-on: [self-hosted, collect]
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, collect]
     continue-on-error: false
     strategy:
       fail-fast: false
