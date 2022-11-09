@@ -27,8 +27,13 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
-        # with:
-          # ref: ${{ matrix.branch }}
+
+      - run: |
+          VERSION=$(awk '$1 ~ "COLLECT_MAJOR" {maj=substr($2, 1, length($2)-1)} $1 ~ "COLLECT_MINOR" {min=substr($2, 1, length($2)-1)} $1 ~ "COLLECT_PATCH" {patch=substr($2, 1, length($2) - 1) ; print maj "." min "." patch}' CMakeLists.txt)
+          echo "version=$VERSION" >> $GITHUB_ENV
+        id: version
+      - run: |
+          echo "Version is ${{ steps.version.env.version }}"
 
       - name: Test robot centos7
         uses: ./.github/actions/runner-docker
