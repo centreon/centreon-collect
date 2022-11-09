@@ -12,9 +12,6 @@ on:
   schedule:
     - cron: '0 0 * * *'
 
-env:
-  version: ${{ $(awk '$1 ~ "COLLECT_MAJOR" {maj=substr($2, 1, length($2)-1)} $1 ~ "COLLECT_MINOR" {min=substr($2, 1, length($2)-1)} $1 ~ "COLLECT_PATCH" {patch=substr($2, 1, length($2) - 1) ; print maj "." min "." patch}' CMakeLists.txt) }}
-
 jobs:
   robot-test:
     runs-on: [self-hosted, collect]
