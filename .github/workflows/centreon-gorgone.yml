@@ -21,6 +21,8 @@ on:
       - 'ci/debian-gorgone/**'
       - 'gorgone/**'
 
+env:
+  version: test-22.10
 jobs:
   rpm-packaging:
     runs-on: ubuntu-22.04
@@ -28,10 +30,8 @@ jobs:
       matrix:
         include:
           - image: centos7
-            version: test-22.10
             distrib: el7
           - image: alma8
-            version: test-22.10
             distrib: el8
     steps:
       - name: Checkout sources
@@ -42,7 +42,7 @@ jobs:
         with:
           script_name: /src/ci/scripts/gorgone-rpm-package
           image_name: centreon-gorgone-${{ matrix.image }}
-          image_version: ${{ matrix.version }}
+          image_version: ${{ env.version }}
           env_variable: -e DISTRIB="${{ matrix.distrib }}" -e VERSION="22.10.1" -e RELEASE="1"
 
       - name: Use cache RPM files
@@ -59,7 +59,6 @@ jobs:
       matrix:
         include:
           - image: centreon-gorgone-debian-bullseye
-            version: test-22.10
             distrib: bullseye
     steps:
       - name: Checkout sources
@@ -72,7 +71,7 @@ jobs:
         with:
           script_name: /src/centreon-collect/ci/scripts/gorgone-deb-package
           image_name: ${{ matrix.image }}
-          image_version: ${{ matrix.version }}
+          image_version: ${{ env.version }}
           env_variable: -e DISTRIB="${{ matrix.distrib }}" -e VERSION="22.10.1" -e RELEASE="1"
 
       - name: Use cache DEB files
