@@ -15,7 +15,7 @@ on:
 
 env:
   REGISTRY: registry-docker.centreon.com/docker-global
-  version: test-22.10
+  version: 22.10
 
 jobs:
   centreon-collect-test:
