@@ -20,6 +20,7 @@
 #ifndef CCE_CONFIGURATION_PARSER_HH
 #define CCE_CONFIGURATION_PARSER_HH
 
+#include <configuration/state.pb.h>
 #include <fstream>
 #include "com/centreon/engine/configuration/command.hh"
 #include "com/centreon/engine/configuration/connector.hh"
@@ -41,6 +42,8 @@ namespace com::centreon::engine {
 
 namespace configuration {
 class parser {
+  void _parse_global_configuration(std::string const& path, State* pb_config);
+
  public:
   enum read_options {
     read_commands = (1 << 0),
@@ -64,7 +67,8 @@ class parser {
 
   parser(unsigned int read_options = read_all);
   ~parser() throw();
-  void parse(std::string const& path, state& config);
+  void parse(const std::string& path, state& config);
+  void parse(const std::string& path, State* pb_config);
 
  private:
   typedef void (parser::*store)(object_ptr obj);
@@ -74,7 +78,7 @@ class parser {
   void _add_object(object_ptr obj);
   void _add_template(object_ptr obj);
   void _apply(std::list<std::string> const& lst,
-              void (parser::*pfunc)(std::string const&));
+              void (parser::*pfunc)(const std::string&));
   void _apply_hostextinfo();
   void _apply_serviceextinfo();
   file_info const& _get_file_info(object* obj) const;

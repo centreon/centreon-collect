@@ -29,7 +29,8 @@ using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::commands;
 
-void CreateFile(std::string const& filename, std::string const& content) {
+static void CreateFile(const std::string& filename,
+                       const std::string& content) {
   std::ofstream oss(filename);
   oss << content;
 }

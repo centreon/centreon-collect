@@ -628,7 +628,8 @@ class state {
   std::string _service_perfdata_file_processing_command;
   unsigned int _service_perfdata_file_processing_interval;
   std::string _service_perfdata_file_template;
-  static std::unordered_map<std::string, setter_func> const _setters;
+  static absl::flat_hash_map<std::string, setter_func> const _setters;
+  static absl::flat_hash_map<std::string, setter_func> const _pb_setters;
   float _sleep_time;
   bool _soft_state_dependencies;
   std::string _state_retention_file;

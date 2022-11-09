@@ -27,6 +27,11 @@ using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::io;
 
+using Descriptor = ::google::protobuf::Descriptor;
+using FieldDescriptor = ::google::protobuf::FieldDescriptor;
+using Message = ::google::protobuf::Message;
+using Reflection = ::google::protobuf::Reflection;
+
 parser::store parser::_store[] = {
     &parser::_store_into_map<command, &command::command_name>,
     &parser::_store_into_map<connector, &connector::connector_name>,
@@ -59,7 +64,12 @@ parser::parser(unsigned int read_options)
 /**
  *  Destructor.
  */
-parser::~parser() throw() {}
+parser::~parser() noexcept {}
+
+void parser::parse(const std::string& path, State* pb_config) {
+  /* Parse the global configuration file. */
+  _parse_global_configuration(path, pb_config);
+}
 
 /**
  *  Parse configuration file.
@@ -67,7 +77,7 @@ parser::~parser() throw() {}
  *  @param[in] path   The configuration file path.
  *  @param[in] config The state configuration to fill.
  */
-void parser::parse(std::string const& path, state& config) {
+void parser::parse(const std::string& path, state& config) {
   _config = &config;
 
   // parse the global configuration file.
@@ -358,21 +368,95 @@ void parser::_parse_directory_configuration(std::string const& path) {
     _parse_object_definitions(it->path());
 }
 
+template <typename T>
+bool set(T* msg, const absl::string_view& key, const absl::string_view& value) {
+  const Descriptor* desc = msg->GetDescriptor();
+  const FieldDescriptor* f =
+      desc->FindFieldByName(std::string(key.data(), key.size()));
+  if (f == nullptr)
+    return false;
+  const Reflection* refl = msg->GetReflection();
+  switch (f->type()) {
+    case FieldDescriptor::TYPE_BOOL: {
+      bool val;
+      if (absl::SimpleAtob(value, &val)) {
+        refl->SetBool(static_cast<Message*>(msg), f, val);
+        return true;
+      } else
+        return false;
+    } break;
+    case FieldDescriptor::TYPE_INT32: {
+      int32_t val;
+      if (absl::SimpleAtoi(value, &val)) {
+        refl->SetInt32(static_cast<Message*>(msg), f, val);
+        return true;
+      } else
+        return false;
+    } break;
+    case FieldDescriptor::TYPE_STRING:
+      if (f->is_repeated()) {
+        refl->AddString(static_cast<Message*>(msg), f,
+                        std::string(value.data(), value.size()));
+      } else {
+        refl->SetString(static_cast<Message*>(msg), f,
+                        std::string(value.data(), value.size()));
+      }
+      return true;
+    default:
+      assert(1 == 0);
+  }
+}
+
+void parser::_parse_global_configuration(const std::string& path,
+                                         State* pb_config) {
+  log_v2::config()->info("Reading main configuration file '{}'.", path);
+
+  std::ifstream in(path, std::ios::in);
+  std::string content;
+  if (in) {
+    in.seekg(0, std::ios::end);
+    content.resize(in.tellg());
+    in.seekg(0, std::ios::beg);
+    in.read(&content[0], content.size());
+    in.close();
+  } else
+    throw engine_error() << fmt::format(
+        "Parsing of global configuration failed: Can't open file '{}': {}",
+        path, strerror(errno));
+
+  pb_config->set_cfg_main(path);
+  _current_line = 0;
+  _current_path = path;
+
+  auto tab{absl::StrSplit(content, '\n')};
+  for (auto it = tab.begin(); it != tab.end(); ++it) {
+    if (it->empty())
+      continue;
+    std::pair<absl::string_view, absl::string_view> p =
+        absl::StrSplit(*it, '=');
+    p.first = absl::StripAsciiWhitespace(p.first);
+    p.second = absl::StripAsciiWhitespace(p.second);
+    if (!set(pb_config, p.first, p.second))
+      throw engine_error() << fmt::format(
+          "Unable to parse '{}' key with value '{}'", p.first, p.second);
+  }
+}
+
 /**
  *  Parse the global configuration file.
  *
  *  @param[in] path The configuration path.
  */
-void parser::_parse_global_configuration(std::string const& path) {
+void parser::_parse_global_configuration(const std::string& path) {
   engine_logger(logging::log_info_message, logging::most)
       << "Reading main configuration file '" << path << "'.";
   log_v2::config()->info("Reading main configuration file '{}'.", path);
 
   std::ifstream stream(path.c_str(), std::ios::binary);
   if (!stream.is_open())
-    throw engine_error() << "Parsing of global "
-                            "configuration failed: Can't open file '"
-                         << path << "'";
+    throw engine_error()
+        << "Parsing of global configuration failed: Can't open file '" << path
+        << "'";
 
   _config->cfg_main(path);
 
