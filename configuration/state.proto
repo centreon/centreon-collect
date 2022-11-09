@@ -101,10 +101,16 @@ message Contact {
 }
 
 message State {
-  repeated Timeperiod timeperiods = 1;
-  repeated Command commands = 2;
-  repeated Connector connectors = 3;
-  map<string, Contact> contacts = 4;
+  string cfg_main = 1;
+  repeated Timeperiod timeperiods = 2;
+  repeated Command commands = 3;
+  repeated Connector connectors = 4;
+  map<string, Contact> contacts = 5;
+  repeated string cfg_file = 6;
+  int32 instance_heartbeat_interval = 7;
+  string log_level_functions = 8;
+  bool check_service_freshness = 9;
+  bool enable_flap_detection = 10;
 }
 
 message Value {
