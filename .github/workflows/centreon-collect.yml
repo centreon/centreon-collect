@@ -15,7 +15,7 @@ on:
 
 env:
   REGISTRY: registry-docker.centreon.com/docker-global
-  version: test-22.10
+  version: 22.04
 
 jobs:
   centreon-collect-test:
@@ -105,7 +105,7 @@ jobs:
           script_name: /src/centreon-collect/ci/scripts/collect-deb-package
           image_name: centreon-collect-${{ matrix.image }}
           image_version: ${{ env.version }}
-          env_variable: -e DISTRIB="${{ matrix.distrib }}" -e VERSION="22.10.1" -e RELEASE="1"
+          env_variable: -e DISTRIB="${{ matrix.distrib }}" -e VERSION="${{ env.version }}.1" -e RELEASE="1"
 
       - name: Use cache DEB files
         uses: actions/cache@v3
