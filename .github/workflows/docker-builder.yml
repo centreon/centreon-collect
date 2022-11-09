@@ -17,6 +17,7 @@ on:
 
 env:
   REGISTRY: registry-docker.centreon.com/docker-global
+  version: test-22.10
 
 jobs:
   create-and-push-docker:
@@ -28,25 +29,18 @@ jobs:
         include:
           - project: collect
             distrib: centos7
-            version: test-22.10
           - project: collect
             distrib: alma8
-            version: test-22.10
           - project: collect
             distrib: debian-buster
-            version: test-22.10
           - project: collect
             distrib: debian-bullseye
-            version: test-22.10
           - project: gorgone
             distrib: centos7
-            version: test-22.10
           - project: gorgone
             distrib: alma8
-            version: test-22.10
           - project: gorgone
             distrib: debian-bullseye
-            version: test-22.10
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
@@ -59,8 +53,8 @@ jobs:
           password: ${{ secrets.REPOS_PASSWORD }}
 
       - name: build docker ${{ matrix.distrib }}
-        run: docker build --no-cache . -f ci/docker/Dockerfile.${{ matrix.project }}-${{ matrix.distrib }} -t $REGISTRY/centreon-${{ matrix.project }}-${{ matrix.distrib }}:${{ matrix.version }}
+        run: docker build --no-cache . -f ci/docker/Dockerfile.${{ matrix.project }}-${{ matrix.distrib }} -t $REGISTRY/centreon-${{ matrix.project }}-${{ matrix.distrib }}:${{ env.version }}
 
       - name: push docker ${{ matrix.distrib }}
-        run: docker push $REGISTRY/centreon-${{ matrix.project }}-${{ matrix.distrib }}:${{ matrix.version }}
+        run: docker push $REGISTRY/centreon-${{ matrix.project }}-${{ matrix.distrib }}:${{ env.version }}
 
