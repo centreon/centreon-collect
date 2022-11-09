@@ -22,7 +22,7 @@ on:
       - 'gorgone/**'
 
 env:
-  version: test-22.10
+  version: 22.10
 jobs:
   rpm-packaging:
     runs-on: ubuntu-22.04
