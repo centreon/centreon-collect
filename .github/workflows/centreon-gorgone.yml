@@ -22,7 +22,7 @@ on:
       - 'gorgone/**'
 
 env:
-  version: test-22.10
+  version: 22.04
 jobs:
   rpm-packaging:
     runs-on: ubuntu-22.04
@@ -43,7 +43,7 @@ jobs:
           script_name: /src/ci/scripts/gorgone-rpm-package
           image_name: centreon-gorgone-${{ matrix.image }}
           image_version: ${{ env.version }}
-          env_variable: -e DISTRIB="${{ matrix.distrib }}" -e VERSION="22.10.1" -e RELEASE="1"
+          env_variable: -e DISTRIB="${{ matrix.distrib }}" -e VERSION="${{ env.version }}.1" -e RELEASE="1"
 
       - name: Use cache RPM files
         uses: actions/cache@v3
