@@ -246,10 +246,12 @@ int main(int argc, char* argv[]) {
       try {
         // Read in the configuration files (main config file,
         // resource and object config files).
+        configuration::State pb_config;
         configuration::state config;
         {
           configuration::parser p;
           p.parse(config_file, config);
+          p.parse(config_file, &pb_config);
         }
 
         configuration::applier::state::instance().apply(config);
