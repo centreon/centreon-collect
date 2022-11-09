@@ -225,7 +225,7 @@ jobs:
               REPO=stable
               ;;
             *)
-              echo -n "[INFO] Non conventional branch name. Please rename your branch to meet the requirements"
+              echo -n "[INFO] '$GITHUB_HEAD_REF' is a non conventional branch name. Please rename it to meet the requirements (MON..., release..., hotfix..., master, main or XX.YY.ZZ)"
               exit 1
               ;;
           esac
