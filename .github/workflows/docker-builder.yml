@@ -17,14 +17,28 @@ on:
 
 env:
   REGISTRY: registry-docker.centreon.com/docker-global
-  run: |
-    VERSION=$(awk '$1 ~ "COLLECT_MAJOR" {maj=substr($2, 1, length($2)-1)} $1 ~ "COLLECT_MINOR" {min=substr($2, 1, length($2)-1)} $1 ~ "COLLECT_PATCH" {patch=substr($2, 1, length($2) - 1) ; print maj "." min "." patch}' CMakeLists.txt)
-    echo "version=$VERSION" >> $GITHUB_ENV
 
 jobs:
+  create-version:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          VERSION=$(awk '$1 ~ "COLLECT_MAJOR" {maj=substr($2, 1, length($2)-1)} $1 ~ "COLLECT_MINOR" {min=substr($2, 1, length($2)-1)} $1 ~ "COLLECT_PATCH" {patch=substr($2, 1, length($2) - 1) ; print maj "." min "." patch}' CMakeLists.txt)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+        id: version
+      - run: |
+          echo "Version is ${{ steps.version.outputs.version }}"
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+
+
   create-and-push-docker:
+    needs: create-version
     runs-on: [self-hosted, collect]
     continue-on-error: false
+    env:
+      version: ${{ needs.create-version.outputs.version }}
+
     strategy:
       fail-fast: false
       matrix:
