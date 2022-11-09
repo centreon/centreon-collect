@@ -191,7 +191,8 @@ jobs:
             echo "Arch: $ARCH"
             echo "Module: $MODULE"
 
-            curl -v -u ${{ secrets.NEXUS_RPMS_REPOSITORY_USERNAME }}:${{ secrets.NEXUS_RPMS_REPOSITORY_PASSWORD }} -H "Content-Type: multipart/form-data" --data-binary "@./$FILE" "http://nexus-svc.nexus.svc.cluster.local:8081/repository/$VERSION-$REPO/"
+#curl -v -u ${{ secrets.NEXUS_RPMS_REPOSITORY_USERNAME }}:${{ secrets.NEXUS_RPMS_REPOSITORY_PASSWORD }} -H "Content-Type: multipart/form-data" --data-binary "@./$FILE" "http://nexus-svc.nexus.svc.cluster.local:8081/repository/$VERSION-$REPO/"
+            curl -v -u "${{ secrets.REPOS_USERNAME }}":"${{ secrets.REPOS_PASSWORD }}" -X PUT "https://artifactory.apps.centreon.com/artifactory/debian-$VERSION-$REPO/pool/$FILE;deb.distribution=bullseye;deb.component=main;deb.architecture=amd64" -T "./$FILE"
           done
 
   delivery-centos:
@@ -244,6 +245,5 @@ jobs:
             echo "Arch: $ARCH"
             echo "Module: $MODULE"
 
-#curl -v -u ${{ secrets.NEXUS_RPMS_REPOSITORY_USERNAME }}:${{ secrets.NEXUS_RPMS_REPOSITORY_PASSWORD }} --upload-file ./$FILE "http://nexus-svc.nexus.svc.cluster.local:8081/repository/standard/$VERSION/$DISTRIB/$REPO/$ARCH/$MODULE/"
             curl -v -u ${{ secrets.REPOS_USERNAME }}:${{ secrets.REPOS_PASSWORD }} --upload-file ./$FILE "https://artifactory.apps.centreon.com/artifactory/rpm-$VERSION-$DISTRIB/$REPO/$ARCH/$MODULE/"
           done
