@@ -30,7 +30,7 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_ENV
         id: version
       - run: |
-          echo "Version is ${{ steps.version.env.version }}"
+          echo "Version is ${{ env.version }}"
 
       - name: Test robot centos7
         uses: ./.github/actions/runner-docker
