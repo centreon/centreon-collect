@@ -19,7 +19,6 @@
 #include "com/centreon/broker/bam/reporting_stream.hh"
 
 #include "bbdo/bam/ba_duration_event.hh"
-#include "bbdo/bam/ba_event.hh"
 #include "bbdo/bam/dimension_ba_bv_relation_event.hh"
 #include "bbdo/bam/dimension_ba_event.hh"
 #include "bbdo/bam/dimension_ba_timeperiod_relation.hh"
@@ -32,6 +31,7 @@
 #include "bbdo/bam/kpi_event.hh"
 #include "bbdo/bam/rebuild.hh"
 #include "bbdo/events.hh"
+#include "com/centreon/broker/bam/ba.hh"
 #include "com/centreon/broker/database/table_max_size.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"
@@ -156,7 +156,7 @@ int reporting_stream::write(std::shared_ptr<io::data> const& data) {
     case io::events::data_type<io::bam, bam::de_kpi_event>::value:
       _process_kpi_event(data);
       break;
-    case io::events::data_type<io::bam, bam::de_ba_event>::value:
+    case bam::pb_ba_event::static_type():
       _process_ba_event(data);
       break;
     case io::events::data_type<io::bam, bam::de_ba_duration_event>::value:
@@ -603,23 +603,25 @@ void reporting_stream::_prepare() {
  *  @param[in] e The event.
  */
 void reporting_stream::_process_ba_event(std::shared_ptr<io::data> const& e) {
-  bam::ba_event const& be = *std::static_pointer_cast<bam::ba_event const>(e);
+  const BaEvent& be =
+      std::static_pointer_cast<bam::pb_ba_event const>(e)->obj();
   log_v2::bam()->debug(
-      "BAM-BI: processing event of BA {} (start time {}, end time {}, status "
+      "BAM-BI: processing pb_ba_event of BA {} (start time {}, end time {}, "
+      "status "
       "{}, in downtime {})",
-      be.ba_id, be.start_time, be.end_time, be.status, be.in_downtime);
+      be.ba_id(), be.start_time(), be.end_time(), be.status(),
+      be.in_downtime());
 
   // Try to update event.
-  if (be.end_time.is_null())
+  if (be.end_time() <= 0)
     _ba_event_update.bind_value_as_null(0);
   else
-    _ba_event_update.bind_value_as_u64(0, be.end_time.get_time_t());
-  _ba_event_update.bind_value_as_i32(1, be.first_level);
-  _ba_event_update.bind_value_as_tiny(2, be.status);
-  _ba_event_update.bind_value_as_bool(3, be.in_downtime);
-  _ba_event_update.bind_value_as_i32(4, be.ba_id);
-  _ba_event_update.bind_value_as_u64(
-      5, static_cast<uint64_t>(be.start_time.get_time_t()));
+    _ba_event_update.bind_value_as_u64(0, be.end_time());
+  _ba_event_update.bind_value_as_i32(1, be.first_level());
+  _ba_event_update.bind_value_as_tiny(2, be.status());
+  _ba_event_update.bind_value_as_bool(3, be.in_downtime());
+  _ba_event_update.bind_value_as_i32(4, be.ba_id());
+  _ba_event_update.bind_value_as_u64(5, be.start_time());
 
   std::promise<int> promise;
   std::future<int> future = promise.get_future();
@@ -629,18 +631,16 @@ void reporting_stream::_process_ba_event(std::shared_ptr<io::data> const& e) {
   // Event was not found, insert one.
   try {
     if (future.get() == 0) {
-      _ba_full_event_insert.bind_value_as_i32(0, be.ba_id);
-      _ba_full_event_insert.bind_value_as_i32(1, be.first_level);
-      _ba_full_event_insert.bind_value_as_u64(
-          2, static_cast<uint64_t>(be.start_time.get_time_t()));
+      _ba_full_event_insert.bind_value_as_i32(0, be.ba_id());
+      _ba_full_event_insert.bind_value_as_i32(1, be.first_level());
+      _ba_full_event_insert.bind_value_as_u64(2, be.start_time());
 
-      if (be.end_time.is_null())
+      if (be.end_time() <= 0)
         _ba_full_event_insert.bind_value_as_null(3);
       else
-        _ba_full_event_insert.bind_value_as_u64(
-            3, static_cast<uint64_t>(be.end_time.get_time_t()));
-      _ba_full_event_insert.bind_value_as_tiny(4, be.status);
-      _ba_full_event_insert.bind_value_as_bool(5, be.in_downtime);
+        _ba_full_event_insert.bind_value_as_i64(3, be.end_time());
+      _ba_full_event_insert.bind_value_as_tiny(4, be.status());
+      _ba_full_event_insert.bind_value_as_bool(5, be.in_downtime());
 
       std::promise<uint32_t> result;
       std::future<uint32_t> future_r = result.get_future();
@@ -649,20 +649,20 @@ void reporting_stream::_process_ba_event(std::shared_ptr<io::data> const& e) {
           -1);
       uint32_t newba = future_r.get();
       // check events for BA
-      if (_last_inserted_kpi.find(be.ba_id) != _last_inserted_kpi.end()) {
+      if (_last_inserted_kpi.find(be.ba_id()) != _last_inserted_kpi.end()) {
         std::map<std::time_t, uint64_t>& m_events =
-            _last_inserted_kpi[be.ba_id];
-        if (m_events.find(be.start_time.get_time_t()) != m_events.end()) {
+            _last_inserted_kpi[be.ba_id()];
+        if (m_events.find(be.start_time()) != m_events.end()) {
           // Insert kpi event link.
           _kpi_event_link_update.bind_value_as_i32(0, newba);
-          _kpi_event_link_update.bind_value_as_u64(
-              1, m_events[be.start_time.get_time_t()]);
+          _kpi_event_link_update.bind_value_as_u64(1,
+                                                   m_events[be.start_time()]);
           _mysql.run_statement(_kpi_event_link_update,
                                database::mysql_error::update_kpi_event, true);
         }
         // remove older events for BA
         for (auto it = m_events.begin(); it != m_events.end();) {
-          if (it->first < be.start_time.get_time_t())
+          if (it->first < be.start_time())
             it = m_events.erase(it);
           else
             break;
@@ -673,12 +673,12 @@ void reporting_stream::_process_ba_event(std::shared_ptr<io::data> const& e) {
     throw msg_fmt(
         "BAM-BI: could not update event of BA {} "
         " starting at {} and ending at {}: {}",
-        be.ba_id, be.start_time, be.end_time, e.what());
+        be.ba_id(), be.start_time(), be.end_time(), e.what());
   }
 
   // Compute the associated event durations.
-  if (!be.end_time.is_null() && be.start_time != be.end_time)
-    _compute_event_durations(std::static_pointer_cast<bam::ba_event>(e), this);
+  if (be.end_time() > 0 && be.start_time() != be.end_time())
+    _compute_event_durations(be, this);
 }
 
 /**
@@ -1266,26 +1266,25 @@ void reporting_stream::_process_dimension_ba_timeperiod_relation(
  *  @param[in] ev       The ba_event generating the durations.
  *  @param[in] visitor  A visitor stream.
  */
-void reporting_stream::_compute_event_durations(
-    std::shared_ptr<ba_event> const& ev,
-    io::stream* visitor) {
-  if (!ev || !visitor)
+void reporting_stream::_compute_event_durations(const BaEvent& ev,
+                                                io::stream* visitor) {
+  if (!visitor)
     return;
 
   log_v2::bam()->info(
       "BAM-BI: computing durations of event started at {} and ended at {} on "
       "BA {}",
-      ev->start_time, ev->end_time, ev->ba_id);
+      ev.start_time(), ev.end_time(), ev.ba_id());
 
   // Find the timeperiods associated with this ba.
   std::vector<std::pair<time::timeperiod::ptr, bool>> timeperiods =
-      _timeperiods.get_timeperiods_by_ba_id(ev->ba_id);
+      _timeperiods.get_timeperiods_by_ba_id(ev.ba_id());
 
   if (timeperiods.empty()) {
     log_v2::bam()->debug(
         "BAM-BI: no reporting period defined for event started at {} and ended "
         "at {} on BA {}",
-        ev->start_time, ev->end_time, ev->ba_id);
+        ev.start_time(), ev.end_time(), ev.ba_id());
     return;
   }
 
@@ -1298,10 +1297,10 @@ void reporting_stream::_compute_event_durations(
 
     std::shared_ptr<ba_duration_event> dur_ev{
         std::make_shared<ba_duration_event>()};
-    dur_ev->ba_id = ev->ba_id;
-    dur_ev->real_start_time = ev->start_time;
-    dur_ev->start_time = tp->get_next_valid(ev->start_time);
-    dur_ev->end_time = ev->end_time;
+    dur_ev->ba_id = ev.ba_id();
+    dur_ev->real_start_time = ev.start_time();
+    dur_ev->start_time = tp->get_next_valid(ev.start_time());
+    dur_ev->end_time = ev.end_time();
     if ((dur_ev->start_time != (time_t)-1) &&
         (dur_ev->end_time != (time_t)-1) &&
         (dur_ev->start_time < dur_ev->end_time)) {
@@ -1314,14 +1313,14 @@ void reporting_stream::_compute_event_durations(
           "BAM-BI: durations of event started at {} and ended at {} on BA {} "
           "were computed for timeperiod {}, duration is {}s, SLA duration is "
           "{}",
-          ev->start_time, ev->end_time, ev->ba_id, tp->get_name(),
+          ev.start_time(), ev.end_time(), ev.ba_id(), tp->get_name(),
           dur_ev->duration, dur_ev->sla_duration);
       visitor->write(std::static_pointer_cast<io::data>(dur_ev));
     } else
       log_v2::bam()->debug(
           "BAM-BI: event started at {} and ended at {} on BA {} has no "
           "duration on timeperiod {}",
-          ev->start_time, ev->end_time, ev->ba_id, tp->get_name());
+          ev.start_time(), ev.end_time(), ev.ba_id(), tp->get_name());
   }
 }
 
@@ -1357,7 +1356,7 @@ void reporting_stream::_process_rebuild(std::shared_ptr<io::data> const& e) {
     }
 
     // Get the ba events.
-    std::vector<std::shared_ptr<ba_event>> ba_events;
+    std::vector<std::shared_ptr<pb_ba_event>> ba_events;
     {
       std::string query(
           fmt::format("SELECT ba_id, start_time, end_time, status, in_downtime "
@@ -1372,14 +1371,16 @@ void reporting_stream::_process_rebuild(std::shared_ptr<io::data> const& e) {
         mysql_result res(future.get());
 
         while (_mysql.fetch_row(res)) {
-          std::shared_ptr<ba_event> baev(new ba_event);
-          baev->ba_id = res.value_as_i32(0);
-          baev->start_time = res.value_as_i32(1);
-          baev->end_time = res.value_as_i32(2);
-          baev->status = res.value_as_i32(3);
-          baev->in_downtime = res.value_as_bool(4);
+          std::shared_ptr<pb_ba_event> baev(new pb_ba_event);
+          baev->mut_obj().set_ba_id(res.value_as_i32(0));
+          baev->mut_obj().set_start_time(res.value_as_i64(1));
+          baev->mut_obj().set_end_time(res.value_as_i64(2));
+          baev->mut_obj().set_status(bam_state_to_pb(
+              (com::centreon::broker::bam::state)res.value_as_i32(3)));
+          baev->mut_obj().set_in_downtime(res.value_as_bool(4));
           ba_events.push_back(baev);
-          log_v2::bam()->debug("BAM-BI: got events of BA {}", baev->ba_id);
+          log_v2::bam()->debug("BAM-BI: got events of BA {}",
+                               baev->obj().ba_id());
         }
       } catch (std::exception const& e) {
         throw msg_fmt("BAM-BI: could not get BA events of {} : {}",
@@ -1394,12 +1395,11 @@ void reporting_stream::_process_rebuild(std::shared_ptr<io::data> const& e) {
 
     // Generate new ba events durations for each ba events.
     {
-      for (auto it = ba_events.begin(), end = ba_events.end(); it != end;
-           ++it, ++ba_events_curr) {
-        std::string s(fmt::format("rebuilding: ba event {}/{}", ba_events_curr,
-                                  ba_events_num));
+      for (const auto& ev : ba_events) {
+        std::string s(fmt::format("rebuilding: ba event {}/{}",
+                                  ba_events_curr++, ba_events_num));
         _update_status(s);
-        _compute_event_durations(*it, this);
+        _compute_event_durations(ev->obj(), this);
       }
     }
   } catch (...) {

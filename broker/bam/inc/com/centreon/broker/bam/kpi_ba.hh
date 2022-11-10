@@ -22,6 +22,7 @@
 #include "bbdo/bam/kpi_event.hh"
 #include "bbdo/bam/state.hh"
 #include "com/centreon/broker/bam/impact_values.hh"
+#include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/bam/kpi.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/namespace.hh"
@@ -53,7 +54,7 @@ class kpi_ba : public kpi {
                     double downtime);
   void _open_new_event(io::stream* visitor,
                        int impact,
-                       state ba_state,
+                       com::centreon::broker::State ba_state,
                        const timestamp& event_start_time);
 
  public:

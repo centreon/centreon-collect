@@ -29,11 +29,11 @@ ANO_NOFILE
     Remove File  /tmp/anomaly_threshold.json
     Clear Retention
     Clear Db  services
-    Start Broker
+    Start Broker  True
     Start Engine
     Process Service Check result	host_1	anomaly_${serv_id}	2	taratata
     Check Service Status With Timeout  host_1  anomaly_${serv_id}  3  30
-    Stop Broker
+    Stop Broker  True
     Stop Engine
 
 ANO_TOO_OLD_FILE
@@ -49,11 +49,11 @@ ANO_TOO_OLD_FILE
     Create Anomaly Threshold File  /tmp/anomaly_threshold.json  ${1}  ${serv_id}  metric  ${predict_data}
     Clear Retention
     Clear Db  services
-    Start Broker
+    Start Broker  True
     Start Engine
     Process Service Check result	host_1	anomaly_${serv_id}	2	taratata|metric=70%;50;75
     Check Service Status With Timeout  host_1  anomaly_${serv_id}  3  30
-    Stop Broker
+    Stop Broker  True
     Stop Engine
 
 
@@ -70,11 +70,11 @@ ANO_OUT_LOWER_THAN_LIMIT
     Create Anomaly Threshold File  /tmp/anomaly_threshold.json  ${1}  ${serv_id}  metric  ${predict_data}
     Clear Retention
     Clear Db  services
-    Start Broker
+    Start Broker  True
     Start Engine
     Process Service Check result	host_1	anomaly_${serv_id}	2	taratata|metric=20%;50;75
     Check Service Status With Timeout  host_1  anomaly_${serv_id}  2  30
-    Stop Broker
+    Stop Broker  True
     Stop Engine
 
 ANO_OUT_UPPER_THAN_LIMIT
@@ -90,11 +90,11 @@ ANO_OUT_UPPER_THAN_LIMIT
     Create Anomaly Threshold File  /tmp/anomaly_threshold.json  ${1}  ${serv_id}  metric  ${predict_data}
     Clear Retention
     Clear Db  services
-    Start Broker
+    Start Broker  True
     Start Engine
     Process Service Check result	host_1	anomaly_${serv_id}	2	taratata|metric=80%;50;75
     Check Service Status With Timeout  host_1  anomaly_${serv_id}  2  30
-    Stop Broker
+    Stop Broker  True
     Stop Engine
 
 ANO_JSON_SENSITIVITY_NOT_SAVED

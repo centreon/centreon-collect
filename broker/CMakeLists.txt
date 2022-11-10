@@ -507,9 +507,10 @@ target_link_libraries(
   "-Wl,--no-whole-archive"
   CONAN_PKG::nlohmann_json
   CONAN_PKG::fmt
-  -L${CONAN_LIB_DIRS_GRPC}
+  -L${CONAN_LIB_DIRS_GRPC} -L${CONAN_LIB_DIRS_PROTOBUF}
   "-Wl,--whole-archive"
   grpc++
+  ${CONAN_LIBS_PROTOBUF}
   "-Wl,--no-whole-archive"
   CONAN_PKG::spdlog
   CONAN_PKG::grpc)

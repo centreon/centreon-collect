@@ -19,7 +19,7 @@
 #ifndef CCB_BAM_CONFIGURATION_BA_HH
 #define CCB_BAM_CONFIGURATION_BA_HH
 
-#include "bbdo/bam/ba_event.hh"
+#include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()
@@ -54,7 +54,7 @@ class ba {
   ba::state_source _state_source;
   double _warning_level;
   double _critical_level;
-  bam::ba_event _event;
+  bam::pb_ba_event _event;
   downtime_behaviour _dt_behaviour;
 
  public:
@@ -77,7 +77,7 @@ class ba {
   ba::state_source get_state_source() const;
   double get_warning_level() const;
   double get_critical_level() const;
-  bam::ba_event const& get_opened_event() const;
+  bam::pb_ba_event const& get_opened_event() const;
   uint32_t get_default_timeperiod() const;
   std::vector<uint32_t> const& get_timeperiods() const;
   downtime_behaviour get_downtime_behaviour() const;
@@ -88,7 +88,7 @@ class ba {
   void set_state_source(ba::state_source state);
   void set_warning_level(double warning_level);
   void set_critical_level(double critical_level);
-  void set_opened_event(bam::ba_event const& e);
+  void set_opened_event(bam::pb_ba_event const& e);
   void set_downtime_behaviour(downtime_behaviour value);
 };
 }  // namespace configuration

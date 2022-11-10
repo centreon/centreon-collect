@@ -43,8 +43,6 @@ class ba_best : public ba {
 
   void _commit_initial_events(io::stream* visitor);
 
-  std::vector<std::shared_ptr<ba_event> > _initial_events;
-
  protected:
   void _apply_impact(kpi* kpi_ptr, impact_info& impact) override;
   void _unapply_impact(kpi* kpi_ptr, impact_info& impact) override;

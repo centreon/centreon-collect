@@ -23,6 +23,7 @@ BAPBSTATUS
 	Config Broker	central
 	Config Broker	rrd
 	Broker Config Log	central	bam	trace
+	Broker Config Log	central	sql	trace
     Config BBDO3	${1}
 	Config Engine	${1}
 

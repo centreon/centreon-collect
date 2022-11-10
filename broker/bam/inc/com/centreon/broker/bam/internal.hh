@@ -20,6 +20,7 @@
 #define CCB_BAM_INTERNAL_HH
 
 #include "bbdo/bam.pb.h"
+#include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protobuf.hh"
 #include "com/centreon/broker/namespace.hh"
 
@@ -32,6 +33,9 @@ using pb_inherited_downtime =
 
 using pb_ba_status =
     io::protobuf<BaStatus, make_type(io::bam, bam::de_pb_ba_status)>;
+
+using pb_ba_event =
+    io::protobuf<BaEvent, make_type(io::bam, bam::de_pb_ba_event)>;
 
 }  // namespace bam
 

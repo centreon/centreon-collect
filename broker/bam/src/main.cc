@@ -16,7 +16,6 @@
 ** For more information : contact@centreon.com
 */
 #include "bbdo/bam/ba_duration_event.hh"
-#include "bbdo/bam/ba_event.hh"
 #include "bbdo/bam/ba_status.hh"
 #include "bbdo/bam/dimension_ba_bv_relation_event.hh"
 #include "bbdo/bam/dimension_ba_event.hh"
@@ -113,7 +112,6 @@ void broker_module_init(void const* arg) {
 
       register_bam_event<bam::ba_status>(e, bam::de_ba_status, "ba_status");
       register_bam_event<bam::kpi_status>(e, bam::de_kpi_status, "kpi_status");
-      register_bam_event<bam::ba_event>(e, bam::de_ba_event, "ba_event");
       register_bam_event<bam::kpi_event>(e, bam::de_kpi_event, "kpi_event");
       register_bam_event<bam::ba_duration_event>(e, bam::de_ba_duration_event,
                                                  "ba_duration_event");
@@ -149,6 +147,8 @@ void broker_module_init(void const* arg) {
                        "InheritedDowntime");
       e.register_event(make_type(io::bam, bam::de_pb_ba_status), "BaStatus",
                        &bam::pb_ba_status::operations, "BaStatus");
+      e.register_event(make_type(io::bam, bam::de_pb_ba_event), "BaEvent",
+                       &bam::pb_ba_event::operations, "BaEvent");
     }
   }
 }

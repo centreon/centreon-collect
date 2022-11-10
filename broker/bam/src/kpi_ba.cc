@@ -156,11 +156,10 @@ void kpi_ba::visit(io::stream* visitor) {
     // Generate BI events.
     {
       // BA event state.
-      ba_event* bae(_ba->get_ba_event());
-      bam::state ba_state =
-          bae ? static_cast<bam::state>(bae->status) : state_ok;
-      timestamp last_ba_update(bae ? bae->start_time
-                                   : timestamp(time(nullptr)));
+      std::shared_ptr<pb_ba_event> bae(_ba->get_ba_event());
+      com::centreon::broker::State ba_state =
+          bae ? bae->obj().status() : com::centreon::broker::State::OK;
+      timestamp last_ba_update(bae ? bae->obj().start_time() : time(nullptr));
 
       // If no event was cached, create one.
       if (!_event) {
@@ -256,7 +255,7 @@ void kpi_ba::_fill_impact(impact_values& impact,
  */
 void kpi_ba::_open_new_event(io::stream* visitor,
                              int impact,
-                             state ba_state,
+                             com::centreon::broker::State ba_state,
                              const timestamp& event_start_time) {
   _event = std::make_shared<kpi_event>(_id, _ba_id, event_start_time);
   _event->impact_level = impact;

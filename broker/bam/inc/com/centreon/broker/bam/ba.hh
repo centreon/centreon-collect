@@ -20,8 +20,6 @@
 #define CCB_BAM_BA_HH
 
 #include "bbdo/bam/ba_duration_event.hh"
-#include "bbdo/bam/ba_event.hh"
-#include "bbdo/bam/ba_status.hh"
 #include "bbdo/bam/inherited_downtime.hh"
 #include "bbdo/bam/state.hh"
 #include "com/centreon/broker/bam/computable.hh"
@@ -56,9 +54,10 @@ class ba : public computable, public service_listener {
   timestamp _last_kpi_update;
   std::unique_ptr<pb_inherited_downtime> _inherited_downtime;
 
-  std::vector<std::shared_ptr<ba_event>> _initial_events;
+  std::vector<std::shared_ptr<pb_ba_event>> _initial_events;
 
-  void _open_new_event(io::stream* visitor, short service_hard_state);
+  void _open_new_event(io::stream* visitor,
+                       com::centreon::broker::bam::state service_hard_state);
   void _compute_inherited_downtime(io::stream* visitor);
   void _commit_initial_events(io::stream* visitor);
 
@@ -71,7 +70,7 @@ class ba : public computable, public service_listener {
   };
 
  protected:
-  std::shared_ptr<ba_event> _event;
+  std::shared_ptr<pb_ba_event> _event;
   std::string _name;
   constexpr static int _recompute_limit = 100;
 
@@ -126,7 +125,7 @@ class ba : public computable, public service_listener {
   virtual double get_downtime_impact_soft() { return 0.0; }
   virtual double get_ack_impact_hard() { return 0.0; }
   virtual double get_ack_impact_soft() { return 0.0; }
-  ba_event* get_ba_event();
+  std::shared_ptr<pb_ba_event> get_ba_event();
   uint32_t get_id() const;
   uint32_t get_host_id() const;
   uint32_t get_service_id() const;
@@ -139,7 +138,7 @@ class ba : public computable, public service_listener {
   virtual state get_state_soft() const = 0;
   configuration::ba::state_source get_state_source() const;
   void remove_impact(std::shared_ptr<kpi> const& impact);
-  void set_initial_event(ba_event const& event);
+  void set_initial_event(const pb_ba_event& event);
   void set_name(std::string const& name);
   void set_valid(bool valid);
   void set_downtime_behaviour(configuration::ba::downtime_behaviour value);

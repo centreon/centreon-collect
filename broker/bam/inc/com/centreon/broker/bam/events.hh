@@ -20,7 +20,6 @@
 #define CCB_BAM_EVENTS_HH
 
 #include "com/centreon/broker/bam/ba_duration_event.hh"
-#include "com/centreon/broker/bam/ba_event.hh"
 #include "com/centreon/broker/bam/ba_status.hh"
 #include "com/centreon/broker/bam/dimension_ba_bv_relation_event.hh"
 #include "com/centreon/broker/bam/dimension_ba_event.hh"
