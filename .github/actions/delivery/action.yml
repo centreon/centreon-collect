@@ -1,0 +1,64 @@
+name: "deb-package"
+description: "Package deb Centreon"
+inputs:
+  distrib:
+    description: "The distribution used for packaging"
+    required: true
+  repos_username:
+    description: "Artifact Manager technical username"
+    required: true
+  repos_password:
+    description: "Artifact Manager technical password"
+    required: true
+  version:
+    description: "Centreon packaged version"
+    required: true
+  cache_key:
+    description: "The cached package key"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Use cache DEB files
+      uses: actions/cache@v3
+      with:
+        path: ./*.deb
+        key: ${{ inputs.cache_key }}-${{ inputs.distrib }}
+        restore-keys: ${{ inputs.cache_key }}-${{ inputs.distrib }}
+
+    - name: Publish DEBs
+      run: |
+        if [[ -z "$GITHUB_HEAD_REF" ]];
+        then
+          BRANCHNAME="$GITHUB_REF_NAME"
+        else
+          BRANCHNAME="$GITHUB_HEAD_REF"
+        fi
+        echo "[DEBUG] - Branch name: $BRANCHNAME"
+        case "$BRANCHNAME" in
+          develop | dev-[2-9][0-9].[0-9][0-9].x)
+            REPO="unstable"
+            ;;
+          release* | hotfix*)
+            REPO="testing"
+            ;;
+          master | [2-9][0-9].[0-9][0-9].x)
+            REPO="stable"
+            ;;
+          *)
+            echo -n "[INFO] NO DELIVERY FOR THIS BRANCH"
+            exit 0
+            ;;
+        esac
+        FILES="*.deb";
+        echo "[DEBUG] - Repo: $REPO"
+        echo "[DEBUG] - Deb FILES: $FILES"
+        for FILE in $FILES
+        do
+          echo "[DEBUG] - File: $FILE"
+          VERSION=${{ inputs.version }}
+          echo "[DEBUG] - Version: $VERSION"
+          curl -v -u "${{ inputs.repos_username }}":"${{ inputs.repos_password }}" -X PUT "https://artifactory.apps.centreon.com/artifactory/debian-$VERSION-$REPO/pool/$FILE;deb.distribution=bullseye;deb.component=main;deb.architecture=amd64" -T "./$FILE"
+        done
+      shell: bash
