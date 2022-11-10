@@ -20,14 +20,26 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Use cache DEB files
+    - name: Build name for RPM
+      if: ${{ inputs.distrib == 'el7' || inputs.distrib == 'el8' }}
+      run: |
+        echo "build=rpmbuild-centreon-collect" >> $GITHUB_ENV
+        echo "extfile=rpm" >> $GITHUB_ENV
+
+    - name: Build name for DEB
+      if: ${{ inputs.distrib == 'buster' || inputs.distrib == 'bullseye' }}
+      run: |
+        echo "build=debbuild-centreon-collect" >> $GITHUB_ENV
+        echo "extfile=deb" >> $GITHUB_ENV
+
+    - name: Use cache files
       uses: actions/cache@v3
       with:
-        path: ./*.deb
-        key: ${{ inputs.cache_key }}-${{ inputs.distrib }}
-        restore-keys: ${{ inputs.cache_key }}-${{ inputs.distrib }}
+        path: ./*.${{ env.extfile }}
+        key: ${{ inputs.cache_key }}-${{ env.build }}-${{ inputs.distrib }}
+        restore-keys: ${{ inputs.cache_key }}-${{ env.build }}-${{ inputs.distrib }}
 
-    - name: Publish DEBs
+    - name: Publish packages
       run: |
         if [[ -z "$GITHUB_HEAD_REF" ]];
         then
@@ -51,14 +63,18 @@ runs:
             exit 0
             ;;
         esac
-        FILES="*.deb";
+        FILES="*.${{ env.extfile }}";
         echo "[DEBUG] - Repo: $REPO"
-        echo "[DEBUG] - Deb FILES: $FILES"
+        echo "[DEBUG] - FILES: $FILES"
         for FILE in $FILES
         do
           echo "[DEBUG] - File: $FILE"
           VERSION=${{ inputs.version }}
           echo "[DEBUG] - Version: $VERSION"
-          curl -v -u "${{ inputs.repos_username }}":"${{ inputs.repos_password }}" -X PUT "https://artifactory.apps.centreon.com/artifactory/debian-$VERSION-$REPO/pool/$FILE;deb.distribution=bullseye;deb.component=main;deb.architecture=amd64" -T "./$FILE"
+          if [[ "${{ env.extfiles }}" == "deb" ]] ; then
+            curl -v -u "${{ inputs.repos_username }}":"${{ inputs.repos_password }}" -X PUT "https://artifactory.apps.centreon.com/artifactory/debian-$VERSION-$REPO/pool/$FILE;deb.distribution=bullseye;deb.component=main;deb.architecture=amd64" -T "./$FILE"
+          else
+            curl -v -u "${{ inputs.repos_username }}":"${{ inputs.repos_password }}" -X PUT "https://artifactory.apps.centreon.com/artifactory/rpm-$VERSION-$REPO/$DISTRIB/$REPO/$ARCH/centreon-collect" -T "./$FILE"
+          fi
         done
       shell: bash
