@@ -184,7 +184,7 @@ jobs:
       - name: Publish DEBs
         uses: ./.github/actions/delivery
         with:
-          distrib:${{ matrix.distrib }}
+          distrib: ${{ matrix.distrib }}
           version: ${{ env.version }}
           repos_username: ${{ secrets.REPOS_USERNAME }}
           repos_password: ${{ secrets.REPOS_PASSWORD }}
