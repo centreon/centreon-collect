@@ -136,8 +136,6 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
-        with:
-          path: centreon-collect
       - name: Login to Registry
         uses: docker/login-action@v2
         with:
