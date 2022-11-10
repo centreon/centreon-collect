@@ -146,7 +146,7 @@ jobs:
           password: ${{ secrets.REPOS_PASSWORD }}
 
       - name: debmake ${{ matrix.image }}
-        uses: ./centreon-collect/.github/actions/runner-docker
+        uses: ./.github/actions/runner-docker
         with:
           script_name: /src/centreon-collect/ci/scripts/collect-deb-package
           image_name: centreon-collect-${{ matrix.image }}

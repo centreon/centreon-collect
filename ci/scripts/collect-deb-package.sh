@@ -21,7 +21,8 @@ rm -rf centreon-collect/gorgone
 tar czpf centreon-collect-$VERSION.tar.gz centreon-collect
 cd centreon-collect/
 cp -rf ci/debian-collect debian
-sed -i "s/^centreon:version=.*$/centreon:version=$(echo $VERSION | egrep -o '^[0-9][0-9].[0-9][0-9]')/" debian/substvars
+sed -i "s/^centreon:version=.*$/centreon:version=$(echo $VERSION-$RELEASE)/" debian/substvars
+#sed -i "s/^centreon:version=.*$/centreon:version=$(echo $VERSION | egrep -o '^[0-9][0-9].[0-9][0-9]')/" debian/substvars
 debmake -f "${AUTHOR}" -e "${AUTHOR_EMAIL}" -u "$VERSION" -r "$DISTRIB"
 debuild-pbuilder
 cd ../
