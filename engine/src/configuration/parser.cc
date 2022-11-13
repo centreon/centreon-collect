@@ -69,6 +69,13 @@ parser::~parser() noexcept {}
 void parser::parse(const std::string& path, State* pb_config) {
   /* Parse the global configuration file. */
   _parse_global_configuration(path, pb_config);
+
+  // parse configuration files.
+  _apply(pb_config->cfg_file(), pb_config, &parser::_parse_object_definitions);
+  // parse resource files.
+  _apply(pb_config->resource_file(), pb_config, &parser::_parse_resource_file);
+  // parse configuration directories.
+  _apply(pb_config->cfg_dir(), &parser::_parse_directory_configuration);
 }
 
 /**
@@ -154,19 +161,6 @@ void parser::_add_template(object_ptr obj) {
                          << _get_file_info(obj.get()) << ": " << name
                          << " already exists";
   tmpl[name] = obj;
-}
-
-/**
- *  Apply parse method into list.
- *
- *  @param[in] lst   The list to apply action.
- *  @param[in] pfunc The method to apply.
- */
-void parser::_apply(std::list<std::string> const& lst,
-                    void (parser::*pfunc)(std::string const&)) {
-  for (std::list<std::string>::const_iterator it(lst.begin()), end(lst.end());
-       it != end; ++it)
-    (this->*pfunc)(*it);
 }
 
 /**
@@ -322,7 +316,6 @@ void parser::_insert(list_object const& from, std::set<T>& to) {
   for (list_object::const_iterator it(from.begin()), end(from.end()); it != end;
        ++it)
     to.insert(*static_cast<T const*>(it->get()));
-  return;
 }
 
 /**
@@ -336,7 +329,6 @@ void parser::_insert(map_object const& from, std::set<T>& to) {
   for (map_object::const_iterator it(from.begin()), end(from.end()); it != end;
        ++it)
     to.insert(*static_cast<T*>(it->second.get()));
-  return;
 }
 
 /**
@@ -360,6 +352,20 @@ std::string const& parser::_map_object_type(map_object const& objects) const
  *
  *  @param[in] path The directory path.
  */
+void parser::_parse_directory_configuration(const std::string& path,
+                                            State* pb_config) {
+  directory_entry dir(path);
+  std::list<file_entry> const& lst(dir.entry_list("*.cfg"));
+  for (std::list<file_entry>::const_iterator it(lst.begin()), end(lst.end());
+       it != end; ++it)
+    _parse_object_definitions(it->path());
+}
+
+/**
+ *  Parse the directory configuration.
+ *
+ *  @param[in] path The directory path.
+ */
 void parser::_parse_directory_configuration(std::string const& path) {
   directory_entry dir(path);
   std::list<file_entry> const& lst(dir.entry_list("*.cfg"));
@@ -369,12 +375,21 @@ void parser::_parse_directory_configuration(std::string const& path) {
 }
 
 template <typename T>
-bool set(T* msg, const absl::string_view& key, const absl::string_view& value) {
+bool set(
+    T* msg,
+    const absl::string_view& key,
+    const absl::string_view& value,
+    const absl::flat_hash_map<std::string, std::string>& correspondance = {}) {
   const Descriptor* desc = msg->GetDescriptor();
   const FieldDescriptor* f =
       desc->FindFieldByName(std::string(key.data(), key.size()));
-  if (f == nullptr)
-    return false;
+  if (f == nullptr) {
+    auto it = correspondance.find(key);
+    if (it != correspondance.end())
+      f = desc->FindFieldByName(it->second);
+    if (f == nullptr)
+      return false;
+  }
   const Reflection* refl = msg->GetReflection();
   switch (f->type()) {
     case FieldDescriptor::TYPE_BOOL: {
@@ -393,6 +408,22 @@ bool set(T* msg, const absl::string_view& key, const absl::string_view& value) {
       } else
         return false;
     } break;
+    case FieldDescriptor::TYPE_UINT32: {
+      uint32_t val;
+      if (absl::SimpleAtoi(value, &val)) {
+        refl->SetUInt32(static_cast<Message*>(msg), f, val);
+        return true;
+      } else
+        return false;
+    } break;
+    case FieldDescriptor::TYPE_UINT64: {
+      uint64_t val;
+      if (absl::SimpleAtoi(value, &val)) {
+        refl->SetUInt64(static_cast<Message*>(msg), f, val);
+        return true;
+      } else
+        return false;
+    } break;
     case FieldDescriptor::TYPE_STRING:
       if (f->is_repeated()) {
         refl->AddString(static_cast<Message*>(msg), f,
@@ -403,8 +434,35 @@ bool set(T* msg, const absl::string_view& key, const absl::string_view& value) {
       }
       return true;
     default:
-      assert(1 == 0);
+      return false;
   }
+  return true;
+}
+
+template <typename T, typename U>
+bool set(
+    T* msg,
+    const absl::string_view& key,
+    const U&& value,
+    const absl::flat_hash_map<std::string, std::string>& correspondance = {}) {
+  const Descriptor* desc = msg->GetDescriptor();
+  const FieldDescriptor* f =
+      desc->FindFieldByName(std::string(key.data(), key.size()));
+  if (f == nullptr) {
+    auto it = correspondance.find(key);
+    if (it != correspondance.end())
+      f = desc->FindFieldByName(it->second);
+    if (f == nullptr)
+      return false;
+  }
+  const Reflection* refl = msg->GetReflection();
+  if (f->is_repeated()) {
+    auto* m = refl->AddMessage(static_cast<Message*>(msg), f);
+    m->CopyFrom(std::move(value));
+  } else
+    refl->MutableMessage(static_cast<Message*>(msg), f)
+        ->CopyFrom(std::move(value));
+  return true;
 }
 
 void parser::_parse_global_configuration(const std::string& path,
@@ -421,7 +479,7 @@ void parser::_parse_global_configuration(const std::string& path,
     in.close();
   } else
     throw engine_error() << fmt::format(
-        "Parsing of global configuration failed: Can't open file '{}': {}",
+        "Parsing of global configuration failed: can't open file '{}': {}",
         path, strerror(errno));
 
   pb_config->set_cfg_main(path);
@@ -430,15 +488,235 @@ void parser::_parse_global_configuration(const std::string& path,
 
   auto tab{absl::StrSplit(content, '\n')};
   for (auto it = tab.begin(); it != tab.end(); ++it) {
-    if (it->empty())
+    absl::string_view l = absl::StripAsciiWhitespace(*it);
+    if (l.empty() || l[0] == '#')
       continue;
-    std::pair<absl::string_view, absl::string_view> p =
-        absl::StrSplit(*it, '=');
-    p.first = absl::StripAsciiWhitespace(p.first);
-    p.second = absl::StripAsciiWhitespace(p.second);
+    std::pair<absl::string_view, absl::string_view> p = absl::StrSplit(l, '=');
+    p.first = absl::StripTrailingAsciiWhitespace(p.first);
+    p.second = absl::StripLeadingAsciiWhitespace(p.second);
     if (!set(pb_config, p.first, p.second))
       throw engine_error() << fmt::format(
           "Unable to parse '{}' key with value '{}'", p.first, p.second);
+  }
+}
+
+/**
+ * @brief Parse objects files (services.cfg, hosts.cfg, timeperiods.cfg...
+ *
+ * This function almost uses protobuf reflection to set values but it may fail
+ * because of the syntax used in these files that can be a little different
+ * from the message format.
+ *
+ * Two mechanisms are used to complete the reflection.
+ * * A hastable <string, string> named correspondance is used in case of several
+ *   keys to access to the same value. This is, for example, the case for
+ *   host_id which is historically also named _HOST_ID.
+ * * A std::function<bool(string_view_string_view) can also be defined in
+ *   several cases to make special stuffs. For example, we use it for timeperiod
+ *   object to set its timeranges.
+ *
+ * @param path The file to parse.
+ * @param pb_config The configuration to complete.
+ */
+void parser::_parse_object_definitions(const std::string& path,
+                                       State* pb_config) {
+  log_v2::config()->info("Processing object config file '{}'", path);
+
+  std::ifstream in(path, std::ios::in);
+  std::string content;
+  if (in) {
+    in.seekg(0, std::ios::end);
+    content.resize(in.tellg());
+    in.seekg(0, std::ios::beg);
+    in.read(&content[0], content.size());
+    in.close();
+  } else
+    throw engine_error() << fmt::format(
+        "Parsing of object definition failed: can't open file '{}': {}", path,
+        strerror(errno));
+
+  auto tab{absl::StrSplit(content, '\n')};
+  std::string ll;
+  bool append_to_previous_line = false;
+  Message* msg = nullptr;
+  int current_line = 1;
+  std::string type;
+  absl::flat_hash_map<std::string, std::string> correspondance;
+  std::function<bool(const absl::string_view& key,
+                     const absl::string_view& value)>
+      hook;
+
+  for (auto it = tab.begin(); it != tab.end(); ++it, current_line++) {
+    absl::string_view l = absl::StripAsciiWhitespace(*it);
+    if (l.empty() || l[0] == '#')
+      continue;
+
+    /* Multiline */
+    if (append_to_previous_line) {
+      if (l[l.size() - 1] == '\\') {
+        ll.append(l.data(), l.size() - 1);
+        continue;
+      } else {
+        ll.append(l.data(), l.size());
+        append_to_previous_line = false;
+        l = ll;
+      }
+    } else if (l[l.size() - 1] == '\\') {
+      ll = std::string(l.data(), l.size() - 1);
+      append_to_previous_line = true;
+      continue;
+    }
+
+    if (msg) {
+      if (l.empty())
+        continue;
+      /* is it time to close the definition? */
+      if (l == "}") {
+        if (type == "contact") {
+          auto* cts = pb_config->mutable_contacts();
+          Contact* ct = static_cast<Contact*>(msg);
+          (*cts)[ct->name()] = std::move(*ct);
+          delete msg;
+          msg = nullptr;
+        } else {
+          msg = nullptr;
+          hook = nullptr;
+        }
+      } else {
+        /* Main part where keys/values are read */
+        /* ------------------------------------ */
+        size_t pos = l.find_first_of(" \t");
+        absl::string_view key = l.substr(0, pos);
+        l.remove_prefix(pos);
+        l = absl::StripLeadingAsciiWhitespace(l);
+        /* Classical part */
+        if (!set(msg, key, l, correspondance)) {
+          bool retval = false;
+          /* particular cases with hook */
+          if (hook)
+            retval = hook(key, l);
+          if (!retval) {
+            /* last particular case with customvariables */
+            CustomVariable cv;
+            key.remove_prefix(1);
+            cv.set_name(key.data(), key.size());
+            cv.set_value(l.data(), l.size());
+
+            const Descriptor* desc = msg->GetDescriptor();
+            const FieldDescriptor* f = desc->FindFieldByName("customvariables");
+            if (f == nullptr)
+              throw engine_error() << fmt::format(
+                  "Unable to parse '{}' key with value '{}' in message of type "
+                  "'{}'",
+                  key, l, type);
+            else {
+              const Reflection* refl = msg->GetReflection();
+              CustomVariable* cv =
+                  static_cast<CustomVariable*>(refl->AddMessage(msg, f));
+              cv->set_name(key.data(), key.size());
+              cv->set_value(l.data(), l.size());
+            }
+          }
+        }
+      }
+    } else {
+      if (!absl::StartsWith(l, "define") || !std::isspace(l[6]))
+        throw engine_error() << fmt::format(
+            "Parsing of object definition failed in file '{}' at line {}: "
+            "Unexpected start definition",
+            path, current_line);
+      /* Let's remove the first 6 characters ("define") */
+      l = absl::StripLeadingAsciiWhitespace(l.substr(6));
+      if (l.empty() || l[l.size() - 1] != '{')
+        throw engine_error() << fmt::format(
+            "Parsing of object definition failed in file '{}' at line {}; "
+            "unexpected start definition",
+            path, current_line);
+      l = absl::StripTrailingAsciiWhitespace(l.substr(0, l.size() - 1));
+      type = std::string(l.data(), l.size());
+      if (type == "contact")
+        msg = new Contact;
+      else if (type == "host") {
+        msg = pb_config->mutable_hosts()->Add();
+        correspondance = {
+            {"_HOST_ID", "host_id"},
+        };
+      } else if (type == "service") {
+        msg = pb_config->mutable_services()->Add();
+        correspondance = {
+            {"_SERVICE_ID", "service_id"},
+        };
+      } else if (type == "timeperiod") {
+        msg = pb_config->mutable_timeperiods()->Add();
+        correspondance = {
+            {"name", "timeperiod_name"},
+        };
+        hook = [msg, tp = static_cast<Timeperiod*>(msg)](
+                   const absl::string_view& key,
+                   const absl::string_view& value) -> bool {
+          auto arr = absl::StrSplit(value, ',');
+          for (auto& d : arr) {
+            std::pair<absl::string_view, absl::string_view> v =
+                absl::StrSplit(d, '-');
+            TimeRange tr;
+            std::pair<absl::string_view, absl::string_view> p =
+                absl::StrSplit(v.first, ':');
+            uint32_t h, m;
+            if (!absl::SimpleAtoi(p.first, &h) ||
+                !absl::SimpleAtoi(p.second, &m))
+              return false;
+            tr.set_range_start(h * 3600 + m * 60);
+            p = absl::StrSplit(v.second, ':');
+            if (!absl::SimpleAtoi(p.first, &h) ||
+                !absl::SimpleAtoi(p.second, &m))
+              return false;
+            tr.set_range_end(h * 3600 + m * 60);
+            set(msg, key, std::move(tr));
+          }
+          return true;
+        };
+      } else if (type == "command") {
+        msg = pb_config->mutable_commands()->Add();
+      } else {
+        assert(1 == 18);
+      }
+    }
+  }
+}
+
+void parser::_parse_resource_file(const std::string& path, State* pb_config) {
+  log_v2::config()->info("Reading resource file '{}'", path);
+
+  std::ifstream in(path, std::ios::in);
+  std::string content;
+  if (in) {
+    in.seekg(0, std::ios::end);
+    content.resize(in.tellg());
+    in.seekg(0, std::ios::beg);
+    in.read(&content[0], content.size());
+    in.close();
+  } else
+    throw engine_error() << fmt::format(
+        "Parsing of resource file failed: can't open file '{}': {}", path,
+        strerror(errno));
+
+  auto tab{absl::StrSplit(content, '\n')};
+  int current_line = 1;
+  for (auto it = tab.begin(); it != tab.end(); ++it, current_line++) {
+    absl::string_view l = absl::StripLeadingAsciiWhitespace(*it);
+    if (l.empty() || l[0] == '#')
+      continue;
+    std::pair<absl::string_view, absl::string_view> p = absl::StrSplit(l, '=');
+    p.first = absl::StripTrailingAsciiWhitespace(p.first);
+    p.second = absl::StripLeadingAsciiWhitespace(p.second);
+    if (p.first.size() >= 3 && p.first[0] == '$' &&
+        p.first[p.first.size() - 1] == '$') {
+      p.first = p.first.substr(1, p.first.size() - 2);
+      (*pb_config
+            ->mutable_users())[std::string(p.first.data(), p.first.size())] =
+          std::string(p.second.data(), p.second.size());
+    } else
+      throw engine_error() << fmt::format("Invalid user key '{}'", p.first);
   }
 }
 
@@ -452,10 +730,10 @@ void parser::_parse_global_configuration(const std::string& path) {
       << "Reading main configuration file '" << path << "'.";
   log_v2::config()->info("Reading main configuration file '{}'.", path);
 
-  std::ifstream stream(path.c_str(), std::ios::binary);
+  std::ifstream stream(path, std::ios::binary);
   if (!stream.is_open())
     throw engine_error()
-        << "Parsing of global configuration failed: Can't open file '" << path
+        << "Parsing of global configuration failed: can't open file '" << path
         << "'";
 
   _config->cfg_main(path);
@@ -488,7 +766,7 @@ void parser::_parse_object_definitions(std::string const& path) {
   std::ifstream stream(path, std::ios::binary);
   if (!stream.is_open())
     throw engine_error() << "Parsing of object definition failed: "
-                         << "Can't open file '" << path << "'";
+                         << "can't open file '" << path << "'";
 
   _current_line = 0;
   _current_path = path;
