@@ -77,8 +77,20 @@ class parser {
   parser& operator=(parser const& right);
   void _add_object(object_ptr obj);
   void _add_template(object_ptr obj);
-  void _apply(std::list<std::string> const& lst,
-              void (parser::*pfunc)(const std::string&));
+  template <typename T>
+  void _apply(const T& lst, void (parser::*pfunc)(const std::string&)) {
+    for (auto& f : lst)
+      (this->*pfunc)(f);
+  }
+
+  template <typename S, typename L>
+  void _apply(const L& lst,
+              S* state,
+              void (parser::*pfunc)(const std::string&, S*)) {
+    for (auto& f : lst)
+      (this->*pfunc)(f, state);
+  }
+
   void _apply_hostextinfo();
   void _apply_serviceextinfo();
   file_info const& _get_file_info(object* obj) const;
@@ -96,9 +108,12 @@ class parser {
   static void _insert(map_object const& from, std::set<T>& to);
   std::string const& _map_object_type(map_object const& objects) const throw();
   void _parse_directory_configuration(std::string const& path);
+  void _parse_directory_configuration(const std::string& path, State* pb_config);
   void _parse_global_configuration(std::string const& path);
-  void _parse_object_definitions(std::string const& path);
+  void _parse_object_definitions(const std::string& path);
+  void _parse_object_definitions(const std::string& path, State* pb_config);
   void _parse_resource_file(std::string const& path);
+  void _parse_resource_file(const std::string& path, State* pb_config);
   void _resolve_template();
   void _store_into_list(object_ptr obj);
   template <typename T, std::string const& (T::*ptr)() const throw()>
