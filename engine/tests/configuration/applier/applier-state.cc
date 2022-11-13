@@ -39,7 +39,7 @@ class ApplierState : public ::testing::Test {
     for (int i = 0; i < 10; i++) {
       auto* tp = tps->Add();
       tp->set_alias(fmt::format("timeperiod {}", i));
-      tp->set_name(fmt::format("Timeperiod {}", i));
+      tp->set_timeperiod_name(fmt::format("Timeperiod {}", i));
     }
     for (int i = 0; i < 5; i++) {
       auto cts = pb_config.mutable_contacts();
@@ -106,7 +106,7 @@ TEST_F(ApplierState, DiffOnTimeperiodOneRemoved) {
       configuration::applier::state::instance().build_difference(pb_config,
                                                                  new_config);
   ASSERT_EQ(dstate.to_remove().size(), 1u);
-  ASSERT_EQ(dstate.to_remove()[0].key()[0].i32(), 1);
+  ASSERT_EQ(dstate.to_remove()[0].key()[0].i32(), 2);
   ASSERT_EQ(dstate.to_remove()[0].key()[1].i32(), 9);
   ASSERT_EQ(dstate.to_remove()[0].key().size(), 2);
   ASSERT_TRUE(dstate.to_add().empty());
@@ -119,7 +119,7 @@ TEST_F(ApplierState, DiffOnTimeperiodNewOne) {
   auto tps = new_config.mutable_timeperiods();
   auto* tp = tps->Add();
   tp->set_alias("timeperiod 11");
-  tp->set_name("Timeperiod 11");
+  tp->set_timeperiod_name("Timeperiod 11");
 
   std::string output;
   MessageDifferencer differencer;
@@ -139,7 +139,7 @@ TEST_F(ApplierState, DiffOnTimeperiodNewOne) {
   ASSERT_TRUE(dstate.to_add()[0].val().has_value_tp());
   const configuration::Timeperiod& new_tp = dstate.to_add()[0].val().value_tp();
   ASSERT_EQ(new_tp.alias(), std::string("timeperiod 11"));
-  ASSERT_EQ(new_tp.name(), std::string("Timeperiod 11"));
+  ASSERT_EQ(new_tp.timeperiod_name(), std::string("Timeperiod 11"));
 }
 
 TEST_F(ApplierState, DiffOnTimeperiodAliasRenamed) {
@@ -166,11 +166,11 @@ TEST_F(ApplierState, DiffOnTimeperiodAliasRenamed) {
   const configuration::PathWithValue& path = dstate.to_modify()[0];
   ASSERT_EQ(path.path().key().size(), 4u);
   // number 1 => timeperiods
-  ASSERT_EQ(path.path().key()[0].i32(), 1);
+  ASSERT_EQ(path.path().key()[0].i32(), 2);
   // index 7 => timeperiods[7]
   ASSERT_EQ(path.path().key()[1].i32(), 7);
-  // number 1 => timeperiods.alias
-  ASSERT_EQ(path.path().key()[2].i32(), 1);
+  // number 2 => timeperiods.alias
+  ASSERT_EQ(path.path().key()[2].i32(), 2);
   // No more key...
   ASSERT_EQ(path.path().key()[3].i32(), -1);
   ASSERT_TRUE(path.val().has_value_str());
@@ -200,7 +200,7 @@ TEST_F(ApplierState, DiffOnContactOneRemoved) {
 
   ASSERT_EQ(dstate.to_remove()[0].key().size(), 2);
   // number 4 => for contacts
-  ASSERT_EQ(dstate.to_remove()[0].key()[0].i32(), 4);
+  ASSERT_EQ(dstate.to_remove()[0].key()[0].i32(), 5);
   // "name 4" => contacts["name 4"]
   ASSERT_EQ(dstate.to_remove()[0].key()[1].str(), std::string("name 4"));
 
@@ -231,7 +231,7 @@ TEST_F(ApplierState, DiffOnContactOneAdded) {
   ASSERT_EQ(dstate.to_add().size(), 1u);
   const configuration::PathWithValue& to_add = dstate.to_add()[0];
   ASSERT_EQ(to_add.path().key().size(), 2u);
-  ASSERT_EQ(to_add.path().key()[0].i32(), 4);
+  ASSERT_EQ(to_add.path().key()[0].i32(), 5);
   // ASSERT_EQ(to_add.path().key()[1].str(), std::string("name 4"));
   ASSERT_TRUE(to_add.val().has_value_ct());
 }
@@ -392,20 +392,203 @@ TEST_F(ApplierState, StateParsing) {
   configuration::State config;
   configuration::parser p;
   std::string conf{"/tmp/centengine.cfg"};
+  std::string hosts_conf{"/tmp/hosts.cfg"};
+  std::string services_conf{"/tmp/services.cfg"};
+  CreateFile(hosts_conf,
+             "define host {\n"
+             "    host_name                      host_1\n"
+             "    alias                          host_1\n"
+             "    address                        1.0.0.0\n"
+             "    check_command                  checkh1\n"
+             "    check_period                   24x7\n"
+             "    register                       1\n"
+             "    _KEY1                      VAL1\n"
+             "    _SNMPCOMMUNITY                 public\n"
+             "    _SNMPVERSION                   2c\n"
+             "    _HOST_ID                       1\n"
+             "}\n"
+             "define host {\n"
+             "    host_name                      host_2\n"
+             "    alias                          host_2\n"
+             "    address                        2.0.0.0\n"
+             "    check_command                  checkh2\n"
+             "    check_period                   24x7\n"
+             "    register                       1\n"
+             "    _KEY2                      VAL2\n"
+             "    _SNMPCOMMUNITY                 public\n"
+             "    _SNMPVERSION                   2c\n"
+             "    _HOST_ID                       2\n"
+             "}\n"
+             "define host {\n"
+             "    host_name                      host_3\n"
+             "    alias                          host_3\n"
+             "    address                        3.0.0.0\n"
+             "    check_command                  checkh3\n"
+             "    check_period                   24x7\n"
+             "    register                       1\n"
+             "    _KEY3                      VAL3\n"
+             "    _SNMPCOMMUNITY                 public\n"
+             "    _SNMPVERSION                   2c\n"
+             "    _HOST_ID                       3\n"
+             "}\n"
+             "define host {\n"
+             "    host_name                      host_4\n"
+             "    alias                          host_4\n"
+             "    address                        4.0.0.0\n"
+             "    check_command                  checkh4\n"
+             "    check_period                   24x7\n"
+             "    register                       1\n"
+             "    _KEY4                      VAL4\n"
+             "    _SNMPCOMMUNITY                 public\n"
+             "    _SNMPVERSION                   2c\n"
+             "    _HOST_ID                       4\n"
+             "}\n");
+
+  CreateFile(services_conf,
+             "# comment 1\n"
+             "# comment 2\n"
+             "define service {\n"
+             "    host_name                       host_1\n"
+             "    service_description             service_1\n"
+             "    _SERVICE_ID                     1\n"
+             "    check_command                   command_19\n"
+             "    check_period                    24x7\n"
+             "    max_check_attempts              3\n"
+             "    check_interval                  5\n"
+             "    retry_interval                  5\n"
+             "    register                        1\n"
+             "    active_checks_enabled           1\n"
+             "    passive_checks_enabled          1\n"
+             "}\n"
+             "define service {\n"
+             "    host_name                       host_1\n"
+             "    service_description             service_2\n"
+             "    _SERVICE_ID                     2\n"
+             "    check_command                   command_47\n"
+             "    check_period                    24x7\n"
+             "    max_check_attempts              3\n"
+             "    check_interval                  5\n"
+             "    retry_interval                  5\n"
+             "    register                        1\n"
+             "    active_checks_enabled           1\n"
+             "    passive_checks_enabled          1\n"
+             "}\n"
+             "define service {\n"
+             "    host_name                       host_1\n"
+             "    service_description             service_3\n"
+             "    _SERVICE_ID                     3\n"
+             "    check_command                   command_21\n"
+             "    check_period                    24x7\n"
+             "    max_check_attempts              3\n"
+             "    check_interval                  5\n"
+             "    retry_interval                  5\n"
+             "    register                        1\n"
+             "    active_checks_enabled           1\n"
+             "    passive_checks_enabled          1\n"
+             "}\n"
+             "define service {\n"
+             "    host_name                       host_1\n"
+             "    service_description             service_4\n"
+             "    _SERVICE_ID                     4\n"
+             "    check_command                   command_30\n"
+             "    check_period                    24x7\n"
+             "    max_check_attempts              3\n"
+             "    check_interval                  5\n"
+             "    retry_interval                  5\n"
+             "    register                        1\n"
+             "    active_checks_enabled           1\n"
+             "    passive_checks_enabled          1\n"
+             "}\n");
+
+  CreateFile("/tmp/commands.cfg",
+             "define command {\n"
+             "    command_name                    command_1\n"
+             "    command_line                    "
+             "/tmp/var/lib/centreon-engine/check.pl 1\n"
+             "}\n"
+             "define command {\n"
+             "    command_name                    command_2\n"
+             "    command_line                    "
+             "/tmp/var/lib/centreon-engine/check.pl 2\n"
+             "    connector                       Perl Connector\n"
+             "}\n"
+             "define command {\n"
+             "    command_name                    command_3\n"
+             "    command_line                    "
+             "/tmp/var/lib/centreon-engine/check.pl 3\n"
+             "}\n"
+             "define command {\n"
+             "    command_name                    command_4\n"
+             "    command_line                    "
+             "/tmp/var/lib/centreon-engine/check.pl 4\n"
+             "    connector                       Perl Connector\n"
+             "}\n"
+             "define command {\n"
+             "    command_name                    command_5\n"
+             "    command_line                    "
+             "/tmp/var/lib/centreon-engine/check.pl 5\n"
+             "}\n"
+             "define command {\n"
+             "    command_name                    command_6\n"
+             "    command_line                    "
+             "/tmp/var/lib/centreon-engine/check.pl 6\n"
+             "    connector                       Perl Connector\n"
+             "}\n"
+             "define command {\n"
+             "    command_name                    command_7\n"
+             "    command_line                    "
+             "/tmp/var/lib/centreon-engine/check.pl 7\n"
+             "}\n");
+
+  CreateFile(
+      "/tmp/timeperiods.cfg",
+      "define timeperiod {\n"
+      "    name                           24x7\n"
+      "    timeperiod_name                24x7\n"
+      "    alias                          24_Hours_A_Day,_7_Days_A_Week\n"
+      "    sunday                         00:00-24:00\n"
+      "    monday                         00:00-24:00\n"
+      "    tuesday                        00:00-24:00\n"
+      "    wednesday                      00:00-24:00\n"
+      "    thursday                       00:00-24:00\n"
+      "    friday                         00:00-24:00\n"
+      "    saturday                       00:00-24:00\n"
+      "}\n"
+      "define timeperiod {\n"
+      "    name                           24x6\n"
+      "    timeperiod_name                24x6\n"
+      "    alias                          24_Hours_A_Day,_7_Days_A_Week\n"
+      "    sunday                         00:00-24:00\n"
+      "    monday                         00:00-8:00,18:00-24:00\n"
+      "    tuesday                        00:00-24:00\n"
+      "    wednesday                      00:00-24:00\n"
+      "    thursday                       00:00-24:00\n"
+      "    friday                         00:00-24:00\n"
+      "    saturday                       00:00-24:00\n"
+      "}\n");
+
+  CreateFile("/tmp/resource.cfg",
+             "# comment 3\n"
+             "$USER1$=/usr/lib64/nagios/plugins\n"
+             "$CENTREONPLUGINS$=/usr/lib/centreon/plugins/\n");
+
   CreateFile(
       conf,
-      "cfg_file=/tmp/etc/centreon-engine/config0/hosts.cfg\n"
-      "cfg_file=/tmp/etc/centreon-engine/config0/services.cfg\n"
-      "cfg_file=/tmp/etc/centreon-engine/config0/commands.cfg\n"
-      "cfg_file=/tmp/etc/centreon-engine/config0/hostgroups.cfg\n"
-      "cfg_file=/tmp/etc/centreon-engine/config0/timeperiods.cfg\n"
-      "cfg_file=/tmp/etc/centreon-engine/config0/connectors.cfg\n"
+      "# comment 4\n"
+      "# comment 5\n"
+      "# comment 6\n"
+      "cfg_file=/tmp/hosts.cfg\n"
+      "cfg_file=/tmp/services.cfg\n"
+      "cfg_file=/tmp/commands.cfg\n"
+      //"cfg_file=/tmp/etc/centreon-engine/config0/hostgroups.cfg\n"
+      "cfg_file=/tmp/timeperiods.cfg\n"
+      //"cfg_file=/tmp/etc/centreon-engine/config0/connectors.cfg\n"
       //      "broker_module=/usr/lib64/centreon-engine/externalcmd.so\n"
       //      "broker_module=/usr/lib64/nagios/cbmod.so "
       //      "/tmp/etc/centreon-broker/central-module0.json\n"
       //      "interval_length=60\n"
       //      "use_timezone=:Europe/Paris\n"
-      //      "resource_file=/tmp/etc/centreon-engine/config0/resource.cfg\n"
+      "resource_file=/tmp/resource.cfg\n"
       //      "log_file=/tmp/var/log/centreon-engine/config0/centengine.log\n"
       //      "status_file=/tmp/var/log/centreon-engine/config0/status.dat\n"
       //      "command_check_interval=1s\n"
@@ -488,4 +671,53 @@ TEST_F(ApplierState, StateParsing) {
   ASSERT_EQ(config.enable_flap_detection(), false);
   ASSERT_EQ(config.instance_heartbeat_interval(), 30);
   ASSERT_EQ(config.log_level_functions(), std::string("trace"));
+  ASSERT_EQ(config.cfg_file().size(), 4u);
+  ASSERT_EQ(config.resource_file().size(), 1u);
+  ASSERT_EQ(config.hosts().size(), 4u);
+  ASSERT_EQ(config.hosts()[0].host_name(), std::string("host_1"));
+  ASSERT_EQ(config.hosts()[0].register_(), 1);
+  ASSERT_EQ(config.hosts()[0].host_id(), 1);
+  ASSERT_EQ(config.hosts()[1].host_name(), std::string("host_2"));
+  ASSERT_EQ(config.hosts()[1].register_(), 1);
+  ASSERT_EQ(config.hosts()[1].host_id(), 2);
+  ASSERT_EQ(config.hosts()[2].host_name(), std::string("host_3"));
+  ASSERT_EQ(config.hosts()[2].register_(), 1);
+  ASSERT_EQ(config.hosts()[2].host_id(), 3);
+  ASSERT_EQ(config.hosts()[3].host_name(), std::string("host_4"));
+  ASSERT_EQ(config.hosts()[3].register_(), 1);
+  ASSERT_EQ(config.hosts()[3].host_id(), 4);
+
+  ASSERT_EQ(config.services().size(), 4u);
+  ASSERT_EQ(config.services()[0].host_name(), std::string("host_1"));
+  ASSERT_EQ(config.services()[0].service_description(),
+            std::string("service_1"));
+  ASSERT_EQ(config.services()[0].service_id(), 1);
+  ASSERT_EQ(config.services()[0].register_(), 1);
+  ASSERT_TRUE(config.services()[0].active_checks_enabled());
+
+  ASSERT_EQ(config.commands().size(), 7u);
+  ASSERT_EQ(config.commands()[0].command_name(), std::string("command_1"));
+  ASSERT_EQ(config.commands()[0].command_line(),
+            std::string("/tmp/var/lib/centreon-engine/check.pl 1"));
+
+  ASSERT_EQ(config.timeperiods().size(), 2u);
+  ASSERT_EQ(config.timeperiods()[1].timeperiod_name(), std::string("24x6"));
+  ASSERT_EQ(config.timeperiods()[1].alias(),
+            std::string("24_Hours_A_Day,_7_Days_A_Week"));
+  ASSERT_EQ(config.timeperiods()[1].sunday().size(),
+            1u);  // std::string("00:00-24:00"));
+  ASSERT_EQ(config.timeperiods()[1].sunday()[0].range_start(), 0);
+  ASSERT_EQ(config.timeperiods()[1].sunday()[0].range_end(), 3600 * 24);
+  ASSERT_EQ(config.timeperiods()[1].monday().size(), 2u);
+  ASSERT_EQ(config.timeperiods()[1].monday()[0].range_start(),
+            0);  // 00:00-08:00
+  ASSERT_EQ(config.timeperiods()[1].monday()[0].range_end(), 3600 * 8);
+  ASSERT_EQ(config.timeperiods()[1].monday()[1].range_start(),
+            3600 * 18);  // 18:00-24:00
+  ASSERT_EQ(config.timeperiods()[1].monday()[1].range_end(), 3600 * 24);
+  ASSERT_EQ(config.timeperiods()[1].tuesday().size(), 1u);
+  ASSERT_EQ(config.timeperiods()[1].wednesday().size(), 1u);
+  ASSERT_EQ(config.timeperiods()[1].thursday().size(), 1u);
+  ASSERT_EQ(config.timeperiods()[1].friday().size(), 1u);
+  ASSERT_EQ(config.timeperiods()[1].saturday().size(), 1u);
 }
