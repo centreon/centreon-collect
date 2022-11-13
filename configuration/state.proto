@@ -52,19 +52,20 @@ message DateRange {
 }
 
 message Timeperiod {
-  string alias = 1;
-  string name = 2;
+  string timeperiod_name = 1;
+  string alias = 2;
+  repeated TimeRange sunday = 3;
+  repeated TimeRange monday = 4;
+  repeated TimeRange tuesday = 5;
+  repeated TimeRange wednesday = 6;
+  repeated TimeRange thursday = 7;
+  repeated TimeRange friday = 8;
+  repeated TimeRange saturday = 9;
 }
 
 message Connector {
   string name = 1;
   string line = 2;
-}
-
-message Command {
-  string line = 1;
-  string name = 2;
-  string connector = 3;
 }
 
 message CustomVariable {
@@ -100,17 +101,54 @@ message Contact {
   optional string timezone = 19;
 }
 
+message Host {
+  uint64 host_id = 1;
+  string host_name = 2;
+  string alias = 3;
+  string address = 4;
+  string check_command = 5;
+  string check_period = 6;
+  uint32 register = 7;
+
+  repeated CustomVariable customvariables = 8;
+}
+
+message Service {
+  string host_name = 1;
+  string service_description = 2;
+  uint64 service_id = 3;
+  string check_command = 4;
+  string check_period = 5;
+  uint32 max_check_attempts = 6;
+  uint32 check_interval = 7;
+  uint32 retry_interval = 8;
+  uint32 register = 9;
+  bool active_checks_enabled = 10;
+  bool passive_checks_enabled = 11;
+}
+
+message Command {
+  string command_name = 1;
+  string command_line = 2;
+  string connector = 3;
+}
+
 message State {
   string cfg_main = 1;
   repeated Timeperiod timeperiods = 2;
   repeated Command commands = 3;
   repeated Connector connectors = 4;
   map<string, Contact> contacts = 5;
-  repeated string cfg_file = 6;
-  int32 instance_heartbeat_interval = 7;
-  string log_level_functions = 8;
-  bool check_service_freshness = 9;
-  bool enable_flap_detection = 10;
+  repeated Host hosts = 6;
+  repeated Service services = 7;
+  repeated string cfg_file = 8;
+  repeated string resource_file = 9;
+  int32 instance_heartbeat_interval = 10;
+  string log_level_functions = 11;
+  bool check_service_freshness = 12;
+  bool enable_flap_detection = 13;
+
+  map<string, string> users = 14;
 }
 
 message Value {
