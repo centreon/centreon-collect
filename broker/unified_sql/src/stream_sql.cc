@@ -1597,6 +1597,10 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
           if (!_resources_tags_remove.prepared())
             _resources_tags_remove = _mysql.prepare_query(
                 "DELETE FROM resources_tags WHERE resource_id=?");
+          if (!_resources_disable.prepared()) {
+            _resources_disable = _mysql.prepare_query(
+                "UPDATE resources SET enabled=0 WHERE resource_id=?");
+          }
         }
       }
 
@@ -2997,8 +3001,10 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
             "passive_checks_enabled=?,active_checks_enabled=?,icon_id=?"
             ","
             "enabled=1 WHERE resource_id=?");
-        _resources_disable = _mysql.prepare_query(
-            "UPDATE resources SET enabled=0 WHERE resource_id=?");
+        if (!_resources_disable.prepared()) {
+          _resources_disable = _mysql.prepare_query(
+              "UPDATE resources SET enabled=0 WHERE resource_id=?");
+        }
       }
     }
 

@@ -66,8 +66,7 @@ static struct option long_options[] = {{"pool_size", required_argument, 0, 's'},
  *
  *  @param[in] signum Signal number.
  */
-static void hup_handler(int signum [[may_be_unused]]) {
-
+static void hup_handler(int) {
   // Disable SIGHUP handling during handler execution.
   signal(SIGHUP, SIG_IGN);
 
@@ -250,6 +249,9 @@ int main(int argc, char* argv[]) {
           log_v2::core()->error("{}", e.what());
         }
 
+        log_v2::core()->info("main: process {} pid:{} begin", argv[0],
+                             getpid());
+
         if (n_thread > 0 && n_thread < 100)
           conf.pool_size(n_thread);
         config::applier::init(conf);
@@ -280,7 +282,8 @@ int main(int argc, char* argv[]) {
         while (!gl_term) {
           std::this_thread::sleep_for(std::chrono::seconds(1));
         }
-        log_v2::core()->info("main: termination request received by process");
+        log_v2::core()->info(
+            "main: termination request received by process {}", getpid());
       }
       // Unload endpoints.
       config::applier::deinit();
@@ -296,6 +299,9 @@ int main(int argc, char* argv[]) {
     log_v2::core()->error("Error general during cbd exit");
     retval = EXIT_FAILURE;
   }
+
+  log_v2::core()->info("main: process {} pid:{} end exit_code:{}", argv[0],
+                       getpid(), retval);
 
   return retval;
 }
