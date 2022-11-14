@@ -27,6 +27,7 @@
 #include "bbdo/bam/dimension_kpi_event.hh"
 #include "bbdo/bam/dimension_timeperiod.hh"
 #include "bbdo/bam/dimension_truncate_table_signal.hh"
+#include "com/centreon/broker/bam/ba.hh"
 #include "com/centreon/broker/bam/configuration/reader_exception.hh"
 #include "com/centreon/broker/bam/configuration/state.hh"
 #include "com/centreon/broker/config/applier/state.hh"
@@ -235,15 +236,16 @@ void reader_v2::_load(state::bas& bas, bam::ba_svc_mapping& mapping) {
 
           // BA state.
           if (!res.value_is_null(5)) {
-            ba_event e;
-            e.ba_id = ba_id;
-            e.start_time = res.value_as_u64(5);
-            e.status = res.value_as_i32(6);
-            e.in_downtime = res.value_as_bool(7);
+            pb_ba_event e;
+            e.mut_obj().set_ba_id(ba_id);
+            e.mut_obj().set_start_time(res.value_as_u64(5));
+            e.mut_obj().set_status(
+                com::centreon::broker::State(res.value_as_i32(6)));
+            e.mut_obj().set_in_downtime(res.value_as_bool(7));
             bas[ba_id].set_opened_event(e);
             log_v2::bam()->trace(
                 "BAM: ba {} configuration (start_time:{}, in downtime: {})",
-                ba_id, e.start_time, e.in_downtime);
+                ba_id, e.obj().start_time(), e.obj().in_downtime());
           }
         }
       } catch (std::exception const& e) {

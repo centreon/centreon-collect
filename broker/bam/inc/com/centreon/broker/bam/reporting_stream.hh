@@ -21,6 +21,7 @@
 
 #include "bbdo/bam/ba_event.hh"
 #include "com/centreon/broker/bam/availability_thread.hh"
+#include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/bam/timeperiod_map.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/namespace.hh"
@@ -102,6 +103,7 @@ class reporting_stream : public io::stream {
   void _load_timeperiods();
   void _prepare();
   void _process_ba_event(std::shared_ptr<io::data> const& e);
+  void _process_pb_ba_event(std::shared_ptr<io::data> const& e);
   void _process_ba_duration_event(std::shared_ptr<io::data> const& e);
   void _process_kpi_event(std::shared_ptr<io::data> const& e);
   void _process_dimension(std::shared_ptr<io::data> const& e);
@@ -120,8 +122,7 @@ class reporting_stream : public io::stream {
       std::shared_ptr<io::data> const& e);
   void _process_rebuild(std::shared_ptr<io::data> const& e);
   void _update_status(std::string const& status);
-  void _compute_event_durations(std::shared_ptr<ba_event> const& ev,
-                                io::stream* visitor);
+  void _compute_event_durations(const BaEvent& ev, io::stream* visitor);
 };
 }  // namespace bam
 

@@ -22,14 +22,12 @@ import "header.proto";
 
 package com.centreon.broker;
 
-
 enum State {
     OK = 0;
     WARNING = 1;
     CRITICAL = 2;
     UNKNOWN = 3;  
 }
-
 
 message InheritedDowntime {
     BBDOHeader header = 1;
@@ -47,3 +45,14 @@ message BaStatus {
     State state = 8;
     bool state_changed = 9;
 }
+
+message BaEvent {
+    uint32 ba_id = 1;
+    double first_level = 2;
+    int64 end_time = 3;
+    bool in_downtime = 4;
+    uint64 start_time = 5;
+    State status = 6; 
+}
+
+

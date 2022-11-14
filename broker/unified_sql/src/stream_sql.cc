@@ -4028,6 +4028,9 @@ void stream::_process_instance_configuration(const std::shared_ptr<io::data>& d
 void stream::_process_responsive_instance(const std::shared_ptr<io::data>& d
                                           __attribute__((unused))) {}
 
+void stream::_process_pb_responsive_instance(const std::shared_ptr<io::data>& d
+                                             __attribute__((unused))) {}
+
 /**
  * @brief Send a big query to update/insert a bulk of custom variables. When
  * the query is done, we set the corresponding boolean of each pair to true

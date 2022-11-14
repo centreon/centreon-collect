@@ -177,7 +177,7 @@ message InstanceStatus {
   string global_host_event_handler = 9;
   string global_service_event_handler = 10;
   uint64 last_alive = 11;
-  uint64 last_command_check = 12;
+  int64 last_command_check = 12;
   bool obsess_over_hosts = 13;
   bool obsess_over_services = 14;
   bool passive_host_checks = 15;

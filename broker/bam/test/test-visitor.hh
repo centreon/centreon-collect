@@ -20,6 +20,7 @@
 #define CCB_TEST_VISITOR_HH
 
 #include <fmt/format.h>
+#include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/io/stream.hh"
 
 CCB_BEGIN()
@@ -33,7 +34,7 @@ class test_visitor : public io::stream {
     time_t end_time;
     uint32_t kpi_id;
     uint32_t ba_id;
-    int16_t status;
+    int status;
     bool in_downtime;
     test_event(const bam::kpi_event& k)
         : typ{test_event::kpi},
@@ -43,13 +44,13 @@ class test_visitor : public io::stream {
           ba_id{k.ba_id},
           status{k.status},
           in_downtime{k.in_downtime} {}
-    test_event(const bam::ba_event& b)
+    test_event(const bam::pb_ba_event& b)
         : typ{test_event::ba},
-          start_time{b.start_time},
-          end_time{b.end_time},
-          ba_id{b.ba_id},
-          status{b.status},
-          in_downtime{b.in_downtime} {}
+          start_time{(time_t)b.obj().start_time()},
+          end_time{(time_t)b.obj().end_time()},
+          ba_id{b.obj().ba_id()},
+          status{b.obj().status()},
+          in_downtime{b.obj().in_downtime()} {}
     test_event(const bam::inherited_downtime& idt)
         : typ{test_event::idt},
           ba_id{idt.ba_id},
@@ -79,10 +80,10 @@ class test_visitor : public io::stream {
       case 393221:
         _queue.emplace_back(*std::static_pointer_cast<bam::kpi_event>(d));
         break;
-      case 393220:
-        _queue.emplace_back(*std::static_pointer_cast<bam::ba_event>(d));
+      case bam::pb_ba_event::static_type():
+        _queue.emplace_back(*std::static_pointer_cast<bam::pb_ba_event>(d));
         break;
-      case 393233:
+      case bam::inherited_downtime::static_type():
         _queue.emplace_back(
             *std::static_pointer_cast<bam::inherited_downtime>(d));
         break;

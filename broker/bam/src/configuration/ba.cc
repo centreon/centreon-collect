@@ -185,7 +185,7 @@ double ba::get_critical_level() const {
  *
  *  @return  The opened event of this ba.
  */
-com::centreon::broker::bam::ba_event const& ba::get_opened_event() const {
+com::centreon::broker::bam::pb_ba_event const& ba::get_opened_event() const {
   return _event;
 }
 
@@ -257,7 +257,7 @@ void ba::set_critical_level(double critical_level) {
  *
  *  @param[in] e  The current opened event.
  */
-void ba::set_opened_event(bam::ba_event const& e) {
+void ba::set_opened_event(bam::pb_ba_event const& e) {
   _event = e;
 }
 

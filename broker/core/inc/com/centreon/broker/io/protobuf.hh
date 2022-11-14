@@ -20,6 +20,7 @@
 #define CCB_IO_PROTOBUF_HH
 
 #include <google/protobuf/message.h>
+#include <google/protobuf/util/message_differencer.h>
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/io/event_info.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -104,9 +105,9 @@ class protobuf : public protobuf_base {
    * @param o The protobuf object (it is copied).
    */
   protobuf(const T& o) : protobuf_base(Typ, &_obj), _obj(o) {}
-  protobuf(const protobuf&) = delete;
   ~protobuf() noexcept = default;
-  protobuf& operator=(const protobuf&) = delete;
+
+  bool operator==(const this_type& to_cmp) const;
 
   /**
    *  Get the type of this event.
@@ -172,6 +173,11 @@ class protobuf : public protobuf_base {
 template <typename T, uint32_t Typ>
 const io::event_info::event_operations protobuf<T, Typ>::operations{
     &new_proto, &serialize, &unserialize};
+
+template <typename T, uint32_t Typ>
+bool protobuf<T, Typ>::operator==(const protobuf<T, Typ>& to_cmp) const {
+  return google::protobuf::util::MessageDifferencer::Equals(_obj, to_cmp._obj);
+}
 
 }  // namespace io
 CCB_END()

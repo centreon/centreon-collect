@@ -739,7 +739,8 @@ mysql_connection::mysql_connection(database_config const& db_cfg,
   if (_state == finished) {
     _thread->join();
     SPDLOG_LOGGER_ERROR(log_v2::sql(),
-                        "mysql_connection: error while starting connection");
+                        "mysql_connection: error while starting connection: {}",
+                        _error.get_message());
     throw msg_fmt("mysql_connection: error while starting connection");
   }
   pthread_setname_np(_thread->native_handle(), "mysql_connect");

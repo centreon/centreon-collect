@@ -157,8 +157,8 @@ bool ba::child_has_update(computable* child, io::stream* visitor) {
  *
  *  @return Current BA event, NULL if none is declared.
  */
-ba_event* ba::get_ba_event() {
-  return _event.get();
+std::shared_ptr<pb_ba_event> ba::get_ba_event() {
+  return _event;
 }
 
 /**
@@ -247,28 +247,29 @@ void ba::remove_impact(std::shared_ptr<kpi> const& impact) {
  *
  *  @param[in] event  The event to set.
  */
-void ba::set_initial_event(ba_event const& event) {
+void ba::set_initial_event(const pb_ba_event& event) {
+  const BaEvent& data = event.obj();
   SPDLOG_LOGGER_TRACE(
       log_v2::bam(),
       "BAM: ba initial event set (ba_id:{}, start_time:{}, end_time:{}, "
       "in_downtime:{}, status:{})",
-      event.ba_id, event.start_time, event.end_time, event.in_downtime,
-      event.status);
+      data.ba_id(), data.start_time(), data.end_time(), data.in_downtime(),
+      data.status());
 
   if (!_event) {
-    _event.reset(new ba_event(event));
-    _in_downtime = event.in_downtime;
+    _event = std::make_shared<pb_ba_event>(event);
+    _in_downtime = data.in_downtime();
     SPDLOG_LOGGER_TRACE(log_v2::bam(), "ba initial event downtime: {}",
                         _in_downtime);
-    _last_kpi_update = _event->start_time;
+    _last_kpi_update = data.start_time();
     _initial_events.push_back(_event);
   } else {
     SPDLOG_LOGGER_ERROR(
         log_v2::bam(),
         "BAM: impossible to set ba initial event (ba_id:{}, start_time:{}, "
         "end_time:{}, in_downtime:{}, status:{}): event already defined",
-        event.ba_id, event.start_time, event.end_time, event.in_downtime,
-        event.status);
+        data.ba_id(), data.start_time(), data.end_time(), data.in_downtime(),
+        data.status());
   }
 }
 
@@ -312,7 +313,7 @@ void ba::visit(io::stream* visitor) {
     _commit_initial_events(visitor);
 
     // If no event was cached, create one if necessary.
-    short hard_state(get_state_hard());
+    com::centreon::broker::bam::state hard_state(get_state_hard());
     bool state_changed(false);
     if (!_event) {
       SPDLOG_LOGGER_TRACE(log_v2::bam(),
@@ -322,16 +323,18 @@ void ba::visit(io::stream* visitor) {
       _open_new_event(visitor, hard_state);
     }
     // If state changed, close event and open a new one.
-    else if (_in_downtime != _event->in_downtime ||
-             hard_state != _event->status) {
+    else if (_in_downtime != _event->obj().in_downtime() ||
+             com::centreon::broker::State(hard_state) !=
+                 _event->obj().status()) {
       SPDLOG_LOGGER_TRACE(
           log_v2::bam(),
           "BAM: ba current event needs update? downtime?: {}, state?: {} ; "
           "dt:{}, state:{} ",
-          _in_downtime != _event->in_downtime, hard_state != _event->status,
+          _in_downtime != _event->obj().in_downtime(),
+          com::centreon::broker::State(hard_state) != _event->obj().status(),
           _in_downtime, hard_state);
       state_changed = true;
-      _event->end_time = _last_kpi_update;
+      _event->mut_obj().set_end_time(_last_kpi_update);
       visitor->write(std::static_pointer_cast<io::data>(_event));
       _event.reset();
       _open_new_event(visitor, hard_state);
@@ -469,17 +472,21 @@ void ba::set_inherited_downtime(const inherited_downtime& dwn) {
  *  @param[out] visitor             Visitor that will receive events.
  *  @param[in]  service_hard_state  Hard state of virtual BA service.
  */
-void ba::_open_new_event(io::stream* visitor, short service_hard_state) {
-  SPDLOG_LOGGER_TRACE(log_v2::bam(), "new ba_event on ba {} with downtime = {}",
-                      _id, _in_downtime);
-  _event = std::make_shared<ba_event>();
-  _event->ba_id = _id;
-  _event->first_level = _level_hard < 0 ? 0 : _level_hard;
-  _event->in_downtime = _in_downtime;
-  _event->status = service_hard_state;
-  _event->start_time = _last_kpi_update;
+void ba::_open_new_event(io::stream* visitor,
+                         com::centreon::broker::bam::state service_hard_state) {
+  SPDLOG_LOGGER_TRACE(log_v2::bam(),
+                      "new pb_ba_event on ba {} with downtime = {}", _id,
+                      _in_downtime);
+  _event = std::make_shared<pb_ba_event>();
+  BaEvent& data = _event->mut_obj();
+  data.set_ba_id(_id);
+  data.set_first_level(_level_hard < 0 ? 0 : _level_hard);
+  data.set_in_downtime(_in_downtime);
+  data.set_status(com::centreon::broker::State(service_hard_state));
+  data.set_start_time(_last_kpi_update.get_time_t());
+  data.set_end_time(-1);
   if (visitor) {
-    std::shared_ptr<io::data> be{std::make_shared<ba_event>(*_event)};
+    std::shared_ptr<io::data> be{std::make_shared<pb_ba_event>(*_event)};
     visitor->write(be);
   }
 }
@@ -514,11 +521,8 @@ void ba::_commit_initial_events(io::stream* visitor) {
     return;
 
   if (visitor) {
-    for (std::vector<std::shared_ptr<ba_event> >::const_iterator
-             it(_initial_events.begin()),
-         end(_initial_events.end());
-         it != end; ++it)
-      visitor->write(std::shared_ptr<io::data>(new ba_event(**it)));
+    for (const auto& evt : _initial_events)
+      visitor->write(evt);
   }
   _initial_events.clear();
 }
@@ -591,26 +595,13 @@ std::shared_ptr<pb_ba_status> ba::_generate_ba_status(
   status.set_ba_id(get_id());
   status.set_in_downtime(get_in_downtime());
   if (_event)
-    status.set_last_state_change(_event->start_time);
+    status.set_last_state_change(_event->obj().start_time());
   else
     status.set_last_state_change(get_last_kpi_update());
   status.set_level_acknowledgement(_normalize(_acknowledgement_hard));
   status.set_level_downtime(_normalize(_downtime_hard));
   status.set_level_nominal(_normalize(_level_hard));
-  switch (get_state_hard()) {
-    case state_ok:
-      status.set_state(com::centreon::broker::State::OK);
-      break;
-    case state_warning:
-      status.set_state(com::centreon::broker::State::WARNING);
-      break;
-    case state_critical:
-      status.set_state(com::centreon::broker::State::CRITICAL);
-      break;
-    case state_unknown:
-      status.set_state(com::centreon::broker::State::UNKNOWN);
-      break;
-  }
+  status.set_state(com::centreon::broker::State(get_state_hard()));
   status.set_state_changed(state_changed);
   SPDLOG_LOGGER_DEBUG(
       log_v2::bam(),
@@ -638,7 +629,7 @@ std::shared_ptr<io::data> ba::_generate_virtual_service_status() const {
     status->downtime_depth = _in_downtime;
     status->is_flapping = false;
     if (_event)
-      status->last_check = _event->start_time;
+      status->last_check = _event->obj().start_time();
     else
       status->last_check = _last_kpi_update;
     status->last_hard_state = get_state_hard();
@@ -667,7 +658,7 @@ std::shared_ptr<io::data> ba::_generate_virtual_service_status() const {
     o.set_host_id(_host_id);
     o.set_scheduled_downtime_depth(_in_downtime);
     if (_event)
-      o.set_last_check(_event->start_time);
+      o.set_last_check(_event->obj().start_time());
     else
       o.set_last_check(_last_kpi_update);
     o.set_last_hard_state(static_cast<ServiceStatus_State>(get_state_hard()));

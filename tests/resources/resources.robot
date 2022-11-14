@@ -87,10 +87,13 @@ Kindly Stop Broker
 	END
 
 Stop Broker
+	[Arguments]	 ${only_central}=False
 	${result}=	Terminate Process	b1	kill=False
 	Should Be Equal As Integers	${result.rc}	0
-	${result}=	Terminate Process	b2	kill=False
-	Should Be Equal As Integers	${result.rc}	0
+	IF  not ${only_central}
+		${result}=	Terminate Process	b2	kill=False
+		Should Be Equal As Integers	${result.rc}	0
+	END
 
 Stop Processes
 	Terminate All Processes	kill=True
