@@ -38,24 +38,29 @@ Clear Broker Logs
 	Create Directory	${BROKER_LOG}
 
 Start Broker
+	[Arguments]	 ${only_central}=False
 	Start Process	/usr/sbin/cbd	${EtcRoot}/centreon-broker/central-broker.json	alias=b1
-	Start Process	/usr/sbin/cbd	${EtcRoot}/centreon-broker/central-rrd.json	alias=b2
-#	${log_pid1}=  Get Process Id	b1
-#	${log_pid2}=  Get Process Id	b2
-#	Log To Console  \npidcentral=${log_pid1} pidrrd=${log_pid2}\n
+	IF  not ${only_central}
+		Start Process	/usr/sbin/cbd	${EtcRoot}/centreon-broker/central-rrd.json	alias=b2
+	END
 
 Reload Broker
 	Send Signal To Process	SIGHUP	b1
 	Send Signal To Process	SIGHUP	b2
 
 Kindly Stop Broker
+	[Arguments]	 ${only_central}=False
 	Send Signal To Process	SIGTERM	b1
-	Send Signal To Process	SIGTERM	b2
+	IF  not ${only_central}
+		Send Signal To Process	SIGTERM	b2
+	END
 	${result}=	Wait For Process	b1	timeout=60s	on_timeout=kill
 	Should Be Equal As Integers	${result.rc}	0
-	${result}=	Wait For Process	b2	timeout=60s	on_timeout=kill
-	Should Be Equal As Integers	${result.rc}	0
-
+	IF  not ${only_central}
+		${result}=	Wait For Process	b2	timeout=60s	on_timeout=kill
+		Should Be Equal As Integers	${result.rc}	0
+	END
+	
 Stop Broker
 	${result}=	Terminate Process	b1	kill=False
 	Should Be Equal As Integers	${result.rc}	0
