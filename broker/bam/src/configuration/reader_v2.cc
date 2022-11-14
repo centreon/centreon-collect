@@ -239,8 +239,8 @@ void reader_v2::_load(state::bas& bas, bam::ba_svc_mapping& mapping) {
             pb_ba_event e;
             e.mut_obj().set_ba_id(ba_id);
             e.mut_obj().set_start_time(res.value_as_u64(5));
-            e.mut_obj().set_status(bam::bam_state_to_pb(
-                (com::centreon::broker::bam::state)res.value_as_i32(6)));
+            e.mut_obj().set_status(
+                com::centreon::broker::State(res.value_as_i32(6)));
             e.mut_obj().set_in_downtime(res.value_as_bool(7));
             bas[ba_id].set_opened_event(e);
             log_v2::bam()->trace(

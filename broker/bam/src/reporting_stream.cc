@@ -156,8 +156,11 @@ int reporting_stream::write(std::shared_ptr<io::data> const& data) {
     case io::events::data_type<io::bam, bam::de_kpi_event>::value:
       _process_kpi_event(data);
       break;
-    case bam::pb_ba_event::static_type():
+    case io::events::data_type<io::bam, bam::de_ba_event>::value:
       _process_ba_event(data);
+      break;
+    case bam::pb_ba_event::static_type():
+      _process_pb_ba_event(data);
       break;
     case io::events::data_type<io::bam, bam::de_ba_duration_event>::value:
       _process_ba_duration_event(data);
@@ -603,6 +606,96 @@ void reporting_stream::_prepare() {
  *  @param[in] e The event.
  */
 void reporting_stream::_process_ba_event(std::shared_ptr<io::data> const& e) {
+  bam::ba_event const& be = *std::static_pointer_cast<bam::ba_event const>(e);
+  log_v2::bam()->debug(
+      "BAM-BI: processing event of BA {} (start time {}, end time {}, status "
+      "{}, in downtime {})",
+      be.ba_id, be.start_time, be.end_time, be.status, be.in_downtime);
+
+  // Try to update event.
+  if (be.end_time.is_null())
+    _ba_event_update.bind_value_as_null(0);
+  else
+    _ba_event_update.bind_value_as_u64(0, be.end_time.get_time_t());
+  _ba_event_update.bind_value_as_i32(1, be.first_level);
+  _ba_event_update.bind_value_as_tiny(2, be.status);
+  _ba_event_update.bind_value_as_bool(3, be.in_downtime);
+  _ba_event_update.bind_value_as_i32(4, be.ba_id);
+  _ba_event_update.bind_value_as_u64(
+      5, static_cast<uint64_t>(be.start_time.get_time_t()));
+
+  std::promise<int> promise;
+  std::future<int> future = promise.get_future();
+  _mysql.run_statement_and_get_int<int>(_ba_event_update, std::move(promise),
+                                        mysql_task::int_type::AFFECTED_ROWS);
+
+  // Event was not found, insert one.
+  try {
+    if (future.get() == 0) {
+      _ba_full_event_insert.bind_value_as_i32(0, be.ba_id);
+      _ba_full_event_insert.bind_value_as_i32(1, be.first_level);
+      _ba_full_event_insert.bind_value_as_u64(
+          2, static_cast<uint64_t>(be.start_time.get_time_t()));
+
+      if (be.end_time.is_null())
+        _ba_full_event_insert.bind_value_as_null(3);
+      else
+        _ba_full_event_insert.bind_value_as_u64(
+            3, static_cast<uint64_t>(be.end_time.get_time_t()));
+      _ba_full_event_insert.bind_value_as_tiny(4, be.status);
+      _ba_full_event_insert.bind_value_as_bool(5, be.in_downtime);
+
+      std::promise<uint32_t> result;
+      std::future<uint32_t> future_r = result.get_future();
+      _mysql.run_statement_and_get_int<uint32_t>(
+          _ba_full_event_insert, std::move(result), mysql_task::LAST_INSERT_ID,
+          -1);
+      uint32_t newba = future_r.get();
+      // check events for BA
+      if (_last_inserted_kpi.find(be.ba_id) != _last_inserted_kpi.end()) {
+        std::map<std::time_t, uint64_t>& m_events =
+            _last_inserted_kpi[be.ba_id];
+        if (m_events.find(be.start_time.get_time_t()) != m_events.end()) {
+          // Insert kpi event link.
+          _kpi_event_link_update.bind_value_as_i32(0, newba);
+          _kpi_event_link_update.bind_value_as_u64(
+              1, m_events[be.start_time.get_time_t()]);
+          _mysql.run_statement(_kpi_event_link_update,
+                               database::mysql_error::update_kpi_event, true);
+        }
+        // remove older events for BA
+        for (auto it = m_events.begin(); it != m_events.end();) {
+          if (it->first < be.start_time.get_time_t())
+            it = m_events.erase(it);
+          else
+            break;
+        }
+      }
+    }
+  } catch (std::exception const& e) {
+    throw msg_fmt(
+        "BAM-BI: could not update event of BA {} "
+        " starting at {} and ending at {}: {}",
+        be.ba_id, be.start_time, be.end_time, e.what());
+  }
+
+  // Compute the associated event durations.
+  if (!be.end_time.is_null() && be.start_time != be.end_time) {
+    com::centreon::broker::BaEvent pb_ba_ev;
+    pb_ba_ev.set_ba_id(be.ba_id);
+    pb_ba_ev.set_start_time(be.start_time.get_time_t());
+    pb_ba_ev.set_end_time(be.end_time.get_time_t());
+    _compute_event_durations(pb_ba_ev, this);
+  }
+}
+
+/**
+ *  Process a ba event and write it to the db.
+ *
+ *  @param[in] e The event.
+ */
+void reporting_stream::_process_pb_ba_event(
+    std::shared_ptr<io::data> const& e) {
   const BaEvent& be =
       std::static_pointer_cast<bam::pb_ba_event const>(e)->obj();
   log_v2::bam()->debug(
@@ -1375,7 +1468,7 @@ void reporting_stream::_process_rebuild(std::shared_ptr<io::data> const& e) {
           baev->mut_obj().set_ba_id(res.value_as_i32(0));
           baev->mut_obj().set_start_time(res.value_as_i64(1));
           baev->mut_obj().set_end_time(res.value_as_i64(2));
-          baev->mut_obj().set_status(bam_state_to_pb(
+          baev->mut_obj().set_status(com::centreon::broker::State(
               (com::centreon::broker::bam::state)res.value_as_i32(3)));
           baev->mut_obj().set_in_downtime(res.value_as_bool(4));
           ba_events.push_back(baev);

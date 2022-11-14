@@ -19,6 +19,7 @@
 #ifndef CCB_BAM_REPORTING_STREAM_HH
 #define CCB_BAM_REPORTING_STREAM_HH
 
+#include "bbdo/bam/ba_event.hh"
 #include "com/centreon/broker/bam/availability_thread.hh"
 #include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/bam/timeperiod_map.hh"
@@ -102,6 +103,7 @@ class reporting_stream : public io::stream {
   void _load_timeperiods();
   void _prepare();
   void _process_ba_event(std::shared_ptr<io::data> const& e);
+  void _process_pb_ba_event(std::shared_ptr<io::data> const& e);
   void _process_ba_duration_event(std::shared_ptr<io::data> const& e);
   void _process_kpi_event(std::shared_ptr<io::data> const& e);
   void _process_dimension(std::shared_ptr<io::data> const& e);

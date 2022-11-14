@@ -35,20 +35,6 @@ enum state {
 constexpr std::array<const char*, 4> state_str{"OK", "WARNING", "CRITICAL",
                                                "UNKNOWN"};
 
-inline com::centreon::broker::State bam_state_to_pb(
-    com::centreon::broker::bam::state state) {
-  switch (state) {
-    case state_ok:
-      return com::centreon::broker::State::OK;
-    case state_warning:
-      return com::centreon::broker::State::WARNING;
-    case state_critical:
-      return com::centreon::broker::State::CRITICAL;
-    default:
-      return com::centreon::broker::State::UNKNOWN;
-  }
-}
-
 }  // namespace bam
 
 CCB_END()

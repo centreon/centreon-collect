@@ -324,14 +324,15 @@ void ba::visit(io::stream* visitor) {
     }
     // If state changed, close event and open a new one.
     else if (_in_downtime != _event->obj().in_downtime() ||
-             bam_state_to_pb(hard_state) != _event->obj().status()) {
+             com::centreon::broker::State(hard_state) !=
+                 _event->obj().status()) {
       SPDLOG_LOGGER_TRACE(
           log_v2::bam(),
           "BAM: ba current event needs update? downtime?: {}, state?: {} ; "
           "dt:{}, state:{} ",
           _in_downtime != _event->obj().in_downtime(),
-          bam_state_to_pb(hard_state) != _event->obj().status(), _in_downtime,
-          hard_state);
+          com::centreon::broker::State(hard_state) != _event->obj().status(),
+          _in_downtime, hard_state);
       state_changed = true;
       _event->mut_obj().set_end_time(_last_kpi_update);
       visitor->write(std::static_pointer_cast<io::data>(_event));
@@ -481,7 +482,7 @@ void ba::_open_new_event(io::stream* visitor,
   data.set_ba_id(_id);
   data.set_first_level(_level_hard < 0 ? 0 : _level_hard);
   data.set_in_downtime(_in_downtime);
-  data.set_status(bam_state_to_pb(service_hard_state));
+  data.set_status(com::centreon::broker::State(service_hard_state));
   data.set_start_time(_last_kpi_update.get_time_t());
   data.set_end_time(-1);
   if (visitor) {
@@ -600,7 +601,7 @@ std::shared_ptr<pb_ba_status> ba::_generate_ba_status(
   status.set_level_acknowledgement(_normalize(_acknowledgement_hard));
   status.set_level_downtime(_normalize(_downtime_hard));
   status.set_level_nominal(_normalize(_level_hard));
-  status.set_state(bam_state_to_pb(get_state_hard()));
+  status.set_state(com::centreon::broker::State(get_state_hard()));
   status.set_state_changed(state_changed);
   SPDLOG_LOGGER_DEBUG(
       log_v2::bam(),
