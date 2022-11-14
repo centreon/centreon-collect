@@ -396,3 +396,4 @@ BESS_ENGINE_DELETE_HOST
 	Reload Engine
 	Sleep  2s
 	Kindly Stop Broker  True
+	Stop Engine
