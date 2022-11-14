@@ -165,7 +165,7 @@ jobs:
     needs: [debian-packaging, create-version]
     env:
       version: ${{ needs.create-version.outputs.version }}
-    runs-on: ubuntu-22.04
+    runs-on: [self-hosted, common]
     name: Delivery
     strategy:
       matrix:
@@ -232,7 +232,7 @@ jobs:
     needs: [rpm-packaging, create-version]
     env:
       version: ${{ needs.create-version.outputs.version }}
-    runs-on: ubuntu-22.04
+    runs-on: [self-hosted, common]
     name: Delivery
     strategy:
       matrix:
