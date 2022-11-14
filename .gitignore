@@ -6,7 +6,6 @@
 *.so
 *.swp
 
-.conan
 Testing
 __
 broker_pb2.py
