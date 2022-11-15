@@ -19,6 +19,7 @@
 #include "com/centreon/broker/bam/configuration/kpi.hh"
 
 using namespace com::centreon::broker::bam::configuration;
+using namespace com::centreon::broker;
 
 static constexpr double eps = 0.000001;
 
@@ -56,8 +57,11 @@ kpi::kpi(uint32_t id,
       _ignore_acknowledgement(ignore_acknowledgement),
       _impact_warning(warning),
       _impact_critical(critical),
-      _impact_unknown(unknown),
-      _event(_id, _ba_id, ::time(nullptr)) {}
+      _impact_unknown(unknown) {
+  _event.set_kpi_id(_id);
+  _event.set_ba_id(_ba_id);
+  _event.set_start_time(::time(nullptr));
+}
 
 /**
  *  Copy constructor.
@@ -137,7 +141,8 @@ bool kpi::operator==(kpi const& other) const {
          std::abs(_impact_warning - other._impact_warning) < eps &&
          std::abs(_impact_critical - other._impact_critical) < eps &&
          std::abs(_impact_unknown - other._impact_unknown) < eps &&
-         _event == other._event;
+         google::protobuf::util::MessageDifferencer::Equals(_event,
+                                                            other._event);
 }
 
 /**
@@ -345,7 +350,7 @@ double kpi::get_impact_unknown() const {
  *
  *  @return  The opened event associated with this kpi.
  */
-com::centreon::broker::bam::kpi_event const& kpi::get_opened_event() const {
+const KpiEvent& kpi::get_opened_event() const {
   return _event;
 }
 
@@ -492,6 +497,6 @@ void kpi::set_impact_unknown(double d) {
  *
  *  @param[in] kpi_event  The event.
  */
-void kpi::set_opened_event(bam::kpi_event const& kpi_event) {
+void kpi::set_opened_event(const KpiEvent& kpi_event) {
   _event = kpi_event;
 }

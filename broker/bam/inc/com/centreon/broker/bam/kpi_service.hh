@@ -20,7 +20,6 @@
 #define CCB_BAM_KPI_SERVICE_HH
 
 #include <absl/container/flat_hash_set.h>
-#include "bbdo/bam/kpi_event.hh"
 #include "bbdo/bam/state.hh"
 #include "com/centreon/broker/bam/impact_values.hh"
 #include "com/centreon/broker/bam/kpi.hh"
@@ -100,7 +99,7 @@ class kpi_service : public service_listener, public kpi {
   void set_state_soft(state state);
   void set_state_type(short type);
   void visit(io::stream* visitor);
-  virtual void set_initial_event(kpi_event const& e);
+  virtual void set_initial_event(const KpiEvent& e) override;
   bool ok_state() const;
 };
 }  // namespace bam

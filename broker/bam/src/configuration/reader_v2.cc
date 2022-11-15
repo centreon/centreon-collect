@@ -144,10 +144,14 @@ void reader_v2::_load(state::kpis& kpis) {
 
         // KPI state.
         if (!res.value_is_null(16)) {
-          kpi_event e(kpi_id, res.value_as_u32(4), res.value_as_u64(16));
-          e.status = res.value_as_i32(8);
-          e.in_downtime = res.value_as_bool(17);
-          e.impact_level = res.value_is_null(18) ? -1 : res.value_as_f64(18);
+          KpiEvent e;
+          e.set_kpi_id(kpi_id);
+          e.set_ba_id(res.value_as_u32(4));
+          e.set_start_time(res.value_as_u64(16));
+          e.set_end_time(-1);
+          e.set_status(com::centreon::broker::State(res.value_as_i32(8)));
+          e.set_in_downtime(res.value_as_bool(17));
+          e.set_impact_level(res.value_is_null(18) ? -1 : res.value_as_f64(18));
           kpis[kpi_id].set_opened_event(e);
         }
       }

@@ -156,6 +156,9 @@ int reporting_stream::write(std::shared_ptr<io::data> const& data) {
     case io::events::data_type<io::bam, bam::de_kpi_event>::value:
       _process_kpi_event(data);
       break;
+    case bam::pb_kpi_event::static_type():
+      _process_pb_kpi_event(data);
+      break;
     case io::events::data_type<io::bam, bam::de_ba_event>::value:
       _process_ba_event(data);
       break;
@@ -902,6 +905,77 @@ void reporting_stream::_process_kpi_event(std::shared_ptr<io::data> const& e) {
         "BAM-BI: could not update KPI {} starting at {}"
         " and ending at {}: {}",
         ke.kpi_id, ke.start_time, ke.end_time, e.what());
+  }
+}
+
+/**
+ *  Process a kpi event and write it to the db.
+ *
+ *  @param[in] e The event.
+ */
+void reporting_stream::_process_pb_kpi_event(
+    std::shared_ptr<io::data> const& e) {
+  const KpiEvent& ke =
+      std::static_pointer_cast<bam::pb_kpi_event const>(e)->obj();
+  log_v2::bam()->debug(
+      "BAM-BI: processing event of KPI {} (start time {}, end time {}, state "
+      "{}, in downtime {})",
+      ke.kpi_id(), ke.start_time(), ke.end_time(), ke.status(),
+      ke.in_downtime());
+
+  // Try to update kpi.
+  if (ke.end_time() <= 0)
+    _kpi_event_update.bind_value_as_null(0);
+  else
+    _kpi_event_update.bind_value_as_u64(0, ke.end_time());
+  _kpi_event_update.bind_value_as_tiny(1, ke.status());
+  _kpi_event_update.bind_value_as_i32(2, ke.in_downtime());
+  _kpi_event_update.bind_value_as_i32(3, ke.impact_level());
+  _kpi_event_update.bind_value_as_i32(4, ke.kpi_id());
+  _kpi_event_update.bind_value_as_u64(5, ke.start_time());
+
+  std::promise<int> promise;
+  std::future<int> future = promise.get_future();
+  int thread_id(_mysql.run_statement_and_get_int<int>(
+      _kpi_event_update, std::move(promise),
+      mysql_task::int_type::AFFECTED_ROWS));
+  // No kpis were updated, insert one.
+  try {
+    if (future.get() == 0) {
+      _kpi_full_event_insert.bind_value_as_i32(0, ke.kpi_id());
+      _kpi_full_event_insert.bind_value_as_u64(1, ke.start_time());
+      if (ke.end_time() <= 0)
+        _kpi_full_event_insert.bind_value_as_null(2);
+      else
+        _kpi_full_event_insert.bind_value_as_u64(2, ke.end_time());
+      _kpi_full_event_insert.bind_value_as_tiny(3, ke.status());
+      _kpi_full_event_insert.bind_value_as_bool(4, ke.in_downtime());
+      _kpi_full_event_insert.bind_value_as_i32(5, ke.impact_level());
+
+      _mysql.run_statement(_kpi_full_event_insert,
+                           database::mysql_error::insert_kpi_event, true,
+                           thread_id);
+
+      // Insert kpi event link.
+      _kpi_event_link.bind_value_as_i32(0, ke.kpi_id());
+      _kpi_event_link.bind_value_as_u64(1, ke.start_time());
+      _kpi_event_link.bind_value_as_u32(2, ke.ba_id());
+
+      std::promise<uint64_t> result;
+      std::future<uint64_t> future_r = result.get_future();
+      _mysql.run_statement_and_get_int<uint64_t>(
+          _kpi_event_link, std::move(result), mysql_task::LAST_INSERT_ID,
+          thread_id);
+
+      uint64_t evt_id{
+          future_r.get()};  //_kpi_event_link.last_insert_id().toUInt()};
+      _last_inserted_kpi[ke.ba_id()].insert({ke.start_time(), evt_id});
+    }
+  } catch (std::exception const& e) {
+    throw msg_fmt(
+        "BAM-BI: could not update KPI {} starting at {}"
+        " and ending at {}: {}",
+        ke.kpi_id(), ke.start_time(), ke.end_time(), e.what());
   }
 }
 
