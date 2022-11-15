@@ -28,9 +28,9 @@ namespace io {
 /**
  *  @class directory_entry directory_entry.hh
  *"com/centreon/io/directory_entry.hh"
- *  @brief Wrapper of libc's directory_entryectory.
+ *  @brief Wrapper of libc's directory_entry.
  *
- *  Wrap standard directory_entryectory objects.
+ *  Wrap standard directory objects.
  */
 class directory_entry {
  public:

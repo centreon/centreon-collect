@@ -41,6 +41,10 @@
 namespace com::centreon::engine {
 
 namespace configuration {
+using pb_map_object =
+    absl::flat_hash_map<std::string, ::google::protobuf::Message*>;
+using Message = ::google::protobuf::Message;
+
 class parser {
   void _parse_global_configuration(std::string const& path, State* pb_config);
 
@@ -66,7 +70,7 @@ class parser {
   };
 
   parser(unsigned int read_options = read_all);
-  ~parser() throw();
+  ~parser() noexcept = default;
   void parse(const std::string& path, state& config);
   void parse(const std::string& path, State* pb_config);
 
@@ -108,13 +112,19 @@ class parser {
   static void _insert(map_object const& from, std::set<T>& to);
   std::string const& _map_object_type(map_object const& objects) const throw();
   void _parse_directory_configuration(std::string const& path);
-  void _parse_directory_configuration(const std::string& path, State* pb_config);
+  void _parse_directory_configuration(const std::string& path,
+                                      State* pb_config);
   void _parse_global_configuration(std::string const& path);
   void _parse_object_definitions(const std::string& path);
   void _parse_object_definitions(const std::string& path, State* pb_config);
   void _parse_resource_file(std::string const& path);
   void _parse_resource_file(const std::string& path, State* pb_config);
+  void _resolve_template(State* pb_config);
+  void _resolve_template(Message* msg, const pb_map_object& tmpls);
   void _resolve_template();
+  void _merge(Message* msg,
+              Message* tmpl,
+              const std::array<const int32_t*, 19>& number_to_merge);
   void _store_into_list(object_ptr obj);
   template <typename T, std::string const& (T::*ptr)() const throw()>
   void _store_into_map(object_ptr obj);
@@ -128,6 +138,10 @@ class parser {
   unsigned int _read_options;
   static store _store[];
   std::array<map_object, 19> _templates;
+
+  std::array<pb_map_object, 19> _pb_templates;
+  /* Map telling if a message is resolved or not */
+  absl::flat_hash_map<::google::protobuf::Message*, bool> _resolved;
 };
 }  // namespace configuration
 

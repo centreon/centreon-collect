@@ -18,6 +18,7 @@
 */
 
 #include "com/centreon/engine/configuration/parser.hh"
+#include <absl/container/fixed_array.h>
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/string.hh"
@@ -31,6 +32,24 @@ using Descriptor = ::google::protobuf::Descriptor;
 using FieldDescriptor = ::google::protobuf::FieldDescriptor;
 using Message = ::google::protobuf::Message;
 using Reflection = ::google::protobuf::Reflection;
+
+constexpr int32_t command_to_merge[] = {
+    2 /* command_name */, 3 /* command_line */, 4 /* connector */, 0};
+constexpr int32_t connector_to_merge[] = {3 /* connector_line */, 0};
+constexpr int32_t contact_to_merge[] = {2 /* contact_name */,
+                                        3 /* alias */,
+                                        5 /* can_submit_commands */,
+                                        8 /* email */,
+                                        11 /* pager */,
+                                        15 /* host_notification_period */,
+                                        19 /* service_notification_period */,
+                                        0};
+
+constexpr std::array<const int32_t*, 19> number_to_merge = {
+    command_to_merge,
+    connector_to_merge,
+    contact_to_merge,
+};
 
 parser::store parser::_store[] = {
     &parser::_store_into_map<command, &command::command_name>,
@@ -61,11 +80,6 @@ parser::store parser::_store[] = {
 parser::parser(unsigned int read_options)
     : _config(NULL), _read_options(read_options) {}
 
-/**
- *  Destructor.
- */
-parser::~parser() noexcept {}
-
 void parser::parse(const std::string& path, State* pb_config) {
   /* Parse the global configuration file. */
   _parse_global_configuration(path, pb_config);
@@ -75,7 +89,11 @@ void parser::parse(const std::string& path, State* pb_config) {
   // parse resource files.
   _apply(pb_config->resource_file(), pb_config, &parser::_parse_resource_file);
   // parse configuration directories.
-  _apply(pb_config->cfg_dir(), &parser::_parse_directory_configuration);
+  _apply(pb_config->cfg_dir(), pb_config,
+         &parser::_parse_directory_configuration);
+
+  // Apply template.
+  _resolve_template(pb_config);
 }
 
 /**
@@ -355,10 +373,9 @@ std::string const& parser::_map_object_type(map_object const& objects) const
 void parser::_parse_directory_configuration(const std::string& path,
                                             State* pb_config) {
   directory_entry dir(path);
-  std::list<file_entry> const& lst(dir.entry_list("*.cfg"));
-  for (std::list<file_entry>::const_iterator it(lst.begin()), end(lst.end());
-       it != end; ++it)
-    _parse_object_definitions(it->path());
+  const std::list<file_entry>& lst(dir.entry_list("*.cfg"));
+  for (auto& fe : lst)
+    _parse_object_definitions(fe.path(), pb_config);
 }
 
 /**
@@ -374,6 +391,25 @@ void parser::_parse_directory_configuration(std::string const& path) {
     _parse_object_definitions(it->path());
 }
 
+/**
+ * @brief Set the value given as a string to the object key. If the key does
+ * not exist, the correspondance table may be used to find a replacement of
+ * the key. The function converts the value to the appropriate type.
+ *
+ * Another important point is that many configuration object contain the Object
+ * obj message (something like an inheritance). This message contains three
+ * fields name, use and register that are important for templating. If keys are
+ * one of these names, the function tries to work directly with the obj message.
+ *
+ * @tparam T The type of the message containing the object key.
+ * @param msg The message containing the object key.
+ * @param key The key to localize the object to set.
+ * @param value The value as string that will be converted to the good type.
+ * @param correspondance A hash table giving traductions from keys to others.
+ * If a key fails, correspondance is used to find a new replacement key.
+ *
+ * @return true on success.
+ */
 template <typename T>
 bool set(
     T* msg,
@@ -381,8 +417,42 @@ bool set(
     const absl::string_view& value,
     const absl::flat_hash_map<std::string, std::string>& correspondance = {}) {
   const Descriptor* desc = msg->GetDescriptor();
-  const FieldDescriptor* f =
-      desc->FindFieldByName(std::string(key.data(), key.size()));
+  const FieldDescriptor* f;
+  const Reflection* refl;
+
+  /* Cases  where we have to work on the obj Object (the parent object) */
+  if (key == "name" || key == "register" || key == "use") {
+    f = desc->FindFieldByName("obj");
+    if (f) {
+      refl = msg->GetReflection();
+      Object* obj = static_cast<Object*>(refl->MutableMessage(msg, f));
+
+      /* Optimization to avoid a new string comparaison */
+      switch (key[0]) {
+        case 'n':  // name
+          obj->set_name(std::string(value.data(), value.size()));
+          break;
+        case 'r': {  // register
+          bool value_b;
+          if (!absl::SimpleAtob(value, &value_b))
+            return false;
+          else
+            obj->set_register_(value_b);
+        } break;
+        case 'u': {  // use
+          obj->mutable_use()->Clear();
+          auto arr = absl::StrSplit(value, ',');
+          for (auto& t : arr) {
+            std::string v{absl::StripAsciiWhitespace(t)};
+            obj->mutable_use()->Add(std::move(v));
+          }
+        } break;
+      }
+      return true;
+    }
+  }
+
+  f = desc->FindFieldByName(std::string(key.data(), key.size()));
   if (f == nullptr) {
     auto it = correspondance.find(key);
     if (it != correspondance.end())
@@ -390,7 +460,7 @@ bool set(
     if (f == nullptr)
       return false;
   }
-  const Reflection* refl = msg->GetReflection();
+  refl = msg->GetReflection();
   switch (f->type()) {
     case FieldDescriptor::TYPE_BOOL: {
       bool val;
@@ -539,6 +609,8 @@ void parser::_parse_object_definitions(const std::string& path,
   std::string ll;
   bool append_to_previous_line = false;
   Message* msg = nullptr;
+  object::object_type otype;
+
   int current_line = 1;
   std::string type;
   absl::flat_hash_map<std::string, std::string> correspondance;
@@ -572,16 +644,34 @@ void parser::_parse_object_definitions(const std::string& path,
         continue;
       /* is it time to close the definition? */
       if (l == "}") {
+        /* cases where msg must be moved... for example when the message is
+         * stored in a map. */
         if (type == "contact") {
           auto* cts = pb_config->mutable_contacts();
           Contact* ct = static_cast<Contact*>(msg);
-          (*cts)[ct->name()] = std::move(*ct);
+          Contact& c = (*cts)[ct->contact_name()];
+          c = std::move(*ct);
           delete msg;
-          msg = nullptr;
-        } else {
-          msg = nullptr;
-          hook = nullptr;
+          msg = &c;
         }
+        const Descriptor* desc = msg->GetDescriptor();
+        const FieldDescriptor* f = desc->FindFieldByName("obj");
+        const Reflection* refl = msg->GetReflection();
+        if (f) {
+          const Object& obj =
+              *static_cast<const Object*>(&refl->GetMessage(*msg, f));
+          if (!obj.name().empty()) {
+            pb_map_object& tmpl = _pb_templates[otype];
+            auto it = tmpl.find(obj.name());
+            if (it != tmpl.end())
+              throw engine_error() << fmt::format(
+                  "Parsing of '{}' failed {}: {} already exists", type,
+                  "file_info" /*_get_file_info(obj.get()) */, obj.name());
+            tmpl[obj.name()] = msg;
+          }
+        }
+        msg = nullptr;
+        hook = nullptr;
       } else {
         /* Main part where keys/values are read */
         /* ------------------------------------ */
@@ -634,23 +724,37 @@ void parser::_parse_object_definitions(const std::string& path,
             path, current_line);
       l = absl::StripTrailingAsciiWhitespace(l.substr(0, l.size() - 1));
       type = std::string(l.data(), l.size());
-      if (type == "contact")
+      if (type == "contact") {
+        otype = object::object_type::contact;
         msg = new Contact;
-      else if (type == "host") {
+        hook = [msg, ct = static_cast<Contact*>(msg)](
+                   const absl::string_view& key,
+                   const absl::string_view& value) -> bool {
+          if (key == "contact_groups") {
+            auto arr = absl::StrSplit(value, ',');
+            for (absl::string_view d : arr) {
+              d = absl::StripAsciiWhitespace(d);
+              ct->mutable_contactgroups()->Add(std::string(d.data(), d.size()));
+            }
+            return true;
+          }
+          return false;
+        };
+      } else if (type == "host") {
+        otype = object::object_type::host;
         msg = pb_config->mutable_hosts()->Add();
         correspondance = {
             {"_HOST_ID", "host_id"},
         };
       } else if (type == "service") {
+        otype = object::object_type::service;
         msg = pb_config->mutable_services()->Add();
         correspondance = {
             {"_SERVICE_ID", "service_id"},
         };
       } else if (type == "timeperiod") {
+        otype = object::object_type::timeperiod;
         msg = pb_config->mutable_timeperiods()->Add();
-        correspondance = {
-            {"name", "timeperiod_name"},
-        };
         hook = [msg, tp = static_cast<Timeperiod*>(msg)](
                    const absl::string_view& key,
                    const absl::string_view& value) -> bool {
@@ -676,6 +780,7 @@ void parser::_parse_object_definitions(const std::string& path,
           return true;
         };
       } else if (type == "command") {
+        otype = object::object_type::command;
         msg = pb_config->mutable_commands()->Add();
       } else {
         assert(1 == 18);
@@ -806,7 +911,7 @@ void parser::_parse_object_definitions(std::string const& path) {
             << "in file '" << _current_path << "' on line " << _current_line
             << ": Unknown object type name '" << type << "'";
       parse_object = (_read_options & (1 << obj->type()));
-      _objects_info[obj.get()] = file_info(path, _current_line);
+      _objects_info.emplace(obj.get(), file_info(path, _current_line));
     }
     // Check if is the not the end of the current object.
     else if (input != "}") {
@@ -866,6 +971,109 @@ void parser::_parse_resource_file(std::string const& path) {
                            << ": Invalid line '" << input << "'";
     }
   }
+}
+
+void parser::_merge(Message* msg,
+                    Message* tmpl,
+                    const std::array<const int32_t*, 19>& number_to_merge) {
+  const Descriptor* desc = msg->GetDescriptor();
+  const Reflection* refl = msg->GetReflection();
+  std::string tmp_str;
+
+  for (int i = 0; i < desc->field_count(); ++i) {
+    const FieldDescriptor* f = desc->field(i);
+    if (f->name() != "obj") {
+      /* Optional? If not defined in template, we continue. */
+      const auto* oof = f->containing_oneof();
+      if (oof) {
+        if (!refl->GetOneofFieldDescriptor(*tmpl, oof))
+          continue;
+      }
+
+      if (f->is_repeated()) {
+        switch (f->cpp_type()) {
+          case FieldDescriptor::CPPTYPE_STRING: {
+            size_t count = refl->FieldSize(*tmpl, f);
+            for (size_t j = 0; j < count; ++j) {
+              const std::string& s =
+                  refl->GetRepeatedStringReference(*tmpl, f, j, &tmp_str);
+              size_t count_msg = refl->FieldSize(*msg, f);
+              std::string tmp_str1;
+              bool found = false;
+              for (size_t k = 0; k < count_msg; ++k) {
+                const std::string& s1 =
+                    refl->GetRepeatedStringReference(*msg, f, k, &tmp_str1);
+                if (s1 == s) {
+                  found = true;
+                  break;
+                }
+              }
+              if (!found)
+                refl->AddString(msg, f, s);
+            }
+          } break;
+        }
+      } else {
+        switch (f->cpp_type()) {
+          case FieldDescriptor::CPPTYPE_STRING:
+            if ((oof && !refl->GetOneofFieldDescriptor(*msg, oof)) ||
+                refl->GetStringReference(*msg, f, &tmp_str).empty()) {
+              refl->SetString(msg, f, refl->GetString(*tmpl, f));
+            }
+            break;
+          default:
+            log_v2::config()->error(
+                "Entry '{}' of type {} not managed in merge", f->name(),
+                f->type_name());
+            assert(123 == 293);
+        }
+      }
+    }
+  }
+}
+
+void parser::_resolve_template(Message* msg, const pb_map_object& tmpls) {
+  if (_resolved[msg])
+    return;
+
+  _resolved[msg] = true;
+  const Descriptor* desc = msg->GetDescriptor();
+  const FieldDescriptor* f = desc->FindFieldByName("obj");
+  const Reflection* refl = msg->GetReflection();
+  if (!f)
+    return;
+
+  Object* obj = static_cast<Object*>(refl->MutableMessage(msg, f));
+  for (const std::string& u : obj->use()) {
+    auto it = tmpls.find(u);
+    if (it == tmpls.end())
+      throw engine_error() << "Cannot merge object of type '" << u << "'";
+    _resolve_template(it->second, tmpls);
+    _merge(msg, it->second, number_to_merge);
+  }
+}
+
+void parser::_resolve_template(State* pb_config) {
+  //  for (pb_map_object& tmpls : _pb_templates) {
+  //    for (auto it = tmpls.begin(); it != tmpls.end(); ++it) {
+  //      _resolve_template(it->second, tmpls);
+  //    }
+  //  }
+  for (int i = 0; i < pb_config->commands().size(); ++i)
+    _resolve_template(&pb_config->mutable_commands()->at(i),
+                      _pb_templates[object::command]);
+
+  for (int i = 0; i < pb_config->connectors().size(); ++i)
+    _resolve_template(&pb_config->mutable_connectors()->at(i),
+                      _pb_templates[object::connector]);
+
+  auto* contacts = pb_config->mutable_contacts();
+  for (auto it = contacts->begin(); it != contacts->end(); ++it)
+    _resolve_template(&it->second, _pb_templates[object::contact]);
+
+  //  for (int i = 0; i < pb_config->contacts().size(); ++i)
+  //    _resolve_template(&pb_config->mutable_contacts()->at(i),
+  //    _pb_templates[object::contact]);
 }
 
 /**

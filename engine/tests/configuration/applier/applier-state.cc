@@ -45,7 +45,7 @@ class ApplierState : public ::testing::Test {
       auto cts = pb_config.mutable_contacts();
       configuration::Contact ct;
       std::string name(fmt::format("name{:2}", i));
-      ct.set_name(name);
+      ct.set_contact_name(name);
       ct.set_alias(fmt::format("alias{:2}", i));
       for (int j = 0; j < 3; j++)
         ct.add_address(fmt::format("address{:2}", j));
@@ -169,8 +169,8 @@ TEST_F(ApplierState, DiffOnTimeperiodAliasRenamed) {
   ASSERT_EQ(path.path().key()[0].i32(), 2);
   // index 7 => timeperiods[7]
   ASSERT_EQ(path.path().key()[1].i32(), 7);
-  // number 2 => timeperiods.alias
-  ASSERT_EQ(path.path().key()[2].i32(), 2);
+  // number 3 => timeperiods.alias
+  ASSERT_EQ(path.path().key()[2].i32(), 3);
   // No more key...
   ASSERT_EQ(path.path().key()[3].i32(), -1);
   ASSERT_TRUE(path.val().has_value_str());
@@ -270,7 +270,7 @@ TEST_F(ApplierState, DiffOnContactOneNewAddress) {
   // Key to the context to change
   ASSERT_EQ(dstate.to_add()[0].path().key()[1].str(), std::string("name 3"));
   // Number of the object to modify
-  ASSERT_EQ(dstate.to_add()[0].path().key()[2].i32(), 3);
+  ASSERT_EQ(dstate.to_add()[0].path().key()[2].i32(), 4);
   // Index of the new object to add.
   ASSERT_EQ(dstate.to_add()[0].path().key()[3].i32(), 3);
 
@@ -311,7 +311,7 @@ TEST_F(ApplierState, DiffOnContactFirstAddressRemoved) {
   // Key "name 3" to the good contact
   ASSERT_EQ(dstate.to_modify()[0].path().key()[1].str(), "name 3");
   // Number of addresses in Contact
-  ASSERT_EQ(dstate.to_modify()[0].path().key()[2].i32(), 3);
+  ASSERT_EQ(dstate.to_modify()[0].path().key()[2].i32(), 4);
   // Index of the address to modify
   ASSERT_EQ(dstate.to_modify()[0].path().key()[3].i32(), 0);
   // New value of the address
@@ -323,7 +323,7 @@ TEST_F(ApplierState, DiffOnContactFirstAddressRemoved) {
   // Key "name 3" to the good contact
   ASSERT_EQ(dstate.to_remove()[0].key()[1].str(), "name 3");
   // Number of addresses in Contact
-  ASSERT_EQ(dstate.to_remove()[0].key()[2].i32(), 3);
+  ASSERT_EQ(dstate.to_remove()[0].key()[2].i32(), 4);
   // Index of the address to remove
   ASSERT_EQ(dstate.to_remove()[0].key()[3].i32(), 2);
 }
@@ -392,9 +392,7 @@ TEST_F(ApplierState, StateParsing) {
   configuration::State config;
   configuration::parser p;
   std::string conf{"/tmp/centengine.cfg"};
-  std::string hosts_conf{"/tmp/hosts.cfg"};
-  std::string services_conf{"/tmp/services.cfg"};
-  CreateFile(hosts_conf,
+  CreateFile("/tmp/hosts.cfg",
              "define host {\n"
              "    host_name                      host_1\n"
              "    alias                          host_1\n"
@@ -444,7 +442,7 @@ TEST_F(ApplierState, StateParsing) {
              "    _HOST_ID                       4\n"
              "}\n");
 
-  CreateFile(services_conf,
+  CreateFile("/tmp/services.cfg",
              "# comment 1\n"
              "# comment 2\n"
              "define service {\n"
@@ -529,10 +527,15 @@ TEST_F(ApplierState, StateParsing) {
              "/tmp/var/lib/centreon-engine/check.pl 5\n"
              "}\n"
              "define command {\n"
+             "    name                            command_template\n"
              "    command_name                    command_6\n"
              "    command_line                    "
              "/tmp/var/lib/centreon-engine/check.pl 6\n"
              "    connector                       Perl Connector\n"
+             "}\n"
+             "define command {\n"
+             "    command_name                    command_6\n"
+             "    use                             command_template\n"
              "}\n"
              "define command {\n"
              "    command_name                    command_7\n"
@@ -572,6 +575,18 @@ TEST_F(ApplierState, StateParsing) {
              "$USER1$=/usr/lib64/nagios/plugins\n"
              "$CENTREONPLUGINS$=/usr/lib/centreon/plugins/\n");
 
+  CreateFile("/tmp/contacts.cfg",
+             "define contact {\n"
+             "    contact_name                   contact1\n"
+             "    use                            template_contact\n"
+             "    contact_groups                 super_cgroup1,super_cgroup2\n"
+             "}\n"
+             "define contact {\n"
+             "    name                           template_contact\n"
+             "    alias                          contact1\n"
+             "    contact_groups                 cgroup1,cgroup3\n"
+             "}\n");
+
   CreateFile(
       conf,
       "# comment 4\n"
@@ -580,6 +595,7 @@ TEST_F(ApplierState, StateParsing) {
       "cfg_file=/tmp/hosts.cfg\n"
       "cfg_file=/tmp/services.cfg\n"
       "cfg_file=/tmp/commands.cfg\n"
+      "cfg_file=/tmp/contacts.cfg\n"
       //"cfg_file=/tmp/etc/centreon-engine/config0/hostgroups.cfg\n"
       "cfg_file=/tmp/timeperiods.cfg\n"
       //"cfg_file=/tmp/etc/centreon-engine/config0/connectors.cfg\n"
@@ -671,20 +687,20 @@ TEST_F(ApplierState, StateParsing) {
   ASSERT_EQ(config.enable_flap_detection(), false);
   ASSERT_EQ(config.instance_heartbeat_interval(), 30);
   ASSERT_EQ(config.log_level_functions(), std::string("trace"));
-  ASSERT_EQ(config.cfg_file().size(), 4u);
+  ASSERT_EQ(config.cfg_file().size(), 5u);
   ASSERT_EQ(config.resource_file().size(), 1u);
   ASSERT_EQ(config.hosts().size(), 4u);
   ASSERT_EQ(config.hosts()[0].host_name(), std::string("host_1"));
-  ASSERT_EQ(config.hosts()[0].register_(), 1);
+  ASSERT_TRUE(config.hosts()[0].obj().register_());
   ASSERT_EQ(config.hosts()[0].host_id(), 1);
   ASSERT_EQ(config.hosts()[1].host_name(), std::string("host_2"));
-  ASSERT_EQ(config.hosts()[1].register_(), 1);
+  ASSERT_TRUE(config.hosts()[1].obj().register_());
   ASSERT_EQ(config.hosts()[1].host_id(), 2);
   ASSERT_EQ(config.hosts()[2].host_name(), std::string("host_3"));
-  ASSERT_EQ(config.hosts()[2].register_(), 1);
+  ASSERT_TRUE(config.hosts()[2].obj().register_());
   ASSERT_EQ(config.hosts()[2].host_id(), 3);
   ASSERT_EQ(config.hosts()[3].host_name(), std::string("host_4"));
-  ASSERT_EQ(config.hosts()[3].register_(), 1);
+  ASSERT_TRUE(config.hosts()[3].obj().register_());
   ASSERT_EQ(config.hosts()[3].host_id(), 4);
 
   ASSERT_EQ(config.services().size(), 4u);
@@ -692,32 +708,47 @@ TEST_F(ApplierState, StateParsing) {
   ASSERT_EQ(config.services()[0].service_description(),
             std::string("service_1"));
   ASSERT_EQ(config.services()[0].service_id(), 1);
-  ASSERT_EQ(config.services()[0].register_(), 1);
+  ASSERT_TRUE(config.services()[0].obj().register_());
   ASSERT_TRUE(config.services()[0].active_checks_enabled());
 
-  ASSERT_EQ(config.commands().size(), 7u);
+  ASSERT_EQ(config.commands().size(), 8u);
   ASSERT_EQ(config.commands()[0].command_name(), std::string("command_1"));
   ASSERT_EQ(config.commands()[0].command_line(),
             std::string("/tmp/var/lib/centreon-engine/check.pl 1"));
 
+  /* The 6th inherites from command_template */
+  ASSERT_EQ(config.commands()[6].command_name(), std::string("command_6"));
+  ASSERT_EQ(config.commands()[6].command_line(),
+            std::string("/tmp/var/lib/centreon-engine/check.pl 6"));
+
   ASSERT_EQ(config.timeperiods().size(), 2u);
-  ASSERT_EQ(config.timeperiods()[1].timeperiod_name(), std::string("24x6"));
-  ASSERT_EQ(config.timeperiods()[1].alias(),
+  EXPECT_EQ(config.timeperiods()[1].timeperiod_name(), std::string("24x6"));
+  EXPECT_EQ(config.timeperiods()[1].alias(),
             std::string("24_Hours_A_Day,_7_Days_A_Week"));
-  ASSERT_EQ(config.timeperiods()[1].sunday().size(),
+  EXPECT_EQ(config.timeperiods()[1].sunday().size(),
             1u);  // std::string("00:00-24:00"));
-  ASSERT_EQ(config.timeperiods()[1].sunday()[0].range_start(), 0);
-  ASSERT_EQ(config.timeperiods()[1].sunday()[0].range_end(), 3600 * 24);
-  ASSERT_EQ(config.timeperiods()[1].monday().size(), 2u);
-  ASSERT_EQ(config.timeperiods()[1].monday()[0].range_start(),
+  EXPECT_EQ(config.timeperiods()[1].sunday()[0].range_start(), 0);
+  EXPECT_EQ(config.timeperiods()[1].sunday()[0].range_end(), 3600 * 24);
+  EXPECT_EQ(config.timeperiods()[1].monday().size(), 2u);
+  EXPECT_EQ(config.timeperiods()[1].monday()[0].range_start(),
             0);  // 00:00-08:00
-  ASSERT_EQ(config.timeperiods()[1].monday()[0].range_end(), 3600 * 8);
-  ASSERT_EQ(config.timeperiods()[1].monday()[1].range_start(),
+  EXPECT_EQ(config.timeperiods()[1].monday()[0].range_end(), 3600 * 8);
+  EXPECT_EQ(config.timeperiods()[1].monday()[1].range_start(),
             3600 * 18);  // 18:00-24:00
-  ASSERT_EQ(config.timeperiods()[1].monday()[1].range_end(), 3600 * 24);
-  ASSERT_EQ(config.timeperiods()[1].tuesday().size(), 1u);
-  ASSERT_EQ(config.timeperiods()[1].wednesday().size(), 1u);
-  ASSERT_EQ(config.timeperiods()[1].thursday().size(), 1u);
-  ASSERT_EQ(config.timeperiods()[1].friday().size(), 1u);
-  ASSERT_EQ(config.timeperiods()[1].saturday().size(), 1u);
+  EXPECT_EQ(config.timeperiods()[1].monday()[1].range_end(), 3600 * 24);
+  EXPECT_EQ(config.timeperiods()[1].tuesday().size(), 1u);
+  EXPECT_EQ(config.timeperiods()[1].wednesday().size(), 1u);
+  EXPECT_EQ(config.timeperiods()[1].thursday().size(), 1u);
+  EXPECT_EQ(config.timeperiods()[1].friday().size(), 1u);
+  EXPECT_EQ(config.timeperiods()[1].saturday().size(), 1u);
+
+  ASSERT_EQ(config.contacts().size(), 2u);
+  const auto ct = config.contacts().at("contact1");
+  EXPECT_EQ(ct.contact_name(), std::string("contact1"));
+  EXPECT_EQ(ct.alias(), std::string("contact1"));
+  EXPECT_EQ(ct.contactgroups().size(), 4u);
+  EXPECT_EQ(ct.contactgroups().at(0), std::string("super_cgroup1"));
+  EXPECT_EQ(ct.contactgroups().at(1), std::string("super_cgroup2"));
+  EXPECT_EQ(ct.contactgroups().at(2), std::string("cgroup1"));
+  EXPECT_EQ(ct.contactgroups().at(3), std::string("cgroup3"));
 }
