@@ -25,6 +25,8 @@ jobs:
 
       - id: version
         run: |
+          IMG_VERSION=$(md5sum conanfile.txt | awk '{print substr($1, 0, 8)}')
+          echo "imgversion=$IMG_VERSION" >> $GITHUB_OUTPUT
           VERSION=$(awk '$1 ~ "COLLECT_MAJOR" {maj=substr($2, 1, length($2)-1)} $1 ~ "COLLECT_MINOR" {min=substr($2, 1, length($2)-1) ; print maj "." min}' CMakeLists.txt)
           PATCH=$(awk '$1 ~ "COLLECT_PATCH" {print substr($2, 1, length($2) - 1)}' CMakeLists.txt)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
@@ -45,9 +47,11 @@ jobs:
           esac
         shell: bash
       - run: |
+          echo "ImgVersion is ${{ steps.version.outputs.imgversion }}"
           echo "Version is ${{ steps.version.outputs.version }}.${{ steps.version.outputs.patch }}"
           echo "Release is ${{ steps.version.outputs.release }}"
     outputs:
+      imgversion: ${{ steps.version.outputs.imgversion }}
       version: ${{ steps.version.outputs.version }}
       patch: ${{ steps.version.outputs.patch }}
       release: ${{ steps.version.outputs.release }}
@@ -56,6 +60,7 @@ jobs:
     needs: create-version
     runs-on: [self-hosted, collect]
     env:
+      imgversion: ${{ needs.create-version.outputs.imgversion }}
       version: ${{ needs.create-version.outputs.version }}.${{ needs.create-version.outputs.patch }}
       release: ${{ needs.create-version.outputs.release }}
 
@@ -80,13 +85,14 @@ jobs:
         with:
           script_name: /src/ci/scripts/collect-unit-tests
           image_name: centreon-collect-${{ matrix.image }}
-          image_version: ${{ env.version }}
+          image_version: ${{ env.imgversion }}
 
   rpm-packaging:
     needs: create-version
     runs-on: [self-hosted, collect]
     env:
       version: ${{ needs.create-version.outputs.version }}.${{ needs.create-version.outputs.patch }}
+      imgversion: ${{ needs.create-version.outputs.imgversion }}
       release: ${{ needs.create-version.outputs.release }}
 
     strategy:
@@ -111,7 +117,7 @@ jobs:
         with:
           script_name: /src/ci/scripts/collect-rpm-package
           image_name: centreon-collect-${{ matrix.image }}
-          image_version: ${{ env.version }}
+          image_version: ${{ env.imgversion }}
           env_variable: -e DISTRIB="${{ matrix.distrib }}" -e VERSION="${{ env.version }}" -e RELEASE="${{ env.release }}"
 
       - name: Use cache RPM files
@@ -126,6 +132,7 @@ jobs:
     needs: create-version
     runs-on: [self-hosted, collect]
     env:
+      imgversion: ${{ needs.create-version.outputs.imgversion }}
       version: ${{ needs.create-version.outputs.version }}.${{ needs.create-version.outputs.patch }}
       release: ${{ needs.create-version.outputs.release }}
 
@@ -153,7 +160,7 @@ jobs:
         with:
           script_name: /src/centreon-collect/ci/scripts/collect-deb-package
           image_name: centreon-collect-${{ matrix.image }}
-          image_version: ${{ env.version }}
+          image_version: ${{ env.imgversion }}
           env_variable: -e DISTRIB="${{ matrix.distrib }}" -e VERSION="${{ env.version }}" -e RELEASE="${{ env.release }}"
 
       - name: Use cache DEB files
