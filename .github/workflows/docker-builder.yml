@@ -26,13 +26,13 @@ jobs:
         uses: actions/checkout@v3
 
       - run: |
-          VERSION=$(awk '$1 ~ "COLLECT_MAJOR" {maj=substr($2, 1, length($2)-1)} $1 ~ "COLLECT_MINOR" {min=substr($2, 1, length($2)-1)} $1 ~ "COLLECT_PATCH" {patch=substr($2, 1, length($2) - 1) ; print maj "." min "." patch}' CMakeLists.txt)
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-        id: version
+          IMG_VERSION=$(md5sum conanfile.txt | awk '{print substr($1, 0, 8)}')
+          echo "imgversion=$IMG_VERSION" >> $GITHUB_OUTPUT
+        id: imgversion
       - run: |
-          echo "Version is ${{ steps.version.outputs.version }}"
+          echo "Version based on conanfile is ${{ steps.imgversion.outputs.imgversion }}"
     outputs:
-      version: ${{ steps.version.outputs.version }}
+      imgversion: ${{ steps.imgversion.outputs.imgversion }}
 
 
   create-and-push-docker:
@@ -40,7 +40,7 @@ jobs:
     runs-on: [self-hosted, collect]
     continue-on-error: false
     env:
-      version: ${{ needs.create-version.outputs.version }}
+      imgversion: ${{ needs.create-version.outputs.imgversion }}
 
     strategy:
       fail-fast: false
@@ -72,8 +72,8 @@ jobs:
           password: ${{ secrets.REPOS_PASSWORD }}
 
       - name: build docker ${{ matrix.distrib }}
-        run: docker build --no-cache . -f ci/docker/Dockerfile.${{ matrix.project }}-${{ matrix.distrib }} -t $REGISTRY/centreon-${{ matrix.project }}-${{ matrix.distrib }}:${{ env.version }}
+        run: docker build --no-cache . -f ci/docker/Dockerfile.${{ matrix.project }}-${{ matrix.distrib }} -t $REGISTRY/centreon-${{ matrix.project }}-${{ matrix.distrib }}:${{ env.imgversion }}
 
       - name: push docker ${{ matrix.distrib }}
-        run: docker push $REGISTRY/centreon-${{ matrix.project }}-${{ matrix.distrib }}:${{ env.version }}
+        run: docker push $REGISTRY/centreon-${{ matrix.project }}-${{ matrix.distrib }}:${{ env.imgversion }}
 
