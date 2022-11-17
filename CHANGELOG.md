@@ -2,13 +2,6 @@
 
 ## 22.04.2
 
-### ccc
-
-First version of ccc. Here is a client that can connect to broker or engine
-through the gRPC server. Its goal is then to execute available methods on
-these interfaces. At the moment, it checks the connection, tells if it was
-established on engine or broker and is also able to list available methods.
-
 ### Broker
 
 #### Enhancements
@@ -108,9 +101,6 @@ Default configuration files were not installed on a Debian fresh install.
 tags are well removed now.
 
 Columns notes, notes\_url and action\_url are resized.
-
-*Compression*
-In the bbdo negotiation, compression was never activated
 
 *Compression*
 In the bbdo negotiation, compression was never activated

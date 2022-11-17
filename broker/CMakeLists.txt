@@ -68,18 +68,6 @@ else()
   add_definitions("-DMYSQL_SOCKET=/tmp/mysql.sock")
 endif()
 
-# Default MySQL socket
-if (OS_DISTRIBUTOR STREQUAL "Debian" OR OS_DISTRIBUTOR STREQUAL "Ubuntu")
-  message(STATUS "deb based os")
-  add_definitions("-DMYSQL_SOCKET=\"/var/run/mysqld/mysqld.sock\"")
-elseif (OS_DISTRIBUTOR STREQUAL "CentOS" OR OS_DISTRIBUTOR STREQUAL "RedHat")
-  message(STATUS "rpm based os")
-  add_definitions("-DMYSQL_SOCKET=\"/var/lib/mysql/mysql.sock\"")
-else ()
-  message(STATUS "other os: ${OS_DISTRIBUTOR}")
-  add_definitions("-DMYSQL_SOCKET=/tmp/mysql.sock")
-endif ()
-
 include_directories("${PROJECT_SOURCE_DIR}/core/inc")
 include_directories("${PROJECT_SOURCE_DIR}/neb/inc")
 include_directories("${CMAKE_SOURCE_DIR}/engine/inc")
