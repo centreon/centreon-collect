@@ -193,7 +193,6 @@ jobs:
           repos_username: ${{ secrets.REPOS_USERNAME }}
           repos_password: ${{ secrets.REPOS_PASSWORD }}
           cache_key: cache-${{ github.sha }}
-          version: ${{ env.version }}
           release: ${{ env.release }}
 
   delivery-centos:
@@ -218,5 +217,4 @@ jobs:
           repos_username: ${{ secrets.REPOS_USERNAME }}
           repos_password: ${{ secrets.REPOS_PASSWORD }}
           cache_key: cache-${{ github.sha }}
-          version: ${{ env.version }}
           release: ${{ env.release }}
