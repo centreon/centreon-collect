@@ -123,7 +123,7 @@ jobs:
       - name: Use cache RPM files
         uses: actions/cache@v3
         env:
-          cache-name-rpmbuild: cache-${{ github.sha }}-${{ github.run_id }}-rpmbuild-centreon-collect-${{ matrix.distrib }}
+          cache-name-rpmbuild: cache-${{ github.sha }}-rpmbuild-centreon-collect-${{ matrix.distrib }}-${{ env.version }}-${{ env.release }}
         with:
           path: ./*.rpm
           key: ${{ env.cache-name-rpmbuild }}
@@ -166,7 +166,7 @@ jobs:
       - name: Use cache DEB files
         uses: actions/cache@v3
         env:
-          cache-name-debbuild: cache-${{ github.sha }}-${{ github.run_id }}-debbuild-centreon-collect-${{ matrix.distrib }}
+          cache-name-debbuild: cache-${{ github.sha }}-debbuild-centreon-collect-${{ matrix.distrib }}-${{ env.version }}-${{ env.release }}
         with:
           path: ./*.deb
           key: ${{ env.cache-name-debbuild }}
@@ -175,6 +175,7 @@ jobs:
     needs: [debian-packaging, create-version]
     env:
       version: ${{ needs.create-version.outputs.version }}
+      release: ${{ needs.create-version.outputs.release }}
     runs-on: [self-hosted, common]
     name: Delivery
     strategy:
@@ -191,12 +192,15 @@ jobs:
           version: ${{ env.version }}
           repos_username: ${{ secrets.REPOS_USERNAME }}
           repos_password: ${{ secrets.REPOS_PASSWORD }}
-          cache_key: cache-${{ github.sha }}-${{ github.run_id }}
+          cache_key: cache-${{ github.sha }}
+          version: ${{ env.version }}
+          release: ${{ env.release }}
 
   delivery-centos:
     needs: [rpm-packaging, create-version]
     env:
       version: ${{ needs.create-version.outputs.version }}
+      release: ${{ needs.create-version.outputs.release }}
     runs-on: [self-hosted, common]
     name: Delivery
     strategy:
@@ -213,4 +217,6 @@ jobs:
           version: ${{ env.version }}
           repos_username: ${{ secrets.REPOS_USERNAME }}
           repos_password: ${{ secrets.REPOS_PASSWORD }}
-          cache_key: cache-${{ github.sha }}-${{ github.run_id }}
+          cache_key: cache-${{ github.sha }}
+          version: ${{ env.version }}
+          release: ${{ env.release }}

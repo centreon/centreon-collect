@@ -16,6 +16,12 @@ inputs:
   cache_key:
     description: "The cached package key"
     required: true
+  version:
+    description: "The version XX.YY.ZZ of centreon-collect to deliver"
+    required: true
+  release:
+    description: "The release of centreon-collect to deliver"
+    required: true
 
 runs:
   using: "composite"
@@ -38,8 +44,8 @@ runs:
       uses: actions/cache@v3
       with:
         path: ./*.${{ env.extfile }}
-        key: ${{ inputs.cache_key }}-${{ env.build }}-${{ inputs.distrib }}
-        restore-keys: ${{ inputs.cache_key }}-${{ env.build }}-${{ inputs.distrib }}
+        key: ${{ inputs.cache_key }}-${{ env.build }}-${{ inputs.distrib }}-${{ inputs.version }}-${{ inputs.release }}
+        restore-keys: ${{ inputs.cache_key }}-${{ env.build }}-${{ inputs.distrib }}-${{ inputs.version }}-${{ inputs.release }}
 
     - name: Publish packages
       run: |
