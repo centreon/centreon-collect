@@ -28,6 +28,12 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v3
 
+      - name: Use cache RPM files
+        uses: actions/cache@v3
+        with:
+          path: ./*.rpm
+          key: ${{ inputs.cache_key }}
+
       - run: |
           IMG_VERSION=$(md5sum conanfile.txt | awk '{print substr($1, 0, 8)}')
           echo "imgversion=$IMG_VERSION" >> $GITHUB_ENV
@@ -51,6 +57,7 @@ jobs:
           image_name: ${{ matrix.image }}
           image_version: ${{ env.imgversion }}
           params: ${{ matrix.branch }}
+          volume: $(pwd):/tmp/packages
 
       - name: Send report to commit
         uses: joonvena/robotframework-reporter-action@v2
