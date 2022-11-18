@@ -30,9 +30,11 @@ jobs:
 
       - name: Use cache RPM files
         uses: actions/cache@v3
+        env:
+          cache-name-rpmbuild: cache-${{ github.sha }}-${{ github.run_id }}-rpmbuild-centreon-collect-el7
         with:
           path: ./*.rpm
-          key: ${{ inputs.cache_key }}
+          key: ${{ env.cache-name-rpmbuild }}
 
       - run: |
           IMG_VERSION=$(md5sum conanfile.txt | awk '{print substr($1, 0, 8)}')
