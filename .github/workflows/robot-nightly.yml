@@ -35,6 +35,12 @@ jobs:
           echo "Version is ${{ env.version }}"
           echo "Version is ${{ env.imgversion }}"
 
+      - name: Login to Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.REPOS_USERNAME }}
+          password: ${{ secrets.REPOS_PASSWORD }}
       - name: Test robot centos7
         uses: ./.github/actions/runner-docker
         with:
