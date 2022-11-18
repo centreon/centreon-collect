@@ -12,6 +12,9 @@ on:
   schedule:
     - cron: '0 0 * * *'
 
+env:
+  REGISTRY: registry-docker.centreon.com/docker-global
+
 jobs:
   robot-test:
     runs-on: [self-hosted, collect]
