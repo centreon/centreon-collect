@@ -12,7 +12,8 @@ boost/1.80.0
 libssh2/1.10.0
 
 [generators]
-cmake
+cmake_paths
+cmake_find_package
 
 [options]
 boost:header_only=True
