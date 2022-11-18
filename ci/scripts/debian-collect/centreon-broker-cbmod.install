@@ -1,2 +1,0 @@
-debian/tmp-centreon-collect/usr/lib64/nagios/cbmod.so    usr/lib64/nagios
-debian/tmp-centreon-collect/etc/centreon-broker/central-module.json    etc/centreon-broker

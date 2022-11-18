@@ -17,12 +17,31 @@ on:
 
 env:
   REGISTRY: registry-docker.centreon.com/docker-global
-  version: 22.10
 
 jobs:
+  create-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - run: |
+          IMG_VERSION=$(md5sum conanfile.txt | awk '{print substr($1, 0, 8)}')
+          echo "imgversion=$IMG_VERSION" >> $GITHUB_OUTPUT
+        id: imgversion
+      - run: |
+          echo "Version based on conanfile is ${{ steps.imgversion.outputs.imgversion }}"
+    outputs:
+      imgversion: ${{ steps.imgversion.outputs.imgversion }}
+
+
   create-and-push-docker:
+    needs: create-version
     runs-on: [self-hosted, collect]
     continue-on-error: false
+    env:
+      imgversion: ${{ needs.create-version.outputs.imgversion }}
+
     strategy:
       fail-fast: false
       matrix:
@@ -53,8 +72,8 @@ jobs:
           password: ${{ secrets.REPOS_PASSWORD }}
 
       - name: build docker ${{ matrix.distrib }}
-        run: docker build --no-cache . -f ci/docker/Dockerfile.${{ matrix.project }}-${{ matrix.distrib }} -t $REGISTRY/centreon-${{ matrix.project }}-${{ matrix.distrib }}:${{ env.version }}
+        run: docker build --no-cache . -f ci/docker/Dockerfile.${{ matrix.project }}-${{ matrix.distrib }} -t $REGISTRY/centreon-${{ matrix.project }}-${{ matrix.distrib }}:${{ env.imgversion }}
 
       - name: push docker ${{ matrix.distrib }}
-        run: docker push $REGISTRY/centreon-${{ matrix.project }}-${{ matrix.distrib }}:${{ env.version }}
+        run: docker push $REGISTRY/centreon-${{ matrix.project }}-${{ matrix.distrib }}:${{ env.imgversion }}
 
