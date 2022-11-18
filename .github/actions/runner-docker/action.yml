@@ -16,9 +16,6 @@ inputs:
   params:
     description: "params for script"
     required: false
-  volume:
-    description: "to mount a local folder"
-    required: false
 
 env:
   REGISTRY: registry-docker.centreon.com/docker-global
@@ -26,9 +23,5 @@ env:
 runs:
   using: "composite"
   steps:
-    - if: inputs.volume == ""
-      run: docker run -v ${{ inputs.volume} -i --entrypoint ${{ inputs.script_name }}.sh -v "$PWD:/src" ${{ inputs.env_variable }} ${{ env.REGISTRY }}/${{ inputs.image_name }}:${{ inputs.image_version}} ${{ inputs.params }}
-      shell: bash
-    - if: inputs.volume != ""
-      run: docker run -v ${{ inputs.volume} -i --entrypoint ${{ inputs.script_name }}.sh -v "$PWD:/src" ${{ inputs.env_variable }} ${{ env.REGISTRY }}/${{ inputs.image_name }}:${{ inputs.image_version}} ${{ inputs.params }}
+    - run: docker run -i --entrypoint ${{ inputs.script_name }}.sh -v "$PWD:/src" ${{ inputs.env_variable }} ${{ env.REGISTRY }}/${{ inputs.image_name }}:${{ inputs.image_version}} ${{ inputs.params }}
       shell: bash

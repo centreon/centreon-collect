@@ -46,7 +46,7 @@ echo "########################## Install centreon collect ######################
 #make -j9
 #make -j9 install
 
-rpm -Uvh --force --nodeps /tmp/packages/*.rpm
+rpm -Uvh --force --nodeps /src/*.rpm
 
 echo "########################### install robot framework ############################"
 cd /src/tests/
