@@ -26,18 +26,21 @@ jobs:
         uses: actions/checkout@v3
 
       - run: |
+          IMG_VERSION=$(md5sum conanfile.txt | awk '{print substr($1, 0, 8)}')
+          echo "imgversion=$IMG_VERSION" >> $GITHUB_ENV
           VERSION=$(awk '$1 ~ "COLLECT_MAJOR" {maj=substr($2, 1, length($2)-1)} $1 ~ "COLLECT_MINOR" {min=substr($2, 1, length($2)-1)} $1 ~ "COLLECT_PATCH" {patch=substr($2, 1, length($2) - 1) ; print maj "." min "." patch}' CMakeLists.txt)
           echo "version=$VERSION" >> $GITHUB_ENV
         id: version
       - run: |
           echo "Version is ${{ env.version }}"
+          echo "Version is ${{ env.imgversion }}"
 
       - name: Test robot centos7
         uses: ./.github/actions/runner-docker
         with:
           script_name: /src/ci/scripts/collect-test-robot
           image_name: ${{ matrix.image }}
-          image_version: ${{ env.version }}
+          image_version: ${{ env.imgversion }}
           params: ${{ matrix.branch }}
 
       - name: Send report to commit
