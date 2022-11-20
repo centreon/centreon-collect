@@ -94,6 +94,10 @@ void parser::parse(const std::string& path, State* pb_config) {
 
   // Apply template.
   _resolve_template(pb_config);
+
+  // Apply extended info.
+  //  _apply_hostextinfo(pb_config);
+  //  _apply_serviceextinfo(pb_config);
 }
 
 /**
@@ -686,6 +690,11 @@ void parser::_parse_object_definitions(const std::string& path,
           if (hook)
             retval = hook(key, l);
           if (!retval) {
+            if (key[0] != '_')
+              throw engine_error() << fmt::format(
+                  "Unable to parse '{}' key with value '{}' in message of type "
+                  "'{}'",
+                  key, l, type);
             /* last particular case with customvariables */
             CustomVariable cv;
             key.remove_prefix(1);
@@ -727,7 +736,7 @@ void parser::_parse_object_definitions(const std::string& path,
       if (type == "contact") {
         otype = object::object_type::contact;
         msg = new Contact;
-        hook = [msg, ct = static_cast<Contact*>(msg)](
+        hook = [ct = static_cast<Contact*>(msg)](
                    const absl::string_view& key,
                    const absl::string_view& value) -> bool {
           if (key == "contact_groups") {
@@ -751,11 +760,14 @@ void parser::_parse_object_definitions(const std::string& path,
         msg = pb_config->mutable_services()->Add();
         correspondance = {
             {"_SERVICE_ID", "service_id"},
+            {"host_name", "hosts"},
+            {"active_checks_enabled", "checks_active"},
+            {"passive_checks_enabled", "checks_passive"},
         };
       } else if (type == "timeperiod") {
         otype = object::object_type::timeperiod;
         msg = pb_config->mutable_timeperiods()->Add();
-        hook = [msg, tp = static_cast<Timeperiod*>(msg)](
+        hook = [tp = static_cast<Timeperiod*>(msg)](
                    const absl::string_view& key,
                    const absl::string_view& value) -> bool {
           auto arr = absl::StrSplit(value, ',');
@@ -775,7 +787,22 @@ void parser::_parse_object_definitions(const std::string& path,
                 !absl::SimpleAtoi(p.second, &m))
               return false;
             tr.set_range_end(h * 3600 + m * 60);
-            set(msg, key, std::move(tr));
+            if (key == "sunday")
+              tp->mutable_timeranges()->mutable_sunday()->Add(std::move(tr));
+            else if (key == "monday")
+              tp->mutable_timeranges()->mutable_monday()->Add(std::move(tr));
+            else if (key == "tuesday")
+              tp->mutable_timeranges()->mutable_tuesday()->Add(std::move(tr));
+            else if (key == "wednesday")
+              tp->mutable_timeranges()->mutable_wednesday()->Add(std::move(tr));
+            else if (key == "thursday")
+              tp->mutable_timeranges()->mutable_thursday()->Add(std::move(tr));
+            else if (key == "friday")
+              tp->mutable_timeranges()->mutable_friday()->Add(std::move(tr));
+            else if (key == "saturday")
+              tp->mutable_timeranges()->mutable_saturday()->Add(std::move(tr));
+            else
+              return false;
           }
           return true;
         };
