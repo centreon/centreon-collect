@@ -18,120 +18,9 @@
 
 syntax = "proto3";
 
+import "state-generated.proto";
+
 package com.centreon.engine.configuration;
-
-message TimeRange {
-  uint64 range_start = 1;
-  uint64 range_end = 2;
-}
-
-message DateRange {
-  enum TypeRange {
-    calendar_date = 0;
-    month_date = 1;
-    month_day = 2;
-    month_week_day = 3;
-    week_day = 4;
-    none = 5; // Instead of -1 in original config
-  }
-  TypeRange type = 1;
-  int32 syear = 2;  // Start year.
-  int32 smon = 3;   // Start month.
-  // Start day of month (may 3rd, last day in feb).
-  int32 smday = 4;
-  int32 swday = 5;  // Start day of week (thursday).
-  // Start weekday offset (3rd thursday, last monday in jan).
-  int32 swday_offset = 6;
-  int32 eyear = 7;
-  int32 emon = 8;
-  int32 emday = 9;
-  int32 ewday = 10;
-  int32 ewday_offset = 11;
-  int32 skip_interval = 12;
-  repeated TimeRange timerange = 13;
-}
-
-message Timeperiod {
-  string timeperiod_name = 1;
-  string alias = 2;
-  repeated TimeRange sunday = 3;
-  repeated TimeRange monday = 4;
-  repeated TimeRange tuesday = 5;
-  repeated TimeRange wednesday = 6;
-  repeated TimeRange thursday = 7;
-  repeated TimeRange friday = 8;
-  repeated TimeRange saturday = 9;
-}
-
-message Connector {
-  string name = 1;
-  string line = 2;
-}
-
-message CustomVariable {
-  string name = 1;
-  string value = 2;
-  bool is_sent = 3;
-  bool modified = 4;
-}
-
-message Contact {
-  string name = 1;
-  string alias = 2;
-  repeated string address = 3;
-  optional bool can_submit_commands = 4;
-  repeated string contactgroups = 5;
-  repeated CustomVariable customvariables = 6;
-  string email = 7;
-
-  optional bool retain_nonstatus_information = 8;
-  optional bool retain_status_information = 9;
-  string pager = 10;
-
-  optional bool host_notifications_enabled = 11;
-  repeated string host_notification_commands = 12;
-  optional uint32 host_notification_options = 13;
-  string host_notification_period = 14;
-
-  optional bool service_notifications_enabled = 15;
-  repeated string service_notification_commands = 16;
-  optional uint32 service_notification_options = 17;
-  string service_notification_period = 18;
-
-  optional string timezone = 19;
-}
-
-message Host {
-  uint64 host_id = 1;
-  string host_name = 2;
-  string alias = 3;
-  string address = 4;
-  string check_command = 5;
-  string check_period = 6;
-  uint32 register = 7;
-
-  repeated CustomVariable customvariables = 8;
-}
-
-message Service {
-  string host_name = 1;
-  string service_description = 2;
-  uint64 service_id = 3;
-  string check_command = 4;
-  string check_period = 5;
-  uint32 max_check_attempts = 6;
-  uint32 check_interval = 7;
-  uint32 retry_interval = 8;
-  uint32 register = 9;
-  bool active_checks_enabled = 10;
-  bool passive_checks_enabled = 11;
-}
-
-message Command {
-  string command_name = 1;
-  string command_line = 2;
-  string connector = 3;
-}
 
 message State {
   string cfg_main = 1;
@@ -149,6 +38,7 @@ message State {
   bool enable_flap_detection = 13;
 
   map<string, string> users = 14;
+  repeated string cfg_dir = 15;
 }
 
 message Value {
@@ -158,7 +48,7 @@ message Value {
     uint32 value_u32 = 3;
     string value_str = 4;
     TimeRange value_tr = 5;
-    DateRange value_dr = 6;
+    Daterange value_dr = 6;
     Timeperiod value_tp = 7;
     Connector value_cn = 8;
     Command value_co = 9;

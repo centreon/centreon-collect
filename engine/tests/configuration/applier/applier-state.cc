@@ -22,6 +22,7 @@
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/configuration/parser.hh"
 #include "com/centreon/engine/globals.hh"
+#include "configuration/state-generated.hh"
 #include "configuration/state.pb.h"
 
 using namespace com::centreon::engine;
@@ -43,7 +44,7 @@ class ApplierState : public ::testing::Test {
     }
     for (int i = 0; i < 5; i++) {
       auto cts = pb_config.mutable_contacts();
-      configuration::Contact ct;
+      configuration::Contact ct{configuration::make_contact()};
       std::string name(fmt::format("name{:2}", i));
       ct.set_contact_name(name);
       ct.set_alias(fmt::format("alias{:2}", i));
@@ -169,8 +170,8 @@ TEST_F(ApplierState, DiffOnTimeperiodAliasRenamed) {
   ASSERT_EQ(path.path().key()[0].i32(), 2);
   // index 7 => timeperiods[7]
   ASSERT_EQ(path.path().key()[1].i32(), 7);
-  // number 3 => timeperiods.alias
-  ASSERT_EQ(path.path().key()[2].i32(), 3);
+  // number 2 => timeperiods.alias
+  ASSERT_EQ(path.path().key()[2].i32(), 2);
   // No more key...
   ASSERT_EQ(path.path().key()[3].i32(), -1);
   ASSERT_TRUE(path.val().has_value_str());
@@ -270,7 +271,7 @@ TEST_F(ApplierState, DiffOnContactOneNewAddress) {
   // Key to the context to change
   ASSERT_EQ(dstate.to_add()[0].path().key()[1].str(), std::string("name 3"));
   // Number of the object to modify
-  ASSERT_EQ(dstate.to_add()[0].path().key()[2].i32(), 4);
+  ASSERT_EQ(dstate.to_add()[0].path().key()[2].i32(), 2);
   // Index of the new object to add.
   ASSERT_EQ(dstate.to_add()[0].path().key()[3].i32(), 3);
 
@@ -311,7 +312,7 @@ TEST_F(ApplierState, DiffOnContactFirstAddressRemoved) {
   // Key "name 3" to the good contact
   ASSERT_EQ(dstate.to_modify()[0].path().key()[1].str(), "name 3");
   // Number of addresses in Contact
-  ASSERT_EQ(dstate.to_modify()[0].path().key()[2].i32(), 4);
+  ASSERT_EQ(dstate.to_modify()[0].path().key()[2].i32(), 2);
   // Index of the address to modify
   ASSERT_EQ(dstate.to_modify()[0].path().key()[3].i32(), 0);
   // New value of the address
@@ -704,12 +705,13 @@ TEST_F(ApplierState, StateParsing) {
   ASSERT_EQ(config.hosts()[3].host_id(), 4);
 
   ASSERT_EQ(config.services().size(), 4u);
-  ASSERT_EQ(config.services()[0].host_name(), std::string("host_1"));
+  ASSERT_EQ(config.services()[0].hosts().size(), 1u);
+  ASSERT_EQ(config.services()[0].hosts()[0], std::string("host_1"));
   ASSERT_EQ(config.services()[0].service_description(),
             std::string("service_1"));
   ASSERT_EQ(config.services()[0].service_id(), 1);
   ASSERT_TRUE(config.services()[0].obj().register_());
-  ASSERT_TRUE(config.services()[0].active_checks_enabled());
+  ASSERT_TRUE(config.services()[0].checks_active());
 
   ASSERT_EQ(config.commands().size(), 8u);
   ASSERT_EQ(config.commands()[0].command_name(), std::string("command_1"));
@@ -725,22 +727,25 @@ TEST_F(ApplierState, StateParsing) {
   EXPECT_EQ(config.timeperiods()[1].timeperiod_name(), std::string("24x6"));
   EXPECT_EQ(config.timeperiods()[1].alias(),
             std::string("24_Hours_A_Day,_7_Days_A_Week"));
-  EXPECT_EQ(config.timeperiods()[1].sunday().size(),
+  EXPECT_EQ(config.timeperiods()[1].timeranges().sunday().size(),
             1u);  // std::string("00:00-24:00"));
-  EXPECT_EQ(config.timeperiods()[1].sunday()[0].range_start(), 0);
-  EXPECT_EQ(config.timeperiods()[1].sunday()[0].range_end(), 3600 * 24);
-  EXPECT_EQ(config.timeperiods()[1].monday().size(), 2u);
-  EXPECT_EQ(config.timeperiods()[1].monday()[0].range_start(),
+  EXPECT_EQ(config.timeperiods()[1].timeranges().sunday()[0].range_start(), 0);
+  EXPECT_EQ(config.timeperiods()[1].timeranges().sunday()[0].range_end(),
+            3600 * 24);
+  EXPECT_EQ(config.timeperiods()[1].timeranges().monday().size(), 2u);
+  EXPECT_EQ(config.timeperiods()[1].timeranges().monday()[0].range_start(),
             0);  // 00:00-08:00
-  EXPECT_EQ(config.timeperiods()[1].monday()[0].range_end(), 3600 * 8);
-  EXPECT_EQ(config.timeperiods()[1].monday()[1].range_start(),
+  EXPECT_EQ(config.timeperiods()[1].timeranges().monday()[0].range_end(),
+            3600 * 8);
+  EXPECT_EQ(config.timeperiods()[1].timeranges().monday()[1].range_start(),
             3600 * 18);  // 18:00-24:00
-  EXPECT_EQ(config.timeperiods()[1].monday()[1].range_end(), 3600 * 24);
-  EXPECT_EQ(config.timeperiods()[1].tuesday().size(), 1u);
-  EXPECT_EQ(config.timeperiods()[1].wednesday().size(), 1u);
-  EXPECT_EQ(config.timeperiods()[1].thursday().size(), 1u);
-  EXPECT_EQ(config.timeperiods()[1].friday().size(), 1u);
-  EXPECT_EQ(config.timeperiods()[1].saturday().size(), 1u);
+  EXPECT_EQ(config.timeperiods()[1].timeranges().monday()[1].range_end(),
+            3600 * 24);
+  EXPECT_EQ(config.timeperiods()[1].timeranges().tuesday().size(), 1u);
+  EXPECT_EQ(config.timeperiods()[1].timeranges().wednesday().size(), 1u);
+  EXPECT_EQ(config.timeperiods()[1].timeranges().thursday().size(), 1u);
+  EXPECT_EQ(config.timeperiods()[1].timeranges().friday().size(), 1u);
+  EXPECT_EQ(config.timeperiods()[1].timeranges().saturday().size(), 1u);
 
   ASSERT_EQ(config.contacts().size(), 2u);
   const auto ct = config.contacts().at("contact1");
