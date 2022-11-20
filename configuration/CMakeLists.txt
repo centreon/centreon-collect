@@ -28,9 +28,30 @@ add_custom_command(
     ${CMAKE_SOURCE_DIR}/configuration/state.proto
   VERBATIM)
 
-add_custom_target(target_configuration DEPENDS state.pb.cc state.pb.h)
+add_custom_command(
+  OUTPUT ${CMAKE_SOURCE_DIR}/configuration/state-generated.pb.cc
+         ${CMAKE_SOURCE_DIR}/configuration/state-generated.pb.h
+  DEPENDS ${CMAKE_SOURCE_DIR}/configuration/state-generated.proto
+  COMMENT "Generating interface files of the engine configuration file"
+  COMMAND
+    ${Protobuf_PROTOC_EXECUTABLE} ARGS
+    --cpp_out=${CMAKE_SOURCE_DIR}/configuration
+    --proto_path=${CMAKE_SOURCE_DIR}/configuration
+    ${CMAKE_SOURCE_DIR}/configuration/state-generated.proto
+  VERBATIM)
 
-add_library(pb_configuration_lib STATIC state.pb.cc state.pb.h)
+add_custom_target(target_configuration DEPENDS state.pb.cc state.pb.h state-generated.pb.cc state-generated.pb.h)
+
+include_directories("${CMAKE_SOURCE_DIR}/engine/inc")
+
+add_library(pb_configuration_lib STATIC
+    state-generated.pb.cc
+    state-generated.pb.h
+    state-generated.cc
+    state-generated.hh
+    state.pb.cc
+    state.pb.h
+    )
 add_dependencies(pb_configuration_lib target_configuration)
 set_target_properties(pb_configuration_lib PROPERTIES POSITION_INDEPENDENT_CODE
                                                       ON)
