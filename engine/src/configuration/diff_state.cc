@@ -174,7 +174,7 @@ void diff_state::ReportDeleted(
 }
 
 void diff_state::ReportModified(
-    const Message& old_message,
+    const Message& /* old_message */,
     const Message& new_message,
     const std::vector<MessageDifferencer::SpecificField>& field_path) {
   const MessageDifferencer::SpecificField& specific_field = field_path.back();
