@@ -652,7 +652,7 @@ message Acknowledgement {
   uint64 entry_time = 9;
   uint64 deletion_time = 10;
   bool persistent_comment = 11;
-  uint32 state = 12;
+  int32 state = 12;
 }
 
 /*io::neb, neb::de_pb_host_dependency*/
