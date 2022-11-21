@@ -24,7 +24,7 @@ inputs:
     required: true
 
 runs:
-  #using: "composite"
+  using: "composite"
   steps:
     - name: Build name for RPM
       shell: bash
