@@ -4,9 +4,9 @@ set -e
 export RUN_ENV=docker
 
 echo "########################### Configure and start sshd ###########################"
-ssh-keygen -t rsa -f /etc/ssh/ssh_host_rsa_key
-ssh-keygen -t ecdsa -f /etc/ssh/ssh_host_ecdsa_key
-ssh-keygen -t ed25519 -f /etc/ssh/ssh_host_ed25519_key
+ssh-keygen -t rsa -f /etc/ssh/ssh_host_rsa_key -P ""
+ssh-keygen -t ecdsa -f /etc/ssh/ssh_host_ecdsa_key -P ""
+ssh-keygen -t ed25519 -f /etc/ssh/ssh_host_ed25519_key -P ""
 /usr/sbin/sshd > /dev/null 2>&1 &
 
 echo "########################### Start MariaDB ######################################"
@@ -25,27 +25,10 @@ mysql -u centreon -pcentreon < resources/centreon.sql
 
 echo "########################## Install centreon collect ###########################"
 
-#if [[ -d /src/build ]] ; then
-#  rm -rf /src/build
-#fi
-#
-#mkdir /src/build
-#cd /src/build
-#DISTRIB=$(lsb_release -rs | cut -f1 -d.)
-#if [ "$DISTRIB" = "7" ] ; then
-#    source /opt/rh/devtoolset-9/enable
-#fi
-##conan install .. -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
-#if [ $(cat /etc/issue | awk '{print $1}') = "Debian" ] ; then
-#    CXXFLAGS="-Wall -Wextra" cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug -DWITH_USER_BROKER=centreon-broker -DWITH_USER_ENGINE=centreon-engine -DWITH_GROUP_BROKER=centreon-broker -DWITH_GROUP_ENGINE=centreon-engine -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_BENCH=On -DWITH_CREATE_FILES=OFF ..
-#else 
-#    CXXFLAGS="-Wall -Wextra" cmake3 -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug -DWITH_USER_BROKER=centreon-broker -DWITH_USER_ENGINE=centreon-engine -DWITH_GROUP_BROKER=centreon-broker -DWITH_GROUP_ENGINE=centreon-engine -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_BENCH=On -DWITH_CREATE_FILES=OFF ..
-#fi
-#
-##Build
-#make -j9
-#make -j9 install
+echo "Here are the rpm files to install"
+ls -l *.rpm
 
+echo "Installation..."
 rpm -Uvh --force --nodeps *.rpm
 
 echo "########################### install robot framework ############################"
