@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+set -x
 
 export RUN_ENV=docker
 
@@ -26,7 +27,7 @@ mysql -u centreon -pcentreon < resources/centreon.sql
 echo "########################## Install centreon collect ###########################"
 
 echo "Here are the rpm files to install"
-ls -l *.rpm
+ls *.rpm
 
 echo "Installation..."
 rpm -Uvh --force --nodeps *.rpm
