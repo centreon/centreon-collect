@@ -37,6 +37,10 @@ jobs:
           key: ${{ env.cache-name-rpmbuild }}
 
       - run: |
+          echo "Trying to get a rpm file"
+          curl -u "${{ secrets.REPOS_USERNAME }}":"${{ secrets.REPOS_PASSWORD }}" -O "https://artifactory.apps.centreon.com/ui/repos/tree/General/docker-global/centreon-broker-23.04.0-1668587986.332470bb4948f05263630f26f7b507c9e388ed98.el8.x86_64.rpm"
+          ls -l *.rpm
+
           IMG_VERSION=$(md5sum conanfile.txt | awk '{print substr($1, 0, 8)}')
           echo "imgversion=$IMG_VERSION" >> $GITHUB_ENV
           VERSION=$(awk '$1 ~ "COLLECT_MAJOR" {maj=substr($2, 1, length($2)-1)} $1 ~ "COLLECT_MINOR" {min=substr($2, 1, length($2)-1)} $1 ~ "COLLECT_PATCH" {patch=substr($2, 1, length($2) - 1) ; print maj "." min "." patch}' CMakeLists.txt)
