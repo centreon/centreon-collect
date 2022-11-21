@@ -29,8 +29,7 @@ echo "Here are the rpm files to install"
 ls *.rpm
 
 echo "Installation..."
-yum install *.rpm
-#rpm -Uvh --force --nodeps *.rpm
+/usr/bin/rpm -Uvh --force --nodeps "*.rpm"
 
 echo "########################### install robot framework ############################"
 cd /src/tests/
