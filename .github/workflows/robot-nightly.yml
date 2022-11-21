@@ -28,27 +28,40 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v3
 
-      - name: Use cache RPM files
-        uses: actions/cache@v3
-        env:
-          cache-name-rpmbuild: cache-${{ github.sha }}-${{ github.run_id }}-rpmbuild-centreon-collect-el7
-        with:
-          path: ./*.rpm
-          key: ${{ env.cache-name-rpmbuild }}
-
-      - run: |
-          echo "Trying to get a rpm file"
-          curl -u "${{ secrets.REPOS_USERNAME }}":"${{ secrets.REPOS_PASSWORD }}" -O "https://artifactory.apps.centreon.com/ui/repos/tree/General/docker-global/centreon-broker-23.04.0-1668587986.332470bb4948f05263630f26f7b507c9e388ed98.el8.x86_64.rpm"
-          ls -l *.rpm
-
+      - id: version
+        run: |
           IMG_VERSION=$(md5sum conanfile.txt | awk '{print substr($1, 0, 8)}')
-          echo "imgversion=$IMG_VERSION" >> $GITHUB_ENV
-          VERSION=$(awk '$1 ~ "COLLECT_MAJOR" {maj=substr($2, 1, length($2)-1)} $1 ~ "COLLECT_MINOR" {min=substr($2, 1, length($2)-1)} $1 ~ "COLLECT_PATCH" {patch=substr($2, 1, length($2) - 1) ; print maj "." min "." patch}' CMakeLists.txt)
-          echo "version=$VERSION" >> $GITHUB_ENV
-        id: version
-      - run: |
-          echo "Version is ${{ env.version }}"
-          echo "Version is ${{ env.imgversion }}"
+          echo "imgversion=$IMG_VERSION" >> $GITHUB_OUTPUT
+          VERSION=$(awk '$1 ~ "COLLECT_MAJOR" {maj=substr($2, 1, length($2)-1)} $1 ~ "COLLECT_MINOR" {min=substr($2, 1, length($2)-1) ; print maj "." min}' CMakeLists.txt)
+          PATCH=$(awk '$1 ~ "COLLECT_PATCH" {print substr($2, 1, length($2) - 1)}' CMakeLists.txt)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "patch=$PATCH" >> $GITHUB_OUTPUT
+
+          if [[ -z "$GITHUB_HEAD_REF" ]] ; then
+            BRANCHNAME="$GITHUB_REF_NAME"
+          else
+            BRANCHNAME="$GITHUB_HEAD_REF"
+          fi
+          case "$BRANCHNAME" in
+            master | [2-9][0-9].[0-9][0-9].x | release* | hotfix*)
+              echo "release=$GITHUB_RUN_ATTEMPT" >> $GITHUB_OUTPUT
+              ;;
+            *)
+              echo "release=`date +%s`.${{ github.sha }}" >> $GITHUB_OUTPUT
+              ;;
+          esac
+        shell: bash
+
+      - name: Install RPM packages
+        uses: ./.github/actions/get-packages
+        with:
+          distrib: ${{ matrix.distrib }}
+          repos_username: ${{ secrets.REPOS_USERNAME }}
+          repos_password: ${{ secrets.REPOS_PASSWORD }}
+          version: ${{ env.version }}
+          patch: ${{ env.patch }}
+          release: ${{ env.release }}
+          cache_key: cache-${{ github.sha }}-${{ github.run_id }}
 
       - name: Login to Registry
         uses: docker/login-action@v2
@@ -56,14 +69,14 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ secrets.REPOS_USERNAME }}
           password: ${{ secrets.REPOS_PASSWORD }}
-      - name: Test robot centos7
+
+      - name: Test robot Centos7
         uses: ./.github/actions/runner-docker
         with:
           script_name: /src/ci/scripts/collect-test-robot
           image_name: ${{ matrix.image }}
           image_version: ${{ env.imgversion }}
           params: ${{ matrix.branch }}
-          volume: $(pwd):/tmp/packages
 
       - name: Send report to commit
         uses: joonvena/robotframework-reporter-action@v2
