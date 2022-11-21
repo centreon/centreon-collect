@@ -20,7 +20,6 @@ mysql -e "CREATE USER IF NOT EXISTS 'centreon'@'localhost' IDENTIFIED BY 'centre
 
 mysql -e "GRANT SELECT,UPDATE,DELETE,INSERT,CREATE,DROP,INDEX,ALTER,LOCK TABLES,CREATE TEMPORARY TABLES, EVENT,CREATE VIEW ON *.* TO  'centreon'@'localhost';"
 
-ls -l ..
 mysql -u centreon -pcentreon < resources/centreon_storage.sql
 mysql -u centreon -pcentreon < resources/centreon.sql
 
@@ -30,7 +29,8 @@ echo "Here are the rpm files to install"
 ls *.rpm
 
 echo "Installation..."
-rpm -Uvh --force --nodeps *.rpm
+yum install *.rpm
+#rpm -Uvh --force --nodeps *.rpm
 
 echo "########################### install robot framework ############################"
 cd /src/tests/
