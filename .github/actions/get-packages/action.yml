@@ -79,4 +79,7 @@ runs:
             curl -v -u "${{ inputs.repos_username }}":"${{ inputs.repos_password }}" -O "https://artifactory.apps.centreon.com/artifactory/rpm-${{ inputs.version }}-$REPO/${{ inputs.distrib }}/$REPO/x86_64/centreon-collect/$FILE-$FULL_VERSION-$RELEASE.${{ inputs.distrib }}.x86_64.rpm"
           fi
         done
+
+        ls -l *.rpm
+        for i in *.rpm ; do file $i ; done
       shell: bash
