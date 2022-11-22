@@ -2851,8 +2851,10 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
   // Processed object.
   auto svc{static_cast<neb::pb_service const*>(d.get())};
   auto& s = svc->obj();
-  SPDLOG_LOGGER_DEBUG(log_v2::sql(), "SQL: processing pb service ({}, {})",
-                      s.host_id(), s.service_id());
+  SPDLOG_LOGGER_DEBUG(
+      log_v2::sql(),
+      "SQL: processing pb service ({}, {}) state: {} state_type: {}",
+      s.host_id(), s.service_id(), s.state(), s.state_type());
   SPDLOG_LOGGER_TRACE(log_v2::sql(), "SQL: pb service output: <<{}>>",
                       s.output());
   // Processed object.
@@ -3642,8 +3644,9 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
 
   SPDLOG_LOGGER_DEBUG(
       log_v2::sql(),
-      "SQL: pb service ({}, {}) status check result output: <<{}>>",
-      sscr.host_id(), sscr.service_id(), sscr.output());
+      "SQL: pb service ({}, {}) status {} type {} check result output: <<{}>>",
+      sscr.host_id(), sscr.service_id(), sscr.state(), sscr.state_type(),
+      sscr.output());
   SPDLOG_LOGGER_DEBUG(
       log_v2::sql(),
       "SQL: service ({}, {}) status check result perfdata: <<{}>>",

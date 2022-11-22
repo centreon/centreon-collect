@@ -179,6 +179,13 @@ bool protobuf<T, Typ>::operator==(const protobuf<T, Typ>& to_cmp) const {
   return google::protobuf::util::MessageDifferencer::Equals(_obj, to_cmp._obj);
 }
 
+template <typename T, uint32_t Typ>
+std::ostream& operator<<(std::ostream& st, const protobuf<T, Typ>& to_dump) {
+  st << "type:" << to_dump.static_type() << " content:'"
+     << to_dump.obj().DebugString() << '\'';
+  return st;
+}
+
 }  // namespace io
 CCB_END()
 

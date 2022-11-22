@@ -43,13 +43,13 @@ bool kpi_boolexp::child_has_update(computable* child, io::stream* visitor) {
   // It is useless to maintain a cache of boolean expression values in
   // this class, as the bool_expression class already cache most of them.
   if (child == _boolexp.get()) {
-    // Logging.
-    log_v2::bam()->debug(
-        "BAM: boolean expression KPI {} is getting notified of child update",
-        _id);
-
+    state old_state = _get_state();
     // Generate status event.
     visit(visitor);
+    log_v2::bam()->debug(
+        "BAM: boolean expression KPI {} is getting notified of child update "
+        "old_state={}, new_state={}",
+        _id, old_state, _get_state());
   }
   return true;
 }
