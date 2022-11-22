@@ -59,19 +59,20 @@ reader_v2::reader_v2(mysql& centreon_db, const database_config& storage_cfg)
  */
 void reader_v2::read(state& st) {
   try {
-    log_v2::bam()->info("loading dimensions.");
+    SPDLOG_LOGGER_INFO(log_v2::bam(), "loading dimensions.");
     _load_dimensions();
-    log_v2::bam()->info("loading BAs.");
+    SPDLOG_LOGGER_INFO(log_v2::bam(), "loading BAs.");
     _load(st.get_bas(), st.get_ba_svc_mapping());
-    log_v2::bam()->info("loading KPIs.");
+    SPDLOG_LOGGER_INFO(log_v2::bam(), "loading KPIs.");
     _load(st.get_kpis());
-    log_v2::bam()->info("loading boolean expressions.");
+    SPDLOG_LOGGER_INFO(log_v2::bam(), "loading boolean expressions.");
     _load(st.get_bool_exps());
-    log_v2::bam()->info("loading mapping hosts <-> services.");
+    SPDLOG_LOGGER_INFO(log_v2::bam(), "loading mapping hosts <-> services.");
     _load(st.get_hst_svc_mapping());
-    log_v2::bam()->info("bam configuration loaded.");
+    SPDLOG_LOGGER_INFO(log_v2::bam(), "bam configuration loaded.");
   } catch (std::exception const& e) {
-    log_v2::bam()->error("Error while reading bam configuration: {}", e.what());
+    SPDLOG_LOGGER_ERROR(log_v2::bam(),
+                        "Error while reading bam configuration: {}", e.what());
     st.clear();
     throw;
   }
@@ -204,7 +205,7 @@ void reader_v2::_load(state::kpis& kpis) {
  *                       description.
  */
 void reader_v2::_load(state::bas& bas, bam::ba_svc_mapping& mapping) {
-  log_v2::bam()->info("BAM: loading BAs");
+  SPDLOG_LOGGER_INFO(log_v2::bam(), "BAM: loading BAs");
   try {
     {
       std::string query(
@@ -243,7 +244,8 @@ void reader_v2::_load(state::bas& bas, bam::ba_svc_mapping& mapping) {
                 com::centreon::broker::State(res.value_as_i32(6)));
             e.mut_obj().set_in_downtime(res.value_as_bool(7));
             bas[ba_id].set_opened_event(e);
-            log_v2::bam()->trace(
+            SPDLOG_LOGGER_TRACE(
+                log_v2::bam(),
                 "BAM: ba {} configuration (start_time:{}, in downtime: {})",
                 ba_id, e.obj().start_time(), e.obj().in_downtime());
           }
@@ -285,7 +287,8 @@ void reader_v2::_load(state::bas& bas, bam::ba_svc_mapping& mapping) {
       if (!service_description.empty()) {
         uint32_t ba_id;
         if (!absl::SimpleAtoi(service_description, &ba_id)) {
-          log_v2::bam()->info(
+          SPDLOG_LOGGER_INFO(
+              log_v2::bam(),
               "BAM: service '{}' of host '{}' is not a valid virtual BA "
               "service",
               res.value_as_str(1), res.value_as_str(0));
@@ -293,7 +296,8 @@ void reader_v2::_load(state::bas& bas, bam::ba_svc_mapping& mapping) {
         }
         state::bas::iterator found = bas.find(ba_id);
         if (found == bas.end()) {
-          log_v2::bam()->info(
+          SPDLOG_LOGGER_INFO(
+              log_v2::bam(),
               "BAM: virtual BA service '{}' of host '{}' references an "
               "unknown BA ({})",
               res.value_as_str(1), res.value_as_str(0), ba_id);
@@ -395,7 +399,7 @@ void reader_v2::_load(bam::hst_svc_mapping& mapping) {
  *  Load the dimensions from the database.
  */
 void reader_v2::_load_dimensions() {
-  log_v2::bam()->trace("load dimensions");
+  SPDLOG_LOGGER_TRACE(log_v2::bam(), "load dimensions");
   auto out{std::make_unique<multiplexing::publisher>()};
   // As this operation is destructive (it truncates the database),
   // we cache the data until we are sure we have all the data
@@ -620,7 +624,8 @@ void reader_v2::_load_dimensions() {
                            std::shared_ptr<dimension_ba_event>>::const_iterator
             found = bas.find(k->kpi_ba_id);
         if (found == bas.end()) {
-          log_v2::bam()->error(
+          SPDLOG_LOGGER_ERROR(
+              log_v2::bam(),
               "BAM: could not retrieve BA {} used as KPI {} in dimension "
               "table: ignoring this KPI",
               k->kpi_ba_id, k->kpi_id);
