@@ -39,6 +39,9 @@ using pb_ba_event =
 
 using pb_kpi_event =
     io::protobuf<KpiEvent, make_type(io::bam, bam::de_pb_kpi_event)>;
+using pb_dimension_bv_event =
+    io::protobuf<DimensionBvEvent,
+                 make_type(io::bam, bam::de_pb_dimension_bv_event)>;
 
 }  // namespace bam
 

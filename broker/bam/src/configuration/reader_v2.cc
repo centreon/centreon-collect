@@ -568,10 +568,11 @@ void reader_v2::_load_dimensions() {
   try {
     database::mysql_result res(future_bv.get());
     while (_mysql.fetch_row(res)) {
-      std::shared_ptr<dimension_bv_event> bv(new dimension_bv_event);
-      bv->bv_id = res.value_as_u32(0);
-      bv->bv_name = res.value_as_str(1);
-      bv->bv_description = res.value_as_str(2);
+      std::shared_ptr<pb_dimension_bv_event> bv(
+          std::make_shared<pb_dimension_bv_event>());
+      bv->mut_obj().set_bv_id(res.value_as_u32(0));
+      bv->mut_obj().set_bv_name(res.value_as_str(1));
+      bv->mut_obj().set_bv_description(res.value_as_str(2));
       datas.push_back(bv);
     }
   } catch (std::exception const& e) {

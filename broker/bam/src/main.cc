@@ -151,6 +151,9 @@ void broker_module_init(void const* arg) {
                        &bam::pb_ba_event::operations, "BaEvent");
       e.register_event(make_type(io::bam, bam::de_pb_kpi_event), "KpiEvent",
                        &bam::pb_kpi_event::operations, "KpiEvent");
+      e.register_event(bam::pb_dimension_bv_event::static_type(),
+                       "DimensionBvEvent",
+                       &bam::pb_dimension_bv_event::operations);
     }
   }
 }

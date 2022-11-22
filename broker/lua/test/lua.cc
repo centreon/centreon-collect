@@ -1707,10 +1707,11 @@ TEST_F(LuaTest, BamCacheTestBaNil) {
 TEST_F(LuaTest, BamCacheTestBvV1) {
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
-  std::shared_ptr<bam::dimension_bv_event> bv(new bam::dimension_bv_event);
-  bv->bv_id = 10;
-  bv->bv_name = "bv name";
-  bv->bv_description = "bv description";
+  std::shared_ptr<bam::pb_dimension_bv_event> bv(
+      new bam::pb_dimension_bv_event);
+  bv->mut_obj().set_bv_id(10);
+  bv->mut_obj().set_bv_name("bv name");
+  bv->mut_obj().set_bv_description("bv description");
   _cache->write(bv);
 
   CreateScript(
@@ -1741,10 +1742,11 @@ TEST_F(LuaTest, BamCacheTestBvV2) {
   modules.load_file("./lib/20-bam.so");
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
-  std::shared_ptr<bam::dimension_bv_event> bv(new bam::dimension_bv_event);
-  bv->bv_id = 10;
-  bv->bv_name = "bv name";
-  bv->bv_description = "bv description";
+  std::shared_ptr<bam::pb_dimension_bv_event> bv(
+      new bam::pb_dimension_bv_event);
+  bv->mut_obj().set_bv_id(10);
+  bv->mut_obj().set_bv_name("bv name");
+  bv->mut_obj().set_bv_description("bv description");
   _cache->write(bv);
 
   CreateScript(

@@ -67,3 +67,8 @@ message KpiEvent {
     State status = 9;
 }
 
+message DimensionBvEvent {
+    uint32 bv_id = 1;
+    string bv_name = 2;
+    string bv_description = 3;
+}
