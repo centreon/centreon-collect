@@ -383,6 +383,55 @@ BA_BOOL_KPI
 	Kindly Stop Broker
 
 
+
+
+
+
+
+
+
+
+BEPB_DIMENSION_BV_EVENT
+	[Documentation]	bbdo_version 3 use pb_dimension_bv_event message.
+	[Tags]	Broker	Engine	protobuf	bbdo
+	Clear Commands Status
+	Clear Retention
+
+    Remove File     /tmp/all_lua_event.log
+    Config BBDO3	${1}
+	Config Engine	${1}
+	Config Broker	central
+	Config Broker	module
+    Broker Config Add Item	module0	bbdo_version	3.0.0
+    Broker Config Add Item	central	bbdo_version	3.0.0
+	Broker Config Log	central	bam	trace
+	Broker Config Log	central	sql	trace
+	Config Broker Sql Output	central	unified_sql
+	
+	Clone Engine Config To DB
+	Add Bam Config To Broker	central
+
+	Broker Config Add Lua Output	central	test-protobuf	${SCRIPTS}test-log-all-event.lua
+	
+	Connect To Database	pymysql	${DBNameConf}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+	Execute SQL String	DELETE FROM mod_bam_ba_groups
+	Execute SQL String	INSERT INTO mod_bam_ba_groups (id_ba_group, ba_group_name, ba_group_description) VALUES (574, 'virsgtr', 'description_grtmxzo')
+	
+	Start Broker  True
+	Start Engine
+    Wait Until Created	/tmp/all_lua_event.log	30s
+	FOR	${index}	IN RANGE	10
+		${grep_res}=  Grep File  /tmp/all_lua_event.log  "_type":393238, "category":6, "element":22, "bv_id":574, "bv_name":"virsgtr", "bv_description":"description_grtmxzo"
+		Sleep	1s
+		EXIT FOR LOOP IF	len("""${grep_res}""") > 0
+	END
+
+	Should Not Be Empty  ${grep_res}  msg=event not found
+
+	Stop Engine
+	Kindly Stop Broker  True
+
+
 *** Keywords ***
 BAM Setup
 	Stop Processes
