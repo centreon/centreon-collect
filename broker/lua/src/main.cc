@@ -114,6 +114,9 @@ void broker_module_init(void const* arg) {
       e.register_event(make_type(io::storage, storage::de_pb_metric_mapping),
                        "pb_metric_mapping",
                        &storage::pb_metric_mapping::operations);
+      e.register_event(bam::pb_dimension_bv_event::static_type(),
+                       "DimensionBvEvent",
+                       &bam::pb_dimension_bv_event::operations);
     }
 
     // Register lua layer.

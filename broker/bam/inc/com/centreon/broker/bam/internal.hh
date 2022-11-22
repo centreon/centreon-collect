@@ -37,6 +37,10 @@ using pb_ba_status =
 using pb_ba_event =
     io::protobuf<BaEvent, make_type(io::bam, bam::de_pb_ba_event)>;
 
+using pb_dimension_bv_event =
+    io::protobuf<DimensionBvEvent,
+                 make_type(io::bam, bam::de_pb_dimension_bv_event)>;
+
 }  // namespace bam
 
 CCB_END()

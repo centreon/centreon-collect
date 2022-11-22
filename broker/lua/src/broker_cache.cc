@@ -94,15 +94,15 @@ static int l_broker_cache_get_bv_v1(lua_State* L) {
   int bv_id(luaL_checkinteger(L, 2));
 
   try {
-    const bam::dimension_bv_event& bv(*cache->get_dimension_bv_event(bv_id));
+    const bam::pb_dimension_bv_event& bv(*cache->get_dimension_bv_event(bv_id));
     lua_createtable(L, 0, 3);
-    lua_pushinteger(L, bv.bv_id);
+    lua_pushinteger(L, bv.obj().bv_id());
     lua_setfield(L, -2, "bv_id");
 
-    lua_pushstring(L, bv.bv_name.c_str());
+    lua_pushstring(L, bv.obj().bv_name().c_str());
     lua_setfield(L, -2, "bv_name");
 
-    lua_pushstring(L, bv.bv_description.c_str());
+    lua_pushstring(L, bv.obj().bv_description().c_str());
     lua_setfield(L, -2, "bv_description");
   } catch (std::exception const& e) {
     (void)e;

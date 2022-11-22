@@ -433,7 +433,7 @@ macro_cache::get_dimension_ba_event(uint64_t ba_id) const {
  *
  * @return a reference to the dimension_bv_event.
  */
-const std::shared_ptr<bam::dimension_bv_event>&
+const std::shared_ptr<bam::pb_dimension_bv_event>&
 macro_cache::get_dimension_bv_event(uint64_t bv_id) const {
   auto const found = _dimension_bv_events.find(bv_id);
   if (found == _dimension_bv_events.end())
@@ -513,6 +513,7 @@ void macro_cache::write(std::shared_ptr<io::data> const& data) {
       _process_dimension_ba_bv_relation_event(data);
       break;
     case bam::dimension_bv_event::static_type():
+    case bam::pb_dimension_bv_event::static_type():
       _process_dimension_bv_event(data);
       break;
     case bam::dimension_truncate_table_signal::static_type():
@@ -948,11 +949,19 @@ void macro_cache::_process_dimension_ba_bv_relation_event(
  */
 void macro_cache::_process_dimension_bv_event(
     std::shared_ptr<io::data> const& data) {
-  auto const& dbve = std::static_pointer_cast<bam::dimension_bv_event>(data);
-  SPDLOG_LOGGER_DEBUG(log_v2::lua(),
-                      "lua: processing dimension bv event of id {}",
-                      dbve->bv_id);
-  _dimension_bv_events[dbve->bv_id] = dbve;
+  if (data->type() == bam::pb_dimension_bv_event::static_type()) {
+    const auto& dbve =
+        std::static_pointer_cast<bam::pb_dimension_bv_event>(data);
+    _dimension_bv_events[dbve->obj().bv_id()] = dbve;
+  } else if (data->type() == bam::dimension_bv_event::static_type()) {
+    const auto& old_ev =
+        std::static_pointer_cast<bam::dimension_bv_event>(data);
+    auto ev = std::make_shared<bam::pb_dimension_bv_event>();
+    ev->mut_obj().set_bv_id(old_ev->bv_id);
+    ev->mut_obj().set_bv_name(old_ev->bv_name);
+    ev->mut_obj().set_bv_description(old_ev->bv_description);
+    _dimension_bv_events[ev->obj().bv_id()] = ev;
+  }
 }
 
 /**
