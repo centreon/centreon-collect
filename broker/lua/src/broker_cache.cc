@@ -145,7 +145,7 @@ static int l_broker_cache_get_bvs(lua_State* L) {
 
   int i = 1;
   while (it != relations.end() && it->first == ba_id) {
-    lua_pushinteger(L, it->second->bv_id);
+    lua_pushinteger(L, it->second->obj().bv_id());
     lua_rawseti(L, -2, i);
     ++i;
     ++it;

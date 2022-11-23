@@ -43,6 +43,10 @@ using pb_dimension_bv_event =
     io::protobuf<DimensionBvEvent,
                  make_type(io::bam, bam::de_pb_dimension_bv_event)>;
 
+using pb_dimension_ba_bv_relation_event =
+    io::protobuf<DimensionBaBvRelationEvent,
+                 make_type(io::bam, bam::de_pb_dimension_ba_bv_relation_event)>;
+
 }  // namespace bam
 
 CCB_END()

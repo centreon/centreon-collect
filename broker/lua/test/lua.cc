@@ -1573,15 +1573,15 @@ TEST_F(LuaTest, PbServiceGroupCacheTest) {
 TEST_F(LuaTest, BamCacheTestBvBaRelation) {
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
-  std::shared_ptr<bam::dimension_ba_bv_relation_event> rel(
-      new bam::dimension_ba_bv_relation_event);
-  rel->ba_id = 10;
-  rel->bv_id = 18;
+  std::shared_ptr<bam::pb_dimension_ba_bv_relation_event> rel(
+      new bam::pb_dimension_ba_bv_relation_event);
+  rel->mut_obj().set_ba_id(10);
+  rel->mut_obj().set_bv_id(18);
   _cache->write(rel);
 
-  rel.reset(new bam::dimension_ba_bv_relation_event);
-  rel->ba_id = 10;
-  rel->bv_id = 23;
+  rel.reset(new bam::pb_dimension_ba_bv_relation_event);
+  rel->mut_obj().set_ba_id(10);
+  rel->mut_obj().set_bv_id(23);
   _cache->write(rel);
 
   CreateScript(filename,
