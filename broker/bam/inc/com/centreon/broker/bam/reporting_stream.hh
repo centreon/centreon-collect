@@ -93,7 +93,7 @@ class reporting_stream : public io::stream {
   int write(std::shared_ptr<io::data> const& d) override;
 
  private:
-  void _apply(dimension_timeperiod const& tp);
+  void _apply(const DimensionTimeperiod& tp);
   void _apply(dimension_timeperiod_exception const& tpe);
   void _apply(dimension_timeperiod_exclusion const& tpe);
   void _close_inconsistent_events(char const* event_type,
@@ -117,6 +117,7 @@ class reporting_stream : public io::stream {
   void _process_dimension_truncate_signal(std::shared_ptr<io::data> const& e);
   void _process_dimension_kpi(std::shared_ptr<io::data> const& e);
   void _process_dimension_timeperiod(std::shared_ptr<io::data> const& e);
+  void _process_pb_dimension_timeperiod(std::shared_ptr<io::data> const& e);
   void _process_dimension_timeperiod_exception(
       std::shared_ptr<io::data> const& e);
   void _process_dimension_timeperiod_exclusion(

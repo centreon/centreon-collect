@@ -518,15 +518,17 @@ void reader_v2::_load_dimensions() {
   try {
     database::mysql_result res(future_tp.get());
     while (_mysql.fetch_row(res)) {
-      auto tp(std::make_shared<dimension_timeperiod>(res.value_as_u32(0),
-                                                     res.value_as_str(1)));
-      tp->sunday = res.value_as_str(2);
-      tp->monday = res.value_as_str(3);
-      tp->tuesday = res.value_as_str(4);
-      tp->wednesday = res.value_as_str(5);
-      tp->thursday = res.value_as_str(6);
-      tp->friday = res.value_as_str(7);
-      tp->saturday = res.value_as_str(8);
+      auto tp(std::make_shared<pb_dimension_timeperiod>());
+      auto& data = tp->mut_obj();
+      data.set_id(res.value_as_u32(0));
+      data.set_name(res.value_as_str(1));
+      data.set_sunday(res.value_as_str(2));
+      data.set_monday(res.value_as_str(3));
+      data.set_tuesday(res.value_as_str(4));
+      data.set_wednesday(res.value_as_str(5));
+      data.set_thursday(res.value_as_str(6));
+      data.set_friday(res.value_as_str(7));
+      data.set_saturday(res.value_as_str(8));
       datas.push_back(tp);
     }
   } catch (std::exception const& e) {
