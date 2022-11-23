@@ -109,6 +109,7 @@ class DbConf:
             v = int(hosts / self.instances) + r
             last = hosts - (self.instances - 1) * v
             with connection.cursor() as cursor:
+                cursor.execute("SET FOREIGN_KEY_CHECKS=0")
                 # Insertion of HOSTS COMMANDS
                 for i in range(1, self.hosts_count + 1):
                     name = "checkh{}".format(i)
@@ -204,6 +205,7 @@ class DbConf:
                 else:
                     inherit_dt = 0
 
+                cursor.execute("SET FOREIGN_KEY_CHECKS=0")
                 cursor.execute("INSERT INTO mod_bam (name, state_source, activate,id_reporting_period,level_w,level_c,id_notification_period,notifications_enabled,event_handler_enabled, inherit_kpi_downtimes) VALUES ('{}',{},'1',1, 80, 70, 1,'0', '0','{}')".format(name, t, inherit_dt))
                 id_ba = cursor.lastrowid
                 sid = self.engine.create_bam_service("ba_{}".format(

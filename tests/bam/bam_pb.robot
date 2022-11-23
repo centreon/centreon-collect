@@ -155,6 +155,49 @@ BEPB_DIMENSION_BA_BV_RELATION_EVENT
 	Stop Engine
 	Kindly Stop Broker  True
 
+BEPB_DIMENSION_TIMEPERIOD
+	[Documentation]	use of pb_dimension_timeperiod message.
+	[Tags]	Broker	Engine	protobuf	bbdo
+	Clear Commands Status
+	Clear Retention
+
+    Remove File     /tmp/all_lua_event.log
+    Config BBDO3	${1}
+	Config Engine	${1}
+	Config Broker	central
+	Config Broker	module
+    Broker Config Add Item	module0	bbdo_version	3.0.0
+    Broker Config Add Item	central	bbdo_version	3.0.0
+	Broker Config Log	central	bam	trace
+	Broker Config Log	central	lua	trace
+	Broker Config Log	central	core	trace
+	broker_config_source_log  central  1
+	Config Broker Sql Output	central	unified_sql
+	
+	Clone Engine Config To DB
+	#Add Bam Config To Engine
+	Add Bam Config To Broker	central
+
+	Broker Config Add Lua Output	central	test-protobuf	${SCRIPTS}test-log-all-event.lua
+	
+	Connect To Database	pymysql	${DBNameConf}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+	Execute SQL String	DELETE FROM timeperiod
+	Execute SQL String	INSERT INTO timeperiod (tp_id, tp_name, tp_sunday, tp_monday, tp_tuesday, tp_wednesday, tp_thursday, tp_friday, tp_saturday) VALUES (732, "ezizae", "sunday_value", "monday_value", "tuesday_value", "wednesday_value", "thursday_value", "friday_value", "saturday_value")
+	
+	Start Broker  True
+	Start Engine
+    Wait Until Created	/tmp/all_lua_event.log	30s
+	FOR	${index}	IN RANGE	10
+		${grep_res}=  Grep File  /tmp/all_lua_event.log  "_type":393240, "category":6, "element":24, "id":732, "name":"ezizae", "monday":"monday_value", "tuesday":"tuesday_value", "wednesday":"wednesday_value", "thursday":"thursday_value", "friday":"friday_value", "saturday":"saturday_value", "sunday":"sunday_value"
+		Sleep	1s
+		EXIT FOR LOOP IF	len("""${grep_res}""") > 0
+	END
+
+	Should Not Be Empty  ${grep_res}  msg=event not found
+
+	Stop Engine
+	Kindly Stop Broker  True
+
 
 *** Keywords ***
 BAM Setup
