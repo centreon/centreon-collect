@@ -184,6 +184,8 @@ class protobuf : public protobuf_base {
 
   void set_obj(T&& obj) { _obj = std::move(obj); }
 
+  void dump(std::ostream& s) const override;
+
   /**
    * @brief An internal BBDO object used to access to the constructor,
    * serialization and unserialization functions.
@@ -201,10 +203,9 @@ bool protobuf<T, Typ>::operator==(const protobuf<T, Typ>& to_cmp) const {
 }
 
 template <typename T, uint32_t Typ>
-std::ostream& operator<<(std::ostream& st, const protobuf<T, Typ>& to_dump) {
-  st << "type:" << to_dump.static_type() << " content:'"
-     << to_dump.obj().DebugString() << '\'';
-  return st;
+void protobuf<T, Typ>::dump(std::ostream& s) const {
+  data::dump(s);
+  s << " content:'" << _obj.DebugString() << '\'';
 }
 
 }  // namespace io
