@@ -189,6 +189,7 @@ int reporting_stream::write(std::shared_ptr<io::data> const& data) {
       break;
     case bam::pb_dimension_bv_event::static_type():
     case pb_dimension_ba_bv_relation_event::static_type():
+    case bam::pb_dimension_timeperiod::static_type():
       _process_pb_dimension(data);
       break;
     case io::events::data_type<io::bam, bam::de_rebuild>::value:
@@ -212,13 +213,14 @@ int reporting_stream::write(std::shared_ptr<io::data> const& data) {
  *
  *  @param[in] tp  Timeperiod declaration.
  */
-void reporting_stream::_apply(dimension_timeperiod const& tp) {
+void reporting_stream::_apply(const DimensionTimeperiod& tp) {
   SPDLOG_LOGGER_TRACE(log_v2::bam(), "BAM-BI: applying timeperiod {} to cache",
-                      tp.id);
+                      tp.id());
   _timeperiods.add_timeperiod(
-      tp.id, time::timeperiod::ptr(new time::timeperiod(
-                 tp.id, tp.name, "", tp.sunday, tp.monday, tp.tuesday,
-                 tp.wednesday, tp.thursday, tp.friday, tp.saturday)));
+      tp.id(),
+      time::timeperiod::ptr(std::make_shared<time::timeperiod>(
+          tp.id(), tp.name(), "", tp.sunday(), tp.monday(), tp.tuesday(),
+          tp.wednesday(), tp.thursday(), tp.friday(), tp.saturday())));
 }
 
 /**
@@ -1248,6 +1250,14 @@ void reporting_stream::_process_pb_dimension(
             log_v2::bam(), "BAM-BI: preparing relation between ba {} and bv {}",
             dbabv.ba_id(), dbabv.bv_id());
       } break;
+      case bam::pb_dimension_timeperiod::static_type(): {
+        bam::pb_dimension_timeperiod const& tp =
+            *std::static_pointer_cast<bam::pb_dimension_timeperiod const>(e);
+        SPDLOG_LOGGER_DEBUG(
+            log_v2::bam(),
+            "BAM-BI: preparing declaration of timeperiod {} ('{}')",
+            tp.obj().id(), tp.obj().name());
+      } break;
       default:
         SPDLOG_LOGGER_DEBUG(log_v2::bam(),
                             "BAM-BI: preparing event of type {:x}", e->type());
@@ -1289,6 +1299,9 @@ void reporting_stream::_dimension_dispatch(
       break;
     case io::events::data_type<io::bam, bam::de_dimension_timeperiod>::value:
       _process_dimension_timeperiod(data);
+      break;
+    case bam::pb_dimension_timeperiod::static_type():
+      _process_pb_dimension_timeperiod(data);
       break;
     case io::events::data_type<io::bam,
                                bam::de_dimension_timeperiod_exception>::value:
@@ -1426,6 +1439,59 @@ void reporting_stream::_process_dimension_kpi(
  *
  *  @param[in] e  The event.
  */
+void reporting_stream::_process_pb_dimension_timeperiod(
+    std::shared_ptr<io::data> const& e) {
+  const DimensionTimeperiod& tp =
+      std::static_pointer_cast<bam::pb_dimension_timeperiod>(e)->obj();
+  SPDLOG_LOGGER_DEBUG(
+      log_v2::bam(),
+      "BAM-BI: processing pb declaration of timeperiod {} ('{}')", tp.id(),
+      tp.name());
+  _dimension_timeperiod_insert.bind_value_as_i32(0, tp.id());
+  _dimension_timeperiod_insert.bind_value_as_str(
+      1, misc::string::truncate(tp.name(),
+                                get_mod_bam_reporting_timeperiods_col_size(
+                                    mod_bam_reporting_timeperiods_name)));
+  _dimension_timeperiod_insert.bind_value_as_str(
+      2, misc::string::truncate(tp.sunday(),
+                                get_mod_bam_reporting_timeperiods_col_size(
+                                    mod_bam_reporting_timeperiods_sunday)));
+  _dimension_timeperiod_insert.bind_value_as_str(
+      3, misc::string::truncate(tp.monday(),
+                                get_mod_bam_reporting_timeperiods_col_size(
+                                    mod_bam_reporting_timeperiods_monday)));
+  _dimension_timeperiod_insert.bind_value_as_str(
+      4, misc::string::truncate(tp.tuesday(),
+                                get_mod_bam_reporting_timeperiods_col_size(
+                                    mod_bam_reporting_timeperiods_tuesday)));
+  _dimension_timeperiod_insert.bind_value_as_str(
+      5, misc::string::truncate(tp.wednesday(),
+                                get_mod_bam_reporting_timeperiods_col_size(
+                                    mod_bam_reporting_timeperiods_wednesday)));
+  _dimension_timeperiod_insert.bind_value_as_str(
+      6, misc::string::truncate(tp.thursday(),
+                                get_mod_bam_reporting_timeperiods_col_size(
+                                    mod_bam_reporting_timeperiods_thursday)));
+  _dimension_timeperiod_insert.bind_value_as_str(
+      7, misc::string::truncate(tp.friday(),
+                                get_mod_bam_reporting_timeperiods_col_size(
+                                    mod_bam_reporting_timeperiods_friday)));
+  _dimension_timeperiod_insert.bind_value_as_str(
+      8, misc::string::truncate(tp.saturday(),
+                                get_mod_bam_reporting_timeperiods_col_size(
+                                    mod_bam_reporting_timeperiods_saturday)));
+  _mysql.run_statement(_dimension_timeperiod_insert,
+                       database::mysql_error::insert_timeperiod, false);
+
+  _apply(tp);
+}
+
+/**
+ *  Process a dimension timeperiod and store it in the DB and in the
+ *  timeperiod cache.
+ *
+ *  @param[in] e  The event.
+ */
 void reporting_stream::_process_dimension_timeperiod(
     std::shared_ptr<io::data> const& e) {
   bam::dimension_timeperiod const& tp =
@@ -1469,7 +1535,17 @@ void reporting_stream::_process_dimension_timeperiod(
                                     mod_bam_reporting_timeperiods_saturday)));
   _mysql.run_statement(_dimension_timeperiod_insert,
                        database::mysql_error::insert_timeperiod, false);
-  _apply(tp);
+  DimensionTimeperiod convert;
+  convert.set_id(tp.id);
+  convert.set_name(tp.name);
+  convert.set_monday(tp.monday);
+  convert.set_tuesday(tp.tuesday);
+  convert.set_wednesday(tp.wednesday);
+  convert.set_thursday(tp.thursday);
+  convert.set_friday(tp.friday);
+  convert.set_saturday(tp.saturday);
+  convert.set_sunday(tp.sunday);
+  _apply(convert);
 }
 
 /**

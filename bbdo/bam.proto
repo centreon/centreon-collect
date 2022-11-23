@@ -78,4 +78,14 @@ message DimensionBaBvRelationEvent {
     uint32 bv_id = 2;
 }
 
-
+message DimensionTimeperiod {
+    uint32 id = 1;
+    string name = 2;
+    string monday = 3;
+    string tuesday = 4;
+    string wednesday = 5;
+    string thursday = 6;
+    string friday = 7;
+    string saturday = 8;
+    string sunday = 9;
+}
