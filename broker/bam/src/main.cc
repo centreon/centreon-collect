@@ -152,6 +152,9 @@ void broker_module_init(void const* arg) {
       e.register_event(bam::pb_dimension_bv_event::static_type(),
                        "DimensionBvEvent",
                        &bam::pb_dimension_bv_event::operations);
+      e.register_event(bam::pb_dimension_ba_bv_relation_event::static_type(),
+                       "DimensionBvEvent",
+                       &bam::pb_dimension_ba_bv_relation_event::operations);
     }
   }
 }

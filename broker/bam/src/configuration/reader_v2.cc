@@ -585,10 +585,10 @@ void reader_v2::_load_dimensions() {
   try {
     database::mysql_result res(future_ba_bv.get());
     while (_mysql.fetch_row(res)) {
-      std::shared_ptr<dimension_ba_bv_relation_event> babv(
-          new dimension_ba_bv_relation_event);
-      babv->ba_id = res.value_as_u32(0);
-      babv->bv_id = res.value_as_u32(1);
+      std::shared_ptr<pb_dimension_ba_bv_relation_event> babv(
+          std::make_shared<pb_dimension_ba_bv_relation_event>());
+      babv->mut_obj().set_ba_id(res.value_as_u32(0));
+      babv->mut_obj().set_bv_id(res.value_as_u32(1));
       datas.push_back(babv);
     }
   } catch (const std::exception& e) {

@@ -405,7 +405,7 @@ std::string const& macro_cache::get_instance(uint64_t instance_id) const {
  */
 std::unordered_multimap<
     uint64_t,
-    std::shared_ptr<bam::dimension_ba_bv_relation_event>> const&
+    std::shared_ptr<bam::pb_dimension_ba_bv_relation_event>> const&
 macro_cache::get_dimension_ba_bv_relation_events() const {
   return _dimension_ba_bv_relation_events;
 }
@@ -510,6 +510,7 @@ void macro_cache::write(std::shared_ptr<io::data> const& data) {
       _process_dimension_ba_event(data);
       break;
     case bam::dimension_ba_bv_relation_event::static_type():
+    case bam::pb_dimension_ba_bv_relation_event::static_type():
       _process_dimension_ba_bv_relation_event(data);
       break;
     case bam::dimension_bv_event::static_type():
@@ -933,13 +934,27 @@ void macro_cache::_process_dimension_ba_event(
  */
 void macro_cache::_process_dimension_ba_bv_relation_event(
     std::shared_ptr<io::data> const& data) {
-  auto const& rel =
-      std::static_pointer_cast<bam::dimension_ba_bv_relation_event>(data);
-  SPDLOG_LOGGER_DEBUG(
-      log_v2::lua(),
-      "lua: processing dimension ba bv relation event (ba_id: {}, bv_id: {})",
-      rel->ba_id, rel->bv_id);
-  _dimension_ba_bv_relation_events.insert({rel->ba_id, rel});
+  if (data->type() == bam::pb_dimension_ba_bv_relation_event::static_type()) {
+    const auto& pb_data =
+        std::static_pointer_cast<bam::pb_dimension_ba_bv_relation_event>(data);
+    const DimensionBaBvRelationEvent& rel = pb_data->obj();
+    SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+                        "lua: processing pb dimension ba bv relation event "
+                        "(ba_id: {}, bv_id: {})",
+                        rel.ba_id(), rel.bv_id());
+    _dimension_ba_bv_relation_events.insert({rel.ba_id(), pb_data});
+  } else {
+    auto const& rel =
+        std::static_pointer_cast<bam::dimension_ba_bv_relation_event>(data);
+    SPDLOG_LOGGER_DEBUG(
+        log_v2::lua(),
+        "lua: processing dimension ba bv relation event (ba_id: {}, bv_id: {})",
+        rel->ba_id, rel->bv_id);
+    auto pb_data(std::make_shared<bam::pb_dimension_ba_bv_relation_event>());
+    pb_data->mut_obj().set_ba_id(rel->ba_id);
+    pb_data->mut_obj().set_bv_id(rel->bv_id);
+    _dimension_ba_bv_relation_events.insert({rel->ba_id, pb_data});
+  }
 }
 
 /**

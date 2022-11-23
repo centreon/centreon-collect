@@ -181,7 +181,8 @@ enum data_element {
   de_pb_inherited_downtime = 18,
   de_pb_ba_status = 19,
   de_pb_ba_event = 20,
-  de_pb_dimension_bv_event = 22
+  de_pb_dimension_bv_event = 22,
+  de_pb_dimension_ba_bv_relation_event = 23
 };
 }
 constexpr uint32_t make_type(io::data_category cat, uint32_t elem) {

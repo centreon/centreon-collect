@@ -60,3 +60,10 @@ message DimensionBvEvent {
     string bv_name = 2;
     string bv_description = 3;
 }
+
+message DimensionBaBvRelationEvent {
+    uint32 ba_id = 1;
+    uint32 bv_id = 2;
+}
+
+

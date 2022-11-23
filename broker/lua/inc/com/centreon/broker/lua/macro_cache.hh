@@ -65,8 +65,9 @@ class macro_cache {
       _metric_mappings;
   absl::flat_hash_map<uint64_t, std::shared_ptr<bam::dimension_ba_event>>
       _dimension_ba_events;
-  std::unordered_multimap<uint64_t,
-                          std::shared_ptr<bam::dimension_ba_bv_relation_event>>
+  std::unordered_multimap<
+      uint64_t,
+      std::shared_ptr<bam::pb_dimension_ba_bv_relation_event>>
       _dimension_ba_bv_relation_events;
   absl::flat_hash_map<uint64_t, std::shared_ptr<bam::pb_dimension_bv_event>>
       _dimension_bv_events;
@@ -103,7 +104,7 @@ class macro_cache {
 
   const std::unordered_multimap<
       uint64_t,
-      std::shared_ptr<bam::dimension_ba_bv_relation_event>>&
+      std::shared_ptr<bam::pb_dimension_ba_bv_relation_event>>&
   get_dimension_ba_bv_relation_events() const;
   const std::shared_ptr<bam::dimension_ba_event>& get_dimension_ba_event(
       uint64_t id) const;

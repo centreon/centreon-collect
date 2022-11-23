@@ -185,6 +185,7 @@ int reporting_stream::write(std::shared_ptr<io::data> const& data) {
       _process_dimension(data);
       break;
     case bam::pb_dimension_bv_event::static_type():
+    case pb_dimension_ba_bv_relation_event::static_type():
       _process_pb_dimension(data);
       break;
     case io::events::data_type<io::bam, bam::de_rebuild>::value:
@@ -989,7 +990,7 @@ void reporting_stream::_process_pb_dimension_bv(
   const DimensionBvEvent& dbv =
       std::static_pointer_cast<bam::pb_dimension_bv_event const>(e)->obj();
   SPDLOG_LOGGER_DEBUG(log_v2::bam(),
-                      "BAM-BI: processing declaration of BV {} ('{}')",
+                      "BAM-BI: processing pb declaration of BV {} ('{}')",
                       dbv.bv_id(), dbv.bv_name());
 
   _dimension_bv_insert.bind_value_as_i32(0, dbv.bv_id());
@@ -1020,6 +1021,26 @@ void reporting_stream::_process_dimension_ba_bv_relation(
 
   _dimension_ba_bv_relation_insert.bind_value_as_i32(0, dbabv.ba_id);
   _dimension_ba_bv_relation_insert.bind_value_as_i32(1, dbabv.bv_id);
+  _mysql.run_statement(_dimension_ba_bv_relation_insert,
+                       database::mysql_error::insert_dimension_ba_bv, false);
+}
+
+/**
+ *  Process a dimension ba bv relation and write it to the db.
+ *
+ *  @param[in] e The event.
+ */
+void reporting_stream::_process_pb_dimension_ba_bv_relation(
+    std::shared_ptr<io::data> const& e) {
+  const DimensionBaBvRelationEvent& dbabv =
+      std::static_pointer_cast<bam::pb_dimension_ba_bv_relation_event const>(e)
+          ->obj();
+  SPDLOG_LOGGER_DEBUG(log_v2::bam(),
+                      "BAM-BI: processing pb relation between BA {} and BV {}",
+                      dbabv.ba_id(), dbabv.bv_id());
+
+  _dimension_ba_bv_relation_insert.bind_value_as_i32(0, dbabv.ba_id());
+  _dimension_ba_bv_relation_insert.bind_value_as_i32(1, dbabv.bv_id());
   _mysql.run_statement(_dimension_ba_bv_relation_insert,
                        database::mysql_error::insert_dimension_ba_bv, false);
 }
@@ -1143,6 +1164,15 @@ void reporting_stream::_process_pb_dimension(
         SPDLOG_LOGGER_DEBUG(log_v2::bam(),
                             "BAM-BI: preparing bv dimension {} ('{}')",
                             dbv.bv_id(), dbv.bv_name());
+      } break;
+      case pb_dimension_ba_bv_relation_event::static_type(): {
+        const DimensionBaBvRelationEvent& dbabv =
+            std::static_pointer_cast<
+                bam::pb_dimension_ba_bv_relation_event const>(e)
+                ->obj();
+        SPDLOG_LOGGER_DEBUG(
+            log_v2::bam(), "BAM-BI: preparing relation between ba {} and bv {}",
+            dbabv.ba_id(), dbabv.bv_id());
       } break;
       default:
         SPDLOG_LOGGER_DEBUG(log_v2::bam(),
