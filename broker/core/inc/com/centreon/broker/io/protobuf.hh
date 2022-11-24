@@ -106,23 +106,12 @@ class protobuf : public protobuf_base {
    */
   protobuf(const T& o) : protobuf_base(Typ, &_obj), _obj(o) {}
 
-  /**
-   * @brief copy constructor
-   */
-  protobuf(const protobuf& src) : protobuf_base(Typ, &_obj), _obj(src._obj) {}
+  protobuf(const protobuf& to_clone) : protobuf_base(Typ, &_obj) {
+    _obj.CopyFrom(to_clone._obj);
+  }
 
-  /**
-   * @brief move constructor
-   */
-  protobuf(protobuf&& src)
-      : protobuf_base(Typ, &_obj), _obj(std::move(src._obj)) {}
-
-  /**
-   * @brief copy operator
-   *
-   */
-  protobuf& operator=(const protobuf& src) {
-    _obj = src._obj;
+  protobuf& operator=(const protobuf& to_clone) {
+    _obj.CopyFrom(to_clone._obj);
     return *this;
   }
 

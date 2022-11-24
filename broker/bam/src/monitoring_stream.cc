@@ -16,6 +16,8 @@
 ** For more information : contact@centreon.com
 */
 
+#include <spdlog/fmt/ostr.h>
+
 #include "com/centreon/broker/bam/monitoring_stream.hh"
 
 #include "bbdo/bam/ba_status.hh"
@@ -190,7 +192,7 @@ void monitoring_stream::update() {
  *  @return Number of events acknowledged.
  */
 int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
-  SPDLOG_LOGGER_TRACE(log_v2::bam(), "BAM: monitoring_stream write ");
+  SPDLOG_LOGGER_TRACE(log_v2::bam(), "BAM: monitoring_stream write {}", *data);
   // Take this event into account.
   ++_pending_events;
   if (!validate(data, get_name()))
@@ -532,7 +534,8 @@ void monitoring_stream::_rebuild() {
 void monitoring_stream::_explicitly_send_forced_svc_checks(
     const asio::error_code& ec) {
   static int count = 0;
-  SPDLOG_LOGGER_DEBUG(log_v2::bam(),"BAM: time to send forced service checks {}", count++);
+  SPDLOG_LOGGER_DEBUG(log_v2::bam(),
+                      "BAM: time to send forced service checks {}", count++);
   if (!ec) {
     if (_timer_forced_svc_checks.empty()) {
       std::lock_guard<std::mutex> lck(_forced_svc_checks_m);
