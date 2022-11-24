@@ -188,6 +188,7 @@ int reporting_stream::write(std::shared_ptr<io::data> const& data) {
     case pb_dimension_ba_bv_relation_event::static_type():
     case bam::pb_dimension_timeperiod::static_type():
     case bam::pb_dimension_ba_event::static_type():
+    case bam::pb_dimension_kpi_event::static_type():
       _process_pb_dimension(data);
       break;
     case io::events::data_type<io::bam, bam::de_rebuild>::value:
@@ -1222,6 +1223,24 @@ void reporting_stream::_process_pb_dimension(
                             "BAM-BI: preparing ba dimension {} ('{}' '{}')",
                             dba.ba_id(), dba.ba_name(), dba.ba_description());
       } break;
+      case bam::pb_dimension_kpi_event::static_type(): {
+        const DimensionKpiEvent& dk =
+            std::static_pointer_cast<bam::pb_dimension_kpi_event const>(e)
+                ->obj();
+        std::string kpi_name;
+        if (!dk.service_description().empty())
+          kpi_name = fmt::format("svc: {} {}", dk.host_name(),
+                                 dk.service_description());
+        else if (!dk.kpi_ba_name().empty())
+          kpi_name = fmt::format("ba: {}", dk.kpi_ba_name());
+        else if (!dk.boolean_name().empty())
+          kpi_name = fmt::format("bool: {}", dk.boolean_name());
+        else if (!dk.meta_service_name().empty())
+          kpi_name = fmt::format("meta: {}", dk.meta_service_name());
+        SPDLOG_LOGGER_DEBUG(log_v2::bam(),
+                            "BAM-BI: preparing declaration of kpi {} ('{}')",
+                            dk.kpi_id(), kpi_name);
+      } break;
 
       default:
         SPDLOG_LOGGER_DEBUG(log_v2::bam(),
@@ -1264,6 +1283,9 @@ void reporting_stream::_dimension_dispatch(
       break;
     case io::events::data_type<io::bam, bam::de_dimension_kpi_event>::value:
       _process_dimension_kpi(data);
+      break;
+    case bam::pb_dimension_kpi_event::static_type():
+      _process_pb_dimension_kpi(data);
       break;
     case io::events::data_type<io::bam, bam::de_dimension_timeperiod>::value:
       _process_dimension_timeperiod(data);
@@ -1394,6 +1416,76 @@ void reporting_stream::_process_dimension_kpi(
   _dimension_kpi_insert.bind_value_as_i32(15, dk.boolean_id);
   _dimension_kpi_insert.bind_value_as_str(
       16, misc::string::truncate(dk.boolean_name,
+                                 get_mod_bam_reporting_kpi_col_size(
+                                     mod_bam_reporting_kpi_boolean_name)));
+
+  _mysql.run_statement(_dimension_kpi_insert,
+                       database::mysql_error::insert_dimension_kpi, false);
+}
+
+/**
+ *  Process a dimension KPI and write it to the db.
+ *
+ *  @param[in] e The event.
+ */
+void reporting_stream::_process_pb_dimension_kpi(
+    std::shared_ptr<io::data> const& e) {
+  const DimensionKpiEvent& dk =
+      std::static_pointer_cast<bam::pb_dimension_kpi_event const>(e)->obj();
+  std::string kpi_name;
+  if (!dk.service_description().empty())
+    kpi_name.append(dk.host_name())
+        .append(" ")
+        .append(dk.service_description());
+  else if (!dk.kpi_ba_name().empty())
+    kpi_name = dk.kpi_ba_name();
+  else if (!dk.boolean_name().empty())
+    kpi_name = dk.boolean_name();
+  else if (!dk.meta_service_name().empty())
+    kpi_name = dk.meta_service_name();
+  SPDLOG_LOGGER_DEBUG(log_v2::bam(),
+                      "BAM-BI: processing declaration of KPI {} ('{}')",
+                      dk.kpi_id(), kpi_name);
+
+  _dimension_kpi_insert.bind_value_as_i32(0, dk.kpi_id());
+  _dimension_kpi_insert.bind_value_as_str(
+      1, misc::string::truncate(kpi_name, get_mod_bam_reporting_kpi_col_size(
+                                              mod_bam_reporting_kpi_kpi_name)));
+  _dimension_kpi_insert.bind_value_as_i32(2, dk.ba_id());
+  _dimension_kpi_insert.bind_value_as_str(
+      3,
+      misc::string::truncate(dk.ba_name(), get_mod_bam_reporting_kpi_col_size(
+                                               mod_bam_reporting_kpi_ba_name)));
+  _dimension_kpi_insert.bind_value_as_i32(4, dk.host_id());
+  _dimension_kpi_insert.bind_value_as_str(
+      5, misc::string::truncate(dk.host_name(),
+                                get_mod_bam_reporting_kpi_col_size(
+                                    mod_bam_reporting_kpi_host_name)));
+  _dimension_kpi_insert.bind_value_as_i32(6, dk.service_id());
+  _dimension_kpi_insert.bind_value_as_str(
+      7,
+      misc::string::truncate(dk.service_description(),
+                             get_mod_bam_reporting_kpi_col_size(
+                                 mod_bam_reporting_kpi_service_description)));
+  if (dk.kpi_ba_id())
+    _dimension_kpi_insert.bind_value_as_i32(8, dk.kpi_ba_id());
+  else
+    _dimension_kpi_insert.bind_value_as_null(8);
+  _dimension_kpi_insert.bind_value_as_str(
+      9, misc::string::truncate(dk.kpi_ba_name(),
+                                get_mod_bam_reporting_kpi_col_size(
+                                    mod_bam_reporting_kpi_kpi_ba_name)));
+  _dimension_kpi_insert.bind_value_as_i32(10, dk.meta_service_id());
+  _dimension_kpi_insert.bind_value_as_str(
+      11, misc::string::truncate(dk.meta_service_name(),
+                                 get_mod_bam_reporting_kpi_col_size(
+                                     mod_bam_reporting_kpi_meta_service_name)));
+  _dimension_kpi_insert.bind_value_as_f64(12, dk.impact_warning());
+  _dimension_kpi_insert.bind_value_as_f64(13, dk.impact_critical());
+  _dimension_kpi_insert.bind_value_as_f64(14, dk.impact_unknown());
+  _dimension_kpi_insert.bind_value_as_i32(15, dk.boolean_id());
+  _dimension_kpi_insert.bind_value_as_str(
+      16, misc::string::truncate(dk.boolean_name(),
                                  get_mod_bam_reporting_kpi_col_size(
                                      mod_bam_reporting_kpi_boolean_name)));
 

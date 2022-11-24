@@ -53,6 +53,10 @@ using pb_dimension_ba_event =
     io::protobuf<DimensionBaEvent,
                  make_type(io::bam, bam::de_pb_dimension_ba_event)>;
 
+using pb_dimension_kpi_event =
+    io::protobuf<DimensionKpiEvent,
+                 make_type(io::bam, bam::de_pb_dimension_kpi_event)>;
+
 }  // namespace bam
 
 CCB_END()

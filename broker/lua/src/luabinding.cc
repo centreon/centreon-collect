@@ -301,9 +301,9 @@ int luabinding::write(std::shared_ptr<io::data> const& data) noexcept {
   _cache.write(data);
 
   // Process event.
-  uint32_t type(data->type());
-  uint16_t cat(category_of_type(type));
-  uint16_t elem(element_of_type(type));
+  uint32_t mess_type(data->type());
+  uint16_t cat(category_of_type(mess_type));
+  uint16_t elem(element_of_type(mess_type));
 
   bool execute_write = true;
 
