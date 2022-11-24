@@ -28,17 +28,18 @@ message State {
   repeated Command commands = 3;
   repeated Connector connectors = 4;
   map<string, Contact> contacts = 5;
-  repeated Host hosts = 6;
-  repeated Service services = 7;
-  repeated string cfg_file = 8;
-  repeated string resource_file = 9;
-  int32 instance_heartbeat_interval = 10;
-  string log_level_functions = 11;
-  bool check_service_freshness = 12;
-  bool enable_flap_detection = 13;
+  repeated Contactgroup contactgroups = 6;
+  repeated Host hosts = 7;
+  repeated Service services = 8;
+  repeated string cfg_file = 9;
+  repeated string resource_file = 10;
+  int32 instance_heartbeat_interval = 11;
+  string log_level_functions = 12;
+  bool check_service_freshness = 13;
+  bool enable_flap_detection = 14;
 
-  map<string, string> users = 14;
-  repeated string cfg_dir = 15;
+  map<string, string> users = 15;
+  repeated string cfg_dir = 16;
 }
 
 message Value {

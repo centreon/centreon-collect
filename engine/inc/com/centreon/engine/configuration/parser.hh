@@ -47,6 +47,7 @@ using Message = ::google::protobuf::Message;
 
 class parser {
   void _parse_global_configuration(std::string const& path, State* pb_config);
+  void _cleanup(State* pb_config);
 
  public:
   enum read_options {
@@ -122,9 +123,7 @@ class parser {
   void _resolve_template(State* pb_config);
   void _resolve_template(Message* msg, const pb_map_object& tmpls);
   void _resolve_template();
-  void _merge(Message* msg,
-              Message* tmpl,
-              const std::array<const int32_t*, 19>& number_to_merge);
+  void _merge(Message* msg, Message* tmpl);
   void _store_into_list(object_ptr obj);
   template <typename T, std::string const& (T::*ptr)() const throw()>
   void _store_into_map(object_ptr obj);
