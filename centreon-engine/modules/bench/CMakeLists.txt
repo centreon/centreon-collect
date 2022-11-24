@@ -1,24 +1,22 @@
-##
-## Copyright 2015-2016 Centreon
-##
-## This file is part of Centreon Engine.
-##
-## Centreon Engine is free software: you can redistribute it and/or
-## modify it under the terms of the GNU General Public License version 2
-## as published by the Free Software Foundation.
-##
-## Centreon Engine is distributed in the hope that it will be useful,
-## but WITHOUT ANY WARRANTY; without even the implied warranty of
-## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-## General Public License for more details.
-##
-## You should have received a copy of the GNU General Public License
-## along with Centreon Engine. If not, see
-## <http://www.gnu.org/licenses/>.
-##
+#
+# Copyright 2015-2016 Centreon
+#
+# This file is part of Centreon Engine.
+#
+# Centreon Engine is free software: you can redistribute it and/or modify it
+# under the terms of the GNU General Public License version 2 as published by
+# the Free Software Foundation.
+#
+# Centreon Engine is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# Centreon Engine. If not, see <http://www.gnu.org/licenses/>.
+#
 
 option(WITH_BENCH "Build benchmarking tools." OFF)
-if (WITH_BENCH)
+if(WITH_BENCH)
   # Set directories.
   set(SRC_DIR "${PROJECT_SOURCE_DIR}/modules/bench")
   include_directories("${SRC_DIR}/passive")
@@ -27,21 +25,20 @@ if (WITH_BENCH)
   link_directories(${CMAKE_SOURCE_DIR}/build/)
 
   # Passive checks benchmarking module.
-  add_library("bench_passive_module" SHARED
-    "${SRC_DIR}/passive/module.cc")
-  set_target_properties("bench_passive_module"
-    PROPERTIES PREFIX "")
-  install(TARGETS "bench_passive_module"
+  add_library("bench_passive_module" SHARED "${SRC_DIR}/passive/module.cc")
+  set_target_properties("bench_passive_module" PROPERTIES PREFIX "")
+  install(
+    TARGETS "bench_passive_module"
     DESTINATION "${PREFIX_LIB}"
     COMPONENT "bench")
 
   # Passive checks benchmarking command line tool.
-  add_executable("centengine_bench_passive"
-    "${SRC_DIR}/passive/engine_cfg.cc"
-    "${SRC_DIR}/passive/main.cc")
-add_dependencies("centengine_bench_passive" centreon_clib_shared)
+  add_executable("centengine_bench_passive" "${SRC_DIR}/passive/engine_cfg.cc"
+                                            "${SRC_DIR}/passive/main.cc")
+  add_dependencies("centengine_bench_passive" centreon_clib)
   target_link_libraries("centengine_bench_passive" centreon_clib)
-  install(TARGETS "centengine_bench_passive"
+  install(
+    TARGETS "centengine_bench_passive"
     DESTINATION "${PREFIX_BIN}"
     COMPONENT "bench")
-endif ()
+endif()
