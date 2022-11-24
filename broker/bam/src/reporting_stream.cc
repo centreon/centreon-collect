@@ -16,6 +16,8 @@
 ** For more information : contact@centreon.com
 */
 
+#include <spdlog/fmt/ostr.h>
+
 #include "com/centreon/broker/bam/reporting_stream.hh"
 
 #include "bbdo/bam/ba_duration_event.hh"
@@ -149,9 +151,14 @@ int reporting_stream::write(std::shared_ptr<io::data> const& data) {
   ++_pending_events;
   assert(data);
 
-  SPDLOG_LOGGER_TRACE(log_v2::bam(),
-                      "BAM: reporting stream write - event of type {:x}",
-                      data->type());
+  if (log_v2::bam()->level() == spdlog::level::trace) {
+    SPDLOG_LOGGER_TRACE(
+        log_v2::bam(), "BAM: reporting stream write - event of type {}", *data);
+  } else {
+    SPDLOG_LOGGER_DEBUG(log_v2::bam(),
+                        "BAM: reporting stream write - event of type {:x}",
+                        data->type());
+  }
 
   switch (data->type()) {
     case io::events::data_type<io::bam, bam::de_kpi_event>::value:

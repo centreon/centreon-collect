@@ -226,7 +226,6 @@ BEPB_DIMENSION_TIMEPERIOD
 	Broker Config Add Lua Output	central	test-protobuf	${SCRIPTS}test-log-all-event.lua
 	
 	Connect To Database	pymysql	${DBNameConf}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
-	Execute SQL String	DELETE FROM timeperiod
 	Execute SQL String	INSERT INTO timeperiod (tp_id, tp_name, tp_sunday, tp_monday, tp_tuesday, tp_wednesday, tp_thursday, tp_friday, tp_saturday) VALUES (732, "ezizae", "sunday_value", "monday_value", "tuesday_value", "wednesday_value", "thursday_value", "friday_value", "saturday_value")
 	
 	Start Broker  True
@@ -243,7 +242,61 @@ BEPB_DIMENSION_TIMEPERIOD
 	Stop Engine
 	Kindly Stop Broker  True
 
+BEPB_DIMENSION_KPI_EVENT
+	[Documentation]	bbdo_version 3 use pb_dimension_kpi_event message.
+	[Tags]	Broker	Engine	protobuf	bbdo
+	Clear Commands Status
+	Clear Retention
+
+    Remove File     /tmp/all_lua_event.log
+    Config BBDO3	${1}
+	Config Engine	${1}
+	Config Broker	central
+	Config Broker	module
+    Broker Config Add Item	module0	bbdo_version	3.0.0
+    Broker Config Add Item	central	bbdo_version	3.0.0
+	Broker Config Log	central	bam	trace
+	Broker Config Log	central	sql	trace
+	Config Broker Sql Output	central	unified_sql
+	broker_config_source_log  central  1
+	
+	Clone Engine Config To DB
+	Add Bam Config To Broker	central
+	Add Bam Config To Engine
+
+	@{svc}=	Set Variable	${{ [("host_16", "service_314")] }}
+	${baid_svcid}=  create_ba_with_services	test	worst	${svc}
+
+	add_boolean_kpi  ${baid_svcid[0]}  {host_16 service_302} {IS} {OK}  100
+
+	
+	Start Broker  True
+	Start Engine
+
+	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+	${expected}=  Catenate  (('bool test',  ${baid_svcid[0]}
+	${expected}=  Catenate  SEPARATOR=  ${expected}  , 'test', 0, '', 0, '', 1, 'bool test'), ('host_16 service_314',
+	${expected}=  Catenate  ${expected}  ${baid_svcid[0]}
+	${expected}=  Catenate  SEPARATOR=  ${expected}  , 'test', 16, 'host_16', 314, 'service_314', 0, ''))
+	FOR	${index}	IN RANGE	10
+		${output}=	Query	SELECT kpi_name, ba_id, ba_name, host_id, host_name, service_id, service_description, boolean_id, boolean_name FROM mod_bam_reporting_kpi order by kpi_name
+		Log To Console	${output}
+		Sleep	1s
+		EXIT FOR LOOP IF	${output} == ${expected}
+	END
+
+	Should Be Equal As Strings  ${output}  ${expected}  msg=mod_bam_reporting_kpi not filled
+
+	Stop Engine
+	Kindly Stop Broker  True
+
+
 
 *** Keywords ***
 BAM Setup
 	Stop Processes
+	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+	Execute SQL String  SET GLOBAL FOREIGN_KEY_CHECKS=0
+	Execute SQL String  DELETE FROM mod_bam_reporting_kpi
+	Execute SQL String  DELETE FROM mod_bam_reporting_timeperiods
+

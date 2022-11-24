@@ -16,6 +16,8 @@
 ** For more information : contact@centreon.com
 */
 
+#include <spdlog/fmt/ostr.h>
+
 #include "com/centreon/broker/bam/monitoring_stream.hh"
 
 #include "bbdo/bam/ba_status.hh"
@@ -190,7 +192,7 @@ void monitoring_stream::update() {
  *  @return Number of events acknowledged.
  */
 int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
-  SPDLOG_LOGGER_TRACE(log_v2::bam(), "BAM: monitoring_stream write");
+  SPDLOG_LOGGER_TRACE(log_v2::bam(), "BAM: monitoring_stream write {}", *data);
   // Take this event into account.
   ++_pending_events;
   if (!validate(data, get_name()))

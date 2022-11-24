@@ -105,6 +105,16 @@ class protobuf : public protobuf_base {
    * @param o The protobuf object (it is copied).
    */
   protobuf(const T& o) : protobuf_base(Typ, &_obj), _obj(o) {}
+
+  protobuf(const protobuf& to_clone) : protobuf_base(Typ, &_obj) {
+    _obj.CopyFrom(to_clone._obj);
+  }
+
+  protobuf& operator=(const protobuf& to_clone) {
+    _obj.CopyFrom(to_clone._obj);
+    return *this;
+  }
+
   ~protobuf() noexcept = default;
 
   bool operator==(const this_type& to_cmp) const;
