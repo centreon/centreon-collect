@@ -38,30 +38,6 @@ environment::~environment() noexcept {
 /**
  *  Add an environment variable.
  *
- *  @param[in] line  The name and value on form (name=value).
- */
-void environment::add(char const* line) {
-  if (!line)
-    return;
-  uint32_t size(strlen(line));
-  uint32_t new_pos = _pos_buffer + size + 1;
-  if (new_pos > _size_buffer) {
-    if (new_pos < _size_buffer + EXTRA_SIZE_BUFFER)
-      _realloc_buffer(_size_buffer + EXTRA_SIZE_BUFFER);
-    else
-      _realloc_buffer(new_pos + EXTRA_SIZE_BUFFER);
-  }
-  memcpy(_buffer + _pos_buffer, line, size + 1);
-  if (_pos_env + 1 >= _size_env)
-    _realloc_env(_size_env + EXTRA_SIZE_ENV);
-  _env[_pos_env++] = _buffer + _pos_buffer;
-  _env[_pos_env] = nullptr;
-  _pos_buffer += size + 1;
-}
-
-/**
- *  Add an environment variable.
- *
  *  @param[in] name   The name of the environment variable.
  *  @param[in] value  The environment variable value.
  */
@@ -87,6 +63,29 @@ void environment::add(char const* name, char const* value) {
   _pos_buffer += size_name + size_value + 2;
 }
 
+/**
+ *  Add an environment variable.
+ *
+ *  @param[in] line  The name and value on form (name=value).
+ */
+void environment::add(char const* line) {
+  if (!line)
+    return;
+  uint32_t size(strlen(line));
+  uint32_t new_pos = _pos_buffer + size + 1;
+  if (new_pos > _size_buffer) {
+    if (new_pos < _size_buffer + EXTRA_SIZE_BUFFER)
+      _realloc_buffer(_size_buffer + EXTRA_SIZE_BUFFER);
+    else
+      _realloc_buffer(new_pos + EXTRA_SIZE_BUFFER);
+  }
+  memcpy(_buffer + _pos_buffer, line, size + 1);
+  if (_pos_env + 1 >= _size_env)
+    _realloc_env(_size_env + EXTRA_SIZE_ENV);
+  _env[_pos_env++] = _buffer + _pos_buffer;
+  _env[_pos_env] = nullptr;
+  _pos_buffer += size + 1;
+}
 /**
  *  Add an environment variable.
  *
@@ -153,9 +152,9 @@ char** environment::data() const noexcept {
  */
 void environment::_realloc_buffer(uint32_t size) {
   if (_size_buffer >= size)
-    throw
-        engine_error() << "Invalid size for command environment reallocation: "
-                       << "Buffer size is greater than the requested size";
+    throw engine_error()
+        << "Invalid size for command environment reallocation: "
+        << "Buffer size is greater than the requested size";
   char* new_buffer(new char[size]);
   if (_buffer)
     memcpy(new_buffer, _buffer, _pos_buffer);

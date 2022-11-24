@@ -233,3 +233,24 @@ TEST_F(SimpleCommand, SufficientOldDoubleCommand) {
   ASSERT_EQ(stat(path, &file_stat), 0);
   ASSERT_EQ(file_stat.st_size, 8);
 }
+
+TEST_F(SimpleCommand, WithOneArgument) {
+  auto lstnr = std::make_unique<my_listener>();
+  std::unique_ptr<commands::command> cmd{
+      std::make_unique<commands::raw>("test", "/bin/echo $ARG1$")};
+  cmd->set_listener(lstnr.get());
+  nagios_macros* mac(get_global_macros());
+  mac->argv[0] = "Hello";
+  mac->argv[1] = "";
+  std::string cc(cmd->process_cmd(mac));
+  ASSERT_EQ(cc, "/bin/echo Hello");
+  cmd->run(cc, *mac, 2, std::make_shared<check_result>());
+  int timeout{0};
+  int max_timeout{3000};
+  while (timeout < max_timeout && lstnr->get_result().output == "") {
+    usleep(100000);
+    ++timeout;
+  }
+  ASSERT_TRUE(timeout < max_timeout);
+  ASSERT_EQ(lstnr->get_result().output, "Hello\n");
+}
