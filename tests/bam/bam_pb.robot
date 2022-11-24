@@ -112,6 +112,51 @@ BEPB_DIMENSION_BV_EVENT
 	Stop Engine
 	Kindly Stop Broker  True
 
+BEPB_DIMENSION_BA_EVENT
+	[Documentation]	bbdo_version 3 use pb_dimension_ba_event message.
+	[Tags]	Broker	Engine	protobuf	bbdo
+	Clear Commands Status
+	Clear Retention
+
+    Remove File     /tmp/all_lua_event.log
+    Config BBDO3	${1}
+	Config Engine	${1}
+	Config Broker	central
+	Config Broker	module
+    Broker Config Add Item	module0	bbdo_version	3.0.0
+    Broker Config Add Item	central	bbdo_version	3.0.0
+	Broker Config Log	central	bam	trace
+	Broker Config Log	central	sql	trace
+	Config Broker Sql Output	central	unified_sql
+	
+	Clone Engine Config To DB
+	Add Bam Config To Broker	central
+	Add Bam Config To Engine
+
+	@{svc}=	Set Variable	${{ [("host_16", "service_314")] }}
+	Create BA With Services	test	worst	${svc}
+
+	Broker Config Add Lua Output	central	test-protobuf	${SCRIPTS}test-log-all-event.lua
+	
+	Connect To Database	pymysql	${DBNameConf}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+	Execute SQL String  SET FOREIGN_KEY_CHECKS=0
+	Execute SQL String	UPDATE mod_bam set description='fdpgvo75', sla_month_percent_warn=1.23, sla_month_percent_crit=4.56, sla_month_duration_warn=852, sla_month_duration_crit=789, id_reporting_period=741
+	
+	Start Broker  True
+	Start Engine
+    Wait Until Created	/tmp/all_lua_event.log	30s
+	FOR	${index}	IN RANGE	10
+		${grep_res}=  Grep File  /tmp/all_lua_event.log  "_type":393241, "category":6, "element":25, "ba_id":1, "ba_name":"test", "ba_description":"fdpgvo75", "sla_month_percent_crit":4.56, "sla_month_percent_warn":1.23, "sla_duration_crit":789, "sla_duration_warn":852
+		Sleep	1s
+		EXIT FOR LOOP IF	len("""${grep_res}""") > 0
+	END
+
+	Should Not Be Empty  ${grep_res}  msg=event not found
+
+	Stop Engine
+	Kindly Stop Broker  True
+
+
 BEPB_DIMENSION_BA_BV_RELATION_EVENT
 	[Documentation]	bbdo_version 3 use pb_dimension_ba_bv_relation_event message.
 	[Tags]	Broker	Engine	protobuf	bbdo
