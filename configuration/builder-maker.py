@@ -57,8 +57,8 @@ def proto_type(t: str):
         "unsigned short": "uint32",
         "double": "double",
         "map_customvar": "repeated CustomVariable",
-        "group<set_string>": "repeated string",
-        "group<list_string>": "repeated string",
+        "group<set_string>": "StringSet",
+        "group<list_string>": "StringList",
         "point_2d": "Point2d",
         "point_3d": "Point3d",
         "dependency_kind": "DependencyKind",
@@ -326,6 +326,14 @@ enum ActionHostDependencyOn {
     action_hd_pending = 8;        // (1 << 3)
 }
  
+message StringList {
+    repeated string data = 1;
+}
+
+message StringSet {
+    repeated string data = 1;
+}
+
 """]
 
 fcc = open("state-generated.cc", "w")
@@ -441,26 +449,32 @@ message {cap_name} {{
     f.close()
 
     #Generation of cpp file
-    cc_lines =[f"\n{cap_name} make_{name}() {{\n  {cap_name} retval;\n"]
+    header = False
     for m in msg_list:
         if 'default' in m:
+            if not header:
+                cc_lines =[f"\nvoid init_{name}({cap_name}* obj) {{\n"]
+                header = True
             if m['typ'] == 'point_2d':
                 values = m['default'].split(',')
-                cc_lines.append(f"  retval.mutable_{m['proto_name']}()->set_x({values[0].strip()});\n")
-                cc_lines.append(f"  retval.mutable_{m['proto_name']}()->set_y({values[1].strip()});\n")
+                cc_lines.append(f"  obj->mutable_{m['proto_name']}()->set_x({values[0].strip()});\n")
+                cc_lines.append(f"  obj->mutable_{m['proto_name']}()->set_y({values[1].strip()});\n")
             elif m['typ'] == 'point_3d':
                 values = m['default'].split(',')
-                cc_lines.append(f"  retval.mutable_{m['proto_name']}()->set_x({values[0].strip()});\n")
-                cc_lines.append(f"  retval.mutable_{m['proto_name']}()->set_y({values[1].strip()});\n")
-                cc_lines.append(f"  retval.mutable_{m['proto_name']}()->set_y({values[2].strip()});\n")
+                cc_lines.append(f"  obj->mutable_{m['proto_name']}()->set_x({values[0].strip()});\n")
+                cc_lines.append(f"  obj->mutable_{m['proto_name']}()->set_y({values[1].strip()});\n")
+                cc_lines.append(f"  obj->mutable_{m['proto_name']}()->set_y({values[2].strip()});\n")
             else:
-                cc_lines.append(f"  retval.set_{m['proto_name']}({m['default']});\n")
+                cc_lines.append(f"  obj->set_{m['proto_name']}({m['default']});\n")
 
-    cc_lines.append("  return retval;\n}\n")
+    if not header:
+        cc_lines =[f"\nvoid init_{name}({cap_name}* /* obj */) {{\n"]
+        header = True
+    cc_lines.append("}\n")
     fcc.writelines(cc_lines)
 
     #Generation of hh file
-    fhh.write(f"{cap_name} make_{name}();\n")
+    fhh.write(f"void init_{name}({cap_name}* obj);\n")
 
 fhh.write("""
 };  // namespace configuration
