@@ -599,7 +599,6 @@ BEPB_DIMENSION_KPI_EVENT
 	${expected}=  Catenate  SEPARATOR=  ${expected}  , 'test', 16, 'host_16', 314, 'service_314', 0, ''))
 	FOR	${index}	IN RANGE	10
 		${output}=	Query	SELECT kpi_name, ba_id, ba_name, host_id, host_name, service_id, service_description, boolean_id, boolean_name FROM mod_bam_reporting_kpi order by kpi_name
-		Log To Console	${output}
 		Sleep	1s
 		EXIT FOR LOOP IF	${output} == ${expected}
 	END

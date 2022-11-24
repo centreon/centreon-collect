@@ -17,9 +17,9 @@
 */
 
 #include "com/centreon/broker/bam/kpi_boolexp.hh"
-#include "bbdo/bam/kpi_status.hh"
 #include "com/centreon/broker/bam/bool_expression.hh"
 #include "com/centreon/broker/bam/impact_values.hh"
+#include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/log_v2.hh"
 
 using namespace com::centreon::broker;
@@ -149,18 +149,20 @@ void kpi_boolexp::visit(io::stream* visitor) {
 
     // Generate status event.
     {
-      std::shared_ptr<kpi_status> status(std::make_shared<kpi_status>(_id));
-      status->in_downtime = in_downtime();
-      status->level_acknowledgement_hard = values.get_acknowledgement();
-      status->level_acknowledgement_soft = values.get_acknowledgement();
-      status->level_downtime_hard = values.get_downtime();
-      status->level_downtime_soft = values.get_downtime();
-      status->level_nominal_hard = values.get_nominal();
-      status->level_nominal_soft = values.get_nominal();
-      status->state_hard = state;
-      status->state_soft = state;
-      status->last_state_change = get_last_state_change();
-      status->last_impact = values.get_nominal();
+      std::shared_ptr<pb_kpi_status> status(std::make_shared<pb_kpi_status>());
+      KpiStatus& ev(status->mut_obj());
+      ev.set_kpi_id(_id);
+      ev.set_in_downtime(in_downtime());
+      ev.set_level_acknowledgement_hard(values.get_acknowledgement());
+      ev.set_level_acknowledgement_soft(values.get_acknowledgement());
+      ev.set_level_downtime_hard(values.get_downtime());
+      ev.set_level_downtime_soft(values.get_downtime());
+      ev.set_level_nominal_hard(values.get_nominal());
+      ev.set_level_nominal_soft(values.get_nominal());
+      ev.set_state_hard(State(state));
+      ev.set_state_soft(State(state));
+      ev.set_last_state_change(get_last_state_change().get_time_t());
+      ev.set_last_impact(values.get_nominal());
       visitor->write(std::static_pointer_cast<io::data>(status));
     }
   }

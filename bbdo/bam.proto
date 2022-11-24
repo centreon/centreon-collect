@@ -118,3 +118,19 @@ message DimensionKpiEvent {
     double impact_critical = 15;
     double impact_unknown = 16;
 }
+
+message KpiStatus {
+    uint32 kpi_id = 1;
+    bool in_downtime = 2;
+    double level_acknowledgement_hard = 3;
+    double level_acknowledgement_soft = 4;
+    double level_downtime_hard = 5;
+    double level_downtime_soft = 6;
+    double level_nominal_hard = 7;
+    double level_nominal_soft = 8;
+    State state_hard = 9;
+    State state_soft = 10;
+    int64 last_state_change = 11;
+    double last_impact = 12;
+    bool valid = 13;
+}
