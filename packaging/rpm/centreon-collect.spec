@@ -445,7 +445,7 @@ fi
 
 %files -n centreon-broker-cbmod
 %defattr(-,centreon-broker,centreon-broker,-)
-%attr(0664,centreon-broker,centreon-broker) %config(noreplace) %{_sysconfdir}/centreon-broker/poller-module.json
+%attr(0664,centreon-broker,centreon-broker) %config(noreplace) %{_sysconfdir}/centreon-broker/central-module.json
 %defattr(-,root,root,-)
 %{_libdir}/nagios/cbmod.so
 
