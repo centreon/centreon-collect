@@ -408,7 +408,7 @@ void reader_v2::_load_dimensions() {
   datas.emplace_back(std::make_shared<dimension_truncate_table_signal>(true));
 
   // Load the dimensions.
-  std::unordered_map<uint32_t, std::shared_ptr<dimension_ba_event>> bas;
+  std::unordered_map<uint32_t, std::shared_ptr<pb_dimension_ba_event>> bas;
 
   // Load the timeperiods themselves.
   std::promise<database::mysql_result> promise_tp;
@@ -541,16 +541,17 @@ void reader_v2::_load_dimensions() {
   try {
     database::mysql_result res(future_ba.get());
     while (_mysql.fetch_row(res)) {
-      auto ba{std::make_shared<dimension_ba_event>()};
-      ba->ba_id = res.value_as_u32(0);
-      ba->ba_name = res.value_as_str(1);
-      ba->ba_description = res.value_as_str(2);
-      ba->sla_month_percent_warn = res.value_as_f64(3);
-      ba->sla_month_percent_crit = res.value_as_f64(4);
-      ba->sla_duration_warn = res.value_as_i32(5);
-      ba->sla_duration_crit = res.value_as_i32(6);
+      auto ba{std::make_shared<pb_dimension_ba_event>()};
+      DimensionBaEvent& ba_pb = ba->mut_obj();
+      ba_pb.set_ba_id(res.value_as_u32(0));
+      ba_pb.set_ba_name(res.value_as_str(1));
+      ba_pb.set_ba_description(res.value_as_str(2));
+      ba_pb.set_sla_month_percent_warn(res.value_as_f64(3));
+      ba_pb.set_sla_month_percent_crit(res.value_as_f64(4));
+      ba_pb.set_sla_duration_warn(res.value_as_i32(5));
+      ba_pb.set_sla_duration_crit(res.value_as_i32(6));
       datas.push_back(ba);
-      bas[ba->ba_id] = ba;
+      bas[ba_pb.ba_id()] = ba;
       if (!res.value_is_null(7)) {
         std::shared_ptr<dimension_ba_timeperiod_relation> dbtr(
             new dimension_ba_timeperiod_relation);
@@ -622,9 +623,7 @@ void reader_v2::_load_dimensions() {
 
       // Resolve the id_indicator_ba.
       if (k->kpi_ba_id) {
-        std::unordered_map<uint32_t,
-                           std::shared_ptr<dimension_ba_event>>::const_iterator
-            found = bas.find(k->kpi_ba_id);
+        auto found = bas.find(k->kpi_ba_id);
         if (found == bas.end()) {
           SPDLOG_LOGGER_ERROR(
               log_v2::bam(),
@@ -633,7 +632,7 @@ void reader_v2::_load_dimensions() {
               k->kpi_ba_id, k->kpi_id);
           continue;
         }
-        k->kpi_ba_name = found->second->ba_name;
+        k->kpi_ba_name = found->second->obj().ba_name();
       }
       datas.push_back(k);
     }

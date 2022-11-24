@@ -49,6 +49,10 @@ using pb_dimension_timeperiod =
     io::protobuf<DimensionTimeperiod,
                  make_type(io::bam, bam::de_pb_dimension_timeperiod)>;
 
+using pb_dimension_ba_event =
+    io::protobuf<DimensionBaEvent,
+                 make_type(io::bam, bam::de_pb_dimension_ba_event)>;
+
 }  // namespace bam
 
 CCB_END()

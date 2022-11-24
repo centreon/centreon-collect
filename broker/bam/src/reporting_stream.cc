@@ -187,6 +187,7 @@ int reporting_stream::write(std::shared_ptr<io::data> const& data) {
     case bam::pb_dimension_bv_event::static_type():
     case pb_dimension_ba_bv_relation_event::static_type():
     case bam::pb_dimension_timeperiod::static_type():
+    case bam::pb_dimension_ba_event::static_type():
       _process_pb_dimension(data);
       break;
     case io::events::data_type<io::bam, bam::de_rebuild>::value:
@@ -957,6 +958,35 @@ void reporting_stream::_process_dimension_ba(
 }
 
 /**
+ *  Process a dimension ba and write it to the db.
+ *
+ *  @param[in] e The event.
+ */
+void reporting_stream::_process_pb_dimension_ba(
+    std::shared_ptr<io::data> const& e) {
+  const DimensionBaEvent& dba =
+      std::static_pointer_cast<bam::pb_dimension_ba_event const>(e)->obj();
+  SPDLOG_LOGGER_DEBUG(log_v2::bam(),
+                      "BAM-BI: pb processing declaration of BA {} ('{}')",
+                      dba.ba_id(), dba.ba_description());
+  _dimension_ba_insert.bind_value_as_i32(0, dba.ba_id());
+  _dimension_ba_insert.bind_value_as_str(
+      1, misc::string::truncate(
+             dba.ba_name(),
+             get_mod_bam_reporting_ba_col_size(mod_bam_reporting_ba_ba_name)));
+  _dimension_ba_insert.bind_value_as_str(
+      2, misc::string::truncate(dba.ba_description(),
+                                get_mod_bam_reporting_ba_col_size(
+                                    mod_bam_reporting_ba_ba_description)));
+  _dimension_ba_insert.bind_value_as_f64(3, dba.sla_month_percent_crit());
+  _dimension_ba_insert.bind_value_as_f64(4, dba.sla_month_percent_warn());
+  _dimension_ba_insert.bind_value_as_f64(5, dba.sla_duration_crit());
+  _dimension_ba_insert.bind_value_as_f64(6, dba.sla_duration_warn());
+  _mysql.run_statement(_dimension_ba_insert, database::mysql_error::insert_ba,
+                       false);
+}
+
+/**
  *  Process a dimension bv and write it to the db.
  *
  *  @param[in] e The event.
@@ -1184,6 +1214,15 @@ void reporting_stream::_process_pb_dimension(
             "BAM-BI: preparing declaration of timeperiod {} ('{}')",
             tp.obj().id(), tp.obj().name());
       } break;
+      case bam::pb_dimension_ba_event::static_type(): {
+        const DimensionBaEvent& dba =
+            std::static_pointer_cast<bam::pb_dimension_ba_event const>(e)
+                ->obj();
+        SPDLOG_LOGGER_DEBUG(log_v2::bam(),
+                            "BAM-BI: preparing ba dimension {} ('{}' '{}')",
+                            dba.ba_id(), dba.ba_name(), dba.ba_description());
+      } break;
+
       default:
         SPDLOG_LOGGER_DEBUG(log_v2::bam(),
                             "BAM-BI: preparing event of type {:x}", e->type());
@@ -1209,6 +1248,9 @@ void reporting_stream::_dimension_dispatch(
   switch (data->type()) {
     case io::events::data_type<io::bam, bam::de_dimension_ba_event>::value:
       _process_dimension_ba(data);
+      break;
+    case bam::pb_dimension_ba_event::static_type():
+      _process_pb_dimension_ba(data);
       break;
     case io::events::data_type<io::bam, bam::de_dimension_bv_event>::value:
       _process_dimension_bv(data);
