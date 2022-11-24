@@ -20,12 +20,7 @@
 
 #include <fmt/format.h>
 
-#include "bbdo/bam/dimension_ba_bv_relation_event.hh"
-#include "bbdo/bam/dimension_ba_event.hh"
 #include "bbdo/bam/dimension_ba_timeperiod_relation.hh"
-#include "bbdo/bam/dimension_bv_event.hh"
-#include "bbdo/bam/dimension_kpi_event.hh"
-#include "bbdo/bam/dimension_timeperiod.hh"
 #include "bbdo/bam/dimension_truncate_table_signal.hh"
 #include "com/centreon/broker/bam/ba.hh"
 #include "com/centreon/broker/bam/configuration/reader_exception.hh"
@@ -609,34 +604,36 @@ void reader_v2::_load_dimensions() {
     database::mysql_result res(future_kpi.get());
 
     while (_mysql.fetch_row(res)) {
-      auto k{std::make_shared<dimension_kpi_event>(res.value_as_u32(0))};
-      k->host_id = res.value_as_u32(2);
-      k->service_id = res.value_as_u32(3);
-      k->ba_id = res.value_as_u32(4);
-      k->kpi_ba_id = res.value_as_u32(5);
-      k->meta_service_id = res.value_as_u32(6);
-      k->boolean_id = res.value_as_u32(7);
-      k->impact_warning = res.value_as_f64(8);
-      k->impact_critical = res.value_as_f64(9);
-      k->impact_unknown = res.value_as_f64(10);
-      k->host_name = res.value_as_str(11);
-      k->service_description = res.value_as_str(12);
-      k->ba_name = res.value_as_str(13);
-      k->meta_service_name = res.value_as_str(14);
-      k->boolean_name = res.value_as_str(15);
+      auto k{std::make_shared<pb_dimension_kpi_event>()};
+      DimensionKpiEvent& ev = k->mut_obj();
+      ev.set_kpi_id(res.value_as_u32(0));
+      ev.set_host_id(res.value_as_u32(2));
+      ev.set_service_id(res.value_as_u32(3));
+      ev.set_ba_id(res.value_as_u32(4));
+      ev.set_kpi_ba_id(res.value_as_u32(5));
+      ev.set_meta_service_id(res.value_as_u32(6));
+      ev.set_boolean_id(res.value_as_u32(7));
+      ev.set_impact_warning(res.value_as_f64(8));
+      ev.set_impact_critical(res.value_as_f64(9));
+      ev.set_impact_unknown(res.value_as_f64(10));
+      ev.set_host_name(res.value_as_str(11));
+      ev.set_service_description(res.value_as_str(12));
+      ev.set_ba_name(res.value_as_str(13));
+      ev.set_meta_service_name(res.value_as_str(14));
+      ev.set_boolean_name(res.value_as_str(15));
 
       // Resolve the id_indicator_ba.
-      if (k->kpi_ba_id) {
-        auto found = bas.find(k->kpi_ba_id);
+      if (ev.kpi_ba_id()) {
+        auto found = bas.find(ev.kpi_ba_id());
         if (found == bas.end()) {
           SPDLOG_LOGGER_ERROR(
               log_v2::bam(),
               "BAM: could not retrieve BA {} used as KPI {} in dimension "
               "table: ignoring this KPI",
-              k->kpi_ba_id, k->kpi_id);
+              ev.kpi_ba_id(), ev.kpi_id());
           continue;
         }
-        k->kpi_ba_name = found->second->obj().ba_name();
+        ev.set_kpi_ba_name(found->second->obj().ba_name());
       }
       datas.push_back(k);
     }

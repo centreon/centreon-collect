@@ -118,6 +118,7 @@ class reporting_stream : public io::stream {
   void _process_pb_dimension_ba_bv_relation(std::shared_ptr<io::data> const& e);
   void _process_dimension_truncate_signal(std::shared_ptr<io::data> const& e);
   void _process_dimension_kpi(std::shared_ptr<io::data> const& e);
+  void _process_pb_dimension_kpi(std::shared_ptr<io::data> const& e);
   void _process_dimension_timeperiod(std::shared_ptr<io::data> const& e);
   void _process_pb_dimension_timeperiod(std::shared_ptr<io::data> const& e);
   void _process_dimension_timeperiod_exception(

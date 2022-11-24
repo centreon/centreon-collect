@@ -98,5 +98,23 @@ message DimensionBaEvent {
     double sla_month_percent_warn = 5;
     uint32 sla_duration_crit = 6;
     uint32 sla_duration_warn = 7;
-  
+}
+
+message DimensionKpiEvent {
+    uint32 kpi_id = 1;
+    uint32 ba_id = 2;
+    string ba_name = 3;
+    uint32 host_id = 4;
+    string host_name = 5;
+    uint32 service_id = 6;
+    string service_description = 7;
+    uint32 kpi_ba_id = 8;
+    string kpi_ba_name = 9;
+    uint32 meta_service_id = 10;
+    string meta_service_name = 11;
+    uint32 boolean_id = 12;
+    string boolean_name = 13;
+    double impact_warning = 14;
+    double impact_critical = 15;
+    double impact_unknown = 16;
 }
