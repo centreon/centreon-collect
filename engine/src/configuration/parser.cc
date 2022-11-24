@@ -23,6 +23,7 @@
 #include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/io/directory_entry.hh"
+#include "configuration/state-generated.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
@@ -44,12 +45,6 @@ constexpr int32_t contact_to_merge[] = {2 /* contact_name */,
                                         15 /* host_notification_period */,
                                         19 /* service_notification_period */,
                                         0};
-
-constexpr std::array<const int32_t*, 19> number_to_merge = {
-    command_to_merge,
-    connector_to_merge,
-    contact_to_merge,
-};
 
 parser::store parser::_store[] = {
     &parser::_store_into_map<command, &command::command_name>,
@@ -98,6 +93,7 @@ void parser::parse(const std::string& path, State* pb_config) {
   // Apply extended info.
   //  _apply_hostextinfo(pb_config);
   //  _apply_serviceextinfo(pb_config);
+  _cleanup(pb_config);
 }
 
 /**
@@ -162,7 +158,6 @@ void parser::parse(const std::string& path, state& config) {
 void parser::_add_object(object_ptr obj) {
   if (obj->should_register())
     (this->*_store[obj->type()])(obj);
-  return;
 }
 
 /**
@@ -507,6 +502,36 @@ bool set(
                         std::string(value.data(), value.size()));
       }
       return true;
+    case FieldDescriptor::TYPE_MESSAGE:
+      if (!f->is_repeated()) {
+        Message* m = refl->MutableMessage(msg, f);
+        const Descriptor* d = m->GetDescriptor();
+
+        if (d && d->name() == "StringSet") {
+          StringSet* set =
+              static_cast<StringSet*>(refl->MutableMessage(msg, f));
+          bool found = false;
+          auto arr = absl::StrSplit(value, ',');
+          for (auto& v : arr) {
+            for (auto& s : *set->mutable_data()) {
+              if (s == v) {
+                found = true;
+                break;
+              }
+            }
+            if (!found)
+              set->add_data(v.data(), v.size());
+          }
+          return true;
+        } else if (d && d->name() == "StringList") {
+          StringList* lst =
+              static_cast<StringList*>(refl->MutableMessage(msg, f));
+          auto arr = absl::StrSplit(value, ',');
+          for (auto& v : arr)
+            lst->add_data(v.data(), v.size());
+          return true;
+        }
+      }
     default:
       return false;
   }
@@ -683,13 +708,14 @@ void parser::_parse_object_definitions(const std::string& path,
         absl::string_view key = l.substr(0, pos);
         l.remove_prefix(pos);
         l = absl::StripLeadingAsciiWhitespace(l);
-        /* Classical part */
-        if (!set(msg, key, l, correspondance)) {
-          bool retval = false;
-          /* particular cases with hook */
-          if (hook)
-            retval = hook(key, l);
-          if (!retval) {
+        bool retval = false;
+        /* particular cases with hook */
+        if (hook)
+          retval = hook(key, l);
+
+        if (!retval) {
+          /* Classical part */
+          if (!set(msg, key, l, correspondance)) {
             if (key[0] != '_')
               throw engine_error() << fmt::format(
                   "Unable to parse '{}' key with value '{}' in message of type "
@@ -735,7 +761,8 @@ void parser::_parse_object_definitions(const std::string& path,
       type = std::string(l.data(), l.size());
       if (type == "contact") {
         otype = object::object_type::contact;
-        msg = new Contact;
+        msg = new Contact();
+        init_contact(static_cast<Contact*>(msg));
         hook = [ct = static_cast<Contact*>(msg)](
                    const absl::string_view& key,
                    const absl::string_view& value) -> bool {
@@ -743,7 +770,7 @@ void parser::_parse_object_definitions(const std::string& path,
             auto arr = absl::StrSplit(value, ',');
             for (absl::string_view d : arr) {
               d = absl::StripAsciiWhitespace(d);
-              ct->mutable_contactgroups()->Add(std::string(d.data(), d.size()));
+              ct->mutable_contactgroups()->add_data(d.data(), d.size());
             }
             return true;
           }
@@ -763,6 +790,26 @@ void parser::_parse_object_definitions(const std::string& path,
             {"host_name", "hosts"},
             {"active_checks_enabled", "checks_active"},
             {"passive_checks_enabled", "checks_passive"},
+        };
+        hook = [svc = static_cast<Service*>(msg)](
+                   const absl::string_view& key,
+                   const absl::string_view& value) -> bool {
+          if (key == "hostgroups") {
+            auto arr = absl::StrSplit(value, ',');
+            for (absl::string_view d : arr) {
+              d = absl::StripAsciiWhitespace(d);
+              svc->mutable_hostgroups()->add_data(d.data(), d.size());
+            }
+            return true;
+          } else if (key == "contact_groups") {
+            auto arr = absl::StrSplit(value, ',');
+            for (absl::string_view d : arr) {
+              d = absl::StripAsciiWhitespace(d);
+              svc->mutable_contactgroups()->add_data(d.data(), d.size());
+            }
+            return true;
+          }
+          return false;
         };
       } else if (type == "timeperiod") {
         otype = object::object_type::timeperiod;
@@ -1000,9 +1047,7 @@ void parser::_parse_resource_file(std::string const& path) {
   }
 }
 
-void parser::_merge(Message* msg,
-                    Message* tmpl,
-                    const std::array<const int32_t*, 19>& number_to_merge) {
+void parser::_merge(Message* msg, Message* tmpl) {
   const Descriptor* desc = msg->GetDescriptor();
   const Reflection* refl = msg->GetReflection();
   std::string tmp_str;
@@ -1048,6 +1093,90 @@ void parser::_merge(Message* msg,
               refl->SetString(msg, f, refl->GetString(*tmpl, f));
             }
             break;
+          case FieldDescriptor::CPPTYPE_BOOL:
+            if ((oof && !refl->GetOneofFieldDescriptor(*msg, oof)) ||
+                !refl->GetBool(*msg, f)) {
+              refl->SetBool(msg, f, refl->GetBool(*tmpl, f));
+            }
+            break;
+          case FieldDescriptor::CPPTYPE_UINT32:
+            if ((oof && !refl->GetOneofFieldDescriptor(*msg, oof)) ||
+                refl->GetUInt32(*msg, f) == 0u) {
+              refl->SetUInt32(msg, f, refl->GetUInt32(*tmpl, f));
+            }
+            break;
+          case FieldDescriptor::CPPTYPE_UINT64:
+            if ((oof && !refl->GetOneofFieldDescriptor(*msg, oof)) ||
+                refl->GetUInt64(*msg, f) == 0u) {
+              refl->SetUInt64(msg, f, refl->GetUInt64(*tmpl, f));
+            }
+            break;
+          case FieldDescriptor::CPPTYPE_MESSAGE:
+            if (!f->is_repeated()) {
+              Message* m = refl->MutableMessage(msg, f);
+              const Descriptor* d = m->GetDescriptor();
+
+              if (d && d->name() == "StringSet") {
+                StringSet* orig_set =
+                    static_cast<StringSet*>(refl->MutableMessage(tmpl, f));
+                StringSet* set =
+                    static_cast<StringSet*>(refl->MutableMessage(msg, f));
+                bool inherit = false;
+                if (!set->data().empty()) {
+                  std::string& first = *set->mutable_data()->begin();
+                  if (first[0] == '+') {
+                    first = first.substr(1);
+                    inherit = true;
+                  }
+                }
+                if (inherit) {
+                  for (auto& v : orig_set->data()) {
+                    bool found = false;
+                    for (auto& s : *set->mutable_data()) {
+                      if (s == v) {
+                        found = true;
+                        break;
+                      }
+                    }
+                    if (!found)
+                      set->add_data(v);
+                  }
+                } else if (set->data().empty())
+                  *set->mutable_data() = orig_set->data();
+                log_v2::config()->error(
+                    "New content of StringSet {}: {}", f->name(),
+                    fmt::join(set->data().begin(), set->data().end(), ","));
+
+              } else if (d && d->name() == "StringList") {
+                StringList* orig_lst =
+                    static_cast<StringList*>(refl->MutableMessage(tmpl, f));
+                StringList* lst =
+                    static_cast<StringList*>(refl->MutableMessage(msg, f));
+                bool inherit = false;
+                if (lst->mutable_data()->begin() !=
+                    lst->mutable_data()->end()) {
+                  std::string& first = *lst->mutable_data()->begin();
+                  if (first[0] == '+') {
+                    first = first.substr(1);
+                    inherit = true;
+                  }
+                }
+                if (inherit) {
+                  for (auto& v : orig_lst->data())
+                    lst->add_data(v);
+                } else if (lst->data().empty())
+                  *lst->mutable_data() = orig_lst->data();
+                log_v2::config()->error("New content of StringList {}: {}",
+                                        f->name(), fmt::join(lst->data(), ","));
+              }
+            } else {
+              log_v2::config()->error(
+                  "Entry '{}' of type {} not managed in merge", f->name(),
+                  f->type_name());
+              assert(125 == 293);
+            }
+            break;
+
           default:
             log_v2::config()->error(
                 "Entry '{}' of type {} not managed in merge", f->name(),
@@ -1076,31 +1205,30 @@ void parser::_resolve_template(Message* msg, const pb_map_object& tmpls) {
     if (it == tmpls.end())
       throw engine_error() << "Cannot merge object of type '" << u << "'";
     _resolve_template(it->second, tmpls);
-    _merge(msg, it->second, number_to_merge);
+    _merge(msg, it->second);
   }
 }
 
 void parser::_resolve_template(State* pb_config) {
-  //  for (pb_map_object& tmpls : _pb_templates) {
-  //    for (auto it = tmpls.begin(); it != tmpls.end(); ++it) {
-  //      _resolve_template(it->second, tmpls);
-  //    }
-  //  }
-  for (int i = 0; i < pb_config->commands().size(); ++i)
-    _resolve_template(&pb_config->mutable_commands()->at(i),
-                      _pb_templates[object::command]);
+  for (Command& c : *pb_config->mutable_commands())
+    _resolve_template(&c, _pb_templates[object::command]);
 
-  for (int i = 0; i < pb_config->connectors().size(); ++i)
-    _resolve_template(&pb_config->mutable_connectors()->at(i),
-                      _pb_templates[object::connector]);
+  for (Connector& c : *pb_config->mutable_connectors())
+    _resolve_template(&c, _pb_templates[object::connector]);
 
   auto* contacts = pb_config->mutable_contacts();
   for (auto it = contacts->begin(); it != contacts->end(); ++it)
     _resolve_template(&it->second, _pb_templates[object::contact]);
 
-  //  for (int i = 0; i < pb_config->contacts().size(); ++i)
-  //    _resolve_template(&pb_config->mutable_contacts()->at(i),
-  //    _pb_templates[object::contact]);
+  for (Contactgroup& cg : *pb_config->mutable_contactgroups())
+    _resolve_template(&cg, _pb_templates[object::contactgroup]);
+
+  int i = 0;
+  for (Service& s : *pb_config->mutable_services()) {
+    log_v2::config()->error("Service {}", i);
+    ++i;
+    _resolve_template(&s, _pb_templates[object::service]);
+  }
 }
 
 /**
@@ -1166,6 +1294,26 @@ void parser::_store_into_map(object_ptr obj) {
   if (it != _map_objects[obj->type()].end())
     throw engine_error() << "Parsing of " << obj->type_name() << " failed "
                          << _get_file_info(obj.get()) << ": " << obj->name()
-                         << " alrealdy exists";
+                         << " already exists";
   _map_objects[obj->type()][(real.get()->*ptr)()] = real;
+}
+
+/**
+ * @brief Clean the configuration:
+ *    * remove template objects.
+ *
+ * @param pb_config
+ */
+void parser::_cleanup(State* pb_config) {
+  int i = 0;
+  for (auto it = pb_config->mutable_services()->begin();
+       it != pb_config->mutable_services()->end();) {
+    if (!it->obj().register_()) {
+      pb_config->mutable_services()->erase(it);
+      it = pb_config->mutable_services()->begin() + i;
+    } else {
+      ++it;
+      ++i;
+    }
+  }
 }
