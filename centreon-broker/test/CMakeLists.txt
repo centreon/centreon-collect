@@ -1,5 +1,5 @@
 #
-# Copyright 2016-2017 Centreon
+# Copyright 2016-2022 Centreon
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
 # use this file except in compliance with the License. You may obtain a copy of
@@ -121,6 +121,14 @@ target_link_libraries(
   CONAN_PKG::mariadb-connector-c
   CONAN_PKG::openssl
   CONAN_PKG::grpc)
+
+set_target_properties(
+  ut_broker rpc_client
+  PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests
+             RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/tests
+             RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/tests
+             RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR}/tests
+             RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/tests)
 
 add_test(NAME tests COMMAND ut_broker)
 
