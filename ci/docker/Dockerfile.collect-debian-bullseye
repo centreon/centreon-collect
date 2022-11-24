@@ -1,6 +1,6 @@
 FROM debian:bullseye
 RUN apt-get -y update && \
-    apt-get -y install cmake \ 
+    apt-get -y install cmake \
     curl \
     gcc \
     g++ \
@@ -36,5 +36,3 @@ COPY conanfile.txt .
 RUN cat conanfile.txt
 RUN conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build='missing'
 WORKDIR /src
-
-
