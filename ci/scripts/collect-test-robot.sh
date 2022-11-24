@@ -25,13 +25,10 @@ mysql -u centreon -pcentreon < resources/centreon.sql
 
 echo "########################## Install centreon collect ###########################"
 
-echo "Here are the rpm files to install"
-ls *.rpm
-
 echo "Installation..."
-/usr/bin/rpm -Uvvh --force --nodeps $(find $(pwd) -name '*.rpm')
+/usr/bin/rpm -Uvvh --force --nodeps *.rpm
 
-echo "########################### install robot framework ############################"
+echo "########################### Install Robot Framework ###########################"
 cd /src/tests/
 pip3 install -U robotframework robotframework-databaselibrary pymysql python-dateutil
 
@@ -41,11 +38,11 @@ pip3 install grpcio==1.33.2 grpcio_tools==1.33.2
 
 ./init-proto.sh
 
-echo "########################### run centreon collect test robot ############################"
+echo "####################### Run Centreon Collect Robot Tests #######################"
 cd /src/tests/
 robot --nostatusrc .
 
-echo "########################### generate folder report ############################"
+echo "########################### Generate Folder Report #############################"
 mkdir reports
 cp log.html output.xml report.html reports
 

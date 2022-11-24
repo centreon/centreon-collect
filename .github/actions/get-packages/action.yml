@@ -66,9 +66,8 @@ runs:
         esac
         FILES="centreon-broker centreon-broker-cbd centreon-broker-cbmod centreon-broker-core centreon-broker-storage centreon-clib centreon-collect centreon-collect-client centreon-connector centreon-connector-perl centreon-connector-ssh centreon-engine centreon-engine-daemon centreon-engine-extcommands"
         FULL_VERSION="${{ inputs.version }}.${{ inputs.patch }}"
-        # Just to debug
-        RELEASE="1668587986.332470bb4948f05263630f26f7b507c9e388ed98"
-        #RELEASE="${{ inputs.release }}"
+        #RELEASE="1668587986.332470bb4948f05263630f26f7b507c9e388ed98"
+        RELEASE="${{ inputs.release }}"
 
         for FILE in $FILES ; do
           if [[ "${{ env.extfile }}" == "deb" ]] ; then
