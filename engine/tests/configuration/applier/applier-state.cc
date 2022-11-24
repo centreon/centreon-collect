@@ -44,7 +44,8 @@ class ApplierState : public ::testing::Test {
     }
     for (int i = 0; i < 5; i++) {
       auto cts = pb_config.mutable_contacts();
-      configuration::Contact ct{configuration::make_contact()};
+      configuration::Contact ct;
+      configuration::init_contact(&ct);
       std::string name(fmt::format("name{:2}", i));
       ct.set_contact_name(name);
       ct.set_alias(fmt::format("alias{:2}", i));
@@ -69,6 +70,340 @@ static void CreateFile(const std::string& filename,
   std::ofstream oss(filename);
   oss << content;
 }
+
+static void RmConf() {
+  std::remove("/tmp/centengine.cfg");
+  std::remove("/tmp/contacts.cfg");
+  std::remove("/tmp/resource.cfg");
+  std::remove("/tmp/timeperiods.cfg");
+  std::remove("/tmp/commands.cfg");
+  std::remove("/tmp/hosts.cfg");
+  std::remove("/tmp/services.cfg");
+}
+
+static void CreateConf() {
+  CreateFile("/tmp/hosts.cfg",
+             "define host {\n"
+             "    host_name                      host_1\n"
+             "    alias                          host_1\n"
+             "    address                        1.0.0.0\n"
+             "    check_command                  checkh1\n"
+             "    check_period                   24x7\n"
+             "    register                       1\n"
+             "    _KEY1                      VAL1\n"
+             "    _SNMPCOMMUNITY                 public\n"
+             "    _SNMPVERSION                   2c\n"
+             "    _HOST_ID                       1\n"
+             "}\n"
+             "define host {\n"
+             "    host_name                      host_2\n"
+             "    alias                          host_2\n"
+             "    address                        2.0.0.0\n"
+             "    check_command                  checkh2\n"
+             "    check_period                   24x7\n"
+             "    register                       1\n"
+             "    _KEY2                      VAL2\n"
+             "    _SNMPCOMMUNITY                 public\n"
+             "    _SNMPVERSION                   2c\n"
+             "    _HOST_ID                       2\n"
+             "}\n"
+             "define host {\n"
+             "    host_name                      host_3\n"
+             "    alias                          host_3\n"
+             "    address                        3.0.0.0\n"
+             "    check_command                  checkh3\n"
+             "    check_period                   24x7\n"
+             "    register                       1\n"
+             "    _KEY3                      VAL3\n"
+             "    _SNMPCOMMUNITY                 public\n"
+             "    _SNMPVERSION                   2c\n"
+             "    _HOST_ID                       3\n"
+             "}\n"
+             "define host {\n"
+             "    host_name                      host_4\n"
+             "    alias                          host_4\n"
+             "    address                        4.0.0.0\n"
+             "    check_command                  checkh4\n"
+             "    check_period                   24x7\n"
+             "    register                       1\n"
+             "    _KEY4                      VAL4\n"
+             "    _SNMPCOMMUNITY                 public\n"
+             "    _SNMPVERSION                   2c\n"
+             "    _HOST_ID                       4\n"
+             "}\n");
+
+  CreateFile("/tmp/services.cfg",
+             "# comment 1\n"
+             "# comment 2\n"
+             "define service {\n"
+             "    host_name                       host_1\n"
+             "    name                            service_template\n"
+             "    hostgroups                      hg1,hg2\n"
+             "    contacts                        contact1\n"
+             "    _SERVICE_ID                     1001\n"
+             "    check_command                   command_19\n"
+             "    check_period                    24x7\n"
+             "    max_check_attempts              3\n"
+             "    check_interval                  5\n"
+             "    retry_interval                  5\n"
+             "    register                        0\n"
+             "    active_checks_enabled           1\n"
+             "    passive_checks_enabled          1\n"
+             "    contact_groups                  cg1,cg2\n"
+             "}\n"
+             "define service {\n"
+             "    host_name                       host_1\n"
+             "    service_description             service_1\n"
+             "    _SERVICE_ID                     1\n"
+             "    check_command                   command_19\n"
+             "    check_period                    24x7\n"
+             "    contacts                        contact1,contact2\n"
+             "    contact_groups                  +cg1,cg3\n"
+             "    max_check_attempts              3\n"
+             "    check_interval                  5\n"
+             "    retry_interval                  5\n"
+             "    register                        1\n"
+             "    active_checks_enabled           1\n"
+             "    passive_checks_enabled          1\n"
+             "    use                             service_template\n"
+             "}\n"
+             "define service {\n"
+             "    host_name                       host_1\n"
+             "    service_description             service_2\n"
+             "    _SERVICE_ID                     2\n"
+             "    check_command                   command_47\n"
+             "    check_period                    24x7\n"
+             "    max_check_attempts              3\n"
+             "    check_interval                  5\n"
+             "    retry_interval                  5\n"
+             "    register                        1\n"
+             "    active_checks_enabled           1\n"
+             "    passive_checks_enabled          1\n"
+             "}\n"
+             "define service {\n"
+             "    host_name                       host_1\n"
+             "    service_description             service_3\n"
+             "    _SERVICE_ID                     3\n"
+             "    check_command                   command_21\n"
+             "    check_period                    24x7\n"
+             "    max_check_attempts              3\n"
+             "    check_interval                  5\n"
+             "    retry_interval                  5\n"
+             "    register                        1\n"
+             "    active_checks_enabled           1\n"
+             "    passive_checks_enabled          1\n"
+             "}\n"
+             "define service {\n"
+             "    host_name                       host_1\n"
+             "    service_description             service_4\n"
+             "    _SERVICE_ID                     4\n"
+             "    check_command                   command_30\n"
+             "    check_period                    24x7\n"
+             "    max_check_attempts              3\n"
+             "    check_interval                  5\n"
+             "    retry_interval                  5\n"
+             "    register                        1\n"
+             "    active_checks_enabled           1\n"
+             "    passive_checks_enabled          1\n"
+             "}\n");
+
+  CreateFile("/tmp/commands.cfg",
+             "define command {\n"
+             "    command_name                    command_1\n"
+             "    command_line                    "
+             "/tmp/var/lib/centreon-engine/check.pl 1\n"
+             "}\n"
+             "define command {\n"
+             "    command_name                    command_2\n"
+             "    command_line                    "
+             "/tmp/var/lib/centreon-engine/check.pl 2\n"
+             "    connector                       Perl Connector\n"
+             "}\n"
+             "define command {\n"
+             "    command_name                    command_3\n"
+             "    command_line                    "
+             "/tmp/var/lib/centreon-engine/check.pl 3\n"
+             "}\n"
+             "define command {\n"
+             "    command_name                    command_4\n"
+             "    command_line                    "
+             "/tmp/var/lib/centreon-engine/check.pl 4\n"
+             "    connector                       Perl Connector\n"
+             "}\n"
+             "define command {\n"
+             "    command_name                    command_5\n"
+             "    command_line                    "
+             "/tmp/var/lib/centreon-engine/check.pl 5\n"
+             "}\n"
+             "define command {\n"
+             "    name                            command_template\n"
+             "    command_name                    command_template\n"
+             "    command_line                    "
+             "/tmp/var/lib/centreon-engine/check.pl 6\n"
+             "    connector                       Perl Connector\n"
+             "}\n"
+             "define command {\n"
+             "    command_name                    command_6\n"
+             "    use                             command_template\n"
+             "}\n"
+             "define command {\n"
+             "    command_name                    command_7\n"
+             "    command_line                    "
+             "/tmp/var/lib/centreon-engine/check.pl 7\n"
+             "}\n");
+
+  CreateFile(
+      "/tmp/timeperiods.cfg",
+      "define timeperiod {\n"
+      "    name                           24x7\n"
+      "    timeperiod_name                24x7\n"
+      "    alias                          24_Hours_A_Day,_7_Days_A_Week\n"
+      "    sunday                         00:00-24:00\n"
+      "    monday                         00:00-24:00\n"
+      "    tuesday                        00:00-24:00\n"
+      "    wednesday                      00:00-24:00\n"
+      "    thursday                       00:00-24:00\n"
+      "    friday                         00:00-24:00\n"
+      "    saturday                       00:00-24:00\n"
+      "}\n"
+      "define timeperiod {\n"
+      "    name                           24x6\n"
+      "    timeperiod_name                24x6\n"
+      "    alias                          24_Hours_A_Day,_7_Days_A_Week\n"
+      "    sunday                         00:00-24:00\n"
+      "    monday                         00:00-8:00,18:00-24:00\n"
+      "    tuesday                        00:00-24:00\n"
+      "    wednesday                      00:00-24:00\n"
+      "    thursday                       00:00-24:00\n"
+      "    friday                         00:00-24:00\n"
+      "    saturday                       00:00-24:00\n"
+      "}\n");
+
+  CreateFile("/tmp/resource.cfg",
+             "# comment 3\n"
+             "$USER1$=/usr/lib64/nagios/plugins\n"
+             "$CENTREONPLUGINS$=/usr/lib/centreon/plugins/\n");
+
+  CreateFile("/tmp/contacts.cfg",
+             "define contact {\n"
+             "    contact_name                   contact1\n"
+             "    use                            template_contact\n"
+             "    contact_groups                 super_cgroup1,super_cgroup2\n"
+             "    host_notification_commands     host_command1\n"
+             "    service_notification_commands  svc_command1\n"
+             "}\n"
+             "define contact {\n"
+             "    name                           template_contact\n"
+             "    contact_name                   template_contact\n"
+             "    alias                          contact1\n"
+             "    contact_groups                 cgroup1,cgroup3\n"
+             "    host_notification_commands     host_command2\n"
+             "    service_notification_commands  +svc_command1,svc_command2\n"
+             "}\n");
+
+  CreateFile(
+      "/tmp/centengine.cfg",
+      "# comment 4\n"
+      "# comment 5\n"
+      "# comment 6\n"
+      "cfg_file=/tmp/hosts.cfg\n"
+      "cfg_file=/tmp/services.cfg\n"
+      "cfg_file=/tmp/commands.cfg\n"
+      "cfg_file=/tmp/contacts.cfg\n"
+      //"cfg_file=/tmp/etc/centreon-engine/config0/hostgroups.cfg\n"
+      "cfg_file=/tmp/timeperiods.cfg\n"
+      //"cfg_file=/tmp/etc/centreon-engine/config0/connectors.cfg\n"
+      //      "broker_module=/usr/lib64/centreon-engine/externalcmd.so\n"
+      //      "broker_module=/usr/lib64/nagios/cbmod.so "
+      //      "/tmp/etc/centreon-broker/central-module0.json\n"
+      //      "interval_length=60\n"
+      //      "use_timezone=:Europe/Paris\n"
+      "resource_file=/tmp/resource.cfg\n"
+      //      "log_file=/tmp/var/log/centreon-engine/config0/centengine.log\n"
+      //      "status_file=/tmp/var/log/centreon-engine/config0/status.dat\n"
+      //      "command_check_interval=1s\n"
+      //      "command_file=/tmp/var/lib/centreon-engine/config0/rw/centengine.cmd\n"
+      //      "state_retention_file=/tmp/var/log/centreon-engine/config0/"
+      //      "retention.dat\n"
+      //      "retention_update_interval=60\n"
+      //      "sleep_time=0.2\n"
+      //      "service_inter_check_delay_method=s\n"
+      //      "service_interleave_factor=s\n"
+      //      "max_concurrent_checks=400\n"
+      //      "max_service_check_spread=5\n"
+      //      "check_result_reaper_frequency=5\n"
+      //      "low_service_flap_threshold=25.0\n"
+      //      "high_service_flap_threshold=50.0\n"
+      //      "low_host_flap_threshold=25.0\n"
+      //      "high_host_flap_threshold=50.0\n"
+      //      "service_check_timeout=10\n"
+      //      "host_check_timeout=12\n"
+      //      "event_handler_timeout=30\n"
+      //      "notification_timeout=30\n"
+      //      "ocsp_timeout=5\n"
+      //      "ochp_timeout=5\n"
+      //      "perfdata_timeout=5\n"
+      //      "date_format=euro\n"
+      //      "illegal_object_name_chars=~!$%^&*\"|'<>?,()=\n"
+      //      "illegal_macro_output_chars=`~$^&\"|'<>\n"
+      //      "admin_email=titus@bidibule.com\n"
+      //      "admin_pager=admin\n"
+      //      "event_broker_options=-1\n"
+      //      "cached_host_check_horizon=60\n"
+      //      "debug_file=/tmp/var/log/centreon-engine/config0/centengine.debug\n"
+      //      "debug_level=0\n"
+      //      "debug_verbosity=2\n"
+      //      "log_pid=1\n"
+      //      "macros_filter=KEY80,KEY81,KEY82,KEY83,KEY84\n"
+      //      "enable_macros_filter=0\n"
+      //      "rpc_port=50001\n"
+      //      "postpone_notification_to_timeperiod=0\n"
+      "instance_heartbeat_interval=30\n"
+      //      "enable_notifications=1\n"
+      //      "execute_service_checks=1\n"
+      //      "accept_passive_service_checks=1\n"
+      //      "enable_event_handlers=1\n"
+      //      "check_external_commands=1\n"
+      //      "use_retained_program_state=1\n"
+      //      "use_retained_scheduling_info=1\n"
+      //      "use_syslog=0\n"
+      //      "log_notifications=1\n"
+      //      "log_service_retries=1\n"
+      //      "log_host_retries=1\n"
+      //      "log_event_handlers=1\n"
+      //      "log_external_commands=1\n"
+      //      "log_v2_enabled=1\n"
+      //      "log_legacy_enabled=0\n"
+      //      "log_v2_logger=file\n"
+      "log_level_functions=trace\n"
+      //      "log_level_config=info\n"
+      //      "log_level_events=info\n"
+      //      "log_level_checks=info\n"
+      //      "log_level_notifications=info\n"
+      //      "log_level_eventbroker=info\n"
+      //      "log_level_external_command=trace\n"
+      //      "log_level_commands=info\n"
+      //      "log_level_downtimes=info\n"
+      //      "log_level_comments=info\n"
+      //      "log_level_macros=info\n"
+      //      "log_level_process=info\n"
+      //      "log_level_runtime=info\n"
+      //      "log_flush_period=0\n"
+      //      "soft_state_dependencies=0\n"
+      //      "obsess_over_services=0\n"
+      //      "process_performance_data=0\n"
+      //      "check_for_orphaned_services=0\n"
+      //      "check_for_orphaned_hosts=0\n"
+      "check_service_freshness=1\n"
+      "enable_flap_detection=0\n");
+}
+
+constexpr size_t CFG_FILES = 5u;
+constexpr size_t RES_FILES = 1u;
+constexpr size_t HOSTS = 4u;
+constexpr size_t SERVICES = 4u;
+constexpr size_t TIMEPERIODS = 2u;
+constexpr size_t CONTACTS = 2u;
 
 TEST_F(ApplierState, DiffOnTimeperiod) {
   configuration::State new_config;
@@ -324,7 +659,7 @@ TEST_F(ApplierState, DiffOnContactFirstAddressRemoved) {
   // Key "name 3" to the good contact
   ASSERT_EQ(dstate.to_remove()[0].key()[1].str(), "name 3");
   // Number of addresses in Contact
-  ASSERT_EQ(dstate.to_remove()[0].key()[2].i32(), 4);
+  ASSERT_EQ(dstate.to_remove()[0].key()[2].i32(), 2);
   // Index of the address to remove
   ASSERT_EQ(dstate.to_remove()[0].key()[3].i32(), 2);
 }
@@ -389,308 +724,127 @@ TEST_F(ApplierState, DiffOnContactRemoveCustomvariable) {
   //  ASSERT_EQ(to_modify["name 3"].list().begin()->value_str(), "address 2");
 }
 
-TEST_F(ApplierState, StateParsing) {
-  configuration::State config;
+TEST_F(ApplierState, StateLegacyParsing) {
+  configuration::state config;
   configuration::parser p;
-  std::string conf{"/tmp/centengine.cfg"};
-  CreateFile("/tmp/hosts.cfg",
-             "define host {\n"
-             "    host_name                      host_1\n"
-             "    alias                          host_1\n"
-             "    address                        1.0.0.0\n"
-             "    check_command                  checkh1\n"
-             "    check_period                   24x7\n"
-             "    register                       1\n"
-             "    _KEY1                      VAL1\n"
-             "    _SNMPCOMMUNITY                 public\n"
-             "    _SNMPVERSION                   2c\n"
-             "    _HOST_ID                       1\n"
-             "}\n"
-             "define host {\n"
-             "    host_name                      host_2\n"
-             "    alias                          host_2\n"
-             "    address                        2.0.0.0\n"
-             "    check_command                  checkh2\n"
-             "    check_period                   24x7\n"
-             "    register                       1\n"
-             "    _KEY2                      VAL2\n"
-             "    _SNMPCOMMUNITY                 public\n"
-             "    _SNMPVERSION                   2c\n"
-             "    _HOST_ID                       2\n"
-             "}\n"
-             "define host {\n"
-             "    host_name                      host_3\n"
-             "    alias                          host_3\n"
-             "    address                        3.0.0.0\n"
-             "    check_command                  checkh3\n"
-             "    check_period                   24x7\n"
-             "    register                       1\n"
-             "    _KEY3                      VAL3\n"
-             "    _SNMPCOMMUNITY                 public\n"
-             "    _SNMPVERSION                   2c\n"
-             "    _HOST_ID                       3\n"
-             "}\n"
-             "define host {\n"
-             "    host_name                      host_4\n"
-             "    alias                          host_4\n"
-             "    address                        4.0.0.0\n"
-             "    check_command                  checkh4\n"
-             "    check_period                   24x7\n"
-             "    register                       1\n"
-             "    _KEY4                      VAL4\n"
-             "    _SNMPCOMMUNITY                 public\n"
-             "    _SNMPVERSION                   2c\n"
-             "    _HOST_ID                       4\n"
-             "}\n");
-
-  CreateFile("/tmp/services.cfg",
-             "# comment 1\n"
-             "# comment 2\n"
-             "define service {\n"
-             "    host_name                       host_1\n"
-             "    service_description             service_1\n"
-             "    _SERVICE_ID                     1\n"
-             "    check_command                   command_19\n"
-             "    check_period                    24x7\n"
-             "    max_check_attempts              3\n"
-             "    check_interval                  5\n"
-             "    retry_interval                  5\n"
-             "    register                        1\n"
-             "    active_checks_enabled           1\n"
-             "    passive_checks_enabled          1\n"
-             "}\n"
-             "define service {\n"
-             "    host_name                       host_1\n"
-             "    service_description             service_2\n"
-             "    _SERVICE_ID                     2\n"
-             "    check_command                   command_47\n"
-             "    check_period                    24x7\n"
-             "    max_check_attempts              3\n"
-             "    check_interval                  5\n"
-             "    retry_interval                  5\n"
-             "    register                        1\n"
-             "    active_checks_enabled           1\n"
-             "    passive_checks_enabled          1\n"
-             "}\n"
-             "define service {\n"
-             "    host_name                       host_1\n"
-             "    service_description             service_3\n"
-             "    _SERVICE_ID                     3\n"
-             "    check_command                   command_21\n"
-             "    check_period                    24x7\n"
-             "    max_check_attempts              3\n"
-             "    check_interval                  5\n"
-             "    retry_interval                  5\n"
-             "    register                        1\n"
-             "    active_checks_enabled           1\n"
-             "    passive_checks_enabled          1\n"
-             "}\n"
-             "define service {\n"
-             "    host_name                       host_1\n"
-             "    service_description             service_4\n"
-             "    _SERVICE_ID                     4\n"
-             "    check_command                   command_30\n"
-             "    check_period                    24x7\n"
-             "    max_check_attempts              3\n"
-             "    check_interval                  5\n"
-             "    retry_interval                  5\n"
-             "    register                        1\n"
-             "    active_checks_enabled           1\n"
-             "    passive_checks_enabled          1\n"
-             "}\n");
-
-  CreateFile("/tmp/commands.cfg",
-             "define command {\n"
-             "    command_name                    command_1\n"
-             "    command_line                    "
-             "/tmp/var/lib/centreon-engine/check.pl 1\n"
-             "}\n"
-             "define command {\n"
-             "    command_name                    command_2\n"
-             "    command_line                    "
-             "/tmp/var/lib/centreon-engine/check.pl 2\n"
-             "    connector                       Perl Connector\n"
-             "}\n"
-             "define command {\n"
-             "    command_name                    command_3\n"
-             "    command_line                    "
-             "/tmp/var/lib/centreon-engine/check.pl 3\n"
-             "}\n"
-             "define command {\n"
-             "    command_name                    command_4\n"
-             "    command_line                    "
-             "/tmp/var/lib/centreon-engine/check.pl 4\n"
-             "    connector                       Perl Connector\n"
-             "}\n"
-             "define command {\n"
-             "    command_name                    command_5\n"
-             "    command_line                    "
-             "/tmp/var/lib/centreon-engine/check.pl 5\n"
-             "}\n"
-             "define command {\n"
-             "    name                            command_template\n"
-             "    command_name                    command_6\n"
-             "    command_line                    "
-             "/tmp/var/lib/centreon-engine/check.pl 6\n"
-             "    connector                       Perl Connector\n"
-             "}\n"
-             "define command {\n"
-             "    command_name                    command_6\n"
-             "    use                             command_template\n"
-             "}\n"
-             "define command {\n"
-             "    command_name                    command_7\n"
-             "    command_line                    "
-             "/tmp/var/lib/centreon-engine/check.pl 7\n"
-             "}\n");
-
-  CreateFile(
-      "/tmp/timeperiods.cfg",
-      "define timeperiod {\n"
-      "    name                           24x7\n"
-      "    timeperiod_name                24x7\n"
-      "    alias                          24_Hours_A_Day,_7_Days_A_Week\n"
-      "    sunday                         00:00-24:00\n"
-      "    monday                         00:00-24:00\n"
-      "    tuesday                        00:00-24:00\n"
-      "    wednesday                      00:00-24:00\n"
-      "    thursday                       00:00-24:00\n"
-      "    friday                         00:00-24:00\n"
-      "    saturday                       00:00-24:00\n"
-      "}\n"
-      "define timeperiod {\n"
-      "    name                           24x6\n"
-      "    timeperiod_name                24x6\n"
-      "    alias                          24_Hours_A_Day,_7_Days_A_Week\n"
-      "    sunday                         00:00-24:00\n"
-      "    monday                         00:00-8:00,18:00-24:00\n"
-      "    tuesday                        00:00-24:00\n"
-      "    wednesday                      00:00-24:00\n"
-      "    thursday                       00:00-24:00\n"
-      "    friday                         00:00-24:00\n"
-      "    saturday                       00:00-24:00\n"
-      "}\n");
-
-  CreateFile("/tmp/resource.cfg",
-             "# comment 3\n"
-             "$USER1$=/usr/lib64/nagios/plugins\n"
-             "$CENTREONPLUGINS$=/usr/lib/centreon/plugins/\n");
-
-  CreateFile("/tmp/contacts.cfg",
-             "define contact {\n"
-             "    contact_name                   contact1\n"
-             "    use                            template_contact\n"
-             "    contact_groups                 super_cgroup1,super_cgroup2\n"
-             "}\n"
-             "define contact {\n"
-             "    name                           template_contact\n"
-             "    alias                          contact1\n"
-             "    contact_groups                 cgroup1,cgroup3\n"
-             "}\n");
-
-  CreateFile(
-      conf,
-      "# comment 4\n"
-      "# comment 5\n"
-      "# comment 6\n"
-      "cfg_file=/tmp/hosts.cfg\n"
-      "cfg_file=/tmp/services.cfg\n"
-      "cfg_file=/tmp/commands.cfg\n"
-      "cfg_file=/tmp/contacts.cfg\n"
-      //"cfg_file=/tmp/etc/centreon-engine/config0/hostgroups.cfg\n"
-      "cfg_file=/tmp/timeperiods.cfg\n"
-      //"cfg_file=/tmp/etc/centreon-engine/config0/connectors.cfg\n"
-      //      "broker_module=/usr/lib64/centreon-engine/externalcmd.so\n"
-      //      "broker_module=/usr/lib64/nagios/cbmod.so "
-      //      "/tmp/etc/centreon-broker/central-module0.json\n"
-      //      "interval_length=60\n"
-      //      "use_timezone=:Europe/Paris\n"
-      "resource_file=/tmp/resource.cfg\n"
-      //      "log_file=/tmp/var/log/centreon-engine/config0/centengine.log\n"
-      //      "status_file=/tmp/var/log/centreon-engine/config0/status.dat\n"
-      //      "command_check_interval=1s\n"
-      //      "command_file=/tmp/var/lib/centreon-engine/config0/rw/centengine.cmd\n"
-      //      "state_retention_file=/tmp/var/log/centreon-engine/config0/"
-      //      "retention.dat\n"
-      //      "retention_update_interval=60\n"
-      //      "sleep_time=0.2\n"
-      //      "service_inter_check_delay_method=s\n"
-      //      "service_interleave_factor=s\n"
-      //      "max_concurrent_checks=400\n"
-      //      "max_service_check_spread=5\n"
-      //      "check_result_reaper_frequency=5\n"
-      //      "low_service_flap_threshold=25.0\n"
-      //      "high_service_flap_threshold=50.0\n"
-      //      "low_host_flap_threshold=25.0\n"
-      //      "high_host_flap_threshold=50.0\n"
-      //      "service_check_timeout=10\n"
-      //      "host_check_timeout=12\n"
-      //      "event_handler_timeout=30\n"
-      //      "notification_timeout=30\n"
-      //      "ocsp_timeout=5\n"
-      //      "ochp_timeout=5\n"
-      //      "perfdata_timeout=5\n"
-      //      "date_format=euro\n"
-      //      "illegal_object_name_chars=~!$%^&*\"|'<>?,()=\n"
-      //      "illegal_macro_output_chars=`~$^&\"|'<>\n"
-      //      "admin_email=titus@bidibule.com\n"
-      //      "admin_pager=admin\n"
-      //      "event_broker_options=-1\n"
-      //      "cached_host_check_horizon=60\n"
-      //      "debug_file=/tmp/var/log/centreon-engine/config0/centengine.debug\n"
-      //      "debug_level=0\n"
-      //      "debug_verbosity=2\n"
-      //      "log_pid=1\n"
-      //      "macros_filter=KEY80,KEY81,KEY82,KEY83,KEY84\n"
-      //      "enable_macros_filter=0\n"
-      //      "rpc_port=50001\n"
-      //      "postpone_notification_to_timeperiod=0\n"
-      "instance_heartbeat_interval=30\n"
-      //      "enable_notifications=1\n"
-      //      "execute_service_checks=1\n"
-      //      "accept_passive_service_checks=1\n"
-      //      "enable_event_handlers=1\n"
-      //      "check_external_commands=1\n"
-      //      "use_retained_program_state=1\n"
-      //      "use_retained_scheduling_info=1\n"
-      //      "use_syslog=0\n"
-      //      "log_notifications=1\n"
-      //      "log_service_retries=1\n"
-      //      "log_host_retries=1\n"
-      //      "log_event_handlers=1\n"
-      //      "log_external_commands=1\n"
-      //      "log_v2_enabled=1\n"
-      //      "log_legacy_enabled=0\n"
-      //      "log_v2_logger=file\n"
-      "log_level_functions=trace\n"
-      //      "log_level_config=info\n"
-      //      "log_level_events=info\n"
-      //      "log_level_checks=info\n"
-      //      "log_level_notifications=info\n"
-      //      "log_level_eventbroker=info\n"
-      //      "log_level_external_command=trace\n"
-      //      "log_level_commands=info\n"
-      //      "log_level_downtimes=info\n"
-      //      "log_level_comments=info\n"
-      //      "log_level_macros=info\n"
-      //      "log_level_process=info\n"
-      //      "log_level_runtime=info\n"
-      //      "log_flush_period=0\n"
-      //      "soft_state_dependencies=0\n"
-      //      "obsess_over_services=0\n"
-      //      "process_performance_data=0\n"
-      //      "check_for_orphaned_services=0\n"
-      //      "check_for_orphaned_hosts=0\n"
-      "check_service_freshness=1\n"
-      "enable_flap_detection=0\n");
-  p.parse(conf, &config);
+  CreateConf();
+  p.parse("/tmp/centengine.cfg", config);
   ASSERT_EQ(config.check_service_freshness(), true);
   ASSERT_EQ(config.enable_flap_detection(), false);
   ASSERT_EQ(config.instance_heartbeat_interval(), 30);
   ASSERT_EQ(config.log_level_functions(), std::string("trace"));
-  ASSERT_EQ(config.cfg_file().size(), 5u);
-  ASSERT_EQ(config.resource_file().size(), 1u);
-  ASSERT_EQ(config.hosts().size(), 4u);
+  ASSERT_EQ(config.cfg_file().size(), CFG_FILES);
+  ASSERT_EQ(config.resource_file().size(), RES_FILES);
+  ASSERT_EQ(config.hosts().size(), HOSTS);
+  auto it = config.hosts().begin();
+  ASSERT_EQ(it->host_name(), std::string("host_1"));
+  ASSERT_TRUE(it->should_register());
+  ASSERT_EQ(it->host_id(), 1);
+  ++it;
+  ASSERT_EQ(it->host_name(), std::string("host_2"));
+  ASSERT_TRUE(it->should_register());
+  ASSERT_EQ(it->host_id(), 2);
+  ++it;
+  ASSERT_EQ(it->host_name(), std::string("host_3"));
+  ASSERT_TRUE(it->should_register());
+  ASSERT_EQ(it->host_id(), 3);
+  ++it;
+  ASSERT_EQ(it->host_name(), std::string("host_4"));
+  ASSERT_TRUE(it->should_register());
+  ASSERT_EQ(it->host_id(), 4);
+
+  ASSERT_EQ(config.services().size(), SERVICES);
+  auto sit = config.services().begin();
+  ASSERT_EQ(sit->hosts().size(), 1u);
+  ASSERT_EQ(sit->service_id(), 1);
+  ASSERT_TRUE(sit->should_register());
+  ASSERT_TRUE(sit->checks_active());
+  ASSERT_EQ(sit->contactgroups().size(), 3u);
+  {
+    auto it = sit->contactgroups().begin();
+    ASSERT_EQ(*it, std::string("cg1"));
+    ++it;
+    ASSERT_EQ(*it, std::string("cg2"));
+    ++it;
+    ASSERT_EQ(*it, std::string("cg3"));
+  }
+  ASSERT_EQ(*sit->hosts().begin(), std::string("host_1"));
+  ASSERT_EQ(sit->service_description(), std::string("service_1"));
+  EXPECT_EQ(sit->hostgroups().size(), 2u);
+  EXPECT_EQ(*sit->hostgroups().begin(), std::string("hg1"));
+  EXPECT_EQ(sit->contacts().size(), 2u);
+  EXPECT_EQ(*sit->contacts().begin(), std::string("contact1"));
+
+  ASSERT_EQ(config.commands().size(), 8u);
+  auto cit = config.commands().begin();
+  ASSERT_EQ(cit->command_name(), std::string("command_1"));
+  ASSERT_EQ(cit->command_line(),
+            std::string("/tmp/var/lib/centreon-engine/check.pl 1"));
+
+  /* One command inherites from command_template */
+  while (cit != config.commands().end() &&
+         cit->command_name() != std::string("command_6"))
+    ++cit;
+  ASSERT_EQ(cit->command_name(), std::string("command_6"));
+  ASSERT_EQ(cit->command_line(),
+            std::string("/tmp/var/lib/centreon-engine/check.pl 6"));
+
+  ASSERT_EQ(config.timeperiods().size(), TIMEPERIODS);
+  auto tit = config.timeperiods().begin();
+  EXPECT_EQ(tit->timeperiod_name(), std::string("24x6"));
+  EXPECT_EQ(tit->alias(), std::string("24_Hours_A_Day,_7_Days_A_Week"));
+  EXPECT_EQ(tit->timeranges()[0].size(),
+            1u);  // std::string("00:00-24:00"));
+  EXPECT_EQ(tit->timeranges()[0].begin()->get_range_start(), 0);
+  EXPECT_EQ(tit->timeranges()[0].begin()->get_range_end(), 3600 * 24);
+  EXPECT_EQ(tit->timeranges()[1].size(), 2u);
+  auto itt = tit->timeranges()[1].begin();
+  EXPECT_EQ(itt->get_range_start(), 0);  // 00:00-08:00
+  EXPECT_EQ(itt->get_range_end(), 3600 * 8);
+  ++itt;
+  EXPECT_EQ(itt->get_range_start(), 3600 * 18);  // 18:00-24:00
+  ASSERT_EQ(itt->get_range_end(), 3600 * 24);
+  EXPECT_EQ(tit->timeranges()[2].size(), 1u);  // tuesday
+  EXPECT_EQ(tit->timeranges()[3].size(), 1u);  // wednesday
+  EXPECT_EQ(tit->timeranges()[4].size(), 1u);  // thursday
+  EXPECT_EQ(tit->timeranges()[5].size(), 1u);  // friday
+  EXPECT_EQ(tit->timeranges()[6].size(), 1u);  // saturday
+
+  ASSERT_EQ(config.contacts().size(), CONTACTS);
+  auto ctit = config.contacts().begin();
+  while (ctit != config.contacts().end() && ctit->contact_name() != "contact1")
+    ++ctit;
+  ASSERT_TRUE(ctit != config.contacts().end());
+  const auto ct = *ctit;
+  EXPECT_EQ(ct.contact_name(), std::string("contact1"));
+  EXPECT_TRUE(ct.can_submit_commands());
+  EXPECT_TRUE(ct.host_notifications_enabled());
+  EXPECT_EQ(ct.host_notification_options(), configuration::host::none);
+  EXPECT_TRUE(ct.retain_nonstatus_information());
+  EXPECT_TRUE(ct.retain_status_information());
+  EXPECT_TRUE(ct.service_notifications_enabled());
+  EXPECT_EQ(ct.service_notification_options(), configuration::service::none);
+  EXPECT_EQ(ct.alias(), std::string("contact1"));
+  EXPECT_EQ(ct.contactgroups().size(), 2u);
+  auto ctgit = ct.contactgroups().begin();
+  EXPECT_EQ(*ctgit, std::string("super_cgroup1"));
+  ++ctgit;
+  EXPECT_EQ(*ctgit, std::string("super_cgroup2"));
+  RmConf();
+}
+
+TEST_F(ApplierState, StateParsing) {
+  configuration::State config;
+  configuration::parser p;
+  CreateConf();
+  p.parse("/tmp/centengine.cfg", &config);
+  ASSERT_EQ(config.check_service_freshness(), true);
+  ASSERT_EQ(config.enable_flap_detection(), false);
+  ASSERT_EQ(config.instance_heartbeat_interval(), 30);
+  ASSERT_EQ(config.log_level_functions(), std::string("trace"));
+  ASSERT_EQ(config.cfg_file().size(), CFG_FILES);
+  ASSERT_EQ(config.resource_file().size(), RES_FILES);
+  ASSERT_EQ(config.hosts().size(), HOSTS);
   ASSERT_EQ(config.hosts()[0].host_name(), std::string("host_1"));
   ASSERT_TRUE(config.hosts()[0].obj().register_());
   ASSERT_EQ(config.hosts()[0].host_id(), 1);
@@ -704,26 +858,34 @@ TEST_F(ApplierState, StateParsing) {
   ASSERT_TRUE(config.hosts()[3].obj().register_());
   ASSERT_EQ(config.hosts()[3].host_id(), 4);
 
-  ASSERT_EQ(config.services().size(), 4u);
-  ASSERT_EQ(config.services()[0].hosts().size(), 1u);
-  ASSERT_EQ(config.services()[0].hosts()[0], std::string("host_1"));
-  ASSERT_EQ(config.services()[0].service_description(),
-            std::string("service_1"));
+  ASSERT_EQ(config.services().size(), SERVICES);
+  ASSERT_EQ(config.services()[0].hosts().data().size(), 1u);
   ASSERT_EQ(config.services()[0].service_id(), 1);
   ASSERT_TRUE(config.services()[0].obj().register_());
   ASSERT_TRUE(config.services()[0].checks_active());
+  ASSERT_EQ(config.services()[0].contactgroups().data().size(), 3u);
+  ASSERT_EQ(config.services()[0].contactgroups().data()[0], std::string("cg1"));
+  ASSERT_EQ(config.services()[0].contactgroups().data()[1], std::string("cg3"));
+  ASSERT_EQ(config.services()[0].contactgroups().data()[2], std::string("cg2"));
+  ASSERT_EQ(config.services()[0].hosts().data()[0], std::string("host_1"));
+  ASSERT_EQ(config.services()[0].service_description(),
+            std::string("service_1"));
+  EXPECT_EQ(config.services()[0].hostgroups().data().size(), 2u);
+  EXPECT_EQ(config.services()[0].hostgroups().data()[0], std::string("hg1"));
+  EXPECT_EQ(config.services()[0].contacts().data().size(), 2u);
+  EXPECT_EQ(config.services()[0].contacts().data()[0], std::string("contact1"));
 
   ASSERT_EQ(config.commands().size(), 8u);
   ASSERT_EQ(config.commands()[0].command_name(), std::string("command_1"));
   ASSERT_EQ(config.commands()[0].command_line(),
             std::string("/tmp/var/lib/centreon-engine/check.pl 1"));
 
-  /* The 6th inherites from command_template */
+  /* One command inherites from command_template */
   ASSERT_EQ(config.commands()[6].command_name(), std::string("command_6"));
   ASSERT_EQ(config.commands()[6].command_line(),
             std::string("/tmp/var/lib/centreon-engine/check.pl 6"));
 
-  ASSERT_EQ(config.timeperiods().size(), 2u);
+  ASSERT_EQ(config.timeperiods().size(), TIMEPERIODS);
   EXPECT_EQ(config.timeperiods()[1].timeperiod_name(), std::string("24x6"));
   EXPECT_EQ(config.timeperiods()[1].alias(),
             std::string("24_Hours_A_Day,_7_Days_A_Week"));
@@ -747,13 +909,19 @@ TEST_F(ApplierState, StateParsing) {
   EXPECT_EQ(config.timeperiods()[1].timeranges().friday().size(), 1u);
   EXPECT_EQ(config.timeperiods()[1].timeranges().saturday().size(), 1u);
 
-  ASSERT_EQ(config.contacts().size(), 2u);
+  ASSERT_EQ(config.contacts().size(), CONTACTS);
   const auto ct = config.contacts().at("contact1");
   EXPECT_EQ(ct.contact_name(), std::string("contact1"));
+  EXPECT_TRUE(ct.can_submit_commands());
+  EXPECT_TRUE(ct.host_notifications_enabled());
+  EXPECT_EQ(ct.host_notification_options(), configuration::action_hst_none);
+  EXPECT_TRUE(ct.retain_nonstatus_information());
+  EXPECT_TRUE(ct.retain_status_information());
+  EXPECT_TRUE(ct.service_notifications_enabled());
+  EXPECT_EQ(ct.service_notification_options(), configuration::action_svc_none);
   EXPECT_EQ(ct.alias(), std::string("contact1"));
-  EXPECT_EQ(ct.contactgroups().size(), 4u);
-  EXPECT_EQ(ct.contactgroups().at(0), std::string("super_cgroup1"));
-  EXPECT_EQ(ct.contactgroups().at(1), std::string("super_cgroup2"));
-  EXPECT_EQ(ct.contactgroups().at(2), std::string("cgroup1"));
-  EXPECT_EQ(ct.contactgroups().at(3), std::string("cgroup3"));
+  EXPECT_EQ(ct.contactgroups().data().size(), 2u);
+  EXPECT_EQ(ct.contactgroups().data().at(0), std::string("super_cgroup1"));
+  EXPECT_EQ(ct.contactgroups().data().at(1), std::string("super_cgroup2"));
+  RmConf();
 }

@@ -227,7 +227,7 @@ class host : public object {
 
 typedef std::shared_ptr<host> host_ptr;
 typedef std::list<host> list_host;
-typedef std::set<host> set_host;
+using set_host = std::set<host>;
 }  // namespace configuration
 
 }
