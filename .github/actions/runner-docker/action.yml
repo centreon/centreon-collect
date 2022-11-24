@@ -16,6 +16,7 @@ inputs:
   params:
     description: "params for script"
     required: false
+
 env:
   REGISTRY: registry-docker.centreon.com/docker-global
 
