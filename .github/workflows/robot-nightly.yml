@@ -2,10 +2,6 @@ name: centreon collect nightly robot
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - master
-      - develop
   pull_request:
     paths:
       - '.github/workflows/robot-nightly.yml'
