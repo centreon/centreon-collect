@@ -184,7 +184,8 @@ enum data_element {
   de_pb_kpi_event = 21,
   de_pb_dimension_bv_event = 22,
   de_pb_dimension_ba_bv_relation_event = 23,
-  de_pb_dimension_timeperiod = 24
+  de_pb_dimension_timeperiod = 24,
+  de_pb_dimension_ba_event = 25,
 };
 }
 constexpr uint32_t make_type(io::data_category cat, uint32_t elem) {

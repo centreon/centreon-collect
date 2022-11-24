@@ -17,6 +17,9 @@
 */
 
 #include "com/centreon/broker/lua/macro_cache.hh"
+#include "bbdo/bam/dimension_ba_bv_relation_event.hh"
+#include "bbdo/bam/dimension_ba_event.hh"
+#include "bbdo/bam/dimension_bv_event.hh"
 #include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric_mapping.hh"
 #include "com/centreon/broker/log_v2.hh"
@@ -417,7 +420,7 @@ macro_cache::get_dimension_ba_bv_relation_events() const {
  *
  * @return a reference to the dimension_ba_event.
  */
-const std::shared_ptr<bam::dimension_ba_event>&
+const std::shared_ptr<bam::pb_dimension_ba_event>&
 macro_cache::get_dimension_ba_event(uint64_t ba_id) const {
   auto const found = _dimension_ba_events.find(ba_id);
   if (found == _dimension_ba_events.end())
@@ -507,6 +510,7 @@ void macro_cache::write(std::shared_ptr<io::data> const& data) {
       _process_metric_mapping(data);
       break;
     case bam::dimension_ba_event::static_type():
+    case bam::pb_dimension_ba_event::static_type():
       _process_dimension_ba_event(data);
       break;
     case bam::dimension_ba_bv_relation_event::static_type():
@@ -920,11 +924,30 @@ void macro_cache::_process_metric_mapping(
  */
 void macro_cache::_process_dimension_ba_event(
     std::shared_ptr<io::data> const& data) {
-  auto const& dbae = std::static_pointer_cast<bam::dimension_ba_event>(data);
-  SPDLOG_LOGGER_DEBUG(log_v2::lua(),
-                      "lua: processing dimension ba event of id {}",
-                      dbae->ba_id);
-  _dimension_ba_events[dbae->ba_id] = dbae;
+  if (data->type() == bam::pb_dimension_ba_event::static_type()) {
+    auto const& dbae =
+        std::static_pointer_cast<bam::pb_dimension_ba_event>(data);
+    SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+                        "lua: pb processing dimension ba event of id {}",
+                        dbae->obj().ba_id());
+    _dimension_ba_events[dbae->obj().ba_id()] = dbae;
+  } else {
+    const auto& to_convert =
+        std::static_pointer_cast<bam::dimension_ba_event>(data);
+    auto dbae = std::make_shared<bam::pb_dimension_ba_event>();
+    DimensionBaEvent& to_fill = dbae->mut_obj();
+    to_fill.set_ba_id(to_convert->ba_id);
+    to_fill.set_ba_name(to_convert->ba_name);
+    to_fill.set_ba_description(to_convert->ba_description);
+    to_fill.set_sla_month_percent_crit(to_convert->sla_month_percent_crit);
+    to_fill.set_sla_month_percent_warn(to_convert->sla_month_percent_warn);
+    to_fill.set_sla_duration_crit(to_convert->sla_duration_crit);
+    to_fill.set_sla_duration_warn(to_convert->sla_duration_warn);
+    SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+                        "lua: pb processing dimension ba event of id {}",
+                        dbae->obj().ba_id());
+    _dimension_ba_events[dbae->obj().ba_id()] = dbae;
+  }
 }
 
 /**

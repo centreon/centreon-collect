@@ -111,6 +111,7 @@ class reporting_stream : public io::stream {
   void _process_pb_dimension(std::shared_ptr<io::data> const& e);
   void _dimension_dispatch(std::shared_ptr<io::data> const& e);
   void _process_dimension_ba(std::shared_ptr<io::data> const& e);
+  void _process_pb_dimension_ba(std::shared_ptr<io::data> const& e);
   void _process_dimension_bv(std::shared_ptr<io::data> const& e);
   void _process_pb_dimension_bv(std::shared_ptr<io::data> const& e);
   void _process_dimension_ba_bv_relation(std::shared_ptr<io::data> const& e);

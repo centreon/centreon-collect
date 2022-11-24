@@ -89,3 +89,14 @@ message DimensionTimeperiod {
     string saturday = 8;
     string sunday = 9;
 }
+
+message DimensionBaEvent {
+    uint32 ba_id = 1;
+    string ba_name = 2;
+    string ba_description = 3;
+    double sla_month_percent_crit = 4;
+    double sla_month_percent_warn = 5;
+    uint32 sla_duration_crit = 6;
+    uint32 sla_duration_warn = 7;
+  
+}
