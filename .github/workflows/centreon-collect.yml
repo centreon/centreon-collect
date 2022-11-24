@@ -42,7 +42,7 @@ jobs:
               echo "release=$GITHUB_RUN_ATTEMPT" >> $GITHUB_OUTPUT
               ;;
             *)
-              echo "release=`date +%s`.${{ github.sha }}" >> $GITHUB_OUTPUT
+              echo "release=${{ github.sha }}" >> $GITHUB_OUTPUT
               ;;
           esac
         shell: bash
