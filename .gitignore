@@ -73,60 +73,60 @@ report.html
 bbdo/*_accessor.hh
 
 # broker
-broker/core/inc/com/centreon/broker/database/table_max_size.hh
-broker/core/inc/com/centreon/broker/vars.hh
-broker/core/inc/com/centreon/broker/version.hh
-broker/config/central-rrd.json
-broker/config/central-broker.json
-broker/config/central-module.json
-broker/script/cbd.init
-broker/script/watchdog.json
-broker/script/misc/grpc/broker_pb2.py
-broker/script/misc/grpc/broker_pb2_grpc.py
-broker/libgtest*.a
-broker/libnebbase.a
-broker/libroker.a
-broker/librokerbase.a
-broker/test/python/*.crt
-broker/test/python/*.key
+centreon-broker/core/inc/com/centreon/broker/database/table_max_size.hh
+centreon-broker/core/inc/com/centreon/broker/vars.hh
+centreon-broker/core/inc/com/centreon/broker/version.hh
+centreon-broker/config/central-rrd.json
+centreon-broker/config/central-broker.json
+centreon-broker/config/central-module.json
+centreon-broker/script/cbd.init
+centreon-broker/script/watchdog.json
+centreon-broker/script/misc/grpc/broker_pb2.py
+centreon-broker/script/misc/grpc/broker_pb2_grpc.py
+centreon-broker/libgtest*.a
+centreon-broker/libnebbase.a
+centreon-broker/libroker.a
+centreon-broker/librokerbase.a
+centreon-broker/test/python/*.crt
+centreon-broker/test/python/*.key
 
 #ci
 ci/repo/*
 
 # clib
-clib/inc/com/centreon/clib/version.hh
-clib/script/*
+centreon-clib/inc/com/centreon/clib/version.hh
+centreon-clib/script/*
 
 # connectors
-connectors/perl/src/xs_init.cc
-connectors/perl/test/connector/paths.hh
-connectors/ssh/test/connector/binary.hh
+centreon-connector/perl/src/xs_init.cc
+centreon-connector/perl/test/connector/paths.hh
+centreon-connector/ssh/test/connector/binary.hh
 
 # doc
 **/doc/devel-doc
 **/doc/_build
 
 # engine
-engine/benchmark/lib/*
-engine/benchmark/log/*
-engine/conf/centengine.cfg
-engine/conf/timeperiods.cfg
-engine/conf/commands.cfg
-engine/conf/resource.cfg
-engine/conf/objects/*.cfg
-engine/doc/_build
-engine/enginerpc/engine.*pb.cc
-engine/enginerpc/engine.*pb.h
-engine/gtest.cbp
-engine/inc/com/centreon/engine/version.hh
-engine/inc/compatibility/common.h
-engine/inc/compatibility/locations.h
-engine/modules/bench/passive/paths.hh
-engine/scripts/centengine.pc
-engine/scripts/centengine.sh
-engine/src/simumod/neb.cc
-engine/tags
-engine/doc/devel-doc
+centreon-engine/benchmark/lib/*
+centreon-engine/benchmark/log/*
+centreon-engine/conf/centengine.cfg
+centreon-engine/conf/timeperiods.cfg
+centreon-engine/conf/commands.cfg
+centreon-engine/conf/resource.cfg
+centreon-engine/conf/objects/*.cfg
+centreon-engine/doc/_build
+centreon-engine/enginerpc/engine.*pb.cc
+centreon-engine/enginerpc/engine.*pb.h
+centreon-engine/gtest.cbp
+centreon-engine/inc/com/centreon/engine/version.hh
+centreon-engine/inc/compatibility/common.h
+centreon-engine/inc/compatibility/locations.h
+centreon-engine/modules/bench/passive/paths.hh
+centreon-engine/scripts/centengine.pc
+centreon-engine/scripts/centengine.sh
+centreon-engine/src/simumod/neb.cc
+centreon-engine/tags
+centreon-engine/doc/devel-doc
 
 # gorgone
 gorgone/log

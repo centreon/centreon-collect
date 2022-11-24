@@ -1,30 +1,29 @@
-# #
-# # Copyright 2011-2021 Centreon
-# #
-# # This file is part of Centreon Engine.
-# #
-# # Centreon Engine is free software: you can redistribute it and/or
-# # modify it under the terms of the GNU General Public License version 2
-# # as published by the Free Software Foundation.
-# #
-# # Centreon Engine is distributed in the hope that it will be useful,
-# # but WITHOUT ANY WARRANTY; without even the implied warranty of
-# # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-# # General Public License for more details.
-# #
-# # You should have received a copy of the GNU General Public License
-# # along with Centreon Engine. If not, see
-# # <http://www.gnu.org/licenses/>.
-# #
+#
+# Copyright 2011-2022 Centreon
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY # KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# For more information : contact@centreon.com
+#
 
 #
 # Global settings.
 #
 
 # Set necessary settings.
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.16)
 project("Centreon Engine" C CXX)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
+add_definitions("-D_GLIBCXX_USE_CXX11_ABI=1")
+set(CMAKE_CXX_STANDARD 14)
 
 # set -latomic if OS is Raspbian.
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm")
@@ -32,46 +31,23 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm")
 endif()
 
 # With libasan
-option(WITH_ASAN "Add the libasan to check memory leaks and other memory issues." OFF)
+option(WITH_ASAN
+       "Add the libasan to check memory leaks and other memory issues." OFF)
 
 if(WITH_ASAN)
   set(CMAKE_BUILD_TYPE Debug)
-  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+  set(CMAKE_CXX_FLAGS_DEBUG
+      "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
   set(CMAKE_LINKER_FLAGS_DEBUG
-    "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+      "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
 endif()
 
-add_definitions("-D_GLIBCXX_USE_CXX11_ABI=1")
 set(INC_DIR "${PROJECT_SOURCE_DIR}/inc")
 set(SCRIPT_DIR "${PROJECT_SOURCE_DIR}/scripts")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 include_directories("${INC_DIR}")
 include_directories("${INC_DIR}/compatibility")
 
-include(${CMAKE_BINARY_DIR}/conan_paths.cmake)
-
-set(protobuf_MODULE_COMPATIBLE True)
-find_package(Protobuf REQUIRED)
-find_package(gRPC REQUIRED)
-find_package(re2 REQUIRED)
-find_package(c-ares REQUIRED)
-find_package(ZLIB REQUIRED)
-find_package(nlohmann_json REQUIRED)
-find_package(fmt REQUIRED)
-find_package(spdlog REQUIRED)
-
-include_directories(${gRPC_INCLUDE_DIRS})
-include_directories(${absl_INCLUDE_DIRS})
-include_directories(${protobuf_INCLUDE_DIRS})
-include_directories(${nlohmann_json_INCLUDE_DIRS})
-include_directories(${fmt_INCLUDE_DIRS})
-
-link_directories(${protobuf_LIB_DIRS})
-link_directories(${gRPC_LIB_DIRS})
-link_directories(${OpenSSL_LIB_DIRS})
-link_directories(${c-ares_LIB_DIRS})
-link_directories(${ZLIB_LIB_DIRS})
-link_directories(${nlohmann_json_LIB_DIRS})
 link_directories(${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 
 # Version.
@@ -91,14 +67,18 @@ else()
 endif()
 
 if(CENTREON_ENGINE_PRERELEASE)
-  set(CENTREON_ENGINE_VERSION "${CENTREON_ENGINE_MAJOR}.${CENTREON_ENGINE_MINOR}.${CENTREON_ENGINE_PATCH}-${CENTREON_ENGINE_PRERELEASE}")
+  set(CENTREON_ENGINE_VERSION
+      "${CENTREON_ENGINE_MAJOR}.${CENTREON_ENGINE_MINOR}.${CENTREON_ENGINE_PATCH}-${CENTREON_ENGINE_PRERELEASE}"
+  )
 else()
-  set(CENTREON_ENGINE_VERSION "${CENTREON_ENGINE_MAJOR}.${CENTREON_ENGINE_MINOR}.${CENTREON_ENGINE_PATCH}")
+  set(CENTREON_ENGINE_VERSION
+      "${CENTREON_ENGINE_MAJOR}.${CENTREON_ENGINE_MINOR}.${CENTREON_ENGINE_PATCH}"
+  )
 endif()
 
 message(STATUS "Generating version header (${CENTREON_ENGINE_VERSION}).")
 configure_file("${INC_DIR}/com/centreon/engine/version.hh.in"
-  "${INC_DIR}/com/centreon/engine/version.hh")
+               "${INC_DIR}/com/centreon/engine/version.hh")
 
 #
 # Check and/or find required components.
@@ -114,14 +94,16 @@ if(MATH_LIB_FOUND)
 endif()
 
 message(STATUS "Checking for libnsl.")
-check_library_exists("nsl" "getservbyname" "${CMAKE_LIBRARY_PATH}" NSL_LIB_FOUND)
+check_library_exists("nsl" "getservbyname" "${CMAKE_LIBRARY_PATH}"
+                     NSL_LIB_FOUND)
 
 if(NSL_LIB_FOUND)
   set(NSL_LIBRARIES "nsl")
 endif()
 
 message(STATUS "Checking for libsocket.")
-check_library_exists("socket" "connect" "${CMAKE_LIBRARY_PATH}" SOCKET_LIB_FOUND)
+check_library_exists("socket" "connect" "${CMAKE_LIBRARY_PATH}"
+                     SOCKET_LIB_FOUND)
 
 if(SOCKET_LIB_FOUND)
   set(SOCKET_LIBRARIES "socket")
@@ -210,10 +192,8 @@ option(WITH_PKGCONFIG_SCRIPT "Generate and install pkg-config script." ON)
 if(WITH_PKGCONFIG_SCRIPT)
   # Generate pkg-config file.
   message(STATUS "Generating pkg-config file.")
-  configure_file(
-    "${SCRIPT_DIR}/centengine.pc.in"
-    "${SCRIPT_DIR}/centengine.pc"
-    @ONLY)
+  configure_file("${SCRIPT_DIR}/centengine.pc.in" "${SCRIPT_DIR}/centengine.pc"
+                 @ONLY)
 
   # pkg-config file install directory.
   if(WITH_PKGCONFIG_DIR)
@@ -223,7 +203,8 @@ if(WITH_PKGCONFIG_SCRIPT)
   endif()
 
   # Install rule.
-  install(FILES "${SCRIPT_DIR}/centengine.pc"
+  install(
+    FILES "${SCRIPT_DIR}/centengine.pc"
     DESTINATION "${PKGCONFIG_DIR}"
     COMPONENT "runtime")
 endif()
@@ -266,7 +247,8 @@ endif()
 # Check OS distributor.
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   message(STATUS "Attempting to determine OS distributor.")
-  execute_process(COMMAND "lsb_release" "--short" "--id"
+  execute_process(
+    COMMAND "lsb_release" "--short" "--id"
     RESULT_VARIABLE RETCODE
     OUTPUT_VARIABLE OS_DISTRIBUTOR
     ERROR_QUIET)
@@ -294,7 +276,10 @@ if(WITH_STARTUP_SCRIPT STREQUAL "auto")
       set(WITH_STARTUP_SCRIPT "sysv")
     endif()
   else()
-    message(STATUS "Centreon Engine does not provide startup script for ${CMAKE_SYSTEM_NAME}.")
+    message(
+      STATUS
+        "Centreon Engine does not provide startup script for ${CMAKE_SYSTEM_NAME}."
+    )
   endif()
 endif()
 
@@ -302,8 +287,7 @@ endif()
 if(WITH_STARTUP_SCRIPT STREQUAL "upstart")
   # Generate Upstart script.
   message(STATUS "Generating upstart script.")
-  configure_file("${SCRIPT_DIR}/upstart.conf.in"
-    "${SCRIPT_DIR}/upstart.conf")
+  configure_file("${SCRIPT_DIR}/upstart.conf.in" "${SCRIPT_DIR}/upstart.conf")
 
   # Startup dir.
   if(WITH_STARTUP_DIR)
@@ -313,7 +297,8 @@ if(WITH_STARTUP_SCRIPT STREQUAL "upstart")
   endif()
 
   # Script install rule.
-  install(FILES "${SCRIPT_DIR}/upstart.conf"
+  install(
+    FILES "${SCRIPT_DIR}/upstart.conf"
     DESTINATION "${STARTUP_DIR}"
     COMPONENT "runtime"
     RENAME "centengine.conf")
@@ -321,15 +306,15 @@ if(WITH_STARTUP_SCRIPT STREQUAL "upstart")
   # String printed in summary.
   set(STARTUP_SCRIPT "Upstart configuration file")
 
-# Create SysV start script.
+  # Create SysV start script.
 elseif(WITH_STARTUP_SCRIPT STREQUAL "sysv")
   # Lock file.
   if(WITH_LOCK_FILE)
     set(LOCK_FILE "${WITH_LOCK_FILE}")
   else()
     if(OS_DISTRIBUTOR STREQUAL "Ubuntu"
-      OR OS_DISTRIBUTOR STREQUAL "Debian"
-      OR OS_DISTRIBUTOR STREQUAL "SUSE LINUX")
+       OR OS_DISTRIBUTOR STREQUAL "Debian"
+       OR OS_DISTRIBUTOR STREQUAL "SUSE LINUX")
       set(LOCK_FILE "/var/lock/centengine.lock")
     else()
       set(LOCK_FILE "/var/lock/subsys/centengine.lock")
@@ -349,8 +334,7 @@ elseif(WITH_STARTUP_SCRIPT STREQUAL "sysv")
 
   # Generate SysV script.
   message(STATUS "Generating generic startup script.")
-  configure_file("${SCRIPT_DIR}/centengine.sh.in"
-    "${SCRIPT_DIR}/centengine.sh")
+  configure_file("${SCRIPT_DIR}/centengine.sh.in" "${SCRIPT_DIR}/centengine.sh")
 
   # Startup dir.
   if(WITH_STARTUP_DIR)
@@ -360,7 +344,8 @@ elseif(WITH_STARTUP_SCRIPT STREQUAL "sysv")
   endif()
 
   # Script install rule.
-  install(PROGRAMS "${SCRIPT_DIR}/centengine.sh"
+  install(
+    PROGRAMS "${SCRIPT_DIR}/centengine.sh"
     DESTINATION "${STARTUP_DIR}"
     COMPONENT "runtime"
     RENAME "centengine")
@@ -368,12 +353,12 @@ elseif(WITH_STARTUP_SCRIPT STREQUAL "sysv")
   # String printed in summary.
   set(STARTUP_SCRIPT "SysV-style script")
 
-# Create Systemd start script.
+  # Create Systemd start script.
 elseif(WITH_STARTUP_SCRIPT STREQUAL "systemd")
   # Generate Systemd script.
   message(STATUS "Generating systemd startup script.")
   configure_file("${SCRIPT_DIR}/centengine.service.in"
-    "${SCRIPT_DIR}/centengine.service")
+                 "${SCRIPT_DIR}/centengine.service")
 
   # Startup dir.
   if(WITH_STARTUP_DIR)
@@ -383,7 +368,8 @@ elseif(WITH_STARTUP_SCRIPT STREQUAL "systemd")
   endif()
 
   # Script install rule.
-  install(PROGRAMS "${SCRIPT_DIR}/centengine.service"
+  install(
+    PROGRAMS "${SCRIPT_DIR}/centengine.service"
     DESTINATION "${STARTUP_DIR}"
     COMPONENT "runtime")
 
@@ -392,32 +378,30 @@ elseif(WITH_STARTUP_SCRIPT STREQUAL "systemd")
 
 else()
   # Default.
-  message(STATUS "Invalid value for option WITH_STARTUP_SCRIPT (must be one of 'auto', 'sysv' or 'upstart').")
+  message(
+    STATUS
+      "Invalid value for option WITH_STARTUP_SCRIPT (must be one of 'auto', 'sysv' or 'upstart')."
+  )
   set(STARTUP_SCRIPT "disabled")
 endif()
 
 # logrotate directory.
-option(WITH_ENGINE_LOGROTATE_SCRIPT "Generate and install logrotate script." OFF)
+option(WITH_ENGINE_LOGROTATE_SCRIPT "Generate and install logrotate script."
+       OFF)
 
 if(WITH_ENGINE_LOGROTATE_SCRIPT)
   # Generate logrotate file.
   message(STATUS "Generating logrorate file.")
 
   if(WITH_STARTUP_SCRIPT STREQUAL "upstart")
-    configure_file(
-      "${SCRIPT_DIR}/logrotate_upstart.conf.in"
-      "${SCRIPT_DIR}/logrotate.conf"
-      @ONLY)
+    configure_file("${SCRIPT_DIR}/logrotate_upstart.conf.in"
+                   "${SCRIPT_DIR}/logrotate.conf" @ONLY)
   elseif(WITH_STARTUP_SCRIPT STREQUAL "systemd")
-    configure_file(
-      "${SCRIPT_DIR}/logrotate_systemd.conf.in"
-      "${SCRIPT_DIR}/logrotate.conf"
-      @ONLY)
+    configure_file("${SCRIPT_DIR}/logrotate_systemd.conf.in"
+                   "${SCRIPT_DIR}/logrotate.conf" @ONLY)
   else()
-    configure_file(
-      "${SCRIPT_DIR}/logrotate_sysv.conf.in"
-      "${SCRIPT_DIR}/logrotate.conf"
-      @ONLY)
+    configure_file("${SCRIPT_DIR}/logrotate_sysv.conf.in"
+                   "${SCRIPT_DIR}/logrotate.conf" @ONLY)
   endif()
 
   # logrotate file install directory.
@@ -432,11 +416,13 @@ if(WITH_ENGINE_LOGROTATE_SCRIPT)
     FILES "${SCRIPT_DIR}/logrotate.conf"
     DESTINATION "${LOGROTATE_DIR}"
     COMPONENT "runtime"
-    RENAME "centengine"
-  )
+    RENAME "centengine")
 endif()
 
-option(WITH_SHARED_LIB "Define if the core library is to be build as a shared object or a static library." OFF)
+option(
+  WITH_SHARED_LIB
+  "Define if the core library is to be build as a shared object or a static library."
+  OFF)
 
 if(WITH_SHARED_LIB)
   set(LIBRARY_TYPE SHARED)
@@ -450,11 +436,13 @@ option(WITH_COVERAGE "Add code coverage on unit tests." OFF)
 if(WITH_TESTING AND WITH_COVERAGE)
   set(CMAKE_BUILD_TYPE "Debug")
   include(cmake/CodeCoverage.cmake)
-  APPEND_COVERAGE_COMPILER_FLAGS()
+  append_coverage_compiler_flags()
 endif()
 
 # Simumod module to simulate cbmod and catch its output
-option(WITH_SIMU "Add a module only used for tests to see data that cbmod should receive" OFF)
+option(WITH_SIMU
+       "Add a module only used for tests to see data that cbmod should receive"
+       OFF)
 
 if(WITH_SIMU)
   set(CMAKE_BUILD_TYPE "Debug")
@@ -462,9 +450,10 @@ if(WITH_SIMU)
 endif()
 
 # DEBUG_CONFIG enables checks on configuration. Those checks are not free and
-# may slow down engine reloads. But it provides a way to check bugs in
-# the configuration system.
-option(WITH_DEBUG_CONFIG "Enables checks on configuration. This is an option for developers." OFF)
+# may slow down engine reloads. But it provides a way to check bugs in the
+# configuration system.
+option(WITH_DEBUG_CONFIG
+       "Enables checks on configuration. This is an option for developers." OFF)
 
 if(WITH_DEBUG_CONFIG)
   add_definitions(-DDEBUG_CONFIG)
@@ -472,7 +461,7 @@ endif()
 
 # Configure files.
 configure_file("${INC_DIR}/compatibility/common.h.in"
-  "${INC_DIR}/compatibility/common.h")
+               "${INC_DIR}/compatibility/common.h")
 
 # Locations definitions
 add_definitions(-DDEFAULT_STATUS_FILE="${VAR_DIR}/status.dat")
@@ -491,105 +480,101 @@ endif()
 #
 # Targets.
 #
-set(
-  FILES
-
-  # Sources.
-  "${SRC_DIR}/anomalydetection.cc"
-  "${SRC_DIR}/broker.cc"
-  "${SRC_DIR}/checkable.cc"
-  "${SRC_DIR}/check_result.cc"
-  "${SRC_DIR}/command_manager.cc"
-  "${SRC_DIR}/comment.cc"
-  "${SRC_DIR}/config.cc"
-  "${SRC_DIR}/contact.cc"
-  "${SRC_DIR}/contactgroup.cc"
-  "${SRC_DIR}/customvariable.cc"
-  "${SRC_DIR}/daterange.cc"
-  "${SRC_DIR}/dependency.cc"
-  "${SRC_DIR}/diagnostic.cc"
-  "${SRC_DIR}/exceptions/error.cc"
-  "${SRC_DIR}/flapping.cc"
-  "${SRC_DIR}/escalation.cc"
-  "${SRC_DIR}/globals.cc"
-  "${SRC_DIR}/host.cc"
-  "${SRC_DIR}/hostdependency.cc"
-  "${SRC_DIR}/hostescalation.cc"
-  "${SRC_DIR}/hostgroup.cc"
-  "${SRC_DIR}/macros.cc"
-  "${SRC_DIR}/nebmods.cc"
-  "${SRC_DIR}/notification.cc"
-  "${SRC_DIR}/notifier.cc"
-  "${SRC_DIR}/sehandlers.cc"
-  "${SRC_DIR}/service.cc"
-  "${SRC_DIR}/servicedependency.cc"
-  "${SRC_DIR}/serviceescalation.cc"
-  "${SRC_DIR}/servicegroup.cc"
-  "${SRC_DIR}/shared.cc"
-  "${SRC_DIR}/statistics.cc"
-  "${SRC_DIR}/statusdata.cc"
-  "${SRC_DIR}/string.cc"
-  "${SRC_DIR}/timeperiod.cc"
-  "${SRC_DIR}/timerange.cc"
-  "${SRC_DIR}/timezone_locker.cc"
-  "${SRC_DIR}/timezone_manager.cc"
-  "${SRC_DIR}/utils.cc"
-  "${SRC_DIR}/xpddefault.cc"
-  "${SRC_DIR}/xsddefault.cc"
-
-  # Headers.
-  "${INC_DIR}/com/centreon/engine/anomalydetection.hh"
-  "${INC_DIR}/com/centreon/engine/broker.hh"
-  "${INC_DIR}/com/centreon/engine/checkable.hh"
-  "${INC_DIR}/com/centreon/engine/check_result.hh"
-  "${INC_DIR}/com/centreon/engine/circular_buffer.hh"
-  "${INC_DIR}/com/centreon/engine/command_manager.hh"
-  "${INC_DIR}/com/centreon/engine/comment.hh"
-  "${INC_DIR}/com/centreon/engine/common.hh"
-  "${INC_DIR}/com/centreon/engine/config.hh"
-  "${INC_DIR}/com/centreon/engine/contact.hh"
-  "${INC_DIR}/com/centreon/engine/contactgroup.hh"
-  "${INC_DIR}/com/centreon/engine/customvariable.hh"
-  "${INC_DIR}/com/centreon/engine/daterange.hh"
-  "${INC_DIR}/com/centreon/engine/dependency.hh"
-  "${INC_DIR}/com/centreon/engine/diagnostic.hh"
-  "${INC_DIR}/com/centreon/engine/exceptions/error.hh"
-  "${INC_DIR}/com/centreon/engine/escalation.hh"
-  "${INC_DIR}/com/centreon/engine/flapping.hh"
-  "${INC_DIR}/com/centreon/engine/globals.hh"
-  "${INC_DIR}/com/centreon/engine/host.hh"
-  "${INC_DIR}/com/centreon/engine/hostdependency.hh"
-  "${INC_DIR}/com/centreon/engine/hostescalation.hh"
-  "${INC_DIR}/com/centreon/engine/hostgroup.hh"
-  "${INC_DIR}/com/centreon/engine/logging.hh"
-  "${INC_DIR}/com/centreon/engine/macros.hh"
-  "${INC_DIR}/com/centreon/engine/nebcallbacks.hh"
-  "${INC_DIR}/com/centreon/engine/neberrors.hh"
-  "${INC_DIR}/com/centreon/engine/nebmods.hh"
-  "${INC_DIR}/com/centreon/engine/nebmodules.hh"
-  "${INC_DIR}/com/centreon/engine/nebstructs.hh"
-  "${INC_DIR}/com/centreon/engine/notification.hh"
-  "${INC_DIR}/com/centreon/engine/notifier.hh"
-  "${INC_DIR}/com/centreon/engine/objects.hh"
-  "${INC_DIR}/com/centreon/engine/opt.hh"
-  "${INC_DIR}/com/centreon/engine/sehandlers.hh"
-  "${INC_DIR}/com/centreon/engine/service.hh"
-  "${INC_DIR}/com/centreon/engine/servicedependency.hh"
-  "${INC_DIR}/com/centreon/engine/serviceescalation.hh"
-  "${INC_DIR}/com/centreon/engine/servicegroup.hh"
-  "${INC_DIR}/com/centreon/engine/shared.hh"
-  "${INC_DIR}/com/centreon/engine/statistics.hh"
-  "${INC_DIR}/com/centreon/engine/statusdata.hh"
-  "${INC_DIR}/com/centreon/engine/string.hh"
-  "${INC_DIR}/com/centreon/engine/timeperiod.hh"
-  "${INC_DIR}/com/centreon/engine/timerange.hh"
-  "${INC_DIR}/com/centreon/engine/timezone_locker.hh"
-  "${INC_DIR}/com/centreon/engine/timezone_manager.hh"
-  "${INC_DIR}/com/centreon/engine/utils.hh"
-  "${INC_DIR}/com/centreon/engine/version.hh"
-  "${INC_DIR}/com/centreon/engine/xpddefault.hh"
-  "${INC_DIR}/com/centreon/engine/xsddefault.hh"
-)
+set(FILES
+    # Sources.
+    "${SRC_DIR}/anomalydetection.cc"
+    "${SRC_DIR}/broker.cc"
+    "${SRC_DIR}/checkable.cc"
+    "${SRC_DIR}/check_result.cc"
+    "${SRC_DIR}/command_manager.cc"
+    "${SRC_DIR}/comment.cc"
+    "${SRC_DIR}/config.cc"
+    "${SRC_DIR}/contact.cc"
+    "${SRC_DIR}/contactgroup.cc"
+    "${SRC_DIR}/customvariable.cc"
+    "${SRC_DIR}/daterange.cc"
+    "${SRC_DIR}/dependency.cc"
+    "${SRC_DIR}/diagnostic.cc"
+    "${SRC_DIR}/exceptions/error.cc"
+    "${SRC_DIR}/flapping.cc"
+    "${SRC_DIR}/escalation.cc"
+    "${SRC_DIR}/globals.cc"
+    "${SRC_DIR}/host.cc"
+    "${SRC_DIR}/hostdependency.cc"
+    "${SRC_DIR}/hostescalation.cc"
+    "${SRC_DIR}/hostgroup.cc"
+    "${SRC_DIR}/macros.cc"
+    "${SRC_DIR}/nebmods.cc"
+    "${SRC_DIR}/notification.cc"
+    "${SRC_DIR}/notifier.cc"
+    "${SRC_DIR}/sehandlers.cc"
+    "${SRC_DIR}/service.cc"
+    "${SRC_DIR}/servicedependency.cc"
+    "${SRC_DIR}/serviceescalation.cc"
+    "${SRC_DIR}/servicegroup.cc"
+    "${SRC_DIR}/shared.cc"
+    "${SRC_DIR}/statistics.cc"
+    "${SRC_DIR}/statusdata.cc"
+    "${SRC_DIR}/string.cc"
+    "${SRC_DIR}/timeperiod.cc"
+    "${SRC_DIR}/timerange.cc"
+    "${SRC_DIR}/timezone_locker.cc"
+    "${SRC_DIR}/timezone_manager.cc"
+    "${SRC_DIR}/utils.cc"
+    "${SRC_DIR}/xpddefault.cc"
+    "${SRC_DIR}/xsddefault.cc"
+    # Headers.
+    "${INC_DIR}/com/centreon/engine/anomalydetection.hh"
+    "${INC_DIR}/com/centreon/engine/broker.hh"
+    "${INC_DIR}/com/centreon/engine/checkable.hh"
+    "${INC_DIR}/com/centreon/engine/check_result.hh"
+    "${INC_DIR}/com/centreon/engine/circular_buffer.hh"
+    "${INC_DIR}/com/centreon/engine/command_manager.hh"
+    "${INC_DIR}/com/centreon/engine/comment.hh"
+    "${INC_DIR}/com/centreon/engine/common.hh"
+    "${INC_DIR}/com/centreon/engine/config.hh"
+    "${INC_DIR}/com/centreon/engine/contact.hh"
+    "${INC_DIR}/com/centreon/engine/contactgroup.hh"
+    "${INC_DIR}/com/centreon/engine/customvariable.hh"
+    "${INC_DIR}/com/centreon/engine/daterange.hh"
+    "${INC_DIR}/com/centreon/engine/dependency.hh"
+    "${INC_DIR}/com/centreon/engine/diagnostic.hh"
+    "${INC_DIR}/com/centreon/engine/exceptions/error.hh"
+    "${INC_DIR}/com/centreon/engine/escalation.hh"
+    "${INC_DIR}/com/centreon/engine/flapping.hh"
+    "${INC_DIR}/com/centreon/engine/globals.hh"
+    "${INC_DIR}/com/centreon/engine/host.hh"
+    "${INC_DIR}/com/centreon/engine/hostdependency.hh"
+    "${INC_DIR}/com/centreon/engine/hostescalation.hh"
+    "${INC_DIR}/com/centreon/engine/hostgroup.hh"
+    "${INC_DIR}/com/centreon/engine/logging.hh"
+    "${INC_DIR}/com/centreon/engine/macros.hh"
+    "${INC_DIR}/com/centreon/engine/nebcallbacks.hh"
+    "${INC_DIR}/com/centreon/engine/neberrors.hh"
+    "${INC_DIR}/com/centreon/engine/nebmods.hh"
+    "${INC_DIR}/com/centreon/engine/nebmodules.hh"
+    "${INC_DIR}/com/centreon/engine/nebstructs.hh"
+    "${INC_DIR}/com/centreon/engine/notification.hh"
+    "${INC_DIR}/com/centreon/engine/notifier.hh"
+    "${INC_DIR}/com/centreon/engine/objects.hh"
+    "${INC_DIR}/com/centreon/engine/opt.hh"
+    "${INC_DIR}/com/centreon/engine/sehandlers.hh"
+    "${INC_DIR}/com/centreon/engine/service.hh"
+    "${INC_DIR}/com/centreon/engine/servicedependency.hh"
+    "${INC_DIR}/com/centreon/engine/serviceescalation.hh"
+    "${INC_DIR}/com/centreon/engine/servicegroup.hh"
+    "${INC_DIR}/com/centreon/engine/shared.hh"
+    "${INC_DIR}/com/centreon/engine/statistics.hh"
+    "${INC_DIR}/com/centreon/engine/statusdata.hh"
+    "${INC_DIR}/com/centreon/engine/string.hh"
+    "${INC_DIR}/com/centreon/engine/timeperiod.hh"
+    "${INC_DIR}/com/centreon/engine/timerange.hh"
+    "${INC_DIR}/com/centreon/engine/timezone_locker.hh"
+    "${INC_DIR}/com/centreon/engine/timezone_manager.hh"
+    "${INC_DIR}/com/centreon/engine/utils.hh"
+    "${INC_DIR}/com/centreon/engine/version.hh"
+    "${INC_DIR}/com/centreon/engine/xpddefault.hh"
+    "${INC_DIR}/com/centreon/engine/xsddefault.hh")
 
 # Subdirectories with core features.
 add_subdirectory(src/broker)
@@ -611,31 +596,40 @@ include_directories(enginerpc)
 # Library engine target.
 add_library(cce_core ${LIBRARY_TYPE} ${FILES})
 add_dependencies(cce_core engine_rpc)
-add_dependencies(cce_core centreon_clib_shared)
+add_dependencies(cce_core centreon_clib)
 
 # Link target with required libraries.
-target_link_libraries(cce_core ${nlohmann_json_LIBS}
+target_link_libraries(
+  cce_core
+  CONAN_PKG::nlohmann_json
   ${MATH_LIBRARIES}
   ${PTHREAD_LIBRARIES}
   ${SOCKET_LIBRARIES}
   centreon_clib
-  ${fmt_LIBRARIES}
-)
+  CONAN_PKG::spdlog)
 
 # centengine target.
 add_executable("centengine" "${SRC_DIR}/main.cc")
 set_property(TARGET "centengine" PROPERTY ENABLE_EXPORTS "1")
-add_dependencies(centengine centreon_clib_shared)
-get_property(CENTENGINE_BINARY TARGET "centengine" PROPERTY LOCATION)
+add_dependencies(centengine centreon_clib)
 
 # Link centengine with required libraries.
-target_link_libraries(centengine centreon_clib "-Wl,-whole-archive" enginerpc cce_core "-Wl,-no-whole-archive" ${gRPC_LIBS} ${re2_LIBS} ${absl_LIBS} ${OpenSSL_LIBS} ${c-ares_LIBS} ${ZLIB_LIBS} dl)
+target_link_libraries(
+  centengine
+  centreon_clib
+  "-Wl,-whole-archive"
+  enginerpc
+  cce_core
+  "-Wl,-no-whole-archive"
+  CONAN_PKG::grpc
+  CONAN_PKG::openssl
+  CONAN_PKG::zlib
+  dl)
 
 # centenginestats target.
 add_executable("centenginestats" "${SRC_DIR}/centenginestats.cc")
-add_dependencies("centenginestats" centreon_clib_shared)
+add_dependencies("centenginestats" centreon_clib)
 target_link_libraries("centenginestats" centreon_clib)
-get_property(CENTENGINESTATS_BINARY TARGET "centenginestats" PROPERTY LOCATION)
 
 # Unit tests.
 add_subdirectory(tests)
@@ -645,13 +639,15 @@ add_subdirectory(tests)
 #
 
 # Install rules.
-install(TARGETS "centengine" "centenginestats"
+install(
+  TARGETS "centengine" "centenginestats"
   DESTINATION "${PREFIX_BIN}"
   COMPONENT "runtime")
 
 # # Create directories.
 if(CREATE_FILES)
-  install(CODE "
+  install(
+    CODE "
   function(mkdir_chown user group path)
     if (APPLE OR (UNIX AND NOT CYGWIN))
       if (NOT EXISTS \"\$ENV{DESTDIR}\${path}\")
@@ -698,12 +694,13 @@ if(CREATE_FILES)
 endif()
 
 # Install header files for development.
-install(DIRECTORY "${INC_DIR}/"
+install(
+  DIRECTORY "${INC_DIR}/"
   DESTINATION "${PREFIX_INC}"
   COMPONENT "development"
-  FILES_MATCHING PATTERN "*.hh"
-  PATTERN "${INC_DIR}/compatibility/" EXCLUDE
-)
+  FILES_MATCHING
+  PATTERN "*.hh"
+  PATTERN "${INC_DIR}/compatibility/" EXCLUDE)
 
 #
 # Packaging.
@@ -728,7 +725,10 @@ message(STATUS "    - Version                     ${CMAKE_SYSTEM_VERSION}")
 message(STATUS "    - Processor                   ${CMAKE_SYSTEM_PROCESSOR}")
 message(STATUS "")
 message(STATUS "  Build")
-message(STATUS "    - Compiler                    ${CMAKE_CXX_COMPILER} (${CMAKE_CXX_COMPILER_ID})")
+message(
+  STATUS
+    "    - Compiler                    ${CMAKE_CXX_COMPILER} (${CMAKE_CXX_COMPILER_ID})"
+)
 message(STATUS "    - Extra compilation flags     ${CMAKE_CXX_FLAGS}")
 
 if(WITH_SHARED_LIB)
