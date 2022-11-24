@@ -21,7 +21,6 @@
 #include <gtest/gtest.h>
 
 #include "bbdo/bam/ba_status.hh"
-#include "bbdo/bam/kpi_status.hh"
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
 
@@ -44,7 +43,8 @@ TEST_F(BamMonitoringStream, WriteKpi) {
 
   ASSERT_NO_THROW(ms.reset(new monitoring_stream("", cfg, storage, cache)));
 
-  std::shared_ptr<kpi_status> st{std::make_shared<kpi_status>(1)};
+  std::shared_ptr<pb_kpi_status> st{std::make_shared<pb_kpi_status>()};
+  st->mut_obj().set_kpi_id(1);
 
   ms->write(std::static_pointer_cast<io::data>(st));
 }

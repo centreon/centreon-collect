@@ -20,8 +20,8 @@
 
 #include <cassert>
 
-#include "bbdo/bam/kpi_status.hh"
 #include "com/centreon/broker/bam/impact_values.hh"
+#include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/downtime.hh"
@@ -538,24 +538,25 @@ void kpi_service::visit(io::stream* visitor) {
     // Generate status event.
     {
       log_v2::bam()->debug("Generating kpi status {} for service", _id);
-      auto status{std::make_shared<kpi_status>(_id)};
-      status->in_downtime = in_downtime();
-      status->level_acknowledgement_hard = hard_values.get_acknowledgement();
-      status->level_acknowledgement_soft = soft_values.get_acknowledgement();
-      status->level_downtime_hard = hard_values.get_downtime();
-      status->level_downtime_soft = soft_values.get_downtime();
-      status->level_nominal_hard = hard_values.get_nominal();
-      status->level_nominal_soft = soft_values.get_nominal();
-      status->state_hard = _state_hard;
-      status->state_soft = _state_soft;
-      status->last_state_change = get_last_state_change();
-      status->last_impact =
-          _downtimed ? hard_values.get_downtime() : hard_values.get_nominal();
+      auto status{std::make_shared<pb_kpi_status>()};
+      KpiStatus& ev(status->mut_obj());
+      ev.set_kpi_id(_id);
+      ev.set_in_downtime(in_downtime());
+      ev.set_level_acknowledgement_hard(hard_values.get_acknowledgement());
+      ev.set_level_acknowledgement_soft(soft_values.get_acknowledgement());
+      ev.set_level_downtime_hard(hard_values.get_downtime());
+      ev.set_level_downtime_soft(soft_values.get_downtime());
+      ev.set_level_nominal_hard(hard_values.get_nominal());
+      ev.set_level_nominal_soft(soft_values.get_nominal());
+      ev.set_state_hard(State(_state_hard));
+      ev.set_state_soft(State(_state_soft));
+      ev.set_last_state_change(get_last_state_change());
+      ev.set_last_impact(_downtimed ? hard_values.get_downtime()
+                                    : hard_values.get_nominal());
       log_v2::bam()->trace(
           "Writing kpi status {}: in downtime: {} ; last state changed: {} ; "
           "state: {}",
-          _id, status->in_downtime, status->last_state_change,
-          status->state_hard);
+          _id, ev.in_downtime(), ev.last_state_change(), ev.state_hard());
       visitor->write(status);
     }
   }

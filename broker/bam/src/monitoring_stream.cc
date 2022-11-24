@@ -399,6 +399,33 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
       _mysql.run_statement(_kpi_update, database::mysql_error::update_kpi,
                            true);
     } break;
+    case bam::pb_kpi_status::static_type(): {
+      const KpiStatus& status(
+          std::static_pointer_cast<pb_kpi_status>(data)->obj());
+      SPDLOG_LOGGER_DEBUG(
+          log_v2::bam(),
+          "BAM: processing KPI status (id {}, level {}, acknowledgement {}, "
+          "downtime {})",
+          status.kpi_id(), status.level_nominal_hard(),
+          status.level_acknowledgement_hard(), status.level_downtime_hard());
+
+      _kpi_update.bind_value_as_f64(0, status.level_acknowledgement_hard());
+      _kpi_update.bind_value_as_i32(1, status.state_hard());
+      _kpi_update.bind_value_as_f64(2, status.level_downtime_hard());
+      _kpi_update.bind_value_as_f64(3, status.level_nominal_hard());
+      _kpi_update.bind_value_as_i32(4, 1 + 1);
+      if (status.last_state_change() <= 0)
+        _kpi_update.bind_value_as_null(5);
+      else
+        _kpi_update.bind_value_as_u64(5, status.last_state_change());
+      _kpi_update.bind_value_as_f64(6, status.last_impact());
+      _kpi_update.bind_value_as_bool(7, status.valid());
+      _kpi_update.bind_value_as_bool(8, status.in_downtime());
+      _kpi_update.bind_value_as_u32(9, status.kpi_id());
+
+      _mysql.run_statement(_kpi_update, database::mysql_error::update_kpi,
+                           true);
+    } break;
     case inherited_downtime::static_type(): {
       std::string cmd;
       timestamp now = timestamp::now();
