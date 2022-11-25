@@ -168,10 +168,12 @@ enum ActionHostDependencyOn {
  
 message StringList {
     repeated string data = 1;
+    bool additive = 2;
 }
 
 message StringSet {
     repeated string data = 1;
+    bool additive = 2;
 }
 
 
