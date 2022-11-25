@@ -10,6 +10,7 @@ Library	Process
 Library	DatabaseLibrary
 Library	DateTime
 Library	OperatingSystem
+Library	String
 Library	../resources/Broker.py
 Library	../resources/Engine.py
 
@@ -604,6 +605,60 @@ BEPB_DIMENSION_KPI_EVENT
 	END
 
 	Should Be Equal As Strings  ${output}  ${expected}  msg=mod_bam_reporting_kpi not filled
+
+	Stop Engine
+	Kindly Stop Broker  True
+
+
+BEPB_KPI_STATUS
+	[Documentation]	bbdo_version 3 use kpi_status message.
+	[Tags]	Broker	Engine	protobuf	bbdo
+	Clear Commands Status
+	Clear Retention
+
+    Remove File     /tmp/all_lua_event.log
+    Config BBDO3	${1}
+	Config Engine	${1}
+	Config Broker	central
+	Config Broker	module
+    Broker Config Add Item	module0	bbdo_version	3.0.0
+    Broker Config Add Item	central	bbdo_version	3.0.0
+	Broker Config Log	central	bam	trace
+	Broker Config Log	central	sql	trace
+	Config Broker Sql Output	central	unified_sql
+	broker_config_source_log  central  1
+	
+	Clone Engine Config To DB
+	Add Bam Config To Broker	central
+	Add Bam Config To Engine
+
+	@{svc}=	Set Variable	${{ [("host_16", "service_314")] }}
+	create_ba_with_services	test	worst	${svc}
+
+	Start Broker  True
+	Start Engine
+
+	${start}=	Get Current Date  result_format=epoch
+
+	# KPI set to critical
+	Repeat Keyword	3 times	Process Service Check Result	host_16	service_314	2	output critical for 314
+	${result}=	Check Service Status With Timeout	host_16	service_314	2	60	HARD
+	Should Be True	${result}	msg=The service (host_16,service_314) is not CRITICAL as expected
+
+	Connect To Database	pymysql	${DBNameConf}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+	FOR	${index}	IN RANGE	10
+		${output}=	Query	SELECT current_status, state_type FROM mod_bam_kpi WHERE host_id=16 and service_id= 314
+		Sleep	1s
+		EXIT FOR LOOP IF	${output} == ((2, '1'),)
+	END
+
+	Should Be Equal As Strings  ${output}  ((2, '1'),)  msg=mod_bam_kpi not filled
+
+	${output}=	Query	SELECT last_state_change FROM mod_bam_kpi WHERE host_id=16 and service_id= 314
+	${output}=  Fetch From Right  "${output}"  (
+	${output}=  Fetch From Left  ${output}  ,
+
+	Should Be True  (${output} + 0.999) >= ${start}
 
 	Stop Engine
 	Kindly Stop Broker  True
