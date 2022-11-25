@@ -74,6 +74,6 @@ add_subdirectory(centreon-connector)
 add_custom_target(test-broker COMMAND test/ut_broker)
 add_custom_target(test-engine COMMAND tests/ut_engine)
 add_custom_target(test-clib COMMAND tests/ut_clib)
-add_custom_target(test-connector COMMAND ut_connector)
+#add_custom_target(test-connector COMMAND ut_connector)
 
 add_custom_target(test DEPENDS test-broker test-engine test-clib test-connector)
