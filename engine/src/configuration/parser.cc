@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2014,2017 Centreon
+** Copyright 2011-2014,2017,2022 Centreon
 **
 ** This file is part of Centreon Engine.
 **
@@ -18,7 +18,7 @@
 */
 
 #include "com/centreon/engine/configuration/parser.hh"
-#include <absl/container/fixed_array.h>
+#include <absl/container/flat_hash_set.h>
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/string.hh"
@@ -33,18 +33,6 @@ using Descriptor = ::google::protobuf::Descriptor;
 using FieldDescriptor = ::google::protobuf::FieldDescriptor;
 using Message = ::google::protobuf::Message;
 using Reflection = ::google::protobuf::Reflection;
-
-constexpr int32_t command_to_merge[] = {
-    2 /* command_name */, 3 /* command_line */, 4 /* connector */, 0};
-constexpr int32_t connector_to_merge[] = {3 /* connector_line */, 0};
-constexpr int32_t contact_to_merge[] = {2 /* contact_name */,
-                                        3 /* alias */,
-                                        5 /* can_submit_commands */,
-                                        8 /* email */,
-                                        11 /* pager */,
-                                        15 /* host_notification_period */,
-                                        19 /* service_notification_period */,
-                                        0};
 
 parser::store parser::_store[] = {
     &parser::_store_into_map<command, &command::command_name>,
@@ -91,7 +79,8 @@ void parser::parse(const std::string& path, State* pb_config) {
   _resolve_template(pb_config);
 
   // Apply extended info.
-  //  _apply_hostextinfo(pb_config);
+  _apply_hostextinfo(pb_config);
+  _apply_serviceextinfo(pb_config);
   //  _apply_serviceextinfo(pb_config);
   _cleanup(pb_config);
 }
@@ -178,6 +167,127 @@ void parser::_add_template(object_ptr obj) {
                          << _get_file_info(obj.get()) << ": " << name
                          << " already exists";
   tmpl[name] = obj;
+}
+
+void parser::_apply_hostextinfo(State* pb_config) {
+  auto* hosts = pb_config->mutable_hosts();
+  std::sort(hosts->begin(), hosts->end(), [](const Host& h1, const Host& h2) {
+    return h1.host_name() < h2.host_name();
+  });
+  for (auto& hei : pb_config->hostextinfos()) {
+    absl::flat_hash_set<std::string> hosts;
+    for (auto& hostname : hei.hosts().data())
+      hosts.insert(hostname);
+    for (const std::string& hg_name : hei.hostgroups().data()) {
+      for (auto& hostgrp : pb_config->hostgroups()) {
+        if (hostgrp.hostgroup_name() == hg_name) {
+          for (auto& member : hostgrp.members().data())
+            hosts.insert(member);
+          break;
+        }
+      }
+    }
+
+    for (auto& hostname : hosts) {
+      auto it = std::lower_bound(pb_config->mutable_hosts()->begin(),
+                                 pb_config->mutable_hosts()->end(), hostname,
+                                 [](const Host& h, const std::string& value) {
+                                   return h.host_name() < value;
+                                 });
+      while (it != pb_config->mutable_hosts()->end()) {
+        Host& host = *it;
+        if (host.obj().register_()) {
+          if (hei.action_url() != "" && host.action_url() == "")
+            host.set_action_url(hei.action_url());
+          if (hei.has_coords_2d() && !host.has_coords_2d())
+            host.mutable_coords_2d()->CopyFrom(hei.coords_2d());
+          if (hei.has_coords_3d() && !host.has_coords_3d())
+            host.mutable_coords_3d()->CopyFrom(hei.coords_3d());
+          if (hei.icon_image() != "" && host.icon_image() == "")
+            host.set_icon_image(hei.icon_image());
+          if (hei.icon_image_alt() != "" && host.icon_image_alt() == "")
+            host.set_icon_image_alt(hei.icon_image_alt());
+          if (hei.notes() != "" && host.notes() == "")
+            host.set_notes(hei.notes());
+          if (hei.notes_url() != "" && host.notes_url() == "")
+            host.set_notes_url(hei.notes_url());
+          if (hei.statusmap_image() != "" && host.statusmap_image() == "")
+            host.set_statusmap_image(hei.statusmap_image());
+          if (hei.vrml_image() != "" && host.vrml_image() == "")
+            host.set_vrml_image(hei.vrml_image());
+        }
+        ++it;
+        if (it->host_name() != hostname)
+          break;
+      }
+    }
+  }
+}
+
+void parser::_apply_serviceextinfo(State* pb_config) {
+  auto* services = pb_config->mutable_services();
+  std::sort(services->begin(), services->end(),
+            [](const Service& s1, const Service& s2) {
+              return s1.service_description() < s2.service_description();
+            });
+  for (auto& sei : pb_config->serviceextinfos()) {
+    auto it = std::lower_bound(
+        services->begin(), services->end(), sei.service_description(),
+        [](const Service& s, const std::string& description) {
+          return s.service_description() < description;
+        });
+
+    absl::flat_hash_set<std::string> hosts;
+    for (auto& h : pb_config->hosts())
+      if (h.obj().register_())
+        hosts.insert(h.host_name());
+
+    bool found = false;
+    while (it != services->end()) {
+      Service& service = *it;
+      if (service.obj().register_() &&
+          service.service_description() == sei.service_description()) {
+        for (auto& h_name : service.hosts().data()) {
+          if (hosts.contains(h_name)) {
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          for (auto& hg_name : service.hostgroups().data()) {
+            for (auto& hostgrp : pb_config->hostgroups()) {
+              for (auto& member : hostgrp.members().data()) {
+                if (hosts.contains(member)) {
+                  found = true;
+                  break;
+                }
+              }
+              if (found)
+                break;
+            }
+            if (found)
+              break;
+          }
+        }
+
+        if (found) {
+          if (sei.action_url() != "" && service.action_url() == "")
+            service.set_action_url(sei.action_url());
+          if (sei.icon_image() != "" && service.icon_image() == "")
+            service.set_icon_image(sei.icon_image());
+          if (sei.icon_image_alt() != "" && service.icon_image_alt() == "")
+            service.set_icon_image_alt(sei.icon_image_alt());
+          if (sei.notes() != "" && service.notes() == "")
+            service.set_notes(sei.notes());
+          if (sei.notes_url() != "" && service.notes_url() == "")
+            service.set_notes_url(sei.notes_url());
+        }
+      }
+      ++it;
+      if (it->service_description() != sei.service_description())
+        break;
+    }
+  }
 }
 
 /**
@@ -390,6 +500,46 @@ void parser::_parse_directory_configuration(std::string const& path) {
     _parse_object_definitions(it->path());
 }
 
+static void fill_string_group(StringSet* grp, const absl::string_view& value) {
+  auto arr = absl::StrSplit(value, ',');
+  bool first = true;
+  for (absl::string_view d : arr) {
+    d = absl::StripAsciiWhitespace(d);
+    if (first) {
+      if (d[0] == '+') {
+        grp->set_additive(true);
+        d = d.substr(1);
+      }
+      first = false;
+    }
+    bool found = false;
+    for (auto& v : grp->data()) {
+      if (v == d) {
+        found = true;
+        break;
+      }
+    }
+    if (!found)
+      grp->add_data(d.data(), d.size());
+  }
+}
+
+static void fill_string_group(StringList* grp, const absl::string_view& value) {
+  auto arr = absl::StrSplit(value, ',');
+  bool first = true;
+  for (absl::string_view d : arr) {
+    d = absl::StripAsciiWhitespace(d);
+    if (first) {
+      if (d[0] == '+') {
+        grp->set_additive(true);
+        d = d.substr(1);
+      }
+      first = false;
+    }
+    grp->add_data(d.data(), d.size());
+  }
+}
+
 /**
  * @brief Set the value given as a string to the object key. If the key does
  * not exist, the correspondance table may be used to find a replacement of
@@ -510,25 +660,12 @@ bool set(
         if (d && d->name() == "StringSet") {
           StringSet* set =
               static_cast<StringSet*>(refl->MutableMessage(msg, f));
-          bool found = false;
-          auto arr = absl::StrSplit(value, ',');
-          for (auto& v : arr) {
-            for (auto& s : *set->mutable_data()) {
-              if (s == v) {
-                found = true;
-                break;
-              }
-            }
-            if (!found)
-              set->add_data(v.data(), v.size());
-          }
+          fill_string_group(set, value);
           return true;
         } else if (d && d->name() == "StringList") {
           StringList* lst =
               static_cast<StringList*>(refl->MutableMessage(msg, f));
-          auto arr = absl::StrSplit(value, ',');
-          for (auto& v : arr)
-            lst->add_data(v.data(), v.size());
+          fill_string_group(lst, value);
           return true;
         }
       }
@@ -767,11 +904,7 @@ void parser::_parse_object_definitions(const std::string& path,
                    const absl::string_view& key,
                    const absl::string_view& value) -> bool {
           if (key == "contact_groups") {
-            auto arr = absl::StrSplit(value, ',');
-            for (absl::string_view d : arr) {
-              d = absl::StripAsciiWhitespace(d);
-              ct->mutable_contactgroups()->add_data(d.data(), d.size());
-            }
+            fill_string_group(ct->mutable_contactgroups(), value);
             return true;
           }
           return false;
@@ -795,18 +928,10 @@ void parser::_parse_object_definitions(const std::string& path,
                    const absl::string_view& key,
                    const absl::string_view& value) -> bool {
           if (key == "hostgroups") {
-            auto arr = absl::StrSplit(value, ',');
-            for (absl::string_view d : arr) {
-              d = absl::StripAsciiWhitespace(d);
-              svc->mutable_hostgroups()->add_data(d.data(), d.size());
-            }
+            fill_string_group(svc->mutable_hostgroups(), value);
             return true;
           } else if (key == "contact_groups") {
-            auto arr = absl::StrSplit(value, ',');
-            for (absl::string_view d : arr) {
-              d = absl::StripAsciiWhitespace(d);
-              svc->mutable_contactgroups()->add_data(d.data(), d.size());
-            }
+            fill_string_group(svc->mutable_contactgroups(), value);
             return true;
           }
           return false;
@@ -1121,15 +1246,7 @@ void parser::_merge(Message* msg, Message* tmpl) {
                     static_cast<StringSet*>(refl->MutableMessage(tmpl, f));
                 StringSet* set =
                     static_cast<StringSet*>(refl->MutableMessage(msg, f));
-                bool inherit = false;
-                if (!set->data().empty()) {
-                  std::string& first = *set->mutable_data()->begin();
-                  if (first[0] == '+') {
-                    first = first.substr(1);
-                    inherit = true;
-                  }
-                }
-                if (inherit) {
+                if (set->additive()) {
                   for (auto& v : orig_set->data()) {
                     bool found = false;
                     for (auto& s : *set->mutable_data()) {
@@ -1152,16 +1269,7 @@ void parser::_merge(Message* msg, Message* tmpl) {
                     static_cast<StringList*>(refl->MutableMessage(tmpl, f));
                 StringList* lst =
                     static_cast<StringList*>(refl->MutableMessage(msg, f));
-                bool inherit = false;
-                if (lst->mutable_data()->begin() !=
-                    lst->mutable_data()->end()) {
-                  std::string& first = *lst->mutable_data()->begin();
-                  if (first[0] == '+') {
-                    first = first.substr(1);
-                    inherit = true;
-                  }
-                }
-                if (inherit) {
+                if (lst->additive()) {
                   for (auto& v : orig_lst->data())
                     lst->add_data(v);
                 } else if (lst->data().empty())
