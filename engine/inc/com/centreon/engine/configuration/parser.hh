@@ -96,6 +96,8 @@ class parser {
       (this->*pfunc)(f, state);
   }
 
+  void _apply_hostextinfo(State* pb_config);
+  void _apply_serviceextinfo(State* pb_config);
   void _apply_hostextinfo();
   void _apply_serviceextinfo();
   file_info const& _get_file_info(object* obj) const;
