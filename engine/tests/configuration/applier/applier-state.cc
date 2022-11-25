@@ -863,7 +863,7 @@ TEST_F(ApplierState, StateParsing) {
   ASSERT_EQ(config.services()[0].service_id(), 1);
   ASSERT_TRUE(config.services()[0].obj().register_());
   ASSERT_TRUE(config.services()[0].checks_active());
-  ASSERT_EQ(config.services()[0].contactgroups().data().size(), 3u);
+  EXPECT_EQ(config.services()[0].contactgroups().data().size(), 3u);
   ASSERT_EQ(config.services()[0].contactgroups().data()[0], std::string("cg1"));
   ASSERT_EQ(config.services()[0].contactgroups().data()[1], std::string("cg3"));
   ASSERT_EQ(config.services()[0].contactgroups().data()[2], std::string("cg2"));
