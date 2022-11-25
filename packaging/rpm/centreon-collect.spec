@@ -11,7 +11,7 @@ Source: %{name}-%{version}.tar.gz
 Source1: centreonengine_integrate_centreon_engine2centreon.sh
 
 %define thismajor 22.04.0
-%define nextmajor 22.05.0
+%define nextmajor 22.10.0
 
 Group: Applications/Communications
 URL: https://github.com/centreon/centreon-collect.git
