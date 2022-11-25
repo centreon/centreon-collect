@@ -39,7 +39,10 @@ message State {
   bool enable_flap_detection = 14;
 
   map<string, string> users = 15;
-  repeated string cfg_dir = 16;
+  repeated Hostgroup hostgroups = 16;
+  repeated Hostextinfo hostextinfos = 17;
+  repeated Serviceextinfo serviceextinfos = 18;
+  repeated string cfg_dir = 19;
 }
 
 message Value {
