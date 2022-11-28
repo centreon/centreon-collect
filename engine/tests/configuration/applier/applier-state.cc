@@ -85,6 +85,7 @@ static void CreateConf() {
   CreateFile("/tmp/hosts.cfg",
              "define host {\n"
              "    host_name                      host_1\n"
+             "    register                       1\n"
              "    alias                          host_1\n"
              "    address                        1.0.0.0\n"
              "    check_command                  checkh1\n"
@@ -97,6 +98,7 @@ static void CreateConf() {
              "}\n"
              "define host {\n"
              "    host_name                      host_2\n"
+             "    register                       1\n"
              "    alias                          host_2\n"
              "    address                        2.0.0.0\n"
              "    check_command                  checkh2\n"
@@ -110,6 +112,7 @@ static void CreateConf() {
              "define host {\n"
              "    host_name                      host_3\n"
              "    alias                          host_3\n"
+             "    register                       1\n"
              "    address                        3.0.0.0\n"
              "    check_command                  checkh3\n"
              "    check_period                   24x7\n"
@@ -122,6 +125,7 @@ static void CreateConf() {
              "define host {\n"
              "    host_name                      host_4\n"
              "    alias                          host_4\n"
+             "    register                       1\n"
              "    address                        4.0.0.0\n"
              "    check_command                  checkh4\n"
              "    check_period                   24x7\n"
@@ -442,7 +446,8 @@ TEST_F(ApplierState, DiffOnTimeperiodOneRemoved) {
       configuration::applier::state::instance().build_difference(pb_config,
                                                                  new_config);
   ASSERT_EQ(dstate.to_remove().size(), 1u);
-  ASSERT_EQ(dstate.to_remove()[0].key()[0].i32(), 2);
+  // Number 23 is to remove.
+  ASSERT_EQ(dstate.to_remove()[0].key()[0].i32(), 23);
   ASSERT_EQ(dstate.to_remove()[0].key()[1].i32(), 9);
   ASSERT_EQ(dstate.to_remove()[0].key().size(), 2);
   ASSERT_TRUE(dstate.to_add().empty());
@@ -501,8 +506,8 @@ TEST_F(ApplierState, DiffOnTimeperiodAliasRenamed) {
   ASSERT_EQ(dstate.to_modify().size(), 1u);
   const configuration::PathWithValue& path = dstate.to_modify()[0];
   ASSERT_EQ(path.path().key().size(), 4u);
-  // number 1 => timeperiods
-  ASSERT_EQ(path.path().key()[0].i32(), 2);
+  // number 23 => timeperiods
+  ASSERT_EQ(path.path().key()[0].i32(), 23);
   // index 7 => timeperiods[7]
   ASSERT_EQ(path.path().key()[1].i32(), 7);
   // number 2 => timeperiods.alias
@@ -535,8 +540,8 @@ TEST_F(ApplierState, DiffOnContactOneRemoved) {
   ASSERT_EQ(dstate.to_remove().size(), 1u);
 
   ASSERT_EQ(dstate.to_remove()[0].key().size(), 2);
-  // number 4 => for contacts
-  ASSERT_EQ(dstate.to_remove()[0].key()[0].i32(), 5);
+  // number 12 => for contacts
+  ASSERT_EQ(dstate.to_remove()[0].key()[0].i32(), 12);
   // "name 4" => contacts["name 4"]
   ASSERT_EQ(dstate.to_remove()[0].key()[1].str(), std::string("name 4"));
 
@@ -567,7 +572,8 @@ TEST_F(ApplierState, DiffOnContactOneAdded) {
   ASSERT_EQ(dstate.to_add().size(), 1u);
   const configuration::PathWithValue& to_add = dstate.to_add()[0];
   ASSERT_EQ(to_add.path().key().size(), 2u);
-  ASSERT_EQ(to_add.path().key()[0].i32(), 5);
+  // Contact -> number 12
+  ASSERT_EQ(to_add.path().key()[0].i32(), 12);
   // ASSERT_EQ(to_add.path().key()[1].str(), std::string("name 4"));
   ASSERT_TRUE(to_add.val().has_value_ct());
 }
@@ -602,7 +608,7 @@ TEST_F(ApplierState, DiffOnContactOneNewAddress) {
   ASSERT_TRUE(dstate.to_remove().empty());
   ASSERT_EQ(dstate.to_add()[0].path().key().size(), 4u);
   // Number of Contacts in State
-  ASSERT_EQ(dstate.to_add()[0].path().key()[0].i32(), 5);
+  ASSERT_EQ(dstate.to_add()[0].path().key()[0].i32(), 12);
   // Key to the context to change
   ASSERT_EQ(dstate.to_add()[0].path().key()[1].str(), std::string("name 3"));
   // Number of the object to modify
@@ -643,7 +649,7 @@ TEST_F(ApplierState, DiffOnContactFirstAddressRemoved) {
   ASSERT_EQ(dstate.to_remove().size(), 1u);
   ASSERT_EQ(dstate.to_modify()[0].path().key().size(), 4u);
   // Number of contacts in State
-  ASSERT_EQ(dstate.to_modify()[0].path().key()[0].i32(), 5);
+  ASSERT_EQ(dstate.to_modify()[0].path().key()[0].i32(), 12);
   // Key "name 3" to the good contact
   ASSERT_EQ(dstate.to_modify()[0].path().key()[1].str(), "name 3");
   // Number of addresses in Contact
@@ -655,7 +661,7 @@ TEST_F(ApplierState, DiffOnContactFirstAddressRemoved) {
 
   ASSERT_EQ(dstate.to_remove()[0].key().size(), 4u);
   // Number of contacts in State
-  ASSERT_EQ(dstate.to_remove()[0].key()[0].i32(), 5);
+  ASSERT_EQ(dstate.to_remove()[0].key()[0].i32(), 12);
   // Key "name 3" to the good contact
   ASSERT_EQ(dstate.to_remove()[0].key()[1].str(), "name 3");
   // Number of addresses in Contact

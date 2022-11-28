@@ -112,14 +112,6 @@ void init_hostescalation(Hostescalation* obj) {
 
 void init_hostgroup(Hostgroup* /* obj */) {}
 
-void init_hostextinfo(Hostextinfo* obj) {
-  obj->mutable_coords_2d()->set_x(-1);
-  obj->mutable_coords_2d()->set_y(-1);
-  obj->mutable_coords_3d()->set_x(0.0);
-  obj->mutable_coords_3d()->set_y(0.0);
-  obj->mutable_coords_3d()->set_y(0.0);
-}
-
 void init_service(Service* obj) {
   obj->set_acknowledgement_timeout(0);
   obj->set_checks_active(true);
@@ -162,8 +154,6 @@ void init_serviceescalation(Serviceescalation* obj) {
   obj->set_last_notification(-2);
   obj->set_notification_interval(0);
 }
-
-void init_serviceextinfo(Serviceextinfo* /* obj */) {}
 
 void init_servicegroup(Servicegroup* /* obj */) {}
 
