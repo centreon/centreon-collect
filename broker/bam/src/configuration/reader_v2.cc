@@ -20,7 +20,6 @@
 
 #include <fmt/format.h>
 
-#include "bbdo/bam/dimension_ba_timeperiod_relation.hh"
 #include "bbdo/bam/dimension_truncate_table_signal.hh"
 #include "com/centreon/broker/bam/ba.hh"
 #include "com/centreon/broker/bam/configuration/reader_exception.hh"
@@ -548,11 +547,11 @@ void reader_v2::_load_dimensions() {
       datas.push_back(ba);
       bas[ba_pb.ba_id()] = ba;
       if (!res.value_is_null(7)) {
-        std::shared_ptr<dimension_ba_timeperiod_relation> dbtr(
-            new dimension_ba_timeperiod_relation);
-        dbtr->ba_id = res.value_as_u32(0);
-        dbtr->timeperiod_id = res.value_as_u32(7);
-        dbtr->is_default = true;
+        std::shared_ptr<pb_dimension_ba_timeperiod_relation> dbtr(
+            std::make_shared<pb_dimension_ba_timeperiod_relation>());
+        dbtr->mut_obj().set_ba_id(res.value_as_u32(0));
+        dbtr->mut_obj().set_timeperiod_id(res.value_as_u32(7));
+        dbtr->mut_obj().set_is_default(true);
         datas.push_back(dbtr);
       }
     }
@@ -643,11 +642,11 @@ void reader_v2::_load_dimensions() {
   try {
     database::mysql_result res(future_ba_tp.get());
     while (_mysql.fetch_row(res)) {
-      std::shared_ptr<dimension_ba_timeperiod_relation> dbtr(
-          new dimension_ba_timeperiod_relation);
-      dbtr->ba_id = res.value_as_u32(0);
-      dbtr->timeperiod_id = res.value_as_u32(1);
-      dbtr->is_default = false;
+      std::shared_ptr<pb_dimension_ba_timeperiod_relation> dbtr(
+          std::make_shared<pb_dimension_ba_timeperiod_relation>());
+      dbtr->mut_obj().set_ba_id(res.value_as_u32(0));
+      dbtr->mut_obj().set_timeperiod_id(res.value_as_u32(1));
+      dbtr->mut_obj().set_is_default(false);
       datas.push_back(dbtr);
     }
   } catch (std::exception const& e) {

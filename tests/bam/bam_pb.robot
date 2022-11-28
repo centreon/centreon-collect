@@ -382,6 +382,47 @@ BEPB_BA_DURATION_EVENT
 	Kindly Stop Broker  True
 
 
+BEPB_DIMENSION_BA_TIMEPERIOD_RELATION
+	[Documentation]	use of pb_dimension_ba_timeperiod_relation message.
+	[Tags]	Broker	Engine	protobuf	bbdo
+	Clear Commands Status
+	Clear Retention
+
+    Config BBDO3	${1}
+	Config Engine	${1}
+	Config Broker	central
+	Config Broker	module
+	Broker Config Log	central	bam	trace
+	Broker Config Log	central	core	trace
+	broker_config_source_log  central  1
+	Config Broker Sql Output	central	unified_sql
+	
+	Clone Engine Config To DB
+	Add Bam Config To Broker	central
+	Add Bam Config To Engine
+
+	@{svc}=	Set Variable	${{ [("host_16", "service_314")] }}
+	create_ba_with_services	test	worst	${svc}
+	
+	Connect To Database	pymysql	${DBNameConf}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+	Execute SQL String	INSERT INTO timeperiod (tp_id, tp_name, tp_sunday, tp_monday, tp_tuesday, tp_wednesday, tp_thursday, tp_friday, tp_saturday) VALUES (732, "ezizae", "00:00-23:59", "00:00-23:59", "00:00-23:59", "00:00-23:59", "00:00-23:59", "00:00-23:59", "00:00-23:59")
+	Execute SQL String	DELETE FROM mod_bam_relations_ba_timeperiods
+	Execute SQL String	INSERT INTO mod_bam_relations_ba_timeperiods (ba_id, tp_id) VALUES (1,732)
+
+	Start Broker  True
+	Start Engine
+
+	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+	FOR	${index}	IN RANGE	10
+		${output}=	Query	SELECT ba_id FROM mod_bam_reporting_relations_ba_timeperiods WHERE ba_id=1 and timeperiod_id=732 and is_default=0
+		Sleep	1s
+		EXIT FOR LOOP IF	len("""${output}""") > 5
+	END
+
+	Should Be True  len("""${output}""") > 5  msg="centreon_storage.mod_bam_reporting_relations_ba_timeperiods not updated"
+	Stop Engine
+	Kindly Stop Broker  True
+
 
 
 

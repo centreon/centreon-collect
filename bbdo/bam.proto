@@ -134,4 +134,8 @@ message BaDurationEvent {
     bool timeperiod_is_default = 8;
 }
 
-
+message DimensionBaTimeperiodRelation {
+    uint32 ba_id = 1;
+    uint32 timeperiod_id = 2;
+    bool is_default = 3;  
+}

@@ -199,6 +199,7 @@ int reporting_stream::write(std::shared_ptr<io::data> const& data) {
     case bam::pb_dimension_timeperiod::static_type():
     case bam::pb_dimension_ba_event::static_type():
     case bam::pb_dimension_kpi_event::static_type():
+    case bam::pb_dimension_ba_timeperiod_relation::static_type():
       _process_pb_dimension(data);
       break;
     case io::events::data_type<io::bam, bam::de_rebuild>::value:
@@ -1307,6 +1308,16 @@ void reporting_stream::_process_pb_dimension(
                             "BAM-BI: preparing declaration of kpi {} ('{}')",
                             dk.kpi_id(), kpi_name);
       } break;
+      case bam::pb_dimension_ba_timeperiod_relation::static_type(): {
+        const DimensionBaTimeperiodRelation& r =
+            std::static_pointer_cast<bam::pb_dimension_ba_timeperiod_relation>(
+                e)
+                ->obj();
+        SPDLOG_LOGGER_DEBUG(
+            log_v2::bam(),
+            "BAM-BI: preparing relation of BA {} to timeperiod {}", r.ba_id(),
+            r.timeperiod_id());
+      } break;
 
       default:
         SPDLOG_LOGGER_DEBUG(log_v2::bam(),
@@ -1370,6 +1381,8 @@ void reporting_stream::_dimension_dispatch(
     case io::events::data_type<io::bam,
                                bam::de_dimension_ba_timeperiod_relation>::value:
       _process_dimension_ba_timeperiod_relation(data);
+    case bam::pb_dimension_ba_timeperiod_relation::static_type():
+      _process_pb_dimension_ba_timeperiod_relation(data);
       break;
     default:
       break;
@@ -1754,6 +1767,31 @@ void reporting_stream::_process_dimension_ba_timeperiod_relation(
                        database::mysql_error::insert_relation_ba_timeperiod,
                        false);
   _timeperiods.add_relation(r.ba_id, r.timeperiod_id, r.is_default);
+}
+
+/**
+ *  Process a dimension ba timeperiod relation and store it in
+ *  a relation cache.
+ *
+ *  @param[in] e  The event.
+ */
+void reporting_stream::_process_pb_dimension_ba_timeperiod_relation(
+    std::shared_ptr<io::data> const& e) {
+  const DimensionBaTimeperiodRelation& r =
+      std::static_pointer_cast<bam::pb_dimension_ba_timeperiod_relation>(e)
+          ->obj();
+  SPDLOG_LOGGER_DEBUG(
+      log_v2::bam(),
+      "BAM-BI: processing relation of BA {} to timeperiod {} is_default={}",
+      r.ba_id(), r.timeperiod_id(), r.is_default());
+
+  _dimension_ba_timeperiod_insert.bind_value_as_i32(0, r.ba_id());
+  _dimension_ba_timeperiod_insert.bind_value_as_i32(1, r.timeperiod_id());
+  _dimension_ba_timeperiod_insert.bind_value_as_bool(2, r.is_default());
+  _mysql.run_statement(_dimension_ba_timeperiod_insert,
+                       database::mysql_error::insert_relation_ba_timeperiod,
+                       false);
+  _timeperiods.add_relation(r.ba_id(), r.timeperiod_id(), r.is_default());
 }
 
 /**
