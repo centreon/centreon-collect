@@ -173,6 +173,9 @@ int reporting_stream::write(std::shared_ptr<io::data> const& data) {
     case io::events::data_type<io::bam, bam::de_ba_duration_event>::value:
       _process_ba_duration_event(data);
       break;
+    case bam::pb_ba_duration_event::static_type():
+      _process_pb_ba_duration_event(data);
+      break;
     case io::events::data_type<io::bam,
                                bam::de_dimension_truncate_table_signal>::value:
       _process_dimension_truncate_signal(data);
@@ -859,6 +862,62 @@ void reporting_stream::_process_ba_duration_event(
         "BAM-BI: could not insert duration event of BA {}"
         " starting at {} : {}",
         bde.ba_id, bde.start_time, e.what());
+  }
+}
+
+/**
+ *  Process a ba duration event and write it to the db.
+ *
+ *  @param[in] e  The event.
+ */
+void reporting_stream::_process_pb_ba_duration_event(
+    std::shared_ptr<io::data> const& e) {
+  const BaDurationEvent& bde =
+      std::static_pointer_cast<bam::pb_ba_duration_event>(e)->obj();
+  SPDLOG_LOGGER_DEBUG(
+      log_v2::bam(),
+      "BAM-BI: processing BA duration event of BA {} (start time {}, end time "
+      "{}, duration {}, sla duration {})",
+      bde.ba_id(), bde.start_time(), bde.end_time(), bde.duration(),
+      bde.sla_duration());
+
+  // Try to update first.
+  _ba_duration_event_update.bind_value_as_u64(1, bde.end_time());
+  _ba_duration_event_update.bind_value_as_u64(0, bde.start_time());
+  _ba_duration_event_update.bind_value_as_i32(2, bde.duration());
+  _ba_duration_event_update.bind_value_as_i32(3, bde.sla_duration());
+  _ba_duration_event_update.bind_value_as_i32(4, bde.timeperiod_is_default());
+  _ba_duration_event_update.bind_value_as_i32(5, bde.ba_id());
+  _ba_duration_event_update.bind_value_as_u64(
+      6, static_cast<uint64_t>(bde.real_start_time()));
+  _ba_duration_event_update.bind_value_as_i32(7, bde.timeperiod_id());
+
+  std::promise<int> promise;
+  std::future<int> future = promise.get_future();
+  int thread_id(_mysql.run_statement_and_get_int<int>(
+      _ba_duration_event_update, std::move(promise),
+      mysql_task::int_type::AFFECTED_ROWS));
+  try {
+    // Insert if no rows was updated.
+    if (future.get() == 0) {
+      _ba_duration_event_insert.bind_value_as_u64(0, bde.start_time());
+      _ba_duration_event_insert.bind_value_as_u64(1, bde.end_time());
+      _ba_duration_event_insert.bind_value_as_i32(2, bde.duration());
+      _ba_duration_event_insert.bind_value_as_i32(3, bde.sla_duration());
+      _ba_duration_event_insert.bind_value_as_i32(4, bde.timeperiod_id());
+      _ba_duration_event_insert.bind_value_as_f64(5,
+                                                  bde.timeperiod_is_default());
+      _ba_duration_event_insert.bind_value_as_i32(6, bde.ba_id());
+      _ba_duration_event_insert.bind_value_as_u64(7, bde.real_start_time());
+
+      _mysql.run_statement(_ba_duration_event_insert,
+                           database::mysql_error::empty, true, thread_id);
+    }
+  } catch (std::exception const& e) {
+    throw msg_fmt(
+        "BAM-BI: could not insert duration event of BA {}"
+        " starting at {} : {}",
+        bde.ba_id(), bde.start_time(), e.what());
   }
 }
 
@@ -1683,9 +1742,10 @@ void reporting_stream::_process_dimension_ba_timeperiod_relation(
     std::shared_ptr<io::data> const& e) {
   bam::dimension_ba_timeperiod_relation const& r =
       *std::static_pointer_cast<bam::dimension_ba_timeperiod_relation const>(e);
-  SPDLOG_LOGGER_DEBUG(log_v2::bam(),
-                      "BAM-BI: processing relation of BA {} to timeperiod {}",
-                      r.ba_id, r.timeperiod_id);
+  SPDLOG_LOGGER_DEBUG(
+      log_v2::bam(),
+      "BAM-BI: processing relation of BA {} to timeperiod {} is_default={}",
+      r.ba_id, r.timeperiod_id, r.is_default);
 
   _dimension_ba_timeperiod_insert.bind_value_as_i32(0, r.ba_id);
   _dimension_ba_timeperiod_insert.bind_value_as_i32(1, r.timeperiod_id);
@@ -1710,7 +1770,8 @@ void reporting_stream::_compute_event_durations(const BaEvent& ev,
   if (!visitor)
     return;
 
-  log_v2::bam()->info(
+  SPDLOG_LOGGER_INFO(
+      log_v2::bam(),
       "BAM-BI: computing durations of event started at {} and ended at {} on "
       "BA {}",
       ev.start_time(), ev.end_time(), ev.ba_id());
@@ -1735,28 +1796,28 @@ void reporting_stream::_compute_event_durations(const BaEvent& ev,
     time::timeperiod::ptr tp = it->first;
     bool is_default = it->second;
 
-    std::shared_ptr<ba_duration_event> dur_ev{
-        std::make_shared<ba_duration_event>()};
-    dur_ev->ba_id = ev.ba_id();
-    dur_ev->real_start_time = ev.start_time();
-    dur_ev->start_time = tp->get_next_valid(ev.start_time());
-    dur_ev->end_time = ev.end_time();
-    if ((dur_ev->start_time != (time_t)-1) &&
-        (dur_ev->end_time != (time_t)-1) &&
-        (dur_ev->start_time < dur_ev->end_time)) {
-      dur_ev->duration = dur_ev->end_time - dur_ev->start_time;
-      dur_ev->sla_duration =
-          tp->duration_intersect(dur_ev->start_time, dur_ev->end_time);
-      dur_ev->timeperiod_id = tp->get_id();
-      dur_ev->timeperiod_is_default = is_default;
+    std::shared_ptr<pb_ba_duration_event> to_write{
+        std::make_shared<pb_ba_duration_event>()};
+    BaDurationEvent& dur_ev(to_write->mut_obj());
+    dur_ev.set_ba_id(ev.ba_id());
+    dur_ev.set_real_start_time(ev.start_time());
+    dur_ev.set_start_time(tp->get_next_valid(ev.start_time()));
+    dur_ev.set_end_time(ev.end_time());
+    if (dur_ev.start_time() > 0 && dur_ev.end_time() > 0 &&
+        (dur_ev.start_time() < dur_ev.end_time())) {
+      dur_ev.set_duration(dur_ev.end_time() - dur_ev.start_time());
+      dur_ev.set_sla_duration(
+          tp->duration_intersect(dur_ev.start_time(), dur_ev.end_time()));
+      dur_ev.set_timeperiod_id(tp->get_id());
+      dur_ev.set_timeperiod_is_default(is_default);
       SPDLOG_LOGGER_DEBUG(
           log_v2::bam(),
           "BAM-BI: durations of event started at {} and ended at {} on BA {} "
           "were computed for timeperiod {}, duration is {}s, SLA duration is "
           "{}",
           ev.start_time(), ev.end_time(), ev.ba_id(), tp->get_name(),
-          dur_ev->duration, dur_ev->sla_duration);
-      visitor->write(std::static_pointer_cast<io::data>(dur_ev));
+          dur_ev.duration(), dur_ev.sla_duration());
+      visitor->write(to_write);
     } else
       SPDLOG_LOGGER_DEBUG(
           log_v2::bam(),
@@ -1832,7 +1893,8 @@ void reporting_stream::_process_rebuild(std::shared_ptr<io::data> const& e) {
       }
     }
 
-    log_v2::bam()->info("BAM-BI: will now rebuild the event durations");
+    SPDLOG_LOGGER_INFO(log_v2::bam(),
+                       "BAM-BI: will now rebuild the event durations");
 
     size_t ba_events_num = ba_events.size();
     size_t ba_events_curr = 0;
@@ -1851,7 +1913,8 @@ void reporting_stream::_process_rebuild(std::shared_ptr<io::data> const& e) {
     throw;
   }
 
-  log_v2::bam()->info(
+  SPDLOG_LOGGER_INFO(
+      log_v2::bam(),
       "BAM-BI: event durations rebuild finished, will rebuild availabilities "
       "now");
 

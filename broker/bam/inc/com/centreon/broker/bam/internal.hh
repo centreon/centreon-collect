@@ -60,6 +60,10 @@ using pb_dimension_kpi_event =
 using pb_kpi_status =
     io::protobuf<KpiStatus, make_type(io::bam, bam::de_pb_kpi_status)>;
 
+using pb_ba_duration_event =
+    io::protobuf<BaDurationEvent,
+                 make_type(io::bam, bam::de_pb_ba_duration_event)>;
+
 }  // namespace bam
 
 CCB_END()
