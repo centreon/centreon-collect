@@ -128,6 +128,8 @@ class reporting_stream : public io::stream {
       std::shared_ptr<io::data> const& e);
   void _process_dimension_ba_timeperiod_relation(
       std::shared_ptr<io::data> const& e);
+  void _process_pb_dimension_ba_timeperiod_relation(
+      std::shared_ptr<io::data> const& e);
   void _process_rebuild(std::shared_ptr<io::data> const& e);
   void _update_status(std::string const& status);
   void _compute_event_durations(const BaEvent& ev, io::stream* visitor);

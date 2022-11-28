@@ -171,6 +171,9 @@ void broker_module_init(void const* arg) {
       e.register_event(bam::pb_ba_duration_event::static_type(),
                        "BaDurationEvent",
                        &bam::pb_ba_duration_event::operations);
+      e.register_event(bam::pb_dimension_ba_timeperiod_relation::static_type(),
+                       "DimensionBaTimeperiodRelation",
+                       &bam::pb_dimension_ba_timeperiod_relation::operations);
     }
   }
 }
