@@ -26,12 +26,10 @@
 #include "com/centreon/engine/configuration/host.hh"
 #include "com/centreon/engine/configuration/hostdependency.hh"
 #include "com/centreon/engine/configuration/hostescalation.hh"
-#include "com/centreon/engine/configuration/hostextinfo.hh"
 #include "com/centreon/engine/configuration/hostgroup.hh"
 #include "com/centreon/engine/configuration/service.hh"
 #include "com/centreon/engine/configuration/servicedependency.hh"
 #include "com/centreon/engine/configuration/serviceescalation.hh"
-#include "com/centreon/engine/configuration/serviceextinfo.hh"
 #include "com/centreon/engine/configuration/servicegroup.hh"
 #include "com/centreon/engine/configuration/severity.hh"
 #include "com/centreon/engine/configuration/tag.hh"
@@ -150,10 +148,6 @@ object_ptr object::create(std::string const& type_name) {
     obj = std::make_shared<configuration::timeperiod>();
   else if (type_name == "connector")
     obj = std::make_shared<configuration::connector>();
-  else if (type_name == "serviceextinfo")
-    obj = std::make_shared<configuration::serviceextinfo>();
-  else if (type_name == "hostextinfo")
-    obj = std::make_shared<configuration::hostextinfo>();
   else if (type_name == "anomalydetection")
     obj = std::make_shared<configuration::anomalydetection>();
   else if (type_name == "severity")
@@ -268,7 +262,9 @@ std::string const& object::type_name() const noexcept {
                                     "serviceextinfo",
                                     "servicegroup",
                                     "timeperiod",
-                                    "anomalydetection"};
+                                    "anomalydetection",
+                                    "severity",
+                                    "tag"};
   return tab[_type];
 }
 

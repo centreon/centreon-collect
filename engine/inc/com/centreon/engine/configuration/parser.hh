@@ -29,12 +29,10 @@
 #include "com/centreon/engine/configuration/host.hh"
 #include "com/centreon/engine/configuration/hostdependency.hh"
 #include "com/centreon/engine/configuration/hostescalation.hh"
-#include "com/centreon/engine/configuration/hostextinfo.hh"
 #include "com/centreon/engine/configuration/object.hh"
 #include "com/centreon/engine/configuration/service.hh"
 #include "com/centreon/engine/configuration/servicedependency.hh"
 #include "com/centreon/engine/configuration/serviceescalation.hh"
-#include "com/centreon/engine/configuration/serviceextinfo.hh"
 #include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/engine/configuration/timeperiod.hh"
 
@@ -58,13 +56,11 @@ class parser {
     read_host = (1 << 4),
     read_hostdependency = (1 << 5),
     read_hostescalation = (1 << 6),
-    read_hostextinfo = (1 << 7),
     read_hostgroup = (1 << 8),
     read_hostgroupescalation = (1 << 9),
     read_service = (1 << 10),
     read_servicedependency = (1 << 11),
     read_serviceescalation = (1 << 12),
-    read_serviceextinfo = (1 << 13),
     read_servicegroup = (1 << 14),
     read_timeperiod = (1 << 15),
     read_all = (~0)
@@ -96,10 +92,6 @@ class parser {
       (this->*pfunc)(f, state);
   }
 
-  void _apply_hostextinfo(State* pb_config);
-  void _apply_serviceextinfo(State* pb_config);
-  void _apply_hostextinfo();
-  void _apply_serviceextinfo();
   file_info const& _get_file_info(object* obj) const;
   void _get_hosts_by_hostgroups(hostgroup const& hostgroups, list_host& hosts);
   void _get_hosts_by_hostgroups_name(set_string const& lst_group,

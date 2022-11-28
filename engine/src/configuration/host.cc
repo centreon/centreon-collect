@@ -21,7 +21,6 @@
 #include "absl/strings/numbers.h"
 #include "absl/strings/str_split.h"
 #include "absl/strings/string_view.h"
-#include "com/centreon/engine/configuration/hostextinfo.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/log_v2.hh"
@@ -448,23 +447,6 @@ void host::check_validity() const {
  */
 host::key_type host::key() const noexcept {
   return _host_id;
-}
-
-/**
- *  Merge object.
- *
- *  @param[in] obj The object to merge.
- */
-void host::merge(configuration::hostextinfo const& tmpl) {
-  MRG_DEFAULT(_action_url);
-  MRG_OPTION(_coords_2d);
-  MRG_OPTION(_coords_3d);
-  MRG_DEFAULT(_icon_image);
-  MRG_DEFAULT(_icon_image_alt);
-  MRG_DEFAULT(_notes);
-  MRG_DEFAULT(_notes_url);
-  MRG_DEFAULT(_statusmap_image);
-  MRG_DEFAULT(_vrml_image);
 }
 
 /**
