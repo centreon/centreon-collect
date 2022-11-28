@@ -168,6 +168,9 @@ void broker_module_init(void const* arg) {
                        &bam::pb_dimension_kpi_event::operations);
       e.register_event(bam::pb_kpi_status::static_type(), "KpiStatus",
                        &bam::pb_kpi_status::operations);
+      e.register_event(bam::pb_ba_duration_event::static_type(),
+                       "BaDurationEvent",
+                       &bam::pb_ba_duration_event::operations);
     }
   }
 }

@@ -134,3 +134,16 @@ message KpiStatus {
     double last_impact = 12;
     bool valid = 13;
 }
+
+message BaDurationEvent {
+    uint32 ba_id = 1;
+    int64 real_start_time = 2;
+    int64 end_time = 3;
+    int64 start_time = 4;
+    uint32 duration = 5;
+    uint32 sla_duration = 6;
+    uint32 timeperiod_id = 7;
+    bool timeperiod_is_default = 8;
+}
+
+

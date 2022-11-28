@@ -105,6 +105,7 @@ class reporting_stream : public io::stream {
   void _process_ba_event(std::shared_ptr<io::data> const& e);
   void _process_pb_ba_event(std::shared_ptr<io::data> const& e);
   void _process_ba_duration_event(std::shared_ptr<io::data> const& e);
+  void _process_pb_ba_duration_event(std::shared_ptr<io::data> const& e);
   void _process_kpi_event(std::shared_ptr<io::data> const& e);
   void _process_pb_kpi_event(std::shared_ptr<io::data> const& e);
   void _process_dimension(std::shared_ptr<io::data> const& e);
