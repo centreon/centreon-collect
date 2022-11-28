@@ -153,17 +153,22 @@ def start_mysql():
     if not run_env():
         logger.console("Starting Mariadb with systemd")
         getoutput("systemctl start mysql")
+        logger.console("Mariadb started with systemd")
     else:
         logger.console("Starting Mariadb directly")
         Popen(["mariadbd", "--user=root"], stdout=DEVNULL, stderr=DEVNULL)
+        logger.console("Mariadb directly started")
 
 
 def stop_mysql():
     if not run_env():
+        logger.console("Stopping Mariadb with systemd")
         getoutput("systemctl stop mysql")
+        logger.console("Mariadb stopped with systemd")
     else:
-        getoutput(
-            "kill -9 $(ps aux | grep 'mariadbd --user=root' | grep -v grep | awk '{print $2}')")
+        logger.console("Stopping directly MariaDB")
+        getoutput("kill -SIGTERM $(pidof mariadbd)")
+        logger.console("Mariadb directly stopped")
 
 
 def stop_rrdcached():
