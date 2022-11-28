@@ -367,21 +367,6 @@ message Hostgroup {
   string notes_url = 8;
 }
 
-message Hostextinfo {
-  Object obj = 1;
-  string action_url = 2;
-  optional Point2d coords_2d = 3;  // Optional - Default value: -1, -1
-  optional Point3d coords_3d = 4;  // Optional - Default value: 0.0, 0.0, 0.0
-  StringSet hostgroups = 5;
-  StringSet hosts = 6;
-  string icon_image = 7;
-  string icon_image_alt = 8;
-  string notes = 9;
-  string notes_url = 10;
-  string statusmap_image = 11;
-  string vrml_image = 12;
-}
-
 message Service {
   Object obj = 1;
   optional int32 acknowledgement_timeout = 2;  // Optional - Default value: 0
@@ -464,18 +449,6 @@ message Serviceescalation {
   optional uint32 notification_interval = 9;  // Optional - Default value: 0
   StringList servicegroups = 10;
   StringList service_description = 11;
-}
-
-message Serviceextinfo {
-  Object obj = 1;
-  string action_url = 2;
-  string icon_image = 3;
-  string icon_image_alt = 4;
-  StringSet hostgroups = 5;
-  StringSet hosts = 6;
-  string notes = 7;
-  string notes_url = 8;
-  string service_description = 9;
 }
 
 message Servicegroup {
