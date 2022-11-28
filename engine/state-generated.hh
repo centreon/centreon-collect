@@ -37,7 +37,6 @@ Hostextinfo make_hostextinfo();
 Service make_service();
 Servicedependency make_servicedependency();
 Serviceescalation make_serviceescalation();
-Serviceextinfo make_serviceextinfo();
 Servicegroup make_servicegroup();
 Severity make_severity();
 Tag make_tag();
