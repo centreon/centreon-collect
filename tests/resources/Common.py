@@ -1,5 +1,5 @@
 from robot.api import logger
-from subprocess import getoutput
+from subprocess import getoutput, Popen, DEVNULL
 import re
 import os
 import time
@@ -151,9 +151,11 @@ def run_env():
 
 def start_mysql():
     if not run_env():
+        logger.console("Starting Mariadb with systemd")
         getoutput("systemctl start mysql")
     else:
-        getoutput("mariadbd --user=root > /dev/null 2>&1 &")
+        logger.console("Starting Mariadb directly")
+        Popen(["mariadbd", "--user=root"], stdout=DEVNULL, stderr=DEVNULL)
 
 
 def stop_mysql():
