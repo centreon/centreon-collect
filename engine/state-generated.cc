@@ -50,12 +50,10 @@ Anomalydetection make_anomalydetection() {
 
 Command make_command() {
   Command retval;
-
 }
 
 Connector make_connector() {
   Connector retval;
-
 }
 
 Contact make_contact() {
@@ -72,7 +70,6 @@ Contact make_contact() {
 
 Contactgroup make_contactgroup() {
   Contactgroup retval;
-
 }
 
 Host make_host() {
@@ -117,7 +114,6 @@ Hostescalation make_hostescalation() {
 
 Hostgroup make_hostgroup() {
   Hostgroup retval;
-
 }
 
 Hostextinfo make_hostextinfo() {
@@ -169,27 +165,18 @@ Serviceescalation make_serviceescalation() {
   retval.set_notification_interval(0);
 }
 
-Serviceextinfo make_serviceextinfo() {
-  Serviceextinfo retval;
-
-}
-
 Servicegroup make_servicegroup() {
   Servicegroup retval;
-
 }
 
 Severity make_severity() {
   Severity retval;
-
 }
 
 Tag make_tag() {
   Tag retval;
-
 }
 
 Timeperiod make_timeperiod() {
   Timeperiod retval;
-
 }
