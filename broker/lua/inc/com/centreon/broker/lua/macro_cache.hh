@@ -134,6 +134,8 @@ class macro_cache {
   void _process_dimension_bv_event(std::shared_ptr<io::data> const& data);
   void _process_dimension_truncate_table_signal(
       std::shared_ptr<io::data> const& data);
+  void _process_pb_dimension_truncate_table_signal(
+      std::shared_ptr<io::data> const& data);
 
   void _save_to_disk();
 };

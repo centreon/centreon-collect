@@ -129,6 +129,9 @@ void broker_module_init(void const* arg) {
       e.register_event(bam::pb_dimension_ba_event::static_type(),
                        "DimensionBaEvent",
                        &bam::pb_dimension_ba_event::operations);
+      e.register_event(bam::pb_dimension_truncate_table_signal::static_type(),
+                       "DimensionTruncateTableSignal",
+                       &bam::pb_dimension_truncate_table_signal::operations);
     }
 
     // Register lua layer.

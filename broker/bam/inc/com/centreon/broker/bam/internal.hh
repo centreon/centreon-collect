@@ -71,6 +71,11 @@ using pb_dimension_ba_timeperiod_relation =
                  make_type(io::bam,
                            bam::de_pb_dimension_ba_timeperiod_relation)>;
 
+using pb_dimension_truncate_table_signal =
+    io::protobuf<DimensionTruncateTableSignal,
+                 make_type(io::bam,
+                           bam::de_pb_dimension_truncate_table_signal)>;
+
 }  // namespace bam
 
 CCB_END()

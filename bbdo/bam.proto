@@ -151,3 +151,7 @@ message DimensionBaTimeperiodRelation {
     uint32 timeperiod_id = 2;
     bool is_default = 3;  
 }
+
+message DimensionTruncateTableSignal {
+    bool update_started = 1;
+}
