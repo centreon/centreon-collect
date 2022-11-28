@@ -21,7 +21,6 @@
 #include <absl/strings/numbers.h>
 #include <absl/strings/str_split.h>
 #include <absl/strings/string_view.h>
-#include "com/centreon/engine/configuration/serviceextinfo.hh"
 #include "com/centreon/engine/customvariable.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/host.hh"
@@ -826,19 +825,6 @@ void service::check_validity() const {
 service::key_type service::key() const {
   key_type k{_host_id, _service_id};
   return k;
-}
-
-/**
- *  Merge object.
- *
- *  @param[in] obj The object to merge.
- */
-void service::merge(configuration::serviceextinfo const& tmpl) {
-  MRG_DEFAULT(_action_url);
-  MRG_DEFAULT(_icon_image);
-  MRG_DEFAULT(_icon_image_alt);
-  MRG_DEFAULT(_notes);
-  MRG_DEFAULT(_notes_url);
 }
 
 /**
