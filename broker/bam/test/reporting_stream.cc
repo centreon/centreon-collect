@@ -46,8 +46,7 @@ TEST_F(BamReportingStream, WriteKpi) {
       std::make_shared<dimension_kpi_event>(dimension_kpi_event(1))};
   rs->write(std::static_pointer_cast<io::data>(st));
 
-  std::shared_ptr<dimension_truncate_table_signal> flush{
-      std::make_shared<dimension_truncate_table_signal>(true)};
-  flush->update_started = false;
+  std::shared_ptr<pb_dimension_truncate_table_signal> flush{
+      std::make_shared<pb_dimension_truncate_table_signal>()};
   rs->write(std::static_pointer_cast<io::data>(flush));
 }

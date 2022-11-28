@@ -20,7 +20,6 @@
 
 #include <fmt/format.h>
 
-#include "bbdo/bam/dimension_truncate_table_signal.hh"
 #include "com/centreon/broker/bam/ba.hh"
 #include "com/centreon/broker/bam/configuration/reader_exception.hh"
 #include "com/centreon/broker/bam/configuration/state.hh"
@@ -399,7 +398,9 @@ void reader_v2::_load_dimensions() {
   // we cache the data until we are sure we have all the data
   // needed from the database.
   std::deque<std::shared_ptr<io::data>> datas;
-  datas.emplace_back(std::make_shared<dimension_truncate_table_signal>(true));
+  auto trunc_event = std::make_shared<pb_dimension_truncate_table_signal>();
+  trunc_event->mut_obj().set_update_started(true);
+  datas.emplace_back(trunc_event);
 
   // Load the dimensions.
   std::unordered_map<uint32_t, std::shared_ptr<pb_dimension_ba_event>> bas;
@@ -657,7 +658,7 @@ void reader_v2::_load_dimensions() {
   }
 
   // End the update.
-  datas.emplace_back(std::make_shared<dimension_truncate_table_signal>(false));
+  datas.emplace_back(std::make_shared<pb_dimension_truncate_table_signal>());
 
   // Write all the cached data to the publisher.
   for (auto& e : datas)

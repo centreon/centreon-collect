@@ -524,6 +524,9 @@ void macro_cache::write(std::shared_ptr<io::data> const& data) {
     case bam::dimension_truncate_table_signal::static_type():
       _process_dimension_truncate_table_signal(data);
       break;
+    case bam::pb_dimension_truncate_table_signal::static_type():
+      _process_pb_dimension_truncate_table_signal(data);
+      break;
     default:
       break;
   }
@@ -1015,6 +1018,25 @@ void macro_cache::_process_dimension_truncate_table_signal(
                       "lua: processing dimension truncate table signal");
 
   if (trunc->update_started) {
+    _dimension_ba_events.clear();
+    _dimension_ba_bv_relation_events.clear();
+    _dimension_bv_events.clear();
+  }
+}
+
+/**
+ *  Process a dimension truncate table signal
+ *
+ * @param data  The event.
+ */
+void macro_cache::_process_pb_dimension_truncate_table_signal(
+    std::shared_ptr<io::data> const& data) {
+  SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+                      "lua: processing dimension truncate table signal");
+
+  if (std::static_pointer_cast<bam::pb_dimension_truncate_table_signal>(data)
+          ->obj()
+          .update_started()) {
     _dimension_ba_events.clear();
     _dimension_ba_bv_relation_events.clear();
     _dimension_bv_events.clear();

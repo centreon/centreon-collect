@@ -423,6 +423,46 @@ BEPB_DIMENSION_BA_TIMEPERIOD_RELATION
 	Stop Engine
 	Kindly Stop Broker  True
 
+BEPB_DIMENSION_TRUNCATE_TABLE
+	[Documentation]	use of pb_dimension_timeperiod message.
+	[Tags]	Broker	Engine	protobuf	bbdo
+	Clear Commands Status
+	Clear Retention
+
+    Remove File     /tmp/all_lua_event.log
+    Config BBDO3	${1}
+	Config Engine	${1}
+	Config Broker	central
+	Config Broker	module
+	Broker Config Log	central	bam	trace
+	Broker Config Log	central	lua	trace
+	Broker Config Log	central	core	trace
+	broker_config_source_log  central  1
+	Config Broker Sql Output	central	unified_sql
+	
+	Clone Engine Config To DB
+	Add Bam Config To Broker	central
+
+	Broker Config Add Lua Output	central	test-protobuf	${SCRIPTS}test-log-all-event.lua
+	
+	
+	Start Broker  True
+	Start Engine
+    Wait Until Created	/tmp/all_lua_event.log	30s
+	FOR	${index}	IN RANGE	10
+		${grep_res}=  Grep File  /tmp/all_lua_event.log  "_type":393246, "category":6, "element":30, "update_started":true
+		Sleep	1s
+		EXIT FOR LOOP IF	len("""${grep_res}""") > 0
+	END
+
+	Should Not Be Empty  ${grep_res}  msg=event not found
+	${grep_res}=  Grep File  /tmp/all_lua_event.log  "_type":393246, "category":6, "element":30, "update_started":false
+	Should Not Be Empty  ${grep_res}  msg=event not found
+
+
+	Stop Engine
+	Kindly Stop Broker  True
+
 
 
 

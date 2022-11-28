@@ -1310,8 +1310,29 @@ void reporting_stream::_process_dimension_truncate_signal(
     const std::shared_ptr<io::data>& e) {
   const dimension_truncate_table_signal& dtts =
       *std::static_pointer_cast<const dimension_truncate_table_signal>(e);
+  _process_dimension_truncate_signal(dtts.update_started);
+}
 
-  if (dtts.update_started) {
+/**
+ *  Process a dimension truncate signal and write it to the db.
+ *
+ *  @param[in] e The event.
+ */
+void reporting_stream::_process_pb_dimension_truncate_signal(
+    const std::shared_ptr<io::data>& e) {
+  _process_dimension_truncate_signal(
+      std::static_pointer_cast<const pb_dimension_truncate_table_signal>(e)
+          ->obj()
+          .update_started());
+}
+
+/**
+ * @brief Process a dimension truncate signal and write it to the db.
+ *
+ * @param update_started
+ */
+void reporting_stream::_process_dimension_truncate_signal(bool update_started) {
+  if (update_started) {
     _processing_dimensions = true;
     SPDLOG_LOGGER_DEBUG(log_v2::bam(),
                         "BAM-BI: processing table truncation signal (opening)");

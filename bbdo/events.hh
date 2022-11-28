@@ -188,7 +188,8 @@ enum data_element {
   de_pb_dimension_kpi_event = 26,
   de_pb_kpi_status = 27,
   de_pb_ba_duration_event = 28,
-  de_pb_dimension_ba_timeperiod_relation = 29
+  de_pb_dimension_ba_timeperiod_relation = 29,
+  de_pb_dimension_truncate_table_signal = 30
 };
 }
 constexpr uint32_t make_type(io::data_category cat, uint32_t elem) {
