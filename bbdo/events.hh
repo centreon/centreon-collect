@@ -175,8 +175,8 @@ enum data_element {
   de_rebuild,
   de_dimension_timeperiod,
   de_dimension_ba_timeperiod_relation,
-  de_dimension_timeperiod_exception,
-  de_dimension_timeperiod_exclusion,
+  de_dimension_timeperiod_exception,  // not used since 2022-11-28
+  de_dimension_timeperiod_exclusion,  // not used since 2022-11-28
   de_inherited_downtime,
   de_pb_inherited_downtime = 18,
   de_pb_ba_status = 19,
