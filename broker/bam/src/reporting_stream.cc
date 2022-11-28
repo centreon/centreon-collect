@@ -27,8 +27,6 @@
 #include "bbdo/bam/dimension_bv_event.hh"
 #include "bbdo/bam/dimension_kpi_event.hh"
 #include "bbdo/bam/dimension_timeperiod.hh"
-#include "bbdo/bam/dimension_timeperiod_exception.hh"
-#include "bbdo/bam/dimension_timeperiod_exclusion.hh"
 #include "bbdo/bam/dimension_truncate_table_signal.hh"
 #include "bbdo/bam/kpi_event.hh"
 #include "bbdo/bam/rebuild.hh"
@@ -234,52 +232,6 @@ void reporting_stream::_apply(const DimensionTimeperiod& tp) {
       time::timeperiod::ptr(std::make_shared<time::timeperiod>(
           tp.id(), tp.name(), "", tp.sunday(), tp.monday(), tp.tuesday(),
           tp.wednesday(), tp.thursday(), tp.friday(), tp.saturday())));
-}
-
-/**
- *  Apply a timeperiod exception declaration.
- *
- *  @param[in] tpe  Timeperiod exclusion declaration.
- */
-void reporting_stream::_apply(dimension_timeperiod_exception const& tpe) {
-  SPDLOG_LOGGER_TRACE(
-      log_v2::bam(),
-      "BAM-BI: applying timeperiod exception (timeperiod id {}) to cache",
-      tpe.timeperiod_id);
-  time::timeperiod::ptr timeperiod =
-      _timeperiods.get_timeperiod(tpe.timeperiod_id);
-  if (timeperiod)
-    timeperiod->add_exception(tpe.daterange, tpe.timerange);
-  else
-    SPDLOG_LOGGER_ERROR(
-        log_v2::bam(),
-        "BAM-BI: could not apply exception on timeperiod {}: timeperiod does "
-        "not exist",
-        tpe.timeperiod_id);
-}
-
-/**
- *  Apply a timeperiod exclusion declaration.
- *
- *  @param[in] tpe  Timeperiod exclusion declaration.
- */
-void reporting_stream::_apply(dimension_timeperiod_exclusion const& tpe) {
-  SPDLOG_LOGGER_TRACE(
-      log_v2::bam(),
-      "BAM-BI: applying timeperiod exclusion (timeperiod id {}) to cache",
-      tpe.timeperiod_id);
-  time::timeperiod::ptr timeperiod =
-      _timeperiods.get_timeperiod(tpe.timeperiod_id);
-  time::timeperiod::ptr excluded_tp =
-      _timeperiods.get_timeperiod(tpe.excluded_timeperiod_id);
-  if (timeperiod && excluded_tp)
-    timeperiod->add_excluded(excluded_tp);
-  else
-    SPDLOG_LOGGER_ERROR(
-        log_v2::bam(),
-        "BAM-BI: could not apply exclusion of timeperiod {} by timeperiod {}"
-        ": at least one of the timeperiod does not exist",
-        tpe.excluded_timeperiod_id, tpe.timeperiod_id);
 }
 
 /**
@@ -585,19 +537,6 @@ void reporting_stream::_prepare() {
       "          ?, ?, ?, ?,"
       "          ?)";
   _dimension_timeperiod_insert = _mysql.prepare_query(query);
-
-  query =
-      "INSERT INTO mod_bam_reporting_timeperiods_exceptions"
-      "            (timeperiod_id, daterange, timerange)"
-      "  VALUES (?, ?, ?)";
-  _dimension_timeperiod_exception_insert = _mysql.prepare_query(query);
-
-  // Dimension timeperiod exclusion insertion.
-  query =
-      "INSERT INTO mod_bam_reporting_timeperiods_exclusions"
-      "            (timeperiod_id, excluded_timeperiod_id)"
-      "  VALUES (?, ?)";
-  _dimension_timeperiod_exclusion_insert = _mysql.prepare_query(query);
 
   // Dimension BA/timeperiod insertion.
   query =
@@ -1278,25 +1217,6 @@ void reporting_stream::_process_dimension(const std::shared_ptr<io::data>& e) {
             tp.name);
       } break;
       case io::events::data_type<
-          io::bam, bam::de_dimension_timeperiod_exception>::value: {
-        bam::dimension_timeperiod_exception const& tpe =
-            *std::static_pointer_cast<
-                bam::dimension_timeperiod_exception const>(e);
-        SPDLOG_LOGGER_DEBUG(log_v2::bam(),
-                            "BAM-BI: preparing exception of timeperiod {}",
-                            tpe.timeperiod_id);
-      } break;
-      case io::events::data_type<
-          io::bam, bam::de_dimension_timeperiod_exclusion>::value: {
-        bam::dimension_timeperiod_exclusion const& tpe =
-            *std::static_pointer_cast<
-                bam::dimension_timeperiod_exclusion const>(e);
-        SPDLOG_LOGGER_DEBUG(
-            log_v2::bam(),
-            "BAM-BI: preparing exclusion of timeperiod {} by timeperiod {}",
-            tpe.excluded_timeperiod_id, tpe.timeperiod_id);
-      } break;
-      case io::events::data_type<
           io::bam, bam::de_dimension_ba_timeperiod_relation>::value: {
         bam::dimension_ba_timeperiod_relation const& r =
             *std::static_pointer_cast<
@@ -1443,14 +1363,6 @@ void reporting_stream::_dimension_dispatch(
       break;
     case bam::pb_dimension_timeperiod::static_type():
       _process_pb_dimension_timeperiod(data);
-      break;
-    case io::events::data_type<io::bam,
-                               bam::de_dimension_timeperiod_exception>::value:
-      _process_dimension_timeperiod_exception(data);
-      break;
-    case io::events::data_type<io::bam,
-                               bam::de_dimension_timeperiod_exclusion>::value:
-      _process_dimension_timeperiod_exclusion(data);
       break;
     case io::events::data_type<io::bam,
                                bam::de_dimension_ba_timeperiod_relation>::value:
@@ -1759,64 +1671,6 @@ void reporting_stream::_process_dimension_timeperiod(
   convert.set_saturday(tp.saturday);
   convert.set_sunday(tp.sunday);
   _apply(convert);
-}
-
-/**
- *  Process a timeperiod exception and store it in the DB and in the
- *  timeperiod cache.
- *
- *  @param[in] e  The event.
- */
-void reporting_stream::_process_dimension_timeperiod_exception(
-    std::shared_ptr<io::data> const& e) {
-  bam::dimension_timeperiod_exception const& tpe =
-      *std::static_pointer_cast<bam::dimension_timeperiod_exception const>(e);
-  SPDLOG_LOGGER_DEBUG(log_v2::bam(),
-                      "BAM-BI: processing exception of timeperiod {}",
-                      tpe.timeperiod_id);
-
-  _dimension_timeperiod_exception_insert.bind_value_as_i32(0,
-                                                           tpe.timeperiod_id);
-  _dimension_timeperiod_exception_insert.bind_value_as_str(
-      1, misc::string::truncate(
-             tpe.daterange,
-             get_mod_bam_reporting_timeperiods_exceptions_col_size(
-                 mod_bam_reporting_timeperiods_exceptions_daterange)));
-  _dimension_timeperiod_exception_insert.bind_value_as_str(
-      2, misc::string::truncate(
-             tpe.timerange,
-             get_mod_bam_reporting_timeperiods_exceptions_col_size(
-                 mod_bam_reporting_timeperiods_exceptions_timerange)));
-
-  _mysql.run_statement(_dimension_timeperiod_exception_insert,
-                       database::mysql_error::insert_timeperiod_exception,
-                       false);
-  _apply(tpe);
-}
-
-/**
- *  Process a timeperiod exclusion and store it in the DB and in the
- *  timeperiod cache.
- *
- *  @param[in] e  The event.
- */
-void reporting_stream::_process_dimension_timeperiod_exclusion(
-    std::shared_ptr<io::data> const& e) {
-  bam::dimension_timeperiod_exclusion const& tpe =
-      *std::static_pointer_cast<bam::dimension_timeperiod_exclusion const>(e);
-  SPDLOG_LOGGER_DEBUG(
-      log_v2::bam(),
-      "BAM-BI: processing exclusion of timeperiod {} by timeperiod {}",
-      tpe.excluded_timeperiod_id, tpe.timeperiod_id);
-
-  _dimension_timeperiod_exclusion_insert.bind_value_as_i32(0,
-                                                           tpe.timeperiod_id);
-  _dimension_timeperiod_exclusion_insert.bind_value_as_i32(
-      1, tpe.excluded_timeperiod_id);
-  _mysql.run_statement(_dimension_timeperiod_exclusion_insert,
-                       database::mysql_error::insert_exclusion_timeperiod,
-                       false);
-  _apply(tpe);
 }
 
 /**

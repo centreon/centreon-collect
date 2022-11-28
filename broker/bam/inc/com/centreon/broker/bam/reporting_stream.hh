@@ -35,8 +35,6 @@ class database_config;
 namespace bam {
 // Forward declarations.
 class dimension_timeperiod;
-class dimension_timeperiod_exception;
-class dimension_timeperiod_exclusion;
 
 /**
  *  @class reporting_stream reporting_stream.hh
@@ -66,8 +64,6 @@ class reporting_stream : public io::stream {
   database::mysql_stmt _dimension_bv_insert;
   database::mysql_stmt _dimension_ba_bv_relation_insert;
   database::mysql_stmt _dimension_timeperiod_insert;
-  database::mysql_stmt _dimension_timeperiod_exception_insert;
-  database::mysql_stmt _dimension_timeperiod_exclusion_insert;
   database::mysql_stmt _dimension_ba_timeperiod_insert;
   database::mysql_stmt _dimension_kpi_insert;
   std::vector<database::mysql_stmt> _dimension_truncate_tables;
@@ -94,8 +90,6 @@ class reporting_stream : public io::stream {
 
  private:
   void _apply(const DimensionTimeperiod& tp);
-  void _apply(dimension_timeperiod_exception const& tpe);
-  void _apply(dimension_timeperiod_exclusion const& tpe);
   void _close_inconsistent_events(char const* event_type,
                                   char const* table,
                                   char const* id);
@@ -122,10 +116,6 @@ class reporting_stream : public io::stream {
   void _process_pb_dimension_kpi(std::shared_ptr<io::data> const& e);
   void _process_dimension_timeperiod(std::shared_ptr<io::data> const& e);
   void _process_pb_dimension_timeperiod(std::shared_ptr<io::data> const& e);
-  void _process_dimension_timeperiod_exception(
-      std::shared_ptr<io::data> const& e);
-  void _process_dimension_timeperiod_exclusion(
-      std::shared_ptr<io::data> const& e);
   void _process_dimension_ba_timeperiod_relation(
       std::shared_ptr<io::data> const& e);
   void _process_pb_dimension_ba_timeperiod_relation(

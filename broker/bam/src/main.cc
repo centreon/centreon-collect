@@ -23,8 +23,6 @@
 #include "bbdo/bam/dimension_bv_event.hh"
 #include "bbdo/bam/dimension_kpi_event.hh"
 #include "bbdo/bam/dimension_timeperiod.hh"
-#include "bbdo/bam/dimension_timeperiod_exception.hh"
-#include "bbdo/bam/dimension_timeperiod_exclusion.hh"
 #include "bbdo/bam/dimension_truncate_table_signal.hh"
 #include "bbdo/bam/inherited_downtime.hh"
 #include "bbdo/bam/kpi_event.hh"
@@ -133,12 +131,6 @@ void broker_module_init(void const* arg) {
       register_bam_event<bam::dimension_ba_timeperiod_relation>(
           e, bam::de_dimension_ba_timeperiod_relation,
           "dimension_ba_timeperiod_relation");
-      register_bam_event<bam::dimension_timeperiod_exception>(
-          e, bam::de_dimension_timeperiod_exception,
-          "dimension_ba_timeperiod_exception");
-      register_bam_event<bam::dimension_timeperiod_exclusion>(
-          e, bam::de_dimension_timeperiod_exclusion,
-          "dimension_timeperiod_exclusion");
       register_bam_event<bam::inherited_downtime>(e, bam::de_inherited_downtime,
                                                   "inherited_downtime");
       e.register_event(make_type(io::bam, bam::de_pb_inherited_downtime),
