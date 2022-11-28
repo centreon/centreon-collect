@@ -11,11 +11,9 @@ class_files_hh = [
     "inc/com/centreon/engine/configuration/hostdependency.hh",
     "inc/com/centreon/engine/configuration/hostescalation.hh",
     "inc/com/centreon/engine/configuration/hostgroup.hh",
-    "inc/com/centreon/engine/configuration/hostextinfo.hh",
     "inc/com/centreon/engine/configuration/service.hh",
     "inc/com/centreon/engine/configuration/servicedependency.hh",
     "inc/com/centreon/engine/configuration/serviceescalation.hh",
-    "inc/com/centreon/engine/configuration/serviceextinfo.hh",
     "inc/com/centreon/engine/configuration/servicegroup.hh",
     "inc/com/centreon/engine/configuration/severity.hh",
     "inc/com/centreon/engine/configuration/tag.hh",
@@ -32,11 +30,9 @@ class_files_cc = [
     "src/configuration/hostdependency.cc",
     "src/configuration/hostescalation.cc",
     "src/configuration/hostgroup.cc",
-    "src/configuration/hostextinfo.cc",
     "src/configuration/service.cc",
     "src/configuration/servicedependency.cc",
     "src/configuration/serviceescalation.cc",
-    "src/configuration/serviceextinfo.cc",
     "src/configuration/servicegroup.cc",
     "src/configuration/severity.cc",
     "src/configuration/tag.cc",
@@ -98,8 +94,10 @@ def get_messages_of_conf(header, msg: [str]):
 
 
 def get_default_values(cpp, msg: [str]):
-    rmin = re.compile(r"(?:static)?\s*([a-z0-9][a-z_0-9\s]+[a-z0-9])\s*(?:const)?\s*default_")
-    r = re.compile(r"(?:static)?\s*([a-z0-9][a-z_0-9\s]+[a-z0-9])\s*(?:const)?\s*(default_[a-z0-9_]*)\((.*)\);")
+    rmin = re.compile(
+        r"(?:static)?\s*([a-z0-9][a-z_0-9\s]+[a-z0-9])\s*(?:const)?\s*default_")
+    r = re.compile(
+        r"(?:static)?\s*([a-z0-9][a-z_0-9\s]+[a-z0-9])\s*(?:const)?\s*(default_[a-z0-9_]*)\((.*)\);")
     rdecl = re.compile(r"^\s*(_[a-z][a-z0-9_]*)\((default_[a-z_0-9]*)\)")
 
     def_value = {}
@@ -150,11 +148,12 @@ def get_default_values(cpp, msg: [str]):
                         i['default'] = value['value']
                         break
             else:
-                print(f"Error: {m.group(2)} not found in list of default values from file {filename_cc}")
+                print(
+                    f"Error: {m.group(2)} not found in list of default values from file {filename_cc}")
         line += 1
 
 
-def proto_name(n : str):
+def proto_name(n: str):
     return n[1:]
 
 
@@ -328,10 +327,12 @@ enum ActionHostDependencyOn {
  
 message StringList {
     repeated string data = 1;
+    bool additive = 2;
 }
 
 message StringSet {
     repeated string data = 1;
+    bool additive = 2;
 }
 
 """]
@@ -419,8 +420,7 @@ for i in range(len(class_files_hh)):
     # From the cpp sources, we get default values for some of the fields.
     get_default_values(cpp, msg_list)
 
-
-    ### Construction of three files, state-generated.proto, state-generated.cc and state-generated.hh
+    # Construction of three files, state-generated.proto, state-generated.cc and state-generated.hh
     number = 2
     proto.append(f"""
 message {cap_name} {{
@@ -438,42 +438,48 @@ message {cap_name} {{
             cmt += f" - Default value: {l['default']}"
         if cmt != "":
             cmt = "  // " + cmt
-        proto.append(f"  {optional}{l['proto_type']} {l['proto_name']} = {number};{cmt}\n")
+        proto.append(
+            f"  {optional}{l['proto_type']} {l['proto_name']} = {number};{cmt}\n")
         number += 1
     proto.append("}\n")
-
 
     # Generation of proto file
     f = open("state-generated.proto", "w")
     f.writelines(proto)
     f.close()
 
-    #Generation of cpp file
+    # Generation of cpp file
     header = False
     for m in msg_list:
         if 'default' in m:
             if not header:
-                cc_lines =[f"\nvoid init_{name}({cap_name}* obj) {{\n"]
+                cc_lines = [f"\nvoid init_{name}({cap_name}* obj) {{\n"]
                 header = True
             if m['typ'] == 'point_2d':
                 values = m['default'].split(',')
-                cc_lines.append(f"  obj->mutable_{m['proto_name']}()->set_x({values[0].strip()});\n")
-                cc_lines.append(f"  obj->mutable_{m['proto_name']}()->set_y({values[1].strip()});\n")
+                cc_lines.append(
+                    f"  obj->mutable_{m['proto_name']}()->set_x({values[0].strip()});\n")
+                cc_lines.append(
+                    f"  obj->mutable_{m['proto_name']}()->set_y({values[1].strip()});\n")
             elif m['typ'] == 'point_3d':
                 values = m['default'].split(',')
-                cc_lines.append(f"  obj->mutable_{m['proto_name']}()->set_x({values[0].strip()});\n")
-                cc_lines.append(f"  obj->mutable_{m['proto_name']}()->set_y({values[1].strip()});\n")
-                cc_lines.append(f"  obj->mutable_{m['proto_name']}()->set_y({values[2].strip()});\n")
+                cc_lines.append(
+                    f"  obj->mutable_{m['proto_name']}()->set_x({values[0].strip()});\n")
+                cc_lines.append(
+                    f"  obj->mutable_{m['proto_name']}()->set_y({values[1].strip()});\n")
+                cc_lines.append(
+                    f"  obj->mutable_{m['proto_name']}()->set_y({values[2].strip()});\n")
             else:
-                cc_lines.append(f"  obj->set_{m['proto_name']}({m['default']});\n")
+                cc_lines.append(
+                    f"  obj->set_{m['proto_name']}({m['default']});\n")
 
     if not header:
-        cc_lines =[f"\nvoid init_{name}({cap_name}* /* obj */) {{\n"]
+        cc_lines = [f"\nvoid init_{name}({cap_name}* /* obj */) {{\n"]
         header = True
     cc_lines.append("}\n")
     fcc.writelines(cc_lines)
 
-    #Generation of hh file
+    # Generation of hh file
     fhh.write(f"void init_{name}({cap_name}* obj);\n")
 
 fhh.write("""

@@ -21,7 +21,6 @@
 #include <absl/strings/numbers.h>
 #include <absl/strings/str_split.h>
 #include <absl/strings/string_view.h>
-#include "com/centreon/engine/configuration/serviceextinfo.hh"
 #include "com/centreon/engine/customvariable.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/host.hh"
@@ -918,19 +917,6 @@ void anomalydetection::check_validity() const {
 anomalydetection::key_type anomalydetection::key() const {
   key_type k{_host_id, _service_id};
   return k;
-}
-
-/**
- *  Merge object.
- *
- *  @param[in] obj The object to merge.
- */
-void anomalydetection::merge(configuration::serviceextinfo const& tmpl) {
-  MRG_DEFAULT(_action_url);
-  MRG_DEFAULT(_icon_image);
-  MRG_DEFAULT(_icon_image_alt);
-  MRG_DEFAULT(_notes);
-  MRG_DEFAULT(_notes_url);
 }
 
 /**

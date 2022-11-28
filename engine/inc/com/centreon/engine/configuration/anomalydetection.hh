@@ -29,7 +29,6 @@
 CCE_BEGIN()
 
 namespace configuration {
-class serviceextinfo;
 
 class anomalydetection : public object {
  public:
@@ -53,7 +52,6 @@ class anomalydetection : public object {
   bool operator<(anomalydetection const& other) const noexcept;
   void check_validity() const override;
   key_type key() const;
-  void merge(configuration::serviceextinfo const& obj);
   void merge(object const& obj) override;
   bool parse(char const* key, char const* value) override;
 
