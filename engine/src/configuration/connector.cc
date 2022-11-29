@@ -120,7 +120,6 @@ void connector::check_validity() const {
     throw(
         engine_error() << "Connector '" << _connector_name
                        << "' has no command line (property 'connector_line')");
-  return;
 }
 
 /**

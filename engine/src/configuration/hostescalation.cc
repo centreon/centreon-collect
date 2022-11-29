@@ -154,9 +154,9 @@ bool hostescalation::operator<(hostescalation const& right) const {
  */
 void hostescalation::check_validity() const {
   if (_hosts->empty() && _hostgroups->empty())
-    throw(engine_error() << "Host escalation is not attached to any "
+    throw engine_error() << "Host escalation is not attached to any "
                          << "host or host group (properties 'host_name' or "
-                         << "'hostgroup_name', respectively)");
+                         << "'hostgroup_name', respectively)";
 }
 
 /**

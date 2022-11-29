@@ -9,7 +9,7 @@ override_dh_gencontrol:
 override_dh_auto_configure:
 	mkdir build
 	cd build && \
-	conan install .. -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing && \
+	conan install .. -pr:b=default -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing && \
 	CXXFLAGS="-Wall -Wextra" cmake \
 		-DCMAKE_EXPORT_COMPILE_COMMANDS=On \
 		-DCMAKE_BUILD_TYPE=RelWithDebInfo \
