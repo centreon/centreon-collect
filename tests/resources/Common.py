@@ -276,7 +276,20 @@ def find_line_from(lines, date):
             end = idx
         elif my_date > idx_d:
             start = idx
-    return idx
+    # idx can be end or start, we have to choose the best one
+    m_start = p.match(lines[start])
+    m_end = p.match(lines[end])
+    start_d, end_d = None, None
+
+    if m_start:
+        start_d = get_date(m_start.group(1))
+    if m_end:
+        end_d = get_date(m_end.group(1))
+
+    if end_d and my_date >= end_d:
+        return end
+    else:
+        return start
 
 
 def check_reschedule(log: str, date, content: str):
@@ -824,3 +837,5 @@ def find_internal_id(date, exists=True, timeout: int = TIMEOUT):
                         return True
         time.sleep(1)
     return False
+
+print(find_in_log_with_timeout("/tmp/var/log/centreon-broker/central-broker-master.log", "2022-11-29T09:34:41.035", ["Starting the TCP thread pool of 5 threads"], 30))
