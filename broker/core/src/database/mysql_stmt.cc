@@ -220,13 +220,41 @@ void mysql_stmt::operator<<(io::data const& d) {
                   else
                     bind_value_as_i32(field, v);
                   break;
+                case mapping::entry::invalid_on_negative:
+                  if (v < 0)
+                    bind_value_as_null(field);
+                  else
+                    bind_value_as_i32(field, v);
+                  break;
                 default:
                   bind_value_as_i32(field, v);
               }
             } break;
-            case mapping::source::SHORT:
-              bind_value_as_i32(field, current_entry->get_short(d));
-              break;
+            case mapping::source::SHORT: {
+              int v = current_entry->get_short(d);
+              switch (current_entry->get_attribute()) {
+                case mapping::entry::invalid_on_zero:
+                  if (v == 0)
+                    bind_value_as_null(field);
+                  else
+                    bind_value_as_i32(field, v);
+                  break;
+                case mapping::entry::invalid_on_minus_one:
+                  if (v == -1)
+                    bind_value_as_null(field);
+                  else
+                    bind_value_as_i32(field, v);
+                  break;
+                case mapping::entry::invalid_on_negative:
+                  if (v < 0)
+                    bind_value_as_null(field);
+                  else
+                    bind_value_as_i32(field, v);
+                  break;
+                default:
+                  bind_value_as_i32(field, v);
+              }
+            } break;
             case mapping::source::STRING: {
               size_t max_len = 0;
               const std::string& v(current_entry->get_string(d, &max_len));
@@ -263,6 +291,12 @@ void mysql_stmt::operator<<(io::data const& d) {
                     bind_value_as_null(field);
                   else
                     bind_value_as_u32(field, v);
+                  break;
+                case mapping::entry::invalid_on_negative:
+                  if (v < 0)
+                    bind_value_as_null(field);
+                  else
+                    bind_value_as_i32(field, v);
                   break;
                 default:
                   bind_value_as_u32(field, v);
