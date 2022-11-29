@@ -347,10 +347,10 @@ void raw::finished(process& p) noexcept {
  */
 void raw::_build_argv_macro_environment(nagios_macros const& macros,
                                         environment& env) {
+  std::string line;
   for (uint32_t i(0); i < MAX_COMMAND_ARGUMENTS; ++i) {
-    std::ostringstream oss;
-    oss << MACRO_ENV_VAR_PREFIX "ARG" << (i + 1) << "=" << macros.argv[i];
-    env.add(oss.str());
+    line = fmt::format(MACRO_ENV_VAR_PREFIX "ARG{}={}", i + 1, macros.argv[i]);
+    env.add(line);
   }
 }
 
@@ -365,10 +365,11 @@ void raw::_build_contact_address_environment(nagios_macros const& macros,
   if (!macros.contact_ptr)
     return;
   std::vector<std::string> const& address(macros.contact_ptr->get_addresses());
+  std::string line;
   for (uint32_t i(0); i < address.size(); ++i) {
-    std::ostringstream oss;
-    oss << MACRO_ENV_VAR_PREFIX "CONTACTADDRESS" << i << "=" << address[i];
-    env.add(oss.str());
+    line =
+        fmt::format(MACRO_ENV_VAR_PREFIX "CONTACTADDRESS{}={}", i, address[i]);
+    env.add(line);
   }
 }
 
