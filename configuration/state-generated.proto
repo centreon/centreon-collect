@@ -98,9 +98,13 @@ message ExceptionArray {
   repeated Daterange week_day = 5;
 }
 
-message PairString {
-  string first = 1;
-  string second = 2;
+message PairStringSet {
+  message Pair {
+    string first = 1;
+    string second = 2;
+  }
+  repeated Pair data = 1;
+  bool additive = 2;
 }
 
 message PairUint64_32 {
@@ -455,7 +459,7 @@ message Servicegroup {
   Object obj = 1;
   string action_url = 2;
   string alias = 3;
-  repeated PairString members = 4;
+  PairStringSet members = 4;
   string notes = 5;
   string notes_url = 6;
   uint32 servicegroup_id = 7;

@@ -82,6 +82,46 @@ static void RmConf() {
 }
 
 static void CreateConf() {
+  CreateFile("/tmp/servicegroups.cfg",
+             "define servicegroup {\n"
+             "    servicegroup_id                1000\n"
+             "    name                           sg_tpl\n"
+             "    servicegroup_name              sg_tpl\n"
+             "    members                        "
+             "host_1,service_1,host_1,service_2,host_1,service_4\n"
+             "    notes                          notes for sg template\n"
+             "}\n"
+             "define servicegroup {\n"
+             "    servicegroup_id                1\n"
+             "    servicegroup_name              sg1\n"
+             "    alias                          sg1\n"
+             "    members                        "
+             "host_1,service_1,host_1,service_2,host_1,service_3\n"
+             "    notes                          notes for sg1\n"
+             "    notes_url                      notes url for sg1\n"
+             "    action_url                     action url for sg1\n"
+             "    use                            sg_tpl\n"
+             "}\n"
+             "define servicegroup {\n"
+             "    servicegroup_id                2\n"
+             "    servicegroup_name              sg2\n"
+             "    alias                          sg2\n"
+             "    members                        "
+             "host_1,service_2,host_1,service_3,host_1,service_4\n"
+             "    notes                          notes for sg2\n"
+             "    notes_url                      notes url for sg2\n"
+             "    action_url                     action url for sg2\n"
+             "}\n");
+  CreateFile("/tmp/hostgroups.cfg",
+             "define hostgroup {\n"
+             "    hostgroup_id                   1\n"
+             "    hostgroup_name                 hg1\n"
+             "    alias                          hg1\n"
+             "    members                        host_1,host_2,host_3\n"
+             "    notes                          notes for hg1\n"
+             "    notes_url                      notes url for hg1\n"
+             "    action_url                     action url for hg1\n"
+             "}\n");
   CreateFile("/tmp/hosts.cfg",
              "define host {\n"
              "    host_name                      host_1\n"
@@ -314,7 +354,8 @@ static void CreateConf() {
       "cfg_file=/tmp/services.cfg\n"
       "cfg_file=/tmp/commands.cfg\n"
       "cfg_file=/tmp/contacts.cfg\n"
-      //"cfg_file=/tmp/etc/centreon-engine/config0/hostgroups.cfg\n"
+      "cfg_file=/tmp/hostgroups.cfg\n"
+      "cfg_file=/tmp/servicegroups.cfg\n"
       "cfg_file=/tmp/timeperiods.cfg\n"
       //"cfg_file=/tmp/etc/centreon-engine/config0/connectors.cfg\n"
       //      "broker_module=/usr/lib64/centreon-engine/externalcmd.so\n"
@@ -402,12 +443,14 @@ static void CreateConf() {
       "enable_flap_detection=0\n");
 }
 
-constexpr size_t CFG_FILES = 5u;
+constexpr size_t CFG_FILES = 7u;
 constexpr size_t RES_FILES = 1u;
 constexpr size_t HOSTS = 4u;
 constexpr size_t SERVICES = 4u;
 constexpr size_t TIMEPERIODS = 2u;
 constexpr size_t CONTACTS = 2u;
+constexpr size_t HOSTGROUPS = 1u;
+constexpr size_t SERVICEGROUPS = 3u;
 
 TEST_F(ApplierState, DiffOnTimeperiod) {
   configuration::State new_config;
@@ -836,6 +879,55 @@ TEST_F(ApplierState, StateLegacyParsing) {
   EXPECT_EQ(*ctgit, std::string("super_cgroup1"));
   ++ctgit;
   EXPECT_EQ(*ctgit, std::string("super_cgroup2"));
+
+  ASSERT_EQ(config.hostgroups().size(), HOSTGROUPS);
+  auto hgit = config.hostgroups().begin();
+  while (hgit != config.hostgroups().end() && hgit->hostgroup_name() != "hg1")
+    ++hgit;
+  ASSERT_TRUE(hgit != config.hostgroups().end());
+  const auto hg = *hgit;
+  ASSERT_EQ(hg.hostgroup_id(), 1u);
+  ASSERT_EQ(hg.hostgroup_name(), std::string("hg1"));
+  ASSERT_EQ(hg.alias(), std::string("hg1"));
+  ASSERT_EQ(hg.members().size(), 3u);
+  {
+    auto it = hg.members().begin();
+    ASSERT_EQ(*it, std::string("host_1"));
+    ++it;
+    ASSERT_EQ(*it, std::string("host_2"));
+    ++it;
+    ASSERT_EQ(*it, std::string("host_3"));
+  }
+  ASSERT_EQ(hg.notes(), std::string("notes for hg1"));
+  ASSERT_EQ(hg.notes_url(), std::string("notes url for hg1"));
+  ASSERT_EQ(hg.action_url(), std::string("action url for hg1"));
+
+  ASSERT_EQ(config.servicegroups().size(), SERVICEGROUPS);
+  auto sgit = config.servicegroups().begin();
+  while (sgit != config.servicegroups().end() &&
+         sgit->servicegroup_name() != "sg2")
+    ++sgit;
+  ASSERT_TRUE(sgit != config.servicegroups().end());
+  const auto sg = *sgit;
+  ASSERT_EQ(sg.servicegroup_id(), 2u);
+  ASSERT_EQ(sg.servicegroup_name(), std::string("sg2"));
+  ASSERT_EQ(sg.alias(), std::string("sg2"));
+  ASSERT_EQ(sg.members().size(), 3u);
+  {
+    auto it = sg.members().begin();
+    ASSERT_EQ(it->first, std::string("host_1"));
+    ASSERT_EQ(it->second, std::string("service_2"));
+    ++it;
+    ASSERT_EQ(it->first, std::string("host_1"));
+    ASSERT_EQ(it->second, std::string("service_3"));
+    ++it;
+    ASSERT_EQ(it->first, std::string("host_1"));
+    ASSERT_EQ(it->second, std::string("service_4"));
+  }
+  ASSERT_EQ(sg.notes(), std::string("notes for sg2"));
+  ASSERT_EQ(sg.notes_url(), std::string("notes url for sg2"));
+  ASSERT_EQ(sg.action_url(), std::string("action url for sg2"));
+
   RmConf();
 }
 
@@ -929,5 +1021,54 @@ TEST_F(ApplierState, StateParsing) {
   EXPECT_EQ(ct.contactgroups().data().size(), 2u);
   EXPECT_EQ(ct.contactgroups().data().at(0), std::string("super_cgroup1"));
   EXPECT_EQ(ct.contactgroups().data().at(1), std::string("super_cgroup2"));
+
+  ASSERT_EQ(config.hostgroups().size(), HOSTGROUPS);
+  auto hgit = config.hostgroups().begin();
+  while (hgit != config.hostgroups().end() && hgit->hostgroup_name() != "hg1")
+    ++hgit;
+  ASSERT_TRUE(hgit != config.hostgroups().end());
+  const auto hg = *hgit;
+  ASSERT_EQ(hg.hostgroup_id(), 1u);
+  ASSERT_EQ(hg.hostgroup_name(), std::string("hg1"));
+  ASSERT_EQ(hg.alias(), std::string("hg1"));
+  ASSERT_EQ(hg.members().data().size(), 3u);
+  {
+    auto it = hg.members().data().begin();
+    ASSERT_EQ(*it, std::string("host_1"));
+    ++it;
+    ASSERT_EQ(*it, std::string("host_2"));
+    ++it;
+    ASSERT_EQ(*it, std::string("host_3"));
+  }
+  ASSERT_EQ(hg.notes(), std::string("notes for hg1"));
+  ASSERT_EQ(hg.notes_url(), std::string("notes url for hg1"));
+  ASSERT_EQ(hg.action_url(), std::string("action url for hg1"));
+
+  ASSERT_EQ(config.servicegroups().size(), SERVICEGROUPS);
+  auto sgit = config.servicegroups().begin();
+  while (sgit != config.servicegroups().end() &&
+         sgit->servicegroup_name() != "sg2")
+    ++sgit;
+  ASSERT_TRUE(sgit != config.servicegroups().end());
+  const auto sg = *sgit;
+  ASSERT_EQ(sg.servicegroup_id(), 2u);
+  ASSERT_EQ(sg.servicegroup_name(), std::string("sg2"));
+  ASSERT_EQ(sg.alias(), std::string("sg2"));
+  ASSERT_EQ(sg.members().data().size(), 3u);
+  {
+    auto it = sg.members().data().begin();
+    ASSERT_EQ(it->first(), std::string("host_1"));
+    ASSERT_EQ(it->second(), std::string("service_2"));
+    ++it;
+    ASSERT_EQ(it->first(), std::string("host_1"));
+    ASSERT_EQ(it->second(), std::string("service_3"));
+    ++it;
+    ASSERT_EQ(it->first(), std::string("host_1"));
+    ASSERT_EQ(it->second(), std::string("service_4"));
+  }
+  ASSERT_EQ(sg.notes(), std::string("notes for sg2"));
+  ASSERT_EQ(sg.notes_url(), std::string("notes url for sg2"));
+  ASSERT_EQ(sg.action_url(), std::string("action url for sg2"));
+
   RmConf();
 }

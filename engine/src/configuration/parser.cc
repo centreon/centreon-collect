@@ -297,6 +297,47 @@ void parser::_parse_directory_configuration(std::string const& path) {
     _parse_object_definitions(it->path());
 }
 
+static bool fill_pair_string_group(PairStringSet* grp,
+                                   const absl::string_view& value) {
+  auto arr = absl::StrSplit(value, ',');
+
+  bool first = true;
+  auto itfirst = arr.begin();
+  if (itfirst == arr.end())
+    return true;
+
+  do {
+    auto itsecond = itfirst;
+    ++itsecond;
+    if (itsecond == arr.end())
+      return false;
+    absl::string_view v1 = absl::StripAsciiWhitespace(*itfirst);
+    absl::string_view v2 = absl::StripAsciiWhitespace(*itsecond);
+    if (first) {
+      if (v1[0] == '+') {
+        grp->set_additive(true);
+        v1 = v1.substr(1);
+      }
+      first = false;
+    }
+    bool found = false;
+    for (auto& m : grp->data()) {
+      if (*itfirst == m.first() && *itsecond == m.second()) {
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      auto* p = grp->mutable_data()->Add();
+      p->set_first(v1.data(), v1.size());
+      p->set_second(v2.data(), v2.size());
+    }
+    itfirst = itsecond;
+    ++itfirst;
+  } while (itfirst != arr.end());
+  return true;
+}
+
 static void fill_string_group(StringSet* grp, const absl::string_view& value) {
   auto arr = absl::StrSplit(value, ',');
   bool first = true;
@@ -709,12 +750,14 @@ void parser::_parse_object_definitions(const std::string& path,
       } else if (type == "host") {
         otype = object::object_type::host;
         msg = pb_config->mutable_hosts()->Add();
+        init_host(static_cast<Host*>(msg));
         correspondance = {
             {"_HOST_ID", "host_id"},
         };
       } else if (type == "service") {
         otype = object::object_type::service;
         msg = pb_config->mutable_services()->Add();
+        init_service(static_cast<Service*>(msg));
         correspondance = {
             {"_SERVICE_ID", "service_id"},
             {"host_name", "hosts"},
@@ -736,6 +779,7 @@ void parser::_parse_object_definitions(const std::string& path,
       } else if (type == "timeperiod") {
         otype = object::object_type::timeperiod;
         msg = pb_config->mutable_timeperiods()->Add();
+        init_timeperiod(static_cast<Timeperiod*>(msg));
         hook = [tp = static_cast<Timeperiod*>(msg)](
                    const absl::string_view& key,
                    const absl::string_view& value) -> bool {
@@ -778,7 +822,26 @@ void parser::_parse_object_definitions(const std::string& path,
       } else if (type == "command") {
         otype = object::object_type::command;
         msg = pb_config->mutable_commands()->Add();
+        init_command(static_cast<Command*>(msg));
+      } else if (type == "hostgroup") {
+        otype = object::object_type::hostgroup;
+        msg = pb_config->mutable_hostgroups()->Add();
+        init_hostgroup(static_cast<Hostgroup*>(msg));
+      } else if (type == "servicegroup") {
+        otype = object::object_type::servicegroup;
+        msg = pb_config->mutable_servicegroups()->Add();
+        init_servicegroup(static_cast<Servicegroup*>(msg));
+        hook = [sg = static_cast<Servicegroup*>(msg)](
+                   const absl::string_view& key,
+                   const absl::string_view& value) -> bool {
+          if (key == "members")
+            return fill_pair_string_group(sg->mutable_members(), value);
+          else
+            return false;
+        };
       } else {
+        log_v2::config()->error("Type '{}' not yet supported by the parser",
+                                type);
         assert(1 == 18);
       }
     }
@@ -1021,6 +1084,12 @@ void parser::_merge(Message* msg, Message* tmpl) {
               refl->SetBool(msg, f, refl->GetBool(*tmpl, f));
             }
             break;
+          case FieldDescriptor::CPPTYPE_INT32:
+            if ((oof && !refl->GetOneofFieldDescriptor(*msg, oof)) ||
+                refl->GetInt32(*msg, f) == 0u) {
+              refl->SetInt32(msg, f, refl->GetInt32(*tmpl, f));
+            }
+            break;
           case FieldDescriptor::CPPTYPE_UINT32:
             if ((oof && !refl->GetOneofFieldDescriptor(*msg, oof)) ||
                 refl->GetUInt32(*msg, f) == 0u) {
@@ -1114,6 +1183,109 @@ void parser::_resolve_template(Message* msg, const pb_map_object& tmpls) {
   }
 }
 
+void parser::_check_one_of_validity(const Message& msg,
+                                    const char* const* one_of) const {
+  const Descriptor* desc = msg.GetDescriptor();
+  const Reflection* refl = msg.GetReflection();
+  std::string tmpl;
+  std::list<std::string> error_msg;
+  bool ok = false;
+  for (auto field = one_of; !ok && *field; ++field) {
+    const FieldDescriptor* f = desc->FindFieldByName(*field);
+    if (f) {
+      if (!f->is_repeated()) {
+        switch (f->cpp_type()) {
+          case FieldDescriptor::CPPTYPE_STRING: {
+            if (refl->GetStringReference(msg, f, &tmpl).empty())
+              error_msg.push_back(fmt::format(
+                  "{} has its property '{}' empty which is mandatory",
+                  desc->name(), f->name()));
+            else
+              ok = true;
+          } break;
+          case FieldDescriptor::CPPTYPE_MESSAGE: {
+            const Message& m = refl->GetMessage(msg, f);
+            const Descriptor* d = m.GetDescriptor();
+
+            if (d && d->name() == "StringSet") {
+              const StringSet& set =
+                  static_cast<const StringSet&>(refl->GetMessage(msg, f));
+              if (set.data().empty())
+                error_msg.push_back(fmt::format(
+                    "{} has its property '{}' empty which is mandatory",
+                    desc->name(), f->name()));
+              else
+                ok = true;
+            } else if (d && d->name() == "StringList") {
+              const StringList& lst =
+                  static_cast<const StringList&>(refl->GetMessage(msg, f));
+              if (lst.data().empty())
+                error_msg.push_back(fmt::format(
+                    "{} has its property '{}' empty which is mandatory",
+                    desc->name(), f->name()));
+              else
+                ok = true;
+            } else {
+              log_v2::config()->error(
+                  "Type '{}' not implemented in check_validity",
+                  f->type_name());
+              assert(194 == 1897);
+            }
+          } break;
+          default:
+            log_v2::config()->error(
+                "Type '{}' not implemented in check_validity", f->type_name());
+            assert(192 == 1897);
+        }
+      } else {
+        log_v2::config()->error(
+            "Repeated type '{}' not implemented in check_validity",
+            f->type_name());
+        assert(18972 == 9);
+      }
+    }
+  }
+  if (!ok)
+    throw engine_error() << fmt::format("{}", fmt::join(error_msg, " - "));
+}
+
+void parser::_check_validity(const Message& msg,
+                             const char* const* mandatory) const {
+  const Descriptor* desc = msg.GetDescriptor();
+  const Reflection* refl = msg.GetReflection();
+  std::string tmpl;
+  const FieldDescriptor* f = desc->FindFieldByName("obj");
+  if (f) {
+    const Object& obj = static_cast<const Object&>(refl->GetMessage(msg, f));
+    if (!obj.register_())
+      return;
+  }
+  for (auto field = mandatory; *field; ++field) {
+    f = desc->FindFieldByName(*field);
+    if (f) {
+      if (!f->is_repeated()) {
+        switch (f->cpp_type()) {
+          case FieldDescriptor::CPPTYPE_STRING: {
+            if (refl->GetStringReference(msg, f, &tmpl).empty())
+              throw engine_error() << fmt::format(
+                  "{} has its property '{}' empty which is mandatory",
+                  desc->name(), f->name());
+          } break;
+          default:
+            log_v2::config()->error(
+                "Type '{}' not implemented in check_validity", f->type_name());
+            assert(192 == 1897);
+        }
+      } else {
+        log_v2::config()->error(
+            "Repeated type '{}' not implemented in check_validity",
+            f->type_name());
+        assert(18972 == 9);
+      }
+    }
+  }
+}
+
 void parser::_resolve_template(State* pb_config) {
   for (Command& c : *pb_config->mutable_commands())
     _resolve_template(&c, _pb_templates[object::command]);
@@ -1133,6 +1305,97 @@ void parser::_resolve_template(State* pb_config) {
     log_v2::config()->error("Service {}", i);
     ++i;
     _resolve_template(&s, _pb_templates[object::service]);
+  }
+
+  {
+    constexpr std::array<const char*, 3> mandatory{"command_name",
+                                                   "command_line", nullptr};
+    for (const Command& c : pb_config->commands())
+      _check_validity(c, mandatory.data());
+  }
+  {
+    constexpr std::array<const char*, 2> mandatory{"contact_name", nullptr};
+    for (auto it = pb_config->contacts().begin();
+         it != pb_config->contacts().end(); ++it) {
+      _check_validity(it->second, mandatory.data());
+    }
+  }
+  {
+    constexpr std::array<const char*, 2> mandatory{"contactgroup_name",
+                                                   nullptr};
+    for (const Contactgroup& c : pb_config->contactgroups())
+      _check_validity(c, mandatory.data());
+  }
+  {
+    constexpr std::array<const char*, 3> mandatory{"host_name", "address",
+                                                   nullptr};
+    for (const Host& h : pb_config->hosts())
+      _check_validity(h, mandatory.data());
+  }
+  {
+    constexpr std::array<const char*, 3> mandatory{"host_name", "address",
+                                                   nullptr};
+    for (const Hostdependency& hd : pb_config->hostdependencies())
+      _check_validity(hd, mandatory.data());
+  }
+  {
+    constexpr std::array<const char*, 3> one_of{"hosts", "hostgroups", nullptr};
+    for (const Hostescalation& he : pb_config->hostescalations())
+      _check_one_of_validity(he, one_of.data());
+  }
+  {
+    constexpr std::array<const char*, 2> mandatory{"hostgroup_name", nullptr};
+    for (const Hostgroup& hg : pb_config->hostgroups())
+      _check_validity(hg, mandatory.data());
+  }
+  {
+    constexpr std::array<const char*, 3> mandatory{"service_description",
+                                                   "check_command", nullptr};
+    constexpr std::array<const char*, 3> one_of{"hosts", "hostgroups", nullptr};
+    for (const Service& s : pb_config->services()) {
+      _check_validity(s, mandatory.data());
+      _check_one_of_validity(s, one_of.data());
+    }
+  }
+  {
+    for (const Servicedependency& sd : pb_config->servicedependencies())
+      if (sd.servicegroups().data().empty() &&
+          (sd.service_description().data().empty() ||
+           (sd.hosts().data().empty() && sd.hostgroups().data().empty())))
+        throw engine_error() << fmt::format(
+            "Service escalation is not attached to any service or service "
+            "group "
+            "or host or host group");
+  }
+  {
+    constexpr std::array<const char*, 2> mandatory{"servicegroup_name",
+                                                   nullptr};
+    for (const Servicegroup& sg : pb_config->servicegroups())
+      _check_validity(sg, mandatory.data());
+  }
+  {
+    constexpr std::array<const char*, 2> mandatory{"timeperiod_name", nullptr};
+    for (const Timeperiod& t : pb_config->timeperiods())
+      _check_validity(t, mandatory.data());
+  }
+  {
+    constexpr std::array<const char*, 5> mandatory{"service_description",
+                                                   "host_name", "metric_name",
+                                                   "thresholds_file", nullptr};
+    for (const Anomalydetection& a : pb_config->anomalydetections())
+      _check_validity(a, mandatory.data());
+  }
+  {
+    constexpr std::array<const char*, 2> mandatory{"servicegroup_name",
+                                                   nullptr};
+    for (const Servicegroup& sg : pb_config->servicegroups())
+      _check_validity(sg, mandatory.data());
+  }
+  {
+    constexpr std::array<const char*, 2> mandatory{"servicegroup_name",
+                                                   nullptr};
+    for (const Servicegroup& sg : pb_config->servicegroups())
+      _check_validity(sg, mandatory.data());
   }
 }
 

@@ -62,7 +62,7 @@ def proto_type(t: str):
         "days_array": "DaysArray",
         "tab_string": "repeated string",
         "exception_array": "ExceptionArray",
-        "group<set_pair_string>": "repeated PairString",
+        "group<set_pair_string>": "PairStringSet",
         "std::set<std::pair<uint64_t, uint16_t>>": "repeated PairUint64_32",
     }
     if t in typ:
@@ -257,9 +257,13 @@ message ExceptionArray {
   repeated Daterange week_day = 5;
 }
 
-message PairString {
-  string first = 1;
-  string second = 2;
+message PairStringSet {
+  message Pair {
+    string first = 1;
+    string second = 2;
+  }
+  repeated Pair data = 1;
+  bool additive = 2;
 }
 
 message PairUint64_32 {

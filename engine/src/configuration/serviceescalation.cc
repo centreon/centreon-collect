@@ -280,7 +280,6 @@ void serviceescalation::check_validity() const {
                          << "any host or host group (properties 'host_name' or "
                          << "'hostgroup_name', respectively)");
   }
-  return;
 }
 
 /**
