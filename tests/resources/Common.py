@@ -259,7 +259,7 @@ def find_line_from(lines, date):
     start = 0
     end = len(lines) - 1
     idx = start
-    while end - start > 1:
+    while end > start:
         idx = (start + end) // 2
         m = p.match(lines[idx])
         while m is None:
@@ -272,24 +272,13 @@ def find_line_from(lines, date):
                 logger.console("We are at the first line and no date found")
 
         idx_d = get_date(m.group(1))
-        if my_date <= idx_d:
+        if my_date <= idx_d and end != idx:
             end = idx
-        elif my_date > idx_d:
+        elif my_date > idx_d and start != idx:
             start = idx
-    # idx can be end or start, we have to choose the best one
-    m_start = p.match(lines[start])
-    m_end = p.match(lines[end])
-    start_d, end_d = None, None
-
-    if m_start:
-        start_d = get_date(m_start.group(1))
-    if m_end:
-        end_d = get_date(m_end.group(1))
-
-    if end_d and my_date >= end_d:
-        return end
-    else:
-        return start
+        else:
+            break
+    return idx
 
 
 def check_reschedule(log: str, date, content: str):
