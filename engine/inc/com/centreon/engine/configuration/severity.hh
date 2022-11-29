@@ -40,7 +40,7 @@ class severity : public object {
   key_type _key;
   uint32_t _level;
   uint64_t _icon_id;
-  std::string _name;
+  std::string _severity_name;
 
   bool _set_id(uint64_t id);
   bool _set_level(uint32_t level);

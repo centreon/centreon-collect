@@ -58,7 +58,7 @@ severity::severity(const severity& other)
       _key{other._key},
       _level{other._level},
       _icon_id{other._icon_id},
-      _name{other._name} {}
+      _severity_name{other._severity_name} {}
 
 /**
  * @brief Assign operator.
@@ -73,7 +73,7 @@ severity& severity::operator=(const severity& other) {
     _key = other._key;
     _level = other._level;
     _icon_id = other._icon_id;
-    _name = other._name;
+    _severity_name = other._severity_name;
   }
   return *this;
 }
@@ -87,7 +87,7 @@ severity& severity::operator=(const severity& other) {
  */
 bool severity::operator==(const severity& other) const noexcept {
   return _key == other._key && _level == other._level &&
-         _icon_id == other._icon_id && _name == other._name;
+         _icon_id == other._icon_id && _severity_name == other._severity_name;
 }
 
 /**
@@ -99,7 +99,7 @@ bool severity::operator==(const severity& other) const noexcept {
  */
 bool severity::operator!=(const severity& other) const noexcept {
   return _key != other._key || _level != other._level ||
-         _icon_id != other._icon_id || _name != other._name;
+         _icon_id != other._icon_id || _severity_name != other._severity_name;
 }
 
 /**
@@ -116,7 +116,7 @@ bool severity::operator<(const severity& other) const noexcept {
     return _level < other._level;
   else if (_icon_id != other._icon_id)
     return _icon_id < other._icon_id;
-  return _name < other._name;
+  return _severity_name < other._severity_name;
 }
 
 /**
@@ -130,7 +130,7 @@ bool severity::operator<(const severity& other) const noexcept {
  * If the object is not valid, an exception is thrown.
  */
 void severity::check_validity() const {
-  if (_name.empty())
+  if (_severity_name.empty())
     throw engine_error() << "Severity has no name (property 'name')";
   if (_key.first == 0)
     throw engine_error()
@@ -175,7 +175,7 @@ uint64_t severity::icon_id() const noexcept {
  * @return Severity name.
  */
 const std::string& severity::name() const noexcept {
-  return _name;
+  return _severity_name;
 }
 
 /**
@@ -255,7 +255,7 @@ bool severity::_set_icon_id(uint64_t icon_id) {
  * @return True on success.
  */
 bool severity::_set_name(const std::string& name) {
-  _name = name;
+  _severity_name = name;
   return true;
 }
 

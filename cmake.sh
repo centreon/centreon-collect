@@ -266,12 +266,12 @@ cd build
 if [[ "$maj" == "centos7" ]] ; then
   rm -rf ~/.conan/profiles/default
   if [[ "$CONAN_REBUILD" == "1" ]] ; then
-    $conan install .. -s compiler.cppstd=$STD -s compiler.libcxx=libstdc++11 --build="*"
+    $conan install .. -pr:b=default -s compiler.cppstd=$STD -s compiler.libcxx=libstdc++11 --build="*"
   else
-    $conan install .. -s compiler.cppstd=$STD -s compiler.libcxx=libstdc++11 --build=missing
+    $conan install .. -pr:b=default -s compiler.cppstd=$STD -s compiler.libcxx=libstdc++11 --build=missing
   fi
 else
-    $conan install .. -s compiler.cppstd=$STD -s compiler.libcxx=libstdc++11 --build=missing
+    $conan install .. -pr:b=default -s compiler.cppstd=$STD -s compiler.libcxx=libstdc++11 --build=missing
 fi
 
 if [[ $STD -eq 17 ]] ; then
