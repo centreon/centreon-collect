@@ -207,17 +207,21 @@ void mysql_stmt::operator<<(io::data const& d) {
               break;
             case mapping::source::INT: {
               int v = current_entry->get_int(d);
-              switch (v) {
-                case 0:
-                  if (current_entry->get_attribute() &
-                      mapping::entry::invalid_on_zero)
+              switch (current_entry->get_attribute()) {
+                case mapping::entry::invalid_on_zero:
+                  if (v == 0)
                     bind_value_as_null(field);
                   else
                     bind_value_as_i32(field, v);
                   break;
-                case -1:
-                  if (current_entry->get_attribute() &
-                      mapping::entry::invalid_on_minus_one)
+                case mapping::entry::invalid_on_minus_one:
+                  if (v == -1)
+                    bind_value_as_null(field);
+                  else
+                    bind_value_as_i32(field, v);
+                  break;
+                case mapping::entry::invalid_on_negative:
+                  if (v < 0)
                     bind_value_as_null(field);
                   else
                     bind_value_as_i32(field, v);
@@ -226,16 +230,39 @@ void mysql_stmt::operator<<(io::data const& d) {
                   bind_value_as_i32(field, v);
               }
             } break;
-            case mapping::source::SHORT:
-              bind_value_as_i32(field, current_entry->get_short(d));
-              break;
+            case mapping::source::SHORT: {
+              int v = current_entry->get_short(d);
+              switch (current_entry->get_attribute()) {
+                case mapping::entry::invalid_on_zero:
+                  if (v == 0)
+                    bind_value_as_null(field);
+                  else
+                    bind_value_as_i32(field, v);
+                  break;
+                case mapping::entry::invalid_on_minus_one:
+                  if (v == -1)
+                    bind_value_as_null(field);
+                  else
+                    bind_value_as_i32(field, v);
+                  break;
+                case mapping::entry::invalid_on_negative:
+                  if (v < 0)
+                    bind_value_as_null(field);
+                  else
+                    bind_value_as_i32(field, v);
+                  break;
+                default:
+                  bind_value_as_i32(field, v);
+              }
+            } break;
             case mapping::source::STRING: {
               size_t max_len = 0;
               const std::string& v(current_entry->get_string(d, &max_len));
               fmt::string_view sv;
               if (max_len > 0 && v.size() > max_len) {
                 log_v2::sql()->trace(
-                    "column '{}' should admit a longer string, it is cut to {} "
+                    "column '{}' should admit a longer string, it is cut to "
+                    "{} "
                     "characters to be stored anyway.",
                     current_entry->get_name_v2(), max_len);
                 max_len = misc::string::adjust_size_utf8(v, max_len);
@@ -251,20 +278,24 @@ void mysql_stmt::operator<<(io::data const& d) {
             } break;
             case mapping::source::TIME: {
               time_t v(current_entry->get_time(d));
-              switch (v) {
-                case 0:
-                  if (current_entry->get_attribute() &
-                      mapping::entry::invalid_on_zero)
+              switch (current_entry->get_attribute()) {
+                case mapping::entry::invalid_on_zero:
+                  if (v == 0)
                     bind_value_as_null(field);
                   else
                     bind_value_as_u32(field, v);
                   break;
-                case -1:
-                  if (current_entry->get_attribute() &
-                      mapping::entry::invalid_on_minus_one)
+                case mapping::entry::invalid_on_minus_one:
+                  if (v == -1)
                     bind_value_as_null(field);
                   else
                     bind_value_as_u32(field, v);
+                  break;
+                case mapping::entry::invalid_on_negative:
+                  if (v < 0)
+                    bind_value_as_null(field);
+                  else
+                    bind_value_as_i32(field, v);
                   break;
                 default:
                   bind_value_as_u32(field, v);
