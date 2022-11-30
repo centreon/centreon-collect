@@ -23,6 +23,7 @@
 #include <absl/strings/str_split.h>
 
 #include "../../core/test/test_server.hh"
+#include "bbdo/remove_graph_message.pb.h"
 #include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric_mapping.hh"
 #include "bbdo/storage/status.hh"
@@ -4583,6 +4584,76 @@ TEST_F(LuaTest, PbDowntimeV2) {
   ASSERT_NE(lst.find("\"host_id\":2"), std::string::npos);
   ASSERT_NE(lst.find("\"service_id\":3"), std::string::npos);
   ASSERT_NE(lst.find("\"type\":1"), std::string::npos);
+  RemoveFile(filename);
+  RemoveFile("/tmp/log");
+}
+
+using pb_remove_graph_message =
+    io::protobuf<RemoveGraphMessage,
+                 make_type(io::storage, storage::de_remove_graph_message)>;
+
+TEST_F(LuaTest, PbRemoveGraphMessage) {
+  config::applier::modules modules;
+  modules.load_file("./lib/20-unified_sql.so");
+
+  std::map<std::string, misc::variant> conf;
+  std::string filename("/tmp/test_remove_graph.lua");
+  auto rm{std::make_shared<pb_remove_graph_message>()};
+  rm->mut_obj().add_index_ids(2);
+  rm->mut_obj().add_index_ids(3);
+  rm->mut_obj().add_index_ids(5);
+  rm->mut_obj().add_metric_ids(7);
+  rm->mut_obj().add_metric_ids(11);
+
+  CreateScript(
+      filename,
+      "broker_api_version = 1\n"
+      "function init(conf)\n"
+      "  broker_log:set_parameters(3, '/tmp/log')\n"
+      "end\n\n"
+      "function write(d)\n"
+      "  broker_log:info(1, 'remove_graph...' .. broker.json_encode(d))\n"
+      "  return true\n"
+      "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  binding->write(rm);
+  std::string lst(ReadFile("/tmp/log"));
+  std::cout << lst << std::endl;
+  ASSERT_NE(lst.find("\"metric_ids\":[7,11]"), std::string::npos);
+  ASSERT_NE(lst.find("\"index_ids\":[2,3,5]"), std::string::npos);
+  RemoveFile(filename);
+  RemoveFile("/tmp/log");
+}
+
+TEST_F(LuaTest, PbRemoveGraphMessageV2) {
+  config::applier::modules modules;
+  modules.load_file("./lib/20-unified_sql.so");
+
+  std::map<std::string, misc::variant> conf;
+  std::string filename("/tmp/test_remove_graph.lua");
+  auto rm{std::make_shared<pb_remove_graph_message>()};
+  rm->mut_obj().add_index_ids(2);
+  rm->mut_obj().add_index_ids(3);
+  rm->mut_obj().add_index_ids(5);
+  rm->mut_obj().add_metric_ids(7);
+  rm->mut_obj().add_metric_ids(11);
+
+  CreateScript(
+      filename,
+      "broker_api_version = 2\n"
+      "function init(conf)\n"
+      "  broker_log:set_parameters(3, '/tmp/log')\n"
+      "end\n\n"
+      "function write(d)\n"
+      "  broker_log:info(1, 'remove_graph...' .. broker.json_encode(d))\n"
+      "  return true\n"
+      "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  binding->write(rm);
+  std::string lst(ReadFile("/tmp/log"));
+  std::cout << lst << std::endl;
+  ASSERT_NE(lst.find("\"metric_ids\":[7,11]"), std::string::npos);
+  ASSERT_NE(lst.find("\"index_ids\":[2,3,5]"), std::string::npos);
   RemoveFile(filename);
   RemoveFile("/tmp/log");
 }

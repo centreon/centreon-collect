@@ -504,7 +504,8 @@ static int l_broker_json_decode(lua_State* L) {
  *
  * @param L The Lua state machine
  */
-static auto l_stacktrace = [](lua_State* L) -> void {
+// static auto l_stacktrace = [](lua_State* L) -> void {
+static void l_stacktrace(lua_State* L) {
   int n = lua_gettop(L);  // number of arguments
   for (int i = 1; i <= n; i++) {
     int t = lua_type(L, i);
@@ -720,7 +721,8 @@ static int l_broker_md5(lua_State* L) {
  */
 static int l_broker_bbdo_version(lua_State* L) {
   auto bbdo = config::applier::state::instance().get_bbdo_version();
-  std::string ret{fmt::format("{}.{}.{}", bbdo.major_v, bbdo.minor_v, bbdo.patch)};
+  std::string ret{
+      fmt::format("{}.{}.{}", bbdo.major_v, bbdo.minor_v, bbdo.patch)};
   lua_pushlstring(L, ret.c_str(), ret.size());
   return 1;
 }
