@@ -552,42 +552,6 @@ static int l_broker_event_next(lua_State* L) {
           }
         }
         _write_item(L, p, f);
-        //        const std::string& entry_name = f->name();
-        //        lua_pushlstring(L, entry_name.c_str(), entry_name.size());
-        //        switch (f->type()) {
-        //          case google::protobuf::FieldDescriptor::TYPE_BOOL:
-        //            lua_pushboolean(L, refl->GetBool(*p, f));
-        //            break;
-        //          case google::protobuf::FieldDescriptor::TYPE_DOUBLE:
-        //            lua_pushnumber(L, refl->GetDouble(*p, f));
-        //            break;
-        //          case google::protobuf::FieldDescriptor::TYPE_INT32:
-        //            lua_pushinteger(L, refl->GetInt32(*p, f));
-        //            break;
-        //          case google::protobuf::FieldDescriptor::TYPE_UINT32:
-        //            lua_pushinteger(L, refl->GetUInt32(*p, f));
-        //            break;
-        //          case google::protobuf::FieldDescriptor::TYPE_INT64:
-        //            lua_pushinteger(L, refl->GetInt64(*p, f));
-        //            break;
-        //          case google::protobuf::FieldDescriptor::TYPE_UINT64:
-        //            lua_pushinteger(L, refl->GetUInt64(*p, f));
-        //            break;
-        //          case google::protobuf::FieldDescriptor::TYPE_ENUM:
-        //            lua_pushinteger(L, refl->GetEnumValue(*p, f));
-        //            break;
-        //          case google::protobuf::FieldDescriptor::TYPE_STRING: {
-        //            const std::string& s = refl->GetString(*p, f);
-        //            lua_pushlstring(L, s.c_str(), s.size());
-        //          } break;
-        //          case google::protobuf::FieldDescriptor::TYPE_MESSAGE: {
-        //            std::string s{"Protobuf message"};
-        //            lua_pushlstring(L, s.c_str(), s.size());
-        //          } break;
-        //          default:
-        //            lua_pushlstring(L, "not implemented", 15);
-        //            break;
-        //        }
         return 2;
       }
     }
