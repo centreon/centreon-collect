@@ -46,8 +46,7 @@ using Message = ::google::protobuf::Message;
 class parser {
   void _parse_global_configuration(std::string const& path, State* pb_config);
   void _check_validity(const Message& msg, const char* const* mandatory) const;
-  void _check_one_of_validity(const Message& msg,
-                              const char* const* one_of) const;
+  bool _is_registered(const Message& msg) const;
   void _cleanup(State* pb_config);
 
  public:

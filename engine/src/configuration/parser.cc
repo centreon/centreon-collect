@@ -776,6 +776,32 @@ void parser::_parse_object_definitions(const std::string& path,
           }
           return false;
         };
+      } else if (type == "servicedependency") {
+        otype = object::object_type::servicedependency;
+        msg = pb_config->mutable_servicedependencies()->Add();
+        init_servicedependency(static_cast<Servicedependency*>(msg));
+        correspondance = {
+            {"servicegroup", "servicegroups"},
+            {"servicegroup_name", "servicegroups"},
+            {"hostgroup", "hostgroups"},
+            {"hostgroup_name", "hostgroups"},
+            {"host", "hosts"},
+            {"host_name", "hosts"},
+            {"master_host", "hosts"},
+            {"master_host_name", "hosts"},
+            {"description", "service_description"},
+            {"master_description", "service_description"},
+            {"master_service_description", "service_description"},
+            {"dependent_servicegroup", "dependent_servicegroups"},
+            {"dependent_servicegroup_name", "dependent_servicegroups"},
+            {"dependent_hostgroup", "dependent_hostgroups"},
+            {"dependent_hostgroup_name", "dependent_hostgroups"},
+            {"dependent_host", "dependent_hosts"},
+            {"dependent_host_name", "dependent_hosts"},
+            {"dependent_description", "dependent_service_description"},
+            {"execution_failure_criteria", "execution_failure_options"},
+            {"notification_failure_criteria", "notification_failure_options"},
+        };
       } else if (type == "timeperiod") {
         otype = object::object_type::timeperiod;
         msg = pb_config->mutable_timeperiods()->Add();
@@ -838,6 +864,37 @@ void parser::_parse_object_definitions(const std::string& path,
             return fill_pair_string_group(sg->mutable_members(), value);
           else
             return false;
+        };
+      } else if (type == "tag") {
+        otype = object::tag;
+        correspondance = {
+            {"name", "tag_name"},
+        };
+        msg = pb_config->mutable_tags()->Add();
+        hook = [tg = static_cast<Tag*>(msg)](
+                   const absl::string_view& key,
+                   const absl::string_view& value) -> bool {
+          bool retval = true;
+          if (key == "id" || key == "tag_id") {
+            uint64_t id;
+            if (absl::SimpleAtoi(value, &id))
+              tg->mutable_key()->set_id(id);
+            else
+              retval = false;
+          } else if (key == "type" || key == "tag_type") {
+            if (value == "hostcategory")
+              tg->mutable_key()->set_type(tag::hostcategory);
+            else if (value == "servicecategory")
+              tg->mutable_key()->set_type(tag::servicecategory);
+            else if (value == "hostgroup")
+              tg->mutable_key()->set_type(tag::hostgroup);
+            else if (value == "servicegroup")
+              tg->mutable_key()->set_type(tag::servicegroup);
+            else
+              retval = false;
+          } else
+            retval = false;
+          return retval;
         };
       } else {
         log_v2::config()->error("Type '{}' not yet supported by the parser",
@@ -1183,83 +1240,47 @@ void parser::_resolve_template(Message* msg, const pb_map_object& tmpls) {
   }
 }
 
-void parser::_check_one_of_validity(const Message& msg,
-                                    const char* const* one_of) const {
-  const Descriptor* desc = msg.GetDescriptor();
-  const Reflection* refl = msg.GetReflection();
-  std::string tmpl;
-  std::list<std::string> error_msg;
-  bool ok = false;
-  for (auto field = one_of; !ok && *field; ++field) {
-    const FieldDescriptor* f = desc->FindFieldByName(*field);
-    if (f) {
-      if (!f->is_repeated()) {
-        switch (f->cpp_type()) {
-          case FieldDescriptor::CPPTYPE_STRING: {
-            if (refl->GetStringReference(msg, f, &tmpl).empty())
-              error_msg.push_back(fmt::format(
-                  "{} has its property '{}' empty which is mandatory",
-                  desc->name(), f->name()));
-            else
-              ok = true;
-          } break;
-          case FieldDescriptor::CPPTYPE_MESSAGE: {
-            const Message& m = refl->GetMessage(msg, f);
-            const Descriptor* d = m.GetDescriptor();
-
-            if (d && d->name() == "StringSet") {
-              const StringSet& set =
-                  static_cast<const StringSet&>(refl->GetMessage(msg, f));
-              if (set.data().empty())
-                error_msg.push_back(fmt::format(
-                    "{} has its property '{}' empty which is mandatory",
-                    desc->name(), f->name()));
-              else
-                ok = true;
-            } else if (d && d->name() == "StringList") {
-              const StringList& lst =
-                  static_cast<const StringList&>(refl->GetMessage(msg, f));
-              if (lst.data().empty())
-                error_msg.push_back(fmt::format(
-                    "{} has its property '{}' empty which is mandatory",
-                    desc->name(), f->name()));
-              else
-                ok = true;
-            } else {
-              log_v2::config()->error(
-                  "Type '{}' not implemented in check_validity",
-                  f->type_name());
-              assert(194 == 1897);
-            }
-          } break;
-          default:
-            log_v2::config()->error(
-                "Type '{}' not implemented in check_validity", f->type_name());
-            assert(192 == 1897);
-        }
-      } else {
-        log_v2::config()->error(
-            "Repeated type '{}' not implemented in check_validity",
-            f->type_name());
-        assert(18972 == 9);
-      }
-    }
-  }
-  if (!ok)
-    throw engine_error() << fmt::format("{}", fmt::join(error_msg, " - "));
-}
-
-void parser::_check_validity(const Message& msg,
-                             const char* const* mandatory) const {
+/**
+ * @brief Return true if the register flag is enabled in the configuration
+ * object.
+ *
+ * @param msg A configuration object as Protobuf message.
+ *
+ * @return True if it has to be registered, false otherwise.
+ */
+bool parser::_is_registered(const Message& msg) const {
   const Descriptor* desc = msg.GetDescriptor();
   const Reflection* refl = msg.GetReflection();
   std::string tmpl;
   const FieldDescriptor* f = desc->FindFieldByName("obj");
   if (f) {
     const Object& obj = static_cast<const Object&>(refl->GetMessage(msg, f));
-    if (!obj.register_())
-      return;
+    return obj.register_();
   }
+  return false;
+}
+
+/**
+ * @brief Search for each string given in mandatory array and check that
+ * the field with that string as key is not empty.
+ * In case one field is empty, this function throws an exception.
+ *
+ * @param msg The Protobuf message to check.
+ * @param mandatory An array of strings terminated with nullptr.
+ */
+void parser::_check_validity(const Message& msg,
+                             const char* const* mandatory) const {
+  const Descriptor* desc = msg.GetDescriptor();
+  const Reflection* refl = msg.GetReflection();
+  std::string tmpl;
+
+  const FieldDescriptor* f;
+  //  const FieldDescriptor* f = desc->FindFieldByName("obj");
+  //  if (f) {
+  //    const Object& obj = static_cast<const Object&>(refl->GetMessage(msg,
+  //    f)); if (!obj.register_())
+  //      return;
+  //  }
   for (auto field = mandatory; *field; ++field) {
     f = desc->FindFieldByName(*field);
     if (f) {
@@ -1339,9 +1360,14 @@ void parser::_resolve_template(State* pb_config) {
       _check_validity(hd, mandatory.data());
   }
   {
-    constexpr std::array<const char*, 3> one_of{"hosts", "hostgroups", nullptr};
-    for (const Hostescalation& he : pb_config->hostescalations())
-      _check_one_of_validity(he, one_of.data());
+    for (const Hostescalation& he : pb_config->hostescalations()) {
+      if (_is_registered(he)) {
+        if (he.hosts().data().empty() && he.hostgroups().data().empty())
+          throw engine_error()
+              << "Host escalation must contain at least one of the fields "
+                 "'hosts' or 'hostgroups' not empty";
+      }
+    }
   }
   {
     constexpr std::array<const char*, 2> mandatory{"hostgroup_name", nullptr};
@@ -1349,12 +1375,20 @@ void parser::_resolve_template(State* pb_config) {
       _check_validity(hg, mandatory.data());
   }
   {
-    constexpr std::array<const char*, 3> mandatory{"service_description",
-                                                   "check_command", nullptr};
-    constexpr std::array<const char*, 3> one_of{"hosts", "hostgroups", nullptr};
     for (const Service& s : pb_config->services()) {
-      _check_validity(s, mandatory.data());
-      _check_one_of_validity(s, one_of.data());
+      if (_is_registered(s)) {
+        if (s.service_description().empty())
+          throw engine_error() << "Services must have a non-empty description";
+        if (s.check_command().empty())
+          throw engine_error()
+              << fmt::format("Service '{}' has an empty check command",
+                             s.service_description());
+        if (s.hosts().data().empty() && s.hostgroups().data().empty())
+          throw engine_error() << fmt::format(
+              "Service '{}' must contain at least one of the fields 'hosts' or "
+              "'hostgroups' not empty",
+              s.service_description());
+      }
     }
   }
   {
@@ -1362,10 +1396,9 @@ void parser::_resolve_template(State* pb_config) {
       if (sd.servicegroups().data().empty() &&
           (sd.service_description().data().empty() ||
            (sd.hosts().data().empty() && sd.hostgroups().data().empty())))
-        throw engine_error() << fmt::format(
-            "Service escalation is not attached to any service or service "
-            "group "
-            "or host or host group");
+        throw engine_error()
+            << "Service escalation is not attached to any service or service "
+               "group or host or host group";
   }
   {
     constexpr std::array<const char*, 2> mandatory{"servicegroup_name",
@@ -1386,10 +1419,13 @@ void parser::_resolve_template(State* pb_config) {
       _check_validity(a, mandatory.data());
   }
   {
-    constexpr std::array<const char*, 2> mandatory{"servicegroup_name",
-                                                   nullptr};
-    for (const Servicegroup& sg : pb_config->servicegroups())
-      _check_validity(sg, mandatory.data());
+    for (const Tag& t : pb_config->tags()) {
+      if (t.tag_name().empty())
+        throw engine_error() << "Tag cannot have a tag name empty";
+      if (t.key().id() == 0)
+        throw engine_error()
+            << fmt::format("Tag '{}' has a null id", t.tag_name());
+    }
   }
   {
     constexpr std::array<const char*, 2> mandatory{"servicegroup_name",

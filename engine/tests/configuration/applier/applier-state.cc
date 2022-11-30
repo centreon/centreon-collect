@@ -81,7 +81,32 @@ static void RmConf() {
   std::remove("/tmp/services.cfg");
 }
 
+enum class ConfigurationObject {
+  SERVICEGROUP = 0,
+  TAG = 1,
+  SERVICEDEPENDENCY = 2,
+};
+
 static void CreateConf() {
+  CreateFile("/tmp/servicedependencies.cfg",
+             "define servicedependency {\n"
+             "    service_description            service_2\n"
+             "    host                           host_1\n"
+             "    dependent_description          service_1\n"
+             "    dependent_host_name            host_1\n"
+             "}\n"
+             "define servicedependency {\n"
+             "    servicegroup_name              sg1\n"
+             "    host                           host_1\n"
+             "    dependent_description          service_1\n"
+             "    dependent_host_name            host_1\n"
+             "}\n");
+  CreateFile("/tmp/tags.cfg",
+             "define tag {\n"
+             "    tag_id                         1\n"
+             "    tag_name                       tag1\n"
+             "    type                           hostcategory\n"
+             "}\n");
   CreateFile("/tmp/servicegroups.cfg",
              "define servicegroup {\n"
              "    servicegroup_id                1000\n"
@@ -357,6 +382,8 @@ static void CreateConf() {
       "cfg_file=/tmp/hostgroups.cfg\n"
       "cfg_file=/tmp/servicegroups.cfg\n"
       "cfg_file=/tmp/timeperiods.cfg\n"
+      "cfg_file=/tmp/tags.cfg\n"
+      "cfg_file=/tmp/servicedependencies.cfg\n"
       //"cfg_file=/tmp/etc/centreon-engine/config0/connectors.cfg\n"
       //      "broker_module=/usr/lib64/centreon-engine/externalcmd.so\n"
       //      "broker_module=/usr/lib64/nagios/cbmod.so "
@@ -443,7 +470,50 @@ static void CreateConf() {
       "enable_flap_detection=0\n");
 }
 
-constexpr size_t CFG_FILES = 7u;
+static void CreateBadConf(ConfigurationObject obj) {
+  CreateConf();
+  switch (obj) {
+    case ConfigurationObject::SERVICEGROUP:
+      CreateFile("/tmp/servicegroups.cfg",
+                 "define servicegroup {\n"
+                 "    servicegroup_id                1000\n"
+                 "    name                           sg_tpl\n"
+                 "    members                        "
+                 "host_1,service_1,host_1,service_2,host_1,service_4\n"
+                 "    notes                          notes for sg template\n"
+                 "}\n"
+                 "define servicegroup {\n"
+                 "    servicegroup_id                1\n"
+                 "    alias                          sg1\n"
+                 "    members                        "
+                 "host_1,service_1,host_1,service_2,host_1,service_3\n"
+                 "    notes                          notes for sg1\n"
+                 "    notes_url                      notes url for sg1\n"
+                 "    action_url                     action url for sg1\n"
+                 "    use                            sg_tpl\n"
+                 "}\n");
+      break;
+    case ConfigurationObject::TAG:
+      CreateFile("/tmp/tags.cfg",
+                 "define tag {\n"
+                 "    tag_id                         0\n"
+                 "    tag_name                       tag1\n"
+                 "    type                           hostcategory\n"
+                 "}\n");
+      break;
+    case ConfigurationObject::SERVICEDEPENDENCY:
+      CreateFile("/tmp/servicedependencies.cfg",
+                 "define servicedependency {\n"
+                 "    service_description            service_2\n"
+                 "    dependent_description          service_1\n"
+                 "}\n");
+      break;
+    default:
+      break;
+  }
+}
+
+constexpr size_t CFG_FILES = 9u;
 constexpr size_t RES_FILES = 1u;
 constexpr size_t HOSTS = 4u;
 constexpr size_t SERVICES = 4u;
@@ -928,6 +998,21 @@ TEST_F(ApplierState, StateLegacyParsing) {
   ASSERT_EQ(sg.notes_url(), std::string("notes url for sg2"));
   ASSERT_EQ(sg.action_url(), std::string("action url for sg2"));
 
+  auto sdit = config.servicedependencies().begin();
+  while (sdit != config.servicedependencies().end() &&
+         std::find(sdit->servicegroups().begin(), sdit->servicegroups().end(),
+                   "sg1") != sdit->servicegroups().end())
+    ++sdit;
+  ASSERT_TRUE(sdit != config.servicedependencies().end());
+  ASSERT_TRUE(*sdit->hosts().begin() == std::string("host_1"));
+  ASSERT_TRUE(*sdit->dependent_service_description().begin() ==
+              std::string("service_1"));
+  ASSERT_TRUE(*sdit->dependent_hosts().begin() == std::string("host_1"));
+  ASSERT_FALSE(sdit->inherits_parent());
+  ASSERT_EQ(sdit->execution_failure_options(),
+            configuration::servicedependency::none);
+  ASSERT_EQ(sdit->notification_failure_options(),
+            configuration::servicedependency::none);
   RmConf();
 }
 
@@ -1070,5 +1155,64 @@ TEST_F(ApplierState, StateParsing) {
   ASSERT_EQ(sg.notes_url(), std::string("notes url for sg2"));
   ASSERT_EQ(sg.action_url(), std::string("action url for sg2"));
 
+  auto sdit = config.servicedependencies().begin();
+  while (sdit != config.servicedependencies().end() &&
+         std::find(sdit->servicegroups().data().begin(),
+                   sdit->servicegroups().data().end(),
+                   "sg1") != sdit->servicegroups().data().end())
+    ++sdit;
+  ASSERT_TRUE(sdit != config.servicedependencies().end());
+  ASSERT_TRUE(*sdit->hosts().data().begin() == std::string("host_1"));
+  ASSERT_TRUE(*sdit->dependent_service_description().data().begin() ==
+              std::string("service_1"));
+  ASSERT_TRUE(*sdit->dependent_hosts().data().begin() == std::string("host_1"));
+  ASSERT_FALSE(sdit->inherits_parent());
+  ASSERT_EQ(sdit->execution_failure_options(),
+            configuration::servicedependency::none);
+  ASSERT_EQ(sdit->notification_failure_options(),
+            configuration::servicedependency::none);
+
   RmConf();
+}
+
+TEST_F(ApplierState, StateLegacyParsingServicegroupValidityFailed) {
+  configuration::state config;
+  configuration::parser p;
+  CreateBadConf(ConfigurationObject::SERVICEGROUP);
+  ASSERT_THROW(p.parse("/tmp/centengine.cfg", config), std::exception);
+}
+
+TEST_F(ApplierState, StateParsingServicegroupValidityFailed) {
+  configuration::State config;
+  configuration::parser p;
+  CreateBadConf(ConfigurationObject::SERVICEGROUP);
+  ASSERT_THROW(p.parse("/tmp/centengine.cfg", &config), std::exception);
+}
+
+TEST_F(ApplierState, StateLegacyParsingTagValidityFailed) {
+  configuration::state config;
+  configuration::parser p;
+  CreateBadConf(ConfigurationObject::TAG);
+  ASSERT_THROW(p.parse("/tmp/centengine.cfg", config), std::exception);
+}
+
+TEST_F(ApplierState, StateParsingTagValidityFailed) {
+  configuration::State config;
+  configuration::parser p;
+  CreateBadConf(ConfigurationObject::TAG);
+  ASSERT_THROW(p.parse("/tmp/centengine.cfg", &config), std::exception);
+}
+
+TEST_F(ApplierState, StateLegacyParsingServicedependencyValidityFailed) {
+  configuration::state config;
+  configuration::parser p;
+  CreateBadConf(ConfigurationObject::SERVICEDEPENDENCY);
+  ASSERT_THROW(p.parse("/tmp/centengine.cfg", config), std::exception);
+}
+
+TEST_F(ApplierState, StateParsingServicedependencyValidityFailed) {
+  configuration::State config;
+  configuration::parser p;
+  CreateBadConf(ConfigurationObject::SERVICEDEPENDENCY);
+  ASSERT_THROW(p.parse("/tmp/centengine.cfg", &config), std::exception);
 }
