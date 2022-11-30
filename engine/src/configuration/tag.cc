@@ -48,7 +48,7 @@ tag::tag(const key_type& key) : object(object::tag), _key{key} {}
  * @param other The tag to copy.
  */
 tag::tag(const tag& other)
-    : object(other), _key{other._key}, _name{other._name} {}
+    : object(other), _key{other._key}, _tag_name{other._tag_name} {}
 
 /**
  * @brief Assign operator.
@@ -61,7 +61,7 @@ tag& tag::operator=(const tag& other) {
   if (this != &other) {
     object::operator=(other);
     _key = other._key;
-    _name = other._name;
+    _tag_name = other._tag_name;
   }
   return *this;
 }
@@ -74,7 +74,7 @@ tag& tag::operator=(const tag& other) {
  * @return True if objects are equal, False otherwise.
  */
 bool tag::operator==(const tag& other) const noexcept {
-  return _key == other._key && _name == other._name;
+  return _key == other._key && _tag_name == other._tag_name;
 }
 
 /**
@@ -85,7 +85,7 @@ bool tag::operator==(const tag& other) const noexcept {
  * @return False if objects are equal, True otherwise.
  */
 bool tag::operator!=(const tag& other) const noexcept {
-  return _key != other._key || _name != other._name;
+  return _key != other._key || _tag_name != other._tag_name;
 }
 
 /**
@@ -98,7 +98,7 @@ bool tag::operator!=(const tag& other) const noexcept {
 bool tag::operator<(const tag& other) const noexcept {
   if (_key != other._key)
     return _key < other._key;
-  return _name < other._name;
+  return _tag_name < other._tag_name;
 }
 
 /**
@@ -111,7 +111,7 @@ bool tag::operator<(const tag& other) const noexcept {
  * If the object is not valid, an exception is thrown.
  */
 void tag::check_validity() const {
-  if (_name.empty())
+  if (_tag_name.empty())
     throw engine_error() << "Tag has no name (property 'name')";
   if (_key.first == 0)
     throw engine_error() << "Tag id must not be less than 1 (property 'id')";
@@ -134,7 +134,7 @@ const tag::key_type& tag::key() const noexcept {
  * @return Severity name.
  */
 const std::string& tag::name() const noexcept {
-  return _name;
+  return _tag_name;
 }
 
 /**
@@ -207,6 +207,6 @@ bool tag::_set_type(const std::string& typ) {
  * @return True on success.
  */
 bool tag::_set_name(const std::string& name) {
-  _name = name;
+  _tag_name = name;
   return true;
 }

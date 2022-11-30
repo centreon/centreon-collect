@@ -472,13 +472,13 @@ message Severity {
   KeyType key = 2;
   uint32 level = 3;
   uint64 icon_id = 4;
-  string name = 5;
+  string severity_name = 5;
 }
 
 message Tag {
   Object obj = 1;
   KeyType key = 2;
-  string name = 3;
+  string tag_name = 3;
 }
 
 message Timeperiod {

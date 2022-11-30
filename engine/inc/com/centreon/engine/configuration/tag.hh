@@ -41,7 +41,7 @@ class tag : public object {
  private:
   typedef bool (*setter_func)(tag&, const char*);
   key_type _key;
-  std::string _name;
+  std::string _tag_name;
 
   bool _set_id(uint64_t id);
   bool _set_type(const std::string& type);
