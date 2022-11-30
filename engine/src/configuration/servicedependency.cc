@@ -280,8 +280,6 @@ void servicedependency::check_validity() const {
     engine_logger(log_config_warning, basic) << msg.str();
     log_v2::config()->warn(msg.str());
   }
-
-  return;
 }
 
 /**
@@ -342,7 +340,6 @@ bool servicedependency::parse(char const* key, char const* value) {
  */
 void servicedependency::dependency_period(std::string const& period) {
   _dependency_period = period;
-  return;
 }
 
 /**
@@ -362,7 +359,6 @@ std::string const& servicedependency::dependency_period() const throw() {
 void servicedependency::dependency_type(
     servicedependency::dependency_kind type) throw() {
   _dependency_type = type;
-  return;
 }
 
 /**
@@ -456,7 +452,6 @@ list_string const& servicedependency::dependent_service_description() const
 void servicedependency::execution_failure_options(
     unsigned int options) throw() {
   _execution_failure_options = options;
-  return;
 }
 
 /**
@@ -475,7 +470,6 @@ unsigned int servicedependency::execution_failure_options() const throw() {
  */
 void servicedependency::inherits_parent(bool inherit) throw() {
   _inherits_parent = inherit;
-  return;
 }
 
 /**
@@ -531,7 +525,6 @@ list_string const& servicedependency::hosts() const throw() {
 void servicedependency::notification_failure_options(
     unsigned int options) throw() {
   _notification_failure_options = options;
-  return;
 }
 
 /**
