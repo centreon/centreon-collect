@@ -7,7 +7,8 @@
 #### Enhancements
 
 *lua*
-stream connector accepts empty parameter values
+* stream connector accepts empty parameter values
+* stream connector can read repeated fields in protobuf events.
 
 *sql*
 
