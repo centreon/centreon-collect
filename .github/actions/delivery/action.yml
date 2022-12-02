@@ -90,12 +90,6 @@ runs:
 
         FILES="*.${{ env.extfile }}";
 
-        echo "[DEBUG] - Arch: $ARCH"
-        echo "[DEBUG] - Suprepo: $SUBREPO"
-        echo "[DEBUG] - Repo: $REPO"
-        echo "[DEBUG] - FILES: $FILES"
-        echo "[DEBUG] - DISTRIB: $DISTRIB"
-
         eval `ssh-agent`
         ssh-add - <<< "${{ inputs.yum_repo_key }}"
 
@@ -110,7 +104,13 @@ runs:
           FOLDER=$(basename $FILE .rpm)
           PROJECT_PATH="standard"
           
+          echo "[DEBUG] - Arch: $ARCH"
+          echo "[DEBUG] - Suprepo: $SUBREPO"
+          echo "[DEBUG] - Repo: $REPO"
+          echo "[DEBUG] - FILES: $FILES"
+          echo "[DEBUG] - DISTRIB: $DISTRIB"
           echo "[DEBUG] - Version: $VERSION"
+
           if [[ "${{ env.extfile }}" == "deb" ]] ; then
             echo "[DEBUG] - https://artifactory.apps.centreon.com/artifactory/debian-$VERSION-$REPO/pool/$FILE;deb.distribution=bullseye;deb.component=main;deb.architecture=amd64"
             curl -v -u "${{ inputs.repos_username }}":"${{ inputs.repos_password }}" -X PUT "https://artifactory.apps.centreon.com/artifactory/debian-$VERSION-$REPO/pool/$FILE;deb.distribution=bullseye;deb.component=main;deb.architecture=amd64" -T "./$FILE"
