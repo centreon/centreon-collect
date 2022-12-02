@@ -156,6 +156,9 @@ tcp_connection::pointer tcp_async::get_connection(
       } else
         p.set_value(nullptr);
     });
+    if (f.wait_until(end) == std::future_status::timeout) {
+      return tcp_connection::pointer();
+    }
     auto retval = f.get();
     if (retval)
       return retval;

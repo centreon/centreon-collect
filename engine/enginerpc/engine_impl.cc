@@ -22,6 +22,8 @@
 #include <sys/types.h>
 #include <future>
 
+#include <asio.hpp>
+
 #include <spdlog/common.h>
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/spdlog.h>

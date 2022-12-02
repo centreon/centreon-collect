@@ -25,10 +25,13 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::grpc;
 using namespace com::centreon::exceptions;
 
+extern std::shared_ptr<asio::io_context> g_io_context;
+
 class grpc_channel_tester : public testing::Test {
  public:
   static void SetUpTestSuite() {
-    com::centreon::broker::pool::load(1);
+    g_io_context->restart();
+    com::centreon::broker::pool::load(g_io_context, 1);
     // log_v2::grpc()->set_level(spdlog::level::trace);
   }
 };

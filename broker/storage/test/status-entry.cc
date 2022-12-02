@@ -37,6 +37,8 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::misc;
 
+extern std::shared_ptr<asio::io_context> g_io_context;
+
 class into_memory : public io::stream {
   std::vector<char> _memory;
 
@@ -70,6 +72,7 @@ class StatusEntryTest : public ::testing::Test {
  public:
   void SetUp() override {
     io::data::broker_id = 0;
+    g_io_context->restart();
     try {
       config::applier::init(0, "test_broker");
     } catch (std::exception const& e) {

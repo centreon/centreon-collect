@@ -28,6 +28,8 @@
 
 using namespace com::centreon::broker;
 
+extern std::shared_ptr<asio::io_context> g_io_context;
+
 constexpr static char test_addr[] = "127.0.0.1";
 constexpr static uint16_t test_port(4242);
 
@@ -37,7 +39,8 @@ static tcp::tcp_config::pointer test_conf(
 class TcpConnector : public testing::Test {
  public:
   void SetUp() override {
-    pool::load(0);
+    g_io_context->restart();
+    pool::load(g_io_context, 0);
     tcp::tcp_async::load();
     _server.init();
     _thread = std::thread(&test_server::run, &_server);

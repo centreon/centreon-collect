@@ -25,6 +25,8 @@
 
 using namespace com::centreon::broker;
 
+extern std::shared_ptr<asio::io_context> g_io_context;
+
 class MultiplexingMuxerRead : public ::testing::Test {
  protected:
   std::unique_ptr<multiplexing::muxer> _m;
@@ -32,6 +34,7 @@ class MultiplexingMuxerRead : public ::testing::Test {
  public:
   void SetUp() override {
     try {
+      g_io_context->restart();
       config::applier::init(0, "test_broker");
       stats::center::load();
     } catch (std::exception const& e) {

@@ -33,9 +33,14 @@ const std::string MSG2("foo bar baz");
 const std::string MSG3("last message with qux");
 const std::string MSG4("no this is the last message");
 
+extern std::shared_ptr<asio::io_context> g_io_context;
+
 class StartStop : public testing::Test {
  public:
-  void SetUp() override { config::applier::init(0, "test_broker"); }
+  void SetUp() override {
+    g_io_context->restart();
+    config::applier::init(0, "test_broker");
+  }
 
   void TearDown() override { config::applier::deinit(); }
 };
