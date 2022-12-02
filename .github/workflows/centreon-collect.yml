@@ -211,6 +211,7 @@ jobs:
         with:
           distrib: ${{ matrix.distrib }}
           version: ${{ env.version }}
+          module_name: centreon-collect
           repos_username: ${{ secrets.REPOS_USERNAME }}
           repos_password: ${{ secrets.REPOS_PASSWORD }}
           cache_key: cache-${{ github.sha }}-${{ github.run_id }}
