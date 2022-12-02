@@ -90,9 +90,6 @@ runs:
 
         FILES="*.${{ env.extfile }}";
 
-        eval `ssh-agent`
-        ssh-add - <<< "${{ inputs.yum_repo_key }}"
-
         for FILE in $FILES
         do
           echo "[DEBUG] - File: $FILE"
@@ -119,6 +116,9 @@ runs:
             #echo "[DEBUG] - https://artifactory.apps.centreon.com/artifactory/rpm-$VERSION-$REPO/$DISTRIB/$REPO/x86_64/centreon-collect"
             #curl -v -u "${{ inputs.repos_username }}":"${{ inputs.repos_password }}" -X PUT "https://artifactory.apps.centreon.com/artifactory/rpm-$VERSION-$REPO/$DISTRIB/$REPO/x86_64/centreon-collect/$FILE" -T "./$FILE"
             
+            eval `ssh-agent`
+            ssh-add - <<< "${{ inputs.yum_repo_key }}"
+
             TARGET="/srv/centreon-yum/yum.centreon.com/$PROJECT_PATH/$MAJOR/$DISTRIB/$REPOTYPE/$ARCH/$PROJECT/$FOLDER"
             PROJECT_LOCATION="/srv/centreon-yum/yum.centreon.com/$PROJECT_PATH/$MAJOR/$DISTRIB/$REPOTYPE/$ARCH/$PROJECT"
             METADATAS="/srv/centreon-yum/yum.centreon.com/$PROJECT_PATH/$MAJOR/$DISTRIB/$REPOTYPE/$ARCH"
