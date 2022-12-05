@@ -64,8 +64,7 @@ runs:
       shell: bash
 
     - name: Publish packages
-      run: | 
-        set -x
+      run: |
         if [[ -z "$GITHUB_HEAD_REF" ]];
         then
           BRANCHNAME="$GITHUB_REF_NAME"
