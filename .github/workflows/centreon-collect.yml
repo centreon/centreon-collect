@@ -120,11 +120,6 @@ jobs:
           image_version: ${{ env.imgversion }}
           env_variable: -e DISTRIB="${{ matrix.distrib }}" -e VERSION="${{ env.version }}" -e RELEASE="${{ env.release }}"
 
-      - name: Check RPMs path
-        run: |
-          pwd; ls -lath
-        shell: bash
-
       - name: Use cache RPM files
         uses: actions/cache@v3
         env:
