@@ -40,4 +40,23 @@ hostdependency_helper::hostdependency_helper(Hostdependency* obj)
           11) {
   init_hostdependency(static_cast<Hostdependency*>(mut_obj()));
 }
+
+bool hostdependency_helper::hook(const absl::string_view& key,
+                                 const absl::string_view& value) {
+  Message* obj = mut_obj();
+  if (key == "dependent_hostgroups") {
+    fill_string_group(obj->mutable_dependent_hostgroups(), value);
+    return true;
+  } else if (key == "dependent_hosts") {
+    fill_string_group(obj->mutable_dependent_hosts(), value);
+    return true;
+  } else if (key == "hostgroups") {
+    fill_string_group(obj->mutable_hostgroups(), value);
+    return true;
+  } else if (key == "hosts") {
+    fill_string_group(obj->mutable_hosts(), value);
+    return true;
+  }
+  return false;
+}
 }  // namespace com::centreon::engine::configuration

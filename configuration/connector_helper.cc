@@ -23,4 +23,10 @@ connector_helper::connector_helper(Connector* obj)
     : message_helper(object_type::connector, obj, {}, 4) {
   init_connector(static_cast<Connector*>(mut_obj()));
 }
+
+bool connector_helper::hook(const absl::string_view& key,
+                            const absl::string_view& value) {
+  Message* obj = mut_obj();
+  return false;
+}
 }  // namespace com::centreon::engine::configuration

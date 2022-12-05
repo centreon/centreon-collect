@@ -23,4 +23,10 @@ command_helper::command_helper(Command* obj)
     : message_helper(object_type::command, obj, {}, 5) {
   init_command(static_cast<Command*>(mut_obj()));
 }
+
+bool command_helper::hook(const absl::string_view& key,
+                          const absl::string_view& value) {
+  Message* obj = mut_obj();
+  return false;
+}
 }  // namespace com::centreon::engine::configuration
