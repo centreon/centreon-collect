@@ -35,13 +35,15 @@
 #include "com/centreon/engine/configuration/serviceescalation.hh"
 #include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/engine/configuration/timeperiod.hh"
+#include "configuration/message_helper.hh"
 
 CCE_BEGIN()
 
 namespace configuration {
-using pb_map_object =
-    absl::flat_hash_map<std::string, ::google::protobuf::Message*>;
 using Message = ::google::protobuf::Message;
+using pb_map_object = absl::flat_hash_map<std::string, Message*>;
+using pb_map_helper =
+    absl::flat_hash_map<Message*, std::unique_ptr<message_helper>>;
 
 class parser {
   void _parse_global_configuration(std::string const& path, State* pb_config);
@@ -117,9 +119,10 @@ class parser {
   void _parse_resource_file(std::string const& path);
   void _parse_resource_file(const std::string& path, State* pb_config);
   void _resolve_template(State* pb_config);
-  void _resolve_template(Message* msg, const pb_map_object& tmpls);
+  void _resolve_template(std::unique_ptr<message_helper>& msg_helper,
+                         const pb_map_object& tmpls);
   void _resolve_template();
-  void _merge(Message* msg, Message* tmpl);
+  void _merge(std::unique_ptr<message_helper>& msg_helper, Message* tmpl);
   void _store_into_list(object_ptr obj);
   template <typename T, std::string const& (T::*ptr)() const throw()>
   void _store_into_map(object_ptr obj);
@@ -135,8 +138,7 @@ class parser {
   std::array<map_object, 19> _templates;
 
   std::array<pb_map_object, 19> _pb_templates;
-  /* Map telling if a message is resolved or not */
-  absl::flat_hash_map<::google::protobuf::Message*, bool> _resolved;
+  pb_map_helper _pb_helper;
 };
 }  // namespace configuration
 

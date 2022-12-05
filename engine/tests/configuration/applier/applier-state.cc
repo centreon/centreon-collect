@@ -85,9 +85,36 @@ enum class ConfigurationObject {
   SERVICEGROUP = 0,
   TAG = 1,
   SERVICEDEPENDENCY = 2,
+  ANOMALYDETECTION = 3,
 };
 
 static void CreateConf() {
+  CreateFile("/tmp/ad.cfg",
+             "define anomalydetection {\n"
+             "   name                            ad_tmpl\n"
+             "   host_id                         1\n"
+             "   register                        0\n"
+             "   host_name                       host_1\n"
+             "   notification_options            u,w,c\n"
+             "   thresholds_file                 /tmp/toto\n"
+             "}\n"
+             "define anomalydetection {\n"
+             "   service_description             service_ad1\n"
+             "   service_id                      2000\n"
+             "   dependent_service_id            1\n"
+             "   metric_name                     metric1\n"
+             "   register                        1\n"
+             "   use                             ad_tmpl\n"
+             "}\n"
+             "define anomalydetection {\n"
+             "   service_description             service_ad2\n"
+             "   service_id                      2001\n"
+             "   dependent_service_id            1\n"
+             "   metric_name                     metric2\n"
+             "   thresholds_file                 /tmp/titi\n"
+             "   register                        1\n"
+             "   use                             ad_tmpl\n"
+             "}\n");
   CreateFile("/tmp/servicedependencies.cfg",
              "define servicedependency {\n"
              "    service_description            service_2\n"
@@ -218,6 +245,7 @@ static void CreateConf() {
              "    register                        0\n"
              "    active_checks_enabled           1\n"
              "    passive_checks_enabled          1\n"
+             "    notification_options            u,w,c\n"
              "    contact_groups                  cg1,cg2\n"
              "}\n"
              "define service {\n"
@@ -384,6 +412,7 @@ static void CreateConf() {
       "cfg_file=/tmp/timeperiods.cfg\n"
       "cfg_file=/tmp/tags.cfg\n"
       "cfg_file=/tmp/servicedependencies.cfg\n"
+      "cfg_file=/tmp/ad.cfg\n"
       //"cfg_file=/tmp/etc/centreon-engine/config0/connectors.cfg\n"
       //      "broker_module=/usr/lib64/centreon-engine/externalcmd.so\n"
       //      "broker_module=/usr/lib64/nagios/cbmod.so "
@@ -508,12 +537,22 @@ static void CreateBadConf(ConfigurationObject obj) {
                  "    dependent_description          service_1\n"
                  "}\n");
       break;
+    case ConfigurationObject::ANOMALYDETECTION:
+      CreateFile("/tmp/ad.cfg",
+                 "define anomalydetection {\n"
+                 "   service_description             service_ad\n"
+                 "   host_name                       host_1\n"
+                 "   service_id                      2000\n"
+                 "   register                        1\n"
+                 "   dependent_service_id            1\n"
+                 "   thresholds_file                 /tmp/toto\n"
+                 "}\n");
     default:
       break;
   }
 }
 
-constexpr size_t CFG_FILES = 9u;
+constexpr size_t CFG_FILES = 10u;
 constexpr size_t RES_FILES = 1u;
 constexpr size_t HOSTS = 4u;
 constexpr size_t SERVICES = 4u;
@@ -893,6 +932,9 @@ TEST_F(ApplierState, StateLegacyParsing) {
   EXPECT_EQ(*sit->hostgroups().begin(), std::string("hg1"));
   EXPECT_EQ(sit->contacts().size(), 2u);
   EXPECT_EQ(*sit->contacts().begin(), std::string("contact1"));
+  EXPECT_EQ(sit->notification_options(), configuration::service::warning |
+                                             configuration::service::unknown |
+                                             configuration::service::critical);
 
   ASSERT_EQ(config.commands().size(), 8u);
   auto cit = config.commands().begin();
@@ -1013,6 +1055,16 @@ TEST_F(ApplierState, StateLegacyParsing) {
             configuration::servicedependency::none);
   ASSERT_EQ(sdit->notification_failure_options(),
             configuration::servicedependency::none);
+
+  auto adit = config.anomalydetections().begin();
+  while (adit != config.anomalydetections().end() &&
+         adit->service_id() != 2001 && adit->host_id() != 1)
+    ++adit;
+  ASSERT_TRUE(adit != config.anomalydetections().end());
+  ASSERT_TRUE(adit->service_description() == "service_ad2");
+  ASSERT_EQ(adit->dependent_service_id(), 1);
+  ASSERT_TRUE(adit->metric_name() == "metric2");
+
   RmConf();
 }
 
@@ -1050,6 +1102,7 @@ TEST_F(ApplierState, StateParsing) {
   ASSERT_EQ(config.services()[0].contactgroups().data()[0], std::string("cg1"));
   ASSERT_EQ(config.services()[0].contactgroups().data()[1], std::string("cg3"));
   ASSERT_EQ(config.services()[0].contactgroups().data()[2], std::string("cg2"));
+
   ASSERT_EQ(config.services()[0].hosts().data()[0], std::string("host_1"));
   ASSERT_EQ(config.services()[0].service_description(),
             std::string("service_1"));
@@ -1057,6 +1110,10 @@ TEST_F(ApplierState, StateParsing) {
   EXPECT_EQ(config.services()[0].hostgroups().data()[0], std::string("hg1"));
   EXPECT_EQ(config.services()[0].contacts().data().size(), 2u);
   EXPECT_EQ(config.services()[0].contacts().data()[0], std::string("contact1"));
+  EXPECT_EQ(config.services()[0].notification_options(),
+            configuration::action_svc_warning |
+                configuration::action_svc_unknown |
+                configuration::action_svc_critical);
 
   ASSERT_EQ(config.commands().size(), 8u);
   ASSERT_EQ(config.commands()[0].command_name(), std::string("command_1"));
@@ -1172,6 +1229,15 @@ TEST_F(ApplierState, StateParsing) {
   ASSERT_EQ(sdit->notification_failure_options(),
             configuration::servicedependency::none);
 
+  auto adit = config.anomalydetections().begin();
+  while (adit != config.anomalydetections().end() &&
+         (adit->service_id() != 2001 || adit->host_id() != 1))
+    ++adit;
+  ASSERT_TRUE(adit != config.anomalydetections().end());
+  ASSERT_TRUE(adit->service_description() == "service_ad2");
+  ASSERT_EQ(adit->dependent_service_id(), 1);
+  ASSERT_TRUE(adit->metric_name() == "metric2");
+
   RmConf();
 }
 
@@ -1214,5 +1280,19 @@ TEST_F(ApplierState, StateParsingServicedependencyValidityFailed) {
   configuration::State config;
   configuration::parser p;
   CreateBadConf(ConfigurationObject::SERVICEDEPENDENCY);
+  ASSERT_THROW(p.parse("/tmp/centengine.cfg", &config), std::exception);
+}
+
+TEST_F(ApplierState, StateLegacyParsingAnomalydetectionValidityFailed) {
+  configuration::state config;
+  configuration::parser p;
+  CreateBadConf(ConfigurationObject::ANOMALYDETECTION);
+  ASSERT_THROW(p.parse("/tmp/centengine.cfg", config), std::exception);
+}
+
+TEST_F(ApplierState, StateParsingAnomalydetectionValidityFailed) {
+  configuration::State config;
+  configuration::parser p;
+  CreateBadConf(ConfigurationObject::ANOMALYDETECTION);
   ASSERT_THROW(p.parse("/tmp/centengine.cfg", &config), std::exception);
 }
