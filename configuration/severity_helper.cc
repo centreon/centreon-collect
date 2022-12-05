@@ -31,4 +31,10 @@ severity_helper::severity_helper(Severity* obj)
                      6) {
   init_severity(static_cast<Severity*>(mut_obj()));
 }
+
+bool severity_helper::hook(const absl::string_view& key,
+                           const absl::string_view& value) {
+  Message* obj = mut_obj();
+  return false;
+}
 }  // namespace com::centreon::engine::configuration

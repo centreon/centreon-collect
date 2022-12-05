@@ -28,4 +28,20 @@ contact_helper::contact_helper(Contact* obj)
                      21) {
   init_contact(static_cast<Contact*>(mut_obj()));
 }
+
+bool contact_helper::hook(const absl::string_view& key,
+                          const absl::string_view& value) {
+  Message* obj = mut_obj();
+  if (key == "contactgroups") {
+    fill_string_group(obj->mutable_contactgroups(), value);
+    return true;
+  } else if (key == "host_notification_commands") {
+    fill_string_group(obj->mutable_host_notification_commands(), value);
+    return true;
+  } else if (key == "service_notification_commands") {
+    fill_string_group(obj->mutable_service_notification_commands(), value);
+    return true;
+  }
+  return false;
+}
 }  // namespace com::centreon::engine::configuration

@@ -39,4 +39,23 @@ host_helper::host_helper(Host* obj)
                      53) {
   init_host(static_cast<Host*>(mut_obj()));
 }
+
+bool host_helper::hook(const absl::string_view& key,
+                       const absl::string_view& value) {
+  Message* obj = mut_obj();
+  if (key == "contactgroups") {
+    fill_string_group(obj->mutable_contactgroups(), value);
+    return true;
+  } else if (key == "contacts") {
+    fill_string_group(obj->mutable_contacts(), value);
+    return true;
+  } else if (key == "hostgroups") {
+    fill_string_group(obj->mutable_hostgroups(), value);
+    return true;
+  } else if (key == "parents") {
+    fill_string_group(obj->mutable_parents(), value);
+    return true;
+  }
+  return false;
+}
 }  // namespace com::centreon::engine::configuration

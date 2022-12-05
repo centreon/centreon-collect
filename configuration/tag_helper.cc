@@ -30,4 +30,10 @@ tag_helper::tag_helper(Tag* obj)
                      4) {
   init_tag(static_cast<Tag*>(mut_obj()));
 }
+
+bool tag_helper::hook(const absl::string_view& key,
+                      const absl::string_view& value) {
+  Message* obj = mut_obj();
+  return false;
+}
 }  // namespace com::centreon::engine::configuration
