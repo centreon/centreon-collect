@@ -107,7 +107,6 @@ runs:
           
           echo "[DEBUG] - Arch: $ARCH"
           echo "[DEBUG] - Suprepo: $SUBREPO"
-          #echo "[DEBUG] - Repo: $REPO"
           echo "[DEBUG] - FILES: $FILES"
           echo "[DEBUG] - DISTRIB: $DISTRIB"
           echo "[DEBUG] - Version: $VERSION"
