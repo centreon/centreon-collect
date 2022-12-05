@@ -130,7 +130,7 @@ jobs:
         env:
           cache-name-rpmbuild: cache-${{ github.sha }}-${{ github.run_id }}-rpmbuild-centreon-collect-${{ matrix.distrib }}
         with:
-          path: ./centreon-collect/centreon-collect/*.rpm
+          path: ./*.rpm
           key: ${{ env.cache-name-rpmbuild }}
 
   debian-packaging:
