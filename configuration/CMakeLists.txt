@@ -40,18 +40,53 @@ add_custom_command(
     ${CMAKE_SOURCE_DIR}/configuration/state-generated.proto
   VERBATIM)
 
-add_custom_target(target_configuration DEPENDS state.pb.cc state.pb.h state-generated.pb.cc state-generated.pb.h)
+add_custom_target(
+  target_configuration DEPENDS state.pb.cc state.pb.h state-generated.pb.cc
+                               state-generated.pb.h)
 
 include_directories("${CMAKE_SOURCE_DIR}/engine/inc")
 
-add_library(pb_configuration_lib STATIC
-    state-generated.pb.cc
-    state-generated.pb.h
-    state-generated.cc
-    state-generated.hh
-    state.pb.cc
-    state.pb.h
-    )
+add_library(
+  pb_configuration_lib STATIC
+  state-generated.pb.cc
+  state-generated.pb.h
+  state-generated.cc
+  state-generated.hh
+  state.pb.cc
+  state.pb.h
+  anomalydetection_helper.cc
+  contact_helper.hh
+  message_helper.hh
+  severity_helper.cc
+  anomalydetection_helper.hh
+  hostdependency_helper.cc
+  servicedependency_helper.cc
+  severity_helper.hh
+  command_helper.cc
+  hostdependency_helper.hh
+  servicedependency_helper.hh
+  tag_helper.cc
+  command_helper.hh
+  hostescalation_helper.cc
+  serviceescalation_helper.cc
+  tag_helper.hh
+  connector_helper.cc
+  hostescalation_helper.hh
+  serviceescalation_helper.hh
+  timeperiod_helper.cc
+  connector_helper.hh
+  hostgroup_helper.cc
+  servicegroup_helper.cc
+  timeperiod_helper.hh
+  contactgroup_helper.cc
+  hostgroup_helper.hh
+  servicegroup_helper.hh
+  contactgroup_helper.hh
+  host_helper.cc
+  service_helper.cc
+  contact_helper.cc
+  host_helper.hh
+  service_helper.hh)
 add_dependencies(pb_configuration_lib target_configuration)
 set_target_properties(pb_configuration_lib PROPERTIES POSITION_INDEPENDENT_CODE
                                                       ON)
