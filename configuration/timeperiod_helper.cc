@@ -23,4 +23,14 @@ timeperiod_helper::timeperiod_helper(Timeperiod* obj)
     : message_helper(object_type::timeperiod, obj, {}, 7) {
   init_timeperiod(static_cast<Timeperiod*>(mut_obj()));
 }
+
+bool timeperiod_helper::hook(const absl::string_view& key,
+                             const absl::string_view& value) {
+  Message* obj = mut_obj();
+  if (key == "exclude") {
+    fill_string_group(obj->mutable_exclude(), value);
+    return true;
+  }
+  return false;
+}
 }  // namespace com::centreon::engine::configuration
