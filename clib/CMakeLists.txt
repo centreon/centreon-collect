@@ -1,23 +1,22 @@
 #
-# Copyright 2011-2014,2018-2021 Centreon
+# Copyright 2011-2014,2018-2022 Centreon
 #
-# Licensed under the Apache License, Version 2.0 (the "License"); you may not
-# use this file except in compliance with the License. You may obtain a copy of
-# the License at
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
 #
-# http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-# License for the specific language governing permissions and limitations under
-# the License.
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 #
 # For more information : contact@centreon.com
 #
 
 # Global options.
-cmake_minimum_required(VERSION 2.8)
 project("Centreon Clib" C CXX)
 
 # Set directories.
@@ -169,8 +168,8 @@ install(
   DIRECTORY "${INCLUDE_DIR}/"
   DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/centreon-clib"
   COMPONENT "development"
-  FILES_MATCHING
-  PATTERN "*.hh")
+  FILES_MATCHING PATTERN "*.hh"
+)
 
 # Include build package.
 include(cmake/package.cmake)
