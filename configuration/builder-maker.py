@@ -40,6 +40,95 @@ class_files_cc = [
 ]
 
 
+def complete_filehelper_cc(fhcc, name, number: int, correspondance):
+    name_cap = name.capitalize()
+    cname = name + "_helper"
+    fhcc.write(f"""  {cname}::{cname}({name_cap}* obj) : message_helper(object_type::{name}, obj, {correspondance}, {number}) {{
+  init_{name}(static_cast<{name_cap}*>(mut_obj()));      
+}}
+}}
+    """)
+
+
+def prepare_filehelper_cc(name: str):
+    filename = name + "_helper.cc"
+    fhcc = open(filename, "w")
+    fhcc.write(f"""/*
+ * Copyright 2022 Centreon (https://www.centreon.com/)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ *
+ */
+#include "configuration/{name}_helper.hh"
+
+namespace com::centreon::engine::configuration {{
+""")
+    return fhcc
+
+
+def prepare_filehelper_hh(name: str):
+    fhhh = open(name + "_helper.hh", "w")
+    macro = name.upper().replace(".", "_")
+    cname = name.replace(".hh", "")
+    objname = cname.capitalize()
+    fhhh.write(f"""/*
+ * Copyright 2022 Centreon (https://www.centreon.com/)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ *
+ */
+
+#ifndef CCE_CONFIGURATION_{macro}
+#define CCE_CONFIGURATION_{macro}
+
+#include "configuration/state-generated.pb.h"
+#include "configuration/message_helper.hh"
+
+namespace com {{
+namespace centreon {{
+namespace engine {{
+namespace configuration {{
+
+class {cname}_helper : public message_helper {{
+
+ public:
+  {cname}_helper({objname}* obj);
+  ~{cname}_helper() noexcept = default;
+}};
+}}  // namespace configuration
+}}  // namespace engine
+}}  // namespace centreon
+}}  // namespace com
+
+#endif /* !CCE_CONFIGURATION_{macro} */
+""")
+    return fhhh
+
+
 def proto_type(t: str):
     typ = {
         "int32_t": "int32",
@@ -151,6 +240,32 @@ def get_default_values(cpp, msg: [str]):
                 print(
                     f"Error: {m.group(2)} not found in list of default values from file {filename_cc}")
         line += 1
+
+
+def get_correspondance(cpp):
+    retval = "{\n"
+    r = re.compile(r".*{\"(.*)\",\s*SETTER\([^,]*,\s*_?set_(.*)\)}")
+
+    def_value = {}
+    l = ""
+    for i in range(len(cpp)):
+        prev_l = l.strip()
+        l = cpp[i]
+        if i == 42:
+            print("here")
+        if "SETTER" in l:
+            m = r.match(l)
+            if not m:
+                l = prev_l + l
+                m = r.match(l)
+                if not m:
+                    continue
+            key, value = m.group(1), m.group(2)
+            if key != value:
+                retval += f"    {{\"{key}\", \"{value}\"}},\n"
+            l = ""
+    retval += "}"
+    return retval
 
 
 def proto_name(n: str):
@@ -403,9 +518,16 @@ for i in range(len(class_files_hh)):
     # Time to read cc/hh files for each configuration object
     filename_hh = class_files_hh[i]
     filename_cc = class_files_cc[i]
+    filehelper_cc = filename_cc.replace(
+        ".cc", "-helper.cc").replace("src/configuration/", "")
+    filehelper_hh = filename_hh.replace(
+        ".hh", "-helper.hh").replace("inc/com/centreon/engine/configuration/", "")
     name = filename_hh.split('/')[-1]
     name = name.split('.')[0]
     cap_name = name.capitalize()
+
+    fhcc = prepare_filehelper_cc(name)
+    fhhh = prepare_filehelper_hh(name)
 
     f = open(f"../engine/{filename_hh}", 'r')
     header = f.readlines()
@@ -423,6 +545,9 @@ for i in range(len(class_files_hh)):
 
     # From the cpp sources, we get default values for some of the fields.
     get_default_values(cpp, msg_list)
+
+    # From the cpp sources, we get the correspondance.
+    correspondance = get_correspondance(cpp)
 
     # Construction of three files, state-generated.proto, state-generated.cc and state-generated.hh
     number = 2
@@ -446,6 +571,8 @@ message {cap_name} {{
             f"  {optional}{l['proto_type']} {l['proto_name']} = {number};{cmt}\n")
         number += 1
     proto.append("}\n")
+
+    complete_filehelper_cc(fhcc, name, number, correspondance)
 
     # Generation of proto file
     f = open("state-generated.proto", "w")
