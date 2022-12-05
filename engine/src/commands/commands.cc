@@ -844,8 +844,7 @@ int cmd_acknowledge_problem(int cmd, char* args) {
   /* get the type */
   if (!arg.extract(';', type))
     return ERROR;
-  log_v2::external_command()->error("Error: new acknowledgement with type {}",
-                                    type);
+  log_v2::external_command()->trace("New acknowledgement with type {}", type);
 
   /* get the notification option */
   int ival;

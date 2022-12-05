@@ -488,13 +488,13 @@ void stream::_process_pb_acknowledgement(const std::shared_ptr<io::data>& d) {
                io::protobuf_base::invalid_on_zero,
            0},
           {1, "host_id", io::protobuf_base::invalid_on_zero, 0},
-          {2, "service_id", io::protobuf_base::invalid_on_zero, 0}};
+          {2, "service_id", 0, 0}};
       query_preparator qp(neb::pb_acknowledgement::static_type(), unique);
       _pb_acknowledgement_insupdate = qp.prepare_insert_or_update_table(
           _mysql, "acknowledgements ",
           {
               {1, "host_id", io::protobuf_base::invalid_on_zero, 0},
-              {2, "service_id", io::protobuf_base::invalid_on_zero, 0},
+              {2, "service_id", 0, 0},
               {3, "instance_id", io::protobuf_base::invalid_on_zero, 0},
               {4, "type", 0, 0},
               {5, "author", 0,
