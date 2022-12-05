@@ -40,4 +40,26 @@ service_helper::service_helper(Service* obj)
                      51) {
   init_service(static_cast<Service*>(mut_obj()));
 }
+
+bool service_helper::hook(const absl::string_view& key,
+                          const absl::string_view& value) {
+  Message* obj = mut_obj();
+  if (key == "contactgroups") {
+    fill_string_group(obj->mutable_contactgroups(), value);
+    return true;
+  } else if (key == "contacts") {
+    fill_string_group(obj->mutable_contacts(), value);
+    return true;
+  } else if (key == "hostgroups") {
+    fill_string_group(obj->mutable_hostgroups(), value);
+    return true;
+  } else if (key == "hosts") {
+    fill_string_group(obj->mutable_hosts(), value);
+    return true;
+  } else if (key == "servicegroups") {
+    fill_string_group(obj->mutable_servicegroups(), value);
+    return true;
+  }
+  return false;
+}
 }  // namespace com::centreon::engine::configuration

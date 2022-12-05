@@ -37,4 +37,20 @@ anomalydetection_helper::anomalydetection_helper(Anomalydetection* obj)
                      53) {
   init_anomalydetection(static_cast<Anomalydetection*>(mut_obj()));
 }
+
+bool anomalydetection_helper::hook(const absl::string_view& key,
+                                   const absl::string_view& value) {
+  Message* obj = mut_obj();
+  if (key == "contactgroups") {
+    fill_string_group(obj->mutable_contactgroups(), value);
+    return true;
+  } else if (key == "contacts") {
+    fill_string_group(obj->mutable_contacts(), value);
+    return true;
+  } else if (key == "servicegroups") {
+    fill_string_group(obj->mutable_servicegroups(), value);
+    return true;
+  }
+  return false;
+}
 }  // namespace com::centreon::engine::configuration
