@@ -23,4 +23,14 @@ hostgroup_helper::hostgroup_helper(Hostgroup* obj)
     : message_helper(object_type::hostgroup, obj, {}, 9) {
   init_hostgroup(static_cast<Hostgroup*>(mut_obj()));
 }
+
+bool hostgroup_helper::hook(const absl::string_view& key,
+                            const absl::string_view& value) {
+  Message* obj = mut_obj();
+  if (key == "members") {
+    fill_string_group(obj->mutable_members(), value);
+    return true;
+  }
+  return false;
+}
 }  // namespace com::centreon::engine::configuration

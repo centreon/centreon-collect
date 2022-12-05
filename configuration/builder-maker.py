@@ -40,14 +40,22 @@ class_files_cc = [
 ]
 
 
-def complete_filehelper_cc(fhcc, name, number: int, correspondance):
+def complete_filehelper_cc(fhcc, name, number: int, correspondence, hook):
     name_cap = name.capitalize()
     cname = name + "_helper"
-    fhcc.write(f"""  {cname}::{cname}({name_cap}* obj) : message_helper(object_type::{name}, obj, {correspondance}, {number}) {{
-  init_{name}(static_cast<{name_cap}*>(mut_obj()));      
+    fhcc.write(f"""{cname}::{cname}({name_cap}* obj) : message_helper(object_type::{name}, obj, {correspondence}, {number}) {{
+  init_{name}(static_cast<{name_cap}*>(mut_obj()));
 }}
-}}
-    """)
+
+bool {cname}::hook(const absl::string_view& key, const absl::string_view& value) {{
+    Message* obj = mut_obj();
+""")
+    for h in hook:
+        fhcc.write(h)
+    fhcc.write("""  return false;
+}
+}
+""")
 
 
 def prepare_filehelper_cc(name: str):
@@ -242,7 +250,7 @@ def get_default_values(cpp, msg: [str]):
         line += 1
 
 
-def get_correspondance(cpp):
+def get_correspondence(cpp):
     retval = "{\n"
     r = re.compile(r".*{\"(.*)\",\s*SETTER\([^,]*,\s*_?set_(.*)\)}")
 
@@ -251,8 +259,6 @@ def get_correspondance(cpp):
     for i in range(len(cpp)):
         prev_l = l.strip()
         l = cpp[i]
-        if i == 42:
-            print("here")
         if "SETTER" in l:
             m = r.match(l)
             if not m:
@@ -265,6 +271,31 @@ def get_correspondance(cpp):
                 retval += f"    {{\"{key}\", \"{value}\"}},\n"
             l = ""
     retval += "}"
+    return retval
+
+
+def build_hook_content(msg):
+    retval = []
+    els = ""
+    for m in msg:
+        if m['proto_type'] == 'StringList' or m['proto_type'] == 'StringSet':
+            retval.append(f"""  {els}if (key == "{m['proto_name']}") {{
+    fill_string_group(obj->mutable_{m['proto_name']}(), value);
+    return true;
+  }}
+""")
+        elif m['proto_type'] in ['uint32', 'int32', 'bool', 'uint64', 'int64']:
+            pass
+        elif m['proto_type'] == 'PairStringSet':
+            retval.append(f"""  {els}if (key == "{m['proto_name']}") {{
+    fill_pair_string_group(obj->mutable_{m['proto_name']}(), value);
+    return true;
+  }}
+""")
+        else:
+            print(f"Type '{m['proto_type']}' not managed")
+        if els == "" and len(retval) > 0:
+            els = "else "
     return retval
 
 
@@ -543,11 +574,14 @@ for i in range(len(class_files_hh)):
     # From the header file, we get fields with their type.
     get_messages_of_conf(header, msg_list)
 
-    # From the cpp sources, we get default values for some of the fields.
+    # From the cpp sources, we get default values for fields.
     get_default_values(cpp, msg_list)
 
-    # From the cpp sources, we get the correspondance.
-    correspondance = get_correspondance(cpp)
+    # Construction of the hook for this message i.e. all the particular cases.
+    hook = build_hook_content(msg_list)
+
+    # From the cpp sources, we get the correspondence.
+    correspondence = get_correspondence(cpp)
 
     # Construction of three files, state-generated.proto, state-generated.cc and state-generated.hh
     number = 2
@@ -572,7 +606,7 @@ message {cap_name} {{
         number += 1
     proto.append("}\n")
 
-    complete_filehelper_cc(fhcc, name, number, correspondance)
+    complete_filehelper_cc(fhcc, name, number, correspondence, hook)
 
     # Generation of proto file
     f = open("state-generated.proto", "w")
