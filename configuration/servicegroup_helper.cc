@@ -23,4 +23,17 @@ servicegroup_helper::servicegroup_helper(Servicegroup* obj)
     : message_helper(object_type::servicegroup, obj, {}, 10) {
   init_servicegroup(static_cast<Servicegroup*>(mut_obj()));
 }
+
+bool servicegroup_helper::hook(const absl::string_view& key,
+                               const absl::string_view& value) {
+  Message* obj = mut_obj();
+  if (key == "members") {
+    fill_pair_string_group(obj->mutable_members(), value);
+    return true;
+  } else if (key == "servicegroup_members") {
+    fill_string_group(obj->mutable_servicegroup_members(), value);
+    return true;
+  }
+  return false;
+}
 }  // namespace com::centreon::engine::configuration

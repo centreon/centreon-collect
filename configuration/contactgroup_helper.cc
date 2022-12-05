@@ -23,4 +23,17 @@ contactgroup_helper::contactgroup_helper(Contactgroup* obj)
     : message_helper(object_type::contactgroup, obj, {}, 6) {
   init_contactgroup(static_cast<Contactgroup*>(mut_obj()));
 }
+
+bool contactgroup_helper::hook(const absl::string_view& key,
+                               const absl::string_view& value) {
+  Message* obj = mut_obj();
+  if (key == "contactgroup_members") {
+    fill_string_group(obj->mutable_contactgroup_members(), value);
+    return true;
+  } else if (key == "members") {
+    fill_string_group(obj->mutable_members(), value);
+    return true;
+  }
+  return false;
+}
 }  // namespace com::centreon::engine::configuration
