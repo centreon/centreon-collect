@@ -39,7 +39,7 @@ BESS2
 	Start Engine
 	${result}=	Check Connections
 	Should Be True	${result}
-	${result}=  Check Poller Enabled In Database  1  5
+	${result}=  Check Poller Enabled In Database  1  10
 	Should Be True	${result}
 	Stop Engine
 	${result}=  Check Poller Disabled In Database  1  5

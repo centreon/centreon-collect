@@ -32,6 +32,7 @@ class log_v2 : public std::enable_shared_from_this<log_v2> {
   asio::system_timer _flush_timer;
   std::chrono::seconds _flush_interval;
   std::mutex _flush_timer_m;
+  bool _flush_timer_active;
   std::shared_ptr<asio::io_context> _io_context;
 
   enum logger {

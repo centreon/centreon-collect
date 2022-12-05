@@ -115,6 +115,14 @@ option(WITH_CONF "Install configuration files." ON)
 # Code coverage on unit tests
 option(WITH_COVERAGE "Add code coverage on unit tests." OFF)
 
+# With ASIO DEBUGGING ENABLED
+option(WITH_DEBUG_ASIO "Add the Asio debugging flags." OFF)
+
+if(WITH_DEBUG_ASIO)
+  set(CMAKE_BUILD_TYPE Debug)
+  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DASIO_ENABLE_BUFFER_DEBUGGING -DASIO_ENABLE_HANDLER_TRACKING")
+endif()
+
 if(WITH_TESTING AND WITH_COVERAGE)
   set(CMAKE_BUILD_TYPE "Debug")
   include(cmake/CodeCoverage.cmake)

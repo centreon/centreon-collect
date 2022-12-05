@@ -54,11 +54,25 @@ Kindly Stop Broker
 	IF  not ${only_central}
 		Send Signal To Process	SIGTERM	b2
 	END
-	${result}=	Wait For Process	b1	timeout=60s	on_timeout=kill
-	Should Be Equal As Integers	${result.rc}	0
+	${result}=	Wait For Process	b1	timeout=60s
+	# In case of process not stopping
+	IF	"${result}" == "${None}"
+	  Dump Process	b1	broker-central
+	  Send Signal To Process	SIGKILL	b1
+	  Fail	Central Broker not correctly stopped (coredump generated)
+	ELSE
+	  Should Be Equal As Integers	${result.rc}	0	msg=Central Broker not correctly stopped
+	END
 	IF  not ${only_central}
-		${result}=	Wait For Process	b2	timeout=60s	on_timeout=kill
-		Should Be Equal As Integers	${result.rc}	0
+		${result}=	Wait For Process	b2	timeout=60s
+		# In case of process not stopping
+		IF	"${result}" == "${None}"
+			Dump Process	b2	broker-rrd
+			Send Signal To Process	SIGKILL	b2
+			Fail	RRD Broker not correctly stopped (coredump generated)
+		ELSE
+			Should Be Equal As Integers	${result.rc}	0	msg=RRD Broker not correctly stopped
+		END
 	END
 	
 Stop Broker
@@ -81,7 +95,7 @@ Start Engine
 	 ${lib}=	Catenate	SEPARATOR=	${VarRoot}  /lib/centreon-engine/config	${idx}
 	 Create Directory	${log}
 	 Create Directory	${lib}
-	 Start Process	/usr/sbin/centengine	${conf}	alias=${alias}
+	 Start Process	/usr/sbin/centengine	${conf}  stdout=${VarRoot}/log/centreon-engine/engine-cout.log  stderr=${VarRoot}/log/centreon-engine/engine-cerr.log  alias=${alias}
 #	 ${log_pid1}=  Get Process Id	${alias}
 #	 Log To Console  \npidengine${idx}=${log_pid1}\n
 	END
@@ -143,6 +157,17 @@ Save Logs
         Copy files	${centralLog}	${failDir}
         Copy files	${moduleLog}	${failDir}
         Copy files	${logEngine0}	${failDir}
+
+Dump Process
+	[Arguments]	${process_name}	${name}
+	${pid}=	Get Process Id	${process_name}
+	${failDir}=	Catenate	SEPARATOR=	failed/	${Test Name}
+	Create Directory	${failDir}
+	${output}=	Catenate	SEPARATOR=	${failDir}	/core-	${name}
+	Log To Console	Creation of core ${output}.${pid} to debug
+	Run Process	gcore	-o	${output}	${pid}
+	Log To Console	Done...
+
 
 *** Variables ***
 ${BROKER_LOG}	${VarRoot}/log/centreon-broker

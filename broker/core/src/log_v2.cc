@@ -41,7 +41,10 @@ log_v2& log_v2::instance() {
 }
 
 log_v2::log_v2(const std::shared_ptr<asio::io_context>& io_context)
-    : _running{false}, _flush_timer(*io_context), _io_context(io_context) {
+    : _running{false},
+      _flush_timer(*io_context),
+      _flush_timer_active(true),
+      _io_context(io_context) {
   auto stdout_sink = std::make_shared<sinks::stdout_color_sink_mt>();
   auto create_logger = [&stdout_sink](const std::string& name) {
     std::shared_ptr<spdlog::logger> log =
@@ -164,7 +167,7 @@ void log_v2::start_flush_timer(spdlog::sink_ptr sink) {
   _flush_timer.expires_after(_flush_interval);
   _flush_timer.async_wait(
       [me = shared_from_this(), sink](const asio::error_code& err) {
-        if (err) {
+        if (err || !me->_flush_timer_active) {
           return;
         }
         sink->flush();
@@ -174,6 +177,7 @@ void log_v2::start_flush_timer(spdlog::sink_ptr sink) {
 
 void log_v2::stop() {
   std::lock_guard<std::mutex> l(_flush_timer_m);
+  _flush_timer_active = false;
   _flush_timer.cancel();
 }
 

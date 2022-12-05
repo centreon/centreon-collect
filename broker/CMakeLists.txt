@@ -39,14 +39,6 @@ if(WITH_LIBCXX)
   # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread -Werror -O1 -fno-omit-frame-pointer")
 endif()
 
-# With ASIO DEBUGGING ENABLED
-option(WITH_DEBUG_ASIO "Add the Asio debugging flags." OFF)
-
-if(WITH_DEBUG_ASIO)
-  set(CMAKE_BUILD_TYPE Debug)
-  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DASIO_ENABLE_BUFFER_DEBUGGING -DASIO_ENABLE_HANDLER_TRACKING")
-endif()
-
 # With libasan
 option(WITH_ASAN "Add the libasan to check memory leaks and other memory issues." OFF)
 
