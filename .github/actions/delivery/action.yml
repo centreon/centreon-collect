@@ -1,6 +1,9 @@
 name: "delivery"
 description: "RPM and DEB packages delivery Centreon"
 inputs:
+  module_name:
+    description: "The name of the module"
+    required: true
   distrib:
     description: "The distribution used for packaging"
     required: true
