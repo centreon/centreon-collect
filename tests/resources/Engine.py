@@ -1438,6 +1438,15 @@ def del_host_comment(comment_id):
     f.write(cmd)
     f.close()
 
+
+def set_svc_notification_number(host_name: string, svc_description: string, value):
+    now = int(time.time())
+    cmd = f"[{now}] SET_SVC_NOTIFICATION_NUMBER;{host_name};{svc_description};{value}\n"
+    f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
+
+
 def create_anomaly_threshold_file(path: string, host_id: int, service_id: int, metric_name: string, values: array):
     f = open(path, "w")
     f.write("""[
