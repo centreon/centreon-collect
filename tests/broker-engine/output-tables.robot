@@ -107,9 +107,6 @@ BE_NOTIF_OVERFLOW
 	${output}=	Query	SELECT s.notification_number FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_16' AND s.description='service_314'
 	Should Be True	${output[0][0]} == None  msg=notification_number is not null
 
-
-
-	Sleep  5s
 	Stop Engine
 	Kindly Stop Broker
 
