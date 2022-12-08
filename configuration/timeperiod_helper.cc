@@ -24,13 +24,55 @@ timeperiod_helper::timeperiod_helper(Timeperiod* obj)
   init_timeperiod(static_cast<Timeperiod*>(mut_obj()));
 }
 
-bool timeperiod_helper::hook(const absl::string_view& key,
+bool timeperiod_helper::hook(const absl::string_view& k,
                              const absl::string_view& value) {
-  Message* obj = mut_obj();
+  Timeperiod* obj = static_cast<Timeperiod*>(mut_obj());
+  absl::string_view key;
+  {
+    auto it = correspondence().find(k);
+    if (it != correspondence().end())
+      key = it->second;
+    else
+      key = k;
+  }
+  auto get_timerange = [](const absl::string_view& value, auto* day) -> bool {
+    auto arr = absl::StrSplit(value, ',');
+    for (auto& d : arr) {
+      std::pair<absl::string_view, absl::string_view> v =
+          absl::StrSplit(d, '-');
+      TimeRange tr;
+      std::pair<absl::string_view, absl::string_view> p =
+          absl::StrSplit(v.first, ':');
+      uint32_t h, m;
+      if (!absl::SimpleAtoi(p.first, &h) || !absl::SimpleAtoi(p.second, &m))
+        return false;
+      tr.set_range_start(h * 3600 + m * 60);
+      p = absl::StrSplit(v.second, ':');
+      if (!absl::SimpleAtoi(p.first, &h) || !absl::SimpleAtoi(p.second, &m))
+        return false;
+      tr.set_range_end(h * 3600 + m * 60);
+      day->Add(std::move(tr));
+    }
+    return true;
+  };
+
   if (key == "exclude") {
     fill_string_group(obj->mutable_exclude(), value);
     return true;
-  }
+  } else if (key == "sunday")
+    return get_timerange(value, obj->mutable_timeranges()->mutable_sunday());
+  else if (key == "monday")
+    return get_timerange(value, obj->mutable_timeranges()->mutable_monday());
+  else if (key == "tuesday")
+    return get_timerange(value, obj->mutable_timeranges()->mutable_tuesday());
+  else if (key == "wednesday")
+    return get_timerange(value, obj->mutable_timeranges()->mutable_wednesday());
+  else if (key == "thursday")
+    return get_timerange(value, obj->mutable_timeranges()->mutable_thursday());
+  else if (key == "friday")
+    return get_timerange(value, obj->mutable_timeranges()->mutable_friday());
+  else if (key == "saturday")
+    return get_timerange(value, obj->mutable_timeranges()->mutable_saturday());
   return false;
 }
 }  // namespace com::centreon::engine::configuration

@@ -32,6 +32,9 @@ class tag_helper : public message_helper {
  public:
   tag_helper(Tag* obj);
   ~tag_helper() noexcept = default;
+
+  bool hook(const absl::string_view& k,
+            const absl::string_view& value) override;
 };
 }  // namespace configuration
 }  // namespace engine

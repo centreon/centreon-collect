@@ -36,9 +36,17 @@ serviceescalation_helper::serviceescalation_helper(Serviceescalation* obj)
   init_serviceescalation(static_cast<Serviceescalation*>(mut_obj()));
 }
 
-bool serviceescalation_helper::hook(const absl::string_view& key,
+bool serviceescalation_helper::hook(const absl::string_view& k,
                                     const absl::string_view& value) {
-  Message* obj = mut_obj();
+  Serviceescalation* obj = static_cast<Serviceescalation*>(mut_obj());
+  absl::string_view key;
+  {
+    auto it = correspondence().find(k);
+    if (it != correspondence().end())
+      key = it->second;
+    else
+      key = k;
+  }
   if (key == "contactgroups") {
     fill_string_group(obj->mutable_contactgroups(), value);
     return true;
