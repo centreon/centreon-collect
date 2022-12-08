@@ -16,8 +16,6 @@
 ** For more information : contact@centreon.com
 */
 
-#include <spdlog/fmt/ostr.h>
-
 #include "com/centreon/broker/pool.hh"
 
 #include "com/centreon/broker/log_v2.hh"
@@ -89,17 +87,14 @@ pool::pool(const std::shared_ptr<asio::io_context>& io_context, size_t size)
     log_v2::core()->info("Starting the TCP thread pool of {} threads",
                          _pool_size);
     for (uint32_t i = 0; i < _pool_size; ++i) {
-      _pool.emplace_back([this] {
+      _pool.emplace_back([ctx = _io_context] {
         try {
-          SPDLOG_LOGGER_INFO(log_v2::core(), "start of asio thread {}",
-                             std::this_thread::get_id());
-          _io_context->run();
-          SPDLOG_LOGGER_INFO(log_v2::core(), "end of asio thread {}",
-                             std::this_thread::get_id());
+          log_v2::core()->info("start of asio thread {:x}", pthread_self());
+          ctx->run();
+          log_v2::core()->info("end of asio thread {:x}", pthread_self());
         } catch (const std::exception& e) {
-          SPDLOG_LOGGER_CRITICAL(log_v2::core(),
-                                 "catch in io_context run: {} {}", e.what(),
-                                 typeid(e).name());
+          log_v2::core()->critical("catch in io_context run: {} {} thread {:x}",
+                                   e.what(), typeid(e).name(), pthread_self());
         }
       });
       char str[16];

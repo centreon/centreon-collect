@@ -59,7 +59,7 @@ class StatsTest : public ::testing::Test {
 
   void TearDown() override {
     config::applier::endpoint::unload();
-    multiplexing::engine::instance().clear();
+    multiplexing::engine::instance_ptr()->clear();
     multiplexing::engine::unload();
     config::applier::state::unload();
     io::events::unload();
@@ -88,7 +88,7 @@ TEST_F(StatsTest, Builder) {
 
 // TEST_F(StatsTest, BuilderWithModules) {
 //   stats::builder build;
-//   auto& modules = config::applier::state::instance().get_modules();
+//   auto& modules = config::applier::state::instance_ptr()->get_modules();
 //   modules.apply({"storage/20-storage.so", "neb/10-neb.so", "lua/70-lua.so"},
 //                 ".", nullptr);
 //

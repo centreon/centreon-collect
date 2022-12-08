@@ -26,6 +26,7 @@ BRGC1
 	Log To Console	Compression set to
 	Broker Config Log	central	bbdo	info
 	Broker Config Log	module0	bbdo	info
+	Remove File  ${VarRoot}/lib/centreon-broker/*queue*
 	${start}=	Get Current Date
 	Start Broker
 	Start Engine
@@ -41,7 +42,7 @@ BRGC1
 	${log}=	Catenate	SEPARATOR=	${BROKER_LOG}	/central-broker-master.log
 	${result}=	Find In Log With Timeout	${log}	${start}	${content}	40
 	Should Be True	${result}	msg=Connection to map has failed.
-	File Should Not Exist	${VarRoot}/lib/centreon-broker/central-broker-master.queue.centreon-broker-master-map*	msg=There should not exist que map files.
+	File Should Not Exist	${VarRoot}/lib/centreon-broker/central-broker-master.queue.centreon-broker-master-map*	msg=There should not exist queue map files.
 
 
 BRCTS1

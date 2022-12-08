@@ -104,8 +104,15 @@ muxer::muxer(std::string name,
   log_v2::core()->info(
       "multiplexing: '{}' starts with {} in queue and the queue file is {}",
       _name, _events_size, _file ? "enable" : "disable");
+}
 
-  engine::instance().subscribe(this);
+std::shared_ptr<muxer> muxer::create(std::string name,
+                                     muxer::filters r_filters,
+                                     muxer::filters w_filters,
+                                     bool persistent) {
+  std::shared_ptr<muxer> ret(new muxer(name, r_filters, w_filters, persistent));
+  engine::instance_ptr()->subscribe(ret);
+  return ret;
 }
 
 /**
@@ -113,7 +120,9 @@ muxer::muxer(std::string name,
  */
 muxer::~muxer() noexcept {
   stats::center::instance().unregister_muxer(_name);
-  engine::instance().unsubscribe(this);
+  auto eng = engine::instance_ptr();
+  if (eng)
+    eng->unsubscribe(this);
   std::lock_guard<std::mutex> lock(_mutex);
   log_v2::core()->info("Destroying muxer {}: number of events in the queue: {}",
                        _name, _events_size);
@@ -200,7 +209,6 @@ uint32_t muxer::event_queue_max_size() noexcept {
  */
 void muxer::publish(const std::shared_ptr<io::data> event) {
   if (event) {
-    log_v2::core()->trace("muxer::publish {} publish one event", _name);
     std::lock_guard<std::mutex> lock(_mutex);
     // Check if we should process this event.
     if (_write_filters.find(event->type()) == _write_filters.end())
@@ -215,8 +223,12 @@ void muxer::publish(const std::shared_ptr<io::data> event) {
       }
 
       _file->write(event);
-    } else
+      log_v2::core()->trace("muxer::publish {} publish one event to file {}",
+                            _name, _queue_file_name);
+    } else {
+      log_v2::core()->trace("muxer::publish {} publish one event to queue");
       _push_to_queue(event);
+    }
     _update_stats();
   }
 }
@@ -359,8 +371,12 @@ void muxer::wake() {
  *  @param[in] d  Event to multiplex.
  */
 int muxer::write(std::shared_ptr<io::data> const& d) {
-  if (d && _read_filters.find(d->type()) != _read_filters.end())
-    engine::instance().publish(d);
+  if (d && _read_filters.find(d->type()) != _read_filters.end()) {
+    auto eng = engine::instance_ptr();
+    if (eng) {
+      eng->publish(d);
+    }
+  }
   return 1;
 }
 

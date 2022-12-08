@@ -47,7 +47,7 @@ namespace multiplexing {
  *
  *  @see engine
  */
-class muxer : public io::stream {
+class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
  public:
   using filters = absl::flat_hash_set<uint32_t>;
 
@@ -76,16 +76,21 @@ class muxer : public io::stream {
 
   void _update_stats(void) noexcept;
 
+  muxer(std::string name,
+        muxer::filters r_filters,
+        muxer::filters w_filters,
+        bool persistent = false);
+
  public:
   static std::string queue_file(const std::string& name);
   static std::string memory_file(const std::string& name);
   static void event_queue_max_size(uint32_t max) noexcept;
   static uint32_t event_queue_max_size() noexcept;
 
-  muxer(std::string name,
-        muxer::filters r_filters,
-        muxer::filters w_filters,
-        bool persistent = false);
+  static std::shared_ptr<muxer> create(std::string name,
+                                       muxer::filters r_filters,
+                                       muxer::filters w_filters,
+                                       bool persistent = false);
   muxer(const muxer&) = delete;
   muxer& operator=(const muxer&) = delete;
   ~muxer() noexcept;
