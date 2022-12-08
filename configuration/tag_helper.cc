@@ -31,9 +31,38 @@ tag_helper::tag_helper(Tag* obj)
   init_tag(static_cast<Tag*>(mut_obj()));
 }
 
-bool tag_helper::hook(const absl::string_view& key,
+bool tag_helper::hook(const absl::string_view& k,
                       const absl::string_view& value) {
-  Message* obj = mut_obj();
+  Tag* obj = static_cast<Tag*>(mut_obj());
+  absl::string_view key;
+  {
+    auto it = correspondence().find(k);
+    if (it != correspondence().end())
+      key = it->second;
+    else
+      key = k;
+  }
+
+  if (key == "id" || key == "tag_id") {
+    uint64_t id;
+    if (absl::SimpleAtoi(value, &id))
+      obj->mutable_key()->set_id(id);
+    else
+      return false;
+    return true;
+  } else if (key == "type" || key == "tag_type") {
+    if (value == "hostcategory")
+      obj->mutable_key()->set_type(tag_hostcategory);
+    else if (value == "servicecategory")
+      obj->mutable_key()->set_type(tag_servicecategory);
+    else if (value == "hostgroup")
+      obj->mutable_key()->set_type(tag_hostgroup);
+    else if (value == "servicegroup")
+      obj->mutable_key()->set_type(tag_servicegroup);
+    else
+      return false;
+    return true;
+  }
   return false;
 }
 }  // namespace com::centreon::engine::configuration

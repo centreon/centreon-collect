@@ -24,9 +24,17 @@ contactgroup_helper::contactgroup_helper(Contactgroup* obj)
   init_contactgroup(static_cast<Contactgroup*>(mut_obj()));
 }
 
-bool contactgroup_helper::hook(const absl::string_view& key,
+bool contactgroup_helper::hook(const absl::string_view& k,
                                const absl::string_view& value) {
-  Message* obj = mut_obj();
+  Contactgroup* obj = static_cast<Contactgroup*>(mut_obj());
+  absl::string_view key;
+  {
+    auto it = correspondence().find(k);
+    if (it != correspondence().end())
+      key = it->second;
+    else
+      key = k;
+  }
   if (key == "contactgroup_members") {
     fill_string_group(obj->mutable_contactgroup_members(), value);
     return true;

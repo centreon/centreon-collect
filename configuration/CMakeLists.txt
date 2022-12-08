@@ -56,6 +56,7 @@ add_library(
   state.pb.h
   anomalydetection_helper.cc
   contact_helper.hh
+  message_helper.cc
   message_helper.hh
   severity_helper.cc
   anomalydetection_helper.hh

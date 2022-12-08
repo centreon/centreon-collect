@@ -1098,14 +1098,14 @@ TEST_F(ApplierState, StateParsing) {
   ASSERT_EQ(config.services()[0].service_id(), 1);
   ASSERT_TRUE(config.services()[0].obj().register_());
   ASSERT_TRUE(config.services()[0].checks_active());
-  EXPECT_EQ(config.services()[0].contactgroups().data().size(), 3u);
-  ASSERT_EQ(config.services()[0].contactgroups().data()[0], std::string("cg1"));
-  ASSERT_EQ(config.services()[0].contactgroups().data()[1], std::string("cg3"));
-  ASSERT_EQ(config.services()[0].contactgroups().data()[2], std::string("cg2"));
-
   ASSERT_EQ(config.services()[0].hosts().data()[0], std::string("host_1"));
   ASSERT_EQ(config.services()[0].service_description(),
             std::string("service_1"));
+  ASSERT_EQ(config.services()[0].contactgroups().data().size(), 3u);
+  EXPECT_EQ(config.services()[0].contactgroups().data()[0], std::string("cg1"));
+  EXPECT_EQ(config.services()[0].contactgroups().data()[1], std::string("cg3"));
+  EXPECT_EQ(config.services()[0].contactgroups().data()[2], std::string("cg2"));
+
   EXPECT_EQ(config.services()[0].hostgroups().data().size(), 2u);
   EXPECT_EQ(config.services()[0].hostgroups().data()[0], std::string("hg1"));
   EXPECT_EQ(config.services()[0].contacts().data().size(), 2u);

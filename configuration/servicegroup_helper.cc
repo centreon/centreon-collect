@@ -24,9 +24,17 @@ servicegroup_helper::servicegroup_helper(Servicegroup* obj)
   init_servicegroup(static_cast<Servicegroup*>(mut_obj()));
 }
 
-bool servicegroup_helper::hook(const absl::string_view& key,
+bool servicegroup_helper::hook(const absl::string_view& k,
                                const absl::string_view& value) {
-  Message* obj = mut_obj();
+  Servicegroup* obj = static_cast<Servicegroup*>(mut_obj());
+  absl::string_view key;
+  {
+    auto it = correspondence().find(k);
+    if (it != correspondence().end())
+      key = it->second;
+    else
+      key = k;
+  }
   if (key == "members") {
     fill_pair_string_group(obj->mutable_members(), value);
     return true;
