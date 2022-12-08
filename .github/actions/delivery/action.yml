@@ -76,7 +76,7 @@ runs:
         fi
         echo "[DEBUG] - Branch name: $BRANCHNAME"
         case "$BRANCHNAME" in
-          develop | dev-[2-9][0-9].[0-9][0-9].x)
+          develop | dev-[2-9][0-9].[0-9][0-9].x | fix-rpmsign)
             SUBREPO="unstable"
             ;;
           release* | hotfix*)
@@ -104,7 +104,7 @@ runs:
           PROJECT=${{ inputs.module_name }}
           FOLDER=$(basename $FILE .rpm)
           PROJECT_PATH="standard"
-          
+
           echo "[DEBUG] - Arch: $ARCH"
           echo "[DEBUG] - Suprepo: $SUBREPO"
           echo "[DEBUG] - FILES: $FILES"
@@ -117,7 +117,7 @@ runs:
           else
             #echo "[DEBUG] - https://artifactory.apps.centreon.com/artifactory/rpm-$VERSION-$REPO/$DISTRIB/$REPO/x86_64/centreon-collect"
             #curl -v -u "${{ inputs.repos_username }}":"${{ inputs.repos_password }}" -X PUT "https://artifactory.apps.centreon.com/artifactory/rpm-$VERSION-$REPO/$DISTRIB/$REPO/x86_64/centreon-collect/$FILE" -T "./$FILE"
-            
+
             eval `ssh-agent`
             ssh-add - <<< "${{ inputs.yum_repo_key }}"
 
