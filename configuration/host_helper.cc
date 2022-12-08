@@ -40,9 +40,17 @@ host_helper::host_helper(Host* obj)
   init_host(static_cast<Host*>(mut_obj()));
 }
 
-bool host_helper::hook(const absl::string_view& key,
+bool host_helper::hook(const absl::string_view& k,
                        const absl::string_view& value) {
-  Message* obj = mut_obj();
+  Host* obj = static_cast<Host*>(mut_obj());
+  absl::string_view key;
+  {
+    auto it = correspondence().find(k);
+    if (it != correspondence().end())
+      key = it->second;
+    else
+      key = k;
+  }
   if (key == "contactgroups") {
     fill_string_group(obj->mutable_contactgroups(), value);
     return true;
@@ -51,6 +59,34 @@ bool host_helper::hook(const absl::string_view& key,
     return true;
   } else if (key == "hostgroups") {
     fill_string_group(obj->mutable_hostgroups(), value);
+    return true;
+  } else if (key == "notification_options") {
+    uint16_t options(action_svc_none);
+    auto values = absl::StrSplit(value, ',');
+    for (auto it = values.begin(); it != values.end(); ++it) {
+      absl::string_view v = absl::StripAsciiWhitespace(*it);
+      if (v == "u" || v == "unknown")
+        options |= action_svc_unknown;
+      else if (v == "w" || v == "warning")
+        options |= action_svc_warning;
+      else if (v == "c" || v == "critical")
+        options |= action_svc_critical;
+      else if (v == "r" || v == "recovery")
+        options |= action_svc_ok;
+      else if (v == "f" || v == "flapping")
+        options |= action_svc_flapping;
+      else if (v == "s" || v == "downtime")
+        options |= action_svc_downtime;
+      else if (v == "n" || v == "none")
+        options = action_svc_none;
+      else if (v == "a" || v == "all")
+        options = action_svc_unknown | action_svc_warning |
+                  action_svc_critical | action_svc_ok | action_svc_flapping |
+                  action_svc_downtime;
+      else
+        return false;
+    }
+    obj->set_notification_options(options);
     return true;
   } else if (key == "parents") {
     fill_string_group(obj->mutable_parents(), value);

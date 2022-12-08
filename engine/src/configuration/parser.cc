@@ -28,6 +28,7 @@
 #include "configuration/contact_helper.hh"
 #include "configuration/host_helper.hh"
 #include "configuration/hostgroup_helper.hh"
+#include "configuration/message_helper.hh"
 #include "configuration/service_helper.hh"
 #include "configuration/servicedependency_helper.hh"
 #include "configuration/servicegroup_helper.hh"
@@ -348,59 +349,19 @@ static bool fill_pair_string_group(PairStringSet* grp,
   return true;
 }
 
-static void fill_string_group(StringSet* grp, const absl::string_view& value) {
-  auto arr = absl::StrSplit(value, ',');
-  bool first = true;
-  for (absl::string_view d : arr) {
-    d = absl::StripAsciiWhitespace(d);
-    if (first) {
-      if (d[0] == '+') {
-        grp->set_additive(true);
-        d = d.substr(1);
-      }
-      first = false;
-    }
-    bool found = false;
-    for (auto& v : grp->data()) {
-      if (v == d) {
-        found = true;
-        break;
-      }
-    }
-    if (!found)
-      grp->add_data(d.data(), d.size());
-  }
-}
-
-static void fill_string_group(StringList* grp, const absl::string_view& value) {
-  auto arr = absl::StrSplit(value, ',');
-  bool first = true;
-  for (absl::string_view d : arr) {
-    d = absl::StripAsciiWhitespace(d);
-    if (first) {
-      if (d[0] == '+') {
-        grp->set_additive(true);
-        d = d.substr(1);
-      }
-      first = false;
-    }
-    grp->add_data(d.data(), d.size());
-  }
-}
-
 bool set(
     State* msg,
     const absl::string_view& key,
     const absl::string_view& value,
-    const absl::flat_hash_map<std::string, std::string>& correspondance = {}) {
+    const absl::flat_hash_map<std::string, std::string>& correspondence = {}) {
   const Descriptor* desc = msg->GetDescriptor();
   const FieldDescriptor* f;
   const Reflection* refl;
 
   f = desc->FindFieldByName(std::string(key.data(), key.size()));
   if (f == nullptr) {
-    auto it = correspondance.find(key);
-    if (it != correspondance.end())
+    auto it = correspondence.find(key);
+    if (it != correspondence.end())
       f = desc->FindFieldByName(it->second);
     if (f == nullptr)
       return false;
@@ -472,7 +433,7 @@ bool set(
 }
 /**
  * @brief Set the value given as a string to the object key. If the key does
- * not exist, the correspondance table may be used to find a replacement of
+ * not exist, the correspondence table may be used to find a replacement of
  * the key. The function converts the value to the appropriate type.
  *
  * Another important point is that many configuration object contain the Object
@@ -484,8 +445,8 @@ bool set(
  * @param msg The message containing the object key.
  * @param key The key to localize the object to set.
  * @param value The value as string that will be converted to the good type.
- * @param correspondance A hash table giving traductions from keys to others.
- * If a key fails, correspondance is used to find a new replacement key.
+ * @param correspondence A hash table giving traductions from keys to others.
+ * If a key fails, correspondence is used to find a new replacement key.
  *
  * @return true on success.
  */
@@ -531,8 +492,8 @@ bool set(std::unique_ptr<message_helper>& helper,
 
   f = desc->FindFieldByName(std::string(key.data(), key.size()));
   if (f == nullptr) {
-    auto it = helper->correspondance().find(key);
-    if (it != helper->correspondance().end())
+    auto it = helper->correspondence().find(key);
+    if (it != helper->correspondence().end())
       f = desc->FindFieldByName(it->second);
     if (f == nullptr)
       return false;
@@ -653,7 +614,7 @@ void parser::_parse_global_configuration(const std::string& path,
  * from the message format.
  *
  * Two mechanisms are used to complete the reflection.
- * * A hastable <string, string> named correspondance is used in case of several
+ * * A hastable <string, string> named correspondence is used in case of several
  *   keys to access to the same value. This is, for example, the case for
  *   host_id which is historically also named _HOST_ID.
  * * A std::function<bool(string_view_string_view) can also be defined in
@@ -688,9 +649,6 @@ void parser::_parse_object_definitions(const std::string& path,
 
   int current_line = 1;
   std::string type;
-  std::function<bool(const absl::string_view& key,
-                     const absl::string_view& value)>
-      hook;
 
   for (auto it = tab.begin(); it != tab.end(); ++it, current_line++) {
     absl::string_view l = absl::StripAsciiWhitespace(*it);
@@ -748,7 +706,6 @@ void parser::_parse_object_definitions(const std::string& path,
           }
         }
         msg = nullptr;
-        hook = nullptr;
       } else {
         /* Main part where keys/values are read */
         /* ------------------------------------ */
@@ -758,8 +715,7 @@ void parser::_parse_object_definitions(const std::string& path,
         l = absl::StripLeadingAsciiWhitespace(l);
         bool retval = false;
         /* particular cases with hook */
-        if (hook)
-          retval = hook(key, l);
+        retval = msg_helper->hook(key, l);
 
         if (!retval) {
           /* Classical part */
@@ -818,93 +774,10 @@ void parser::_parse_object_definitions(const std::string& path,
         msg = pb_config->mutable_services()->Add();
         msg_helper =
             std::make_unique<service_helper>(static_cast<Service*>(msg));
-        hook = [svc = static_cast<Service*>(msg)](
-                   const absl::string_view& key,
-                   const absl::string_view& value) -> bool {
-          if (key == "hostgroups") {
-            fill_string_group(svc->mutable_hostgroups(), value);
-            return true;
-          } else if (key == "contact_groups") {
-            fill_string_group(svc->mutable_contactgroups(), value);
-            return true;
-          } else if (key == "notification_options") {
-            unsigned short options(action_svc_none);
-            auto values = absl::StrSplit(value, ',');
-            for (auto it = values.begin(); it != values.end(); ++it) {
-              absl::string_view v = absl::StripAsciiWhitespace(*it);
-              if (v == "u" || v == "unknown")
-                options |= action_svc_unknown;
-              else if (v == "w" || v == "warning")
-                options |= action_svc_warning;
-              else if (v == "c" || v == "critical")
-                options |= action_svc_critical;
-              else if (v == "r" || v == "recovery")
-                options |= action_svc_ok;
-              else if (v == "f" || v == "flapping")
-                options |= action_svc_flapping;
-              else if (v == "s" || v == "downtime")
-                options |= action_svc_downtime;
-              else if (v == "n" || v == "none")
-                options = action_svc_none;
-              else if (v == "a" || v == "all")
-                options = action_svc_unknown | action_svc_warning |
-                          action_svc_critical | action_svc_ok |
-                          action_svc_flapping | action_svc_downtime;
-              else
-                return false;
-            }
-            svc->set_notification_options(options);
-            return true;
-          }
-          return false;
-        };
       } else if (type == "anomalydetection") {
         msg = pb_config->mutable_anomalydetections()->Add();
         msg_helper = std::make_unique<anomalydetection_helper>(
             static_cast<Anomalydetection*>(msg));
-        hook = [ad = static_cast<Anomalydetection*>(msg)](
-                   const absl::string_view& key,
-                   const absl::string_view& value) -> bool {
-          if (key == "contact_groups") {
-            fill_string_group(ad->mutable_contactgroups(), value);
-            return true;
-          } else if (key == "contacts") {
-            fill_string_group(ad->mutable_contacts(), value);
-            return true;
-          } else if (key == "servicegroups") {
-            fill_string_group(ad->mutable_servicegroups(), value);
-            return true;
-          } else if (key == "notification_options") {
-            unsigned short options(action_svc_none);
-            auto values = absl::StrSplit(value, ',');
-            for (auto it = values.begin(); it != values.end(); ++it) {
-              absl::string_view v = absl::StripAsciiWhitespace(*it);
-              if (v == "u" || v == "unknown")
-                options |= action_svc_unknown;
-              else if (v == "w" || v == "warning")
-                options |= action_svc_warning;
-              else if (v == "c" || v == "critical")
-                options |= action_svc_critical;
-              else if (v == "r" || v == "recovery")
-                options |= action_svc_ok;
-              else if (v == "f" || v == "flapping")
-                options |= action_svc_flapping;
-              else if (v == "s" || v == "downtime")
-                options |= action_svc_downtime;
-              else if (v == "n" || v == "none")
-                options = action_svc_none;
-              else if (v == "a" || v == "all")
-                options = action_svc_unknown | action_svc_warning |
-                          action_svc_critical | action_svc_ok |
-                          action_svc_flapping | action_svc_downtime;
-              else
-                return false;
-            }
-            ad->set_notification_options(options);
-            return true;
-          }
-          return false;
-        };
       } else if (type == "servicedependency") {
         msg = pb_config->mutable_servicedependencies()->Add();
         msg_helper = std::make_unique<servicedependency_helper>(
@@ -913,45 +786,6 @@ void parser::_parse_object_definitions(const std::string& path,
         msg = pb_config->mutable_timeperiods()->Add();
         msg_helper =
             std::make_unique<timeperiod_helper>(static_cast<Timeperiod*>(msg));
-        hook = [tp = static_cast<Timeperiod*>(msg)](
-                   const absl::string_view& key,
-                   const absl::string_view& value) -> bool {
-          auto arr = absl::StrSplit(value, ',');
-          for (auto& d : arr) {
-            std::pair<absl::string_view, absl::string_view> v =
-                absl::StrSplit(d, '-');
-            TimeRange tr;
-            std::pair<absl::string_view, absl::string_view> p =
-                absl::StrSplit(v.first, ':');
-            uint32_t h, m;
-            if (!absl::SimpleAtoi(p.first, &h) ||
-                !absl::SimpleAtoi(p.second, &m))
-              return false;
-            tr.set_range_start(h * 3600 + m * 60);
-            p = absl::StrSplit(v.second, ':');
-            if (!absl::SimpleAtoi(p.first, &h) ||
-                !absl::SimpleAtoi(p.second, &m))
-              return false;
-            tr.set_range_end(h * 3600 + m * 60);
-            if (key == "sunday")
-              tp->mutable_timeranges()->mutable_sunday()->Add(std::move(tr));
-            else if (key == "monday")
-              tp->mutable_timeranges()->mutable_monday()->Add(std::move(tr));
-            else if (key == "tuesday")
-              tp->mutable_timeranges()->mutable_tuesday()->Add(std::move(tr));
-            else if (key == "wednesday")
-              tp->mutable_timeranges()->mutable_wednesday()->Add(std::move(tr));
-            else if (key == "thursday")
-              tp->mutable_timeranges()->mutable_thursday()->Add(std::move(tr));
-            else if (key == "friday")
-              tp->mutable_timeranges()->mutable_friday()->Add(std::move(tr));
-            else if (key == "saturday")
-              tp->mutable_timeranges()->mutable_saturday()->Add(std::move(tr));
-            else
-              return false;
-          }
-          return true;
-        };
       } else if (type == "command") {
         msg = pb_config->mutable_commands()->Add();
         msg_helper =
@@ -964,42 +798,9 @@ void parser::_parse_object_definitions(const std::string& path,
         msg = pb_config->mutable_servicegroups()->Add();
         msg_helper = std::make_unique<servicegroup_helper>(
             static_cast<Servicegroup*>(msg));
-        hook = [sg = static_cast<Servicegroup*>(msg)](
-                   const absl::string_view& key,
-                   const absl::string_view& value) -> bool {
-          if (key == "members")
-            return fill_pair_string_group(sg->mutable_members(), value);
-          else
-            return false;
-        };
       } else if (type == "tag") {
         msg = pb_config->mutable_tags()->Add();
         msg_helper = std::make_unique<tag_helper>(static_cast<Tag*>(msg));
-        hook = [tg = static_cast<Tag*>(msg)](
-                   const absl::string_view& key,
-                   const absl::string_view& value) -> bool {
-          bool retval = true;
-          if (key == "id" || key == "tag_id") {
-            uint64_t id;
-            if (absl::SimpleAtoi(value, &id))
-              tg->mutable_key()->set_id(id);
-            else
-              retval = false;
-          } else if (key == "type" || key == "tag_type") {
-            if (value == "hostcategory")
-              tg->mutable_key()->set_type(tag::hostcategory);
-            else if (value == "servicecategory")
-              tg->mutable_key()->set_type(tag::servicecategory);
-            else if (value == "hostgroup")
-              tg->mutable_key()->set_type(tag::hostgroup);
-            else if (value == "servicegroup")
-              tg->mutable_key()->set_type(tag::servicegroup);
-            else
-              retval = false;
-          } else
-            retval = false;
-          return retval;
-        };
       } else {
         log_v2::config()->error("Type '{}' not yet supported by the parser",
                                 type);

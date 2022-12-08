@@ -32,6 +32,9 @@ class hostescalation_helper : public message_helper {
  public:
   hostescalation_helper(Hostescalation* obj);
   ~hostescalation_helper() noexcept = default;
+
+  bool hook(const absl::string_view& k,
+            const absl::string_view& value) override;
 };
 }  // namespace configuration
 }  // namespace engine
