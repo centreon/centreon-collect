@@ -24,9 +24,17 @@ hostgroup_helper::hostgroup_helper(Hostgroup* obj)
   init_hostgroup(static_cast<Hostgroup*>(mut_obj()));
 }
 
-bool hostgroup_helper::hook(const absl::string_view& key,
+bool hostgroup_helper::hook(const absl::string_view& k,
                             const absl::string_view& value) {
-  Message* obj = mut_obj();
+  Hostgroup* obj = static_cast<Hostgroup*>(mut_obj());
+  absl::string_view key;
+  {
+    auto it = correspondence().find(k);
+    if (it != correspondence().end())
+      key = it->second;
+    else
+      key = k;
+  }
   if (key == "members") {
     fill_string_group(obj->mutable_members(), value);
     return true;

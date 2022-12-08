@@ -32,6 +32,9 @@ class contactgroup_helper : public message_helper {
  public:
   contactgroup_helper(Contactgroup* obj);
   ~contactgroup_helper() noexcept = default;
+
+  bool hook(const absl::string_view& k,
+            const absl::string_view& value) override;
 };
 }  // namespace configuration
 }  // namespace engine

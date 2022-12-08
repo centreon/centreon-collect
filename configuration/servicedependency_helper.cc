@@ -49,9 +49,17 @@ servicedependency_helper::servicedependency_helper(Servicedependency* obj)
   init_servicedependency(static_cast<Servicedependency*>(mut_obj()));
 }
 
-bool servicedependency_helper::hook(const absl::string_view& key,
+bool servicedependency_helper::hook(const absl::string_view& k,
                                     const absl::string_view& value) {
-  Message* obj = mut_obj();
+  Servicedependency* obj = static_cast<Servicedependency*>(mut_obj());
+  absl::string_view key;
+  {
+    auto it = correspondence().find(k);
+    if (it != correspondence().end())
+      key = it->second;
+    else
+      key = k;
+  }
   if (key == "dependent_hostgroups") {
     fill_string_group(obj->mutable_dependent_hostgroups(), value);
     return true;

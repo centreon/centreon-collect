@@ -32,6 +32,9 @@ class contact_helper : public message_helper {
  public:
   contact_helper(Contact* obj);
   ~contact_helper() noexcept = default;
+
+  bool hook(const absl::string_view& k,
+            const absl::string_view& value) override;
 };
 }  // namespace configuration
 }  // namespace engine

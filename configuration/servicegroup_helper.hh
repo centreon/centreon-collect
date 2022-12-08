@@ -32,6 +32,9 @@ class servicegroup_helper : public message_helper {
  public:
   servicegroup_helper(Servicegroup* obj);
   ~servicegroup_helper() noexcept = default;
+
+  bool hook(const absl::string_view& k,
+            const absl::string_view& value) override;
 };
 }  // namespace configuration
 }  // namespace engine
