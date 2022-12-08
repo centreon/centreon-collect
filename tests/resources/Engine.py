@@ -1463,7 +1463,12 @@ def del_host_comment(comment_id):
 @external_command
 def change_host_check_command(hst: str, Check_Command: str):
     return "CHANGE_HOST_CHECK_COMMAND;{};{}\n".format(
-        now, hst, Check_Command)
+        hst, Check_Command)
+
+
+@external_command
+def set_svc_notification_number(host_name: string, svc_description: string, value):
+    return "SET_SVC_NOTIFICATION_NUMBER;{};{};{}\n".format(host_name, svc_description, value)
 
 
 def create_anomaly_threshold_file(path: string, host_id: int, service_id: int, metric_name: string, values: array):
