@@ -140,15 +140,18 @@ runs:
           fi
         done
 
-        ID="${{ inputs.cloudfront_id }}"
-        PATHS="/$PROJECT_PATH/$MAJOR/$DISTRIB/$REPOTYPE/$ARCH/*"
-        ITERATIONS=1
-        until aws cloudfront create-invalidation --distribution-id "$ID" --paths "$PATHS"; do
-          if [ ${ITERATIONS} -eq 10 ]; then
-            return 0
-          fi
-          echo "couldn't invalidate cache, AWS quota might have been reached, retrying in 30 seconds..."
-          sleep 30s
-          ITERATIONS=$((ITERATIONS+1))
-        done
+        # run this only for rpm
+        if [[ "${{ env.extfile }}" == "rpm" ]] ; then
+          ID="${{ inputs.cloudfront_id }}"
+          PATHS="/$PROJECT_PATH/$MAJOR/$DISTRIB/$REPOTYPE/$ARCH/*"
+          ITERATIONS=1
+          until aws cloudfront create-invalidation --distribution-id "$ID" --paths "$PATHS"; do
+            if [ ${ITERATIONS} -eq 10 ]; then
+              return 0
+            fi
+            echo "couldn't invalidate cache, AWS quota might have been reached, retrying in 30 seconds..."
+            sleep 30s
+            ITERATIONS=$((ITERATIONS+1))
+          done
+        fi
       shell: bash
