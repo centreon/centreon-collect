@@ -1625,6 +1625,11 @@ def change_global_svc_event_handler(var_value: str):
     return "CHANGE_GLOBAL_SVC_EVENT_HANDLER;{}\n".format(var_value)
 
 
+@external_command
+def set_svc_notification_number(host_name: string, svc_description: string, value):
+    return "SET_SVC_NOTIFICATION_NUMBER;{};{};{}\n".format(host_name, svc_description, value)
+
+
 def create_anomaly_threshold_file(path: string, host_id: int, service_id: int, metric_name: string, values: array):
     f = open(path, "w")
     f.write("""[
