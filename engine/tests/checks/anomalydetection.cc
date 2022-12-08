@@ -353,7 +353,8 @@ TEST_P(AnomalydetectionCheckStatusChange, StatusChanges) {
   now = std::time(nullptr);
   _ad->run_async_check(check_options, latency, true, true, &time_is_valid,
                        &preferred_time);
-  checks::checker::instance().wait_completion();
+  checks::checker::instance().wait_completion(
+      checks::checker::e_completion_filter::service);
   checks::checker::instance().reap();
   ASSERT_EQ(_ad->get_state_type(), checkable::soft);
   ASSERT_EQ(_ad->get_current_state(), engine::service::state_critical);
@@ -382,7 +383,8 @@ TEST_P(AnomalydetectionCheckStatusChange, StatusChanges) {
   now = std::time(nullptr);
   _ad->run_async_check(check_options, latency, true, true, &time_is_valid,
                        &preferred_time);
-  checks::checker::instance().wait_completion();
+  checks::checker::instance().wait_completion(
+      checks::checker::e_completion_filter::service);
   checks::checker::instance().reap();
   ASSERT_EQ(_ad->get_state_type(), checkable::hard);
   ASSERT_EQ(_ad->get_current_state(), engine::service::state_critical);
@@ -412,7 +414,8 @@ TEST_P(AnomalydetectionCheckStatusChange, StatusChanges) {
   now = std::time(nullptr);
   _ad->run_async_check(check_options, latency, true, true, &time_is_valid,
                        &preferred_time);
-  checks::checker::instance().wait_completion();
+  checks::checker::instance().wait_completion(
+      checks::checker::e_completion_filter::service);
   checks::checker::instance().reap();
   ASSERT_EQ(_ad->get_state_type(), checkable::hard);
   ASSERT_EQ(_ad->get_current_state(), engine::service::state_ok);
@@ -668,7 +671,8 @@ TEST_P(AnomalydetectionCheckStatusChange, StatusChangesWithType) {
   now = std::time(nullptr);
   _ad->run_async_check(check_options, latency, true, true, &time_is_valid,
                        &preferred_time);
-  checks::checker::instance().wait_completion();
+  checks::checker::instance().wait_completion(
+      checks::checker::e_completion_filter::service);
   checks::checker::instance().reap();
   ASSERT_EQ(_ad->get_state_type(), checkable::soft);
   ASSERT_EQ(_ad->get_current_state(), engine::service::state_critical);
@@ -697,7 +701,8 @@ TEST_P(AnomalydetectionCheckStatusChange, StatusChangesWithType) {
   now = std::time(nullptr);
   _ad->run_async_check(check_options, latency, true, true, &time_is_valid,
                        &preferred_time);
-  checks::checker::instance().wait_completion();
+  checks::checker::instance().wait_completion(
+      checks::checker::e_completion_filter::service);
   checks::checker::instance().reap();
   ASSERT_EQ(_ad->get_state_type(), checkable::hard);
   ASSERT_EQ(_ad->get_current_state(), engine::service::state_critical);
@@ -727,7 +732,8 @@ TEST_P(AnomalydetectionCheckStatusChange, StatusChangesWithType) {
   now = std::time(nullptr);
   _ad->run_async_check(check_options, latency, true, true, &time_is_valid,
                        &preferred_time);
-  checks::checker::instance().wait_completion();
+  checks::checker::instance().wait_completion(
+      checks::checker::e_completion_filter::service);
   checks::checker::instance().reap();
   ASSERT_EQ(_ad->get_state_type(), checkable::hard);
   ASSERT_EQ(_ad->get_current_state(), engine::service::state_ok);
@@ -866,7 +872,8 @@ TEST_P(AnomalydetectionCheckMetricWithQuotes, MetricWithQuotes) {
   time_t preferred_time;
   _ad->run_async_check(check_options, latency, true, true, &time_is_valid,
                        &preferred_time);
-  checks::checker::instance().wait_completion();
+  checks::checker::instance().wait_completion(
+      checks::checker::e_completion_filter::service);
   checks::checker::instance().reap();
   ASSERT_EQ(_ad->get_state_type(), checkable::soft);
   ASSERT_EQ(_ad->get_current_state(), engine::service::state_critical);
@@ -977,7 +984,8 @@ TEST_F(AnomalydetectionCheck, BadThresholdsFile) {
 
   _ad->run_async_check(check_options, latency, true, true, &time_is_valid,
                        &preferred_time);
-  checks::checker::instance().wait_completion();
+  checks::checker::instance().wait_completion(
+      checks::checker::e_completion_filter::service);
   checks::checker::instance().reap();
   ASSERT_EQ(_ad->get_state_type(), checkable::soft);
   ASSERT_EQ(_ad->get_current_state(), engine::service::state_unknown);
@@ -1040,7 +1048,8 @@ TEST_P(AnomalydetectionCheckFileTooOld, FileTooOld) {
 
   _ad->run_async_check(check_options, latency, true, true, &time_is_valid,
                        &preferred_time);
-  checks::checker::instance().wait_completion();
+  checks::checker::instance().wait_completion(
+      checks::checker::e_completion_filter::service);
   checks::checker::instance().reap();
   ASSERT_EQ(_ad->get_state_type(), checkable::soft);
   ASSERT_EQ(_ad->get_current_state(), engine::service::state_unknown);
