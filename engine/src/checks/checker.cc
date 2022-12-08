@@ -409,13 +409,35 @@ void checker::finished(commands::result const& res) noexcept {
   }
 }
 
-void checker::wait_completion() {
+void checker::wait_completion(e_completion_filter filter) {
   if (!_used_by_test) {
     throw std::invalid_argument("checker not in test usage");
   }
   std::unique_lock<std::mutex> lock(_mut_reap);
   _finished = false;
-  _finish_cond.wait(lock, [this]() { return _finished; });
+  if (filter == e_completion_filter::all) {
+    _finish_cond.wait(lock, [this]() { return _finished; });
+  } else {
+    check_source filt =
+        filter == e_completion_filter::service ? service_check : host_check;
+    _finish_cond.wait(lock, [this, filt]() {
+      if (!_finished) {
+        return false;
+      } else {
+        auto found =
+            std::find_if(_to_reap_partial.begin(), _to_reap_partial.end(),
+                         [filt](const check_result::pointer& res) {
+                           return res->get_object_check_type() == filt;
+                         });
+        if (found != _to_reap_partial.end()) {
+          return true;
+        } else {
+          _finished = false;
+          return false;
+        }
+      }
+    });
+  }
 }
 
 /**

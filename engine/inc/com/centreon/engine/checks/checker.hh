@@ -53,7 +53,9 @@ class checker : public commands::command_listener {
   void add_check_result_to_reap(const check_result::pointer result) noexcept;
   static void forget(notifier* n) noexcept;
 
-  void wait_completion();
+  enum class e_completion_filter { all, service, host };
+
+  void wait_completion(e_completion_filter filter = e_completion_filter::all);
 
  private:
   checker(bool used_by_test);
