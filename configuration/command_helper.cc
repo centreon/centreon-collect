@@ -24,9 +24,17 @@ command_helper::command_helper(Command* obj)
   init_command(static_cast<Command*>(mut_obj()));
 }
 
-bool command_helper::hook(const absl::string_view& key,
+bool command_helper::hook(const absl::string_view& k,
                           const absl::string_view& value) {
-  Message* obj = mut_obj();
+  Command* obj = static_cast<Command*>(mut_obj());
+  absl::string_view key;
+  {
+    auto it = correspondence().find(k);
+    if (it != correspondence().end())
+      key = it->second;
+    else
+      key = k;
+  }
   return false;
 }
 }  // namespace com::centreon::engine::configuration

@@ -40,15 +40,23 @@ class_files_cc = [
 ]
 
 
-def complete_filehelper_cc(fhcc, name, number: int, correspondence, hook):
+def complete_filehelper_cc(fhcc, cname, name, number: int, correspondence, hook):
     name_cap = name.capitalize()
     cname = name + "_helper"
     fhcc.write(f"""{cname}::{cname}({name_cap}* obj) : message_helper(object_type::{name}, obj, {correspondence}, {number}) {{
   init_{name}(static_cast<{name_cap}*>(mut_obj()));
 }}
 
-bool {cname}::hook(const absl::string_view& key, const absl::string_view& value) {{
-    Message* obj = mut_obj();
+bool {cname}::hook(const absl::string_view& k, const absl::string_view& value) {{
+  {cap_name}* obj = static_cast<{cap_name}*>(mut_obj());
+  absl::string_view key;
+  {{
+    auto it = correspondence().find(k);
+    if (it != correspondence().end())
+      key = it->second;
+    else
+      key = k;
+  }}
 """)
     for h in hook:
         fhcc.write(h)
@@ -126,6 +134,8 @@ class {cname}_helper : public message_helper {{
  public:
   {cname}_helper({objname}* obj);
   ~{cname}_helper() noexcept = default;
+  
+  bool hook(const absl::string_view& k, const absl::string_view& value) override;
 }};
 }}  // namespace configuration
 }}  // namespace engine
@@ -274,9 +284,33 @@ def get_correspondence(cpp):
     return retval
 
 
-def build_hook_content(msg):
+def build_hook_content(cname: str, msg):
     retval = []
     els = ""
+    if cname == 'Tag':
+        retval.append("""
+  if (key == "id" || key == "tag_id") {
+    uint64_t id;
+    if (absl::SimpleAtoi(value, &id)) 
+      obj->mutable_key()->set_id(id);
+    else
+      return false;
+    return true;
+  } else if (key == "type" || key == "tag_type") {
+    if (value == "hostcategory")
+      obj->mutable_key()->set_type(tag_hostcategory);
+    else if (value == "servicecategory")
+      obj->mutable_key()->set_type(tag_servicecategory);
+    else if (value == "hostgroup")
+      obj->mutable_key()->set_type(tag_hostgroup);
+    else if (value == "servicegroup")
+      obj->mutable_key()->set_type(tag_servicegroup);
+    else
+      return false;
+    return true;
+  }
+""")
+
     for m in msg:
         if m['proto_type'] == 'StringList' or m['proto_type'] == 'StringSet':
             retval.append(f"""  {els}if (key == "{m['proto_name']}") {{
@@ -284,16 +318,88 @@ def build_hook_content(msg):
     return true;
   }}
 """)
-        elif m['proto_type'] in ['uint32', 'int32', 'bool', 'uint64', 'int64']:
-            pass
         elif m['proto_type'] == 'PairStringSet':
             retval.append(f"""  {els}if (key == "{m['proto_name']}") {{
     fill_pair_string_group(obj->mutable_{m['proto_name']}(), value);
     return true;
   }}
 """)
+        elif m['proto_type'] == 'DaysArray':
+            retval.insert(0, """  auto get_timerange = [](const absl::string_view& value, auto* day) -> bool {
+    auto arr = absl::StrSplit(value, ',');
+    for (auto& d : arr) {
+      std::pair<absl::string_view, absl::string_view> v =
+          absl::StrSplit(d, '-');
+      TimeRange tr;
+      std::pair<absl::string_view, absl::string_view> p =
+          absl::StrSplit(v.first, ':');
+      uint32_t h, m;
+      if (!absl::SimpleAtoi(p.first, &h) || !absl::SimpleAtoi(p.second, &m))
+        return false;
+      tr.set_range_start(h * 3600 + m * 60);
+      p = absl::StrSplit(v.second, ':');
+      if (!absl::SimpleAtoi(p.first, &h) || !absl::SimpleAtoi(p.second, &m))
+        return false;
+      tr.set_range_end(h * 3600 + m * 60);
+      day->Add(std::move(tr));
+    }
+    return true;
+  };
+
+""")
+            retval.append(f"""  {els}if (key == "sunday")
+    return get_timerange(value, obj->mutable_timeranges()->mutable_sunday());
+  else if (key == "monday")
+    return get_timerange(value, obj->mutable_timeranges()->mutable_monday());
+  else if (key == "tuesday")
+    return get_timerange(value, obj->mutable_timeranges()->mutable_tuesday());
+  else if (key == "wednesday")
+    return get_timerange(value, obj->mutable_timeranges()->mutable_wednesday());
+  else if (key == "thursday")
+    return get_timerange(value, obj->mutable_timeranges()->mutable_thursday());
+  else if (key == "friday")
+    return get_timerange(value, obj->mutable_timeranges()->mutable_friday());
+  else if (key == "saturday")
+    return get_timerange(value, obj->mutable_timeranges()->mutable_saturday());
+""")
+        elif m['proto_name'] == 'notification_options':
+            retval.append(f"""  {els}if (key == "{m['proto_name']}") {{
+    uint16_t options(action_svc_none);
+    auto values = absl::StrSplit(value, ',');
+    for (auto it = values.begin(); it != values.end(); ++it) {{
+     absl::string_view v = absl::StripAsciiWhitespace(*it);
+      if (v == "u" || v == "unknown")
+        options |= action_svc_unknown;
+      else if (v == "w" || v == "warning")
+        options |= action_svc_warning;
+      else if (v == "c" || v == "critical")
+        options |= action_svc_critical;
+      else if (v == "r" || v == "recovery")
+        options |= action_svc_ok;
+      else if (v == "f" || v == "flapping")
+        options |= action_svc_flapping;
+      else if (v == "s" || v == "downtime")
+        options |= action_svc_downtime;
+      else if (v == "n" || v == "none")
+        options = action_svc_none;
+      else if (v == "a" || v == "all")
+        options = action_svc_unknown | action_svc_warning |
+                  action_svc_critical | action_svc_ok |
+                  action_svc_flapping | action_svc_downtime;
+      else
+        return false;
+    }}
+    obj->set_notification_options(options);
+    return true;
+  }}
+""")
+        elif m['proto_name'] == 'tag_id':
+            print("coucou")
+        elif m['proto_type'] in ['uint32', 'int32', 'bool', 'uint64', 'int64']:
+            pass
         else:
-            print(f"Type '{m['proto_type']}' not managed")
+            print(
+                f"Field '{m['proto_name']} of type '{m['proto_type']}' not managed")
         if els == "" and len(retval) > 0:
             els = "else "
     return retval
@@ -475,6 +581,14 @@ enum ActionHostDependencyOn {
     action_hd_pending = 8;        // (1 << 3)
 }
  
+enum TagType {
+    tag_servicegroup = 0;
+    tag_hostgroup = 1;
+    tag_servicecategory = 2;
+    tag_hostcategory = 3;
+    tag_none = 255;         // in legacy configuration, this was -1
+}
+
 message StringList {
     repeated string data = 1;
     bool additive = 2;
@@ -578,7 +692,7 @@ for i in range(len(class_files_hh)):
     get_default_values(cpp, msg_list)
 
     # Construction of the hook for this message i.e. all the particular cases.
-    hook = build_hook_content(msg_list)
+    hook = build_hook_content(cap_name, msg_list)
 
     # From the cpp sources, we get the correspondence.
     correspondence = get_correspondence(cpp)
@@ -606,7 +720,7 @@ message {cap_name} {{
         number += 1
     proto.append("}\n")
 
-    complete_filehelper_cc(fhcc, name, number, correspondence, hook)
+    complete_filehelper_cc(fhcc, cap_name, name, number, correspondence, hook)
 
     # Generation of proto file
     f = open("state-generated.proto", "w")
