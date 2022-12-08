@@ -29,8 +29,8 @@ runs:
       uses: docker/login-action@v2
       with:
         registry: docker.centreon.com
-        username: ${{ inputs.artifactory_username }}
-        password: ${{ inputs.artifactory_password }}
+        username: ${{ inputs.username }}
+        password: ${{ inputs.password }}
 
     - run: docker run -i -e TOKEN=${{ inputs.centreon_pat }} --entrypoint /src/.github/scripts/${{ inputs.script_name }}.sh -v "$PWD:/src" docker.centreon.com/${{ inputs.image_name }}:${{ inputs.image_version}} ${{ inputs.params }}
       shell: bash
