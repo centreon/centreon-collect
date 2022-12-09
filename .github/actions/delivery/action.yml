@@ -98,25 +98,27 @@ runs:
           echo "[DEBUG] - File: $FILE"
           VERSION=${{ inputs.version }}
           MAJOR="$VERSION"
-          DISTRIB="${{ inputs.distrib }}";
           REPOTYPE="$SUBREPO"
-          ARCH=$(echo $FILE | grep -oP '(x86_64|noarch)')
           PROJECT=${{ inputs.module_name }}
-          FOLDER=$(basename $FILE .rpm)
           PROJECT_PATH="standard"
 
-          echo "[DEBUG] - Arch: $ARCH"
           echo "[DEBUG] - Suprepo: $SUBREPO"
           echo "[DEBUG] - FILES: $FILES"
-          echo "[DEBUG] - DISTRIB: $DISTRIB"
           echo "[DEBUG] - Version: $VERSION"
 
           if [[ "${{ env.extfile }}" == "deb" ]] ; then
-            echo "[DEBUG] - https://artifactory.apps.centreon.com/artifactory/debian-$VERSION-$REPO/pool/$FILE;deb.distribution=bullseye;deb.component=main;deb.architecture=amd64"
-            curl -v -u "${{ inputs.repos_username }}":"${{ inputs.repos_password }}" -X PUT "https://artifactory.apps.centreon.com/artifactory/debian-$VERSION-$REPO/pool/$FILE;deb.distribution=bullseye;deb.component=main;deb.architecture=amd64" -T "./$FILE"
+            curl -u "${{ inputs.repo_username }}":"${{ inputs.repo_password }}" -H "Content-Type: multipart/form-data" --data-binary "@./$FILE" https://apt.centreon.com/repository/23.04-$SUBREPO/
           else
             #echo "[DEBUG] - https://artifactory.apps.centreon.com/artifactory/rpm-$VERSION-$REPO/$DISTRIB/$REPO/x86_64/centreon-collect"
             #curl -v -u "${{ inputs.repos_username }}":"${{ inputs.repos_password }}" -X PUT "https://artifactory.apps.centreon.com/artifactory/rpm-$VERSION-$REPO/$DISTRIB/$REPO/x86_64/centreon-collect/$FILE" -T "./$FILE"
+
+            DISTRIB="${{ inputs.distrib }}"
+            ARCH=$(echo $FILE | grep -oP '(x86_64|noarch)')
+            FOLDER=$(basename $FILE .rpm)
+
+            echo "[DEBUG] - DISTRIB: $DISTRIB"
+            echo "[DEBUG] - Arch: $ARCH"
+            echo "[DEBUG] - FOLDER: $FOLDER"
 
             eval `ssh-agent`
             ssh-add - <<< "${{ inputs.yum_repo_key }}"
