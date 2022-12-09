@@ -5,7 +5,7 @@ on:
   pull_request:
   push:
     branches:
-      - develop
+      - dev-21.10.x
 
 env:
   REGISTRY: registry-docker.centreon.com/docker-global
