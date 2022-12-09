@@ -1,17 +1,11 @@
 name: Centreon collect
 
 on:
-  pull_request_target:
-    types:
-      - closed
-    branches:
-      - develop
-    paths-ignore:
-      - 'gorgone/**'
   workflow_dispatch:
   pull_request:
-    paths-ignore:
-      - 'gorgone/**'
+  push:
+    branches:
+      - dev-22.10.x
 
 env:
   REGISTRY: registry-docker.centreon.com/docker-global
