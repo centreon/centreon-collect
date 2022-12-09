@@ -91,7 +91,7 @@ void engine::publish(const std::shared_ptr<io::data>& e) {
     }
   }
   if (have_to_send) {
-    _send_to_subscribers([]() {});
+    _send_to_subscribers(nullptr);
   }
 }
 
@@ -124,7 +124,7 @@ void engine::publish(const std::list<std::shared_ptr<io::data>>& to_publish) {
     }
   }
   if (have_to_send) {
-    _send_to_subscribers([]() {});
+    _send_to_subscribers(nullptr);
   }
 }
 /**
@@ -172,7 +172,7 @@ void engine::start() {
     }
   }
   if (have_to_send) {
-    _send_to_subscribers([]() {});
+    _send_to_subscribers(nullptr);
   }
   log_v2::core()->info("multiplexing: engine started");
 }
@@ -298,8 +298,10 @@ bool engine::_send_to_subscribers(send_to_mux_callback_type&& callback) {
     ~callback_caller() {
       bool expected = true;
       _parent->_sending_to_subscribers.compare_exchange_strong(expected, false);
-      _parent->_send_to_subscribers([]() {});
-      _callback();
+      _parent->_send_to_subscribers(nullptr);
+      if (_callback) {
+        _callback();
+      }
     }
   };
 
