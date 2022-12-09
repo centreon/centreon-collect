@@ -36,13 +36,8 @@ using namespace com::centreon::broker::tcp;
  * @param port The port used for the connection.
  * @param read_timeout The read timeout in seconds or -1 if no duration.
  */
-connector::connector(const std::string& host,
-                     uint16_t port,
-                     int32_t read_timeout)
-    : io::limit_endpoint(false),
-      _host(host),
-      _port(port),
-      _read_timeout(read_timeout) {}
+connector::connector(const tcp_config::pointer& conf)
+    : io::limit_endpoint(false), _conf(conf) {}
 
 /**
  *  Destructor.
@@ -56,13 +51,14 @@ connector::~connector() {}
  */
 std::unique_ptr<io::stream> connector::open() {
   // Launch connection process.
-  log_v2::tcp()->info("TCP: connecting to {}:{}", _host, _port);
+  log_v2::tcp()->info("TCP: connecting to {}:{}", _conf->get_host(),
+                      _conf->get_port());
   try {
     return limit_endpoint::open();
   } catch (const std::exception& e) {
     log_v2::tcp()->debug(
-        "Unable to establish the connection to {}:{} (attempt {}): {}", _host,
-        _port, _is_ready_count, e.what());
+        "Unable to establish the connection to {}:{} (attempt {}): {}",
+        _conf->get_host(), _conf->get_port(), _is_ready_count, e.what());
     return nullptr;
   }
 }
@@ -73,5 +69,5 @@ std::unique_ptr<io::stream> connector::open() {
  * @return std::shared_ptr<stream>
  */
 std::unique_ptr<io::stream> connector::create_stream() {
-  return std::make_unique<stream>(_host, _port, _read_timeout);
+  return std::make_unique<stream>(_conf);
 }
