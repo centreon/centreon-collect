@@ -382,3 +382,14 @@ int mysql::choose_connection_by_instance(int instance_id) const {
 const database_config& mysql::get_config() const {
   return _db_cfg;
 }
+
+uint32_t mysql::get_server_version() {
+  if (_connection.empty())
+    return -1;
+  else {
+    std::promise<uint32_t> p;
+    auto future = p.get_future();
+    _connection[0]->get_server_version(std::move(p));
+    return future.get();
+  }
+}

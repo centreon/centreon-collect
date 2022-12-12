@@ -44,7 +44,7 @@ mysql_bind::mysql_bind() {
 mysql_bind::mysql_bind(int size, int length)
     : _bind(size), _column(size), _typed(size) {
   if (length) {
-    for (int i(0); i < size; ++i) {
+    for (int i = 0; i < size; ++i) {
       _bind[i].buffer_type = MYSQL_TYPE_STRING;
       _column[i] = mysql_column(MYSQL_TYPE_STRING, 1, length);
       _bind[i].buffer = *static_cast<char**>(_column[i].get_buffer());
@@ -88,7 +88,7 @@ void mysql_bind::set_value_as_str(int range, const fmt::string_view& value) {
   assert(static_cast<uint32_t>(range) < _bind.size());
   if (!_prepared(range))
     _prepare_type(range, MYSQL_TYPE_STRING);
-  _column[range].set_value(value);
+  _column[range].set_value(_current_row, value);
   _bind[range].buffer = *static_cast<char**>(_column[range].get_buffer());
   _bind[range].is_null = _column[range].is_null_buffer();
   _bind[range].length = _column[range].length_buffer();
@@ -96,12 +96,9 @@ void mysql_bind::set_value_as_str(int range, const fmt::string_view& value) {
 
 void mysql_bind::set_value_as_tiny(int range, char value) {
   assert(static_cast<uint32_t>(range) < _bind.size());
-  // if (range >= _bind.size())
-  //  set_size(range + 1);
   if (!_prepared(range))
     _prepare_type(range, MYSQL_TYPE_TINY);
-  //_bind[range].buffer_type = MYSQL_TYPE_TINY;
-  _column[range].set_value(value);
+  _column[range].set_value(_current_row, value);
   _bind[range].buffer = _column[range].get_buffer();
   _bind[range].is_null = _column[range].is_null_buffer();
   _bind[range].length = _column[range].length_buffer();
@@ -124,7 +121,7 @@ void mysql_bind::set_value_as_i32(int range, int value) {
     _prepare_type(range, MYSQL_TYPE_LONG);
   //_bind[range].buffer_type = MYSQL_TYPE_LONG;
   _bind[range].is_unsigned = false;
-  _column[range].set_value(value);
+  _column[range].set_value(_current_row, value);
   _bind[range].buffer = _column[range].get_buffer();
   _bind[range].is_null = _column[range].is_null_buffer();
   _bind[range].length = _column[range].length_buffer();
@@ -148,7 +145,7 @@ void mysql_bind::set_value_as_u32(int range, uint32_t value) {
     _prepare_type(range, MYSQL_TYPE_LONG);
   //_bind[range].buffer_type = MYSQL_TYPE_LONG;
   _bind[range].is_unsigned = true;
-  _column[range].set_value(value);
+  _column[range].set_value(_current_row, value);
   _bind[range].buffer = _column[range].get_buffer();
   _bind[range].is_null = _column[range].is_null_buffer();
   _bind[range].length = _column[range].length_buffer();
@@ -179,7 +176,7 @@ void mysql_bind::set_value_as_u64(int range, uint64_t value) {
     _prepare_type(range, MYSQL_TYPE_LONGLONG);
   //_bind[range].buffer_type = MYSQL_TYPE_LONGLONG;
   _bind[range].is_unsigned = true;
-  _column[range].set_value(value);
+  _column[range].set_value(_current_row, value);
   _bind[range].buffer = _column[range].get_buffer();
   _bind[range].is_null = _column[range].is_null_buffer();
   _bind[range].length = _column[range].length_buffer();
@@ -213,7 +210,7 @@ void mysql_bind::set_value_as_i64(int range, int64_t value) {
   if (!_prepared(range))
     _prepare_type(range, MYSQL_TYPE_LONGLONG);
   _bind[range].is_unsigned = false;
-  _column[range].set_value(value);
+  _column[range].set_value(_current_row, value);
   _bind[range].buffer = _column[range].get_buffer();
   _bind[range].is_null = _column[range].is_null_buffer();
   _bind[range].length = _column[range].length_buffer();
@@ -252,7 +249,7 @@ void mysql_bind::set_value_as_f32(int range, float value) {
   assert(static_cast<uint32_t>(range) < _bind.size());
   if (!_prepared(range))
     _prepare_type(range, MYSQL_TYPE_FLOAT);
-  _column[range].set_value<float>(value);
+  _column[range].set_value<float>(_current_row, value);
   _bind[range].buffer = _column[range].get_buffer();
   _bind[range].is_null = _column[range].is_null_buffer();
   _bind[range].length = _column[range].length_buffer();
@@ -284,7 +281,7 @@ void mysql_bind::set_value_as_f64(int range, double value) {
   assert(static_cast<uint32_t>(range) < _bind.size());
   if (!_prepared(range))
     _prepare_type(range, MYSQL_TYPE_DOUBLE);
-  _column[range].set_value<double>(value);
+  _column[range].set_value<double>(_current_row, value);
   _bind[range].buffer = _column[range].get_buffer();
   _bind[range].is_null = _column[range].is_null_buffer();
   _bind[range].length = _column[range].length_buffer();
@@ -418,4 +415,8 @@ int mysql_bind::get_rows_count() const {
 
 void mysql_bind::set_empty(bool empty) {
   _is_empty = empty;
+}
+
+void mysql_bind::set_current_row(int32_t row) {
+  _current_row = row;
 }
