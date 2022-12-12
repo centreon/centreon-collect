@@ -30,6 +30,20 @@ class mysql;
 
 namespace database {
 class mysql_bind {
+  bool _prepared(int range) const;
+  void _prepare_type(int range, enum enum_field_types type);
+
+  std::vector<MYSQL_BIND> _bind;
+
+  int32_t _current_row = 0;
+  // The buffers contained by _bind
+  std::vector<database::mysql_column> _column;
+
+  // A vector telling if bindings are already typed or not.
+  std::vector<bool> _typed;
+
+  bool _is_empty;
+
  public:
   mysql_bind();
   mysql_bind(int size, int length = 0);
@@ -61,22 +75,9 @@ class mysql_bind {
 
   MYSQL_BIND const* get_bind() const;
   MYSQL_BIND* get_bind();
+  void set_current_row(int row);
 
   void debug();
-
- private:
-  bool _prepared(int range) const;
-  void _prepare_type(int range, enum enum_field_types type);
-
-  std::vector<MYSQL_BIND> _bind;
-
-  // The buffers contained by _bind
-  std::vector<database::mysql_column> _column;
-
-  // A vector telling if bindings are already typed or not.
-  std::vector<bool> _typed;
-
-  bool _is_empty;
 };
 }  // namespace database
 

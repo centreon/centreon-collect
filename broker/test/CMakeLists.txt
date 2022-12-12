@@ -1,20 +1,20 @@
-# #
-# # Copyright 2016-2021 Centreon
-# #
-# # Licensed under the Apache License, Version 2.0 (the "License");
-# # you may not use this file except in compliance with the License.
-# # You may obtain a copy of the License at
-# #
-# #     http://www.apache.org/licenses/LICENSE-2.0
-# #
-# # Unless required by applicable law or agreed to in writing, software
-# # distributed under the License is distributed on an "AS IS" BASIS,
-# # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# # See the License for the specific language governing permissions and
-# # limitations under the License.
-# #
-# # For more information : contact@centreon.com
-# #
+#
+# Copyright 2016-2023 Centreon
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# For more information : contact@centreon.com
+#
 
 include_directories(${CONAN_INCLUDE_DIRS_GTEST})
 
@@ -57,7 +57,7 @@ add_library(bad_version_module SHARED ${TEST_DIR}/modules/bad_version_module.cc)
 
 # Unit test executable.
 if(WITH_SQL_TESTS)
-  set(TEST_SOURCES ${TESTS_SOURCES} ${TESTS_DIR}/mysql/mysql.cc)
+  set(TESTS_SOURCES ${TESTS_SOURCES} ${TEST_DIR}/mysql/mysql.cc)
 endif(WITH_SQL_TESTS)
 
 add_definitions(-DBROKERRPC_TESTS_PATH="${TESTS_DIR}/rpc")

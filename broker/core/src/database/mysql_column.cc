@@ -111,7 +111,7 @@ mysql_column& mysql_column::operator=(mysql_column const& other) {
       set_length(_str_size - 1);
       char** vector(static_cast<char**>(_vector));
       char** ovector(static_cast<char**>(other._vector));
-      for (int i(0); i < _row_count; ++i)
+      for (int i = 0; i < _row_count; ++i)
         strncpy(vector[i], ovector[i], _str_size);
       _vector = vector;
     } else {
@@ -138,23 +138,23 @@ void mysql_column::set_length(int len) {
     _vector = calloc(_row_count, sizeof(char*));
 
   char** vector = static_cast<char**>(_vector);
-  for (int i(0); i < _row_count; ++i)
+  for (int i = 0; i < _row_count; ++i)
     vector[i] = static_cast<char*>(realloc(vector[i], _str_size));
 }
 
-void mysql_column::set_value(const fmt::string_view& str) {
+void mysql_column::set_value(int32_t row, const fmt::string_view& str) {
   assert(_type == MYSQL_TYPE_STRING);
   size_t size = str.size();
   if (size >= _str_size)
     set_length(size);
-  _length[0] = size;
+  _length[row] = size;
   char** vector = static_cast<char**>(_vector);
-  strncpy(vector[0], str.data(), size);
-  vector[0][size] = 0;
+  strncpy(vector[row], str.data(), size);
+  vector[row][size] = 0;
 }
 
 bool mysql_column::is_null() const {
-  return _is_null[0];
+  return _is_null[_current_row];
 }
 
 my_bool* mysql_column::is_null_buffer() {

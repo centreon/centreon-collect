@@ -623,11 +623,11 @@ include(cmake/package.cmake)
 # Unit tests.
 #
 # Enable testing.
+option(WITH_SQL_TESTS "Sql unit tests are enabled." OFF)
+
 if(WITH_TESTING)
   add_subdirectory(test)
 endif()
-
-option(WITH_SQL_TESTS "Sql unit tests are enabled." OFF)
 
 #
 # Print summary.

@@ -464,8 +464,10 @@ void mysql_stmt::operator<<(io::data const& d) {
 }
 
 void mysql_stmt::bind_value_as_i32(int range, int value) {
-  if (!_bind)
+  if (!_bind) {
     _bind = std::make_unique<database::mysql_bind>(_param_count);
+    _bind->set_current_row(_current_row);
+  }
   _bind->set_value_as_i32(range, value);
 }
 
@@ -493,8 +495,10 @@ void mysql_stmt::bind_value_as_i32(std::string const& name, int value) {
 }
 
 void mysql_stmt::bind_value_as_u32(int range, uint32_t value) {
-  if (!_bind)
+  if (!_bind) {
     _bind = std::make_unique<database::mysql_bind>(_param_count);
+    _bind->set_current_row(_current_row);
+  }
   _bind->set_value_as_u32(range, value);
 }
 
@@ -528,8 +532,10 @@ void mysql_stmt::bind_value_as_u32(std::string const& name, uint32_t value) {
  * @param value The value to bind. It can be Inf or NaN.
  */
 void mysql_stmt::bind_value_as_i64(int range, int64_t value) {
-  if (!_bind)
+  if (!_bind) {
     _bind = std::make_unique<database::mysql_bind>(_param_count);
+    _bind->set_current_row(_current_row);
+  }
   _bind->set_value_as_i64(range, value);
 }
 
@@ -569,8 +575,10 @@ void mysql_stmt::bind_value_as_i64(std::string const& name, int64_t value) {
  * @param value The value to bind. It can be Inf or NaN.
  */
 void mysql_stmt::bind_value_as_u64(int range, uint64_t value) {
-  if (!_bind)
+  if (!_bind) {
     _bind = std::make_unique<database::mysql_bind>(_param_count);
+    _bind->set_current_row(_current_row);
+  }
   _bind->set_value_as_u64(range, value);
 }
 
@@ -610,8 +618,10 @@ void mysql_stmt::bind_value_as_u64(std::string const& name, uint64_t value) {
  * @param value The value to bind. It can be Inf or NaN.
  */
 void mysql_stmt::bind_value_as_f32(int range, float value) {
-  if (!_bind)
+  if (!_bind) {
     _bind = std::make_unique<database::mysql_bind>(_param_count);
+    _bind->set_current_row(_current_row);
+  }
   _bind->set_value_as_f32(range, value);
 }
 
@@ -645,8 +655,10 @@ void mysql_stmt::bind_value_as_f32(std::string const& name, float value) {
  * @param value The value to bind. It can be Inf or NaN.
  */
 void mysql_stmt::bind_value_as_f64(int range, double value) {
-  if (!_bind)
+  if (!_bind) {
     _bind = std::make_unique<database::mysql_bind>(_param_count);
+    _bind->set_current_row(_current_row);
+  }
   _bind->set_value_as_f64(range, value);
 }
 
@@ -674,8 +686,10 @@ void mysql_stmt::bind_value_as_f64(std::string const& name, double value) {
 }
 
 void mysql_stmt::bind_value_as_tiny(int range, char value) {
-  if (!_bind)
+  if (!_bind) {
     _bind = std::make_unique<database::mysql_bind>(_param_count);
+    _bind->set_current_row(_current_row);
+  }
   _bind->set_value_as_tiny(range, value);
 }
 
@@ -703,8 +717,10 @@ void mysql_stmt::bind_value_as_tiny(std::string const& name, char value) {
 }
 
 void mysql_stmt::bind_value_as_bool(int range, bool value) {
-  if (!_bind)
+  if (!_bind) {
     _bind = std::make_unique<database::mysql_bind>(_param_count);
+    _bind->set_current_row(_current_row);
+  }
   _bind->set_value_as_bool(range, value);
 }
 
@@ -732,8 +748,10 @@ void mysql_stmt::bind_value_as_bool(std::string const& name, bool value) {
 }
 
 void mysql_stmt::bind_value_as_str(int range, const fmt::string_view& value) {
-  if (!_bind)
+  if (!_bind) {
     _bind = std::make_unique<database::mysql_bind>(_param_count);
+    _bind->set_current_row(_current_row);
+  }
   _bind->set_value_as_str(range, value);
 }
 
@@ -761,8 +779,10 @@ void mysql_stmt::bind_value_as_str(std::string const& name,
 }
 
 void mysql_stmt::bind_value_as_null(int range) {
-  if (!_bind)
+  if (!_bind) {
     _bind = std::make_unique<database::mysql_bind>(_param_count);
+    _bind->set_current_row(_current_row);
+  }
   _bind->set_value_as_null(range);
 }
 
@@ -798,4 +818,10 @@ int mysql_stmt::get_param_count() const {
 void mysql_stmt::set_pb_mapping(
     std::vector<std::tuple<std::string, uint32_t, uint16_t>>&& mapping) {
   _pb_mapping = std::move(mapping);
+}
+
+void mysql_stmt::set_current_row(int row) {
+  _current_row = row;
+  if (_bind)
+    _bind->set_current_row(row);
 }

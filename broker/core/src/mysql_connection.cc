@@ -45,6 +45,7 @@ void (mysql_connection::*const mysql_connection::_task_processing_table[])(
     &mysql_connection::_statement_int<uint32_t>,
     &mysql_connection::_statement_int<uint64_t>,
     &mysql_connection::_fetch_row_sync,
+    &mysql_connection::_get_version,
 };
 
 /******************************************************************************/
@@ -538,6 +539,12 @@ void mysql_connection::_fetch_row_sync(mysql_task* t) {
   }
 }
 
+void mysql_connection::_get_version(mysql_task* t) {
+  mysql_task_get_version* task(static_cast<mysql_task_get_version*>(t));
+  uint32_t res = mysql_get_server_version(_conn);
+  task->promise.set_value(res);
+}
+
 /**
  * @brief If the connection has encountered an error, this method returns true.
  *
@@ -599,6 +606,9 @@ std::string mysql_connection::_get_stack() {
         break;
       case mysql_task::FETCH_ROW:
         retval += "FETCH_ROW ; ";
+        break;
+      case mysql_task::GET_VERSION:
+        retval += "GET_VERSION ; ";
         break;
     }
   }
@@ -859,4 +869,8 @@ bool mysql_connection::is_finish_asked() const {
 
 bool mysql_connection::is_finished() const {
   return _state == finished;
+}
+
+void mysql_connection::get_server_version(std::promise<uint32_t>&& promise) {
+  _push(std::make_unique<mysql_task_get_version>(std::move(promise)));
 }
