@@ -30,7 +30,6 @@ namespace database {
 class mysql_column {
   int _type;
   int _row_count;
-  uint32_t _str_size;
   int32_t _current_row = 0;
   void* _vector;
   std::vector<my_bool> _is_null;
@@ -40,11 +39,10 @@ class mysql_column {
  public:
   mysql_column(int type = MYSQL_TYPE_LONG, int row_count = 1, int length = 0);
   mysql_column(mysql_column&& other);
-  mysql_column& operator=(mysql_column const& other);
+  mysql_column& operator=(mysql_column&& other);
   ~mysql_column();
   int get_type() const;
   void* get_buffer();
-  void set_length(int len);
   void set_type(int type);
 
   template <typename T>

@@ -28,17 +28,12 @@ using namespace com::centreon::broker::database;
 mysql_column::mysql_column(int type, int row_count, int size)
     : _type(type),
       _row_count(row_count),
-      _str_size(size),
       _vector(nullptr),
       _is_null(row_count),
       _error(row_count),
       _length(row_count) {
   if (type == MYSQL_TYPE_STRING && row_count && size) {
-    char** vector(static_cast<char**>(malloc(_row_count * sizeof(char*))));
-    for (int i = 0; i < _row_count; ++i) {
-      vector[i] = static_cast<char*>(malloc(size));
-      *vector[i] = 0;
-    }
+    char** vector = static_cast<char**>(calloc(_row_count, sizeof(char*)));
     _vector = vector;
   }
 }
@@ -47,10 +42,9 @@ mysql_column::~mysql_column() {
   if (_vector) {
     if (_type == MYSQL_TYPE_STRING) {
       char** vector = static_cast<char**>(_vector);
-      if (_str_size) {
-        for (int i(0); i < _row_count; ++i) {
+      for (int i = 0; i < _row_count; ++i) {
+        if (vector[i])
           free(vector[i]);
-        }
       }
     }
     free(_vector);
@@ -60,7 +54,6 @@ mysql_column::~mysql_column() {
 mysql_column::mysql_column(mysql_column&& other)
     : _type(other._type),
       _row_count(other._row_count),
-      _str_size(other._str_size),
       _vector(other._vector),
       _is_null(other._is_null),
       _error(other._error),
@@ -68,58 +61,26 @@ mysql_column::mysql_column(mysql_column&& other)
   other._vector = nullptr;
 }
 
-mysql_column& mysql_column::operator=(mysql_column const& other) {
+mysql_column& mysql_column::operator=(mysql_column&& other) {
   if (this == &other)
     return *this;
 
   _type = other._type;
-  _str_size = other._str_size;
   _row_count = other._row_count;
-  _length = other._length;
-  _error = other._error;
-  _is_null = other._is_null;
-  if (_vector)
-    free(_vector);
-  if (other._vector) {
-    int size;
-    switch (_type) {
-      case MYSQL_TYPE_STRING:
-        size = _row_count * sizeof(char*);
-        break;
-      case MYSQL_TYPE_FLOAT:
-        size = _row_count * sizeof(float);
-        break;
-      case MYSQL_TYPE_LONG:
-        size = _row_count * sizeof(int);
-        break;
-      case MYSQL_TYPE_TINY:
-        size = _row_count * sizeof(char);
-        break;
-      case MYSQL_TYPE_DOUBLE:
-        size = _row_count * sizeof(double);
-        break;
-      case MYSQL_TYPE_LONGLONG:
-        size = _row_count * sizeof(long long);
-        break;
-      case MYSQL_TYPE_NULL:
-        size = _row_count * sizeof(char*);
-        break;
-      default:
-        assert(1 == 0);
+  _current_row = other._current_row;
+  _length = std::move(other._length);
+  _error = std::move(other._error);
+  _is_null = std::move(other._is_null);
+  if (_type == MYSQL_TYPE_STRING) {
+    char** vector = static_cast<char**>(_vector);
+    for (int i = 0; i < _row_count; ++i) {
+      if (vector[i])
+        free(vector[i]);
     }
-    if (_type == MYSQL_TYPE_STRING) {
-      set_length(_str_size - 1);
-      char** vector(static_cast<char**>(_vector));
-      char** ovector(static_cast<char**>(other._vector));
-      for (int i = 0; i < _row_count; ++i)
-        strncpy(vector[i], ovector[i], _str_size);
-      _vector = vector;
-    } else {
-      _vector = malloc(size);
-      memcpy(_vector, other._vector, size);
-    }
-  } else
-    _vector = nullptr;
+  }
+  free(_vector);
+  _vector = other._vector;
+  other._vector = nullptr;
   return *this;
 }
 
@@ -131,26 +92,22 @@ void* mysql_column::get_buffer() {
   return _vector;
 }
 
-void mysql_column::set_length(int len) {
-  assert(_type == MYSQL_TYPE_STRING);
-  _str_size = len + 1;
-  if (!_vector)
-    _vector = calloc(_row_count, sizeof(char*));
-
-  char** vector = static_cast<char**>(_vector);
-  for (int i = 0; i < _row_count; ++i)
-    vector[i] = static_cast<char*>(realloc(vector[i], _str_size));
-}
-
 void mysql_column::set_value(int32_t row, const fmt::string_view& str) {
   assert(_type == MYSQL_TYPE_STRING);
   size_t size = str.size();
-  if (size >= _str_size)
-    set_length(size);
-  _length[row] = size;
   char** vector = static_cast<char**>(_vector);
-  strncpy(vector[row], str.data(), size);
-  vector[row][size] = 0;
+  if (vector[row]) {
+    if (_length[row] >= str.size()) {
+      strncpy(vector[row], str.data(), size + 1);
+      vector[row][size] = 0;
+      _length[row] = size;
+      return;
+    }
+    else
+      free(vector[row]);
+  }
+  vector[row] = strndup(str.data(), size);
+  _length[row] = size;
 }
 
 bool mysql_column::is_null() const {
