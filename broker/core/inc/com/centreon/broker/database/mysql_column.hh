@@ -28,6 +28,15 @@ CCB_BEGIN()
 
 namespace database {
 class mysql_column {
+  int _type;
+  int _row_count;
+  uint32_t _str_size;
+  int32_t _current_row = 0;
+  void* _vector;
+  std::vector<my_bool> _is_null;
+  std::vector<my_bool> _error;
+  std::vector<unsigned long> _length;
+
  public:
   mysql_column(int type = MYSQL_TYPE_LONG, int row_count = 1, int length = 0);
   mysql_column(mysql_column&& other);
@@ -39,39 +48,30 @@ class mysql_column {
   void set_type(int type);
 
   template <typename T>
-  void set_value(T value) {
+  void set_value(int32_t row, T value) {
     T* vector(static_cast<T*>(_vector));
-    vector[0] = value;
+    vector[row] = value;
   }
 
-  void set_value(const fmt::string_view& str);
+  void set_value(int32_t row, const fmt::string_view& str);
   my_bool* is_null_buffer();
   bool is_null() const;
   my_bool* error_buffer();
   unsigned long* length_buffer();
-
- private:
-  int _type;
-  int _row_count;
-  uint32_t _str_size;
-  void* _vector;
-  std::vector<my_bool> _is_null;
-  std::vector<my_bool> _error;
-  std::vector<unsigned long> _length;
 };
 
 template <>
-inline void mysql_column::set_value<double>(double val) {
+inline void mysql_column::set_value<double>(int32_t row, double val) {
   double* vector(static_cast<double*>(_vector));
-  _is_null[0] = (std::isnan(val) || std::isinf(val));
-  vector[0] = val;
+  _is_null[row] = (std::isnan(val) || std::isinf(val));
+  vector[row] = val;
 }
 
 template <>
-inline void mysql_column::set_value<float>(float val) {
+inline void mysql_column::set_value<float>(int32_t row, float val) {
   float* vector(static_cast<float*>(_vector));
-  _is_null[0] = (std::isnan(val) || std::isinf(val));
-  vector[0] = val;
+  _is_null[row] = (std::isnan(val) || std::isinf(val));
+  vector[row] = val;
 }
 
 }  // namespace database

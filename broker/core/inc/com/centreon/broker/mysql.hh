@@ -83,6 +83,7 @@ class mysql {
   int choose_connection_by_instance(int instance_id) const;
   int choose_best_connection(int32_t type);
   const database_config& get_config() const;
+  uint32_t get_server_version();
 
  private:
   static void _initialize_mysql();

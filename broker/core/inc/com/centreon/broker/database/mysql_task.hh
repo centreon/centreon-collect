@@ -43,6 +43,7 @@ class mysql_task {
     STATEMENT_UINT,
     STATEMENT_UINT64,
     FETCH_ROW,
+    GET_VERSION,
   };
 
   enum int_type {
@@ -132,6 +133,13 @@ class mysql_task_run_res : public mysql_task {
   std::promise<mysql_result> promise;
 };
 
+class mysql_task_get_version : public mysql_task {
+ public:
+  mysql_task_get_version(std::promise<uint32_t>&& promise)
+      : mysql_task(mysql_task::GET_VERSION), promise(std::move(promise)) {}
+  std::promise<uint32_t> promise;
+};
+
 class mysql_task_run_int : public mysql_task {
  public:
   mysql_task_run_int(std::string const& q,
@@ -185,13 +193,12 @@ class mysql_task_statement_int : public mysql_task {
   mysql_task_statement_int(database::mysql_stmt& stmt,
                            std::promise<T>&& promise,
                            int_type type)
-      : mysql_task((std::is_same<T, int>::value)
-                       ? mysql_task::STATEMENT_INT
-                       : (std::is_same<T, int64_t>::value)
-                             ? mysql_task::STATEMENT_INT64
-                             : (std::is_same<T, uint32_t>::value)
-                                   ? mysql_task::STATEMENT_UINT
-                                   : mysql_task::STATEMENT_UINT64),
+      : mysql_task((std::is_same<T, int>::value) ? mysql_task::STATEMENT_INT
+                   : (std::is_same<T, int64_t>::value)
+                       ? mysql_task::STATEMENT_INT64
+                   : (std::is_same<T, uint32_t>::value)
+                       ? mysql_task::STATEMENT_UINT
+                       : mysql_task::STATEMENT_UINT64),
         promise(std::move(promise)),
         return_type(type),
         statement_id(stmt.get_id()),

@@ -33,6 +33,7 @@ class mysql_stmt {
   int _id;
   int _param_count;
   std::string _query;
+  int _current_row = 0;
 
   std::unique_ptr<database::mysql_bind> _bind;
   mysql_bind_mapping _bind_mapping;
@@ -111,6 +112,7 @@ class mysql_stmt {
   int get_param_count() const;
   void set_pb_mapping(
       std::vector<std::tuple<std::string, uint32_t, uint16_t>>&& mapping);
+  void set_current_row(int row);
 };
 }  // namespace database
 
