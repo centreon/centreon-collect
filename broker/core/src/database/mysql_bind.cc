@@ -61,12 +61,8 @@ mysql_bind::~mysql_bind() {}
 void mysql_bind::set_size(int size, int length) {
   _bind.resize(size);
   _column.resize(size);
-  for (int i(0); i < size; ++i) {
-    if (length && _column[i].get_type() == MYSQL_TYPE_STRING)
-      _column[i].set_length(length);
-
+  for (int i = 0; i < size; ++i)
     _bind[i].buffer = _column[i].get_buffer();
-  }
 }
 
 bool mysql_bind::_prepared(int range) const {
@@ -115,11 +111,8 @@ void mysql_bind::set_value_as_bool(int range, bool value) {
 
 void mysql_bind::set_value_as_i32(int range, int value) {
   assert(static_cast<uint32_t>(range) < _bind.size());
-  // if (range >= _bind.size())
-  //  set_size(range + 1);
   if (!_prepared(range))
     _prepare_type(range, MYSQL_TYPE_LONG);
-  //_bind[range].buffer_type = MYSQL_TYPE_LONG;
   _bind[range].is_unsigned = false;
   _column[range].set_value(_current_row, value);
   _bind[range].buffer = _column[range].get_buffer();
@@ -139,11 +132,8 @@ int mysql_bind::value_as_i32(int range) const {
 
 void mysql_bind::set_value_as_u32(int range, uint32_t value) {
   assert(static_cast<uint32_t>(range) < _bind.size());
-  // if (range >= _bind.size())
-  //  set_size(range + 1);
   if (!_prepared(range))
     _prepare_type(range, MYSQL_TYPE_LONG);
-  //_bind[range].buffer_type = MYSQL_TYPE_LONG;
   _bind[range].is_unsigned = true;
   _column[range].set_value(_current_row, value);
   _bind[range].buffer = _column[range].get_buffer();
@@ -170,11 +160,8 @@ uint32_t mysql_bind::value_as_u32(int range) const {
  */
 void mysql_bind::set_value_as_u64(int range, uint64_t value) {
   assert(static_cast<uint32_t>(range) < _bind.size());
-  // if (range >= _bind.size())
-  //  set_size(range + 1);
   if (!_prepared(range))
     _prepare_type(range, MYSQL_TYPE_LONGLONG);
-  //_bind[range].buffer_type = MYSQL_TYPE_LONGLONG;
   _bind[range].is_unsigned = true;
   _column[range].set_value(_current_row, value);
   _bind[range].buffer = _column[range].get_buffer();
@@ -299,13 +286,8 @@ double mysql_bind::value_as_f64(int range) const {
 
 void mysql_bind::set_value_as_null(int range) {
   assert(static_cast<uint32_t>(range) < _bind.size());
-  // if (range >= _bind.size())
-  //  set_size(range + 1);
   if (!_prepared(range))
     _prepare_type(range, MYSQL_TYPE_NULL);
-  //_bind[range].buffer_type = MYSQL_TYPE_NULL;
-  // FIXME DBR; If data are given in column-wise, this type should fail and
-  // we will have to set the is_null vector.
   _bind[range].is_null = _column[range].is_null_buffer();
   _bind[range].length = _column[range].length_buffer();
 }
@@ -419,4 +401,5 @@ void mysql_bind::set_empty(bool empty) {
 
 void mysql_bind::set_current_row(int32_t row) {
   _current_row = row;
+  _column.set_current_row(_current_row);
 }
