@@ -114,6 +114,15 @@ jobs:
           image_version: ${{ env.imgversion }}
           env_variable: -e DISTRIB="${{ matrix.distrib }}" -e VERSION="${{ env.version }}" -e RELEASE="${{ env.release }}"
 
+      - name: sign rpm ${{ matrix.image }}
+        uses: ./.github/actions/package-sign
+        with:
+          script_name: rpm-signing
+          image_name: rpm-signing
+          image_version: ubuntu
+          username: ${{ secrets.REPOS_USERNAME }}
+          password: ${{ secrets.REPOS_PASSWORD }}
+
       - name: Use cache RPM files
         uses: actions/cache@v3
         env:
