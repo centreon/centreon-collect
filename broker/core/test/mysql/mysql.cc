@@ -1312,24 +1312,23 @@ TEST_F(DatabaseStorageTest, ConnectionOk) {
 /// ASSERT_TRUE(ms->fetch_row(res));
 ////}
 //
-// TEST_F(DatabaseStorageTest, ChooseConnectionByName) {
-//  modules::loader l;
-//  database_config db_cfg("MySQL", "127.0.0.1", 3306, "centreon", "centreon",
-//                         "centreon_storage", 5, true, 5);
-//  std::unique_ptr<mysql> ms(new mysql(db_cfg));
-//  int thread_foo(ms->choose_connection_by_name("foo"));
-//  int thread_bar(ms->choose_connection_by_name("bar"));
-//  int thread_boo(ms->choose_connection_by_name("boo"));
-//  int thread_foo1(ms->choose_connection_by_name("foo"));
-//  int thread_bar1(ms->choose_connection_by_name("bar"));
-//  int thread_boo1(ms->choose_connection_by_name("boo"));
-//  ASSERT_EQ(thread_foo, 0);
-//  ASSERT_EQ(thread_bar, 1);
-//  ASSERT_EQ(thread_boo, 2);
-//  ASSERT_EQ(thread_foo, thread_foo1);
-//  ASSERT_EQ(thread_bar, thread_bar1);
-//  ASSERT_EQ(thread_boo, thread_boo1);
-//}
+TEST_F(DatabaseStorageTest, ChooseConnectionByName) {
+  database_config db_cfg("MySQL", "localhost", MYSQL_SOCKET, 3306, "centreon",
+                         "centreon", "centreon_storage", 5, true, 5);
+  auto ms = std::make_unique<mysql>(db_cfg);
+  int thread_foo(ms->choose_connection_by_name("foo"));
+  int thread_bar(ms->choose_connection_by_name("bar"));
+  int thread_boo(ms->choose_connection_by_name("boo"));
+  int thread_foo1(ms->choose_connection_by_name("foo"));
+  int thread_bar1(ms->choose_connection_by_name("bar"));
+  int thread_boo1(ms->choose_connection_by_name("boo"));
+  ASSERT_EQ(thread_foo, 0);
+  ASSERT_EQ(thread_bar, 1);
+  ASSERT_EQ(thread_boo, 2);
+  ASSERT_EQ(thread_foo, thread_foo1);
+  ASSERT_EQ(thread_bar, thread_bar1);
+  ASSERT_EQ(thread_boo, thread_boo1);
+}
 
 // Given a mysql object
 // When a prepare statement is done
@@ -1404,15 +1403,20 @@ TEST_F(DatabaseStorageTest, CheckBulkStatement) {
 
     constexpr int TOTAL = 200000;
 
-    // stmt.reserve(TOTAL);
-    for (int i = 0; i < TOTAL; i++) {
-      stmt.set_current_row(i);
-      stmt.bind_value_as_str(0, fmt::format("unit_{}", i));
-      stmt.bind_value_as_f64(1, ((double)i) / 500);
-      stmt.bind_value_as_f32(2, ((float)i) / 500 + 12.0f);
-      stmt.bind_value_as_f32(3, ((float)i) / 500 + 25.0f);
-      stmt.bind_value_as_str(4, fmt::format("metric_{}", i));
-      ms->run_statement(stmt);
+    int step = 0;
+    stmt.set_row_count(20000);
+    for (int j = 0; j < TOTAL; j++) {
+      stmt.set_current_row(step);
+      stmt.bind_value_as_str(0, fmt::format("unit_{}", step));
+      stmt.bind_value_as_f64(1, ((double)step) / 500);
+      stmt.bind_value_as_f32(2, ((float)step) / 500 + 12.0f);
+      stmt.bind_value_as_f32(3, ((float)step) / 500 + 25.0f);
+      stmt.bind_value_as_str(4, fmt::format("metric_{}", step));
+      step++;
+      if (step == 20000) {
+        step = 0;
+        ms->run_statement(stmt);
+      }
     }
     ms->commit();
     std::string query3{"SELECT count(*) from ut_test"};

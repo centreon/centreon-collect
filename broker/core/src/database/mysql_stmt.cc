@@ -112,9 +112,11 @@ mysql_stmt::mysql_stmt(std::string const& query,
  *  Move constructor
  */
 mysql_stmt::mysql_stmt(mysql_stmt&& other)
-    : _id(other._id),
-      _param_count(other._param_count),
-      _query(other._query),
+    : _id(std::move(other._id)),
+      _param_count(std::move(other._param_count)),
+      _query(std::move(other._query)),
+      _current_row(std::move(other._current_row)),
+      _reserved_size(std::move(other._reserved_size)),
       _bind(std::move(other._bind)),
       _bind_mapping(other._bind_mapping) {}
 
@@ -463,7 +465,8 @@ void mysql_stmt::operator<<(io::data const& d) {
 
 void mysql_stmt::bind_value_as_i32(int range, int value) {
   if (!_bind) {
-    _bind = std::make_unique<database::mysql_bind>(_param_count);
+    _bind =
+        std::make_unique<database::mysql_bind>(_param_count, 0, _reserved_size);
     _bind->set_current_row(_current_row);
   }
   _bind->set_value_as_i32(range, value);
@@ -494,7 +497,8 @@ void mysql_stmt::bind_value_as_i32(std::string const& name, int value) {
 
 void mysql_stmt::bind_value_as_u32(int range, uint32_t value) {
   if (!_bind) {
-    _bind = std::make_unique<database::mysql_bind>(_param_count);
+    _bind =
+        std::make_unique<database::mysql_bind>(_param_count, 0, _reserved_size);
     _bind->set_current_row(_current_row);
   }
   _bind->set_value_as_u32(range, value);
@@ -531,7 +535,8 @@ void mysql_stmt::bind_value_as_u32(std::string const& name, uint32_t value) {
  */
 void mysql_stmt::bind_value_as_i64(int range, int64_t value) {
   if (!_bind) {
-    _bind = std::make_unique<database::mysql_bind>(_param_count);
+    _bind =
+        std::make_unique<database::mysql_bind>(_param_count, 0, _reserved_size);
     _bind->set_current_row(_current_row);
   }
   _bind->set_value_as_i64(range, value);
@@ -574,7 +579,8 @@ void mysql_stmt::bind_value_as_i64(std::string const& name, int64_t value) {
  */
 void mysql_stmt::bind_value_as_u64(int range, uint64_t value) {
   if (!_bind) {
-    _bind = std::make_unique<database::mysql_bind>(_param_count);
+    _bind =
+        std::make_unique<database::mysql_bind>(_param_count, 0, _reserved_size);
     _bind->set_current_row(_current_row);
   }
   _bind->set_value_as_u64(range, value);
@@ -617,7 +623,8 @@ void mysql_stmt::bind_value_as_u64(std::string const& name, uint64_t value) {
  */
 void mysql_stmt::bind_value_as_f32(int range, float value) {
   if (!_bind) {
-    _bind = std::make_unique<database::mysql_bind>(_param_count);
+    _bind =
+        std::make_unique<database::mysql_bind>(_param_count, 0, _reserved_size);
     _bind->set_current_row(_current_row);
   }
   _bind->set_value_as_f32(range, value);
@@ -654,7 +661,8 @@ void mysql_stmt::bind_value_as_f32(std::string const& name, float value) {
  */
 void mysql_stmt::bind_value_as_f64(int range, double value) {
   if (!_bind) {
-    _bind = std::make_unique<database::mysql_bind>(_param_count);
+    _bind =
+        std::make_unique<database::mysql_bind>(_param_count, 0, _reserved_size);
     _bind->set_current_row(_current_row);
   }
   _bind->set_value_as_f64(range, value);
@@ -685,7 +693,8 @@ void mysql_stmt::bind_value_as_f64(std::string const& name, double value) {
 
 void mysql_stmt::bind_value_as_tiny(int range, char value) {
   if (!_bind) {
-    _bind = std::make_unique<database::mysql_bind>(_param_count);
+    _bind =
+        std::make_unique<database::mysql_bind>(_param_count, 0, _reserved_size);
     _bind->set_current_row(_current_row);
   }
   _bind->set_value_as_tiny(range, value);
@@ -716,7 +725,8 @@ void mysql_stmt::bind_value_as_tiny(std::string const& name, char value) {
 
 void mysql_stmt::bind_value_as_bool(int range, bool value) {
   if (!_bind) {
-    _bind = std::make_unique<database::mysql_bind>(_param_count);
+    _bind =
+        std::make_unique<database::mysql_bind>(_param_count, 0, _reserved_size);
     _bind->set_current_row(_current_row);
   }
   _bind->set_value_as_bool(range, value);
@@ -747,7 +757,8 @@ void mysql_stmt::bind_value_as_bool(std::string const& name, bool value) {
 
 void mysql_stmt::bind_value_as_str(int range, const fmt::string_view& value) {
   if (!_bind) {
-    _bind = std::make_unique<database::mysql_bind>(_param_count);
+    _bind =
+        std::make_unique<database::mysql_bind>(_param_count, 0, _reserved_size);
     _bind->set_current_row(_current_row);
   }
   _bind->set_value_as_str(range, value);
@@ -778,7 +789,8 @@ void mysql_stmt::bind_value_as_str(std::string const& name,
 
 void mysql_stmt::bind_value_as_null(int range) {
   if (!_bind) {
-    _bind = std::make_unique<database::mysql_bind>(_param_count);
+    _bind =
+        std::make_unique<database::mysql_bind>(_param_count, 0, _reserved_size);
     _bind->set_current_row(_current_row);
   }
   _bind->set_value_as_null(range);
@@ -822,4 +834,10 @@ void mysql_stmt::set_current_row(int row) {
   _current_row = row;
   if (_bind)
     _bind->set_current_row(row);
+}
+
+void mysql_stmt::set_row_count(size_t size) {
+  _reserved_size = size;
+  if (_bind)
+    _bind->set_row_count(size);
 }

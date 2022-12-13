@@ -46,7 +46,7 @@ class mysql_bind {
 
  public:
   mysql_bind();
-  mysql_bind(int size, int length = 0);
+  mysql_bind(int size, int length = 0, size_t row_count = 1);
   ~mysql_bind() noexcept = default;
   void set_size(int size);
   int value_as_i32(int range) const;
@@ -76,6 +76,7 @@ class mysql_bind {
   MYSQL_BIND const* get_bind() const;
   MYSQL_BIND* get_bind();
   void set_current_row(int row);
+  void set_row_count(size_t size);
 
   void debug();
 };

@@ -25,20 +25,14 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
 
-mysql_column::mysql_column(int type, int row_count, int size)
+mysql_column::mysql_column(int type, size_t row_count)
     : _type(type),
-      _row_count(row_count),
+      _row_count{row_count},
       _vector(nullptr),
       _vector_buffer(nullptr),
       _is_null(row_count),
       _error(row_count),
-      _length(row_count) {
-  //  if (type == MYSQL_TYPE_STRING && row_count && size) {
-  //    std::vector<char*>* vector = new std::vector<char*>(_row_count);
-  //    _vector = vector;
-  //    _vector_buffer = vector->data();
-  //  }
-}
+      _length(row_count) {}
 
 mysql_column::~mysql_column() {
   if (_vector)
@@ -130,7 +124,7 @@ void* mysql_column::get_buffer() {
  *
  * @param s the new size to set.
  */
-void mysql_column::_resize_column(int32_t s) {
+void mysql_column::resize_column(int32_t s) {
   _row_count = s;
   _is_null.resize(s);
   _error.resize(s);
@@ -177,12 +171,12 @@ void mysql_column::_resize_column(int32_t s) {
   }
 }
 
-void mysql_column::set_value(int32_t row, const fmt::string_view& str) {
+void mysql_column::set_value(size_t row, const fmt::string_view& str) {
   assert(_type == MYSQL_TYPE_STRING);
   size_t size = str.size();
   std::vector<char*>* vector = static_cast<std::vector<char*>*>(_vector);
   if (row >= _row_count)
-    _resize_column(row + 1);
+    resize_column(row + 1);
   if ((*vector)[row]) {
     if (_length[row] >= str.size()) {
       strncpy((*vector)[row], str.data(), size + 1);
@@ -254,4 +248,8 @@ void mysql_column::set_type(int type) {
     default:
       assert(1 == 0);
   }
+}
+
+uint32_t mysql_column::array_size() const {
+  return _row_count;
 }

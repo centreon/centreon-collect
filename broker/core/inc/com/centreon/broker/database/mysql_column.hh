@@ -29,7 +29,7 @@ CCB_BEGIN()
 namespace database {
 class mysql_column {
   int _type;
-  int _row_count;
+  size_t _row_count;
   int32_t _current_row = 0;
   // This is pointer to a std::vector<>, but we cannot specify its items types
   // in advance.
@@ -42,40 +42,47 @@ class mysql_column {
   std::vector<unsigned long> _length;
 
   void _free_vector();
-  void _resize_column(int32_t s);
 
  public:
-  mysql_column(int type = MYSQL_TYPE_LONG, int row_count = 1, int length = 0);
+  mysql_column(int type = MYSQL_TYPE_LONG, size_t row_count = 1);
   mysql_column(mysql_column&& other);
   mysql_column& operator=(mysql_column&& other);
   ~mysql_column();
   int get_type() const;
   void* get_buffer();
   void set_type(int type);
+  void resize_column(int32_t s);
 
   template <typename T>
-  void set_value(int32_t row, T value) {
-    T* vector(static_cast<T*>(_vector));
-    vector[row] = value;
+  void set_value(size_t row, T value) {
+    std::vector<T>* vector = static_cast<std::vector<T>*>(_vector);
+    if (vector->size() <= row)
+      resize_column(row + 1);
+    (*vector)[row] = value;
   }
 
-  void set_value(int32_t row, const fmt::string_view& str);
+  void set_value(size_t row, const fmt::string_view& str);
   my_bool* is_null_buffer();
   bool is_null() const;
   my_bool* error_buffer();
   unsigned long* length_buffer();
+  uint32_t array_size() const;
 };
 
 template <>
-inline void mysql_column::set_value<double>(int32_t row, double val) {
+inline void mysql_column::set_value<double>(size_t row, double val) {
   std::vector<double>* vector = static_cast<std::vector<double>*>(_vector);
+  if (vector->size() <= row)
+    resize_column(row + 1);
   _is_null[row] = (std::isnan(val) || std::isinf(val));
   (*vector)[row] = val;
 }
 
 template <>
-inline void mysql_column::set_value<float>(int32_t row, float val) {
+inline void mysql_column::set_value<float>(size_t row, float val) {
   std::vector<float>* vector = static_cast<std::vector<float>*>(_vector);
+  if (vector->size() <= row)
+    resize_column(row + 1);
   _is_null[row] = (std::isnan(val) || std::isinf(val));
   (*vector)[row] = val;
 }
