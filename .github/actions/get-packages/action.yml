@@ -35,7 +35,7 @@ runs:
 
     - name: Build name for DEB
       shell: bash
-      if: ${{ inputs.distrib == 'buster' || inputs.distrib == 'bullseye' }}
+      if: ${{ inputs.distrib == 'bullseye' }}
       run: |
         echo "build=debbuild-centreon-collect" >> $GITHUB_ENV
         echo "extfile=deb" >> $GITHUB_ENV
