@@ -406,3 +406,11 @@ void mysql_bind::set_row_count(size_t size) {
   for (auto& c : _column)
     c.resize_column(size);
 }
+
+void mysql_bind::next_row() {
+  ++_current_row;
+}
+
+size_t mysql_bind::row_count() const {
+  return _column[0].array_size();
+}

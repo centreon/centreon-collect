@@ -845,6 +845,25 @@ void stream::_check_queues(asio::error_code ec) {
       perfdata_done = true;
     }
 
+    bool service_status_done = false;
+    if (_bulk_prepared_statement) {
+      for (uint32_t conn = 0; conn < _sscr_resources_bind.size(); conn++) {
+        auto& b = _sscr_resources_bind[conn];
+        if (b) {
+          if (now >= _next_update_sscr_resources[conn] ||
+              _sscr_resources_bind[conn]->row_count() >= _max_pending_queries) {
+            _sscr_resources_update.set_bind(std::move(b));
+            _mysql.run_statement(_sscr_resources_update,
+                                 database::mysql_error::store_service_status,
+                                 false, conn);
+            _add_action(conn, actions::resources);
+            _next_update_sscr_resources[conn] += queue_timer_duration;
+          }
+        }
+      }
+      service_status_done = true;
+    }
+
     bool metrics_done = false;
     if (now >= _next_update_metrics || sz_metrics >= _max_metrics_queries) {
       _next_update_metrics = now + queue_timer_duration;

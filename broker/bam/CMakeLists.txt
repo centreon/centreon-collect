@@ -135,7 +135,6 @@ set_target_properties("${BAM}" PROPERTIES
 if (WITH_TESTING )
     if (WITH_SQL_TESTS)
         set(TESTS_SOURCES ${TESTS_SOURCES} ${TEST_DIR}/monitoring_stream.cc)
-        set(TESTS_SOURCES ${TESTS_SOURCES} ${TEST_DIR}/reporting_stream.cc)
     endif (WITH_SQL_TESTS)
 
     # Testing.

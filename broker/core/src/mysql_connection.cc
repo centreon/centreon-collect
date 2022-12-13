@@ -531,7 +531,7 @@ void mysql_connection::_fetch_row_sync(mysql_task* t) {
 
 void mysql_connection::_get_version(mysql_task* t) {
   mysql_task_get_version* task(static_cast<mysql_task_get_version*>(t));
-  uint32_t res = mysql_get_server_version(_conn);
+  const char* res = mysql_get_server_info(_conn);
   task->promise.set_value(res);
 }
 
@@ -857,6 +857,6 @@ bool mysql_connection::is_finished() const {
   return _state == finished;
 }
 
-void mysql_connection::get_server_version(std::promise<uint32_t>&& promise) {
+void mysql_connection::get_server_version(std::promise<const char*>&& promise) {
   _push(std::make_unique<mysql_task_get_version>(std::move(promise)));
 }

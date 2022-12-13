@@ -383,11 +383,11 @@ const database_config& mysql::get_config() const {
   return _db_cfg;
 }
 
-uint32_t mysql::get_server_version() {
+const char* mysql::get_server_version() {
   if (_connection.empty())
-    return -1;
+    return "";
   else {
-    std::promise<uint32_t> p;
+    std::promise<const char*> p;
     auto future = p.get_future();
     _connection[0]->get_server_version(std::move(p));
     return future.get();

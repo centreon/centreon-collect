@@ -108,6 +108,15 @@ mysql_stmt::mysql_stmt(std::string const& query,
     _param_count = bind_mapping.size();
 }
 
+std::unique_ptr<mysql_bind> mysql_stmt::create_bind() {
+  auto retval = std::make_unique<mysql_bind>(_param_count, 0, _reserved_size);
+  return retval;
+}
+
+void mysql_stmt::set_bind(std::unique_ptr<mysql_bind>&& bind) {
+  _bind = std::move(bind);
+}
+
 /**
  *  Move constructor
  */

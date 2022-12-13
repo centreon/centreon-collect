@@ -135,9 +135,9 @@ class mysql_task_run_res : public mysql_task {
 
 class mysql_task_get_version : public mysql_task {
  public:
-  mysql_task_get_version(std::promise<uint32_t>&& promise)
+  mysql_task_get_version(std::promise<const char*>&& promise)
       : mysql_task(mysql_task::GET_VERSION), promise(std::move(promise)) {}
-  std::promise<uint32_t> promise;
+  std::promise<const char*> promise;
 };
 
 class mysql_task_run_int : public mysql_task {
