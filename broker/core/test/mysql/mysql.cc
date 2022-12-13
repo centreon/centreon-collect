@@ -1309,7 +1309,7 @@ TEST_F(DatabaseStorageTest, ConnectionOk) {
 /// ASSERT_FALSE(ms->fetch_row(res)); /  ASSERT_NO_THROW(ms->commit()); /
 /// promise = std::promise<mysql_result>(); /  ms->run_query(oss.str(),
 ///&promise); /  res = promise.get_future().get(); /
-///ASSERT_TRUE(ms->fetch_row(res));
+/// ASSERT_TRUE(ms->fetch_row(res));
 ////}
 //
 // TEST_F(DatabaseStorageTest, ChooseConnectionByName) {
