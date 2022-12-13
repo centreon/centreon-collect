@@ -231,9 +231,7 @@ void endpoint::_discard() {
 
   // Stop multiplexing.
   try {
-    auto eng = multiplexing::engine::instance_ptr();
-    if (eng)
-      eng->stop();
+    multiplexing::engine::instance_ptr()->stop();
   } catch (const std::exception& e) {
     log_v2::config()->warn("multiplexing engine stop interrupted: {}",
                            e.what());

@@ -29,8 +29,7 @@ using namespace spdlog;
 
 std::shared_ptr<log_v2> log_v2::_instance;
 
-void log_v2::create_instance(
-    const std::shared_ptr<asio::io_context>& io_context) {
+void log_v2::load(const std::shared_ptr<asio::io_context>& io_context) {
   _instance.reset(new log_v2(io_context));
 }
 
@@ -85,6 +84,7 @@ log_v2::~log_v2() noexcept {
   _running = false;
   for (auto& l : _log)
     l.reset();
+  spdlog::shutdown();
 }
 
 void log_v2::apply(const configuration::state& config) {
@@ -203,7 +203,7 @@ void log_v2::start_flush_timer(spdlog::sink_ptr sink) {
  * @brief stop flush timer
  *
  */
-void log_v2::stop() {
+void log_v2::stop_flush_timer() {
   std::lock_guard<std::mutex> l(_flush_timer_m);
   _flush_timer_active = false;
   _flush_timer.cancel();

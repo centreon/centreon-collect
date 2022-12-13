@@ -148,7 +148,7 @@ int main(int argc, char* argv[]) {
   uint16_t default_port{51000};
   std::string default_listen_address{"localhost"};
 
-  log_v2::create_instance(g_io_context);
+  log_v2::load(g_io_context);
 
   // Set configuration update handler.
   if (signal(SIGHUP, hup_handler) == SIG_ERR) {
@@ -289,10 +289,9 @@ int main(int argc, char* argv[]) {
         }
         log_v2::core()->info("main: termination request received by process");
       }
-      log_v2::instance().stop();
+      log_v2::instance().stop_flush_timer();
       // Unload endpoints.
       config::applier::deinit();
-      spdlog::shutdown();
     }
   }
   // Standard exception.

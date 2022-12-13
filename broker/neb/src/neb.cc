@@ -57,7 +57,8 @@ int nebmodule_deinit(int flags, int reason) {
     neb::unregister_callbacks();
 
     // Unload singletons.
-    log_v2::instance().stop();  // beware at the order of these two calls
+    log_v2::instance()
+        .stop_flush_timer();  // beware at the order of these two calls
     com::centreon::broker::config::applier::deinit();
   }
   // Avoid exception propagation in C code.
@@ -112,7 +113,7 @@ int nebmodule_init(int flags, char const* args, void* handle) {
     setlocale(LC_NUMERIC, "C");
 
     try {
-      log_v2::create_instance(g_io_context);
+      log_v2::load(g_io_context);
       // Set configuration file.
       if (args) {
         char const* config_file("config_file=");

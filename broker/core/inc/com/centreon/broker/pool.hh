@@ -45,8 +45,9 @@ CCB_BEGIN()
  * initialized with the number of cpus on the host computer.
  *
  * To post tasks to the pool, we use the ASIO api, for that we need an
- * asio::io_context and an asio::io_service::work which are defined when then
- * pool is constructed.
+ * asio::io_context witch is g_io_context instanciated in both main of engine
+ * and cbd and an asio::io_service::work which are defined when then pool is
+ * constructed.
  *
  * There is a _closed boolean variable used internally to know if the pool is
  * running (and not closed) or stopped (and closed). To work with it, we also

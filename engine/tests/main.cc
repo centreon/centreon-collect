@@ -50,9 +50,8 @@ int main(int argc, char* argv[]) {
   // Set specific environment.
   testing::AddGlobalTestEnvironment(new CentreonEngineEnvironment());
 
-  com::centreon::engine::log_v2::create_instance(g_io_context);
+  com::centreon::engine::log_v2::load(g_io_context);
   // Run all tests.
   int ret = RUN_ALL_TESTS();
-  spdlog::shutdown();
   return ret;
 }

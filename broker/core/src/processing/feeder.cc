@@ -82,10 +82,7 @@ feeder::~feeder() {
   }
   lock.unlock();
 
-  auto eng = multiplexing::engine::instance_ptr();
-  if (eng) {
-    eng->unsubscribe(_muxer.get());
-  }
+  multiplexing::engine::instance_ptr()->unsubscribe(_muxer.get());
 
   if (_thread && _thread->joinable()) {
     _thread->join();
@@ -214,10 +211,7 @@ void feeder::_callback() noexcept {
   }
 
   // muxer should not receive events
-  auto eng = multiplexing::engine::instance_ptr();
-  if (eng) {
-    eng->unsubscribe(_muxer.get());
-  }
+  multiplexing::engine::instance_ptr()->unsubscribe(_muxer.get());
 
   /* If we are here, that is because the loop is finished, and if we want
    * is_finished() to return true, we have to set _should_exit to true. */

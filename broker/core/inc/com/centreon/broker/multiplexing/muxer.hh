@@ -95,7 +95,7 @@ class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
   muxer& operator=(const muxer&) = delete;
   ~muxer() noexcept;
   void ack_events(int count);
-  void publish(std::shared_ptr<io::data> const event);
+  void publish(const std::deque<std::shared_ptr<io::data>>& event);
   bool read(std::shared_ptr<io::data>& event, time_t deadline) override;
   const filters& read_filters() const;
   const filters& write_filters() const;

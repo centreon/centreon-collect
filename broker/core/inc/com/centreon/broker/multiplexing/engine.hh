@@ -28,6 +28,9 @@ CCB_BEGIN()
 namespace multiplexing {
 // Forward declaration.
 class muxer;
+namespace detail {
+class callback_caller;
+}  // namespace detail
 
 /**
  *  @class engine engine.hh "com/centreon/broker/multiplexing/engine.hh"
@@ -93,6 +96,8 @@ class engine : public std::enable_shared_from_this<engine> {
   bool _send_to_subscribers(send_to_mux_callback_type&& callback);
 
   void (engine::*_write_func)(std::shared_ptr<io::data> const&);
+
+  friend class detail::callback_caller;
 
  public:
   static void load();

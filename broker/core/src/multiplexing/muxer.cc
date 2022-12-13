@@ -207,30 +207,47 @@ uint32_t muxer::event_queue_max_size() noexcept {
  *
  *  @param[in] event Event to add.
  */
-void muxer::publish(const std::shared_ptr<io::data> event) {
-  if (event) {
-    std::lock_guard<std::mutex> lock(_mutex);
-    // Check if we should process this event.
-    if (_write_filters.find(event->type()) == _write_filters.end())
-      return;
-    // Check if the event queue limit is reach.
-    if (_events_size >= event_queue_max_size()) {
-      // Try to create file if is necessary.
-      if (!_file) {
-        QueueFileStats* s =
-            stats::center::instance().muxer_stats(_name)->mutable_queue_file();
-        _file = std::make_unique<persistent_file>(_queue_file_name, s);
+void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
+  auto evt = event_queue.begin();
+  while (evt != event_queue.end()) {
+    bool at_least_one_push_to_queue = false;
+    {  // we stop this first loop when mux queue is full on order to release
+       // mutex to let read do his job before write to file
+      std::lock_guard<std::mutex> lock(_mutex);
+      for (; evt != event_queue.end() && _events_size < event_queue_max_size();
+           ++evt) {
+        if (_write_filters.find((*evt)->type()) == _write_filters.end()) {
+          continue;
+        }
+        at_least_one_push_to_queue = true;
+        log_v2::core()->trace("muxer::publish {} publish one event to queue");
+        _push_to_queue(*evt);
       }
-
-      _file->write(event);
+    }
+    if (evt == event_queue.end()) {
+      return;
+    }
+    // we have stopped insertion because of full queue => retry
+    if (at_least_one_push_to_queue) {
+      continue;
+    }
+    // nothing pushed => to file
+    std::lock_guard<std::mutex> lock(_mutex);
+    if (!_file) {
+      QueueFileStats* s =
+          stats::center::instance().muxer_stats(_name)->mutable_queue_file();
+      _file = std::make_unique<persistent_file>(_queue_file_name, s);
+    }
+    for (; evt != event_queue.end(); ++evt) {
+      if (_write_filters.find((*evt)->type()) == _write_filters.end()) {
+        continue;
+      }
+      _file->write(*evt);
       log_v2::core()->trace("muxer::publish {} publish one event to file {}",
                             _name, _queue_file_name);
-    } else {
-      log_v2::core()->trace("muxer::publish {} publish one event to queue");
-      _push_to_queue(event);
     }
-    _update_stats();
   }
+  _update_stats();
 }
 
 /**
@@ -372,10 +389,7 @@ void muxer::wake() {
  */
 int muxer::write(std::shared_ptr<io::data> const& d) {
   if (d && _read_filters.find(d->type()) != _read_filters.end()) {
-    auto eng = engine::instance_ptr();
-    if (eng) {
-      eng->publish(d);
-    }
+    engine::instance_ptr()->publish(d);
   }
   return 1;
 }

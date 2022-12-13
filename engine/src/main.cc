@@ -105,7 +105,7 @@ int main(int argc, char* argv[]) {
   config = new configuration::state;
 
   // Hack to instanciate the logger.
-  log_v2::create_instance(g_io_context);
+  log_v2::load(g_io_context);
   configuration::applier::logging::instance();
 
   logging::broker backend_broker_log;
@@ -452,7 +452,7 @@ int main(int argc, char* argv[]) {
         com::centreon::engine::events::loop::instance().run();
 
         if (sigshutdown) {
-          log_v2::instance().stop();
+          log_v2::instance().stop_flush_timer();
           engine_logger(logging::log_process_info, logging::basic)
               << "Caught SIG" << sigs[sig_id] << ", shutting down ...";
           SPDLOG_LOGGER_INFO(log_v2::process(),
@@ -494,7 +494,6 @@ int main(int argc, char* argv[]) {
 
     // Memory cleanup.
     cleanup();
-    spdlog::shutdown();
     delete[] config_file;
     config_file = NULL;
   } catch (std::exception const& e) {

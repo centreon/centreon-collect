@@ -58,7 +58,7 @@ class MultiplexingMuxerRead : public ::testing::Test {
       std::shared_ptr<io::raw> r{std::make_shared<io::raw>()};
       r->resize(sizeof(i));
       memcpy(r->data(), &i, sizeof(i));
-      _m->publish(r);
+      _m->publish(std::deque<std::shared_ptr<io::data>>({r}));
     }
   }
 

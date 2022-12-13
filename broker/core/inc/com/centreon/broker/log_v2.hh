@@ -70,10 +70,9 @@ class log_v2 : public std::enable_shared_from_this<log_v2> {
  public:
   ~log_v2();
 
-  void stop();
+  void stop_flush_timer();
 
-  static void create_instance(
-      const std::shared_ptr<asio::io_context>& io_context);
+  static void load(const std::shared_ptr<asio::io_context>& io_context);
 
   static log_v2& instance();
   void apply(const config::state& conf);
