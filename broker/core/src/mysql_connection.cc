@@ -323,6 +323,8 @@ void mysql_connection::_statement(mysql_task* t) {
   if (task->bind)
     bb = const_cast<MYSQL_BIND*>(task->bind->get_bind());
 
+  uint32_t array_size = task->bind->get_rows_count();
+  mysql_stmt_attr_set(stmt, STMT_ATTR_ARRAY_SIZE, &array_size);
   if (bb && mysql_stmt_bind_param(stmt, bb)) {
     std::string err_msg(::mysql_stmt_error(stmt));
     SPDLOG_LOGGER_ERROR(log_v2::sql(), "mysql_connection: {}", err_msg);
@@ -387,6 +389,8 @@ void mysql_connection::_statement_res(mysql_task* t) {
   if (task->bind)
     bb = const_cast<MYSQL_BIND*>(task->bind->get_bind());
 
+  uint32_t array_size = task->bind->get_rows_count();
+  mysql_stmt_attr_set(stmt, STMT_ATTR_ARRAY_SIZE, &array_size);
   if (bb && mysql_stmt_bind_param(stmt, bb)) {
     std::string err_msg(::mysql_stmt_error(stmt));
     SPDLOG_LOGGER_ERROR(log_v2::sql(), "mysql_connection: {}", err_msg);
@@ -432,7 +436,7 @@ void mysql_connection::_statement_res(mysql_task* t) {
             task->promise.set_value(nullptr);
         } else {
           int size(mysql_num_fields(prepare_meta_result));
-          std::unique_ptr<mysql_bind> bind(new mysql_bind(size, STR_SIZE));
+          auto bind = std::make_unique<mysql_bind>(size, STR_SIZE);
 
           if (mysql_stmt_bind_result(stmt, bind->get_bind())) {
             std::string err_msg(::mysql_stmt_error(stmt));
@@ -481,6 +485,8 @@ void mysql_connection::_statement_int(mysql_task* t) {
   if (task->bind)
     bb = const_cast<MYSQL_BIND*>(task->bind->get_bind());
 
+  uint32_t array_size = task->bind->get_rows_count();
+  mysql_stmt_attr_set(stmt, STMT_ATTR_ARRAY_SIZE, &array_size);
   if (bb && mysql_stmt_bind_param(stmt, bb)) {
     std::string err_msg(::mysql_stmt_error(stmt));
     SPDLOG_LOGGER_ERROR(log_v2::sql(), "mysql_connection: {}", err_msg);
