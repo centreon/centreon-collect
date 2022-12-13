@@ -41,13 +41,13 @@ mysql_bind::mysql_bind() {
  * @param length Size reserved for each column's buffer. By default, this value
  *               is 0. So, no reservation is made.
  */
-mysql_bind::mysql_bind(int size, int length)
+mysql_bind::mysql_bind(int size, int length, size_t row_count)
     : _bind(size), _column(size), _typed(size) {
   if (length) {
     for (int i = 0; i < size; ++i) {
       _bind[i].buffer_type = MYSQL_TYPE_STRING;
-      _column[i] = mysql_column(MYSQL_TYPE_STRING, 1, length);
-      _bind[i].buffer = *static_cast<char**>(_column[i].get_buffer());
+      _column[i] = mysql_column(MYSQL_TYPE_STRING, row_count);
+      _bind[i].buffer = _column[i].get_buffer();
       _bind[i].is_null = _column[i].is_null_buffer();
       _bind[i].length = _column[i].length_buffer();
       _bind[i].buffer_length = length;
@@ -83,7 +83,7 @@ void mysql_bind::set_value_as_str(int range, const fmt::string_view& value) {
   if (!_prepared(range))
     _prepare_type(range, MYSQL_TYPE_STRING);
   _column[range].set_value(_current_row, value);
-  _bind[range].buffer = *static_cast<char**>(_column[range].get_buffer());
+  _bind[range].buffer = _column[range].get_buffer();
   _bind[range].is_null = _column[range].is_null_buffer();
   _bind[range].length = _column[range].length_buffer();
 }
@@ -390,7 +390,8 @@ int mysql_bind::get_size() const {
  * @return 1 or 0.
  */
 int mysql_bind::get_rows_count() const {
-  return _is_empty ? 0 : 1;
+  return _column[0].array_size();
+  // return _is_empty ? 0 : 1;
 }
 
 void mysql_bind::set_empty(bool empty) {
@@ -399,4 +400,9 @@ void mysql_bind::set_empty(bool empty) {
 
 void mysql_bind::set_current_row(int32_t row) {
   _current_row = row;
+}
+
+void mysql_bind::set_row_count(size_t size) {
+  for (auto& c : _column)
+    c.resize_column(size);
 }

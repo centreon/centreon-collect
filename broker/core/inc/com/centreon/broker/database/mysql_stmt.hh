@@ -34,6 +34,7 @@ class mysql_stmt {
   int _param_count;
   std::string _query;
   int _current_row = 0;
+  size_t _reserved_size = 0u;
 
   std::unique_ptr<database::mysql_bind> _bind;
   mysql_bind_mapping _bind_mapping;
@@ -113,6 +114,7 @@ class mysql_stmt {
   void set_pb_mapping(
       std::vector<std::tuple<std::string, uint32_t, uint16_t>>&& mapping);
   void set_current_row(int row);
+  void set_row_count(size_t size);
 };
 }  // namespace database
 
