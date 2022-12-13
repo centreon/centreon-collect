@@ -38,8 +38,8 @@
 ### END INIT INFO
 
 # Configuration parameters.
-watchdog_file="@PREFIX_CONF@/master.run"
-config_dir="@PREFIX_CONF@"
+watchdog_file="@PREFIX_BROKER_CONF@/master.run"
+config_dir="@PREFIX_BROKER_CONF@"
 cbwd="@PREFIX_BIN@/cbwd"
 pid_path="@PREFIX_VAR@/run"
 stop_timeout=10
