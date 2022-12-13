@@ -31,10 +31,18 @@ class mysql_column {
   int _type;
   int _row_count;
   int32_t _current_row = 0;
+  // This is pointer to a std::vector<>, but we cannot specify its items types
+  // in advance.
   void* _vector;
+  // This pointer is just a pointer to _vector.data().
+  void* _vector_buffer;
+
   std::vector<my_bool> _is_null;
   std::vector<my_bool> _error;
   std::vector<unsigned long> _length;
+
+  void _free_vector();
+  void _resize_column(int32_t s);
 
  public:
   mysql_column(int type = MYSQL_TYPE_LONG, int row_count = 1, int length = 0);
@@ -60,16 +68,16 @@ class mysql_column {
 
 template <>
 inline void mysql_column::set_value<double>(int32_t row, double val) {
-  double* vector(static_cast<double*>(_vector));
+  std::vector<double>* vector = static_cast<std::vector<double>*>(_vector);
   _is_null[row] = (std::isnan(val) || std::isinf(val));
-  vector[row] = val;
+  (*vector)[row] = val;
 }
 
 template <>
 inline void mysql_column::set_value<float>(int32_t row, float val) {
-  float* vector(static_cast<float*>(_vector));
+  std::vector<float>* vector = static_cast<std::vector<float>*>(_vector);
   _is_null[row] = (std::isnan(val) || std::isinf(val));
-  vector[row] = val;
+  (*vector)[row] = val;
 }
 
 }  // namespace database
