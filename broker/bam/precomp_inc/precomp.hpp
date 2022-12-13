@@ -40,4 +40,7 @@
 
 #include <asio.hpp>
 
+#include <spdlog/fmt/ostr.h>
+#include <spdlog/spdlog.h>
+
 #endif

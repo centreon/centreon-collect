@@ -37,4 +37,7 @@
 #include <boost/container/flat_map.hpp>
 #include <boost/optional.hpp>
 
+#include <spdlog/fmt/ostr.h>
+#include <spdlog/spdlog.h>
+
 #endif  // CCE_EXTERNAL_COMMANDS_PRECOMP_HH

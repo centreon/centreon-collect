@@ -25,8 +25,9 @@
 #include <set>
 
 #include <absl/strings/string_view.h>
-#include <fmt/format.h>
 #include <gtest/gtest.h>
+#include <spdlog/fmt/ostr.h>
+#include <spdlog/spdlog.h>
 
 #include <nlohmann/json.hpp>
 

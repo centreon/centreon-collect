@@ -141,7 +141,7 @@ void kpi_boolexp::visit(io::stream* visitor) {
       // If state changed, close event and open a new one.
       else if (state != _event->status()) {
         _event->set_end_time(::time(nullptr));
-        visitor->write(std::make_shared<pb_kpi_event>(*_event));
+        visitor->write(std::make_shared<pb_kpi_event>(std::move(*_event)));
         _event.reset();
         _open_new_event(visitor, values.get_nominal(), state);
       }

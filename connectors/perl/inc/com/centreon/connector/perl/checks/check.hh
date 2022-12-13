@@ -101,4 +101,11 @@ inline std::ostream& operator<<(std::ostream& s, const check& obj) {
 
 CCCP_END()
 
+namespace fmt {
+// formatter specializations for fmt
+template <>
+struct formatter<com::centreon::connector::perl::checks::check>
+    : ostream_formatter {};
+}  // namespace fmt
+
 #endif  // !CCCP_CHECKS_CHECK_HH

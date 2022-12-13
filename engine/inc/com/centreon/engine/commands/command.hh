@@ -140,4 +140,13 @@ inline std::ostream& operator<<(std::ostream& s, const command::pointer& cmd) {
 
 CCE_END()
 
+namespace fmt {
+template <>
+struct formatter<com::centreon::engine::commands::command> : ostream_formatter {
+};
+template <>
+struct formatter<com::centreon::engine::commands::command::pointer>
+    : ostream_formatter {};
+}  // namespace fmt
+
 #endif  // !CCE_COMMANDS_COMMAND_HH

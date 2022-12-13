@@ -105,6 +105,27 @@ class protobuf : public protobuf_base {
    * @param o The protobuf object (it is copied).
    */
   protobuf(const T& o) : protobuf_base(Typ, &_obj), _obj(o) {}
+
+  /**
+   * @brief copy constructor
+   */
+  protobuf(const protobuf& src) : protobuf_base(Typ, &_obj), _obj(src._obj) {}
+
+  /**
+   * @brief move constructor
+   */
+  protobuf(protobuf&& src)
+      : protobuf_base(Typ, &_obj), _obj(std::move(src._obj)) {}
+
+  /**
+   * @brief copy operator
+   *
+   */
+  protobuf& operator=(const protobuf& src) {
+    _obj = src._obj;
+    return *this;
+  }
+
   ~protobuf() noexcept = default;
 
   bool operator==(const this_type& to_cmp) const;

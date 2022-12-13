@@ -219,4 +219,11 @@ std::ostream& operator<<(std::ostream& os, const session& sess);
 
 CCCS_END()
 
+namespace fmt {
+// formatter specializations for fmt
+template <>
+struct formatter<com::centreon::connector::ssh::sessions::session>
+    : ostream_formatter {};
+}  // namespace fmt
+
 #endif  // !CCCS_SESSIONS_SESSION_HH

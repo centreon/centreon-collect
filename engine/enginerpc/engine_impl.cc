@@ -92,6 +92,14 @@ std::ostream& operator<<(std::ostream& str, const ServiceIdentifier& serv_id) {
 
 CCE_END()
 
+namespace fmt {
+template <>
+struct formatter<HostIdentifier> : ostream_formatter {};
+template <>
+struct formatter<ServiceIdentifier> : ostream_formatter {};
+
+}  // namespace fmt
+
 /**
  * @brief Return the Engine's version.
  *

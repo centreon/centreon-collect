@@ -18,10 +18,6 @@
 #ifndef CCE_LOG_V2_HH
 #define CCE_LOG_V2_HH
 
-#include <spdlog/common.h>
-#include <spdlog/fmt/ostr.h>
-#include <spdlog/spdlog.h>
-
 #include "com/centreon/engine/configuration/state.hh"
 
 CCE_BEGIN()

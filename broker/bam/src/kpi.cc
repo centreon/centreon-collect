@@ -76,7 +76,7 @@ void kpi::set_initial_event(const KpiEvent& e) {
     if (std::abs(new_impact_level - _event->impact_level()) >= eps &&
         _event->impact_level() != -1) {
       time_t now = ::time(nullptr);
-      KpiEvent new_event = e;
+      KpiEvent new_event(e);
       new_event.set_end_time(now);
       _initial_events.push_back(new_event);
       new_event.set_end_time(e.end_time());
@@ -99,8 +99,8 @@ void kpi::commit_initial_events(io::stream* visitor) {
     return;
 
   if (visitor) {
-    for (const KpiEvent& to_write : _initial_events)
-      visitor->write(std::make_shared<pb_kpi_event>(to_write));
+    for (KpiEvent& to_write : _initial_events)
+      visitor->write(std::make_shared<pb_kpi_event>(std::move(to_write)));
   }
   _initial_events.clear();
 }

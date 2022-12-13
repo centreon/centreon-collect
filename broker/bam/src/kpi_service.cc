@@ -531,7 +531,7 @@ void kpi_service::visit(io::stream* visitor) {
             _downtimed != _event->in_downtime(),
             _state_hard != _event->status());
         _event->set_end_time(_last_check);
-        visitor->write(std::make_shared<pb_kpi_event>(*_event));
+        visitor->write(std::make_shared<pb_kpi_event>(std::move(*_event)));
         _open_new_event(visitor, hard_values);
       }
     }
