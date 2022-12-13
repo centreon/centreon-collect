@@ -63,7 +63,6 @@ jobs:
         include:
           - image: centos7
           - image: alma8
-          - image: debian-buster
           - image: debian-bullseye
     steps:
       - name: Checkout sources
@@ -142,8 +141,6 @@ jobs:
     strategy:
       matrix:
         include:
-          - image: debian-buster
-            distrib: buster
           - image: debian-bullseye
             distrib: bullseye
     steps:
@@ -182,7 +179,7 @@ jobs:
     name: Delivery
     strategy:
       matrix:
-        distrib: [buster, bullseye]
+        distrib: [bullseye]
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
