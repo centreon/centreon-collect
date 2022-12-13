@@ -115,6 +115,8 @@ class mysql_stmt {
       std::vector<std::tuple<std::string, uint32_t, uint16_t>>&& mapping);
   void set_current_row(int row);
   void set_row_count(size_t size);
+  std::unique_ptr<mysql_bind> create_bind();
+  void set_bind(std::unique_ptr<mysql_bind>&& bind);
 };
 }  // namespace database
 

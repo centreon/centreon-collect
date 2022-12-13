@@ -19,14 +19,13 @@
 
 #include "com/centreon/broker/mysql.hh"
 
+#include <absl/strings/str_split.h>
 #include <gtest/gtest.h>
 
 #include <cmath>
 #include <future>
 
 #include "com/centreon/broker/config/applier/init.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
-//#include "com/centreon/broker/modules/loader.hh"
 #include "com/centreon/broker/neb/custom_variable.hh"
 #include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/host.hh"
@@ -38,12 +37,12 @@
 #include "com/centreon/broker/neb/instance.hh"
 #include "com/centreon/broker/neb/instance_status.hh"
 #include "com/centreon/broker/neb/log_entry.hh"
-//#include "com/centreon/broker/neb/module.hh"
 #include "com/centreon/broker/neb/service.hh"
 #include "com/centreon/broker/neb/service_check.hh"
 #include "com/centreon/broker/neb/service_group.hh"
 #include "com/centreon/broker/neb/service_group_member.hh"
 #include "com/centreon/broker/query_preparator.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 using msg_fmt = com::centreon::exceptions::msg_fmt;
 using namespace com::centreon::broker;
@@ -1380,10 +1379,18 @@ TEST_F(DatabaseStorageTest, CheckBulkStatement) {
   database_config db_cfg("MySQL", "localhost", MYSQL_SOCKET, 3306, "centreon",
                          "centreon", "centreon_storage", 5, true, 5);
   auto ms{std::make_unique<mysql>(db_cfg)};
-  uint32_t version = ms->get_server_version();
-  uint32_t patch = version % 100;
-  uint32_t minor = (version / 100) % 100;
-  uint32_t major = version / 10000;
+  const char* version = ms->get_server_version();
+  std::vector<absl::string_view> arr =
+      absl::StrSplit(version, absl::ByAnyChar(".-"));
+  ASSERT_EQ(arr.size(), 4u);
+  uint32_t major;
+  uint32_t minor;
+  uint32_t patch;
+  EXPECT_TRUE(absl::SimpleAtoi(arr[0], &major));
+  EXPECT_TRUE(absl::SimpleAtoi(arr[1], &minor));
+  EXPECT_TRUE(absl::SimpleAtoi(arr[2], &patch));
+  absl::string_view server_name(arr[3]);
+  ASSERT_EQ(server_name, "MariaDB");
   if (major >= 10 || (major == 10 && minor >= 2)) {
     std::string query1{"DROP TABLE IF EXISTS ut_test"};
     std::string query2{

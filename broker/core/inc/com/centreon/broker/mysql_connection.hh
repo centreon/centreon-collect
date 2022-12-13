@@ -151,7 +151,7 @@ class mysql_connection {
   void run_query_and_get_int(std::string const& query,
                              std::promise<int>&& promise,
                              database::mysql_task::int_type type);
-  void get_server_version(std::promise<uint32_t>&& promise);
+  void get_server_version(std::promise<const char*>&& promise);
 
   void run_statement(database::mysql_stmt& stmt, my_error::code ec, bool fatal);
   void run_statement_and_get_result(
