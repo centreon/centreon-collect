@@ -47,8 +47,8 @@ class mysql_bind {
  public:
   mysql_bind();
   mysql_bind(int size, int length = 0);
-  ~mysql_bind();
-  void set_size(int size, int length = 0);
+  ~mysql_bind() noexcept = default;
+  void set_size(int size);
   int value_as_i32(int range) const;
   void set_value_as_i32(int range, int value);
   uint32_t value_as_u32(int range) const;

@@ -56,9 +56,7 @@ mysql_bind::mysql_bind(int size, int length)
   }
 }
 
-mysql_bind::~mysql_bind() {}
-
-void mysql_bind::set_size(int size, int length) {
+void mysql_bind::set_size(int size) {
   _bind.resize(size);
   _column.resize(size);
   for (int i = 0; i < size; ++i)
@@ -401,5 +399,4 @@ void mysql_bind::set_empty(bool empty) {
 
 void mysql_bind::set_current_row(int32_t row) {
   _current_row = row;
-  _column.set_current_row(_current_row);
 }
