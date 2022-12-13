@@ -17,6 +17,7 @@
 */
 #include "com/centreon/broker/unified_sql/stream.hh"
 
+#include <absl/strings/str_split.h>
 #include <cassert>
 #include <cstring>
 #include <thread>
@@ -133,6 +134,31 @@ stream::stream(const database_config& dbcfg,
   });
   _state = running;
   _action.resize(_mysql.connections_count());
+  _sscr_resources_bind.resize(_mysql.connections_count());
+  _next_update_sscr_resources.resize(_mysql.connections_count(),
+                                     std::time_t(nullptr) + 5);
+
+  const char* version = _mysql.get_server_version();
+  std::vector<absl::string_view> v =
+      absl::StrSplit(version, absl::ByAnyChar(".-"));
+  if (v.size() == 3) {
+    int32_t major;
+    int32_t minor;
+    int32_t patch;
+    absl::string_view server = v[3];
+    if (absl::SimpleAtoi(v[0], &major) && absl::SimpleAtoi(v[1], &minor) &&
+        absl::SimpleAtoi(v[2], &patch)) {
+      log_v2::sql()->info(
+          "Unified sql stream connected to '{}' Server, version {}.{}.{}",
+          fmt::string_view(server.data(), server.size()), major, minor, patch);
+      if (server == "MariaDB" && (major > 10 || (major == 10 && minor >= 2))) {
+        log_v2::sql()->info(
+            "Unified sql stream supports column-wise binding in prepared "
+            "statements");
+        _bulk_prepared_statement = true;
+      }
+    }
+  }
 
   try {
     _load_caches();

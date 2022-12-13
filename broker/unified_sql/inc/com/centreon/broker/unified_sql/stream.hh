@@ -171,6 +171,7 @@ class stream : public io::stream {
 
   std::atomic_int _pending_events;
   uint32_t _count;
+  bool _bulk_prepared_statement = false;
 
   /* Current actions by connection */
   std::vector<uint32_t> _action;
@@ -194,6 +195,7 @@ class stream : public io::stream {
   uint32_t _max_dt_queries = 0u;
 
   std::time_t _next_insert_perfdatas;
+  std::vector<std::time_t> _next_update_sscr_resources;
   std::time_t _next_update_metrics;
   std::time_t _next_update_cv;
   std::time_t _next_insert_logs;
@@ -298,10 +300,12 @@ class stream : public io::stream {
   database::mysql_stmt _resources_host_update;
   database::mysql_stmt _resources_service_insert;
   database::mysql_stmt _resources_service_update;
+
   database::mysql_stmt _resources_disable;
   database::mysql_stmt _resources_tags_remove;
   database::mysql_stmt _hscr_resources_update;
   database::mysql_stmt _sscr_resources_update;
+  std::vector<std::unique_ptr<database::mysql_bind>> _sscr_resources_bind;
 
   database::mysql_stmt _index_data_insert;
   database::mysql_stmt _index_data_update;

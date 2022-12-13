@@ -3167,32 +3167,57 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
     }
 
     if (_store_in_resources) {
-      _sscr_resources_update.bind_value_as_i32(0, sscr.state());
-      _sscr_resources_update.bind_value_as_i32(
-          1, svc_ordered_status[sscr.state()]);
-      _sscr_resources_update.bind_value_as_u64(2, sscr.last_state_change());
-      _sscr_resources_update.bind_value_as_bool(
-          3, sscr.scheduled_downtime_depth() > 0);
-      _sscr_resources_update.bind_value_as_bool(
-          4, sscr.acknowledgement_type() != AckType::NONE);
-      _sscr_resources_update.bind_value_as_bool(
-          5, sscr.state_type() == ServiceStatus_StateType_HARD);
-      _sscr_resources_update.bind_value_as_u32(6, sscr.check_attempt());
-      _sscr_resources_update.bind_value_as_bool(7, sscr.perfdata() != "");
-      _sscr_resources_update.bind_value_as_u32(8, sscr.check_type());
-      _sscr_resources_update.bind_value_as_u64(9, sscr.last_check(),
-                                               is_not_zero);
-      _sscr_resources_update.bind_value_as_str(10, sscr.output());
-      _sscr_resources_update.bind_value_as_u64(11, sscr.service_id());
-      _sscr_resources_update.bind_value_as_u64(12, sscr.host_id());
-
       int32_t conn = _mysql.choose_connection_by_instance(
           _cache_host_instance[static_cast<uint32_t>(sscr.host_id())]);
-      _mysql.run_statement(_sscr_resources_update,
-                           database::mysql_error::store_service_status, false,
-                           conn);
+      if (_bulk_prepared_statement) {
+        std::lock_guard<std::mutex> lck(_queues_m);
+        if (!_sscr_resources_bind[conn])
+          _sscr_resources_bind[conn] = _sscr_resources_update.create_bind();
+        auto* b = _sscr_resources_bind[conn].get();
+        b->set_value_as_i32(0, sscr.state());
+        b->set_value_as_i32(1, svc_ordered_status[sscr.state()]);
+        b->set_value_as_u64(2, sscr.last_state_change());
+        b->set_value_as_bool(3, sscr.scheduled_downtime_depth() > 0);
+        b->set_value_as_bool(
+            4, sscr.acknowledgement_type() != AckType::NONE);
+        b->set_value_as_bool(5,
+                             sscr.state_type() == ServiceStatus_StateType_HARD);
+        b->set_value_as_u32(6, sscr.check_attempt());
+        b->set_value_as_bool(7, sscr.perfdata() != "");
+        b->set_value_as_u32(8, sscr.check_type());
+        if (sscr.last_check() == 0)
+          b->set_value_as_null(9);
+        else
+          b->set_value_as_u64(9, sscr.last_check());
+        b->set_value_as_str(10, sscr.output());
+        b->set_value_as_u64(11, sscr.service_id());
+        b->set_value_as_u64(12, sscr.host_id());
+        b->next_row();
+      } else {
+        _sscr_resources_update.bind_value_as_i32(0, sscr.state());
+        _sscr_resources_update.bind_value_as_i32(
+            1, svc_ordered_status[sscr.state()]);
+        _sscr_resources_update.bind_value_as_u64(2, sscr.last_state_change());
+        _sscr_resources_update.bind_value_as_bool(
+            3, sscr.scheduled_downtime_depth() > 0);
+        _sscr_resources_update.bind_value_as_bool(
+            4, sscr.acknowledgement_type() != AckType::NONE);
+        _sscr_resources_update.bind_value_as_bool(
+            5, sscr.state_type() == ServiceStatus_StateType_HARD);
+        _sscr_resources_update.bind_value_as_u32(6, sscr.check_attempt());
+        _sscr_resources_update.bind_value_as_bool(7, sscr.perfdata() != "");
+        _sscr_resources_update.bind_value_as_u32(8, sscr.check_type());
+        _sscr_resources_update.bind_value_as_u64(9, sscr.last_check(),
+                                                 is_not_zero);
+        _sscr_resources_update.bind_value_as_str(10, sscr.output());
+        _sscr_resources_update.bind_value_as_u64(11, sscr.service_id());
+        _sscr_resources_update.bind_value_as_u64(12, sscr.host_id());
 
-      _add_action(conn, actions::resources);
+        _mysql.run_statement(_sscr_resources_update,
+                             database::mysql_error::store_service_status, false,
+                             conn);
+        _add_action(conn, actions::resources);
+      }
     }
   } else
     // Do nothing.
