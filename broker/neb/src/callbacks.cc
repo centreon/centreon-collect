@@ -2209,11 +2209,11 @@ int neb::callback_pb_log(int callback_type [[maybe_unused]], void* data) {
     log_data = static_cast<nebstruct_log_data*>(data);
     le_obj.set_ctime(log_data->entry_time);
     le_obj.set_instance_name(config::applier::state::instance().poller_name());
-    if (log_data->data)
-      if (!set_pb_log_data(*le,
-                           misc::string::check_string_utf8(log_data->data)))
-        return 0;
-
+    if (log_data->data) {
+      std::string output = misc::string::check_string_utf8(log_data->data);
+      le_obj.set_output(output);
+      set_pb_log_data(*le, output);
+    }
     // Send event.
     gl_publisher.write(le);
   }
