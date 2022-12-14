@@ -25,6 +25,8 @@ BCL2
 	[Documentation]	Starting broker with option '-s5' should work
 	[Tags]	Broker	start-stop
 	Config Broker	central
+	Broker Config Log	central	core	debug
+	Broker Config Flush Log	module0	0
 	${start}=	Get Current Date	exclude_millis=True
 	Sleep	1s
 	Start Broker With Args	-s5	${EtcRoot}/centreon-broker/central-broker.json

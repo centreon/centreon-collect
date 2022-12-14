@@ -75,7 +75,7 @@ jobs:
           image_version: ${{ env.imgversion }}
 
       - name: Send report to commit
-        uses: joonvena/robotframework-reporter-action@v2
+        uses: joonvena/robotframework-reporter-action@v2.1
         with:
           gh_access_token: ${{ secrets.GITHUB_TOKEN }}
           report_path: ${{ matrix.folder_report }}

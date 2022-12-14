@@ -25,6 +25,36 @@ using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::tcp;
 
+/**
+ * @brief this option set the interval in seconds between two keepalive sent
+ *
+ */
+using tcp_keep_alive_interval =
+    asio::detail::socket_option::integer<IPPROTO_TCP, TCP_KEEPINTVL>;
+
+/**
+ * @brief this option set the delay after the first keepalive will be sent
+ *
+ */
+using tcp_keep_alive_idle =
+    asio::detail::socket_option::integer<IPPROTO_TCP, TCP_KEEPIDLE>;
+/**
+ * @brief this option set the maximum of not answered keepalive paquets
+ *
+ */
+using tcp_keep_alive_cnt =
+    asio::detail::socket_option::integer<IPPROTO_TCP, TCP_KEEPCNT>;
+/**
+ * This option takes an unsigned int as an argument.  When the value is greater
+ * than 0, it specifies the maximum amount of time in milliseconds that
+ * transmitted data may remain unacknowledged before TCP will forcibly close the
+ * corresponding connection and return ETIMEDOUT to the ap‐ plication.  If the
+ * option value is specified as 0, TCP will use the system default.
+ *
+ */
+using tcp_user_timeout =
+    asio::detail::socket_option::integer<IPPROTO_TCP, TCP_USER_TIMEOUT>;
+
 tcp_async* tcp_async::_instance{nullptr};
 
 /**
@@ -156,9 +186,34 @@ bool tcp_async::contains_available_acceptor_connections(
  * @return The created acceptor as a shared_ptr.
  */
 std::shared_ptr<asio::ip::tcp::acceptor> tcp_async::create_acceptor(
-    uint16_t port) {
-  auto retval(std::make_shared<asio::ip::tcp::acceptor>(
-      pool::io_context(), asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port)));
+    const tcp_config::pointer& conf) {
+  asio::ip::tcp::endpoint listen_endpoint;
+  if (conf->get_host().empty())
+    listen_endpoint =
+        asio::ip::tcp::endpoint(asio::ip::tcp::v4(), conf->get_port());
+  else {
+    asio::ip::tcp::resolver::query query(conf->get_host(),
+                                         std::to_string(conf->get_port()));
+    asio::ip::tcp::resolver resolver(pool::io_context());
+    asio::error_code ec;
+    asio::ip::tcp::resolver::iterator it = resolver.resolve(query, ec), end;
+    if (ec) {
+      log_v2::tcp()->error("TCP: error while resolving '{}' name: {}",
+                           conf->get_host(), ec.message());
+      listen_endpoint =
+          asio::ip::tcp::endpoint(asio::ip::tcp::v4(), conf->get_port());
+    } else {
+      for (; it != end; ++it) {
+        listen_endpoint = *it;
+        log_v2::tcp()->info("TCP: {} gives address {}", conf->get_host(),
+                            listen_endpoint.address().to_string());
+        if (listen_endpoint.address().is_v4())
+          break;
+      }
+    }
+  }
+  auto retval{std::make_shared<asio::ip::tcp::acceptor>(pool::io_context(),
+                                                        listen_endpoint)};
 
   asio::ip::tcp::acceptor::reuse_address option(true);
   retval->set_option(option);
@@ -204,7 +259,8 @@ void tcp_async::_clear_available_con(asio::error_code ec) {
  * @param acceptor The acceptor that you want it to accept.
  */
 void tcp_async::start_acceptor(
-    std::shared_ptr<asio::ip::tcp::acceptor> acceptor) {
+    const std::shared_ptr<asio::ip::tcp::acceptor>& acceptor,
+    const tcp_config::pointer& conf) {
   log_v2::tcp()->trace("Start acceptor");
   if (!_timer)
     _timer =
@@ -222,9 +278,11 @@ void tcp_async::start_acceptor(
       std::make_shared<tcp_connection>(pool::io_context());
 
   log_v2::tcp()->debug("Waiting for a connection");
-  acceptor->async_accept(new_connection->socket(),
-                         std::bind(&tcp_async::handle_accept, this, acceptor,
-                                   new_connection, std::placeholders::_1));
+  acceptor->async_accept(
+      new_connection->socket(),
+      [this, acceptor, new_connection, conf](const asio::error_code& ec) {
+        handle_accept(acceptor, new_connection, ec, conf);
+      });
 }
 
 /**
@@ -252,7 +310,8 @@ void tcp_async::stop_acceptor(
  */
 void tcp_async::handle_accept(std::shared_ptr<asio::ip::tcp::acceptor> acceptor,
                               tcp_connection::pointer new_connection,
-                              const asio::error_code& ec) {
+                              const asio::error_code& ec,
+                              const tcp_config::pointer& conf) {
   /* If we got a connection, we store it */
   if (!ec) {
     asio::error_code ecc;
@@ -264,13 +323,17 @@ void tcp_async::handle_accept(std::shared_ptr<asio::ip::tcp::acceptor> acceptor,
     else {
       std::time_t now = std::time(nullptr);
       asio::ip::tcp::socket& sock = new_connection->socket();
-      asio::socket_base::keep_alive option{true};
-      sock.set_option(option);
-      _strand.post([new_connection, now, acceptor, this] {
-        _acceptor_available_con.insert(std::make_pair(
-            acceptor.get(), std::make_pair(new_connection, now)));
-      });
-      start_acceptor(acceptor);
+      try {
+        _set_sock_opt(sock, conf);
+        _strand.post([new_connection, now, acceptor, this] {
+          _acceptor_available_con.insert(std::make_pair(
+              acceptor.get(), std::make_pair(new_connection, now)));
+        });
+      } catch (const std::exception& e) {
+        log_v2::tcp()->error(
+            "fail to activate keepalive on accepted connection");
+      }
+      start_acceptor(acceptor, conf);
     }
   } else
     log_v2::tcp()->info("TCP acceptor interrupted: {}", ec.message());
@@ -284,15 +347,17 @@ void tcp_async::handle_accept(std::shared_ptr<asio::ip::tcp::acceptor> acceptor,
  *
  * @return A shared_ptr to the connection or an empty shared_ptr.
  */
-tcp_connection::pointer tcp_async::create_connection(std::string const& host,
-                                                     uint16_t port) {
-  log_v2::tcp()->trace("create connection to host {}:{}", host, port);
-  tcp_connection::pointer conn =
-      std::make_shared<tcp_connection>(pool::io_context(), host, port);
+tcp_connection::pointer tcp_async::create_connection(
+    const tcp_config::pointer& conf) {
+  log_v2::tcp()->trace("create connection to host {}:{}", conf->get_host(),
+                       conf->get_port());
+  tcp_connection::pointer conn = std::make_shared<tcp_connection>(
+      pool::io_context(), conf->get_host(), conf->get_port());
   asio::ip::tcp::socket& sock = conn->socket();
 
   asio::ip::tcp::resolver resolver(pool::io_context());
-  asio::ip::tcp::resolver::query query(host, std::to_string(port));
+  asio::ip::tcp::resolver::query query(conf->get_host(),
+                                       std::to_string(conf->get_port()));
   asio::ip::tcp::resolver::iterator it = resolver.resolve(query), end;
 
   std::error_code err{std::make_error_code(std::errc::host_unreachable)};
@@ -308,14 +373,51 @@ tcp_connection::pointer tcp_async::create_connection(std::string const& host,
 
   /* Connection refused */
   if (err.value() == 111) {
-    log_v2::tcp()->error("TCP: Connection refused to {}:{}", host, port);
+    log_v2::tcp()->error("TCP: Connection refused to {}:{}", conf->get_host(),
+                         conf->get_port());
     throw std::system_error(err);
   } else if (err) {
-    log_v2::tcp()->error("TCP: could not connect to {}:{}", host, port);
+    log_v2::tcp()->error("TCP: could not connect to {}:{}", conf->get_host(),
+                         conf->get_port());
     throw msg_fmt(err.message());
   } else {
-    asio::socket_base::keep_alive option{true};
-    sock.set_option(option);
+    _set_sock_opt(sock, conf);
     return conn;
+  }
+}
+
+void tcp_async::_set_sock_opt(asio::ip::tcp::socket& sock,
+                              const tcp_config::pointer& conf) {
+  asio::socket_base::keep_alive option1(true);
+  tcp_keep_alive_cnt option2(conf->get_keepalive_count());
+  tcp_keep_alive_idle option3(conf->get_second_keepalive_interval());
+  tcp_keep_alive_interval option4(conf->get_second_keepalive_interval());
+  tcp_user_timeout option5(1000 * (conf->get_second_keepalive_interval() *
+                                   (conf->get_keepalive_count() + 1)));
+  asio::error_code err;
+  sock.set_option(option1, err);
+  if (err) {
+    SPDLOG_LOGGER_ERROR(log_v2::tcp(), "fail to set keepalive option {}",
+                        err.message());
+  } else {
+    sock.set_option(option2, err);
+    if (err) {
+      SPDLOG_LOGGER_ERROR(log_v2::tcp(), "fail to set keepalive cnt {}",
+                          err.message());
+    }
+    sock.set_option(option3, err);
+    if (err) {
+      SPDLOG_LOGGER_ERROR(log_v2::tcp(), "fail to set keepalive idle {}",
+                          err.message());
+    }
+    sock.set_option(option4, err);
+    if (err) {
+      SPDLOG_LOGGER_ERROR(log_v2::tcp(), "fail to set keepalive interval {}",
+                          err.message());
+    }
+  }
+  sock.set_option(option5, err);
+  if (err) {
+    SPDLOG_LOGGER_ERROR(log_v2::tcp(), "fail to set keepalive option");
   }
 }

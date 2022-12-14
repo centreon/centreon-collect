@@ -1,17 +1,11 @@
 name: Centreon collect
 
 on:
-  pull_request_target:
-    types:
-      - closed
-    branches:
-      - develop
-    paths-ignore:
-      - 'gorgone/**'
   workflow_dispatch:
   pull_request:
-    paths-ignore:
-      - 'gorgone/**'
+  push:
+    branches:
+      - dev-22.04.x
 
 env:
   REGISTRY: registry-docker.centreon.com/docker-global
@@ -42,7 +36,7 @@ jobs:
               echo "release=$GITHUB_RUN_ATTEMPT" >> $GITHUB_OUTPUT
               ;;
             *)
-              echo "release=${{ github.sha }}" >> $GITHUB_OUTPUT
+              echo "release=`date +%s`.`echo ${{ github.sha }} | cut -c -7`" >> $GITHUB_OUTPUT
               ;;
           esac
         shell: bash
@@ -119,6 +113,15 @@ jobs:
           image_name: centreon-collect-${{ matrix.image }}
           image_version: ${{ env.imgversion }}
           env_variable: -e DISTRIB="${{ matrix.distrib }}" -e VERSION="${{ env.version }}" -e RELEASE="${{ env.release }}"
+
+      - name: sign rpm ${{ matrix.image }}
+        uses: ./.github/actions/package-sign
+        with:
+          script_name: rpm-signing
+          image_name: rpm-signing
+          image_version: ubuntu
+          username: ${{ secrets.REPOS_USERNAME }}
+          password: ${{ secrets.REPOS_PASSWORD }}
 
       - name: Use cache RPM files
         uses: actions/cache@v3
@@ -211,6 +214,12 @@ jobs:
         with:
           distrib: ${{ matrix.distrib }}
           version: ${{ env.version }}
+          module_name: centreon-collect
           repos_username: ${{ secrets.REPOS_USERNAME }}
           repos_password: ${{ secrets.REPOS_PASSWORD }}
           cache_key: cache-${{ github.sha }}-${{ github.run_id }}
+          update_repo_path: ${{ secrets.UPDATE_REPO_PATH }}
+          cloudfront_id: ${{ secrets.CLOUDFRONT_ID }}
+          yum_repo_address: ${{ secrets.YUM_REPO_ADDRESS }}
+          yum_repo_key: ${{ secrets.YUM_REPO_KEY }}
+          yum_repo_url: ${{ secrets.YUM_REPO_URL }}

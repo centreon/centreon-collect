@@ -259,7 +259,7 @@ def find_line_from(lines, date):
     start = 0
     end = len(lines) - 1
     idx = start
-    while end - start > 1:
+    while end > start:
         idx = (start + end) // 2
         m = p.match(lines[idx])
         while m is None:
@@ -272,10 +272,12 @@ def find_line_from(lines, date):
                 logger.console("We are at the first line and no date found")
 
         idx_d = get_date(m.group(1))
-        if my_date <= idx_d:
+        if my_date <= idx_d and end != idx:
             end = idx
-        elif my_date > idx_d:
+        elif my_date > idx_d and start != idx:
             start = idx
+        else:
+            break
     return idx
 
 
@@ -824,3 +826,5 @@ def find_internal_id(date, exists=True, timeout: int = TIMEOUT):
                         return True
         time.sleep(1)
     return False
+
+print(find_in_log_with_timeout("/tmp/var/log/centreon-broker/central-broker-master.log", "2022-11-29T09:34:41.035", ["Starting the TCP thread pool of 5 threads"], 30))
