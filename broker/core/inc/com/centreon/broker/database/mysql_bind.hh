@@ -76,6 +76,7 @@ class mysql_bind {
   MYSQL_BIND const* get_bind() const;
   MYSQL_BIND* get_bind();
   void set_current_row(int row);
+  size_t current_row() const;
   void next_row();
   void set_row_count(size_t size);
   size_t row_count() const;

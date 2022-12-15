@@ -402,6 +402,10 @@ void mysql_bind::set_current_row(int32_t row) {
   _current_row = row;
 }
 
+size_t mysql_bind::current_row() const {
+  return _current_row;
+}
+
 void mysql_bind::set_row_count(size_t size) {
   for (auto& c : _column)
     c.resize_column(size);

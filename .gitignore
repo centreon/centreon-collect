@@ -8,6 +8,7 @@
 
 Testing
 __
+tests/failed
 broker_pb2.py
 broker_pb2.pyc
 broker_pb2_grpc.py
