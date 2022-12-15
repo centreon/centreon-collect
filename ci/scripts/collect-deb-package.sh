@@ -6,7 +6,7 @@ if [ -z "$ROOT" ] ; then
 fi
 
 if [ -z "$VERSION" -o -z "$RELEASE" -o -z "$DISTRIB" ] ; then
-  echo "You need to specify VERSION / RELEASE variables"
+  echo "You need to specify VERSION / RELEASE / DISTRIB variables"
   exit 1
 fi
 
@@ -23,6 +23,8 @@ if [ -d "$ROOT/build" ] ; then
 fi
 tar --exclude={".git","build"} -czpf centreon-collect-$VERSION.tar.gz "$ROOT"
 cd "$ROOT"
+cp -r ci/debian debian
+
 sed -i "s/^centreon:version=.*$/centreon:version=$(echo $VERSION-$RELEASE)/" debian/substvars
 debmake -f "${AUTHOR}" -e "${AUTHOR_EMAIL}" -u "$VERSION" -r "$DISTRIB"
 debuild-pbuilder
