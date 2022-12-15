@@ -19,8 +19,7 @@ jobs:
 
       - id: version
         run: |
-          #IMG_VERSION=$(md5sum conanfile.txt | awk '{print substr($1, 0, 8)}')
-          IMG_VERSION="38f2fb31"
+          IMG_VERSION=$(md5sum conanfile.txt | awk '{print substr($1, 0, 8)}')
           echo "imgversion=$IMG_VERSION" >> $GITHUB_OUTPUT
           VERSION=$(awk '$1 ~ "COLLECT_MAJOR" {maj=substr($2, 1, length($2)-1)} $1 ~ "COLLECT_MINOR" {min=substr($2, 1, length($2)-1) ; print maj "." min}' CMakeLists.txt)
           PATCH=$(awk '$1 ~ "COLLECT_PATCH" {print substr($2, 1, length($2) - 1)}' CMakeLists.txt)
