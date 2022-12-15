@@ -21,7 +21,7 @@ VERSION="$(echo $VERSION | sed 's/-/./g')"
 if [ -d "$ROOT/build" ] ; then
     rm -rf "$ROOT/build"
 fi
-tar --exclude={".git","build"} -czpf centreon-collect-$VERSION.tar.gz "$ROOT"
+tar --exclude={".git","build"} -czpf $ROOT-$VERSION.tar.gz "$ROOT"
 cd "$ROOT"
 cp -r ci/debian debian
 
