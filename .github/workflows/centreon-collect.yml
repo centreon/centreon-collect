@@ -8,8 +8,7 @@ on:
       - develop
 
 env:
-#  REGISTRY: docker.centreon.com
-  REGISTRY: registry-docker.centreon.com/docker-global
+  REGISTRY: docker.centreon.com
 
 jobs:
   create-version:
