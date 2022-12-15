@@ -202,7 +202,7 @@ void stream::_clean_tables(uint32_t instance_id) {
 
   std::lock_guard<std::mutex> l(_timer_m);
   _group_clean_timer.expires_after(std::chrono::minutes(1));
-  _group_clean_timer.async_wait([this](const asio::error_code& err) {
+  _group_clean_timer.async_wait([this](const boost::system::error_code& err) {
     if (!err) {
       _clean_group_table();
     }

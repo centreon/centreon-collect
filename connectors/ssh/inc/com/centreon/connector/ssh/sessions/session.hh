@@ -45,7 +45,8 @@ class session : public std::enable_shared_from_this<session> {
   };
 
   using pointer = std::shared_ptr<session>;
-  using connect_callback = std::function<void(const std::error_code&)>;
+  using connect_callback =
+      std::function<void(const boost::system::error_code&)>;
 
   session(credentials const& creds, const shared_io_context& io_context);
   ~session() noexcept;
@@ -125,13 +126,13 @@ class session : public std::enable_shared_from_this<session> {
     void call_callback(int retval) { _callback(retval); }
   };
 
-  void on_resolve(const std::error_code& error,
+  void on_resolve(const boost::system::error_code& error,
                   const asio::ip::tcp::resolver::results_type& results,
                   connect_callback callback,
                   const time_point& timeout);
 
   void on_connect(
-      const std::error_code& error,
+      const boost::system::error_code& error,
       asio::ip::tcp::resolver::results_type::const_iterator current_endpoint,
       const asio::ip::tcp::resolver::results_type& all_res,
       connect_callback callback,
@@ -145,7 +146,7 @@ class session : public std::enable_shared_from_this<session> {
 
   ssize_t socket_recv(libssh2_socket_t sockfd, void* buffer, size_t length);
   void start_read();
-  void read_handler(const std::error_code& err,
+  void read_handler(const boost::system::error_code& err,
                     const recv_data::pointer& buff,
                     size_t nb_recv);
 
@@ -160,7 +161,7 @@ class session : public std::enable_shared_from_this<session> {
                       size_t length);
 
   void start_send();
-  void send_handler(const std::error_code& err, size_t nb_sent);
+  void send_handler(const boost::system::error_code& err, size_t nb_sent);
 
   void notify_listeners(bool force);
 

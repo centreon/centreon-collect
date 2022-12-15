@@ -17,7 +17,7 @@
 #ifndef CCCS_PRECOMP_HH
 #define CCCS_PRECOMP_HH
 
-#include <asio.hpp>
+#include <boost/asio.hpp>
 
 #include <chrono>
 #include <cstdio>

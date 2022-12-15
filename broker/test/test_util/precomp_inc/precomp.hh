@@ -24,6 +24,8 @@
 #include <set>
 #include <string>
 
-#include <asio.hpp>
+#include <boost/asio.hpp>
+
+namespace asio = boost::asio;
 
 #endif  // CCB_TEST_UTIL_TCP_RELAIS_HH

@@ -182,7 +182,7 @@ stream::stream(const database_config& dbcfg,
   std::lock_guard<std::mutex> l(_timer_m);
   _queues_timer.expires_after(std::chrono::seconds(queue_timer_duration));
   _queues_timer.async_wait(
-      [this](const asio::error_code& err) { _check_queues(err); });
+      [this](const boost::system::error_code& err) { _check_queues(err); });
   _start_loop_timer();
   SPDLOG_LOGGER_INFO(log_v2::sql(),
                      "Unified sql stream running loop_interval={}",
@@ -1057,7 +1057,7 @@ void stream::update() {
 
 void stream::_start_loop_timer() {
   _loop_timer.expires_from_now(std::chrono::seconds(_loop_timeout));
-  _loop_timer.async_wait([this](const asio::error_code& err) {
+  _loop_timer.async_wait([this](const boost::system::error_code& err) {
     if (err) {
       return;
     }

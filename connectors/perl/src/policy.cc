@@ -42,12 +42,12 @@ void policy::start(const std::string& test_cmd_file) {
   orders::parser::create(_io_context, shared_from_this(), test_cmd_file);
   checks::shared_signal_set signal(
       std::make_shared<asio::signal_set>(*_io_context, SIGCHLD));
-  signal->async_wait(
-      [me = shared_from_this(), this](const std::error_code& err, int) {
-        if (!err) {
-          wait_pid();
-        }
-      });
+  signal->async_wait([me = shared_from_this(), this](
+                         const boost::system::error_code& err, int) {
+    if (!err) {
+      wait_pid();
+    }
+  });
   start_second_timer();
 }
 
@@ -59,7 +59,7 @@ void policy::start(const std::string& test_cmd_file) {
 void policy::start_second_timer() {
   _second_timer.expires_from_now(std::chrono::seconds(1));
   _second_timer.async_wait(
-      [me = shared_from_this()](const std::error_code& err) {
+      [me = shared_from_this()](const boost::system::error_code& err) {
         if (!err) {
           me->wait_pid();
           me->start_second_timer();
@@ -157,7 +157,7 @@ void policy::on_quit() {
 void policy::start_end_timer(bool final) {
   _end_timer.expires_from_now(std::chrono::milliseconds(10));
   _end_timer.async_wait([me = shared_from_this(),
-                         final](const std::error_code& err) {
+                         final](const boost::system::error_code& err) {
     if (!err) {
       log::core()->trace("{} checks remaining", checks::check::get_nb_check());
       if (checks::check::get_nb_check()) {

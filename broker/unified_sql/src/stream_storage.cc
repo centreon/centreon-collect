@@ -1023,7 +1023,7 @@ void stream::_check_queues(asio::error_code ec) {
       std::lock_guard<std::mutex> l(_timer_m);
       _queues_timer.expires_after(std::chrono::seconds(5));
       _queues_timer.async_wait(
-          [this](const asio::error_code& err) { _check_queues(err); });
+          [this](const boost::system::error_code& err) { _check_queues(err); });
     } else {
       SPDLOG_LOGGER_INFO(log_v2::sql(),
                          "SQL: check_queues correctly interrupted.");

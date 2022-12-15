@@ -33,7 +33,7 @@
 #include <sstream>
 #include <string>
 
-#include <asio.hpp>
+#include <boost/asio.hpp>
 
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
@@ -42,6 +42,8 @@
 #include <spdlog/spdlog.h>
 
 #include <boost/smart_ptr/shared_array.hpp>
+
+namespace asio = boost::asio;
 
 using shared_io_context = std::shared_ptr<asio::io_context>;
 

@@ -19,12 +19,6 @@
 #include "com/centreon/broker/lua/broker_socket.hh"
 #include <fmt/format.h>
 
-#if ASIO_VERSION < 101200
-namespace asio {
-typedef io_service io_context;
-}
-#endif
-
 using namespace asio;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::lua;
@@ -95,7 +89,8 @@ static int l_broker_socket_connect(lua_State* L) {
     ip::tcp::resolver::iterator end;
     socket_state = connecting;
 
-    std::error_code err{std::make_error_code(std::errc::host_unreachable)};
+    boost::system::error_code err{
+        make_error_code(asio::error::host_unreachable)};
 
     // it can resolve to multiple addresses like ipv4 and ipv6
     // we need to try all to find the first available socket
@@ -117,7 +112,7 @@ static int l_broker_socket_connect(lua_State* L) {
     } else {
       socket_state = connected;
     }
-  } catch (std::system_error const& se) {
+  } catch (boost::system::system_error const& se) {
     socket_state = unconnected;
     luaL_error(
         L, fmt::format("broker_socket::connect: Couldn't connect to {}:{}: {}",
@@ -154,12 +149,12 @@ static int l_broker_socket_write(lua_State* L) {
       luaL_checkudata(L, 1, "lua_broker_tcp_socket"))};
   size_t len;
   char const* content(lua_tolstring(L, 2, &len));
-  std::error_code err;
+  boost::system::error_code err;
 
   asio::write(*socket, asio::buffer(content, len), asio::transfer_all(), err);
 
   if (err) {
-    asio::error_code ec;
+    boost::system::error_code ec;
     auto re{socket->remote_endpoint(ec)};
     if (ec)
       luaL_error(L, fmt::format("broker_socket::write: Unable to get remote "
@@ -186,14 +181,14 @@ static int l_broker_socket_write(lua_State* L) {
 static int l_broker_socket_read(lua_State* L) {
   ip::tcp::socket* socket{*static_cast<ip::tcp::socket**>(
       luaL_checkudata(L, 1, "lua_broker_tcp_socket"))};
-  std::error_code err;
+  boost::system::error_code err;
 
   char* buff = new char[1024];
 
   size_t len = socket->read_some(asio::buffer(buff, 1024), err);
 
   if (err && err != asio::error::eof) {
-    asio::error_code ec;
+    boost::system::error_code ec;
     auto re{socket->remote_endpoint(ec)};
     if (ec)
       luaL_error(L, fmt::format("broker_socket::read: Unable to get remote "

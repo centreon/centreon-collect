@@ -55,7 +55,7 @@ class parser : public std::enable_shared_from_this<parser> {
   virtual void start_read();
   void read_file(const std::string& test_file_path);
 
-  void read_handler(const std::error_code& error,
+  void read_handler(const boost::system::error_code& error,
                     std::size_t bytes_transferred);
 
   virtual void execute(const std::string& cmd) = 0;
@@ -63,7 +63,7 @@ class parser : public std::enable_shared_from_this<parser> {
  public:
   using pointer = std::shared_ptr<parser>;
 
-  static const std::error_code eof_err;  // used by test
+  static const boost::system::error_code eof_err;  // used by test
 
   virtual ~parser() = default;
 

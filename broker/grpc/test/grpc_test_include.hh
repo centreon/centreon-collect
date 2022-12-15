@@ -31,7 +31,7 @@
 
 #include <nlohmann/json.hpp>
 
-#include <asio.hpp>
+#include <boost/asio.hpp>
 
 #include "../src/grpc_stream.pb.h"
 

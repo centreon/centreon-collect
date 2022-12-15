@@ -163,7 +163,7 @@ void pool::_stop() {
  * computation every 10s.
  *
  */
-void pool::_check_latency(asio::error_code ec) {
+void pool::_check_latency(boost::system::error_code ec) {
   if (ec)
     log_v2::core()->info("pool: the latency check encountered an error: {}",
                          ec.message());

@@ -122,7 +122,7 @@ void influxdb::commit() {
       .append(query_footer);
 
   _connect_socket();
-  asio::error_code ec;
+  boost::system::error_code ec;
   auto re{_socket.remote_endpoint(ec)};
   if (ec)
     throw msg_fmt("influxdb: unable to get remote endpoint from socket: {}",
@@ -130,7 +130,7 @@ void influxdb::commit() {
   std::string addr{re.address().to_string()};
   uint16_t port = re.port();
 
-  std::error_code err;
+  boost::system::error_code err;
 
   asio::write(_socket, buffer(final_query), asio::transfer_all(), err);
   if (err)
@@ -180,7 +180,8 @@ void influxdb::_connect_socket() {
     ip::tcp::resolver::iterator it{resolver.resolve(query)};
     ip::tcp::resolver::iterator end;
 
-    std::error_code err{std::make_error_code(std::errc::host_unreachable)};
+    boost::system::error_code err{
+        make_error_code(asio::error::host_unreachable)};
 
     // it can resolve to multiple addresses like ipv4 and ipv6
     // we need to try all to find the first available socket
@@ -199,7 +200,7 @@ void influxdb::_connect_socket() {
           " and port '{}': {}",
           _host, _port, err.message());
     }
-  } catch (std::system_error const& se) {
+  } catch (boost::system::system_error const& se) {
     throw msg_fmt(
         "influxdb: couldn't connect to InfluxDB with address '{}'"
         " and port '{}': {}",

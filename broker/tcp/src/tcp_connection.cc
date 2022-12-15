@@ -198,7 +198,7 @@ void tcp_connection::writing() {
  *
  * @param ec
  */
-void tcp_connection::handle_write(const asio::error_code& ec) {
+void tcp_connection::handle_write(const boost::system::error_code& ec) {
   if (ec) {
     log_v2::tcp()->error("Error while writing on tcp socket: {}", ec.message());
     std::lock_guard<std::mutex> lck(_error_m);
@@ -237,7 +237,7 @@ void tcp_connection::start_reading() {
                              std::placeholders::_1, std::placeholders::_2)));
 }
 
-void tcp_connection::handle_read(const asio::error_code& ec,
+void tcp_connection::handle_read(const boost::system::error_code& ec,
                                  size_t read_bytes) {
   log_v2::tcp()->trace("Incoming data: {} bytes: {}", read_bytes,
                        debug_buf(&_read_buffer[0], read_bytes));
@@ -278,7 +278,7 @@ void tcp_connection::close() {
       std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
     _closed = true;
-    std::error_code ec;
+    boost::system::error_code ec;
     _socket.shutdown(asio::ip::tcp::socket::shutdown_both, ec);
     log_v2::tcp()->trace("socket shutdown with message: {}", ec.message());
     _socket.close(ec);
@@ -395,7 +395,7 @@ const std::string tcp_connection::peer() const {
  *
  * @param ec In case of error this param is filled with the error message.
  */
-void tcp_connection::update_peer(asio::error_code& ec) {
+void tcp_connection::update_peer(boost::system::error_code& ec) {
   if (_socket.is_open()) {
     auto re{_socket.remote_endpoint(ec)};
     if (!ec) {
