@@ -23,7 +23,8 @@
 CCB_BEGIN()
 namespace unified_sql {
 /**
- * @class bulk_queries bulk_queries.hh "com/centreon/broker/unified_sql/bulk_queries.hh"
+ * @class bulk_queries bulk_queries.hh
+ * "com/centreon/broker/unified_sql/bulk_queries.hh"
  * @brief Container for queries. They are stacked in a queue. When the limit
  * size or the limit time is reached, the method ready() becomes true and it
  * is time to execute the execute_queries() method.
@@ -31,20 +32,23 @@ namespace unified_sql {
 class bulk_queries {
   const uint32_t _interval;
   const uint32_t _max_size;
+  const std::string _query;
   mutable std::mutex _queue_m;
   std::time_t _next_queries;
   uint32_t _max_queries = 0u;
   std::deque<std::string> _queue;
 
  public:
-  bulk_queries(const uint32_t max_interval, const uint32_t max_queries);
+  bulk_queries(const uint32_t max_interval,
+               const uint32_t max_queries,
+               const std::string& query);
   std::string get_query();
   void push_query(const std::string& query);
   void push_query(std::string&& query);
   bool ready() const;
   size_t size() const;
 };
-} // namespace unified_sql
+}  // namespace unified_sql
 CCB_END()
 
 #endif /* !CCB_UNIFIED_SQL_BULK_QUERIES_HH */

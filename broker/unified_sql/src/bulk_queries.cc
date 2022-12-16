@@ -16,13 +16,15 @@
 ** For more information : contact@centreon.com
 */
 
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/unified_sql/bulk_queries.hh"
+#include "com/centreon/broker/log_v2.hh"
 
 using namespace com::centreon::broker::unified_sql;
 
-bulk_queries::bulk_queries(const uint32_t max_interval, const uint32_t max_queries) : _interval{max_interval}, _max_size{max_queries} {
-}
+bulk_queries::bulk_queries(const uint32_t max_interval,
+                           const uint32_t max_queries,
+                           const std::string& query)
+    : _interval{max_interval}, _max_size{max_queries}, _query(query) {}
 
 std::string bulk_queries::get_query() {
   std::deque<std::string> queue;
@@ -35,13 +37,7 @@ std::string bulk_queries::get_query() {
   if (!queue.empty()) {
     /* Building the query */
     log_v2::sql()->debug("SQL: {} customvariables sent in bulk", queue.size());
-    query = fmt::format(
-        "INSERT INTO customvariables "
-        "(name,host_id,service_id,modified,update_time,value) VALUES {} "
-        " ON DUPLICATE KEY UPDATE "
-        "modified=VALUES(modified),update_time=VALUES(update_time),value="
-        "VALUES(value)",
-        fmt::join(queue, ","));
+    query = fmt::format(_query, fmt::join(queue, ","));
     log_v2::sql()->trace("sending query << {} >>", query);
   }
   _next_queries += _interval;
@@ -49,13 +45,13 @@ std::string bulk_queries::get_query() {
 }
 
 void bulk_queries::push_query(const std::string& query) {
-    std::lock_guard<std::mutex> lck(_queue_m);
-    _queue.push_back(query);
+  std::lock_guard<std::mutex> lck(_queue_m);
+  _queue.push_back(query);
 }
 
 void bulk_queries::push_query(std::string&& query) {
-    std::lock_guard<std::mutex> lck(_queue_m);
-    _queue.push_back(std::move(query));
+  std::lock_guard<std::mutex> lck(_queue_m);
+  _queue.push_back(std::move(query));
 }
 
 bool bulk_queries::ready() const {

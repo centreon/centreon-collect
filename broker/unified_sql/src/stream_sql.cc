@@ -493,9 +493,6 @@ void stream::_process_custom_variable(const std::shared_ptr<io::data>& d) {
         cv.modified ? 1 : 0, cv.var_type, cv.update_time,
         misc::string::escape(
             cv.value, get_customvariables_col_size(customvariables_value))));
-    /* Here, we do not update the custom variable boolean ack flag, because
-     * it will be updated later when the bulk query will be done:
-     * stream::_update_customvariables() */
   } else {
     int conn = special_conn::custom_variable % _mysql.connections_count();
     _finish_action(-1, actions::custom_variables);
@@ -526,16 +523,13 @@ void stream::_process_custom_variable_status(
   neb::custom_variable_status const& cv{
       *static_cast<neb::custom_variable_status const*>(d.get())};
 
-  {
-    std::lock_guard<std::mutex> lck(_queues_m);
-    _cvs_queue.emplace_back(fmt::format(
-        "('{}',{},{},{},{},'{}')",
-        misc::string::escape(
-            cv.name, get_customvariables_col_size(customvariables_name)),
-        cv.host_id, cv.service_id, cv.modified ? 1 : 0, cv.update_time,
-        misc::string::escape(
-            cv.value, get_customvariables_col_size(customvariables_value))));
-  }
+  _cvs.push_query(fmt::format(
+      "('{}',{},{},{},{},'{}')",
+      misc::string::escape(cv.name,
+                           get_customvariables_col_size(customvariables_name)),
+      cv.host_id, cv.service_id, cv.modified ? 1 : 0, cv.update_time,
+      misc::string::escape(
+          cv.value, get_customvariables_col_size(customvariables_value))));
 
   log_v2::sql()->info("SQL: updating custom variable '{}' of ({}, {})", cv.name,
                       cv.host_id, cv.service_id);
@@ -3402,11 +3396,11 @@ void stream::_process_responsive_instance(const std::shared_ptr<io::data>& d
  */
 void stream::_update_customvariables() {
   // std::deque<std::string> cv_queue;
-  std::deque<std::string> cvs_queue;
+  // std::deque<std::string> cvs_queue;
   {
     std::lock_guard<std::mutex> lck(_queues_m);
     // std::swap(cv_queue, _cv_queue);
-    std::swap(cvs_queue, _cvs_queue);
+    // std::swap(cvs_queue, _cvs_queue);
   }
   int32_t conn = special_conn::custom_variable % _mysql.connections_count();
   _finish_action(conn, actions::custom_variables);
@@ -3426,22 +3420,22 @@ void stream::_update_customvariables() {
   //   log_v2::sql()->debug("{} new custom variables inserted",
   //   cv_queue.size()); log_v2::sql()->trace("sending query << {} >>", query);
   // }
-  if (!cvs_queue.empty()) {
-    /* Building the query */
-    std::string query{fmt::format(
-        "INSERT INTO customvariables "
-        "(name,host_id,service_id,modified,update_time,value) VALUES {} "
-        " ON DUPLICATE KEY UPDATE "
-        "modified=VALUES(modified),update_time=VALUES(update_time),value="
-        "VALUES(value)",
-        fmt::join(cvs_queue, ","))};
-    _mysql.run_query(query, database::mysql_error::update_customvariables,
-                     false, conn);
-    _add_action(conn, actions::custom_variables);
-    log_v2::sql()->debug("{} new custom variable status inserted",
-                         cvs_queue.size());
-    log_v2::sql()->trace("sending query << {} >>", query);
-  }
+  // if (!cvs_queue.empty()) {
+  //  /* Building the query */
+  //  std::string query{fmt::format(
+  //      "INSERT INTO customvariables "
+  //      "(name,host_id,service_id,modified,update_time,value) VALUES {} "
+  //      " ON DUPLICATE KEY UPDATE "
+  //      "modified=VALUES(modified),update_time=VALUES(update_time),value="
+  //      "VALUES(value)",
+  //      fmt::join(cvs_queue, ","))};
+  //  _mysql.run_query(query, database::mysql_error::update_customvariables,
+  //                   false, conn);
+  //  _add_action(conn, actions::custom_variables);
+  //  log_v2::sql()->debug("{} new custom variable status inserted",
+  //                       cvs_queue.size());
+  //  log_v2::sql()->trace("sending query << {} >>", query);
+  //}
 }
 
 /**
