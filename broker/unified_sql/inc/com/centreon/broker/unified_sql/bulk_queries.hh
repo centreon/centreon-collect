@@ -23,11 +23,35 @@
 CCB_BEGIN()
 namespace unified_sql {
 /**
- * @class bulk_queries bulk_queries.hh
- * "com/centreon/broker/unified_sql/bulk_queries.hh"
- * @brief Container for queries. They are stacked in a queue. When the limit
- * size or the limit time is reached, the method ready() becomes true and it
- * is time to execute the execute_queries() method.
+ * @class bulk_queries "com/centreon/broker/unified_sql/bulk_queries.hh"
+ * @brief Container for big queries.
+ *
+ * If for example, we have many custom
+ * variables to insert into the customvariables table, it is the good class to
+ * use. The idea is very simple, the bulk is constructed with an interval in
+ * seconds, a max queries count and a template of the query to execute.
+ * Regularly, we call the method ready(), if it returns true then the limit
+ * time or the max number of rows are reached. And we can get the query to
+ * execute with the get_query() method. Once this last method called, the stack
+ * is empty and ready() will return true once one of the two conditions are
+ * reached again.
+ *
+ * Queries are not done directly by this class because it has no idea of the
+ * connection to use nor the client configuration, it is only a container.
+ *
+ * How it works:
+ * @code
+ * bulk_queries bq(10, 15, "INSERT INTO test (col_a, col_b) VALUES {}");
+ * bq.push_query("\"foo\", \"bar\"");
+ * bq.push_query("\"foo1\", \"bar1\"");
+ * ...
+ * if (bq.ready()) {
+ *   std::string q = bq.get_query();
+ *   mysql->run_query(q);
+ * }
+ * @endcode
+ * The query content is
+ * `INSERT INTO test (col_a, col_b) VALUES ("foo", "bar"), ("foo1", "bar1")`
  */
 class bulk_queries {
   const uint32_t _interval;
@@ -45,7 +69,7 @@ class bulk_queries {
   std::string get_query();
   void push_query(const std::string& query);
   void push_query(std::string&& query);
-  bool ready() const;
+  bool ready();
   size_t size() const;
 };
 }  // namespace unified_sql

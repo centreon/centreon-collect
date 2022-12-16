@@ -21,11 +21,25 @@
 
 using namespace com::centreon::broker::unified_sql;
 
+/**
+ * @brief Constructor
+ *
+ * @param max_interval Interval in seconds to wait before sending a new query.
+ * @param max_queries Max rows to insert/update before sending a new query.
+ * @param query The template of the query to execute, a string with {} telling
+ * where all the contained rows will be inserted.
+ */
 bulk_queries::bulk_queries(const uint32_t max_interval,
                            const uint32_t max_queries,
                            const std::string& query)
     : _interval{max_interval}, _max_size{max_queries}, _query(query) {}
 
+/**
+ * @brief Compute the query to execute as a string and return it. The container
+ * is then initialized.
+ *
+ * @return a string.
+ */
 std::string bulk_queries::get_query() {
   std::deque<std::string> queue;
   {
@@ -44,24 +58,45 @@ std::string bulk_queries::get_query() {
   return query;
 }
 
+/**
+ * @brief Add a new row represented by a string that will be part of the query.
+ *
+ * @param query A string.
+ */
 void bulk_queries::push_query(const std::string& query) {
   std::lock_guard<std::mutex> lck(_queue_m);
   _queue.push_back(query);
 }
 
+/**
+ * @brief Add a new row represented by a string that will be part of the query.
+ *
+ * @param query A string.
+ */
 void bulk_queries::push_query(std::string&& query) {
   std::lock_guard<std::mutex> lck(_queue_m);
   _queue.push_back(std::move(query));
 }
 
-bool bulk_queries::ready() const {
+/**
+ * @brief Return true when the time limit or the row counter are reached with
+ * the condition that there is something to write, the queue must not be empty.
+ *
+ * @return a boolean
+ */
+bool bulk_queries::ready() {
   std::lock_guard<std::mutex> lck(_queue_m);
   if (_queue.size() >= _max_size)
     return true;
 
   std::time_t now = time(nullptr);
-  if (_next_queries <= now)
+  if (_next_queries <= now) {
+    if (_queue.empty()) {
+      _next_queries += _interval;
+      return false;
+    }
     return true;
+  }
   return false;
 }
 

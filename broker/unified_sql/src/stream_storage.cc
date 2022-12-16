@@ -891,13 +891,6 @@ void stream::_check_queues(asio::error_code ec) {
       customvar_done = true;
     }
 
-    //    if (now >= _next_update_cv /*|| sz_cv >= _max_cv_queries */ ||
-    //        sz_cvs >= _max_cv_queries) {
-    //      _next_update_cv = now + queue_timer_duration;
-    //      _update_customvariables();
-    //      customvar_done = true;
-    //    }
-
     bool downtimes_done = false;
     if (now >= _next_update_downtimes || sz_dt >= _max_dt_queries) {
       _next_update_downtimes = now + dt_queue_timer_duration;
