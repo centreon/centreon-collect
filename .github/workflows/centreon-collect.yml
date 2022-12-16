@@ -2,6 +2,10 @@ name: Centreon collect
 
 on:
   workflow_dispatch:
+    outputs:
+      stability:
+        description: "branch stability (stable, testing, unstable, canary)"
+        value: ${{ jobs.create-version.stability }}
   pull_request:
   push:
     branches:
@@ -39,6 +43,23 @@ jobs:
               echo "release=`date +%s`.`echo ${{ github.sha }} | cut -c -7`" >> $GITHUB_OUTPUT
               ;;
           esac
+
+          case "$BRANCHNAME" in
+            develop | dev-[2-9][0-9].[0-9][0-9].x)
+              STABILITY="unstable"
+              ;;
+            release* | hotfix*)
+              STABILITY="testing"
+              ;;
+            master | [2-9][0-9].[0-9][0-9].x)
+              STABILITY="unstable"
+              ;;
+            *)
+              STABILITY="canary"
+              ;;
+          esac
+          echo "stability=$STABILITY" >> $GITHUB_OUTPUT
+
         shell: bash
       - run: |
           echo "ImgVersion is ${{ steps.version.outputs.imgversion }}"
@@ -188,9 +209,10 @@ jobs:
         uses: ./.github/actions/delivery
         with:
           distrib: ${{ matrix.distrib }}
+          repository_name: standard
           version: ${{ env.version }}
-          repos_username: ${{ secrets.REPOS_USERNAME }}
-          repos_password: ${{ secrets.REPOS_PASSWORD }}
+          repos_username: ${{ secrets.NEXUS_USER }}
+          repos_password: ${{ secrets.NEXUS_PASSWD }}
           cache_key: cache-${{ github.sha }}-${{ github.run_id }}
 
   delivery-centos:
