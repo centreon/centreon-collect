@@ -3146,6 +3146,9 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
         b->set_value_as_u64(11, sscr.service_id());
         b->set_value_as_u64(12, sscr.host_id());
         b->next_row();
+        log_v2::sql()->trace(
+            "{} waiting updates for service status in resources",
+            b->current_row());
       } else {
         _sscr_resources_update.bind_value_as_i32(0, sscr.state());
         _sscr_resources_update.bind_value_as_i32(

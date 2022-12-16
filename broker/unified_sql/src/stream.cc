@@ -138,7 +138,6 @@ stream::stream(const database_config& dbcfg,
            " ON DUPLICATE KEY UPDATE "
            "modified=VALUES(modified),update_time=VALUES(update_time),value="
            "VALUES(value)"),
-
       _oldest_timestamp{std::numeric_limits<time_t>::max()} {
   log_v2::sql()->debug("unified sql: stream class instanciation");
   stats::center::instance().execute([stats = _stats,
@@ -149,14 +148,11 @@ stream::stream(const database_config& dbcfg,
   });
   _state = running;
   _action.resize(_mysql.connections_count());
-  _sscr_resources_bind.resize(_mysql.connections_count());
-  _next_update_sscr_resources.resize(_mysql.connections_count(),
-                                     std::time_t(nullptr) + 5);
 
   const char* version = _mysql.get_server_version();
   std::vector<absl::string_view> v =
       absl::StrSplit(version, absl::ByAnyChar(".-"));
-  if (v.size() == 3) {
+  if (v.size() == 4) {
     int32_t major;
     int32_t minor;
     int32_t patch;
@@ -173,7 +169,11 @@ stream::stream(const database_config& dbcfg,
         _bulk_prepared_statement = true;
       }
     }
-  }
+    _sscr_resources_bind.resize(_mysql.connections_count());
+    _next_update_sscr_resources.resize(_mysql.connections_count(),
+                                       std::time_t(nullptr) + 5);
+  } else
+    log_v2::sql()->info("Unified sql stream connected to '{}' Server", version);
 
   try {
     _load_caches();

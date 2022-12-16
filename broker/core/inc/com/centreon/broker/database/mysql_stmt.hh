@@ -19,6 +19,7 @@
 #ifndef CCB_MYSQL_STMT_HH
 #define CCB_MYSQL_STMT_HH
 
+#include <boost/circular_buffer.hpp>
 #include "com/centreon/broker/database/mysql_bind.hh"
 #include "com/centreon/broker/io/data.hh"
 
@@ -46,6 +47,8 @@ class mysql_stmt {
    * invalid_on_minus_one)
    */
   std::vector<std::tuple<std::string, uint32_t, uint16_t>> _pb_mapping;
+
+  boost::circular_buffer<size_t> _hist_size;
 
  public:
   mysql_stmt();

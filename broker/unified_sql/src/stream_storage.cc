@@ -846,11 +846,16 @@ void stream::_check_queues(asio::error_code ec) {
 
     bool service_status_done = false;
     if (_bulk_prepared_statement) {
+      log_v2::sql()->trace("Bulk prepared statement bind size {}",
+                           _sscr_resources_bind.size());
       for (uint32_t conn = 0; conn < _sscr_resources_bind.size(); conn++) {
         auto& b = _sscr_resources_bind[conn];
         if (b) {
           if (now >= _next_update_sscr_resources[conn] ||
               _sscr_resources_bind[conn]->row_count() >= _max_pending_queries) {
+            log_v2::sql()->trace(
+                "Sending {} rows of resource status on connection {}",
+                _sscr_resources_bind[conn]->row_count(), conn);
             _sscr_resources_update.set_bind(std::move(b));
             _mysql.run_statement(_sscr_resources_update,
                                  database::mysql_error::store_service_status,
