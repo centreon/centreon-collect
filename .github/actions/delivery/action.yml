@@ -110,7 +110,7 @@ runs:
           echo "[DEBUG] - Version: $VERSION"
 
           if [[ "${{ env.extfile }}" == "deb" ]] ; then
-            curl -u "${{ inputs.repos_username }}":"${{ inputs.repos_password }}" -H "Content-Type: multipart/form-data" --data-binary "@./$FILE" https://apt.centreon.com/repository/23.04-$SUBREPO/
+            curl -u "${{ inputs.repos_username }}":"${{ inputs.repos_password }}" -H "Content-Type: multipart/form-data" --data-binary "@./$FILE" https://apt.centreon.com/repository/22.10-$SUBREPO/
           else
             #echo "[DEBUG] - https://artifactory.apps.centreon.com/artifactory/rpm-$VERSION-$REPO/$DISTRIB/$REPO/x86_64/centreon-collect"
             #curl -v -u "${{ inputs.repos_username }}":"${{ inputs.repos_password }}" -X PUT "https://artifactory.apps.centreon.com/artifactory/rpm-$VERSION-$REPO/$DISTRIB/$REPO/x86_64/centreon-collect/$FILE" -T "./$FILE"
