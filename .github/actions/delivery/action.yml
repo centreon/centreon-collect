@@ -94,8 +94,15 @@ runs:
             ;;
         esac
 
-        FILES="*.${{ env.extfile }}";
+        FILES="*.${{ env.extfile }}"
 
+        # DEBUG
+        pwd
+        ls -lath
+        cd ..
+        pwd
+        ls -lath
+        
         for FILE in $FILES
         do
           echo "[DEBUG] - File: $FILE"
