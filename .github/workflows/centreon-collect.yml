@@ -39,6 +39,7 @@ jobs:
               echo "release=`date +%s`.`echo ${{ github.sha }} | cut -c -7`" >> $GITHUB_OUTPUT
               ;;
           esac
+
         shell: bash
       - run: |
           echo "ImgVersion is ${{ steps.version.outputs.imgversion }}"
@@ -191,9 +192,10 @@ jobs:
         uses: ./.github/actions/delivery
         with:
           distrib: ${{ matrix.distrib }}
+          repository_name: standard
           version: ${{ env.version }}
-          repos_username: ${{ secrets.REPOS_USERNAME }}
-          repos_password: ${{ secrets.REPOS_PASSWORD }}
+          repos_username: ${{ secrets.NEXUS_USER }}
+          repos_password: ${{ secrets.NEXUS_PASSWD }}
           cache_key: cache-${{ github.sha }}-${{ github.run_id }}
 
   delivery-centos:
