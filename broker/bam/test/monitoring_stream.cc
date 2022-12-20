@@ -28,8 +28,13 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;
 
+extern std::shared_ptr<asio::io_context> g_io_context;
+
 class BamMonitoringStream : public testing::Test {
-  void SetUp() override { config::applier::init(0, "test_broker"); }
+  void SetUp() override {
+    g_io_context->restart();
+    config::applier::init(0, "test_broker");
+  }
   void TearDown() override { config::applier::deinit(); }
 };
 

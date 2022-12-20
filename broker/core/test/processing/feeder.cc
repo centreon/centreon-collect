@@ -29,6 +29,8 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::processing;
 
+extern std::shared_ptr<asio::io_context> g_io_context;
+
 class TestStream : public io::stream {
  public:
   TestStream() : io::stream("TestStream") {}
@@ -44,7 +46,8 @@ class TestFeeder : public ::testing::Test {
 
  public:
   void SetUp() override {
-    pool::load(0);
+    g_io_context->restart();
+    pool::load(g_io_context, 0);
     stats::center::load();
     config::applier::state::load();
     multiplexing::engine::load();

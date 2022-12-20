@@ -155,10 +155,6 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
         std::find_if(endp_to_create.begin(), endp_to_create.end(),
                      name_match_failover(ep.name)) == endp_to_create.end()) {
       log_v2::core()->debug("creating endpoint {}", ep.name);
-      // Create muxer and endpoint.
-      auto mux{std::make_shared<multiplexing::muxer>(
-          ep.name, _filters(ep.read_filters), _filters(ep.write_filters),
-          true)};
       bool is_acceptor;
       std::shared_ptr<io::endpoint> e{_create_endpoint(ep, is_acceptor)};
       std::unique_ptr<processing::endpoint> endp;
@@ -181,8 +177,12 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
         acceptr->set_read_filters(_filters(ep.read_filters));
         acceptr->set_write_filters(_filters(ep.write_filters));
         endp.reset(acceptr.release());
-      } else
+      } else {
+        // Create muxer and endpoint.
+        auto mux{multiplexing::muxer::create(ep.name, _filters(ep.read_filters),
+                                             _filters(ep.write_filters), true)};
         endp.reset(_create_failover(ep, mux, e, endp_to_create));
+      }
       {
         std::lock_guard<std::timed_mutex> lock(_endpointsm);
         _endpoints[ep] = endp.get();
@@ -231,7 +231,7 @@ void endpoint::_discard() {
 
   // Stop multiplexing.
   try {
-    multiplexing::engine::instance().stop();
+    multiplexing::engine::instance_ptr()->stop();
   } catch (const std::exception& e) {
     log_v2::config()->warn("multiplexing engine stop interrupted: {}",
                            e.what());

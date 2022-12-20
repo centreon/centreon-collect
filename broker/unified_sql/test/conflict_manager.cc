@@ -32,10 +32,13 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::sql;
 
+extern std::shared_ptr<asio::io_context> g_io_context;
+
 class USConflictManagerTest : public ::testing::Test {
  public:
   void SetUp() override {
     try {
+      g_io_context->restart();
       config::applier::init(0, "test_broker");
     } catch (std::exception const& e) {
       (void)e;

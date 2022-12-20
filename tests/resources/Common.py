@@ -170,9 +170,10 @@ def stop_mysql():
         getoutput("kill -SIGTERM $(pidof mariadbd)")
         logger.console("Mariadb directly stopped")
 
+
 def stop_rrdcached():
-        getoutput(
-            "kill -9 $(ps ax | grep '.usr.bin.rrdcached' | grep -v grep | awk '{print $1}')")
+    getoutput(
+        "kill -9 $(ps ax | grep '.usr.bin.rrdcached' | grep -v grep | awk '{print $1}')")
 
 
 def kill_broker():
@@ -826,5 +827,3 @@ def find_internal_id(date, exists=True, timeout: int = TIMEOUT):
                         return True
         time.sleep(1)
     return False
-
-print(find_in_log_with_timeout("/tmp/var/log/centreon-broker/central-broker-master.log", "2022-11-29T09:34:41.035", ["Starting the TCP thread pool of 5 threads"], 30))

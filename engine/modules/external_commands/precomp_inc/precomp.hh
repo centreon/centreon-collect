@@ -33,6 +33,8 @@
 
 #include <absl/strings/string_view.h>
 
+#include <asio.hpp>
+
 #include <boost/circular_buffer.hpp>
 #include <boost/container/flat_map.hpp>
 #include <boost/optional.hpp>
