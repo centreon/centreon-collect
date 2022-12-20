@@ -1,5 +1,5 @@
 ##
-## Copyright 2021 Centreon
+## Copyright 2022 Centreon
 ##
 
 Summary: Centreon collect's softwares collection
