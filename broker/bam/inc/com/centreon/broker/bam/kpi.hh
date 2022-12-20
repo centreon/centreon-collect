@@ -19,10 +19,11 @@
 #ifndef CCB_BAM_KPI_HH
 #define CCB_BAM_KPI_HH
 
-#include "bbdo/bam/kpi_event.hh"
 #include "com/centreon/broker/bam/computable.hh"
+#include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/namespace.hh"
+#include "com/centreon/broker/timestamp.hh"
 
 CCB_BEGIN()
 
@@ -42,8 +43,10 @@ class kpi : public computable {
  protected:
   const uint32_t _id;
   const uint32_t _ba_id;
-  std::shared_ptr<kpi_event> _event;
-  std::vector<std::shared_ptr<kpi_event>> _initial_events;
+  absl::optional<KpiEvent> _event;
+  std::vector<KpiEvent> _initial_events;
+
+  void _event_init();
 
  public:
   kpi(uint32_t kpi_id, uint32_t ba_id);
@@ -55,7 +58,7 @@ class kpi : public computable {
   timestamp get_last_state_change() const;
   virtual void impact_hard(impact_values& hard_impact) = 0;
   virtual void impact_soft(impact_values& soft_impact) = 0;
-  virtual void set_initial_event(kpi_event const& e);
+  virtual void set_initial_event(const KpiEvent& e);
   virtual void visit(io::stream* visitor) = 0;
   virtual bool in_downtime() const;
   virtual bool ok_state() const = 0;

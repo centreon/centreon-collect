@@ -105,6 +105,27 @@ class protobuf : public protobuf_base {
    * @param o The protobuf object (it is copied).
    */
   protobuf(const T& o) : protobuf_base(Typ, &_obj), _obj(o) {}
+
+  /**
+   * @brief copy constructor
+   */
+  protobuf(const protobuf& src) : protobuf_base(Typ, &_obj), _obj(src._obj) {}
+
+  /**
+   * @brief move constructor
+   */
+  protobuf(protobuf&& src)
+      : protobuf_base(Typ, &_obj), _obj(std::move(src._obj)) {}
+
+  /**
+   * @brief copy operator
+   *
+   */
+  protobuf& operator=(const protobuf& src) {
+    _obj = src._obj;
+    return *this;
+  }
+
   ~protobuf() noexcept = default;
 
   bool operator==(const this_type& to_cmp) const;
@@ -177,6 +198,13 @@ const io::event_info::event_operations protobuf<T, Typ>::operations{
 template <typename T, uint32_t Typ>
 bool protobuf<T, Typ>::operator==(const protobuf<T, Typ>& to_cmp) const {
   return google::protobuf::util::MessageDifferencer::Equals(_obj, to_cmp._obj);
+}
+
+template <typename T, uint32_t Typ>
+std::ostream& operator<<(std::ostream& st, const protobuf<T, Typ>& to_dump) {
+  st << "type:" << to_dump.static_type() << " content:'"
+     << to_dump.obj().DebugString() << '\'';
+  return st;
 }
 
 }  // namespace io

@@ -18,9 +18,6 @@
 #ifndef CENTREON_BROKER_CORE_INC_COM_CENTREON_BROKER_LOG_V2_HH_
 #define CENTREON_BROKER_CORE_INC_COM_CENTREON_BROKER_LOG_V2_HH_
 
-#include <spdlog/common.h>
-#include <spdlog/spdlog.h>
-
 #include "com/centreon/broker/config/state.hh"
 #include "com/centreon/broker/namespace.hh"
 

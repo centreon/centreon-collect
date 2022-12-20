@@ -168,10 +168,10 @@ void kpi_ba::visit(io::stream* visitor) {
                           last_ba_update);
       }
       // If state changed, close event and open a new one.
-      else if (_ba->get_in_downtime() != _event->in_downtime ||
-               ba_state != _event->status) {
-        _event->end_time = last_ba_update;
-        visitor->write(std::static_pointer_cast<io::data>(_event));
+      else if (_ba->get_in_downtime() != _event->in_downtime() ||
+               ba_state != _event->status()) {
+        _event->set_end_time(last_ba_update.get_time_t());
+        visitor->write(std::make_shared<pb_kpi_event>(*_event));
         _event.reset();
         _open_new_event(visitor, hard_values.get_nominal(), ba_state,
                         last_ba_update);
@@ -257,14 +257,16 @@ void kpi_ba::_open_new_event(io::stream* visitor,
                              int impact,
                              com::centreon::broker::State ba_state,
                              const timestamp& event_start_time) {
-  _event = std::make_shared<kpi_event>(_id, _ba_id, event_start_time);
-  _event->impact_level = impact;
-  _event->in_downtime = _ba->get_in_downtime();
-  _event->output = _ba->get_output();
-  _event->perfdata = _ba->get_perfdata();
-  _event->status = ba_state;
+  _event_init();
+  _event->set_start_time(event_start_time.get_time_t());
+  _event->set_end_time(-1);
+  _event->set_impact_level(impact);
+  _event->set_in_downtime(_ba->get_in_downtime());
+  _event->set_output(_ba->get_output());
+  _event->set_perfdata(_ba->get_perfdata());
+  _event->set_status(com::centreon::broker::State(ba_state));
   if (visitor)
-    visitor->write(std::make_shared<kpi_event>(*_event));
+    visitor->write(std::make_shared<pb_kpi_event>(*_event));
 }
 
 /**

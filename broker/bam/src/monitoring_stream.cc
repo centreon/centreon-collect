@@ -190,7 +190,7 @@ void monitoring_stream::update() {
  *  @return Number of events acknowledged.
  */
 int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
-  SPDLOG_LOGGER_TRACE(log_v2::bam(), "BAM: monitoring_stream write");
+  SPDLOG_LOGGER_TRACE(log_v2::bam(), "BAM: monitoring_stream write ");
   // Take this event into account.
   ++_pending_events;
   if (!validate(data, get_name()))
@@ -232,7 +232,7 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
       auto& o = s->obj();
       SPDLOG_LOGGER_TRACE(
           log_v2::bam(),
-          "BAM: processing pb service status (host: {}, service: {}, hard "
+          "BAM: processing pb service (host: {}, service: {}, hard "
           "state {}, current state {})",
           o.host_id(), o.service_id(), o.last_hard_state(), o.state());
       multiplexing::publisher pblshr;
@@ -243,9 +243,9 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
     case neb::pb_acknowledgement::static_type(): {
       std::shared_ptr<neb::pb_acknowledgement> ack(
           std::static_pointer_cast<neb::pb_acknowledgement>(data));
-      log_v2::bam()->trace(
-          "BAM: processing acknowledgement on service ({}, {})",
-          ack->obj().host_id(), ack->obj().service_id());
+      SPDLOG_LOGGER_TRACE(log_v2::bam(),
+                          "BAM: processing acknowledgement on service ({}, {})",
+                          ack->obj().host_id(), ack->obj().service_id());
       multiplexing::publisher pblshr;
       event_cache_visitor ev_cache;
       _applier.book_service().update(ack, &ev_cache);
@@ -532,7 +532,7 @@ void monitoring_stream::_rebuild() {
 void monitoring_stream::_explicitly_send_forced_svc_checks(
     const asio::error_code& ec) {
   static int count = 0;
-  log_v2::bam()->error("BAM: time to send forced service checks {}", count++);
+  SPDLOG_LOGGER_DEBUG(log_v2::bam(),"BAM: time to send forced service checks {}", count++);
   if (!ec) {
     if (_timer_forced_svc_checks.empty()) {
       std::lock_guard<std::mutex> lck(_forced_svc_checks_m);

@@ -17,6 +17,7 @@
 */
 
 #include "com/centreon/broker/bam/bool_binary_operator.hh"
+#include "com/centreon/broker/log_v2.hh"
 
 using namespace com::centreon::broker::bam;
 
@@ -79,6 +80,12 @@ bool bool_binary_operator::child_has_update(computable* child,
       double value_soft(_left->value_soft());
       if (std::abs(_left_hard - value_hard) > ::eps ||
           std::abs(_left_soft - value_soft) > ::eps) {
+        SPDLOG_LOGGER_TRACE(log_v2::bam(),
+                            "{}::child_has_update old_soft_left={} "
+                            "old_hard_left={}, new soft_left={}, new "
+                            "hard_left={}, soft_right={}, hard_right={}",
+                            typeid(*this).name(), _left_soft, _left_hard,
+                            value_soft, value_hard, _right_soft, _right_hard);
         _left_hard = value_hard;
         _left_soft = value_soft;
         retval = true;
@@ -88,6 +95,12 @@ bool bool_binary_operator::child_has_update(computable* child,
       double value_soft(_right->value_soft());
       if (std::abs(_right_hard - value_hard) > ::eps ||
           std::abs(_right_soft - value_soft) > ::eps) {
+        SPDLOG_LOGGER_TRACE(log_v2::bam(),
+                            "{}::child_has_update old_soft_right={} "
+                            "old_hard_right={}, new soft_right={}, new "
+                            "hard_right={}, soft_left={}, hard_left={}",
+                            typeid(*this).name(), _right_soft, _right_hard,
+                            value_soft, value_hard, _left_soft, _left_hard);
         _right_hard = value_hard;
         _right_soft = value_soft;
         retval = true;

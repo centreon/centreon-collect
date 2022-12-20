@@ -55,4 +55,15 @@ message BaEvent {
     State status = 6; 
 }
 
+message KpiEvent {
+    uint32 ba_id = 1;
+    uint64 start_time = 2;
+    int64 end_time = 3;
+    uint32 kpi_id = 4;
+    int32  impact_level = 5;
+    bool in_downtime = 6;
+    string output = 7;
+    string perfdata = 8;
+    State status = 9;
+}
 

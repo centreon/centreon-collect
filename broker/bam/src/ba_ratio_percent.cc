@@ -50,7 +50,9 @@ ba_ratio_percent::ba_ratio_percent(uint32_t id,
          host_id,
          service_id,
          configuration::ba::state_source_ratio_percent,
-         generate_virtual_status) {}
+         generate_virtual_status) {
+  _level_hard = _level_soft = 0;
+}
 
 /**
  *  Get BA hard state.

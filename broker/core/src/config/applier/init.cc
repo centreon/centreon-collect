@@ -29,6 +29,9 @@
 
 #include <asio.hpp>
 
+#include <spdlog/fmt/ostr.h>
+#include <spdlog/spdlog.h>
+
 #include "com/centreon/broker/config/applier/init.hh"
 
 #include "com/centreon/broker/config/applier/endpoint.hh"

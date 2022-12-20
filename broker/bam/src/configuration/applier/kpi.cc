@@ -347,7 +347,7 @@ void applier::kpi::_resolve_kpi(configuration::kpi const& cfg,
   }
 
   // Link KPI with BA.
-  if (cfg.get_opened_event().kpi_id != 0)
+  if (cfg.get_opened_event().kpi_id() != 0)
     kpi->set_initial_event(cfg.get_opened_event());
 
   my_ba->add_impact(kpi);

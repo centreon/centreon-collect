@@ -351,7 +351,7 @@ void kpi_service::service_update(const std::shared_ptr<neb::downtime>& dt,
     _downtimed = !_downtime_ids.empty();
   }
 
-  if (!_event || _event->in_downtime != _downtimed) {
+  if (!_event || _event->in_downtime() != _downtimed) {
     _last_check = _downtimed ? dt->actual_start_time : dt->actual_end_time;
     log_v2::bam()->trace("kpi service {} update, last check set to {}", _id,
                          _last_check);
@@ -403,7 +403,7 @@ void kpi_service::service_update(const std::shared_ptr<neb::pb_downtime>& dt,
     _downtimed = !_downtime_ids.empty();
   }
 
-  if (!_event || _event->in_downtime != _downtimed) {
+  if (!_event || _event->in_downtime() != _downtimed) {
     _last_check =
         _downtimed ? downtime.actual_start_time() : downtime.actual_end_time();
     log_v2::bam()->trace("kpi service {} update, last check set to {}", _id,
@@ -522,15 +522,16 @@ void kpi_service::visit(io::stream* visitor) {
         }
       }
       // If state changed, close event and open a new one.
-      else if (_last_check >= _event->start_time &&
-               (_downtimed != _event->in_downtime ||
-                _state_hard != _event->status)) {
+      else if (_last_check.get_time_t() >= _event->start_time() &&
+               (_downtimed != _event->in_downtime() ||
+                _state_hard != _event->status())) {
         log_v2::bam()->trace(
             "BAM: kpi_service::visit event needs update downtime: {}, state: "
             "{}",
-            _downtimed != _event->in_downtime, _state_hard != _event->status);
-        _event->end_time = _last_check;
-        visitor->write(std::static_pointer_cast<io::data>(_event));
+            _downtimed != _event->in_downtime(),
+            _state_hard != _event->status());
+        _event->set_end_time(_last_check);
+        visitor->write(std::make_shared<pb_kpi_event>(std::move(*_event)));
         _open_new_event(visitor, hard_values);
       }
     }
@@ -585,21 +586,22 @@ void kpi_service::_fill_impact(impact_values& impact, state state) {
  */
 void kpi_service::_open_new_event(io::stream* visitor,
                                   impact_values const& impacts) {
-  _event = std::make_shared<kpi_event>(_id, _ba_id, _last_check);
-  _event->impact_level =
-      _downtimed ? impacts.get_downtime() : impacts.get_nominal();
-  _event->in_downtime = _downtimed;
-  _event->output = _output;
-  _event->perfdata = _perfdata;
-  _event->status = _state_hard;
+  _event_init();
+  _event->set_start_time(_last_check.get_time_t());
+  _event->set_end_time(-1);
+  _event->set_impact_level(_downtimed ? impacts.get_downtime()
+                                      : impacts.get_nominal());
+  _event->set_in_downtime(_downtimed);
+  _event->set_output(_output);
+  _event->set_perfdata(_perfdata);
+  _event->set_status(com::centreon::broker::State(_state_hard));
   log_v2::bam()->trace(
       "BAM: New BI event for kpi {}, ba {}, in downtime {} since {}", _id,
       _ba_id, _downtimed, _last_check);
   if (visitor) {
     /* We make a real copy because the writing into the DB is asynchronous and
      * so the event could have changed... */
-    std::shared_ptr<io::data> ke{std::make_shared<kpi_event>(*_event)};
-    visitor->write(ke);
+    visitor->write(std::make_shared<pb_kpi_event>(*_event));
   }
 }
 
@@ -608,14 +610,14 @@ void kpi_service::_open_new_event(io::stream* visitor,
  *
  *  @param[in] e  the event.
  */
-void kpi_service::set_initial_event(kpi_event const& e) {
+void kpi_service::set_initial_event(const KpiEvent& e) {
   kpi::set_initial_event(e);
   log_v2::bam()->trace(
       "BAM: set initial event from kpi event {} (start time {} ; in downtime "
       "{})",
-      _event->kpi_id, _event->start_time, _event->in_downtime);
-  _last_check = _event->start_time;
-  _downtimed = _event->in_downtime;
+      _event->kpi_id(), _event->start_time(), _event->in_downtime());
+  _last_check = _event->start_time();
+  _downtimed = _event->in_downtime();
 }
 
 /**

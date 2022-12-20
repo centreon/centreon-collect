@@ -180,7 +180,8 @@ enum data_element {
   de_inherited_downtime,
   de_pb_inherited_downtime = 18,
   de_pb_ba_status = 19,
-  de_pb_ba_event = 20
+  de_pb_ba_event = 20,
+  de_pb_kpi_event = 21
 };
 }
 constexpr uint32_t make_type(io::data_category cat, uint32_t elem) {

@@ -35,6 +35,9 @@
 
 #include <asio.hpp>
 
+#include <spdlog/fmt/ostr.h>
+#include <spdlog/spdlog.h>
+
 #include "com/centreon/broker/brokerrpc.hh"
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/config/applier/state.hh"
@@ -282,8 +285,8 @@ int main(int argc, char* argv[]) {
         while (!gl_term) {
           std::this_thread::sleep_for(std::chrono::seconds(1));
         }
-        log_v2::core()->info(
-            "main: termination request received by process {}", getpid());
+        log_v2::core()->info("main: termination request received by process {}",
+                             getpid());
       }
       // Unload endpoints.
       config::applier::deinit();

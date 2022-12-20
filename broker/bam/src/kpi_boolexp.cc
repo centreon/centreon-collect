@@ -43,13 +43,13 @@ bool kpi_boolexp::child_has_update(computable* child, io::stream* visitor) {
   // It is useless to maintain a cache of boolean expression values in
   // this class, as the bool_expression class already cache most of them.
   if (child == _boolexp.get()) {
-    // Logging.
-    log_v2::bam()->debug(
-        "BAM: boolean expression KPI {} is getting notified of child update",
-        _id);
-
+    state old_state = _get_state();
     // Generate status event.
     visit(visitor);
+    log_v2::bam()->debug(
+        "BAM: boolean expression KPI {} is getting notified of child update "
+        "old_state={}, new_state={}",
+        _id, old_state, _get_state());
   }
   return true;
 }
@@ -139,9 +139,9 @@ void kpi_boolexp::visit(io::stream* visitor) {
       if (!_event)
         _open_new_event(visitor, values.get_nominal(), state);
       // If state changed, close event and open a new one.
-      else if (state != _event->status) {
-        _event->end_time = ::time(nullptr);
-        visitor->write(std::static_pointer_cast<io::data>(_event));
+      else if (state != _event->status()) {
+        _event->set_end_time(::time(nullptr));
+        visitor->write(std::make_shared<pb_kpi_event>(std::move(*_event)));
         _event.reset();
         _open_new_event(visitor, values.get_nominal(), state);
       }
@@ -195,14 +195,16 @@ void kpi_boolexp::_fill_impact(impact_values& impact) {
 void kpi_boolexp::_open_new_event(io::stream* visitor,
                                   int impact,
                                   state state) {
-  _event = std::make_shared<kpi_event>(_id, _ba_id, ::time(nullptr));
-  _event->impact_level = impact;
-  _event->in_downtime = false;
-  _event->output = "BAM boolean expression computed by Centreon Broker";
-  _event->perfdata = "";
-  _event->status = state;
+  _event_init();
+  _event->set_start_time(time(nullptr));
+  _event->set_end_time(-1);
+  _event->set_impact_level(impact);
+  _event->set_in_downtime(false);
+  _event->set_output("BAM boolean expression computed by Centreon Broker");
+  _event->set_perfdata("");
+  _event->set_status(com::centreon::broker::State(state));
   if (visitor) {
-    visitor->write(_event);
+    visitor->write(std::make_shared<pb_kpi_event>(*_event));
   }
 }
 
@@ -220,7 +222,7 @@ state kpi_boolexp::_get_state() const {
     return _boolexp->get_state();
   else {
     if (_event)
-      return static_cast<state>(_event->status);
+      return static_cast<state>(_event->status());
     else
       return _boolexp->get_state();
   }
