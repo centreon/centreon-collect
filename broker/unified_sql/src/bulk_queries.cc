@@ -54,7 +54,7 @@ std::string bulk_queries::get_query() {
     query = fmt::format(_query, fmt::join(queue, ","));
     log_v2::sql()->trace("sending query << {} >>", query);
   }
-  _next_queries += _interval;
+  _next_time = std::time(nullptr) + _interval;
   return query;
 }
 
@@ -90,9 +90,9 @@ bool bulk_queries::ready() {
     return true;
 
   std::time_t now = time(nullptr);
-  if (_next_queries <= now) {
+  if (_next_time <= now) {
     if (_queue.empty()) {
-      _next_queries += _interval;
+      _next_time = std::time(nullptr) + _interval;
       return false;
     }
     return true;
@@ -108,4 +108,9 @@ bool bulk_queries::ready() {
 size_t bulk_queries::size() const {
   std::lock_guard<std::mutex> lck(_queue_m);
   return _queue.size();
+}
+
+std::time_t bulk_queries::next_time() const {
+  std::lock_guard<std::mutex> lck(_queue_m);
+  return _next_time;
 }

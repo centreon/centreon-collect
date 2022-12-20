@@ -58,7 +58,7 @@ class bulk_queries {
   const uint32_t _max_size;
   const std::string _query;
   mutable std::mutex _queue_m;
-  std::time_t _next_queries;
+  std::time_t _next_time;
   uint32_t _max_queries = 0u;
   std::deque<std::string> _queue;
 
@@ -71,6 +71,7 @@ class bulk_queries {
   void push_query(std::string&& query);
   bool ready();
   size_t size() const;
+  std::time_t next_time() const;
 };
 }  // namespace unified_sql
 CCB_END()

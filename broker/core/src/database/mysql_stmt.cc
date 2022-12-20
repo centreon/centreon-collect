@@ -114,7 +114,7 @@ std::unique_ptr<mysql_bind> mysql_stmt::create_bind() {
     for (int v : _hist_size) {
       avg += v;
     }
-    _reserved_size = avg / _hist_size.size();
+    _reserved_size = avg / _hist_size.size() + 1;
   }
   log_v2::sql()->trace("new mysql bind with {} rows", _reserved_size);
   auto retval = std::make_unique<mysql_bind>(_param_count, 0, _reserved_size);
@@ -123,7 +123,6 @@ std::unique_ptr<mysql_bind> mysql_stmt::create_bind() {
 
 void mysql_stmt::set_bind(std::unique_ptr<mysql_bind>&& bind) {
   _bind = std::move(bind);
-  _current_row = _bind->current_row();
 }
 
 /**
@@ -133,7 +132,6 @@ mysql_stmt::mysql_stmt(mysql_stmt&& other)
     : _id(std::move(other._id)),
       _param_count(std::move(other._param_count)),
       _query(std::move(other._query)),
-      _current_row(std::move(other._current_row)),
       _reserved_size(std::move(other._reserved_size)),
       _bind(std::move(other._bind)),
       _bind_mapping(other._bind_mapping) {}
@@ -187,7 +185,8 @@ int mysql_stmt::get_id() const {
 }
 
 std::unique_ptr<database::mysql_bind> mysql_stmt::get_bind() {
-  _hist_size.push_back(_current_row);
+  if (_bind)
+    _hist_size.push_back(_bind->row_count());
   return std::move(_bind);
 }
 
@@ -468,7 +467,6 @@ void mysql_stmt::bind_value_as_i32(int range, int value) {
   if (!_bind) {
     _bind =
         std::make_unique<database::mysql_bind>(_param_count, 0, _reserved_size);
-    _bind->set_current_row(_current_row);
   }
   _bind->set_value_as_i32(range, value);
 }
@@ -500,7 +498,6 @@ void mysql_stmt::bind_value_as_u32(int range, uint32_t value) {
   if (!_bind) {
     _bind =
         std::make_unique<database::mysql_bind>(_param_count, 0, _reserved_size);
-    _bind->set_current_row(_current_row);
   }
   _bind->set_value_as_u32(range, value);
 }
@@ -538,7 +535,6 @@ void mysql_stmt::bind_value_as_i64(int range, int64_t value) {
   if (!_bind) {
     _bind =
         std::make_unique<database::mysql_bind>(_param_count, 0, _reserved_size);
-    _bind->set_current_row(_current_row);
   }
   _bind->set_value_as_i64(range, value);
 }
@@ -582,7 +578,6 @@ void mysql_stmt::bind_value_as_u64(int range, uint64_t value) {
   if (!_bind) {
     _bind =
         std::make_unique<database::mysql_bind>(_param_count, 0, _reserved_size);
-    _bind->set_current_row(_current_row);
   }
   _bind->set_value_as_u64(range, value);
 }
@@ -626,7 +621,6 @@ void mysql_stmt::bind_value_as_f32(int range, float value) {
   if (!_bind) {
     _bind =
         std::make_unique<database::mysql_bind>(_param_count, 0, _reserved_size);
-    _bind->set_current_row(_current_row);
   }
   _bind->set_value_as_f32(range, value);
 }
@@ -664,7 +658,6 @@ void mysql_stmt::bind_value_as_f64(int range, double value) {
   if (!_bind) {
     _bind =
         std::make_unique<database::mysql_bind>(_param_count, 0, _reserved_size);
-    _bind->set_current_row(_current_row);
   }
   _bind->set_value_as_f64(range, value);
 }
@@ -696,7 +689,6 @@ void mysql_stmt::bind_value_as_tiny(int range, char value) {
   if (!_bind) {
     _bind =
         std::make_unique<database::mysql_bind>(_param_count, 0, _reserved_size);
-    _bind->set_current_row(_current_row);
   }
   _bind->set_value_as_tiny(range, value);
 }
@@ -728,7 +720,6 @@ void mysql_stmt::bind_value_as_bool(int range, bool value) {
   if (!_bind) {
     _bind =
         std::make_unique<database::mysql_bind>(_param_count, 0, _reserved_size);
-    _bind->set_current_row(_current_row);
   }
   _bind->set_value_as_bool(range, value);
 }
@@ -760,7 +751,6 @@ void mysql_stmt::bind_value_as_str(int range, const fmt::string_view& value) {
   if (!_bind) {
     _bind =
         std::make_unique<database::mysql_bind>(_param_count, 0, _reserved_size);
-    _bind->set_current_row(_current_row);
   }
   _bind->set_value_as_str(range, value);
 }
@@ -792,7 +782,6 @@ void mysql_stmt::bind_value_as_null(int range) {
   if (!_bind) {
     _bind =
         std::make_unique<database::mysql_bind>(_param_count, 0, _reserved_size);
-    _bind->set_current_row(_current_row);
   }
   _bind->set_value_as_null(range);
 }
@@ -831,14 +820,8 @@ void mysql_stmt::set_pb_mapping(
   _pb_mapping = std::move(mapping);
 }
 
-void mysql_stmt::set_current_row(int row) {
-  _current_row = row;
-  if (_bind)
-    _bind->set_current_row(row);
-}
-
 void mysql_stmt::set_row_count(size_t size) {
   _reserved_size = size;
   if (_bind)
-    _bind->set_row_count(size);
+    _bind->reserve(size);
 }

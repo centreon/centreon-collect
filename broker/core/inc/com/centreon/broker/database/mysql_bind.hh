@@ -42,8 +42,6 @@ class mysql_bind {
   // A vector telling if bindings are already typed or not.
   std::vector<bool> _typed;
 
-  bool _is_empty;
-
  public:
   mysql_bind();
   mysql_bind(int size, int length = 0, size_t row_count = 1);
@@ -69,16 +67,15 @@ class mysql_bind {
   void set_value_as_str(int range, const fmt::string_view& value);
   int get_size() const;
   bool value_is_null(int range) const;
-  bool is_empty() const;
-  void set_empty(bool empty);
+  bool empty() const;
+  void set_empty();
   int get_rows_count() const;
 
-  MYSQL_BIND const* get_bind() const;
+  const MYSQL_BIND* get_bind() const;
   MYSQL_BIND* get_bind();
-  void set_current_row(int row);
   size_t current_row() const;
   void next_row();
-  void set_row_count(size_t size);
+  void reserve(size_t size);
   size_t row_count() const;
 
   void debug();

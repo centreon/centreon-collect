@@ -313,9 +313,9 @@ bool mysql_result::value_is_null(int idx) {
  *
  * @return true if it is empty, false otherwise.
  */
-bool mysql_result::is_empty() const {
+bool mysql_result::empty() const {
   if (_bind)
-    return _bind->is_empty();
+    return _bind->empty();
   else
     return _row == nullptr;
 }

@@ -30,9 +30,7 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
 
-mysql_bind::mysql_bind() {
-  set_size(0);
-}
+mysql_bind::mysql_bind() {}
 
 /**
  *  Constructor
@@ -342,23 +340,26 @@ void mysql_bind::debug() {
         break;
       case MYSQL_TYPE_DOUBLE: {
         std::cout << "DOUBLE : "
-                  << " : "
-                  << "BL: " << _bind[i].buffer_length
+                     " : "
+                     "BL: "
+                  << _bind[i].buffer_length
                   << " NULL: " << (*_bind[i].is_null ? "1" : "0") << " : "
                   << *static_cast<double*>(_column[i].get_buffer())
                   << std::endl;
       } break;
       case MYSQL_TYPE_FLOAT: {
         std::cout << "FLOAT : "
-                  << " : "
-                  << "BL: " << _bind[i].buffer_length
+                     " : "
+                     "BL: "
+                  << _bind[i].buffer_length
                   << " NULL: " << (*_bind[i].is_null ? "1" : "0") << " : "
                   << *static_cast<float*>(_column[i].get_buffer()) << std::endl;
       } break;
       default:
         std::cout << _bind[i].buffer_type << " : "
                   << " : "
-                  << "BL: " << _bind[i].buffer_length << " : "
+                     "BL: "
+                  << _bind[i].buffer_length << " : "
                   << "TYPE NOT MANAGED...\n";
         assert(1 == 0);  // Should not arrive...
         break;
@@ -367,8 +368,8 @@ void mysql_bind::debug() {
   }
 }
 
-bool mysql_bind::is_empty() const {
-  return _is_empty;
+bool mysql_bind::empty() const {
+  return _column[0].array_size() == 0;
 }
 
 MYSQL_BIND const* mysql_bind::get_bind() const {
@@ -391,24 +392,24 @@ int mysql_bind::get_size() const {
  */
 int mysql_bind::get_rows_count() const {
   return _column[0].array_size();
-  // return _is_empty ? 0 : 1;
 }
 
-void mysql_bind::set_empty(bool empty) {
-  _is_empty = empty;
-}
-
-void mysql_bind::set_current_row(int32_t row) {
-  _current_row = row;
+/**
+ * @brief Empty the bind. Actually, the current_row is set to -1.
+ */
+void mysql_bind::set_empty() {
+  for (auto& c : _column)
+    c.clear();
+  _current_row = 0;
 }
 
 size_t mysql_bind::current_row() const {
   return _current_row;
 }
 
-void mysql_bind::set_row_count(size_t size) {
+void mysql_bind::reserve(size_t size) {
   for (auto& c : _column)
-    c.resize_column(size);
+    c.reserve(size);
 }
 
 void mysql_bind::next_row() {
