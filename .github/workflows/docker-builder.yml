@@ -51,8 +51,6 @@ jobs:
           - project: collect
             distrib: alma8
           - project: collect
-            distrib: debian-buster
-          - project: collect
             distrib: debian-bullseye
           - project: gorgone
             distrib: centos7
