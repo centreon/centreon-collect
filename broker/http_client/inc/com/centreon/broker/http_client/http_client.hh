@@ -26,11 +26,12 @@ CCB_BEGIN()
 namespace http_client {
 
 class client : public std::enable_shared_from_this<client> {
+ protected:
   std::shared_ptr<asio::io_context> _io_context;
   std::shared_ptr<spdlog::logger> _logger;
   http_config::pointer _conf;
 
-  using connection_cont = boost::container::flat_set<connection::pointer>;
+  using connection_cont = boost::container::flat_set<connection_base::pointer>;
   connection_cont _not_connected_conns;
   connection_cont _keep_alive_conns;
   connection_cont _busy_conns;
@@ -55,27 +56,33 @@ class client : public std::enable_shared_from_this<client> {
 
   mutable std::mutex _protect;
 
+  using connection_creator = std::function<connection_base::pointer(
+      const std::shared_ptr<asio::io_context>& io_context,
+      const std::shared_ptr<spdlog::logger>& logger,
+      const http_config::pointer& conf)>;
+
   client(const std::shared_ptr<asio::io_context>& io_context,
          const std::shared_ptr<spdlog::logger>& logger,
          const http_config::pointer& conf,
-         unsigned max_connections);
+         unsigned max_connections,
+         connection_creator conn_creator);
 
   bool connect();
 
   void on_connect(const boost::beast::error_code& error,
                   const std::string& detail,
-                  connection::pointer conn);
+                  connection_base::pointer conn);
 
   void on_sent(const boost::beast::error_code& error,
                const std::string& detail,
                const cb_request::pointer& request,
                const response_ptr& response,
-               connection::pointer conn);
+               connection_base::pointer conn);
 
   void start_retry_connect_timer();
   void retry_connect_timer_handler(const boost::system::error_code& err);
 
-  void send_first_queue_request(connection::pointer conn);
+  void send_first_queue_request(connection_base::pointer conn);
 
  public:
   using pointer = std::shared_ptr<client>;
@@ -83,7 +90,8 @@ class client : public std::enable_shared_from_this<client> {
   static pointer load(const std::shared_ptr<asio::io_context>& io_context,
                       const std::shared_ptr<spdlog::logger>& logger,
                       const http_config::pointer& conf,
-                      unsigned max_connections);
+                      unsigned max_connections,
+                      connection_creator conn_creator = http_connection::load);
 
   bool send(const request_ptr& request, send_callback_type&& callback);
 

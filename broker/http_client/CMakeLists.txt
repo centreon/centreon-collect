@@ -17,21 +17,24 @@
 #
 
 # Global options.
-set(INC_DIR "inc/com/centreon/broker/http_client")
+
+set(INC_DIR "${PROJECT_SOURCE_DIR}/http_client/inc/com/centreon/broker/http_client")
 set(SRC_DIR "src")
-set(TEST_DIR "test")
+set(TEST_DIR "${PROJECT_SOURCE_DIR}/http_client/test")
 include_directories(${INC_DIR})
 
 # Sources.
 set(SOURCES
   ${SRC_DIR}/http_client.cc
   ${SRC_DIR}/http_connection.cc
+  ${SRC_DIR}/https_connection.cc
 )
 
 # Headers.
 set(HEADERS
   ${INC_DIR}/http_client.hh
   ${INC_DIR}/http_connection.hh
+  ${INC_DIR}/https_connection.hh
   ${INC_DIR}/http_config.hh
 )
 
@@ -41,9 +44,10 @@ target_include_directories(http_client PRIVATE ${INC_DIR})
 target_precompile_headers(http_client PRIVATE precomp_inc/precomp.hh)
 
 # Testing.
-# if(WITH_TESTING)
-# set(TESTS_SOURCES
-# ${TESTS_SOURCES} ${TEST_DIR}/acceptor.cc ${TEST_DIR}/channel_test.cc
-# ${TEST_DIR}/stream_test.cc ${TEST_DIR}/factory_test.cc
-# PARENT_SCOPE)
-# endif(WITH_TESTING)
+if(WITH_TESTING)
+  set(TESTS_SOURCES
+    ${TESTS_SOURCES}
+    ${TEST_DIR}/http_connection_test.cc
+    ${TEST_DIR}/http_client_test.cc
+    PARENT_SCOPE)
+endif(WITH_TESTING)

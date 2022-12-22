@@ -31,6 +31,7 @@ class http_config {
   unsigned _second_tcp_keep_alive_interval;
   duration _max_retry_interval;
   unsigned _max_send_retry;
+  duration _default_http_keepalive_duration;
 
  public:
   using pointer = std::shared_ptr<http_config>;
@@ -42,14 +43,17 @@ class http_config {
               duration receive_timeout = std::chrono::seconds(30),
               unsigned second_tcp_keep_alive_interval = 30,
               duration max_retry_interval = std::chrono::seconds(10),
-              unsigned max_send_retry = 5)
+              unsigned max_send_retry = 5,
+              duration default_http_keepalive_duration = std::chrono::hours(1))
       : _endpoint(endpoint),
+        _crypted(crypted),
         _connect_timeout(connect_timeout),
         _send_timeout(send_timeout),
         _receive_timeout(receive_timeout),
         _second_tcp_keep_alive_interval(second_tcp_keep_alive_interval),
         _max_retry_interval(max_retry_interval),
-        _max_send_retry(max_send_retry) {}
+        _max_send_retry(max_send_retry),
+        _default_http_keepalive_duration(default_http_keepalive_duration) {}
 
   const asio::ip::tcp::endpoint& get_endpoint() const { return _endpoint; }
   bool is_crypted() const { return _crypted; }
@@ -61,6 +65,9 @@ class http_config {
   }
   const duration& get_max_retry_interval() const { return _max_retry_interval; }
   unsigned get_max_send_retry() const { return _max_send_retry; }
+  const duration& get_default_http_keepalive_duration() const {
+    return _default_http_keepalive_duration;
+  }
 };
 
 };  // namespace http_client

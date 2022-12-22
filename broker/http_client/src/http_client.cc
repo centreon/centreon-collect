@@ -29,7 +29,8 @@ static constexpr duration _min_retry_interval(std::chrono::milliseconds(100));
 client::client(const std::shared_ptr<asio::io_context>& io_context,
                const std::shared_ptr<spdlog::logger>& logger,
                const http_config::pointer& conf,
-               unsigned max_connections)
+               unsigned max_connections,
+               connection_creator conn_creator)
     : _io_context(io_context),
       _logger(logger),
       _conf(conf),
@@ -42,7 +43,7 @@ client::client(const std::shared_ptr<asio::io_context>& io_context,
   _keep_alive_conns.reserve(max_connections);
   _busy_conns.reserve(max_connections);
   for (; max_connections > 0; --max_connections) {
-    _not_connected_conns.insert(connection::load(io_context, logger, conf));
+    _not_connected_conns.insert(conn_creator(io_context, logger, conf));
   }
 }
 
@@ -50,8 +51,10 @@ client::pointer client::load(
     const std::shared_ptr<asio::io_context>& io_context,
     const std::shared_ptr<spdlog::logger>& logger,
     const http_config::pointer& conf,
-    unsigned max_connections) {
-  return pointer(new client(io_context, logger, conf, max_connections));
+    unsigned max_connections,
+    connection_creator conn_creator) {
+  return pointer(
+      new client(io_context, logger, conf, max_connections, conn_creator));
 }
 
 /**
@@ -67,7 +70,7 @@ bool client::send(const request_ptr& request, send_callback_type&& callback) {
   time_point now = system_clock::now();
 
   connection_cont::iterator conn_iter;
-  connection::pointer conn;
+  connection_base::pointer conn;
   cb_request::pointer req(std::make_shared<cb_request>(callback, request));
 
   // shudown keepalive passed connections
@@ -75,6 +78,8 @@ bool client::send(const request_ptr& request, send_callback_type&& callback) {
        conn_iter != _keep_alive_conns.end();) {
     conn = *conn_iter;
     if (conn->get_keep_alive_end() <= now) {  // http keepalive ended
+      SPDLOG_LOGGER_DEBUG(_logger, "end of keepalive for {:p}",
+                          static_cast<void*>(conn.get()));
       conn->shutdown();
       conn_iter = _keep_alive_conns.erase(conn_iter);
     } else {
@@ -86,13 +91,15 @@ bool client::send(const request_ptr& request, send_callback_type&& callback) {
     // search the oldest keep alive
     conn_iter = std::min_element(
         _keep_alive_conns.begin(), _keep_alive_conns.end(),
-        [](const connection::pointer& left,
-           const connection::pointer& right) -> bool {
+        [](const connection_base::pointer& left,
+           const connection_base::pointer& right) -> bool {
           return left->get_keep_alive_end() < right->get_keep_alive_end();
         });
     conn = *conn_iter;
     _keep_alive_conns.erase(conn_iter);
     _busy_conns.insert(conn);
+    SPDLOG_LOGGER_DEBUG(_logger, "reuse of {:p}",
+                        static_cast<void*>(conn.get()));
     conn->send(request, [me = shared_from_this(), conn, req](
                             const boost::beast::error_code& error,
                             const std::string& detail,
@@ -117,9 +124,11 @@ bool client::send(const request_ptr& request, send_callback_type&& callback) {
  */
 bool client::connect() {
   if (!_not_connected_conns.empty()) {
-    connection::pointer conn = *_not_connected_conns.begin();
+    connection_base::pointer conn = *_not_connected_conns.begin();
     _not_connected_conns.erase(_not_connected_conns.begin());
     _busy_conns.insert(conn);
+    SPDLOG_LOGGER_DEBUG(_logger, "connection of {:p}",
+                        static_cast<void*>(conn.get()));
     conn->connect(
         [me = shared_from_this(), conn](const boost::beast::error_code& error,
                                         const std::string& detail) mutable {
@@ -135,9 +144,11 @@ bool client::connect() {
  * beware, this method don't lock _protect
  *
  */
-void client::send_first_queue_request(connection::pointer conn) {
+void client::send_first_queue_request(connection_base::pointer conn) {
   cb_request::pointer first(std::move(_queue.front()));
   _queue.pop_front();
+  SPDLOG_LOGGER_DEBUG(_logger, "send on {:p}", static_cast<void*>(conn.get()));
+
   conn->send(first->request, [me = shared_from_this(), conn, first](
                                  const boost::beast::error_code& error,
                                  const std::string& detail,
@@ -148,9 +159,10 @@ void client::send_first_queue_request(connection::pointer conn) {
 
 void client::on_connect(const boost::beast::error_code& error,
                         const std::string& detail,
-                        connection::pointer conn) {
+                        connection_base::pointer conn) {
   if (error) {
-    SPDLOG_LOGGER_ERROR(_logger, "fail to connect {}: {}", error.message(),
+    SPDLOG_LOGGER_ERROR(_logger, "{:p} fail to connect {}: {}",
+                        static_cast<void*>(conn.get()), error.message(),
                         detail);
     conn->shutdown();
     lock_guard l(_protect);
@@ -172,6 +184,9 @@ void client::on_connect(const boost::beast::error_code& error,
     conn->shutdown();
     return;
   }
+  SPDLOG_LOGGER_DEBUG(_logger, "{:p} connected",
+                      static_cast<void*>(conn.get()));
+
   send_first_queue_request(conn);
 }
 
@@ -179,10 +194,11 @@ void client::on_sent(const boost::beast::error_code& error,
                      const std::string& detail,
                      const cb_request::pointer& request,
                      const response_ptr& response,
-                     connection::pointer conn) {
+                     connection_base::pointer conn) {
   cb_request::pointer to_call;
   if (error) {
-    SPDLOG_LOGGER_ERROR(_logger, "fail to send request => push front");
+    SPDLOG_LOGGER_ERROR(_logger, "{:p} fail to send request",
+                        static_cast<void*>(conn.get()));
     conn->shutdown();
     {
       lock_guard l(_protect);
@@ -192,7 +208,9 @@ void client::on_sent(const boost::beast::error_code& error,
         _busy_conns.erase(conn);
         _not_connected_conns.insert(conn);
         if (request->retry_counter++ < _conf->get_max_send_retry()) {
-          SPDLOG_LOGGER_ERROR(_logger, "fail to send request => push front");
+          SPDLOG_LOGGER_ERROR(_logger,
+                              "{:p} fail to send request => push front",
+                              static_cast<void*>(conn.get()));
           _queue.push_front(request);
         } else {
           to_call = request;
@@ -206,18 +224,28 @@ void client::on_sent(const boost::beast::error_code& error,
       to_call->callback(error, detail, response);
     }
   } else {
+    SPDLOG_LOGGER_DEBUG(_logger, "response received on {:p}",
+                        static_cast<void*>(conn.get()));
     {
       lock_guard l(_protect);
       if (!_halt) {
-        if (conn->get_keep_alive_end() >
-            system_clock::now()) {  // connection available for next requests?
+        if (conn->get_state() == connection_base::e_idle &&
+            conn->get_keep_alive_end() >
+                system_clock::now()) {  // connection available for next
+                                        // requests?
           if (_queue.empty()) {
+            SPDLOG_LOGGER_DEBUG(_logger, "nothing to send {:p} wait",
+                                static_cast<void*>(conn.get()));
             _keep_alive_conns.insert(conn);
             _busy_conns.erase(conn);
           } else {
+            SPDLOG_LOGGER_DEBUG(_logger, "recycle of {:p}",
+                                static_cast<void*>(conn.get()));
             send_first_queue_request(conn);
           }
         } else {
+          SPDLOG_LOGGER_DEBUG(_logger, "no keepalive {:p} shutdown",
+                              static_cast<void*>(conn.get()));
           conn->shutdown();
           _not_connected_conns.insert(conn);
           _busy_conns.erase(conn);
@@ -263,10 +291,10 @@ void client::shutdown() {
   SPDLOG_LOGGER_INFO(_logger, "client::shutdown {}", *_conf);
   lock_guard l(_protect);
   _retry_timer.cancel();
-  for (connection::pointer& conn : _keep_alive_conns) {
+  for (connection_base::pointer& conn : _keep_alive_conns) {
     conn->shutdown();
   }
-  for (connection::pointer& conn : _busy_conns) {
+  for (connection_base::pointer& conn : _busy_conns) {
     conn->shutdown();
   }
   _not_connected_conns.clear();

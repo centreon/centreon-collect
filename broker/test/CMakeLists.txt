@@ -41,6 +41,7 @@ include_directories(${PROJECT_SOURCE_DIR}/tcp/inc)
 include_directories(${PROJECT_SOURCE_DIR}/tls/inc)
 include_directories(${PROJECT_SOURCE_DIR}/tls2/inc)
 include_directories(${PROJECT_SOURCE_DIR}/grpc/inc)
+include_directories(${PROJECT_SOURCE_DIR}/http_client/inc)
 include_directories(${PROJECT_SOURCE_DIR}/test/test_util/inc)
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/test/test_util)

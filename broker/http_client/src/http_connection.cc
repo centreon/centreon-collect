@@ -22,58 +22,79 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::http_client;
 
-/**
- * @brief this option set the interval in seconds between two keepalive sent
- *
- */
-using tcp_keep_alive_interval =
-    asio::detail::socket_option::integer<IPPROTO_TCP, TCP_KEEPINTVL>;
-
-/**
- * @brief this option set the delay after the first keepalive will be sent
- *
- */
-using tcp_keep_alive_idle =
-    asio::detail::socket_option::integer<IPPROTO_TCP, TCP_KEEPIDLE>;
-
-static std::string state_to_str(unsigned state) {
+std::string connection_base::state_to_str(unsigned state) {
   switch (state) {
-    case connection::e_state::e_not_connected:
+    case http_connection::e_state::e_not_connected:
       return "e_not_connected";
-    case connection::e_state::e_connecting:
+    case http_connection::e_state::e_connecting:
       return "e_connecting";
-    case connection::e_state::e_idle:
+    case http_connection::e_state::e_idle:
       return "e_idle";
-    case connection::e_state::e_send:
+    case http_connection::e_state::e_send:
       return "e_send";
-    case connection::e_state::e_receive:
+    case http_connection::e_state::e_receive:
       return "e_receive";
     default:
       return fmt::format("unknown state {}", state);
   }
 }
 
-connection::connection(const std::shared_ptr<asio::io_context>& io_context,
-                       const std::shared_ptr<spdlog::logger>& logger,
-                       const http_config::pointer& conf)
-    : _io_context(io_context),
-      _logger(logger),
-      _state(e_not_connected),
-      _socket(boost::beast::net::make_strand(*io_context)),
-      _conf(conf) {
-  SPDLOG_LOGGER_DEBUG(_logger, "create connection to {}", *conf);
+static const std::regex keep_alive_time_out_r("timeout\\s*=\\s*(\\d+)");
+
+void connection_base::gest_keepalive(const response_ptr& resp) {
+  if (!resp->keep_alive()) {
+    SPDLOG_LOGGER_DEBUG(_logger, "recv response {} no keep alive => shutdown",
+                        *_conf);
+    shutdown();
+  } else {
+    auto keep_alive_info = resp->find(boost::beast::http::field::keep_alive);
+    if (keep_alive_info != resp->end()) {
+      std::match_results<boost::beast::string_view::const_iterator> res;
+      if (std::regex_search(keep_alive_info->value().begin(),
+                            keep_alive_info->value().end(), res,
+                            keep_alive_time_out_r)) {
+        uint second_duration;
+        if (absl::SimpleAtoi(res[1].str(), &second_duration)) {
+          _keep_alive_end =
+              system_clock::now() + std::chrono::seconds(second_duration);
+        } else {
+          _keep_alive_end = system_clock::now() +
+                            _conf->get_default_http_keepalive_duration();
+        }
+      } else {  // no keep alive limit
+        _keep_alive_end =
+            system_clock::now() + _conf->get_default_http_keepalive_duration();
+      }
+    } else {  // no keep alive limit
+      _keep_alive_end =
+          system_clock::now() + _conf->get_default_http_keepalive_duration();
+    }
+    SPDLOG_LOGGER_DEBUG(_logger, "recv response {} keep alive until {}", *_conf,
+                        std::chrono::duration_cast<std::chrono::seconds>(
+                            _keep_alive_end.time_since_epoch())
+                            .count());
+  }
 }
 
-connection::~connection() {
-  SPDLOG_LOGGER_DEBUG(_logger, "delete connection to {}", *_conf);
+http_connection::http_connection(
+    const std::shared_ptr<asio::io_context>& io_context,
+    const std::shared_ptr<spdlog::logger>& logger,
+    const http_config::pointer& conf)
+    : connection_base(io_context, logger, conf),
+      _socket(boost::beast::net::make_strand(*io_context)) {
+  SPDLOG_LOGGER_DEBUG(_logger, "create http_connection to {}", *conf);
+}
+
+http_connection::~http_connection() {
+  SPDLOG_LOGGER_DEBUG(_logger, "delete http_connection to {}", *_conf);
   shutdown();
 }
 
-connection::pointer connection::load(
+http_connection::pointer http_connection::load(
     const std::shared_ptr<asio::io_context>& io_context,
     const std::shared_ptr<spdlog::logger>& logger,
     const http_config::pointer& conf) {
-  return pointer(new connection(io_context, logger, conf));
+  return pointer(new http_connection(io_context, logger, conf));
 }
 
 #define BAD_CONNECT_STATE_ERROR(error_string)                      \
@@ -85,13 +106,13 @@ connection::pointer connection::load(
   });                                                              \
   return;
 
-void connection::connect(connect_callback_type&& callback) {
+void http_connection::connect(connect_callback_type&& callback) {
   unsigned expected = e_not_connected;
   if (!_state.compare_exchange_strong(expected, e_connecting)) {
     BAD_CONNECT_STATE_ERROR("can connect to {}, bad state {}");
   }
 
-  SPDLOG_LOGGER_DEBUG(_logger, "connect to {}", _conf);
+  SPDLOG_LOGGER_DEBUG(_logger, "connect to {}", *_conf);
   _socket.expires_after(_conf->get_connect_timeout());
   _socket.async_connect(
       _conf->get_endpoint(),
@@ -99,8 +120,8 @@ void connection::connect(connect_callback_type&& callback) {
           const boost::beast::error_code& err) { me->on_connect(err, cb); });
 }
 
-void connection::on_connect(const boost::beast::error_code& err,
-                            const connect_callback_type& callback) {
+void http_connection::on_connect(const boost::beast::error_code& err,
+                                 const connect_callback_type& callback) {
   if (err) {
     std::string detail = fmt::format("fail connect to {}: {}",
                                      _conf->get_endpoint(), err.message());
@@ -147,7 +168,7 @@ void connection::on_connect(const boost::beast::error_code& err,
   });                                                             \
   return;
 
-void connection::send(request_ptr request, send_callback_type&& callback) {
+void http_connection::send(request_ptr request, send_callback_type&& callback) {
   unsigned expected = e_idle;
   if (!_state.compare_exchange_strong(expected, e_send)) {
     BAD_SEND_STATE_ERROR("send to {}, bad state {}");
@@ -163,9 +184,9 @@ void connection::send(request_ptr request, send_callback_type&& callback) {
           size_t bytes_transfered) mutable { me->on_sent(err, request, cb); });
 }
 
-void connection::on_sent(const boost::beast::error_code& err,
-                         request_ptr request,
-                         send_callback_type& callback) {
+void http_connection::on_sent(const boost::beast::error_code& err,
+                              request_ptr request,
+                              send_callback_type& callback) {
   if (err) {
     std::string detail =
         fmt::format("fail send {} to {}: {}", *request, *_conf, err.message());
@@ -195,12 +216,10 @@ void connection::on_sent(const boost::beast::error_code& err,
       });
 }
 
-static const std::regex keep_alive_time_out_r("timeout\\s*=\\s*(\\d+)");
-
-void connection::on_read(const boost::beast::error_code& err,
-                         const request_ptr& request,
-                         send_callback_type& callback,
-                         const response_ptr& resp) {
+void http_connection::on_read(const boost::beast::error_code& err,
+                              const request_ptr& request,
+                              send_callback_type& callback,
+                              const response_ptr& resp) {
   if (err) {
     std::string detail = fmt::format("fail receive {} from {}: {}", *request,
                                      *_conf, err.message());
@@ -221,41 +240,14 @@ void connection::on_read(const boost::beast::error_code& err,
   } else {
     SPDLOG_LOGGER_DEBUG(_logger, "recv response from {} {}", *_conf, *resp);
   }
-  if (!resp->keep_alive()) {
-    SPDLOG_LOGGER_DEBUG(_logger, "recv response {} no keep alive => shutdown",
-                        *_conf);
-    shutdown();
-  } else {
-    auto keep_alive_info = resp->find(boost::beast::http::field::keep_alive);
-    if (keep_alive_info != resp->end()) {
-      std::match_results<boost::beast::string_view::const_iterator> res;
-      if (std::regex_search(keep_alive_info->value().begin(),
-                            keep_alive_info->value().end(), res,
-                            keep_alive_time_out_r)) {
-        uint second_duration;
-        if (absl::SimpleAtoi(res[1].str(), &second_duration)) {
-          _keep_alive_end =
-              system_clock::now() + std::chrono::seconds(second_duration);
-        } else {
-          _keep_alive_end = system_clock::now() + std::chrono::hours(1);
-        }
-      } else {  // no keep alive limit
-        _keep_alive_end = system_clock::now() + std::chrono::hours(1);
-      }
-    } else {  // no keep alive limit
-      _keep_alive_end = system_clock::now() + std::chrono::hours(1);
-    }
-    SPDLOG_LOGGER_DEBUG(_logger, "recv response {} keep alive until {}", *_conf,
-                        std::chrono::duration_cast<std::chrono::seconds>(
-                            _keep_alive_end.time_since_epoch())
-                            .count());
-  }
+  gest_keepalive(resp);
 
   callback(err, {}, resp);
 }
 
-void connection::shutdown() {
-  SPDLOG_LOGGER_DEBUG(_logger, "shutdown {}", _conf);
+void http_connection::shutdown() {
+  SPDLOG_LOGGER_DEBUG(_logger, "shutdown {}", *_conf);
+  _state = e_not_connected;
   boost::system::error_code err;
   _socket.socket().shutdown(boost::asio::socket_base::shutdown_both, err);
   _socket.close();

@@ -36,14 +36,31 @@ using send_callback_type = std::function<void(const boost::beast::error_code&,
                                               const std::string&,
                                               const response_ptr&)>;
 
-class connection : public std::enable_shared_from_this<connection> {
-  std::shared_ptr<asio::io_context> _io_context;
-  std::shared_ptr<spdlog::logger> _logger;
+using connect_callback_type =
+    std::function<void(const boost::beast::error_code&, const std::string&)>;
 
+/**
+ * @brief this option set the interval in seconds between two keepalive sent
+ *
+ */
+using tcp_keep_alive_interval =
+    asio::detail::socket_option::integer<IPPROTO_TCP, TCP_KEEPINTVL>;
+
+/**
+ * @brief this option set the delay after the first keepalive will be sent
+ *
+ */
+using tcp_keep_alive_idle =
+    asio::detail::socket_option::integer<IPPROTO_TCP, TCP_KEEPIDLE>;
+
+class connection_base : public std::enable_shared_from_this<connection_base> {
+ protected:
   std::atomic_uint _state;
   time_point _keep_alive_end;
 
-  boost::beast::tcp_stream _socket;
+  std::shared_ptr<asio::io_context> _io_context;
+  std::shared_ptr<spdlog::logger> _logger;
+
   std::mutex _socket_m;
 
   boost::beast::flat_buffer _recv_buffer;
@@ -51,15 +68,42 @@ class connection : public std::enable_shared_from_this<connection> {
   http_config::pointer _conf;
 
  public:
-  using connect_callback_type =
-      std::function<void(const boost::beast::error_code&, const std::string&)>;
-
   enum e_state { e_not_connected, e_connecting, e_idle, e_send, e_receive };
 
+  using pointer = std::shared_ptr<connection_base>;
+
+  connection_base(const std::shared_ptr<asio::io_context>& io_context,
+                  const std::shared_ptr<spdlog::logger>& logger,
+                  const http_config::pointer& conf)
+      : _state(e_not_connected),
+        _io_context(io_context),
+        _logger(logger),
+        _conf(conf) {}
+
+  static std::string state_to_str(unsigned state);
+
+  virtual ~connection_base() {}
+
+  virtual void shutdown() = 0;
+
+  virtual void connect(connect_callback_type&& callback) = 0;
+
+  virtual void send(request_ptr request, send_callback_type&& callback) = 0;
+
+  e_state get_state() const { return e_state(_state.load()); }
+
+  time_point get_keep_alive_end() const { return _keep_alive_end; }
+
+  void gest_keepalive(const response_ptr& response);
+};
+
+class http_connection : public connection_base {
+  boost::beast::tcp_stream _socket;
+
  protected:
-  connection(const std::shared_ptr<asio::io_context>& io_context,
-             const std::shared_ptr<spdlog::logger>& logger,
-             const http_config::pointer& conf);
+  http_connection(const std::shared_ptr<asio::io_context>& io_context,
+                  const std::shared_ptr<spdlog::logger>& logger,
+                  const http_config::pointer& conf);
 
   void on_connect(const boost::beast::error_code& err,
                   const connect_callback_type& callback);
@@ -74,27 +118,22 @@ class connection : public std::enable_shared_from_this<connection> {
                const response_ptr& resp);
 
  public:
-  using pointer = std::shared_ptr<connection>;
+  std::shared_ptr<http_connection> shared_from_this() {
+    return std::static_pointer_cast<http_connection>(
+        connection_base::shared_from_this());
+  }
 
   static pointer load(const std::shared_ptr<asio::io_context>& io_context,
                       const std::shared_ptr<spdlog::logger>& logger,
                       const http_config::pointer& conf);
 
-  ~connection();
+  ~http_connection();
 
-  void shutdown();
+  void shutdown() override;
 
-  void connect(connect_callback_type&& callback);
+  void connect(connect_callback_type&& callback) override;
 
-  void send(request_ptr request, send_callback_type&& callback);
-
-  e_state get_state() const { return e_state(_state.load()); }
-
-  bool available(const time_point& now) {
-    return _state == e_idle && _keep_alive_end > now;
-  }
-
-  time_point get_keep_alive_end() const { return _keep_alive_end; }
+  void send(request_ptr request, send_callback_type&& callback) override;
 };
 
 }  // namespace http_client
