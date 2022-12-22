@@ -26,6 +26,12 @@ CCB_BEGIN()
 namespace http_client {
 
 class client : public std::enable_shared_from_this<client> {
+ public:
+  using connection_creator = std::function<connection_base::pointer(
+      const std::shared_ptr<asio::io_context>& io_context,
+      const std::shared_ptr<spdlog::logger>& logger,
+      const http_config::pointer& conf)>;
+
  protected:
   std::shared_ptr<asio::io_context> _io_context;
   std::shared_ptr<spdlog::logger> _logger;
@@ -56,15 +62,9 @@ class client : public std::enable_shared_from_this<client> {
 
   mutable std::mutex _protect;
 
-  using connection_creator = std::function<connection_base::pointer(
-      const std::shared_ptr<asio::io_context>& io_context,
-      const std::shared_ptr<spdlog::logger>& logger,
-      const http_config::pointer& conf)>;
-
   client(const std::shared_ptr<asio::io_context>& io_context,
          const std::shared_ptr<spdlog::logger>& logger,
          const http_config::pointer& conf,
-         unsigned max_connections,
          connection_creator conn_creator);
 
   bool connect();
@@ -90,7 +90,6 @@ class client : public std::enable_shared_from_this<client> {
   static pointer load(const std::shared_ptr<asio::io_context>& io_context,
                       const std::shared_ptr<spdlog::logger>& logger,
                       const http_config::pointer& conf,
-                      unsigned max_connections,
                       connection_creator conn_creator = http_connection::load);
 
   bool send(const request_ptr& request, send_callback_type&& callback);

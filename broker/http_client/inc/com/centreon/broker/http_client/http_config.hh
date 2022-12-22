@@ -32,6 +32,7 @@ class http_config {
   duration _max_retry_interval;
   unsigned _max_send_retry;
   duration _default_http_keepalive_duration;
+  unsigned _max_connections;
 
  public:
   using pointer = std::shared_ptr<http_config>;
@@ -44,7 +45,8 @@ class http_config {
               unsigned second_tcp_keep_alive_interval = 30,
               duration max_retry_interval = std::chrono::seconds(10),
               unsigned max_send_retry = 5,
-              duration default_http_keepalive_duration = std::chrono::hours(1))
+              duration default_http_keepalive_duration = std::chrono::hours(1),
+              unsigned max_connections = 10)
       : _endpoint(endpoint),
         _crypted(crypted),
         _connect_timeout(connect_timeout),
@@ -53,7 +55,8 @@ class http_config {
         _second_tcp_keep_alive_interval(second_tcp_keep_alive_interval),
         _max_retry_interval(max_retry_interval),
         _max_send_retry(max_send_retry),
-        _default_http_keepalive_duration(default_http_keepalive_duration) {}
+        _default_http_keepalive_duration(default_http_keepalive_duration),
+        _max_connections(max_connections) {}
 
   const asio::ip::tcp::endpoint& get_endpoint() const { return _endpoint; }
   bool is_crypted() const { return _crypted; }
@@ -68,6 +71,7 @@ class http_config {
   const duration& get_default_http_keepalive_duration() const {
     return _default_http_keepalive_duration;
   }
+  unsigned get_max_connections() const { return _max_connections; }
 };
 
 };  // namespace http_client
@@ -92,6 +96,9 @@ struct formatter<com::centreon::broker::http_client::http_config> {
                      conf.is_crypted());
   }
 };
+
+template <>
+struct formatter<asio::ip::tcp::endpoint> : ostream_formatter {};
 
 }  // namespace fmt
 

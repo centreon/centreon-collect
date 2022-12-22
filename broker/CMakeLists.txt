@@ -522,7 +522,9 @@ add_broker_module(TLS ON)
 add_broker_module(TLS2 OFF)
 add_broker_module(DUMP OFF)
 add_broker_module(GRPC ON)
+add_broker_module(VICTORIA_METRICS ON)
 add_subdirectory(http_client)
+add_subdirectory(http_tsdb)
 
 # Lua module.
 option(WITH_MODULE_LUA "Build lua module." ON)

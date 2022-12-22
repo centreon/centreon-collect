@@ -140,4 +140,16 @@ class http_connection : public connection_base {
 
 CCB_END()
 
+namespace fmt {
+
+template <>
+struct formatter<com::centreon::broker::http_client::request_type>
+    : ostream_formatter {};
+
+template <>
+struct formatter<com::centreon::broker::http_client::response_type>
+    : ostream_formatter {};
+
+}  // namespace fmt
+
 #endif  // CCB_HTTP_CLIENT_CONNEXION_HH__

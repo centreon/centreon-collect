@@ -1,0 +1,82 @@
+/*
+** Copyright 2022 Centreon
+**
+** Licensed under the Apache License, Version 2.0 (the "License");
+** you may not use this file except in compliance with the License.
+** You may obtain a copy of the License at
+**
+**     http://www.apache.org/licenses/LICENSE-2.0
+**
+** Unless required by applicable law or agreed to in writing, software
+** distributed under the License is distributed on an "AS IS" BASIS,
+** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+** See the License for the specific language governing permissions and
+** limitations under the License.
+**
+** For more information : contact@centreon.com
+*/
+
+#ifndef CCB_VICTORIA_METRICS_STREAM_HH
+#define CCB_VICTORIA_METRICS_STREAM_HH
+
+#include "com/centreon/broker/io/stream.hh"
+#include "com/centreon/broker/namespace.hh"
+#include "com/centreon/broker/persistent_cache.hh"
+
+CCB_BEGIN()
+
+// Forward declaration.
+class database_config;
+
+namespace victoria_metrics {
+/**
+ *  @class stream stream.hh "com/centreon/broker/influxdb/stream.hh"
+ *  @brief Influxdb stream.
+ *
+ *  Insert metrics into influxdb.
+ */
+class stream : public io::stream {
+  // Database parameters
+  const std::string _user;
+  const std::string _password;
+  const std::string _address;
+  const std::string _db;
+  uint32_t _queries_per_transaction;
+  std::unique_ptr<influxdb> _influx_db;
+
+  // Internal working members
+  int _pending_queries;
+  uint32_t _actual_query;
+  bool _commit;
+
+  // Cache
+  macro_cache _cache;
+
+  // Status members
+  std::string _status;
+  mutable std::mutex _statusm;
+
+ public:
+  stream(std::string const& user,
+         std::string const& passwd,
+         std::string const& addr,
+         unsigned short port,
+         std::string const& db,
+         uint32_t queries_per_transaction,
+         std::string const& status_ts,
+         std::vector<column> const& status_cols,
+         std::string const& metric_ts,
+         std::vector<column> const& metric_cols,
+         std::shared_ptr<persistent_cache> const& cache);
+  ~stream();
+  int flush() override;
+  bool read(std::shared_ptr<io::data>& d, time_t deadline) override;
+  void statistics(nlohmann::json& tree) const override;
+  int write(std::shared_ptr<io::data> const& d) override;
+  int32_t stop() override;
+};
+}  // namespace victoria_metrics
+
+CCB_END()
+
+#endif  // !CCB_VICTORIA_METRICS_STREAM_HH

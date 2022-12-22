@@ -29,7 +29,6 @@ static constexpr duration _min_retry_interval(std::chrono::milliseconds(100));
 client::client(const std::shared_ptr<asio::io_context>& io_context,
                const std::shared_ptr<spdlog::logger>& logger,
                const http_config::pointer& conf,
-               unsigned max_connections,
                connection_creator conn_creator)
     : _io_context(io_context),
       _logger(logger),
@@ -39,10 +38,10 @@ client::client(const std::shared_ptr<asio::io_context>& io_context,
       _retry_interval(_min_retry_interval),
       _halt(false) {
   SPDLOG_LOGGER_INFO(_logger, "client::client {}", *_conf);
-  _not_connected_conns.reserve(max_connections);
-  _keep_alive_conns.reserve(max_connections);
-  _busy_conns.reserve(max_connections);
-  for (; max_connections > 0; --max_connections) {
+  _not_connected_conns.reserve(conf->get_max_connections());
+  _keep_alive_conns.reserve(conf->get_max_connections());
+  _busy_conns.reserve(conf->get_max_connections());
+  for (unsigned cpt = 0; cpt < conf->get_max_connections(); ++cpt) {
     _not_connected_conns.insert(conn_creator(io_context, logger, conf));
   }
 }
@@ -51,10 +50,8 @@ client::pointer client::load(
     const std::shared_ptr<asio::io_context>& io_context,
     const std::shared_ptr<spdlog::logger>& logger,
     const http_config::pointer& conf,
-    unsigned max_connections,
     connection_creator conn_creator) {
-  return pointer(
-      new client(io_context, logger, conf, max_connections, conn_creator));
+  return pointer(new client(io_context, logger, conf, conn_creator));
 }
 
 /**

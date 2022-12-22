@@ -107,17 +107,16 @@ class connection_ok : public connection_base {
 
 TEST_F(http_client_test, many_request_use_all_connection) {
   std::vector<std::shared_ptr<connection_ok>> conns;
-  client::pointer clt =
-      client::load(io_context, log_v2::tcp(),
-                   std::make_shared<http_config>(test_endpoint), 10,
-                   [&conns](const std::shared_ptr<asio::io_context>& io_context,
-                            const std::shared_ptr<spdlog::logger>& logger,
-                            const http_config::pointer& conf) {
-                     auto dummy_conn = std::make_shared<connection_ok>(
-                         io_context, logger, conf);
-                     conns.push_back(dummy_conn);
-                     return dummy_conn;
-                   });
+  client::pointer clt = client::load(
+      io_context, log_v2::tcp(), std::make_shared<http_config>(test_endpoint),
+      [&conns](const std::shared_ptr<asio::io_context>& io_context,
+               const std::shared_ptr<spdlog::logger>& logger,
+               const http_config::pointer& conf) {
+        auto dummy_conn =
+            std::make_shared<connection_ok>(io_context, logger, conf);
+        conns.push_back(dummy_conn);
+        return dummy_conn;
+      });
 
   request_ptr request(std::make_shared<request_type>());
 
@@ -151,17 +150,16 @@ TEST_F(http_client_test, many_request_use_all_connection) {
 
 TEST_F(http_client_test, recycle_connection) {
   std::vector<std::shared_ptr<connection_ok>> conns;
-  client::pointer clt =
-      client::load(io_context, log_v2::tcp(),
-                   std::make_shared<http_config>(test_endpoint), 10,
-                   [&conns](const std::shared_ptr<asio::io_context>& io_context,
-                            const std::shared_ptr<spdlog::logger>& logger,
-                            const http_config::pointer& conf) {
-                     auto dummy_conn = std::make_shared<connection_ok>(
-                         io_context, logger, conf);
-                     conns.push_back(dummy_conn);
-                     return dummy_conn;
-                   });
+  client::pointer clt = client::load(
+      io_context, log_v2::tcp(), std::make_shared<http_config>(test_endpoint),
+      [&conns](const std::shared_ptr<asio::io_context>& io_context,
+               const std::shared_ptr<spdlog::logger>& logger,
+               const http_config::pointer& conf) {
+        auto dummy_conn =
+            std::make_shared<connection_ok>(io_context, logger, conf);
+        conns.push_back(dummy_conn);
+        return dummy_conn;
+      });
 
   struct sender {
     request_ptr request = std::make_shared<request_type>();
