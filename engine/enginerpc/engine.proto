@@ -113,6 +113,16 @@ service Engine {
   rpc EnableNotifications(google.protobuf.Empty) returns (CommandSuccess) {}
   rpc DisableServiceNotifications(ServiceIdentifier) returns (CommandSuccess) {}
   rpc EnableServiceNotifications(ServiceIdentifier) returns (CommandSuccess) {}
+
+  rpc GetLogInfo(google.protobuf.Empty) returns(LogInfo) {}
+  /**
+  * @brief Set a param of loggers.
+  *
+  * @param A message with a logger and a level as strings.
+  *
+  * @return nothing.
+  */
+  rpc SetLogParam(LogParam) returns (GenericString) {}
 }
 
 message GenericString {
@@ -533,4 +543,23 @@ message ChangeObjectCustomVar {
   string contact = 3;
   string varname = 4;
   string varvalue = 5;
+}
+
+message LogInfo {
+  message LoggerInfo {
+    string log_file = 1;
+    map<string, string> level = 2;
+  }
+  repeated LoggerInfo loggers = 1;
+}
+
+message LogParam {
+  enum LogParamType {
+    NONE =0;
+    FLUSH_PERIOD = 1;
+    LOG_LEVEL = 2;
+  }
+  LogParamType param = 1;
+  string name = 2;
+  string value = 3;
 }

@@ -45,9 +45,9 @@ log_v2::log_v2(const std::shared_ptr<asio::io_context>& io_context)
       _flush_timer_active(true),
       _io_context(io_context) {
   auto stdout_sink = std::make_shared<sinks::stdout_color_sink_mt>();
-  auto create_logger = [&stdout_sink](const std::string& name) {
-    std::shared_ptr<spdlog::logger> log =
-        std::make_shared<spdlog::logger>(name, stdout_sink);
+  auto create_logger = [&](const std::string& name) {
+    auto log = std::make_shared<com::centreon::engine::log_v2_logger>(
+        name, this, stdout_sink);
     log->flush_on(level::info);
     spdlog::register_logger(log);
     return log;
@@ -196,6 +196,25 @@ bool log_v2::contains_logger(const std::string& logger) {
 }
 
 /**
+ * @brief Accessor to the various levels of loggers
+ *
+ * @return A vector of pairs of strings. The first string is the logger name and
+ * the second string is its level.
+ */
+std::vector<std::pair<std::string, std::string>> log_v2::levels() const {
+  std::vector<std::pair<std::string, std::string>> retval;
+  if (_running) {
+    retval.reserve(_log.size());
+    for (auto& l : _log) {
+      spdlog::level::level_enum level = l->level();
+      auto& lv = to_string_view(level);
+      retval.emplace_back(l->name(), std::string(lv.data(), lv.size()));
+    }
+  }
+  return retval;
+}
+
+/**
  * @brief this private static method is used to access a specific logger
  *
  * @param log_type
@@ -228,6 +247,30 @@ bool log_v2::contains_level(const std::string& level) {
   return l != level::off;
 }
 
-const std::string& log_v2::log_name() const {
-  return _log_name;
+/**
+ * @brief Set the level of a logger.
+ *
+ * @param logger The logger name
+ * @param level The level as a string
+ */
+void log_v2::set_level(const std::string& logger, const std::string& level) {
+  if (_running) {
+    bool found = false;
+    for (auto l : _log) {
+      if (l->name() == logger) {
+        found = true;
+        level::level_enum lvl = level::from_str(level);
+        if (lvl == level::off && level != "off")
+          throw msg_fmt("The '{}' level is unknown", level);
+        l->set_level(lvl);
+        break;
+      }
+    }
+    if (!found)
+      throw msg_fmt("The '{}' logger does not exist", logger);
+  } else
+    throw msg_fmt(
+        "Unable to change '{}' logger level, the logger is not running for now "
+        "- try later.",
+        logger);
 }
