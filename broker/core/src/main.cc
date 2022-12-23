@@ -292,6 +292,7 @@ int main(int argc, char* argv[]) {
       log_v2::instance().stop_flush_timer();
       // Unload endpoints.
       config::applier::deinit();
+      spdlog::shutdown();
     }
   }
   // Standard exception.

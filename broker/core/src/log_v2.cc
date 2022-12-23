@@ -78,7 +78,6 @@ log_v2::~log_v2() {
   _running = false;
   for (auto& l : _log)
     l.reset();
-  spdlog::shutdown();
 }
 
 void log_v2::apply(const config::state& conf) {
