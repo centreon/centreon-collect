@@ -494,6 +494,7 @@ int main(int argc, char* argv[]) {
 
     // Memory cleanup.
     cleanup();
+    spdlog::shutdown();
     delete[] config_file;
     config_file = NULL;
   } catch (std::exception const& e) {
