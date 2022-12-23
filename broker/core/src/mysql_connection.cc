@@ -313,8 +313,9 @@ void mysql_connection::_statement(mysql_task* t) {
   if (task->bind) {
     bb = const_cast<MYSQL_BIND*>(task->bind->get_bind());
     array_size = task->bind->get_rows_count();
-    if (array_size > 1)
-      mysql_stmt_attr_set(stmt, STMT_ATTR_ARRAY_SIZE, &array_size);
+    // In case of MySQL this function will fail with a non zero return value, it
+    // doesn't matter
+    mysql_stmt_attr_set(stmt, STMT_ATTR_ARRAY_SIZE, &array_size);
   }
   if (bb && mysql_stmt_bind_param(stmt, bb)) {
     std::string err_msg(::mysql_stmt_error(stmt));
@@ -378,8 +379,9 @@ void mysql_connection::_statement_res(mysql_task* t) {
   if (task->bind) {
     bb = const_cast<MYSQL_BIND*>(task->bind->get_bind());
     array_size = task->bind->get_rows_count();
-    if (array_size > 1)
-      mysql_stmt_attr_set(stmt, STMT_ATTR_ARRAY_SIZE, &array_size);
+    // In case of MySQL this function will fail with a non zero return value, it
+    // doesn't matter
+    mysql_stmt_attr_set(stmt, STMT_ATTR_ARRAY_SIZE, &array_size);
   }
   if (bb && mysql_stmt_bind_param(stmt, bb)) {
     std::string err_msg(::mysql_stmt_error(stmt));
@@ -474,8 +476,9 @@ void mysql_connection::_statement_int(mysql_task* t) {
   if (task->bind) {
     bb = const_cast<MYSQL_BIND*>(task->bind->get_bind());
     array_size = task->bind->get_rows_count();
-    if (array_size > 1)
-      mysql_stmt_attr_set(stmt, STMT_ATTR_ARRAY_SIZE, &array_size);
+    // In case of MySQL this function will fail with a non zero return value, it
+    // doesn't matter
+    mysql_stmt_attr_set(stmt, STMT_ATTR_ARRAY_SIZE, &array_size);
   }
   if (bb && mysql_stmt_bind_param(stmt, bb)) {
     std::string err_msg(::mysql_stmt_error(stmt));

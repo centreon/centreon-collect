@@ -94,6 +94,8 @@ mysql_column& mysql_column::operator=(mysql_column&& other) {
 }
 
 void mysql_column::_free_vector() {
+  if (!_vector)
+    return;
   switch (_type) {
     case MYSQL_TYPE_STRING: {
       std::vector<char*>* vector = static_cast<std::vector<char*>*>(_vector);
@@ -346,7 +348,9 @@ unsigned long* mysql_column::length_buffer() {
 }
 
 void mysql_column::set_type(int type) {
-  assert(_vector == nullptr && _row_count == 0);
+  assert(_vector == nullptr);
+  assert(_row_count <= 1);
+  assert(_current_row <= 1);
   _type = type;
   switch (type) {
     case MYSQL_TYPE_STRING: {
