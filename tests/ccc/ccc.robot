@@ -65,7 +65,7 @@ BECCC2
 	 EXIT FOR LOOP IF	len("${content.strip()}") > 0
 	 Sleep	1s
 	END
-	Should Be Equal As Strings	${content.strip()}	Connected to a Centreon Broker 22.04.1 gRPC server
+	Should Be Equal As Strings	${content.strip()}	Connected to a Centreon Broker 22.04.2 gRPC server
 	Stop Engine
 	Kindly Stop Broker
 	Remove File	/tmp/output.txt
@@ -97,7 +97,7 @@ BECCC3
 	 EXIT FOR LOOP IF	len("${content.strip()}") > 0
 	 Sleep	1s
 	END
-	Should Be Equal As Strings	${content.strip()}	Connected to a Centreon Engine 22.04.1 gRPC server
+	Should Be Equal As Strings	${content.strip()}	Connected to a Centreon Engine 22.04.2 gRPC server
 	Stop Engine
 	Kindly Stop Broker
 	Remove File	/tmp/output.txt
@@ -129,7 +129,7 @@ BECCC4
 	 EXIT FOR LOOP IF	len("""${content.strip()}""") > 0
 	 Sleep	1s
 	END
-	${contains}=	Evaluate	"GetVersion" in """${content}""" and "RemovePoller" in """${content}"""
+	${contains}=	Evaluate	"GetVersion" in """${content}"""
 	Should Be True	${contains}	msg=The list of methods should contain GetVersion(Empty)
 	Stop Engine
 	Kindly Stop Broker
@@ -195,7 +195,7 @@ BECCC6
 	 EXIT FOR LOOP IF	len("""${content.strip().split()}""") > 50
 	 Sleep	1s
 	END
-	Should Contain	${content}	{\n \"major\": 22,\n \"minor\": 4,\n \"patch\": 1\n}	msg=A version as json string should be returned
+	Should Contain	${content}	{\n \"major\": 22,\n \"minor\": 4,\n \"patch\": 2\n}	msg=A version as json string should be returned
 	Stop Engine
 	Kindly Stop Broker
 	Remove File	/tmp/output.txt
