@@ -1230,7 +1230,6 @@ def schedule_forced_svc_check(host: str, svc: str, pipe: str = VAR_ROOT + "/lib/
 
 
 def schedule_forced_host_check(host: str, pipe: str = VAR_ROOT + "/lib/centreon-engine/rw/centengine.cmd"):
-    logger.console("##### " + pipe)
     now = int(time.time())
     f = open(pipe, "w")
     cmd = f"[{now}] SCHEDULE_FORCED_HOST_CHECK;{host};{now}"
@@ -1502,7 +1501,6 @@ def send_custom_host_notification(hst, notification_option, author, comment):
     now = int(time.time())
     cmd_file = f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd"
     cmd = f"[{now}] SEND_CUSTOM_HOST_NOTIFICATION;{hst};{notification_option};{author};{comment}\n"
-    logger.console("##### " + cmd_file)
     f = open(cmd_file, "w")
     f.write(cmd)
     f.close()
