@@ -1,5 +1,5 @@
 /*
-** Copyright 2018-2020 Centreon
+** Copyright 2018-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -39,7 +39,7 @@ mysql_column::mysql_column(int type, size_t row_count)
       _vector_buffer(nullptr) {
   if (row_count > 0) {
     set_type(type);
-    _reserve(row_count);
+    reserve(row_count);
   }
 }
 
@@ -61,7 +61,7 @@ mysql_column::mysql_column(mysql_column&& other)
       _row_count(other._row_count),
       _vector(other._vector),
       _vector_buffer(other._vector_buffer),
-      _is_null(std::move(other._is_null)),
+      _indicator(std::move(other._indicator)),
       _error(std::move(other._error)),
       _length(std::move(other._length)) {
   other._vector = nullptr;
@@ -84,7 +84,7 @@ mysql_column& mysql_column::operator=(mysql_column&& other) {
   _current_row = other._current_row;
   _length = std::move(other._length);
   _error = std::move(other._error);
-  _is_null = std::move(other._is_null);
+  _indicator = std::move(other._indicator);
   _free_vector();
   _vector = other._vector;
   _vector_buffer = other._vector_buffer;
@@ -146,7 +146,7 @@ void* mysql_column::get_buffer() {
 }
 
 void mysql_column::clear() {
-  _is_null.clear();
+  _indicator.clear();
   _error.clear();
   _length.clear();
   switch (_type) {
@@ -201,109 +201,60 @@ void mysql_column::clear() {
  *
  * @param s The size to reserve.
  */
-void mysql_column::_reserve(size_t s) {
-  assert(_vector && "set_type() has not been called before the reservation");
-  _is_null.reserve(s);
-  _error.reserve(s);
-  _length.reserve(s);
-  switch (_type) {
-    case MYSQL_TYPE_STRING: {
-      std::vector<char*>* vector = static_cast<std::vector<char*>*>(_vector);
-      vector->reserve(s);
-      _vector_buffer = vector->data();
-    } break;
-    case MYSQL_TYPE_FLOAT: {
-      std::vector<float>* vector = static_cast<std::vector<float>*>(_vector);
-      vector->reserve(s);
-      _vector_buffer = vector->data();
-    } break;
-    case MYSQL_TYPE_LONG: {
-      std::vector<int>* vector = static_cast<std::vector<int>*>(_vector);
-      vector->reserve(s);
-      _vector_buffer = vector->data();
-    } break;
-    case MYSQL_TYPE_TINY: {
-      std::vector<char>* vector = static_cast<std::vector<char>*>(_vector);
-      vector->reserve(s);
-      _vector_buffer = vector->data();
-    } break;
-    case MYSQL_TYPE_DOUBLE: {
-      std::vector<double>* vector = static_cast<std::vector<double>*>(_vector);
-      vector->reserve(s);
-      _vector_buffer = vector->data();
-    } break;
-    case MYSQL_TYPE_LONGLONG: {
-      std::vector<long long>* vector =
-          static_cast<std::vector<long long>*>(_vector);
-      vector->reserve(s);
-      _vector_buffer = vector->data();
-    } break;
-    case MYSQL_TYPE_NULL: {
-      std::vector<char*>* vector = static_cast<std::vector<char*>*>(_vector);
-      vector->reserve(s);
-      _vector_buffer = vector->data();
-    } break;
-    default:
-      assert(1 == 0);
-  }
-}
-
-/**
- * @brief Resize the number of rows of the column.
- *
- * @param s the new size to set.
- */
 void mysql_column::reserve(size_t s) {
-  _is_null.reserve(s);
+  _indicator.reserve(s);
   _error.reserve(s);
   _length.reserve(s);
-  switch (_type) {
-    case MYSQL_TYPE_STRING: {
-      std::vector<char*>* vector = static_cast<std::vector<char*>*>(_vector);
-      vector->reserve(s);
-      _vector_buffer = vector->data();
-    } break;
-    case MYSQL_TYPE_FLOAT: {
-      std::vector<float>* vector = static_cast<std::vector<float>*>(_vector);
-      vector->reserve(s);
-      _vector_buffer = vector->data();
-    } break;
-    case MYSQL_TYPE_LONG: {
-      std::vector<int>* vector = static_cast<std::vector<int>*>(_vector);
-      vector->reserve(s);
-      _vector_buffer = vector->data();
-    } break;
-    case MYSQL_TYPE_TINY: {
-      std::vector<char>* vector = static_cast<std::vector<char>*>(_vector);
-      vector->reserve(s);
-      _vector_buffer = vector->data();
-    } break;
-    case MYSQL_TYPE_DOUBLE: {
-      std::vector<double>* vector = static_cast<std::vector<double>*>(_vector);
-      vector->reserve(s);
-      _vector_buffer = vector->data();
-    } break;
-    case MYSQL_TYPE_LONGLONG: {
-      std::vector<long long>* vector =
-          static_cast<std::vector<long long>*>(_vector);
-      vector->reserve(s);
-      _vector_buffer = vector->data();
-    } break;
-    case MYSQL_TYPE_NULL: {
-      std::vector<char*>* vector = static_cast<std::vector<char*>*>(_vector);
-      vector->reserve(s);
-      _vector_buffer = vector->data();
-    } break;
-    default:
-      assert(1 == 0);
+  if (_vector) {
+    switch (_type) {
+      case MYSQL_TYPE_STRING: {
+        std::vector<char*>* vector = static_cast<std::vector<char*>*>(_vector);
+        vector->reserve(s);
+        _vector_buffer = vector->data();
+      } break;
+      case MYSQL_TYPE_FLOAT: {
+        std::vector<float>* vector = static_cast<std::vector<float>*>(_vector);
+        vector->reserve(s);
+        _vector_buffer = vector->data();
+      } break;
+      case MYSQL_TYPE_LONG: {
+        std::vector<int>* vector = static_cast<std::vector<int>*>(_vector);
+        vector->reserve(s);
+        _vector_buffer = vector->data();
+      } break;
+      case MYSQL_TYPE_TINY: {
+        std::vector<char>* vector = static_cast<std::vector<char>*>(_vector);
+        vector->reserve(s);
+        _vector_buffer = vector->data();
+      } break;
+      case MYSQL_TYPE_DOUBLE: {
+        std::vector<double>* vector =
+            static_cast<std::vector<double>*>(_vector);
+        vector->reserve(s);
+        _vector_buffer = vector->data();
+      } break;
+      case MYSQL_TYPE_LONGLONG: {
+        std::vector<long long>* vector =
+            static_cast<std::vector<long long>*>(_vector);
+        vector->reserve(s);
+        _vector_buffer = vector->data();
+      } break;
+      case MYSQL_TYPE_NULL: {
+        std::vector<char*>* vector = static_cast<std::vector<char*>*>(_vector);
+        vector->reserve(s);
+        _vector_buffer = vector->data();
+      } break;
+      default:
+        assert(1 == 0);
+    }
   }
 }
 
-void mysql_column::_push_row(const fmt::string_view& str) {
+void mysql_column::_push_value_str(const fmt::string_view& str) {
   std::vector<char*>* vector = static_cast<std::vector<char*>*>(_vector);
-  assert(_is_null.size() == _row_count && _error.size() == _row_count &&
+  assert(_indicator.size() == _row_count && _error.size() == _row_count &&
          _length.size() == _row_count && vector->size() == _row_count);
-  _is_null.push_back(false);
+  _indicator.push_back(STMT_INDICATOR_NTS);
   _error.push_back(false);
   _length.push_back(str.size());
   vector->push_back(strndup(str.data(), str.size()));
@@ -311,13 +262,26 @@ void mysql_column::_push_row(const fmt::string_view& str) {
   ++_row_count;
 }
 
-void mysql_column::set_value(size_t row, const fmt::string_view& str) {
+void mysql_column::_push_null_str() {
+  std::vector<char*>* vector = static_cast<std::vector<char*>*>(_vector);
+  assert(_indicator.size() == _row_count && _error.size() == _row_count &&
+         _length.size() == _row_count && vector->size() == _row_count);
+  _indicator.push_back(STMT_INDICATOR_NULL);
+  _error.push_back(false);
+  _length.push_back(0);
+  vector->push_back(nullptr);
+  _vector_buffer = vector->data();
+  ++_row_count;
+}
+
+void mysql_column::set_value_str(size_t row, const fmt::string_view& str) {
   assert(_type == MYSQL_TYPE_STRING);
   size_t size = str.size();
   std::vector<char*>* vector = static_cast<std::vector<char*>*>(_vector);
   if (vector->size() <= row) {
     assert(vector->size() == row);
-    _push_row(str);
+    _push_value_str(str);
+    return;
   } else if ((*vector)[row]) {
     if (_length[row] >= str.size()) {
       strncpy((*vector)[row], str.data(), size + 1);
@@ -331,12 +295,27 @@ void mysql_column::set_value(size_t row, const fmt::string_view& str) {
   _length[row] = size;
 }
 
-bool mysql_column::is_null() const {
-  return _is_null[_current_row];
+void mysql_column::set_null_str(size_t row) {
+  assert(_type == MYSQL_TYPE_STRING);
+  std::vector<char*>* vector = static_cast<std::vector<char*>*>(_vector);
+  if (vector->size() <= row) {
+    assert(vector->size() == row);
+    _push_null_str();
+  } else if ((*vector)[row]) {
+    free((*vector)[row]);
+    (*vector)[row] = nullptr;
+    _length[row] = 0;
+    _indicator[row] = STMT_INDICATOR_NULL;
+    _error[row] = false;
+  }
 }
 
-my_bool* mysql_column::is_null_buffer() {
-  return &_is_null[0];
+bool mysql_column::is_null() const {
+  return _indicator[_current_row] == STMT_INDICATOR_NULL;
+}
+
+char* mysql_column::indicator_buffer() {
+  return &_indicator[0];
 }
 
 my_bool* mysql_column::error_buffer() {
@@ -352,39 +331,54 @@ void mysql_column::set_type(int type) {
   assert(_row_count <= 1);
   assert(_current_row <= 1);
   _type = type;
+  size_t reserved_size = _indicator.capacity();
   switch (type) {
     case MYSQL_TYPE_STRING: {
       auto* vector = new std::vector<char*>();
+      if (reserved_size > 0)
+        vector->reserve(reserved_size);
       _vector_buffer = vector->data();
       _vector = vector;
     } break;
     case MYSQL_TYPE_FLOAT: {
       auto* vector = new std::vector<float>();
+      if (reserved_size > 0)
+        vector->reserve(reserved_size);
       _vector_buffer = vector->data();
       _vector = vector;
     } break;
     case MYSQL_TYPE_LONG: {
       auto* vector = new std::vector<int>();
+      if (reserved_size > 0)
+        vector->reserve(reserved_size);
       _vector_buffer = vector->data();
       _vector = vector;
     } break;
     case MYSQL_TYPE_TINY: {
       auto* vector = new std::vector<char>();
+      if (reserved_size > 0)
+        vector->reserve(reserved_size);
       _vector_buffer = vector->data();
       _vector = vector;
     } break;
     case MYSQL_TYPE_DOUBLE: {
       auto* vector = new std::vector<double>();
+      if (reserved_size > 0)
+        vector->reserve(reserved_size);
       _vector_buffer = vector->data();
       _vector = vector;
     } break;
     case MYSQL_TYPE_LONGLONG: {
       auto* vector = new std::vector<long long>();
+      if (reserved_size > 0)
+        vector->reserve(reserved_size);
       _vector_buffer = vector->data();
       _vector = vector;
     } break;
     case MYSQL_TYPE_NULL: {
       auto* vector = new std::vector<char*>();
+      if (reserved_size > 0)
+        vector->reserve(reserved_size);
       _vector_buffer = vector->data();
       _vector = vector;
     } break;
@@ -396,3 +390,120 @@ void mysql_column::set_type(int type) {
 uint32_t mysql_column::array_size() const {
   return _row_count;
 }
+
+void mysql_column::set_null_bool(size_t row) {
+  set_null_tiny(row);
+}
+
+void mysql_column::set_value_bool(size_t row, bool value) {
+  set_value_tiny(row, value ? 1 : 0);
+}
+
+void mysql_column::_push_value_bool(bool value) {
+  _push_value_tiny(value ? 1 : 0);
+}
+
+void mysql_column::_push_null_bool() {
+  _push_null_tiny();
+}
+
+#define SET_VALUE(ftype, vtype)                                              \
+  void mysql_column::set_null_##ftype(size_t row) {                          \
+    std::vector<vtype>* vector = static_cast<std::vector<vtype>*>(_vector);  \
+    if (vector->size() <= row) {                                             \
+      assert(vector->size() == row);                                         \
+      _push_null_##ftype();                                                  \
+    } else {                                                                 \
+      (*vector)[row] = {};                                                   \
+      _indicator[row] = STMT_INDICATOR_NULL;                                 \
+    }                                                                        \
+  }                                                                          \
+                                                                             \
+  void mysql_column::set_value_##ftype(size_t row, vtype value) {            \
+    std::vector<vtype>* vector = static_cast<std::vector<vtype>*>(_vector);  \
+    if (vector->size() <= row) {                                             \
+      assert(vector->size() == row);                                         \
+      _push_value_##ftype(value);                                            \
+    } else                                                                   \
+      (*vector)[row] = value;                                                \
+  }                                                                          \
+  void mysql_column::_push_value_##ftype(vtype val) {                        \
+    std::vector<vtype>* vector = static_cast<std::vector<vtype>*>(_vector);  \
+    assert(_indicator.size() == _row_count && _error.size() == _row_count && \
+           _length.size() == _row_count && vector->size() == _row_count);    \
+    _indicator.push_back(std::isnan(val) || std::isinf(val)                  \
+                             ? STMT_INDICATOR_NULL                           \
+                             : STMT_INDICATOR_NONE);                         \
+    _error.push_back(false);                                                 \
+    _length.push_back(0);                                                    \
+    vector->push_back(val);                                                  \
+    _vector_buffer = vector->data();                                         \
+    ++_row_count;                                                            \
+  }                                                                          \
+  void mysql_column::_push_null_##ftype() {                                  \
+    std::vector<vtype>* vector = static_cast<std::vector<vtype>*>(_vector);  \
+    assert(_indicator.size() == _row_count && _error.size() == _row_count && \
+           _length.size() == _row_count && vector->size() == _row_count);    \
+    _indicator.push_back(STMT_INDICATOR_NULL);                               \
+    _error.push_back(false);                                                 \
+    _length.push_back(0);                                                    \
+    vector->push_back({});                                                   \
+    _vector_buffer = vector->data();                                         \
+    ++_row_count;                                                            \
+  }
+
+#define SET_VALUE_CHECK(ftype, vtype)                                        \
+  void mysql_column::set_null_##ftype(size_t row) {                          \
+    std::vector<vtype>* vector = static_cast<std::vector<vtype>*>(_vector);  \
+    if (vector->size() <= row) {                                             \
+      assert(vector->size() == row);                                         \
+      _push_null_##ftype();                                                  \
+    } else {                                                                 \
+      (*vector)[row] = {};                                                   \
+      _indicator[row] = STMT_INDICATOR_NULL;                                 \
+    }                                                                        \
+  }                                                                          \
+                                                                             \
+  void mysql_column::set_value_##ftype(size_t row, vtype value) {            \
+    std::vector<vtype>* vector = static_cast<std::vector<vtype>*>(_vector);  \
+    if (vector->size() <= row) {                                             \
+      assert(vector->size() == row);                                         \
+      _push_value_##ftype(value);                                            \
+    } else                                                                   \
+      (*vector)[row] = value;                                                \
+    _indicator[row] = (std::isnan(value) || std::isinf(value))               \
+                          ? STMT_INDICATOR_NULL                              \
+                          : STMT_INDICATOR_NONE;                             \
+  }                                                                          \
+  void mysql_column::_push_value_##ftype(vtype val) {                        \
+    std::vector<vtype>* vector = static_cast<std::vector<vtype>*>(_vector);  \
+    assert(_indicator.size() == _row_count && _error.size() == _row_count && \
+           _length.size() == _row_count && vector->size() == _row_count);    \
+    _indicator.push_back(std::isnan(val) || std::isinf(val)                  \
+                             ? STMT_INDICATOR_NULL                           \
+                             : STMT_INDICATOR_NONE);                         \
+    _error.push_back(false);                                                 \
+    _length.push_back(0);                                                    \
+    vector->push_back(val);                                                  \
+    _vector_buffer = vector->data();                                         \
+    ++_row_count;                                                            \
+  }                                                                          \
+  void mysql_column::_push_null_##ftype() {                                  \
+    std::vector<vtype>* vector = static_cast<std::vector<vtype>*>(_vector);  \
+    assert(_indicator.size() == _row_count && _error.size() == _row_count && \
+           _length.size() == _row_count && vector->size() == _row_count);    \
+    _indicator.push_back(STMT_INDICATOR_NULL);                               \
+    _error.push_back(false);                                                 \
+    _length.push_back(0);                                                    \
+    vector->push_back({});                                                   \
+    _vector_buffer = vector->data();                                         \
+    ++_row_count;                                                            \
+  }
+
+SET_VALUE(i32, int32_t)
+SET_VALUE(i64, int64_t)
+SET_VALUE(u32, uint32_t)
+SET_VALUE(u64, uint64_t)
+SET_VALUE(tiny, char)
+SET_VALUE_CHECK(f32, float)
+SET_VALUE_CHECK(f64, double)

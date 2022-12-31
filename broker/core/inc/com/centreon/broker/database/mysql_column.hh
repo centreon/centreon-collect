@@ -37,11 +37,10 @@ class mysql_column {
   // This pointer is just a pointer to _vector.data().
   void* _vector_buffer;
 
-  std::vector<my_bool> _is_null;
+  std::vector<char> _indicator;
   std::vector<my_bool> _error;
   std::vector<unsigned long> _length;
 
-  void _reserve(size_t s);
   void _free_vector();
 
  public:
@@ -52,89 +51,60 @@ class mysql_column {
   int get_type() const;
   void* get_buffer();
   void set_type(int type);
-  void reserve(size_t s);
   void clear();
+  void reserve(size_t s);
 
-  template <typename T>
-  void _push_row(T value) {
-    std::vector<T>* vector = static_cast<std::vector<T>*>(_vector);
-    assert(_is_null.size() == _row_count && _error.size() == _row_count &&
-           _length.size() == _row_count && vector->size() == _row_count);
-    _is_null.push_back(false);
-    _error.push_back(false);
-    _length.push_back(0);
-    vector->push_back(value);
-    _vector_buffer = vector->data();
-    ++_row_count;
-  }
+  void set_value_i32(size_t row, int32_t value);
+  void set_null_i32(size_t row);
+  void _push_value_i32(int32_t value);
+  void _push_null_i32();
 
-  template <typename T>
-  void set_value(size_t row, T value) {
-    std::vector<T>* vector = static_cast<std::vector<T>*>(_vector);
-    if (vector->size() <= row) {
-      assert(vector->size() == row);
-      _push_row(value);
-    }
-    (*vector)[row] = value;
-  }
+  void set_value_u32(size_t row, uint32_t value);
+  void set_null_u32(size_t row);
+  void _push_value_u32(uint32_t value);
+  void _push_null_u32();
 
-  void set_value(size_t row, const fmt::string_view& str);
-  void _push_row(const fmt::string_view& str);
+  void set_value_i64(size_t row, int64_t value);
+  void set_null_i64(size_t row);
+  void _push_value_i64(int64_t value);
+  void _push_null_i64();
 
-  my_bool* is_null_buffer();
+  void set_value_u64(size_t row, uint64_t value);
+  void set_null_u64(size_t row);
+  void _push_value_u64(uint64_t value);
+  void _push_null_u64();
+
+  void set_value_f32(size_t row, float value);
+  void set_null_f32(size_t row);
+  void _push_value_f32(float value);
+  void _push_null_f32();
+
+  void set_value_f64(size_t row, double value);
+  void set_null_f64(size_t row);
+  void _push_value_f64(double value);
+  void _push_null_f64();
+
+  void set_value_tiny(size_t row, char value);
+  void set_null_tiny(size_t row);
+  void _push_value_tiny(char value);
+  void _push_null_tiny();
+
+  void set_value_bool(size_t row, bool value);
+  void set_null_bool(size_t row);
+  void _push_value_bool(bool value);
+  void _push_null_bool();
+
+  void set_value_str(size_t row, const fmt::string_view& str);
+  void set_null_str(size_t row);
+  void _push_value_str(const fmt::string_view& str);
+  void _push_null_str();
+
+  char* indicator_buffer();
   bool is_null() const;
   my_bool* error_buffer();
   unsigned long* length_buffer();
   uint32_t array_size() const;
 };
-
-template <>
-inline void mysql_column::_push_row<double>(double val) {
-  std::vector<double>* vector = static_cast<std::vector<double>*>(_vector);
-  assert(_is_null.size() == _row_count && _error.size() == _row_count &&
-         _length.size() == _row_count && vector->size() == _row_count);
-  _is_null.push_back(false);
-  _error.push_back(false);
-  _length.push_back(0);
-  vector->push_back(val);
-  _vector_buffer = vector->data();
-  ++_row_count;
-}
-
-template <>
-inline void mysql_column::set_value<double>(size_t row, double val) {
-  std::vector<double>* vector = static_cast<std::vector<double>*>(_vector);
-  if (vector->size() <= row) {
-    assert(vector->size() == row);
-    _push_row(val);
-  }
-  _is_null[row] = (std::isnan(val) || std::isinf(val));
-  (*vector)[row] = val;
-}
-
-template <>
-inline void mysql_column::_push_row<float>(float val) {
-  std::vector<float>* vector = static_cast<std::vector<float>*>(_vector);
-  assert(_is_null.size() == _row_count && _error.size() == _row_count &&
-         _length.size() == _row_count && vector->size() == _row_count);
-  _is_null.push_back(false);
-  _error.push_back(false);
-  _length.push_back(0);
-  vector->push_back(val);
-  _vector_buffer = vector->data();
-  ++_row_count;
-}
-
-template <>
-inline void mysql_column::set_value<float>(size_t row, float val) {
-  std::vector<float>* vector = static_cast<std::vector<float>*>(_vector);
-  if (vector->size() <= row) {
-    assert(vector->size() == row);
-    _push_row(val);
-  }
-  _is_null[row] = (std::isnan(val) || std::isinf(val));
-  (*vector)[row] = val;
-}
 
 }  // namespace database
 

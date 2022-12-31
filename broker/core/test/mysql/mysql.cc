@@ -1427,7 +1427,7 @@ TEST_F(DatabaseStorageTest, CheckBulkStatement) {
       step++;
       if (step == 20000) {
         step = 0;
-        stmt.get_bind() = std::move(bind);
+        stmt.set_bind(std::move(bind));
         ms->run_statement(stmt);
         bind = stmt.create_bind();
       }

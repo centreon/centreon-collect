@@ -1182,9 +1182,8 @@ def service_ext_commands(hst: str, svc: str, state: int, output: str):
 
 def process_host_check_result(hst: str, state: int, output: str):
     now = int(time.time())
-    cmd = "[{}] PROCESS_HOST_CHECK_RESULT;{};{};{}\n".format(
-        now, hst, state, output)
-    f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    cmd = f"[{now}] PROCESS_HOST_CHECK_RESULT;{hst};{state};{output}\n"
+    f = open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w")
     f.write(cmd)
     f.close()
 
@@ -1232,7 +1231,7 @@ def schedule_forced_svc_check(host: str, svc: str, pipe: str = VAR_ROOT + "/lib/
 def schedule_forced_host_check(host: str, pipe: str = VAR_ROOT + "/lib/centreon-engine/rw/centengine.cmd"):
     now = int(time.time())
     f = open(pipe, "w")
-    cmd = f"[{now}] SCHEDULE_FORCED_HOST_CHECK;{host};{now}"
+    cmd = f"[{now}] SCHEDULE_FORCED_HOST_CHECK;{host};{now}\n"
     f.write(cmd)
     f.close()
     time.sleep(0.05)

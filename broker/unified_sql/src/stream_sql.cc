@@ -1284,7 +1284,7 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
             if (sid)
               _resources_host_insert.bind_value_as_u64(10, sid);
             else
-              _resources_host_insert.bind_value_as_null(10);
+              _resources_host_insert.bind_null_u64(10);
             _resources_host_insert.bind_value_as_str(11, name);
             _resources_host_insert.bind_value_as_str(12, address);
             _resources_host_insert.bind_value_as_str(13, alias);
@@ -1364,7 +1364,7 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
             if (sid)
               _resources_host_update.bind_value_as_u64(9, sid);
             else
-              _resources_host_update.bind_value_as_null(9);
+              _resources_host_update.bind_null_u64(9);
             _resources_host_update.bind_value_as_str(10, name);
             _resources_host_update.bind_value_as_str(11, address);
             _resources_host_update.bind_value_as_str(12, alias);
@@ -1690,11 +1690,14 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
         b->set_value_as_bool(12, hscr.flapping());
         b->set_value_as_f64(13, hscr.percent_state_change());
         b->set_value_as_f64(14, hscr.latency());
+        log_v2::sql()->error("bind current_row 14 = {}", b->current_row());
         b->set_value_as_f64(15, hscr.execution_time());
+        log_v2::sql()->error("bind current_row 15 = {}", b->current_row());
         if (hscr.last_check() == 0)
-          b->set_value_as_null(16);
+          b->set_null_i64(16);
         else
           b->set_value_as_i64(16, hscr.last_check());
+        log_v2::sql()->error("bind current_row 16 = {}", b->current_row());
         b->set_value_as_i64(17, hscr.next_check());
         b->set_value_as_bool(18, hscr.should_be_scheduled());
         b->set_value_as_i32(19, hscr.check_attempt());
@@ -1775,7 +1778,7 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
         b->set_value_as_bool(7, hscr.perfdata() != "");
         b->set_value_as_u32(8, hscr.check_type());
         if (hscr.last_check() == 0)
-          b->set_value_as_null(9);
+          b->set_null_u64(9);
         else
           b->set_value_as_u64(9, hscr.last_check());
         b->set_value_as_str(10, hscr.output());
@@ -2498,7 +2501,7 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
             if (s.internal_id())
               _resources_service_insert.bind_value_as_u64(3, s.internal_id());
             else
-              _resources_service_insert.bind_value_as_null(3);
+              _resources_service_insert.bind_null_u64(3);
             _resources_service_insert.bind_value_as_u32(4, s.state());
             _resources_service_insert.bind_value_as_u32(
                 5, svc_ordered_status[s.state()]);
@@ -2524,7 +2527,7 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
             if (sid)
               _resources_service_insert.bind_value_as_u64(13, sid);
             else
-              _resources_service_insert.bind_value_as_null(13);
+              _resources_service_insert.bind_null_u64(13);
             _resources_service_insert.bind_value_as_str(14, name);
             _resources_service_insert.bind_value_as_str(15, parent_name);
             _resources_service_insert.bind_value_as_str(16, notes_url);
@@ -2583,7 +2586,7 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
             if (s.internal_id())
               _resources_service_update.bind_value_as_u64(1, s.internal_id());
             else
-              _resources_service_update.bind_value_as_null(1);
+              _resources_service_update.bind_null_u64(1);
             _resources_service_update.bind_value_as_u32(2, s.state());
             _resources_service_update.bind_value_as_u32(
                 3, svc_ordered_status[s.state()]);
@@ -2609,7 +2612,7 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
             if (sid)
               _resources_service_update.bind_value_as_u64(11, sid);
             else
-              _resources_service_update.bind_value_as_null(11);
+              _resources_service_update.bind_null_u64(11);
             _resources_service_update.bind_value_as_str(12, name);
             _resources_service_update.bind_value_as_str(13, parent_name);
             _resources_service_update.bind_value_as_str(14, notes_url);
@@ -3172,7 +3175,7 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
         b->set_value_as_f64(15, sscr.latency());
         b->set_value_as_f64(16, sscr.execution_time());
         if (sscr.last_check() == 0)
-          b->set_value_as_null(17);
+          b->set_null_i64(17);
         else
           b->set_value_as_i64(17, sscr.last_check());
         b->set_value_as_i64(18, sscr.next_check());
@@ -3259,7 +3262,7 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
         b->set_value_as_bool(7, sscr.perfdata() != "");
         b->set_value_as_u32(8, sscr.check_type());
         if (sscr.last_check() == 0)
-          b->set_value_as_null(9);
+          b->set_null_u64(9);
         else
           b->set_value_as_u64(9, sscr.last_check());
         b->set_value_as_str(10, sscr.output());

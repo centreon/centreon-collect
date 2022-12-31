@@ -23,7 +23,6 @@
 
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protobuf.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/mapping/entry.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -212,19 +211,19 @@ void mysql_stmt::operator<<(io::data const& d) {
               switch (current_entry->get_attribute()) {
                 case mapping::entry::invalid_on_zero:
                   if (v == 0)
-                    bind_value_as_null(field);
+                    bind_null_i32(field);
                   else
                     bind_value_as_i32(field, v);
                   break;
                 case mapping::entry::invalid_on_minus_one:
                   if (v == -1)
-                    bind_value_as_null(field);
+                    bind_null_i32(field);
                   else
                     bind_value_as_i32(field, v);
                   break;
                 case mapping::entry::invalid_on_negative:
                   if (v < 0)
-                    bind_value_as_null(field);
+                    bind_null_i32(field);
                   else
                     bind_value_as_i32(field, v);
                   break;
@@ -237,19 +236,19 @@ void mysql_stmt::operator<<(io::data const& d) {
               switch (current_entry->get_attribute()) {
                 case mapping::entry::invalid_on_zero:
                   if (v == 0)
-                    bind_value_as_null(field);
+                    bind_null_i32(field);
                   else
                     bind_value_as_i32(field, v);
                   break;
                 case mapping::entry::invalid_on_minus_one:
                   if (v == -1)
-                    bind_value_as_null(field);
+                    bind_null_i32(field);
                   else
                     bind_value_as_i32(field, v);
                   break;
                 case mapping::entry::invalid_on_negative:
                   if (v < 0)
-                    bind_value_as_null(field);
+                    bind_null_i32(field);
                   else
                     bind_value_as_i32(field, v);
                   break;
@@ -273,7 +272,7 @@ void mysql_stmt::operator<<(io::data const& d) {
               if (current_entry->get_attribute() ==
                   mapping::entry::invalid_on_zero) {
                 if (sv.size() == 0)
-                  bind_value_as_null(field);
+                  bind_null_str(field);
                 else
                   bind_value_as_str(field, sv);
               } else
@@ -284,19 +283,19 @@ void mysql_stmt::operator<<(io::data const& d) {
               switch (current_entry->get_attribute()) {
                 case mapping::entry::invalid_on_zero:
                   if (v == 0)
-                    bind_value_as_null(field);
+                    bind_null_u32(field);
                   else
                     bind_value_as_u32(field, v);
                   break;
                 case mapping::entry::invalid_on_minus_one:
                   if (v == -1)
-                    bind_value_as_null(field);
+                    bind_null_u32(field);
                   else
                     bind_value_as_u32(field, v);
                   break;
                 case mapping::entry::invalid_on_negative:
                   if (v < 0)
-                    bind_value_as_null(field);
+                    bind_null_u32(field);
                   else
                     bind_value_as_i32(field, v);
                   break;
@@ -312,7 +311,7 @@ void mysql_stmt::operator<<(io::data const& d) {
                   break;
                 case mapping::entry::invalid_on_minus_one:
                   if (v == (uint32_t)-1)
-                    bind_value_as_null(field);
+                    bind_null_u32(field);
                   else
                     bind_value_as_u32(field, v);
                   break;
@@ -353,13 +352,13 @@ void mysql_stmt::operator<<(io::data const& d) {
             switch (std::get<2>(pr)) {
               case io::protobuf_base::invalid_on_zero:
                 if (v == 0)
-                  bind_value_as_null(field);
+                  bind_null_i32(field);
                 else
                   bind_value_as_i32(field, v);
                 break;
               case io::protobuf_base::invalid_on_minus_one:
                 if (v == -1)
-                  bind_value_as_null(field);
+                  bind_null_i32(field);
                 else
                   bind_value_as_i32(field, v);
                 break;
@@ -372,13 +371,13 @@ void mysql_stmt::operator<<(io::data const& d) {
             switch (std::get<2>(pr)) {
               case io::protobuf_base::invalid_on_zero:
                 if (v == 0)
-                  bind_value_as_null(field);
+                  bind_null_u32(field);
                 else
                   bind_value_as_u32(field, v);
                 break;
               case io::protobuf_base::invalid_on_minus_one:
                 if (v == (uint32_t)-1)
-                  bind_value_as_null(field);
+                  bind_null_u32(field);
                 else
                   bind_value_as_u32(field, v);
                 break;
@@ -391,13 +390,13 @@ void mysql_stmt::operator<<(io::data const& d) {
             switch (std::get<2>(pr)) {
               case io::protobuf_base::invalid_on_zero:
                 if (v == 0)
-                  bind_value_as_null(field);
+                  bind_null_i64(field);
                 else
                   bind_value_as_i64(field, v);
                 break;
               case io::protobuf_base::invalid_on_minus_one:
                 if (v == -1)
-                  bind_value_as_null(field);
+                  bind_null_i64(field);
                 else
                   bind_value_as_i64(field, v);
                 break;
@@ -410,13 +409,13 @@ void mysql_stmt::operator<<(io::data const& d) {
             switch (std::get<2>(pr)) {
               case io::protobuf_base::invalid_on_zero:
                 if (v == 0)
-                  bind_value_as_null(field);
+                  bind_null_u64(field);
                 else
                   bind_value_as_u64(field, v);
                 break;
               case io::protobuf_base::invalid_on_minus_one:
                 if (v == (uint64_t)-1)
-                  bind_value_as_null(field);
+                  bind_null_u64(field);
                 else
                   bind_value_as_u64(field, v);
                 break;
@@ -442,7 +441,7 @@ void mysql_stmt::operator<<(io::data const& d) {
               sv = fmt::string_view(v);
             if (std::get<2>(pr) == io::protobuf_base::invalid_on_zero) {
               if (sv.size() == 0)
-                bind_value_as_null(field);
+                bind_null_str(field);
               else
                 bind_value_as_str(field, sv);
             } else
@@ -463,349 +462,79 @@ void mysql_stmt::operator<<(io::data const& d) {
         d.type());
 }
 
-void mysql_stmt::bind_value_as_i32(int range, int value) {
-  if (!_bind) {
-    _bind =
-        std::make_unique<database::mysql_bind>(_param_count, 0, _reserved_size);
+#define BIND_VALUE(ftype, vtype)                                      \
+  void mysql_stmt::bind_value_as_##ftype(size_t range, vtype value) { \
+    if (!_bind)                                                       \
+      _bind = std::make_unique<database::mysql_bind>(_param_count, 0, \
+                                                     _reserved_size); \
+    _bind->set_value_as_##ftype(range, value);                        \
+  }                                                                   \
+                                                                      \
+  void mysql_stmt::bind_value_as_##ftype(const std::string& name,     \
+                                         vtype value) {               \
+    mysql_bind_mapping::iterator it(_bind_mapping.find(name));        \
+    if (it != _bind_mapping.end()) {                                  \
+      bind_value_as_##ftype(it->second, value);                       \
+    } else {                                                          \
+      std::string key(name);                                          \
+      key.append("1");                                                \
+      it = _bind_mapping.find(key);                                   \
+      if (it != _bind_mapping.end()) {                                \
+        bind_value_as_##ftype(it->second, value);                     \
+        key[key.size() - 1] = '2';                                    \
+        it = _bind_mapping.find(key);                                 \
+        if (it != _bind_mapping.end())                                \
+          bind_value_as_##ftype(it->second, value);                   \
+        else                                                          \
+          log_v2::sql()->error(                                       \
+              "mysql: cannot bind object with name '{}' to " #ftype   \
+              " value {} in "                                         \
+              "statement {}",                                         \
+              name, value, get_id());                                 \
+      }                                                               \
+    }                                                                 \
+  }                                                                   \
+                                                                      \
+  void mysql_stmt::bind_null_##ftype(size_t range) {                  \
+    if (!_bind)                                                       \
+      _bind = std::make_unique<database::mysql_bind>(_param_count, 0, \
+                                                     _reserved_size); \
+    _bind->set_null_##ftype(range);                                   \
+  }                                                                   \
+                                                                      \
+  void mysql_stmt::bind_null_##ftype(const std::string& name) {       \
+    mysql_bind_mapping::iterator it(_bind_mapping.find(name));        \
+    if (it != _bind_mapping.end()) {                                  \
+      bind_null_##ftype(it->second);                                  \
+    } else {                                                          \
+      std::string key(name);                                          \
+      key.append("1");                                                \
+      it = _bind_mapping.find(key);                                   \
+      if (it != _bind_mapping.end()) {                                \
+        bind_null_##ftype(it->second);                                \
+        key[key.size() - 1] = '2';                                    \
+        it = _bind_mapping.find(key);                                 \
+        if (it != _bind_mapping.end())                                \
+          bind_null_##ftype(it->second);                              \
+        else                                                          \
+          log_v2::sql()->error(                                       \
+              "mysql: cannot bind object with name '{}' to " #ftype   \
+              " null value in "                                       \
+              "statement {}",                                         \
+              name, get_id());                                        \
+      }                                                               \
+    }                                                                 \
   }
-  _bind->set_value_as_i32(range, value);
-}
 
-void mysql_stmt::bind_value_as_i32(std::string const& name, int value) {
-  mysql_bind_mapping::iterator it(_bind_mapping.find(name));
-  if (it != _bind_mapping.end()) {
-    bind_value_as_i32(it->second, value);
-  } else {
-    std::string key(name);
-    key.append("1");
-    it = _bind_mapping.find(key);
-    if (it != _bind_mapping.end()) {
-      bind_value_as_i32(it->second, value);
-      key[key.size() - 1] = '2';
-      it = _bind_mapping.find(key);
-      if (it != _bind_mapping.end())
-        bind_value_as_i32(it->second, value);
-      else
-        log_v2::sql()->error(
-            "mysql: cannot bind object with name '{}' to i32 value {} in "
-            "statement {}",
-            name, value, get_id());
-    }
-  }
-}
-
-void mysql_stmt::bind_value_as_u32(int range, uint32_t value) {
-  if (!_bind) {
-    _bind =
-        std::make_unique<database::mysql_bind>(_param_count, 0, _reserved_size);
-  }
-  _bind->set_value_as_u32(range, value);
-}
-
-void mysql_stmt::bind_value_as_u32(std::string const& name, uint32_t value) {
-  mysql_bind_mapping::iterator it(_bind_mapping.find(name));
-  if (it != _bind_mapping.end()) {
-    bind_value_as_u32(it->second, value);
-  } else {
-    std::string key(name);
-    key.append("1");
-    it = _bind_mapping.find(key);
-    if (it != _bind_mapping.end()) {
-      bind_value_as_u32(it->second, value);
-      key[key.size() - 1] = '2';
-      it = _bind_mapping.find(key);
-      if (it != _bind_mapping.end())
-        bind_value_as_u32(it->second, value);
-      else
-        log_v2::sql()->error(
-            "mysql: cannot bind object with name '{}' to u32 value {} in "
-            "statement {}",
-            name, value, get_id());
-    }
-  }
-}
-
-/**
- *  Bind the value to the variable at index range.
- *
- * @param range The index in the statement.
- * @param value The value to bind. It can be Inf or NaN.
- */
-void mysql_stmt::bind_value_as_i64(int range, int64_t value) {
-  if (!_bind) {
-    _bind =
-        std::make_unique<database::mysql_bind>(_param_count, 0, _reserved_size);
-  }
-  _bind->set_value_as_i64(range, value);
-}
-
-/**
- *  Bind the value to the variable name.
- *
- * @param name The column name in the statement that should receive the value.
- * @param value The value to bind. It can be Inf or NaN.
- */
-void mysql_stmt::bind_value_as_i64(std::string const& name, int64_t value) {
-  mysql_bind_mapping::iterator it(_bind_mapping.find(name));
-  if (it != _bind_mapping.end()) {
-    bind_value_as_i64(it->second, value);
-  } else {
-    std::string key(name);
-    key.append("1");
-    it = _bind_mapping.find(key);
-    if (it != _bind_mapping.end()) {
-      bind_value_as_i64(it->second, value);
-      key[key.size() - 1] = '2';
-      it = _bind_mapping.find(key);
-      if (it != _bind_mapping.end())
-        bind_value_as_i64(it->second, value);
-      else
-        log_v2::sql()->error(
-            "mysql: cannot bind object with name '{}' to i64 value {} in "
-            "statement {}",
-            name, value, get_id());
-    }
-  }
-}
-
-/**
- *  Bind the value to the variable at index range.
- *
- * @param range The index in the statement.
- * @param value The value to bind. It can be Inf or NaN.
- */
-void mysql_stmt::bind_value_as_u64(int range, uint64_t value) {
-  if (!_bind) {
-    _bind =
-        std::make_unique<database::mysql_bind>(_param_count, 0, _reserved_size);
-  }
-  _bind->set_value_as_u64(range, value);
-}
-
-/**
- *  Bind the value to the variable name.
- *
- * @param name The column name in the statement that should receive the value.
- * @param value The value to bind. It can be Inf or NaN.
- */
-void mysql_stmt::bind_value_as_u64(std::string const& name, uint64_t value) {
-  mysql_bind_mapping::iterator it(_bind_mapping.find(name));
-  if (it != _bind_mapping.end()) {
-    bind_value_as_u64(it->second, value);
-  } else {
-    std::string key(name);
-    key.append("1");
-    it = _bind_mapping.find(key);
-    if (it != _bind_mapping.end()) {
-      bind_value_as_u64(it->second, value);
-      key[key.size() - 1] = '2';
-      it = _bind_mapping.find(key);
-      if (it != _bind_mapping.end())
-        bind_value_as_u64(it->second, value);
-      else
-        log_v2::sql()->error(
-            "mysql: cannot bind object with name '{}' to u64 value {} in "
-            "statement {}",
-            name, value, get_id());
-    }
-  }
-}
-
-/**
- *  Bind the value to the variable at index range.
- *
- * @param range The index in the statement.
- * @param value The value to bind. It can be Inf or NaN.
- */
-void mysql_stmt::bind_value_as_f32(int range, float value) {
-  if (!_bind) {
-    _bind =
-        std::make_unique<database::mysql_bind>(_param_count, 0, _reserved_size);
-  }
-  _bind->set_value_as_f32(range, value);
-}
-
-void mysql_stmt::bind_value_as_f32(std::string const& name, float value) {
-  mysql_bind_mapping::iterator it(_bind_mapping.find(name));
-  if (it != _bind_mapping.end()) {
-    bind_value_as_f32(it->second, value);
-  } else {
-    std::string key(name);
-    key.append("1");
-    it = _bind_mapping.find(key);
-    if (it != _bind_mapping.end()) {
-      bind_value_as_f32(it->second, value);
-      key[key.size() - 1] = '2';
-      it = _bind_mapping.find(key);
-      if (it != _bind_mapping.end())
-        bind_value_as_f32(it->second, value);
-      else
-        log_v2::sql()->error(
-            "mysql: cannot bind object with name '{}' to f32 value {} in "
-            "statement {}",
-            name, value, get_id());
-    }
-  }
-}
-
-/**
- *  Bind the value to the variable at index range.
- *
- * @param range The index in the statement.
- * @param value The value to bind. It can be Inf or NaN.
- */
-void mysql_stmt::bind_value_as_f64(int range, double value) {
-  if (!_bind) {
-    _bind =
-        std::make_unique<database::mysql_bind>(_param_count, 0, _reserved_size);
-  }
-  _bind->set_value_as_f64(range, value);
-}
-
-void mysql_stmt::bind_value_as_f64(std::string const& name, double value) {
-  mysql_bind_mapping::iterator it(_bind_mapping.find(name));
-  if (it != _bind_mapping.end()) {
-    bind_value_as_f64(it->second, value);
-  } else {
-    std::string key(name);
-    key.append("1");
-    it = _bind_mapping.find(key);
-    if (it != _bind_mapping.end()) {
-      bind_value_as_f64(it->second, value);
-      key[key.size() - 1] = '2';
-      it = _bind_mapping.find(key);
-      if (it != _bind_mapping.end())
-        bind_value_as_f64(it->second, value);
-      else
-        log_v2::sql()->error(
-            "mysql: cannot bind object with name '{}' to f64 value {} in "
-            "statement {}",
-            name, value, get_id());
-    }
-  }
-}
-
-void mysql_stmt::bind_value_as_tiny(int range, char value) {
-  if (!_bind) {
-    _bind =
-        std::make_unique<database::mysql_bind>(_param_count, 0, _reserved_size);
-  }
-  _bind->set_value_as_tiny(range, value);
-}
-
-void mysql_stmt::bind_value_as_tiny(std::string const& name, char value) {
-  mysql_bind_mapping::iterator it(_bind_mapping.find(name));
-  if (it != _bind_mapping.end()) {
-    bind_value_as_tiny(it->second, value);
-  } else {
-    std::string key(name);
-    key.append("1");
-    it = _bind_mapping.find(key);
-    if (it != _bind_mapping.end()) {
-      bind_value_as_tiny(it->second, value);
-      key[key.size() - 1] = '2';
-      it = _bind_mapping.find(key);
-      if (it != _bind_mapping.end())
-        bind_value_as_tiny(it->second, value);
-      else
-        log_v2::sql()->error(
-            "mysql: cannot bind object with name '{}' to tiny value {} in "
-            "statement {}",
-            name, value, get_id());
-    }
-  }
-}
-
-void mysql_stmt::bind_value_as_bool(int range, bool value) {
-  if (!_bind) {
-    _bind =
-        std::make_unique<database::mysql_bind>(_param_count, 0, _reserved_size);
-  }
-  _bind->set_value_as_bool(range, value);
-}
-
-void mysql_stmt::bind_value_as_bool(std::string const& name, bool value) {
-  mysql_bind_mapping::iterator it(_bind_mapping.find(name));
-  if (it != _bind_mapping.end()) {
-    bind_value_as_bool(it->second, value);
-  } else {
-    std::string key(name);
-    key.append("1");
-    it = _bind_mapping.find(key);
-    if (it != _bind_mapping.end()) {
-      bind_value_as_bool(it->second, value);
-      key[key.size() - 1] = '2';
-      it = _bind_mapping.find(key);
-      if (it != _bind_mapping.end())
-        bind_value_as_bool(it->second, value);
-      else
-        log_v2::sql()->error(
-            "mysql: cannot bind object with name '{}' to bool value {} in "
-            "statement {}",
-            name, value, get_id());
-    }
-  }
-}
-
-void mysql_stmt::bind_value_as_str(int range, const fmt::string_view& value) {
-  if (!_bind) {
-    _bind =
-        std::make_unique<database::mysql_bind>(_param_count, 0, _reserved_size);
-  }
-  _bind->set_value_as_str(range, value);
-}
-
-void mysql_stmt::bind_value_as_str(std::string const& name,
-                                   const fmt::string_view& value) {
-  mysql_bind_mapping::iterator it(_bind_mapping.find(name));
-  if (it != _bind_mapping.end()) {
-    bind_value_as_str(it->second, value);
-  } else {
-    std::string key(name);
-    key.append("1");
-    it = _bind_mapping.find(key);
-    if (it != _bind_mapping.end()) {
-      bind_value_as_str(it->second, value);
-      key[key.size() - 1] = '2';
-      it = _bind_mapping.find(key);
-      if (it != _bind_mapping.end())
-        bind_value_as_str(it->second, value);
-    } else
-      log_v2::sql()->error(
-          "mysql: cannot bind object with name '{}' to string value {} in "
-          "statement {}",
-          name, value, get_id());
-  }
-}
-
-void mysql_stmt::bind_value_as_null(int range) {
-  if (!_bind) {
-    _bind =
-        std::make_unique<database::mysql_bind>(_param_count, 0, _reserved_size);
-  }
-  _bind->set_value_as_null(range);
-}
-
-void mysql_stmt::bind_value_as_null(std::string const& name) {
-  mysql_bind_mapping::iterator it(_bind_mapping.find(name));
-  if (it != _bind_mapping.end()) {
-    bind_value_as_null(it->second);
-  } else {
-    std::string key(name);
-    key.append("1");
-    it = _bind_mapping.find(key);
-    if (it != _bind_mapping.end()) {
-      bind_value_as_null(it->second);
-      key[key.size() - 1] = '2';
-      it = _bind_mapping.find(key);
-      if (it != _bind_mapping.end())
-        bind_value_as_null(it->second);
-    } else
-      log_v2::sql()->error(
-          "mysql: cannot bind object with name '{}' to null in statement {}",
-          name, get_id());
-  }
-}
+BIND_VALUE(i32, int32_t)
+BIND_VALUE(u32, uint32_t)
+BIND_VALUE(i64, int64_t)
+BIND_VALUE(u64, uint64_t)
+BIND_VALUE(f32, float)
+BIND_VALUE(f64, double)
+BIND_VALUE(tiny, char)
+BIND_VALUE(bool, bool)
+BIND_VALUE(str, const fmt::string_view&)
 
 std::string const& mysql_stmt::get_query() const {
   return _query;

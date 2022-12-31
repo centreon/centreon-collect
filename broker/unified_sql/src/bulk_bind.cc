@@ -53,17 +53,28 @@ bool bulk_bind::ready(int32_t conn) {
   if (!b)
     return false;
 
-  if (b->row_count() >= _max_size)
+  if (b->row_count() >= _max_size) {
+    log_v2::sql()->trace("The bind rows count {} reaches its max size {}",
+                         b->row_count(), _max_size);
     return true;
+  }
 
   std::time_t now = time(nullptr);
   if (_next_time[conn] <= now) {
+    log_v2::sql()->trace(
+        "The bind next time {} has been reached by the current time {}",
+        _next_time[conn], now);
     if (b->current_row() == 0) {
+      log_v2::sql()->trace(
+          "the rows count of the binding is 0 so nothing to do");
       _next_time[conn] = std::time(nullptr) + _interval;
+      log_v2::sql()->trace(" => bind not ready");
       return false;
     }
+    log_v2::sql()->trace(" => bind ready");
     return true;
   }
+  log_v2::sql()->trace(" => bind not ready");
   return false;
 }
 

@@ -783,6 +783,9 @@ void stream::_check_queues(asio::error_code ec) {
       _finish_action(-1, actions::host_parents | actions::comments |
                              actions::downtimes | actions::host_dependencies |
                              actions::service_dependencies);
+      log_v2::sql()->trace(
+          "Check if some statements are ready, connections count = {}",
+          _sscr_resources_bind.connections_count());
       for (uint32_t conn = 0; conn < _sscr_resources_bind.connections_count();
            conn++) {
         if (_hscr_bind.ready(conn)) {

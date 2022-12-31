@@ -19,9 +19,7 @@
 #ifndef CCB_MYSQL_BIND_HH
 #define CCB_MYSQL_BIND_HH
 
-#include <mysql.h>
 #include "com/centreon/broker/database/mysql_column.hh"
-#include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()
 
@@ -30,12 +28,12 @@ class mysql;
 
 namespace database {
 class mysql_bind {
-  bool _prepared(int range) const;
-  void _prepare_type(int range, enum enum_field_types type);
+  bool _prepared(size_t range) const;
+  void _prepare_type(size_t range, enum enum_field_types type);
 
   std::vector<MYSQL_BIND> _bind;
 
-  int32_t _current_row = 0;
+  size_t _current_row = 0u;
   // The buffers contained by _bind
   std::vector<database::mysql_column> _column;
 
@@ -47,26 +45,45 @@ class mysql_bind {
   mysql_bind(int size, int length = 0, size_t row_count = 1);
   ~mysql_bind() noexcept = default;
   void set_size(int size);
-  int value_as_i32(int range) const;
-  void set_value_as_i32(int range, int value);
-  uint32_t value_as_u32(int range) const;
-  void set_value_as_u32(int range, uint32_t value);
-  int64_t value_as_i64(int range) const;
-  void set_value_as_i64(int range, int64_t value);
-  uint64_t value_as_u64(int range) const;
-  void set_value_as_u64(int range, uint64_t value);
-  bool value_as_bool(int range) const;
-  void set_value_as_bool(int range, bool value);
-  float value_as_f32(int range) const;
-  void set_value_as_f32(int range, float value);
-  double value_as_f64(int range) const;
-  void set_value_as_f64(int range, double value);
-  void set_value_as_null(int range);
-  void set_value_as_tiny(int range, char value);
-  char* value_as_str(int range);
-  void set_value_as_str(int range, const fmt::string_view& value);
+
+  int value_as_i32(size_t range) const;
+  void set_value_as_i32(size_t range, int value);
+  void set_null_i32(size_t range);
+
+  uint32_t value_as_u32(size_t range) const;
+  void set_value_as_u32(size_t range, uint32_t value);
+  void set_null_u32(size_t range);
+
+  int64_t value_as_i64(size_t range) const;
+  void set_value_as_i64(size_t range, int64_t value);
+  void set_null_i64(size_t range);
+
+  uint64_t value_as_u64(size_t range) const;
+  void set_value_as_u64(size_t range, uint64_t value);
+  void set_null_u64(size_t range);
+
+  bool value_as_bool(size_t range) const;
+  void set_value_as_bool(size_t range, bool value);
+  void set_null_bool(size_t range);
+
+  float value_as_f32(size_t range) const;
+  void set_value_as_f32(size_t range, float value);
+  void set_null_f32(size_t range);
+
+  double value_as_f64(size_t range) const;
+  void set_value_as_f64(size_t range, double value);
+  void set_null_f64(size_t range);
+
+  const char* value_as_str(size_t range) const;
+  void set_value_as_str(size_t range, const fmt::string_view& value);
+  void set_null_str(size_t range);
+
+  char value_as_tiny(size_t range) const;
+  void set_value_as_tiny(size_t range, char value);
+  void set_null_tiny(size_t range);
+
   int get_size() const;
-  bool value_is_null(int range) const;
+  bool value_is_null(size_t range) const;
   bool empty() const;
   void set_empty();
   int get_rows_count() const;
@@ -80,6 +97,7 @@ class mysql_bind {
 
   void debug();
 };
+
 }  // namespace database
 
 CCB_END()
