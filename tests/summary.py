@@ -85,14 +85,14 @@ if args.fail:
         M = max(fail_dict[k])
         n = k
         d = f"############# {k} ##############\n * size = {s}\n * min = {m}\n * max = {M}\n"
-        lst.append((s, m, M, d, n))
+        lst.append((-M, -s, n, -m, d))
     lst.sort()
     # We keep the last 10
-    lst = lst[-top:]
+    lst = lst[:top]
     names = []
     for l in lst:
-        print(l[3])
-        names.append(l[4])
+        print(l[4])
+        names.append(l[2])
     for k in fail_dict:
         if k in names:
             for v in fail_dict[k]:
@@ -178,7 +178,7 @@ if args.fail:
 
     AX.set_xlabel('date')
     AX.set_ylabel('Failed tests')
-    AX.set_title("Fail top 10")
+    AX.set_title(f"Fail top {top}")
     AX.tick_params(axis="x", labelrotation=45, labelsize=8)
 
     AX.plot(fail_xx, fail_yy, 'ro')
