@@ -93,6 +93,9 @@ mysql_column& mysql_column::operator=(mysql_column&& other) {
   return *this;
 }
 
+/**
+ * @brief Destroy the main vector of the column.
+ */
 void mysql_column::_free_vector() {
   if (!_vector)
     return;
@@ -137,14 +140,29 @@ void mysql_column::_free_vector() {
   _vector_buffer = nullptr;
 }
 
+/**
+ * @brief Accessor to the type of items stored in the column.
+ *
+ * @return Integer equal to MYSQL_TYPE_STRING, MYSQL_TYPE_LONG, ...
+ */
 int mysql_column::get_type() const {
   return _type;
 }
 
+/**
+ * @brief Accessor to the array of data contained in the column.
+ * For example, in case of data of type MYSQL_TYPE_LONG, this buffer is of type
+ * long*.
+ *
+ * @return A pointer.
+ */
 void* mysql_column::get_buffer() {
   return _vector_buffer;
 }
 
+/**
+ * @brief Clear the column. Its size is reset to 0.
+ */
 void mysql_column::clear() {
   _indicator.clear();
   _error.clear();
@@ -250,6 +268,12 @@ void mysql_column::reserve(size_t s) {
   }
 }
 
+/**
+ * @brief Push the str value to the end of the column. The size of the column
+ * is then incremented by 1.
+ *
+ * @param str The string to add to the column.
+ */
 void mysql_column::_push_value_str(const fmt::string_view& str) {
   std::vector<char*>* vector = static_cast<std::vector<char*>*>(_vector);
   assert(_indicator.size() == _row_count && _error.size() == _row_count &&
@@ -262,6 +286,11 @@ void mysql_column::_push_value_str(const fmt::string_view& str) {
   ++_row_count;
 }
 
+/**
+ * @brief Push a null value to the end of the column. The size of the column
+ * is incremented by 1. This method is used when the type of the column is
+ * MYSQL_TYPE_STRING.
+ */
 void mysql_column::_push_null_str() {
   std::vector<char*>* vector = static_cast<std::vector<char*>*>(_vector);
   assert(_indicator.size() == _row_count && _error.size() == _row_count &&
@@ -274,6 +303,15 @@ void mysql_column::_push_null_str() {
   ++_row_count;
 }
 
+/**
+ * @brief Set the str value into the column at the row specified (we start at
+ * index 0). This method can only be called when the content type is
+ * MYSQL_TYPE_STRING. The greatest row value is the current size of the column,
+ * this allows to increment its size by 1.
+ *
+ * @param row The row concerned by the insertion.
+ * @param str The content to set into the column.
+ */
 void mysql_column::set_value_str(size_t row, const fmt::string_view& str) {
   assert(_type == MYSQL_TYPE_STRING);
   size_t size = str.size();
@@ -295,6 +333,14 @@ void mysql_column::set_value_str(size_t row, const fmt::string_view& str) {
   _length[row] = size;
 }
 
+/**
+ * @brief Set the null value into the column at the row specified (we start at
+ * index 0). This method can only be called when the content type is
+ * MYSQL_TYPE_STRING. The greatest row value is the current size of the column,
+ * this allows to increment its size by 1.
+ *
+ * @param row The row concerned by the insertion.
+ */
 void mysql_column::set_null_str(size_t row) {
   assert(_type == MYSQL_TYPE_STRING);
   std::vector<char*>* vector = static_cast<std::vector<char*>*>(_vector);
@@ -310,22 +356,56 @@ void mysql_column::set_null_str(size_t row) {
   }
 }
 
+/**
+ * @brief Return true if the column is of type STMT_INDICATOR_NULL. In other
+ * words, this function is useful after a SELECT when we fetch the result line
+ * by line. It allows us to know if the value is NULL.
+ *
+ * It is useless in case of a prepared statement, or we want to set to NULL the
+ * entire column.
+ *
+ * @return A boolean.
+ */
 bool mysql_column::is_null() const {
   return _indicator[_current_row] == STMT_INDICATOR_NULL;
 }
 
+/**
+ * @brief Accessor to the content of the indicators vector given as a char*
+ * array (needed by the C connector).
+ *
+ * @return A char* pointer.
+ */
 char* mysql_column::indicator_buffer() {
   return &_indicator[0];
 }
 
+/**
+ * @brief Accessor to the content of the error vector given as a my_bool*
+ * array (needed by the C connector).
+ *
+ * @return A my_bool* pointer.
+ */
 my_bool* mysql_column::error_buffer() {
   return &_error[0];
 }
 
+/**
+ * @brief Accessor to the content of the lengths vector given as an unsigned
+ * long* array (needed by the C connector).
+ *
+ * @return A unsigned long* pointer.
+ */
 unsigned long* mysql_column::length_buffer() {
   return &_length[0];
 }
 
+/**
+ * @brief Set the type of the column with a value like MYSQL_TYPE_STRING,
+ * MYSQL_TYPE_LONG, etc...
+ *
+ * @param type The type to specify.
+ */
 void mysql_column::set_type(int type) {
   assert(_vector == nullptr);
   assert(_row_count <= 1);
@@ -387,14 +467,37 @@ void mysql_column::set_type(int type) {
   }
 }
 
+/**
+ * @brief Return the current number of rows in the column.
+ *
+ * @return A positive integer.
+ */
 uint32_t mysql_column::array_size() const {
   return _row_count;
 }
 
+/**
+ * @brief Set the null value into the column at the row specified (we start at
+ * index 0). This method can only be called when the content type is
+ * MYSQL_TYPE_BOOL. The greatest row value is the current size of the column,
+ * this allows to increment its size by 1.
+ *
+ * @param row The row concerned by the insertion.
+ */
 void mysql_column::set_null_bool(size_t row) {
   set_null_tiny(row);
 }
 
+/**
+ * @brief Set the value into the column at the row specified (we start at
+ * index 0). This method can only be called when the content type is
+ * MYSQL_TYPE_TINY. True is changed into 1 whereas False is changed into 0.
+ * The greatest row value is the current size of the column, this allows to
+ * increment its size by 1.
+ *
+ * @param row The row concerned by the insertion.
+ * @param value The content to set into the column.
+ */
 void mysql_column::set_value_bool(size_t row, bool value) {
   set_value_tiny(row, value ? 1 : 0);
 }
