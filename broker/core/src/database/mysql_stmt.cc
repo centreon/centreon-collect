@@ -185,7 +185,7 @@ int mysql_stmt::get_id() const {
 
 std::unique_ptr<database::mysql_bind> mysql_stmt::get_bind() {
   if (_bind)
-    _hist_size.push_back(_bind->row_count());
+    _hist_size.push_back(_bind->rows_count());
   return std::move(_bind);
 }
 

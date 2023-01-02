@@ -1,5 +1,5 @@
 /*
-** Copyright 2018, 2021 Centreon
+** Copyright 2018, 2021-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -30,14 +30,15 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
 
-mysql_bind::mysql_bind() {}
-
 /**
- *  Constructor
+ * @brief Constructor
  *
- * @param size Number of columns in the bind
- * @param length Size reserved for each column's buffer. By default, this value
- *               is 0. So, no reservation is made.
+ * @param size Number of columns in this bind
+ * @param length Size to reserve for each column's buffer. This is useful when
+ *               the column contains strings. By default, this value is 0 and
+ *               no reservation are made.
+ * @param row_count Number of row to reserve. Columns are not allocated with a
+ *                  such size, they are just reserved.
  */
 mysql_bind::mysql_bind(int size, int length, size_t row_count)
     : _bind(size), _column(size), _typed(size) {
@@ -54,6 +55,11 @@ mysql_bind::mysql_bind(int size, int length, size_t row_count)
   }
 }
 
+/**
+ * @brief Set the size of the bind, that is to say the number of columns.
+ *
+ * @param size An integer.
+ */
 void mysql_bind::set_size(int size) {
   _bind.resize(size);
   _column.resize(size);
@@ -61,20 +67,29 @@ void mysql_bind::set_size(int size) {
     _bind[i].buffer = _column[i].get_buffer();
 }
 
+/**
+ * @brief Return a boolean telling if the column at index range has been
+ * prepared or not. A column is prepared when its column has a type defined.
+ *
+ * @param range a non negative integer.
+ *
+ * @return True if the column is prepared, False otherwise.
+ */
 bool mysql_bind::_prepared(size_t range) const {
   return _typed[range];
 }
 
+/**
+ * @brief Prepare the column at index range by setting the given type.
+ *
+ * @param range
+ * @param type
+ */
 void mysql_bind::_prepare_type(size_t range, enum enum_field_types type) {
   _typed[range] = true;
   _bind[range].buffer_type = type;
   _column[range].set_type(type);
 }
-
-// char* mysql_bind::value_as_str(size_t range) {
-//   assert(_bind[range].buffer_type == MYSQL_TYPE_STRING);
-//   return static_cast<char*>(_bind[range].buffer);
-// }
 
 #define SET_VALUE(ftype, vtype, sqltype, unsgn)                      \
   void mysql_bind::set_value_as_##ftype(size_t range, vtype value) { \
@@ -131,15 +146,25 @@ VALUE(bool, bool, MYSQL_TYPE_TINY)
 #undef SET_VALUE
 #undef VALUE
 
+/**
+ * @brief Return if the value at index range is NULL or not.
+ *
+ * @param range A non negative integer.
+ *
+ * @return A boolean True when the value is NULL.
+ */
 bool mysql_bind::value_is_null(size_t range) const {
-  return (_column[range].is_null() ||
-          _bind[range].buffer_type == MYSQL_TYPE_NULL);
+  return _column[range].is_null() ||
+         _bind[range].buffer_type == MYSQL_TYPE_NULL;
 }
 
+/**
+ * @brief A debug function to display the content of this bind.
+ */
 void mysql_bind::debug() {
   std::cout << "DEBUG BIND " << this << std::endl;
-  int size(_bind.size());
-  for (int j = 0; j < get_rows_count(); ++j) {
+  int size = _bind.size();
+  for (size_t j = 0; j < rows_count(); ++j) {
     for (int i = 0; i < size; ++i) {
       switch (_bind[i].buffer_type) {
         case MYSQL_TYPE_LONGLONG: {
@@ -215,29 +240,50 @@ void mysql_bind::debug() {
   }
 }
 
+/**
+ * @brief Return True if the bind contains no row, otherwise return False.
+ *
+ * @return A boolean.
+ */
 bool mysql_bind::empty() const {
   return _column[0].array_size() == 0;
 }
 
-MYSQL_BIND const* mysql_bind::get_bind() const {
+/**
+ * @brief Accessor to the MYSQL_BIND* contained in this mysql_bind. This is
+ * useful to call the MariaDB C connector functions.
+ *
+ * @return A MYSQL_BIND* pointer.
+ */
+const MYSQL_BIND* mysql_bind::get_bind() const {
   return &_bind[0];
 }
 
+/**
+ * @brief Accessor to the MYSQL_BIND* contained in this mysql_bind. This is
+ * useful to call the MariaDB C connector functions.
+ *
+ * @return A MYSQL_BIND* pointer.
+ */
 MYSQL_BIND* mysql_bind::get_bind() {
   return &_bind[0];
 }
 
+/**
+ * @brief Accessor to the number of columns in this bind.
+ *
+ * @return An integer.
+ */
 int mysql_bind::get_size() const {
   return _bind.size();
 }
 
 /**
- *  At the moment, the bind only carries one row. So this number is 0 or 1.
- *  And that does not implies that the result is so small.
+ * @brief Accessor to the number of rows in this bind.
  *
- * @return 1 or 0.
+ * @return an integer.
  */
-int mysql_bind::get_rows_count() const {
+size_t mysql_bind::rows_count() const {
   return _column[0].array_size();
 }
 
@@ -250,19 +296,30 @@ void mysql_bind::set_empty() {
   _current_row = 0;
 }
 
+/**
+ * @brief Accessor to the current row index.
+ *
+ * @return An integer.
+ */
 size_t mysql_bind::current_row() const {
   return _current_row;
 }
 
+/**
+ * @brief Reserve size rows in this bind. The current size of the bind does
+ * not change, but it will be faster to add rows if the reservation is big
+ * enough.
+ *
+ * @param size The wanted number of rows.
+ */
 void mysql_bind::reserve(size_t size) {
   for (auto& c : _column)
     c.reserve(size);
 }
 
+/**
+ * @brief Increment the current row index.
+ */
 void mysql_bind::next_row() {
   ++_current_row;
-}
-
-size_t mysql_bind::row_count() const {
-  return _column[0].array_size();
 }

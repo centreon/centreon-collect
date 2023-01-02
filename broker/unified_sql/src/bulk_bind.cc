@@ -53,9 +53,9 @@ bool bulk_bind::ready(int32_t conn) {
   if (!b)
     return false;
 
-  if (b->row_count() >= _max_size) {
+  if (b->rows_count() >= _max_size) {
     log_v2::sql()->trace("The bind rows count {} reaches its max size {}",
-                         b->row_count(), _max_size);
+                         b->rows_count(), _max_size);
     return true;
   }
 
@@ -88,7 +88,7 @@ size_t bulk_bind::size(int32_t conn) const {
   std::lock_guard<std::mutex> lck(_queue_m);
   if (!_bind[conn])
     return 0;
-  return _bind[conn]->row_count();
+  return _bind[conn]->rows_count();
 }
 
 /**

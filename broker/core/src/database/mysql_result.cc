@@ -327,7 +327,7 @@ bool mysql_result::empty() const {
  */
 int mysql_result::get_rows_count() const {
   if (_bind)
-    return _bind->get_rows_count();
+    return _bind->rows_count();
   else
     return mysql_num_rows(_result.get());
 }

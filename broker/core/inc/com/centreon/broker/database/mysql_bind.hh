@@ -41,43 +41,118 @@ class mysql_bind {
   std::vector<bool> _typed;
 
  public:
-  mysql_bind();
+  /**
+   * @brief Default constructor
+   */
+  mysql_bind() = default;
   mysql_bind(int size, int length = 0, size_t row_count = 1);
   ~mysql_bind() noexcept = default;
   void set_size(int size);
 
+  /**
+   * @brief getter to the int32 value at index range. The type of the column
+   * must be MYSQL_TYPE_LONG.
+   *
+   * @param range A non negative integer.
+   *
+   * @return An int32 integer.
+   */
   int value_as_i32(size_t range) const;
   void set_value_as_i32(size_t range, int value);
   void set_null_i32(size_t range);
 
+  /**
+   * @brief getter to the uint32 value at index range. The type of the column
+   * must be MYSQL_TYPE_LONG.
+   *
+   * @param range A non negative integer.
+   *
+   * @return An uint32 integer.
+   */
   uint32_t value_as_u32(size_t range) const;
   void set_value_as_u32(size_t range, uint32_t value);
   void set_null_u32(size_t range);
 
+  /**
+   * @brief getter to the int64 value at index range. The type of the column
+   * must be MYSQL_TYPE_LONGLONG.
+   *
+   * @param range A non negative integer.
+   *
+   * @return An int64 integer.
+   */
   int64_t value_as_i64(size_t range) const;
   void set_value_as_i64(size_t range, int64_t value);
   void set_null_i64(size_t range);
 
+  /**
+   * @brief getter to the uint64 value at index range. The type of the column
+   * must be MYSQL_TYPE_LONGLONG.
+   *
+   * @param range A non negative integer.
+   *
+   * @return An uint64 integer.
+   */
   uint64_t value_as_u64(size_t range) const;
   void set_value_as_u64(size_t range, uint64_t value);
   void set_null_u64(size_t range);
 
+  /**
+   * @brief getter to the bool value at index range. The type of the column
+   * must be MYSQL_TYPE_TINY.
+   *
+   * @param range A non negative integer.
+   *
+   * @return A boolean.
+   */
   bool value_as_bool(size_t range) const;
   void set_value_as_bool(size_t range, bool value);
   void set_null_bool(size_t range);
 
+  /**
+   * @brief getter to the float value at index range. The type of the column
+   * must be MYSQL_TYPE_FLOAT.
+   *
+   * @param range A non negative integer.
+   *
+   * @return A float.
+   */
   float value_as_f32(size_t range) const;
   void set_value_as_f32(size_t range, float value);
   void set_null_f32(size_t range);
 
+  /**
+   * @brief getter to the double value at index range. The type of the column
+   * must be MYSQL_TYPE_DOUBLE.
+   *
+   * @param range A non negative integer.
+   *
+   * @return A double.
+   */
   double value_as_f64(size_t range) const;
   void set_value_as_f64(size_t range, double value);
   void set_null_f64(size_t range);
 
+  /**
+   * @brief getter to the string value at index range. The type of the column
+   * must be MYSQL_TYPE_STRING.
+   *
+   * @param range A non negative integer.
+   *
+   * @return A const char* pointer.
+   */
   const char* value_as_str(size_t range) const;
   void set_value_as_str(size_t range, const fmt::string_view& value);
   void set_null_str(size_t range);
 
+  /**
+   * @brief getter to the char value at index range. The type of the column
+   * must be MYSQL_TYPE_TINY.
+   *
+   * @param range A non negative integer.
+   *
+   * @return A char.
+   */
   char value_as_tiny(size_t range) const;
   void set_value_as_tiny(size_t range, char value);
   void set_null_tiny(size_t range);
@@ -86,14 +161,13 @@ class mysql_bind {
   bool value_is_null(size_t range) const;
   bool empty() const;
   void set_empty();
-  int get_rows_count() const;
+  size_t rows_count() const;
 
   const MYSQL_BIND* get_bind() const;
   MYSQL_BIND* get_bind();
   size_t current_row() const;
   void next_row();
   void reserve(size_t size);
-  size_t row_count() const;
 
   void debug();
 };
