@@ -45,6 +45,16 @@ class mysql_bind {
    * @brief Default constructor
    */
   mysql_bind() = default;
+  /**
+   * @brief Constructor
+   *
+   * @param size Number of columns in this bind
+   * @param length Size to reserve for each column's buffer. This is useful when
+   *               the column contains strings. By default, this value is 0 and
+   *               no reservation are made.
+   * @param row_count Number of row to reserve. Columns are not allocated with a
+   *                  such size, they are just reserved.
+   */
   mysql_bind(int size, int length = 0, size_t row_count = 1);
   ~mysql_bind() noexcept = default;
   void set_size(int size);
@@ -58,7 +68,20 @@ class mysql_bind {
    * @return An int32 integer.
    */
   int value_as_i32(size_t range) const;
-  void set_value_as_i32(size_t range, int value);
+  /**
+   * @brief Setter of the value at the column at index range and at the current
+   * row. The type of the column must be MYSQL_TYPE_LONG.
+   *
+   * @param range A non negative integer.
+   * @param value The integer value to set.
+   */
+  void set_value_as_i32(size_t range, int32_t value);
+  /**
+   * @brief Setter of NULL at the column at index range and at the current
+   * row. The type of the column must be MYSQL_TYPE_LONG.
+   *
+   * @param range A non negative integer.
+   */
   void set_null_i32(size_t range);
 
   /**
@@ -70,7 +93,20 @@ class mysql_bind {
    * @return An uint32 integer.
    */
   uint32_t value_as_u32(size_t range) const;
+  /**
+   * @brief Setter of the value at the column at index range and at the current
+   * row. The type of the column must be MYSQL_TYPE_LONG.
+   *
+   * @param range A non negative integer.
+   * @param value The unsigned integer value to set.
+   */
   void set_value_as_u32(size_t range, uint32_t value);
+  /**
+   * @brief Setter of NULL at the column at index range and at the current
+   * row. The type of the column must be MYSQL_TYPE_LONG.
+   *
+   * @param range A non negative integer.
+   */
   void set_null_u32(size_t range);
 
   /**
@@ -82,7 +118,20 @@ class mysql_bind {
    * @return An int64 integer.
    */
   int64_t value_as_i64(size_t range) const;
+  /**
+   * @brief Setter of the value at the column at index range and at the current
+   * row. The type of the column must be MYSQL_TYPE_LONGLONG.
+   *
+   * @param range A non negative integer.
+   * @param value The long integer value to set.
+   */
   void set_value_as_i64(size_t range, int64_t value);
+  /**
+   * @brief Setter of NULL at the column at index range and at the current
+   * row. The type of the column must be MYSQL_TYPE_LONGLONG.
+   *
+   * @param range A non negative integer.
+   */
   void set_null_i64(size_t range);
 
   /**
@@ -94,7 +143,20 @@ class mysql_bind {
    * @return An uint64 integer.
    */
   uint64_t value_as_u64(size_t range) const;
+  /**
+   * @brief Setter of the value at the column at index range and at the current
+   * row. The type of the column must be MYSQL_TYPE_LONGLONG.
+   *
+   * @param range A non negative integer.
+   * @param value The unsigned long integer value to set.
+   */
   void set_value_as_u64(size_t range, uint64_t value);
+  /**
+   * @brief Setter of NULL at the column at index range and at the current
+   * row. The type of the column must be MYSQL_TYPE_LONGLONG.
+   *
+   * @param range A non negative integer.
+   */
   void set_null_u64(size_t range);
 
   /**
@@ -106,7 +168,20 @@ class mysql_bind {
    * @return A boolean.
    */
   bool value_as_bool(size_t range) const;
+  /**
+   * @brief Setter of the value at the column at index range and at the current
+   * row. The type of the column must be MYSQL_TYPE_TINY.
+   *
+   * @param range A non negative integer.
+   * @param value The boolean value to set.
+   */
   void set_value_as_bool(size_t range, bool value);
+  /**
+   * @brief Setter of NULL at the column at index range and at the current
+   * row. The type of the column must be MYSQL_TYPE_TINY.
+   *
+   * @param range A non negative integer.
+   */
   void set_null_bool(size_t range);
 
   /**
@@ -118,7 +193,20 @@ class mysql_bind {
    * @return A float.
    */
   float value_as_f32(size_t range) const;
+  /**
+   * @brief Setter of the value at the column at index range and at the current
+   * row. The type of the column must be MYSQL_TYPE_FLOAT.
+   *
+   * @param range A non negative integer.
+   * @param value The float value to set.
+   */
   void set_value_as_f32(size_t range, float value);
+  /**
+   * @brief Setter of NULL at the column at index range and at the current
+   * row. The type of the column must be MYSQL_TYPE_FLOAT.
+   *
+   * @param range A non negative integer.
+   */
   void set_null_f32(size_t range);
 
   /**
@@ -130,7 +218,20 @@ class mysql_bind {
    * @return A double.
    */
   double value_as_f64(size_t range) const;
+  /**
+   * @brief Setter of the value at the column at index range and at the current
+   * row. The type of the column must be MYSQL_TYPE_DOUBLE.
+   *
+   * @param range A non negative integer.
+   * @param value The double value to set.
+   */
   void set_value_as_f64(size_t range, double value);
+  /**
+   * @brief Setter of NULL at the column at index range and at the current
+   * row. The type of the column must be MYSQL_TYPE_DOUBLE.
+   *
+   * @param range A non negative integer.
+   */
   void set_null_f64(size_t range);
 
   /**
@@ -142,7 +243,20 @@ class mysql_bind {
    * @return A const char* pointer.
    */
   const char* value_as_str(size_t range) const;
+  /**
+   * @brief Setter of the value at the column at index range and at the current
+   * row. The type of the column must be MYSQL_TYPE_STRING.
+   *
+   * @param range A non negative integer.
+   * @param value The string to set.
+   */
   void set_value_as_str(size_t range, const fmt::string_view& value);
+  /**
+   * @brief Setter of NULL at the column at index range and at the current
+   * row. The type of the column must be MYSQL_TYPE_STRING.
+   *
+   * @param range A non negative integer.
+   */
   void set_null_str(size_t range);
 
   /**
@@ -154,7 +268,20 @@ class mysql_bind {
    * @return A char.
    */
   char value_as_tiny(size_t range) const;
+  /**
+   * @brief Setter of the value at the column at index range and at the current
+   * row. The type of the column must be MYSQL_TYPE_TINY.
+   *
+   * @param range A non negative integer.
+   * @param value The char to set.
+   */
   void set_value_as_tiny(size_t range, char value);
+  /**
+   * @brief Setter of NULL at the column at index range and at the current
+   * row. The type of the column must be MYSQL_TYPE_TINY.
+   *
+   * @param range A non negative integer.
+   */
   void set_null_tiny(size_t range);
 
   int get_size() const;

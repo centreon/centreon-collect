@@ -30,16 +30,6 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
 
-/**
- * @brief Constructor
- *
- * @param size Number of columns in this bind
- * @param length Size to reserve for each column's buffer. This is useful when
- *               the column contains strings. By default, this value is 0 and
- *               no reservation are made.
- * @param row_count Number of row to reserve. Columns are not allocated with a
- *                  such size, they are just reserved.
- */
 mysql_bind::mysql_bind(int size, int length, size_t row_count)
     : _bind(size), _column(size), _typed(size) {
   if (length) {
