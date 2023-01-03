@@ -23,11 +23,11 @@
 
 #include "com/centreon/broker/config/state.hh"
 #include "com/centreon/broker/namespace.hh"
+#include "com/centreon/engine/log_v2_base.hh"
 
 CCB_BEGIN()
 
-class log_v2 : public std::enable_shared_from_this<log_v2> {
-  std::string _log_name;
+class log_v2 : public com::centreon::engine::log_v2_base {
   enum logger {
     log_bam,
     log_bbdo,
@@ -53,7 +53,6 @@ class log_v2 : public std::enable_shared_from_this<log_v2> {
   std::mutex _load_m;
 
   asio::system_timer _flush_timer;
-  std::chrono::seconds _flush_interval;
   std::mutex _flush_timer_m;
   bool _flush_timer_active;
   std::shared_ptr<asio::io_context> _io_context;
@@ -70,13 +69,17 @@ class log_v2 : public std::enable_shared_from_this<log_v2> {
  public:
   ~log_v2();
 
+  std::shared_ptr<log_v2> shared_from_this() {
+    return std::static_pointer_cast<log_v2>(
+        com::centreon::engine::log_v2_base::shared_from_this());
+  }
+
   void stop_flush_timer();
 
   static void load(const std::shared_ptr<asio::io_context>& io_context);
 
   static log_v2& instance();
   void apply(const config::state& conf);
-  const std::string& log_name() const;
 
   static inline std::shared_ptr<spdlog::logger> bam() {
     return get_logger(log_bam, "bam");
@@ -148,6 +151,8 @@ class log_v2 : public std::enable_shared_from_this<log_v2> {
 
   static bool contains_logger(const std::string& logger);
   static bool contains_level(const std::string& level);
+  std::vector<std::pair<std::string, std::string>> levels() const;
+  void set_level(const std::string& logger, const std::string& level);
 };
 
 CCB_END();

@@ -58,7 +58,7 @@ extern bool g_io_context_started;
 void config::applier::init(size_t n_thread, const std::string&) {
   // Load singletons.
   pool::load(g_io_context, n_thread);
-  g_io_context_started = n_thread > 0;
+  g_io_context_started = true;
   stats::center::load();
   mysql_manager::load();
   config::applier::state::load();

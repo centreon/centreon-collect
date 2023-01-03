@@ -40,14 +40,15 @@ log_v2& log_v2::instance() {
 }
 
 log_v2::log_v2(const std::shared_ptr<asio::io_context>& io_context)
-    : _running{false},
+    : log_v2_base("broker"),
+      _running{false},
       _flush_timer(*io_context),
       _flush_timer_active(true),
       _io_context(io_context) {
   auto stdout_sink = std::make_shared<sinks::stdout_color_sink_mt>();
-  auto create_logger = [&stdout_sink](const std::string& name) {
-    std::shared_ptr<spdlog::logger> log =
-        std::make_shared<spdlog::logger>(name, stdout_sink);
+  auto create_logger = [&](const std::string& name) {
+    auto log = std::make_shared<com::centreon::engine::log_v2_logger>(
+        name, this, stdout_sink);
     log->flush_on(level::info);
     spdlog::register_logger(log);
     return log;
@@ -86,31 +87,31 @@ void log_v2::apply(const config::state& conf) {
 
   const auto& log = conf.log_conf();
 
-  _log_name = log.log_path();
   // reset loggers to null sink
   auto null_sink = std::make_shared<sinks::null_sink_mt>();
   std::shared_ptr<sinks::base_sink<std::mutex>> file_sink;
 
+  _file_path = log.log_path();
   if (log.max_size)
     file_sink = std::make_shared<sinks::rotating_file_sink_mt>(
-        _log_name, log.max_size, 99);
+        _file_path, log.max_size, 99);
   else
-    file_sink = std::make_shared<sinks::basic_file_sink_mt>(_log_name);
+    file_sink = std::make_shared<sinks::basic_file_sink_mt>(_file_path);
 
-  auto create_log = [&file_sink, flush_period = log.flush_period](
-                        const std::string& name, level::level_enum lvl) {
+  auto create_log = [&](const std::string& name, level::level_enum lvl) {
     spdlog::drop(name);
-    auto log = std::make_shared<spdlog::logger>(name, file_sink);
-    log->set_level(lvl);
+    auto logger = std::make_shared<com::centreon::engine::log_v2_logger>(
+        name, this, file_sink);
+    logger->set_level(lvl);
     if (lvl != level::off) {
-      if (flush_period)
-        log->flush_on(level::warn);
+      if (log.flush_period)
+        logger->flush_on(level::warn);
       else
-        log->flush_on(lvl);
-      log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
+        logger->flush_on(lvl);
+      logger->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
     }
-    spdlog::register_logger(log);
-    return log;
+    spdlog::register_logger(logger);
+    return logger;
   };
 
   _log[log_v2::log_core] = create_log("core", level::info);
@@ -196,6 +197,25 @@ bool log_v2::contains_logger(const std::string& logger) {
 }
 
 /**
+ * @brief Accessor to the various levels of loggers
+ *
+ * @return A vector of pairs of strings. The first string is the logger name and
+ * the second string is its level.
+ */
+std::vector<std::pair<std::string, std::string>> log_v2::levels() const {
+  std::vector<std::pair<std::string, std::string>> retval;
+  if (_running) {
+    retval.reserve(_log.size());
+    for (auto& l : _log) {
+      spdlog::level::level_enum level = l->level();
+      auto& lv = to_string_view(level);
+      retval.emplace_back(l->name(), std::string(lv.data(), lv.size()));
+    }
+  }
+  return retval;
+}
+
+/**
  * @brief this private static method is used to access a specific logger
  *
  * @param log_type
@@ -228,6 +248,30 @@ bool log_v2::contains_level(const std::string& level) {
   return l != level::off;
 }
 
-const std::string& log_v2::log_name() const {
-  return _log_name;
+/**
+ * @brief Set the level of a logger.
+ *
+ * @param logger The logger name
+ * @param level The level as a string
+ */
+void log_v2::set_level(const std::string& logger, const std::string& level) {
+  if (_running) {
+    bool found = false;
+    for (auto l : _log) {
+      if (l->name() == logger) {
+        found = true;
+        level::level_enum lvl = level::from_str(level);
+        if (lvl == level::off && level != "off")
+          throw msg_fmt("The '{}' level is unknown", level);
+        l->set_level(lvl);
+        break;
+      }
+    }
+    if (!found)
+      throw msg_fmt("The '{}' logger does not exist", logger);
+  } else
+    throw msg_fmt(
+        "Unable to change '{}' logger level, the logger is not running for now "
+        "- try later.",
+        logger);
 }

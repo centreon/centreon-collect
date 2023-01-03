@@ -234,6 +234,16 @@ class engine_impl final : public Engine::Service {
   static std::pair<std::shared_ptr<com::centreon::engine::service>,
                    std::string /*error*/>
   get_serv(const ::com::centreon::engine::ServiceIdentifier& serv_info);
+
+  ::grpc::Status GetLogInfo(
+      ::grpc::ServerContext* context,
+      const ::google::protobuf::Empty* request,
+      ::com::centreon::engine::LogInfo* response) override;
+
+  virtual ::grpc::Status SetLogParam(
+      ::grpc::ServerContext* context,
+      const ::com::centreon::engine::LogParam* request,
+      ::google::protobuf::Empty* response) override;
 };
 
 CCE_END()
