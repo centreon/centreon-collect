@@ -243,7 +243,7 @@ class engine_impl final : public Engine::Service {
   virtual ::grpc::Status SetLogParam(
       ::grpc::ServerContext* context,
       const ::com::centreon::engine::LogParam* request,
-      GenericString* response) override;
+      ::google::protobuf::Empty* response) override;
 };
 
 CCE_END()

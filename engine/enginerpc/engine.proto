@@ -122,7 +122,7 @@ service Engine {
   *
   * @return nothing.
   */
-  rpc SetLogParam(LogParam) returns (GenericString) {}
+  rpc SetLogParam(LogParam) returns (google.protobuf.Empty) {}
 }
 
 message GenericString {
@@ -547,8 +547,10 @@ message ChangeObjectCustomVar {
 
 message LogInfo {
   message LoggerInfo {
-    string log_file = 1;
-    map<string, string> level = 2;
+    string log_name = 1;
+    string log_file = 2;
+    uint32 log_flush_period = 3;
+    map<string, string> level = 4;
   }
   repeated LoggerInfo loggers = 1;
 }

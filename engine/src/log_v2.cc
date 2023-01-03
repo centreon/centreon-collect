@@ -38,15 +38,15 @@ log_v2& log_v2::instance() {
 }
 
 log_v2::log_v2(const std::shared_ptr<asio::io_context>& io_context)
-    : _running{false},
+    : log_v2_base("engine"),
+      _running{false},
       _flush_timer(*io_context),
       _flush_timer_active(true),
       _io_context(io_context) {
   auto stdout_sink = std::make_shared<sinks::stdout_sink_mt>();
-  auto create_logger = [&stdout_sink](const std::string& name,
-                                      level::level_enum lvl) {
+  auto create_logger = [&](const std::string& name, level::level_enum lvl) {
     spdlog::drop(name);
-    auto log = std::make_shared<spdlog::logger>(name, stdout_sink);
+    auto log = std::make_shared<log_v2_logger>(name, this, stdout_sink);
     log->set_level(lvl);
     log->flush_on(lvl);
     log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
@@ -76,6 +76,9 @@ log_v2::log_v2(const std::shared_ptr<asio::io_context>& io_context)
   _log[log_v2::log_process] = create_logger("process", level::from_str("info"));
   _log[log_v2::log_runtime] =
       create_logger("runtime", level::from_str("error"));
+
+  _log[log_v2::log_process]->info("{} : log started", _log_name);
+
   _running = true;
 }
 
@@ -96,8 +99,8 @@ void log_v2::apply(const configuration::state& config) {
   if (config.log_v2_enabled()) {
     if (config.log_v2_logger() == "file") {
       if (config.log_file() != "") {
-        sink_to_flush =
-            std::make_shared<sinks::basic_file_sink_mt>(config.log_file());
+        _file_path = config.log_file();
+        sink_to_flush = std::make_shared<sinks::basic_file_sink_mt>(_file_path);
       } else {
         log_v2::config()->error("log_file name is empty");
         sink_to_flush = std::make_shared<sinks::stdout_sink_mt>();

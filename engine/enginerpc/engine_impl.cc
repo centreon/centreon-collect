@@ -24,6 +24,8 @@
 
 #include <asio.hpp>
 
+#include <absl/strings/str_join.h>
+
 #include <spdlog/common.h>
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/sinks/basic_file_sink.h>
@@ -3246,45 +3248,29 @@ engine_impl::get_serv(
     ::grpc::ServerContext* context,
     const ::google::protobuf::Empty* request,
     ::com::centreon::engine::LogInfo* response) {
-  using logger_by_file =
-      std::map<std::string, std::vector<std::shared_ptr<spdlog::logger>>>;
+  using logger_by_log =
+      std::map<log_v2_base*, std::vector<std::shared_ptr<spdlog::logger>>>;
 
-  logger_by_file summary;
+  logger_by_log summary;
 
-  spdlog::apply_all([&summary](
-                        const std::shared_ptr<spdlog::logger>& logger_base) {
-    std::shared_ptr<log_v2_logger> logger =
-        std::dynamic_pointer_cast<log_v2_logger>(logger_base);
-    if (!logger) {
-      return;
-    }
-    // search log file
-    const auto& sinks = logger->sinks();
-    std::string log_file_path;
-    for (spdlog::sink_ptr sink : sinks) {
-      std::shared_ptr<spdlog::sinks::basic_file_sink_mt> file_sink =
-          std::dynamic_pointer_cast<spdlog::sinks::basic_file_sink_mt>(sink);
-      if (file_sink) {
-        log_file_path = file_sink->filename();
-        break;
-      }
-    }
-    if (!log_file_path.empty()) {
-      summary[log_file_path].push_back(logger);
-    }
-  });
+  spdlog::apply_all(
+      [&summary](const std::shared_ptr<spdlog::logger>& logger_base) {
+        std::shared_ptr<log_v2_logger> logger =
+            std::dynamic_pointer_cast<log_v2_logger>(logger_base);
+        if (logger) {
+          summary[logger->get_parent()].push_back(logger);
+        }
+      });
 
-  for (const auto& by_file_loggers : summary) {
+  for (const auto& by_parent_loggers : summary) {
     LogInfo_LoggerInfo* loggers = response->add_loggers();
-    loggers->set_log_file(by_file_loggers.first);
-    auto levels = (*loggers->mutable_level());
-    levels["flush_period"] = std::to_string(
-        std::static_pointer_cast<log_v2_logger>(*by_file_loggers.second.begin())
-            ->get_parent()
-            ->get_flush_interval()
-            .count());
+    loggers->set_log_name(by_parent_loggers.first->log_name());
+    loggers->set_log_file(by_parent_loggers.first->file_path());
+    loggers->set_log_flush_period(
+        by_parent_loggers.first->get_flush_interval().count());
+    auto& levels = *loggers->mutable_level();
     for (const std::shared_ptr<spdlog::logger>& logger :
-         by_file_loggers.second) {
+         by_parent_loggers.second) {
       auto level = spdlog::level::to_string_view(logger->level());
       levels[logger->name()] = std::string(level.data(), level.size());
     }
@@ -3304,25 +3290,31 @@ engine_impl::get_serv(
 ::grpc::Status engine_impl::SetLogParam(
     ::grpc::ServerContext* context,
     const ::com::centreon::engine::LogParam* request,
-    ::GenericString* response) {
+    ::google::protobuf::Empty* response) {
   std::string err_detail;
   switch (request->param()) {
     case LogParam_LogParamType_FLUSH_PERIOD: {
       std::shared_ptr<log_v2_logger> search;
-      spdlog::apply_all(
-          [&search, request](const std::shared_ptr<spdlog::logger> logger) {
-            if (!search) {
-              std::shared_ptr<log_v2_logger> test =
-                  std::dynamic_pointer_cast<log_v2_logger>(logger);
-              if (test && test->get_parent()->log_name() == request->name()) {
-                search = test;
-              }
+      std::set<std::string> available_loggers;
+      spdlog::apply_all([&search, &available_loggers, request](
+                            const std::shared_ptr<spdlog::logger> logger) {
+        if (!search) {
+          std::shared_ptr<log_v2_logger> test =
+              std::dynamic_pointer_cast<log_v2_logger>(logger);
+          if (test) {
+            if (test->get_parent()->log_name() == request->name()) {
+              search = test;
+            } else {
+              available_loggers.insert(test->get_parent()->log_name());
             }
-          });
+          }
+        }
+      });
       if (!search) {
-        err_detail = fmt::format("unknow name:{}", request->value());
+        err_detail =
+            fmt::format("unknow logger name:{}, available loggers:{}",
+                        request->name(), absl::StrJoin(available_loggers, " "));
         log_v2::external_command()->error(err_detail);
-        response->set_str_arg(err_detail);
         return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err_detail);
       }
       unsigned new_interval;
@@ -3330,11 +3322,9 @@ engine_impl::get_serv(
         err_detail = fmt::format(
             "value must be a positive integer instead of {}", request->value());
         log_v2::external_command()->error(err_detail);
-        response->set_str_arg(err_detail);
         return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, err_detail);
       }
       search->get_parent()->set_flush_interval(new_interval);
-      response->set_str_arg("OK");
       return grpc::Status::OK;
     }
     case LogParam_LogParamType_LOG_LEVEL: {
@@ -3342,7 +3332,6 @@ engine_impl::get_serv(
       if (!logger) {
         err_detail = fmt::format("unknow logger:{}", request->name());
         log_v2::external_command()->error(err_detail);
-        response->set_str_arg(err_detail);
         return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err_detail);
       } else {
         spdlog::level::level_enum lvl =
@@ -3350,15 +3339,12 @@ engine_impl::get_serv(
         if (lvl == spdlog::level::off && request->value() != "off") {
           err_detail = fmt::format("unknow level:{}", request->value());
           log_v2::external_command()->error(err_detail);
-          response->set_str_arg(err_detail);
           return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err_detail);
         }
         logger->set_level(lvl);
-        response->set_str_arg("OK");
         return grpc::Status::OK;
       }
     }
   }
-  response->set_str_arg("unknown param");
   return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "unknown param");
 }

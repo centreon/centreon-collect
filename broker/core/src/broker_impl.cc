@@ -269,7 +269,10 @@ grpc::Status broker_impl::GetLogInfo(grpc::ServerContext* context
   auto& name{request->str_arg()};
   auto& map = *response->mutable_level();
   auto lvs = log_v2::instance().levels();
-  response->set_log_file(log_v2::instance().log_name());
+  response->set_log_name(log_v2::instance().log_name());
+  response->set_log_file(log_v2::instance().file_path());
+  response->set_log_flush_period(
+      log_v2::instance().get_flush_interval().count());
   if (!name.empty()) {
     auto found = std::find_if(lvs.begin(), lvs.end(),
                               [&name](std::pair<std::string, std::string>& p) {
@@ -283,8 +286,6 @@ grpc::Status broker_impl::GetLogInfo(grpc::ServerContext* context
       return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, msg);
     }
   } else {
-    map["flush_period"] =
-        std::to_string(log_v2::instance().get_flush_interval().count());
     for (auto& p : lvs)
       map[p.first] = p.second;
     return grpc::Status::OK;
