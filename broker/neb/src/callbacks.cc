@@ -2248,19 +2248,6 @@ int neb::callback_process(int, void* data) {
     SPDLOG_LOGGER_INFO(log_v2::neb(),
                        "callbacks: generating process start event");
 
-    // Parse configuration file.
-    try {
-      config::parser parsr;
-      config::state conf{parsr.parse(gl_configuration_file)};
-
-      // Apply resulting configuration.
-      config::applier::state::instance().apply(conf);
-
-    } catch (msg_fmt const& e) {
-      SPDLOG_LOGGER_INFO(log_v2::neb(), e.what());
-      return 0;
-    }
-
     // Register callbacks.
     SPDLOG_LOGGER_DEBUG(
         log_v2::neb(), "callbacks: registering callbacks for old BBDO version");
@@ -2348,19 +2335,6 @@ int neb::callback_pb_process(int callback_type, void* data) {
   if (NEBTYPE_PROCESS_EVENTLOOPSTART == process_data->type) {
     SPDLOG_LOGGER_INFO(log_v2::neb(),
                        "callbacks: generating process start event");
-
-    // Parse configuration file.
-    try {
-      config::parser parsr;
-      config::state conf{parsr.parse(gl_configuration_file)};
-
-      // Apply resulting configuration.
-      config::applier::state::instance().apply(conf);
-
-    } catch (msg_fmt const& e) {
-      SPDLOG_LOGGER_INFO(log_v2::neb(), e.what());
-      return 0;
-    }
 
     // Register callbacks.
     SPDLOG_LOGGER_DEBUG(

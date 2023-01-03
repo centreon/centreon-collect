@@ -234,6 +234,16 @@ void neb::set_log_data(neb::log_entry& le, char const* log_data) {
     log_v2::neb()->error("Missing " name " in log message '{}'", output); \
     return false;                                                         \
   }
+
+#define test_fail_and_not_empty(name)                                     \
+  if (ait == args.end()) {                                                \
+    log_v2::neb()->error("Missing " name " in log message '{}'", output); \
+    return false;                                                         \
+  }                                                                       \
+  if (ait->empty()) {                                                     \
+    return false;                                                         \
+  }
+
 /**
  *  Extract Nagios-formated log data to the C++ object.
  *
@@ -242,6 +252,31 @@ void neb::set_log_data(neb::log_entry& le, char const* log_data) {
 bool neb::set_pb_log_data(neb::pb_log_entry& le, const std::string& output) {
   // Duplicate string so that we can split it with strtok_r.
   auto& le_obj = le.mut_obj();
+
+  /**
+   * @brief The only goal of this internal class is to fill host_id and
+   * service_id when destructor is called ie on each returns
+   * macro used in this function can do a return false
+   *
+   */
+  class fill_obj_on_exit {
+    LogEntry& _to_fill;
+
+   public:
+    fill_obj_on_exit(LogEntry& to_fill) : _to_fill(to_fill) {}
+    ~fill_obj_on_exit() {
+      if (!_to_fill.host_name().empty()) {
+        _to_fill.set_host_id(engine::get_host_id(_to_fill.host_name()));
+        if (!_to_fill.service_description().empty()) {
+          _to_fill.set_service_id(engine::get_service_id(
+              _to_fill.host_name(), _to_fill.service_description()));
+        }
+      }
+    }
+  };
+
+  // try to fill host_id and service_id whereever function exits
+  fill_obj_on_exit on_exit_executor(le_obj);
 
   // First part is the log description.
   auto s = absl::StrSplit(output, absl::MaxSplits(':', 1));
@@ -282,7 +317,7 @@ bool neb::set_pb_log_data(neb::pb_log_entry& le, const std::string& output) {
     le_obj.set_retry(retry);
     ++ait;
 
-    test_fail("output");
+    test_fail_and_not_empty("output");
     le_obj.set_output(ait->data(), ait->size());
   } else if (typ == "HOST ALERT") {
     le_obj.set_msg_type(LogEntry_MsgType_HOST_ALERT);
@@ -309,7 +344,7 @@ bool neb::set_pb_log_data(neb::pb_log_entry& le, const std::string& output) {
     le_obj.set_retry(retry);
     ++ait;
 
-    test_fail("output");
+    test_fail_and_not_empty("output");
     le_obj.set_output(ait->data(), ait->size());
   } else if (typ == "SERVICE NOTIFICATION") {
     le_obj.set_msg_type(LogEntry_MsgType_SERVICE_NOTIFICATION);
@@ -334,7 +369,7 @@ bool neb::set_pb_log_data(neb::pb_log_entry& le, const std::string& output) {
     le_obj.set_notification_cmd(ait->data(), ait->size());
     ++ait;
 
-    test_fail("output");
+    test_fail_and_not_empty("output");
     le_obj.set_output(ait->data(), ait->size());
   } else if (typ == "HOST NOTIFICATION") {
     le_obj.set_msg_type(LogEntry_MsgType_HOST_NOTIFICATION);
@@ -355,7 +390,7 @@ bool neb::set_pb_log_data(neb::pb_log_entry& le, const std::string& output) {
     le_obj.set_notification_cmd(ait->data(), ait->size());
     ++ait;
 
-    test_fail("output");
+    test_fail_and_not_empty("output");
     le_obj.set_output(ait->data(), ait->size());
   } else if (typ == "INITIAL HOST STATE") {
     le_obj.set_msg_type(LogEntry_MsgType_HOST_INITIAL_STATE);
@@ -383,7 +418,7 @@ bool neb::set_pb_log_data(neb::pb_log_entry& le, const std::string& output) {
     le_obj.set_retry(retry);
     ++ait;
 
-    test_fail("output");
+    test_fail_and_not_empty("output");
     le_obj.set_output(ait->data(), ait->size());
   } else if (typ == "INITIAL SERVICE STATE") {
     le_obj.set_msg_type(LogEntry_MsgType_SERVICE_INITIAL_STATE);
@@ -415,7 +450,7 @@ bool neb::set_pb_log_data(neb::pb_log_entry& le, const std::string& output) {
     le_obj.set_retry(retry);
     ++ait;
 
-    test_fail("output");
+    test_fail_and_not_empty("output");
     le_obj.set_output(ait->data(), ait->size());
   } else if (typ == "EXTERNAL COMMAND") {
     test_fail("acknowledge type");
@@ -440,7 +475,7 @@ bool neb::set_pb_log_data(neb::pb_log_entry& le, const std::string& output) {
       le_obj.set_notification_contact(ait->data(), ait->size());
       ++ait;
 
-      test_fail("output");
+      test_fail_and_not_empty("output");
       le_obj.set_output(ait->data(), ait->size());
     } else if (data == "ACKNOWLEDGE_HOST_PROBLEM") {
       le_obj.set_msg_type(LogEntry_MsgType_HOST_ACKNOWLEDGE_PROBLEM);
@@ -458,7 +493,7 @@ bool neb::set_pb_log_data(neb::pb_log_entry& le, const std::string& output) {
       le_obj.set_notification_contact(ait->data(), ait->size());
       ++ait;
 
-      test_fail("output");
+      test_fail_and_not_empty("output");
       le_obj.set_output(ait->data(), ait->size());
     } else {
       le_obj.set_msg_type(LogEntry_MsgType_OTHER);
@@ -490,7 +525,7 @@ bool neb::set_pb_log_data(neb::pb_log_entry& le, const std::string& output) {
     le_obj.set_retry(retry);
     ++ait;
 
-    test_fail("output");
+    test_fail_and_not_empty("output");
     le_obj.set_output(ait->data(), ait->size());
   } else if (typ == "SERVICE EVENT HANDLER") {
     le_obj.set_msg_type(LogEntry_MsgType_SERVICE_EVENT_HANDLER);
@@ -522,7 +557,7 @@ bool neb::set_pb_log_data(neb::pb_log_entry& le, const std::string& output) {
     le_obj.set_retry(retry);
     ++ait;
 
-    test_fail("output");
+    test_fail_and_not_empty("output");
     le_obj.set_output(ait->data(), ait->size());
   } else if (typ == "GLOBAL HOST EVENT HANDLER") {
     le_obj.set_msg_type(LogEntry_MsgType_GLOBAL_HOST_EVENT_HANDLER);
@@ -550,7 +585,7 @@ bool neb::set_pb_log_data(neb::pb_log_entry& le, const std::string& output) {
     le_obj.set_retry(retry);
     ++ait;
 
-    test_fail("output");
+    test_fail_and_not_empty("output");
     le_obj.set_output(ait->data(), ait->size());
   } else if (typ == "GLOBAL SERVICE EVENT HANDLER") {
     le_obj.set_msg_type(LogEntry_MsgType_GLOBAL_SERVICE_EVENT_HANDLER);
@@ -582,7 +617,7 @@ bool neb::set_pb_log_data(neb::pb_log_entry& le, const std::string& output) {
     le_obj.set_retry(retry);
     ++ait;
 
-    test_fail("output");
+    test_fail_and_not_empty("output");
     le_obj.set_output(ait->data(), ait->size());
   } else if (typ == "Warning") {
     le_obj.set_msg_type(LogEntry_MsgType_WARNING);
@@ -592,9 +627,5 @@ bool neb::set_pb_log_data(neb::pb_log_entry& le, const std::string& output) {
     le_obj.set_output(output);
   }
 
-  // Set host and service IDs.
-  le_obj.set_host_id(engine::get_host_id(le_obj.host_name()));
-  le_obj.set_service_id(
-      engine::get_service_id(le_obj.host_name(), le_obj.service_description()));
   return true;
 }
