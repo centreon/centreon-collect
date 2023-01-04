@@ -1225,6 +1225,12 @@ void notifier::set_check_options(int option) noexcept {
   _check_options = option;
 }
 
+/**
+ * @brief Tell if an acknowledgement is active on the notifier by returning its
+ * type ACK_NONE (no acknowledgement), ACK_NORMAL or ACK_STICKY.
+ *
+ * @return A notifier::acknowledgement_type.
+ */
 notifier::acknowledgement_type notifier::get_acknowledgement() const noexcept {
   return _acknowledgement_type;
 }
