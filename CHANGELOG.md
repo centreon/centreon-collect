@@ -11,6 +11,8 @@
 
 #### Engine
 
+* When Engine was restarted, services/hosts acknowledgements could come back.
+
 ### Enhancements
 
 #### Broker
