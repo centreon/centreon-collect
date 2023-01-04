@@ -213,7 +213,7 @@ jobs:
         with:
           distrib: ${{ matrix.distrib }}
           version: ${{ env.version }}
-          minor_version: ${{ steps.version.outputs.patch }}
+          minor_version: ${{ needs.create-version.outputs.patch }}
           release: ${{ needs.create-version.outputs.release }}
           module_name: centreon-collect
           repos_username: ${{ secrets.REPOS_USERNAME }}
