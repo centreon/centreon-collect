@@ -137,7 +137,7 @@ runs:
             echo "[DEBUG] - Arch: $ARCH"
             #echo "[DEBUG] - FOLDER: $FOLDER"
 
-            if [ $SUBREPO == stable ]; then
+            if [[ $SUBREPO == stable ]]; then
               TARGET="/srv/centreon-yum/yum.centreon.com/$PROJECT_PATH/$MAJOR/$DISTRIB/$REPOTYPE/$ARCH/RPMS"
             else
               FOLDER="centreon-$PROJECT-$MAJOR.$MINOR-$RELEASE"
