@@ -876,7 +876,7 @@ TEST_F(EngineRpc, RemoveServiceAcknowledgement) {
   ASSERT_EQ(comment::comments.size(), 0u);
   ASSERT_EQ(_svc->problem_has_been_acknowledged(), false);
 
-  svc->set_acknowledgement(notifier::ACK_NORMAL);
+  _svc->set_acknowledgement(notifier::ACK_NORMAL);
   cmt = std::make_shared<comment>(comment::service, comment::acknowledgment,
                                   _host->get_host_id(), _svc->get_service_id(),
                                   10000, "test-admin", oss.str(), false,
