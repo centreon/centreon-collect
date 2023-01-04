@@ -1,20 +1,20 @@
-##
-## Copyright 2018 Centreon
-##
-## Licensed under the Apache License, Version 2.0 (the "License");
-## you may not use this file except in compliance with the License.
-## You may obtain a copy of the License at
-##
-##     http://www.apache.org/licenses/LICENSE-2.0
-##
-## Unless required by applicable law or agreed to in writing, software
-## distributed under the License is distributed on an "AS IS" BASIS,
-## WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-## See the License for the specific language governing permissions and
-## limitations under the License.
-##
-## For more information : contact@centreon.com
-##
+# #
+# # Copyright 2018 Centreon
+# #
+# # Licensed under the Apache License, Version 2.0 (the "License");
+# # you may not use this file except in compliance with the License.
+# # You may obtain a copy of the License at
+# #
+# #     http://www.apache.org/licenses/LICENSE-2.0
+# #
+# # Unless required by applicable law or agreed to in writing, software
+# # distributed under the License is distributed on an "AS IS" BASIS,
+# # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# # See the License for the specific language governing permissions and
+# # limitations under the License.
+# #
+# # For more information : contact@centreon.com
+# #
 
 # Global options.
 
@@ -30,12 +30,14 @@ set(INC_DIR "${INC_DIR}/com/centreon/broker/simu")
 set(SIMU "70-simu")
 set(SIMU "${SIMU}" PARENT_SCOPE)
 add_library("${SIMU}" SHARED
+
   # Sources.
   "${SRC_DIR}/connector.cc"
   "${SRC_DIR}/factory.cc"
   "${SRC_DIR}/luabinding.cc"
   "${SRC_DIR}/main.cc"
   "${SRC_DIR}/stream.cc"
+
   # Headers.
   "${INC_DIR}/connector.hh"
   "${INC_DIR}/factory.hh"
@@ -45,6 +47,7 @@ add_library("${SIMU}" SHARED
 target_link_libraries("${SIMU}" ${LUA_LIBRARIES} CONAN_PKG::spdlog)
 target_precompile_headers(${SIMU} PRIVATE precomp_inc/precomp.hpp)
 set_target_properties("${SIMU}" PROPERTIES PREFIX "")
+add_dependencies(${SIMU} target_broker_message)
 
 # Testing.
 set(

@@ -1,20 +1,20 @@
-##
-## Copyright 2013 Centreon
-##
-## Licensed under the Apache License, Version 2.0 (the "License");
-## you may not use this file except in compliance with the License.
-## You may obtain a copy of the License at
-##
-##     http://www.apache.org/licenses/LICENSE-2.0
-##
-## Unless required by applicable law or agreed to in writing, software
-## distributed under the License is distributed on an "AS IS" BASIS,
-## WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-## See the License for the specific language governing permissions and
-## limitations under the License.
-##
-## For more information : contact@centreon.com
-##
+# #
+# # Copyright 2013 Centreon
+# #
+# # Licensed under the Apache License, Version 2.0 (the "License");
+# # you may not use this file except in compliance with the License.
+# # You may obtain a copy of the License at
+# #
+# #     http://www.apache.org/licenses/LICENSE-2.0
+# #
+# # Unless required by applicable law or agreed to in writing, software
+# # distributed under the License is distributed on an "AS IS" BASIS,
+# # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# # See the License for the specific language governing permissions and
+# # limitations under the License.
+# #
+# # For more information : contact@centreon.com
+# #
 
 # Global options.
 set(INC_DIR "${PROJECT_SOURCE_DIR}/tls/inc")
@@ -29,15 +29,17 @@ find_file(
   "gnutls.h"
   PATHS "/usr/gnutls2/include/gnutls"
   NO_DEFAULT_PATH)
-if (GNUTLS_FOUND)
+
+if(GNUTLS_FOUND)
   set(GNUTLS_INCLUDE_DIR "/usr/gnutls2/include")
   set(GNUTLS_LIBRARIES "/usr/gnutls2/lib/libgnutls.so")
-else ()
+else()
   include(FindGnuTLS)
-  if (NOT GNUTLS_FOUND)
+
+  if(NOT GNUTLS_FOUND)
     message(FATAL_ERROR "Could not find GNU TLS.")
-  endif ()
-endif ()
+  endif()
+endif()
 
 include_directories("${GNUTLS_INCLUDE_DIR}")
 
@@ -45,6 +47,7 @@ include_directories("${GNUTLS_INCLUDE_DIR}")
 set(TLS "60-tls")
 set(TLS "${TLS}" PARENT_SCOPE)
 add_library("${TLS}" SHARED
+
   # Sources
   "${SRC_DIR}/acceptor.cc"
   "${SRC_DIR}/connector.cc"
@@ -53,6 +56,7 @@ add_library("${TLS}" SHARED
   "${SRC_DIR}/main.cc"
   "${SRC_DIR}/params.cc"
   "${SRC_DIR}/stream.cc"
+
   # Headers.
   "${INC_DIR}/acceptor.hh"
   "${INC_DIR}/connector.hh"
@@ -66,9 +70,10 @@ target_link_libraries("${TLS}" ${GNUTLS_LIBRARIES} CONAN_PKG::spdlog)
 target_precompile_headers(${TLS} PRIVATE precomp_inc/precomp.hpp)
 
 set_target_properties("${TLS}" PROPERTIES PREFIX "")
+add_dependencies(${TLS} target_broker_message)
 
 # Testing.
-if (WITH_TESTING)
+if(WITH_TESTING)
   set(
     TESTS_SOURCES
     ${TESTS_SOURCES}
@@ -82,6 +87,7 @@ if (WITH_TESTING)
     PARENT_SCOPE
   )
 endif()
+
 # Install rule.
 install(TARGETS "${TLS}"
   LIBRARY DESTINATION "${PREFIX_MODULES}"
