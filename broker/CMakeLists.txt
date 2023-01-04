@@ -98,6 +98,8 @@ add_custom_command(
   ARGS --cpp_out="${SRC_DIR}" --proto_path=${SRC_DIR} ${SRC_DIR}/broker.proto
 )
 
+add_custom_target("target_broker_message" DEPENDS "${SRC_DIR}/broker.pb.cc" "${SRC_DIR}/broker.pb.h")
+
 include_directories(${SRC_DIR})
 
 add_library(
