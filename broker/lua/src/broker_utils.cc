@@ -566,7 +566,7 @@ static void broker_json_decode(lua_State* L, const json& it) {
  *  @param L The Lua interpreter
  */
 static int l_broker_json_decode(lua_State* L) {
-  char const* content(luaL_checkstring(L, -1));
+  const char* content(luaL_checkstring(L, -1));
 
   json it;
   try {

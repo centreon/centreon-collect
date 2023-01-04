@@ -31,8 +31,19 @@ using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
 
-mysql_stmt::mysql_stmt() : _id(0), _param_count(0), _hist_size(10) {}
+/**
+ * @brief Default constructor.
+ */
+mysql_stmt::mysql_stmt() : _hist_size(10) {}
 
+/**
+ * @brief Constructor of a mysql_stmt from a SQL query template. This template
+ * can be named or not, i.e. respectively like
+ * UPDATE foo SET a=:a_value or UPDATE foo SET a=?
+ *
+ * @param query The query template
+ * @param named a boolean telling if the query is named or not (with ?).
+ */
 mysql_stmt::mysql_stmt(std::string const& query, bool named) {
   mysql_bind_mapping bind_mapping;
   std::hash<std::string> hash_fn;
@@ -42,7 +53,7 @@ mysql_stmt::mysql_stmt(std::string const& query, bool named) {
     bool in_string(false);
     char open(0);
     int size(0);
-    for (std::string::const_iterator it(query.begin()), end(query.end());
+    for (std::string::const_iterator it = query.begin(), end = query.end();
          it != end; ++it) {
       if (in_string) {
         if (*it == '\\') {
@@ -96,8 +107,16 @@ mysql_stmt::mysql_stmt(std::string const& query, bool named) {
   }
 }
 
-mysql_stmt::mysql_stmt(std::string const& query,
-                       mysql_bind_mapping const& bind_mapping)
+/**
+ * @brief Constructor of a mysql_stmt from a not named query template and a
+ * correspondance table making the relation between column names and their
+ * indices.
+ *
+ * @param query
+ * @param bind_mapping
+ */
+mysql_stmt::mysql_stmt(const std::string& query,
+                       const mysql_bind_mapping& bind_mapping)
     : _id(std::hash<std::string>{}(query)),
       _query(query),
       _bind_mapping(bind_mapping) {
@@ -107,6 +126,13 @@ mysql_stmt::mysql_stmt(std::string const& query,
     _param_count = bind_mapping.size();
 }
 
+/**
+ * @brief Create a bind compatible with this mysql_stmt. It is then possible
+ * to work with it and once finished apply it to the statement for the
+ * execution.
+ *
+ * @return An unique pointer to a mysql_bind.
+ */
 std::unique_ptr<mysql_bind> mysql_stmt::create_bind() {
   if (!_hist_size.empty()) {
     int avg = 0;
@@ -115,11 +141,17 @@ std::unique_ptr<mysql_bind> mysql_stmt::create_bind() {
     }
     _reserved_size = avg / _hist_size.size() + 1;
   }
-  log_v2::sql()->trace("new mysql bind with {} rows", _reserved_size);
+  log_v2::sql()->trace("new mysql bind of stmt {} reserved with {} rows", _id,
+                       _reserved_size);
   auto retval = std::make_unique<mysql_bind>(_param_count, 0, _reserved_size);
   return retval;
 }
 
+/**
+ * @brief Apply a mysql_bind to the statement.
+ *
+ * @param bind the bind to move into the mysql_stmt.
+ */
 void mysql_stmt::set_bind(std::unique_ptr<mysql_bind>&& bind) {
   _bind = std::move(bind);
 }
@@ -153,10 +185,19 @@ mysql_stmt& mysql_stmt::operator=(mysql_stmt&& other) {
   return *this;
 }
 
-int mysql_stmt::_compute_param_count(std::string const& query) {
-  int retval(0);
-  bool in_string(false), jocker(false);
-  for (std::string::const_iterator it(query.begin()), end(query.end());
+/**
+ * @brief Compute the number of parameters in the query template. In other
+ * words, it computes the number of '?' characters that must be replaced by
+ * parameters in a prepared statement.
+ *
+ * @param query The query template.
+ *
+ * @return A size_t integer.
+ */
+size_t mysql_stmt::_compute_param_count(const std::string& query) {
+  size_t retval = 0u;
+  bool in_string{false}, jocker{false};
+  for (std::string::const_iterator it = query.begin(), end = query.end();
        it != end; ++it) {
     if (!in_string) {
       if (*it == '?')
@@ -175,20 +216,47 @@ int mysql_stmt::_compute_param_count(std::string const& query) {
   return retval;
 }
 
+/**
+ * @brief Return True if the prepared statement is prepared.
+ *
+ * @return True on success, False otherwise.
+ */
 bool mysql_stmt::prepared() const {
   return _id != 0;
 }
 
-int mysql_stmt::get_id() const {
+/**
+ * @brief Accessor to the id of the prepared statement.
+ *
+ * @return A uint32_t integer (0 if not prepared).
+ */
+uint32_t mysql_stmt::get_id() const {
   return _id;
 }
 
-std::unique_ptr<database::mysql_bind> mysql_stmt::get_bind() {
-  if (_bind)
+/**
+ * @brief Return an unique pointer to the bind contained inside the statement.
+ * Since the bind is in an unique pointer, it is removed from the statement when
+ * returned.
+ *
+ * @return A std::unique_ptr<mysql_bind>
+ */
+std::unique_ptr<mysql_bind> mysql_stmt::get_bind() {
+  if (_bind) {
+    log_v2::sql()->trace("mysql bind of stmt {} returned with {} rows", _id,
+                         _bind->rows_count());
     _hist_size.push_back(_bind->rows_count());
+  }
   return std::move(_bind);
 }
 
+/**
+ * @brief Operator useful to fill a database table row from a neb object. It
+ * works well when all the content of the object has an equivalent column in
+ * the table.
+ *
+ * @param d The object to save to the database.
+ */
 void mysql_stmt::operator<<(io::data const& d) {
   // Get event info.
   const io::event_info* info = io::events::instance().get_event_info(d.type());
@@ -536,21 +604,39 @@ BIND_VALUE(tiny, char)
 BIND_VALUE(bool, bool)
 BIND_VALUE(str, const fmt::string_view&)
 
-std::string const& mysql_stmt::get_query() const {
+#undef BIND_VALUE
+
+/**
+ * @brief Accessor to the query stored in the prepared statement.
+ *
+ * @return A reference to the query.
+ */
+const std::string& mysql_stmt::get_query() const {
   return _query;
 }
 
-int mysql_stmt::get_param_count() const {
+/**
+ * @brief Return the number of '?' characters that have to be replaced in the
+ * prepared statement.
+ *
+ * @return an integer.
+ */
+size_t mysql_stmt::get_param_count() const {
   return _param_count;
 }
 
+/**
+ * @brief Set the mapping between fields of a protobuf bbdo object to the
+ * prepared statement.
+ * For each element in the mapping, we have 3 elements:
+ * * the name of the field
+ * * the max length in case of string field, 0 otherwise.
+ * * some attributes see the class com::centreon::broker::mapping::entry for
+ *   more details.
+ *
+ * @param mapping A vector with the mapping.
+ */
 void mysql_stmt::set_pb_mapping(
     std::vector<std::tuple<std::string, uint32_t, uint16_t>>&& mapping) {
   _pb_mapping = std::move(mapping);
-}
-
-void mysql_stmt::set_row_count(size_t size) {
-  _reserved_size = size;
-  if (_bind)
-    _bind->reserve(size);
 }
