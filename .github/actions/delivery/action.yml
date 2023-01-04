@@ -100,8 +100,10 @@ runs:
             ;;
         esac
 
-        eval `ssh-agent`
-        ssh-add - <<< "${{ inputs.yum_repo_key }}"
+        if [[ "${{ env.extfile }}" == "rpm" ]] ; then
+          eval `ssh-agent`
+          ssh-add - <<< "${{ inputs.yum_repo_key }}"
+        fi
 
         FILES="*.${{ env.extfile }}"
 
