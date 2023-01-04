@@ -822,7 +822,7 @@ std::ostream& operator<<(std::ostream& os, const host& obj) {
      << obj.problem_has_been_acknowledged()
      << "\n"
         "  acknowledgement_type:                 "
-     << obj.get_acknowledgement_type()
+     << obj.get_acknowledgement()
      << "\n"
         "  check_type:                           "
      << obj.get_check_type()
@@ -2161,7 +2161,7 @@ void host::check_for_flapping(bool update,
 
 void host::set_flap(double percent_change,
                     double high_threshold,
-                    double low_threshold,
+                    double low_threshold [[maybe_unused]],
                     bool allow_flapstart_notification) {
   engine_logger(dbg_functions, basic) << "set_host_flap()";
   SPDLOG_LOGGER_TRACE(log_v2::functions(), "set_host_flap()");
@@ -2213,7 +2213,7 @@ void host::set_flap(double percent_change,
 
 /* handles a host that has stopped flapping */
 void host::clear_flap(double percent_change,
-                      double high_threshold,
+                      double high_threshold [[maybe_unused]],
                       double low_threshold) {
   engine_logger(dbg_functions, basic) << "host::clear_flap()";
   SPDLOG_LOGGER_TRACE(log_v2::functions(), "host::clear_flap()");
@@ -2269,9 +2269,7 @@ void host::check_for_expired_acknowledgement() {
             << "Acknowledgement of host '" << name() << "' just expired";
         SPDLOG_LOGGER_INFO(log_v2::events(),
                            "Acknowledgement of host '{}' just expired", name());
-        set_problem_has_been_acknowledged(false);
-        set_acknowledgement_type(ACKNOWLEDGEMENT_NONE);
-        // FIXME DBO: could be improved with something smaller.
+        set_acknowledgement(host::ACK_NONE);
         update_status();
       }
     }
@@ -2350,16 +2348,14 @@ int host::handle_state() {
     }
 
     /* reset the acknowledgement flag if necessary */
-    if (get_acknowledgement_type() == ACKNOWLEDGEMENT_NORMAL) {
-      set_problem_has_been_acknowledged(false);
-      set_acknowledgement_type(ACKNOWLEDGEMENT_NONE);
+    if (get_acknowledgement() == host::ACK_NORMAL) {
+      set_acknowledgement(host::ACK_NONE);
 
       /* remove any non-persistant comments associated with the ack */
       comment::delete_host_acknowledgement_comments(this);
-    } else if (get_acknowledgement_type() == ACKNOWLEDGEMENT_STICKY &&
+    } else if (get_acknowledgement() == host::ACK_STICKY &&
                get_current_state() == host::state_up) {
-      set_problem_has_been_acknowledged(false);
-      set_acknowledgement_type(ACKNOWLEDGEMENT_NONE);
+      set_acknowledgement(host::ACK_NONE);
 
       /* remove any non-persistant comments associated with the ack */
       comment::delete_host_acknowledgement_comments(this);
@@ -3836,9 +3832,10 @@ void host::check_for_orphaned() {
 
     /* determine the time at which the check results should have come in (allow
      * 10 minutes slack time) */
-    expected_time = (time_t)(
-        it->second->get_next_check() + it->second->get_latency() +
-        config->host_check_timeout() + config->check_reaper_interval() + 600);
+    expected_time =
+        (time_t)(it->second->get_next_check() + it->second->get_latency() +
+                 config->host_check_timeout() +
+                 config->check_reaper_interval() + 600);
 
     /* this host was supposed to have executed a while ago, but for some reason
      * the results haven't come back in... */

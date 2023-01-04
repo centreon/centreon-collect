@@ -140,10 +140,7 @@ int run_global_service_event_handler(nagios_macros* mac,
   std::string command_output;
   int early_timeout = false;
   double exectime = 0.0;
-  int result = 0;
   struct timeval start_time;
-  struct timeval end_time;
-  int neb_result = OK;
   int macro_options = STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS;
 
   engine_logger(dbg_functions, basic) << "run_global_service_event_handler()";
@@ -209,9 +206,8 @@ int run_global_service_event_handler(nagios_macros* mac,
 
   /* run the command */
   try {
-    result =
-        my_system_r(mac, processed_command, config->event_handler_timeout(),
-                    &early_timeout, &exectime, command_output, 0);
+    my_system_r(mac, processed_command, config->event_handler_timeout(),
+                &early_timeout, &exectime, command_output, 0);
   } catch (std::exception const& e) {
     engine_logger(log_runtime_error, basic)
         << "Error: can't execute global service event handler "
@@ -246,10 +242,7 @@ int run_service_event_handler(nagios_macros* mac,
   std::string command_output;
   int early_timeout = false;
   double exectime = 0.0;
-  int result = 0;
   struct timeval start_time;
-  struct timeval end_time;
-  int neb_result = OK;
   int macro_options = STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS;
 
   engine_logger(dbg_functions, basic) << "run_service_event_handler()";
@@ -307,9 +300,8 @@ int run_service_event_handler(nagios_macros* mac,
 
   /* run the command */
   try {
-    result =
-        my_system_r(mac, processed_command, config->event_handler_timeout(),
-                    &early_timeout, &exectime, command_output, 0);
+    my_system_r(mac, processed_command, config->event_handler_timeout(),
+                &early_timeout, &exectime, command_output, 0);
   } catch (std::exception const& e) {
     engine_logger(log_runtime_error, basic)
         << "Error: can't execute service event handler command line '"
@@ -385,10 +377,7 @@ int run_global_host_event_handler(nagios_macros* mac,
   std::string command_output;
   int early_timeout = false;
   double exectime = 0.0;
-  int result = 0;
   struct timeval start_time;
-  struct timeval end_time;
-  int neb_result = OK;
   int macro_options = STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS;
 
   engine_logger(dbg_functions, basic) << "run_global_host_event_handler()";
@@ -450,9 +439,8 @@ int run_global_host_event_handler(nagios_macros* mac,
 
   /* run the command */
   try {
-    result =
-        my_system_r(mac, processed_command, config->event_handler_timeout(),
-                    &early_timeout, &exectime, command_output, 0);
+    my_system_r(mac, processed_command, config->event_handler_timeout(),
+                &early_timeout, &exectime, command_output, 0);
   } catch (std::exception const& e) {
     engine_logger(log_runtime_error, basic)
         << "Error: can't execute global host event handler command line '"
@@ -486,10 +474,7 @@ int run_host_event_handler(nagios_macros* mac,
   std::string command_output;
   int early_timeout = false;
   double exectime = 0.0;
-  int result = 0;
   struct timeval start_time;
-  struct timeval end_time;
-  int neb_result = OK;
   int macro_options = STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS;
 
   engine_logger(dbg_functions, basic) << "run_host_event_handler()";
@@ -544,9 +529,8 @@ int run_host_event_handler(nagios_macros* mac,
 
   /* run the command */
   try {
-    result =
-        my_system_r(mac, processed_command, config->event_handler_timeout(),
-                    &early_timeout, &exectime, command_output, 0);
+    my_system_r(mac, processed_command, config->event_handler_timeout(),
+                &early_timeout, &exectime, command_output, 0);
   } catch (std::exception const& e) {
     engine_logger(log_runtime_error, basic)
         << "Error: can't execute host event handler command line '"
