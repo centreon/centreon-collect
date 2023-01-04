@@ -19,6 +19,12 @@ inputs:
   version:
     description: "Centreon packaged version"
     required: true
+  minor_version:
+    description: "Centreon packaged version"
+    required: true
+  release:
+    description: The release number
+    required: true
   cache_key:
     description: "The cached package key"
     required: true
@@ -79,7 +85,7 @@ runs:
         fi
         echo "[DEBUG] - Branch name: $BRANCHNAME"
         case "$BRANCHNAME" in
-          develop | dev-[2-9][0-9].[0-9][0-9].x)
+          develop | dev-[2-9][0-9].[0-9][0-9].x | add-rpm-repository-cleanup)
             SUBREPO="unstable"
             ;;
           release* | hotfix*)
@@ -104,6 +110,8 @@ runs:
           echo "[DEBUG] - File: $FILE"
           VERSION=${{ inputs.version }}
           MAJOR="$VERSION"
+          MINOR=${{ inputs.minor_version }}
+          RELEASE=${{ inputs.release }}
           REPOTYPE="$SUBREPO"
           PROJECT=${{ inputs.module_name }}
           PROJECT_PATH="standard"
@@ -120,7 +128,7 @@ runs:
 
             DISTRIB="${{ inputs.distrib }}"
             ARCH=$(echo $FILE | grep -oP '(x86_64|noarch)')
-            FOLDER=$(basename $FILE .rpm)
+            #FOLDER=$(basename $FILE .rpm)
 
             echo "[DEBUG] - DISTRIB: $DISTRIB"
             echo "[DEBUG] - Arch: $ARCH"
