@@ -745,7 +745,7 @@ int cmd_acknowledge_problem(int cmd, char* args) {
   std::string svc_description;
   std::string ack_author;
   std::string ack_data;
-  int type(ACKNOWLEDGEMENT_NORMAL);
+  int type(notifier::ACK_NORMAL);
   int notify(true);
   int persistent(true);
   service_map::const_iterator found;
@@ -2514,12 +2514,8 @@ void acknowledge_host_problem(host* hst,
     return;
 
   /* set the acknowledgement flag */
-  hst->set_problem_has_been_acknowledged(true);
-
-  /* set the acknowledgement type */
-  hst->set_acknowledgement_type(type == ACKNOWLEDGEMENT_STICKY
-                                    ? ACKNOWLEDGEMENT_STICKY
-                                    : ACKNOWLEDGEMENT_NORMAL);
+  hst->set_acknowledgement(type == host::ACK_STICKY ? host::ACK_STICKY
+                                                    : host::ACK_NORMAL);
 
   /* schedule acknowledgement expiration */
   time_t current_time = time(nullptr);
@@ -2559,12 +2555,8 @@ void acknowledge_service_problem(service* svc,
     return;
 
   /* set the acknowledgement flag */
-  svc->set_problem_has_been_acknowledged(true);
-
-  /* set the acknowledgement type */
-  svc->set_acknowledgement_type(type == ACKNOWLEDGEMENT_STICKY
-                                    ? ACKNOWLEDGEMENT_STICKY
-                                    : ACKNOWLEDGEMENT_NORMAL);
+  svc->set_acknowledgement(type == service::ACK_STICKY ? service::ACK_STICKY
+                                                       : service::ACK_NORMAL);
 
   /* schedule acknowledgement expiration */
   time_t current_time = time(nullptr);
@@ -2595,7 +2587,7 @@ void acknowledge_service_problem(service* svc,
 /* removes a host acknowledgement */
 void remove_host_acknowledgement(host* hst) {
   /* set the acknowledgement flag */
-  hst->set_problem_has_been_acknowledged(false);
+  hst->set_acknowledgement(host::ACK_NONE);
 
   /* update the status log with the host info */
   hst->update_status();
@@ -2607,7 +2599,7 @@ void remove_host_acknowledgement(host* hst) {
 /* removes a service acknowledgement */
 void remove_service_acknowledgement(service* svc) {
   /* set the acknowledgement flag */
-  svc->set_problem_has_been_acknowledged(false);
+  svc->set_acknowledgement(service::ACK_NONE);
 
   /* update the status log with the service info */
   svc->update_status();
