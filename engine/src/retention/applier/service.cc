@@ -166,12 +166,12 @@ void applier::service::_update(configuration::state const& config,
   }
 
   if (obj.get_retain_nonstatus_information()) {
-    if (state.problem_has_been_acknowledged().is_set())
-      obj.set_problem_has_been_acknowledged(
-          *state.problem_has_been_acknowledged());
-
     if (state.acknowledgement_type().is_set())
-      obj.set_acknowledgement_type(*state.acknowledgement_type());
+      obj.set_acknowledgement(
+          static_cast<engine::service::acknowledgement_type>(
+              *state.acknowledgement_type()));
+    else
+      obj.set_acknowledgement(engine::service::ACK_NONE);
 
     if (state.notifications_enabled().is_set() &&
         (obj.get_modified_attributes() & MODATTR_NOTIFICATIONS_ENABLED))

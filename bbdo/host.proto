@@ -31,7 +31,7 @@ message Host {
     STICKY = 2;
   }
   bool acknowledged = 2;
-  int32 acknowledgement_type = 3;
+  AckType acknowledgement_type = 3;
 
   bool active_checks = 4;
   bool enabled = 5;

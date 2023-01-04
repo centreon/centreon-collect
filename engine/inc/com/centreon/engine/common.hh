@@ -217,10 +217,6 @@
 #define HOST_ACKNOWLEDGEMENT 0
 #define SERVICE_ACKNOWLEDGEMENT 1
 
-#define ACKNOWLEDGEMENT_NONE 0
-#define ACKNOWLEDGEMENT_NORMAL 1
-#define ACKNOWLEDGEMENT_STICKY 2
-
 /* Host/service check options. */
 #define CHECK_OPTION_NONE 0 /* No check options. */
 #define CHECK_OPTION_FORCE_EXECUTION 1u
