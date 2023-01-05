@@ -159,8 +159,7 @@ runs:
         if [[ "${{ env.extfile }}" == "rpm" ]] ; then
           # Cleanup is done on unstable repository only
           if [[ "$SUBREPO" == "unstable" ]] ; then
-            #ssh -o StrictHostKeyChecking=no "${{ inputs.yum_repo_address }}" "ls -drc $PROJECT_LOCATION/* 2>&- | head -n -1 | xargs rm -rf"
-            echo "cleanup"
+            ssh -o StrictHostKeyChecking=no "${{ inputs.yum_repo_address }}" "ls -drc $PROJECT_LOCATION/* 2>&- | head -n -1 | xargs rm -rf"
           fi
 
           # Update repository metadata
