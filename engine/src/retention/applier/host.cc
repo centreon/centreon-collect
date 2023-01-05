@@ -29,6 +29,8 @@ using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;
 using namespace com::centreon::engine::retention;
 
+using AckType = com::centreon::broker::AckType;
+
 /**
  *  Update host list.
  *
@@ -158,10 +160,10 @@ void applier::host::_update(configuration::state const& config,
 
   if (obj.get_retain_nonstatus_information()) {
     if (state.acknowledgement_type().is_set())
-      obj.set_acknowledgement(static_cast<engine::host::acknowledgement_type>(
-          *state.acknowledgement_type()));
+      obj.set_acknowledgement(
+          static_cast<AckType>(*state.acknowledgement_type()));
     else
-      obj.set_acknowledgement(engine::host::ACK_NONE);
+      obj.set_acknowledgement(AckType::NONE);
 
     if (state.notifications_enabled().is_set() &&
         (obj.get_modified_attributes() & MODATTR_NOTIFICATIONS_ENABLED))

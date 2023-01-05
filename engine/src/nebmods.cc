@@ -30,6 +30,9 @@ using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::logging;
 
+using handle = com::centreon::engine::broker::handle;
+using loader = com::centreon::engine::broker::loader;
+
 /****************************************************************************/
 /****************************************************************************/
 /* INITIALIZATION/CLEANUP FUNCTIONS                                         */
@@ -56,7 +59,7 @@ int neb_add_module(char const* filename,
     return ERROR;
 
   try {
-    broker::loader::instance().add_module(filename, args);
+    loader::instance().add_module(filename, args);
     engine_logger(dbg_eventbroker, basic)
         << "Added module: name='" << filename << "', args='" << args << "'";
     log_v2::eventbroker()->trace("Added module: name='{}', args='{}'", filename,
@@ -95,15 +98,14 @@ int neb_free_module_list() {
 int neb_load_all_modules() {
   int unloaded(0);
   try {
-    broker::loader& loader(broker::loader::instance());
+    loader& loader(loader::instance());
 
     const std::string& mod_dir(config->broker_module_directory());
     if (!mod_dir.empty())
       loader.load_directory(mod_dir);
 
-    std::list<std::shared_ptr<broker::handle> > modules(loader.get_modules());
-    for (std::list<std::shared_ptr<broker::handle> >::const_iterator
-             it(modules.begin()),
+    std::list<std::shared_ptr<handle>> modules(loader.get_modules());
+    for (std::list<std::shared_ptr<handle>>::const_iterator it(modules.begin()),
          end(modules.end());
          it != end; ++it)
       if (neb_load_module(&(*(*it))))
@@ -121,7 +123,7 @@ int neb_load_module(void* mod) {
   if (mod == nullptr)
     return ERROR;
 
-  broker::handle* module = static_cast<broker::handle*>(mod);
+  handle* module = static_cast<handle*>(mod);
 
   /* don't reopen the module */
   if (module->is_loaded())
@@ -157,11 +159,10 @@ int neb_load_module(void* mod) {
 int neb_reload_all_modules() {
   int retval;
   try {
-    broker::loader* loader(&broker::loader::instance());
+    loader* loader(&loader::instance());
     if (loader) {
-      std::list<std::shared_ptr<broker::handle> > modules(
-          loader->get_modules());
-      for (std::list<std::shared_ptr<broker::handle> >::const_iterator
+      std::list<std::shared_ptr<handle>> modules(loader->get_modules());
+      for (std::list<std::shared_ptr<handle>>::const_iterator
                it(modules.begin()),
            end(modules.end());
            it != end; ++it) {
@@ -191,7 +192,7 @@ int neb_reload_module(void* mod) {
   if (mod == NULL)
     return ERROR;
 
-  broker::handle* module(static_cast<broker::handle*>(mod));
+  handle* module(static_cast<handle*>(mod));
   if (module->is_loaded() == false)
     return OK;
 
@@ -219,9 +220,9 @@ int neb_reload_module(void* mod) {
 int neb_unload_all_modules(int flags, int reason) {
   int retval;
   try {
-    broker::loader& loader(broker::loader::instance());
-    std::list<std::shared_ptr<broker::handle> > modules(loader.get_modules());
-    for (std::list<std::shared_ptr<broker::handle> >::const_iterator
+    loader& loader(loader::instance());
+    std::list<std::shared_ptr<handle>> modules(loader.get_modules());
+    for (std::list<std::shared_ptr<handle>>::const_iterator
              it = modules.begin(),
              end = modules.end();
          it != end; ++it)
@@ -246,7 +247,7 @@ int neb_unload_all_modules(int flags, int reason) {
 }
 
 /* close (unload) a particular module */
-int neb_unload_module(broker::handle* module, int flags, int reason) {
+int neb_unload_module(handle* module, int flags, int reason) {
   (void)flags;
   (void)reason;
 
@@ -287,8 +288,8 @@ int neb_unload_module(broker::handle* module, int flags, int reason) {
 /****************************************************************************/
 
 /* sets module information */
-int neb_set_module_info(void* handle, int type, const char* data) {
-  if (handle == NULL)
+int neb_set_module_info(void* h, int type, const char* data) {
+  if (h == NULL)
     return NEBERROR_NOMODULE;
 
   /* check type */
@@ -296,7 +297,7 @@ int neb_set_module_info(void* handle, int type, const char* data) {
     return NEBERROR_MODINFOBOUNDS;
 
   try {
-    broker::handle* module = static_cast<broker::handle*>(handle);
+    handle* module = static_cast<handle*>(h);
 
     switch (type) {
       case NEBMODULE_MODINFO_TITLE:
