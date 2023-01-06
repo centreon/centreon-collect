@@ -43,7 +43,7 @@ cmake_minimum_required(VERSION 3.16)
 project("Centreon Collect" C CXX)
 
 if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT CMAKE_CXX_COMPILER_ID
-                                                STREQUAL "Clang")
+  STREQUAL "Clang")
   message(
     FATAL_ERROR "You can build broker with g++ or clang++. CMake will exit.")
 endif()
@@ -77,6 +77,8 @@ link_directories(${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup(TARGETS)
 
+set(CMAKE_PROGRAM_PATH ${CONAN_BIN_DIRS_PROTOBUF};${CMAKE_PROGRAM_PATH})
+
 find_package(Protobuf REQUIRED)
 
 message(NOTICE "-- use protoc compiler: ${Protobuf_PROTOC_EXECUTABLE}")
@@ -91,6 +93,6 @@ add_subdirectory(centreon-connector)
 add_custom_target(test-broker COMMAND test/ut_broker)
 add_custom_target(test-engine COMMAND tests/ut_engine)
 add_custom_target(test-clib COMMAND tests/ut_clib)
-#add_custom_target(test-connector COMMAND ut_connector)
 
+# add_custom_target(test-connector COMMAND ut_connector)
 add_custom_target(test DEPENDS test-broker test-engine test-clib test-connector)
