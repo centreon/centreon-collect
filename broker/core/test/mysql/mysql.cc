@@ -1466,8 +1466,8 @@ TEST_F(DatabaseStorageTest, UpdateBulkStatement) {
         "UPDATE ut_test SET value=?, warn=?, crit=?, metric=? WHERE "
         "unit_name=?"};
     mysql_stmt s = ms->prepare_query(query);
-    s.set_row_count(20000);
     auto b = s.create_bind();
+    b->reserve(20000);
 
     constexpr int TOTAL = 5;
 
