@@ -129,7 +129,7 @@ runs:
             if [[ "$SUBREPO" == "stable" ]] ; then
               TARGET="/srv/centreon-yum/yum.centreon.com/$PROJECT_PATH/$MAJOR/$DISTRIB/$REPOTYPE/$ARCH/RPMS"
             else
-              FOLDER="centreon-$PROJECT-$MAJOR.$MINOR-$RELEASE"
+              FOLDER="$PROJECT-$MAJOR.$MINOR-$RELEASE"
               TARGET="/srv/centreon-yum/yum.centreon.com/$PROJECT_PATH/$MAJOR/$DISTRIB/$REPOTYPE/$ARCH/$PROJECT/$FOLDER"
               PROJECT_LOCATION="/srv/centreon-yum/yum.centreon.com/$PROJECT_PATH/$MAJOR/$DISTRIB/$REPOTYPE/$ARCH/$PROJECT"
             fi
