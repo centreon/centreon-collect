@@ -147,7 +147,7 @@ notifier::notifier(notifier::notifier_type notifier_type,
       _no_more_notifications{false},
       _flapping_comment_id{0},
       _check_options{CHECK_OPTION_NONE},
-      _acknowledgement_type{notifier::ACK_NONE},
+      _acknowledgement_type{AckType::NONE},
       _retain_status_information{retain_status_information},
       _retain_nonstatus_information{retain_nonstatus_information},
       _is_being_freshened{false},
@@ -1227,26 +1227,25 @@ void notifier::set_check_options(int option) noexcept {
 
 /**
  * @brief Tell if an acknowledgement is active on the notifier by returning its
- * type ACK_NONE (no acknowledgement), ACK_NORMAL or ACK_STICKY.
+ * type NONE (no acknowledgement), NORMAL or STICKY.
  *
  * @return A notifier::acknowledgement_type.
  */
-notifier::acknowledgement_type notifier::get_acknowledgement() const noexcept {
+AckType notifier::get_acknowledgement() const noexcept {
   return _acknowledgement_type;
 }
 
 /**
- * @brief Acknowledgement setter. The acknowledgement can be set to ACK_NONE,
- * ACK_STICKY or ACK_NORMAL.
+ * @brief Acknowledgement setter. The acknowledgement can be set to NONE,
+ * STICKY or NORMAL.
  *
  * @param acknowledge_type The acknowledgement type.
  */
-void notifier::set_acknowledgement(
-    notifier::acknowledgement_type acknowledge_type) noexcept {
+void notifier::set_acknowledgement(AckType acknowledge_type) noexcept {
   _acknowledgement_type = acknowledge_type;
 }
 
-int notifier::get_retain_status_information(void) const noexcept {
+int notifier::get_retain_status_information() const noexcept {
   return _retain_status_information;
 }
 
@@ -1278,7 +1277,7 @@ void notifier::set_is_being_freshened(bool freshened) noexcept {
  * @return True if acknowledged, False otherwise.
  */
 bool notifier::problem_has_been_acknowledged() const noexcept {
-  return _acknowledgement_type != notifier::ACK_NONE;
+  return _acknowledgement_type != AckType::NONE;
 }
 
 bool notifier::get_no_more_notifications() const noexcept {

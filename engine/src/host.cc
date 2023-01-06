@@ -2269,7 +2269,7 @@ void host::check_for_expired_acknowledgement() {
             << "Acknowledgement of host '" << name() << "' just expired";
         SPDLOG_LOGGER_INFO(log_v2::events(),
                            "Acknowledgement of host '{}' just expired", name());
-        set_acknowledgement(host::ACK_NONE);
+        set_acknowledgement(AckType::NONE);
         update_status();
       }
     }
@@ -2348,14 +2348,14 @@ int host::handle_state() {
     }
 
     /* reset the acknowledgement flag if necessary */
-    if (get_acknowledgement() == host::ACK_NORMAL) {
-      set_acknowledgement(host::ACK_NONE);
+    if (get_acknowledgement() == AckType::NORMAL) {
+      set_acknowledgement(AckType::NONE);
 
       /* remove any non-persistant comments associated with the ack */
       comment::delete_host_acknowledgement_comments(this);
-    } else if (get_acknowledgement() == host::ACK_STICKY &&
+    } else if (get_acknowledgement() == AckType::STICKY &&
                get_current_state() == host::state_up) {
-      set_acknowledgement(host::ACK_NONE);
+      set_acknowledgement(AckType::NONE);
 
       /* remove any non-persistant comments associated with the ack */
       comment::delete_host_acknowledgement_comments(this);

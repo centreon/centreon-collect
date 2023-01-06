@@ -762,7 +762,7 @@ grpc::Status engine_impl::RemoveHostAcknowledgement(
     }
 
     /* set the acknowledgement flag */
-    temp_host->set_acknowledgement(host::ACK_NONE);
+    temp_host->set_acknowledgement(AckType::NONE);
     /* update the status log with the host info */
     temp_host->update_status();
     /* remove any non-persistant comments associated with the ack */
@@ -802,7 +802,7 @@ grpc::Status engine_impl::RemoveServiceAcknowledgement(
     }
 
     /* set the acknowledgement flag */
-    temp_service->set_acknowledgement(service::ACK_NONE);
+    temp_service->set_acknowledgement(AckType::NONE);
     /* update the status log with the service info */
     temp_service->update_status();
     /* remove any non-persistant comments associated with the ack */
@@ -841,9 +841,9 @@ grpc::Status engine_impl::AcknowledgementHostProblem(
     }
     /* set the acknowledgement flag */
     if (request->type() == EngineAcknowledgement_Type_STICKY)
-      temp_host->set_acknowledgement(host::ACK_STICKY);
+      temp_host->set_acknowledgement(AckType::STICKY);
     else
-      temp_host->set_acknowledgement(host::ACK_NORMAL);
+      temp_host->set_acknowledgement(AckType::NORMAL);
     /* schedule acknowledgement expiration */
     time_t current_time(time(nullptr));
     temp_host->set_last_acknowledgement(current_time);
@@ -904,9 +904,9 @@ grpc::Status engine_impl::AcknowledgementServiceProblem(
     }
     /* set the acknowledgement flag */
     if (request->type() == EngineAcknowledgement_Type_STICKY)
-      temp_service->set_acknowledgement(service::ACK_STICKY);
+      temp_service->set_acknowledgement(AckType::STICKY);
     else
-      temp_service->set_acknowledgement(service::ACK_NORMAL);
+      temp_service->set_acknowledgement(AckType::NORMAL);
     /* schedule acknowledgement expiration */
     time_t current_time = time(nullptr);
     temp_service->set_last_acknowledgement(current_time);

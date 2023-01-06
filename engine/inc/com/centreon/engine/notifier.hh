@@ -20,6 +20,7 @@
 #ifndef CCE_NOTIFIER_HH
 #define CCE_NOTIFIER_HH
 
+#include "bbdo/neb.pb.h"
 #include "com/centreon/engine/checkable.hh"
 #include "com/centreon/engine/contactgroup.hh"
 #include "com/centreon/engine/customvariable.hh"
@@ -34,6 +35,8 @@ class contact;
 class timeperiod;
 class notification;
 
+using AckType = com::centreon::broker::AckType;
+
 class notifier : public checkable {
  public:
   enum notification_category {
@@ -43,12 +46,6 @@ class notifier : public checkable {
     cat_flapping,
     cat_downtime,
     cat_custom,
-  };
-
-  enum acknowledgement_type {
-    ACK_NONE = 0,
-    ACK_NORMAL = 1,
-    ACK_STICKY = 2,
   };
 
   enum notification_flag {
@@ -232,9 +229,9 @@ class notifier : public checkable {
   void add_modified_attributes(uint32_t attr) noexcept;
   uint32_t get_modified_attributes() const noexcept;
   void set_modified_attributes(uint32_t modified_attributes) noexcept;
-  acknowledgement_type get_acknowledgement() const noexcept;
+  AckType get_acknowledgement() const noexcept;
   bool problem_has_been_acknowledged() const noexcept;
-  void set_acknowledgement(acknowledgement_type acknowledge_type) noexcept;
+  void set_acknowledgement(AckType acknowledge_type) noexcept;
   virtual bool recovered() const = 0;
   virtual int get_current_state_int() const = 0;
   bool get_no_more_notifications() const noexcept;
@@ -322,7 +319,7 @@ class notifier : public checkable {
   bool _no_more_notifications;
   uint64_t _flapping_comment_id;
   int _check_options;
-  acknowledgement_type _acknowledgement_type;
+  AckType _acknowledgement_type;
   bool _retain_status_information;
   bool _retain_nonstatus_information;
   bool _is_being_freshened;
