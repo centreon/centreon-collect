@@ -52,6 +52,8 @@ class http_tsdb_config : public http_client::http_config {
         _status_columns(status_columns),
         _metric_columns(metric_columns) {}
 
+  http_tsdb_config() : _max_queries_per_transaction(0) {}
+
   const std::string& get_user() const { return _user; }
   const std::string& get_pwd() const { return _pwd; }
   const std::string& get_database() const { return _database; }

@@ -39,21 +39,15 @@ line_protocol_query::line_protocol_query()
  *  @param[in] type        Query type (metric or status).
  *  @param[in] cache       Macro cache.
  */
-line_protocol_query::line_protocol_query(std::string const& timeseries,
-                                         std::vector<column> const& columns,
-                                         data_type type,
-                                         macro_cache const& cache)
-    : _string_index{0}, _type{type}, _cache{&cache} {
-  // Following implementation is based on
-  // https://docs.influxdata.com/influxdb/v1.2/write_protocols/line_protocol_tutorial/
-  // The base format is <measurement>,<tag_set> <field_set> <timestamp>.
-  // The tricky part is that each component as a different escaping
-  // scheme.
-
+line_protocol_query::line_protocol_query(
+    std::vector<column> const& columns,
+    data_type type,
+    macro_cache const& cache,
+    const std::shared_ptr<spdlog::logger>& logger)
+    : _type{type}, _cache{&cache}, _logger(logger) {
   // measurement
   _compiled_getters.clear();
   _compiled_strings.clear();
-  _compile_scheme(timeseries, &line_protocol_query::escape_measurement);
 
   // tag_set
   for (std::vector<column>::const_iterator it(columns.begin()),
@@ -107,14 +101,14 @@ line_protocol_query::line_protocol_query(std::string const& timeseries,
  *
  *  @param[in] str  String to escape.
  *
- *  @return Escaped string.
  */
-std::string line_protocol_query::escape_key(std::string const& str) {
+void line_protocol_query::escape_key(std::string const& str,
+                                     std::ostream& is) const {
   std::string ret(str);
   ::com::centreon::broker::misc::string::replace(ret, ",", "\\,");
   ::com::centreon::broker::misc::string::replace(ret, "=", "\\=");
   ::com::centreon::broker::misc::string::replace(ret, " ", "\\ ");
-  return ret;
+  is << ret;
 }
 
 /**
@@ -122,13 +116,13 @@ std::string line_protocol_query::escape_key(std::string const& str) {
  *
  *  @param[in] str  String to escape.
  *
- *  @return Escaped string.
  */
-std::string line_protocol_query::escape_measurement(std::string const& str) {
+void line_protocol_query::escape_measurement(std::string const& str,
+                                             std::ostream& is) const {
   std::string ret(str);
   ::com::centreon::broker::misc::string::replace(ret, ",", "\\,");
   ::com::centreon::broker::misc::string::replace(ret, " ", "\\ ");
-  return ret;
+  is << ret;
 }
 
 /**
@@ -138,12 +132,11 @@ std::string line_protocol_query::escape_measurement(std::string const& str) {
  *
  *  @return Escaped string.
  */
-std::string line_protocol_query::escape_value(std::string const& str) {
+void line_protocol_query::escape_value(std::string const& str,
+                                       std::ostream& is) const {
   std::string ret(str);
   ::com::centreon::broker::misc::string::replace(ret, "\"", "\\\"");
-  ret.insert(0, "\"");
-  ret.append("\"");
-  return ret;
+  is << ret;
 }
 
 /**
@@ -151,14 +144,10 @@ std::string line_protocol_query::escape_value(std::string const& str) {
  *
  *  @param[in] me  The metric.
  *
- *  @return  The query for a metric.
  */
-std::string line_protocol_query::generate_metric(storage::metric const& me) {
-  if (_type != data_type::metric)
-    throw msg_fmt(
-        "influxdb: attempt to generate metric"
-        " with a query of the bad type");
-  _string_index = 0;
+void line_protocol_query::append_metric(storage::metric const& me,
+                                        std::string& request_body) const {
+  unsigned string_index = 0;
   std::ostringstream iss;
   try {
     for (std::vector<std::pair<data_getter, data_escaper> >::const_iterator
@@ -166,20 +155,19 @@ std::string line_protocol_query::generate_metric(storage::metric const& me) {
          end(_compiled_getters.end());
          it != end; ++it) {
       if (!it->second)
-        (this->*(it->first))(me, iss);
+        (this->*(it->first))(me, string_index, iss);
       else {
         std::ostringstream escaped;
-        (this->*(it->first))(me, escaped);
-        iss << (this->*(it->second))(escaped.str());
+        (this->*(it->first))(me, string_index, escaped);
+        (this->*(it->second))(escaped.str(), iss);
       }
     }
   } catch (std::exception const& e) {
-    log_v2::influxdb()->error(
-        "influxdb: could not generate query for metric {}: {}", me.metric_id,
-        e.what());
-    return "";
+    SPDLOG_LOGGER_ERROR(_logger, "could not generate query for metric {}: {}",
+                        me.metric_id, e.what());
+    return;
   }
-  return iss.str();
+  request_body += iss.str();
 }
 
 /**
@@ -187,14 +175,10 @@ std::string line_protocol_query::generate_metric(storage::metric const& me) {
  *
  *  @param[in] st  The status.
  *
- *  @return  The query for a status.
  */
-std::string line_protocol_query::generate_status(storage::status const& st) {
-  if (_type != data_type::status)
-    throw msg_fmt(
-        "influxdb: attempt to generate status"
-        " with a query of the bad type");
-  _string_index = 0;
+void line_protocol_query::append_status(storage::status const& st,
+                                        std::string& request_body) const {
+  unsigned string_index = 0;
   std::ostringstream iss;
   try {
     for (std::vector<std::pair<data_getter, data_escaper> >::const_iterator
@@ -202,21 +186,20 @@ std::string line_protocol_query::generate_status(storage::status const& st) {
          end(_compiled_getters.end());
          it != end; ++it) {
       if (!it->second)
-        (this->*(it->first))(st, iss);
+        (this->*(it->first))(st, string_index, iss);
       else {
         std::ostringstream escaped;
-        (this->*(it->first))(st, escaped);
-        iss << (this->*(it->second))(escaped.str());
+        (this->*(it->first))(st, string_index, escaped);
+        (this->*(it->second))(escaped.str(), iss);
       }
     }
   } catch (std::exception const& e) {
-    log_v2::influxdb()->error(
-        "influxdb: could not generate query for status {}: {}", st.index_id,
-        e.what());
-    return "";
+    SPDLOG_LOGGER_ERROR(_logger, "could not generate query for status {}: {}",
+                        st.index_id, e.what());
+    return;
   }
 
-  return iss.str();
+  request_body += iss.str();
 }
 
 /**
@@ -265,9 +248,8 @@ void line_protocol_query::_compile_scheme(
 
     if ((end_macro = scheme.find_first_of('$', found_macro + 1)) ==
         std::string::npos)
-      throw msg_fmt(
-          "influxdb: can't compile query, opened macro not closed: '{}'",
-          scheme.substr(found_macro));
+      throw msg_fmt("can't compile query, opened macro not closed: '{}'",
+                    scheme.substr(found_macro));
 
     std::string macro(scheme.substr(found_macro, end_macro + 1 - found_macro));
     if (macro == "$$")
@@ -324,8 +306,7 @@ void line_protocol_query::_compile_scheme(
                                               &storage::status::time>,
             escaper);
     } else
-      log_v2::influxdb()->info("influxdb: unknown macro '{}': ignoring it",
-                               macro);
+      SPDLOG_LOGGER_INFO(_logger, "unknown macro '{}': ignoring it", macro);
 
     found_macro = end_macro = end_macro + 1;
   }
@@ -341,7 +322,7 @@ void line_protocol_query::_compile_scheme(
  */
 void line_protocol_query::_throw_on_invalid(data_type macro_type) {
   if (macro_type != _type)
-    throw msg_fmt("influxdb: macro of invalid type");
+    throw msg_fmt("macro of invalid type");
 }
 
 /**
@@ -351,7 +332,9 @@ void line_protocol_query::_throw_on_invalid(data_type macro_type) {
  *  @param[out] is  The stream.
  */
 template <typename T, typename U, T(U::*member)>
-void line_protocol_query::_get_member(io::data const& d, std::ostream& is) {
+void line_protocol_query::_get_member(io::data const& d,
+                                      unsigned& string_index,
+                                      std::ostream& is) const {
   is << static_cast<U const&>(d).*member;
 }
 
@@ -361,9 +344,11 @@ void line_protocol_query::_get_member(io::data const& d, std::ostream& is) {
  *  @param[in] d     The data, unused.
  *  @param[out] is   The stream.
  */
-void line_protocol_query::_get_string(io::data const& d, std::ostream& is) {
+void line_protocol_query::_get_string(io::data const& d,
+                                      unsigned& string_index,
+                                      std::ostream& is) const {
   (void)d;
-  is << _compiled_strings[_string_index++];
+  is << _compiled_strings[string_index++];
 }
 
 /**
@@ -373,7 +358,8 @@ void line_protocol_query::_get_string(io::data const& d, std::ostream& is) {
  *  @param[in] is  The stream.
  */
 void line_protocol_query::_get_dollar_sign(io::data const& d,
-                                           std::ostream& is) {
+                                           unsigned& string_index,
+                                           std::ostream& is) const {
   (void)d;
   is << "$";
 }
@@ -384,7 +370,7 @@ void line_protocol_query::_get_dollar_sign(io::data const& d,
  *
  *  @return       The index id.
  */
-uint64_t line_protocol_query::_get_index_id(io::data const& d) {
+uint64_t line_protocol_query::_get_index_id(io::data const& d) const {
   if (_type == data_type::status)
     return static_cast<storage::status const&>(d).index_id;
   else
@@ -400,7 +386,9 @@ uint64_t line_protocol_query::_get_index_id(io::data const& d) {
  *  @param[in] d    The data.
  *  @param[out] is  The stream.
  */
-void line_protocol_query::_get_index_id(io::data const& d, std::ostream& is) {
+void line_protocol_query::_get_index_id(io::data const& d,
+                                        unsigned& string_index,
+                                        std::ostream& is) const {
   is << _get_index_id(d);
 }
 
@@ -410,7 +398,9 @@ void line_protocol_query::_get_index_id(io::data const& d, std::ostream& is) {
  *  @param[in] d  The data.
  *  @param is     The stream.
  */
-void line_protocol_query::_get_host(io::data const& d, std::ostream& is) {
+void line_protocol_query::_get_host(io::data const& d,
+                                    unsigned& string_index,
+                                    std::ostream& is) const {
   if (_type == data_type::status)
     is << _cache->get_host_name(
         _cache->get_index_mapping(_get_index_id(d)).obj().host_id());
@@ -424,7 +414,9 @@ void line_protocol_query::_get_host(io::data const& d, std::ostream& is) {
  *  @param[in] d  The data.
  *  @param is     The stream.
  */
-void line_protocol_query::_get_host_id(io::data const& d, std::ostream& is) {
+void line_protocol_query::_get_host_id(io::data const& d,
+                                       unsigned& string_index,
+                                       std::ostream& is) const {
   if (_type == data_type::status)
     is << _cache->get_index_mapping(_get_index_id(d)).obj().host_id();
   else
@@ -437,7 +429,9 @@ void line_protocol_query::_get_host_id(io::data const& d, std::ostream& is) {
  *  @param[in] d  The data.
  *  @param is     The stream.
  */
-void line_protocol_query::_get_service(io::data const& d, std::ostream& is) {
+void line_protocol_query::_get_service(io::data const& d,
+                                       unsigned& string_index,
+                                       std::ostream& is) const {
   if (_type == data_type::status) {
     const storage::pb_index_mapping& stm(
         _cache->get_index_mapping(_get_index_id(d)));
@@ -456,7 +450,9 @@ void line_protocol_query::_get_service(io::data const& d, std::ostream& is) {
  *  @param[in] d  The data.
  *  @param is     The stream.
  */
-void line_protocol_query::_get_service_id(io::data const& d, std::ostream& is) {
+void line_protocol_query::_get_service_id(io::data const& d,
+                                          unsigned& string_index,
+                                          std::ostream& is) const {
   if (_type == data_type::status)
     is << _cache->get_index_mapping(_get_index_id(d)).obj().service_id();
   else
@@ -469,6 +465,8 @@ void line_protocol_query::_get_service_id(io::data const& d, std::ostream& is) {
  *  @param[in] d  The data.
  *  @param is     The stream.
  */
-void line_protocol_query::_get_instance(io::data const& d, std::ostream& is) {
+void line_protocol_query::_get_instance(io::data const& d,
+                                        unsigned& string_index,
+                                        std::ostream& is) const {
   is << _cache->get_instance(d.source_id);
 }

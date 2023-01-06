@@ -19,9 +19,8 @@
 #ifndef CCB_VICTORIA_METRICS_STREAM_HH
 #define CCB_VICTORIA_METRICS_STREAM_HH
 
-#include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/namespace.hh"
-#include "com/centreon/broker/persistent_cache.hh"
+#include "com/centreon/broker/http_tsdb/line_protocol_query.hh"
+#include "com/centreon/broker/http_tsdb/stream.hh"
 
 CCB_BEGIN()
 
@@ -29,53 +28,59 @@ CCB_BEGIN()
 class database_config;
 
 namespace victoria_metrics {
-/**
- *  @class stream stream.hh "com/centreon/broker/influxdb/stream.hh"
- *  @brief Influxdb stream.
- *
- *  Insert metrics into influxdb.
- */
-class stream : public io::stream {
-  // Database parameters
-  const std::string _user;
-  const std::string _password;
-  const std::string _address;
-  const std::string _db;
-  uint32_t _queries_per_transaction;
-  std::unique_ptr<influxdb> _influx_db;
 
-  // Internal working members
-  int _pending_queries;
-  uint32_t _actual_query;
-  bool _commit;
+class stream : public http_tsdb::stream {
+  unsigned _body_size_to_reserve;
 
-  // Cache
-  macro_cache _cache;
+  http_tsdb::line_protocol_query _metric_formatter;
+  http_tsdb::line_protocol_query _status_formatter;
 
-  // Status members
-  std::string _status;
-  mutable std::mutex _statusm;
+  std::string _hostname;
+
+ protected:
+  stream(const std::shared_ptr<asio::io_context>& io_context,
+         const std::shared_ptr<http_tsdb::http_tsdb_config>& conf,
+         const std::shared_ptr<persistent_cache>& cache,
+         http_client::client::connection_creator conn_creator =
+             http_client::http_connection::load);
+
+  http_tsdb::request::pointer create_request() const override;
 
  public:
-  stream(std::string const& user,
-         std::string const& passwd,
-         std::string const& addr,
-         unsigned short port,
-         std::string const& db,
-         uint32_t queries_per_transaction,
-         std::string const& status_ts,
-         std::vector<column> const& status_cols,
-         std::string const& metric_ts,
-         std::vector<column> const& metric_cols,
-         std::shared_ptr<persistent_cache> const& cache);
-  ~stream();
-  int flush() override;
-  bool read(std::shared_ptr<io::data>& d, time_t deadline) override;
-  void statistics(nlohmann::json& tree) const override;
-  int write(std::shared_ptr<io::data> const& d) override;
-  int32_t stop() override;
+  static std::shared_ptr<stream> load(
+      const std::shared_ptr<asio::io_context>& io_context,
+      const std::shared_ptr<http_tsdb::http_tsdb_config>& conf,
+      const std::shared_ptr<persistent_cache>& cache,
+      http_client::client::connection_creator conn_creator =
+          http_client::http_connection::load);
 };
-}  // namespace victoria_metrics
+
+/**
+ * @brief stream is asynchronous and so needs to inherit from
+ * enable_shared_from_this
+ * connector needs a unique_ptr, this little class does the conversion
+ *
+ */
+class stream_unique_wrapper : public io::stream {
+  std::shared_ptr<stream> _stream;
+
+ public:
+  stream_unique_wrapper(const std::shared_ptr<stream>& stream)
+      : io::stream(stream->get_name()), _stream(stream) {}
+
+  int32_t stop() override { return _stream->stop(); }
+  int flush() override { return _stream->flush(); }
+  bool read(std::shared_ptr<io::data>& d, time_t deadline) override {
+    return _stream->read(d, deadline);
+  }
+  void statistics(nlohmann::json& tree) const override {
+    return _stream->statistics(tree);
+  }
+  int write(std::shared_ptr<io::data> const& d) override {
+    return _stream->write(d);
+  }
+};
+};  // namespace victoria_metrics
 
 CCB_END()
 

@@ -118,6 +118,7 @@ log_v2::log_v2(const std::shared_ptr<asio::io_context>& io_context)
   _log[log_v2::log_tcp] = create_logger("tcp");
   _log[log_v2::log_tls] = create_logger("tls");
   _log[log_v2::log_grpc] = create_logger("grpc");
+  _log[log_v2::log_victoria_metrics] = create_logger("victoria_metrics");
   gpr_set_log_function(grpc_logger);
   _running = true;
 }
@@ -211,6 +212,7 @@ void log_v2::apply(const config::state& conf) {
       {"stats", log_v2::log_stats},
       {"tcp", log_v2::log_tcp},
       {"tls", log_v2::log_tls},
+      {"victoria_metrics", log_v2::log_victoria_metrics},
   };
   for (auto it = log.loggers.begin(), end = log.loggers.end(); it != end;
        ++it) {
@@ -277,10 +279,13 @@ void log_v2::stop_flush_timer() {
  * @return a boolean.
  */
 bool log_v2::contains_logger(const std::string& logger) {
-  const std::array<std::string, 17> loggers{
-      "bam",      "bbdo",         "config", "core",  "lua",      "influxdb",
-      "graphite", "notification", "rrd",    "stats", "perfdata", "processing",
-      "sql",      "neb",          "tcp",    "tls",   "grpc"};
+  const std::array<std::string, 18> loggers{
+      "bam",      "bbdo",         "config",
+      "core",     "lua",          "influxdb",
+      "graphite", "notification", "rrd",
+      "stats",    "perfdata",     "processing",
+      "sql",      "neb",          "tcp",
+      "tls",      "grpc",         "victoria_metrics"};
   return std::find(loggers.begin(), loggers.end(), logger) != loggers.end();
 }
 

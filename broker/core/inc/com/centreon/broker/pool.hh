@@ -91,6 +91,7 @@ class pool {
   static void unload();
   static pool& instance();
   static asio::io_context& io_context();
+  static std::shared_ptr<asio::io_context> io_context_ptr();
 
   void start_stats(ThreadPool* stats);
   void stop_stats();

@@ -31,18 +31,15 @@ class factory : public io::factory {
  protected:
   std::string _name;
   std::shared_ptr<asio::io_context> _io_context;
-  std::shared_ptr<spdlog::logger> _logger;
 
-  virtual void create_conf(const config::endpoint& cfg,
-                           http_tsdb_config& conf) const;
+  void create_conf(const config::endpoint& cfg, http_tsdb_config& conf) const;
 
   std::string find_param(config::endpoint const& cfg,
                          std::string const& key) const;
 
  public:
   factory(const std::string& name,
-          const std::shared_ptr<asio::io_context>& io_context,
-          const std::shared_ptr<spdlog::logger>& logger);
+          const std::shared_ptr<asio::io_context>& io_context);
   factory(factory const&) = delete;
   ~factory() = default;
   factory& operator=(factory const& other) = delete;

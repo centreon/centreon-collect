@@ -20,6 +20,7 @@
 #include "bbdo/storage/metric.hh"
 #include "bbdo/storage/status.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
+#include "com/centreon/broker/http_tsdb/internal.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::http_tsdb;
@@ -79,40 +80,63 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t) {
       fmt::format("cannot read from {} database", get_name()));
 }
 
-void stream::statistics(nlohmann::json& tree) const {}
+void stream::statistics(nlohmann::json& tree) const {
+  // TODO
+}
 
 int stream::write(std::shared_ptr<io::data> const& data) {
   // Take this event into account.
-  if (!validate(data, get_name()))
-    return 0;
-
+  unsigned acknowledged = 0;
+  if (!validate(data, get_name())) {
+    std::lock_guard<std::mutex> l(_protect);
+    acknowledged = _acknowledged + 1;
+    _acknowledged = 0;
+    return acknowledged;
+  }
   // Give data to cache.
   _cache.write(data);
 
   request::pointer to_send;
-  unsigned acknowledged = 0;
   {
     std::lock_guard<std::mutex> l(_protect);
     // Process metric events.
-    if (data->type() == storage::metric::static_type()) {
-      if (!_request) {
-        _request = create_request();
-      }
-      _request->add_metric(_conf, data);
-    } else if (data->type() == storage::status::static_type()) {
-      if (!_request) {
-        _request = create_request();
-      }
-      _request->add_status(_conf, data);
+    switch (data->type()) {
+      case storage::metric::static_type():
+        if (!_request) {
+          _request = create_request();
+        }
+        _request->add_metric(*std::static_pointer_cast<storage::metric>(data));
+        break;
+      case storage::pb_metric::static_type():
+        if (!_request) {
+          _request = create_request();
+        }
+        _request->add_metric(
+            std::static_pointer_cast<storage::pb_metric>(data)->obj());
+        break;
+      case storage::status::static_type():
+        if (!_request) {
+          _request = create_request();
+        }
+        _request->add_status(*std::static_pointer_cast<storage::status>(data));
+        break;
+      case storage::pb_status::static_type():
+        if (!_request) {
+          _request = create_request();
+        }
+        _request->add_status(
+            std::static_pointer_cast<storage::pb_status>(data)->obj());
+        break;
+      default:
+        ++_acknowledged;
+        break;
     }
     if (_request &&
         _request->get_nb_data() >= _conf->get_max_queries_per_transaction()) {
       to_send.swap(_request);
     }
-    if (_acknowledged) {
-      acknowledged = _acknowledged;
-      _acknowledged = 0;
-    }
+    acknowledged = _acknowledged;
+    _acknowledged = 0;
   }
   if (to_send) {
     send_request(to_send);
@@ -130,6 +154,7 @@ int32_t stream::stop() {
 }
 
 void stream::send_request(const request::pointer& request) {
+  request->content_length(request->body().length());
   _http_client->send(request, [me = shared_from_this(), request](
                                   const boost::beast::error_code& err,
                                   const std::string& detail,
@@ -140,6 +165,7 @@ void stream::send_request(const request::pointer& request) {
 
 void stream::send_request(const request::pointer& request,
                           const std::shared_ptr<std::promise<void>>& prom) {
+  request->content_length(request->body().length());
   _http_client->send(
       request,
       [me = shared_from_this(), request, prom](

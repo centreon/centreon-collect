@@ -20,28 +20,42 @@
 set(INC_DIR "${PROJECT_SOURCE_DIR}/victoria_metrics/inc/com/centreon/broker/victoria_metrics")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/victoria_metrics/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/victoria_metrics/test")
-include_directories(inc ${PROJECT_SOURCE_DIR}/tcp/inc
+include_directories(inc
+  ${PROJECT_SOURCE_DIR}/http_tsdb/inc
+  ${PROJECT_SOURCE_DIR}/http_client/inc
   ${PROJECT_SOURCE_DIR}/neb/inc
 )
 
 # Sources.
 set(SOURCES
+  ${SRC_DIR}/connector.cc
   ${SRC_DIR}/factory.cc
+  ${SRC_DIR}/request.cc
+  ${SRC_DIR}/stream.cc
+  ${SRC_DIR}/main.cc
 )
 
 # Headers.
 set(HEADERS
+  ${INC_DIR}/connector.hh
+  ${INC_DIR}/factory.hh
+  ${INC_DIR}/request.hh
+  ${INC_DIR}/stream.hh
+  ${INC_DIR}/victoria_config.hh
 )
 
 # TCP module.
-set(VICTORIA_METRICS "20-victoria_metrics")
+set(VICTORIA_METRICS "70-victoria_metrics")
 set(VICTORIA_METRICS "${VICTORIA_METRICS}" PARENT_SCOPE)
 add_library("${VICTORIA_METRICS}" SHARED
   ${SOURCES}
   ${HEADERS}
 )
 set_target_properties("${VICTORIA_METRICS}" PROPERTIES PREFIX "")
-target_link_libraries("${VICTORIA_METRICS}" CONAN_PKG::spdlog)
+target_link_libraries("${VICTORIA_METRICS}"
+  http_tsdb
+  http_client
+  bbdo_storage pb_storage_lib CONAN_PKG::spdlog)
 target_precompile_headers(${VICTORIA_METRICS} PRIVATE precomp_inc/precomp.hpp)
 
 # Testing.

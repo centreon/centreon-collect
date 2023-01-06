@@ -584,6 +584,8 @@ void parser::_parse_endpoint(const json& elem,
         module = "70-graphite.so";
       else if (e.type == "influxdb")
         module = "70-influxdb.so";
+      else if (e.type == "victoria_metrics")
+        module = "70-victoria_metrics.so";
       else if (e.type == "grpc")
         module = "50-grpc.so";
       else if (e.type == "bbdo_server" || e.type == "bbdo_client") {

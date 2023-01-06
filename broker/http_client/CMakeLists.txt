@@ -43,6 +43,8 @@ target_include_directories(http_client PRIVATE ${INC_DIR})
 
 target_precompile_headers(http_client PRIVATE precomp_inc/precomp.hh)
 
+set_target_properties(http_client PROPERTIES COMPILE_FLAGS "-fPIC")
+
 # Testing.
 if(WITH_TESTING)
   set(TESTS_SOURCES

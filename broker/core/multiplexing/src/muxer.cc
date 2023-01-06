@@ -129,7 +129,8 @@ muxer::muxer(std::string name,
   _update_stats();
 
   // Log messages.
-  log_v2::core()->info(
+  SPDLOG_LOGGER_INFO(
+      log_v2::core(),
       "multiplexing: '{}' starts with {} in queue and the queue file is {}",
       _name, _events_size, _file ? "enable" : "disable");
 }
@@ -186,8 +187,9 @@ muxer::~muxer() noexcept {
   if (eng)
     eng->unsubscribe(this);
   std::lock_guard<std::mutex> lock(_mutex);
-  log_v2::core()->info("Destroying muxer {}: number of events in the queue: {}",
-                       _name, _events_size);
+  SPDLOG_LOGGER_INFO(log_v2::core(),
+                     "Destroying muxer {}: number of events in the queue: {}",
+                     _name, _events_size);
   _clean();
 }
 
@@ -203,6 +205,10 @@ void muxer::ack_events(int count) {
       "multiplexing: acknowledging {} events from {} event queue", count,
       _name);
   if (count) {
+    SPDLOG_LOGGER_DEBUG(
+        log_v2::core(),
+        "multiplexing: acknowledging {} events from {} event queue", count,
+        _name);
     std::lock_guard<std::mutex> lock(_mutex);
     for (int i = 0; i < count && !_events.empty(); ++i) {
       if (_events.begin() == _pos) {
@@ -229,6 +235,10 @@ void muxer::ack_events(int count) {
       _push_to_queue(e);
     }
     _update_stats();
+  } else {
+    SPDLOG_LOGGER_TRACE(
+        log_v2::core(),
+        "multiplexing: acknowledging no events from {} event queue", _name);
   }
 }
 
@@ -238,8 +248,9 @@ void muxer::ack_events(int count) {
  * @return The number of acknowledged events.
  */
 int32_t muxer::stop() {
-  log_v2::core()->info("Stopping muxer {}: number of events in the queue: {}",
-                       _name, _events_size);
+  SPDLOG_LOGGER_INFO(log_v2::core(),
+                     "Stopping muxer {}: number of events in the queue: {}",
+                     _name, _events_size);
   std::lock_guard<std::mutex> lck(_mutex);
   _update_stats();
   return 0;
@@ -623,7 +634,8 @@ void muxer::_update_stats() noexcept {
  *  Remove all the queue files attached to this muxer.
  */
 void muxer::remove_queue_files() {
-  log_v2::core()->info("multiplexing: '{}' removed", _queue_file_name);
+  SPDLOG_LOGGER_INFO(log_v2::core(), "multiplexing: '{}' removed",
+                     _queue_file_name);
 
   /* Here _file is already destroyed */
   QueueFileStats* stats =

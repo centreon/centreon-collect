@@ -16,33 +16,25 @@
 ** For more information : contact@centreon.com
 */
 
-#ifndef CCB_VICTORIA_METRICS_FACTORY_HH
-#define CCB_VICTORIA_METRICS_FACTORY_HH
+#ifndef CCB_VICTORIA_METRICS_CONFIG_HH
+#define CCB_VICTORIA_METRICS_CONFIG_HH
 
-#include "com/centreon/broker/http_tsdb/factory.hh"
+#include "com/centreon/broker/http_tsdb/http_tsdb_config.hh"
 
 CCB_BEGIN()
 
 namespace victoria_metrics {
-/**
- *  @class factory factory.hh "com/centreon/broker/influxdb/factory.hh"
- *  @brief Influxdb layer factory.
- *
- *  Build Influxdb layer objects.
- */
-class factory : public http_tsdb::factory {
+class victoria_config : public http_tsdb::http_tsdb_config {
+  std::string _http_target;
+
  public:
-  factory();
-  factory(factory const&) = delete;
-  ~factory() = default;
-  factory& operator=(factory const& other) = delete;
-  io::endpoint* new_endpoint(
-      config::endpoint& cfg,
-      bool& is_acceptor,
-      std::shared_ptr<persistent_cache> cache) const override;
+  victoria_config(const std::string& http_target) : _http_target(http_target) {}
+
+  const std::string& get_http_target() const { return _http_target; }
 };
+
 }  // namespace victoria_metrics
 
 CCB_END()
 
-#endif  // !CCB_VICTORIA_METRICS_FACTORY_HH
+#endif  // !CCB_VICTORIA_METRICS_CONFIG_HH

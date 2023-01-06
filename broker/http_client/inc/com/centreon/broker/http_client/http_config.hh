@@ -58,6 +58,12 @@ class http_config {
         _default_http_keepalive_duration(default_http_keepalive_duration),
         _max_connections(max_connections) {}
 
+  http_config()
+      : _crypted(false),
+        _second_tcp_keep_alive_interval(30),
+        _max_send_retry(0),
+        _max_connections(0) {}
+
   const asio::ip::tcp::endpoint& get_endpoint() const { return _endpoint; }
   bool is_crypted() const { return _crypted; }
   const duration& get_connect_timeout() const { return _connect_timeout; }

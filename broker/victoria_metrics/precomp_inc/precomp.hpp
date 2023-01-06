@@ -19,6 +19,7 @@
 #ifndef CC_VICTORIA_METRICS_PRECOMP_HH
 #define CC_VICTORIA_METRICS_PRECOMP_HH
 
+#include <chrono>
 #include <condition_variable>
 #include <deque>
 #include <future>
@@ -28,11 +29,22 @@
 #include <thread>
 #include <unordered_map>
 
+#include <spdlog/fmt/ostr.h>
+#include <spdlog/spdlog.h>
+
+#include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
 
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
+#include <boost/container/flat_set.hpp>
+
+using system_clock = std::chrono::system_clock;
+using time_point = system_clock::time_point;
+using duration = system_clock::duration;
 
 namespace asio = boost::asio;
+
+#include "com/centreon/broker/namespace.hh"
 
 #endif  // CC_VICTORIA_METRICS_PRECOMP_HH

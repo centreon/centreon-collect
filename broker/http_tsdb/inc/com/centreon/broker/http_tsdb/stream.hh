@@ -24,6 +24,7 @@
 #include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/persistent_cache.hh"
 #include "http_tsdb_config.hh"
+#include "line_protocol_query.hh"
 #include "macro_cache.hh"
 
 namespace http_client = com::centreon::broker::http_client;
@@ -33,6 +34,7 @@ CCB_BEGIN()
 namespace http_tsdb {
 
 class request : public http_client::request_type {
+ protected:
   unsigned _nb_metric;
   unsigned _nb_status;
 
@@ -47,11 +49,11 @@ class request : public http_client::request_type {
         _nb_metric(0),
         _nb_status(0) {}
 
-  virtual void add_metric(const std::shared_ptr<http_tsdb_config>& conf,
-                          const std::shared_ptr<io::data>& data) = 0;
+  virtual void add_metric(const storage::metric& metric) = 0;
+  virtual void add_metric(const Metric& metric) = 0;
 
-  virtual void add_status(const std::shared_ptr<http_tsdb_config>& conf,
-                          const std::shared_ptr<io::data>& data) = 0;
+  virtual void add_status(const storage::status& status) = 0;
+  virtual void add_status(const Status& status) = 0;
 
   virtual void append(const request::pointer& data_to_append);
 
@@ -94,7 +96,7 @@ class stream : public io::stream, public std::enable_shared_from_this<stream> {
          http_client::client::connection_creator conn_creator =
              http_client::http_connection::load);
 
-  virtual request::pointer create_request() = 0;
+  virtual request::pointer create_request() const = 0;
 
   void send_request(const request::pointer& request);
 

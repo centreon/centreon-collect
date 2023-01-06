@@ -52,6 +52,7 @@ class log_v2 : public com::centreon::engine::log_v2_base {
     log_stats,
     log_tcp,
     log_tls,
+    log_victoria_metrics
   };
 
   std::mutex _load_m;

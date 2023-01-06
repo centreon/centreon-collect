@@ -19,6 +19,7 @@
 #ifndef CCB_HTTP_TSDB_MACRO_CACHE_HH
 #define CCB_HTTP_TSDB_MACRO_CACHE_HH
 
+#include "com/centreon/broker/file/disk_accessor.hh"
 #include "com/centreon/broker/http_tsdb/internal.hh"
 #include "com/centreon/broker/io/factory.hh"
 #include "com/centreon/broker/namespace.hh"
@@ -26,6 +27,7 @@
 #include "com/centreon/broker/neb/instance.hh"
 #include "com/centreon/broker/neb/service.hh"
 #include "com/centreon/broker/persistent_cache.hh"
+
 CCB_BEGIN()
 
 namespace http_tsdb {
@@ -44,6 +46,10 @@ class macro_cache {
       _index_mappings;
   absl::flat_hash_map<uint64_t, std::shared_ptr<storage::pb_metric_mapping>>
       _metric_mappings;
+
+  // this member is only use to ensure that disk_accessor instance is not
+  // destroyed before macro_cache destruction
+  std::shared_ptr<file::disk_accessor> _disk_accessor;
 
   void _process_instance(std::shared_ptr<io::data> const& data);
   void _process_pb_instance(std::shared_ptr<io::data> const& data);

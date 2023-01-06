@@ -35,13 +35,14 @@ class disk_accessor {
   std::atomic<size_t> _current_size;
 
   disk_accessor(size_t limit_size);
-  static disk_accessor* _instance;
+  static std::shared_ptr<disk_accessor> _instance;
 
  public:
   using fd = FILE*;
   static void load(size_t limit_size);
   static void unload();
   static disk_accessor& instance();
+  static std::shared_ptr<disk_accessor> instance_ptr();
 
   void set_current_size(size_t current_size);
   size_t current_size() const;

@@ -32,7 +32,7 @@ using namespace com::centreon::broker::http_tsdb;
  *  @param[in] cache  Persistent cache used by the macro cache.
  */
 macro_cache::macro_cache(const std::shared_ptr<persistent_cache>& cache)
-    : _cache(cache) {
+    : _cache(cache), _disk_accessor(file::disk_accessor::instance_ptr()) {
   if (_cache != nullptr) {
     std::shared_ptr<io::data> d;
     do {

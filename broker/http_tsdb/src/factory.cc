@@ -28,9 +28,8 @@ using namespace nlohmann;
 using namespace com::centreon::exceptions;
 
 factory::factory(const std::string& name,
-                 const std::shared_ptr<asio::io_context>& io_context,
-                 const std::shared_ptr<spdlog::logger>& logger)
-    : _name(name), _io_context(io_context), _logger(logger) {}
+                 const std::shared_ptr<asio::io_context>& io_context)
+    : _name(name), _io_context(io_context) {}
 
 /**
  *  Find a parameter in configuration.
@@ -155,36 +154,40 @@ void factory::create_conf(const config::endpoint& cfg,
   };
 
   // Get status query.
-  std::string status_timeseries{find_param(cfg, "status_timeseries")};
   std::vector<column> status_column_list;
-  json const& status_columns = cfg.cfg["status_column"];
-  if (status_columns.is_object())
-    status_column_list.push_back(column(
-        chk_str(status_columns["name"]), chk_str(status_columns["value"]),
-        chk_bool(chk_str(status_columns["is_tag"])),
-        column::parse_type(chk_str(status_columns["type"]))));
-  else if (status_columns.is_array())
-    for (json const& object : status_columns)
-      status_column_list.push_back(
-          column(chk_str(object["name"]), chk_str(object["value"]),
-                 chk_bool(chk_str(object["is_tag"])),
-                 column::parse_type(chk_str(object["type"]))));
+  if (cfg.cfg.find("status_column") != cfg.cfg.end()) {
+    json const& status_columns = cfg.cfg["status_column"];
+    if (status_columns.is_object())
+      status_column_list.push_back(column(
+          chk_str(status_columns["name"]), chk_str(status_columns["value"]),
+          chk_bool(chk_str(status_columns["is_tag"])),
+          column::parse_type(chk_str(status_columns["type"]))));
+    else if (status_columns.is_array())
+      for (json const& object : status_columns) {
+        status_column_list.push_back(
+            column(chk_str(object["name"]), chk_str(object["value"]),
+                   chk_bool(chk_str(object["is_tag"])),
+                   column::parse_type(chk_str(object["type"]))));
+      }
+  }
 
   // Get metric query.*/
-  std::string metric_timeseries(find_param(cfg, "metrics_timeseries"));
   std::vector<column> metric_column_list;
-  json const& metric_columns = cfg.cfg["metrics_column"];
-  if (metric_columns.is_object())
-    metric_column_list.push_back(column(
-        chk_str(metric_columns["name"]), chk_str(metric_columns["value"]),
-        chk_bool(chk_str(metric_columns["is_tag"])),
-        column::parse_type(chk_str(metric_columns["type"]))));
-  else if (metric_columns.is_array())
-    for (json const& object : metric_columns)
-      metric_column_list.push_back(
-          column(chk_str(object["name"]), chk_str(object["value"]),
-                 chk_bool(chk_str(object["is_tag"])),
-                 column::parse_type(chk_str(object["type"]))));
+  if (cfg.cfg.find("metrics_column") != cfg.cfg.end()) {
+    json const& metric_columns = cfg.cfg["metrics_column"];
+    if (metric_columns.is_object())
+      metric_column_list.push_back(column(
+          chk_str(metric_columns["name"]), chk_str(metric_columns["value"]),
+          chk_bool(chk_str(metric_columns["is_tag"])),
+          column::parse_type(chk_str(metric_columns["type"]))));
+    else if (metric_columns.is_array())
+      for (json const& object : metric_columns) {
+        metric_column_list.push_back(
+            column(chk_str(object["name"]), chk_str(object["value"]),
+                   chk_bool(chk_str(object["is_tag"])),
+                   column::parse_type(chk_str(object["type"]))));
+      }
+  }
 
   asio::ip::tcp::resolver resolver{*_io_context};
   asio::ip::tcp::resolver::query query{addr, std::to_string(port)};
