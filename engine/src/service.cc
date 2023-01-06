@@ -776,7 +776,7 @@ com::centreon::engine::service* add_service(
       high_flap_threshold, check_freshness, freshness_threshold,
       obsess_over_service, timezone, icon_id)};
   try {
-    obj->set_acknowledgement(service::ACK_NONE);
+    obj->set_acknowledgement(AckType::NONE);
     obj->set_check_options(CHECK_OPTION_NONE);
     uint32_t flap_detection_on;
     flap_detection_on = none;
@@ -844,7 +844,7 @@ void service::check_for_expired_acknowledgement() {
             log_v2::events(),
             "Acknowledgement of service '{}' on host '{}' just expired",
             get_description(), this->get_host_ptr()->name());
-        set_acknowledgement(service::ACK_NONE);
+        set_acknowledgement(AckType::NONE);
         // FIXME DBO: could be improved with something smaller.
         // We will see later, I don't know if there are many events concerning
         // acks.
@@ -1398,15 +1398,15 @@ int service::handle_async_check_result(
     /* reset notification suppression option */
     set_no_more_notifications(false);
 
-    if (service::ACK_NORMAL == get_acknowledgement() &&
+    if (AckType::NORMAL == get_acknowledgement() &&
         (state_change || !hard_state_change)) {
-      set_acknowledgement(service::ACK_NONE);
+      set_acknowledgement(AckType::NONE);
 
       /* remove any non-persistant comments associated with the ack */
       comment::delete_service_acknowledgement_comments(this);
-    } else if (get_acknowledgement() == service::ACK_STICKY &&
+    } else if (get_acknowledgement() == AckType::STICKY &&
                _current_state == service::state_ok) {
-      set_acknowledgement(service::ACK_NONE);
+      set_acknowledgement(AckType::NONE);
 
       /* remove any non-persistant comments associated with the ack */
       comment::delete_service_acknowledgement_comments(this);
@@ -1471,7 +1471,7 @@ int service::handle_async_check_result(
 
     /* reset the acknowledgement flag (this should already have been done, but
      * just in case...) */
-    set_acknowledgement(service::ACK_NONE);
+    set_acknowledgement(AckType::NONE);
 
     /* verify the route to the host and send out host recovery notifications */
     if (hst->get_current_state() != host::state_up) {
@@ -1581,7 +1581,7 @@ int service::handle_async_check_result(
     _last_hard_state = service::state_ok;
     set_last_notification(static_cast<time_t>(0));
     set_next_notification(static_cast<time_t>(0));
-    set_acknowledgement(service::ACK_NONE);
+    set_acknowledgement(AckType::NONE);
     set_no_more_notifications(false);
 
     if (reschedule_check)
