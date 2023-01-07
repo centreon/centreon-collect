@@ -824,14 +824,14 @@ void stream::_check_queues(asio::error_code ec) {
     time_t now = time(nullptr);
     size_t sz_perfdatas;
     size_t sz_metrics;
-    size_t sz_cv, sz_cvs;
+    size_t sz_cv = _cv.size();
+    size_t sz_cvs;
     size_t sz_dt;
     size_t sz_logs;
     {
       std::lock_guard<std::mutex> lck(_queues_m);
       sz_perfdatas = _perfdata_queue.size();
       sz_metrics = _metrics.size();
-      sz_cv = _cv_queue.size();
       sz_cvs = _cvs_queue.size();
       sz_logs = _log_queue.size();
       sz_dt = _downtimes_queue.size();
@@ -872,7 +872,17 @@ void stream::_check_queues(asio::error_code ec) {
     }
 
     bool customvar_done = false;
-    if (now >= _next_update_cv || sz_cv >= _max_cv_queries ||
+    if (_cv.ready()) {
+      std::string query = _cv.get_query();
+      int32_t conn = special_conn::custom_variable % _mysql.connections_count();
+      _finish_action(conn, actions::custom_variables);
+      _mysql.run_query(query, database::mysql_error::update_customvariables,
+                       false, conn);
+      _add_action(conn, actions::custom_variables);
+      customvar_done = true;
+    }
+
+    if (now >= _next_update_cv /*|| sz_cv >= _max_cv_queries*/ ||
         sz_cvs >= _max_cv_queries) {
       _next_update_cv = now + queue_timer_duration;
       _update_customvariables();

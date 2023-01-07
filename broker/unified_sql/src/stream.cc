@@ -124,6 +124,15 @@ stream::stream(const database_config& dbcfg,
       _check_queues_stopped{false},
       _stats{stats::center::instance().register_conflict_manager()},
       _group_clean_timer{pool::io_context()},
+      _cv(queue_timer_duration,
+          _max_pending_queries,
+          "INSERT INTO customvariables "
+          "(name,host_id,service_id,default_value,modified,type,update_time,"
+          "value) VALUES {} "
+          " ON DUPLICATE KEY UPDATE "
+          "default_value=VALUES(default_VALUE),modified=VALUES(modified),type="
+          "VALUES(type),update_time=VALUES(update_time),value=VALUES(value)"),
+      _loop_timer{pool::io_context()},
       _oldest_timestamp{std::numeric_limits<time_t>::max()} {
   log_v2::sql()->debug("unified sql: stream class instanciation");
   stats::center::instance().execute([stats = _stats,
@@ -577,7 +586,7 @@ void stream::statistics(nlohmann::json& tree) const {
   size_t perfdata;
   size_t sz_metrics;
   size_t sz_logs;
-  size_t sz_cv;
+  size_t sz_cv = _cv.size();
   size_t sz_cvs;
   size_t count;
   {
@@ -585,7 +594,6 @@ void stream::statistics(nlohmann::json& tree) const {
     perfdata = _perfdata_queue.size();
     sz_metrics = _metrics.size();
     sz_logs = _log_queue.size();
-    sz_cv = _cv_queue.size();
     sz_cvs = _cvs_queue.size();
     count = _count;
   }

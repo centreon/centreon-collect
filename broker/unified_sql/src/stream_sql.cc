@@ -482,7 +482,7 @@ void stream::_process_custom_variable(const std::shared_ptr<io::data>& d) {
   // Processing.
   if (cv.enabled) {
     std::lock_guard<std::mutex> lck(_queues_m);
-    _cv_queue.emplace_back(fmt::format(
+    _cv.push_query(fmt::format(
         "('{}',{},{},'{}',{},{},{},'{}')",
         misc::string::escape(
             cv.name, get_customvariables_col_size(customvariables_name)),
@@ -3442,40 +3442,24 @@ void stream::_process_responsive_instance(const std::shared_ptr<io::data>& d
  * When we exit the function, the custom variables queue is empty.
  */
 void stream::_update_customvariables() {
-  std::deque<std::string> cv_queue;
   std::deque<std::string> cvs_queue;
   {
     std::lock_guard<std::mutex> lck(_queues_m);
-    std::swap(cv_queue, _cv_queue);
     std::swap(cvs_queue, _cvs_queue);
   }
   int32_t conn = special_conn::custom_variable % _mysql.connections_count();
   _finish_action(conn, actions::custom_variables);
-  if (!cv_queue.empty()) {
-    /* Building of the query */
-    std::string query{fmt::format(
-        "INSERT INTO customvariables "
-        "(name,host_id,service_id,default_value,modified,type,update_time,"
-        "value) VALUES {} "
-        " ON DUPLICATE KEY UPDATE "
-        "default_value=VALUES(default_VALUE),modified=VALUES(modified),type="
-        "VALUES(type),update_time=VALUES(update_time),value=VALUES(value)",
-        fmt::join(cv_queue, ","))};
-    _mysql.run_query(query, database::mysql_error::update_customvariables,
-                     false, conn);
-    _add_action(conn, actions::custom_variables);
-    log_v2::sql()->debug("{} new custom variables inserted", cv_queue.size());
-    log_v2::sql()->trace("sending query << {} >>", query);
-  }
   if (!cvs_queue.empty()) {
-    /* Building of the query */
-    std::string query{fmt::format(
-        "INSERT INTO customvariables "
-        "(name,host_id,service_id,modified,update_time,value) VALUES {} "
-        " ON DUPLICATE KEY UPDATE "
-        "modified=VALUES(modified),update_time=VALUES(update_time),value="
-        "VALUES(value)",
-        fmt::join(cvs_queue, ","))};
+    /* Building the query */
+    std::string query{
+        fmt::format("INSERT INTO customvariables "
+                    "(name,host_id,service_id,modified,update_time,"
+                    "value) VALUES {} "
+                    " ON DUPLICATE KEY UPDATE "
+                    "modified=VALUES(modified),update_time=VALUES("
+                    "update_time),value="
+                    "VALUES(value)",
+                    fmt::join(cvs_queue, ","))};
     _mysql.run_query(query, database::mysql_error::update_customvariables,
                      false, conn);
     _add_action(conn, actions::custom_variables);
