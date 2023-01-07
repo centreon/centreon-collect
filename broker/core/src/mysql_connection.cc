@@ -1,5 +1,5 @@
 /*
-** Copyright 2018-2021 Centreon
+** Copyright 2018-2023 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -320,11 +320,12 @@ void mysql_connection::_statement(mysql_task* t) {
     return;
   }
   MYSQL_BIND* bb = nullptr;
-  if (task->bind)
+  uint32_t array_size = 0u;
+  if (task->bind) {
     bb = const_cast<MYSQL_BIND*>(task->bind->get_bind());
-
-  uint32_t array_size = task->bind->get_rows_count();
-  mysql_stmt_attr_set(stmt, STMT_ATTR_ARRAY_SIZE, &array_size);
+    array_size = task->bind->get_rows_count();
+    mysql_stmt_attr_set(stmt, STMT_ATTR_ARRAY_SIZE, &array_size);
+  }
   if (bb && mysql_stmt_bind_param(stmt, bb)) {
     std::string err_msg(::mysql_stmt_error(stmt));
     SPDLOG_LOGGER_ERROR(log_v2::sql(), "mysql_connection: {}", err_msg);
@@ -386,11 +387,12 @@ void mysql_connection::_statement_res(mysql_task* t) {
     return;
   }
   MYSQL_BIND* bb(nullptr);
-  if (task->bind)
+  uint32_t array_size = 0u;
+  if (task->bind) {
     bb = const_cast<MYSQL_BIND*>(task->bind->get_bind());
-
-  uint32_t array_size = task->bind->get_rows_count();
-  mysql_stmt_attr_set(stmt, STMT_ATTR_ARRAY_SIZE, &array_size);
+    array_size = task->bind->get_rows_count();
+    mysql_stmt_attr_set(stmt, STMT_ATTR_ARRAY_SIZE, &array_size);
+  }
   if (bb && mysql_stmt_bind_param(stmt, bb)) {
     std::string err_msg(::mysql_stmt_error(stmt));
     SPDLOG_LOGGER_ERROR(log_v2::sql(), "mysql_connection: {}", err_msg);
@@ -482,11 +484,12 @@ void mysql_connection::_statement_int(mysql_task* t) {
     return;
   }
   MYSQL_BIND* bb(nullptr);
-  if (task->bind)
+  uint32_t array_size = 0u;
+  if (task->bind) {
     bb = const_cast<MYSQL_BIND*>(task->bind->get_bind());
-
-  uint32_t array_size = task->bind->get_rows_count();
-  mysql_stmt_attr_set(stmt, STMT_ATTR_ARRAY_SIZE, &array_size);
+    array_size = task->bind->get_rows_count();
+    mysql_stmt_attr_set(stmt, STMT_ATTR_ARRAY_SIZE, &array_size);
+  }
   if (bb && mysql_stmt_bind_param(stmt, bb)) {
     std::string err_msg(::mysql_stmt_error(stmt));
     SPDLOG_LOGGER_ERROR(log_v2::sql(), "mysql_connection: {}", err_msg);
