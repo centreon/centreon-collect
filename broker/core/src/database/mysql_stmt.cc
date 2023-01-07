@@ -115,6 +115,7 @@ std::unique_ptr<mysql_bind> mysql_stmt::create_bind() {
 
 void mysql_stmt::set_bind(std::unique_ptr<mysql_bind>&& bind) {
   _bind = std::move(bind);
+  _current_row = _bind->current_row();
 }
 
 /**
@@ -143,24 +144,6 @@ mysql_stmt& mysql_stmt::operator=(mysql_stmt&& other) {
     _query = std::move(other._query);
     _bind_mapping = std::move(other._bind_mapping);
     _pb_mapping = std::move(other._pb_mapping);
-  }
-  return *this;
-}
-
-/**
- * @brief Copy operator
- *
- * @param other the statement to copy.
- *
- * @return a reference to the self statement.
- */
-mysql_stmt& mysql_stmt::operator=(mysql_stmt const& other) {
-  if (this != &other) {
-    _id = other._id;
-    _param_count = other._param_count;
-    _query = other._query;
-    _bind_mapping = other._bind_mapping;
-    _pb_mapping = other._pb_mapping;
   }
   return *this;
 }
