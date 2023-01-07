@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 - 2019 Centreon (https://www.centreon.com/)
+ * Copyright 2011 - 2022 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@
  */
 
 #include "com/centreon/broker/mysql.hh"
+#include "com/centreon/broker/config/applier/modules.hh"
 
 #include <absl/strings/str_split.h>
 #include <gtest/gtest.h>
@@ -549,59 +550,59 @@ TEST_F(DatabaseStorageTest, ConnectionOk) {
 //   }
 // }
 //
-// TEST_F(DatabaseStorageTest, CustomVarStatement) {
-//   modules::loader l;
-//   l.load_file("./lib/10-neb.so");
-//   database_config db_cfg("MySQL", "127.0.0.1", 3306, "centreon", "centreon",
-//                          "centreon_storage", 5, true, 5);
-//   std::unique_ptr<mysql> ms(new mysql(db_cfg));
-//   query_preparator::event_unique unique;
-//   unique.insert("host_id");
-//   unique.insert("name");
-//   unique.insert("service_id");
-//   query_preparator qp(neb::custom_variable::static_type(), unique);
-//   mysql_stmt cv_insert_or_update(qp.prepare_insert_or_update(*ms));
-//   mysql_stmt cv_delete(qp.prepare_delete(*ms));
-//
-//   neb::custom_variable cv;
-//   cv.service_id = 498;
-//   cv.update_time = time(nullptr);
-//   cv.modified = false;
-//   cv.host_id = 31;
-//   cv.name = "PROCESSNAME";
-//   cv.value = "centengine";
-//   cv.default_value = "centengine";
-//
-//   cv_insert_or_update << cv;
-//   ms->run_statement(cv_insert_or_update, "", false, 0);
-//
-//   // Deletion
-//   cv_delete << cv;
-//   ms->run_statement(cv_delete, "", false, 0);
-//
-//   // Insert
-//   cv_insert_or_update << cv;
-//   ms->run_statement(cv_insert_or_update, "", false, 0);
-//
-//   // Update
-//   cv.update_time = time(nullptr) + 1;
-//   cv_insert_or_update << cv;
-//   ms->run_statement(cv_insert_or_update, "", false, 0);
-//
-//   ms->commit();
-//
-//   std::stringstream oss;
-//   oss << "SELECT host_id FROM customvariables WHERE "
-//          "host_id=31 AND service_id=498"
-//          " AND name='PROCESSNAME'";
-//   std::promise<mysql_result> promise;
-//   std::future<mysql_result> future = promise.get_future();
-//   ms->run_query_and_get_result(oss.str(), std::move(promise));
-//   mysql_result res(future.get());
-//   ASSERT_TRUE(ms->fetch_row(res));
-//   ASSERT_FALSE(ms->fetch_row(res));
-// }
-//
+TEST_F(DatabaseStorageTest, CustomVarStatement) {
+  config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  database_config db_cfg("MySQL", "localhost", MYSQL_SOCKET, 3306, "centreon",
+                         "centreon", "centreon_storage", 5, true, 5);
+  std::unique_ptr<mysql> ms(new mysql(db_cfg));
+  query_preparator::event_unique unique;
+  unique.insert("host_id");
+  unique.insert("name");
+  unique.insert("service_id");
+  query_preparator qp(neb::custom_variable::static_type(), unique);
+  mysql_stmt cv_insert_or_update(qp.prepare_insert_or_update(*ms));
+  mysql_stmt cv_delete(qp.prepare_delete(*ms));
+
+  neb::custom_variable cv;
+  cv.service_id = 498;
+  cv.update_time = time(nullptr);
+  cv.modified = false;
+  cv.host_id = 31;
+  cv.name = "PROCESSNAME";
+  cv.value = "centengine";
+  cv.default_value = "centengine";
+
+  cv_insert_or_update << cv;
+  ms->run_statement(cv_insert_or_update, mysql_error::empty, false, 0);
+
+  // Deletion
+  cv_delete << cv;
+  ms->run_statement(cv_delete, mysql_error::empty, false, 0);
+
+  // Insert
+  cv_insert_or_update << cv;
+  ms->run_statement(cv_insert_or_update, mysql_error::empty, false, 0);
+
+  // Update
+  cv.update_time = time(nullptr) + 1;
+  cv_insert_or_update << cv;
+  ms->run_statement(cv_insert_or_update, mysql_error::empty, false, 0);
+
+  ms->commit();
+
+  std::string query(
+      "SELECT host_id FROM customvariables WHERE "
+      "host_id=31 AND service_id=498"
+      " AND name='PROCESSNAME'");
+  std::promise<mysql_result> promise;
+  std::future<mysql_result> future = promise.get_future();
+  ms->run_query_and_get_result(query, std::move(promise));
+  mysql_result res(future.get());
+  ASSERT_TRUE(ms->fetch_row(res));
+  ASSERT_FALSE(ms->fetch_row(res));
+}
+
 // TEST_F(DatabaseStorageTest, ModuleStatement) {
 //   modules::loader l;
 //   l.load_file("./lib/10-neb.so");
@@ -1436,4 +1437,54 @@ TEST_F(DatabaseStorageTest, CheckBulkStatement) {
     std::cout << "***** count = " << res.value_as_i32(0) << std::endl;
     ASSERT_EQ(res.value_as_i32(0), TOTAL);
   }
+}
+
+TEST_F(DatabaseStorageTest, UpdateBulkStatement) {
+  database_config db_cfg("MySQL", "localhost", MYSQL_SOCKET, 3306, "centreon",
+                         "centreon", "centreon_storage", 5, true, 5);
+  auto ms{std::make_unique<mysql>(db_cfg)};
+  const char* version = ms->get_server_version();
+  std::vector<absl::string_view> arr =
+      absl::StrSplit(version, absl::ByAnyChar(".-"));
+  ASSERT_EQ(arr.size(), 4u);
+  uint32_t major;
+  uint32_t minor;
+  uint32_t patch;
+  EXPECT_TRUE(absl::SimpleAtoi(arr[0], &major));
+  EXPECT_TRUE(absl::SimpleAtoi(arr[1], &minor));
+  EXPECT_TRUE(absl::SimpleAtoi(arr[2], &patch));
+  absl::string_view server_name(arr[3]);
+  if (server_name == "MariaDB" &&
+      (major >= 10 || (major == 10 && minor >= 2))) {
+    std::string query{
+        "UPDATE ut_test SET value=?, warn=?, crit=?, metric=? WHERE "
+        "unit_name=?"};
+    mysql_stmt s = ms->prepare_query(query);
+    s.set_row_count(20000);
+    auto b = s.create_bind();
+
+    constexpr int TOTAL = 5;
+
+    for (int j = 0; j < TOTAL; j++) {
+      b->set_value_as_str(4, fmt::format("unit_{}", j));
+      b->set_value_as_f64(0, j);
+      b->set_value_as_f32(1, 1000);
+      b->set_value_as_f32(2, 2000);
+      b->set_value_as_str(3, fmt::format("metric_{}", j));
+      b->next_row();
+    }
+    s.set_bind(std::move(b));
+    ms->run_statement(s);
+    ms->commit();
+    std::string query1{"SELECT count(*) from ut_test WHERE crit=2000"};
+    std::promise<mysql_result> promise;
+    std::future<mysql_result> future = promise.get_future();
+    ms->run_query_and_get_result(query1, std::move(promise));
+    mysql_result res(future.get());
+
+    ASSERT_TRUE(ms->fetch_row(res));
+    std::cout << "***** count = " << res.value_as_i32(0) << std::endl;
+    ASSERT_EQ(res.value_as_i32(0), TOTAL * 10);
+  } else
+    std::cout << "Test not executed." << std::endl;
 }
