@@ -34,6 +34,7 @@
 #include "com/centreon/broker/misc/perfdata.hh"
 #include "com/centreon/broker/misc/shared_mutex.hh"
 #include "com/centreon/broker/mysql.hh"
+#include "com/centreon/broker/unified_sql/bulk_queries.hh"
 #include "com/centreon/broker/unified_sql/rebuilder.hh"
 #include "com/centreon/broker/unified_sql/stored_timestamp.hh"
 
@@ -253,7 +254,7 @@ class stream : public io::stream {
    * 'customvariables'/'logs'. The queue elements are pairs of a string used
    * for the query and a pointer to a boolean so that we can acknowledge the
    * BBDO event when written. */
-  std::deque<std::string> _cv_queue;
+  bulk_queries _cv;
   std::deque<std::string> _cvs_queue;
   std::deque<std::string> _log_queue;
   std::deque<std::string> _downtimes_queue;

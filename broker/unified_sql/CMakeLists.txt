@@ -1,17 +1,17 @@
 #
-# Copyright 2021-2022 Centreon
+# Copyright 2021-2023 Centreon
 #
-# Licensed under the Apache License, Version 2.0 (the "License"); you may not
-# use this file except in compliance with the License. You may obtain a copy of
-# the License at
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
 #
-# http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-# License for the specific language governing permissions and limitations under
-# the License.
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 #
 # For more information : contact@centreon.com
 #
@@ -36,6 +36,7 @@ set(UNIFIED_SQL
 add_library(
   "${UNIFIED_SQL}" SHARED
   # Sources.
+  ${SRC_DIR}/bulk_queries.cc
   ${SRC_DIR}/connector.cc
   ${SRC_DIR}/factory.cc
   ${SRC_DIR}/main.cc
@@ -47,6 +48,7 @@ add_library(
   ${proto_rebuild_message}
   ${proto_remove_graph_message}
   # Headers.
+  ${INC_DIR}/bulk_queries.hh
   ${INC_DIR}/connector.hh
   ${INC_DIR}/events.hh
   ${INC_DIR}/factory.hh
