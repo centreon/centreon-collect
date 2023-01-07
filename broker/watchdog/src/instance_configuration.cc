@@ -22,13 +22,13 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::watchdog;
 
 /**
- *  Default constructor.
+ * @brief Default constructor.
  */
 instance_configuration::instance_configuration()
     : _run(false), _reload(false) {}
 
 /**
- *  Constructor.
+ *  @brief Constructor.
  *
  *  @param[in] name           The name of the instance.
  *  @param[in] config_file    The config file of the instance.
@@ -36,12 +36,11 @@ instance_configuration::instance_configuration()
  *  @param[in] should_reload  Should this instance be reloaded on SIGHUP?
  *  @param[in] seconds_per_tentative  The number of seconds between tentatives.
  */
-instance_configuration::instance_configuration(std::string const& name,
-                                               std::string const& executable,
-                                               std::string const& config_file,
+instance_configuration::instance_configuration(const std::string& name,
+                                               const std::string& executable,
+                                               const std::string& config_file,
                                                bool should_run,
                                                bool should_reload,
-                                               __attribute__((__unused__))
                                                uint32_t seconds_per_tentative)
     : _name{name},
       _executable{executable},
@@ -50,14 +49,14 @@ instance_configuration::instance_configuration(std::string const& name,
       _reload{should_reload} {}
 
 /**
- *  Destructor.
+ * @brief Destructor
  */
 instance_configuration::~instance_configuration() {}
 
 /**
- *  Copy constructor.
+ * @brief Copy constructor.
  *
- *  @param[in] other  Object to copy.
+ * @param other Object to copy.
  */
 instance_configuration::instance_configuration(
     instance_configuration const& other)
@@ -68,11 +67,11 @@ instance_configuration::instance_configuration(
       _reload(other._reload) {}
 
 /**
- *  Assignment operator.
+ * @brief Assignment operator.
  *
- *  @param[in] other  Object to copy.
+ * @param other Object to copy.
  *
- *  @return  A reference to this object.
+ * @return A reference to this object.
  */
 instance_configuration& instance_configuration::operator=(
     instance_configuration const& other) {

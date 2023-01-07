@@ -55,6 +55,12 @@ class stream {
   const std::string _name;
 
  protected:
+  /**
+   * @brief Sub stream of this stream. It's the way
+   * serialization/deserialization works in broker. The stream receives
+   * data from its substream, this allows to make several transformations of
+   * data. For example: tcp => unzip => bbdo.
+   */
   std::shared_ptr<stream> _substream;
 
  public:
@@ -73,6 +79,12 @@ class stream {
   virtual void update();
   bool validate(std::shared_ptr<io::data> const& d, std::string const& error);
   virtual int write(std::shared_ptr<data> const& d) = 0;
+
+  /**
+   * @brief Accessor to the name of this stream.
+   *
+   * @return a const reference to the name.
+   */
   const std::string& get_name() const { return _name; }
 
   virtual bool wait_for_all_events_written(unsigned ms_timeout);

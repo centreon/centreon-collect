@@ -30,9 +30,9 @@ class config;
 
 /**
  *  @class parser parser.hh "com/centreon/broker/stats/parser.hh"
- *  @brief Parse a <stats> node.
+ *  @brief Parse a stats node.
  *
- *  Parse the <stats> node.
+ *  Parse the stats node.
  */
 class parser {
  public:

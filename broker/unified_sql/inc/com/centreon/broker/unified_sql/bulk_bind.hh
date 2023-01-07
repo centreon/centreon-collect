@@ -1,5 +1,5 @@
 /*
-** Copyright 2022 Centreon
+** Copyright 2022-2023 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -43,15 +43,16 @@ namespace unified_sql {
  *
  * How it works:
  * @code
- * bulk_bind bs(10, 15, stmt);
+ * bulk_bind bs(10, 15, 10000, stmt);
  * bs.bind()->set_value_as_str(0, "foo");  // first ? in statement
  * bs.bind()->set_value_as_u32(1, 12);  // second ? in statement
  * bs.bind()->next_row();               // Let's go to the next row
  * bs.bind()->set_value_as_str(0, "bar");  // first ? in statement
  * bs.bind()->set_value_as_u32(1, 13);  // second ? in statement
  * ...
- * if (bs.ready()) {
- *   bs.apply_to_stmt();
+ * // Is it time to execute the statement on connection 0?
+ * if (bs.ready(0)) {
+ *   bs.apply_to_stmt(0);
  *   mysql->execute_statement(stmt);
  * }
  * @endcode
