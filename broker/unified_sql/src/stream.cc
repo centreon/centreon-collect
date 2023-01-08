@@ -144,6 +144,13 @@ stream::stream(const database_config& dbcfg,
           " ON DUPLICATE KEY UPDATE "
           "default_value=VALUES(default_VALUE),modified=VALUES(modified),type="
           "VALUES(type),update_time=VALUES(update_time),value=VALUES(value)"),
+      _cvs(queue_timer_duration,
+           _max_pending_queries,
+           "INSERT INTO customvariables "
+           "(name,host_id,service_id,modified,update_time,value) VALUES {} "
+           " ON DUPLICATE KEY UPDATE "
+           "modified=VALUES(modified),update_time=VALUES(update_time),value="
+           "VALUES(value)"),
       _loop_timer{pool::io_context()},
       _oldest_timestamp{std::numeric_limits<time_t>::max()} {
   SPDLOG_LOGGER_DEBUG(log_v2::sql(), "unified sql: stream class instanciation");
@@ -155,14 +162,11 @@ stream::stream(const database_config& dbcfg,
   });
   _state = running;
   _action.resize(_mysql.connections_count());
-  _sscr_resources_bind.resize(_mysql.connections_count());
-  _next_update_sscr_resources.resize(_mysql.connections_count(),
-                                     std::time_t(nullptr) + 5);
 
   const char* version = _mysql.get_server_version();
   std::vector<absl::string_view> v =
       absl::StrSplit(version, absl::ByAnyChar(".-"));
-  if (v.size() == 3) {
+  if (v.size() == 4) {
     int32_t major;
     int32_t minor;
     int32_t patch;
@@ -179,7 +183,11 @@ stream::stream(const database_config& dbcfg,
         _bulk_prepared_statement = true;
       }
     }
-  }
+    _sscr_resources_bind.resize(_mysql.connections_count());
+    _next_update_sscr_resources.resize(_mysql.connections_count(),
+                                       std::time_t(nullptr) + 5);
+  } else
+    log_v2::sql()->info("Unified sql stream connected to '{}' Server", version);
 
   try {
     _load_caches();
@@ -605,14 +613,13 @@ void stream::statistics(nlohmann::json& tree) const {
   size_t sz_metrics;
   size_t sz_logs;
   size_t sz_cv = _cv.size();
-  size_t sz_cvs;
+  size_t sz_cvs = _cvs.size();
   size_t count;
   {
     std::lock_guard<std::mutex> lck(_queues_m);
     perfdata = _perfdata_queue.size();
     sz_metrics = _metrics.size();
     sz_logs = _log_queue.size();
-    sz_cvs = _cvs_queue.size();
     count = _count;
   }
 

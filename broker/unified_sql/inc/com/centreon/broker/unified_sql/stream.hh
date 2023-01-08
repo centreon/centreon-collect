@@ -255,7 +255,7 @@ class stream : public io::stream {
    * for the query and a pointer to a boolean so that we can acknowledge the
    * BBDO event when written. */
   bulk_queries _cv;
-  std::deque<std::string> _cvs_queue;
+  bulk_queries _cvs;
   std::deque<std::string> _log_queue;
   std::deque<std::string> _downtimes_queue;
 

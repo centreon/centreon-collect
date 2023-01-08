@@ -32,7 +32,7 @@ using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
 
-mysql_stmt::mysql_stmt() : _id(0), _param_count(0) {}
+mysql_stmt::mysql_stmt() : _id(0), _param_count(0), _hist_size(10) {}
 
 mysql_stmt::mysql_stmt(std::string const& query, bool named) {
   mysql_bind_mapping bind_mapping;
@@ -109,6 +109,14 @@ mysql_stmt::mysql_stmt(std::string const& query,
 }
 
 std::unique_ptr<mysql_bind> mysql_stmt::create_bind() {
+  if (!_hist_size.empty()) {
+    int avg = 0;
+    for (int v : _hist_size) {
+      avg += v;
+    }
+    _reserved_size = avg / _hist_size.size();
+  }
+  log_v2::sql()->trace("new mysql bind with {} rows", _reserved_size);
   auto retval = std::make_unique<mysql_bind>(_param_count, 0, _reserved_size);
   return retval;
 }
@@ -179,6 +187,7 @@ int mysql_stmt::get_id() const {
 }
 
 std::unique_ptr<database::mysql_bind> mysql_stmt::get_bind() {
+  _hist_size.push_back(_current_row);
   return std::move(_bind);
 }
 

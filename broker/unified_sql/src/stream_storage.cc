@@ -836,15 +836,12 @@ void stream::_check_queues(asio::error_code ec) {
     time_t now = time(nullptr);
     size_t sz_perfdatas;
     size_t sz_metrics;
-    size_t sz_cv = _cv.size();
-    size_t sz_cvs;
     size_t sz_dt;
     size_t sz_logs;
     {
       std::lock_guard<std::mutex> lck(_queues_m);
       sz_perfdatas = _perfdata_queue.size();
       sz_metrics = _metrics.size();
-      sz_cvs = _cvs_queue.size();
       sz_logs = _log_queue.size();
       sz_dt = _downtimes_queue.size();
     }
@@ -859,11 +856,16 @@ void stream::_check_queues(asio::error_code ec) {
 
     bool service_status_done = false;
     if (_bulk_prepared_statement) {
+      log_v2::sql()->trace("Bulk prepared statement bind size {}",
+                           _sscr_resources_bind.size());
       for (uint32_t conn = 0; conn < _sscr_resources_bind.size(); conn++) {
         auto& b = _sscr_resources_bind[conn];
         if (b) {
           if (now >= _next_update_sscr_resources[conn] ||
               _sscr_resources_bind[conn]->row_count() >= _max_pending_queries) {
+            log_v2::sql()->trace(
+                "Sending {} rows of resource status on connection {}",
+                _sscr_resources_bind[conn]->row_count(), conn);
             _sscr_resources_update.set_bind(std::move(b));
             _mysql.run_statement(_sscr_resources_update,
                                  database::mysql_error::store_service_status,
@@ -894,10 +896,13 @@ void stream::_check_queues(asio::error_code ec) {
       customvar_done = true;
     }
 
-    if (now >= _next_update_cv /*|| sz_cv >= _max_cv_queries*/ ||
-        sz_cvs >= _max_cv_queries) {
-      _next_update_cv = now + queue_timer_duration;
-      _update_customvariables();
+    if (_cvs.ready()) {
+      std::string query = _cvs.get_query();
+      int32_t conn = special_conn::custom_variable % _mysql.connections_count();
+      _finish_action(conn, actions::custom_variables);
+      _mysql.run_query(query, database::mysql_error::update_customvariables,
+                       false, conn);
+      _add_action(conn, actions::custom_variables);
       customvar_done = true;
     }
 
