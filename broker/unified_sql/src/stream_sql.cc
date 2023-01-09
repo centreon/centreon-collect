@@ -564,7 +564,7 @@ void stream::_process_downtime(const std::shared_ptr<io::data>& d) {
 
   // Check if poller is valid.
   if (_is_valid_poller(dd.poller_id)) {
-    _downtimes_queue.emplace_back(fmt::format(
+    _downtimes.push_query(fmt::format(
         "({},{},'{}',{},{},{},{},{},{},{},{},{},{},{},{},{},{},'{}')",
         dd.actual_end_time.is_null() ? "NULL"
                                      : fmt::format("{}", dd.actual_end_time),
@@ -1328,7 +1328,7 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
             if (sid)
               _resources_host_insert.bind_value_as_u64(10, sid);
             else
-              _resources_host_insert.bind_value_as_null(10);
+              _resources_host_insert.bind_null_u64(10);
             _resources_host_insert.bind_value_as_str(11, name);
             _resources_host_insert.bind_value_as_str(12, address);
             _resources_host_insert.bind_value_as_str(13, alias);
@@ -1408,7 +1408,7 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
             if (sid)
               _resources_host_update.bind_value_as_u64(9, sid);
             else
-              _resources_host_update.bind_value_as_null(9);
+              _resources_host_update.bind_null_u64(9);
             _resources_host_update.bind_value_as_str(10, name);
             _resources_host_update.bind_value_as_str(11, address);
             _resources_host_update.bind_value_as_str(12, alias);
@@ -1711,78 +1711,149 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
     // Processing.
 
     if (_store_in_hosts_services) {
-      _hscr_update.bind_value_as_bool(0, hscr.checked());
-      _hscr_update.bind_value_as_i32(1, hscr.check_type());
-      _hscr_update.bind_value_as_i32(2, hscr.state());
-      _hscr_update.bind_value_as_i32(3, hscr.state_type());
-      _hscr_update.bind_value_as_i64(4, hscr.last_state_change());
-      _hscr_update.bind_value_as_i32(5, hscr.last_hard_state());
-      _hscr_update.bind_value_as_i64(6, hscr.last_hard_state_change());
-      _hscr_update.bind_value_as_i64(7, hscr.last_time_up());
-      _hscr_update.bind_value_as_i64(8, hscr.last_time_down());
-      _hscr_update.bind_value_as_i64(9, hscr.last_time_unreachable());
-      std::string full_output{
-          fmt::format("{}\n{}", hscr.output(), hscr.long_output())};
-      size_t size = misc::string::adjust_size_utf8(
-          full_output, get_hosts_col_size(hosts_output));
-      _hscr_update.bind_value_as_str(
-          10, fmt::string_view(full_output.data(), size));
-      size = misc::string::adjust_size_utf8(hscr.perfdata(),
-                                            get_hosts_col_size(hosts_perfdata));
-      _hscr_update.bind_value_as_str(
-          11, fmt::string_view(hscr.perfdata().data(), size));
-      _hscr_update.bind_value_as_bool(12, hscr.flapping());
-      _hscr_update.bind_value_as_f64(13, hscr.percent_state_change());
-      _hscr_update.bind_value_as_f64(14, hscr.latency());
-      _hscr_update.bind_value_as_f64(15, hscr.execution_time());
-      _hscr_update.bind_value_as_i64(16, hscr.last_check(), is_not_zero);
-      _hscr_update.bind_value_as_i64(17, hscr.next_check());
-      _hscr_update.bind_value_as_bool(18, hscr.should_be_scheduled());
-      _hscr_update.bind_value_as_i32(19, hscr.check_attempt());
-      _hscr_update.bind_value_as_u64(20, hscr.notification_number());
-      _hscr_update.bind_value_as_bool(21, hscr.no_more_notifications());
-      _hscr_update.bind_value_as_i64(22, hscr.last_notification());
-      _hscr_update.bind_value_as_i64(23, hscr.next_host_notification());
-      _hscr_update.bind_value_as_bool(
-          24, hscr.acknowledgement_type() != AckType::NONE);
-      _hscr_update.bind_value_as_i32(25, hscr.acknowledgement_type());
-      _hscr_update.bind_value_as_i32(26, hscr.scheduled_downtime_depth());
-      _hscr_update.bind_value_as_i32(27, hscr.host_id());
-
       int32_t conn = _mysql.choose_connection_by_instance(
           _cache_host_instance[static_cast<uint32_t>(hscr.host_id())]);
-      _mysql.run_statement(
-          _hscr_update, database::mysql_error::store_host_status, false, conn);
+      if (_bulk_prepared_statement) {
+        if (!_hscr_bind.bind(conn))
+          _hscr_bind.init_from_stmt(conn);
+        auto* b = _hscr_bind.bind(conn).get();
+        b->set_value_as_bool(0, hscr.checked());
+        b->set_value_as_i32(1, hscr.check_type());
+        b->set_value_as_i32(2, hscr.state());
+        b->set_value_as_i32(3, hscr.state_type());
+        b->set_value_as_i64(4, hscr.last_state_change());
+        b->set_value_as_i32(5, hscr.last_hard_state());
+        b->set_value_as_i64(6, hscr.last_hard_state_change());
+        b->set_value_as_i64(7, hscr.last_time_up());
+        b->set_value_as_i64(8, hscr.last_time_down());
+        b->set_value_as_i64(9, hscr.last_time_unreachable());
+        std::string full_output{
+            fmt::format("{}\n{}", hscr.output(), hscr.long_output())};
+        size_t size = misc::string::adjust_size_utf8(
+            full_output, get_hosts_col_size(hosts_output));
+        b->set_value_as_str(10, fmt::string_view(full_output.data(), size));
+        size = misc::string::adjust_size_utf8(
+            hscr.perfdata(), get_hosts_col_size(hosts_perfdata));
+        b->set_value_as_str(11, fmt::string_view(hscr.perfdata().data(), size));
+        b->set_value_as_bool(12, hscr.flapping());
+        b->set_value_as_f64(13, hscr.percent_state_change());
+        b->set_value_as_f64(14, hscr.latency());
+        b->set_value_as_f64(15, hscr.execution_time());
+        if (hscr.last_check() == 0)
+          b->set_null_i64(16);
+        else
+          b->set_value_as_i64(16, hscr.last_check());
+        b->set_value_as_i64(17, hscr.next_check());
+        b->set_value_as_bool(18, hscr.should_be_scheduled());
+        b->set_value_as_i32(19, hscr.check_attempt());
+        b->set_value_as_u64(20, hscr.notification_number());
+        b->set_value_as_bool(21, hscr.no_more_notifications());
+        b->set_value_as_i64(22, hscr.last_notification());
+        b->set_value_as_i64(23, hscr.next_host_notification());
+        b->set_value_as_bool(
+            24, hscr.acknowledgement_type() != HostStatus_AckType_NONE);
+        b->set_value_as_i32(25, hscr.acknowledgement_type());
+        b->set_value_as_i32(26, hscr.scheduled_downtime_depth());
+        b->set_value_as_i32(27, hscr.host_id());
+        b->next_row();
+        log_v2::sql()->trace("{} waiting updates for host status in hosts",
+                             b->current_row());
+      } else {
+        _hscr_update.bind_value_as_bool(0, hscr.checked());
+        _hscr_update.bind_value_as_i32(1, hscr.check_type());
+        _hscr_update.bind_value_as_i32(2, hscr.state());
+        _hscr_update.bind_value_as_i32(3, hscr.state_type());
+        _hscr_update.bind_value_as_i64(4, hscr.last_state_change());
+        _hscr_update.bind_value_as_i32(5, hscr.last_hard_state());
+        _hscr_update.bind_value_as_i64(6, hscr.last_hard_state_change());
+        _hscr_update.bind_value_as_i64(7, hscr.last_time_up());
+        _hscr_update.bind_value_as_i64(8, hscr.last_time_down());
+        _hscr_update.bind_value_as_i64(9, hscr.last_time_unreachable());
+        std::string full_output{
+            fmt::format("{}\n{}", hscr.output(), hscr.long_output())};
+        size_t size = misc::string::adjust_size_utf8(
+            full_output, get_hosts_col_size(hosts_output));
+        _hscr_update.bind_value_as_str(
+            10, fmt::string_view(full_output.data(), size));
+        size = misc::string::adjust_size_utf8(
+            hscr.perfdata(), get_hosts_col_size(hosts_perfdata));
+        _hscr_update.bind_value_as_str(
+            11, fmt::string_view(hscr.perfdata().data(), size));
+        _hscr_update.bind_value_as_bool(12, hscr.flapping());
+        _hscr_update.bind_value_as_f64(13, hscr.percent_state_change());
+        _hscr_update.bind_value_as_f64(14, hscr.latency());
+        _hscr_update.bind_value_as_f64(15, hscr.execution_time());
+        _hscr_update.bind_value_as_i64(16, hscr.last_check(), is_not_zero);
+        _hscr_update.bind_value_as_i64(17, hscr.next_check());
+        _hscr_update.bind_value_as_bool(18, hscr.should_be_scheduled());
+        _hscr_update.bind_value_as_i32(19, hscr.check_attempt());
+        _hscr_update.bind_value_as_i32(20, hscr.notification_number());
+        _hscr_update.bind_value_as_bool(21, hscr.no_more_notifications());
+        _hscr_update.bind_value_as_i64(22, hscr.last_notification());
+        _hscr_update.bind_value_as_i64(23, hscr.next_host_notification());
+        _hscr_update.bind_value_as_bool(
+            24, hscr.acknowledgement_type() != HostStatus_AckType_NONE);
+        _hscr_update.bind_value_as_i32(25, hscr.acknowledgement_type());
+        _hscr_update.bind_value_as_i32(26, hscr.scheduled_downtime_depth());
+        _hscr_update.bind_value_as_i32(27, hscr.host_id());
 
-      _add_action(conn, actions::hosts);
+        _mysql.run_statement(_hscr_update,
+                             database::mysql_error::store_host_status, false,
+                             conn);
+
+        _add_action(conn, actions::hosts);
+      }
     }
 
     if (_store_in_resources) {
-      _hscr_resources_update.bind_value_as_i32(0, hscr.state());
-      _hscr_resources_update.bind_value_as_i32(
-          1, hst_ordered_status[hscr.state()]);
-      _hscr_resources_update.bind_value_as_u64(2, hscr.last_state_change());
-      _hscr_resources_update.bind_value_as_bool(
-          3, hscr.scheduled_downtime_depth() > 0);
-      _hscr_resources_update.bind_value_as_bool(
-          4, hscr.acknowledgement_type() != AckType::NONE);
-      _hscr_resources_update.bind_value_as_bool(
-          5, hscr.state_type() == HostStatus_StateType_HARD);
-      _hscr_resources_update.bind_value_as_u32(6, hscr.check_attempt());
-      _hscr_resources_update.bind_value_as_bool(7, hscr.perfdata() != "");
-      _hscr_resources_update.bind_value_as_u32(8, hscr.check_type());
-      _hscr_resources_update.bind_value_as_u64(9, hscr.last_check(),
-                                               is_not_zero);
-      _hscr_resources_update.bind_value_as_str(10, hscr.output());
-      _hscr_resources_update.bind_value_as_u64(11, hscr.host_id());
-
       int32_t conn = _mysql.choose_connection_by_instance(
           _cache_host_instance[static_cast<uint32_t>(hscr.host_id())]);
-      _mysql.run_statement(_hscr_resources_update,
-                           database::mysql_error::store_host_status, false,
-                           conn);
+      if (_bulk_prepared_statement) {
+        if (!_hscr_resources_bind.bind(conn))
+          _hscr_resources_bind.init_from_stmt(conn);
+        auto* b = _hscr_resources_bind.bind(conn).get();
+        b->set_value_as_i32(0, hscr.state());
+        b->set_value_as_i32(1, hst_ordered_status[hscr.state()]);
+        b->set_value_as_u64(2, hscr.last_state_change());
+        b->set_value_as_bool(3, hscr.scheduled_downtime_depth() > 0);
+        b->set_value_as_bool(
+            4, hscr.acknowledgement_type() != HostStatus_AckType_NONE);
+        b->set_value_as_bool(5, hscr.state_type() == HostStatus_StateType_HARD);
+        b->set_value_as_u32(6, hscr.check_attempt());
+        b->set_value_as_bool(7, hscr.perfdata() != "");
+        b->set_value_as_u32(8, hscr.check_type());
+        if (hscr.last_check() == 0)
+          b->set_null_u64(9);
+        else
+          b->set_value_as_u64(9, hscr.last_check());
+        b->set_value_as_str(10, hscr.output());
+        b->set_value_as_u64(11, hscr.host_id());
+        b->next_row();
+      } else {
+        _hscr_resources_update.bind_value_as_i32(0, hscr.state());
+        _hscr_resources_update.bind_value_as_i32(
+            1, hst_ordered_status[hscr.state()]);
+        _hscr_resources_update.bind_value_as_u64(2, hscr.last_state_change());
+        _hscr_resources_update.bind_value_as_bool(
+            3, hscr.scheduled_downtime_depth() > 0);
+        _hscr_resources_update.bind_value_as_bool(
+            4, hscr.acknowledgement_type() != HostStatus_AckType_NONE);
+        _hscr_resources_update.bind_value_as_bool(
+            5, hscr.state_type() == HostStatus_StateType_HARD);
+        _hscr_resources_update.bind_value_as_u32(6, hscr.check_attempt());
+        _hscr_resources_update.bind_value_as_bool(7, hscr.perfdata() != "");
+        _hscr_resources_update.bind_value_as_u32(8, hscr.check_type());
+        _hscr_resources_update.bind_value_as_u64(9, hscr.last_check(),
+                                                 is_not_zero);
+        _hscr_resources_update.bind_value_as_str(10, hscr.output());
+        _hscr_resources_update.bind_value_as_u64(11, hscr.host_id());
 
-      _add_action(conn, actions::resources);
+        _mysql.run_statement(_hscr_resources_update,
+                             database::mysql_error::store_host_status, false,
+                             conn);
+
+        _add_action(conn, actions::resources);
+      }
     }
   } else
     // Do nothing.
@@ -1894,8 +1965,9 @@ void stream::_process_log(const std::shared_ptr<io::data>& d) {
       le.poller_name, le.c_time, le.msg_type);
 
   std::lock_guard<std::mutex> lck(_queues_m);
-  // Run query.
-  _log_queue.emplace_back(fmt::format(
+
+  // Push query.
+  _logs.push_query(fmt::format(
       "({},{},{},'{}','{}',{},{},'{}','{}',{},'{}',{},'{}')", le.c_time,
       le.host_id, le.service_id,
       misc::string::escape(le.host_name, get_logs_col_size(logs_host_name)),
@@ -2470,7 +2542,7 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
           if (s.internal_id())
             _resources_service_insert.bind_value_as_u64(3, s.internal_id());
           else
-            _resources_service_insert.bind_value_as_null(3);
+            _resources_service_insert.bind_null_u64(3);
           _resources_service_insert.bind_value_as_u32(4, s.state());
           _resources_service_insert.bind_value_as_u32(
               5, svc_ordered_status[s.state()]);
@@ -2495,7 +2567,7 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
           if (sid)
             _resources_service_insert.bind_value_as_u64(13, sid);
           else
-            _resources_service_insert.bind_value_as_null(13);
+            _resources_service_insert.bind_null_u64(13);
           _resources_service_insert.bind_value_as_str(14, name);
           _resources_service_insert.bind_value_as_str(15, parent_name);
           _resources_service_insert.bind_value_as_str(16, notes_url);
@@ -2553,7 +2625,7 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
           if (s.internal_id())
             _resources_service_update.bind_value_as_u64(1, s.internal_id());
           else
-            _resources_service_update.bind_value_as_null(1);
+            _resources_service_update.bind_null_u64(1);
           _resources_service_update.bind_value_as_u32(2, s.state());
           _resources_service_update.bind_value_as_u32(
               3, svc_ordered_status[s.state()]);
@@ -2578,7 +2650,7 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
           if (sid)
             _resources_service_update.bind_value_as_u64(11, sid);
           else
-            _resources_service_update.bind_value_as_null(11);
+            _resources_service_update.bind_null_u64(11);
           _resources_service_update.bind_value_as_str(12, name);
           _resources_service_update.bind_value_as_str(13, parent_name);
           _resources_service_update.bind_value_as_str(14, notes_url);
@@ -3115,63 +3187,112 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
 
     // Processing.
     if (_store_in_hosts_services) {
-      _sscr_update.bind_value_as_bool(0, sscr.checked());
-      _sscr_update.bind_value_as_i32(1, sscr.check_type());
-      _sscr_update.bind_value_as_i32(2, sscr.state());
-      _sscr_update.bind_value_as_i32(3, sscr.state_type());
-      _sscr_update.bind_value_as_i64(4, sscr.last_state_change());
-      _sscr_update.bind_value_as_i32(5, sscr.last_hard_state());
-      _sscr_update.bind_value_as_i64(6, sscr.last_hard_state_change());
-      _sscr_update.bind_value_as_i64(7, sscr.last_time_ok());
-      _sscr_update.bind_value_as_i64(8, sscr.last_time_warning());
-      _sscr_update.bind_value_as_i64(9, sscr.last_time_critical());
-      _sscr_update.bind_value_as_i64(10, sscr.last_time_unknown());
-      std::string full_output{
-          fmt::format("{}\n{}", sscr.output(), sscr.long_output())};
-      size_t size = misc::string::adjust_size_utf8(
-          full_output, get_services_col_size(services_output));
-      _sscr_update.bind_value_as_str(
-          11, fmt::string_view(full_output.data(), size));
-      size = misc::string::adjust_size_utf8(
-          sscr.perfdata(), get_services_col_size(services_perfdata));
-      _sscr_update.bind_value_as_str(
-          12, fmt::string_view(sscr.perfdata().data(), size));
-      _sscr_update.bind_value_as_bool(13, sscr.flapping());
-      _sscr_update.bind_value_as_f64(14, sscr.percent_state_change());
-      _sscr_update.bind_value_as_f64(15, sscr.latency());
-      _sscr_update.bind_value_as_f64(16, sscr.execution_time());
-      _sscr_update.bind_value_as_i64(17, sscr.last_check(), is_not_zero);
-      _sscr_update.bind_value_as_i64(18, sscr.next_check());
-      _sscr_update.bind_value_as_bool(19, sscr.should_be_scheduled());
-      _sscr_update.bind_value_as_i32(20, sscr.check_attempt());
-      _sscr_update.bind_value_as_u64(21, sscr.notification_number());
-      _sscr_update.bind_value_as_bool(22, sscr.no_more_notifications());
-      _sscr_update.bind_value_as_i64(23, sscr.last_notification());
-      _sscr_update.bind_value_as_i64(24, sscr.next_notification());
-      _sscr_update.bind_value_as_bool(
-          25, sscr.acknowledgement_type() != AckType::NONE);
-      _sscr_update.bind_value_as_i32(26, sscr.acknowledgement_type());
-      _sscr_update.bind_value_as_i32(27, sscr.scheduled_downtime_depth());
-      _sscr_update.bind_value_as_i32(28, sscr.host_id());
-      _sscr_update.bind_value_as_i32(29, sscr.service_id());
-
       int32_t conn = _mysql.choose_connection_by_instance(
           _cache_host_instance[static_cast<uint32_t>(sscr.host_id())]);
-      _mysql.run_statement(_sscr_update,
-                           database::mysql_error::store_service_status, false,
-                           conn);
+      if (_bulk_prepared_statement) {
+        if (!_sscr_bind.bind(conn))
+          _sscr_bind.init_from_stmt(conn);
+        auto* b = _sscr_bind.bind(conn).get();
+        b->set_value_as_bool(0, sscr.checked());
+        b->set_value_as_i32(1, sscr.check_type());
+        b->set_value_as_i32(2, sscr.state());
+        b->set_value_as_i32(3, sscr.state_type());
+        b->set_value_as_i64(4, sscr.last_state_change());
+        b->set_value_as_i32(5, sscr.last_hard_state());
+        b->set_value_as_i64(6, sscr.last_hard_state_change());
+        b->set_value_as_i64(7, sscr.last_time_ok());
+        b->set_value_as_i64(8, sscr.last_time_warning());
+        b->set_value_as_i64(9, sscr.last_time_critical());
+        b->set_value_as_i64(10, sscr.last_time_unknown());
+        std::string full_output{
+            fmt::format("{}\n{}", sscr.output(), sscr.long_output())};
+        size_t size = misc::string::adjust_size_utf8(
+            full_output, get_services_col_size(services_output));
+        b->set_value_as_str(11, fmt::string_view(full_output.data(), size));
+        size = misc::string::adjust_size_utf8(
+            sscr.perfdata(), get_services_col_size(services_perfdata));
+        b->set_value_as_str(12, fmt::string_view(sscr.perfdata().data(), size));
+        b->set_value_as_bool(13, sscr.flapping());
+        b->set_value_as_f64(14, sscr.percent_state_change());
+        b->set_value_as_f64(15, sscr.latency());
+        b->set_value_as_f64(16, sscr.execution_time());
+        if (sscr.last_check() == 0)
+          b->set_null_i64(17);
+        else
+          b->set_value_as_i64(17, sscr.last_check());
+        b->set_value_as_i64(18, sscr.next_check());
+        b->set_value_as_bool(19, sscr.should_be_scheduled());
+        b->set_value_as_i32(20, sscr.check_attempt());
+        b->set_value_as_i32(21, sscr.notification_number());
+        b->set_value_as_bool(22, sscr.no_more_notifications());
+        b->set_value_as_i64(23, sscr.last_notification());
+        b->set_value_as_i64(24, sscr.next_notification());
+        b->set_value_as_bool(
+            25, sscr.acknowledgement_type() != ServiceStatus_AckType_NONE);
+        b->set_value_as_i32(26, sscr.acknowledgement_type());
+        b->set_value_as_i32(27, sscr.scheduled_downtime_depth());
+        b->set_value_as_i32(28, sscr.host_id());
+        b->set_value_as_i32(29, sscr.service_id());
+        b->next_row();
+        log_v2::sql()->trace(
+            "{} waiting updates for service status in services",
+            b->current_row());
+      } else {
+        _sscr_update.bind_value_as_bool(0, sscr.checked());
+        _sscr_update.bind_value_as_i32(1, sscr.check_type());
+        _sscr_update.bind_value_as_i32(2, sscr.state());
+        _sscr_update.bind_value_as_i32(3, sscr.state_type());
+        _sscr_update.bind_value_as_i64(4, sscr.last_state_change());
+        _sscr_update.bind_value_as_i32(5, sscr.last_hard_state());
+        _sscr_update.bind_value_as_i64(6, sscr.last_hard_state_change());
+        _sscr_update.bind_value_as_i64(7, sscr.last_time_ok());
+        _sscr_update.bind_value_as_i64(8, sscr.last_time_warning());
+        _sscr_update.bind_value_as_i64(9, sscr.last_time_critical());
+        _sscr_update.bind_value_as_i64(10, sscr.last_time_unknown());
+        std::string full_output{
+            fmt::format("{}\n{}", sscr.output(), sscr.long_output())};
+        size_t size = misc::string::adjust_size_utf8(
+            full_output, get_services_col_size(services_output));
+        _sscr_update.bind_value_as_str(
+            11, fmt::string_view(full_output.data(), size));
+        size = misc::string::adjust_size_utf8(
+            sscr.perfdata(), get_services_col_size(services_perfdata));
+        _sscr_update.bind_value_as_str(
+            12, fmt::string_view(sscr.perfdata().data(), size));
+        _sscr_update.bind_value_as_bool(13, sscr.flapping());
+        _sscr_update.bind_value_as_f64(14, sscr.percent_state_change());
+        _sscr_update.bind_value_as_f64(15, sscr.latency());
+        _sscr_update.bind_value_as_f64(16, sscr.execution_time());
+        _sscr_update.bind_value_as_i64(17, sscr.last_check(), is_not_zero);
+        _sscr_update.bind_value_as_i64(18, sscr.next_check());
+        _sscr_update.bind_value_as_bool(19, sscr.should_be_scheduled());
+        _sscr_update.bind_value_as_i32(20, sscr.check_attempt());
+        _sscr_update.bind_value_as_u64(21, sscr.notification_number());
+        _sscr_update.bind_value_as_bool(22, sscr.no_more_notifications());
+        _sscr_update.bind_value_as_i64(23, sscr.last_notification());
+        _sscr_update.bind_value_as_i64(24, sscr.next_notification());
+        _sscr_update.bind_value_as_bool(
+            25, sscr.acknowledgement_type() != ServiceStatus_AckType_NONE);
+        _sscr_update.bind_value_as_i32(26, sscr.acknowledgement_type());
+        _sscr_update.bind_value_as_i32(27, sscr.scheduled_downtime_depth());
+        _sscr_update.bind_value_as_i32(28, sscr.host_id());
+        _sscr_update.bind_value_as_i32(29, sscr.service_id());
 
-      _add_action(conn, actions::services);
+        _mysql.run_statement(_sscr_update,
+                             database::mysql_error::store_service_status, false,
+                             conn);
+
+        _add_action(conn, actions::services);
+      }
     }
 
     if (_store_in_resources) {
       int32_t conn = _mysql.choose_connection_by_instance(
           _cache_host_instance[static_cast<uint32_t>(sscr.host_id())]);
       if (_bulk_prepared_statement) {
-        std::lock_guard<std::mutex> lck(_queues_m);
-        if (!_sscr_resources_bind[conn])
-          _sscr_resources_bind[conn] = _sscr_resources_update.create_bind();
-        auto* b = _sscr_resources_bind[conn].get();
+        if (!_sscr_resources_bind.bind(conn))
+          _sscr_resources_bind.init_from_stmt(conn);
+        auto* b = _sscr_resources_bind.bind(conn).get();
         b->set_value_as_i32(0, sscr.state());
         b->set_value_as_i32(1, svc_ordered_status[sscr.state()]);
         b->set_value_as_u64(2, sscr.last_state_change());
@@ -3184,7 +3305,7 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
         b->set_value_as_bool(7, sscr.perfdata() != "");
         b->set_value_as_u32(8, sscr.check_type());
         if (sscr.last_check() == 0)
-          b->set_value_as_null(9);
+          b->set_null_u64(9);
         else
           b->set_value_as_u64(9, sscr.last_check());
         b->set_value_as_str(10, sscr.output());

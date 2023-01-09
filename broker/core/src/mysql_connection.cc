@@ -312,7 +312,9 @@ void mysql_connection::_statement(mysql_task* t) {
   uint32_t array_size = 0u;
   if (task->bind) {
     bb = const_cast<MYSQL_BIND*>(task->bind->get_bind());
-    array_size = task->bind->get_rows_count();
+    array_size = task->bind->rows_count();
+    // In case of MySQL this function will fail with a non zero return value, it
+    // doesn't matter
     mysql_stmt_attr_set(stmt, STMT_ATTR_ARRAY_SIZE, &array_size);
   }
   if (bb && mysql_stmt_bind_param(stmt, bb)) {
@@ -376,7 +378,9 @@ void mysql_connection::_statement_res(mysql_task* t) {
   uint32_t array_size = 0u;
   if (task->bind) {
     bb = const_cast<MYSQL_BIND*>(task->bind->get_bind());
-    array_size = task->bind->get_rows_count();
+    array_size = task->bind->rows_count();
+    // In case of MySQL this function will fail with a non zero return value, it
+    // doesn't matter
     mysql_stmt_attr_set(stmt, STMT_ATTR_ARRAY_SIZE, &array_size);
   }
   if (bb && mysql_stmt_bind_param(stmt, bb)) {
@@ -442,7 +446,7 @@ void mysql_connection::_statement_res(mysql_task* t) {
             }
             // Here, we have the first row.
             res.set(prepare_meta_result);
-            bind->set_empty(true);
+            bind->set_empty();
           }
           res.set_bind(move(bind));
           task->promise.set_value(std::move(res));
@@ -471,7 +475,9 @@ void mysql_connection::_statement_int(mysql_task* t) {
   uint32_t array_size = 0u;
   if (task->bind) {
     bb = const_cast<MYSQL_BIND*>(task->bind->get_bind());
-    array_size = task->bind->get_rows_count();
+    array_size = task->bind->rows_count();
+    // In case of MySQL this function will fail with a non zero return value, it
+    // doesn't matter
     mysql_stmt_attr_set(stmt, STMT_ATTR_ARRAY_SIZE, &array_size);
   }
   if (bb && mysql_stmt_bind_param(stmt, bb)) {
@@ -523,7 +529,7 @@ void mysql_connection::_fetch_row_sync(mysql_task* t) {
     MYSQL_STMT* stmt(_stmt[stmt_id]);
     int res(mysql_stmt_fetch(stmt));
     if (res != 0)
-      task->result->get_bind()->set_empty(true);
+      task->result->get_bind()->set_empty();
     task->promise.set_value(res == 0);
   } else {
     MYSQL_ROW r(mysql_fetch_row(task->result->get()));

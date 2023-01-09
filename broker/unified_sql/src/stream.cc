@@ -116,7 +116,6 @@ stream::stream(const database_config& dbcfg,
       _max_metrics_queries{_max_pending_queries},
       _max_cv_queries{_max_pending_queries},
       _max_log_queries{_max_pending_queries},
-      _next_insert_perfdatas{std::time_t(nullptr) + 10},
       _next_update_metrics{std::time_t(nullptr) + 10},
       _next_loop_timeout{std::time_t(nullptr) + _loop_timeout},
       _queues_timer{pool::io_context()},
@@ -139,8 +138,33 @@ stream::stream(const database_config& dbcfg,
            " ON DUPLICATE KEY UPDATE "
            "modified=VALUES(modified),update_time=VALUES(update_time),value="
            "VALUES(value)"),
+      _perfdata(
+          queue_timer_duration,
+          _max_perfdata_queries,
+          "INSERT INTO data_bin (id_metric,ctime,status,value) VALUES {}"),
+      _logs(queue_timer_duration,
+            _max_pending_queries,
+            "INSERT INTO logs "
+            "(ctime,host_id,service_id,host_name,instance_name,type,msg_type,"
+            "notification_cmd,notification_contact,retry,service_description,"
+            "status,output) VALUES {}"),
+      _downtimes(
+          dt_queue_timer_duration,
+          _max_pending_queries,
+          "INSERT INTO downtimes (actual_end_time,actual_start_time,author,"
+          "type,deletion_time,duration,end_time,entry_time,"
+          "fixed,host_id,instance_id,internal_id,service_id,"
+          "start_time,triggered_by,cancelled,started,comment_data) VALUES {}"
+          " ON DUPLICATE KEY UPDATE "
+          "actual_end_time=GREATEST(COALESCE(actual_end_time,-1),VALUES("
+          "actual_end_time)),actual_start_time=COALESCE(actual_start_time,"
+          "VALUES(actual_start_time)),author=VALUES(author),cancelled=VALUES("
+          "cancelled),comment_data=VALUES(comment_data),deletion_time=VALUES("
+          "deletion_time),duration=VALUES(duration),end_time=VALUES(end_time),"
+          "fixed=VALUES(fixed),start_time=VALUES(start_time),started=VALUES("
+          "started),triggered_by=VALUES(triggered_by), type=VALUES(type)"),
       _oldest_timestamp{std::numeric_limits<time_t>::max()} {
-  log_v2::sql()->debug("unified sql: stream class instanciation");
+  SPDLOG_LOGGER_DEBUG(log_v2::sql(), "unified sql: stream class instanciation");
   stats::center::instance().execute([stats = _stats,
                                      loop_timeout = _loop_timeout,
                                      max_queries = _max_pending_queries] {
@@ -170,9 +194,6 @@ stream::stream(const database_config& dbcfg,
         _bulk_prepared_statement = true;
       }
     }
-    _sscr_resources_bind.resize(_mysql.connections_count());
-    _next_update_sscr_resources.resize(_mysql.connections_count(),
-                                       std::time_t(nullptr) + 5);
   } else
     log_v2::sql()->info("Unified sql stream connected to '{}' Server", version);
 
@@ -590,17 +611,15 @@ void stream::_add_action(int32_t conn, actions action) {
  * @return A nlohmann::json with the statistics.
  */
 void stream::statistics(nlohmann::json& tree) const {
-  size_t perfdata;
+  size_t perfdata = _perfdata.size();
   size_t sz_metrics;
-  size_t sz_logs;
+  size_t sz_logs = _logs.size();
   size_t sz_cv = _cv.size();
   size_t sz_cvs = _cvs.size();
   size_t count;
   {
     std::lock_guard<std::mutex> lck(_queues_m);
-    perfdata = _perfdata_queue.size();
     sz_metrics = _metrics.size();
-    sz_logs = _log_queue.size();
     count = _count;
   }
 

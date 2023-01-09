@@ -37,6 +37,7 @@ add_library(
   "${UNIFIED_SQL}" SHARED
   # Sources.
   ${SRC_DIR}/bulk_queries.cc
+  ${SRC_DIR}/bulk_bind.cc
   ${SRC_DIR}/connector.cc
   ${SRC_DIR}/factory.cc
   ${SRC_DIR}/main.cc
@@ -49,6 +50,7 @@ add_library(
   ${proto_remove_graph_message}
   # Headers.
   ${INC_DIR}/bulk_queries.hh
+  ${INC_DIR}/bulk_bind.hh
   ${INC_DIR}/connector.hh
   ${INC_DIR}/events.hh
   ${INC_DIR}/factory.hh

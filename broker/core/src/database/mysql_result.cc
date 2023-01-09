@@ -117,7 +117,7 @@ bool mysql_result::value_as_bool(int idx) {
             "is '{}'",
             idx, _row[idx]);
     } else
-      retval = 0;
+      retval = false;
   } else
     throw msg_fmt("mysql: No row fetched in result");
   return retval;
@@ -313,9 +313,9 @@ bool mysql_result::value_is_null(int idx) {
  *
  * @return true if it is empty, false otherwise.
  */
-bool mysql_result::is_empty() const {
+bool mysql_result::empty() const {
   if (_bind)
-    return _bind->is_empty();
+    return _bind->empty();
   else
     return _row == nullptr;
 }
@@ -327,7 +327,7 @@ bool mysql_result::is_empty() const {
  */
 int mysql_result::get_rows_count() const {
   if (_bind)
-    return _bind->get_rows_count();
+    return _bind->rows_count();
   else
     return mysql_num_rows(_result.get());
 }
