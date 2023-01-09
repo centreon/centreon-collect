@@ -394,7 +394,7 @@ BA_BOOL_KPI
 
 BEPB_DIMENSION_BV_EVENT
 	[Documentation]	bbdo_version 3 use pb_dimension_bv_event message.
-	[Tags]	Broker	Engine	protobuf	bbdo
+	[Tags]	Broker	Engine	protobuf	bam	bbdo
 	Clear Commands Status
 	Clear Retention
 
@@ -432,7 +432,7 @@ BEPB_DIMENSION_BV_EVENT
 
 BEPB_DIMENSION_BA_EVENT
 	[Documentation]	bbdo_version 3 use pb_dimension_ba_event message.
-	[Tags]	Broker	Engine	protobuf	bbdo
+	[Tags]	Broker	Engine	protobuf	bam	bbdo
 	Clear Commands Status
 	Clear Retention
 
@@ -475,7 +475,7 @@ BEPB_DIMENSION_BA_EVENT
 
 BEPB_DIMENSION_BA_BV_RELATION_EVENT
 	[Documentation]	bbdo_version 3 use pb_dimension_ba_bv_relation_event message.
-	[Tags]	Broker	Engine	protobuf	bbdo
+	[Tags]	Broker	Engine	protobuf	bam	bbdo
 	Clear Commands Status
 	Clear Retention
 
@@ -516,7 +516,7 @@ BEPB_DIMENSION_BA_BV_RELATION_EVENT
 
 BEPB_DIMENSION_TIMEPERIOD
 	[Documentation]	use of pb_dimension_timeperiod message.
-	[Tags]	Broker	Engine	protobuf	bbdo
+	[Tags]	Broker	Engine	protobuf	bam	bbdo
 	Clear Commands Status
 	Clear Retention
 
@@ -556,7 +556,7 @@ BEPB_DIMENSION_TIMEPERIOD
 
 BEPB_DIMENSION_KPI_EVENT
 	[Documentation]	bbdo_version 3 use pb_dimension_kpi_event message.
-	[Tags]	Broker	Engine	protobuf	bbdo
+	[Tags]	Broker	Engine	protobuf	bam	bbdo
 	Clear Commands Status
 	Clear Retention
 
@@ -602,7 +602,7 @@ BEPB_DIMENSION_KPI_EVENT
 
 BEPB_KPI_STATUS
 	[Documentation]	bbdo_version 3 use kpi_status message.
-	[Tags]	Broker	Engine	protobuf	bbdo
+	[Tags]	Broker	Engine	protobuf	bam	bbdo
 	Clear Commands Status
 	Clear Retention
 
@@ -653,7 +653,7 @@ BEPB_KPI_STATUS
 
 BEPB_BA_DURATION_EVENT
 	[Documentation]	use of pb_ba_duration_event message.
-	[Tags]	Broker	Engine	protobuf	bbdo
+	[Tags]	Broker	Engine	protobuf	bam	bbdo
 	Clear Commands Status
 	Clear Retention
 
@@ -713,7 +713,7 @@ BEPB_BA_DURATION_EVENT
 
 BEPB_DIMENSION_BA_TIMEPERIOD_RELATION
 	[Documentation]	use of pb_dimension_ba_timeperiod_relation message.
-	[Tags]	Broker	Engine	protobuf	bbdo
+	[Tags]	Broker	Engine	protobuf	bam	bbdo
 	Clear Commands Status
 	Clear Retention
 
@@ -754,7 +754,7 @@ BEPB_DIMENSION_BA_TIMEPERIOD_RELATION
 
 BEPB_DIMENSION_TRUNCATE_TABLE
 	[Documentation]	use of pb_dimension_timeperiod message.
-	[Tags]	Broker	Engine	protobuf	bbdo
+	[Tags]	Broker	Engine	protobuf	bam	bbdo
 	Clear Commands Status
 	Clear Retention
 
