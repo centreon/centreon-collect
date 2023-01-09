@@ -415,7 +415,7 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
       _kpi_update.bind_value_as_f64(3, status.level_nominal_hard());
       _kpi_update.bind_value_as_i32(4, 1 + 1);
       if (status.last_state_change() <= 0)
-        _kpi_update.bind_value_as_null(5);
+        _kpi_update.bind_null_u64(5);
       else
         _kpi_update.bind_value_as_u64(5, status.last_state_change());
       _kpi_update.bind_value_as_f64(6, status.last_impact());

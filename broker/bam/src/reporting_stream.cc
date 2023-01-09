@@ -1559,7 +1559,7 @@ void reporting_stream::_process_pb_dimension_kpi(
   if (dk.kpi_ba_id())
     _dimension_kpi_insert.bind_value_as_i32(8, dk.kpi_ba_id());
   else
-    _dimension_kpi_insert.bind_value_as_null(8);
+    _dimension_kpi_insert.bind_null_i32(8);
   _dimension_kpi_insert.bind_value_as_str(
       9, misc::string::truncate(dk.kpi_ba_name(),
                                 get_mod_bam_reporting_kpi_col_size(
