@@ -21,6 +21,9 @@ jobs:
           - image: centreon-collect-centos7
             distrib: el7
             folder_report: tests/
+          - image: centreon-collect-alma8
+            distrib: el8
+            folder_report: tests/
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
