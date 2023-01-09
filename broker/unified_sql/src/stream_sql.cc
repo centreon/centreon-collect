@@ -2095,7 +2095,7 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
         b->set_value_as_i64(22, hscr.last_notification());
         b->set_value_as_i64(23, hscr.next_host_notification());
         b->set_value_as_bool(
-            24, hscr.acknowledgement_type() != HostStatus_AckType_NONE);
+            24, hscr.acknowledgement_type() != AckType::NONE);
         b->set_value_as_i32(25, hscr.acknowledgement_type());
         b->set_value_as_i32(26, hscr.scheduled_downtime_depth());
         b->set_value_as_i32(27, hscr.host_id());
@@ -2136,7 +2136,7 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
         _hscr_update.bind_value_as_i64(22, hscr.last_notification());
         _hscr_update.bind_value_as_i64(23, hscr.next_host_notification());
         _hscr_update.bind_value_as_bool(
-            24, hscr.acknowledgement_type() != HostStatus_AckType_NONE);
+            24, hscr.acknowledgement_type() != AckType::NONE);
         _hscr_update.bind_value_as_i32(25, hscr.acknowledgement_type());
         _hscr_update.bind_value_as_i32(26, hscr.scheduled_downtime_depth());
         _hscr_update.bind_value_as_i32(27, hscr.host_id());
@@ -2161,7 +2161,7 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
         b->set_value_as_u64(2, hscr.last_state_change());
         b->set_value_as_bool(3, hscr.scheduled_downtime_depth() > 0);
         b->set_value_as_bool(
-            4, hscr.acknowledgement_type() != HostStatus_AckType_NONE);
+            4, hscr.acknowledgement_type() != AckType::NONE);
         b->set_value_as_bool(5, hscr.state_type() == HostStatus_StateType_HARD);
         b->set_value_as_u32(6, hscr.check_attempt());
         b->set_value_as_bool(7, hscr.perfdata() != "");
@@ -2181,7 +2181,7 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
         _hscr_resources_update.bind_value_as_bool(
             3, hscr.scheduled_downtime_depth() > 0);
         _hscr_resources_update.bind_value_as_bool(
-            4, hscr.acknowledgement_type() != HostStatus_AckType_NONE);
+            4, hscr.acknowledgement_type() != AckType::NONE);
         _hscr_resources_update.bind_value_as_bool(
             5, hscr.state_type() == HostStatus_StateType_HARD);
         _hscr_resources_update.bind_value_as_u32(6, hscr.check_attempt());
@@ -3830,7 +3830,7 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
         b->set_value_as_i64(23, sscr.last_notification());
         b->set_value_as_i64(24, sscr.next_notification());
         b->set_value_as_bool(
-            25, sscr.acknowledgement_type() != ServiceStatus_AckType_NONE);
+            25, sscr.acknowledgement_type() != AckType::NONE);
         b->set_value_as_i32(26, sscr.acknowledgement_type());
         b->set_value_as_i32(27, sscr.scheduled_downtime_depth());
         b->set_value_as_i32(28, sscr.host_id());
@@ -3874,7 +3874,7 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
         _sscr_update.bind_value_as_i64(23, sscr.last_notification());
         _sscr_update.bind_value_as_i64(24, sscr.next_notification());
         _sscr_update.bind_value_as_bool(
-            25, sscr.acknowledgement_type() != ServiceStatus_AckType_NONE);
+            25, sscr.acknowledgement_type() != AckType::NONE);
         _sscr_update.bind_value_as_i32(26, sscr.acknowledgement_type());
         _sscr_update.bind_value_as_i32(27, sscr.scheduled_downtime_depth());
         _sscr_update.bind_value_as_i32(28, sscr.host_id());
