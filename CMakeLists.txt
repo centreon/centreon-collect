@@ -26,7 +26,7 @@ cmake_minimum_required(VERSION 3.16)
 project("Centreon Collect" C CXX)
 
 if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT CMAKE_CXX_COMPILER_ID
-  STREQUAL "Clang")
+                                                STREQUAL "Clang")
   message(
     FATAL_ERROR "You can build broker with g++ or clang++. CMake will exit.")
 endif()
@@ -35,11 +35,11 @@ endif()
 # set(CMAKE_CXX_COMPILER "clang++")
 add_definitions("-D_GLIBCXX_USE_CXX11_ABI=1")
 option(NG "C++17 build." OFF)
-if (NG)
+if(NG)
   set(CMAKE_CXX_STANDARD 17)
-else ()
+else()
   set(CMAKE_CXX_STANDARD 14)
-endif ()
+endif()
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -68,11 +68,11 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   string(TOLOWER "${id}" id)
 
   if(("${id}" MATCHES "debian")
-    OR("${like}" MATCHES "debian")
-    OR("${id}" MATCHES "ubuntu")
-    OR("${like}" MATCHES "ubuntu"))
+     OR ("${like}" MATCHES "debian")
+     OR ("${id}" MATCHES "ubuntu")
+     OR ("${like}" MATCHES "ubuntu"))
     set(OS_DISTRIBUTOR "Debian")
-  elseif(("${id}" MATCHES "centos") OR("${like}" MATCHES "centos"))
+  elseif(("${id}" MATCHES "centos") OR ("${like}" MATCHES "centos"))
     set(OS_DISTRIBUTOR "CentOS")
   else()
     message(WARNING "lsb_release in not installed")
@@ -114,15 +114,15 @@ include(GNUInstallDirs)
 
 # var directories.
 set(BROKER_VAR_LOG_DIR
-  "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/log/centreon-broker")
+    "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/log/centreon-broker")
 set(BROKER_VAR_LIB_DIR
-  "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/lib/centreon-broker")
+    "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/lib/centreon-broker")
 set(ENGINE_VAR_LOG_DIR
-  "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/log/centreon-engine")
+    "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/log/centreon-engine")
 set(ENGINE_VAR_LOG_ARCHIVE_DIR
-  "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/log/centreon-engine/archives")
+    "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/log/centreon-engine/archives")
 set(ENGINE_VAR_LIB_DIR
-  "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/lib/centreon-engine")
+    "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/lib/centreon-engine")
 
 set(CMAKE_INSTALL_PREFIX "/usr")
 option(WITH_TESTING "Build unit tests." OFF)
@@ -143,7 +143,7 @@ set(protobuf_MODULE_COMPATIBLE True)
 add_definitions(${spdlog_DEFINITIONS})
 
 include_directories(${CMAKE_SOURCE_DIR} ${CONAN_INCLUDE_DIRS}
-  ${CMAKE_SOURCE_DIR}/clib/inc)
+                    ${CMAKE_SOURCE_DIR}/clib/inc)
 
 add_subdirectory(bbdo)
 add_subdirectory(broker)
@@ -160,4 +160,4 @@ add_custom_target(test-connector COMMAND tests/ut_connector)
 add_custom_target(test DEPENDS test-broker test-engine test-clib test-connector)
 
 add_custom_target(test-coverage DEPENDS broker-test-coverage
-  engine-test-coverage clib-test-coverage)
+                                        engine-test-coverage clib-test-coverage)

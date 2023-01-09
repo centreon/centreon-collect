@@ -51,7 +51,7 @@ class HostRecovery : public ::testing::Test {
     /* Let's set state down. */
     _host->set_current_state(engine::host::state_down);
     _host->set_state_type(checkable::hard);
-    _host->set_problem_has_been_acknowledged(false);
+    _host->set_acknowledgement(AckType::NONE);
     _host->set_notify_on(static_cast<uint32_t>(-1));
     _current_time = 43200;
     set_time(_current_time);
