@@ -591,7 +591,7 @@ void reporting_stream::_process_ba_event(std::shared_ptr<io::data> const& e) {
 
   // Try to update event.
   if (be.end_time.is_null())
-    _ba_event_update.bind_value_as_null(0);
+    _ba_event_update.bind_null_u64(0);
   else
     _ba_event_update.bind_value_as_u64(0, be.end_time.get_time_t());
   _ba_event_update.bind_value_as_i32(1, be.first_level);
@@ -615,7 +615,7 @@ void reporting_stream::_process_ba_event(std::shared_ptr<io::data> const& e) {
           2, static_cast<uint64_t>(be.start_time.get_time_t()));
 
       if (be.end_time.is_null())
-        _ba_full_event_insert.bind_value_as_null(3);
+        _ba_full_event_insert.bind_null_u64(3);
       else
         _ba_full_event_insert.bind_value_as_u64(
             3, static_cast<uint64_t>(be.end_time.get_time_t()));
@@ -685,7 +685,7 @@ void reporting_stream::_process_pb_ba_event(
 
   // Try to update event.
   if (be.end_time() <= 0)
-    _ba_event_update.bind_value_as_null(0);
+    _ba_event_update.bind_null_u64(0);
   else
     _ba_event_update.bind_value_as_u64(0, be.end_time());
   _ba_event_update.bind_value_as_i32(1, be.first_level());
@@ -707,7 +707,7 @@ void reporting_stream::_process_pb_ba_event(
       _ba_full_event_insert.bind_value_as_u64(2, be.start_time());
 
       if (be.end_time() <= 0)
-        _ba_full_event_insert.bind_value_as_null(3);
+        _ba_full_event_insert.bind_null_i64(3);
       else
         _ba_full_event_insert.bind_value_as_i64(3, be.end_time());
       _ba_full_event_insert.bind_value_as_tiny(4, be.status());
@@ -882,7 +882,7 @@ void reporting_stream::_process_kpi_event(std::shared_ptr<io::data> const& e) {
 
   // Try to update kpi.
   if (ke.end_time.is_null())
-    _kpi_event_update.bind_value_as_null(0);
+    _kpi_event_update.bind_null_u64(0);
   else
     _kpi_event_update.bind_value_as_u64(
         0, static_cast<uint64_t>(ke.end_time.get_time_t()));
@@ -905,7 +905,7 @@ void reporting_stream::_process_kpi_event(std::shared_ptr<io::data> const& e) {
       _kpi_full_event_insert.bind_value_as_u64(
           1, static_cast<uint64_t>(ke.start_time.get_time_t()));
       if (ke.end_time.is_null())
-        _kpi_full_event_insert.bind_value_as_null(2);
+        _kpi_full_event_insert.bind_null_u64(2);
       else
         _kpi_full_event_insert.bind_value_as_u64(
             2, static_cast<uint64_t>(ke.end_time.get_time_t()));
@@ -958,7 +958,7 @@ void reporting_stream::_process_pb_kpi_event(
 
   // Try to update kpi.
   if (ke.end_time() <= 0)
-    _kpi_event_update.bind_value_as_null(0);
+    _kpi_event_update.bind_null_u64(0);
   else
     _kpi_event_update.bind_value_as_u64(0, ke.end_time());
   _kpi_event_update.bind_value_as_tiny(1, ke.status());
@@ -978,7 +978,7 @@ void reporting_stream::_process_pb_kpi_event(
       _kpi_full_event_insert.bind_value_as_i32(0, ke.kpi_id());
       _kpi_full_event_insert.bind_value_as_u64(1, ke.start_time());
       if (ke.end_time() <= 0)
-        _kpi_full_event_insert.bind_value_as_null(2);
+        _kpi_full_event_insert.bind_null_u64(2);
       else
         _kpi_full_event_insert.bind_value_as_u64(2, ke.end_time());
       _kpi_full_event_insert.bind_value_as_tiny(3, ke.status());
@@ -1489,7 +1489,7 @@ void reporting_stream::_process_dimension_kpi(
   if (dk.kpi_ba_id)
     _dimension_kpi_insert.bind_value_as_i32(8, dk.kpi_ba_id);
   else
-    _dimension_kpi_insert.bind_value_as_null(8);
+    _dimension_kpi_insert.bind_null_i32(8);
   _dimension_kpi_insert.bind_value_as_str(
       9, misc::string::truncate(dk.kpi_ba_name,
                                 get_mod_bam_reporting_kpi_col_size(
