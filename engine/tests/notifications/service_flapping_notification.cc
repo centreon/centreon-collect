@@ -86,7 +86,7 @@ class ServiceFlappingNotification : public TestEngine {
     _service = sv.begin()->second;
     _service->set_current_state(engine::service::state_ok);
     _service->set_state_type(checkable::hard);
-    _service->set_problem_has_been_acknowledged(false);
+    _service->set_acknowledgement(AckType::NONE);
     _service->set_notify_on(static_cast<uint32_t>(-1));
 
     host_map const& hm{engine::host::hosts};
@@ -94,7 +94,7 @@ class ServiceFlappingNotification : public TestEngine {
     _host = hm.begin()->second;
     _host->set_current_state(engine::host::state_up);
     _host->set_state_type(checkable::hard);
-    _host->set_problem_has_been_acknowledged(false);
+    _host->set_acknowledgement(AckType::NONE);
     _host->set_notify_on(static_cast<uint32_t>(-1));
   }
 

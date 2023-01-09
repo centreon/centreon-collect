@@ -759,8 +759,7 @@ grpc::Status engine_impl::RemoveHostAcknowledgement(
     }
 
     /* set the acknowledgement flag */
-    temp_host->set_problem_has_been_acknowledged(false);
-    temp_host->set_acknowledgement_type(ACKNOWLEDGEMENT_NONE);
+    temp_host->set_acknowledgement(AckType::NONE);
     /* update the status log with the host info */
     temp_host->update_status();
     /* remove any non-persistant comments associated with the ack */
@@ -800,8 +799,7 @@ grpc::Status engine_impl::RemoveServiceAcknowledgement(
     }
 
     /* set the acknowledgement flag */
-    temp_service->set_problem_has_been_acknowledged(false);
-    temp_service->set_acknowledgement_type(ACKNOWLEDGEMENT_NONE);
+    temp_service->set_acknowledgement(AckType::NONE);
     /* update the status log with the service info */
     temp_service->update_status();
     /* remove any non-persistant comments associated with the ack */
@@ -839,12 +837,10 @@ grpc::Status engine_impl::AcknowledgementHostProblem(
       return 1;
     }
     /* set the acknowledgement flag */
-    temp_host->set_problem_has_been_acknowledged(true);
-    /* set the acknowledgement type */
     if (request->type() == EngineAcknowledgement_Type_STICKY)
-      temp_host->set_acknowledgement_type(ACKNOWLEDGEMENT_STICKY);
+      temp_host->set_acknowledgement(AckType::STICKY);
     else
-      temp_host->set_acknowledgement_type(ACKNOWLEDGEMENT_NORMAL);
+      temp_host->set_acknowledgement(AckType::NORMAL);
     /* schedule acknowledgement expiration */
     time_t current_time(time(nullptr));
     temp_host->set_last_acknowledgement(current_time);
@@ -904,12 +900,10 @@ grpc::Status engine_impl::AcknowledgementServiceProblem(
       return 1;
     }
     /* set the acknowledgement flag */
-    temp_service->set_problem_has_been_acknowledged(true);
-    /* set the acknowledgement type */
     if (request->type() == EngineAcknowledgement_Type_STICKY)
-      temp_service->set_acknowledgement_type(ACKNOWLEDGEMENT_STICKY);
+      temp_service->set_acknowledgement(AckType::STICKY);
     else
-      temp_service->set_acknowledgement_type(ACKNOWLEDGEMENT_NORMAL);
+      temp_service->set_acknowledgement(AckType::NORMAL);
     /* schedule acknowledgement expiration */
     time_t current_time = time(nullptr);
     temp_service->set_last_acknowledgement(current_time);
