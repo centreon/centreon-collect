@@ -118,7 +118,8 @@ runs:
           echo "[DEBUG] - Suprepo: $SUBREPO"
           echo "[DEBUG] - Version: $VERSION"
           if [[ "${{ env.extfile }}" == "deb" ]] ; then
-            curl -u "${{ inputs.repo_username }}":"${{ inputs.repo_password }}" -H "Content-Type: multipart/form-data" --data-binary "@./$FILE" https://apt.centreon.com/repository/23.04-$SUBREPO/
+            echo "No delivery to debian in 21.10"
+            #curl -u "${{ inputs.repo_username }}":"${{ inputs.repo_password }}" -H "Content-Type: multipart/form-data" --data-binary "@./$FILE" https://apt.centreon.com/repository/23.04-$SUBREPO/
           else
             DISTRIB="${{ inputs.distrib }}"
             ARCH=$(echo $FILE | grep -oP '(x86_64|noarch)')
