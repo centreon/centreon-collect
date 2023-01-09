@@ -49,15 +49,15 @@ static int l_broker_cache_get_ba_v1(lua_State* L) {
   int ba_id(luaL_checkinteger(L, 2));
 
   try {
-    const bam::dimension_ba_event& ba(*cache->get_dimension_ba_event(ba_id));
+    const DimensionBaEvent& ba(cache->get_dimension_ba_event(ba_id)->obj());
     lua_createtable(L, 0, 7);
-    lua_pushinteger(L, ba.ba_id);
+    lua_pushinteger(L, ba.ba_id());
     lua_setfield(L, -2, "ba_id");
 
-    lua_pushstring(L, ba.ba_name.c_str());
+    lua_pushstring(L, ba.ba_name().c_str());
     lua_setfield(L, -2, "ba_name");
 
-    lua_pushstring(L, ba.ba_description.c_str());
+    lua_pushstring(L, ba.ba_description().c_str());
     lua_setfield(L, -2, "ba_description");
   } catch (std::exception const& e) {
     (void)e;
@@ -80,6 +80,10 @@ static int l_broker_cache_get_ba_v2(lua_State* L) {
   return 1;
 }
 
+static inline void lua_pushstring(lua_State* state, const std::string& str) {
+  lua_pushlstring(state, str.c_str(), str.length());
+}
+
 /**
  *  The get_bv() method available in the Lua interpreter.
  *  It returns a table containing the bv data.
@@ -94,15 +98,15 @@ static int l_broker_cache_get_bv_v1(lua_State* L) {
   int bv_id(luaL_checkinteger(L, 2));
 
   try {
-    const bam::dimension_bv_event& bv(*cache->get_dimension_bv_event(bv_id));
+    const bam::pb_dimension_bv_event& bv(*cache->get_dimension_bv_event(bv_id));
     lua_createtable(L, 0, 3);
-    lua_pushinteger(L, bv.bv_id);
+    lua_pushinteger(L, bv.obj().bv_id());
     lua_setfield(L, -2, "bv_id");
 
-    lua_pushstring(L, bv.bv_name.c_str());
+    lua_pushstring(L, bv.obj().bv_name());
     lua_setfield(L, -2, "bv_name");
 
-    lua_pushstring(L, bv.bv_description.c_str());
+    lua_pushstring(L, bv.obj().bv_description());
     lua_setfield(L, -2, "bv_description");
   } catch (std::exception const& e) {
     (void)e;
@@ -145,7 +149,7 @@ static int l_broker_cache_get_bvs(lua_State* L) {
 
   int i = 1;
   while (it != relations.end() && it->first == ba_id) {
-    lua_pushinteger(L, it->second->bv_id);
+    lua_pushinteger(L, it->second->obj().bv_id());
     lua_rawseti(L, -2, i);
     ++i;
     ++it;

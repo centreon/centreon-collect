@@ -16,6 +16,7 @@
 ** For more information : contact@centreon.com
 */
 
+#include <spdlog/fmt/ostr.h>
 #include <cassert>
 
 #include "com/centreon/broker/log_v2.hh"
@@ -290,15 +291,19 @@ void luabinding::_init_script(
  */
 int luabinding::write(std::shared_ptr<io::data> const& data) noexcept {
   int retval = 0;
-  SPDLOG_LOGGER_DEBUG(log_v2::lua(), "lua: luabinding::write call");
+  if (log_v2::lua()->level() == spdlog::level::trace) {
+    SPDLOG_LOGGER_TRACE(log_v2::lua(), "lua: luabinding::write call {}", *data);
+  } else {
+    SPDLOG_LOGGER_DEBUG(log_v2::lua(), "lua: luabinding::write call");
+  }
 
   // Give data to cache.
   _cache.write(data);
 
   // Process event.
-  uint32_t type(data->type());
-  uint16_t cat(category_of_type(type));
-  uint16_t elem(element_of_type(type));
+  uint32_t mess_type(data->type());
+  uint16_t cat(category_of_type(mess_type));
+  uint16_t elem(element_of_type(mess_type));
 
   bool execute_write = true;
 

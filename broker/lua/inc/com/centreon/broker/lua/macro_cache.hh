@@ -19,10 +19,8 @@
 #ifndef CCB_LUA_MACRO_CACHE_HH
 #define CCB_LUA_MACRO_CACHE_HH
 
-#include "bbdo/bam/dimension_ba_bv_relation_event.hh"
-#include "bbdo/bam/dimension_ba_event.hh"
-#include "bbdo/bam/dimension_bv_event.hh"
 #include "bbdo/bam/dimension_truncate_table_signal.hh"
+#include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/lua/internal.hh"
 #include "com/centreon/broker/neb/custom_variable.hh"
 #include "com/centreon/broker/neb/host.hh"
@@ -62,12 +60,13 @@ class macro_cache {
       _index_mappings;
   absl::flat_hash_map<uint64_t, std::shared_ptr<storage::pb_metric_mapping>>
       _metric_mappings;
-  absl::flat_hash_map<uint64_t, std::shared_ptr<bam::dimension_ba_event>>
+  absl::flat_hash_map<uint64_t, std::shared_ptr<bam::pb_dimension_ba_event>>
       _dimension_ba_events;
-  std::unordered_multimap<uint64_t,
-                          std::shared_ptr<bam::dimension_ba_bv_relation_event>>
+  std::unordered_multimap<
+      uint64_t,
+      std::shared_ptr<bam::pb_dimension_ba_bv_relation_event>>
       _dimension_ba_bv_relation_events;
-  absl::flat_hash_map<uint64_t, std::shared_ptr<bam::dimension_bv_event>>
+  absl::flat_hash_map<uint64_t, std::shared_ptr<bam::pb_dimension_bv_event>>
       _dimension_bv_events;
 
  public:
@@ -102,11 +101,11 @@ class macro_cache {
 
   const std::unordered_multimap<
       uint64_t,
-      std::shared_ptr<bam::dimension_ba_bv_relation_event>>&
+      std::shared_ptr<bam::pb_dimension_ba_bv_relation_event>>&
   get_dimension_ba_bv_relation_events() const;
-  const std::shared_ptr<bam::dimension_ba_event>& get_dimension_ba_event(
+  const std::shared_ptr<bam::pb_dimension_ba_event>& get_dimension_ba_event(
       uint64_t id) const;
-  const std::shared_ptr<bam::dimension_bv_event>& get_dimension_bv_event(
+  const std::shared_ptr<bam::pb_dimension_bv_event>& get_dimension_bv_event(
       uint64_t id) const;
 
  private:
@@ -134,6 +133,8 @@ class macro_cache {
       std::shared_ptr<io::data> const& data);
   void _process_dimension_bv_event(std::shared_ptr<io::data> const& data);
   void _process_dimension_truncate_table_signal(
+      std::shared_ptr<io::data> const& data);
+  void _process_pb_dimension_truncate_table_signal(
       std::shared_ptr<io::data> const& data);
 
   void _save_to_disk();

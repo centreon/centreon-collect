@@ -39,6 +39,42 @@ using pb_ba_event =
 
 using pb_kpi_event =
     io::protobuf<KpiEvent, make_type(io::bam, bam::de_pb_kpi_event)>;
+using pb_dimension_bv_event =
+    io::protobuf<DimensionBvEvent,
+                 make_type(io::bam, bam::de_pb_dimension_bv_event)>;
+
+using pb_dimension_ba_bv_relation_event =
+    io::protobuf<DimensionBaBvRelationEvent,
+                 make_type(io::bam, bam::de_pb_dimension_ba_bv_relation_event)>;
+
+using pb_dimension_timeperiod =
+    io::protobuf<DimensionTimeperiod,
+                 make_type(io::bam, bam::de_pb_dimension_timeperiod)>;
+
+using pb_dimension_ba_event =
+    io::protobuf<DimensionBaEvent,
+                 make_type(io::bam, bam::de_pb_dimension_ba_event)>;
+
+using pb_dimension_kpi_event =
+    io::protobuf<DimensionKpiEvent,
+                 make_type(io::bam, bam::de_pb_dimension_kpi_event)>;
+
+using pb_kpi_status =
+    io::protobuf<KpiStatus, make_type(io::bam, bam::de_pb_kpi_status)>;
+
+using pb_ba_duration_event =
+    io::protobuf<BaDurationEvent,
+                 make_type(io::bam, bam::de_pb_ba_duration_event)>;
+
+using pb_dimension_ba_timeperiod_relation =
+    io::protobuf<DimensionBaTimeperiodRelation,
+                 make_type(io::bam,
+                           bam::de_pb_dimension_ba_timeperiod_relation)>;
+
+using pb_dimension_truncate_table_signal =
+    io::protobuf<DimensionTruncateTableSignal,
+                 make_type(io::bam,
+                           bam::de_pb_dimension_truncate_table_signal)>;
 
 }  // namespace bam
 

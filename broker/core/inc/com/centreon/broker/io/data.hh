@@ -44,16 +44,27 @@ class data {
   data& operator=(data const& other);
   constexpr uint32_t type() const noexcept { return _type; }
 
+  virtual void dump(std::ostream& s) const;
+
   uint32_t source_id;
   uint32_t destination_id;
 
   static uint32_t broker_id;
 };
 
-std::ostream& operator<<(std::ostream& s, const data& d);
+inline std::ostream& operator<<(std::ostream& s, const data& d) {
+  d.dump(s);
+  return s;
+}
 
 }  // namespace io
 
 CCB_END()
+
+namespace fmt {
+template <>
+struct formatter<com::centreon::broker::io::data> : ostream_formatter {};
+
+}  // namespace fmt
 
 #endif  // !CCB_IO_DATA_HH

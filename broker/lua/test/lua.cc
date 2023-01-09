@@ -1573,15 +1573,15 @@ TEST_F(LuaTest, PbServiceGroupCacheTest) {
 TEST_F(LuaTest, BamCacheTestBvBaRelation) {
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
-  std::shared_ptr<bam::dimension_ba_bv_relation_event> rel(
-      new bam::dimension_ba_bv_relation_event);
-  rel->ba_id = 10;
-  rel->bv_id = 18;
+  std::shared_ptr<bam::pb_dimension_ba_bv_relation_event> rel(
+      new bam::pb_dimension_ba_bv_relation_event);
+  rel->mut_obj().set_ba_id(10);
+  rel->mut_obj().set_bv_id(18);
   _cache->write(rel);
 
-  rel.reset(new bam::dimension_ba_bv_relation_event);
-  rel->ba_id = 10;
-  rel->bv_id = 23;
+  rel.reset(new bam::pb_dimension_ba_bv_relation_event);
+  rel->mut_obj().set_ba_id(10);
+  rel->mut_obj().set_bv_id(23);
   _cache->write(rel);
 
   CreateScript(filename,
@@ -1610,14 +1610,16 @@ TEST_F(LuaTest, BamCacheTestBvBaRelation) {
 TEST_F(LuaTest, BamCacheTestBaV1) {
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
-  std::shared_ptr<bam::dimension_ba_event> ba(new bam::dimension_ba_event);
-  ba->ba_id = 10;
-  ba->ba_name = "ba name";
-  ba->ba_description = "ba description";
-  ba->sla_month_percent_crit = 1.25;
-  ba->sla_month_percent_warn = 1.18;
-  ba->sla_duration_crit = 19;
-  ba->sla_duration_warn = 23;
+  std::shared_ptr<bam::pb_dimension_ba_event> ba(
+      new bam::pb_dimension_ba_event);
+  DimensionBaEvent& ba_pb = ba->mut_obj();
+  ba_pb.set_ba_id(10);
+  ba_pb.set_ba_name("ba name");
+  ba_pb.set_ba_description("ba description");
+  ba_pb.set_sla_month_percent_crit(1.25);
+  ba_pb.set_sla_month_percent_warn(1.18);
+  ba_pb.set_sla_duration_crit(19);
+  ba_pb.set_sla_duration_warn(23);
   _cache->write(ba);
 
   CreateScript(
@@ -1645,14 +1647,16 @@ TEST_F(LuaTest, BamCacheTestBaV2) {
   modules.load_file("./lib/20-bam.so");
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
-  std::shared_ptr<bam::dimension_ba_event> ba(new bam::dimension_ba_event);
-  ba->ba_id = 10;
-  ba->ba_name = "ba name";
-  ba->ba_description = "ba description";
-  ba->sla_month_percent_crit = 1.25;
-  ba->sla_month_percent_warn = 1.18;
-  ba->sla_duration_crit = 19;
-  ba->sla_duration_warn = 23;
+  std::shared_ptr<bam::pb_dimension_ba_event> ba(
+      new bam::pb_dimension_ba_event);
+  DimensionBaEvent& ba_pb = ba->mut_obj();
+  ba_pb.set_ba_id(10);
+  ba_pb.set_ba_name("ba name");
+  ba_pb.set_ba_description("ba description");
+  ba_pb.set_sla_month_percent_crit(1.25);
+  ba_pb.set_sla_month_percent_warn(1.18);
+  ba_pb.set_sla_duration_crit(19);
+  ba_pb.set_sla_duration_warn(23);
   _cache->write(ba);
 
   CreateScript(
@@ -1707,10 +1711,11 @@ TEST_F(LuaTest, BamCacheTestBaNil) {
 TEST_F(LuaTest, BamCacheTestBvV1) {
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
-  std::shared_ptr<bam::dimension_bv_event> bv(new bam::dimension_bv_event);
-  bv->bv_id = 10;
-  bv->bv_name = "bv name";
-  bv->bv_description = "bv description";
+  std::shared_ptr<bam::pb_dimension_bv_event> bv(
+      new bam::pb_dimension_bv_event);
+  bv->mut_obj().set_bv_id(10);
+  bv->mut_obj().set_bv_name("bv name");
+  bv->mut_obj().set_bv_description("bv description");
   _cache->write(bv);
 
   CreateScript(
@@ -1741,10 +1746,11 @@ TEST_F(LuaTest, BamCacheTestBvV2) {
   modules.load_file("./lib/20-bam.so");
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
-  std::shared_ptr<bam::dimension_bv_event> bv(new bam::dimension_bv_event);
-  bv->bv_id = 10;
-  bv->bv_name = "bv name";
-  bv->bv_description = "bv description";
+  std::shared_ptr<bam::pb_dimension_bv_event> bv(
+      new bam::pb_dimension_bv_event);
+  bv->mut_obj().set_bv_id(10);
+  bv->mut_obj().set_bv_name("bv name");
+  bv->mut_obj().set_bv_description("bv description");
   _cache->write(bv);
 
   CreateScript(

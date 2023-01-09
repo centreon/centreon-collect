@@ -17,6 +17,9 @@
 */
 
 #include "com/centreon/broker/lua/macro_cache.hh"
+#include "bbdo/bam/dimension_ba_bv_relation_event.hh"
+#include "bbdo/bam/dimension_ba_event.hh"
+#include "bbdo/bam/dimension_bv_event.hh"
 #include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric_mapping.hh"
 #include "com/centreon/broker/log_v2.hh"
@@ -405,7 +408,7 @@ std::string const& macro_cache::get_instance(uint64_t instance_id) const {
  */
 std::unordered_multimap<
     uint64_t,
-    std::shared_ptr<bam::dimension_ba_bv_relation_event>> const&
+    std::shared_ptr<bam::pb_dimension_ba_bv_relation_event>> const&
 macro_cache::get_dimension_ba_bv_relation_events() const {
   return _dimension_ba_bv_relation_events;
 }
@@ -417,7 +420,7 @@ macro_cache::get_dimension_ba_bv_relation_events() const {
  *
  * @return a reference to the dimension_ba_event.
  */
-const std::shared_ptr<bam::dimension_ba_event>&
+const std::shared_ptr<bam::pb_dimension_ba_event>&
 macro_cache::get_dimension_ba_event(uint64_t ba_id) const {
   auto const found = _dimension_ba_events.find(ba_id);
   if (found == _dimension_ba_events.end())
@@ -433,7 +436,7 @@ macro_cache::get_dimension_ba_event(uint64_t ba_id) const {
  *
  * @return a reference to the dimension_bv_event.
  */
-const std::shared_ptr<bam::dimension_bv_event>&
+const std::shared_ptr<bam::pb_dimension_bv_event>&
 macro_cache::get_dimension_bv_event(uint64_t bv_id) const {
   auto const found = _dimension_bv_events.find(bv_id);
   if (found == _dimension_bv_events.end())
@@ -507,16 +510,22 @@ void macro_cache::write(std::shared_ptr<io::data> const& data) {
       _process_metric_mapping(data);
       break;
     case bam::dimension_ba_event::static_type():
+    case bam::pb_dimension_ba_event::static_type():
       _process_dimension_ba_event(data);
       break;
     case bam::dimension_ba_bv_relation_event::static_type():
+    case bam::pb_dimension_ba_bv_relation_event::static_type():
       _process_dimension_ba_bv_relation_event(data);
       break;
     case bam::dimension_bv_event::static_type():
+    case bam::pb_dimension_bv_event::static_type():
       _process_dimension_bv_event(data);
       break;
     case bam::dimension_truncate_table_signal::static_type():
       _process_dimension_truncate_table_signal(data);
+      break;
+    case bam::pb_dimension_truncate_table_signal::static_type():
+      _process_pb_dimension_truncate_table_signal(data);
       break;
     default:
       break;
@@ -918,11 +927,30 @@ void macro_cache::_process_metric_mapping(
  */
 void macro_cache::_process_dimension_ba_event(
     std::shared_ptr<io::data> const& data) {
-  auto const& dbae = std::static_pointer_cast<bam::dimension_ba_event>(data);
-  SPDLOG_LOGGER_DEBUG(log_v2::lua(),
-                      "lua: processing dimension ba event of id {}",
-                      dbae->ba_id);
-  _dimension_ba_events[dbae->ba_id] = dbae;
+  if (data->type() == bam::pb_dimension_ba_event::static_type()) {
+    auto const& dbae =
+        std::static_pointer_cast<bam::pb_dimension_ba_event>(data);
+    SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+                        "lua: pb processing dimension ba event of id {}",
+                        dbae->obj().ba_id());
+    _dimension_ba_events[dbae->obj().ba_id()] = dbae;
+  } else {
+    const auto& to_convert =
+        std::static_pointer_cast<bam::dimension_ba_event>(data);
+    auto dbae = std::make_shared<bam::pb_dimension_ba_event>();
+    DimensionBaEvent& to_fill = dbae->mut_obj();
+    to_fill.set_ba_id(to_convert->ba_id);
+    to_fill.set_ba_name(to_convert->ba_name);
+    to_fill.set_ba_description(to_convert->ba_description);
+    to_fill.set_sla_month_percent_crit(to_convert->sla_month_percent_crit);
+    to_fill.set_sla_month_percent_warn(to_convert->sla_month_percent_warn);
+    to_fill.set_sla_duration_crit(to_convert->sla_duration_crit);
+    to_fill.set_sla_duration_warn(to_convert->sla_duration_warn);
+    SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+                        "lua: pb processing dimension ba event of id {}",
+                        dbae->obj().ba_id());
+    _dimension_ba_events[dbae->obj().ba_id()] = dbae;
+  }
 }
 
 /**
@@ -932,13 +960,27 @@ void macro_cache::_process_dimension_ba_event(
  */
 void macro_cache::_process_dimension_ba_bv_relation_event(
     std::shared_ptr<io::data> const& data) {
-  auto const& rel =
-      std::static_pointer_cast<bam::dimension_ba_bv_relation_event>(data);
-  SPDLOG_LOGGER_DEBUG(
-      log_v2::lua(),
-      "lua: processing dimension ba bv relation event (ba_id: {}, bv_id: {})",
-      rel->ba_id, rel->bv_id);
-  _dimension_ba_bv_relation_events.insert({rel->ba_id, rel});
+  if (data->type() == bam::pb_dimension_ba_bv_relation_event::static_type()) {
+    const auto& pb_data =
+        std::static_pointer_cast<bam::pb_dimension_ba_bv_relation_event>(data);
+    const DimensionBaBvRelationEvent& rel = pb_data->obj();
+    SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+                        "lua: processing pb dimension ba bv relation event "
+                        "(ba_id: {}, bv_id: {})",
+                        rel.ba_id(), rel.bv_id());
+    _dimension_ba_bv_relation_events.insert({rel.ba_id(), pb_data});
+  } else {
+    auto const& rel =
+        std::static_pointer_cast<bam::dimension_ba_bv_relation_event>(data);
+    SPDLOG_LOGGER_DEBUG(
+        log_v2::lua(),
+        "lua: processing dimension ba bv relation event (ba_id: {}, bv_id: {})",
+        rel->ba_id, rel->bv_id);
+    auto pb_data(std::make_shared<bam::pb_dimension_ba_bv_relation_event>());
+    pb_data->mut_obj().set_ba_id(rel->ba_id);
+    pb_data->mut_obj().set_bv_id(rel->bv_id);
+    _dimension_ba_bv_relation_events.insert({rel->ba_id, pb_data});
+  }
 }
 
 /**
@@ -948,11 +990,19 @@ void macro_cache::_process_dimension_ba_bv_relation_event(
  */
 void macro_cache::_process_dimension_bv_event(
     std::shared_ptr<io::data> const& data) {
-  auto const& dbve = std::static_pointer_cast<bam::dimension_bv_event>(data);
-  SPDLOG_LOGGER_DEBUG(log_v2::lua(),
-                      "lua: processing dimension bv event of id {}",
-                      dbve->bv_id);
-  _dimension_bv_events[dbve->bv_id] = dbve;
+  if (data->type() == bam::pb_dimension_bv_event::static_type()) {
+    const auto& dbve =
+        std::static_pointer_cast<bam::pb_dimension_bv_event>(data);
+    _dimension_bv_events[dbve->obj().bv_id()] = dbve;
+  } else if (data->type() == bam::dimension_bv_event::static_type()) {
+    const auto& old_ev =
+        std::static_pointer_cast<bam::dimension_bv_event>(data);
+    auto ev = std::make_shared<bam::pb_dimension_bv_event>();
+    ev->mut_obj().set_bv_id(old_ev->bv_id);
+    ev->mut_obj().set_bv_name(old_ev->bv_name);
+    ev->mut_obj().set_bv_description(old_ev->bv_description);
+    _dimension_bv_events[ev->obj().bv_id()] = ev;
+  }
 }
 
 /**
@@ -968,6 +1018,25 @@ void macro_cache::_process_dimension_truncate_table_signal(
                       "lua: processing dimension truncate table signal");
 
   if (trunc->update_started) {
+    _dimension_ba_events.clear();
+    _dimension_ba_bv_relation_events.clear();
+    _dimension_bv_events.clear();
+  }
+}
+
+/**
+ *  Process a dimension truncate table signal
+ *
+ * @param data  The event.
+ */
+void macro_cache::_process_pb_dimension_truncate_table_signal(
+    std::shared_ptr<io::data> const& data) {
+  SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+                      "lua: processing dimension truncate table signal");
+
+  if (std::static_pointer_cast<bam::pb_dimension_truncate_table_signal>(data)
+          ->obj()
+          .update_started()) {
     _dimension_ba_events.clear();
     _dimension_ba_bv_relation_events.clear();
     _dimension_bv_events.clear();

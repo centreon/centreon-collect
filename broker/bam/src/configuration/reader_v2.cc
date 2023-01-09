@@ -20,13 +20,6 @@
 
 #include <fmt/format.h>
 
-#include "bbdo/bam/dimension_ba_bv_relation_event.hh"
-#include "bbdo/bam/dimension_ba_event.hh"
-#include "bbdo/bam/dimension_ba_timeperiod_relation.hh"
-#include "bbdo/bam/dimension_bv_event.hh"
-#include "bbdo/bam/dimension_kpi_event.hh"
-#include "bbdo/bam/dimension_timeperiod.hh"
-#include "bbdo/bam/dimension_truncate_table_signal.hh"
 #include "com/centreon/broker/bam/ba.hh"
 #include "com/centreon/broker/bam/configuration/reader_exception.hh"
 #include "com/centreon/broker/bam/configuration/state.hh"
@@ -59,19 +52,20 @@ reader_v2::reader_v2(mysql& centreon_db, const database_config& storage_cfg)
  */
 void reader_v2::read(state& st) {
   try {
-    log_v2::bam()->info("loading dimensions.");
+    SPDLOG_LOGGER_INFO(log_v2::bam(), "loading dimensions.");
     _load_dimensions();
-    log_v2::bam()->info("loading BAs.");
+    SPDLOG_LOGGER_INFO(log_v2::bam(), "loading BAs.");
     _load(st.get_bas(), st.get_ba_svc_mapping());
-    log_v2::bam()->info("loading KPIs.");
+    SPDLOG_LOGGER_INFO(log_v2::bam(), "loading KPIs.");
     _load(st.get_kpis());
-    log_v2::bam()->info("loading boolean expressions.");
+    SPDLOG_LOGGER_INFO(log_v2::bam(), "loading boolean expressions.");
     _load(st.get_bool_exps());
-    log_v2::bam()->info("loading mapping hosts <-> services.");
+    SPDLOG_LOGGER_INFO(log_v2::bam(), "loading mapping hosts <-> services.");
     _load(st.get_hst_svc_mapping());
-    log_v2::bam()->info("bam configuration loaded.");
+    SPDLOG_LOGGER_INFO(log_v2::bam(), "bam configuration loaded.");
   } catch (std::exception const& e) {
-    log_v2::bam()->error("Error while reading bam configuration: {}", e.what());
+    SPDLOG_LOGGER_ERROR(log_v2::bam(),
+                        "Error while reading bam configuration: {}", e.what());
     st.clear();
     throw;
   }
@@ -208,7 +202,7 @@ void reader_v2::_load(state::kpis& kpis) {
  *                       description.
  */
 void reader_v2::_load(state::bas& bas, bam::ba_svc_mapping& mapping) {
-  log_v2::bam()->info("BAM: loading BAs");
+  SPDLOG_LOGGER_INFO(log_v2::bam(), "BAM: loading BAs");
   try {
     {
       std::string query(
@@ -247,7 +241,8 @@ void reader_v2::_load(state::bas& bas, bam::ba_svc_mapping& mapping) {
                 com::centreon::broker::State(res.value_as_i32(6)));
             e.mut_obj().set_in_downtime(res.value_as_bool(7));
             bas[ba_id].set_opened_event(e);
-            log_v2::bam()->trace(
+            SPDLOG_LOGGER_TRACE(
+                log_v2::bam(),
                 "BAM: ba {} configuration (start_time:{}, in downtime: {})",
                 ba_id, e.obj().start_time(), e.obj().in_downtime());
           }
@@ -289,7 +284,8 @@ void reader_v2::_load(state::bas& bas, bam::ba_svc_mapping& mapping) {
       if (!service_description.empty()) {
         uint32_t ba_id;
         if (!absl::SimpleAtoi(service_description, &ba_id)) {
-          log_v2::bam()->info(
+          SPDLOG_LOGGER_INFO(
+              log_v2::bam(),
               "BAM: service '{}' of host '{}' is not a valid virtual BA "
               "service",
               res.value_as_str(1), res.value_as_str(0));
@@ -297,7 +293,8 @@ void reader_v2::_load(state::bas& bas, bam::ba_svc_mapping& mapping) {
         }
         state::bas::iterator found = bas.find(ba_id);
         if (found == bas.end()) {
-          log_v2::bam()->info(
+          SPDLOG_LOGGER_INFO(
+              log_v2::bam(),
               "BAM: virtual BA service '{}' of host '{}' references an "
               "unknown BA ({})",
               res.value_as_str(1), res.value_as_str(0), ba_id);
@@ -399,16 +396,18 @@ void reader_v2::_load(bam::hst_svc_mapping& mapping) {
  *  Load the dimensions from the database.
  */
 void reader_v2::_load_dimensions() {
-  log_v2::bam()->trace("load dimensions");
+  SPDLOG_LOGGER_TRACE(log_v2::bam(), "load dimensions");
   auto out{std::make_unique<multiplexing::publisher>()};
   // As this operation is destructive (it truncates the database),
   // we cache the data until we are sure we have all the data
   // needed from the database.
   std::deque<std::shared_ptr<io::data>> datas;
-  datas.emplace_back(std::make_shared<dimension_truncate_table_signal>(true));
+  auto trunc_event = std::make_shared<pb_dimension_truncate_table_signal>();
+  trunc_event->mut_obj().set_update_started(true);
+  datas.emplace_back(trunc_event);
 
   // Load the dimensions.
-  std::unordered_map<uint32_t, std::shared_ptr<dimension_ba_event>> bas;
+  std::unordered_map<uint32_t, std::shared_ptr<pb_dimension_ba_event>> bas;
 
   // Load the timeperiods themselves.
   std::promise<database::mysql_result> promise_tp;
@@ -518,15 +517,17 @@ void reader_v2::_load_dimensions() {
   try {
     database::mysql_result res(future_tp.get());
     while (_mysql.fetch_row(res)) {
-      auto tp(std::make_shared<dimension_timeperiod>(res.value_as_u32(0),
-                                                     res.value_as_str(1)));
-      tp->sunday = res.value_as_str(2);
-      tp->monday = res.value_as_str(3);
-      tp->tuesday = res.value_as_str(4);
-      tp->wednesday = res.value_as_str(5);
-      tp->thursday = res.value_as_str(6);
-      tp->friday = res.value_as_str(7);
-      tp->saturday = res.value_as_str(8);
+      auto tp(std::make_shared<pb_dimension_timeperiod>());
+      auto& data = tp->mut_obj();
+      data.set_id(res.value_as_u32(0));
+      data.set_name(res.value_as_str(1));
+      data.set_sunday(res.value_as_str(2));
+      data.set_monday(res.value_as_str(3));
+      data.set_tuesday(res.value_as_str(4));
+      data.set_wednesday(res.value_as_str(5));
+      data.set_thursday(res.value_as_str(6));
+      data.set_friday(res.value_as_str(7));
+      data.set_saturday(res.value_as_str(8));
       datas.push_back(tp);
     }
   } catch (std::exception const& e) {
@@ -539,22 +540,23 @@ void reader_v2::_load_dimensions() {
   try {
     database::mysql_result res(future_ba.get());
     while (_mysql.fetch_row(res)) {
-      auto ba{std::make_shared<dimension_ba_event>()};
-      ba->ba_id = res.value_as_u32(0);
-      ba->ba_name = res.value_as_str(1);
-      ba->ba_description = res.value_as_str(2);
-      ba->sla_month_percent_warn = res.value_as_f64(3);
-      ba->sla_month_percent_crit = res.value_as_f64(4);
-      ba->sla_duration_warn = res.value_as_i32(5);
-      ba->sla_duration_crit = res.value_as_i32(6);
+      auto ba{std::make_shared<pb_dimension_ba_event>()};
+      DimensionBaEvent& ba_pb = ba->mut_obj();
+      ba_pb.set_ba_id(res.value_as_u32(0));
+      ba_pb.set_ba_name(res.value_as_str(1));
+      ba_pb.set_ba_description(res.value_as_str(2));
+      ba_pb.set_sla_month_percent_warn(res.value_as_f64(3));
+      ba_pb.set_sla_month_percent_crit(res.value_as_f64(4));
+      ba_pb.set_sla_duration_warn(res.value_as_i32(5));
+      ba_pb.set_sla_duration_crit(res.value_as_i32(6));
       datas.push_back(ba);
-      bas[ba->ba_id] = ba;
+      bas[ba_pb.ba_id()] = ba;
       if (!res.value_is_null(7)) {
-        std::shared_ptr<dimension_ba_timeperiod_relation> dbtr(
-            new dimension_ba_timeperiod_relation);
-        dbtr->ba_id = res.value_as_u32(0);
-        dbtr->timeperiod_id = res.value_as_u32(7);
-        dbtr->is_default = true;
+        std::shared_ptr<pb_dimension_ba_timeperiod_relation> dbtr(
+            std::make_shared<pb_dimension_ba_timeperiod_relation>());
+        dbtr->mut_obj().set_ba_id(res.value_as_u32(0));
+        dbtr->mut_obj().set_timeperiod_id(res.value_as_u32(7));
+        dbtr->mut_obj().set_is_default(true);
         datas.push_back(dbtr);
       }
     }
@@ -568,10 +570,11 @@ void reader_v2::_load_dimensions() {
   try {
     database::mysql_result res(future_bv.get());
     while (_mysql.fetch_row(res)) {
-      std::shared_ptr<dimension_bv_event> bv(new dimension_bv_event);
-      bv->bv_id = res.value_as_u32(0);
-      bv->bv_name = res.value_as_str(1);
-      bv->bv_description = res.value_as_str(2);
+      std::shared_ptr<pb_dimension_bv_event> bv(
+          std::make_shared<pb_dimension_bv_event>());
+      bv->mut_obj().set_bv_id(res.value_as_u32(0));
+      bv->mut_obj().set_bv_name(res.value_as_str(1));
+      bv->mut_obj().set_bv_description(res.value_as_str(2));
       datas.push_back(bv);
     }
   } catch (std::exception const& e) {
@@ -584,10 +587,10 @@ void reader_v2::_load_dimensions() {
   try {
     database::mysql_result res(future_ba_bv.get());
     while (_mysql.fetch_row(res)) {
-      std::shared_ptr<dimension_ba_bv_relation_event> babv(
-          new dimension_ba_bv_relation_event);
-      babv->ba_id = res.value_as_u32(0);
-      babv->bv_id = res.value_as_u32(1);
+      std::shared_ptr<pb_dimension_ba_bv_relation_event> babv(
+          std::make_shared<pb_dimension_ba_bv_relation_event>());
+      babv->mut_obj().set_ba_id(res.value_as_u32(0));
+      babv->mut_obj().set_bv_id(res.value_as_u32(1));
       datas.push_back(babv);
     }
   } catch (const std::exception& e) {
@@ -601,35 +604,36 @@ void reader_v2::_load_dimensions() {
     database::mysql_result res(future_kpi.get());
 
     while (_mysql.fetch_row(res)) {
-      auto k{std::make_shared<dimension_kpi_event>(res.value_as_u32(0))};
-      k->host_id = res.value_as_u32(2);
-      k->service_id = res.value_as_u32(3);
-      k->ba_id = res.value_as_u32(4);
-      k->kpi_ba_id = res.value_as_u32(5);
-      k->meta_service_id = res.value_as_u32(6);
-      k->boolean_id = res.value_as_u32(7);
-      k->impact_warning = res.value_as_f64(8);
-      k->impact_critical = res.value_as_f64(9);
-      k->impact_unknown = res.value_as_f64(10);
-      k->host_name = res.value_as_str(11);
-      k->service_description = res.value_as_str(12);
-      k->ba_name = res.value_as_str(13);
-      k->meta_service_name = res.value_as_str(14);
-      k->boolean_name = res.value_as_str(15);
+      auto k{std::make_shared<pb_dimension_kpi_event>()};
+      DimensionKpiEvent& ev = k->mut_obj();
+      ev.set_kpi_id(res.value_as_u32(0));
+      ev.set_host_id(res.value_as_u32(2));
+      ev.set_service_id(res.value_as_u32(3));
+      ev.set_ba_id(res.value_as_u32(4));
+      ev.set_kpi_ba_id(res.value_as_u32(5));
+      ev.set_meta_service_id(res.value_as_u32(6));
+      ev.set_boolean_id(res.value_as_u32(7));
+      ev.set_impact_warning(res.value_as_f64(8));
+      ev.set_impact_critical(res.value_as_f64(9));
+      ev.set_impact_unknown(res.value_as_f64(10));
+      ev.set_host_name(res.value_as_str(11));
+      ev.set_service_description(res.value_as_str(12));
+      ev.set_ba_name(res.value_as_str(13));
+      ev.set_meta_service_name(res.value_as_str(14));
+      ev.set_boolean_name(res.value_as_str(15));
 
       // Resolve the id_indicator_ba.
-      if (k->kpi_ba_id) {
-        std::unordered_map<uint32_t,
-                           std::shared_ptr<dimension_ba_event>>::const_iterator
-            found = bas.find(k->kpi_ba_id);
+      if (ev.kpi_ba_id()) {
+        auto found = bas.find(ev.kpi_ba_id());
         if (found == bas.end()) {
-          log_v2::bam()->error(
+          SPDLOG_LOGGER_ERROR(
+              log_v2::bam(),
               "BAM: could not retrieve BA {} used as KPI {} in dimension "
               "table: ignoring this KPI",
-              k->kpi_ba_id, k->kpi_id);
+              ev.kpi_ba_id(), ev.kpi_id());
           continue;
         }
-        k->kpi_ba_name = found->second->ba_name;
+        ev.set_kpi_ba_name(found->second->obj().ba_name());
       }
       datas.push_back(k);
     }
@@ -643,11 +647,11 @@ void reader_v2::_load_dimensions() {
   try {
     database::mysql_result res(future_ba_tp.get());
     while (_mysql.fetch_row(res)) {
-      std::shared_ptr<dimension_ba_timeperiod_relation> dbtr(
-          new dimension_ba_timeperiod_relation);
-      dbtr->ba_id = res.value_as_u32(0);
-      dbtr->timeperiod_id = res.value_as_u32(1);
-      dbtr->is_default = false;
+      std::shared_ptr<pb_dimension_ba_timeperiod_relation> dbtr(
+          std::make_shared<pb_dimension_ba_timeperiod_relation>());
+      dbtr->mut_obj().set_ba_id(res.value_as_u32(0));
+      dbtr->mut_obj().set_timeperiod_id(res.value_as_u32(1));
+      dbtr->mut_obj().set_is_default(false);
       datas.push_back(dbtr);
     }
   } catch (std::exception const& e) {
@@ -658,7 +662,7 @@ void reader_v2::_load_dimensions() {
   }
 
   // End the update.
-  datas.emplace_back(std::make_shared<dimension_truncate_table_signal>(false));
+  datas.emplace_back(std::make_shared<pb_dimension_truncate_table_signal>());
 
   // Write all the cached data to the publisher.
   for (auto& e : datas)

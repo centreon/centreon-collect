@@ -16,6 +16,9 @@
 ** For more information : contact@centreon.com
 */
 
+#include "bbdo/bam/dimension_ba_bv_relation_event.hh"
+#include "bbdo/bam/dimension_ba_event.hh"
+#include "bbdo/bam/dimension_bv_event.hh"
 #include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric.hh"
 #include "bbdo/storage/metric_mapping.hh"
@@ -114,6 +117,21 @@ void broker_module_init(void const* arg) {
       e.register_event(make_type(io::storage, storage::de_pb_metric_mapping),
                        "pb_metric_mapping",
                        &storage::pb_metric_mapping::operations);
+      e.register_event(bam::pb_dimension_bv_event::static_type(),
+                       "DimensionBvEvent",
+                       &bam::pb_dimension_bv_event::operations);
+      e.register_event(bam::pb_dimension_ba_bv_relation_event::static_type(),
+                       "DimensionBaBvRelationEvent",
+                       &bam::pb_dimension_ba_bv_relation_event::operations);
+      e.register_event(bam::pb_dimension_timeperiod::static_type(),
+                       "DimensionTimePeriod",
+                       &bam::pb_dimension_timeperiod::operations);
+      e.register_event(bam::pb_dimension_ba_event::static_type(),
+                       "DimensionBaEvent",
+                       &bam::pb_dimension_ba_event::operations);
+      e.register_event(bam::pb_dimension_truncate_table_signal::static_type(),
+                       "DimensionTruncateTableSignal",
+                       &bam::pb_dimension_truncate_table_signal::operations);
     }
 
     // Register lua layer.

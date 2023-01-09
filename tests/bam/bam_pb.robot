@@ -10,6 +10,7 @@ Library	Process
 Library	DatabaseLibrary
 Library	DateTime
 Library	OperatingSystem
+Library	String
 Library	../resources/Broker.py
 Library	../resources/Engine.py
 
@@ -383,9 +384,426 @@ BA_BOOL_KPI
 	Kindly Stop Broker
 
 
+
+
+
+
+
+
+
+
+BEPB_DIMENSION_BV_EVENT
+	[Documentation]	bbdo_version 3 use pb_dimension_bv_event message.
+	[Tags]	Broker	Engine	protobuf	bam	bbdo
+	Clear Commands Status
+	Clear Retention
+
+    Remove File     /tmp/all_lua_event.log
+    Config BBDO3	${1}
+	Config Engine	${1}
+	Config Broker	central
+	Config Broker	module
+	Broker Config Log	central	bam	trace
+	Broker Config Log	central	sql	trace
+	Config Broker Sql Output	central	unified_sql
+	
+	Clone Engine Config To DB
+	Add Bam Config To Broker	central
+
+	Broker Config Add Lua Output	central	test-protobuf	${SCRIPTS}test-log-all-event.lua
+	
+	Connect To Database	pymysql	${DBNameConf}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+	Execute SQL String	DELETE FROM mod_bam_ba_groups
+	Execute SQL String	INSERT INTO mod_bam_ba_groups (id_ba_group, ba_group_name, ba_group_description) VALUES (574, 'virsgtr', 'description_grtmxzo')
+	
+	Start Broker  True
+	Start Engine
+    Wait Until Created	/tmp/all_lua_event.log	30s
+	FOR	${index}	IN RANGE	10
+		${grep_res}=  Grep File  /tmp/all_lua_event.log  "_type":393238, "category":6, "element":22, "bv_id":574, "bv_name":"virsgtr", "bv_description":"description_grtmxzo"
+		Sleep	1s
+		EXIT FOR LOOP IF	len("""${grep_res}""") > 0
+	END
+
+	Should Not Be Empty  ${grep_res}  msg=event not found
+
+	Stop Engine
+	Kindly Stop Broker  True
+
+BEPB_DIMENSION_BA_EVENT
+	[Documentation]	bbdo_version 3 use pb_dimension_ba_event message.
+	[Tags]	Broker	Engine	protobuf	bam	bbdo
+	Clear Commands Status
+	Clear Retention
+
+    Remove File     /tmp/all_lua_event.log
+    Config BBDO3	${1}
+	Config Engine	${1}
+	Config Broker	central
+	Config Broker	module
+	Broker Config Log	central	bam	trace
+	Broker Config Log	central	sql	trace
+	Config Broker Sql Output	central	unified_sql
+	
+	Clone Engine Config To DB
+	Add Bam Config To Broker	central
+	Add Bam Config To Engine
+
+	@{svc}=	Set Variable	${{ [("host_16", "service_314")] }}
+	Create BA With Services	test	worst	${svc}
+
+	Broker Config Add Lua Output	central	test-protobuf	${SCRIPTS}test-log-all-event.lua
+	
+	Connect To Database	pymysql	${DBNameConf}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+	Execute SQL String  SET FOREIGN_KEY_CHECKS=0
+	Execute SQL String	UPDATE mod_bam set description='fdpgvo75', sla_month_percent_warn=1.23, sla_month_percent_crit=4.56, sla_month_duration_warn=852, sla_month_duration_crit=789, id_reporting_period=741
+	
+	Start Broker  True
+	Start Engine
+    Wait Until Created	/tmp/all_lua_event.log	30s
+	FOR	${index}	IN RANGE	10
+		${grep_res}=  Grep File  /tmp/all_lua_event.log  "_type":393241, "category":6, "element":25, "ba_id":1, "ba_name":"test", "ba_description":"fdpgvo75", "sla_month_percent_crit":4.56, "sla_month_percent_warn":1.23, "sla_duration_crit":789, "sla_duration_warn":852
+		Sleep	1s
+		EXIT FOR LOOP IF	len("""${grep_res}""") > 0
+	END
+
+	Should Not Be Empty  ${grep_res}  msg=event not found
+
+	Stop Engine
+	Kindly Stop Broker  True
+
+
+BEPB_DIMENSION_BA_BV_RELATION_EVENT
+	[Documentation]	bbdo_version 3 use pb_dimension_ba_bv_relation_event message.
+	[Tags]	Broker	Engine	protobuf	bam	bbdo
+	Clear Commands Status
+	Clear Retention
+
+    Remove File     /tmp/all_lua_event.log
+    Config BBDO3	${1}
+	Config Engine	${1}
+	Config Broker	central
+	Config Broker	module
+	Broker Config Log	central	bam	trace
+	Broker Config Log	central	sql	trace
+	Config Broker Sql Output	central	unified_sql
+	
+	Clone Engine Config To DB
+	Add Bam Config To Engine
+	@{svc}=	Set Variable	${{ [("host_16", "service_314")] }}
+	Create BA With Services	test	worst	${svc}
+
+	Add Bam Config To Broker	central
+
+	Broker Config Add Lua Output	central	test-protobuf	${SCRIPTS}test-log-all-event.lua
+	
+	Connect To Database	pymysql	${DBNameConf}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+	Execute SQL String	INSERT INTO mod_bam_bagroup_ba_relation (id_ba, id_ba_group) VALUES (1, 456)
+	
+	Start Broker  True
+	Start Engine
+    Wait Until Created	/tmp/all_lua_event.log	30s
+	FOR	${index}	IN RANGE	10
+		${grep_res}=  Grep File  /tmp/all_lua_event.log  "_type":393239, "category":6, "element":23, "ba_id":1, "bv_id":456
+		Sleep	1s
+		EXIT FOR LOOP IF	len("""${grep_res}""") > 0
+	END
+
+	Should Not Be Empty  ${grep_res}  msg=event not found
+
+	Stop Engine
+	Kindly Stop Broker  True
+
+BEPB_DIMENSION_TIMEPERIOD
+	[Documentation]	use of pb_dimension_timeperiod message.
+	[Tags]	Broker	Engine	protobuf	bam	bbdo
+	Clear Commands Status
+	Clear Retention
+
+    Remove File     /tmp/all_lua_event.log
+    Config BBDO3	${1}
+	Config Engine	${1}
+	Config Broker	central
+	Config Broker	module
+	Broker Config Log	central	bam	trace
+	Broker Config Log	central	lua	trace
+	Broker Config Log	central	core	trace
+	broker_config_source_log  central  1
+	Config Broker Sql Output	central	unified_sql
+	
+	Clone Engine Config To DB
+	#Add Bam Config To Engine
+	Add Bam Config To Broker	central
+
+	Broker Config Add Lua Output	central	test-protobuf	${SCRIPTS}test-log-all-event.lua
+	
+	Connect To Database	pymysql	${DBNameConf}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+	Execute SQL String	INSERT INTO timeperiod (tp_id, tp_name, tp_sunday, tp_monday, tp_tuesday, tp_wednesday, tp_thursday, tp_friday, tp_saturday) VALUES (732, "ezizae", "sunday_value", "monday_value", "tuesday_value", "wednesday_value", "thursday_value", "friday_value", "saturday_value")
+	
+	Start Broker  True
+	Start Engine
+    Wait Until Created	/tmp/all_lua_event.log	30s
+	FOR	${index}	IN RANGE	10
+		${grep_res}=  Grep File  /tmp/all_lua_event.log  "_type":393240, "category":6, "element":24, "id":732, "name":"ezizae", "monday":"monday_value", "tuesday":"tuesday_value", "wednesday":"wednesday_value", "thursday":"thursday_value", "friday":"friday_value", "saturday":"saturday_value", "sunday":"sunday_value"
+		Sleep	1s
+		EXIT FOR LOOP IF	len("""${grep_res}""") > 0
+	END
+
+	Should Not Be Empty  ${grep_res}  msg=event not found
+
+	Stop Engine
+	Kindly Stop Broker  True
+
+BEPB_DIMENSION_KPI_EVENT
+	[Documentation]	bbdo_version 3 use pb_dimension_kpi_event message.
+	[Tags]	Broker	Engine	protobuf	bam	bbdo
+	Clear Commands Status
+	Clear Retention
+
+    Remove File     /tmp/all_lua_event.log
+    Config BBDO3	${1}
+	Config Engine	${1}
+	Config Broker	central
+	Config Broker	module
+	Broker Config Log	central	bam	trace
+	Broker Config Log	central	sql	trace
+	Config Broker Sql Output	central	unified_sql
+	broker_config_source_log  central  1
+	
+	Clone Engine Config To DB
+	Add Bam Config To Broker	central
+	Add Bam Config To Engine
+
+	@{svc}=	Set Variable	${{ [("host_16", "service_314")] }}
+	${baid_svcid}=  create_ba_with_services	test	worst	${svc}
+
+	add_boolean_kpi  ${baid_svcid[0]}  {host_16 service_302} {IS} {OK}  100
+
+	
+	Start Broker  True
+	Start Engine
+
+	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+	${expected}=  Catenate  (('bool test',  ${baid_svcid[0]}
+	${expected}=  Catenate  SEPARATOR=  ${expected}  , 'test', 0, '', 0, '', 1, 'bool test'), ('host_16 service_314',
+	${expected}=  Catenate  ${expected}  ${baid_svcid[0]}
+	${expected}=  Catenate  SEPARATOR=  ${expected}  , 'test', 16, 'host_16', 314, 'service_314', 0, ''))
+	FOR	${index}	IN RANGE	10
+		${output}=	Query	SELECT kpi_name, ba_id, ba_name, host_id, host_name, service_id, service_description, boolean_id, boolean_name FROM mod_bam_reporting_kpi order by kpi_name
+		Sleep	1s
+		EXIT FOR LOOP IF	${output} == ${expected}
+	END
+
+	Should Be Equal As Strings  ${output}  ${expected}  msg=mod_bam_reporting_kpi not filled
+
+	Stop Engine
+	Kindly Stop Broker  True
+
+
+BEPB_KPI_STATUS
+	[Documentation]	bbdo_version 3 use kpi_status message.
+	[Tags]	Broker	Engine	protobuf	bam	bbdo
+	Clear Commands Status
+	Clear Retention
+
+    Remove File     /tmp/all_lua_event.log
+    Config BBDO3	${1}
+	Config Engine	${1}
+	Config Broker	central
+	Config Broker	module
+	Broker Config Log	central	bam	trace
+	Broker Config Log	central	sql	trace
+	Config Broker Sql Output	central	unified_sql
+	broker_config_source_log  central  1
+	
+	Clone Engine Config To DB
+	Add Bam Config To Broker	central
+	Add Bam Config To Engine
+
+	@{svc}=	Set Variable	${{ [("host_16", "service_314")] }}
+	create_ba_with_services	test	worst	${svc}
+
+	Start Broker  True
+	Start Engine
+
+	${start}=	Get Current Date  result_format=epoch
+
+	# KPI set to critical
+	Repeat Keyword	3 times	Process Service Check Result	host_16	service_314	2	output critical for 314
+	${result}=	Check Service Status With Timeout	host_16	service_314	2	60	HARD
+	Should Be True	${result}	msg=The service (host_16,service_314) is not CRITICAL as expected
+
+	Connect To Database	pymysql	${DBNameConf}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+	FOR	${index}	IN RANGE	10
+		${output}=	Query	SELECT current_status, state_type FROM mod_bam_kpi WHERE host_id=16 and service_id= 314
+		Sleep	1s
+		EXIT FOR LOOP IF	${output} == ((2, '1'),)
+	END
+
+	Should Be Equal As Strings  ${output}  ((2, '1'),)  msg=mod_bam_kpi not filled
+
+	${output}=	Query	SELECT last_state_change FROM mod_bam_kpi WHERE host_id=16 and service_id= 314
+	${output}=  Fetch From Right  "${output}"  (
+	${output}=  Fetch From Left  ${output}  ,
+
+	Should Be True  (${output} + 0.999) >= ${start}
+
+	Stop Engine
+	Kindly Stop Broker  True
+
+BEPB_BA_DURATION_EVENT
+	[Documentation]	use of pb_ba_duration_event message.
+	[Tags]	Broker	Engine	protobuf	bam	bbdo
+	Clear Commands Status
+	Clear Retention
+
+    Config BBDO3	${1}
+	Config Engine	${1}
+	Config Broker	central
+	Config Broker	module
+	Broker Config Log	central	bam	trace
+	Broker Config Log	central	core	trace
+	broker_config_source_log  central  1
+	Config Broker Sql Output	central	unified_sql
+	
+	Clone Engine Config To DB
+	Add Bam Config To Broker	central
+	Add Bam Config To Engine
+
+	@{svc}=	Set Variable	${{ [("host_16", "service_314")] }}
+	create_ba_with_services	test	worst	${svc}
+	
+	Connect To Database	pymysql	${DBNameConf}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+	Execute SQL String	INSERT INTO timeperiod (tp_id, tp_name, tp_sunday, tp_monday, tp_tuesday, tp_wednesday, tp_thursday, tp_friday, tp_saturday) VALUES (1, "ezizae", "00:00-23:59", "00:00-23:59", "00:00-23:59", "00:00-23:59", "00:00-23:59", "00:00-23:59", "00:00-23:59")
+	Execute SQL String	DELETE FROM mod_bam_relations_ba_timeperiods
+
+	Start Broker  True
+	Start Engine
+
+	# KPI set to critical
+	${start_event}=  Get Current Date  result_format=epoch  exclude_millis=True
+	Repeat Keyword	3 times	Process Service Check Result	host_16	service_314	2	output critical for 314
+	${result}=	Check Service Status With Timeout	host_16	service_314	2	60	HARD
+	Should Be True	${result}	msg=The service (host_16,service_314) is not CRITICAL as expected
+	Sleep  2s
+	Process Service Check Result	host_16	service_314	0	output ok for 314
+	${result}=	Check Service Status With Timeout	host_16	service_314	0	60	HARD
+	Should Be True	${result}	msg=The service (host_16,service_314) is not OK as expected
+	${end_event}=  Get Current Date  result_format=epoch
+
+
+	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+	FOR	${index}	IN RANGE	10
+		${output}=	Query	SELECT start_time, end_time, duration, sla_duration, timeperiod_is_default FROM mod_bam_reporting_ba_events_durations WHERE ba_event_id = 1
+		Sleep	1s
+		EXIT FOR LOOP IF	len("""${output}""") > 10
+	END
+
+	Should Be True  ${output[0][2]} == ${output[0][1]} - ${output[0][0]}
+	Should Be True  ${output[0][3]} == ${output[0][1]} - ${output[0][0]}
+	Should Be True  ${output[0][4]} == 1
+	Should Be True  ${output[0][1]} > ${output[0][0]}
+	Should Be True  ${output[0][0]} >= ${start_event}
+	Should Be True  ${output[0][1]} <= ${end_event}
+
+
+	Stop Engine
+	Kindly Stop Broker  True
+
+
+BEPB_DIMENSION_BA_TIMEPERIOD_RELATION
+	[Documentation]	use of pb_dimension_ba_timeperiod_relation message.
+	[Tags]	Broker	Engine	protobuf	bam	bbdo
+	Clear Commands Status
+	Clear Retention
+
+    Config BBDO3	${1}
+	Config Engine	${1}
+	Config Broker	central
+	Config Broker	module
+	Broker Config Log	central	bam	trace
+	Broker Config Log	central	core	trace
+	broker_config_source_log  central  1
+	Config Broker Sql Output	central	unified_sql
+	
+	Clone Engine Config To DB
+	Add Bam Config To Broker	central
+	Add Bam Config To Engine
+
+	@{svc}=	Set Variable	${{ [("host_16", "service_314")] }}
+	create_ba_with_services	test	worst	${svc}
+	
+	Connect To Database	pymysql	${DBNameConf}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+	Execute SQL String	INSERT INTO timeperiod (tp_id, tp_name, tp_sunday, tp_monday, tp_tuesday, tp_wednesday, tp_thursday, tp_friday, tp_saturday) VALUES (732, "ezizae", "00:00-23:59", "00:00-23:59", "00:00-23:59", "00:00-23:59", "00:00-23:59", "00:00-23:59", "00:00-23:59")
+	Execute SQL String	DELETE FROM mod_bam_relations_ba_timeperiods
+	Execute SQL String	INSERT INTO mod_bam_relations_ba_timeperiods (ba_id, tp_id) VALUES (1,732)
+
+	Start Broker  True
+	Start Engine
+
+	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+	FOR	${index}	IN RANGE	10
+		${output}=	Query	SELECT ba_id FROM mod_bam_reporting_relations_ba_timeperiods WHERE ba_id=1 and timeperiod_id=732 and is_default=0
+		Sleep	1s
+		EXIT FOR LOOP IF	len("""${output}""") > 5
+	END
+
+	Should Be True  len("""${output}""") > 5  msg="centreon_storage.mod_bam_reporting_relations_ba_timeperiods not updated"
+	Stop Engine
+	Kindly Stop Broker  True
+
+BEPB_DIMENSION_TRUNCATE_TABLE
+	[Documentation]	use of pb_dimension_timeperiod message.
+	[Tags]	Broker	Engine	protobuf	bam	bbdo
+	Clear Commands Status
+	Clear Retention
+
+    Remove File     /tmp/all_lua_event.log
+    Config BBDO3	${1}
+	Config Engine	${1}
+	Config Broker	central
+	Config Broker	module
+	Broker Config Log	central	bam	trace
+	Broker Config Log	central	lua	trace
+	Broker Config Log	central	core	trace
+	broker_config_source_log  central  1
+	Config Broker Sql Output	central	unified_sql
+	
+	Clone Engine Config To DB
+	Add Bam Config To Broker	central
+
+	Broker Config Add Lua Output	central	test-protobuf	${SCRIPTS}test-log-all-event.lua
+	
+	
+	Start Broker  True
+	Start Engine
+    Wait Until Created	/tmp/all_lua_event.log	30s
+	FOR	${index}	IN RANGE	10
+		${grep_res}=  Grep File  /tmp/all_lua_event.log  "_type":393246, "category":6, "element":30, "update_started":true
+		Sleep	1s
+		EXIT FOR LOOP IF	len("""${grep_res}""") > 0
+	END
+
+	Should Not Be Empty  ${grep_res}  msg=event not found
+	${grep_res}=  Grep File  /tmp/all_lua_event.log  "_type":393246, "category":6, "element":30, "update_started":false
+	Should Not Be Empty  ${grep_res}  msg=event not found
+
+
+	Stop Engine
+	Kindly Stop Broker  True
+
+
+
+
 *** Keywords ***
 BAM Setup
 	Stop Processes
-
+	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+	Execute SQL String  SET GLOBAL FOREIGN_KEY_CHECKS=0
+	Execute SQL String  DELETE FROM mod_bam_reporting_kpi
+	Execute SQL String  DELETE FROM mod_bam_reporting_timeperiods
+	Execute SQL String  DELETE FROM mod_bam_reporting_relations_ba_timeperiods
+	Execute SQL String  DELETE FROM mod_bam_reporting_ba_events
+	Execute SQL String  ALTER TABLE mod_bam_reporting_ba_events AUTO_INCREMENT = 1
 
 

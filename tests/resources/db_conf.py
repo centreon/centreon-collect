@@ -70,6 +70,9 @@ class DbConf:
                 cursor.execute("DELETE FROM mod_bam_boolean")
                 cursor.execute(
                     "ALTER TABLE mod_bam_boolean AUTO_INCREMENT = 1")
+                cursor.execute("DELETE FROM timeperiod")
+                cursor.execute("ALTER TABLE timeperiod AUTO_INCREMENT = 1")
+                cursor.execute("SET GLOBAL FOREIGN_KEY_CHECKS=0")
             connection.commit()
 
     def init_bam(self):

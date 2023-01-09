@@ -17,7 +17,6 @@
 */
 
 #include "com/centreon/broker/bam/configuration/applier/kpi.hh"
-#include "bbdo/bam/kpi_status.hh"
 #include "com/centreon/broker/bam/bool_expression.hh"
 #include "com/centreon/broker/bam/configuration/applier/ba.hh"
 #include "com/centreon/broker/bam/configuration/applier/bool_expression.hh"
@@ -186,17 +185,19 @@ void applier::kpi::apply(bam::configuration::state::kpis const& my_kpis,
 void applier::kpi::_invalidate_ba(configuration::kpi const& kpi) {
   // Set KPI as invalid.
   {
-    std::shared_ptr<kpi_status> ks{std::make_shared<kpi_status>(kpi.get_id())};
-    ks->state_hard = 3;
-    ks->state_soft = 3;
-    ks->level_acknowledgement_hard = 0.0;
-    ks->level_acknowledgement_soft = 0.0;
-    ks->level_downtime_hard = 0.0;
-    ks->level_downtime_soft = 0.0;
-    ks->level_nominal_hard = 0.0;
-    ks->level_nominal_soft = 0.0;
-    ks->last_state_change = time(nullptr);
-    ks->valid = false;
+    std::shared_ptr<pb_kpi_status> ks{std::make_shared<pb_kpi_status>()};
+    KpiStatus& ev(ks->mut_obj());
+    ev.set_kpi_id(kpi.get_id());
+    ev.set_state_hard(State::UNKNOWN);
+    ev.set_state_soft(State::UNKNOWN);
+    ev.set_level_acknowledgement_hard(0.0);
+    ev.set_level_acknowledgement_soft(0.0);
+    ev.set_level_downtime_hard(0.0);
+    ev.set_level_downtime_soft(0.0);
+    ev.set_level_nominal_hard(0.0);
+    ev.set_level_nominal_soft(0.0);
+    ev.set_last_state_change(time(nullptr));
+    ev.set_valid(false);
     multiplexing::publisher().write(ks);
   }
 

@@ -175,13 +175,22 @@ enum data_element {
   de_rebuild,
   de_dimension_timeperiod,
   de_dimension_ba_timeperiod_relation,
-  de_dimension_timeperiod_exception,
-  de_dimension_timeperiod_exclusion,
+  de_dimension_timeperiod_exception,  // not used since 2022-11-28
+  de_dimension_timeperiod_exclusion,  // not used since 2022-11-28
   de_inherited_downtime,
   de_pb_inherited_downtime = 18,
   de_pb_ba_status = 19,
   de_pb_ba_event = 20,
-  de_pb_kpi_event = 21
+  de_pb_kpi_event = 21,
+  de_pb_dimension_bv_event = 22,
+  de_pb_dimension_ba_bv_relation_event = 23,
+  de_pb_dimension_timeperiod = 24,
+  de_pb_dimension_ba_event = 25,
+  de_pb_dimension_kpi_event = 26,
+  de_pb_kpi_status = 27,
+  de_pb_ba_duration_event = 28,
+  de_pb_dimension_ba_timeperiod_relation = 29,
+  de_pb_dimension_truncate_table_signal = 30
 };
 }
 constexpr uint32_t make_type(io::data_category cat, uint32_t elem) {

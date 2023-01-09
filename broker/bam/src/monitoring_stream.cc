@@ -16,6 +16,8 @@
 ** For more information : contact@centreon.com
 */
 
+#include <spdlog/fmt/ostr.h>
+
 #include "com/centreon/broker/bam/monitoring_stream.hh"
 
 #include "bbdo/bam/ba_status.hh"
@@ -190,7 +192,7 @@ void monitoring_stream::update() {
  *  @return Number of events acknowledged.
  */
 int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
-  SPDLOG_LOGGER_TRACE(log_v2::bam(), "BAM: monitoring_stream write ");
+  SPDLOG_LOGGER_TRACE(log_v2::bam(), "BAM: monitoring_stream write {}", *data);
   // Take this event into account.
   ++_pending_events;
   if (!validate(data, get_name()))
@@ -397,6 +399,33 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
       _mysql.run_statement(_kpi_update, database::mysql_error::update_kpi,
                            true);
     } break;
+    case bam::pb_kpi_status::static_type(): {
+      const KpiStatus& status(
+          std::static_pointer_cast<pb_kpi_status>(data)->obj());
+      SPDLOG_LOGGER_DEBUG(
+          log_v2::bam(),
+          "BAM: processing KPI status (id {}, level {}, acknowledgement {}, "
+          "downtime {})",
+          status.kpi_id(), status.level_nominal_hard(),
+          status.level_acknowledgement_hard(), status.level_downtime_hard());
+
+      _kpi_update.bind_value_as_f64(0, status.level_acknowledgement_hard());
+      _kpi_update.bind_value_as_i32(1, status.state_hard());
+      _kpi_update.bind_value_as_f64(2, status.level_downtime_hard());
+      _kpi_update.bind_value_as_f64(3, status.level_nominal_hard());
+      _kpi_update.bind_value_as_i32(4, 1 + 1);
+      if (status.last_state_change() <= 0)
+        _kpi_update.bind_value_as_null(5);
+      else
+        _kpi_update.bind_value_as_u64(5, status.last_state_change());
+      _kpi_update.bind_value_as_f64(6, status.last_impact());
+      _kpi_update.bind_value_as_bool(7, status.valid());
+      _kpi_update.bind_value_as_bool(8, status.in_downtime());
+      _kpi_update.bind_value_as_u32(9, status.kpi_id());
+
+      _mysql.run_statement(_kpi_update, database::mysql_error::update_kpi,
+                           true);
+    } break;
     case inherited_downtime::static_type(): {
       std::string cmd;
       timestamp now = timestamp::now();
@@ -532,7 +561,8 @@ void monitoring_stream::_rebuild() {
 void monitoring_stream::_explicitly_send_forced_svc_checks(
     const asio::error_code& ec) {
   static int count = 0;
-  SPDLOG_LOGGER_DEBUG(log_v2::bam(),"BAM: time to send forced service checks {}", count++);
+  SPDLOG_LOGGER_DEBUG(log_v2::bam(),
+                      "BAM: time to send forced service checks {}", count++);
   if (!ec) {
     if (_timer_forced_svc_checks.empty()) {
       std::lock_guard<std::mutex> lck(_forced_svc_checks_m);
