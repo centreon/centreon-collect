@@ -667,14 +667,14 @@ void stream::_unified_sql_process_service_status(
           // Append perfdata to queue.
           std::string row;
           if (std::isinf(pd.value()))
-            row = fmt::format("({},{},'{}',{})", metric_id, ss.last_check,
+            row = fmt::format("{},{},'{}',{}", metric_id, ss.last_check,
                               ss.current_state,
                               pd.value() < 0.0 ? -FLT_MAX : FLT_MAX);
           else if (std::isnan(pd.value()))
-            row = fmt::format("({},{},'{}',NULL)", metric_id, ss.last_check,
+            row = fmt::format("{},{},'{}',NULL", metric_id, ss.last_check,
                               ss.current_state);
           else
-            row = fmt::format("({},{},'{}',{})", metric_id, ss.last_check,
+            row = fmt::format("{},{},'{}',{}", metric_id, ss.last_check,
                               ss.current_state, pd.value());
           _perfdata.push_query(row);
         }
@@ -850,9 +850,9 @@ void stream::_check_queues(asio::error_code ec) {
 
     bool customvar_done = false;
     if (_cv.ready()) {
+      log_v2::sql()->debug("{} new custom variables inserted", _cv.size());
       std::string query = _cv.get_query();
       int32_t conn = special_conn::custom_variable % _mysql.connections_count();
-      _finish_action(conn, actions::custom_variables);
       _mysql.run_query(query, database::mysql_error::update_customvariables,
                        false, conn);
       _add_action(conn, actions::custom_variables);
@@ -860,9 +860,10 @@ void stream::_check_queues(asio::error_code ec) {
     }
 
     if (_cvs.ready()) {
+      log_v2::sql()->debug("{} new custom variable status inserted",
+                           _cvs.size());
       std::string query = _cvs.get_query();
       int32_t conn = special_conn::custom_variable % _mysql.connections_count();
-      _finish_action(conn, actions::custom_variables);
       _mysql.run_query(query, database::mysql_error::update_customvariables,
                        false, conn);
       _add_action(conn, actions::custom_variables);
@@ -896,9 +897,11 @@ void stream::_check_queues(asio::error_code ec) {
 
     // End.
     log_v2::perfdata()->debug(
-        "unified_sql: end check_queue - perfdata: {}, metrics: {}, customvar: "
+        "unified_sql: end check_queue - resources: {}, "
+        "perfdata: {}, metrics: {}, customvar: "
         "{}, logs: {}, downtimes: {}",
-        perfdata_done, metrics_done, customvar_done, logs_done, downtimes_done);
+        resources_done, perfdata_done, metrics_done, customvar_done, logs_done,
+        downtimes_done);
 
     if (!_stop_check_queues) {
       _queues_timer.expires_after(std::chrono::seconds(5));
