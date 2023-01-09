@@ -739,7 +739,7 @@ com::centreon::engine::anomalydetection* add_anomalydetection(
       high_flap_threshold, check_freshness, freshness_threshold,
       obsess_over_service, timezone, icon_id, sensitivity)};
   try {
-    obj->set_acknowledgement_type(ACKNOWLEDGEMENT_NONE);
+    obj->set_acknowledgement(AckType::NONE);
     obj->set_check_options(CHECK_OPTION_NONE);
     uint32_t flap_detection_on;
     flap_detection_on = none;
@@ -908,7 +908,7 @@ int anomalydetection::run_async_check(int check_options,
         "** Running async check of anomalydetection '{} ' on host '{}'... with "
         "check",
         description(), get_hostname());
-    my_check_command->reset_fake_result(); // execute original commands
+    my_check_command->reset_fake_result();  // execute original commands
   }
 
   return run_async_check_local(check_options, latency, scheduled_check,

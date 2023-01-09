@@ -135,7 +135,7 @@ class EngineRpc : public TestEngine {
     _host = hm.begin()->second;
     _host->set_current_state(engine::host::state_down);
     _host->set_state_type(checkable::hard);
-    _host->set_problem_has_been_acknowledged(false);
+    _host->set_acknowledgement(AckType::NONE);
     _host->set_notify_on(static_cast<uint32_t>(-1));
 
     service_map const& sm{engine::service::services};
@@ -148,7 +148,7 @@ class EngineRpc : public TestEngine {
     }
     _svc->set_current_state(engine::service::state_critical);
     _svc->set_state_type(checkable::hard);
-    _svc->set_problem_has_been_acknowledged(false);
+    _svc->set_acknowledgement(AckType::NONE);
     _svc->set_notify_on(static_cast<uint32_t>(-1));
 
     contact_map const& cm{engine::contact::contacts};
@@ -824,7 +824,7 @@ TEST_F(EngineRpc, RemoveHostAcknowledgement) {
   bool continuerunning = false;
   oss << "my comment ";
   // first test
-  _host->set_problem_has_been_acknowledged(true);
+  _host->set_acknowledgement(AckType::NORMAL);
   // create comment
   auto cmt = std::make_shared<comment>(
       comment::host, comment::acknowledgment, _host->host_id(), 0, 10000,
@@ -838,7 +838,7 @@ TEST_F(EngineRpc, RemoveHostAcknowledgement) {
   ASSERT_EQ(_host->problem_has_been_acknowledged(), false);
   ASSERT_EQ(comment::comments.size(), 0u);
   // second test
-  _host->set_problem_has_been_acknowledged(true);
+  _host->set_acknowledgement(AckType::NORMAL);
   cmt = std::make_shared<comment>(
       comment::host, comment::acknowledgment, _host->host_id(), 0, 10000,
       "test-admin", oss.str(), false, comment::external, false, 0);
@@ -868,7 +868,7 @@ TEST_F(EngineRpc, RemoveServiceAcknowledgement) {
   auto hit = engine::host::hosts_by_id.find(svc->host_id());
   auto hst = hit->second;
   std::string ack_str{"my comment"};
-  _svc->set_problem_has_been_acknowledged(true);
+  _svc->set_acknowledgement(AckType::NORMAL);
   auto cmt = std::make_shared<comment>(
       comment::service, comment::acknowledgment, hst->host_id(),
       svc->service_id(), 10000, "test-admin", ack_str, false, comment::external,
@@ -883,7 +883,7 @@ TEST_F(EngineRpc, RemoveServiceAcknowledgement) {
   ASSERT_EQ(comment::comments.size(), 0u);
   ASSERT_EQ(svc->problem_has_been_acknowledged(), false);
 
-  svc->set_problem_has_been_acknowledged(true);
+  svc->set_acknowledgement(AckType::NORMAL);
   cmt = std::make_shared<comment>(comment::service, comment::acknowledgment,
                                   hst->host_id(), svc->service_id(), 10000,
                                   "test-admin", ack_str, false,

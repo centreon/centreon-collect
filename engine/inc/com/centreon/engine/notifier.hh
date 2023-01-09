@@ -20,6 +20,7 @@
 #ifndef CCE_NOTIFIER_HH
 #define CCE_NOTIFIER_HH
 
+#include "bbdo/neb.pb.h"
 #include "com/centreon/engine/checkable.hh"
 #include "com/centreon/engine/contactgroup.hh"
 #include "com/centreon/engine/customvariable.hh"
@@ -33,6 +34,8 @@ class escalation;
 class contact;
 class timeperiod;
 class notification;
+
+using AckType = com::centreon::broker::AckType;
 
 class notifier : public checkable {
  public:
@@ -212,8 +215,6 @@ class notifier : public checkable {
   void set_flapping_comment_id(uint64_t comment_id) noexcept;
   int get_check_options(void) const noexcept;
   void set_check_options(int option) noexcept;
-  int get_acknowledgement_type(void) const noexcept;
-  void set_acknowledgement_type(int acknowledge_type) noexcept;
   int get_retain_status_information(void) const noexcept;
   void set_retain_status_information(bool retain_status_informations) noexcept;
   bool get_retain_nonstatus_information(void) const noexcept;
@@ -228,9 +229,9 @@ class notifier : public checkable {
   void add_modified_attributes(uint32_t attr) noexcept;
   uint32_t get_modified_attributes() const noexcept;
   void set_modified_attributes(uint32_t modified_attributes) noexcept;
+  AckType get_acknowledgement() const noexcept;
   bool problem_has_been_acknowledged() const noexcept;
-  void set_problem_has_been_acknowledged(
-      bool problem_has_been_acknowledged) noexcept;
+  void set_acknowledgement(AckType acknowledge_type) noexcept;
   virtual bool recovered() const = 0;
   virtual int get_current_state_int() const = 0;
   bool get_no_more_notifications() const noexcept;
@@ -315,11 +316,10 @@ class notifier : public checkable {
   uint32_t _recovery_notification_delay;
   bool _notifications_enabled;
   std::list<escalation*> _escalations;
-  bool _problem_has_been_acknowledged;
   bool _no_more_notifications;
   uint64_t _flapping_comment_id;
   int _check_options;
-  int _acknowledgement_type;
+  AckType _acknowledgement_type;
   bool _retain_status_information;
   bool _retain_nonstatus_information;
   bool _is_being_freshened;

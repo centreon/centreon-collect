@@ -414,7 +414,7 @@ int xsddefault_save_status_data() {
         << it->second->problem_has_been_acknowledged()
         << "\n"
            "\tacknowledgement_type="
-        << it->second->get_acknowledgement_type()
+        << it->second->get_acknowledgement()
         << "\n"
            "\tactive_checks_enabled="
         << it->second->active_checks_enabled()
@@ -599,7 +599,7 @@ int xsddefault_save_status_data() {
            << it->second->problem_has_been_acknowledged()
            << "\n"
               "\tacknowledgement_type="
-           << it->second->get_acknowledgement_type()
+           << it->second->get_acknowledgement()
            << "\n"
               "\tflap_detection_enabled="
            << it->second->flap_detection_enabled()
