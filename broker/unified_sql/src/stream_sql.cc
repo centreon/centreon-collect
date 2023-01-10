@@ -1949,6 +1949,69 @@ void stream::_process_instance_status(const std::shared_ptr<io::data>& d) {
 }
 
 /**
+ *  Process an instance status event. To work on an instance status, we must
+ *  be sure the instance already exists in the database. So this query must
+ *  be done by the same thread as the one that created the instance.
+ *
+ *  @param[in] e Uncasted instance status.
+ *
+ * @return The number of events that can be acknowledged.
+ */
+void stream::_process_pb_instance_status(const std::shared_ptr<io::data>& d) {
+  const neb::pb_instance_status& is_obj =
+      *static_cast<neb::pb_instance_status*>(d.get());
+  const InstanceStatus& is = is_obj.obj();
+
+  int32_t conn = _mysql.choose_connection_by_instance(is.instance_id());
+
+  _finish_action(-1, actions::hosts | actions::acknowledgements |
+                         actions::modules | actions::downtimes |
+                         actions::comments);
+
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(
+      log_v2::sql(),
+      "SQL: processing poller status event (id: {}, last alive: {} {})",
+      is.instance_id(), is.last_alive(), is.DebugString());
+
+  // Processing.
+  if (_is_valid_poller(is.instance_id())) {
+    // Prepare queries.
+    if (!_pb_instance_status_insupdate.prepared()) {
+      query_preparator::event_pb_unique unique{
+          {17, "instance_id", io::protobuf_base::invalid_on_zero, 0}};
+      query_preparator qp(neb::pb_instance_status::static_type(), unique);
+      _pb_instance_status_insupdate = qp.prepare_insert_or_update_table(
+          _mysql, "instances ",
+          {{17, "instance_id", io::protobuf_base::invalid_on_zero, 0},
+           {2, "event_handlers", 0, 0},
+           {3, "flap_detection", 0, 0},
+           {4, "notifications", 0, 0},
+           {5, "active_host_checks", 0, 0},
+           {6, "active_service_checks", 0, 0},
+           {7, "check_hosts_freshness", 0, 0},
+           {8, "check_services_freshness", 0, 0},
+           {9, "global_host_event_handler", 0,
+            get_instances_col_size(instances_global_host_event_handler)},
+           {10, "global_service_event_handler", 0,
+            get_instances_col_size(instances_global_service_event_handler)},
+           {11, "last_alive", 0, 0},
+           {12, "last_command_check", 0, 0},
+           {13, "obsess_over_hosts", 0, 0},
+           {14, "obsess_over_services", 0, 0},
+           {15, "passive_host_checks", 0, 0},
+           {16, "passive_service_checks", 0, 0}});
+    }
+
+    // Process object.
+    _pb_instance_status_insupdate << is_obj;
+    _mysql.run_statement(_pb_instance_status_insupdate,
+                         database::mysql_error::update_poller, false, conn);
+    _add_action(conn, actions::instances);
+  }
+}
+
+/**
  *  Process a log event.
  *
  *  @param[in] e Uncasted log.
