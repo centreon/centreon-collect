@@ -40,7 +40,8 @@ void bbdo::load() {
   // Register BBDO category.
   io::events& e(io::events::instance());
 
-  // Register BBDO events.
+  // Register BBDO events. Be careful, on Broker, these events are initialized
+  // in core/src/io/events, method events::events().
   e.register_event(make_type(io::bbdo, bbdo::de_version_response),
                    "version_response", &version_response::operations,
                    version_response::entries);
