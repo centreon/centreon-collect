@@ -2373,7 +2373,7 @@ void stream::_process_pb_instance_status(const std::shared_ptr<io::data>& d) {
                          actions::comments);
 
   // Log message.
-  SPDLOG_LOGGER_INFO(
+  SPDLOG_LOGGER_DEBUG(
       log_v2::sql(),
       "SQL: processing poller status event (id: {}, last alive: {} {})",
       is.instance_id(), is.last_alive(), is.DebugString());
