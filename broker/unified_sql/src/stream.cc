@@ -132,7 +132,6 @@ stream::stream(const database_config& dbcfg,
           " ON DUPLICATE KEY UPDATE "
           "default_value=VALUES(default_VALUE),modified=VALUES(modified),type="
           "VALUES(type),update_time=VALUES(update_time),value=VALUES(value)"),
-      _loop_timer{pool::io_context()},
       _oldest_timestamp{std::numeric_limits<time_t>::max()} {
   log_v2::sql()->debug("unified sql: stream class instanciation");
   stats::center::instance().execute([stats = _stats,
