@@ -163,7 +163,23 @@ stream::stream(const database_config& dbcfg,
           "deletion_time),duration=VALUES(duration),end_time=VALUES(end_time),"
           "fixed=VALUES(fixed),start_time=VALUES(start_time),started=VALUES("
           "started),triggered_by=VALUES(triggered_by), type=VALUES(type)"),
-      _oldest_timestamp{std::numeric_limits<time_t>::max()} {
+      _oldest_timestamp{std::numeric_limits<time_t>::max()},
+      _hscr_bind(dbcfg.get_connections_count(),
+                 dt_queue_timer_duration,
+                 _max_pending_queries,
+                 _hscr_update),
+      _sscr_bind(dbcfg.get_connections_count(),
+                 dt_queue_timer_duration,
+                 _max_pending_queries,
+                 _sscr_update),
+      _hscr_resources_bind(dbcfg.get_connections_count(),
+                           dt_queue_timer_duration,
+                           _max_pending_queries,
+                           _hscr_resources_update),
+      _sscr_resources_bind(dbcfg.get_connections_count(),
+                           dt_queue_timer_duration,
+                           _max_pending_queries,
+                           _sscr_resources_update) {
   SPDLOG_LOGGER_DEBUG(log_v2::sql(), "unified sql: stream class instanciation");
   stats::center::instance().execute([stats = _stats,
                                      loop_timeout = _loop_timeout,

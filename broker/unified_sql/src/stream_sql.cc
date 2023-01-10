@@ -1750,8 +1750,7 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
         b->set_value_as_bool(21, hscr.no_more_notifications());
         b->set_value_as_i64(22, hscr.last_notification());
         b->set_value_as_i64(23, hscr.next_host_notification());
-        b->set_value_as_bool(
-            24, hscr.acknowledgement_type() != AckType::NONE);
+        b->set_value_as_bool(24, hscr.acknowledgement_type() != AckType::NONE);
         b->set_value_as_i32(25, hscr.acknowledgement_type());
         b->set_value_as_i32(26, hscr.scheduled_downtime_depth());
         b->set_value_as_i32(27, hscr.host_id());
@@ -1816,8 +1815,7 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
         b->set_value_as_i32(1, hst_ordered_status[hscr.state()]);
         b->set_value_as_u64(2, hscr.last_state_change());
         b->set_value_as_bool(3, hscr.scheduled_downtime_depth() > 0);
-        b->set_value_as_bool(
-            4, hscr.acknowledgement_type() != AckType::NONE);
+        b->set_value_as_bool(4, hscr.acknowledgement_type() != AckType::NONE);
         b->set_value_as_bool(5, hscr.state_type() == HostStatus_StateType_HARD);
         b->set_value_as_u32(6, hscr.check_attempt());
         b->set_value_as_bool(7, hscr.perfdata() != "");
@@ -1943,69 +1941,6 @@ void stream::_process_instance_status(const std::shared_ptr<io::data>& d) {
     // Process object.
     _instance_status_insupdate << is;
     _mysql.run_statement(_instance_status_insupdate,
-                         database::mysql_error::update_poller, false, conn);
-    _add_action(conn, actions::instances);
-  }
-}
-
-/**
- *  Process an instance status event. To work on an instance status, we must
- *  be sure the instance already exists in the database. So this query must
- *  be done by the same thread as the one that created the instance.
- *
- *  @param[in] e Uncasted instance status.
- *
- * @return The number of events that can be acknowledged.
- */
-void stream::_process_pb_instance_status(const std::shared_ptr<io::data>& d) {
-  const neb::pb_instance_status& is_obj =
-      *static_cast<neb::pb_instance_status*>(d.get());
-  const InstanceStatus& is = is_obj.obj();
-
-  int32_t conn = _mysql.choose_connection_by_instance(is.instance_id());
-
-  _finish_action(-1, actions::hosts | actions::acknowledgements |
-                         actions::modules | actions::downtimes |
-                         actions::comments);
-
-  // Log message.
-  SPDLOG_LOGGER_DEBUG(
-      log_v2::sql(),
-      "SQL: processing poller status event (id: {}, last alive: {} {})",
-      is.instance_id(), is.last_alive(), is.DebugString());
-
-  // Processing.
-  if (_is_valid_poller(is.instance_id())) {
-    // Prepare queries.
-    if (!_pb_instance_status_insupdate.prepared()) {
-      query_preparator::event_pb_unique unique{
-          {17, "instance_id", io::protobuf_base::invalid_on_zero, 0}};
-      query_preparator qp(neb::pb_instance_status::static_type(), unique);
-      _pb_instance_status_insupdate = qp.prepare_insert_or_update_table(
-          _mysql, "instances ",
-          {{17, "instance_id", io::protobuf_base::invalid_on_zero, 0},
-           {2, "event_handlers", 0, 0},
-           {3, "flap_detection", 0, 0},
-           {4, "notifications", 0, 0},
-           {5, "active_host_checks", 0, 0},
-           {6, "active_service_checks", 0, 0},
-           {7, "check_hosts_freshness", 0, 0},
-           {8, "check_services_freshness", 0, 0},
-           {9, "global_host_event_handler", 0,
-            get_instances_col_size(instances_global_host_event_handler)},
-           {10, "global_service_event_handler", 0,
-            get_instances_col_size(instances_global_service_event_handler)},
-           {11, "last_alive", 0, 0},
-           {12, "last_command_check", 0, 0},
-           {13, "obsess_over_hosts", 0, 0},
-           {14, "obsess_over_services", 0, 0},
-           {15, "passive_host_checks", 0, 0},
-           {16, "passive_service_checks", 0, 0}});
-    }
-
-    // Process object.
-    _pb_instance_status_insupdate << is_obj;
-    _mysql.run_statement(_pb_instance_status_insupdate,
                          database::mysql_error::update_poller, false, conn);
     _add_action(conn, actions::instances);
   }
@@ -3290,8 +3225,7 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
         b->set_value_as_bool(22, sscr.no_more_notifications());
         b->set_value_as_i64(23, sscr.last_notification());
         b->set_value_as_i64(24, sscr.next_notification());
-        b->set_value_as_bool(
-            25, sscr.acknowledgement_type() != AckType::NONE);
+        b->set_value_as_bool(25, sscr.acknowledgement_type() != AckType::NONE);
         b->set_value_as_i32(26, sscr.acknowledgement_type());
         b->set_value_as_i32(27, sscr.scheduled_downtime_depth());
         b->set_value_as_i32(28, sscr.host_id());
@@ -3360,8 +3294,7 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
         b->set_value_as_i32(1, svc_ordered_status[sscr.state()]);
         b->set_value_as_u64(2, sscr.last_state_change());
         b->set_value_as_bool(3, sscr.scheduled_downtime_depth() > 0);
-        b->set_value_as_bool(
-            4, sscr.acknowledgement_type() != AckType::NONE);
+        b->set_value_as_bool(4, sscr.acknowledgement_type() != AckType::NONE);
         b->set_value_as_bool(5,
                              sscr.state_type() == ServiceStatus_StateType_HARD);
         b->set_value_as_u32(6, sscr.check_attempt());
@@ -3618,83 +3551,3 @@ void stream::_process_instance_configuration(const std::shared_ptr<io::data>& d
  */
 void stream::_process_responsive_instance(const std::shared_ptr<io::data>& d
                                           __attribute__((unused))) {}
-
-/**
- * @brief Send a big query to update/insert a bulk of custom variables. When
- * the query is done, we set the corresponding boolean of each pair to true
- * to ack each event.
- *
- * When we exit the function, the custom variables queue is empty.
- */
-void stream::_update_customvariables() {
-  int32_t conn = special_conn::custom_variable % _mysql.connections_count();
-  _finish_action(conn, actions::custom_variables);
-}
-
-/**
- * @brief Send a big query to update/insert a bulk of downtimes. When
- * the query is done, we set the corresponding boolean of each pair to true
- * to ack each event.
- *
- * When we exit the function, the downtimes queue is empty.
- */
-void stream::_update_downtimes() {
-  std::deque<std::string> dt_queue;
-  {
-    std::lock_guard<std::mutex> lck(_queues_m);
-    if (_downtimes_queue.empty())
-      return;
-    std::swap(_downtimes_queue, dt_queue);
-  }
-  int32_t conn = special_conn::downtime % _mysql.connections_count();
-  _finish_action(-1, actions::hosts | actions::instances | actions::downtimes |
-                         actions::host_parents | actions::host_dependencies |
-                         actions::service_dependencies);
-  std::string query{fmt::format(
-      "INSERT INTO downtimes (actual_end_time,actual_start_time,author,"
-      "type,deletion_time,duration,end_time,entry_time,"
-      "fixed,host_id,instance_id,internal_id,service_id,"
-      "start_time,triggered_by,cancelled,started,comment_data) VALUES {}"
-      " ON DUPLICATE KEY UPDATE "
-      "actual_end_time=GREATEST(COALESCE(actual_end_time,-1),VALUES("
-      "actual_end_time)),actual_start_time=COALESCE(actual_start_time,"
-      "VALUES(actual_start_time)),author=VALUES(author),cancelled=VALUES("
-      "cancelled),comment_data=VALUES(comment_data),deletion_time=VALUES("
-      "deletion_time),duration=VALUES(duration),end_time=VALUES(end_time),"
-      "fixed=VALUES(fixed),start_time=VALUES(start_time),started=VALUES("
-      "started),triggered_by=VALUES(triggered_by), type=VALUES(type)",
-      fmt::join(dt_queue, ","))};
-
-  _mysql.run_query(query, database::mysql_error::store_downtime, false, conn);
-  log_v2::sql()->debug("{} new downtimes inserted", dt_queue.size());
-  log_v2::sql()->trace("sending query << {} >>", query);
-  _add_action(conn, actions::downtimes);
-}
-
-/**
- * @brief Send a big query to insert a bulk of logs. When the query is done,
- * we set the corresponding boolean of each pair to true to ack each event.
- *
- * When we exit the function, the logs queue is empty.
- */
-void stream::_insert_logs() {
-  std::deque<std::string> log_queue;
-  {
-    std::lock_guard<std::mutex> lck(_queues_m);
-    if (_log_queue.empty())
-      return;
-    std::swap(_log_queue, log_queue);
-  }
-  int32_t conn = special_conn::log % _mysql.connections_count();
-  /* Building of the query */
-  std::string query{fmt::format(
-      "INSERT INTO logs "
-      "(ctime,host_id,service_id,host_name,instance_name,type,msg_type,"
-      "notification_cmd,notification_contact,retry,service_description,"
-      "status,output) VALUES {}",
-      fmt::join(log_queue, ","))};
-
-  _mysql.run_query(query, database::mysql_error::update_logs, false, conn);
-  log_v2::sql()->debug("{} new logs inserted", log_queue.size());
-  log_v2::sql()->trace("sending query << {} >>", query);
-}
