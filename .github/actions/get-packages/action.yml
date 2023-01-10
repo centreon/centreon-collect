@@ -69,6 +69,9 @@ runs:
         #RELEASE="1668587986.332470bb4948f05263630f26f7b507c9e388ed98"
         RELEASE="${{ inputs.release }}"
 
+        echo "[DEBUG] - FULL_VERSION: $FULL_VERSION"
+        echo "[DEBUG] - RELEASE: $RELEASE"
+
         for FILE in $FILES ; do
           if [[ "${{ env.extfile }}" == "deb" ]] ; then
             echo "[DEBUG] - https://artifactory.apps.centreon.com/artifactory/debian-$VERSION-$REPO/pool/$FILE;deb.distribution=bullseye;deb.component=main;deb.architecture=amd64"
