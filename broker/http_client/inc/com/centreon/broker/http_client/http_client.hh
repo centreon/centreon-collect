@@ -44,7 +44,7 @@ class client : public std::enable_shared_from_this<client> {
 
   struct cb_request {
     using pointer = std::shared_ptr<cb_request>;
-    cb_request(send_callback_type& cb, const request_ptr& req)
+    cb_request(send_callback_type&& cb, const request_ptr& req)
         : callback(std::move(cb)), request(req), retry_counter(0) {}
 
     send_callback_type callback;
@@ -67,10 +67,11 @@ class client : public std::enable_shared_from_this<client> {
          const http_config::pointer& conf,
          connection_creator conn_creator);
 
-  bool connect();
+  bool connect(const cb_request::pointer& request);
 
   void on_connect(const boost::beast::error_code& error,
                   const std::string& detail,
+                  const cb_request::pointer& request,
                   connection_base::pointer conn);
 
   void on_sent(const boost::beast::error_code& error,
@@ -79,10 +80,17 @@ class client : public std::enable_shared_from_this<client> {
                const response_ptr& response,
                connection_base::pointer conn);
 
-  void start_retry_connect_timer();
-  void retry_connect_timer_handler(const boost::system::error_code& err);
+  void send_first_queue_request();
 
-  void send_first_queue_request(connection_base::pointer conn);
+  void retry(const boost::beast::error_code& error,
+             const std::string& detail,
+             const cb_request::pointer& request,
+             const response_ptr& response);
+
+  bool send_or_push(const cb_request::pointer request,
+                    bool push_to_front = false);
+
+  void send(const cb_request::pointer& request, connection_base::pointer conn);
 
  public:
   using pointer = std::shared_ptr<client>;
@@ -92,7 +100,10 @@ class client : public std::enable_shared_from_this<client> {
                       const http_config::pointer& conf,
                       connection_creator conn_creator = http_connection::load);
 
-  bool send(const request_ptr& request, send_callback_type&& callback);
+  template <class callback_type>
+  bool send(const request_ptr& request, callback_type&& callback) {
+    return send_or_push(std::make_shared<cb_request>(callback, request));
+  }
 
   void shutdown();
 };

@@ -78,6 +78,8 @@ set(ALLOW_DUPLICATE_EXECUTABLE TRUE)
 
 set(BUILD_ARGS "-w" "dupbuild=warn")
 
+include_directories("inc")
+
 #
 # Get distributions name
 #

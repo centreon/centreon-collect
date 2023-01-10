@@ -67,7 +67,7 @@ int stream::flush() {
     }
   }
   send_request(to_send, sent_prom);
-  to_wait.wait();
+  to_wait.wait_for(std::chrono::seconds(1));
   std::lock_guard<std::mutex> l(_protect);
   unsigned acknowledged = _acknowledged;
   _acknowledged = 0;

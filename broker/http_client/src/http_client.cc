@@ -17,6 +17,8 @@
  *
  */
 
+#include "com/centreon/async/defer.hh"
+
 #include "http_client.hh"
 
 using namespace com::centreon::broker;
@@ -62,13 +64,16 @@ client::pointer client::load(
  * @return true if connection available
  * @return false if enqueue
  */
-bool client::send(const request_ptr& request, send_callback_type&& callback) {
+bool client::send_or_push(const cb_request::pointer request,
+                          bool push_to_front) {
+  if (_halt) {
+    return false;
+  }
   lock_guard l(_protect);
   time_point now = system_clock::now();
 
   connection_cont::iterator conn_iter;
   connection_base::pointer conn;
-  cb_request::pointer req(std::make_shared<cb_request>(callback, request));
 
   // shudown keepalive passed connections
   for (conn_iter = _keep_alive_conns.begin();
@@ -97,19 +102,23 @@ bool client::send(const request_ptr& request, send_callback_type&& callback) {
     _busy_conns.insert(conn);
     SPDLOG_LOGGER_DEBUG(_logger, "reuse of {:p}",
                         static_cast<void*>(conn.get()));
-    conn->send(request, [me = shared_from_this(), conn, req](
-                            const boost::beast::error_code& error,
-                            const std::string& detail,
-                            const response_ptr& response) mutable {
-      me->on_sent(error, detail, req, response, conn);
+    conn->send(request->request, [me = shared_from_this(), conn, request](
+                                     const boost::beast::error_code& error,
+                                     const std::string& detail,
+                                     const response_ptr& response) mutable {
+      me->on_sent(error, detail, request, response, conn);
     });
     return true;
   }
 
-  _queue.push_back(req);
-
   // no idle keepalive connection => connect
-  connect();
+  if (!connect(request)) {  // no idle conn to connect => push to queue
+    if (push_to_front) {
+      _queue.push_front(request);
+    } else {
+      _queue.push_back(request);
+    }
+  }
   return false;
 }
 
@@ -119,18 +128,21 @@ bool client::send(const request_ptr& request, send_callback_type&& callback) {
  * @return true if a connect is launched
  * @return false no idle connection
  */
-bool client::connect() {
+bool client::connect(const cb_request::pointer& request) {
+  if (_halt) {
+    return false;
+  }
   if (!_not_connected_conns.empty()) {
     connection_base::pointer conn = *_not_connected_conns.begin();
     _not_connected_conns.erase(_not_connected_conns.begin());
     _busy_conns.insert(conn);
     SPDLOG_LOGGER_DEBUG(_logger, "connection of {:p}",
                         static_cast<void*>(conn.get()));
-    conn->connect(
-        [me = shared_from_this(), conn](const boost::beast::error_code& error,
-                                        const std::string& detail) mutable {
-          me->on_connect(error, detail, conn);
-        });
+    conn->connect([me = shared_from_this(), conn, request](
+                      const boost::beast::error_code& error,
+                      const std::string& detail) mutable {
+      me->on_connect(error, detail, request, conn);
+    });
     return true;
   }
   return false;
@@ -141,33 +153,49 @@ bool client::connect() {
  * beware, this method don't lock _protect
  *
  */
-void client::send_first_queue_request(connection_base::pointer conn) {
-  cb_request::pointer first(std::move(_queue.front()));
-  _queue.pop_front();
-  SPDLOG_LOGGER_DEBUG(_logger, "send on {:p}", static_cast<void*>(conn.get()));
+void client::send_first_queue_request() {
+  cb_request::pointer to_send;
+  {
+    std::lock_guard<std::mutex> l(_protect);
+    if (_queue.empty() || _halt) {
+      return;
+    }
+    to_send = _queue.front();
+    _queue.pop_front();
+  }
+  if (to_send) {
+    send_or_push(to_send, true);
+  }
+}
 
-  conn->send(first->request, [me = shared_from_this(), conn, first](
-                                 const boost::beast::error_code& error,
-                                 const std::string& detail,
-                                 const response_ptr& response) mutable {
-    me->on_sent(error, detail, first, response, conn);
+void client::send(const cb_request::pointer& request,
+                  connection_base::pointer conn) {
+  SPDLOG_LOGGER_DEBUG(_logger, "send on {:p}", static_cast<void*>(conn.get()));
+  conn->send(request->request, [me = shared_from_this(), conn, request](
+                                   const boost::beast::error_code& error,
+                                   const std::string& detail,
+                                   const response_ptr& response) mutable {
+    me->on_sent(error, detail, request, response, conn);
   });
 }
 
 void client::on_connect(const boost::beast::error_code& error,
                         const std::string& detail,
+                        const cb_request::pointer& request,
                         connection_base::pointer conn) {
   if (error) {
     SPDLOG_LOGGER_ERROR(_logger, "{:p} fail to connect {}: {}",
                         static_cast<void*>(conn.get()), error.message(),
                         detail);
     conn->shutdown();
-    lock_guard l(_protect);
-    if (!_halt) {
-      _busy_conns.erase(conn);
-      _not_connected_conns.insert(conn);
-      start_retry_connect_timer();
+    {
+      lock_guard l(_protect);
+      if (!_halt) {
+        _busy_conns.erase(conn);
+        _not_connected_conns.insert(conn);
+      }
     }
+    retry(error, detail, request, response_ptr());
     return;
   }
   lock_guard l(_protect);
@@ -184,7 +212,7 @@ void client::on_connect(const boost::beast::error_code& error,
   SPDLOG_LOGGER_DEBUG(_logger, "{:p} connected",
                       static_cast<void*>(conn.get()));
 
-  send_first_queue_request(conn);
+  send(request, conn);
 }
 
 void client::on_sent(const boost::beast::error_code& error,
@@ -204,22 +232,15 @@ void client::on_sent(const boost::beast::error_code& error,
       } else {
         _busy_conns.erase(conn);
         _not_connected_conns.insert(conn);
-        if (request->retry_counter++ < _conf->get_max_send_retry()) {
-          SPDLOG_LOGGER_ERROR(_logger,
-                              "{:p} fail to send request => push front",
-                              static_cast<void*>(conn.get()));
-          _queue.push_front(request);
-        } else {
-          to_call = request;
-        }
-        start_retry_connect_timer();
       }
     }
+    retry(error, detail, request, response);
     if (to_call) {
       SPDLOG_LOGGER_ERROR(_logger,
                           "too many send request error => callback with error");
       to_call->callback(error, detail, response);
     }
+
   } else {
     SPDLOG_LOGGER_DEBUG(_logger, "response received on {:p}",
                         static_cast<void*>(conn.get()));
@@ -238,7 +259,9 @@ void client::on_sent(const boost::beast::error_code& error,
           } else {
             SPDLOG_LOGGER_DEBUG(_logger, "recycle of {:p}",
                                 static_cast<void*>(conn.get()));
-            send_first_queue_request(conn);
+            cb_request::pointer first(std::move(_queue.front()));
+            _queue.pop_front();
+            send(first, conn);
           }
         } else {
           SPDLOG_LOGGER_DEBUG(_logger, "no keepalive {:p} shutdown",
@@ -250,37 +273,6 @@ void client::on_sent(const boost::beast::error_code& error,
       }
     }
     request->callback(error, detail, response);
-  }
-}
-
-/**
- * @brief start retry timer
- * delay is multipled by two each times
- * lock _protect before use it
- *
- */
-void client::start_retry_connect_timer() {
-  if (!_retry_timer_active & !_halt) {
-    _retry_timer_active = true;
-    _retry_timer.expires_after(_retry_interval);
-    _retry_interval *= 2;
-    if (_retry_interval > _conf->get_max_retry_interval()) {
-      _retry_interval = _conf->get_max_retry_interval();
-    }
-    _retry_timer.async_wait(
-        [me = shared_from_this()](const boost::system::error_code& err) {
-          me->retry_connect_timer_handler(err);
-        });
-  }
-}
-
-void client::retry_connect_timer_handler(const boost::system::error_code& err) {
-  if (err) {
-    return;
-  }
-  lock_guard l(_protect);
-  if (!_queue.empty()) {
-    connect();
   }
 }
 
@@ -298,4 +290,39 @@ void client::shutdown() {
   _keep_alive_conns.clear();
   _busy_conns.clear();
   _halt = true;
+}
+
+void client::retry(const boost::beast::error_code& error,
+                   const std::string& detail,
+                   const cb_request::pointer& request,
+                   const response_ptr& response) {
+  cb_request::pointer to_call;
+
+  if (_halt) {
+    to_call = request;
+  } else {
+    if (request->retry_counter++ < _conf->get_max_send_retry()) {
+      duration next_retry = std::chrono::seconds(1) * request->retry_counter;
+
+      SPDLOG_LOGGER_ERROR(_logger, "fail to send request => resent in {} s",
+                          next_retry.count());
+      async::defer(
+          _io_context, next_retry,
+          [me = shared_from_this(), request]() { me->send_or_push(request); });
+    } else {
+      to_call = request;
+    }
+  }
+  if (to_call) {
+    SPDLOG_LOGGER_ERROR(_logger,
+                        "too many send request error => callback with error");
+    to_call->callback(error, detail, response);
+
+    // try to send the first enqueue request in 1s
+    if (!_halt) {
+      async::defer(
+          _io_context, std::chrono::seconds(1),
+          [me = shared_from_this()]() { me->send_first_queue_request(); });
+    }
+  }
 }
