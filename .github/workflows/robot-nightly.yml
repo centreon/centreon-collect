@@ -48,6 +48,7 @@ jobs:
               ;;
             *)
               echo "release=`date +%s`.`echo ${{ github.sha }} | cut -c -7`" >> $GITHUB_OUTPUT
+              echo "release=`date +%s`.`echo ${{ github.sha }} | cut -c -7`" >> $GITHUB_ENV
               ;;
           esac
         shell: bash
