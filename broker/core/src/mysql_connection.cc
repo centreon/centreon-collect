@@ -315,6 +315,8 @@ void mysql_connection::_statement(mysql_task* t) {
     array_size = task->bind->rows_count();
     // In case of MySQL this function will fail with a non zero return value, it
     // doesn't matter
+    if (array_size == 1)
+      array_size = 0;
     mysql_stmt_attr_set(stmt, STMT_ATTR_ARRAY_SIZE, &array_size);
   }
   if (bb && mysql_stmt_bind_param(stmt, bb)) {
@@ -379,6 +381,8 @@ void mysql_connection::_statement_res(mysql_task* t) {
   if (task->bind) {
     bb = const_cast<MYSQL_BIND*>(task->bind->get_bind());
     array_size = task->bind->rows_count();
+    if (array_size == 1)
+      array_size = 0;
     // In case of MySQL this function will fail with a non zero return value, it
     // doesn't matter
     mysql_stmt_attr_set(stmt, STMT_ATTR_ARRAY_SIZE, &array_size);
@@ -476,6 +480,8 @@ void mysql_connection::_statement_int(mysql_task* t) {
   if (task->bind) {
     bb = const_cast<MYSQL_BIND*>(task->bind->get_bind());
     array_size = task->bind->rows_count();
+    if (array_size == 1)
+      array_size = 0;
     // In case of MySQL this function will fail with a non zero return value, it
     // doesn't matter
     mysql_stmt_attr_set(stmt, STMT_ATTR_ARRAY_SIZE, &array_size);
