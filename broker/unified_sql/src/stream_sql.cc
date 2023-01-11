@@ -1690,14 +1690,11 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
         b->set_value_as_bool(12, hscr.flapping());
         b->set_value_as_f64(13, hscr.percent_state_change());
         b->set_value_as_f64(14, hscr.latency());
-        log_v2::sql()->error("bind current_row 14 = {}", b->current_row());
         b->set_value_as_f64(15, hscr.execution_time());
-        log_v2::sql()->error("bind current_row 15 = {}", b->current_row());
         if (hscr.last_check() == 0)
           b->set_null_i64(16);
         else
           b->set_value_as_i64(16, hscr.last_check());
-        log_v2::sql()->error("bind current_row 16 = {}", b->current_row());
         b->set_value_as_i64(17, hscr.next_check());
         b->set_value_as_bool(18, hscr.should_be_scheduled());
         b->set_value_as_i32(19, hscr.check_attempt());
