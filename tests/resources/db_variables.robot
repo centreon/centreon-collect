@@ -3,7 +3,7 @@ ${EtcRoot}  /tmp/etc
 ${VarRoot}  /tmp/var
 ${DBName}	centreon_storage
 ${DBNameConf}	centreon
-${DBHost}	127.0.0.1
+${DBHost}	localhost
 ${DBUser}	centreon
 ${DBPass}	centreon
 ${DBPort}	3306
