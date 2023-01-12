@@ -121,7 +121,9 @@ runs:
           echo "[DEBUG] - Suprepo: $SUBREPO"
           echo "[DEBUG] - Version: $VERSION"
 
-          if [[ "${{ env.extfile }}" == "deb" ]] ; then
+          if [[ "${{ env.extfile }}" == "deb" ]] && [[ "$SUBREPO" == "stable" ]]; then
+            curl -u "${{ inputs.repos_username }}":"${{ inputs.repos_password }}" -H "Content-Type: multipart/form-data" --data-binary "@./$FILE" https://apt.centreon.com/repository/22.10/
+          elif [[ "${{ env.extfile }}" == "deb" ]] && [[ "$SUBREPO" != "stable" ]]; then
             curl -u "${{ inputs.repos_username }}":"${{ inputs.repos_password }}" -H "Content-Type: multipart/form-data" --data-binary "@./$FILE" https://apt.centreon.com/repository/22.10-$SUBREPO/
           else
             DISTRIB="${{ inputs.distrib }}"
