@@ -21,6 +21,7 @@
 
 #include <future>
 
+#include "com/centreon/broker/database/mysql_bulk_stmt.hh"
 #include "com/centreon/broker/database/mysql_error.hh"
 #include "com/centreon/broker/database/mysql_result.hh"
 #include "com/centreon/broker/database/mysql_stmt.hh"
@@ -153,7 +154,9 @@ class mysql_connection {
                              database::mysql_task::int_type type);
   void get_server_version(std::promise<const char*>&& promise);
 
-  void run_statement(database::mysql_stmt& stmt, my_error::code ec, bool fatal);
+  void run_statement(database::mysql_stmt_base& stmt,
+                     my_error::code ec,
+                     bool fatal);
   void run_statement_and_get_result(
       database::mysql_stmt& stmt,
       std::promise<database::mysql_result>&& promise);
