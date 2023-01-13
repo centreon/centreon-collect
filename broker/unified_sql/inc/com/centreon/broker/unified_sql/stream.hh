@@ -24,7 +24,6 @@
 #include <condition_variable>
 #include <deque>
 #include <list>
-#include <memory>
 #include <mutex>
 #include <unordered_map>
 
@@ -33,7 +32,6 @@
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/misc/perfdata.hh"
 #include "com/centreon/broker/misc/shared_mutex.hh"
-#include "com/centreon/broker/mysql.hh"
 #include "com/centreon/broker/unified_sql/bulk_bind.hh"
 #include "com/centreon/broker/unified_sql/bulk_queries.hh"
 #include "com/centreon/broker/unified_sql/rebuilder.hh"
@@ -276,11 +274,11 @@ class stream : public io::stream {
   database::mysql_stmt _pb_service_insupdate;
   database::mysql_stmt _service_status_update;
 
-  database::mysql_stmt _hscr_update;
-  bulk_bind _hscr_bind;
+  std::unique_ptr<database::mysql_stmt_base> _hscr_update;
+  std::unique_ptr<bulk_bind> _hscr_bind;
 
-  database::mysql_stmt _sscr_update;
-  bulk_bind _sscr_bind;
+  std::unique_ptr<database::mysql_stmt_base> _sscr_update;
+  std::unique_ptr<bulk_bind> _sscr_bind;
 
   database::mysql_stmt _severity_insert;
   database::mysql_stmt _severity_update;
@@ -296,11 +294,11 @@ class stream : public io::stream {
   database::mysql_stmt _resources_disable;
   database::mysql_stmt _resources_tags_remove;
 
-  database::mysql_stmt _hscr_resources_update;
-  bulk_bind _hscr_resources_bind;
+  std::unique_ptr<database::mysql_stmt_base> _hscr_resources_update;
+  std::unique_ptr<bulk_bind> _hscr_resources_bind;
 
-  database::mysql_stmt _sscr_resources_update;
-  bulk_bind _sscr_resources_bind;
+  std::unique_ptr<database::mysql_stmt_base> _sscr_resources_update;
+  std::unique_ptr<bulk_bind> _sscr_resources_bind;
 
   database::mysql_stmt _index_data_insert;
   database::mysql_stmt _index_data_update;
@@ -358,6 +356,7 @@ class stream : public io::stream {
       const std::shared_ptr<io::data>& d);
 
   void _load_deleted_instances();
+  void _init_statements();
   void _load_caches();
   void _clean_tables(uint32_t instance_id);
   void _clean_group_table();
