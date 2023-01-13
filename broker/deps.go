@@ -16,7 +16,7 @@ const MaxDepth = 3
 func findIncludes(file string, treated *[]string, depth int) {
   var myList []string
   file1 := filepath.Clean(file)
-  //file1, err := filepath.EvalSymlinks(file1)
+  //file1, err := filepath.EvalSymLinks(file1)
   //if err != nil {
   //  fmt.Println("Error: " + err.Error())
   //  os.Exit(1)
