@@ -1,5 +1,5 @@
 #
-# Copyright 2009-2021 Centreon
+# Copyright 2009-2023 Centreon
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
 # use this file except in compliance with the License. You may obtain a copy of
@@ -361,11 +361,15 @@ set(LIBROKER_SOURCES
     ${SRC_DIR}/multiplexing/publisher.cc
     ${SRC_DIR}/mysql.cc
     ${SRC_DIR}/pool.cc
+    ${SRC_DIR}/database/mysql_bind_base.cc
     ${SRC_DIR}/database/mysql_bind.cc
+    ${SRC_DIR}/database/mysql_bulk_bind.cc
     ${SRC_DIR}/database/mysql_column.cc
     ${SRC_DIR}/mysql_manager.cc
     ${SRC_DIR}/database/mysql_result.cc
+    ${SRC_DIR}/database/mysql_stmt_base.cc
     ${SRC_DIR}/database/mysql_stmt.cc
+    ${SRC_DIR}/database/mysql_bulk_stmt.cc
     ${SRC_DIR}/mysql_connection.cc
     ${SRC_DIR}/query_preparator.cc
     ${SRC_DIR}/persistent_cache.cc
@@ -443,12 +447,16 @@ set(LIBROKER_SOURCES
     ${INC_DIR}/multiplexing/publisher.hh
     ${INC_DIR}/mysql.hh
     ${INC_DIR}/pool.hh
+    ${INC_DIR}/database/mysql_bind_base.hh
     ${INC_DIR}/database/mysql_bind.hh
+    ${INC_DIR}/database/mysql_bulk_bind.hh
     ${INC_DIR}/database/mysql_column.hh
     ${INC_DIR}/database/mysql_error.hh
     ${INC_DIR}/mysql_manager.hh
     ${INC_DIR}/database/mysql_result.hh
+    ${INC_DIR}/database/mysql_stmt_base.hh
     ${INC_DIR}/database/mysql_stmt.hh
+    ${INC_DIR}/database/mysql_bulk_stmt.hh
     ${INC_DIR}/database/mysql_task.hh
     ${INC_DIR}/database/table_max_size.hh
     ${INC_DIR}/mysql_connection.hh
