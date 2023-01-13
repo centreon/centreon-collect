@@ -399,10 +399,10 @@ BEPB_DIMENSION_BV_EVENT
 	Clear Retention
 
     Remove File     /tmp/all_lua_event.log
-    Config BBDO3	${1}
 	Config Engine	${1}
 	Config Broker	central
 	Config Broker	module
+    Config BBDO3	${1}
 	Broker Config Log	central	bam	trace
 	Broker Config Log	central	sql	trace
 	Config Broker Sql Output	central	unified_sql
@@ -437,10 +437,10 @@ BEPB_DIMENSION_BA_EVENT
 	Clear Retention
 
     Remove File     /tmp/all_lua_event.log
-    Config BBDO3	${1}
 	Config Engine	${1}
 	Config Broker	central
 	Config Broker	module
+    Config BBDO3	${1}
 	Broker Config Log	central	bam	trace
 	Broker Config Log	central	sql	trace
 	Config Broker Sql Output	central	unified_sql
@@ -480,10 +480,10 @@ BEPB_DIMENSION_BA_BV_RELATION_EVENT
 	Clear Retention
 
     Remove File     /tmp/all_lua_event.log
-    Config BBDO3	${1}
 	Config Engine	${1}
 	Config Broker	central
 	Config Broker	module
+    Config BBDO3	${1}
 	Broker Config Log	central	bam	trace
 	Broker Config Log	central	sql	trace
 	Config Broker Sql Output	central	unified_sql
@@ -521,10 +521,10 @@ BEPB_DIMENSION_TIMEPERIOD
 	Clear Retention
 
     Remove File     /tmp/all_lua_event.log
-    Config BBDO3	${1}
 	Config Engine	${1}
 	Config Broker	central
 	Config Broker	module
+    Config BBDO3	${1}
 	Broker Config Log	central	bam	trace
 	Broker Config Log	central	lua	trace
 	Broker Config Log	central	core	trace
@@ -561,10 +561,10 @@ BEPB_DIMENSION_KPI_EVENT
 	Clear Retention
 
     Remove File     /tmp/all_lua_event.log
-    Config BBDO3	${1}
 	Config Engine	${1}
 	Config Broker	central
 	Config Broker	module
+    Config BBDO3	${1}
 	Broker Config Log	central	bam	trace
 	Broker Config Log	central	sql	trace
 	Config Broker Sql Output	central	unified_sql
@@ -607,10 +607,10 @@ BEPB_KPI_STATUS
 	Clear Retention
 
     Remove File     /tmp/all_lua_event.log
-    Config BBDO3	${1}
 	Config Engine	${1}
 	Config Broker	central
 	Config Broker	module
+    Config BBDO3	${1}
 	Broker Config Log	central	bam	trace
 	Broker Config Log	central	sql	trace
 	Config Broker Sql Output	central	unified_sql
@@ -657,10 +657,10 @@ BEPB_BA_DURATION_EVENT
 	Clear Commands Status
 	Clear Retention
 
-    Config BBDO3	${1}
 	Config Engine	${1}
 	Config Broker	central
 	Config Broker	module
+    Config BBDO3	${1}
 	Broker Config Log	central	bam	trace
 	Broker Config Log	central	core	trace
 	broker_config_source_log  central  1
@@ -717,10 +717,10 @@ BEPB_DIMENSION_BA_TIMEPERIOD_RELATION
 	Clear Commands Status
 	Clear Retention
 
-    Config BBDO3	${1}
 	Config Engine	${1}
 	Config Broker	central
 	Config Broker	module
+    Config BBDO3	${1}
 	Broker Config Log	central	bam	trace
 	Broker Config Log	central	core	trace
 	broker_config_source_log  central  1
@@ -759,10 +759,10 @@ BEPB_DIMENSION_TRUNCATE_TABLE
 	Clear Retention
 
     Remove File     /tmp/all_lua_event.log
-    Config BBDO3	${1}
 	Config Engine	${1}
 	Config Broker	central
 	Config Broker	module
+    Config BBDO3	${1}
 	Broker Config Log	central	bam	trace
 	Broker Config Log	central	lua	trace
 	Broker Config Log	central	core	trace

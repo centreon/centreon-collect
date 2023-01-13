@@ -181,6 +181,9 @@ int reporting_stream::write(std::shared_ptr<io::data> const& data) {
                                bam::de_dimension_truncate_table_signal>::value:
       _process_dimension_truncate_signal(data);
       break;
+    case bam::pb_dimension_truncate_table_signal::static_type():
+      _process_pb_dimension_truncate_signal(data);
+      break;
     case io::events::data_type<io::bam, bam::de_dimension_ba_event>::value:
     case io::events::data_type<io::bam, bam::de_dimension_bv_event>::value:
     case io::events::data_type<io::bam,
