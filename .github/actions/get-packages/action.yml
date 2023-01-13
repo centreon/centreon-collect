@@ -86,6 +86,6 @@ runs:
     - name: Upload package artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: packages-${{ inputs.package_extension }}
-        path: ./*.${{ inputs.package_extension }}
+        name: packages-rpm
+        path: ./*.rpm
         retention-days: 7
