@@ -18,7 +18,7 @@
 #ifndef CCB_UNIFIED_SQL_BULK_BIND_HH
 #define CCB_UNIFIED_SQL_BULK_BIND_HH
 
-#include "com/centreon/broker/database/mysql_stmt.hh"
+#include "com/centreon/broker/database/mysql_bulk_stmt.hh"
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()
@@ -61,18 +61,18 @@ class bulk_bind {
   const uint32_t _interval;
   const uint32_t _max_size;
   size_t _connections_count;
-  database::mysql_stmt& _stmt;
+  database::mysql_bulk_stmt& _stmt;
   mutable std::mutex _queue_m;
-  std::vector<std::unique_ptr<database::mysql_bind>> _bind;
+  std::vector<std::unique_ptr<database::mysql_bulk_bind>> _bind;
   std::vector<std::time_t> _next_time;
 
  public:
   bulk_bind(const size_t connections_count,
             const uint32_t max_interval,
             const uint32_t max_rows,
-            database::mysql_stmt& stmt);
+            database::mysql_bulk_stmt& stmt);
   bulk_bind(const bulk_bind&) = delete;
-  std::unique_ptr<database::mysql_bind>& bind(int32_t conn);
+  std::unique_ptr<database::mysql_bulk_bind>& bind(int32_t conn);
   void apply_to_stmt(int32_t conn);
   bool ready(int32_t conn);
   std::size_t size(int32_t conn) const;
