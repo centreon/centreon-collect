@@ -19,9 +19,7 @@
 #ifndef CCB_MYSQL_TASK_HH
 #define CCB_MYSQL_TASK_HH
 
-#include <mysql.h>
-
-#include "com/centreon/broker/namespace.hh"
+#include "com/centreon/broker/database/mysql_bind_base.hh"
 
 CCB_BEGIN()
 
@@ -156,41 +154,64 @@ class mysql_task_run_int : public mysql_task {
 
 class mysql_task_statement : public mysql_task {
  public:
-  mysql_task_statement(database::mysql_stmt& stmt,
+  mysql_task_statement(database::mysql_stmt_base& stmt,
                        mysql_error::code ec,
                        bool fatal)
       : mysql_task(mysql_task::STATEMENT),
         statement_id(stmt.get_id()),
         param_count(stmt.get_param_count()),
-        bind(stmt.get_bind()),
         error_code(ec),
-        fatal(fatal) {}
+        fatal(fatal) {
+    if (stmt.in_bulk()) {
+      database::mysql_bulk_stmt& s =
+          *static_cast<database::mysql_bulk_stmt*>(&stmt);
+      bind.reset(s.get_bind().release());
+      bulk = true;
+    } else {
+      database::mysql_stmt& s = *static_cast<database::mysql_stmt*>(&stmt);
+      bind.reset(s.get_bind().release());
+      bulk = false;
+    }
+  }
   int statement_id;
   int param_count;
-  std::unique_ptr<database::mysql_bind> bind;
+  std::unique_ptr<database::mysql_bind_base> bind;
   mysql_error::code error_code;
   bool fatal;
+  bool bulk;
 };
 
 class mysql_task_statement_res : public mysql_task {
  public:
-  mysql_task_statement_res(database::mysql_stmt& stmt,
+  mysql_task_statement_res(database::mysql_stmt_base& stmt,
                            std::promise<mysql_result>&& promise)
       : mysql_task(mysql_task::STATEMENT_RES),
         promise(std::move(promise)),
         statement_id(stmt.get_id()),
-        param_count(stmt.get_param_count()),
-        bind(stmt.get_bind()) {}
+        param_count(stmt.get_param_count()) {
+    if (stmt.in_bulk()) {
+      database::mysql_bulk_stmt& s =
+          *static_cast<database::mysql_bulk_stmt*>(&stmt);
+      bind.reset(s.get_bind().release());
+      bulk = true;
+    } else {
+      database::mysql_stmt& s = *static_cast<database::mysql_stmt*>(&stmt);
+      bind.reset(s.get_bind().release());
+      bulk = false;
+    }
+  }
+
   std::promise<mysql_result> promise;
   int statement_id;
   int param_count;
-  std::unique_ptr<database::mysql_bind> bind;
+  std::unique_ptr<database::mysql_bind_base> bind;
+  bool bulk;
 };
 
 template <typename T>
 class mysql_task_statement_int : public mysql_task {
  public:
-  mysql_task_statement_int(database::mysql_stmt& stmt,
+  mysql_task_statement_int(database::mysql_stmt_base& stmt,
                            std::promise<T>&& promise,
                            int_type type)
       : mysql_task((std::is_same<T, int>::value) ? mysql_task::STATEMENT_INT
@@ -202,13 +223,24 @@ class mysql_task_statement_int : public mysql_task {
         promise(std::move(promise)),
         return_type(type),
         statement_id(stmt.get_id()),
-        param_count(stmt.get_param_count()),
-        bind(stmt.get_bind()) {}
+        param_count(stmt.get_param_count()) {
+    if (stmt.in_bulk()) {
+      database::mysql_bulk_stmt& s =
+          *static_cast<database::mysql_bulk_stmt*>(&stmt);
+      bind.reset(s.get_bind().release());
+      bulk = true;
+    } else {
+      database::mysql_stmt& s = *static_cast<database::mysql_stmt*>(&stmt);
+      bind.reset(s.get_bind().release());
+      bulk = false;
+    }
+  }
   std::promise<T> promise;
   int_type return_type;
   int statement_id;
   int param_count;
-  std::unique_ptr<database::mysql_bind> bind;
+  std::unique_ptr<database::mysql_bind_base> bind;
+  bool bulk;
 };
 }  // namespace database
 

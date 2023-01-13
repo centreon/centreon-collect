@@ -326,10 +326,10 @@ bool mysql_result::empty() const {
  * @return an integer.
  */
 int mysql_result::get_rows_count() const {
-  if (_bind)
-    return _bind->rows_count();
-  else
-    return mysql_num_rows(_result.get());
+  //  if (_bind)
+  //    return _bind->rows_count();
+  //  else
+  return mysql_num_rows(_result.get());
 }
 
 /**
