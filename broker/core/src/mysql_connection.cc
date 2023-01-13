@@ -1,5 +1,5 @@
 /*
-** Copyright 2018-2021 Centreon
+** Copyright 2018-2023 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -309,13 +309,13 @@ void mysql_connection::_statement(mysql_task* t) {
     return;
   }
   MYSQL_BIND* bb = nullptr;
-  uint32_t array_size = 0u;
   if (task->bind) {
     bb = const_cast<MYSQL_BIND*>(task->bind->get_bind());
-    array_size = task->bind->rows_count();
-    // In case of MySQL this function will fail with a non zero return value, it
-    // doesn't matter
-    mysql_stmt_attr_set(stmt, STMT_ATTR_ARRAY_SIZE, &array_size);
+    if (task->bulk) {
+      mysql_bulk_bind* bind = static_cast<mysql_bulk_bind*>(task->bind.get());
+      uint32_t array_size = bind->rows_count();
+      mysql_stmt_attr_set(stmt, STMT_ATTR_ARRAY_SIZE, &array_size);
+    }
   }
   if (bb && mysql_stmt_bind_param(stmt, bb)) {
     std::string err_msg(::mysql_stmt_error(stmt));
@@ -375,13 +375,13 @@ void mysql_connection::_statement_res(mysql_task* t) {
     return;
   }
   MYSQL_BIND* bb(nullptr);
-  uint32_t array_size = 0u;
   if (task->bind) {
     bb = const_cast<MYSQL_BIND*>(task->bind->get_bind());
-    array_size = task->bind->rows_count();
-    // In case of MySQL this function will fail with a non zero return value, it
-    // doesn't matter
-    mysql_stmt_attr_set(stmt, STMT_ATTR_ARRAY_SIZE, &array_size);
+    if (task->bulk) {
+      mysql_bulk_bind* bind = static_cast<mysql_bulk_bind*>(task->bind.get());
+      uint32_t array_size = bind->rows_count();
+      mysql_stmt_attr_set(stmt, STMT_ATTR_ARRAY_SIZE, &array_size);
+    }
   }
   if (bb && mysql_stmt_bind_param(stmt, bb)) {
     std::string err_msg(::mysql_stmt_error(stmt));
@@ -472,13 +472,13 @@ void mysql_connection::_statement_int(mysql_task* t) {
     return;
   }
   MYSQL_BIND* bb(nullptr);
-  uint32_t array_size = 0u;
   if (task->bind) {
     bb = const_cast<MYSQL_BIND*>(task->bind->get_bind());
-    array_size = task->bind->rows_count();
-    // In case of MySQL this function will fail with a non zero return value, it
-    // doesn't matter
-    mysql_stmt_attr_set(stmt, STMT_ATTR_ARRAY_SIZE, &array_size);
+    if (task->bulk) {
+      mysql_bulk_bind* bind = static_cast<mysql_bulk_bind*>(task->bind.get());
+      uint32_t array_size = bind->rows_count();
+      mysql_stmt_attr_set(stmt, STMT_ATTR_ARRAY_SIZE, &array_size);
+    }
   }
   if (bb && mysql_stmt_bind_param(stmt, bb)) {
     std::string err_msg(::mysql_stmt_error(stmt));
@@ -821,7 +821,7 @@ void mysql_connection::run_query_and_get_int(std::string const& query,
   _push(std::make_unique<mysql_task_run_int>(query, std::move(promise), type));
 }
 
-void mysql_connection::run_statement(database::mysql_stmt& stmt,
+void mysql_connection::run_statement(database::mysql_stmt_base& stmt,
                                      my_error::code ec,
                                      bool fatal) {
   _push(std::make_unique<mysql_task_statement>(stmt, ec, fatal));

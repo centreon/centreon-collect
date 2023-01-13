@@ -1368,15 +1368,15 @@ TEST_F(DatabaseStorageTest, RepeatStatements) {
     ms->run_statement(stmt);
   }
   ms->commit();
-  //  std::string query3{"SELECT count(*) from ut_test"};
-  //  std::promise<mysql_result> promise;
-  //  std::future<mysql_result> future = promise.get_future();
-  //  ms->run_query_and_get_result(query3, std::move(promise));
-  //  mysql_result res(future.get());
-  //
-  //  ASSERT_TRUE(ms->fetch_row(res));
-  //  std::cout << "***** count = " << res.value_as_i32(0) << std::endl;
-  //  ASSERT_EQ(res.value_as_i32(0), TOTAL);
+  std::string query3{"SELECT count(*) from ut_test"};
+  std::promise<mysql_result> promise;
+  std::future<mysql_result> future = promise.get_future();
+  ms->run_query_and_get_result(query3, std::move(promise));
+  mysql_result res(future.get());
+
+  ASSERT_TRUE(ms->fetch_row(res));
+  std::cout << "***** count = " << res.value_as_i32(0) << std::endl;
+  ASSERT_EQ(res.value_as_i32(0), TOTAL);
 }
 
 TEST_F(DatabaseStorageTest, CheckBulkStatement) {
@@ -1410,26 +1410,27 @@ TEST_F(DatabaseStorageTest, CheckBulkStatement) {
     std::string query(
         "INSERT INTO ut_test (unit_name, value, warn, crit, metric) VALUES "
         "(?,?,?,?,?)");
-    mysql_stmt stmt(ms->prepare_query(query));
+    mysql_bulk_stmt stmt(query);
+    ms->prepare_statement(stmt);
 
     constexpr int TOTAL = 200000;
 
     int step = 0;
-    auto bind = stmt.create_bind();
-    bind->reserve(20000);
+    auto bb = stmt.create_bind();
+    bb->reserve(20000);
     for (int j = 0; j < TOTAL; j++) {
-      bind->set_value_as_str(0, fmt::format("unit_{}", step));
-      bind->set_value_as_f64(1, ((double)step) / 500);
-      bind->set_value_as_f32(2, ((float)step) / 500 + 12.0f);
-      bind->set_value_as_f32(3, ((float)step) / 500 + 25.0f);
-      bind->set_value_as_str(4, fmt::format("metric_{}", step));
-      bind->next_row();
+      bb->set_value_as_str(0, fmt::format("unit_{}", step));
+      bb->set_value_as_f64(1, ((double)step) / 500);
+      bb->set_value_as_f32(2, ((float)step) / 500 + 12.0f);
+      bb->set_value_as_f32(3, ((float)step) / 500 + 25.0f);
+      bb->set_value_as_str(4, fmt::format("metric_{}", step));
+      bb->next_row();
       step++;
       if (step == 20000) {
         step = 0;
-        stmt.set_bind(std::move(bind));
+        stmt.set_bind(std::move(bb));
         ms->run_statement(stmt);
-        bind = stmt.create_bind();
+        bb = stmt.create_bind();
       }
     }
     ms->commit();
@@ -1465,7 +1466,8 @@ TEST_F(DatabaseStorageTest, UpdateBulkStatement) {
     std::string query{
         "UPDATE ut_test SET value=?, warn=?, crit=?, metric=? WHERE "
         "unit_name=?"};
-    mysql_stmt s = ms->prepare_query(query);
+    mysql_bulk_stmt s(query);
+    ms->prepare_statement(s);
     auto b = s.create_bind();
     b->reserve(20000);
 

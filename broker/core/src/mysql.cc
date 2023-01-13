@@ -223,7 +223,7 @@ int mysql::run_query_and_get_int(std::string const& query,
  *
  * @return The thread id that executed the query.
  */
-int mysql::run_statement(database::mysql_stmt& stmt,
+int mysql::run_statement(database::mysql_stmt_base& stmt,
                          my_error::code ec,
                          bool fatal,
                          int thread_id) {
@@ -270,7 +270,7 @@ int mysql::run_statement_and_get_result(database::mysql_stmt& stmt,
  *
  * @param stmt The statement to prepare.
  */
-void mysql::prepare_statement(mysql_stmt const& stmt) {
+void mysql::prepare_statement(const mysql_stmt_base& stmt) {
   _check_errors();
   for (std::vector<std::shared_ptr<mysql_connection>>::const_iterator
            it(_connection.begin()),
