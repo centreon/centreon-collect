@@ -490,9 +490,9 @@ void conflict_manager::_process_custom_variable(
 
     log_v2::sql()->info("SQL: disabling custom variable '{}' of ({}, {})",
                         cv.name, cv.host_id, cv.service_id);
-    _custom_variable_delete.bind_value_as_i32(":host_id", cv.host_id);
-    _custom_variable_delete.bind_value_as_i32(":service_id", cv.service_id);
-    _custom_variable_delete.bind_value_as_str(":name", cv.name);
+    _custom_variable_delete.bind_value_as_i32_k(":host_id", cv.host_id);
+    _custom_variable_delete.bind_value_as_i32_k(":service_id", cv.service_id);
+    _custom_variable_delete.bind_value_as_str_k(":name", cv.name);
 
     _mysql.run_statement(_custom_variable_delete,
                          database::mysql_error::remove_customvariable, false,
