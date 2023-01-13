@@ -33,7 +33,7 @@ using namespace com::centreon::broker::unified_sql;
 bulk_bind::bulk_bind(const size_t connections_count,
                      const uint32_t max_interval,
                      const uint32_t max_rows,
-                     database::mysql_stmt& stmt)
+                     database::mysql_bulk_stmt& stmt)
     : _interval{max_interval},
       _max_size{max_rows},
       _stmt(stmt),
@@ -128,6 +128,6 @@ std::size_t bulk_bind::connections_count() const {
   return _bind.size();
 }
 
-std::unique_ptr<database::mysql_bind>& bulk_bind::bind(int32_t conn) {
+std::unique_ptr<database::mysql_bulk_bind>& bulk_bind::bind(int32_t conn) {
   return _bind[conn];
 }
