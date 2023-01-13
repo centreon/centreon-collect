@@ -27,7 +27,6 @@ namespace http_client {
 
 using request_type =
     boost::beast::http::request<boost::beast::http::string_body>;
-using request_ptr = std::shared_ptr<request_type>;
 using response_type =
     boost::beast::http::response<boost::beast::http::string_body>;
 using response_ptr = std::shared_ptr<response_type>;
@@ -53,6 +52,28 @@ using tcp_keep_alive_interval =
 using tcp_keep_alive_idle =
     asio::detail::socket_option::integer<IPPROTO_TCP, TCP_KEEPIDLE>;
 
+class request_base : public request_type {
+  time_point _connect;
+  time_point _send;
+  time_point _sent;
+  time_point _receive;
+
+ public:
+  request_base();
+  request_base(boost::beast::http::verb method,
+               boost::beast::string_view target);
+
+  friend class http_connection;
+  friend class client;
+
+  time_point get_connect_time() const { return _connect; }
+  time_point get_send_time() const { return _send; }
+  time_point get_sent_time() const { return _sent; }
+  time_point get_receive_time() const { return _receive; }
+};
+
+using request_ptr = std::shared_ptr<request_base>;
+
 class connection_base : public std::enable_shared_from_this<connection_base> {
  protected:
   std::atomic_uint _state;
@@ -76,6 +97,7 @@ class connection_base : public std::enable_shared_from_this<connection_base> {
                   const std::shared_ptr<spdlog::logger>& logger,
                   const http_config::pointer& conf)
       : _state(e_not_connected),
+        _keep_alive_end(system_clock::from_time_t(0)),
         _io_context(io_context),
         _logger(logger),
         _conf(conf) {}
@@ -143,7 +165,7 @@ CCB_END()
 namespace fmt {
 
 template <>
-struct formatter<com::centreon::broker::http_client::request_type>
+struct formatter<com::centreon::broker::http_client::request_base>
     : ostream_formatter {};
 
 template <>

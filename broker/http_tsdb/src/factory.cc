@@ -126,7 +126,7 @@ void factory::create_conf(const config::endpoint& cfg,
   extract_duration("connect_timeout", connect_timeout);
   duration send_timeout = std::chrono::seconds(10);
   extract_duration("send_timeout", send_timeout);
-  duration receive_timeout = std::chrono::seconds(60);
+  duration receive_timeout = std::chrono::seconds(30);
   extract_duration("receive_timeout", receive_timeout);
 
   unsigned second_tcp_keep_alive_interval = 30;
@@ -192,11 +192,18 @@ void factory::create_conf(const config::endpoint& cfg,
   asio::ip::tcp::resolver resolver{*_io_context};
   asio::ip::tcp::resolver::query query{addr, std::to_string(port)};
 
-  asio::ip::tcp::resolver::iterator res_it{resolver.resolve(query)};
-  asio::ip::tcp::resolver::iterator res_end;
-  if (res_it == res_end) {
-    throw msg_fmt("can't resolve {}:{} for {}", addr, port, cfg.name);
+  asio::ip::tcp::resolver::iterator res_it;
+  try {
+    res_it = resolver.resolve(query);
+    asio::ip::tcp::resolver::iterator res_end;
+    if (res_it == res_end) {
+      throw msg_fmt("can't resolve {}:{} for {}", addr, port, cfg.name);
+    }
+  } catch (const boost::exception& e) {
+    throw msg_fmt("can't resolve {}:{} for {} : {}", addr, port, cfg.name,
+                  boost::diagnostic_information(e));
   }
+
   http_client::http_config http_cfg(
       res_it->endpoint(), encryption, connect_timeout, send_timeout,
       receive_timeout, second_tcp_keep_alive_interval, std::chrono::seconds(1),

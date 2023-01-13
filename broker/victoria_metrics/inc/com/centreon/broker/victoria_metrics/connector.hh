@@ -19,23 +19,25 @@
 #ifndef CCB_VICTORIA_METRICS_CONNECTOR_HH
 #define CCB_VICTORIA_METRICS_CONNECTOR_HH
 
-#include "com/centreon/broker/http_tsdb/http_tsdb_config.hh"
 #include "com/centreon/broker/io/endpoint.hh"
+#include "victoria_config.hh"
 
 CCB_BEGIN()
 
 namespace victoria_metrics {
 
 class connector : public io::endpoint {
-  std::shared_ptr<http_tsdb::http_tsdb_config> _conf;
+  std::shared_ptr<victoria_config> _conf;
   std::shared_ptr<persistent_cache> _cache;
 
  public:
-  connector(const std::shared_ptr<http_tsdb::http_tsdb_config>& conf,
+  connector(const std::shared_ptr<victoria_config>& conf,
             const std::shared_ptr<persistent_cache>& cache);
   connector(const connector&) = delete;
   connector& operator=(const connector&) = delete;
   std::unique_ptr<io::stream> open() override;
+
+  std::shared_ptr<victoria_config> get_conf() const { return _conf; }
 };
 }  // namespace victoria_metrics
 

@@ -136,7 +136,7 @@ class http_session : public session_base {
   boost::beast::flat_buffer _buffer;
 
   void start_recv() {
-    request_ptr request(std::make_shared<request_type>());
+    request_ptr request(std::make_shared<request_base>());
     boost::beast::http::async_read(
         _stream, _buffer, *request,
         [me = shared_from_this(), request](const boost::beast::error_code& err,
@@ -299,7 +299,7 @@ TEST_P(http_test, connect_send_answer_without_keepalive) {
   }
 
   auto client = http_connection::load(io_context, log_v2::tcp(), conf);
-  request_ptr request(std::make_shared<request_type>());
+  request_ptr request(std::make_shared<request_base>());
   request->method(boost::beast::http::verb::put);
   request->target("/");
   request->body() = "hello server";
@@ -374,7 +374,7 @@ TEST_P(http_test, connect_send_answer_with_keepalive) {
   }
 
   auto client = http_connection::load(io_context, log_v2::tcp(), conf);
-  request_ptr request(std::make_shared<request_type>());
+  request_ptr request(std::make_shared<request_base>());
   request->method(boost::beast::http::verb::put);
   request->target("/");
   request->body() = "hello server";

@@ -33,7 +33,7 @@ CCB_BEGIN()
 
 namespace http_tsdb {
 
-class request : public http_client::request_type {
+class request : public http_client::request_base {
  protected:
   unsigned _nb_metric;
   unsigned _nb_status;
@@ -41,11 +41,11 @@ class request : public http_client::request_type {
  public:
   using pointer = std::shared_ptr<request>;
 
-  request() {}
+  request() : _nb_metric(0), _nb_status(0) {}
   request(boost::beast::http::verb method,
           boost::beast::string_view target,
           unsigned version = 11)
-      : http_client::request_type(method, target, version),
+      : http_client::request_base(method, target),
         _nb_metric(0),
         _nb_status(0) {}
 
@@ -80,12 +80,38 @@ class stream : public io::stream, public std::enable_shared_from_this<stream> {
 
   http_client::client::pointer _http_client;
 
+  unsigned _pending;
   unsigned _acknowledged;
   request::pointer _request;
   // this timer is used to send periodicaly datas even if we haven't yet
   // _conf->_max_queries_per_transaction events to send
   asio::system_timer _timeout_send_timer;
   std::atomic_bool _timeout_send_timer_run;
+
+  struct stat_unit {
+    time_t time;
+    unsigned value;
+  };
+
+  using stat = stat_unit[2];
+
+  stat _success_request_stat;
+  stat _failed_request_stat;
+  stat _metric_stat;
+  stat _status_stat;
+  class stat_average {
+    std::map<time_point, unsigned> _points;
+
+   public:
+    void add_point(unsigned value);
+    bool empty() const { return _points.empty(); }
+    unsigned get_average() const;
+  };
+
+  stat_average _connect_avg;
+  stat_average _send_avg;
+  stat_average _recv_avg;
+
   mutable std::mutex _protect;
 
   stream(const std::string& name,
@@ -110,7 +136,10 @@ class stream : public io::stream, public std::enable_shared_from_this<stream> {
                     const http_client::response_ptr& response);
 
   void start_timeout_send_timer();
+  void start_timeout_send_timer_no_lock();
   void timeout_send_timer_handler(const boost::system::error_code& err);
+
+  void add_to_stat(stat& to_maj, unsigned to_add);
 
  public:
   using pointer = std::shared_ptr<stream>;

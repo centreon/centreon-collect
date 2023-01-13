@@ -63,6 +63,7 @@ if(WITH_TESTING)
   set(
     TESTS_SOURCES
     ${TESTS_SOURCES}
+    ${TEST_DIR}/factory_test.cc
     PARENT_SCOPE
   )
   set(

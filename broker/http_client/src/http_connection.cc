@@ -39,6 +39,16 @@ std::string connection_base::state_to_str(unsigned state) {
   }
 }
 
+request_base::request_base() {
+  _connect = _send = _sent = _receive = system_clock::from_time_t(0);
+}
+
+request_base::request_base(boost::beast::http::verb method,
+                           boost::beast::string_view target)
+    : request_type(method, target, 11) {
+  _connect = _send = _sent = _receive = system_clock::from_time_t(0);
+}
+
 static const std::regex keep_alive_time_out_r("timeout\\s*=\\s*(\\d+)");
 
 void connection_base::gest_keepalive(const response_ptr& resp) {
@@ -174,6 +184,7 @@ void http_connection::send(request_ptr request, send_callback_type&& callback) {
     BAD_SEND_STATE_ERROR("send to {}, bad state {}");
   }
 
+  request->_send = system_clock::now();
   SPDLOG_LOGGER_DEBUG(_logger, "send request to {}", _conf->get_endpoint());
 
   _socket.expires_after(_conf->get_send_timeout());
@@ -207,6 +218,8 @@ void http_connection::on_sent(const boost::beast::error_code& err,
     SPDLOG_LOGGER_DEBUG(_logger, "request sent to {}", *_conf);
   }
 
+  request->_sent = system_clock::now();
+
   response_ptr resp = std::make_shared<response_type>();
   boost::beast::http::async_read(
       _socket, _recv_buffer, *resp,
@@ -233,6 +246,8 @@ void http_connection::on_read(const boost::beast::error_code& err,
   if (!_state.compare_exchange_strong(expected, e_idle)) {
     BAD_SEND_STATE_ERROR("on_read to {}, bad state {}");
   }
+
+  request->_receive = system_clock::now();
 
   if (resp->result_int() >= 400) {
     SPDLOG_LOGGER_ERROR(_logger, "err response for {} \n\n {}", *request,

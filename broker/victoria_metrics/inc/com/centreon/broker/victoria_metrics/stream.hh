@@ -19,6 +19,8 @@
 #ifndef CCB_VICTORIA_METRICS_STREAM_HH
 #define CCB_VICTORIA_METRICS_STREAM_HH
 
+#include "victoria_config.hh"
+
 #include "com/centreon/broker/http_tsdb/line_protocol_query.hh"
 #include "com/centreon/broker/http_tsdb/stream.hh"
 
@@ -39,7 +41,7 @@ class stream : public http_tsdb::stream {
 
  protected:
   stream(const std::shared_ptr<asio::io_context>& io_context,
-         const std::shared_ptr<http_tsdb::http_tsdb_config>& conf,
+         const std::shared_ptr<victoria_config>& conf,
          const std::shared_ptr<persistent_cache>& cache,
          http_client::client::connection_creator conn_creator =
              http_client::http_connection::load);
@@ -49,7 +51,7 @@ class stream : public http_tsdb::stream {
  public:
   static std::shared_ptr<stream> load(
       const std::shared_ptr<asio::io_context>& io_context,
-      const std::shared_ptr<http_tsdb::http_tsdb_config>& conf,
+      const std::shared_ptr<victoria_config>& conf,
       const std::shared_ptr<persistent_cache>& cache,
       http_client::client::connection_creator conn_creator =
           http_client::http_connection::load);

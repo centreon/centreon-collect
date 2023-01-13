@@ -35,9 +35,7 @@ client::client(const std::shared_ptr<asio::io_context>& io_context,
     : _io_context(io_context),
       _logger(logger),
       _conf(conf),
-      _retry_timer(*io_context),
-      _retry_timer_active(false),
-      _retry_interval(_min_retry_interval),
+      _retry_unit(std::chrono::seconds(1)),
       _halt(false) {
   SPDLOG_LOGGER_INFO(_logger, "client::client {}", *_conf);
   _not_connected_conns.reserve(conf->get_max_connections());
@@ -138,6 +136,7 @@ bool client::connect(const cb_request::pointer& request) {
     _busy_conns.insert(conn);
     SPDLOG_LOGGER_DEBUG(_logger, "connection of {:p}",
                         static_cast<void*>(conn.get()));
+    request->request->_connect = system_clock::now();
     conn->connect([me = shared_from_this(), conn, request](
                       const boost::beast::error_code& error,
                       const std::string& detail) mutable {
@@ -202,13 +201,6 @@ void client::on_connect(const boost::beast::error_code& error,
   if (_halt) {
     return;
   }
-  _retry_interval = _min_retry_interval;
-  if (_queue.empty()) {  // nothing to send => shutdown
-    _busy_conns.erase(conn);
-    _not_connected_conns.insert(conn);
-    conn->shutdown();
-    return;
-  }
   SPDLOG_LOGGER_DEBUG(_logger, "{:p} connected",
                       static_cast<void*>(conn.get()));
 
@@ -244,6 +236,8 @@ void client::on_sent(const boost::beast::error_code& error,
   } else {
     SPDLOG_LOGGER_DEBUG(_logger, "response received on {:p}",
                         static_cast<void*>(conn.get()));
+
+    bool has_to_send_first_inqueue = false;
     {
       lock_guard l(_protect);
       if (!_halt) {
@@ -269,8 +263,12 @@ void client::on_sent(const boost::beast::error_code& error,
           conn->shutdown();
           _not_connected_conns.insert(conn);
           _busy_conns.erase(conn);
+          has_to_send_first_inqueue = true;
         }
       }
+    }
+    if (has_to_send_first_inqueue) {
+      send_first_queue_request();
     }
     request->callback(error, detail, response);
   }
@@ -279,7 +277,6 @@ void client::on_sent(const boost::beast::error_code& error,
 void client::shutdown() {
   SPDLOG_LOGGER_INFO(_logger, "client::shutdown {}", *_conf);
   lock_guard l(_protect);
-  _retry_timer.cancel();
   for (connection_base::pointer& conn : _keep_alive_conns) {
     conn->shutdown();
   }
@@ -302,10 +299,11 @@ void client::retry(const boost::beast::error_code& error,
     to_call = request;
   } else {
     if (request->retry_counter++ < _conf->get_max_send_retry()) {
-      duration next_retry = std::chrono::seconds(1) * request->retry_counter;
+      duration next_retry = _retry_unit * request->retry_counter;
 
-      SPDLOG_LOGGER_ERROR(_logger, "fail to send request => resent in {} s",
-                          next_retry.count());
+      SPDLOG_LOGGER_ERROR(
+          _logger, "fail to send request => resent in {} s",
+          std::chrono::duration_cast<std::chrono::seconds>(next_retry).count());
       async::defer(
           _io_context, next_retry,
           [me = shared_from_this(), request]() { me->send_or_push(request); });
@@ -320,9 +318,9 @@ void client::retry(const boost::beast::error_code& error,
 
     // try to send the first enqueue request in 1s
     if (!_halt) {
-      async::defer(
-          _io_context, std::chrono::seconds(1),
-          [me = shared_from_this()]() { me->send_first_queue_request(); });
+      async::defer(_io_context, _retry_unit, [me = shared_from_this()]() {
+        me->send_first_queue_request();
+      });
     }
   }
 }

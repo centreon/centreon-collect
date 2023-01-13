@@ -42,6 +42,8 @@ class client : public std::enable_shared_from_this<client> {
   connection_cont _keep_alive_conns;
   connection_cont _busy_conns;
 
+  duration _retry_unit;
+
   struct cb_request {
     using pointer = std::shared_ptr<cb_request>;
     cb_request(send_callback_type&& cb, const request_ptr& req)
@@ -53,10 +55,6 @@ class client : public std::enable_shared_from_this<client> {
   };
 
   std::deque<cb_request::pointer> _queue;
-
-  asio::system_timer _retry_timer;
-  bool _retry_timer_active;
-  duration _retry_interval;
 
   bool _halt;
 
@@ -106,7 +104,25 @@ class client : public std::enable_shared_from_this<client> {
   }
 
   void shutdown();
+
+  template <class visitor_type>
+  void visit_queue(visitor_type& visitor) const;
+
+  size_t get_nb_not_connected_cons() const {
+    return _not_connected_conns.size();
+  }
+  size_t get_nb_keep_alive_conns() const { return _keep_alive_conns.size(); }
+  size_t get_nb_busy_conns() const { return _busy_conns.size(); }
 };
+
+template <class visitor_type>
+void client::visit_queue(visitor_type& visitor) const {
+  std::lock_guard<std::mutex> l(_protect);
+  for (const auto& cb : _queue) {
+    visitor(*cb->request);
+  }
+}
+
 }  // namespace http_client
 
 CCB_END()

@@ -53,6 +53,12 @@ class http_tsdb_config : public http_client::http_config {
         _metric_columns(metric_columns) {}
 
   http_tsdb_config() : _max_queries_per_transaction(0) {}
+  http_tsdb_config(const http_client::http_config& http_conf,
+                   unsigned max_queries_per_transaction,
+                   duration max_send_interval)
+      : http_client::http_config(http_conf),
+        _max_queries_per_transaction(max_queries_per_transaction),
+        _max_send_interval(max_send_interval) {}
 
   const std::string& get_user() const { return _user; }
   const std::string& get_pwd() const { return _pwd; }

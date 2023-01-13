@@ -28,7 +28,7 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::victoria_metrics;
 
 stream::stream(const std::shared_ptr<asio::io_context>& io_context,
-               const std::shared_ptr<http_tsdb::http_tsdb_config>& conf,
+               const std::shared_ptr<victoria_config>& conf,
                const std::shared_ptr<persistent_cache>& cache,
                http_client::client::connection_creator conn_creator)
     : http_tsdb::stream("victoria_metrics",
@@ -59,7 +59,7 @@ stream::stream(const std::shared_ptr<asio::io_context>& io_context,
 
 std::shared_ptr<stream> stream::load(
     const std::shared_ptr<asio::io_context>& io_context,
-    const std::shared_ptr<http_tsdb::http_tsdb_config>& conf,
+    const std::shared_ptr<victoria_config>& conf,
     const std::shared_ptr<persistent_cache>& cache,
     http_client::client::connection_creator conn_creator) {
   return std::shared_ptr<stream>(
