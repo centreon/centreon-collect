@@ -83,7 +83,7 @@ runs:
         for i in *.rpm ; do file $i ; done
       shell: bash
 
-- name: Upload package artifacts
+    - name: Upload package artifacts
       uses: actions/upload-artifact@v3
       with:
         name: packages-${{ inputs.package_extension }}
