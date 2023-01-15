@@ -57,6 +57,7 @@ class mysql_stmt_base {
       bool bulk,
       mysql_bind_mapping const& bind_mapping = mysql_bind_mapping());
   mysql_stmt_base(mysql_stmt_base&& other);
+  virtual ~mysql_stmt_base() noexcept = default;
   mysql_stmt_base& operator=(const mysql_stmt_base&) = delete;
   mysql_stmt_base& operator=(mysql_stmt_base&& other);
   bool prepared() const;

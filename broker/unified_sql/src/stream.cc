@@ -1,5 +1,5 @@
 /*
-** Copyright 2021-2022 Centreon
+** Copyright 2021-2023 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@
 #include "bbdo/remove_graph_message.pb.h"
 #include "bbdo/storage/index_mapping.hh"
 #include "com/centreon/broker/config/applier/state.hh"
+#include "com/centreon/broker/database/mysql_bulk_stmt.hh"
 #include "com/centreon/broker/database/mysql_result.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/log_v2.hh"
@@ -135,6 +136,7 @@ stream::stream(const database_config& dbcfg,
       _check_queues_stopped{false},
       _stats{stats::center::instance().register_conflict_manager()},
       _group_clean_timer{pool::io_context()},
+      _loop_timer{pool::io_context()},
       _cv(queue_timer_duration,
           _max_pending_queries,
           "INSERT INTO customvariables "
@@ -175,24 +177,7 @@ stream::stream(const database_config& dbcfg,
           "deletion_time),duration=VALUES(duration),end_time=VALUES(end_time),"
           "fixed=VALUES(fixed),start_time=VALUES(start_time),started=VALUES("
           "started),triggered_by=VALUES(triggered_by), type=VALUES(type)"),
-      _loop_timer{pool::io_context()},
-      _oldest_timestamp{std::numeric_limits<time_t>::max()},
-      _hscr_bind(dbcfg.get_connections_count(),
-                 dt_queue_timer_duration,
-                 _max_pending_queries,
-                 _hscr_update),
-      _sscr_bind(dbcfg.get_connections_count(),
-                 dt_queue_timer_duration,
-                 _max_pending_queries,
-                 _sscr_update),
-      _hscr_resources_bind(dbcfg.get_connections_count(),
-                           dt_queue_timer_duration,
-                           _max_pending_queries,
-                           _hscr_resources_update),
-      _sscr_resources_bind(dbcfg.get_connections_count(),
-                           dt_queue_timer_duration,
-                           _max_pending_queries,
-                           _sscr_resources_update) {
+      _oldest_timestamp{std::numeric_limits<time_t>::max()} {
   SPDLOG_LOGGER_DEBUG(log_v2::sql(), "unified sql: stream class instanciation");
   stats::center::instance().execute([stats = _stats,
                                      loop_timeout = _loop_timeout,
@@ -227,6 +212,7 @@ stream::stream(const database_config& dbcfg,
     log_v2::sql()->info("Unified sql stream connected to '{}' Server", version);
 
   try {
+    _init_statements();
     _load_caches();
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(log_v2::sql(), "error while loading caches: {}",
@@ -1080,4 +1066,154 @@ void stream::_start_loop_timer() {
     _update_hosts_and_services_of_unresponsive_instances();
     _start_loop_timer();
   });
+}
+
+/**
+ * @brief Initialize prepared statements when they are accessed throw a bulk
+ * bind or directly. It is the case for _hscr_update.
+ */
+void stream::_init_statements() {
+  const std::string hscr_query(
+      "UPDATE hosts SET "
+      "checked=?,"                   // 0: has_been_checked
+      "check_type=?,"                // 1: check_type
+      "state=?,"                     // 2: current_state
+      "state_type=?,"                // 3: state_type
+      "last_state_change=?,"         // 4: last_state_change
+      "last_hard_state=?,"           // 5: last_hard_state
+      "last_hard_state_change=?,"    // 6: last_hard_state_change
+      "last_time_up=?,"              // 7: last_time_up
+      "last_time_down=?,"            // 8: last_time_down
+      "last_time_unreachable=?,"     // 9: last_time_unreachable
+      "output=?,"                    // 10: output + '\n' + long_output
+      "perfdata=?,"                  // 11: perf_data
+      "flapping=?,"                  // 12: is_flapping
+      "percent_state_change=?,"      // 13: percent_state_change
+      "latency=?,"                   // 14: latency
+      "execution_time=?,"            // 15: execution_time
+      "last_check=?,"                // 16: last_check
+      "next_check=?,"                // 17: next_check
+      "should_be_scheduled=?,"       // 18: should_be_scheduled
+      "check_attempt=?,"             // 19: current_check_attempt
+      "notification_number=?,"       // 20: notification_number
+      "no_more_notifications=?,"     // 21: no_more_notifications
+      "last_notification=?,"         // 22: last_notification
+      "next_host_notification=?,"    // 23: next_notification
+      "acknowledged=?,"              // 24: acknowledgement_type != NONE
+      "acknowledgement_type=?,"      // 25: acknowledgement_type
+      "scheduled_downtime_depth=? "  // 26: downtime_depth
+      "WHERE host_id=?"              // 27: host_id
+  );
+
+  const std::string sscr_query(
+      "UPDATE services SET "
+      "checked=?,"                          // 0: has_been_checked
+      "check_type=?,"                       // 1: check_type
+      "state=?,"                            // 2: current_state
+      "state_type=?,"                       // 3: state_type
+      "last_state_change=?,"                // 4: last_state_change
+      "last_hard_state=?,"                  // 5: last_hard_state
+      "last_hard_state_change=?,"           // 6: last_hard_state_change
+      "last_time_ok=?,"                     // 7: last_time_ok
+      "last_time_warning=?,"                // 8: last_time_warning
+      "last_time_critical=?,"               // 9: last_time_critical
+      "last_time_unknown=?,"                // 10: last_time_unknown
+      "output=?,"                           // 11: output + '\n' + long_output
+      "perfdata=?,"                         // 12: perf_data
+      "flapping=?,"                         // 13: is_flapping
+      "percent_state_change=?,"             // 14: percent_state_change
+      "latency=?,"                          // 15: latency
+      "execution_time=?,"                   // 16: execution_time
+      "last_check=?,"                       // 17: last_check
+      "next_check=?,"                       // 18: next_check
+      "should_be_scheduled=?,"              // 19: should_be_scheduled
+      "check_attempt=?,"                    // 20: current_check_attempt
+      "notification_number=?,"              // 21: notification_number
+      "no_more_notifications=?,"            // 22: no_more_notifications
+      "last_notification=?,"                // 23: last_notification
+      "next_notification=?,"                // 24: next_notification
+      "acknowledged=?,"                     // 25: acknowledgement_type != NONE
+      "acknowledgement_type=?,"             // 26: acknowledgement_type
+      "scheduled_downtime_depth=? "         // 27: downtime_depth
+      "WHERE host_id=? AND service_id=?");  // 28, 29
+
+  const std::string hscr_resources_query(
+      "UPDATE resources SET "
+      "status=?,"                     // 0: current_state
+      "status_ordered=?,"             // 1: obtained from current_state
+      "last_status_change=?,"         // 2: last_state_change
+      "in_downtime=?,"                // 3: downtime_depth() > 0
+      "acknowledged=?,"               // 4: acknowledgement_type != NONE
+      "status_confirmed=?,"           // 5: state_type == HARD
+      "check_attempts=?,"             // 6: current_check_attempt
+      "has_graph=?,"                  // 7: perfdata != ""
+      "last_check_type=?,"            // 8: check_type
+      "last_check=?,"                 // 9: last_check
+      "output=? "                     // 10: output
+      "WHERE id=? AND parent_id=0");  // 11: host_id
+
+  const std::string sscr_resources_query(
+      "UPDATE resources SET "
+      "status=?,"                     // 0: current_state
+      "status_ordered=?,"             // 1: obtained from current_state
+      "last_status_change=?,"         // 2: last_state_change
+      "in_downtime=?,"                // 3: downtime_depth() > 0
+      "acknowledged=?,"               // 4: acknowledgement_type != NONE
+      "status_confirmed=?,"           // 5: state_type == HARD
+      "check_attempts=?,"             // 6: current_check_attempt
+      "has_graph=?,"                  // 7: perfdata != ""
+      "last_check_type=?,"            // 8: check_type
+      "last_check=?,"                 // 9: last_check
+      "output=? "                     // 10: output
+      "WHERE id=? AND parent_id=?");  // 11, 12: service_id and host_id
+  if (_store_in_hosts_services) {
+    if (_bulk_prepared_statement) {
+      auto hu = std::make_unique<database::mysql_bulk_stmt>(hscr_query);
+      _mysql.prepare_statement(*hu);
+      _hscr_bind = std::make_unique<bulk_bind>(_dbcfg.get_connections_count(),
+                                               dt_queue_timer_duration,
+                                               _max_pending_queries, *hu);
+      _hscr_update = std::move(hu);
+
+      auto su = std::make_unique<database::mysql_bulk_stmt>(sscr_query);
+      _mysql.prepare_statement(*su);
+      _sscr_bind = std::make_unique<bulk_bind>(_dbcfg.get_connections_count(),
+                                               dt_queue_timer_duration,
+                                               _max_pending_queries, *su);
+      _sscr_update = std::move(su);
+    } else {
+      _hscr_update = std::make_unique<database::mysql_stmt>(hscr_query);
+      _mysql.prepare_statement(*_hscr_update);
+
+      _sscr_update = std::make_unique<database::mysql_stmt>(sscr_query);
+      _mysql.prepare_statement(*_sscr_update);
+    }
+  }
+  if (_store_in_resources) {
+    if (_bulk_prepared_statement) {
+      auto hu =
+          std::make_unique<database::mysql_bulk_stmt>(hscr_resources_query);
+      _mysql.prepare_statement(*hu);
+      _hscr_resources_bind = std::make_unique<bulk_bind>(
+          _dbcfg.get_connections_count(), dt_queue_timer_duration,
+          _max_pending_queries, *hu);
+      _hscr_resources_update = std::move(hu);
+
+      auto su =
+          std::make_unique<database::mysql_bulk_stmt>(sscr_resources_query);
+      _mysql.prepare_statement(*su);
+      _sscr_resources_bind = std::make_unique<bulk_bind>(
+          _dbcfg.get_connections_count(), dt_queue_timer_duration,
+          _max_pending_queries, *su);
+      _sscr_resources_update = std::move(su);
+    } else {
+      _hscr_resources_update =
+          std::make_unique<database::mysql_stmt>(hscr_resources_query);
+      _mysql.prepare_statement(*_hscr_resources_update);
+
+      _sscr_resources_update =
+          std::make_unique<database::mysql_stmt>(sscr_resources_query);
+      _mysql.prepare_statement(*_sscr_resources_update);
+    }
+  }
 }
