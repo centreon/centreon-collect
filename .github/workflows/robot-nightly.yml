@@ -50,15 +50,11 @@ jobs:
         shell: bash
 
       - name: Install RPM packages
-        uses: ./.github/actions/get-packages
+        uses: actions/cache@v3
         with:
-          distrib: ${{ matrix.distrib }}
-          repos_username: ${{ secrets.REPOS_USERNAME }}
-          repos_password: ${{ secrets.REPOS_PASSWORD }}
-          version: ${{ env.version }}
-          patch: ${{ env.patch }}
-          release: ${{ env.release }}
-          cache_key: cache-${{ github.sha }}-${{ github.run_id }}
+          path: ./*.rpm
+          key: cache-${{ github.sha }}-rpmbuild-centreon-collect-el7-${{ github.head_ref || github.ref_name }}
+          restore-keys: cache-${{ github.sha }}-rpmbuild-centreon-collect-el7-${{ github.head_ref || github.ref_name }}
 
       - name: Login to Registry
         uses: docker/login-action@v2
