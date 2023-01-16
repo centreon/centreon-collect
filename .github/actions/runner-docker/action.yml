@@ -18,7 +18,7 @@ inputs:
     required: false
 
 env:
-  REGISTRY: docker.centreon.com/docker-global
+  REGISTRY: docker.centreon.com
 
 runs:
   using: "composite"
