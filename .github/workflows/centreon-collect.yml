@@ -123,12 +123,6 @@ jobs:
           username: ${{ secrets.REPOS_USERNAME }}
           password: ${{ secrets.REPOS_PASSWORD }}
 
-      - name: Upload package artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: packages-rpm-${{ matrix.distrib }}
-          path: ./*.rpm
-
       - name: Use cache RPM files
         uses: actions/cache@v3
         env:
@@ -136,6 +130,20 @@ jobs:
         with:
           path: ./*.rpm
           key: ${{ env.cache-name-rpmbuild }}
+
+      - name: Cleaning not needed rpm packages
+        shell: bash
+        run: |
+          rm -rf *-devel*.rpm
+          rm -rf *-debuginfo*.rpm
+          rm -rf *-debugsource*.rpm
+
+      - name: Upload package artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: packages-rpm-${{ matrix.distrib }}
+          path: ./*.rpm
+          retention-days: 1
 
   debian-packaging:
     needs: create-version

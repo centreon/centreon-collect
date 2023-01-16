@@ -77,7 +77,6 @@ jobs:
           script_name: /src/ci/scripts/collect-test-robot
           image_name: ${{ matrix.image }}
           image_version: ${{ env.imgversion }}
-#params: ${{ matrix.branch }}
 
       - name: Send report to commit
         uses: joonvena/robotframework-reporter-action@v2.1
