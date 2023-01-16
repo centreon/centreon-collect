@@ -126,7 +126,7 @@ jobs:
       - name: Upload package artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: packages-rpm
+          name: packages-rpm-${{ matrix.distrib }}
           path: ./*.rpm
 
       - name: Use cache RPM files
