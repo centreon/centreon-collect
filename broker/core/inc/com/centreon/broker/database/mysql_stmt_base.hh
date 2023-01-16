@@ -52,6 +52,7 @@ class mysql_stmt_base {
    */
   mysql_stmt_base(bool bulk) : _bulk(bulk) {}
   mysql_stmt_base(const std::string& query, bool named, bool bulk);
+  virtual ~mysql_stmt_base() noexcept = default;
   mysql_stmt_base(
       const std::string& query,
       bool bulk,

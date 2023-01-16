@@ -49,7 +49,7 @@ class mysql_bind_base {
   /**
    * @brief Destructor
    */
-  ~mysql_bind_base() noexcept = default;
+  virtual ~mysql_bind_base() noexcept = default;
   void set_size(int size);
   int get_size() const;
   const MYSQL_BIND* get_bind() const;
