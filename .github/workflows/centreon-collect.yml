@@ -125,11 +125,9 @@ jobs:
 
       - name: Use cache RPM files
         uses: actions/cache@v3
-        env:
-          cache-name-rpmbuild: cache-${{ github.sha }}-${{ github.run_id }}-rpmbuild-centreon-collect-${{ matrix.distrib }}
         with:
           path: ./*.rpm
-          key: ${{ env.cache-name-rpmbuild }}
+          key: cache-${{ github.sha }}-rpmbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
 
       - name: Cleaning not needed rpm packages
         shell: bash
@@ -180,11 +178,9 @@ jobs:
 
       - name: Use cache DEB files
         uses: actions/cache@v3
-        env:
-          cache-name-debbuild: cache-${{ github.sha }}-${{ github.run_id }}-debbuild-centreon-collect-${{ matrix.distrib }}
         with:
           path: ./*.deb
-          key: ${{ env.cache-name-debbuild }}
+          key: cache-${{ github.sha }}-debbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
 
   delivery-debian:
     needs: [debian-packaging, create-version]
@@ -201,7 +197,7 @@ jobs:
 
       - name: Publish DEB packages
         uses: ./.github/actions/delivery
-        with:
+with:
           distrib: ${{ matrix.distrib }}
           repository_name: standard
           version: ${{ env.version }}
@@ -232,7 +228,7 @@ jobs:
           module_name: centreon-collect
           repos_username: ${{ secrets.REPOS_USERNAME }}
           repos_password: ${{ secrets.REPOS_PASSWORD }}
-          cache_key: cache-${{ github.sha }}-${{ github.run_id }}
+          cache_key: cache-${{ github.sha }}-rpmbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
           update_repo_path: ${{ secrets.UPDATE_REPO_PATH }}
           cloudfront_id: ${{ secrets.CLOUDFRONT_ID }}
           yum_repo_address: ${{ secrets.YUM_REPO_ADDRESS }}
