@@ -54,15 +54,21 @@ jobs:
         shell: bash
 
       - name: Install RPM packages
-        uses: ./.github/actions/get-packages
+        uses: actions/download-artifact@v3
         with:
-          distrib: ${{ matrix.distrib }}
-          repos_username: ${{ secrets.REPOS_USERNAME }}
-          repos_password: ${{ secrets.REPOS_PASSWORD }}
-          version: ${{ env.version }}
-          patch: ${{ env.patch }}
-          release: ${{ env.release }}
-          cache_key: cache-${{ github.sha }}-${{ github.run_id }}
+          name: packages-rpm-${{ matrix.distrib }}
+          path: .
+
+#      - name: Install RPM packages
+#        uses: ./.github/actions/get-packages
+#        with:
+#          distrib: ${{ matrix.distrib }}
+#          repos_username: ${{ secrets.REPOS_USERNAME }}
+#          repos_password: ${{ secrets.REPOS_PASSWORD }}
+#          version: ${{ env.version }}
+#          patch: ${{ env.patch }}
+#          release: ${{ env.release }}
+#          cache_key: cache-${{ github.sha }}-${{ github.run_id }}
 
       - name: Login to Registry
         uses: docker/login-action@v2
