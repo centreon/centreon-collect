@@ -63,8 +63,6 @@ jobs:
         include:
           - image: centos7
           - image: alma8
-          - image: debian-buster
-          - image: debian-bullseye
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
@@ -130,71 +128,6 @@ jobs:
         with:
           path: ./*.rpm
           key: ${{ env.cache-name-rpmbuild }}
-
-  debian-packaging:
-    needs: create-version
-    runs-on: [self-hosted, collect]
-    env:
-      imgversion: ${{ needs.create-version.outputs.imgversion }}
-      version: ${{ needs.create-version.outputs.version }}.${{ needs.create-version.outputs.patch }}
-      release: ${{ needs.create-version.outputs.release }}
-
-    strategy:
-      matrix:
-        include:
-          - image: debian-buster
-            distrib: buster
-          - image: debian-bullseye
-            distrib: bullseye
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v3
-        with:
-          path: centreon-collect
-      - name: Login to Registry
-        uses: docker/login-action@v2
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.REPOS_USERNAME }}
-          password: ${{ secrets.REPOS_PASSWORD }}
-
-      - name: debmake ${{ matrix.image }}
-        uses: ./centreon-collect/.github/actions/runner-docker
-        with:
-          script_name: /src/centreon-collect/ci/scripts/collect-deb-package
-          image_name: centreon-collect-${{ matrix.image }}
-          image_version: ${{ env.imgversion }}
-          env_variable: -e DISTRIB="${{ matrix.distrib }}" -e VERSION="${{ env.version }}" -e RELEASE="${{ env.release }}"
-
-      - name: Use cache DEB files
-        uses: actions/cache@v3
-        env:
-          cache-name-debbuild: cache-${{ github.sha }}-${{ github.run_id }}-debbuild-centreon-collect-${{ matrix.distrib }}
-        with:
-          path: ./*.deb
-          key: ${{ env.cache-name-debbuild }}
-
-  delivery-debian:
-    needs: [debian-packaging, create-version]
-    env:
-      version: ${{ needs.create-version.outputs.version }}
-    runs-on: [self-hosted, common]
-    name: Delivery
-    strategy:
-      matrix:
-        distrib: [buster, bullseye]
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v3
-
-      - name: Publish DEB packages
-        uses: ./.github/actions/delivery
-        with:
-          distrib: ${{ matrix.distrib }}
-          version: ${{ env.version }}
-          repos_username: ${{ secrets.REPOS_USERNAME }}
-          repos_password: ${{ secrets.REPOS_PASSWORD }}
-          cache_key: cache-${{ github.sha }}-${{ github.run_id }}
 
   delivery-centos:
     needs: [rpm-packaging, create-version]
