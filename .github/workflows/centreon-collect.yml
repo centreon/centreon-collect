@@ -124,10 +124,10 @@ jobs:
           password: ${{ secrets.REPOS_PASSWORD }}
 
       - name: Upload package artifacts
-          uses: actions/upload-artifact@v3
-          with:
-            name: packages-rpm
-            path: ./*.rpm
+        uses: actions/upload-artifact@v3
+        with:
+          name: packages-rpm
+          path: ./*.rpm
 
       - name: Use cache RPM files
         uses: actions/cache@v3
