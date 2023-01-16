@@ -1,20 +1,20 @@
-##
-## Copyright 2011-2021 Centreon
-##
-## Licensed under the Apache License, Version 2.0 (the "License");
-## you may not use this file except in compliance with the License.
-## You may obtain a copy of the License at
-##
-##     http://www.apache.org/licenses/LICENSE-2.0
-##
-## Unless required by applicable law or agreed to in writing, software
-## distributed under the License is distributed on an "AS IS" BASIS,
-## WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-## See the License for the specific language governing permissions and
-## limitations under the License.
-##
-## For more information : contact@centreon.com
-##
+#
+# Copyright 2011-2021 Centreon
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License. You may obtain a copy of
+# the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations under
+# the License.
+#
+# For more information : contact@centreon.com
+#
 
 # Global options.
 set(INC_DIR "${PROJECT_SOURCE_DIR}/bam/inc")
@@ -27,8 +27,11 @@ set(INC_DIR "${INC_DIR}/com/centreon/broker/bam")
 
 # BAM module.
 set(BAM "20-bam")
-set(BAM "${BAM}" PARENT_SCOPE)
-add_library("${BAM}" SHARED
+set(BAM
+    "${BAM}"
+    PARENT_SCOPE)
+add_library(
+  "${BAM}" SHARED
   # Sources.
   "${SRC_DIR}/availability_builder.cc"
   "${SRC_DIR}/availability_thread.cc"
@@ -158,21 +161,18 @@ add_library("${BAM}" SHARED
   "${INC_DIR}/reporting_stream.hh"
   "${INC_DIR}/service_book.hh"
   "${INC_DIR}/service_listener.hh"
-  "${INC_DIR}/timeperiod_map.hh"
-)
-set_target_properties("${BAM}" PROPERTIES
-    PREFIX "")
-target_link_libraries("${BAM}" ${absl_LIBS})
+  "${INC_DIR}/timeperiod_map.hh")
+set_target_properties("${BAM}" PROPERTIES PREFIX "")
+target_link_libraries("${BAM}" CONAN_PKG::spdlog CONAN_PKG::abseil)
 
 # Testing.
-if (WITH_SQL_TESTS)
-    set(TESTS_SOURCES ${TESTS_SOURCES} ${TEST_DIR}/monitoring_stream.cc)
-    set(TESTS_SOURCES ${TESTS_SOURCES} ${TEST_DIR}/reporting_stream.cc)
-endif (WITH_SQL_TESTS)
+if(WITH_SQL_TESTS)
+  set(TESTS_SOURCES ${TESTS_SOURCES} ${TEST_DIR}/monitoring_stream.cc)
+  set(TESTS_SOURCES ${TESTS_SOURCES} ${TEST_DIR}/reporting_stream.cc)
+endif(WITH_SQL_TESTS)
 
-if (WITH_TESTING )
-    set(
-      TESTS_SOURCES
+if(WITH_TESTING)
+  set(TESTS_SOURCES
       ${TESTS_SOURCES}
       ${TEST_DIR}/ba/kpi_service.cc
       ${TEST_DIR}/ba/kpi_ba.cc
@@ -182,17 +182,11 @@ if (WITH_TESTING )
       ${TEST_DIR}/exp_parser/get_postfix.cc
       ${TEST_DIR}/exp_tokenizer/next.cc
       ${TEST_DIR}/time/check_timeperiod.cc
-      PARENT_SCOPE
-    )
-    set(
-      TESTS_LIBRARIES
-      ${TESTS_LIBRARIES}
-      ${BAM}
-      PARENT_SCOPE
-    )
-endif (WITH_TESTING)
+      PARENT_SCOPE)
+  set(TESTS_LIBRARIES
+      ${TESTS_LIBRARIES} ${BAM}
+      PARENT_SCOPE)
+endif(WITH_TESTING)
 
 # Install rule.
-install(TARGETS "${BAM}"
-  LIBRARY DESTINATION "${PREFIX_MODULES}"
-)
+install(TARGETS "${BAM}" LIBRARY DESTINATION "${PREFIX_MODULES}")

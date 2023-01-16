@@ -1,0 +1,77 @@
+name: Centreon collect build docker
+
+on:
+  pull_request_target:
+    types:
+      - closed
+    branches:
+      - develop
+    paths:
+      - '.github/workflows/docker-builder.yml'
+      - 'ci/docker/**'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/docker-builder.yml'
+      - 'ci/docker/**'
+
+env:
+  REGISTRY: docker.centreon.com
+
+jobs:
+  create-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - run: |
+          IMG_VERSION=$(md5sum conanfile.txt | awk '{print substr($1, 0, 8)}')
+          echo "imgversion=$IMG_VERSION" >> $GITHUB_OUTPUT
+        id: imgversion
+      - run: |
+          echo "Version based on conanfile is ${{ steps.imgversion.outputs.imgversion }}"
+    outputs:
+      imgversion: ${{ steps.imgversion.outputs.imgversion }}
+
+
+  create-and-push-docker:
+    needs: create-version
+    runs-on: [self-hosted, collect]
+    continue-on-error: false
+    env:
+      imgversion: ${{ needs.create-version.outputs.imgversion }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - project: collect
+            distrib: centos7
+          - project: collect
+            distrib: alma8
+          - project: collect
+            distrib: debian-bullseye
+          - project: gorgone
+            distrib: centos7
+          - project: gorgone
+            distrib: alma8
+          - project: gorgone
+            distrib: debian-bullseye
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Login to Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.REPOS_USERNAME }}
+          password: ${{ secrets.REPOS_PASSWORD }}
+
+      - name: build docker ${{ matrix.distrib }}
+        run: docker build --no-cache . -f ci/docker/Dockerfile.${{ matrix.project }}-${{ matrix.distrib }} -t $REGISTRY/centreon-${{ matrix.project }}-${{ matrix.distrib }}:${{ env.imgversion }}
+
+      - name: push docker ${{ matrix.distrib }}
+        run: docker push $REGISTRY/centreon-${{ matrix.project }}-${{ matrix.distrib }}:${{ env.imgversion }}
+

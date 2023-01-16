@@ -1,0 +1,1 @@
+debian/tmp-centreon-collect/usr/lib/centreon-broker/70-graphite.so   usr/share/centreon/lib/centreon-broker

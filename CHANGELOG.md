@@ -13,6 +13,10 @@ with the Broker configuration file.
 
 #### Fixes
 
+*core*
+
+A possible deadlock has been removed from stats center.
+
 *rrd*
 
 Rebuild of graphs should work better.
@@ -41,6 +45,7 @@ with the Engine configuration file.
 *core*
 
 Unknown filters applied in the configuration file do not hang broker anymore.
+Improve future usage
 
 *log*
 
@@ -48,8 +53,7 @@ If a logger was at the 'off'/'disabled' state, then broker did not start.
 
 *sql*
 
-Hostgroups and servicegroups are no more deleted during an instance restart.
-This could lead to issues when several pollers are restarted simultaneously.
+Hostgroups and servicegroups are deleted 5s after the last instance restart.
 
 Size of notes\_url, notes and action\_url columns are reviewed to match the
 web configuration.
@@ -70,6 +74,7 @@ too much.
 *lua*
 
 New function `broker.bbdo_version()` implemented in broker streamconnector.
+stream connector accepts empty parameters
 
 ### centreon-engine
 

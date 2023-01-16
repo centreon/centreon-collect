@@ -1,0 +1,67 @@
+name: Centreon collect build docker
+
+on:
+  pull_request_target:
+    types:
+      - closed
+    branches:
+      - develop
+    paths:
+      - '.github/workflows/docker-builder.yml'
+      - 'ci/docker/**'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/docker-builder.yml'
+      - 'ci/docker/**'
+
+env:
+  REGISTRY: registry-docker.centreon.com/docker-global
+
+jobs:
+  create-and-push-docker:
+#runs-on: [self-hosted, collect]
+    runs-on: ubuntu-latest
+    continue-on-error: false
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - project: collect
+            distrib: centos7
+            version: test-22.10
+          - project: collect
+            distrib: alma8
+            version: test-22.10
+          - project: collect
+            distrib: debian-buster
+            version: test-22.10
+          - project: collect
+            distrib: debian-bullseye
+            version: test-22.10
+          - project: gorgone
+            distrib: centos7
+            version: test-22.10
+          - project: gorgone
+            distrib: alma8
+            version: test-22.10
+          - project: gorgone
+            distrib: debian-bullseye
+            version: test-22.10
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Login to Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.REPOS_USERNAME }}
+          password: ${{ secrets.REPOS_PASSWORD }}
+
+      - name: build docker ${{ matrix.distrib }}
+        run: docker build --no-cache . -f ci/docker/Dockerfile.${{ matrix.project }}-${{ matrix.distrib }} -t $REGISTRY/centreon-${{ matrix.project }}-${{ matrix.distrib }}:${{ matrix.version }}
+
+      - name: push docker ${{ matrix.distrib }}
+        run: docker push $REGISTRY/centreon-${{ matrix.project }}-${{ matrix.distrib }}:${{ matrix.version }}
+

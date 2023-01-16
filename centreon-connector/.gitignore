@@ -1,7 +1,0 @@
-**/.*.swp
-perl/src/xs_init.cc
-perl/test/connector/paths.hh
-ssh/test/connector/binary.hh
-build/*
-.idea/*
-cmake-build-debug/*

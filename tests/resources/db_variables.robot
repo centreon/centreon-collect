@@ -1,9 +1,12 @@
 *** Variables ***
-${DBName}	centreon_storage
-${DBNameConf}	centreon
-${DBHost}	localhost
+${EtcRoot}  /tmp/etc
+${VarRoot}  /tmp/var
+${DBName}	centreon_storage_test
+${DBNameConf}	centreon_test
+${DBHost}	127.0.0.1
 ${DBUser}	centreon
-${DBPass}	Fa@V@?L9@4Wfh70u
+${DBPass}	centreon
 ${DBPort}	3306
-${DBUserRoot}	root
-${DBPassRoot}	Af58MwnP@zJ*@6!5
+${DBUserRoot}	centreon_test
+${DBPassRoot}	centreon
+

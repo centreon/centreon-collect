@@ -1,0 +1,6 @@
+debian/extra/centreon-broker/cbd.service    lib/systemd/system
+debian/tmp-centreon-collect/usr/bin/cbd    usr/sbin
+debian/tmp-centreon-collect/usr/bin/cbwd   usr/sbin
+debian/tmp-centreon-collect/usr/etc/central-broker.json    etc/centreon-broker
+debian/tmp-centreon-collect/usr/etc/central-rrd.json    etc/centreon-broker
+debian/tmp-centreon-collect/usr/etc/watchdog.json    etc/centreon-broker

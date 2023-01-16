@@ -32,8 +32,8 @@
 . /etc/init.d/functions
 
 # Configuration parameters.
-watchdog_file="@PREFIX_CONF@/watchdog.json"
-config_dir="@PREFIX_CONF@"
+watchdog_file="@PREFIX_BROKER_CONF@/watchdog.json"
+config_dir="@PREFIX_BROKER_CONF@"
 cbwd="@PREFIX_BIN@/cbwd"
 pid_path=/var/run
 lockfile=/var/lock/subsys/cbd

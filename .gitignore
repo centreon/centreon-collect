@@ -1,9 +1,11 @@
+# ingore local env files
+.env.local
+
 *.pb.cc
 *.pb.h
 *.so
 *.swp
-.idea
-.vscode
+
 CMakeCache.txt
 CMakeFiles
 CTest*.cmake
@@ -15,11 +17,12 @@ broker_pb2.pyc
 broker_pb2_grpc.py
 broker_pb2_grpc.pyc
 build
-centreon-broker/core/inc/com/centreon/broker/database/table_max_size.hh
-centreon-broker/core/inc/com/centreon/broker/vars.hh
-centreon-broker/core/inc/com/centreon/broker/version.hh
-doc/_build
-doc/devel-doc
+build_my_host
+build_centos7
+cbd
+cbwd
+cppcheck-build
+cppcheck-report.txt
 engine_pb2.py
 engine_pb2.pyc
 engine_pb2_grpc.py
@@ -30,10 +33,9 @@ libroker.a
 librokerbase.a
 tags
 test-coverage
-test/python/*.crt
-test/python/*.key
 ut
-### 
+
+###
 apps/
 build/*
 
@@ -41,54 +43,98 @@ build/*
 node_modules/
 
 ### vscode ###
-.vscode/
+**/.vscode/
+**/.idea
+.scannerwork
 
 ### temp build files ###
 logs/*
-
 workspace.*
-
-# ingore local env files
-.env.local
-
-src/config/centreon-engine/*.cfg
-
-
-*.swp
-**/.idea/*
-**/.vscode/*
+**/*.swp
+**/.*.swp
+**/__pycache__/*
 **/build/*
+**/engine_pb2*.py
+
+**/CMakeFiles/*
+CMakeLists.txt.user
+**/cmake-build-debug/*
+CMakeCache.txt
+cmake_install.cmake
+CTest*.cmake
+Makefile
+
+log.html
+output.xml
+log.html
+report.html
+
+# bbdo
+bbdo/*_accessor.hh
+
+# broker
+centreon-broker/core/inc/com/centreon/broker/database/table_max_size.hh
+centreon-broker/core/inc/com/centreon/broker/vars.hh
+centreon-broker/core/inc/com/centreon/broker/version.hh
+centreon-broker/config/central-rrd.json
+centreon-broker/config/central-broker.json
+centreon-broker/config/central-module.json
+centreon-broker/script/cbd.init
+centreon-broker/script/watchdog.json
+centreon-broker/script/misc/grpc/broker_pb2.py
+centreon-broker/script/misc/grpc/broker_pb2_grpc.py
+centreon-broker/libgtest*.a
+centreon-broker/libnebbase.a
+centreon-broker/libroker.a
+centreon-broker/librokerbase.a
+centreon-broker/test/python/*.crt
+centreon-broker/test/python/*.key
+
+#ci
+ci/repo/*
+
+# clib
+centreon-clib/inc/com/centreon/clib/version.hh
+centreon-clib/script/*
+
+# connectors
+centreon-connector/perl/src/xs_init.cc
+centreon-connector/perl/test/connector/paths.hh
+centreon-connector/ssh/test/connector/binary.hh
+
+# doc
+**/doc/devel-doc
+**/doc/_build
+
+# engine
+centreon-engine/benchmark/lib/*
+centreon-engine/benchmark/log/*
 centreon-engine/conf/centengine.cfg
-centreon-engine/conf/objects/*.cfg
+centreon-engine/conf/timeperiods.cfg
+centreon-engine/conf/commands.cfg
 centreon-engine/conf/resource.cfg
+centreon-engine/conf/objects/*.cfg
 centreon-engine/doc/_build
+centreon-engine/enginerpc/engine.*pb.cc
+centreon-engine/enginerpc/engine.*pb.h
+centreon-engine/gtest.cbp
 centreon-engine/inc/com/centreon/engine/version.hh
 centreon-engine/inc/compatibility/common.h
 centreon-engine/inc/compatibility/locations.h
+centreon-engine/modules/bench/passive/paths.hh
 centreon-engine/scripts/centengine.pc
 centreon-engine/scripts/centengine.sh
 centreon-engine/src/simumod/neb.cc
 centreon-engine/tags
-centreon-engine/gtest.cbp
-**/CMakeFiles/*
-centreon-engine/cmake-build-debug/*
-centreon-engine/modules/bench/passive/paths.hh
-centreon-engine/enginerpc/engine.*pb.cc
-centreon-engine/enginerpc/engine.*pb.h
-**/__pycache__/*
-**/engine_pb2*.py
-centreon-engine/benchmark/centreon-engine/*
-centreon-engine/benchmark/log/*
-centreon-engine/benchmark/lib/*
-**/.*.swp
-centreon-connectors/perl/src/xs_init.cc
-centreon-connectors/perl/test/connector/paths.hh
-centreon-connectors/ssh/test/connector/binary.hh
-build/*
-.idea/*
-cmake-build-debug/*
-centreon-clib/script/*
-centreon-clib/inc/com/centreon/clib/version.hh
-output.xml
-log.html
-report.html
+centreon-engine/doc/devel-doc
+
+# gorgone
+gorgone/log
+
+# tests
+tests/apps/
+tests/src/config/centreon-engine/*.cfg
+tests/src/config/centreon-engine/config*/*
+test/python/*.crt
+test/python/*.key
+tests/logs/*

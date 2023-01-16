@@ -1,0 +1,7 @@
+debian/tmp-centreon-collect/usr/lib/centreon-broker/10-neb.so    usr/share/centreon/lib/centreon-broker
+debian/tmp-centreon-collect/usr/lib/centreon-broker/15-stats.so  usr/share/centreon/lib/centreon-broker
+debian/tmp-centreon-collect/usr/lib/centreon-broker/20-bam.so    usr/share/centreon/lib/centreon-broker
+debian/tmp-centreon-collect/usr/lib/centreon-broker/50-tcp.so    usr/share/centreon/lib/centreon-broker
+debian/tmp-centreon-collect/usr/lib/centreon-broker/60-tls.so    usr/share/centreon/lib/centreon-broker
+debian/tmp-centreon-collect/usr/lib/centreon-broker/70-lua.so    usr/share/centreon/lib/centreon-broker
+debian/tmp-centreon-collect/usr/lib/centreon-broker/80-sql.so    usr/share/centreon/lib/centreon-broker

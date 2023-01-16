@@ -1,31 +1,35 @@
-##
-## Copyright 2011-2015,2017-2019 Centreon
-##
-## Licensed under the Apache License, Version 2.0 (the "License");
-## you may not use this file except in compliance with the License.
-## You may obtain a copy of the License at
-##
-##     http://www.apache.org/licenses/LICENSE-2.0
-##
-## Unless required by applicable law or agreed to in writing, software
-## distributed under the License is distributed on an "AS IS" BASIS,
-## WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-## See the License for the specific language governing permissions and
-## limitations under the License.
-##
-## For more information : contact@centreon.com
-##
+#
+# Copyright 2011-2015,2017-2019 Centreon
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY # KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# For more information : contact@centreon.com
+#
 
 # Should the connector perform check against known_hosts file ?
-option(WITH_KNOWN_HOSTS_CHECK "Check hosts against user's known_hosts file." OFF)
-if (WITH_KNOWN_HOSTS_CHECK)
-  add_definitions(-DWITH_KNOWN_HOSTS_CHECK)
-endif ()
+option(WITH_KNOWN_HOSTS_CHECK "Check hosts against user's known_hosts file."
+       OFF)
 
-include_directories(${PROJECT_SOURCE_DIR}/ssh/inc ${Boost_INCLUDE_DIRS} ${Libssh2_INCLUDE_DIR})
-link_directories(${CMAKE_SOURCE_DIR}/build/centreon-clib/)
+if(WITH_KNOWN_HOSTS_CHECK)
+  add_definitions(-DWITH_KNOWN_HOSTS_CHECK)
+endif()
+
+include_directories(${PROJECT_SOURCE_DIR}/ssh/inc ${Boost_INCLUDE_DIRS}
+                    ${Libssh2_INCLUDE_DIR})
+link_directories(${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
+
 # SSH connector.
-add_executable(centreon_connector_ssh
+add_executable(
+  centreon_connector_ssh
   # Sources.
   ${PROJECT_SOURCE_DIR}/common/src/log.cc
   ${PROJECT_SOURCE_DIR}/common/src/parser.cc
@@ -49,36 +53,40 @@ add_executable(centreon_connector_ssh
   ${PROJECT_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/orders/options.hh
   ${PROJECT_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/policy.hh
   ${PROJECT_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/sessions/credentials.hh
-  ${PROJECT_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/sessions/session.hh
-)
+  ${PROJECT_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/sessions/session.hh)
 
-if (TARGET centreon_clib_shared)
-  add_dependencies(centreon_connector_ssh centreon_clib_shared)
+if(TARGET centreon_clib)
+  add_dependencies(centreon_connector_ssh centreon_clib)
 endif()
 
-target_link_libraries(centreon_connector_ssh 
-  centreon_clib ${spdlog_LIBS} ${fmt_LIBS} ${absl_LIBS} ${Libssh2_LIBS} ${OpenSSL_LIBS} ${ZLIB_LIBS} pthread dl)
+target_link_libraries(
+  centreon_connector_ssh
+  centreon_clib
+  CONAN_PKG::spdlog
+  CONAN_PKG::abseil
+  CONAN_PKG::openssl
+  CONAN_PKG::zlib
+  CONAN_PKG::libssh2
+  pthread
+  dl)
 
 target_precompile_headers(centreon_connector_ssh PRIVATE precomp_inc/precomp.hh)
 
-# Installation path.
-if (WITH_PREFIX)
-  set(CMAKE_INSTALL_PREFIX "${WITH_PREFIX}")
-endif ()
-if (WITH_PREFIX_BINARY)
+if(WITH_PREFIX_BINARY)
   set(PREFIX_BINARY "${WITH_PREFIX_BINARY}")
-else ()
-  set(PREFIX_BINARY "${CMAKE_INSTALL_PREFIX}/bin")
-endif ()
+else()
+  set(PREFIX_BINARY ${PREFIX_CONNECTORS})
+endif()
 
 # Install rules.
 install(TARGETS centreon_connector_ssh RUNTIME DESTINATION ${PREFIX_BINARY})
 
 # Code coverage on unit tests
 option(WITH_COVERAGE "Add code coverage on unit tests." OFF)
-if (WITH_COVERAGE)
+
+if(WITH_COVERAGE)
   set(WITH_TESTING ON)
   set(CMAKE_BUILD_TYPE "Debug")
   include(CodeCoverage.cmake)
-  APPEND_COVERAGE_COMPILER_FLAGS()
-endif ()
+  append_coverage_compiler_flags()
+endif()

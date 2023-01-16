@@ -87,6 +87,7 @@ conflict_manager::conflict_manager(database_config const& dbcfg,
       _instance_timeout{instance_timeout},
       _stats{stats::center::instance().register_conflict_manager()},
       _ref_count{0},
+      _group_clean_timer{pool::io_context()},
       _oldest_timestamp{std::numeric_limits<time_t>::max()} {
   log_v2::sql()->debug("conflict_manager: class instanciation");
   stats::center::instance().update(&ConflictManagerStats::set_loop_timeout,
@@ -98,6 +99,10 @@ conflict_manager::conflict_manager(database_config const& dbcfg,
 
 conflict_manager::~conflict_manager() {
   log_v2::sql()->debug("conflict_manager: destruction");
+  {
+    std::lock_guard<std::mutex> l(_group_clean_timer_m);
+    _group_clean_timer.cancel();
+  }
 }
 
 /**

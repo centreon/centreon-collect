@@ -26,7 +26,6 @@ EBSNU1
 	Broker Config Add Item	central	bbdo_version	3.0.0
 	Broker Config Add Item	rrd	bbdo_version	3.0.0
 	Broker Config Log	central	sql	debug
-	Config Broker Sql Output	central	unified_sql
 	${nu}=	Evaluate	2000*"X"
 	Engine Config set value in hosts	0	host_1	notes_url	${nu}
 	Clear Retention
@@ -54,7 +53,6 @@ EBSAU2
 	Broker Config Add Item	central	bbdo_version	3.0.0
 	Broker Config Add Item	rrd	bbdo_version	3.0.0
 	Broker Config Log	central	sql	debug
-	Config Broker Sql Output	central	unified_sql
 	${au}=	Evaluate	2000*"Y"
 	Engine Config set value in hosts	0	host_2	action_url	${au}
 	Clear Retention
@@ -82,7 +80,6 @@ EBSN3
 	Broker Config Add Item	central	bbdo_version	3.0.0
 	Broker Config Add Item	rrd	bbdo_version	3.0.0
 	Broker Config Log	central	sql	debug
-	Config Broker Sql Output	central	unified_sql
 	${n}=	Evaluate	500*"Z"
 	Engine Config set value in hosts	0	host_3	notes	${n}
 	Clear Retention

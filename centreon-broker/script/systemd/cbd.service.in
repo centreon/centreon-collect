@@ -24,7 +24,7 @@ ReloadPropagatedFrom=centreon.service
 After=mariadb.service
 
 [Service]
-ExecStart=@PREFIX_BIN@/cbwd @PREFIX_CONF@/watchdog.json
+ExecStart=@PREFIX_BIN@/cbwd @PREFIX_BROKER_CONF@/watchdog.json
 ExecReload=/bin/kill -HUP $MAINPID
 Type=simple
 User=centreon-broker

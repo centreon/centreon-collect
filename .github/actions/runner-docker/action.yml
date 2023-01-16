@@ -1,0 +1,27 @@
+name: "runner docker Centreon"
+description: "runner docker Centreon"
+inputs:
+  script_name:
+    description: "script name"
+    required: true
+  image_name:
+    description: "image name"
+    required: true
+  image_version:
+    description: "image version"
+    required: true
+  env_variable:
+    description: "environnment variable"
+    required: false
+  params:
+    description: "params for script"
+    required: false
+
+env:
+  REGISTRY: docker.centreon.com
+
+runs:
+  using: "composite"
+  steps:
+    - run: docker run -i --entrypoint ${{ inputs.script_name }}.sh -v "$PWD:/src" ${{ inputs.env_variable }} ${{ env.REGISTRY }}/${{ inputs.image_name }}:${{ inputs.image_version}} ${{ inputs.params }}
+      shell: bash

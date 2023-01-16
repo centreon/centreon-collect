@@ -1,0 +1,44 @@
+name: centreon collect nightly robot
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+      - develop
+  pull_request:
+    paths:
+      - '.github/workflows/robot-nightly.yml'
+  schedule:
+    - cron: '0 0 * * *'
+
+jobs:
+  robot-test:
+    runs-on: ubuntu-latest
+#runs-on: [self-hosted, collect]
+    strategy:
+      matrix:
+        # branch: [develop, master]
+        include:
+          - image: centreon-collect-centos7
+            version: test-22.10
+            folder_report: tests/
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+        # with:
+          # ref: ${{ matrix.branch }}
+
+      - name: Test robot centos7
+        uses: ./.github/actions/runner-docker
+        with:
+          script_name: /src/ci/scripts/collect-test-robot
+          image_name: ${{ matrix.image }}
+          image_version: ${{ matrix.version }}
+          params: ${{ matrix.branch }}
+
+      - name: Send report to commit
+        uses: joonvena/robotframework-reporter-action@v2
+        with:
+          gh_access_token: ${{ secrets.GITHUB_TOKEN }}
+          report_path: ${{ matrix.folder_report }}

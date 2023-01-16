@@ -91,7 +91,7 @@ void reader_v2::_load(state::kpis& kpis) {
     std::string query(fmt::format(
         "SELECT  k.kpi_id, k.state_type, k.host_id, k.service_id, k.id_ba,"
         "        k.id_indicator_ba, k.meta_id, k.boolean_id,"
-        "        k.current_status, k.last_level, k.downtime,"
+        "        k.current_status, k.downtime,"
         "        k.acknowledged, k.ignore_downtime,"
         "        k.ignore_acknowledged,"
         "        COALESCE(COALESCE(k.drop_warning, ww.impact), "
@@ -138,21 +138,20 @@ void reader_v2::_load(state::kpis& kpis) {
                            res.value_as_u32(6),    // Meta-service ID.
                            res.value_as_u32(7),    // Boolean expression ID.
                            res.value_as_i32(8),    // Status.
-                           res.value_as_i32(9),    // Last level.
-                           res.value_as_f32(10),   // Downtimed.
-                           res.value_as_f32(11),   // Acknowledged.
-                           res.value_as_bool(12),  // Ignore downtime.
-                           res.value_as_bool(13),  // Ignore acknowledgement.
-                           res.value_as_f64(14),   // Warning.
-                           res.value_as_f64(15),   // Critical.
-                           res.value_as_f64(16));  // Unknown.
+                           res.value_as_f32(9),    // Downtimed.
+                           res.value_as_f32(10),   // Acknowledged.
+                           res.value_as_bool(11),  // Ignore downtime.
+                           res.value_as_bool(12),  // Ignore acknowledgement.
+                           res.value_as_f64(13),   // Warning.
+                           res.value_as_f64(14),   // Critical.
+                           res.value_as_f64(15));  // Unknown.
 
         // KPI state.
-        if (!res.value_is_null(17)) {
-          kpi_event e(kpi_id, res.value_as_u32(4), res.value_as_u64(17));
+        if (!res.value_is_null(16)) {
+          kpi_event e(kpi_id, res.value_as_u32(4), res.value_as_u64(16));
           e.status = res.value_as_i32(8);
-          e.in_downtime = res.value_as_bool(18);
-          e.impact_level = res.value_is_null(19) ? -1 : res.value_as_f64(19);
+          e.in_downtime = res.value_as_bool(17);
+          e.impact_level = res.value_is_null(18) ? -1 : res.value_as_f64(18);
           kpis[kpi_id].set_opened_event(e);
         }
       }

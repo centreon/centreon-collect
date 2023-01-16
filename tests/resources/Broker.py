@@ -14,8 +14,6 @@ import json
 import glob
 import os.path
 import grpc
-import broker_pb2
-import broker_pb2_grpc
 from google.protobuf import empty_pb2
 from robot.libraries.BuiltIn import BuiltIn
 
@@ -289,8 +287,7 @@ config = {
                 "tcp": "error",
                 "tls": "error",
                 "lua": "error",
-                "bam": "error",
-                "grpc": "error"
+                "bam": "error"
             }}
         }},
         "input": [
@@ -441,7 +438,8 @@ def config_broker(name, poller_inst: int = 1):
             f.close()
     else:
         f = open("/etc/centreon-broker/{}".format(filename), "w")
-        f.write(config[name].format(broker_id, broker_name, DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME_STORAGE))
+        f.write(config[name].format(broker_id, broker_name,
+                DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME_STORAGE))
         f.close()
 
 

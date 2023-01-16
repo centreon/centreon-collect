@@ -1,33 +1,31 @@
-##
-## Copyright 2011-2013 Merethis
-##
-## This file is part of Centreon Scheduler.
-##
-## Centreon Scheduler is free software: you can redistribute it and/or
-## modify it under the terms of the GNU General Public License version 2
-## as published by the Free Software Foundation.
-##
-## Centreon Scheduler is distributed in the hope that it will be useful,
-## but WITHOUT ANY WARRANTY; without even the implied warranty of
-## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-## General Public License for more details.
-##
-## You should have received a copy of the GNU General Public License
-## along with Centreon Scheduler. If not, see
-## <http://www.gnu.org/licenses/>.
-##
+#
+# Copyright 2011-2022 Centreon
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY # KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# For more information : contact@centreon.com
+#
 
 # Set directories.
 set(TEST_DIR "${TEST_DIR}/commands")
-link_directories(${CMAKE_SOURCE_DIR}/build/centreon-clib/)
+link_directories(${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 
 # Test binary.
 add_executable("bin_connector_test_run" "${TEST_DIR}/bin_connector_test_run.cc")
-add_dependencies("bin_connector_test_run" centreon_clib_shared)
+add_dependencies("bin_connector_test_run" centreon_clib)
 target_link_libraries("bin_connector_test_run" centreon_clib)
 
 add_executable("bin_test_run" "${TEST_DIR}/bin_test_run.cc")
-add_dependencies("bin_test_run" centreon_clib_shared)
+add_dependencies("bin_test_run" centreon_clib)
 target_link_libraries("bin_test_run" centreon_clib)
 
 # Test connector.
@@ -43,11 +41,8 @@ add_executable("connector_run_sync" "${TEST_DIR}/connector_run_sync.cc")
 target_link_libraries("connector_run_sync" "cce_core")
 add_test("connector_run_sync" "connector_run_sync")
 
-add_executable(
-  "connector_run_async"
-  "${TEST_DIR}/connector_run_async.cc"
-  "${TEST_DIR}/wait_process.hh"
-)
+add_executable("connector_run_async" "${TEST_DIR}/connector_run_async.cc"
+                                     "${TEST_DIR}/wait_process.hh")
 target_link_libraries("connector_run_async" "cce_core")
 add_test("connector_run_async" "connector_run_async")
 
@@ -55,11 +50,8 @@ add_executable("connector_get" "${TEST_DIR}/connector_get.cc")
 target_link_libraries("connector_get" "cce_core")
 add_test("connector_get" "connector_get")
 
-add_executable(
-  "connector_restart"
-  "${TEST_DIR}/connector_restart.cc"
-  "${TEST_DIR}/wait_process.hh"
-)
+add_executable("connector_restart" "${TEST_DIR}/connector_restart.cc"
+                                   "${TEST_DIR}/wait_process.hh")
 target_link_libraries("connector_restart" "cce_core")
 add_test("connector_restart" "connector_restart")
 
@@ -106,11 +98,8 @@ add_executable("raw_run_sync" "${TEST_DIR}/raw_run_sync.cc")
 target_link_libraries("raw_run_sync" "cce_core")
 add_test("raw_run_sync" "raw_run_sync")
 
-add_executable(
-  "raw_run_async"
-  "${TEST_DIR}/raw_run_async.cc"
-  "${TEST_DIR}/wait_process.hh"
-)
+add_executable("raw_run_async" "${TEST_DIR}/raw_run_async.cc"
+                               "${TEST_DIR}/wait_process.hh")
 target_link_libraries("raw_run_async" "cce_core")
 add_test("raw_run_async" "raw_run_async")
 

@@ -1,0 +1,3 @@
+etc/centreon-broker
+var/lib/centreon-broker
+var/log/centreon-broker

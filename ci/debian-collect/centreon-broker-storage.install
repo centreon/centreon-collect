@@ -1,0 +1,2 @@
+debian/tmp-centreon-collect/usr/lib/centreon-broker/20-storage.so        usr/share/centreon/lib/centreon-broker
+debian/tmp-centreon-collect/usr/lib/centreon-broker/70-rrd.so            usr/share/centreon/lib/centreon-broker

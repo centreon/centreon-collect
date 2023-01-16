@@ -387,7 +387,7 @@ TEST_F(DatabaseStorageTest, RepeatPrepareQuery) {
 // Instance (15) statement
 TEST_F(DatabaseStorageTest, InstanceStatement) {
   modules::loader l;
-  l.load_file("./neb/10-neb.so");
+  l.load_file("./lib/10-neb.so");
   database_config db_cfg("MySQL", "127.0.0.1", 3306, "centreon", "centreon",
                          "centreon_storage", 5, true, 5);
   std::unique_ptr<mysql> ms(new mysql(db_cfg));
@@ -442,7 +442,7 @@ TEST_F(DatabaseStorageTest, InstanceStatement) {
 // Host (12) statement
 TEST_F(DatabaseStorageTest, HostStatement) {
   modules::loader l;
-  l.load_file("./neb/10-neb.so");
+  l.load_file("./lib/10-neb.so");
   database_config db_cfg("MySQL", "127.0.0.1", 3306, "centreon", "centreon",
                          "centreon_storage", 5, true, 5);
   std::unique_ptr<mysql> ms(new mysql(db_cfg));
@@ -531,7 +531,7 @@ TEST_F(DatabaseStorageTest, HostStatement) {
 
 TEST_F(DatabaseStorageTest, CustomVarStatement) {
   modules::loader l;
-  l.load_file("./neb/10-neb.so");
+  l.load_file("./lib/10-neb.so");
   database_config db_cfg("MySQL", "127.0.0.1", 3306, "centreon", "centreon",
                          "centreon_storage", 5, true, 5);
   std::unique_ptr<mysql> ms(new mysql(db_cfg));
@@ -583,7 +583,7 @@ TEST_F(DatabaseStorageTest, CustomVarStatement) {
 
 TEST_F(DatabaseStorageTest, ModuleStatement) {
   modules::loader l;
-  l.load_file("./neb/10-neb.so");
+  l.load_file("./lib/10-neb.so");
   database_config db_cfg("MySQL", "127.0.0.1", 3306, "centreon", "centreon",
                          "centreon_storage", 5, true, 5);
   std::unique_ptr<mysql> ms(new mysql(db_cfg));
@@ -619,7 +619,7 @@ TEST_F(DatabaseStorageTest, ModuleStatement) {
 // log_entry (17) statement queries
 TEST_F(DatabaseStorageTest, LogStatement) {
   modules::loader l;
-  l.load_file("./neb/10-neb.so");
+  l.load_file("./lib/10-neb.so");
   database_config db_cfg("MySQL", "127.0.0.1", 3306, "centreon", "centreon",
                          "centreon_storage", 5, true, 5);
   std::unique_ptr<mysql> ms(new mysql(db_cfg));
@@ -660,7 +660,7 @@ TEST_F(DatabaseStorageTest, LogStatement) {
 // Instance status (16) statement
 TEST_F(DatabaseStorageTest, InstanceStatusStatement) {
   modules::loader l;
-  l.load_file("./neb/10-neb.so");
+  l.load_file("./lib/10-neb.so");
   database_config db_cfg("MySQL", "127.0.0.1", 3306, "centreon", "centreon",
                          "centreon_storage", 5, true, 5);
   std::unique_ptr<mysql> ms(new mysql(db_cfg));
@@ -704,7 +704,7 @@ TEST_F(DatabaseStorageTest, InstanceStatusStatement) {
 // Host check (8) statement
 TEST_F(DatabaseStorageTest, HostCheckStatement) {
   modules::loader l;
-  l.load_file("./neb/10-neb.so");
+  l.load_file("./lib/10-neb.so");
   database_config db_cfg("MySQL", "127.0.0.1", 3306, "centreon", "centreon",
                          "centreon_storage", 5, true, 5);
   std::unique_ptr<mysql> ms(new mysql(db_cfg));
@@ -734,7 +734,7 @@ TEST_F(DatabaseStorageTest, HostCheckStatement) {
 // Host status (14) statement
 TEST_F(DatabaseStorageTest, HostStatusStatement) {
   modules::loader l;
-  l.load_file("./neb/10-neb.so");
+  l.load_file("./lib/10-neb.so");
   database_config db_cfg("MySQL", "127.0.0.1", 3306, "centreon", "centreon",
                          "centreon_storage", 5, true, 5);
   std::unique_ptr<mysql> ms(new mysql(db_cfg));
@@ -791,7 +791,7 @@ TEST_F(DatabaseStorageTest, HostStatusStatement) {
 // Service (23) statement
 TEST_F(DatabaseStorageTest, ServiceStatement) {
   modules::loader l;
-  l.load_file("./neb/10-neb.so");
+  l.load_file("./lib/10-neb.so");
   database_config db_cfg("MySQL", "127.0.0.1", 3306, "centreon", "centreon",
                          "centreon_storage", 5, true, 5);
   std::unique_ptr<mysql> ms(new mysql(db_cfg));
@@ -843,7 +843,7 @@ TEST_F(DatabaseStorageTest, ServiceStatement) {
 // Service Check (19) statement
 TEST_F(DatabaseStorageTest, ServiceCheckStatement) {
   modules::loader l;
-  l.load_file("./neb/10-neb.so");
+  l.load_file("./lib/10-neb.so");
   database_config db_cfg("MySQL", "127.0.0.1", 3306, "centreon", "centreon",
                          "centreon_storage", 5, true, 5);
   std::unique_ptr<mysql> ms(new mysql(db_cfg));
@@ -879,7 +879,7 @@ TEST_F(DatabaseStorageTest, ServiceCheckStatement) {
 // Service Status (24) statement
 TEST_F(DatabaseStorageTest, ServiceStatusStatement) {
   modules::loader l;
-  l.load_file("./neb/10-neb.so");
+  l.load_file("./lib/10-neb.so");
   database_config db_cfg("MySQL", "127.0.0.1", 3306, "centreon", "centreon",
                          "centreon_storage", 5, true, 5);
   std::unique_ptr<mysql> ms(new mysql(db_cfg));
@@ -910,7 +910,7 @@ TEST_F(DatabaseStorageTest, ServiceStatusStatement) {
 
 TEST_F(DatabaseStorageTest, CustomvariableStatement) {
   modules::loader l;
-  l.load_file("./neb/10-neb.so");
+  l.load_file("./lib/10-neb.so");
   database_config db_cfg("MySQL", "127.0.0.1", 3306, "centreon", "centreon",
                          "centreon_storage", 5, true, 5);
   std::unique_ptr<mysql> ms(new mysql(db_cfg));
@@ -959,7 +959,7 @@ TEST_F(DatabaseStorageTest, CustomvariableStatement) {
 
 TEST_F(DatabaseStorageTest, SelectStatement) {
   modules::loader l;
-  l.load_file("./neb/10-neb.so");
+  l.load_file("./lib/10-neb.so");
   database_config db_cfg("MySQL", "127.0.0.1", 3306, "centreon", "centreon",
                          "centreon_storage", 5, true, 5);
   std::unique_ptr<mysql> ms(new mysql(db_cfg));
@@ -978,7 +978,7 @@ TEST_F(DatabaseStorageTest, SelectStatement) {
 
 TEST_F(DatabaseStorageTest, DowntimeStatement) {
   modules::loader l;
-  l.load_file("./neb/10-neb.so");
+  l.load_file("./lib/10-neb.so");
   database_config db_cfg("MySQL", "127.0.0.1", 3306, "centreon", "centreon",
                          "centreon_storage", 5, true, 5);
   std::unique_ptr<mysql> ms(new mysql(db_cfg));
@@ -1036,7 +1036,7 @@ TEST_F(DatabaseStorageTest, DowntimeStatement) {
 
 TEST_F(DatabaseStorageTest, HostGroupMemberStatement) {
   modules::loader l;
-  l.load_file("./neb/10-neb.so");
+  l.load_file("./lib/10-neb.so");
   database_config db_cfg("MySQL", "127.0.0.1", 3306, "centreon", "centreon",
                          "centreon_storage", 5, true, 5);
   std::unique_ptr<mysql> ms(new mysql(db_cfg));
@@ -1095,7 +1095,7 @@ TEST_F(DatabaseStorageTest, HostGroupMemberStatement) {
 
 TEST_F(DatabaseStorageTest, HostParentStatement) {
   modules::loader l;
-  l.load_file("./neb/10-neb.so");
+  l.load_file("./lib/10-neb.so");
   database_config db_cfg("MySQL", "127.0.0.1", 3306, "centreon", "centreon",
                          "centreon_storage", 5, true, 5);
   std::unique_ptr<mysql> ms(new mysql(db_cfg));
@@ -1142,7 +1142,7 @@ TEST_F(DatabaseStorageTest, HostParentStatement) {
 
 TEST_F(DatabaseStorageTest, ServiceGroupMemberStatement) {
   modules::loader l;
-  l.load_file("./neb/10-neb.so");
+  l.load_file("./lib/10-neb.so");
   database_config db_cfg("MySQL", "127.0.0.1", 3306, "centreon", "centreon",
                          "centreon_storage", 5, true, 5);
   std::unique_ptr<mysql> ms(new mysql(db_cfg));

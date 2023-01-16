@@ -29,8 +29,7 @@
 using namespace com::centreon;
 using namespace com::centreon::connector;
 
-static std::string perl_connector =
-    BUILD_PATH "/centreon-connector/perl/centreon_connector_perl";
+static std::string perl_connector = BUILD_PATH "/bin/centreon_connector_perl";
 
 static constexpr const char cmd1[] =
     "2\x00"
@@ -209,7 +208,7 @@ TEST_F(TestConnector, ExecuteModuleLoading) {
   _write_file(script_path.c_str(),
               "#!/usr/bin/perl\n"
               "\n"
-              "use Error::Simple;\n"
+              "use Sys::Hostname;\n"
               "use IO::Socket;\n"
               "\n"
               "print \"Centreon is wonderful\\n\";\n"
