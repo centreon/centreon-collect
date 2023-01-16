@@ -8,7 +8,7 @@ on:
       - dev-21.10.x
 
 env:
-  REGISTRY: registry-docker.centreon.com/docker-global
+  REGISTRY: docker.centreon.com/docker-global
 
 jobs:
   create-version:
