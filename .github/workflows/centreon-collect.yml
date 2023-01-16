@@ -197,7 +197,7 @@ jobs:
 
       - name: Publish DEB packages
         uses: ./.github/actions/delivery
-with:
+        with:
           distrib: ${{ matrix.distrib }}
           repository_name: standard
           version: ${{ env.version }}
