@@ -27,12 +27,18 @@ namespace http_client {
 
 class https_connection : public connection_base {
  protected:
+  asio::ssl::context _sslcontext;
+  boost::beast::ssl_stream<boost::beast::tcp_stream> _stream;
+
   https_connection(const std::shared_ptr<asio::io_context>& io_context,
                    const std::shared_ptr<spdlog::logger>& logger,
                    const http_config::pointer& conf);
 
+  void on_handshake(const boost::beast::error_code err,
+                    const connect_callback_type& callback);
+
   void on_connect(const boost::beast::error_code& err,
-                  const connect_callback_type& callback);
+                  connect_callback_type& callback);
 
   void on_sent(const boost::beast::error_code& err,
                request_ptr request,

@@ -17,6 +17,7 @@
 */
 
 #include "com/centreon/broker/victoria_metrics/connector.hh"
+#include "com/centreon/broker/http_client/https_connection.hh"
 #include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/victoria_metrics/stream.hh"
 
@@ -33,7 +34,8 @@ std::unique_ptr<io::stream> connector::open() {
     s = stream::load(pool::io_context_ptr(), _conf, _cache,
                      http_client::http_connection::load);
   } else {
-    throw std::invalid_argument("encryption not implemented");
+    s = stream::load(pool::io_context_ptr(), _conf, _cache,
+                     http_client::https_connection::load);
   }
 
   return std::make_unique<stream_unique_wrapper>(s);

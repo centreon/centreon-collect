@@ -33,6 +33,8 @@ class http_config {
   unsigned _max_send_retry;
   duration _default_http_keepalive_duration;
   unsigned _max_connections;
+  asio::ssl::context_base::method _ssl_method;
+  std::string _certificate_path;
 
  public:
   using pointer = std::shared_ptr<http_config>;
@@ -46,7 +48,10 @@ class http_config {
               duration max_retry_interval = std::chrono::seconds(10),
               unsigned max_send_retry = 5,
               duration default_http_keepalive_duration = std::chrono::hours(1),
-              unsigned max_connections = 10)
+              unsigned max_connections = 10,
+              asio::ssl::context_base::method ssl_method =
+                  asio::ssl::context_base::tlsv13_client,
+              const std::string& certificate_path = "")
       : _endpoint(endpoint),
         _crypted(crypted),
         _connect_timeout(connect_timeout),
@@ -56,7 +61,9 @@ class http_config {
         _max_retry_interval(max_retry_interval),
         _max_send_retry(max_send_retry),
         _default_http_keepalive_duration(default_http_keepalive_duration),
-        _max_connections(max_connections) {}
+        _max_connections(max_connections),
+        _ssl_method(ssl_method),
+        _certificate_path(certificate_path) {}
 
   http_config()
       : _crypted(false),
@@ -78,6 +85,8 @@ class http_config {
     return _default_http_keepalive_duration;
   }
   unsigned get_max_connections() const { return _max_connections; }
+  asio::ssl::context_base::method get_ssl_method() const { return _ssl_method; }
+  const std::string& get_certificate_path() const { return _certificate_path; }
 };
 
 };  // namespace http_client

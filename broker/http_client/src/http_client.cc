@@ -131,18 +131,21 @@ bool client::connect(const cb_request::pointer& request) {
     return false;
   }
   if (!_not_connected_conns.empty()) {
-    connection_base::pointer conn = *_not_connected_conns.begin();
-    _not_connected_conns.erase(_not_connected_conns.begin());
-    _busy_conns.insert(conn);
-    SPDLOG_LOGGER_DEBUG(_logger, "connection of {:p}",
-                        static_cast<void*>(conn.get()));
-    request->request->_connect = system_clock::now();
-    conn->connect([me = shared_from_this(), conn, request](
-                      const boost::beast::error_code& error,
-                      const std::string& detail) mutable {
-      me->on_connect(error, detail, request, conn);
-    });
-    return true;
+    for (connection_base::pointer conn : _not_connected_conns) {
+      if (conn->get_state() == connection_base::e_not_connected) {
+        _not_connected_conns.erase(_not_connected_conns.begin());
+        _busy_conns.insert(conn);
+        SPDLOG_LOGGER_DEBUG(_logger, "connection of {:p}",
+                            static_cast<void*>(conn.get()));
+        request->request->_connect = system_clock::now();
+        conn->connect([me = shared_from_this(), conn, request](
+                          const boost::beast::error_code& error,
+                          const std::string& detail) mutable {
+          me->on_connect(error, detail, request, conn);
+        });
+        return true;
+      }
+    }
   }
   return false;
 }

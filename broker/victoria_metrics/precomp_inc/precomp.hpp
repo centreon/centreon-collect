@@ -37,6 +37,7 @@
 
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
+#include <boost/beast/ssl.hpp>
 #include <boost/container/flat_set.hpp>
 
 using system_clock = std::chrono::system_clock;

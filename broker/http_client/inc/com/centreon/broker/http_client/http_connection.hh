@@ -64,6 +64,7 @@ class request_base : public request_type {
                boost::beast::string_view target);
 
   friend class http_connection;
+  friend class https_connection;
   friend class client;
 
   time_point get_connect_time() const { return _connect; }
@@ -89,7 +90,15 @@ class connection_base : public std::enable_shared_from_this<connection_base> {
   http_config::pointer _conf;
 
  public:
-  enum e_state { e_not_connected, e_connecting, e_idle, e_send, e_receive };
+  enum e_state {
+    e_not_connected,
+    e_connecting,
+    e_handshake,
+    e_idle,
+    e_send,
+    e_receive,
+    e_shutdown
+  };
 
   using pointer = std::shared_ptr<connection_base>;
 

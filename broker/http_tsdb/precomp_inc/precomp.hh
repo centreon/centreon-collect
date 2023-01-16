@@ -40,6 +40,7 @@
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
+#include <boost/beast/ssl.hpp>
 #include <boost/container/flat_set.hpp>
 #include <boost/exception/diagnostic_information.hpp>
 

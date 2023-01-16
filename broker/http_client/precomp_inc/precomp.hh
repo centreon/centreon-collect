@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <chrono>
 #include <deque>
+#include <map>
 #include <regex>
 #include <set>
 #include <string>
@@ -34,9 +35,11 @@
 
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
+#include <boost/beast/ssl.hpp>
 #include <boost/container/flat_set.hpp>
 
 #include "com/centreon/broker/namespace.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 using system_clock = std::chrono::system_clock;
 using time_point = system_clock::time_point;
