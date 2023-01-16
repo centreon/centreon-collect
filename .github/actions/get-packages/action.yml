@@ -75,6 +75,8 @@ runs:
         # Obtain latest version.patch-release
         PKG_DIR_VERSION=$(curl -s "https://yum.centreon.com/standard/23.04/el7/unstable/x86_64/centreon-collect/" | sed -En 's/.*(centreon-collect-[2-9][0-9]\.[0-9][0-9]\.[[:digit:]]+-[[:digit:]]+\.[[a-z0-9]{7}).*/\1/p')
 
+        echo "[DEBUG] - PKG_DIR_VERSION: $PKG_DIR_VERSION"
+
         for FILE in $FILES ; do
           if [[ "${{ env.extfile }}" == "deb" ]] ; then
             echo "[DEBUG] - https://artifactory.apps.centreon.com/artifactory/debian-$VERSION-$REPO/pool/$FILE;deb.distribution=bullseye;deb.component=main;deb.architecture=amd64"
@@ -82,8 +84,8 @@ runs:
           else
             #echo "[DEBUG] - https://artifactory.apps.centreon.com/artifactory/rpm-${{ inputs.version }}-$REPO/${{ inputs.distrib }}/$REPO/x86_64/centreon-collect/$FILE-$FULL_VERSION-$RELEASE.${{ inputs.distrib }}.x86_64.rpm"
             #curl -v -u "${{ inputs.repos_username }}":"${{ inputs.repos_password }}" -O "https://artifactory.apps.centreon.com/artifactory/rpm-${{ inputs.version }}-$REPO/${{ inputs.distrib }}/$REPO/x86_64/centreon-collect/$FILE-$FULL_VERSION-$RELEASE.${{ inputs.distrib }}.x86_64.rpm"
-            echo "[DEBUG] - https://yum.centreon.com/standard/${{ inputs.version }}/${{ inputs.distrib }}/$REPO/x86_64/centreon-collect/centreon-collect-$FULL_VERSION-$RELEASE/$FILE-$FULL_VERSION-$RELEASE.${{ inputs.distrib }}.x86_64.rpm"
-            curl -v https://yum.centreon.com/standard/${{ inputs.version }}/${{ inputs.distrib }}/$REPO/x86_64/centreon-collect/centreon-collect-$PKG_DIR_VERSION/$FILE-$PKG_DIR_VERSION.${{ inputs.distrib }}.x86_64.rpm
+            echo "[DEBUG] - https://yum.centreon.com/standard/${{ inputs.version }}/${{ inputs.distrib }}/$REPO/x86_64/centreon-collect/$PKG_DIR_VERSION/$FILE-$PKG_DIR_VERSION.${{ inputs.distrib }}.x86_64.rpm"
+            curl -v https://yum.centreon.com/standard/${{ inputs.version }}/${{ inputs.distrib }}/$REPO/x86_64/centreon-collect/$PKG_DIR_VERSION/$FILE-$PKG_DIR_VERSION.${{ inputs.distrib }}.x86_64.rpm
           fi
         done
 
