@@ -35,7 +35,8 @@ class request : public http_tsdb::request {
           boost::beast::string_view target,
           unsigned size_to_reserve,
           const http_tsdb::line_protocol_query& metric_formatter,
-          const http_tsdb::line_protocol_query& status_formatter);
+          const http_tsdb::line_protocol_query& status_formatter,
+          const std::string& authorization = "");
 
   virtual void add_metric(const storage::metric& metric) override;
   virtual void add_metric(const Metric& metric) override;

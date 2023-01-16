@@ -84,7 +84,6 @@ void factory::create_conf(const config::endpoint& cfg,
   std::string user(find_param(cfg, "db_user"));
   std::string passwd(find_param(cfg, "db_password"));
   std::string addr(find_param(cfg, "db_host"));
-  std::string db(find_param(cfg, "db_name"));
 
   bool encryption = false;
   std::map<std::string, std::string>::const_iterator it{
@@ -209,7 +208,7 @@ void factory::create_conf(const config::endpoint& cfg,
       receive_timeout, second_tcp_keep_alive_interval, std::chrono::seconds(1),
       0, default_http_keepalive_duration, max_connections);
 
-  conf = http_tsdb_config(http_cfg, user, passwd, db, queries_per_transaction,
+  conf = http_tsdb_config(http_cfg, user, passwd, queries_per_transaction,
                           max_send_interval, status_column_list,
                           metric_column_list);
 }

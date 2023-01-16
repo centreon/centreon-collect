@@ -28,11 +28,13 @@ request::request(boost::beast::http::verb method,
                  boost::beast::string_view target,
                  unsigned size_to_reserve,
                  const http_tsdb::line_protocol_query& metric_formatter,
-                 const http_tsdb::line_protocol_query& status_formatter)
+                 const http_tsdb::line_protocol_query& status_formatter,
+                 const std::string& authorization)
     : http_tsdb::request(method, target),
       _metric_formatter(metric_formatter),
       _status_formatter(status_formatter) {
   body().reserve(size_to_reserve);
+  set(boost::beast::http::field::authorization, authorization);
 }
 
 static const absl::string_view _sz_metric = "metric";

@@ -20,6 +20,7 @@
 #include "bbdo/storage/metric.hh"
 #include "bbdo/storage/status.hh"
 #include "com/centreon/broker/log_v2.hh"
+#include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/victoria_metrics/request.hh"
 #include "com/centreon/broker/victoria_metrics/victoria_config.hh"
@@ -55,6 +56,10 @@ stream::stream(const std::shared_ptr<asio::io_context>& io_context,
   hostname[sizeof(hostname) - 1] = 0;
   gethostname(hostname, sizeof(hostname) - 1);
   _hostname = hostname;
+
+  _authorization = "Basic ";
+  _authorization +=
+      misc::string::base64_encode(conf->get_user() + ':' + conf->get_pwd());
 }
 
 std::shared_ptr<stream> stream::load(
@@ -70,7 +75,8 @@ http_tsdb::request::pointer stream::create_request() const {
   auto ret = std::make_shared<request>(
       boost::beast::http::verb::post,
       std::static_pointer_cast<victoria_config>(_conf)->get_http_target(),
-      _body_size_to_reserve, _metric_formatter, _status_formatter);
+      _body_size_to_reserve, _metric_formatter, _status_formatter,
+      _authorization);
 
   ret->set(boost::beast::http::field::host, _hostname);
   ret->set(boost::beast::http::field::content_type, "text/plain");

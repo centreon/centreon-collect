@@ -72,7 +72,6 @@ TEST_F(VictoriaMetricsFactory, ParseParameter) {
 
   cfg.params["db_user"] = "admin";
   cfg.params["db_password"] = "pass";
-  cfg.params["db_name"] = "centreon";
   cfg.params["db_host"] = "localhost";
   cfg.params["encryption"] = "true";
   cfg.params["db_port"] = "1024";
@@ -95,7 +94,6 @@ TEST_F(VictoriaMetricsFactory, ParseParameter) {
 
   ASSERT_EQ(conf.get_user(), "admin");
   ASSERT_EQ(conf.get_pwd(), "pass");
-  ASSERT_EQ(conf.get_database(), "centreon");
   ASSERT_EQ(conf.get_endpoint().port(), 1024);
   ASSERT_EQ(conf.get_max_queries_per_transaction(), 100);
   ASSERT_EQ(conf.get_max_send_interval(), std::chrono::seconds(2));

@@ -29,6 +29,9 @@ class victoria_config : public http_tsdb::http_tsdb_config {
 
  public:
   victoria_config(const std::string& http_target) : _http_target(http_target) {}
+  victoria_config(const std::string& http_target,
+                  const http_tsdb::http_tsdb_config& cfg)
+      : http_tsdb::http_tsdb_config(cfg), _http_target(http_target) {}
 
   const std::string& get_http_target() const { return _http_target; }
 };

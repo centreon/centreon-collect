@@ -39,6 +39,8 @@ class stream : public http_tsdb::stream {
 
   std::string _hostname;
 
+  std::string _authorization;
+
  protected:
   stream(const std::shared_ptr<asio::io_context>& io_context,
          const std::shared_ptr<victoria_config>& conf,
@@ -55,6 +57,8 @@ class stream : public http_tsdb::stream {
       const std::shared_ptr<persistent_cache>& cache,
       http_client::client::connection_creator conn_creator =
           http_client::http_connection::load);
+
+  const std::string& get_authorization() const { return _authorization; }
 };
 
 /**

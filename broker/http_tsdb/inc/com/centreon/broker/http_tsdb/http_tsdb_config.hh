@@ -28,7 +28,6 @@ namespace http_tsdb {
 class http_tsdb_config : public http_client::http_config {
   std::string _user;
   std::string _pwd;
-  std::string _database;
   unsigned _max_queries_per_transaction;
   duration _max_send_interval;
   std::vector<column> _status_columns;
@@ -38,7 +37,6 @@ class http_tsdb_config : public http_client::http_config {
   http_tsdb_config(const http_client::http_config& http_conf,
                    const std::string& user,
                    const std::string& pwd,
-                   const std::string& database,
                    unsigned max_queries_per_transaction,
                    duration max_send_interval,
                    const std::vector<column>& status_columns,
@@ -46,7 +44,6 @@ class http_tsdb_config : public http_client::http_config {
       : http_client::http_config(http_conf),
         _user(user),
         _pwd(pwd),
-        _database(database),
         _max_queries_per_transaction(max_queries_per_transaction),
         _max_send_interval(max_send_interval),
         _status_columns(status_columns),
@@ -62,7 +59,6 @@ class http_tsdb_config : public http_client::http_config {
 
   const std::string& get_user() const { return _user; }
   const std::string& get_pwd() const { return _pwd; }
-  const std::string& get_database() const { return _database; }
 
   unsigned get_max_queries_per_transaction() const {
     return _max_queries_per_transaction;
