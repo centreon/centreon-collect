@@ -59,7 +59,7 @@ class HostFlappingNotification : public TestEngine {
     _host = hm.begin()->second;
     _host->set_current_state(engine::host::state_up);
     _host->set_state_type(checkable::hard);
-    _host->set_problem_has_been_acknowledged(false);
+    _host->set_acknowledgement(AckType::NONE);
     _host->set_notify_on(static_cast<uint32_t>(-1));
 
     configuration::host hst_child;
@@ -74,7 +74,7 @@ class HostFlappingNotification : public TestEngine {
     _host2 = hm.begin()->second;
     _host2->set_current_state(engine::host::state_up);
     _host2->set_state_type(checkable::hard);
-    _host2->set_problem_has_been_acknowledged(false);
+    _host2->set_acknowledgement(AckType::NONE);
     _host2->set_notify_on(static_cast<uint32_t>(-1));
   }
 

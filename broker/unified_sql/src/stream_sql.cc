@@ -1267,7 +1267,7 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
             _resources_host_insert.bind_value_as_bool(
                 4, h.scheduled_downtime_depth() > 0);
             _resources_host_insert.bind_value_as_bool(
-                5, h.acknowledgement_type() != Host_AckType_NONE);
+                5, h.acknowledgement_type() != AckType::NONE);
             _resources_host_insert.bind_value_as_bool(
                 6, h.state_type() == Host_StateType_HARD);
             _resources_host_insert.bind_value_as_u32(7, h.check_attempt());
@@ -1347,7 +1347,7 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
             _resources_host_update.bind_value_as_bool(
                 3, h.scheduled_downtime_depth() > 0);
             _resources_host_update.bind_value_as_bool(
-                4, h.acknowledgement_type() != Host_AckType_NONE);
+                4, h.acknowledgement_type() != AckType::NONE);
             _resources_host_update.bind_value_as_bool(
                 5, h.state_type() == Host_StateType_HARD);
             _resources_host_update.bind_value_as_u32(6, h.check_attempt());
@@ -2454,7 +2454,7 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
             _resources_service_insert.bind_value_as_bool(
                 7, s.scheduled_downtime_depth() > 0);
             _resources_service_insert.bind_value_as_bool(
-                8, s.acknowledgement_type() != Service_AckType_NONE);
+                8, s.acknowledgement_type() != AckType::NONE);
             _resources_service_insert.bind_value_as_bool(
                 9, s.state_type() == Service_StateType_HARD);
             _resources_service_insert.bind_value_as_u32(10, s.check_attempt());
@@ -2539,7 +2539,7 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
             _resources_service_update.bind_value_as_bool(
                 5, s.scheduled_downtime_depth() > 0);
             _resources_service_update.bind_value_as_bool(
-                6, s.acknowledgement_type() != Service_AckType_NONE);
+                6, s.acknowledgement_type() != AckType::NONE);
             _resources_service_update.bind_value_as_bool(
                 7, s.state_type() == Service_StateType_HARD);
             _resources_service_update.bind_value_as_u32(8, s.check_attempt());

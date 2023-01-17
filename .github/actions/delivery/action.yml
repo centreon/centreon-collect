@@ -19,6 +19,12 @@ inputs:
   version:
     description: "Centreon packaged version"
     required: true
+  minor_version:
+    description: "Centreon packaged version"
+    required: true
+  release:
+    description: The release number
+    required: true
   cache_key:
     description: "The cached package key"
     required: true
@@ -92,6 +98,11 @@ runs:
             ;;
         esac
 
+        if [[ "${{ env.extfile }}" == "rpm" ]] ; then
+          eval `ssh-agent`
+          ssh-add - <<< "${{ inputs.yum_repo_key }}"
+        fi
+
         FILES="*.${{ env.extfile }}"
 
         for FILE in $FILES
@@ -99,33 +110,33 @@ runs:
           echo "[DEBUG] - File: $FILE"
           VERSION=${{ inputs.version }}
           MAJOR="$VERSION"
+          MINOR=${{ inputs.minor_version }}
+          RELEASE=${{ inputs.release }}
           REPOTYPE="$SUBREPO"
           PROJECT=${{ inputs.module_name }}
           PROJECT_PATH="standard"
 
           echo "[DEBUG] - Suprepo: $SUBREPO"
-          echo "[DEBUG] - FILES: $FILES"
           echo "[DEBUG] - Version: $VERSION"
 
-          if [[ "${{ env.extfile }}" == "deb" ]] ; then
+          if [[ "${{ env.extfile }}" == "deb" ]] && [[ "$SUBREPO" == "stable" ]]; then
+            curl -u "${{ inputs.repos_username }}":"${{ inputs.repos_password }}" -H "Content-Type: multipart/form-data" --data-binary "@./$FILE" https://apt.centreon.com/repository/22.04/
+          elif [[ "${{ env.extfile }}" == "deb" ]] && [[ "$SUBREPO" != "stable" ]]; then
             curl -u "${{ inputs.repos_username }}":"${{ inputs.repos_password }}" -H "Content-Type: multipart/form-data" --data-binary "@./$FILE" https://apt.centreon.com/repository/22.04-$SUBREPO/
           else
-            #echo "[DEBUG] - https://artifactory.apps.centreon.com/artifactory/rpm-$VERSION-$REPO/$DISTRIB/$REPO/x86_64/centreon-collect"
-            #curl -v -u "${{ inputs.repos_username }}":"${{ inputs.repos_password }}" -X PUT "https://artifactory.apps.centreon.com/artifactory/rpm-$VERSION-$REPO/$DISTRIB/$REPO/x86_64/centreon-collect/$FILE" -T "./$FILE"
-
             DISTRIB="${{ inputs.distrib }}"
             ARCH=$(echo $FILE | grep -oP '(x86_64|noarch)')
-            FOLDER=$(basename $FILE .rpm)
 
             echo "[DEBUG] - DISTRIB: $DISTRIB"
             echo "[DEBUG] - Arch: $ARCH"
-            echo "[DEBUG] - FOLDER: $FOLDER"
 
-            eval `ssh-agent`
-            ssh-add - <<< "${{ inputs.yum_repo_key }}"
-
-            TARGET="/srv/centreon-yum/yum.centreon.com/$PROJECT_PATH/$MAJOR/$DISTRIB/$REPOTYPE/$ARCH/$PROJECT/$FOLDER"
-            PROJECT_LOCATION="/srv/centreon-yum/yum.centreon.com/$PROJECT_PATH/$MAJOR/$DISTRIB/$REPOTYPE/$ARCH/$PROJECT"
+            if [[ "$SUBREPO" == "stable" ]] ; then
+              TARGET="/srv/centreon-yum/yum.centreon.com/$PROJECT_PATH/$MAJOR/$DISTRIB/$REPOTYPE/$ARCH/RPMS"
+            else
+              FOLDER="$PROJECT-$MAJOR.$MINOR-$RELEASE"
+              TARGET="/srv/centreon-yum/yum.centreon.com/$PROJECT_PATH/$MAJOR/$DISTRIB/$REPOTYPE/$ARCH/$PROJECT/$FOLDER"
+              PROJECT_LOCATION="/srv/centreon-yum/yum.centreon.com/$PROJECT_PATH/$MAJOR/$DISTRIB/$REPOTYPE/$ARCH/$PROJECT"
+            fi
 
             echo "[DEBUG] - Folder: $FOLDER"
             echo "[DEBUG] - Project : $PROJECT"
@@ -134,15 +145,21 @@ runs:
 
             ssh -o StrictHostKeyChecking=no "${{ inputs.yum_repo_address }}" mkdir -p "$TARGET" 2>&-
             scp -o StrictHostKeyChecking=no "$FILE" "${{ inputs.yum_repo_address }}:$TARGET" 2>&-
-            #ssh -o StrictHostKeyChecking=no "${{ inputs.yum_repo_address }}" "ls -drc $PROJECT_LOCATION/* 2>&- | head -n -6 | xargs rm -rf"
           fi
         done
 
         # run this only for rpm
         if [[ "${{ env.extfile }}" == "rpm" ]] ; then
+          # Cleanup is done on unstable repository only
+          if [[ "$SUBREPO" == "unstable" ]] ; then
+            ssh -o StrictHostKeyChecking=no "${{ inputs.yum_repo_address }}" "ls -drc $PROJECT_LOCATION/* 2>&- | head -n -1 | xargs rm -rf"
+          fi
+
+          # Update repository metadata
           METADATAS="/srv/centreon-yum/yum.centreon.com/$PROJECT_PATH/$MAJOR/$DISTRIB/$REPOTYPE/$ARCH"
           ssh -o StrictHostKeyChecking=no "${{ inputs.yum_repo_address }}" "sh "${{ inputs.update_repo_path }}" $METADATAS" 2>&-
 
+          # Invalidate cloudfront cache
           ID="${{ inputs.cloudfront_id }}"
           PATHS="/$PROJECT_PATH/$MAJOR/$DISTRIB/$REPOTYPE/$ARCH/*"
           ITERATIONS=1

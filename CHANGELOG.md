@@ -50,7 +50,9 @@ Engine waits up to 5 seconds to send bye event to broker
 
 #### Fixes
 
-correct status is forwarded to engine
+* correct status is forwarded to engine
+* When Engine was restarted, unacknowledged services/hosts could have their
+  acknowledgements to come back. This is fixed.
 
 ## 22.04.1
 

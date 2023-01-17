@@ -34,6 +34,7 @@ find_package(Protobuf REQUIRED)
 
 include_directories(${CONAN_INCLUDE_DIRS_GRPC})
 
+message(STATUS "### The protobuf compilator path is << ${Protobuf_PROTOC_EXECUTABLE} >>")
 add_custom_command(
   DEPENDS ${ENGINERPC_DIR}/engine.proto
   COMMENT "Generating interface files of the proto file (grpc)"

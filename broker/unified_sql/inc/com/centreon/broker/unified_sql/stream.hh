@@ -27,7 +27,7 @@
 #include <mutex>
 #include <unordered_map>
 
-#include "bbdo/service.pb.h"
+#include "bbdo/neb.pb.h"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/misc/pair.hh"
