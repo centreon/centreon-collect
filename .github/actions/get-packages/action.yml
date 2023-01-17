@@ -83,8 +83,6 @@ runs:
             echo "[DEBUG] - https://artifactory.apps.centreon.com/artifactory/debian-$VERSION-$REPO/pool/$FILE;deb.distribution=bullseye;deb.component=main;deb.architecture=amd64"
             curl -v -u "${{ inputs.repos_username }}":"${{ inputs.repos_password }}" -X PUT "https://artifactory.apps.centreon.com/artifactory/debian-$VERSION-$REPO/pool/$FILE;deb.distribution=bullseye;deb.component=main;deb.architecture=amd64" -T "./$FILE"
           else
-            #echo "[DEBUG] - https://artifactory.apps.centreon.com/artifactory/rpm-${{ inputs.version }}-$REPO/${{ inputs.distrib }}/$REPO/x86_64/centreon-collect/$FILE-$FULL_VERSION-$RELEASE.${{ inputs.distrib }}.x86_64.rpm"
-            #curl -v -u "${{ inputs.repos_username }}":"${{ inputs.repos_password }}" -O "https://artifactory.apps.centreon.com/artifactory/rpm-${{ inputs.version }}-$REPO/${{ inputs.distrib }}/$REPO/x86_64/centreon-collect/$FILE-$FULL_VERSION-$RELEASE.${{ inputs.distrib }}.x86_64.rpm"
             echo "[DEBUG] - https://yum.centreon.com/standard/${{ inputs.version }}/${{ inputs.distrib }}/$REPO/x86_64/centreon-collect/$PKG_DIR_VERSION/$FILE-$PKG_DIR_VERSION.${{ inputs.distrib }}.x86_64.rpm"
             curl -s -JO "https://yum.centreon.com/standard/${{ inputs.version }}/${{ inputs.distrib }}/$REPO/x86_64/centreon-collect/centreon-collect-$PKG_DIR_VERSION/$FILE-$PKG_DIR_VERSION.${{ inputs.distrib }}.x86_64.rpm"
           fi
