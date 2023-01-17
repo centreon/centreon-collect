@@ -77,6 +77,7 @@ runs:
 
         echo "[DEBUG] - PKG_DIR_VERSION: $PKG_DIR_VERSION"
 
+        # Fetch files from repo
         for FILE in $FILES ; do
           if [[ "${{ env.extfile }}" == "deb" ]] ; then
             echo "[DEBUG] - https://artifactory.apps.centreon.com/artifactory/debian-$VERSION-$REPO/pool/$FILE;deb.distribution=bullseye;deb.component=main;deb.architecture=amd64"
