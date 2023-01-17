@@ -32,7 +32,8 @@ echo "########################### Install Robot Framework ######################
 cd /src/tests/
 pip3 install -U robotframework robotframework-databaselibrary pymysql python-dateutil
 
-yum install "Development Tools" python3-devel -y
+yum groupinstall "Development Tools" -y
+yum install python3-devel -y
 
 pip3 install grpcio==1.33.2 grpcio_tools==1.33.2
 
