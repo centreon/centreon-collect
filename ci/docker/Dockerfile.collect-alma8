@@ -32,6 +32,7 @@ RUN dnf clean all && dnf install -y cmake \
     rrdtool-devel \
     yum-utils \
     MariaDB-shared \
+    MariaDB-client \
     perl \
     rpm-build
 RUN dnf update libarchive

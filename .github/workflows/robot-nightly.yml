@@ -79,12 +79,12 @@ jobs:
           image_version: ${{ env.imgversion }}
 #params: ${{ matrix.branch }}
 
-      # - name : Test robot Alma8
-      #   uses: ./.github/actions/runner-docker
-      #   with:
-      #     script_name: /src/ci/scripts/collect-test-robot
-      #     image_name: ${{ matrix.image }}
-      #     image_version: ${{ env.imgversion }}
+      - name : Test robot Alma8
+        uses: ./.github/actions/runner-docker
+        with:
+          script_name: /src/ci/scripts/collect-test-robot
+          image_name: ${{ matrix.image }}
+          image_version: ${{ env.imgversion }}
 
       - name: Send report to commit
         uses: joonvena/robotframework-reporter-action@v2.1
