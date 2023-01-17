@@ -655,94 +655,58 @@ def process_service_check_result(hst: str, svc: str, state: int, output: str, co
     f.close()
 
 
-def change_normal_svc_check_interval(use_grpc: int, hst: str, svc: str, check_interval: int):
-    if use_grpc > 0:
-        with grpc.insecure_channel("127.0.0.1:50001") as channel:
-            stub = engine_pb2_grpc.EngineStub(channel)
-            stub.ChangeServiceObjectIntVar(engine_pb2.ChangeObjectInt(
-                host_name=hst, service_desc=svc, mode=engine_pb2.ChangeObjectInt.Mode.NORMAL_CHECK_INTERVAL, dval=check_interval))
-    else:
-        now = int(time.time())
-        cmd = "[{}] CHANGE_NORMAL_SVC_CHECK_INTERVAL;{};{};{}\n".format(
-            now, hst, svc, check_interval)
-        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+def change_normal_svc_check_interval(hst: str, svc: str, check_interval: int):
+    now = int(time.time())
+    cmd = "[{}] CHANGE_NORMAL_SVC_CHECK_INTERVAL;{};{};{}\n".format(
+        now, hst, svc, check_interval)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
 
 
-def change_normal_host_check_interval(use_grpc: int, hst: str, check_interval: int):
-    if use_grpc > 0:
-        with grpc.insecure_channel("127.0.0.1:50001") as channel:
-            stub = engine_pb2_grpc.EngineStub(channel)
-            stub.ChangeHostObjectIntVar(engine_pb2.ChangeObjectInt(
-                host_name=hst, mode=engine_pb2.ChangeObjectInt.Mode.NORMAL_CHECK_INTERVAL, dval=check_interval))
-    else:
-        now = int(time.time())
-        cmd = "[{}] CHANGE_NORMAL_HOST_CHECK_INTERVAL;{};{}\n".format(
-            now, hst, check_interval)
-        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+def change_normal_host_check_interval(hst: str, check_interval: int):
+    now = int(time.time())
+    cmd = "[{}] CHANGE_NORMAL_HOST_CHECK_INTERVAL;{};{}\n".format(
+        now, hst, check_interval)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
 
 
-def change_retry_svc_check_interval(use_grpc: int, hst: str, svc: str, retry_interval: int):
-    if use_grpc > 0:
-        with grpc.insecure_channel("127.0.0.1:50001") as channel:
-            stub = engine_pb2_grpc.EngineStub(channel)
-            stub.ChangeServiceObjectIntVar(engine_pb2.ChangeObjectInt(
-                host_name=hst, service_desc=svc, mode=engine_pb2.ChangeObjectInt.Mode.RETRY_CHECK_INTERVAL, dval=retry_interval))
-    else:
-        now = int(time.time())
-        cmd = "[{}] CHANGE_RETRY_SVC_CHECK_INTERVAL;{};{};{}\n".format(
-            now, hst, svc, retry_interval)
-        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+def change_retry_svc_check_interval(hst: str, svc: str, retry_interval: int):
+    now = int(time.time())
+    cmd = "[{}] CHANGE_RETRY_SVC_CHECK_INTERVAL;{};{};{}\n".format(
+        now, hst, svc, retry_interval)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
 
 
-def change_retry_host_check_interval(use_grpc: int, hst: str, retry_interval: int):
-    if use_grpc > 0:
-        with grpc.insecure_channel("127.0.0.1:50001") as channel:
-            stub = engine_pb2_grpc.EngineStub(channel)
-            stub.ChangeHostObjectIntVar(engine_pb2.ChangeObjectInt(
-                host_name=hst, mode=engine_pb2.ChangeObjectInt.Mode.RETRY_CHECK_INTERVAL, dval=retry_interval))
-    else:
-        now = int(time.time())
-        cmd = "[{}] CHANGE_RETRY_HOST_CHECK_INTERVAL;{};{}\n".format(
-            now, hst, retry_interval)
-        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+def change_retry_host_check_interval(hst: str, retry_interval: int):
+    now = int(time.time())
+    cmd = "[{}] CHANGE_RETRY_HOST_CHECK_INTERVAL;{};{}\n".format(
+        now, hst, retry_interval)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
 
 
-def change_max_svc_check_attempts(use_grpc: int, hst: str, svc: str, max_check_attempts: int):
-    if use_grpc > 0:
-        with grpc.insecure_channel("127.0.0.1:50001") as channel:
-            stub = engine_pb2_grpc.EngineStub(channel)
-            stub.ChangeServiceObjectIntVar(engine_pb2.ChangeObjectInt(
-                host_name=hst, service_desc=svc, mode=engine_pb2.ChangeObjectInt.Mode.MAX_ATTEMPTS, intval=max_check_attempts))
-    else:
-        now = int(time.time())
-        cmd = "[{}] CHANGE_MAX_SVC_CHECK_ATTEMPTS;{};{};{}\n".format(
-            now, hst, svc, max_check_attempts)
-        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+def change_max_svc_check_attempts(hst: str, svc: str, max_check_attempts: int):
+    now = int(time.time())
+    cmd = "[{}] CHANGE_MAX_SVC_CHECK_ATTEMPTS;{};{};{}\n".format(
+        now, hst, svc, max_check_attempts)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
 
 
-def change_max_host_check_attempts(use_grpc: int, hst: str, max_check_attempts: int):
-    if use_grpc > 0:
-        with grpc.insecure_channel("127.0.0.1:50001") as channel:
-            stub = engine_pb2_grpc.EngineStub(channel)
-            stub.ChangeHostObjectIntVar(engine_pb2.ChangeObjectInt(
-                host_name=hst, mode=engine_pb2.ChangeObjectInt.Mode.MAX_ATTEMPTS, intval=max_check_attempts))
-    else:
-        now = int(time.time())
-        cmd = "[{}] CHANGE_MAX_HOST_CHECK_ATTEMPTS;{};{}\n".format(
-            now, hst, max_check_attempts)
-        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+def change_max_host_check_attempts(hst: str, max_check_attempts: int):
+    now = int(time.time())
+    cmd = "[{}] CHANGE_MAX_HOST_CHECK_ATTEMPTS;{};{}\n".format(
+        now, hst, max_check_attempts)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
 
 
 def change_host_check_command(hst: str, Check_Command: str):
@@ -754,304 +718,238 @@ def change_host_check_command(hst: str, Check_Command: str):
     f.close()
 
 
-def change_host_check_timeperiod(use_grpc: int, hst: str, check_timeperiod: str):
-    if use_grpc > 0:
-        with grpc.insecure_channel("127.0.0.1:50001") as channel:
-            stub = engine_pb2_grpc.EngineStub(channel)
-            stub.ChangeHostObjectCharVar(engine_pb2.ChangeObjectChar(
-                host_name=hst, mode=engine_pb2.ChangeObjectChar.Mode.CHANGE_CHECK_TIMEPERIOD, charval=check_timeperiod))
-    else:
-        now = int(time.time())
-        cmd = "[{}] CHANGE_HOST_CHECK_TIMEPERIOD;{};{}\n".format(
-            now, hst, check_timeperiod)
-        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+def change_host_check_timeperiod(hst: str, check_timeperiod: str):
+    now = int(time.time())
+    cmd = "[{}] CHANGE_HOST_CHECK_TIMEPERIOD;{};{}\n".format(
+        now, hst, check_timeperiod)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
 
 
-def change_host_notification_timeperiod(use_grpc: int, hst: str, notification_timeperiod: str):
-    if use_grpc > 0:
-        with grpc.insecure_channel("127.0.0.1:50001") as channel:
-            stub = engine_pb2_grpc.EngineStub(channel)
-            stub.ChangeHostObjectCharVar(engine_pb2.ChangeObjectChar(
-                host_name=hst, mode=engine_pb2.ChangeObjectChar.Mode.CHANGE_NOTIFICATION_TIMEPERIOD, charval=notification_timeperiod))
-    else:
-        now = int(time.time())
-        cmd = "[{}] CHANGE_HOST_NOTIFICATION_TIMEPERIOD;{};{}\n".format(
-            now, hst, notification_timeperiod)
-        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+def change_host_notification_timeperiod(hst: str, notification_timeperiod: str):
+    now = int(time.time())
+    cmd = "[{}] CHANGE_HOST_NOTIFICATION_TIMEPERIOD;{};{}\n".format(
+        now, hst, notification_timeperiod)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
 
 
-def change_svc_check_timeperiod(use_grpc: int, hst: str, svc: str, check_timeperiod: str):
-    if use_grpc > 0:
-        with grpc.insecure_channel("127.0.0.1:50001") as channel:
-            stub = engine_pb2_grpc.EngineStub(channel)
-            stub.ChangeServiceObjectCharVar(engine_pb2.ChangeObjectChar(
-                host_name=hst, service_desc=svc,  mode=engine_pb2.ChangeObjectChar.Mode.CHANGE_CHECK_TIMEPERIOD, charval=check_timeperiod))
-    else:
-        now = int(time.time())
-        cmd = "[{}] CHANGE_SVC_CHECK_TIMEPERIOD;{};{};{}\n".format(
-            now, hst, svc, check_timeperiod)
-        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+def change_svc_check_timeperiod(hst: str, svc: str, check_timeperiod: str):
+    now = int(time.time())
+    cmd = "[{}] CHANGE_SVC_CHECK_TIMEPERIOD;{};{};{}\n".format(
+        now, hst, svc, check_timeperiod)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
 
 
-def change_svc_notification_timeperiod(use_grpc: int, hst: str, svc: str, notification_timeperiod: str):
-    if use_grpc > 0:
-        with grpc.insecure_channel("127.0.0.1:50001") as channel:
-            stub = engine_pb2_grpc.EngineStub(channel)
-            stub.ChangeServiceObjectCharVar(engine_pb2.ChangeObjectChar(
-                host_name=hst, service_desc=svc,  mode=engine_pb2.ChangeObjectChar.Mode.CHANGE_NOTIFICATION_TIMEPERIOD, charval=notification_timeperiod))
-    else:
-        now = int(time.time())
-        cmd = "[{}] CHANGE_SVC_NOTIFICATION_TIMEPERIOD;{};{};{}\n".format(
-            now, hst, svc, notification_timeperiod)
-        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+def change_svc_notification_timeperiod(hst: str, svc: str, notification_timeperiod: str):
+    now = int(time.time())
+    cmd = "[{}] CHANGE_SVC_NOTIFICATION_TIMEPERIOD;{};{};{}\n".format(
+        now, hst, svc, notification_timeperiod)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
 
 
-def disable_host_and_child_notifications(use_grpc: int, hst: str):
-    if use_grpc > 0:
-        with grpc.insecure_channel("127.0.0.1:50001") as channel:
-            stub = engine_pb2_grpc.EngineStub(channel)
-            stub.DisableHostAndChildNotifications(
-                engine_pb2.HostIdentifier(name=hst))
-    else:
-        now = int(time.time())
-        cmd = "[{}] DISABLE_HOST_AND_CHILD_NOTIFICATIONS;{}\n".format(
-            now, hst)
-        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+def disable_host_and_child_notifications(hst: str):
+    now = int(time.time())
+    cmd = "[{}] DISABLE_HOST_AND_CHILD_NOTIFICATIONS;{}\n".format(
+        now, hst)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
 
 
-def enable_host_and_child_notifications(use_grpc: int, hst: str):
-    if use_grpc > 0:
-        with grpc.insecure_channel("127.0.0.1:50001") as channel:
-            stub = engine_pb2_grpc.EngineStub(channel)
-            stub.EnableHostAndChildNotifications(
-                engine_pb2.HostIdentifier(name=hst))
-    else:
-        now = int(time.time())
-        cmd = "[{}] ENABLE_HOST_AND_CHILD_NOTIFICATIONS;{}\n".format(
-            now, hst)
-        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+def enable_host_and_child_notifications(hst: str):
+    now = int(time.time())
+    cmd = "[{}] ENABLE_HOST_AND_CHILD_NOTIFICATIONS;{}\n".format(
+        now, hst)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
 
 
-def disable_host_check(use_grpc: int, hst: str):
-    if use_grpc == 0:
-        now = int(time.time())
-        cmd = "[{}] DISABLE_HOST_CHECK;{}\n".format(
-            now, hst)
-        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+def disable_host_check(hst: str):
+    now = int(time.time())
+    cmd = "[{}] DISABLE_HOST_CHECK;{}\n".format(
+        now, hst)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
 
 
-def enable_host_check(use_grpc: int, hst: str):
-    if use_grpc == 0:
-        now = int(time.time())
-        cmd = "[{}] ENABLE_HOST_CHECK;{}\n".format(
-            now, hst)
-        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+def enable_host_check(hst: str):
+    now = int(time.time())
+    cmd = "[{}] ENABLE_HOST_CHECK;{}\n".format(
+        now, hst)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
 
 
-def disable_host_event_handler(use_grpc: int, hst: str):
-    if use_grpc == 0:
-        now = int(time.time())
-        cmd = "[{}] DISABLE_HOST_EVENT_HANDLER;{}\n".format(
-            now, hst)
-        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+def disable_host_event_handler(hst: str):
+    now = int(time.time())
+    cmd = "[{}] DISABLE_HOST_EVENT_HANDLER;{}\n".format(
+        now, hst)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
 
 
-def enable_host_event_handler(use_grpc: int, hst: str):
-    if use_grpc == 0:
-        now = int(time.time())
-        cmd = "[{}] ENABLE_HOST_EVENT_HANDLER;{}\n".format(
-            now, hst)
-        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+def enable_host_event_handler(hst: str):
+    now = int(time.time())
+    cmd = "[{}] ENABLE_HOST_EVENT_HANDLER;{}\n".format(
+        now, hst)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
 
 
-def disable_host_flap_detection(use_grpc: int, hst: str):
-    if use_grpc == 0:
-        now = int(time.time())
-        cmd = "[{}] DISABLE_HOST_FLAP_DETECTION;{}\n".format(
-            now, hst)
-        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+def disable_host_flap_detection(hst: str):
+    now = int(time.time())
+    cmd = "[{}] DISABLE_HOST_FLAP_DETECTION;{}\n".format(
+        now, hst)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
 
 
-def enable_host_flap_detection(use_grpc: int, hst: str):
-    if use_grpc == 0:
-        now = int(time.time())
-        cmd = "[{}] ENABLE_HOST_FLAP_DETECTION;{}\n".format(
-            now, hst)
-        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+def enable_host_flap_detection(hst: str):
+    now = int(time.time())
+    cmd = "[{}] ENABLE_HOST_FLAP_DETECTION;{}\n".format(
+        now, hst)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
 
 
-def disable_host_notifications(use_grpc: int, hst: str):
-    if use_grpc > 0:
-        with grpc.insecure_channel("127.0.0.1:50001") as channel:
-            stub = engine_pb2_grpc.EngineStub(channel)
-            stub.DisableHostNotifications(
-                engine_pb2.HostIdentifier(name=hst))
-    else:
-        now = int(time.time())
-        cmd = "[{}] DISABLE_HOST_NOTIFICATIONS;{}\n".format(
-            now, hst)
-        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+def disable_host_notifications(hst: str):
+    now = int(time.time())
+    cmd = "[{}] DISABLE_HOST_NOTIFICATIONS;{}\n".format(
+        now, hst)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
 
 
-def enable_host_notifications(use_grpc: int, hst: str):
-    if use_grpc > 0:
-        with grpc.insecure_channel("127.0.0.1:50001") as channel:
-            stub = engine_pb2_grpc.EngineStub(channel)
-            stub.EnableHostNotifications(
-                engine_pb2.HostIdentifier(name=hst))
-    else:
-        now = int(time.time())
-        cmd = "[{}] ENABLE_HOST_NOTIFICATIONS;{}\n".format(
-            now, hst)
-        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+def enable_host_notifications(hst: str):
+    now = int(time.time())
+    cmd = "[{}] ENABLE_HOST_NOTIFICATIONS;{}\n".format(
+        now, hst)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
 
 
-def disable_host_svc_checks(use_grpc: int, hst: str):
-    if use_grpc == 0:
-        now = int(time.time())
-        cmd = "[{}] DISABLE_HOST_SVC_CHECKS;{}\n".format(
-            now, hst)
-        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+def disable_host_svc_checks(hst: str):
+    now = int(time.time())
+    cmd = "[{}] DISABLE_HOST_SVC_CHECKS;{}\n".format(
+        now, hst)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
 
 
-def enable_host_svc_checks(use_grpc: int, hst: str):
-    if use_grpc == 0:
-        now = int(time.time())
-        cmd = "[{}] ENABLE_HOST_SVC_CHECKS;{}\n".format(
-            now, hst)
-        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+def enable_host_svc_checks(hst: str):
+    now = int(time.time())
+    cmd = "[{}] ENABLE_HOST_SVC_CHECKS;{}\n".format(
+        now, hst)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
 
 
-def disable_host_svc_notifications(use_grpc: int, hst: str):
-    if use_grpc == 0:
-        now = int(time.time())
-        cmd = "[{}] DISABLE_HOST_SVC_NOTIFICATIONS;{}\n".format(
-            now, hst)
-        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+def disable_host_svc_notifications(hst: str):
+    now = int(time.time())
+    cmd = "[{}] DISABLE_HOST_SVC_NOTIFICATIONS;{}\n".format(
+        now, hst)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
 
 
-def enable_host_svc_notifications(use_grpc: int, hst: str):
-    if use_grpc == 0:
-        now = int(time.time())
-        cmd = "[{}] ENABLE_HOST_SVC_NOTIFICATIONS;{}\n".format(
-            now, hst)
-        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+def enable_host_svc_notifications(hst: str):
+    now = int(time.time())
+    cmd = "[{}] ENABLE_HOST_SVC_NOTIFICATIONS;{}\n".format(
+        now, hst)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
 
 
-def disable_passive_host_checks(use_grpc: int, hst: str):
-    if use_grpc == 0:
-        now = int(time.time())
-        cmd = "[{}] DISABLE_PASSIVE_HOST_CHECKS;{}\n".format(
-            now, hst)
-        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+def disable_passive_host_checks(hst: str):
+    now = int(time.time())
+    cmd = "[{}] DISABLE_PASSIVE_HOST_CHECKS;{}\n".format(
+        now, hst)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
 
 
-def enable_passive_host_checks(use_grpc: int, hst: str):
-    if use_grpc == 0:
-        now = int(time.time())
-        cmd = "[{}] ENABLE_PASSIVE_HOST_CHECKS;{}\n".format(
-            now, hst)
-        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+def enable_passive_host_checks(hst: str):
+    now = int(time.time())
+    cmd = "[{}] ENABLE_PASSIVE_HOST_CHECKS;{}\n".format(
+        now, hst)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
 
 
-def disable_passive_svc_checks(use_grpc: int, hst: str, svc: str):
-    if use_grpc == 0:
-        now = int(time.time())
-        cmd = "[{}] DISABLE_PASSIVE_SVC_CHECKS;{};{}\n".format(
-            now, hst, svc)
-        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+def disable_passive_svc_checks(hst: str, svc: str):
+    now = int(time.time())
+    cmd = "[{}] DISABLE_PASSIVE_SVC_CHECKS;{};{}\n".format(
+        now, hst, svc)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
 
 
-def enable_passive_svc_checks(use_grpc: int, hst: str, svc: str):
-    if use_grpc == 0:
-        now = int(time.time())
-        cmd = "[{}] ENABLE_PASSIVE_SVC_CHECKS;{};{}\n".format(
-            now, hst, svc)
-        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+def enable_passive_svc_checks(hst: str, svc: str):
+    now = int(time.time())
+    cmd = "[{}] ENABLE_PASSIVE_SVC_CHECKS;{};{}\n".format(
+        now, hst, svc)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
 
 
-def start_obsessing_over_host(use_grpc: int, hst: str):
-    if use_grpc == 0:
-        now = int(time.time())
-        cmd = "[{}] START_OBSESSING_OVER_HOST;{}\n".format(
-            now, hst)
-        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+def start_obsessing_over_host(hst: str):
+    now = int(time.time())
+    cmd = "[{}] START_OBSESSING_OVER_HOST;{}\n".format(
+        now, hst)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
 
 
-def stop_obsessing_over_host(use_grpc: int, hst: str):
-    if use_grpc == 0:
-        now = int(time.time())
-        cmd = "[{}] STOP_OBSESSING_OVER_HOST;{}\n".format(
-            now, hst)
-        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+def stop_obsessing_over_host(hst: str):
+    now = int(time.time())
+    cmd = "[{}] STOP_OBSESSING_OVER_HOST;{}\n".format(
+        now, hst)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
 
 
-def start_obsessing_over_svc(use_grpc: int, hst: str, svc: str):
-    if use_grpc == 0:
-        now = int(time.time())
-        cmd = "[{}] START_OBSESSING_OVER_SVC;{};{}\n".format(
-            now, hst, svc)
-        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+def start_obsessing_over_svc(hst: str, svc: str):
+    now = int(time.time())
+    cmd = "[{}] START_OBSESSING_OVER_SVC;{};{}\n".format(
+        now, hst, svc)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
 
 
-def stop_obsessing_over_svc(use_grpc: int, hst: str, svc: str):
-    if use_grpc == 0:
-        now = int(time.time())
-        cmd = "[{}] STOP_OBSESSING_OVER_SVC;{};{}\n".format(
-            now, hst, svc)
-        f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+def stop_obsessing_over_svc(hst: str, svc: str):
+    now = int(time.time())
+    cmd = "[{}] STOP_OBSESSING_OVER_SVC;{};{}\n".format(
+        now, hst, svc)
+    f = open("/var/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
 
 
 def service_ext_commands(hst: str, svc: str, state: int, output: str):

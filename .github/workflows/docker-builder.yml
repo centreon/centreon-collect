@@ -50,7 +50,14 @@ jobs:
             distrib: centos7
           - project: collect
             distrib: alma8
-
+          - project: collect
+            distrib: debian-bullseye
+          - project: gorgone
+            distrib: centos7
+          - project: gorgone
+            distrib: alma8
+          - project: gorgone
+            distrib: debian-bullseye
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3

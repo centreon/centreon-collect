@@ -222,32 +222,6 @@ BEDB3
 	Stop Broker
 	Stop Engine
 
-BEDB4
-	[Documentation]	start broker/engine, then stop MariaDB and then start it again. The gRPC API should give informations about SQL connections.
-	[Tags]	Broker	sql	start-stop	grpc
-	Config Broker	central
-	Config Broker	rrd
-	Config Broker	module
-	Config Engine	${1}
-	${start}=	Get Current Date
-	Stop Mysql
-	Start Broker
-	Start Engine
-        FOR	${t}	IN RANGE	60
-          ${result}=	Check All Sql connections Down with grpc	51001
-          Exit For Loop If	${result}
-        END
-        Should Be True	${result}	msg=Connections are not all down.
-
-	Start Mysql
-        FOR	${t}	IN RANGE	60
-          ${result}=	Check Sql connections count with grpc	51001	${3}
-          Exit For Loop If	${result}
-        END
-        Should Be True	${result}	msg=gRPC does not return 3 connections as expected
-	Stop Broker
-	Stop Engine
-
 BDBM1
 	[Documentation]	start broker/engine and then start MariaDB => connection is established
 	[Tags]	Broker	sql	start-stop

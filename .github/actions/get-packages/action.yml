@@ -35,7 +35,7 @@ runs:
 
     - name: Build name for DEB
       shell: bash
-      if: ${{ inputs.distrib == 'buster' || inputs.distrib == 'bullseye' }}
+      if: ${{ inputs.distrib == 'bullseye' }}
       run: |
         echo "build=debbuild-centreon-collect" >> $GITHUB_ENV
         echo "extfile=deb" >> $GITHUB_ENV
@@ -50,7 +50,7 @@ runs:
         fi
         echo "[DEBUG] - Branch name: $BRANCHNAME"
         case "$BRANCHNAME" in
-          develop | dev-[2-9][0-9].[0-9][0-9].x | remove-debian-related-workflows-2110)
+          develop | dev-[2-9][0-9].[0-9][0-9].x)
             REPO="unstable"
             ;;
           release* | hotfix*)
@@ -74,8 +74,9 @@ runs:
             echo "[DEBUG] - https://artifactory.apps.centreon.com/artifactory/debian-$VERSION-$REPO/pool/$FILE;deb.distribution=bullseye;deb.component=main;deb.architecture=amd64"
             curl -v -u "${{ inputs.repos_username }}":"${{ inputs.repos_password }}" -X PUT "https://artifactory.apps.centreon.com/artifactory/debian-$VERSION-$REPO/pool/$FILE;deb.distribution=bullseye;deb.component=main;deb.architecture=amd64" -T "./$FILE"
           else
-            echo "[DEBUG] - https://yum.centreon.com/standard/${{ inputs.version }}/${{ inputs.distrib }}/$REPO/x86_64/centreon-collect/centreon-collect-$FULL_VERSION-$RELEASE/$FILE-$FULL_VERSION-$RELEASE.${{ inputs.distrib }}.x86_64.rpm"
-            curl -v https://yum.centreon.com/standard/${{ inputs.version }}/${{ inputs.distrib }}/$REPO/x86_64/centreon-collect/centreon-collect-$FULL_VERSION-$RELEASE/$FILE-$FULL_VERSION-$RELEASE.${{ inputs.distrib }}.x86_64.rpm          fi
+            echo "[DEBUG] - https://artifactory.apps.centreon.com/artifactory/rpm-${{ inputs.version }}-$REPO/${{ inputs.distrib }}/$REPO/x86_64/centreon-collect/$FILE-$FULL_VERSION-$RELEASE.${{ inputs.distrib }}.x86_64.rpm"
+            curl -v -u "${{ inputs.repos_username }}":"${{ inputs.repos_password }}" -O "https://artifactory.apps.centreon.com/artifactory/rpm-${{ inputs.version }}-$REPO/${{ inputs.distrib }}/$REPO/x86_64/centreon-collect/$FILE-$FULL_VERSION-$RELEASE.${{ inputs.distrib }}.x86_64.rpm"
+          fi
         done
 
         ls -l *.rpm
