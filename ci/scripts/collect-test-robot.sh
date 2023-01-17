@@ -35,7 +35,8 @@ pip3 install -U robotframework robotframework-databaselibrary pymysql python-dat
 yum groupinstall "Development Tools" -y
 yum install python3-devel -y
 
-pip3 install grpcio==1.33.2 grpcio_tools==1.33.2
+#pip3 install grpcio==1.33.2 grpcio_tools==1.33.2
+pip3 install grpcio grpcio_tools
 
 ./init-proto.sh
 
