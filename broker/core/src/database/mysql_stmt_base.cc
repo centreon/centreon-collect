@@ -40,7 +40,7 @@ using namespace com::centreon::broker::database;
  * @param bulk a boolean telling if the stmt is a bulk prepared statement or
  * not.
  */
-mysql_stmt_base::mysql_stmt_base(std::string const& query,
+mysql_stmt_base::mysql_stmt_base(const std::string& query,
                                  bool named,
                                  bool bulk)
     : _bulk(bulk) {
@@ -58,6 +58,9 @@ mysql_stmt_base::mysql_stmt_base(std::string const& query,
         if (*it == '\\') {
           q.push_back(*it);
           it++;
+          /* In case of it == end, the query is badly written. It would be a
+           * bug in Broker. */
+          assert(it != end);
           q.push_back(*it);
         } else {
           q.push_back(*it);
@@ -79,7 +82,7 @@ mysql_stmt_base::mysql_stmt_base(std::string const& query,
             key[key.size() - 1] = '2';
             bind_mapping.insert(std::make_pair(key, size));
           } else
-            bind_mapping.insert(std::make_pair(std::string(it, itt), size));
+            bind_mapping.insert(std::make_pair(key, size));
 
           ++size;
           it = itt - 1;
