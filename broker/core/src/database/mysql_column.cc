@@ -170,10 +170,9 @@ void mysql_column::clear() {
   switch (_type) {
     case MYSQL_TYPE_STRING: {
       std::vector<char*>* vector = static_cast<std::vector<char*>*>(_vector);
-      for (auto* c : *vector) {
+      for (auto* c : *vector)
         delete c;
-        c = nullptr;
-      }
+
       vector->clear();
       _vector_buffer = vector->data();
     } break;

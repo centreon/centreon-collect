@@ -288,8 +288,6 @@ class mysql_bulk_bind : public mysql_bind_base {
   size_t current_row() const;
   void next_row();
   void reserve(size_t size);
-
-  void debug();
 };
 
 }  // namespace database
