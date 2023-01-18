@@ -76,7 +76,13 @@ class request_test : public http_tsdb::request {
  public:
   static std::atomic_uint id_gen;
 
-  request_test() : _request_id(id_gen.fetch_add(1)) {}
+  request_test() : _request_id(id_gen.fetch_add(1)) {
+    SPDLOG_LOGGER_TRACE(log_v2::tcp(), "create request {}", _request_id);
+  }
+
+  ~request_test() {
+    SPDLOG_LOGGER_TRACE(log_v2::tcp(), "delete request {}", _request_id);
+  }
 
   void add_metric(const storage::metric& metric) override { ++_nb_metric; }
   void add_metric(const Metric& metric) override { ++_nb_metric; }
@@ -85,6 +91,11 @@ class request_test : public http_tsdb::request {
   void add_status(const Status& status) override { ++_nb_status; }
 
   unsigned get_request_id() const { return _request_id; }
+
+  void dump(std::ostream& str) const override {
+    str << "request id:" << _request_id << ' ';
+    http_tsdb::request::dump(str);
+  }
 };
 
 std::atomic_uint request_test::id_gen(0);
@@ -115,6 +126,7 @@ TEST_F(http_tsdb_stream_test, NotRead) {
 class connection_send_bagot : public http_client::connection_base {
  public:
   static std::atomic_uint success;
+  static std::condition_variable success_cond;
 
   connection_send_bagot(const std::shared_ptr<asio::io_context>& io_context,
                         const std::shared_ptr<spdlog::logger>& logger,
@@ -136,6 +148,10 @@ class connection_send_bagot : public http_client::connection_base {
       });
     } else {
       if (rand() & 1) {
+        SPDLOG_LOGGER_DEBUG(
+            log_v2::tcp(), "fail id:{} nb_data={}",
+            std::static_pointer_cast<request_test>(request)->get_request_id(),
+            std::static_pointer_cast<request_test>(request)->get_nb_data());
         _io_context->post([cb = std::move(callback), request]() {
           cb(std::make_error_code(std::errc::invalid_argument),
              fmt::format("errorrrr id:{} nb_data={}",
@@ -148,8 +164,9 @@ class connection_send_bagot : public http_client::connection_base {
       } else {
         success.fetch_add(std::static_pointer_cast<http_tsdb::request>(request)
                               ->get_nb_metric());
-        log_v2::tcp()->info(
-            "success id:{} nb_data={}",
+        success_cond.notify_one();
+        SPDLOG_LOGGER_DEBUG(
+            log_v2::tcp(), "success id:{} nb_data={}",
             std::static_pointer_cast<request_test>(request)->get_request_id(),
             std::static_pointer_cast<request_test>(request)->get_nb_data());
         _io_context->post([cb = std::move(callback)]() {
@@ -163,6 +180,7 @@ class connection_send_bagot : public http_client::connection_base {
 };
 
 std::atomic_uint connection_send_bagot::success(0);
+std::condition_variable connection_send_bagot::success_cond;
 
 TEST_F(http_tsdb_stream_test, all_event_sent) {
   http_client::http_config conf(
@@ -185,14 +203,19 @@ TEST_F(http_tsdb_stream_test, all_event_sent) {
   request_test::id_gen = 0;
   connection_send_bagot::success = 0;
 
-  std::shared_ptr<storage::pb_metric> event(
-      std::make_shared<storage::pb_metric>());
-
   for (unsigned request_index = 0; request_index < 1000; ++request_index) {
+    std::shared_ptr<storage::pb_metric> event(
+        std::make_shared<storage::pb_metric>());
+    event->mut_obj().set_metric_id(request_index);
     str->write(event);
     std::this_thread::sleep_for(
         std::chrono::milliseconds(1));  // to let io_context thread fo the job
   }
-  std::this_thread::sleep_for(std::chrono::seconds(2));
+  SPDLOG_LOGGER_DEBUG(log_v2::tcp(), "wait");
+  std::mutex dummy;
+  std::unique_lock<std::mutex> l(dummy);
+  connection_send_bagot::success_cond.wait_for(
+      l, std::chrono::seconds(10),
+      []() { return connection_send_bagot::success == 1000; });
   ASSERT_EQ(connection_send_bagot::success, 1000);
 }

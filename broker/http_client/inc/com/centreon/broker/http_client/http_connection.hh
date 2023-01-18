@@ -24,17 +24,29 @@
 CCB_BEGIN()
 
 namespace http_client {
-
+/**
+ * @brief we use a std::string body
+ *
+ */
 using request_type =
     boost::beast::http::request<boost::beast::http::string_body>;
 using response_type =
     boost::beast::http::response<boost::beast::http::string_body>;
 using response_ptr = std::shared_ptr<response_type>;
 
+/**
+ * @brief the send request callback signature
+ * it's used by users of this liabrary
+ */
 using send_callback_type = std::function<void(const boost::beast::error_code&,
                                               const std::string&,
                                               const response_ptr&)>;
 
+/**
+ * @brief the connect callback signature, it's used internaly not by users of
+ * the library
+ *
+ */
 using connect_callback_type =
     std::function<void(const boost::beast::error_code&, const std::string&)>;
 
@@ -52,6 +64,10 @@ using tcp_keep_alive_interval =
 using tcp_keep_alive_idle =
     asio::detail::socket_option::integer<IPPROTO_TCP, TCP_KEEPIDLE>;
 
+/**
+ * @brief this little class add statistics time points to request_type
+ *
+ */
 class request_base : public request_type {
   time_point _connect;
   time_point _send;
@@ -63,9 +79,12 @@ class request_base : public request_type {
   request_base(boost::beast::http::verb method,
                boost::beast::string_view target);
 
+  virtual ~request_base() {}
   friend class http_connection;
   friend class https_connection;
   friend class client;
+
+  virtual void dump(std::ostream&) const;
 
   time_point get_connect_time() const { return _connect; }
   time_point get_send_time() const { return _send; }
@@ -73,16 +92,29 @@ class request_base : public request_type {
   time_point get_receive_time() const { return _receive; }
 };
 
+inline std::ostream& operator<<(std::ostream& str, const request_base& req) {
+  req.dump(str);
+  return str;
+}
+
 using request_ptr = std::shared_ptr<request_base>;
 
+/**
+ * @brief this base class provides only keepalive implementation
+ * caller can do 3 things: connect send and shutdown
+ *
+ */
 class connection_base : public std::enable_shared_from_this<connection_base> {
  protected:
+  // this atomic uint is used to atomicaly modify object state
   std::atomic_uint _state;
+  // http keepalive expiration
   time_point _keep_alive_end;
 
   std::shared_ptr<asio::io_context> _io_context;
   std::shared_ptr<spdlog::logger> _logger;
 
+  // asio socket are not thread safe
   std::mutex _socket_m;
 
   boost::beast::flat_buffer _recv_buffer;
@@ -128,6 +160,13 @@ class connection_base : public std::enable_shared_from_this<connection_base> {
   void gest_keepalive(const response_ptr& response);
 };
 
+/**
+ * @brief this class manages a tcp connection
+ * it's used by client object to send request
+ * constructor is protected because load is mandatory
+ * this object musn't be create on stack and must be allocated
+ *
+ */
 class http_connection : public connection_base {
   boost::beast::tcp_stream _socket;
 

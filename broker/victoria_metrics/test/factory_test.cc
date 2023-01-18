@@ -90,7 +90,7 @@ TEST_F(VictoriaMetricsFactory, ParseParameter) {
       fact.new_endpoint(cfg, is_acceptor, nullptr));
   ASSERT_FALSE(is_acceptor);
 
-  const victoria_metrics::victoria_config& conf = *conn->get_conf();
+  const http_tsdb::http_tsdb_config& conf = *conn->get_conf();
 
   ASSERT_EQ(conf.get_user(), "admin");
   ASSERT_EQ(conf.get_pwd(), "pass");

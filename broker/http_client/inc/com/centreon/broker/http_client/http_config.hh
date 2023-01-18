@@ -22,7 +22,12 @@
 CCB_BEGIN()
 
 namespace http_client {
+/**
+ * @brief this class is a bean that contains all config parameters
+ *
+ */
 class http_config {
+  // destination address
   asio::ip::tcp::endpoint _endpoint;
   bool _crypted;
   duration _connect_timeout;
@@ -34,6 +39,7 @@ class http_config {
   duration _default_http_keepalive_duration;
   unsigned _max_connections;
   asio::ssl::context_base::method _ssl_method;
+  // path of certificate file
   std::string _certificate_path;
 
  public:

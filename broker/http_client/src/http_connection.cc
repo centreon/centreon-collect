@@ -39,6 +39,9 @@ std::string connection_base::state_to_str(unsigned state) {
   }
 }
 
+/**************************************************************************
+ *    request_base
+ **************************************************************************/
 request_base::request_base() {
   _connect = _send = _sent = _receive = system_clock::from_time_t(0);
 }
@@ -49,14 +52,29 @@ request_base::request_base(boost::beast::http::verb method,
   _connect = _send = _sent = _receive = system_clock::from_time_t(0);
 }
 
+void request_base::dump(std::ostream& str) const {
+  str << "request:" << this;
+}
+
+/**************************************************************************
+ *    connection_base
+ **************************************************************************/
 static const std::regex keep_alive_time_out_r("timeout\\s*=\\s*(\\d+)");
 
+/**
+ * @brief set the _keep_alive_end
+ * according to
+ * https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Keep-Alive
+ *
+ * @param resp response that contains server keepalive information
+ */
 void connection_base::gest_keepalive(const response_ptr& resp) {
   if (!resp->keep_alive()) {
     SPDLOG_LOGGER_DEBUG(_logger, "recv response {} no keep alive => shutdown",
                         *_conf);
     shutdown();
   } else {
+    // if resp contains keep-alive header, try to extract timeout
     auto keep_alive_info = resp->find(boost::beast::http::field::keep_alive);
     if (keep_alive_info != resp->end()) {
       std::match_results<boost::beast::string_view::const_iterator> res;
@@ -67,7 +85,7 @@ void connection_base::gest_keepalive(const response_ptr& resp) {
         if (absl::SimpleAtoi(res[1].str(), &second_duration)) {
           _keep_alive_end =
               system_clock::now() + std::chrono::seconds(second_duration);
-        } else {
+        } else {  // timeout parameter invalid => default
           _keep_alive_end = system_clock::now() +
                             _conf->get_default_http_keepalive_duration();
         }
@@ -86,6 +104,9 @@ void connection_base::gest_keepalive(const response_ptr& resp) {
   }
 }
 
+/**************************************************************************
+ *    http_connection
+ **************************************************************************/
 http_connection::http_connection(
     const std::shared_ptr<asio::io_context>& io_context,
     const std::shared_ptr<spdlog::logger>& logger,
@@ -100,6 +121,14 @@ http_connection::~http_connection() {
   shutdown();
 }
 
+/**
+ * @brief the static method to use instead of constructor
+ *
+ * @param io_context
+ * @param logger
+ * @param conf
+ * @return http_connection::pointer
+ */
 http_connection::pointer http_connection::load(
     const std::shared_ptr<asio::io_context>& io_context,
     const std::shared_ptr<spdlog::logger>& logger,
@@ -116,6 +145,11 @@ http_connection::pointer http_connection::load(
   });                                                              \
   return;
 
+/**
+ * @brief asynchronous connect to an endpoint
+ *
+ * @param callback
+ */
 void http_connection::connect(connect_callback_type&& callback) {
   unsigned expected = e_not_connected;
   if (!_state.compare_exchange_strong(expected, e_connecting)) {
@@ -123,6 +157,7 @@ void http_connection::connect(connect_callback_type&& callback) {
   }
 
   SPDLOG_LOGGER_DEBUG(_logger, "connect to {}", *_conf);
+  std::lock_guard<std::mutex> l(_socket_m);
   _socket.expires_after(_conf->get_connect_timeout());
   _socket.async_connect(
       _conf->get_endpoint(),
@@ -130,6 +165,12 @@ void http_connection::connect(connect_callback_type&& callback) {
           const boost::beast::error_code& err) { me->on_connect(err, cb); });
 }
 
+/**
+ * @brief connect handler
+ *
+ * @param err
+ * @param callback
+ */
 void http_connection::on_connect(const boost::beast::error_code& err,
                                  const connect_callback_type& callback) {
   if (err) {
@@ -145,26 +186,32 @@ void http_connection::on_connect(const boost::beast::error_code& err,
     BAD_CONNECT_STATE_ERROR("on_connect to {}, bad state {}");
   }
 
+  // we put first keepalive option and then keepalive intervals
+  // system default interval are 7200s witch is too long to maintain a NAT
   boost::system::error_code err_keep_alive;
   asio::socket_base::keep_alive opt1(true);
-  _socket.socket().set_option(opt1, err_keep_alive);
-  if (err_keep_alive) {
-    SPDLOG_LOGGER_ERROR(_logger, "fail to activate keep alive for {}", *_conf);
-  } else {
-    tcp_keep_alive_interval opt2(_conf->get_second_tcp_keep_alive_interval());
-    _socket.socket().set_option(opt2, err_keep_alive);
+  {
+    std::lock_guard<std::mutex> l(_socket_m);
+    _socket.socket().set_option(opt1, err_keep_alive);
     if (err_keep_alive) {
-      SPDLOG_LOGGER_ERROR(_logger, "fail to modify keep alive interval for {}",
+      SPDLOG_LOGGER_ERROR(_logger, "fail to activate keep alive for {}",
                           *_conf);
+    } else {
+      tcp_keep_alive_interval opt2(_conf->get_second_tcp_keep_alive_interval());
+      _socket.socket().set_option(opt2, err_keep_alive);
+      if (err_keep_alive) {
+        SPDLOG_LOGGER_ERROR(
+            _logger, "fail to modify keep alive interval for {}", *_conf);
+      }
+      tcp_keep_alive_idle opt3(_conf->get_second_tcp_keep_alive_interval());
+      _socket.socket().set_option(opt3, err_keep_alive);
+      if (err_keep_alive) {
+        SPDLOG_LOGGER_ERROR(
+            _logger, "fail to modify first keep alive delay for {}", *_conf);
+      }
     }
-    tcp_keep_alive_idle opt3(_conf->get_second_tcp_keep_alive_interval());
-    _socket.socket().set_option(opt3, err_keep_alive);
-    if (err_keep_alive) {
-      SPDLOG_LOGGER_ERROR(
-          _logger, "fail to modify first keep alive delay for {}", *_conf);
-    }
+    SPDLOG_LOGGER_DEBUG(_logger, "connected to {}", _conf->get_endpoint());
   }
-  SPDLOG_LOGGER_DEBUG(_logger, "connected to {}", _conf->get_endpoint());
   callback(err, {});
 }
 
@@ -178,6 +225,12 @@ void http_connection::on_connect(const boost::beast::error_code& err,
   });                                                             \
   return;
 
+/**
+ * @brief send a request on a connected socket
+ *
+ * @param request
+ * @param callback
+ */
 void http_connection::send(request_ptr request, send_callback_type&& callback) {
   unsigned expected = e_idle;
   if (!_state.compare_exchange_strong(expected, e_send)) {
@@ -185,8 +238,13 @@ void http_connection::send(request_ptr request, send_callback_type&& callback) {
   }
 
   request->_send = system_clock::now();
-  SPDLOG_LOGGER_DEBUG(_logger, "send request to {}", _conf->get_endpoint());
-
+  if (_logger->level() == spdlog::level::trace) {
+    SPDLOG_LOGGER_TRACE(_logger, "send request {} to {}", *request,
+                        _conf->get_endpoint());
+  } else {
+    SPDLOG_LOGGER_DEBUG(_logger, "send request to {}", _conf->get_endpoint());
+  }
+  std::lock_guard<std::mutex> l(_socket_m);
   _socket.expires_after(_conf->get_send_timeout());
   boost::beast::http::async_write(
       _socket, *request,
@@ -195,6 +253,13 @@ void http_connection::send(request_ptr request, send_callback_type&& callback) {
           size_t bytes_transfered) mutable { me->on_sent(err, request, cb); });
 }
 
+/**
+ * @brief send handler, is all is ok, async read response
+ *
+ * @param err
+ * @param request
+ * @param callback
+ */
 void http_connection::on_sent(const boost::beast::error_code& err,
                               request_ptr request,
                               send_callback_type& callback) {
@@ -229,6 +294,14 @@ void http_connection::on_sent(const boost::beast::error_code& err,
       });
 }
 
+/**
+ * @brief receive handler
+ *
+ * @param err
+ * @param request
+ * @param callback
+ * @param resp
+ */
 void http_connection::on_read(const boost::beast::error_code& err,
                               const request_ptr& request,
                               send_callback_type& callback,
@@ -249,21 +322,29 @@ void http_connection::on_read(const boost::beast::error_code& err,
 
   request->_receive = system_clock::now();
 
+  // http error code aren't managed in this layer, this the job of the caller
+  // everything is fine at the transport level
   if (resp->result_int() >= 400) {
     SPDLOG_LOGGER_ERROR(_logger, "err response for {} \n\n {}", *request,
                         *resp);
   } else {
     SPDLOG_LOGGER_DEBUG(_logger, "recv response from {} {}", *_conf, *resp);
   }
+  // keepalive => idle state, otherwise => shutdown
   gest_keepalive(resp);
 
   callback(err, {}, resp);
 }
 
+/**
+ * @brief shutdown socket and close
+ *
+ */
 void http_connection::shutdown() {
   SPDLOG_LOGGER_DEBUG(_logger, "shutdown {}", *_conf);
   _state = e_not_connected;
   boost::system::error_code err;
+  std::lock_guard<std::mutex> l(_socket_m);
   _socket.socket().shutdown(boost::asio::socket_base::shutdown_both, err);
   _socket.close();
 }

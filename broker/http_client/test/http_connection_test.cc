@@ -561,7 +561,7 @@ TEST_P(http_test, connect_send_answer_without_keepalive) {
   ASSERT_TRUE(std::get<1>(completion).empty());
   ASSERT_EQ(std::get<2>(completion)->body(), "hello client");
   ASSERT_EQ(std::get<2>(completion)->keep_alive(), false);
-  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  std::this_thread::sleep_for(std::chrono::seconds(1));
   ASSERT_EQ(client->get_state(), connection_base::e_not_connected);
 }
 

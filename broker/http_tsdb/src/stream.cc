@@ -27,18 +27,47 @@ using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker::http_tsdb;
 
+/************************************************************************
+ *      request
+ ************************************************************************/
+
+/**
+ * @brief when a request fails the pending request is appended to the failed
+ * request then stream will retry to send failed metric added of pending metrics
+ *
+ * @param data_to_append
+ */
 void request::append(const request::pointer& data_to_append) {
   body() += data_to_append->body();
   _nb_metric += data_to_append->_nb_metric;
   _nb_status += data_to_append->_nb_status;
 }
 
+void request::dump(std::ostream& stream) const {
+  request_base::dump(stream);
+  stream << " nb metric: " << _nb_metric << " nb status:" << _nb_status;
+}
+
+/************************************************************************
+ *      statistics
+ ************************************************************************/
+
+/**
+ * @brief when we calculate average statistics, average is calculated over
+ * avg_plage ie 1s
+ *
+ */
 static constexpr duration avg_plage(std::chrono::seconds(1));
 
+/**
+ * @brief add point to statistic
+ * before adding a point, it's erase tool old points
+ * @param value
+ */
 void stream::stat_average::add_point(unsigned value) {
   time_point now(system_clock::now());
   time_point avg_limit(now - avg_plage);
-  // little clean
+  // little clean of too old points
   while (!_points.empty()) {
     auto begin = _points.begin();
     if (begin->first >= avg_limit) {
@@ -46,12 +75,18 @@ void stream::stat_average::add_point(unsigned value) {
     }
     _points.erase(begin);
   }
+  // insert or add
   auto insert_res = _points.emplace(now, value);
   if (!insert_res.second) {
     insert_res.first->second += value;
   }
 }
 
+/**
+ * @brief calculate current avg
+ *
+ * @return unsigned
+ */
 unsigned stream::stat_average::get_average() const {
   unsigned avg = 0;
   if (!_points.empty()) {
@@ -63,6 +98,22 @@ unsigned stream::stat_average::get_average() const {
   return avg;
 }
 
+/************************************************************************
+ *      stream
+ ************************************************************************/
+
+/**
+ * @brief Construct a new stream::stream object
+ * conn_creator is used by this object to construct http_client::connection_base
+ * objects conn_creator can construct an http_connection, https_connection or a
+ * mock
+ * @param name
+ * @param io_context
+ * @param logger
+ * @param conf
+ * @param cache
+ * @param conn_creator
+ */
 stream::stream(const std::string& name,
                const std::shared_ptr<asio::io_context>& io_context,
                const std::shared_ptr<spdlog::logger>& logger,
@@ -74,9 +125,9 @@ stream::stream(const std::string& name,
       _logger(logger),
       _conf(conf),
       _cache(cache),
-      _pending(0),
       _acknowledged(0),
       _timeout_send_timer(*io_context),
+      _timeout_send_timer_run(false),
       _success_request_stat{{0, 0}, {0, 0}},
       _failed_request_stat{{0, 0}, {0, 0}},
       _metric_stat{{0, 0}, {0, 0}},
@@ -87,6 +138,12 @@ stream::stream(const std::string& name,
 
 stream::~stream() {}
 
+/**
+ * @brief this method is the only one blocking method
+ * it sends all pending data to the server and wait completion for one second
+ *
+ * @return int number of metric and status sent
+ */
 int stream::flush() {
   request::pointer to_send;
   auto sent_prom = std::make_shared<std::promise<void>>();
@@ -111,12 +168,25 @@ int stream::flush() {
   return acknowledged;
 }
 
+/**
+ * @brief this output stream don't perform any read operation
+ * @throw
+ * @param d
+ * @return true
+ * @return false
+ */
 bool stream::read(std::shared_ptr<io::data>& d, time_t) {
   d.reset();
   throw exceptions::shutdown(
       fmt::format("cannot read from {} database", get_name()));
 }
 
+/**
+ * @brief return statistics of the stream like nulber of request, send and
+ * receive durations it writes stats in tree
+ *
+ * @param tree
+ */
 void stream::statistics(nlohmann::json& tree) const {
   time_t now = time(nullptr);
 
@@ -137,6 +207,23 @@ void stream::statistics(nlohmann::json& tree) const {
   extract_stat("avg_connect_ms", _recv_avg);
 }
 
+/**
+ * @brief push metric or status to the tsdb
+ * it process these four events:
+ *  - storage::metric
+ *  - storage::status
+ *  - storage::pb_metric
+ *  - storage::pb_status
+ *  .
+ * other metrics are only used by cache
+ *
+ * metric or status is not sent right now, there are buffered and sent if number
+ * of pending metrics exceed conf._max_queries_per_transaction or last sent is
+ * older than conf._max_send_interval
+ *
+ * @param data
+ * @return int
+ */
 int stream::write(std::shared_ptr<io::data> const& data) {
   // Take this event into account.
   unsigned acknowledged = 0;
@@ -159,7 +246,6 @@ int stream::write(std::shared_ptr<io::data> const& data) {
           _request = create_request();
         }
         _request->add_metric(*std::static_pointer_cast<storage::metric>(data));
-        ++_pending;
         break;
       case storage::pb_metric::static_type():
         if (!_request) {
@@ -167,14 +253,12 @@ int stream::write(std::shared_ptr<io::data> const& data) {
         }
         _request->add_metric(
             std::static_pointer_cast<storage::pb_metric>(data)->obj());
-        ++_pending;
         break;
       case storage::status::static_type():
         if (!_request) {
           _request = create_request();
         }
         _request->add_status(*std::static_pointer_cast<storage::status>(data));
-        ++_pending;
         break;
       case storage::pb_status::static_type():
         if (!_request) {
@@ -182,12 +266,12 @@ int stream::write(std::shared_ptr<io::data> const& data) {
         }
         _request->add_status(
             std::static_pointer_cast<storage::pb_status>(data)->obj());
-        ++_pending;
         break;
       default:
         ++_acknowledged;
         break;
     }
+    // enought metrics to send?
     if (_request &&
         _request->get_nb_data() >= _conf->get_max_queries_per_transaction()) {
       to_send.swap(_request);
@@ -195,9 +279,9 @@ int stream::write(std::shared_ptr<io::data> const& data) {
     acknowledged = _acknowledged;
     _acknowledged = 0;
   }
-  if (to_send) {
+  if (to_send) {  // if enought metrics to send => send
     send_request(to_send);
-  } else {
+  } else {  // no start send timer if it's not yet done
     start_timeout_send_timer();
   }
   return acknowledged;
@@ -210,6 +294,12 @@ int32_t stream::stop() {
   return retval;
 }
 
+/**
+ * @brief send request to tsdb
+ * it only calculates content-length of the request before sending it
+ *
+ * @param request
+ */
 void stream::send_request(const request::pointer& request) {
   request->content_length(request->body().length());
   _http_client->send(request, [me = shared_from_this(), request](
@@ -220,6 +310,12 @@ void stream::send_request(const request::pointer& request) {
   });
 }
 
+/**
+ * @brief send_request used by blocking method (flush)
+ *
+ * @param request
+ * @param prom this promise will be set even request fails
+ */
 void stream::send_request(const request::pointer& request,
                           const std::shared_ptr<std::promise<void>>& prom) {
   request->content_length(request->body().length());
@@ -235,6 +331,16 @@ void stream::send_request(const request::pointer& request,
 
 static time_point _epoch = system_clock::from_time_t(0);
 
+/**
+ * @brief send handler called by http_client object
+ * if err is set, current request is appended to request and request is retried
+ * in the _timeout_send_timer handler
+ *
+ * @param err
+ * @param detail
+ * @param request
+ * @param response
+ */
 void stream::send_handler(const boost::beast::error_code& err,
                           const std::string& detail,
                           const request::pointer& request,
@@ -268,10 +374,11 @@ void stream::send_handler(const boost::beast::error_code& err,
     std::lock_guard<std::mutex> l(_protect);
     add_to_stat(_failed_request_stat, 1);
     actu_stat_avg();
-    if (_request) {
+    if (_request) {  // we musn't lost any data
       request->append(_request);
     }
     _request = request;
+    // in order to avoid a retry infinite loop, the job is given to the timer
     start_timeout_send_timer_no_lock();
   } else {
     SPDLOG_LOGGER_DEBUG(_logger, "{} metrics and {} status sent to database",
@@ -282,14 +389,18 @@ void stream::send_handler(const boost::beast::error_code& err,
     add_to_stat(_status_stat, request->get_nb_status());
     actu_stat_avg();
     _acknowledged += request->get_nb_data();
-    if (request->get_nb_data() <= _pending) {
-      _pending -= request->get_nb_data();
-    } else {
-      _pending = 0;
-    }
   }
 }
 
+/**
+ * @brief start _timeout_send_timer if itsn't started
+ * There are two condition to send data:
+ *  - we have buffered at least conf->_max_queries_per_transaction metrics or
+ * status
+ *  - we haven't send any data for at least _conf->get_max_send_interval() delay
+ *  .
+ *
+ */
 void stream::start_timeout_send_timer() {
   bool expected = false;
   if (_timeout_send_timer_run.compare_exchange_strong(expected, true)) {
@@ -302,6 +413,10 @@ void stream::start_timeout_send_timer() {
   }
 }
 
+/**
+ * @brief the same as start_timeout_send_timer without locking _protect
+ *
+ */
 void stream::start_timeout_send_timer_no_lock() {
   bool expected = false;
   if (_timeout_send_timer_run.compare_exchange_strong(expected, true)) {
@@ -313,6 +428,11 @@ void stream::start_timeout_send_timer_no_lock() {
   }
 }
 
+/**
+ * @brief this handler send request if there is data to send
+ *
+ * @param err
+ */
 void stream::timeout_send_timer_handler(const boost::system::error_code& err) {
   if (err) {
     return;
@@ -330,6 +450,14 @@ void stream::timeout_send_timer_handler(const boost::system::error_code& err) {
   }
 }
 
+/**
+ * @brief add a point to a cumulated stat
+ * if time_point of the stat is not now, time_point and is value is moved to the
+ * first element of the array otherwise, point value is added to the current
+ *
+ * @param to_maj
+ * @param to_add
+ */
 void stream::add_to_stat(stat& to_maj, unsigned to_add) {
   time_t now = time(nullptr);
   if (to_maj[1].time != now) {

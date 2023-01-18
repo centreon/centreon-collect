@@ -27,6 +27,13 @@ CCB_BEGIN()
 
 namespace http_tsdb {
 
+/**
+ * @brief this class is not a final io_factory,
+ * it doesn't implement new_endpoint
+ * it only provide create_conf and find param to do a first fill of a
+ * http_tsdb_config bean
+ *
+ */
 class factory : public io::factory {
  protected:
   std::string _name;

@@ -46,7 +46,8 @@ class line_protocol_query {
                                                     std::ostream&) const;
 
   line_protocol_query();
-  line_protocol_query(std::vector<column> const& columns,
+  line_protocol_query(const std::string allowed_macros,
+                      std::vector<column> const& columns,
                       data_type type,
                       macro_cache const& cache,
                       const std::shared_ptr<spdlog::logger>& logger);
@@ -65,7 +66,9 @@ class line_protocol_query {
   void _append_compiled_getter(data_getter getter, data_escaper escaper);
   void _append_compiled_string(std::string const& str,
                                data_escaper escaper = NULL);
-  void _compile_scheme(std::string const& scheme, data_escaper escaper);
+  void _compile_scheme(const std::string allowed_macros,
+                       const std::string& scheme,
+                       data_escaper escaper);
   void _throw_on_invalid(data_type macro_type);
 
   template <typename T, typename U, T(U::*member)>

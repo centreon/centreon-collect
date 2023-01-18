@@ -40,6 +40,7 @@ line_protocol_query::line_protocol_query()
  *  @param[in] cache       Macro cache.
  */
 line_protocol_query::line_protocol_query(
+    const std::string allowed_macros,
     std::vector<column> const& columns,
     data_type type,
     macro_cache const& cache,
@@ -57,11 +58,13 @@ line_protocol_query::line_protocol_query(
       // comma
       _append_compiled_string(",");
       // tag_name
-      _compile_scheme(it->get_name(), &line_protocol_query::escape_key);
+      _compile_scheme(allowed_macros, it->get_name(),
+                      &line_protocol_query::escape_key);
       // equal sign
       _append_compiled_string("=");
       // tag_value
-      _compile_scheme(it->get_value(), &line_protocol_query::escape_key);
+      _compile_scheme(allowed_macros, it->get_value(),
+                      &line_protocol_query::escape_key);
     }
 
   // space
@@ -79,21 +82,22 @@ line_protocol_query::line_protocol_query(
         _append_compiled_string(",");
 
       // field_key
-      _compile_scheme(it->get_name(), &line_protocol_query::escape_key);
+      _compile_scheme(allowed_macros, it->get_name(),
+                      &line_protocol_query::escape_key);
       // equal sign
       _append_compiled_string("=");
       // field value
       if (it->get_type() == column::type::number)
-        _compile_scheme(it->get_value(), nullptr);
+        _compile_scheme(allowed_macros, it->get_value(), nullptr);
       else if (it->get_type() == column::type::string)
-        _compile_scheme(it->get_value(), &line_protocol_query::escape_value);
+        _compile_scheme(allowed_macros, it->get_value(),
+                        &line_protocol_query::escape_value);
     }
   if (!first)
     _append_compiled_string(" ");
 
   // timestamp
-  _compile_scheme("$TIME$", nullptr);
-  _append_compiled_string("\n");
+  _compile_scheme(allowed_macros, "$TIME$", nullptr);
 }
 
 /**
@@ -235,7 +239,8 @@ void line_protocol_query::_append_compiled_string(
  *  @param[in] escaper  Escaper for the scheme.
  */
 void line_protocol_query::_compile_scheme(
-    std::string const& scheme,
+    const std::string allowed_macros,
+    const std::string& scheme,
     line_protocol_query::data_escaper escaper) {
   size_t found_macro(0);
   size_t end_macro(0);
@@ -252,62 +257,67 @@ void line_protocol_query::_compile_scheme(
                     scheme.substr(found_macro));
 
     std::string macro(scheme.substr(found_macro, end_macro + 1 - found_macro));
-    if (macro == "$$")
-      _append_compiled_getter(&line_protocol_query::_get_dollar_sign, escaper);
-    if (macro == "$METRICID$") {
-      _throw_on_invalid(data_type::metric);
-      _append_compiled_getter(
-          &line_protocol_query::_get_member<uint32_t, storage::metric,
-                                            &storage::metric::metric_id>,
-          escaper);
-    } else if (macro == "$INSTANCE$")
-      _append_compiled_getter(&line_protocol_query::_get_instance, escaper);
-    else if (macro == "$INSTANCEID$")
-      _append_compiled_getter(
-          &line_protocol_query::_get_member<uint32_t, io::data,
-                                            &io::data::source_id>,
-          escaper);
-    else if (macro == "$HOST$")
-      _append_compiled_getter(&line_protocol_query::_get_host, escaper);
-    else if (macro == "$HOSTID$")
-      _append_compiled_getter(&line_protocol_query::_get_host_id, escaper);
-    else if (macro == "$SERVICE$")
-      _append_compiled_getter(&line_protocol_query::_get_service, escaper);
-    else if (macro == "$SERVICEID$")
-      _append_compiled_getter(&line_protocol_query::_get_service_id, escaper);
-    else if (macro == "$METRIC$") {
-      _throw_on_invalid(data_type::metric);
-      _append_compiled_getter(
-          &line_protocol_query::_get_member<std::string, storage::metric,
-                                            &storage::metric::name>,
-          escaper);
-    } else if (macro == "$INDEXID$")
-      _append_compiled_getter(&line_protocol_query::_get_index_id, escaper);
-    else if (macro == "$VALUE$") {
-      if (_type == data_type::metric)
+    if (allowed_macros.find(macro) != std::string::npos) {
+      if (macro == "$$")
+        _append_compiled_getter(&line_protocol_query::_get_dollar_sign,
+                                escaper);
+      if (macro == "$METRICID$") {
+        _throw_on_invalid(data_type::metric);
         _append_compiled_getter(
-            &line_protocol_query::_get_member<double, storage::metric,
-                                              &storage::metric::value>,
+            &line_protocol_query::_get_member<uint32_t, storage::metric,
+                                              &storage::metric::metric_id>,
             escaper);
-      else if (_type == data_type::status)
+      } else if (macro == "$INSTANCE$")
+        _append_compiled_getter(&line_protocol_query::_get_instance, escaper);
+      else if (macro == "$INSTANCEID$")
         _append_compiled_getter(
-            &line_protocol_query::_get_member<short, storage::status,
-                                              &storage::status::state>,
+            &line_protocol_query::_get_member<uint32_t, io::data,
+                                              &io::data::source_id>,
             escaper);
-    } else if (macro == "$TIME$") {
-      if (_type == data_type::metric)
+      else if (macro == "$HOST$")
+        _append_compiled_getter(&line_protocol_query::_get_host, escaper);
+      else if (macro == "$HOSTID$")
+        _append_compiled_getter(&line_protocol_query::_get_host_id, escaper);
+      else if (macro == "$SERVICE$")
+        _append_compiled_getter(&line_protocol_query::_get_service, escaper);
+      else if (macro == "$SERVICEID$")
+        _append_compiled_getter(&line_protocol_query::_get_service_id, escaper);
+      else if (macro == "$METRIC$") {
+        _throw_on_invalid(data_type::metric);
         _append_compiled_getter(
-            &line_protocol_query::_get_member<timestamp, storage::metric,
-                                              &storage::metric::time>,
+            &line_protocol_query::_get_member<std::string, storage::metric,
+                                              &storage::metric::name>,
             escaper);
-      else if (_type == data_type::status)
-        _append_compiled_getter(
-            &line_protocol_query::_get_member<timestamp, storage::status,
-                                              &storage::status::time>,
-            escaper);
-    } else
-      SPDLOG_LOGGER_INFO(_logger, "unknown macro '{}': ignoring it", macro);
-
+      } else if (macro == "$INDEXID$")
+        _append_compiled_getter(&line_protocol_query::_get_index_id, escaper);
+      else if (macro == "$VALUE$") {
+        if (_type == data_type::metric)
+          _append_compiled_getter(
+              &line_protocol_query::_get_member<double, storage::metric,
+                                                &storage::metric::value>,
+              escaper);
+        else if (_type == data_type::status)
+          _append_compiled_getter(
+              &line_protocol_query::_get_member<short, storage::status,
+                                                &storage::status::state>,
+              escaper);
+      } else if (macro == "$TIME$") {
+        if (_type == data_type::metric)
+          _append_compiled_getter(
+              &line_protocol_query::_get_member<timestamp, storage::metric,
+                                                &storage::metric::time>,
+              escaper);
+        else if (_type == data_type::status)
+          _append_compiled_getter(
+              &line_protocol_query::_get_member<timestamp, storage::status,
+                                                &storage::status::time>,
+              escaper);
+      } else
+        SPDLOG_LOGGER_INFO(_logger, "unknown macro '{}': ignoring it", macro);
+    } else {
+      SPDLOG_LOGGER_ERROR(_logger, "macro '{}' not allowed: ignoring it",
+                          macro);
+    }
     found_macro = end_macro = end_macro + 1;
   }
   std::string substr(scheme.substr(end_macro, found_macro - end_macro));

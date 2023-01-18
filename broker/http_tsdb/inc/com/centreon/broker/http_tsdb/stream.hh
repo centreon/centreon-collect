@@ -49,6 +49,8 @@ class request : public http_client::request_base {
         _nb_metric(0),
         _nb_status(0) {}
 
+  void dump(std::ostream&) const override;
+
   virtual void add_metric(const storage::metric& metric) = 0;
   virtual void add_metric(const Metric& metric) = 0;
 
@@ -62,9 +64,16 @@ class request : public http_client::request_base {
   unsigned get_nb_data() const { return _nb_metric + _nb_status; }
 };
 
+inline std::ostream& operator<<(std::ostream& str, const request& req) {
+  (&req)->dump(str);
+  return str;
+}
+
 /**
  *  @class stream stream.hh "com/centreon/broker/influxdb/stream.hh"
  *  @brief tsdb stream.
+ *  This class is a base class
+ *  it doesn't care about the request format, it's the job of the final class
  *
  *  Insert metrics into tsdb.
  */
@@ -75,19 +84,26 @@ class stream : public io::stream, public std::enable_shared_from_this<stream> {
   // Database and http parameters
   std::shared_ptr<http_tsdb_config> _conf;
 
-  // Cache
+  // Cache it 's used to display host_id in ts for example
   macro_cache _cache;
 
   http_client::client::pointer _http_client;
 
-  unsigned _pending;
+  // number of metric and status sent to tsdb and acknowledged by a 20x response
   unsigned _acknowledged;
+  // the current request that buffers metric to send
   request::pointer _request;
   // this timer is used to send periodicaly datas even if we haven't yet
   // _conf->_max_queries_per_transaction events to send
   asio::system_timer _timeout_send_timer;
   std::atomic_bool _timeout_send_timer_run;
 
+  // the two beans stat_unit and stat_average are used to prouce statistics
+  // about request time
+  /**
+   * @brief stat cumul
+   * this bean is used to cumulate request for example during one second
+   */
   struct stat_unit {
     time_t time;
     unsigned value;
@@ -99,6 +115,11 @@ class stream : public io::stream, public std::enable_shared_from_this<stream> {
   stat _failed_request_stat;
   stat _metric_stat;
   stat _status_stat;
+
+  /**
+   * @brief this cless calc an average over a period
+   *
+   */
   class stat_average {
     std::map<time_point, unsigned> _points;
 

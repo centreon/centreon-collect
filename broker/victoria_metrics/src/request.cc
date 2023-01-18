@@ -40,12 +40,10 @@ request::request(boost::beast::http::verb method,
 static const absl::string_view _sz_metric = "metric";
 static const absl::string_view _sz_status = "status";
 static const absl::string_view _sz_space = " ";
-static const absl::string_view _sz_value = " val=";
 
 void request::add_metric(const storage::metric& metric) {
   absl::StrAppend(&body(), _sz_metric, metric.metric_id);
-  //_metric_formatter.append_metric(metric, body());
-  absl::StrAppend(&body(), _sz_value, metric.value);
+  absl::StrAppend(&body(), _sz_space, metric.value);
   body().push_back(' ');
   absl::StrAppend(&body(), metric.time.get_time_t());
   body().push_back('\n');
@@ -54,8 +52,7 @@ void request::add_metric(const storage::metric& metric) {
 
 void request::add_metric(const Metric& metric) {
   absl::StrAppend(&body(), _sz_metric, metric.metric_id());
-  //_metric_formatter.append_metric(metric, body());
-  absl::StrAppend(&body(), _sz_value, metric.value());
+  absl::StrAppend(&body(), _sz_space, metric.value());
   body().push_back(' ');
   absl::StrAppend(&body(), metric.time());
   body().push_back('\n');
@@ -74,13 +71,13 @@ void request::add_status(const storage::status& status) {
   absl::StrAppend(&body(), _sz_status, status.index_id);
   switch (status.state) {
     case 0:
-      absl::StrAppend(&body(), _sz_value, 100);
+      absl::StrAppend(&body(), _sz_space, 100);
       break;
     case 1:
-      absl::StrAppend(&body(), _sz_value, 75);
+      absl::StrAppend(&body(), _sz_space, 75);
       break;
     case 2:
-      absl::StrAppend(&body(), _sz_value, 0);
+      absl::StrAppend(&body(), _sz_space, 0);
       break;
   }
   body().push_back(' ');
@@ -100,16 +97,15 @@ void request::add_status(const Status& status) {
   }
 
   absl::StrAppend(&body(), _sz_status, status.index_id());
-
   switch (status.state()) {
     case 0:
-      absl::StrAppend(&body(), _sz_value, 100);
+      absl::StrAppend(&body(), _sz_space, 100);
       break;
     case 1:
-      absl::StrAppend(&body(), _sz_value, 75);
+      absl::StrAppend(&body(), _sz_space, 75);
       break;
     case 2:
-      absl::StrAppend(&body(), _sz_value, 0);
+      absl::StrAppend(&body(), _sz_space, 0);
       break;
   }
   body().push_back(' ');

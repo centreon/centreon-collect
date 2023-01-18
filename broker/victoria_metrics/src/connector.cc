@@ -24,7 +24,7 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::victoria_metrics;
 
-connector::connector(const std::shared_ptr<victoria_config>& conf,
+connector::connector(const std::shared_ptr<http_tsdb::http_tsdb_config>& conf,
                      const std::shared_ptr<persistent_cache>& cache)
     : io::endpoint(false), _conf(conf), _cache(cache) {}
 

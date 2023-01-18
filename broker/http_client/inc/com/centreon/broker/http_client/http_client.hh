@@ -24,7 +24,26 @@
 CCB_BEGIN()
 
 namespace http_client {
-
+/**
+ * @class client
+ * "broker/http_client/inc/com/centreon/broker/http_client/http_client.hh"
+ *
+ * @brief this class is the heart of the library
+ * it dispatchs requests on connections to the server
+ * it reuses also http keepalive connections
+ * it also stacks in a fifo requests when all connections are in use
+ * all is done asynchronous,
+ * all tcp connections use tcp keepalive to maintain NATs tables
+ * when you uses it, you must give a request and a callback
+ * How to use it:
+ * @code
+ * auto clt = client::load(io_context, logger, conf);
+ * clt->send(request,[](const boost::beast::error_code&,
+                                              const std::string&,
+                                              const response_ptr&) {});
+ * @endcode
+ *
+ */
 class client : public std::enable_shared_from_this<client> {
  public:
   using connection_creator = std::function<connection_base::pointer(

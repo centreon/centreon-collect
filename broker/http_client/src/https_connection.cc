@@ -33,6 +33,13 @@ CCB_BEGIN()
 
 namespace http_client {
 namespace detail {
+/**
+ * @brief to avoid read certificate on each request, this singleton do the job
+ * it maintains a certificate cache
+ * a certificate is reload if it's updated on disk
+ * certificates are removed from cached after 1 hour without use it
+ * The interface is composed of the get_certificate method
+ */
 class certificate_cache
     : public boost::serialization::singleton<certificate_cache> {
   struct certificate {
@@ -40,6 +47,7 @@ class certificate_cache
     std::shared_ptr<std::string> content;
   };
 
+  // certificates are pointed by their path
   using cert_container = std::map<std::string, certificate>;
 
   cert_container _certs;
@@ -58,16 +66,16 @@ std::shared_ptr<std::string> certificate_cache::get_certificate(
   {
     std::lock_guard<std::mutex> l(_protect);
     cert_container::iterator exist = _certs.find(path);
-    if (exist != _certs.end()) {
+    if (exist != _certs.end()) {  // yet in cache
       struct stat file_stat;
-      if (stat(path.c_str(), &file_stat)) {
+      if (stat(path.c_str(), &file_stat)) {  // file removed?
         throw msg_fmt("stat fail of certificate: {} : {}", path,
                       strerror(errno));
       }
       if (file_stat.st_mtim.tv_sec >
           exist->second.last_access) {  // modified on disk => reload}
         _certs.erase(exist);
-      } else {
+      } else {  // not modified => return cache content
         exist->second.last_access = now;
         clean();
         return exist->second.content;
@@ -76,21 +84,30 @@ std::shared_ptr<std::string> certificate_cache::get_certificate(
     clean();
   }
 
+  // not in cache => load from disk
   std::ifstream file(path);
   if (file.is_open()) {
-    std::stringstream ss;
-    ss << file.rdbuf();
-    file.close();
-    std::lock_guard<std::mutex> l(_protect);
-    auto content = std::make_shared<std::string>(ss.str());
-    _certs[path] = {now, content};
-    return content;
+    try {
+      std::stringstream ss;
+      ss << file.rdbuf();
+      file.close();
+      std::lock_guard<std::mutex> l(_protect);
+      auto content = std::make_shared<std::string>(ss.str());
+      _certs[path] = {now, content};
+      return content;
+    } catch (const std::exception& e) {
+      throw msg_fmt("Cannot read certificate file '{}': {}", path, e.what());
+    }
   } else {
     throw msg_fmt("Cannot open certificate file '{}': {}", path,
                   strerror(errno));
   }
 }
 
+/**
+ * @brief clean unused certificate
+ *
+ */
 void certificate_cache::clean() {
   time_t peremption = time(nullptr) - 3600;
   for (cert_container::iterator to_test = _certs.begin();
@@ -108,6 +125,14 @@ void certificate_cache::clean() {
 
 CCB_END()
 
+/**
+ * @brief Construct a new https connection::https connection object
+ * it's also load certificate if a non empty certificate path is provided
+ *
+ * @param io_context
+ * @param logger
+ * @param conf
+ */
 https_connection::https_connection(
     const std::shared_ptr<asio::io_context>& io_context,
     const std::shared_ptr<spdlog::logger>& logger,
@@ -129,6 +154,14 @@ https_connection::~https_connection() {
   SPDLOG_LOGGER_DEBUG(_logger, "delete https_connection to {}", *_conf);
 }
 
+/**
+ * @brief static method to use instead of constructor
+ *
+ * @param io_context
+ * @param logger
+ * @param conf
+ * @return https_connection::pointer
+ */
 https_connection::pointer https_connection::load(
     const std::shared_ptr<asio::io_context>& io_context,
     const std::shared_ptr<spdlog::logger>& logger,
@@ -145,6 +178,11 @@ https_connection::pointer https_connection::load(
   });                                                              \
   return;
 
+/**
+ * @brief tcp connect
+ *
+ * @param callback
+ */
 void https_connection::connect(connect_callback_type&& callback) {
   unsigned expected = e_not_connected;
   if (!_state.compare_exchange_strong(expected, e_connecting)) {
@@ -152,6 +190,7 @@ void https_connection::connect(connect_callback_type&& callback) {
   }
 
   SPDLOG_LOGGER_DEBUG(_logger, "connect to {}", *_conf);
+  std::lock_guard<std::mutex> l(_socket_m);
   beast::get_lowest_layer(_stream).expires_after(_conf->get_connect_timeout());
   beast::get_lowest_layer(_stream).async_connect(
       _conf->get_endpoint(),
@@ -159,6 +198,12 @@ void https_connection::connect(connect_callback_type&& callback) {
           const beast::error_code& err) mutable { me->on_connect(err, cb); });
 }
 
+/**
+ * @brief connect handler and tcp keepalive setter
+ *
+ * @param err
+ * @param callback
+ */
 void https_connection::on_connect(const beast::error_code& err,
                                   connect_callback_type& callback) {
   if (err) {
@@ -174,6 +219,7 @@ void https_connection::on_connect(const beast::error_code& err,
     BAD_CONNECT_STATE_ERROR("on_tcp_connect to {}, bad state {}");
   }
 
+  std::lock_guard<std::mutex> l(_socket_m);
   boost::system::error_code err_keep_alive;
   asio::socket_base::keep_alive opt1(true);
   beast::get_lowest_layer(_stream).socket().set_option(opt1, err_keep_alive);
@@ -202,6 +248,12 @@ void https_connection::on_connect(const beast::error_code& err,
           const beast::error_code& err) { me->on_handshake(err, cb); });
 }
 
+/**
+ * @brief ssl handshake handler
+ *
+ * @param err
+ * @param callback
+ */
 void https_connection::on_handshake(const beast::error_code err,
                                     const connect_callback_type& callback) {
   if (err) {
@@ -231,6 +283,12 @@ void https_connection::on_handshake(const beast::error_code err,
   });                                                             \
   return;
 
+/**
+ * @brief send request over ssl stream
+ *
+ * @param request
+ * @param callback
+ */
 void https_connection::send(request_ptr request,
                             send_callback_type&& callback) {
   unsigned expected = e_idle;
@@ -239,8 +297,14 @@ void https_connection::send(request_ptr request,
   }
 
   request->_send = system_clock::now();
-  SPDLOG_LOGGER_DEBUG(_logger, "send request to {}", _conf->get_endpoint());
+  if (_logger->level() == spdlog::level::trace) {
+    SPDLOG_LOGGER_TRACE(_logger, "send request {} to {}", *request,
+                        _conf->get_endpoint());
+  } else {
+    SPDLOG_LOGGER_DEBUG(_logger, "send request to {}", _conf->get_endpoint());
+  }
 
+  std::lock_guard<std::mutex> l(_socket_m);
   beast::get_lowest_layer(_stream).expires_after(_conf->get_send_timeout());
   beast::http::async_write(
       _stream, *request,
@@ -250,6 +314,13 @@ void https_connection::send(request_ptr request,
       });
 }
 
+/**
+ * @brief send handler, if all is fine launch an async_read
+ *
+ * @param err
+ * @param request
+ * @param callback
+ */
 void https_connection::on_sent(const beast::error_code& err,
                                request_ptr request,
                                send_callback_type& callback) {
@@ -275,6 +346,7 @@ void https_connection::on_sent(const beast::error_code& err,
 
   request->_sent = system_clock::now();
 
+  std::lock_guard<std::mutex> l(_socket_m);
   response_ptr resp = std::make_shared<response_type>();
   beast::http::async_read(
       _stream, _recv_buffer, *resp,
@@ -284,6 +356,14 @@ void https_connection::on_sent(const beast::error_code& err,
       });
 }
 
+/**
+ * @brief read handler
+ *
+ * @param err
+ * @param request
+ * @param callback
+ * @param resp
+ */
 void https_connection::on_read(const beast::error_code& err,
                                const request_ptr& request,
                                send_callback_type& callback,
@@ -315,11 +395,17 @@ void https_connection::on_read(const beast::error_code& err,
   callback(err, {}, resp);
 }
 
+/**
+ * @brief perform an async shutdown
+ * unlike http_connection synchronous shutdown can't be done
+ *
+ */
 void https_connection::shutdown() {
   unsigned old_state = _state.exchange(e_shutdown);
   if (old_state != e_shutdown) {
     SPDLOG_LOGGER_DEBUG(_logger, "begin shutdown {}", *_conf);
     _state = e_shutdown;
+    std::lock_guard<std::mutex> l(_socket_m);
     _stream.async_shutdown(
         [me = shared_from_this()](const beast::error_code& err) {
           if (err) {

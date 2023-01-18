@@ -41,7 +41,6 @@ set(HEADERS
   ${INC_DIR}/factory.hh
   ${INC_DIR}/request.hh
   ${INC_DIR}/stream.hh
-  ${INC_DIR}/victoria_config.hh
 )
 
 # TCP module.

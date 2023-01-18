@@ -24,7 +24,14 @@
 CCB_BEGIN()
 
 namespace http_client {
-
+/**
+ * @brief https version of http_connection
+ * interface is the same
+ * internaly there is an additional stage handshake (ssl negotiation)
+ * also the shutdown is more complicated as we have to signal it with ssl
+ * protocol.
+ * Fortunaltly, asio gives us an async_shutdown that do the job
+ */
 class https_connection : public connection_base {
  protected:
   asio::ssl::context _sslcontext;

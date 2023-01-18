@@ -26,6 +26,7 @@ CCB_BEGIN()
 
 namespace http_tsdb {
 class http_tsdb_config : public http_client::http_config {
+  std::string _http_target;
   std::string _user;
   std::string _pwd;
   unsigned _max_queries_per_transaction;
@@ -35,6 +36,7 @@ class http_tsdb_config : public http_client::http_config {
 
  public:
   http_tsdb_config(const http_client::http_config& http_conf,
+                   const std::string& http_target,
                    const std::string& user,
                    const std::string& pwd,
                    unsigned max_queries_per_transaction,
@@ -42,6 +44,7 @@ class http_tsdb_config : public http_client::http_config {
                    const std::vector<column>& status_columns,
                    const std::vector<column>& metric_columns)
       : http_client::http_config(http_conf),
+        _http_target(http_target),
         _user(user),
         _pwd(pwd),
         _max_queries_per_transaction(max_queries_per_transaction),
@@ -57,6 +60,7 @@ class http_tsdb_config : public http_client::http_config {
         _max_queries_per_transaction(max_queries_per_transaction),
         _max_send_interval(max_send_interval) {}
 
+  const std::string& get_http_target() const { return _http_target; }
   const std::string& get_user() const { return _user; }
   const std::string& get_pwd() const { return _pwd; }
 

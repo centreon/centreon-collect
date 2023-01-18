@@ -66,6 +66,15 @@ bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
   return is_ifdb;
 }
 
+/**
+ * @brief extract an int param from conf file
+ * @throw msg_fmt if value is not a integer
+ *
+ * @tparam int_type uint32_t, double, unsigned....
+ * @param cfg
+ * @param param_name
+ * @param value out parsed value
+ */
 template <typename int_type>
 void extract_int(const config::endpoint& cfg,
                  const std::string& param_name,
@@ -79,15 +88,68 @@ void extract_int(const config::endpoint& cfg,
   }
 }
 
+static const absl::flat_hash_map<std::string, asio::ssl::context_base::method>
+    _conf_to_ssl_method = {
+        {"sslv2", asio::ssl::context_base::method::sslv2_client},
+        {"sslv3", asio::ssl::context_base::method::sslv3_client},
+        {"tlsv1", asio::ssl::context_base::method::tlsv1_client},
+        {"sslv23", asio::ssl::context_base::method::sslv23_client},
+        {"tlsv11", asio::ssl::context_base::method::tlsv11_client},
+        {"tlsv12", asio::ssl::context_base::method::tlsv12_client},
+        {"tlsv13", asio::ssl::context_base::method::tlsv13_client},
+        {"tls", asio::ssl::context_base::method::tls_client}};
+
+/**
+ * @brief this method parse conf and fill these attributes in conf bean:
+ *  - "http_target" -> http_tsdb_config._http_target /write by default
+ *  - "db_user" -> http_tsdb_config._user mandatory
+ *  - "db_password" -> http_tsdb_config._pwd mandatory
+ *  - "db_host" "db_port" -> http_config._endpoint mandatory
+ *  - "encryption" -> http_config->_crypted
+ *  - "queries_per_transaction" -> http_tsdb_config._max_queries_per_transaction
+ *  - "max_send_interval" -> http_tsdb_config._max_send_interval
+ *  - "connect_timeout" -> http_config._connect_timeout
+ *  - "send_timeout" -> http_config._send_timeout
+ *  - "receive_timeout" -> http_config._receive_timeout
+ *  - "second_tcp_keep_alive_interval" ->
+ *    http_config._second_tcp_keep_alive_interval
+ *  - "default_http_keepalive_duration" -> _default_http_keepalive_duration
+ *    used in case we receive a keepalive without timeout
+ *  - "max_connections" -> http_config._max_connections
+ *    the number of connection to the server ie the number of simultaneous
+ * requests
+ *  - "ssl_method" -> http_config._ssl_method
+ *    allowed values are:
+ *      - sslv2
+ *      - sslv3
+ *      - tlsv1
+ *      - sslv23
+ *      - tlsv11
+ *      - tlsv12
+ *      - tlsv13
+ *      - tls
+ *      .
+ *  - "certificate_path" -> http_config._certificate_path
+ *  .
+ * @throw if db_user or db_password or db_host aren't found in cfg
+ * @param cfg
+ * @param conf out bean filled
+ */
 void factory::create_conf(const config::endpoint& cfg,
                           http_tsdb_config& conf) const {
   std::string user(find_param(cfg, "db_user"));
   std::string passwd(find_param(cfg, "db_password"));
   std::string addr(find_param(cfg, "db_host"));
 
-  bool encryption = false;
+  std::string target = "/write";
   std::map<std::string, std::string>::const_iterator it{
-      cfg.params.find("encryption")};
+      cfg.params.find("http_target")};
+  if (it != cfg.params.end()) {
+    target = it->second;
+  }
+
+  bool encryption = false;
+  it = cfg.params.find("encryption");
   if (it != cfg.params.end()) {
     if (!absl::SimpleAtob(it->second, &encryption)) {
       throw msg_fmt(
@@ -203,12 +265,31 @@ void factory::create_conf(const config::endpoint& cfg,
                   boost::diagnostic_information(e));
   }
 
+  asio::ssl::context_base::method ssl_method =
+      asio::ssl::context_base::tlsv13_client;
+  it = cfg.params.find("ssl_method");
+  if (it != cfg.params.end()) {
+    auto method_search = _conf_to_ssl_method.find(it->second);
+    if (method_search != _conf_to_ssl_method.end()) {
+      ssl_method = method_search->second;
+    } else {
+      throw msg_fmt("unknown value for ssl_method: {}", it->second);
+    }
+  }
+
+  std::string certificate_path;
+  it = cfg.params.find("certificate_path");
+  if (it != cfg.params.end()) {
+    certificate_path = it->second;
+  }
+
   http_client::http_config http_cfg(
       res_it->endpoint(), encryption, connect_timeout, send_timeout,
       receive_timeout, second_tcp_keep_alive_interval, std::chrono::seconds(1),
-      0, default_http_keepalive_duration, max_connections);
+      0, default_http_keepalive_duration, max_connections, ssl_method,
+      certificate_path);
 
-  conf = http_tsdb_config(http_cfg, user, passwd, queries_per_transaction,
-                          max_send_interval, status_column_list,
-                          metric_column_list);
+  conf = http_tsdb_config(http_cfg, target, user, passwd,
+                          queries_per_transaction, max_send_interval,
+                          status_column_list, metric_column_list);
 }

@@ -23,13 +23,14 @@
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/victoria_metrics/request.hh"
-#include "com/centreon/broker/victoria_metrics/victoria_config.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::victoria_metrics;
 
+const std::string allowed_macros = "$INSTANCE$,$INSTANCEID$";
+
 stream::stream(const std::shared_ptr<asio::io_context>& io_context,
-               const std::shared_ptr<victoria_config>& conf,
+               const std::shared_ptr<http_tsdb::http_tsdb_config>& conf,
                const std::shared_ptr<persistent_cache>& cache,
                http_client::client::connection_creator conn_creator)
     : http_tsdb::stream("victoria_metrics",
@@ -38,11 +39,13 @@ stream::stream(const std::shared_ptr<asio::io_context>& io_context,
                         conf,
                         cache,
                         conn_creator),
-      _metric_formatter(conf->get_metric_columns(),
+      _metric_formatter(allowed_macros,
+                        conf->get_metric_columns(),
                         http_tsdb::line_protocol_query::data_type::metric,
                         cache,
                         log_v2::victoria_metrics()),
-      _status_formatter(conf->get_status_columns(),
+      _status_formatter(allowed_macros,
+                        conf->get_status_columns(),
                         http_tsdb::line_protocol_query::data_type::status,
                         cache,
                         log_v2::victoria_metrics()) {
@@ -64,7 +67,7 @@ stream::stream(const std::shared_ptr<asio::io_context>& io_context,
 
 std::shared_ptr<stream> stream::load(
     const std::shared_ptr<asio::io_context>& io_context,
-    const std::shared_ptr<victoria_config>& conf,
+    const std::shared_ptr<http_tsdb::http_tsdb_config>& conf,
     const std::shared_ptr<persistent_cache>& cache,
     http_client::client::connection_creator conn_creator) {
   return std::shared_ptr<stream>(
@@ -72,11 +75,10 @@ std::shared_ptr<stream> stream::load(
 }
 
 http_tsdb::request::pointer stream::create_request() const {
-  auto ret = std::make_shared<request>(
-      boost::beast::http::verb::post,
-      std::static_pointer_cast<victoria_config>(_conf)->get_http_target(),
-      _body_size_to_reserve, _metric_formatter, _status_formatter,
-      _authorization);
+  auto ret = std::make_shared<request>(boost::beast::http::verb::post,
+                                       _conf->get_http_target(),
+                                       _body_size_to_reserve, _metric_formatter,
+                                       _status_formatter, _authorization);
 
   ret->set(boost::beast::http::field::host, _hostname);
   ret->set(boost::beast::http::field::content_type, "text/plain");

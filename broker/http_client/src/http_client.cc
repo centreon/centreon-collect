@@ -26,8 +26,17 @@ using namespace com::centreon::broker::http_client;
 
 using lock_guard = std::lock_guard<std::mutex>;
 
-static constexpr duration _min_retry_interval(std::chrono::milliseconds(100));
-
+/**
+ * @brief Construct a new client::client object
+ * at the construction, no connection to server is done, connection will be done
+ * on demand
+ *
+ * @param io_context
+ * @param logger
+ * @param conf
+ * @param conn_creator this function is used to construct connections to the
+ * server, it can be a http_connection::load, https_connection::load....
+ */
 client::client(const std::shared_ptr<asio::io_context>& io_context,
                const std::shared_ptr<spdlog::logger>& logger,
                const http_config::pointer& conf,
@@ -41,11 +50,22 @@ client::client(const std::shared_ptr<asio::io_context>& io_context,
   _not_connected_conns.reserve(conf->get_max_connections());
   _keep_alive_conns.reserve(conf->get_max_connections());
   _busy_conns.reserve(conf->get_max_connections());
+  // create all connection ready to connect
   for (unsigned cpt = 0; cpt < conf->get_max_connections(); ++cpt) {
     _not_connected_conns.insert(conn_creator(io_context, logger, conf));
   }
 }
 
+/**
+ * @brief in order to avoid mistakes, client::client is protected
+ * The use of this static method is mandatory to create a client object
+ *
+ * @param io_context
+ * @param logger
+ * @param conf
+ * @param conn_creator
+ * @return client::pointer
+ */
 client::pointer client::load(
     const std::shared_ptr<asio::io_context>& io_context,
     const std::shared_ptr<spdlog::logger>& logger,
@@ -55,7 +75,9 @@ client::pointer client::load(
 }
 
 /**
- * @brief
+ * @brief if an active connection is idle, request is sent on it.
+ * Otherwise, it's search not connected available connection, and connected
+ * If non connection is available, it pushs request and callback on queue
  *
  * @param request
  * @param callback
@@ -73,11 +95,12 @@ bool client::send_or_push(const cb_request::pointer request,
   connection_cont::iterator conn_iter;
   connection_base::pointer conn;
 
-  // shudown keepalive passed connections
+  // shutdown keepalive passed connections
   for (conn_iter = _keep_alive_conns.begin();
        conn_iter != _keep_alive_conns.end();) {
     conn = *conn_iter;
-    if (conn->get_keep_alive_end() <= now) {  // http keepalive ended
+    if (conn->get_keep_alive_end() <=
+        now) {  // http keepalive ended => close it
       SPDLOG_LOGGER_DEBUG(_logger, "end of keepalive for {:p}",
                           static_cast<void*>(conn.get()));
       conn->shutdown();
@@ -87,7 +110,7 @@ bool client::send_or_push(const cb_request::pointer request,
     }
   }
 
-  if (!_keep_alive_conns.empty()) {
+  if (!_keep_alive_conns.empty()) {  // now there is only valid idle connections
     // search the oldest keep alive
     conn_iter = std::min_element(
         _keep_alive_conns.begin(), _keep_alive_conns.end(),
@@ -111,7 +134,8 @@ bool client::send_or_push(const cb_request::pointer request,
 
   // no idle keepalive connection => connect
   if (!connect(request)) {  // no idle conn to connect => push to queue
-    if (push_to_front) {
+    if (push_to_front) {    // when retry, we push request to front instead of
+                            // back
       _queue.push_front(request);
     } else {
       _queue.push_back(request);
@@ -121,7 +145,7 @@ bool client::send_or_push(const cb_request::pointer request,
 }
 
 /**
- * @brief connect a non connected connection
+ * @brief connect a non connected connection if available
  *  lock _protect before use it
  * @return true if a connect is launched
  * @return false no idle connection
@@ -152,7 +176,6 @@ bool client::connect(const cb_request::pointer& request) {
 
 /**
  * @brief pop first queue element and try to send it
- * beware, this method don't lock _protect
  *
  */
 void client::send_first_queue_request() {
@@ -166,13 +189,25 @@ void client::send_first_queue_request() {
     _queue.pop_front();
   }
   if (to_send) {
-    send_or_push(to_send, true);
+    send_or_push(to_send, false);
   }
 }
 
+/**
+ * @brief send request on conn
+ *
+ * @param request
+ * @param conn
+ */
 void client::send(const cb_request::pointer& request,
                   connection_base::pointer conn) {
-  SPDLOG_LOGGER_DEBUG(_logger, "send on {:p}", static_cast<void*>(conn.get()));
+  if (_logger->level() == spdlog::level::trace) {
+    SPDLOG_LOGGER_TRACE(_logger, "send {} on {:p}", *request->request,
+                        static_cast<void*>(conn.get()));
+  } else {
+    SPDLOG_LOGGER_DEBUG(_logger, "send on {:p}",
+                        static_cast<void*>(conn.get()));
+  }
   conn->send(request->request, [me = shared_from_this(), conn, request](
                                    const boost::beast::error_code& error,
                                    const std::string& detail,
@@ -181,21 +216,29 @@ void client::send(const cb_request::pointer& request,
   });
 }
 
+/**
+ * @brief connect handler
+ * if error is set conn is shutdown and available for a new connect and we retry
+ * to send request if authorized
+ *
+ * @param error
+ * @param detail
+ * @param request
+ * @param conn
+ */
 void client::on_connect(const boost::beast::error_code& error,
                         const std::string& detail,
                         const cb_request::pointer& request,
                         connection_base::pointer conn) {
-  if (error) {
+  if (error) {  // error => shutdown and retry
     SPDLOG_LOGGER_ERROR(_logger, "{:p} fail to connect {}: {}",
                         static_cast<void*>(conn.get()), error.message(),
                         detail);
     conn->shutdown();
     {
       lock_guard l(_protect);
-      if (!_halt) {
-        _busy_conns.erase(conn);
-        _not_connected_conns.insert(conn);
-      }
+      _busy_conns.erase(conn);
+      _not_connected_conns.insert(conn);
     }
     retry(error, detail, request, response_ptr());
     return;
@@ -210,24 +253,31 @@ void client::on_connect(const boost::beast::error_code& error,
   send(request, conn);
 }
 
+/**
+ * @brief this handler is called when we have receive a response to the request
+ * if error is set conn is shutdown and available for a new connect and we retry
+ * to send request if authorized
+ *
+ * @param error
+ * @param detail
+ * @param request
+ * @param response
+ * @param conn
+ */
 void client::on_sent(const boost::beast::error_code& error,
                      const std::string& detail,
                      const cb_request::pointer& request,
                      const response_ptr& response,
                      connection_base::pointer conn) {
   cb_request::pointer to_call;
-  if (error) {
+  if (error) {  // error => shutdown and retry
     SPDLOG_LOGGER_ERROR(_logger, "{:p} fail to send request",
                         static_cast<void*>(conn.get()));
     conn->shutdown();
     {
       lock_guard l(_protect);
-      if (_halt) {
-        to_call = request;
-      } else {
-        _busy_conns.erase(conn);
-        _not_connected_conns.insert(conn);
-      }
+      _busy_conns.erase(conn);
+      _not_connected_conns.insert(conn);
     }
     retry(error, detail, request, response);
     if (to_call) {
@@ -237,9 +287,13 @@ void client::on_sent(const boost::beast::error_code& error,
     }
 
   } else {
-    SPDLOG_LOGGER_DEBUG(_logger, "response received on {:p}",
-                        static_cast<void*>(conn.get()));
-
+    if (_logger->level() == spdlog::level::trace) {
+      SPDLOG_LOGGER_TRACE(_logger, "response received for {} on {:p}",
+                          *request->request, static_cast<void*>(conn.get()));
+    } else {
+      SPDLOG_LOGGER_DEBUG(_logger, "response received on {:p}",
+                          static_cast<void*>(conn.get()));
+    }
     bool has_to_send_first_inqueue = false;
     {
       lock_guard l(_protect);
@@ -248,19 +302,19 @@ void client::on_sent(const boost::beast::error_code& error,
             conn->get_keep_alive_end() >
                 system_clock::now()) {  // connection available for next
                                         // requests?
-          if (_queue.empty()) {
+          if (_queue.empty()) {  // no request => go to the keepalive container
             SPDLOG_LOGGER_DEBUG(_logger, "nothing to send {:p} wait",
                                 static_cast<void*>(conn.get()));
             _keep_alive_conns.insert(conn);
             _busy_conns.erase(conn);
-          } else {
+          } else {  // request in queue => send
             SPDLOG_LOGGER_DEBUG(_logger, "recycle of {:p}",
                                 static_cast<void*>(conn.get()));
             cb_request::pointer first(std::move(_queue.front()));
             _queue.pop_front();
             send(first, conn);
           }
-        } else {
+        } else {  // no keepalive => shutdown
           SPDLOG_LOGGER_DEBUG(_logger, "no keepalive {:p} shutdown",
                               static_cast<void*>(conn.get()));
           conn->shutdown();
@@ -277,9 +331,15 @@ void client::on_sent(const boost::beast::error_code& error,
   }
 }
 
+/**
+ * @brief shutdown all connections
+ * after this method call, instance musn't be used
+ *
+ */
 void client::shutdown() {
   SPDLOG_LOGGER_INFO(_logger, "client::shutdown {}", *_conf);
   lock_guard l(_protect);
+  // shutdown all connections
   for (connection_base::pointer& conn : _keep_alive_conns) {
     conn->shutdown();
   }
@@ -292,25 +352,38 @@ void client::shutdown() {
   _halt = true;
 }
 
+/**
+ * @brief when anything goes wrong, this method is called
+ * cb_request contains a retry counter
+ * if this counter is greater than the retry limit, callback is called with the
+ * error otherwise, we
+ *
+ * @param error
+ * @param detail
+ * @param request
+ * @param response
+ */
 void client::retry(const boost::beast::error_code& error,
                    const std::string& detail,
                    const cb_request::pointer& request,
                    const response_ptr& response) {
   cb_request::pointer to_call;
 
-  if (_halt) {
+  if (_halt) {  // object halted => callback without retry
     to_call = request;
   } else {
-    if (request->retry_counter++ < _conf->get_max_send_retry()) {
+    if (request->retry_counter++ <
+        _conf->get_max_send_retry()) {  // retry in next_retry delay
       duration next_retry = _retry_unit * request->retry_counter;
 
       SPDLOG_LOGGER_ERROR(
           _logger, "fail to send request => resent in {} s",
           std::chrono::duration_cast<std::chrono::seconds>(next_retry).count());
-      async::defer(
-          _io_context, next_retry,
-          [me = shared_from_this(), request]() { me->send_or_push(request); });
-    } else {
+      async::defer(_io_context, next_retry,
+                   [me = shared_from_this(), request]() {
+                     me->send_or_push(request, true);
+                   });
+    } else {  // to many error => callback with error
       to_call = request;
     }
   }
