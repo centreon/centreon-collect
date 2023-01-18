@@ -1837,10 +1837,6 @@ int neb::callback_process(int callback_type, void* data) {
         config::state conf{parsr.parse(gl_configuration_file)};
 
         bbdo_version = conf.bbdo_version();
-
-        // Apply resulting configuration.
-        config::applier::state::instance().apply(conf);
-
       } catch (msg_fmt const& e) {
         log_v2::neb()->info(e.what());
         return 0;

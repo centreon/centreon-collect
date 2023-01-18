@@ -32,9 +32,9 @@ namespace watchdog {
 class instance_configuration {
  public:
   instance_configuration();
-  instance_configuration(std::string const& name,
-                         std::string const& executable,
-                         std::string const& config_file,
+  instance_configuration(const std::string& name,
+                         const std::string& executable,
+                         const std::string& config_file,
                          bool should_run,
                          bool should_reload,
                          uint32_t seconds_per_tentative);

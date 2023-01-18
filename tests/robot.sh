@@ -1,5 +1,8 @@
 #!/bin/bash
 
+ulimit -c unlimited
+sysctl -w kernel.core_pattern=/tmp/core-%e.%p.%h.%t
+
 robot $*
 rep=$(date +%s)
 mkdir $rep

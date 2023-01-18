@@ -12,8 +12,9 @@
 
 *sql*
 
-A SQL error is no more fatal for cbd. The stream should not restart when errors
+* An SQL error is no more fatal for cbd. The stream should not restart when errors
 are raised.
+* If Broker is connected to A MariaDB server 10.4 or newer, broker uses prepared statements in bulk to send data.
 
 #### Fixes
 

@@ -21,6 +21,7 @@
 
 #include <future>
 
+#include "com/centreon/broker/database/mysql_bulk_stmt.hh"
 #include "com/centreon/broker/database/mysql_error.hh"
 #include "com/centreon/broker/database/mysql_result.hh"
 #include "com/centreon/broker/database/mysql_stmt.hh"
@@ -121,6 +122,7 @@ class mysql_connection {
   template <typename T>
   void _statement_int(database::mysql_task* t);
   void _fetch_row_sync(database::mysql_task* task);
+  void _get_version(database::mysql_task* t);
   void _push(std::unique_ptr<database::mysql_task>&& q);
   void _debug(MYSQL_BIND* bind, uint32_t size);
   bool _try_to_reconnect();
@@ -150,8 +152,11 @@ class mysql_connection {
   void run_query_and_get_int(std::string const& query,
                              std::promise<int>&& promise,
                              database::mysql_task::int_type type);
+  void get_server_version(std::promise<const char*>&& promise);
 
-  void run_statement(database::mysql_stmt& stmt, my_error::code ec, bool fatal);
+  void run_statement(database::mysql_stmt_base& stmt,
+                     my_error::code ec,
+                     bool fatal);
   void run_statement_and_get_result(
       database::mysql_stmt& stmt,
       std::promise<database::mysql_result>&& promise);

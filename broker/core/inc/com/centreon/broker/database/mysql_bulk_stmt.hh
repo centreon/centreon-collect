@@ -16,30 +16,38 @@
 ** For more information : contact@centreon.com
 */
 
-#ifndef CCB_MYSQL_STMT_HH
-#define CCB_MYSQL_STMT_HH
+#ifndef CCB_MYSQL_BULK_STMT_HH
+#define CCB_MYSQL_BULK_STMT_HH
 
+#include <boost/circular_buffer.hpp>
+#include "com/centreon/broker/database/mysql_bulk_bind.hh"
 #include "com/centreon/broker/database/mysql_stmt_base.hh"
 
 CCB_BEGIN()
 
 namespace database {
-class mysql_stmt : public mysql_stmt_base {
-  std::unique_ptr<database::mysql_bind> _bind;
+class mysql_bulk_stmt : public mysql_stmt_base {
+  size_t _reserved_size = 0u;
+
+  std::unique_ptr<database::mysql_bulk_bind> _bind;
+
+  /**
+   * We keep here an historical of the number of rows in the stmt. This is
+   * useful when we create a new bin in the statement, it is already reserved
+   * at the average size of this buffer. */
+  boost::circular_buffer<size_t> _hist_size;
 
  public:
-  /**
-   * @brief Default constructor.
-   */
-  mysql_stmt();
-  mysql_stmt(const std::string& query, bool named);
-  mysql_stmt(const std::string& query,
-             mysql_bind_mapping const& bind_mapping = mysql_bind_mapping());
-  mysql_stmt(mysql_stmt&& other);
-  mysql_stmt& operator=(const mysql_stmt&) = delete;
-  mysql_stmt& operator=(mysql_stmt&& other);
-  std::unique_ptr<database::mysql_bind> get_bind();
-  void operator<<(io::data const& d);
+  mysql_bulk_stmt();
+  mysql_bulk_stmt(const std::string& query, bool named);
+  mysql_bulk_stmt(
+      const std::string& query,
+      mysql_bind_mapping const& bind_mapping = mysql_bind_mapping());
+  mysql_bulk_stmt(mysql_bulk_stmt&& other);
+  mysql_bulk_stmt& operator=(const mysql_bulk_stmt&) = delete;
+  mysql_bulk_stmt& operator=(mysql_bulk_stmt&& other);
+  std::unique_ptr<database::mysql_bulk_bind> get_bind();
+  // void operator<<(io::data const& d);
 
   /**
    * @brief Set the given value at the column in the prepared statement at index
@@ -58,6 +66,7 @@ class mysql_stmt : public mysql_stmt_base {
    * @param range Index of the column(from 0).
    */
   void bind_null_i32(size_t range);
+
   /**
    * @brief Set the given value at the column in the prepared statement at index
    * range in the current row of the column. The type of the column must be
@@ -220,12 +229,12 @@ class mysql_stmt : public mysql_stmt_base {
    */
   void bind_null_str(size_t range);
 
-  std::unique_ptr<mysql_bind> create_bind();
-  void set_bind(std::unique_ptr<mysql_bind>&& bind);
+  std::unique_ptr<mysql_bulk_bind> create_bind();
+  void set_bind(std::unique_ptr<mysql_bulk_bind>&& bind);
 };
 
 }  // namespace database
 
 CCB_END()
 
-#endif  // CCB_MYSQL_STMT_HH
+#endif  // CCB_MYSQL_BULK_STMT_HH

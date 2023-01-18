@@ -49,16 +49,16 @@ database_config::database_config()
  *                                      status of the database should be
  *                                      checked.
  */
-database_config::database_config(std::string const& type,
-                                 std::string const& host,
-                                 std::string const& socket,
-                                 unsigned short port,
-                                 std::string const& user,
-                                 std::string const& password,
-                                 std::string const& name,
+database_config::database_config(const std::string& type,
+                                 const std::string& host,
+                                 const std::string& socket,
+                                 uint16_t port,
+                                 const std::string& user,
+                                 const std::string& password,
+                                 const std::string& name,
                                  uint32_t queries_per_transaction,
                                  bool check_replication,
-                                 int connections_count)
+                                 int32_t connections_count)
     : _type(type),
       _host(host),
       _socket(socket),

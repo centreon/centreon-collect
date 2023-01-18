@@ -775,8 +775,7 @@ def get_command_id(service: int):
 
 def process_service_check_result(hst: str, svc: str, state: int, output: str):
     now = int(time.time())
-    cmd = "[{}] PROCESS_SERVICE_CHECK_RESULT;{};{};{};{}\n".format(
-        now, hst, svc, state, output)
+    cmd = f"[{now}] PROCESS_SERVICE_CHECK_RESULT;{hst};{svc};{state};{output}\n"
     f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
     f.write(cmd)
     f.close()
@@ -1183,9 +1182,8 @@ def service_ext_commands(hst: str, svc: str, state: int, output: str):
 
 def process_host_check_result(hst: str, state: int, output: str):
     now = int(time.time())
-    cmd = "[{}] PROCESS_HOST_CHECK_RESULT;{};{};{}\n".format(
-        now, hst, state, output)
-    f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    cmd = f"[{now}] PROCESS_HOST_CHECK_RESULT;{hst};{state};{output}\n"
+    f = open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w")
     f.write(cmd)
     f.close()
 
@@ -1233,7 +1231,7 @@ def schedule_forced_svc_check(host: str, svc: str, pipe: str = VAR_ROOT + "/lib/
 def schedule_forced_host_check(host: str, pipe: str = VAR_ROOT + "/lib/centreon-engine/rw/centengine.cmd"):
     now = int(time.time())
     f = open(pipe, "w")
-    cmd = "[{1}] SCHEDULE_FORCED_HOST_CHECK;{0};{1}".format(host, now)
+    cmd = f"[{now}] SCHEDULE_FORCED_HOST_CHECK;{host};{now}\n"
     f.write(cmd)
     f.close()
     time.sleep(0.05)
@@ -1285,6 +1283,34 @@ def add_severity_to_services(poller: int, severity_id: int, svc_lst):
     ff.writelines(lines)
     ff.close()
 
+
+def set_services_passive(poller: int, srv_regex):
+    ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
+    lines = ff.readlines()
+    ff.close()
+    r = re.compile(f"^\s*service_description\s*({srv_regex})$")
+    rce = re.compile(r"^\s*([a-z]*)_checks_enabled\s*([01])$")
+    rc = re.compile(r"^\s*}\s*$")
+    desc = ""
+    for i in range(len(lines)):
+        m = r.match(lines[i])
+        if m:
+            desc = m.group(1)
+        elif len(desc) > 0:
+            m = rce.match(lines[i])
+            if m:
+                if m.group(1) == "active":
+                    lines[i] = "    active_checks_enabled           0\n"
+                elif m.group(1) == "passive":
+                    lines[i] = "    passive_checks_enabled          1\n"
+            else:
+                m = rc.match(lines[i])
+                if m:
+                    desc = ""
+
+    ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "w")
+    ff.writelines(lines)
+    ff.close()
 
 def add_severity_to_hosts(poller: int, severity_id: int, svc_lst):
     ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r")
@@ -1472,8 +1498,9 @@ def config_engine_remove_cfg_file(poller: int, fic: str):
 
 def send_custom_host_notification(hst, notification_option, author, comment):
     now = int(time.time())
+    cmd_file = f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd"
     cmd = f"[{now}] SEND_CUSTOM_HOST_NOTIFICATION;{hst};{notification_option};{author};{comment}\n"
-    f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f = open(cmd_file, "w")
     f.write(cmd)
     f.close()
 

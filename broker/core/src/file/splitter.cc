@@ -73,7 +73,7 @@ splitter::splitter(std::string const& path,
       base_dir = ".";
       base_name = _base_path;
     } else {
-      base_dir = _base_path.substr(0, last_slash);
+      base_dir = _base_path.substr(0, last_slash + 1);
       base_name = _base_path.substr(last_slash + 1);
     }
   }
