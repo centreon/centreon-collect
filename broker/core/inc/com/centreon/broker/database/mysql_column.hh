@@ -36,11 +36,6 @@ class mysql_column {
    */
   void* _vector;
 
-  /** A pointer to the start of _vector.
-   * Its content is the pointer returned by _vector.data().
-   */
-  void* _vector_buffer;
-
   /** A vector of indicators.
    * Indicators are used in prepared statements. See the MariadDB C connector
    * documentation for more information.
