@@ -57,7 +57,7 @@ mysql_stmt_base::mysql_stmt_base(const std::string& query,
       if (in_string) {
         if (*it == '\\') {
           q.push_back(*it);
-          it++;
+          ++it;
           /* In case of it == end, the query is badly written. It would be a
            * bug in Broker. */
           assert(it != end);
