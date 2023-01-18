@@ -3140,6 +3140,8 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
     if (_store_in_resources) {
       int32_t conn = _mysql.choose_connection_by_instance(
           _cache_host_instance[static_cast<uint32_t>(sscr.host_id())]);
+      size_t output_size = misc::string::adjust_size_utf8(
+          sscr.output(), get_resources_col_size(resources_output));
       if (_bulk_prepared_statement) {
         if (!_sscr_resources_bind->bind(conn))
           _sscr_resources_bind->init_from_stmt(conn);
@@ -3159,7 +3161,8 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
           b->set_null_u64(9);
         else
           b->set_value_as_u64(9, sscr.last_check());
-        b->set_value_as_str(10, sscr.output());
+        b->set_value_as_str(
+            10, fmt::string_view(sscr.output().c_str(), output_size));
         b->set_value_as_u64(11, sscr.service_id());
         b->set_value_as_u64(12, sscr.host_id());
         b->next_row();
@@ -3182,7 +3185,8 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
         _sscr_resources_update->bind_value_as_u32(8, sscr.check_type());
         _sscr_resources_update->bind_value_as_u64(9, sscr.last_check(),
                                                   is_not_zero);
-        _sscr_resources_update->bind_value_as_str(10, sscr.output());
+        _sscr_resources_update->bind_value_as_str(
+            10, fmt::string_view(sscr.output().c_str(), output_size));
         _sscr_resources_update->bind_value_as_u64(11, sscr.service_id());
         _sscr_resources_update->bind_value_as_u64(12, sscr.host_id());
 
