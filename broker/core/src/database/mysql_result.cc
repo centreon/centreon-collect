@@ -122,6 +122,7 @@ bool mysql_result::value_as_bool(int idx) {
     throw msg_fmt("mysql: No row fetched in result");
   return retval;
 }
+
 /**
  *  Accessor to a column string value
  *
@@ -326,9 +327,6 @@ bool mysql_result::empty() const {
  * @return an integer.
  */
 int mysql_result::get_rows_count() const {
-  //  if (_bind)
-  //    return _bind->rows_count();
-  //  else
   return mysql_num_rows(_result.get());
 }
 
