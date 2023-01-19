@@ -17,6 +17,9 @@
  *
  */
 #include "configuration/connector_helper.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
+
+using msg_fmt = com::centreon::exceptions::msg_fmt;
 
 namespace com::centreon::engine::configuration {
 connector_helper::connector_helper(Connector* obj)
@@ -24,17 +27,12 @@ connector_helper::connector_helper(Connector* obj)
   init_connector(static_cast<Connector*>(mut_obj()));
 }
 
-bool connector_helper::hook(const absl::string_view& k,
+bool connector_helper::hook(const absl::string_view& key,
                             const absl::string_view& value) {
   Connector* obj = static_cast<Connector*>(mut_obj());
-  absl::string_view key;
-  {
-    auto it = correspondence().find(k);
-    if (it != correspondence().end())
-      key = it->second;
-    else
-      key = k;
-  }
   return false;
+}
+void connector_helper::check_validity() const {
+  const Connector* o = static_cast<const Connector*>(obj());
 }
 }  // namespace com::centreon::engine::configuration

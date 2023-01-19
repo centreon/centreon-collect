@@ -17,6 +17,9 @@
  *
  */
 #include "configuration/hostdependency_helper.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
+
+using msg_fmt = com::centreon::exceptions::msg_fmt;
 
 namespace com::centreon::engine::configuration {
 hostdependency_helper::hostdependency_helper(Hostdependency* obj)
@@ -41,17 +44,9 @@ hostdependency_helper::hostdependency_helper(Hostdependency* obj)
   init_hostdependency(static_cast<Hostdependency*>(mut_obj()));
 }
 
-bool hostdependency_helper::hook(const absl::string_view& k,
+bool hostdependency_helper::hook(const absl::string_view& key,
                                  const absl::string_view& value) {
   Hostdependency* obj = static_cast<Hostdependency*>(mut_obj());
-  absl::string_view key;
-  {
-    auto it = correspondence().find(k);
-    if (it != correspondence().end())
-      key = it->second;
-    else
-      key = k;
-  }
   if (key == "dependent_hostgroups") {
     fill_string_group(obj->mutable_dependent_hostgroups(), value);
     return true;
@@ -66,5 +61,21 @@ bool hostdependency_helper::hook(const absl::string_view& k,
     return true;
   }
   return false;
+}
+void hostdependency_helper::check_validity() const {
+  const Hostdependency* o = static_cast<const Hostdependency*>(obj());
+
+  if (o->hosts().data().empty() && o->hostgroups().data().empty())
+    throw msg_fmt(
+        "Host dependency is not attached to any host or host group (properties "
+        "'hosts' or 'hostgroups', respectively)");
+
+  if (o->dependent_hosts().data().empty() &&
+      o->dependent_hostgroups().data().empty())
+    throw msg_fmt(
+        "Host dependency is not attached to any "
+        "dependent host or dependent host group (properties "
+        "'dependent_hosts' or 'dependent_hostgroups', "
+        "respectively)");
 }
 }  // namespace com::centreon::engine::configuration

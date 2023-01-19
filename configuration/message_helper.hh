@@ -71,15 +71,20 @@ class message_helper {
                  size_t field_size)
       : _otype(otype),
         _obj(obj),
-        _correspondence{std::move(correspondence)},
+        _correspondence{
+            std::forward<absl::flat_hash_map<std::string, std::string>>(
+                correspondence)},
         _modified_field(field_size, false) {}
+  message_helper() = delete;
+  message_helper& operator=(const message_helper&) = delete;
+  virtual ~message_helper() noexcept = default;
   const absl::flat_hash_map<std::string, std::string>& correspondence() const {
     return _correspondence;
   }
   object_type otype() const { return _otype; }
   Message* mut_obj() { return _obj; }
-  void set_obj(Message* obj) { _obj = obj; }
   const Message* obj() const { return _obj; }
+  void set_obj(Message* obj) { _obj = obj; }
   void set_changed(int num) { _modified_field[num] = true; }
   bool changed(int num) const { return _modified_field[num]; }
   bool resolved() const { return _resolved; }
@@ -89,6 +94,8 @@ class message_helper {
                     const absl::string_view& value [[maybe_unused]]) {
     return false;
   }
+  virtual void check_validity() const = 0;
+  absl::string_view validate_key(const absl::string_view& key) const;
 };
 }  // namespace configuration
 }  // namespace engine
