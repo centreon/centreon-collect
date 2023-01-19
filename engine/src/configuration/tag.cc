@@ -27,8 +27,8 @@ using namespace com::centreon::engine::configuration;
 #define SETTER(type, method) &object::setter<tag, type, &tag::method>::generic
 
 const absl::flat_hash_map<std::string, tag::setter_func> tag::_setters{
-    {"name", SETTER(const std::string&, _set_name)},
-    {"tag_name", SETTER(const std::string&, _set_name)},
+    {"name", SETTER(const std::string&, _set_tag_name)},
+    {"tag_name", SETTER(const std::string&, _set_tag_name)},
     {"id", SETTER(uint64_t, _set_id)},
     {"tag_id", SETTER(uint64_t, _set_id)},
     {"type", SETTER(const std::string&, _set_type)},
@@ -206,7 +206,7 @@ bool tag::_set_type(const std::string& typ) {
  *
  * @return True on success.
  */
-bool tag::_set_name(const std::string& name) {
+bool tag::_set_tag_name(const std::string& name) {
   _tag_name = name;
   return true;
 }

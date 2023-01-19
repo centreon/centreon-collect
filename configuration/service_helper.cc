@@ -17,6 +17,9 @@
  *
  */
 #include "configuration/service_helper.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
+
+using msg_fmt = com::centreon::exceptions::msg_fmt;
 
 namespace com::centreon::engine::configuration {
 service_helper::service_helper(Service* obj)
@@ -41,17 +44,9 @@ service_helper::service_helper(Service* obj)
   init_service(static_cast<Service*>(mut_obj()));
 }
 
-bool service_helper::hook(const absl::string_view& k,
+bool service_helper::hook(const absl::string_view& key,
                           const absl::string_view& value) {
   Service* obj = static_cast<Service*>(mut_obj());
-  absl::string_view key;
-  {
-    auto it = correspondence().find(k);
-    if (it != correspondence().end())
-      key = it->second;
-    else
-      key = k;
-  }
   if (key == "contactgroups") {
     fill_string_group(obj->mutable_contactgroups(), value);
     return true;
@@ -97,5 +92,8 @@ bool service_helper::hook(const absl::string_view& k,
     return true;
   }
   return false;
+}
+void service_helper::check_validity() const {
+  const Service* o = static_cast<const Service*>(obj());
 }
 }  // namespace com::centreon::engine::configuration

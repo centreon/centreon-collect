@@ -33,8 +33,9 @@ class severity_helper : public message_helper {
   severity_helper(Severity* obj);
   ~severity_helper() noexcept = default;
 
-  bool hook(const absl::string_view& k,
+  bool hook(const absl::string_view& key,
             const absl::string_view& value) override;
+  void check_validity() const override;
 };
 }  // namespace configuration
 }  // namespace engine

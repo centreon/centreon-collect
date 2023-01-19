@@ -45,7 +45,7 @@ class tag : public object {
 
   bool _set_id(uint64_t id);
   bool _set_type(const std::string& type);
-  bool _set_name(const std::string& name);
+  bool _set_tag_name(const std::string& name);
 
  public:
   tag(const key_type& key = {0, 0});
