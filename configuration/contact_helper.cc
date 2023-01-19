@@ -17,6 +17,9 @@
  *
  */
 #include "configuration/contact_helper.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
+
+using msg_fmt = com::centreon::exceptions::msg_fmt;
 
 namespace com::centreon::engine::configuration {
 contact_helper::contact_helper(Contact* obj)
@@ -29,17 +32,9 @@ contact_helper::contact_helper(Contact* obj)
   init_contact(static_cast<Contact*>(mut_obj()));
 }
 
-bool contact_helper::hook(const absl::string_view& k,
+bool contact_helper::hook(const absl::string_view& key,
                           const absl::string_view& value) {
   Contact* obj = static_cast<Contact*>(mut_obj());
-  absl::string_view key;
-  {
-    auto it = correspondence().find(k);
-    if (it != correspondence().end())
-      key = it->second;
-    else
-      key = k;
-  }
   if (key == "contactgroups") {
     fill_string_group(obj->mutable_contactgroups(), value);
     return true;
@@ -51,5 +46,11 @@ bool contact_helper::hook(const absl::string_view& k,
     return true;
   }
   return false;
+}
+void contact_helper::check_validity() const {
+  const Contact* o = static_cast<const Contact*>(obj());
+
+  if (o->contact_name().empty())
+    throw msg_fmt("Contact has no name (property 'contact_name')");
 }
 }  // namespace com::centreon::engine::configuration

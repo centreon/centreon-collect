@@ -103,8 +103,8 @@ bool command::operator!=(command const& right) const throw() {
  */
 bool command::operator<(command const& right) const throw() {
   if (_command_name != right._command_name)
-    return (_command_name < right._command_name);
-  return (_command_line < right._command_line);
+    return _command_name < right._command_name;
+  return _command_line < right._command_line;
 }
 
 /**
@@ -118,7 +118,6 @@ void command::check_validity() const {
   if (_command_line.empty())
     throw(engine_error() << "Command '" << _command_name
                          << "' has no command line (property 'command_line')");
-  return;
 }
 
 /**
@@ -127,7 +126,7 @@ void command::check_validity() const {
  *  @return The command name.
  */
 command::key_type const& command::key() const throw() {
-  return (_command_name);
+  return _command_name;
 }
 
 /**
