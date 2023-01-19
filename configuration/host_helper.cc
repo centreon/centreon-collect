@@ -17,6 +17,9 @@
  *
  */
 #include "configuration/host_helper.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
+
+using msg_fmt = com::centreon::exceptions::msg_fmt;
 
 namespace com::centreon::engine::configuration {
 host_helper::host_helper(Host* obj)
@@ -40,17 +43,9 @@ host_helper::host_helper(Host* obj)
   init_host(static_cast<Host*>(mut_obj()));
 }
 
-bool host_helper::hook(const absl::string_view& k,
+bool host_helper::hook(const absl::string_view& key,
                        const absl::string_view& value) {
   Host* obj = static_cast<Host*>(mut_obj());
-  absl::string_view key;
-  {
-    auto it = correspondence().find(k);
-    if (it != correspondence().end())
-      key = it->second;
-    else
-      key = k;
-  }
   if (key == "contactgroups") {
     fill_string_group(obj->mutable_contactgroups(), value);
     return true;
@@ -93,5 +88,14 @@ bool host_helper::hook(const absl::string_view& k,
     return true;
   }
   return false;
+}
+void host_helper::check_validity() const {
+  const Host* o = static_cast<const Host*>(obj());
+
+  if (o->host_name().empty())
+    throw msg_fmt("Host has no name (property 'host_name')");
+  if (o->address().empty())
+    throw msg_fmt("Host '{}' has no address (property 'address')",
+                  o->host_name());
 }
 }  // namespace com::centreon::engine::configuration

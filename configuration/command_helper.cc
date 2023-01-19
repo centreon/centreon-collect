@@ -17,6 +17,9 @@
  *
  */
 #include "configuration/command_helper.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
+
+using msg_fmt = com::centreon::exceptions::msg_fmt;
 
 namespace com::centreon::engine::configuration {
 command_helper::command_helper(Command* obj)
@@ -24,17 +27,18 @@ command_helper::command_helper(Command* obj)
   init_command(static_cast<Command*>(mut_obj()));
 }
 
-bool command_helper::hook(const absl::string_view& k,
+bool command_helper::hook(const absl::string_view& key,
                           const absl::string_view& value) {
   Command* obj = static_cast<Command*>(mut_obj());
-  absl::string_view key;
-  {
-    auto it = correspondence().find(k);
-    if (it != correspondence().end())
-      key = it->second;
-    else
-      key = k;
-  }
   return false;
+}
+void command_helper::check_validity() const {
+  const Command* o = static_cast<const Command*>(obj());
+
+  if (o->command_name().empty())
+    throw msg_fmt("Command has no name (property 'command_name')");
+  if (o->command_line().empty())
+    throw msg_fmt("Command '{}' has no command line (property 'command_line')",
+                  o->command_name());
 }
 }  // namespace com::centreon::engine::configuration

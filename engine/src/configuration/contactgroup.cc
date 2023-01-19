@@ -176,7 +176,7 @@ bool contactgroup::parse(char const* key, char const* value) {
  *  @return The alias.
  */
 std::string const& contactgroup::alias() const throw() {
-  return (_alias);
+  return _alias;
 }
 
 /**

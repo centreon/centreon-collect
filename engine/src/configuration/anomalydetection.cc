@@ -1590,7 +1590,7 @@ bool anomalydetection::set_acknowledgement_timeout(int value) {
  *
  *  @return True on success, otherwise false.
  */
-bool anomalydetection::_set_action_url(std::string const& value) {
+bool anomalydetection::_set_action_url(const std::string& value) {
   _action_url = value;
   return true;
 }

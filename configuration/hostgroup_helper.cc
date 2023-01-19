@@ -17,6 +17,9 @@
  *
  */
 #include "configuration/hostgroup_helper.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
+
+using msg_fmt = com::centreon::exceptions::msg_fmt;
 
 namespace com::centreon::engine::configuration {
 hostgroup_helper::hostgroup_helper(Hostgroup* obj)
@@ -24,21 +27,16 @@ hostgroup_helper::hostgroup_helper(Hostgroup* obj)
   init_hostgroup(static_cast<Hostgroup*>(mut_obj()));
 }
 
-bool hostgroup_helper::hook(const absl::string_view& k,
+bool hostgroup_helper::hook(const absl::string_view& key,
                             const absl::string_view& value) {
   Hostgroup* obj = static_cast<Hostgroup*>(mut_obj());
-  absl::string_view key;
-  {
-    auto it = correspondence().find(k);
-    if (it != correspondence().end())
-      key = it->second;
-    else
-      key = k;
-  }
   if (key == "members") {
     fill_string_group(obj->mutable_members(), value);
     return true;
   }
   return false;
+}
+void hostgroup_helper::check_validity() const {
+  const Hostgroup* o = static_cast<const Hostgroup*>(obj());
 }
 }  // namespace com::centreon::engine::configuration
