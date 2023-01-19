@@ -391,6 +391,38 @@ void mysql_stmt::operator<<(io::data const& d) {
         d.type());
 }
 
+void mysql_stmt::bind_value_as_f32(size_t range, float value) {
+  if (!_bind)
+    _bind = std::make_unique<database::mysql_bind>(get_param_count(), 0);
+
+  if (std::isinf(value) || std::isnan(value))
+    _bind->set_null_f32(range);
+  else
+    _bind->set_value_as_f32(range, value);
+}
+
+void mysql_stmt::bind_null_f32(size_t range) {
+  if (!_bind)
+    _bind = std::make_unique<database::mysql_bind>(get_param_count(), 0);
+  _bind->set_null_f32(range);
+}
+
+void mysql_stmt::bind_value_as_f64(size_t range, double value) {
+  if (!_bind)
+    _bind = std::make_unique<database::mysql_bind>(get_param_count(), 0);
+
+  if (std::isinf(value) || std::isnan(value))
+    _bind->set_null_f64(range);
+  else
+    _bind->set_value_as_f64(range, value);
+}
+
+void mysql_stmt::bind_null_f64(size_t range) {
+  if (!_bind)
+    _bind = std::make_unique<database::mysql_bind>(get_param_count(), 0);
+  _bind->set_null_f64(range);
+}
+
 #define BIND_VALUE(ftype, vtype)                                            \
   void mysql_stmt::bind_value_as_##ftype(size_t range, vtype value) {       \
     if (!_bind)                                                             \
@@ -408,8 +440,6 @@ BIND_VALUE(i32, int32_t)
 BIND_VALUE(u32, uint32_t)
 BIND_VALUE(i64, int64_t)
 BIND_VALUE(u64, uint64_t)
-BIND_VALUE(f32, float)
-BIND_VALUE(f64, double)
 BIND_VALUE(tiny, char)
 BIND_VALUE(bool, bool)
 BIND_VALUE(str, const fmt::string_view&)
