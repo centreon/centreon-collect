@@ -38,6 +38,8 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::misc;
 using namespace google::protobuf::util;
 
+extern std::shared_ptr<asio::io_context> g_io_context;
+
 class into_memory : public io::stream {
  public:
   into_memory() : io::stream("into_memory"), _memory() {}
@@ -74,6 +76,7 @@ class UnifiedSqlRebuild2Test : public ::testing::Test {
   void SetUp() override {
     io::data::broker_id = 0;
     try {
+      g_io_context->restart();
       config::applier::init(0, "broker_test", 0);
     } catch (std::exception const& e) {
       (void)e;

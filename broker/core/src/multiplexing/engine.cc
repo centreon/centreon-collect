@@ -294,65 +294,113 @@ std::string engine::_cache_file_path() const {
   return retval;
 }
 
+CCB_BEGIN()
+
+namespace multiplexing {
+namespace detail {
+
 /**
- *  Send queued events to subscribers. Since events are queued, we use a strand
- *  to keep their order. But there are several muxers, so we parallelize the
- *  sending of data to each.
+ * @brief The goal of this class is to do the completion job once all muxer has
+ * been fed a shared_ptr of one instance of this class is passed to worker. So
+ * when all workers have finished, destructor is called and do the job
+ *
  */
-void engine::_send_to_subscribers() {
+class callback_caller {
+  engine::send_to_mux_callback_type _callback;
+  std::shared_ptr<engine> _parent;
+
+ public:
+  callback_caller(engine::send_to_mux_callback_type&& callback,
+                  const std::shared_ptr<engine>& parent)
+      : _callback(callback), _parent(parent) {}
+
+  /**
+   * @brief Destroy the callback caller object and do the completion job
+   *
+   */
+  ~callback_caller() {
+    // job is done
+    bool expected = true;
+    _parent->_sending_to_subscribers.compare_exchange_strong(expected, false);
+    // if another data to publish redo the job
+    _parent->_send_to_subscribers(nullptr);
+    if (_callback) {
+      _callback();
+    }
+  }
+};
+
+}  // namespace detail
+}  // namespace multiplexing
+CCB_END()
+
+/**
+ * @brief
+ *  Send queued events to subscribers. Since events are queued, we use a
+ * strand to keep their order. But there are several muxers, so we parallelize
+ * the sending of data to each. callback is called only if _kiew is not empty
+ * @param callback
+ * @return true data sent
+ * @return false nothing to sent or sent in progress
+ */
+bool engine::_send_to_subscribers(send_to_mux_callback_type&& callback) {
+  // is _send_to_subscriber working? (_sending_to_subscribers=false)
+  bool expected = false;
+  if (!_sending_to_subscribers.compare_exchange_strong(expected, true)) {
+    return false;
+  }
+  // now we continue and _sending_to_subscribers = true
+
   // Process all queued events.
-  std::deque<std::shared_ptr<io::data>> kiew;
+  std::shared_ptr<std::deque<std::shared_ptr<io::data>>> kiew;
+  std::shared_ptr<muxer> last_muxer;
+  std::shared_ptr<detail::callback_caller> cb;
   {
     std::lock_guard<std::mutex> lck(_engine_m);
-    if (_kiew.empty()) {
-      _sending_to_subscribers = false;
-      return;
+    if (_muxers.empty() || _kiew.empty()) {
+      // nothing to do true => _sending_to_subscribers
+      bool expected = true;
+      _sending_to_subscribers.compare_exchange_strong(expected, false);
+      return false;
     }
-    std::swap(_kiew, kiew);
-  }
 
+    log_v2::core()->trace(
+        "engine::_send_to_subscribers send {} events to {} muxers",
+        _kiew.size(), _muxers.size());
+
+    kiew = std::make_shared<std::deque<std::shared_ptr<io::data>>>();
+    std::swap(_kiew, *kiew);
+    // completion object
+    // it will be destroyed at the end of the scope of this function and at the
+    // end of lambdas posted
+    cb = std::make_shared<detail::callback_caller>(std::move(callback),
+                                                   shared_from_this());
+    last_muxer = *_muxers.rbegin();
+    if (_muxers.size() > 1) {
+      /* Since the sending is parallelized, we use the thread pool for this
+       * purpose except for the last muxer where we use this thread. */
+
+      /* We get an iterator to the last muxer */
+      auto it_last = --_muxers.end();
+
+      /* We use the thread pool for the muxers from the first one to the
+       * second to last */
+      for (auto it = _muxers.begin(); it != it_last; ++it) {
+        pool::io_context().post([kiew, m = *it, cb]() { m->publish(*kiew); });
+      }
+    }
+  }
   stats::center::instance().update(&EngineStats::set_processed_events, _stats,
-                                   static_cast<uint32_t>(kiew.size()));
-  std::atomic<int> count{static_cast<int>(_muxers.size()) - 1};
-  if (count >= 0) {
-    /* We must wait the end of the sending, so we use a promise. */
-    std::promise<void> promise;
-
-    /* Since the sending is parallelized, we use the thread pool for this
-     * purpose except for the last muxer where we use this thread. */
-
-    /* We get an iterator to the last muxer */
-    auto it_last = --_muxers.end();
-
-    /* We use the thread pool for the muxers from the first one to the second
-     * to last */
-    for (auto it = _muxers.begin(); it != it_last; ++it) {
-      pool::io_context().post([&kiew, m = *it, &count, &promise] {
-        for (auto& e : kiew)
-          m->publish(e);
-        if (atomic_fetch_sub_explicit(&count, 1, std::memory_order_relaxed) ==
-            0)
-          promise.set_value();
-      });
-    }
-    /* The same work but by this thread for the last muxer. */
-    auto m = *it_last;
-    for (auto& e : kiew)
-      m->publish(e);
-
-    if (atomic_fetch_sub_explicit(&count, 1, std::memory_order_relaxed) == 0)
-      promise.set_value();
-
-    promise.get_future().wait();
-  }
-
-  /* The strand is necessary for the order of data */
-  _strand.post(std::bind(&engine::_send_to_subscribers, this));
+                                   static_cast<uint32_t>(kiew->size()));
+  /* The same work but by this thread for the last muxer. */
+  last_muxer->publish(*kiew);
+  return true;
 }
 
 /**
  *  Clear events stored in the multiplexing engine.
  */
 void engine::clear() {
+  std::lock_guard<std::mutex> lck(_engine_m);
   _kiew.clear();
 }

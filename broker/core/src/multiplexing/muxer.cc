@@ -104,8 +104,9 @@ muxer::muxer(std::string name,
   log_v2::core()->info(
       "multiplexing: '{}' starts with {} in queue and the queue file is {}",
       _name, _events_size, _file ? "enable" : "disable");
+}
 
-  engine::instance_ptr()->subscribe(this);
+engine::instance_ptr()->subscribe(this);
 }
 
 /**
@@ -227,6 +228,7 @@ void muxer::publish(const std::shared_ptr<io::data> event) {
     }
     _update_stats();
   }
+  _update_stats();
 }
 
 /**
