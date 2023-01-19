@@ -40,31 +40,30 @@ class_files_cc = [
 ]
 
 
-def complete_filehelper_cc(fhcc, cname, name, number: int, correspondence, hook):
+def complete_filehelper_cc(fhcc, cname, name, number: int, correspondence, hook, check_validity):
     name_cap = name.capitalize()
     cname = name + "_helper"
     fhcc.write(f"""{cname}::{cname}({name_cap}* obj) : message_helper(object_type::{name}, obj, {correspondence}, {number}) {{
   init_{name}(static_cast<{name_cap}*>(mut_obj()));
 }}
 
-bool {cname}::hook(const absl::string_view& k, const absl::string_view& value) {{
+bool {cname}::hook(const absl::string_view& key, const absl::string_view& value) {{
   {cap_name}* obj = static_cast<{cap_name}*>(mut_obj());
-  absl::string_view key;
-  {{
-    auto it = correspondence().find(k);
-    if (it != correspondence().end())
-      key = it->second;
-    else
-      key = k;
-  }}
 """)
     for h in hook:
         fhcc.write(h)
     fhcc.write("""  return false;
 }
+""")
+    fhcc.write(f"""void {cname}::check_validity() const {{
+  const {cap_name}* o = static_cast<const {cap_name}*>(obj());
+""")
+    for c in check_validity:
+        fhcc.write(c)
+    fhcc.write("""
+}
 }
 """)
-
 
 def prepare_filehelper_cc(name: str):
     filename = name + "_helper.cc"
@@ -88,6 +87,9 @@ def prepare_filehelper_cc(name: str):
  *
  */
 #include "configuration/{name}_helper.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
+
+using msg_fmt = com::centreon::exceptions::msg_fmt;
 
 namespace com::centreon::engine::configuration {{
 """)
@@ -135,7 +137,8 @@ class {cname}_helper : public message_helper {{
   {cname}_helper({objname}* obj);
   ~{cname}_helper() noexcept = default;
   
-  bool hook(const absl::string_view& k, const absl::string_view& value) override;
+  bool hook(const absl::string_view& key, const absl::string_view& value) override;
+  void check_validity() const override;
 }};
 }}  // namespace configuration
 }}  // namespace engine
@@ -393,15 +396,73 @@ def build_hook_content(cname: str, msg):
     return true;
   }}
 """)
-        elif m['proto_name'] == 'tag_id':
-            print("coucou")
+        elif m['proto_name'] in ['tag_id', 'action_url', 'notes', 'notes_url', 'address', 'alias']:
+            pass
         elif m['proto_type'] in ['uint32', 'int32', 'bool', 'uint64', 'int64']:
             pass
         else:
             print(
-                f"Field '{m['proto_name']} of type '{m['proto_type']}' not managed")
+                f"Field '{m['proto_name']}' of type '{m['proto_type']}' not managed")
         if els == "" and len(retval) > 0:
             els = "else "
+    return retval
+
+
+def build_check_validity(cname: str, msg):
+    retval = []
+    if cname == "Command":
+        retval.append("""
+  if (o->command_name().empty())
+    throw msg_fmt("Command has no name (property 'command_name')");
+  if (o->command_line().empty())
+    throw msg_fmt("Command '{}' has no command line (property 'command_line')",
+                  o->command_name());
+""")
+    elif cname == "Contact":
+        retval.append("""
+      if (o->contact_name().empty())
+        throw msg_fmt("Contact has no name (property 'contact_name')");
+""")
+    elif cname == "Contactgroup":
+        retval.append("""
+      if (o->contactgroup_name().empty())
+        throw msg_fmt("Contactgroup has no name (property 'contactgroup_name')");
+""")
+    elif cname == "Command":
+            retval.append("""
+      if (o->command_name().empty())
+        throw msg_fmt("Command has no name (property 'command_name')");
+      if (o->command_line().empty())
+        throw msg_fmt("Command '{}' has no command line (property 'command_line')",
+                      o->command_name());
+""")
+    elif cname == "Host":
+        retval.append("""
+      if (o->host_name().empty())
+        throw msg_fmt("Host has no name (property 'host_name')");
+      if (o->address().empty())
+        throw msg_fmt("Host '{}' has no address (property 'address')",
+                      o->host_name());
+""")
+    elif cname == "Hostdependency":
+        retval.append("""
+      if (o->hosts().data().empty() && o->hostgroups().data().empty())
+        throw msg_fmt("Host dependency is not attached to any host or host group (properties 'hosts' or 'hostgroups', respectively)");
+        
+      if (o->dependent_hosts().data().empty() && o->dependent_hostgroups().data().empty())
+        throw msg_fmt(
+        "Host dependency is not attached to any "                          
+          "dependent host or dependent host group (properties "              
+          "'dependent_hosts' or 'dependent_hostgroups', "            
+          "respectively)");
+""")
+    elif cname == "Hostescalation":
+        retval.append("""
+      if (o->obj().register_()) {
+        if (o->hosts().data().empty() && o->hostgroups().data().empty())
+          throw msg_fmt("Hostescalation must contain at least one of the fields 'hosts' or 'hostgroups' not empty");
+      }
+""")
     return retval
 
 
@@ -694,6 +755,9 @@ for i in range(len(class_files_hh)):
     # Construction of the hook for this message i.e. all the particular cases.
     hook = build_hook_content(cap_name, msg_list)
 
+    # Construction of the check_validity for this message.
+    check_validity = build_check_validity(cap_name, msg_list)
+
     # From the cpp sources, we get the correspondence.
     correspondence = get_correspondence(cpp)
 
@@ -720,7 +784,7 @@ message {cap_name} {{
         number += 1
     proto.append("}\n")
 
-    complete_filehelper_cc(fhcc, cap_name, name, number, correspondence, hook)
+    complete_filehelper_cc(fhcc, cap_name, name, number, correspondence, hook, check_validity)
 
     # Generation of proto file
     f = open("state-generated.proto", "w")

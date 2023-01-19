@@ -17,6 +17,9 @@
  *
  */
 #include "configuration/servicedependency_helper.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
+
+using msg_fmt = com::centreon::exceptions::msg_fmt;
 
 namespace com::centreon::engine::configuration {
 servicedependency_helper::servicedependency_helper(Servicedependency* obj)
@@ -49,17 +52,9 @@ servicedependency_helper::servicedependency_helper(Servicedependency* obj)
   init_servicedependency(static_cast<Servicedependency*>(mut_obj()));
 }
 
-bool servicedependency_helper::hook(const absl::string_view& k,
+bool servicedependency_helper::hook(const absl::string_view& key,
                                     const absl::string_view& value) {
   Servicedependency* obj = static_cast<Servicedependency*>(mut_obj());
-  absl::string_view key;
-  {
-    auto it = correspondence().find(k);
-    if (it != correspondence().end())
-      key = it->second;
-    else
-      key = k;
-  }
   if (key == "dependent_hostgroups") {
     fill_string_group(obj->mutable_dependent_hostgroups(), value);
     return true;
@@ -86,5 +81,8 @@ bool servicedependency_helper::hook(const absl::string_view& k,
     return true;
   }
   return false;
+}
+void servicedependency_helper::check_validity() const {
+  const Servicedependency* o = static_cast<const Servicedependency*>(obj());
 }
 }  // namespace com::centreon::engine::configuration

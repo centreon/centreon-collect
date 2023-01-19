@@ -17,6 +17,9 @@
  *
  */
 #include "configuration/serviceescalation_helper.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
+
+using msg_fmt = com::centreon::exceptions::msg_fmt;
 
 namespace com::centreon::engine::configuration {
 serviceescalation_helper::serviceescalation_helper(Serviceescalation* obj)
@@ -36,17 +39,9 @@ serviceescalation_helper::serviceescalation_helper(Serviceescalation* obj)
   init_serviceescalation(static_cast<Serviceescalation*>(mut_obj()));
 }
 
-bool serviceescalation_helper::hook(const absl::string_view& k,
+bool serviceescalation_helper::hook(const absl::string_view& key,
                                     const absl::string_view& value) {
   Serviceescalation* obj = static_cast<Serviceescalation*>(mut_obj());
-  absl::string_view key;
-  {
-    auto it = correspondence().find(k);
-    if (it != correspondence().end())
-      key = it->second;
-    else
-      key = k;
-  }
   if (key == "contactgroups") {
     fill_string_group(obj->mutable_contactgroups(), value);
     return true;
@@ -64,5 +59,8 @@ bool serviceescalation_helper::hook(const absl::string_view& k,
     return true;
   }
   return false;
+}
+void serviceescalation_helper::check_validity() const {
+  const Serviceescalation* o = static_cast<const Serviceescalation*>(obj());
 }
 }  // namespace com::centreon::engine::configuration
