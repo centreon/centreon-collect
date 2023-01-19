@@ -17,6 +17,9 @@
  *
  */
 #include "configuration/anomalydetection_helper.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
+
+using msg_fmt = com::centreon::exceptions::msg_fmt;
 
 namespace com::centreon::engine::configuration {
 anomalydetection_helper::anomalydetection_helper(Anomalydetection* obj)
@@ -38,17 +41,9 @@ anomalydetection_helper::anomalydetection_helper(Anomalydetection* obj)
   init_anomalydetection(static_cast<Anomalydetection*>(mut_obj()));
 }
 
-bool anomalydetection_helper::hook(const absl::string_view& k,
+bool anomalydetection_helper::hook(const absl::string_view& key,
                                    const absl::string_view& value) {
   Anomalydetection* obj = static_cast<Anomalydetection*>(mut_obj());
-  absl::string_view key;
-  {
-    auto it = correspondence().find(k);
-    if (it != correspondence().end())
-      key = it->second;
-    else
-      key = k;
-  }
   if (key == "contactgroups") {
     fill_string_group(obj->mutable_contactgroups(), value);
     return true;
@@ -88,5 +83,8 @@ bool anomalydetection_helper::hook(const absl::string_view& k,
     return true;
   }
   return false;
+}
+void anomalydetection_helper::check_validity() const {
+  const Anomalydetection* o = static_cast<const Anomalydetection*>(obj());
 }
 }  // namespace com::centreon::engine::configuration

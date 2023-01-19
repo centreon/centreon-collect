@@ -17,13 +17,16 @@
  *
  */
 #include "configuration/tag_helper.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
+
+using msg_fmt = com::centreon::exceptions::msg_fmt;
 
 namespace com::centreon::engine::configuration {
 tag_helper::tag_helper(Tag* obj)
     : message_helper(object_type::tag,
                      obj,
                      {
-                         {"tag_name", "name"},
+                         {"name", "tag_name"},
                          {"tag_id", "id"},
                          {"tag_type", "type"},
                      },
@@ -31,17 +34,9 @@ tag_helper::tag_helper(Tag* obj)
   init_tag(static_cast<Tag*>(mut_obj()));
 }
 
-bool tag_helper::hook(const absl::string_view& k,
+bool tag_helper::hook(const absl::string_view& key,
                       const absl::string_view& value) {
   Tag* obj = static_cast<Tag*>(mut_obj());
-  absl::string_view key;
-  {
-    auto it = correspondence().find(k);
-    if (it != correspondence().end())
-      key = it->second;
-    else
-      key = k;
-  }
 
   if (key == "id" || key == "tag_id") {
     uint64_t id;
@@ -64,5 +59,8 @@ bool tag_helper::hook(const absl::string_view& k,
     return true;
   }
   return false;
+}
+void tag_helper::check_validity() const {
+  const Tag* o = static_cast<const Tag*>(obj());
 }
 }  // namespace com::centreon::engine::configuration

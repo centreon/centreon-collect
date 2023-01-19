@@ -17,6 +17,9 @@
  *
  */
 #include "configuration/timeperiod_helper.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
+
+using msg_fmt = com::centreon::exceptions::msg_fmt;
 
 namespace com::centreon::engine::configuration {
 timeperiod_helper::timeperiod_helper(Timeperiod* obj)
@@ -24,17 +27,9 @@ timeperiod_helper::timeperiod_helper(Timeperiod* obj)
   init_timeperiod(static_cast<Timeperiod*>(mut_obj()));
 }
 
-bool timeperiod_helper::hook(const absl::string_view& k,
+bool timeperiod_helper::hook(const absl::string_view& key,
                              const absl::string_view& value) {
   Timeperiod* obj = static_cast<Timeperiod*>(mut_obj());
-  absl::string_view key;
-  {
-    auto it = correspondence().find(k);
-    if (it != correspondence().end())
-      key = it->second;
-    else
-      key = k;
-  }
   auto get_timerange = [](const absl::string_view& value, auto* day) -> bool {
     auto arr = absl::StrSplit(value, ',');
     for (auto& d : arr) {
@@ -74,5 +69,8 @@ bool timeperiod_helper::hook(const absl::string_view& k,
   else if (key == "saturday")
     return get_timerange(value, obj->mutable_timeranges()->mutable_saturday());
   return false;
+}
+void timeperiod_helper::check_validity() const {
+  const Timeperiod* o = static_cast<const Timeperiod*>(obj());
 }
 }  // namespace com::centreon::engine::configuration
