@@ -22,27 +22,30 @@
 
 #include "state-generated.pb.h"
 
-CCE_BEGIN()
+namespace com {
+namespace centreon {
+namespace engine {
 namespace configuration {
-Anomalydetection make_anomalydetection();
-Command make_command();
-Connector make_connector();
-Contact make_contact();
-Contactgroup make_contactgroup();
-Host make_host();
-Hostdependency make_hostdependency();
-Hostescalation make_hostescalation();
-Hostgroup make_hostgroup();
-Hostextinfo make_hostextinfo();
-Service make_service();
-Servicedependency make_servicedependency();
-Serviceescalation make_serviceescalation();
-Servicegroup make_servicegroup();
-Severity make_severity();
-Tag make_tag();
-Timeperiod make_timeperiod();
+void init_anomalydetection(Anomalydetection* obj);
+void init_command(Command* obj);
+void init_connector(Connector* obj);
+void init_contact(Contact* obj);
+void init_contactgroup(Contactgroup* obj);
+void init_host(Host* obj);
+void init_hostdependency(Hostdependency* obj);
+void init_hostescalation(Hostescalation* obj);
+void init_hostgroup(Hostgroup* obj);
+void init_service(Service* obj);
+void init_servicedependency(Servicedependency* obj);
+void init_serviceescalation(Serviceescalation* obj);
+void init_servicegroup(Servicegroup* obj);
+void init_severity(Severity* obj);
+void init_tag(Tag* obj);
+void init_timeperiod(Timeperiod* obj);
 
 };  // namespace configuration
-CCE_END()
+};  // namespace engine
+};  // namespace centreon
+};  // namespace com
 
 #endif /* !CCE_CONFIGURATION_STATE_GENERATED_HH */

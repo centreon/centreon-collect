@@ -26,6 +26,7 @@
 #include "configuration/anomalydetection_helper.hh"
 #include "configuration/command_helper.hh"
 #include "configuration/contact_helper.hh"
+#include "configuration/contactgroup_helper.hh"
 #include "configuration/host_helper.hh"
 #include "configuration/hostgroup_helper.hh"
 #include "configuration/message_helper.hh"
@@ -711,6 +712,7 @@ void parser::_parse_object_definitions(const std::string& path,
         /* ------------------------------------ */
         size_t pos = l.find_first_of(" \t");
         absl::string_view key = l.substr(0, pos);
+        key = msg_helper->validate_key(key);
         l.remove_prefix(pos);
         l = absl::StripLeadingAsciiWhitespace(l);
         bool retval = false;
@@ -801,6 +803,10 @@ void parser::_parse_object_definitions(const std::string& path,
       } else if (type == "tag") {
         msg = pb_config->mutable_tags()->Add();
         msg_helper = std::make_unique<tag_helper>(static_cast<Tag*>(msg));
+      } else if (type == "contactgroup") {
+        msg = pb_config->mutable_contactgroups()->Add();
+        msg_helper = std::make_unique<contactgroup_helper>(
+            static_cast<Contactgroup*>(msg));
       } else {
         log_v2::config()->error("Type '{}' not yet supported by the parser",
                                 type);
@@ -1217,111 +1223,106 @@ void parser::_resolve_template(State* pb_config) {
   for (Anomalydetection& a : *pb_config->mutable_anomalydetections())
     _resolve_template(_pb_helper[&a], _pb_templates[object::anomalydetection]);
 
-  {
-    constexpr std::array<const char*, 3> mandatory{"command_name",
-                                                   "command_line", nullptr};
+  try {
     for (const Command& c : pb_config->commands())
-      _check_validity(c, mandatory.data());
-  }
-  {
-    constexpr std::array<const char*, 2> mandatory{"contact_name", nullptr};
-    for (auto it = pb_config->contacts().begin();
-         it != pb_config->contacts().end(); ++it) {
-      _check_validity(it->second, mandatory.data());
-    }
-  }
-  {
-    constexpr std::array<const char*, 2> mandatory{"contactgroup_name",
-                                                   nullptr};
-    for (const Contactgroup& c : pb_config->contactgroups())
-      _check_validity(c, mandatory.data());
-  }
-  {
-    constexpr std::array<const char*, 3> mandatory{"host_name", "address",
-                                                   nullptr};
+      _pb_helper.at(&c)->check_validity();
+
+    for (auto it = contacts->begin(); it != contacts->end(); ++it)
+      _pb_helper.at(&it->second)->check_validity();
+
+    for (const Contactgroup& cg : pb_config->contactgroups())
+      _pb_helper.at(&cg)->check_validity();
+
     for (const Host& h : pb_config->hosts())
-      _check_validity(h, mandatory.data());
-  }
-  {
-    constexpr std::array<const char*, 3> mandatory{"host_name", "address",
-                                                   nullptr};
+      _pb_helper.at(&h)->check_validity();
+
     for (const Hostdependency& hd : pb_config->hostdependencies())
-      _check_validity(hd, mandatory.data());
-  }
-  {
-    for (const Hostescalation& he : pb_config->hostescalations()) {
-      if (_is_registered(he)) {
-        if (he.hosts().data().empty() && he.hostgroups().data().empty())
-          throw engine_error()
-              << "Host escalation must contain at least one of the fields "
-                 "'hosts' or 'hostgroups' not empty";
+      _pb_helper.at(&hd)->check_validity();
+
+    for (const Hostescalation& he : pb_config->hostescalations())
+      _pb_helper.at(&he)->check_validity();
+
+    //    {
+    //      for (const Hostescalation& he : pb_config->hostescalations()) {
+    //        if (_is_registered(he)) {
+    //          if (he.hosts().data().empty() && he.hostgroups().data().empty())
+    //            throw engine_error()
+    //                << "Host escalation must contain at least one of the
+    //                fields "
+    //                   "'hosts' or 'hostgroups' not empty";
+    //        }
+    //      }
+    //    }
+    {
+      constexpr std::array<const char*, 2> mandatory{"hostgroup_name", nullptr};
+      for (const Hostgroup& hg : pb_config->hostgroups())
+        _check_validity(hg, mandatory.data());
+    }
+    {
+      for (const Service& s : pb_config->services()) {
+        if (_is_registered(s)) {
+          if (s.service_description().empty())
+            throw engine_error()
+                << "Services must have a non-empty description";
+          if (s.check_command().empty())
+            throw engine_error()
+                << fmt::format("Service '{}' has an empty check command",
+                               s.service_description());
+          if (s.hosts().data().empty() && s.hostgroups().data().empty())
+            throw engine_error() << fmt::format(
+                "Service '{}' must contain at least one of the fields 'hosts' "
+                "or "
+                "'hostgroups' not empty",
+                s.service_description());
+        }
       }
     }
-  }
-  {
-    constexpr std::array<const char*, 2> mandatory{"hostgroup_name", nullptr};
-    for (const Hostgroup& hg : pb_config->hostgroups())
-      _check_validity(hg, mandatory.data());
-  }
-  {
-    for (const Service& s : pb_config->services()) {
-      if (_is_registered(s)) {
-        if (s.service_description().empty())
-          throw engine_error() << "Services must have a non-empty description";
-        if (s.check_command().empty())
+    {
+      for (const Servicedependency& sd : pb_config->servicedependencies())
+        if (sd.servicegroups().data().empty() &&
+            (sd.service_description().data().empty() ||
+             (sd.hosts().data().empty() && sd.hostgroups().data().empty())))
           throw engine_error()
-              << fmt::format("Service '{}' has an empty check command",
-                             s.service_description());
-        if (s.hosts().data().empty() && s.hostgroups().data().empty())
-          throw engine_error() << fmt::format(
-              "Service '{}' must contain at least one of the fields 'hosts' or "
-              "'hostgroups' not empty",
-              s.service_description());
+              << "Service escalation is not attached to any service or service "
+                 "group or host or host group";
+    }
+    {
+      constexpr std::array<const char*, 2> mandatory{"servicegroup_name",
+                                                     nullptr};
+      for (const Servicegroup& sg : pb_config->servicegroups())
+        _check_validity(sg, mandatory.data());
+    }
+    {
+      constexpr std::array<const char*, 2> mandatory{"timeperiod_name",
+                                                     nullptr};
+      for (const Timeperiod& t : pb_config->timeperiods())
+        _check_validity(t, mandatory.data());
+    }
+    {
+      constexpr std::array<const char*, 5> mandatory{
+          "service_description", "host_name", "metric_name", "thresholds_file",
+          nullptr};
+      for (const Anomalydetection& a : pb_config->anomalydetections())
+        if (_is_registered(a))
+          _check_validity(a, mandatory.data());
+    }
+    {
+      for (const Tag& t : pb_config->tags()) {
+        if (t.tag_name().empty())
+          throw engine_error() << "Tag cannot have a tag name empty";
+        if (t.key().id() == 0)
+          throw engine_error()
+              << fmt::format("Tag '{}' has a null id", t.tag_name());
       }
     }
-  }
-  {
-    for (const Servicedependency& sd : pb_config->servicedependencies())
-      if (sd.servicegroups().data().empty() &&
-          (sd.service_description().data().empty() ||
-           (sd.hosts().data().empty() && sd.hostgroups().data().empty())))
-        throw engine_error()
-            << "Service escalation is not attached to any service or service "
-               "group or host or host group";
-  }
-  {
-    constexpr std::array<const char*, 2> mandatory{"servicegroup_name",
-                                                   nullptr};
-    for (const Servicegroup& sg : pb_config->servicegroups())
-      _check_validity(sg, mandatory.data());
-  }
-  {
-    constexpr std::array<const char*, 2> mandatory{"timeperiod_name", nullptr};
-    for (const Timeperiod& t : pb_config->timeperiods())
-      _check_validity(t, mandatory.data());
-  }
-  {
-    constexpr std::array<const char*, 5> mandatory{"service_description",
-                                                   "host_name", "metric_name",
-                                                   "thresholds_file", nullptr};
-    for (const Anomalydetection& a : pb_config->anomalydetections())
-      if (_is_registered(a))
-        _check_validity(a, mandatory.data());
-  }
-  {
-    for (const Tag& t : pb_config->tags()) {
-      if (t.tag_name().empty())
-        throw engine_error() << "Tag cannot have a tag name empty";
-      if (t.key().id() == 0)
-        throw engine_error()
-            << fmt::format("Tag '{}' has a null id", t.tag_name());
+    {
+      constexpr std::array<const char*, 2> mandatory{"servicegroup_name",
+                                                     nullptr};
+      for (const Servicegroup& sg : pb_config->servicegroups())
+        _check_validity(sg, mandatory.data());
     }
-  }
-  {
-    constexpr std::array<const char*, 2> mandatory{"servicegroup_name",
-                                                   nullptr};
-    for (const Servicegroup& sg : pb_config->servicegroups())
-      _check_validity(sg, mandatory.data());
+  } catch (const std::exception& e) {
+    throw engine_error() << e.what();
   }
 }
 

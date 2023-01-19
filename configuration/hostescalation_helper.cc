@@ -17,6 +17,9 @@
  *
  */
 #include "configuration/hostescalation_helper.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
+
+using msg_fmt = com::centreon::exceptions::msg_fmt;
 
 namespace com::centreon::engine::configuration {
 hostescalation_helper::hostescalation_helper(Hostescalation* obj)
@@ -33,17 +36,9 @@ hostescalation_helper::hostescalation_helper(Hostescalation* obj)
   init_hostescalation(static_cast<Hostescalation*>(mut_obj()));
 }
 
-bool hostescalation_helper::hook(const absl::string_view& k,
+bool hostescalation_helper::hook(const absl::string_view& key,
                                  const absl::string_view& value) {
   Hostescalation* obj = static_cast<Hostescalation*>(mut_obj());
-  absl::string_view key;
-  {
-    auto it = correspondence().find(k);
-    if (it != correspondence().end())
-      key = it->second;
-    else
-      key = k;
-  }
   if (key == "contactgroups") {
     fill_string_group(obj->mutable_contactgroups(), value);
     return true;
@@ -55,5 +50,15 @@ bool hostescalation_helper::hook(const absl::string_view& k,
     return true;
   }
   return false;
+}
+void hostescalation_helper::check_validity() const {
+  const Hostescalation* o = static_cast<const Hostescalation*>(obj());
+
+  if (o->obj().register_()) {
+    if (o->hosts().data().empty() && o->hostgroups().data().empty())
+      throw msg_fmt(
+          "Hostescalation must contain at least one of the fields 'hosts' or "
+          "'hostgroups' not empty");
+  }
 }
 }  // namespace com::centreon::engine::configuration

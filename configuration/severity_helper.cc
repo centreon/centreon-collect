@@ -17,6 +17,9 @@
  *
  */
 #include "configuration/severity_helper.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
+
+using msg_fmt = com::centreon::exceptions::msg_fmt;
 
 namespace com::centreon::engine::configuration {
 severity_helper::severity_helper(Severity* obj)
@@ -32,17 +35,12 @@ severity_helper::severity_helper(Severity* obj)
   init_severity(static_cast<Severity*>(mut_obj()));
 }
 
-bool severity_helper::hook(const absl::string_view& k,
+bool severity_helper::hook(const absl::string_view& key,
                            const absl::string_view& value) {
   Severity* obj = static_cast<Severity*>(mut_obj());
-  absl::string_view key;
-  {
-    auto it = correspondence().find(k);
-    if (it != correspondence().end())
-      key = it->second;
-    else
-      key = k;
-  }
   return false;
+}
+void severity_helper::check_validity() const {
+  const Severity* o = static_cast<const Severity*>(obj());
 }
 }  // namespace com::centreon::engine::configuration

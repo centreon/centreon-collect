@@ -86,6 +86,7 @@ enum class ConfigurationObject {
   TAG = 1,
   SERVICEDEPENDENCY = 2,
   ANOMALYDETECTION = 3,
+  CONTACTGROUP = 4,
 };
 
 static void CreateConf() {
@@ -398,6 +399,32 @@ static void CreateConf() {
              "    service_notification_commands  +svc_command1,svc_command2\n"
              "}\n");
 
+  CreateFile("/tmp/contactgroups.cfg",
+             "define contactgroup {\n"
+             "    contactgroup_name              cg1\n"
+             "    alias                          cg1_a\n"
+             "    members                        user1,user2\n"
+             "    contactgroup_members           +cg3\n"
+             "}\n"
+             "define contactgroup {\n"
+             "    contactgroup_name              cg2\n"
+             "    alias                          cg2_a\n"
+             "    members                        user1,user2\n"
+             "    contactgroup_members           cg3\n"
+             "}\n"
+             "define contactgroup {\n"
+             "    contactgroup_name              cg3\n"
+             "    alias                          cg3_a\n"
+             "    use                            cg_tpl\n"
+             "    members                        +user3\n"
+             "    contactgroup_members           cg3\n"
+             "}\n"
+             "define contactgroup {\n"
+             "    contactgroup_name              cg_tpl\n"
+             "    name                           cg_tpl\n"
+             "    members                        user1,user2\n"
+             "    contactgroup_members           cg2\n"
+             "}\n");
   CreateFile(
       "/tmp/centengine.cfg",
       "# comment 4\n"
@@ -413,6 +440,7 @@ static void CreateConf() {
       "cfg_file=/tmp/tags.cfg\n"
       "cfg_file=/tmp/servicedependencies.cfg\n"
       "cfg_file=/tmp/ad.cfg\n"
+      "cfg_file=/tmp/contactgroups.cfg\n"
       //"cfg_file=/tmp/etc/centreon-engine/config0/connectors.cfg\n"
       //      "broker_module=/usr/lib64/centreon-engine/externalcmd.so\n"
       //      "broker_module=/usr/lib64/nagios/cbmod.so "
@@ -547,12 +575,21 @@ static void CreateBadConf(ConfigurationObject obj) {
                  "   dependent_service_id            1\n"
                  "   thresholds_file                 /tmp/toto\n"
                  "}\n");
+      break;
+    case ConfigurationObject::CONTACTGROUP:
+      CreateFile("/tmp/contactgroups.cfg",
+                 "define contactgroup {\n"
+                 "    name                           cg_tpl\n"
+                 "    members                        user1,user2,user3\n"
+                 "    contactgroup_members           cg2\n"
+                 "}\n");
+      break;
     default:
       break;
   }
 }
 
-constexpr size_t CFG_FILES = 10u;
+constexpr size_t CFG_FILES = 11u;
 constexpr size_t RES_FILES = 1u;
 constexpr size_t HOSTS = 4u;
 constexpr size_t SERVICES = 4u;
@@ -1065,6 +1102,37 @@ TEST_F(ApplierState, StateLegacyParsing) {
   ASSERT_EQ(adit->dependent_service_id(), 1);
   ASSERT_TRUE(adit->metric_name() == "metric2");
 
+  auto cgit = config.contactgroups().begin();
+  ASSERT_TRUE(cgit != config.contactgroups().end());
+  ASSERT_TRUE(cgit->contactgroup_name() == "cg1");
+  ASSERT_TRUE(cgit->alias() == "cg1_a");
+  ASSERT_EQ(cgit->members().size(), 2u);
+  ASSERT_EQ(cgit->contactgroup_members().size(), 1u);
+
+  ++cgit;
+  ASSERT_TRUE(cgit != config.contactgroups().end());
+  ASSERT_TRUE(cgit->contactgroup_name() == "cg2");
+  ASSERT_TRUE(cgit->alias() == "cg2_a");
+  ASSERT_EQ(cgit->members().size(), 2u);
+  ASSERT_EQ(*cgit->members().begin(), "user1");
+  ASSERT_EQ(cgit->contactgroup_members().size(), 1u);
+
+  ++cgit;
+  ASSERT_TRUE(cgit != config.contactgroups().end());
+  ASSERT_TRUE(cgit->contactgroup_name() == "cg3");
+  ASSERT_TRUE(cgit->alias() == "cg3_a");
+  ASSERT_EQ(cgit->members().size(), 3u);
+  {
+    auto it = cgit->members().begin();
+    ASSERT_EQ(*it, "user1");
+    ++it;
+    ASSERT_EQ(*it, "user2");
+    ++it;
+    ASSERT_EQ(*it, "user3");
+  }
+  ASSERT_EQ(cgit->contactgroup_members().size(), 1u);
+  ASSERT_EQ(*cgit->contactgroup_members().begin(), "cg3");
+
   RmConf();
 }
 
@@ -1238,6 +1306,37 @@ TEST_F(ApplierState, StateParsing) {
   ASSERT_EQ(adit->dependent_service_id(), 1);
   ASSERT_TRUE(adit->metric_name() == "metric2");
 
+  auto cgit = config.contactgroups().begin();
+  ASSERT_TRUE(cgit != config.contactgroups().end());
+  ASSERT_TRUE(cgit->contactgroup_name() == "cg1");
+  ASSERT_TRUE(cgit->alias() == "cg1_a");
+  ASSERT_EQ(cgit->members().data().size(), 2u);
+  ASSERT_EQ(cgit->contactgroup_members().data().size(), 1u);
+
+  ++cgit;
+  ASSERT_TRUE(cgit != config.contactgroups().end());
+  ASSERT_TRUE(cgit->contactgroup_name() == "cg2");
+  ASSERT_TRUE(cgit->alias() == "cg2_a");
+  ASSERT_EQ(cgit->members().data().size(), 2u);
+  ASSERT_EQ(*cgit->members().data().begin(), "user1");
+  ASSERT_EQ(cgit->contactgroup_members().data().size(), 1u);
+
+  ++cgit;
+  ASSERT_TRUE(cgit != config.contactgroups().end());
+  ASSERT_TRUE(cgit->contactgroup_name() == "cg3");
+  ASSERT_TRUE(cgit->alias() == "cg3_a");
+  ASSERT_EQ(cgit->members().data().size(), 3u);
+  {
+    auto it = cgit->members().data().begin();
+    ASSERT_EQ(*it, "user3");
+    ++it;
+    ASSERT_EQ(*it, "user1");
+    ++it;
+    ASSERT_EQ(*it, "user2");
+  }
+  ASSERT_EQ(cgit->contactgroup_members().data().size(), 1u);
+  ASSERT_EQ(*cgit->contactgroup_members().data().begin(), "cg3");
+
   RmConf();
 }
 
@@ -1294,5 +1393,19 @@ TEST_F(ApplierState, StateParsingAnomalydetectionValidityFailed) {
   configuration::State config;
   configuration::parser p;
   CreateBadConf(ConfigurationObject::ANOMALYDETECTION);
+  ASSERT_THROW(p.parse("/tmp/centengine.cfg", &config), std::exception);
+}
+
+TEST_F(ApplierState, StateLegacyParsingContactgroupWithoutName) {
+  configuration::state config;
+  configuration::parser p;
+  CreateBadConf(ConfigurationObject::CONTACTGROUP);
+  ASSERT_THROW(p.parse("/tmp/centengine.cfg", config), std::exception);
+}
+
+TEST_F(ApplierState, StateParsingContactgroupWithoutName) {
+  configuration::State config;
+  configuration::parser p;
+  CreateBadConf(ConfigurationObject::CONTACTGROUP);
   ASSERT_THROW(p.parse("/tmp/centengine.cfg", &config), std::exception);
 }

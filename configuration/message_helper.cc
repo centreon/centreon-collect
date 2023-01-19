@@ -103,4 +103,14 @@ void fill_string_group(StringList* grp, const absl::string_view& value) {
   }
 }
 
+absl::string_view message_helper::validate_key(
+    const absl::string_view& key) const {
+  absl::string_view retval;
+  auto it = _correspondence.find(key);
+  if (it != _correspondence.end())
+    retval = it->second;
+  else
+    retval = key;
+  return retval;
+}
 }  // namespace com::centreon::engine::configuration
