@@ -360,10 +360,10 @@ bool string::c_strtok::extract(char sep, absl::string_view& extracted) {
  * @param sep separator
  * @return absl::string_view field extracted
  */
-boost::optional<absl::string_view> string::c_strtok::extract(char sep) {
+absl::optional<absl::string_view> string::c_strtok::extract(char sep) {
   absl::string_view ret;
   if (!extract(sep, ret)) {
-    return boost::none;
+    return absl::nullopt;
   }
   return ret;
 }

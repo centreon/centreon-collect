@@ -57,8 +57,8 @@ void hostescalation_helper::check_validity() const {
   if (o->obj().register_()) {
     if (o->hosts().data().empty() && o->hostgroups().data().empty())
       throw msg_fmt(
-          "Hostescalation must contain at least one of the fields 'hosts' or "
-          "'hostgroups' not empty");
+          "Host escalation is not attached to any host or host group "
+          "(properties 'hosts' or 'hostgroups', respectively)");
   }
 }
 }  // namespace com::centreon::engine::configuration

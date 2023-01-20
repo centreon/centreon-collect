@@ -41,5 +41,8 @@ bool servicegroup_helper::hook(const absl::string_view& key,
 }
 void servicegroup_helper::check_validity() const {
   const Servicegroup* o = static_cast<const Servicegroup*>(obj());
+
+  if (o->servicegroup_name().empty())
+    throw msg_fmt("Service group has no name (property 'servicegroup_name')");
 }
 }  // namespace com::centreon::engine::configuration
