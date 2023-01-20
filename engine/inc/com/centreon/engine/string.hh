@@ -29,6 +29,7 @@
 #include <sstream>
 #include <string>
 
+#include <absl/types/optional.h>
 #include "com/centreon/engine/namespace.hh"
 
 CCE_BEGIN()
@@ -219,7 +220,7 @@ class c_strtok {
  public:
   c_strtok(const absl::string_view src) : _src(src), _pos(0) {}
 
-  boost::optional<absl::string_view> extract(char sep);
+  absl::optional<absl::string_view> extract(char sep);
   bool extract(char sep, absl::string_view& extracted);
   bool extract(char sep, std::string& extracted);
   bool extract(char sep, int& extracted);
