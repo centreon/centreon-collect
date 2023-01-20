@@ -86,6 +86,50 @@ bool host_helper::hook(const absl::string_view& key,
   } else if (key == "parents") {
     fill_string_group(obj->mutable_parents(), value);
     return true;
+  } else if (key == "category_tags") {
+    std::list<absl::string_view> tags{absl::StrSplit(value, ',')};
+
+    for (auto& tag : tags) {
+      uint64_t id;
+      bool parse_ok;
+      parse_ok = absl::SimpleAtoi(tag, &id);
+      if (parse_ok) {
+        for (auto it = obj->mutable_tags()->begin();
+             it != obj->mutable_tags()->end();) {
+          if (it->second() == TagType::tag_hostcategory && it->first() == id)
+            ++it;
+          else {
+            auto t = obj->add_tags();
+            t->set_first(id);
+            t->set_second(TagType::tag_hostcategory);
+            break;
+          }
+        }
+      }
+    }
+    return true;
+  } else if (key == "group_tags") {
+    std::list<absl::string_view> tags{absl::StrSplit(value, ',')};
+
+    for (auto& tag : tags) {
+      uint64_t id;
+      bool parse_ok;
+      parse_ok = absl::SimpleAtoi(tag, &id);
+      if (parse_ok) {
+        for (auto it = obj->mutable_tags()->begin();
+             it != obj->mutable_tags()->end();) {
+          if (it->second() == TagType::tag_hostgroup && it->first() == id)
+            ++it;
+          else {
+            auto t = obj->add_tags();
+            t->set_first(id);
+            t->set_second(TagType::tag_hostgroup);
+            break;
+          }
+        }
+      }
+    }
+    return true;
   }
   return false;
 }
