@@ -81,10 +81,73 @@ bool anomalydetection_helper::hook(const absl::string_view& key,
   } else if (key == "servicegroups") {
     fill_string_group(obj->mutable_servicegroups(), value);
     return true;
+  } else if (key == "category_tags") {
+    std::list<absl::string_view> tags{absl::StrSplit(value, ',')};
+
+    for (auto& tag : tags) {
+      uint64_t id;
+      bool parse_ok;
+      parse_ok = absl::SimpleAtoi(tag, &id);
+      if (parse_ok) {
+        for (auto it = obj->mutable_tags()->begin();
+             it != obj->mutable_tags()->end();) {
+          if (it->second() == TagType::tag_servicecategory && it->first() == id)
+            ++it;
+          else {
+            auto t = obj->add_tags();
+            t->set_first(id);
+            t->set_second(TagType::tag_servicecategory);
+            break;
+          }
+        }
+      }
+    }
+    return true;
+  } else if (key == "group_tags") {
+    std::list<absl::string_view> tags{absl::StrSplit(value, ',')};
+
+    for (auto& tag : tags) {
+      uint64_t id;
+      bool parse_ok;
+      parse_ok = absl::SimpleAtoi(tag, &id);
+      if (parse_ok) {
+        for (auto it = obj->mutable_tags()->begin();
+             it != obj->mutable_tags()->end();) {
+          if (it->second() == TagType::tag_servicegroup && it->first() == id)
+            ++it;
+          else {
+            auto t = obj->add_tags();
+            t->set_first(id);
+            t->set_second(TagType::tag_servicegroup);
+            break;
+          }
+        }
+      }
+    }
+    return true;
   }
   return false;
 }
 void anomalydetection_helper::check_validity() const {
   const Anomalydetection* o = static_cast<const Anomalydetection*>(obj());
+
+  if (o->obj().register_()) {
+    if (o->service_description().empty())
+      throw msg_fmt(
+          "Anomaly detection has no name (property 'service_description')");
+    if (o->host_name().empty())
+      throw msg_fmt(
+          "Anomaly detection '{}' has no host name (property 'host_name')",
+          o->service_description());
+    if (o->metric_name().empty())
+      throw msg_fmt(
+          "Anomaly detection '{}' has no metric name (property 'metric_name')",
+          o->service_description());
+    if (o->thresholds_file().empty())
+      throw msg_fmt(
+          "Anomaly detection '{}' has no thresholds file (property "
+          "'thresholds_file')",
+          o->service_description());
+  }
 }
 }  // namespace com::centreon::engine::configuration
