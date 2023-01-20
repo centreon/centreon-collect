@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Centreon (https://www.centreon.com/)
+ * Copyright 2023 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,6 +26,8 @@
 #include "configuration/state.pb.h"
 
 using namespace com::centreon::engine;
+
+using TagType = com::centreon::engine::configuration::TagType;
 
 class ApplierState : public ::testing::Test {
  protected:
@@ -98,6 +100,9 @@ static void CreateConf() {
              "   host_name                       host_1\n"
              "   notification_options            u,w,c\n"
              "   thresholds_file                 /tmp/toto\n"
+             "   contact_groups                  cg1\n"
+             "   contacts                        contact1\n"
+             "   service_groups                  sg1\n"
              "}\n"
              "define anomalydetection {\n"
              "   service_description             service_ad1\n"
@@ -115,6 +120,10 @@ static void CreateConf() {
              "   thresholds_file                 /tmp/titi\n"
              "   register                        1\n"
              "   use                             ad_tmpl\n"
+             "   _ad_cv                          this_is_a_test\n"
+             "   contact_groups                  +cg2\n"
+             "   contacts                        contact2\n"
+             "   service_groups                  +sg2\n"
              "}\n");
   CreateFile("/tmp/servicedependencies.cfg",
              "define servicedependency {\n"
@@ -248,6 +257,8 @@ static void CreateConf() {
              "    passive_checks_enabled          1\n"
              "    notification_options            u,w,c\n"
              "    contact_groups                  cg1,cg2\n"
+             "    group_tags                      1,3\n"
+             "    category_tags                   11,13\n"
              "}\n"
              "define service {\n"
              "    host_name                       host_1\n"
@@ -263,6 +274,8 @@ static void CreateConf() {
              "    register                        1\n"
              "    active_checks_enabled           1\n"
              "    passive_checks_enabled          1\n"
+             "    group_tags                      2,3,5\n"
+             "    category_tags                   12,13\n"
              "    use                             service_template\n"
              "}\n"
              "define service {\n"
@@ -948,6 +961,7 @@ TEST_F(ApplierState, StateLegacyParsing) {
   ASSERT_TRUE(it->should_register());
   ASSERT_EQ(it->host_id(), 4);
 
+  /* Service */
   ASSERT_EQ(config.services().size(), SERVICES);
   auto sit = config.services().begin();
   ASSERT_EQ(sit->hosts().size(), 1u);
@@ -972,6 +986,12 @@ TEST_F(ApplierState, StateLegacyParsing) {
   EXPECT_EQ(sit->notification_options(), configuration::service::warning |
                                              configuration::service::unknown |
                                              configuration::service::critical);
+  std::set<std::pair<uint64_t, uint16_t>> res{
+      {1, tag::servicegroup},     {2, tag::servicegroup},
+      {3, tag::servicegroup},     {5, tag::servicegroup},
+      {11, tag::servicecategory}, {12, tag::servicecategory},
+      {13, tag::servicecategory}};
+  EXPECT_EQ(sit->tags(), res);
 
   ASSERT_EQ(config.commands().size(), 8u);
   auto cit = config.commands().begin();
@@ -1093,6 +1113,7 @@ TEST_F(ApplierState, StateLegacyParsing) {
   ASSERT_EQ(sdit->notification_failure_options(),
             configuration::servicedependency::none);
 
+  // Anomalydetections
   auto adit = config.anomalydetections().begin();
   while (adit != config.anomalydetections().end() &&
          adit->service_id() != 2001 && adit->host_id() != 1)
@@ -1101,6 +1122,11 @@ TEST_F(ApplierState, StateLegacyParsing) {
   ASSERT_TRUE(adit->service_description() == "service_ad2");
   ASSERT_EQ(adit->dependent_service_id(), 1);
   ASSERT_TRUE(adit->metric_name() == "metric2");
+  ASSERT_EQ(adit->customvariables().size(), 1);
+  ASSERT_EQ(adit->customvariables().at("ad_cv").get_value(), std::string("this_is_a_test"));
+  ASSERT_EQ(adit->contactgroups().size(), 2);
+  ASSERT_EQ(adit->contacts().size(), 1);
+  ASSERT_EQ(adit->servicegroups().size(), 2);
 
   auto cgit = config.contactgroups().begin();
   ASSERT_TRUE(cgit != config.contactgroups().end());
@@ -1182,6 +1208,33 @@ TEST_F(ApplierState, StateParsing) {
             configuration::action_svc_warning |
                 configuration::action_svc_unknown |
                 configuration::action_svc_critical);
+  std::set<std::pair<uint64_t, uint16_t>> exp{
+      {1, tag::servicegroup},     {2, tag::servicegroup},
+      {3, tag::servicegroup},     {5, tag::servicegroup},
+      {11, tag::servicecategory}, {12, tag::servicecategory},
+      {13, tag::servicecategory}};
+  std::set<std::pair<uint64_t, uint16_t>> res;
+  for (auto& t : config.services()[0].tags()) {
+    uint16_t c;
+    switch (t.second()) {
+      case TagType::tag_servicegroup:
+        c = tag::servicegroup;
+        break;
+      case TagType::tag_hostgroup:
+        c = tag::hostgroup;
+        break;
+      case TagType::tag_servicecategory:
+        c = tag::servicecategory;
+        break;
+      case TagType::tag_hostcategory:
+        c = tag::hostcategory;
+        break;
+      default:
+        assert("Should not be raised" == nullptr);
+    }
+    res.emplace(t.first(), c);
+  }
+  EXPECT_EQ(res, exp);
 
   ASSERT_EQ(config.commands().size(), 8u);
   ASSERT_EQ(config.commands()[0].command_name(), std::string("command_1"));
@@ -1297,6 +1350,7 @@ TEST_F(ApplierState, StateParsing) {
   ASSERT_EQ(sdit->notification_failure_options(),
             configuration::servicedependency::none);
 
+  // Anomalydetections
   auto adit = config.anomalydetections().begin();
   while (adit != config.anomalydetections().end() &&
          (adit->service_id() != 2001 || adit->host_id() != 1))
@@ -1305,6 +1359,11 @@ TEST_F(ApplierState, StateParsing) {
   ASSERT_TRUE(adit->service_description() == "service_ad2");
   ASSERT_EQ(adit->dependent_service_id(), 1);
   ASSERT_TRUE(adit->metric_name() == "metric2");
+  ASSERT_EQ(adit->customvariables().size(), 1);
+  ASSERT_EQ(adit->customvariables().at(0).value(), std::string("this_is_a_test"));
+  ASSERT_EQ(adit->contactgroups().data().size(), 2);
+  ASSERT_EQ(adit->contacts().data().size(), 1);
+  ASSERT_EQ(adit->servicegroups().data().size(), 2);
 
   auto cgit = config.contactgroups().begin();
   ASSERT_TRUE(cgit != config.contactgroups().end());

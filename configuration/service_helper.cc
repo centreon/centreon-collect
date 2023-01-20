@@ -90,10 +90,67 @@ bool service_helper::hook(const absl::string_view& key,
   } else if (key == "servicegroups") {
     fill_string_group(obj->mutable_servicegroups(), value);
     return true;
+  } else if (key == "category_tags") {
+    std::list<absl::string_view> tags{absl::StrSplit(value, ',')};
+
+    for (auto& tag : tags) {
+      uint64_t id;
+      bool parse_ok;
+      parse_ok = absl::SimpleAtoi(tag, &id);
+      if (parse_ok) {
+        for (auto it = obj->mutable_tags()->begin();
+             it != obj->mutable_tags()->end();) {
+          if (it->second() == TagType::tag_servicecategory && it->first() == id)
+            ++it;
+          else {
+            auto t = obj->add_tags();
+            t->set_first(id);
+            t->set_second(TagType::tag_servicecategory);
+            break;
+          }
+        }
+      }
+    }
+    return true;
+  } else if (key == "group_tags") {
+    std::list<absl::string_view> tags{absl::StrSplit(value, ',')};
+
+    for (auto& tag : tags) {
+      uint64_t id;
+      bool parse_ok;
+      parse_ok = absl::SimpleAtoi(tag, &id);
+      if (parse_ok) {
+        for (auto it = obj->mutable_tags()->begin();
+             it != obj->mutable_tags()->end();) {
+          if (it->second() == TagType::tag_servicegroup && it->first() == id)
+            ++it;
+          else {
+            auto t = obj->add_tags();
+            t->set_first(id);
+            t->set_second(TagType::tag_servicegroup);
+            break;
+          }
+        }
+      }
+    }
+    return true;
   }
   return false;
 }
 void service_helper::check_validity() const {
   const Service* o = static_cast<const Service*>(obj());
+
+  if (o->obj().register_()) {
+    if (o->service_description().empty())
+      throw msg_fmt("Services must have a non-empty description");
+    if (o->check_command().empty())
+      throw msg_fmt("Service '{}' has an empty check command",
+                    o->service_description());
+    if (o->hosts().data().empty() && o->hostgroups().data().empty())
+      throw msg_fmt(
+          "Service '{}' must contain at least one of the fields 'hosts' or "
+          "'hostgroups' not empty",
+          o->service_description());
+  }
 }
 }  // namespace com::centreon::engine::configuration

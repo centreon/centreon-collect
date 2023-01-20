@@ -84,5 +84,35 @@ bool servicedependency_helper::hook(const absl::string_view& key,
 }
 void servicedependency_helper::check_validity() const {
   const Servicedependency* o = static_cast<const Servicedependency*>(obj());
+
+  /* Check base service(s). */
+  if (o->servicegroups().data().empty()) {
+    if (o->service_description().data().empty())
+      throw msg_fmt(
+          "Service dependency is not attached to any service or service group "
+          "(properties 'service_description' or 'servicegroup_name', "
+          "respectively)");
+    else if (o->hosts().data().empty() && o->hostgroups().data().empty())
+      throw msg_fmt(
+          "Service dependency is not attached to any host or host group "
+          "(properties 'host_name' or 'hostgroup_name', respectively)");
+  }
+
+  /* Check dependent service(s). */
+  if (o->dependent_servicegroups().data().empty()) {
+    if (o->dependent_service_description().data().empty())
+      throw msg_fmt(
+          "Service dependency is not attached to "
+          "any dependent service or dependent service group "
+          "(properties 'dependent_service_description' or "
+          "'dependent_servicegroup_name', respectively)");
+    else if (o->dependent_hosts().data().empty() &&
+             o->dependent_hostgroups().data().empty())
+      throw msg_fmt(
+          "Service dependency is not attached to "
+          "any dependent host or dependent host group (properties "
+          "'dependent_host_name' or 'dependent_hostgroup_name', "
+          "respectively)");
+  }
 }
 }  // namespace com::centreon::engine::configuration

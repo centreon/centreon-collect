@@ -1,6 +1,10 @@
 #!/usr/bin/env python3.9
 import re
+import os
+import subprocess
 
+if not os.path.exists("temp"):
+    os.mkdir("temp")
 class_files_hh = [
     "inc/com/centreon/engine/configuration/anomalydetection.hh",
     "inc/com/centreon/engine/configuration/command.hh",
@@ -40,6 +44,17 @@ class_files_cc = [
 ]
 
 
+def rsync_files():
+    print(os.getcwd())
+    os.system("rsync -pvaz temp/ ./")
+
+
+def indent_files():
+    os.chdir("..")
+    os.system(f"clang-format -i configuration/temp/*")
+    os.chdir("configuration")
+
+
 def complete_filehelper_cc(fhcc, cname, name, number: int, correspondence, hook, check_validity):
     name_cap = name.capitalize()
     cname = name + "_helper"
@@ -65,8 +80,9 @@ bool {cname}::hook(const absl::string_view& key, const absl::string_view& value)
 }
 """)
 
+
 def prepare_filehelper_cc(name: str):
-    filename = name + "_helper.cc"
+    filename = f"temp/{name}_helper.cc"
     fhcc = open(filename, "w")
     fhcc.write(f"""/*
  * Copyright 2022 Centreon (https://www.centreon.com/)
@@ -97,7 +113,7 @@ namespace com::centreon::engine::configuration {{
 
 
 def prepare_filehelper_hh(name: str):
-    fhhh = open(name + "_helper.hh", "w")
+    fhhh = open(f"temp/{name}_helper.hh", "w")
     macro = name.upper().replace(".", "_")
     cname = name.replace(".hh", "")
     objname = cname.capitalize()
@@ -327,6 +343,55 @@ def build_hook_content(cname: str, msg):
     return true;
   }}
 """)
+        elif m['proto_type'] == 'repeated PairUint64_32':
+            if cname == "Host":
+                concerned = "host"
+            else:
+                concerned = "service"
+            retval.append(f"""  {els}if (key == "category_tags") {{
+    std::list<absl::string_view> tags{{absl::StrSplit(value, ',')}};
+
+    for (auto& tag : tags) {{
+      uint64_t id;
+      bool parse_ok;
+      parse_ok = absl::SimpleAtoi(tag, &id);
+      if (parse_ok) {{
+        for (auto it = obj->mutable_tags()->begin(); it != obj->mutable_tags()->end();) {{
+          if (it->second() == TagType::tag_{concerned}category && it->first() == id)
+            ++it;
+          else {{
+            auto t = obj->add_tags();
+            t->set_first(id);
+            t->set_second(TagType::tag_{concerned}category);
+            break;
+          }}
+        }}
+      }}
+    }}
+    return true;
+  }} else if (key == "group_tags") {{
+    std::list<absl::string_view> tags{{absl::StrSplit(value, ',')}};
+
+    for (auto& tag : tags) {{
+      uint64_t id;
+      bool parse_ok;
+      parse_ok = absl::SimpleAtoi(tag, &id);
+      if (parse_ok) {{
+        for (auto it = obj->mutable_tags()->begin(); it != obj->mutable_tags()->end();) {{
+          if (it->second() == TagType::tag_{concerned}group && it->first() == id)
+            ++it;
+          else {{
+            auto t = obj->add_tags();
+            t->set_first(id);
+            t->set_second(TagType::tag_{concerned}group);
+            break;
+          }}
+        }}
+      }}
+    }}
+    return true;
+  }}
+""")
         elif m['proto_type'] == 'DaysArray':
             retval.insert(0, """  auto get_timerange = [](const absl::string_view& value, auto* day) -> bool {
     auto arr = absl::StrSplit(value, ',');
@@ -429,7 +494,7 @@ def build_check_validity(cname: str, msg):
         throw msg_fmt("Contactgroup has no name (property 'contactgroup_name')");
 """)
     elif cname == "Command":
-            retval.append("""
+        retval.append("""
       if (o->command_name().empty())
         throw msg_fmt("Command has no name (property 'command_name')");
       if (o->command_line().empty())
@@ -460,9 +525,90 @@ def build_check_validity(cname: str, msg):
         retval.append("""
       if (o->obj().register_()) {
         if (o->hosts().data().empty() && o->hostgroups().data().empty())
-          throw msg_fmt("Hostescalation must contain at least one of the fields 'hosts' or 'hostgroups' not empty");
+          throw msg_fmt("Host escalation is not attached to any host or host group (properties 'hosts' or 'hostgroups', respectively)");
       }
 """)
+    elif cname == "Hostgroup":
+        retval.append("""
+      if (o->obj().register_()) {
+        if (o->hostgroup_name().empty())
+          throw msg_fmt("Host group has no name (property 'hostgroup_name')");
+      }
+""")
+    elif cname == "Service":
+        retval.append("""
+      if (o->obj().register_()) {
+        if (o->service_description().empty())
+          throw msg_fmt("Services must have a non-empty description");
+        if (o->check_command().empty())
+          throw msg_fmt("Service '{}' has an empty check command", o->service_description());
+        if (o->hosts().data().empty() && o->hostgroups().data().empty())
+          throw msg_fmt("Service '{}' must contain at least one of the fields 'hosts' or 'hostgroups' not empty", o->service_description());
+      }
+""")
+    elif cname == "Servicedependency":
+        retval.append("""
+      /* Check base service(s). */
+      if (o->servicegroups().data().empty()) {
+        if (o->service_description().data().empty())
+          throw msg_fmt("Service dependency is not attached to any service or service group (properties 'service_description' or 'servicegroup_name', respectively)");
+        else if (o->hosts().data().empty() && o->hostgroups().data().empty())
+          throw msg_fmt("Service dependency is not attached to any host or host group (properties 'host_name' or 'hostgroup_name', respectively)");
+      }
+
+      /* Check dependent service(s). */
+  if (o->dependent_servicegroups().data().empty()) {
+    if (o->dependent_service_description().data().empty())
+      throw msg_fmt(
+          "Service dependency is not attached to "
+                          "any dependent service or dependent service group "
+                          "(properties 'dependent_service_description' or "
+                          "'dependent_servicegroup_name', respectively)");
+    else if (o->dependent_hosts().data().empty() && o->dependent_hostgroups().data().empty())
+      throw msg_fmt(
+            "Service dependency is not attached to "
+            "any dependent host or dependent host group (properties "
+            "'dependent_host_name' or 'dependent_hostgroup_name', "
+            "respectively)");
+  }
+""")
+    elif cname == "Servicegroup":
+        retval.append("""
+      if (o->servicegroup_name().empty())
+        throw msg_fmt("Service group has no name (property 'servicegroup_name')");
+""")
+    elif cname == "Timeperiod":
+        retval.append("""
+      if (o->timeperiod_name().empty())
+        throw msg_fmt("Time period has no name (property 'timeperiod_name')");
+""")
+    elif cname == "Anomalydetection":
+        retval.append("""
+      if (o->obj().register_()) {
+        if (o->service_description().empty())
+          throw msg_fmt("Anomaly detection has no name (property 'service_description')");
+        if (o->host_name().empty())
+          throw msg_fmt("Anomaly detection '{}' has no host name (property 'host_name')", o->service_description());
+        if (o->metric_name().empty())
+          throw msg_fmt("Anomaly detection '{}' has no metric name (property 'metric_name')", o->service_description());
+        if (o->thresholds_file().empty())
+          throw msg_fmt("Anomaly detection '{}' has no thresholds file (property 'thresholds_file')", o->service_description());
+      }
+""")
+    elif cname == "Tag":
+        retval.append("""
+      if (o->tag_name().empty())
+        throw msg_fmt("Tag has no name (property 'tag_name')");
+      if (o->key().id() == 0)
+        throw msg_fmt("Tag '{}' has a null id", o->tag_name());
+""")
+    elif cname == "Servicegroup":
+        retval.append("""
+      if (o->servicegroup_name().empty())
+        throw msg_fmt("Service group has no name (property 'servicegroup_name')");
+""")
+    else:
+        print(f"### ERROR!!!: {cname} has no function check_validity()")
     return retval
 
 
@@ -662,7 +808,7 @@ message StringSet {
 
 """]
 
-fcc = open("state-generated.cc", "w")
+fcc = open("temp/state-generated.cc", "w")
 fcc.write("""/*
  * Copyright 2022 Centreon (https://www.centreon.com/)
  *
@@ -689,7 +835,7 @@ namespace com::centreon::engine::configuration {
 """)
 
 
-fhh = open("state-generated.hh", "w")
+fhh = open("temp/state-generated.hh", "w")
 fhh.write("""/*
  * Copyright 2022 Centreon (https://www.centreon.com/)
  *
@@ -784,10 +930,11 @@ message {cap_name} {{
         number += 1
     proto.append("}\n")
 
-    complete_filehelper_cc(fhcc, cap_name, name, number, correspondence, hook, check_validity)
+    complete_filehelper_cc(fhcc, cap_name, name, number,
+                           correspondence, hook, check_validity)
 
     # Generation of proto file
-    f = open("state-generated.proto", "w")
+    f = open("temp/state-generated.proto", "w")
     f.writelines(proto)
     f.close()
 
@@ -824,6 +971,8 @@ message {cap_name} {{
 
     # Generation of hh file
     fhh.write(f"void init_{name}({cap_name}* obj);\n")
+    fhcc.close()
+    fhhh.close()
 
 fhh.write("""
 };  // namespace configuration
@@ -836,3 +985,6 @@ fhh.write("""
 fcc.write("}; // com::centreon::engine::configuration\n")
 fcc.close()
 fhh.close()
+
+indent_files()
+rsync_files()
