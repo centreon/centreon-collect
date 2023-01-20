@@ -62,5 +62,10 @@ bool tag_helper::hook(const absl::string_view& key,
 }
 void tag_helper::check_validity() const {
   const Tag* o = static_cast<const Tag*>(obj());
+
+  if (o->tag_name().empty())
+    throw msg_fmt("Tag has no name (property 'tag_name')");
+  if (o->key().id() == 0)
+    throw msg_fmt("Tag '{}' has a null id", o->tag_name());
 }
 }  // namespace com::centreon::engine::configuration

@@ -38,5 +38,10 @@ bool hostgroup_helper::hook(const absl::string_view& key,
 }
 void hostgroup_helper::check_validity() const {
   const Hostgroup* o = static_cast<const Hostgroup*>(obj());
+
+  if (o->obj().register_()) {
+    if (o->hostgroup_name().empty())
+      throw msg_fmt("Host group has no name (property 'hostgroup_name')");
+  }
 }
 }  // namespace com::centreon::engine::configuration

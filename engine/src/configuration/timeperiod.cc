@@ -131,7 +131,6 @@ void timeperiod::check_validity() const {
   if (_timeperiod_name.empty())
     throw(engine_error()
           << "Time period has no name (property 'timeperiod_name')");
-  return;
 }
 
 /**

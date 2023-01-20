@@ -194,7 +194,6 @@ void hostgroup::check_validity() const {
   if (_hostgroup_name.empty())
     throw(engine_error() << "Host group has no name "
                             "(property 'hostgroup_name')");
-  return;
 }
 
 /**

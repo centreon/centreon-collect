@@ -1156,53 +1156,6 @@ bool parser::_is_registered(const Message& msg) const {
   return false;
 }
 
-/**
- * @brief Search for each string given in mandatory array and check that
- * the field with that string as key is not empty.
- * In case one field is empty, this function throws an exception.
- *
- * @param msg The Protobuf message to check.
- * @param mandatory An array of strings terminated with nullptr.
- */
-void parser::_check_validity(const Message& msg,
-                             const char* const* mandatory) const {
-  const Descriptor* desc = msg.GetDescriptor();
-  const Reflection* refl = msg.GetReflection();
-  std::string tmpl;
-
-  const FieldDescriptor* f;
-  //  const FieldDescriptor* f = desc->FindFieldByName("obj");
-  //  if (f) {
-  //    const Object& obj = static_cast<const Object&>(refl->GetMessage(msg,
-  //    f)); if (!obj.register_())
-  //      return;
-  //  }
-  for (auto field = mandatory; *field; ++field) {
-    f = desc->FindFieldByName(*field);
-    if (f) {
-      if (!f->is_repeated()) {
-        switch (f->cpp_type()) {
-          case FieldDescriptor::CPPTYPE_STRING: {
-            if (refl->GetStringReference(msg, f, &tmpl).empty())
-              throw engine_error() << fmt::format(
-                  "{} has its property '{}' empty which is mandatory",
-                  desc->name(), f->name());
-          } break;
-          default:
-            log_v2::config()->error(
-                "Type '{}' not implemented in check_validity", f->type_name());
-            assert(192 == 1897);
-        }
-      } else {
-        log_v2::config()->error(
-            "Repeated type '{}' not implemented in check_validity",
-            f->type_name());
-        assert(18972 == 9);
-      }
-    }
-  }
-}
-
 void parser::_resolve_template(State* pb_config) {
   for (Command& c : *pb_config->mutable_commands())
     _resolve_template(_pb_helper[&c], _pb_templates[object::command]);
@@ -1242,85 +1195,30 @@ void parser::_resolve_template(State* pb_config) {
     for (const Hostescalation& he : pb_config->hostescalations())
       _pb_helper.at(&he)->check_validity();
 
-    //    {
-    //      for (const Hostescalation& he : pb_config->hostescalations()) {
-    //        if (_is_registered(he)) {
-    //          if (he.hosts().data().empty() && he.hostgroups().data().empty())
-    //            throw engine_error()
-    //                << "Host escalation must contain at least one of the
-    //                fields "
-    //                   "'hosts' or 'hostgroups' not empty";
-    //        }
-    //      }
-    //    }
-    {
-      constexpr std::array<const char*, 2> mandatory{"hostgroup_name", nullptr};
-      for (const Hostgroup& hg : pb_config->hostgroups())
-        _check_validity(hg, mandatory.data());
-    }
-    {
-      for (const Service& s : pb_config->services()) {
-        if (_is_registered(s)) {
-          if (s.service_description().empty())
-            throw engine_error()
-                << "Services must have a non-empty description";
-          if (s.check_command().empty())
-            throw engine_error()
-                << fmt::format("Service '{}' has an empty check command",
-                               s.service_description());
-          if (s.hosts().data().empty() && s.hostgroups().data().empty())
-            throw engine_error() << fmt::format(
-                "Service '{}' must contain at least one of the fields 'hosts' "
-                "or "
-                "'hostgroups' not empty",
-                s.service_description());
-        }
-      }
-    }
-    {
-      for (const Servicedependency& sd : pb_config->servicedependencies())
-        if (sd.servicegroups().data().empty() &&
-            (sd.service_description().data().empty() ||
-             (sd.hosts().data().empty() && sd.hostgroups().data().empty())))
-          throw engine_error()
-              << "Service escalation is not attached to any service or service "
-                 "group or host or host group";
-    }
-    {
-      constexpr std::array<const char*, 2> mandatory{"servicegroup_name",
-                                                     nullptr};
-      for (const Servicegroup& sg : pb_config->servicegroups())
-        _check_validity(sg, mandatory.data());
-    }
-    {
-      constexpr std::array<const char*, 2> mandatory{"timeperiod_name",
-                                                     nullptr};
-      for (const Timeperiod& t : pb_config->timeperiods())
-        _check_validity(t, mandatory.data());
-    }
-    {
-      constexpr std::array<const char*, 5> mandatory{
-          "service_description", "host_name", "metric_name", "thresholds_file",
-          nullptr};
-      for (const Anomalydetection& a : pb_config->anomalydetections())
-        if (_is_registered(a))
-          _check_validity(a, mandatory.data());
-    }
-    {
-      for (const Tag& t : pb_config->tags()) {
-        if (t.tag_name().empty())
-          throw engine_error() << "Tag cannot have a tag name empty";
-        if (t.key().id() == 0)
-          throw engine_error()
-              << fmt::format("Tag '{}' has a null id", t.tag_name());
-      }
-    }
-    {
-      constexpr std::array<const char*, 2> mandatory{"servicegroup_name",
-                                                     nullptr};
-      for (const Servicegroup& sg : pb_config->servicegroups())
-        _check_validity(sg, mandatory.data());
-    }
+    for (const Hostgroup& hg : pb_config->hostgroups())
+      _pb_helper.at(&hg)->check_validity();
+
+    for (const Service& s : pb_config->services())
+      _pb_helper.at(&s)->check_validity();
+
+    for (const Servicedependency& sd : pb_config->servicedependencies())
+      _pb_helper.at(&sd)->check_validity();
+
+    for (const Servicegroup& sg : pb_config->servicegroups())
+      _pb_helper.at(&sg)->check_validity();
+
+    for (const Timeperiod& t : pb_config->timeperiods())
+      _pb_helper.at(&t)->check_validity();
+
+    for (const Anomalydetection& a : pb_config->anomalydetections())
+      _pb_helper.at(&a)->check_validity();
+
+    for (const Tag& t : pb_config->tags())
+      _pb_helper.at(&t)->check_validity();
+
+    for (const Servicegroup& sg : pb_config->servicegroups())
+      _pb_helper.at(&sg)->check_validity();
+
   } catch (const std::exception& e) {
     throw engine_error() << e.what();
   }

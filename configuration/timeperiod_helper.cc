@@ -72,5 +72,8 @@ bool timeperiod_helper::hook(const absl::string_view& key,
 }
 void timeperiod_helper::check_validity() const {
   const Timeperiod* o = static_cast<const Timeperiod*>(obj());
+
+  if (o->timeperiod_name().empty())
+    throw msg_fmt("Time period has no name (property 'timeperiod_name')");
 }
 }  // namespace com::centreon::engine::configuration
