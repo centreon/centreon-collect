@@ -48,7 +48,7 @@ class mysql_result {
   int64_t value_as_i64(int idx);
   uint64_t value_as_u64(int idx);
   bool value_is_null(int idx);
-  bool is_empty() const;
+  bool empty() const;
   int get_rows_count() const;
   void set(MYSQL_RES* res);
   MYSQL_RES* get();

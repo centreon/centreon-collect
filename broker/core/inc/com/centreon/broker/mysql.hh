@@ -33,7 +33,7 @@ class mysql {
  public:
   mysql(database_config const& db_cfg);
   ~mysql();
-  void prepare_statement(database::mysql_stmt const& stmt);
+  void prepare_statement(const database::mysql_stmt_base& stmt);
   database::mysql_stmt prepare_query(
       std::string const& query,
       mysql_bind_mapping const& bind_mapping = mysql_bind_mapping());
@@ -50,7 +50,7 @@ class mysql {
                             database::mysql_task::int_type type,
                             int thread = -1);
 
-  int run_statement(database::mysql_stmt& stmt,
+  int run_statement(database::mysql_stmt_base& stmt,
                     my_error::code ec = my_error::empty,
                     bool fatal = false,
                     int thread_id = -1);
@@ -83,6 +83,7 @@ class mysql {
   int choose_connection_by_instance(int instance_id) const;
   int choose_best_connection(int32_t type);
   const database_config& get_config() const;
+  const char* get_server_version();
 
  private:
   static void _initialize_mysql();
