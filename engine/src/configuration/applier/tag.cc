@@ -46,7 +46,7 @@ void applier::tag::add_object(const configuration::tag& obj) {
 
   auto tg{std::make_shared<engine::tag>(
       obj.key().first, static_cast<engine::tag::tagtype>(obj.key().second),
-      obj.name())};
+      obj.tag_name())};
   if (!tg)
     throw engine_error() << "Could not register tag (" << obj.key().first << ","
                          << obj.key().second << ")";
@@ -102,7 +102,7 @@ void applier::tag::modify_object(const configuration::tag& obj) {
     config->mut_tags().erase(it_cfg);
     config->mut_tags().insert(obj);
 
-    t->set_name(obj.name());
+    t->set_name(obj.tag_name());
 
     // Notify event broker.
     broker_adaptive_tag_data(NEBTYPE_TAG_UPDATE, t);

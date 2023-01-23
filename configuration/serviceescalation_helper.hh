@@ -29,6 +29,8 @@ namespace engine {
 namespace configuration {
 
 class serviceescalation_helper : public message_helper {
+  void _init();
+
  public:
   serviceescalation_helper(Serviceescalation* obj);
   ~serviceescalation_helper() noexcept = default;

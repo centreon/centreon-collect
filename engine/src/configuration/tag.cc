@@ -27,7 +27,6 @@ using namespace com::centreon::engine::configuration;
 #define SETTER(type, method) &object::setter<tag, type, &tag::method>::generic
 
 const absl::flat_hash_map<std::string, tag::setter_func> tag::_setters{
-    {"name", SETTER(const std::string&, _set_tag_name)},
     {"tag_name", SETTER(const std::string&, _set_tag_name)},
     {"id", SETTER(uint64_t, _set_id)},
     {"tag_id", SETTER(uint64_t, _set_id)},
@@ -133,7 +132,7 @@ const tag::key_type& tag::key() const noexcept {
  *
  * @return Severity name.
  */
-const std::string& tag::name() const noexcept {
+const std::string& tag::tag_name() const noexcept {
   return _tag_name;
 }
 

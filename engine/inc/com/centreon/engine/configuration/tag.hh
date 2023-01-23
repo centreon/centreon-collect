@@ -48,7 +48,7 @@ class tag : public object {
   bool _set_tag_name(const std::string& name);
 
  public:
-  tag(const key_type& key = {0, 0});
+  tag(const key_type& key = {0, -1});
   tag(const tag& other);
   ~tag() noexcept override = default;
   tag& operator=(const tag& other);
@@ -60,7 +60,7 @@ class tag : public object {
   void merge(const object& obj) override;
   bool parse(const char* key, const char* value) override;
 
-  const std::string& name() const noexcept;
+  const std::string& tag_name() const noexcept;
 
   static const absl::flat_hash_map<std::string, setter_func> _setters;
 };

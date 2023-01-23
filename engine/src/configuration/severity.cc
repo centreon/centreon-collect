@@ -29,14 +29,14 @@ using namespace com::centreon::engine::configuration;
 
 const absl::flat_hash_map<std::string, severity::setter_func>
     severity::_setters{
-        {"name", SETTER(const std::string&, _set_name)},
-        {"severity_name", SETTER(const std::string&, _set_name)},
+        {"severity_name", SETTER(const std::string&, _set_severity_name)},
         {"id", SETTER(uint64_t, _set_id)},
         {"severity_id", SETTER(uint64_t, _set_id)},
         {"level", SETTER(uint32_t, _set_level)},
         {"severity_level", SETTER(uint32_t, _set_level)},
         {"icon_id", SETTER(uint64_t, _set_icon_id)},
         {"severity_icon_id", SETTER(uint64_t, _set_icon_id)},
+        {"severity_type", SETTER(const std::string&, _set_type)},
         {"type", SETTER(const std::string&, _set_type)},
     };
 
@@ -174,7 +174,7 @@ uint64_t severity::icon_id() const noexcept {
  *
  * @return Severity name.
  */
-const std::string& severity::name() const noexcept {
+const std::string& severity::severity_name() const noexcept {
   return _severity_name;
 }
 
@@ -254,7 +254,7 @@ bool severity::_set_icon_id(uint64_t icon_id) {
  *
  * @return True on success.
  */
-bool severity::_set_name(const std::string& name) {
+bool severity::_set_severity_name(const std::string& name) {
   _severity_name = name;
   return true;
 }

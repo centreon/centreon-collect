@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2014,2017,2022 Centreon
+ * Copyright 2011-2014,2017,2022-2023 Centreon
  *
  * This file is part of Centreon Engine.
  *
@@ -25,6 +25,7 @@
 #include "com/centreon/io/directory_entry.hh"
 #include "configuration/anomalydetection_helper.hh"
 #include "configuration/command_helper.hh"
+#include "configuration/connector_helper.hh"
 #include "configuration/contact_helper.hh"
 #include "configuration/contactgroup_helper.hh"
 #include "configuration/host_helper.hh"
@@ -33,7 +34,7 @@
 #include "configuration/service_helper.hh"
 #include "configuration/servicedependency_helper.hh"
 #include "configuration/servicegroup_helper.hh"
-#include "configuration/state-generated.hh"
+#include "configuration/severity_helper.hh"
 #include "configuration/tag_helper.hh"
 #include "configuration/timeperiod_helper.hh"
 
@@ -432,12 +433,13 @@ bool set(
   }
   return true;
 }
+
 /**
  * @brief Set the value given as a string to the object key. If the key does
  * not exist, the correspondence table may be used to find a replacement of
  * the key. The function converts the value to the appropriate type.
  *
- * Another important point is that many configuration object contain the Object
+ * Another important point is that many configuration objects contain the Object
  * obj message (something like an inheritance). This message contains three
  * fields name, use and register that are important for templating. If keys are
  * one of these names, the function tries to work directly with the obj message.
@@ -770,43 +772,51 @@ void parser::_parse_object_definitions(const std::string& path,
         msg_helper =
             std::make_unique<contact_helper>(static_cast<Contact*>(msg));
       } else if (type == "host") {
-        msg = pb_config->mutable_hosts()->Add();
+        msg = pb_config->add_hosts();
         msg_helper = std::make_unique<host_helper>(static_cast<Host*>(msg));
       } else if (type == "service") {
-        msg = pb_config->mutable_services()->Add();
+        msg = pb_config->add_services();
         msg_helper =
             std::make_unique<service_helper>(static_cast<Service*>(msg));
       } else if (type == "anomalydetection") {
-        msg = pb_config->mutable_anomalydetections()->Add();
+        msg = pb_config->add_anomalydetections();
         msg_helper = std::make_unique<anomalydetection_helper>(
             static_cast<Anomalydetection*>(msg));
       } else if (type == "servicedependency") {
-        msg = pb_config->mutable_servicedependencies()->Add();
+        msg = pb_config->add_servicedependencies();
         msg_helper = std::make_unique<servicedependency_helper>(
             static_cast<Servicedependency*>(msg));
       } else if (type == "timeperiod") {
-        msg = pb_config->mutable_timeperiods()->Add();
+        msg = pb_config->add_timeperiods();
         msg_helper =
             std::make_unique<timeperiod_helper>(static_cast<Timeperiod*>(msg));
       } else if (type == "command") {
-        msg = pb_config->mutable_commands()->Add();
+        msg = pb_config->add_commands();
         msg_helper =
             std::make_unique<command_helper>(static_cast<Command*>(msg));
       } else if (type == "hostgroup") {
-        msg = pb_config->mutable_hostgroups()->Add();
+        msg = pb_config->add_hostgroups();
         msg_helper =
             std::make_unique<hostgroup_helper>(static_cast<Hostgroup*>(msg));
       } else if (type == "servicegroup") {
-        msg = pb_config->mutable_servicegroups()->Add();
+        msg = pb_config->add_servicegroups();
         msg_helper = std::make_unique<servicegroup_helper>(
             static_cast<Servicegroup*>(msg));
       } else if (type == "tag") {
-        msg = pb_config->mutable_tags()->Add();
+        msg = pb_config->add_tags();
         msg_helper = std::make_unique<tag_helper>(static_cast<Tag*>(msg));
       } else if (type == "contactgroup") {
-        msg = pb_config->mutable_contactgroups()->Add();
+        msg = pb_config->add_contactgroups();
         msg_helper = std::make_unique<contactgroup_helper>(
             static_cast<Contactgroup*>(msg));
+      } else if (type == "connector") {
+        msg = pb_config->add_connectors();
+        msg_helper =
+            std::make_unique<connector_helper>(static_cast<Connector*>(msg));
+      } else if (type == "severity") {
+        msg = pb_config->add_severities();
+        msg_helper =
+            std::make_unique<severity_helper>(static_cast<Severity*>(msg));
       } else {
         log_v2::config()->error("Type '{}' not yet supported by the parser",
                                 type);
@@ -1041,6 +1051,40 @@ void parser::_merge(std::unique_ptr<message_helper>& msg_helper,
                   refl->AddString(msg, f, s);
               }
             } break;
+            case FieldDescriptor::CPPTYPE_MESSAGE: {
+              size_t count = refl->FieldSize(*tmpl, f);
+              for (size_t j = 0; j < count; ++j) {
+                const Message& m = refl->GetRepeatedMessage(*tmpl, f, j);
+                const Descriptor* d = m.GetDescriptor();
+                size_t count_msg = refl->FieldSize(*msg, f);
+                bool found = false;
+                for (size_t k = 0; k < count_msg; ++k) {
+                  const Message& m1 = refl->GetRepeatedMessage(*msg, f, k);
+                  const Descriptor* d1 = m1.GetDescriptor();
+                  if (d && d1 && d->name() == "PairUint64_32" &&
+                      d1->name() == "PairUint64_32") {
+                    const PairUint64_32& p =
+                        static_cast<const PairUint64_32&>(m);
+                    const PairUint64_32& p1 =
+                        static_cast<const PairUint64_32&>(m1);
+                    if (p.first() == p1.first() && p.second() == p1.second()) {
+                      found = true;
+                      break;
+                    }
+                  }
+                }
+                if (!found) {
+                  Message* new_m = refl->AddMessage(msg, f);
+                  new_m->CopyFrom(m);
+                }
+              }
+            } break;
+            default:
+              log_v2::config()->error(
+                  "Repeated type f->cpp_type = {} not managed in the "
+                  "inheritence.",
+                  f->cpp_type());
+              assert(124 == 294);
           }
         } else {
           switch (f->cpp_type()) {
@@ -1218,6 +1262,12 @@ void parser::_resolve_template(State* pb_config) {
 
     for (const Servicegroup& sg : pb_config->servicegroups())
       _pb_helper.at(&sg)->check_validity();
+
+    for (const Severity& sv : pb_config->severities())
+      _pb_helper.at(&sv)->check_validity();
+
+    for (const Tag& t : pb_config->tags())
+      _pb_helper.at(&t)->check_validity();
 
   } catch (const std::exception& e) {
     throw engine_error() << e.what();

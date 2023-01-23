@@ -29,6 +29,8 @@ namespace engine {
 namespace configuration {
 
 class servicegroup_helper : public message_helper {
+  void _init();
+
  public:
   servicegroup_helper(Servicegroup* obj);
   ~servicegroup_helper() noexcept = default;
