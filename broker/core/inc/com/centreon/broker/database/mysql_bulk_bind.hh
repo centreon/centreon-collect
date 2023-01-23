@@ -16,10 +16,9 @@
 ** For more information : contact@centreon.com
 */
 
-#ifndef CCB_MYSQL_BIND_HH
-#define CCB_MYSQL_BIND_HH
+#ifndef CCB_MYSQL_BULK_BIND_HH
+#define CCB_MYSQL_BULK_BIND_HH
 
-#include <absl/types/variant.h>
 #include "com/centreon/broker/database/mysql_bind_base.hh"
 #include "com/centreon/broker/database/mysql_column.hh"
 
@@ -29,23 +28,18 @@ CCB_BEGIN()
 class mysql;
 
 namespace database {
-class mysql_bind : public mysql_bind_base {
-  using mysql_type = absl::variant<int32_t,
-                                   int64_t,
-                                   uint32_t,
-                                   uint64_t,
-                                   float,
-                                   double,
-                                   std::string,
-                                   char>;
-  // Each data in the bind.
-  std::vector<mysql_type> _buffer;
+class mysql_bulk_bind : public mysql_bind_base {
+  size_t _current_row = 0u;
+  // The buffers contained by _bind
+  std::vector<database::mysql_column> _column;
+
+  void _prepare_type(size_t range, enum enum_field_types type);
 
  public:
   /**
    * @brief Default constructor
    */
-  mysql_bind() = default;
+  mysql_bulk_bind() = default;
   /**
    * @brief Constructor
    *
@@ -53,9 +47,11 @@ class mysql_bind : public mysql_bind_base {
    * @param length Size to reserve for each column's buffer. This is useful when
    *               the column contains strings. By default, this value is 0 and
    *               no reservation are made.
+   * @param row_count Number of row to reserve. Columns are not allocated with a
+   *                  such size, they are just reserved.
    */
-  mysql_bind(int size, int length = 0);
-  ~mysql_bind() noexcept = default;
+  mysql_bulk_bind(int size, int length = 0, size_t row_count = 1);
+  ~mysql_bulk_bind() noexcept = default;
   void set_size(int size);
 
   /**
@@ -285,18 +281,17 @@ class mysql_bind : public mysql_bind_base {
 
   int get_size() const;
   bool value_is_null(size_t range) const;
+  bool empty() const;
+  void set_empty();
   size_t rows_count() const;
 
   size_t current_row() const;
   void next_row();
   void reserve(size_t size);
-  void* get_value_pointer(size_t range);
-
-  // void debug();
 };
 
 }  // namespace database
 
 CCB_END()
 
-#endif  // CCB_MYSQL_BIND_HH
+#endif  // CCB_MYSQL_BULK_BIND_HH

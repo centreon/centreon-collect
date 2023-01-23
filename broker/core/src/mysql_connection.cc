@@ -1,5 +1,5 @@
 /*
-** Copyright 2018-2021 Centreon
+** Copyright 2018-2023 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -45,6 +45,7 @@ void (mysql_connection::*const mysql_connection::_task_processing_table[])(
     &mysql_connection::_statement_int<uint32_t>,
     &mysql_connection::_statement_int<uint64_t>,
     &mysql_connection::_fetch_row_sync,
+    &mysql_connection::_get_version,
 };
 
 /******************************************************************************/
@@ -319,9 +320,14 @@ void mysql_connection::_statement(mysql_task* t) {
     return;
   }
   MYSQL_BIND* bb = nullptr;
-  if (task->bind)
+  if (task->bind) {
     bb = const_cast<MYSQL_BIND*>(task->bind->get_bind());
-
+    if (task->bulk) {
+      mysql_bulk_bind* bind = static_cast<mysql_bulk_bind*>(task->bind.get());
+      uint32_t array_size = bind->rows_count();
+      mysql_stmt_attr_set(stmt, STMT_ATTR_ARRAY_SIZE, &array_size);
+    }
+  }
   if (bb && mysql_stmt_bind_param(stmt, bb)) {
     std::string err_msg(::mysql_stmt_error(stmt));
     SPDLOG_LOGGER_ERROR(log_v2::sql(), "mysql_connection: {}", err_msg);
@@ -383,9 +389,14 @@ void mysql_connection::_statement_res(mysql_task* t) {
     return;
   }
   MYSQL_BIND* bb(nullptr);
-  if (task->bind)
+  if (task->bind) {
     bb = const_cast<MYSQL_BIND*>(task->bind->get_bind());
-
+    if (task->bulk) {
+      mysql_bulk_bind* bind = static_cast<mysql_bulk_bind*>(task->bind.get());
+      uint32_t array_size = bind->rows_count();
+      mysql_stmt_attr_set(stmt, STMT_ATTR_ARRAY_SIZE, &array_size);
+    }
+  }
   if (bb && mysql_stmt_bind_param(stmt, bb)) {
     std::string err_msg(::mysql_stmt_error(stmt));
     SPDLOG_LOGGER_ERROR(log_v2::sql(), "mysql_connection: {}", err_msg);
@@ -431,7 +442,7 @@ void mysql_connection::_statement_res(mysql_task* t) {
             task->promise.set_value(nullptr);
         } else {
           int size(mysql_num_fields(prepare_meta_result));
-          std::unique_ptr<mysql_bind> bind(new mysql_bind(size, STR_SIZE));
+          auto bind = std::make_unique<mysql_bind>(size, STR_SIZE);
 
           if (mysql_stmt_bind_result(stmt, bind->get_bind())) {
             std::string err_msg(::mysql_stmt_error(stmt));
@@ -449,7 +460,7 @@ void mysql_connection::_statement_res(mysql_task* t) {
             }
             // Here, we have the first row.
             res.set(prepare_meta_result);
-            bind->set_empty(true);
+            bind->set_empty();
           }
           res.set_bind(move(bind));
           task->promise.set_value(std::move(res));
@@ -477,9 +488,14 @@ void mysql_connection::_statement_int(mysql_task* t) {
     return;
   }
   MYSQL_BIND* bb(nullptr);
-  if (task->bind)
+  if (task->bind) {
     bb = const_cast<MYSQL_BIND*>(task->bind->get_bind());
-
+    if (task->bulk) {
+      mysql_bulk_bind* bind = static_cast<mysql_bulk_bind*>(task->bind.get());
+      uint32_t array_size = bind->rows_count();
+      mysql_stmt_attr_set(stmt, STMT_ATTR_ARRAY_SIZE, &array_size);
+    }
+  }
   if (bb && mysql_stmt_bind_param(stmt, bb)) {
     std::string err_msg(::mysql_stmt_error(stmt));
     SPDLOG_LOGGER_ERROR(log_v2::sql(), "mysql_connection: {}", err_msg);
@@ -529,13 +545,19 @@ void mysql_connection::_fetch_row_sync(mysql_task* t) {
     MYSQL_STMT* stmt(_stmt[stmt_id]);
     int res(mysql_stmt_fetch(stmt));
     if (res != 0)
-      task->result->get_bind()->set_empty(true);
+      task->result->get_bind()->set_empty();
     task->promise.set_value(res == 0);
   } else {
     MYSQL_ROW r(mysql_fetch_row(task->result->get()));
     task->result->set_row(r);
     task->promise.set_value(r != nullptr);
   }
+}
+
+void mysql_connection::_get_version(mysql_task* t) {
+  mysql_task_get_version* task(static_cast<mysql_task_get_version*>(t));
+  const char* res = mysql_get_server_info(_conn);
+  task->promise.set_value(res);
 }
 
 /**
@@ -599,6 +621,9 @@ std::string mysql_connection::_get_stack() {
         break;
       case mysql_task::FETCH_ROW:
         retval += "FETCH_ROW ; ";
+        break;
+      case mysql_task::GET_VERSION:
+        retval += "GET_VERSION ; ";
         break;
     }
   }
@@ -816,7 +841,7 @@ void mysql_connection::run_query_and_get_int(std::string const& query,
   _push(std::make_unique<mysql_task_run_int>(query, std::move(promise), type));
 }
 
-void mysql_connection::run_statement(database::mysql_stmt& stmt,
+void mysql_connection::run_statement(database::mysql_stmt_base& stmt,
                                      my_error::code ec,
                                      bool fatal) {
   _push(std::make_unique<mysql_task_statement>(stmt, ec, fatal));
@@ -859,4 +884,8 @@ bool mysql_connection::is_finish_asked() const {
 
 bool mysql_connection::is_finished() const {
   return _state == finished;
+}
+
+void mysql_connection::get_server_version(std::promise<const char*>&& promise) {
+  _push(std::make_unique<mysql_task_get_version>(std::move(promise)));
 }

@@ -56,7 +56,7 @@ BAPBSTATUS
 	${result}=	Check Ba Status With Timeout	test	2	60
 	Should Be True	${result}	msg=The BA ba_1 is not CRITICAL as expected
 
-    Connect To Database	pymysql	${DBNameConf}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+	Connect To Database	pymysql	${DBNameConf}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 	${output}=	Query	SELECT current_level, acknowledged, downtime, in_downtime, current_status FROM mod_bam WHERE name='test'
 	Should Be Equal As Strings	${output}	((100.0, 0.0, 0.0, 0, 2),)
 
@@ -798,12 +798,13 @@ BEPB_DIMENSION_TRUNCATE_TABLE
 *** Keywords ***
 BAM Setup
 	Stop Processes
-	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+	Connect To Database	pymysql	${DBName}	${DBUserRoot}	${DBPassRoot}	${DBHost}	${DBPort}
 	Execute SQL String  SET GLOBAL FOREIGN_KEY_CHECKS=0
 	Execute SQL String  DELETE FROM mod_bam_reporting_kpi
 	Execute SQL String  DELETE FROM mod_bam_reporting_timeperiods
 	Execute SQL String  DELETE FROM mod_bam_reporting_relations_ba_timeperiods
 	Execute SQL String  DELETE FROM mod_bam_reporting_ba_events
 	Execute SQL String  ALTER TABLE mod_bam_reporting_ba_events AUTO_INCREMENT = 1
+	Execute SQL String  SET GLOBAL FOREIGN_KEY_CHECKS=1
 
 

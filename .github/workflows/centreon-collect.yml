@@ -123,13 +123,31 @@ jobs:
           username: ${{ secrets.REPOS_USERNAME }}
           password: ${{ secrets.REPOS_PASSWORD }}
 
+      - name: Upload package artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: packages-rpm-${{ matrix.distrib }}
+          path: ./*.rpm
+
       - name: Use cache RPM files
         uses: actions/cache@v3
-        env:
-          cache-name-rpmbuild: cache-${{ github.sha }}-${{ github.run_id }}-rpmbuild-centreon-collect-${{ matrix.distrib }}
         with:
           path: ./*.rpm
-          key: ${{ env.cache-name-rpmbuild }}
+          key: cache-${{ github.sha }}-rpmbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
+
+      - name: Cleaning not needed rpm packages
+        shell: bash
+        run: |
+          rm -rf *-devel*.rpm
+          rm -rf *-debuginfo*.rpm
+          rm -rf *-debugsource*.rpm
+
+      - name: Upload package artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: packages-rpm-${{ matrix.distrib }}
+          path: ./*.rpm
+          retention-days: 1
 
   debian-packaging:
     needs: create-version
@@ -166,11 +184,9 @@ jobs:
 
       - name: Use cache DEB files
         uses: actions/cache@v3
-        env:
-          cache-name-debbuild: cache-${{ github.sha }}-${{ github.run_id }}-debbuild-centreon-collect-${{ matrix.distrib }}
         with:
           path: ./*.deb
-          key: ${{ env.cache-name-debbuild }}
+          key: cache-${{ github.sha }}-debbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
 
   delivery-debian:
     needs: [debian-packaging, create-version]
@@ -218,7 +234,7 @@ jobs:
           module_name: centreon-collect
           repos_username: ${{ secrets.REPOS_USERNAME }}
           repos_password: ${{ secrets.REPOS_PASSWORD }}
-          cache_key: cache-${{ github.sha }}-${{ github.run_id }}
+          cache_key: cache-${{ github.sha }}-rpmbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
           update_repo_path: ${{ secrets.UPDATE_REPO_PATH }}
           cloudfront_id: ${{ secrets.CLOUDFRONT_ID }}
           yum_repo_address: ${{ secrets.YUM_REPO_ADDRESS }}
