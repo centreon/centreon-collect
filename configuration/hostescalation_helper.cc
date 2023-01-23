@@ -33,9 +33,15 @@ hostescalation_helper::hostescalation_helper(Hostescalation* obj)
                          {"contact_groups", "contactgroups"},
                      },
                      10) {
-  init_hostescalation(static_cast<Hostescalation*>(mut_obj()));
+  _init();
 }
 
+/**
+ * @brief For several keys, the parser of Hostescalation objects has a
+ * particular behavior. These behaviors are handled here.
+ * @param key The key to parse.
+ * @param value The value corresponding to the key
+ */
 bool hostescalation_helper::hook(const absl::string_view& key,
                                  const absl::string_view& value) {
   Hostescalation* obj = static_cast<Hostescalation*>(mut_obj());
@@ -51,6 +57,10 @@ bool hostescalation_helper::hook(const absl::string_view& key,
   }
   return false;
 }
+
+/**
+ * @brief Check the validity of the Hostescalation object.
+ */
 void hostescalation_helper::check_validity() const {
   const Hostescalation* o = static_cast<const Hostescalation*>(obj());
 
@@ -61,4 +71,12 @@ void hostescalation_helper::check_validity() const {
           "(properties 'hosts' or 'hostgroups', respectively)");
   }
 }
+void hostescalation_helper::_init() {
+  Hostescalation* obj = static_cast<Hostescalation*>(mut_obj());
+  obj->set_escalation_options(action_he_none);
+  obj->set_first_notification(-2);
+  obj->set_last_notification(-2);
+  obj->set_notification_interval(0);
+}
+
 }  // namespace com::centreon::engine::configuration

@@ -29,6 +29,8 @@ namespace engine {
 namespace configuration {
 
 class tag_helper : public message_helper {
+  void _init();
+
  public:
   tag_helper(Tag* obj);
   ~tag_helper() noexcept = default;

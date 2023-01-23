@@ -29,6 +29,8 @@ namespace engine {
 namespace configuration {
 
 class hostescalation_helper : public message_helper {
+  void _init();
+
  public:
   hostescalation_helper(Hostescalation* obj);
   ~hostescalation_helper() noexcept = default;

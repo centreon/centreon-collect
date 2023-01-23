@@ -36,9 +36,15 @@ serviceescalation_helper::serviceescalation_helper(Serviceescalation* obj)
                          {"contact_groups", "contactgroups"},
                      },
                      12) {
-  init_serviceescalation(static_cast<Serviceescalation*>(mut_obj()));
+  _init();
 }
 
+/**
+ * @brief For several keys, the parser of Serviceescalation objects has a
+ * particular behavior. These behaviors are handled here.
+ * @param key The key to parse.
+ * @param value The value corresponding to the key
+ */
 bool serviceescalation_helper::hook(const absl::string_view& key,
                                     const absl::string_view& value) {
   Serviceescalation* obj = static_cast<Serviceescalation*>(mut_obj());
@@ -60,7 +66,19 @@ bool serviceescalation_helper::hook(const absl::string_view& key,
   }
   return false;
 }
+
+/**
+ * @brief Check the validity of the Serviceescalation object.
+ */
 void serviceescalation_helper::check_validity() const {
   const Serviceescalation* o = static_cast<const Serviceescalation*>(obj());
 }
+void serviceescalation_helper::_init() {
+  Serviceescalation* obj = static_cast<Serviceescalation*>(mut_obj());
+  obj->set_escalation_options(action_se_none);
+  obj->set_first_notification(-2);
+  obj->set_last_notification(-2);
+  obj->set_notification_interval(0);
+}
+
 }  // namespace com::centreon::engine::configuration

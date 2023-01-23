@@ -41,9 +41,15 @@ hostdependency_helper::hostdependency_helper(Hostdependency* obj)
               {"execution_failure_criteria", "execution_failure_options"},
           },
           11) {
-  init_hostdependency(static_cast<Hostdependency*>(mut_obj()));
+  _init();
 }
 
+/**
+ * @brief For several keys, the parser of Hostdependency objects has a
+ * particular behavior. These behaviors are handled here.
+ * @param key The key to parse.
+ * @param value The value corresponding to the key
+ */
 bool hostdependency_helper::hook(const absl::string_view& key,
                                  const absl::string_view& value) {
   Hostdependency* obj = static_cast<Hostdependency*>(mut_obj());
@@ -62,6 +68,10 @@ bool hostdependency_helper::hook(const absl::string_view& key,
   }
   return false;
 }
+
+/**
+ * @brief Check the validity of the Hostdependency object.
+ */
 void hostdependency_helper::check_validity() const {
   const Hostdependency* o = static_cast<const Hostdependency*>(obj());
 
@@ -78,4 +88,11 @@ void hostdependency_helper::check_validity() const {
         "'dependent_hosts' or 'dependent_hostgroups', "
         "respectively)");
 }
+void hostdependency_helper::_init() {
+  Hostdependency* obj = static_cast<Hostdependency*>(mut_obj());
+  obj->set_execution_failure_options(action_hd_none);
+  obj->set_inherits_parent(false);
+  obj->set_notification_failure_options(action_hd_none);
+}
+
 }  // namespace com::centreon::engine::configuration

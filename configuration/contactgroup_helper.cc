@@ -24,9 +24,15 @@ using msg_fmt = com::centreon::exceptions::msg_fmt;
 namespace com::centreon::engine::configuration {
 contactgroup_helper::contactgroup_helper(Contactgroup* obj)
     : message_helper(object_type::contactgroup, obj, {}, 6) {
-  init_contactgroup(static_cast<Contactgroup*>(mut_obj()));
+  _init();
 }
 
+/**
+ * @brief For several keys, the parser of Contactgroup objects has a particular
+ *        behavior. These behaviors are handled here.
+ * @param key The key to parse.
+ * @param value The value corresponding to the key
+ */
 bool contactgroup_helper::hook(const absl::string_view& key,
                                const absl::string_view& value) {
   Contactgroup* obj = static_cast<Contactgroup*>(mut_obj());
@@ -39,10 +45,16 @@ bool contactgroup_helper::hook(const absl::string_view& key,
   }
   return false;
 }
+
+/**
+ * @brief Check the validity of the Contactgroup object.
+ */
 void contactgroup_helper::check_validity() const {
   const Contactgroup* o = static_cast<const Contactgroup*>(obj());
 
   if (o->contactgroup_name().empty())
     throw msg_fmt("Contactgroup has no name (property 'contactgroup_name')");
 }
+void contactgroup_helper::_init() {}
+
 }  // namespace com::centreon::engine::configuration
