@@ -1,10 +1,28 @@
 #!/usr/bin/env python3.9
+#
+# Copyright 2022-2023 Centreon (https://www.centreon.com/)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# For more information : contact@centreon.com
+#
 import re
 import os
+import hashlib
 import subprocess
 
-if not os.path.exists("temp"):
-    os.mkdir("temp")
+if not os.path.exists("/tmp/configuration"):
+    os.mkdir("/tmp/configuration")
 class_files_hh = [
     "inc/com/centreon/engine/configuration/anomalydetection.hh",
     "inc/com/centreon/engine/configuration/command.hh",
@@ -44,24 +62,49 @@ class_files_cc = [
 ]
 
 
-def rsync_files():
-    print(os.getcwd())
-    os.system("rsync -pvaz temp/ ./")
+def sync_files():
+    print("### SYNC FILES")
+    files = os.listdir(".")
+    r = re.compile(".*_helper.(cc|hh)$")
+    h = {}
+    for f in files:
+        if r.match(f):
+            content = open(f"./{f}", 'r').read()
+            hh = hashlib.md5(content.encode('utf-8'))
+            h[f] = hh.hexdigest()
+
+    files_tmp = os.listdir("/tmp/configuration")
+    for f in files_tmp:
+        if r.match(f):
+            try:
+                content = open(f"/tmp/configuration/{f}", 'r').read()
+                hh = hashlib.md5(content.encode('utf-8')).hexdigest()
+                if not f in h or hh != h[f]:
+                    print(f"{f} changed since last modification")
+                    ff = open(f"./{f}", "w")
+                    ff.write(content)
+                    ff.close()
+            except:
+                print(f"Cannot read file /tmp/configuration/{f}")
 
 
 def indent_files():
-    os.chdir("..")
-    os.system(f"clang-format -i configuration/temp/*")
-    os.chdir("configuration")
+    os.system(f"clang-format -i -style=chromium /tmp/configuration/*")
 
 
-def complete_filehelper_cc(fhcc, cname, name, number: int, correspondence, hook, check_validity):
+def complete_filehelper_cc(fhcc, cname, name, number: int, correspondence, hook, check_validity, msg_list):
     name_cap = name.capitalize()
     cname = name + "_helper"
     fhcc.write(f"""{cname}::{cname}({name_cap}* obj) : message_helper(object_type::{name}, obj, {correspondence}, {number}) {{
-  init_{name}(static_cast<{name_cap}*>(mut_obj()));
+  _init();
 }}
 
+/**
+  * @brief For several keys, the parser of {name_cap} objects has a particular
+  *        behavior. These behaviors are handled here.
+  * @param key The key to parse.
+  * @param value The value corresponding to the key
+  */
 bool {cname}::hook(const absl::string_view& key, const absl::string_view& value) {{
   {cap_name}* obj = static_cast<{cap_name}*>(mut_obj());
 """)
@@ -70,19 +113,61 @@ bool {cname}::hook(const absl::string_view& key, const absl::string_view& value)
     fhcc.write("""  return false;
 }
 """)
-    fhcc.write(f"""void {cname}::check_validity() const {{
+    fhcc.write(f"""
+/**
+ * @brief Check the validity of the {cap_name} object.
+ */
+void {cname}::check_validity() const {{
   const {cap_name}* o = static_cast<const {cap_name}*>(obj());
 """)
     for c in check_validity:
         fhcc.write(c)
-    fhcc.write("""
-}
-}
-""")
+    fhcc.write("\n}")
+
+    header = False
+    for m in msg_list:
+        if 'default' in m:
+            if not header:
+                cc_lines = [f"""
+void {cname}::_init() {{
+  {cap_name}* obj = static_cast<{cap_name}*>(mut_obj());
+"""]
+                header = True
+            if m['proto_type'] == 'KeyType':
+                values = m['default'].split(',')
+                cc_lines.append(
+                    f"  obj->mutable_{m['proto_name']}()->set_id({values[0].strip()});\n")
+                cc_lines.append(
+                    f"  obj->mutable_{m['proto_name']}()->set_type({values[1].strip()});\n")
+            elif m['typ'] == 'point_2d':
+                values = m['default'].split(',')
+                cc_lines.append(
+                    f"  obj->mutable_{m['proto_name']}()->set_x({values[0].strip()});\n")
+                cc_lines.append(
+                    f"  obj->mutable_{m['proto_name']}()->set_y({values[1].strip()});\n")
+            elif m['typ'] == 'point_3d':
+                values = m['default'].split(',')
+                cc_lines.append(
+                    f"  obj->mutable_{m['proto_name']}()->set_x({values[0].strip()});\n")
+                cc_lines.append(
+                    f"  obj->mutable_{m['proto_name']}()->set_y({values[1].strip()});\n")
+                cc_lines.append(
+                    f"  obj->mutable_{m['proto_name']}()->set_y({values[2].strip()});\n")
+            else:
+                cc_lines.append(
+                    f"  obj->set_{m['proto_name']}({m['default']});\n")
+
+    if not header:
+        cc_lines = [f"""
+void {cname}::_init() {{\n"""]
+        header = True
+    cc_lines.append("}\n")
+    fhcc.writelines(cc_lines)
+    fhcc.write("\n}")
 
 
 def prepare_filehelper_cc(name: str):
-    filename = f"temp/{name}_helper.cc"
+    filename = f"/tmp/configuration/{name}_helper.cc"
     fhcc = open(filename, "w")
     fhcc.write(f"""/*
  * Copyright 2022 Centreon (https://www.centreon.com/)
@@ -113,7 +198,7 @@ namespace com::centreon::engine::configuration {{
 
 
 def prepare_filehelper_hh(name: str):
-    fhhh = open(f"temp/{name}_helper.hh", "w")
+    fhhh = open(f"/tmp/configuration/{name}_helper.hh", "w")
     macro = name.upper().replace(".", "_")
     cname = name.replace(".hh", "")
     objname = cname.capitalize()
@@ -149,10 +234,11 @@ namespace configuration {{
 
 class {cname}_helper : public message_helper {{
 
+  void _init();
  public:
   {cname}_helper({objname}* obj);
   ~{cname}_helper() noexcept = default;
-  
+
   bool hook(const absl::string_view& key, const absl::string_view& value) override;
   void check_validity() const override;
 }};
@@ -219,7 +305,7 @@ def get_messages_of_conf(header, msg: [str]):
             msg_list.append(msg)
 
 
-def get_default_values(cpp, msg: [str]):
+def get_default_values(cap_name, cpp, msg: [str]):
     rmin = re.compile(
         r"(?:static)?\s*([a-z0-9][a-z_0-9\s]+[a-z0-9])\s*(?:const)?\s*default_")
     r = re.compile(
@@ -278,6 +364,12 @@ def get_default_values(cpp, msg: [str]):
                     f"Error: {m.group(2)} not found in list of default values from file {filename_cc}")
         line += 1
 
+    if cap_name == "Tag" or cap_name == "Severity":
+        for i in msg:
+            if i['proto_name'] == "key":
+                i['default'] = "0, -1"
+                break
+
 
 def get_correspondence(cpp):
     retval = "{\n"
@@ -329,6 +421,25 @@ def build_hook_content(cname: str, msg):
     return true;
   }
 """)
+    elif cname == 'Severity':
+        retval.append("""
+  if (key == "id" || key == "severity_id") {
+    uint64_t id;
+    if (absl::SimpleAtoi(value, &id)) 
+      obj->mutable_key()->set_id(id);
+    else
+      return false;
+    return true;
+  } else if (key == "type" || key == "severity_type") {
+    if (value == "host")
+      obj->mutable_key()->set_type(severity::host);
+    else if (value == "service")
+      obj->mutable_key()->set_type(severity::service);
+    else
+      return false;
+    return true;
+  }
+""")
 
     for m in msg:
         if m['proto_type'] == 'StringList' or m['proto_type'] == 'StringSet':
@@ -349,47 +460,53 @@ def build_hook_content(cname: str, msg):
             else:
                 concerned = "service"
             retval.append(f"""  {els}if (key == "category_tags") {{
-    std::list<absl::string_view> tags{{absl::StrSplit(value, ',')}};
+    auto tags{{absl::StrSplit(value, ',')}};
+    bool ret = true;
+
+    for (auto it = obj->tags().begin(); it != obj->tags().end(); ) {{
+      if (it->second() == TagType::tag_{concerned}category)
+        it = obj->mutable_tags()->erase(it);
+      else
+        ++it;
+    }}
 
     for (auto& tag : tags) {{
       uint64_t id;
       bool parse_ok;
       parse_ok = absl::SimpleAtoi(tag, &id);
       if (parse_ok) {{
-        for (auto it = obj->mutable_tags()->begin(); it != obj->mutable_tags()->end();) {{
-          if (it->second() == TagType::tag_{concerned}category && it->first() == id)
-            ++it;
-          else {{
-            auto t = obj->add_tags();
-            t->set_first(id);
-            t->set_second(TagType::tag_{concerned}category);
-            break;
-          }}
-        }}
+        auto t = obj->add_tags();
+        t->set_first(id);
+        t->set_second(TagType::tag_{concerned}category);
+      }} else {{
+        ret = false;
       }}
     }}
-    return true;
+    return ret;
   }} else if (key == "group_tags") {{
-    std::list<absl::string_view> tags{{absl::StrSplit(value, ',')}};
+    auto tags{{absl::StrSplit(value, ',')}};
+    bool ret = true;
+
+    for (auto it = obj->tags().begin(); it != obj->tags().end(); ) {{
+      if (it->second() == TagType::tag_{concerned}group)
+        it = obj->mutable_tags()->erase(it);
+      else
+        ++it;
+    }}
 
     for (auto& tag : tags) {{
       uint64_t id;
       bool parse_ok;
       parse_ok = absl::SimpleAtoi(tag, &id);
       if (parse_ok) {{
-        for (auto it = obj->mutable_tags()->begin(); it != obj->mutable_tags()->end();) {{
-          if (it->second() == TagType::tag_{concerned}group && it->first() == id)
-            ++it;
-          else {{
-            auto t = obj->add_tags();
-            t->set_first(id);
-            t->set_second(TagType::tag_{concerned}group);
-            break;
-          }}
-        }}
+        auto t = obj->add_tags();
+        t->set_first(id);
+        t->set_second(TagType::tag_{concerned}group);
+      }} else {{
+        ret = false;
       }}
     }}
-    return true;
+    return ret;
   }}
 """)
         elif m['proto_type'] == 'DaysArray':
@@ -513,12 +630,12 @@ def build_check_validity(cname: str, msg):
         retval.append("""
       if (o->hosts().data().empty() && o->hostgroups().data().empty())
         throw msg_fmt("Host dependency is not attached to any host or host group (properties 'hosts' or 'hostgroups', respectively)");
-        
+
       if (o->dependent_hosts().data().empty() && o->dependent_hostgroups().data().empty())
         throw msg_fmt(
-        "Host dependency is not attached to any "                          
-          "dependent host or dependent host group (properties "              
-          "'dependent_hosts' or 'dependent_hostgroups', "            
+        "Host dependency is not attached to any "
+          "dependent host or dependent host group (properties "
+          "'dependent_hosts' or 'dependent_hostgroups', "
           "respectively)");
 """)
     elif cname == "Hostescalation":
@@ -601,6 +718,21 @@ def build_check_validity(cname: str, msg):
         throw msg_fmt("Tag has no name (property 'tag_name')");
       if (o->key().id() == 0)
         throw msg_fmt("Tag '{}' has a null id", o->tag_name());
+      if (o->key().type() == static_cast<uint32_t>(-1))
+        throw msg_fmt("Tag type must be specified");
+""")
+    elif cname == "Severity":
+        retval.append("""
+      if (o->severity_name().empty())
+        throw msg_fmt("Severity has no name (property 'severity_name')");
+      if (o->key().id() == 0)
+        throw msg_fmt(
+            "Severity id must not be less than 1 (property 'severity_id')");
+      if (o->level() == 0)
+        throw msg_fmt(
+            "Severity level must not be less than 1 (property 'level')");
+      if (o->key().type() == severity::none)
+        throw msg_fmt("Severity type must be one of 'service' or 'host'");
 """)
     elif cname == "Servicegroup":
         retval.append("""
@@ -808,64 +940,6 @@ message StringSet {
 
 """]
 
-fcc = open("temp/state-generated.cc", "w")
-fcc.write("""/*
- * Copyright 2022 Centreon (https://www.centreon.com/)
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- * For more information : contact@centreon.com
- *
- */
-#include "state-generated.hh"
-#include "com/centreon/engine/host.hh"
-#include "com/centreon/engine/service.hh"
-
-namespace com::centreon::engine::configuration {
-""")
-
-
-fhh = open("temp/state-generated.hh", "w")
-fhh.write("""/*
- * Copyright 2022 Centreon (https://www.centreon.com/)
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- * For more information : contact@centreon.com
- *
- */
-
-#ifndef CCE_CONFIGURATION_STATE_GENERATED_HH
-#define CCE_CONFIGURATION_STATE_GENERATED_HH
-
-#include "state-generated.pb.h"
-
-namespace com {
-namespace centreon {
-namespace engine {
-namespace configuration {
-""")
-
 for i in range(len(class_files_hh)):
     # Time to read cc/hh files for each configuration object
     filename_hh = class_files_hh[i]
@@ -896,7 +970,7 @@ for i in range(len(class_files_hh)):
     get_messages_of_conf(header, msg_list)
 
     # From the cpp sources, we get default values for fields.
-    get_default_values(cpp, msg_list)
+    get_default_values(cap_name, cpp, msg_list)
 
     # Construction of the hook for this message i.e. all the particular cases.
     hook = build_hook_content(cap_name, msg_list)
@@ -931,60 +1005,16 @@ message {cap_name} {{
     proto.append("}\n")
 
     complete_filehelper_cc(fhcc, cap_name, name, number,
-                           correspondence, hook, check_validity)
+                           correspondence, hook, check_validity, msg_list)
 
     # Generation of proto file
-    f = open("temp/state-generated.proto", "w")
+    f = open("/tmp/configuration/state-generated.proto", "w")
     f.writelines(proto)
     f.close()
 
-    # Generation of cpp file
-    header = False
-    for m in msg_list:
-        if 'default' in m:
-            if not header:
-                cc_lines = [f"\nvoid init_{name}({cap_name}* obj) {{\n"]
-                header = True
-            if m['typ'] == 'point_2d':
-                values = m['default'].split(',')
-                cc_lines.append(
-                    f"  obj->mutable_{m['proto_name']}()->set_x({values[0].strip()});\n")
-                cc_lines.append(
-                    f"  obj->mutable_{m['proto_name']}()->set_y({values[1].strip()});\n")
-            elif m['typ'] == 'point_3d':
-                values = m['default'].split(',')
-                cc_lines.append(
-                    f"  obj->mutable_{m['proto_name']}()->set_x({values[0].strip()});\n")
-                cc_lines.append(
-                    f"  obj->mutable_{m['proto_name']}()->set_y({values[1].strip()});\n")
-                cc_lines.append(
-                    f"  obj->mutable_{m['proto_name']}()->set_y({values[2].strip()});\n")
-            else:
-                cc_lines.append(
-                    f"  obj->set_{m['proto_name']}({m['default']});\n")
-
-    if not header:
-        cc_lines = [f"\nvoid init_{name}({cap_name}* /* obj */) {{\n"]
-        header = True
-    cc_lines.append("}\n")
-    fcc.writelines(cc_lines)
-
-    # Generation of hh file
-    fhh.write(f"void init_{name}({cap_name}* obj);\n")
     fhcc.close()
     fhhh.close()
 
-fhh.write("""
-};  // namespace configuration
-};  // namespace engine
-};  // namespace centreon
-};  // namespace com
-
-#endif /* !CCE_CONFIGURATION_STATE_GENERATED_HH */
-""")
-fcc.write("}; // com::centreon::engine::configuration\n")
-fcc.close()
-fhh.close()
 
 indent_files()
-rsync_files()
+sync_files()

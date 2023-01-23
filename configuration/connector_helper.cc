@@ -24,15 +24,27 @@ using msg_fmt = com::centreon::exceptions::msg_fmt;
 namespace com::centreon::engine::configuration {
 connector_helper::connector_helper(Connector* obj)
     : message_helper(object_type::connector, obj, {}, 4) {
-  init_connector(static_cast<Connector*>(mut_obj()));
+  _init();
 }
 
+/**
+ * @brief For several keys, the parser of Connector objects has a particular
+ *        behavior. These behaviors are handled here.
+ * @param key The key to parse.
+ * @param value The value corresponding to the key
+ */
 bool connector_helper::hook(const absl::string_view& key,
                             const absl::string_view& value) {
   Connector* obj = static_cast<Connector*>(mut_obj());
   return false;
 }
+
+/**
+ * @brief Check the validity of the Connector object.
+ */
 void connector_helper::check_validity() const {
   const Connector* o = static_cast<const Connector*>(obj());
 }
+void connector_helper::_init() {}
+
 }  // namespace com::centreon::engine::configuration

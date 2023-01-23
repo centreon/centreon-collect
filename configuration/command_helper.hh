@@ -29,6 +29,8 @@ namespace engine {
 namespace configuration {
 
 class command_helper : public message_helper {
+  void _init();
+
  public:
   command_helper(Command* obj);
   ~command_helper() noexcept = default;

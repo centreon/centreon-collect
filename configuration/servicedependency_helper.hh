@@ -29,6 +29,8 @@ namespace engine {
 namespace configuration {
 
 class servicedependency_helper : public message_helper {
+  void _init();
+
  public:
   servicedependency_helper(Servicedependency* obj);
   ~servicedependency_helper() noexcept = default;

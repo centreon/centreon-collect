@@ -24,9 +24,15 @@ using msg_fmt = com::centreon::exceptions::msg_fmt;
 namespace com::centreon::engine::configuration {
 timeperiod_helper::timeperiod_helper(Timeperiod* obj)
     : message_helper(object_type::timeperiod, obj, {}, 7) {
-  init_timeperiod(static_cast<Timeperiod*>(mut_obj()));
+  _init();
 }
 
+/**
+ * @brief For several keys, the parser of Timeperiod objects has a particular
+ *        behavior. These behaviors are handled here.
+ * @param key The key to parse.
+ * @param value The value corresponding to the key
+ */
 bool timeperiod_helper::hook(const absl::string_view& key,
                              const absl::string_view& value) {
   Timeperiod* obj = static_cast<Timeperiod*>(mut_obj());
@@ -70,10 +76,16 @@ bool timeperiod_helper::hook(const absl::string_view& key,
     return get_timerange(value, obj->mutable_timeranges()->mutable_saturday());
   return false;
 }
+
+/**
+ * @brief Check the validity of the Timeperiod object.
+ */
 void timeperiod_helper::check_validity() const {
   const Timeperiod* o = static_cast<const Timeperiod*>(obj());
 
   if (o->timeperiod_name().empty())
     throw msg_fmt("Time period has no name (property 'timeperiod_name')");
 }
+void timeperiod_helper::_init() {}
+
 }  // namespace com::centreon::engine::configuration
