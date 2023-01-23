@@ -49,9 +49,15 @@ servicedependency_helper::servicedependency_helper(Servicedependency* obj)
               {"notification_failure_criteria", "notification_failure_options"},
           },
           15) {
-  init_servicedependency(static_cast<Servicedependency*>(mut_obj()));
+  _init();
 }
 
+/**
+ * @brief For several keys, the parser of Servicedependency objects has a
+ * particular behavior. These behaviors are handled here.
+ * @param key The key to parse.
+ * @param value The value corresponding to the key
+ */
 bool servicedependency_helper::hook(const absl::string_view& key,
                                     const absl::string_view& value) {
   Servicedependency* obj = static_cast<Servicedependency*>(mut_obj());
@@ -82,6 +88,10 @@ bool servicedependency_helper::hook(const absl::string_view& key,
   }
   return false;
 }
+
+/**
+ * @brief Check the validity of the Servicedependency object.
+ */
 void servicedependency_helper::check_validity() const {
   const Servicedependency* o = static_cast<const Servicedependency*>(obj());
 
@@ -115,4 +125,11 @@ void servicedependency_helper::check_validity() const {
           "respectively)");
   }
 }
+void servicedependency_helper::_init() {
+  Servicedependency* obj = static_cast<Servicedependency*>(mut_obj());
+  obj->set_execution_failure_options(action_sd_none);
+  obj->set_inherits_parent(false);
+  obj->set_notification_failure_options(action_sd_none);
+}
+
 }  // namespace com::centreon::engine::configuration

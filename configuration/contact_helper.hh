@@ -29,6 +29,8 @@ namespace engine {
 namespace configuration {
 
 class contact_helper : public message_helper {
+  void _init();
+
  public:
   contact_helper(Contact* obj);
   ~contact_helper() noexcept = default;
