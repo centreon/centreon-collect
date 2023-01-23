@@ -24,9 +24,15 @@ using msg_fmt = com::centreon::exceptions::msg_fmt;
 namespace com::centreon::engine::configuration {
 hostgroup_helper::hostgroup_helper(Hostgroup* obj)
     : message_helper(object_type::hostgroup, obj, {}, 9) {
-  init_hostgroup(static_cast<Hostgroup*>(mut_obj()));
+  _init();
 }
 
+/**
+ * @brief For several keys, the parser of Hostgroup objects has a particular
+ *        behavior. These behaviors are handled here.
+ * @param key The key to parse.
+ * @param value The value corresponding to the key
+ */
 bool hostgroup_helper::hook(const absl::string_view& key,
                             const absl::string_view& value) {
   Hostgroup* obj = static_cast<Hostgroup*>(mut_obj());
@@ -36,6 +42,10 @@ bool hostgroup_helper::hook(const absl::string_view& key,
   }
   return false;
 }
+
+/**
+ * @brief Check the validity of the Hostgroup object.
+ */
 void hostgroup_helper::check_validity() const {
   const Hostgroup* o = static_cast<const Hostgroup*>(obj());
 
@@ -44,4 +54,6 @@ void hostgroup_helper::check_validity() const {
       throw msg_fmt("Host group has no name (property 'hostgroup_name')");
   }
 }
+void hostgroup_helper::_init() {}
+
 }  // namespace com::centreon::engine::configuration

@@ -113,4 +113,5 @@ absl::string_view message_helper::validate_key(
     retval = key;
   return retval;
 }
+
 }  // namespace com::centreon::engine::configuration

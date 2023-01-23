@@ -26,21 +26,64 @@ severity_helper::severity_helper(Severity* obj)
     : message_helper(object_type::severity,
                      obj,
                      {
-                         {"severity_name", "name"},
                          {"severity_id", "id"},
                          {"severity_level", "level"},
                          {"severity_icon_id", "icon_id"},
+                         {"severity_type", "type"},
                      },
                      6) {
-  init_severity(static_cast<Severity*>(mut_obj()));
+  _init();
 }
 
+/**
+ * @brief For several keys, the parser of Severity objects has a particular
+ *        behavior. These behaviors are handled here.
+ * @param key The key to parse.
+ * @param value The value corresponding to the key
+ */
 bool severity_helper::hook(const absl::string_view& key,
                            const absl::string_view& value) {
   Severity* obj = static_cast<Severity*>(mut_obj());
+
+  if (key == "id" || key == "severity_id") {
+    uint64_t id;
+    if (absl::SimpleAtoi(value, &id))
+      obj->mutable_key()->set_id(id);
+    else
+      return false;
+    return true;
+  } else if (key == "type" || key == "severity_type") {
+    if (value == "host")
+      obj->mutable_key()->set_type(severity::host);
+    else if (value == "service")
+      obj->mutable_key()->set_type(severity::service);
+    else
+      return false;
+    return true;
+  }
   return false;
 }
+
+/**
+ * @brief Check the validity of the Severity object.
+ */
 void severity_helper::check_validity() const {
   const Severity* o = static_cast<const Severity*>(obj());
+
+  if (o->severity_name().empty())
+    throw msg_fmt("Severity has no name (property 'severity_name')");
+  if (o->key().id() == 0)
+    throw msg_fmt(
+        "Severity id must not be less than 1 (property 'severity_id')");
+  if (o->level() == 0)
+    throw msg_fmt("Severity level must not be less than 1 (property 'level')");
+  if (o->key().type() == severity::none)
+    throw msg_fmt("Severity type must be one of 'service' or 'host'");
 }
+void severity_helper::_init() {
+  Severity* obj = static_cast<Severity*>(mut_obj());
+  obj->mutable_key()->set_id(0);
+  obj->mutable_key()->set_type(-1);
+}
+
 }  // namespace com::centreon::engine::configuration

@@ -41,9 +41,15 @@ service_helper::service_helper(Service* obj)
                          {"severity", "severity_id"},
                      },
                      51) {
-  init_service(static_cast<Service*>(mut_obj()));
+  _init();
 }
 
+/**
+ * @brief For several keys, the parser of Service objects has a particular
+ *        behavior. These behaviors are handled here.
+ * @param key The key to parse.
+ * @param value The value corresponding to the key
+ */
 bool service_helper::hook(const absl::string_view& key,
                           const absl::string_view& value) {
   Service* obj = static_cast<Service*>(mut_obj());
@@ -91,52 +97,60 @@ bool service_helper::hook(const absl::string_view& key,
     fill_string_group(obj->mutable_servicegroups(), value);
     return true;
   } else if (key == "category_tags") {
-    std::list<absl::string_view> tags{absl::StrSplit(value, ',')};
+    auto tags{absl::StrSplit(value, ',')};
+    bool ret = true;
+
+    for (auto it = obj->tags().begin(); it != obj->tags().end();) {
+      if (it->second() == TagType::tag_servicecategory)
+        it = obj->mutable_tags()->erase(it);
+      else
+        ++it;
+    }
 
     for (auto& tag : tags) {
       uint64_t id;
       bool parse_ok;
       parse_ok = absl::SimpleAtoi(tag, &id);
       if (parse_ok) {
-        for (auto it = obj->mutable_tags()->begin();
-             it != obj->mutable_tags()->end();) {
-          if (it->second() == TagType::tag_servicecategory && it->first() == id)
-            ++it;
-          else {
-            auto t = obj->add_tags();
-            t->set_first(id);
-            t->set_second(TagType::tag_servicecategory);
-            break;
-          }
-        }
+        auto t = obj->add_tags();
+        t->set_first(id);
+        t->set_second(TagType::tag_servicecategory);
+      } else {
+        ret = false;
       }
     }
-    return true;
+    return ret;
   } else if (key == "group_tags") {
-    std::list<absl::string_view> tags{absl::StrSplit(value, ',')};
+    auto tags{absl::StrSplit(value, ',')};
+    bool ret = true;
+
+    for (auto it = obj->tags().begin(); it != obj->tags().end();) {
+      if (it->second() == TagType::tag_servicegroup)
+        it = obj->mutable_tags()->erase(it);
+      else
+        ++it;
+    }
 
     for (auto& tag : tags) {
       uint64_t id;
       bool parse_ok;
       parse_ok = absl::SimpleAtoi(tag, &id);
       if (parse_ok) {
-        for (auto it = obj->mutable_tags()->begin();
-             it != obj->mutable_tags()->end();) {
-          if (it->second() == TagType::tag_servicegroup && it->first() == id)
-            ++it;
-          else {
-            auto t = obj->add_tags();
-            t->set_first(id);
-            t->set_second(TagType::tag_servicegroup);
-            break;
-          }
-        }
+        auto t = obj->add_tags();
+        t->set_first(id);
+        t->set_second(TagType::tag_servicegroup);
+      } else {
+        ret = false;
       }
     }
-    return true;
+    return ret;
   }
   return false;
 }
+
+/**
+ * @brief Check the validity of the Service object.
+ */
 void service_helper::check_validity() const {
   const Service* o = static_cast<const Service*>(obj());
 
@@ -153,4 +167,35 @@ void service_helper::check_validity() const {
           o->service_description());
   }
 }
+void service_helper::_init() {
+  Service* obj = static_cast<Service*>(mut_obj());
+  obj->set_acknowledgement_timeout(0);
+  obj->set_checks_active(true);
+  obj->set_checks_passive(true);
+  obj->set_check_freshness(0);
+  obj->set_check_interval(5);
+  obj->set_event_handler_enabled(true);
+  obj->set_first_notification_delay(0);
+  obj->set_flap_detection_enabled(true);
+  obj->set_flap_detection_options(action_svc_ok | action_svc_warning |
+                                  action_svc_unknown | action_svc_critical);
+  obj->set_freshness_threshold(0);
+  obj->set_high_flap_threshold(0);
+  obj->set_initial_state(engine::service::state_ok);
+  obj->set_is_volatile(false);
+  obj->set_low_flap_threshold(0);
+  obj->set_max_check_attempts(3);
+  obj->set_notifications_enabled(true);
+  obj->set_notification_interval(30);
+  obj->set_notification_options(action_svc_ok | action_svc_warning |
+                                action_svc_critical | action_svc_unknown |
+                                action_svc_flapping | action_svc_downtime);
+  obj->set_obsess_over_service(true);
+  obj->set_process_perf_data(true);
+  obj->set_retain_nonstatus_information(true);
+  obj->set_retain_status_information(true);
+  obj->set_retry_interval(1);
+  obj->set_stalking_options(action_svc_none);
+}
+
 }  // namespace com::centreon::engine::configuration

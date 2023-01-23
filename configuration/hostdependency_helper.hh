@@ -29,6 +29,8 @@ namespace engine {
 namespace configuration {
 
 class hostdependency_helper : public message_helper {
+  void _init();
+
  public:
   hostdependency_helper(Hostdependency* obj);
   ~hostdependency_helper() noexcept = default;

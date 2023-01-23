@@ -29,6 +29,8 @@ namespace engine {
 namespace configuration {
 
 class hostgroup_helper : public message_helper {
+  void _init();
+
  public:
   hostgroup_helper(Hostgroup* obj);
   ~hostgroup_helper() noexcept = default;
