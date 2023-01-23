@@ -29,7 +29,6 @@ using namespace com::centreon::engine::configuration;
 
 const absl::flat_hash_map<std::string, severity::setter_func>
     severity::_setters{
-        {"name", SETTER(const std::string&, _set_severity_name)},
         {"severity_name", SETTER(const std::string&, _set_severity_name)},
         {"id", SETTER(uint64_t, _set_id)},
         {"severity_id", SETTER(uint64_t, _set_id)},
@@ -37,6 +36,7 @@ const absl::flat_hash_map<std::string, severity::setter_func>
         {"severity_level", SETTER(uint32_t, _set_level)},
         {"icon_id", SETTER(uint64_t, _set_icon_id)},
         {"severity_icon_id", SETTER(uint64_t, _set_icon_id)},
+        {"severity_type", SETTER(const std::string&, _set_type)},
         {"type", SETTER(const std::string&, _set_type)},
     };
 

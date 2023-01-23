@@ -29,6 +29,8 @@ namespace engine {
 namespace configuration {
 
 class severity_helper : public message_helper {
+  void _init();
+
  public:
   severity_helper(Severity* obj);
   ~severity_helper() noexcept = default;

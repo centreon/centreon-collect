@@ -22,7 +22,7 @@
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/configuration/parser.hh"
 #include "com/centreon/engine/globals.hh"
-#include "configuration/state-generated.hh"
+#include "configuration/contact_helper.hh"
 #include "configuration/state.pb.h"
 
 using namespace com::centreon::engine;
@@ -47,7 +47,7 @@ class ApplierState : public ::testing::Test {
     for (int i = 0; i < 5; i++) {
       auto cts = pb_config.mutable_contacts();
       configuration::Contact ct;
-      configuration::init_contact(&ct);
+      configuration::contact_helper ct_hlp(&ct);
       std::string name(fmt::format("name{:2}", i));
       ct.set_contact_name(name);
       ct.set_alias(fmt::format("alias{:2}", i));
@@ -89,9 +89,27 @@ enum class ConfigurationObject {
   SERVICEDEPENDENCY = 2,
   ANOMALYDETECTION = 3,
   CONTACTGROUP = 4,
+  SEVERITY = 5,
 };
 
 static void CreateConf() {
+  CreateFile("/tmp/severities.cfg",
+             "define severity {\n"
+             "   severity_name                   sev1\n"
+             "   id                              3\n"
+             "   level                           14\n"
+             "   icon_id                         123\n"
+             "   type                            service\n"
+             "}\n");
+  CreateFile("/tmp/connectors.cfg",
+             "define connector {\n"
+             "   connector_name                  conn_name1\n"
+             "   connector_line                  conn_line1\n"
+             "}\n"
+             "define connector {\n"
+             "   connector_name                  conn_name2\n"
+             "   connector_line                  conn_line2\n"
+             "}\n");
   CreateFile("/tmp/ad.cfg",
              "define anomalydetection {\n"
              "   name                            ad_tmpl\n"
@@ -443,6 +461,8 @@ static void CreateConf() {
       "# comment 4\n"
       "# comment 5\n"
       "# comment 6\n"
+      "cfg_file=/tmp/severities.cfg\n"
+      "cfg_file=/tmp/connectors.cfg\n"
       "cfg_file=/tmp/hosts.cfg\n"
       "cfg_file=/tmp/services.cfg\n"
       "cfg_file=/tmp/commands.cfg\n"
@@ -566,9 +586,8 @@ static void CreateBadConf(ConfigurationObject obj) {
     case ConfigurationObject::TAG:
       CreateFile("/tmp/tags.cfg",
                  "define tag {\n"
-                 "    tag_id                         0\n"
+                 "    tag_id                         1\n"
                  "    tag_name                       tag1\n"
-                 "    type                           hostcategory\n"
                  "}\n");
       break;
     case ConfigurationObject::SERVICEDEPENDENCY:
@@ -597,12 +616,21 @@ static void CreateBadConf(ConfigurationObject obj) {
                  "    contactgroup_members           cg2\n"
                  "}\n");
       break;
+    case ConfigurationObject::SEVERITY:
+      CreateFile("/tmp/severities.cfg",
+                 "define severity {\n"
+                 "   severity_name                   sev1\n"
+                 "   id                              3\n"
+                 "   level                           14\n"
+                 "   icon_id                         123\n"
+                 "}\n");
+
     default:
       break;
   }
 }
 
-constexpr size_t CFG_FILES = 11u;
+constexpr size_t CFG_FILES = 13u;
 constexpr size_t RES_FILES = 1u;
 constexpr size_t HOSTS = 4u;
 constexpr size_t SERVICES = 4u;
@@ -1123,7 +1151,8 @@ TEST_F(ApplierState, StateLegacyParsing) {
   ASSERT_EQ(adit->dependent_service_id(), 1);
   ASSERT_TRUE(adit->metric_name() == "metric2");
   ASSERT_EQ(adit->customvariables().size(), 1);
-  ASSERT_EQ(adit->customvariables().at("ad_cv").get_value(), std::string("this_is_a_test"));
+  ASSERT_EQ(adit->customvariables().at("ad_cv").get_value(),
+            std::string("this_is_a_test"));
   ASSERT_EQ(adit->contactgroups().size(), 2);
   ASSERT_EQ(adit->contacts().size(), 1);
   ASSERT_EQ(adit->servicegroups().size(), 2);
@@ -1158,6 +1187,23 @@ TEST_F(ApplierState, StateLegacyParsing) {
   }
   ASSERT_EQ(cgit->contactgroup_members().size(), 1u);
   ASSERT_EQ(*cgit->contactgroup_members().begin(), "cg3");
+
+  auto cnit = config.connectors().begin();
+  ASSERT_TRUE(cnit != config.connectors().end());
+  ASSERT_TRUE(cnit->connector_name() == "conn_name1");
+  ASSERT_TRUE(cnit->connector_line() == "conn_line1");
+  ++cnit;
+  ASSERT_TRUE(cnit->connector_name() == "conn_name2");
+  ASSERT_TRUE(cnit->connector_line() == "conn_line2");
+
+  /* Severities */
+  auto svit = config.severities().begin();
+  ASSERT_TRUE(svit != config.severities().end());
+  ASSERT_TRUE(svit->severity_name() == "sev1");
+  ASSERT_TRUE(svit->key().first == 3);
+  ASSERT_TRUE(svit->level() == 14);
+  ASSERT_TRUE(svit->icon_id() == 123);
+  ASSERT_TRUE(svit->type() == configuration::severity::service);
 
   RmConf();
 }
@@ -1360,7 +1406,8 @@ TEST_F(ApplierState, StateParsing) {
   ASSERT_EQ(adit->dependent_service_id(), 1);
   ASSERT_TRUE(adit->metric_name() == "metric2");
   ASSERT_EQ(adit->customvariables().size(), 1);
-  ASSERT_EQ(adit->customvariables().at(0).value(), std::string("this_is_a_test"));
+  ASSERT_EQ(adit->customvariables().at(0).value(),
+            std::string("this_is_a_test"));
   ASSERT_EQ(adit->contactgroups().data().size(), 2);
   ASSERT_EQ(adit->contacts().data().size(), 1);
   ASSERT_EQ(adit->servicegroups().data().size(), 2);
@@ -1395,6 +1442,23 @@ TEST_F(ApplierState, StateParsing) {
   }
   ASSERT_EQ(cgit->contactgroup_members().data().size(), 1u);
   ASSERT_EQ(*cgit->contactgroup_members().data().begin(), "cg3");
+
+  auto cnit = config.connectors().begin();
+  ASSERT_TRUE(cnit != config.connectors().end());
+  ASSERT_TRUE(cnit->connector_name() == "conn_name1");
+  ASSERT_TRUE(cnit->connector_line() == "conn_line1");
+  ++cnit;
+  ASSERT_TRUE(cnit->connector_name() == "conn_name2");
+  ASSERT_TRUE(cnit->connector_line() == "conn_line2");
+
+  /* Severities */
+  auto svit = config.severities().begin();
+  ASSERT_TRUE(svit != config.severities().end());
+  ASSERT_TRUE(svit->severity_name() == "sev1");
+  ASSERT_TRUE(svit->key().id() == 3);
+  ASSERT_TRUE(svit->level() == 14);
+  ASSERT_TRUE(svit->icon_id() == 123);
+  ASSERT_TRUE(svit->key().type() == configuration::severity::service);
 
   RmConf();
 }
@@ -1466,5 +1530,12 @@ TEST_F(ApplierState, StateParsingContactgroupWithoutName) {
   configuration::State config;
   configuration::parser p;
   CreateBadConf(ConfigurationObject::CONTACTGROUP);
+  ASSERT_THROW(p.parse("/tmp/centengine.cfg", &config), std::exception);
+}
+
+TEST_F(ApplierState, StateParsingSeverityWithoutType) {
+  configuration::State config;
+  configuration::parser p;
+  CreateBadConf(ConfigurationObject::SEVERITY);
   ASSERT_THROW(p.parse("/tmp/centengine.cfg", &config), std::exception);
 }

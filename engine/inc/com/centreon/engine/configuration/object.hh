@@ -60,7 +60,7 @@ class object {
   virtual void check_validity() const = 0;
   static std::shared_ptr<object> create(std::string const& type_name);
   virtual void merge(object const& obj) = 0;
-  std::string const& name() const noexcept;
+  const std::string& name() const noexcept;
   virtual bool parse(char const* key, char const* value);
   virtual bool parse(std::string const& line);
   void resolve_template(

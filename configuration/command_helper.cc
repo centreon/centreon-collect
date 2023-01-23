@@ -24,14 +24,24 @@ using msg_fmt = com::centreon::exceptions::msg_fmt;
 namespace com::centreon::engine::configuration {
 command_helper::command_helper(Command* obj)
     : message_helper(object_type::command, obj, {}, 5) {
-  init_command(static_cast<Command*>(mut_obj()));
+  _init();
 }
 
+/**
+ * @brief For several keys, the parser of Command objects has a particular
+ *        behavior. These behaviors are handled here.
+ * @param key The key to parse.
+ * @param value The value corresponding to the key
+ */
 bool command_helper::hook(const absl::string_view& key,
                           const absl::string_view& value) {
   Command* obj = static_cast<Command*>(mut_obj());
   return false;
 }
+
+/**
+ * @brief Check the validity of the Command object.
+ */
 void command_helper::check_validity() const {
   const Command* o = static_cast<const Command*>(obj());
 
@@ -41,4 +51,6 @@ void command_helper::check_validity() const {
     throw msg_fmt("Command '{}' has no command line (property 'command_line')",
                   o->command_name());
 }
+void command_helper::_init() {}
+
 }  // namespace com::centreon::engine::configuration

@@ -29,6 +29,8 @@ namespace engine {
 namespace configuration {
 
 class anomalydetection_helper : public message_helper {
+  void _init();
+
  public:
   anomalydetection_helper(Anomalydetection* obj);
   ~anomalydetection_helper() noexcept = default;
