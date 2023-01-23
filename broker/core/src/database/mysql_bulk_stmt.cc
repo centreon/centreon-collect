@@ -114,8 +114,6 @@ mysql_bulk_stmt& mysql_bulk_stmt::operator=(mysql_bulk_stmt&& other) {
 }
 
 /**
-
-/**
  * @brief Return an unique pointer to the bind contained inside the statement.
  * Since the bind is in an unique pointer, it is removed from the statement when
  * returned.
