@@ -26,14 +26,19 @@ tag_helper::tag_helper(Tag* obj)
     : message_helper(object_type::tag,
                      obj,
                      {
-                         {"name", "tag_name"},
                          {"tag_id", "id"},
                          {"tag_type", "type"},
                      },
                      4) {
-  init_tag(static_cast<Tag*>(mut_obj()));
+  _init();
 }
 
+/**
+ * @brief For several keys, the parser of Tag objects has a particular
+ *        behavior. These behaviors are handled here.
+ * @param key The key to parse.
+ * @param value The value corresponding to the key
+ */
 bool tag_helper::hook(const absl::string_view& key,
                       const absl::string_view& value) {
   Tag* obj = static_cast<Tag*>(mut_obj());
@@ -60,6 +65,10 @@ bool tag_helper::hook(const absl::string_view& key,
   }
   return false;
 }
+
+/**
+ * @brief Check the validity of the Tag object.
+ */
 void tag_helper::check_validity() const {
   const Tag* o = static_cast<const Tag*>(obj());
 
@@ -67,5 +76,13 @@ void tag_helper::check_validity() const {
     throw msg_fmt("Tag has no name (property 'tag_name')");
   if (o->key().id() == 0)
     throw msg_fmt("Tag '{}' has a null id", o->tag_name());
+  if (o->key().type() == static_cast<uint32_t>(-1))
+    throw msg_fmt("Tag type must be specified");
 }
+void tag_helper::_init() {
+  Tag* obj = static_cast<Tag*>(mut_obj());
+  obj->mutable_key()->set_id(0);
+  obj->mutable_key()->set_type(-1);
+}
+
 }  // namespace com::centreon::engine::configuration

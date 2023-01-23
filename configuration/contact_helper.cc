@@ -29,9 +29,15 @@ contact_helper::contact_helper(Contact* obj)
                          {"contact_groups", "contactgroups"},
                      },
                      21) {
-  init_contact(static_cast<Contact*>(mut_obj()));
+  _init();
 }
 
+/**
+ * @brief For several keys, the parser of Contact objects has a particular
+ *        behavior. These behaviors are handled here.
+ * @param key The key to parse.
+ * @param value The value corresponding to the key
+ */
 bool contact_helper::hook(const absl::string_view& key,
                           const absl::string_view& value) {
   Contact* obj = static_cast<Contact*>(mut_obj());
@@ -47,10 +53,25 @@ bool contact_helper::hook(const absl::string_view& key,
   }
   return false;
 }
+
+/**
+ * @brief Check the validity of the Contact object.
+ */
 void contact_helper::check_validity() const {
   const Contact* o = static_cast<const Contact*>(obj());
 
   if (o->contact_name().empty())
     throw msg_fmt("Contact has no name (property 'contact_name')");
 }
+void contact_helper::_init() {
+  Contact* obj = static_cast<Contact*>(mut_obj());
+  obj->set_can_submit_commands(true);
+  obj->set_host_notifications_enabled(true);
+  obj->set_host_notification_options(action_hst_none);
+  obj->set_retain_nonstatus_information(true);
+  obj->set_retain_status_information(true);
+  obj->set_service_notification_options(action_svc_none);
+  obj->set_service_notifications_enabled(true);
+}
+
 }  // namespace com::centreon::engine::configuration

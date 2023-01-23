@@ -24,9 +24,15 @@ using msg_fmt = com::centreon::exceptions::msg_fmt;
 namespace com::centreon::engine::configuration {
 servicegroup_helper::servicegroup_helper(Servicegroup* obj)
     : message_helper(object_type::servicegroup, obj, {}, 10) {
-  init_servicegroup(static_cast<Servicegroup*>(mut_obj()));
+  _init();
 }
 
+/**
+ * @brief For several keys, the parser of Servicegroup objects has a particular
+ *        behavior. These behaviors are handled here.
+ * @param key The key to parse.
+ * @param value The value corresponding to the key
+ */
 bool servicegroup_helper::hook(const absl::string_view& key,
                                const absl::string_view& value) {
   Servicegroup* obj = static_cast<Servicegroup*>(mut_obj());
@@ -39,10 +45,16 @@ bool servicegroup_helper::hook(const absl::string_view& key,
   }
   return false;
 }
+
+/**
+ * @brief Check the validity of the Servicegroup object.
+ */
 void servicegroup_helper::check_validity() const {
   const Servicegroup* o = static_cast<const Servicegroup*>(obj());
 
   if (o->servicegroup_name().empty())
     throw msg_fmt("Service group has no name (property 'servicegroup_name')");
 }
+void servicegroup_helper::_init() {}
+
 }  // namespace com::centreon::engine::configuration

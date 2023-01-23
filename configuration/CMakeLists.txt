@@ -50,8 +50,6 @@ add_library(
   pb_configuration_lib STATIC
   state-generated.pb.cc
   state-generated.pb.h
-  state-generated.cc
-  state-generated.hh
   state.pb.cc
   state.pb.h
   anomalydetection_helper.cc

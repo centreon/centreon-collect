@@ -29,6 +29,8 @@ namespace engine {
 namespace configuration {
 
 class timeperiod_helper : public message_helper {
+  void _init();
+
  public:
   timeperiod_helper(Timeperiod* obj);
   ~timeperiod_helper() noexcept = default;

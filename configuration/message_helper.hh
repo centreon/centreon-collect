@@ -21,7 +21,10 @@
 #define CCE_CONFIGURATION_MESSAGE_HELPER_HH
 #include <absl/container/flat_hash_map.h>
 #include <absl/strings/str_split.h>
-#include "configuration/state-generated.hh"
+#include "com/centreon/engine/configuration/severity.hh"
+#include "com/centreon/engine/host.hh"
+#include "com/centreon/engine/service.hh"
+#include "state-generated.pb.h"
 
 namespace com {
 namespace centreon {
