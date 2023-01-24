@@ -51,6 +51,13 @@ bool connector_helper::hook(const absl::string_view& key,
  */
 void connector_helper::check_validity() const {
   const Connector* o = static_cast<const Connector*>(obj());
+
+  if (o->connector_name().empty())
+    throw msg_fmt("Connector has no name (property 'connector_name')");
+  if (o->connector_line().empty())
+    throw msg_fmt(
+        "Connector '{}' has no command line (property 'connector_line')",
+        o->connector_name());
 }
 void connector_helper::_init() {}
 

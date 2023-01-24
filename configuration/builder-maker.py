@@ -628,6 +628,13 @@ def build_check_validity(cname: str, msg):
         throw msg_fmt("Command '{}' has no command line (property 'command_line')",
                       o->command_name());
 """)
+    elif cname == "Connector":
+        retval.append("""
+  if (o->connector_name().empty())
+    throw msg_fmt("Connector has no name (property 'connector_name')");
+  if (o->connector_line().empty())
+    throw msg_fmt("Connector '{}' has no command line (property 'connector_line')", o->connector_name());
+""")
     elif cname == "Host":
         retval.append("""
       if (o->host_name().empty())
