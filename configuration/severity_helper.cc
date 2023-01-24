@@ -22,6 +22,13 @@
 using msg_fmt = com::centreon::exceptions::msg_fmt;
 
 namespace com::centreon::engine::configuration {
+
+/**
+ * @brief Constructor from a Severity object.
+ *
+ * @param obj The Severity object on which this helper works. The helper is not
+ * the owner of this object.
+ */
 severity_helper::severity_helper(Severity* obj)
     : message_helper(object_type::severity,
                      obj,
@@ -80,6 +87,11 @@ void severity_helper::check_validity() const {
   if (o->key().type() == severity::none)
     throw msg_fmt("Severity type must be one of 'service' or 'host'");
 }
+
+/**
+ * @brief Initializer of the Severity object, in other words set its default
+ * values.
+ */
 void severity_helper::_init() {
   Severity* obj = static_cast<Severity*>(mut_obj());
   obj->mutable_key()->set_id(0);

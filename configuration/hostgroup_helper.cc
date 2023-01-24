@@ -22,6 +22,13 @@
 using msg_fmt = com::centreon::exceptions::msg_fmt;
 
 namespace com::centreon::engine::configuration {
+
+/**
+ * @brief Constructor from a Hostgroup object.
+ *
+ * @param obj The Hostgroup object on which this helper works. The helper is not
+ * the owner of this object.
+ */
 hostgroup_helper::hostgroup_helper(Hostgroup* obj)
     : message_helper(object_type::hostgroup, obj, {}, 9) {
   _init();

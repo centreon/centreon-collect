@@ -22,6 +22,13 @@
 using msg_fmt = com::centreon::exceptions::msg_fmt;
 
 namespace com::centreon::engine::configuration {
+
+/**
+ * @brief Constructor from a Host object.
+ *
+ * @param obj The Host object on which this helper works. The helper is not the
+ * owner of this object.
+ */
 host_helper::host_helper(Host* obj)
     : message_helper(object_type::host,
                      obj,
@@ -156,6 +163,10 @@ void host_helper::check_validity() const {
     throw msg_fmt("Host '{}' has no address (property 'address')",
                   o->host_name());
 }
+
+/**
+ * @brief Initializer of the Host object, in other words set its default values.
+ */
 void host_helper::_init() {
   Host* obj = static_cast<Host*>(mut_obj());
   obj->set_checks_active(true);
