@@ -22,6 +22,13 @@
 using msg_fmt = com::centreon::exceptions::msg_fmt;
 
 namespace com::centreon::engine::configuration {
+
+/**
+ * @brief Constructor from a Connector object.
+ *
+ * @param obj The Connector object on which this helper works. The helper is not
+ * the owner of this object.
+ */
 connector_helper::connector_helper(Connector* obj)
     : message_helper(object_type::connector, obj, {}, 4) {
   _init();
