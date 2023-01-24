@@ -22,6 +22,13 @@
 using msg_fmt = com::centreon::exceptions::msg_fmt;
 
 namespace com::centreon::engine::configuration {
+
+/**
+ * @brief Constructor from a Tag object.
+ *
+ * @param obj The Tag object on which this helper works. The helper is not the
+ * owner of this object.
+ */
 tag_helper::tag_helper(Tag* obj)
     : message_helper(object_type::tag,
                      obj,
@@ -79,6 +86,10 @@ void tag_helper::check_validity() const {
   if (o->key().type() == static_cast<uint32_t>(-1))
     throw msg_fmt("Tag type must be specified");
 }
+
+/**
+ * @brief Initializer of the Tag object, in other words set its default values.
+ */
 void tag_helper::_init() {
   Tag* obj = static_cast<Tag*>(mut_obj());
   obj->mutable_key()->set_id(0);
