@@ -90,9 +90,33 @@ enum class ConfigurationObject {
   ANOMALYDETECTION = 3,
   CONTACTGROUP = 4,
   SEVERITY = 5,
+  SERVICEESCALATION = 6,
+  HOSTESCALATION = 7,
 };
 
 static void CreateConf() {
+  CreateFile("/tmp/hostescalations.cfg",
+             "define hostescalation {\n"
+             "    host_name                      host_1\n"
+             "    contact_groups                 cg1,cg2\n"
+             "    name                           he_tmpl\n"
+             "}\n"
+             "define hostescalation {\n"
+             "    contact_groups                 +cg1\n"
+             "    hostgroup_name                 hg1,hg2\n"
+             "    use                            he_tmpl\n"
+             "}\n");
+  CreateFile("/tmp/serviceescalations.cfg",
+             "define serviceescalation {\n"
+             "    host_name                      host_1\n"
+             "    description                    service_2\n"
+             "    name                           se_tmpl\n"
+             "}\n"
+             "define serviceescalation {\n"
+             "    contact_groups                 cg1\n"
+             "    servicegroups                  sg1\n"
+             "    use                            se_tmpl\n"
+             "}\n");
   CreateFile("/tmp/severities.cfg",
              "define severity {\n"
              "   severity_name                   sev1\n"
@@ -474,6 +498,8 @@ static void CreateConf() {
       "cfg_file=/tmp/servicedependencies.cfg\n"
       "cfg_file=/tmp/ad.cfg\n"
       "cfg_file=/tmp/contactgroups.cfg\n"
+      "cfg_file=/tmp/hostescalations.cfg\n"
+      "cfg_file=/tmp/serviceescalations.cfg\n"
       //"cfg_file=/tmp/etc/centreon-engine/config0/connectors.cfg\n"
       //      "broker_module=/usr/lib64/centreon-engine/externalcmd.so\n"
       //      "broker_module=/usr/lib64/nagios/cbmod.so "
@@ -624,13 +650,36 @@ static void CreateBadConf(ConfigurationObject obj) {
                  "   level                           14\n"
                  "   icon_id                         123\n"
                  "}\n");
+      break;
+    case ConfigurationObject::SERVICEESCALATION:
+      CreateFile("/tmp/serviceescalations.cfg",
+                 "define serviceescalation {\n"
+                 "    host_name                      host_1\n"
+                 "    description                    service_2\n"
+                 "}\n"
+                 "define serviceescalation {\n"
+                 "    host_name                      host_1\n"
+                 "    contact_groups                 cg1\n"
+                 "}\n");
+      break;
 
+    case ConfigurationObject::HOSTESCALATION:
+      CreateFile("/tmp/hostescalations.cfg",
+                 "define hostescalation {\n"
+                 "    contact_groups                 cg1,cg2\n"
+                 "    name                           he_tmpl\n"
+                 "}\n"
+                 "define hostescalation {\n"
+                 "    contact_groups                 +cg1\n"
+                 "    hostgroup_name                 hg1,hg2\n"
+                 "    use                            he_tmpl\n"
+                 "}\n");
     default:
       break;
   }
 }
 
-constexpr size_t CFG_FILES = 13u;
+constexpr size_t CFG_FILES = 15u;
 constexpr size_t RES_FILES = 1u;
 constexpr size_t HOSTS = 4u;
 constexpr size_t SERVICES = 4u;
@@ -1205,6 +1254,28 @@ TEST_F(ApplierState, StateLegacyParsing) {
   ASSERT_TRUE(svit->icon_id() == 123);
   ASSERT_TRUE(svit->type() == configuration::severity::service);
 
+  /* Serviceescalations */
+  auto seit = config.serviceescalations().begin();
+  ASSERT_TRUE(seit != config.serviceescalations().end());
+  ASSERT_TRUE(seit->hosts().front() == "host_1");
+  ASSERT_TRUE(seit->service_description().front() == "service_2");
+  ++seit;
+  ASSERT_TRUE(seit->hosts().begin() != seit->hosts().end());
+  ASSERT_TRUE(seit->hosts().front() == "host_1");
+  ASSERT_TRUE(*seit->contactgroups().begin() == "cg1");
+  ASSERT_TRUE(seit->servicegroups().front() == "sg1");
+  ASSERT_TRUE(seit->service_description().front() == "service_2");
+
+  /*Hostescalations */
+  auto heit = config.hostescalations().begin();
+  ASSERT_TRUE(heit != config.hostescalations().end());
+  std::set<std::string> cts{"cg1", "cg2"};
+  ASSERT_TRUE(heit->contactgroups() == cts);
+  ++heit;
+  ASSERT_TRUE(heit->contactgroups() == cts);
+  std::set<std::string> hgs{"hg1", "hg2"};
+  ASSERT_TRUE(heit->hostgroups() == hgs);
+
   RmConf();
 }
 
@@ -1460,6 +1531,39 @@ TEST_F(ApplierState, StateParsing) {
   ASSERT_TRUE(svit->icon_id() == 123);
   ASSERT_TRUE(svit->key().type() == configuration::severity::service);
 
+  /* Serviceescalations */
+  auto seit = config.serviceescalations().begin();
+  ASSERT_TRUE(seit != config.serviceescalations().end());
+  ASSERT_TRUE(*seit->hosts().data().begin() == "host_1");
+  ASSERT_TRUE(*seit->service_description().data().begin() == "service_2");
+  ++seit;
+  ASSERT_TRUE(seit->hosts().data().begin() != seit->hosts().data().end());
+  ASSERT_TRUE(*seit->hosts().data().begin() == "host_1");
+  ASSERT_TRUE(*seit->contactgroups().data().begin() == "cg1");
+  ASSERT_TRUE(*seit->servicegroups().data().begin() == "sg1");
+  ASSERT_TRUE(*seit->service_description().data().begin() == "service_2");
+
+  /*Hostescalations */
+  auto heit = config.hostescalations().begin();
+  ASSERT_TRUE(heit != config.hostescalations().end());
+  std::set<std::string> cts{"cg1", "cg2"};
+  std::set<std::string> he_cts;
+  for (auto& cg : heit->contactgroups().data())
+    he_cts.insert(cg);
+  ASSERT_TRUE(he_cts == cts);
+  ++heit;
+
+  he_cts.clear();
+  for (auto& cg : heit->contactgroups().data())
+    he_cts.insert(cg);
+  ASSERT_TRUE(he_cts == cts);
+
+  std::set<std::string> hgs{"hg1", "hg2"};
+  std::set<std::string> he_hgs;
+  for (auto& hg : heit->hostgroups().data())
+    he_hgs.insert(hg);
+  ASSERT_TRUE(he_hgs == hgs);
+
   RmConf();
 }
 
@@ -1537,5 +1641,26 @@ TEST_F(ApplierState, StateParsingSeverityWithoutType) {
   configuration::State config;
   configuration::parser p;
   CreateBadConf(ConfigurationObject::SEVERITY);
+  ASSERT_THROW(p.parse("/tmp/centengine.cfg", &config), std::exception);
+}
+
+TEST_F(ApplierState, StateParsingServiceescalationWithoutService) {
+  configuration::State config;
+  configuration::parser p;
+  CreateBadConf(ConfigurationObject::SERVICEESCALATION);
+  ASSERT_THROW(p.parse("/tmp/centengine.cfg", &config), std::exception);
+}
+
+TEST_F(ApplierState, StateLegacyParsingHostescalationWithoutHost) {
+  configuration::state config;
+  configuration::parser p;
+  CreateBadConf(ConfigurationObject::HOSTESCALATION);
+  ASSERT_THROW(p.parse("/tmp/centengine.cfg", config), std::exception);
+}
+
+TEST_F(ApplierState, StateParsingHostescalationWithoutHost) {
+  configuration::State config;
+  configuration::parser p;
+  CreateBadConf(ConfigurationObject::HOSTESCALATION);
   ASSERT_THROW(p.parse("/tmp/centengine.cfg", &config), std::exception);
 }

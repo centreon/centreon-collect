@@ -22,6 +22,13 @@
 using msg_fmt = com::centreon::exceptions::msg_fmt;
 
 namespace com::centreon::engine::configuration {
+
+/**
+ * @brief Constructor from a Serviceescalation object.
+ *
+ * @param obj The Serviceescalation object on which this helper works. The
+ * helper is not the owner of this object.
+ */
 serviceescalation_helper::serviceescalation_helper(Serviceescalation* obj)
     : message_helper(object_type::serviceescalation,
                      obj,
@@ -72,7 +79,26 @@ bool serviceescalation_helper::hook(const absl::string_view& key,
  */
 void serviceescalation_helper::check_validity() const {
   const Serviceescalation* o = static_cast<const Serviceescalation*>(obj());
+
+  if (o->servicegroups().data().empty()) {
+    if (o->service_description().data().empty())
+      throw msg_fmt(
+          "Service escalation is not attached to "
+          "any service or service group (properties "
+          "'service_description' and 'servicegroup_name', "
+          "respectively)");
+    else if (o->hosts().data().empty() && o->hostgroups().data().empty())
+      throw msg_fmt(
+          "Service escalation is not attached to "
+          "any host or host group (properties 'host_name' or "
+          "'hostgroup_name', respectively)");
+  }
 }
+
+/**
+ * @brief Initializer of the Serviceescalation object, in other words set its
+ * default values.
+ */
 void serviceescalation_helper::_init() {
   Serviceescalation* obj = static_cast<Serviceescalation*>(mut_obj());
   obj->set_escalation_options(action_se_none);

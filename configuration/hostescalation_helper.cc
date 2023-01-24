@@ -22,6 +22,13 @@
 using msg_fmt = com::centreon::exceptions::msg_fmt;
 
 namespace com::centreon::engine::configuration {
+
+/**
+ * @brief Constructor from a Hostescalation object.
+ *
+ * @param obj The Hostescalation object on which this helper works. The helper
+ * is not the owner of this object.
+ */
 hostescalation_helper::hostescalation_helper(Hostescalation* obj)
     : message_helper(object_type::hostescalation,
                      obj,
@@ -64,13 +71,16 @@ bool hostescalation_helper::hook(const absl::string_view& key,
 void hostescalation_helper::check_validity() const {
   const Hostescalation* o = static_cast<const Hostescalation*>(obj());
 
-  if (o->obj().register_()) {
-    if (o->hosts().data().empty() && o->hostgroups().data().empty())
-      throw msg_fmt(
-          "Host escalation is not attached to any host or host group "
-          "(properties 'hosts' or 'hostgroups', respectively)");
-  }
+  if (o->hosts().data().empty() && o->hostgroups().data().empty())
+    throw msg_fmt(
+        "Host escalation is not attached to any host or host group (properties "
+        "'hosts' or 'hostgroups', respectively)");
 }
+
+/**
+ * @brief Initializer of the Hostescalation object, in other words set its
+ * default values.
+ */
 void hostescalation_helper::_init() {
   Hostescalation* obj = static_cast<Hostescalation*>(mut_obj());
   obj->set_escalation_options(action_he_none);

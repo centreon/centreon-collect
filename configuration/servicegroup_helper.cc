@@ -22,6 +22,13 @@
 using msg_fmt = com::centreon::exceptions::msg_fmt;
 
 namespace com::centreon::engine::configuration {
+
+/**
+ * @brief Constructor from a Servicegroup object.
+ *
+ * @param obj The Servicegroup object on which this helper works. The helper is
+ * not the owner of this object.
+ */
 servicegroup_helper::servicegroup_helper(Servicegroup* obj)
     : message_helper(object_type::servicegroup, obj, {}, 10) {
   _init();
