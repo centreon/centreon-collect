@@ -42,7 +42,7 @@ class serviceescalation : public object {
 
   serviceescalation();
   serviceescalation(serviceescalation const& right);
-  ~serviceescalation() throw() override;
+  ~serviceescalation() noexcept override = default;
   serviceescalation& operator=(serviceescalation const& right);
   bool operator==(serviceescalation const& right) const throw();
   bool operator!=(serviceescalation const& right) const throw();

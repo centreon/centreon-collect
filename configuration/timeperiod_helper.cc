@@ -22,6 +22,13 @@
 using msg_fmt = com::centreon::exceptions::msg_fmt;
 
 namespace com::centreon::engine::configuration {
+
+/**
+ * @brief Constructor from a Timeperiod object.
+ *
+ * @param obj The Timeperiod object on which this helper works. The helper is
+ * not the owner of this object.
+ */
 timeperiod_helper::timeperiod_helper(Timeperiod* obj)
     : message_helper(object_type::timeperiod, obj, {}, 7) {
   _init();

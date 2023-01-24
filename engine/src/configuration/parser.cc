@@ -29,10 +29,12 @@
 #include "configuration/contact_helper.hh"
 #include "configuration/contactgroup_helper.hh"
 #include "configuration/host_helper.hh"
+#include "configuration/hostescalation_helper.hh"
 #include "configuration/hostgroup_helper.hh"
 #include "configuration/message_helper.hh"
 #include "configuration/service_helper.hh"
 #include "configuration/servicedependency_helper.hh"
+#include "configuration/serviceescalation_helper.hh"
 #include "configuration/servicegroup_helper.hh"
 #include "configuration/severity_helper.hh"
 #include "configuration/tag_helper.hh"
@@ -817,6 +819,14 @@ void parser::_parse_object_definitions(const std::string& path,
         msg = pb_config->add_severities();
         msg_helper =
             std::make_unique<severity_helper>(static_cast<Severity*>(msg));
+      } else if (type == "serviceescalation") {
+        msg = pb_config->add_serviceescalations();
+        msg_helper = std::make_unique<serviceescalation_helper>(
+            static_cast<Serviceescalation*>(msg));
+      } else if (type == "hostescalation") {
+        msg = pb_config->add_hostescalations();
+        msg_helper = std::make_unique<hostescalation_helper>(
+            static_cast<Hostescalation*>(msg));
       } else {
         log_v2::config()->error("Type '{}' not yet supported by the parser",
                                 type);
@@ -1220,6 +1230,13 @@ void parser::_resolve_template(State* pb_config) {
   for (Anomalydetection& a : *pb_config->mutable_anomalydetections())
     _resolve_template(_pb_helper[&a], _pb_templates[object::anomalydetection]);
 
+  for (Serviceescalation& se : *pb_config->mutable_serviceescalations())
+    _resolve_template(_pb_helper[&se],
+                      _pb_templates[object::serviceescalation]);
+
+  for (Hostescalation& he : *pb_config->mutable_hostescalations())
+    _resolve_template(_pb_helper[&he], _pb_templates[object::hostescalation]);
+
   try {
     for (const Command& c : pb_config->commands())
       _pb_helper.at(&c)->check_validity();
@@ -1268,6 +1285,12 @@ void parser::_resolve_template(State* pb_config) {
 
     for (const Tag& t : pb_config->tags())
       _pb_helper.at(&t)->check_validity();
+
+    for (const Serviceescalation& se : pb_config->serviceescalations())
+      _pb_helper.at(&se)->check_validity();
+
+    for (const Hostescalation& he : pb_config->hostescalations())
+      _pb_helper.at(&he)->check_validity();
 
   } catch (const std::exception& e) {
     throw engine_error() << e.what();

@@ -95,7 +95,13 @@ def indent_files():
 def complete_filehelper_cc(fhcc, cname, name, number: int, correspondence, hook, check_validity, msg_list):
     name_cap = name.capitalize()
     cname = name + "_helper"
-    fhcc.write(f"""{cname}::{cname}({name_cap}* obj) : message_helper(object_type::{name}, obj, {correspondence}, {number}) {{
+    fhcc.write(f"""
+/**
+ * @brief Constructor from a {name_cap} object.
+ *
+ * @param obj The {name_cap} object on which this helper works. The helper is not the owner of this object.
+ */
+{cname}::{cname}({name_cap}* obj) : message_helper(object_type::{name}, obj, {correspondence}, {number}) {{
   _init();
 }}
 
@@ -129,6 +135,10 @@ void {cname}::check_validity() const {{
         if 'default' in m:
             if not header:
                 cc_lines = [f"""
+
+/**
+ * @brief Initializer of the {name_cap} object, in other words set its default values.
+ */
 void {cname}::_init() {{
   {cap_name}* obj = static_cast<{cap_name}*>(mut_obj());
 """]
@@ -640,10 +650,8 @@ def build_check_validity(cname: str, msg):
 """)
     elif cname == "Hostescalation":
         retval.append("""
-      if (o->obj().register_()) {
-        if (o->hosts().data().empty() && o->hostgroups().data().empty())
-          throw msg_fmt("Host escalation is not attached to any host or host group (properties 'hosts' or 'hostgroups', respectively)");
-      }
+      if (o->hosts().data().empty() && o->hostgroups().data().empty())
+        throw msg_fmt("Host escalation is not attached to any host or host group (properties 'hosts' or 'hostgroups', respectively)");
 """)
     elif cname == "Hostgroup":
         retval.append("""
@@ -738,6 +746,21 @@ def build_check_validity(cname: str, msg):
         retval.append("""
       if (o->servicegroup_name().empty())
         throw msg_fmt("Service group has no name (property 'servicegroup_name')");
+""")
+    elif cname == "Serviceescalation":
+        retval.append("""
+  if (o->servicegroups().data().empty()) {
+    if (o->service_description().data().empty())
+      throw msg_fmt("Service escalation is not attached to "
+                            "any service or service group (properties "
+                            "'service_description' and 'servicegroup_name', "
+                            "respectively)");
+    else if (o->hosts().data().empty() && o->hostgroups().data().empty())
+      throw
+          msg_fmt("Service escalation is not attached to "
+                          "any host or host group (properties 'host_name' or "
+                          "'hostgroup_name', respectively)");
+  }
 """)
     else:
         print(f"### ERROR!!!: {cname} has no function check_validity()")
