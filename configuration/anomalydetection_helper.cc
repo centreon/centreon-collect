@@ -22,6 +22,13 @@
 using msg_fmt = com::centreon::exceptions::msg_fmt;
 
 namespace com::centreon::engine::configuration {
+
+/**
+ * @brief Constructor from a Anomalydetection object.
+ *
+ * @param obj The Anomalydetection object on which this helper works. The helper
+ * is not the owner of this object.
+ */
 anomalydetection_helper::anomalydetection_helper(Anomalydetection* obj)
     : message_helper(object_type::anomalydetection,
                      obj,
@@ -164,6 +171,11 @@ void anomalydetection_helper::check_validity() const {
           o->service_description());
   }
 }
+
+/**
+ * @brief Initializer of the Anomalydetection object, in other words set its
+ * default values.
+ */
 void anomalydetection_helper::_init() {
   Anomalydetection* obj = static_cast<Anomalydetection*>(mut_obj());
   obj->set_acknowledgement_timeout(0);

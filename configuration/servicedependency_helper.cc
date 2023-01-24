@@ -22,6 +22,13 @@
 using msg_fmt = com::centreon::exceptions::msg_fmt;
 
 namespace com::centreon::engine::configuration {
+
+/**
+ * @brief Constructor from a Servicedependency object.
+ *
+ * @param obj The Servicedependency object on which this helper works. The
+ * helper is not the owner of this object.
+ */
 servicedependency_helper::servicedependency_helper(Servicedependency* obj)
     : message_helper(
           object_type::servicedependency,
@@ -125,6 +132,11 @@ void servicedependency_helper::check_validity() const {
           "respectively)");
   }
 }
+
+/**
+ * @brief Initializer of the Servicedependency object, in other words set its
+ * default values.
+ */
 void servicedependency_helper::_init() {
   Servicedependency* obj = static_cast<Servicedependency*>(mut_obj());
   obj->set_execution_failure_options(action_sd_none);
