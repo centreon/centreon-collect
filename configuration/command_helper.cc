@@ -22,6 +22,13 @@
 using msg_fmt = com::centreon::exceptions::msg_fmt;
 
 namespace com::centreon::engine::configuration {
+
+/**
+ * @brief Constructor from a Command object.
+ *
+ * @param obj The Command object on which this helper works. The helper is not
+ * the owner of this object.
+ */
 command_helper::command_helper(Command* obj)
     : message_helper(object_type::command, obj, {}, 5) {
   _init();

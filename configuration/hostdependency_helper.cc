@@ -22,6 +22,13 @@
 using msg_fmt = com::centreon::exceptions::msg_fmt;
 
 namespace com::centreon::engine::configuration {
+
+/**
+ * @brief Constructor from a Hostdependency object.
+ *
+ * @param obj The Hostdependency object on which this helper works. The helper
+ * is not the owner of this object.
+ */
 hostdependency_helper::hostdependency_helper(Hostdependency* obj)
     : message_helper(
           object_type::hostdependency,
@@ -88,6 +95,11 @@ void hostdependency_helper::check_validity() const {
         "'dependent_hosts' or 'dependent_hostgroups', "
         "respectively)");
 }
+
+/**
+ * @brief Initializer of the Hostdependency object, in other words set its
+ * default values.
+ */
 void hostdependency_helper::_init() {
   Hostdependency* obj = static_cast<Hostdependency*>(mut_obj());
   obj->set_execution_failure_options(action_hd_none);
