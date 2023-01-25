@@ -12,8 +12,8 @@ fi
 
 echo "############################# PACKAGING COLLECT ################################"
 
-AUTHOR="Luiz Costa"
-AUTHOR_EMAIL="me@luizgustavo.pro.br"
+AUTHOR="Centreon"
+AUTHOR_EMAIL="contact@centreon.com"
 
 # fix version to debian format accept
 VERSION="$(echo $VERSION | sed 's/-/./g')"
