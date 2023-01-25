@@ -43,6 +43,9 @@ inputs:
   yum_repo_url:
     description: "The legacy yum repo url"
     required: true
+  arti_token:
+    description: "test token for arti"
+    required: true
 
 runs:
   using: "composite"
@@ -83,7 +86,7 @@ runs:
         fi
         echo "[DEBUG] - Branch name: $BRANCHNAME"
         case "$BRANCHNAME" in
-          develop | dev-[2-9][0-9].[0-9][0-9].x)
+          develop | dev-[2-9][0-9].[0-9][0-9].x | MON-16653-trial-saa-s-artifactory)
             SUBREPO="unstable"
             ;;
           release* | hotfix*)
@@ -121,6 +124,7 @@ runs:
 
           if [[ "${{ env.extfile }}" == "deb" ]] ; then
             curl -u "${{ inputs.repos_username }}":"${{ inputs.repos_password }}" -H "Content-Type: multipart/form-data" --data-binary "@./$FILE" https://apt.centreon.com/repository/23.04-$SUBREPO/
+            curl -v -H "Authorization: Bearer ${{ inputs.arti_token }}" -X PUT "https://centreon.jfrog.io/artifactory/apt-23.04-$SUBREPO/pool/$FILE;deb.distribution=bullseye;deb.component=main;deb.architecture=amd64" -T "$FILE"
           else
             DISTRIB="${{ inputs.distrib }}"
             ARCH=$(echo $FILE | grep -oP '(x86_64|noarch)')
