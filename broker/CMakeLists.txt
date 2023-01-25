@@ -308,6 +308,8 @@ set(LIBROKER_SOURCES
     ${SRC_DIR}/bbdo/stream.cc
     ${SRC_DIR}/broker_impl.cc
     ${SRC_DIR}/brokerrpc.cc
+    ${SRC_DIR}/cache/global_cache.cc
+    ${SRC_DIR}/cache/global_cache_data.cc
     ${SRC_DIR}/compression/factory.cc
     ${SRC_DIR}/compression/opener.cc
     ${SRC_DIR}/compression/stack_array.cc
