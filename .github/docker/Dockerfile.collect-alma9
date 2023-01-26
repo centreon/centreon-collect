@@ -46,7 +46,7 @@ COPY conanfile.txt .
 RUN <<EOF
 
 cat conanfile.txt
-conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build='*'
+conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
 
 EOF
 
