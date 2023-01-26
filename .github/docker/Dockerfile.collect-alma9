@@ -40,7 +40,8 @@ dnf install -y cmake \
     rrdtool-devel \
     yum-utils \
     perl \
-    rpm-build
+    rpm-build \
+    procps-ng
 
 pip3 install conan --prefix=/usr --upgrade
 rm -rf ~/.conan/profiles/default
