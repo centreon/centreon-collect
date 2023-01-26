@@ -2,8 +2,6 @@ FROM almalinux:9
 
 RUN <<EOF
 
-dnf clean all
-
 # Base dnf configuration.
 echo 'http_caching=none' >> /etc/yum.conf
 echo 'assumeyes=1' >> /etc/yum.conf
