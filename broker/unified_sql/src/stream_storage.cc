@@ -783,58 +783,76 @@ void stream::_check_queues(asio::error_code ec) {
       _finish_action(-1, actions::host_parents | actions::comments |
                              actions::downtimes | actions::host_dependencies |
                              actions::service_dependencies);
-      log_v2::sql()->trace(
-          "Check if some statements are ready, connections count = {}",
-          _sscr_resources_bind->connections_count());
-      for (uint32_t conn = 0; conn < _sscr_resources_bind->connections_count();
-           conn++) {
-        if (_hscr_bind->ready(conn)) {
-          log_v2::sql()->trace(
-              "Sending {} hosts rows of host status on connection {}",
-              _hscr_bind->size(conn), conn);
-          // Setting the good bind to the stmt
-          _hscr_bind->apply_to_stmt(conn);
-          // Executing the stmt
-          _mysql.run_statement(*_hscr_update,
-                               database::mysql_error::store_host_status, false,
-                               conn);
-          _add_action(conn, actions::hosts);
+      if (_store_in_hosts_services) {
+        log_v2::sql()->trace(
+            "Check if some statements are ready, _hscr_bind connections count "
+            "= {}",
+            _hscr_bind->connections_count());
+        for (uint32_t conn = 0; conn < _hscr_bind->connections_count();
+             conn++) {
+          if (_hscr_bind->ready(conn)) {
+            log_v2::sql()->trace(
+                "Sending {} hosts rows of host status on connection {}",
+                _hscr_bind->size(conn), conn);
+            // Setting the good bind to the stmt
+            _hscr_bind->apply_to_stmt(conn);
+            // Executing the stmt
+            _mysql.run_statement(*_hscr_update,
+                                 database::mysql_error::store_host_status,
+                                 false, conn);
+            _add_action(conn, actions::hosts);
+          }
         }
-        if (_sscr_bind->ready(conn)) {
-          log_v2::sql()->trace(
-              "Sending {} services rows of service status on connection {}",
-              _sscr_bind->size(conn), conn);
-          // Setting the good bind to the stmt
-          _sscr_bind->apply_to_stmt(conn);
-          // Executing the stmt
-          _mysql.run_statement(*_sscr_update,
-                               database::mysql_error::store_service_status,
-                               false, conn);
-          _add_action(conn, actions::services);
+        log_v2::sql()->trace(
+            "Check if some statements are ready, _sscr_bind connections count "
+            "= {}",
+            _sscr_bind->connections_count());
+        for (uint32_t conn = 0; conn < _sscr_bind->connections_count();
+             conn++) {
+          if (_sscr_bind->ready(conn)) {
+            log_v2::sql()->trace(
+                "Sending {} services rows of service status on connection {}",
+                _sscr_bind->size(conn), conn);
+            // Setting the good bind to the stmt
+            _sscr_bind->apply_to_stmt(conn);
+            // Executing the stmt
+            _mysql.run_statement(*_sscr_update,
+                                 database::mysql_error::store_service_status,
+                                 false, conn);
+            _add_action(conn, actions::services);
+          }
         }
-        if (_hscr_resources_bind->ready(conn)) {
-          log_v2::sql()->trace(
-              "Sending {} host rows of resource status on connection {}",
-              _hscr_resources_bind->size(conn), conn);
-          // Setting the good bind to the stmt
-          _hscr_resources_bind->apply_to_stmt(conn);
-          // Executing the stmt
-          _mysql.run_statement(*_hscr_resources_update,
-                               database::mysql_error::store_host_status, false,
-                               conn);
-          _add_action(conn, actions::resources);
+      }
+      if (_store_in_resources) {
+        for (uint32_t conn = 0;
+             conn < _hscr_resources_bind->connections_count(); conn++) {
+          if (_hscr_resources_bind->ready(conn)) {
+            log_v2::sql()->trace(
+                "Sending {} host rows of resource status on connection {}",
+                _hscr_resources_bind->size(conn), conn);
+            // Setting the good bind to the stmt
+            _hscr_resources_bind->apply_to_stmt(conn);
+            // Executing the stmt
+            _mysql.run_statement(*_hscr_resources_update,
+                                 database::mysql_error::store_host_status,
+                                 false, conn);
+            _add_action(conn, actions::resources);
+          }
         }
-        if (_sscr_resources_bind->ready(conn)) {
-          log_v2::sql()->trace(
-              "Sending {} service rows of resource status on connection {}",
-              _sscr_resources_bind->size(conn), conn);
-          // Setting the good bind to the stmt
-          _sscr_resources_bind->apply_to_stmt(conn);
-          // Executing the stmt
-          _mysql.run_statement(*_sscr_resources_update,
-                               database::mysql_error::store_service_status,
-                               false, conn);
-          _add_action(conn, actions::resources);
+        for (uint32_t conn = 0;
+             conn < _sscr_resources_bind->connections_count(); conn++) {
+          if (_sscr_resources_bind->ready(conn)) {
+            log_v2::sql()->trace(
+                "Sending {} service rows of resource status on connection {}",
+                _sscr_resources_bind->size(conn), conn);
+            // Setting the good bind to the stmt
+            _sscr_resources_bind->apply_to_stmt(conn);
+            // Executing the stmt
+            _mysql.run_statement(*_sscr_resources_update,
+                                 database::mysql_error::store_service_status,
+                                 false, conn);
+            _add_action(conn, actions::resources);
+          }
         }
       }
       resources_done = true;
