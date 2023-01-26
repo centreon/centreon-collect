@@ -1,0 +1,62 @@
+FROM almalinux:8.5
+
+RUN <<EOF
+
+dnf clean all
+
+# Base dnf configuration.
+echo 'http_caching=none' >> /etc/yum.conf
+echo 'assumeyes=1' >> /etc/yum.conf
+sed -i 's/best=True/best=False/g' /etc/dnf/dnf.conf
+dnf install -y dnf-plugins-core
+dnf config-manager --set-enabled crb
+
+#curl -o centreon-release.rpm "http://yum-1.centreon.com/standard/21.10/el8/stable/noarch/RPMS/centreon-release-21.10-1.el8.noarch.rpm"
+#dnf install --nogpgcheck centreon-release.rpm
+#dnf config-manager --set-enabled 'centreon-testing*'
+
+curl -LsS "https://r.mariadb.com/downloads/mariadb_repo_setup" | bash -s -- --os-type=rhel --os-version=9 --mariadb-server-version="mariadb-10.5"
+dnf clean all && dnf install -y cmake \
+    gcc \
+    gcc-c++ \
+    gettext \
+    git \
+    MariaDB-devel \
+    MariaDB-shared \
+    MariaDB-client \
+    MariaDB-compat \
+    MariaDB-common \
+    MariaDB-server \
+    gnutls-devel \
+    libgcrypt-devel \
+    libssh2-devel \
+    lua-devel \
+    make \
+    maven \
+    perl-ExtUtils-Embed.noarch \
+    python38 \
+    python38-pip \
+    perl-Thread-Queue \
+    redhat-lsb \
+    rpm-build \
+    rrdtool-devel \
+    yum-utils \
+    perl \
+    rpm-build
+dnf update libarchive
+
+pip3 install conan --prefix=/usr --upgrade
+rm -rf ~/.conan/profiles/default
+
+EOF
+
+COPY conanfile.txt .
+
+RUN <<EOF
+
+cat conanfile.txt
+conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build='*'
+
+EOF
+
+WORKDIR /src
