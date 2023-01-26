@@ -70,4 +70,4 @@ jobs:
           context: .
           pull: true
           push: true
-          tags: $REGISTRY/centreon-${{ matrix.project }}-${{ matrix.distrib }}:${{ env.imgversion }}
+          tags: ${{ env.REGISTRY }}/centreon-${{ matrix.project }}-${{ matrix.distrib }}:${{ env.imgversion }}
