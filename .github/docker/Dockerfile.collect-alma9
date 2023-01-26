@@ -15,8 +15,10 @@ dnf config-manager --set-enabled crb
 #dnf install --nogpgcheck centreon-release.rpm
 #dnf config-manager --set-enabled 'centreon-testing*'
 
+dnf install -y epel-release
+
 #curl -LsS "https://r.mariadb.com/downloads/mariadb_repo_setup" | bash -s -- --os-type=rhel --os-version=9 --mariadb-server-version="mariadb-10.5"
-dnf clean all
+
 dnf install -y cmake \
     gcc \
     gcc-c++ \
