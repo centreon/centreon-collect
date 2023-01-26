@@ -12,9 +12,9 @@ on:
       - dev-[2-9][0-9].[0-9][0-9].x
     paths:
       - '.github/docker/**'
-#  pull_request:
-#    paths:
-#      - '.github/docker/**'
+  pull_request:
+    paths:
+      - '.github/docker/**'
 
 env:
   REGISTRY: docker.centreon.com
@@ -46,8 +46,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        #distrib: [centos7, alma8, alma9, debian-bullseye]
-        distrib: [alma9]
+        distrib: [centos7, alma8, alma9, debian-bullseye]
         include:
           - project: collect
 
