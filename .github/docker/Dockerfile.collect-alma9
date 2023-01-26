@@ -11,13 +11,7 @@ sed -i 's/best=True/best=False/g' /etc/dnf/dnf.conf
 dnf install -y dnf-plugins-core
 dnf config-manager --set-enabled crb
 
-#curl -o centreon-release.rpm "http://yum-1.centreon.com/standard/21.10/el8/stable/noarch/RPMS/centreon-release-21.10-1.el8.noarch.rpm"
-#dnf install --nogpgcheck centreon-release.rpm
-#dnf config-manager --set-enabled 'centreon-testing*'
-
 dnf install -y epel-release
-
-#curl -LsS "https://r.mariadb.com/downloads/mariadb_repo_setup" | bash -s -- --os-type=rhel --os-version=9 --mariadb-server-version="mariadb-10.5"
 
 dnf install -y cmake \
     gcc \
