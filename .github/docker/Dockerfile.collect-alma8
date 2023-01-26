@@ -1,6 +1,4 @@
-FROM almalinux:8.5
-
-RUN dnf clean all
+FROM almalinux:8
 
 # Base dnf configuration.
 RUN echo 'http_caching=none' >> /etc/yum.conf && \
@@ -8,11 +6,11 @@ RUN echo 'http_caching=none' >> /etc/yum.conf && \
     sed -i 's/best=True/best=False/g' /etc/dnf/dnf.conf && \
     dnf install -y dnf-plugins-core
 RUN dnf config-manager --set-enabled powertools
-RUN curl -o centreon-release.rpm "http://yum-1.centreon.com/standard/21.10/el8/stable/noarch/RPMS/centreon-release-21.10-1.el8.noarch.rpm"
-RUN dnf install --nogpgcheck centreon-release.rpm
-RUN dnf config-manager --set-enabled 'centreon-testing*'
+
+RUN dnf install -y epel-release
+
 RUN curl -LsS "https://r.mariadb.com/downloads/mariadb_repo_setup" | bash -s -- --os-type=rhel --os-version=8 --mariadb-server-version="mariadb-10.5"
-RUN dnf clean all && dnf install -y cmake \
+RUN dnf install -y cmake \
     gcc \
     gcc-c++ \
     gettext \
@@ -28,7 +26,6 @@ RUN dnf clean all && dnf install -y cmake \
     libssh2-devel \
     lua-devel \
     make \
-    maven \
     perl-ExtUtils-Embed.noarch \
     python38 \
     python38-pip \
@@ -45,6 +42,6 @@ RUN pip3 install conan --prefix=/usr --upgrade
 RUN rm -rf ~/.conan/profiles/default
 COPY conanfile.txt .
 RUN cat conanfile.txt
-RUN conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build='*'
+RUN conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
 
 WORKDIR /src

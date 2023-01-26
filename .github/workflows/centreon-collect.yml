@@ -1,5 +1,9 @@
 name: Centreon collect
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
 on:
   workflow_dispatch:
   pull_request:
@@ -51,7 +55,7 @@ jobs:
       patch: ${{ steps.version.outputs.patch }}
       release: ${{ steps.version.outputs.release }}
 
-  centreon-collect-test:
+  test:
     needs: create-version
     runs-on: [self-hosted, collect]
     env:
@@ -61,19 +65,20 @@ jobs:
 
     strategy:
       matrix:
-        include:
-          - image: centos7
-          - image: alma8
-          - image: debian-bullseye
+        image: [centos7, alma8, alma9, debian-bullseye]
+    name: test ${{ matrix.image }}
+
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
+
       - name: Login to Registry
         uses: docker/login-action@v2
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ secrets.REPOS_USERNAME }}
           password: ${{ secrets.REPOS_PASSWORD }}
+
       - name: Test ${{ matrix.image }}
         uses: ./.github/actions/runner-docker
         with:
@@ -81,7 +86,7 @@ jobs:
           image_name: centreon-collect-${{ matrix.image }}
           image_version: ${{ env.imgversion }}
 
-  rpm-packaging:
+  package-rpm:
     needs: create-version
     runs-on: [self-hosted, collect]
     env:
@@ -96,9 +101,13 @@ jobs:
             distrib: el7
           - image: alma8
             distrib: el8
+          - image: alma9
+            distrib: el9
+    name: package ${{ matrix.distrib }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
+
       - name: Login to Registry
         uses: docker/login-action@v2
         with:
@@ -149,7 +158,7 @@ jobs:
           path: ./*.rpm
           retention-days: 1
 
-  debian-packaging:
+  package-deb:
     needs: create-version
     runs-on: [self-hosted, collect]
     env:
@@ -162,6 +171,7 @@ jobs:
         include:
           - image: debian-bullseye
             distrib: bullseye
+    name: package ${{ matrix.distrib }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
@@ -188,15 +198,15 @@ jobs:
           path: ./*.deb
           key: cache-${{ github.sha }}-debbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
 
-  delivery-debian:
-    needs: [debian-packaging, create-version]
+  deliver-deb:
+    needs: [package-deb, create-version]
     env:
       version: ${{ needs.create-version.outputs.version }}
     runs-on: [self-hosted, common]
-    name: Delivery
     strategy:
       matrix:
         distrib: [bullseye]
+    name: deliver ${{ matrix.distrib }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
@@ -211,15 +221,15 @@ jobs:
           repos_password: ${{ secrets.NEXUS_PASSWD }}
           cache_key: cache-${{ github.sha }}-${{ github.run_id }}
 
-  delivery-centos:
-    needs: [rpm-packaging, create-version]
+  deliver-rpm:
+    needs: [package-rpm, create-version]
     env:
       version: ${{ needs.create-version.outputs.version }}
     runs-on: [self-hosted, common]
-    name: Delivery
     strategy:
       matrix:
         distrib: [el7, el8]
+    name: deliver ${{ matrix.distrib }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3

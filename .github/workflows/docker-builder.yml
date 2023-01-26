@@ -1,17 +1,20 @@
-name: Centreon collect build docker
+name: docker-builder
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
 
 on:
-  pull_request_target:
-    types:
-      - closed
+  workflow_dispatch:
+  push:
     branches:
       - develop
+      - dev-[2-9][0-9].[0-9][0-9].x
     paths:
-      - 'ci/docker/**'
-  workflow_dispatch:
+      - '.github/docker/**'
   pull_request:
     paths:
-      - 'ci/docker/**'
+      - '.github/docker/**'
 
 env:
   REGISTRY: docker.centreon.com
@@ -43,13 +46,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        distrib: [centos7, alma8, alma9, debian-bullseye]
         include:
           - project: collect
-            distrib: centos7
-          - project: collect
-            distrib: alma8
-          - project: collect
-            distrib: debian-bullseye
+
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
@@ -61,9 +61,12 @@ jobs:
           username: ${{ secrets.REPOS_USERNAME }}
           password: ${{ secrets.REPOS_PASSWORD }}
 
-      - name: build docker ${{ matrix.distrib }}
-        run: docker build --no-cache . -f ci/docker/Dockerfile.${{ matrix.project }}-${{ matrix.distrib }} -t $REGISTRY/centreon-${{ matrix.project }}-${{ matrix.distrib }}:${{ env.imgversion }}
+      - uses: docker/setup-buildx-action@v2
 
-      - name: push docker ${{ matrix.distrib }}
-        run: docker push $REGISTRY/centreon-${{ matrix.project }}-${{ matrix.distrib }}:${{ env.imgversion }}
-
+      - uses: docker/build-push-action@v3
+        with:
+          file: .github/docker/Dockerfile.${{ matrix.project }}-${{ matrix.distrib }}
+          context: .
+          pull: true
+          push: true
+          tags: ${{ env.REGISTRY }}/centreon-${{ matrix.project }}-${{ matrix.distrib }}:${{ env.imgversion }}
