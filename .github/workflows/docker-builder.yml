@@ -1,4 +1,8 @@
-name: Centreon collect build docker
+name: docker-builder
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
 
 on:
   workflow_dispatch:
@@ -58,8 +62,12 @@ jobs:
           username: ${{ secrets.REPOS_USERNAME }}
           password: ${{ secrets.REPOS_PASSWORD }}
 
-      - name: build docker ${{ matrix.distrib }}
-        run: docker build --no-cache . -f .github/docker/Dockerfile.${{ matrix.project }}-${{ matrix.distrib }} -t $REGISTRY/centreon-${{ matrix.project }}-${{ matrix.distrib }}:${{ env.imgversion }}
+      - uses: docker/setup-buildx-action@v2
 
-      - name: push docker ${{ matrix.distrib }}
-        run: docker push $REGISTRY/centreon-${{ matrix.project }}-${{ matrix.distrib }}:${{ env.imgversion }}
+      - uses: docker/build-push-action@v3
+        with:
+          file: .github/docker/Dockerfile.${{ matrix.project }}-${{ matrix.distrib }}
+          context: .
+          pull: true
+          push: true
+          tags: $REGISTRY/centreon-${{ matrix.project }}-${{ matrix.distrib }}:${{ env.imgversion }}
