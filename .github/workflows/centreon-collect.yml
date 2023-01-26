@@ -228,7 +228,7 @@ jobs:
     runs-on: [self-hosted, common]
     strategy:
       matrix:
-        distrib: [el7, el8]
+        distrib: [el7, el8, el9]
     name: deliver ${{ matrix.distrib }}
     steps:
       - name: Checkout sources
