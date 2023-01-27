@@ -31,6 +31,10 @@ namespace com::centreon::engine {
  * others properties that can be useful.
  */
 class customvariable {
+  std::string _value;
+  bool _is_sent;
+  bool _modified;
+
  public:
   customvariable(std::string const& value = "", bool is_sent = false);
   customvariable(customvariable const& other);
@@ -46,11 +50,6 @@ class customvariable {
   std::string const& get_value() const;
   bool has_been_modified() const;
   void update(std::string const& value);
-
- private:
-  std::string _value;
-  bool _is_sent;
-  bool _modified;
 };
 
 typedef std::unordered_map<std::string, customvariable> map_customvar;

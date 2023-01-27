@@ -98,9 +98,8 @@ void applier::timeperiod::add_object(configuration::timeperiod const& obj) {
  *
  *  @param[in] s  Unused.
  */
-void applier::timeperiod::expand_objects(configuration::state& s) {
-  (void)s;
-}
+void applier::timeperiod::expand_objects(configuration::state& s
+                                         [[maybe_unused]]) {}
 
 /**
  *  @brief Expand time period.

@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2019 Centreon
+** Copyright 2011-2019,2023 Centreon
 **
 ** This file is part of Centreon Engine.
 **
@@ -24,6 +24,7 @@
 #include <list>
 #include <memory>
 #include <string>
+#include "configuration/state-generated.pb.h"
 
 /* Forward declaration. */
 namespace com::centreon::engine {
@@ -46,8 +47,16 @@ using contact_map_unsafe =
 namespace com::centreon::engine {
 
 class contactgroup {
+  std::string _alias;
+  contact_map_unsafe _members;
+  std::string _name;
+
  public:
-  contactgroup();
+  /**
+   * Default constructor.
+   */
+  contactgroup() = default;
+  contactgroup(const configuration::Contactgroup& obj);
   contactgroup(configuration::contactgroup const& obj);
   virtual ~contactgroup();
   std::string const& get_name() const;
@@ -62,11 +71,6 @@ class contactgroup {
   contactgroup& operator=(contactgroup const& other);
 
   static contactgroup_map contactgroups;
-
- private:
-  std::string _alias;
-  contact_map_unsafe _members;
-  std::string _name;
 };
 
 }

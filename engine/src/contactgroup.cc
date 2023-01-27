@@ -1,5 +1,5 @@
 /**
-* Copyright 2011-2019 Centreon
+* Copyright 2011-2019,2023 Centreon
 *
 * This file is part of Centreon Engine.
 *
@@ -34,16 +34,18 @@ using namespace com::centreon::engine::logging;
 
 contactgroup_map contactgroup::contactgroups;
 
-/**************************************
- *                                     *
- *           Public Methods            *
- *                                     *
- **************************************/
-
 /**
- * Constructor.
+ *  Constructor from a protobuf configuration contactgroup
+ *
+ * @param obj Configuration contactgroup
  */
-contactgroup::contactgroup() {}
+contactgroup::contactgroup(const configuration::Contactgroup& obj)
+    : _alias{obj.alias().empty() ? obj.contactgroup_name() : obj.alias()},
+      _name{obj.contactgroup_name()} {
+  assert(!_name.empty());
+  // Notify event broker.
+  broker_group(NEBTYPE_CONTACTGROUP_ADD, this);
+}
 
 /**
  *  Constructor from a configuration contactgroup

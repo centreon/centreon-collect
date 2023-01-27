@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013,2017 Centreon
+** Copyright 2011-2013,2017,2023 Centreon
 **
 ** This file is part of Centreon Engine.
 **
@@ -20,6 +20,8 @@
 #ifndef CCE_CONFIGURATION_APPLIER_COMMAND_HH
 #define CCE_CONFIGURATION_APPLIER_COMMAND_HH
 
+#include "configuration/state.pb.h"
+
 namespace com::centreon::engine {
 
 // Forward declarations.
@@ -35,17 +37,22 @@ class state;
 namespace applier {
 class command {
  public:
-  command();
-  ~command() throw();
-  void add_object(configuration::command const& obj);
+  /**
+   * @brief Default constructor
+   */
+  command() = default;
+  /**
+   * @brief Destructor.
+   */
+  ~command() noexcept = default;
+  command(const command&) = delete;
+  command& operator=(const command&) = delete;
+  void add_object(const configuration::command& obj);
+  void expand_objects(configuration::State& s);
   void expand_objects(configuration::state& s);
-  void modify_object(configuration::command const& obj);
-  void remove_object(configuration::command const& obj);
-  void resolve_object(configuration::command const& obj);
-
- private:
-  command(command const& right);
-  command& operator=(command const& right);
+  void modify_object(const configuration::command& obj);
+  void remove_object(const configuration::command& obj);
+  void resolve_object(const configuration::command& obj);
 };
 }  // namespace applier
 }  // namespace configuration

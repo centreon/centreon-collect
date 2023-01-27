@@ -1,5 +1,5 @@
 /*
-** Copyright 2022 Centreon
+** Copyright 2022-2023 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -30,25 +30,31 @@ message State {
   string log_level_functions = 5;
   bool check_service_freshness = 6;
   bool enable_flap_detection = 7;
-  map<string, string> users = 8;
-  repeated string cfg_dir = 9;
+  string rpc_listen_address = 8;
+  uint32 rpc_port = 9;
+  map<string, string> users = 10;
+  repeated string cfg_dir = 11;
+  string state_retention_file = 12;
+  repeated string broker_module = 13;
+  bool enable_macros_filter = 14;
+  StringSet macros_filter = 15;
 
-  repeated Command commands = 10;
-  repeated Connector connectors = 11;
-  map<string, Contact> contacts = 12;
-  repeated Contactgroup contactgroups = 13;
-  repeated Hostdependency hostdependencies = 14;
-  repeated Hostescalation hostescalations = 15;
-  repeated Hostgroup hostgroups = 16;
-  repeated Host hosts = 17;
-  repeated Servicedependency servicedependencies = 18;
-  repeated Serviceescalation serviceescalations = 19;
-  repeated Servicegroup servicegroups = 20;
-  repeated Service services = 21;
-  repeated Anomalydetection anomalydetections = 22;
-  repeated Timeperiod timeperiods = 23;
-  repeated Severity severities = 24;
-  repeated Tag tags = 25;
+  repeated Command commands = 16;
+  repeated Connector connectors = 17;
+  map<string, Contact> contacts = 18;
+  repeated Contactgroup contactgroups = 19;
+  repeated Hostdependency hostdependencies = 20;
+  repeated Hostescalation hostescalations = 21;
+  repeated Hostgroup hostgroups = 22;
+  repeated Host hosts = 23;
+  repeated Servicedependency servicedependencies = 24;
+  repeated Serviceescalation serviceescalations = 25;
+  repeated Servicegroup servicegroups = 26;
+  repeated Service services = 27;
+  repeated Anomalydetection anomalydetections = 28;
+  repeated Timeperiod timeperiods = 29;
+  repeated Severity severities = 30;
+  repeated Tag tags = 31;
 }
 
 message Value {
