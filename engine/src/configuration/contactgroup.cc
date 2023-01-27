@@ -123,8 +123,8 @@ bool contactgroup::operator<(contactgroup const& right) const throw() {
  */
 void contactgroup::check_validity() const {
   if (_contactgroup_name.empty())
-    throw(engine_error() << "Contact group has no name "
-                            "(property 'contactgroup_name')");
+    throw engine_error() << "Contact group has no name "
+                            "(property 'contactgroup_name')";
   return;
 }
 

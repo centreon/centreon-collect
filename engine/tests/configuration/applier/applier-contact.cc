@@ -26,6 +26,9 @@
 #include "com/centreon/engine/configuration/contact.hh"
 #include "com/centreon/engine/contact.hh"
 #include "com/centreon/engine/contactgroup.hh"
+#include "configuration/contact_helper.hh"
+#include "configuration/contactgroup_helper.hh"
+#include "configuration/message_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -123,6 +126,41 @@ TEST_F(ApplierContact, RemoveContactFromConfig) {
   ASSERT_TRUE(engine::contact::contacts.empty());
 }
 
+// Given contactgroup / contact appliers
+// And a configuration contactgroup and a configuration contact
+// that are already in configuration
+// When we remove the contact configuration applier
+// Then it is really removed from the configuration applier.
+TEST_F(ApplierContact, PbRemoveContactFromConfig) {
+  configuration::applier::contact aply;
+  configuration::applier::contactgroup aply_grp;
+
+  configuration::Contactgroup grp;
+  grp.set_contactgroup_name("test_group");
+
+  configuration::Contact ctct;
+  configuration::contact_helper c_helper(&ctct);
+  ctct.set_contact_name("test");
+  ctct.add_address("coucou");
+  ctct.add_address("foo");
+  ctct.add_address("bar");
+  fill_string_group(ctct.mutable_contactgroups(), "test_group");
+  fill_string_group(ctct.mutable_host_notification_commands(), "cmd1");
+  fill_string_group(ctct.mutable_host_notification_commands(), "cmd2");
+  fill_string_group(ctct.mutable_service_notification_commands(), "svc1");
+  fill_string_group(ctct.mutable_service_notification_commands(), "svc2");
+  configuration::CustomVariable* cv = ctct.add_customvariables();
+  cv->set_name("superVar");
+  cv->set_value("superValue");
+  aply_grp.add_object(grp);
+  aply.add_object(ctct);
+  aply.expand_objects(pb_config);
+  engine::contact* my_contact = engine::contact::contacts.begin()->second.get();
+  ASSERT_EQ(my_contact->get_addresses().size(), 3u);
+  aply.remove_object(ctct);
+  ASSERT_TRUE(engine::contact::contacts.empty());
+}
+
 TEST_F(ApplierContact, ModifyContactFromConfig) {
   configuration::applier::contact aply;
   configuration::applier::contactgroup aply_grp;
@@ -200,6 +238,32 @@ TEST_F(ApplierContact, ResolveContactFromConfig) {
   aply_grp.add_object(grp);
   aply.add_object(ctct);
   aply.expand_objects(*config);
+  ASSERT_THROW(aply.resolve_object(ctct), std::exception);
+}
+
+// Given contactgroup / contact appliers
+// And a configuration contactgroup and a configuration contact
+// that are already in configuration
+// When we resolve the contact configuration
+// Then the contact contactgroups is cleared, nothing more if the
+// contact check is OK. Here, since notification commands are empty,
+// an exception is thrown.
+TEST_F(ApplierContact, PbResolveContactFromConfig) {
+  configuration::applier::contact aply;
+  configuration::applier::contactgroup aply_grp;
+  configuration::Contactgroup grp;
+  configuration::contactgroup_helper cg_hlp(&grp);
+  grp.set_contactgroup_name("test_group");
+
+  configuration::Contact ctct;
+  configuration::contact_helper ct_hlp(&ctct);
+  ctct.set_contact_name("test");
+  fill_string_group(ctct.mutable_contactgroups(), "test_group");
+  fill_string_group(ctct.mutable_host_notification_commands(), "cmd1");
+  fill_string_group(ctct.mutable_host_notification_commands(), "cmd2");
+  aply_grp.add_object(grp);
+  aply.add_object(ctct);
+  aply.expand_objects(pb_config);
   ASSERT_THROW(aply.resolve_object(ctct), std::exception);
 }
 
