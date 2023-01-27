@@ -33,16 +33,6 @@ using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
 
 /**
- *  Default constructor.
- */
-applier::command::command() {}
-
-/**
- *  Destructor.
- */
-applier::command::~command() throw() {}
-
-/**
  *  Add new command.
  *
  *  @param[in] obj  The new command to add into the monitoring engine.
@@ -82,11 +72,20 @@ void applier::command::add_object(configuration::command const& obj) {
  *  Command configuration objects do not need expansion. Therefore this
  *  method does nothing.
  *
+ *  @param[in] s  The global protobuf configuration object.
+ */
+void applier::command::expand_objects(configuration::State& s
+                                      [[maybe_unused]]) {}
+/**
+ *  @brief Expand command.
+ *
+ *  Command configuration objects do not need expansion. Therefore this
+ *  method does nothing.
+ *
  *  @param[in] s  Unused.
  */
-void applier::command::expand_objects(configuration::state& s) {
-  (void)s;
-}
+void applier::command::expand_objects(configuration::state& s
+                                      [[maybe_unused]]) {}
 
 /**
  *  Modified command.
