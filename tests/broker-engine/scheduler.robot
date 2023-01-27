@@ -39,9 +39,7 @@ ENRSCHE1
 	${content}=	Set Variable	[checks] [debug] [${pid}] Rescheduling next check of host: host_14
 
 	${result1}	${result2}=	check reschedule with timeout	${logEngine0}	${start}	${content}	240
-	log to console	result1=${result1}
-	log to console	result2=${result2}
-#	Should Be True	${result1}	msg=the delta of last_check and next_check is not equal to 60.
-#	Should Be True	${result2}	msg=the delta of last_check and next_check is not equal to 300.
-#	Stop Engine
-#	Kindly Stop Broker
+	Should Be True	${result1}	msg=the delta of last_check and next_check is not equal to 60.
+	Should Be True	${result2}	msg=the delta of last_check and next_check is not equal to 300.
+	Stop Engine
+	Kindly Stop Broker

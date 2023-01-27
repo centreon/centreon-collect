@@ -32,7 +32,7 @@ using namespace com::centreon::broker::unified_sql;
 bulk_queries::bulk_queries(const uint32_t max_interval,
                            const uint32_t max_queries,
                            const std::string& query)
-    : _interval{max_interval}, _max_size{max_queries}, _query(query) {}
+    : _interval{max_interval}, _max_size{max_queries}, _query(query), _next_time{std::time(nullptr) + max_interval} {}
 
 /**
  * @brief Compute the query to execute as a string and return it. The container
