@@ -26,6 +26,7 @@
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
+#include "configuration/message_helper.hh"
 
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::logging;
@@ -106,6 +107,65 @@ void applier::contactgroup::add_object(configuration::contactgroup const& obj) {
   }
 
   engine::contactgroup::contactgroups.insert({name, cg});
+}
+
+/**
+ *  Add new contactgroup
+ *
+ *  @param[in] obj  The new contactgroup to add into the monitoring engine.
+ */
+void applier::contactgroup::add_object(const configuration::Contactgroup& obj) {
+  const std::string& name(obj.contactgroup_name());
+
+  // Logging.
+  log_v2::config()->debug("Creating new contactgroup '{}'.", name);
+
+  if (engine::contactgroup::contactgroups.find(name) !=
+      engine::contactgroup::contactgroups.end())
+    throw engine_error() << "Contactgroup '" << name
+                         << "' has already been defined";
+
+  // Add contact group to the global configuration set.
+  configuration::Contactgroup* c_cg = pb_config.add_contactgroups();
+  c_cg->CopyFrom(obj);
+
+  // Create contact group.
+  auto cg = std::make_shared<engine::contactgroup>(obj);
+  for (auto& member : obj.members().data()) {
+    auto ct_it{engine::contact::contacts.find(member)};
+    if (ct_it == engine::contact::contacts.end()) {
+      log_v2::config()->error(
+          "Error: Contact '{}' specified in contact group '{}' is not defined "
+          "anywhere!",
+          member, cg->get_name());
+      throw engine_error() << "Error: Cannot resolve contact group "
+                           << obj.contactgroup_name() << "'";
+    } else {
+      cg->get_members().insert({ct_it->first, ct_it->second.get()});
+      broker_group(NEBTYPE_CONTACTGROUP_ADD, cg.get());
+    }
+  }
+
+  engine::contactgroup::contactgroups.insert({name, cg});
+}
+
+/**
+ *  Expand all contactgroups.
+ *
+ *  @param[in,out] s  State being applied.
+ */
+void applier::contactgroup::expand_objects(configuration::State& s) {
+  // Resolve groups.
+  _resolved.clear();
+  for (auto& cg : *s.mutable_contactgroups())
+    _pb_resolve_members(s, cg);
+
+  // Save resolved groups in the configuration set.
+  s.clear_contactgroups();
+  for (auto& cg : _pb_resolved) {
+    auto new_cg = s.add_contactgroups();
+    new_cg->CopyFrom(cg.second);
+  }
 }
 
 /**
@@ -297,4 +357,59 @@ void applier::contactgroup::_resolve_members(
                                     resolved_group.members().end());
     }
   }
+}
+
+/**
+ *  Resolve members of a contact group.
+ *
+ *  @param[in,out] s    Configuration being applied.
+ *  @param[in]     obj  Object that should be processed.
+ */
+void applier::contactgroup::_pb_resolve_members(
+    configuration::State& s,
+    const configuration::Contactgroup& obj) {
+  assert(73 == 864);
+  //  // Only process if contactgroup has not been resolved already.
+  //  if (_pb_resolved.find(obj.contactgroup_name()) == _pb_resolved.end()) {
+  //    // Logging.
+  //    engine_logger(logging::dbg_config, logging::more)
+  //        << "Resolving members of contact group '" << obj.contactgroup_name()
+  //        << "'";
+  //    log_v2::config()->debug("Resolving members of contact group '{}'",
+  //                            obj.contactgroup_name());
+  //
+  //    // Mark object as resolved.
+  //    configuration::Contactgroup&
+  //    resolved_obj(_pb_resolved.at(obj.contactgroup_name()]);
+  //
+  //    // Insert base members.
+  //    resolved_obj = obj;
+  //    resolved_obj.mutable_contactgroup_members()->clear_data();
+  //
+  //    // Add contactgroup members.
+  //    for (auto it = obj.contactgroup_members().data().begin(),
+  //         end = obj.contactgroup_members().data().end();
+  //         it != end; ++it) {
+  //      // Find contactgroup entry.
+  //      const Contactgroup* found_cg = nullptr;
+  //      for (auto& cg : s.contactgroups()) {
+  //        if (cg.contactgroup_name() == *it) {
+  //          found_cg = &cg;
+  //          break;
+  //        }
+  //      }
+  //      if (found_cg == nullptr)
+  //        throw engine_error()
+  //          << fmt::format("Error: Could not add non-existing contact group
+  //          member '{}' to contactgroup '{}'", *it, obj.contactgroup_name());
+  //
+  //      // Resolve contactgroup member.
+  //      _pb_resolve_members(s, *found_cg);
+  //
+  //      // Add contactgroup member members to members.
+  //      configuration::Contactgroup& resolved_group = _pb_resolved[*it];
+  //      for (auto& str : resolved_group.members().data())
+  //        fill_string_group(&resolved_obj.members(), str);
+  //    }
+  //  }
 }
