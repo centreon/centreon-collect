@@ -26,6 +26,7 @@
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/log_v2.hh"
+#include "configuration/message_helper.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -49,27 +50,60 @@ class contactgroup_name_comparator {
 };
 
 /**
- *  Default constructor.
- */
-applier::contact::contact() {}
-
-/**
- *  Destructor.
- */
-applier::contact::~contact() throw() {}
-
-/**
- *  Assignment operator.
+ *  Add new contact.
  *
- *  @param[in] right Object to copy.
- *
- *  @return This object.
+ *  @param[in] obj  The new contact to add into the monitoring engine.
  */
-// applier::contact& applier::contact::operator=(
-//                                      applier::contact const& right) {
-//  (void)right;
-//  return *this;
-//}
+void applier::contact::add_object(const configuration::Contact& obj) {
+  // Logging.
+  log_v2::config()->debug("Creating new contact '{}'.", obj.contact_name());
+
+  // Add contact to the global configuration set.
+  (*pb_config.mutable_contacts())[obj.contact_name()] = obj;
+
+  // Create address list.
+  std::vector<std::string> addresses;
+  std::copy(obj.address().begin(), obj.address().end(),
+            std::back_inserter(addresses));
+
+  // Create contact.
+  std::shared_ptr<com::centreon::engine::contact> c(add_contact(
+      obj.contact_name(), obj.alias(), obj.email(), obj.pager(), addresses,
+      obj.service_notification_period(), obj.host_notification_period(),
+      static_cast<bool>(obj.service_notification_options() & service::ok),
+      static_cast<bool>(obj.service_notification_options() & service::critical),
+      static_cast<bool>(obj.service_notification_options() & service::warning),
+      static_cast<bool>(obj.service_notification_options() & service::unknown),
+      static_cast<bool>(obj.service_notification_options() & service::flapping),
+      static_cast<bool>(obj.service_notification_options() & service::downtime),
+      static_cast<bool>(obj.host_notification_options() & host::up),
+      static_cast<bool>(obj.host_notification_options() & host::down),
+      static_cast<bool>(obj.host_notification_options() & host::unreachable),
+      static_cast<bool>(obj.host_notification_options() & host::flapping),
+      static_cast<bool>(obj.host_notification_options() & host::downtime),
+      obj.host_notifications_enabled(), obj.service_notifications_enabled(),
+      obj.can_submit_commands(), obj.retain_status_information(),
+      obj.retain_nonstatus_information()));
+  if (!c)
+    throw engine_error() << "Could not register contact '" << obj.contact_name()
+                         << "'";
+  c->set_timezone(obj.timezone());
+
+  // Add new items to the configuration state.
+  engine::contact::contacts.insert({c->get_name(), c});
+
+  // Add all custom variables.
+  for (const configuration::CustomVariable& cv : obj.customvariables()) {
+    c->get_custom_variables()[cv.name()] =
+        engine::customvariable(cv.value(), cv.is_sent());
+
+    if (cv.is_sent()) {
+      timeval tv(get_broker_timestamp(nullptr));
+      broker_custom_variable(NEBTYPE_CONTACTCUSTOMVARIABLE_ADD, c.get(),
+                             cv.name().c_str(), cv.value().c_str(), &tv);
+    }
+  }
+}
 
 /**
  *  Add new contact.
@@ -86,14 +120,8 @@ void applier::contact::add_object(configuration::contact const& obj) {
   config->contacts().insert(obj);
 
   // Create address list.
-  std::array<std::string, MAX_CONTACT_ADDRESSES> addresses;
-  {
-    unsigned int i{0};
-    for (tab_string::const_iterator it(obj.address().begin()),
-         end(obj.address().end());
-         it != end; ++it, ++i)
-      addresses[i] = *it;
-  }
+  std::vector<std::string> addresses(obj.address());
+  addresses.resize(MAX_CONTACT_ADDRESSES);
 
   // Create contact.
   std::shared_ptr<com::centreon::engine::contact> c(add_contact(
@@ -132,6 +160,47 @@ void applier::contact::add_object(configuration::contact const& obj) {
       broker_custom_variable(NEBTYPE_CONTACTCUSTOMVARIABLE_ADD, c.get(),
                              it->first.c_str(), it->second.get_value().c_str(),
                              &tv);
+    }
+  }
+}
+
+/**
+ *  @brief Expand a contact.
+ *
+ *  During expansion, the contact will be added to its contact groups.
+ *  These will be modified in the state.
+ *
+ *  @param[in,out] s  Configuration state.
+ */
+void applier::contact::expand_objects(configuration::State& s) {
+  // Browse all contacts.
+  for (auto cit = s.mutable_contacts()->begin();
+       cit != s.mutable_contacts()->end(); ++cit) {
+    // Should custom variables be sent to broker ?
+    for (auto& cv : *cit->second.mutable_customvariables()) {
+      if (!s.enable_macros_filter() ||
+          std::find(s.macros_filter().data().begin(),
+                    s.macros_filter().data().end(),
+                    cv.name()) != s.macros_filter().data().end())
+        cv.set_is_sent(true);
+    }
+
+    // Browse current contact's groups.
+    for (auto& cg : *cit->second.mutable_contactgroups()->mutable_data()) {
+      // Find contact group.
+      Contactgroup* found_cg = nullptr;
+      for (auto& cgg : *s.mutable_contactgroups())
+        if (cgg.contactgroup_name() == cg) {
+          found_cg = &cgg;
+          break;
+        }
+      if (found_cg == nullptr)
+        throw engine_error() << fmt::format(
+            "Could not add contact '{}' to non-existing contact group '{}'",
+            cit->second.contact_name(), cg);
+
+      fill_string_group(found_cg->mutable_members(),
+                        cit->second.contact_name());
     }
   }
 }
@@ -353,6 +422,38 @@ void applier::contact::modify_object(configuration::contact const& obj) {
  *
  *  @param[in] obj  The new contact to remove from the monitoring engine.
  */
+void applier::contact::remove_object(const configuration::Contact& obj) {
+  // Logging.
+  log_v2::config()->debug("Removing contact '{}'.", obj.contact_name());
+
+  // Find contact.
+  contact_map::iterator it{engine::contact::contacts.find(obj.contact_name())};
+  if (it != engine::contact::contacts.end()) {
+    engine::contact* cntct(it->second.get());
+
+    for (auto& it_c : cntct->get_parent_groups())
+      it_c.second->get_members().erase(obj.contact_name());
+
+    // Notify event broker.
+    timeval tv(get_broker_timestamp(nullptr));
+    broker_adaptive_contact_data(NEBTYPE_CONTACT_DELETE, NEBFLAG_NONE,
+                                 NEBATTR_NONE, cntct, CMD_NONE, MODATTR_ALL,
+                                 MODATTR_ALL, MODATTR_ALL, MODATTR_ALL,
+                                 MODATTR_ALL, MODATTR_ALL, &tv);
+
+    // Erase contact object (this will effectively delete the object).
+    engine::contact::contacts.erase(it);
+  }
+
+  // Remove contact from the global configuration set.
+  pb_config.mutable_contacts()->erase(obj.contact_name());
+}
+
+/**
+ *  Remove old contact.
+ *
+ *  @param[in] obj  The new contact to remove from the monitoring engine.
+ */
 void applier::contact::remove_object(configuration::contact const& obj) {
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
@@ -432,6 +533,61 @@ void applier::contact::resolve_object(configuration::contact const& obj) {
       throw(engine_error() << "Could not add service notification command '"
                            << *it << "' to contact '" << obj.contact_name()
                            << "': the command does not exist");
+    }
+  }
+
+  // Remove contact group links.
+  ct_it->second->get_parent_groups().clear();
+
+  // Resolve contact.
+  ct_it->second->resolve(config_warnings, config_errors);
+}
+
+/**
+ *  Resolve a contact.
+ *
+ *  @param[in,out] obj  Object to resolve.
+ */
+void applier::contact::resolve_object(const configuration::Contact& obj) {
+  // Logging.
+  log_v2::config()->debug("Resolving contact '{}'.", obj.contact_name());
+
+  // Find contact.
+  contact_map::const_iterator ct_it{
+      engine::contact::contacts.find(obj.contact_name())};
+  if (ct_it == engine::contact::contacts.end() || !ct_it->second)
+    throw engine_error() << fmt::format(
+        "Cannot resolve non-existing contact '{}'", obj.contact_name());
+
+  ct_it->second->get_host_notification_commands().clear();
+
+  // Add all the host notification commands.
+  for (auto& cmd : obj.host_notification_commands().data()) {
+    command_map::const_iterator itt(commands::command::commands.find(cmd));
+    if (itt != commands::command::commands.end())
+      ct_it->second->get_host_notification_commands().push_back(itt->second);
+    else {
+      ++config_errors;
+      throw engine_error() << fmt::format(
+          "Could not add host notification command '{}' to contact '{}': the "
+          "command does not exist",
+          cmd, obj.contact_name());
+    }
+  }
+
+  ct_it->second->get_service_notification_commands().clear();
+
+  // Add all the service notification commands.
+  for (auto& cmd : obj.service_notification_commands().data()) {
+    command_map::const_iterator itt(commands::command::commands.find(cmd));
+    if (itt != commands::command::commands.end())
+      ct_it->second->get_service_notification_commands().push_back(itt->second);
+    else {
+      ++config_errors;
+      throw engine_error() << fmt::format(
+          "Could not add service notification command '{}' to contact '{}': "
+          "the command does not exist",
+          cmd, obj.contact_name());
     }
   }
 

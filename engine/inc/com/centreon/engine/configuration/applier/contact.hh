@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013,2017 Centreon
+** Copyright 2011-2013,2017,2023 Centreon
 **
 ** This file is part of Centreon Engine.
 **
@@ -20,6 +20,8 @@
 #ifndef CCE_CONFIGURATION_APPLIER_CONTACT_HH
 #define CCE_CONFIGURATION_APPLIER_CONTACT_HH
 
+#include "configuration/state.pb.h"
+
 CCE_BEGIN()
 
 namespace configuration {
@@ -30,17 +32,27 @@ class state;
 namespace applier {
 class contact {
  public:
-  contact();
-  ~contact() throw();
-  void add_object(configuration::contact const& obj);
-  void expand_objects(configuration::state& s);
-  void modify_object(configuration::contact const& obj);
-  void remove_object(configuration::contact const& obj);
-  void resolve_object(configuration::contact const& obj);
+  /**
+   * @brief Default constructor.
+   */
+  contact() = default;
 
- private:
-  contact(contact const& right);
-  contact& operator=(contact const& right);
+  /**
+   * @brief Destructor
+   */
+  ~contact() noexcept = default;
+  contact(contact const&) = delete;
+  contact& operator=(const contact&) = delete;
+
+  void add_object(const configuration::Contact& obj);
+  void add_object(const configuration::contact& obj);
+  void expand_objects(configuration::State& s);
+  void expand_objects(configuration::state& s);
+  void modify_object(const configuration::contact& obj);
+  void remove_object(const configuration::Contact& obj);
+  void remove_object(const configuration::contact& obj);
+  void resolve_object(const configuration::Contact& obj);
+  void resolve_object(const configuration::contact& obj);
 };
 }  // namespace applier
 }  // namespace configuration

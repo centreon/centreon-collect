@@ -61,6 +61,7 @@
 #include "com/centreon/engine/version.hh"
 #include "com/centreon/io/directory_entry.hh"
 #include "com/centreon/logging/engine.hh"
+#include "configuration/state.pb.h"
 
 using namespace com::centreon::engine;
 
@@ -338,10 +339,10 @@ int main(int argc, char* argv[]) {
     else {
       try {
         // Parse configuration.
-        configuration::state config;
+        configuration::State config;
         {
           configuration::parser p;
-          p.parse(config_file, config);
+          p.parse(config_file, &config);
         }
 
         uint16_t port = config.rpc_port();
@@ -358,7 +359,7 @@ int main(int argc, char* argv[]) {
 
         const std::string& listen_address = config.rpc_listen_address();
 
-        std::unique_ptr<enginerpc, std::function<void(enginerpc*)> > rpc(
+        std::unique_ptr<enginerpc, std::function<void(enginerpc*)>> rpc(
             new enginerpc(listen_address, port), [](enginerpc* rpc) {
               rpc->shutdown();
               delete rpc;
@@ -370,7 +371,7 @@ int main(int argc, char* argv[]) {
           retention::parser p;
           try {
             p.parse(config.state_retention_file(), state);
-          } catch (std::exception const& e) {
+          } catch (const std::exception& e) {
             log_v2::config()->error("{}", e.what());
             engine_logger(logging::log_config_error, logging::basic)
                 << e.what();
@@ -384,14 +385,11 @@ int main(int argc, char* argv[]) {
         mac->x[MACRO_PROCESSSTARTTIME] = std::to_string(program_start);
 
         // Load broker modules.
-        for (std::list<std::string>::const_iterator
-                 it(config.broker_module().begin()),
-             end(config.broker_module().end());
-             it != end; ++it) {
+        for (auto& m : config.broker_module()) {
           std::string filename;
           std::string args;
-          if (!string::split(*it, filename, args, ' '))
-            filename = *it;
+          if (!string::split(m, filename, args, ' '))
+            filename = m;
           broker::loader::instance().add_module(filename, args);
         }
         neb_init_callback_list();
