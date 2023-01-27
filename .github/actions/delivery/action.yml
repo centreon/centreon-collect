@@ -49,7 +49,7 @@ runs:
   steps:
     - name: Build name for RPM
       shell: bash
-      if: ${{ inputs.distrib == 'el7' || inputs.distrib == 'el8' }}
+      if: ${{ startsWith(inputs.distrib, 'el') }}
       run: |
         echo "extfile=rpm" >> $GITHUB_ENV
 
@@ -64,7 +64,6 @@ runs:
       with:
         path: ./*.${{ env.extfile }}
         key: ${{ inputs.cache_key }}
-        restore-keys: ${{ inputs.cache_key }}
 
     - name: Setup awscli
       run: |
