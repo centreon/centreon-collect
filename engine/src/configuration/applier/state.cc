@@ -69,15 +69,36 @@ static bool has_already_been_loaded(false);
  *  Apply new configuration.
  *
  *  @param[in] new_cfg        The new configuration.
- *  @param[in] waiting_thread True to wait thread after calulate differencies.
  */
-void applier::state::apply(configuration::State& new_cfg [[maybe_unused]]) {}
+void applier::state::apply(configuration::State& new_cfg) {
+  configuration::State save;
+  save.CopyFrom(pb_config);
+  try {
+    _processing_state = state_ready;
+    _processing(new_cfg);
+  } catch (const std::exception& e) {
+    // If is the first time to load configuration, we don't
+    // have a valid configuration to restore.
+    if (!has_already_been_loaded)
+      throw;
+
+    // If is not the first time, we can restore the old one.
+    log_v2::config()->error("Error: Could not apply new configuration: {}",
+                            e.what());
+
+    // Check if we need to restore old configuration.
+    if (_processing_state == state_error) {
+      log_v2::config()->debug(
+          "configuration: try to restore old configuration");
+      _processing(save);
+    }
+  }
+}
 
 /**
  *  Apply new configuration.
  *
  *  @param[in] new_cfg        The new configuration.
- *  @param[in] waiting_thread True to wait thread after calulate differencies.
  */
 void applier::state::apply(configuration::state& new_cfg) {
   configuration::state save(*config);
@@ -103,6 +124,37 @@ void applier::state::apply(configuration::state& new_cfg) {
       log_v2::config()->debug(
           "configuration: try to restore old configuration");
       _processing(save);
+    }
+  }
+}
+
+/**
+ *  Apply new protobuf configuration.
+ *
+ *  @param[in] new_cfg        The new protobuf configuration.
+ *  @param[in] state          The retention to use.
+ */
+void applier::state::apply(configuration::State& new_cfg,
+                           retention::state& state) {
+  configuration::State save;
+  save.CopyFrom(pb_config);
+  try {
+    _processing_state = state_ready;
+    _processing(new_cfg, &state);
+  } catch (const std::exception& e) {
+    // If is the first time to load configuration, we don't
+    // have a valid configuration to restore.
+    if (!has_already_been_loaded)
+      throw;
+
+    // If is not the first time, we can restore the old one.
+    log_v2::config()->error("Cannot apply new configuration: {}", e.what());
+
+    // Check if we need to restore old configuration.
+    if (_processing_state == state_error) {
+      log_v2::config()->debug(
+          "configuration: try to restore old configuration");
+      _processing(save, &state);
     }
   }
 }
@@ -1230,6 +1282,45 @@ void applier::state::_processing(configuration::State& new_cfg,
 
   // Expand connectors.
   _expand<configuration::Connector, applier::connector>(new_cfg);
+
+  // Expand commands.
+  _expand<configuration::Command, applier::command>(new_cfg);
+
+  // Expand contacts.
+  _expand<configuration::contact, applier::contact>(new_cfg);
+
+  //  // Expand contactgroups.
+  //  _expand<configuration::contactgroup, applier::contactgroup>(new_cfg);
+  //
+  //  // Expand hosts.
+  //  _expand<configuration::host, applier::host>(new_cfg);
+  //
+  //  // Expand hostgroups.
+  //  _expand<configuration::hostgroup, applier::hostgroup>(new_cfg);
+  //
+  //  // Expand services.
+  //  _expand<configuration::service, applier::service>(new_cfg);
+  //
+  //  // Expand anomalydetections.
+  //  _expand<configuration::anomalydetection,
+  //  applier::anomalydetection>(new_cfg);
+  //
+  //  // Expand servicegroups.
+  //  _expand<configuration::servicegroup, applier::servicegroup>(new_cfg);
+  //
+  //  // Expand hostdependencies.
+  //  _expand<configuration::hostdependency, applier::hostdependency>(new_cfg);
+  //
+  //  // Expand servicedependencies.
+  //  _expand<configuration::servicedependency, applier::servicedependency>(
+  //      new_cfg);
+  //
+  //  // Expand hostescalations.
+  //  _expand<configuration::hostescalation, applier::hostescalation>(new_cfg);
+  //
+  //  // Expand serviceescalations.
+  //  _expand<configuration::serviceescalation, applier::serviceescalation>(
+  //      new_cfg);
 
   //
   //  Build difference for all objects.

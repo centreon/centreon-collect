@@ -29,6 +29,7 @@
 #include "configuration/contact_helper.hh"
 #include "configuration/contactgroup_helper.hh"
 #include "configuration/host_helper.hh"
+#include "configuration/hostdependency_helper.hh"
 #include "configuration/hostescalation_helper.hh"
 #include "configuration/hostgroup_helper.hh"
 #include "configuration/message_helper.hh"
@@ -784,6 +785,10 @@ void parser::_parse_object_definitions(const std::string& path,
         msg = pb_config->add_anomalydetections();
         msg_helper = std::make_unique<anomalydetection_helper>(
             static_cast<Anomalydetection*>(msg));
+      } else if (type == "hostdependency") {
+        msg = pb_config->add_hostdependencies();
+        msg_helper = std::make_unique<hostdependency_helper>(
+            static_cast<Hostdependency*>(msg));
       } else if (type == "servicedependency") {
         msg = pb_config->add_servicedependencies();
         msg_helper = std::make_unique<servicedependency_helper>(
@@ -1210,6 +1215,12 @@ bool parser::_is_registered(const Message& msg) const {
   return false;
 }
 
+/**
+ * @brief For each type of object in the State, templates are resolved that is
+ * to say, children inherite from parents properties.
+ *
+ * @param pb_config The State containing all the object to handle.
+ */
 void parser::_resolve_template(State* pb_config) {
   for (Command& c : *pb_config->mutable_commands())
     _resolve_template(_pb_helper[&c], _pb_templates[object::command]);
@@ -1262,6 +1273,9 @@ void parser::_resolve_template(State* pb_config) {
     for (const Service& s : pb_config->services())
       _pb_helper.at(&s)->check_validity();
 
+    for (const Hostdependency& hd : pb_config->hostdependencies())
+      _pb_helper.at(&hd)->check_validity();
+
     for (const Servicedependency& sd : pb_config->servicedependencies())
       _pb_helper.at(&sd)->check_validity();
 
@@ -1292,6 +1306,9 @@ void parser::_resolve_template(State* pb_config) {
     for (const Hostescalation& he : pb_config->hostescalations())
       _pb_helper.at(&he)->check_validity();
 
+    for (const Connector& c : pb_config->connectors())
+      _pb_helper.at(&c)->check_validity();
+
   } catch (const std::exception& e) {
     throw engine_error() << e.what();
   }
@@ -1307,7 +1324,7 @@ void parser::_resolve_template() {
       it->second->resolve_template(templates);
   }
 
-  for (unsigned int i = 0; i < _lst_objects.size(); ++i) {
+  for (uint32_t i = 0; i < _lst_objects.size(); ++i) {
     map_object& templates = _templates[i];
     for (list_object::iterator it = _lst_objects[i].begin(),
                                end = _lst_objects[i].end();
@@ -1322,7 +1339,7 @@ void parser::_resolve_template() {
     }
   }
 
-  for (unsigned int i = 0; i < _map_objects.size(); ++i) {
+  for (uint32_t i = 0; i < _map_objects.size(); ++i) {
     map_object& templates = _templates[i];
     for (map_object::iterator it = _map_objects[i].begin(),
                               end = _map_objects[i].end();

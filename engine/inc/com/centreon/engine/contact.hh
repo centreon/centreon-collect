@@ -187,7 +187,7 @@ std::shared_ptr<com::centreon::engine::contact> add_contact(
     std::string const& alias,
     std::string const& email,
     std::string const& pager,
-    std::array<std::string, MAX_CONTACT_ADDRESSES> const& addresses,
+    const std::vector<std::string>& addresses,
     std::string const& svc_notification_period,
     std::string const& host_notification_period,
     int notify_service_ok,
