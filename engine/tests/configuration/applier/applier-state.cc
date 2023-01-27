@@ -74,24 +74,37 @@ static void CreateFile(const std::string& filename,
 }
 
 static void RmConf() {
+  std::remove("/tmp/ad.cfg");
   std::remove("/tmp/centengine.cfg");
-  std::remove("/tmp/contacts.cfg");
-  std::remove("/tmp/resource.cfg");
-  std::remove("/tmp/timeperiods.cfg");
   std::remove("/tmp/commands.cfg");
+  std::remove("/tmp/connectors.cfg");
+  std::remove("/tmp/contactgroups.cfg");
+  std::remove("/tmp/contacts.cfg");
+  std::remove("/tmp/hostdependencies.cfg");
+  std::remove("/tmp/hostescalations.cfg");
+  std::remove("/tmp/hostgroups.cfg");
   std::remove("/tmp/hosts.cfg");
+  std::remove("/tmp/resource.cfg");
+  std::remove("/tmp/servicedependencies.cfg");
+  std::remove("/tmp/serviceescalations.cfg");
+  std::remove("/tmp/servicegroups.cfg");
   std::remove("/tmp/services.cfg");
+  std::remove("/tmp/severities.cfg");
+  std::remove("/tmp/tags.cfg");
+  std::remove("/tmp/test-config.cfg");
+  std::remove("/tmp/timeperiods.cfg");
 }
 
 enum class ConfigurationObject {
-  SERVICEGROUP = 0,
-  TAG = 1,
-  SERVICEDEPENDENCY = 2,
-  ANOMALYDETECTION = 3,
-  CONTACTGROUP = 4,
-  SEVERITY = 5,
-  SERVICEESCALATION = 6,
-  HOSTESCALATION = 7,
+  ANOMALYDETECTION = 0,
+  CONTACTGROUP = 1,
+  HOSTDEPENDENCY = 2,
+  HOSTESCALATION = 3,
+  SERVICEDEPENDENCY = 4,
+  SERVICEESCALATION = 5,
+  SERVICEGROUP = 6,
+  SEVERITY = 7,
+  TAG = 8,
 };
 
 static void CreateConf() {
@@ -166,6 +179,19 @@ static void CreateConf() {
              "   contact_groups                  +cg2\n"
              "   contacts                        contact2\n"
              "   service_groups                  +sg2\n"
+             "}\n");
+  CreateFile("/tmp/hostdependencies.cfg",
+             "define hostdependency {\n"
+             "    host_name                      host_1\n"
+             "    dependent_hostgroup_name       hg1,hg2\n"
+             "    dependent_host_name            host_2\n"
+             "    name                           hd_tmpl\n"
+             "}\n"
+             "define hostdependency {\n"
+             "    host                           host_2\n"
+             "    dependent_hostgroup_name       host_3\n"
+             "    dependent_host_name            host_2\n"
+             "    use                            hd_tmpl\n"
              "}\n");
   CreateFile("/tmp/servicedependencies.cfg",
              "define servicedependency {\n"
@@ -495,6 +521,7 @@ static void CreateConf() {
       "cfg_file=/tmp/servicegroups.cfg\n"
       "cfg_file=/tmp/timeperiods.cfg\n"
       "cfg_file=/tmp/tags.cfg\n"
+      "cfg_file=/tmp/hostdependencies.cfg\n"
       "cfg_file=/tmp/servicedependencies.cfg\n"
       "cfg_file=/tmp/ad.cfg\n"
       "cfg_file=/tmp/contactgroups.cfg\n"
@@ -674,12 +701,28 @@ static void CreateBadConf(ConfigurationObject obj) {
                  "    hostgroup_name                 hg1,hg2\n"
                  "    use                            he_tmpl\n"
                  "}\n");
+      break;
+    case ConfigurationObject::HOSTDEPENDENCY:
+      CreateFile("/tmp/hostdependencies.cfg",
+                 "define hostdependency {\n"
+                 "    dependent_hostgroup_name       hg1,hg2\n"
+                 "    dependent_host_name            host_2\n"
+                 "    name                           hd_tmpl\n"
+                 "}\n"
+                 "define servicedependency {\n"
+                 "    servicegroup_name              sg1\n"
+                 "    host                           host_1\n"
+                 "    dependent_hostgroup_name       host_3\n"
+                 "    dependent_host_name            host_2\n"
+                 "    use                            hd_tmpl\n"
+                 "}\n");
+      break;
     default:
       break;
   }
 }
 
-constexpr size_t CFG_FILES = 15u;
+constexpr size_t CFG_FILES = 16u;
 constexpr size_t RES_FILES = 1u;
 constexpr size_t HOSTS = 4u;
 constexpr size_t SERVICES = 4u;
@@ -725,8 +768,8 @@ TEST_F(ApplierState, DiffOnTimeperiodOneRemoved) {
       configuration::applier::state::instance().build_difference(pb_config,
                                                                  new_config);
   ASSERT_EQ(dstate.to_remove().size(), 1u);
-  // Number 23 is to remove.
-  ASSERT_EQ(dstate.to_remove()[0].key()[0].i32(), 23);
+  // Number 29 is to remove.
+  ASSERT_EQ(dstate.to_remove()[0].key()[0].i32(), 29);
   ASSERT_EQ(dstate.to_remove()[0].key()[1].i32(), 9);
   ASSERT_EQ(dstate.to_remove()[0].key().size(), 2);
   ASSERT_TRUE(dstate.to_add().empty());
@@ -785,8 +828,8 @@ TEST_F(ApplierState, DiffOnTimeperiodAliasRenamed) {
   ASSERT_EQ(dstate.to_modify().size(), 1u);
   const configuration::PathWithValue& path = dstate.to_modify()[0];
   ASSERT_EQ(path.path().key().size(), 4u);
-  // number 23 => timeperiods
-  ASSERT_EQ(path.path().key()[0].i32(), 23);
+  // number 29 => timeperiods
+  ASSERT_EQ(path.path().key()[0].i32(), 29);
   // index 7 => timeperiods[7]
   ASSERT_EQ(path.path().key()[1].i32(), 7);
   // number 2 => timeperiods.alias
@@ -819,8 +862,8 @@ TEST_F(ApplierState, DiffOnContactOneRemoved) {
   ASSERT_EQ(dstate.to_remove().size(), 1u);
 
   ASSERT_EQ(dstate.to_remove()[0].key().size(), 2);
-  // number 12 => for contacts
-  ASSERT_EQ(dstate.to_remove()[0].key()[0].i32(), 12);
+  // number 18 => for contacts
+  ASSERT_EQ(dstate.to_remove()[0].key()[0].i32(), 18);
   // "name 4" => contacts["name 4"]
   ASSERT_EQ(dstate.to_remove()[0].key()[1].str(), std::string("name 4"));
 
@@ -851,8 +894,8 @@ TEST_F(ApplierState, DiffOnContactOneAdded) {
   ASSERT_EQ(dstate.to_add().size(), 1u);
   const configuration::PathWithValue& to_add = dstate.to_add()[0];
   ASSERT_EQ(to_add.path().key().size(), 2u);
-  // Contact -> number 12
-  ASSERT_EQ(to_add.path().key()[0].i32(), 12);
+  // Contact -> number 18
+  ASSERT_EQ(to_add.path().key()[0].i32(), 18);
   // ASSERT_EQ(to_add.path().key()[1].str(), std::string("name 4"));
   ASSERT_TRUE(to_add.val().has_value_ct());
 }
@@ -887,7 +930,7 @@ TEST_F(ApplierState, DiffOnContactOneNewAddress) {
   ASSERT_TRUE(dstate.to_remove().empty());
   ASSERT_EQ(dstate.to_add()[0].path().key().size(), 4u);
   // Number of Contacts in State
-  ASSERT_EQ(dstate.to_add()[0].path().key()[0].i32(), 12);
+  ASSERT_EQ(dstate.to_add()[0].path().key()[0].i32(), 18);
   // Key to the context to change
   ASSERT_EQ(dstate.to_add()[0].path().key()[1].str(), std::string("name 3"));
   // Number of the object to modify
@@ -928,7 +971,7 @@ TEST_F(ApplierState, DiffOnContactFirstAddressRemoved) {
   ASSERT_EQ(dstate.to_remove().size(), 1u);
   ASSERT_EQ(dstate.to_modify()[0].path().key().size(), 4u);
   // Number of contacts in State
-  ASSERT_EQ(dstate.to_modify()[0].path().key()[0].i32(), 12);
+  ASSERT_EQ(dstate.to_modify()[0].path().key()[0].i32(), 18);
   // Key "name 3" to the good contact
   ASSERT_EQ(dstate.to_modify()[0].path().key()[1].str(), "name 3");
   // Number of addresses in Contact
@@ -940,7 +983,7 @@ TEST_F(ApplierState, DiffOnContactFirstAddressRemoved) {
 
   ASSERT_EQ(dstate.to_remove()[0].key().size(), 4u);
   // Number of contacts in State
-  ASSERT_EQ(dstate.to_remove()[0].key()[0].i32(), 12);
+  ASSERT_EQ(dstate.to_remove()[0].key()[0].i32(), 18);
   // Key "name 3" to the good contact
   ASSERT_EQ(dstate.to_remove()[0].key()[1].str(), "name 3");
   // Number of addresses in Contact
@@ -1662,5 +1705,19 @@ TEST_F(ApplierState, StateParsingHostescalationWithoutHost) {
   configuration::State config;
   configuration::parser p;
   CreateBadConf(ConfigurationObject::HOSTESCALATION);
+  ASSERT_THROW(p.parse("/tmp/centengine.cfg", &config), std::exception);
+}
+
+TEST_F(ApplierState, StateLegacyParsingHostdependencyWithoutHost) {
+  configuration::state config;
+  configuration::parser p;
+  CreateBadConf(ConfigurationObject::HOSTDEPENDENCY);
+  ASSERT_THROW(p.parse("/tmp/centengine.cfg", config), std::exception);
+}
+
+TEST_F(ApplierState, StateParsingHostdependencyWithoutHost) {
+  configuration::State config;
+  configuration::parser p;
+  CreateBadConf(ConfigurationObject::HOSTDEPENDENCY);
   ASSERT_THROW(p.parse("/tmp/centengine.cfg", &config), std::exception);
 }

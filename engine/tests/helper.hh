@@ -19,9 +19,11 @@
 #ifndef CENTREON_ENGINE_TESTS_HELPER_HH_
 #define CENTREON_ENGINE_TESTS_HELPER_HH_
 
-#include <com/centreon/engine/configuration/state.hh>
+#include "com/centreon/engine/configuration/state.hh"
+#include "configuration/state.pb.h"
 
 extern com::centreon::engine::configuration::state* config;
+extern com::centreon::engine::configuration::State pb_config;
 
 void init_config_state(void);
 void deinit_config_state(void);
