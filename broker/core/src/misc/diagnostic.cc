@@ -259,8 +259,8 @@ void diagnostic::generate(std::vector<std::string> const& cfg_files,
 
     // Log files.
 
-    char const* args[]{"tail", "-c", "20000000",
-                       conf.log_conf().log_path().c_str(), nullptr};
+    std::string log_path = conf.log_conf().log_path();
+    char const* args[]{"tail", "-c", "20000000", log_path.c_str(), nullptr};
     misc::exec_process(args, true);
   }
 

@@ -89,7 +89,7 @@ class engine {
   std::string _cache_file_path() const;
   void _send_to_subscribers();
 
-  void (engine::*_write_func)(std::shared_ptr<io::data> const&);
+  // void (engine::*_write_func)(std::shared_ptr<io::data> const&);
 
  public:
   static void load();

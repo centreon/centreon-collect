@@ -48,6 +48,7 @@ class contact {
   void add_object(const configuration::contact& obj);
   void expand_objects(configuration::State& s);
   void expand_objects(configuration::state& s);
+  void modify_object(const configuration::Contact& obj);
   void modify_object(const configuration::contact& obj);
   void remove_object(const configuration::Contact& obj);
   void remove_object(const configuration::contact& obj);

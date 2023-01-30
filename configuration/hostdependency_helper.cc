@@ -21,7 +21,10 @@
 
 using msg_fmt = com::centreon::exceptions::msg_fmt;
 
-namespace com::centreon::engine::configuration {
+namespace com {
+namespace centreon {
+namespace engine {
+namespace configuration {
 
 /**
  * @brief Constructor from a Hostdependency object.
@@ -106,5 +109,8 @@ void hostdependency_helper::_init() {
   obj->set_inherits_parent(false);
   obj->set_notification_failure_options(action_hd_none);
 }
+}  // namespace configuration
+}  // namespace engine
+}  // namespace centreon
 
-}  // namespace com::centreon::engine::configuration
+}  // namespace com

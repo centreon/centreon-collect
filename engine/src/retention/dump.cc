@@ -192,7 +192,7 @@ std::ostream& dump::customvariables(std::ostream& os,
                                     map_customvar const& obj) {
   for (auto const& cv : obj)
     os << "_" << cv.first << "=" << cv.second.has_been_modified() << ","
-       << cv.second.get_value() << "\n";
+       << cv.second.value() << "\n";
   return os;
 }
 

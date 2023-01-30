@@ -1243,7 +1243,7 @@ TEST_F(ApplierState, StateLegacyParsing) {
   ASSERT_EQ(adit->dependent_service_id(), 1);
   ASSERT_TRUE(adit->metric_name() == "metric2");
   ASSERT_EQ(adit->customvariables().size(), 1);
-  ASSERT_EQ(adit->customvariables().at("ad_cv").get_value(),
+  ASSERT_EQ(adit->customvariables().at("ad_cv").value(),
             std::string("this_is_a_test"));
   ASSERT_EQ(adit->contactgroups().size(), 2);
   ASSERT_EQ(adit->contacts().size(), 1);
