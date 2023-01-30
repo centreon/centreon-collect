@@ -9,7 +9,9 @@ libcurl/8.0.1
 libssh2/1.10.0
 mariadb-connector-c/3.3.3
 nlohmann_json/3.11.2
+openssl/1.1.1t
 opentelemetry-cpp/1.8.1
+protobuf/3.21.4
 spdlog/1.11.0
 zlib/1.2.13
 

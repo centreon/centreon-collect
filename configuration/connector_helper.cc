@@ -21,7 +21,10 @@
 
 using msg_fmt = com::centreon::exceptions::msg_fmt;
 
-namespace com::centreon::engine::configuration {
+namespace com {
+namespace centreon {
+namespace engine {
+namespace configuration {
 
 /**
  * @brief Constructor from a Connector object.
@@ -60,5 +63,8 @@ void connector_helper::check_validity() const {
         o->connector_name());
 }
 void connector_helper::_init() {}
+}  // namespace configuration
+}  // namespace engine
+}  // namespace centreon
 
-}  // namespace com::centreon::engine::configuration
+}  // namespace com

@@ -19,8 +19,13 @@
 
 #include "configuration/message_helper.hh"
 #include <absl/strings/str_split.h>
+#include "com/centreon/engine/configuration/host.hh"
+#include "com/centreon/engine/configuration/service.hh"
 
-namespace com::centreon::engine::configuration {
+namespace com {
+namespace centreon {
+namespace engine {
+namespace configuration {
 
 bool fill_pair_string_group(PairStringSet* grp,
                             const absl::string_view& value) {
@@ -103,6 +108,84 @@ void fill_string_group(StringList* grp, const absl::string_view& value) {
   }
 }
 
+/**
+ * @brief Parse host notification options as string and set an uint32_t to
+ * the corresponding values.
+ *
+ * @param options A pointer to the uint32_t to set/
+ * @param value A string of options seperated by a comma.
+ *
+ * @return True on success.
+ */
+bool fill_host_notification_options(uint32_t* options,
+                                    const absl::string_view& value) {
+  uint32_t tmp_options = host::none;
+  auto arr = absl::StrSplit(value, ',');
+  for (auto& v : arr) {
+    absl::string_view value = absl::StripAsciiWhitespace(v);
+    if (value == "d" || value == "down")
+      tmp_options |= configuration::host::down;
+    else if (value == "u" || value == "unreachable")
+      tmp_options |= configuration::host::unreachable;
+    else if (value == "r" || value == "recovery")
+      tmp_options |= configuration::host::up;
+    else if (value == "f" || value == "flapping")
+      tmp_options |= configuration::host::flapping;
+    else if (value == "s" || value == "downtime")
+      tmp_options |= configuration::host::downtime;
+    else if (value == "n" || value == "none")
+      tmp_options = configuration::host::none;
+    else if (value == "a" || value == "all")
+      tmp_options = configuration::host::down |
+                    configuration::host::unreachable | configuration::host::up |
+                    configuration::host::flapping |
+                    configuration::host::downtime;
+    else
+      return false;
+  }
+  *options = tmp_options;
+  return true;
+}
+
+/**
+ * @brief Parse host notification options as string and set an uint32_t to
+ * the corresponding values.
+ *
+ * @param options A pointer to the uint32_t to set/
+ * @param value A string of options seperated by a comma.
+ *
+ * @return True on success.
+ */
+bool fill_service_notification_options(uint32_t* options,
+                                       const absl::string_view& value) {
+  uint32_t tmp_options = service::none;
+  auto arr = absl::StrSplit(value, ',');
+  for (auto& v : arr) {
+    absl::string_view value = absl::StripAsciiWhitespace(v);
+    if (value == "u" || value == "unknown")
+      tmp_options |= service::unknown;
+    else if (value == "w" || value == "warning")
+      tmp_options |= service::warning;
+    else if (value == "c" || value == "critical")
+      tmp_options |= service::critical;
+    else if (value == "r" || value == "recovery")
+      tmp_options |= service::ok;
+    else if (value == "f" || value == "flapping")
+      tmp_options |= service::flapping;
+    else if (value == "s" || value == "downtime")
+      tmp_options |= service::downtime;
+    else if (value == "n" || value == "none")
+      tmp_options = service::none;
+    else if (value == "a" || value == "all")
+      tmp_options = service::unknown | service::warning | service::critical |
+                    service::ok | service::flapping | service::downtime;
+    else
+      return false;
+  }
+  *options = tmp_options;
+  return true;
+}
+
 absl::string_view message_helper::validate_key(
     const absl::string_view& key) const {
   absl::string_view retval;
@@ -114,4 +197,7 @@ absl::string_view message_helper::validate_key(
   return retval;
 }
 
-}  // namespace com::centreon::engine::configuration
+}  // namespace configuration
+}  // namespace engine
+}  // namespace centreon
+}  // namespace com

@@ -451,7 +451,7 @@ int xsddefault_save_status_data() {
     for (auto const& cv : it->second->custom_variables) {
       if (!cv.first.empty())
         stream << "\t_" << cv.first << "=" << cv.second.has_been_modified()
-               << ";" << cv.second.get_value() << "\n";
+               << ";" << cv.second.value() << "\n";
     }
     stream << "\t}\n\n";
   }
@@ -627,7 +627,7 @@ int xsddefault_save_status_data() {
     for (auto const& cv : it->second->custom_variables) {
       if (!cv.first.empty())
         stream << "\t_" << cv.first << "=" << cv.second.has_been_modified()
-               << ";" << cv.second.get_value() << "\n";
+               << ";" << cv.second.value() << "\n";
     }
     stream << "\t}\n\n";
   }
@@ -671,7 +671,7 @@ int xsddefault_save_status_data() {
     for (auto const& cv : cntct->get_custom_variables()) {
       if (!cv.first.empty())
         stream << "\t_" << cv.first << "=" << cv.second.has_been_modified()
-               << ";" << cv.second.get_value() << "\n";
+               << ";" << cv.second.value() << "\n";
     }
     stream << "\t}\n\n";
   }

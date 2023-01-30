@@ -79,6 +79,15 @@ std::vector<std::string> const& contact::get_addresses() const {
  *
  *  @param[in] addresses  New addresses.
  */
+void contact::set_addresses(std::vector<std::string>&& addresses) {
+  _addresses = std::move(addresses);
+}
+
+/**
+ *  Set addresses.
+ *
+ *  @param[in] addresses  New addresses.
+ */
 void contact::set_addresses(std::vector<std::string> const& addresses) {
   _addresses = addresses;
 }

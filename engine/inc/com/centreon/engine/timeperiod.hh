@@ -21,23 +21,25 @@
 #define CCE_OBJECTS_TIMEPERIOD_HH
 
 #include "com/centreon/engine/daterange.hh"
+#include "configuration/state-generated.pb.h"
 
 /* Forward declaration. */
 CCE_BEGIN()
 class timeperiod;
 CCE_END()
 
-typedef std::unordered_map<std::string,
-                           std::shared_ptr<com::centreon::engine::timeperiod>>
-    timeperiod_map;
-typedef std::unordered_multimap<std::string, com::centreon::engine::timeperiod*>
-    timeperiodexclusion;
+using timeperiod_map =
+    std::unordered_map<std::string,
+                       std::shared_ptr<com::centreon::engine::timeperiod>>;
+using timeperiodexclusion =
+    std::unordered_multimap<std::string, com::centreon::engine::timeperiod*>;
 
 CCE_BEGIN()
 
 class timeperiod {
  public:
   timeperiod(std::string const& name, std::string const& alias);
+  timeperiod(const configuration::Timeperiod& obj);
 
   std::string const& get_name() const { return _name; };
   void set_name(std::string const& name);

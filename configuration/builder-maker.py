@@ -172,6 +172,9 @@ void {cname}::_init() {{
 void {cname}::_init() {{\n"""]
         header = True
     cc_lines.append("}\n")
+    cc_lines.append("}\n")
+    cc_lines.append("}\n")
+    cc_lines.append("}\n")
     fhcc.writelines(cc_lines)
     fhcc.write("\n}")
 
@@ -202,7 +205,10 @@ def prepare_filehelper_cc(name: str):
 
 using msg_fmt = com::centreon::exceptions::msg_fmt;
 
-namespace com::centreon::engine::configuration {{
+namespace com {{
+namespace centreon {{
+namespace engine {{
+namespace configuration {{
 """)
     return fhcc
 
@@ -448,6 +454,26 @@ def build_hook_content(cname: str, msg):
     else
       return false;
     return true;
+  }
+""")
+    elif cname == 'Contact':
+        retval.append("""
+  if (key == "host_notification_options") {
+    uint32_t options;
+    if (fill_host_notification_options(&options, value)) {
+      obj->set_host_notification_options(options);
+      return true;
+    }
+    else
+      return false;
+  } else if (key == "service_notification_options") {
+    uint32_t options;
+    if (fill_service_notification_options(&options, value)) {
+      obj->set_service_notification_options(options);
+      return true;
+    }
+    else
+      return false;
   }
 """)
 
