@@ -1,5 +1,5 @@
 /**
-* Copyright 2011-2013,2017 Centreon
+* Copyright 2011-2013,2017,2023 Centreon
 *
 * This file is part of Centreon Engine.
 *
@@ -27,36 +27,6 @@
 #include "com/centreon/engine/log_v2.hh"
 
 using namespace com::centreon::engine::configuration;
-
-/**
- *  Default constructor.
- */
-applier::timeperiod::timeperiod() {}
-
-/**
- *  Copy constructor.
- *
- *  @param[in] right Object to copy.
- */
-applier::timeperiod::timeperiod(applier::timeperiod const& right) {
-  (void)right;
-}
-
-/**
- *  Destructor.
- */
-applier::timeperiod::~timeperiod() throw() {}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] right Object to copy.
- */
-applier::timeperiod& applier::timeperiod::operator=(
-    applier::timeperiod const& right) {
-  (void)right;
-  return (*this);
-}
 
 /**
  *  Add new time period.
@@ -88,6 +58,30 @@ void applier::timeperiod::add_object(configuration::timeperiod const& obj) {
   tp->days = obj.timeranges();
   tp->exceptions = obj.exceptions();
   _add_exclusions(obj.exclude(), tp.get());
+}
+
+/**
+ * @brief Add new time period.
+ *
+ *  @param[in] obj  The new time period to add in the monitoring engine.
+ */
+void applier::timeperiod::add_object(const configuration::Timeperiod& obj) {
+  // Logging.
+  log_v2::config()->debug("Creating new time period '{}'.",
+                          obj.timeperiod_name());
+
+  // Add time period to the global configuration set.
+  configuration::Timeperiod* c_tp = pb_config.add_timeperiods();
+  c_tp->CopyFrom(obj);
+
+  // Create time period.
+  auto tp = std::make_shared<engine::timeperiod>(obj);
+  engine::timeperiod::timeperiods.insert({obj.timeperiod_name(), tp});
+
+  // Notify event broker.
+  timeval tv(get_broker_timestamp(nullptr));
+  broker_adaptive_timeperiod_data(NEBTYPE_TIMEPERIOD_ADD, NEBFLAG_NONE,
+                                  NEBATTR_NONE, tp.get(), CMD_NONE, &tv);
 }
 
 /**

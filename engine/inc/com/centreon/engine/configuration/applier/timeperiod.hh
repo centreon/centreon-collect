@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013,2017 Centreon
+** Copyright 2011-2013,2017,2023 Centreon
 **
 ** This file is part of Centreon Engine.
 **
@@ -34,11 +34,18 @@ class timeperiod;
 namespace applier {
 class timeperiod {
  public:
-  timeperiod();
+  /**
+   * @brief Default constructor.
+   */
+  timeperiod() = default;
   timeperiod(timeperiod const& right);
-  ~timeperiod() throw();
-  timeperiod& operator=(timeperiod const& right);
-  void add_object(configuration::timeperiod const& obj);
+  /**
+   * @brief Destructor.
+   */
+  ~timeperiod() noexcept = default;
+  timeperiod& operator=(timeperiod const&) = delete;
+  void add_object(const configuration::Timeperiod& obj);
+  void add_object(const configuration::timeperiod& obj);
   void expand_objects(configuration::state& s);
   void expand_objects(configuration::State& s);
   void modify_object(configuration::timeperiod const& obj);

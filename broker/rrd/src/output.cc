@@ -220,26 +220,26 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
           }
           std::string v;
           switch (m.value_type()) {
-            case misc::perfdata::gauge:
+            case Metric_ValueType_GAUGE:
               v = fmt::format("{:f}", m.value());
               SPDLOG_LOGGER_TRACE(log_v2::rrd(),
                                   "RRD: update metric {} of type GAUGE with {}",
                                   m.metric_id(), v);
               break;
-            case misc::perfdata::counter:
+            case Metric_ValueType_COUNTER:
               v = fmt::format("{}", static_cast<uint64_t>(m.value()));
               SPDLOG_LOGGER_TRACE(
                   log_v2::rrd(),
                   "RRD: update metric {} of type COUNTER with {}",
                   m.metric_id(), v);
               break;
-            case misc::perfdata::derive:
+            case Metric_ValueType_DERIVE:
               v = fmt::format("{}", static_cast<int64_t>(m.value()));
               SPDLOG_LOGGER_TRACE(
                   log_v2::rrd(), "RRD: update metric {} of type DERIVE with {}",
                   m.metric_id(), v);
               break;
-            case misc::perfdata::absolute:
+            case Metric_ValueType_ABSOLUTE:
               v = fmt::format("{}", static_cast<uint64_t>(m.value()));
               SPDLOG_LOGGER_TRACE(
                   log_v2::rrd(),

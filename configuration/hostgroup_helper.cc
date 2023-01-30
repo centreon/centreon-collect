@@ -21,7 +21,10 @@
 
 using msg_fmt = com::centreon::exceptions::msg_fmt;
 
-namespace com::centreon::engine::configuration {
+namespace com {
+namespace centreon {
+namespace engine {
+namespace configuration {
 
 /**
  * @brief Constructor from a Hostgroup object.
@@ -62,5 +65,8 @@ void hostgroup_helper::check_validity() const {
   }
 }
 void hostgroup_helper::_init() {}
+}  // namespace configuration
+}  // namespace engine
+}  // namespace centreon
 
-}  // namespace com::centreon::engine::configuration
+}  // namespace com

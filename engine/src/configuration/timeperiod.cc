@@ -129,8 +129,8 @@ bool timeperiod::operator<(timeperiod const& right) const {
  */
 void timeperiod::check_validity() const {
   if (_timeperiod_name.empty())
-    throw(engine_error()
-          << "Time period has no name (property 'timeperiod_name')");
+    throw engine_error()
+        << "Time period has no name (property 'timeperiod_name')";
 }
 
 /**

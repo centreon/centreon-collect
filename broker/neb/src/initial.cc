@@ -77,7 +77,7 @@ static void send_custom_variables_list(
         nscvd.type = NEBTYPE_HOSTCUSTOMVARIABLE_ADD;
         nscvd.timestamp.tv_sec = time(nullptr);
         nscvd.var_name = const_cast<char*>(name.c_str());
-        nscvd.var_value = const_cast<char*>(cit->second.get_value().c_str());
+        nscvd.var_value = const_cast<char*>(cit->second.value().c_str());
         nscvd.object_ptr = it->second.get();
 
         // Callback.
@@ -104,7 +104,7 @@ static void send_custom_variables_list(
         nscvd.type = NEBTYPE_SERVICECUSTOMVARIABLE_ADD;
         nscvd.timestamp.tv_sec = time(nullptr);
         nscvd.var_name = const_cast<char*>(name.c_str());
-        nscvd.var_value = const_cast<char*>(cit->second.get_value().c_str());
+        nscvd.var_value = const_cast<char*>(cit->second.value().c_str());
         nscvd.object_ptr = it->second.get();
 
         // Callback.

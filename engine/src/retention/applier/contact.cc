@@ -81,8 +81,8 @@ void applier::contact::_update(configuration::state const& config,
       if (obj->get_modified_host_attributes() &
           MODATTR_NOTIFICATION_TIMEPERIOD) {
         timeperiod* temp_timeperiod(nullptr);
-        timeperiod_map::const_iterator found(
-            timeperiod::timeperiods.find(state.host_notification_period()));
+        timeperiod_map::const_iterator found =
+            timeperiod::timeperiods.find(state.host_notification_period());
 
         if (found != timeperiod::timeperiods.end())
           temp_timeperiod = found->second.get();
@@ -129,7 +129,7 @@ void applier::contact::_update(configuration::state const& config,
     if (!state.customvariables().empty() &&
         (obj->get_modified_attributes() & MODATTR_CUSTOM_VARIABLE)) {
       for (auto const& cv : state.customvariables()) {
-        obj->get_custom_variables()[cv.first].update(cv.second.get_value());
+        obj->get_custom_variables()[cv.first].update(cv.second.value());
       }
     }
   }

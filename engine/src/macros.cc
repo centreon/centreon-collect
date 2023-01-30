@@ -645,7 +645,7 @@ int grab_custom_object_macro_r(nagios_macros* mac,
   /* get the custom variable */
   for (auto const& cv : vars) {
     if (macro_name == cv.first) {
-      output = cv.second.get_value();
+      output = cv.second.value();
       result = OK;
       break;
     }

@@ -1,5 +1,5 @@
 /**
- * Copyright 2017 - 2019 Centreon (https://www.centreon.com/)
+ * Copyright 2017-2019,2023 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,9 +26,11 @@
 #include "com/centreon/engine/configuration/contact.hh"
 #include "com/centreon/engine/contact.hh"
 #include "com/centreon/engine/contactgroup.hh"
+#include "configuration/command_helper.hh"
 #include "configuration/contact_helper.hh"
 #include "configuration/contactgroup_helper.hh"
 #include "configuration/message_helper.hh"
+#include "configuration/timeperiod_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -77,7 +79,56 @@ class ApplierContact : public ::testing::Test {
     ctct.parse("service_notification_commands", "cmd");
     return ctct;
   }
+
+  configuration::Contact valid_pb_contact_config() const {
+    // Add command.
+    {
+      configuration::Command cmd;
+      configuration::command_helper cmd_hlp(&cmd);
+      cmd.set_command_name("cmd");
+      cmd.set_command_line("true");
+      configuration::applier::command aplyr;
+      aplyr.add_object(cmd);
+    }
+    // Add timeperiod.
+    {
+      configuration::Timeperiod tperiod;
+      configuration::timeperiod_helper tp_help(&tperiod);
+      tperiod.set_timeperiod_name("24x7");
+      tperiod.set_alias("24x7");
+      configuration::TimeRange* tr = tperiod.mutable_timeranges()->add_monday();
+      // monday: 00:00-24:00
+      tr->set_range_start(0);
+      tr->set_range_end(24 * 3600);
+      configuration::applier::timeperiod aplyr;
+      aplyr.add_object(tperiod);
+    }
+    // Valid contact configuration
+    // (will generate 0 warnings or 0 errors).
+    configuration::Contact ctct;
+    ctct.set_contact_name("admin");
+    ctct.set_host_notification_period("24x7");
+    ctct.set_service_notification_period("24x7");
+    fill_string_group(ctct.mutable_host_notification_commands(), "cmd");
+    fill_string_group(ctct.mutable_service_notification_commands(), "cmd");
+    return ctct;
+  }
 };
+
+// Given a contact applier
+// And a configuration contact
+// When we modify the contact configuration with an unexisting contact
+// configuration
+// Then an exception is thrown.
+TEST_F(ApplierContact, PbModifyUnexistingContactConfigFromConfig) {
+  configuration::applier::contact aply;
+  configuration::Contact ctct;
+  configuration::contact_helper hlp(&ctct);
+  ctct.set_contact_name("test");
+  fill_string_group(ctct.mutable_contactgroups(), "test_group");
+  fill_string_group(ctct.mutable_host_notification_commands(), "cmd1,cmd2");
+  ASSERT_THROW(aply.modify_object(ctct), std::exception);
+}
 
 // Given a contact applier
 // And a configuration contact
@@ -89,6 +140,21 @@ TEST_F(ApplierContact, ModifyUnexistingContactConfigFromConfig) {
   configuration::contact ctct("test");
   ASSERT_TRUE(ctct.parse("contactgroups", "test_group"));
   ASSERT_TRUE(ctct.parse("host_notification_commands", "cmd1,cmd2"));
+  ASSERT_THROW(aply.modify_object(ctct), std::exception);
+}
+
+// Given a contact applier
+// And a configuration contact
+// When we modify the contact configuration with an unexisting contact
+// Then an exception is thrown.
+TEST_F(ApplierContact, PbModifyUnexistingContactFromConfig) {
+  configuration::applier::contact aply;
+  configuration::Contact ctct;
+  configuration::contact_helper hlp(&ctct);
+  ctct.set_contact_name("test");
+  fill_string_group(ctct.mutable_contactgroups(), "test_group");
+  fill_string_group(ctct.mutable_host_notification_commands(), "cmd1,cmd2");
+  (*pb_config.mutable_contacts())[ctct.contact_name()] = ctct;
   ASSERT_THROW(aply.modify_object(ctct), std::exception);
 }
 
@@ -171,8 +237,7 @@ TEST_F(ApplierContact, ModifyContactFromConfig) {
   ASSERT_TRUE(ctct.parse("service_notification_commands", "svc1,svc2"));
   ASSERT_TRUE(ctct.parse("_superVar", "superValue"));
   ASSERT_TRUE(ctct.customvariables().size() == 1);
-  ASSERT_TRUE(ctct.customvariables().at("superVar").get_value() ==
-              "superValue");
+  ASSERT_TRUE(ctct.customvariables().at("superVar").value() == "superValue");
 
   configuration::applier::command cmd_aply;
   configuration::applier::connector cnn_aply;
@@ -197,9 +262,9 @@ TEST_F(ApplierContact, ModifyContactFromConfig) {
   contact_map::const_iterator ct_it{engine::contact::contacts.find("test")};
   ASSERT_TRUE(ct_it != engine::contact::contacts.end());
   ASSERT_EQ(ct_it->second->get_custom_variables().size(), 2u);
-  ASSERT_TRUE(ct_it->second->get_custom_variables()["superVar"].get_value() ==
+  ASSERT_TRUE(ct_it->second->get_custom_variables()["superVar"].value() ==
               "Super");
-  ASSERT_TRUE(ct_it->second->get_custom_variables()["superVar1"].get_value() ==
+  ASSERT_TRUE(ct_it->second->get_custom_variables()["superVar1"].value() ==
               "Super1");
   ASSERT_TRUE(ct_it->second->get_alias() == "newAlias");
   ASSERT_FALSE(ct_it->second->notify_on(notifier::service_notification,
@@ -296,6 +361,26 @@ TEST_F(ApplierContact, ResolveContactNoNotification) {
 // Then no exception is thrown
 // And no errors are returned
 // And links are properly resolved
+TEST_F(ApplierContact, PbResolveValidContact) {
+  configuration::applier::contact aply;
+  configuration::Contact ctct(valid_pb_contact_config());
+  aply.add_object(ctct);
+  aply.expand_objects(pb_config);
+  ASSERT_NO_THROW(aply.resolve_object(ctct));
+  ASSERT_EQ(config_warnings, 0);
+  ASSERT_EQ(config_errors, 0);
+}
+
+// Given a valid contact
+//   - valid host notification period
+//   - valid service notification period
+//   - valid host notification command
+//   - valid service notification command
+// And an applier
+// When resolve_object() is called
+// Then no exception is thrown
+// And no errors are returned
+// And links are properly resolved
 TEST_F(ApplierContact, ResolveValidContact) {
   configuration::applier::contact aply;
   configuration::contact ctct(valid_contact_config());
@@ -311,10 +396,42 @@ TEST_F(ApplierContact, ResolveValidContact) {
 // When adding a non-existing service notification period to the contact
 // Then the resolve method throws
 // And returns 1 error
+TEST_F(ApplierContact, PbResolveNonExistingServiceNotificationTimeperiod) {
+  configuration::applier::contact aply;
+  configuration::Contact ctct(valid_pb_contact_config());
+  ctct.set_service_notification_period("non_existing_period");
+  aply.add_object(ctct);
+  aply.expand_objects(pb_config);
+  ASSERT_THROW(aply.resolve_object(ctct), std::exception);
+  ASSERT_EQ(config_warnings, 0);
+  ASSERT_EQ(config_errors, 1);
+}
+
+// Given a valid contact
+// And an applier
+// When adding a non-existing service notification period to the contact
+// Then the resolve method throws
+// And returns 1 error
 TEST_F(ApplierContact, ResolveNonExistingServiceNotificationTimeperiod) {
   configuration::applier::contact aply;
   configuration::contact ctct(valid_contact_config());
   ctct.parse("service_notification_period", "non_existing_period");
+  aply.add_object(ctct);
+  aply.expand_objects(*config);
+  ASSERT_THROW(aply.resolve_object(ctct), std::exception);
+  ASSERT_EQ(config_warnings, 0);
+  ASSERT_EQ(config_errors, 1);
+}
+
+// Given a valid contact
+// And an applier
+// When adding a non-existing host notification period to the contact
+// Then the resolve method throws
+// And returns 1 error
+TEST_F(ApplierContact, PbResolveNonExistingHostNotificationTimeperiod) {
+  configuration::applier::contact aply;
+  configuration::Contact ctct(valid_pb_contact_config());
+  ctct.set_host_notification_period("non_existing_period");
   aply.add_object(ctct);
   aply.expand_objects(*config);
   ASSERT_THROW(aply.resolve_object(ctct), std::exception);
@@ -343,12 +460,46 @@ TEST_F(ApplierContact, ResolveNonExistingHostNotificationTimeperiod) {
 // When adding a non-existing service command to the contact
 // Then the resolve method throws
 // And returns 1 error
+TEST_F(ApplierContact, PbResolveNonExistingServiceCommand) {
+  configuration::applier::contact aply;
+  configuration::Contact ctct(valid_pb_contact_config());
+  fill_string_group(ctct.mutable_service_notification_commands(),
+                    "non_existing_command");
+  aply.add_object(ctct);
+  aply.expand_objects(pb_config);
+  ASSERT_THROW(aply.resolve_object(ctct), std::exception);
+  ASSERT_EQ(config_warnings, 0);
+  ASSERT_EQ(config_errors, 1);
+}
+
+// Given a valid contact
+// And an applier
+// When adding a non-existing service command to the contact
+// Then the resolve method throws
+// And returns 1 error
 TEST_F(ApplierContact, ResolveNonExistingServiceCommand) {
   configuration::applier::contact aply;
   configuration::contact ctct(valid_contact_config());
   ctct.parse("service_notification_commands", "non_existing_command");
   aply.add_object(ctct);
   aply.expand_objects(*config);
+  ASSERT_THROW(aply.resolve_object(ctct), std::exception);
+  ASSERT_EQ(config_warnings, 0);
+  ASSERT_EQ(config_errors, 1);
+}
+
+// Given a valid contact
+// And an applier
+// When adding a non-existing host command to the contact
+// Then the resolve method throws
+// And returns 1 error
+TEST_F(ApplierContact, PbResolveNonExistingHostCommand) {
+  configuration::applier::contact aply;
+  configuration::Contact ctct(valid_pb_contact_config());
+  fill_string_group(ctct.mutable_host_notification_commands(),
+                    "non_existing_command");
+  aply.add_object(ctct);
+  aply.expand_objects(pb_config);
   ASSERT_THROW(aply.resolve_object(ctct), std::exception);
   ASSERT_EQ(config_warnings, 0);
   ASSERT_EQ(config_errors, 1);
@@ -421,6 +572,28 @@ TEST_F(ApplierContact, ResolveNonExistingHostCommand) {
 // But not on down or unreachable host
 // When resolve_object() is called
 // Then a warning is returned
+TEST_F(ApplierContact, PbContactWithOnlyHostRecoveryNotification) {
+  configuration::applier::contact aply;
+  configuration::Contact ctct(valid_pb_contact_config());
+  uint32_t options;
+  fill_host_notification_options(&options, "r");
+  ctct.set_host_notification_options(options);
+  fill_service_notification_options(&options, "n");
+  ctct.set_service_notification_options(options);
+  ctct.set_host_notifications_enabled("1");
+  ctct.set_service_notifications_enabled("1");
+  aply.add_object(ctct);
+  aply.expand_objects(pb_config);
+  aply.resolve_object(ctct);
+  ASSERT_EQ(config_warnings, 1);
+  ASSERT_EQ(config_errors, 0);
+}
+
+// Given a valid contact
+// And the contact is notified on host recovery
+// But not on down or unreachable host
+// When resolve_object() is called
+// Then a warning is returned
 TEST_F(ApplierContact, ContactWithOnlyHostRecoveryNotification) {
   configuration::applier::contact aply;
   configuration::contact ctct(valid_contact_config());
@@ -430,6 +603,28 @@ TEST_F(ApplierContact, ContactWithOnlyHostRecoveryNotification) {
   ctct.parse("service_notifications_enabled", "1");
   aply.add_object(ctct);
   aply.expand_objects(*config);
+  aply.resolve_object(ctct);
+  ASSERT_EQ(config_warnings, 1);
+  ASSERT_EQ(config_errors, 0);
+}
+
+// Given a valid contact
+// And the contact is notified on service recovery
+// But not on critical, warning or unknown service
+// When resolve_object() is called
+// Then a warning is returned
+TEST_F(ApplierContact, PbContactWithOnlyServiceRecoveryNotification) {
+  configuration::applier::contact aply;
+  configuration::Contact ctct(valid_pb_contact_config());
+  uint32_t options;
+  fill_host_notification_options(&options, "n");
+  ctct.set_host_notification_options(options);
+  fill_service_notification_options(&options, "r");
+  ctct.set_service_notification_options(options);
+  ctct.set_host_notifications_enabled(true);
+  ctct.set_service_notifications_enabled(true);
+  aply.add_object(ctct);
+  aply.expand_objects(pb_config);
   aply.resolve_object(ctct);
   ASSERT_EQ(config_warnings, 1);
   ASSERT_EQ(config_errors, 0);
