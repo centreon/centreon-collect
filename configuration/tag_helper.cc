@@ -21,7 +21,10 @@
 
 using msg_fmt = com::centreon::exceptions::msg_fmt;
 
-namespace com::centreon::engine::configuration {
+namespace com {
+namespace centreon {
+namespace engine {
+namespace configuration {
 
 /**
  * @brief Constructor from a Tag object.
@@ -95,5 +98,8 @@ void tag_helper::_init() {
   obj->mutable_key()->set_id(0);
   obj->mutable_key()->set_type(-1);
 }
+}  // namespace configuration
+}  // namespace engine
+}  // namespace centreon
 
-}  // namespace com::centreon::engine::configuration
+}  // namespace com

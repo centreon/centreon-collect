@@ -36,6 +36,10 @@ using Message = ::google::protobuf::Message;
 bool fill_pair_string_group(PairStringSet* grp, const absl::string_view& value);
 void fill_string_group(StringList* grp, const absl::string_view& value);
 void fill_string_group(StringSet* grp, const absl::string_view& value);
+bool fill_host_notification_options(uint32_t* options,
+                                    const absl::string_view& value);
+bool fill_service_notification_options(uint32_t* options,
+                                       const absl::string_view& value);
 
 class message_helper {
  public:

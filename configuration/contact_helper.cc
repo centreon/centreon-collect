@@ -21,7 +21,10 @@
 
 using msg_fmt = com::centreon::exceptions::msg_fmt;
 
-namespace com::centreon::engine::configuration {
+namespace com {
+namespace centreon {
+namespace engine {
+namespace configuration {
 
 /**
  * @brief Constructor from a Contact object.
@@ -48,7 +51,22 @@ contact_helper::contact_helper(Contact* obj)
 bool contact_helper::hook(const absl::string_view& key,
                           const absl::string_view& value) {
   Contact* obj = static_cast<Contact*>(mut_obj());
-  if (key == "contactgroups") {
+
+  if (key == "host_notification_options") {
+    uint32_t options;
+    if (fill_host_notification_options(&options, value)) {
+      obj->set_host_notification_options(options);
+      return true;
+    } else
+      return false;
+  } else if (key == "service_notification_options") {
+    uint32_t options;
+    if (fill_service_notification_options(&options, value)) {
+      obj->set_service_notification_options(options);
+      return true;
+    } else
+      return false;
+  } else if (key == "contactgroups") {
     fill_string_group(obj->mutable_contactgroups(), value);
     return true;
   } else if (key == "host_notification_commands") {
@@ -85,5 +103,8 @@ void contact_helper::_init() {
   obj->set_service_notification_options(action_svc_none);
   obj->set_service_notifications_enabled(true);
 }
+}  // namespace configuration
+}  // namespace engine
+}  // namespace centreon
 
-}  // namespace com::centreon::engine::configuration
+}  // namespace com

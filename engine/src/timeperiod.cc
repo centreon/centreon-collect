@@ -65,6 +65,66 @@ timeperiod::timeperiod(std::string const& name, std::string const& alias)
   }
 }
 
+/**
+ * @brief Constructor of a timeperiod from its configuration protobuf object.
+ *
+ * @param obj The configuration protobuf object.
+ */
+timeperiod::timeperiod(const configuration::Timeperiod& obj)
+    : _name{obj.timeperiod_name()}, _alias{obj.alias()} {
+  if (_name.empty() || _alias.empty()) {
+    log_v2::config()->error("Error: Name or alias for timeperiod is empty");
+    throw engine_error() << "Could not register time period '" << _name << "'";
+  }
+
+  // Check if the timeperiod already exist.
+  timeperiod_map::const_iterator it{timeperiod::timeperiods.find(_name)};
+  if (it != timeperiod::timeperiods.end()) {
+    log_v2::config()->error("Error: Timeperiod '{}' has already been defined",
+                            _name);
+    throw engine_error() << "Could not register time period '" << _name << "'";
+  }
+
+  // Fill time period structure.
+  for (auto& r : obj.timeranges().sunday())
+    days[0].emplace_back(r.range_start(), r.range_end());
+  for (auto& r : obj.timeranges().monday())
+    days[1].emplace_back(r.range_start(), r.range_end());
+  for (auto& r : obj.timeranges().tuesday())
+    days[2].emplace_back(r.range_start(), r.range_end());
+  for (auto& r : obj.timeranges().wednesday())
+    days[3].emplace_back(r.range_start(), r.range_end());
+  for (auto& r : obj.timeranges().thursday())
+    days[4].emplace_back(r.range_start(), r.range_end());
+  for (auto& r : obj.timeranges().friday())
+    days[5].emplace_back(r.range_start(), r.range_end());
+  for (auto& r : obj.timeranges().saturday())
+    days[6].emplace_back(r.range_start(), r.range_end());
+
+  auto fill_exceptions = [this](const auto& obj_daterange, int idx) {
+    for (auto& r : obj_daterange) {
+      exceptions[idx].emplace_back(
+          static_cast<daterange::type_range>(r.type()), r.syear(), r.smon(),
+          r.smday(), r.swday(), r.swday_offset(), r.eyear(), r.emon(),
+          r.emday(), r.ewday(), r.ewday_offset(), r.skip_interval());
+      daterange& d = exceptions[idx].back();
+      std::list<timerange> tr;
+      for (auto& t : r.timerange())
+        tr.emplace_back(t.range_start(), t.range_end());
+      d.set_timerange(tr);
+    }
+  };
+
+  fill_exceptions(obj.exceptions().calendar_date(), 0);
+  fill_exceptions(obj.exceptions().month_date(), 1);
+  fill_exceptions(obj.exceptions().month_day(), 2);
+  fill_exceptions(obj.exceptions().month_week_day(), 3);
+  fill_exceptions(obj.exceptions().week_day(), 4);
+
+  for (auto& s : obj.exclude().data())
+    _exclusions.emplace(s, nullptr);
+}
+
 void timeperiod::set_name(std::string const& name) {
   _name = name;
 }
