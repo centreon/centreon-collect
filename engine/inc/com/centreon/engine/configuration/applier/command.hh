@@ -47,6 +47,7 @@ class command {
   ~command() noexcept = default;
   command(const command&) = delete;
   command& operator=(const command&) = delete;
+  void add_object(const configuration::Command& obj);
   void add_object(const configuration::command& obj);
   void expand_objects(configuration::State& s);
   void expand_objects(configuration::state& s);

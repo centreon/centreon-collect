@@ -51,23 +51,23 @@ static constexpr const char result[] =
     "Centreon is wonderful\n"
     "\x00\x00\x00\x00";
 
-static constexpr const char result_warning[] =
+static constexpr absl::string_view result_warning(
     "3\x00"
     "4242\x00"
     "1\x00"
     "1\x00"
     " \x00"
     "Centreon is wonderful\n"
-    "\x00\x00\x00\x00";
+    "\x00\x00\x00\x00");
 
-static constexpr const char result_critical[] =
+static constexpr absl::string_view result_critical(
     "3\x00"
     "4242\x00"
     "1\x00"
     "2\x00"
     " \x00"
     "Centreon is wonderful\n"
-    "\x00\x00\x00\x00";
+    "\x00\x00\x00\x00");
 
 static constexpr std::size_t count = 300;
 
@@ -108,13 +108,13 @@ static constexpr const char scripts[] =
   " time out time out\0"  \
   " \0\0\0\0"
 
-#define TimeoutKillTermRESULT \
-  "3\0"                       \
-  "4242\0"                    \
-  "1\0"                       \
-  "15\0"                      \
-  " time out\0"               \
-  " \0\0\0\0"
+constexpr absl::string_view TimeoutKillTermRESULT(
+    "3\0"
+    "4242\0"
+    "1\0"
+    "15\0"
+    " time out\0"
+    " \0\0\0\0");
 
 #define TimeoutTermCMD \
   "2\0"                \
@@ -551,10 +551,7 @@ TEST_F(TestConnector, ExecuteSingleWarningScript) {
   // Remove temporary files.
   remove(script_path.c_str());
 
-  ASSERT_EQ(retval, 0);
-  std::string expected(result_warning,
-                       result_warning + sizeof(result_warning) - 1);
-  ASSERT_EQ(output, expected);
+  ASSERT_EQ(output, result_warning);
 }
 
 TEST_F(TestConnector, ExecuteSingleCriticalScript) {
@@ -587,9 +584,7 @@ TEST_F(TestConnector, ExecuteSingleCriticalScript) {
   remove(script_path.c_str());
 
   ASSERT_EQ(retval, 0);
-  std::string expected(result_critical,
-                       result_critical + sizeof(result_critical) - 1);
-  ASSERT_EQ(output, expected);
+  ASSERT_EQ(output, result_critical);
 }
 
 TEST_F(TestConnector, ExecuteSingleScriptLogFile) {
@@ -726,8 +721,7 @@ TEST_F(TestConnector, TimeoutKill) {
   int retval{wait_for_termination(*p)};
 
   ASSERT_EQ(retval, 0);
-  std::string expected(TimeoutKillRESULT,
-                       TimeoutKillRESULT + sizeof(TimeoutKillRESULT) - 1);
+  absl::string_view expected(TimeoutKillRESULT, sizeof(TimeoutKillRESULT) - 1);
   ASSERT_EQ(output, expected);
 }
 
@@ -748,8 +742,5 @@ TEST_F(TestConnector, TimeoutTerm) {
   int retval{wait_for_termination(*p)};
 
   ASSERT_EQ(retval, 0);
-  std::string expected(
-      TimeoutKillTermRESULT,
-      TimeoutKillTermRESULT + sizeof(TimeoutKillTermRESULT) - 1);
-  ASSERT_EQ(output, expected);
+  ASSERT_EQ(output, TimeoutKillTermRESULT);
 }

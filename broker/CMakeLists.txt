@@ -104,9 +104,6 @@ add_custom_command(
   COMMAND ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out="${SRC_DIR}"
           --proto_path=${SRC_DIR} ${SRC_DIR}/broker.proto)
 
-add_custom_target("target_broker_message" DEPENDS "${SRC_DIR}/broker.pb.cc"
-                                                  "${SRC_DIR}/broker.pb.h")
-
 include_directories(${SRC_DIR})
 
 add_library(berpc STATIC ${SRC_DIR}/broker.grpc.pb.cc ${SRC_DIR}/broker.pb.cc
@@ -457,8 +454,8 @@ target_link_libraries(
   dl)
 
 add_library(roker STATIC ${SRC_DIR}/config/applier/init.cc)
-target_link_libraries(roker rokerbase CONAN_PKG::openssl CONAN_PKG::grpc
-                      pthread dl)
+target_link_libraries(roker rokerbase dl CONAN_PKG::openssl CONAN_PKG::grpc
+                      pthread)
 
 # Standalone binary.
 add_executable(cbd ${SRC_DIR}/main.cc)
