@@ -21,7 +21,10 @@
 
 using msg_fmt = com::centreon::exceptions::msg_fmt;
 
-namespace com::centreon::engine::configuration {
+namespace com {
+namespace centreon {
+namespace engine {
+namespace configuration {
 
 /**
  * @brief Constructor from a Timeperiod object.
@@ -94,5 +97,8 @@ void timeperiod_helper::check_validity() const {
     throw msg_fmt("Time period has no name (property 'timeperiod_name')");
 }
 void timeperiod_helper::_init() {}
+}  // namespace configuration
+}  // namespace engine
+}  // namespace centreon
 
-}  // namespace com::centreon::engine::configuration
+}  // namespace com

@@ -32,7 +32,8 @@ class file_info {
  public:
   file_info(const std::string& path, uint32_t line)
       : _line(line), _path(path) {}
-  file_info(file_info&& other) : _line{other._line}, _path{std::move(_path)} {}
+  file_info(file_info&& other)
+      : _line{other._line}, _path{std::move(other._path)} {}
   ~file_info() noexcept = default;
   file_info(const file_info&) = delete;
   file_info& operator=(const file_info&) = delete;
