@@ -194,7 +194,7 @@ void applier::service::add_object(configuration::service const& obj) {
     if (it->second.is_sent()) {
       timeval tv(get_broker_timestamp(nullptr));
       broker_custom_variable(NEBTYPE_SERVICECUSTOMVARIABLE_ADD, svc,
-                             it->first.c_str(), it->second.get_value().c_str(),
+                             it->first.c_str(), it->second.value().c_str(),
                              &tv);
     }
   }
@@ -483,8 +483,7 @@ void applier::service::modify_object(configuration::service const& obj) {
       if (c.second.is_sent()) {
         timeval tv(get_broker_timestamp(nullptr));
         broker_custom_variable(NEBTYPE_SERVICECUSTOMVARIABLE_DELETE, s.get(),
-                               c.first.c_str(), c.second.get_value().c_str(),
-                               &tv);
+                               c.first.c_str(), c.second.value().c_str(), &tv);
       }
     }
     s->custom_variables.clear();
@@ -495,8 +494,7 @@ void applier::service::modify_object(configuration::service const& obj) {
       if (c.second.is_sent()) {
         timeval tv(get_broker_timestamp(nullptr));
         broker_custom_variable(NEBTYPE_SERVICECUSTOMVARIABLE_ADD, s.get(),
-                               c.first.c_str(), c.second.get_value().c_str(),
-                               &tv);
+                               c.first.c_str(), c.second.value().c_str(), &tv);
       }
     }
   }

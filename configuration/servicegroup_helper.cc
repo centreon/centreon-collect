@@ -21,7 +21,10 @@
 
 using msg_fmt = com::centreon::exceptions::msg_fmt;
 
-namespace com::centreon::engine::configuration {
+namespace com {
+namespace centreon {
+namespace engine {
+namespace configuration {
 
 /**
  * @brief Constructor from a Servicegroup object.
@@ -63,5 +66,8 @@ void servicegroup_helper::check_validity() const {
     throw msg_fmt("Service group has no name (property 'servicegroup_name')");
 }
 void servicegroup_helper::_init() {}
+}  // namespace configuration
+}  // namespace engine
+}  // namespace centreon
 
-}  // namespace com::centreon::engine::configuration
+}  // namespace com

@@ -37,6 +37,39 @@ using namespace com::centreon::engine::configuration;
  *
  *  @param[in] obj  The new command to add into the monitoring engine.
  */
+void applier::command::add_object(const configuration::Command& obj) {
+  // Logging.
+  log_v2::config()->debug("Creating new command '{}'.", obj.command_name());
+
+  // Add command to the global configuration set.
+  auto* cmd = pb_config.add_commands();
+  cmd->CopyFrom(obj);
+
+  if (obj.connector().empty()) {
+    auto raw = std::make_shared<commands::raw>(
+        obj.command_name(), obj.command_line(), &checks::checker::instance());
+    commands::command::commands[raw->get_name()] = std::move(raw);
+  } else {
+    connector_map::iterator found_con{
+        commands::connector::connectors.find(obj.connector())};
+    if (found_con != commands::connector::connectors.end() &&
+        found_con->second) {
+      std::shared_ptr<commands::forward> forward{
+          std::make_shared<commands::forward>(
+              obj.command_name(), obj.command_line(), found_con->second)};
+      commands::command::commands[forward->get_name()] = forward;
+    } else
+      throw engine_error() << fmt::format(
+          "Could not register command '{}': unable to find '{}'",
+          obj.command_name(), obj.connector());
+  }
+}
+
+/**
+ *  Add new command.
+ *
+ *  @param[in] obj  The new command to add into the monitoring engine.
+ */
 void applier::command::add_object(configuration::command const& obj) {
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
