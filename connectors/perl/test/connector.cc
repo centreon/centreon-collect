@@ -550,7 +550,7 @@ TEST_F(TestConnector, ExecuteSingleWarningScript) {
   // Read reply.
   std::string output{read_reply(*p)};
 
-  int retval{wait_for_termination(*p)};
+  wait_for_termination(*p);
 
   // Remove temporary files.
   remove(script_path.c_str());
@@ -582,7 +582,7 @@ TEST_F(TestConnector, ExecuteSingleCriticalScript) {
   // Read reply.
   std::string output{read_reply(*p)};
 
-  int retval{wait_for_termination(*p)};
+  int retval = wait_for_termination(*p);
 
   // Remove temporary files.
   remove(script_path.c_str());
