@@ -1141,9 +1141,6 @@ void parser::_merge(std::unique_ptr<message_helper>& msg_helper,
                   }
                 } else if (set->data().empty())
                   *set->mutable_data() = orig_set->data();
-                log_v2::config()->error(
-                    "New content of StringSet {}: {}", f->name(),
-                    fmt::join(set->data().begin(), set->data().end(), ","));
 
               } else if (d && d->name() == "StringList") {
                 StringList* orig_lst =
@@ -1155,8 +1152,6 @@ void parser::_merge(std::unique_ptr<message_helper>& msg_helper,
                     lst->add_data(v);
                 } else if (lst->data().empty())
                   *lst->mutable_data() = orig_lst->data();
-                log_v2::config()->error("New content of StringList {}: {}",
-                                        f->name(), fmt::join(lst->data(), ","));
               }
             } break;
 

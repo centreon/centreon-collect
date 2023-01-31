@@ -446,7 +446,8 @@ int neb::callback_pb_custom_variable(int, void* data) {
     SPDLOG_LOGGER_DEBUG(
         log_v2::neb(),
         "callbacks: generating custom variable event {} value:{}",
-        cvar->var_name, cvar->var_value);
+        fmt::string_view(cvar->var_name.data(), cvar->var_name.size()),
+        fmt::string_view(cvar->var_value.data(), cvar->var_value.size()));
   } else {
     SPDLOG_LOGGER_INFO(log_v2::neb(),
                        "callbacks: generating custom variable event");
@@ -456,7 +457,7 @@ int neb::callback_pb_custom_variable(int, void* data) {
       std::make_shared<neb::pb_custom_variable>();
   neb::pb_custom_variable::pb_type& obj = cv->mut_obj();
   bool ok_to_send = false;
-  if (cvar && cvar->var_name && cvar->var_value) {
+  if (cvar && !cvar->var_name.empty() && !cvar->var_value.empty()) {
     // Host custom variable.
     if (NEBTYPE_HOSTCUSTOMVARIABLE_ADD == cvar->type ||
         NEBTYPE_HOSTCUSTOMVARIABLE_DELETE == cvar->type) {
@@ -560,7 +561,7 @@ int neb::callback_custom_variable(int callback_type, void* data) {
     // Input variable.
     nebstruct_custom_variable_data const* cvar(
         static_cast<nebstruct_custom_variable_data*>(data));
-    if (cvar && cvar->var_name && cvar->var_value) {
+    if (cvar && !cvar->var_name.empty() && !cvar->var_value.empty()) {
       // Host custom variable.
       if (NEBTYPE_HOSTCUSTOMVARIABLE_ADD == cvar->type) {
         engine::host* hst(static_cast<engine::host*>(cvar->object_ptr));

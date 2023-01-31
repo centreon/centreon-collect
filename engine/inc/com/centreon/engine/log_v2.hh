@@ -20,6 +20,7 @@
 
 #include "com/centreon/engine/configuration/state.hh"
 #include "log_v2_base.hh"
+#include "configuration/state.pb.h"
 
 namespace com::centreon::engine {
 class log_v2 : public log_v2_base {
@@ -59,6 +60,7 @@ class log_v2 : public log_v2_base {
   ~log_v2() noexcept;
 
   void stop_flush_timer();
+  void apply(const configuration::State& config);
   void apply(const configuration::state& config);
   void set_flush_interval(unsigned second_flush_interval);
   static bool contains_level(const std::string& level_name);

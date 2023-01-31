@@ -20,6 +20,7 @@
 #include "com/centreon/engine/configuration/service.hh"
 #include <gtest/gtest.h>
 #include "com/centreon/engine/exceptions/error.hh"
+#include "configuration/service_helper.hh"
 
 using namespace com::centreon::engine;
 
@@ -28,6 +29,15 @@ using namespace com::centreon::engine;
 // Then its acknowledgements timeout is set to 0
 TEST(ConfigurationServiceAcknowledgementTimeoutTest, DefaultConstruction) {
   configuration::service s;
+  ASSERT_EQ(0, s.acknowledgement_timeout());
+}
+
+// Given a service configuration object
+// When it is default constructed
+// Then its acknowledgements timeout is set to 0
+TEST(ConfigurationServiceAcknowledgementTimeoutTest, PbDefaultConstruction) {
+  configuration::Service s;
+  configuration::service_helper hlp(&s);
   ASSERT_EQ(0, s.acknowledgement_timeout());
 }
 
