@@ -19,6 +19,7 @@
 
 #ifndef CCE_CONFIGURATION_APPLIER_SERVICE_HH
 #define CCE_CONFIGURATION_APPLIER_SERVICE_HH
+#include "configuration/state-generated.pb.h"
 
 CCE_BEGIN()
 
@@ -34,6 +35,7 @@ class service {
   service(service const& right);
   ~service();
   service& operator=(service const& right);
+  void add_object(const configuration::Service& obj);
   void add_object(configuration::service const& obj);
   void expand_objects(configuration::state& s);
   void modify_object(configuration::service const& obj);

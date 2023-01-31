@@ -20,6 +20,8 @@
 #ifndef CCE_CONFIGURATION_APPLIER_ANOMALYDETECTION_HH
 #define CCE_CONFIGURATION_APPLIER_ANOMALYDETECTION_HH
 
+#include "configuration/state-generated.pb.h"
+
 CCE_BEGIN()
 
 namespace configuration {
@@ -39,6 +41,7 @@ class anomalydetection {
   anomalydetection(anomalydetection const& right);
   ~anomalydetection();
   anomalydetection& operator=(anomalydetection const& right);
+  void add_object(const configuration::Anomalydetection& obj);
   void add_object(configuration::anomalydetection const& obj);
   void expand_objects(configuration::state& s);
   void modify_object(configuration::anomalydetection const& obj);

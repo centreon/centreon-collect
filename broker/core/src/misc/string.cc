@@ -84,8 +84,8 @@ bool string::is_number(const std::string& s) {
  * @return The string itself or a new string converted to UTF-8. The output
  * string should always be an UTF-8 string.
  */
-std::string string::check_string_utf8(std::string const& str) noexcept {
-  std::string::const_iterator it;
+std::string string::check_string_utf8(const absl::string_view& str) noexcept {
+  absl::string_view::const_iterator it;
   for (it = str.begin(); it != str.end();) {
     uint32_t val = (*it & 0xff);
     if ((val & 0x80) == 0) {
@@ -122,7 +122,7 @@ std::string string::check_string_utf8(std::string const& str) noexcept {
   }
 
   if (it == str.end())
-    return str;
+    return std::string(str.data(), str.size());
 
   /* Not an UTF-8 string */
   bool is_cp1252 = true, is_iso8859 = true;
@@ -133,7 +133,7 @@ std::string string::check_string_utf8(std::string const& str) noexcept {
     std::string out;
     std::size_t d = it - str.begin();
     out.reserve(d + 2 * (str.size() - d));
-    out = str.substr(0, d);
+    out = std::string(str.data(), d);
     while (it != str.end()) {
       uint8_t c = static_cast<uint8_t>(*it);
       if (c < 128)
@@ -191,7 +191,7 @@ std::string string::check_string_utf8(std::string const& str) noexcept {
       std::string out;
       std::size_t d = it - str.begin();
       out.reserve(d + 3 * (str.size() - d));
-      out = str.substr(0, d);
+      out = std::string(str.data(), d);
       while (it != str.end()) {
         c = *it;
         if (c < 128)
