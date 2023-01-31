@@ -1,5 +1,5 @@
 /*
-** Copyright 2020 Centreon
+** Copyright 2020,2023 Centreon
 **
 ** This file is part of Centreon Engine.
 **
@@ -83,9 +83,119 @@ applier::anomalydetection& applier::anomalydetection::operator=(
 }
 
 /**
- *  Add new anomalydetection.
+ * @brief Add new anomalydetection.
  *
- *  @param[in] obj  The new anomalydetection to add into the monitoring engine.
+ * @param obj The new anomalydetection protobuf configuration to add into the
+ * monitoring engine.
+ */
+void applier::anomalydetection::add_object(
+    const configuration::Anomalydetection& obj) {
+  // Check anomalydetection.
+  if (!obj.host_id())
+    throw engine_error() << fmt::format(
+        "No host_id available for the host '{} - unable to create "
+        "anomalydetection '{}'",
+        obj.host_name(), obj.service_description());
+
+  // Logging.
+  SPDLOG_LOGGER_DEBUG(log_v2::config(),
+                      "Creating new anomalydetection '{}' of host '{}'.",
+                      obj.service_description(), obj.host_name());
+
+  // Add anomalydetection to the global configuration set.
+  auto* cfg_obj = pb_config.add_anomalydetections();
+  cfg_obj->CopyFrom(obj);
+
+  // Create anomalydetection.
+  engine::anomalydetection* ad{add_anomalydetection(
+      obj.host_id(), obj.service_id(), obj.host_name(),
+      obj.service_description(), obj.display_name(), obj.internal_id(),
+      obj.dependent_service_id(), obj.metric_name(), obj.thresholds_file(),
+      obj.status_change(),
+      static_cast<engine::anomalydetection::service_state>(obj.initial_state()),
+      obj.max_check_attempts(), obj.check_interval(), obj.retry_interval(),
+      obj.notification_interval(), obj.first_notification_delay(),
+      obj.recovery_notification_delay(), obj.notification_period(),
+      static_cast<bool>(obj.notification_options() &
+                        configuration::anomalydetection::ok),
+      static_cast<bool>(obj.notification_options() &
+                        configuration::anomalydetection::unknown),
+      static_cast<bool>(obj.notification_options() &
+                        configuration::anomalydetection::warning),
+      static_cast<bool>(obj.notification_options() &
+                        configuration::anomalydetection::critical),
+      static_cast<bool>(obj.notification_options() &
+                        configuration::anomalydetection::flapping),
+      static_cast<bool>(obj.notification_options() &
+                        configuration::anomalydetection::downtime),
+      obj.notifications_enabled(), obj.is_volatile(), obj.event_handler(),
+      obj.event_handler_enabled(), obj.checks_active(), obj.checks_passive(),
+      obj.flap_detection_enabled(), obj.low_flap_threshold(),
+      obj.high_flap_threshold(),
+      static_cast<bool>(obj.flap_detection_options() &
+                        configuration::anomalydetection::ok),
+      static_cast<bool>(obj.flap_detection_options() &
+                        configuration::anomalydetection::warning),
+      static_cast<bool>(obj.flap_detection_options() &
+                        configuration::anomalydetection::unknown),
+      static_cast<bool>(obj.flap_detection_options() &
+                        configuration::anomalydetection::critical),
+      static_cast<bool>(obj.stalking_options() &
+                        configuration::anomalydetection::ok),
+      static_cast<bool>(obj.stalking_options() &
+                        configuration::anomalydetection::warning),
+      static_cast<bool>(obj.stalking_options() &
+                        configuration::anomalydetection::unknown),
+      static_cast<bool>(obj.stalking_options() &
+                        configuration::anomalydetection::critical),
+      obj.process_perf_data(), obj.check_freshness(), obj.freshness_threshold(),
+      obj.notes(), obj.notes_url(), obj.action_url(), obj.icon_image(),
+      obj.icon_image_alt(), obj.retain_status_information(),
+      obj.retain_nonstatus_information(), obj.obsess_over_service(),
+      obj.timezone(), obj.icon_id(), obj.sensitivity())};
+  if (!ad)
+    throw engine_error() << "Could not register anomalydetection '"
+                         << obj.service_description() << "' of host '"
+                         << obj.host_name() << "'";
+  ad->set_initial_notif_time(0);
+  engine::anomalydetection::services[{obj.host_name(),
+                                      obj.service_description()}]
+      ->set_host_id(obj.host_id());
+  engine::anomalydetection::services[{obj.host_name(),
+                                      obj.service_description()}]
+      ->set_service_id(obj.service_id());
+  ad->set_acknowledgement_timeout(obj.acknowledgement_timeout() *
+                                  config->interval_length());
+  ad->set_last_acknowledgement(0);
+
+  // Add contacts.
+  for (auto& c : obj.contacts().data())
+    ad->mut_contacts().insert({c, nullptr});
+
+  // Add contactgroups.
+  for (auto& cg : obj.contactgroups().data())
+    ad->get_contactgroups().insert({cg, nullptr});
+
+  // Add custom variables.
+  for (auto& cv : obj.customvariables()) {
+    ad->custom_variables[cv.name()] = customvariable(cv.value(), cv.is_sent());
+
+    if (cv.is_sent()) {
+      timeval tv(get_broker_timestamp(nullptr));
+      broker_custom_variable(NEBTYPE_SERVICECUSTOMVARIABLE_ADD, ad,
+                             cv.name().c_str(), cv.value().c_str(), &tv);
+    }
+  }
+
+  // Notify event broker.
+  broker_adaptive_service_data(NEBTYPE_SERVICE_ADD, NEBFLAG_NONE, NEBATTR_NONE,
+                               ad, MODATTR_ALL);
+}
+
+/**
+ * @brief Add new anomalydetection.
+ *
+ * @param obj The new anomalydetection to add into the monitoring engine.
  */
 void applier::anomalydetection::add_object(
     configuration::anomalydetection const& obj) {

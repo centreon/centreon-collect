@@ -82,6 +82,154 @@ applier::service& applier::service::operator=(applier::service const& right) {
 }
 
 /**
+ * @brief Add a new service.
+ *
+ * @param obj The new service protobuf configuration to add into the monitoring
+ * engine.
+ */
+void applier::service::add_object(const configuration::Service& obj) {
+  // Check service.
+  if (obj.hosts().data().size() < 1)
+    throw engine_error() << fmt::format(
+        "Could not create service '{}' with no host defined",
+        obj.service_description());
+  else if (obj.hosts().data().size() > 1)
+    throw engine_error() << fmt::format(
+        "Could not create service '{}' with multiple hosts defined",
+        obj.service_description());
+  else if (!obj.hostgroups().data().empty())
+    throw engine_error() << fmt::format(
+        "Could not create service '{}' with multiple host groups defined",
+        obj.service_description());
+  else if (obj.host_id() == 0)
+    throw engine_error() << fmt::format(
+        "No host_id available for the host '{}' - unable to create service "
+        "'{}'",
+        *obj.hosts().data().begin(), obj.service_description());
+
+  // Logging.
+  engine_logger(logging::dbg_config, logging::more)
+      << "Creating new service '" << obj.service_description() << "' of host '"
+      << *obj.hosts().data().begin() << "'.";
+  log_v2::config()->debug("Creating new service '{}' of host '{}'.",
+                          obj.service_description(),
+                          *obj.hosts().data().begin());
+
+  // Add service to the global configuration set.
+  auto* cfg_svc = pb_config.add_services();
+  cfg_svc->CopyFrom(obj);
+
+  // Create service.
+  engine::service* svc{add_service(
+      obj.host_id(), obj.service_id(), *obj.hosts().data().begin(),
+      obj.service_description(), obj.display_name(), obj.check_period(),
+      static_cast<engine::service::service_state>(obj.initial_state()),
+      obj.max_check_attempts(), obj.check_interval(), obj.retry_interval(),
+      obj.notification_interval(), obj.first_notification_delay(),
+      obj.recovery_notification_delay(), obj.notification_period(),
+      static_cast<bool>(obj.notification_options() &
+                        configuration::service::ok),
+      static_cast<bool>(obj.notification_options() &
+                        configuration::service::unknown),
+      static_cast<bool>(obj.notification_options() &
+                        configuration::service::warning),
+      static_cast<bool>(obj.notification_options() &
+                        configuration::service::critical),
+      static_cast<bool>(obj.notification_options() &
+                        configuration::service::flapping),
+      static_cast<bool>(obj.notification_options() &
+                        configuration::service::downtime),
+      obj.notifications_enabled(), obj.is_volatile(), obj.event_handler(),
+      obj.event_handler_enabled(), obj.check_command(), obj.checks_active(),
+      obj.checks_passive(), obj.flap_detection_enabled(),
+      obj.low_flap_threshold(), obj.high_flap_threshold(),
+      static_cast<bool>(obj.flap_detection_options() &
+                        configuration::service::ok),
+      static_cast<bool>(obj.flap_detection_options() &
+                        configuration::service::warning),
+      static_cast<bool>(obj.flap_detection_options() &
+                        configuration::service::unknown),
+      static_cast<bool>(obj.flap_detection_options() &
+                        configuration::service::critical),
+      static_cast<bool>(obj.stalking_options() & configuration::service::ok),
+      static_cast<bool>(obj.stalking_options() &
+                        configuration::service::warning),
+      static_cast<bool>(obj.stalking_options() &
+                        configuration::service::unknown),
+      static_cast<bool>(obj.stalking_options() &
+                        configuration::service::critical),
+      obj.process_perf_data(), obj.check_freshness(), obj.freshness_threshold(),
+      obj.notes(), obj.notes_url(), obj.action_url(), obj.icon_image(),
+      obj.icon_image_alt(), obj.retain_status_information(),
+      obj.retain_nonstatus_information(), obj.obsess_over_service(),
+      obj.timezone(), obj.icon_id())};
+  if (!svc)
+    throw engine_error() << fmt::format(
+        "Could not register service '{}' of host '{}'",
+        obj.service_description(), *obj.hosts().data().begin());
+  svc->set_initial_notif_time(0);
+  engine::service::services[{*obj.hosts().data().begin(),
+                             obj.service_description()}]
+      ->set_host_id(obj.host_id());
+  engine::service::services[{*obj.hosts().data().begin(),
+                             obj.service_description()}]
+      ->set_service_id(obj.service_id());
+  svc->set_acknowledgement_timeout(obj.acknowledgement_timeout() *
+                                   config->interval_length());
+  svc->set_last_acknowledgement(0);
+
+  // Add contacts.
+  for (auto& c : obj.contacts().data())
+    svc->mut_contacts().insert({c, nullptr});
+
+  // Add contactgroups.
+  for (auto& cg : obj.contactgroups().data())
+    svc->get_contactgroups().insert({cg, nullptr});
+
+  // Add custom variables.
+  for (auto& cv : obj.customvariables()) {
+    svc->custom_variables.emplace(cv.name(),
+                                  customvariable(cv.value(), cv.is_sent()));
+
+    if (cv.is_sent()) {
+      timeval tv(get_broker_timestamp(nullptr));
+      broker_custom_variable(NEBTYPE_SERVICECUSTOMVARIABLE_ADD, svc,
+                             cv.name().c_str(), cv.value().c_str(), &tv);
+    }
+  }
+
+  // Add severity.
+  if (obj.severity_id()) {
+    configuration::severity::key_type k = {obj.severity_id(),
+                                           configuration::severity::service};
+    auto sv = engine::severity::severities.find(k);
+    if (sv == engine::severity::severities.end())
+      throw engine_error() << fmt::format(
+          "Could not add the severity ({}, {}) to the service '{}' of host "
+          "'{}'",
+          k.first, k.second, obj.service_description(),
+          *obj.hosts().data().begin());
+    svc->set_severity(sv->second);
+  }
+
+  // add tags
+  for (auto& t : obj.tags()) {
+    auto k = std::make_pair(t.first(), t.second());
+    tag_map::iterator it_tag{engine::tag::tags.find(k)};
+    if (it_tag == engine::tag::tags.end())
+      throw engine_error() << fmt::format(
+          "Could not find tag ({}, {}) on which to apply service ({}, {})",
+          k.first, k.second, obj.host_id(), obj.service_id());
+    else
+      svc->mut_tags().emplace_front(it_tag->second);
+  }
+
+  // Notify event broker.
+  broker_adaptive_service_data(NEBTYPE_SERVICE_ADD, NEBFLAG_NONE, NEBATTR_NONE,
+                               svc, MODATTR_ALL);
+}
+
+/**
  *  Add new service.
  *
  *  @param[in] obj  The new service to add into the monitoring engine.
