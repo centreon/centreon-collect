@@ -27,6 +27,7 @@
 using namespace com::centreon::engine;
 
 extern configuration::state* config;
+extern configuration::State pb_config;
 
 void init_config_state(void) {
   if (config == nullptr)
@@ -34,6 +35,9 @@ void init_config_state(void) {
 
   config->log_file_line(true);
   config->log_file("");
+
+  pb_config.set_log_file_line(true);
+  pb_config.set_log_file("");
 
   // Hack to instanciate the logger.
   configuration::applier::logging::instance().apply(*config);

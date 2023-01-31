@@ -35,14 +35,122 @@ using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
 
 /**
- *  Default constructor.
+ *  Add new host.
+ *
+ *  @param[in] obj  The new host to add into the monitoring engine.
  */
-applier::host::host() {}
+void applier::host::add_object(const configuration::Host& obj) {
+  // Logging.
+  log_v2::config()->debug("Creating new host '{}'.", obj.host_name());
 
-/**
- *  Destructor.
- */
-applier::host::~host() throw() {}
+  // Add host to the global configuration set.
+  auto* cfg_obj = pb_config.add_hosts();
+  cfg_obj->CopyFrom(obj);
+
+  // Create host.
+  auto h = std::make_shared<com::centreon::engine::host>(
+      obj.host_id(), obj.host_name(), obj.display_name(), obj.alias(),
+      obj.address(), obj.check_period(),
+      static_cast<engine::host::host_state>(obj.initial_state()),
+      obj.check_interval(), obj.retry_interval(), obj.max_check_attempts(),
+      static_cast<bool>(obj.notification_options() & configuration::host::up),
+      static_cast<bool>(obj.notification_options() & configuration::host::down),
+      static_cast<bool>(obj.notification_options() &
+                        configuration::host::unreachable),
+      static_cast<bool>(obj.notification_options() &
+                        configuration::host::flapping),
+      static_cast<bool>(obj.notification_options() &
+                        configuration::host::downtime),
+      obj.notification_interval(), obj.first_notification_delay(),
+      obj.recovery_notification_delay(), obj.notification_period(),
+      obj.notifications_enabled(), obj.check_command(), obj.checks_active(),
+      obj.checks_passive(), obj.event_handler(), obj.event_handler_enabled(),
+      obj.flap_detection_enabled(), obj.low_flap_threshold(),
+      obj.high_flap_threshold(),
+      static_cast<bool>(obj.flap_detection_options() & configuration::host::up),
+      static_cast<bool>(obj.flap_detection_options() &
+                        configuration::host::down),
+      static_cast<bool>(obj.flap_detection_options() &
+                        configuration::host::unreachable),
+      static_cast<bool>(obj.stalking_options() & configuration::host::up),
+      static_cast<bool>(obj.stalking_options() & configuration::host::down),
+      static_cast<bool>(obj.stalking_options() &
+                        configuration::host::unreachable),
+      obj.process_perf_data(), obj.check_freshness(), obj.freshness_threshold(),
+      obj.notes(), obj.notes_url(), obj.action_url(), obj.icon_image(),
+      obj.icon_image_alt(), obj.vrml_image(), obj.statusmap_image(),
+      obj.coords_2d().x(), obj.coords_2d().y(), obj.has_coords_2d(),
+      obj.coords_3d().x(), obj.coords_3d().y(), obj.coords_3d().z(),
+      obj.has_coords_3d(),
+      true,  // should_be_drawn, enabled by Nagios
+      obj.retain_status_information(), obj.retain_nonstatus_information(),
+      obj.obsess_over_host(), obj.timezone(), obj.icon_id());
+
+  engine::host::hosts.insert({h->name(), h});
+  engine::host::hosts_by_id.insert({obj.host_id(), h});
+
+  h->set_initial_notif_time(0);
+  h->set_should_reschedule_current_check(false);
+  h->set_host_id(obj.host_id());
+  h->set_acknowledgement_timeout(obj.acknowledgement_timeout() *
+                                 pb_config.interval_length());
+  h->set_last_acknowledgement(0);
+
+  // Contacts
+  for (auto& c : obj.contacts().data())
+    h->mut_contacts().insert({c, nullptr});
+
+  // Contact groups.
+  for (auto& cg : obj.contactgroups().data())
+    h->get_contactgroups().insert({cg, nullptr});
+
+  // Custom variables.
+  for (auto& cv : obj.customvariables()) {
+    h->custom_variables[cv.name()] = customvariable(cv.value(), cv.is_sent());
+
+    if (cv.is_sent()) {
+      timeval tv(get_broker_timestamp(nullptr));
+      broker_custom_variable(NEBTYPE_HOSTCUSTOMVARIABLE_ADD, h.get(),
+                             cv.name().c_str(), cv.value().c_str(), &tv);
+    }
+  }
+
+  // add tags
+  for (auto& t : obj.tags()) {
+    //  for (std::set<std::pair<uint64_t, uint16_t>>::iterator
+    //           it = obj.tags().begin(),
+    //           end = obj.tags().end();
+    //       it != end; ++it) {
+    auto p = std::make_pair(t.first(), t.second());
+    tag_map::iterator it_tag{engine::tag::tags.find(p)};
+    if (it_tag == engine::tag::tags.end())
+      throw engine_error() << "Could not find tag '" << t.first()
+                           << "' on which to apply host (" << obj.host_id()
+                           << ")";
+    else
+      h->mut_tags().emplace_front(it_tag->second);
+  }
+
+  // Parents.
+  for (auto& p : obj.parents().data())
+    h->add_parent_host(p);
+
+  // Add severity.
+  if (obj.severity_id()) {
+    configuration::severity::key_type k = {obj.severity_id(),
+                                           configuration::severity::host};
+    auto sv = engine::severity::severities.find(k);
+    if (sv == engine::severity::severities.end())
+      throw engine_error() << "Could not add the severity (" << k.first << ", "
+                           << k.second << ") to the host '" << obj.host_name()
+                           << "'";
+    h->set_severity(sv->second);
+  }
+
+  // Notify event broker.
+  broker_adaptive_host_data(NEBTYPE_HOST_ADD, NEBFLAG_NONE, NEBATTR_NONE,
+                            h.get(), MODATTR_ALL);
+}
 
 /**
  *  Add new host.

@@ -163,6 +163,14 @@ void diagnostic::generate(std::string const& cfg_file,
     std::cerr << "Diagnostic: configuration file '" << cfg_file
               << "' parsing failed: " << e.what() << std::endl;
   }
+  configuration::State pb_conf;
+  try {
+    configuration::parser parsr;
+    parsr.parse(cfg_file, &pb_conf);
+  } catch (std::exception const& e) {
+    std::cerr << "Diagnostic: configuration file '" << cfg_file
+              << "' parsing failed: " << e.what() << std::endl;
+  }
 
   // Create temporary configuration directory.
   std::string tmp_cfg_dir(tmp_dir + "/cfg/");
@@ -181,12 +189,10 @@ void diagnostic::generate(std::string const& cfg_file,
   }
 
   // Copy other configuration files.
-  for (std::list<std::string>::const_iterator it(conf.cfg_file().begin()),
-       end(conf.cfg_file().end());
-       it != end; ++it) {
-    std::string target_path(_build_target_path(tmp_cfg_dir, *it));
+  for (auto& f : conf.cfg_file()) {
+    std::string target_path(_build_target_path(tmp_cfg_dir, f));
     to_remove.push_back(target_path);
-    _exec_cp(*it, target_path);
+    _exec_cp(f, target_path);
   }
 
   // Create temporary log directory.

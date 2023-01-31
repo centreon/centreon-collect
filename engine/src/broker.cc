@@ -477,8 +477,8 @@ void broker_contact_status(int type, contact* cntct) {
  */
 void broker_custom_variable(int type,
                             void* data,
-                            char const* varname,
-                            char const* varvalue,
+                            const absl::string_view& varname,
+                            const absl::string_view& varvalue,
                             struct timeval const* timestamp) {
   // Config check.
   if (!(config->event_broker_options() & BROKER_CUSTOMVARIABLE_DATA))
@@ -489,8 +489,8 @@ void broker_custom_variable(int type,
   ds.type = type;
   ds.timestamp = get_broker_timestamp(timestamp);
   ds.object_ptr = data;
-  ds.var_name = const_cast<char*>(varname);
-  ds.var_value = const_cast<char*>(varvalue);
+  ds.var_name = varname;
+  ds.var_value = varvalue;
 
   // Make callback.
   neb_make_callbacks(NEBCALLBACK_CUSTOM_VARIABLE_DATA, &ds);

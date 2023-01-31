@@ -19,6 +19,7 @@
 #define CCE_LOG_V2_HH
 
 #include "com/centreon/engine/configuration/state.hh"
+#include "configuration/state.pb.h"
 
 CCE_BEGIN()
 class log_v2 {
@@ -45,6 +46,7 @@ class log_v2 {
   ~log_v2() noexcept;
 
  public:
+  void apply(const configuration::State& config);
   void apply(const configuration::state& config);
   static bool contains_level(const std::string& level_name);
   static log_v2& instance();
