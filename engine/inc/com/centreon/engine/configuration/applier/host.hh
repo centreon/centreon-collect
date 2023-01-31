@@ -21,6 +21,7 @@
 #define CCE_CONFIGURATION_APPLIER_HOST_HH
 
 #include "com/centreon/engine/namespace.hh"
+#include "configuration/state-generated.pb.h"
 
 CCE_BEGIN()
 
@@ -32,10 +33,17 @@ class state;
 namespace applier {
 class host {
  public:
-  host();
+  /**
+   * @brief Default constructor.
+   */
+  host() = default;
   host(host const& right) = delete;
-  ~host() throw();
+  /**
+   * @brief Destructor.
+   */
+  ~host() noexcept = default;
   host& operator=(host const& right) = delete;
+  void add_object(const configuration::Host& obj);
   void add_object(configuration::host const& obj);
   void expand_objects(configuration::state& s);
   void modify_object(configuration::host const& obj);
