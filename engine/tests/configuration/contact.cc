@@ -19,6 +19,7 @@
 
 #include "com/centreon/engine/configuration/contact.hh"
 #include <gtest/gtest.h>
+#include "configuration/contact_helper.hh"
 
 #include "helper.hh"
 
@@ -40,4 +41,12 @@ class ConfigContact : public ::testing::Test {
 TEST_F(ConfigContact, NewContactWithNoName) {
   configuration::contact ctct("");
   ASSERT_THROW(ctct.check_validity(), std::exception);
+}
+
+// When I create a configuration::contact with an empty name
+// Then an exception is thrown.
+TEST_F(ConfigContact, PbNewContactWithNoName) {
+  configuration::Contact ctct;
+  configuration::contact_helper hlp(&ctct);
+  ASSERT_THROW(hlp.check_validity(), std::exception);
 }

@@ -33,6 +33,9 @@
 #include "com/centreon/engine/utils.hh"
 #include "configuration/state.pb.h"
 
+#define CONF_LEGACY
+#define CONF_PROTO
+
 #ifdef __cplusplus
 extern "C" {
 #endif /* C++ */

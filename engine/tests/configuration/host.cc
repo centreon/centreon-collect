@@ -20,6 +20,7 @@
 #include "com/centreon/engine/configuration/host.hh"
 #include <gtest/gtest.h>
 #include "com/centreon/engine/exceptions/error.hh"
+#include "configuration/host_helper.hh"
 
 using namespace com::centreon::engine;
 
@@ -28,6 +29,15 @@ using namespace com::centreon::engine;
 // Then its acknowledgements timeout is set to 0
 TEST(ConfigurationHostAcknowledgementTimeoutTest, DefaultConstruction) {
   configuration::host h;
+  ASSERT_EQ(0, h.acknowledgement_timeout());
+}
+
+// Given a host configuration object
+// When it is default constructed
+// Then its acknowledgements timeout is set to 0
+TEST(ConfigurationHostAcknowledgementTimeoutTest, PbDefaultConstruction) {
+  configuration::Host h;
+  configuration::host_helper hlp(&h);
   ASSERT_EQ(0, h.acknowledgement_timeout());
 }
 

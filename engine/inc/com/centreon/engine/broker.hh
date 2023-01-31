@@ -425,8 +425,8 @@ int broker_contact_notification_method_data(
 void broker_contact_status(int type, com::centreon::engine::contact* cntct);
 void broker_custom_variable(int type,
                             void* data,
-                            char const* varname,
-                            char const* varvalue,
+                            const absl::string_view& varname,
+                            const absl::string_view& varvalue,
                             struct timeval const* timestamp);
 void broker_downtime_data(int type,
                           int attr,
