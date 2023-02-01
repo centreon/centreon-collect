@@ -43,6 +43,9 @@ inputs:
   yum_repo_url:
     description: "The legacy yum repo url"
     required: true
+  artifactory_token:
+    description: "The token for artifactory"
+    required: true
 
 runs:
   using: "composite"
