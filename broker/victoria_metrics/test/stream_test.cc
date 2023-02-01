@@ -30,6 +30,7 @@ using time_point = system_clock::time_point;
 using duration = system_clock::duration;
 
 #include "com/centreon/broker/config/applier/state.hh"
+#include "com/centreon/broker/file/disk_accessor.hh"
 #include "com/centreon/broker/victoria_metrics/stream.hh"
 
 using namespace com::centreon::broker;
@@ -38,14 +39,12 @@ using namespace nlohmann;
 
 static std::shared_ptr<asio::io_context> io_context(
     std::make_shared<asio::io_context>());
-static std::shared_ptr<persistent_cache> _dummy_cache;
 
 class victoria_stream_test : public ::testing::Test {
  public:
   static void SetUpTestSuite() {
     config::applier::state::load();
     file::disk_accessor::load(1000);
-    _dummy_cache = std::make_shared<persistent_cache>("/tmp/toto");
   }
   static void TearDownTestSuite() {}
 };
@@ -57,6 +56,6 @@ TEST_F(victoria_stream_test, Auhtorization) {
       dummy, "/write", "Aladdin", "open sesame", 1, std::chrono::seconds(1),
       dummy2, dummy2);
 
-  std::shared_ptr<stream> s = stream::load(io_context, cfg, _dummy_cache);
+  std::shared_ptr<stream> s = stream::load(io_context, cfg);
   ASSERT_EQ(s->get_authorization(), "Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==");
 }

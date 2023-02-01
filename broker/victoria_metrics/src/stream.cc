@@ -27,27 +27,27 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::victoria_metrics;
 
-const std::string allowed_macros = "$INSTANCE$,$INSTANCEID$";
+const std::string stream::allowed_macros =
+    "$INSTANCE$,$INSTANCEID$,$HOST$,$SERVICE$,$HOSTGROUP$,$SERVICE_GROUP$,"
+    "$HOST_TAG_CAT_ID$,$HOST_TAG_GROUP_ID$,$HOST_TAG_CAT_NAME$,"
+    "$HOST_TAG_GROUP_NAME$,$SERV_TAG_CAT_ID$,$SERV_TAG_GROUP_ID$,"
+    "$SERV_TAG_CAT_NAME$,$SERV_TAG_GROUP_NAME$,$MIN$,$MAX$";
 
 stream::stream(const std::shared_ptr<asio::io_context>& io_context,
                const std::shared_ptr<http_tsdb::http_tsdb_config>& conf,
-               const std::shared_ptr<persistent_cache>& cache,
                http_client::client::connection_creator conn_creator)
     : http_tsdb::stream("victoria_metrics",
                         io_context,
                         log_v2::victoria_metrics(),
                         conf,
-                        cache,
                         conn_creator),
       _metric_formatter(allowed_macros,
                         conf->get_metric_columns(),
                         http_tsdb::line_protocol_query::data_type::metric,
-                        cache,
                         log_v2::victoria_metrics()),
       _status_formatter(allowed_macros,
                         conf->get_status_columns(),
                         http_tsdb::line_protocol_query::data_type::status,
-                        cache,
                         log_v2::victoria_metrics()) {
   // in order to avoid reallocation of request body
   _body_size_to_reserve = conf->get_max_queries_per_transaction() *
@@ -68,10 +68,8 @@ stream::stream(const std::shared_ptr<asio::io_context>& io_context,
 std::shared_ptr<stream> stream::load(
     const std::shared_ptr<asio::io_context>& io_context,
     const std::shared_ptr<http_tsdb::http_tsdb_config>& conf,
-    const std::shared_ptr<persistent_cache>& cache,
     http_client::client::connection_creator conn_creator) {
-  return std::shared_ptr<stream>(
-      new stream(io_context, conf, cache, conn_creator));
+  return std::shared_ptr<stream>(new stream(io_context, conf, conn_creator));
 }
 
 http_tsdb::request::pointer stream::create_request() const {

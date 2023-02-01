@@ -55,7 +55,7 @@ target_link_libraries("${VICTORIA_METRICS}"
   http_tsdb
   http_client
   bbdo_storage pb_storage_lib CONAN_PKG::spdlog)
-target_precompile_headers(${VICTORIA_METRICS} PRIVATE precomp_inc/precomp.hpp)
+target_precompile_headers(${VICTORIA_METRICS} PRIVATE precomp_inc/precomp.hh)
 
 # Testing.
 if(WITH_TESTING)
@@ -64,6 +64,7 @@ if(WITH_TESTING)
     ${TESTS_SOURCES}
     ${TEST_DIR}/factory_test.cc
     ${TEST_DIR}/stream_test.cc
+    ${TEST_DIR}/request_test.cc
     PARENT_SCOPE
   )
   set(

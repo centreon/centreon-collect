@@ -35,6 +35,10 @@
 #include <absl/container/flat_hash_set.h>
 
 #include <boost/asio.hpp>
+// with this define boost::interprocess doesn't need Boost.DataTime
+#define BOOST_DATE_TIME_NO_LIB 1
+#include <boost/interprocess/containers/string.hpp>
+#include <boost/interprocess/managed_mapped_file.hpp>
 
 namespace asio = boost::asio;
 

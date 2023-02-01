@@ -49,6 +49,8 @@ class factory : public io::factory {
           const std::shared_ptr<asio::io_context>& io_context);
   factory(factory const&) = delete;
   ~factory() = default;
+
+  static std::vector<column> get_columns(const nlohmann::json& cfg);
   factory& operator=(factory const& other) = delete;
   bool has_endpoint(config::endpoint& cfg, io::extension* ext) override;
 };

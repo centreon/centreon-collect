@@ -42,17 +42,17 @@ class stream : public http_tsdb::stream {
  protected:
   stream(const std::shared_ptr<asio::io_context>& io_context,
          const std::shared_ptr<http_tsdb::http_tsdb_config>& conf,
-         const std::shared_ptr<persistent_cache>& cache,
          http_client::client::connection_creator conn_creator =
              http_client::http_connection::load);
 
   http_tsdb::request::pointer create_request() const override;
 
  public:
+  static const std::string allowed_macros;
+
   static std::shared_ptr<stream> load(
       const std::shared_ptr<asio::io_context>& io_context,
       const std::shared_ptr<http_tsdb::http_tsdb_config>& conf,
-      const std::shared_ptr<persistent_cache>& cache,
       http_client::client::connection_creator conn_creator =
           http_client::http_connection::load);
 

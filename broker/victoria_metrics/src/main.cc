@@ -24,10 +24,13 @@
 #include "bbdo/storage/rebuild.hh"
 #include "bbdo/storage/remove_graph.hh"
 #include "bbdo/storage/status.hh"
+#include "com/centreon/broker/cache/global_cache.hh"
+#include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/http_tsdb/internal.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/log_v2.hh"
+#include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/victoria_metrics/factory.hh"
 
 using namespace com::centreon::broker;
@@ -58,7 +61,7 @@ bool broker_module_deinit() {
   // Decrement instance number.
   if (!--instances)
     // Deregister RRD layer.
-    io::protocols::instance().unreg("RRD");
+    io::protocols::instance().unreg("VICTORIA_METRICS");
   return true;  // ok to be unloaded
 }
 
@@ -84,34 +87,8 @@ void broker_module_init(void const* arg) {
       e.register_event(make_type(io::storage, storage::de_metric), "metric",
                        &storage::metric::operations, storage::metric::entries,
                        "rt_metrics");
-      // e.register_event(make_type(io::storage, storage::de_rebuild),
-      // "rebuild",
-      //                  &storage::rebuild::operations,
-      //                  storage::rebuild::entries);
-      // e.register_event(make_type(io::storage, storage::de_remove_graph),
-      //                  "remove_graph", &storage::remove_graph::operations,
-      //                  storage::remove_graph::entries);
       e.register_event(make_type(io::storage, storage::de_status), "status",
                        &storage::status::operations, storage::status::entries);
-      e.register_event(make_type(io::storage, storage::de_index_mapping),
-                       "index_mapping", &storage::index_mapping::operations,
-                       storage::index_mapping::entries);
-      e.register_event(make_type(io::storage, storage::de_metric_mapping),
-                       "metric_mapping", &storage::metric_mapping::operations,
-                       storage::metric_mapping::entries);
-
-      // /* Let's register the message to start rebuilds, send rebuilds and
-      //  * terminate rebuilds. This is pb_rebuild_message. */
-      // e.register_event(make_type(io::storage, storage::de_rebuild_message),
-      //                  "rebuild_message",
-      //                  &storage::pb_rebuild_message::operations);
-
-      // /* Let's register the message to ask rrd for remove metrics. This is
-      //  * pb_remove_graph_message. */
-      // e.register_event(make_type(io::storage,
-      // storage::de_remove_graph_message),
-      //                  "remove_graphs_message",
-      //                  &storage::pb_remove_graph_message::operations);
 
       e.register_event(make_type(io::storage, storage::de_pb_metric),
                        "pb_metric", &storage::pb_metric::operations);
@@ -119,10 +96,14 @@ void broker_module_init(void const* arg) {
                        "pb_status", &storage::pb_status::operations);
     }
 
-    // Register RRD layer.
+    // Register  layer.
     io::protocols::instance().reg("VICTORIA_METRICS",
                                   std::make_shared<victoria_metrics::factory>(),
                                   1, 7);
+    cache::global_cache::load(
+        fmt::format("{}.cache.global",
+                    config::applier::state::instance().cache_dir()),
+        pool::io_context_ptr());
   }
 }
 }

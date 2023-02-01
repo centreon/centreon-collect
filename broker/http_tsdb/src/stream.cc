@@ -118,13 +118,11 @@ stream::stream(const std::string& name,
                const std::shared_ptr<asio::io_context>& io_context,
                const std::shared_ptr<spdlog::logger>& logger,
                const std::shared_ptr<http_tsdb_config>& conf,
-               const std::shared_ptr<persistent_cache>& cache,
                http_client::client::connection_creator conn_creator)
     : io::stream(name),
       _io_context(io_context),
       _logger(logger),
       _conf(conf),
-      _cache(cache),
       _acknowledged(0),
       _timeout_send_timer(*io_context),
       _timeout_send_timer_run(false),
@@ -233,8 +231,6 @@ int stream::write(std::shared_ptr<io::data> const& data) {
     _acknowledged = 0;
     return acknowledged;
   }
-  // Give data to cache.
-  _cache.write(data);
 
   request::pointer to_send;
   {

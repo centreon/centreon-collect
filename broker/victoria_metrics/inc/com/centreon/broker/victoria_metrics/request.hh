@@ -30,6 +30,10 @@ class request : public http_tsdb::request {
   const http_tsdb::line_protocol_query& _metric_formatter;
   const http_tsdb::line_protocol_query& _status_formatter;
 
+  void append_metric_info(uint64_t metric_id);
+
+  void append_host_service_id(uint64_t index_id);
+
  public:
   request(boost::beast::http::verb method,
           boost::beast::string_view target,
@@ -39,10 +43,10 @@ class request : public http_tsdb::request {
           const std::string& authorization = "");
 
   virtual void add_metric(const storage::metric& metric) override;
-  virtual void add_metric(const Metric& metric) override;
+  virtual void add_metric(const storage::pb_metric& metric) override;
 
   virtual void add_status(const storage::status& status) override;
-  virtual void add_status(const Status& status) override;
+  virtual void add_status(const storage::pb_status& status) override;
 };
 
 }  // namespace victoria_metrics

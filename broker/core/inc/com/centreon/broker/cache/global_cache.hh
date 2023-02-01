@@ -19,6 +19,7 @@
 #ifndef CCB_GLOBAL_CACHE_HH
 #define CCB_GLOBAL_CACHE_HH
 
+#include "bbdo/tag.pb.h"
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()
@@ -27,12 +28,25 @@ namespace cache {
 
 namespace interprocess = boost::interprocess;
 
-using segment_manager = interprocess::managed_mapped_file::segment_manager;
-using char_allocator = interprocess::allocator<char, segment_manager>;
+/**
+ * @brief as allocation is yet protected by _protect mutex, we don't need to
+ * protect allocation alogorithm (interprocess::null_mutex_family)
+ *
+ */
+using managed_mapped_file = interprocess::basic_managed_mapped_file<
+    char,
+    interprocess::rbtree_best_fit<interprocess::null_mutex_family>,
+    interprocess::iset_index>;
+using segment_manager = managed_mapped_file::segment_manager;
+using char_allocator = managed_mapped_file::allocator<char>::type;
+using uint64_t_allocator = interprocess::allocator<uint64_t, segment_manager>;
+
 // std::string can't be used in mapped memory => use boost::container::string
 // with managed_mapped_file allocator
-using string = boost::interprocess::
-    basic_string<char, std::char_traits<char>, char_allocator>;
+using string =
+    interprocess::basic_string<char, std::char_traits<char>, char_allocator>;
+
+using host_serv_pair = std::pair<uint64_t /*host_id*/, uint64_t /*serv_id*/>;
 
 inline bool operator==(const string& left, const absl::string_view& right) {
   return left.compare(0, right.length(), right.data()) == 0;
@@ -44,22 +58,52 @@ inline bool operator!=(const string& left, const absl::string_view& right) {
 
 struct metric_info {
   uint64_t index_id;
-  const string* name;
-  const string* unit;
+  interprocess::offset_ptr<const string> name;
+  interprocess::offset_ptr<const string> unit;
   uint64_t host_id;
-  const string* host_name;
+  interprocess::offset_ptr<const string> host_name;
   uint64_t service_id;
-  const string* service_description;
+  interprocess::offset_ptr<const string> service_description;
   double min;
   double max;
+};
+
+struct resource_tag {
+  TagType tag_type;
+  string name;
+  uint64_t poller_id;
+};
+
+struct resource_info {
+  resource_info(const char_allocator& char_alloc) : name(char_alloc) {}
+
+  resource_info(const absl::string_view& nam,
+                uint64_t res_id,
+                uint64_t sev_id,
+
+                const char_allocator& char_alloc)
+      : name(nam.data(), nam.length(), char_alloc),
+        resource_id(res_id),
+        severity_id(sev_id) {}
+
+  string name;
+  uint64_t resource_id;
+  uint64_t severity_id;
 };
 
 /**
  * @brief this singleton is used to store many things in a mapped file
  * All memory stored in it are allocated in a memory segment mapped to a file
  * Sometimes file needs to be growned, so memory segment may be moved
- * So before getting data, you must aquire a shared lock by creating a
- * global_cache::lock object
+ * So before getting data and during the result usage, you must aquire a shared
+ * lock by creating a global_cache::lock object
+ * example:
+ * @code
+ * global_cache::lock l;
+ * const string * host_name =
+ * global_cache::instance_ptr()->get_host_name("toto");
+ * @endcode
+ *
  *
  * this class is abstract, it only deals with mapping, data are stored in
  * global_cache_data
@@ -67,18 +111,24 @@ struct metric_info {
  * When you insert data, you must catch interprocess::bad_allo and call
  * allocation_exception_handler to grow file outside any lock
  */
-class global_cache {
+class global_cache : public std::enable_shared_from_this<global_cache> {
  protected:
   std::string _file_path;
   size_t _file_size;
 
-  std::unique_ptr<interprocess::managed_mapped_file> _file;
+  std::unique_ptr<managed_mapped_file> _file;
+
+  std::shared_ptr<asio::io_context> _io_context;
+
+  asio::system_timer _checksum_timer;
+  mutable bool _checksum_to_compute;
 
   mutable absl::Mutex _protect;
 
   static std::shared_ptr<global_cache> _instance;
 
-  global_cache(const std::string& file_path);
+  global_cache(const std::string& file_path,
+               const std::shared_ptr<asio::io_context>& io_context);
 
   void open(size_t initial_size_on_create, const void* address = 0);
 
@@ -88,19 +138,30 @@ class global_cache {
 
   uint64_t calc_checksum() const;
 
-  void write_checksum(uint64_t checksum) const;
+  void write_checksum() const;
+
+  void write_checksum_no_lock() const;
   uint64_t read_checksum() const;
 
   virtual void managed_map(bool create){};
+
+  void start_checksum_timer();
+
+  void checksum_timer_handler(const boost::system::error_code& err);
+
+  void cancel_checksum_timer();
 
  public:
   using pointer = std::shared_ptr<global_cache>;
 
   static pointer load(const std::string& file_path,
-                      size_t initial_size = 0x10000000,
+                      const std::shared_ptr<asio::io_context>& io_context,
+                      size_t initial_size = 0x1000000,
                       const void* address = 0);
 
-  static pointer instance() { return _instance; }
+  static void unload();
+
+  static pointer instance_ptr() { return _instance; }
 
   virtual ~global_cache();
 
@@ -126,18 +187,88 @@ class global_cache {
                                double min,
                                double max) = 0;
 
+  virtual void store_instance(uint64_t instance_id,
+                              const absl::string_view& instance_name) = 0;
+
+  /**
+   * @brief As we don't have access to the repeated TagInfo type, we fill
+   * service and host tags ids with this function
+   *
+   */
+
   virtual void store_host(uint64_t host_id,
-                          const absl::string_view& host_name) = 0;
+                          const absl::string_view& host_name,
+                          uint64_t resource_id,
+                          uint64_t severity_id) = 0;
 
   virtual void store_service(uint64_t host_id,
                              uint64_t service_id,
-                             const absl::string_view& service_description) = 0;
+                             const absl::string_view& service_description,
+                             uint64_t resource_id,
+                             uint64_t severity_id) = 0;
 
   virtual void set_index_mapping(uint64_t index_id,
                                  uint64_t host_id,
-                                 uint64_t service_id);
+                                 uint64_t service_id) = 0;
 
   virtual const metric_info* get_metric_info(uint32_t metric_id) const = 0;
+
+  virtual const resource_info* get_host(uint64_t host_id) const = 0;
+  virtual const resource_info* get_host_from_index_id(
+      uint64_t index_id) const = 0;
+  virtual const resource_info* get_service(uint64_t host_id,
+                                           uint64_t service_id) const = 0;
+  virtual const resource_info* get_service_from_index_id(
+      uint64_t index_id) const = 0;
+
+  virtual const host_serv_pair* get_host_serv_id(uint64_t index_id) const = 0;
+
+  virtual const string* get_instance_name(uint64_t instance_id) const = 0;
+
+  virtual void add_host_group(uint64_t group, uint64_t host) = 0;
+  virtual void remove_host_from_group(uint64_t group, uint64_t host) = 0;
+  virtual void remove_host_group(uint64_t group) = 0;
+
+  virtual void add_service_group(uint64_t group,
+                                 uint64_t host,
+                                 uint64_t service) = 0;
+  virtual void remove_service_from_group(uint64_t group,
+                                         uint64_t host,
+                                         uint64_t service) = 0;
+  virtual void remove_service_group(uint64_t group) = 0;
+
+  virtual void append_service_group(uint64_t host,
+                                    uint64_t service,
+                                    std::ostream& request_body) = 0;
+  virtual void append_host_group(uint64_t host, std::ostream& request_body) = 0;
+
+  virtual void add_tag(uint64_t tag_id,
+                       const absl::string_view& tag_name,
+                       TagType tag_type,
+                       uint64_t poller_id) = 0;
+
+  virtual void remove_tag(uint64_t tag_id) = 0;
+
+  using tag_id_enumerator = std::function<uint64_t()>;
+  virtual void set_host_tag(uint64_t host, tag_id_enumerator&& tag_filler) = 0;
+  virtual void set_serv_tag(uint64_t host,
+                            uint64_t serv,
+                            tag_id_enumerator&& tag_filler) = 0;
+
+  virtual void append_host_tag_id(uint64_t host,
+                                  TagType tag_type,
+                                  std::ostream& request_body) = 0;
+  virtual void append_serv_tag_id(uint64_t host,
+                                  uint64_t serv,
+                                  TagType tag_type,
+                                  std::ostream& request_body) = 0;
+  virtual void append_host_tag_name(uint64_t host,
+                                    TagType tag_type,
+                                    std::ostream& request_body) = 0;
+  virtual void append_serv_tag_name(uint64_t host,
+                                    uint64_t serv,
+                                    TagType tag_type,
+                                    std::ostream& request_body) = 0;
 };
 
 };  // namespace cache

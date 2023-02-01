@@ -153,7 +153,7 @@ void factory::create_conf(const config::endpoint& cfg,
   if (it != cfg.params.end()) {
     if (!absl::SimpleAtob(it->second, &encryption)) {
       throw msg_fmt(
-          "couldn't parse ecnryption '{}' defined for "
+          "couldn't parse encryption '{}' defined for "
           "endpoint '{}'",
           it->second, cfg.name);
     }
@@ -202,52 +202,16 @@ void factory::create_conf(const config::endpoint& cfg,
   extract_int(cfg, "max_connections", max_connections);
 
   //      columns
-  auto chk_str = [](json const& js) -> std::string {
-    if (!js.is_string() || js.get<std::string>().empty()) {
-      throw msg_fmt("couldn't get the configuration of a metric column name");
-    }
-    return js.get<std::string>();
-  };
-  auto chk_bool = [](std::string const& boolean) -> bool {
-    if (boolean == "yes" || boolean == "true")
-      return true;
-    return false;
-  };
-
   // Get status query.
   std::vector<column> status_column_list;
   if (cfg.cfg.find("status_column") != cfg.cfg.end()) {
-    json const& status_columns = cfg.cfg["status_column"];
-    if (status_columns.is_object())
-      status_column_list.push_back(column(
-          chk_str(status_columns["name"]), chk_str(status_columns["value"]),
-          chk_bool(chk_str(status_columns["is_tag"])),
-          column::parse_type(chk_str(status_columns["type"]))));
-    else if (status_columns.is_array())
-      for (json const& object : status_columns) {
-        status_column_list.push_back(
-            column(chk_str(object["name"]), chk_str(object["value"]),
-                   chk_bool(chk_str(object["is_tag"])),
-                   column::parse_type(chk_str(object["type"]))));
-      }
+    status_column_list = get_columns(cfg.cfg["status_column"]);
   }
 
   // Get metric query.*/
   std::vector<column> metric_column_list;
   if (cfg.cfg.find("metrics_column") != cfg.cfg.end()) {
-    json const& metric_columns = cfg.cfg["metrics_column"];
-    if (metric_columns.is_object())
-      metric_column_list.push_back(column(
-          chk_str(metric_columns["name"]), chk_str(metric_columns["value"]),
-          chk_bool(chk_str(metric_columns["is_tag"])),
-          column::parse_type(chk_str(metric_columns["type"]))));
-    else if (metric_columns.is_array())
-      for (json const& object : metric_columns) {
-        metric_column_list.push_back(
-            column(chk_str(object["name"]), chk_str(object["value"]),
-                   chk_bool(chk_str(object["is_tag"])),
-                   column::parse_type(chk_str(object["type"]))));
-      }
+    metric_column_list = get_columns(cfg.cfg["metrics_column"]);
   }
 
   asio::ip::tcp::resolver resolver{*_io_context};
@@ -292,4 +256,32 @@ void factory::create_conf(const config::endpoint& cfg,
   conf = http_tsdb_config(http_cfg, target, user, passwd,
                           queries_per_transaction, max_send_interval,
                           status_column_list, metric_column_list);
+}
+
+std::vector<column> factory::get_columns(const json& cfg) {
+  std::vector<column> ret;
+
+  auto chk_str = [](json const& js) -> std::string {
+    if (!js.is_string() || js.get<std::string>().empty()) {
+      throw msg_fmt("couldn't get the configuration of a metric column name");
+    }
+    return js.get<std::string>();
+  };
+  auto chk_bool = [](std::string const& boolean) -> bool {
+    if (boolean == "yes" || boolean == "true")
+      return true;
+    return false;
+  };
+
+  if (cfg.is_object())
+    ret.push_back(column(chk_str(cfg["name"]), chk_str(cfg["value"]),
+                         chk_bool(chk_str(cfg["is_tag"])),
+                         column::parse_type(chk_str(cfg["type"]))));
+  else if (cfg.is_array())
+    for (json const& object : cfg) {
+      ret.push_back(column(chk_str(object["name"]), chk_str(object["value"]),
+                           chk_bool(chk_str(object["is_tag"])),
+                           column::parse_type(chk_str(object["type"]))));
+    }
+  return ret;
 }

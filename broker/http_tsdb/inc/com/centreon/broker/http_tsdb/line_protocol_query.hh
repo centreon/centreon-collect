@@ -21,8 +21,9 @@
 
 #include "bbdo/storage/metric.hh"
 #include "bbdo/storage/status.hh"
+#include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/http_tsdb/column.hh"
-#include "com/centreon/broker/http_tsdb/macro_cache.hh"
+#include "com/centreon/broker/http_tsdb/internal.hh"
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()
@@ -49,17 +50,19 @@ class line_protocol_query {
   line_protocol_query(const std::string allowed_macros,
                       std::vector<column> const& columns,
                       data_type type,
-                      macro_cache const& cache,
                       const std::shared_ptr<spdlog::logger>& logger);
   line_protocol_query(line_protocol_query const& other) = delete;
   ~line_protocol_query() = default;
   void escape_key(std::string const& str, std::ostream& is) const;
-  void escape_measurement(std::string const& str, std::ostream& is) const;
   void escape_value(std::string const& str, std::ostream& is) const;
 
   void append_metric(storage::metric const& me,
                      std::string& request_body) const;
+  void append_metric(storage::pb_metric const& me,
+                     std::string& request_body) const;
   void append_status(storage::status const& st,
+                     std::string& request_body) const;
+  void append_status(storage::pb_status const& st,
                      std::string& request_body) const;
 
  private:
@@ -88,18 +91,98 @@ class line_protocol_query {
   void _get_host(io::data const& d,
                  unsigned& string_index,
                  std::ostream& is) const;
+  uint64_t _get_host_id(io::data const& d) const;
   void _get_host_id(io::data const& d,
                     unsigned& string_index,
                     std::ostream& is) const;
   void _get_service(io::data const& d,
                     unsigned& string_index,
                     std::ostream& is) const;
+  cache::host_serv_pair _get_service_id(io::data const& d) const;
   void _get_service_id(io::data const& d,
                        unsigned& string_index,
                        std::ostream& is) const;
   void _get_instance(io::data const& d,
                      unsigned& string_index,
                      std::ostream& is) const;
+  void _get_host_group(io::data const& d,
+                       unsigned& string_index,
+                       std::ostream& is) const;
+  void _get_service_group(io::data const& d,
+                          unsigned& string_index,
+                          std::ostream& is) const;
+  void _get_min(io::data const& d,
+                unsigned& string_index,
+                std::ostream& is) const;
+  void _get_max(io::data const& d,
+                unsigned& string_index,
+                std::ostream& is) const;
+
+  void _get_tag_host_id(io::data const& d,
+                        TagType tag_type,
+                        std::ostream& is) const;
+
+  void _get_tag_host_cat_id(io::data const& d,
+                            unsigned& string_index,
+                            std::ostream& is) const {
+    _get_tag_host_id(d, TagType::HOSTCATEGORY, is);
+  }
+
+  void _get_tag_host_group_id(io::data const& d,
+                              unsigned& string_index,
+                              std::ostream& is) const {
+    _get_tag_host_id(d, TagType::HOSTGROUP, is);
+  }
+
+  void _get_tag_host_name(io::data const& d,
+                          TagType tag_type,
+                          std::ostream& is) const;
+
+  void _get_tag_host_cat_name(io::data const& d,
+                              unsigned& string_index,
+                              std::ostream& is) const {
+    _get_tag_host_name(d, TagType::HOSTCATEGORY, is);
+  }
+
+  void _get_tag_host_group_name(io::data const& d,
+                                unsigned& string_index,
+                                std::ostream& is) const {
+    _get_tag_host_name(d, TagType::HOSTGROUP, is);
+  }
+
+  void _get_tag_serv_id(io::data const& d,
+                        TagType tag_type,
+                        std::ostream& is) const;
+
+  void _get_tag_serv_cat_id(io::data const& d,
+                            unsigned& string_index,
+                            std::ostream& is) const {
+    _get_tag_serv_id(d, TagType::SERVICECATEGORY, is);
+  }
+
+  void _get_tag_serv_group_id(io::data const& d,
+                              unsigned& string_index,
+                              std::ostream& is) const {
+    _get_tag_serv_id(d, TagType::SERVICEGROUP, is);
+  }
+
+  void _get_tag_serv_name(io::data const& d,
+                          TagType tag_type,
+                          std::ostream& is) const;
+
+  void _get_tag_serv_cat_name(io::data const& d,
+                              unsigned& string_index,
+                              std::ostream& is) const {
+    _get_tag_serv_name(d, TagType::SERVICECATEGORY, is);
+  }
+
+  void _get_tag_serv_group_name(io::data const& d,
+                                unsigned& string_index,
+                                std::ostream& is) const {
+    _get_tag_serv_id(d, TagType::SERVICEGROUP, is);
+  }
+
+  const cache::metric_info* _get_metric_info(io::data const& d) const;
 
   // Compiled data.
   std::vector<std::pair<data_getter, data_escaper> > _compiled_getters;
@@ -109,8 +192,6 @@ class line_protocol_query {
   data_type _type;
 
   std::shared_ptr<spdlog::logger> _logger;
-  // Macro cache
-  macro_cache const* _cache;
 };
 }  // namespace http_tsdb
 

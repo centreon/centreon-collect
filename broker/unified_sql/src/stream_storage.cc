@@ -28,6 +28,7 @@
 #include "bbdo/storage/metric_mapping.hh"
 #include "bbdo/storage/remove_graph.hh"
 #include "bbdo/storage/status.hh"
+#include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/misc/perfdata.hh"
@@ -93,6 +94,11 @@ void stream::_unified_sql_process_pb_service_status(
     return;
   }
 
+  auto cache_ptr = cache::global_cache::instance_ptr();
+  if (cache_ptr) {
+    cache_ptr->set_index_mapping(it_index_cache->second.index_id, host_id,
+                                 service_id);
+  }
   uint32_t rrd_len;
   int32_t conn =
       _mysql.choose_connection_by_instance(_cache_host_instance[host_id]);
@@ -276,6 +282,10 @@ void stream::_unified_sql_process_pb_service_status(
             log_v2::perfdata()->debug("new metric with metric_id={}",
                                       it_index_cache->second.metric_id);
           }
+        }
+        if (cache_ptr) {
+          cache_ptr->set_metric_info(metric_id, index_id, pd.name(), pd.unit(),
+                                     pd.min(), pd.max());
         }
         if (need_metric_mapping) {
           auto mm{std::make_shared<storage::pb_metric_mapping>()};
@@ -534,6 +544,11 @@ void stream::_unified_sql_process_service_status(
   }
 
   if (index_id) {
+    auto cache_ptr = cache::global_cache::instance_ptr();
+    if (cache_ptr) {
+      cache_ptr->set_index_mapping(index_id, host_id, service_id);
+    }
+
     /* Generate status event */
     log_v2::perfdata()->debug(
         "unified sql: host_id:{}, service_id:{} - generating status event "
@@ -698,6 +713,12 @@ void stream::_unified_sql_process_service_status(
             log_v2::perfdata()->debug("new metric with metric_id={}",
                                       it_index_cache->second.metric_id);
           }
+        }
+
+        auto cache_ptr = cache::global_cache::instance_ptr();
+        if (cache_ptr) {
+          cache_ptr->set_metric_info(metric_id, index_id, pd.name(), pd.unit(),
+                                     pd.min(), pd.max());
         }
         if (need_metric_mapping)
           to_publish.emplace_back(

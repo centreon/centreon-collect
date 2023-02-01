@@ -37,12 +37,16 @@ inline std::string operator+(const std::string& left,
 
 std::shared_ptr<global_cache> global_cache::_instance;
 
-global_cache::global_cache(const std::string& file_path)
-    : _file_path(file_path), _file_size(0) {}
+global_cache::global_cache(const std::string& file_path,
+                           const std::shared_ptr<asio::io_context>& io_context)
+    : _file_path(file_path),
+      _file_size(0),
+      _io_context(io_context),
+      _checksum_timer(*io_context),
+      _checksum_to_compute(false) {}
 
 global_cache::~global_cache() {
-  absl::ReaderMutexLock l(&_protect);
-  write_checksum(calc_checksum());
+  write_checksum();
 }
 
 void global_cache::open(size_t initial_size_on_create, const void* address) {
@@ -54,7 +58,7 @@ void global_cache::open(size_t initial_size_on_create, const void* address) {
       if (!::stat(_file_path.c_str(), &exist_info) &&
           S_ISREG(exist_info.st_mode) && (exist_info.st_size & 0x07) == 0) {
         _file_size = exist_info.st_size;
-        _file = std::make_unique<interprocess::managed_mapped_file>(
+        _file = std::make_unique<managed_mapped_file>(
             interprocess::open_only, _file_path.c_str(), address);
         uint64_t chk = calc_checksum();
 
@@ -74,7 +78,8 @@ void global_cache::open(size_t initial_size_on_create, const void* address) {
 
       SPDLOG_LOGGER_ERROR(log_v2::core(), err_detail);
       _file.reset();
-      throw msg_fmt(err_detail);
+      _file_size = 0;
+      ::remove(_file_path.c_str());
     }
 
     SPDLOG_LOGGER_DEBUG(log_v2::core(), "create file {}", _file_path);
@@ -83,7 +88,7 @@ void global_cache::open(size_t initial_size_on_create, const void* address) {
     ::remove((_file_path + checksum_extension).c_str());
     grow(initial_size_on_create);
     this->managed_map(true);
-    write_checksum(calc_checksum());
+    write_checksum_no_lock();
   }
 }
 
@@ -124,6 +129,7 @@ void global_cache::grow(size_t new_size, void* address) {
   if (_file) {
     _file->flush();
     _file.reset();
+    _file_size = 0;
   }
 
   // need to have a multiple of sizeof(uint64_t) size
@@ -136,12 +142,12 @@ void global_cache::grow(size_t new_size, void* address) {
       SPDLOG_LOGGER_DEBUG(log_v2::core(),
                           "file {} removed or not a file => remove and create",
                           _file_path);
-      _file = std::make_unique<interprocess::managed_mapped_file>(
+      _file = std::make_unique<managed_mapped_file>(
           interprocess::create_only, _file_path.c_str(), new_size, address);
       _file_size = new_size;
     } else {  // file exist
-      interprocess::managed_mapped_file::grow(_file_path.c_str(), new_size);
-      _file = std::make_unique<interprocess::managed_mapped_file>(
+      managed_mapped_file::grow(_file_path.c_str(), new_size);
+      _file = std::make_unique<managed_mapped_file>(
           interprocess::open_only, _file_path.c_str(), address);
       _file_size = new_size;
     }
@@ -150,6 +156,7 @@ void global_cache::grow(size_t new_size, void* address) {
                                       _file_path, new_size, e.what());
     SPDLOG_LOGGER_ERROR(log_v2::core(), err_msg);
     _file.reset();
+    _file_size = 0;
     throw msg_fmt(err_msg);
   }
 }
@@ -162,9 +169,9 @@ void global_cache::grow(size_t new_size, void* address) {
 void global_cache::allocation_exception_handler() {
   {
     absl::WriterMutexLock l(&_protect);
-    grow(_file_size + 0x10000000);
+    grow(_file_size + 0x1000000);
     this->managed_map(false);
-    write_checksum(calc_checksum());
+    write_checksum_no_lock();
   }
 }
 
@@ -176,14 +183,27 @@ void global_cache::allocation_exception_handler() {
  * @param address where to map file in memory, 0 means system decides where
  * @return global_cache::pointer
  */
-global_cache::pointer global_cache::load(const std::string& file_path,
-                                         size_t initial_size,
-                                         const void* address) {
+global_cache::pointer global_cache::load(
+    const std::string& file_path,
+    const std::shared_ptr<asio::io_context>& io_context,
+    size_t initial_size,
+    const void* address) {
   if (!_instance) {
-    _instance = pointer(new global_cache_data(file_path));
+    _instance = pointer(new global_cache_data(file_path, io_context));
     _instance->open(initial_size, address);
   }
   return _instance;
+}
+
+/**
+ * @brief reset the singleton pointer
+ *
+ */
+void global_cache::unload() {
+  if (_instance) {
+    _instance->cancel_checksum_timer();
+  }
+  _instance.reset();
 }
 
 /**
@@ -198,11 +218,43 @@ const void* global_cache::get_address() const {
   return nullptr;
 }
 
-void global_cache::write_checksum(uint64_t checksum) const {
+void global_cache::start_checksum_timer() {
+  absl::WriterMutexLock l(&_protect);
+  _checksum_timer.expires_after(std::chrono::seconds(30));
+  _checksum_timer.async_wait(
+      [me = shared_from_this()](const boost::system::error_code& err) {
+        me->checksum_timer_handler(err);
+      });
+}
+
+void global_cache::cancel_checksum_timer() {
+  absl::WriterMutexLock l(&_protect);
+  _checksum_timer.cancel();
+}
+
+void global_cache::checksum_timer_handler(
+    const boost::system::error_code& err) {
+  if (err) {
+    return;
+  }
+  write_checksum();
+  start_checksum_timer();
+}
+
+void global_cache::write_checksum() const {
+  absl::ReaderMutexLock l(&_protect);
+  write_checksum_no_lock();
+}
+
+void global_cache::write_checksum_no_lock() const {
+  if (!_checksum_to_compute) {
+    return;
+  }
   std::string check_path = _file_path + checksum_extension;
   std::ofstream f(check_path.c_str(),
                   std::ios_base::trunc | std::ios_base::out);
-  f << checksum;
+  f << calc_checksum();
+  _checksum_to_compute = false;
 }
 
 uint64_t global_cache::read_checksum() const {

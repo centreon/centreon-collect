@@ -32,6 +32,8 @@
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/spdlog.h>
 
+#include <nlohmann/json.hpp>
+
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
 
@@ -39,6 +41,10 @@
 #include <boost/beast.hpp>
 #include <boost/beast/ssl.hpp>
 #include <boost/container/flat_set.hpp>
+// with this define boost::interprocess doesn't need Boost.DataTime
+#define BOOST_DATE_TIME_NO_LIB 1
+#include <boost/interprocess/containers/string.hpp>
+#include <boost/interprocess/managed_mapped_file.hpp>
 
 using system_clock = std::chrono::system_clock;
 using time_point = system_clock::time_point;

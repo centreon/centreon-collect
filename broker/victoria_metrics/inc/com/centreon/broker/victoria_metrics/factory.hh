@@ -32,6 +32,9 @@ namespace victoria_metrics {
  */
 class factory : public http_tsdb::factory {
  public:
+  static const nlohmann::json default_extra_status_column;
+  static const nlohmann::json default_extra_metric_column;
+
   factory();
   factory(factory const&) = delete;
   ~factory() = default;

@@ -22,8 +22,32 @@
 #include "com/centreon/broker/victoria_metrics/connector.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
+using namespace nlohmann;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::victoria_metrics;
+using namespace nlohmann::literals;
+
+const json factory::default_extra_status_column = R"([
+    {"name" : "host", "is_tag" : "true", "value" : "$HOST$", "type":"string"},
+    {"name" : "serv", "is_tag" : "true", "value" : "$SERVICE$", "type":"string"},
+    {"name" : "host_grp", "is_tag" : "true", "value" : "$HOSTGROUP$", "type":"string"},
+    {"name" : "serv_grp", "is_tag" : "true", "value" : "$SERVICE_GROUP$", "type":"string"},
+    {"name" : "host_tag_cat", "is_tag" : "true", "value" : "$HOST_TAG_CAT_NAME$", "type":"string"},
+    {"name" : "host_tag_grp", "is_tag" : "true", "value" : "$HOST_TAG_GROUP_NAME$", "type":"string"},
+    {"name" : "serv_tag_cat", "is_tag" : "true", "value" : "$SERV_TAG_CAT_NAME$", "type":"string"},
+    {"name" : "serv_tag_grp", "is_tag" : "true", "value" : "$SERV_TAG_GROUP_NAME$", "type":"string"}])"_json;
+
+const json factory::default_extra_metric_column = R"([
+    {"name" : "host", "is_tag" : "true", "value" : "$HOST$", "type":"string"},
+    {"name" : "serv", "is_tag" : "true", "value" : "$SERVICE$", "type":"string"},
+    {"name" : "min", "is_tag" : "true", "value" : "$MIN$", "type":"number"},
+    {"name" : "max", "is_tag" : "true", "value" : "$MAX$", "type":"number"},
+    {"name" : "host_grp", "is_tag" : "true", "value" : "$HOSTGROUP$", "type":"string"},
+    {"name" : "serv_grp", "is_tag" : "true", "value" : "$SERVICE_GROUP$", "type":"string"},
+    {"name" : "host_tag_cat", "is_tag" : "true", "value" : "$HOST_TAG_CAT_NAME$", "type":"string"},
+    {"name" : "host_tag_grp", "is_tag" : "true", "value" : "$HOST_TAG_GROUP_NAME$", "type":"string"},
+    {"name" : "serv_tag_cat", "is_tag" : "true", "value" : "$SERV_TAG_CAT_NAME$", "type":"string"},
+    {"name" : "serv_tag_grp", "is_tag" : "true", "value" : "$SERV_TAG_GROUP_NAME$", "type":"string"}])"_json;
 
 factory::factory()
     : http_tsdb::factory("victoria_metrics", pool::io_context_ptr()) {}
@@ -36,7 +60,19 @@ io::endpoint* factory::new_endpoint(
 
   std::shared_ptr<http_tsdb::http_tsdb_config> conf(
       std::make_shared<http_tsdb::http_tsdb_config>());
-
-  create_conf(cfg, *conf);
-  return new connector(conf, cache);
+  // default extra columns for victoria
+  if (cfg.cfg.find("status_column") == cfg.cfg.end() ||
+      cfg.cfg.find("metrics_column") == cfg.cfg.end()) {
+    config::endpoint cfg_copy(cfg);
+    if (cfg_copy.cfg.find("status_column") == cfg_copy.cfg.end()) {
+      cfg_copy.cfg["status_column"] = default_extra_status_column;
+    }
+    if (cfg_copy.cfg.find("metrics_column") == cfg_copy.cfg.end()) {
+      cfg_copy.cfg["metrics_column"] = default_extra_metric_column;
+    }
+    create_conf(cfg_copy, *conf);
+  } else {
+    create_conf(cfg, *conf);
+  }
+  return new connector(conf);
 }

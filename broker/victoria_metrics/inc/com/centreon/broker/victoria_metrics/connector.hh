@@ -28,11 +28,9 @@ namespace victoria_metrics {
 
 class connector : public io::endpoint {
   std::shared_ptr<http_tsdb::http_tsdb_config> _conf;
-  std::shared_ptr<persistent_cache> _cache;
 
  public:
-  connector(const std::shared_ptr<http_tsdb::http_tsdb_config>& conf,
-            const std::shared_ptr<persistent_cache>& cache);
+  connector(const std::shared_ptr<http_tsdb::http_tsdb_config>& conf);
   connector(const connector&) = delete;
   connector& operator=(const connector&) = delete;
   std::unique_ptr<io::stream> open() override;

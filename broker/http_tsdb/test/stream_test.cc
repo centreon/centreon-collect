@@ -45,8 +45,6 @@ static asio::executor_work_guard<asio::io_context::executor_type> worker(
     asio::make_work_guard(*io_context));
 static std::thread io_context_t;
 
-static std::shared_ptr<persistent_cache> _dummy_cache;
-
 class http_tsdb_stream_test : public ::testing::Test {
  public:
   static void SetUpTestSuite() {
@@ -61,7 +59,6 @@ class http_tsdb_stream_test : public ::testing::Test {
 
     log_v2::tcp()->set_level(spdlog::level::trace);
     file::disk_accessor::load(1000);
-    _dummy_cache = std::make_shared<persistent_cache>("/tmp/toto");
   }
   static void TearDownTestSuite() {
     worker.reset();
@@ -85,10 +82,10 @@ class request_test : public http_tsdb::request {
   }
 
   void add_metric(const storage::metric& metric) override { ++_nb_metric; }
-  void add_metric(const Metric& metric) override { ++_nb_metric; }
+  void add_metric(const storage::pb_metric& metric) override { ++_nb_metric; }
 
   void add_status(const storage::status& status) override { ++_nb_status; }
-  void add_status(const Status& status) override { ++_nb_status; }
+  void add_status(const storage::pb_status& status) override { ++_nb_status; }
 
   unsigned get_request_id() const { return _request_id; }
 
@@ -109,7 +106,6 @@ class stream_test : public http_tsdb::stream {
                           io_context,
                           log_v2::tcp(),
                           conf,
-                          _dummy_cache,
                           conn_creator) {}
   http_tsdb::request::pointer create_request() const override {
     return std::make_shared<request_test>();

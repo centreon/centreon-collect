@@ -28,7 +28,6 @@ include_directories(inc ${INC_DIR} ${HTTP_CLIENT_INC_DIR})
 set(SOURCES
     ${SRC_DIR}/factory.cc
     ${SRC_DIR}/column.cc
-    ${SRC_DIR}/macro_cache.cc
     ${SRC_DIR}/line_protocol_query.cc
     ${SRC_DIR}/stream.cc
 )
@@ -38,7 +37,6 @@ set(HEADERS
     ${INC_DIR}/factory.hh
     ${INC_DIR}/stream.hh
     ${INC_DIR}/column.hh
-    ${INC_DIR}/macro_cache.hh
     ${INC_DIR}/line_protocol_query.hh
 )
 

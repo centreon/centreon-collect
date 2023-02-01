@@ -38,6 +38,7 @@
 #include <spdlog/spdlog.h>
 
 #include <boost/algorithm/string/case_conv.hpp>
+#include <boost/algorithm/string/replace.hpp>
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
 #include <boost/beast/ssl.hpp>
@@ -45,6 +46,10 @@
 #include <boost/exception/diagnostic_information.hpp>
 
 #include "com/centreon/broker/namespace.hh"
+// with this define boost::interprocess doesn't need Boost.DataTime
+#define BOOST_DATE_TIME_NO_LIB 1
+#include <boost/interprocess/containers/string.hpp>
+#include <boost/interprocess/managed_mapped_file.hpp>
 
 using system_clock = std::chrono::system_clock;
 using time_point = system_clock::time_point;

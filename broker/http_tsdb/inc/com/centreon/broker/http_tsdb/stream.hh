@@ -24,8 +24,8 @@
 #include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/persistent_cache.hh"
 #include "http_tsdb_config.hh"
+#include "internal.hh"
 #include "line_protocol_query.hh"
-#include "macro_cache.hh"
 
 namespace http_client = com::centreon::broker::http_client;
 
@@ -52,10 +52,10 @@ class request : public http_client::request_base {
   void dump(std::ostream&) const override;
 
   virtual void add_metric(const storage::metric& metric) = 0;
-  virtual void add_metric(const Metric& metric) = 0;
+  virtual void add_metric(const storage::pb_metric& metric) = 0;
 
   virtual void add_status(const storage::status& status) = 0;
-  virtual void add_status(const Status& status) = 0;
+  virtual void add_status(const storage::pb_status& status) = 0;
 
   virtual void append(const request::pointer& data_to_append);
 
@@ -83,9 +83,6 @@ class stream : public io::stream, public std::enable_shared_from_this<stream> {
   const std::shared_ptr<spdlog::logger> _logger;
   // Database and http parameters
   std::shared_ptr<http_tsdb_config> _conf;
-
-  // Cache it 's used to display host_id in ts for example
-  macro_cache _cache;
 
   http_client::client::pointer _http_client;
 
@@ -139,7 +136,6 @@ class stream : public io::stream, public std::enable_shared_from_this<stream> {
          const std::shared_ptr<asio::io_context>& io_context,
          const std::shared_ptr<spdlog::logger>& logger,
          const std::shared_ptr<http_tsdb_config>& conf,
-         const std::shared_ptr<persistent_cache>& cache,
          http_client::client::connection_creator conn_creator =
              http_client::http_connection::load);
 
