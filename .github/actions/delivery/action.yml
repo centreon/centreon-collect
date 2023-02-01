@@ -10,10 +10,10 @@ inputs:
   distrib:
     description: "The distribution used for packaging"
     required: true
-  repos_username:
+  nexus_username:
     description: "Artifact Manager technical username"
     required: true
-  repos_password:
+  nexus_password:
     description: "Artifact Manager technical password"
     required: true
   version:
