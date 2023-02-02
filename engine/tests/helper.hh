@@ -28,4 +28,6 @@ extern com::centreon::engine::configuration::State pb_config;
 void init_config_state(void);
 void deinit_config_state(void);
 
+com::centreon::engine::configuration::Path build_path(absl::string_view path);
+
 #endif  // CENTREON_ENGINE_TESTS_HELPER_HH_

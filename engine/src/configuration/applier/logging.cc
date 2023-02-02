@@ -29,6 +29,53 @@ using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
 
 /**
+ * @brief Apply new configuration.
+ *
+ * @param config The new configuration.
+ */
+void applier::logging::apply(State& config) {
+  if (verify_config || test_scheduling)
+    return;
+
+  if (config.log_legacy_enabled()) {
+    // Syslog.
+    if (config.use_syslog() && !_syslog)
+      _add_syslog();
+    else if (!config.use_syslog() && _syslog)
+      _del_syslog();
+
+    // Standard log file.
+
+    if (config.log_file() == "")
+      _del_log_file();
+    else if (!_log || config.log_file() != _log->filename()) {
+      _add_log_file(config);
+      _del_stdout();
+      _del_stderr();
+    }
+
+    // Debug file.
+    if (config.debug_file() == "" || !config.debug_level() ||
+        !config.debug_verbosity()) {
+      _del_debug();
+      _debug_level = config.debug_level();
+      _debug_verbosity = config.debug_verbosity();
+      _debug_max_size = config.max_debug_file_size();
+    } else if (!_debug || config.debug_file() != _debug->filename() ||
+               config.debug_level() != _debug_level ||
+               config.debug_verbosity() != _debug_verbosity ||
+               config.max_debug_file_size() != _debug_max_size)
+      _add_debug(config);
+  } else {
+    _del_stdout();
+    _del_stderr();
+    _del_debug();
+    _del_log_file();
+    _del_syslog();
+  }
+}
+
+/**
  *  Apply new configuration.
  *
  *  @param[in] config The new configuration.
@@ -203,12 +250,39 @@ void applier::logging::_add_syslog() {
 /**
  *  Add file object logging.
  */
+void applier::logging::_add_log_file(const State& config) {
+  _del_log_file();
+  _log = new com::centreon::logging::file(config.log_file(), true,
+                                          config.log_pid());
+  com::centreon::logging::engine::instance().add(_log, engine::logging::log_all,
+                                                 engine::logging::most);
+}
+
+/**
+ *  Add file object logging.
+ */
 void applier::logging::_add_log_file(state const& config) {
   _del_log_file();
   _log = new com::centreon::logging::file(config.log_file(), true,
                                           config.log_pid());
   com::centreon::logging::engine::instance().add(_log, engine::logging::log_all,
                                                  engine::logging::most);
+}
+
+/**
+ * @brief Add debug object logging.
+ *
+ * @param config The protobuf configuration.
+ */
+void applier::logging::_add_debug(const State& config) {
+  _del_debug();
+  _debug_level = (config.debug_level() << 32) | engine::logging::log_all;
+  _debug_verbosity = config.debug_verbosity();
+  _debug_max_size = config.max_debug_file_size();
+  _debug = new com::centreon::engine::logging::debug_file(config.debug_file(),
+                                                          _debug_max_size);
+  com::centreon::logging::engine::instance().add(_debug, _debug_level,
+                                                 _debug_verbosity);
 }
 
 /**
