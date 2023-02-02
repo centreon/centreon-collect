@@ -122,7 +122,6 @@ bool mysql_result::value_as_bool(int idx) {
     throw msg_fmt("mysql: No row fetched in result");
   return retval;
 }
-
 /**
  *  Accessor to a column string value
  *

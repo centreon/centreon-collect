@@ -202,8 +202,9 @@ jobs:
           distrib: ${{ matrix.distrib }}
           repository_name: standard
           version: ${{ env.version }}
-          repos_username: ${{ secrets.NEXUS_USER }}
-          repos_password: ${{ secrets.NEXUS_PASSWD }}
+          repos_username: ${{ secrets.NEXUS_USERNAME }}
+          repos_password: ${{ secrets.NEXUS_PASSWORD }}
+          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           cache_key: cache-${{ github.sha }}-${{ github.run_id }}
 
   delivery-centos:
@@ -227,8 +228,9 @@ jobs:
           minor_version: ${{ needs.create-version.outputs.patch }}
           release: ${{ needs.create-version.outputs.release }}
           module_name: centreon-collect
-          repos_username: ${{ secrets.REPOS_USERNAME }}
-          repos_password: ${{ secrets.REPOS_PASSWORD }}
+          repos_username: ${{ secrets.NEXUS_USERNAME }}
+          repos_password: ${{ secrets.NEXUS_PASSWORD }}
+          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           cache_key: cache-${{ github.sha }}-rpmbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
           update_repo_path: ${{ secrets.UPDATE_REPO_PATH }}
           cloudfront_id: ${{ secrets.CLOUDFRONT_ID }}

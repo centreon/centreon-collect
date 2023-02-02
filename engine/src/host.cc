@@ -2281,7 +2281,13 @@ void host::check_for_expired_acknowledgement() {
             << "Acknowledgement of host '" << name() << "' just expired";
         SPDLOG_LOGGER_INFO(log_v2::events(),
                            "Acknowledgement of host '{}' just expired", name());
+<<<<<<< HEAD
         set_acknowledgement(AckType::NONE);
+=======
+        set_problem_has_been_acknowledged(false);
+        set_acknowledgement_type(ACKNOWLEDGEMENT_NONE);
+        // FIXME DBO: could be improved with something smaller.
+>>>>>>> 22.04.x
         update_status();
       }
     }
@@ -3850,10 +3856,9 @@ void host::check_for_orphaned() {
 
     /* determine the time at which the check results should have come in (allow
      * 10 minutes slack time) */
-    expected_time =
-        (time_t)(it->second->get_next_check() + it->second->get_latency() +
-                 config->host_check_timeout() +
-                 config->check_reaper_interval() + 600);
+    expected_time = (time_t)(
+        it->second->get_next_check() + it->second->get_latency() +
+        config->host_check_timeout() + config->check_reaper_interval() + 600);
 
     /* this host was supposed to have executed a while ago, but for some reason
      * the results haven't come back in... */

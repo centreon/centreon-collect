@@ -185,4 +185,9 @@ if args.fail:
     AX.grid(color='gray', linestyle='dashed')
     idx += 1
 
+if args.fail:
+    ax[2].bar(fail_x, fail_y, linewidth=2)
+    ax[2].set_ylabel('Fails count')
+    ax[2].tick_params(labelrotation=90, labelsize=8)
+
 plt.show()
