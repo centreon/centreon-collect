@@ -4,10 +4,10 @@ inputs:
   distrib:
     description: "The distribution used for packaging"
     required: true
-  repos_username:
+  nexus_username:
     description: "Artifact Manager technical username"
     required: true
-  repos_password:
+  nexus_password:
     description: "Artifact Manager technical password"
     required: true
   version:
@@ -80,7 +80,7 @@ runs:
         for FILE in $FILES ; do
           if [[ "${{ env.extfile }}" == "deb" ]] ; then
             echo "[DEBUG] - https://artifactory.apps.centreon.com/artifactory/debian-$VERSION-$REPO/pool/$FILE;deb.distribution=bullseye;deb.component=main;deb.architecture=amd64"
-            curl -v -u "${{ inputs.repos_username }}":"${{ inputs.repos_password }}" -X PUT "https://artifactory.apps.centreon.com/artifactory/debian-$VERSION-$REPO/pool/$FILE;deb.distribution=bullseye;deb.component=main;deb.architecture=amd64" -T "./$FILE"
+            curl -v -u "${{ inputs.nexus_username }}":"${{ inputs.nexus_password }}" -X PUT "https://artifactory.apps.centreon.com/artifactory/debian-$VERSION-$REPO/pool/$FILE;deb.distribution=bullseye;deb.component=main;deb.architecture=amd64" -T "./$FILE"
           else
             echo "[DEBUG] - https://yum.centreon.com/standard/${{ inputs.version }}/${{ inputs.distrib }}/$REPO/x86_64/centreon-collect/$PKG_DIR_VERSION/$FILE-$PKG_DIR_VERSION.${{ inputs.distrib }}.x86_64.rpm"
             curl -s -JO "https://yum.centreon.com/standard/${{ inputs.version }}/${{ inputs.distrib }}/$REPO/x86_64/centreon-collect/centreon-collect-$PKG_DIR_VERSION/$FILE-$PKG_DIR_VERSION.${{ inputs.distrib }}.x86_64.rpm"

@@ -122,7 +122,7 @@ runs:
           echo "[DEBUG] - Version: $VERSION"
 
           if [[ "${{ env.extfile }}" == "deb" ]] ; then
-            curl -u "${{ inputs.repos_username }}":"${{ inputs.repos_password }}" -H "Content-Type: multipart/form-data" --data-binary "@./$FILE" https://apt.centreon.com/repository/23.04-$SUBREPO/
+            curl -u "${{ inputs.nexus_username }}":"${{ inputs.nexus_password }}" -H "Content-Type: multipart/form-data" --data-binary "@./$FILE" https://apt.centreon.com/repository/23.04-$SUBREPO/
           else
             DISTRIB="${{ inputs.distrib }}"
             ARCH=$(echo $FILE | grep -oP '(x86_64|noarch)')
