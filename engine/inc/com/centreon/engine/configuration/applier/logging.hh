@@ -23,6 +23,7 @@
 #include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/logging/file.hh"
 #include "com/centreon/logging/syslogger.hh"
+#include "configuration/state.pb.h"
 
 namespace com::centreon::engine {
 
@@ -36,6 +37,7 @@ namespace applier {
  */
 class logging {
  public:
+  void apply(configuration::State& config);
   void apply(configuration::state& config);
   static logging& instance();
   void clear();
@@ -49,7 +51,9 @@ class logging {
   void _add_stdout();
   void _add_stderr();
   void _add_syslog();
+  void _add_log_file(const configuration::State& config);
   void _add_log_file(configuration::state const& config);
+  void _add_debug(const configuration::State& config);
   void _add_debug(configuration::state const& config);
   void _del_syslog();
   void _del_log_file();

@@ -193,6 +193,52 @@ void applier::timeperiod::remove_object(configuration::timeperiod const& obj) {
   config->timeperiods().erase(obj);
 }
 
+void applier::timeperiod::remove_object(ssize_t idx) {
+  /* obj is the object to remove */
+  auto& obj = pb_config.timeperiods()[idx];
+  log_v2::config()->debug("Removing time period '{}'.", obj.timeperiod_name());
+
+  // Find time period.
+  timeperiod_map::iterator it =
+      engine::timeperiod::timeperiods.find(obj.timeperiod_name());
+  if (it != engine::timeperiod::timeperiods.end() && it->second) {
+    // Notify event broker.
+    timeval tv(get_broker_timestamp(nullptr));
+    broker_adaptive_timeperiod_data(NEBTYPE_TIMEPERIOD_DELETE, NEBFLAG_NONE,
+                                    NEBATTR_NONE, it->second.get(), CMD_NONE,
+                                    &tv);
+
+    // Erase time period (will effectively delete the object).
+    engine::timeperiod::timeperiods.erase(it);
+  }
+
+  // Remove time period from the global configuration set.
+  pb_config.mutable_timeperiods()->DeleteSubrange(idx, 1);
+}
+
+/**
+ *  @brief Resolve a time period object.
+ *
+ *  This method does nothing because a time period object does not rely
+ *  on any external object.
+ *
+ *  @param[in] obj Unused.
+ */
+void applier::timeperiod::resolve_object(const configuration::Timeperiod& obj) {
+  // Logging.
+  log_v2::config()->debug("Resolving time period '{}'.", obj.timeperiod_name());
+
+  // Find time period.
+  timeperiod_map::iterator it =
+      engine::timeperiod::timeperiods.find(obj.timeperiod_name());
+  if (engine::timeperiod::timeperiods.end() == it || !it->second)
+    throw engine_error() << "Cannot resolve non-existing "
+                         << "time period '" << obj.timeperiod_name() << "'";
+
+  // Resolve time period.
+  it->second->resolve(config_warnings, config_errors);
+}
+
 /**
  *  @brief Resolve a time period object.
  *

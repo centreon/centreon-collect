@@ -52,6 +52,40 @@ static bool is_old_style_user_macro(std::string const& key, unsigned int& val) {
 }
 
 /**
+ * @brief Apply new protobuf configuration.
+ *
+ * @param config The new configuration.
+ */
+void applier::macros::apply(configuration::State& config) {
+  _set_macro(MACRO_ADMINEMAIL, config.admin_email());
+  _set_macro(MACRO_ADMINPAGER, config.admin_pager());
+  _set_macro(MACRO_COMMANDFILE, config.command_file());
+  _set_macro(MACRO_LOGFILE, config.log_file());
+  _set_macro(MACRO_MAINCONFIGFILE, config.cfg_main());
+  if (config.resource_file().size() > 0)
+    _set_macro(MACRO_RESOURCEFILE, *config.resource_file().begin());
+  _set_macro(MACRO_STATUSDATAFILE, config.status_file());
+  _set_macro(MACRO_RETENTIONDATAFILE, config.state_retention_file());
+  _set_macro(MACRO_HOSTPERFDATAFILE, config.host_perfdata_file());
+  _set_macro(MACRO_SERVICEPERFDATAFILE, config.service_perfdata_file());
+  _set_macro(MACRO_POLLERNAME, config.poller_name());
+  _set_macro(MACRO_POLLERID, std::to_string(config.poller_id()));
+
+  auto& users = applier::state::instance().user_macros();
+  users.clear();
+
+  for (auto& p : config.users())
+    users[p.first] = p.second;
+
+  // Save old style user macros into old style structures.
+  for (auto& p : users) {
+    unsigned int val = 1;
+    if (is_old_style_user_macro(p.first, val))
+      _set_macros_user(val - 1, p.second);
+  }
+}
+
+/**
  *  Apply new configuration.
  *
  *  @param[in] config The new configuration.

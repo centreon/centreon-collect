@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013,2017 Centreon
+** Copyright 2011-2013,2017,2023 Centreon
 **
 ** This file is part of Centreon Engine.
 **
@@ -32,18 +32,24 @@ class state;
 namespace applier {
 class connector {
  public:
-  connector();
-  ~connector() throw();
+  /**
+   * @brief Default constructor.
+   */
+  connector() = default;
+  /**
+   * @brief Destructor.
+   */
+  ~connector() noexcept = default;
+  connector(const connector&) = delete;
+  connector& operator=(const connector&) = delete;
+  void add_object(const configuration::Connector& obj);
   void add_object(configuration::connector const& obj);
   void expand_objects(configuration::State& s);
   void expand_objects(configuration::state& s);
   void modify_object(configuration::connector const& obj);
   void remove_object(configuration::connector const& obj);
+  void resolve_object(const configuration::Connector& obj);
   void resolve_object(configuration::connector const& obj);
-
- private:
-  connector(connector const& right);
-  connector& operator=(connector const& right);
 };
 }  // namespace applier
 }  // namespace configuration

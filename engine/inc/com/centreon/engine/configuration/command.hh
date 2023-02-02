@@ -58,8 +58,8 @@ class command : public object {
   static std::unordered_map<std::string, setter_func> const _setters;
 };
 
-typedef std::shared_ptr<command> command_ptr;
-typedef std::set<command> set_command;
+using command_ptr = std::shared_ptr<command>;
+using set_command = std::set<command>;
 }  // namespace configuration
 
 }

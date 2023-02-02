@@ -21,6 +21,7 @@
 #define CCE_CONFIGURATION_APPLIER_STATE_HH
 
 #include "com/centreon/engine/configuration/applier/difference.hh"
+#include "com/centreon/engine/configuration/applier/pb_difference.hh"
 #include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/engine/servicedependency.hh"
 #include "com/centreon/engine/timeperiod.hh"
@@ -48,6 +49,7 @@ namespace applier {
  */
 class state {
  public:
+  void apply_ng(const configuration::State& new_cfg);
   void apply(configuration::State& new_cfg);
   void apply(configuration::state& new_cfg);
   void apply(configuration::State& new_cfg, retention::state& state);
@@ -91,6 +93,10 @@ class state {
 
   state& operator=(state const&);
   void _apply(configuration::state const& new_cfg);
+
+  template <typename ConfigurationType, typename ApplierType>
+  void _pb_apply(const pb_difference<ConfigurationType>& diff);
+
   template <typename ConfigurationType, typename ApplierType>
   void _apply(difference<std::set<ConfigurationType>> const& diff);
   void _apply(configuration::state& new_cfg, retention::state& state);
@@ -106,6 +112,9 @@ class state {
                    retention::state* state = NULL);
   template <typename ConfigurationType, typename ApplierType>
   void _resolve(std::set<ConfigurationType>& cfg);
+  template <typename ConfigurationType, typename ApplierType>
+  void _pb_resolve(
+      const ::google::protobuf::RepeatedPtrField<ConfigurationType>& cfg);
 
   std::mutex _apply_lock;
   state* _config;

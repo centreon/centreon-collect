@@ -21,6 +21,7 @@
 #define CCE_CONFIGURATION_APPLIER_MACROS_HH
 
 #include "com/centreon/engine/configuration/state.hh"
+#include "configuration/state.pb.h"
 
 // Forward declaration.
 class nagios_macros;
@@ -37,6 +38,7 @@ namespace applier {
  */
 class macros {
  public:
+  void apply(configuration::State& config);
   void apply(configuration::state& config);
   static macros& instance();
   void clear();

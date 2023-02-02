@@ -30,14 +30,28 @@
 using namespace com::centreon::engine::configuration;
 
 /**
- *  Default constructor.
+ * @brief Add new connector.
+ *
+ * @param obj The new connector to add into the monitoring engine.
  */
-applier::connector::connector() {}
+void applier::connector::add_object(const configuration::Connector& obj) {
+  // Logging.
+  log_v2::config()->debug("Creating new connector '{}'.", obj.connector_name());
 
-/**
- *  Destructor.
- */
-applier::connector::~connector() noexcept {}
+  // Expand command line.
+  nagios_macros* macros = get_global_macros();
+  std::string command_line;
+  process_macros_r(macros, obj.connector_line(), command_line, 0);
+
+  // Add connector to the global configuration set.
+  auto* cfg_cnn = pb_config.add_connectors();
+  cfg_cnn->CopyFrom(obj);
+
+  // Create connector.
+  auto cmd = std::make_shared<commands::connector>(
+      obj.connector_name(), command_line, &checks::checker::instance());
+  commands::connector::connectors[obj.connector_name()] = cmd;
+}
 
 /**
  *  Add new connector.
@@ -159,6 +173,16 @@ void applier::connector::remove_object(configuration::connector const& obj) {
  *
  *  @param[in] obj Unused.
  */
-void applier::connector::resolve_object(configuration::connector const& obj) {
-  (void)obj;
-}
+void applier::connector::resolve_object(const configuration::Connector& obj
+                                        [[may_be_unused]]) {}
+
+/**
+ *  @brief Resolve a connector.
+ *
+ *  Connector objects do not need resolution. Therefore this method does
+ *  nothing.
+ *
+ *  @param[in] obj Unused.
+ */
+void applier::connector::resolve_object(const configuration::connector& obj
+                                        [[may_be_unused]]) {}

@@ -66,6 +66,56 @@ using namespace com::centreon::engine::logging;
 
 static bool has_already_been_loaded(false);
 
+void applier::state::apply_ng(const configuration::State& new_cfg) {
+  configuration::DiffState dstate = build_difference(pb_config, new_cfg);
+  configuration::applier::timeperiod tp_aply;
+  configuration::applier::connector cn_aply;
+  configuration::applier::command cmd_aply;
+  configuration::applier::contact ct_aply;
+
+  for (const PathWithValue& pv : dstate.to_add()) {
+    switch (pv.val().value_case()) {
+      case Value::kValueB:
+        break;
+      case Value::kValueI32:
+        break;
+      case Value::kValueTr:
+        // A Timerange is added.
+        assert(8716 == 10129);
+        // tr_aply.add_object(pv.val().value_tr());
+        break;
+      case Value::kValueDr:
+        // A Daterange is added.
+        assert(8717 == 10130);
+        // dr_aply.add_object(pv.val().value_dr());
+        break;
+      case Value::kValueTp:
+        // A Timeperiod is added.
+        // tp_aply.add_object(pv.path(), pv.val().value_tp());
+        break;
+      case Value::kValueCn:
+        // A Connector is added.
+        cn_aply.add_object(pv.val().value_cn());
+        break;
+      case Value::kValueCo:
+        // A Command is added.
+        cmd_aply.add_object(pv.val().value_co());
+        break;
+      case Value::kValueCv:
+        // A CustomVariable is added.
+        assert(71 == 109);
+        // cv_aply.add_object(pv.val().value_cv());
+        break;
+      case Value::kValueCt:
+        // A Contact is added.
+        ct_aply.add_object(pv.val().value_ct());
+        break;
+      default:
+        assert(12 == 1111);
+    }
+  }
+}
+
 /**
  *  Apply new configuration.
  *
@@ -626,6 +676,71 @@ void applier::state::_apply(configuration::state const& new_cfg) {
       ochp_command_ptr = nullptr;
     } else
       ochp_command_ptr = found->second.get();
+  }
+}
+
+/**
+ *  @brief Apply protobuf configuration of a specific object type.
+ *
+ *  This method will perform a diff on cur_cfg and new_cfg to create the
+ *  three element sets : added, modified and removed. The type applier
+ *  will then be called to:
+ *  * 1) modify existing objects (the modification must be done in first since
+ * remove and create changes indices).
+ *  * 2) remove old objects
+ *  * 3) create new objects
+ *
+ *  @param[in] cur_cfg Current configuration set.
+ *  @param[in] new_cfg New configuration set.
+ */
+template <typename ConfigurationType, typename ApplierType>
+void applier::state::_pb_apply(const pb_difference<ConfigurationType>& diff) {
+  // Applier.
+  ApplierType aplyr;
+
+  //  // Modify objects.
+  //  for (typename cfg_set::const_iterator it_modify = diff.modified().begin(),
+  //                                        end_modify = diff.modified().end();
+  //       it_modify != end_modify; ++it_modify) {
+  //    if (!verify_config)
+  //      aplyr.modify_object(*it_modify);
+  //    else {
+  //      try {
+  //        aplyr.modify_object(*it_modify);
+  //      } catch (std::exception const& e) {
+  //        ++config_errors;
+  //        engine_logger(log_info_message, basic) << e.what();
+  //        log_v2::events()->info(e.what());
+  //      }
+  //    }
+  //  }
+
+  // Erase objects.
+  for (auto idx : diff.deleted()) {
+    if (!verify_config)
+      aplyr.remove_object(idx);
+    else {
+      try {
+        aplyr.remove_object(idx);
+      } catch (const std::exception& e) {
+        ++config_errors;
+        log_v2::events()->info(e.what());
+      }
+    }
+  }
+
+  // Add objects.
+  for (auto& obj : diff.added()) {
+    if (!verify_config)
+      aplyr.add_object(obj);
+    else {
+      try {
+        aplyr.add_object(obj);
+      } catch (const std::exception& e) {
+        ++config_errors;
+        log_v2::events()->info(e.what());
+      }
+    }
   }
 }
 
@@ -1327,7 +1442,319 @@ void applier::state::_processing(configuration::State& new_cfg,
   //  Build difference for all objects.
   //
 
-  DiffState dstate = build_difference(pb_config, new_cfg);
+  // Build difference for timeperiods.
+  pb_difference<configuration::Timeperiod> diff_timeperiods;
+  diff_timeperiods.parse(
+      pb_config.timeperiods().begin(), pb_config.timeperiods().end(),
+      new_cfg.timeperiods().begin(), new_cfg.timeperiods().end());
+
+  //  // Build difference for connectors.
+  //  difference<set_connector> diff_connectors;
+  //  diff_connectors.parse(config->connectors(), new_cfg.connectors());
+  //
+  //  // Build difference for commands.
+  //  difference<set_command> diff_commands;
+  //  diff_commands.parse(config->commands(), new_cfg.commands());
+  //
+  //  // Build difference for severities.
+  //  difference<set_severity> diff_severities;
+  //  diff_severities.parse(config->severities(), new_cfg.severities());
+  //
+  //  // Build difference for tags.
+  //  difference<set_tag> diff_tags;
+  //  diff_tags.parse(config->tags(), new_cfg.tags());
+  //
+  //  // Build difference for contacts.
+  //  difference<set_contact> diff_contacts;
+  //  diff_contacts.parse(config->contacts(), new_cfg.contacts());
+  //
+  //  // Build difference for contactgroups.
+  //  difference<set_contactgroup> diff_contactgroups;
+  //  diff_contactgroups.parse(config->contactgroups(),
+  //  new_cfg.contactgroups());
+  //
+  //  // Build difference for hosts.
+  //  difference<set_host> diff_hosts;
+  //  diff_hosts.parse(config->hosts(), new_cfg.hosts());
+  //
+  //  // Build difference for hostgroups.
+  //  difference<set_hostgroup> diff_hostgroups;
+  //  diff_hostgroups.parse(config->hostgroups(), new_cfg.hostgroups());
+  //
+  //  // Build difference for services.
+  //  difference<set_service> diff_services;
+  //  diff_services.parse(config->services(), new_cfg.services());
+  //
+  //  // Build difference for anomalydetections.
+  //  difference<set_anomalydetection> diff_anomalydetections;
+  //  diff_anomalydetections.parse(config->anomalydetections(),
+  //                               new_cfg.anomalydetections());
+  //
+  //  // Build difference for servicegroups.
+  //  difference<set_servicegroup> diff_servicegroups;
+  //  diff_servicegroups.parse(config->servicegroups(),
+  //  new_cfg.servicegroups());
+  //
+  //  // Build difference for hostdependencies.
+  //  difference<set_hostdependency> diff_hostdependencies;
+  //  diff_hostdependencies.parse(config->hostdependencies(),
+  //                              new_cfg.hostdependencies());
+  //
+  //  // Build difference for servicedependencies.
+  //  difference<set_servicedependency> diff_servicedependencies;
+  //  diff_servicedependencies.parse(config->servicedependencies(),
+  //                                 new_cfg.servicedependencies());
+  //
+  //  // Build difference for hostescalations.
+  //  difference<set_hostescalation> diff_hostescalations;
+  //  diff_hostescalations.parse(config->hostescalations(),
+  //                             new_cfg.hostescalations());
+  //
+  //  // Build difference for serviceescalations.
+  //  difference<set_serviceescalation> diff_serviceescalations;
+  //  diff_serviceescalations.parse(config->serviceescalations(),
+  //                                new_cfg.serviceescalations());
+  //
+  // Timing.
+  gettimeofday(tv + 1, nullptr);
+
+  try {
+    std::lock_guard<std::mutex> locker(_apply_lock);
+
+    // Apply logging configurations.
+
+    applier::logging::instance().apply(new_cfg);
+
+    log_v2::instance().apply(new_cfg);
+
+    // Apply globals configurations.
+    applier::globals::instance().apply(new_cfg);
+
+    // Apply macros configurations.
+    applier::macros::instance().apply(new_cfg);
+
+    // Timing.
+    gettimeofday(tv + 2, nullptr);
+
+    if (!has_already_been_loaded && !verify_config && !test_scheduling) {
+      // This must be logged after we read config data,
+      // as user may have changed location of main log file.
+      log_v2::process()->info("Centreon Engine {} starting ... (PID={})",
+                              CENTREON_ENGINE_VERSION_STRING, getpid());
+
+      // Log the local time - may be different than clock
+      // time due to timezone offset.
+      log_v2::process()->info("Local time is {}", string::ctime(program_start));
+      log_v2::process()->info("LOG VERSION: {}", LOG_VERSION_2);
+    }
+
+    //
+    //  Apply and resolve all objects.
+    //
+
+    // Apply timeperiods.
+    _pb_apply<configuration::Timeperiod, applier::timeperiod>(diff_timeperiods);
+    _pb_resolve<configuration::Timeperiod, applier::timeperiod>(
+        pb_config.timeperiods());
+
+    //    // Apply connectors.
+    //    _apply<configuration::connector, applier::connector>(diff_connectors);
+    //    _resolve<configuration::connector, applier::connector>(
+    //        config->connectors());
+    //
+    //    // Apply commands.
+    //    _apply<configuration::command, applier::command>(diff_commands);
+    //    _resolve<configuration::command,
+    //    applier::command>(config->commands());
+    //
+    //    // Apply contacts and contactgroups.
+    //    _apply<configuration::contact, applier::contact>(diff_contacts);
+    //    _apply<configuration::contactgroup, applier::contactgroup>(
+    //        diff_contactgroups);
+    //    _resolve<configuration::contactgroup, applier::contactgroup>(
+    //        config->contactgroups());
+    //    _resolve<configuration::contact,
+    //    applier::contact>(config->contacts());
+    //
+    //    // Apply severities.
+    //    _apply<configuration::severity, applier::severity>(diff_severities);
+    //
+    //    // Apply tags.
+    //    _apply<configuration::tag, applier::tag>(diff_tags);
+    //
+    //    // Apply hosts and hostgroups.
+    //    _apply<configuration::host, applier::host>(diff_hosts);
+    //    _apply<configuration::hostgroup, applier::hostgroup>(diff_hostgroups);
+    //
+    //    // Apply services.
+    //    _apply<configuration::service, applier::service>(diff_services);
+    //
+    //    // Apply anomalydetections.
+    //    _apply<configuration::anomalydetection, applier::anomalydetection>(
+    //        diff_anomalydetections);
+    //
+    //    // Apply servicegroups.
+    //    _apply<configuration::servicegroup, applier::servicegroup>(
+    //        diff_servicegroups);
+    //
+    //    // Resolve hosts, services, host groups.
+    //    _resolve<configuration::host, applier::host>(config->hosts());
+    //    _resolve<configuration::hostgroup, applier::hostgroup>(
+    //        config->hostgroups());
+    //
+    //    // Resolve services.
+    //    _resolve<configuration::service,
+    //    applier::service>(config->services());
+    //
+    //    // Resolve anomalydetections.
+    //    _resolve<configuration::anomalydetection, applier::anomalydetection>(
+    //        config->anomalydetections());
+    //
+    //    // Resolve service groups.
+    //    _resolve<configuration::servicegroup, applier::servicegroup>(
+    //        config->servicegroups());
+    //
+    //    // Apply host dependencies.
+    //    _apply<configuration::hostdependency, applier::hostdependency>(
+    //        diff_hostdependencies);
+    //    _resolve<configuration::hostdependency, applier::hostdependency>(
+    //        config->hostdependencies());
+    //
+    //    // Apply service dependencies.
+    //    _apply<configuration::servicedependency, applier::servicedependency>(
+    //        diff_servicedependencies);
+    //    _resolve<configuration::servicedependency,
+    //    applier::servicedependency>(
+    //        config->servicedependencies());
+    //
+    //    // Apply host escalations.
+    //    _apply<configuration::hostescalation, applier::hostescalation>(
+    //        diff_hostescalations);
+    //    _resolve<configuration::hostescalation, applier::hostescalation>(
+    //        config->hostescalations());
+    //
+    //    // Apply service escalations.
+    //    _apply<configuration::serviceescalation, applier::serviceescalation>(
+    //        diff_serviceescalations);
+    //    _resolve<configuration::serviceescalation,
+    //    applier::serviceescalation>(
+    //        config->serviceescalations());
+    //
+    //#ifdef DEBUG_CONFIG
+    //    std::cout << "WARNING!! You are using a version of "
+    //                 "centreon engine for developers!!!"
+    //                 " This is not a production version.";
+    //    // Checks on configuration
+    //    _check_serviceescalations();
+    //    _check_hostescalations();
+    //    _check_contacts();
+    //    _check_contactgroups();
+    //    _check_services();
+    //    _check_hosts();
+    //#endif
+    //
+    //    // Load retention.
+    //    if (state)
+    //      _apply(new_cfg, *state);
+    //
+    //    // Apply scheduler.
+    //    if (!verify_config)
+    //      applier::scheduler::instance().apply(new_cfg, diff_hosts,
+    //      diff_services,
+    //                                           diff_anomalydetections);
+    //
+    //    // Apply new global on the current state.
+    //    if (!verify_config)
+    //      _apply(new_cfg);
+    //    else {
+    //      try {
+    //        _apply(new_cfg);
+    //      } catch (std::exception const& e) {
+    //        ++config_errors;
+    //        engine_logger(log_info_message, basic) << e.what();
+    //        log_v2::events()->info(e.what());
+    //      }
+    //    }
+    //
+    //    // Timing.
+    //    gettimeofday(tv + 3, nullptr);
+    //
+    //    // Check for circular paths between hosts.
+    //    pre_flight_circular_check(&config_warnings, &config_errors);
+    //
+    //    // Call start broker event the first time to run applier state.
+    //    if (!has_already_been_loaded) {
+    //      neb_load_all_modules();
+    //
+    //      broker_program_state(NEBTYPE_PROCESS_START, NEBFLAG_NONE);
+    //    } else
+    //      neb_reload_all_modules();
+    //
+    //    // Print initial states of new hosts and services.
+    //    if (!verify_config && !test_scheduling) {
+    //      for (set_host::iterator it(diff_hosts.added().begin()),
+    //           end(diff_hosts.added().end());
+    //           it != end; ++it) {
+    //        host_id_map::const_iterator hst(
+    //            engine::host::hosts_by_id.find(it->host_id()));
+    //        if (hst != engine::host::hosts_by_id.end())
+    //          log_host_state(INITIAL_STATES, hst->second.get());
+    //      }
+    //      for (set_service::iterator it(diff_services.added().begin()),
+    //           end(diff_services.added().end());
+    //           it != end; ++it) {
+    //        service_id_map::const_iterator
+    //        svc(engine::service::services_by_id.find(
+    //            {it->host_id(), it->service_id()}));
+    //        if (svc != engine::service::services_by_id.end())
+    //          log_service_state(INITIAL_STATES, svc->second.get());
+    //      }
+    //    }
+    //
+    //    // Timing.
+    //    gettimeofday(tv + 4, nullptr);
+    //    if (test_scheduling) {
+    //      double runtimes[5];
+    //      runtimes[4] = 0.0;
+    //      for (unsigned int i(0); i < (sizeof(runtimes) / sizeof(*runtimes) -
+    //      1);
+    //           ++i) {
+    //        runtimes[i] = tv[i + 1].tv_sec - tv[i].tv_sec +
+    //                      (tv[i + 1].tv_usec - tv[i].tv_usec) / 1000000.0;
+    //        runtimes[4] += runtimes[i];
+    //      }
+    //      std::cout
+    //          << "\nTiming information on configuration verification is listed
+    //          "
+    //             "below.\n\n"
+    //             "CONFIG VERIFICATION TIMES          (* = Potential for
+    //             speedup " "with -x option)\n"
+    //             "----------------------------------\n"
+    //             "Template Resolutions: "
+    //          << runtimes[0]
+    //          << " sec\n"
+    //             "Object Relationships: "
+    //          << runtimes[2]
+    //          << " sec\n"
+    //             "Circular Paths:       "
+    //          << runtimes[3]
+    //          << " sec  *\n"
+    //             "Misc:                 "
+    //          << runtimes[1]
+    //          << " sec\n"
+    //             "                      ============\n"
+    //             "TOTAL:                "
+    //          << runtimes[4] << " sec  * = " << runtimes[3] << " sec ("
+    //          << (runtimes[3] * 100.0 / runtimes[4]) << "%) estimated
+    //          savings\n";
+    //    }
+  } catch (...) {
+    _processing_state = state_error;
+    throw;
+  }
+
+  has_already_been_loaded = true;
+  _processing_state = state_ready;
 }
 
 /**
@@ -1725,6 +2152,35 @@ void applier::state::_processing(configuration::state& new_cfg,
 
   has_already_been_loaded = true;
   _processing_state = state_ready;
+}
+
+/**
+ *  Resolve objects.
+ *
+ *  @param[in] cfg Configuration objects.
+ */
+/**
+ * @brief Resolve objects.
+ *
+ * @tparam ConfigurationType The protobuf object configuration.
+ * @tparam ApplierType The applier used to handle the configuration.
+ * @param cfg
+ */
+template <typename ConfigurationType, typename ApplierType>
+void applier::state::_pb_resolve(
+    const ::google::protobuf::RepeatedPtrField<ConfigurationType>& cfg) {
+  ApplierType aplyr;
+  for (auto& obj : cfg) {
+    try {
+      aplyr.resolve_object(obj);
+    } catch (const std::exception& e) {
+      if (verify_config) {
+        ++config_errors;
+        std::cout << e.what() << std::endl;
+      } else
+        throw;
+    }
+  }
 }
 
 /**
