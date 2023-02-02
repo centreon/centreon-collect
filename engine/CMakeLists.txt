@@ -148,9 +148,6 @@ set(CREATE_FILES "${WITH_CREATE_FILES}")
 
 set(PREFIX_ENGINE_CONF "${CMAKE_INSTALL_FULL_SYSCONFDIR}/centreon-engine")
 
-# # Library directory. if (WITH_PREFIX_LIB_ENGINE) set(PREFIX_LIB
-# "${WITH_PREFIX_LIB_ENGINE}") else () set(PREFIX_LIB
-# "${CMAKE_INSTALL_PREFIX}/lib/centreon-engine") endif ()
 #
 
 # User used to run Centreon Engine.

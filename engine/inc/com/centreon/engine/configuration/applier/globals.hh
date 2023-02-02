@@ -21,6 +21,7 @@
 #define CCE_CONFIGURATION_APPLIER_GLOBALS_HH
 
 #include "com/centreon/engine/configuration/state.hh"
+#include "configuration/state.pb.h"
 
 CCE_BEGIN()
 
@@ -34,6 +35,7 @@ namespace applier {
  */
 class globals {
  public:
+  void apply(configuration::State& globals);
   void apply(configuration::state& globals);
   static globals& instance();
   void clear();
