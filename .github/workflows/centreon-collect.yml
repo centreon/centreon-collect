@@ -1,5 +1,9 @@
 name: Centreon collect
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
 on:
   workflow_dispatch:
   pull_request:
@@ -51,7 +55,7 @@ jobs:
       patch: ${{ steps.version.outputs.patch }}
       release: ${{ steps.version.outputs.release }}
 
-  centreon-collect-test:
+  test:
     needs: create-version
     runs-on: [self-hosted, collect]
     env:
@@ -61,19 +65,20 @@ jobs:
 
     strategy:
       matrix:
-        include:
-          - image: centos7
-          - image: alma8
-          - image: debian-bullseye
+        image: [centos7, alma8, alma9, debian-bullseye]
+    name: test ${{ matrix.image }}
+
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
+
       - name: Login to Registry
         uses: docker/login-action@v2
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ secrets.REPOS_USERNAME }}
           password: ${{ secrets.REPOS_PASSWORD }}
+
       - name: Test ${{ matrix.image }}
         uses: ./.github/actions/runner-docker
         with:
@@ -81,7 +86,7 @@ jobs:
           image_name: centreon-collect-${{ matrix.image }}
           image_version: ${{ env.imgversion }}
 
-  rpm-packaging:
+  package-rpm:
     needs: create-version
     runs-on: [self-hosted, collect]
     env:
@@ -96,9 +101,13 @@ jobs:
             distrib: el7
           - image: alma8
             distrib: el8
+          - image: alma9
+            distrib: el9
+    name: package ${{ matrix.distrib }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
+
       - name: Login to Registry
         uses: docker/login-action@v2
         with:
@@ -123,12 +132,6 @@ jobs:
           username: ${{ secrets.REPOS_USERNAME }}
           password: ${{ secrets.REPOS_PASSWORD }}
 
-      - name: Upload package artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: packages-rpm-${{ matrix.distrib }}
-          path: ./*.rpm
-
       - name: Use cache RPM files
         uses: actions/cache@v3
         with:
@@ -149,7 +152,7 @@ jobs:
           path: ./*.rpm
           retention-days: 1
 
-  debian-packaging:
+  package-deb:
     needs: create-version
     runs-on: [self-hosted, collect]
     env:
@@ -162,6 +165,7 @@ jobs:
         include:
           - image: debian-bullseye
             distrib: bullseye
+    name: package ${{ matrix.distrib }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
@@ -188,15 +192,15 @@ jobs:
           path: ./*.deb
           key: cache-${{ github.sha }}-debbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
 
-  delivery-debian:
-    needs: [debian-packaging, create-version]
+  deliver-deb:
+    needs: [package-deb, create-version]
     env:
       version: ${{ needs.create-version.outputs.version }}
     runs-on: [self-hosted, common]
-    name: Delivery
     strategy:
       matrix:
         distrib: [bullseye]
+    name: deliver ${{ matrix.distrib }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
@@ -207,19 +211,20 @@ jobs:
           distrib: ${{ matrix.distrib }}
           repository_name: standard
           version: ${{ env.version }}
-          repos_username: ${{ secrets.NEXUS_USER }}
-          repos_password: ${{ secrets.NEXUS_PASSWD }}
+          repos_username: ${{ secrets.NEXUS_USERNAME }}
+          repos_password: ${{ secrets.NEXUS_PASSWORD }}
+          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           cache_key: cache-${{ github.sha }}-${{ github.run_id }}
 
-  delivery-centos:
-    needs: [rpm-packaging, create-version]
+  deliver-rpm:
+    needs: [package-rpm, create-version]
     env:
       version: ${{ needs.create-version.outputs.version }}
     runs-on: [self-hosted, common]
-    name: Delivery
     strategy:
       matrix:
-        distrib: [el7, el8]
+        distrib: [el7, el8, el9]
+    name: deliver ${{ matrix.distrib }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
@@ -232,9 +237,9 @@ jobs:
           minor_version: ${{ needs.create-version.outputs.patch }}
           release: ${{ needs.create-version.outputs.release }}
           module_name: centreon-collect
-          repos_username: ${{ secrets.REPOS_USERNAME }}
-          repos_password: ${{ secrets.REPOS_PASSWORD }}
-          arti_token: ${{ secrets.ARTI_APT_TEST_TOKEN }}
+          nexus_username: ${{ secrets.NEXUS_USERNAME }}
+          nexus_password: ${{ secrets.NEXUS_PASSWORD }}
+          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           cache_key: cache-${{ github.sha }}-rpmbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
           update_repo_path: ${{ secrets.UPDATE_REPO_PATH }}
           cloudfront_id: ${{ secrets.CLOUDFRONT_ID }}
