@@ -191,7 +191,7 @@ stream::stream(const database_config& dbcfg,
   const char* version = _mysql.get_server_version();
   std::vector<absl::string_view> v =
       absl::StrSplit(version, absl::ByAnyChar(".-"));
-  if (v.size() == 4) {
+  if (v.size() >= 4) {
     int32_t major;
     int32_t minor;
     int32_t patch;
