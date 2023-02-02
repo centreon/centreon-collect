@@ -2281,13 +2281,7 @@ void host::check_for_expired_acknowledgement() {
             << "Acknowledgement of host '" << name() << "' just expired";
         SPDLOG_LOGGER_INFO(log_v2::events(),
                            "Acknowledgement of host '{}' just expired", name());
-<<<<<<< HEAD
         set_acknowledgement(AckType::NONE);
-=======
-        set_problem_has_been_acknowledged(false);
-        set_acknowledgement_type(ACKNOWLEDGEMENT_NONE);
-        // FIXME DBO: could be improved with something smaller.
->>>>>>> 22.04.x
         update_status();
       }
     }
