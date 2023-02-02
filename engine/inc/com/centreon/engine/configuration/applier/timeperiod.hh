@@ -49,7 +49,9 @@ class timeperiod {
   void expand_objects(configuration::state& s);
   void expand_objects(configuration::State& s);
   void modify_object(configuration::timeperiod const& obj);
+  void remove_object(ssize_t idx);
   void remove_object(configuration::timeperiod const& obj);
+  void resolve_object(const configuration::Timeperiod& obj);
   void resolve_object(configuration::timeperiod const& obj);
 
  private:
