@@ -19,14 +19,13 @@
 #define CCE_LOG_V2_HH
 
 #include "com/centreon/engine/configuration/state.hh"
+#include "log_v2_base.hh"
 
 CCE_BEGIN()
-class log_v2 : public std::enable_shared_from_this<log_v2> {
-  std::string _log_name;
+class log_v2 : public log_v2_base {
   std::array<std::shared_ptr<spdlog::logger>, 13> _log;
   std::atomic_bool _running;
   asio::system_timer _flush_timer;
-  std::chrono::seconds _flush_interval;
   std::mutex _flush_timer_m;
   bool _flush_timer_active;
   std::shared_ptr<asio::io_context> _io_context;
@@ -58,6 +57,10 @@ class log_v2 : public std::enable_shared_from_this<log_v2> {
 
  public:
   ~log_v2() noexcept;
+
+  std::shared_ptr<log_v2> shared_from_this() {
+    return std::static_pointer_cast<log_v2>(log_v2_base::shared_from_this());
+  }
 
   void stop_flush_timer();
   void apply(const configuration::state& config);

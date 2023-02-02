@@ -43,7 +43,7 @@ class KpiBA : public ::testing::Test {
   void SetUp() override {
     // Initialization.
     g_io_context->restart();
-    config::applier::init(0, "test_broker");
+    config::applier::init(0, "test_broker", 0);
 
     _aply_state = std::make_unique<bam::configuration::applier::state>();
     _state = std::make_unique<bam::configuration::state>();

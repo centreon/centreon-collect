@@ -26,9 +26,9 @@
 #include <random>
 #include <string>
 
+#include <asio.hpp>
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/spdlog.h>
-#include <asio.hpp>
 
 #include <boost/circular_buffer.hpp>
 #include <boost/container/flat_map.hpp>

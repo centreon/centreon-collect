@@ -58,7 +58,7 @@ TEST_F(StartStop, MultiplexingWorks) {
     // Subscriber.
     absl::flat_hash_set<uint32_t> filters{io::raw::static_type()};
     std::shared_ptr<multiplexing::muxer> mux(multiplexing::muxer::create("core_multiplexing_engine_start_stop", filters,
-                            filters, false);
+                            filters, false));
 
     // Send events through engine.
     std::array<std::string, 2> messages{MSG1, MSG2};
@@ -83,7 +83,7 @@ TEST_F(StartStop, MultiplexingWorks) {
       std::shared_ptr<io::data> data;
       bool ret;
       do {
-        ret = mux.read(data, 0);
+        ret = mux->read(data, 0);
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
       } while (!ret);
 

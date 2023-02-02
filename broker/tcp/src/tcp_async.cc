@@ -250,6 +250,7 @@ void tcp_async::start_acceptor(
     const std::shared_ptr<asio::ip::tcp::acceptor>& acceptor,
     const tcp_config::pointer& conf) {
   log_v2::tcp()->trace("Start acceptor");
+  std::lock_guard<std::mutex> l(_acceptor_available_con_m);
   if (!_timer)
     _timer =
         std::make_unique<asio::steady_timer>(pool::instance().io_context());
@@ -280,6 +281,8 @@ void tcp_async::start_acceptor(
  */
 void tcp_async::stop_acceptor(
     std::shared_ptr<asio::ip::tcp::acceptor> acceptor) {
+  log_v2::tcp()->debug("stop acceptor");
+  std::lock_guard<std::mutex> l(_acceptor_available_con_m);
   std::error_code ec;
   acceptor->cancel(ec);
   if (ec)

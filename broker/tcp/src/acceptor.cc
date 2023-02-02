@@ -64,6 +64,7 @@ void acceptor::add_child(std::string const& child) {
  */
 std::unique_ptr<io::stream> acceptor::open() {
   if (!_acceptor) {
+    log_v2::tcp()->debug("create a new acceptor");
     _acceptor = tcp_async::instance().create_acceptor(_conf);
     tcp_async::instance().start_acceptor(_acceptor, _conf);
   }

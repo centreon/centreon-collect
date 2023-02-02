@@ -46,6 +46,7 @@ static tcp::tcp_config::pointer test_conf2(
 class TcpAcceptor : public ::testing::Test {
  public:
   void SetUp() override {
+    log_v2::tcp()->set_level(spdlog::level::trace);
     g_io_context->restart();
     pool::load(g_io_context, 0);
     tcp::tcp_async::load();
