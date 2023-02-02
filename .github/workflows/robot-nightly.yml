@@ -57,7 +57,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ./*.rpm
-          key: cache-9359b4a719689e18089aac0d47e859d407f334bb-rpmbuild-centreon-collect-el7-${{ github.head_ref || github.ref_name }}
+          key: cache-9359b4a719689e18089aac0d47e859d407f334bb-rpmbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
 #key: cache-${{ github.sha }}-rpmbuild-centreon-collect-el7-${{ github.head_ref || github.ref_name }}
 #          restore-keys: cache-${{ github.sha }}-rpmbuild-centreon-collect-el7-${{ github.head_ref || github.ref_name }}
 
