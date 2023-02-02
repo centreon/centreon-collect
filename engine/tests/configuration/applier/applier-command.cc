@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 - 2019 Centreon (https://www.centreon.com/)
+ * Copyright 2017-2019,2023 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,6 +26,8 @@
 #include "com/centreon/engine/configuration/command.hh"
 #include "com/centreon/engine/configuration/connector.hh"
 #include "com/centreon/engine/macros/grab_host.hh"
+#include "configuration/command_helper.hh"
+#include "configuration/connector_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -44,6 +46,20 @@ class ApplierCommand : public ::testing::Test {
 // And a configuration command just with a name
 // Then the applier add_object adds the command in the configuration set
 // but not in the commands map (the command is unusable).
+TEST_F(ApplierCommand, PbUnusableCommandFromConfig) {
+  configuration::applier::command aply;
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  ASSERT_THROW(aply.add_object(cmd), std::exception);
+  ASSERT_EQ(pb_config.commands().size(), 1u);
+  ASSERT_EQ(commands::command::commands.size(), 0u);
+}
+
+// Given a command applier
+// And a configuration command just with a name
+// Then the applier add_object adds the command in the configuration set
+// but not in the commands map (the command is unusable).
 TEST_F(ApplierCommand, UnusableCommandFromConfig) {
   configuration::applier::command aply;
   configuration::command cmd("cmd");
@@ -53,6 +69,25 @@ TEST_F(ApplierCommand, UnusableCommandFromConfig) {
   std::unordered_map<std::string, std::shared_ptr<commands::command>> cm(
       commands::command::commands);
   ASSERT_EQ(cm.size(), 0u);
+}
+
+// Given a command applier
+// And a configuration command with a name and a command line
+// Then the applier add_object adds the command into the configuration set
+// and the commands map (accessible from commands::set::instance()).
+TEST_F(ApplierCommand, PbNewCommandFromConfig) {
+  configuration::applier::command aply;
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 1");
+  aply.add_object(cmd);
+  ASSERT_EQ(pb_config.commands().size(), 1u);
+  command_map::iterator found{commands::command::commands.find("cmd")};
+  ASSERT_FALSE(found == commands::command::commands.end());
+  ASSERT_FALSE(!found->second);
+  ASSERT_EQ(found->second->get_name(), "cmd");
+  ASSERT_EQ(found->second->get_command_line(), "echo 1");
 }
 
 // Given a command applier
@@ -77,6 +112,23 @@ TEST_F(ApplierCommand, NewCommandFromConfig) {
 // And a configuration command with a name, a command line and a connector
 // Then the applier add_object adds the command into the configuration set
 // but not in the commands map (the connector is not defined).
+TEST_F(ApplierCommand, PbNewCommandWithEmptyConnectorFromConfig) {
+  configuration::applier::command aply;
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 1");
+  cmd.set_connector("perl");
+  ASSERT_THROW(aply.add_object(cmd), std::exception);
+  ASSERT_EQ(pb_config.commands().size(), 1u);
+  command_map::iterator found{commands::command::commands.find("cmd")};
+  ASSERT_TRUE(found == commands::command::commands.end());
+}
+
+// Given a command applier
+// And a configuration command with a name, a command line and a connector
+// Then the applier add_object adds the command into the configuration set
+// but not in the commands map (the connector is not defined).
 TEST_F(ApplierCommand, NewCommandWithEmptyConnectorFromConfig) {
   configuration::applier::command aply;
   configuration::command cmd("cmd");
@@ -87,6 +139,33 @@ TEST_F(ApplierCommand, NewCommandWithEmptyConnectorFromConfig) {
   ASSERT_EQ(s.size(), 1u);
   command_map::iterator found{commands::command::commands.find("cmd")};
   ASSERT_TRUE(found == commands::command::commands.end());
+}
+
+// Given a command applier
+// And a configuration command with a name, a command line and a connector
+// And the connector is well defined.
+// Then the applier add_object adds the command into the configuration set
+// but not in the commands map (the connector is not defined).
+TEST_F(ApplierCommand, PbNewCommandWithConnectorFromConfig) {
+  configuration::applier::command aply;
+  configuration::applier::connector cnn_aply;
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 1");
+  cmd.set_connector("perl");
+  configuration::Connector cnn;
+  configuration::connector_helper cnn_hlp(&cnn);
+  cnn.set_connector_name("perl");
+
+  cnn_aply.add_object(cnn);
+  aply.add_object(cmd);
+
+  ASSERT_EQ(pb_config.commands().size(), 1u);
+  command_map::iterator found = commands::command::commands.find("cmd");
+  ASSERT_EQ(found->second->get_name(), "cmd");
+  ASSERT_EQ(found->second->get_command_line(), "echo 1");
+  ASSERT_NO_THROW(aply.resolve_object(cmd));
 }
 
 // Given a command applier
@@ -105,13 +184,50 @@ TEST_F(ApplierCommand, NewCommandWithConnectorFromConfig) {
   cnn_aply.add_object(cnn);
   aply.add_object(cmd);
 
-  //  set_command s(config->commands());
-  //  ASSERT_EQ(s.size(), 1);
-  //  commands::command const*
-  //  cc(applier::state::instance().find_command("cmd"));
-  //  ASSERT_EQ(cc->get_name(), "cmd");
-  //  ASSERT_EQ(cc->get_command_line(), "echo 1");
-  //  aply.resolve_object(cmd);
+  set_command s(config->commands());
+  ASSERT_EQ(s.size(), 1);
+  command_map::iterator found = commands::command::commands.find("cmd");
+  ASSERT_EQ(found->second->get_name(), "cmd");
+  ASSERT_EQ(found->second->get_command_line(), "echo 1");
+  ASSERT_NO_THROW(aply.resolve_object(cmd));
+}
+
+// Given some command/connector appliers
+// And a configuration command
+// And a connector with the same name.
+// Then the applier add_object adds the command into the configuration set
+// but not in the commands map (the connector is not defined).
+TEST_F(ApplierCommand, PbNewCommandAndConnectorWithSameName) {
+  configuration::applier::command aply;
+  configuration::applier::connector cnn_aply;
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 1");
+  configuration::Connector cnn;
+  configuration::connector_helper cnn_hlp(&cnn);
+  cnn.set_connector_name("cmd");
+  cnn.set_connector_line("echo 2");
+
+  cnn_aply.add_object(cnn);
+  aply.add_object(cmd);
+
+  ASSERT_EQ(pb_config.commands().size(), 1u);
+  command_map::iterator found{commands::command::commands.find("cmd")};
+  ASSERT_FALSE(found == commands::command::commands.end());
+  ASSERT_FALSE(!found->second);
+
+  ASSERT_EQ(found->second->get_name(), "cmd");
+  ASSERT_EQ(found->second->get_command_line(), "echo 1");
+
+  aply.resolve_object(cmd);
+  connector_map::iterator found_con{
+      commands::connector::connectors.find("cmd")};
+  ASSERT_TRUE(found_con != commands::connector::connectors.end());
+  ASSERT_TRUE(found_con->second);
+
+  found = commands::command::commands.find("cmd");
+  ASSERT_TRUE(found != commands::command::commands.end());
 }
 
 // Given some command/connector appliers
@@ -153,6 +269,32 @@ TEST_F(ApplierCommand, NewCommandAndConnectorWithSameName) {
 // all objects created.
 // When the command is changed from the configuration,
 // Then the modify_object() method updated correctly the command.
+TEST_F(ApplierCommand, PbModifyCommandWithConnector) {
+  configuration::applier::command aply;
+  configuration::applier::connector cnn_aply;
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 1");
+  cmd.set_connector("perl");
+  configuration::Connector cnn;
+  configuration::connector_helper cnn_hlp(&cnn);
+  cnn.set_connector_name("perl");
+
+  cnn_aply.add_object(cnn);
+  aply.add_object(cmd);
+
+  cmd.set_command_line("date");
+  aply.modify_object(cmd);
+  command_map::iterator found{commands::command::commands.find("cmd")};
+  ASSERT_EQ(found->second->get_name(), "cmd");
+  ASSERT_EQ(found->second->get_command_line(), "date");
+}
+
+// Given some command and connector appliers already applied with
+// all objects created.
+// When the command is changed from the configuration,
+// Then the modify_object() method updated correctly the command.
 TEST_F(ApplierCommand, ModifyCommandWithConnector) {
   configuration::applier::command aply;
   configuration::applier::connector cnn_aply;
@@ -166,10 +308,9 @@ TEST_F(ApplierCommand, ModifyCommandWithConnector) {
 
   cmd.parse("command_line", "date");
   aply.modify_object(cmd);
-  //  commands::command const*
-  //  cc(applier::state::instance().find_command("cmd"));
-  //  ASSERT_EQ(cc->get_name(), "cmd");
-  //  ASSERT_EQ(cc->get_command_line(), "date");
+  command_map::iterator found{commands::command::commands.find("cmd")};
+  ASSERT_EQ(found->second->get_name(), "cmd");
+  ASSERT_EQ(found->second->get_command_line(), "date");
 }
 
 // When a non existing command is removed
