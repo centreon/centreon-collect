@@ -42,9 +42,11 @@ VERSION_ID=$(grep '^VERSION_ID' /etc/os-release | sed -En 's/^VERSION_ID="([[:di
 if [ -f /etc/os-release ]; then
     case "$VERSION_ID" in
         7)
+            echo pip3 install grpcio==1.33.2 grpcio_tools==1.33.2
             pip3 install grpcio==1.33.2 grpcio_tools==1.33.2
             ;;
         8)
+            echo pip3 install grpcio grpcio_tools
             pip3 install grpcio grpcio_tools
             ;;
         *)
@@ -53,6 +55,13 @@ if [ -f /etc/os-release ]; then
     esac
 fi
 
+echo "##### site-packages #####"
+find / -name site-packages
+
+echo "##### grpc #####"
+find / -name grpc
+
+echo "##### Starting tests #####"
 ./init-proto.sh
 
 echo "####################### Run Centreon Collect Robot Tests #######################"
