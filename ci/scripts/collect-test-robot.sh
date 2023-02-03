@@ -65,6 +65,9 @@ echo "##### Starting tests #####"
 echo "####################### Run Centreon Collect Robot Tests #######################"
 cd /src/tests/
 robot --nostatusrc .
+if [ $? -ne 0 ] ; then
+  touch fail
+fi
 
 echo "########################### Generate Folder Report #############################"
 mkdir reports
