@@ -75,6 +75,7 @@ luabinding::luabinding(std::string const& lua_script,
  *  Destructor
  */
 luabinding::~luabinding() {
+  log_v2::lua()->debug("lua: closing the Lua virtual machine");
   if (_L)
     lua_close(_L);
 }

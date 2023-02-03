@@ -5,7 +5,7 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -94,6 +94,8 @@ set(USER_ENGINE centreon-engine)
 include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup(TARGETS)
 
+set(CMAKE_PROGRAM_PATH ${CONAN_BIN_DIRS_PROTOBUF};${CMAKE_PROGRAM_PATH})
+
 find_package(Protobuf REQUIRED)
 
 message(NOTICE "-- use protoc compiler: ${Protobuf_PROTOC_EXECUTABLE}")
@@ -114,6 +116,14 @@ option(WITH_CONF "Install configuration files." ON)
 
 # Code coverage on unit tests
 option(WITH_COVERAGE "Add code coverage on unit tests." OFF)
+
+# With ASIO DEBUGGING ENABLED
+option(WITH_DEBUG_ASIO "Add the Asio debugging flags." OFF)
+
+if(WITH_DEBUG_ASIO)
+  set(CMAKE_BUILD_TYPE Debug)
+  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DASIO_ENABLE_BUFFER_DEBUGGING -DASIO_ENABLE_HANDLER_TRACKING")
+endif()
 
 if(WITH_TESTING AND WITH_COVERAGE)
   set(CMAKE_BUILD_TYPE "Debug")

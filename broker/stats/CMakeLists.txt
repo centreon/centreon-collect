@@ -1,19 +1,19 @@
-## Copyright 2012-2013 Centreon
-##
-## Licensed under the Apache License, Version 2.0 (the "License");
-## you may not use this file except in compliance with the License.
-## You may obtain a copy of the License at
-##
-##     http://www.apache.org/licenses/LICENSE-2.0
-##
-## Unless required by applicable law or agreed to in writing, software
-## distributed under the License is distributed on an "AS IS" BASIS,
-## WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-## See the License for the specific language governing permissions and
-## limitations under the License.
-##
-## For more information : contact@centreon.com
-##
+# # Copyright 2012-2013 Centreon
+# #
+# # Licensed under the Apache License, Version 2.0 (the "License");
+# # you may not use this file except in compliance with the License.
+# # You may obtain a copy of the License at
+# #
+# #     http://www.apache.org/licenses/LICENSE-2.0
+# #
+# # Unless required by applicable law or agreed to in writing, software
+# # distributed under the License is distributed on an "AS IS" BASIS,
+# # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# # See the License for the specific language governing permissions and
+# # limitations under the License.
+# #
+# # For more information : contact@centreon.com
+# #
 
 # Global options.
 set(INC_DIR "${PROJECT_SOURCE_DIR}/stats/inc/com/centreon/broker/stats")
@@ -27,26 +27,29 @@ include_directories("${PROJECT_SOURCE_DIR}/neb/inc")
 set(STATS "15-stats")
 set(STATS "${STATS}" PARENT_SCOPE)
 add_library("${STATS}" SHARED
+
   # Sources.
   ${SRC_DIR}/builder.cc
   ${SRC_DIR}/main.cc
   ${SRC_DIR}/parser.cc
   ${SRC_DIR}/worker.cc
   ${SRC_DIR}/worker_pool.cc
+
   # Headers.
   ${INC_DIR}/builder.hh
   ${INC_DIR}/parser.hh
   ${INC_DIR}/worker.hh
   ${INC_DIR}/worker_pool.hh
-
 )
 set_target_properties("${STATS}" PROPERTIES
-    PREFIX "")
+  PREFIX "")
 target_link_libraries("${STATS}" CONAN_PKG::spdlog)
 target_precompile_headers(${STATS} PRIVATE precomp_inc/precomp.hpp)
 
+add_dependencies(${STATS} target_broker_message)
+
 # Testing.
-if (WITH_TESTING)
+if(WITH_TESTING)
   set(
     TESTS_SOURCES
     ${TESTS_SOURCES}

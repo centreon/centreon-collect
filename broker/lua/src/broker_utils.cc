@@ -135,6 +135,7 @@ static void escape_str(const char* content, std::ostringstream& oss) {
 
 static void _message_to_json(std::ostringstream& oss,
                              const google::protobuf::Message* p) {
+  std::string tmpl;
   const google::protobuf::Descriptor* desc = p->GetDescriptor();
   const google::protobuf::Reflection* refl = p->GetReflection();
   for (int i = 0; i < desc->field_count(); i++) {
@@ -146,38 +147,86 @@ static void _message_to_json(std::ostringstream& oss,
       }
     }
     const std::string& entry_name = f->name();
-    if (i > 0)
-      oss << ", ";
-    switch (f->type()) {
-      case google::protobuf::FieldDescriptor::TYPE_BOOL:
-        oss << fmt::format("\"{}\":{}", entry_name, refl->GetBool(*p, f));
-        break;
-      case google::protobuf::FieldDescriptor::TYPE_DOUBLE:
-        oss << fmt::format("\"{}\":{}", entry_name, refl->GetDouble(*p, f));
-        break;
-      case google::protobuf::FieldDescriptor::TYPE_INT32:
-        oss << fmt::format("\"{}\":{}", entry_name, refl->GetInt32(*p, f));
-        break;
-      case google::protobuf::FieldDescriptor::TYPE_UINT32:
-        oss << fmt::format("\"{}\":{}", entry_name, refl->GetUInt32(*p, f));
-        break;
-      case google::protobuf::FieldDescriptor::TYPE_INT64:
-        oss << fmt::format("\"{}\":{}", entry_name, refl->GetInt64(*p, f));
-        break;
-      case google::protobuf::FieldDescriptor::TYPE_UINT64:
-        oss << fmt::format("\"{}\":{}", entry_name, refl->GetUInt64(*p, f));
-        break;
-      case google::protobuf::FieldDescriptor::TYPE_ENUM:
-        oss << fmt::format("\"{}\":{}", entry_name, refl->GetEnumValue(*p, f));
-        break;
-      case google::protobuf::FieldDescriptor::TYPE_STRING:
-        oss << fmt::format("\"{}\":\"{}\"", entry_name, refl->GetString(*p, f));
-        break;
-      case google::protobuf::FieldDescriptor::TYPE_MESSAGE:
-        oss << fmt::format("\"{}\":", entry_name);
-        if (f->is_repeated()) {
-          oss << '[';
-          size_t s = refl->FieldSize(*p, f);
+    if (f->is_repeated()) {
+      size_t s = refl->FieldSize(*p, f);
+      if (i > 0)
+        oss << ", ";
+      switch (f->type()) {
+        case google::protobuf::FieldDescriptor::TYPE_BOOL:
+          oss << fmt::format("\"{}\":[", entry_name);
+          for (size_t j = 0; j < s; j++) {
+            if (j > 0)
+              oss << ",";
+            oss << refl->GetRepeatedBool(*p, f, j);
+          }
+          oss << ']';
+          break;
+        case google::protobuf::FieldDescriptor::TYPE_DOUBLE:
+          oss << fmt::format("\"{}\":[", entry_name);
+          for (size_t j = 0; j < s; j++) {
+            if (j > 0)
+              oss << ",";
+            oss << refl->GetRepeatedDouble(*p, f, j);
+          }
+          oss << ']';
+          break;
+        case google::protobuf::FieldDescriptor::TYPE_INT32:
+          oss << fmt::format("\"{}\":[", entry_name);
+          for (size_t j = 0; j < s; j++) {
+            if (j > 0)
+              oss << ",";
+            oss << refl->GetRepeatedInt32(*p, f, j);
+          }
+          oss << ']';
+          break;
+        case google::protobuf::FieldDescriptor::TYPE_UINT32:
+          oss << fmt::format("\"{}\":[", entry_name);
+          for (size_t j = 0; j < s; j++) {
+            if (j > 0)
+              oss << ",";
+            oss << refl->GetRepeatedUInt32(*p, f, j);
+          }
+          oss << ']';
+          break;
+        case google::protobuf::FieldDescriptor::TYPE_INT64:
+          oss << fmt::format("\"{}\":[", entry_name);
+          for (size_t j = 0; j < s; j++) {
+            if (j > 0)
+              oss << ",";
+            oss << refl->GetRepeatedInt64(*p, f, j);
+          }
+          oss << ']';
+          break;
+        case google::protobuf::FieldDescriptor::TYPE_UINT64:
+          oss << fmt::format("\"{}\":[", entry_name);
+          for (size_t j = 0; j < s; j++) {
+            if (j > 0)
+              oss << ",";
+            oss << refl->GetRepeatedUInt64(*p, f, j);
+          }
+          oss << ']';
+          break;
+        case google::protobuf::FieldDescriptor::TYPE_ENUM:
+          oss << fmt::format("\"{}\":[", entry_name);
+          for (size_t j = 0; j < s; j++) {
+            if (j > 0)
+              oss << ",";
+            oss << refl->GetRepeatedEnumValue(*p, f, j);
+          }
+          oss << ']';
+          break;
+        case google::protobuf::FieldDescriptor::TYPE_STRING:
+          oss << fmt::format("\"{}\":[", entry_name);
+          for (size_t j = 0; j < s; j++) {
+            if (j > 0)
+              oss << ",";
+            oss << "\"" << refl->GetRepeatedStringReference(*p, f, j, &tmpl)
+                << "\"";
+          }
+          oss << ']';
+          break;
+        case google::protobuf::FieldDescriptor::TYPE_MESSAGE:
+          oss << fmt::format("\"{}\":[", entry_name);
           for (size_t i = 0; i < s; i++) {
             if (i > 0)
               oss << ", ";
@@ -186,12 +235,52 @@ static void _message_to_json(std::ostringstream& oss,
             oss << '}';
           }
           oss << ']';
-        }
-        break;
-      default:  // Error, a type not handled
-        throw msg_fmt(
-            "protobuf {} type ID is not handled in the broker json converter",
-            f->type());
+          break;
+        default:  // Error, a type not handled
+          throw msg_fmt(
+              "protobuf {} type ID is not handled in the broker json converter",
+              f->type());
+      }
+    } else {
+      if (i > 0)
+        oss << ", ";
+      switch (f->type()) {
+        case google::protobuf::FieldDescriptor::TYPE_BOOL:
+          oss << fmt::format("\"{}\":{}", entry_name, refl->GetBool(*p, f));
+          break;
+        case google::protobuf::FieldDescriptor::TYPE_DOUBLE:
+          oss << fmt::format("\"{}\":{}", entry_name, refl->GetDouble(*p, f));
+          break;
+        case google::protobuf::FieldDescriptor::TYPE_INT32:
+          oss << fmt::format("\"{}\":{}", entry_name, refl->GetInt32(*p, f));
+          break;
+        case google::protobuf::FieldDescriptor::TYPE_UINT32:
+          oss << fmt::format("\"{}\":{}", entry_name, refl->GetUInt32(*p, f));
+          break;
+        case google::protobuf::FieldDescriptor::TYPE_INT64:
+          oss << fmt::format("\"{}\":{}", entry_name, refl->GetInt64(*p, f));
+          break;
+        case google::protobuf::FieldDescriptor::TYPE_UINT64:
+          oss << fmt::format("\"{}\":{}", entry_name, refl->GetUInt64(*p, f));
+          break;
+        case google::protobuf::FieldDescriptor::TYPE_ENUM:
+          oss << fmt::format("\"{}\":{}", entry_name,
+                             refl->GetEnumValue(*p, f));
+          break;
+        case google::protobuf::FieldDescriptor::TYPE_STRING:
+          oss << fmt::format("\"{}\":\"{}\"", entry_name,
+                             refl->GetStringReference(*p, f, &tmpl));
+          break;
+        case google::protobuf::FieldDescriptor::TYPE_MESSAGE:
+          oss << fmt::format("\"{}\":{{", entry_name);
+          _message_to_json(oss, &refl->GetMessage(*p, f));
+          oss << '}';
+          break;
+        default:  // Error, a type not handled
+          throw msg_fmt(
+              "protobuf {} type ID is not handled in the broker json converter",
+              f->type());
+      }
     }
   }
 }
@@ -477,7 +566,7 @@ static void broker_json_decode(lua_State* L, const json& it) {
  *  @param L The Lua interpreter
  */
 static int l_broker_json_decode(lua_State* L) {
-  char const* content(luaL_checkstring(L, -1));
+  const char* content(luaL_checkstring(L, -1));
 
   json it;
   try {

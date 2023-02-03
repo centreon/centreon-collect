@@ -1,18 +1,14 @@
+# ingore local env files
+.env.local
+
 *.pb.cc
 *.pb.h
 *.so
 *.swp
-.idea
-.vscode
-.scannerwork
 
-CMakeCache.txt
-CMakeFiles
-CTest*.cmake
-Makefile
-.conan
 Testing
 __
+tests/failed
 broker_pb2.py
 broker_pb2.pyc
 broker_pb2_grpc.py
@@ -20,20 +16,10 @@ broker_pb2_grpc.pyc
 build
 build_my_host
 build_centos7
+cbd
+cbwd
 cppcheck-build
 cppcheck-report.txt
-broker/core/inc/com/centreon/broker/database/table_max_size.hh
-broker/core/inc/com/centreon/broker/vars.hh
-broker/core/inc/com/centreon/broker/version.hh
-broker/config/central-rrd.json
-broker/config/central-broker.json
-broker/config/central-module.json
-broker/script/cbd.init
-broker/script/watchdog.json
-doc/_build
-doc/devel-doc
-broker/doc/devel-doc
-engine/doc/devel-doc
 engine_pb2.py
 engine_pb2.pyc
 engine_pb2_grpc.py
@@ -44,10 +30,9 @@ libroker.a
 librokerbase.a
 tags
 test-coverage
-test/python/*.crt
-test/python/*.key
 ut
-### 
+
+###
 apps/
 build/*
 
@@ -55,58 +40,97 @@ build/*
 node_modules/
 
 ### vscode ###
-.vscode/
+**/.vscode/
+**/.idea
+.scannerwork
 
 ### temp build files ###
 logs/*
-
 workspace.*
-
-# ingore local env files
-.env.local
-
-src/config/centreon-engine/*.cfg
-
+**/*.swp
 **/.*.swp
-**/.idea/*
-**/.vscode/*
-**/CMakeFiles/*
 **/__pycache__/*
 **/build/*
 **/engine_pb2*.py
-*.swp
-.idea/*
-bbdo/*_accessor.hh
-build/*
-centreon-clib/inc/com/centreon/clib/version.hh
-centreon-clib/script/*
-centreon-connectors/perl/src/xs_init.cc
-centreon-connectors/perl/test/connector/paths.hh
-centreon-connectors/ssh/test/connector/binary.hh
-centreon-engine/benchmark/centreon-engine/*
-centreon-engine/benchmark/lib/*
-centreon-engine/benchmark/log/*
-centreon-engine/cmake-build-debug/*
-centreon-engine/conf/centengine.cfg
-centreon-engine/conf/timeperiods.cfg
-centreon-engine/conf/commands.cfg
-centreon-engine/conf/resource.cfg
-centreon-engine/doc/_build
-centreon-engine/enginerpc/engine.*pb.cc
-centreon-engine/enginerpc/engine.*pb.h
-centreon-engine/gtest.cbp
-centreon-engine/inc/com/centreon/engine/version.hh
-centreon-engine/inc/compatibility/common.h
-centreon-engine/inc/compatibility/locations.h
-centreon-engine/modules/bench/passive/paths.hh
-centreon-engine/scripts/centengine.pc
-centreon-engine/scripts/centengine.sh
-centreon-engine/src/simumod/neb.cc
-centreon-engine/tags
-ci/repo/*
-cmake-build-debug/*
+
+**/CMakeFiles/*
+CMakeLists.txt.user
+**/cmake-build-debug/*
+CMakeCache.txt
+cmake_install.cmake
+CTest*.cmake
+Makefile
+
 log.html
 output.xml
 report.html
-engine/conf/commands.cfg
+
+# bbdo
+bbdo/*_accessor.hh
+
+# broker
+broker/core/inc/com/centreon/broker/database/table_max_size.hh
+broker/core/inc/com/centreon/broker/vars.hh
+broker/core/inc/com/centreon/broker/version.hh
+broker/config/central-rrd.json
+broker/config/central-broker.json
+broker/config/central-module.json
+broker/script/cbd.init
+broker/script/watchdog.json
+broker/script/misc/grpc/broker_pb2.py
+broker/script/misc/grpc/broker_pb2_grpc.py
+broker/libgtest*.a
+broker/libnebbase.a
+broker/libroker.a
+broker/librokerbase.a
+broker/test/python/*.crt
+broker/test/python/*.key
+
+#ci
+ci/repo/*
+
+# clib
+clib/inc/com/centreon/clib/version.hh
+clib/script/*
+
+# connectors
+connectors/perl/src/xs_init.cc
+connectors/perl/test/connector/paths.hh
+connectors/ssh/test/connector/binary.hh
+
+# doc
+**/doc/devel-doc
+**/doc/_build
+
+# engine
+engine/benchmark/lib/*
+engine/benchmark/log/*
+engine/conf/centengine.cfg
 engine/conf/timeperiods.cfg
+engine/conf/commands.cfg
+engine/conf/resource.cfg
+engine/conf/objects/*.cfg
+engine/doc/_build
+engine/enginerpc/engine.*pb.cc
+engine/enginerpc/engine.*pb.h
+engine/gtest.cbp
+engine/inc/com/centreon/engine/version.hh
+engine/inc/compatibility/common.h
+engine/inc/compatibility/locations.h
+engine/modules/bench/passive/paths.hh
+engine/scripts/centengine.pc
+engine/scripts/centengine.sh
+engine/src/simumod/neb.cc
+engine/tags
+engine/doc/devel-doc
+
+# gorgone
+gorgone/log
+
+# tests
+tests/apps/
+tests/src/config/centreon-engine/*.cfg
+tests/src/config/centreon-engine/config*/*
+test/python/*.crt
+test/python/*.key
+tests/logs/*

@@ -556,7 +556,7 @@ com::centreon::engine::anomalydetection* add_anomalydetection(
       low_flap_threshold, high_flap_threshold, check_freshness,
       freshness_threshold, obsess_over_service, timezone, icon_id)};
   try {
-    obj->set_acknowledgement_type(ACKNOWLEDGEMENT_NONE);
+    obj->set_acknowledgement(AckType::NONE);
     obj->set_check_options(CHECK_OPTION_NONE);
     uint32_t flap_detection_on;
     flap_detection_on = none;

@@ -1,20 +1,20 @@
-##
-## Copyright 2018-2021 Centreon
-##
-## Licensed under the Apache License, Version 2.0 (the "License");
-## you may not use this file except in compliance with the License.
-## You may obtain a copy of the License at
-##
-##     http://www.apache.org/licenses/LICENSE-2.0
-##
-## Unless required by applicable law or agreed to in writing, software
-## distributed under the License is distributed on an "AS IS" BASIS,
-## WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-## See the License for the specific language governing permissions and
-## limitations under the License.
-##
-## For more information : contact@centreon.com
-##
+# #
+# # Copyright 2018-2021 Centreon
+# #
+# # Licensed under the Apache License, Version 2.0 (the "License");
+# # you may not use this file except in compliance with the License.
+# # You may obtain a copy of the License at
+# #
+# #     http://www.apache.org/licenses/LICENSE-2.0
+# #
+# # Unless required by applicable law or agreed to in writing, software
+# # distributed under the License is distributed on an "AS IS" BASIS,
+# # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# # See the License for the specific language governing permissions and
+# # limitations under the License.
+# #
+# # For more information : contact@centreon.com
+# #
 
 # Global options.
 
@@ -30,6 +30,7 @@ set(INC_DIR "${INC_DIR}/com/centreon/broker/lua")
 set(LUA "70-lua")
 set(LUA "${LUA}" PARENT_SCOPE)
 add_library("${LUA}" SHARED
+
   # Sources.
   "${SRC_DIR}/broker_cache.cc"
   "${SRC_DIR}/broker_event.cc"
@@ -42,6 +43,7 @@ add_library("${LUA}" SHARED
   "${SRC_DIR}/macro_cache.cc"
   "${SRC_DIR}/main.cc"
   "${SRC_DIR}/stream.cc"
+
   # Headers.
   "${INC_DIR}/broker_cache.hh"
   "${INC_DIR}/broker_event.hh"
@@ -57,9 +59,10 @@ add_library("${LUA}" SHARED
 target_link_libraries("${LUA}" ${LUA_LIBRARIES} CONAN_PKG::openssl bbdo_storage bbdo_bam CONAN_PKG::spdlog)
 target_precompile_headers(${LUA} PRIVATE precomp_inc/precomp.hpp)
 set_target_properties("${LUA}" PROPERTIES PREFIX "")
+add_dependencies(${LUA} target_broker_message)
 
 # Testing.
-if (WITH_TESTING)
+if(WITH_TESTING)
   set(
     TESTS_SOURCES
     ${TESTS_SOURCES}

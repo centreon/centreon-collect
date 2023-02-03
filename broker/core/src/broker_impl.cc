@@ -261,3 +261,67 @@ grpc::Status broker_impl::GetProcessingStats(
   stats::center::instance().get_processing_stats(response);
   return grpc::Status::OK;
 }
+
+grpc::Status broker_impl::GetLogInfo(grpc::ServerContext* context
+                                     [[maybe_unused]],
+                                     const GenericString* request,
+                                     LogInfo* response) {
+  auto& name{request->str_arg()};
+  auto& map = *response->mutable_level();
+  auto lvs = log_v2::instance().levels();
+  response->set_log_name(log_v2::instance().log_name());
+  response->set_log_file(log_v2::instance().file_path());
+  response->set_log_flush_period(
+      log_v2::instance().get_flush_interval().count());
+  if (!name.empty()) {
+    auto found = std::find_if(lvs.begin(), lvs.end(),
+                              [&name](std::pair<std::string, std::string>& p) {
+                                return p.first == name;
+                              });
+    if (found != lvs.end()) {
+      map[name] = std::move(found->second);
+      return grpc::Status::OK;
+    } else {
+      std::string msg{fmt::format("'{}' is not a logger in broker", name)};
+      return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, msg);
+    }
+  } else {
+    for (auto& p : lvs)
+      map[p.first] = p.second;
+    return grpc::Status::OK;
+  }
+}
+
+grpc::Status broker_impl::SetLogParam(grpc::ServerContext* context
+                                      [[maybe_unused]],
+                                      const LogParam* request,
+                                      ::google::protobuf::Empty*) {
+  switch (request->param()) {
+    case LogParam::LogParamType::LogParam_LogParamType_FLUSH_PERIOD: {
+      unsigned new_interval;
+      if (!absl::SimpleAtoi(request->value(), &new_interval)) {
+        return grpc::Status(
+            grpc::StatusCode::INVALID_ARGUMENT,
+            fmt::format("value must be a positive integer instead of {}",
+                        request->value()));
+      }
+      log_v2::instance().set_flush_interval(new_interval);
+      break;
+    }
+    case LogParam::LogParamType::LogParam_LogParamType_LOG_LEVEL: {
+      const std::string& logger_name{request->name()};
+      const std::string& level{request->value()};
+      try {
+        log_v2::instance().set_level(logger_name, level);
+      } catch (const std::exception& e) {
+        return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what());
+      }
+      break;
+    }
+    default:
+      return grpc::Status(
+          grpc::StatusCode::INVALID_ARGUMENT,
+          fmt::format("invalid ParamType:{}", request->param()));
+  }
+  return grpc::Status::OK;
+}

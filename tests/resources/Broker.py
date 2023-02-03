@@ -480,6 +480,15 @@ def add_path_to_rrd_output(name: str, path: str):
     _apply_conf(name, rrd_output)
 
 
+def add_path_to_rrd_output(name: str, path: str):
+    def rrd_output(conf):
+        output_dict = conf["centreonBroker"]["output"]
+        for i, v in enumerate(output_dict):
+            if v["type"] == "rrd":
+                v["path"] = path
+    _apply_conf(name, rrd_output)
+
+
 def change_broker_tcp_input_to_grpc(name: str):
     def input_to_grpc(conf):
         input_dict = conf["centreonBroker"]["input"]
@@ -873,7 +882,7 @@ def check_broker_stats_exist(name, key1, key2, timeout=TIMEOUT):
         else:
             filename = "central-rrd-master-stats.json"
         retry = True
-        while retry:
+        while retry and time.time() < limit:
             retry = False
             f = open(VAR_ROOT + "/lib/centreon-broker/{}".format(filename), "r")
             buf = f.read()
@@ -901,7 +910,7 @@ def get_broker_stats_size(name, key, timeout=TIMEOUT):
         else:
             filename = "central-rrd-master-stats.json"
         retry = True
-        while retry:
+        while retry and time.time() < limit:
             retry = False
             f = open(VAR_ROOT + "/lib/centreon-broker/{}".format(filename), "r")
             buf = f.read()

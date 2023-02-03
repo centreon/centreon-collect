@@ -28,7 +28,7 @@ using namespace com::centreon::engine::logging;
 /**
  *  Default constructor.
  */
-broker::broker()
+engine::logging::broker::broker()
     : backend(false, false, com::centreon::logging::none, false),
       _enable(false),
       _thread_id{} {
@@ -40,13 +40,13 @@ broker::broker()
  *
  *  @param[in] right Object to copy.
  */
-broker::broker(broker const& right)
+engine::logging::broker::broker(broker const& right)
     : backend(right), _enable(false), _thread_id{right._thread_id} {}
 
 /**
  *  Destructor.
  */
-broker::~broker() noexcept {
+engine::logging::broker::~broker() noexcept {
   close();
 }
 
@@ -57,7 +57,8 @@ broker::~broker() noexcept {
  *
  *  @return This object.
  */
-broker& broker::operator=(broker const& right) {
+engine::logging::broker& engine::logging::broker::operator=(
+    engine::logging::broker const& right) {
   if (this != &right) {
     backend::operator=(right);
     std::lock_guard<std::recursive_mutex> lock1(_lock);
@@ -71,7 +72,7 @@ broker& broker::operator=(broker const& right) {
 /**
  *  Close broker log.
  */
-void broker::close() noexcept {
+void engine::logging::broker::close() noexcept {
   std::lock_guard<std::recursive_mutex> lock(_lock);
   _enable = false;
 }
@@ -84,10 +85,10 @@ void broker::close() noexcept {
  *  @param[in] message  Message to log.
  *  @param[in] size     Message length.
  */
-void broker::log(uint64_t types,
-                 uint32_t verbose,
-                 char const* message,
-                 uint32_t size) noexcept {
+void engine::logging::broker::log(uint64_t types,
+                                  uint32_t verbose,
+                                  char const* message,
+                                  uint32_t size) noexcept {
   (void)verbose;
   std::lock_guard<std::recursive_mutex> lock(_lock);
 
@@ -111,7 +112,7 @@ void broker::log(uint64_t types,
 /**
  *  Open broker log.
  */
-void broker::open() {
+void engine::logging::broker::open() {
   std::lock_guard<std::recursive_mutex> lock(_lock);
   _enable = true;
 }
@@ -119,7 +120,7 @@ void broker::open() {
 /**
  *  Open borker log.
  */
-void broker::reopen() {
+void engine::logging::broker::reopen() {
   std::lock_guard<std::recursive_mutex> lock(_lock);
   _enable = true;
 }

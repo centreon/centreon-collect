@@ -18,12 +18,17 @@ Library	../resources/specific-duplication.py
 BERD1
 	[Documentation]	Starting/stopping Broker does not create duplicated events.
 	[Tags]	Broker	Engine	start-stop	duplicate	retention
+        Remove File	/tmp/lua.log
+        Remove File	/tmp/lua-engine.log
+	Should Not Exist	/tmp/lua.log
+	Should Not Exist	/tmp/lua-engine.log
 	Config Engine	${1}
 	Engine Config Set Value	${0}	log_legacy_enabled	${0}
 	Engine Config Set Value	${0}	log_v2_enabled	${1}
 	Config Broker	central
 	Broker Config Clear Outputs Except	central	["ipv4"]
 	Broker Config Add Lua Output	central	test-doubles	${SCRIPTS}test-doubles-c.lua
+	Broker Config Log	central	core	error
 	Broker Config Log	central	lua	debug
 	Config Broker	module
 	Broker Config Add Lua Output	module0	test-doubles	${SCRIPTS}test-doubles.lua

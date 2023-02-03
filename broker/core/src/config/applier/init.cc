@@ -45,6 +45,9 @@ using namespace com::centreon::broker;
 
 std::atomic<config::applier::applier_state> config::applier::mode{not_started};
 
+extern std::shared_ptr<asio::io_context> g_io_context;
+extern bool g_io_context_started;
+
 /**
  * @brief Load necessary structures. It initializes exactly the same structures
  * as init(const config::state& conf) just with detailed parameters.
@@ -54,7 +57,8 @@ std::atomic<config::applier::applier_state> config::applier::mode{not_started};
  */
 void config::applier::init(size_t n_thread, const std::string&) {
   // Load singletons.
-  pool::load(n_thread);
+  pool::load(g_io_context, n_thread);
+  g_io_context_started = true;
   stats::center::load();
   mysql_manager::load();
   config::applier::state::load();
@@ -71,10 +75,13 @@ void config::applier::init(size_t n_thread, const std::string&) {
 void config::applier::deinit() {
   mode = finished;
   config::applier::endpoint::unload();
-  if (multiplexing::engine::instance_ptr()) {
-    multiplexing::engine::instance().clear();
+  {
+    auto eng = multiplexing::engine::instance_ptr();
+    if (eng)
+      eng->clear();
+
+    multiplexing::engine::unload();
   }
-  multiplexing::engine::unload();
   config::applier::state::unload();
   io::events::unload();
   io::protocols::unload();

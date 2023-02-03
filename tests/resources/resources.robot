@@ -38,24 +38,43 @@ Clear Broker Logs
 	Create Directory	${BROKER_LOG}
 
 Start Broker
+	[Arguments]	 ${only_central}=False
 	Start Process	/usr/sbin/cbd	${EtcRoot}/centreon-broker/central-broker.json	alias=b1
-	Start Process	/usr/sbin/cbd	${EtcRoot}/centreon-broker/central-rrd.json	alias=b2
-#	${log_pid1}=  Get Process Id	b1
-#	${log_pid2}=  Get Process Id	b2
-#	Log To Console  \npidcentral=${log_pid1} pidrrd=${log_pid2}\n
+	IF  not ${only_central}
+		Start Process	/usr/sbin/cbd	${EtcRoot}/centreon-broker/central-rrd.json	alias=b2
+	END
 
 Reload Broker
 	Send Signal To Process	SIGHUP	b1
 	Send Signal To Process	SIGHUP	b2
 
 Kindly Stop Broker
+	[Arguments]	 ${only_central}=False
 	Send Signal To Process	SIGTERM	b1
-	Send Signal To Process	SIGTERM	b2
-	${result}=	Wait For Process	b1	timeout=60s	on_timeout=kill
-	Should Be Equal As Integers	${result.rc}	0
-	${result}=	Wait For Process	b2	timeout=60s	on_timeout=kill
-	Should Be Equal As Integers	${result.rc}	0
-
+	IF  not ${only_central}
+		Send Signal To Process	SIGTERM	b2
+	END
+	${result}=	Wait For Process	b1	timeout=60s
+	# In case of process not stopping
+	IF	"${result}" == "${None}"
+	  Dump Process	b1	broker-central
+	  Send Signal To Process	SIGKILL	b1
+	  Fail	Central Broker not correctly stopped (coredump generated)
+	ELSE
+	  Should Be Equal As Integers	${result.rc}	0	msg=Central Broker not correctly stopped
+	END
+	IF  not ${only_central}
+		${result}=	Wait For Process	b2	timeout=60s
+		# In case of process not stopping
+		IF	"${result}" == "${None}"
+			Dump Process	b2	broker-rrd
+			Send Signal To Process	SIGKILL	b2
+			Fail	RRD Broker not correctly stopped (coredump generated)
+		ELSE
+			Should Be Equal As Integers	${result.rc}	0	msg=RRD Broker not correctly stopped
+		END
+	END
+	
 Stop Broker
 	${result}=	Terminate Process	b1	kill=False
 	Should Be Equal As Integers	${result.rc}	0
@@ -76,7 +95,7 @@ Start Engine
 	 ${lib}=	Catenate	SEPARATOR=	${VarRoot}  /lib/centreon-engine/config	${idx}
 	 Create Directory	${log}
 	 Create Directory	${lib}
-	 Start Process	/usr/sbin/centengine	${conf}	alias=${alias}
+	 Start Process	/usr/sbin/centengine	${conf}  stdout=${VarRoot}/log/centreon-engine/engine-cout.log  stderr=${VarRoot}/log/centreon-engine/engine-cerr.log  alias=${alias}
 #	 ${log_pid1}=  Get Process Id	${alias}
 #	 Log To Console  \npidengine${idx}=${log_pid1}\n
 	END
@@ -138,6 +157,17 @@ Save Logs
         Copy files	${centralLog}	${failDir}
         Copy files	${moduleLog}	${failDir}
         Copy files	${logEngine0}	${failDir}
+
+Dump Process
+	[Arguments]	${process_name}	${name}
+	${pid}=	Get Process Id	${process_name}
+	${failDir}=	Catenate	SEPARATOR=	failed/	${Test Name}
+	Create Directory	${failDir}
+	${output}=	Catenate	SEPARATOR=	${failDir}	/core-	${name}
+	Log To Console	Creation of core ${output}.${pid} to debug
+	Run Process	gcore	-o	${output}	${pid}
+	Log To Console	Done...
+
 
 *** Variables ***
 ${BROKER_LOG}	${VarRoot}/log/centreon-broker

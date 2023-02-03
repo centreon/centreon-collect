@@ -65,6 +65,8 @@
 #include <boost/container/flat_map.hpp>
 #include <boost/optional.hpp>
 
+#include <asio.hpp>
+
 #include "com/centreon/engine/namespace.hh"
 
 #endif  // CCE_PRECOMP_HH

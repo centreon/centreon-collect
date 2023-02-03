@@ -1,20 +1,20 @@
-##
-## Copyright 2013 Centreon
-##
-## Licensed under the Apache License, Version 2.0 (the "License");
-## you may not use this file except in compliance with the License.
-## You may obtain a copy of the License at
-##
-##     http://www.apache.org/licenses/LICENSE-2.0
-##
-## Unless required by applicable law or agreed to in writing, software
-## distributed under the License is distributed on an "AS IS" BASIS,
-## WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-## See the License for the specific language governing permissions and
-## limitations under the License.
-##
-## For more information : contact@centreon.com
-##
+# #
+# # Copyright 2013 Centreon
+# #
+# # Licensed under the Apache License, Version 2.0 (the "License");
+# # you may not use this file except in compliance with the License.
+# # You may obtain a copy of the License at
+# #
+# #     http://www.apache.org/licenses/LICENSE-2.0
+# #
+# # Unless required by applicable law or agreed to in writing, software
+# # distributed under the License is distributed on an "AS IS" BASIS,
+# # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# # See the License for the specific language governing permissions and
+# # limitations under the License.
+# #
+# # For more information : contact@centreon.com
+# #
 
 # Global options.
 set(INC_DIR "${PROJECT_SOURCE_DIR}/tls2/inc")
@@ -27,6 +27,7 @@ set(INC_DIR "${INC_DIR}/com/centreon/broker/tls2")
 set(TLS2 "60-tls2")
 set(TLS2 "${TLS2}" PARENT_SCOPE)
 add_library("${TLS2}" SHARED
+
   # Sources
   "${SRC_DIR}/acceptor.cc"
   "${SRC_DIR}/connector.cc"
@@ -34,6 +35,7 @@ add_library("${TLS2}" SHARED
   "${SRC_DIR}/internal.cc"
   "${SRC_DIR}/main.cc"
   "${SRC_DIR}/stream.cc"
+
   # Headers.
   "${INC_DIR}/acceptor.hh"
   "${INC_DIR}/connector.hh"
@@ -45,9 +47,10 @@ add_library("${TLS2}" SHARED
 target_link_libraries("${TLS2}" CONAN_PKG::openssl CONAN_PKG::spdlog)
 
 set_target_properties("${TLS2}" PROPERTIES PREFIX "")
+add_dependencies(${TLS2} target_broker_message)
 
 # Testing.
-if (WITH_TESTING)
+if(WITH_TESTING)
   set(
     TESTS_SOURCES
     ${TESTS_SOURCES}
@@ -62,12 +65,13 @@ if (WITH_TESTING)
   )
 
   add_executable(anon-test
-      "${TEST_DIR}/anon-test.cc")
+    "${TEST_DIR}/anon-test.cc")
   target_link_libraries(anon-test CONAN_PKG::openssl -pthread -ldl)
   add_executable(crypt-test
-      "${TEST_DIR}/crypt-test.cc")
+    "${TEST_DIR}/crypt-test.cc")
   target_link_libraries(crypt-test CONAN_PKG::openssl -pthread -ldl CONAN_PKG::fmt)
 endif()
+
 # Install rule.
 install(TARGETS "${TLS2}"
   LIBRARY DESTINATION "${PREFIX_MODULES}"

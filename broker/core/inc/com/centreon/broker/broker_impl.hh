@@ -88,6 +88,13 @@ class broker_impl final : public Broker::Service {
                                   __attribute__((unused)),
                                   ProcessingStats* response) override;
 
+  grpc::Status GetLogInfo(grpc::ServerContext* context [[maybe_unused]],
+                          const GenericString* request,
+                          LogInfo* response) override;
+  grpc::Status SetLogParam(grpc::ServerContext* context [[maybe_unused]],
+                           const LogParam* request,
+                           ::google::protobuf::Empty*) override;
+
  public:
   void set_broker_name(const std::string& s);
 };

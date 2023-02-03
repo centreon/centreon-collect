@@ -1,0 +1,92 @@
+name: "get-packages"
+description: "Get RPM Centreon packages from the repository"
+inputs:
+  distrib:
+    description: "The distribution used for packaging"
+    required: true
+  repos_username:
+    description: "Artifact Manager technical username"
+    required: true
+  repos_password:
+    description: "Artifact Manager technical password"
+    required: true
+  version:
+    description: "Centreon packaged version"
+    required: true
+  patch:
+    description: "Centreon packaged version patch"
+    required: true
+  release:
+    description: "Centreon packaged release"
+    required: true
+  cache_key:
+    description: "The cached package key"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Build name for RPM
+      shell: bash
+      if: ${{ inputs.distrib == 'el7' || inputs.distrib == 'el8' }}
+      run: |
+        echo "build=rpmbuild-centreon-collect" >> $GITHUB_ENV
+        echo "extfile=rpm" >> $GITHUB_ENV
+
+    - name: Build name for DEB
+      shell: bash
+      if: ${{ inputs.distrib == 'bullseye' }}
+      run: |
+        echo "build=debbuild-centreon-collect" >> $GITHUB_ENV
+        echo "extfile=deb" >> $GITHUB_ENV
+
+    - name: Get packages
+      run: |
+        if [[ -z "$GITHUB_HEAD_REF" ]];
+        then
+          BRANCHNAME="$GITHUB_REF_NAME"
+        else
+          BRANCHNAME="$GITHUB_HEAD_REF"
+        fi
+        echo "[DEBUG] - Branch name: $BRANCHNAME"
+        case "$BRANCHNAME" in
+          develop | dev-[2-9][0-9].[0-9][0-9].x)
+            REPO="unstable"
+            ;;
+          release* | hotfix*)
+            REPO="testing"
+            ;;
+          master | [2-9][0-9].[0-9][0-9].x)
+            REPO="stable"
+            ;;
+          *)
+            echo -n "[INFO] NO DELIVERY FOR THIS BRANCH"
+            exit 0
+            ;;
+        esac
+        FILES="centreon-broker centreon-broker-cbd centreon-broker-cbmod centreon-broker-core centreon-broker-storage centreon-clib centreon-collect centreon-collect-client centreon-connector centreon-connector-perl centreon-connector-ssh centreon-engine centreon-engine-daemon centreon-engine-extcommands"
+        FULL_VERSION="${{ inputs.version }}.${{ inputs.patch }}"
+        RELEASE="${{ inputs.release }}"
+
+        echo "[DEBUG] - FULL_VERSION: $FULL_VERSION"
+        echo "[DEBUG] - RELEASE: $RELEASE"
+
+        # Obtain latest version.patch-release
+        PKG_DIR_VERSION=$(curl -s "https://yum.centreon.com/standard/23.04/el7/unstable/x86_64/centreon-collect/" | sed -En 's/.*([2-9][0-9]\.[0-9][0-9]\.[[:digit:]]+-[[:digit:]]+\.[[a-z0-9]{7}).*/\1/p')
+
+        echo "[DEBUG] - PKG_DIR_VERSION: $PKG_DIR_VERSION"
+
+        # Fetch files from repo
+        for FILE in $FILES ; do
+          if [[ "${{ env.extfile }}" == "deb" ]] ; then
+            echo "[DEBUG] - https://artifactory.apps.centreon.com/artifactory/debian-$VERSION-$REPO/pool/$FILE;deb.distribution=bullseye;deb.component=main;deb.architecture=amd64"
+            curl -v -u "${{ inputs.repos_username }}":"${{ inputs.repos_password }}" -X PUT "https://artifactory.apps.centreon.com/artifactory/debian-$VERSION-$REPO/pool/$FILE;deb.distribution=bullseye;deb.component=main;deb.architecture=amd64" -T "./$FILE"
+          else
+            echo "[DEBUG] - https://yum.centreon.com/standard/${{ inputs.version }}/${{ inputs.distrib }}/$REPO/x86_64/centreon-collect/$PKG_DIR_VERSION/$FILE-$PKG_DIR_VERSION.${{ inputs.distrib }}.x86_64.rpm"
+            curl -s -JO "https://yum.centreon.com/standard/${{ inputs.version }}/${{ inputs.distrib }}/$REPO/x86_64/centreon-collect/centreon-collect-$PKG_DIR_VERSION/$FILE-$PKG_DIR_VERSION.${{ inputs.distrib }}.x86_64.rpm"
+          fi
+        done
+
+        ls -l *.rpm
+        for i in *.rpm ; do file $i ; done
+      shell: bash

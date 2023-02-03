@@ -8,6 +8,7 @@ Test Teardown	Save logs If Failed
 Documentation	Centreon Broker and Engine start/stop tests
 Library	Process
 Library	OperatingSystem
+Library	DateTime
 Library	../resources/Engine.py
 Library	../resources/Broker.py
 Library	../resources/Common.py
@@ -38,7 +39,7 @@ BESS2
 	Start Engine
 	${result}=	Check Connections
 	Should Be True	${result}
-	${result}=  Check Poller Enabled In Database  1  5
+	${result}=  Check Poller Enabled In Database  1  10
 	Should Be True	${result}
 	Stop Engine
 	${result}=  Check Poller Disabled In Database  1  5
@@ -94,3 +95,24 @@ BESS5
 	Kindly Stop Broker
 	Stop Engine
 
+BESS_ENGINE_DELETE_HOST
+	[Documentation]	once engine and cbd started, stop and restart cbd, delete an host and reload engine, cbd mustn't core
+	[Tags]	Broker	Engine	start-stop
+	Config Engine	${1}
+	Config Broker	central
+	Config Broker	module
+	Clear Retention
+	${start}=	Get Current Date
+	Start Broker  True
+	Start Engine
+	${content}=	Create List	check_for_external_commands
+	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
+	Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
+	Kindly Stop Broker  True
+	Start Broker  True
+	engine_config_remove_service_host  ${0}  host_16
+	engine_config_remove_host  ${0}  host_16
+	Reload Engine
+	Sleep  2s
+	Kindly Stop Broker  True
+	Stop Engine

@@ -31,6 +31,8 @@
 
 using namespace com::centreon::broker;
 
+extern std::shared_ptr<asio::io_context> g_io_context;
+
 class BamBA : public ::testing::Test {
  protected:
   std::unique_ptr<bam::configuration::applier::state> _aply_state;
@@ -40,6 +42,7 @@ class BamBA : public ::testing::Test {
  public:
   void SetUp() override {
     // Initialization.
+    g_io_context->restart();
     config::applier::init(0, "test_broker");
 
     _aply_state.reset(new bam::configuration::applier::state);

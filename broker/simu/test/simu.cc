@@ -30,9 +30,12 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::misc;
 using namespace com::centreon::broker::simu;
 
+extern std::shared_ptr<asio::io_context> g_io_context;
+
 class SimuGenericTest : public ::testing::Test {
  public:
   void SetUp() override {
+    g_io_context->restart();
     try {
       config::applier::init(0, "test_broker");
     } catch (std::exception const& e) {

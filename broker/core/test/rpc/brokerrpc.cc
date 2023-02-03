@@ -33,10 +33,13 @@
 using namespace com::centreon;
 using namespace com::centreon::broker;
 
+extern std::shared_ptr<asio::io_context> g_io_context;
+
 class BrokerRpc : public ::testing::Test {
  public:
   void SetUp() override {
-    pool::pool::load(0);
+    g_io_context->restart();
+    pool::load(g_io_context, 0);
     stats::center::load();
     io::protocols::load();
     io::events::load();

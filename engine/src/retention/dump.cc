@@ -274,7 +274,7 @@ std::ostream& dump::host(std::ostream& os,
      << obj.get_host_id()
      << "\n"
         "acknowledgement_type="
-     << obj.get_acknowledgement_type()
+     << obj.get_acknowledgement()
      << "\n"
         "active_checks_enabled="
      << obj.active_checks_enabled()
@@ -609,7 +609,7 @@ std::ostream& dump::service(std::ostream& os, class service const& obj) {
      << service::services[{hostname, obj.get_description()}]->get_service_id()
      << "\n"
         "acknowledgement_type="
-     << obj.get_acknowledgement_type()
+     << obj.get_acknowledgement()
      << "\n"
         "active_checks_enabled="
      << obj.active_checks_enabled()

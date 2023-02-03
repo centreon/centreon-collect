@@ -6,6 +6,7 @@ Test Setup	Stop Processes
 Test Teardown	Save logs If Failed
 
 Documentation	Engine/Broker tests on bbdo_version 3.0.0 and protobuf bbdo embedded events.
+Library	DatabaseLibrary
 Library	Process
 Library	DateTime
 Library	OperatingSystem
@@ -73,3 +74,40 @@ BEHS1
         END
 	Stop Engine
 	Kindly Stop Broker
+
+
+BE_NOTIF_OVERFLOW
+	[Documentation]	bbdo 2.0 notification number =40000. make an overflow => notification_number null in db
+	[Tags]	Broker	Engine	protobuf	bbdo
+	Config Engine	${1}
+	Config Broker	central
+	Config Broker	module
+    Broker Config Add Item	module0	bbdo_version	2.0.0
+    Broker Config Add Item	central	bbdo_version	2.0.0
+	Config Broker Sql Output	central	unified_sql
+	Broker Config Log	central	sql	trace
+	Broker Config Log	central  perfdata  trace
+
+	Clear Retention
+
+	Start Broker
+	Start Engine
+
+	${start}=	Get Current Date
+	${content}=	Create List	INITIAL SERVICE STATE: host_16;service_314;
+	${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	30
+	Should Be True	${result}	msg=An Initial host state on host_16 should be raised before we can start our external commands.
+
+	set_svc_notification_number  host_16  service_314  40000
+	Repeat Keyword	3 times	Process Service Check Result	host_16	service_314	2	output critical for 314
+	${result}=	Check Service Status With Timeout	host_16	service_314	2	30
+	Should Be True	${result}	msg=The service (host_16,service_314) is not CRITICAL as expected
+
+	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+	${output}=	Query	SELECT s.notification_number FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_16' AND s.description='service_314'
+	Should Be True	${output[0][0]} == None  msg=notification_number is not null
+
+	Stop Engine
+	Kindly Stop Broker
+
+

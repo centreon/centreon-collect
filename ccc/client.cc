@@ -196,6 +196,11 @@ std::string client::call(const std::string& cmd, const std::string& args) {
   void* tag;
   bool ok = false;
   _cq.Next(&tag, &ok);
+
+  if (!status_res.ok())
+    throw com::centreon::exceptions::msg_fmt(
+        "In call of the '{}' method: {}", cmd_str, status_res.error_message());
+
   grpc::ProtoBufferReader reader(&resp_buf);
 
   const google::protobuf::Descriptor* output_desc = method->output_type();

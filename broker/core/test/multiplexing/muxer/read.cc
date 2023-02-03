@@ -25,13 +25,16 @@
 
 using namespace com::centreon::broker;
 
+extern std::shared_ptr<asio::io_context> g_io_context;
+
 class MultiplexingMuxerRead : public ::testing::Test {
  protected:
-  std::unique_ptr<multiplexing::muxer> _m;
+  std::shared_ptr<multiplexing::muxer> _m;
 
  public:
   void SetUp() override {
     try {
+      g_io_context->restart();
       config::applier::init(0, "test_broker");
       stats::center::load();
     } catch (std::exception const& e) {
@@ -47,7 +50,7 @@ class MultiplexingMuxerRead : public ::testing::Test {
 
   void setup(std::string const& name) {
     multiplexing::muxer::filters f{io::raw::static_type()};
-    _m = std::make_unique<multiplexing::muxer>(name, f, f, false);
+    _m = multiplexing::muxer::create(name, f, f, false);
   }
 
   void publish_events(int count = 10000) {
@@ -55,7 +58,7 @@ class MultiplexingMuxerRead : public ::testing::Test {
       std::shared_ptr<io::raw> r{std::make_shared<io::raw>()};
       r->resize(sizeof(i));
       memcpy(r->data(), &i, sizeof(i));
-      _m->publish(r);
+      _m->publish(std::deque<std::shared_ptr<io::data>>({r}));
     }
   }
 

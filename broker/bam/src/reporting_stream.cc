@@ -611,7 +611,7 @@ void reporting_stream::_process_ba_event(std::shared_ptr<io::data> const& e) {
 
   // Try to update event.
   if (be.end_time.is_null())
-    _ba_event_update.bind_value_as_null(0);
+    _ba_event_update.bind_null_u64(0);
   else
     _ba_event_update.bind_value_as_u64(0, be.end_time.get_time_t());
   _ba_event_update.bind_value_as_i32(1, be.first_level);
@@ -635,7 +635,7 @@ void reporting_stream::_process_ba_event(std::shared_ptr<io::data> const& e) {
           2, static_cast<uint64_t>(be.start_time.get_time_t()));
 
       if (be.end_time.is_null())
-        _ba_full_event_insert.bind_value_as_null(3);
+        _ba_full_event_insert.bind_null_u64(3);
       else
         _ba_full_event_insert.bind_value_as_u64(
             3, static_cast<uint64_t>(be.end_time.get_time_t()));
@@ -753,7 +753,7 @@ void reporting_stream::_process_kpi_event(std::shared_ptr<io::data> const& e) {
 
   // Try to update kpi.
   if (ke.end_time.is_null())
-    _kpi_event_update.bind_value_as_null(0);
+    _kpi_event_update.bind_null_u64(0);
   else
     _kpi_event_update.bind_value_as_u64(
         0, static_cast<uint64_t>(ke.end_time.get_time_t()));
@@ -776,7 +776,7 @@ void reporting_stream::_process_kpi_event(std::shared_ptr<io::data> const& e) {
       _kpi_full_event_insert.bind_value_as_u64(
           1, static_cast<uint64_t>(ke.start_time.get_time_t()));
       if (ke.end_time.is_null())
-        _kpi_full_event_insert.bind_value_as_null(2);
+        _kpi_full_event_insert.bind_null_u64(2);
       else
         _kpi_full_event_insert.bind_value_as_u64(
             2, static_cast<uint64_t>(ke.end_time.get_time_t()));
@@ -1105,7 +1105,7 @@ void reporting_stream::_process_dimension_kpi(
   if (dk.kpi_ba_id)
     _dimension_kpi_insert.bind_value_as_i32(8, dk.kpi_ba_id);
   else
-    _dimension_kpi_insert.bind_value_as_null(8);
+    _dimension_kpi_insert.bind_null_i32(8);
   _dimension_kpi_insert.bind_value_as_str(
       9, misc::string::truncate(dk.kpi_ba_name,
                                 get_mod_bam_reporting_kpi_col_size(

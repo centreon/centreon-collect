@@ -20,8 +20,7 @@
 #define CCB_NEB_INTERNAL_HH
 
 #include "bbdo/events.hh"
-#include "bbdo/host.pb.h"
-#include "bbdo/service.pb.h"
+#include "bbdo/neb.pb.h"
 #include "bbdo/severity.pb.h"
 #include "bbdo/tag.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"

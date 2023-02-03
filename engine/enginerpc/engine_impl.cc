@@ -22,8 +22,13 @@
 #include <sys/types.h>
 #include <future>
 
+#include <asio.hpp>
+
+#include <absl/strings/str_join.h>
+
 #include <spdlog/common.h>
 #include <spdlog/fmt/ostr.h>
+#include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/spdlog.h>
 
 #include "com/centreon/engine/host.hh"
@@ -754,8 +759,7 @@ grpc::Status engine_impl::RemoveHostAcknowledgement(
     }
 
     /* set the acknowledgement flag */
-    temp_host->set_problem_has_been_acknowledged(false);
-    temp_host->set_acknowledgement_type(ACKNOWLEDGEMENT_NONE);
+    temp_host->set_acknowledgement(AckType::NONE);
     /* update the status log with the host info */
     temp_host->update_status();
     /* remove any non-persistant comments associated with the ack */
@@ -795,8 +799,7 @@ grpc::Status engine_impl::RemoveServiceAcknowledgement(
     }
 
     /* set the acknowledgement flag */
-    temp_service->set_problem_has_been_acknowledged(false);
-    temp_service->set_acknowledgement_type(ACKNOWLEDGEMENT_NONE);
+    temp_service->set_acknowledgement(AckType::NONE);
     /* update the status log with the service info */
     temp_service->update_status();
     /* remove any non-persistant comments associated with the ack */
@@ -834,12 +837,10 @@ grpc::Status engine_impl::AcknowledgementHostProblem(
       return 1;
     }
     /* set the acknowledgement flag */
-    temp_host->set_problem_has_been_acknowledged(true);
-    /* set the acknowledgement type */
     if (request->type() == EngineAcknowledgement_Type_STICKY)
-      temp_host->set_acknowledgement_type(ACKNOWLEDGEMENT_STICKY);
+      temp_host->set_acknowledgement(AckType::STICKY);
     else
-      temp_host->set_acknowledgement_type(ACKNOWLEDGEMENT_NORMAL);
+      temp_host->set_acknowledgement(AckType::NORMAL);
     /* schedule acknowledgement expiration */
     time_t current_time(time(nullptr));
     temp_host->set_last_acknowledgement(current_time);
@@ -899,12 +900,10 @@ grpc::Status engine_impl::AcknowledgementServiceProblem(
       return 1;
     }
     /* set the acknowledgement flag */
-    temp_service->set_problem_has_been_acknowledged(true);
-    /* set the acknowledgement type */
     if (request->type() == EngineAcknowledgement_Type_STICKY)
-      temp_service->set_acknowledgement_type(ACKNOWLEDGEMENT_STICKY);
+      temp_service->set_acknowledgement(AckType::STICKY);
     else
-      temp_service->set_acknowledgement_type(ACKNOWLEDGEMENT_NORMAL);
+      temp_service->set_acknowledgement(AckType::NORMAL);
     /* schedule acknowledgement expiration */
     time_t current_time = time(nullptr);
     temp_service->set_last_acknowledgement(current_time);
@@ -1668,7 +1667,7 @@ grpc::Status engine_impl::DeleteHostDowntimeFull(
     CommandSuccess* response __attribute__((unused))) {
   std::string err;
   auto fn = std::packaged_task<int32_t(void)>([&err, request]() -> int32_t {
-    std::list<std::shared_ptr<downtimes::downtime> > dtlist;
+    std::list<std::shared_ptr<downtimes::downtime>> dtlist;
     for (auto it = downtimes::downtime_manager::instance()
                        .get_scheduled_downtimes()
                        .begin(),
@@ -3229,4 +3228,117 @@ engine_impl::get_serv(
                             err);
     }
   }
+}
+
+/**
+ * @brief get log levels and infos
+ *
+ * @param context
+ * @param request
+ * @param response
+ * @return ::grpc::Status
+ */
+::grpc::Status engine_impl::GetLogInfo(
+    ::grpc::ServerContext* context,
+    const ::google::protobuf::Empty* request,
+    ::com::centreon::engine::LogInfo* response) {
+  using logger_by_log =
+      std::map<log_v2_base*, std::vector<std::shared_ptr<spdlog::logger>>>;
+
+  logger_by_log summary;
+
+  spdlog::apply_all(
+      [&summary](const std::shared_ptr<spdlog::logger>& logger_base) {
+        std::shared_ptr<log_v2_logger> logger =
+            std::dynamic_pointer_cast<log_v2_logger>(logger_base);
+        if (logger) {
+          summary[logger->get_parent()].push_back(logger);
+        }
+      });
+
+  for (const auto& by_parent_loggers : summary) {
+    LogInfo_LoggerInfo* loggers = response->add_loggers();
+    loggers->set_log_name(by_parent_loggers.first->log_name());
+    loggers->set_log_file(by_parent_loggers.first->file_path());
+    loggers->set_log_flush_period(
+        by_parent_loggers.first->get_flush_interval().count());
+    auto& levels = *loggers->mutable_level();
+    for (const std::shared_ptr<spdlog::logger>& logger :
+         by_parent_loggers.second) {
+      auto level = spdlog::level::to_string_view(logger->level());
+      levels[logger->name()] = std::string(level.data(), level.size());
+    }
+  }
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief set log levels and other
+ *
+ * @param context
+ * @param request
+ * @param response contain string returned to grpc client
+ * @return ::grpc::Status
+ */
+
+::grpc::Status engine_impl::SetLogParam(
+    ::grpc::ServerContext* context,
+    const ::com::centreon::engine::LogParam* request,
+    ::google::protobuf::Empty* response) {
+  std::string err_detail;
+  switch (request->param()) {
+    case LogParam_LogParamType_FLUSH_PERIOD: {
+      std::shared_ptr<log_v2_logger> search;
+      std::set<std::string> available_loggers;
+      spdlog::apply_all([&search, &available_loggers, request](
+                            const std::shared_ptr<spdlog::logger> logger) {
+        if (!search) {
+          std::shared_ptr<log_v2_logger> test =
+              std::dynamic_pointer_cast<log_v2_logger>(logger);
+          if (test) {
+            if (test->get_parent()->log_name() == request->name()) {
+              search = test;
+            } else {
+              available_loggers.insert(test->get_parent()->log_name());
+            }
+          }
+        }
+      });
+      if (!search) {
+        err_detail =
+            fmt::format("unknow logger name:{}, available loggers:{}",
+                        request->name(), absl::StrJoin(available_loggers, " "));
+        log_v2::external_command()->error(err_detail);
+        return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err_detail);
+      }
+      unsigned new_interval;
+      if (!absl::SimpleAtoi(request->value(), &new_interval)) {
+        err_detail = fmt::format(
+            "value must be a positive integer instead of {}", request->value());
+        log_v2::external_command()->error(err_detail);
+        return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, err_detail);
+      }
+      search->get_parent()->set_flush_interval(new_interval);
+      return grpc::Status::OK;
+    }
+    case LogParam_LogParamType_LOG_LEVEL: {
+      std::shared_ptr<spdlog::logger> logger = spdlog::get(request->name());
+      if (!logger) {
+        err_detail = fmt::format("unknow logger:{}", request->name());
+        log_v2::external_command()->error(err_detail);
+        return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err_detail);
+      } else {
+        spdlog::level::level_enum lvl =
+            spdlog::level::from_str(request->value());
+        if (lvl == spdlog::level::off && request->value() != "off") {
+          err_detail = fmt::format("unknow level:{}", request->value());
+          log_v2::external_command()->error(err_detail);
+          return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err_detail);
+        }
+        logger->set_level(lvl);
+        return grpc::Status::OK;
+      }
+    }
+  }
+  return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "unknown param");
 }

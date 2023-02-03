@@ -29,6 +29,8 @@
 
 using namespace com::centreon::broker;
 
+extern std::shared_ptr<asio::io_context> g_io_context;
+
 /**
  *  Check that the perfdata assignment operator works properly.
  */
@@ -196,7 +198,10 @@ TEST(StoragePerfdata, DefaultCtor) {
 
 class StorageParserParsePerfdata : public testing::Test {
  public:
-  void SetUp() override { config::applier::init(0, "test_broker"); }
+  void SetUp() override {
+    g_io_context->restart();
+    config::applier::init(0, "test_broker");
+  }
   void TearDown() override { config::applier::deinit(); };
 };
 
@@ -228,7 +233,7 @@ TEST_F(StorageParserParsePerfdata, Simple1) {
 TEST_F(StorageParserParsePerfdata, Simple2) {
   // Parse perfdata.
   std::list<misc::perfdata> list{
-    misc::parse_perfdata(0, 0, "'ABCD12E'=18.00%;15:;10:;0;100")};
+      misc::parse_perfdata(0, 0, "'ABCD12E'=18.00%;15:;10:;0;100")};
 
   // Assertions.
   ASSERT_EQ(list.size(), 1u);
@@ -249,8 +254,7 @@ TEST_F(StorageParserParsePerfdata, Simple2) {
 
 TEST_F(StorageParserParsePerfdata, Complex1) {
   // Parse perfdata.
-  std::list<misc::perfdata> list{
-    misc::parse_perfdata(
+  std::list<misc::perfdata> list{misc::parse_perfdata(
       0, 0,
       "time=2.45698s;;nan;;inf d[metric]=239765B/s;5;;-inf; "
       "infotraffic=18x;;;; a[foo]=1234;10;11: c[bar]=1234;~:10;20:30 "
@@ -437,7 +441,8 @@ TEST_F(StorageParserParsePerfdata, Complex2) {
       0, 0,
       "'  \n time'=2,45698s;;nan;;inf d[metric]=239765B/s;5;;-inf; "
       "g[test]=8x;;;;"
-      " infotraffic=18,6x;;;; a[foo]=1234,17;10;11: c[bar]=1234,147;~:10;20:30")};
+      " infotraffic=18,6x;;;; a[foo]=1234,17;10;11: "
+      "c[bar]=1234,147;~:10;20:30")};
 
   // Assertions.
   ASSERT_EQ(list.size(), 6u);

@@ -1,5 +1,5 @@
 from robot.api import logger
-from subprocess import getoutput
+from subprocess import getoutput, Popen, DEVNULL
 import re
 import os
 import time
@@ -151,17 +151,29 @@ def run_env():
 
 def start_mysql():
     if not run_env():
+        logger.console("Starting Mariadb with systemd")
         getoutput("systemctl start mysql")
+        logger.console("Mariadb started with systemd")
     else:
-        getoutput("mariadbd --user=root > /dev/null 2>&1 &")
+        logger.console("Starting Mariadb directly")
+        Popen(["mariadbd", "--user=root"], stdout=DEVNULL, stderr=DEVNULL)
+        logger.console("Mariadb directly started")
 
 
 def stop_mysql():
     if not run_env():
+        logger.console("Stopping Mariadb with systemd")
         getoutput("systemctl stop mysql")
+        logger.console("Mariadb stopped with systemd")
     else:
-        getoutput(
-            "kill -9 $(ps aux | grep 'mariadbd --user=root' | grep -v grep | awk '{print $2}')")
+        logger.console("Stopping directly MariaDB")
+        getoutput("kill -SIGTERM $(pidof mariadbd)")
+        logger.console("Mariadb directly stopped")
+
+
+def stop_rrdcached():
+    getoutput(
+        "kill -9 $(ps ax | grep '.usr.bin.rrdcached' | grep -v grep | awk '{print $1}')")
 
 def stop_rrdcached():
         getoutput(
@@ -252,7 +264,7 @@ def find_line_from(lines, date):
     start = 0
     end = len(lines) - 1
     idx = start
-    while end - start > 1:
+    while end > start:
         idx = (start + end) // 2
         m = p.match(lines[idx])
         while m is None:
@@ -265,10 +277,12 @@ def find_line_from(lines, date):
                 logger.console("We are at the first line and no date found")
 
         idx_d = get_date(m.group(1))
-        if my_date <= idx_d:
+        if my_date <= idx_d and end != idx:
             end = idx
-        elif my_date > idx_d:
+        elif my_date > idx_d and start != idx:
             start = idx
+        else:
+            break
     return idx
 
 

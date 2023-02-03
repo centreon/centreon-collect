@@ -47,7 +47,10 @@ feeder::feeder(const std::string& name,
       _state{feeder::stopped},
       _should_exit{false},
       _client(std::move(client)),
-      _muxer(name, std::move(read_filters), std::move(write_filters), false) {
+      _muxer(multiplexing::muxer::create(name,
+                                         std::move(read_filters),
+                                         std::move(write_filters),
+                                         false)) {
   std::unique_lock<std::mutex> lck(_state_m);
   if (!_client)
     throw msg_fmt("could not process '{}' with no client stream", _name);
@@ -78,6 +81,9 @@ feeder::~feeder() {
       break;
   }
   lock.unlock();
+
+  multiplexing::engine::instance_ptr()->unsubscribe(_muxer.get());
+
   if (_thread && _thread->joinable()) {
     _thread->join();
   }
@@ -94,7 +100,7 @@ bool feeder::is_finished() const noexcept {
  *  @return  The read filters used by the feeder.
  */
 const std::string& feeder::_get_read_filters() const {
-  return _muxer.read_filters_as_str();
+  return _muxer->read_filters_as_str();
 }
 
 /**
@@ -103,7 +109,7 @@ const std::string& feeder::_get_read_filters() const {
  *  @return  The write filters used by the feeder.
  */
 std::string const& feeder::_get_write_filters() const {
-  return _muxer.write_filters_as_str();
+  return _muxer->write_filters_as_str();
 }
 
 /**
@@ -117,7 +123,7 @@ void feeder::_forward_statistic(nlohmann::json& tree) {
       _client->statistics(tree);
     _client_m.unlock();
   }
-  _muxer.statistics(tree);
+  _muxer->statistics(tree);
 }
 
 void feeder::_callback() noexcept {
@@ -141,7 +147,7 @@ void feeder::_callback() noexcept {
       // Filling stats
       if (time(nullptr) >= fill_stats_time) {
         fill_stats_time += 5;
-        set_queued_events(_muxer.get_event_queue_size());
+        set_queued_events(_muxer->get_event_queue_size());
       }
 
       if (stream_can_read) {
@@ -156,7 +162,7 @@ void feeder::_callback() noexcept {
               "feeder '{}': sending 1 event from stream to muxer", _name);
           {
             misc::read_lock lock(_client_m);
-            _muxer.write(d);
+            _muxer->write(d);
           }
           tick();
           continue;  // Stream read bias.
@@ -168,7 +174,7 @@ void feeder::_callback() noexcept {
       bool timed_out_muxer(true);
       if (muxer_can_read)
         try {
-          timed_out_muxer = !_muxer.read(d, 0);
+          timed_out_muxer = !_muxer->read(d, 0);
         } catch (exceptions::shutdown const& e) {
           muxer_can_read = false;
         }
@@ -179,7 +185,7 @@ void feeder::_callback() noexcept {
           misc::read_lock lock(_client_m);
           _client->write(d);
         }
-        _muxer.ack_events(1);
+        _muxer->ack_events(1);
         tick();
       }
 
@@ -204,6 +210,9 @@ void feeder::_callback() noexcept {
         "feeder: unknown error occured while processing client '{}'", _name);
   }
 
+  // muxer should not receive events
+  multiplexing::engine::instance_ptr()->unsubscribe(_muxer.get());
+
   /* If we are here, that is because the loop is finished, and if we want
    * is_finished() to return true, we have to set _should_exit to true. */
   _should_exit = true;
@@ -226,13 +235,13 @@ void feeder::_callback() noexcept {
     _client.reset();
     set_state("disconnected");
     log_v2::core()->info("feeder: queue files of client '{}' removed", _name);
-    _muxer.remove_queue_files();
+    _muxer->remove_queue_files();
   }
   log_v2::core()->info("feeder: thread of client '{}' will exit", _name);
 }
 
 uint32_t feeder::_get_queued_events() const {
-  return _muxer.get_event_queue_size();
+  return _muxer->get_event_queue_size();
 }
 
 /**

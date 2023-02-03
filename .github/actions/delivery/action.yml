@@ -1,20 +1,50 @@
 name: "delivery"
 description: "RPM and DEB packages delivery Centreon"
 inputs:
+  module_name:
+    description: "The name of the module"
+    required: true
+  repository_name:
+    description: "The name of the repository"
+    required: true
   distrib:
     description: "The distribution used for packaging"
     required: true
-  repos_username:
+  nexus_username:
     description: "Artifact Manager technical username"
     required: true
-  repos_password:
+  nexus_password:
     description: "Artifact Manager technical password"
     required: true
   version:
     description: "Centreon packaged version"
     required: true
+  minor_version:
+    description: "Centreon packaged version"
+    required: true
+  release:
+    description: The release number
+    required: true
   cache_key:
     description: "The cached package key"
+    required: true
+  update_repo_path:
+    description: "The update repo script path"
+    required: true
+  cloudfront_id:
+    description: "The cloudfront ID for repo url"
+    required: true
+  yum_repo_address:
+    description: "The yum legacy repo address"
+    required: true
+  yum_repo_key:
+    description: "The yum repo key"
+    required: true
+  yum_repo_url:
+    description: "The legacy yum repo url"
+    required: true
+  artifactory_token:
+    description: "The token for artifactory"
     required: true
 
 runs:
@@ -24,22 +54,27 @@ runs:
       shell: bash
       if: ${{ inputs.distrib == 'el7' || inputs.distrib == 'el8' }}
       run: |
-        echo "build=rpmbuild-centreon-collect" >> $GITHUB_ENV
         echo "extfile=rpm" >> $GITHUB_ENV
 
     - name: Build name for DEB
       shell: bash
-      if: ${{ inputs.distrib == 'buster' || inputs.distrib == 'bullseye' }}
+      if: ${{ inputs.distrib == 'bullseye' }}
       run: |
-        echo "build=debbuild-centreon-collect" >> $GITHUB_ENV
         echo "extfile=deb" >> $GITHUB_ENV
 
     - name: Use cache files
       uses: actions/cache@v3
       with:
         path: ./*.${{ env.extfile }}
-        key: ${{ inputs.cache_key }}-${{ env.build }}-${{ inputs.distrib }}
-        restore-keys: ${{ inputs.cache_key }}-${{ env.build }}-${{ inputs.distrib }}
+        key: ${{ inputs.cache_key }}
+        restore-keys: ${{ inputs.cache_key }}
+
+    - name: Setup awscli
+      run: |
+        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+        sudo unzip -q awscliv2.zip
+        sudo ./aws/install
+      shell: bash
 
     - name: Publish packages
       run: |
@@ -52,35 +87,92 @@ runs:
         echo "[DEBUG] - Branch name: $BRANCHNAME"
         case "$BRANCHNAME" in
           develop | dev-[2-9][0-9].[0-9][0-9].x)
-            REPO="unstable"
+            SUBREPO="unstable"
             ;;
           release* | hotfix*)
-            REPO="testing"
+            SUBREPO="testing"
             ;;
           master | [2-9][0-9].[0-9][0-9].x)
-            REPO="stable"
+            SUBREPO="stable"
             ;;
           *)
             echo -n "[INFO] NO DELIVERY FOR THIS BRANCH"
             exit 0
             ;;
         esac
-        FILES="*.${{ env.extfile }}";
-        DISTRIB="${{ inputs.distrib }}";
-        echo "[DEBUG] - Repo: $REPO"
-        echo "[DEBUG] - FILES: $FILES"
-        echo "[DEBUG] - DISTRIB: $DISTRIB"
+
+        if [[ "${{ env.extfile }}" == "rpm" ]] ; then
+          eval `ssh-agent`
+          ssh-add - <<< "${{ inputs.yum_repo_key }}"
+        fi
+
+        FILES="*.${{ env.extfile }}"
+
         for FILE in $FILES
         do
           echo "[DEBUG] - File: $FILE"
           VERSION=${{ inputs.version }}
+          MAJOR="$VERSION"
+          MINOR=${{ inputs.minor_version }}
+          RELEASE=${{ inputs.release }}
+          REPOTYPE="$SUBREPO"
+          PROJECT=${{ inputs.module_name }}
+          PROJECT_PATH="standard"
+
+          echo "[DEBUG] - Suprepo: $SUBREPO"
           echo "[DEBUG] - Version: $VERSION"
-          if [[ "${{ env.extfile }}" == "deb" ]] ; then
-            echo "[DEBUG] - https://artifactory.apps.centreon.com/artifactory/debian-$VERSION-$REPO/pool/$FILE;deb.distribution=bullseye;deb.component=main;deb.architecture=amd64"
-            curl -v -u "${{ inputs.repos_username }}":"${{ inputs.repos_password }}" -X PUT "https://artifactory.apps.centreon.com/artifactory/debian-$VERSION-$REPO/pool/$FILE;deb.distribution=bullseye;deb.component=main;deb.architecture=amd64" -T "./$FILE"
+
+          if [[ "${{ env.extfile }}" == "deb" ]] && [[ "$SUBREPO" == "stable" ]]; then
+            curl -u "${{ inputs.repos_username }}":"${{ inputs.repos_password }}" -H "Content-Type: multipart/form-data" --data-binary "@./$FILE" https://apt.centreon.com/repository/22.04/
+          elif [[ "${{ env.extfile }}" == "deb" ]] && [[ "$SUBREPO" != "stable" ]]; then
+            curl -u "${{ inputs.repos_username }}":"${{ inputs.repos_password }}" -H "Content-Type: multipart/form-data" --data-binary "@./$FILE" https://apt.centreon.com/repository/22.04-$SUBREPO/
           else
-            echo "[DEBUG] - https://artifactory.apps.centreon.com/artifactory/rpm-$VERSION-$REPO/$DISTRIB/$REPO/x86_64/centreon-collect"
-            curl -v -u "${{ inputs.repos_username }}":"${{ inputs.repos_password }}" -X PUT "https://artifactory.apps.centreon.com/artifactory/rpm-$VERSION-$REPO/$DISTRIB/$REPO/x86_64/centreon-collect/$FILE" -T "./$FILE"
+            DISTRIB="${{ inputs.distrib }}"
+            ARCH=$(echo $FILE | grep -oP '(x86_64|noarch)')
+
+            echo "[DEBUG] - DISTRIB: $DISTRIB"
+            echo "[DEBUG] - Arch: $ARCH"
+
+            if [[ "$SUBREPO" == "stable" ]] ; then
+              TARGET="/srv/centreon-yum/yum.centreon.com/$PROJECT_PATH/$MAJOR/$DISTRIB/$REPOTYPE/$ARCH/RPMS"
+            else
+              FOLDER="$PROJECT-$MAJOR.$MINOR-$RELEASE"
+              TARGET="/srv/centreon-yum/yum.centreon.com/$PROJECT_PATH/$MAJOR/$DISTRIB/$REPOTYPE/$ARCH/$PROJECT/$FOLDER"
+              PROJECT_LOCATION="/srv/centreon-yum/yum.centreon.com/$PROJECT_PATH/$MAJOR/$DISTRIB/$REPOTYPE/$ARCH/$PROJECT"
+            fi
+
+            echo "[DEBUG] - Folder: $FOLDER"
+            echo "[DEBUG] - Project : $PROJECT"
+            echo "[DEBUG] - Target : $TARGET"
+            echo "[DEBUG] - PROJECT_LOCATION : $PROJECT_LOCATION"
+
+            ssh -o StrictHostKeyChecking=no "${{ inputs.yum_repo_address }}" mkdir -p "$TARGET" 2>&-
+            scp -o StrictHostKeyChecking=no "$FILE" "${{ inputs.yum_repo_address }}:$TARGET" 2>&-
           fi
         done
+
+        # run this only for rpm
+        if [[ "${{ env.extfile }}" == "rpm" ]] ; then
+          # Cleanup is done on unstable repository only
+          if [[ "$SUBREPO" == "unstable" ]] ; then
+            ssh -o StrictHostKeyChecking=no "${{ inputs.yum_repo_address }}" "ls -drc $PROJECT_LOCATION/* 2>&- | head -n -1 | xargs rm -rf"
+          fi
+
+          # Update repository metadata
+          METADATAS="/srv/centreon-yum/yum.centreon.com/$PROJECT_PATH/$MAJOR/$DISTRIB/$REPOTYPE/$ARCH"
+          ssh -o StrictHostKeyChecking=no "${{ inputs.yum_repo_address }}" "sh "${{ inputs.update_repo_path }}" $METADATAS" 2>&-
+
+          # Invalidate cloudfront cache
+          ID="${{ inputs.cloudfront_id }}"
+          PATHS="/$PROJECT_PATH/$MAJOR/$DISTRIB/$REPOTYPE/$ARCH/*"
+          ITERATIONS=1
+          until aws cloudfront create-invalidation --distribution-id "$ID" --paths "$PATHS"; do
+            if [ ${ITERATIONS} -eq 10 ]; then
+              return 0
+            fi
+            echo "couldn't invalidate cache, AWS quota might have been reached, retrying in 30 seconds..."
+            sleep 30s
+            ITERATIONS=$((ITERATIONS+1))
+          done
+        fi
       shell: bash

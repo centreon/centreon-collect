@@ -43,7 +43,8 @@ class entry {
   enum attribute {
     always_valid = 0,
     invalid_on_zero = (1 << 0),
-    invalid_on_minus_one = (1 << 1)
+    invalid_on_minus_one = (1 << 1),
+    invalid_on_negative = (1 << 2)
   };
 
   /**

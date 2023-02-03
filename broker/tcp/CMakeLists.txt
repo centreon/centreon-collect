@@ -1,27 +1,27 @@
-##
-## Copyright 2011 Centreon
-##
-## Licensed under the Apache License, Version 2.0 (the "License");
-## you may not use this file except in compliance with the License.
-## You may obtain a copy of the License at
-##
-##     http://www.apache.org/licenses/LICENSE-2.0
-##
-## Unless required by applicable law or agreed to in writing, software
-## distributed under the License is distributed on an "AS IS" BASIS,
-## WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-## See the License for the specific language governing permissions and
-## limitations under the License.
-##
-## For more information : contact@centreon.com
-##
+# #
+# # Copyright 2011 Centreon
+# #
+# # Licensed under the Apache License, Version 2.0 (the "License");
+# # you may not use this file except in compliance with the License.
+# # You may obtain a copy of the License at
+# #
+# #     http://www.apache.org/licenses/LICENSE-2.0
+# #
+# # Unless required by applicable law or agreed to in writing, software
+# # distributed under the License is distributed on an "AS IS" BASIS,
+# # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# # See the License for the specific language governing permissions and
+# # limitations under the License.
+# #
+# # For more information : contact@centreon.com
+# #
 
 # Global options.
 set(INC_DIR "${PROJECT_SOURCE_DIR}/tcp/inc/com/centreon/broker/tcp")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/tcp/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/tcp/test")
 include_directories(${PROJECT_SOURCE_DIR}/tcp/inc
-                    ${PROJECT_SOURCE_DIR}/neb/inc
+  ${PROJECT_SOURCE_DIR}/neb/inc
 )
 
 # Sources.
@@ -34,6 +34,7 @@ set(SOURCES
   "${SRC_DIR}/tcp_async.cc"
   "${SRC_DIR}/tcp_connection.cc"
 )
+
 # Headers.
 set(HEADERS
   "${INC_DIR}/acceptor.hh"
@@ -53,9 +54,10 @@ add_library("${TCP}" SHARED
 set_target_properties("${TCP}" PROPERTIES PREFIX "")
 target_link_libraries("${TCP}" CONAN_PKG::spdlog)
 target_precompile_headers(${TCP} PRIVATE precomp_inc/precomp.hpp)
+add_dependencies(${TCP} target_broker_message)
 
 # Testing.
-if (WITH_TESTING)
+if(WITH_TESTING)
   set(
     TESTS_SOURCES
     ${TESTS_SOURCES}
