@@ -139,10 +139,12 @@ runs:
 
             if [[ "$SUBREPO" == "stable" ]] ; then
               TARGET="/srv/centreon-yum/yum.centreon.com/$PROJECT_PATH/$MAJOR/$DISTRIB/$REPOTYPE/$ARCH/RPMS"
+              curl -v -H "Authorization: Bearer ${{ inputs.artifactory_token }}" -X PUT "https://centreon.jfrog.io/artifactory/rpm/$PROJECT_PATH/$MAJOR/$DISTRIB/$SUBREPO/$ARCH/$FILE" -T "./$FILE"              
             else
               FOLDER="$PROJECT-$MAJOR.$MINOR-$RELEASE"
               TARGET="/srv/centreon-yum/yum.centreon.com/$PROJECT_PATH/$MAJOR/$DISTRIB/$REPOTYPE/$ARCH/$PROJECT/$FOLDER"
               PROJECT_LOCATION="/srv/centreon-yum/yum.centreon.com/$PROJECT_PATH/$MAJOR/$DISTRIB/$REPOTYPE/$ARCH/$PROJECT"
+              curl -v -H "Authorization: Bearer ${{ inputs.artifactory_token }}" -X PUT "https://centreon.jfrog.io/artifactory/rpm/$PROJECT_PATH/$MAJOR/$DISTRIB/$SUBREPO/$ARCH/$PROJECT/$FOLDER/$FILE" -T "./$FILE"
             fi
 
             echo "[DEBUG] - Folder: $FOLDER"
