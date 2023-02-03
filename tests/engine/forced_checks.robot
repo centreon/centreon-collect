@@ -108,6 +108,14 @@ EFHCU1
         ${result}=	Find In Log with Timeout	${logEngine0}	${start}	${content}	60
         Should Be True	${result}	msg=An Initial host state on host_1 should be raised before we can start our external commands.
         Process host check result	host_1	0	host_1 UP
+<<<<<<< HEAD
+=======
+        FOR	${i}	IN RANGE	${4}
+         Schedule Forced HOST CHECK	host_1	${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
+         Sleep	5s
+        END
+        ${content}=	Create List	EXTERNAL COMMAND: SCHEDULE_FORCED_HOST_CHECK;host_1;	HOST ALERT: host_1;DOWN;SOFT;1;	EXTERNAL COMMAND: SCHEDULE_FORCED_HOST_CHECK;host_1;	HOST ALERT: host_1;DOWN;SOFT;2;	EXTERNAL COMMAND: SCHEDULE_FORCED_HOST_CHECK;host_1;    HOST ALERT: host_1;DOWN;HARD;3;
+>>>>>>> 22.04.x
 
 	${start}=	Get Current Date	exclude_millis=True
         Schedule Forced HOST CHECK	host_1	${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
