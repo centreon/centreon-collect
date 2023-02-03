@@ -88,6 +88,7 @@ add_custom_target(table_max_size DEPENDS ${INC_DIR}/database/table_max_size.hh)
 set_source_files_properties(${INC_DIR}/database/table_max_size.hh
                             PROPERTIES GENERATED TRUE)
 
+add_definitions(-DSPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 add_definitions(${spdlog_DEFINITIONS} ${mariadb-connector-c_DEFINITIONS})
 
 include_directories(${CONAN_INCLUDE_DIRS_MARIADB-CONNECTOR-C})

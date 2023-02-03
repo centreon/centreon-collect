@@ -175,6 +175,10 @@ def stop_rrdcached():
     getoutput(
         "kill -9 $(ps ax | grep '.usr.bin.rrdcached' | grep -v grep | awk '{print $1}')")
 
+def stop_rrdcached():
+        getoutput(
+            "kill -9 $(ps ax | grep '.usr.bin.rrdcached' | grep -v grep | awk '{print $1}')")
+
 
 def kill_broker():
     getoutput(

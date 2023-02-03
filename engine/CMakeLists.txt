@@ -398,6 +398,7 @@ add_definitions(-DDEFAULT_DEBUG_FILE="${ENGINE_VAR_LOG_DIR}/centengine.debug")
 add_definitions(-DDEFAULT_RETENTION_FILE="${ENGINE_VAR_LOG_DIR}/retention.dat")
 add_definitions(-DDEFAULT_COMMAND_FILE="${ENGINE_VAR_LIB_DIR}/rw/centengine.cmd")
 add_definitions(-DDEFAULT_CONFIG_FILE="${PREFIX_ENGINE_CONF}/centengine.cfg")
+add_definitions(-DSPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 
 # Add specific linker flags for Mac OS to build correctly shared libraries.
 if(APPLE)
