@@ -7,10 +7,10 @@ inputs:
   distrib:
     description: "The distribution used for packaging"
     required: true
-  repos_username:
+  nexus_username:
     description: "Artifact Manager technical username"
     required: true
-  repos_password:
+  nexus_password:
     description: "Artifact Manager technical password"
     required: true
   version:
@@ -39,6 +39,9 @@ inputs:
     required: true
   yum_repo_url:
     description: "The legacy yum repo url"
+    required: true
+  artifactory_token:
+    description: "The token for artifactory"
     required: true
 
 runs:
