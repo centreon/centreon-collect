@@ -64,7 +64,7 @@ echo "##### Starting tests #####"
 
 echo "####################### Run Centreon Collect Robot Tests #######################"
 cd /src/tests/
-robot --nostatusrc .
+robot --nostatusrc bam
 if [ $? -ne 0 ] ; then
   touch fail
 fi
