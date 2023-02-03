@@ -38,8 +38,13 @@ CCE_BEGIN()
 
 class timeperiod {
  public:
+  days_array days;
+
   timeperiod(std::string const& name, std::string const& alias);
   timeperiod(const configuration::Timeperiod& obj);
+  void set_days(const configuration::DaysArray& array);
+  void set_exceptions(const configuration::ExceptionArray& array);
+  void set_exclusions(const configuration::StringSet& exclusions);
 
   std::string const& get_name() const { return _name; };
   void set_name(std::string const& name);
@@ -59,7 +64,6 @@ class timeperiod {
   bool operator==(timeperiod const& obj) throw();
   bool operator!=(timeperiod const& obj) throw();
 
-  days_array days;
   exception_array exceptions;
 
   static timeperiod_map timeperiods;
