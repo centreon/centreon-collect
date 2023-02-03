@@ -102,9 +102,9 @@ jobs:
 
   robot-test:
     needs: [package-rpm, create-version]
-    env:
-      version: ${{ needs.create-version.outputs.version }}
     runs-on: [self-hosted, collect]
+    env:
+      imgversion: ${{ needs.create-version.outputs.imgversion }}
     strategy:
       matrix:
         # branch: [develop, master]
