@@ -111,6 +111,64 @@ void applier::timeperiod::expand_objects(configuration::State& s
  *
  *  @param[in] obj  The time period to modify in the monitoring engine.
  */
+void applier::timeperiod::modify_object(
+    configuration::Timeperiod* to_modify,
+    const configuration::Timeperiod& new_obj) {
+  // Logging.
+  log_v2::config()->debug("Modifying time period '{}'.",
+                          to_modify->timeperiod_name());
+
+  // Find time period object.
+  timeperiod_map::iterator it_obj =
+      engine::timeperiod::timeperiods.find(to_modify->timeperiod_name());
+  if (it_obj == engine::timeperiod::timeperiods.end() || !it_obj->second)
+    throw engine_error() << fmt::format(
+        "Could not modify non-existing time period object '{}'",
+        to_modify->timeperiod_name());
+
+  engine::timeperiod* tp(it_obj->second.get());
+
+  // Modify properties.
+  if (to_modify->alias() != new_obj.alias()) {
+    tp->set_alias(new_obj.alias().empty() ? new_obj.timeperiod_name()
+                                          : new_obj.alias());
+    to_modify->set_alias(new_obj.alias());
+  }
+
+  // Time ranges modified ?
+  if (!MessageDifferencer::Equals(to_modify->timeranges(),
+                                  new_obj.timeranges())) {
+    tp->set_days(new_obj.timeranges());
+    to_modify->mutable_timeranges()->CopyFrom(new_obj.timeranges());
+  }
+
+  // Exceptions modified ?
+  if (!MessageDifferencer::Equals(to_modify->exceptions(),
+                                  new_obj.exceptions())) {
+    tp->set_exceptions(new_obj.exceptions());
+    to_modify->mutable_exceptions()->CopyFrom(new_obj.exceptions());
+  }
+
+  // Exclusions modified ?
+  if (!MessageDifferencer::Equals(to_modify->exclude(), new_obj.exclude())) {
+    // Delete old exclusions.
+    tp->get_exclusions().clear();
+    // Create new exclusions.
+    tp->set_exclusions(new_obj.exclude());
+    to_modify->mutable_exclude()->CopyFrom(new_obj.exclude());
+  }
+
+  // Notify event broker.
+  timeval tv(get_broker_timestamp(nullptr));
+  broker_adaptive_timeperiod_data(NEBTYPE_TIMEPERIOD_UPDATE, NEBFLAG_NONE,
+                                  NEBATTR_NONE, tp, CMD_NONE, &tv);
+}
+
+/**
+ *  Modify time period.
+ *
+ *  @param[in] obj  The time period to modify in the monitoring engine.
+ */
 void applier::timeperiod::modify_object(configuration::timeperiod const& obj) {
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
