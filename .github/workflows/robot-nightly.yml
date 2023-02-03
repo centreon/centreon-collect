@@ -157,13 +157,15 @@ jobs:
     env:
       version: ${{ needs.create-version.outputs.version }}
       success: ${{ needs.robot-test.outputs.success }}
-    if: ${{ env.success }} == 1
     runs-on: [self-hosted, common]
     strategy:
       matrix:
         distrib: [el9]
     name: deliver ${{ matrix.distrib }}
     steps:
+      - name: Tests in success
+        if: ${{ env.success }} != 1
+        run: exit 1
       - name: Checkout sources
         uses: actions/checkout@v3
 
