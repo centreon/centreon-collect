@@ -33,30 +33,31 @@ class timeperiod;
 
 namespace applier {
 class timeperiod {
+  void _add_exclusions(std::set<std::string> const& exclusions,
+                       com::centreon::engine::timeperiod* tp);
+
  public:
   /**
    * @brief Default constructor.
    */
   timeperiod() = default;
-  timeperiod(timeperiod const& right);
   /**
    * @brief Destructor.
    */
   ~timeperiod() noexcept = default;
+  timeperiod(const timeperiod&) = delete;
   timeperiod& operator=(timeperiod const&) = delete;
   void add_object(const configuration::Timeperiod& obj);
   void add_object(const configuration::timeperiod& obj);
   void expand_objects(configuration::state& s);
   void expand_objects(configuration::State& s);
+  void modify_object(configuration::Timeperiod* to_modify,
+                     const configuration::Timeperiod& new_object);
   void modify_object(configuration::timeperiod const& obj);
   void remove_object(ssize_t idx);
   void remove_object(configuration::timeperiod const& obj);
   void resolve_object(const configuration::Timeperiod& obj);
   void resolve_object(configuration::timeperiod const& obj);
-
- private:
-  void _add_exclusions(std::set<std::string> const& exclusions,
-                       com::centreon::engine::timeperiod* tp);
 };
 }  // namespace applier
 }  // namespace configuration
