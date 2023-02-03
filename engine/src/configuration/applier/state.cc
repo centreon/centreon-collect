@@ -66,53 +66,53 @@ using namespace com::centreon::engine::logging;
 static bool has_already_been_loaded(false);
 
 void applier::state::apply_ng(const configuration::State& new_cfg) {
-  configuration::DiffState dstate = build_difference(pb_config, new_cfg);
-  configuration::applier::timeperiod tp_aply;
-  configuration::applier::connector cn_aply;
-  configuration::applier::command cmd_aply;
-  configuration::applier::contact ct_aply;
-
-  for (const PathWithValue& pv : dstate.to_add()) {
-    switch (pv.val().value_case()) {
-      case Value::kValueB:
-        break;
-      case Value::kValueI32:
-        break;
-      case Value::kValueTr:
-        // A Timerange is added.
-        assert(8716 == 10129);
-        // tr_aply.add_object(pv.val().value_tr());
-        break;
-      case Value::kValueDr:
-        // A Daterange is added.
-        assert(8717 == 10130);
-        // dr_aply.add_object(pv.val().value_dr());
-        break;
-      case Value::kValueTp:
-        // A Timeperiod is added.
-        // tp_aply.add_object(pv.path(), pv.val().value_tp());
-        break;
-      case Value::kValueCn:
-        // A Connector is added.
-        cn_aply.add_object(pv.val().value_cn());
-        break;
-      case Value::kValueCo:
-        // A Command is added.
-        cmd_aply.add_object(pv.val().value_co());
-        break;
-      case Value::kValueCv:
-        // A CustomVariable is added.
-        assert(71 == 109);
-        // cv_aply.add_object(pv.val().value_cv());
-        break;
-      case Value::kValueCt:
-        // A Contact is added.
-        ct_aply.add_object(pv.val().value_ct());
-        break;
-      default:
-        assert(12 == 1111);
-    }
-  }
+  //  configuration::DiffState dstate = build_difference(pb_config, new_cfg);
+  //  configuration::applier::timeperiod tp_aply;
+  //  configuration::applier::connector cn_aply;
+  //  configuration::applier::command cmd_aply;
+  //  configuration::applier::contact ct_aply;
+  //
+  //  for (const PathWithValue& pv : dstate.to_add()) {
+  //    switch (pv.val().value_case()) {
+  //      case Value::kValueB:
+  //        break;
+  //      case Value::kValueI32:
+  //        break;
+  //      case Value::kValueTr:
+  //        // A Timerange is added.
+  //        assert(8716 == 10129);
+  //        // tr_aply.add_object(pv.val().value_tr());
+  //        break;
+  //      case Value::kValueDr:
+  //        // A Daterange is added.
+  //        assert(8717 == 10130);
+  //        // dr_aply.add_object(pv.val().value_dr());
+  //        break;
+  //      case Value::kValueTp:
+  //        // A Timeperiod is added.
+  //        // tp_aply.add_object(pv.path(), pv.val().value_tp());
+  //        break;
+  //      case Value::kValueCn:
+  //        // A Connector is added.
+  //        cn_aply.add_object(pv.val().value_cn());
+  //        break;
+  //      case Value::kValueCo:
+  //        // A Command is added.
+  //        cmd_aply.add_object(pv.val().value_co());
+  //        break;
+  //      case Value::kValueCv:
+  //        // A CustomVariable is added.
+  //        assert(71 == 109);
+  //        // cv_aply.add_object(pv.val().value_cv());
+  //        break;
+  //      case Value::kValueCt:
+  //        // A Contact is added.
+  //        ct_aply.add_object(pv.val().value_ct());
+  //        break;
+  //      default:
+  //        assert(12 == 1111);
+  //    }
+  //  }
 }
 
 /**
@@ -697,22 +697,19 @@ void applier::state::_pb_apply(const pb_difference<ConfigurationType>& diff) {
   // Applier.
   ApplierType aplyr;
 
-  //  // Modify objects.
-  //  for (typename cfg_set::const_iterator it_modify = diff.modified().begin(),
-  //                                        end_modify = diff.modified().end();
-  //       it_modify != end_modify; ++it_modify) {
-  //    if (!verify_config)
-  //      aplyr.modify_object(*it_modify);
-  //    else {
-  //      try {
-  //        aplyr.modify_object(*it_modify);
-  //      } catch (std::exception const& e) {
-  //        ++config_errors;
-  //        engine_logger(log_info_message, basic) << e.what();
-  //        log_v2::events()->info(e.what());
-  //      }
-  //    }
-  //  }
+  // Modify objects.
+  for (auto& p : diff.modified()) {
+    if (!verify_config)
+      aplyr.modify_object(p.first, p.second);
+    else {
+      try {
+        aplyr.modify_object(p.first, p.second);
+      } catch (const std::exception& e) {
+        ++config_errors;
+        log_v2::events()->info(e.what());
+      }
+    }
+  }
 
   // Erase objects.
   for (auto idx : diff.deleted()) {
