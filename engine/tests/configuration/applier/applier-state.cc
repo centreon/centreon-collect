@@ -768,8 +768,8 @@ TEST_F(ApplierState, DiffOnTimeperiodOneRemoved) {
       configuration::applier::state::instance().build_difference(pb_config,
                                                                  new_config);
   ASSERT_EQ(dstate.to_remove().size(), 1u);
-  // Number 48 is to remove.
-  ASSERT_EQ(dstate.to_remove()[0].key()[0].i32(), 48);
+  // Number 90 is to remove.
+  ASSERT_EQ(dstate.to_remove()[0].key()[0].i32(), 90);
   ASSERT_EQ(dstate.to_remove()[0].key()[1].i32(), 9);
   ASSERT_EQ(dstate.to_remove()[0].key().size(), 2);
   ASSERT_TRUE(dstate.to_add().empty());
@@ -828,8 +828,8 @@ TEST_F(ApplierState, DiffOnTimeperiodAliasRenamed) {
   ASSERT_EQ(dstate.to_modify().size(), 1u);
   const configuration::PathWithValue& path = dstate.to_modify()[0];
   ASSERT_EQ(path.path().key().size(), 4u);
-  // number 48 => timeperiods
-  ASSERT_EQ(path.path().key()[0].i32(), 48);
+  // number 90 => timeperiods
+  ASSERT_EQ(path.path().key()[0].i32(), 90);
   // index 7 => timeperiods[7]
   ASSERT_EQ(path.path().key()[1].i32(), 7);
   // number 2 => timeperiods.alias

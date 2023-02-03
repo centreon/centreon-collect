@@ -121,8 +121,58 @@ timeperiod::timeperiod(const configuration::Timeperiod& obj)
   fill_exceptions(obj.exceptions().month_week_day(), 3);
   fill_exceptions(obj.exceptions().week_day(), 4);
 
-  for (auto& s : obj.exclude().data())
+  set_exclusions(obj.exclude());
+}
+
+void timeperiod::set_exclusions(const configuration::StringSet& exclusions) {
+  _exclusions.clear();
+  for (auto& s : exclusions.data())
     _exclusions.emplace(s, nullptr);
+}
+
+void timeperiod::set_exceptions(const configuration::ExceptionArray& array) {
+  for (auto& e : exceptions)
+    e.clear();
+
+  auto fill_exceptions = [this](const auto& obj_daterange, int idx) {
+    for (auto& r : obj_daterange) {
+      exceptions[idx].emplace_back(
+          static_cast<daterange::type_range>(r.type()), r.syear(), r.smon(),
+          r.smday(), r.swday(), r.swday_offset(), r.eyear(), r.emon(),
+          r.emday(), r.ewday(), r.ewday_offset(), r.skip_interval());
+      daterange& d = exceptions[idx].back();
+      std::list<timerange> tr;
+      for (auto& t : r.timerange())
+        tr.emplace_back(t.range_start(), t.range_end());
+      d.set_timerange(tr);
+    }
+  };
+
+  fill_exceptions(array.calendar_date(), 0);
+  fill_exceptions(array.month_date(), 1);
+  fill_exceptions(array.month_day(), 2);
+  fill_exceptions(array.month_week_day(), 3);
+  fill_exceptions(array.week_day(), 4);
+}
+
+void timeperiod::set_days(const configuration::DaysArray& array) {
+  for (auto& d : days)
+    d.clear();
+
+  for (auto& r : array.sunday())
+    days[0].emplace_back(r.range_start(), r.range_end());
+  for (auto& r : array.monday())
+    days[1].emplace_back(r.range_start(), r.range_end());
+  for (auto& r : array.tuesday())
+    days[2].emplace_back(r.range_start(), r.range_end());
+  for (auto& r : array.wednesday())
+    days[3].emplace_back(r.range_start(), r.range_end());
+  for (auto& r : array.thursday())
+    days[4].emplace_back(r.range_start(), r.range_end());
+  for (auto& r : array.friday())
+    days[5].emplace_back(r.range_start(), r.range_end());
+  for (auto& r : array.saturday())
+    days[6].emplace_back(r.range_start(), r.range_end());
 }
 
 void timeperiod::set_name(std::string const& name) {
