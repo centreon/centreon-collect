@@ -63,8 +63,8 @@ jobs:
     strategy:
       matrix:
         include:
-          - image: alma8
-            distrib: el8
+          - image: alma9
+            distrib: el9
     name: package ${{ matrix.distrib }}
     steps:
       - name: Checkout sources
@@ -109,8 +109,8 @@ jobs:
       matrix:
         # branch: [develop, master]
         include:
-          - image: centreon-collect-alma8
-            distrib: el8
+          - image: centreon-collect-alma9
+            distrib: el9
             folder_report: tests/
     steps:
       - name: Checkout sources

@@ -28,15 +28,9 @@ echo "########################## Install centreon collect ######################
 echo "Installation..."
 /usr/bin/rpm -Uvvh --force --nodeps *.rpm
 
-if [ -x /usr/bin/pip3.8 ] ; then
-  pip=/usr/bin/pip3.8
-else
-  pip=$(which pip3)
-fi
-
 echo "########################### Install Robot Framework ###########################"
 cd /src/tests/
-$pip install -U robotframework robotframework-databaselibrary pymysql python-dateutil
+pip3 install -U robotframework robotframework-databaselibrary pymysql python-dateutil
 
 yum groupinstall "Development Tools" -y
 yum install python3-devel -y
@@ -48,15 +42,12 @@ VERSION_ID=$(grep '^VERSION_ID' /etc/os-release | sed -En 's/^VERSION_ID="([[:di
 if [ -f /etc/os-release ]; then
     case "$VERSION_ID" in
         7)
-            echo "$pip install grpcio==1.33.2 grpcio_tools==1.33.2"
-            $pip install grpcio==1.33.2 grpcio_tools==1.33.2
-            ;;
-        8)
-            echo "$pip install grpcio grpcio_tools"
-            $pip install grpcio grpcio_tools
+            echo "pip3 install grpcio==1.33.2 grpcio_tools==1.33.2"
+            pip3 install grpcio==1.33.2 grpcio_tools==1.33.2
             ;;
         *)
-            echo "OS Version is neither 7 or 8"
+            echo "pip3 install grpcio grpcio_tools"
+            pip3 install grpcio grpcio_tools
             ;;
     esac
 fi
