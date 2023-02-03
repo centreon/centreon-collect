@@ -107,6 +107,46 @@ void applier::connector::expand_objects(configuration::state& s) {
  *
  *  @param[in] obj  The connector to modify in the monitoring engine.
  */
+/**
+ * @brief Modify connector
+ *
+ * @param to_modify The current configuration connector
+ * @param new_obj The new one.
+ */
+void applier::connector::modify_object(
+    configuration::Connector* to_modify,
+    const configuration::Connector& new_obj) {
+  // Logging.
+  log_v2::config()->debug("Modifying connector '{}'.",
+                          new_obj.connector_name());
+
+  // Find connector object.
+  connector_map::iterator it_obj(
+      commands::connector::connectors.find(new_obj.connector_name()));
+  if (it_obj == commands::connector::connectors.end())
+    throw engine_error() << fmt::format(
+        "Could not modify non-existing connector object '{}'",
+        new_obj.connector_name());
+
+  commands::connector* c = it_obj->second.get();
+
+  // Update the global configuration set.
+  to_modify->CopyFrom(new_obj);
+
+  // Expand command line.
+  nagios_macros* macros(get_global_macros());
+  std::string command_line;
+  process_macros_r(macros, new_obj.connector_line(), command_line, 0);
+
+  // Set the new command line.
+  c->set_command_line(command_line);
+}
+
+/**
+ *  Modify connector.
+ *
+ *  @param[in] obj  The connector to modify in the monitoring engine.
+ */
 void applier::connector::modify_object(configuration::connector const& obj) {
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
@@ -142,6 +182,23 @@ void applier::connector::modify_object(configuration::connector const& obj) {
   c->set_command_line(processed_cmd);
 }
 
+void applier::connector::remove_object(ssize_t idx) {
+  // Logging.
+  const configuration::Connector& obj = pb_config.connectors()[idx];
+  log_v2::config()->debug("Removing connector '{}'.", obj.connector_name());
+
+  // Find connector.
+  connector_map::iterator it =
+      commands::connector::connectors.find(obj.connector_name());
+  if (it != commands::connector::connectors.end()) {
+    // Remove connector object.
+    commands::connector::connectors.erase(it);
+  }
+
+  // Remove connector from the global configuration set.
+  pb_config.mutable_connectors()->DeleteSubrange(idx, 1);
+}
+
 /**
  *  Remove old connector.
  *
@@ -173,8 +230,7 @@ void applier::connector::remove_object(configuration::connector const& obj) {
  *
  *  @param[in] obj Unused.
  */
-void applier::connector::resolve_object(const configuration::Connector& obj
-                                        [[may_be_unused]]) {}
+void applier::connector::resolve_object(const configuration::Connector&) {}
 
 /**
  *  @brief Resolve a connector.
@@ -184,5 +240,4 @@ void applier::connector::resolve_object(const configuration::Connector& obj
  *
  *  @param[in] obj Unused.
  */
-void applier::connector::resolve_object(const configuration::connector& obj
-                                        [[may_be_unused]]) {}
+void applier::connector::resolve_object(const configuration::connector&) {}
