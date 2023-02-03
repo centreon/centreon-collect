@@ -11,7 +11,7 @@ ssh-keygen -t ed25519 -f /etc/ssh/ssh_host_ed25519_key -P ""
 /usr/sbin/sshd > /dev/null 2>&1 &
 
 echo "########################### Start MariaDB ######################################"
-mariadbd --socket=/var/lib/mysql/mysql.sock --user=root > /dev/null 2>&1 &
+/usr/libexec/mariadbd --socket=/var/lib/mysql/mysql.sock --user=root > /dev/null 2>&1 &
 sleep 5
 echo $(ps ax | grep mariadbd | grep -v mariadbd)
 
