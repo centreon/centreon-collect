@@ -46,7 +46,10 @@ class connector {
   void add_object(configuration::connector const& obj);
   void expand_objects(configuration::State& s);
   void expand_objects(configuration::state& s);
-  void modify_object(configuration::connector const& obj);
+  void modify_object(configuration::Connector* to_modify,
+                     const configuration::Connector& new_obj);
+  void modify_object(const configuration::connector& obj);
+  void remove_object(ssize_t idx);
   void remove_object(configuration::connector const& obj);
   void resolve_object(const configuration::Connector& obj);
   void resolve_object(configuration::connector const& obj);

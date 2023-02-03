@@ -1,5 +1,5 @@
 /**
- * Copyright 2017 - 2019 Centreon (https://www.centreon.com/)
+ * Copyright 2017 - 2019,2023 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@
 #include "com/centreon/engine/configuration/applier/command.hh"
 #include "com/centreon/engine/configuration/applier/connector.hh"
 #include "com/centreon/engine/configuration/connector.hh"
+#include "configuration/connector_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -48,6 +49,19 @@ TEST_F(ApplierConnector, UnusableConnectorFromConfig) {
   ASSERT_EQ(commands::connector::connectors.size(), 1u);
 }
 
+// Given a connector applier
+// And a configuration connector just with a name
+// Then the applier add_object adds the connector in the configuration set
+// and in the connectors map.
+TEST_F(ApplierConnector, PbUnusableConnectorFromConfig) {
+  configuration::applier::connector aply;
+  configuration::Connector cnn;
+  configuration::connector_helper cnn_hlp(&cnn);
+  cnn.set_connector_name("connector");
+  aply.add_object(cnn);
+  ASSERT_EQ(commands::connector::connectors.size(), 1u);
+}
+
 // Given a connector applier already applied
 // When the connector is modified from the configuration,
 // Then the modify_object() method updated correctly the connector.
@@ -70,6 +84,31 @@ TEST_F(ApplierConnector, ModifyConnector) {
   ASSERT_EQ(found_con->second->get_command_line(), "date");
 }
 
+// Given a connector applier already applied
+// When the connector is modified from the configuration,
+// Then the modify_object() method updated correctly the connector.
+TEST_F(ApplierConnector, PbModifyConnector) {
+  configuration::applier::connector aply;
+  configuration::Connector cnn;
+  configuration::connector_helper cnn_hlp(&cnn);
+  cnn.set_connector_name("connector");
+  cnn.set_connector_line("perl");
+
+  aply.add_object(cnn);
+
+  cnn.set_connector_line("date");
+  configuration::Connector* old = &pb_config.mutable_connectors()->at(0);
+  aply.modify_object(old, cnn);
+
+  connector_map::iterator found_con =
+      commands::connector::connectors.find("connector");
+  ASSERT_FALSE(found_con == commands::connector::connectors.end());
+  ASSERT_FALSE(!found_con->second);
+
+  ASSERT_EQ(found_con->second->get_name(), "connector");
+  ASSERT_EQ(found_con->second->get_command_line(), "date");
+}
+
 // When a non existing connector is modified
 // Then an exception is thrown.
 TEST_F(ApplierConnector, ModifyNonExistingConnector) {
@@ -83,7 +122,6 @@ TEST_F(ApplierConnector, ModifyNonExistingConnector) {
 // When a non existing connector is removed
 // Then nothing is done.
 TEST_F(ApplierConnector, RemoveNonExistingConnector) {
-  configuration::applier::connector aply;
   configuration::connector cnn("connector");
   cnn.parse("connector_line", "echo 1");
 
@@ -102,5 +140,21 @@ TEST_F(ApplierConnector, RemoveConnector) {
   aply.add_object(cnn);
   aply.remove_object(cnn);
   ASSERT_TRUE(config->connectors().size() == 0);
+  ASSERT_TRUE(commands::connector::connectors.size() == 0);
+}
+
+// Given simple connector applier already applied
+// When the connector is removed from the configuration,
+// Then the connector is totally removed.
+TEST_F(ApplierConnector, PbRemoveConnector) {
+  configuration::applier::connector aply;
+  configuration::Connector cnn;
+  configuration::connector_helper cnn_hlp(&cnn);
+  cnn.set_connector_name("connector");
+  cnn.set_connector_line("echo 1");
+
+  aply.add_object(cnn);
+  aply.remove_object(0);
+  ASSERT_TRUE(pb_config.connectors().size() == 0);
   ASSERT_TRUE(commands::connector::connectors.size() == 0);
 }
