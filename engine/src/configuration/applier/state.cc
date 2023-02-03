@@ -1442,11 +1442,16 @@ void applier::state::_processing(configuration::State& new_cfg,
   pb_difference<configuration::Timeperiod> diff_timeperiods;
   diff_timeperiods.parse(
       pb_config.timeperiods().begin(), pb_config.timeperiods().end(),
-      new_cfg.timeperiods().begin(), new_cfg.timeperiods().end());
+      new_cfg.timeperiods().begin(), new_cfg.timeperiods().end(),
+      &configuration::Timeperiod::timeperiod_name);
 
-  //  // Build difference for connectors.
-  //  difference<set_connector> diff_connectors;
-  //  diff_connectors.parse(config->connectors(), new_cfg.connectors());
+  // Build difference for connectors.
+  pb_difference<configuration::Connector> diff_connectors;
+  diff_connectors.parse(
+      pb_config.connectors().begin(), pb_config.connectors().end(),
+      new_cfg.connectors().begin(), new_cfg.connectors().end(),
+      &configuration::Connector::connector_name);
+
   //
   //  // Build difference for commands.
   //  difference<set_command> diff_commands;
@@ -1553,10 +1558,10 @@ void applier::state::_processing(configuration::State& new_cfg,
     _pb_resolve<configuration::Timeperiod, applier::timeperiod>(
         pb_config.timeperiods());
 
-    //    // Apply connectors.
-    //    _apply<configuration::connector, applier::connector>(diff_connectors);
-    //    _resolve<configuration::connector, applier::connector>(
-    //        config->connectors());
+    // Apply connectors.
+    _pb_apply<configuration::Connector, applier::connector>(diff_connectors);
+    _pb_resolve<configuration::Connector, applier::connector>(
+        pb_config.connectors());
     //
     //    // Apply commands.
     //    _apply<configuration::command, applier::command>(diff_commands);
