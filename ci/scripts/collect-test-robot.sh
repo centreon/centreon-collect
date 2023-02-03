@@ -13,7 +13,11 @@ ssh-keygen -t ed25519 -f /etc/ssh/ssh_host_ed25519_key -P ""
 echo "########################### Start MariaDB ######################################"
 /usr/libexec/mariadbd --socket=/var/lib/mysql/mysql.sock --user=root > /dev/null 2>&1 &
 sleep 5
+
 echo $(ps ax | grep mariadbd | grep -v mariadbd)
+
+rpm -qa | grep -i mariadb
+find / -name 'mariadbd'
 
 echo "########################### Init centreon database ############################"
 
