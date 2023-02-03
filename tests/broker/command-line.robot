@@ -55,6 +55,26 @@ BCL4
 	${expected}=	Evaluate	"diagnostic:" in """${result}"""
 	Should be True	${expected}	msg=diagnostic mode didn't launch
 
+BCL3
+	[Documentation]	Starting broker with options '-D' should work and activate diagnose mode
+	[Tags]	Broker	start-stop
+	Config Broker	central
+	${start}=	Get Current Date	exclude_millis=True
+	Sleep	1s
+	Start Broker With Args	-D	${EtcRoot}/centreon-broker/central-broker.json
+	${result}=	Wait For Broker
+	${expected}=	Evaluate	"diagnostic:" in """${result}"""
+	Should be True	${expected}	msg=diagnostic mode didn't launch
+
+BCL4
+	[Documentation]	Starting broker with options '-s2' and '-D' should work.
+	[Tags]	Broker	start-stop
+	Config Broker	central
+	Start Broker With Args	-s2	-D	${EtcRoot}/centreon-broker/central-broker.json
+	${result}=	Wait For Broker
+	${expected}=	Evaluate	"diagnostic:" in """${result}"""
+	Should be True	${expected}	msg=diagnostic mode didn't launch
+
 *** Keywords ***
 Start Broker With Args
 	[Arguments]	@{options}
