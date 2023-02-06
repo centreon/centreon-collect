@@ -68,6 +68,7 @@ if(WITH_TESTING)
     "${TESTS_DIR}/configuration/applier/applier-service.cc"
     "${TESTS_DIR}/configuration/applier/applier-serviceescalation.cc"
     "${TESTS_DIR}/configuration/applier/applier-servicegroup.cc"
+    "${TESTS_DIR}/configuration/applier/applier-severity.cc"
     "${TESTS_DIR}/configuration/applier/applier-state.cc"
     "${TESTS_DIR}/configuration/contact.cc"
     "${TESTS_DIR}/configuration/host.cc"
