@@ -93,6 +93,7 @@ jobs:
       version: ${{ needs.create-version.outputs.version }}.${{ needs.create-version.outputs.patch }}
       imgversion: ${{ needs.create-version.outputs.imgversion }}
       release: ${{ needs.create-version.outputs.release }}
+    secrets: inherit
 
   deliver-deb:
     needs: [call-package-collect, create-version]

@@ -12,9 +12,6 @@ on:
       release:
         required: true
         type: string
-    secrets:
-      username: ${{ secrets.REPOS_USERNAME }}
-      password: ${{ secrets.REPOS_PASSWORD }}
 
 env:
   REGISTRY: docker.centreon.com
@@ -45,8 +42,8 @@ jobs:
         uses: docker/login-action@v2
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.username }}
-          password: ${{ secrets.password }}
+          username: ${{ secrets.REPOS_USERNAME }}
+          password: ${{ secrets.REPOS_PASSWORD }}
 
       - name: make rpm ${{ matrix.image }}
         uses: ./.github/actions/runner-docker
@@ -62,8 +59,8 @@ jobs:
           script_name: rpm-signing
           image_name: rpm-signing
           image_version: ubuntu
-          username: ${{ secrets.username }}
-          password: ${{ secrets.password }}
+          username: ${{ secrets.REPOS_USERNAME }}
+          password: ${{ secrets.REPOS_PASSWORD }}
 
       - name: Use cache RPM files
         uses: actions/cache@v3
@@ -107,8 +104,8 @@ jobs:
         uses: docker/login-action@v2
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.username }}
-          password: ${{ secrets.password }}
+          username: ${{ secrets.REPOS_USERNAME }}
+          password: ${{ secrets.REPOS_PASSWORD }}
 
       - name: debmake ${{ matrix.image }}
         uses: ./centreon-collect/.github/actions/runner-docker
