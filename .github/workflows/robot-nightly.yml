@@ -21,6 +21,9 @@ jobs:
           - image: centreon-collect-alma8
             distrib: el8
             folder_report: tests/
+          - image: centreon-collect-alma9
+            distrib: el9
+            folder_report: tests/
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
@@ -54,8 +57,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ./*.rpm
-          key: cache-${{ github.sha }}-rpmbuild-centreon-collect-el8-${{ github.head_ref || github.ref_name }}
-          restore-keys: cache-${{ github.sha }}-rpmbuild-centreon-collect-el8-${{ github.head_ref || github.ref_name }}
+          key: cache-${{ github.sha }}-rpmbuild-centreon-collect-${{ inputs.distrib }}-${{ github.head_ref || github.ref_name }}
 
       - name: Login to Registry
         uses: docker/login-action@v2
