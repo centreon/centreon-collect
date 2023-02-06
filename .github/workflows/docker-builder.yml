@@ -46,7 +46,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distrib: [centos7, alma8, alma9, debian-bullseye]
+        distrib: [alma8, alma9, debian-bullseye]
         include:
           - project: collect
 

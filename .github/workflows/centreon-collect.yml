@@ -65,7 +65,7 @@ jobs:
 
     strategy:
       matrix:
-        image: [centos7, alma8, alma9, debian-bullseye]
+        image: [alma8, alma9, debian-bullseye]
     name: test ${{ matrix.image }}
 
     steps:
@@ -97,8 +97,6 @@ jobs:
     strategy:
       matrix:
         include:
-          - image: centos7
-            distrib: el7
           - image: alma8
             distrib: el8
           - image: alma9
@@ -223,7 +221,7 @@ jobs:
     runs-on: [self-hosted, common]
     strategy:
       matrix:
-        distrib: [el7, el8, el9]
+        distrib: [el8, el9]
     name: deliver ${{ matrix.distrib }}
     steps:
       - name: Checkout sources
