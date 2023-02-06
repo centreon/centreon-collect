@@ -88,10 +88,7 @@ jobs:
           key: cache-${{ github.sha }}-rpmbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
 
       - name: Tests robot (Alma9)
-        run: |
-          pwd
-          ls -l
-          bash /src/ci/scripts/collect-test-robot.sh
+        run: bash ./ci/scripts/collect-test-robot.sh
         shell: bash
 
       - name: Send report to commit
