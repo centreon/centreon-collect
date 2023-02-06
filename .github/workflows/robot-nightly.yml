@@ -91,7 +91,7 @@ jobs:
         run: |
           pwd
           ls -l
-        run: bash /src/ci/scripts/collect-test-robot.sh
+          bash /src/ci/scripts/collect-test-robot.sh
         shell: bash
 
       - name: Send report to commit
