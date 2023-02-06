@@ -113,7 +113,7 @@ jobs:
         success: ${{ steps.termination.outputs.success }}
 
   deliver-rpm:
-    needs: [robot-test, package-rpm, create-version]
+    needs: [robot-test, create-version]
     env:
       version: ${{ needs.create-version.outputs.version }}
       success: ${{ needs.robot-test.outputs.success }}
