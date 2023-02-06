@@ -30,7 +30,7 @@ echo "Installation..."
 /usr/bin/rpm -Uvvh --force --nodeps *.rpm
 
 echo "########################### Install Robot Framework ###########################"
-cd /src/tests/
+cd tests
 pip3 install -U robotframework robotframework-databaselibrary pymysql python-dateutil
 
 yum groupinstall "Development Tools" -y
@@ -63,7 +63,6 @@ echo "##### Starting tests #####"
 ./init-proto.sh
 
 echo "####################### Run Centreon Collect Robot Tests #######################"
-cd /src/tests/
 robot --nostatusrc .
 
 echo "########################### Generate Folder Report #############################"
