@@ -53,6 +53,7 @@ jobs:
       release: ${{ steps.version.outputs.release }}
 
   call-package-collect:
+    needs: [create-version]
     uses: ./.github/workflows/package-collect.yml
     with:
       version: ${{ needs.create-version.outputs.version }}.${{ needs.create-version.outputs.patch }}
