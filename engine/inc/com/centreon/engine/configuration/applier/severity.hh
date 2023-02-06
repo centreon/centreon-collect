@@ -21,6 +21,7 @@
 #define CCE_CONFIGURATION_APPLIER_SEVERITY_HH
 
 #include "configuration/state-generated.pb.h"
+#include "configuration/state.pb.h"
 
 CCE_BEGIN()
 
@@ -36,10 +37,14 @@ class severity {
   severity& operator=(const severity&) = delete;
   void add_object(const configuration::Severity& obj);
   void add_object(const configuration::severity& obj);
+  void expand_objects(configuration::State& s);
   void expand_objects(configuration::state& s);
+  void modify_object(configuration::Severity* to_modify,
+                     const configuration::Severity& new_object);
   void modify_object(const configuration::severity& obj);
   void remove_object(ssize_t idx);
   void remove_object(const configuration::severity& obj);
+  void resolve_object(const configuration::Severity& obj);
   void resolve_object(const configuration::severity& obj);
 };
 }  // namespace applier

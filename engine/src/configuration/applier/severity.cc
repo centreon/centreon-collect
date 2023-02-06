@@ -19,6 +19,7 @@
 
 #include "com/centreon/engine/configuration/applier/severity.hh"
 
+#include <google/protobuf/util/message_differencer.h>
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/configuration/severity.hh"
@@ -30,6 +31,8 @@
 using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
+
+using MessageDifferencer = ::google::protobuf::util::MessageDifferencer;
 
 /**
  *  Add new severity.
@@ -92,7 +95,61 @@ void applier::severity::add_object(const configuration::Severity& obj) {
  *
  *  @param[in,out] s  Configuration state.
  */
+void applier::severity::expand_objects(configuration::State&) {}
+
+/**
+ *  @brief Expand a contact.
+ *
+ *  During expansion, the contact will be added to its contact groups.
+ *  These will be modified in the state.
+ *
+ *  @param[in,out] s  Configuration state.
+ */
 void applier::severity::expand_objects(configuration::state&) {}
+
+/**
+ * @brief Modify severity.
+ *
+ * @param to_modify A pointer to the current configuration of a severity.
+ * @param new_object The new configuration to apply.
+ */
+void applier::severity::modify_object(
+    configuration::Severity* to_modify,
+    const configuration::Severity& new_object) {
+  // Logging.
+  log_v2::config()->debug("Modifying severity ({}, {}).", new_object.key().id(),
+                          new_object.key().type());
+
+  // Find severity object.
+  severity_map::iterator it_obj = engine::severity::severities.find(
+      {new_object.key().id(), new_object.key().type()});
+  if (it_obj == engine::severity::severities.end())
+    throw engine_error() << fmt::format(
+        "Could not modify non-existing severity object ({}, {})",
+        new_object.key().id(), new_object.key().type());
+  engine::severity* s = it_obj->second.get();
+
+  // Update the global configuration set.
+  if (!MessageDifferencer::Equals(*to_modify, new_object)) {
+    if (to_modify->severity_name() != new_object.severity_name()) {
+      s->set_name(new_object.severity_name());
+      to_modify->set_severity_name(new_object.severity_name());
+    }
+    if (to_modify->level() != new_object.level()) {
+      s->set_level(new_object.level());
+      to_modify->set_level(new_object.level());
+    }
+    if (to_modify->icon_id() != new_object.icon_id()) {
+      s->set_icon_id(new_object.icon_id());
+      to_modify->set_icon_id(new_object.icon_id());
+    }
+
+    // Notify event broker.
+    broker_adaptive_severity_data(NEBTYPE_SEVERITY_UPDATE, s);
+  } else
+    log_v2::config()->debug("Severity ({}, {}) did not change",
+                            new_object.key().id(), new_object.key().type());
+}
 
 /**
  *  Modify severity.
@@ -204,4 +261,18 @@ void applier::severity::resolve_object(const configuration::severity& obj) {
     throw engine_error() << "Cannot resolve non-existing severity "
                          << fmt::format("({}, {})", obj.key().first,
                                         obj.key().second);
+}
+
+/**
+ * @brief Resolve a severity.
+ *
+ * @param obj Object to resolve.
+ */
+void applier::severity::resolve_object(const configuration::Severity& obj) {
+  severity_map::const_iterator sv_it =
+      engine::severity::severities.find({obj.key().id(), obj.key().type()});
+  if (sv_it == engine::severity::severities.end() || !sv_it->second)
+    throw engine_error() << fmt::format(
+        "Cannot resolve non-existing severity ({}, {})", obj.key().id(),
+        obj.key().type());
 }
