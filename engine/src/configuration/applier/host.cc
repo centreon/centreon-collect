@@ -19,6 +19,8 @@
 
 #include "com/centreon/engine/configuration/applier/host.hh"
 
+#include <absl/container/flat_hash_set.h>
+
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/config.hh"
@@ -29,6 +31,7 @@
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/severity.hh"
+#include "configuration/message_helper.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -276,6 +279,44 @@ void applier::host::add_object(configuration::host const& obj) {
   // Notify event broker.
   broker_adaptive_host_data(NEBTYPE_HOST_ADD, NEBFLAG_NONE, NEBATTR_NONE,
                             h.get(), MODATTR_ALL);
+}
+
+/**
+ *  @brief Expand a host.
+ *
+ *  During expansion, the host will be added to its host groups. These
+ *  will be modified in the state.
+ *
+ *  @param[int,out] s   Configuration state.
+ */
+void applier::host::expand_objects(configuration::State& s) {
+  // Let's consider all the macros defined in s.
+  absl::flat_hash_set<absl::string_view> cvs;
+  for (auto& cv : s.macros_filter().data())
+    cvs.emplace(cv);
+
+  absl::flat_hash_map<absl::string_view, configuration::Hostgroup*> hgs;
+  for (auto& hg : *s.mutable_hostgroups())
+    hgs.emplace(hg.hostgroup_name(), &hg);
+
+  // Browse all hosts.
+  for (auto& host_cfg : *s.mutable_hosts()) {
+    // Should custom variables be sent to broker ?
+    for (auto& cv : *host_cfg.mutable_customvariables()) {
+      if (!s.enable_macros_filter() || cvs.contains(cv.name()))
+        cv.set_is_sent(true);
+    }
+
+    for (auto& grp : host_cfg.hostgroups().data()) {
+      auto it = hgs.find(grp);
+      if (it != hgs.end()) {
+        fill_string_group(it->second->mutable_members(), host_cfg.host_name());
+      } else
+        throw engine_error() << fmt::format(
+            "Could not add host '{}' to non-existing host group '{}'",
+            host_cfg.host_name(), grp);
+    }
+  }
 }
 
 /**
@@ -635,6 +676,46 @@ void applier::host::resolve_object(configuration::host const& obj) {
   if (engine::host::hosts_by_id.end() == it)
     throw(engine_error() << "Cannot resolve non-existing host '"
                          << obj.host_name() << "'");
+
+  // Remove service backlinks.
+  it->second->services.clear();
+
+  // Remove host group links.
+  it->second->get_parent_groups().clear();
+
+  // Reset host counters.
+  it->second->set_total_services(0);
+  it->second->set_total_service_check_interval(0);
+
+  // Resolve host.
+  it->second->resolve(config_warnings, config_errors);
+}
+
+/**
+ * @brief Resolve a host.
+ *
+ * @param obj Host protobuf configuration object.
+ */
+void applier::host::resolve_object(const configuration::Host& obj) {
+  // Logging.
+  log_v2::config()->debug("Resolving host '{}'.", obj.host_name());
+
+  // If it is the very first host to be resolved,
+  // remove all the child backlinks of all the hosts.
+  // It is necessary to do it only once to prevent the removal
+  // of valid child backlinks.
+  if (&obj == &(*pb_config.hosts().begin())) {
+    for (host_map::iterator it(engine::host::hosts.begin()),
+         end(engine::host::hosts.end());
+         it != end; ++it)
+      it->second->child_hosts.clear();
+  }
+
+  // Find host.
+  host_id_map::iterator it = engine::host::hosts_by_id.find(obj.host_id());
+  if (engine::host::hosts_by_id.end() == it)
+    throw engine_error() << fmt::format("Cannot resolve non-existing host '{}'",
+                                        obj.host_name());
 
   // Remove service backlinks.
   it->second->services.clear();

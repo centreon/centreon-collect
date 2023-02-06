@@ -21,6 +21,7 @@
 #define CCE_CONFIGURATION_APPLIER_HOST_HH
 
 #include "configuration/state-generated.pb.h"
+#include "configuration/state.pb.h"
 
 namespace com::centreon::engine {
 
@@ -44,9 +45,11 @@ class host {
   host& operator=(host const& right) = delete;
   void add_object(const configuration::Host& obj);
   void add_object(configuration::host const& obj);
+  void expand_objects(configuration::State& s);
   void expand_objects(configuration::state& s);
   void modify_object(configuration::host const& obj);
   void remove_object(configuration::host const& obj);
+  void resolve_object(const configuration::Host& obj);
   void resolve_object(configuration::host const& obj);
 };
 }  // namespace applier

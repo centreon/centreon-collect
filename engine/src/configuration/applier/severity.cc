@@ -58,6 +58,33 @@ void applier::severity::add_object(const configuration::severity& obj) {
 }
 
 /**
+ * @brief Add new severity.
+ *
+ * @param obj The new severity to add into the monitoring engine.
+ */
+void applier::severity::add_object(const configuration::Severity& obj) {
+  // Logging.
+  log_v2::config()->debug("Creating new severity ({}, {}).", obj.key().id(),
+                          obj.key().type());
+
+  // Add severity to the global configuration set.
+  auto* new_sv = pb_config.add_severities();
+  new_sv->CopyFrom(obj);
+
+  auto sv{std::make_shared<engine::severity>(obj.key().id(), obj.level(),
+                                             obj.icon_id(), obj.severity_name(),
+                                             obj.key().type())};
+  if (!sv)
+    throw engine_error() << fmt::format("Could not register severity ({},{})",
+                                        obj.key().id(), obj.key().type());
+
+  // Add new items to the configuration state.
+  engine::severity::severities.insert({{obj.key().id(), obj.key().type()}, sv});
+
+  broker_adaptive_severity_data(NEBTYPE_SEVERITY_ADD, sv.get());
+}
+
+/**
  *  @brief Expand a contact.
  *
  *  During expansion, the contact will be added to its contact groups.
@@ -106,6 +133,37 @@ void applier::severity::modify_object(const configuration::severity& obj) {
   } else
     log_v2::config()->debug("Severity ({}, {}) did not change", obj.key().first,
                             obj.key().second);
+}
+
+/**
+ * @brief Remove old severity at index idx.
+ *
+ * @param idx The index of the object to remove.
+ */
+void applier::severity::remove_object(ssize_t idx) {
+  const configuration::Severity& obj = pb_config.severities()[idx];
+
+  // Logging.
+
+  log_v2::config()->debug("Removing severity ({}, {}).", obj.key().id(),
+                          obj.key().type());
+
+  // Find severity.
+  severity_map::iterator it =
+      engine::severity::severities.find({obj.key().id(), obj.key().type()});
+
+  if (it != engine::severity::severities.end()) {
+    engine::severity* sv = it->second.get();
+
+    // Notify event broker.
+    broker_adaptive_severity_data(NEBTYPE_SEVERITY_DELETE, sv);
+
+    // Erase severity object (this will effectively delete the object).
+    engine::severity::severities.erase(it);
+  }
+
+  // Remove severity from the global configuration set.
+  pb_config.mutable_severities()->DeleteSubrange(idx, 1);
 }
 
 /**

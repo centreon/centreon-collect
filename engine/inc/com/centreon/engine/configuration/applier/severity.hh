@@ -20,6 +20,8 @@
 #ifndef CCE_CONFIGURATION_APPLIER_SEVERITY_HH
 #define CCE_CONFIGURATION_APPLIER_SEVERITY_HH
 
+#include "configuration/state-generated.pb.h"
+
 namespace com::centreon::engine {
 
 namespace configuration {
@@ -31,10 +33,12 @@ class severity {
  public:
   severity() = default;
   ~severity() noexcept = default;
-  severity& operator=(const severity& other) = delete;
+  severity& operator=(const severity&) = delete;
+  void add_object(const configuration::Severity& obj);
   void add_object(const configuration::severity& obj);
   void expand_objects(configuration::state& s);
   void modify_object(const configuration::severity& obj);
+  void remove_object(ssize_t idx);
   void remove_object(const configuration::severity& obj);
   void resolve_object(const configuration::severity& obj);
 };
