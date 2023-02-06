@@ -83,7 +83,6 @@ jobs:
           retention-days: 1
 
   package-deb:
-    needs: create-version
     runs-on: [self-hosted, collect]
     env:
       imgversion: ${{ inputs.imgversion }}
