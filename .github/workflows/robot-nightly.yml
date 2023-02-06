@@ -61,7 +61,7 @@ jobs:
     secrets: inherit
 
   robot-test:
-    needs: [package-rpm, create-version]
+    needs: [call-package-collect, create-version]
     runs-on: [self-hosted, collect]
     env:
       imgversion: ${{ needs.create-version.outputs.imgversion }}
