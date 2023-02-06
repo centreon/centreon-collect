@@ -23,7 +23,7 @@ cp packaging/rpm/centreonengine_integrate_centreon_engine2centreon.sh /root/rpmb
 DISTRIB=$(lsb_release -rs | cut -f1 -d.)
 if [ "$DISTRIB" = "7" ] ; then
     source /opt/rh/devtoolset-9/enable
-fi 
+fi
 
 echo -e "%_topdir      %(echo $HOME)/rpmbuild\n%_smp_mflags  -j9\n" > $HOME/rpmbuild/.rpmmacros
 

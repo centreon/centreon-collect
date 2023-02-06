@@ -3,6 +3,10 @@ name: Centreon collect packaging
 on:
   workflow_call:
     inputs:
+      ref:
+        required: false
+        type: string
+        default: ''
       version:
         required: true
         type: string
@@ -19,10 +23,6 @@ env:
 jobs:
   package-rpm:
     runs-on: [self-hosted, collect]
-    env:
-      version: ${{ inputs.version }}
-      imgversion: ${{ inputs.imgversion }}
-      release: ${{ inputs.release }}
 
     strategy:
       matrix:
@@ -32,9 +32,12 @@ jobs:
           - image: alma9
             distrib: el9
     name: package ${{ matrix.distrib }}
+
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
+        with:
+          ref: ${{ inputs.ref }}
 
       - name: Login to Registry
         uses: docker/login-action@v2
@@ -48,8 +51,8 @@ jobs:
         with:
           script_name: /src/ci/scripts/collect-rpm-package
           image_name: centreon-collect-${{ matrix.image }}
-          image_version: ${{ env.imgversion }}
-          env_variable: -e DISTRIB="${{ matrix.distrib }}" -e VERSION="${{ env.version }}" -e RELEASE="${{ env.release }}"
+          image_version: ${{ inputs.imgversion }}
+          env_variable: -e DISTRIB="${{ matrix.distrib }}" -e VERSION="${{ inputs.version }}" -e RELEASE="${{ inputs.release }}"
 
       - name: sign rpm ${{ matrix.image }}
         uses: ./.github/actions/package-sign
@@ -82,22 +85,19 @@ jobs:
 
   package-deb:
     runs-on: [self-hosted, collect]
-    env:
-      imgversion: ${{ inputs.imgversion }}
-      version: ${{ inputs.version }}
-      release: ${{ inputs.release }}
-
     strategy:
       matrix:
         include:
           - image: debian-bullseye
             distrib: bullseye
     name: package ${{ matrix.distrib }}
+
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
         with:
           path: centreon-collect
+
       - name: Login to Registry
         uses: docker/login-action@v2
         with:
@@ -110,13 +110,11 @@ jobs:
         with:
           script_name: /src/centreon-collect/ci/scripts/collect-deb-package
           image_name: centreon-collect-${{ matrix.image }}
-          image_version: ${{ env.imgversion }}
-          env_variable: -e DISTRIB="${{ matrix.distrib }}" -e VERSION="${{ env.version }}" -e RELEASE="${{ env.release }}"
+          image_version: ${{ inputs.imgversion }}
+          env_variable: -e DISTRIB="${{ matrix.distrib }}" -e VERSION="${{ inputs.version }}" -e RELEASE="${{ inputs.release }}"
 
       - name: Use cache DEB files
         uses: actions/cache@v3
         with:
           path: ./*.deb
           key: cache-${{ github.sha }}-debbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
-
-

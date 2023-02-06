@@ -26,13 +26,7 @@ cd "$ROOT"
 cp -r ci/debian debian
 
 sed -i "s/^centreon:version=.*$/centreon:version=$(echo $VERSION-$RELEASE)/" debian/substvars
-echo "debmake begin"
+
 debmake -f "${AUTHOR}" -e "${AUTHOR_EMAIL}" -u "$VERSION" -r "$RELEASE"
-echo "version de dwz"
-/usr/bin/dwz -v
-echo "version de gcc"
-gcc --version
-echo "version de ld"
-ld --version
+
 debuild-pbuilder
-cd ../

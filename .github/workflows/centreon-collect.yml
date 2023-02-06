@@ -10,6 +10,9 @@ on:
   push:
     branches:
       - develop
+      - dev-[2-9][0-9].[0-9][0-9].x
+      - master
+      - "[2-9][0-9].[0-9][0-9].x"
 
 env:
   REGISTRY: centreon.jfrog.io/docker
@@ -55,18 +58,14 @@ jobs:
       patch: ${{ steps.version.outputs.patch }}
       release: ${{ steps.version.outputs.release }}
 
-  test:
-    needs: create-version
+  unit-test:
+    needs: [create-version]
     runs-on: [self-hosted, collect]
-    env:
-      imgversion: ${{ needs.create-version.outputs.imgversion }}
-      version: ${{ needs.create-version.outputs.version }}.${{ needs.create-version.outputs.patch }}
-      release: ${{ needs.create-version.outputs.release }}
 
     strategy:
       matrix:
         image: [alma8, alma9, debian-bullseye]
-    name: test ${{ matrix.image }}
+    name: unit test ${{ matrix.image }}
 
     steps:
       - name: Checkout sources
@@ -84,9 +83,9 @@ jobs:
         with:
           script_name: /src/ci/scripts/collect-unit-tests
           image_name: centreon-collect-${{ matrix.image }}
-          image_version: ${{ env.imgversion }}
+          image_version: ${{ needs.create-version.outputs.imgversion }}
 
-  call-package-collect:
+  package:
     needs: [create-version]
     uses: ./.github/workflows/package-collect.yml
     with:

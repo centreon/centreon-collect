@@ -39,9 +39,6 @@ jobs:
   create-and-push-docker:
     needs: create-version
     runs-on: [self-hosted, collect]
-    continue-on-error: false
-    env:
-      imgversion: ${{ needs.create-version.outputs.imgversion }}
 
     strategy:
       fail-fast: false
@@ -69,4 +66,4 @@ jobs:
           context: .
           pull: true
           push: true
-          tags: ${{ env.REGISTRY }}/centreon-${{ matrix.project }}-${{ matrix.distrib }}:${{ env.imgversion }}
+          tags: ${{ env.REGISTRY }}/centreon-${{ matrix.project }}-${{ matrix.distrib }}:${{ needs.create-version.outputs.imgversion }}
