@@ -65,7 +65,7 @@ jobs:
     secrets: inherit
 
   robot-test:
-    needs: [call-package-collect, create-version]
+    needs: [package, create-version]
     runs-on: [self-hosted, collect]
     strategy:
       matrix:
