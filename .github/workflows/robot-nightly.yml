@@ -9,7 +9,7 @@ on:
     - cron: '0 0 * * *'
 
 env:
-  REGISTRY: docker.centreon.com
+  REGISTRY: centreon.jfrog.io/docker
 
 jobs:
   create-version:
@@ -74,8 +74,8 @@ jobs:
     container:
       image: docker.centreon.com/${{ matrix.image }}:${{ needs.create-version.outputs.imgversion }}
       credentials:
-        username: ${{ secrets.REPOS_USERNAME }}
-        password: ${{ secrets.REPOS_PASSWORD }}
+        username: ${{ secrets.AUTOMATION_USERNAME }}
+        password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
 
     steps:
       - name: Checkout sources
@@ -91,7 +91,8 @@ jobs:
         run: bash ./ci/scripts/collect-test-robot.sh
         shell: bash
 
-      - name: Send report to commit
+      - if: always()
+        name: Send report to commit
         uses: joonvena/robotframework-reporter-action@v2.1
         with:
           gh_access_token: ${{ secrets.GITHUB_TOKEN }}
@@ -99,18 +100,13 @@ jobs:
 
   deliver-rpm:
     needs: [robot-test, create-version]
-    env:
-      version: ${{ needs.create-version.outputs.version }}
-      success: ${{ needs.robot-test.outputs.success }}
     runs-on: [self-hosted, common]
     strategy:
       matrix:
         distrib: [el8, el9]
     name: deliver ${{ matrix.distrib }}
+
     steps:
-      - name: Tests in success
-        if: ${{ env.success }} != 1
-        run: exit 1
       - name: Checkout sources
         uses: actions/checkout@v3
 
@@ -118,7 +114,7 @@ jobs:
         uses: ./.github/actions/delivery
         with:
           distrib: ${{ matrix.distrib }}
-          version: ${{ env.version }}
+          version: ${{ needs.create-version.outputs.version }}
           minor_version: ${{ needs.create-version.outputs.patch }}
           release: ${{ needs.create-version.outputs.release }}
           module_name: centreon-collect
@@ -134,18 +130,13 @@ jobs:
 
   deliver-deb:
     needs: [robot-test, create-version]
-    env:
-      version: ${{ needs.create-version.outputs.version }}
-      success: ${{ needs.robot-test.outputs.success }}
     runs-on: [self-hosted, common]
     strategy:
       matrix:
         distrib: [bullseye]
     name: deliver ${{ matrix.distrib }}
+
     steps:
-      - name: Tests in success
-        if: ${{ env.success }} != 1
-        run: exit 1
       - name: Checkout sources
         uses: actions/checkout@v3
 
@@ -154,9 +145,8 @@ jobs:
         with:
           distrib: ${{ matrix.distrib }}
           repository_name: standard
-          version: ${{ env.version }}
+          version: ${{ needs.create-version.outputs.version }}
           repos_username: ${{ secrets.NEXUS_USERNAME }}
           repos_password: ${{ secrets.NEXUS_PASSWORD }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           cache_key: cache-${{ github.sha }}-debbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
-
