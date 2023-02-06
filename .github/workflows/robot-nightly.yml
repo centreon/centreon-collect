@@ -90,7 +90,7 @@ jobs:
           username: ${{ secrets.REPOS_USERNAME }}
           password: ${{ secrets.REPOS_PASSWORD }}
 
-      - name: Tests robot (Alma8)
+      - name: Tests robot (Alma9)
         uses: ./.github/actions/runner-docker
         with:
           script_name: /src/ci/scripts/collect-test-robot
