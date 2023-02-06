@@ -121,7 +121,7 @@ jobs:
     runs-on: [self-hosted, common]
     strategy:
       matrix:
-        distrib: [el9]
+        distrib: [el7, el8, el9]
     name: deliver ${{ matrix.distrib }}
     steps:
       - name: Tests in success
@@ -147,3 +147,32 @@ jobs:
           yum_repo_address: ${{ secrets.YUM_REPO_ADDRESS }}
           yum_repo_key: ${{ secrets.YUM_REPO_KEY }}
           yum_repo_url: ${{ secrets.YUM_REPO_URL }}
+
+  deliver-deb:
+    needs: [robot-test, create-version]
+    env:
+      version: ${{ needs.create-version.outputs.version }}
+      success: ${{ needs.robot-test.outputs.success }}
+    runs-on: [self-hosted, common]
+    strategy:
+      matrix:
+        distrib: [bullseye]
+    name: deliver ${{ matrix.distrib }}
+    steps:
+      - name: Tests in success
+        if: ${{ env.success }} != 1
+        run: exit 1
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Publish DEB packages
+        uses: ./.github/actions/delivery
+        with:
+          distrib: ${{ matrix.distrib }}
+          repository_name: standard
+          version: ${{ env.version }}
+          repos_username: ${{ secrets.NEXUS_USERNAME }}
+          repos_password: ${{ secrets.NEXUS_PASSWORD }}
+          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+          cache_key: cache-${{ github.sha }}-debbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
+
