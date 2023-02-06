@@ -28,6 +28,8 @@
 #include "com/centreon/engine/macros/grab_host.hh"
 #include "configuration/command_helper.hh"
 #include "configuration/connector_helper.hh"
+#include "configuration/contact_helper.hh"
+#include "configuration/host_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -284,8 +286,9 @@ TEST_F(ApplierCommand, PbModifyCommandWithConnector) {
   cnn_aply.add_object(cnn);
   aply.add_object(cmd);
 
+  configuration::Command* to_modify = &pb_config.mutable_commands()->at(0);
   cmd.set_command_line("date");
-  aply.modify_object(cmd);
+  aply.modify_object(to_modify, cmd);
   command_map::iterator found{commands::command::commands.find("cmd")};
   ASSERT_EQ(found->second->get_name(), "cmd");
   ASSERT_EQ(found->second->get_command_line(), "date");
@@ -327,6 +330,25 @@ TEST_F(ApplierCommand, RemoveNonExistingCommand) {
 // all objects created.
 // When the command is removed from the configuration,
 // Then the command is totally removed.
+TEST_F(ApplierCommand, PbRemoveCommand) {
+  configuration::applier::command aply;
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 1");
+
+  aply.add_object(cmd);
+
+  aply.remove_object(0);
+  command_map::iterator found{commands::command::commands.find("cmd")};
+  ASSERT_EQ(found, commands::command::commands.end());
+  ASSERT_TRUE(pb_config.commands().size() == 0);
+}
+
+// Given simple command (without connector) applier already applied with
+// all objects created.
+// When the command is removed from the configuration,
+// Then the command is totally removed.
 TEST_F(ApplierCommand, RemoveCommand) {
   configuration::applier::command aply;
   configuration::command cmd("cmd");
@@ -338,6 +360,31 @@ TEST_F(ApplierCommand, RemoveCommand) {
   command_map::iterator found{commands::command::commands.find("cmd")};
   ASSERT_EQ(found, commands::command::commands.end());
   ASSERT_TRUE(config->commands().size() == 0);
+}
+
+// Given some command and connector appliers already applied with
+// all objects created.
+// When the command is removed from the configuration,
+// Then the command is totally removed.
+TEST_F(ApplierCommand, PbRemoveCommandWithConnector) {
+  configuration::applier::command aply;
+  configuration::applier::connector cnn_aply;
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 1");
+  cmd.set_connector("perl");
+  configuration::Connector cnn;
+  configuration::connector_helper cnn_hlp(&cnn);
+  cnn.set_connector_name("perl");
+
+  cnn_aply.add_object(cnn);
+  aply.add_object(cmd);
+
+  aply.remove_object(0);
+  command_map::iterator found{commands::command::commands.find("cmd")};
+  ASSERT_EQ(found, commands::command::commands.end());
+  ASSERT_TRUE(pb_config.commands().size() == 0);
 }
 
 // Given some command and connector appliers already applied with
@@ -359,6 +406,60 @@ TEST_F(ApplierCommand, RemoveCommandWithConnector) {
   command_map::iterator found{commands::command::commands.find("cmd")};
   ASSERT_EQ(found, commands::command::commands.end());
   ASSERT_TRUE(config->commands().size() == 0);
+}
+
+// Given simple command (without connector) applier already applied with
+// all objects created.
+// When the command is removed from the configuration,
+// Then the command is totally removed.
+TEST_F(ApplierCommand, PbComplexCommand) {
+  configuration::applier::command cmd_aply;
+  configuration::applier::host hst_aply;
+
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("base_centreon_ping");
+  cmd.set_command_line(
+      "$USER1$/check_icmp -H $HOSTADDRESS$ -n $_HOSTPACKETNUMBER$ -w "
+      "$_HOSTWARNING$ -c $_HOSTCRITICAL$");
+  cmd_aply.add_object(cmd);
+
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  hst.set_host_name("hst_test");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(1);
+  hst.set_host_id(1);
+  configuration::CustomVariable* cv = hst.add_customvariables();
+  cv->set_name("PACKETNUMBER");
+  cv->set_value("42");
+  cv = hst.add_customvariables();
+  cv->set_name("WARNING");
+  cv->set_value("200,20%");
+  cv = hst.add_customvariables();
+  cv->set_name("CRITICAL");
+  cv->set_value("400,50%");
+  hst.set_check_command("base_centreon_ping");
+  hst_aply.add_object(hst);
+
+  command_map::iterator cmd_found{
+      commands::command::commands.find("base_centreon_ping")};
+  ASSERT_NE(cmd_found, commands::command::commands.end());
+  ASSERT_TRUE(pb_config.commands().size() == 1);
+
+  host_map::iterator hst_found{engine::host::hosts.find("hst_test")};
+  ASSERT_NE(hst_found, engine::host::hosts.end());
+  ASSERT_TRUE(pb_config.hosts().size() == 1);
+
+  hst_aply.expand_objects(pb_config);
+  hst_aply.resolve_object(hst);
+  ASSERT_TRUE(hst_found->second->custom_variables.size() == 3);
+  nagios_macros* macros(get_global_macros());
+  grab_host_macros_r(macros, hst_found->second.get());
+  std::string processed_cmd(
+      hst_found->second->get_check_command_ptr()->process_cmd(macros));
+  ASSERT_EQ(processed_cmd,
+            "/check_icmp -H 127.0.0.1 -n 42 -w 200,20% -c 400,50%");
 }
 
 // Given simple command (without connector) applier already applied with
@@ -449,6 +550,70 @@ TEST_F(ApplierCommand, ComplexCommandWithContact) {
   ASSERT_TRUE(config->hosts().size() == 1);
 
   hst_aply.expand_objects(*config);
+  hst_aply.resolve_object(hst);
+  ASSERT_TRUE(hst_found->second->custom_variables.size() == 3);
+  nagios_macros* macros(get_global_macros());
+  grab_host_macros_r(macros, hst_found->second.get());
+  std::string processed_cmd(
+      hst_found->second->get_check_command_ptr()->process_cmd(macros));
+  ASSERT_EQ(processed_cmd,
+            "/check_icmp -H 127.0.0.1 -n 42 -w 200,20% -c 400,50% user");
+}
+
+// Given simple command (without connector) applier already applied with
+// all objects created.
+// When the command is removed from the configuration,
+// Then the command is totally removed.
+TEST_F(ApplierCommand, PbComplexCommandWithContact) {
+  configuration::applier::command cmd_aply;
+  configuration::applier::host hst_aply;
+  configuration::applier::contact cnt_aply;
+
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("base_centreon_ping");
+  cmd.set_command_line(
+      "$USER1$/check_icmp -H $HOSTADDRESS$ -n $_HOSTPACKETNUMBER$ -w "
+      "$_HOSTWARNING$ -c $_HOSTCRITICAL$ $CONTACTNAME$");
+  cmd_aply.add_object(cmd);
+
+  configuration::Contact cnt;
+  configuration::contact_helper cnt_hlp(&cnt);
+  cnt.set_contact_name("user");
+  cnt.set_email("contact@centreon.com");
+  cnt.set_pager("0473729383");
+  cnt.set_host_notification_period("24x7");
+  cnt.set_service_notification_period("24x7");
+  cnt_aply.add_object(cnt);
+
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  hst.set_host_name("hst_test");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(1);
+  auto* cv = hst.add_customvariables();
+  cv->set_name("PACKETNUMBER");
+  cv->set_value("42");
+  cv = hst.add_customvariables();
+  cv->set_name("WARNING");
+  cv->set_value("200,20%");
+  cv = hst.add_customvariables();
+  cv->set_name("CRITICAL");
+  cv->set_value("400,50%");
+  hst.set_check_command("base_centreon_ping");
+  fill_string_group(hst.mutable_contacts(), "user");
+  hst_aply.add_object(hst);
+
+  command_map::iterator cmd_found =
+      commands::command::commands.find("base_centreon_ping");
+  ASSERT_NE(cmd_found, commands::command::commands.end());
+  ASSERT_TRUE(pb_config.commands().size() == 1);
+
+  host_map::iterator hst_found = engine::host::hosts.find("hst_test");
+  ASSERT_NE(hst_found, engine::host::hosts.end());
+  ASSERT_TRUE(pb_config.hosts().size() == 1);
+
+  hst_aply.expand_objects(pb_config);
   hst_aply.resolve_object(hst);
   ASSERT_TRUE(hst_found->second->custom_variables.size() == 3);
   nagios_macros* macros(get_global_macros());

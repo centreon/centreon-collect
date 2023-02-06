@@ -753,7 +753,7 @@ void applier::state::_pb_apply(const pb_difference<ConfigurationType>& diff) {
  */
 template <typename ConfigurationType, typename ApplierType>
 void applier::state::_apply(
-    difference<std::set<ConfigurationType> > const& diff) {
+    difference<std::set<ConfigurationType>> const& diff) {
   // Type alias.
   typedef std::set<ConfigurationType> cfg_set;
 
@@ -1452,15 +1452,21 @@ void applier::state::_processing(configuration::State& new_cfg,
       new_cfg.connectors().begin(), new_cfg.connectors().end(),
       &configuration::Connector::connector_name);
 
-  //
-  //  // Build difference for commands.
-  //  difference<set_command> diff_commands;
-  //  diff_commands.parse(config->commands(), new_cfg.commands());
-  //
-  //  // Build difference for severities.
-  //  difference<set_severity> diff_severities;
-  //  diff_severities.parse(config->severities(), new_cfg.severities());
-  //
+  // Build difference for commands.
+  pb_difference<configuration::Command> diff_commands;
+  diff_commands.parse(pb_config.commands().begin(), pb_config.commands().end(),
+                      new_cfg.commands().begin(), new_cfg.commands().end(),
+                      &configuration::Command::command_name);
+
+  // Build difference for severities.
+  pb_difference<configuration::Severity> diff_severities;
+  diff_severities.parse<std::pair<uint64_t, uint32_t>>(
+      pb_config.severities().begin(), pb_config.severities().end(),
+      new_cfg.severities().begin(), new_cfg.severities().end(),
+      [](const configuration::Severity& sev) -> std::pair<uint64_t, uint32_t> {
+        return std::make_pair(sev.key().id(), sev.key().type());
+      });
+
   //  // Build difference for tags.
   //  difference<set_tag> diff_tags;
   //  diff_tags.parse(config->tags(), new_cfg.tags());
@@ -1562,97 +1568,96 @@ void applier::state::_processing(configuration::State& new_cfg,
     _pb_apply<configuration::Connector, applier::connector>(diff_connectors);
     _pb_resolve<configuration::Connector, applier::connector>(
         pb_config.connectors());
-    //
-    //    // Apply commands.
-    //    _apply<configuration::command, applier::command>(diff_commands);
-    //    _resolve<configuration::command,
-    //    applier::command>(config->commands());
-    //
-    //    // Apply contacts and contactgroups.
-    //    _apply<configuration::contact, applier::contact>(diff_contacts);
-    //    _apply<configuration::contactgroup, applier::contactgroup>(
-    //        diff_contactgroups);
-    //    _resolve<configuration::contactgroup, applier::contactgroup>(
-    //        config->contactgroups());
-    //    _resolve<configuration::contact,
-    //    applier::contact>(config->contacts());
-    //
-    //    // Apply severities.
-    //    _apply<configuration::severity, applier::severity>(diff_severities);
-    //
-    //    // Apply tags.
-    //    _apply<configuration::tag, applier::tag>(diff_tags);
-    //
-    //    // Apply hosts and hostgroups.
-    //    _apply<configuration::host, applier::host>(diff_hosts);
-    //    _apply<configuration::hostgroup, applier::hostgroup>(diff_hostgroups);
-    //
-    //    // Apply services.
-    //    _apply<configuration::service, applier::service>(diff_services);
-    //
-    //    // Apply anomalydetections.
-    //    _apply<configuration::anomalydetection, applier::anomalydetection>(
-    //        diff_anomalydetections);
-    //
-    //    // Apply servicegroups.
-    //    _apply<configuration::servicegroup, applier::servicegroup>(
-    //        diff_servicegroups);
-    //
-    //    // Resolve hosts, services, host groups.
-    //    _resolve<configuration::host, applier::host>(config->hosts());
-    //    _resolve<configuration::hostgroup, applier::hostgroup>(
-    //        config->hostgroups());
-    //
-    //    // Resolve services.
-    //    _resolve<configuration::service,
-    //    applier::service>(config->services());
-    //
-    //    // Resolve anomalydetections.
-    //    _resolve<configuration::anomalydetection, applier::anomalydetection>(
-    //        config->anomalydetections());
-    //
-    //    // Resolve service groups.
-    //    _resolve<configuration::servicegroup, applier::servicegroup>(
-    //        config->servicegroups());
-    //
-    //    // Apply host dependencies.
-    //    _apply<configuration::hostdependency, applier::hostdependency>(
-    //        diff_hostdependencies);
-    //    _resolve<configuration::hostdependency, applier::hostdependency>(
-    //        config->hostdependencies());
-    //
-    //    // Apply service dependencies.
-    //    _apply<configuration::servicedependency, applier::servicedependency>(
-    //        diff_servicedependencies);
-    //    _resolve<configuration::servicedependency,
-    //    applier::servicedependency>(
-    //        config->servicedependencies());
-    //
-    //    // Apply host escalations.
-    //    _apply<configuration::hostescalation, applier::hostescalation>(
-    //        diff_hostescalations);
-    //    _resolve<configuration::hostescalation, applier::hostescalation>(
-    //        config->hostescalations());
-    //
-    //    // Apply service escalations.
-    //    _apply<configuration::serviceescalation, applier::serviceescalation>(
-    //        diff_serviceescalations);
-    //    _resolve<configuration::serviceescalation,
-    //    applier::serviceescalation>(
-    //        config->serviceescalations());
-    //
-    //#ifdef DEBUG_CONFIG
-    //    std::cout << "WARNING!! You are using a version of "
-    //                 "centreon engine for developers!!!"
-    //                 " This is not a production version.";
-    //    // Checks on configuration
-    //    _check_serviceescalations();
-    //    _check_hostescalations();
-    //    _check_contacts();
-    //    _check_contactgroups();
-    //    _check_services();
-    //    _check_hosts();
-    //#endif
+
+    // Apply commands.
+    _pb_apply<configuration::Command, applier::command>(diff_commands);
+    _pb_resolve<configuration::Command, applier::command>(pb_config.commands());
+
+//    // Apply contacts and contactgroups.
+//    _apply<configuration::contact, applier::contact>(diff_contacts);
+//    _apply<configuration::contactgroup, applier::contactgroup>(
+//        diff_contactgroups);
+//    _resolve<configuration::contactgroup, applier::contactgroup>(
+//        config->contactgroups());
+//    _resolve<configuration::contact,
+//    applier::contact>(config->contacts());
+//
+//    // Apply severities.
+//    _apply<configuration::severity, applier::severity>(diff_severities);
+//
+//    // Apply tags.
+//    _apply<configuration::tag, applier::tag>(diff_tags);
+//
+//    // Apply hosts and hostgroups.
+//    _apply<configuration::host, applier::host>(diff_hosts);
+//    _apply<configuration::hostgroup, applier::hostgroup>(diff_hostgroups);
+//
+//    // Apply services.
+//    _apply<configuration::service, applier::service>(diff_services);
+//
+//    // Apply anomalydetections.
+//    _apply<configuration::anomalydetection, applier::anomalydetection>(
+//        diff_anomalydetections);
+//
+//    // Apply servicegroups.
+//    _apply<configuration::servicegroup, applier::servicegroup>(
+//        diff_servicegroups);
+//
+//    // Resolve hosts, services, host groups.
+//    _resolve<configuration::host, applier::host>(config->hosts());
+//    _resolve<configuration::hostgroup, applier::hostgroup>(
+//        config->hostgroups());
+//
+//    // Resolve services.
+//    _resolve<configuration::service,
+//    applier::service>(config->services());
+//
+//    // Resolve anomalydetections.
+//    _resolve<configuration::anomalydetection, applier::anomalydetection>(
+//        config->anomalydetections());
+//
+//    // Resolve service groups.
+//    _resolve<configuration::servicegroup, applier::servicegroup>(
+//        config->servicegroups());
+//
+//    // Apply host dependencies.
+//    _apply<configuration::hostdependency, applier::hostdependency>(
+//        diff_hostdependencies);
+//    _resolve<configuration::hostdependency, applier::hostdependency>(
+//        config->hostdependencies());
+//
+//    // Apply service dependencies.
+//    _apply<configuration::servicedependency, applier::servicedependency>(
+//        diff_servicedependencies);
+//    _resolve<configuration::servicedependency,
+//    applier::servicedependency>(
+//        config->servicedependencies());
+//
+//    // Apply host escalations.
+//    _apply<configuration::hostescalation, applier::hostescalation>(
+//        diff_hostescalations);
+//    _resolve<configuration::hostescalation, applier::hostescalation>(
+//        config->hostescalations());
+//
+//    // Apply service escalations.
+//    _apply<configuration::serviceescalation, applier::serviceescalation>(
+//        diff_serviceescalations);
+//    _resolve<configuration::serviceescalation,
+//    applier::serviceescalation>(
+//        config->serviceescalations());
+//
+#ifdef DEBUG_CONFIG
+    std::cout << "WARNING!! You are using a version of "
+                 "centreon engine for developers!!!"
+                 " This is not a production version.";
+    // Checks on configuration
+    _check_serviceescalations();
+    _check_hostescalations();
+    _check_contacts();
+    _check_contactgroups();
+    _check_services();
+    _check_hosts();
+#endif
     //
     //    // Load retention.
     //    if (state)
