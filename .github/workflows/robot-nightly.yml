@@ -12,9 +12,6 @@ on:
         type: string
         default: ''
 
-env:
-  REGISTRY: centreon.jfrog.io/docker
-
 jobs:
   create-version:
     runs-on: ubuntu-latest
@@ -78,7 +75,7 @@ jobs:
             distrib: el9
             folder_report: tests/
     container:
-      image: ${{ env.REGISTRY }}/${{ matrix.image }}:${{ needs.create-version.outputs.imgversion }}
+      image: centreon.jfrog.io/docker/${{ matrix.image }}:${{ needs.create-version.outputs.imgversion }}
       credentials:
         username: ${{ secrets.AUTOMATION_USERNAME }}
         password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
