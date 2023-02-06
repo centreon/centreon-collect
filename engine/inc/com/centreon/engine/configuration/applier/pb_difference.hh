@@ -59,6 +59,43 @@ class pb_difference {
     return _modified;
   }
 
+  template <typename TF>
+  void parse(typename Container::iterator old_first,
+             typename Container::iterator old_last,
+             typename Container::iterator new_first,
+             typename Container::iterator new_last,
+             const std::function<TF(const T&)>& f) {
+    absl::flat_hash_map<TF, T*> keys_values;
+    for (auto it = old_first; it != old_last; ++it) {
+      const T& item = *it;
+      keys_values[f(item)] = const_cast<T*>(&(*it));
+    }
+
+    absl::flat_hash_set<TF> new_keys;
+    for (auto it = new_first; it != new_last; ++it) {
+      const T& item = *it;
+      new_keys.insert(f(item));
+      if (!keys_values.contains(f(item))) {
+        // New object to add
+        _added.push_back(item);
+      } else {
+        // Object to modify or equal
+        if (!MessageDifferencer::Equals(item, *keys_values[f(item)])) {
+          // There are changes in this object
+          _modified.push_back(std::make_pair(keys_values[f(item)], *it));
+        }
+      }
+    }
+
+    ssize_t i = 0;
+    for (auto it = old_first; it != old_last; ++it) {
+      const T& item = *it;
+      if (!new_keys.contains(f(item)))
+        _deleted.push_back(i);
+      ++i;
+    }
+  }
+
   void parse(typename Container::iterator old_first,
              typename Container::iterator old_last,
              typename Container::iterator new_first,
