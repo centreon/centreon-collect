@@ -73,6 +73,12 @@ jobs:
           - image: centreon-collect-alma9
             distrib: el9
             folder_report: tests/
+    container:
+      image: centreon.jfrog.io/docker/${{ matrix.image }}:${{ env.imgversion }}
+      credentials:
+        username: ${{ secrets.registry_username }}
+        password: ${{ secrets.registry_password }}
+
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
@@ -83,35 +89,15 @@ jobs:
           path: ./*.rpm
           key: cache-${{ github.sha }}-rpmbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
 
-      - name: Login to Registry
-        uses: docker/login-action@v2
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.REPOS_USERNAME }}
-          password: ${{ secrets.REPOS_PASSWORD }}
-
       - name: Tests robot (Alma9)
-        uses: ./.github/actions/runner-docker
-        with:
-          script_name: /src/ci/scripts/collect-test-robot
-          image_name: ${{ matrix.image }}
-          image_version: ${{ env.imgversion }}
+        run: bash /src/ci/scripts/collect-test-robot.sh
+        shell: bash
 
       - name: Send report to commit
         uses: joonvena/robotframework-reporter-action@v2.1
         with:
           gh_access_token: ${{ secrets.GITHUB_TOKEN }}
           report_path: ${{ matrix.folder_report }}
-      - id: termination
-        run: |
-          if [ -f fail ] ; then
-            echo "success=1" >> $GITHUB_OUTPUT
-          else
-            echo "success=0" >> $GITHUB_OUTPUT
-          fi
-        shell: bash
-    outputs:
-        success: ${{ steps.termination.outputs.success }}
 
   deliver-rpm:
     needs: [robot-test, create-version]
