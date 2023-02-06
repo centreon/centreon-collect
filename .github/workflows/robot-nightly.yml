@@ -64,8 +64,6 @@ jobs:
   robot-test:
     needs: [call-package-collect, create-version]
     runs-on: [self-hosted, collect]
-    env:
-      imgversion: ${{ needs.create-version.outputs.imgversion }}
     strategy:
       matrix:
         # branch: [develop, master]
@@ -74,7 +72,7 @@ jobs:
             distrib: el9
             folder_report: tests/
     container:
-      image: centreon.jfrog.io/docker/${{ matrix.image }}:${{ env.imgversion }}
+      image: centreon.jfrog.io/docker/${{ matrix.image }}:${{ needs.create-version.outputs.imgversion }}
       credentials:
         username: ${{ secrets.registry_username }}
         password: ${{ secrets.registry_password }}
