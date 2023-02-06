@@ -87,6 +87,7 @@ jobs:
           image_version: ${{ env.imgversion }}
 
   call-package-collect:
+    needs: [create-version]
     uses: ./.github/workflows/package-collect.yml
     with:
       version: ${{ needs.create-version.outputs.version }}.${{ needs.create-version.outputs.patch }}
@@ -94,7 +95,7 @@ jobs:
       release: ${{ needs.create-version.outputs.release }}
 
   deliver-deb:
-    needs: [package-deb, create-version]
+    needs: [call-package-collect, create-version]
     env:
       version: ${{ needs.create-version.outputs.version }}
     runs-on: [self-hosted, common]
