@@ -27,8 +27,6 @@ jobs:
     strategy:
       matrix:
         include:
-          - image: centos7
-            distrib: el7
           - image: alma8
             distrib: el8
           - image: alma9

@@ -65,7 +65,7 @@ jobs:
 
     strategy:
       matrix:
-        image: [centos7, alma8, alma9, debian-bullseye]
+        image: [alma8, alma9, debian-bullseye]
     name: test ${{ matrix.image }}
 
     steps:
