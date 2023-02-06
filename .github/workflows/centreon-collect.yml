@@ -119,7 +119,7 @@ jobs:
           cache_key: cache-${{ github.sha }}-${{ github.run_id }}
 
   deliver-rpm:
-    needs: [package-rpm, create-version]
+    needs: [call-package-collect, create-version]
     env:
       version: ${{ needs.create-version.outputs.version }}
     runs-on: [self-hosted, common]
