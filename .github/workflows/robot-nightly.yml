@@ -52,7 +52,8 @@ jobs:
 
     uses: ./.github/workflows/robot-test.yml
     with:
-      image_name: ${{ matrix.image }}:${{ matrix.distrib }}
+      image_name: ${{ matrix.image }}:${{ needs.get-version.outputs.img_version }}
+      distrib: ${{ matrix.distrib }}
     secrets:
       registry_username: ${{ secrets.AUTOMATION_USERNAME }}
       registry_password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
