@@ -40,6 +40,13 @@ void applier::timeperiod::add_object(configuration::timeperiod const& obj) {
   log_v2::config()->debug("Creating new time period '{}'.",
                           obj.timeperiod_name());
 
+  if (obj.timeperiod_name().empty() || obj.alias().empty()) {
+    throw engine_error() << fmt::format(
+        "Could not register time period '{}' (alias '{}'): timeperiod name and "
+        "alias must not be empty",
+        obj.timeperiod_name(), obj.alias());
+  }
+
   // Add time period to the global configuration set.
   config->timeperiods().insert(obj);
 
@@ -69,6 +76,13 @@ void applier::timeperiod::add_object(const configuration::Timeperiod& obj) {
   // Logging.
   log_v2::config()->debug("Creating new time period '{}'.",
                           obj.timeperiod_name());
+
+  if (obj.timeperiod_name().empty() || obj.alias().empty()) {
+    throw engine_error() << fmt::format(
+        "Could not register time period '{}' (alias '{}'): timeperiod name and "
+        "alias must not be empty",
+        obj.timeperiod_name(), obj.alias());
+  }
 
   // Add time period to the global configuration set.
   configuration::Timeperiod* c_tp = pb_config.add_timeperiods();
