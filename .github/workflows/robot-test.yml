@@ -27,7 +27,7 @@ jobs:
         id: list-features
         run: |
           cd tests
-          echo "features=$(find . -mindepth 1 -maxdepth 1 -type d -printf "%P\n" | grep bam | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
+          echo "features=$(find . -mindepth 1 -maxdepth 1 -type d -not -path "./resources" -printf "%P\n" | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
 
   robot-test-run:
     needs: [robot-test-list]
@@ -53,7 +53,7 @@ jobs:
           path: ./*.rpm
           key: cache-${{ github.sha }}-rpmbuild-centreon-collect-${{ inputs.distrib }}-${{ github.head_ref || github.ref_name }}
 
-      - name: Tests robot
+      - name: Test ${{ matrix.feature }}
         run: bash ./ci/scripts/collect-test-robot.sh ${{ matrix.feature }}
         shell: bash
 
@@ -61,7 +61,9 @@ jobs:
         if: ${{ !cancelled() }}
         run: |
           mkdir reports
-          mv tests/log.html tests/output.xml tests/report.html reports
+          mv tests/log.html reports/${{ matrix.feature }}-log.html
+          mv tests/output.xml reports/${{ matrix.feature }}-output.xml
+          mv tests/report.html reports/${{ matrix.feature }}-report.html
 
       - name: Upload Test Results
         if: ${{ !cancelled() }}
