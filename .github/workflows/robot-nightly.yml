@@ -14,7 +14,7 @@ on:
 
 jobs:
   dispatch-to-maintained-branches:
-    if: ${{ github.event_name == 'schedule' }}
+    #if: ${{ github.event_name == 'schedule' }}
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout sources
