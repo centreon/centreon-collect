@@ -38,6 +38,8 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v3
 
+      - uses: lukka/get-cmake@latest
+
       - run: |
           export DISTRIB="${{ matrix.distrib }}"
           export VERSION="${{ inputs.version }}"

@@ -8,11 +8,11 @@ fi
 
 echo "########################### BUILDING COLLECT ############################"
 
-yum install wget unzip
-wget https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-linux.zip
-unzip ninja-linux.zip
-mv ninja /usr/bin
-chmod 755 /usr/bin/ninja
+#yum install wget unzip
+#wget https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-linux.zip
+#unzip ninja-linux.zip
+#mv ninja /usr/bin
+#chmod 755 /usr/bin/ninja
 
 
 # generate rpm broker
@@ -27,7 +27,7 @@ tar czf /root/rpmbuild/SOURCES/centreon-collect-$VERSION.tar.gz \
 
 cp packaging/rpm/centreonengine_integrate_centreon_engine2centreon.sh /root/rpmbuild/SOURCES/
 
-echo -e "%_topdir      %(echo $HOME)/rpmbuild\n%_smp_mflags  -j9\n" > $HOME/rpmbuild/.rpmmacros
+#echo -e "%_topdir      %(echo $HOME)/rpmbuild\n%_smp_mflags  -j9\n" > $HOME/rpmbuild/.rpmmacros
 
 rpmbuild -ba packaging/rpm/centreon-collect.spec -D "VERSION $VERSION" -D "RELEASE $RELEASE"
 
