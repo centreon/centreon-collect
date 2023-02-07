@@ -27,11 +27,6 @@ tar czf /root/rpmbuild/SOURCES/centreon-collect-$VERSION.tar.gz \
 
 cp packaging/rpm/centreonengine_integrate_centreon_engine2centreon.sh /root/rpmbuild/SOURCES/
 
-DISTRIB=$(lsb_release -rs | cut -f1 -d.)
-if [ "$DISTRIB" = "7" ] ; then
-    source /opt/rh/devtoolset-9/enable
-fi
-
 echo -e "%_topdir      %(echo $HOME)/rpmbuild\n%_smp_mflags  -j9\n" > $HOME/rpmbuild/.rpmmacros
 
 rpmbuild -ba packaging/rpm/centreon-collect.spec -D "VERSION $VERSION" -D "RELEASE $RELEASE"
