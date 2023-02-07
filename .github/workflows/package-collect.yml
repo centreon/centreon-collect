@@ -39,9 +39,9 @@ jobs:
         uses: actions/checkout@v3
 
       - run: |
-          DISTRIB="${{ matrix.distrib }}"
-          VERSION="${{ inputs.version }}"
-          RELEASE="${{ inputs.release }}"
+          export DISTRIB="${{ matrix.distrib }}"
+          export VERSION="${{ inputs.version }}"
+          export RELEASE="${{ inputs.release }}"
           bash ./ci/scripts/collect-rpm-package.sh
         shell: bash
 
