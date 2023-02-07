@@ -9,9 +9,6 @@ on:
   pull_request:
     paths:
       - '.github/workflows/robot-nightly.yml'
-  push:
-    paths:
-      - '.github/workflows/robot-nightly.yml'
   schedule:
     - cron: '0 0 * * *'
 
