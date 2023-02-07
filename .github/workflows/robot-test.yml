@@ -27,7 +27,7 @@ jobs:
         id: list-features
         run: |
           cd tests
-          echo "features=$(find . -mindepth 1 -maxdepth 1 -type d -printf "%P\n" | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
+          echo "features=$(find . -mindepth 1 -maxdepth 1 -type d -printf "%P\n" | grep bam | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
 
   robot-test-run:
     needs: [robot-test-list]
@@ -57,40 +57,35 @@ jobs:
         run: bash ./ci/scripts/collect-test-robot.sh ${{ matrix.feature }}
         shell: bash
 
-      - name: Clean empty reports
+      - name: Move reports
         if: ${{ !cancelled() }}
         run: |
-          ls tests
+          mkdir reports
+          mv log.html output.xml report.html reports
 
       - name: Upload Test Results
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ matrix.feature }}-test-reports
-          path: tests
+          name: robot-test-reports
+          path: reports
 
-      # - if: always()
-      #   name: Send report to commit
-      #   uses: joonvena/robotframework-reporter-action@v2.1
-      #   with:
-      #     gh_access_token: ${{ secrets.GITHUB_TOKEN }}
-      #     report_path: tests
+  robot-test-report:
+    needs: [robot-test-run]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-22.04
 
-  # robot-test-report:
-  #   needs: [robot-test-run]
-  #   if: failure()
-  #   runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
 
-  #   steps:
-  #     - uses: actions/checkout@v3
+      - name: Download Artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: robot-test-reports
+          path: reports
 
-  #     - name: Download Artifacts
-  #       uses: actions/download-artifact@v3
-  #       with:
-  #         name: ${{ inputs.name }}-test-reports
-  #         path: ${{ inputs.name }}-xunit-reports
-
-  #     - uses: ./.github/actions/publish-report
-  #       with:
-  #         check_name: ${{ inputs.name }}-tests-report
-  #         path: "${{ inputs.name }}-xunit-reports/**/*.xml"
+      - name: Send report to commit
+        uses: joonvena/robotframework-reporter-action@v2.1
+        with:
+          gh_access_token: ${{ secrets.GITHUB_TOKEN }}
+          report_path: reports
