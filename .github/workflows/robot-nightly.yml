@@ -1,21 +1,27 @@
-name: nightly-robot (reusable workflow)
+name: robot-nightly
 
 on:
-  workflow_call:
-    inputs:
-      ref:
-        required: false
-        type: string
-        default: ''
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/robot-nightly.yml'
+  push:
+    paths:
+      - '.github/workflows/robot-nightly.yml'
+  schedule:
+    - cron: '0 0 * * *'
 
 jobs:
   create-version:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
+    outputs:
+      imgversion: ${{ steps.version.outputs.imgversion }}
+      version: ${{ steps.version.outputs.version }}
+      patch: ${{ steps.version.outputs.patch }}
+      release: ${{ steps.version.outputs.release }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
-        with:
-          ref: ${{ inputs.ref }}
 
       - id: version
         run: |
@@ -39,17 +45,13 @@ jobs:
               echo "release=`date +%s`.`echo ${{ github.sha }} | cut -c -7`" >> $GITHUB_OUTPUT
               ;;
           esac
-
         shell: bash
+
       - run: |
           echo "ImgVersion is ${{ steps.version.outputs.imgversion }}"
           echo "Version is ${{ steps.version.outputs.version }}.${{ steps.version.outputs.patch }}"
           echo "Release is ${{ steps.version.outputs.release }}"
-    outputs:
-      imgversion: ${{ steps.version.outputs.imgversion }}
-      version: ${{ steps.version.outputs.version }}
-      patch: ${{ steps.version.outputs.patch }}
-      release: ${{ steps.version.outputs.release }}
+        shell: bash
 
   package:
     needs: [create-version]
@@ -65,7 +67,6 @@ jobs:
     runs-on: [self-hosted, collect]
     strategy:
       matrix:
-        branch: [develop, master]
         include:
           - image: centreon-collect-alma9
             distrib: el9
@@ -79,8 +80,6 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
-        with:
-          ref: ${{ inputs.ref }}
 
       - name: Install RPM packages
         uses: actions/cache@v3
@@ -110,8 +109,6 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
-        with:
-          ref: ${{ inputs.ref }}
 
       - name: Publish RPM packages
         uses: ./.github/actions/delivery
@@ -142,8 +139,6 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
-        with:
-          ref: ${{ inputs.ref }}
 
       - name: Publish DEB packages
         uses: ./.github/actions/delivery

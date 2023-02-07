@@ -3,10 +3,6 @@ name: Centreon collect packaging
 on:
   workflow_call:
     inputs:
-      ref:
-        required: false
-        type: string
-        default: ''
       version:
         required: true
         type: string
@@ -36,8 +32,6 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
-        with:
-          ref: ${{ inputs.ref }}
 
       - name: Login to Registry
         uses: docker/login-action@v2

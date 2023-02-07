@@ -18,8 +18,19 @@ env:
   REGISTRY: centreon.jfrog.io/docker
 
 jobs:
+  dispatch-to-maintained-branches:
+    if: ${{ github.event_name == 'schedule' }}
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - run: |
+          gh workflow run robot-nightly.yml -r "dev-22.10.x"
+        shell: bash
+
   create-version:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
