@@ -23,6 +23,8 @@ jobs:
       - run: |
           gh workflow run robot-nightly.yml -r "dev-22.10.x"
         shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   create-version:
     runs-on: ubuntu-22.04
