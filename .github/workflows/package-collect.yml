@@ -32,9 +32,6 @@ jobs:
       credentials:
         username: ${{ secrets.AUTOMATION_USERNAME }}
         password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-    services:
-      rpm-signing:
-        image: centreon.jfrog.io/docker/rpm-signing:ubuntu
     name: package ${{ matrix.distrib }}
 
     steps:
@@ -48,10 +45,6 @@ jobs:
           bash /src/ci/scripts/collect-rpm-package.sh
         shell: bash
 
-      - run: |
-          docker run -i --entrypoint /src/.github/scripts/rpm-signing.sh -v "$PWD:/src" centreon.jfrog.io/docker/rpm-signing:ubuntu
-        shell: bash
-
       - name: sign rpm ${{ matrix.image }}
         uses: ./.github/actions/package-sign
         with:
@@ -61,11 +54,11 @@ jobs:
           username: ${{ secrets.AUTOMATION_USERNAME }}
           password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
 
-      - name: Use cache RPM files
+      - name: Cache RPM files
         uses: actions/cache@v3
         with:
           path: ./*.rpm
-          key: cache-${{ github.sha }}-rpmbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
+          key: unsigned-cache-${{ github.sha }}-rpmbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
 
       - name: Cleaning not needed rpm packages
         shell: bash
@@ -80,6 +73,42 @@ jobs:
           name: packages-rpm-${{ matrix.distrib }}
           path: ./*.rpm
           retention-days: 1
+
+  sign-rpm:
+    runs-on: ubuntu-22.04
+    needs: [package-rpm]
+    strategy:
+      matrix:
+        distrib: [el9]
+        #distrib: [el8, el9]
+    container:
+      image: centreon.jfrog.io/docker/rpm-signing:ubuntu
+      credentials:
+        username: ${{ secrets.AUTOMATION_USERNAME }}
+        password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+    name: sign ${{ matrix.distrib }}
+
+    steps:
+      - run: apt-get install -y zstd
+        shell: bash
+
+      - uses: actions/checkout@v3
+
+      - uses: actions/cache@v3
+        with:
+          path: ./*.rpm
+          key: unsigned-cache-${{ github.sha }}-rpmbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
+
+      - run: echo "HOME=/root" >> $GITHUB_ENV
+        shell: bash
+
+      - run: rpmsign --addsign ./*.rpm
+        shell: bash
+
+      - uses: actions/cache@v3
+        with:
+          path: ./*.rpm
+          key: cache-${{ github.sha }}-rpmbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
 
   # package-deb:
   #   runs-on: [self-hosted, collect]
