@@ -37,7 +37,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        feature: ${{ fromJson(robot.behat-test-list.outputs.features) }}
+        feature: ${{ fromJson(needs.robot-test-list.outputs.features) }}
     name: ${{ matrix.feature }}
 
     steps:
