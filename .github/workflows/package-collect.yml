@@ -42,7 +42,7 @@ jobs:
           DISTRIB="${{ matrix.distrib }}"
           VERSION="${{ inputs.version }}"
           RELEASE="${{ inputs.release }}"
-          bash /src/ci/scripts/collect-rpm-package.sh
+          bash ./ci/scripts/collect-rpm-package.sh
         shell: bash
 
       - name: sign rpm ${{ matrix.image }}
