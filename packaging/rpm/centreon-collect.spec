@@ -244,7 +244,7 @@ centengine.
 pip3 install conan --upgrade
 conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
 
-cmake3 \
+cmake \
         -G "Ninja" \
         -DWITH_TESTING=0 \
         -DWITH_BENCH=1 \
