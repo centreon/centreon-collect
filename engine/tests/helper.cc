@@ -40,6 +40,7 @@ void init_config_state(void) {
   config->log_file_line(true);
   config->log_file("");
 
+  pb_config.CopyFrom(configuration::State());
   pb_config.set_log_file_line(true);
   pb_config.set_log_file("");
 
