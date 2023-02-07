@@ -61,7 +61,7 @@ jobs:
         if: ${{ !cancelled() }}
         run: |
           mkdir reports
-          mv log.html output.xml report.html reports
+          mv tests/log.html tests/output.xml tests/report.html reports
 
       - name: Upload Test Results
         if: ${{ !cancelled() }}
