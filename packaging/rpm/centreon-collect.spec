@@ -259,7 +259,8 @@ cmake3 \
         -DWITH_CONFIG_FILES=y \
         -DCMAKE_BUILD_TYPE=RelWithDebInfo \
         .
-%{__make} %{?_smp_mflags}
+#%{__make} %{?_smp_mflags}
+ninja -j8
 
 %install
 %{__rm} -rf $RPM_BUILD_ROOT

@@ -8,6 +8,13 @@ fi
 
 echo "########################### BUILDING COLLECT ############################"
 
+yum install wget unzip
+wget https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-linux.zip
+unzip ninja-linux.zip
+mv ninja /usr/bin
+chmod 755 /usr/bin/ninja
+
+
 # generate rpm broker
 if [ ! -d /root/rpmbuild/SOURCES ] ; then
     mkdir -p /root/rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
