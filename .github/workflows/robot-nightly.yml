@@ -12,6 +12,17 @@ on:
     - cron: '0 0 * * *'
 
 jobs:
+  dispatch-to-maintained-branches:
+    if: ${{ github.event_name == 'schedule' }}
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - run: |
+          gh workflow run robot-nightly.yml -r "dev-22.10.x"
+        shell: bash
+
   create-version:
     runs-on: ubuntu-22.04
     outputs:
@@ -70,7 +81,7 @@ jobs:
         include:
           - image: centreon-collect-alma9
             distrib: el9
-            folder_report: tests/
+    name: robot test ${{ matrix.distrib }}
     container:
       image: centreon.jfrog.io/docker/${{ matrix.image }}:${{ needs.create-version.outputs.imgversion }}
       credentials:
@@ -87,8 +98,13 @@ jobs:
           path: ./*.rpm
           key: cache-${{ github.sha }}-rpmbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
 
-      - name: Tests robot (Alma9)
+      - name: Tests robot
         run: bash ./ci/scripts/collect-test-robot.sh
+        shell: bash
+
+      - run: |
+          ls
+          ls tests
         shell: bash
 
       - if: always()
@@ -96,7 +112,7 @@ jobs:
         uses: joonvena/robotframework-reporter-action@v2.1
         with:
           gh_access_token: ${{ secrets.GITHUB_TOKEN }}
-          report_path: ${{ matrix.folder_report }}
+          report_path: tests
 
   deliver-rpm:
     needs: [robot-test, create-version]
