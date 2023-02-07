@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Centreon (https://www.centreon.com/)
+ * Copyright 2022-2023 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,8 @@
 
 #ifndef CCE_CONFIGURATION_APPLIER_TAG_HH
 #define CCE_CONFIGURATION_APPLIER_TAG_HH
+#include "configuration/state-generated.pb.h"
+#include "configuration/state.pb.h"
 
 namespace com::centreon::engine {
 
@@ -31,11 +33,17 @@ class tag {
  public:
   tag() = default;
   ~tag() noexcept = default;
-  tag& operator=(const tag& other) = delete;
+  tag& operator=(const tag&) = delete;
+  void add_object(const configuration::Tag& obj);
   void add_object(const configuration::tag& obj);
+  void expand_objects(configuration::State& s);
   void expand_objects(configuration::state& s);
+  void modify_object(configuration::Tag* to_modify,
+                     const configuration::Tag& new_object);
   void modify_object(const configuration::tag& obj);
+  void remove_object(ssize_t idx);
   void remove_object(const configuration::tag& obj);
+  void resolve_object(const configuration::Tag& obj);
   void resolve_object(const configuration::tag& obj);
 };
 }  // namespace applier
