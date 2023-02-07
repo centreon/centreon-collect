@@ -18,48 +18,11 @@ env:
   REGISTRY: centreon.jfrog.io/docker
 
 jobs:
-  create-version:
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v3
-
-      - id: version
-        run: |
-          IMG_VERSION=$(md5sum conanfile.txt | awk '{print substr($1, 0, 8)}')
-          echo "imgversion=$IMG_VERSION" >> $GITHUB_OUTPUT
-          VERSION=$(awk '$1 ~ "COLLECT_MAJOR" {maj=substr($2, 1, length($2)-1)} $1 ~ "COLLECT_MINOR" {min=substr($2, 1, length($2)-1) ; print maj "." min}' CMakeLists.txt)
-          PATCH=$(awk '$1 ~ "COLLECT_PATCH" {print substr($2, 1, length($2) - 1)}' CMakeLists.txt)
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "patch=$PATCH" >> $GITHUB_OUTPUT
-
-          if [[ -z "$GITHUB_HEAD_REF" ]] ; then
-            BRANCHNAME="$GITHUB_REF_NAME"
-          else
-            BRANCHNAME="$GITHUB_HEAD_REF"
-          fi
-          case "$BRANCHNAME" in
-            master | [2-9][0-9].[0-9][0-9].x | release* | hotfix*)
-              echo "release=$GITHUB_RUN_ATTEMPT" >> $GITHUB_OUTPUT
-              ;;
-            *)
-              echo "release=`date +%s`.`echo ${{ github.sha }} | cut -c -7`" >> $GITHUB_OUTPUT
-              ;;
-          esac
-
-        shell: bash
-      - run: |
-          echo "ImgVersion is ${{ steps.version.outputs.imgversion }}"
-          echo "Version is ${{ steps.version.outputs.version }}.${{ steps.version.outputs.patch }}"
-          echo "Release is ${{ steps.version.outputs.release }}"
-    outputs:
-      imgversion: ${{ steps.version.outputs.imgversion }}
-      version: ${{ steps.version.outputs.version }}
-      patch: ${{ steps.version.outputs.patch }}
-      release: ${{ steps.version.outputs.release }}
+  get-version:
+    uses: ./.github/workflows/get-version.yml
 
   unit-test:
-    needs: [create-version]
+    needs: [get-version]
     runs-on: [self-hosted, collect]
 
     strategy:
@@ -83,13 +46,13 @@ jobs:
         with:
           script_name: /src/ci/scripts/collect-unit-tests
           image_name: centreon-collect-${{ matrix.image }}
-          image_version: ${{ needs.create-version.outputs.imgversion }}
+          image_version: ${{ needs.get-version.outputs.img_version }}
 
   package:
-    needs: [create-version]
+    needs: [get-version]
     uses: ./.github/workflows/package-collect.yml
     with:
-      version: ${{ needs.create-version.outputs.version }}.${{ needs.create-version.outputs.patch }}
-      imgversion: ${{ needs.create-version.outputs.imgversion }}
-      release: ${{ needs.create-version.outputs.release }}
+      version: ${{ needs.get-version.outputs.version }}.${{ needs.get-version.outputs.patch }}
+      img_version: ${{ needs.get-version.outputs.img_version }}
+      release: ${{ needs.get-version.outputs.release }}
     secrets: inherit

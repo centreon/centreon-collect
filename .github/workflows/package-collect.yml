@@ -6,7 +6,7 @@ on:
       version:
         required: true
         type: string
-      imgversion:
+      img_version:
         required: true
         type: string
       release:
@@ -14,7 +14,7 @@ on:
         type: string
 
 env:
-  REGISTRY: docker.centreon.com
+  REGISTRY: centreon.jfrog.io/docker
 
 jobs:
   package-rpm:
@@ -37,15 +37,15 @@ jobs:
         uses: docker/login-action@v2
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.REPOS_USERNAME }}
-          password: ${{ secrets.REPOS_PASSWORD }}
+          username: ${{ secrets.AUTOMATION_USERNAME }}
+          password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
 
       - name: make rpm ${{ matrix.image }}
         uses: ./.github/actions/runner-docker
         with:
           script_name: /src/ci/scripts/collect-rpm-package
           image_name: centreon-collect-${{ matrix.image }}
-          image_version: ${{ inputs.imgversion }}
+          image_version: ${{ inputs.img_version }}
           env_variable: -e DISTRIB="${{ matrix.distrib }}" -e VERSION="${{ inputs.version }}" -e RELEASE="${{ inputs.release }}"
 
       - name: sign rpm ${{ matrix.image }}
@@ -54,8 +54,8 @@ jobs:
           script_name: rpm-signing
           image_name: rpm-signing
           image_version: ubuntu
-          username: ${{ secrets.REPOS_USERNAME }}
-          password: ${{ secrets.REPOS_PASSWORD }}
+          username: ${{ secrets.AUTOMATION_USERNAME }}
+          password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
 
       - name: Use cache RPM files
         uses: actions/cache@v3
@@ -104,7 +104,7 @@ jobs:
         with:
           script_name: /src/centreon-collect/ci/scripts/collect-deb-package
           image_name: centreon-collect-${{ matrix.image }}
-          image_version: ${{ inputs.imgversion }}
+          image_version: ${{ inputs.img_version }}
           env_variable: -e DISTRIB="${{ matrix.distrib }}" -e VERSION="${{ inputs.version }}" -e RELEASE="${{ inputs.release }}"
 
       - name: Use cache DEB files

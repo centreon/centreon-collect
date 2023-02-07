@@ -20,21 +20,8 @@ env:
   REGISTRY: centreon.jfrog.io/docker
 
 jobs:
-  create-version:
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v3
-
-      - run: |
-          IMG_VERSION=$(md5sum conanfile.txt | awk '{print substr($1, 0, 8)}')
-          echo "imgversion=$IMG_VERSION" >> $GITHUB_OUTPUT
-        id: imgversion
-      - run: |
-          echo "Version based on conanfile is ${{ steps.imgversion.outputs.imgversion }}"
-    outputs:
-      imgversion: ${{ steps.imgversion.outputs.imgversion }}
-
+  get-version:
+    uses: ./.github/workflows/get-version.yml
 
   create-and-push-docker:
     needs: create-version
@@ -66,4 +53,4 @@ jobs:
           context: .
           pull: true
           push: true
-          tags: ${{ env.REGISTRY }}/centreon-${{ matrix.project }}-${{ matrix.distrib }}:${{ needs.create-version.outputs.imgversion }}
+          tags: ${{ env.REGISTRY }}/centreon-${{ matrix.project }}-${{ matrix.distrib }}:${{ needs.get-version.outputs.img_version }}
