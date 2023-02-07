@@ -45,34 +45,11 @@ jobs:
           bash ./ci/scripts/collect-rpm-package.sh
         shell: bash
 
-      - name: sign rpm ${{ matrix.image }}
-        uses: ./.github/actions/package-sign
-        with:
-          script_name: rpm-signing
-          image_name: rpm-signing
-          image_version: ubuntu
-          username: ${{ secrets.AUTOMATION_USERNAME }}
-          password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-
       - name: Cache RPM files
         uses: actions/cache@v3
         with:
           path: ./*.rpm
           key: unsigned-cache-${{ github.sha }}-rpmbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
-
-      - name: Cleaning not needed rpm packages
-        shell: bash
-        run: |
-          rm -rf *-devel*.rpm
-          rm -rf *-debuginfo*.rpm
-          rm -rf *-debugsource*.rpm
-
-      - name: Upload package artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: packages-rpm-${{ matrix.distrib }}
-          path: ./*.rpm
-          retention-days: 1
 
   sign-rpm:
     runs-on: ubuntu-22.04
@@ -109,6 +86,20 @@ jobs:
         with:
           path: ./*.rpm
           key: cache-${{ github.sha }}-rpmbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
+
+      - name: Cleaning not needed rpm packages
+        shell: bash
+        run: |
+          rm -rf *-devel*.rpm
+          rm -rf *-debuginfo*.rpm
+          rm -rf *-debugsource*.rpm
+
+      - name: Upload package artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: packages-rpm-${{ matrix.distrib }}
+          path: ./*.rpm
+          retention-days: 1
 
   # package-deb:
   #   runs-on: [self-hosted, collect]
