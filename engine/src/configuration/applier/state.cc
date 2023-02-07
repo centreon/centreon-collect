@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2020 Centreon
+** Copyright 2011-2023 Centreon
 **
 ** This file is part of Centreon Engine.
 **
@@ -54,6 +54,7 @@
 #include "com/centreon/engine/objects.hh"
 #include "com/centreon/engine/retention/applier/state.hh"
 #include "com/centreon/engine/retention/state.hh"
+#include "com/centreon/engine/severity.hh"
 #include "com/centreon/engine/version.hh"
 #include "com/centreon/engine/xpddefault.hh"
 #include "com/centreon/engine/xsddefault.hh"
@@ -268,6 +269,8 @@ void applier::state::clear() {
   engine::host::hosts_by_id.clear();
   engine::hostdependency::hostdependencies.clear();
   engine::hostescalation::hostescalations.clear();
+  engine::severity::severities.clear();
+  engine::tag::tags.clear();
   engine::timeperiod::timeperiods.clear();
   engine::comment::comments.clear();
   engine::comment::set_next_comment_id(1llu);
@@ -306,6 +309,8 @@ applier::state::~state() noexcept {
   engine::host::hosts_by_id.clear();
   engine::hostdependency::hostdependencies.clear();
   engine::hostescalation::hostescalations.clear();
+  engine::severity::severities.clear();
+  engine::tag::tags.clear();
   engine::timeperiod::timeperiods.clear();
   engine::comment::comments.clear();
   engine::comment::set_next_comment_id(1llu);
@@ -712,7 +717,8 @@ void applier::state::_pb_apply(const pb_difference<ConfigurationType>& diff) {
   }
 
   // Erase objects.
-  for (auto idx : diff.deleted()) {
+  for (auto it = diff.deleted().rbegin(); it != diff.deleted().rend(); ++it) {
+    ssize_t idx = *it;
     if (!verify_config)
       aplyr.remove_object(idx);
     else {
@@ -1467,10 +1473,15 @@ void applier::state::_processing(configuration::State& new_cfg,
         return std::make_pair(sev.key().id(), sev.key().type());
       });
 
-  //  // Build difference for tags.
-  //  difference<set_tag> diff_tags;
-  //  diff_tags.parse(config->tags(), new_cfg.tags());
-  //
+  // Build difference for tags.
+  pb_difference<configuration::Tag> diff_tags;
+  diff_tags.parse<std::pair<uint64_t, uint32_t>>(
+      pb_config.tags().begin(), pb_config.tags().end(), new_cfg.tags().begin(),
+      new_cfg.tags().end(),
+      [](const configuration::Tag& tg) -> std::pair<uint64_t, uint32_t> {
+        return std::make_pair(tg.key().id(), tg.key().type());
+      });
+
   //  // Build difference for contacts.
   //  difference<set_contact> diff_contacts;
   //  diff_contacts.parse(config->contacts(), new_cfg.contacts());
