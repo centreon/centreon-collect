@@ -261,8 +261,8 @@ cmake3 \
         -DCMAKE_BUILD_TYPE=RelWithDebInfo \
         .
 #%{__make} %{?_smp_mflags}
-ninja -j8
-#cmake3 --build .
+#ninja -j8
+cmake3 --build .
 
 %install
 %{__rm} -rf $RPM_BUILD_ROOT
@@ -283,8 +283,8 @@ ninja -j8
 touch $RPM_BUILD_ROOT%{_localstatedir}/log/centreon-engine/centengine.debug
 %{__install} -d $RPM_BUILD_ROOT%{_datadir}/centreon-engine/extra
 %{__cp} %SOURCE1 $RPM_BUILD_ROOT%{_datadir}/centreon-engine/extra/integrate_centreon_engine2centreon.sh
-#%{__make} install DESTDIR="$RPM_BUILD_ROOT"
-DESTDIR="$RPM_BUILD_ROOT" ninja install
+%{__make} install DESTDIR="$RPM_BUILD_ROOT"
+#DESTDIR="$RPM_BUILD_ROOT" ninja install
 
 %clean
 %{__rm} -rf $RPM_BUILD_ROOT

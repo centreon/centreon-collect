@@ -18,7 +18,7 @@ env:
 
 jobs:
   package-rpm:
-    runs-on: ubuntu-22.04
+    runs-on: [self-hosted, collect]
 
     strategy:
       matrix:
