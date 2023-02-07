@@ -50,7 +50,7 @@ jobs:
             distrib: el9
     name: robot test ${{ matrix.distrib }}
 
-    uses: .github/workflows/robot-test.yml
+    uses: ./.github/workflows/robot-test.yml
     with:
       image_name: ${{ matrix.image }}:${{ matrix.distrib }}
     secrets:
