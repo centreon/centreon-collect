@@ -48,7 +48,7 @@ echo "##### Starting tests #####"
 ./init-proto.sh
 
 echo "####################### Run Centreon Collect Robot Tests #######################"
-robot --nostatusrc .
+robot --nostatusrc ./$1
 
 echo "########################### Generate Folder Report #############################"
 mkdir reports

@@ -1,0 +1,93 @@
+on:
+  workflow_call:
+    inputs:
+      image_name:
+        required: true
+        type: string
+    secrets:
+      registry_username:
+        required: true
+      registry_password:
+        required: true
+
+jobs:
+  robot-test-list:
+    runs-on: ubuntu-22.04
+    outputs:
+      features: ${{ steps.list-features.outputs.features }}
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: List features
+        id: list-features
+        run: |
+          cd tests
+          echo "features=$(find . -mindepth 1 -maxdepth 1 -type d -printf "%P\n" | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
+
+  robot-test-run:
+    needs: [robot-test-list]
+    runs-on: ubuntu-22.04
+    container:
+      image: centreon.jfrog.io/docker/${{ matrix.image_name }}
+      credentials:
+        username: ${{ secrets.registry_username }}
+        password: ${{ secrets.registry_password }}
+    strategy:
+      fail-fast: false
+      matrix:
+        feature: ${{ fromJson(robot.behat-test-list.outputs.features) }}
+    name: ${{ matrix.feature }}
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Install RPM packages
+        uses: actions/cache@v3
+        with:
+          path: ./*.rpm
+          key: cache-${{ github.sha }}-rpmbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
+
+      - name: Tests robot
+        run: bash ./ci/scripts/collect-test-robot.sh ${{ matrix.feature }}
+        shell: bash
+
+      - name: Clean empty reports
+        if: ${{ !cancelled() }}
+        run: |
+          ls tests
+
+      - name: Upload Test Results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.feature }}-test-reports
+          path: tests
+
+      # - if: always()
+      #   name: Send report to commit
+      #   uses: joonvena/robotframework-reporter-action@v2.1
+      #   with:
+      #     gh_access_token: ${{ secrets.GITHUB_TOKEN }}
+      #     report_path: tests
+
+  # robot-test-report:
+  #   needs: [robot-test-run]
+  #   if: failure()
+  #   runs-on: ubuntu-22.04
+
+  #   steps:
+  #     - uses: actions/checkout@v3
+
+  #     - name: Download Artifacts
+  #       uses: actions/download-artifact@v3
+  #       with:
+  #         name: ${{ inputs.name }}-test-reports
+  #         path: ${{ inputs.name }}-xunit-reports
+
+  #     - uses: ./.github/actions/publish-report
+  #       with:
+  #         check_name: ${{ inputs.name }}-tests-report
+  #         path: "${{ inputs.name }}-xunit-reports/**/*.xml"

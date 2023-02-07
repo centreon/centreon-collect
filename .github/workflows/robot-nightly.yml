@@ -14,18 +14,20 @@ on:
     - cron: '0 0 * * *'
 
 jobs:
-  dispatch-to-maintained-branches:
-    #if: ${{ github.event_name == 'schedule' && github.ref_name == 'develop' }}
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v3
+  # dispatch-to-maintained-branches:
+  #   if: ${{ github.event_name == 'schedule' && github.ref_name == 'develop' }}
+  #   runs-on: ubuntu-22.04
+  #   steps:
+  #     - name: Checkout sources
+  #       uses: actions/checkout@v3
 
-      - run: |
-          gh workflow run robot-nightly.yml -r "dev-22.10.x"
-        shell: bash
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #     - run: |
+  #         gh workflow run robot-nightly.yml -r "dev-22.10.x"
+  #         gh workflow run robot-nightly.yml -r "dev-22.04.x"
+  #         gh workflow run robot-nightly.yml -r "dev-21.10.x"
+  #       shell: bash
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   get-version:
     uses: ./.github/workflows/get-version.yml
@@ -40,47 +42,23 @@ jobs:
     secrets: inherit
 
   robot-test:
-    needs: [package, get-version]
-    runs-on: [self-hosted, collect]
+    needs: [get-version, package]
     strategy:
       matrix:
         include:
           - image: centreon-collect-alma9
             distrib: el9
     name: robot test ${{ matrix.distrib }}
-    container:
-      image: centreon.jfrog.io/docker/${{ matrix.image }}:${{ needs.get-version.outputs.img_version }}
-      credentials:
-        username: ${{ secrets.AUTOMATION_USERNAME }}
-        password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
 
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v3
-
-      - name: Install RPM packages
-        uses: actions/cache@v3
-        with:
-          path: ./*.rpm
-          key: cache-${{ github.sha }}-rpmbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
-
-      - name: Tests robot
-        run: bash ./ci/scripts/collect-test-robot.sh
-        shell: bash
-
-      - run: |
-          ls
-          ls tests
-        shell: bash
-
-      - if: always()
-        name: Send report to commit
-        uses: joonvena/robotframework-reporter-action@v2.1
-        with:
-          gh_access_token: ${{ secrets.GITHUB_TOKEN }}
-          report_path: tests
+    uses: .github/workflows/robot-test.yml
+    with:
+      image_name: ${{ matrix.image }}:${{ matrix.distrib }}
+    secrets:
+      registry_username: ${{ secrets.AUTOMATION_USERNAME }}
+      registry_password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
 
   deliver-rpm:
+    if: ${{ contains(fromJson('["unstable"]'), needs.get-version.outputs.stability) }}
     needs: [robot-test, get-version]
     runs-on: [self-hosted, common]
     strategy:
@@ -111,6 +89,7 @@ jobs:
           yum_repo_url: ${{ secrets.YUM_REPO_URL }}
 
   deliver-deb:
+    if: ${{ contains(fromJson('["unstable"]'), needs.get-version.outputs.stability) }}
     needs: [robot-test, get-version]
     runs-on: [self-hosted, common]
     strategy:
