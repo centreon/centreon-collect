@@ -42,7 +42,7 @@ jobs:
 
       - name: package rpm ${{ matrix.image }}
         run: |
-          docker run -i --entrypoint ./ci/scripts/collect-rpm-package.sh \
+          docker run -i --entrypoint ./.github/scripts/collect-rpm-package.sh \
             -v "$PWD:/src" \
             -e DISTRIB="${{ matrix.distrib }}" \
             -e VERSION="${{ inputs.version }}" \
@@ -104,7 +104,7 @@ jobs:
       - name: debmake ${{ matrix.image }}
         uses: ./centreon-collect/.github/actions/runner-docker
         with:
-          script_name: /src/centreon-collect/ci/scripts/collect-deb-package
+          script_name: .github/scripts/collect-deb-package
           image_name: centreon-collect-${{ matrix.image }}
           image_version: ${{ inputs.img_version }}
           env_variable: -e DISTRIB="${{ matrix.distrib }}" -e VERSION="${{ inputs.version }}" -e RELEASE="${{ inputs.release }}"

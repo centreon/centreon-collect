@@ -54,7 +54,7 @@ jobs:
           key: cache-${{ github.sha }}-rpmbuild-centreon-collect-${{ inputs.distrib }}-${{ github.head_ref || github.ref_name }}
 
       - name: Test ${{ matrix.feature }}
-        run: bash ./ci/scripts/collect-test-robot.sh ${{ matrix.feature }}
+        run: bash ./github/scripts/collect-test-robot.sh ${{ matrix.feature }}
         shell: bash
 
       - name: Move reports
