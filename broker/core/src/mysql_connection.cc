@@ -720,7 +720,7 @@ void mysql_connection::_run() {
 /*                    Methods executed by the main thread                     */
 /******************************************************************************/
 
-mysql_connection::mysql_connection(database_config const& db_cfg,
+mysql_connection::mysql_connection(const database_config& db_cfg,
                                    SqlConnectionStats* stats)
     : _conn(nullptr),
       _finish_asked(false),
@@ -760,8 +760,8 @@ mysql_connection::mysql_connection(database_config const& db_cfg,
  */
 mysql_connection::~mysql_connection() {
   log_v2::sql()->info("mysql_connection: finished");
-  stats::center::instance().remove_connection(_stats);
   finish();
+  stats::center::instance().remove_connection(_stats);
   _thread->join();
 }
 
