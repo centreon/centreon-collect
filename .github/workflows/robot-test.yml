@@ -27,7 +27,7 @@ jobs:
         id: list-features
         run: |
           cd tests
-          #echo "features=$(find . -mindepth 1 -maxdepth 1 -type d -not -path "./resources" -printf "%P\n" | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
+          #echo "features=$(find . -mindepth 1 -maxdepth 1 -type d -not -path "./resources" -printf "%P\n" | grep '.robot' | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
           echo "features=$(grep -Rl '*** Test Cases ***' . | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
 
   robot-test-run:
@@ -55,7 +55,7 @@ jobs:
           key: cache-${{ github.sha }}-rpmbuild-centreon-collect-${{ inputs.distrib }}-${{ github.head_ref || github.ref_name }}
 
       - name: Test ${{ matrix.feature }}
-        run: bash ./github/scripts/collect-test-robot.sh ${{ matrix.feature }}
+        run: bash ./.github/scripts/collect-test-robot.sh ${{ matrix.feature }}
         shell: bash
 
       - name: Move reports
