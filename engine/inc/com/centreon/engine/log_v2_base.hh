@@ -34,6 +34,7 @@ class log_v2_base : public std::enable_shared_from_this<log_v2_base> {
 
  public:
   log_v2_base(const std::string& logger_name) : _log_name(logger_name) {}
+  virtual ~log_v2_base() = default;
 
   const std::string& log_name() { return _log_name; }
   const std::string& file_path() const { return _file_path; }

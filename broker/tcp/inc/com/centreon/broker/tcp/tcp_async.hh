@@ -57,8 +57,8 @@ namespace tcp {
  * waits for 10s, and then looks if there are not used connections established
  * for more than 4s. In that case, it removes them.
  */
-class tcp_async {
-  static tcp_async* _instance;
+class tcp_async : public std::enable_shared_from_this<tcp_async> {
+  static std::shared_ptr<tcp_async> _instance;
   /* The acceptors open by this tcp_async */
   std::list<std::shared_ptr<asio::ip::tcp::acceptor>> _acceptor;
 
@@ -73,7 +73,6 @@ class tcp_async {
   std::atomic_bool _clear_available_con_running;
 
   tcp_async();
-  ~tcp_async() noexcept;
 
   void _clear_available_con(asio::error_code ec);
 
