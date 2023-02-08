@@ -471,7 +471,7 @@ add_executable(cbd ${SRC_DIR}/main.cc)
 # Flags needed to include all symbols in binary.
 target_link_libraries(
   cbd
-  "-export-dynamic"
+  "-rdynamic"
   "-Wl,--whole-archive"
   rokerbase
   roker
