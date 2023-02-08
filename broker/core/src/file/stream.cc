@@ -138,7 +138,7 @@ void stream::statistics(nlohmann::json& tree) const {
         }
       }
 
-      if (max_file_size == std::numeric_limits<long>::max()) {
+      if (max_file_size == std::numeric_limits<uint32_t>::max()) {
         tree["file_expected_max_size"] = static_cast<double>(
             fwoffset +
             (fwoffset - _last_write_offset) * (eta - now) / (now - _last_time));
