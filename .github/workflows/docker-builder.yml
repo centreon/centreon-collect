@@ -24,7 +24,7 @@ jobs:
     uses: ./.github/workflows/get-version.yml
 
   create-and-push-docker:
-    needs: create-version
+    needs: [get-version]
     runs-on: [self-hosted, collect]
 
     strategy:
