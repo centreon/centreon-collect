@@ -7,15 +7,7 @@ if [ -z "$VERSION" -o -z "$RELEASE" -o -z "$DISTRIB" ] ; then
 fi
 
 echo "########################### BUILDING COLLECT ############################"
-
-#yum install -y wget unzip
-#wget https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-linux.zip
-#unzip ninja-linux.zip
-#mv ninja /usr/bin
-#chmod 755 /usr/bin/ninja
-
-
-# generate rpm broker
+rebot --help
 if [ ! -d ~/rpmbuild/SOURCES ] ; then
     mkdir -p ~/rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
 fi
