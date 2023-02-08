@@ -16,6 +16,7 @@ dnf install -y cmake \
     gcc-c++ \
     gettext \
     git \
+    ninja-build \
     mariadb-server \
     mariadb \
     gnutls-devel \

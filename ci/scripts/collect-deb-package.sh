@@ -23,7 +23,7 @@ if [ -d "$ROOT/build" ] ; then
 fi
 tar --exclude={".git","build"} -czpf $ROOT-$VERSION.tar.gz "$ROOT"
 cd "$ROOT"
-cp -r ci/debian debian
+cp -r packaging/debian debian
 
 sed -i "s/^centreon:version=.*$/centreon:version=$(echo $VERSION-$RELEASE)/" debian/substvars
 

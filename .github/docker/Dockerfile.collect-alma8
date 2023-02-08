@@ -17,6 +17,7 @@ dnf install -y cmake \
     gcc-c++ \
     gettext \
     git \
+    ninja-build \
     MariaDB-devel \
     MariaDB-shared \
     MariaDB-client \
