@@ -23,9 +23,13 @@
 #include <absl/container/flat_hash_map.h>
 
 /* Forward declaration. */
-namespace com::centreon::engine {
+namespace com {
+namespace centreon {
+namespace engine {
 class severity;
 }
+}  // namespace centreon
+}  // namespace com
 
 using severity_map =
     absl::flat_hash_map<std::pair<uint32_t, uint16_t>,
