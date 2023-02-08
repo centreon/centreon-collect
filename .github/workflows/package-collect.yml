@@ -43,6 +43,13 @@ jobs:
 
       - uses: lukka/get-cmake@latest
 
+      - name: Login to Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.AUTOMATION_USERNAME }}
+          password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+
       - run: |
           docker run -i --entrypoint ./ci/scripts/collect-rpm-package.sh \
             -v "$PWD:/src" \
