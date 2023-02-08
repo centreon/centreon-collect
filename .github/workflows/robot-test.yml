@@ -61,6 +61,7 @@ jobs:
         if: ${{ !cancelled() }}
         run: |
           mkdir reports
+          FILE_PREFIX=`echo "${{ matrix.feature }}" | sed -e "s#/#__#g"`
           mv tests/log.html reports/${{ matrix.feature }}-log.html
           mv tests/output.xml reports/${{ matrix.feature }}-output.xml
           mv tests/report.html reports/${{ matrix.feature }}-report.html
