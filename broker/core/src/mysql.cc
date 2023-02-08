@@ -99,23 +99,6 @@ bool mysql::fetch_row(mysql_result& res) {
   return res.get_connection()->fetch_row(res);
 }
 
-/**
- *  This method commits only if the max queries per transaction is reached.
- *
- * @return true if a commit has been done, false otherwise.
- */
-bool mysql::commit_if_needed() {
-  bool retval(false);
-  int qpt(_db_cfg.get_queries_per_transaction());
-  if (qpt > 1) {
-    ++_pending_queries;
-    if (_pending_queries >= qpt) {
-      commit();
-      retval = true;
-    }
-  }
-  return retval;
-}
 
 /**
  *  Checks for previous errors. As queries are made asynchronously, errors
