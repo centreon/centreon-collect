@@ -41,43 +41,15 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v3
 
-      - run: |
-          cat /proc/cpuinfo
-          cat /proc/meminfo
-
       - uses: lukka/get-cmake@latest
 
-      # - uses: lukka/run-cmake@v10
-      #   with:
-      #     configurePresetAdditionalArgs: "['-G \"Ninja\"', '-DWITH_TESTING=0', '-DWITH_BENCH=1', '-DCMAKE_INSTALL_PREFIX=/usr', '-DWITH_ENGINE_LOGROTATE_SCRIPT=1', '-DWITH_STARTUP_DIR=%{_unitdir}', '-DWITH_STARTUP_SCRIPT=systemd', '-DWITH_USER_BROKER=centreon-broker', '-DWITH_GROUP_BROKER=centreon-broker', '-DWITH_USER_ENGINE=centreon-engine', '-DWITH_GROUP_ENGINE=centreon-engine', '-DWITH_DAEMONS=y', '-DWITH_CONFIG_FILES=y', '-DCMAKE_BUILD_TYPE=RelWithDebInfo']"
-
       - run: |
-          pip3 install conan --upgrade
-          conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
-          cmake \
-            -G "Ninja" \
-            -DWITH_TESTING=0 \
-            -DWITH_BENCH=1 \
-            -DCMAKE_INSTALL_PREFIX=/usr \
-            -DWITH_ENGINE_LOGROTATE_SCRIPT=1 \
-            -DWITH_STARTUP_DIR=/lib/systemd/system \
-            -DWITH_STARTUP_SCRIPT=systemd \
-            -DWITH_USER_BROKER=centreon-broker \
-            -DWITH_GROUP_BROKER=centreon-broker \
-            -DWITH_USER_ENGINE=centreon-engine \
-            -DWITH_GROUP_ENGINE=centreon-engine \
-            -DWITH_DAEMONS=y \
-            -DWITH_CONFIG_FILES=y \
-            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-            .
-          ninja -j8
-          ls
-          DESTDIR="/usr/local/src" ninja install
-          exit 1
-          export DISTRIB="${{ matrix.distrib }}"
-          export VERSION="${{ inputs.version }}"
-          export RELEASE="${{ inputs.release }}"
-          bash ./ci/scripts/collect-rpm-package.sh
+          docker run -i --entrypoint ./ci/scripts/collect-rpm-package.sh \
+            -v "$PWD:/src" \
+            -e DISTRIB="${{ matrix.distrib }}" \
+            -e VERSION="${{ inputs.version }}" \
+            -e RELEASE="${{ inputs.release }}" \
+            ${{ env.REGISTRY }}/centreon-collect-${{ matrix.image }}:${{ inputs.img_version }}
         shell: bash
 
       - name: Cache RPM files
