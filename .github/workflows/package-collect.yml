@@ -33,6 +33,8 @@ jobs:
         username: ${{ secrets.AUTOMATION_USERNAME }}
         password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
       options: --cpus 8
+      volumes:
+        - /src:/src
     name: package ${{ matrix.distrib }}
 
     steps:
@@ -43,7 +45,11 @@ jobs:
           cat /proc/cpuinfo
           cat /proc/meminfo
 
-      #- uses: lukka/get-cmake@latest
+      - uses: lukka/get-cmake@latest
+
+      - uses: lukka/run-cmake@v10
+        with:
+          configurePresetAdditionalArgs: "['-DWITH_TESTING=0', '-DWITH_BENCH=1', '-DCMAKE_INSTALL_PREFIX=/usr', '-DWITH_ENGINE_LOGROTATE_SCRIPT=1', '-DWITH_STARTUP_DIR=%{_unitdir}', '-DWITH_STARTUP_SCRIPT=systemd', '-DWITH_USER_BROKER=centreon-broker', '-DWITH_GROUP_BROKER=centreon-broker', '-DWITH_USER_ENGINE=centreon-engine', '-DWITH_GROUP_ENGINE=centreon-engine', '-DWITH_DAEMONS=y', '-DWITH_CONFIG_FILES=y', '-DCMAKE_BUILD_TYPE=RelWithDebInfo']"
 
       - run: |
           export DISTRIB="${{ matrix.distrib }}"
