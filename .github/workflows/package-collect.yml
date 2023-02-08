@@ -100,7 +100,7 @@ jobs:
           password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
 
       - name: debmake ${{ matrix.image }}
-        uses: .github/actions/runner-docker
+        uses: ./.github/actions/runner-docker
         with:
           script_name: .github/scripts/collect-deb-package
           image_name: centreon-collect-${{ matrix.image }}
