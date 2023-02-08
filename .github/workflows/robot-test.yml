@@ -1,0 +1,104 @@
+on:
+  workflow_call:
+    inputs:
+      image_name:
+        required: true
+        type: string
+      distrib:
+        required: true
+        type: string
+    secrets:
+      registry_username:
+        required: true
+      registry_password:
+        required: true
+
+jobs:
+  robot-test-list:
+    runs-on: ubuntu-22.04
+    outputs:
+      features: ${{ steps.list-features.outputs.features }}
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: List features
+        id: list-features
+        run: |
+          cd tests
+          echo "features=$(grep -Rl '*** Test Cases ***' . | grep '.robot' | sed -e "s#^./##" | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
+
+  robot-test-run:
+    needs: [robot-test-list]
+    runs-on: ubuntu-22.04
+    container:
+      image: centreon.jfrog.io/docker/${{ inputs.image_name }}
+      credentials:
+        username: ${{ secrets.registry_username }}
+        password: ${{ secrets.registry_password }}
+    strategy:
+      fail-fast: false
+      matrix:
+        feature: ${{ fromJson(needs.robot-test-list.outputs.features) }}
+    name: ${{ matrix.feature }}
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Install RPM packages
+        uses: actions/cache@v3
+        with:
+          path: ./*.rpm
+          key: cache-${{ github.sha }}-rpmbuild-centreon-collect-${{ inputs.distrib }}-${{ github.head_ref || github.ref_name }}
+
+      - name: Test ${{ matrix.feature }}
+        run: bash ./.github/scripts/collect-test-robot.sh ${{ matrix.feature }}
+        shell: bash
+
+      - name: Move reports
+        if: ${{ !cancelled() }}
+        run: |
+          mkdir reports
+          FILE_PREFIX=`echo "${{ matrix.feature }}" | sed -e "s#/#__#g"`
+          mv tests/log.html reports/$FILE_PREFIX-log.html
+          mv tests/output.xml reports/$FILE_PREFIX-output.xml
+          mv tests/report.html reports/$FILE_PREFIX-report.html
+
+      - name: Upload Test Results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: robot-test-reports
+          path: reports
+
+  robot-test-report:
+    needs: [robot-test-run]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Download Artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: robot-test-reports
+          path: reports
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - run: |
+          pip3 install -U robotframework robotframework-databaselibrary pymysql python-dateutil
+          cd reports
+          rebot -o output.xml ./*-output.xml || true
+        shell: bash
+
+      - name: Send report to commit
+        uses: joonvena/robotframework-reporter-action@v2.1
+        with:
+          gh_access_token: ${{ secrets.GITHUB_TOKEN }}
+          report_path: reports

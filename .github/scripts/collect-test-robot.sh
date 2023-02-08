@@ -11,7 +11,8 @@ ssh-keygen -t ed25519 -f /etc/ssh/ssh_host_ed25519_key -P ""
 /usr/sbin/sshd > /dev/null 2>&1 &
 
 echo "########################### Start MariaDB ######################################"
-mariadbd --user=root > /dev/null 2>&1 &
+mysql_install_db --user=root --basedir=/usr --datadir=/var/lib/mysql
+mariadbd --socket=/var/lib/mysql/mysql.sock --user=root > /dev/null 2>&1 &
 sleep 5
 
 echo "########################### Init centreon database ############################"
@@ -29,37 +30,23 @@ echo "Installation..."
 /usr/bin/rpm -Uvvh --force --nodeps *.rpm
 
 echo "########################### Install Robot Framework ###########################"
-cd /src/tests/
+cd tests
 pip3 install -U robotframework robotframework-databaselibrary pymysql python-dateutil
 
 yum groupinstall "Development Tools" -y
 yum install python3-devel -y
 
-# Get OS version id
-VERSION_ID=$(grep '^VERSION_ID' /etc/os-release | sed -En 's/^VERSION_ID="([[:digit:]])\.[[:digit:]]"/\1/p')
+pip3 install grpcio grpcio_tools
 
-# Force version for el7 only
-if [ -f /etc/os-release ]; then
-    case "$VERSION_ID" in
-        7)
-            pip3 install grpcio==1.33.2 grpcio_tools==1.33.2
-            ;;
-        8)
-            pip3 install grpcio grpcio_tools
-            ;;
-        *)
-            echo "OS Version is neither 7 or 8"
-            ;;
-    esac
-fi
+echo "##### site-packages #####"
+find / -name site-packages
 
+echo "##### grpc #####"
+find / -name grpc
+
+echo "##### Starting tests #####"
 ./init-proto.sh
 
 echo "####################### Run Centreon Collect Robot Tests #######################"
-cd /src/tests/
-robot --nostatusrc .
-
-echo "########################### Generate Folder Report #############################"
-mkdir reports
-cp log.html output.xml report.html reports
+robot $1
 

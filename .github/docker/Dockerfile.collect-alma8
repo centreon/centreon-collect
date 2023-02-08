@@ -1,20 +1,23 @@
 FROM almalinux:8
 
+RUN <<EOF
+
 # Base dnf configuration.
-RUN echo 'http_caching=none' >> /etc/yum.conf && \
-    echo 'assumeyes=1' >> /etc/yum.conf && \
-    sed -i 's/best=True/best=False/g' /etc/dnf/dnf.conf && \
-    dnf install -y dnf-plugins-core
-RUN dnf config-manager --set-enabled powertools
+echo 'http_caching=none' >> /etc/yum.conf && \
+echo 'assumeyes=1' >> /etc/yum.conf && \
+sed -i 's/best=True/best=False/g' /etc/dnf/dnf.conf && \
+dnf install -y dnf-plugins-core
+dnf config-manager --set-enabled powertools
 
-RUN dnf install -y epel-release
+dnf install -y epel-release
 
-RUN curl -LsS "https://r.mariadb.com/downloads/mariadb_repo_setup" | bash -s -- --os-type=rhel --os-version=8 --mariadb-server-version="mariadb-10.5"
-RUN dnf install -y cmake \
+curl -LsS "https://r.mariadb.com/downloads/mariadb_repo_setup" | bash -s -- --os-type=rhel --os-version=8 --mariadb-server-version="mariadb-10.5"
+dnf install -y cmake \
     gcc \
     gcc-c++ \
     gettext \
     git \
+    ninja-build \
     MariaDB-devel \
     MariaDB-shared \
     MariaDB-client \
@@ -35,13 +38,23 @@ RUN dnf install -y cmake \
     rrdtool-devel \
     yum-utils \
     perl \
-    rpm-build
-RUN dnf update libarchive
+    rpm-build \
+    zstd
 
-RUN pip3 install conan --prefix=/usr --upgrade
-RUN rm -rf ~/.conan/profiles/default
+dnf update libarchive
+
+pip3 install conan --prefix=/usr --upgrade
+rm -rf ~/.conan/profiles/default
+
+EOF
+
 COPY conanfile.txt .
-RUN cat conanfile.txt
-RUN conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
+
+RUN <<EOF
+
+cat conanfile.txt
+conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
+
+EOF
 
 WORKDIR /src

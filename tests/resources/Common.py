@@ -156,7 +156,7 @@ def start_mysql():
         logger.console("Mariadb started with systemd")
     else:
         logger.console("Starting Mariadb directly")
-        Popen(["mariadbd", "--user=root"], stdout=DEVNULL, stderr=DEVNULL)
+        Popen(["mariadbd", "--socket=/var/lib/mysql/mysql.sock", "--user=root"], stdout=DEVNULL, stderr=DEVNULL)
         logger.console("Mariadb directly started")
 
 

@@ -84,9 +84,6 @@ broker/librokerbase.a
 broker/test/python/*.crt
 broker/test/python/*.key
 
-#ci
-ci/repo/*
-
 # clib
 clib/inc/com/centreon/clib/version.hh
 clib/script/*
