@@ -94,8 +94,7 @@ jobs:
       - run: |
           pip3 install -U robotframework robotframework-databaselibrary pymysql python-dateutil
           cd reports
-          rebot ./*-output.xml
-          ls
+          rebot -o output.xml ./*-output.xml || true
         shell: bash
 
       - name: Send report to commit
