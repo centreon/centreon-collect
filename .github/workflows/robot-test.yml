@@ -27,8 +27,7 @@ jobs:
         id: list-features
         run: |
           cd tests
-          #echo "features=$(find . -mindepth 1 -maxdepth 1 -type d -not -path "./resources" -printf "%P\n" | grep '.robot' | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
-          echo "features=$(grep -Rl '*** Test Cases ***' . | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
+          echo "features=$(grep -Rl '*** Test Cases ***' . | grep '.robot' | sed -e "s#^./##" | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
 
   robot-test-run:
     needs: [robot-test-list]
