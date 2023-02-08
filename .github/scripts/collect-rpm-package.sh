@@ -6,8 +6,6 @@ if [ -z "$VERSION" -o -z "$RELEASE" -o -z "$DISTRIB" ] ; then
   exit 1
 fi
 
-echo "########################### BUILDING COLLECT ############################"
-rebot --help
 if [ ! -d ~/rpmbuild/SOURCES ] ; then
     mkdir -p ~/rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
 fi

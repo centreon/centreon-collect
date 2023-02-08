@@ -33,6 +33,15 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v3
 
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - run: |
+          pip3 install -U robotframework robotframework-databaselibrary pymysql python-dateutil
+          rebot --help
+        shell: bash
+
       - name: Login to Registry
         uses: docker/login-action@v2
         with:
@@ -79,38 +88,38 @@ jobs:
           path: ./*.rpm
           retention-days: 1
 
-  package-deb:
-    runs-on: [self-hosted, collect]
-    strategy:
-      matrix:
-        include:
-          - image: debian-bullseye
-            distrib: bullseye
-    name: package ${{ matrix.distrib }}
+  # package-deb:
+  #   runs-on: [self-hosted, collect]
+  #   strategy:
+  #     matrix:
+  #       include:
+  #         - image: debian-bullseye
+  #           distrib: bullseye
+  #   name: package ${{ matrix.distrib }}
 
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v3
-        with:
-          path: centreon-collect
+  #   steps:
+  #     - name: Checkout sources
+  #       uses: actions/checkout@v3
+  #       with:
+  #         path: centreon-collect
 
-      - name: Login to Registry
-        uses: docker/login-action@v2
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.AUTOMATION_USERNAME }}
-          password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+  #     - name: Login to Registry
+  #       uses: docker/login-action@v2
+  #       with:
+  #         registry: ${{ env.REGISTRY }}
+  #         username: ${{ secrets.AUTOMATION_USERNAME }}
+  #         password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
 
-      - name: debmake ${{ matrix.image }}
-        uses: ./centreon-collect/.github/actions/runner-docker
-        with:
-          script_name: centreon-collect/.github/scripts/collect-deb-package
-          image_name: centreon-collect-${{ matrix.image }}
-          image_version: ${{ inputs.img_version }}
-          env_variable: -e DISTRIB="${{ matrix.distrib }}" -e VERSION="${{ inputs.version }}" -e RELEASE="${{ inputs.release }}"
+  #     - name: debmake ${{ matrix.image }}
+  #       uses: ./centreon-collect/.github/actions/runner-docker
+  #       with:
+  #         script_name: centreon-collect/.github/scripts/collect-deb-package
+  #         image_name: centreon-collect-${{ matrix.image }}
+  #         image_version: ${{ inputs.img_version }}
+  #         env_variable: -e DISTRIB="${{ matrix.distrib }}" -e VERSION="${{ inputs.version }}" -e RELEASE="${{ inputs.release }}"
 
-      - name: Use cache DEB files
-        uses: actions/cache@v3
-        with:
-          path: ./*.deb
-          key: cache-${{ github.sha }}-debbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
+  #     - name: Use cache DEB files
+  #       uses: actions/cache@v3
+  #       with:
+  #         path: ./*.deb
+  #         key: cache-${{ github.sha }}-debbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
