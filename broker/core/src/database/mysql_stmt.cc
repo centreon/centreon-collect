@@ -64,7 +64,7 @@ mysql_stmt::mysql_stmt(const std::string& query,
  */
 std::unique_ptr<mysql_bind> mysql_stmt::create_bind() {
   log_v2::sql()->trace("new mysql bind of stmt {}", get_id());
-  auto retval = std::make_unique<mysql_bind>(get_param_count(), 0);
+  auto retval = std::make_unique<mysql_bind>(get_param_count());
   return retval;
 }
 
