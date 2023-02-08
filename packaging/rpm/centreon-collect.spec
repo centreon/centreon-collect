@@ -262,6 +262,7 @@ cmake3 \
         .
 
 #%{__make} --build .
+ninja
 
 %install
 %{__rm} -rf $RPM_BUILD_ROOT
