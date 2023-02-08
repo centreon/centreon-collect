@@ -91,6 +91,8 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
+        with:
+          path: centreon-collect
 
       - name: Login to Registry
         uses: docker/login-action@v2
@@ -100,9 +102,9 @@ jobs:
           password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
 
       - name: debmake ${{ matrix.image }}
-        uses: ./.github/actions/runner-docker
+        uses: ./centreon-collect/.github/actions/runner-docker
         with:
-          script_name: .github/scripts/collect-deb-package
+          script_name: centreon-collect/.github/scripts/collect-deb-package
           image_name: centreon-collect-${{ matrix.image }}
           image_version: ${{ inputs.img_version }}
           env_variable: -e DISTRIB="${{ matrix.distrib }}" -e VERSION="${{ inputs.version }}" -e RELEASE="${{ inputs.release }}"
