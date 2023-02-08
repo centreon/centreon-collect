@@ -69,7 +69,6 @@ stream::stream(database_config const& dbcfg,
       //                      dbcfg.get_name(),
       //                      cleanup_check_interval),
       _pending_events{0},
-      _with_state_events(with_state_events),
       _stopped(false) {
   // FIXME DBR
   (void)cleanup_check_interval;

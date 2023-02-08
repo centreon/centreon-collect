@@ -1,17 +1,17 @@
 #
 # Copyright 2009-2021 Centreon
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License. You may obtain a copy of
+# the License at
 #
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations under
+# the License.
 #
 # For more information : contact@centreon.com
 #
@@ -22,20 +22,27 @@
 
 # Set necessary settings.
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_COLOR_DIAGNOSTICS ON)
 cmake_minimum_required(VERSION 3.16)
 project("Centreon Collect" C CXX)
 
-if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-  message(FATAL_ERROR "You can build broker with g++ or clang++. CMake will exit.")
+if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT CMAKE_CXX_COMPILER_ID
+                                                STREQUAL "Clang")
+  message(
+    FATAL_ERROR "You can build broker with g++ or clang++. CMake will exit.")
 endif()
 
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -stdlib=libc++")
-# set(CMAKE_CXX_COMPILER "clang++")
+option(WITH_CLANG "Compilation with clang" OFF)
+
 add_definitions("-D_GLIBCXX_USE_CXX11_ABI=1")
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+if(WITH_CLANG)
+  set(CMAKE_C_COMPILER "/usr/bin/clang")
+  set(CMAKE_CXX_COMPILER "/usr/bin/clang++")
+endif()
 set(ALLOW_DUPLICATE_EXECUTABLE TRUE)
 
 set(BUILD_ARGS "-w" "dupbuild=warn")
@@ -44,8 +51,7 @@ set(BUILD_ARGS "-w" "dupbuild=warn")
 # Get distributions name
 #
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-  file(STRINGS "/etc/os-release" release
-    REGEX "^ID")
+  file(STRINGS "/etc/os-release" release REGEX "^ID")
 
   foreach(l ${release})
     if(${l} MATCHES "ID_LIKE=.*")
@@ -60,9 +66,12 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   string(TOLOWER "${like}" like)
   string(TOLOWER "${id}" id)
 
-  if(("${id}" MATCHES "debian") OR("${like}" MATCHES "debian") OR("${id}" MATCHES "ubuntu") OR("${like}" MATCHES "ubuntu"))
+  if(("${id}" MATCHES "debian")
+     OR ("${like}" MATCHES "debian")
+     OR ("${id}" MATCHES "ubuntu")
+     OR ("${like}" MATCHES "ubuntu"))
     set(OS_DISTRIBUTOR "Debian")
-  elseif(("${id}" MATCHES "centos") OR("${like}" MATCHES "centos"))
+  elseif(("${id}" MATCHES "centos") OR ("${like}" MATCHES "centos"))
     set(OS_DISTRIBUTOR "CentOS")
   else()
     message(WARNING "lsb_release in not installed")
@@ -90,7 +99,7 @@ add_definitions(-DCENTREON_CONNECTOR_VERSION=\"${COLLECT_VERSION}\")
 set(USER_BROKER centreon-broker)
 set(USER_ENGINE centreon-engine)
 
-# #################################
+# ##############################################################################
 include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup(TARGETS)
 
@@ -103,11 +112,16 @@ message(NOTICE "-- use protoc compiler: ${Protobuf_PROTOC_EXECUTABLE}")
 include(GNUInstallDirs)
 
 # var directories.
-set(BROKER_VAR_LOG_DIR "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/log/centreon-broker")
-set(BROKER_VAR_LIB_DIR "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/lib/centreon-broker")
-set(ENGINE_VAR_LOG_DIR "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/log/centreon-engine")
-set(ENGINE_VAR_LOG_ARCHIVE_DIR "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/log/centreon-engine/archives")
-set(ENGINE_VAR_LIB_DIR "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/lib/centreon-engine")
+set(BROKER_VAR_LOG_DIR
+    "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/log/centreon-broker")
+set(BROKER_VAR_LIB_DIR
+    "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/lib/centreon-broker")
+set(ENGINE_VAR_LOG_DIR
+    "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/log/centreon-engine")
+set(ENGINE_VAR_LOG_ARCHIVE_DIR
+    "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/log/centreon-engine/archives")
+set(ENGINE_VAR_LIB_DIR
+    "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/lib/centreon-engine")
 
 set(CMAKE_INSTALL_PREFIX "/usr")
 option(WITH_TESTING "Build unit tests." OFF)
@@ -122,22 +136,23 @@ option(WITH_DEBUG_ASIO "Add the Asio debugging flags." OFF)
 
 if(WITH_DEBUG_ASIO)
   set(CMAKE_BUILD_TYPE Debug)
-  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DASIO_ENABLE_BUFFER_DEBUGGING -DASIO_ENABLE_HANDLER_TRACKING")
+  set(CMAKE_CXX_FLAGS_DEBUG
+      "${CMAKE_CXX_FLAGS_DEBUG} -DASIO_ENABLE_BUFFER_DEBUGGING -DASIO_ENABLE_HANDLER_TRACKING"
+  )
 endif()
 
 if(WITH_TESTING AND WITH_COVERAGE)
   set(CMAKE_BUILD_TYPE "Debug")
   include(cmake/CodeCoverage.cmake)
-  APPEND_COVERAGE_COMPILER_FLAGS()
+  append_coverage_compiler_flags()
 endif()
 
 set(protobuf_MODULE_COMPATIBLE True)
 
 add_definitions(${spdlog_DEFINITIONS})
 
-include_directories(${CMAKE_SOURCE_DIR}
-  ${CONAN_INCLUDE_DIRS}
-  ${CMAKE_SOURCE_DIR}/clib/inc)
+include_directories(${CMAKE_SOURCE_DIR} ${CONAN_INCLUDE_DIRS}
+                    ${CMAKE_SOURCE_DIR}/clib/inc)
 
 add_subdirectory(bbdo)
 add_subdirectory(broker)
@@ -146,23 +161,12 @@ add_subdirectory(engine)
 add_subdirectory(connectors)
 add_subdirectory(ccc)
 
-add_custom_target(test-broker
-  COMMAND tests/ut_broker
-)
-add_custom_target(test-engine
-  COMMAND tests/ut_engine
-)
-add_custom_target(test-clib
-  COMMAND tests/ut_clib
-)
-add_custom_target(test-connector
-  COMMAND tests/ut_connector
-)
+add_custom_target(test-broker COMMAND tests/ut_broker)
+add_custom_target(test-engine COMMAND tests/ut_engine)
+add_custom_target(test-clib COMMAND tests/ut_clib)
+add_custom_target(test-connector COMMAND tests/ut_connector)
 
-add_custom_target(test
-  DEPENDS test-broker test-engine test-clib test-connector
-)
+add_custom_target(test DEPENDS test-broker test-engine test-clib test-connector)
 
-add_custom_target(test-coverage
-  DEPENDS broker-test-coverage engine-test-coverage clib-test-coverage
-)
+add_custom_target(test-coverage DEPENDS broker-test-coverage
+                                        engine-test-coverage clib-test-coverage)

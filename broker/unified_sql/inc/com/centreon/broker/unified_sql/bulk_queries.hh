@@ -59,7 +59,6 @@ class bulk_queries {
   const std::string _query;
   mutable std::mutex _queue_m;
   std::time_t _next_time;
-  uint32_t _max_queries = 0u;
   std::deque<std::string> _queue;
 
  public:

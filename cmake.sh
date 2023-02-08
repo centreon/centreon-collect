@@ -170,7 +170,6 @@ elif [ -r /etc/issue ] ; then
       gcc
       g++
       pkg-config
-      libmariadb3
       librrd-dev
       libgnutls28-dev
       ninja-build
