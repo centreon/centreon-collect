@@ -32,11 +32,16 @@ jobs:
       credentials:
         username: ${{ secrets.AUTOMATION_USERNAME }}
         password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+      options: --cpus 8
     name: package ${{ matrix.distrib }}
 
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
+
+      - run: |
+          cat /etc/default/docker
+          ls /etc/docker
 
       #- uses: lukka/get-cmake@latest
 
