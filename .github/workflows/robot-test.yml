@@ -62,9 +62,9 @@ jobs:
         run: |
           mkdir reports
           FILE_PREFIX=`echo "${{ matrix.feature }}" | sed -e "s#/#__#g"`
-          mv tests/log.html reports/${{ matrix.feature }}-log.html
-          mv tests/output.xml reports/${{ matrix.feature }}-output.xml
-          mv tests/report.html reports/${{ matrix.feature }}-report.html
+          mv tests/log.html reports/$FILE_PREFIX-log.html
+          mv tests/output.xml reports/$FILE_PREFIX-output.xml
+          mv tests/report.html reports/$FILE_PREFIX-report.html
 
       - name: Upload Test Results
         if: ${{ !cancelled() }}
