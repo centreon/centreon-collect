@@ -6,6 +6,5 @@ ignore: {}
 exclude:
    code:
      - tests/**/*
-     - ci/**/*
      - packaging/**/*
      - "**/deps.go"

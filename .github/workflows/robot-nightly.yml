@@ -1,4 +1,9 @@
-name: centreon collect nightly robot
+name: robot-nightly
+run-name: nightly robot ${{ github.head_ref || github.ref_name }}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
 
 on:
   workflow_dispatch:
@@ -8,73 +13,102 @@ on:
   schedule:
     - cron: '0 0 * * *'
 
-env:
-  REGISTRY: docker.centreon.com
-
 jobs:
-  robot-test:
-    runs-on: [self-hosted, collect]
-    strategy:
-      matrix:
-        # branch: [develop, master]
-        include:
-          - image: centreon-collect-alma8
-            distrib: el8
-            folder_report: tests/
-          - image: centreon-collect-alma9
-            distrib: el9
-            folder_report: tests/
+  dispatch-to-maintained-branches:
+    if: ${{ github.event_name == 'schedule' && github.ref_name == 'develop' }}
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
 
-      - id: version
-        run: |
-          IMG_VERSION=$(md5sum conanfile.txt | awk '{print substr($1, 0, 8)}')
-          echo "imgversion=$IMG_VERSION" >> $GITHUB_ENV
-          VERSION=$(awk '$1 ~ "COLLECT_MAJOR" {maj=substr($2, 1, length($2)-1)} $1 ~ "COLLECT_MINOR" {min=substr($2, 1, length($2)-1) ; print maj "." min}' CMakeLists.txt)
-          PATCH=$(awk '$1 ~ "COLLECT_PATCH" {print substr($2, 1, length($2) - 1)}' CMakeLists.txt)
-          echo "version=$VERSION" >> $GITHUB_ENV
-          echo "patch=$PATCH" >> $GITHUB_ENV
-
-          if [[ -z "$GITHUB_HEAD_REF" ]] ; then
-            BRANCHNAME="$GITHUB_REF_NAME"
-          else
-            BRANCHNAME="$GITHUB_HEAD_REF"
-          fi
-          case "$BRANCHNAME" in
-            master | [2-9][0-9].[0-9][0-9].x | release* | hotfix*)
-              echo "release=$GITHUB_RUN_ATTEMPT" >> $GITHUB_ENV
-              ;;
-            *)
-              echo "release=`date +%s`.`echo ${{ github.sha }} | cut -c -7`" >> $GITHUB_OUTPUT
-              echo "release=`date +%s`.`echo ${{ github.sha }} | cut -c -7`" >> $GITHUB_ENV
-              ;;
-          esac
+      - run: |
+          gh workflow run robot-nightly.yml -r "dev-22.10.x"
+          gh workflow run robot-nightly.yml -r "dev-22.04.x"
+          gh workflow run robot-nightly.yml -r "dev-21.10.x"
         shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install RPM packages
-        uses: actions/cache@v3
-        with:
-          path: ./*.rpm
-          key: cache-${{ github.sha }}-rpmbuild-centreon-collect-${{ inputs.distrib }}-${{ github.head_ref || github.ref_name }}
+  get-version:
+    uses: ./.github/workflows/get-version.yml
 
-      - name: Login to Registry
-        uses: docker/login-action@v2
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.REPOS_USERNAME }}
-          password: ${{ secrets.REPOS_PASSWORD }}
+  package:
+    needs: [get-version]
+    uses: ./.github/workflows/package-collect.yml
+    with:
+      version: ${{ needs.get-version.outputs.version }}.${{ needs.get-version.outputs.patch }}
+      img_version: ${{ needs.get-version.outputs.img_version }}
+      release: ${{ needs.get-version.outputs.release }}
+    secrets: inherit
 
-      - name: Tests robot
-        uses: ./.github/actions/runner-docker
-        with:
-          script_name: /src/ci/scripts/collect-test-robot
-          image_name: ${{ matrix.image }}
-          image_version: ${{ env.imgversion }}
+  robot-test:
+    needs: [get-version, package]
+    strategy:
+      matrix:
+        include:
+          - image: centreon-collect-alma9
+            distrib: el9
+    name: robot test ${{ matrix.distrib }}
 
-      - name: Send report to commit
-        uses: joonvena/robotframework-reporter-action@v2.1
+    uses: ./.github/workflows/robot-test.yml
+    with:
+      image_name: ${{ matrix.image }}:${{ needs.get-version.outputs.img_version }}
+      distrib: ${{ matrix.distrib }}
+    secrets:
+      registry_username: ${{ secrets.AUTOMATION_USERNAME }}
+      registry_password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+
+  deliver-rpm:
+    if: ${{ contains(fromJson('["unstable"]'), needs.get-version.outputs.stability) }}
+    needs: [robot-test, get-version]
+    runs-on: [self-hosted, common]
+    strategy:
+      matrix:
+        distrib: [el8, el9]
+    name: deliver ${{ matrix.distrib }}
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Publish RPM packages
+        uses: ./.github/actions/delivery
         with:
-          gh_access_token: ${{ secrets.GITHUB_TOKEN }}
-          report_path: ${{ matrix.folder_report }}
+          distrib: ${{ matrix.distrib }}
+          version: ${{ needs.get-version.outputs.version }}
+          minor_version: ${{ needs.get-version.outputs.patch }}
+          release: ${{ needs.get-version.outputs.release }}
+          module_name: centreon-collect
+          nexus_username: ${{ secrets.NEXUS_USERNAME }}
+          nexus_password: ${{ secrets.NEXUS_PASSWORD }}
+          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+          cache_key: cache-${{ github.sha }}-rpmbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
+          update_repo_path: ${{ secrets.UPDATE_REPO_PATH }}
+          cloudfront_id: ${{ secrets.CLOUDFRONT_ID }}
+          yum_repo_address: ${{ secrets.YUM_REPO_ADDRESS }}
+          yum_repo_key: ${{ secrets.YUM_REPO_KEY }}
+          yum_repo_url: ${{ secrets.YUM_REPO_URL }}
+
+  deliver-deb:
+    if: ${{ contains(fromJson('["unstable"]'), needs.get-version.outputs.stability) }}
+    needs: [robot-test, get-version]
+    runs-on: [self-hosted, common]
+    strategy:
+      matrix:
+        distrib: [bullseye]
+    name: deliver ${{ matrix.distrib }}
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Publish DEB packages
+        uses: ./.github/actions/delivery
+        with:
+          distrib: ${{ matrix.distrib }}
+          repository_name: standard
+          version: ${{ needs.get-version.outputs.version }}
+          repos_username: ${{ secrets.NEXUS_USERNAME }}
+          repos_password: ${{ secrets.NEXUS_PASSWORD }}
+          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+          cache_key: cache-${{ github.sha }}-debbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}

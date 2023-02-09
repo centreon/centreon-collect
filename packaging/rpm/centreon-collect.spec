@@ -245,6 +245,7 @@ pip3 install conan --upgrade
 conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
 
 cmake3 \
+        -G "Ninja" \
         -DWITH_TESTING=0 \
         -DWITH_BENCH=1 \
         -DCMAKE_INSTALL_PREFIX=/usr \
@@ -259,7 +260,8 @@ cmake3 \
         -DWITH_CONFIG_FILES=y \
         -DCMAKE_BUILD_TYPE=RelWithDebInfo \
         .
-%{__make} %{?_smp_mflags}
+
+ninja -j 8
 
 %install
 %{__rm} -rf $RPM_BUILD_ROOT
@@ -280,7 +282,8 @@ cmake3 \
 touch $RPM_BUILD_ROOT%{_localstatedir}/log/centreon-engine/centengine.debug
 %{__install} -d $RPM_BUILD_ROOT%{_datadir}/centreon-engine/extra
 %{__cp} %SOURCE1 $RPM_BUILD_ROOT%{_datadir}/centreon-engine/extra/integrate_centreon_engine2centreon.sh
-%{__make} install DESTDIR="$RPM_BUILD_ROOT"
+
+DESTDIR="$RPM_BUILD_ROOT" ninja -j 8 install
 
 %clean
 %{__rm} -rf $RPM_BUILD_ROOT
