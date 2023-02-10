@@ -1,0 +1,17 @@
+Source: centreon-stream-connectors-lib
+Section: interpreters
+Priority: optional
+Maintainer: Centreon <contact@centreon.com>
+Build-Depends:
+  debhelper-compat (=12),
+  dh-lua (>= 21)
+Standards-Version: 4.5.0
+Homepage: https://wwww.centreon.com
+
+Package: centreon-stream-connectors-lib
+Architecture: all
+Depends:
+  lua (>= 5.3),
+  lua (< 5.4),
+  lua-socket (>= 3.0)
+Description: Centreon stream connectors lua modules

@@ -10,7 +10,7 @@ description = {
       Those modules provides helpful methods to create
       stream connectors for Centreon
    ]],
-   license = ""
+   license = "Apache-2.0"
 }
 dependencies = {
    "lua >= 5.1, < 5.4",
