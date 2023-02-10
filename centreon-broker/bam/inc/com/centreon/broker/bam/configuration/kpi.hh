@@ -37,23 +37,23 @@ namespace configuration {
 class kpi {
  public:
   typedef impact_values::state state;
-  kpi(uint32_t id = 0,
-      short state_type = 0,
-      uint32_t host_id = 0,
-      uint32_t service_id = 0,
-      uint32_t ba_id = 0,
-      uint32_t indicator_ba = 0,
-      uint32_t meta_id = 0,
-      uint32_t boolexp_id = 0,
-      short status = 0,
-      short last_level = 0,
-      bool downtimed = false,
-      bool acknowledged = false,
-      bool ignoredowntime = false,
-      bool ignoreacknowledgement = false,
-      double warning = 0,
-      double critical = 0,
-      double unknown = 0);
+  kpi(uint32_t id,
+      short state_type,
+      uint32_t host_id,
+      uint32_t service_id,
+      uint32_t ba_id,
+      uint32_t indicator_ba,
+      uint32_t meta_id,
+      uint32_t boolexp_id,
+      short status,
+      bool downtimed,
+      bool acknowledged,
+      bool ignoredowntime,
+      bool ignoreacknowledgement,
+      double warning,
+      double critical,
+      double unknown);
+  kpi();
   kpi(kpi const& other);
   ~kpi();
   kpi& operator=(kpi const& other);
