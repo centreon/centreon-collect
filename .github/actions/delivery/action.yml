@@ -51,7 +51,7 @@ runs:
       shell: bash
       if: ${{ inputs.distrib == 'el7' || inputs.distrib == 'el8' }}
       run: |
-        echo "build=rpmbuild-centreon-collect" >> $GITHUB_ENV
+        #echo "build=rpmbuild-centreon-collect" >> $GITHUB_ENV
         echo "extfile=rpm" >> $GITHUB_ENV
 
     - name: Build name for DEB
