@@ -27,7 +27,7 @@
 using namespace com::centreon::engine;
 using namespace spdlog;
 
-std::shared_ptr<log_v2> log_v2::_instance;
+std::unique_ptr<log_v2> log_v2::_instance = nullptr;
 
 void log_v2::load(const std::shared_ptr<asio::io_context>& io_context) {
   _instance.reset(new log_v2(io_context));
@@ -38,15 +38,11 @@ log_v2& log_v2::instance() {
 }
 
 log_v2::log_v2(const std::shared_ptr<asio::io_context>& io_context)
-    : log_v2_base("engine"),
-      _running{false},
-      _flush_timer(*io_context),
-      _flush_timer_active(true),
-      _io_context(io_context) {
+    : log_v2_base<13>("engine", 0, "", io_context) {
   auto stdout_sink = std::make_shared<sinks::stdout_sink_mt>();
   auto create_logger = [&](const std::string& name, level::level_enum lvl) {
     spdlog::drop(name);
-    auto log = std::make_shared<log_v2_logger>(name, this, stdout_sink);
+    auto log = std::make_shared<spdlog::logger>(name, stdout_sink);
     log->set_level(lvl);
     log->flush_on(lvl);
     log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
@@ -77,7 +73,7 @@ log_v2::log_v2(const std::shared_ptr<asio::io_context>& io_context)
   _log[log_v2::log_runtime] =
       create_logger("runtime", level::from_str("error"));
 
-  _log[log_v2::log_process]->info("{} : log started", _log_name);
+  _log[log_v2::log_process]->info("{} : log started", log_name());
 
   _running = true;
 }
@@ -99,8 +95,9 @@ void log_v2::apply(const configuration::state& config) {
   if (config.log_v2_enabled()) {
     if (config.log_v2_logger() == "file") {
       if (config.log_file() != "") {
-        _file_path = config.log_file();
-        sink_to_flush = std::make_shared<sinks::basic_file_sink_mt>(_file_path);
+        set_file_path(config.log_file());
+        sink_to_flush =
+            std::make_shared<sinks::basic_file_sink_mt>(file_path());
       } else {
         log_v2::config()->error("log_file name is empty");
         sink_to_flush = std::make_shared<sinks::stdout_sink_mt>();
@@ -119,8 +116,7 @@ void log_v2::apply(const configuration::state& config) {
 
   auto create_logger = [&](const std::string& name, level::level_enum lvl) {
     spdlog::drop(name);
-    auto log =
-        std::make_shared<log_v2_logger>(name, this, begin(sinks), end(sinks));
+    auto log = std::make_shared<spdlog::logger>(name, begin(sinks), end(sinks));
     log->set_level(lvl);
     if (config.log_flush_period())
       log->flush_on(level::warn);
@@ -174,70 +170,9 @@ void log_v2::apply(const configuration::state& config) {
   _flush_interval = std::chrono::seconds(
       config.log_flush_period() > 0 ? config.log_flush_period() : 2);
 
-  if (sink_to_flush) {
+  if (sink_to_flush)
     start_flush_timer(sink_to_flush);
-  } else {
-    std::lock_guard<std::mutex> l(_flush_timer_m);
-    _flush_timer.cancel();
-  }
+  else
+    stop_flush_timer();
   _running = true;
-}
-
-/**
- * @brief logs are written periodicaly to disk
- *
- * @param sink
- */
-void log_v2::start_flush_timer(spdlog::sink_ptr sink) {
-  std::lock_guard<std::mutex> l(_flush_timer_m);
-  _flush_timer.expires_after(_flush_interval);
-  _flush_timer.async_wait(
-      [me = shared_from_this(), sink](const asio::error_code& err) {
-        if (err || !me->_flush_timer_active) {
-          return;
-        }
-        sink->flush();
-        me->start_flush_timer(sink);
-      });
-}
-
-/**
- * @brief stop flush timer
- *
- */
-void log_v2::stop_flush_timer() {
-  std::lock_guard<std::mutex> l(_flush_timer_m);
-  _flush_timer_active = false;
-  _flush_timer.cancel();
-}
-
-/**
- * @brief this private static method is used to access a specific logger
- *
- * @param log_type
- * @param log_str
- * @return std::shared_ptr<spdlog::logger>
- */
-std::shared_ptr<spdlog::logger> log_v2::get_logger(logger log_type,
-                                                   const char* log_str) {
-  if (_instance->_running)
-    return _instance->_log[log_type];
-  else {
-    auto null_sink = std::make_shared<sinks::null_sink_mt>();
-    return std::make_shared<spdlog::logger>(log_str, null_sink);
-  }
-}
-
-/**
- * @brief Check if the given level makes part of the available levels.
- *
- * @param level A level as a string
- *
- * @return A boolean.
- */
-
-bool log_v2::contains_level(const std::string& level_name) {
-  auto level = level::from_str(level_name);
-  // ignore unrecognized level names
-  return !(level == level::off && level_name != "off");
 }

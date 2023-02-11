@@ -55,6 +55,7 @@ endif()
 include_directories("${PROJECT_SOURCE_DIR}/core/inc")
 include_directories("${PROJECT_SOURCE_DIR}/neb/inc")
 include_directories("${CMAKE_SOURCE_DIR}/engine/inc")
+include_directories("${CMAKE_SOURCE_DIR}/clib/inc")
 set(INC_DIR "${PROJECT_SOURCE_DIR}/core/inc/com/centreon/broker")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/core/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/core/test")
@@ -441,13 +442,14 @@ add_dependencies(rokerbase berpc)
 target_link_libraries(
   rokerbase
   CONAN_PKG::zlib
-  CONAN_PKG::spdlog
+#CONAN_PKG::spdlog
   CONAN_PKG::openssl
   CONAN_PKG::mariadb-connector-c
   pthread
   dl
   berpc
-  bbdo_bbdo)
+  bbdo_bbdo
+  centreon_log)
 
 add_library(roker STATIC ${SRC_DIR}/config/applier/init.cc)
 target_link_libraries(roker rokerbase dl CONAN_PKG::openssl CONAN_PKG::grpc

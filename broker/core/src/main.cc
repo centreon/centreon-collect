@@ -84,7 +84,7 @@ static void hup_handler(int signum) {
     config::parser parsr;
     config::state conf{parsr.parse(gl_mainconfigfiles.front())};
     try {
-      log_v2::instance().apply(conf);
+      log_v2::instance().apply(conf.log_conf());
     } catch (const std::exception& e) {
       log_v2::core()->error("problem while reloading cbd: {}", e.what());
     }
@@ -149,6 +149,7 @@ int main(int argc, char* argv[]) {
   std::string default_listen_address{"localhost"};
 
   log_v2::load(g_io_context);
+  log_v2::instance().apply(gl_state.log_conf());
 
   // Set configuration update handler.
   if (signal(SIGHUP, hup_handler) == SIG_ERR) {
@@ -252,7 +253,7 @@ int main(int argc, char* argv[]) {
         config::parser parsr;
         config::state conf{parsr.parse(gl_mainconfigfiles.front())};
         try {
-          log_v2::instance().apply(conf);
+          log_v2::instance().apply(conf.log_conf());
         } catch (const std::exception& e) {
           log_v2::core()->error("{}", e.what());
         }

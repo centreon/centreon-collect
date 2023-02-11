@@ -23,6 +23,7 @@
 #include "com/centreon/broker/file/opener.hh"
 #include "com/centreon/broker/file/stream.hh"
 #include "com/centreon/broker/log_v2.hh"
+#include "com/centreon/broker/stats/center.hh"
 
 using namespace com::centreon::broker;
 

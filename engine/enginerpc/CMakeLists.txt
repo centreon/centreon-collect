@@ -63,7 +63,7 @@ add_library(
   ${ENGINERPC_DIR}/engine.pb.cc
   ${ENGINERPC_DIR}/engine.grpc.pb.h
   ${ENGINERPC_DIR}/engine.pb.h)
-target_link_libraries(cerpc CONAN_PKG::protobuf)
+target_link_libraries(cerpc CONAN_PKG::protobuf centreon_log)
 
 # mod_enginerpc target.
 add_library(

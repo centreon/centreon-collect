@@ -1,5 +1,5 @@
 /*
-** Copyright 2020-2022 Centreon
+** Copyright 2020-2023 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@
 #include <spdlog/sinks/null_sink.h>
 #include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
+#include "com/centreon/broker/config/state.hh"
 
 #include "com/centreon/exceptions/msg_fmt.hh"
 
@@ -29,79 +30,73 @@ using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
 using namespace spdlog;
 
-std::shared_ptr<log_v2> log_v2::_instance;
-
-void log_v2::load(const std::shared_ptr<asio::io_context>& io_context) {
-  _instance.reset(new log_v2(io_context));
-}
-
-log_v2& log_v2::instance() {
-  return *_instance;
-}
+std::unique_ptr<log_v2> log_v2::_instance = nullptr;
 
 log_v2::log_v2(const std::shared_ptr<asio::io_context>& io_context)
-    : log_v2_base("broker"),
-      _running{false},
-      _flush_timer(*io_context),
-      _flush_timer_active(true),
-      _io_context(io_context) {
+    : log_v2_base<17>("broker", 0, "", io_context) {
   auto stdout_sink = std::make_shared<sinks::stdout_color_sink_mt>();
   auto create_logger = [&](const std::string& name) {
-    auto log = std::make_shared<com::centreon::engine::log_v2_logger>(
-        name, this, stdout_sink);
+    auto log = std::make_shared<spdlog::logger>(name, stdout_sink);
     log->flush_on(level::info);
     spdlog::register_logger(log);
     return log;
   };
 
-  _log[log_v2::log_bam] = create_logger("bam");
-  _log[log_v2::log_bbdo] = create_logger("bbdo");
-  _log[log_v2::log_config] = create_logger("config");
-  _log[log_v2::log_core] = create_logger("core");
-  _log[log_v2::log_graphite] = create_logger("graphite");
-  _log[log_v2::log_notification] = create_logger("notification");
-  _log[log_v2::log_rrd] = create_logger("rrd");
-  _log[log_v2::log_stats] = create_logger("stats");
-  _log[log_v2::log_influxdb] = create_logger("influxdb");
-  _log[log_v2::log_lua] = create_logger("lua");
-  _log[log_v2::log_neb] = create_logger("neb");
-  _log[log_v2::log_perfdata] = create_logger("perfdata");
-  _log[log_v2::log_processing] = create_logger("processing");
-  _log[log_v2::log_sql] = create_logger("sql");
-  _log[log_v2::log_tcp] = create_logger("tcp");
-  _log[log_v2::log_tls] = create_logger("tls");
-  _log[log_v2::log_grpc] = create_logger("grpc");
+  set_logger(log_v2::log_bam, create_logger("bam"));
+  set_logger(log_v2::log_bbdo, create_logger("bbdo"));
+  set_logger(log_v2::log_config, create_logger("config"));
+  set_logger(log_v2::log_core, create_logger("core"));
+  set_logger(log_v2::log_graphite, create_logger("graphite"));
+  set_logger(log_v2::log_notification, create_logger("notification"));
+  set_logger(log_v2::log_rrd, create_logger("rrd"));
+  set_logger(log_v2::log_stats, create_logger("stats"));
+  set_logger(log_v2::log_influxdb, create_logger("influxdb"));
+  set_logger(log_v2::log_lua, create_logger("lua"));
+  set_logger(log_v2::log_neb, create_logger("neb"));
+  set_logger(log_v2::log_perfdata, create_logger("perfdata"));
+  set_logger(log_v2::log_processing, create_logger("processing"));
+  set_logger(log_v2::log_sql, create_logger("sql"));
+  set_logger(log_v2::log_tcp, create_logger("tcp"));
+  set_logger(log_v2::log_tls, create_logger("tls"));
+  set_logger(log_v2::log_grpc, create_logger("grpc"));
   _running = true;
 }
 
-log_v2::~log_v2() {
+log_v2::~log_v2() noexcept {
   core()->info("log finished");
+  stop_flush_timer();
   _running = false;
   for (auto& l : _log)
     l.reset();
 }
 
-void log_v2::apply(const config::state& conf) {
-  std::lock_guard<std::mutex> lock(_load_m);
+void log_v2::apply(const config::log& log) {
+  std::lock_guard<std::mutex> lock(_apply_m);
   _running = false;
-
-  const auto& log = conf.log_conf();
 
   // reset loggers to null sink
   auto null_sink = std::make_shared<sinks::null_sink_mt>();
   std::shared_ptr<sinks::base_sink<std::mutex>> file_sink;
+  std::shared_ptr<sinks::stdout_color_sink_mt> stdout_sink;
 
-  _file_path = log.log_path();
-  if (log.max_size)
-    file_sink = std::make_shared<sinks::rotating_file_sink_mt>(
-        _file_path, log.max_size, 99);
-  else
-    file_sink = std::make_shared<sinks::basic_file_sink_mt>(_file_path);
+  set_file_path(log.log_path());
+  if (file_path().empty())
+    stdout_sink = std::make_shared<sinks::stdout_color_sink_mt>();
+  else {
+    if (log.max_size)
+      file_sink = std::make_shared<sinks::rotating_file_sink_mt>(
+          file_path(), log.max_size, 99);
+    else
+      file_sink = std::make_shared<sinks::basic_file_sink_mt>(file_path());
+  }
 
   auto create_log = [&](const std::string& name, level::level_enum lvl) {
     spdlog::drop(name);
-    auto logger = std::make_shared<com::centreon::engine::log_v2_logger>(
-        name, this, file_sink);
+    std::shared_ptr<spdlog::logger> logger;
+    if (stdout_sink)
+      logger = std::make_shared<spdlog::logger>(name, stdout_sink);
+    else
+      logger = std::make_shared<spdlog::logger>(name, file_sink);
     logger->set_level(lvl);
     if (lvl != level::off) {
       if (log.flush_period)
@@ -115,7 +110,7 @@ void log_v2::apply(const config::state& conf) {
   };
 
   _log[log_v2::log_core] = create_log("core", level::info);
-  core()->info("{} : log started", _log_name);
+  core()->info("{} : log started", log_name());
 
   absl::flat_hash_map<std::string, int32_t> lgs{
       {"bam", log_v2::log_bam},
@@ -158,30 +153,6 @@ void log_v2::apply(const config::state& conf) {
 }
 
 /**
- * @brief logs are written periodicaly to disk
- *
- * @param sink
- */
-void log_v2::start_flush_timer(spdlog::sink_ptr sink) {
-  std::lock_guard<std::mutex> l(_flush_timer_m);
-  _flush_timer.expires_after(_flush_interval);
-  _flush_timer.async_wait(
-      [me = shared_from_this(), sink](const asio::error_code& err) {
-        if (err || !me->_flush_timer_active) {
-          return;
-        }
-        sink->flush();
-        me->start_flush_timer(sink);
-      });
-}
-
-void log_v2::stop_flush_timer() {
-  std::lock_guard<std::mutex> l(_flush_timer_m);
-  _flush_timer_active = false;
-  _flush_timer.cancel();
-}
-
-/**
  * @brief Check if the given logger makes part of our loggers
  *
  * @param logger A logger name
@@ -216,39 +187,6 @@ std::vector<std::pair<std::string, std::string>> log_v2::levels() const {
 }
 
 /**
- * @brief this private static method is used to access a specific logger
- *
- * @param log_type
- * @param log_str
- * @return std::shared_ptr<spdlog::logger>
- */
-std::shared_ptr<spdlog::logger> log_v2::get_logger(logger log_type,
-                                                   const char* log_str) {
-  if (_instance->_running)
-    return _instance->_log[log_type];
-  else {
-    auto null_sink = std::make_shared<sinks::null_sink_mt>();
-    return std::make_shared<spdlog::logger>(log_str, null_sink);
-  }
-}
-
-/**
- * @brief Check if the given level makes part of the available levels.
- *
- * @param level A level as a string
- *
- * @return A boolean.
- */
-bool log_v2::contains_level(const std::string& level) {
-  /* spdlog wants 'off' to disable a log but we tolerate 'disabled' */
-  if (level == "disabled" || level == "off")
-    return true;
-
-  level::level_enum l = level::from_str(level);
-  return l != level::off;
-}
-
-/**
  * @brief Set the level of a logger.
  *
  * @param logger The logger name
@@ -274,4 +212,9 @@ void log_v2::set_level(const std::string& logger, const std::string& level) {
         "Unable to change '{}' logger level, the logger is not running for now "
         "- try later.",
         logger);
+}
+
+void log_v2::load(const std::shared_ptr<asio::io_context>& io_context) {
+  if (!_instance)
+    _instance = std::make_unique<log_v2>(io_context);
 }
