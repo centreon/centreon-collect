@@ -42,13 +42,23 @@ service Broker {
   rpc GetLogInfo(GenericString) returns (LogInfo) {}
 
   /**
-  * @brief Set a param of loggers.
+  * @brief Set log level of loggers.
   *
   * @param A message with a logger and a level as strings.
   *
   * @return nothing.
   */
-  rpc SetLogParam(LogParam) returns (google.protobuf.Empty) {}
+  rpc SetLogLevel(LogLevel) returns (google.protobuf.Empty) {}
+
+  /**
+   * @brief Set log flush period.
+   *
+   * @param A message with a non negative integer. If 0, the flush is always
+   * enabled.
+   *
+   * @return nothing.
+   */
+  rpc SetLogFlushPeriod(GenericInt) returns (google.protobuf.Empty) {}
 }
 
 message Version {
@@ -64,16 +74,9 @@ message LogInfo {
   map<string, string> level = 4;
 }
 
-
-message LogParam {
-  enum LogParamType {
-    NONE =0;
-    FLUSH_PERIOD = 1;
-    LOG_LEVEL = 2;
-  }
-  LogParamType param = 1;
-  string name = 2;
-  string value = 3;
+message LogLevel {
+  string name = 1;
+  string log_level = 3;
 }
 
 message GenericString {

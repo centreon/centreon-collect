@@ -91,8 +91,11 @@ class broker_impl final : public Broker::Service {
   grpc::Status GetLogInfo(grpc::ServerContext* context [[maybe_unused]],
                           const GenericString* request,
                           LogInfo* response) override;
-  grpc::Status SetLogParam(grpc::ServerContext* context [[maybe_unused]],
-                           const LogParam* request,
+  grpc::Status SetLogLevel(grpc::ServerContext* context [[maybe_unused]],
+                           const LogLevel* request,
+                           ::google::protobuf::Empty*) override;
+  grpc::Status SetLogFlushPeriod(grpc::ServerContext* context [[maybe_unused]],
+                           const GenericInt* request,
                            ::google::protobuf::Empty*) override;
 
  public:
