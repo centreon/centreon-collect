@@ -42,6 +42,7 @@ class tcp_relais {
              unsigned listen_port,
              const std::string& dest_host,
              unsigned dest_port);
+  ~tcp_relais();
 
   void shutdown_relays();
 };
