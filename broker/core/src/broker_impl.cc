@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 Centreon (https://www.centreon.com/)
+ * Copyright 2020-2023 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -306,6 +306,10 @@ grpc::Status broker_impl::SetLogLevel(grpc::ServerContext* context
   return grpc::Status::OK;
 }
 
-grpc::Status broker_impl::SetLogFlushPeriod(grpc::ServerContext* context [[maybe_unused]], const GenericInt* request, ::google::protobuf::Empty*) {
+grpc::Status broker_impl::SetLogFlushPeriod(grpc::ServerContext* context
+                                            [[maybe_unused]],
+                                            const GenericInt* request,
+                                            ::google::protobuf::Empty*) {
   log_v2::instance().set_flush_interval(request->value());
+  return grpc::Status::OK;
 }

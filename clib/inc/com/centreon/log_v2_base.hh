@@ -63,7 +63,7 @@ class log_v2_base {
 
   std::chrono::seconds get_flush_interval() const;
   void set_flush_interval(uint32_t second_flush_interval);
-  void start_flush_timer(spdlog::sink_ptr sink);
+  void start_flush_timer();
   void stop_flush_timer();
   bool contains_level(const std::string& level_name) const;
   std::shared_ptr<spdlog::logger> get_logger(uint32_t log_type,

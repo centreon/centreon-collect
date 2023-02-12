@@ -1,6 +1,6 @@
 
 /*
-** Copyright 2022 Centreon
+** Copyright 2022-2023 Centreon
 **
 ** This file is part of Centreon Engine.
 **
@@ -85,7 +85,7 @@ std::ostream& operator<<(std::ostream& str, const ServiceIdentifier& serv_id) {
       str << "host name=" << serv_id.names().host_name()
           << " serv name=" << serv_id.names().service_name();
       break;
-    case HostIdentifier::kId:
+    case ServiceIdentifier::kIds:
       str << "host id=" << serv_id.ids().host_id()
           << " serv id=" << serv_id.ids().service_id();
       break;
@@ -3239,9 +3239,33 @@ engine_impl::get_serv(
  * @return ::grpc::Status
  */
 ::grpc::Status engine_impl::GetLogInfo(
-    ::grpc::ServerContext* context,
-    const ::google::protobuf::Empty* request,
+    ::grpc::ServerContext* context [[maybe_unused]],
+    const ::com::centreon::engine::GenericString* request,
     ::com::centreon::engine::LogInfo* response) {
+  auto& name{request->str_arg()};
+  auto& map = *response->mutable_level();
+  auto lvs = log_v2::instance().levels();
+  response->set_log_name(log_v2::instance().log_name());
+  response->set_log_file(log_v2::instance().file_path());
+  response->set_log_flush_period(
+      log_v2::instance().get_flush_interval().count());
+  if (!name.empty()) {
+    auto found = std::find_if(lvs.begin(), lvs.end(),
+                              [&name](std::pair<std::string, std::string>& p) {
+                                return p.first == name;
+                              });
+    if (found != lvs.end()) {
+      map[name] = std::move(found->second);
+      return grpc::Status::OK;
+    } else {
+      std::string msg{fmt::format("'{}' is not a logger in broker", name)};
+      return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, msg);
+    }
+  } else {
+    for (auto& p : lvs)
+      map[p.first] = p.second;
+    return grpc::Status::OK;
+  }
   //  using logger_by_log =
   //      std::map<spdlog::logger*,
   //      std::vector<std::shared_ptr<spdlog::logger>>>;
@@ -3273,6 +3297,27 @@ engine_impl::get_serv(
   return grpc::Status::OK;
 }
 
+grpc::Status engine_impl::SetLogLevel(grpc::ServerContext* context
+                                      [[maybe_unused]],
+                                      const LogLevel* request,
+                                      ::google::protobuf::Empty*) {
+  const std::string& logger_name{request->name()};
+  const std::string& level{request->log_level()};
+  try {
+    log_v2::instance().set_level(logger_name, level);
+  } catch (const std::exception& e) {
+    return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what());
+  }
+  return grpc::Status::OK;
+}
+
+grpc::Status engine_impl::SetLogFlushPeriod(grpc::ServerContext* context
+                                            [[maybe_unused]],
+                                            const GenericInt* request,
+                                            ::google::protobuf::Empty*) {
+  log_v2::instance().set_flush_interval(request->value());
+}
+
 /**
  * @brief set log levels and other
  *
@@ -3282,69 +3327,69 @@ engine_impl::get_serv(
  * @return ::grpc::Status
  */
 
-::grpc::Status engine_impl::SetLogParam(
-    ::grpc::ServerContext* context,
-    const ::com::centreon::engine::LogParam* request,
-    ::google::protobuf::Empty* response) {
-  //  std::string err_detail;
-  //  switch (request->param()) {
-  //    case LogParam_LogParamType_FLUSH_PERIOD: {
-  //      std::shared_ptr<log_v2_logger> search;
-  //      std::set<std::string> available_loggers;
-  //      spdlog::apply_all([&search, &available_loggers, request](
-  //                            const std::shared_ptr<spdlog::logger> logger) {
-  //        if (!search) {
-  //          std::shared_ptr<log_v2_logger> test =
-  //              std::dynamic_pointer_cast<log_v2_logger>(logger);
-  //          if (test) {
-  //            if (test->get_parent()->log_name() == request->name()) {
-  //              search = test;
-  //            } else {
-  //              available_loggers.insert(test->get_parent()->log_name());
-  //            }
-  //          }
-  //        }
-  //      });
-  //      if (!search) {
-  //        err_detail =
-  //            fmt::format("unknow logger name:{}, available loggers:{}",
-  //                        request->name(), absl::StrJoin(available_loggers, "
-  //                        "));
-  //        log_v2::external_command()->error(err_detail);
-  //        return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
-  //        err_detail);
-  //      }
-  //      unsigned new_interval;
-  //      if (!absl::SimpleAtoi(request->value(), &new_interval)) {
-  //        err_detail = fmt::format(
-  //            "value must be a positive integer instead of {}",
-  //            request->value());
-  //        log_v2::external_command()->error(err_detail);
-  //        return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, err_detail);
-  //      }
-  //      search->get_parent()->set_flush_interval(new_interval);
-  //      return grpc::Status::OK;
-  //    }
-  //    case LogParam_LogParamType_LOG_LEVEL: {
-  //      std::shared_ptr<spdlog::logger> logger = spdlog::get(request->name());
-  //      if (!logger) {
-  //        err_detail = fmt::format("unknow logger:{}", request->name());
-  //        log_v2::external_command()->error(err_detail);
-  //        return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
-  //        err_detail);
-  //      } else {
-  //        spdlog::level::level_enum lvl =
-  //            spdlog::level::from_str(request->value());
-  //        if (lvl == spdlog::level::off && request->value() != "off") {
-  //          err_detail = fmt::format("unknow level:{}", request->value());
-  //          log_v2::external_command()->error(err_detail);
-  //          return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
-  //          err_detail);
-  //        }
-  //        logger->set_level(lvl);
-  //        return grpc::Status::OK;
-  //      }
-  //    }
-  //  }
-  //  return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "unknown param");
-}
+//::grpc::Status engine_impl::SetLogParam(
+//    ::grpc::ServerContext* context,
+//    const ::com::centreon::engine::LogParam* request,
+//    ::google::protobuf::Empty* response) {
+//  std::string err_detail;
+//  switch (request->param()) {
+//    case LogParam_LogParamType_FLUSH_PERIOD: {
+//      std::shared_ptr<log_v2_logger> search;
+//      std::set<std::string> available_loggers;
+//      spdlog::apply_all([&search, &available_loggers, request](
+//                            const std::shared_ptr<spdlog::logger> logger) {
+//        if (!search) {
+//          std::shared_ptr<log_v2_logger> test =
+//              std::dynamic_pointer_cast<log_v2_logger>(logger);
+//          if (test) {
+//            if (test->get_parent()->log_name() == request->name()) {
+//              search = test;
+//            } else {
+//              available_loggers.insert(test->get_parent()->log_name());
+//            }
+//          }
+//        }
+//      });
+//      if (!search) {
+//        err_detail =
+//            fmt::format("unknow logger name:{}, available loggers:{}",
+//                        request->name(), absl::StrJoin(available_loggers, "
+//                        "));
+//        log_v2::external_command()->error(err_detail);
+//        return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
+//        err_detail);
+//      }
+//      unsigned new_interval;
+//      if (!absl::SimpleAtoi(request->value(), &new_interval)) {
+//        err_detail = fmt::format(
+//            "value must be a positive integer instead of {}",
+//            request->value());
+//        log_v2::external_command()->error(err_detail);
+//        return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, err_detail);
+//      }
+//      search->get_parent()->set_flush_interval(new_interval);
+//      return grpc::Status::OK;
+//    }
+//    case LogParam_LogParamType_LOG_LEVEL: {
+//      std::shared_ptr<spdlog::logger> logger = spdlog::get(request->name());
+//      if (!logger) {
+//        err_detail = fmt::format("unknow logger:{}", request->name());
+//        log_v2::external_command()->error(err_detail);
+//        return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
+//        err_detail);
+//      } else {
+//        spdlog::level::level_enum lvl =
+//            spdlog::level::from_str(request->value());
+//        if (lvl == spdlog::level::off && request->value() != "off") {
+//          err_detail = fmt::format("unknow level:{}", request->value());
+//          log_v2::external_command()->error(err_detail);
+//          return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
+//          err_detail);
+//        }
+//        logger->set_level(lvl);
+//        return grpc::Status::OK;
+//      }
+//    }
+//  }
+//  return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "unknown param");
+//}

@@ -237,13 +237,15 @@ class engine_impl final : public Engine::Service {
 
   ::grpc::Status GetLogInfo(
       ::grpc::ServerContext* context,
-      const ::google::protobuf::Empty* request,
+      const ::com::centreon::engine::GenericString* request,
       ::com::centreon::engine::LogInfo* response) override;
 
-  virtual ::grpc::Status SetLogParam(
-      ::grpc::ServerContext* context,
-      const ::com::centreon::engine::LogParam* request,
-      ::google::protobuf::Empty* response) override;
+  grpc::Status SetLogLevel(grpc::ServerContext* context [[maybe_unused]],
+                           const LogLevel* request,
+                           ::google::protobuf::Empty*) override;
+  grpc::Status SetLogFlushPeriod(grpc::ServerContext* context [[maybe_unused]],
+                                 const GenericInt* request,
+                                 ::google::protobuf::Empty*) override;
 };
 
 CCE_END()

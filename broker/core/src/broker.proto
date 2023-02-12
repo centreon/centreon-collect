@@ -32,22 +32,22 @@ service Broker {
   rpc RebuildRRDGraphs(IndexIds) returns (google.protobuf.Empty) {}
   rpc RemoveGraphs(ToRemove) returns (google.protobuf.Empty) {}
   /**
-  * @brief Retrieve some informations about loggers. If a name is specified,
-  * Informations are concentrated on the logger of that name.
-  *
-  * @param A logger name.
-  *
-  * @return A LogInfo message.
-  */
+   * @brief Retrieve some informations about loggers. If a name is specified,
+   * Informations are concentrated on the logger of that name.
+   *
+   * @param A logger name.
+   *
+   * @return A LogInfo message.
+   */
   rpc GetLogInfo(GenericString) returns (LogInfo) {}
 
   /**
-  * @brief Set log level of loggers.
-  *
-  * @param A message with a logger and a level as strings.
-  *
-  * @return nothing.
-  */
+   * @brief Set log level of loggers.
+   *
+   * @param A message with a logger and a level as strings.
+   *
+   * @return nothing.
+   */
   rpc SetLogLevel(LogLevel) returns (google.protobuf.Empty) {}
 
   /**
@@ -76,7 +76,7 @@ message LogInfo {
 
 message LogLevel {
   string name = 1;
-  string log_level = 3;
+  string log_level = 2;
 }
 
 message GenericString {

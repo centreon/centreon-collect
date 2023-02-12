@@ -146,9 +146,8 @@ void log_v2::apply(const config::log& log) {
     _log[it->second] = std::move(l);
   }
 
-  _flush_interval =
-      std::chrono::seconds(log.flush_period > 0 ? log.flush_period : 2);
-  start_flush_timer(file_sink);
+  _flush_interval = std::chrono::seconds(log.flush_period);
+  start_flush_timer();
   _running = true;
 }
 

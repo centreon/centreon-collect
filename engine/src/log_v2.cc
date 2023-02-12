@@ -1,5 +1,5 @@
 /*
-** Copyright 2021-2022 Centreon
+** Copyright 2021-2023 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@
 #include <spdlog/sinks/null_sink.h>
 #include <spdlog/sinks/stdout_sinks.h>
 #include <spdlog/sinks/syslog_sink.h>
+#include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/broker_sink.hh"
 
@@ -167,12 +168,60 @@ void log_v2::apply(const configuration::state& config) {
   _log[log_runtime] =
       create_logger("runtime", level::from_str(config.log_level_runtime()));
 
-  _flush_interval = std::chrono::seconds(
-      config.log_flush_period() > 0 ? config.log_flush_period() : 2);
+  _flush_interval = std::chrono::seconds(config.log_flush_period());
 
   if (sink_to_flush)
-    start_flush_timer(sink_to_flush);
+    start_flush_timer();
   else
     stop_flush_timer();
   _running = true;
+}
+
+/**
+ * @brief Accessor to the various levels of loggers
+ *
+ * @return A vector of pairs of strings. The first string is the logger name and
+ * the second string is its level.
+ */
+std::vector<std::pair<std::string, std::string>> log_v2::levels() const {
+  std::vector<std::pair<std::string, std::string>> retval;
+  if (_running) {
+    retval.reserve(_log.size());
+    for (auto& l : _log) {
+      spdlog::level::level_enum level = l->level();
+      auto& lv = to_string_view(level);
+      retval.emplace_back(l->name(), std::string(lv.data(), lv.size()));
+    }
+  }
+  return retval;
+}
+
+/**
+ * @brief Set the level of a logger.
+ *
+ * @param logger The logger name
+ * @param level The level as a string
+ */
+void log_v2::set_level(const std::string& logger, const std::string& level) {
+  if (_running) {
+    bool found = false;
+    for (auto l : _log) {
+      if (l->name() == logger) {
+        found = true;
+        level::level_enum lvl = level::from_str(level);
+        if (lvl == level::off && level != "off")
+          throw engine_error()
+              << fmt::format("The '{}' level is unknown", level);
+        l->set_level(lvl);
+        break;
+      }
+    }
+    if (!found)
+      throw engine_error() << fmt::format("The '{}' logger does not exist",
+                                          logger);
+  } else
+    throw engine_error() << fmt::format(
+        "Unable to change '{}' logger level, the logger is not running for now "
+        "- try later.",
+        logger);
 }

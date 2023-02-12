@@ -50,6 +50,10 @@ class log_v2 : public log_v2_base<13> {
   ~log_v2() noexcept override;
 
   static log_v2& instance();
+
+  std::vector<std::pair<std::string, std::string>> levels() const;
+  void set_level(const std::string& logger, const std::string& level);
+
   static inline std::shared_ptr<spdlog::logger> functions() {
     return _instance->get_logger(log_v2::log_functions, "functions");
   }

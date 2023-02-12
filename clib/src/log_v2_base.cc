@@ -45,20 +45,28 @@ void log_v2_base<N>::set_flush_interval(uint32_t second_flush_interval) {
 }
 
 /**
- * @brief logs are written periodicaly to disk
+ * @brief logs are written periodically to disk
  *
- * @param sink
  */
 template <std::size_t N>
-void log_v2_base<N>::start_flush_timer(spdlog::sink_ptr sink) {
+void log_v2_base<N>::start_flush_timer() {
+  if (_flush_interval == std::chrono::seconds(0)) {
+    stop_flush_timer();
+    for (auto& logger : _log)
+      logger->flush_on(spdlog::level::trace);
+  }
+
   std::lock_guard<std::mutex> l(_flush_timer_m);
+
   _flush_timer.expires_after(_flush_interval);
-  _flush_timer.async_wait([me = this, sink](const asio::error_code& err) {
+  _flush_timer.async_wait([me = this](const asio::error_code& err) {
     if (err || !me->_flush_timer_active) {
       return;
     }
-    sink->flush();
-    me->start_flush_timer(sink);
+    for (auto& logger : me->_log)
+      logger->flush();
+
+    me->start_flush_timer();
   });
 }
 
