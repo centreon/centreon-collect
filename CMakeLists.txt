@@ -54,7 +54,13 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 if(WITH_CLANG)
   set(CMAKE_C_COMPILER "/usr/bin/clang")
-  set(CMAKE_CXX_COMPILER "/usr/bin/clang++")
+
+  find_program(CLANG_CPP "/usr/bin/clang++")
+  if(NOT CLANG_CPP_FOUND)
+    set(CMAKE_CXX_COMPILER "/usr/bin/clang")
+  else()
+    set(CMAKE_CXX_COMPILER "/usr/bin/clang++")
+  endif()
 endif()
 
 if(WITH_ASAN)

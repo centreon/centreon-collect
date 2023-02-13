@@ -73,11 +73,10 @@ static int check_stdout(int d) {
  */
 static int check_output(char const* type) {
   int output(strcmp(type, "err") ? 1 : 2);
-  int total(0);
   int size(0);
   char buffer[1024];
   while ((size = read(0, buffer, sizeof(buffer))) > 0)
-    total += write(output, buffer, size);
+    write(output, buffer, size);
   return EXIT_SUCCESS;
 }
 

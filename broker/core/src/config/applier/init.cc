@@ -55,6 +55,8 @@ std::atomic<config::applier::applier_state> config::applier::mode{not_started};
  *
  * @param n_thread number of threads in the pool.
  * @param name The broker name to give to this cbd instance.
+ * @param event_queues_total_size Total size in bytes of event queues. This is a
+ * limit to avoid to fill a partition.
  */
 void config::applier::init(size_t n_thread,
                            const std::string&,

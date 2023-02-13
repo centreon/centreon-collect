@@ -18,6 +18,11 @@
  */
 #include <gtest/gtest.h>
 #include "com/centreon/broker/config/applier/state.hh"
+#include "com/centreon/broker/log_v2.hh"
+
+std::shared_ptr<asio::io_context> g_io_context =
+    std::make_shared<asio::io_context>();
+bool g_io_context_shared = false;
 
 class CentreonBrokerEnvironment : public testing::Environment {
  public:
