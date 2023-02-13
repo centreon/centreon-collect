@@ -3,10 +3,10 @@ ${EtcRoot}  /tmp/etc
 ${VarRoot}  /tmp/var
 ${DBName}	centreon_storage
 ${DBNameConf}	centreon
-${DBHost}	localhost
+${DBHost}	127.0.0.1
 ${DBUser}	centreon
 ${DBPass}	centreon
 ${DBPort}	3306
-${DBUserRoot}	root
+${DBUserRoot}	root_centreon
 ${DBPassRoot}	centreon
 
