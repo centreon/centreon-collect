@@ -112,8 +112,8 @@ class incomming_outgoing
 };
 
 /**
- * @brief This server class accept incomming connexions and start the connexion
- * to the dest
+ * @brief This server class accepts incoming connections and starts the connection
+ * to the destination.
  *
  */
 class tcp_relais_impl : public std::enable_shared_from_this<tcp_relais_impl> {
@@ -170,6 +170,13 @@ tcp_relais::tcp_relais(const std::string& listen_interface,
 
 void tcp_relais::shutdown_relays() {
   _impl->shutdown_relays();
+}
+
+/**
+ * @brief Destructor.
+ */
+tcp_relais::~tcp_relais() {
+  _io_context.stop();
 }
 
 /**************************************************************************
