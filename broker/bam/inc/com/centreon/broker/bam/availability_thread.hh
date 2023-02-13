@@ -48,7 +48,7 @@ class availability_thread {
   availability_thread& operator=(availability_thread const& other) const =
       delete;
 
-  virtual void run();
+  void run();
   void terminate();
   void start_and_wait();
 

@@ -26,6 +26,12 @@ set(CMAKE_COLOR_DIAGNOSTICS ON)
 cmake_minimum_required(VERSION 3.16)
 project("Centreon Collect" C CXX)
 
+option(WITH_CLANG "Compilation with clang" OFF)
+
+# With libasan
+option(WITH_ASAN
+       "Add the libasan to check memory leaks and other memory issues." OFF)
+
 if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT CMAKE_CXX_COMPILER_ID
                                                 STREQUAL "Clang")
   message(
@@ -49,6 +55,21 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 if(WITH_CLANG)
   set(CMAKE_C_COMPILER "/usr/bin/clang")
   set(CMAKE_CXX_COMPILER "/usr/bin/clang++")
+endif()
+
+if(WITH_ASAN)
+  set(CMAKE_BUILD_TYPE Debug)
+  if(WITH_CLANG)
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address")
+    set(CMAKE_LINKER_FLAGS_DEBUG
+        "${CMAKE_LINKER_FLAGS_DEBUG} -fsanitize=address")
+  else()
+    set(CMAKE_CXX_FLAGS_DEBUG
+        "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+    set(CMAKE_LINKER_FLAGS_DEBUG
+        "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address"
+    )
+  endif()
 endif()
 
 set(ALLOW_DUPLICATE_EXECUTABLE TRUE)

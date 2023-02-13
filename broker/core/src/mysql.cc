@@ -100,24 +100,6 @@ bool mysql::fetch_row(mysql_result& res) {
 }
 
 /**
- *  This method commits only if the max queries per transaction is reached.
- *
- * @return true if a commit has been done, false otherwise.
- */
-bool mysql::commit_if_needed() {
-  bool retval(false);
-  int qpt(_db_cfg.get_queries_per_transaction());
-  if (qpt > 1) {
-    ++_pending_queries;
-    if (_pending_queries >= qpt) {
-      commit();
-      retval = true;
-    }
-  }
-  return retval;
-}
-
-/**
  *  Checks for previous errors. As queries are made asynchronously, errors
  *  may arise after the calls. This function is generally called just before
  *  adding a new query and throw an exception if an error is active.
