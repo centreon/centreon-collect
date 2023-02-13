@@ -780,8 +780,8 @@ mysql_connection::mysql_connection(database_config const& db_cfg,
  */
 mysql_connection::~mysql_connection() {
   SPDLOG_LOGGER_INFO(log_v2::sql(), "mysql_connection: finished");
-  stats::center::instance().remove_connection(_stats);
   finish();
+  stats::center::instance().remove_connection(_stats);
   _thread->join();
 }
 

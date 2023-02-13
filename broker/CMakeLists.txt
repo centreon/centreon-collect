@@ -46,20 +46,20 @@ option(WITH_DEBUG_ASIO "Add the Asio debugging flags." OFF)
 if(WITH_DEBUG_ASIO)
   set(CMAKE_BUILD_TYPE Debug)
   set(CMAKE_CXX_FLAGS_DEBUG
-    "${CMAKE_CXX_FLAGS_DEBUG} -DASIO_ENABLE_BUFFER_DEBUGGING -DASIO_ENABLE_HANDLER_TRACKING"
+      "${CMAKE_CXX_FLAGS_DEBUG} -DASIO_ENABLE_BUFFER_DEBUGGING -DASIO_ENABLE_HANDLER_TRACKING"
   )
 endif()
 
 # With libasan
 option(WITH_ASAN
-  "Add the libasan to check memory leaks and other memory issues." OFF)
+       "Add the libasan to check memory leaks and other memory issues." OFF)
 
 if(WITH_ASAN)
   set(CMAKE_BUILD_TYPE Debug)
   set(CMAKE_CXX_FLAGS_DEBUG
-    "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+      "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
   set(CMAKE_LINKER_FLAGS_DEBUG
-    "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+      "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
 endif()
 
 # Default MySQL socket
@@ -83,20 +83,20 @@ set(TEST_DIR "${PROJECT_SOURCE_DIR}/core/test")
 
 add_custom_command(
   DEPENDS ${SRC_DIR}/database/table_max_size.py
-  "${CMAKE_SOURCE_DIR}/resources/centreon.sql"
-  "${CMAKE_SOURCE_DIR}/resources/centreon_storage.sql"
+          "${CMAKE_SOURCE_DIR}/resources/centreon.sql"
+          "${CMAKE_SOURCE_DIR}/resources/centreon_storage.sql"
   COMMENT "Generating table_max_size.hh"
   OUTPUT ${INC_DIR}/database/table_max_size.hh
   COMMAND
-  python3 ARGS ${SRC_DIR}/database/table_max_size.py
-  ${INC_DIR}/database/table_max_size.hh
-  "${CMAKE_SOURCE_DIR}/resources/centreon.sql"
-  "${CMAKE_SOURCE_DIR}/resources/centreon_storage.sql")
+    python3 ARGS ${SRC_DIR}/database/table_max_size.py
+    ${INC_DIR}/database/table_max_size.hh
+    "${CMAKE_SOURCE_DIR}/resources/centreon.sql"
+    "${CMAKE_SOURCE_DIR}/resources/centreon_storage.sql")
 
 add_custom_target(table_max_size DEPENDS ${INC_DIR}/database/table_max_size.hh)
 
 set_source_files_properties(${INC_DIR}/database/table_max_size.hh
-  PROPERTIES GENERATED TRUE)
+                            PROPERTIES GENERATED TRUE)
 
 add_definitions(-DSPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 add_definitions(${spdlog_DEFINITIONS} ${mariadb-connector-c_DEFINITIONS})
@@ -109,34 +109,34 @@ add_custom_command(
   COMMENT "Generating interface files of the proto file (grpc)"
   OUTPUT ${SRC_DIR}/broker.grpc.pb.cc ${SRC_DIR}/broker.grpc.pb.h
   COMMAND
-  ${Protobuf_PROTOC_EXECUTABLE} ARGS
-  --plugin=protoc-gen-grpc=${CONAN_BIN_DIRS_GRPC}/grpc_cpp_plugin
-  --proto_path=${SRC_DIR} --grpc_out="${SRC_DIR}" ${SRC_DIR}/broker.proto
+    ${Protobuf_PROTOC_EXECUTABLE} ARGS
+    --plugin=protoc-gen-grpc=${CONAN_BIN_DIRS_GRPC}/grpc_cpp_plugin
+    --proto_path=${SRC_DIR} --grpc_out="${SRC_DIR}" ${SRC_DIR}/broker.proto
   DEPENDS ${SRC_DIR}/broker.proto
   COMMENT "Generating interface files of the proto file (protobuf)"
   OUTPUT ${SRC_DIR}/broker.pb.cc ${SRC_DIR}/broker.pb.h
   COMMAND ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out="${SRC_DIR}"
-  --proto_path=${SRC_DIR} ${SRC_DIR}/broker.proto)
+          --proto_path=${SRC_DIR} ${SRC_DIR}/broker.proto)
 
 include_directories(${SRC_DIR})
 
 add_library(berpc STATIC ${SRC_DIR}/broker.grpc.pb.cc ${SRC_DIR}/broker.pb.cc
-  ${SRC_DIR}/broker.grpc.pb.h ${SRC_DIR}/broker.pb.h)
+                         ${SRC_DIR}/broker.grpc.pb.h ${SRC_DIR}/broker.pb.h)
 target_link_libraries(berpc CONAN_PKG::protobuf)
 set_target_properties(berpc PROPERTIES COMPILE_FLAGS "-fPIC")
 
 # Version.
 if(CENTREON_BROKER_PRERELEASE)
   set(CENTREON_BROKER_VERSION
-    "${COLLECT_MAJOR}.${COLLECT_MINOR}.${COLLECT_PATCH}-${CENTREON_BROKER_PRERELEASE}"
+      "${COLLECT_MAJOR}.${COLLECT_MINOR}.${COLLECT_PATCH}-${CENTREON_BROKER_PRERELEASE}"
   )
 else()
   set(CENTREON_BROKER_VERSION
-    "${COLLECT_MAJOR}.${COLLECT_MINOR}.${COLLECT_PATCH}")
+      "${COLLECT_MAJOR}.${COLLECT_MINOR}.${COLLECT_PATCH}")
 endif()
 
 add_definitions(-DCENTREON_BROKER_VERSION=\"${CENTREON_BROKER_VERSION}\"
-  -DCENTREON_BROKER_PATCH=${COLLECT_PATCH})
+                -DCENTREON_BROKER_PATCH=${COLLECT_PATCH})
 configure_file(${INC_DIR}/version.hh.in ${INC_DIR}/version.hh @ONLY)
 
 include(cmake/tool.cmake)
@@ -182,7 +182,7 @@ if(WITH_STARTUP_SCRIPT STREQUAL "auto")
   else()
     message(
       STATUS
-      "Centreon Broker does not provide startup script for ${CMAKE_SYSTEM_NAME}."
+        "Centreon Broker does not provide startup script for ${CMAKE_SYSTEM_NAME}."
     )
     set(WITH_STARTUP_SCRIPT "no")
   endif()
@@ -190,7 +190,7 @@ endif()
 
 # Startup dir.
 if(WITH_STARTUP_SCRIPT STREQUAL "sysv" OR WITH_STARTUP_SCRIPT STREQUAL
-  "systemd")
+                                          "systemd")
   # Set destination directory.
   if(WITH_STARTUP_DIR)
     set(STARTUP_DIR "${WITH_STARTUP_DIR}")
@@ -203,30 +203,30 @@ endif()
 if(WITH_DAEMONS)
   if(WITH_STARTUP_SCRIPT STREQUAL "systemd")
     configure_file("${PROJECT_SOURCE_DIR}/script/systemd/cbd.service.in"
-      "${PROJECT_SOURCE_DIR}/script/cbd.service" @ONLY)
+                   "${PROJECT_SOURCE_DIR}/script/cbd.service" @ONLY)
     install(FILES "${PROJECT_SOURCE_DIR}/script/cbd.service"
-      DESTINATION "${STARTUP_DIR}")
+            DESTINATION "${STARTUP_DIR}")
   elseif(OS_DISTRIBUTOR STREQUAL "CentOS" OR OS_DISTRIBUTOR STREQUAL "RedHat")
     configure_file("${PROJECT_SOURCE_DIR}/script/redhat/cbd.init.d.in"
-      "${PROJECT_SOURCE_DIR}/script/cbd.init" @ONLY)
+                   "${PROJECT_SOURCE_DIR}/script/cbd.init" @ONLY)
   elseif(OS_DISTRIBUTOR STREQUAL "Debian" OR OS_DISTRIBUTOR STREQUAL "Ubuntu")
     configure_file("${PROJECT_SOURCE_DIR}/script/debian/cbd.init.d.in"
-      "${PROJECT_SOURCE_DIR}/script/cbd.init" @ONLY)
+                   "${PROJECT_SOURCE_DIR}/script/cbd.init" @ONLY)
     configure_file("${PROJECT_SOURCE_DIR}/script/debian/cbd.default.in"
-      "${PROJECT_SOURCE_DIR}/script/cbd.default" @ONLY)
+                   "${PROJECT_SOURCE_DIR}/script/cbd.default" @ONLY)
     install(
       FILES "${PROJECT_SOURCE_DIR}/script/cbd.default"
       DESTINATION "/etc/default"
       RENAME "cbd")
   else()
     configure_file("${PROJECT_SOURCE_DIR}/script/other/cbd.init.d.in"
-      "${PROJECT_SOURCE_DIR}/script/cbd.init" @ONLY)
+                   "${PROJECT_SOURCE_DIR}/script/cbd.init" @ONLY)
   endif()
 
   configure_file("${PROJECT_SOURCE_DIR}/script/watchdog.json.in"
-    "${PROJECT_SOURCE_DIR}/script/watchdog.json" @ONLY)
+                 "${PROJECT_SOURCE_DIR}/script/watchdog.json" @ONLY)
   install(FILES "${PROJECT_SOURCE_DIR}/script/watchdog.json"
-    DESTINATION "${PREFIX_BROKER_CONF}")
+          DESTINATION "${PREFIX_BROKER_CONF}")
 
   if(WITH_STARTUP_SCRIPT STREQUAL "sysv")
     install(
@@ -238,18 +238,18 @@ endif()
 
 if(WITH_CONFIG_FILES)
   configure_file("${PROJECT_SOURCE_DIR}/config/central-module.json.in"
-    "${PROJECT_SOURCE_DIR}/config/central-module.json" @ONLY)
+                 "${PROJECT_SOURCE_DIR}/config/central-module.json" @ONLY)
   configure_file("${PROJECT_SOURCE_DIR}/config/central-broker.json.in"
-    "${PROJECT_SOURCE_DIR}/config/central-broker.json" @ONLY)
+                 "${PROJECT_SOURCE_DIR}/config/central-broker.json" @ONLY)
   configure_file("${PROJECT_SOURCE_DIR}/config/central-rrd.json.in"
-    "${PROJECT_SOURCE_DIR}/config/central-rrd.json" @ONLY)
+                 "${PROJECT_SOURCE_DIR}/config/central-rrd.json" @ONLY)
 
   install(FILES "${PROJECT_SOURCE_DIR}/config/central-module.json"
-    DESTINATION "${PREFIX_BROKER_CONF}")
+          DESTINATION "${PREFIX_BROKER_CONF}")
   install(FILES "${PROJECT_SOURCE_DIR}/config/central-rrd.json"
-    DESTINATION "${PREFIX_BROKER_CONF}")
+          DESTINATION "${PREFIX_BROKER_CONF}")
   install(FILES "${PROJECT_SOURCE_DIR}/config/central-broker.json"
-    DESTINATION "${PREFIX_BROKER_CONF}")
+          DESTINATION "${PREFIX_BROKER_CONF}")
 endif()
 
 # Monitoring engine (for testing).
@@ -260,13 +260,13 @@ if(WITH_MONITORING_ENGINE)
   if(WITH_MONITORING_ENGINE_MODULES)
     foreach(MODULE IN LISTS WITH_MONITORING_ENGINE_MODULES)
       set(MONITORING_ENGINE_ADDITIONAL
-        "${MONITORING_ENGINE_ADDITIONAL}broker_module=${MODULE}\\n")
+          "${MONITORING_ENGINE_ADDITIONAL}broker_module=${MODULE}\\n")
     endforeach()
   endif()
 
   if(WITH_MONITORING_ENGINE_INTERVAL_LENGTH)
     set(MONITORING_ENGINE_INTERVAL_LENGTH
-      "${WITH_MONITORING_ENGINE_INTERVAL_LENGTH}")
+        "${WITH_MONITORING_ENGINE_INTERVAL_LENGTH}")
   else()
     set(MONITORING_ENGINE_INTERVAL_LENGTH 1)
   endif()
@@ -286,7 +286,7 @@ if(WITH_MODULE_LUA OR WITH_MODULE_SIMU)
 
     if(DEFINED LUA_VERSION_STRING)
       string(REGEX REPLACE "^([0-9]+)\\.([0-9]+)\\.[0-9]+" "\\1\\2" v
-        "${LUA_VERSION_STRING}")
+                           "${LUA_VERSION_STRING}")
       add_definitions(-DLUA${v})
       include_directories("${LUA_INCLUDE_DIR}")
 
@@ -498,7 +498,7 @@ target_link_libraries(
 
 add_library(roker STATIC ${SRC_DIR}/config/applier/init.cc)
 target_link_libraries(roker rokerbase dl CONAN_PKG::openssl CONAN_PKG::grpc
-  pthread)
+                      pthread)
 
 # Standalone binary.
 add_executable(cbd ${SRC_DIR}/main.cc)
@@ -506,14 +506,15 @@ add_executable(cbd ${SRC_DIR}/main.cc)
 # Flags needed to include all symbols in binary.
 target_link_libraries(
   cbd
-  "-export-dynamic"
+  "-rdynamic"
   "-Wl,--whole-archive"
   rokerbase
   roker
   "-Wl,--no-whole-archive"
   CONAN_PKG::nlohmann_json
   CONAN_PKG::fmt
-  -L${CONAN_LIB_DIRS_GRPC} -L${CONAN_LIB_DIRS_PROTOBUF}
+  -L${CONAN_LIB_DIRS_GRPC}
+  -L${CONAN_LIB_DIRS_PROTOBUF}
   "-Wl,--whole-archive"
   grpc++
   ${CONAN_LIBS_PROTOBUF}
@@ -655,7 +656,7 @@ message(STATUS "")
 message(STATUS "  Build")
 message(
   STATUS
-  "    - Compiler                   ${CMAKE_CXX_COMPILER} (${CMAKE_CXX_COMPILER_ID})"
+    "    - Compiler                   ${CMAKE_CXX_COMPILER} (${CMAKE_CXX_COMPILER_ID})"
 )
 message(STATUS "    - Extra compilation flags    ${CMAKE_CXX_FLAGS}")
 
@@ -693,7 +694,7 @@ message(STATUS "    - Prefix                     ${CMAKE_INSTALL_PREFIX}")
 message(STATUS "    - Modules prefix             ${PREFIX_MODULES}")
 message(
   STATUS
-  "    - Include prefix             ${CMAKE_INSTALL_INCLUDEDIR}/centreon-broker"
+    "    - Include prefix             ${CMAKE_INSTALL_INCLUDEDIR}/centreon-broker"
 )
 message(STATUS "    - Configuration prefix       ${PREFIX_BROKER_CONF}")
 

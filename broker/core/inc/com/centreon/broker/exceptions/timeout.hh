@@ -33,6 +33,7 @@ namespace exceptions {
 class timeout : public std::exception {
  public:
   timeout() noexcept : std::exception() {}
+  timeout(const timeout& e) : std::exception(e) {}
   timeout& operator=(const timeout&) = delete;
 };
 }  // namespace exceptions

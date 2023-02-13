@@ -17,7 +17,7 @@
 */
 
 #ifndef CCB_GRPC_CLIENT_HH
-#define CCB_GPRC_CLIENT_HH
+#define CCB_GRPC_CLIENT_HH
 
 #include "channel.hh"
 

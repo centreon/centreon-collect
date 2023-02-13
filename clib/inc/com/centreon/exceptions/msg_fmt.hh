@@ -32,7 +32,7 @@ namespace exceptions {
  */
 
 class msg_fmt : public std::exception {
-  const std::string _msg;
+  std::string _msg;
 
  public:
   template <typename... Args>
@@ -40,6 +40,9 @@ class msg_fmt : public std::exception {
       : _msg(fmt::format(str, args...)) {}
 
   msg_fmt() = delete;
+
+  msg_fmt(const msg_fmt& e) : std::exception(e), _msg(e._msg) {}
+
   msg_fmt& operator=(const msg_fmt&) = delete;
   const char* what() const noexcept final { return _msg.c_str(); }
 };

@@ -47,10 +47,7 @@ static std::string const& find_param(config::endpoint const& cfg,
                                      std::string const& key) {
   std::map<std::string, std::string>::const_iterator it{cfg.params.find(key)};
   if (cfg.params.end() == it)
-    throw msg_fmt(
-        "storage: no '{}"
-        "' defined for endpoint '{}'",
-        key, cfg.name);
+    throw msg_fmt("storage: no '{}' defined for endpoint '{}'", key, cfg.name);
   return it->second;
 }
 
