@@ -69,7 +69,7 @@ jobs:
         uses: ./.github/actions/runner-docker
         with:
           script_name: /src/.github/scripts/collect-unit-tests-sanitize
-          image_name: centreon-collect-${{ matrix.image }}
+          image_name: centreon-collect-alma9
           image_version: ${{ needs.get-version.outputs.img_version }}
 
   package:
