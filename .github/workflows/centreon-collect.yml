@@ -43,7 +43,7 @@ jobs:
           password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
 
       - name: Test ${{ matrix.image }}
-        if: matrix.test == "release" || matrix.image == "alma9"
+        if: matrix.test == 'release' || matrix.image == 'alma9'
         uses: ./.github/actions/runner-docker
         with:
           script_name: /src/.github/scripts/collect-unit-tests-${{ matrix.test }}
