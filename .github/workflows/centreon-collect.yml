@@ -28,7 +28,6 @@ jobs:
     strategy:
       matrix:
         image: [alma8, alma9, debian-bullseye]
-        test: [release, sanitize]
     name: unit test ${{ matrix.image }}
 
     steps:
@@ -43,10 +42,33 @@ jobs:
           password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
 
       - name: Test ${{ matrix.image }}
-        if: matrix.test == 'release' || matrix.image == 'alma9'
         uses: ./.github/actions/runner-docker
         with:
-          script_name: /src/.github/scripts/collect-unit-tests-${{ matrix.test }}
+          script_name: /src/.github/scripts/collect-unit-tests-release
+          image_name: centreon-collect-${{ matrix.image }}
+          image_version: ${{ needs.get-version.outputs.img_version }}
+
+  sanitize:
+    needs: [get-version]
+    runs-on: [self-hosted, collect]
+
+    name: unit test with sanitizer on Alma9
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Login to Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.AUTOMATION_USERNAME }}
+          password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+
+      - name: Test ${{ matrix.image }}
+        uses: ./.github/actions/runner-docker
+        with:
+          script_name: /src/.github/scripts/collect-unit-tests-sanitize
           image_name: centreon-collect-${{ matrix.image }}
           image_version: ${{ needs.get-version.outputs.img_version }}
 
