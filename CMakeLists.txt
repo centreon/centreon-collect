@@ -38,8 +38,6 @@ if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT CMAKE_CXX_COMPILER_ID
     FATAL_ERROR "You can build broker with g++ or clang++. CMake will exit.")
 endif()
 
-option(WITH_CLANG "Compilation with clang" OFF)
-
 add_definitions("-D_GLIBCXX_USE_CXX11_ABI=1")
 option(NG "C++17 build." OFF)
 
@@ -51,17 +49,6 @@ endif()
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-
-if(WITH_CLANG)
-  set(CMAKE_C_COMPILER "/usr/bin/clang")
-
-  find_program(CLANG_CPP "/usr/bin/clang++")
-  if(NOT CLANG_CPP_FOUND)
-    set(CMAKE_CXX_COMPILER "/usr/bin/clang")
-  else()
-    set(CMAKE_CXX_COMPILER "/usr/bin/clang++")
-  endif()
-endif()
 
 if(WITH_ASAN)
   set(CMAKE_BUILD_TYPE Debug)

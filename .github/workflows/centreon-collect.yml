@@ -72,6 +72,13 @@ jobs:
           image_name: centreon-collect-alma9
           image_version: ${{ needs.get-version.outputs.img_version }}
 
+      - name: error.log
+        uses: actions/upload-artifact@v3
+        with:
+          name: sanitizer-errors
+          path: ./error.log
+          retention-days: 1
+
   package:
     needs: [get-version]
     uses: ./.github/workflows/package-collect.yml

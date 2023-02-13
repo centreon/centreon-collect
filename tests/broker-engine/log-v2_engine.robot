@@ -18,7 +18,7 @@ Library	../resources/Common.py
 *** Test Cases ***
 LOGV2EB1
 	[Documentation]	Checking broker sink when log-v2 is enabled and legacy logs are disabled.
-	[Tags]	Broker	Engine	log-v2 sink broker
+	[Tags]	Broker	Engine	log-v2
 	Config Engine	${1}
 	Config Broker	rrd
 	Config Broker	central

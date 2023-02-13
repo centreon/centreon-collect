@@ -26,9 +26,10 @@ for i in $(cat conanfile.txt) ; do
   fi
 done
 
-COMPILER=gcc
-LIBCXX=libstdc++11
 WITH_CLANG=OFF
+COMPILER=gcc
+COMPILERCXX=g++
+LIBCXX=libstdc++11
 EE=
 STD=14
 
@@ -52,6 +53,7 @@ do
       ;;
     -clang)
       COMPILER=clang
+      COMPILERCXX=clang++
       WITH_CLANG=ON
       EE="-e CXX=/usr/bin/clang++ -e CC=/usr/bin/clang -e:b CXX=/usr/bin/clang++ -e:b CC=/usr/bin/clang"
       shift

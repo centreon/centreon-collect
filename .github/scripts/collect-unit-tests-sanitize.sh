@@ -1,5 +1,4 @@
 #!/bin/bash
-set -e
 
 dnf install llvm libasan
 
@@ -20,8 +19,44 @@ ninja -j 8
 
 #Test
 
-ASAN_OPTIONS="symbolize=1 detect_odr_violation=0" ASAN_SYMBOLIZER_PATH=$(which llvm-symbolizer) tests/ut_broker --gtest_output=xml:ut_broker.xml
-ASAN_OPTIONS="symbolize=1 detect_odr_violation=0" ASAN_SYMBOLIZER_PATH=$(which llvm-symbolizer) tests/ut_clib --gtest_output=xml:ut_clib.xml
-ASAN_OPTIONS="symbolize=1 detect_odr_violation=0" ASAN_SYMBOLIZER_PATH=$(which llvm-symbolizer) tests/ut_clib --gtest_output=xml:ut_clib.xml
-ASAN_OPTIONS="symbolize=1 detect_odr_violation=0" ASAN_SYMBOLIZER_PATH=$(which llvm-symbolizer) tests/ut_connector --gtest_output=xml:ut_connector.xml
+ASAN_OPTIONS="symbolize=1 detect_odr_violation=0" ASAN_SYMBOLIZER_PATH=$(which llvm-symbolizer) tests/ut_broker --gtest_output=xml:ut_broker.xml 2> error-broker.log
+ASAN_OPTIONS="symbolize=1 detect_odr_violation=0" ASAN_SYMBOLIZER_PATH=$(which llvm-symbolizer) tests/ut_clib --gtest_output=xml:ut_clib.xml 2> error-engine.log
+ASAN_OPTIONS="symbolize=1 detect_odr_violation=0" ASAN_SYMBOLIZER_PATH=$(which llvm-symbolizer) tests/ut_clib --gtest_output=xml:ut_clib.xml 2> error-clib.log
+ASAN_OPTIONS="symbolize=1 detect_odr_violation=0" ASAN_SYMBOLIZER_PATH=$(which llvm-symbolizer) tests/ut_connector --gtest_output=xml:ut_connector.xml 2> error-connector.log
 echo "----------------------------------------------------------   end of ut tests ------------------------------------------------"
+
+retval=0
+
+grep "ABORT" error-broker.log
+if [ $? -eq 0 ]; then
+  echo "========== Error in broker tests ===========" > errors.log
+  grep -A999 "ABORTING" error-broker.log >> errors.log
+  echo "============================================" >> errors.log
+  retval=1
+fi
+
+grep "ABORT" error-engine.log
+if [ $? -eq 0 ]; then
+  echo "========== Error in engine tests ===========" >> errors.log
+  grep -A999 "ABORTING" error-engine.log >> errors.log
+  echo "============================================" >> errors.log
+  retval=1
+fi
+
+grep "ABORT" error-clib.log
+if [ $? -eq 0 ]; then
+  echo "========== Error in clib tests =============" >> errors.log
+  grep -A999 "ABORTING" error-clib.log >> errors.log
+  echo "============================================" >> errors.log
+  retval=1
+fi
+
+grep "ABORT" error-connector.log
+if [ $? -eq 0 ]; then
+  echo "========== Error in connector tests ========" >> errors.log
+  grep -A999 "ABORTING" error-connector.log >> errors.log
+  echo "============================================" >> errors.log
+  retval=1
+fi
+
+exit $retval
