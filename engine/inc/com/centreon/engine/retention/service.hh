@@ -194,7 +194,6 @@ class service : public object {
   opt<bool> _event_handler_enabled;
   opt<bool> _flap_detection_enabled;
   opt<bool> _has_been_checked;
-  uint64_t _host_id;
   std::string _host_name;
   opt<bool> _is_flapping;
   opt<time_t> _last_acknowledgement;
@@ -229,6 +228,7 @@ class service : public object {
   opt<bool> _problem_has_been_acknowledged;
   opt<int> _process_performance_data;
   opt<unsigned int> _retry_check_interval;
+  uint64_t _host_id;
   uint64_t _service_id;
   std::string _service_description;
   static setters const _setters[];

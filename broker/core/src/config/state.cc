@@ -21,6 +21,7 @@
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
+using namespace com::centreon::broker;
 using namespace com::centreon::broker::config;
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
@@ -445,10 +446,10 @@ const std::string& state::listen_address() const noexcept {
   return _listen_address;
 }
 
-state::log& state::log_conf() {
+config::log& state::mut_log_conf() {
   return _log_conf;
 }
 
-const state::log& state::log_conf() const {
+const config::log& state::log_conf() const {
   return _log_conf;
 }

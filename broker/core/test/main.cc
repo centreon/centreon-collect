@@ -39,6 +39,8 @@ class CentreonBrokerEnvironment : public testing::Environment {
  *  @return 0 on success, any other value on failure.
  */
 int main(int argc, char* argv[]) {
+  com::centreon::broker::log_v2::load(g_io_context);
+
   // GTest initialization.
   testing::InitGoogleTest(&argc, argv);
 

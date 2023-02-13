@@ -377,7 +377,7 @@ static int handle_contact_macro(nagios_macros* mac,
  *
  *  @return OK on success.
  */
-static int handle_contactgroup_macro(nagios_macros* mac,
+static int handle_contactgroup_macro(nagios_macros* mac [[maybe_unused]],
                                      int macro_type,
                                      const std::string& arg1,
                                      const std::string& arg2,

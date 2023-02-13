@@ -162,6 +162,11 @@ if(WITH_TESTING)
   add_subdirectory(test)
 endif()
 
+add_library(centreon_log STATIC src/log_v2_base.cc)
+
+set_property(TARGET centreon_log PROPERTY POSITION_INDEPENDENT_CODE ON)
+target_link_libraries(centreon_log CONAN_PKG::spdlog)
+
 # Create shared library.
 add_library(centreon_clib SHARED ${SOURCES} ${HEADERS})
 # Link target with required libraries.

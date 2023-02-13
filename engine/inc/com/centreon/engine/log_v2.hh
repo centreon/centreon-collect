@@ -1,5 +1,5 @@
 /*
-** Copyright 2021 Centreon
+** Copyright 2022-2023 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -19,12 +19,12 @@
 #define CCE_LOG_V2_HH
 
 #include "com/centreon/engine/configuration/state.hh"
+#include "com/centreon/log_v2_base.hh"
 
 CCE_BEGIN()
-class log_v2 {
-  std::string _log_name;
-  std::array<std::shared_ptr<spdlog::logger>, 13> _log;
-  std::atomic_bool _running;
+class log_v2 : public log_v2_base<13> {
+  static std::unique_ptr<log_v2> _instance;
+
   enum logger {
     log_config,
     log_functions,
@@ -41,26 +41,71 @@ class log_v2 {
     log_runtime,
   };
 
-  log_v2();
-  ~log_v2() noexcept;
+  log_v2(const std::shared_ptr<asio::io_context>& io_context);
 
  public:
+  static void load(const std::shared_ptr<asio::io_context>& io_context);
   void apply(const configuration::state& config);
-  static bool contains_level(const std::string& level_name);
+
+  ~log_v2() noexcept override;
+
   static log_v2& instance();
-  static std::shared_ptr<spdlog::logger> functions();
-  static std::shared_ptr<spdlog::logger> config();
-  static std::shared_ptr<spdlog::logger> events();
-  static std::shared_ptr<spdlog::logger> checks();
-  static std::shared_ptr<spdlog::logger> notifications();
-  static std::shared_ptr<spdlog::logger> eventbroker();
-  static std::shared_ptr<spdlog::logger> external_command();
-  static std::shared_ptr<spdlog::logger> commands();
-  static std::shared_ptr<spdlog::logger> downtimes();
-  static std::shared_ptr<spdlog::logger> comments();
-  static std::shared_ptr<spdlog::logger> macros();
-  static std::shared_ptr<spdlog::logger> process();
-  static std::shared_ptr<spdlog::logger> runtime();
+
+  std::vector<std::pair<std::string, std::string>> levels() const;
+  void set_level(const std::string& logger, const std::string& level);
+
+  static inline std::shared_ptr<spdlog::logger> functions() {
+    return _instance->get_logger(log_v2::log_functions, "functions");
+  }
+
+  static inline std::shared_ptr<spdlog::logger> config() {
+    return _instance->get_logger(log_v2::log_config, "configuration");
+  }
+
+  static inline std::shared_ptr<spdlog::logger> events() {
+    return _instance->get_logger(log_v2::log_events, "events");
+  }
+
+  static inline std::shared_ptr<spdlog::logger> checks() {
+    return _instance->get_logger(log_v2::log_checks, "checks");
+  }
+
+  static inline std::shared_ptr<spdlog::logger> notifications() {
+    return _instance->get_logger(log_v2::log_notifications, "notifications");
+  }
+
+  static inline std::shared_ptr<spdlog::logger> eventbroker() {
+    return _instance->get_logger(log_v2::log_eventbroker, "eventbroker");
+  }
+
+  static inline std::shared_ptr<spdlog::logger> external_command() {
+    return _instance->get_logger(log_v2::log_external_command,
+                                 "external_command");
+  }
+
+  static inline std::shared_ptr<spdlog::logger> commands() {
+    return _instance->get_logger(log_v2::log_commands, "commands");
+  }
+
+  static inline std::shared_ptr<spdlog::logger> downtimes() {
+    return _instance->get_logger(log_v2::log_downtimes, "downtimes");
+  }
+
+  static inline std::shared_ptr<spdlog::logger> comments() {
+    return _instance->get_logger(log_v2::log_comments, "comments");
+  }
+
+  static inline std::shared_ptr<spdlog::logger> macros() {
+    return _instance->get_logger(log_v2::log_macros, "macros");
+  }
+
+  static inline std::shared_ptr<spdlog::logger> process() {
+    return _instance->get_logger(log_v2::log_process, "process");
+  }
+
+  static inline std::shared_ptr<spdlog::logger> runtime() {
+    return _instance->get_logger(log_v2::log_runtime, "runtime");
+  }
 };
 CCE_END()
 

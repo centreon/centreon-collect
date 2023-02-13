@@ -105,15 +105,47 @@ service Engine {
   rpc ChangeContactObjectCustomVar(ChangeObjectCustomVar)
       returns (CommandSuccess) {}
   rpc ShutdownProgram(google.protobuf.Empty) returns (google.protobuf.Empty) {}
-  rpc EnableHostAndChildNotifications(HostIdentifier) returns (CommandSuccess) {}
-  rpc DisableHostAndChildNotifications(HostIdentifier) returns (CommandSuccess) {}
+  rpc EnableHostAndChildNotifications(HostIdentifier) returns (CommandSuccess) {
+  }
+  rpc DisableHostAndChildNotifications(HostIdentifier)
+      returns (CommandSuccess) {}
   rpc DisableHostNotifications(HostIdentifier) returns (CommandSuccess) {}
   rpc EnableHostNotifications(HostIdentifier) returns (CommandSuccess) {}
   rpc DisableNotifications(google.protobuf.Empty) returns (CommandSuccess) {}
   rpc EnableNotifications(google.protobuf.Empty) returns (CommandSuccess) {}
   rpc DisableServiceNotifications(ServiceIdentifier) returns (CommandSuccess) {}
   rpc EnableServiceNotifications(ServiceIdentifier) returns (CommandSuccess) {}
-  rpc ChangeAnomalyDetectionSensitivity(ChangeServiceNumber) returns (CommandSuccess) {}
+  rpc ChangeAnomalyDetectionSensitivity(ChangeServiceNumber)
+      returns (CommandSuccess) {}
+
+  /**
+   * @brief Retrieve some informations about loggers. If a name is specified,
+   * Informations are concentrated on the logger of that name.
+   *
+   * @param A logger name.
+   *
+   * @return A LogInfo message.
+   */
+  rpc GetLogInfo(GenericString) returns (LogInfo) {}
+
+  /**
+   * @brief Set log level of loggers.
+   *
+   * @param A message with a logger and a level as strings.
+   *
+   * @return nothing.
+   */
+  rpc SetLogLevel(LogLevel) returns (google.protobuf.Empty) {}
+
+  /**
+   * @brief Set log flush period.
+   *
+   * @param A message with a non negative integer. If 0, the flush is always
+   * enabled otherwise flush is done every periods (in seconds).
+   *
+   * @return nothing.
+   */
+  rpc SetLogFlushPeriod(GenericInt) returns (google.protobuf.Empty) {}
 }
 
 message GenericString {
@@ -498,7 +530,6 @@ message ChangeServiceNumber {
   }
 }
 
-
 /* used for a contact */
 message ChangeContactObjectInt {
   string contact_name = 1;
@@ -544,4 +575,20 @@ message ChangeObjectCustomVar {
   string contact = 3;
   string varname = 4;
   string varvalue = 5;
+}
+
+message LogInfo {
+  string log_name = 1;
+  string log_file = 2;
+  uint32 log_flush_period = 3;
+  map<string, string> level = 4;
+}
+
+message LogLevel {
+  string name = 1;
+  string log_level = 2;
+}
+
+message GenericInt {
+  uint32 value = 1;
 }

@@ -1,5 +1,5 @@
 /*
-** Copyright 2021-2022 Centreon
+** Copyright 2021-2023 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -21,21 +21,27 @@
 #include <spdlog/sinks/null_sink.h>
 #include <spdlog/sinks/stdout_sinks.h>
 #include <spdlog/sinks/syslog_sink.h>
+#include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/broker_sink.hh"
 
 using namespace com::centreon::engine;
 using namespace spdlog;
 
-log_v2& log_v2::instance() {
-  static log_v2 instance;
-  return instance;
+std::unique_ptr<log_v2> log_v2::_instance = nullptr;
+
+void log_v2::load(const std::shared_ptr<asio::io_context>& io_context) {
+  _instance.reset(new log_v2(io_context));
 }
 
-log_v2::log_v2() : _running{false} {
+log_v2& log_v2::instance() {
+  return *_instance;
+}
+
+log_v2::log_v2(const std::shared_ptr<asio::io_context>& io_context)
+    : log_v2_base<13>("engine", 0, "", io_context) {
   auto stdout_sink = std::make_shared<sinks::stdout_sink_mt>();
-  auto create_logger = [&stdout_sink](const std::string& name,
-                                      level::level_enum lvl) {
+  auto create_logger = [&](const std::string& name, level::level_enum lvl) {
     spdlog::drop(name);
     auto log = std::make_shared<spdlog::logger>(name, stdout_sink);
     log->set_level(lvl);
@@ -67,13 +73,15 @@ log_v2::log_v2() : _running{false} {
   _log[log_v2::log_process] = create_logger("process", level::from_str("info"));
   _log[log_v2::log_runtime] =
       create_logger("runtime", level::from_str("error"));
+
+  _log[log_v2::log_process]->info("{} : log started", log_name());
+
   _running = true;
 }
 
 log_v2::~log_v2() noexcept {
   _log[log_v2::log_runtime]->info("log finished");
   _running = false;
-  spdlog::shutdown();
   for (auto& l : _log)
     l.reset();
 }
@@ -84,44 +92,46 @@ void log_v2::apply(const configuration::state& config) {
 
   _running = false;
   std::vector<spdlog::sink_ptr> sinks;
+  spdlog::sink_ptr sink_to_flush;
   if (config.log_v2_enabled()) {
     if (config.log_v2_logger() == "file") {
-      if (config.log_file() != "")
-        sinks.push_back(
-            std::make_shared<sinks::basic_file_sink_mt>(config.log_file()));
-      else {
+      if (config.log_file() != "") {
+        set_file_path(config.log_file());
+        sink_to_flush =
+            std::make_shared<sinks::basic_file_sink_mt>(file_path());
+      } else {
         log_v2::config()->error("log_file name is empty");
-        sinks.push_back(std::make_shared<sinks::stdout_sink_mt>());
+        sink_to_flush = std::make_shared<sinks::stdout_sink_mt>();
       }
     } else if (config.log_v2_logger() == "syslog")
-      sinks.push_back(std::make_shared<sinks::syslog_sink_mt>("centreon-engine",
-                                                              0, 0, true));
+      sink_to_flush = std::make_shared<sinks::syslog_sink_mt>("centreon-engine",
+                                                              0, 0, true);
+    if (sink_to_flush) {
+      sinks.push_back(sink_to_flush);
+    }
     auto broker_sink = std::make_shared<logging::broker_sink_mt>();
     broker_sink->set_level(spdlog::level::info);
     sinks.push_back(broker_sink);
   } else
     sinks.push_back(std::make_shared<sinks::null_sink_mt>());
 
-  auto create_logger = [&sinks, log_pid = config.log_pid(),
-                        log_file_line = config.log_file_line(),
-                        log_flush_period = config.log_flush_period()](
-                           const std::string& name, level::level_enum lvl) {
+  auto create_logger = [&](const std::string& name, level::level_enum lvl) {
     spdlog::drop(name);
     auto log = std::make_shared<spdlog::logger>(name, begin(sinks), end(sinks));
     log->set_level(lvl);
-    if (log_flush_period)
+    if (config.log_flush_period())
       log->flush_on(level::warn);
     else
       log->flush_on(lvl);
 
-    if (log_pid) {
-      if (log_file_line) {
+    if (config.log_pid()) {
+      if (config.log_file_line()) {
         log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%s:%#] [%n] [%l] [%P] %v");
       } else {
         log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%P] %v");
       }
     } else {
-      if (log_file_line) {
+      if (config.log_file_line()) {
         log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%s:%#] [%n] [%l] %v");
       } else {
         log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
@@ -158,137 +168,60 @@ void log_v2::apply(const configuration::state& config) {
   _log[log_runtime] =
       create_logger("runtime", level::from_str(config.log_level_runtime()));
 
-  spdlog::flush_every(std::chrono::seconds(config.log_flush_period()));
+  _flush_interval = std::chrono::seconds(config.log_flush_period());
+
+  if (sink_to_flush)
+    start_flush_timer();
+  else
+    stop_flush_timer();
   _running = true;
 }
 
-std::shared_ptr<spdlog::logger> log_v2::functions() {
-  if (instance()._running)
-    return instance()._log[log_v2::log_functions];
-  else {
-    auto null_sink = std::make_shared<sinks::null_sink_mt>();
-    return std::make_shared<spdlog::logger>("functions", null_sink);
+/**
+ * @brief Accessor to the various levels of loggers
+ *
+ * @return A vector of pairs of strings. The first string is the logger name and
+ * the second string is its level.
+ */
+std::vector<std::pair<std::string, std::string>> log_v2::levels() const {
+  std::vector<std::pair<std::string, std::string>> retval;
+  if (_running) {
+    retval.reserve(_log.size());
+    for (auto& l : _log) {
+      spdlog::level::level_enum level = l->level();
+      auto& lv = to_string_view(level);
+      retval.emplace_back(l->name(), std::string(lv.data(), lv.size()));
+    }
   }
-}
-
-std::shared_ptr<spdlog::logger> log_v2::config() {
-  if (instance()._running)
-    return instance()._log[log_v2::log_config];
-  else {
-    auto null_sink = std::make_shared<sinks::null_sink_mt>();
-    return std::make_shared<spdlog::logger>("configuration", null_sink);
-  }
-}
-
-std::shared_ptr<spdlog::logger> log_v2::events() {
-  if (instance()._running)
-    return instance()._log[log_v2::log_events];
-  else {
-    auto null_sink = std::make_shared<sinks::null_sink_mt>();
-    return std::make_shared<spdlog::logger>("events", null_sink);
-  }
-}
-
-std::shared_ptr<spdlog::logger> log_v2::checks() {
-  if (instance()._running)
-    return instance()._log[log_v2::log_checks];
-  else {
-    auto null_sink = std::make_shared<sinks::null_sink_mt>();
-    return std::make_shared<spdlog::logger>("checks", null_sink);
-  }
-}
-
-std::shared_ptr<spdlog::logger> log_v2::notifications() {
-  if (instance()._running)
-    return instance()._log[log_v2::log_notifications];
-  else {
-    auto null_sink = std::make_shared<sinks::null_sink_mt>();
-    return std::make_shared<spdlog::logger>("notifications", null_sink);
-  }
-}
-
-std::shared_ptr<spdlog::logger> log_v2::eventbroker() {
-  if (instance()._running)
-    return instance()._log[log_v2::log_eventbroker];
-  else {
-    auto null_sink = std::make_shared<sinks::null_sink_mt>();
-    return std::make_shared<spdlog::logger>("eventbroker", null_sink);
-  }
-}
-
-std::shared_ptr<spdlog::logger> log_v2::external_command() {
-  if (instance()._running)
-    return instance()._log[log_v2::log_external_command];
-  else {
-    auto null_sink = std::make_shared<sinks::null_sink_mt>();
-    return std::make_shared<spdlog::logger>("external_command", null_sink);
-  }
-}
-
-std::shared_ptr<spdlog::logger> log_v2::commands() {
-  if (instance()._running)
-    return instance()._log[log_v2::log_commands];
-  else {
-    auto null_sink = std::make_shared<sinks::null_sink_mt>();
-    return std::make_shared<spdlog::logger>("commands", null_sink);
-  }
-}
-
-std::shared_ptr<spdlog::logger> log_v2::downtimes() {
-  if (instance()._running)
-    return instance()._log[log_v2::log_downtimes];
-  else {
-    auto null_sink = std::make_shared<sinks::null_sink_mt>();
-    return std::make_shared<spdlog::logger>("downtimes", null_sink);
-  }
-}
-
-std::shared_ptr<spdlog::logger> log_v2::comments() {
-  if (instance()._running)
-    return instance()._log[log_v2::log_comments];
-  else {
-    auto null_sink = std::make_shared<sinks::null_sink_mt>();
-    return std::make_shared<spdlog::logger>("comments", null_sink);
-  }
-}
-
-std::shared_ptr<spdlog::logger> log_v2::macros() {
-  if (instance()._running)
-    return instance()._log[log_v2::log_macros];
-  else {
-    auto null_sink = std::make_shared<sinks::null_sink_mt>();
-    return std::make_shared<spdlog::logger>("macros", null_sink);
-  }
-}
-
-std::shared_ptr<spdlog::logger> log_v2::process() {
-  if (instance()._running)
-    return instance()._log[log_v2::log_process];
-  else {
-    auto null_sink = std::make_shared<sinks::null_sink_mt>();
-    return std::make_shared<spdlog::logger>("process", null_sink);
-  }
-}
-
-std::shared_ptr<spdlog::logger> log_v2::runtime() {
-  if (instance()._running)
-    return instance()._log[log_v2::log_runtime];
-  else {
-    auto null_sink = std::make_shared<sinks::null_sink_mt>();
-    return std::make_shared<spdlog::logger>("runtime", null_sink);
-  }
+  return retval;
 }
 
 /**
- * @brief Check if the given level makes part of the available levels.
+ * @brief Set the level of a logger.
  *
- * @param level A level as a string
- *
- * @return A boolean.
+ * @param logger The logger name
+ * @param level The level as a string
  */
-
-bool log_v2::contains_level(const std::string& level_name) {
-  auto level = level::from_str(level_name);
-  // ignore unrecognized level names
-  return !(level == level::off && level_name != "off");
+void log_v2::set_level(const std::string& logger, const std::string& level) {
+  if (_running) {
+    bool found = false;
+    for (auto l : _log) {
+      if (l->name() == logger) {
+        found = true;
+        level::level_enum lvl = level::from_str(level);
+        if (lvl == level::off && level != "off")
+          throw engine_error()
+              << fmt::format("The '{}' level is unknown", level);
+        l->set_level(lvl);
+        break;
+      }
+    }
+    if (!found)
+      throw engine_error() << fmt::format("The '{}' logger does not exist",
+                                          logger);
+  } else
+    throw engine_error() << fmt::format(
+        "Unable to change '{}' logger level, the logger is not running for now "
+        "- try later.",
+        logger);
 }
