@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-dnf install llvm
+dnf install llvm libasan
 
 #Cmake
 rm -rf /src/build
