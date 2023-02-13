@@ -28,6 +28,7 @@ jobs:
     strategy:
       matrix:
         image: [alma8, alma9, debian-bullseye]
+        test: [release, sanitize]
     name: unit test ${{ matrix.image }}
 
     steps:
@@ -42,9 +43,10 @@ jobs:
           password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
 
       - name: Test ${{ matrix.image }}
+        if: matrix.test == "release" || matrix.image == "alma9"
         uses: ./.github/actions/runner-docker
         with:
-          script_name: /src/.github/scripts/collect-unit-tests
+          script_name: /src/.github/scripts/collect-unit-tests-${{ matrix.test }}
           image_name: centreon-collect-${{ matrix.image }}
           image_version: ${{ needs.get-version.outputs.img_version }}
 
