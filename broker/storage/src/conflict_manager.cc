@@ -460,6 +460,9 @@ void conflict_manager::update_metric_info_cache(uint64_t index_id,
  *  The main loop of the conflict_manager
  */
 void conflict_manager::_callback() {
+  constexpr unsigned neb_table_size =
+      sizeof(_neb_processing_table) / sizeof(_neb_processing_table[0]);
+
   try {
     _load_caches();
   } catch (std::exception const& e) {
@@ -610,7 +613,8 @@ void conflict_manager::_callback() {
               void (com::centreon::broker::storage::conflict_manager::*fn)(
                   std::tuple<std::shared_ptr<com::centreon::broker::io::data>,
                              unsigned int, bool*>&) =
-                  _neb_processing_table[elem];
+                  elem >= neb_table_size ? nullptr
+                                         : _neb_processing_table[elem];
               if (fn)
                 (this->*fn)(tpl);
               else {
