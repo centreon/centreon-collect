@@ -13,6 +13,7 @@ Source0:        %{name}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildArch:      noarch
 
+Requires:       centreon-broker
 Requires:       centreon-stream-connectors-lib
 #dependencies
 
@@ -25,13 +26,13 @@ Those modules provides helpful methods to create stream connectors for Centreon
 %build
 
 %install
-mkdir -p $RPM_BUILD_ROOT/usr/share/centreon-broker
-cp -pr ./* $RPM_BUILD_ROOT/usr/share/centreon-broker
+mkdir -p $RPM_BUILD_ROOT/usr/share/centreon-broker/lua
+cp -pr ./* $RPM_BUILD_ROOT/usr/share/centreon-broker/lua
 
 %clean
 %{__rm} -rf $RPM_BUILD_ROOT
 
 %files
-/usr/share/centreon-broker/*
+/usr/share/centreon-broker/lua/*
 
 %changelog

@@ -33,14 +33,35 @@ jobs:
         distrib: [el8, el9]
         connector_path:
           - centreon-certified/bsm
+          - centreon-certified/capensis
+          - centreon-certified/datadog
+          - centreon-certified/elasticsearch
+          - centreon-certified/google
+          - centreon-certified/influxdb
+          - centreon-certified/kafka
+          - centreon-certified/logstash
+          - centreon-certified/ndo
+          - centreon-certified/omi
+          - centreon-certified/opsgenie
+          - centreon-certified/pagerduty
+          - centreon-certified/promertheus
+          - centreon-certified/servicenow
+          - centreon-certified/signl4
           - centreon-certified/splunk
+          - centreon-certified/warp10
         include:
           - version: '1.0.0'
-          - depends: ''
+          - dependencies: ''
           - distrib: el8
             image: packaging-alma8
           - distrib: el9
             image: packaging-alma9
+          - connector_path: centreon-certified/google
+            dependencies: luacrypto
+          - connector_path: centreon-certified/kafka
+            dependencies: librdkafka,luaffi
+          - connector_path: centreon-certified/pagerduty
+            dependencies: luatz
           - connector_path: centreon-certified/splunk
             dependencies: lua-curl
     name: package ${{ matrix.distrib }} ${{ matrix.connector_path }}
