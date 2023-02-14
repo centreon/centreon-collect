@@ -74,4 +74,11 @@ std::ostream& operator<<(std::ostream&, const credentials&);
 
 CCCS_END()
 
+namespace fmt {
+// formatter specializations for fmt
+template <>
+struct formatter<com::centreon::connector::ssh::sessions::credentials>
+    : ostream_formatter {};
+}  // namespace fmt
+
 #endif  // !CCCS_SESSIONS_CREDENTIALS_HH

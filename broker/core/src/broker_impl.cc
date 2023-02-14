@@ -280,7 +280,10 @@ grpc::Status broker_impl::GetLogInfo(grpc::ServerContext* context
   auto& name{request->str_arg()};
   auto& map = *response->mutable_level();
   auto lvs = log_v2::instance().levels();
-  response->set_log_file(log_v2::instance().log_name());
+  response->set_log_name(log_v2::instance().log_name());
+  response->set_log_file(log_v2::instance().file_path());
+  response->set_log_flush_period(
+      log_v2::instance().get_flush_interval().count());
   if (!name.empty()) {
     auto found = std::find_if(lvs.begin(), lvs.end(),
                               [&name](std::pair<std::string, std::string>& p) {
@@ -304,12 +307,33 @@ grpc::Status broker_impl::SetLogLevel(grpc::ServerContext* context
                                       [[maybe_unused]],
                                       const LogLevel* request,
                                       ::google::protobuf::Empty*) {
-  const std::string& logger_name{request->logger()};
-  const std::string& level{request->level()};
-  try {
-    log_v2::instance().set_level(logger_name, level);
-  } catch (const std::exception& e) {
-    return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what());
+  const std::string& logger_name{request->name()};
+  std::shared_ptr<spdlog::logger> logger = spdlog::get(request->name());
+  if (!logger) {
+    std::string err_detail = fmt::format("unknow logger:{}", request->name());
+    SPDLOG_LOGGER_ERROR(log_v2::core(), err_detail);
+    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err_detail);
+  } else {
+    logger->set_level(spdlog::level::level_enum(request->level()));
+    return grpc::Status::OK;
   }
+}
+
+grpc::Status broker_impl::SetLogFlushPeriod(grpc::ServerContext* context
+                                            [[maybe_unused]],
+                                            const LogFlushPeriod* request,
+                                            ::google::protobuf::Empty*) {
+  bool done = false;
+  spdlog::apply_all([&](const std::shared_ptr<spdlog::logger> logger) {
+    if (!done) {
+      std::shared_ptr<com::centreon::engine::log_v2_logger> logger_base =
+          std::dynamic_pointer_cast<com::centreon::engine::log_v2_logger>(
+              logger);
+      if (logger_base) {
+        logger_base->get_parent()->set_flush_interval(request->period());
+        done = true;
+      }
+    }
+  });
   return grpc::Status::OK;
 }

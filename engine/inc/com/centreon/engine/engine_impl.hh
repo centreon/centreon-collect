@@ -239,6 +239,19 @@ class engine_impl final : public Engine::Service {
   static std::pair<std::shared_ptr<com::centreon::engine::service>,
                    std::string /*error*/>
   get_serv(const ::com::centreon::engine::ServiceIdentifier& serv_info);
+
+  ::grpc::Status GetLogInfo(
+      ::grpc::ServerContext* context,
+      const ::google::protobuf::Empty* request,
+      ::com::centreon::engine::LogInfo* response) override;
+
+  grpc::Status SetLogLevel(grpc::ServerContext* context [[maybe_unused]],
+                           const LogLevel* request,
+                           ::google::protobuf::Empty*) override;
+
+  grpc::Status SetLogFlushPeriod(grpc::ServerContext* context [[maybe_unused]],
+                                 const LogFlushPeriod* request,
+                                 ::google::protobuf::Empty*) override;
 };
 
 CCE_END()
