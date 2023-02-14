@@ -44,7 +44,7 @@ jobs:
           - centreon-certified/omi
           - centreon-certified/opsgenie
           - centreon-certified/pagerduty
-          - centreon-certified/promertheus
+          - centreon-certified/prometheus
           - centreon-certified/servicenow
           - centreon-certified/signl4
           - centreon-certified/splunk
