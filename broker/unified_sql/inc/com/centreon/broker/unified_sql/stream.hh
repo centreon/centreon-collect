@@ -233,7 +233,7 @@ class stream : public io::stream {
    * same metric is recevied two times, the new value can overwrite the old
    * one, that's why we store those values in a map. The filled table here is
    * 'metrics'. */
-  std::unordered_map<int32_t, metric_info*> _metrics;
+  std::unordered_map<int32_t, metric_info> _metrics;
 
   /* These queues are sent in bulk to the database. The insert/update is done
    * if the loop timeout is reached or if the queue size is greater than
