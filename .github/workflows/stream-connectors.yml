@@ -30,15 +30,15 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        distrib: [el8]
-        connector_script:
-          - centreon-certified/bsm/bsm_connector-apiv1.lua
+        distrib: [el8, el9]
+        connector_path:
+          - centreon-certified/bsm
         include:
           - version: '1.0.0'
           - distrib: el8
             image: packaging-alma8
-          # - distrib: el9
-          #   image: packaging-alma9
+          - distrib: el9
+            image: packaging-alma9
     name: package ${{ matrix.distrib }} ${{ matrix.connector_script }}
     container:
       image: centreon.jfrog.io/docker/${{ matrix.image }}:${{ needs.get-version.outputs.version }}
@@ -52,14 +52,14 @@ jobs:
       - run: |
           mkdir -p ~/rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
 
-          PACKAGE_NAME=`basename ${{ matrix.connector_script }} | sed -e 's#.lua##' | sed -e 's#_#-#'`
+          PACKAGE_NAME="centreon-stream-connector-`basename ${{ matrix.connector_path }} | sed -e 's#.lua##' | sed -e 's#_#-#'`"
 
           mkdir $PACKAGE_NAME
-          mv ${{ matrix.connector_script }} $PACKAGE_NAME/
+          mv ${{ matrix.connector_path }}/* $PACKAGE_NAME/
 
           tar czf ~/rpmbuild/SOURCES/$PACKAGE_NAME.tar.gz $PACKAGE_NAME
 
-          rpmbuild -ba packaging/connectors/rpm/connector.spec -D "PACKAGE_NAME $PACKAGE_NAME" -D "SCRIPT_NAME `basename ${{ matrix.connector_script }}`" -D "VERSION ${{ matrix.version }}"
+          rpmbuild -ba packaging/connectors/rpm/connector.spec -D "PACKAGE_NAME $PACKAGE_NAME" -D "VERSION ${{ matrix.version }}"
 
           mv ~/rpmbuild/RPMS/**/*.rpm ../
         working-directory: stream-connectors
@@ -93,12 +93,12 @@ jobs:
   #     - run: |
   #         mkdir -p ~/rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
 
-  #         tar czf ~/rpmbuild/SOURCES/centreon-stream-connectors-lib.tar.gz centreon-stream-connectors-lib
+  #         tar czf ~/rpmbuild/SOURCES/centreon-stream-connectors-lib.tar.gz modules/centreon-stream-connectors-lib
 
-  #         rpmbuild -ba packaging/rpm/centreon-stream-connectors-lib.spec
+  #         rpmbuild -ba packaging/connectors-lib/rpm/centreon-stream-connectors-lib.spec
 
-  #         mv ~/rpmbuild/RPMS/**/*.rpm ../../
-  #       working-directory: stream-connectors/modules
+  #         mv ~/rpmbuild/RPMS/**/*.rpm ../
+  #       working-directory: stream-connectors
   #       shell: bash
 
   #     - uses: actions/cache@v3
@@ -167,8 +167,8 @@ jobs:
   #     - run: |
   #         mkdir -p centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}/debian
 
-  #         cp -rp centreon-stream-connectors-lib/* centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}/
-  #         cp -rp packaging/deb/* centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}/debian/
+  #         cp -rp modules/centreon-stream-connectors-lib/* centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}/
+  #         cp -rp packaging/connectors-lib/deb/* centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}/debian/
 
   #         tar czf centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}.tar.gz centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}
 
@@ -178,7 +178,7 @@ jobs:
   #         debuild-pbuilder --no-lintian
 
   #         mv ../*.deb ../../../
-  #       working-directory: stream-connectors/modules
+  #       working-directory: stream-connectors
   #       shell: bash
 
   #     - uses: actions/cache@v3
