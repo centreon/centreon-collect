@@ -33,12 +33,16 @@ jobs:
         distrib: [el8, el9]
         connector_path:
           - centreon-certified/bsm
+          - centreon-certified/splunk
         include:
           - version: '1.0.0'
+          - depends: ''
           - distrib: el8
             image: packaging-alma8
           - distrib: el9
             image: packaging-alma9
+          - connector_path: centreon-certified/splunk
+            dependencies: lua-curl
     name: package ${{ matrix.distrib }} ${{ matrix.connector_script }}
     container:
       image: centreon.jfrog.io/docker/${{ matrix.image }}:${{ needs.get-version.outputs.version }}
@@ -58,6 +62,18 @@ jobs:
           mv ${{ matrix.connector_path }}/* $PACKAGE_NAME/
 
           tar czf ~/rpmbuild/SOURCES/$PACKAGE_NAME.tar.gz $PACKAGE_NAME
+
+          touch dependencies.txt
+          if [ ! -z "${{ matrix.dependencies }}" ]; then
+            export IFS=","
+            for dependency in "${{ matrix.dependencies }}"; do
+              echo "Requires: $dependency" >> dependencies.txt
+            done
+          fi
+
+          sed '/#dependencies/r dependencies.txt' packaging/connectors/rpm/connector.spec
+
+          cat packaging/connectors/rpm/connector.spec
 
           rpmbuild -ba packaging/connectors/rpm/connector.spec -D "PACKAGE_NAME $PACKAGE_NAME" -D "VERSION ${{ matrix.version }}"
 
