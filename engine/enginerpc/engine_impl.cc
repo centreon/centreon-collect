@@ -3266,34 +3266,6 @@ engine_impl::get_serv(
       map[p.first] = p.second;
     return grpc::Status::OK;
   }
-  //  using logger_by_log =
-  //      std::map<spdlog::logger*,
-  //      std::vector<std::shared_ptr<spdlog::logger>>>;
-  //
-  //  logger_by_log summary;
-  //
-  //  spdlog::apply_all(
-  //      [&summary](const std::shared_ptr<spdlog::logger>& logger_base) {
-  //        std::shared_ptr<log_v2_logger> logger =
-  //            std::dynamic_pointer_cast<log_v2_logger>(logger_base);
-  //        if (logger) {
-  //          summary[logger->get_parent()].push_back(logger);
-  //        }
-  //      });
-  //
-  //  for (const auto& by_parent_loggers : summary) {
-  //    LogInfo_LoggerInfo* loggers = response->add_loggers();
-  //    loggers->set_log_name(by_parent_loggers.first->log_name());
-  //    loggers->set_log_file(by_parent_loggers.first->file_path());
-  //    loggers->set_log_flush_period(
-  //        by_parent_loggers.first->get_flush_interval().count());
-  //    auto& levels = *loggers->mutable_level();
-  //    for (const std::shared_ptr<spdlog::logger>& logger :
-  //         by_parent_loggers.second) {
-  //      auto level = spdlog::level::to_string_view(logger->level());
-  //      levels[logger->name()] = std::string(level.data(), level.size());
-  //    }
-  //  }
   return grpc::Status::OK;
 }
 
@@ -3316,6 +3288,7 @@ grpc::Status engine_impl::SetLogFlushPeriod(grpc::ServerContext* context
                                             const GenericInt* request,
                                             ::google::protobuf::Empty*) {
   log_v2::instance().set_flush_interval(request->value());
+  return grpc::Status::OK;
 }
 
 /**

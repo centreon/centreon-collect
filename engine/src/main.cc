@@ -104,7 +104,7 @@ int main(int argc, char* argv[]) {
   // Load singletons and global variable.
   config = new configuration::state;
 
-  // Hack to instanciate the logger.
+  // Loggers instanciation
   log_v2::load(g_io_context);
   configuration::applier::logging::instance();
 
