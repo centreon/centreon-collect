@@ -43,7 +43,7 @@ jobs:
             image: packaging-alma9
           - connector_path: centreon-certified/splunk
             dependencies: lua-curl
-    name: package ${{ matrix.distrib }} ${{ matrix.connector_script }}
+    name: package ${{ matrix.distrib }} ${{ matrix.connector_path }}
     container:
       image: centreon.jfrog.io/docker/${{ matrix.image }}:${{ needs.get-version.outputs.version }}
       credentials:
@@ -70,6 +70,8 @@ jobs:
               echo "Requires: $dependency" >> dependencies.txt
             done
           fi
+
+          cat dependencies.txt
 
           sed '/#dependencies/r dependencies.txt' packaging/connectors/rpm/connector.spec
 
