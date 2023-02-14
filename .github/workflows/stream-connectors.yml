@@ -49,6 +49,7 @@ jobs:
           - centreon-certified/signl4
           - centreon-certified/splunk
           - centreon-certified/warp10
+          - community-powered/canopsis
         include:
           - version: '1.0.0'
           - dependencies: ''
