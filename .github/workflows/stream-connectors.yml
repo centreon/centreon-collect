@@ -30,12 +30,16 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
+        distrib: [el8]
+        connector_script:
+          - centreon-certified/bsm/bsm_connector-apiv1.lua
         include:
-          - image: packaging-alma8
-            distrib: el8
-          - image: packaging-alma9
-            distrib: el9
-    name: package ${{ matrix.distrib }}
+          - version: '1.0.0'
+          - distrib: el8
+            image: packaging-alma8
+          # - distrib: el9
+          #   image: packaging-alma9
+    name: package ${{ matrix.distrib }} ${{ matrix.connector_script }}
     container:
       image: centreon.jfrog.io/docker/${{ matrix.image }}:${{ needs.get-version.outputs.version }}
       credentials:
@@ -48,150 +52,191 @@ jobs:
       - run: |
           mkdir -p ~/rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
 
-          tar czf ~/rpmbuild/SOURCES/centreon-stream-connectors-lib.tar.gz centreon-stream-connectors-lib
+          PACKAGE_NAME=`basename ${{ matrix.connector_script }} | sed -e 's#.lua##' | sed -e 's#_#-#'`
 
-          rpmbuild -ba packaging/rpm/centreon-stream-connectors-lib.spec
+          mkdir $PACKAGE_NAME
+          mv ${{ matrix.connector_script }} $PACKAGE_NAME/
 
-          mv ~/rpmbuild/RPMS/**/*.rpm ../../
-        working-directory: stream-connectors/modules
+          tar czf ~/rpmbuild/SOURCES/$PACKAGE_NAME.tar.gz $PACKAGE_NAME
+
+          rpmbuild -ba packaging/connectors/rpm/connector.spec -D "PACKAGE_NAME $PACKAGE_NAME" -D "SCRIPT_NAME `basename ${{ matrix.connector_script }}`" -D "VERSION ${{ matrix.version }}"
+
+          mv ~/rpmbuild/RPMS/**/*.rpm ../
+        working-directory: stream-connectors
         shell: bash
 
       - uses: actions/cache@v3
         with:
           path: ./*.rpm
-          key: unsigned-${{ github.sha }}-${{ github.run_id }}-rpm-${{ matrix.distrib }}
+          key: unsigned-${{ github.sha }}-${{ github.run_id }}-rpm-${{ hashFiles('**/${{ matrix.connector_script }}') }}-${{ matrix.distrib }}
 
-  sign-rpm:
-    needs: [package-rpm]
-    runs-on: ubuntu-22.04
-    strategy:
-      matrix:
-        include:
-          - image: packaging-alma8
-            distrib: el8
-          - image: packaging-alma9
-            distrib: el9
-    name: sign rpm ${{ matrix.distrib }}
-    container:
-      image: centreon.jfrog.io/docker/rpm-signing:ubuntu
-      options: -t
-      credentials:
-        username: ${{ secrets.AUTOMATION_USERNAME }}
-        password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+  # package-rpm:
+  #   needs: [get-version]
+  #   runs-on: ubuntu-22.04
+  #   strategy:
+  #     matrix:
+  #       include:
+  #         - image: packaging-alma8
+  #           distrib: el8
+  #         - image: packaging-alma9
+  #           distrib: el9
+  #   name: package ${{ matrix.distrib }}
+  #   container:
+  #     image: centreon.jfrog.io/docker/${{ matrix.image }}:${{ needs.get-version.outputs.version }}
+  #     credentials:
+  #       username: ${{ secrets.AUTOMATION_USERNAME }}
+  #       password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
 
-    steps:
-      - run: apt-get install -y zstd
-        shell: bash
+  #   steps:
+  #     - uses: actions/checkout@v3
 
-      - uses: actions/checkout@v3
+  #     - run: |
+  #         mkdir -p ~/rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
 
-      - uses: actions/cache@v3
-        with:
-          path: ./*.rpm
-          key: unsigned-${{ github.sha }}-${{ github.run_id }}-rpm-${{ matrix.distrib }}
+  #         tar czf ~/rpmbuild/SOURCES/centreon-stream-connectors-lib.tar.gz centreon-stream-connectors-lib
 
-      - run: echo "HOME=/root" >> $GITHUB_ENV
-        shell: bash
+  #         rpmbuild -ba packaging/rpm/centreon-stream-connectors-lib.spec
 
-      - run: rpmsign --addsign ./*.rpm
-        shell: bash
+  #         mv ~/rpmbuild/RPMS/**/*.rpm ../../
+  #       working-directory: stream-connectors/modules
+  #       shell: bash
 
-      - uses: actions/cache@v3
-        with:
-          path: ./*.rpm
-          key: ${{ github.sha }}-${{ github.run_id }}-rpm-${{ matrix.distrib }}
+  #     - uses: actions/cache@v3
+  #       with:
+  #         path: ./*.rpm
+  #         key: unsigned-${{ github.sha }}-${{ github.run_id }}-rpm-${{ matrix.distrib }}
 
-  package-deb:
-    needs: [get-version]
-    runs-on: [self-hosted, common]
-    strategy:
-      matrix:
-        include:
-          - image: packaging-bullseye
-            distrib: bullseye
-    name: package ${{ matrix.distrib }}
-    container:
-      image: centreon.jfrog.io/docker/${{ matrix.image }}:${{ needs.get-version.outputs.version }}
-      credentials:
-        username: ${{ secrets.AUTOMATION_USERNAME }}
-        password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+  # sign-rpm:
+  #   needs: [package-rpm]
+  #   runs-on: ubuntu-22.04
+  #   strategy:
+  #     matrix:
+  #       include:
+  #         - image: packaging-alma8
+  #           distrib: el8
+  #         - image: packaging-alma9
+  #           distrib: el9
+  #   name: sign rpm ${{ matrix.distrib }}
+  #   container:
+  #     image: centreon.jfrog.io/docker/rpm-signing:ubuntu
+  #     options: -t
+  #     credentials:
+  #       username: ${{ secrets.AUTOMATION_USERNAME }}
+  #       password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
 
-    steps:
-      - uses: actions/checkout@v3
+  #   steps:
+  #     - run: apt-get install -y zstd
+  #       shell: bash
 
-      - run: |
-          mkdir -p centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}/debian
+  #     - uses: actions/checkout@v3
 
-          cp -rp centreon-stream-connectors-lib/* centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}/
-          cp -rp packaging/deb/* centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}/debian/
+  #     - uses: actions/cache@v3
+  #       with:
+  #         path: ./*.rpm
+  #         key: unsigned-${{ github.sha }}-${{ github.run_id }}-rpm-${{ matrix.distrib }}
 
-          tar czf centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}.tar.gz centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}
+  #     - run: echo "HOME=/root" >> $GITHUB_ENV
+  #       shell: bash
 
-          cd centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}
+  #     - run: rpmsign --addsign ./*.rpm
+  #       shell: bash
 
-          debmake -f "centreon" -e "contact@centreon.com" -y -r ${{ matrix.distrib }}
-          debuild-pbuilder --no-lintian
+  #     - uses: actions/cache@v3
+  #       with:
+  #         path: ./*.rpm
+  #         key: ${{ github.sha }}-${{ github.run_id }}-rpm-${{ matrix.distrib }}
 
-          mv ../*.deb ../../../
-        working-directory: stream-connectors/modules
-        shell: bash
+  # package-deb:
+  #   needs: [get-version]
+  #   runs-on: [self-hosted, common]
+  #   strategy:
+  #     matrix:
+  #       include:
+  #         - image: packaging-bullseye
+  #           distrib: bullseye
+  #   name: package ${{ matrix.distrib }}
+  #   container:
+  #     image: centreon.jfrog.io/docker/${{ matrix.image }}:${{ needs.get-version.outputs.version }}
+  #     credentials:
+  #       username: ${{ secrets.AUTOMATION_USERNAME }}
+  #       password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
 
-      - uses: actions/cache@v3
-        with:
-          path: ./*.deb
-          key: ${{ github.sha }}-${{ github.run_id }}-deb-${{ matrix.distrib }}
+  #   steps:
+  #     - uses: actions/checkout@v3
 
-  deliver-rpm:
-    if: ${{ contains(fromJson('["unstable", "testing", "stable"]'), needs.get-version.outputs.stability) }}
-    needs: [get-version, sign-rpm]
-    runs-on: [self-hosted, common]
-    strategy:
-      matrix:
-        distrib: [el8, el9]
-    name: deliver ${{ matrix.distrib }}
+  #     - run: |
+  #         mkdir -p centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}/debian
 
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v3
+  #         cp -rp centreon-stream-connectors-lib/* centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}/
+  #         cp -rp packaging/deb/* centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}/debian/
 
-      - name: Publish RPM packages
-        uses: ./.github/actions/delivery
-        with:
-          distrib: ${{ matrix.distrib }}
-          version: ${{ needs.get-version.outputs.version }}
-          minor_version: ${{ needs.get-version.outputs.patch }}
-          release: ${{ needs.get-version.outputs.release }}
-          module_name: stream-connectors
-          nexus_username: ${{ secrets.NEXUS_USERNAME }}
-          nexus_password: ${{ secrets.NEXUS_PASSWORD }}
-          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-          cache_key: ${{ github.sha }}-${{ github.run_id }}-rpm-${{ matrix.distrib }}
-          update_repo_path: ${{ secrets.UPDATE_REPO_PATH }}
-          cloudfront_id: ${{ secrets.CLOUDFRONT_ID }}
-          yum_repo_address: ${{ secrets.YUM_REPO_ADDRESS }}
-          yum_repo_key: ${{ secrets.YUM_REPO_KEY }}
-          yum_repo_url: ${{ secrets.YUM_REPO_URL }}
+  #         tar czf centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}.tar.gz centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}
 
-  deliver-deb:
-    if: ${{ contains(fromJson('["unstable", "testing", "stable"]'), needs.get-version.outputs.stability) }}
-    needs: [get-version, package-deb]
-    runs-on: [self-hosted, common]
-    strategy:
-      matrix:
-        distrib: [bullseye]
-    name: deliver ${{ matrix.distrib }}
+  #         cd centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}
 
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v3
+  #         debmake -f "centreon" -e "contact@centreon.com" -y -r ${{ matrix.distrib }}
+  #         debuild-pbuilder --no-lintian
 
-      - name: Publish DEB packages
-        uses: ./.github/actions/delivery
-        with:
-          distrib: ${{ matrix.distrib }}
-          repository_name: standard
-          version: ${{ needs.get-version.outputs.version }}
-          nexus_username: ${{ secrets.NEXUS_USERNAME }}
-          nexus_password: ${{ secrets.NEXUS_PASSWORD }}
-          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-          cache_key: ${{ github.sha }}-${{ github.run_id }}-deb-${{ matrix.distrib }}
+  #         mv ../*.deb ../../../
+  #       working-directory: stream-connectors/modules
+  #       shell: bash
+
+  #     - uses: actions/cache@v3
+  #       with:
+  #         path: ./*.deb
+  #         key: ${{ github.sha }}-${{ github.run_id }}-deb-${{ matrix.distrib }}
+
+  # deliver-rpm:
+  #   if: ${{ contains(fromJson('["unstable", "testing", "stable"]'), needs.get-version.outputs.stability) }}
+  #   needs: [get-version, sign-rpm]
+  #   runs-on: [self-hosted, common]
+  #   strategy:
+  #     matrix:
+  #       distrib: [el8, el9]
+  #   name: deliver ${{ matrix.distrib }}
+
+  #   steps:
+  #     - name: Checkout sources
+  #       uses: actions/checkout@v3
+
+  #     - name: Publish RPM packages
+  #       uses: ./.github/actions/delivery
+  #       with:
+  #         distrib: ${{ matrix.distrib }}
+  #         version: ${{ needs.get-version.outputs.version }}
+  #         minor_version: ${{ needs.get-version.outputs.patch }}
+  #         release: ${{ needs.get-version.outputs.release }}
+  #         module_name: stream-connectors
+  #         nexus_username: ${{ secrets.NEXUS_USERNAME }}
+  #         nexus_password: ${{ secrets.NEXUS_PASSWORD }}
+  #         artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+  #         cache_key: ${{ github.sha }}-${{ github.run_id }}-rpm-${{ matrix.distrib }}
+  #         update_repo_path: ${{ secrets.UPDATE_REPO_PATH }}
+  #         cloudfront_id: ${{ secrets.CLOUDFRONT_ID }}
+  #         yum_repo_address: ${{ secrets.YUM_REPO_ADDRESS }}
+  #         yum_repo_key: ${{ secrets.YUM_REPO_KEY }}
+  #         yum_repo_url: ${{ secrets.YUM_REPO_URL }}
+
+  # deliver-deb:
+  #   if: ${{ contains(fromJson('["unstable", "testing", "stable"]'), needs.get-version.outputs.stability) }}
+  #   needs: [get-version, package-deb]
+  #   runs-on: [self-hosted, common]
+  #   strategy:
+  #     matrix:
+  #       distrib: [bullseye]
+  #   name: deliver ${{ matrix.distrib }}
+
+  #   steps:
+  #     - name: Checkout sources
+  #       uses: actions/checkout@v3
+
+  #     - name: Publish DEB packages
+  #       uses: ./.github/actions/delivery
+  #       with:
+  #         distrib: ${{ matrix.distrib }}
+  #         repository_name: standard
+  #         version: ${{ needs.get-version.outputs.version }}
+  #         repos_username: ${{ secrets.NEXUS_USERNAME }}
+  #         repos_password: ${{ secrets.NEXUS_PASSWORD }}
+  #         artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+  #         cache_key: ${{ github.sha }}-${{ github.run_id }}-deb-${{ matrix.distrib }}
