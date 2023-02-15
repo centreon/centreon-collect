@@ -25,7 +25,7 @@ jobs:
   get-version:
     uses: ./.github/workflows/get-version.yml
 
-  package-rpm:
+  package-connectors:
     needs: [get-version]
     runs-on: ubuntu-22.04
     strategy:
@@ -157,41 +157,66 @@ jobs:
           path: ./*.${{ matrix.package_extension }}
           key: unsigned-${{ github.sha }}-${{ github.run_id }}-${{ matrix.package_extension }}-${{ hashFiles('**/${{ matrix.connector_script }}') }}-${{ matrix.distrib }}
 
-  # package-rpm:
-  #   needs: [get-version]
-  #   runs-on: ubuntu-22.04
-  #   strategy:
-  #     matrix:
-  #       include:
-  #         - image: packaging-alma8
-  #           distrib: el8
-  #         - image: packaging-alma9
-  #           distrib: el9
-  #   name: package ${{ matrix.distrib }}
-  #   container:
-  #     image: centreon.jfrog.io/docker/${{ matrix.image }}:${{ needs.get-version.outputs.version }}
-  #     credentials:
-  #       username: ${{ secrets.AUTOMATION_USERNAME }}
-  #       password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+  package-connectors-lib:
+    needs: [get-version]
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        distrib: [el8, el9, bullseye]
+        include:
+          - distrib: el8
+            image: packaging-alma8
+            package_extension: rpm
+          - distrib: el9
+            image: packaging-alma9
+            package_extension: rpm
+          - distrib: bullseye
+            image: packaging-bullseye
+            package_extension: deb
+    name: package ${{ matrix.distrib }}
+    container:
+      image: centreon.jfrog.io/docker/${{ matrix.image }}:${{ needs.get-version.outputs.version }}
+      credentials:
+        username: ${{ secrets.AUTOMATION_USERNAME }}
+        password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
 
-  #   steps:
-  #     - uses: actions/checkout@v3
+    steps:
+      - uses: actions/checkout@v3
 
-  #     - run: |
-  #         mkdir -p ~/rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
+      - if: ${{ matrix.package_extension == 'rpm' }}
+        run: |
+          mkdir -p ~/rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
 
-  #         tar czf ~/rpmbuild/SOURCES/centreon-stream-connectors-lib.tar.gz modules/centreon-stream-connectors-lib
+          tar czf ~/rpmbuild/SOURCES/centreon-stream-connectors-lib.tar.gz modules/centreon-stream-connectors-lib
 
-  #         rpmbuild -ba packaging/connectors-lib/rpm/centreon-stream-connectors-lib.spec
+          rpmbuild -ba packaging/connectors-lib/rpm/centreon-stream-connectors-lib.spec
 
-  #         mv ~/rpmbuild/RPMS/**/*.rpm ../
-  #       working-directory: stream-connectors
-  #       shell: bash
+          mv ~/rpmbuild/RPMS/**/*.rpm ../
+        working-directory: stream-connectors
+        shell: bash
 
-  #     - uses: actions/cache@v3
-  #       with:
-  #         path: ./*.rpm
-  #         key: unsigned-${{ github.sha }}-${{ github.run_id }}-rpm-${{ matrix.distrib }}
+      - if: ${{ matrix.package_extension == 'deb' }}
+        run: |
+          mkdir -p centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}/debian
+
+          cp -rp modules/centreon-stream-connectors-lib/* centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}/
+          cp -rp packaging/connectors-lib/deb/* centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}/debian/
+
+          tar czf centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}.tar.gz centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}
+
+          cd centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}
+
+          debmake -f "centreon" -e "contact@centreon.com" -y -r ${{ matrix.distrib }}
+          debuild-pbuilder --no-lintian
+
+          mv ../*.deb ../../../
+        working-directory: stream-connectors
+        shell: bash
+
+      - uses: actions/cache@v3
+        with:
+          path: ./*.${{ matrix.package_extension }}
+          key: unsigned-${{ github.sha }}-${{ github.run_id }}-${{ matrix.package_extension }}-${{ matrix.distrib }}
 
   # sign-rpm:
   #   needs: [package-rpm]
@@ -233,45 +258,45 @@ jobs:
   #         path: ./*.rpm
   #         key: ${{ github.sha }}-${{ github.run_id }}-rpm-${{ matrix.distrib }}
 
-  # package-deb:
-  #   needs: [get-version]
-  #   runs-on: [self-hosted, common]
-  #   strategy:
-  #     matrix:
-  #       include:
-  #         - image: packaging-bullseye
-  #           distrib: bullseye
-  #   name: package ${{ matrix.distrib }}
-  #   container:
-  #     image: centreon.jfrog.io/docker/${{ matrix.image }}:${{ needs.get-version.outputs.version }}
-  #     credentials:
-  #       username: ${{ secrets.AUTOMATION_USERNAME }}
-  #       password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+  package-deb:
+    needs: [get-version]
+    runs-on: [self-hosted, common]
+    strategy:
+      matrix:
+        include:
+          - image: packaging-bullseye
+            distrib: bullseye
+    name: package ${{ matrix.distrib }}
+    container:
+      image: centreon.jfrog.io/docker/${{ matrix.image }}:${{ needs.get-version.outputs.version }}
+      credentials:
+        username: ${{ secrets.AUTOMATION_USERNAME }}
+        password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
 
-  #   steps:
-  #     - uses: actions/checkout@v3
+    steps:
+      - uses: actions/checkout@v3
 
-  #     - run: |
-  #         mkdir -p centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}/debian
+      - run: |
+          mkdir -p centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}/debian
 
-  #         cp -rp modules/centreon-stream-connectors-lib/* centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}/
-  #         cp -rp packaging/connectors-lib/deb/* centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}/debian/
+          cp -rp modules/centreon-stream-connectors-lib/* centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}/
+          cp -rp packaging/connectors-lib/deb/* centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}/debian/
 
-  #         tar czf centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}.tar.gz centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}
+          tar czf centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}.tar.gz centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}
 
-  #         cd centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}
+          cd centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}
 
-  #         debmake -f "centreon" -e "contact@centreon.com" -y -r ${{ matrix.distrib }}
-  #         debuild-pbuilder --no-lintian
+          debmake -f "centreon" -e "contact@centreon.com" -y -r ${{ matrix.distrib }}
+          debuild-pbuilder --no-lintian
 
-  #         mv ../*.deb ../../../
-  #       working-directory: stream-connectors
-  #       shell: bash
+          mv ../*.deb ../../../
+        working-directory: stream-connectors
+        shell: bash
 
-  #     - uses: actions/cache@v3
-  #       with:
-  #         path: ./*.deb
-  #         key: ${{ github.sha }}-${{ github.run_id }}-deb-${{ matrix.distrib }}
+      - uses: actions/cache@v3
+        with:
+          path: ./*.deb
+          key: ${{ github.sha }}-${{ github.run_id }}-deb-${{ matrix.distrib }}
 
   # deliver-rpm:
   #   if: ${{ contains(fromJson('["unstable", "testing", "stable"]'), needs.get-version.outputs.stability) }}
