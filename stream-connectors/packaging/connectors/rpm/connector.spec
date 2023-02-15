@@ -13,7 +13,7 @@ Source0:        %{name}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildArch:      noarch
 
-Requires:       centreon-stream-connectors-lib >= %{MINIMAL_LIB_VERSION}
+Requires:       centreon-stream-connectors-lib >= %{MIN_LIB_VERSION}
 
 %description
 Those modules provides helpful methods to create stream connectors for Centreon

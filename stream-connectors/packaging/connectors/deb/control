@@ -10,5 +10,5 @@ Homepage: https://wwww.centreon.com
 Package: @PACKAGE_NAME@
 Architecture: all
 Depends:
-  centreon-stream-connectors-lib (>=@MINIMAL_LIB_VERSION@)
+  centreon-stream-connectors-lib (>=@MIN_LIB_VERSION@)
 Description: Centreon stream connectors lua modules
