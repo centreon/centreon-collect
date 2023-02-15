@@ -14,7 +14,6 @@ BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildArch:      noarch
 
 Requires:       centreon-stream-connectors-lib
-#dependencies
 
 %description
 Those modules provides helpful methods to create stream connectors for Centreon

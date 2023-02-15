@@ -87,24 +87,17 @@ jobs:
 
           touch dependencies.txt
           if [ ! -z "${{ matrix.dependencies }}" ]; then
-            export IFS=","
             for dependency in "${{ matrix.dependencies }}"; do
               echo "Requires: $dependency" >> dependencies.txt
             done
           fi
-          sed -i '/#dependencies/r dependencies.txt' packaging/connectors/rpm/connector.spec
+          sed -i '/Requires:/r dependencies.txt' packaging/connectors/rpm/connector.spec
 
           touch files.txt
-          export IFS=" "
           for file in $PACKAGE_NAME/*.lua; do
-            echo $file
             echo "%{_datadir}/centreon-broker/lua/`basename $file`" >> files.txt
           done
           sed -i '/%files/r files.txt' packaging/connectors/rpm/connector.spec
-
-          echo "ahah"
-          cat files.txt
-          echo "ohoh"
 
           cat packaging/connectors/rpm/connector.spec
 
