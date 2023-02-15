@@ -32,26 +32,25 @@ jobs:
       matrix:
         distrib: [el8, el9, bullseye]
         connector_path:
-          - centreon-certified/bsm
-          - centreon-certified/capensis
-          - centreon-certified/datadog
-          - centreon-certified/elasticsearch
-          - centreon-certified/google
-          - centreon-certified/influxdb
-          - centreon-certified/kafka
-          - centreon-certified/logstash
-          - centreon-certified/ndo
-          - centreon-certified/omi
-          - centreon-certified/opsgenie
-          - centreon-certified/pagerduty
-          - centreon-certified/prometheus
-          - centreon-certified/servicenow
-          - centreon-certified/signl4
-          - centreon-certified/splunk
-          - centreon-certified/warp10
-          - community-powered/canopsis
+          - bsm
+          - capensis
+          - datadog
+          - elasticsearch
+          - google
+          - influxdb
+          - kafka
+          - logstash
+          - ndo
+          - omi
+          - opsgenie
+          - pagerduty
+          - prometheus
+          - servicenow
+          - signl4
+          - splunk
+          - warp10
         include:
-          - version: '1.0.0'
+          - min_lib_version: '3.0.0'
           - dependencies: ''
           - distrib: el8
             image: packaging-alma8
@@ -62,14 +61,13 @@ jobs:
           - distrib: bullseye
             image: packaging-bullseye
             package_extension: deb
-          - connector_path: centreon-certified/google
-            dependencies: luacrypto
-          - connector_path: centreon-certified/kafka
-            dependencies: librdkafka,luaffi
-          - connector_path: centreon-certified/pagerduty
-            dependencies: luatz
-          - connector_path: centreon-certified/splunk
+          - connector_path: kafka
+            dependencies: librdkafka,lua-ffi
+          - connector_path: pagerduty
+            dependencies: lua-tz
+          - connector_path: splunk
             dependencies: lua-curl
+
     name: package ${{ matrix.distrib }} ${{ matrix.connector_path }}
     container:
       image: centreon.jfrog.io/docker/${{ matrix.image }}:${{ needs.get-version.outputs.version }}
@@ -105,9 +103,7 @@ jobs:
           done
           sed -i '/%files/r files.txt' packaging/connectors/rpm/connector.spec
 
-          cat packaging/connectors/rpm/connector.spec
-
-          rpmbuild -ba packaging/connectors/rpm/connector.spec -D "PACKAGE_NAME $PACKAGE_NAME" -D "VERSION ${{ matrix.version }}"
+          rpmbuild -ba packaging/connectors/rpm/connector.spec -D "PACKAGE_NAME $PACKAGE_NAME" -D "VERSION ${{ matrix.version }}" -D "MIN_LIB_VERSION ${{ matrix.min_lib_version }}"
 
           mv ~/rpmbuild/RPMS/**/*.rpm ../
         working-directory: stream-connectors
@@ -122,6 +118,7 @@ jobs:
           cp ${{ matrix.connector_path }}/*.lua $PACKAGE_NAME-${{ needs.get-version.outputs.version }}/
 
           sed -i "s#@PACKAGE_NAME@#$PACKAGE_NAME#g" packaging/connectors/deb/control
+          sed -i "s#@MIN_LIB_VERSION@#${{ matrix.min_lib_version }}#g" packaging/connectors/deb/control
 
           touch dependencies.txt
           if [ ! -z "${{ matrix.dependencies }}" ]; then

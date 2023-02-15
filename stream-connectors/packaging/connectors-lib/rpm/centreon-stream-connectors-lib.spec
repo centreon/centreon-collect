@@ -19,8 +19,7 @@ BuildArch:      noarch
 BuildRequires:  lua
 BuildRequires:  lua-devel
 
-Requires:       centreon-broker-core >= 23.04.0
-Requires:       centreon-broker-core < 23.05.0
+Requires:       centreon-broker-core >= 22.04.0
 Requires:       lua-socket >= 3.0
 
 %description
