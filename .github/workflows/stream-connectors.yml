@@ -115,6 +115,7 @@ jobs:
 
       - if: ${{ matrix.package_extension == 'deb' }}
         run: |
+          set -x
           PACKAGE_NAME="centreon-stream-connector-`basename ${{ matrix.connector_path }}`"
 
           mkdir -p $PACKAGE_NAME-${{ needs.get-version.outputs.version }}/debian
