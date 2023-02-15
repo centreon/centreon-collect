@@ -92,13 +92,13 @@ jobs:
               echo "Requires: $dependency" >> dependencies.txt
             done
           fi
-          sed '/#dependencies/r dependencies.txt' packaging/connectors/rpm/connector.spec
+          sed -i '/#dependencies/r dependencies.txt' packaging/connectors/rpm/connector.spec
 
           touch files.txt
           for file in "${{ matrix.connector_path }}/*.lua"; do
             echo "%{_datadir}/centreon-broker/lua/`basename $file`" >> files.txt
           done
-          sed '/%files/r files.txt' packaging/connectors/rpm/connector.spec
+          sed -i '/%files/r files.txt' packaging/connectors/rpm/connector.spec
 
           cat packaging/connectors/rpm/connector.spec
 

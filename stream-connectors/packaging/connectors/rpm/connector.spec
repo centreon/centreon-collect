@@ -26,7 +26,7 @@ Those modules provides helpful methods to create stream connectors for Centreon
 
 %install
 %{__install} -d $RPM_BUILD_ROOT%{_datadir}/centreon-broker/lua
-%{__cp} -pr ./* $RPM_BUILD_ROOT%{_datadir}/centreon-broker/lua
+%{__cp} -pr ./*.lua $RPM_BUILD_ROOT%{_datadir}/centreon-broker/lua
 
 %clean
 %{__rm} -rf $RPM_BUILD_ROOT
