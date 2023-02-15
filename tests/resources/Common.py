@@ -156,7 +156,8 @@ def start_mysql():
         logger.console("Mariadb started with systemd")
     else:
         logger.console("Starting Mariadb directly")
-        Popen(["mariadbd", "--socket=/var/lib/mysql/mysql.sock", "--user=root"], stdout=DEVNULL, stderr=DEVNULL)
+        Popen(["mariadbd", "--socket=/var/lib/mysql/mysql.sock",
+              "--user=root"], stdout=DEVNULL, stderr=DEVNULL)
         logger.console("Mariadb directly started")
 
 
@@ -362,9 +363,10 @@ def check_service_resource_status_with_timeout(hostname: str, service_desc: str,
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                        f"SELECT r.status,r.status_confirmed FROM resources r LEFT JOIN services s ON r.id=s.service_id AND r.parent_id=s.host_id LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='{hostname}' AND s.description='{service_desc}'")
+                    f"SELECT r.status,r.status_confirmed FROM resources r LEFT JOIN services s ON r.id=s.service_id AND r.parent_id=s.host_id LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='{hostname}' AND s.description='{service_desc}'")
                 result = cursor.fetchall()
-                logger.console(f"result: {int(result[0]['status'])} status: {int(status)}")
+                logger.console(
+                    f"result: {int(result[0]['status'])} status: {int(status)}")
                 if len(result) > 0 and result[0]['status'] is not None and int(result[0]['status']) == int(status):
                     logger.console(
                         f"status={result[0]['status']} and status_confirmed={result[0]['status_confirmed']}")
@@ -403,7 +405,7 @@ def check_acknowledgement_with_timeout(hostname: str, service_desc: str, entry_t
     return 0
 
 
-def check_acknowledgement_is_deleted_with_timeout(ack_id: int, timeout: int, which = 'COMMENTS'):
+def check_acknowledgement_is_deleted_with_timeout(ack_id: int, timeout: int, which='COMMENTS'):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -416,12 +418,14 @@ def check_acknowledgement_is_deleted_with_timeout(ack_id: int, timeout: int, whi
 
         with connection:
             with connection.cursor() as cursor:
-                cursor.execute(f"SELECT c.deletion_time, a.entry_time, a.deletion_time FROM comments c LEFT JOIN acknowledgements a ON c.host_id=a.host_id AND c.service_id=a.service_id AND c.entry_time=a.entry_time WHERE c.entry_type=4 AND a.acknowledgement_id={ack_id}")
+                cursor.execute(
+                    f"SELECT c.deletion_time, a.entry_time, a.deletion_time FROM comments c LEFT JOIN acknowledgements a ON c.host_id=a.host_id AND c.service_id=a.service_id AND c.entry_time=a.entry_time WHERE c.entry_type=4 AND a.acknowledgement_id={ack_id}")
                 result = cursor.fetchall()
                 logger.console(result)
                 if len(result) > 0 and result[0]['deletion_time'] is not None and int(result[0]['deletion_time']) > int(result[0]['entry_time']):
                     if which == 'BOTH' and not result[0]['a.deletion_time']:
-                        logger.console(f"Acknowledgement {ack_id} is only deleted in comments")
+                        logger.console(
+                            f"Acknowledgement {ack_id} is only deleted in comments")
                     else:
                         logger.console(
                             f"Acknowledgement {ack_id} is deleted at {result[0]['deletion_time']}")
@@ -605,7 +609,7 @@ def check_service_downtime_with_timeout(hostname: str, service_desc: str, enable
                 result = cursor.fetchall()
                 if len(result) > 0 and not result[0]['scheduled_downtime_depth'] is None and result[0]['scheduled_downtime_depth'] == int(enabled):
                     return True
-        time.sleep(5)
+        time.sleep(2)
     return False
 
 
