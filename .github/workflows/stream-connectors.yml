@@ -120,7 +120,6 @@ jobs:
           mkdir -p $PACKAGE_NAME-${{ needs.get-version.outputs.version }}/debian
 
           cp ${{ matrix.connector_path }}/*.lua $PACKAGE_NAME-${{ needs.get-version.outputs.version }}/
-          cp -rp packaging/connectors/deb/* $PACKAGE_NAME-${{ needs.get-version.outputs.version }}/debian/
 
           sed -i "s#@PACKAGE_NAME@#$PACKAGE_NAME#g" packaging/connectors/deb/control
 
@@ -133,6 +132,8 @@ jobs:
           sed -i '/Depends:/r dependencies.txt' packaging/connectors/deb/control
 
           cat packaging/connectors/deb/control
+
+          cp -rp packaging/connectors/deb/* $PACKAGE_NAME-${{ needs.get-version.outputs.version }}/debian/
 
           tar czf $PACKAGE_NAME-${{ needs.get-version.outputs.version }}.tar.gz $PACKAGE_NAME-${{ needs.get-version.outputs.version }}
 
