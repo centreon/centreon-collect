@@ -9,7 +9,7 @@ on:
     - cron: '0 0 * * *'
 
 env:
-  REGISTRY: docker.centreon.com
+  REGISTRY: centreon.jfrog.io/docker
 
 jobs:
   robot-test:

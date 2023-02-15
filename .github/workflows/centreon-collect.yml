@@ -8,7 +8,7 @@ on:
       - dev-21.10.x
 
 env:
-  REGISTRY: docker.centreon.com
+  REGISTRY: centreon.jfrog.io/docker
 
 jobs:
   create-version:
