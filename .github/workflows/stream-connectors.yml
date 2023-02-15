@@ -25,30 +25,60 @@ jobs:
   get-version:
     uses: ./.github/workflows/get-version.yml
 
+  detect-changes:
+    runs-on: ubuntu-22.04
+    outputs:
+      connectors: ${{ steps.list-connectors.outputs.connectors }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          base: ${{ github.ref }}
+          list-files: shell
+          filters: |
+            connectors:
+              - stream-connectors/centreon-certified/**
+
+      - name: transform to directories
+        id: list-connectors
+        run: |
+          folders=()
+          for f in ${{ steps.filter.outputs.connectors }}; \
+            do \
+              echo "Adding $(dirname $f) to folders"; \
+              folders+=($(dirname $f)); \
+          done
+          unique_folders=($(printf "%s\n" "${folders[@]}" | sort -u | tr '\n' ' '))
+          echo "connectors=$(jq --compact-output --null-input '$ARGS.positional' --args -- ${unique_folders[@]})" >> $GITHUB_OUTPUT
+        shell: bash
+
   package-connectors:
-    needs: [get-version]
+    if: ${{ needs.detect-changes.outputs.connectors != '' }}
+    needs: [get-version, detect-changes]
     runs-on: ubuntu-22.04
     strategy:
       matrix:
         distrib: [el8, el9, bullseye]
-        connector_path:
-          - bsm
-          - capensis
-          - datadog
-          - elasticsearch
-          - google
-          - influxdb
-          - kafka
-          - logstash
-          - ndo
-          - omi
-          - opsgenie
-          - pagerduty
-          - prometheus
-          - servicenow
-          - signl4
-          - splunk
-          - warp10
+        connector_path: ${{ fromJson(needs.detect-changes.outputs.connectors) }}
+          # - bsm
+          # - capensis
+          # - datadog
+          # - elasticsearch
+          # - google
+          # - influxdb
+          # - kafka
+          # - logstash
+          # - ndo
+          # - omi
+          # - opsgenie
+          # - pagerduty
+          # - prometheus
+          # - servicenow
+          # - signl4
+          # - splunk
+          # - warp10
         include:
           - min_lib_version: '3.0.0'
           - dependencies: ''
@@ -114,7 +144,6 @@ jobs:
         run: |
           PACKAGE_NAME="centreon-stream-connector-`basename ${{ matrix.connector_path }}`"
           PACKAGE_VERSION=`date '+%Y%m%d'`
-          PACKAGE_RELEASE=`date '+%H%M%S'`
 
           mkdir -p $PACKAGE_NAME-$PACKAGE_VERSION/debian
 
