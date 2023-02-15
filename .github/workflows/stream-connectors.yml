@@ -116,9 +116,9 @@ jobs:
           PACKAGE_VERSION=`date '+%Y%m%d'`
           PACKAGE_RELEASE=`date '+%H%M%S'`
 
-          mkdir -p $PACKAGE_NAME/debian
+          mkdir -p $PACKAGE_NAME-$PACKAGE_VERSION/debian
 
-          cp centreon-certified/${{ matrix.connector_path }}/*.lua $PACKAGE_NAME/
+          cp centreon-certified/${{ matrix.connector_path }}/*.lua $PACKAGE_NAME-$PACKAGE_VERSION/
 
           sed -i "s#@PACKAGE_NAME@#$PACKAGE_NAME#g" packaging/connectors/deb/control
           sed -i "s#@MIN_LIB_VERSION@#${{ matrix.min_lib_version }}#g" packaging/connectors/deb/control
@@ -131,15 +131,15 @@ jobs:
           fi
           sed -i '/^Depends:/r dependencies.txt' packaging/connectors/deb/control
 
-          for file in $PACKAGE_NAME/*.lua; do
+          for file in $PACKAGE_NAME-$PACKAGE_VERSION/*.lua; do
             echo "`basename $file`    /usr/share/centreon-broker/lua/`basename $file`" >> packaging/connectors/deb/install
           done
 
-          cp -rp packaging/connectors/deb/* $PACKAGE_NAME/debian/
+          cp -rp packaging/connectors/deb/* $PACKAGE_NAME-$PACKAGE_VERSION/debian/
 
-          tar czf $PACKAGE_NAME-$PACKAGE_VERSION.tar.gz $PACKAGE_NAME
+          tar czf $PACKAGE_NAME-$PACKAGE_VERSION.tar.gz $PACKAGE_NAME-$PACKAGE_VERSION
 
-          cd $PACKAGE_NAME
+          cd $PACKAGE_NAME-$PACKAGE_VERSION
 
           debmake -f "centreon" -e "contact@centreon.com" -y -r ${{ matrix.distrib }}
           debuild-pbuilder --no-lintian
