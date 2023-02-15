@@ -185,6 +185,9 @@ jobs:
 
       - if: ${{ matrix.package_extension == 'rpm' }}
         run: |
+          yum install -y yum-utils
+          yum config-manager --set-enabled crb || true # alma 9
+          yum config-manager --set-enabled powertools || true # alma 8
           yum install -y lua lua-devel
           mkdir -p ~/rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
 
