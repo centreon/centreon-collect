@@ -71,7 +71,7 @@ jobs:
         uses: docker/login-action@v2
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.AUTOMATION_USER }}
+          username: ${{ secrets.AUTOMATION_USERNAME }}
           password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
       - name: Test ${{ matrix.image }}
         uses: ./.github/actions/runner-docker
@@ -102,7 +102,7 @@ jobs:
         uses: docker/login-action@v2
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.AUTOMATION_USER }}
+          username: ${{ secrets.AUTOMATION_USERNAME }}
           password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
 
       - name: make rpm ${{ matrix.image }}
@@ -119,7 +119,7 @@ jobs:
           script_name: rpm-signing
           image_name: rpm-signing
           image_version: ubuntu
-          registry_username: ${{ secrets.AUTOMATION_USER }}
+          registry_username: ${{ secrets.AUTOMATION_USERNAME }}
           registry_password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
 
       - name: Use cache RPM files
@@ -152,7 +152,7 @@ jobs:
         uses: docker/login-action@v2
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.AUTOMATION_USER }}
+          username: ${{ secrets.AUTOMATION_USERNAME }}
           password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
 
       - name: debmake ${{ matrix.image }}
