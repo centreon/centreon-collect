@@ -85,7 +85,7 @@ jobs:
           PACKAGE_NAME="centreon-stream-connector-`basename ${{ matrix.connector_path }}`"
 
           mkdir $PACKAGE_NAME
-          cp ${{ matrix.connector_path }}/*.lua $PACKAGE_NAME/
+          cp centreon-certified/${{ matrix.connector_path }}/*.lua $PACKAGE_NAME/
 
           tar czf ~/rpmbuild/SOURCES/$PACKAGE_NAME.tar.gz $PACKAGE_NAME
 
@@ -115,7 +115,7 @@ jobs:
 
           mkdir -p $PACKAGE_NAME-${{ needs.get-version.outputs.version }}/debian
 
-          cp ${{ matrix.connector_path }}/*.lua $PACKAGE_NAME-${{ needs.get-version.outputs.version }}/
+          cp centreon-certified/${{ matrix.connector_path }}/*.lua $PACKAGE_NAME-${{ needs.get-version.outputs.version }}/
 
           sed -i "s#@PACKAGE_NAME@#$PACKAGE_NAME#g" packaging/connectors/deb/control
           sed -i "s#@MIN_LIB_VERSION@#${{ matrix.min_lib_version }}#g" packaging/connectors/deb/control
