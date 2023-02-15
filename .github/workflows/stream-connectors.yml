@@ -100,6 +100,10 @@ jobs:
           done
           sed -i '/%files/r files.txt' packaging/connectors/rpm/connector.spec
 
+          echo "ahah"
+          cat files.txt
+          echo "ohoh"
+
           cat packaging/connectors/rpm/connector.spec
 
           rpmbuild -ba packaging/connectors/rpm/connector.spec -D "PACKAGE_NAME $PACKAGE_NAME" -D "VERSION ${{ matrix.version }}"
