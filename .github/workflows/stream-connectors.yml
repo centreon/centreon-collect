@@ -130,7 +130,7 @@ jobs:
               echo "  $dependency," >> dependencies.txt
             done
           fi
-          sed -i '/Depends:/r dependencies.txt' packaging/connectors/deb/control
+          sed -i '/^Depends:/r dependencies.txt' packaging/connectors/deb/control
 
           for file in $PACKAGE_NAME-${{ needs.get-version.outputs.version }}/*.lua; do
             echo "`basename $file`    /usr/share/centreon-broker/lua/`basename $file`" >> packaging/connectors/deb/install
@@ -146,7 +146,7 @@ jobs:
           cd $PACKAGE_NAME-${{ needs.get-version.outputs.version }}
 
           debmake -f "centreon" -e "contact@centreon.com" -y -r ${{ matrix.distrib }}
-          debuild-pbuilder -i -us -uc -b
+          debuild-pbuilder --no-lintian
 
           mv ../*.deb ../../../
         working-directory: stream-connectors
