@@ -191,7 +191,9 @@ jobs:
           yum install -y lua lua-devel
           mkdir -p ~/rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
 
-          tar czf ~/rpmbuild/SOURCES/centreon-stream-connectors-lib.tar.gz modules/centreon-stream-connectors-lib
+          cd modules
+          tar czf ~/rpmbuild/SOURCES/centreon-stream-connectors-lib.tar.gz centreon-stream-connectors-lib
+          cd ..
 
           rpmbuild -ba packaging/connectors-lib/rpm/centreon-stream-connectors-lib.spec
 
