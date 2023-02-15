@@ -87,10 +87,12 @@ jobs:
 
           touch dependencies.txt
           if [ ! -z "${{ matrix.dependencies }}" ]; then
+            OLD_IFS=$IFS
             export IFS=","
             for dependency in "${{ matrix.dependencies }}"; do
               echo "Requires: $dependency" >> dependencies.txt
             done
+            export IFS=$OLD_IFS
           fi
           sed -i '/#dependencies/r dependencies.txt' packaging/connectors/rpm/connector.spec
 
