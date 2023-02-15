@@ -185,6 +185,7 @@ jobs:
 
       - if: ${{ matrix.package_extension == 'rpm' }}
         run: |
+          yum install -y lua lua-devel
           mkdir -p ~/rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
 
           tar czf ~/rpmbuild/SOURCES/centreon-stream-connectors-lib.tar.gz modules/centreon-stream-connectors-lib
