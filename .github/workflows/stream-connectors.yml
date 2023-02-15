@@ -115,7 +115,6 @@ jobs:
 
       - if: ${{ matrix.package_extension == 'deb' }}
         run: |
-          set -x
           PACKAGE_NAME="centreon-stream-connector-`basename ${{ matrix.connector_path }}`"
 
           mkdir -p $PACKAGE_NAME-${{ needs.get-version.outputs.version }}/debian
@@ -135,9 +134,6 @@ jobs:
           for file in $PACKAGE_NAME-${{ needs.get-version.outputs.version }}/*.lua; do
             echo "`basename $file`    /usr/share/centreon-broker/lua/`basename $file`" >> packaging/connectors/deb/install
           done
-
-          cat packaging/connectors/deb/control
-          cat packaging/connectors/deb/install
 
           cp -rp packaging/connectors/deb/* $PACKAGE_NAME-${{ needs.get-version.outputs.version }}/debian/
 
