@@ -55,7 +55,7 @@ using tcp_keep_alive_cnt =
 using tcp_user_timeout =
     asio::detail::socket_option::integer<IPPROTO_TCP, TCP_USER_TIMEOUT>;
 
-tcp_async* tcp_async::_instance{nullptr};
+std::shared_ptr<tcp_async> tcp_async::_instance;
 
 /**
  * @brief Return the tcp_async singleton.
@@ -73,8 +73,8 @@ tcp_async& tcp_async::instance() {
  * pool initialization.
  */
 void tcp_async::load() {
-  if (_instance == nullptr)
-    _instance = new tcp_async();
+  if (!_instance)
+    _instance = std::shared_ptr<tcp_async>(new tcp_async);
   else
     log_v2::tcp()->error("tcp_async instance already started.");
 }
@@ -85,8 +85,8 @@ void tcp_async::load() {
  */
 void tcp_async::unload() {
   if (_instance) {
-    delete _instance;
-    _instance = nullptr;
+    _instance->stop_timer();
+    _instance.reset();
   }
 }
 
@@ -102,32 +102,12 @@ tcp_async::tcp_async() : _clear_available_con_running(false) {}
  */
 void tcp_async::stop_timer() {
   log_v2::tcp()->trace("tcp_async::stop_timer");
-  if (_clear_available_con_running) {
-    std::promise<bool> p;
-    std::future<bool> f(p.get_future());
-    _clear_available_con_running = false;
-    asio::post(_timer->get_executor(), [this, &p] {
-      _timer->cancel();
-      p.set_value(true);
-    });
-    f.get();
+  std::unique_lock<std::mutex> l(_acceptor_available_con_m);
+  if (_clear_available_con_running && _timer) {
+    _timer->cancel();
   }
   if (_timer)
     _timer.reset();
-}
-
-/**
- * @brief The destructor of tcp_async. You don't have to use it, instead, use
- * the unload() function.
- */
-tcp_async::~tcp_async() noexcept {
-  stop_timer();
-  /* Before destroying the strand, we have to wait it is really empty. We post
-   * a last action and wait it is over. */
-  std::promise<bool> p;
-  std::future<bool> f{p.get_future()};
-  pool::io_context().post([&p] { p.set_value(true); });
-  f.get();
 }
 
 /**
@@ -230,10 +210,12 @@ void tcp_async::_clear_available_con(asio::error_code ec) {
       } else
         ++it;
     }
-    if (!_acceptor_available_con.empty()) {
+    if (!_acceptor_available_con.empty() && _timer) {
       _timer->expires_after(std::chrono::seconds(10));
-      _timer->async_wait(std::bind(&tcp_async::_clear_available_con, this,
-                                   std::placeholders::_1));
+      _timer->async_wait(
+          [me = shared_from_this()](const asio::error_code& err) {
+            me->_clear_available_con(err);
+          });
     } else
       _clear_available_con_running = false;
   }
@@ -260,8 +242,9 @@ void tcp_async::start_acceptor(
 
   log_v2::tcp()->debug("Reschedule available connections cleaning in 10s");
   _timer->expires_after(std::chrono::seconds(10));
-  _timer->async_wait(
-      std::bind(&tcp_async::_clear_available_con, this, std::placeholders::_1));
+  _timer->async_wait([me = shared_from_this()](const asio::error_code& err) {
+    me->_clear_available_con(err);
+  });
 
   tcp_connection::pointer new_connection =
       std::make_shared<tcp_connection>(pool::io_context());
