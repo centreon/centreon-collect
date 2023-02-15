@@ -33,6 +33,5 @@ Those modules provides helpful methods to create stream connectors for Centreon
 %{__rm} -rf $RPM_BUILD_ROOT
 
 %files
-%{_datadir}/centreon-broker/lua/*
 
 %changelog
