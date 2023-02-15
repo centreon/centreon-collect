@@ -81,7 +81,7 @@ jobs:
           PACKAGE_NAME="centreon-stream-connector-`basename ${{ matrix.connector_path }} | sed -e 's#.lua##' | sed -e 's#_#-#'`"
 
           mkdir $PACKAGE_NAME
-          mv ${{ matrix.connector_path }}/* $PACKAGE_NAME/
+          cp ${{ matrix.connector_path }}/* $PACKAGE_NAME/
 
           tar czf ~/rpmbuild/SOURCES/$PACKAGE_NAME.tar.gz $PACKAGE_NAME
 
@@ -95,8 +95,8 @@ jobs:
           sed '/#dependencies/r dependencies.txt' packaging/connectors/rpm/connector.spec
 
           touch files.txt
-          for file in ${{ matrix.connector_path }}/*.lua; do
-            echo "`basename $file`" >> files.txt
+          for file in "${{ matrix.connector_path }}/*.lua"; do
+            echo "%{_datadir}/centreon-broker/lua/`basename $file`" >> files.txt
           done
           sed '/%files/r files.txt' packaging/connectors/rpm/connector.spec
 
