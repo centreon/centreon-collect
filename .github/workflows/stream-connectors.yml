@@ -146,7 +146,7 @@ jobs:
           cd $PACKAGE_NAME-${{ needs.get-version.outputs.version }}
 
           debmake -f "centreon" -e "contact@centreon.com" -y -r ${{ matrix.distrib }}
-          debuild-pbuilder --no-lintian
+          debuild-pbuilder -d --no-lintian
 
           mv ../*.deb ../../../
         working-directory: stream-connectors
