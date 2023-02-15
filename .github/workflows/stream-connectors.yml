@@ -131,7 +131,12 @@ jobs:
           fi
           sed -i '/Depends:/r dependencies.txt' packaging/connectors/deb/control
 
+          for file in $PACKAGE_NAME-${{ needs.get-version.outputs.version }}/*.lua; do
+            echo "`basename $file`    /usr/share/centreon-broker/lua/`basename $file`" >> packaging/connectors/deb/install
+          done
+
           cat packaging/connectors/deb/control
+          cat packaging/connectors/deb/install
 
           cp -rp packaging/connectors/deb/* $PACKAGE_NAME-${{ needs.get-version.outputs.version }}/debian/
 
