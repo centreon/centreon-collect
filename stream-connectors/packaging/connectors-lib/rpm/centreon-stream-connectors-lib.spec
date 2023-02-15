@@ -16,6 +16,9 @@ Source0:        %{name}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildArch:      noarch
 
+BuildRequires:  lua
+BuildRequires:  lua-devel
+
 Requires:       centreon-broker-core >= 23.04.0
 Requires:       centreon-broker-core < 23.05.0
 Requires:       lua-socket >= 3.0
