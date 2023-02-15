@@ -122,7 +122,7 @@ jobs:
           cp ${{ matrix.connector_path }}/*.lua $PACKAGE_NAME-${{ needs.get-version.outputs.version }}/
           cp -rp packaging/connectors/deb/* $PACKAGE_NAME-${{ needs.get-version.outputs.version }}/debian/
 
-          sed -i "s#@PACKAGE_NAME@#$PACKAGE_NAME#" packaging/connectors/deb/control
+          sed -i "s#@PACKAGE_NAME@#$PACKAGE_NAME#g" packaging/connectors/deb/control
 
           touch dependencies.txt
           if [ ! -z "${{ matrix.dependencies }}" ]; then
