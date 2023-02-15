@@ -96,7 +96,7 @@ jobs:
 
           touch files.txt
           export IFS=" "
-          for file in "$PACKAGE_NAME/*.lua"; do
+          for file in $PACKAGE_NAME/*.lua; do
             echo $file
             echo "%{_datadir}/centreon-broker/lua/`basename $file`" >> files.txt
           done
