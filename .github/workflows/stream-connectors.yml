@@ -30,7 +30,7 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        distrib: [el8, el9]
+        distrib: [el8, el9, bullseye]
         connector_path:
           - centreon-certified/bsm
           - centreon-certified/capensis
@@ -55,8 +55,13 @@ jobs:
           - dependencies: ''
           - distrib: el8
             image: packaging-alma8
+            package_extension: rpm
           - distrib: el9
             image: packaging-alma9
+            package_extension: rpm
+          - distrib: bullseye
+            image: packaging-bullseye
+            package_extension: deb
           - connector_path: centreon-certified/google
             dependencies: luacrypto
           - connector_path: centreon-certified/kafka
@@ -75,10 +80,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - run: |
+      - if: ${{ matrix.package_extension == 'rpm' }}
+        run: |
           mkdir -p ~/rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
 
-          PACKAGE_NAME="centreon-stream-connector-`basename ${{ matrix.connector_path }} | sed -e 's#.lua##' | sed -e 's#_#-#'`"
+          PACKAGE_NAME="centreon-stream-connector-`basename ${{ matrix.connector_path }}`"
 
           mkdir $PACKAGE_NAME
           cp ${{ matrix.connector_path }}/*.lua $PACKAGE_NAME/
@@ -107,10 +113,42 @@ jobs:
         working-directory: stream-connectors
         shell: bash
 
+      - if: ${{ matrix.package_extension == 'deb' }}
+        run: |
+          PACKAGE_NAME="centreon-stream-connector-`basename ${{ matrix.connector_path }}`"
+
+          mkdir -p $PACKAGE_NAME-${{ needs.get-version.outputs.version }}/debian
+
+          cp ${{ matrix.connector_path }}/*.lua $PACKAGE_NAME-${{ needs.get-version.outputs.version }}/
+          cp -rp packaging/connectors/deb/* $PACKAGE_NAME-${{ needs.get-version.outputs.version }}/debian/
+
+          sed -i "s#@PACKAGE_NAME@#$PACKAGE_NAME#" packaging/connectors/deb/control
+
+          touch dependencies.txt
+          if [ ! -z "${{ matrix.dependencies }}" ]; then
+            for dependency in "${{ matrix.dependencies }}"; do
+              echo "  $dependency," >> dependencies.txt
+            done
+          fi
+          sed -i '/Depends:/r dependencies.txt' packaging/connectors/deb/control
+
+          cat packaging/connectors/deb/control
+
+          tar czf $PACKAGE_NAME-${{ needs.get-version.outputs.version }}.tar.gz centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}
+
+          cd $PACKAGE_NAME-${{ needs.get-version.outputs.version }}
+
+          debmake -f "centreon" -e "contact@centreon.com" -y -r ${{ matrix.distrib }}
+          debuild-pbuilder --no-lintian
+
+          mv ../*.deb ../../../
+        working-directory: stream-connectors
+        shell: bash
+
       - uses: actions/cache@v3
         with:
-          path: ./*.rpm
-          key: unsigned-${{ github.sha }}-${{ github.run_id }}-rpm-${{ hashFiles('**/${{ matrix.connector_script }}') }}-${{ matrix.distrib }}
+          path: ./*.${{ matrix.package_extension }}
+          key: unsigned-${{ github.sha }}-${{ github.run_id }}-${{ matrix.package_extension }}-${{ hashFiles('**/${{ matrix.connector_script }}') }}-${{ matrix.distrib }}
 
   # package-rpm:
   #   needs: [get-version]

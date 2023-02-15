@@ -1,9 +1,6 @@
 %{!?luaver: %global luaver %(lua -e "print(string.sub(_VERSION, 5))" || echo 0)}
 %global luapkgdir %{_datadir}/lua/%{luaver}
 
-%define thismajor 23.04.0
-%define nextmajor 23.10.0
-
 Name:           centreon-stream-connectors-lib
 Version:        3.6.0
 Release:        1%{?dist}
@@ -19,8 +16,8 @@ Source0:        %{name}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildArch:      noarch
 
-Requires:       centreon-broker-core >= %{thismajor}
-Requires:       centreon-broker-core < %{nextmajor}
+Requires:       centreon-broker-core >= 23.04.0
+Requires:       centreon-broker-core < 23.05.0
 Requires:       lua-socket >= 3.0
 
 %description
