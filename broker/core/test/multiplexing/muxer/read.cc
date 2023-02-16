@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 - 2019 Centreon (https://www.centreon.com/)
+ * Copyright 2011 - 2023 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -54,12 +54,14 @@ class MultiplexingMuxerRead : public ::testing::Test {
   }
 
   void publish_events(int count = 10000) {
+    std::deque<std::shared_ptr<io::data>> q;
     for (int i = 0; i < count; ++i) {
       std::shared_ptr<io::raw> r{std::make_shared<io::raw>()};
       r->resize(sizeof(i));
       memcpy(r->data(), &i, sizeof(i));
-      _m->publish(std::deque<std::shared_ptr<io::data>>({r}));
+      q.push_back(std::move(r));
     }
+    _m->publish(q);
   }
 
   void reread_events(int from = 0, int to = 10000) {
