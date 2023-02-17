@@ -1,20 +1,20 @@
-##
-## Copyright 2011-2021 Centreon
-##
-## Licensed under the Apache License, Version 2.0 (the "License");
-## you may not use this file except in compliance with the License.
-## You may obtain a copy of the License at
-##
-##     http://www.apache.org/licenses/LICENSE-2.0
-##
-## Unless required by applicable law or agreed to in writing, software
-## distributed under the License is distributed on an "AS IS" BASIS,
-## WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-## See the License for the specific language governing permissions and
-## limitations under the License.
-##
-## For more information : contact@centreon.com
-##
+#
+# Copyright 2011-2021 Centreon
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# For more information : contact@centreon.com
+#
 
 # Global options.
 set(INC_DIR "${PROJECT_SOURCE_DIR}/bam/inc")
@@ -28,6 +28,7 @@ set(INC_DIR "${INC_DIR}/com/centreon/broker/bam")
 set(BAM "20-bam")
 set(BAM "${BAM}" PARENT_SCOPE)
 add_library("${BAM}" SHARED
+
   # Sources.
   "${SRC_DIR}/availability_builder.cc"
   "${SRC_DIR}/availability_thread.cc"
@@ -76,6 +77,7 @@ add_library("${BAM}" SHARED
   "${SRC_DIR}/service_book.cc"
   "${SRC_DIR}/service_listener.cc"
   "${SRC_DIR}/timeperiod_map.cc"
+
   # Headers.
   "${INC_DIR}/availability_builder.hh"
   "${INC_DIR}/availability_thread.hh"
@@ -129,35 +131,35 @@ add_library("${BAM}" SHARED
 target_link_libraries("${BAM}" bbdo_storage bbdo_bam CONAN_PKG::spdlog CONAN_PKG::abseil)
 target_precompile_headers(${BAM} PRIVATE precomp_inc/precomp.hpp)
 set_target_properties("${BAM}" PROPERTIES
-    PREFIX "")
+  PREFIX "")
 
 # Testing.
-if (WITH_TESTING )
-    if (WITH_SQL_TESTS)
-        set(TESTS_SOURCES ${TESTS_SOURCES} ${TEST_DIR}/monitoring_stream.cc)
-    endif (WITH_SQL_TESTS)
+if(WITH_TESTING)
+  if(WITH_SQL_TESTS)
+    set(TESTS_SOURCES ${TESTS_SOURCES} ${TEST_DIR}/monitoring_stream.cc)
+  endif(WITH_SQL_TESTS)
 
-    # Testing.
-    set(
-      TESTS_SOURCES
-      ${TESTS_SOURCES}
-      ${TEST_DIR}/ba/kpi_service.cc
-      ${TEST_DIR}/ba/kpi_ba.cc
-      ${TEST_DIR}/configuration/applier-boolexp.cc
-      ${TEST_DIR}/exp_builder/exp_builder.cc
-      ${TEST_DIR}/exp_builder/availability_builder.cc
-      ${TEST_DIR}/exp_parser/get_postfix.cc
-      ${TEST_DIR}/exp_tokenizer/next.cc
-      ${TEST_DIR}/time/check_timeperiod.cc
-      PARENT_SCOPE
-    )
-    set(
-      TESTS_LIBRARIES
-      ${TESTS_LIBRARIES}
-      ${BAM}
-      PARENT_SCOPE
-    )
-endif (WITH_TESTING)
+  # Testing.
+  set(
+    TESTS_SOURCES
+    ${TESTS_SOURCES}
+    ${TEST_DIR}/ba/kpi_service.cc
+    ${TEST_DIR}/ba/kpi_ba.cc
+    ${TEST_DIR}/configuration/applier-boolexp.cc
+    ${TEST_DIR}/exp_builder/exp_builder.cc
+    ${TEST_DIR}/exp_builder/availability_builder.cc
+    ${TEST_DIR}/exp_parser/get_postfix.cc
+    ${TEST_DIR}/exp_tokenizer/next.cc
+    ${TEST_DIR}/time/check_timeperiod.cc
+    PARENT_SCOPE
+  )
+  set(
+    TESTS_LIBRARIES
+    ${TESTS_LIBRARIES}
+    ${BAM}
+    PARENT_SCOPE
+  )
+endif(WITH_TESTING)
 
 # Install rule.
 install(TARGETS "${BAM}"
