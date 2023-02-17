@@ -10,6 +10,7 @@ Library	Process
 Library	DateTime
 Library	DatabaseLibrary
 Library	OperatingSystem
+Library	String
 Library	../resources/Engine.py
 Library	../resources/Broker.py
 Library	../resources/Common.py
@@ -146,10 +147,12 @@ BEPBRI1
 	Start Broker  True
 	Start Engine
     Wait Until Created	/tmp/pbresponsiveinstance.log	30s
-	${grep_res}=  Grep File  /tmp/pbresponsiveinstance.log  "_type":65582, "category":1, "element":46, "header":, "poller_id":1, "responsive":true
+	${grep_res}=  Grep File  /tmp/pbresponsiveinstance.log  "_type":65582, "category":1, "element":46,
+	${grep_res}=  Get Lines Containing String  ${grep_res}  "poller_id":1, "responsive":true
 	Should Not Be Empty  ${grep_res}  msg="responsive":true not found
 	Stop Engine
 	Sleep  3s
-	${grep_res}=  Grep File  /tmp/pbresponsiveinstance.log  "_type":65582, "category":1, "element":46, "header":, "poller_id":1, "responsive":false
+	${grep_res}=  Grep File  /tmp/pbresponsiveinstance.log  "_type":65582, "category":1, "element":46,
+	${grep_res}=  Get Lines Containing String  ${grep_res}  "poller_id":1, "responsive":false
 	Should Not Be Empty  ${grep_res}  msg="responsive":false not found
 	Kindly Stop Broker  True
