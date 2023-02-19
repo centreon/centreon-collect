@@ -409,7 +409,6 @@ set(FILES
     "${SRC_DIR}/hostdependency.cc"
     "${SRC_DIR}/hostescalation.cc"
     "${SRC_DIR}/hostgroup.cc"
-    "${SRC_DIR}/log_v2.cc"
     "${SRC_DIR}/macros.cc"
     "${SRC_DIR}/nebmods.cc"
     "${SRC_DIR}/notification.cc"
@@ -510,6 +509,11 @@ add_subdirectory(enginerpc)
 include_directories(enginerpc)
 
 # Library engine target.
+add_library(enginelog STATIC src/log_v2.cc)
+target_precompile_headers(enginelog PRIVATE ${PRECOMP_HEADER})
+set_target_properties(enginelog PROPERTIES COMPILE_FLAGS "-fPIC")
+target_link_libraries(enginelog CONAN_PKG::spdlog)
+
 add_library(cce_core ${LIBRARY_TYPE} ${FILES})
 add_dependencies(cce_core engine_rpc)
 add_dependencies(cce_core centreon_clib)
@@ -537,6 +541,7 @@ target_link_libraries(
   centengine
   "-rdynamic"
   centreon_clib
+  enginelog
   "-Wl,-whole-archive"
   enginerpc
   cce_core

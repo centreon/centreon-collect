@@ -4,24 +4,21 @@
 
 # This file is part of Centreon Engine.
 #
-# Centreon Engine is free software : you can redistribute it and / or
-# modify it under the terms of the GNU General Public License version 2
-# as published by the Free Software Foundation.
+# Centreon Engine is free software : you can redistribute it and / or modify it
+# under the terms of the GNU General Public License version 2 as published by
+# the Free Software Foundation.
 #
-# Centreon Engine is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-# General Public License for more details.
+# Centreon Engine is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
-# along with Centreon Engine. If not, see
-# <http://www.gnu.org/licenses/>.
+# You should have received a copy of the GNU General Public License along with
+# Centreon Engine. If not, see <http://www.gnu.org/licenses/>.
 #
 
 # Enable unit tests or not .
 if(WITH_TESTING)
-  # Tests directory.
-  # Add root inclusion direction.
+  # Tests directory. Add root inclusion direction.
   set(MODULE_DIR "${PROJECT_SOURCE_DIR}/modules/external_commands")
   set(INC_DIR "${MODULE_DIR}/inc/com/centreon/engine/modules/external_commands")
   include_directories(${PROJECT_SOURCE_DIR} ${MODULE_DIR}/inc)
@@ -31,95 +28,98 @@ if(WITH_TESTING)
   include_directories(${PROJECT_SOURCE_DIR}/enginerpc)
   add_definitions(-DENGINERPC_TESTS_PATH="${TESTS_DIR}/enginerpc")
 
-  add_executable(rpc_client_engine
-    ${TESTS_DIR}/enginerpc/client.cc)
+  add_executable(rpc_client_engine ${TESTS_DIR}/enginerpc/client.cc)
 
-  target_link_libraries(rpc_client_engine cerpc CONAN_PKG::grpc CONAN_PKG::openssl CONAN_PKG::zlib dl pthread)
+  target_link_libraries(
+    rpc_client_engine
+    cerpc
+    CONAN_PKG::grpc
+    CONAN_PKG::openssl
+    CONAN_PKG::zlib
+    dl
+    pthread)
 
   add_executable(bin_connector_test_run
-    "${TESTS_DIR}/commands/bin_connector_test_run.cc")
+                 "${TESTS_DIR}/commands/bin_connector_test_run.cc")
   target_link_libraries(bin_connector_test_run cce_core pthread)
   target_precompile_headers(bin_connector_test_run REUSE_FROM cce_core)
 
   set(ut_sources
-
-    # Sources.
-    "${TESTS_DIR}/parse-check-output.cc"
-    "${TESTS_DIR}/checks/service_check.cc"
-    "${TESTS_DIR}/checks/service_retention.cc"
-    "${TESTS_DIR}/checks/anomalydetection.cc"
-    "${TESTS_DIR}/commands/simple-command.cc"
-    "${TESTS_DIR}/commands/connector.cc"
-    "${TESTS_DIR}/configuration/applier/applier-anomalydetection.cc"
-    "${TESTS_DIR}/configuration/applier/applier-command.cc"
-    "${TESTS_DIR}/configuration/applier/applier-connector.cc"
-    "${TESTS_DIR}/configuration/applier/applier-contact.cc"
-    "${TESTS_DIR}/configuration/applier/applier-contactgroup.cc"
-    "${TESTS_DIR}/configuration/applier/applier-global.cc"
-    "${TESTS_DIR}/configuration/applier/applier-log.cc"
-    "${TESTS_DIR}/configuration/applier/applier-host.cc"
-    "${TESTS_DIR}/configuration/applier/applier-hostescalation.cc"
-    "${TESTS_DIR}/configuration/applier/applier-hostdependency.cc"
-    "${TESTS_DIR}/configuration/applier/applier-hostgroup.cc"
-    "${TESTS_DIR}/configuration/applier/applier-service.cc"
-    "${TESTS_DIR}/configuration/applier/applier-serviceescalation.cc"
-    "${TESTS_DIR}/configuration/applier/applier-servicegroup.cc"
-    "${TESTS_DIR}/configuration/applier/applier-state.cc"
-    "${TESTS_DIR}/configuration/contact.cc"
-    "${TESTS_DIR}/configuration/host.cc"
-    "${TESTS_DIR}/configuration/object.cc"
-    "${TESTS_DIR}/configuration/service.cc"
-    "${TESTS_DIR}/configuration/severity.cc"
-    "${TESTS_DIR}/configuration/tag.cc"
-    "${TESTS_DIR}/configuration/timeperiod-test.cc"
-    "${TESTS_DIR}/contacts/contactgroup-config.cc"
-    "${TESTS_DIR}/contacts/simple-contactgroup.cc"
-    "${TESTS_DIR}/custom_vars/extcmd.cc"
-    "${TESTS_DIR}/downtimes/downtime.cc"
-    "${TESTS_DIR}/downtimes/downtime_finder.cc"
-    "${TESTS_DIR}/enginerpc/enginerpc.cc"
-    "${TESTS_DIR}/helper.cc"
-    "${TESTS_DIR}/macros/macro.cc"
-    "${TESTS_DIR}/macros/macro_hostname.cc"
-    "${TESTS_DIR}/macros/macro_service.cc"
-    "${TESTS_DIR}/external_commands/anomalydetection.cc"
-    "${TESTS_DIR}/external_commands/host.cc"
-    "${TESTS_DIR}/external_commands/service.cc"
-    "${TESTS_DIR}/main.cc"
-    "${TESTS_DIR}/loop/loop.cc"
-    "${TESTS_DIR}/notifications/host_downtime_notification.cc"
-    "${TESTS_DIR}/notifications/host_flapping_notification.cc"
-    "${TESTS_DIR}/notifications/host_normal_notification.cc"
-    "${TESTS_DIR}/notifications/host_recovery_notification.cc"
-    "${TESTS_DIR}/notifications/service_normal_notification.cc"
-    "${TESTS_DIR}/notifications/service_timeperiod_notification.cc"
-    "${TESTS_DIR}/notifications/service_flapping_notification.cc"
-    "${TESTS_DIR}/notifications/service_downtime_notification_test.cc"
-    "${TESTS_DIR}/perfdata/perfdata.cc"
-    "${TESTS_DIR}/retention/host.cc"
-    "${TESTS_DIR}/retention/service.cc"
-    "${TESTS_DIR}/string/string.cc"
-    "${TESTS_DIR}/test_engine.cc"
-    "${TESTS_DIR}/timeperiod/get_next_valid_time/between_two_years.cc"
-    "${TESTS_DIR}/timeperiod/get_next_valid_time/calendar_date.cc"
-    "${TESTS_DIR}/timeperiod/get_next_valid_time/dst_backward.cc"
-    "${TESTS_DIR}/timeperiod/get_next_valid_time/dst_forward.cc"
-    "${TESTS_DIR}/timeperiod/get_next_valid_time/earliest_daterange_first.cc"
-    "${TESTS_DIR}/timeperiod/get_next_valid_time/exclusion.cc"
-    "${TESTS_DIR}/timeperiod/get_next_valid_time/exceptions_test.cc"
-    "${TESTS_DIR}/timeperiod/get_next_valid_time/generic_month_date.cc"
-    "${TESTS_DIR}/timeperiod/get_next_valid_time/normal_weekday.cc"
-    "${TESTS_DIR}/timeperiod/get_next_valid_time/offset_weekday_of_generic_month.cc"
-    "${TESTS_DIR}/timeperiod/get_next_valid_time/offset_weekday_of_specific_month.cc"
-    "${TESTS_DIR}/timeperiod/get_next_valid_time/precedence.cc"
-    "${TESTS_DIR}/timeperiod/get_next_valid_time/skip_interval.cc"
-    "${TESTS_DIR}/timeperiod/get_next_valid_time/specific_month_date.cc"
-    "${TESTS_DIR}/timeperiod/utils.cc"
-
-    # Headers.
-    "${TESTS_DIR}/test_engine.hh"
-    "${TESTS_DIR}/timeperiod/utils.hh"
-  )
+      # Sources.
+      "${TESTS_DIR}/parse-check-output.cc"
+      "${TESTS_DIR}/checks/service_check.cc"
+      "${TESTS_DIR}/checks/service_retention.cc"
+      "${TESTS_DIR}/checks/anomalydetection.cc"
+      "${TESTS_DIR}/commands/simple-command.cc"
+      "${TESTS_DIR}/commands/connector.cc"
+      "${TESTS_DIR}/configuration/applier/applier-anomalydetection.cc"
+      "${TESTS_DIR}/configuration/applier/applier-command.cc"
+      "${TESTS_DIR}/configuration/applier/applier-connector.cc"
+      "${TESTS_DIR}/configuration/applier/applier-contact.cc"
+      "${TESTS_DIR}/configuration/applier/applier-contactgroup.cc"
+      "${TESTS_DIR}/configuration/applier/applier-global.cc"
+      "${TESTS_DIR}/configuration/applier/applier-log.cc"
+      "${TESTS_DIR}/configuration/applier/applier-host.cc"
+      "${TESTS_DIR}/configuration/applier/applier-hostescalation.cc"
+      "${TESTS_DIR}/configuration/applier/applier-hostdependency.cc"
+      "${TESTS_DIR}/configuration/applier/applier-hostgroup.cc"
+      "${TESTS_DIR}/configuration/applier/applier-service.cc"
+      "${TESTS_DIR}/configuration/applier/applier-serviceescalation.cc"
+      "${TESTS_DIR}/configuration/applier/applier-servicegroup.cc"
+      "${TESTS_DIR}/configuration/applier/applier-state.cc"
+      "${TESTS_DIR}/configuration/contact.cc"
+      "${TESTS_DIR}/configuration/host.cc"
+      "${TESTS_DIR}/configuration/object.cc"
+      "${TESTS_DIR}/configuration/service.cc"
+      "${TESTS_DIR}/configuration/severity.cc"
+      "${TESTS_DIR}/configuration/tag.cc"
+      "${TESTS_DIR}/configuration/timeperiod-test.cc"
+      "${TESTS_DIR}/contacts/contactgroup-config.cc"
+      "${TESTS_DIR}/contacts/simple-contactgroup.cc"
+      "${TESTS_DIR}/custom_vars/extcmd.cc"
+      "${TESTS_DIR}/downtimes/downtime.cc"
+      "${TESTS_DIR}/downtimes/downtime_finder.cc"
+      "${TESTS_DIR}/enginerpc/enginerpc.cc"
+      "${TESTS_DIR}/helper.cc"
+      "${TESTS_DIR}/macros/macro.cc"
+      "${TESTS_DIR}/macros/macro_hostname.cc"
+      "${TESTS_DIR}/macros/macro_service.cc"
+      "${TESTS_DIR}/external_commands/anomalydetection.cc"
+      "${TESTS_DIR}/external_commands/host.cc"
+      "${TESTS_DIR}/external_commands/service.cc"
+      "${TESTS_DIR}/main.cc"
+      "${TESTS_DIR}/loop/loop.cc"
+      "${TESTS_DIR}/notifications/host_downtime_notification.cc"
+      "${TESTS_DIR}/notifications/host_flapping_notification.cc"
+      "${TESTS_DIR}/notifications/host_normal_notification.cc"
+      "${TESTS_DIR}/notifications/host_recovery_notification.cc"
+      "${TESTS_DIR}/notifications/service_normal_notification.cc"
+      "${TESTS_DIR}/notifications/service_timeperiod_notification.cc"
+      "${TESTS_DIR}/notifications/service_flapping_notification.cc"
+      "${TESTS_DIR}/notifications/service_downtime_notification_test.cc"
+      "${TESTS_DIR}/perfdata/perfdata.cc"
+      "${TESTS_DIR}/retention/host.cc"
+      "${TESTS_DIR}/retention/service.cc"
+      "${TESTS_DIR}/string/string.cc"
+      "${TESTS_DIR}/test_engine.cc"
+      "${TESTS_DIR}/timeperiod/get_next_valid_time/between_two_years.cc"
+      "${TESTS_DIR}/timeperiod/get_next_valid_time/calendar_date.cc"
+      "${TESTS_DIR}/timeperiod/get_next_valid_time/dst_backward.cc"
+      "${TESTS_DIR}/timeperiod/get_next_valid_time/dst_forward.cc"
+      "${TESTS_DIR}/timeperiod/get_next_valid_time/earliest_daterange_first.cc"
+      "${TESTS_DIR}/timeperiod/get_next_valid_time/exclusion.cc"
+      "${TESTS_DIR}/timeperiod/get_next_valid_time/exceptions_test.cc"
+      "${TESTS_DIR}/timeperiod/get_next_valid_time/generic_month_date.cc"
+      "${TESTS_DIR}/timeperiod/get_next_valid_time/normal_weekday.cc"
+      "${TESTS_DIR}/timeperiod/get_next_valid_time/offset_weekday_of_generic_month.cc"
+      "${TESTS_DIR}/timeperiod/get_next_valid_time/offset_weekday_of_specific_month.cc"
+      "${TESTS_DIR}/timeperiod/get_next_valid_time/precedence.cc"
+      "${TESTS_DIR}/timeperiod/get_next_valid_time/skip_interval.cc"
+      "${TESTS_DIR}/timeperiod/get_next_valid_time/specific_month_date.cc"
+      "${TESTS_DIR}/timeperiod/utils.cc"
+      # Headers.
+      "${TESTS_DIR}/test_engine.hh"
+      "${TESTS_DIR}/timeperiod/utils.hh")
 
   # Unit test executable.
   include_directories(${TESTS_DIR})
@@ -127,9 +127,10 @@ if(WITH_TESTING)
   if(WITH_ASAN)
     set(CMAKE_BUILD_TYPE Debug)
     set(CMAKE_CXX_FLAGS_DEBUG
-      "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+        "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
     set(CMAKE_LINKER_FLAGS_DEBUG
-      "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+        "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address"
+    )
   endif()
 
   add_executable(ut_engine ${ut_sources})
@@ -137,28 +138,37 @@ if(WITH_TESTING)
 
   set_target_properties(
     ut_engine rpc_client_engine bin_connector_test_run
-    PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/tests
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/tests
-    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR}/tests
-    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/tests
-  )
+    PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests
+               RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/tests
+               RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/tests
+               RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR}/tests
+               RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/tests)
 
   # file used by timeperiod-test.cc
-  file(COPY ${TESTS_DIR}/configuration/timeperiods.cfg DESTINATION ${CMAKE_BINARY_DIR}/tests/)
+  file(COPY ${TESTS_DIR}/configuration/timeperiods.cfg
+       DESTINATION ${CMAKE_BINARY_DIR}/tests/)
 
   add_test(NAME tests COMMAND ut_engine)
 
   if(WITH_COVERAGE)
-    set(COVERAGE_EXCLUDES '${PROJECT_BINARY_DIR}/*' '${PROJECT_SOURCE_DIR}/tests/*' '/usr/include/* ')
-    SETUP_TARGET_FOR_COVERAGE(
-      NAME engine-test-coverage
-      EXECUTABLE ut_engine
-      DEPENDENCIES ut_engine
-    )
+    set(COVERAGE_EXCLUDES '${PROJECT_BINARY_DIR}/*'
+                          '${PROJECT_SOURCE_DIR}/tests/*' '/usr/include/* ')
+    setup_target_for_coverage(NAME engine-test-coverage EXECUTABLE ut_engine
+                              DEPENDENCIES ut_engine)
     set(GCOV gcov)
   endif()
 
-  target_link_libraries(ut_engine ${ENGINERPC} cce_core pthread ${GCOV} CONAN_PKG::gtest CONAN_PKG::grpc CONAN_PKG::openssl CONAN_PKG::zlib CONAN_PKG::fmt dl)
+  target_link_libraries(
+    ut_engine
+    ${ENGINERPC}
+    cce_core
+    enginelog
+    pthread
+    ${GCOV}
+    CONAN_PKG::gtest
+    CONAN_PKG::grpc
+    CONAN_PKG::openssl
+    CONAN_PKG::zlib
+    CONAN_PKG::fmt
+    dl)
 endif()

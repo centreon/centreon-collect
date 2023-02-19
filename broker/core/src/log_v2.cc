@@ -1,5 +1,5 @@
 /*
-** Copyright 2020-2022 Centreon
+** Copyright 2020-2023 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -225,8 +225,8 @@ std::vector<std::pair<std::string, std::string>> log_v2::levels() const {
  */
 std::shared_ptr<spdlog::logger> log_v2::get_logger(logger log_type,
                                                    const char* log_str) {
-  if (_instance->_running)
-    return _instance->_log[log_type];
+  if (_running)
+    return _log[log_type];
   else {
     auto null_sink = std::make_shared<sinks::null_sink_mt>();
     return std::make_shared<spdlog::logger>(log_str, null_sink);
