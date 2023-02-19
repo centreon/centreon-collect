@@ -754,9 +754,6 @@ void mysql_connection::_run() {
     _update_stats();
     lck.unlock();
 
-    std::chrono::system_clock::time_point last_commit =
-        std::chrono::system_clock::now();
-
     bool reconnect_failed_logged = false;
     std::list<std::unique_ptr<database::mysql_task>> tasks_list;
     while (_state == running || !_tasks_list.empty()) {

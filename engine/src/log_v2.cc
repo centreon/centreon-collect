@@ -33,8 +33,8 @@ void log_v2::load(const std::shared_ptr<asio::io_context>& io_context) {
   _instance.reset(new log_v2(io_context));
 }
 
-log_v2& log_v2::instance() {
-  return *_instance;
+std::shared_ptr<log_v2> log_v2::instance() {
+  return _instance;
 }
 
 log_v2::log_v2(const std::shared_ptr<asio::io_context>& io_context)
