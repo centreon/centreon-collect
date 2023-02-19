@@ -33,8 +33,8 @@ void log_v2::load(const std::shared_ptr<asio::io_context>& io_context) {
   _instance.reset(new log_v2(io_context));
 }
 
-log_v2& log_v2::instance() {
-  return *_instance;
+std::shared_ptr<log_v2> log_v2::instance() {
+  return _instance;
 }
 
 log_v2::log_v2(const std::shared_ptr<asio::io_context>& io_context)
@@ -192,7 +192,7 @@ void log_v2::start_flush_timer(spdlog::sink_ptr sink) {
   std::lock_guard<std::mutex> l(_flush_timer_m);
   _flush_timer.expires_after(_flush_interval);
   _flush_timer.async_wait(
-      [me = shared_from_this(), sink](const asio::error_code& err) {
+      [me = _instance, sink](const asio::error_code& err) {
         if (err || !me->_flush_timer_active) {
           return;
         }

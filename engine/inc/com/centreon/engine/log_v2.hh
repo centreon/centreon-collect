@@ -1,5 +1,5 @@
 /*
-** Copyright 2021 Centreon
+** Copyright 2021-2023 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -34,6 +34,8 @@ class log_v2 : public log_v2_base {
   bool _flush_timer_active;
   std::shared_ptr<asio::io_context> _io_context;
 
+  static std::shared_ptr<log_v2> _instance;
+
   enum logger {
     log_config,
     log_functions,
@@ -57,20 +59,14 @@ class log_v2 : public log_v2_base {
 
   void start_flush_timer(spdlog::sink_ptr sink);
 
-  static std::shared_ptr<log_v2> _instance;
-
  public:
   ~log_v2() noexcept;
-
-  std::shared_ptr<log_v2> shared_from_this() {
-    return std::static_pointer_cast<log_v2>(log_v2_base::shared_from_this());
-  }
 
   void stop_flush_timer();
   void apply(const configuration::state& config);
   static bool contains_level(const std::string& level_name);
   static void load(const std::shared_ptr<asio::io_context>& io_context);
-  static log_v2& instance();
+  static std::shared_ptr<log_v2> instance();
   static inline std::shared_ptr<spdlog::logger> functions() {
     return get_logger(log_v2::log_functions, "functions");
   }
