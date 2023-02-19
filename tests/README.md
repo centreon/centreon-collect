@@ -1,6 +1,8 @@
 # Centreon Tests
 
 This sub-project contains functional tests for Centreon Broker, Engine and Connectors.
+It is based on the [Robot Framework](https://robotframework.org/) with Python functions
+we can find in the resources directory. The Python code is formatted using autopep8.
 
 ## Getting Started
 
@@ -134,8 +136,8 @@ Here is the list of the currently implemented tests:
 - [x] **BECT2**: Broker/Engine communication with TLS between central and poller with key/cert
 - [x] **BECT3**: Broker/Engine communication with anonymous TLS and ca certificate
 - [x] **BECT4**: Broker/Engine communication with TLS between central and poller with key/cert and hostname forced
-- [x] **BECT_GRPC1**: Broker/Engine communication with anonymous TLS between central and poller
-- [x] **BECT_GRPC2**: Broker/Engine communication with TLS between central and poller with key/cert
+- [x] **BECT_GRPC1**: Broker/Engine communication with GRPC and with anonymous TLS between central and poller
+- [x] **BECT_GRPC2**: Broker/Engine communication with GRPC and with TLS between central and poller with key/cert
 - [x] **BECT_GRPC3**: Broker/Engine communication with anonymous TLS and ca certificate
 - [x] **BECT_GRPC4**: Broker/Engine communication with TLS between central and poller with key/cert and hostname forced
 - [x] **BEDTMASS1**: New services with several pollers
@@ -211,6 +213,7 @@ Here is the list of the currently implemented tests:
 - [x] **BESS3**: Start-Stop Broker/Engine - Engine started first - Engine stopped first
 - [x] **BESS4**: Start-Stop Broker/Engine - Engine started first - Broker stopped first
 - [x] **BESS5**: Start-Stop Broker/engine - Engine debug level is set to all, it should not hang
+- [x] **BESS_ENGINE_DELETE_HOST**: once engine and cbd started, stop and restart cbd, delete an host and reload engine, cbd mustn't core
 - [x] **BETAG1**: Engine is configured with some tags. When broker receives them, it stores them in the centreon_storage.tags table. Broker is started before.
 - [x] **BETAG2**: Engine is configured with some tags. When broker receives them, it stores them in the centreon_storage.tags table. Engine is started before.
 - [x] **BEUTAG1**: Engine is configured with some tags. When broker receives them through unified_sql stream, it stores them in the centreon_storage.tags table. Broker is started before.
@@ -225,6 +228,7 @@ Here is the list of the currently implemented tests:
 - [x] **BEUTAG7**: some services are configured and deleted with tags on two pollers.
 - [x] **BEUTAG8**: Services have tags provided by templates.
 - [x] **BEUTAG9**: hosts have tags provided by templates.
+- [x] **BE_NOTIF_OVERFLOW**: bbdo 2.0 notification number =40000. make an overflow => notification_number null in db
 - [x] **BRCS1**: Broker reverse connection stopped
 - [x] **BRCTS1**: Broker reverse connection too slow
 - [x] **BRGC1**: Broker good reverse connection
@@ -252,6 +256,8 @@ Here is the list of the currently implemented tests:
 - [x] **BRRDRBUDB1**: RRD metric rebuild with a query in centreon_storage and unified sql
 - [x] **BRRDRM1**: RRD metric rebuild with gRPC API and unified sql
 - [x] **BRRDRMU1**: RRD metric rebuild with gRPC API and unified sql
+- [x] **EBBPS1**: 1000 service check results are sent to the poller. The test is done with the unified_sql stream, no service status is lost, we find the 1000 results in the database: table resources.
+- [x] **EBBPS2**: 1000 service check results are sent to the poller. The test is done with the unified_sql stream, no service status is lost, we find the 1000 results in the database: table services.
 - [x] **EBNHG1**: New host group with several pollers and connections to DB
 - [x] **EBNHG4**: New host group with several pollers and connections to DB with broker and rename this hostgroup
 - [x] **EBNHGU1**: New host group with several pollers and connections to DB with broker configured with unified_sql
@@ -265,7 +271,7 @@ Here is the list of the currently implemented tests:
 - [x] **EBSAU2**: New services with action_url with more than 2000 characters
 - [x] **EBSN3**: New services with notes with more than 500 characters
 - [x] **EBSNU1**: New services with notes_url with more than 2000 characters
-- [x] **ENRSCHE1**: check next check of reschedule is last_check+interval_check
+- [x] **ENRSCHE1**: Verify that next check of a rescheduled host is made at last_check + interval_check
 - [x] **LOGV2BE2**: log-v2 enabled old log enabled check broker sink is equal
 - [x] **LOGV2DB1**: log-v2 disabled old log enabled check broker sink
 - [x] **LOGV2DB2**: log-v2 disabled old log disabled check broker sink
@@ -300,7 +306,7 @@ Here is the list of the currently implemented tests:
 ### Engine
 - [x] **EFHC1**: Engine is configured with hosts and we force checks on one 5 times on bbdo2
 - [x] **EFHC2**: Engine is configured with hosts and we force checks on one 5 times on bbdo2
-- [x] **EFHCU1**: Engine is configured with hosts and we force checks on one 5 times on bbdo3. Bbdo3 has no impact on this behavior. resources table is cleared before starting broker.
+- [x] **EFHCU1**: Engine is configured with hosts and we force check on one of them 5 times using protocol bbdo3. Resources table is cleared before starting broker.
 - [x] **EFHCU2**: Engine is configured with hosts and we force checks on one 5 times on bbdo3. Bbdo3 has no impact on this behavior.
 - [x] **EPC1**: Check with perl connector
 - [x] **ESS1**: Start-Stop (0s between start/stop) 5 times one instance of engine and no coredump
