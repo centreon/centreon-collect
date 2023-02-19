@@ -91,7 +91,6 @@ pool::pool(const std::shared_ptr<asio::io_context>& io_context, size_t size)
         try {
           log_v2::core()->info("start of asio thread {:x}", pthread_self());
           ctx->run();
-          log_v2::core()->info("end of asio thread {:x}", pthread_self());
         } catch (const std::exception& e) {
           log_v2::core()->critical("catch in io_context run: {} {} thread {:x}",
                                    e.what(), typeid(e).name(), pthread_self());

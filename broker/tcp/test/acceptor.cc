@@ -729,7 +729,7 @@ TEST_F(TcpAcceptor, Wait2Connect) {
   std::shared_ptr<io::stream> st;
 
   std::thread t{[&] {
-    std::this_thread::sleep_for(std::chrono::seconds{2});
+    std::this_thread::sleep_for(std::chrono::milliseconds{2050});
     tcp::connector con(test_conf2);
     std::shared_ptr<io::stream> str{try_connect(con)};
   }};
@@ -1049,10 +1049,10 @@ TEST_F(TcpAcceptor, QuestionAnswerMultiple) {
 
 TEST_F(TcpAcceptor, MultipleBigSend) {
   tcp::acceptor acc(test_conf);
-  const int32_t nb_packet = 10;
-  const int32_t len = 10024;
+  constexpr int32_t nb_packet = 10;
+  constexpr int32_t len = 10024;
 
-  std::thread t{[nb_packet] {
+  std::thread t{[] {
     tcp::connector con(test_conf);
     std::shared_ptr<io::stream> str{try_connect(con)};
     std::shared_ptr<io::data> data_read;

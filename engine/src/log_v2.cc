@@ -191,14 +191,13 @@ void log_v2::apply(const configuration::state& config) {
 void log_v2::start_flush_timer(spdlog::sink_ptr sink) {
   std::lock_guard<std::mutex> l(_flush_timer_m);
   _flush_timer.expires_after(_flush_interval);
-  _flush_timer.async_wait(
-      [me = _instance, sink](const asio::error_code& err) {
-        if (err || !me->_flush_timer_active) {
-          return;
-        }
-        sink->flush();
-        me->start_flush_timer(sink);
-      });
+  _flush_timer.async_wait([me = _instance, sink](const asio::error_code& err) {
+    if (err || !me->_flush_timer_active) {
+      return;
+    }
+    sink->flush();
+    me->start_flush_timer(sink);
+  });
 }
 
 /**
@@ -220,8 +219,8 @@ void log_v2::stop_flush_timer() {
  */
 std::shared_ptr<spdlog::logger> log_v2::get_logger(logger log_type,
                                                    const char* log_str) {
-  if (_instance->_running)
-    return _instance->_log[log_type];
+  if (_running)
+    return _log[log_type];
   else {
     auto null_sink = std::make_shared<sinks::null_sink_mt>();
     return std::make_shared<spdlog::logger>(log_str, null_sink);
