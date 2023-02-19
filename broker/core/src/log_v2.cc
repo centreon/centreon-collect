@@ -75,11 +75,12 @@ static void grpc_logger(gpr_log_func_args* args) {
 std::shared_ptr<log_v2> log_v2::_instance;
 
 void log_v2::load(const std::shared_ptr<asio::io_context>& io_context) {
-  _instance.reset(new log_v2(io_context));
+  if (!_instance)
+    _instance.reset(new log_v2(io_context));
 }
 
-log_v2& log_v2::instance() {
-  return *_instance;
+std::shared_ptr<log_v2> log_v2::instance() {
+  return _instance;
 }
 
 log_v2::log_v2(const std::shared_ptr<asio::io_context>& io_context)
@@ -119,8 +120,8 @@ log_v2::log_v2(const std::shared_ptr<asio::io_context>& io_context)
   _running = true;
 }
 
-log_v2::~log_v2() {
-  core()->info("log finished");
+log_v2::~log_v2() noexcept {
+  _log[log_v2::log_core]->info("log finished");
   _running = false;
   for (auto& l : _log)
     l.reset();
