@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2022 Centreon (https://www.centreon.com/)
+ * Copyright 2020-2023 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -279,11 +279,11 @@ grpc::Status broker_impl::GetLogInfo(grpc::ServerContext* context
                                      LogInfo* response) {
   auto& name{request->str_arg()};
   auto& map = *response->mutable_level();
-  auto lvs = log_v2::instance().levels();
-  response->set_log_name(log_v2::instance().log_name());
-  response->set_log_file(log_v2::instance().file_path());
+  auto lvs = log_v2::instance()->levels();
+  response->set_log_name(log_v2::instance()->log_name());
+  response->set_log_file(log_v2::instance()->file_path());
   response->set_log_flush_period(
-      log_v2::instance().get_flush_interval().count());
+      log_v2::instance()->get_flush_interval().count());
   if (!name.empty()) {
     auto found = std::find_if(lvs.begin(), lvs.end(),
                               [&name](std::pair<std::string, std::string>& p) {

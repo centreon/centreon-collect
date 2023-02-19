@@ -1,5 +1,5 @@
 /*
-** Copyright 2020-2022 Centreon
+** Copyright 2020-2023 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -18,6 +18,9 @@
 #ifndef CENTREON_BROKER_CORE_INC_COM_CENTREON_BROKER_LOG_V2_HH_
 #define CENTREON_BROKER_CORE_INC_COM_CENTREON_BROKER_LOG_V2_HH_
 
+#include <spdlog/common.h>
+#include <spdlog/spdlog.h>
+
 #include "com/centreon/broker/config/state.hh"
 #include "com/centreon/broker/namespace.hh"
 #include "com/centreon/engine/log_v2_base.hh"
@@ -25,6 +28,15 @@
 CCB_BEGIN()
 
 class log_v2 : public com::centreon::engine::log_v2_base {
+  std::array<std::shared_ptr<spdlog::logger>, 17> _log;
+  std::atomic_bool _running;
+  asio::system_timer _flush_timer;
+  std::mutex _flush_timer_m;
+  bool _flush_timer_active;
+  std::shared_ptr<asio::io_context> _io_context;
+
+  static std::shared_ptr<log_v2> _instance;
+
   enum logger {
     log_bam,
     log_bbdo,
@@ -45,16 +57,7 @@ class log_v2 : public com::centreon::engine::log_v2_base {
     log_tls,
   };
 
-  std::array<std::shared_ptr<spdlog::logger>, 17> _log;
-  std::atomic_bool _running;
   std::mutex _load_m;
-
-  asio::system_timer _flush_timer;
-  std::mutex _flush_timer_m;
-  bool _flush_timer_active;
-  std::shared_ptr<asio::io_context> _io_context;
-
-  static std::shared_ptr<log_v2> _instance;
 
   log_v2(const std::shared_ptr<asio::io_context>& io_context);
 
@@ -64,14 +67,14 @@ class log_v2 : public com::centreon::engine::log_v2_base {
   void start_flush_timer(spdlog::sink_ptr sink);
 
  public:
-  ~log_v2();
+  ~log_v2() noexcept;
 
   void stop_flush_timer();
+  void apply(const config::state& conf);
 
   static void load(const std::shared_ptr<asio::io_context>& io_context);
 
-  static log_v2& instance();
-  void apply(const config::state& conf);
+  static std::shared_ptr<log_v2> instance();
   void set_flush_interval(unsigned second_flush_interval) override;
 
   static inline std::shared_ptr<spdlog::logger> bam() {

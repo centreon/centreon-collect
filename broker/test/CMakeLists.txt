@@ -73,9 +73,6 @@ target_link_libraries(
   dl
   pthread)
 
-# target_link_libraries(rpc_client berpc CONAN_PKG::grpc ${absl_LIBS}
-# CONAN_PKG::openssl ${c-ares_LIBS} CONAN_PKG::zlib dl pthread)
-
 if(WITH_ASAN)
   set(CMAKE_BUILD_TYPE Debug)
   set(CMAKE_CXX_FLAGS_DEBUG
