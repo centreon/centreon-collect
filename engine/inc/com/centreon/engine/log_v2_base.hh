@@ -26,20 +26,22 @@
 
 CCE_BEGIN()
 
-class log_v2_base : public std::enable_shared_from_this<log_v2_base> {
+class log_v2_base {
  protected:
+
   std::string _log_name;
   std::chrono::seconds _flush_interval;
   std::string _file_path;
 
  public:
   log_v2_base(const std::string& logger_name) : _log_name(logger_name) {}
+  virtual ~log_v2_base() noexcept = default;
 
-  const std::string& log_name() { return _log_name; }
+  const std::string& log_name() const { return _log_name; }
   const std::string& file_path() const { return _file_path; }
 
   std::chrono::seconds get_flush_interval() const { return _flush_interval; }
-  void set_flush_interval(unsigned second_flush_interval) {
+  void set_flush_interval(uint32_t second_flush_interval) {
     _flush_interval = std::chrono::seconds(second_flush_interval);
   }
 };
