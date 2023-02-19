@@ -452,7 +452,7 @@ int main(int argc, char* argv[]) {
         com::centreon::engine::events::loop::instance().run();
 
         if (sigshutdown) {
-          log_v2::instance().stop_flush_timer();
+          log_v2::instance()->stop_flush_timer();
           engine_logger(logging::log_process_info, logging::basic)
               << "Caught SIG" << sigs[sig_id] << ", shutting down ...";
           SPDLOG_LOGGER_INFO(log_v2::process(),
