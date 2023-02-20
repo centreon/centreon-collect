@@ -61,7 +61,7 @@ jobs:
           yum config-manager --set-enabled crb || true # alma 9
           yum config-manager --set-enabled powertools || true # alma 8
 
-          yum install -y git make gcc luarocks meson gcc-c++ cmake libffi-devel lua-devel libffi
+          yum install -y git make gcc luarocks meson gcc-c++ cmake libffi libffi-devel lua-devel
 
           luarocks install cffi-lua
 
@@ -83,7 +83,7 @@ jobs:
           mkdir -p $PACKAGE_NAME-$PACKAGE_VERSION/debian
 
           apt update
-          apt install -y luarocks
+          apt install -y git make gcc luarocks meson gcc-c++ cmake libffi libffi-devel lua-dev
 
           luarocks install cffi-lua
 
