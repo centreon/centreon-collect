@@ -20,6 +20,25 @@
 
 using namespace com::centreon::broker::bam::configuration;
 
+kpi::kpi()
+    : _id(0),
+      _state_type(0),
+      _host_id(0),
+      _service_id(0),
+      _ba_id(),
+      _indicator_ba_id(0),
+      _meta_id(0),
+      _boolexp_id(0),
+      _status(0),
+      _downtimed(false),
+      _acknowledged(false),
+      _ignore_downtime(false),
+      _ignore_acknowledgement(false),
+      _impact_warning(0),
+      _impact_critical(0),
+      _impact_unknown(0),
+      _event(_id, _ba_id, ::time(nullptr)) {}
+
 /**
  *  Constructor.
  */
@@ -32,7 +51,6 @@ kpi::kpi(uint32_t id,
          uint32_t meta_id,
          uint32_t boolexp_id,
          short status,
-         short last_level,
          bool downtimed,
          bool acknowledged,
          bool ignore_downtime,

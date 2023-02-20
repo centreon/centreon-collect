@@ -287,7 +287,8 @@ config = {
                 "tcp": "error",
                 "tls": "error",
                 "lua": "error",
-                "bam": "error"
+                "bam": "error",
+                "grpc": "error"
             }}
         }},
         "input": [

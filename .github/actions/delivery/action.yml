@@ -7,10 +7,10 @@ inputs:
   distrib:
     description: "The distribution used for packaging"
     required: true
-  repos_username:
+  nexus_username:
     description: "Artifact Manager technical username"
     required: true
-  repos_password:
+  nexus_password:
     description: "Artifact Manager technical password"
     required: true
   version:
@@ -39,6 +39,9 @@ inputs:
     required: true
   yum_repo_url:
     description: "The legacy yum repo url"
+    required: true
+  artifactory_token:
+    description: "The token for artifactory"
     required: true
 
 runs:
@@ -74,6 +77,7 @@ runs:
 
     - name: Publish packages
       run: |
+        set -x
         if [[ -z "$GITHUB_HEAD_REF" ]];
         then
           BRANCHNAME="$GITHUB_REF_NAME"
@@ -117,9 +121,12 @@ runs:
 
           echo "[DEBUG] - Suprepo: $SUBREPO"
           echo "[DEBUG] - Version: $VERSION"
-          if [[ "${{ env.extfile }}" == "deb" ]] ; then
-            echo "No delivery to debian in 21.10"
-            #curl -u "${{ inputs.repo_username }}":"${{ inputs.repo_password }}" -H "Content-Type: multipart/form-data" --data-binary "@./$FILE" https://apt.centreon.com/repository/23.04-$SUBREPO/
+          if [[ "${{ env.extfile }}" == "deb" ]] && [[ "$SUBREPO" == "stable" ]]; then
+            curl -u "${{ inputs.nexus_username }}":"${{ inputs.nexus_password }}" -H "Content-Type: multipart/form-data" --data-binary "@./$FILE" https://apt.centreon.com/repository/${{ inputs.version }}/
+            curl -v -H "Authorization: Bearer ${{ inputs.artifactory_token }}" -X PUT "https://centreon.jfrog.io/artifactory/apt-${{ inputs.version }}-$SUBREPO/pool/$FILE;deb.distribution=bullseye;deb.component=main;deb.architecture=amd64" -T "$FILE"
+          elif [[ "${{ env.extfile }}" == "deb" ]] && [[ "$SUBREPO" != "stable" ]]; then
+            curl -u "${{ inputs.nexus_username }}":"${{ inputs.nexus_password }}" -H "Content-Type: multipart/form-data" --data-binary "@./$FILE" https://apt.centreon.com/repository/${{ inputs.version }}-$SUBREPO/
+            curl -v -H "Authorization: Bearer ${{ inputs.artifactory_token }}" -X PUT "https://centreon.jfrog.io/artifactory/apt-${{ inputs.version }}-$SUBREPO/pool/$FILE;deb.distribution=bullseye;deb.component=main;deb.architecture=amd64" -T "$FILE"
           else
             DISTRIB="${{ inputs.distrib }}"
             ARCH=$(echo $FILE | grep -oP '(x86_64|noarch)')
@@ -129,10 +136,12 @@ runs:
 
             if [[ "$SUBREPO" == "stable" ]] ; then
               TARGET="/srv/centreon-yum/yum.centreon.com/$PROJECT_PATH/$MAJOR/$DISTRIB/$REPOTYPE/$ARCH/RPMS"
+              curl -v -H "Authorization: Bearer ${{ inputs.artifactory_token }}" -X PUT "https://centreon.jfrog.io/artifactory/rpm/$PROJECT_PATH/$MAJOR/$DISTRIB/$SUBREPO/$ARCH/$FILE" -T "./$FILE"
             else
               FOLDER="$PROJECT-$MAJOR.$MINOR-$RELEASE"
               TARGET="/srv/centreon-yum/yum.centreon.com/$PROJECT_PATH/$MAJOR/$DISTRIB/$REPOTYPE/$ARCH/$PROJECT/$FOLDER"
               PROJECT_LOCATION="/srv/centreon-yum/yum.centreon.com/$PROJECT_PATH/$MAJOR/$DISTRIB/$REPOTYPE/$ARCH/$PROJECT"
+              curl -v -H "Authorization: Bearer ${{ inputs.artifactory_token }}" -X PUT "https://centreon.jfrog.io/artifactory/rpm/$PROJECT_PATH/$MAJOR/$DISTRIB/$SUBREPO/$ARCH/$PROJECT/$FOLDER/$FILE" -T "./$FILE"
             fi
 
             echo "[DEBUG] - Folder: $FOLDER"
