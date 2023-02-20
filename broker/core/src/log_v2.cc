@@ -94,7 +94,8 @@ log_v2::log_v2(const std::shared_ptr<asio::io_context>& io_context)
     std::shared_ptr<spdlog::logger> log =
         std::make_shared<com::centreon::engine::log_v2_logger>(name, this,
                                                                stdout_sink);
-    log->flush_on(level::info);
+    log->flush_on(level::trace);
+    log-set_level(level::trace);
     spdlog::register_logger(log);
     return log;
   };
