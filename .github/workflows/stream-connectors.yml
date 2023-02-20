@@ -139,7 +139,7 @@ jobs:
           cp centreon-certified/${{ matrix.connector_path }}/*.lua $PACKAGE_NAME-$PACKAGE_VERSION/
 
           sed -i "s#@PACKAGE_NAME@#$PACKAGE_NAME#g" packaging/connectors/deb/control
-          sed -i "s#@MIN_LIB_VERSION@#${{ matrix.min_lib_version }}#g" packaging/connectors/deb/control
+          sed -i "s#@MIN_LIB_VERSION@#${{ steps.list-dependencies.outputs.min_lib_version }}#g" packaging/connectors/deb/control
 
           touch dependencies.txt
           if [ ! -z "${{ steps.list-dependencies.outputs.dependencies }}" ]; then
