@@ -100,8 +100,20 @@ void engine::publish(const std::shared_ptr<io::data>& e) {
         break;
     }
   }
-  if (have_to_send) {
-    _send_to_subscribers(nullptr);
+  while (have_to_send) {
+    std::promise<void> completion;
+    have_to_send = _send_to_subscribers(
+        [&completion](const std::exception_ptr& ex) mutable {
+          if (ex) {
+            completion.set_exception(ex);
+          } else {
+            completion.set_value();
+          }
+        });
+    // pass exception to caller
+    if (have_to_send) {
+      completion.get_future().get();
+    }
   }
 }
 
@@ -133,8 +145,20 @@ void engine::publish(const std::list<std::shared_ptr<io::data>>& to_publish) {
         break;
     }
   }
-  if (have_to_send) {
-    _send_to_subscribers(nullptr);
+  while (have_to_send) {
+    std::promise<void> completion;
+    have_to_send = _send_to_subscribers(
+        [&completion](const std::exception_ptr& ex) mutable {
+          if (ex) {
+            completion.set_exception(ex);
+          } else {
+            completion.set_value();
+          }
+        });
+    // pass exception to caller
+    if (have_to_send) {
+      completion.get_future().get();
+    }
   }
 }
 /**
@@ -182,7 +206,18 @@ void engine::start() {
     }
   }
   if (have_to_send) {
-    _send_to_subscribers(nullptr);
+    std::promise<void> completion;
+    if (_send_to_subscribers(
+            [&completion](const std::exception_ptr& ex) mutable {
+              if (ex) {
+                completion.set_exception(ex);
+              } else {
+                completion.set_value();
+              }
+            })) {
+      // pass exception to caller
+      completion.get_future().get();
+    }
   }
   log_v2::core()->info("multiplexing: engine started");
 }
@@ -208,7 +243,13 @@ void engine::stop() {
         _sending_to_subscribers = true;
         lock.unlock();
         std::promise<void> promise;
-        if (_send_to_subscribers([&promise]() { promise.set_value(); })) {
+        if (_send_to_subscribers([&promise](const std::exception_ptr& ex) {
+              if (ex) {
+                promise.set_exception(ex);
+              } else {
+                promise.set_value();
+              }
+            })) {
           promise.get_future().get();
         } else {  // nothing to send or no muxer
           break;
@@ -315,6 +356,9 @@ class callback_caller {
   engine::send_to_mux_callback_type _callback;
   std::shared_ptr<engine> _parent;
 
+  std::mutex _ex_m;
+  std::exception_ptr _publish_ex;
+
  public:
   callback_caller(engine::send_to_mux_callback_type&& callback,
                   const std::shared_ptr<engine>& parent)
@@ -328,10 +372,15 @@ class callback_caller {
     // job is done
     bool expected = true;
     _parent->_sending_to_subscribers.compare_exchange_strong(expected, false);
-    // if another data to publish redo the job
-    _parent->_send_to_subscribers(nullptr);
-    if (_callback) {
-      _callback();
+    _callback(_publish_ex);
+  }
+
+  const std::exception_ptr get_exception() const { return _publish_ex; }
+
+  void set_exception(const std::exception_ptr& ex) {
+    std::lock_guard<std::mutex> l(_ex_m);
+    if (!_publish_ex) {
+      _publish_ex = ex;
     }
   }
 };
@@ -345,7 +394,8 @@ CCB_END()
  *  Send queued events to subscribers. Since events are queued, we use a
  * strand to keep their order. But there are several muxers, so we parallelize
  * the sending of data to each. callback is called only if _kiew is not empty
- * @param callback
+ * @param callback mandatory completion callback that takes in parameter
+ * exception occured during publish
  * @return true data sent
  * @return false nothing to sent or sent in progress
  */
