@@ -21,6 +21,8 @@ BuildRequires:  lua
 BuildRequires:  lua-devel
 BuildRequires:  libffi
 BuildRequires:  libffi-devel
+Requires:       libffi
+Requires:       libffi-devel
 
 Requires:       centreon-broker-core >= 22.04.0
 Requires:       lua-socket >= 3.0
