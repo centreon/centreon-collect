@@ -54,6 +54,7 @@ jobs:
 
       - if: ${{ matrix.package_extension == 'rpm' }}
         run: |
+          set -x
           mkdir -p ~/rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
 
           yum install -y yum-utils epel-release
@@ -65,7 +66,7 @@ jobs:
           luarocks install cffi-lua
 
           mkdir cffi-lua
-          find /usr/ -type f | grep -i "cffi\.so$" | xargs -i cp {} ${{ matrix.lib }}/cffi.so
+          find /usr/ -type f -name "cffi.so" -exec cp {} ${{ matrix.lib }} \;
           ls ${{ matrix.lib }}
           tar czf ~/rpmbuild/SOURCES/${{ matrix.lib }}.tar.gz ${{ matrix.lib }}
 
