@@ -6,9 +6,9 @@ concurrency:
 
 on:
   workflow_dispatch:
-  pull_request:
-    paths:
-      - stream-connectors/centreon-certified/**
+  # pull_request:
+  #   paths:
+  #     - stream-connectors/centreon-certified/**
   push:
     branches:
       - develop
