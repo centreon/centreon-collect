@@ -72,6 +72,7 @@ jobs:
         with:
           name: robot-test-reports
           path: reports
+          retention-days: 1
 
   robot-test-report:
     needs: [robot-test-run]
