@@ -89,12 +89,6 @@ jobs:
           - distrib: bullseye
             image: packaging-bullseye
             package_extension: deb
-          - connector_path: kafka
-            dependencies: librdkafka,lua-ffi
-          - connector_path: pagerduty
-            dependencies: lua-tz
-          - connector_path: splunk
-            dependencies: lua-curl
 
     name: package ${{ matrix.distrib }} ${{ matrix.connector_path }}
     container:
@@ -105,6 +99,20 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+
+      - name: Add specific dependencies
+        id: list-dependencies
+        run: |
+          DEPENDENCIES=""
+          if [ "${{ matrix.connector_path }}" = "kafka" ]; then
+            DEPENDENCIES="librdkafka,lua-ffi"
+          elif [ "${{ matrix.connector_path }}" = "pagerduty" ]; then
+            DEPENDENCIES="lua-tz"
+          elif [ "${{ matrix.connector_path }}" = "splunk" ]; then
+            DEPENDENCIES="lua-curl"
+          fi
+          echo "dependencies=$DEPENDENCIES" >> $GITHUB_OUTPUT
+        shell: bash
 
       - if: ${{ matrix.package_extension == 'rpm' }}
         run: |
@@ -119,8 +127,8 @@ jobs:
           tar czf ~/rpmbuild/SOURCES/$PACKAGE_NAME.tar.gz $PACKAGE_NAME
 
           touch dependencies.txt
-          if [ ! -z "${{ matrix.dependencies }}" ]; then
-            for dependency in "${{ matrix.dependencies }}"; do
+          if [ ! -z "${{ steps.list-dependencies.outputs.dependencies }}" ]; then
+            for dependency in "${{ steps.list-dependencies.outputs.dependencies }}"; do
               echo "Requires: $dependency" >> dependencies.txt
             done
           fi
@@ -151,8 +159,8 @@ jobs:
           sed -i "s#@MIN_LIB_VERSION@#${{ matrix.min_lib_version }}#g" packaging/connectors/deb/control
 
           touch dependencies.txt
-          if [ ! -z "${{ matrix.dependencies }}" ]; then
-            for dependency in "${{ matrix.dependencies }}"; do
+          if [ ! -z "${{ steps.list-dependencies.outputs.dependencies }}" ]; then
+            for dependency in "${{ steps.list-dependencies.outputs.dependencies }}"; do
               echo "  $dependency," >> dependencies.txt
             done
           fi
