@@ -8,13 +8,13 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
-      - stream-connectors/**
+      - stream-connectors/centreon-certified/**
   push:
     branches:
       - develop
       - master
     paths:
-      - stream-connectors/**
+      - stream-connectors/centreon-certified/**
 
 env:
   REGISTRY: centreon.jfrog.io/docker
@@ -51,7 +51,7 @@ jobs:
           echo "connectors=$(jq --compact-output --null-input '$ARGS.positional' --args -- ${unique_folders[@]})" >> $GITHUB_OUTPUT
         shell: bash
 
-  package-connectors:
+  package:
     if: ${{ needs.detect-changes.outputs.connectors != '[]' }}
     needs: [get-version, detect-changes]
     runs-on: ubuntu-22.04
@@ -178,73 +178,6 @@ jobs:
         with:
           path: ./*.${{ matrix.package_extension }}
           key: unsigned-${{ github.sha }}-${{ github.run_id }}-${{ matrix.package_extension }}-${{ hashFiles('**/${{ matrix.connector_script }}') }}-${{ matrix.distrib }}
-
-  package-connectors-lib:
-    needs: [get-version]
-    runs-on: ubuntu-22.04
-    strategy:
-      matrix:
-        distrib: [el8, el9, bullseye]
-        include:
-          - distrib: el8
-            image: packaging-alma8
-            package_extension: rpm
-          - distrib: el9
-            image: packaging-alma9
-            package_extension: rpm
-          - distrib: bullseye
-            image: packaging-bullseye
-            package_extension: deb
-    name: package ${{ matrix.distrib }}
-    container:
-      image: centreon.jfrog.io/docker/${{ matrix.image }}:${{ needs.get-version.outputs.version }}
-      credentials:
-        username: ${{ secrets.AUTOMATION_USERNAME }}
-        password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-
-    steps:
-      - uses: actions/checkout@v3
-
-      - if: ${{ matrix.package_extension == 'rpm' }}
-        run: |
-          yum install -y yum-utils
-          yum config-manager --set-enabled crb || true # alma 9
-          yum config-manager --set-enabled powertools || true # alma 8
-          yum install -y lua lua-devel
-          mkdir -p ~/rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
-
-          cd modules
-          tar czf ~/rpmbuild/SOURCES/centreon-stream-connectors-lib.tar.gz centreon-stream-connectors-lib
-          cd ..
-
-          rpmbuild -ba packaging/connectors-lib/rpm/centreon-stream-connectors-lib.spec
-
-          mv ~/rpmbuild/RPMS/**/*.rpm ../
-        working-directory: stream-connectors
-        shell: bash
-
-      - if: ${{ matrix.package_extension == 'deb' }}
-        run: |
-          mkdir -p centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}/debian
-
-          cp -rp modules/centreon-stream-connectors-lib/* centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}/
-          cp -rp packaging/connectors-lib/deb/* centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}/debian/
-
-          tar czf centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}.tar.gz centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}
-
-          cd centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}
-
-          debmake -f "centreon" -e "contact@centreon.com" -y -r ${{ matrix.distrib }}
-          debuild-pbuilder --no-lintian
-
-          mv ../*.deb ../../../
-        working-directory: stream-connectors
-        shell: bash
-
-      - uses: actions/cache@v3
-        with:
-          path: ./*.${{ matrix.package_extension }}
-          key: unsigned-${{ github.sha }}-${{ github.run_id }}-${{ matrix.package_extension }}-${{ matrix.distrib }}
 
   # sign-rpm:
   #   needs: [package-rpm]
