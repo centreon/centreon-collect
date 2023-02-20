@@ -79,13 +79,13 @@ set(BUILD_ARGS "-w" "dupbuild=warn")
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   file(STRINGS "/etc/os-release" release REGEX "^ID")
 
-  foreach(l ${release})
-    if(${l} MATCHES "ID_LIKE=.*")
-      string(REGEX REPLACE "ID_LIKE=\"(.*)\"" "\\1" like ${l})
+  foreach(line ${release})
+    if(${line} MATCHES "ID_LIKE=.*")
+      string(REGEX REPLACE "ID_LIKE=\"(.*)\"" "\\1" like ${line})
     endif()
 
-    if(${l} MATCHES "ID=.*")
-      string(REGEX REPLACE "ID=\"(.*)\"" "\\1" id ${l})
+    if(${line} MATCHES "ID=.*")
+      string(REGEX REPLACE "ID=\"(.*)\"" "\\1" id ${line})
     endif()
   endforeach()
 
@@ -117,7 +117,7 @@ endif()
 # Version.
 set(COLLECT_MAJOR 22)
 set(COLLECT_MINOR 04)
-set(COLLECT_PATCH 2)
+set(COLLECT_PATCH 3)
 set(COLLECT_VERSION "${COLLECT_MAJOR}.${COLLECT_MINOR}.${COLLECT_PATCH}")
 add_definitions(-DCENTREON_CONNECTOR_VERSION=\"${COLLECT_VERSION}\")
 
