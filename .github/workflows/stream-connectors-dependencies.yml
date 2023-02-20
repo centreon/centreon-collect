@@ -68,7 +68,7 @@ jobs:
           ls -l /usr/lib64/lua/
           ls -l /usr/lib64/lua/$(lua -e "print(string.sub(_VERSION, 5))")
           ls -l /usr/lib64/lua/5.3
-          cp /usr/lib64/lua/$(lua -e "print(string.sub(_VERSION, 5))")/cffi.so cffi-lua
+          cp /usr/lib*/lua/*/cffi.so cffi-lua
           tar czf ~/rpmbuild/SOURCES/cffi-lua.tar.gz cffi-lua
 
           rpmbuild -ba packaging/rpm/${{ matrix.lib }}.spec
