@@ -117,6 +117,9 @@ void diff_state::_set_value(
           if (name == "Timeperiod")
             *value->mutable_value_tp() =
                 *static_cast<const Timeperiod*>(&field_message);
+          else if (name == "Contact")
+            *value->mutable_value_ct() =
+                *static_cast<const Contact*>(&field_message);
           else {
             log_v2::config()->error("name of message '{}' not managed", name);
             assert(2 == 20);
