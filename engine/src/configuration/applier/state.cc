@@ -1407,9 +1407,9 @@ void applier::state::_processing(configuration::State& new_cfg,
   // Expand contacts.
   _expand<configuration::contact, applier::contact>(new_cfg);
 
-  //  // Expand contactgroups.
-  //  _expand<configuration::contactgroup, applier::contactgroup>(new_cfg);
-  //
+  // Expand contactgroups.
+  _expand<configuration::contactgroup, applier::contactgroup>(new_cfg);
+
   //  // Expand hosts.
   //  _expand<configuration::host, applier::host>(new_cfg);
   //
@@ -1482,10 +1482,12 @@ void applier::state::_processing(configuration::State& new_cfg,
         return std::make_pair(tg.key().id(), tg.key().type());
       });
 
-  //  // Build difference for contacts.
-  //  difference<set_contact> diff_contacts;
-  //  diff_contacts.parse(config->contacts(), new_cfg.contacts());
-  //
+    // Build difference for contacts.
+    pb_difference<configuration::Contact> diff_contacts;
+    diff_contacts.parse(pb_config.contacts().begin(), pb_config.contacts().end(),
+        new_cfg.contacts().begin(), new_cfg.contacts().end(),
+        &configuration::Contact::contact_name);
+
   //  // Build difference for contactgroups.
   //  difference<set_contactgroup> diff_contactgroups;
   //  diff_contactgroups.parse(config->contactgroups(),
