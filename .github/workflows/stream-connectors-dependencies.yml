@@ -56,7 +56,11 @@ jobs:
         run: |
           mkdir -p ~/rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
 
-          dnf install -y make gcc luarocks meson gcc-c++ cmake libffi-devel lua-devel libffi
+          yum install -y yum-utils
+          yum config-manager --set-enabled crb || true # alma 9
+          yum config-manager --set-enabled powertools || true # alma 8
+
+          yum install -y make gcc luarocks meson gcc-c++ cmake libffi-devel lua-devel libffi
 
           luarocks install cffi-lua
 
