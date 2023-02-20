@@ -15,7 +15,6 @@ Vendor:         Centreon Entreprise Server (CES) Repository, http://yum.centreon
 
 Source0:        %{name}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
-BuildArch:      noarch
 
 BuildRequires:  lua
 BuildRequires:  lua-devel
