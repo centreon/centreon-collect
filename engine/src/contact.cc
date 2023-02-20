@@ -540,11 +540,6 @@ std::shared_ptr<contact> add_contact(
     int retain_status_information,
     int retain_nonstatus_information) {
   // Make sure we have the data we need.
-  if (name.empty()) {
-    engine_logger(log_config_error, basic) << "Error: Contact name is empty";
-    log_v2::config()->error("Error: Contact name is empty");
-    return nullptr;
-  }
 
   // Check if the contact already exist.
   if (contact::contacts.count(name)) {

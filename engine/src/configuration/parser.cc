@@ -682,17 +682,6 @@ void parser::_parse_object_definitions(const std::string& path,
         continue;
       /* is it time to close the definition? */
       if (l == "}") {
-        /* cases where msg must be moved... for example when the message is
-         * stored in a map. */
-        if (type == "contact") {
-          auto* cts = pb_config->mutable_contacts();
-          Contact* ct = static_cast<Contact*>(msg);
-          Contact& c = (*cts)[ct->contact_name()];
-          c = std::move(*ct);
-          delete msg;
-          msg = &c;
-          msg_helper->set_obj(msg);
-        }
         const Descriptor* desc = msg->GetDescriptor();
         const FieldDescriptor* f = desc->FindFieldByName("obj");
         const Reflection* refl = msg->GetReflection();
@@ -771,7 +760,7 @@ void parser::_parse_object_definitions(const std::string& path,
       l = absl::StripTrailingAsciiWhitespace(l.substr(0, l.size() - 1));
       type = std::string(l.data(), l.size());
       if (type == "contact") {
-        msg = new Contact();
+        msg = pb_config->add_contacts();
         msg_helper =
             std::make_unique<contact_helper>(static_cast<Contact*>(msg));
       } else if (type == "host") {
@@ -1223,9 +1212,8 @@ void parser::_resolve_template(State* pb_config) {
   for (Connector& c : *pb_config->mutable_connectors())
     _resolve_template(_pb_helper[&c], _pb_templates[object::connector]);
 
-  auto* contacts = pb_config->mutable_contacts();
-  for (auto it = contacts->begin(); it != contacts->end(); ++it)
-    _resolve_template(_pb_helper[&it->second], _pb_templates[object::contact]);
+  for (Contact& c : *pb_config->mutable_contacts())
+    _resolve_template(_pb_helper[&c], _pb_templates[object::contact]);
 
   for (Contactgroup& cg : *pb_config->mutable_contactgroups())
     _resolve_template(_pb_helper[&cg], _pb_templates[object::contactgroup]);
@@ -1247,8 +1235,8 @@ void parser::_resolve_template(State* pb_config) {
     for (const Command& c : pb_config->commands())
       _pb_helper.at(&c)->check_validity();
 
-    for (auto it = contacts->begin(); it != contacts->end(); ++it)
-      _pb_helper.at(&it->second)->check_validity();
+    for (const Contact& c : pb_config->contacts())
+      _pb_helper.at(&c)->check_validity();
 
     for (const Contactgroup& cg : pb_config->contactgroups())
       _pb_helper.at(&cg)->check_validity();
