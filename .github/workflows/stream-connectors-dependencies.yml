@@ -65,7 +65,7 @@ jobs:
 
           luarocks install cffi-lua
 
-          mkdir cffi-lua
+          mkdir ${{ matrix.lib }}
           find /usr/ -type f -name "cffi.so" -exec cp {} ${{ matrix.lib }}/ \;
           echo "before"
           ls ${{ matrix.lib }}
