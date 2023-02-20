@@ -50,8 +50,13 @@ log_v2::log_v2(const std::shared_ptr<asio::io_context>& io_context)
   auto create_logger = [&](const std::string& name) {
     auto log = std::make_shared<com::centreon::engine::log_v2_logger>(
         name, this, stdout_sink);
-    log->flush_on(level::trace);
-    log->set_level(level::trace);
+    if (name == "tcp") {
+      log->flush_on(level::trace);
+      log->set_level(level::trace);
+    } else {
+      log->flush_on(level::info);
+      log->set_level(level::info);
+    }
     spdlog::register_logger(log);
     return log;
   };
