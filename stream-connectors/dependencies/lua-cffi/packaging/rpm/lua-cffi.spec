@@ -34,7 +34,7 @@ Those modules provides helpful methods to create stream connectors for Centreon
 %build
 
 %install
-%{__cp} -p %{lualibdir}/cffi.so $RPM_BUILD_ROOT%{lualibdir}/cffi.so
+%{__cp} -p ./cffi.so $RPM_BUILD_ROOT%{lualibdir}/cffi.so
 
 %clean
 %{__rm} -rf $RPM_BUILD_ROOT
