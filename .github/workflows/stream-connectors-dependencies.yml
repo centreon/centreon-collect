@@ -65,7 +65,7 @@ jobs:
           luarocks install cffi-lua
 
           mkdir cffi-lua
-          cp /usr/lib64/lua/5.3/cffi.so cffi-lua
+          cp /usr/lib64/lua/$(lua -e "print(string.sub(_VERSION, 5))")/cffi.so cffi-lua
           tar czf ~/rpmbuild/SOURCES/cffi-lua.tar.gz cffi-lua
 
           rpmbuild -ba packaging/rpm/${{ matrix.lib }}.spec
