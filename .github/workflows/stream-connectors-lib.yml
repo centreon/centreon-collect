@@ -8,13 +8,13 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
-      - stream-connectors/modules/centreon-stream-connector-lib/**
+      - stream-connectors/modules/centreon-stream-connectors-lib/**
   push:
     branches:
       - develop
       - master
     paths:
-      - stream-connectors/modules/centreon-stream-connector-lib/**
+      - stream-connectors/modules/centreon-stream-connectors-lib/**
 
 env:
   REGISTRY: centreon.jfrog.io/docker
