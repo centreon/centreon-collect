@@ -87,7 +87,7 @@ jobs:
           MIN_LIB_VERSION="3.0.0"
           DEPENDENCIES=""
           if [ "${{ matrix.connector_path }}" = "kafka" ]; then
-            DEPENDENCIES="librdkafka,lua-ffi"
+            DEPENDENCIES="librdkafka,lua-cffi"
           elif [ "${{ matrix.connector_path }}" = "pagerduty" ]; then
             DEPENDENCIES="lua-tz"
           elif [ "${{ matrix.connector_path }}" = "splunk" ]; then

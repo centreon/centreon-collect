@@ -30,7 +30,7 @@ jobs:
       matrix:
         #distrib: [el8, el9, bullseye]
         distrib: [el8, el9]
-        lib: [lua-ffi]
+        lib: [lua-cffi]
         include:
           - distrib: el8
             image: packaging-alma8
