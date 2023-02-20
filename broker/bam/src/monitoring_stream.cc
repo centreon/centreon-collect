@@ -178,7 +178,8 @@ void monitoring_stream::update() {
  *  @return Number of events acknowledged.
  */
 int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
-  log_v2::bam()->trace("BAM: monitoring_stream write");
+  log_v2::bam()->trace("BAM: monitoring_stream::write - event of type {:x}",
+                       data->type());
   // Take this event into account.
   ++_pending_events;
 
