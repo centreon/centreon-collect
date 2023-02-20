@@ -1,4 +1,4 @@
-name: stream-connector-lib
+name: stream-connectors-lib
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -150,7 +150,7 @@ jobs:
           version: ${{ needs.get-version.outputs.version }}
           minor_version: ${{ needs.get-version.outputs.patch }}
           release: ${{ needs.get-version.outputs.release }}
-          module_name: stream-connectors
+          module_name: stream-connectors-lib
           nexus_username: ${{ secrets.NEXUS_USERNAME }}
           nexus_password: ${{ secrets.NEXUS_PASSWORD }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
