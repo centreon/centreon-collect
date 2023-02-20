@@ -102,18 +102,15 @@ tcp_async::tcp_async() : _clear_available_con_running(false) {}
  */
 void tcp_async::stop_timer() {
   log_v2::tcp()->trace("tcp_async::stop_timer");
-  if (_clear_available_con_running) {
-    std::promise<bool> p;
-    std::future<bool> f(p.get_future());
-    _clear_available_con_running = false;
-    asio::post(_timer->get_executor(), [this, &p] {
+  {
+    std::lock_guard<std::mutex> l(_acceptor_available_con_m);
+    if (_clear_available_con_running) {
+      _clear_available_con_running = false;
       _timer->cancel();
-      p.set_value(true);
-    });
-    f.get();
+    }
+    if (_timer)
+      _timer.reset();
   }
-  if (_timer)
-    _timer.reset();
 }
 
 /**
@@ -218,24 +215,27 @@ void tcp_async::_clear_available_con(asio::error_code ec) {
   if (ec)
     log_v2::core()->info("Available connections cleaning: {}", ec.message());
   else {
-    log_v2::core()->debug("Available connections cleaning");
-    std::time_t now = std::time(nullptr);
     std::lock_guard<std::mutex> l(_acceptor_available_con_m);
-    for (auto it = _acceptor_available_con.begin();
-         it != _acceptor_available_con.end();) {
-      if (now >= it->second.second + 10) {
-        log_v2::tcp()->debug("Destroying connection to '{}'",
-                             it->second.first->peer());
-        it = _acceptor_available_con.erase(it);
+    if (_clear_available_con_running) {
+      log_v2::core()->debug("Available connections cleaning");
+      std::time_t now = std::time(nullptr);
+      for (auto it = _acceptor_available_con.begin();
+           it != _acceptor_available_con.end();) {
+        if (now >= it->second.second + 10) {
+          log_v2::tcp()->debug("Destroying connection to '{}'",
+                               it->second.first->peer());
+          it = _acceptor_available_con.erase(it);
+        } else
+          ++it;
+      }
+      if (!_acceptor_available_con.empty()) {
+        _timer->expires_after(std::chrono::seconds(10));
+        _timer->async_wait(std::bind(&tcp_async::_clear_available_con, this,
+                                     std::placeholders::_1));
       } else
-        ++it;
-    }
-    if (!_acceptor_available_con.empty()) {
-      _timer->expires_after(std::chrono::seconds(10));
-      _timer->async_wait(std::bind(&tcp_async::_clear_available_con, this,
-                                   std::placeholders::_1));
+        _clear_available_con_running = false;
     } else
-      _clear_available_con_running = false;
+      log_v2::core()->debug("Available connections cleaner already stopped");
   }
 }
 
