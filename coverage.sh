@@ -38,6 +38,6 @@ echo "Go back to current directory"
 cd $pwd
 
 echo "Execute grcov"
-grcov build -s $soft -t html --branch --ignore-not-existing --ignore '*/.conan/*' --ignore '/usr/include/*' --ignore 'engine/tests/*' --ignore 'broker/tests/*' --ignore 'clib/tests/*' --ignore 'connectors/tests/*' --ignore 'build/*' -o test-coverage --threads 8
+grcov build -s $soft -t html --branch --ignore-not-existing --ignore '*/.conan/*' --ignore '/usr/include/*' --ignore 'tests/*' --ignore 'broker/tests/*' --ignore 'clib/tests/*' --ignore 'connectors/tests/*' --ignore 'build/*' -o test-coverage --threads 8
 
 firefox test-coverage/index.html&

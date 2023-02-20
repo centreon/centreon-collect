@@ -20,6 +20,7 @@
 #ifndef CCE_CONFIGURATION_APPLIER_CONTACTGROUP_HH
 #define CCE_CONFIGURATION_APPLIER_CONTACTGROUP_HH
 
+#include <absl/container/flat_hash_map.h>
 #include "com/centreon/engine/configuration/contactgroup.hh"
 #include "configuration/state.pb.h"
 
@@ -29,8 +30,8 @@ namespace configuration {
 // Forward declarations.
 class state;
 
-using pb_resolved_set = std::map<configuration::contactgroup::key_type,
-                                 configuration::Contactgroup>;
+using pb_resolved_set =
+    absl::flat_hash_map<std::string, configuration::Contactgroup*>;
 using resolved_set = std::map<configuration::contactgroup::key_type,
                               configuration::contactgroup>;
 namespace applier {
@@ -40,20 +41,30 @@ class contactgroup {
 
   void _resolve_members(configuration::state& s,
                         configuration::contactgroup const& obj);
-  void _pb_resolve_members(configuration::State& s,
-                           configuration::Contactgroup const& obj);
+  void _resolve_members(configuration::State& s,
+                        configuration::Contactgroup& obj);
 
  public:
-  contactgroup();
-  contactgroup(contactgroup const& right);
-  ~contactgroup() throw();
-  contactgroup& operator=(contactgroup const& right);
+  /**
+   * @brief Default constructor.
+   */
+  contactgroup() = default;
+  /**
+   * @brief Destructor.
+   */
+  ~contactgroup() noexcept = default;
+  contactgroup(const contactgroup&) = delete;
+  contactgroup& operator=(const contactgroup&) = delete;
   void add_object(configuration::contactgroup const& obj);
-  void add_object(configuration::Contactgroup const& obj);
+  void add_object(const configuration::Contactgroup& obj);
   void expand_objects(configuration::State& s);
   void expand_objects(configuration::state& s);
+  void modify_object(configuration::Contactgroup* to_modify,
+                     const configuration::Contactgroup& new_object);
   void modify_object(configuration::contactgroup const& obj);
+  void remove_object(ssize_t idx);
   void remove_object(configuration::contactgroup const& obj);
+  void resolve_object(const configuration::Contactgroup& obj);
   void resolve_object(configuration::contactgroup const& obj);
 };
 }  // namespace applier
