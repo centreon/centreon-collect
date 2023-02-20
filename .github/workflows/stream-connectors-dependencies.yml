@@ -66,9 +66,12 @@ jobs:
           luarocks install cffi-lua
 
           mkdir cffi-lua
-          find /usr/ -type f -name "cffi.so" -exec cp {} ${{ matrix.lib }} \;
+          find /usr/ -type f -name "cffi.so" -exec cp {} ${{ matrix.lib }}/ \;
+          echo "before"
           ls ${{ matrix.lib }}
+          echo "after"
           tar czf ~/rpmbuild/SOURCES/${{ matrix.lib }}.tar.gz ${{ matrix.lib }}
+          ls ${{ matrix.lib }}
 
           rpmbuild -ba packaging/rpm/${{ matrix.lib }}.spec
 
