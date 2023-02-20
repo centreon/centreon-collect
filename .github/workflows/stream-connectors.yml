@@ -47,7 +47,7 @@ jobs:
             echo "Adding $(dirname $f) to folders"
             folders+=($(dirname $f))
           done
-          unique_folders=($(printf "%s\n" "${folders[@]}" | sort -u | tr '\n' ' '))
+          unique_folders=($(printf "%s\n" "$(basename ${folders[@]})" | sort -u | tr '\n' ' '))
           echo "connectors=$(jq --compact-output --null-input '$ARGS.positional' --args -- ${unique_folders[@]})" >> $GITHUB_OUTPUT
         shell: bash
 
