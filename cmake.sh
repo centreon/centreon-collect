@@ -46,11 +46,11 @@ do
       WITH_CLANG=ON
       STD=14
       EE="-e CXX=/usr/bin/clang++ -e CC=/usr/bin/clang -e:b CXX=/usr/bin/clang++ -e:b CC=/usr/bin/clang"
-      
       shift
       ;;
     -fcr|--force-conan-rebuild)
       CONAN_REBUILD="1"
+      shift
       ;;
     -h|--help)
       show_help
