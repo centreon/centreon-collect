@@ -56,7 +56,7 @@ jobs:
         run: |
           mkdir -p ~/rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
 
-          yum install -y yum-utils
+          yum install -y yum-utils epel-release
           yum config-manager --set-enabled crb || true # alma 9
           yum config-manager --set-enabled powertools || true # alma 8
 
