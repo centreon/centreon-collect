@@ -105,7 +105,7 @@ message State {
 
   repeated Command commands = 77;
   repeated Connector connectors = 78;
-  map<string, Contact> contacts = 79;
+  repeated Contact contacts = 79;
   repeated Contactgroup contactgroups = 80;
   repeated Hostdependency hostdependencies = 81;
   repeated Hostescalation hostescalations = 82;

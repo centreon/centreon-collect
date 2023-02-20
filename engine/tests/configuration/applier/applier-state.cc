@@ -45,20 +45,18 @@ class ApplierState : public ::testing::Test {
       tp->set_timeperiod_name(fmt::format("Timeperiod {}", i));
     }
     for (int i = 0; i < 5; i++) {
-      auto cts = pb_config.mutable_contacts();
-      configuration::Contact ct;
-      configuration::contact_helper ct_hlp(&ct);
+      configuration::Contact* ct = pb_config.add_contacts();
+      configuration::contact_helper ct_hlp(ct);
       std::string name(fmt::format("name{:2}", i));
-      ct.set_contact_name(name);
-      ct.set_alias(fmt::format("alias{:2}", i));
+      ct->set_contact_name(name);
+      ct->set_alias(fmt::format("alias{:2}", i));
       for (int j = 0; j < 3; j++)
-        ct.add_address(fmt::format("address{:2}", j));
+        ct->add_address(fmt::format("address{:2}", j));
       for (int j = 0; j < 10; j++) {
-        configuration::CustomVariable* cv = ct.add_customvariables();
+        configuration::CustomVariable* cv = ct->add_customvariables();
         cv->set_name(fmt::format("key_{}_{}", name, j));
         cv->set_value(fmt::format("value_{}_{}", name, j));
       }
-      (*cts)[name] = std::move(ct);
     }
   }
 
@@ -844,8 +842,7 @@ TEST_F(ApplierState, DiffOnTimeperiodAliasRenamed) {
 TEST_F(ApplierState, DiffOnContactOneRemoved) {
   configuration::State new_config;
   new_config.CopyFrom(pb_config);
-  auto cts = new_config.mutable_contacts();
-  cts->erase("name 4");
+  new_config.mutable_contacts()->DeleteSubrange(4, 1);
 
   std::string output;
   MessageDifferencer differencer;
@@ -865,7 +862,7 @@ TEST_F(ApplierState, DiffOnContactOneRemoved) {
   // number 79 => for contacts
   ASSERT_EQ(dstate.to_remove()[0].key()[0].i32(), 79);
   // "name 4" => contacts["name 4"]
-  ASSERT_EQ(dstate.to_remove()[0].key()[1].str(), std::string("name 4"));
+  ASSERT_EQ(dstate.to_remove()[0].key()[1].i32(), 4);
 
   ASSERT_TRUE(dstate.to_add().empty());
   ASSERT_TRUE(dstate.to_modify().empty());
@@ -874,8 +871,7 @@ TEST_F(ApplierState, DiffOnContactOneRemoved) {
 TEST_F(ApplierState, DiffOnContactOneAdded) {
   configuration::State new_config;
   new_config.CopyFrom(pb_config);
-  auto cts = pb_config.mutable_contacts();
-  cts->erase("name 4");
+  pb_config.mutable_contacts()->DeleteSubrange(4, 1);
 
   std::string output;
   MessageDifferencer differencer;
@@ -909,8 +905,7 @@ TEST_F(ApplierState, DiffOnContactOneAdded) {
 TEST_F(ApplierState, DiffOnContactOneNewAddress) {
   configuration::State new_config;
   new_config.CopyFrom(pb_config);
-  auto cts = new_config.mutable_contacts();
-  auto& ct = (*cts)["name 3"];
+  auto& ct = new_config.mutable_contacts()->at(3);
   ct.add_address("new address");
 
   std::string output;
@@ -932,7 +927,7 @@ TEST_F(ApplierState, DiffOnContactOneNewAddress) {
   // Number of Contacts in State
   ASSERT_EQ(dstate.to_add()[0].path().key()[0].i32(), 79);
   // Key to the context to change
-  ASSERT_EQ(dstate.to_add()[0].path().key()[1].str(), std::string("name 3"));
+  ASSERT_EQ(dstate.to_add()[0].path().key()[1].i32(), 3);
   // Number of the object to modify
   ASSERT_EQ(dstate.to_add()[0].path().key()[2].i32(), 2);
   // Index of the new object to add.
@@ -950,8 +945,7 @@ TEST_F(ApplierState, DiffOnContactOneNewAddress) {
 TEST_F(ApplierState, DiffOnContactFirstAddressRemoved) {
   configuration::State new_config;
   new_config.CopyFrom(pb_config);
-  auto cts = new_config.mutable_contacts();
-  auto& ct = (*cts)["name 3"];
+  auto& ct = new_config.mutable_contacts()->at(3);
   ct.mutable_address()->erase(ct.mutable_address()->begin());
 
   std::string output;
@@ -973,7 +967,7 @@ TEST_F(ApplierState, DiffOnContactFirstAddressRemoved) {
   // Number of contacts in State
   ASSERT_EQ(dstate.to_modify()[0].path().key()[0].i32(), 79);
   // Key "name 3" to the good contact
-  ASSERT_EQ(dstate.to_modify()[0].path().key()[1].str(), "name 3");
+  ASSERT_EQ(dstate.to_modify()[0].path().key()[1].i32(), 3);
   // Number of addresses in Contact
   ASSERT_EQ(dstate.to_modify()[0].path().key()[2].i32(), 2);
   // Index of the address to modify
@@ -985,7 +979,7 @@ TEST_F(ApplierState, DiffOnContactFirstAddressRemoved) {
   // Number of contacts in State
   ASSERT_EQ(dstate.to_remove()[0].key()[0].i32(), 79);
   // Key "name 3" to the good contact
-  ASSERT_EQ(dstate.to_remove()[0].key()[1].str(), "name 3");
+  ASSERT_EQ(dstate.to_remove()[0].key()[1].i32(), 3);
   // Number of addresses in Contact
   ASSERT_EQ(dstate.to_remove()[0].key()[2].i32(), 2);
   // Index of the address to remove
@@ -1001,8 +995,7 @@ TEST_F(ApplierState, DiffOnContactFirstAddressRemoved) {
 TEST_F(ApplierState, DiffOnContactSecondAddressUpdated) {
   configuration::State new_config;
   new_config.CopyFrom(pb_config);
-  auto cts = new_config.mutable_contacts();
-  auto& ct = (*cts)["name 3"];
+  auto& ct = new_config.mutable_contacts()->at(3);
   (*ct.mutable_address())[1] = "this address is different";
 
   std::string output;
@@ -1028,8 +1021,7 @@ TEST_F(ApplierState, DiffOnContactSecondAddressUpdated) {
 TEST_F(ApplierState, DiffOnContactRemoveCustomvariable) {
   configuration::State new_config;
   new_config.CopyFrom(pb_config);
-  auto cts = new_config.mutable_contacts();
-  auto& ct = (*cts)["name 3"];
+  auto& ct = new_config.mutable_contacts()->at(3);
   ct.mutable_customvariables()->erase(ct.mutable_customvariables()->begin());
 
   std::string output;
@@ -1431,7 +1423,7 @@ TEST_F(ApplierState, StateParsing) {
   EXPECT_EQ(config.timeperiods()[1].timeranges().saturday().size(), 1u);
 
   ASSERT_EQ(config.contacts().size(), CONTACTS);
-  const auto ct = config.contacts().at("contact1");
+  const auto& ct = config.contacts().at(0);
   EXPECT_EQ(ct.contact_name(), std::string("contact1"));
   EXPECT_TRUE(ct.can_submit_commands());
   EXPECT_TRUE(ct.host_notifications_enabled());

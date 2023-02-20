@@ -120,21 +120,6 @@ class ApplierContact : public ::testing::Test {
 // When we modify the contact configuration with an unexisting contact
 // configuration
 // Then an exception is thrown.
-TEST_F(ApplierContact, PbModifyUnexistingContactConfigFromConfig) {
-  configuration::applier::contact aply;
-  configuration::Contact ctct;
-  configuration::contact_helper hlp(&ctct);
-  ctct.set_contact_name("test");
-  fill_string_group(ctct.mutable_contactgroups(), "test_group");
-  fill_string_group(ctct.mutable_host_notification_commands(), "cmd1,cmd2");
-  ASSERT_THROW(aply.modify_object(ctct), std::exception);
-}
-
-// Given a contact applier
-// And a configuration contact
-// When we modify the contact configuration with an unexisting contact
-// configuration
-// Then an exception is thrown.
 TEST_F(ApplierContact, ModifyUnexistingContactConfigFromConfig) {
   configuration::applier::contact aply;
   configuration::contact ctct("test");
@@ -154,8 +139,9 @@ TEST_F(ApplierContact, PbModifyUnexistingContactFromConfig) {
   ctct.set_contact_name("test");
   fill_string_group(ctct.mutable_contactgroups(), "test_group");
   fill_string_group(ctct.mutable_host_notification_commands(), "cmd1,cmd2");
-  (*pb_config.mutable_contacts())[ctct.contact_name()] = ctct;
-  ASSERT_THROW(aply.modify_object(ctct), std::exception);
+  configuration::Contact* cfg = pb_config.add_contacts();
+  cfg->CopyFrom(ctct);
+  ASSERT_THROW(aply.modify_object(cfg, ctct), std::exception);
 }
 
 // Given a contact applier
@@ -223,7 +209,16 @@ TEST_F(ApplierContact, PbRemoveContactFromConfig) {
   aply.expand_objects(pb_config);
   engine::contact* my_contact = engine::contact::contacts.begin()->second.get();
   ASSERT_EQ(my_contact->get_addresses().size(), 3u);
-  aply.remove_object(ctct);
+  int idx;
+  bool found = false;
+  for (idx = 0; idx < pb_config.contacts().size(); idx++) {
+    if (pb_config.contacts()[idx].contact_name() == "test") {
+      found = true;
+      break;
+    }
+  }
+  ASSERT_TRUE(found);
+  aply.remove_object(idx);
   ASSERT_TRUE(engine::contact::contacts.empty());
 }
 
