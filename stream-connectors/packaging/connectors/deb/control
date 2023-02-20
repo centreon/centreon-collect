@@ -8,7 +8,7 @@ Standards-Version: 4.5.0
 Homepage: https://wwww.centreon.com
 
 Package: @PACKAGE_NAME@
-Architecture: all
+Architecture: any
 Depends:
   centreon-stream-connectors-lib (>=@MIN_LIB_VERSION@)
 Description: Centreon stream connectors lua modules

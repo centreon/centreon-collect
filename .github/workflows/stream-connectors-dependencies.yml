@@ -29,18 +29,18 @@ jobs:
     strategy:
       matrix:
         #distrib: [el8, el9, bullseye]
-        distrib: [el8, el9]
+        distrib: [bullseye]
         lib: [lua-cffi]
         include:
-          - distrib: el8
-            image: packaging-alma8
-            package_extension: rpm
-          - distrib: el9
-            image: packaging-alma9
-            package_extension: rpm
-          # - distrib: bullseye
-          #   image: packaging-bullseye
-          #   package_extension: deb
+          # - distrib: el8
+          #   image: packaging-alma8
+          #   package_extension: rpm
+          # - distrib: el9
+          #   image: packaging-alma9
+          #   package_extension: rpm
+          - distrib: bullseye
+            image: packaging-bullseye
+            package_extension: deb
 
     name: package ${{ matrix.distrib }} ${{ matrix.lib }}
     container:
@@ -77,29 +77,19 @@ jobs:
 
       - if: ${{ matrix.package_extension == 'deb' }}
         run: |
-          PACKAGE_NAME="centreon-stream-connector-`basename ${{ matrix.connector_path }}`"
+          PACKAGE_NAME="${{ matrix.lib }}"
           PACKAGE_VERSION=`date '+%Y%m%d'`
 
           mkdir -p $PACKAGE_NAME-$PACKAGE_VERSION/debian
 
-          cp centreon-certified/${{ matrix.connector_path }}/*.lua $PACKAGE_NAME-$PACKAGE_VERSION/
+          apt update
+          apt install -y luarocks
 
-          sed -i "s#@PACKAGE_NAME@#$PACKAGE_NAME#g" packaging/connectors/deb/control
-          sed -i "s#@MIN_LIB_VERSION@#${{ steps.list-dependencies.outputs.min_lib_version }}#g" packaging/connectors/deb/control
+          luarocks install cffi-lua
 
-          touch dependencies.txt
-          if [ ! -z "${{ steps.list-dependencies.outputs.dependencies }}" ]; then
-            for dependency in "${{ steps.list-dependencies.outputs.dependencies }}"; do
-              echo "  $dependency," >> dependencies.txt
-            done
-          fi
-          sed -i '/^Depends:/r dependencies.txt' packaging/connectors/deb/control
+          find /usr/ -type f -name "cffi.so" -exec cp {} $PACKAGE_NAME-$PACKAGE_VERSION/ \;
 
-          for file in $PACKAGE_NAME-$PACKAGE_VERSION/*.lua; do
-            echo "`basename $file`    /usr/share/centreon-broker/lua/`basename $file`" >> packaging/connectors/deb/install
-          done
-
-          cp -rp packaging/connectors/deb/* $PACKAGE_NAME-$PACKAGE_VERSION/debian/
+          cp -rp packaging/deb/* $PACKAGE_NAME-$PACKAGE_VERSION/debian/
 
           tar czf $PACKAGE_NAME-$PACKAGE_VERSION.tar.gz $PACKAGE_NAME-$PACKAGE_VERSION
 
@@ -109,7 +99,7 @@ jobs:
           debuild-pbuilder --no-lintian
 
           mv ../*.deb ../../
-        working-directory: stream-connectors
+        working-directory: stream-connectors/dependencies/${{ matrix.lib }}
         shell: bash
 
       - if: ${{ matrix.package_extension == 'deb' }}

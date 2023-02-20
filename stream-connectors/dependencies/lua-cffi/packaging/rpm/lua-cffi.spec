@@ -26,7 +26,7 @@ Requires:       libffi
 Requires:       libffi-devel
 
 %description
-Those modules provides helpful methods to create stream connectors for Centreon
+lua cffi library
 
 %prep
 %setup -q -n %{name}
