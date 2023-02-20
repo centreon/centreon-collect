@@ -1,6 +1,7 @@
 %{!?luaver: %global luaver %(lua -e "print(string.sub(_VERSION, 5))" || echo 0)}
 %global luapkgdir %{_datadir}/lua/%{luaver}
 %global lualibdir %{_libdir}/lua/%{luaver}
+%global debug_package %{nil}
 
 Name:           lua-cffi
 Version:        3.6.0
