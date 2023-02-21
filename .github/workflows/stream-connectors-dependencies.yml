@@ -78,7 +78,7 @@ jobs:
           cat version.txt
 
           mkdir ${{ matrix.lib }}
-          cp -rp /usr/share/lua/5.4/luatz/* ${{ matrix.lib }}/
+          cp -rp /usr/share/lua/`lua -e "print(string.sub(_VERSION, 5))"`/luatz/* ${{ matrix.lib }}/
           tar czf ~/rpmbuild/SOURCES/${{ matrix.lib }}.tar.gz ${{ matrix.lib }}
         working-directory: stream-connectors/dependencies/${{ matrix.lib }}
         shell: bash
