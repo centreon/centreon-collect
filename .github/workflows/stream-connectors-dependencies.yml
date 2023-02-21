@@ -83,7 +83,7 @@ jobs:
         working-directory: stream-connectors/dependencies/${{ matrix.lib }}
         shell: bash
 
-      - if: ${{ matrix.lib == 'lua-tz' }}
+      - if: ${{ matrix.lib == 'lua-curl' }}
         run: |
           luarocks install lua-curl
           luarocks show lua-curl | grep "lua-curl\s[0-9]" | cut -d' ' -f2 | perl -nle 'm/(\d+\.\d+(\.\d+)?)/; print $1' >> version.txt
