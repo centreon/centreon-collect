@@ -23,12 +23,12 @@ jobs:
   get-version:
     uses: ./.github/workflows/get-version.yml
 
-  package:
+  package-rpm:
     needs: [get-version]
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        distrib: [el8, el9, bullseye]
+        distrib: [el8, el9]
         lib: [lua-cffi]
         include:
           - distrib: el8
@@ -37,9 +37,6 @@ jobs:
           - distrib: el9
             image: packaging-alma9
             package_extension: rpm
-          - distrib: bullseye
-            image: packaging-bullseye
-            package_extension: deb
 
     name: package ${{ matrix.distrib }} ${{ matrix.lib }}
     container:
@@ -51,8 +48,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - if: ${{ matrix.package_extension == 'rpm' }}
-        run: |
+      - run: |
           mkdir -p ~/rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
 
           yum install -y yum-utils epel-release
@@ -73,8 +69,34 @@ jobs:
         working-directory: stream-connectors/dependencies/${{ matrix.lib }}
         shell: bash
 
-      - if: ${{ matrix.package_extension == 'deb' }}
-        run: |
+      - uses: kduret/cache@pdotl/zstd-hotfix
+        with:
+          path: ./*.${{ matrix.package_extension }}
+          key: unsigned-${{ github.sha }}-${{ github.run_id }}-${{ matrix.package_extension }}-${{ matrix.lib }}-${{ matrix.distrib }}
+
+  package-deb:
+    needs: [get-version]
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        distrib: [bullseye]
+        lib: [lua-cffi]
+        include:
+          - distrib: bullseye
+            image: packaging-bullseye
+            package_extension: deb
+
+    name: package ${{ matrix.distrib }} ${{ matrix.lib }}
+    container:
+      image: centreon.jfrog.io/docker/${{ matrix.image }}:${{ needs.get-version.outputs.version }}
+      credentials:
+        username: ${{ secrets.AUTOMATION_USERNAME }}
+        password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - run: |
           PACKAGE_NAME="${{ matrix.lib }}"
           PACKAGE_VERSION=`date '+%Y%m%d'`
 
@@ -100,20 +122,13 @@ jobs:
         working-directory: stream-connectors/dependencies/${{ matrix.lib }}
         shell: bash
 
-      - if: ${{ matrix.package_extension == 'deb' }}
-        uses: kduret/cache@pdotl/zstd-hotfix
+      - uses: kduret/cache@pdotl/zstd-hotfix
         with:
           path: ./*.${{ matrix.package_extension }}
           key: ${{ github.sha }}-${{ github.run_id }}-${{ matrix.package_extension }}-${{ matrix.lib }}-${{ matrix.distrib }}
 
-      - if: ${{ matrix.package_extension == 'rpm' }}
-        uses: kduret/cache@pdotl/zstd-hotfix
-        with:
-          path: ./*.${{ matrix.package_extension }}
-          key: unsigned-${{ github.sha }}-${{ github.run_id }}-${{ matrix.package_extension }}-${{ matrix.lib }}-${{ matrix.distrib }}
-
   sign-rpm:
-    needs: [package]
+    needs: [package-rpm]
     runs-on: ubuntu-22.04
     strategy:
       matrix:
@@ -188,7 +203,7 @@ jobs:
 
   deliver-deb:
     if: ${{ contains(fromJson('["unstable", "testing", "stable"]'), needs.get-version.outputs.stability) }}
-    needs: [get-version, package]
+    needs: [get-version, package-deb]
     runs-on: [self-hosted, common]
     strategy:
       matrix:
