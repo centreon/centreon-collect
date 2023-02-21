@@ -80,7 +80,7 @@ jobs:
     strategy:
       matrix:
         distrib: [bullseye]
-        lib: [lua-cffi]
+        lib: [lua-cffi, lua-tz]
         include:
           - distrib: bullseye
             image: packaging-bullseye
@@ -110,7 +110,8 @@ jobs:
         working-directory: stream-connectors/dependencies/${{ matrix.lib }}
         shell: bash
 
-      - name: Package
+      - if: ${{ matrix.lib == "lua-cffi" }}
+        name: Package
         run: |
           PACKAGE_NAME="${{ matrix.lib }}"
           PACKAGE_VERSION="1.0.0"
@@ -118,6 +119,18 @@ jobs:
           luarocks install cffi-lua
 
           find /usr/ -type f -name "cffi.so" -exec cp {} $PACKAGE_NAME-$PACKAGE_VERSION/ \;
+        working-directory: stream-connectors/dependencies/${{ matrix.lib }}
+        shell: bash
+
+      - if: ${{ matrix.lib == "lua-tz" }}
+        name: Package
+        run: |
+          PACKAGE_NAME="${{ matrix.lib }}"
+          PACKAGE_VERSION="1.0.0"
+
+          luarocks install luatz
+
+          cp -rp /usr/local/share/lua/5.3/luatz $PACKAGE_NAME-$PACKAGE_VERSION/luatz
         working-directory: stream-connectors/dependencies/${{ matrix.lib }}
         shell: bash
 

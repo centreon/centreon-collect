@@ -1,5 +1,5 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
-Upstream-Name: lua-cffi
+Upstream-Name: lua-tz
 Upstream-Contact: Centreon <contact@centreon.com>
 Source: https://www.centreon.com
 

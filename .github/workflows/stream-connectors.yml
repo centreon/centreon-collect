@@ -85,16 +85,21 @@ jobs:
         id: list-dependencies
         run: |
           MIN_LIB_VERSION="3.0.0"
-          DEPENDENCIES=""
+          DEB_DEPENDENCIES=""
+          RPM_DEPENDENCIES=""
           if [ "${{ matrix.connector_path }}" = "kafka" ]; then
-            DEPENDENCIES="librdkafka,lua-cffi"
+            DEB_DEPENDENCIES="librdkafka,lua-cffi"
+            RPM_DEPENDENCIES="librdkafka1,lua-cffi"
           elif [ "${{ matrix.connector_path }}" = "pagerduty" ]; then
-            DEPENDENCIES="lua-tz"
+            DEB_DEPENDENCIES="lua-tz"
+            RPM_DEPENDENCIES="lua-tz"
           elif [ "${{ matrix.connector_path }}" = "splunk" ]; then
-            DEPENDENCIES="lua-curl"
+            DEB_DEPENDENCIES="lua-curl"
+            RPM_DEPENDENCIES="lua-tz"
           fi
           echo "min_lib_version=$MIN_LIB_VERSION" >> $GITHUB_OUTPUT
-          echo "dependencies=$DEPENDENCIES" >> $GITHUB_OUTPUT
+          echo "deb_dependencies=$DEB_DEPENDENCIES" >> $GITHUB_OUTPUT
+          echo "rpm_dependencies=$RPM_DEPENDENCIES" >> $GITHUB_OUTPUT
         shell: bash
 
       - if: ${{ matrix.package_extension == 'rpm' }}
@@ -110,8 +115,8 @@ jobs:
           tar czf ~/rpmbuild/SOURCES/$PACKAGE_NAME.tar.gz $PACKAGE_NAME
 
           touch dependencies.txt
-          if [ ! -z "${{ steps.list-dependencies.outputs.dependencies }}" ]; then
-            for dependency in "${{ steps.list-dependencies.outputs.dependencies }}"; do
+          if [ ! -z "${{ steps.list-dependencies.outputs.rpm_dependencies }}" ]; then
+            for dependency in "${{ steps.list-dependencies.outputs.rpm_dependencies }}"; do
               echo "Requires: $dependency" >> dependencies.txt
             done
           fi
@@ -142,8 +147,8 @@ jobs:
           sed -i "s#@MIN_LIB_VERSION@#${{ steps.list-dependencies.outputs.min_lib_version }}#g" packaging/connectors/deb/control
 
           touch dependencies.txt
-          if [ ! -z "${{ steps.list-dependencies.outputs.dependencies }}" ]; then
-            for dependency in "${{ steps.list-dependencies.outputs.dependencies }}"; do
+          if [ ! -z "${{ steps.list-dependencies.outputs.deb_dependencies }}" ]; then
+            for dependency in "${{ steps.list-dependencies.outputs.deb_dependencies }}"; do
               echo "  $dependency," >> dependencies.txt
             done
           fi
