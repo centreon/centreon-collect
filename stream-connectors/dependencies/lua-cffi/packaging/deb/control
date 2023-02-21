@@ -12,5 +12,6 @@ Package: lua-cffi
 Architecture: any
 Depends:
   libffi,
-  libffi-devel
+  libffi-devel,
+  lua5.3
 Description: lua cffi library
