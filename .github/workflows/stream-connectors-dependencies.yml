@@ -83,7 +83,7 @@ jobs:
           mkdir -p $PACKAGE_NAME-$PACKAGE_VERSION/debian
 
           apt update
-          apt install -y git make gcc luarocks meson cmake libffi7 libffi-dev liblua5.3-dev
+          apt install -y git make gcc luarocks meson cmake libffi7 libffi-dev lua5.3 liblua5.3-dev
 
           luarocks install cffi-lua
 
