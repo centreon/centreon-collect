@@ -232,7 +232,8 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
           continue;
         }
         at_least_one_push_to_queue = true;
-        log_v2::core()->trace("muxer::publish {} publish one event to queue");
+        log_v2::core()->trace("muxer::publish {} publish one event to queue",
+                              _name);
         _push_to_queue(*evt);
       }
     }

@@ -840,6 +840,25 @@ def find_internal_id(date, exists=True, timeout: int = TIMEOUT):
         time.sleep(1)
     return False
 
+def create_bad_queue(filename: str):
+    f = open(f"{VAR_ROOT}/lib/centreon-broker/{filename}", 'wb')
+    buffer = bytearray(10000)
+    buffer[0] = 0
+    buffer[1] = 0
+    buffer[2] = 0
+    buffer[3] = 0
+    buffer[4] = 0
+    buffer[5] = 0
+    buffer[6] = 8
+    buffer[7] = 0
+    t = 0
+    for i in range(8, 10000):
+        buffer[i] = t
+        t += 1
+        if t > 100:
+            t = 0
+    f.write(buffer)
+    f.close()
 
 def check_types_in_resources(lst: list):
     connection = pymysql.connect(host=DB_HOST,
