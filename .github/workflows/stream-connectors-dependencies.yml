@@ -29,7 +29,7 @@ jobs:
     strategy:
       matrix:
         distrib: [el8, el9]
-        lib: [lua-cffi, lua-tz]
+        lib: [lua-cffi, lua-tz, lua-curl]
         include:
           - distrib: el8
             image: packaging-alma8
@@ -56,7 +56,7 @@ jobs:
           yum config-manager --set-enabled crb || true # alma 9
           yum config-manager --set-enabled powertools || true # alma 8
 
-          yum install -y git make gcc luarocks meson gcc-c++ cmake libffi libffi-devel lua-devel
+          yum install -y git make gcc luarocks meson gcc-c++ cmake libffi libffi-devel lua-devel libcurl-devel
         shell: bash
 
       - if: ${{ matrix.lib == 'lua-cffi' }}
@@ -79,6 +79,19 @@ jobs:
 
           mkdir ${{ matrix.lib }}
           cp -rp /usr/share/lua/`lua -e "print(string.sub(_VERSION, 5))"`/luatz/* ${{ matrix.lib }}/
+          tar czf ~/rpmbuild/SOURCES/${{ matrix.lib }}.tar.gz ${{ matrix.lib }}
+        working-directory: stream-connectors/dependencies/${{ matrix.lib }}
+        shell: bash
+
+      - if: ${{ matrix.lib == 'lua-tz' }}
+        run: |
+          luarocks install lua-curl
+          luarocks show lua-curl | grep "lua-curl\s[0-9]" | cut -d' ' -f2 | perl -nle 'm/(\d+\.\d+(\.\d+)?)/; print $1' >> version.txt
+          cat version.txt
+
+          mkdir -p ${{ matrix.lib }}/cURL
+          cp -rp /usr/share/lua/`lua -e "print(string.sub(_VERSION, 5))"`/cURL ${{ matrix.lib }}/
+          cp -p /usr/share/lua/`lua -e "print(string.sub(_VERSION, 5))"`/cURL.lua ${{ matrix.lib }}/
           tar czf ~/rpmbuild/SOURCES/${{ matrix.lib }}.tar.gz ${{ matrix.lib }}
         working-directory: stream-connectors/dependencies/${{ matrix.lib }}
         shell: bash

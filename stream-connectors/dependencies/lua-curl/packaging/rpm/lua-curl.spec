@@ -3,10 +3,10 @@
 %global lualibdir %{_libdir}/lua/%{luaver}
 %global debug_package %{nil}
 
-Name:           lua-tz
+Name:           lua-curl
 Version:        %{VERSION}
 Release:        1%{?dist}
-Summary:        lua tz
+Summary:        lua curl
 
 Group:          Applications/System
 License:        Apache-2.0
@@ -23,7 +23,7 @@ BuildRequires:  lua-devel
 Requires:       lua
 
 %description
-lua tz library
+lua curl library
 
 %prep
 %setup -q -n %{name}
@@ -31,13 +31,14 @@ lua tz library
 %build
 
 %install
-%{__install} -d $RPM_BUILD_ROOT%{luapkgdir}/luatz
-%{__cp} -p ./* $RPM_BUILD_ROOT%{luapkgdir}/luatz
+%{__install} -d $RPM_BUILD_ROOT%{luapkgdir}/cURL
+%{__cp} -rp ./* $RPM_BUILD_ROOT%{luapkgdir}/
 
 %clean
 %{__rm} -rf $RPM_BUILD_ROOT
 
 %files
-%{luapkgdir}/luatz
+%{luapkgdir}/cURL.lua
+%{luapkgdir}/cURL
 
 %changelog
