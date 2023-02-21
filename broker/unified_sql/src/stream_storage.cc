@@ -678,14 +678,14 @@ void stream::_unified_sql_process_service_status(
           // Append perfdata to queue.
           std::string row;
           if (std::isinf(pd.value()))
-            row = fmt::format("{},{},'{}',{}", metric_id, ss.last_check,
+            row = fmt::format("({},{},'{}',{})", metric_id, ss.last_check,
                               ss.current_state,
                               pd.value() < 0.0 ? -FLT_MAX : FLT_MAX);
           else if (std::isnan(pd.value()))
-            row = fmt::format("{},{},'{}',NULL", metric_id, ss.last_check,
+            row = fmt::format("({},{},'{}',NULL)", metric_id, ss.last_check,
                               ss.current_state);
           else
-            row = fmt::format("{},{},'{}',{}", metric_id, ss.last_check,
+            row = fmt::format("({},{},'{}',{})", metric_id, ss.last_check,
                               ss.current_state, pd.value());
           _perfdata.push_query(row);
         }
