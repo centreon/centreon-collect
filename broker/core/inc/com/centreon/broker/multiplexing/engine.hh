@@ -69,8 +69,7 @@ class engine : public std::enable_shared_from_this<engine> {
 
   enum state { not_started, running, stopped };
 
-  using send_to_mux_callback_type =
-      std::function<void(const std::exception_ptr /*nullptr if all is ok*/)>;
+  using send_to_mux_callback_type = std::function<void()>;
 
   state _state;
 
