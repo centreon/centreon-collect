@@ -116,3 +116,28 @@ BESS_ENGINE_DELETE_HOST
 	Sleep  2s
 	Kindly Stop Broker  True
 	Stop Engine
+
+BESSBQ1
+	[Documentation]	A very bad queue file is written for broker. Broker and Engine are then started, Broker must read the file raising an error because of that file and then get data sent by Engine.
+	[Tags]	Broker	Engine	start-stop	queue
+	Config Engine	${1}
+	Config Broker	central
+	Config Broker	rrd
+	Config Broker	module
+        Broker Config Flush Log	central	0
+	Broker Config Log	central	core	error
+	Broker Config Log	central	bbdo	debug
+	Broker Config Log	central	sql	trace
+	Broker Config Log	central	core	debug
+	Config Broker Sql Output	central	unified_sql
+	Clear Retention
+	Create bad queue	central-broker-master.queue.central-broker-master-sql
+	${start}=	Get Current Date
+	Start Broker
+	Start Engine
+	${content}=	Create List	mysql_connection: execute statement 306524174: UPDATE services SET command_line
+
+	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	120
+	Should Be True	${result}	msg=Services should be updated after the ingestion of the queue file
+	Stop Engine
+	Kindly Stop Broker
