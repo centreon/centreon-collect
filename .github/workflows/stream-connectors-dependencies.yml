@@ -204,7 +204,7 @@ jobs:
             image: packaging-alma8
           - distrib: el9
             image: packaging-alma9
-    name: sign rpm ${{ matrix.distrib }}
+    name: sign rpm ${{ matrix.distrib }} ${{ matrix.lib }}
     container:
       image: centreon.jfrog.io/docker/rpm-signing:ubuntu
       options: -t
