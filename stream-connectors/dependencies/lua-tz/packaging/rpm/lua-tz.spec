@@ -31,8 +31,8 @@ lua cffi library
 %build
 
 %install
-%{__install} -d $RPM_BUILD_ROOT%{lualibdir}
-%{__cp} -p ./cffi.so $RPM_BUILD_ROOT%{lualibdir}/cffi.so
+%{__install} -d $RPM_BUILD_ROOT%{luapkgdir}/luatz
+%{__cp} -p ./luatz $RPM_BUILD_ROOT%{luapkgdir}/luatz
 
 %clean
 %{__rm} -rf $RPM_BUILD_ROOT
