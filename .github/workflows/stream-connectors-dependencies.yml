@@ -76,7 +76,7 @@ jobs:
           luarocks show luatz | grep "luatz\s[0-9]" | cut -d' ' -f2 | perl -nle 'm/(\d+\.\d+(\.\d+)?)/; print $1' >> version.txt
 
           mkdir ${{ matrix.lib }}
-          find /usr/ -type f -name "cffi.so" -exec cp {} ${{ matrix.lib }}/ \;
+          cp -rp /usr/share/lua/5.4/luatz ${{ matrix.lib }}/luatz
           tar czf ~/rpmbuild/SOURCES/${{ matrix.lib }}.tar.gz ${{ matrix.lib }}
         shell: bash
 

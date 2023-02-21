@@ -38,6 +38,6 @@ lua cffi library
 %{__rm} -rf $RPM_BUILD_ROOT
 
 %files
-%{lualibdir}/cffi.so
+%{luapkgdir}/luatz
 
 %changelog
