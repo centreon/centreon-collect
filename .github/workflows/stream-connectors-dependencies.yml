@@ -62,22 +62,25 @@ jobs:
       - if: ${{ matrix.lib == 'lua-cffi' }}
         run: |
           luarocks install cffi-lua
-
           luarocks show cffi-lua | grep "cffi-lua\s[0-9]" | cut -d' ' -f2 | perl -nle 'm/(\d+\.\d+(\.\d+)?)/; print $1' >> version.txt
+          cat version.txt
 
           mkdir ${{ matrix.lib }}
           find /usr/ -type f -name "cffi.so" -exec cp {} ${{ matrix.lib }}/ \;
           tar czf ~/rpmbuild/SOURCES/${{ matrix.lib }}.tar.gz ${{ matrix.lib }}
+        working-directory: stream-connectors/dependencies/${{ matrix.lib }}
         shell: bash
 
       - if: ${{ matrix.lib == 'lua-tz' }}
         run: |
           luarocks install luatz
           luarocks show luatz | grep "luatz\s[0-9]" | cut -d' ' -f2 | perl -nle 'm/(\d+\.\d+(\.\d+)?)/; print $1' >> version.txt
+          cat version.txt
 
           mkdir ${{ matrix.lib }}
           cp -rp /usr/share/lua/5.4/luatz ${{ matrix.lib }}/luatz
           tar czf ~/rpmbuild/SOURCES/${{ matrix.lib }}.tar.gz ${{ matrix.lib }}
+        working-directory: stream-connectors/dependencies/${{ matrix.lib }}
         shell: bash
 
       - run: |
@@ -145,6 +148,9 @@ jobs:
 
           PACKAGE_NAME="${{ matrix.lib }}"
           PACKAGE_VERSION=`cat version.txt`
+
+          mkdir -p $PACKAGE_NAME-$PACKAGE_VERSION/debian
+          cp -rp packaging/deb/* $PACKAGE_NAME-$PACKAGE_VERSION/debian/
 
           cp -rp /usr/local/share/lua/5.3/luatz $PACKAGE_NAME-$PACKAGE_VERSION/luatz
         working-directory: stream-connectors/dependencies/${{ matrix.lib }}
