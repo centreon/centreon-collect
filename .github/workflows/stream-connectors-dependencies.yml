@@ -88,7 +88,7 @@ jobs:
           set -x
           luarocks install lua-curl
           luarocks show lua-curl
-          luarocks show lua-curl | grep "lua-curl\s[0-9]" | cut -d' ' -f2 | perl -nle 'm/(\d+\.\d+(\.\d+)?)/; print $1' >> version.txt
+          luarocks show lua-curl | grep "Lua-cURL\s[0-9]" | cut -d' ' -f2 | perl -nle 'm/(\d+\.\d+(\.\d+)?)/; print $1' >> version.txt
           cat version.txt
 
           mkdir -p ${{ matrix.lib }}/cURL
