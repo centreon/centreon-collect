@@ -63,7 +63,7 @@ runs:
         echo "extfile=deb" >> $GITHUB_ENV
 
     - name: Use cache files
-      uses: actions/cache@v3
+      uses: actions/cache@69d9d449aced6a2ede0bc19182fadc3a0a42d2b0
       with:
         path: ./*.${{ env.extfile }}
         key: ${{ inputs.cache_key }}

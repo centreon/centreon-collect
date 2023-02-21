@@ -23,56 +23,56 @@ jobs:
   get-version:
     uses: ./.github/workflows/get-version.yml
 
-  package-rpm:
-    needs: [get-version]
-    runs-on: ubuntu-22.04
-    strategy:
-      matrix:
-        distrib: [el8, el9]
-        lib: [lua-cffi]
-        include:
-          - distrib: el8
-            image: packaging-alma8
-            package_extension: rpm
-          - distrib: el9
-            image: packaging-alma9
-            package_extension: rpm
+  # package-rpm:
+  #   needs: [get-version]
+  #   runs-on: ubuntu-22.04
+  #   strategy:
+  #     matrix:
+  #       distrib: [el8, el9]
+  #       lib: [lua-cffi]
+  #       include:
+  #         - distrib: el8
+  #           image: packaging-alma8
+  #           package_extension: rpm
+  #         - distrib: el9
+  #           image: packaging-alma9
+  #           package_extension: rpm
 
-    name: package ${{ matrix.distrib }} ${{ matrix.lib }}
-    container:
-      image: centreon.jfrog.io/docker/${{ matrix.image }}:${{ needs.get-version.outputs.version }}
-      credentials:
-        username: ${{ secrets.AUTOMATION_USERNAME }}
-        password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+  #   name: package ${{ matrix.distrib }} ${{ matrix.lib }}
+  #   container:
+  #     image: centreon.jfrog.io/docker/${{ matrix.image }}:${{ needs.get-version.outputs.version }}
+  #     credentials:
+  #       username: ${{ secrets.AUTOMATION_USERNAME }}
+  #       password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
 
-    steps:
-      - uses: actions/checkout@v3
+  #   steps:
+  #     - uses: actions/checkout@v3
 
-      - run: |
-          mkdir -p ~/rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
+  #     - run: |
+  #         mkdir -p ~/rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
 
-          yum install -y yum-utils epel-release
-          yum config-manager --set-enabled crb || true # alma 9
-          yum config-manager --set-enabled powertools || true # alma 8
+  #         yum install -y yum-utils epel-release
+  #         yum config-manager --set-enabled crb || true # alma 9
+  #         yum config-manager --set-enabled powertools || true # alma 8
 
-          yum install -y git make gcc luarocks meson gcc-c++ cmake libffi libffi-devel lua-devel
+  #         yum install -y git make gcc luarocks meson gcc-c++ cmake libffi libffi-devel lua-devel
 
-          luarocks install cffi-lua
+  #         luarocks install cffi-lua
 
-          mkdir ${{ matrix.lib }}
-          find /usr/ -type f -name "cffi.so" -exec cp {} ${{ matrix.lib }}/ \;
-          tar czf ~/rpmbuild/SOURCES/${{ matrix.lib }}.tar.gz ${{ matrix.lib }}
+  #         mkdir ${{ matrix.lib }}
+  #         find /usr/ -type f -name "cffi.so" -exec cp {} ${{ matrix.lib }}/ \;
+  #         tar czf ~/rpmbuild/SOURCES/${{ matrix.lib }}.tar.gz ${{ matrix.lib }}
 
-          rpmbuild -ba packaging/rpm/${{ matrix.lib }}.spec
+  #         rpmbuild -ba packaging/rpm/${{ matrix.lib }}.spec
 
-          mv ~/rpmbuild/RPMS/**/*.rpm ../../../
-        working-directory: stream-connectors/dependencies/${{ matrix.lib }}
-        shell: bash
+  #         mv ~/rpmbuild/RPMS/**/*.rpm ../../../
+  #       working-directory: stream-connectors/dependencies/${{ matrix.lib }}
+  #       shell: bash
 
-      - uses: kduret/cache@pdotl/zstd-hotfix
-        with:
-          path: ./*.${{ matrix.package_extension }}
-          key: unsigned-${{ github.sha }}-${{ github.run_id }}-${{ matrix.package_extension }}-${{ matrix.lib }}-${{ matrix.distrib }}
+  #     - uses: kduret/cache@pdotl/zstd-hotfix
+  #       with:
+  #         path: ./*.${{ matrix.package_extension }}
+  #         key: unsigned-${{ github.sha }}-${{ github.run_id }}-${{ matrix.package_extension }}-${{ matrix.lib }}-${{ matrix.distrib }}
 
   package-deb:
     needs: [get-version]
@@ -96,20 +96,35 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - run: |
+      - name: Install dependencies
+        run: |
           PACKAGE_NAME="${{ matrix.lib }}"
-          PACKAGE_VERSION=`date '+%Y%m%d'`
+          PACKAGE_VERSION="1.0.0"
 
           mkdir -p $PACKAGE_NAME-$PACKAGE_VERSION/debian
 
+          cp -rp packaging/deb/* $PACKAGE_NAME-$PACKAGE_VERSION/debian/
+
           apt update
           apt install -y git make gcc luarocks meson cmake libffi7 libffi-dev lua5.3 liblua5.3-dev
+        working-directory: stream-connectors/dependencies/${{ matrix.lib }}
+        shell: bash
+
+      - name: Package
+        run: |
+          PACKAGE_NAME="${{ matrix.lib }}"
+          PACKAGE_VERSION="1.0.0
 
           luarocks install cffi-lua
 
           find /usr/ -type f -name "cffi.so" -exec cp {} $PACKAGE_NAME-$PACKAGE_VERSION/ \;
+        working-directory: stream-connectors/dependencies/${{ matrix.lib }}
+        shell: bash
 
-          cp -rp packaging/deb/* $PACKAGE_NAME-$PACKAGE_VERSION/debian/
+      - name: Package
+        run: |
+          PACKAGE_NAME="${{ matrix.lib }}"
+          PACKAGE_VERSION="1.0.0
 
           tar czf $PACKAGE_NAME-$PACKAGE_VERSION.tar.gz $PACKAGE_NAME-$PACKAGE_VERSION
 
@@ -122,106 +137,106 @@ jobs:
         working-directory: stream-connectors/dependencies/${{ matrix.lib }}
         shell: bash
 
-      - uses: kduret/cache@pdotl/zstd-hotfix
+      - uses: actions/cache@69d9d449aced6a2ede0bc19182fadc3a0a42d2b0
         with:
           path: ./*.${{ matrix.package_extension }}
           key: ${{ github.sha }}-${{ github.run_id }}-${{ matrix.package_extension }}-${{ matrix.lib }}-${{ matrix.distrib }}
 
-  sign-rpm:
-    needs: [package-rpm]
-    runs-on: ubuntu-22.04
-    strategy:
-      matrix:
-        distrib: [el8, el9]
-        lib: [lua-cffi]
-        include:
-          - distrib: el8
-            image: packaging-alma8
-          - distrib: el9
-            image: packaging-alma9
-    name: sign rpm ${{ matrix.distrib }}
-    container:
-      image: centreon.jfrog.io/docker/rpm-signing:ubuntu
-      options: -t
-      credentials:
-        username: ${{ secrets.AUTOMATION_USERNAME }}
-        password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+  # sign-rpm:
+  #   needs: [package-rpm]
+  #   runs-on: ubuntu-22.04
+  #   strategy:
+  #     matrix:
+  #       distrib: [el8, el9]
+  #       lib: [lua-cffi]
+  #       include:
+  #         - distrib: el8
+  #           image: packaging-alma8
+  #         - distrib: el9
+  #           image: packaging-alma9
+  #   name: sign rpm ${{ matrix.distrib }}
+  #   container:
+  #     image: centreon.jfrog.io/docker/rpm-signing:ubuntu
+  #     options: -t
+  #     credentials:
+  #       username: ${{ secrets.AUTOMATION_USERNAME }}
+  #       password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
 
-    steps:
-      - run: apt-get install -y zstd
-        shell: bash
+  #   steps:
+  #     - run: apt-get install -y zstd
+  #       shell: bash
 
-      - uses: actions/checkout@v3
+  #     - uses: actions/checkout@v3
 
-      - uses: kduret/cache@pdotl/zstd-hotfix
-        with:
-          path: ./*.rpm
-          key: unsigned-${{ github.sha }}-${{ github.run_id }}-rpm-${{ matrix.lib }}-${{ matrix.distrib }}
+  #     - uses: kduret/cache@pdotl/zstd-hotfix
+  #       with:
+  #         path: ./*.rpm
+  #         key: unsigned-${{ github.sha }}-${{ github.run_id }}-rpm-${{ matrix.lib }}-${{ matrix.distrib }}
 
-      - run: echo "HOME=/root" >> $GITHUB_ENV
-        shell: bash
+  #     - run: echo "HOME=/root" >> $GITHUB_ENV
+  #       shell: bash
 
-      - run: rpmsign --addsign ./*.rpm
-        shell: bash
+  #     - run: rpmsign --addsign ./*.rpm
+  #       shell: bash
 
-      - uses: kduret/cache@pdotl/zstd-hotfix
-        with:
-          path: ./*.rpm
-          key: ${{ github.sha }}-${{ github.run_id }}-rpm-${{ matrix.lib }}-${{ matrix.distrib }}
+  #     - uses: kduret/cache@pdotl/zstd-hotfix
+  #       with:
+  #         path: ./*.rpm
+  #         key: ${{ github.sha }}-${{ github.run_id }}-rpm-${{ matrix.lib }}-${{ matrix.distrib }}
 
-  deliver-rpm:
-    if: ${{ contains(fromJson('["unstable", "testing", "stable"]'), needs.get-version.outputs.stability) }}
-    needs: [get-version, sign-rpm]
-    runs-on: [self-hosted, common]
-    strategy:
-      matrix:
-        distrib: [el8, el9]
-        lib: [lua-cffi]
-    name: deliver ${{ matrix.distrib }} ${{ matrix.lib }}
+  # deliver-rpm:
+  #   if: ${{ contains(fromJson('["unstable", "testing", "stable"]'), needs.get-version.outputs.stability) }}
+  #   needs: [get-version, sign-rpm]
+  #   runs-on: [self-hosted, common]
+  #   strategy:
+  #     matrix:
+  #       distrib: [el8, el9]
+  #       lib: [lua-cffi]
+  #   name: deliver ${{ matrix.distrib }} ${{ matrix.lib }}
 
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v3
+  #   steps:
+  #     - name: Checkout sources
+  #       uses: actions/checkout@v3
 
-      - name: Publish RPM packages
-        uses: ./.github/actions/delivery
-        with:
-          distrib: ${{ matrix.distrib }}
-          version: ${{ needs.get-version.outputs.version }}
-          minor_version: ${{ needs.get-version.outputs.patch }}
-          release: ${{ needs.get-version.outputs.release }}
-          module_name: ${{ matrix.lib }}
-          nexus_username: ${{ secrets.NEXUS_USERNAME }}
-          nexus_password: ${{ secrets.NEXUS_PASSWORD }}
-          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-          cache_key: ${{ github.sha }}-${{ github.run_id }}-deb-${{ matrix.lib }}-${{ matrix.distrib }}
-          update_repo_path: ${{ secrets.UPDATE_REPO_PATH }}
-          cloudfront_id: ${{ secrets.CLOUDFRONT_ID }}
-          yum_repo_address: ${{ secrets.YUM_REPO_ADDRESS }}
-          yum_repo_key: ${{ secrets.YUM_REPO_KEY }}
-          yum_repo_url: ${{ secrets.YUM_REPO_URL }}
+  #     - name: Publish RPM packages
+  #       uses: ./.github/actions/delivery
+  #       with:
+  #         distrib: ${{ matrix.distrib }}
+  #         version: ${{ needs.get-version.outputs.version }}
+  #         minor_version: ${{ needs.get-version.outputs.patch }}
+  #         release: ${{ needs.get-version.outputs.release }}
+  #         module_name: ${{ matrix.lib }}
+  #         nexus_username: ${{ secrets.NEXUS_USERNAME }}
+  #         nexus_password: ${{ secrets.NEXUS_PASSWORD }}
+  #         artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+  #         cache_key: ${{ github.sha }}-${{ github.run_id }}-deb-${{ matrix.lib }}-${{ matrix.distrib }}
+  #         update_repo_path: ${{ secrets.UPDATE_REPO_PATH }}
+  #         cloudfront_id: ${{ secrets.CLOUDFRONT_ID }}
+  #         yum_repo_address: ${{ secrets.YUM_REPO_ADDRESS }}
+  #         yum_repo_key: ${{ secrets.YUM_REPO_KEY }}
+  #         yum_repo_url: ${{ secrets.YUM_REPO_URL }}
 
-  deliver-deb:
-    if: ${{ contains(fromJson('["unstable", "testing", "stable"]'), needs.get-version.outputs.stability) }}
-    needs: [get-version, package-deb]
-    runs-on: [self-hosted, common]
-    strategy:
-      matrix:
-        distrib: [bullseye]
-        lib: [lua-cffi]
-    name: deliver ${{ matrix.distrib }} ${{ matrix.lib }}
+  # deliver-deb:
+  #   if: ${{ contains(fromJson('["unstable", "testing", "stable"]'), needs.get-version.outputs.stability) }}
+  #   needs: [get-version, package-deb]
+  #   runs-on: [self-hosted, common]
+  #   strategy:
+  #     matrix:
+  #       distrib: [bullseye]
+  #       lib: [lua-cffi]
+  #   name: deliver ${{ matrix.distrib }} ${{ matrix.lib }}
 
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v3
+  #   steps:
+  #     - name: Checkout sources
+  #       uses: actions/checkout@v3
 
-      - name: Publish DEB packages
-        uses: ./.github/actions/delivery
-        with:
-          distrib: ${{ matrix.distrib }}
-          repository_name: standard
-          version: ${{ needs.get-version.outputs.version }}
-          repos_username: ${{ secrets.NEXUS_USERNAME }}
-          repos_password: ${{ secrets.NEXUS_PASSWORD }}
-          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-          cache_key: ${{ github.sha }}-${{ github.run_id }}-deb-${{ matrix.lib }}-${{ matrix.distrib }}
+  #     - name: Publish DEB packages
+  #       uses: ./.github/actions/delivery
+  #       with:
+  #         distrib: ${{ matrix.distrib }}
+  #         repository_name: standard
+  #         version: ${{ needs.get-version.outputs.version }}
+  #         repos_username: ${{ secrets.NEXUS_USERNAME }}
+  #         repos_password: ${{ secrets.NEXUS_PASSWORD }}
+  #         artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+  #         cache_key: ${{ github.sha }}-${{ github.run_id }}-deb-${{ matrix.lib }}-${{ matrix.distrib }}
