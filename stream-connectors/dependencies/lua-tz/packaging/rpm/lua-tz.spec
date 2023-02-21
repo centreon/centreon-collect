@@ -3,10 +3,10 @@
 %global lualibdir %{_libdir}/lua/%{luaver}
 %global debug_package %{nil}
 
-Name:           lua-cffi
+Name:           lua-tz
 Version:        %{VERSION}
 Release:        1%{?dist}
-Summary:        lua cffi
+Summary:        lua tz
 
 Group:          Applications/System
 License:        Apache-2.0
@@ -19,12 +19,8 @@ BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires:  lua
 BuildRequires:  lua-devel
-BuildRequires:  libffi
-BuildRequires:  libffi-devel
 
 Requires:       lua
-Requires:       libffi
-Requires:       libffi-devel
 
 %description
 lua cffi library
