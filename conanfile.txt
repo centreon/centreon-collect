@@ -15,13 +15,13 @@ libssh2/1.10.0
 cmake
 
 [options]
-boost:header_only=True
-grpc:secure=True
-grpc:csharp_ext=False
-grpc:csharp_plugin=False
-grpc:node_plugin=False
-grpc:objective_c_plugin=False
-grpc:php_plugin=False
-grpc:python_plugin=True
-grpc:ruby_plugin=False
-libssh2:shared=False
+boost*:header_only=True
+grpc*:secure=True
+grpc*:csharp_ext=False
+grpc*:csharp_plugin=False
+grpc*:node_plugin=False
+grpc*:objective_c_plugin=False
+grpc*:php_plugin=False
+grpc*:python_plugin=True
+grpc*:ruby_plugin=False
+libssh2*:shared=False
