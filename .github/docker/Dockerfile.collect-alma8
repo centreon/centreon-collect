@@ -1,4 +1,4 @@
-FROM almalinux:8
+FROM ${REGISTRY_URL}/almalinux:8
 
 RUN <<EOF
 

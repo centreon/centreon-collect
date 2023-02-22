@@ -1,4 +1,4 @@
-FROM debian:bullseye
+FROM ${REGISTRY_URL}/debian:bullseye
 
 RUN <<EOF
 

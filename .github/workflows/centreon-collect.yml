@@ -38,9 +38,6 @@ on:
       - CMakeLists.txt
       - conanfile.txt
 
-env:
-  REGISTRY: centreon.jfrog.io/docker
-
 jobs:
   get-version:
     uses: ./.github/workflows/get-version.yml
@@ -61,13 +58,14 @@ jobs:
       - name: Login to Registry
         uses: docker/login-action@v2
         with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.AUTOMATION_USERNAME }}
-          password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.DOCKER_REGISTRY_ID }}
+          password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
 
       - name: Test ${{ matrix.image }}
         uses: ./.github/actions/runner-docker
         with:
+          registry_url: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
           script_name: /src/.github/scripts/collect-unit-tests
           image_name: centreon-collect-${{ matrix.image }}
           image_version: ${{ needs.get-version.outputs.img_version }}
