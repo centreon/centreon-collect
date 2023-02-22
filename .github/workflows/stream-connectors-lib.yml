@@ -69,7 +69,6 @@ jobs:
 
       - if: ${{ matrix.package_extension == 'deb' }}
         run: |
-          set -x
           mkdir -p centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}/debian
 
           cp -rp modules/centreon-stream-connectors-lib/* centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}/
@@ -83,11 +82,17 @@ jobs:
           debuild-pbuilder --no-lintian
 
           mv ../*.deb ../../
-          pwd
         working-directory: stream-connectors
         shell: bash
 
-      - uses: actions/cache@v3
+      - if: ${{ matrix.package_extension == 'deb' }}
+        uses: actions/cache@v3
+        with:
+          path: ./*.${{ matrix.package_extension }}
+          key: ${{ github.sha }}-${{ github.run_id }}-${{ matrix.package_extension }}-${{ matrix.distrib }}
+
+      - if: ${{ matrix.package_extension == 'rpm' }}
+        uses: actions/cache@v3
         with:
           path: ./*.${{ matrix.package_extension }}
           key: unsigned-${{ github.sha }}-${{ github.run_id }}-${{ matrix.package_extension }}-${{ matrix.distrib }}
