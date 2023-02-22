@@ -44,7 +44,6 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::unified_sql;
 
 constexpr int32_t queue_timer_duration = 10;
-constexpr int32_t dt_queue_timer_duration = 5;
 
 /**
  *  Check that the floating point values are the same number or are NaN or are
