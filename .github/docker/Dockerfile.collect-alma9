@@ -38,9 +38,8 @@ dnf install -y cmake \
     procps-ng \
     zstd
 
-pip3 install conan --prefix=/usr --upgrade
+pip3 install conan==1.57.0 --prefix=/usr --upgrade
 rm -rf ~/.conan/profiles/default
-conan profile detect
 
 EOF
 
