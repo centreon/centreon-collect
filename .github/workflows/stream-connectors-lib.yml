@@ -81,11 +81,11 @@ jobs:
           debmake -f "centreon" -e "contact@centreon.com" -y -r ${{ matrix.distrib }}
           debuild-pbuilder --no-lintian
 
-          mv ../*.deb ../../../
+          mv ../*.deb ../../
         working-directory: stream-connectors
         shell: bash
 
-      - uses: actions/cache@69d9d449aced6a2ede0bc19182fadc3a0a42d2b0
+      - uses: actions/cache@v3
         with:
           path: ./*.${{ matrix.package_extension }}
           key: unsigned-${{ github.sha }}-${{ github.run_id }}-${{ matrix.package_extension }}-${{ matrix.distrib }}
@@ -114,7 +114,7 @@ jobs:
 
       - uses: actions/checkout@v3
 
-      - uses: actions/cache@69d9d449aced6a2ede0bc19182fadc3a0a42d2b0
+      - uses: actions/cache@v3
         with:
           path: ./*.rpm
           key: unsigned-${{ github.sha }}-${{ github.run_id }}-rpm-${{ matrix.distrib }}
@@ -125,7 +125,7 @@ jobs:
       - run: rpmsign --addsign ./*.rpm
         shell: bash
 
-      - uses: actions/cache@69d9d449aced6a2ede0bc19182fadc3a0a42d2b0
+      - uses: actions/cache@v3
         with:
           path: ./*.rpm
           key: ${{ github.sha }}-${{ github.run_id }}-rpm-${{ matrix.distrib }}

@@ -187,7 +187,7 @@ jobs:
         working-directory: stream-connectors/dependencies/${{ matrix.lib }}
         shell: bash
 
-      - uses: actions/cache@69d9d449aced6a2ede0bc19182fadc3a0a42d2b0
+      - uses: actions/cache@v3
         with:
           path: ./*.${{ matrix.package_extension }}
           key: ${{ github.sha }}-${{ github.run_id }}-${{ matrix.package_extension }}-${{ matrix.lib }}-${{ matrix.distrib }}

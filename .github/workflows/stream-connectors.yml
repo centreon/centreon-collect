@@ -172,19 +172,19 @@ jobs:
         shell: bash
 
       - if: ${{ matrix.package_extension == 'deb' }}
-        uses: actions/cache@69d9d449aced6a2ede0bc19182fadc3a0a42d2b0
+        uses: actions/cache@v3
         with:
           path: ./*.${{ matrix.package_extension }}
           key: ${{ github.sha }}-${{ github.run_id }}-${{ matrix.package_extension }}-${{ matrix.connector_path }}-${{ matrix.distrib }}
 
       - if: ${{ matrix.package_extension == 'rpm' }}
-        uses: actions/cache@69d9d449aced6a2ede0bc19182fadc3a0a42d2b0
+        uses: actions/cache@v3
         with:
           path: ./*.${{ matrix.package_extension }}
           key: unsigned-${{ github.sha }}-${{ github.run_id }}-${{ matrix.package_extension }}-${{ matrix.connector_path }}-${{ matrix.distrib }}
 
   sign-rpm:
-    needs: [package]
+    needs: [detect-changes, package]
     runs-on: ubuntu-22.04
     strategy:
       matrix:
@@ -195,7 +195,7 @@ jobs:
             image: packaging-alma8
           - distrib: el9
             image: packaging-alma9
-    name: sign rpm ${{ matrix.distrib }}
+    name: sign rpm ${{ matrix.distrib }} ${{ matrix.connector_path }}
     container:
       image: centreon.jfrog.io/docker/rpm-signing:ubuntu
       options: -t
@@ -209,7 +209,7 @@ jobs:
 
       - uses: actions/checkout@v3
 
-      - uses: actions/cache@69d9d449aced6a2ede0bc19182fadc3a0a42d2b0
+      - uses: actions/cache@v3
         with:
           path: ./*.rpm
           key: unsigned-${{ github.sha }}-${{ github.run_id }}-rpm-${{ matrix.connector_path }}-${{ matrix.distrib }}
@@ -220,19 +220,20 @@ jobs:
       - run: rpmsign --addsign ./*.rpm
         shell: bash
 
-      - uses: actions/cache@69d9d449aced6a2ede0bc19182fadc3a0a42d2b0
+      - uses: actions/cache@v3
         with:
           path: ./*.rpm
           key: ${{ github.sha }}-${{ github.run_id }}-rpm-${{ matrix.connector_path }}-${{ matrix.distrib }}
 
   deliver-rpm:
     if: ${{ contains(fromJson('["unstable", "testing", "stable"]'), needs.get-version.outputs.stability) }}
-    needs: [get-version, sign-rpm]
+    needs: [get-version, detect-changes, sign-rpm]
     runs-on: [self-hosted, common]
     strategy:
       matrix:
         distrib: [el8, el9]
-    name: deliver ${{ matrix.distrib }}
+        connector_path: ${{ fromJson(needs.detect-changes.outputs.connectors) }}
+    name: deliver ${{ matrix.distrib }} ${{ matrix.connector_path }}
 
     steps:
       - name: Checkout sources
@@ -263,7 +264,8 @@ jobs:
     strategy:
       matrix:
         distrib: [bullseye]
-    name: deliver ${{ matrix.distrib }}
+        connector_path: ${{ fromJson(needs.detect-changes.outputs.connectors) }}
+    name: deliver ${{ matrix.distrib }} ${{ matrix.connector_path }}
 
     steps:
       - name: Checkout sources
@@ -275,7 +277,7 @@ jobs:
           distrib: ${{ matrix.distrib }}
           repository_name: standard
           version: ${{ needs.get-version.outputs.version }}
-          repos_username: ${{ secrets.NEXUS_USERNAME }}
-          repos_password: ${{ secrets.NEXUS_PASSWORD }}
+          nexus_username: ${{ secrets.NEXUS_USERNAME }}
+          nexus_password: ${{ secrets.NEXUS_PASSWORD }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           cache_key: ${{ github.sha }}-${{ github.run_id }}-deb-${{ matrix.connector_path }}-${{ matrix.distrib }}
