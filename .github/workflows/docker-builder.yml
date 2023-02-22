@@ -55,7 +55,8 @@ jobs:
         with:
           file: .github/docker/Dockerfile.${{ matrix.project }}-${{ matrix.distrib }}
           context: .
-          build-args: "REGISTRY_URL=${{ vars.DOCKER_PROXY_REGISTRY_URL }}"
+          build-args: |
+            "REGISTRY_URL=${{ vars.DOCKER_PROXY_REGISTRY_URL }}"
           pull: true
           push: true
           tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-${{ matrix.project }}-${{ matrix.distrib }}:${{ needs.get-version.outputs.img_version }}
