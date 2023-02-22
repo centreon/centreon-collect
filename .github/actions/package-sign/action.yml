@@ -31,9 +31,9 @@ runs:
     - name: Login to Registry
       uses: docker/login-action@v2
       with:
-        registry: ${{ inputs.docker_registry_url }}
-        username: ${{ inputs.username }}
-        password: ${{ inputs.password }}
+        registry: ${{ inputs.registry_url }}
+        username: ${{ inputs.registry_username }}
+        password: ${{ inputs.registry_password }}
 
     - run: docker run -i -e TOKEN=${{ inputs.centreon_pat }} --entrypoint /src/.github/scripts/${{ inputs.script_name }}.sh -v "$PWD:/src" ${{ inputs.docker_registry_url }}/${{ inputs.image_name }}:${{ inputs.image_version}} ${{ inputs.params }}
       shell: bash
