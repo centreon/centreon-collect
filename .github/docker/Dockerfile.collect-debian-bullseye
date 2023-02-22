@@ -1,3 +1,5 @@
+ARG REGISTRY_URL
+
 FROM ${REGISTRY_URL}/debian:bullseye
 
 RUN <<EOF
