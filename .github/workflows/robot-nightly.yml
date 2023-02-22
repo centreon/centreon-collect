@@ -55,8 +55,8 @@ jobs:
       image_name: ${{ matrix.image }}:${{ needs.get-version.outputs.img_version }}
       distrib: ${{ matrix.distrib }}
     secrets:
-      registry_username: ${{ secrets.AUTOMATION_USERNAME }}
-      registry_password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+      registry_username: ${{ secrets.DOCKER_REGISTRY_ID }}
+      registry_password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
 
   deliver-rpm:
     if: ${{ contains(fromJson('["unstable"]'), needs.get-version.outputs.stability) }}
