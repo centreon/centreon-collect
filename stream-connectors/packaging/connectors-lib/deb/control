@@ -12,5 +12,6 @@ Package: centreon-stream-connectors-lib
 Architecture: any
 Depends:
   centreon-broker-core (>= 22.04.0),
-  lua-socket (>= 3.0)
+  lua-socket (>= 3.0),
+  lua-curl
 Description: Centreon stream connectors lib for lua modules

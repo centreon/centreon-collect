@@ -94,7 +94,7 @@ jobs:
             DEB_DEPENDENCIES="lua-tz"
             RPM_DEPENDENCIES="lua-tz"
           elif [ "${{ matrix.connector_path }}" = "splunk" ]; then
-            DEB_DEPENDENCIES="lua-curl"
+            DEB_DEPENDENCIES="lua-tz"
             RPM_DEPENDENCIES="lua-tz"
           fi
           echo "min_lib_version=$MIN_LIB_VERSION" >> $GITHUB_OUTPUT

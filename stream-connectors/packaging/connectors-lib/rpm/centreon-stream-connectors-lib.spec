@@ -21,6 +21,7 @@ BuildRequires:  lua-devel
 
 Requires:       centreon-broker-core >= 22.04.0
 Requires:       lua-socket >= 3.0
+Requires:       lua-curl
 
 %description
 Those modules provides helpful methods to create stream connectors for Centreon
