@@ -42,6 +42,7 @@ python3 get-pip.py
 pip3 install conan
 ln -s /usr/local/bin/conan /usr/bin/conan
 rm -rf ~/.conan/profiles/default
+conan profile detect
 
 EOF
 

@@ -47,6 +47,7 @@ dnf update libarchive
 
 pip3 install conan --prefix=/usr --upgrade
 rm -rf ~/.conan/profiles/default
+conan profile detect
 
 EOF
 
