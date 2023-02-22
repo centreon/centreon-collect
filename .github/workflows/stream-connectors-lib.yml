@@ -69,6 +69,7 @@ jobs:
 
       - if: ${{ matrix.package_extension == 'deb' }}
         run: |
+          set -x
           mkdir -p centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}/debian
 
           cp -rp modules/centreon-stream-connectors-lib/* centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}/
@@ -82,6 +83,7 @@ jobs:
           debuild-pbuilder --no-lintian
 
           mv ../*.deb ../../
+          pwd
         working-directory: stream-connectors
         shell: bash
 
