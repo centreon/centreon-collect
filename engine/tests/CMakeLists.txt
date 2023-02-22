@@ -1,5 +1,5 @@
 #
-# Copyright 2016, 2020-2022 Centreon
+# Copyright 2016, 2020-2023 Centreon
 #
 
 # This file is part of Centreon Engine.
@@ -69,6 +69,7 @@ if(WITH_TESTING)
       "${TESTS_DIR}/configuration/applier/applier-service.cc"
       "${TESTS_DIR}/configuration/applier/applier-serviceescalation.cc"
       "${TESTS_DIR}/configuration/applier/applier-servicegroup.cc"
+      "${TESTS_DIR}/configuration/applier/applier-state.cc"
       "${TESTS_DIR}/configuration/contact.cc"
       "${TESTS_DIR}/configuration/host.cc"
       "${TESTS_DIR}/configuration/object.cc"
