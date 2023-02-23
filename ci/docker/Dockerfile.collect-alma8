@@ -1,4 +1,6 @@
-FROM almalinux:8.5
+ARG REGISTRY_URL
+
+FROM ${REGISTRY_URL}/almalinux:8
 
 RUN dnf clean all
 
@@ -41,7 +43,7 @@ RUN dnf clean all && dnf install -y cmake \
     rpm-build
 RUN dnf update libarchive
 
-RUN pip3 install conan --prefix=/usr --upgrade
+RUN pip3 install conan==1.57.0 --prefix=/usr --upgrade
 RUN rm -rf ~/.conan/profiles/default
 COPY conanfile.txt .
 RUN cat conanfile.txt

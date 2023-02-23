@@ -1,4 +1,7 @@
-FROM centos:7
+ARG REGISTRY_URL
+
+FROM ${REGISTRY_URL}/centos:7
+
 RUN curl https://downloads.mariadb.com/MariaDB/mariadb-10.5.8/yum/centos7-amd64/rpms/MariaDB-shared-10.5.8-1.el7.centos.x86_64.rpm --output MariaDB-shared-10.5.8-1.el7.centos.x86_64.rpm && \
     curl https://downloads.mariadb.com/MariaDB/mariadb-10.5.8/yum/centos7-amd64/rpms/MariaDB-common-10.5.8-1.el7.centos.x86_64.rpm --output MariaDB-common-10.5.8-1.el7.centos.x86_64.rpm && \
     curl https://downloads.mariadb.com/MariaDB/mariadb-10.5.8/yum/centos7-amd64/rpms/MariaDB-compat-10.5.8-1.el7.centos.x86_64.rpm --output MariaDB-compat-10.5.8-1.el7.centos.x86_64.rpm && \
@@ -46,7 +49,7 @@ RUN ln -s /usr/bin/cmake3 /usr/bin/cmake
 COPY conanfile.txt .
 RUN cat conanfile.txt
 RUN source /opt/rh/devtoolset-9/enable && source /opt/rh/rh-python38/enable && \
-    pip3 install conan --upgrade &&\
+    pip3 install conan==1.57.0 --upgrade &&\
     /opt/rh/rh-python38/root/usr/local/bin/conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build='*'
 
 RUN unzip -q sonar-scanner-cli-4.7.0.2747-linux.zip
