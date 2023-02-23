@@ -31,6 +31,7 @@ local curl = require "cURL"
 require("LuaXML")
 
 
+
 -- workaround https://github.com/centreon/centreon-broker/issues/201
 local previous_event = ""
 
