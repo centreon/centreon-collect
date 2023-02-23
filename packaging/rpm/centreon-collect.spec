@@ -241,7 +241,7 @@ centengine.
 %setup -q -n %{name}-%{version}
 
 %build
-pip3 install conan --upgrade
+pip3 install conan==1.57.0 --upgrade
 conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
 
 cmake3 \
