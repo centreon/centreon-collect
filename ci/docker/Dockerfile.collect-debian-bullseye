@@ -1,4 +1,7 @@
-FROM debian:bullseye
+ARG REGISTRY_URL
+
+FROM ${REGISTRY_URL}/debian:bullseye
+
 RUN apt-get -y update && \
     apt-get -y install cmake \
     curl \
@@ -29,7 +32,7 @@ RUN apt-get -y update && \
     localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
 RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
 RUN python3 get-pip.py
-RUN pip3 install conan
+RUN pip3 install conan==1.57.0
 RUN ln -s /usr/local/bin/conan /usr/bin/conan
 RUN rm -rf ~/.conan/profiles/default
 COPY conanfile.txt .
