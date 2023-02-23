@@ -1,20 +1,16 @@
 name: Centreon collect build docker
 
 on:
-  pull_request_target:
-    types:
-      - closed
+  push:
     branches:
       - develop
+      - dev-[2-9][0-9].[0-9][0-9].x
     paths:
       - 'ci/docker/**'
   workflow_dispatch:
   pull_request:
     paths:
       - 'ci/docker/**'
-
-env:
-  REGISTRY: docker.centreon.com
 
 jobs:
   create-version:
@@ -43,13 +39,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        distrib: [centos7, alma8, debian-bullseye]
         include:
           - project: collect
-            distrib: centos7
-          - project: collect
-            distrib: alma8
-          - project: collect
-            distrib: debian-bullseye
+
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
@@ -57,13 +50,17 @@ jobs:
       - name: Login to Registry
         uses: docker/login-action@v2
         with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.REPOS_USERNAME }}
-          password: ${{ secrets.REPOS_PASSWORD }}
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.DOCKER_REGISTRY_ID }}
+          password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
 
-      - name: build docker ${{ matrix.distrib }}
-        run: docker build --no-cache . -f ci/docker/Dockerfile.${{ matrix.project }}-${{ matrix.distrib }} -t $REGISTRY/centreon-${{ matrix.project }}-${{ matrix.distrib }}:${{ env.imgversion }}
+      - uses: docker/setup-buildx-action@v2
 
-      - name: push docker ${{ matrix.distrib }}
-        run: docker push $REGISTRY/centreon-${{ matrix.project }}-${{ matrix.distrib }}:${{ env.imgversion }}
-
+      - uses: docker/build-push-action@v3
+        with:
+          file: ci/docker/Dockerfile.${{ matrix.project }}-${{ matrix.distrib }}
+          context: .
+          build-args: "REGISTRY_URL=${{ vars.DOCKER_PROXY_REGISTRY_URL }}"
+          pull: true
+          push: true
+          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-${{ matrix.project }}-${{ matrix.distrib }}:${{ env.imgversion }}
