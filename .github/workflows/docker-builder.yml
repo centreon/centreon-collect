@@ -54,8 +54,13 @@ jobs:
           username: ${{ secrets.DOCKER_REGISTRY_ID }}
           password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
 
-      - name: build docker ${{ matrix.distrib }}
-        run: docker build --no-cache . -f ci/docker/Dockerfile.${{ matrix.project }}-${{ matrix.distrib }} -t ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-${{ matrix.project }}-${{ matrix.distrib }}:${{ env.imgversion }}
+      - uses: docker/setup-buildx-action@v2
 
-      - name: push docker ${{ matrix.distrib }}
-        run: docker push ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-${{ matrix.project }}-${{ matrix.distrib }}:${{ env.imgversion }}
+      - uses: docker/build-push-action@v3
+        with:
+          file: ci/docker/Dockerfile.${{ matrix.project }}-${{ matrix.distrib }}
+          context: .
+          build-args: "REGISTRY_URL=${{ vars.DOCKER_PROXY_REGISTRY_URL }}"
+          pull: true
+          push: true
+          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-${{ matrix.project }}-${{ matrix.distrib }}:${{ env.imgversion }}
