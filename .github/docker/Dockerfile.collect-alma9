@@ -1,4 +1,6 @@
-FROM almalinux:9
+ARG REGISTRY_URL
+
+FROM ${REGISTRY_URL}/almalinux:9
 
 RUN <<EOF
 
@@ -36,7 +38,7 @@ dnf install -y cmake \
     procps-ng \
     zstd
 
-pip3 install conan --prefix=/usr --upgrade
+pip3 install conan==1.57.0 --prefix=/usr --upgrade
 rm -rf ~/.conan/profiles/default
 
 EOF

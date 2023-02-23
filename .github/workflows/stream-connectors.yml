@@ -16,9 +16,6 @@ on:
     paths:
       - stream-connectors/centreon-certified/**
 
-env:
-  REGISTRY: centreon.jfrog.io/docker
-
 jobs:
   get-version:
     uses: ./.github/workflows/get-version.yml
@@ -73,10 +70,10 @@ jobs:
 
     name: package ${{ matrix.distrib }} ${{ matrix.connector_path }}
     container:
-      image: centreon.jfrog.io/docker/${{ matrix.image }}:${{ needs.get-version.outputs.version }}
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ needs.get-version.outputs.version }}
       credentials:
-        username: ${{ secrets.AUTOMATION_USERNAME }}
-        password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+        username: ${{ secrets.DOCKER_REGISTRY_ID }}
+        password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
 
     steps:
       - uses: actions/checkout@v3
@@ -197,11 +194,11 @@ jobs:
             image: packaging-alma9
     name: sign rpm ${{ matrix.distrib }} ${{ matrix.connector_path }}
     container:
-      image: centreon.jfrog.io/docker/rpm-signing:ubuntu
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/rpm-signing:ubuntu
       options: -t
       credentials:
-        username: ${{ secrets.AUTOMATION_USERNAME }}
-        password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+        username: ${{ secrets.DOCKER_REGISTRY_ID }}
+        password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
 
     steps:
       - run: apt-get install -y zstd

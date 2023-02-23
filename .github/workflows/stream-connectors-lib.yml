@@ -16,9 +16,6 @@ on:
     paths:
       - stream-connectors/modules/centreon-stream-connectors-lib/**
 
-env:
-  REGISTRY: centreon.jfrog.io/docker
-
 jobs:
   get-version:
     uses: ./.github/workflows/get-version.yml
@@ -41,10 +38,10 @@ jobs:
             package_extension: deb
     name: package ${{ matrix.distrib }}
     container:
-      image: centreon.jfrog.io/docker/${{ matrix.image }}:${{ needs.get-version.outputs.version }}
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ needs.get-version.outputs.version }}
       credentials:
-        username: ${{ secrets.AUTOMATION_USERNAME }}
-        password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+        username: ${{ secrets.DOCKER_REGISTRY_ID }}
+        password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
 
     steps:
       - uses: actions/checkout@v3
@@ -109,11 +106,11 @@ jobs:
             distrib: el9
     name: sign rpm ${{ matrix.distrib }}
     container:
-      image: centreon.jfrog.io/docker/rpm-signing:ubuntu
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/rpm-signing:ubuntu
       options: -t
       credentials:
-        username: ${{ secrets.AUTOMATION_USERNAME }}
-        password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+        username: ${{ secrets.DOCKER_REGISTRY_ID }}
+        password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
 
     steps:
       - run: apt-get install -y zstd
