@@ -8,9 +8,6 @@ on:
   schedule:
     - cron: '0 0 * * *'
 
-env:
-  REGISTRY: docker.centreon.com
-
 jobs:
   robot-test:
     runs-on: [self-hosted, collect]
@@ -63,13 +60,14 @@ jobs:
       - name: Login to Registry
         uses: docker/login-action@v2
         with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.REPOS_USERNAME }}
-          password: ${{ secrets.REPOS_PASSWORD }}
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.DOCKER_REGISTRY_ID }}
+          password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
 
       - name: Tests robot (Centos7, Alma8)
         uses: ./.github/actions/runner-docker
         with:
+          registry_url: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
           script_name: /src/ci/scripts/collect-test-robot
           image_name: ${{ matrix.image }}
           image_version: ${{ env.imgversion }}
