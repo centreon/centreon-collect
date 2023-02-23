@@ -60,7 +60,6 @@ namespace unified_sql {
 class bulk_bind {
   const uint32_t _interval;
   const uint32_t _max_size;
-  size_t _connections_count;
   database::mysql_bulk_stmt& _stmt;
   mutable std::mutex _queue_m;
   std::vector<std::unique_ptr<database::mysql_bulk_bind>> _bind;

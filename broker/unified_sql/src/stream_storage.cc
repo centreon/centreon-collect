@@ -431,7 +431,7 @@ void stream::_unified_sql_process_service_status(
               "Query for index_data for host_id={} and service_id={}", host_id,
               service_id);
           _mysql.run_statement_and_get_result(_index_data_query,
-                                              std::move(promise), conn);
+                                              std::move(promise), conn, 50);
 
           database::mysql_result res(future.get());
           if (_mysql.fetch_row(res))
@@ -466,7 +466,7 @@ void stream::_unified_sql_process_service_status(
           std::promise<database::mysql_result> promise;
           std::future<database::mysql_result> future = promise.get_future();
           _mysql.run_statement_and_get_result(_index_data_update,
-                                              std::move(promise), conn);
+                                              std::move(promise), conn, 50);
           future.get();
         }
 

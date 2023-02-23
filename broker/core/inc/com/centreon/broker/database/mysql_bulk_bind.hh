@@ -44,13 +44,10 @@ class mysql_bulk_bind : public mysql_bind_base {
    * @brief Constructor
    *
    * @param size Number of columns in this bind
-   * @param length Size to reserve for each column's buffer. This is useful when
-   *               the column contains strings. By default, this value is 0 and
-   *               no reservation are made.
-   * @param row_count Number of row to reserve. Columns are not allocated with a
-   *                  such size, they are just reserved.
+   * @param row_count Number of rows to reserve. Columns are not allocated with
+   * a such size, they are just reserved.
    */
-  mysql_bulk_bind(int size, int length = 0, size_t row_count = 1);
+  mysql_bulk_bind(int size, size_t reserved_rows_count);
   ~mysql_bulk_bind() noexcept = default;
   void set_size(int size);
 
