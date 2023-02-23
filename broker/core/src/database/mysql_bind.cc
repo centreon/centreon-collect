@@ -27,18 +27,18 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
 
-mysql_bind::mysql_bind(int size, int length)
+mysql_bind::mysql_bind(int size)  //, int length)
     : mysql_bind_base(size), _buffer(size) {
-  if (length) {
-    for (int i = 0; i < size; ++i) {
-      _bind[i].buffer_type = MYSQL_TYPE_STRING;
-      _buffer[i] = "";
-      absl::get<std::string>(_buffer[i]).reserve(length);
-      std::string* s = absl::get_if<std::string>(&_buffer[i]);
-      _bind[i].buffer = const_cast<char*>(s->data());
-      _bind[i].buffer_length = length;
-    }
-  }
+  //  if (length) {
+  //    for (int i = 0; i < size; ++i) {
+  //      _bind[i].buffer_type = MYSQL_TYPE_STRING;
+  //      _buffer[i] = "";
+  //      absl::get<std::string>(_buffer[i]).reserve(length);
+  //      std::string* s = absl::get_if<std::string>(&_buffer[i]);
+  //      _bind[i].buffer = const_cast<char*>(s->data());
+  //      _bind[i].buffer_length = length;
+  //    }
+  //  }
 }
 
 void* mysql_bind::get_value_pointer(size_t range) {

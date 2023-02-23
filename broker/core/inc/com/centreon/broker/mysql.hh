@@ -58,7 +58,8 @@ class mysql {
   int run_statement_and_get_result(
       database::mysql_stmt& stmt,
       std::promise<database::mysql_result>&& promise,
-      int thread_id = -1);
+      int thread_id, /* = -1, */
+      size_t length /*= 200*/);
 
   template <typename T>
   int run_statement_and_get_int(database::mysql_stmt& stmt,
