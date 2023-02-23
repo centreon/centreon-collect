@@ -2861,8 +2861,9 @@ void stream::_check_and_update_index_cache(const Service& ss) {
           "Attempt to get the index from the database for service ({}, {})",
           ss.host_id(), ss.service_id());
 
-      _mysql.run_statement_and_get_result(_index_data_query, std::move(pq),
-                                          conn);
+      _mysql.run_statement_and_get_result(
+          _index_data_query, std::move(pq), conn,
+          get_index_data_col_size(index_data_service_description));
 
       try {
         database::mysql_result res(future_pq.get());

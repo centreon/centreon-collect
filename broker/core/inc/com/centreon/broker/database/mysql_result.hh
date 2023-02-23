@@ -1,5 +1,5 @@
 /*
-** Copyright 2018 Centreon
+** Copyright 2018-2023 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@
 #ifndef CCB_MYSQL_RESULT_HH
 #define CCB_MYSQL_RESULT_HH
 
-#include "com/centreon/broker/database/mysql_bind.hh"
+#include "com/centreon/broker/database/mysql_bind_result.hh"
 
 CCB_BEGIN()
 
@@ -33,16 +33,28 @@ namespace database {
  *  delete functionality that must call the mysql_free_result() function.
  */
 class mysql_result {
+  mysql_connection* _parent;
+  std::shared_ptr<MYSQL_RES> _result;
+
+  // The row contains the result for a simple query (no statement).
+  MYSQL_ROW _row;
+
+  // the bind and the statement_id are filled in both or empty both.
+  std::unique_ptr<database::mysql_bind_result> _bind;
+  int _statement_id;
+
  public:
   mysql_result(mysql_connection* parent, int statement = 0);
   mysql_result(mysql_connection* parent, MYSQL_RES* res);
   mysql_result(mysql_result&& other);
-  ~mysql_result();
-  mysql_result& operator=(mysql_result const& other);
+  ~mysql_result() noexcept = default;
+  mysql_result& operator=(mysql_result&& other);
+  mysql_result& operator=(const mysql_result&) = delete;
   bool value_as_bool(int idx);
   float value_as_f32(int idx);
   double value_as_f64(int idx);
-  int value_as_i32(int idx);
+  int32_t value_as_i32(int idx);
+  char value_as_tiny(int idx);
   std::string value_as_str(int idx);
   uint32_t value_as_u32(int idx);
   int64_t value_as_i64(int idx);
@@ -52,24 +64,13 @@ class mysql_result {
   int get_rows_count() const;
   void set(MYSQL_RES* res);
   MYSQL_RES* get();
-  void set_bind(std::unique_ptr<database::mysql_bind>&& bind);
-  std::unique_ptr<database::mysql_bind>& get_bind();
+  void set_bind(std::unique_ptr<database::mysql_bind_result>&& bind);
+  std::unique_ptr<database::mysql_bind_result>& get_bind();
   void set_row(MYSQL_ROW row);
   int get_statement_id() const;
   mysql_connection* get_connection();
   int get_num_fields() const;
   char const* get_field_name(int idx) const;
-
- private:
-  mysql_connection* _parent;
-  std::shared_ptr<MYSQL_RES> _result;
-
-  // The row contains the result for a simple query (no statement).
-  MYSQL_ROW _row;
-
-  // the bind and the statement_id are filled in both or empty both.
-  std::unique_ptr<database::mysql_bind> _bind;
-  int _statement_id;
 };
 }  // namespace database
 
