@@ -27,19 +27,10 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
 
-mysql_bulk_bind::mysql_bulk_bind(int size, int length, size_t row_count)
+mysql_bulk_bind::mysql_bulk_bind(int size, size_t reserved_rows_count)
     : mysql_bind_base(size), _column(size) {
-  if (length) {
-    for (int i = 0; i < size; ++i) {
-      _bind[i].buffer_type = MYSQL_TYPE_STRING;
-      _column[i] = mysql_column(MYSQL_TYPE_STRING, row_count);
-      _bind[i].buffer = _column[i].get_buffer();
-      _bind[i].u.indicator = _column[i].indicator_buffer();
-      _bind[i].length = _column[i].length_buffer();
-      _bind[i].buffer_length = length;
-      _bind[i].error = _column[i].error_buffer();
-    }
-  }
+  for (auto& c : _column)
+    c.reserve(reserved_rows_count);
 }
 
 /**
