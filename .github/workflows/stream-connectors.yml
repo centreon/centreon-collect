@@ -41,10 +41,12 @@ jobs:
         run: |
           folders=()
           for f in ${{ steps.filter.outputs.connectors_files }}; do
-            echo "Adding $(dirname $f) to folders"
-            folders+=($(dirname $f))
+            DIR_NAME=($(dirname $f))
+            BASE_NAME=($(basename $DIR_NAME))
+            echo "Adding $BASE_NAME to folders"
+            folders+=($BASE_NAME)
           done
-          unique_folders=($(printf "%s\n" "$(basename ${folders[@]})" | sort -u | tr '\n' ' '))
+          unique_folders=($(printf "%s\n" "${folders[@]}" | sort -u | tr '\n' ' '))
           echo $unique_folders
           echo "connectors=$(jq --compact-output --null-input '$ARGS.positional' --args -- ${unique_folders[@]})" >> $GITHUB_OUTPUT
         shell: bash
