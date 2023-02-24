@@ -45,6 +45,7 @@
     - [json_escape: parameters](#json_escape-parameters)
     - [json_escape: returns](#json_escape-returns)
     - [json_escape: example](#json_escape-example)
+<<<<<<< HEAD
   - [xml_escape method](#xml_escape-method)
     - [xml_escape: parameters](#xml_escape-parameters)
     - [xml_escape: returns](#xml_escape-returns)
@@ -61,6 +62,8 @@
     - [trim: parameters](#trim-parameters)
     - [trim: returns](#trim-returns)
     - [trim: example](#trim-example)
+=======
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
 
 ## Introduction
 
@@ -415,6 +418,7 @@ local string = 'string with " and backslashes \\ and tab:\tend tab'
 local result = test_common:json_escape(string)
 --> result is 'string with \" and backslashes \\ and tab:\tend tab'
 ```
+<<<<<<< HEAD
 
 ## xml_escape method
 
@@ -539,3 +543,5 @@ local string = ";;;;;;I'm no longer a space maaaaan;;;;;;;;;;;;;;"
 local result = test_common:trim(string, ";")
 --> result is: "I'm no longer a space maaaaan"
 ```
+=======
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2

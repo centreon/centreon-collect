@@ -49,6 +49,7 @@ function sc_metrics.new(event, params, common, broker, logger)
     }
   }
 
+<<<<<<< HEAD
 -- open metric (prometheus) : metric name = [a-zA-Z0-9_:], labels [a-zA-Z0-9_] https://github.com/OpenObservability/OpenMetrics/blob/main/specification/OpenMetrics.md#protocol-negotiation
 -- datadog : metric_name = [a-zA-Z0-9_.] https://docs.datadoghq.com/fr/metrics/custom_metrics/#naming-custom-metrics
 -- dynatrace matric name [a-zA-Z0-9-_.] https://dynatrace.com/support/help/how-to-use-dynatrace/metrics/metric-ingestion/metric-ingestion-protocol#metric-key
@@ -63,6 +64,8 @@ function sc_metrics.new(event, params, common, broker, logger)
     self.metrics_name_operations.custom.replacement_character = self.params.metrics_name_custom_replacement_character
   end
 
+=======
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
   -- initiate metrics table 
   self.metrics = {}
   -- initiate sc_event object
@@ -84,7 +87,10 @@ function ScMetrics:is_valid_bbdo_element()
 
   -- drop event if event category is not accepted
   if not self.sc_event:find_in_mapping(self.params.category_mapping, self.params.accepted_categories, event_category) then
+<<<<<<< HEAD
     self.sc_logger:debug("[sc_metrics:is_valid_bbdo_element] event with category: " ..  tostring(event_category) .. " is not an accepted category")
+=======
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
     return false
   else
     -- drop event if accepted category is not supposed to be used for a metric stream connector
@@ -95,16 +101,29 @@ function ScMetrics:is_valid_bbdo_element()
     else
       -- drop event if element is not accepted
       if not self.sc_event:find_in_mapping(self.params.element_mapping[event_category], self.params.accepted_elements, event_element) then
+<<<<<<< HEAD
         self.sc_logger:debug("[sc_metrics:is_valid_bbdo_element] event with element: " ..  tostring(event_element) .. " is not an accepted element")
         return false
       else
         -- drop event if element is not an element that carries perfdata
         if event_element ~= elements.host_status.id
+=======
+        return false
+      else
+        -- drop event if element is not an element that carries perfdata
+        if event_element ~= elements.host.id
+          and event_element ~= elements.host_status.id
+          and event_element ~= elements.service.id
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
           and event_element ~= elements.service_status.id
           and event_element ~= elements.kpi_event.id
         then
           self.sc_logger:warning("[sc_metrics:is_valid_bbdo_element] Configuration error. accepted elements from paramters are: "
+<<<<<<< HEAD
             .. tostring(self.params.accepted_elements) .. ". Only host_status, service_status and kpi_event can be used for metrics")
+=======
+            .. tostring(self.params.accepted_elements) .. ". Only host, host_status, service, service_status and kpi_event can be used for metrics")
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
           return false
         end
       end
@@ -152,7 +171,11 @@ function ScMetrics:is_valid_host_metric_event()
     return false
   end
 
+<<<<<<< HEAD
   -- return false if there is no perfdata or it can't be parsed
+=======
+  -- return false if there is no perfdata or they it can't be parsed
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
   if not self:is_valid_perfdata(self.sc_event.event.perfdata) then
     self.sc_logger:warning("[sc_metrics:is_vaild_host_metric_event]: host_id: "
       .. tostring(self.sc_event.event.host_id) .. " is not sending valid perfdata. Received perfdata: " .. tostring(self.sc_event.event.perf_data))
@@ -253,11 +276,19 @@ function ScMetrics:is_valid_perfdata(perfdata)
   end
 
   -- store data from parsed perfdata inside a metrics table
+<<<<<<< HEAD
   self.metrics_info = metrics_info
+=======
+  for metric_name, metric_data in pairs(metrics_info) do
+    self.metrics[metric_name] = metric_data
+    self.metrics[metric_name].name = metric_name
+  end
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
 
   return true
 end
 
+<<<<<<< HEAD
 -- to name a few : 
 -- open metric (prometheus) : metric name = [a-zA-Z0-9_:], labels [a-zA-Z0-9_] https://github.com/OpenObservability/OpenMetrics/blob/main/specification/OpenMetrics.md#protocol-negotiation
 -- datadog : metric_name = [a-zA-Z0-9_.] https://docs.datadoghq.com/fr/metrics/custom_metrics/#naming-custom-metrics
@@ -277,4 +308,6 @@ function ScMetrics:build_metric(format_metric)
   end
 end
 
+=======
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
 return sc_metrics

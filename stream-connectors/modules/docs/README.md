@@ -2,6 +2,7 @@
 
 - [Stream Connectors lib documentation](#stream-connectors-lib-documentation)
   - [Libraries list](#libraries-list)
+<<<<<<< HEAD
   - [sc\_common methods](#sc_common-methods)
   - [sc\_logger methods](#sc_logger-methods)
   - [sc\_broker methods](#sc_broker-methods)
@@ -13,6 +14,18 @@
   - [google.bigquery.bigquery methods](#googlebigquerybigquery-methods)
   - [google.auth.oauth methods](#googleauthoauth-methods)
   - [Additionnal documentations](#additionnal-documentations)
+=======
+  - [sc_common methods](#sc_common-methods)
+  - [sc_logger methods](#sc_logger-methods)
+  - [sc_broker methods](#sc_broker-methods)
+  - [sc_param methods](#sc_param-methods)
+  - [sc_event methods](#sc_event-methods)
+  - [sc_macros methods](#sc_macros-methods)
+  - [sc_flush methods](#sc_flush-methods)
+  - [sc_metrics methods](#sc_metrics-methods)
+  - [google.bigquery.bigquery methods](#googlebigquerybigquery-methods)
+  - [google.auth.oauth methods](#googleauthoauth-methods)
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
 
 ## Libraries list
 
@@ -43,6 +56,7 @@
 | generate_postfield_param_string    | convert a table of parameters into an url encoded parameters string                         | [Documentation](sc_common.md#generate_postfield_param_string-method)    |
 | load_json_file                     | method loads a json file and parse it                                                       | [Documentation](sc_common.md#load_json_file-method)                     |
 | json_escape                        | escape json characters in a string                                                          | [Documentation](sc_common.md#json_escape-method)                        |
+<<<<<<< HEAD
 | xml_escape                         | escape xml characters in a string                                                           | [Documentation](sc_common.md#xml_escape-method)                         |
 | lua_regex_escape                   | escape lua regex special characters in a string                                             | [Documentation](sc_common.md#lua_regex_escape-method)                   |
 | dumper                             | dump any variable for debug purpose                                                         | [Documentation](sc_common.md#dumper-method)                             |
@@ -58,6 +72,18 @@
 | info             | write an info message in the log file                 | [Documentation](sc_logger.md#info-method)             |
 | debug            | write a debug message in the log file                 | [Documentation](sc_logger.md#debug-method)            |
 | log_curl_command | creates and log a curl command using given parameters | [Documentation](sc_logger.md#log_curl_command-method) |
+=======
+
+## sc_logger methods
+
+| Method name | Method description                          | Link                                         |
+| ----------- | ------------------------------------------- | -------------------------------------------- |
+| error       | write an error message in the log file      | [Documentation](sc_logger.md#error-method)   |
+| warning     | write a warning message in the log file     | [Documentation](sc_logger.md#warning-method) |
+| notice      | write a notice/info message in the log file | [Documentation](sc_logger.md#notice-method)  |
+| info        | write an info message in the log file       | [Documentation](sc_logger.md#info-method)    |
+| debug       | write a debug message in the log file       | [Documentation](sc_logger.md#debug-method)   |
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
 
 ## sc_broker methods
 
@@ -102,7 +128,10 @@
 | is_valid_event_state_type          | check if the state (HARD/SOFT) of the event is valid according to the stream connector params                                                                | [Documentation](sc_event.md#is_valid_event_state_type-method)          |
 | is_valid_event_acknowledge_state   | check if the acknowledgement state of the event is valid according to the stream connector params                                                            | [Documentation](sc_event.md#is_valid_event_acknowledge_state-method)   |
 | is_valid_event_downtime_state      | check if the downtime state of the event is valid according to the stream connector params                                                                   | [Documentation](sc_event.md#is_valid_event_downtime_state-method)      |
+<<<<<<< HEAD
 | is_valid_event_flapping_state      | check if the flapping state of the event is valid according to the stream connector params                                                                   | [Documentation](sc_event.md#is_valid_event_flapping_state-method)      |
+=======
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
 | is_valid_hostgroup                 | check if the host is in an accepted hostgroup according to the stream connector params                                                                       | [Documentation](sc_event.md#is_valid_hostgroup-method)                 |
 | find_hostgroup_in_list             | check if one of the hostgroups of the event is in the list of accepted hostgroups provided in the stream connector configuration. Stops at first match       | [Documentation](sc_event.md#find_hostgroup_in_list-method)             |
 | is_valid_servicegroup              | check if the service is in an accepted servicegroup according to the stream connector params                                                                 | [Documentation](sc_event.md#is_valid_servicegroup-method)              |
@@ -130,6 +159,7 @@
 
 ## sc_macros methods
 
+<<<<<<< HEAD
 | Method name                                      | Method description                                                                      | Link                                                                                  |
 | ------------------------------------------------ | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
 | replace_sc_macro                                 | replace a stream connector macro with its value                                         | [Documentation](sc_macros.md#replace_sc_macro-method)                                 |
@@ -164,6 +194,28 @@
 | flush_mixed_payload       | flush a payload that contains various type of events                   | [Documentation](sc_flush.md#flush_mixed_payload-method)       |
 | flush_homogeneous_payload | flush a payload that contains a single type of events                  | [Documentation](sc_flush.md#flush_homogeneous_payload-method) |
 | flush_payload             | flush a payload                                                        | [Documentation](sc_flush.md#flush_payload-method)             |
+=======
+| Method name            | Method description                                                             | Link                                                        |
+| ---------------------- | ------------------------------------------------------------------------------ | ----------------------------------------------------------- |
+| replace_sc_macro       | replace a stream connector macro with its value                                | [Documentation](sc_macros.md#replace_sc_macro-method)       |
+| get_cache_macro        | retrieve a macro value in the cache                                            | [Documentation](sc_macros.md#get_cache_macro-method)        |
+| get_event_macro        | retrieve a macro value in the event                                            | [Documentation](sc_macros.md#get_event_macro-method)        |
+| convert_centreon_macro | replace a Centreon macro with its value                                        | [Documentation](sc_macros.md#convert_centreon_macro-method) |
+| get_centreon_macro     | transform a Centreon macro into a stream connector macro                       | [Documentation](sc_macros.md#get_centreon_macro-method)     |
+| get_transform_flag     | try to find a transformation flag in the macro name                            | [Documentation](sc_macros.md#get_transform_flag-method)     |
+| transform_date         | transform a timestamp into a human readable format                             | [Documentation](sc_macros.md#transform_date-method)         |
+| transform_short        | keep the first line of a string                                                | [Documentation](sc_macros.md#transform_short-method)        |
+| transform_type         | convert 0 or 1 into SOFT or HARD                                               | [Documentation](sc_macros.md#transform_type-method)         |
+| transform_state        | convert a status code into its matching human readable status (OK, WARNING...) | [Documentation](sc_macros.md#transform_state-method)        |
+
+## sc_flush methods
+
+| Method name      | Method description                                | Link                                                 |
+| ---------------- | ------------------------------------------------- | ---------------------------------------------------- |
+| flush_all_queues | flush all the possible queues that can be created | [Documentation](sc_flush.md#flush_all_queues-method) |
+| flush_queue      | flush a specific queue                            | [Documentation](sc_flush.md#flush_queue-method)      |
+| reset_queue      | reset a queue after it has been flushed           | [Documentation](sc_flush.md#reset_queue-method)      |
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
 
 ## sc_metrics methods
 
@@ -175,7 +227,10 @@
 | is_valid_service_metric_event | makes sure that the metric event is valid service metric event                                            | [Documentation](sc_metrics.md#is_valid_service_metric_event-method) |
 | is_valid_kpi_metric_event     | makes sure that the metric event is valid KPI metric event                                                | [Documentation](sc_metrics.md#is_valid_kpi_metric_event-method)     |
 | is_valid_perfdata             | makes sure that the performance data is valid                                                             | [Documentation](sc_metrics.md#is_valid_perfdata-method)             |
+<<<<<<< HEAD
 | build_metric                  | use the stream connector format method to parse every metric in the event                                 | [Documentation](sc_metrics.md#build_metric-method)                  |
+=======
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
 
 ## google.bigquery.bigquery methods
 
@@ -200,6 +255,7 @@
 | create_signature | create the signature for the jwt token      | [Documentation](google/auth/oauth.md#create_signature-method) |
 | get_access_token | get a google access token using a jwt token | [Documentation](google/auth/oauth.md#get_access_token-method) |
 | curl_google      | use curl to get an access token             | [Documentation](google/auth/oauth.md#curl_google-method)      |
+<<<<<<< HEAD
 
 ## Additionnal documentations
 
@@ -209,3 +265,5 @@
 | learn how to create custom code for your stream connector     | [Documentation](./custom_code.md)                                                                                                   |
 | have a look at all the available mappings and how to use them | [Documentation](./mappings.md)                                                                                                      |
 | have a look at the event structure                            | [Documentation](./broker_data_structure.md) and [Documentation](https://docs.centreon.com/docs/developer/developer-broker-mapping/) |
+=======
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2

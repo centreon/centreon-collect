@@ -25,6 +25,7 @@ function sc_params.new(common, logger)
   end
   self.common = common
 
+<<<<<<< HEAD
   -- get the version of the bbdo protocol (only the first digit, nothing else matters)
   if broker.bbdo_version ~= nil then
     _, _, self.bbdo_version = string.find(broker.bbdo_version(), "(%d+).%d+.%d+")
@@ -34,6 +35,8 @@ function sc_params.new(common, logger)
 
   self.bbdo_version = tonumber(self.bbdo_version)
   
+=======
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
   -- initiate params
   self.params = {
     -- filter broker events
@@ -53,7 +56,10 @@ function sc_params.new(common, logger)
     hard_only = 1,
     acknowledged = 0,
     in_downtime = 0,
+<<<<<<< HEAD
     flapping = 0,
+=======
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
     
     -- objects filter
     accepted_hostgroups = "",
@@ -76,9 +82,13 @@ function sc_params.new(common, logger)
     
     -- communication parameters
     max_buffer_size = 1,
+<<<<<<< HEAD
     max_buffer_age = 5, --deprecated
     max_all_queues_age = 60,
     send_mixed_events = 1,
+=======
+    max_buffer_age = 5,
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
 
     -- connection parameters
     connection_timeout = 60,
@@ -89,6 +99,7 @@ function sc_params.new(common, logger)
     proxy_port = "",
     proxy_username = "",
     proxy_password = "",
+<<<<<<< HEAD
     proxy_protocol = "http",
 
     -- event formatting parameters
@@ -100,6 +111,11 @@ function sc_params.new(common, logger)
 
     -- custom code parameters
     custom_code_file = "",
+=======
+
+    -- event formatting parameters
+    format_file = "",
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
 
     -- time parameters
     local_time_diff_from_utc = os.difftime(os.time(), os.time(os.date("!*t", os.time()))),
@@ -107,7 +123,10 @@ function sc_params.new(common, logger)
 
     -- internal parameters
     __internal_ts_last_flush = os.time(),
+<<<<<<< HEAD
     __internal_last_global_flush_date = os.time(),
+=======
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
 
     -- testing parameters
     send_data_test = 0,
@@ -115,12 +134,16 @@ function sc_params.new(common, logger)
     -- logging parameters
     logfile = "",
     log_level = "",
+<<<<<<< HEAD
     log_curl_commands = 0,
     
     -- metric
     metric_name_regex = "",
     metric_replacement_character = "_",
 
+=======
+    
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
     -- initiate mappings
     element_mapping = {},
     status_mapping = {},
@@ -129,7 +152,11 @@ function sc_params.new(common, logger)
       [1] = "HARD"
     },
     validatedEvents = {},
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
     -- FIX BROKER ISSUE 
     max_stored_events = 10 -- do not use values above 100 
   }
@@ -153,6 +180,7 @@ function sc_params.new(common, logger)
   }
   
   local categories = self.params.bbdo.categories
+<<<<<<< HEAD
 
   local bbdo2_bbdo3_compat_mapping = {
     [2] = {
@@ -185,6 +213,8 @@ function sc_params.new(common, logger)
     }
   }
 
+=======
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
   self.params.bbdo.elements = {
     acknowledgement = {
       category_id = categories.neb.id,
@@ -264,7 +294,16 @@ function sc_params.new(common, logger)
       id = 13,
       name = "host_parent"
     },
+<<<<<<< HEAD
     host_status = bbdo2_bbdo3_compat_mapping[self.bbdo_version]["host_status"],
+=======
+    host_status = {
+      category_id = categories.neb.id,
+      category_name = categories.neb.name,
+      id = 14,
+      name = "host_status"
+    },
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
     instance = {
       category_id = categories.neb.id,
       category_name = categories.neb.name,
@@ -319,13 +358,23 @@ function sc_params.new(common, logger)
       id = 23,
       name = "service"
     },
+<<<<<<< HEAD
     service_status = bbdo2_bbdo3_compat_mapping[self.bbdo_version]["service_status"],
+=======
+    service_status = {
+      category_id = categories.neb.id,
+      category_name = categories.neb.name,
+      id = 24,
+      name = "service_status"
+    },
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
     instance_configuration = {
       category_id = categories.neb.id,
       category_name = categories.neb.name,
       id = 25,
       name = "instance_configuration"
     },
+<<<<<<< HEAD
     responsive_instance = {
       category_id = categories.neb.id,
       category_name = categories.neb.name,
@@ -380,6 +429,8 @@ function sc_params.new(common, logger)
       id = 34,
       name = "pb_tag"
     },
+=======
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
     metric = {
       category_id = categories.storage.id,
       category_name = categories.storage.name,
@@ -556,6 +607,7 @@ function sc_params.new(common, logger)
   self.params.element_mapping[categories.neb.id].service = elements.service.id
   self.params.element_mapping[categories.neb.id].service_status = elements.service_status.id
   self.params.element_mapping[categories.neb.id].instance_configuration = elements.instance_configuration.id
+<<<<<<< HEAD
   self.params.element_mapping[categories.neb.id].responsive_instance = elements.responsive_instance.id
   self.params.element_mapping[categories.neb.id].pb_service = elements.pb_service.id
   self.params.element_mapping[categories.neb.id].pb_adaptive_service = elements.pb_adaptive_service.id
@@ -565,6 +617,8 @@ function sc_params.new(common, logger)
   self.params.element_mapping[categories.neb.id].pb_host_status = elements.pb_host_status.id
   self.params.element_mapping[categories.neb.id].pb_severity = elements.pb_severity.id
   self.params.element_mapping[categories.neb.id].pb_tag = elements.pb_tag.id
+=======
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
 
   -- metric elements mapping
   self.params.element_mapping[categories.storage.id].metric = elements.metric.id
@@ -619,6 +673,7 @@ function sc_params.new(common, logger)
       [elements.service_group_member.id] = "service_group_member",
       [elements.service.id] = "service",
       [elements.service_status.id] = "service_status",
+<<<<<<< HEAD
       [elements.instance_configuration.id] = "instance_configuration",
       [elements.pb_service.id] = "pb_service",
       [elements.pb_adaptive_service.id] = "pb_adaptive_service",
@@ -628,6 +683,9 @@ function sc_params.new(common, logger)
       [elements.pb_host_status.id] = "pb_host_status",
       [elements.pb_severity.id] = "pb_severity",
       [elements.pb_tag] = "pb_tag"
+=======
+      [elements.instance_configuration.id] = "instance_configuration"
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
     },
     [categories.storage.id] = {
       [elements.metric.id] = "metric",
@@ -699,6 +757,7 @@ function sc_params.new(common, logger)
         [1] = "WARNING",
         [2] = "CRITICAL",
         [3] = "UNKNOWN"
+<<<<<<< HEAD
       },
       [elements.pb_host_status.id] = {
         [0] = "UP",
@@ -710,6 +769,8 @@ function sc_params.new(common, logger)
         [1] = "WARNING",
         [2] = "CRITICAL",
         [3] = "UNKNOWN"
+=======
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
       }
     },
     [categories.bam.id] = {
@@ -760,7 +821,10 @@ function ScParams:check_params()
   self.params.hard_only = self.common:check_boolean_number_option_syntax(self.params.hard_only, 1)
   self.params.acknowledged = self.common:check_boolean_number_option_syntax(self.params.acknowledged, 0)
   self.params.in_downtime = self.common:check_boolean_number_option_syntax(self.params.in_downtime, 0)
+<<<<<<< HEAD
   self.params.flapping = self.common:check_boolean_number_option_syntax(self.params.flapping, 0)
+=======
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
   self.params.skip_anon_events = self.common:check_boolean_number_option_syntax(self.params.skip_anon_events, 1)
   self.params.skip_nil_id = self.common:check_boolean_number_option_syntax(self.params.skip_nil_id, 1)
   self.params.accepted_authors = self.common:if_wrong_type(self.params.accepted_authors, "string", "")
@@ -772,15 +836,25 @@ function ScParams:check_params()
   self.params.service_severity_threshold = self.common:if_wrong_type(self.params.service_severity_threshold, "number", nil)
   self.params.host_severity_operator = self.common:if_wrong_type(self.params.host_severity_operator, "string", ">=")
   self.params.service_severity_operator = self.common:if_wrong_type(self.params.service_severity_operator, "string", ">=")
+<<<<<<< HEAD
   self.params.ack_host_status = self.common:ifnil_or_empty(self.params.ack_host_status, self.params.host_status)
   self.params.ack_service_status = self.common:ifnil_or_empty(self.params.ack_service_status, self.params.service_status)
   self.params.dt_host_status = self.common:ifnil_or_empty(self.params.dt_host_status, self.params.host_status)
   self.params.dt_service_status = self.common:ifnil_or_empty(self.params.dt_service_status, self.params.service_status)
+=======
+  self.params.ack_host_status = self.common:ifnil_or_empty(self.params.ack_host_status,self.params.host_status)
+  self.params.ack_service_status = self.common:ifnil_or_empty(self.params.ack_service_status,self.params.service_status)
+  self.params.dt_host_status = self.common:ifnil_or_empty(self.params.dt_host_status,self.params.host_status)
+  self.params.dt_service_status = self.common:ifnil_or_empty(self.params.dt_service_status,self.params.service_status)
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
   self.params.enable_host_status_dedup = self.common:check_boolean_number_option_syntax(self.params.enable_host_status_dedup, 0)
   self.params.enable_service_status_dedup = self.common:check_boolean_number_option_syntax(self.params.enable_service_status_dedup, 0)
   self.params.send_data_test = self.common:check_boolean_number_option_syntax(self.params.send_data_test, 0)
   self.params.proxy_address = self.common:if_wrong_type(self.params.proxy_address, "string", "")
+<<<<<<< HEAD
   self.params.proxy_protocol = self.common:if_wrong_type(self.params.proxy_protocol, "string", "http")
+=======
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
   self.params.proxy_port = self.common:if_wrong_type(self.params.proxy_port, "number", "")
   self.params.proxy_username = self.common:if_wrong_type(self.params.proxy_username, "string", "")
   self.params.proxy_password = self.common:if_wrong_type(self.params.proxy_password, "string", "")
@@ -788,6 +862,7 @@ function ScParams:check_params()
   self.params.allow_insecure_connection = self.common:number_to_boolean(self.common:check_boolean_number_option_syntax(self.params.allow_insecure_connection, 0))
   self.params.logfile = self.common:ifnil_or_empty(self.params.logfile, "/var/log/centreon-broker/stream-connector.log")
   self.params.log_level = self.common:ifnil_or_empty(self.params.log_level, 1)
+<<<<<<< HEAD
   self.params.log_curl_commands = self.common:check_boolean_number_option_syntax(self.params.log_curl_commands, 0)
   self.params.use_long_output = self.common:check_boolean_number_option_syntax(self.params.use_longoutput, 1)
   self.params.remove_line_break_in_output = self.common:check_boolean_number_option_syntax(self.params.remove_line_break_in_output, 1)
@@ -795,6 +870,8 @@ function ScParams:check_params()
   self.params.metric_name_regex = self.common:if_wrong_type(self.params.metric_name_regex, "string", "")
   self.params.metric_replacement_character = self.common:ifnil_or_empty(self.params.metric_replacement_character, "_")
   self.params.output_size_limit = self.common:if_wrong_type(self.params.output_size_limit, "number", "")
+=======
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
 end
 
 --- get_kafka_params: retrieve the kafka parameters and store them the self.params.kafka table
@@ -833,7 +910,11 @@ end
 
 --- load_event_format_file: load a json file which purpose is to serve as a template to format events
 -- @param json_string [opt] (boolean) convert template from a lua table to a json string
+<<<<<<< HEAD
 -- @return true|false (boolean) if file is a valid template file or not
+=======
+-- @return true|false (boolean) if file is valid template file or not
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
 function ScParams:load_event_format_file(json_string)
   -- return if there is no file configured
   if self.params.format_file == "" or self.params.format_file == nil then
@@ -868,6 +949,7 @@ function ScParams:load_event_format_file(json_string)
   return true
 end
 
+<<<<<<< HEAD
 --- load_custom_code_file: load a custom code which purpose is to enhance stream connectors possibilities without having to edit any standard code
 -- @param file (string) the file that needs to be loaded (example: /etc/centreon-broker/sc-custom-code.lua)
 -- @return true|false (boolean) if file is a valid custom code file or not
@@ -913,6 +995,10 @@ end
 
 function ScParams:build_accepted_elements_info()
   local categories = self.params.bbdo.categories
+=======
+function ScParams:build_accepted_elements_info()
+  categories = self.params.bbdo.categories
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
   self.params.accepted_elements_info = {}
 
   -- list all accepted elements

@@ -24,9 +24,12 @@
     - [is_valid_perfdata parameters](#is_valid_perfdata-parameters)
     - [is_valid_perfdata: returns](#is_valid_perfdata-returns)
     - [is_valid_perfdata: example](#is_valid_perfdata-example)
+<<<<<<< HEAD
   - [build_metric method](#build_metric-method)
     - [build_metric parameters](#build_metric-parameters)
     - [build_metric: example](#build_metric-example)
+=======
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
 
 ## Introduction
 
@@ -218,7 +221,11 @@ The **is_valid_perfdata** method makes sure that the performance data is valid. 
 
 ```lua
 local perfdata = "pl=45%;40;80;0;100"
+<<<<<<< HEAD
 local result = test_metrics:is_valid_perfdata(perfdata)
+=======
+local result = test_metrics:is_valid_perfdata()
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
 --> result is true or false
 --> test_metrics.metrics is now 
 --[[
@@ -239,6 +246,7 @@ local result = test_metrics:is_valid_perfdata(perfdata)
   }
 ]]--
 ```
+<<<<<<< HEAD
 
 ## build_metric method
 
@@ -260,3 +268,5 @@ end
 local stored_method = function(metric_data) return my_format_method(metric_data) end
 test_metrics:build_metric(stored_method)
 ```
+=======
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2

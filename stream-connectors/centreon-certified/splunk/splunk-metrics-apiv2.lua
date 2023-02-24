@@ -37,7 +37,11 @@ function EventQueue.new(params)
 
   -- set up log configuration
   local logfile = params.logfile or "/var/log/centreon-broker/splunk-metrics.log"
+<<<<<<< HEAD
   local log_level = params.log_level or 3
+=======
+  local log_level = params.log_level or 1
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
   
   -- initiate mandatory objects
   self.sc_logger = sc_logger.new(logfile, log_level)
@@ -57,22 +61,31 @@ function EventQueue.new(params)
   self.sc_params.params.splunk_host = params.splunk_host or "Central"
   self.sc_params.params.accepted_categories = params.accepted_categories or "neb"
   self.sc_params.params.accepted_elements = params.accepted_elements or "host_status,service_status"
+<<<<<<< HEAD
   self.sc_params.params.max_buffer_size = params.max_buffer_size or 30
   self.sc_params.params.hard_only = params.hard_only or 0
   self.sc_params.params.enable_host_status_dedup = params.enable_host_status_dedup or 0
   self.sc_params.params.enable_service_status_dedup = params.enable_service_status_dedup or 0
   self.sc_params.params.metric_name_regex = params.metric_name_regex or "[^a-zA-Z0-9_]"
   self.sc_params.params.metric_replacement_character = params.metric_replacement_character or "_"
+=======
+  self.sc_params.params.hard_only = params.hard_only or 0
+  self.sc_params.params.enable_host_status_dedup = params.enable_host_status_dedup or 0
+  self.sc_params.params.enable_service_status_dedup = params.enable_service_status_dedup or 0
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
   
   -- apply users params and check syntax of standard ones
   self.sc_params:param_override(params)
   self.sc_params:check_params()
+<<<<<<< HEAD
 
   -- only load the custom code file, not executed yet
   if self.sc_params.load_custom_code_file and not self.sc_params:load_custom_code_file(self.sc_params.params.custom_code_file) then
     self.sc_logger:error("[EventQueue:new]: couldn't successfully load the custom code file: " .. tostring(self.sc_params.params.custom_code_file))
   end
 
+=======
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
   self.sc_params:build_accepted_elements_info()
   
   self.sc_flush = sc_flush.new(self.sc_params.params, self.sc_logger)
@@ -82,6 +95,7 @@ function EventQueue.new(params)
 
   self.format_event = {
     [categories.neb.id] = {
+<<<<<<< HEAD
       [elements.host_status.id] = function () return self:format_event_host() end,
       [elements.service_status.id] = function () return self:format_event_service() end
     }
@@ -100,6 +114,16 @@ function EventQueue.new(params)
 
   self.build_payload_method = {
     [1] = function (payload, event) return self:build_payload(payload, event) end
+=======
+      [elements.host_status.id] = function () return self:format_metrics_host() end,
+      [elements.service_status.id] = function () return self:format_metrics_service() end
+    },
+    [categories.bam.id] = {}
+  }
+
+  self.send_data_method = {
+    [1] = function (data, element) return self:send_data(data, element) end
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
   }
 
   -- return EventQueue object
@@ -114,6 +138,10 @@ function EventQueue:format_accepted_event()
   local category = self.sc_event.event.category
   local element = self.sc_event.event.element
   self.sc_logger:debug("[EventQueue:format_event]: starting format event")
+<<<<<<< HEAD
+=======
+  self.sc_event.event.formated_event = {}
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
 
   -- can't format event if stream connector is not handling this kind of event
   if not self.format_event[category][element] then
@@ -122,6 +150,7 @@ function EventQueue:format_accepted_event()
       .. tostring(self.sc_params.params.reverse_element_mapping[category][element])
       .. ". If it is a not a misconfiguration, you can open an issue at https://github.com/centreon/centreon-stream-connector-scripts/issues")
   else
+<<<<<<< HEAD
     self.sc_logger:debug("[EventQueue:format_event]: going to format it")
     self.format_event[category][element]()
   end
@@ -205,6 +234,40 @@ function EventQueue:format_metric_event(metric)
 
   self:add()
   self.sc_logger:debug("[EventQueue:format_metric]: end real format metric ")
+=======
+    self.format_event[category][element]()
+    
+    -- add metrics in the formated event
+    for metric_name, metric_data in pairs(self.sc_metrics.metrics) do
+      metric_name = string.gsub(metric_name, "[^a-zA-Z0-9_]", "_")
+      self.sc_event.event.formated_event["metric_name:" .. tostring(metric_name)] = metric_data.value
+    end
+  end
+
+  self:add()
+  self.sc_logger:debug("[EventQueue:format_event]: event formatting is finished")
+end
+
+function EventQueue:format_metrics_host()
+  self.sc_event.event.formated_event = {
+    event_type = "host",
+    state = self.sc_event.event.state,
+    state_type = self.sc_event.event.state_type,
+    hostname = self.sc_event.event.cache.host.name,
+    ctime = self.sc_event.event.last_check
+  }
+end
+
+function EventQueue:format_metrics_service()
+  self.sc_event.event.formated_event = {
+    event_type = "service",
+    state = self.sc_event.event.state,
+    state_type = self.sc_event.event.state_type,
+    hostname = self.sc_event.event.cache.host.name,
+    service_description = self.sc_event.event.cache.service.description,
+    ctime = self.sc_event.event.last_check
+  }
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
 end
 
 --------------------------------------------------------------------------------
@@ -229,6 +292,7 @@ function EventQueue:add()
   }
 
   self.sc_logger:info("[EventQueue:add]: queue size is now: " .. tostring(#self.sc_flush.queues[category][element].events) 
+<<<<<<< HEAD
     .. ", max is: " .. tostring(self.sc_params.params.max_buffer_size))
 end
 
@@ -271,6 +335,33 @@ function EventQueue:send_data(payload, queue_metadata)
   local http_response_body = ""
   local http_request = curl.easy()
     :setopt_url(url)
+=======
+    .. "max is: " .. tostring(self.sc_params.params.max_buffer_size))
+end
+
+function EventQueue:send_data(data, element)
+  self.sc_logger:debug("[EventQueue:send_data]: Starting to send data")
+
+  -- write payload in the logfile for test purpose
+  if self.sc_params.params.send_data_test == 1 then
+    self.sc_logger:notice("[send_data]: " .. tostring(broker.json_encode(data)))
+    return true
+  end
+
+  local http_post_data = ""
+  
+  
+  for _, raw_event in ipairs(data) do
+    http_post_data = http_post_data .. broker.json_encode(raw_event)
+  end
+
+  self.sc_logger:info("[EventQueue:send_data]: Going to send the following json " .. tostring(http_post_data))
+  self.sc_logger:info("[EventQueue:send_data]: Splunk address is: " .. tostring(self.sc_params.params.http_server_url))
+
+  local http_response_body = ""
+  local http_request = curl.easy()
+    :setopt_url(self.sc_params.params.http_server_url)
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
     :setopt_writefunction(
       function (response)
         http_response_body = http_response_body .. tostring(response)
@@ -278,7 +369,18 @@ function EventQueue:send_data(payload, queue_metadata)
     )
     :setopt(curl.OPT_TIMEOUT, self.sc_params.params.connection_timeout)
     :setopt(curl.OPT_SSL_VERIFYPEER, self.sc_params.params.allow_insecure_connection)
+<<<<<<< HEAD
     :setopt(curl.OPT_HTTPHEADER, queue_metadata.headers)
+=======
+    :setopt(
+      curl.OPT_HTTPHEADER,
+      {
+        "content-type: application/json",
+        "content-length:" .. string.len(http_post_data),
+        "authorization: Splunk " .. self.sc_params.params.splunk_token,
+      }
+  )
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
 
   -- set proxy address configuration
   if (self.sc_params.params.proxy_address ~= '') then
@@ -299,7 +401,11 @@ function EventQueue:send_data(payload, queue_metadata)
   end
 
   -- adding the HTTP POST data
+<<<<<<< HEAD
   http_request:setopt_postfields(payload)
+=======
+  http_request:setopt_postfields(http_post_data)
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
 
   -- performing the HTTP request
   http_request:perform()
@@ -332,6 +438,7 @@ function init(conf)
   queue = EventQueue.new(conf)
 end
 
+<<<<<<< HEAD
 -- --------------------------------------------------------------------------------
 -- write,
 -- @param {table} event, the event from broker
@@ -342,12 +449,24 @@ function write (event)
   if queue.fail then
     queue.sc_logger:error("Skipping event because a mandatory parameter is not set")
     return false
+=======
+-- Fonction write()
+function write(event)
+  -- First, flush all queues if needed (too old or size too big)
+  queue.sc_flush:flush_all_queues(queue.send_data_method[1])
+
+  -- skip event if a mandatory parameter is missing
+  if queue.fail then
+    queue.sc_logger:error("Skipping event because a mandatory parameter is not set")
+    return true
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
   end
 
   -- initiate event object
   queue.sc_metrics = sc_metrics.new(event, queue.sc_params.params, queue.sc_common, queue.sc_broker, queue.sc_logger)
   queue.sc_event = queue.sc_metrics.sc_event
 
+<<<<<<< HEAD
   if queue.sc_event:is_valid_category() then
     if queue.sc_metrics:is_valid_bbdo_element() then
       -- format event if it is validated
@@ -397,4 +516,26 @@ function flush()
 
   -- there are events in the queue but they were not ready to be send
   return false
+=======
+  -- drop event if wrong category
+  if not queue.sc_metrics:is_valid_bbdo_element() then
+    queue.sc_logger:debug("dropping event because category or element is not valid. Event category is: "
+      .. tostring(queue.sc_params.params.reverse_category_mapping[queue.sc_event.event.category])
+      .. ". Event element is: " .. queue.sc_params.params.reverse_element_mapping[queue.sc_event.event.category][queue.sc_event.event.element])
+    return true
+  end
+
+  -- drop event if its perfdatas aren't valid
+  if queue.sc_metrics:is_valid_metric_event() then
+    queue.sc_logger:debug("valid Perfdata?: " .. tostring(queue.sc_event.event.perfdata))
+    queue:format_accepted_event()
+  else
+    queue.sc_logger:debug("dropping event because metric event wasn't valid. Perfdata: " .. tostring(queue.sc_event.event.perf_data))
+    return true
+  end
+
+  -- Since we've added an event to a specific queue, flush it if queue is full
+  queue.sc_flush:flush_queue(queue.send_data_method[1], queue.sc_event.event.category, queue.sc_event.event.element)
+  return true
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
 end

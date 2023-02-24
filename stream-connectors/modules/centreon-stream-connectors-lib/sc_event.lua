@@ -75,11 +75,14 @@ function ScEvent:is_valid_event()
     is_valid_event = self:is_valid_bam_event()
   end
 
+<<<<<<< HEAD
   -- run custom code
   if self.params.custom_code and type(self.params.custom_code) == "function" then
     self, is_valid_event = self.params.custom_code(self)
   end    
 
+=======
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
   return is_valid_event
 end
 
@@ -125,7 +128,11 @@ function ScEvent:is_valid_host_status_event()
     return false
   end
 
+<<<<<<< HEAD
   -- return false if one of event ack, downtime, state type (hard soft) or flapping aren't valid
+=======
+  -- return false if one of event ack, downtime or state type (hard soft) aren't valid
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
   if not self:is_valid_event_states() then
     self.sc_logger:warning("[sc_event:is_valid_host_status_event]: host_id: " .. tostring(self.event.host_id) .. " is not in a validated downtime, ack or hard/soft state")
     return false
@@ -148,6 +155,7 @@ function ScEvent:is_valid_host_status_event()
     self.sc_logger:warning("[sc_event:is_valid_host_status_event]: host_id: " .. tostring(self.event.host_id) .. " is not in an accepted hostgroup")
     return false
   end
+<<<<<<< HEAD
 
   -- in bbdo 2 last_update do exist but not in bbdo3.
   -- last_check also exist in bbdo2 but it is preferable to stay compatible with all stream connectors
@@ -159,6 +167,9 @@ function ScEvent:is_valid_host_status_event()
 
   self:build_outputs()
 
+=======
+  
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
   return true
 end
 
@@ -192,7 +203,11 @@ function ScEvent:is_valid_service_status_event()
     return false
   end
 
+<<<<<<< HEAD
   -- return false if one of event ack, downtime, state type (hard soft) or flapping aren't valid
+=======
+  -- return false if one of event ack, downtime or state type (hard soft) aren't valid
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
   if not self:is_valid_event_states() then
     self.sc_logger:warning("[sc_event:is_valid_service_status_event]: service_id: " .. tostring(self.event.service_id) .. " is not in a validated downtime, ack or hard/soft state")
     return false
@@ -232,6 +247,7 @@ function ScEvent:is_valid_service_status_event()
     return false
   end
 
+<<<<<<< HEAD
   -- in bbdo 2 last_update do exist but not in bbdo3.
   -- last_check also exist in bbdo2 but it is preferable to stay compatible with all stream connectors
   if not self.event.last_update and self.event.last_check then
@@ -242,6 +258,8 @@ function ScEvent:is_valid_service_status_event()
 
   self:build_outputs()
 
+=======
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
   return true
 end
 
@@ -307,7 +325,11 @@ function ScEvent:is_valid_service()
 
   -- force service description to its id if no description has been found
   if not self.event.cache.service.description then
+<<<<<<< HEAD
     self.event.cache.service.description = self.event.service_id
+=======
+    self.event.cache.service.description = service_infos.service_id or self.event.service_id
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
   end
 
   return true
@@ -331,11 +353,14 @@ function ScEvent:is_valid_event_states()
     return false
   end
 
+<<<<<<< HEAD
   -- return false if flapping state is not valid
   if not self:is_valid_event_flapping_state() then
     return false
   end
 
+=======
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
   return true
 end
 
@@ -350,6 +375,7 @@ function ScEvent:is_valid_event_status(accepted_status_list)
     return false
   end
 
+<<<<<<< HEAD
   -- start compat patch bbdo2 => bbdo 3
   if (not self.event.state and self.event.current_state) then
     self.event.state = self.event.current_state
@@ -360,6 +386,8 @@ function ScEvent:is_valid_event_status(accepted_status_list)
   end
   -- end compat patch
 
+=======
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
   for _, status_id in ipairs(status_list) do
     if tostring(self.event.state) == status_id then 
       return true
@@ -394,6 +422,7 @@ end
 --- is_valid_event_acknowledge_state: check if the acknowledge state of the event is valid
 -- @return true|false (boolean)
 function ScEvent:is_valid_event_acknowledge_state()
+<<<<<<< HEAD
   -- compat patch bbdo 3 => bbdo 2
   if (not self.event.acknowledged and self.event.acknowledgement_type) then
     if self.event.acknowledgement_type >= 1 then
@@ -405,6 +434,10 @@ function ScEvent:is_valid_event_acknowledge_state()
 
   if not self.sc_common:compare_numbers(self.params.acknowledged, self.sc_common:boolean_to_number(self.event.acknowledged), ">=") then
     self.sc_logger:warning("[sc_event:is_valid_event_acknowledge_state]: event is not in an valid ack state. Event ack state must be below or equal to " .. tostring(self.params.acknowledged) 
+=======
+  if not self.sc_common:compare_numbers(self.params.acknowledged, self.sc_common:boolean_to_number(self.event.acknowledged), ">=") then
+    self.sc_logger:warning("[sc_event:is_valid_event_acknowledge_state]: event is not in an valid ack state. Event ack state must be above or equal to " .. tostring(self.params.acknowledged) 
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
       .. ". Current ack state: " .. tostring(self.sc_common:boolean_to_number(self.event.acknowledged)))
     return false
   end
@@ -415,6 +448,7 @@ end
 --- is_valid_event_downtime_state: check if the event is in an accepted downtime state
 -- @return true|false (boolean)
 function ScEvent:is_valid_event_downtime_state()
+<<<<<<< HEAD
   -- patch compat bbdo 3 => bbdo 2 
   if (not self.event.scheduled_downtime_depth and self.event.downtime_depth) then 
     self.event.scheduled_downtime_depth = self.event.downtime_depth
@@ -435,6 +469,11 @@ function ScEvent:is_valid_event_flapping_state()
   if not self.sc_common:compare_numbers(self.params.flapping, self.sc_common:boolean_to_number(self.event.flapping), ">=") then
     self.sc_logger:warning("[sc_event:is_valid_event_flapping_state]: event is not in an valid flapping state. Event flapping state must be below or equal to " .. tostring(self.params.flapping) 
       .. ". Current flapping state: " .. tostring(self.sc_common:boolean_to_number(self.event.flapping)))
+=======
+  if not self.sc_common:compare_numbers(self.params.in_downtime, self.event.scheduled_downtime_depth, ">=") then
+    self.sc_logger:warning("[sc_event:is_valid_event_downtime_state]: event is not in an valid ack state. Event ack state must be above or equal to " .. tostring(self.params.acknowledged) 
+      .. ". Current ack state: " .. tostring(self.sc_common:boolean_to_number(self.event.acknowledged)))
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
     return false
   end
 
@@ -444,13 +483,21 @@ end
 --- is_valid_hostgroup: check if the event is in an accepted hostgroup
 -- @return true|false (boolean)
 function ScEvent:is_valid_hostgroup()
+<<<<<<< HEAD
   self.event.cache.hostgroups = self.sc_broker:get_hostgroups(self.event.host_id)
 
+=======
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
   -- return true if option is not set
   if self.params.accepted_hostgroups == "" then
     return true
   end
 
+<<<<<<< HEAD
+=======
+  self.event.cache.hostgroups = self.sc_broker:get_hostgroups(self.event.host_id)
+
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
   -- return false if no hostgroups were found
   if not self.event.cache.hostgroups then
     self.sc_logger:warning("[sc_event:is_valid_hostgroup]: dropping event because host with id: " .. tostring(self.event.host_id) 
@@ -491,13 +538,21 @@ end
 --- is_valid_servicegroup: check if the event is in an accepted servicegroup
 -- @return true|false (boolean)
 function ScEvent:is_valid_servicegroup()
+<<<<<<< HEAD
   self.event.cache.servicegroups = self.sc_broker:get_servicegroups(self.event.host_id, self.event.service_id)
   
+=======
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
   -- return true if option is not set
   if self.params.accepted_servicegroups == "" then
     return true
   end
 
+<<<<<<< HEAD
+=======
+  self.event.cache.servicegroups = self.sc_broker:get_servicegroups(self.event.host_id, self.event.service_id)
+
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
   -- return false if no servicegroups were found
   if not self.event.cache.servicegroups then
     self.sc_logger:debug("[sc_event:is_valid_servicegroup]: dropping event because service with id: " .. tostring(self.event.service_id) 
@@ -633,13 +688,22 @@ end
 --- is_valid_bv: check if the event is in an accepted BV
 -- @return true|false (boolean)
 function ScEvent:is_valid_bv()
+<<<<<<< HEAD
   self.event.cache.bvs = self.sc_broker:get_bvs_infos(self.event.host_id)
   
+=======
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
   -- return true if option is not set
   if self.params.accepted_bvs == "" then
     return true
   end
+<<<<<<< HEAD
   
+=======
+
+  self.event.cache.bvs = self.sc_broker:get_bvs_infos(self.event.host_id)
+
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
   -- return false if no hostgroups were found
   if not self.event.cache.bvs then
     self.sc_logger:debug("[sc_event:is_valid_bv]: dropping event because BA with id: " .. tostring(self.event.ba_id) 
@@ -680,6 +744,7 @@ end
 --- is_valid_poller: check if the event is monitored from an accepted poller
 -- @return true|false (boolean)
 function ScEvent:is_valid_poller()
+<<<<<<< HEAD
   self.event.cache.poller = self.sc_broker:get_instance(self.event.cache.host.instance_id)
 
   -- required if we want to easily have access to poller name with macros {cache.instance.name}
@@ -688,6 +753,8 @@ function ScEvent:is_valid_poller()
     name = self.event.cache.poller
   }
   
+=======
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
   -- return true if option is not set
   if self.params.accepted_pollers == "" then
     return true
@@ -699,6 +766,11 @@ function ScEvent:is_valid_poller()
     return false
   end
 
+<<<<<<< HEAD
+=======
+  self.event.cache.poller = self.sc_broker:get_instance(self.event.cache.host.instance)
+
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
   -- return false if no poller found in cache
   if not self.event.cache.poller then
     self.sc_logger:debug("[sc_event:is_valid_poller]: dropping event because host with id: " .. tostring(self.event.host_id) 
@@ -736,6 +808,14 @@ end
 --- is_valid_host_severity: checks if the host severity is accepted
 -- @return true|false (boolean)
 function ScEvent:is_valid_host_severity()
+<<<<<<< HEAD
+=======
+  -- return true if there is no severity filter
+  if self.params.host_severity_threshold == nil then
+    return true
+  end
+
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
   -- initiate the severity table in the cache if it doesn't exist
   if not self.event.cache.severity then
     self.event.cache.severity = {}
@@ -744,12 +824,15 @@ function ScEvent:is_valid_host_severity()
   -- get severity of the host from broker cache
   self.event.cache.severity.host = self.sc_broker:get_severity(self.event.host_id)
 
+<<<<<<< HEAD
   -- return true if there is no severity filter
   if self.params.host_severity_threshold == nil then
     return true
   end
 
 
+=======
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
   -- return false if host severity doesn't match 
   if not self.sc_common:compare_numbers(self.params.host_severity_threshold, self.event.cache.severity.host, self.params.host_severity_operator) then
     self.sc_logger:debug("[sc_event:is_valid_host_severity]: dropping event because host with id: " .. tostring(self.event.host_id) .. " has an invalid severity. Severity is: "
@@ -764,6 +847,14 @@ end
 --- is_valid_service_severity: checks if the service severity is accepted
 -- @return true|false (boolean)
 function ScEvent:is_valid_service_severity()
+<<<<<<< HEAD
+=======
+  -- return true if there is no severity filter
+  if self.params.service_severity_threshold == nil then
+    return true
+  end
+
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
   -- initiate the severity table in the cache if it doesn't exist
   if not self.event.cache.severity then
     self.event.cache.severity = {}
@@ -772,6 +863,7 @@ function ScEvent:is_valid_service_severity()
   -- get severity of the host from broker cache
   self.event.cache.severity.service = self.sc_broker:get_severity(self.event.host_id, self.event.service_id)
 
+<<<<<<< HEAD
   -- return true if there is no severity filter
   if self.params.service_severity_threshold == nil then
     return true
@@ -779,6 +871,8 @@ function ScEvent:is_valid_service_severity()
 
 
 
+=======
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
   -- return false if service severity doesn't match 
   if not self.sc_common:compare_numbers(self.params.service_severity_threshold, self.event.cache.severity.service, self.params.service_severity_operator) then
     self.sc_logger:debug("[sc_event:is_valid_service_severity]: dropping event because service with id: " .. tostring(self.event.service_id) .. " has an invalid severity. Severity is: "
@@ -1008,8 +1102,13 @@ end
 function ScEvent:get_downtime_service_status()
   -- if cache is not filled we can't get the state of the service
   if 
+<<<<<<< HEAD
     not self.event.cache.service.last_time_ok 
     or not self.event.cache.service.last_time_warning 
+=======
+    not self.event.cache.host.last_time_ok 
+    or not self.event.cache.host.last_time_warning 
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
     or not self.event.cache.service.last_time_critical 
     or not self.event.cache.service.last_time_unknown 
   then
@@ -1059,7 +1158,11 @@ function ScEvent:is_service_status_event_duplicated()
   end
 
   -- if last check is the same than last_hard_state_change, it means the event just change its status so it cannot be a duplicated event
+<<<<<<< HEAD
   if self.event.last_hard_state_change == self.event.last_check or self.event.last_hard_state_change == self.event.last_update then
+=======
+  if self.event.last_hard_state_change == self.event.last_check then
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
     return false
   end
   
@@ -1098,7 +1201,11 @@ function ScEvent:is_host_status_event_duplicated()
   end
 
   -- if last check is the same than last_hard_state_change, it means the event just change its status so it cannot be a duplicated event
+<<<<<<< HEAD
   if self.event.last_hard_state_change == self.event.last_check or self.event.last_hard_state_change == self.event.last_update then
+=======
+  if self.event.last_hard_state_change == self.event.last_check then
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
     return false
   end
 
@@ -1174,6 +1281,7 @@ function ScEvent:is_valid_downtime_event_end()
   return false
 end
 
+<<<<<<< HEAD
 --- build_outputs: adds short_output and long_output entries in the event table. output entry will be equal to one or another depending on the use_longoutput param
 function ScEvent:build_outputs()
   -- build long output
@@ -1207,6 +1315,8 @@ function ScEvent:build_outputs()
 
 end
 
+=======
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
 --- is_valid_storage: DEPRECATED method, use NEB category to get metric data instead
 -- @return true (boolean)
 function ScEvent:is_valid_storage_event()

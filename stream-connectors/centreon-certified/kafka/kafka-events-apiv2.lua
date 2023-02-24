@@ -6,7 +6,10 @@ local sc_broker = require("centreon-stream-connectors-lib.sc_broker")
 local sc_event = require("centreon-stream-connectors-lib.sc_event")
 local sc_params = require("centreon-stream-connectors-lib.sc_params")
 local sc_macros = require("centreon-stream-connectors-lib.sc_macros")
+<<<<<<< HEAD
 local sc_flush = require("centreon-stream-connectors-lib.sc_flush")
+=======
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
 local kafka_config = require("centreon-stream-connectors-lib.rdkafka.config")
 local kafka_producer = require("centreon-stream-connectors-lib.rdkafka.producer")
 local kafka_topic_config = require("centreon-stream-connectors-lib.rdkafka.topic_config")
@@ -78,6 +81,7 @@ function EventQueue.new(params)
 
   self.sc_macros = sc_macros.new(self.sc_params.params, self.sc_logger)
   self.format_template = self.sc_params:load_event_format_file()
+<<<<<<< HEAD
 
   -- only load the custom code file, not executed yet
   if self.sc_params.load_custom_code_file and not self.sc_params:load_custom_code_file(self.sc_params.params.custom_code_file) then
@@ -87,6 +91,10 @@ function EventQueue.new(params)
   self.sc_params:build_accepted_elements_info()
   self.sc_flush = sc_flush.new(self.sc_params.params, self.sc_logger)
   
+=======
+  self.sc_params:build_accepted_elements_info()
+
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
   local categories = self.sc_params.params.bbdo.categories
   local elements = self.sc_params.params.bbdo.elements
 
@@ -98,6 +106,7 @@ function EventQueue.new(params)
     [categories.bam.id] = function () return self:format_ba_status() end
   }
 
+<<<<<<< HEAD
   self.send_data_method = {
     [1] = function (payload, queue_metadata) return self:send_data(payload, queue_metadata) end
   }
@@ -106,6 +115,8 @@ function EventQueue.new(params)
     [1] = function (payload, event) return self:build_payload(payload, event) end
   }
 
+=======
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
   -- return EventQueue object
   setmetatable(self, { __index = EventQueue })
   return self
@@ -148,7 +159,11 @@ function EventQueue:format_host_status()
   self.sc_event.event.formated_event = {
     host = tostring(self.sc_event.event.cache.host.name),
     state = self.sc_params.params.status_mapping[self.sc_event.event.category][self.sc_event.event.element][self.sc_event.event.state],
+<<<<<<< HEAD
     output = self.sc_common:ifnil_or_empty(string.gsub(self.sc_event.event.output, '\\', "_"), "no output"),
+=======
+    output = self.sc_common:ifnil_or_empty(string.match(string.gsub(self.sc_event.event.output, '\\', "_"), "^(.*)\n"), "no output"),
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
   }
 end
 
@@ -157,7 +172,11 @@ function EventQueue:format_service_status()
     host = tostring(self.sc_event.event.cache.host.name),
     service = tostring(self.sc_event.event.cache.service.description),
     state = self.sc_params.params.status_mapping[self.sc_event.event.category][self.sc_event.event.element][self.sc_event.event.state],
+<<<<<<< HEAD
     output = self.sc_common:ifnil_or_empty(string.gsub(self.sc_event.event.output, '\\', "_"), "no output")
+=======
+    output = self.sc_common:ifnil_or_empty(string.match(string.gsub(self.sc_event.event.output, '\\', "_"), "^(.*)\n"), "no output")
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
   }
 end
 
@@ -172,6 +191,7 @@ end
 --------------------------------------------------------------------------------
 -- EventQueue:add, add an event to the sending queue
 --------------------------------------------------------------------------------
+<<<<<<< HEAD
 function EventQueue:add()
   -- store event in self.events lists
   local category = self.sc_event.event.category
@@ -202,12 +222,38 @@ function EventQueue:build_payload(payload, event)
   end
   
   return payload
+=======
+function EventQueue:add ()
+  -- store event in self.events list
+  self.events[#self.events + 1] = self.sc_event.event.formated_event
+end
+
+--------------------------------------------------------------------------------
+-- EventQueue:flush, flush stored events
+-- Called when the max number of events or the max age are reached
+-- @return (boolean)
+--------------------------------------------------------------------------------
+function EventQueue:flush ()
+  self.sc_logger:debug("EventQueue:flush: Concatenating all the events as one string")
+
+  -- send stored events
+  retval = self:send_data()
+
+  -- reset stored events list
+  self.events = {}
+  
+  -- and update the timestamp
+  self.sc_params.params.__internal_ts_last_flush = os.time()
+
+  return retval
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
 end
 
 --------------------------------------------------------------------------------
 -- EventQueue:send_data, send data to external tool
 -- @return (boolean)
 --------------------------------------------------------------------------------
+<<<<<<< HEAD
 function EventQueue:send_data(payload, queue_metadata)
 
   -- write payload in the logfile for test purpose
@@ -220,6 +266,26 @@ function EventQueue:send_data(payload, queue_metadata)
 
   -- output data to the tool we want
   if self:call(payload) then
+=======
+function EventQueue:send_data ()
+  local data = ""
+  local counter = 0
+
+  -- concatenate all stored event in the data variable
+  for _, formated_event in ipairs(self.events) do
+    if counter == 0 then
+      data = broker.json_encode(formated_event) 
+      counter = counter + 1
+    else
+      data = data .. "," .. broker.json_encode(formated_event)
+    end
+  end
+
+  self.sc_logger:debug("EventQueue:send_data:  creating json: " .. tostring(data))
+
+  -- output data to the tool we want
+  if self:call(data) then
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
     return true
   end
 
@@ -243,6 +309,7 @@ function init(params)
   queue = EventQueue.new(params)
 end
 
+<<<<<<< HEAD
 -- --------------------------------------------------------------------------------
 -- write,
 -- @param {table} event, the event from broker
@@ -308,3 +375,52 @@ function flush()
   -- there are events in the queue but they were not ready to be send
   return false
 end
+=======
+function write(event)
+  -- skip event if a mandatory parameter is missing
+  if queue.fail then
+    queue.sc_logger:error("Skipping event because a mandatory parameter is not set")
+    return true
+  end
+  
+  -- initiate event object
+  queue.sc_event = sc_event.new(event, queue.sc_params.params, queue.sc_common, queue.sc_logger, queue.sc_broker)
+
+  -- drop event if wrong category
+  if not queue.sc_event:is_valid_category() then
+    return true
+  end
+
+  -- drop event if wrong element
+  if not queue.sc_event:is_valid_element() then
+    return true
+  end
+
+  -- First, are there some old events waiting in the flush queue ?
+  if (#queue.events > 0 and os.time() - queue.sc_params.params.__internal_ts_last_flush > queue.sc_params.params.max_buffer_age) then
+    queue.sc_logger:debug("write: Queue max age (" .. os.time() - queue.sc_params.params.__internal_ts_last_flush .. "/" .. queue.sc_params.params.max_buffer_age .. ") is reached, flushing data")
+    queue:flush()
+  end
+
+  -- Then we check that the event queue is not already full
+  if (#queue.events >= queue.sc_params.params.max_buffer_size) then
+    queue.sc_logger:debug("write: Queue max size (" .. #queue.events .. "/" .. queue.sc_params.params.max_buffer_size .. ") is reached BEFORE APPENDING AN EVENT, trying to flush data before appending more events.")
+    queue:flush()
+  end
+
+  -- drop event if it is not validated
+  if queue.sc_event:is_valid_event() then
+    queue:format_accepted_event()
+  else
+    return true
+  end
+
+  -- Then we check whether it is time to send the events to the receiver and flush
+  if (#queue.events >= queue.sc_params.params.max_buffer_size) then
+    queue.sc_logger:debug("write: Queue max size (" .. #queue.events .. "/" .. queue.sc_params.params.max_buffer_size .. ") is reached, flushing data")
+    queue:flush()
+  end
+
+  return true
+end
+>>>>>>> centreon-stream-connector-scripts/feat-sc-add-refacto-omi-event-v2-new2
