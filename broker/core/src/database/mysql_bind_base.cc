@@ -62,16 +62,6 @@ bool mysql_bind_base::_prepared(size_t range) const {
  *
  * @return A MYSQL_BIND* pointer.
  */
-const MYSQL_BIND* mysql_bind_base::get_bind() const {
-  return &_bind[0];
-}
-
-/**
- * @brief Accessor to the MYSQL_BIND* contained in this mysql_bind_base. This is
- * useful to call the MariaDB C connector functions.
- *
- * @return A MYSQL_BIND* pointer.
- */
 MYSQL_BIND* mysql_bind_base::get_bind() {
   return &_bind[0];
 }
@@ -81,18 +71,12 @@ MYSQL_BIND* mysql_bind_base::get_bind() {
  *
  * @return An integer.
  */
-int mysql_bind_base::get_size() const {
-  return _bind.size();
-}
 
 void mysql_bind_base::_set_typed(uint32_t range) {
   _empty = false;
   _typed[range] = true;
 }
 
-void mysql_bind_base::_set_empty(bool empty) {
-  _empty = empty;
-}
 
 void mysql_bind_base::set_empty() {
   _empty = true;
