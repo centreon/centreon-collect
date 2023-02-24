@@ -175,7 +175,7 @@ endif()
 
 set(protobuf_MODULE_COMPATIBLE True)
 
-add_definitions(${spdlog_DEFINITIONS})
+add_definitions(${CONAN_DEFINES_SPDLOG})
 
 include_directories(${CMAKE_SOURCE_DIR} ${CONAN_INCLUDE_DIRS}
                     ${CMAKE_SOURCE_DIR}/clib/inc)
