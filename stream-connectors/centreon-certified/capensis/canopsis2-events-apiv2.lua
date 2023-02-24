@@ -363,7 +363,11 @@ function EventQueue:build_payload(payload, event)
   if not payload then
     payload = event
   else
+<<<<<<< HEAD
     payload = table.insert(payload, event)
+=======
+    table.insert(payload, event)
+>>>>>>> stream-connectors/master
   end
   
   return payload
@@ -385,7 +389,11 @@ function EventQueue:send_data(payload, queue_metadata)
 
   -- write payload in the logfile for test purpose
   if self.sc_params.params.send_data_test == 1 then
+<<<<<<< HEAD
     self.sc_logger:notice("[send_data]: " .. tostring(data))
+=======
+    self.sc_logger:notice("[send_data]: " .. tostring(payload))
+>>>>>>> stream-connectors/master
     return true
   end
 
