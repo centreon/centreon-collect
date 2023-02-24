@@ -88,11 +88,7 @@ function EventQueue.new(params)
     }
 
     self.send_data_method = {
-<<<<<<< HEAD
-      [1] = function (payload, queue_metadata) return self:send_data(payload, queue_metadata) end
-=======
       [1] = function (payload) return self:send_data(payload) end
->>>>>>> centreon-stream-connector-scripts/MON-14867-warp10v2
     }
   
     self.build_payload_method = {
@@ -181,13 +177,8 @@ function EventQueue:format_accepted_event()
     self.sc_flush.queues[category][element].events[#self.sc_flush.queues[category][element].events + 1] = self.sc_event.event.formated_event
 
     
-<<<<<<< HEAD
-    self.sc_logger:info("[EventQueue:add]: queue size is now: " .. tostring(#self.sc_flush.queues[category][element].events) 
-    .. ", max is: " .. tostring(self.sc_params.params.max_buffer_size))
-=======
     self.sc_logger:info("[EventQueue:add]: queue size is now: " .. tostring(#self.sc_flush.queues[category][element].events)
     .. "max is: " .. tostring(self.sc_params.params.max_buffer_size))
->>>>>>> centreon-stream-connector-scripts/MON-14867-warp10v2
   end
   
   --------------------------------------------------------------------------------
@@ -206,24 +197,9 @@ function EventQueue:format_accepted_event()
     return payload
   end
 
-<<<<<<< HEAD
-  function EventQueue:send_data(payload, queue_metadata)
-    self.sc_logger:debug("[EventQueue:send_data]: Starting to send data")
-
-    local url = self.sc_params.params.elastic_url .. "/_bulk"
-    queue_metadata.headers = {
-      "content-type: application/json;charset=UTF-8",
-      "content-length: " .. string.len(payload),
-      "Authorization: Basic " .. (mime.b64(self.sc_params.params.elastic_username .. ":" .. self.sc_params.params.elastic_password))
-    }
-
-    self.sc_logger:log_curl_command(url, queue_metadata, self.sc_params.params, payload)
-    
-=======
   function EventQueue:send_data(payload)
     self.sc_logger:debug("[EventQueue:send_data]: Starting to send data")
 
->>>>>>> centreon-stream-connector-scripts/MON-14867-warp10v2
     -- write payload in the logfile for test purpose
     if self.sc_params.params.send_data_test == 1 then
       self.sc_logger:info("[send_data]: " .. tostring(payload))
@@ -233,20 +209,6 @@ function EventQueue:format_accepted_event()
     self.sc_logger:info("[EventQueue:send_data]: Going to send the following json " .. tostring(payload))
     self.sc_logger:info("[EventQueue:send_data]: Elastic URL is: " .. tostring(self.sc_params.params.elastic_url) .. "/_bulk")
 
-<<<<<<< HEAD
-    local http_response_body = ""
-    local http_request = curl.easy()
-      :setopt_url(url)
-      :setopt_writefunction(
-        function (response)
-          http_response_body = http_response_body .. tostring(response)
-        end
-      )
-      :setopt(curl.OPT_TIMEOUT, self.sc_params.params.connection_timeout)
-      :setopt(curl.OPT_SSL_VERIFYPEER, self.sc_params.params.allow_insecure_connection)
-      :setopt(curl.OPT_HTTPHEADER, queue_metadata.headers)
-
-=======
   local http_response_body = ""
   local http_request = curl.easy()
     :setopt_url(self.sc_params.params.elastic_url .. "/_bulk")
@@ -265,7 +227,6 @@ function EventQueue:format_accepted_event()
         "Authorization: Basic " .. (mime.b64(self.sc_params.params.elastic_username .. ":" .. self.sc_params.params.elastic_password))
       }
     )
->>>>>>> centreon-stream-connector-scripts/MON-14867-warp10v2
     -- set proxy address configuration
     if (self.sc_params.params.proxy_address ~= '') then
       if (self.sc_params.params.proxy_port ~= '') then

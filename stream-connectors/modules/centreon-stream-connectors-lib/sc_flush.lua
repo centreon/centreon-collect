@@ -7,10 +7,6 @@
 local sc_flush = {}
 
 local sc_logger = require("centreon-stream-connectors-lib.sc_logger")
-<<<<<<< HEAD
-local sc_common = require("centreon-stream-connectors-lib.sc_common")
-=======
->>>>>>> centreon-stream-connector-scripts/MON-14867-warp10v2
 
 local ScFlush = {}
 
@@ -26,11 +22,6 @@ function sc_flush.new(params, logger)
     self.sc_logger = sc_logger.new()
   end
 
-<<<<<<< HEAD
-  self.sc_common = sc_common.new(self.sc_logger)
-
-=======
->>>>>>> centreon-stream-connector-scripts/MON-14867-warp10v2
   self.params = params
   self.last_global_flush = os.time()
 
@@ -40,26 +31,13 @@ function sc_flush.new(params, logger)
   self.queues = {
     [categories.neb.id] = {},
     [categories.storage.id] = {},
-<<<<<<< HEAD
-    [categories.bam.id] = {},
-    global_queues_metadata = {}
-=======
     [categories.bam.id] = {}
->>>>>>> centreon-stream-connector-scripts/MON-14867-warp10v2
   }
   
   -- link events queues to their respective categories and elements
   for element_name, element_info in pairs(self.params.accepted_elements_info) do
     self.queues[element_info.category_id][element_info.element_id] = {
-<<<<<<< HEAD
-      events = {},
-      queue_metadata = {
-        category_id = element_info.category_id,
-        element_id = element_info.element_id
-      }
-=======
       events = {}
->>>>>>> centreon-stream-connector-scripts/MON-14867-warp10v2
     }
   end
 
@@ -67,35 +45,6 @@ function sc_flush.new(params, logger)
   return self
 end
 
-<<<<<<< HEAD
---- add_queue_metadata: add specific metadata to a queue
--- @param category_id (number) the id of the bbdo category
--- @param element_id (number) the id of the bbdo element
--- @param metadata (table) a table with keys that are the name of the metadata and values the metadata values
-function ScFlush:add_queue_metadata(category_id, element_id, metadata)
-  if not self.queues[category_id] then
-    self.sc_logger:warning("[ScFlush:add_queue_metadata]: can't add queue metadata for category: " .. self.params.reverse_category_mapping[category_id]
-      .. " (id: " .. category_id .. ") and element: " .. self.params.reverse_element_mapping[category_id][element_id] .. " (id: " .. element_id .. ")."
-      .. ". metadata name: " .. tostring(metadata_name) .. ", metadata value: " .. tostring(metadata_value)
-      .. ". You need to accept this category with the parameter 'accepted_categories'.") 
-    return
-  end
-
-  if not self.queues[category_id][element_id] then
-    self.sc_logger:warning("[ScFlush:add_queue_metadata]: can't add queue metadata for category: " .. self.params.reverse_category_mapping[category_id]
-      .. " (id: " .. category_id .. ") and element: " .. self.params.reverse_element_mapping[category_id][element_id] .. " (id: " .. element_id .. ")."
-      .. ". metadata name: " .. tostring(metadata_name) .. ", metadata value: " .. tostring(metadata_value)
-      .. ". You need to accept this element with the parameter 'accepted_elements'.")
-    return
-  end
-
-  for metadata_name, metadata_value in pairs(metadata) do
-    self.queues[category_id][element_id].queue_metadata[metadata_name] = metadata_value
-  end
-end
-
-=======
->>>>>>> centreon-stream-connector-scripts/MON-14867-warp10v2
 --- flush_all_queues: tries to flush all queues according to accepted elements
 -- @param build_payload_method (function) the function from the stream connector that will concatenate events in the payload
 -- @param send_method (function) the function from the stream connector that will send the data to the wanted tool
@@ -155,11 +104,7 @@ function ScFlush:flush_mixed_payload(build_payload_method, send_method)
 
       -- send events if max buffer size is reached
       if counter >= self.params.max_buffer_size then
-<<<<<<< HEAD
-        if not self:flush_payload(send_method, payload, self.queues.global_queues_metadata) then
-=======
         if not self:flush_payload(send_method, payload) then
->>>>>>> centreon-stream-connector-scripts/MON-14867-warp10v2
           return false
         end
 
@@ -171,11 +116,7 @@ function ScFlush:flush_mixed_payload(build_payload_method, send_method)
   end
 
   -- we need to empty all queues to not mess with broker retention
-<<<<<<< HEAD
-  if not self:flush_payload(send_method, payload, self.queues.global_queues_metadata) then
-=======
   if not self:flush_payload(send_method, payload) then
->>>>>>> centreon-stream-connector-scripts/MON-14867-warp10v2
     return false
   end
 
@@ -196,21 +137,10 @@ function ScFlush:flush_homogeneous_payload(build_payload_method, send_method)
       -- add event to the payload
       payload = build_payload_method(payload, event)
       counter = counter + 1
-<<<<<<< HEAD
-      
-      -- send events if max buffer size is reached
-      if counter >= self.params.max_buffer_size then
-        if not self:flush_payload(
-          send_method, 
-          payload, 
-          self.queues[element_info.category_id][element_info.element_id].queue_metadata
-        ) then
-=======
 
       -- send events if max buffer size is reached
       if counter >= self.params.max_buffer_size then
         if not self:flush_payload(send_method, payload) then
->>>>>>> centreon-stream-connector-scripts/MON-14867-warp10v2
           return false
         end
         
@@ -221,15 +151,7 @@ function ScFlush:flush_homogeneous_payload(build_payload_method, send_method)
     end
 
     -- make sure there are no events left inside a specific queue
-<<<<<<< HEAD
-    if not self:flush_payload(
-      send_method, 
-      payload, 
-      self.queues[element_info.category_id][element_info.element_id].queue_metadata
-    ) then
-=======
     if not self:flush_payload(send_method, payload) then
->>>>>>> centreon-stream-connector-scripts/MON-14867-warp10v2
       return false
     end
 
@@ -240,22 +162,11 @@ function ScFlush:flush_homogeneous_payload(build_payload_method, send_method)
   return true
 end
 
-<<<<<<< HEAD
---- flush_payload: flush a given payload by sending it using the given send function
--- @param send_method (function) the function that will be used to send the payload
--- @param payload (any) the data that needs to be sent
--- @param metadata (table) all metadata for the payload
--- @return boolean (boolean) true or false depending on the success of the operation
-function ScFlush:flush_payload(send_method, payload, metadata)
-  if payload then
-    if not send_method(payload, metadata) then
-=======
 --- flush_payload: flush a payload that contains a single type of events (services with services only and hosts with hosts only for example)
 -- @return boolean (boolean) true or false depending on the success of the operation
 function ScFlush:flush_payload(send_method, payload)
   if payload then
     if not send_method(payload) then
->>>>>>> centreon-stream-connector-scripts/MON-14867-warp10v2
       return false
     end
   end

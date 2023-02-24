@@ -2,16 +2,6 @@
 
 - [Stream Connectors lib documentation](#stream-connectors-lib-documentation)
   - [Libraries list](#libraries-list)
-<<<<<<< HEAD
-  - [sc\_common methods](#sc_common-methods)
-  - [sc\_logger methods](#sc_logger-methods)
-  - [sc\_broker methods](#sc_broker-methods)
-  - [sc\_param methods](#sc_param-methods)
-  - [sc\_event methods](#sc_event-methods)
-  - [sc\_macros methods](#sc_macros-methods)
-  - [sc\_flush methods](#sc_flush-methods)
-  - [sc\_metrics methods](#sc_metrics-methods)
-=======
   - [sc_common methods](#sc_common-methods)
   - [sc_logger methods](#sc_logger-methods)
   - [sc_broker methods](#sc_broker-methods)
@@ -20,7 +10,6 @@
   - [sc_macros methods](#sc_macros-methods)
   - [sc_flush methods](#sc_flush-methods)
   - [sc_metrics methods](#sc_metrics-methods)
->>>>>>> centreon-stream-connector-scripts/MON-14867-warp10v2
   - [google.bigquery.bigquery methods](#googlebigquerybigquery-methods)
   - [google.auth.oauth methods](#googleauthoauth-methods)
   - [Additionnal documentations](#additionnal-documentations)
@@ -61,16 +50,6 @@
 
 ## sc_logger methods
 
-<<<<<<< HEAD
-| Method name      | Method description                                    | Link                                                  |
-| ---------------- | ----------------------------------------------------- | ----------------------------------------------------- |
-| error            | write an error message in the log file                | [Documentation](sc_logger.md#error-method)            |
-| warning          | write a warning message in the log file               | [Documentation](sc_logger.md#warning-method)          |
-| notice           | write a notice/info message in the log file           | [Documentation](sc_logger.md#notice-method)           |
-| info             | write an info message in the log file                 | [Documentation](sc_logger.md#info-method)             |
-| debug            | write a debug message in the log file                 | [Documentation](sc_logger.md#debug-method)            |
-| log_curl_command | creates and log a curl command using given parameters | [Documentation](sc_logger.md#log_curl_command-method) |
-=======
 | Method name | Method description                          | Link                                         |
 | ----------- | ------------------------------------------- | -------------------------------------------- |
 | error       | write an error message in the log file      | [Documentation](sc_logger.md#error-method)   |
@@ -78,7 +57,6 @@
 | notice      | write a notice/info message in the log file | [Documentation](sc_logger.md#notice-method)  |
 | info        | write an info message in the log file       | [Documentation](sc_logger.md#info-method)    |
 | debug       | write a debug message in the log file       | [Documentation](sc_logger.md#debug-method)   |
->>>>>>> centreon-stream-connector-scripts/MON-14867-warp10v2
 
 ## sc_broker methods
 
@@ -123,10 +101,6 @@
 | is_valid_event_state_type          | check if the state (HARD/SOFT) of the event is valid according to the stream connector params                                                                | [Documentation](sc_event.md#is_valid_event_state_type-method)          |
 | is_valid_event_acknowledge_state   | check if the acknowledgement state of the event is valid according to the stream connector params                                                            | [Documentation](sc_event.md#is_valid_event_acknowledge_state-method)   |
 | is_valid_event_downtime_state      | check if the downtime state of the event is valid according to the stream connector params                                                                   | [Documentation](sc_event.md#is_valid_event_downtime_state-method)      |
-<<<<<<< HEAD
-| is_valid_event_flapping_state      | check if the flapping state of the event is valid according to the stream connector params                                                                   | [Documentation](sc_event.md#is_valid_event_flapping_state-method)      |
-=======
->>>>>>> centreon-stream-connector-scripts/MON-14867-warp10v2
 | is_valid_hostgroup                 | check if the host is in an accepted hostgroup according to the stream connector params                                                                       | [Documentation](sc_event.md#is_valid_hostgroup-method)                 |
 | find_hostgroup_in_list             | check if one of the hostgroups of the event is in the list of accepted hostgroups provided in the stream connector configuration. Stops at first match       | [Documentation](sc_event.md#find_hostgroup_in_list-method)             |
 | is_valid_servicegroup              | check if the service is in an accepted servicegroup according to the stream connector params                                                                 | [Documentation](sc_event.md#is_valid_servicegroup-method)              |
@@ -179,23 +153,11 @@
 
 ## sc_flush methods
 
-<<<<<<< HEAD
-| Method name               | Method description                                                     | Link                                                          |
-| ------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------- |
-| add_queue_metadata        | add specific metadata to a queue                                       | [Documentation](sc_flush.md#add_queue_metadata-method)        |
-| flush_all_queues          | try to flush all queues according to accepted elements                 | [Documentation](sc_flush.md#flush_all_queues-method)          |
-| reset_all_queues          | put all queues back to their initial state after flushing their events | [Documentation](sc_flush.md#reset_all_queues-method)          |
-| get_queues_size           | get the number of events stored in all the queues                      | [Documentation](sc_flush.md#get_queues_size-method)           |
-| flush_mixed_payload       | flush a payload that contains various type of events                   | [Documentation](sc_flush.md#flush_mixed_payload-method)       |
-| flush_homogeneous_payload | flush a payload that contains a single type of events                  | [Documentation](sc_flush.md#flush_homogeneous_payload-method) |
-| flush_payload             | flush a payload                                                        | [Documentation](sc_flush.md#flush_payload-method)             |
-=======
 | Method name      | Method description                                | Link                                                 |
 | ---------------- | ------------------------------------------------- | ---------------------------------------------------- |
 | flush_all_queues | flush all the possible queues that can be created | [Documentation](sc_flush.md#flush_all_queues-method) |
 | flush_queue      | flush a specific queue                            | [Documentation](sc_flush.md#flush_queue-method)      |
 | reset_queue      | reset a queue after it has been flushed           | [Documentation](sc_flush.md#reset_queue-method)      |
->>>>>>> centreon-stream-connector-scripts/MON-14867-warp10v2
 
 ## sc_metrics methods
 

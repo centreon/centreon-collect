@@ -94,11 +94,7 @@ function EventQueue.new(params)
   }
 
   self.send_data_method = {
-<<<<<<< HEAD
-    [1] = function (payload, queue_metadata) return self:send_data(payload, queue_metadata) end
-=======
     [1] = function (payload) return self:send_data(payload) end
->>>>>>> centreon-stream-connector-scripts/MON-14867-warp10v2
   }
 
   self.build_payload_method = {
@@ -315,11 +311,7 @@ function EventQueue:add()
   self.sc_flush.queues[category][element].events[#self.sc_flush.queues[category][element].events + 1] = self.sc_event.event.formated_event
 
   self.sc_logger:info("[EventQueue:add]: queue size is now: " .. tostring(#self.sc_flush.queues[category][element].events) 
-<<<<<<< HEAD
-    .. ", max is: " .. tostring(self.sc_params.params.max_buffer_size))
-=======
     .. "max is: " .. tostring(self.sc_params.params.max_buffer_size))
->>>>>>> centreon-stream-connector-scripts/MON-14867-warp10v2
 end
 
 --------------------------------------------------------------------------------
@@ -338,23 +330,9 @@ function EventQueue:build_payload(payload, event)
   return payload
 end
 
-<<<<<<< HEAD
-function EventQueue:send_data(payload, queue_metadata)
-  self.sc_logger:debug("[EventQueue:send_data]: Starting to send data")
-
-  local url = self.sc_params.params.http_server_url
-  queue_metadata.headers = {
-    "content-type: application/json",
-    "content-length:" .. string.len(payload),
-  }
-
-  self.sc_logger:log_curl_command(url, queue_metadata, self.sc_params.params, payload)
-
-=======
 function EventQueue:send_data(payload)
   self.sc_logger:debug("[EventQueue:send_data]: Starting to send data")
 
->>>>>>> centreon-stream-connector-scripts/MON-14867-warp10v2
   -- write payload in the logfile for test purpose
   if self.sc_params.params.send_data_test == 1 then
     self.sc_logger:notice("[send_data]: " .. tostring(payload))
@@ -362,19 +340,11 @@ function EventQueue:send_data(payload)
   end
 
   self.sc_logger:info("[EventQueue:send_data]: Going to send the following json " .. tostring(payload))
-<<<<<<< HEAD
-  self.sc_logger:info("[EventQueue:send_data]: Pagerduty address is: " .. tostring(url))
-
-  local http_response_body = ""
-  local http_request = curl.easy()
-    :setopt_url(url)
-=======
   self.sc_logger:info("[EventQueue:send_data]: Pagerduty address is: " .. tostring(self.sc_params.params.http_server_url))
 
   local http_response_body = ""
   local http_request = curl.easy()
     :setopt_url(self.sc_params.params.http_server_url)
->>>>>>> centreon-stream-connector-scripts/MON-14867-warp10v2
     :setopt_writefunction(
       function (response)
         http_response_body = http_response_body .. tostring(response)
@@ -382,9 +352,6 @@ function EventQueue:send_data(payload)
     )
     :setopt(curl.OPT_TIMEOUT, self.sc_params.params.connection_timeout)
     :setopt(curl.OPT_SSL_VERIFYPEER, self.sc_params.params.allow_insecure_connection)
-<<<<<<< HEAD
-    :setopt(curl.OPT_HTTPHEADER, queue_metadata.headers)
-=======
     :setopt(
       curl.OPT_HTTPHEADER,
       {
@@ -392,7 +359,6 @@ function EventQueue:send_data(payload)
         "content-length:" .. string.len(payload),
       }
   )
->>>>>>> centreon-stream-connector-scripts/MON-14867-warp10v2
 
   -- set proxy address configuration
   if (self.sc_params.params.proxy_address ~= '') then
