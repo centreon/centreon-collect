@@ -11,7 +11,7 @@ Homepage: https://wwww.centreon.com
 Package: lua-cffi
 Architecture: any
 Depends:
-  libffi,
-  libffi-devel,
+  libffi7,
+  libffi-dev,
   lua5.3
 Description: lua cffi library
