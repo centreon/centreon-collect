@@ -5,11 +5,14 @@
   - [Stream connectors macro explanation](#stream-connectors-macro-explanation)
     - [Event macros](#event-macros)
     - [Cache macros](#cache-macros)
+<<<<<<< HEAD
     - [Group macros](#group-macros)
       - [group type](#group-type)
       - [output format](#output-format)
       - [regex filter](#regex-filter)
       - [examples](#examples)
+=======
+>>>>>>> centreon-stream-connector-scripts/feat(streamconnector)-add-refacto-bsm-v2-lua-files
     - [Transformation flags](#transformation-flags)
   - [Module initialization](#module-initialization)
     - [Module constructor](#module-constructor)
@@ -26,10 +29,13 @@
     - [get_event_macro: parameters](#get_event_macro-parameters)
     - [get_event_macro: returns](#get_event_macro-returns)
     - [get_event_macro: example](#get_event_macro-example)
+<<<<<<< HEAD
   - [get_group_macro method](#get_group_macro-method)
     - [get_group_macro: parameters](#get_group_macro-parameters)
     - [get_group_macro: returns](#get_group_macro-returns)
     - [get_group_macro: example](#get_group_macro-example)
+=======
+>>>>>>> centreon-stream-connector-scripts/feat(streamconnector)-add-refacto-bsm-v2-lua-files
   - [convert_centreon_macro method](#convert_centreon_macro-method)
     - [convert_centreon_macro: parameters](#convert_centreon_macro-parameters)
     - [convert_centreon_macro: returns](#convert_centreon_macro-returns)
@@ -58,6 +64,7 @@
     - [transform_state: parameters](#transform_state-parameters)
     - [transform_state: returns](#transform_state-returns)
     - [transform_state: example](#transform_state-example)
+<<<<<<< HEAD
   - [transform_number method](#transform_number-method)
     - [transform_number: parameters](#transform_number-parameters)
     - [transform_number: returns](#transform_number-returns)
@@ -94,6 +101,8 @@
     - [build_converted_string_for_cache_and_event_macro: parameters](#build_converted_string_for_cache_and_event_macro-parameters)
     - [build_converted_string_for_cache_and_event_macro: returns](#build_converted_string_for_cache_and_event_macro-returns)
     - [build_converted_string_for_cache_and_event_macro: example](#build_converted_string_for_cache_and_event_macro-example)
+=======
+>>>>>>> centreon-stream-connector-scripts/feat(streamconnector)-add-refacto-bsm-v2-lua-files
 
 ## Introduction
 
@@ -101,6 +110,7 @@ The sc_macros module provides methods to handle a stream connector oriented macr
 
 ## Stream connectors macro explanation
 
+<<<<<<< HEAD
 There are three kind of stream connectors macro:
 
 - **event macros**
@@ -108,6 +118,9 @@ There are three kind of stream connectors macro:
 - **group macros**
 
 The first type refers to data that are accessible right from the event. The second type refers to data that needs to be retrieved from the broker cache. And the last type refers to three kind of group object in Centreon (hostgroups, servicegroups and Business views)
+=======
+There are two kind of stream connectors macro, the **event macros** and the **cache macros**. The first type refers to data that are accessible right from the event. The second type refers to data that needs to be retrieved from the broker cache.
+>>>>>>> centreon-stream-connector-scripts/feat(streamconnector)-add-refacto-bsm-v2-lua-files
 
 ### Event macros
 
@@ -127,6 +140,7 @@ This means that it is possible to use the following macros
 
 This one is a bit more complicated. The purpose is to retrieve information from the event cache using a macro. If you rely on the centreon-stream-connectors-lib to fill the cache, here is what you need to know.
 
+<<<<<<< HEAD
 There are 5 kind of cache
 
 - host cache (for any event that is linked to a host, which means any event but BA events)
@@ -134,6 +148,18 @@ There are 5 kind of cache
 - poller cache (for any event that is linked to a poller, which means any event but BA events)
 - severity cache  (for any event that is linked to a host, which means any event but BA events)
 - ba cache (only for a ba_status event)
+=======
+There are 8 kind of cache
+
+- host cache (for any event that is linked to a host, which means any event but BA events)
+- service cache (for any event that is linked to a service)
+- poller cache (only generated if you filter your events on a poller)
+- severity cache (only generated if you filter your events on a severity)
+- hostgroups cache (only generated if you filter your events on a hostgroup)
+- servicegroups cache (only generated if you filter your events on a servicegroup)
+- ba cache (only for a ba_status event)
+- bvs cache (only generated if you filter your BA events on a BV)
+>>>>>>> centreon-stream-connector-scripts/feat(streamconnector)-add-refacto-bsm-v2-lua-files
 
 For example, if we want to retrieve the description of a service in the cache (because the description is not provided in the event data). We will use `{cache.service.description}`.
 
@@ -147,6 +173,7 @@ This means that it is possible to use the following macros
 "{cache.service.last_time_critical}" -- will be replaced by the service last_time_critical timestamp
 ```
 
+<<<<<<< HEAD
 cache values for hosts: [list](sc_broker.md#get_host_all_infos-example)
 cache values for services: [list](sc_broker.md#get_services_all_infos-example)
 cache values for BAs: [list](sc_broker.md#get_ba_infos-example)
@@ -209,6 +236,8 @@ get all servicegroups that start with "FOO" in an inline format: `{groups}
 | ---------------------------- | -------------------------------- |
 | `{groups(sg,inline,^FOO.*)}` | `"FOO_the-first,FOO_the-second"` |
 
+=======
+>>>>>>> centreon-stream-connector-scripts/feat(streamconnector)-add-refacto-bsm-v2-lua-files
 ### Transformation flags
 
 You can use transformation flags on stream connectors macros. Those flags purpose is to convert the given value to something more appropriate. For example, you can convert a timestamp to a human readable date.
@@ -221,8 +250,11 @@ Here is the list of all available flags
 | _sctype   | convert a state type number to its human value                                                                              | 0                                            | SOFT                   |
 | _scstate  | convert a state to its human value                                                                                          | 2                                            | WARNING (for a servie) |
 | _scshort  | only retrieve the first line of a string (mostly use to get the output instead of the long output of a service for exemple) | "my output\n this is part of the longoutput" | "my output"            |
+<<<<<<< HEAD
 | _scnumber | convert a string to a number                                                                                                | "1"                                          | 1                      |
 | _scstring | convert anything to a string                                                                                                | false                                        | "false"                |
+=======
+>>>>>>> centreon-stream-connector-scripts/feat(streamconnector)-add-refacto-bsm-v2-lua-files
 
 The **_scdate** is a bit specific because you can change the date format using the [**timestamp_conversion_format parameter**](sc_param.md#default-parameters)
 
@@ -233,9 +265,13 @@ With all that information in mind, we can use the following macros
 "{cache.service.last_time_critical_scdate}" -- will be replaced by the service last_time_critical converted in a human readable date format
 "{state_type_sctype}" -- will be replaced by the service state_type in a human readable format (SOFT or HARD)
 "{state_scstate}" -- will be replaced by the servie state in a human readable format (OK, WARNING, CRITICAL or UNKNOWN)
+<<<<<<< HEAD
 "{output_scshort}" -- will be replaced by the first line of the service output
 "{cache.severity.service_scnumber}" -- will be replaced by 1 instead of "1"
 "{acknowledged_scstring}" -- will be replaced by "false" instead of false 
+=======
+"{output_short}" -- will be replaced by the first line of the service output
+>>>>>>> centreon-stream-connector-scripts/feat(streamconnector)-add-refacto-bsm-v2-lua-files
 ```
 
 ## Module initialization
@@ -410,6 +446,7 @@ result = test_macros:get_event_macro(macro, event)
 --> result is false, cache.host.name is in the cache table, not directly in the event table
 ```
 
+<<<<<<< HEAD
 ## get_group_macro method
 
 The **get_group_macro** method replaces a stream connector group macro by its value.
@@ -472,6 +509,8 @@ result = test_macros:get_group_macro(macro, event)
 --> result is false, foo is not a valid group type and bar is not a valid format type
 ```
 
+=======
+>>>>>>> centreon-stream-connector-scripts/feat(streamconnector)-add-refacto-bsm-v2-lua-files
 ## convert_centreon_macro method
 
 The **convert_centreon_macro** method replaces all centreon macro in a string (such as $HOSTALIAS$) by its value. It will first convert it to its stream connector macro counterpart and then convert the stream connector macro to its value.
@@ -693,6 +732,7 @@ event = {
 result = test_macros:transform_state(state, event)
 --> result is "DOWN" because it is a service (category 1 = neb, element 14 = host_status event)
 ```
+<<<<<<< HEAD
 
 ## transform_number method
 
@@ -1073,3 +1113,5 @@ local macro_value = "Arcadia"
 local result = test_macros:build_converted_string_for_cache_and_event_macro(macro_value, macro_name, string_with_macros)
 --> result is: "my cache macro Arcadia"
 ```
+=======
+>>>>>>> centreon-stream-connector-scripts/feat(streamconnector)-add-refacto-bsm-v2-lua-files

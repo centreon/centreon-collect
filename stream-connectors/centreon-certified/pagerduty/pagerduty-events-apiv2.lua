@@ -73,12 +73,15 @@ function EventQueue.new(params)
   
   self.sc_macros = sc_macros.new(self.sc_params.params, self.sc_logger)
   self.format_template = self.sc_params:load_event_format_file(true)
+<<<<<<< HEAD
 
   -- only load the custom code file, not executed yet
   if self.sc_params.load_custom_code_file and not self.sc_params:load_custom_code_file(self.sc_params.params.custom_code_file) then
     self.sc_logger:error("[EventQueue:new]: couldn't successfully load the custom code file: " .. tostring(self.sc_params.params.custom_code_file))
   end
 
+=======
+>>>>>>> centreon-stream-connector-scripts/feat(streamconnector)-add-refacto-bsm-v2-lua-files
   self.sc_params:build_accepted_elements_info()
   self.sc_flush = sc_flush.new(self.sc_params.params, self.sc_logger)
 
@@ -94,11 +97,15 @@ function EventQueue.new(params)
   }
 
   self.send_data_method = {
+<<<<<<< HEAD
     [1] = function (payload, queue_metadata) return self:send_data(payload, queue_metadata) end
   }
 
   self.build_payload_method = {
     [1] = function (payload, event) return self:build_payload(payload, event) end
+=======
+    [1] = function (data, element) return self:send_data(data, element) end
+>>>>>>> centreon-stream-connector-scripts/feat(streamconnector)-add-refacto-bsm-v2-lua-files
   }
 
   self.state_to_severity_mapping = {
@@ -184,11 +191,18 @@ function EventQueue:format_event_host()
     pdy_custom_details['Hostseverity'] = host_severity
   end
   
+<<<<<<< HEAD
   pdy_custom_details["Output"] = self.sc_common:ifnil_or_empty(event.output, "no output")
 
   self.sc_event.event.formated_event = {
     payload = {
       summary = tostring(event.cache.host.name) .. ": " .. self.sc_params.params.status_mapping[event.category][event.element][event.state],
+=======
+
+  self.sc_event.event.formated_event = {
+    payload = {
+      summary = tostring(event.cache.host.name) .. ": " .. self.sc_common:ifnil_or_empty(string.match(event.output, "^(.*)\n"), 'no output'),
+>>>>>>> centreon-stream-connector-scripts/feat(streamconnector)-add-refacto-bsm-v2-lua-files
       timestamp = new_from_timestamp(event.last_update):rfc_3339(),
       severity = self.state_to_severity_mapping[event.state].severity,
       source = self.sc_params.params.pdy_source or tostring(event.cache.host.name),
@@ -268,11 +282,17 @@ function EventQueue:format_event_service()
     pdy_custom_details["Serviceseverity"] = service_severity
   end
 
+<<<<<<< HEAD
   pdy_custom_details["Output"] = self.sc_common:ifnil_or_empty(event.output, "no output")
 
   self.sc_event.event.formated_event = {
     payload = {
       summary = tostring(event.cache.host.name) .. "/" .. tostring(event.cache.service.description) .. ": " .. self.sc_params.params.status_mapping[event.category][event.element][event.state],
+=======
+  self.sc_event.event.formated_event = {
+    payload = {
+      summary = tostring(event.cache.host.name) .. "/" .. tostring(event.cache.service.description) .. ": " .. self.sc_common:ifnil_or_empty(string.match(event.output, "^(.*)\n"), 'no output'),
+>>>>>>> centreon-stream-connector-scripts/feat(streamconnector)-add-refacto-bsm-v2-lua-files
       timestamp = new_from_timestamp(event.last_update):rfc_3339(),
       severity = self.state_to_severity_mapping[event.state].severity,
       source = self.sc_params.params.pdy_source or tostring(event.cache.host.name),
@@ -311,6 +331,7 @@ function EventQueue:add()
   self.sc_flush.queues[category][element].events[#self.sc_flush.queues[category][element].events + 1] = self.sc_event.event.formated_event
 
   self.sc_logger:info("[EventQueue:add]: queue size is now: " .. tostring(#self.sc_flush.queues[category][element].events) 
+<<<<<<< HEAD
     .. ", max is: " .. tostring(self.sc_params.params.max_buffer_size))
 end
 
@@ -353,6 +374,32 @@ function EventQueue:send_data(payload, queue_metadata)
   local http_response_body = ""
   local http_request = curl.easy()
     :setopt_url(url)
+=======
+    .. "max is: " .. tostring(self.sc_params.params.max_buffer_size))
+end
+
+function EventQueue:send_data(data, element)
+  self.sc_logger:debug("[EventQueue:send_data]: Starting to send data")
+  
+  local http_post_data = ""
+
+  for _, raw_event in ipairs(data) do
+    http_post_data = http_post_data .. broker.json_encode(raw_event)
+  end
+
+  -- write payload in the logfile for test purpose
+  if self.sc_params.params.send_data_test == 1 then
+    self.sc_logger:notice("[send_data]: " .. tostring(http_post_data))
+    return true
+  end
+
+  self.sc_logger:info("[EventQueue:send_data]: Going to send the following json " .. tostring(http_post_data))
+  self.sc_logger:info("[EventQueue:send_data]: Pagerduty address is: " .. tostring(self.sc_params.params.http_server_url))
+
+  local http_response_body = ""
+  local http_request = curl.easy()
+    :setopt_url(self.sc_params.params.http_server_url)
+>>>>>>> centreon-stream-connector-scripts/feat(streamconnector)-add-refacto-bsm-v2-lua-files
     :setopt_writefunction(
       function (response)
         http_response_body = http_response_body .. tostring(response)
@@ -360,7 +407,17 @@ function EventQueue:send_data(payload, queue_metadata)
     )
     :setopt(curl.OPT_TIMEOUT, self.sc_params.params.connection_timeout)
     :setopt(curl.OPT_SSL_VERIFYPEER, self.sc_params.params.allow_insecure_connection)
+<<<<<<< HEAD
     :setopt(curl.OPT_HTTPHEADER, queue_metadata.headers)
+=======
+    :setopt(
+      curl.OPT_HTTPHEADER,
+      {
+        "content-type: application/json",
+        "content-length:" .. string.len(http_post_data),
+      }
+  )
+>>>>>>> centreon-stream-connector-scripts/feat(streamconnector)-add-refacto-bsm-v2-lua-files
 
   -- set proxy address configuration
   if (self.sc_params.params.proxy_address ~= '') then
@@ -381,7 +438,11 @@ function EventQueue:send_data(payload, queue_metadata)
   end
 
   -- adding the HTTP POST data
+<<<<<<< HEAD
   http_request:setopt_postfields(payload)
+=======
+  http_request:setopt_postfields(http_post_data)
+>>>>>>> centreon-stream-connector-scripts/feat(streamconnector)-add-refacto-bsm-v2-lua-files
 
   -- performing the HTTP request
   http_request:perform()
@@ -415,6 +476,7 @@ function init(conf)
   queue = EventQueue.new(conf)
 end
 
+<<<<<<< HEAD
 -- --------------------------------------------------------------------------------
 -- write,
 -- @param {table} event, the event from broker
@@ -425,11 +487,23 @@ function write (event)
   if queue.fail then
     queue.sc_logger:error("Skipping event because a mandatory parameter is not set")
     return false
+=======
+-- Fonction write()
+function write(event)
+  -- First, flush all queues if needed (too old or size too big)
+  queue.sc_flush:flush_all_queues(queue.send_data_method[1])
+
+  -- skip event if a mandatory parameter is missing
+  if queue.fail then
+    queue.sc_logger:error("Skipping event because a mandatory parameter is not set")
+    return true
+>>>>>>> centreon-stream-connector-scripts/feat(streamconnector)-add-refacto-bsm-v2-lua-files
   end
 
   -- initiate event object
   queue.sc_event = sc_event.new(event, queue.sc_params.params, queue.sc_common, queue.sc_logger, queue.sc_broker)
 
+<<<<<<< HEAD
   if queue.sc_event:is_valid_category() then
     if queue.sc_event:is_valid_element() then
       -- format event if it is validated
@@ -479,4 +553,30 @@ function flush()
 
   -- there are events in the queue but they were not ready to be send
   return false
+=======
+  -- drop event if wrong category
+  if not queue.sc_event:is_valid_category() then
+    queue.sc_logger:debug("dropping event because category is not valid. Event category is: "
+      .. tostring(queue.sc_params.params.reverse_category_mapping[queue.sc_event.event.category]))
+    return true
+  end
+
+  -- drop event if wrong element
+  if not queue.sc_event:is_valid_element() then
+    queue.sc_logger:debug("dropping event because element is not valid. Event element is: "
+      .. tostring(queue.sc_params.params.reverse_element_mapping[queue.sc_event.event.category][queue.sc_event.event.element]))
+    return true
+  end
+
+  -- drop event if it is not validated
+  if queue.sc_event:is_valid_event() then
+    queue:format_accepted_event()
+  else
+    return true
+  end
+
+  -- Since we've added an event to a specific queue, flush it if queue is full
+  queue.sc_flush:flush_queue(queue.send_data_method[1], queue.sc_event.event.category, queue.sc_event.event.element)
+  return true
+>>>>>>> centreon-stream-connector-scripts/feat(streamconnector)-add-refacto-bsm-v2-lua-files
 end

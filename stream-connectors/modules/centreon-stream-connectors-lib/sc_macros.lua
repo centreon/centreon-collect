@@ -32,6 +32,7 @@ function sc_macros.new(params, logger, common)
   -- initiate params
   self.params = params
 
+<<<<<<< HEAD
   -- mapping to help get "group" type macros value
   self.group_macro_conversion = {
     hg = function(event, format, regex) return self:get_hg_macro(event, format, regex) end,
@@ -45,14 +46,20 @@ function sc_macros.new(params, logger, common)
     inline = function(data) return self:group_macro_format_inline(data) end
   }
 
+=======
+>>>>>>> centreon-stream-connector-scripts/feat(streamconnector)-add-refacto-bsm-v2-lua-files
   -- mapping of macro that we will convert if asked
   self.transform_macro = {
     date = function (macro_value) return self:transform_date(macro_value) end,
     type = function (macro_value) return self:transform_type(macro_value) end,
     short = function (macro_value) return self:transform_short(macro_value) end,
+<<<<<<< HEAD
     state = function (macro_value, event) return self:transform_state(macro_value, event) end,
     number = function (macro_value) return self:transform_number(macro_value) end,
     string = function (macro_value) return self:transform_string(macro_value) end
+=======
+    state = function (macro_value, event) return self:transform_state(macro_value, event) end
+>>>>>>> centreon-stream-connector-scripts/feat(streamconnector)-add-refacto-bsm-v2-lua-files
   }
 
   -- mapping of centreon standard macros to their stream connectors counterparts
@@ -198,14 +205,21 @@ end
 function ScMacros:replace_sc_macro(string, event, json_string)
   local cache_macro_value = false
   local event_macro_value = false
+<<<<<<< HEAD
   local group_macro_value = false
   local format = false
+=======
+>>>>>>> centreon-stream-connector-scripts/feat(streamconnector)-add-refacto-bsm-v2-lua-files
   local converted_string = string
 
   -- find all macros for exemple the string: 
   -- {cache.host.name} is the name of host with id: {host_id} 
   -- will generate two macros {cache.host.name} and {host_id})
+<<<<<<< HEAD
   for macro in string.gmatch(string, "{[%w_.%(%),%%%+%-%*%?%[%]%^%$]+}") do
+=======
+  for macro in string.gmatch(string, "{[%w_.]+}") do
+>>>>>>> centreon-stream-connector-scripts/feat(streamconnector)-add-refacto-bsm-v2-lua-files
     self.sc_logger:debug("[sc_macros:replace_sc_macro]: found a macro, name is: " .. tostring(macro))
     
     -- check if macro is in the cache
@@ -213,13 +227,26 @@ function ScMacros:replace_sc_macro(string, event, json_string)
     
     -- replace all cache macro such as {cache.host.name} with their values
     if cache_macro_value then
+<<<<<<< HEAD
       converted_string = self:build_converted_string_for_cache_and_event_macro(cache_macro_value, macro, converted_string)
+=======
+      self.sc_logger:debug("[sc_macros:replace_sc_macro]: macro is a cache macro. Macro name: "
+        .. tostring(macro) .. ", value is: " .. tostring(cache_macro_value) .. ", trying to replace it in the string: " .. tostring(converted_string))
+      
+      -- if the input string was a json encoded string, we must make sure that the value we are going to insert is json ready
+      if json_string then
+        cache_macro_value = self.sc_common:json_escape(cache_macro_value)
+      end
+
+      converted_string = string.gsub(converted_string, macro, self.sc_common:json_escape(string.gsub(cache_macro_value, "%%", "%%%%")))
+>>>>>>> centreon-stream-connector-scripts/feat(streamconnector)-add-refacto-bsm-v2-lua-files
     else
       -- if not in cache, try to find a matching value in the event itself
       event_macro_value = self:get_event_macro(macro, event)
       
       -- replace all event macro such as {host_id} with their values
       if event_macro_value then
+<<<<<<< HEAD
         converted_string = self:build_converted_string_for_cache_and_event_macro(event_macro_value, macro, converted_string)
       else
         -- if not event or cache macro, maybe it is a group macro
@@ -243,6 +270,19 @@ function ScMacros:replace_sc_macro(string, event, json_string)
           self.sc_logger:error("[sc_macros:replace_sc_macro]: macro: " .. tostring(macro) .. ", is not a valid stream connector macro or we didn't find a value for it"
             .. ". For example a {cache.severity.service} macro that is perfectly valid but the service has no severity")
         end
+=======
+        self.sc_logger:debug("[sc_macros:replace_sc_macro]: macro is an event macro. Macro name: "
+          .. tostring(macro) .. ", value is: " .. tostring(event_macro_value) .. ", trying to replace it in the string: " .. tostring(converted_string))
+
+        -- if the input string was a json encoded string, we must make sure that the value we are going to insert is json ready
+        if json_string then
+          cache_macro_value = self.sc_common:json_escape(cache_macro_value)
+        end
+        
+        converted_string = string.gsub(converted_string, macro, self.sc_common:json_escape(string.gsub(event_macro_value, "%%", "%%%%")))
+      else
+        self.sc_logger:error("[sc_macros:replace_sc_macro]: macro: " .. tostring(macro) .. ", is not a valid stream connector macro")
+>>>>>>> centreon-stream-connector-scripts/feat(streamconnector)-add-refacto-bsm-v2-lua-files
       end
     end
   end
@@ -257,11 +297,17 @@ function ScMacros:replace_sc_macro(string, event, json_string)
       return converted_string
     end
 
+<<<<<<< HEAD
     self.sc_logger:debug("[sc_macros:replace_sc_macro]: decoded json: " .. self.sc_common:dumper(decoded_json))
     return decoded_json
   end
 
   self.sc_logger:debug("[sc_macros:replace_sc_macro]: converted string: " .. tostring(converted_string))
+=======
+    return decoded_json
+  end
+
+>>>>>>> centreon-stream-connector-scripts/feat(streamconnector)-add-refacto-bsm-v2-lua-files
   return converted_string
 end
 
@@ -331,6 +377,7 @@ function ScMacros:get_event_macro(macro, event)
   return false
 end
 
+<<<<<<< HEAD
 --- get_group_macro: check if the macro is a macro which value must be found in a group table (meaning it is a special kind of data in the event) 
 -- @param macro (string) the macro we want to check (for example: {group(hg,table)})
 -- @param event (table) the event table
@@ -429,6 +476,8 @@ function ScMacros:group_macro_format_inline(data)
   return result
 end
 
+=======
+>>>>>>> centreon-stream-connector-scripts/feat(streamconnector)-add-refacto-bsm-v2-lua-files
 --- convert_centreon_macro: replace a centreon macro with its value
 -- @param string (string) the string that may contain centreon macros
 -- @param event (table) the event table
@@ -518,6 +567,10 @@ end
 -- @param event (table) the event table
 -- @return string (string) the status of the event in a human readable format (e.g: OK, WARNING)
 function ScMacros:transform_state(macro_value, event)
+<<<<<<< HEAD
+=======
+  
+>>>>>>> centreon-stream-connector-scripts/feat(streamconnector)-add-refacto-bsm-v2-lua-files
   -- acknowledgement events are special, the state can be for a host or a service. 
   -- We force the element to be host_status or service_status in order to properly convert the state
   if event.element == 1 and event.service_id == 0 then
@@ -529,6 +582,7 @@ function ScMacros:transform_state(macro_value, event)
   return self.params.status_mapping[event.category][event.element][macro_value]
 end
 
+<<<<<<< HEAD
 --- transform_number: convert a string to a number
 -- @param macro_value (string) the string that needs to be converted
 -- @return number (number) a number based on the provided string
@@ -579,4 +633,6 @@ function ScMacros:build_converted_string_for_cache_and_event_macro(macro_value, 
   return converted_string
 end
 
+=======
+>>>>>>> centreon-stream-connector-scripts/feat(streamconnector)-add-refacto-bsm-v2-lua-files
 return sc_macros

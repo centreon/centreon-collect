@@ -88,6 +88,7 @@ function ScLogger:debug(message)
   broker_log:info(3, message)
 end
 
+<<<<<<< HEAD
 --- log_curl_command: build a shell curl command based on given parameters and write it in the logfile
 -- @param url (string) the url to which curl will send data
 -- @param metadata (table) a table that contains headers information and http method for curl
@@ -148,4 +149,6 @@ function ScLogger:log_curl_command(url, metadata, params, data)
   end
 end
 
+=======
+>>>>>>> centreon-stream-connector-scripts/feat(streamconnector)-add-refacto-bsm-v2-lua-files
 return sc_logger

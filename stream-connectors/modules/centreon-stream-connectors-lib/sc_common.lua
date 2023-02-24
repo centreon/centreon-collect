@@ -98,7 +98,11 @@ end
 -- @param [opt] separator (string) the separator character that will be used to split the string
 -- @return false (boolean) if text param is empty or nil
 -- @return table (table) a table of strings
+<<<<<<< HEAD
 function ScCommon:split(text, separator)
+=======
+function ScCommon:split (text, separator)
+>>>>>>> centreon-stream-connector-scripts/feat(streamconnector)-add-refacto-bsm-v2-lua-files
   -- return false if text is nil or empty
   if text == nil or text == "" then
     self.sc_logger:error("[sc_common:split]: could not split text because it is nil or empty")
@@ -221,6 +225,7 @@ end
 -- @param string (string) the string that must be escaped
 -- @return string (string) the string with escaped characters
 function ScCommon:json_escape(string)
+<<<<<<< HEAD
   if type(string) ~= "string" then
     self.sc_logger:error("[sc_common:json_escape]: the input parameter is not valid, it must be a string. Sent value: " .. tostring(string))
     return string
@@ -337,6 +342,32 @@ function ScCommon:trim(string, character)
   end
 
   return result
+=======
+  local type = type(string)
+
+  -- check that param is a valid string
+  if string == nil or type == "table" then
+    self.sc_logger:error("[sc_common:escape_string]: the input parameter is not valid, it is either nil or a table. Sent value: " .. tostring(string))
+    return string
+  end
+
+  -- nothing to escape in a boolean or number value
+  if type ~= "string" then
+    return string
+  end
+
+  -- escape all characters
+  string = string.gsub(string, '\\', '\\\\')
+  string = string.gsub(string, '\t', '\\t')
+  string = string.gsub(string, '\n', '\\n')
+  string = string.gsub(string, '\b', '\\b')
+  string = string.gsub(string, '\r', '\\r')
+  string = string.gsub(string, '\f', '\\f')
+  string = string.gsub(string, '/', '\\/')
+  string = string.gsub(string, '"', '\\"')
+
+  return string
+>>>>>>> centreon-stream-connector-scripts/feat(streamconnector)-add-refacto-bsm-v2-lua-files
 end
 
 return sc_common

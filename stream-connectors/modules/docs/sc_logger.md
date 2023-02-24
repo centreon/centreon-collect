@@ -1,6 +1,10 @@
 # Documentation of the sc_logger module
 
+<<<<<<< HEAD
 - [Documentation of the sc\_logger module](#documentation-of-the-sc_logger-module)
+=======
+- [Documentation of the sc_logger module](#documentation-of-the-sc_logger-module)
+>>>>>>> centreon-stream-connector-scripts/feat(streamconnector)-add-refacto-bsm-v2-lua-files
   - [Introduction](#introduction)
   - [Best practices](#best-practices)
   - [Module initialization](#module-initialization)
@@ -21,9 +25,12 @@
   - [notice method](#notice-method)
     - [notice: parameters](#notice-parameters)
     - [notice: example](#notice-example)
+<<<<<<< HEAD
   - [log\_curl\_command method](#log_curl_command-method)
     - [log\_curl\_command: parameters](#log_curl_command-parameters)
     - [log\_curl\_command: example](#log_curl_command-example)
+=======
+>>>>>>> centreon-stream-connector-scripts/feat(streamconnector)-add-refacto-bsm-v2-lua-files
 
 ## Introduction
 
@@ -161,6 +168,7 @@ The **notice** method will print a notice message in the logfile if **severity i
 -- call notice method
 test_logger:notice("[module_name:method_name]: This is a notice message.")
 ```
+<<<<<<< HEAD
 
 ## log_curl_command method
 
@@ -202,3 +210,5 @@ test_logger:log_curl_command(url, metadata, params, data)
   Thu Mar 17 10:44:53 2022: INFO: [sc_logger:log_curl_command]: curl -k -X POST -H "content-type: application/json" -H "token: mont-de-marsan" "https://127.0.0.1/my_endpoint" -d '{"host":"test-host","state":"down"}'
 ]]--
 ```
+=======
+>>>>>>> centreon-stream-connector-scripts/feat(streamconnector)-add-refacto-bsm-v2-lua-files
