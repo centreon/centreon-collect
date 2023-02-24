@@ -99,7 +99,11 @@ function EventQueue.new(params)
   }
 
   self.send_data_method = {
+<<<<<<< HEAD
     [1] = function (payload, queue_metadata) return self:send_data(payload, queue_metadata) end
+=======
+    [1] = function (payload) return self:send_data(payload) end
+>>>>>>> centreon-stream-connector-scripts/MON-14867-warp10v2
   }
 
   self.build_payload_method = {
@@ -184,8 +188,13 @@ function EventQueue:add()
   self.sc_flush.queues[category][element].events[#self.sc_flush.queues[category][element].events + 1] = self.sc_event.event.formated_event
 
 
+<<<<<<< HEAD
   self.sc_logger:info("[EventQueue:add]: queue size is now: " .. tostring(#self.sc_flush.queues[category][element].events) 
     .. ", max is: " .. tostring(self.sc_params.params.max_buffer_size))
+=======
+  self.sc_logger:info("[EventQueue:add]: queue size is now: " .. tostring(#self.sc_flush.queues[category][element].events)
+  .. "max is: " .. tostring(self.sc_params.params.max_buffer_size))
+>>>>>>> centreon-stream-connector-scripts/MON-14867-warp10v2
 end
 
 --------------------------------------------------------------------------------
@@ -208,7 +217,11 @@ end
 -- EventQueue:send_data, send data to external tool
 -- @return (boolean)
 --------------------------------------------------------------------------------
+<<<<<<< HEAD
 function EventQueue:send_data(payload, queue_metadata)
+=======
+function EventQueue:send_data (payload)
+>>>>>>> centreon-stream-connector-scripts/MON-14867-warp10v2
 
   -- write payload in the logfile for test purpose
   if self.sc_params.params.send_data_test == 1 then

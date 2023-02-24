@@ -108,7 +108,11 @@ function EventQueue.new (params)
   }
 
   self.send_data_method = {
+<<<<<<< HEAD
     [1] = function (payload, queue_metadata) return self:send_data(payload, queue_metadata) end
+=======
+    [1] = function (payload) return self:send_data(payload) end
+>>>>>>> centreon-stream-connector-scripts/MON-14867-warp10v2
   }
 
   self.build_payload_method = {
@@ -227,6 +231,7 @@ end
 -- @return {array} decoded output
 -- @throw exception if http call fails or response is empty
 --------------------------------------------------------------------------------
+<<<<<<< HEAD
 function EventQueue:call(url, method, data, authToken)
   data = data or nil
   authToken = authToken or nil
@@ -253,6 +258,16 @@ function EventQueue:call(url, method, data, authToken)
 
   self.sc_logger:log_curl_command(endpoint, queue_metadata, self.sc_params.params, data)
 
+=======
+function EventQueue:call (url, method, data, authToken)
+  method = method or "GET"
+  data = data or nil
+  authToken = authToken or nil
+
+  local endpoint = "https://" .. tostring(self.sc_params.params.instance) .. "." .. self.sc_params.params.http_server_url .. "/" .. tostring(url)
+  self.sc_logger:debug("EventQueue:call: Prepare url " .. endpoint)
+
+>>>>>>> centreon-stream-connector-scripts/MON-14867-warp10v2
   -- write payload in the logfile for test purpose
   if self.sc_params.params.send_data_test == 1 then
     self.sc_logger:notice("[send_data]: " .. tostring(data) .. " to endpoint: " .. tostring(endpoint))
@@ -266,7 +281,10 @@ function EventQueue:call(url, method, data, authToken)
       res = res .. tostring(response)
     end)
     :setopt(curl.OPT_TIMEOUT, self.sc_params.params.connection_timeout)
+<<<<<<< HEAD
     :setopt(curl.OPT_HTTPHEADER, queue_metadata.headers)
+=======
+>>>>>>> centreon-stream-connector-scripts/MON-14867-warp10v2
 
   self.sc_logger:debug("EventQueue:call: Request initialize")
 
@@ -288,7 +306,28 @@ function EventQueue:call(url, method, data, authToken)
     end
   end
 
+<<<<<<< HEAD
   if queue_metadata.method ~= "GET" then
+=======
+  if not authToken then
+    if method ~= "GET" then
+      self.sc_logger:debug("EventQueue:call: Add form header")
+      request:setopt(curl.OPT_HTTPHEADER, { "Content-Type: application/x-www-form-urlencoded" })
+    end
+  else
+    broker_log:info(3, "Add JSON header")
+    request:setopt(
+      curl.OPT_HTTPHEADER,
+      {
+        "Accept: application/json",
+        "Content-Type: application/json",
+        "Authorization: Bearer " .. authToken
+      }
+    )
+  end
+
+  if method ~= "GET" then
+>>>>>>> centreon-stream-connector-scripts/MON-14867-warp10v2
     self.sc_logger:debug("EventQueue:call: Add post data")
     request:setopt_postfields(data)
   end
@@ -392,7 +431,11 @@ function EventQueue:add()
   self.sc_flush.queues[category][element].events[#self.sc_flush.queues[category][element].events + 1] = self.sc_event.event.formated_event
 
   self.sc_logger:info("[EventQueue:add]: queue size is now: " .. tostring(#self.sc_flush.queues[category][element].events) 
+<<<<<<< HEAD
     .. ", max is: " .. tostring(self.sc_params.params.max_buffer_size))
+=======
+    .. "max is: " .. tostring(self.sc_params.params.max_buffer_size))
+>>>>>>> centreon-stream-connector-scripts/MON-14867-warp10v2
 end
 
 --------------------------------------------------------------------------------
@@ -415,7 +458,11 @@ end
 -- EventQueue:send_data, send data to external tool
 -- @return {boolean}
 --------------------------------------------------------------------------------
+<<<<<<< HEAD
 function EventQueue:send_data(payload, queue_metadata)
+=======
+function EventQueue:send_data(payload)
+>>>>>>> centreon-stream-connector-scripts/MON-14867-warp10v2
   local authToken
   local counter = 0
 

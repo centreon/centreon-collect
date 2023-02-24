@@ -1,6 +1,6 @@
 #!/usr/bin/lua
 --------------------------------------------------------------------------------
--- Centreon Broker Datadog Connector Events
+-- Centreon Broker Warp10 Connector Events
 --------------------------------------------------------------------------------
 
 
@@ -13,6 +13,7 @@ local sc_event = require("centreon-stream-connectors-lib.sc_event")
 local sc_params = require("centreon-stream-connectors-lib.sc_params")
 local sc_macros = require("centreon-stream-connectors-lib.sc_macros")
 local sc_flush = require("centreon-stream-connectors-lib.sc_flush")
+local sc_metrics = require("centreon-stream-connectors-lib.sc_metrics")
 
 --------------------------------------------------------------------------------
 -- Classe event_queue
@@ -35,13 +36,14 @@ function EventQueue.new(params)
   local self = {}
 
   local mandatory_parameters = {
-    "api_key"
+    "api_token",
+    "warp10_http_address"
   }
 
   self.fail = false
 
   -- set up log configuration
-  local logfile = params.logfile or "/var/log/centreon-broker/datadog-events.log"
+  local logfile = params.logfile or "/var/log/centreon-broker/warp10-metrics.log"
   local log_level = params.log_level or 1
   
   -- initiate mandatory objects
@@ -55,22 +57,27 @@ function EventQueue.new(params)
     self.fail = true
   end
   
-  --params.max_buffer_size = 1
-  
   -- overriding default parameters for this stream connector if the default values doesn't suit the basic needs
-  self.sc_params.params.api_key = params.api_key
-  self.sc_params.params.datadog_centreon_url = params.datadog_centreon_url or "http://yourcentreonaddress.local"
-  self.sc_params.params.datadog_event_endpoint = params.datadog_event_endpoint or "/api/v1/events"
-  self.sc_params.params.http_server_url = params.http_server_url or "https://api.datadoghq.com"
+  self.sc_params.params.api_token = params.api_token
+  self.sc_params.params.warp10_address = params.warp10_http_address
+  self.sc_params.params.warp10_api_endpoint = params.warp10_api_endpoint or "/api/v0/update"
+  self.sc_params.params.add_hg_in_labels = params.add_hg_in_labels or 1
+  self.sc_params.params.add_sg_in_labels = params.add_sg_in_labels or 0
   self.sc_params.params.accepted_categories = params.accepted_categories or "neb"
   self.sc_params.params.accepted_elements = params.accepted_elements or "host_status,service_status"
+  self.sc_params.params.max_buffer_size = params.max_buffer_size or 30
+  self.sc_params.params.hard_only = params.hard_only or 0
+  self.sc_params.params.enable_host_status_dedup = params.enable_host_status_dedup or 0
+  self.sc_params.params.enable_service_status_dedup = params.enable_service_status_dedup or 0
+  -- just need to url encode the metric name  so we don't need to filter out characters
+  -- https://www.warp10.io/content/03_Documentation/03_Interacting_with_Warp_10/03_Ingesting_data/02_GTS_input_format#lines
+  self.sc_params.params.metric_name_regex = params.metric_name_regex or "[.*]"
+  self.sc_params.params.metric_replacement_character = params.metric_replacement_character or "_" 
   
   -- apply users params and check syntax of standard ones
   self.sc_params:param_override(params)
   self.sc_params:check_params()
-  
   self.sc_macros = sc_macros.new(self.sc_params.params, self.sc_logger)
-  self.format_template = self.sc_params:load_event_format_file(true)
 
   -- only load the custom code file, not executed yet
   if self.sc_params.load_custom_code_file and not self.sc_params:load_custom_code_file(self.sc_params.params.custom_code_file) then
@@ -83,36 +90,22 @@ function EventQueue.new(params)
   local categories = self.sc_params.params.bbdo.categories
   local elements = self.sc_params.params.bbdo.elements
 
-  self.state_to_alert_type_mapping = {
-    [categories.neb.id] = {
-        [elements.host_status.id] = {
-            [0] = "info",
-            [1] = "error",
-            [2] = "warning"
-        },
-        [elements.service_status.id] = {
-            [0] = "info",
-            [1] = "warning",
-            [2] = "error",
-            [3] = "warning"
-        }
-    }
-  }
-
   self.format_event = {
     [categories.neb.id] = {
       [elements.host_status.id] = function () return self:format_event_host() end,
       [elements.service_status.id] = function () return self:format_event_service() end
-    },
-    [categories.bam.id] = {}
+    }
+  }
+
+  self.format_metric = {
+    [categories.neb.id] = {
+      [elements.host_status.id] = function (metric) return self:format_metric_host(metric) end,
+      [elements.service_status.id] = function (metric) return self:format_metric_service(metric) end
+    }
   }
 
   self.send_data_method = {
-<<<<<<< HEAD
-    [1] = function (payload, queue_metadata) return self:send_data(payload, queue_metadata) end
-=======
     [1] = function (payload) return self:send_data(payload) end
->>>>>>> centreon-stream-connector-scripts/MON-14867-warp10v2
   }
 
   self.build_payload_method = {
@@ -125,58 +118,202 @@ function EventQueue.new(params)
 end
 
 --------------------------------------------------------------------------------
----- EventQueue:format_event method
-----------------------------------------------------------------------------------
+---- EventQueue:format_accepted_event method
+--------------------------------------------------------------------------------
 function EventQueue:format_accepted_event()
   local category = self.sc_event.event.category
   local element = self.sc_event.event.element
-  local template = self.sc_params.params.format_template[category][element]
 
   self.sc_logger:debug("[EventQueue:format_event]: starting format event")
-  self.sc_event.event.formated_event = {}
 
-  if self.format_template and template ~= nil and template ~= "" then
-    self.sc_event.event.formated_event = self.sc_macros:replace_sc_macro(template, self.sc_event.event, true)
+  -- can't format event if stream connector is not handling this kind of event and that it is not handled with a template file
+  if not self.format_event[category][element] then
+    self.sc_logger:error("[format_event]: You are trying to format an event with category: "
+      .. tostring(self.sc_params.params.reverse_category_mapping[category]) .. " and element: "
+      .. tostring(self.sc_params.params.reverse_element_mapping[category][element])
+      .. ". If it is a not a misconfiguration, you should create a format file to handle this kind of element")
   else
-    -- can't format event if stream connector is not handling this kind of event and that it is not handled with a template file
-    if not self.format_event[category][element] then
-      self.sc_logger:error("[format_event]: You are trying to format an event with category: "
-        .. tostring(self.sc_params.params.reverse_category_mapping[category]) .. " and element: "
-        .. tostring(self.sc_params.params.reverse_element_mapping[category][element])
-        .. ". If it is a not a misconfiguration, you should create a format file to handle this kind of element")
-    else
-      self.format_event[category][element]()
-    end
+    self.format_event[category][element]()
   end
 
-  self:add()
   self.sc_logger:debug("[EventQueue:format_event]: event formatting is finished")
 end
 
+--------------------------------------------------------------------------------
+---- EventQueue:format_event_host method
+--------------------------------------------------------------------------------
 function EventQueue:format_event_host()
   local event = self.sc_event.event
-
-  self.sc_event.event.formated_event = {
-    title = tostring(self.sc_params.params.status_mapping[event.category][event.element][event.state] .. " " .. event.cache.host.name),
-    text = event.output,
-    aggregation_key = "host_" .. tostring(event.host_id),
-    alert_type = self.state_to_alert_type_mapping[event.category][event.element][event.state],
-    host = tostring(event.cache.host.name),
-    date_happened = event.last_check
-  }
+  self.sc_logger:debug("[EventQueue:format_event_host]: call build_metric ")
+  self.sc_metrics:build_metric(self.format_metric[event.category][event.element])
 end
 
+--------------------------------------------------------------------------------
+---- EventQueue:format_event_service method
+--------------------------------------------------------------------------------
 function EventQueue:format_event_service()
+  self.sc_logger:debug("[EventQueue:format_event_service]: call build_metric ")
   local event = self.sc_event.event
-  
+  self.sc_metrics:build_metric(self.format_metric[event.category][event.element])
+end
+
+--------------------------------------------------------------------------------
+---- EventQueue:format_metric_host method
+-- @param metric {table} a single metric data
+--------------------------------------------------------------------------------
+function EventQueue:format_metric_host(metric)
+  self.sc_logger:debug("[EventQueue:format_metric_host]: call format_metric ")
+  self:format_metric_event(metric)
+end
+
+--------------------------------------------------------------------------------
+---- EventQueue:format_metric_service method
+-- @param metric {table} a single metric data
+--------------------------------------------------------------------------------
+function EventQueue:format_metric_service(metric)
+  self.sc_logger:debug("[EventQueue:format_metric_service]: call format_metric ")
+  self:format_metric_event(metric)
+end
+
+--------------------------------------------------------------------------------
+---- EventQueue:format_metric_service method
+-- @param metric {table} a single metric data
+-------------------------------------------------------------------------------
+function EventQueue:format_metric_event(metric)
+  self.sc_logger:debug("[EventQueue:format_metric]: start real format metric ")
+  local event = self.sc_event.event
+
   self.sc_event.event.formated_event = {
-    title = tostring(self.sc_params.params.status_mapping[event.category][event.element][event.state] .. " " .. event.cache.host.name .. ": " .. event.cache.service.description),
-    text = event.output,
-    aggregation_key = "service_" .. tostring(event.host_id) .. "_" .. tostring(event.service_id),
-    alert_type = self.state_to_alert_type_mapping[event.category][event.element][event.state],
-    host = tostring(event.cache.host.name),
-    date_happened = event.last_check
+    data = event.last_check .. "000000// " .. broker.url_encode(metric.metric_name) .. self:build_labels(metric) .. self:build_attributes(metric) .. " " .. metric.value
   }
+
+  self:add()
+  self.sc_logger:debug("[EventQueue:format_metric]: end real format metric ")
+end
+
+--------------------------------------------------------------------------------
+---- EventQueue:build_labels method
+-- @param metric {table} a single metric data
+-- @return labels_string {string} a string with all labels 
+--------------------------------------------------------------------------------
+function EventQueue:build_labels(metric)
+  local event = self.sc_event.event
+  local labels_string = "host=" .. broker.url_encode(event.cache.host.name)
+
+  -- add service name in labels
+  if event.cache.service.description then
+    labels_string = labels_string .. ",service=" .. broker.url_encode(event.cache.service.description)
+  end
+
+  -- add hostgroups name in labels
+  if event.cache.hostgroups and event.cache.hostgroups[1] and self.sc_params.params.add_hg_in_labels == 1 then
+    local hostgroups_string = ""
+    for _, hostgroup in ipairs(event.cache.hostgroups) do
+      if hostgroups_string == "" then
+        hostgroups_string = hostgroup.group_name
+      else
+        hostgroups_string = hostgroups_string .. " " .. hostgroup.group_name
+      end
+    end
+
+    labels_string = labels_string .. ",hostgroups=" .. broker.url_encode(hostgroups_string)
+  end
+
+  -- add servicegroups name in labels
+  if event.cache.servicegroups and event.cache.servicegroups[1] and self.sc_params.params.add_sg_in_labels == 1 then
+    local servicegroups_string = ""
+    for _, servicegroup in ipairs(event.cache.servicegroups) do
+      if servicegroups_string == "" then
+        servicegroups_string = servicegroup.group_name
+      else
+        servicegroups_string = servicegroups_string .. " " .. servicegroup.group_name
+      end
+    end
+
+    labels_string = labels_string .. ",servicegroups=" .. broker.url_encode(servicegroups_string)
+  end
+
+  -- add metric instance in labels
+  if metric.instance ~= "" then
+    labels_string = labels_string .. ",instance=" .. broker.url_encode(metric.instance)
+  end
+
+  -- add metric subinstances in labels
+  if metric.subinstance[1] then
+    local subinstances_string = ""
+    for _, subinstance in ipairs(metric.subinstance) do
+      if subinstances_string == "" then
+        subinstances_string = subinstance
+      else
+        subinstances_string = subinstances_string .. " " .. subinstance
+      end
+    end
+
+    labels_string = labels_string .. ",subinstance=" .. broker.url_encode(subinstances_string)
+  end
+
+  return "{" .. labels_string .. "}"
+end
+
+--------------------------------------------------------------------------------
+---- EventQueue:build_attributes method
+-- @param metric {table} a single metric data
+-- @return tags {table} a string with all attributes 
+--------------------------------------------------------------------------------
+function EventQueue:build_attributes(metric)
+  local event = self.sc_event.event
+  local attributes_string = ""
+
+  -- add min to attributes
+  if metric.min and metric.min == metric.min then
+    if attributes_string == "" then
+      attributes_string = "min=" .. metric.min
+    else
+      attributes_string = attributes_string .. ",min=" .. metric.min
+    end
+  end
+
+  -- add max to attributes
+  if metric.max and metric.max == metric.max then
+    if attributes_string == "" then
+      attributes_string = "max=" .. metric.max
+    else
+      attributes_string = attributes_string .. ",max=" .. metric.max
+    end
+  end
+
+  -- add warning to attributes
+  if metric.warning_high and metric.warning_high == metric.warning_high then
+    if attributes_string == "" then
+      attributes_string = "warning=" .. metric.warning_high
+    else
+      attributes_string = attributes_string .. ",warning=" .. metric.warning_high
+    end
+  end
+
+  -- add critical to attributes
+  if metric.critical_high and metric.critical_high == metric.critical_high then
+    if attributes_string == "" then
+      attributes_string = "critical=" .. metric.critical_high
+    else
+      attributes_string = attributes_string .. ",critical=" .. metric.critical_high
+    end
+  end
+
+  -- add UOM to attributes
+  if metric.uom then
+    if attributes_string == "" then
+      attributes_string = "uom=" .. metric.uom
+    else
+      attributes_string = attributes_string .. ",uom=" .. broker.url_encode(metric.uom)
+    end
+  end
+
+  if attributes_string ~= "" then
+    return "{" .. attributes_string .. "}"
+  end
+
+  return attributes_string
 end
 
 --------------------------------------------------------------------------------
@@ -194,11 +331,7 @@ function EventQueue:add()
   self.sc_flush.queues[category][element].events[#self.sc_flush.queues[category][element].events + 1] = self.sc_event.event.formated_event
 
   self.sc_logger:info("[EventQueue:add]: queue size is now: " .. tostring(#self.sc_flush.queues[category][element].events) 
-<<<<<<< HEAD
-    .. ", max is: " .. tostring(self.sc_params.params.max_buffer_size))
-=======
     .. "max is: " .. tostring(self.sc_params.params.max_buffer_size))
->>>>>>> centreon-stream-connector-scripts/MON-14867-warp10v2
 end
 
 --------------------------------------------------------------------------------
@@ -209,32 +342,19 @@ end
 --------------------------------------------------------------------------------
 function EventQueue:build_payload(payload, event)
   if not payload then
-    payload = broker.json_encode(event)
+    payload = event.data
   else
-    payload = payload .. broker.json_encode(event)
+    payload = payload .. "\n" .. event.data
   end
   
   return payload
 end
 
-<<<<<<< HEAD
-function EventQueue:send_data(payload, queue_metadata)
-  self.sc_logger:debug("[EventQueue:send_data]: Starting to send data")
-
-  local url = self.sc_params.params.http_server_url .. self.sc_params.params.datadog_event_endpoint
-  queue_metadata.headers = {
-    "content-type: application/json",
-    "DD-API-KEY:" .. self.sc_params.params.api_key
-  }
-
-  self.sc_logger:log_curl_command(url, queue_metadata, self.sc_params.params, payload)
-=======
 function EventQueue:send_data(payload)
   self.sc_logger:debug("[EventQueue:send_data]: Starting to send data")
 
-  local url = self.sc_params.params.http_server_url .. self.sc_params.params.datadog_event_endpoint
+  local url = tostring(self.sc_params.params.warp10_address) .. tostring(self.sc_params.params.warp10_api_endpoint)
 
->>>>>>> centreon-stream-connector-scripts/MON-14867-warp10v2
   -- write payload in the logfile for test purpose
   if self.sc_params.params.send_data_test == 1 then
     self.sc_logger:notice("[send_data]: " .. tostring(payload))
@@ -242,7 +362,7 @@ function EventQueue:send_data(payload)
   end
 
   self.sc_logger:info("[EventQueue:send_data]: Going to send the following json " .. tostring(payload))
-  self.sc_logger:info("[EventQueue:send_data]: Datadog address is: " .. tostring(url))
+  self.sc_logger:info("[EventQueue:send_data]: warp10 address is: " .. tostring(url))
 
   local http_response_body = ""
   local http_request = curl.easy()
@@ -254,17 +374,13 @@ function EventQueue:send_data(payload)
     )
     :setopt(curl.OPT_TIMEOUT, self.sc_params.params.connection_timeout)
     :setopt(curl.OPT_SSL_VERIFYPEER, self.sc_params.params.allow_insecure_connection)
-<<<<<<< HEAD
-    :setopt(curl.OPT_HTTPHEADER, queue_metadata.headers)
-=======
     :setopt(
       curl.OPT_HTTPHEADER,
       {
-        "content-type: application/json",
-        "DD-API-KEY:" .. self.sc_params.params.api_key
+        "Transfer-Encoding:chunked",
+        "X-Warp10-Token:" .. self.sc_params.params.api_token
       }
   )
->>>>>>> centreon-stream-connector-scripts/MON-14867-warp10v2
 
   -- set proxy address configuration
   if (self.sc_params.params.proxy_address ~= '') then
@@ -297,8 +413,8 @@ function EventQueue:send_data(payload)
   
   -- Handling the return code
   local retval = false
-  -- https://docs.datadoghq.com/fr/api/latest/events/ other than 202 is not good
-  if http_response_code == 202 then
+  -- https://www.warp10.io/content/03_Documentation/03_Interacting_with_Warp_10/03_Ingesting_data/01_Ingress#response-status-code other than 200 is not good
+  if http_response_code == 200 then
     self.sc_logger:info("[EventQueue:send_data]: HTTP POST request successful: return code is " .. tostring(http_response_code))
     retval = true
   else
@@ -332,12 +448,13 @@ function write (event)
   end
 
   -- initiate event object
-  queue.sc_event = sc_event.new(event, queue.sc_params.params, queue.sc_common, queue.sc_logger, queue.sc_broker)
+  queue.sc_metrics = sc_metrics.new(event, queue.sc_params.params, queue.sc_common, queue.sc_broker, queue.sc_logger)
+  queue.sc_event = queue.sc_metrics.sc_event
 
   if queue.sc_event:is_valid_category() then
-    if queue.sc_event:is_valid_element() then
+    if queue.sc_metrics:is_valid_bbdo_element() then
       -- format event if it is validated
-      if queue.sc_event:is_valid_event() then
+      if queue.sc_metrics:is_valid_metric_event() then
         queue:format_accepted_event()
       end
   --- log why the event has been dropped 
