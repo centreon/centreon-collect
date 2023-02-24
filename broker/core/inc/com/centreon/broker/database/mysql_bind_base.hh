@@ -38,7 +38,6 @@ class mysql_bind_base {
 
   bool _prepared(size_t range) const;
   void _set_typed(uint32_t range);
-  void _set_empty(bool empty);
 
  public:
   /**
@@ -49,10 +48,7 @@ class mysql_bind_base {
   /**
    * @brief Destructor
    */
-  ~mysql_bind_base() noexcept = default;
-  void set_size(int size);
-  int get_size() const;
-  const MYSQL_BIND* get_bind() const;
+  virtual ~mysql_bind_base() noexcept = default;
   MYSQL_BIND* get_bind();
   bool empty() const;
   void set_empty();
