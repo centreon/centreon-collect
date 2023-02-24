@@ -74,9 +74,8 @@ class mysql_column {
 
  public:
   mysql_column() = default;
-  mysql_column(int type, size_t row_count);
-  mysql_column(mysql_column&& other);
-  mysql_column& operator=(mysql_column&& other);
+  mysql_column(mysql_column&& other) = delete;
+  mysql_column& operator=(mysql_column&& other) = delete;
   ~mysql_column() noexcept;
   int get_type() const;
   void* get_buffer();
