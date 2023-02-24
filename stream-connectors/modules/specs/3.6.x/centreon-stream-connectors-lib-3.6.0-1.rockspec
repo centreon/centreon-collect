@@ -10,11 +10,7 @@ description = {
       Those modules provides helpful methods to create
       stream connectors for Centreon
    ]],
-<<<<<<< HEAD
    license = "Apache-2.0"
-=======
-   license = ""
->>>>>>> centreon-stream-connector-scripts/MON-14867-warp10v2
 }
 dependencies = {
    "lua >= 5.1, < 5.4",

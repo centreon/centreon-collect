@@ -43,11 +43,7 @@ function EventQueue.new(params)
 
   -- set up log configuration
   local logfile = params.logfile or "/var/log/centreon-broker/datadog-metrics.log"
-<<<<<<< HEAD
-  local log_level = params.log_level or 3
-=======
   local log_level = params.log_level or 1
->>>>>>> centreon-stream-connector-scripts/MON-14867-warp10v2
   
   -- initiate mandatory objects
   self.sc_logger = sc_logger.new(logfile, log_level)

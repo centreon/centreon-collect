@@ -365,11 +365,6 @@ function EventQueue:build_payload(payload, event)
   else
     table.insert(payload, event)
   end
-<<<<<<< HEAD
-
-=======
-  
->>>>>>> centreon-stream-connector-scripts/MON-14867-warp10v2
   return payload
 end
 
