@@ -1,4 +1,4 @@
-Source: centreon-stream-connectors-lib
+Source: lua-cffi
 Section: interpreters
 Priority: optional
 Maintainer: Centreon <contact@centreon.com>
@@ -8,10 +8,10 @@ Build-Depends:
 Standards-Version: 4.5.0
 Homepage: https://wwww.centreon.com
 
-Package: centreon-stream-connectors-lib
+Package: lua-cffi
 Architecture: all
 Depends:
-  lua (>= 5.3),
-  lua (< 5.4),
-  lua-socket (>= 3.0)
-Description: Centreon stream connectors lua modules
+  libffi7,
+  libffi-dev,
+  lua5.3
+Description: lua cffi library

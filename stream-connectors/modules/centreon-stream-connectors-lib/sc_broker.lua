@@ -1,5 +1,6 @@
 #!/usr/bin/lua
 
+
 --- 
 -- Module with Centreon broker related methods for easier usage
 -- @module sc_broker

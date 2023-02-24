@@ -1,5 +1,5 @@
-%define luaver 5.3
-%define luapkgdir %{_datadir}/lua/%{luaver}
+%{!?luaver: %global luaver %(lua -e "print(string.sub(_VERSION, 5))" || echo 0)}
+%global luapkgdir %{_datadir}/lua/%{luaver}
 
 Name:           centreon-stream-connectors-lib
 Version:        3.6.0
@@ -16,8 +16,12 @@ Source0:        %{name}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildArch:      noarch
 
-Requires:       lua >= 5.3, lua < 5.4
+BuildRequires:  lua
+BuildRequires:  lua-devel
+
+Requires:       centreon-broker-core >= 22.04.0
 Requires:       lua-socket >= 3.0
+Requires:       lua-curl
 
 %description
 Those modules provides helpful methods to create stream connectors for Centreon
@@ -28,13 +32,13 @@ Those modules provides helpful methods to create stream connectors for Centreon
 %build
 
 %install
-mkdir -p $RPM_BUILD_ROOT%{luapkgdir}/centreon-stream-connectors-lib
-cp -pr ./* $RPM_BUILD_ROOT%{luapkgdir}/centreon-stream-connectors-lib
+%{__install} -d $RPM_BUILD_ROOT%{luapkgdir}/centreon-stream-connectors-lib
+%{__cp} -pr ./* $RPM_BUILD_ROOT%{luapkgdir}/centreon-stream-connectors-lib
 
 %clean
 %{__rm} -rf $RPM_BUILD_ROOT
 
 %files
-%{luapkgdir}/centreon-stream-connectors-lib/*
+%{luapkgdir}/centreon-stream-connectors-lib
 
 %changelog
