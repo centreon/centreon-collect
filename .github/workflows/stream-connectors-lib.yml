@@ -66,14 +66,15 @@ jobs:
 
       - if: ${{ matrix.package_extension == 'deb' }}
         run: |
-          mkdir -p centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}/debian
+          PACKAGE_VERSION=`cat packaging/connectors-lib/deb/control | grep "^Version:" | cut -d" " -f2`
+          mkdir -p centreon-stream-connectors-lib-$PACKAGE_VERSION/debian
 
-          cp -rp modules/centreon-stream-connectors-lib/* centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}/
-          cp -rp packaging/connectors-lib/deb/* centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}/debian/
+          cp -rp modules/centreon-stream-connectors-lib/* centreon-stream-connectors-lib-$PACKAGE_VERSION/
+          cp -rp packaging/connectors-lib/deb/* centreon-stream-connectors-lib-$PACKAGE_VERSION/debian/
 
-          tar czf centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}.tar.gz centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}
+          tar czf centreon-stream-connectors-lib-$PACKAGE_VERSION.tar.gz centreon-stream-connectors-lib-$PACKAGE_VERSION
 
-          cd centreon-stream-connectors-lib-${{ needs.get-version.outputs.version }}
+          cd centreon-stream-connectors-lib-$PACKAGE_VERSION
 
           debmake -f "centreon" -e "contact@centreon.com" -y -r ${{ matrix.distrib }}
           debuild-pbuilder --no-lintian
