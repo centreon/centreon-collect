@@ -71,7 +71,11 @@ function EventQueue.new(params)
   self.sc_params.params.accepted_categories = params.accepted_categories or "neb"
   self.sc_params.params.accepted_elements = params.accepted_elements or "host_status,service_status,acknowledgement"
   self.sc_params.params.use_severity_as_state = params.use_severity_as_state or 0
+<<<<<<< HEAD
 
+=======
+  
+>>>>>>> centreon-stream-connector-scripts/MON-14867-warp10v2
   -- apply users params and check syntax of standard ones
   self.sc_params:param_override(params)
   self.sc_params:check_params()
@@ -80,7 +84,11 @@ function EventQueue.new(params)
   if self.sc_params.params.connector_name_type ~= "poller" and self.sc_params.params.connector_name_type ~= "custom" then
     self.sc_params.params.connector_name_type = "poller"
   end
+<<<<<<< HEAD
 
+=======
+  
+>>>>>>> centreon-stream-connector-scripts/MON-14867-warp10v2
   self.sc_macros = sc_macros.new(self.sc_params.params, self.sc_logger)
   self.format_template = self.sc_params:load_event_format_file(true)
 
@@ -379,7 +387,11 @@ function EventQueue:build_payload(payload, event)
   else
     table.insert(payload, event)
   end
+<<<<<<< HEAD
 
+=======
+  
+>>>>>>> centreon-stream-connector-scripts/MON-14867-warp10v2
   return payload
 end
 
