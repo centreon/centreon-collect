@@ -49,7 +49,6 @@ class mysql_bulk_bind : public mysql_bind_base {
    */
   mysql_bulk_bind(int size, size_t reserved_rows_count);
   ~mysql_bulk_bind() noexcept = default;
-  void set_size(int size);
 
   /**
    * @brief getter to the int32 value at index range. The type of the column
@@ -279,7 +278,6 @@ class mysql_bulk_bind : public mysql_bind_base {
   int get_size() const;
   bool value_is_null(size_t range) const;
   bool empty() const;
-  void set_empty();
   size_t rows_count() const;
 
   size_t current_row() const;

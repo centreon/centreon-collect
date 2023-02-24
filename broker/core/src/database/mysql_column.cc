@@ -26,22 +26,6 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
 
 /**
- * @brief Constructor of a mysql_column. The row_count parameter is a
- * reservation, not a predefined size.
- *
- * @param type The type of the column to allocate.
- * @param row_count The number of rows to reserve whereas the initial size is 0.
- */
-mysql_column::mysql_column(int type, size_t row_count)
-    : _type(type), _rows_to_reserve(row_count), _vector{nullptr} {
-  /* Reservation of rows if possible */
-  if (row_count > 0)
-    reserve(row_count);
-  /* Setting the type and allocate the vector of data with the good type */
-  set_type(type);
-}
-
-/**
  * @brief Destructor
  */
 mysql_column::~mysql_column() noexcept {
@@ -50,21 +34,6 @@ mysql_column::~mysql_column() noexcept {
     _free_vector();
 }
 
-/**
- * @brief Move constructor.
- *
- * @param other The column to move.
- */
-mysql_column::mysql_column(mysql_column&& other)
-    : _type(other._type),
-      _row_count(other._row_count),
-      _current_row(other._current_row),
-      _vector(other._vector),
-      _indicator(std::move(other._indicator)),
-      _error(std::move(other._error)),
-      _length(std::move(other._length)) {
-  other._vector = nullptr;
-}
 
 /**
  * @brief Move operator
@@ -73,21 +42,6 @@ mysql_column::mysql_column(mysql_column&& other)
  *
  * @return a reference of this column.
  */
-mysql_column& mysql_column::operator=(mysql_column&& other) {
-  if (this == &other)
-    return *this;
-
-  _type = other._type;
-  _row_count = other._row_count;
-  _current_row = other._current_row;
-  _length = std::move(other._length);
-  _error = std::move(other._error);
-  _indicator = std::move(other._indicator);
-  _free_vector();
-  _vector = other._vector;
-  other._vector = nullptr;
-  return *this;
-}
 
 /**
  * @brief Destroy the main vector of the column.

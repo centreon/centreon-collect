@@ -34,18 +34,6 @@ mysql_bulk_bind::mysql_bulk_bind(int size, size_t reserved_rows_count)
 }
 
 /**
- * @brief Set the size of the bind, that is to say the number of columns.
- *
- * @param size An integer.
- */
-void mysql_bulk_bind::set_size(int size) {
-  _bind.resize(size);
-  _column.resize(size);
-  for (int i = 0; i < size; ++i)
-    _bind[i].buffer = _column[i].get_buffer();
-}
-
-/**
  * @brief Prepare the column at index range by setting the given type.
  *
  * @param range
@@ -140,15 +128,6 @@ bool mysql_bulk_bind::empty() const {
  */
 size_t mysql_bulk_bind::rows_count() const {
   return _column[0].array_size();
-}
-
-/**
- * @brief Empty the bind. Actually, the current_row is set to -1.
- */
-void mysql_bulk_bind::set_empty() {
-  for (auto& c : _column)
-    c.clear();
-  _current_row = 0;
 }
 
 /**
