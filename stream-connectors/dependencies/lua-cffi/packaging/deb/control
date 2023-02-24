@@ -9,7 +9,7 @@ Standards-Version: 4.5.0
 Homepage: https://wwww.centreon.com
 
 Package: lua-cffi
-Architecture: any
+Architecture: all
 Depends:
   libffi7,
   libffi-dev,

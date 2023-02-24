@@ -9,7 +9,7 @@ Standards-Version: 4.5.0
 Homepage: https://wwww.centreon.com
 
 Package: centreon-stream-connectors-lib
-Architecture: any
+Architecture: all
 Depends:
   centreon-broker-core (>= 22.04.0),
   lua-socket (>= 3.0~),
