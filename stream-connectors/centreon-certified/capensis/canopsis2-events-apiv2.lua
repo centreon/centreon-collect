@@ -363,13 +363,9 @@ function EventQueue:build_payload(payload, event)
   if not payload then
     payload = event
   else
-<<<<<<< HEAD
-    payload = table.insert(payload, event)
-=======
     table.insert(payload, event)
->>>>>>> stream-connectors/master
   end
-  
+
   return payload
 end
 

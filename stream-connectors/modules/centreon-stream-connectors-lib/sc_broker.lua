@@ -1,9 +1,5 @@
 #!/usr/bin/lua
 
-<<<<<<< HEAD
-
-=======
->>>>>>> stream-connectors/master
 --- 
 -- Module with Centreon broker related methods for easier usage
 -- @module sc_broker
