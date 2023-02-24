@@ -16,8 +16,8 @@
 ** For more information : contact@centreon.com
 */
 
-#ifndef CCB_GRPC_STREAM_HH__
-#define CCB_GPRC_STREAM_HH__
+#ifndef CCB_GRPC_STREAM_HH
+#define CCB_GRPC_STREAM_HH
 
 #include "channel.hh"
 
