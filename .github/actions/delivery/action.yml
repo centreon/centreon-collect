@@ -77,7 +77,6 @@ runs:
 
     - name: Publish packages
       run: |
-        set -x
         if [[ -z "$GITHUB_HEAD_REF" ]];
         then
           BRANCHNAME="$GITHUB_REF_NAME"
@@ -96,9 +95,8 @@ runs:
             SUBREPO="stable"
             ;;
           *)
-            SUBREPO="unstable"
-            #echo -n "[INFO] NO DELIVERY FOR THIS BRANCH"
-            #exit 0
+            echo -n "[INFO] NO DELIVERY FOR THIS BRANCH"
+            exit 0
             ;;
         esac
 

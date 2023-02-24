@@ -82,7 +82,6 @@ jobs:
 
       - if: ${{ matrix.lib == 'lua-curl' }}
         run: |
-          set -x
           luarocks install lua-curl
           luarocks show lua-curl
           luarocks show lua-curl | grep "Lua-cURL\s[0-9]" | cut -d' ' -f2 | perl -nle 'm/(\d+\.\d+(\.\d+)?)/; print $1' >> version.txt

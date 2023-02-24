@@ -7,9 +7,9 @@ concurrency:
 
 on:
   workflow_dispatch:
-  # pull_request:
-  #   paths:
-  #     - '.github/workflows/robot-nightly.yml'
+  pull_request:
+    paths:
+      - '.github/workflows/robot-nightly.yml'
   schedule:
     - cron: '0 0 * * *'
 
