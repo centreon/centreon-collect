@@ -2,6 +2,7 @@ Source: centreon-stream-connectors-lib
 Section: interpreters
 Priority: optional
 Maintainer: Centreon <contact@centreon.com>
+Version: 3.6.0
 Build-Depends:
   debhelper-compat (=12),
   dh-lua (>= 21)
