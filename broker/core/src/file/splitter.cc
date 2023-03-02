@@ -158,7 +158,8 @@ long splitter::read(void* buffer, long max_size) {
   // Read data.
   long rb = disk_accessor::instance().fread(buffer, 1, max_size, _rfile.get());
   std::string file_path(get_file_path(_rid));
-  log_v2::bbdo()->debug("file: read {} bytes from '{}'", rb, file_path);
+  log_v2::bbdo()->debug("file: read {} bytes offset {} from '{}'", rb, _roffset,
+                        file_path);
   _roffset += rb;
   if (rb == 0) {
     if (feof(_rfile.get())) {
@@ -243,15 +244,14 @@ long splitter::write(void const* buffer, long size) {
                         get_file_path(_wid));
 
   // Write data.
-  size_t wb = disk_accessor::instance().fwrite(buffer, 1, size, _wfile.get());
-  if (wb > 0)
+  long remaining = size;
+  const char* to_write = static_cast<const char*>(buffer);
+  while (remaining > 0) {
+    long wb = disk_accessor::instance().fwrite(to_write, 1, remaining, _wfile.get());
+    remaining -= wb;
+    to_write += wb;
     _woffset += wb;
-  else {
-    log_v2::core()->error(
-        "file: error while writing event into the file '{}' - event lost: {}",
-        get_file_path(_wid), strerror(errno));
   }
-
   return size;
 }
 
@@ -357,14 +357,14 @@ void splitter::_open_read_file() {
       _rmutex = _wmutex;
     } else {
       std::string fname(get_file_path(_rid));
-      FILE* f = disk_accessor::instance().fopen(fname, "r+");
+      FILE* f = disk_accessor::instance().fopen(fname, "r+b");
       if (f) {
-        SPDLOG_LOGGER_DEBUG(log_v2::bbdo(), "splitter read open {}", fname);
+        log_v2::bbdo()->debug("splitter read open {}", fname);
+        _rfile = std::shared_ptr<FILE>(f, fclose);
       } else {
-        SPDLOG_LOGGER_ERROR(log_v2::bbdo(), "splitter read fail open {}",
-                            fname);
+        log_v2::bbdo()->error("splitter read fail open {}", fname);
+        _rfile = std::shared_ptr<FILE>();
       }
-      _rfile = f ? std::shared_ptr<FILE>(f, fclose) : std::shared_ptr<FILE>();
       if (_rfile)
         _rmutex = &_mutex1;
     }
@@ -393,14 +393,14 @@ void splitter::_open_write_file() {
       _wmutex = _rmutex;
     } else {
       std::string fname(get_file_path(_wid));
-      FILE* f = disk_accessor::instance().fopen(fname, "a+");
+      FILE* f = disk_accessor::instance().fopen(fname, "a+b");
       if (f) {
-        SPDLOG_LOGGER_DEBUG(log_v2::bbdo(), "splitter write open {}", fname);
+        log_v2::bbdo()->debug("splitter write open {}", fname);
+        _wfile = std::shared_ptr<FILE>(f, fclose);
       } else {
-        SPDLOG_LOGGER_ERROR(log_v2::bbdo(), "splitter write fail open {}",
-                            fname);
+        log_v2::bbdo()->error("splitter write fail open {}", fname);
+        _wfile = std::shared_ptr<FILE>();
       }
-      _wfile = f ? std::shared_ptr<FILE>(f, fclose) : std::shared_ptr<FILE>();
       _wmutex = &_mutex2;
     }
   }
