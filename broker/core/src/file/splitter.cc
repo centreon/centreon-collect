@@ -154,7 +154,8 @@ long splitter::read(void* buffer, long max_size) {
   // Read data.
   long rb = fread(buffer, 1, max_size, _rfile.get());
   std::string file_path(get_file_path(_rid));
-  log_v2::bbdo()->debug("file: read {} bytes from '{}'", rb, file_path);
+  log_v2::bbdo()->debug("file: read {} bytes offset {} from '{}'", rb, _roffset,
+                        file_path);
   _roffset += rb;
   if (rb == 0) {
     if (feof(_rfile.get())) {
@@ -235,9 +236,11 @@ long splitter::write(void const* buffer, long size) {
 
   // Write data.
   long remaining = size;
+  const char* to_write = static_cast<const char*>(buffer);
   while (remaining > 0) {
-    long wb = fwrite(buffer, 1, remaining, _wfile.get());
+    long wb = fwrite(to_write, 1, remaining, _wfile.get());
     remaining -= wb;
+    to_write += wb;
     _woffset += wb;
   }
   return size;
@@ -345,7 +348,7 @@ void splitter::_open_read_file() {
       _rmutex = _wmutex;
     } else {
       std::string fname(get_file_path(_rid));
-      FILE* f = fopen(fname.c_str(), "r+");
+      FILE* f = fopen(fname.c_str(), "r+b");
       if (f) {
         log_v2::bbdo()->debug("splitter read open {}", fname);
       } else {
@@ -380,7 +383,7 @@ void splitter::_open_write_file() {
       _wmutex = _rmutex;
     } else {
       std::string fname(get_file_path(_wid));
-      FILE* f = fopen(fname.c_str(), "a+");
+      FILE* f = fopen(fname.c_str(), "a+b");
       if (f) {
         log_v2::bbdo()->debug("splitter write open {}", fname);
       } else {
