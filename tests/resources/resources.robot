@@ -109,6 +109,11 @@ Start Engine
 	 ${lib}=	Catenate	SEPARATOR=	${VarRoot}  /lib/centreon-engine/config	${idx}
 	 Create Directory	${log}
 	 Create Directory	${lib}
+	 TRY
+	 	Remove File  ${lib}/rw/centengine.cmd
+	 EXCEPT
+	 	Log  can't remove ${lib}/rw/centengine.cmd don't worry
+	 END
 	 Start Process	/usr/sbin/centengine	${conf}	alias=${alias}
 	END
 
