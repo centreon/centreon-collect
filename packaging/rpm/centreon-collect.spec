@@ -14,7 +14,6 @@ Source1: centreonengine_integrate_centreon_engine2centreon.sh
 %define nextmajor 21.11.0
 
 Group: Applications/Communications
-License: Apache-2.0
 URL: https://github.com/centreon/centreon-collect.git
 Packager: David Boucher <dboucher@centreon.com>
 Vendor: Centreon Entreprise Server (CES) Repository, http://yum.centreon.com/standard/
