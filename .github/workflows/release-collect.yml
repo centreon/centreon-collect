@@ -1,20 +1,25 @@
 ---
-name: Tag centreon collect releases
+name: Create collect jira version
 
 on:
   pull_request_target:
     types:
       - closed
     branches:
-      - "master"
-      - "*.x"
-      - "!dev*"
+      - master
+      - "[2-9][0-9].[0-9][0-9].x"
     paths:
-      - ".github/actions/release/action.yml"
+      - "centreon-collect/**"
+      - "!centreon-collect/packages/**"
+      - other paths where code may be changed (ask David)
   workflow_dispatch:
+
+env:
+  module: "collect"
 
 jobs:
   release:
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout sources
@@ -26,4 +31,6 @@ jobs:
         id: release
         uses: ./.github/actions/release
         with:
+          module_name: ${{ env.module }}
           jira_token: ${{ secrets.JIRA_TOKEN }}
+          jira_project_id: ${{ secrets.JIRA_PROJECT_ID }}
