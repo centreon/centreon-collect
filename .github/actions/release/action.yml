@@ -40,8 +40,6 @@ runs:
 
         if [ "$HOTFIX" == "hotfix" ]; then
           TYPE=Hotfix
-        elif [ "$BETA" == "beta" ]; then
-          TYPE=Beta
         else
           TYPE=Release
         fi
