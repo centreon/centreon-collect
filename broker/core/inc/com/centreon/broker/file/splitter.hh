@@ -38,8 +38,28 @@ namespace file {
  *  each time a new file is created.
  *
  *  We don't want to lock accesses to those files each time a reading or a
- *  writing is done. But we must lock access when we read and write on the same
- *  file. To aquieve this, we introduce two mutexes, _mutex1 and _mutex2. At
+ *  writing is done. But we must lock accesses when:
+ *  * we read and write on the same file.
+ *  * we write and write on the same file.
+ *
+ *  To aquieve this, all write operations are protected by a single mutex
+ *  _write_m. When a new sub file is created, when we write to a file, this
+ *  mutex is locked.
+ *
+ *  We can have several producers, that's why all write operations are
+ *  protected. But we only have one consumer. Two possibilities, the reader
+ *  reads a file already written and there is no need to have a protection.
+ *  The current read file is also written, and it is better to protect the
+ *  access.
+ *
+ *  _rid and _wid are indexes to the current files, _rid for reading and _wid
+ *  for writing., _rfile and _wfile are shared pointers to FILE structs.
+ *  _wid is also atomic so that read can read it without any protection.
+ *
+ *  _base_path is the base name of files, it may be followed by a number that
+ *  is _rid or _wid.
+ *
+ *  To aquieve this, we introduce two mutexes, _mutex1 and _mutex2. At
  *  the beginning, when the splitter is open for an action (read or write),
  *  there are two cases:
  *  * The file we want is not already open, so we open it and we associate one
@@ -47,12 +67,6 @@ namespace file {
  *    _rmutex, whereas for writing, mutex2 is chosen and set to _wmutex).
  *  * The file to access is already open. We get the same file and we get the
  *    same mutex pointer.
- *
- *  _rid and _wid are indexes to the current files, _rid for reading and _wid
- *  for writing., _rfile and _wfile are shared pointers to FILE structs.
- *
- *  _base_path is the base name of files, it may be followed by a number that
- *  is _rid or _wid.
  *
  *  _woffset and _roffset are offsets from the files begin to write or read.
  *
@@ -65,17 +79,15 @@ class splitter : public fs_file {
   bool _auto_delete;
   std::string _base_path;
   const uint32_t _max_file_size;
+
   std::shared_ptr<FILE> _rfile;
-  std::mutex* _rmutex;
   int32_t _rid;
   long _roffset;
+
+  std::mutex _write_m;
   std::shared_ptr<FILE> _wfile;
-  std::mutex* _wmutex;
-  int32_t _wid;
+  std::atomic_int _wid;
   long _woffset;
-  std::mutex _mutex1;
-  std::mutex _mutex2;
-  std::mutex _id_m;
 
   void _open_read_file();
   void _open_write_file();
