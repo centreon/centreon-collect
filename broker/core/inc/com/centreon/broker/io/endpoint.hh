@@ -21,6 +21,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include "com/centreon/broker/io/muxer_filter.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/namespace.hh"
 
@@ -44,6 +45,8 @@ class endpoint {
   bool _is_acceptor;
   std::set<uint32_t> _filter;
 
+  muxer_filter<> _muxer_filter;
+
  public:
   endpoint(bool is_accptr);
   endpoint(endpoint const& other);
@@ -56,6 +59,8 @@ class endpoint {
   virtual bool is_ready() const;
   virtual void stats(nlohmann::json& tree);
   void set_filter(std::set<uint32_t> const& filter);
+
+  const muxer_filter<>& get_muxer_filter() const { return _muxer_filter; }
 };
 }  // namespace io
 
