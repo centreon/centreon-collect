@@ -52,10 +52,9 @@ splitter::splitter(std::string const& path,
       _max_file_size{max_file_size == 0u ? std::numeric_limits<uint32_t>::max()
                                          : std::max(max_file_size, 10000u)},
       _rfile{},
-      _rid{0},
       _roffset{0},
+      _write_m{},
       _wfile{},
-      _wid{0},
       _woffset{0} {
   // Get IDs of already existing file parts. File parts are suffixed
   // with their order number. A file named /var/lib/foo would have
