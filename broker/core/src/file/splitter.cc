@@ -1,5 +1,5 @@
 /*
-** Copyright 2020 Centreon
+** Copyright 2020-2023 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -134,13 +134,19 @@ void splitter::close() {
  *  @return Number of bytes read.
  */
 long splitter::read(void* buffer, long max_size) {
+  /* No lock here, there is only one consumer. */
   if (!_rfile) {
     _open_read_file();
     if (!_rfile)
       return 0;
   }
 
+  /* We introduce the locker, but don't lock if not necessary */
   std::unique_lock<std::mutex> lck(_write_m, std::defer_lock);
+
+  /* Here, _wid is atomic so we can read it. Maybe when we'll lock _wid will
+   * be greater but it is not so important. Usually, if _rid == _wid, we read
+   * and write in the same file, so we have to lock the mutex. */
   if (_rid == _wid)
     lck.lock();
 
@@ -157,16 +163,19 @@ long splitter::read(void* buffer, long max_size) {
       if (_auto_delete) {
         log_v2::bbdo()->info("file: end of file '{}' reached, erasing it",
                              file_path);
+        /* Here we have to really verify that _wfile and _rfile are the same,
+         * and then we close files before removing them. */
         if (lck.owns_lock() && _wfile == _rfile) {
           _rfile.reset();
           _wfile.reset();
-        }
-        else
+        } else
           _rfile.reset();
         std::remove(file_path.c_str());
       }
       if (_rid < _wid) {
         _rid++;
+        /* As we said earlier, maybe we locked lck abusively while _rid < _wid
+         */
         if (lck.owns_lock())
           lck.unlock();
         return read(buffer, max_size);
@@ -222,9 +231,9 @@ long splitter::write(void const* buffer, long size) {
   if ((_woffset + size) > _max_file_size) {
     if (fflush(_wfile.get())) {
       log_v2::bbdo()->error("splitter: cannot flush file '{}'",
-        get_file_path(_wid));
-    throw msg_fmt("cannot flush file '{}': {}",
-                  get_file_path(_wid), strerror(errno));
+                            get_file_path(_wid));
+      throw msg_fmt("cannot flush file '{}': {}", get_file_path(_wid),
+                    strerror(errno));
     }
     ++_wid;
     _open_write_file();
@@ -253,6 +262,7 @@ long splitter::write(void const* buffer, long size) {
  *  Flush the write stream.
  */
 void splitter::flush() {
+  std::lock_guard<std::mutex> lck(_write_m);
   if (fflush(_wfile.get()) == EOF)
     throw msg_fmt("error while writing the file '{}' content: {}",
                   get_file_path(_wid), strerror(errno));

@@ -43,14 +43,15 @@ namespace file {
  *  * we write and write on the same file.
  *
  *  To aquieve this, all write operations are protected by a single mutex
- *  _write_m. When a new sub file is created, when we write to a file, this
+ *  _write_m. When a new sub-file is created, when we write to a file, this
  *  mutex is locked.
  *
  *  We can have several producers, that's why all write operations are
  *  protected. But we only have one consumer. Two possibilities, the reader
  *  reads a file already written and there is no need to have a protection.
- *  The current read file is also written, and it is better to protect the
- *  access.
+ *  The current read file is also written, and it is mandatory to protect the
+ *  access. So in the read method the _write_m mutex is locked only when we
+ *  read in the same file as we write into.
  *
  *  _rid and _wid are indexes to the current files, _rid for reading and _wid
  *  for writing., _rfile and _wfile are shared pointers to FILE structs.
@@ -59,21 +60,7 @@ namespace file {
  *  _base_path is the base name of files, it may be followed by a number that
  *  is _rid or _wid.
  *
- *  To aquieve this, we introduce two mutexes, _mutex1 and _mutex2. At
- *  the beginning, when the splitter is open for an action (read or write),
- *  there are two cases:
- *  * The file we want is not already open, so we open it and we associate one
- *    mutex to it (for reading, mutex1 is chosen and we set its pointer to
- *    _rmutex, whereas for writing, mutex2 is chosen and set to _wmutex).
- *  * The file to access is already open. We get the same file and we get the
- *    same mutex pointer.
- *
  *  _woffset and _roffset are offsets from the files begin to write or read.
- *
- *  A third mutex id_m is set essentially when it is time to open a file. It
- *  is the _wid and _rid lock. _rmutex and _wmutex are set while it is locked.
- *
- *  FIXME: Maybe a better algorithm would allow us to avoid it.
  */
 class splitter : public fs_file {
   bool _auto_delete;
