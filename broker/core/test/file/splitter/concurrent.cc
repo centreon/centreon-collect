@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 - 2019 Centreon (https://www.centreon.com/)
+ * Copyright 2011 - 2023 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,8 @@
  * For more information : contact@centreon.com
  *
  */
-#include <gtest/gtest.h>
 #include <absl/types/span.h>
+#include <gtest/gtest.h>
 
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/file/cfile.hh"
@@ -166,8 +166,8 @@ TEST_F(FileSplitterConcurrent, MultipleFilesCreated) {
 }
 
 // Given a splitter object
-// When we write and read at the same time the object
-// Then the read buffer contains the same content than the written buffer.
+// When twenty writers write in parallel in the splitter
+// Then the reader can read all what they wrote and data are not corrupted.
 TEST_F(FileSplitterConcurrent, ConcurrentWriteFile10) {
   constexpr int COUNT = 20;
   constexpr int LENGTH = 1000;
@@ -220,8 +220,7 @@ TEST_F(FileSplitterConcurrent, ConcurrentWriteFile10) {
   ASSERT_EQ(result.size(), COUNT * LENGTH);
   ASSERT_EQ(result.size() % BLOCK, 0);
   for (uint32_t delta = 0; delta < result.size(); delta += BLOCK) {
-    absl::Span<uint8_t> res(const_cast<uint8_t*>(result.data()) + delta,
-                            BLOCK);
+    absl::Span<uint8_t> res(const_cast<uint8_t*>(result.data()) + delta, BLOCK);
 
     // Then
     char v = res[0];
