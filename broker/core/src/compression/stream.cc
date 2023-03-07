@@ -162,9 +162,9 @@ bool stream::read(std::shared_ptr<io::data>& data, time_t deadline) {
   } catch (exceptions::shutdown const& e) {
     _shutdown = true;
     if (!_wbuffer.empty()) {
-      std::shared_ptr<io::raw> r(new io::raw);
-      r.get()->get_buffer() = _wbuffer;
-      data = r;
+      auto r = std::make_shared<io::raw>();
+      r.get()->get_buffer() = std::move(_wbuffer);
+      data = std::move(r);
       _wbuffer.clear();
     } else
       throw;
