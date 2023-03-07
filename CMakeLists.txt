@@ -40,12 +40,19 @@ endif()
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -stdlib=libc++")
 # set(CMAKE_CXX_COMPILER "clang++")
 add_definitions("-D_GLIBCXX_USE_CXX11_ABI=1")
+
 option(NG "C++17 build." OFF)
 
 if(NG)
   set(CMAKE_CXX_STANDARD 17)
 else()
   set(CMAKE_CXX_STANDARD 14)
+endif()
+
+# Useful to debug when compiled with CLANG
+string(TOLOWER "${CMAKE_BUILD_TYPE}" build_type)
+if(build_type STREQUAL "debug")
+  add_definitions("-D_GLIBCXX_DEBUG")
 endif()
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
