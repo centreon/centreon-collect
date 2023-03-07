@@ -17,7 +17,7 @@
 */
 
 #ifndef CCB_GRPC_STREAM_HH__
-#define CCB_GPRC_STREAM_HH__
+#define CCB_GRPC_STREAM_HH__
 
 #include "channel.hh"
 
