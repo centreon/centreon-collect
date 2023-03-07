@@ -206,7 +206,8 @@ void handle::open() {
       throw(engine_error() << "Function nebmodule_init "
                               "returned an error");
 
-  } catch (std::exception const&) {
+  } catch (std::exception const& e) {
+    log_v2::process()->error("fail to load broker module {}", e.what());
     close();
     throw;
   }

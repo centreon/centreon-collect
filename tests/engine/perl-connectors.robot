@@ -9,6 +9,7 @@ Library	Process
 Library	OperatingSystem
 Library	DateTime
 Library	../resources/Engine.py
+Library	../resources/Broker.py
 Library	../resources/Common.py
 
 *** Test Cases ***
@@ -16,6 +17,7 @@ EPC1
 	[Documentation]	Check with perl connector
 	[Tags]	Engine	start-stop
 	Config Engine	${1}
+	Config Broker  module 
 	Engine Config Set Value	${0}	log_level_commands	trace
 	${start}=	Get Current Date
 
