@@ -27,8 +27,8 @@ using namespace com::centreon::engine::configuration;
 #define SETTER(type, method) &object::setter<tag, type, &tag::method>::generic
 
 const absl::flat_hash_map<std::string, tag::setter_func> tag::_setters{
-    {"name", SETTER(const std::string&, _set_tag_name)},
-    {"tag_name", SETTER(const std::string&, _set_tag_name)},
+    {"name", SETTER(const std::string&, _set_name)},
+    {"tag_name", SETTER(const std::string&, _set_name)},
     {"id", SETTER(uint64_t, _set_id)},
     {"tag_id", SETTER(uint64_t, _set_id)},
     {"type", SETTER(const std::string&, _set_type)},
@@ -48,7 +48,7 @@ tag::tag(const key_type& key) : object(object::tag), _key{key} {}
  * @param other The tag to copy.
  */
 tag::tag(const tag& other)
-    : object(other), _key{other._key}, _tag_name{other._tag_name} {}
+    : object(other), _key{other._key}, _name{other._name} {}
 
 /**
  * @brief Assign operator.
@@ -61,7 +61,7 @@ tag& tag::operator=(const tag& other) {
   if (this != &other) {
     object::operator=(other);
     _key = other._key;
-    _tag_name = other._tag_name;
+    _name = other._name;
   }
   return *this;
 }
@@ -74,7 +74,7 @@ tag& tag::operator=(const tag& other) {
  * @return True if objects are equal, False otherwise.
  */
 bool tag::operator==(const tag& other) const noexcept {
-  return _key == other._key && _tag_name == other._tag_name;
+  return _key == other._key && _name == other._name;
 }
 
 /**
@@ -85,7 +85,7 @@ bool tag::operator==(const tag& other) const noexcept {
  * @return False if objects are equal, True otherwise.
  */
 bool tag::operator!=(const tag& other) const noexcept {
-  return _key != other._key || _tag_name != other._tag_name;
+  return _key != other._key || _name != other._name;
 }
 
 /**
@@ -98,7 +98,7 @@ bool tag::operator!=(const tag& other) const noexcept {
 bool tag::operator<(const tag& other) const noexcept {
   if (_key != other._key)
     return _key < other._key;
-  return _tag_name < other._tag_name;
+  return _name < other._name;
 }
 
 /**
@@ -111,8 +111,8 @@ bool tag::operator<(const tag& other) const noexcept {
  * If the object is not valid, an exception is thrown.
  */
 void tag::check_validity() const {
-  if (_tag_name.empty())
-    throw engine_error() << "Tag has no name (property 'tag_name')";
+  if (_name.empty())
+    throw engine_error() << "Tag has no name (property 'name')";
   if (_key.first == 0)
     throw engine_error() << "Tag id must not be less than 1 (property 'id')";
   if (_key.second == static_cast<uint16_t>(-1))
@@ -133,8 +133,8 @@ const tag::key_type& tag::key() const noexcept {
  *
  * @return Severity name.
  */
-const std::string& tag::tag_name() const noexcept {
-  return _tag_name;
+const std::string& tag::name() const noexcept {
+  return _name;
 }
 
 /**
@@ -206,7 +206,7 @@ bool tag::_set_type(const std::string& typ) {
  *
  * @return True on success.
  */
-bool tag::_set_tag_name(const std::string& name) {
-  _tag_name = name;
+bool tag::_set_name(const std::string& name) {
+  _name = name;
   return true;
 }

@@ -16,7 +16,7 @@
  * For more information : contact@centreon.com
  *
  */
-#ifndef _CCB_MISC_FIFO_CLIENT_HH
+#ifndef _CCB_MISC_FIFO_CLIENT
 #define _CCB_MISC_FIFO_CLIENT_HH
 
 #include "com/centreon/broker/namespace.hh"

@@ -41,14 +41,14 @@ class tag : public object {
  private:
   typedef bool (*setter_func)(tag&, const char*);
   key_type _key;
-  std::string _tag_name;
+  std::string _name;
 
   bool _set_id(uint64_t id);
   bool _set_type(const std::string& type);
-  bool _set_tag_name(const std::string& name);
+  bool _set_name(const std::string& name);
 
  public:
-  tag(const key_type& key = {0, -1});
+  tag(const key_type& key = {0, 0});
   tag(const tag& other);
   ~tag() noexcept override = default;
   tag& operator=(const tag& other);
@@ -60,7 +60,7 @@ class tag : public object {
   void merge(const object& obj) override;
   bool parse(const char* key, const char* value) override;
 
-  const std::string& tag_name() const noexcept;
+  const std::string& name() const noexcept;
 
   static const absl::flat_hash_map<std::string, setter_func> _setters;
 };

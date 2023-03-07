@@ -40,12 +40,12 @@ class severity : public object {
   key_type _key;
   uint32_t _level;
   uint64_t _icon_id;
-  std::string _severity_name;
+  std::string _name;
 
   bool _set_id(uint64_t id);
   bool _set_level(uint32_t level);
   bool _set_icon_id(uint64_t icon_id);
-  bool _set_severity_name(const std::string& name);
+  bool _set_name(const std::string& name);
   bool _set_type(const std::string& typ);
 
  public:
@@ -63,7 +63,7 @@ class severity : public object {
 
   uint32_t level() const noexcept;
   uint64_t icon_id() const noexcept;
-  const std::string& severity_name() const noexcept;
+  const std::string& name() const noexcept;
   uint16_t type() const noexcept;
 
   static const absl::flat_hash_map<std::string, setter_func> _setters;

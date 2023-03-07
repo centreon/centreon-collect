@@ -17,7 +17,7 @@
 */
 
 #ifndef CCB_GRPC_SERVER_HH
-#define CCB_GRPC_SERVER_HH
+#define CCB_GPRC_SERVER_HH
 
 #include "channel.hh"
 

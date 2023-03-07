@@ -38,21 +38,21 @@ enum data_category {
   internal = 65535
 };
 constexpr uint16_t category_id(const char* name) {
-  if (absl::string_view("neb", 3) == name)
+  if (strncmp("neb", name, 4) == 0)
     return neb;
-  if (absl::string_view("bbdo", 4) == name)
+  if (strncmp("bbdo", name, 5) == 0)
     return bbdo;
-  if (absl::string_view("storage", 7) == name)
+  if (strncmp("storage", name, 8) == 0)
     return storage;
-  if (absl::string_view("internal", 8) == name)
+  if (strncmp("internal", name, 9) == 0)
     return internal;
-  if (absl::string_view("bam", 3) == name)
+  if (strncmp("bam", name, 4) == 0)
     return bam;
-  if (absl::string_view("extcmd", 6) == name)
+  if (strncmp("extcmd", name, 7) == 0)
     return extcmd;
-  if (absl::string_view("dumper", 6) == name)
+  if (strncmp("dumper", name, 7) == 0)
     return dumper;
-  if (absl::string_view("generator", 9) == name)
+  if (strncmp("generator", name, 10) == 0)
     return generator;
   return none;
 }

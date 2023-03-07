@@ -25,7 +25,7 @@ namespace com {
 namespace centreon {
 namespace broker {
 namespace grpc {
-struct detail_centreon_event;
+class detail_centreon_event;
 std::ostream& operator<<(std::ostream&, const detail_centreon_event&);
 }  // namespace grpc
 namespace stream {

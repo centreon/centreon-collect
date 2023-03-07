@@ -23,17 +23,15 @@
 #include <absl/container/flat_hash_map.h>
 
 /* Forward declaration. */
-namespace com {
-namespace centreon {
-namespace engine {
+namespace com::centreon::engine {
 class tag;
 }
-}  // namespace centreon
-}  // namespace com
 
 using tag_map =
     absl::flat_hash_map<std::pair<uint64_t, uint16_t>,
                         std::shared_ptr<com::centreon::engine::tag>>;
+using tag_map_unsafe =
+    absl::flat_hash_map<std::string, com::centreon::engine::tag*>;
 
 CCE_BEGIN()
 
@@ -78,5 +76,6 @@ CCE_END()
 
 std::ostream& operator<<(std::ostream& os,
                          com::centreon::engine::tag const& obj);
+std::ostream& operator<<(std::ostream& os, tag_map_unsafe const& obj);
 
 #endif  // !CCE_TAG_HH

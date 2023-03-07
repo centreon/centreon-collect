@@ -46,7 +46,7 @@ void applier::tag::add_object(const configuration::tag& obj) {
 
   auto tg{std::make_shared<engine::tag>(
       obj.key().first, static_cast<engine::tag::tagtype>(obj.key().second),
-      obj.tag_name())};
+      obj.name())};
   if (!tg)
     throw engine_error() << "Could not register tag (" << obj.key().first << ","
                          << obj.key().second << ")";
@@ -102,7 +102,7 @@ void applier::tag::modify_object(const configuration::tag& obj) {
     config->mut_tags().erase(it_cfg);
     config->mut_tags().insert(obj);
 
-    t->set_name(obj.tag_name());
+    t->set_name(obj.name());
 
     // Notify event broker.
     broker_adaptive_tag_data(NEBTYPE_TAG_UPDATE, t);
@@ -122,8 +122,7 @@ void applier::tag::remove_object(const configuration::tag& obj) {
                           obj.key().second);
 
   // Find tag.
-  tag_map::iterator it =
-      engine::tag::tags.find({obj.key().first, obj.key().second});
+  tag_map::iterator it = engine::tag::tags.find(obj.key(), obj.type());
   if (it != engine::tag::tags.end()) {
     engine::tag* tg(it->second.get());
 
@@ -144,9 +143,8 @@ void applier::tag::remove_object(const configuration::tag& obj) {
  *  @param[in] obj  Object to resolve.
  */
 void applier::tag::resolve_object(const configuration::tag& obj) {
-  tag_map::const_iterator tg_it{engine::tag::tags.find(obj.key())};
-  if (tg_it == engine::tag::tags.end() || !tg_it->second) {
+  tag_map::const_iterator tg_it{engine::tag::tags.find(obj.key(), obj.type())};
+  if (tg_it == engine::tag::tags.end() || !tg_it->second)
     throw engine_error() << "Cannot resolve non-existing tag ("
                          << obj.key().first << "," << obj.key().second << ")";
-  }
 }
