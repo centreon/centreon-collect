@@ -18,11 +18,24 @@
 
 #include "com/centreon/broker/bam/connector.hh"
 
+#include "bbdo/bam/ba_status.hh"
+#include "bbdo/bam/kpi_status.hh"
 #include "com/centreon/broker/bam/monitoring_stream.hh"
 #include "com/centreon/broker/bam/reporting_stream.hh"
+#include "com/centreon/broker/neb/acknowledgement.hh"
+#include "com/centreon/broker/neb/downtime.hh"
+#include "com/centreon/broker/neb/service.hh"
+#include "com/centreon/broker/neb/service_status.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;
+
+static constexpr io::muxer_filter<> _monitoring_stream_filter = {
+    neb::service_status::static_type(),    neb::service::static_type(),
+    neb::pb_service_status::static_type(), neb::pb_service::static_type(),
+    neb::acknowledgement::static_type(),   neb::downtime::static_type(),
+    bam::ba_status::static_type(),         bam::kpi_status::static_type(),
+    inherited_downtime::static_type()};
 
 /**
  *  Default constructor.
@@ -50,6 +63,7 @@ void connector::connect_monitoring(std::string const& ext_cmd_file,
     _storage_db_name = db_cfg.get_name();
   else
     _storage_db_name = storage_db_name;
+  _muxer_filter = _monitoring_stream_filter;
 }
 
 /**
@@ -61,6 +75,7 @@ void connector::connect_reporting(database_config const& db_cfg) {
   _type = bam_reporting_type;
   _db_cfg = db_cfg;
   _storage_db_name.clear();
+  TODO reporting_stream_filter
 }
 
 /**

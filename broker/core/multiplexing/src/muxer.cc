@@ -256,12 +256,17 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
               "muxer {} event of type {:x} rejected by write filter", _name,
               (*evt)->type());
           continue;
-        } else
-          SPDLOG_LOGGER_TRACE(log_v2::core(),
-                              "muxer {} event of type {:x} written", _name,
-                              (*evt)->type());
-
+        }
+        if (!_stream_filter.allowed((*evt)->type())) {
+          SPDLOG_LOGGER_TRACE(log_v2::core(), "muxer::publish {} reject {}",
+                              _name, **evt);
+          continue;
+        }
+        SPDLOG_LOGGER_TRACE(log_v2::core(),
+                            "muxer {} event of type {:x} written", _name,
+                            (*evt)->type());
         at_least_one_push_to_queue = true;
+
         _push_to_queue(*evt);
       }
     }
@@ -281,10 +286,12 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
             "muxer {} event of type {:x} rejected by write filter", _name,
             (*evt)->type());
         continue;
-      } else
-        SPDLOG_LOGGER_TRACE(log_v2::core(),
-                            "muxer {} event of type {:x} written", _name,
-                            (*evt)->type());
+      }
+      if (!_stream_filter.allowed((*evt)->type())) {
+        continue;
+      }
+      SPDLOG_LOGGER_TRACE(log_v2::core(), "muxer {} event of type {:x} written",
+                          _name, (*evt)->type());
       if (!_file) {
         QueueFileStats* s =
             stats::center::instance().muxer_stats(_name)->mutable_queue_file();
@@ -608,4 +615,13 @@ void muxer::set_filters(muxer::filters r_filters, muxer::filters w_filters) {
   _write_filters = std::move(w_filters);
   _read_filters_str = misc::dump_filters(_read_filters);
   _write_filters_str = misc::dump_filters(_write_filters);
+}
+
+/**
+ * @brief set the stream filter of the muxer object
+ *
+ * @param filter
+ */
+void muxer::set_stream_filter(const io::muxer_filter<>& filter) {
+  _stream_filter = filter;
 }

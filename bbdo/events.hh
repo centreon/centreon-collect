@@ -35,6 +35,7 @@ enum data_category {
   bam = 6,
   extcmd = 7,
   generator = 8,
+  max_data_category = 9,
   internal = 65535
 };
 constexpr uint16_t category_id(const char* name) {

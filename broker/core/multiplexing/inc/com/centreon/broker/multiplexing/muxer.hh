@@ -20,6 +20,7 @@
 #define CCB_MULTIPLEXING_MUXER_HH
 
 #include <absl/container/flat_hash_map.h>
+#include "com/centreon/broker/io/muxer_filter.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/persistent_file.hh"
 
@@ -59,6 +60,7 @@ class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
   const std::string _queue_file_name;
   filters _read_filters;
   filters _write_filters;
+  io::muxer_filter<> _stream_filter;
   std::string _read_filters_str;
   std::string _write_filters_str;
   const bool _persistent;
@@ -114,6 +116,8 @@ class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
   int32_t stop() override;
   const std::string& name() const;
   void set_filters(muxer::filters r_filters, muxer::filters w_filters);
+
+  void set_stream_filter(const io::muxer_filter<>& filter);
 };
 }  // namespace multiplexing
 
