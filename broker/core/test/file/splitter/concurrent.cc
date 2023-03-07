@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 - 2019-2022 Centreon (https://www.centreon.com/)
+ * Copyright 2011 - 2023 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -168,8 +168,8 @@ TEST_F(FileSplitterConcurrent, MultipleFilesCreated) {
 }
 
 // Given a splitter object
-// When we write and read at the same time the object
-// Then the read buffer contains the same content than the written buffer.
+// When twenty writers write in parallel in the splitter
+// Then the reader can read all what they wrote and data are not corrupted.
 TEST_F(FileSplitterConcurrent, ConcurrentWriteFile10) {
   constexpr int COUNT = 20;
   constexpr int LENGTH = 1000;
