@@ -1,20 +1,20 @@
 /*
-** Copyright 2021-2022 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+ * Copyright 2021-2023 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 #include <fmt/format.h>
 
 #include "bbdo/storage/index_mapping.hh"
@@ -1535,9 +1535,8 @@ void stream::_process_pb_adaptive_host(const std::shared_ptr<io::data>& d) {
   int32_t conn = _mysql.choose_connection_by_instance(
       _cache_host_instance[static_cast<uint32_t>(ah.host_id())]);
 
-  constexpr const char* buf = "UPDATE hosts SET";
-  constexpr size_t size = strlen(buf);
-  std::string query{buf};
+  constexpr absl::string_view buf("UPDATE hosts SET");
+  std::string query{buf.data(), buf.size()};
   if (ah.has_notify())
     query += fmt::format(" notify='{}',", ah.notify() ? 1 : 0);
   if (ah.has_active_checks())
@@ -1587,7 +1586,7 @@ void stream::_process_pb_adaptive_host(const std::shared_ptr<io::data>& d) {
                         get_services_col_size(services_notification_period)));
 
   // If nothing was added to query, we can exit immediately.
-  if (query.size() > size) {
+  if (query.size() > buf.size()) {
     query.resize(query.size() - 1);
     query += fmt::format(" WHERE host_id={}", ah.host_id());
     log_v2::sql()->trace("SQL: query <<{}>>", query);
@@ -1595,9 +1594,8 @@ void stream::_process_pb_adaptive_host(const std::shared_ptr<io::data>& d) {
     _add_action(conn, actions::hosts);
 
     if (_store_in_resources) {
-      constexpr const char* res_buf = "UPDATE resources SET";
-      constexpr size_t res_size = strlen(res_buf);
-      std::string res_query{res_buf};
+      constexpr absl::string_view res_buf("UPDATE resources SET");
+      std::string res_query{res_buf.data(), res_buf.size()};
       if (ah.has_notify())
         res_query +=
             fmt::format(" notifications_enabled='{}',", ah.notify() ? 1 : 0);
@@ -1611,7 +1609,7 @@ void stream::_process_pb_adaptive_host(const std::shared_ptr<io::data>& d) {
         res_query +=
             fmt::format(" max_check_attempts={},", ah.max_check_attempts());
 
-      if (res_query.size() > res_size) {
+      if (res_query.size() > res_buf.size()) {
         res_query.resize(res_query.size() - 1);
         res_query += fmt::format(" WHERE parent_id=0 AND id={}", ah.host_id());
         log_v2::sql()->trace("SQL: query <<{}>>", res_query);
@@ -2721,9 +2719,8 @@ void stream::_process_pb_adaptive_service(const std::shared_ptr<io::data>& d) {
   int32_t conn = _mysql.choose_connection_by_instance(
       _cache_host_instance[static_cast<uint32_t>(as.host_id())]);
 
-  constexpr const char* buf = "UPDATE services SET";
-  constexpr size_t size = strlen(buf);
-  std::string query{buf};
+  constexpr absl::string_view buf("UPDATE services SET");
+  std::string query{buf.data(), buf.size()};
   if (as.has_notify())
     query += fmt::format(" notify='{}',", as.notify() ? 1 : 0);
   if (as.has_active_checks())
@@ -2774,7 +2771,7 @@ void stream::_process_pb_adaptive_service(const std::shared_ptr<io::data>& d) {
                         get_services_col_size(services_notification_period)));
 
   // If nothing was added to query, we can exit immediately.
-  if (query.size() > size) {
+  if (query.size() > buf.size()) {
     query.resize(query.size() - 1);
     query += fmt::format(" WHERE host_id={} AND service_id={}", as.host_id(),
                          as.service_id());
@@ -2783,9 +2780,8 @@ void stream::_process_pb_adaptive_service(const std::shared_ptr<io::data>& d) {
     _add_action(conn, actions::services);
 
     if (_store_in_resources) {
-      constexpr const char* res_buf = "UPDATE resources SET";
-      constexpr size_t res_size = strlen(res_buf);
-      std::string res_query{res_buf};
+      constexpr absl::string_view res_buf("UPDATE resources SET");
+      std::string res_query{res_buf.data(), res_buf.size()};
       if (as.has_notify())
         res_query +=
             fmt::format(" notifications_enabled='{}',", as.notify() ? 1 : 0);
@@ -2799,7 +2795,7 @@ void stream::_process_pb_adaptive_service(const std::shared_ptr<io::data>& d) {
         res_query +=
             fmt::format(" max_check_attempts={},", as.max_check_attempts());
 
-      if (res_query.size() > res_size) {
+      if (res_query.size() > res_buf.size()) {
         res_query.resize(res_query.size() - 1);
         res_query += fmt::format(" WHERE parent_id={} AND id={}", as.host_id(),
                                  as.service_id());
