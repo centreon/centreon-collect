@@ -53,6 +53,6 @@ int main(int argc, char* argv[]) {
   com::centreon::broker::log_v2::load(g_io_context);
   // Run all tests.
   int ret = RUN_ALL_TESTS();
-  //spdlog::shutdown();
+  spdlog::shutdown();
   return ret;
 }
