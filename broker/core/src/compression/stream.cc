@@ -102,8 +102,7 @@ bool stream::read(std::shared_ptr<io::data>& data, time_t deadline) {
         if (size <= 0 || size > max_data_size) {
           // Skip corrupted data, one byte at a time.
           log_v2::core()->error(
-              "compression: stream got corrupted packet size of {} bytes, not "
-              "in "
+              "compression: stream got corrupted packet size of {} bytes, not in "
               "the 0-{} range, skipping next byte",
               size, max_data_size);
           if (!skipped)
