@@ -27,6 +27,7 @@
 #include "com/centreon/engine/contact.hh"
 #include "com/centreon/engine/contactgroup.hh"
 #include "configuration/command_helper.hh"
+#include "configuration/connector_helper.hh"
 #include "configuration/contact_helper.hh"
 #include "configuration/contactgroup_helper.hh"
 #include "configuration/message_helper.hh"
@@ -281,6 +282,84 @@ TEST_F(ApplierContact, ModifyContactFromConfig) {
   ASSERT_TRUE(found->second->get_command_line() == "bar");
 }
 
+TEST_F(ApplierContact, PbModifyContactFromConfig) {
+  configuration::applier::contact aply;
+  configuration::applier::contactgroup aply_grp;
+  configuration::Contactgroup grp;
+  configuration::contactgroup_helper grp_hlp(&grp);
+  grp.set_contactgroup_name("test_group");
+  configuration::Contact ctct;
+  configuration::contact_helper ctct_hlp(&ctct);
+  ctct.set_contact_name("test");
+  fill_string_group(ctct.mutable_contactgroups(), "test_group");
+  fill_string_group(ctct.mutable_host_notification_commands(), "cmd1,cmd2");
+  fill_string_group(ctct.mutable_service_notification_commands(), "svc1,svc2");
+  ASSERT_TRUE(ctct_hlp.insert_customvariable("_superVar", "SuperValue"));
+  ASSERT_TRUE(ctct.customvariables().size() == 1);
+
+  configuration::applier::command cmd_aply;
+  configuration::applier::connector cnn_aply;
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 1");
+  cmd.set_connector("perl");
+  configuration::Connector cnn;
+  configuration::connector_helper cnn_hlp(&cnn);
+  cnn.set_connector_name("perl");
+  cnn_aply.add_object(cnn);
+  cmd_aply.add_object(cmd);
+
+  aply_grp.add_object(grp);
+  aply.add_object(ctct);
+  aply.expand_objects(pb_config);
+  ctct_hlp.hook("host_notification_commands", "cmd");
+  ctct_hlp.hook("service_notification_commands", "svc1,svc2");
+  ASSERT_TRUE(ctct_hlp.insert_customvariable("_superVar", "Super"));
+  ASSERT_TRUE(ctct_hlp.insert_customvariable("_superVar1", "Super1"));
+  ctct.set_alias("newAlias");
+  ASSERT_EQ(ctct.customvariables().size(), 2u);
+  ctct_hlp.hook("service_notification_options", "n");
+  aply.modify_object(&*pb_config.mutable_contacts()->begin(), ctct);
+  contact_map::const_iterator ct_it{engine::contact::contacts.find("test")};
+  ASSERT_TRUE(ct_it != engine::contact::contacts.end());
+  ASSERT_EQ(ct_it->second->get_custom_variables().size(), 2u);
+  ASSERT_TRUE(ct_it->second->get_custom_variables()["superVar"].value() ==
+              "Super");
+  ASSERT_TRUE(ct_it->second->get_custom_variables()["superVar1"].value() ==
+              "Super1");
+  ASSERT_TRUE(ct_it->second->get_alias() == "newAlias");
+  ASSERT_FALSE(ct_it->second->notify_on(notifier::service_notification,
+                                        notifier::unknown));
+
+  bool found = false;
+  for (auto it = (*pb_config.mutable_commands()).begin();
+       it != (*pb_config.mutable_commands()).end(); ++it) {
+    if (it->command_name() == "cmd") {
+      pb_config.mutable_commands()->erase(it);
+      found = true;
+      break;
+    }
+  }
+  ASSERT_TRUE(found)
+      << "Command 'cmd' not found among the configuration commands";
+
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("bar");
+  configuration::applier::command aplyr;
+  aplyr.add_object(cmd);
+  ctct_hlp.hook("host_notification_commands", "cmd");
+  auto* old_ct = &pb_config.mutable_contacts()->at(0);
+  ASSERT_TRUE(old_ct->contact_name() == "test");
+  aply.modify_object(old_ct, ctct);
+  {
+    command_map::iterator found{commands::command::commands.find("cmd")};
+    ASSERT_TRUE(found != commands::command::commands.end());
+    ASSERT_TRUE(found->second);
+    ASSERT_TRUE(found->second->get_command_line() == "bar");
+  }
+}
+
 // Given contactgroup / contact appliers
 // And a configuration contactgroup and a configuration contact
 // that are already in configuration
@@ -325,6 +404,27 @@ TEST_F(ApplierContact, PbResolveContactFromConfig) {
   aply.add_object(ctct);
   aply.expand_objects(pb_config);
   ASSERT_THROW(aply.resolve_object(ctct), std::exception);
+}
+
+// Given a contact
+// And an applier
+// When the contact is resolved by the applier
+// Then an exception is thrown
+// And 2 warnings and 2 errors are returned:
+//  * error 1 => no service notification command
+//  * error 2 => no host notification command
+//  * warning 1 => no service notification period
+//  * warning 2 => no host notification period
+TEST_F(ApplierContact, PbResolveContactNoNotification) {
+  configuration::applier::contact aply;
+  configuration::Contact ctct;
+  configuration::contact_helper ctct_hlp(&ctct);
+  ctct.set_contact_name("test");
+  aply.add_object(ctct);
+  aply.expand_objects(pb_config);
+  ASSERT_THROW(aply.resolve_object(ctct), std::exception);
+  ASSERT_EQ(config_warnings, 2);
+  ASSERT_EQ(config_errors, 2);
 }
 
 // Given a contact

@@ -197,6 +197,11 @@ absl::string_view message_helper::validate_key(
   return retval;
 }
 
+bool message_helper::insert_customvariable(absl::string_view key,
+                                           absl::string_view value) {
+  return false;
+}
+
 }  // namespace configuration
 }  // namespace engine
 }  // namespace centreon

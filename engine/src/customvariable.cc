@@ -94,6 +94,7 @@ std::string const& customvariable::value() const {
  */
 void customvariable::set_value(std::string const& value) {
   _value = value;
+  _modified = false;
 }
 
 /**
