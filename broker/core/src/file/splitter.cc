@@ -156,7 +156,8 @@ long splitter::read(void* buffer, long max_size) {
   // Read data.
   long rb = fread(buffer, 1, max_size, _rfile.get());
   std::string file_path(get_file_path(_rid));
-  log_v2::bbdo()->debug("splitter: read {} bytes from '{}'", rb, file_path);
+  log_v2::bbdo()->debug("splitter: read {} bytes at offset {} from '{}'", rb,
+                        _roffset, file_path);
   _roffset += rb;
   if (rb == 0) {
     if (feof(_rfile.get())) {
