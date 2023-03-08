@@ -214,8 +214,7 @@ void applier::contact::expand_objects(configuration::State& s) {
             "Could not add contact '{}' to non-existing contact group '{}'",
             c.contact_name(), cg);
 
-      fill_string_group(found_cg->mutable_members(),
-                        c.contact_name());
+      fill_string_group(found_cg->mutable_members(), c.contact_name());
     }
   }
 }
@@ -413,21 +412,26 @@ void applier::contact::modify_object(configuration::Contact* to_modify,
       if (found->second.value() != cfg_cv.value() ||
           found->second.is_sent() != cfg_cv.is_sent() ||
           found->second.has_been_modified()) {
+        found->second.set_value(cfg_cv.value());
+        found->second.set_sent(cfg_cv.is_sent());
         if (found->second.is_sent()) {
           timeval tv(get_broker_timestamp(nullptr));
           broker_custom_variable(NEBTYPE_CONTACTCUSTOMVARIABLE_DELETE, c,
                                  found->first.c_str(),
                                  found->second.value().c_str(), &tv);
+          broker_custom_variable(NEBTYPE_CONTACTCUSTOMVARIABLE_ADD, c,
+                                 found->first.c_str(),
+                                 found->second.value().c_str(), &tv);
         }
-        c->get_custom_variables().erase(found);
       }
+    } else {
       c->get_custom_variables().emplace(
           cfg_cv.name(), customvariable(cfg_cv.value(), cfg_cv.is_sent()));
       if (cfg_cv.is_sent()) {
         timeval tv(get_broker_timestamp(nullptr));
         broker_custom_variable(NEBTYPE_CONTACTCUSTOMVARIABLE_ADD, c,
-                               found->first.c_str(),
-                               found->second.value().c_str(), &tv);
+                               cfg_cv.name().c_str(), cfg_cv.value().c_str(),
+                               &tv);
       }
     }
   }
@@ -436,13 +440,13 @@ void applier::contact::modify_object(configuration::Contact* to_modify,
     for (auto it = c->get_custom_variables().begin();
          it != c->get_custom_variables().end();) {
       if (!keys.contains(it->first)) {
-        it = c->get_custom_variables().erase(it);
         if (it->second.is_sent()) {
           timeval tv(get_broker_timestamp(nullptr));
           broker_custom_variable(NEBTYPE_CONTACTCUSTOMVARIABLE_DELETE, c,
                                  it->first.c_str(), it->second.value().c_str(),
                                  &tv);
         }
+        it = c->get_custom_variables().erase(it);
       } else
         ++it;
     }
@@ -624,7 +628,7 @@ void applier::contact::modify_object(configuration::contact const& obj) {
  *  @param[in] obj  The new contact to remove from the monitoring engine.
  */
 void applier::contact::remove_object(ssize_t idx) {
-  const  configuration::Contact& obj = pb_config.contacts()[idx];
+  const configuration::Contact& obj = pb_config.contacts()[idx];
 
   // Logging.
   log_v2::config()->debug("Removing contact '{}'.", obj.contact_name());

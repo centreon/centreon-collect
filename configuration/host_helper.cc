@@ -198,6 +198,37 @@ void host_helper::_init() {
   obj->set_retry_interval(1);
   obj->set_stalking_options(action_hst_none);
 }
+
+/**
+ * @brief If the provided key/value have their parsing to fail previously,
+ * it is possible they are a customvariable. A customvariable name has its
+ * name starting with an underscore. This method checks the possibility to
+ * store a customvariable in the given object and stores it if possible.
+ *
+ * @param key   The name of the customvariable.
+ * @param value Its value as a string.
+ *
+ * @return True if the customvariable has been well stored.
+ */
+bool host_helper::insert_customvariable(absl::string_view key,
+                                        absl::string_view value) {
+  if (key[0] != '_')
+    return false;
+
+  key.remove_prefix(1);
+  Host* obj = static_cast<Host*>(mut_obj());
+  auto* cvs = obj->mutable_customvariables();
+  for (auto& c : *cvs) {
+    if (c.name() == key) {
+      c.set_value(value.data(), value.size());
+      return true;
+    }
+  }
+  auto new_cv = cvs->Add();
+  new_cv->set_name(key.data(), key.size());
+  new_cv->set_value(value.data(), value.size());
+  return true;
+}
 }  // namespace configuration
 }  // namespace engine
 }  // namespace centreon
