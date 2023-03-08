@@ -716,31 +716,11 @@ void parser::_parse_object_definitions(const std::string& path,
         if (!retval) {
           /* Classical part */
           if (!set(msg_helper, key, l)) {
-            if (key[0] != '_')
+            if (!msg_helper->insert_customvariable(key, l))
               throw engine_error() << fmt::format(
                   "Unable to parse '{}' key with value '{}' in message of type "
                   "'{}'",
                   key, l, type);
-            /* last particular case with customvariables */
-            CustomVariable cv;
-            key.remove_prefix(1);
-            cv.set_name(key.data(), key.size());
-            cv.set_value(l.data(), l.size());
-
-            const Descriptor* desc = msg->GetDescriptor();
-            const FieldDescriptor* f = desc->FindFieldByName("customvariables");
-            if (f == nullptr)
-              throw engine_error() << fmt::format(
-                  "Unable to parse '{}' key with value '{}' in message of type "
-                  "'{}'",
-                  key, l, type);
-            else {
-              const Reflection* refl = msg->GetReflection();
-              CustomVariable* cv =
-                  static_cast<CustomVariable*>(refl->AddMessage(msg, f));
-              cv->set_name(key.data(), key.size());
-              cv->set_value(l.data(), l.size());
-            }
           }
         }
       }
