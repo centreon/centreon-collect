@@ -184,9 +184,11 @@ long splitter::read(void* buffer, long max_size) {
     } else {
       if (errno == EAGAIN || errno == EINTR)
         return 0;
-      else
+      else {
+        char msg[1024];
         throw msg_fmt("error while reading file '{}': {}", file_path,
-                      strerror(errno));
+                      strerror_r(errno, msg, sizeof(msg)));
+      }
     }
   }
   return rb;
@@ -232,8 +234,9 @@ long splitter::write(void const* buffer, long size) {
     if (fflush(_wfile.get())) {
       log_v2::bbdo()->error("splitter: cannot flush file '{}'",
                             get_file_path(_wid));
+      char msg[1024];
       throw msg_fmt("cannot flush file '{}': {}", get_file_path(_wid),
-                    strerror(errno));
+                    strerror_r(errno, msg, sizeof(msg)));
     }
     ++_wid;
     _open_write_file();
@@ -247,14 +250,15 @@ long splitter::write(void const* buffer, long size) {
                         get_file_path(_wid));
 
   // Write data.
-  long remaining = size;
-  const char* to_write = static_cast<const char*>(buffer);
-  while (remaining > 0) {
-    long wb = fwrite(to_write, 1, remaining, _wfile.get());
-    remaining -= wb;
-    to_write += wb;
-    _woffset += wb;
+  long wb = fwrite(buffer, 1, size, _wfile.get());
+  if (wb != size) {
+    std::string wfile(get_file_path(_wid));
+    char msg[1024];
+    log_v2::bbdo()->critical("splitter: cannot write to file '{}': {}",
+        wfile, strerror_r(errno, msg, sizeof(msg)));
+    throw msg_fmt("cannot write to file '{}'");
   }
+  _woffset += size;
   return size;
 }
 
@@ -263,9 +267,11 @@ long splitter::write(void const* buffer, long size) {
  */
 void splitter::flush() {
   std::lock_guard<std::mutex> lck(_write_m);
-  if (fflush(_wfile.get()) == EOF)
+  if (fflush(_wfile.get()) == EOF) {
+    char msg[1024];
     throw msg_fmt("error while writing the file '{}' content: {}",
-                  get_file_path(_wid), strerror(errno));
+                  get_file_path(_wid), strerror_r(errno, msg, sizeof(msg)));
+  }
 }
 
 /**
@@ -351,6 +357,10 @@ void splitter::remove_all_files() {
       misc::filesystem::dir_content_with_filter(base_dir, base_name + '*')};
   for (std::string const& f : parts)
     std::remove(f.c_str());
+
+  /* No more files, we reset rid and wid. */
+  _rid = 0;
+  _wid = 0;
 }
 
 /**
@@ -380,9 +390,11 @@ void splitter::_open_read_file() {
   if (!_rfile) {
     if (errno == ENOENT)
       return;
-    else
+    else {
+      char msg[1024];
       throw msg_fmt("cannot open '{}' to read: {}", get_file_path(_rid),
-                    strerror(errno));
+                    strerror_r(errno, msg, sizeof(msg)));
+    }
   }
   _roffset = 2 * sizeof(uint32_t);
   fseek(_rfile.get(), _roffset, SEEK_SET);
@@ -402,9 +414,11 @@ void splitter::_open_write_file() {
 
   _wfile = f ? std::shared_ptr<FILE>(f, fclose) : std::shared_ptr<FILE>();
 
-  if (!_wfile)
+  if (!_wfile) {
+    char msg[1024];
     throw msg_fmt("cannot open '{}' to read/write: {}", get_file_path(_wid),
-                  strerror(errno));
+                  strerror_r(errno, msg, sizeof(msg)));
+  }
 
   fseek(_wfile.get(), 0, SEEK_END);
   _woffset = ftell(_wfile.get());
@@ -418,10 +432,15 @@ void splitter::_open_write_file() {
     } header;
     header.integers[0] = 0;
     header.integers[1] = htonl(2 * sizeof(uint32_t));
-    size_t size = 0;
-    while (size < sizeof(header))
-      size +=
-          fwrite(header.bytes + size, 1, sizeof(header) - size, _wfile.get());
+    size_t size = fwrite(header.bytes, 1, sizeof(header), _wfile.get());
+    if (size != sizeof(header)) {
+      std::string wfile(get_file_path(_wid));
+      char msg[1024];
+      log_v2::bbdo()->critical("splitter: cannot write to file '{}': {}",
+          wfile,
+          strerror_r(errno, msg, sizeof(msg)));
+      throw msg_fmt("cannot write header to file '{}'");
+    }
     _woffset = 2 * sizeof(uint32_t);
   }
 }
