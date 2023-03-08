@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Centreon (https://www.centreon.com/)
+ * Copyright 2022-2023 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,10 +34,10 @@ class hostescalation_helper : public message_helper {
  public:
   hostescalation_helper(Hostescalation* obj);
   ~hostescalation_helper() noexcept = default;
+  void check_validity() const override;
 
   bool hook(const absl::string_view& key,
             const absl::string_view& value) override;
-  void check_validity() const override;
 };
 }  // namespace configuration
 }  // namespace engine

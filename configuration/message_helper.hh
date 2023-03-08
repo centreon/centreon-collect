@@ -103,6 +103,8 @@ class message_helper {
   }
   virtual void check_validity() const = 0;
   absl::string_view validate_key(const absl::string_view& key) const;
+  virtual bool insert_customvariable(absl::string_view key,
+                                     absl::string_view value);
 };
 }  // namespace configuration
 }  // namespace engine
