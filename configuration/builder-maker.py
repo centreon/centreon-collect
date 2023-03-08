@@ -171,7 +171,41 @@ void {cname}::_init() {{
         cc_lines = [f"""
 void {cname}::_init() {{\n"""]
         header = True
+
     cc_lines.append("}\n")
+    if cap_name in ["Contact", "Service", "Host", "Anomalydetection"]:
+        cc_lines.append(f"""
+/**
+ * @brief If the provided key/value have their parsing to fail previously,
+ * it is possible they are a customvariable. A customvariable name has its
+ * name starting with an underscore. This method checks the possibility to
+ * store a customvariable in the given object and stores it if possible.
+ *
+ * @param key   The name of the customvariable.
+ * @param value Its value as a string.
+ *
+ * @return True if the customvariable has been well stored.
+ */
+bool {cname}::insert_customvariable(absl::string_view key, absl::string_view value) {{
+  if (key[0] != '_')
+    return false;
+    
+  key.remove_prefix(1);
+  {cap_name}* obj = static_cast<{cap_name}*>(mut_obj());
+  auto* cvs = obj->mutable_customvariables();
+  for (auto& c : *cvs) {{
+    if (c.name() == key) {{
+      c.set_value(value.data(), value.size());
+      return true;
+    }}
+  }}
+  auto new_cv = cvs->Add();
+  new_cv->set_name(key.data(), key.size());
+  new_cv->set_value(value.data(), value.size());
+  return true;
+}}
+""")
+
     cc_lines.append("}\n")
     cc_lines.append("}\n")
     cc_lines.append("}\n")
@@ -213,13 +247,13 @@ namespace configuration {{
     return fhcc
 
 
-def prepare_filehelper_hh(name: str):
+def prepare_filehelper_hh(cap_name: str, name: str):
     fhhh = open(f"/tmp/configuration/{name}_helper.hh", "w")
     macro = name.upper().replace(".", "_")
     cname = name.replace(".hh", "")
     objname = cname.capitalize()
     fhhh.write(f"""/*
- * Copyright 2022 Centreon (https://www.centreon.com/)
+ * Copyright 2022-2023 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -254,10 +288,15 @@ class {cname}_helper : public message_helper {{
  public:
   {cname}_helper({objname}* obj);
   ~{cname}_helper() noexcept = default;
+  void check_validity() const override;
 
   bool hook(const absl::string_view& key, const absl::string_view& value) override;
-  void check_validity() const override;
-}};
+""")
+    if cap_name in ["Contact",  "Host", "Service", "Anomalydetection"]:
+        fhhh.write(f"""
+  bool insert_customvariable(absl::string_view key, absl::string_view value) override;
+""")
+    fhhh.write(f"""}};
 }}  // namespace configuration
 }}  // namespace engine
 }}  // namespace centreon
@@ -1009,7 +1048,7 @@ for i in range(len(class_files_hh)):
     cap_name = name.capitalize()
 
     fhcc = prepare_filehelper_cc(name)
-    fhhh = prepare_filehelper_hh(name)
+    fhhh = prepare_filehelper_hh(cap_name, name)
 
     f = open(f"../engine/{filename_hh}", 'r')
     header = f.readlines()
