@@ -677,11 +677,15 @@ BEPB_BA_DURATION_EVENT
 	Execute SQL String	INSERT INTO timeperiod (tp_id, tp_name, tp_sunday, tp_monday, tp_tuesday, tp_wednesday, tp_thursday, tp_friday, tp_saturday) VALUES (1, "ezizae", "00:00-23:59", "00:00-23:59", "00:00-23:59", "00:00-23:59", "00:00-23:59", "00:00-23:59", "00:00-23:59")
 	Execute SQL String	DELETE FROM mod_bam_relations_ba_timeperiods
 
+	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+	Execute SQL String	DELETE FROM mod_bam_reporting_ba_events_durations
+
 	Start Broker  True
 	Start Engine
 
 	# KPI set to critical
-	${start_event}=  Get Current Date  result_format=epoch  exclude_millis=True
+	#as GetCurrent Date floor milliseconds to upper or lower integer, we substract 1s
+	${start_event}=  Get Current Date  result_format=epoch  exclude_millis=True  increment=-00:00:01
 	Repeat Keyword	3 times	Process Service Check Result	host_16	service_314	2	output critical for 314
 	${result}=	Check Service Status With Timeout	host_16	service_314	2	60	HARD
 	Should Be True	${result}	msg=The service (host_16,service_314) is not CRITICAL as expected
@@ -692,7 +696,6 @@ BEPB_BA_DURATION_EVENT
 	${end_event}=  Get Current Date  result_format=epoch
 
 
-	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 	FOR	${index}	IN RANGE	10
 		${output}=	Query	SELECT start_time, end_time, duration, sla_duration, timeperiod_is_default FROM mod_bam_reporting_ba_events_durations WHERE ba_event_id = 1
 		Sleep	1s

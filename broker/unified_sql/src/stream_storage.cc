@@ -44,7 +44,6 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::unified_sql;
 
 constexpr int32_t queue_timer_duration = 10;
-constexpr int32_t dt_queue_timer_duration = 5;
 
 /**
  *  Check that the floating point values are the same number or are NaN or are
@@ -798,8 +797,9 @@ void stream::_check_queues(asio::error_code ec) {
                              actions::service_dependencies);
       if (_store_in_hosts_services) {
         log_v2::sql()->trace(
-            "Check if some statements are ready, connections count = {}",
-            _sscr_resources_bind->connections_count());
+            "Check if some statements are ready,  hscr_bind connections count "
+            "= {}",
+            _hscr_bind->connections_count());
         for (uint32_t conn = 0; conn < _hscr_bind->connections_count();
              conn++) {
           if (_hscr_bind->ready(conn)) {
@@ -815,6 +815,10 @@ void stream::_check_queues(asio::error_code ec) {
             _add_action(conn, actions::hosts);
           }
         }
+        log_v2::sql()->trace(
+            "Check if some statements are ready,  sscr_bind connections count "
+            "= {}",
+            _sscr_bind->connections_count());
         for (uint32_t conn = 0; conn < _sscr_bind->connections_count();
              conn++) {
           if (_sscr_bind->ready(conn)) {

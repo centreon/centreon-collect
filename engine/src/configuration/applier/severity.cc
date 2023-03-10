@@ -45,7 +45,7 @@ void applier::severity::add_object(const configuration::severity& obj) {
   config->mut_severities().insert(obj);
 
   auto sv{std::make_shared<engine::severity>(obj.key().first, obj.level(),
-                                             obj.icon_id(), obj.name(),
+                                             obj.icon_id(), obj.severity_name(),
                                              obj.key().second)};
   if (!sv)
     throw engine_error() << "Could not register severity (" << obj.key().first
@@ -97,7 +97,7 @@ void applier::severity::modify_object(const configuration::severity& obj) {
     config->mut_severities().erase(it_cfg);
     config->mut_severities().insert(obj);
 
-    s->set_name(obj.name());
+    s->set_name(obj.severity_name());
     s->set_level(obj.level());
     s->set_icon_id(obj.icon_id());
 
