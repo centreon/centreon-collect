@@ -557,6 +557,13 @@ const std::string& muxer::name() const {
   return _name;
 }
 
+/**
+ * @brief In case of a muxer reused by a failover, we have to update its
+ * filters. This is the purpose of this function.
+ *
+ * @param r_filters The read filters.
+ * @param w_filters The write filters.
+ */
 void muxer::set_filters(muxer::filters r_filters, muxer::filters w_filters) {
   std::lock_guard<std::mutex> lck(_mutex);
   _read_filters = std::move(r_filters);
