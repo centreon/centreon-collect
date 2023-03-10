@@ -235,16 +235,13 @@ void engine::subscribe(const std::shared_ptr<muxer>& subscriber) {
   log_v2::config()->debug("engine: muxer {} subscribes to engine",
                           subscriber->name());
   std::lock_guard<std::mutex> l(_engine_m);
-  bool done = false;
   for (auto& m : _muxers)
     if (m == subscriber) {
       log_v2::config()->debug("engine: muxer {} already subscribed",
                               subscriber->name());
-      done = true;
-      break;
+      return;
     }
-  if (!done)
-    _muxers.push_back(subscriber);
+  _muxers.push_back(subscriber);
 }
 
 /**
