@@ -239,14 +239,24 @@ void engine::stop() {
 }
 
 /**
- *  Subscribe to the multiplexing engine.
+ *  Subscribe a muxer to the multiplexing engine if not already subscribed.
  *
- *  @param[in] subscriber  Subscriber.
+ *  @param[in] subscriber  A muxer.
  */
 void engine::subscribe(const std::shared_ptr<muxer>& subscriber) {
-  log_v2::core()->trace("muxer {} subscribes to engine", subscriber->name());
+  log_v2::config()->debug("engine: muxer {} subscribes to engine",
+                          subscriber->name());
   std::lock_guard<std::mutex> l(_engine_m);
-  _muxers.push_back(subscriber);
+  bool done = false;
+  for (auto& m : _muxers)
+    if (m == subscriber) {
+      log_v2::config()->debug("engine: muxer {} already subscribed",
+                              subscriber->name());
+      done = true;
+      break;
+    }
+  if (!done)
+    _muxers.push_back(subscriber);
 }
 
 /**
@@ -258,8 +268,8 @@ void engine::unsubscribe(const muxer* subscriber) {
   std::lock_guard<std::mutex> l(_engine_m);
   for (auto it = _muxers.begin(); it != _muxers.end(); ++it) {
     if (it->get() == subscriber) {
-      log_v2::core()->trace("muxer {} unsubscribes to engine",
-                            subscriber->name());
+      log_v2::config()->debug("engine: muxer {} unsubscribes to engine",
+                              subscriber->name());
       _muxers.erase(it);
       return;
     }
