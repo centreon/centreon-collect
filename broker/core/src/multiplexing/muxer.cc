@@ -105,7 +105,7 @@ muxer::muxer(std::string name,
       "multiplexing: '{}' starts with {} in queue and the queue file is {}",
       _name, _events_size, _file ? "enable" : "disable");
 
-  engine::instance().subscribe(this);
+  engine::instance_ptr()->subscribe(this);
 }
 
 /**
@@ -113,7 +113,7 @@ muxer::muxer(std::string name,
  */
 muxer::~muxer() noexcept {
   stats::center::instance().unregister_muxer(_name);
-  engine::instance().unsubscribe(this);
+  engine::instance_ptr()->unsubscribe(this);
   std::lock_guard<std::mutex> lock(_mutex);
   log_v2::core()->info("Destroying muxer {}: number of events in the queue: {}",
                        _name, _events_size);
@@ -127,7 +127,8 @@ muxer::~muxer() noexcept {
  */
 void muxer::ack_events(int count) {
   // Remove acknowledged events.
-  log_v2::core()->trace(
+  SPDLOG_LOGGER_TRACE(
+      log_v2::core(),
       "multiplexing: acknowledging {} events from {} event queue", count,
       _name);
   if (count) {
@@ -144,8 +145,9 @@ void muxer::ack_events(int count) {
       _events.pop_front();
       --_events_size;
     }
-    log_v2::core()->trace("multiplexing: still {} events in {} event queue",
-                          _events_size, _name);
+    SPDLOG_LOGGER_TRACE(log_v2::core(),
+                        "multiplexing: still {} events in {} event queue",
+                        _events_size, _name);
 
     // Fill memory from file.
     std::shared_ptr<io::data> e;
@@ -200,10 +202,14 @@ uint32_t muxer::event_queue_max_size() noexcept {
  */
 void muxer::publish(const std::shared_ptr<io::data> event) {
   if (event) {
+    SPDLOG_LOGGER_TRACE(log_v2::core(), "{} publish {}", _name, *event);
+
     std::lock_guard<std::mutex> lock(_mutex);
     // Check if we should process this event.
-    if (_write_filters.find(event->type()) == _write_filters.end())
+    if (_write_filters.find(event->type()) == _write_filters.end()) {
+      SPDLOG_LOGGER_TRACE(log_v2::core(), "{} reject {}", _name, *event);
       return;
+    }
     // Check if the event queue limit is reach.
     if (_events_size >= event_queue_max_size()) {
       // Try to create file if is necessary.
@@ -213,9 +219,12 @@ void muxer::publish(const std::shared_ptr<io::data> event) {
         _file = std::make_unique<persistent_file>(_queue_file_name, s);
       }
 
+      SPDLOG_LOGGER_TRACE(log_v2::core(), "{} push to file {}", _name, *event);
       _file->write(event);
-    } else
+    } else {
+      SPDLOG_LOGGER_TRACE(log_v2::core(), "{} push to queue {}", _name, *event);
       _push_to_queue(event);
+    }
     _update_stats();
   }
 }
@@ -258,6 +267,9 @@ bool muxer::read(std::shared_ptr<io::data>& event, time_t deadline) {
 
   _update_stats();
 
+  if (!timed_out) {
+    SPDLOG_LOGGER_TRACE(log_v2::core(), "{} read {}", _name, *event);
+  }
   return !timed_out;
 }
 
@@ -311,7 +323,8 @@ uint32_t muxer::get_event_queue_size() const {
  *  Reprocess non-acknowledged events.
  */
 void muxer::nack_events() {
-  log_v2::core()->debug(
+  SPDLOG_LOGGER_DEBUG(
+      log_v2::core(),
       "multiplexing: reprocessing unacknowledged events from {} event queue",
       _name);
   std::lock_guard<std::mutex> lock(_mutex);
@@ -359,7 +372,7 @@ void muxer::wake() {
  */
 int muxer::write(std::shared_ptr<io::data> const& d) {
   if (d && _read_filters.find(d->type()) != _read_filters.end())
-    engine::instance().publish(d);
+    engine::instance_ptr()->publish(d);
   return 1;
 }
 
@@ -375,8 +388,8 @@ void muxer::_clean() {
   //  });
   if (_persistent && !_events.empty()) {
     try {
-      log_v2::core()->trace("muxer: sending {} events to {}", _events_size,
-                            memory_file(_name));
+      SPDLOG_LOGGER_TRACE(log_v2::core(), "muxer: sending {} events to {}",
+                          _events_size, memory_file(_name));
       auto mf{std::make_unique<persistent_file>(memory_file(_name), nullptr)};
       while (!_events.empty()) {
         mf->write(_events.front());

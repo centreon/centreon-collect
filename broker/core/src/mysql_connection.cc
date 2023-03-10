@@ -292,8 +292,8 @@ void mysql_connection::_prepare(mysql_task* t) {
 
   _stmt_query[task->id] = task->query;
   SPDLOG_LOGGER_DEBUG(log_v2::sql(),
-                      "mysql_connection: prepare statement {}: {}", task->id,
-                      task->query);
+                      "mysql_connection {:p}: prepare statement {}: {}",
+                      static_cast<const void*>(this), task->id, task->query);
   MYSQL_STMT* stmt(mysql_stmt_init(_conn));
   if (!stmt)
     set_error_message("statement initialization failed: insuffisant memory");
@@ -309,9 +309,6 @@ void mysql_connection::_prepare(mysql_task* t) {
 
 void mysql_connection::_statement(mysql_task* t) {
   mysql_task_statement* task(static_cast<mysql_task_statement*>(t));
-  SPDLOG_LOGGER_DEBUG(log_v2::sql(),
-                      "mysql_connection: execute statement {}: {}",
-                      task->statement_id, _stmt_query[task->statement_id]);
   MYSQL_STMT* stmt(_stmt[task->statement_id]);
   if (!stmt) {
     SPDLOG_LOGGER_ERROR(log_v2::sql(),
@@ -341,7 +338,14 @@ void mysql_connection::_statement(mysql_task* t) {
     }
   } else {
     int32_t attempts = 0;
+    std::chrono::system_clock::time_point request_begin =
+        std::chrono::system_clock::now();
     for (;;) {
+      SPDLOG_LOGGER_TRACE(
+          log_v2::sql(),
+          "mysql_connection {:p}: execute statement {} attempt {}: {}",
+          static_cast<const void*>(this), task->statement_id, attempts,
+          _stmt_query[task->statement_id]);
       if (mysql_stmt_execute(stmt)) {
         std::string err_msg(fmt::format("{} {}",
                                         mysql_error::msg[task->error_code],
@@ -359,7 +363,9 @@ void mysql_connection::_statement(mysql_task* t) {
           break;
         }
 
-        SPDLOG_LOGGER_ERROR(log_v2::sql(), "mysql_connection: {}", err_msg);
+        SPDLOG_LOGGER_ERROR(log_v2::sql(),
+                            "mysql_connection {:p} attempts {}: {}",
+                            static_cast<const void*>(this), attempts, err_msg);
         if (++attempts >= MAX_ATTEMPTS) {
           if (task->fatal || _server_error(::mysql_stmt_errno(stmt)))
             set_error_message("{} {}", mysql_error::msg[task->error_code],
@@ -367,11 +373,25 @@ void mysql_connection::_statement(mysql_task* t) {
           break;
         }
       } else {
+        SPDLOG_LOGGER_TRACE(log_v2::sql(),
+                            "mysql_connection {:p}: success execute statement "
+                            "{} attempt {}: {}",
+                            static_cast<const void*>(this), task->statement_id,
+                            _stmt_query[task->statement_id]);
         _need_commit = true;
         break;
       }
       std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
+    SPDLOG_LOGGER_DEBUG(log_v2::sql(),
+                        "mysql_connection {:p}: end execute statement "
+                        "{} attempt {} duration {}s: {}",
+                        static_cast<const void*>(this), task->statement_id,
+                        attempts,
+                        std::chrono::duration_cast<std::chrono::seconds>(
+                            std::chrono::system_clock::now() - request_begin)
+                            .count(),
+                        _stmt_query[task->statement_id]);
   }
 }
 
@@ -780,8 +800,8 @@ mysql_connection::mysql_connection(database_config const& db_cfg,
  */
 mysql_connection::~mysql_connection() {
   SPDLOG_LOGGER_INFO(log_v2::sql(), "mysql_connection: finished");
-  stats::center::instance().remove_connection(_stats);
   finish();
+  stats::center::instance().remove_connection(_stats);
   _thread->join();
 }
 

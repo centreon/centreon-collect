@@ -60,7 +60,7 @@ TEST_F(StartStop, MultiplexingWorks) {
     for (auto& m : messages) {
       auto data{std::make_shared<io::raw>()};
       data->append(m);
-      multiplexing::engine::instance().publish(data);
+      multiplexing::engine::instance_ptr()->publish(data);
     }
 
     // Should read no events from muxer.
@@ -71,7 +71,7 @@ TEST_F(StartStop, MultiplexingWorks) {
     }
 
     // Start multiplexing engine.
-    multiplexing::engine::instance().start();
+    multiplexing::engine::instance_ptr()->start();
 
     // Read retained events.
     for (auto& m : messages) {
@@ -92,7 +92,7 @@ TEST_F(StartStop, MultiplexingWorks) {
     {
       auto data{std::make_shared<io::raw>()};
       data->append(MSG3);
-      multiplexing::engine::instance().publish(data);
+      multiplexing::engine::instance_ptr()->publish(data);
     }
 
     // Read event.
@@ -111,13 +111,13 @@ TEST_F(StartStop, MultiplexingWorks) {
     }
 
     // Stop multiplexing engine.
-    multiplexing::engine::instance().stop();
+    multiplexing::engine::instance_ptr()->stop();
 
     // Publish a new event.
     {
       std::shared_ptr<io::raw> data(new io::raw);
       data->append(MSG4);
-      multiplexing::engine::instance().publish(
+      multiplexing::engine::instance_ptr()->publish(
           std::static_pointer_cast<io::data>(data));
     }
 

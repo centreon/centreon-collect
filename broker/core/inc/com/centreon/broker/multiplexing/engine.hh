@@ -62,7 +62,7 @@ class muxer;
  */
 class engine {
   static std::mutex _load_m;
-  static engine* _instance;
+  static std::shared_ptr<engine> _instance;
 
   enum state { not_started, running, stopped };
   state _state;
@@ -94,7 +94,7 @@ class engine {
  public:
   static void load();
   static void unload();
-  static engine& instance();
+  static std::shared_ptr<engine> instance_ptr();
 
   engine(const engine&) = delete;
   engine& operator=(const engine&) = delete;

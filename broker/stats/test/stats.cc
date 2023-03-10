@@ -58,7 +58,7 @@ class StatsTest : public ::testing::Test {
 
   void TearDown() override {
     config::applier::endpoint::unload();
-    multiplexing::engine::instance().clear();
+    multiplexing::engine::instance_ptr()->clear();
     multiplexing::engine::unload();
     config::applier::state::unload();
     io::events::unload();
