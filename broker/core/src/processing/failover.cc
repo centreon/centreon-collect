@@ -69,13 +69,14 @@ void failover::add_secondary_endpoint(std::shared_ptr<io::endpoint> endp) {
 
 /**
  *  Exit failover thread. This method is called by the endpoint applier when
- *  the configuration changed. The failover is destroyed and then newly created.
+ *  the configuration changed. The failover is destroyed and then may be newly
+ *  created.
  *
  *  Inside a failover, we have a muxer. This muxer lives its own life and
  *  contains a queue file. If the muxer did not finish to write to its queue
- *  file when exit() is called, we have to wait for it, otherwise when the new
- *  failover starts it will create a new queue file pointing to the same files
- *  and we have a corruption between them.
+ *  file when exit() is called, we have to be careful with it because if we open
+ *  a new muxer with the same name, we'll have for a moment two splitters
+ *  writing to the same files.
  */
 void failover::exit() {
   SPDLOG_LOGGER_TRACE(log_v2::core(), "failover '{}' exit.", _name);
