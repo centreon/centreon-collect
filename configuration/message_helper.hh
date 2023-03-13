@@ -62,6 +62,7 @@ class message_helper {
     anomalydetection = 15,
     severity = 16,
     tag = 17,
+    state = 18,
   };
 
  private:

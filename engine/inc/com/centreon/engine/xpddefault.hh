@@ -29,7 +29,7 @@
 extern "C" {
 #endif  // C++
 
-int xpddefault_initialize_performance_data();
+// int xpddefault_initialize_performance_data();
 int xpddefault_cleanup_performance_data();
 
 int xpddefault_update_service_performance_data(
@@ -46,19 +46,15 @@ int xpddefault_run_host_performance_data_command(
 int xpddefault_update_service_performance_data_file(
     nagios_macros* mac,
     com::centreon::engine::service* svc);
-int xpddefault_update_host_performance_data_file(
-    nagios_macros* mac,
-    com::centreon::engine::host* hst);
 
 void xpddefault_preprocess_file_templates(char* tmpl);
 
-int xpddefault_open_host_perfdata_file();
-int xpddefault_open_service_perfdata_file();
-int xpddefault_close_host_perfdata_file();
-int xpddefault_close_service_perfdata_file();
+// int xpddefault_open_service_perfdata_file();
+// int xpddefault_close_host_perfdata_file();
+// int xpddefault_close_service_perfdata_file();
 
-int xpddefault_process_host_perfdata_file();
-int xpddefault_process_service_perfdata_file();
+// int xpddefault_process_host_perfdata_file();
+// int xpddefault_process_service_perfdata_file();
 
 #ifdef __cplusplus
 }
