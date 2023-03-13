@@ -66,8 +66,8 @@ void applier::macros::apply(configuration::State& config) {
     _set_macro(MACRO_RESOURCEFILE, *config.resource_file().begin());
   _set_macro(MACRO_STATUSDATAFILE, config.status_file());
   _set_macro(MACRO_RETENTIONDATAFILE, config.state_retention_file());
-  _set_macro(MACRO_HOSTPERFDATAFILE, config.host_perfdata_file());
-  _set_macro(MACRO_SERVICEPERFDATAFILE, config.service_perfdata_file());
+  //  _set_macro(MACRO_HOSTPERFDATAFILE, config.host_perfdata_file());
+  //  _set_macro(MACRO_SERVICEPERFDATAFILE, config.service_perfdata_file());
   _set_macro(MACRO_POLLERNAME, config.poller_name());
   _set_macro(MACRO_POLLERID, std::to_string(config.poller_id()));
 
@@ -100,7 +100,7 @@ void applier::macros::apply(configuration::state& config) {
     _set_macro(MACRO_RESOURCEFILE, config.resource_file().front());
   _set_macro(MACRO_STATUSDATAFILE, config.status_file());
   _set_macro(MACRO_RETENTIONDATAFILE, config.state_retention_file());
-  _set_macro(MACRO_HOSTPERFDATAFILE, config.host_perfdata_file());
+  //  _set_macro(MACRO_HOSTPERFDATAFILE, config.host_perfdata_file());
   _set_macro(MACRO_SERVICEPERFDATAFILE, config.service_perfdata_file());
   _set_macro(MACRO_POLLERNAME, config.poller_name());
   _set_macro(MACRO_POLLERID, std::to_string(config.poller_id()));

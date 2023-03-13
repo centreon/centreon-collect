@@ -1443,7 +1443,7 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
                          actions::host_dependencies | actions::host_parents |
                          actions::custom_variables | actions::downtimes |
                          actions::comments | actions::service_dependencies |
-                         actions::severities);
+                         actions::severities | actions::resources_tags);
   auto hst{static_cast<const neb::pb_host*>(d.get())};
   auto& h = hst->obj();
 
