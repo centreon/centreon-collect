@@ -90,12 +90,12 @@ class scheduler {
   timed_event* _evt_check_reaper;
   timed_event* _evt_command_check;
   timed_event* _evt_hfreshness_check;
-  timed_event* _evt_host_perfdata;
+  //  timed_event* _evt_host_perfdata;
   timed_event* _evt_orphan_check;
   timed_event* _evt_reschedule_checks;
   timed_event* _evt_retention_save;
   timed_event* _evt_sfreshness_check;
-  timed_event* _evt_service_perfdata;
+  //  timed_event* _evt_service_perfdata;
   timed_event* _evt_status_save;
   unsigned int _old_auto_rescheduling_interval;
   unsigned int _old_check_reaper_interval;
