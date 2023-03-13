@@ -21,6 +21,7 @@
 #include <com/centreon/engine/configuration/applier/hostescalation.hh>
 #include <com/centreon/engine/configuration/parser.hh>
 #include <fstream>
+#include "configuration/state_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -32,6 +33,27 @@ class ApplierGlobal : public ::testing::Test {
 
   void TearDown() override { deinit_config_state(); }
 };
+
+// Given host configuration without host_id
+// Then the applier add_object throws an exception.
+TEST_F(ApplierGlobal, PbPollerName) {
+  configuration::parser parser;
+  configuration::State st;
+  configuration::state_helper st_hlp(&st);
+
+  ASSERT_EQ(st.poller_name(), "unknown");
+
+  std::remove("/tmp/test-config.cfg");
+
+  std::ofstream ofs("/tmp/test-config.cfg");
+  ofs << "poller_name=poller-test" << std::endl;
+  ofs.close();
+
+  parser.parse("/tmp/test-config.cfg", &st);
+  std::remove("/tmp/test-config.cfg");
+
+  ASSERT_EQ(st.poller_name(), "poller-test");
+}
 
 // Given host configuration without host_id
 // Then the applier add_object throws an exception.
