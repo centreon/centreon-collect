@@ -46,46 +46,56 @@ add_custom_target(
 
 include_directories("${CMAKE_SOURCE_DIR}/engine/inc")
 
+add_definitions(-DDEFAULT_STATUS_FILE="${ENGINE_VAR_LOG_DIR}/status.dat")
+add_definitions(-DDEFAULT_RETENTION_FILE="${ENGINE_VAR_LOG_DIR}/retention.dat")
+add_definitions(-DDEFAULT_DEBUG_FILE="${ENGINE_VAR_LOG_DIR}/centengine.debug")
+add_definitions(
+  -DDEFAULT_COMMAND_FILE="${ENGINE_VAR_LIB_DIR}/rw/centengine.cmd")
+add_definitions(-DDEFAULT_LOG_FILE="${ENGINE_VAR_LOG_DIR}/centengine.log")
+
 add_library(
   pb_configuration_lib STATIC
+  anomalydetection_helper.cc
+  anomalydetection_helper.hh
+  command_helper.cc
+  command_helper.hh
+  connector_helper.cc
+  connector_helper.hh
+  contact_helper.cc
+  contact_helper.hh
+  contactgroup_helper.cc
+  contactgroup_helper.hh
+  host_helper.cc
+  host_helper.hh
+  hostdependency_helper.cc
+  hostdependency_helper.hh
+  hostescalation_helper.cc
+  hostescalation_helper.hh
+  hostgroup_helper.cc
+  hostgroup_helper.hh
+  message_helper.cc
+  message_helper.hh
+  service_helper.cc
+  service_helper.hh
+  servicedependency_helper.cc
+  servicedependency_helper.hh
+  serviceescalation_helper.cc
+  serviceescalation_helper.hh
+  servicegroup_helper.cc
+  servicegroup_helper.hh
+  severity_helper.cc
+  severity_helper.hh
   state-generated.pb.cc
   state-generated.pb.h
   state.pb.cc
   state.pb.h
-  anomalydetection_helper.cc
-  contact_helper.hh
-  message_helper.cc
-  message_helper.hh
-  severity_helper.cc
-  anomalydetection_helper.hh
-  hostdependency_helper.cc
-  servicedependency_helper.cc
-  severity_helper.hh
-  command_helper.cc
-  hostdependency_helper.hh
-  servicedependency_helper.hh
+  state_helper.cc
+  state_helper.hh
   tag_helper.cc
-  command_helper.hh
-  hostescalation_helper.cc
-  serviceescalation_helper.cc
   tag_helper.hh
-  connector_helper.cc
-  hostescalation_helper.hh
-  serviceescalation_helper.hh
   timeperiod_helper.cc
-  connector_helper.hh
-  hostgroup_helper.cc
-  servicegroup_helper.cc
   timeperiod_helper.hh
-  contactgroup_helper.cc
-  hostgroup_helper.hh
-  servicegroup_helper.hh
-  contactgroup_helper.hh
-  host_helper.cc
-  service_helper.cc
-  contact_helper.cc
-  host_helper.hh
-  service_helper.hh)
+  )
 add_dependencies(pb_configuration_lib target_configuration)
 set_target_properties(pb_configuration_lib PROPERTIES POSITION_INDEPENDENT_CODE
                                                       ON)
