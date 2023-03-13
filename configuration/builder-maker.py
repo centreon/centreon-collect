@@ -38,6 +38,7 @@ class_files_hh = [
     "inc/com/centreon/engine/configuration/serviceescalation.hh",
     "inc/com/centreon/engine/configuration/servicegroup.hh",
     "inc/com/centreon/engine/configuration/severity.hh",
+    "inc/com/centreon/engine/configuration/state.hh",
     "inc/com/centreon/engine/configuration/tag.hh",
     "inc/com/centreon/engine/configuration/timeperiod.hh",
 ]
@@ -57,6 +58,7 @@ class_files_cc = [
     "src/configuration/serviceescalation.cc",
     "src/configuration/servicegroup.cc",
     "src/configuration/severity.cc",
+    "src/configuration/state.cc",
     "src/configuration/tag.cc",
     "src/configuration/timeperiod.cc",
 ]
@@ -149,6 +151,9 @@ void {cname}::_init() {{
                     f"  obj->mutable_{m['proto_name']}()->set_id({values[0].strip()});\n")
                 cc_lines.append(
                     f"  obj->mutable_{m['proto_name']}()->set_type({values[1].strip()});\n")
+            elif m['typ'] == 'inter_check_delay':
+                cc_lines.append(
+                    f"  obj->mutable_{m['proto_name']}()->set_type({m['default']});\n")
             elif m['typ'] == 'point_2d':
                 values = m['default'].split(',')
                 cc_lines.append(
@@ -252,6 +257,10 @@ def prepare_filehelper_hh(cap_name: str, name: str):
     macro = name.upper().replace(".", "_")
     cname = name.replace(".hh", "")
     objname = cname.capitalize()
+    if cap_name == "State":
+        fh_header = "state.pb.h"
+    else:
+        fh_header = "state-generated.pb.h"
     fhhh.write(f"""/*
  * Copyright 2022-2023 Centreon (https://www.centreon.com/)
  *
@@ -274,7 +283,7 @@ def prepare_filehelper_hh(cap_name: str, name: str):
 #ifndef CCE_CONFIGURATION_{macro}
 #define CCE_CONFIGURATION_{macro}
 
-#include "configuration/state-generated.pb.h"
+#include "configuration/{fh_header}"
 #include "configuration/message_helper.hh"
 
 namespace com {{
@@ -362,9 +371,9 @@ def get_messages_of_conf(header, msg: [str]):
 
 def get_default_values(cap_name, cpp, msg: [str]):
     rmin = re.compile(
-        r"(?:static)?\s*([a-z0-9][a-z_0-9\s]+[a-z0-9])\s*(?:const)?\s*default_")
+        r"(?:static)?\s*([a-z0-9][a-z_0-9:\s]+[a-z0-9])\s*(?:const)?\s*default_")
     r = re.compile(
-        r"(?:static)?\s*([a-z0-9][a-z_0-9\s]+[a-z0-9])\s*(?:const)?\s*(default_[a-z0-9_]*)\((.*)\);")
+        r"(?:static)?\s*([a-z0-9][a-z_0-9:\s]+[a-z0-9])\s*(?:const)?\s*(default_[a-z0-9_]*)\((.*)\);")
     rdecl = re.compile(r"^\s*(_[a-z][a-z0-9_]*)\((default_[a-z_0-9]*)\)")
 
     def_value = {}
@@ -399,6 +408,14 @@ def get_default_values(cap_name, cpp, msg: [str]):
                 value = value.replace("host::", "action_hst_")
             if value.startswith("service::"):
                 value = value.replace("service::", "action_svc_")
+            if value.startswith("state::"):
+                if value.startswith("state::icd_"):
+                    value = value.replace(
+                        "state::icd_", "InterCheckDelay_IcdType_")
+                elif value.startswith("state::mode_"):
+                    value = value.replace("state::mode_", "PerfdataFileMode::")
+                else:
+                    value = value.replace("state::", "DateType::")
             def_value[name] = {
                 "name": name,
                 "value": value,
@@ -476,11 +493,57 @@ def build_hook_content(cname: str, msg):
     return true;
   }
 """)
+    elif cname == "State":
+        retval.append("""
+  if (key == "date_format") {
+    if (value == "euro")
+      obj->set_date_format(DateType::euro);
+    else if (value == "iso8601")
+      obj->set_date_format(DateType::iso8601);
+    else if (value == "strict-iso8601")
+      obj->set_date_format(DateType::strict_iso8601);
+    else if (value == "us")
+      obj->set_date_format(DateType::us);
+    else
+      return false;
+    return true;
+  } else if (key == "host_inter_check_delay_method") {
+    if (value == "n")
+      obj->mutable_host_inter_check_delay_method()->set_type(InterCheckDelay_IcdType_none);
+    else if (value == "d")
+      obj->mutable_host_inter_check_delay_method()->set_type(InterCheckDelay_IcdType_dumb);
+    else if (value == "s")
+      obj->mutable_host_inter_check_delay_method()->set_type(InterCheckDelay_IcdType_smart);
+    else {
+      obj->mutable_host_inter_check_delay_method()->set_type(InterCheckDelay_IcdType_user);
+      double user_value;
+      if (!absl::SimpleAtod(value, &user_value) || user_value <= 0.0)
+        throw msg_fmt("Invalid value for host_inter_check_delay_method, must be one of 'n' (none), 'd' (dumb), 's' (smart) or a stricly positive value ({} provided)", user_value);
+      obj->mutable_host_inter_check_delay_method()->set_user_value(user_value);
+    }
+    return true;
+  } else if (key == "service_inter_check_delay_method") {
+    if (value == "n")
+      obj->mutable_service_inter_check_delay_method()->set_type(InterCheckDelay_IcdType_none);
+    else if (value == "d")
+      obj->mutable_service_inter_check_delay_method()->set_type(InterCheckDelay_IcdType_dumb);
+    else if (value == "s")
+      obj->mutable_service_inter_check_delay_method()->set_type(InterCheckDelay_IcdType_smart);
+    else {
+      obj->mutable_service_inter_check_delay_method()->set_type(InterCheckDelay_IcdType_user);
+      double user_value;
+      if (!absl::SimpleAtod(value, &user_value) || user_value <= 0.0)
+        throw msg_fmt("Invalid value for service_inter_check_delay_method, must be one of 'n' (none), 'd' (dumb), 's' (smart) or a stricly positive value ({} provided)", user_value);
+      obj->mutable_service_inter_check_delay_method()->set_user_value(user_value);
+    }
+    return true;
+  }
+""")
     elif cname == 'Severity':
         retval.append("""
   if (key == "id" || key == "severity_id") {
     uint64_t id;
-    if (absl::SimpleAtoi(value, &id)) 
+    if (absl::SimpleAtoi(value, &id))
       obj->mutable_key()->set_id(id);
     else
       return false;
