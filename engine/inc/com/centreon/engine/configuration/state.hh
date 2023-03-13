@@ -228,13 +228,8 @@ class state {
   void host_perfdata_command(std::string const& value);
   std::string const& host_perfdata_file() const noexcept;
   void host_perfdata_file(std::string const& value);
-  perfdata_file_mode host_perfdata_file_mode() const noexcept;
-  void host_perfdata_file_mode(perfdata_file_mode value);
-  std::string const& host_perfdata_file_processing_command() const noexcept;
   void host_perfdata_file_processing_command(std::string const& value);
-  unsigned int host_perfdata_file_processing_interval() const noexcept;
   void host_perfdata_file_processing_interval(unsigned int value);
-  std::string const& host_perfdata_file_template() const noexcept;
   void host_perfdata_file_template(std::string const& value);
   std::string const& illegal_object_chars() const noexcept;
   void illegal_object_chars(std::string const& value);
@@ -354,13 +349,9 @@ class state {
   void service_perfdata_command(std::string const& value);
   std::string const& service_perfdata_file() const noexcept;
   void service_perfdata_file(std::string const& value);
-  perfdata_file_mode service_perfdata_file_mode() const noexcept;
   void service_perfdata_file_mode(perfdata_file_mode value);
-  std::string const& service_perfdata_file_processing_command() const noexcept;
   void service_perfdata_file_processing_command(std::string const& value);
-  unsigned int service_perfdata_file_processing_interval() const noexcept;
   void service_perfdata_file_processing_interval(unsigned int value);
-  std::string const& service_perfdata_file_template() const noexcept;
   void service_perfdata_file_template(std::string const& value);
   float sleep_time() const noexcept;
   void sleep_time(float value);
@@ -457,7 +448,6 @@ class state {
   void _set_event_broker_options(std::string const& value);
   void _set_free_child_process_memory(std::string const& value);
   void _set_host_inter_check_delay_method(std::string const& value);
-  void _set_host_perfdata_file_mode(std::string const& value);
   void _set_lock_file(std::string const& value);
   void _set_log_archive_path(std::string const& value);
   void _set_log_initial_states(std::string const& value);
@@ -476,6 +466,7 @@ class state {
   void _set_temp_file(std::string const& value);
   void _set_temp_path(std::string const& value);
   void _set_use_embedded_perl_implicitly(std::string const& value);
+  void _set_host_perfdata_file_mode(std::string const& value);
 
   template <typename U, void (state::*ptr)(U)>
   struct setter {
@@ -566,10 +557,6 @@ class state {
   inter_check_delay _host_inter_check_delay_method;
   std::string _host_perfdata_command;
   std::string _host_perfdata_file;
-  perfdata_file_mode _host_perfdata_file_mode;
-  std::string _host_perfdata_file_processing_command;
-  unsigned int _host_perfdata_file_processing_interval;
-  std::string _host_perfdata_file_template;
   std::string _illegal_object_chars;
   std::string _illegal_output_chars;
   unsigned int _interval_length;
@@ -623,10 +610,6 @@ class state {
   interleave_factor _service_interleave_factor_method;
   std::string _service_perfdata_command;
   std::string _service_perfdata_file;
-  perfdata_file_mode _service_perfdata_file_mode;
-  std::string _service_perfdata_file_processing_command;
-  unsigned int _service_perfdata_file_processing_interval;
-  std::string _service_perfdata_file_template;
   static absl::flat_hash_map<std::string, setter_func> const _setters;
   static absl::flat_hash_map<std::string, setter_func> const _pb_setters;
   float _sleep_time;
