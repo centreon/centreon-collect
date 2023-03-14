@@ -1452,7 +1452,7 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
                          actions::custom_variables | actions::downtimes |
                          actions::comments | actions::service_dependencies |
                          actions::severities | actions::resources_tags |
-                         actions::tags | actions::resources);
+                         actions::tags);
   auto hst{static_cast<const neb::pb_host*>(d.get())};
   auto& h = hst->obj();
 
@@ -2873,8 +2873,7 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
   _finish_action(-1, actions::host_parents | actions::comments |
                          actions::downtimes | actions::host_dependencies |
                          actions::service_dependencies | actions::severities |
-                         actions::resources_tags | actions::tags |
-                         actions::resources);
+                         actions::resources_tags | actions::tags);
   // Processed object.
   auto svc{static_cast<neb::pb_service const*>(d.get())};
   auto& s = svc->obj();

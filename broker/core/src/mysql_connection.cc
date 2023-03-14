@@ -224,7 +224,7 @@ void mysql_connection::_query(mysql_task* t) {
   } else {
     set_need_to_commit();
   }
-  SPDLOG_LOGGER_DEBUG(log_v2::sql(), "mysql_connection {:p}: end run query: {}",
+  SPDLOG_LOGGER_TRACE(log_v2::sql(), "mysql_connection {:p}: end run query: {}",
                       static_cast<const void*>(this), task->query);
 }
 
@@ -290,7 +290,7 @@ void mysql_connection::_commit(mysql_task* t) {
       if (res == 0)
         _last_access = std::time(nullptr);
     } else {
-      SPDLOG_LOGGER_DEBUG(log_v2::sql(),
+      SPDLOG_LOGGER_TRACE(log_v2::sql(),
                           "mysql_connection {:p} : nothing to commit",
                           static_cast<const void*>(this));
       res = 0;
@@ -339,7 +339,7 @@ void mysql_connection::_prepare(mysql_task* t) {
       set_error_message(err_msg);
     } else {
       _stmt[task->id] = stmt;
-      SPDLOG_LOGGER_DEBUG(log_v2::sql(),
+      SPDLOG_LOGGER_TRACE(log_v2::sql(),
                           "mysql_connection {:p}: statement prepared {} "
                           "mysql_statement_id={}: {}",
                           static_cast<const void*>(this), task->id,
@@ -431,7 +431,7 @@ void mysql_connection::_statement(mysql_task* t) {
       }
       std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
-    SPDLOG_LOGGER_DEBUG(log_v2::sql(),
+    SPDLOG_LOGGER_TRACE(log_v2::sql(),
                         "mysql_connection {:p}: end execute statement "
                         "{} attempt {} duration {}s: {}",
                         static_cast<const void*>(this), task->statement_id,
