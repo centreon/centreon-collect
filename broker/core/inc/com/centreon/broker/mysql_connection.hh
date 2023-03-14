@@ -79,14 +79,14 @@ class mysql_connection {
   std::mutex _start_m;
   std::condition_variable _start_condition;
 
-  // Mutex to access the configuration
-  mutable std::mutex _cfg_mutex;
-  std::string _host;
-  std::string _socket;
-  std::string _user;
-  std::string _pwd;
-  std::string _name;
-  int _port;
+  const std::string _host;
+  const std::string _socket;
+  const std::string _user;
+  const std::string _pwd;
+  const std::string _name;
+  const int _port;
+  const unsigned _max_second_commit_delay;
+  time_t _last_commit;
   std::atomic<connection_state> _state;
 
   /**
@@ -133,6 +133,12 @@ class mysql_connection {
   void _prepare_connection();
   void _clear_connection();
   void _update_stats() noexcept;
+
+  inline void set_need_to_commit() {
+    if (_qps > 1) {
+      _need_commit = true;
+    }
+  }
 
  public:
   /**************************************************************************/

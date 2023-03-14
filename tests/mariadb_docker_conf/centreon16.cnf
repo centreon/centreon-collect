@@ -50,10 +50,10 @@ general_log_file=/scripts/tests/mariadb_log/mariadb.log
 slow_query_log=1
 slow_query_log_file=/scripts/tests/mariadb_log/slow_query.log
 long_query_time=30
+log-error=/scripts/tests/mariadb_log/error.log
 
 
 [mysqld_safe]
-log-error=/scripts/tests/mariadb_log/error.log
 pid-file=/var/run/mysqld/mysqld.pid
 innodb_lock_wait_timeout=30
 

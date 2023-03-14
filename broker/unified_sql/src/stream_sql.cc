@@ -225,24 +225,32 @@ void stream::_clean_tables(uint32_t instance_id) {
 
 void stream::_clean_group_table() {
   int32_t conn = _mysql.choose_best_connection(-1);
-  /* Remove host groups. */
-  SPDLOG_LOGGER_DEBUG(log_v2::sql(), "unified_sql: remove empty host groups ");
-  _mysql.run_query(
-      "DELETE hg FROM hostgroups AS hg LEFT JOIN hosts_hostgroups AS hhg ON "
-      "hg.hostgroup_id=hhg.hostgroup_id WHERE hhg.hostgroup_id IS NULL",
-      database::mysql_error::clean_empty_hostgroups, false, conn);
-  _add_action(conn, actions::hostgroups);
+  try {
+    /* Remove host groups. */
+    SPDLOG_LOGGER_DEBUG(log_v2::sql(),
+                        "unified_sql: remove empty host groups ");
+    _mysql.run_query(
+        "DELETE hg FROM hostgroups AS hg LEFT JOIN hosts_hostgroups AS hhg ON "
+        "hg.hostgroup_id=hhg.hostgroup_id WHERE hhg.hostgroup_id IS NULL",
+        database::mysql_error::clean_empty_hostgroups, false, conn);
+    _add_action(conn, actions::hostgroups);
 
-  /* Remove service groups. */
-  SPDLOG_LOGGER_DEBUG(log_v2::sql(),
-                      "unified_sql: remove empty service groups");
+    /* Remove service groups. */
+    SPDLOG_LOGGER_DEBUG(log_v2::sql(),
+                        "unified_sql: remove empty service groups");
 
-  _mysql.run_query(
-      "DELETE sg FROM servicegroups AS sg LEFT JOIN services_servicegroups as "
-      "ssg ON sg.servicegroup_id=ssg.servicegroup_id WHERE ssg.servicegroup_id "
-      "IS NULL",
-      database::mysql_error::clean_empty_servicegroups, false, conn);
-  _add_action(conn, actions::servicegroups);
+    _mysql.run_query(
+        "DELETE sg FROM servicegroups AS sg LEFT JOIN services_servicegroups "
+        "as "
+        "ssg ON sg.servicegroup_id=ssg.servicegroup_id WHERE "
+        "ssg.servicegroup_id "
+        "IS NULL",
+        database::mysql_error::clean_empty_servicegroups, false, conn);
+    _add_action(conn, actions::servicegroups);
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(log_v2::sql(), "fail to clean group tables: {}",
+                        e.what());
+  }
 }
 
 /**
