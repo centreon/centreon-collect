@@ -84,23 +84,22 @@ runs:
           ssh-add - <<< "${{ inputs.yum_repo_key }}"
         fi
 
+        MAJOR=${{ inputs.version }}
+        MINOR=${{ inputs.minor_version }}
+        RELEASE=${{ inputs.release }}
+
         FILES="*.${{ env.extfile }}"
 
         for FILE in $FILES
         do
           echo "[DEBUG] - File: $FILE"
-          MAJOR=${{ inputs.version }}
-          MINOR=${{ inputs.minor_version }}
-          RELEASE=${{ inputs.release }}
+
           ARCH=$(echo $FILE | cut -d '_' -f3 | cut -d '.' -f1)
 
-          echo "[DEBUG] - Suprepo: ${{ inputs.minor_version }}"
-          echo "[DEBUG] - Version: $MAJOR"
-
-          if [[ "${{ env.extfile }}" == "deb" ]] && [[ "${{ inputs.minor_version }}" == "stable" ]]; then
+          if [[ "${{ env.extfile }}" == "deb" ]] && [[ "${{ inputs.stability }}" == "stable" ]]; then
             curl --fail -u "${{ inputs.nexus_username }}":"${{ inputs.nexus_password }}" -H "Content-Type: multipart/form-data" --data-binary "@./$FILE" https://apt.centreon.com/repository/${{ inputs.version }}/
             jf rt upload "$FILE" "apt-${{ inputs.version }}-${{ inputs.stability }}/pool/" --deb "${{ inputs.distrib }}/main/$ARCH"
-          elif [[ "${{ env.extfile }}" == "deb" ]] && [[ "${{ inputs.minor_version }}" != "stable" ]]; then
+          elif [[ "${{ env.extfile }}" == "deb" ]] && [[ "${{ inputs.stability }}" != "stable" ]]; then
             curl --fail -u "${{ inputs.nexus_username }}":"${{ inputs.nexus_password }}" -H "Content-Type: multipart/form-data" --data-binary "@./$FILE" https://apt.centreon.com/repository/${{ inputs.version }}-${{ inputs.minor_version }}/
             jf rt upload "$FILE" "apt-${{ inputs.version }}-${{ inputs.stability }}/pool/" --deb "${{ inputs.distrib }}/main/$ARCH"
           else
