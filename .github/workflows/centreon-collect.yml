@@ -99,7 +99,6 @@ jobs:
           version: ${{ needs.get-version.outputs.version }}
           minor_version: ${{ needs.get-version.outputs.patch }}
           release: ${{ needs.get-version.outputs.release }}
-          module_name: centreon-collect
           nexus_username: ${{ secrets.NEXUS_USERNAME }}
           nexus_password: ${{ secrets.NEXUS_PASSWORD }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
@@ -109,6 +108,7 @@ jobs:
           yum_repo_address: ${{ secrets.YUM_REPO_ADDRESS }}
           yum_repo_key: ${{ secrets.YUM_REPO_KEY }}
           yum_repo_url: ${{ secrets.YUM_REPO_URL }}
+          stability: ${{ needs.get-version.outputs.stability }}
 
   deliver-deb:
     if: ${{ contains(fromJson('["testing", "stable"]'), needs.get-version.outputs.stability) }}
@@ -127,9 +127,9 @@ jobs:
         uses: ./.github/actions/delivery
         with:
           distrib: ${{ matrix.distrib }}
-          repository_name: standard
           version: ${{ needs.get-version.outputs.version }}
           nexus_username: ${{ secrets.NEXUS_USERNAME }}
           nexus_password: ${{ secrets.NEXUS_PASSWORD }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           cache_key: cache-${{ github.sha }}-debbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
+          stability: ${{ needs.get-version.outputs.stability }}
