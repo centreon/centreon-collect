@@ -220,10 +220,7 @@ void log_v2::apply(const config::state& conf) {
   }
 
   for (auto it = lgs.begin(); it != lgs.end(); ++it) {
-    spdlog::drop(it->first);
-    auto l = std::make_shared<spdlog::logger>(it->first, null_sink);
-    spdlog::register_logger(l);
-    _log[it->second] = std::move(l);
+    _log[lgs[it->first]] = create_log(it->first, spdlog::level::off);
   }
 
   _flush_interval =
@@ -240,14 +237,14 @@ void log_v2::apply(const config::state& conf) {
 void log_v2::start_flush_timer(spdlog::sink_ptr sink) {
   std::lock_guard<std::mutex> l(_flush_timer_m);
   _flush_timer.expires_after(_flush_interval);
-  _flush_timer.async_wait(
-      [me = shared_from_this(), sink](const asio::error_code& err) {
-        if (err || !me->_flush_timer_active) {
-          return;
-        }
-        sink->flush();
-        me->start_flush_timer(sink);
-      });
+  _flush_timer.async_wait([me = std::static_pointer_cast<log_v2>(_instance),
+                           sink](const asio::error_code& err) {
+    if (err || !me->_flush_timer_active) {
+      return;
+    }
+    sink->flush();
+    me->start_flush_timer(sink);
+  });
 }
 
 void log_v2::stop_flush_timer() {

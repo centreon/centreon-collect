@@ -66,11 +66,6 @@ class log_v2 : public com::centreon::engine::log_v2_base {
  public:
   ~log_v2();
 
-  std::shared_ptr<log_v2> shared_from_this() {
-    return std::static_pointer_cast<log_v2>(
-        com::centreon::engine::log_v2_base::shared_from_this());
-  }
-
   void stop_flush_timer();
 
   static void load(const std::shared_ptr<asio::io_context>& io_context);

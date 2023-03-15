@@ -26,7 +26,7 @@
 
 CCE_BEGIN()
 
-class log_v2_base : public std::enable_shared_from_this<log_v2_base> {
+class log_v2_base {
  protected:
   std::string _log_name;
   std::chrono::seconds _flush_interval;

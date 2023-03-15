@@ -58,10 +58,6 @@ class log_v2 : public log_v2_base {
  public:
   ~log_v2() noexcept;
 
-  std::shared_ptr<log_v2> shared_from_this() {
-    return std::static_pointer_cast<log_v2>(log_v2_base::shared_from_this());
-  }
-
   void stop_flush_timer();
   void apply(const configuration::state& config);
   static bool contains_level(const std::string& level_name);
