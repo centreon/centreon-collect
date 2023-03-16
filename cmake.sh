@@ -258,7 +258,7 @@ pip3 install conan==1.57.0 --upgrade
 
 if which conan ; then
   conan=$(which conan)
-elif [[ -x "/usr/local/bin/conan" ]] ; then
+elif [[ -x /usr/local/bin/conan ]] ; then
   conan='/usr/local/bin/conan'
 else
   conan="$HOME/.local/bin/conan"
@@ -287,15 +287,15 @@ cd build
 if [[ "$maj" == "centos7" ]] ; then
   rm -rf ~/.conan/profiles/default
   if [[ "$CONAN_REBUILD" == "1" ]] ; then
-    echo $conan install .. -pr:b=default -s compiler=$COMPILER -s compiler.version=$VERSION -s compiler.cppstd=$STD -s compiler.libcxx=$LIBCXX $EE --build="*"
-    $conan install .. -pr:b=default -s compiler=$COMPILER -s compiler.version=$VERSION -s compiler.cppstd=$STD -s compiler.libcxx=$LIBCXX $EE --build="*"
+    echo $conan install .. -pr:b=default -s compiler=$COMPILER -s compiler.cppstd=$STD -s compiler.libcxx=$LIBCXX $EE --build="*"
+    $conan install .. -pr:b=default -s compiler=$COMPILER -s compiler.cppstd=$STD -s compiler.libcxx=$LIBCXX $EE --build="*"
   else
-    echo $conan install .. -pr:b=default -s compiler=$COMPILER -s compiler.version=$VERSION -s compiler.cppstd=$STD -s compiler.libcxx=$LIBCXX $EE --build=missing
-    $conan install .. -pr:b=default -s compiler=$COMPILER -s compiler.version=$VERSION -s compiler.cppstd=$STD -s compiler.libcxx=$LIBCXX $EE --build=missing
+    echo $conan install .. -pr:b=default -s compiler=$COMPILER -s compiler.cppstd=$STD -s compiler.libcxx=$LIBCXX $EE --build=missing
+    $conan install .. -pr:b=default -s compiler=$COMPILER -s compiler.cppstd=$STD -s compiler.libcxx=$LIBCXX $EE --build=missing
   fi
 else
-    echo $conan install .. -pr:b=default -s compiler=$COMPILER -s compiler.version=$VERSION -s compiler.libcxx=$LIBCXX -s compiler.cppstd=$STD $EE --build=missing
-    $conan install .. -pr:b=default -s compiler=$COMPILER -s compiler.version=$VERSION -s compiler.libcxx=$LIBCXX -s compiler.cppstd=$STD $EE --build=missing
+    echo $conan install .. -pr:b=default -s compiler=$COMPILER -s compiler.libcxx=$LIBCXX -s compiler.cppstd=$STD $EE --build=missing
+    $conan install .. -pr:b=default -s compiler=$COMPILER -s compiler.libcxx=$LIBCXX -s compiler.cppstd=$STD $EE --build=missing
 fi
 
 if [[ $STD -eq 17 ]] ; then
