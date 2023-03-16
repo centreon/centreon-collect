@@ -6,6 +6,9 @@
 
 #### Broker
 
+*Lua*
+* Lua accepts repeated fields from Protobuf events.
+
 #### Engine
 
 ### Enhancements

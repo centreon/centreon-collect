@@ -1,6 +1,9 @@
 name: "runner docker Centreon"
 description: "runner docker Centreon"
 inputs:
+  registry_url:
+    description: Docker registry url
+    required: true
   script_name:
     description: "script name"
     required: true
@@ -16,11 +19,9 @@ inputs:
   params:
     description: "params for script"
     required: false
-env:
-  REGISTRY: registry-docker.centreon.com/docker-global
 
 runs:
   using: "composite"
   steps:
-    - run: docker run -i --entrypoint ${{ inputs.script_name }}.sh -v "$PWD:/src" ${{ inputs.env_variable }} ${{ env.REGISTRY }}/${{ inputs.image_name }}:${{ inputs.image_version}} ${{ inputs.params }}
+    - run: docker run -i --entrypoint ${{ inputs.script_name }}.sh -v "$PWD:/src" ${{ inputs.env_variable }} ${{ inputs.registry_url }}/${{ inputs.image_name }}:${{ inputs.image_version}} ${{ inputs.params }}
       shell: bash

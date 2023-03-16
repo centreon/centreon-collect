@@ -1,21 +1,21 @@
 #!/bin/bash
 set -e
+set -x
 
 export RUN_ENV=docker
 
-echo "########################### configure and start sshd ############################"
-ssh-keygen -t rsa -f /etc/ssh/ssh_host_rsa_key
-ssh-keygen -t ecdsa -f /etc/ssh/ssh_host_ecdsa_key
-ssh-keygen -t ed25519 -f /etc/ssh/ssh_host_ed25519_key
+echo "########################### Configure and start sshd ###########################"
+ssh-keygen -t rsa -f /etc/ssh/ssh_host_rsa_key -P ""
+ssh-keygen -t ecdsa -f /etc/ssh/ssh_host_ecdsa_key -P ""
+ssh-keygen -t ed25519 -f /etc/ssh/ssh_host_ed25519_key -P ""
 /usr/sbin/sshd > /dev/null 2>&1 &
 
-echo "########################### start mariadb ############################"
+echo "########################### Start MariaDB ######################################"
 mariadbd --user=root > /dev/null 2>&1 &
 sleep 5
 
-echo "########################### init centreon database ############################"
+echo "########################### Init centreon database ############################"
 
-cd /src/tests/
 mysql -e "CREATE USER IF NOT EXISTS 'centreon'@'localhost' IDENTIFIED BY 'centreon';"
 
 mysql -e "GRANT SELECT,UPDATE,DELETE,INSERT,CREATE,DROP,INDEX,ALTER,LOCK TABLES,CREATE TEMPORARY TABLES, EVENT,CREATE VIEW ON *.* TO  'centreon'@'localhost';"
@@ -23,41 +23,43 @@ mysql -e "GRANT SELECT,UPDATE,DELETE,INSERT,CREATE,DROP,INDEX,ALTER,LOCK TABLES,
 mysql -u centreon -pcentreon < resources/centreon_storage.sql
 mysql -u centreon -pcentreon < resources/centreon.sql
 
-echo "########################### build and install centreon collect ############################"
+echo "########################## Install centreon collect ###########################"
 
-rm -rf /src/build
-mkdir /src/build
-cd /src/build/
-DISTRIB=$(lsb_release -rs | cut -f1 -d.)
-if [ "$DISTRIB" = "7" ] ; then
-    source /opt/rh/devtoolset-9/enable
-fi 
-conan install .. -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
-if [ $(cat /etc/issue | awk '{print $1}') = "Debian" ] ; then
-    CXXFLAGS="-Wall -Wextra" cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug -DWITH_USER_BROKER=centreon-broker -DWITH_USER_ENGINE=centreon-engine -DWITH_GROUP_BROKER=centreon-broker -DWITH_GROUP_ENGINE=centreon-engine -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_BENCH=On -DWITH_CREATE_FILES=OFF ..
-else 
-    CXXFLAGS="-Wall -Wextra" cmake3 -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug -DWITH_USER_BROKER=centreon-broker -DWITH_USER_ENGINE=centreon-engine -DWITH_GROUP_BROKER=centreon-broker -DWITH_GROUP_ENGINE=centreon-engine -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_BENCH=On -DWITH_CREATE_FILES=OFF ..
-fi
+echo "Installation..."
+/usr/bin/rpm -Uvvh --force --nodeps *.rpm
 
-#Build
-make -j9
-make -j9 install
-
-echo "########################### install robot framework ############################"
+echo "########################### Install Robot Framework ###########################"
 cd /src/tests/
 pip3 install -U robotframework robotframework-databaselibrary pymysql python-dateutil
 
-yum install "Development Tools" python3-devel -y
+yum groupinstall "Development Tools" -y
+yum install python3-devel -y
 
-pip3 install grpcio==1.33.2 grpcio_tools==1.33.2
+# Get OS version id
+VERSION_ID=$(grep '^VERSION_ID' /etc/os-release | sed -En 's/^VERSION_ID="([[:digit:]])\.[[:digit:]]"/\1/p')
+
+# Force version for el7 only
+if [ -f /etc/os-release ]; then
+    case "$VERSION_ID" in
+        7)
+            pip3 install grpcio==1.33.2 grpcio_tools==1.33.2
+            ;;
+        8)
+            pip3 install grpcio grpcio_tools
+            ;;
+        *)
+            echo "OS Version is neither 7 or 8"
+            ;;
+    esac
+fi
 
 ./init-proto.sh
 
-echo "########################### run centreon collect test robot ############################"
+echo "####################### Run Centreon Collect Robot Tests #######################"
 cd /src/tests/
 robot --nostatusrc .
 
-echo "########################### generate folder report ############################"
+echo "########################### Generate Folder Report #############################"
 mkdir reports
 cp log.html output.xml report.html reports
 

@@ -967,7 +967,7 @@ def check_broker_stats_exist(name, key1, key2, timeout=TIMEOUT):
         else:
             filename = "central-rrd-master-stats.json"
         retry = True
-        while retry:
+        while retry and time.time() < limit:
             retry = False
             f = open(VAR_ROOT + "/lib/centreon-broker/{}".format(filename), "r")
             buf = f.read()
@@ -995,7 +995,7 @@ def get_broker_stats_size(name, key, timeout=TIMEOUT):
         else:
             filename = "central-rrd-master-stats.json"
         retry = True
-        while retry:
+        while retry and time.time() < limit:
             retry = False
             f = open(VAR_ROOT + "/lib/centreon-broker/{}".format(filename), "r")
             buf = f.read()

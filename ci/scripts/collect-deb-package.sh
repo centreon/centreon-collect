@@ -12,8 +12,8 @@ fi
 
 echo "############################# PACKAGING COLLECT ################################"
 
-AUTHOR="Luiz Costa"
-AUTHOR_EMAIL="me@luizgustavo.pro.br"
+AUTHOR="Centreon"
+AUTHOR_EMAIL="contact@centreon.com"
 
 # fix version to debian format accept
 VERSION="$(echo $VERSION | sed 's/-/./g')"
@@ -26,7 +26,13 @@ tar --exclude={".git","build"} -czpf centreon-collect-$VERSION.tar.gz "$ROOT"
 cd "$ROOT"
 cp -rf ci/debian-collect debian
 sed -i "s/^centreon:version=.*$/centreon:version=$(echo $VERSION-$RELEASE)/" debian/substvars
-#sed -i "s/^centreon:version=.*$/centreon:version=$(echo $VERSION | egrep -o '^[0-9][0-9].[0-9][0-9]')/" debian/substvars
-debmake -f "${AUTHOR}" -e "${AUTHOR_EMAIL}" -u "$VERSION" -r "$DISTRIB"
+echo "debmake begin"
+debmake -f "${AUTHOR}" -e "${AUTHOR_EMAIL}" -u "$VERSION" -r "$RELEASE"
+echo "version de dwz"
+/usr/bin/dwz -v
+echo "version de gcc"
+gcc --version
+echo "version de ld"
+ld --version
 debuild-pbuilder
 cd ../

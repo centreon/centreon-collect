@@ -1,20 +1,14 @@
 name: Centreon collect
 
 on:
-  pull_request_target:
-    types:
-      - closed
-    branches:
-      - develop
-    paths-ignore:
-      - 'gorgone/**'
   workflow_dispatch:
   pull_request:
-    paths-ignore:
-      - 'gorgone/**'
-
-env:
-  REGISTRY: registry-docker.centreon.com/docker-global
+  push:
+    branches:
+      - develop
+      - dev-[2-9][0-9].[0-9][0-9].x
+      - master
+      - "[2-9][0-9].[0-9][0-9].x"
 
 jobs:
   create-version:
@@ -42,9 +36,10 @@ jobs:
               echo "release=$GITHUB_RUN_ATTEMPT" >> $GITHUB_OUTPUT
               ;;
             *)
-              echo "release=`date +%s`.${{ github.sha }}" >> $GITHUB_OUTPUT
+              echo "release=`date +%s`.`echo ${{ github.sha }} | cut -c -7`" >> $GITHUB_OUTPUT
               ;;
           esac
+
         shell: bash
       - run: |
           echo "ImgVersion is ${{ steps.version.outputs.imgversion }}"
@@ -66,23 +61,24 @@ jobs:
 
     strategy:
       matrix:
-        include:
-          - image: centos7
-          - image: alma8
-          - image: debian-buster
-          - image: debian-bullseye
+        image: [centos7, alma8, debian-bullseye]
+    name: unit test ${{ matrix.image }}
+
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
+
       - name: Login to Registry
         uses: docker/login-action@v2
         with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.REPOS_USERNAME }}
-          password: ${{ secrets.REPOS_PASSWORD }}
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.DOCKER_REGISTRY_ID }}
+          password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+
       - name: Test ${{ matrix.image }}
         uses: ./.github/actions/runner-docker
         with:
+          registry_url: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
           script_name: /src/ci/scripts/collect-unit-tests
           image_name: centreon-collect-${{ matrix.image }}
           image_version: ${{ env.imgversion }}
@@ -105,25 +101,37 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
+
       - name: Login to Registry
         uses: docker/login-action@v2
         with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.REPOS_USERNAME }}
-          password: ${{ secrets.REPOS_PASSWORD }}
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.DOCKER_REGISTRY_ID }}
+          password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
 
       - name: make rpm ${{ matrix.image }}
         uses: ./.github/actions/runner-docker
         with:
+          registry_url: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
           script_name: /src/ci/scripts/collect-rpm-package
           image_name: centreon-collect-${{ matrix.image }}
           image_version: ${{ env.imgversion }}
           env_variable: -e DISTRIB="${{ matrix.distrib }}" -e VERSION="${{ env.version }}" -e RELEASE="${{ env.release }}"
 
+      - name: sign rpm ${{ matrix.image }}
+        uses: ./.github/actions/package-sign
+        with:
+          script_name: rpm-signing
+          image_name: rpm-signing
+          image_version: ubuntu
+          registry_url: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          registry_username: ${{ secrets.DOCKER_REGISTRY_ID }}
+          registry_password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+
       - name: Use cache RPM files
         uses: actions/cache@v3
         env:
-          cache-name-rpmbuild: cache-${{ github.sha }}-${{ github.run_id }}-rpmbuild-centreon-collect-${{ matrix.distrib }}
+          cache-name-rpmbuild: cache-${{ github.sha }}-${{ github.run_id }}-rpmbuild-collect-${{ matrix.distrib }}
         with:
           path: ./*.rpm
           key: ${{ env.cache-name-rpmbuild }}
@@ -139,8 +147,6 @@ jobs:
     strategy:
       matrix:
         include:
-          - image: debian-buster
-            distrib: buster
           - image: debian-bullseye
             distrib: bullseye
     steps:
@@ -151,13 +157,14 @@ jobs:
       - name: Login to Registry
         uses: docker/login-action@v2
         with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.REPOS_USERNAME }}
-          password: ${{ secrets.REPOS_PASSWORD }}
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.DOCKER_REGISTRY_ID }}
+          password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
 
       - name: debmake ${{ matrix.image }}
         uses: ./centreon-collect/.github/actions/runner-docker
         with:
+          registry_url: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
           script_name: /src/centreon-collect/ci/scripts/collect-deb-package
           image_name: centreon-collect-${{ matrix.image }}
           image_version: ${{ env.imgversion }}
@@ -179,7 +186,7 @@ jobs:
     name: Delivery
     strategy:
       matrix:
-        distrib: [buster, bullseye]
+        distrib: [bullseye]
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
@@ -188,9 +195,11 @@ jobs:
         uses: ./.github/actions/delivery
         with:
           distrib: ${{ matrix.distrib }}
+          repository_name: standard
           version: ${{ env.version }}
-          repos_username: ${{ secrets.REPOS_USERNAME }}
-          repos_password: ${{ secrets.REPOS_PASSWORD }}
+          nexus_username: ${{ secrets.NEXUS_USERNAME }}
+          nexus_password: ${{ secrets.NEXUS_PASSWORD }}
+          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           cache_key: cache-${{ github.sha }}-${{ github.run_id }}
 
   delivery-centos:
@@ -211,6 +220,15 @@ jobs:
         with:
           distrib: ${{ matrix.distrib }}
           version: ${{ env.version }}
-          repos_username: ${{ secrets.REPOS_USERNAME }}
-          repos_password: ${{ secrets.REPOS_PASSWORD }}
-          cache_key: cache-${{ github.sha }}-${{ github.run_id }}
+          minor_version: ${{ needs.create-version.outputs.patch }}
+          release: ${{ needs.create-version.outputs.release }}
+          module_name: centreon-collect
+          nexus_username: ${{ secrets.NEXUS_USERNAME }}
+          nexus_password: ${{ secrets.NEXUS_PASSWORD }}
+          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+          cache_key: cache-${{ github.sha }}-${{ github.run_id }}-rpmbuild-collect-${{ matrix.distrib }}
+          update_repo_path: ${{ secrets.UPDATE_REPO_PATH }}
+          cloudfront_id: ${{ secrets.CLOUDFRONT_ID }}
+          yum_repo_address: ${{ secrets.YUM_REPO_ADDRESS }}
+          yum_repo_key: ${{ secrets.YUM_REPO_KEY }}
+          yum_repo_url: ${{ secrets.YUM_REPO_URL }}
