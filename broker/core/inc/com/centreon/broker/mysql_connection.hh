@@ -111,6 +111,10 @@ class mysql_connection {
   /**************************************************************************/
   bool _server_error(int code) const;
   void _run();
+  void _process_tasks(std::list<std::unique_ptr<database::mysql_task>>& task);
+  void _process_while_empty_task(
+      std::list<std::unique_ptr<database::mysql_task>>& task);
+
   std::string _get_stack();
   void _query(database::mysql_task* t);
   void _query_res(database::mysql_task* t);
@@ -124,7 +128,6 @@ class mysql_connection {
   void _fetch_row_sync(database::mysql_task* task);
   void _get_version(database::mysql_task* t);
   void _push(std::unique_ptr<database::mysql_task>&& q);
-  void _debug(MYSQL_BIND* bind, uint32_t size);
   bool _try_to_reconnect();
 
   static void (mysql_connection::*const _task_processing_table[])(
