@@ -38,7 +38,7 @@ ENRSCHE1
 	${pid}=	Get Process Id	e0
 	${content}=	Set Variable	[checks] [debug] [${pid}] Rescheduling next check of host: host_14
 
-	${result1}	${result2}=	check reschedule with timeout	${logEngine0}	${start}	${content}	240
+	${result1}	${result2}=	check reschedule with timeout	${engineLog0}	${start}	${content}	240
 	Should Be True	${result1}	msg=the delta of last_check and next_check is not equal to 60.
 	Should Be True	${result2}	msg=the delta of last_check and next_check is not equal to 300.
 	Stop Engine

@@ -32,7 +32,7 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::multiplexing;
 
 // Class instance.
-engine* engine::_instance{nullptr};
+std::shared_ptr<engine> engine::_instance{nullptr};
 std::mutex engine::_load_m;
 
 /**
@@ -40,9 +40,9 @@ std::mutex engine::_load_m;
  *
  *  @return Class instance.
  */
-engine& engine::instance() {
-  assert(_instance);
-  return *_instance;
+std::shared_ptr<engine> engine::instance_ptr() {
+  std::lock_guard<std::mutex> lk(_load_m);
+  return _instance;
 }
 
 /**
@@ -53,7 +53,7 @@ void engine::load() {
   log_v2::core()->trace("multiplexing: loading engine");
   std::lock_guard<std::mutex> lk(_load_m);
   if (!_instance)
-    _instance = new engine();
+    _instance.reset(new engine);
 }
 
 /**
@@ -71,8 +71,7 @@ void engine::unload() {
   if (_instance && _instance->_cache_file)
     _instance->_cache_file->commit();
 
-  delete _instance;
-  _instance = nullptr;
+  _instance.reset();
 }
 
 /**

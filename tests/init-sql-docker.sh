@@ -37,6 +37,3 @@ else
     mysql --user="$DBUserRoot" --password="$DBPassRoot" -h 127.0.0.1 < /scripts/resources/centreon_storage.sql
 fi
 
-#activate queries log
-mysql --user="$DBUserRoot" --password="$DBPassRoot" -h 127.0.0.1 -e "SET GLOBAL general_log=1;"
-mysql --user="$DBUserRoot" --password="$DBPassRoot" -h 127.0.0.1 -e "SET GLOBAL general_log_file='/scripts/tests/mariadb_log/mariadb.log';"

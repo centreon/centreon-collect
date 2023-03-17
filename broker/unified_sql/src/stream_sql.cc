@@ -225,24 +225,32 @@ void stream::_clean_tables(uint32_t instance_id) {
 
 void stream::_clean_group_table() {
   int32_t conn = _mysql.choose_best_connection(-1);
-  /* Remove host groups. */
-  SPDLOG_LOGGER_DEBUG(log_v2::sql(), "unified_sql: remove empty host groups ");
-  _mysql.run_query(
-      "DELETE hg FROM hostgroups AS hg LEFT JOIN hosts_hostgroups AS hhg ON "
-      "hg.hostgroup_id=hhg.hostgroup_id WHERE hhg.hostgroup_id IS NULL",
-      database::mysql_error::clean_empty_hostgroups, false, conn);
-  _add_action(conn, actions::hostgroups);
+  try {
+    /* Remove host groups. */
+    SPDLOG_LOGGER_DEBUG(log_v2::sql(),
+                        "unified_sql: remove empty host groups ");
+    _mysql.run_query(
+        "DELETE hg FROM hostgroups AS hg LEFT JOIN hosts_hostgroups AS hhg ON "
+        "hg.hostgroup_id=hhg.hostgroup_id WHERE hhg.hostgroup_id IS NULL",
+        database::mysql_error::clean_empty_hostgroups, false, conn);
+    _add_action(conn, actions::hostgroups);
 
-  /* Remove service groups. */
-  SPDLOG_LOGGER_DEBUG(log_v2::sql(),
-                      "unified_sql: remove empty service groups");
+    /* Remove service groups. */
+    SPDLOG_LOGGER_DEBUG(log_v2::sql(),
+                        "unified_sql: remove empty service groups");
 
-  _mysql.run_query(
-      "DELETE sg FROM servicegroups AS sg LEFT JOIN services_servicegroups as "
-      "ssg ON sg.servicegroup_id=ssg.servicegroup_id WHERE ssg.servicegroup_id "
-      "IS NULL",
-      database::mysql_error::clean_empty_servicegroups, false, conn);
-  _add_action(conn, actions::servicegroups);
+    _mysql.run_query(
+        "DELETE sg FROM servicegroups AS sg LEFT JOIN services_servicegroups "
+        "as "
+        "ssg ON sg.servicegroup_id=ssg.servicegroup_id WHERE "
+        "ssg.servicegroup_id "
+        "IS NULL",
+        database::mysql_error::clean_empty_servicegroups, false, conn);
+    _add_action(conn, actions::servicegroups);
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(log_v2::sql(), "fail to clean group tables: {}",
+                        e.what());
+  }
 }
 
 /**
@@ -1443,7 +1451,8 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
                          actions::host_dependencies | actions::host_parents |
                          actions::custom_variables | actions::downtimes |
                          actions::comments | actions::service_dependencies |
-                         actions::severities);
+                         actions::severities | actions::resources_tags |
+                         actions::tags);
   auto hst{static_cast<const neb::pb_host*>(d.get())};
   auto& h = hst->obj();
 
@@ -1712,9 +1721,13 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
                 return;
               }
             }
+            SPDLOG_LOGGER_DEBUG(log_v2::sql(), "insert resource {} for host{}",
+                                res_id, h.host_id());
           }
           if (res_id == 0) {
             res_id = found->second;
+            SPDLOG_LOGGER_DEBUG(log_v2::sql(), "update resource {} for host{}",
+                                res_id, h.host_id());
             // UPDATE
             _resources_host_update.bind_value_as_u32(0, h.state());
             _resources_host_update.bind_value_as_u32(
@@ -1776,6 +1789,10 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
                                database::mysql_error::delete_resources_tags,
                                false, conn);
           for (auto& tag : h.tags()) {
+            SPDLOG_LOGGER_DEBUG(log_v2::sql(),
+                                "add tag ({}, {}) for resource {} for host{}",
+                                tag.id(), tag.type(), res_id, h.host_id());
+
             auto it_tags_cache = _tags_cache.find({tag.id(), tag.type()});
 
             if (it_tags_cache == _tags_cache.end()) {
@@ -2855,7 +2872,8 @@ void stream::_process_service(const std::shared_ptr<io::data>& d) {
 void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
   _finish_action(-1, actions::host_parents | actions::comments |
                          actions::downtimes | actions::host_dependencies |
-                         actions::service_dependencies | actions::severities);
+                         actions::service_dependencies | actions::severities |
+                         actions::resources_tags | actions::tags);
   // Processed object.
   auto svc{static_cast<neb::pb_service const*>(d.get())};
   auto& s = svc->obj();

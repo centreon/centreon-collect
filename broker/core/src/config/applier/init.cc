@@ -78,14 +78,20 @@ void config::applier::init(size_t n_thread,
 void config::applier::deinit() {
   mode = finished;
   config::applier::endpoint::unload();
-  multiplexing::engine::instance().stop();
+  std::shared_ptr<multiplexing::engine> engine_instance =
+      multiplexing::engine::instance_ptr();
+  if (engine_instance) {
+    engine_instance->stop();
+  }
   config::applier::state::unload();
   io::events::unload();
   io::protocols::unload();
   mysql_manager::unload();
   stats::center::unload();
   file::disk_accessor::unload();
-  multiplexing::engine::unload();
+  if (engine_instance) {
+    multiplexing::engine::unload();
+  }
   pool::unload();
 }
 

@@ -60,7 +60,7 @@ TEST_F(PublisherWrite, Write) {
     }
 
     // Launch multiplexing.
-    multiplexing::engine::instance().start();
+    multiplexing::engine::instance_ptr()->start();
 
     // Publish another event.
     {
