@@ -41,7 +41,6 @@ std::mutex engine::_load_m;
  *  @return Class instance.
  */
 std::shared_ptr<engine> engine::instance_ptr() {
-  std::lock_guard<std::mutex> lk(_load_m);
   return _instance;
 }
 
