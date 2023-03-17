@@ -124,6 +124,16 @@ service Engine {
   * @return nothing.
   */
   rpc SetLogParam(LogParam) returns (google.protobuf.Empty) {}
+
+  /**
+  * @brief Set level of a logger.
+  *
+  * @param A message with a logger and a level as strings.
+  *
+  * @return nothing.
+  */
+  rpc SetLogLevel(LogLevel) returns (google.protobuf.Empty) {}
+
 }
 
 message GenericString {
@@ -575,4 +585,18 @@ message LogParam {
   LogParamType param = 1;
   string name = 2;
   string value = 3;
+}
+
+message LogLevel {
+  string name = 1;
+  enum LogLevelEnum {
+    TRACE = 0;
+    DEBUG = 1;
+    INFO = 2;
+    WARNING = 3;
+    ERROR = 4;
+    CRITICAL = 5;
+    OFF = 6;
+  }
+  LogLevelEnum level = 2;
 }

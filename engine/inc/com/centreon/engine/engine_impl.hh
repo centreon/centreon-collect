@@ -248,6 +248,10 @@ class engine_impl final : public Engine::Service {
   ::grpc::Status SetLogParam(::grpc::ServerContext* context,
                              const ::com::centreon::engine::LogParam* request,
                              ::google::protobuf::Empty* response) override;
+
+  grpc::Status SetLogLevel(grpc::ServerContext* context [[maybe_unused]],
+                           const LogLevel* request,
+                           ::google::protobuf::Empty*) override;
 };
 
 CCE_END()

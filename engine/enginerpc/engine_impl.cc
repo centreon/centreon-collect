@@ -3372,3 +3372,18 @@ engine_impl::get_serv(
   }
   return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "unknown param");
 }
+
+grpc::Status engine_impl::SetLogLevel(grpc::ServerContext* context
+                                      [[maybe_unused]],
+                                      const LogLevel* request,
+                                      ::google::protobuf::Empty*) {
+  std::shared_ptr<spdlog::logger> logger = spdlog::get(request->name());
+  if (!logger) {
+    std::string err_detail = fmt::format("unknow logger:{}", request->name());
+    SPDLOG_LOGGER_ERROR(log_v2::external_command(), err_detail);
+    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err_detail);
+  } else {
+    logger->set_level(spdlog::level::level_enum(request->level()));
+    return grpc::Status::OK;
+  }
+}

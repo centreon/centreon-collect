@@ -336,3 +336,19 @@ grpc::Status broker_impl::SetLogParam(grpc::ServerContext* context
   }
   return grpc::Status::OK;
 }
+
+grpc::Status broker_impl::SetLogLevel(grpc::ServerContext* context
+                                      [[maybe_unused]],
+                                      const LogLevel* request,
+                                      ::google::protobuf::Empty*) {
+  const std::string& logger_name{request->name()};
+  std::shared_ptr<spdlog::logger> logger = spdlog::get(request->name());
+  if (!logger) {
+    std::string err_detail = fmt::format("unknow logger:{}", request->name());
+    SPDLOG_LOGGER_ERROR(log_v2::core(), err_detail);
+    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err_detail);
+  } else {
+    logger->set_level(spdlog::level::level_enum(request->level()));
+    return grpc::Status::OK;
+  }
+}
