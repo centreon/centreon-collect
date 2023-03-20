@@ -58,16 +58,7 @@ service Broker {
    */
   rpc GetLogInfo(GenericString) returns (LogInfo) {}
 
-  /**
-  * @brief Set a param of loggers.
-  *
-  * @param A message with a logger and a level as strings.
-  *
-  * @return nothing.
-  */
-  rpc SetLogParam(LogParam) returns (google.protobuf.Empty) {}
 
-  
   /**
   * @brief Set level of a logger.
   *
@@ -117,17 +108,6 @@ message LogLevel {
 
 message LogFlushPeriod {
   uint32 period = 1;
-}
-
-message LogParam {
-  enum LogParamType {
-    NONE =0;
-    FLUSH_PERIOD = 1;
-    LOG_LEVEL = 2;
-  }
-  LogParamType param = 1;
-  string name = 2;
-  string value = 3;
 }
 
 message GenericString {

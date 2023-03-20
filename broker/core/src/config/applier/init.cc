@@ -84,9 +84,9 @@ void config::applier::deinit() {
   config::applier::endpoint::unload();
   {
     auto eng = multiplexing::engine::instance_ptr();
-    if (eng)
-      eng->clear();
-    multiplexing::engine::unload();
+    if (eng) {
+      multiplexing::engine::unload();
+    }
   }
   config::applier::state::unload();
   io::events::unload();

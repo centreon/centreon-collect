@@ -303,40 +303,6 @@ grpc::Status broker_impl::GetLogInfo(grpc::ServerContext* context
   }
 }
 
-grpc::Status broker_impl::SetLogParam(grpc::ServerContext* context
-                                      [[maybe_unused]],
-                                      const LogParam* request,
-                                      ::google::protobuf::Empty*) {
-  switch (request->param()) {
-    case LogParam::LogParamType::LogParam_LogParamType_FLUSH_PERIOD: {
-      unsigned new_interval;
-      if (!absl::SimpleAtoi(request->value(), &new_interval)) {
-        return grpc::Status(
-            grpc::StatusCode::INVALID_ARGUMENT,
-            fmt::format("value must be a positive integer instead of {}",
-                        request->value()));
-      }
-      log_v2::instance().set_flush_interval(new_interval);
-      break;
-    }
-    case LogParam::LogParamType::LogParam_LogParamType_LOG_LEVEL: {
-      const std::string& logger_name{request->name()};
-      const std::string& level{request->value()};
-      try {
-        log_v2::instance().set_level(logger_name, level);
-      } catch (const std::exception& e) {
-        return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what());
-      }
-      break;
-    }
-    default:
-      return grpc::Status(
-          grpc::StatusCode::INVALID_ARGUMENT,
-          fmt::format("invalid ParamType:{}", request->param()));
-  }
-  return grpc::Status::OK;
-}
-
 grpc::Status broker_impl::SetLogLevel(grpc::ServerContext* context
                                       [[maybe_unused]],
                                       const LogLevel* request,
@@ -357,18 +323,17 @@ grpc::Status broker_impl::SetLogFlushPeriod(grpc::ServerContext* context
                                             [[maybe_unused]],
                                             const LogFlushPeriod* request,
                                             ::google::protobuf::Empty*) {
-  // first get all log_v2 objects
-  std::set<com::centreon::engine::log_v2_base*> loggers;
+  bool done = false;
   spdlog::apply_all([&](const std::shared_ptr<spdlog::logger> logger) {
-    std::shared_ptr<com::centreon::engine::log_v2_logger> logger_base =
-        std::dynamic_pointer_cast<com::centreon::engine::log_v2_logger>(logger);
-    if (logger_base) {
-      loggers.insert(logger_base->get_parent());
+    if (!done) {
+      std::shared_ptr<com::centreon::engine::log_v2_logger> logger_base =
+          std::dynamic_pointer_cast<com::centreon::engine::log_v2_logger>(
+              logger);
+      if (logger_base) {
+        logger_base->get_parent()->set_flush_interval(request->period());
+        done = true;
+      }
     }
   });
-
-  for (com::centreon::engine::log_v2_base* to_update : loggers) {
-    to_update->set_flush_interval(request->period());
-  }
   return grpc::Status::OK;
 }
