@@ -243,7 +243,7 @@ void log_v2::set_flush_interval(unsigned second_flush_interval) {
 }
 
 /**
- * @brief logs are written periodicaly to disk
+ * @brief logs are written periodicaly to  disk
  *
  * @param sink
  */
