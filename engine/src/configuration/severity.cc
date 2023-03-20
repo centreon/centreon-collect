@@ -29,8 +29,8 @@ using namespace com::centreon::engine::configuration;
 
 const absl::flat_hash_map<std::string, severity::setter_func>
     severity::_setters{
-        {"name", SETTER(const std::string&, _set_name)},
-        {"severity_name", SETTER(const std::string&, _set_name)},
+        {"name", SETTER(const std::string&, _set_severity_name)},
+        {"severity_name", SETTER(const std::string&, _set_severity_name)},
         {"id", SETTER(uint64_t, _set_id)},
         {"severity_id", SETTER(uint64_t, _set_id)},
         {"level", SETTER(uint32_t, _set_level)},
@@ -58,7 +58,7 @@ severity::severity(const severity& other)
       _key{other._key},
       _level{other._level},
       _icon_id{other._icon_id},
-      _name{other._name} {}
+      _severity_name{other._severity_name} {}
 
 /**
  * @brief Assign operator.
@@ -73,7 +73,7 @@ severity& severity::operator=(const severity& other) {
     _key = other._key;
     _level = other._level;
     _icon_id = other._icon_id;
-    _name = other._name;
+    _severity_name = other._severity_name;
   }
   return *this;
 }
@@ -87,7 +87,7 @@ severity& severity::operator=(const severity& other) {
  */
 bool severity::operator==(const severity& other) const noexcept {
   return _key == other._key && _level == other._level &&
-         _icon_id == other._icon_id && _name == other._name;
+         _icon_id == other._icon_id && _severity_name == other._severity_name;
 }
 
 /**
@@ -99,7 +99,7 @@ bool severity::operator==(const severity& other) const noexcept {
  */
 bool severity::operator!=(const severity& other) const noexcept {
   return _key != other._key || _level != other._level ||
-         _icon_id != other._icon_id || _name != other._name;
+         _icon_id != other._icon_id || _severity_name != other._severity_name;
 }
 
 /**
@@ -116,7 +116,7 @@ bool severity::operator<(const severity& other) const noexcept {
     return _level < other._level;
   else if (_icon_id != other._icon_id)
     return _icon_id < other._icon_id;
-  return _name < other._name;
+  return _severity_name < other._severity_name;
 }
 
 /**
@@ -130,8 +130,8 @@ bool severity::operator<(const severity& other) const noexcept {
  * If the object is not valid, an exception is thrown.
  */
 void severity::check_validity() const {
-  if (_name.empty())
-    throw engine_error() << "Severity has no name (property 'name')";
+  if (_severity_name.empty())
+    throw engine_error() << "Severity has no name (property 'severity_name')";
   if (_key.first == 0)
     throw engine_error()
         << "Severity id must not be less than 1 (property 'id')";
@@ -174,8 +174,8 @@ uint64_t severity::icon_id() const noexcept {
  *
  * @return Severity name.
  */
-const std::string& severity::name() const noexcept {
-  return _name;
+const std::string& severity::severity_name() const noexcept {
+  return _severity_name;
 }
 
 /**
@@ -254,8 +254,8 @@ bool severity::_set_icon_id(uint64_t icon_id) {
  *
  * @return True on success.
  */
-bool severity::_set_name(const std::string& name) {
-  _name = name;
+bool severity::_set_severity_name(const std::string& name) {
+  _severity_name = name;
   return true;
 }
 

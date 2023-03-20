@@ -63,7 +63,7 @@ TEST_F(ConfigSeverity, NewSeverityWithNoName) {
 TEST_F(ConfigSeverity, NewSeverityWellFilled) {
   configuration::severity sv({1, 0});
   sv.parse("level", "2");
-  sv.parse("name", "foobar");
+  sv.parse("severity_name", "foobar");
   sv.parse("type", "service");
   ASSERT_EQ(sv.key().first, 1);
   ASSERT_EQ(sv.level(), 2);
@@ -78,7 +78,7 @@ TEST_F(ConfigSeverity, NewSeverityIconId) {
   configuration::severity sv({1, 0});
   sv.parse("level", "2");
   sv.parse("icon_id", "18");
-  sv.parse("name", "foobar");
+  sv.parse("severity_name", "foobar");
   sv.parse("type", "host");
   ASSERT_EQ(sv.icon_id(), 18);
   ASSERT_NO_THROW(sv.check_validity());
