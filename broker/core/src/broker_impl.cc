@@ -352,3 +352,23 @@ grpc::Status broker_impl::SetLogLevel(grpc::ServerContext* context
     return grpc::Status::OK;
   }
 }
+
+grpc::Status broker_impl::SetLogFlushPeriod(grpc::ServerContext* context
+                                            [[maybe_unused]],
+                                            const LogFlushPeriod* request,
+                                            ::google::protobuf::Empty*) {
+  // first get all log_v2 objects
+  std::set<com::centreon::engine::log_v2_base*> loggers;
+  spdlog::apply_all([&](const std::shared_ptr<spdlog::logger> logger) {
+    std::shared_ptr<com::centreon::engine::log_v2_logger> logger_base =
+        std::dynamic_pointer_cast<com::centreon::engine::log_v2_logger>(logger);
+    if (logger_base) {
+      loggers.insert(logger_base->get_parent());
+    }
+  });
+
+  for (com::centreon::engine::log_v2_base* to_update : loggers) {
+    to_update->set_flush_interval(request->period());
+  }
+  return grpc::Status::OK;
+}

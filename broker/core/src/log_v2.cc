@@ -152,7 +152,7 @@ void log_v2::apply(const config::state& conf) {
       if (log.flush_period)
         logger->flush_on(level::warn);
       else
-        logger->flush_on(lvl);
+        logger->flush_on(level::trace);
       if (log.log_pid) {
         if (log.log_source)
           logger->set_pattern(
@@ -229,6 +229,19 @@ void log_v2::apply(const config::state& conf) {
   _running = true;
 }
 
+void log_v2::set_flush_interval(unsigned second_flush_interval) {
+  log_v2_base::set_flush_interval(second_flush_interval);
+  if (second_flush_interval) {
+    for (auto logger : _log) {
+      logger->flush_on(level::warn);
+    }
+  } else {
+    for (auto logger : _log) {
+      logger->flush_on(level::trace);
+    }
+  }
+}
+
 /**
  * @brief logs are written periodicaly to disk
  *
@@ -242,7 +255,9 @@ void log_v2::start_flush_timer(spdlog::sink_ptr sink) {
     if (err || !me->_flush_timer_active) {
       return;
     }
-    sink->flush();
+    if (me->get_flush_interval().count() > 0) {
+      sink->flush();
+    }
     me->start_flush_timer(sink);
   });
 }

@@ -105,6 +105,10 @@ class broker_impl final : public Broker::Service {
                            const LogLevel* request,
                            ::google::protobuf::Empty*) override;
 
+  grpc::Status SetLogFlushPeriod(grpc::ServerContext* context [[maybe_unused]],
+                                 const LogFlushPeriod* request,
+                                 ::google::protobuf::Empty*) override;
+
  public:
   void set_broker_name(const std::string& s);
 };

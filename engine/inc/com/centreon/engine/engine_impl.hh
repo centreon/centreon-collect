@@ -252,6 +252,10 @@ class engine_impl final : public Engine::Service {
   grpc::Status SetLogLevel(grpc::ServerContext* context [[maybe_unused]],
                            const LogLevel* request,
                            ::google::protobuf::Empty*) override;
+
+  grpc::Status SetLogFlushPeriod(grpc::ServerContext* context [[maybe_unused]],
+                                 const LogFlushPeriod* request,
+                                 ::google::protobuf::Empty*) override;
 };
 
 CCE_END()

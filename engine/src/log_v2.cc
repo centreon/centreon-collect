@@ -54,28 +54,20 @@ log_v2::log_v2(const std::shared_ptr<asio::io_context>& io_context)
     return log;
   };
 
-  _log[log_v2::log_functions] =
-      create_logger("functions", level::from_str("error"));
-  _log[log_v2::log_config] =
-      create_logger("configuration", level::from_str("info"));
-  _log[log_v2::log_events] = create_logger("events", level::from_str("info"));
-  _log[log_v2::log_checks] = create_logger("checks", level::from_str("info"));
-  _log[log_v2::log_notifications] =
-      create_logger("notifications", level::from_str("error"));
-  _log[log_v2::log_eventbroker] =
-      create_logger("eventbroker", level::from_str("error"));
+  _log[log_v2::log_functions] = create_logger("functions", level::err);
+  _log[log_v2::log_config] = create_logger("configuration", level::info);
+  _log[log_v2::log_events] = create_logger("events", level::info);
+  _log[log_v2::log_checks] = create_logger("checks", level::info);
+  _log[log_v2::log_notifications] = create_logger("notifications", level::err);
+  _log[log_v2::log_eventbroker] = create_logger("eventbroker", level::err);
   _log[log_v2::log_external_command] =
-      create_logger("external_command", level::from_str("error"));
-  _log[log_v2::log_commands] =
-      create_logger("commands", level::from_str("error"));
-  _log[log_v2::log_downtimes] =
-      create_logger("downtimes", level::from_str("error"));
-  _log[log_v2::log_comments] =
-      create_logger("comments", level::from_str("error"));
-  _log[log_v2::log_macros] = create_logger("macros", level::from_str("error"));
-  _log[log_v2::log_process] = create_logger("process", level::from_str("info"));
-  _log[log_v2::log_runtime] =
-      create_logger("runtime", level::from_str("error"));
+      create_logger("external_command", level::err);
+  _log[log_v2::log_commands] = create_logger("commands", level::err);
+  _log[log_v2::log_downtimes] = create_logger("downtimes", level::err);
+  _log[log_v2::log_comments] = create_logger("comments", level::err);
+  _log[log_v2::log_macros] = create_logger("macros", level::err);
+  _log[log_v2::log_process] = create_logger("process", level::info);
+  _log[log_v2::log_runtime] = create_logger("runtime", level::err);
 
   _log[log_v2::log_process]->info("{} : log started", _log_name);
 
@@ -125,7 +117,7 @@ void log_v2::apply(const configuration::state& config) {
     if (config.log_flush_period())
       log->flush_on(level::warn);
     else
-      log->flush_on(lvl);
+      log->flush_on(level::trace);
 
     if (config.log_pid()) {
       if (config.log_file_line()) {
@@ -183,6 +175,19 @@ void log_v2::apply(const configuration::state& config) {
   _running = true;
 }
 
+void log_v2::set_flush_interval(unsigned second_flush_interval) {
+  log_v2_base::set_flush_interval(second_flush_interval);
+  if (second_flush_interval) {
+    for (auto logger : _log) {
+      logger->flush_on(level::warn);
+    }
+  } else {
+    for (auto logger : _log) {
+      logger->flush_on(level::trace);
+    }
+  }
+}
+
 /**
  * @brief logs are written periodicaly to disk
  *
@@ -195,7 +200,9 @@ void log_v2::start_flush_timer(spdlog::sink_ptr sink) {
     if (err || !me->_flush_timer_active) {
       return;
     }
-    sink->flush();
+    if (me->get_flush_interval().count() > 0) {
+      sink->flush();
+    }
     me->start_flush_timer(sink);
   });
 }

@@ -76,6 +76,16 @@ service Broker {
   * @return nothing.
   */
   rpc SetLogLevel(LogLevel) returns (google.protobuf.Empty) {}
+
+  /**
+  * @brief Set log flush period of all loggers.
+  *
+  * @param period in second, 0 means flush all the times
+  *
+  * @return nothing.
+  */
+  rpc SetLogFlushPeriod(LogFlushPeriod) returns (google.protobuf.Empty) {}
+
 }
 
 message Version {
@@ -105,6 +115,9 @@ message LogLevel {
   LogLevelEnum level = 2;
 }
 
+message LogFlushPeriod {
+  uint32 period = 1;
+}
 
 message LogParam {
   enum LogParamType {

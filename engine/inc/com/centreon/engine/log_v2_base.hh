@@ -40,8 +40,9 @@ class log_v2_base {
   const std::string& file_path() const { return _file_path; }
 
   std::chrono::seconds get_flush_interval() const { return _flush_interval; }
-  void set_flush_interval(unsigned second_flush_interval) {
-    _flush_interval = std::chrono::seconds(second_flush_interval);
+  virtual void set_flush_interval(unsigned second_flush_interval) {
+    _flush_interval = std::chrono::seconds(
+        second_flush_interval ? second_flush_interval : 10);
   }
 };
 

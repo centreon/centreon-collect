@@ -3387,3 +3387,23 @@ grpc::Status engine_impl::SetLogLevel(grpc::ServerContext* context
     return grpc::Status::OK;
   }
 }
+
+grpc::Status engine_impl::SetLogFlushPeriod(grpc::ServerContext* context
+                                            [[maybe_unused]],
+                                            const LogFlushPeriod* request,
+                                            ::google::protobuf::Empty*) {
+  // first get all log_v2 objects
+  std::set<log_v2_base*> loggers;
+  spdlog::apply_all([&](const std::shared_ptr<spdlog::logger> logger) {
+    std::shared_ptr<log_v2_logger> logger_base =
+        std::dynamic_pointer_cast<log_v2_logger>(logger);
+    if (logger_base) {
+      loggers.insert(logger_base->get_parent());
+    }
+  });
+
+  for (log_v2_base* to_update : loggers) {
+    to_update->set_flush_interval(request->period());
+  }
+  return grpc::Status::OK;
+}

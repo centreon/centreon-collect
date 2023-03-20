@@ -134,6 +134,15 @@ service Engine {
   */
   rpc SetLogLevel(LogLevel) returns (google.protobuf.Empty) {}
 
+  
+  /**
+  * @brief Set log flush period of all loggers.
+  *
+  * @param period in second, 0 means flush all the times
+  *
+  * @return nothing.
+  */
+  rpc SetLogFlushPeriod(LogFlushPeriod) returns (google.protobuf.Empty) {}
 }
 
 message GenericString {
@@ -574,6 +583,10 @@ message LogInfo {
     map<string, string> level = 4;
   }
   repeated LoggerInfo loggers = 1;
+}
+
+message LogFlushPeriod {
+  uint32 period = 1;
 }
 
 message LogParam {
