@@ -137,11 +137,7 @@ class mysql_connection {
   void _clear_connection();
   void _update_stats() noexcept;
 
-  inline void set_need_to_commit() {
-    if (_qps > 1) {
-      _need_commit = true;
-    }
-  }
+  inline void set_need_to_commit() { _need_commit = true; }
 
  public:
   /**************************************************************************/

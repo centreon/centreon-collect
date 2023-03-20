@@ -40,6 +40,8 @@
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 
+extern std::shared_ptr<asio::io_context> g_io_context;
+
 struct options {
   options() : preferred_time(0), ref_time(0) {}
   std::vector<std::shared_ptr<time::timeperiod> > period;
@@ -141,7 +143,10 @@ static void parse_file(char const* filename, options& opt) {
 
 class BamTime : public ::testing::Test {
  public:
-  void SetUp() override { config::applier::init(0, "test_broker", 0); }
+  void SetUp() override {
+    g_io_context->restart();
+    config::applier::init(0, "test_broker", 0);
+  }
 
   void TearDown() override { config::applier::deinit(); }
 };

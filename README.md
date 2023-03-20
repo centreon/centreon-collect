@@ -192,6 +192,33 @@ test/ut
 
 You're done!
 
+### inside a docker, ubuntu for example
+In my case I have the home directory of the centreon project in /data/dev/centreon-collect
+
+First create the ubuntu container and jump into
+```shell
+docker container run --name ubuntu22.04 -ti -v /data/dev/centreon-collect:/root/centreon-collect  ubuntu:22.04 /bin/bash
+```
+Now you are in your ubuntu container
+```shell
+cd /root/centreon-collect/
+apt update
+apt install python3
+apt install python3-pip
+pip3 install conan
+apt install libgnutls28-dev
+apt install liblua5.4-dev
+apt install librrd-dev
+apt install cmake
+
+./cmake.sh 
+cd build
+make
+```
+Then you have all binaries compiled in the ubuntu distribution.
+You can access it outside the container in the /data/dev/centreon-collect/build directory
+
+
 ## Bug reports / Feature requests
 
 The best way to report a bug or to request a feature is to open an issue

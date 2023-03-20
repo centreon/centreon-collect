@@ -42,10 +42,13 @@
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 
+extern std::shared_ptr<asio::io_context> g_io_context;
+
 class StatsTest : public ::testing::Test {
  public:
   void SetUp() override {
-    pool::load(0);
+    g_io_context->restart();
+    com::centreon::broker::pool::load(g_io_context, 0);
     stats::center::load();
     mysql_manager::load();
     config::applier::state::load();

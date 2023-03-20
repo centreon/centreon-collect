@@ -26,6 +26,7 @@
 #include <random>
 #include <string>
 
+#include <asio.hpp>
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/spdlog.h>
 
@@ -63,6 +64,10 @@
 #include "com/centreon/logging/engine.hh"
 
 using namespace com::centreon::engine;
+
+std::shared_ptr<asio::io_context> g_io_context(
+    std::make_shared<asio::io_context>());
+bool g_io_context_started = false;
 
 // Error message when configuration parsing fail.
 #define ERROR_CONFIGURATION                                                  \
@@ -103,6 +108,7 @@ int main(int argc, char* argv[]) {
   config = new configuration::state;
 
   // Hack to instanciate the logger.
+  log_v2::load(g_io_context);
   configuration::applier::logging::instance();
 
   logging::broker backend_broker_log;
@@ -419,6 +425,22 @@ int main(int argc, char* argv[]) {
         // Send program data to broker.
         broker_program_state(NEBTYPE_PROCESS_EVENTLOOPSTART, NEBFLAG_NONE);
 
+        // if neb has not started g_io_context we do it here
+        if (!g_io_context_started) {
+          SPDLOG_LOGGER_INFO(log_v2::process(),
+                             "io_context not started => create thread");
+          std::thread asio_thread([cont = g_io_context]() {
+            try {
+              cont->run();
+            } catch (const std::exception& e) {
+              SPDLOG_LOGGER_CRITICAL(log_v2::process(),
+                                     "catch in io_context run: {}", e.what());
+            }
+          });
+          asio_thread.detach();
+          g_io_context_started = true;
+        }
+
         // Get event start time and save as macro.
         event_start = time(NULL);
         mac->x[MACRO_EVENTSTARTTIME] = std::to_string(event_start);
@@ -432,10 +454,11 @@ int main(int argc, char* argv[]) {
         com::centreon::engine::events::loop::instance().run();
 
         if (sigshutdown) {
+          log_v2::instance().stop_flush_timer();
           engine_logger(logging::log_process_info, logging::basic)
               << "Caught SIG" << sigs[sig_id] << ", shutting down ...";
-          log_v2::process()->info("Caught SIG {}, shutting down ...",
-                                  sigs[sig_id]);
+          SPDLOG_LOGGER_INFO(log_v2::process(),
+                             "Caught SIG {}, shutting down ...", sigs[sig_id]);
         }
         // Send program data to broker.
         broker_program_state(NEBTYPE_PROCESS_EVENTLOOPEND, NEBFLAG_NONE);
@@ -453,8 +476,8 @@ int main(int argc, char* argv[]) {
         if (sigshutdown) {
           engine_logger(logging::log_process_info, logging::basic)
               << "Successfully shutdown ... (PID=" << getpid() << ")";
-          log_v2::process()->info("Successfully shutdown ... (PID={})",
-                                  getpid());
+          SPDLOG_LOGGER_INFO(log_v2::process(),
+                             "Successfully shutdown ... (PID={})", getpid());
         }
 
         retval = EXIT_SUCCESS;
@@ -462,7 +485,7 @@ int main(int argc, char* argv[]) {
         // Log.
         engine_logger(logging::log_runtime_error, logging::basic)
             << "Error: " << e.what();
-        log_v2::process()->error("Error: {}", e.what());
+        SPDLOG_LOGGER_ERROR(log_v2::process(), "Error: {}", e.what());
         // Send program data to broker.
         broker_program_state(NEBTYPE_PROCESS_SHUTDOWN,
                              NEBFLAG_PROCESS_INITIATED);
@@ -471,12 +494,13 @@ int main(int argc, char* argv[]) {
 
     // Memory cleanup.
     cleanup();
+    spdlog::shutdown();
     delete[] config_file;
     config_file = NULL;
   } catch (std::exception const& e) {
     engine_logger(logging::log_runtime_error, logging::basic)
         << "Error: " << e.what();
-    log_v2::process()->error("Error: {}", e.what());
+    SPDLOG_LOGGER_ERROR(log_v2::process(), "Error: {}", e.what());
   }
 
   // Unload singletons and global objects.
