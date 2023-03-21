@@ -337,6 +337,8 @@ int main(int argc, char* argv[]) {
     }
     // Else start to monitor things.
     else {
+      auto provider = opentelemetry::trace::Provider::GetTracerProvider();
+      tracer = provider->GetTracer("centengine", "1.0.0");
       try {
         // Parse configuration.
         configuration::state config;

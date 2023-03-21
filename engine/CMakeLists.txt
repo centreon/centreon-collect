@@ -531,7 +531,7 @@ target_link_libraries(
   CONAN_PKG::spdlog)
 
 # centengine target.
-add_executable("centengine" "${SRC_DIR}/main.cc")
+add_executable(centengine "${SRC_DIR}/main.cc")
 set_property(TARGET "centengine" PROPERTY ENABLE_EXPORTS "1")
 add_dependencies(centengine centreon_clib)
 
