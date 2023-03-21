@@ -84,7 +84,6 @@ class write_thread {
     int wb = 0;
     for (int j = 0; j < _size; j += wb) {
       wb = _file->write(buf + j, 100);
-      std::cout << "OK\n";
       usleep(rand() % 100);
     }
 

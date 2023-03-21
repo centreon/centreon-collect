@@ -77,7 +77,7 @@ class splitter : public fs_file {
   long _woffset;
 
   void _open_read_file();
-  void _open_write_file();
+  bool _open_write_file();
 
  public:
   splitter(const std::string& path,

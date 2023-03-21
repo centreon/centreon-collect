@@ -232,7 +232,8 @@ long splitter::write(void const* buffer, long size) {
   /* It is impossible for two threads to write at the same time. */
   std::lock_guard<std::mutex> lck(_write_m);
   if (!_wfile)
-    _open_write_file();
+    if (!_open_write_file())
+      return 0;
 
   // Open next write file is max file size is reached.
   if ((_woffset + size) > _max_file_size) {
@@ -244,7 +245,8 @@ long splitter::write(void const* buffer, long size) {
                     strerror_r(errno, msg, sizeof(msg)));
     }
     ++_wid;
-    _open_write_file();
+    if (!_open_write_file())
+      return 0;
   }
   // Otherwise seek to end of file.
 
@@ -259,9 +261,9 @@ long splitter::write(void const* buffer, long size) {
   if (wb != size) {
     std::string wfile(get_file_path(_wid));
     char msg[1024];
-    log_v2::bbdo()->critical("splitter: cannot write to file '{}': {}",
-        wfile, strerror_r(errno, msg, sizeof(msg)));
-    throw msg_fmt("cannot write to file '{}'", wfile);
+    log_v2::bbdo()->critical("splitter: cannot write to file '{}': {}", wfile,
+                             strerror_r(errno, msg, sizeof(msg)));
+    return 0;
   }
   _woffset += size;
   return size;
@@ -408,8 +410,10 @@ void splitter::_open_read_file() {
 /**
  * @brief Open the splitter in write mode. This call must be protected by the
  * _write_m mutex.
+ *
+ * @return True on success, False otherwise.
  */
-void splitter::_open_write_file() {
+bool splitter::_open_write_file() {
   std::string fname(get_file_path(_wid));
   FILE* f = disk_accessor::instance().fopen(fname, "a+b");
   if (f)
@@ -437,15 +441,17 @@ void splitter::_open_write_file() {
     } header;
     header.integers[0] = 0;
     header.integers[1] = htonl(2 * sizeof(uint32_t));
-    size_t size = disk_accessor::instance().fwrite(header.bytes, 1, sizeof(header), _wfile.get());
+    size_t size = disk_accessor::instance().fwrite(
+        header.bytes, 1, sizeof(header), _wfile.get());
     if (size != sizeof(header)) {
       std::string wfile(get_file_path(_wid));
       char msg[1024];
-      log_v2::bbdo()->critical("splitter: cannot write to file '{}': {}",
-          wfile,
-          strerror_r(errno, msg, sizeof(msg)));
-      throw msg_fmt("cannot write header to file '{}'");
+      log_v2::bbdo()->critical("splitter: cannot write to file '{}': {}", wfile,
+                               strerror_r(errno, msg, sizeof(msg)));
+      _wfile.reset();
+      return false;
     }
     _woffset = 2 * sizeof(uint32_t);
   }
+  return true;
 }
