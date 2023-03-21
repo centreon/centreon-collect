@@ -5,7 +5,7 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -66,6 +66,14 @@ add_executable(rpc_client ${TESTS_DIR}/rpc/client.cc)
 target_link_libraries(rpc_client berpc CONAN_PKG::grpc CONAN_PKG::openssl CONAN_PKG::zlib dl pthread)
 
 # target_link_libraries(rpc_client berpc CONAN_PKG::grpc ${absl_LIBS} CONAN_PKG::openssl ${c-ares_LIBS} CONAN_PKG::zlib dl pthread)
+if(WITH_ASAN)
+  set(CMAKE_BUILD_TYPE Debug)
+  set(CMAKE_CXX_FLAGS_DEBUG
+    "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+  set(CMAKE_LINKER_FLAGS_DEBUG
+    "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+endif()
+
 add_executable(ut_broker
 
   # Core sources.

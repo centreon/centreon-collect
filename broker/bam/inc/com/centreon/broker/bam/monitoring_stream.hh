@@ -73,6 +73,7 @@ class monitoring_stream : public io::stream {
   database::mysql_stmt _ba_update;
   database::mysql_stmt _kpi_update;
   int32_t _pending_events;
+  unsigned _pending_request;
   database_config _storage_db_cfg;
   std::shared_ptr<persistent_cache> _cache;
 
@@ -85,7 +86,6 @@ class monitoring_stream : public io::stream {
                      absl::Hash<std::pair<std::string, std::string>>>
       _timer_forced_svc_checks;
 
-  void _check_replication();
   void _prepare();
   void _rebuild();
   void _write_external_command(const std::string& cmd);
