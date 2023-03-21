@@ -87,14 +87,16 @@ bool stream::read(std::shared_ptr<io::data>& data, time_t deadline) {
           unsigned char const* buff((unsigned char const*)_rbuffer.data());
           size = static_cast<uint32_t>((buff[0] << 24) | (buff[1] << 16) |
                                        (buff[2] << 8) | (buff[3]));
+          log_v2::core()->trace(
+              "extract size: {} from {:02X} {:02X} {:02X} {:02X}", size,
+              buff[0], buff[1], buff[2], buff[3]);
         }
 
         // Check if size is within bounds.
         if (size <= 0 || size > max_data_size) {
           // Skip corrupted data, one byte at a time.
           log_v2::core()->error(
-              "compression: stream got corrupted packet size of {} bytes, not "
-              "in "
+              "compression: stream got corrupted packet size of {} bytes, not in "
               "the 0-{} range, skipping next byte",
               size, max_data_size);
           if (!skipped)
@@ -160,9 +162,9 @@ bool stream::read(std::shared_ptr<io::data>& data, time_t deadline) {
   } catch (exceptions::shutdown const& e) {
     _shutdown = true;
     if (!_wbuffer.empty()) {
-      std::shared_ptr<io::raw> r(new io::raw);
-      r.get()->get_buffer() = _wbuffer;
-      data = r;
+      auto r = std::make_shared<io::raw>();
+      r.get()->get_buffer() = std::move(_wbuffer);
+      data = std::move(r);
       _wbuffer.clear();
     } else
       throw;
