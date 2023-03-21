@@ -12,7 +12,20 @@ These tests are executed from the `centreon-tests/robot` folder and uses the [Ro
 
 From a Centreon host, you need to install Robot Framework
 
-On rpm based distributions, you can try the following commands to initialize your robot tests:
+On CentOS 7, the following commands should work to initialize your robot tests:
+
+```
+pip3 install -U robotframework robotframework-databaselibrary pymysql
+
+yum install "Development Tools" python3-devel -y
+
+pip3 install grpcio==1.33.2 grpcio_tools==1.33.2
+
+./init-proto.sh
+./init-sql.sh
+```
+
+On other rpm based distributions, you can try the following commands to initialize your robot tests:
 
 ```
 pip3 install -U robotframework robotframework-databaselibrary pymysql
@@ -42,6 +55,12 @@ robot broker/sql.robot
 Here is the list of the currently implemented tests:
 
 ### Bam
+- [x] **BABEST_SERVICE_CRITICAL**: With bbdo version 3.0.1, a BA of type 'best' with 2 serv, ba is critical only if the 2 services are critical
+- [x] **BAPBSTATUS**: With bbdo version 3.0.1, a BA of type 'worst' with one service is configured. The BA is in critical state, because of its service. 
+- [x] **BA_BOOL_KPI**: With bbdo version 3.0.1, a BA of type 'worst' with 1 boolean kpi
+- [x] **BA_IMPACT_2KPI_SERVICES**: With bbdo version 3.0.1, a BA of type 'impact' with 2 serv, ba is critical only if the 2 services are critical
+- [x] **BA_RATIO_NUMBER_BA_SERVICE**: With bbdo version 3.0.1, a BA of type 'ratio number' with 2 serv an 1 ba with one service
+- [x] **BA_RATIO_PERCENT_BA_SERVICE**: With bbdo version 3.0.1, a BA of type 'ratio percent' with 2 serv an 1 ba with one service
 - [x] **BEBAMIDT1**: A BA of type 'worst' with one service is configured. The BA is in critical state, because of its service. Then we set a downtime on this last one. An inherited downtime is set to the BA. The downtime is removed from the service, the inherited downtime is then deleted.
 - [x] **BEBAMIDT2**: A BA of type 'worst' with one service is configured. The BA is in critical state, because of its service. Then we set a downtime on this last one. An inherited downtime is set to the BA. Engine is restarted. Broker is restarted. The two downtimes are still there with no duplicates. The downtime is removed from the service, the inherited downtime is then deleted.
 - [x] **BEBAMIDTU1**: With bbdo version 3.0.1, a BA of type 'worst' with one service is configured. The BA is in critical state, because of its service. Then we set a downtime on this last one. An inherited downtime is set to the BA. The downtime is removed from the service, the inherited downtime is then deleted.
@@ -50,6 +69,15 @@ Here is the list of the currently implemented tests:
 - [x] **BEBAMIGNDT2**: A BA of type 'worst' with two services is configured. The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in critical state, because of the second critical service. Then we apply two downtimes on this last one. The BA state is ok because of the policy on indicators. The first downtime reaches its end, the BA is still OK, but when the second downtime reaches its end, the BA should be CRITICAL.
 - [x] **BEBAMIGNDTU1**: With bbdo version 3.0.1, a BA of type 'worst' with two services is configured. The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in critical state, because of the second critical service. Then we apply two downtimes on this last one. The BA state is ok because of the policy on indicators. A first downtime is cancelled, the BA is still OK, but when the second downtime is cancelled, the BA should be CRITICAL.
 - [x] **BEBAMIGNDTU2**: With bbdo version 3.0.1, a BA of type 'worst' with two services is configured. The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in critical state, because of the second critical service. Then we apply two downtimes on this last one. The BA state is ok because of the policy on indicators. The first downtime reaches its end, the BA is still OK, but when the second downtime reaches its end, the BA should be CRITICAL.
+- [x] **BEPB_BA_DURATION_EVENT**: use of pb_ba_duration_event message.
+- [x] **BEPB_DIMENSION_BA_BV_RELATION_EVENT**: bbdo_version 3 use pb_dimension_ba_bv_relation_event message.
+- [x] **BEPB_DIMENSION_BA_EVENT**: bbdo_version 3 use pb_dimension_ba_event message.
+- [x] **BEPB_DIMENSION_BA_TIMEPERIOD_RELATION**: use of pb_dimension_ba_timeperiod_relation message.
+- [x] **BEPB_DIMENSION_BV_EVENT**: bbdo_version 3 use pb_dimension_bv_event message.
+- [x] **BEPB_DIMENSION_KPI_EVENT**: bbdo_version 3 use pb_dimension_kpi_event message.
+- [x] **BEPB_DIMENSION_TIMEPERIOD**: use of pb_dimension_timeperiod message.
+- [x] **BEPB_DIMENSION_TRUNCATE_TABLE**: use of pb_dimension_timeperiod message.
+- [x] **BEPB_KPI_STATUS**: bbdo_version 3 use kpi_status message.
 
 ### Broker
 - [x] **BCL1**: Starting broker with option '-s foobar' should return an error
@@ -177,7 +205,7 @@ Here is the list of the currently implemented tests:
 - [x] **BECT2**: Broker/Engine communication with TLS between central and poller with key/cert
 - [x] **BECT3**: Broker/Engine communication with anonymous TLS and ca certificate
 - [x] **BECT4**: Broker/Engine communication with TLS between central and poller with key/cert and hostname forced
-- [x] **BECT_GRPC1**: Broker/Engine communication with anonymous TLS between central and poller
+- [x] **BECT_GRPC1**: Broker/Engine communication with GRPC and with anonymous TLS between central and poller
 - [x] **BECT_GRPC2**: Broker/Engine communication with TLS between central and poller with key/cert
 - [x] **BECT_GRPC3**: Broker/Engine communication with anonymous TLS and ca certificate
 - [x] **BECT_GRPC4**: Broker/Engine communication with TLS between central and poller with key/cert and hostname forced
@@ -268,6 +296,7 @@ Here is the list of the currently implemented tests:
 - [x] **BESS_CRYPTED_REVERSED_GRPC1**: Start-Stop grpc version Broker/Engine - well configured
 - [x] **BESS_CRYPTED_REVERSED_GRPC2**: Start-Stop grpc version Broker/Engine only engine server crypted
 - [x] **BESS_CRYPTED_REVERSED_GRPC3**: Start-Stop grpc version Broker/Engine only engine crypted
+- [x] **BESS_ENGINE_DELETE_HOST**: once engine and cbd started, stop and restart cbd, delete an host and reload engine, cbd mustn't core
 - [x] **BESS_GRPC1**: Start-Stop grpc version Broker/Engine - Broker started first - Broker stopped first
 - [x] **BESS_GRPC2**: Start-Stop grpc version Broker/Engine - Broker started first - Engine stopped first
 - [x] **BESS_GRPC3**: Start-Stop grpc version Broker/Engine - Engine started first - Engine stopped first
@@ -288,6 +317,7 @@ Here is the list of the currently implemented tests:
 - [x] **BEUTAG7**: some services are configured and deleted with tags on two pollers.
 - [x] **BEUTAG8**: Services have tags provided by templates.
 - [x] **BEUTAG9**: hosts have tags provided by templates.
+- [x] **BE_NOTIF_OVERFLOW**: bbdo 2.0 notification number =40000. make an overflow => notification_number null in db
 - [x] **BRCS1**: Broker reverse connection stopped
 - [x] **BRCTS1**: Broker reverse connection too slow
 - [x] **BRGC1**: Broker good reverse connection
@@ -334,10 +364,10 @@ Here is the list of the currently implemented tests:
 - [x] **EBNSGU1**: New service group with several pollers and connections to DB with broker configured with unified_sql
 - [x] **EBNSGU2**: New service group with several pollers and connections to DB with broker configured with unified_sql
 - [x] **EBNSVC1**: New services with several pollers
-- [x] **EBSAU2**: New services with action_url with more than 2000 characters
-- [x] **EBSN3**: New services with notes with more than 500 characters
-- [x] **EBSNU1**: New services with notes_url with more than 2000 characters
-- [x] **ENRSCHE1**: check next check of reschedule is last_check+interval_check
+- [x] **EBSAU2**: New hosts with action_url with more than 2000 characters
+- [x] **EBSN3**: New hosts with notes with more than 500 characters
+- [x] **EBSNU1**: New hosts with notes_url with more than 2000 characters
+- [x] **ENRSCHE1**: Verify that next check of a rescheduled host is made at last_check + interval_check
 - [x] **LOGV2BE2**: log-v2 enabled old log enabled check broker sink is equal
 - [x] **LOGV2BEU2**: Broker sink must have the same behavior with legacy logs enabled.
 - [x] **LOGV2DB1**: log-v2 disabled old log enabled check broker sink

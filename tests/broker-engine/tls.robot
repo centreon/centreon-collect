@@ -176,7 +176,7 @@ BECT4
 	Should Be True	${result}
 
 BECT_GRPC1
-	[Documentation]	Broker/Engine communication with anonymous TLS between central and poller
+	[Documentation]	Broker/Engine communication with GRPC and with anonymous TLS between central and poller
 	[Tags]	Broker	Engine	TLS	tcp
 	Config Engine	${1}
 	Config Broker	rrd
