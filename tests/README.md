@@ -181,8 +181,8 @@ Here is the list of the currently implemented tests:
 - [x] **BECT2**: Broker/Engine communication with TLS between central and poller with key/cert
 - [x] **BECT3**: Broker/Engine communication with anonymous TLS and ca certificate
 - [x] **BECT4**: Broker/Engine communication with TLS between central and poller with key/cert and hostname forced
-- [x] **BECT_GRPC1**: Broker/Engine communication with anonymous TLS between central and poller
-- [x] **BECT_GRPC2**: Broker/Engine communication with TLS between central and poller with key/cert
+- [x] **BECT_GRPC1**: Broker/Engine communication with GRPC and with anonymous TLS between central and poller
+- [x] **BECT_GRPC2**: Broker/Engine communication with GRPC and with TLS between central and poller with key/cert
 - [x] **BECT_GRPC3**: Broker/Engine communication with anonymous TLS and ca certificate
 - [x] **BECT_GRPC4**: Broker/Engine communication with TLS between central and poller with key/cert and hostname forced
 - [x] **BEDTMASS1**: New services with several pollers
@@ -272,6 +272,7 @@ Here is the list of the currently implemented tests:
 - [x] **BESS_GRPC_COMPRESS1**: Start-Stop grpc version Broker/Engine - Broker started first - Broker stopped last compression activated
 - [x] **BETAG1**: Engine is configured with some tags. When broker receives them, it stores them in the centreon_storage.tags table. Broker is started before.
 - [x] **BETAG2**: Engine is configured with some tags. When broker receives them, it stores them in the centreon_storage.tags table. Engine is started before.
+- [x] **BESS_ENGINE_DELETE_HOST**: once engine and cbd started, stop and restart cbd, delete an host and reload engine, cbd mustn't core
 - [x] **BEUTAG1**: Engine is configured with some tags. When broker receives them through unified_sql stream, it stores them in the centreon_storage.tags table. Broker is started before.
 - [x] **BEUTAG10**: some services are configured with tags on two pollers. Then tags are removed from some of them and in centreon_storage, we can observe resources_tags table updated.
 - [x] **BEUTAG11**: some services are configured with tags on two pollers. Then several tags are removed, and we can observe resources_tags table updated.
@@ -284,6 +285,7 @@ Here is the list of the currently implemented tests:
 - [x] **BEUTAG7**: some services are configured and deleted with tags on two pollers.
 - [x] **BEUTAG8**: Services have tags provided by templates.
 - [x] **BEUTAG9**: hosts have tags provided by templates.
+- [x] **BE_NOTIF_OVERFLOW**: bbdo 2.0 notification number =40000. make an overflow => notification_number null in db
 - [x] **BRCS1**: Broker reverse connection stopped
 - [x] **BRCTS1**: Broker reverse connection too slow
 - [x] **BRGC1**: Broker good reverse connection
@@ -332,7 +334,7 @@ Here is the list of the currently implemented tests:
 - [x] **EBSAU2**: New hosts with action_url with more than 2000 characters
 - [x] **EBSN3**: New hosts with notes with more than 500 characters
 - [x] **EBSNU1**: New hosts with notes_url with more than 2000 characters
-- [x] **ENRSCHE1**: check next check of reschedule is last_check+interval_check
+- [x] **ENRSCHE1**: Verify that next check of a rescheduled host is made at last_check + interval_check
 - [x] **LOGV2BE2**: log-v2 enabled old log enabled check broker sink is equal
 - [x] **LOGV2DB1**: log-v2 disabled old log enabled check broker sink
 - [x] **LOGV2DB2**: log-v2 disabled old log disabled check broker sink
@@ -367,7 +369,7 @@ Here is the list of the currently implemented tests:
 ### Engine
 - [x] **EFHC1**: Engine is configured with hosts and we force checks on one 5 times on bbdo2
 - [x] **EFHC2**: Engine is configured with hosts and we force checks on one 5 times on bbdo2
-- [x] **EFHCU1**: Engine is configured with hosts and we force checks on one 5 times on bbdo3. Bbdo3 has no impact on this behavior. resources table is cleared before starting broker.
+- [x] **EFHCU1**: Engine is configured with hosts and we force check on one of them 5 times using protocol bbdo3. Resources table is cleared before starting broker.
 - [x] **EFHCU2**: Engine is configured with hosts and we force checks on one 5 times on bbdo3. Bbdo3 has no impact on this behavior.
 - [x] **EPC1**: Check with perl connector
 - [x] **ESS1**: Start-Stop (0s between start/stop) 5 times one instance of engine and no coredump
