@@ -362,6 +362,7 @@ set(LIBROKER_SOURCES
     ${SRC_DIR}/pool.cc
     ${SRC_DIR}/database/mysql_bind_base.cc
     ${SRC_DIR}/database/mysql_bind.cc
+    ${SRC_DIR}/database/mysql_bind_result.cc
     ${SRC_DIR}/database/mysql_bulk_bind.cc
     ${SRC_DIR}/database/mysql_column.cc
     ${SRC_DIR}/mysql_manager.cc
@@ -446,8 +447,6 @@ set(LIBROKER_SOURCES
     ${INC_DIR}/multiplexing/publisher.hh
     ${INC_DIR}/mysql.hh
     ${INC_DIR}/pool.hh
-    ${INC_DIR}/database/mysql_bind_base.hh
-    ${INC_DIR}/database/mysql_bind.hh
     ${INC_DIR}/database/mysql_bulk_bind.hh
     ${INC_DIR}/database/mysql_column.hh
     ${INC_DIR}/database/mysql_error.hh
