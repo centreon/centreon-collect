@@ -129,6 +129,7 @@ extern char* illegal_object_chars;
 extern char* illegal_output_chars;
 extern unsigned int use_large_installation_tweaks;
 extern uint32_t instance_heartbeat_interval;
+extern Tracer tracer;
 
 #ifdef __cplusplus
 }
