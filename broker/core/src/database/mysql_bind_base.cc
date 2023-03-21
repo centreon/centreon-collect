@@ -36,15 +36,6 @@ using namespace com::centreon::broker::database;
 mysql_bind_base::mysql_bind_base(int size) : _typed(size), _bind(size) {}
 
 /**
- * @brief Set the size of the bind, that is to say the number of columns.
- *
- * @param size An integer.
- */
-void mysql_bind_base::set_size(int size) {
-  _bind.resize(size);
-}
-
-/**
  * @brief Return a boolean telling if the column at index range has been
  * prepared or not. A column is prepared when its column has a type defined.
  *
@@ -76,7 +67,6 @@ void mysql_bind_base::_set_typed(uint32_t range) {
   _empty = false;
   _typed[range] = true;
 }
-
 
 void mysql_bind_base::set_empty() {
   _empty = true;
