@@ -112,7 +112,7 @@ class incomming_outgoing
 };
 
 /**
- * @brief This server class accept incoming connections and start the connexion
+ * @brief This server class accept incoming connections and start the connection
  * to the dest
  *
  */
