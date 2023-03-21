@@ -261,7 +261,7 @@ long splitter::write(void const* buffer, long size) {
     char msg[1024];
     log_v2::bbdo()->critical("splitter: cannot write to file '{}': {}",
         wfile, strerror_r(errno, msg, sizeof(msg)));
-    throw msg_fmt("cannot write to file '{}'");
+    throw msg_fmt("cannot write to file '{}'", wfile);
   }
   _woffset += size;
   return size;
@@ -360,7 +360,7 @@ void splitter::remove_all_files() {
   }
   std::list<std::string> parts{
       misc::filesystem::dir_content_with_filter(base_dir, base_name + '*')};
-  for (std::string const& f : parts)
+  for (const std::string& f : parts)
     disk_accessor::instance().remove(f);
 
   /* No more files, we reset rid and wid. */
