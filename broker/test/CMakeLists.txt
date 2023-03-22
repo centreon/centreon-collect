@@ -76,13 +76,14 @@ target_link_libraries(
 if(WITH_ASAN)
   set(CMAKE_BUILD_TYPE Debug)
   set(CMAKE_CXX_FLAGS_DEBUG
-      "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+    "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
   set(CMAKE_LINKER_FLAGS_DEBUG
-      "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+    "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
 endif()
 
 add_executable(
   ut_broker
+
   # Core sources.
   ${TESTS_DIR}/bbdo/category.cc
   ${TESTS_DIR}/bbdo/output.cc
@@ -109,10 +110,6 @@ add_executable(
   ${TESTS_DIR}/misc/perfdata.cc
   ${TESTS_DIR}/misc/string.cc
   ${TESTS_DIR}/modules/module.cc
-  ${TESTS_DIR}/multiplexing/engine/start_stop.cc
-  ${TESTS_DIR}/multiplexing/muxer/read.cc
-  ${TESTS_DIR}/multiplexing/publisher/read.cc
-  ${TESTS_DIR}/multiplexing/publisher/write.cc
   ${TESTS_DIR}/processing/acceptor.cc
   ${TESTS_DIR}/processing/feeder.cc
   ${TESTS_DIR}/time/timerange.cc
@@ -121,6 +118,7 @@ add_executable(
   ${TESTS_DIR}/io.cc
   ${TESTS_DIR}/main.cc
   ${TESTS_DIR}/test_server.cc
+
   # Module sources.
   ${TESTS_SOURCES})
 
@@ -130,6 +128,7 @@ target_link_libraries(
   roker
   rokerbase
   rokerlog
+  multiplexing
   ${TESTS_LIBRARIES}
   conflictmgr
   CONAN_PKG::nlohmann_json
@@ -141,6 +140,15 @@ target_link_libraries(
   CONAN_PKG::openssl
   CONAN_PKG::grpc)
 
+add_dependencies(ut_broker
+  test_util
+  roker
+  rokerbase
+  rokerlog
+  multiplexing
+  conflictmgr
+)
+
 set_target_properties(ut_broker PROPERTIES COMPILE_FLAGS "-fPIC")
 
 target_precompile_headers(ut_broker REUSE_FROM rokerbase)
@@ -148,20 +156,20 @@ target_precompile_headers(ut_broker REUSE_FROM rokerbase)
 set_target_properties(
   ut_broker rpc_client
   PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests
-             RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/tests
-             RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/tests
-             RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR}/tests
-             RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/tests)
+  RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/tests
+  RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/tests
+  RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR}/tests
+  RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/tests)
 
 # keys used by ut_broker grpc
 file(COPY ${PROJECT_SOURCE_DIR}/grpc/test/grpc_test_keys
-     DESTINATION ${CMAKE_BINARY_DIR}/tests)
+  DESTINATION ${CMAKE_BINARY_DIR}/tests)
 
 add_test(NAME tests COMMAND ut_broker)
 
 if(WITH_COVERAGE)
   set(COVERAGE_EXCLUDES '*/main.cc' '*/test/*' '/usr/include/*'
-                        '${CMAKE_BINARY_DIR}/*' '*/.conan/*')
+    '${CMAKE_BINARY_DIR}/*' '*/.conan/*')
   setup_target_for_coverage(NAME broker-test-coverage EXECUTABLE ut_broker
-                            DEPENDENCIES ut_broker)
+    DEPENDENCIES ut_broker)
 endif()
