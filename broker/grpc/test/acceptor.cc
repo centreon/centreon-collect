@@ -34,9 +34,11 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::grpc;
 using namespace com::centreon::exceptions;
 
+extern std::shared_ptr<asio::io_context> g_io_context;
+
 class GrpcTlsTest : public ::testing::Test {
  public:
-  void SetUp() override { pool::load(0); }
+  void SetUp() override { pool::load(g_io_context, 1); }
 
   void TearDown() override { pool::unload(); }
 };
@@ -49,21 +51,21 @@ static auto read_file = [](const std::string& path) {
   return ss.str();
 };
 
-//TEST_F(GrpcTlsTest, TlsStream) {
+// TEST_F(GrpcTlsTest, TlsStream) {
 //  /* Let's prepare certificates */
 //  std::string hostname = misc::exec("hostname --fqdn");
 //  hostname = misc::string::trim(hostname);
 //  std::string server_cmd(
 //      fmt::format("openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 "
-//                  "-keyout /tmp/server.key -out /tmp/server.crt -subj '/CN={}'",
-//                  hostname));
+//                  "-keyout /tmp/server.key -out /tmp/server.crt -subj
+//                  '/CN={}'", hostname));
 //  std::cout << server_cmd << std::endl;
 //  system(server_cmd.c_str());
 //
 //  std::string client_cmd(
 //      fmt::format("openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 "
-//                  "-keyout /tmp/client.key -out /tmp/client.crt -subj '/CN={}'",
-//                  hostname));
+//                  "-keyout /tmp/client.key -out /tmp/client.crt -subj
+//                  '/CN={}'", hostname));
 //  std::cout << client_cmd << std::endl;
 //  system(client_cmd.c_str());
 //
@@ -124,21 +126,21 @@ static auto read_file = [](const std::string& path) {
 //  cbd.join();
 //}
 
-//TEST_F(GrpcTlsTest, TlsStreamCaHostname) {
+// TEST_F(GrpcTlsTest, TlsStreamCaHostname) {
 //  /* Let's prepare certificates */
 //  const static std::string s_hostname{"saperlifragilistic"};
 //  const static std::string c_hostname{"foobar"};
 //  std::string server_cmd(
 //      fmt::format("openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 "
-//                  "-keyout /tmp/server.key -out /tmp/server.crt -subj '/CN={}'",
-//                  s_hostname));
+//                  "-keyout /tmp/server.key -out /tmp/server.crt -subj
+//                  '/CN={}'", s_hostname));
 //  std::cout << server_cmd << std::endl;
 //  system(server_cmd.c_str());
 //
 //  std::string client_cmd(
 //      fmt::format("openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 "
-//                  "-keyout /tmp/client.key -out /tmp/client.crt -subj '/CN={}'",
-//                  c_hostname));
+//                  "-keyout /tmp/client.key -out /tmp/client.crt -subj
+//                  '/CN={}'", c_hostname));
 //  std::cout << client_cmd << std::endl;
 //  system(client_cmd.c_str());
 //

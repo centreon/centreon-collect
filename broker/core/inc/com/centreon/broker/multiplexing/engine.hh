@@ -28,6 +28,9 @@ CCB_BEGIN()
 namespace multiplexing {
 // Forward declaration.
 class muxer;
+namespace detail {
+class callback_caller;
+}  // namespace detail
 
 /**
  *  @class engine engine.hh "com/centreon/broker/multiplexing/engine.hh"
@@ -60,13 +63,15 @@ class muxer;
  *
  *  @see muxer
  */
-class engine {
+class engine : public std::enable_shared_from_this<engine> {
   static std::mutex _load_m;
-  static engine* _instance;
+  static std::shared_ptr<engine> _instance;
 
   enum state { not_started, running, stopped };
+
+  using send_to_mux_callback_type = std::function<void()>;
+
   state _state;
-  asio::io_context::strand _strand;
 
   std::unique_ptr<persistent_cache> _cache_file;
 
@@ -77,7 +82,8 @@ class engine {
   std::deque<std::shared_ptr<io::data>> _kiew;
 
   // Subscriber.
-  std::vector<muxer*> _muxers;
+  std::vector<std::shared_ptr<muxer>> _muxers;
+  std::mutex _muxers_m;
 
   // Statistics.
   EngineStats* _stats;
@@ -87,14 +93,16 @@ class engine {
 
   engine();
   std::string _cache_file_path() const;
-  void _send_to_subscribers();
+  bool _send_to_subscribers(send_to_mux_callback_type&& callback);
 
   void (engine::*_write_func)(std::shared_ptr<io::data> const&);
+
+  friend class detail::callback_caller;
 
  public:
   static void load();
   static void unload();
-  static engine& instance();
+  static std::shared_ptr<engine> instance_ptr();
 
   engine(const engine&) = delete;
   engine& operator=(const engine&) = delete;
@@ -105,8 +113,8 @@ class engine {
   void publish(const std::list<std::shared_ptr<io::data>>& to_publish);
   void start();
   void stop();
-  void subscribe(muxer* subscriber);
-  void unsubscribe(muxer* subscriber);
+  void subscribe(const std::shared_ptr<muxer>& subscriber);
+  void unsubscribe(const muxer* subscriber);
 };
 }  // namespace multiplexing
 

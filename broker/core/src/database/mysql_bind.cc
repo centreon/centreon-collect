@@ -119,12 +119,17 @@ void mysql_bind::set_null_bool(size_t range) {
     _bind[range].is_unsigned = unsgn;                                \
   }
 
-#define VALUE(ftype, vtype, sqltype)                       \
-  vtype mysql_bind::value_as_##ftype(size_t range) const { \
-    if (_bind[range].buffer_type == sqltype)               \
-      return *static_cast<vtype*>(_bind[range].buffer);    \
-    else                                                   \
-      assert("This field is not an " #sqltype == nullptr); \
+#define VALUE(ftype, vtype, sqltype)                                      \
+  vtype mysql_bind::value_as_##ftype(size_t range) const {                \
+    if (_bind[range].buffer_type == sqltype)                              \
+      return *static_cast<vtype*>(_bind[range].buffer);                   \
+    else {                                                                \
+      assert("This field is not an " #sqltype == nullptr);                \
+      SPDLOG_LOGGER_CRITICAL(log_v2::sql(), " {} field is {} and not {}", \
+                             __FUNCTION__, _bind[range].buffer_type,      \
+                             #sqltype);                                   \
+      return 0;                                                           \
+    }                                                                     \
   }
 
 SET_VALUE(i32, int32_t, MYSQL_TYPE_LONG, false)

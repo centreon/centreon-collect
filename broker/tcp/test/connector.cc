@@ -28,13 +28,19 @@
 
 using namespace com::centreon::broker;
 
+extern std::shared_ptr<asio::io_context> g_io_context;
+
 constexpr static char test_addr[] = "127.0.0.1";
 constexpr static uint16_t test_port(4242);
+
+static tcp::tcp_config::pointer test_conf(
+    std::make_shared<tcp::tcp_config>(test_addr, test_port));
 
 class TcpConnector : public testing::Test {
  public:
   void SetUp() override {
-    pool::load(0);
+    g_io_context->restart();
+    pool::load(g_io_context, 0);
     tcp::tcp_async::load();
     _server.init();
     _thread = std::thread(&test_server::run, &_server);
@@ -53,7 +59,10 @@ class TcpConnector : public testing::Test {
 };
 
 TEST_F(TcpConnector, Timeout) {
-  tcp::connector connector(test_addr, test_port, 1);
+  static tcp::tcp_config::pointer conf(
+      std::make_shared<tcp::tcp_config>(test_addr, test_port, 1));
+
+  tcp::connector connector(conf);
   std::shared_ptr<io::stream> io{connector.open()};
 
   std::shared_ptr<io::data> data{new io::raw()};
@@ -62,7 +71,7 @@ TEST_F(TcpConnector, Timeout) {
 }
 
 TEST_F(TcpConnector, Simple) {
-  tcp::connector connector(test_addr, test_port, -1);
+  tcp::connector connector(test_conf);
   std::shared_ptr<io::stream> io{connector.open()};
 
   std::shared_ptr<io::raw> data{new io::raw()};
@@ -80,7 +89,7 @@ TEST_F(TcpConnector, Simple) {
 }
 
 TEST_F(TcpConnector, ReadAfterTimeout) {
-  tcp::connector connector(test_addr, test_port, -1);
+  tcp::connector connector(test_conf);
   std::shared_ptr<io::stream> io{connector.open()};
 
   std::shared_ptr<io::raw> data{new io::raw()};
@@ -99,7 +108,7 @@ TEST_F(TcpConnector, ReadAfterTimeout) {
 }
 
 TEST_F(TcpConnector, MultipleSimple) {
-  tcp::connector connector(test_addr, test_port, -1);
+  tcp::connector connector(test_conf);
   std::shared_ptr<io::stream> io{connector.open()};
 
   std::shared_ptr<io::raw> data{new io::raw()};

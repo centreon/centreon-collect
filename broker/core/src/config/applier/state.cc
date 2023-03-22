@@ -134,11 +134,12 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
   ib->poller_id = _poller_id;
   ib->poller_name = _poller_name;
   ib->enabled = true;
-  com::centreon::broker::multiplexing::engine::instance().publish(ib);
+
+  com::centreon::broker::multiplexing::engine::instance_ptr()->publish(ib);
 
   // Enable multiplexing loop.
   if (run_mux)
-    com::centreon::broker::multiplexing::engine::instance().start();
+    com::centreon::broker::multiplexing::engine::instance_ptr()->start();
 }
 
 /**

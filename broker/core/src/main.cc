@@ -35,6 +35,9 @@
 
 #include <asio.hpp>
 
+#include <spdlog/fmt/ostr.h>
+#include <spdlog/spdlog.h>
+
 #include "com/centreon/broker/brokerrpc.hh"
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/config/applier/state.hh"
@@ -47,6 +50,10 @@
 
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
+
+std::shared_ptr<asio::io_context> g_io_context =
+    std::make_shared<asio::io_context>();
+bool g_io_context_started = false;
 
 // Main config file.
 static std::vector<std::string> gl_mainconfigfiles;
@@ -66,9 +73,7 @@ static struct option long_options[] = {{"pool_size", required_argument, 0, 's'},
  *
  *  @param[in] signum Signal number.
  */
-static void hup_handler(int signum) {
-  (void)signum;
-
+static void hup_handler(int) {
   // Disable SIGHUP handling during handler execution.
   signal(SIGHUP, SIG_IGN);
 
@@ -143,6 +148,8 @@ int main(int argc, char* argv[]) {
   std::string broker_name{"unknown"};
   uint16_t default_port{51000};
   std::string default_listen_address{"localhost"};
+
+  log_v2::load(g_io_context);
 
   // Set configuration update handler.
   if (signal(SIGHUP, hup_handler) == SIG_ERR) {
@@ -251,6 +258,9 @@ int main(int argc, char* argv[]) {
           log_v2::core()->error("{}", e.what());
         }
 
+        log_v2::core()->info("main: process {} pid:{} begin", argv[0],
+                             getpid());
+
         if (n_thread > 0 && n_thread < 100)
           conf.pool_size(n_thread);
         config::applier::init(conf);
@@ -281,10 +291,13 @@ int main(int argc, char* argv[]) {
         while (!gl_term) {
           std::this_thread::sleep_for(std::chrono::seconds(1));
         }
-        log_v2::core()->info("main: termination request received by process");
+        log_v2::core()->info("main: termination request received by process {}",
+                             getpid());
       }
+      log_v2::instance().stop_flush_timer();
       // Unload endpoints.
       config::applier::deinit();
+      spdlog::shutdown();
     }
   }
   // Standard exception.
@@ -297,6 +310,9 @@ int main(int argc, char* argv[]) {
     log_v2::core()->error("Error general during cbd exit");
     retval = EXIT_FAILURE;
   }
+
+  log_v2::core()->info("main: process {} pid:{} end exit_code:{}", argv[0],
+                       getpid(), retval);
 
   return retval;
 }

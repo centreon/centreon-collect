@@ -104,4 +104,11 @@ std::ostream& operator<<(std::ostream& os, const check& chk);
 
 CCCS_END()
 
+namespace fmt {
+// formatter specializations for fmt
+template <>
+struct formatter<com::centreon::connector::ssh::checks::check>
+    : ostream_formatter {};
+}  // namespace fmt
+
 #endif  // !CCCS_CHECKS_CHECK_HH
