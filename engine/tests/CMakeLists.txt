@@ -164,6 +164,7 @@ if(WITH_TESTING)
     ut_engine
     ${ENGINERPC}
     cce_core
+    enginelog
     pthread
     ${GCOV}
     CONAN_PKG::gtest

@@ -343,7 +343,6 @@ set(LIBROKER_SOURCES
     ${SRC_DIR}/io/protocols.cc
     ${SRC_DIR}/io/raw.cc
     ${SRC_DIR}/io/stream.cc
-    ${SRC_DIR}/log_v2.cc
     ${SRC_DIR}/mapping/entry.cc
     ${SRC_DIR}/misc/diagnostic.cc
     ${SRC_DIR}/misc/filesystem.cc
@@ -480,6 +479,11 @@ set(LIBROKER_SOURCES
     ${INC_DIR}/version.hh)
 
 # Static libraries.
+add_library(rokerlog STATIC ${SRC_DIR}/log_v2.cc)
+set_target_properties(rokerlog PROPERTIES COMPILE_FLAGS "-fPIC")
+target_precompile_headers(rokerlog PRIVATE core/precomp_inc/precomp.hpp)
+target_link_libraries(rokerlog CONAN_PKG::spdlog)
+
 add_library(rokerbase STATIC ${LIBROKER_SOURCES})
 set_target_properties(rokerbase PROPERTIES COMPILE_FLAGS "-fPIC")
 target_precompile_headers(rokerbase PRIVATE core/precomp_inc/precomp.hpp)
@@ -507,6 +511,7 @@ add_executable(cbd ${SRC_DIR}/main.cc)
 target_link_libraries(
   cbd
   "-rdynamic"
+  rokerlog
   "-Wl,--whole-archive"
   rokerbase
   roker

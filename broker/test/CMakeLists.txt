@@ -129,6 +129,7 @@ target_link_libraries(
   test_util
   roker
   rokerbase
+  rokerlog
   ${TESTS_LIBRARIES}
   conflictmgr
   CONAN_PKG::nlohmann_json
