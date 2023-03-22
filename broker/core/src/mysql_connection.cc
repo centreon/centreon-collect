@@ -423,7 +423,7 @@ void mysql_connection::_statement(mysql_task* t) {
       } else {
         SPDLOG_LOGGER_TRACE(log_v2::sql(),
                             "mysql_connection {:p}: success execute statement "
-                            "{} attempt {}: {}",
+                            "{} attempt {}",
                             static_cast<const void*>(this), task->statement_id,
                             _stmt_query[task->statement_id]);
         set_need_to_commit();
