@@ -1,20 +1,20 @@
 /*
-** Copyright 2014-2021 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+ * Copyright 2014-2023 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCB_BAM_MONITORING_STREAM_HH
 #define CCB_BAM_MONITORING_STREAM_HH
@@ -73,6 +73,7 @@ class monitoring_stream : public io::stream {
   database::mysql_stmt _ba_update;
   database::mysql_stmt _kpi_update;
   int32_t _pending_events;
+  uint32_t _pending_request;
   database_config _storage_db_cfg;
   std::shared_ptr<persistent_cache> _cache;
 
@@ -85,7 +86,6 @@ class monitoring_stream : public io::stream {
                      absl::Hash<std::pair<std::string, std::string>>>
       _timer_forced_svc_checks;
 
-  void _check_replication();
   void _prepare();
   void _rebuild();
   void _write_external_command(const std::string& cmd);
