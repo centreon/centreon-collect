@@ -25,6 +25,7 @@
 #include <unistd.h>
 #include <random>
 #include <string>
+#include <opentelemetry/version.h>
 
 #include <asio.hpp>
 #include <spdlog/fmt/ostr.h>
@@ -69,6 +70,10 @@ std::shared_ptr<asio::io_context> g_io_context(
     std::make_shared<asio::io_context>());
 bool g_io_context_started = false;
 
+namespace trace_api = opentelemetry::trace;
+namespace trace_sdk = opentelemetry::sdk::trace;
+namespace trace_exporter = opentelemetry::exporter::trace;
+
 // Error message when configuration parsing fail.
 #define ERROR_CONFIGURATION                                                  \
   "    Check your configuration file(s) to ensure that they contain valid\n" \
@@ -78,6 +83,20 @@ bool g_io_context_started = false;
   "    version. Make sure to read the documentation regarding the config\n"  \
   "    files, as well as the version changelog to find out what has\n"       \
   "    changed.\n"
+
+void init_tracer() {
+  auto exporter = trace_exporter::OStreamSpanExporterFactory::Create();
+  auto processor = trace_sdk::SimpleSpanProcessorFactory::Create(std::move(exporter));
+  std::shared_ptr<trace_api::TracerProvider> provider = trace_sdk::TracerProviderFactory::Create(std::move(processor));
+
+  /* Set the global tracer provider */
+  trace_api::Provider::SetTracerProvider(provider);
+}
+
+void cleanup_tracer() {
+  std::shared_ptr<trace_api::TracerProvider> none;
+  trace_api::Provider::SetTracerProvider(none);
+}
 
 /**
  *  Centreon Engine entry point.
@@ -340,6 +359,7 @@ int main(int argc, char* argv[]) {
     }
     // Else start to monitor things.
     else {
+      init_tracer();
       auto provider = opentelemetry::trace::Provider::GetTracerProvider();
       tracer = provider->GetTracer("centengine", "1.0.0");
       try {
@@ -492,6 +512,7 @@ int main(int argc, char* argv[]) {
         broker_program_state(NEBTYPE_PROCESS_SHUTDOWN,
                              NEBFLAG_PROCESS_INITIATED);
       }
+      cleanup_tracer();
     }
 
     // Memory cleanup.

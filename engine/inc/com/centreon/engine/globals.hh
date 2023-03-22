@@ -23,6 +23,7 @@
 #define CCE_GLOBALS_HH
 
 #include <stdio.h>
+#include <opentelemetry/trace/tracer.h>
 
 #include "com/centreon/engine/circular_buffer.hh"
 #include "com/centreon/engine/configuration/state.hh"
@@ -129,7 +130,7 @@ extern char* illegal_object_chars;
 extern char* illegal_output_chars;
 extern unsigned int use_large_installation_tweaks;
 extern uint32_t instance_heartbeat_interval;
-extern Tracer tracer;
+extern opentelemetry::trace::Tracer tracer;
 
 #ifdef __cplusplus
 }

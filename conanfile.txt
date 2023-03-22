@@ -1,4 +1,5 @@
 [requires]
+abseil/20220623.0
 gtest/cci.20210126
 asio/1.24.0
 fmt/9.1.0
@@ -27,3 +28,4 @@ grpc:php_plugin=False
 grpc:python_plugin=True
 grpc:ruby_plugin=False
 libssh2:shared=False
+opentelemetry-cpp:with_abseil=True
