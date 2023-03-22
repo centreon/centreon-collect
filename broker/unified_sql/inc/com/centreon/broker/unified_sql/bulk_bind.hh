@@ -78,6 +78,8 @@ class bulk_bind {
   std::time_t next_time() const;
   std::size_t connections_count() const;
   void init_from_stmt(int32_t conn);
+  void lock();
+  void unlock();
 };
 }  // namespace unified_sql
 CCB_END()
