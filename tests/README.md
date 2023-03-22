@@ -284,6 +284,7 @@ Here is the list of the currently implemented tests:
 - [x] **BEUTAG7**: some services are configured and deleted with tags on two pollers.
 - [x] **BEUTAG8**: Services have tags provided by templates.
 - [x] **BEUTAG9**: hosts have tags provided by templates.
+- [x] **BE_NOTIF_OVERFLOW**: bbdo 2.0 notification number =40000. make an overflow => notification_number null in db
 - [x] **BRCS1**: Broker reverse connection stopped
 - [x] **BRCTS1**: Broker reverse connection too slow
 - [x] **BRGC1**: Broker good reverse connection
@@ -329,10 +330,10 @@ Here is the list of the currently implemented tests:
 - [x] **EBNSGU1**: New service group with several pollers and connections to DB with broker configured with unified_sql
 - [x] **EBNSGU2**: New service group with several pollers and connections to DB with broker configured with unified_sql
 - [x] **EBNSVC1**: New services with several pollers
-- [x] **EBSAU2**: New hosts with action_url with more than 2000 characters
-- [x] **EBSN3**: New hosts with notes with more than 500 characters
-- [x] **EBSNU1**: New hosts with notes_url with more than 2000 characters
-- [x] **ENRSCHE1**: check next check of reschedule is last_check+interval_check
+- [x] **EBSAU2**: New services with action_url with more than 2000 characters
+- [x] **EBSN3**: New services with notes with more than 500 characters
+- [x] **EBSNU1**: New services with notes_url with more than 2000 characters
+- [x] **ENRSCHE1**: Verify that next check of a rescheduled host is made at last_check + interval_check
 - [x] **LOGV2BE2**: log-v2 enabled old log enabled check broker sink is equal
 - [x] **LOGV2DB1**: log-v2 disabled old log enabled check broker sink
 - [x] **LOGV2DB2**: log-v2 disabled old log disabled check broker sink
