@@ -50,8 +50,8 @@ class log_v2 : public log_v2_base {
 
   log_v2(const std::shared_ptr<asio::io_context>& io_context);
 
-  static std::shared_ptr<spdlog::logger> get_logger(logger log_type,
-                                                    const char* log_str);
+  std::shared_ptr<spdlog::logger> get_logger(logger log_type,
+                                             const char* log_str);
 
   void start_flush_timer(spdlog::sink_ptr sink);
 
@@ -65,55 +65,56 @@ class log_v2 : public log_v2_base {
   static void load(const std::shared_ptr<asio::io_context>& io_context);
   static std::shared_ptr<log_v2> instance();
   static inline std::shared_ptr<spdlog::logger> functions() {
-    return get_logger(log_v2::log_functions, "functions");
+    return _instance->get_logger(log_v2::log_functions, "functions");
   }
 
   static inline std::shared_ptr<spdlog::logger> config() {
-    return get_logger(log_v2::log_config, "configuration");
+    return _instance->get_logger(log_v2::log_config, "configuration");
   }
 
   static inline std::shared_ptr<spdlog::logger> events() {
-    return get_logger(log_v2::log_events, "events");
+    return _instance->get_logger(log_v2::log_events, "events");
   }
 
   static inline std::shared_ptr<spdlog::logger> checks() {
-    return get_logger(log_v2::log_checks, "checks");
+    return _instance->get_logger(log_v2::log_checks, "checks");
   }
 
   static inline std::shared_ptr<spdlog::logger> notifications() {
-    return get_logger(log_v2::log_notifications, "notifications");
+    return _instance->get_logger(log_v2::log_notifications, "notifications");
   }
 
   static inline std::shared_ptr<spdlog::logger> eventbroker() {
-    return get_logger(log_v2::log_eventbroker, "eventbroker");
+    return _instance->get_logger(log_v2::log_eventbroker, "eventbroker");
   }
 
   static inline std::shared_ptr<spdlog::logger> external_command() {
-    return get_logger(log_v2::log_external_command, "external_command");
+    return _instance->get_logger(log_v2::log_external_command,
+                                 "external_command");
   }
 
   static inline std::shared_ptr<spdlog::logger> commands() {
-    return get_logger(log_v2::log_commands, "commands");
+    return _instance->get_logger(log_v2::log_commands, "commands");
   }
 
   static inline std::shared_ptr<spdlog::logger> downtimes() {
-    return get_logger(log_v2::log_downtimes, "downtimes");
+    return _instance->get_logger(log_v2::log_downtimes, "downtimes");
   }
 
   static inline std::shared_ptr<spdlog::logger> comments() {
-    return get_logger(log_v2::log_comments, "comments");
+    return _instance->get_logger(log_v2::log_comments, "comments");
   }
 
   static inline std::shared_ptr<spdlog::logger> macros() {
-    return get_logger(log_v2::log_macros, "macros");
+    return _instance->get_logger(log_v2::log_macros, "macros");
   }
 
   static inline std::shared_ptr<spdlog::logger> process() {
-    return get_logger(log_v2::log_process, "process");
+    return _instance->get_logger(log_v2::log_process, "process");
   }
 
   static inline std::shared_ptr<spdlog::logger> runtime() {
-    return get_logger(log_v2::log_runtime, "runtime");
+    return _instance->get_logger(log_v2::log_runtime, "runtime");
   }
 };
 CCE_END()
