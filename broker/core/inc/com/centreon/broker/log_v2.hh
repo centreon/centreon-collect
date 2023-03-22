@@ -75,7 +75,7 @@ class log_v2 : public com::centreon::engine::log_v2_base {
   static void load(const std::shared_ptr<asio::io_context>& io_context);
 
   static std::shared_ptr<log_v2> instance();
-  void set_flush_interval(unsigned second_flush_interval) override;
+  void set_flush_interval(unsigned second_flush_interval);
 
   static inline std::shared_ptr<spdlog::logger> bam() {
     return get_logger(log_bam, "bam");

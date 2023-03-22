@@ -60,7 +60,7 @@ class log_v2 : public log_v2_base {
 
   void stop_flush_timer();
   void apply(const configuration::state& config);
-  void set_flush_interval(unsigned second_flush_interval) override;
+  void set_flush_interval(unsigned second_flush_interval);
   static bool contains_level(const std::string& level_name);
   static void load(const std::shared_ptr<asio::io_context>& io_context);
   static std::shared_ptr<log_v2> instance();

@@ -557,7 +557,7 @@ set_property(TARGET "centengine" PROPERTY ENABLE_EXPORTS "1")
 add_dependencies(centengine centreon_clib)
 
 # Link centengine with required libraries.
-target_link_libraries(centengine "-export-dynamic" centreon_clib "-Wl,-whole-archive" enginerpc cce_core "-Wl,-no-whole-archive" -L${CONAN_LIB_DIRS_GRPC} "-Wl,--whole-archive" grpc++ "-Wl,--no-whole-archive" CONAN_PKG::grpc ${absl_LIBS} CONAN_PKG::openssl ${c-ares_LIBS} CONAN_PKG::zlib dl)
+target_link_libraries(centengine "-rdynamic" centreon_clib "-Wl,-whole-archive" enginerpc cce_core "-Wl,-no-whole-archive" -L${CONAN_LIB_DIRS_GRPC} "-Wl,--whole-archive" grpc++ "-Wl,--no-whole-archive" CONAN_PKG::grpc ${absl_LIBS} CONAN_PKG::openssl ${c-ares_LIBS} CONAN_PKG::zlib dl)
 
 # centenginestats target.
 add_executable("centenginestats" "${SRC_DIR}/centenginestats.cc")
