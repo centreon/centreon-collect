@@ -26,42 +26,14 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
 
 /**
- * @brief Constructor of a mysql_column. The row_count parameter is a
- * reservation, not a predefined size.
- *
- * @param type The type of the column to allocate.
- * @param row_count The number of rows to reserve whereas the initial size is 0.
- */
-mysql_column::mysql_column(int type, size_t row_count)
-    : _type(type), _row_count{row_count}, _vector{nullptr} {
-  if (row_count > 0) {
-    set_type(type);
-    reserve(row_count);
-  }
-}
-
-/**
  * @brief Destructor
  */
 mysql_column::~mysql_column() noexcept {
+  /* In case of vector of strings, we have to remove them properly */
   if (_vector)
     _free_vector();
 }
 
-/**
- * @brief Move constructor.
- *
- * @param other The column to move.
- */
-mysql_column::mysql_column(mysql_column&& other)
-    : _type(other._type),
-      _row_count(other._row_count),
-      _vector(other._vector),
-      _indicator(std::move(other._indicator)),
-      _error(std::move(other._error)),
-      _length(std::move(other._length)) {
-  other._vector = nullptr;
-}
 
 /**
  * @brief Move operator
@@ -70,21 +42,6 @@ mysql_column::mysql_column(mysql_column&& other)
  *
  * @return a reference of this column.
  */
-mysql_column& mysql_column::operator=(mysql_column&& other) {
-  if (this == &other)
-    return *this;
-
-  _type = other._type;
-  _row_count = other._row_count;
-  _current_row = other._current_row;
-  _length = std::move(other._length);
-  _error = std::move(other._error);
-  _indicator = std::move(other._indicator);
-  _free_vector();
-  _vector = other._vector;
-  other._vector = nullptr;
-  return *this;
-}
 
 /**
  * @brief Destroy the main vector of the column.
@@ -127,6 +84,8 @@ void mysql_column::_free_vector() {
       delete vector;
     } break;
     default:
+      log_v2::sql()->critical(
+          "mysql_column: unexpected type while vector is freed");
       assert(1 == 0);
   }
   _vector = nullptr;
@@ -173,6 +132,7 @@ void* mysql_column::get_buffer() {
       return vector->data();
     } break;
     default:
+      log_v2::sql()->critical("Unexpected type while getting the buffer value");
       assert(1 == 0);
   }
   return nullptr;
@@ -228,17 +188,22 @@ void mysql_column::clear() {
       vector->clear();
     } break;
     default:
+      log_v2::sql()->critical(
+          "mysql_column: unexpected type while clearing the vector");
       assert(1 == 0);
   }
 }
 
 /**
- * @brief Reserve the size of the column, that is to say its number of rows.
- * It is not an allocation, the size itself does not change.
+ * @brief Reserve the size of the column, that is to say the number of rows.
+ * It is not an allocation, the size itself does not change. The vector may
+ * not already exist, this is the case when the type is still unknown. The
+ * reservation can thus be incomplete.
  *
  * @param s The size to reserve.
  */
 void mysql_column::reserve(size_t s) {
+  _rows_to_reserve = s;
   _indicator.reserve(s);
   _error.reserve(s);
   _length.reserve(s);
@@ -275,6 +240,8 @@ void mysql_column::reserve(size_t s) {
         vector->reserve(s);
       } break;
       default:
+        log_v2::sql()->critical(
+            "mysql_column: Unexpected type while vector reservation");
         assert(1 == 0);
     }
   }
@@ -412,60 +379,62 @@ unsigned long* mysql_column::length_buffer() {
 
 /**
  * @brief Set the type of the column with a value like MYSQL_TYPE_STRING,
- * MYSQL_TYPE_LONG, etc...
+ * MYSQL_TYPE_LONG, etc... The vector must not already exist. And if a
+ * reservation has already been declared, it is applied to the vector.
  *
  * @param type The type to specify.
  */
 void mysql_column::set_type(int type) {
   assert(_vector == nullptr);
   assert(_row_count <= 1);
-  assert(_current_row <= 1);
+  assert(_current_row <= 0);
   _type = type;
-  size_t reserved_size = _indicator.capacity();
   switch (type) {
     case MYSQL_TYPE_STRING: {
       auto* vector = new std::vector<char*>();
-      if (reserved_size > 0)
-        vector->reserve(reserved_size);
+      if (_rows_to_reserve > 0)
+        vector->reserve(_rows_to_reserve);
       _vector = vector;
     } break;
     case MYSQL_TYPE_FLOAT: {
       auto* vector = new std::vector<float>();
-      if (reserved_size > 0)
-        vector->reserve(reserved_size);
+      if (_rows_to_reserve > 0)
+        vector->reserve(_rows_to_reserve);
       _vector = vector;
     } break;
     case MYSQL_TYPE_LONG: {
       auto* vector = new std::vector<int>();
-      if (reserved_size > 0)
-        vector->reserve(reserved_size);
+      if (_rows_to_reserve > 0)
+        vector->reserve(_rows_to_reserve);
       _vector = vector;
     } break;
     case MYSQL_TYPE_TINY: {
       auto* vector = new std::vector<char>();
-      if (reserved_size > 0)
-        vector->reserve(reserved_size);
+      if (_rows_to_reserve > 0)
+        vector->reserve(_rows_to_reserve);
       _vector = vector;
     } break;
     case MYSQL_TYPE_DOUBLE: {
       auto* vector = new std::vector<double>();
-      if (reserved_size > 0)
-        vector->reserve(reserved_size);
+      if (_rows_to_reserve > 0)
+        vector->reserve(_rows_to_reserve);
       _vector = vector;
     } break;
     case MYSQL_TYPE_LONGLONG: {
       auto* vector = new std::vector<long long>();
-      if (reserved_size > 0)
-        vector->reserve(reserved_size);
+      if (_rows_to_reserve > 0)
+        vector->reserve(_rows_to_reserve);
       _vector = vector;
     } break;
     case MYSQL_TYPE_NULL: {
       auto* vector = new std::vector<char*>();
-      if (reserved_size > 0)
-        vector->reserve(reserved_size);
+      if (_rows_to_reserve > 0)
+        vector->reserve(_rows_to_reserve);
       _vector = vector;
     } break;
     default:
+      log_v2::sql()->critical("mysql_column: unexpected type {} for column",
+                              type);
       assert(1 == 0);
   }
 }

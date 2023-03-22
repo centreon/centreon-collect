@@ -27,30 +27,18 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
 
-mysql_bind::mysql_bind(int size, int length)
+mysql_bind::mysql_bind(int size)  //, int length)
     : mysql_bind_base(size), _buffer(size) {
-  if (length) {
-    for (int i = 0; i < size; ++i) {
-      _bind[i].buffer_type = MYSQL_TYPE_STRING;
-      _buffer[i] = "";
-      absl::get<std::string>(_buffer[i]).reserve(length);
-      std::string* s = absl::get_if<std::string>(&_buffer[i]);
-      _bind[i].buffer = const_cast<char*>(s->data());
-      _bind[i].buffer_length = length;
-    }
-  }
-}
-
-/**
- * @brief Set the size of the bind, that is to say the number of columns.
- *
- * @param size An integer.
- */
-void mysql_bind::set_size(int size) {
-  _bind.resize(size);
-  _buffer.resize(size);
-  for (int i = 0; i < size; ++i)
-    _bind[i].buffer = get_value_pointer(i);
+  //  if (length) {
+  //    for (int i = 0; i < size; ++i) {
+  //      _bind[i].buffer_type = MYSQL_TYPE_STRING;
+  //      _buffer[i] = "";
+  //      absl::get<std::string>(_buffer[i]).reserve(length);
+  //      std::string* s = absl::get_if<std::string>(&_buffer[i]);
+  //      _bind[i].buffer = const_cast<char*>(s->data());
+  //      _bind[i].buffer_length = length;
+  //    }
+  //  }
 }
 
 void* mysql_bind::get_value_pointer(size_t range) {
@@ -142,7 +130,6 @@ VALUE(f64, double, MYSQL_TYPE_DOUBLE)
 VALUE(str, const char*, MYSQL_TYPE_STRING)
 SET_VALUE(tiny, char, MYSQL_TYPE_TINY, false)
 VALUE(tiny, char, MYSQL_TYPE_TINY)
-// SET_VALUE(bool, bool, MYSQL_TYPE_TINY, false)
 VALUE(bool, bool, MYSQL_TYPE_TINY)
 
 #undef SET_VALUE
@@ -172,95 +159,4 @@ void mysql_bind::set_null_str(size_t range) {
  */
 bool mysql_bind::value_is_null(size_t range) const {
   return _bind[range].buffer_type == MYSQL_TYPE_NULL;
-}
-
-/**
- * @brief A debug function to display the content of this bind.
- */
-// void mysql_bind::debug() {
-//   std::cout << "DEBUG BIND " << this << std::endl;
-//   int size = _bind.size();
-//     for (int i = 0; i < size; ++i) {
-//       switch (_bind[i].buffer_type) {
-//         case MYSQL_TYPE_LONGLONG: {
-//           std::cout << "LONGLONG : "
-//                     << "BL: " << _bind[i].buffer_length << " NULL: "
-//                     << (_bind[i].buffer_type == MYSQL_TYPE_NULL ? "1" : "0")
-//                     << " : "
-//                     << get_value_pointer(i)
-//                     << std::endl;
-//         } break;
-//         case MYSQL_TYPE_LONG: {
-//           std::cout << "LONG : "
-//                     << "BL: " << _bind[i].buffer_length << " NULL: "
-//                     << (_bind[i].buffer_type == MYSQL_TYPE_NULL ? "1" : "0")
-//                     << " : "
-//                     << get_value_pointer(i)
-//                     << std::endl;
-//         } break;
-//         case MYSQL_TYPE_TINY: {
-//           std::cout << "TINY : "
-//                     << "BL: " << _bind[i].buffer_length << " NULL: "
-//                     << (_bind[i].buffer_type == MYSQL_TYPE_NULL ? "1" : "0")
-//                     << " : "
-//                     << get_value_pointer(i)
-//                     << std::endl;
-//         } break;
-//         case MYSQL_TYPE_NULL:
-//           std::cout << "NULL : "
-//                     << "BL: " << _bind[i].buffer_length;
-//           break;
-//         case MYSQL_TYPE_ENUM:
-//           std::cout << "ENUM : "
-//                     << "BL: " << _bind[i].buffer_length << " : "
-//                     << static_cast<char**>(_column[i].get_buffer())[j]
-//                     << std::endl;
-//           break;
-//         case MYSQL_TYPE_STRING:
-//           std::cout << "STRING : "
-//                     << "BL: " << _bind[i].buffer_length << " NULL: "
-//                     << (_bind[i].u.indicator[j] == STMT_INDICATOR_NULL ? "1"
-//                                                                        : "0")
-//                     << " : " <<
-//                     static_cast<char**>(_column[i].get_buffer())[j]
-//                     << std::endl;
-//           break;
-//         case MYSQL_TYPE_DOUBLE: {
-//           std::cout << "DOUBLE : "
-//                        "BL: "
-//                     << _bind[i].buffer_length << " NULL: "
-//                     << (_bind[i].u.indicator[j] == STMT_INDICATOR_NULL ? "1"
-//                                                                        : "0")
-//                     << " : " <<
-//                     static_cast<double*>(_column[i].get_buffer())[j]
-//                     << std::endl;
-//         } break;
-//         case MYSQL_TYPE_FLOAT: {
-//           std::cout << "FLOAT : "
-//                        "BL: "
-//                     << _bind[i].buffer_length << " NULL: "
-//                     << (_bind[i].u.indicator[j] == STMT_INDICATOR_NULL ? "1"
-//                                                                        : "0")
-//                     << " : " <<
-//                     static_cast<float*>(_column[i].get_buffer())[j]
-//                     << std::endl;
-//         } break;
-//         default:
-//           std::cout << _bind[i].buffer_type
-//                     << " : BL: " << _bind[i].buffer_length << " : "
-//                     << "TYPE NOT MANAGED...\n";
-//           assert(1 == 0);  // Should not arrive...
-//           break;
-//       }
-//       std::cout << std::endl;
-//     }
-// }
-
-/**
- * @brief Accessor to the number of columns in this bind.
- *
- * @return An integer.
- */
-int mysql_bind::get_size() const {
-  return _bind.size();
 }

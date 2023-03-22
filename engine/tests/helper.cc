@@ -37,7 +37,7 @@ void init_config_state(void) {
 
   // Hack to instanciate the logger.
   configuration::applier::logging::instance().apply(*config);
-  log_v2::instance().apply(*config);
+  log_v2::instance()->apply(*config);
 
   checks::checker::init(true);
 }

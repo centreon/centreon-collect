@@ -329,7 +329,7 @@ static float const default_low_service_flap_threshold(20.0);
 static unsigned long const default_max_debug_file_size(1000000);
 static unsigned int const default_max_host_check_spread(5);
 static unsigned long const default_max_log_file_size(0);
-static constexpr uint32_t default_log_flush_period{5u};
+static constexpr uint32_t default_log_flush_period{2u};
 static unsigned int const default_max_parallel_service_checks(0);
 static unsigned int const default_max_service_check_spread(5);
 static unsigned int const default_notification_timeout(30);

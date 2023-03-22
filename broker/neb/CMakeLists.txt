@@ -114,7 +114,6 @@ add_library(
 # Flags needed to include all symbols in binary.
 target_link_libraries(${NEB} nebbase CONAN_PKG::spdlog)
 
-# "-Wl,--whole-archive" nebbase "-Wl,--no-whole-archive")
 set_target_properties("${NEB}" PROPERTIES PREFIX "")
 target_precompile_headers(${NEB} REUSE_FROM nebbase)
 install(TARGETS "${NEB}" LIBRARY DESTINATION "${PREFIX_MODULES}")
@@ -148,6 +147,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   # Flags needed to include all symbols in shared library.
   target_link_libraries(
     "${CBMOD}"
+    rokerlog
     "-Wl,--whole-archive"
     "rokerbase"
     "-Wl,--no-whole-archive"

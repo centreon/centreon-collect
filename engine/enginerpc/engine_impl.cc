@@ -22,8 +22,13 @@
 #include <sys/types.h>
 #include <future>
 
+#include <asio.hpp>
+
+#include <absl/strings/str_join.h>
+
 #include <spdlog/common.h>
 #include <spdlog/fmt/ostr.h>
+#include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/spdlog.h>
 
 #include "com/centreon/engine/host.hh"
@@ -1671,7 +1676,7 @@ grpc::Status engine_impl::DeleteHostDowntimeFull(
     CommandSuccess* response __attribute__((unused))) {
   std::string err;
   auto fn = std::packaged_task<int32_t(void)>([&err, request]() -> int32_t {
-    std::list<std::shared_ptr<downtimes::downtime> > dtlist;
+    std::list<std::shared_ptr<downtimes::downtime>> dtlist;
     for (auto it = downtimes::downtime_manager::instance()
                        .get_scheduled_downtimes()
                        .begin(),
@@ -3253,4 +3258,81 @@ engine_impl::get_serv(
                             err);
     }
   }
+}
+
+/**
+ * @brief get log levels and infos
+ *
+ * @param context
+ * @param request
+ * @param response
+ * @return ::grpc::Status
+ */
+::grpc::Status engine_impl::GetLogInfo(
+    ::grpc::ServerContext* context,
+    const ::google::protobuf::Empty* request,
+    ::com::centreon::engine::LogInfo* response) {
+  using logger_by_log =
+      std::map<log_v2_base*, std::vector<std::shared_ptr<spdlog::logger>>>;
+
+  logger_by_log summary;
+
+  spdlog::apply_all(
+      [&summary](const std::shared_ptr<spdlog::logger>& logger_base) {
+        std::shared_ptr<log_v2_logger> logger =
+            std::dynamic_pointer_cast<log_v2_logger>(logger_base);
+        if (logger) {
+          summary[logger->get_parent()].push_back(logger);
+        }
+      });
+
+  for (const auto& by_parent_loggers : summary) {
+    LogInfo_LoggerInfo* loggers = response->add_loggers();
+    loggers->set_log_name(by_parent_loggers.first->log_name());
+    loggers->set_log_file(by_parent_loggers.first->file_path());
+    loggers->set_log_flush_period(
+        by_parent_loggers.first->get_flush_interval().count());
+    auto& levels = *loggers->mutable_level();
+    for (const std::shared_ptr<spdlog::logger>& logger :
+         by_parent_loggers.second) {
+      auto level = spdlog::level::to_string_view(logger->level());
+      levels[logger->name()] = std::string(level.data(), level.size());
+    }
+  }
+  return grpc::Status::OK;
+}
+
+grpc::Status engine_impl::SetLogLevel(grpc::ServerContext* context
+                                      [[maybe_unused]],
+                                      const LogLevel* request,
+                                      ::google::protobuf::Empty*) {
+  std::shared_ptr<spdlog::logger> logger = spdlog::get(request->name());
+  if (!logger) {
+    std::string err_detail = fmt::format("unknow logger:{}", request->name());
+    SPDLOG_LOGGER_ERROR(log_v2::external_command(), err_detail);
+    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err_detail);
+  } else {
+    logger->set_level(spdlog::level::level_enum(request->level()));
+    return grpc::Status::OK;
+  }
+}
+
+grpc::Status engine_impl::SetLogFlushPeriod(grpc::ServerContext* context
+                                            [[maybe_unused]],
+                                            const LogFlushPeriod* request,
+                                            ::google::protobuf::Empty*) {
+  // first get all log_v2 objects
+  std::set<log_v2_base*> loggers;
+  spdlog::apply_all([&](const std::shared_ptr<spdlog::logger> logger) {
+    std::shared_ptr<log_v2_logger> logger_base =
+        std::dynamic_pointer_cast<log_v2_logger>(logger);
+    if (logger_base) {
+      loggers.insert(logger_base->get_parent());
+    }
+  });
+
+  for (log_v2_base* to_update : loggers) {
+    to_update->set_flush_interval(request->period());
+  }
+  return grpc::Status::OK;
 }

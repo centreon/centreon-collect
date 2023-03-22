@@ -34,6 +34,8 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
 
+extern std::shared_ptr<asio::io_context> g_io_context;
+
 const static std::string test_addr("127.0.0.1");
 constexpr static uint16_t test_port(4444);
 static tcp::tcp_config::pointer test_conf(
@@ -44,7 +46,9 @@ static tcp::tcp_config::pointer test_conf2(
 class TcpAcceptor : public ::testing::Test {
  public:
   void SetUp() override {
-    pool::load(0);
+    log_v2::tcp()->set_level(spdlog::level::trace);
+    g_io_context->restart();
+    pool::load(g_io_context, 0);
     tcp::tcp_async::load();
   }
 
@@ -726,7 +730,7 @@ TEST_F(TcpAcceptor, Wait2Connect) {
   std::shared_ptr<io::stream> st;
 
   std::thread t{[&] {
-    std::this_thread::sleep_for(std::chrono::seconds{2});
+    std::this_thread::sleep_for(std::chrono::milliseconds{2050});
     tcp::connector con(test_conf2);
     std::shared_ptr<io::stream> str{try_connect(con)};
   }};
@@ -1046,10 +1050,10 @@ TEST_F(TcpAcceptor, QuestionAnswerMultiple) {
 
 TEST_F(TcpAcceptor, MultipleBigSend) {
   tcp::acceptor acc(test_conf);
-  const int32_t nb_packet = 10;
-  const int32_t len = 10024;
+  constexpr int32_t nb_packet = 10;
+  constexpr int32_t len = 10024;
 
-  std::thread t{[nb_packet] {
+  std::thread t{[] {
     tcp::connector con(test_conf);
     std::shared_ptr<io::stream> str{try_connect(con)};
     std::shared_ptr<io::data> data_read;

@@ -23,20 +23,26 @@
 #include "bbdo/bam/ba_status.hh"
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
+#include "com/centreon/broker/neb/acknowledgement.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;
 
+extern std::shared_ptr<asio::io_context> g_io_context;
+
 class BamMonitoringStream : public testing::Test {
-  void SetUp() override { config::applier::init(0, "test_broker", 0); }
+  void SetUp() override {
+    g_io_context->restart();
+    config::applier::init(0, "test_broker", 0);
+  }
   void TearDown() override { config::applier::deinit(); }
 };
 
 TEST_F(BamMonitoringStream, WriteKpi) {
-  database_config cfg("MySQL", "127.0.0.1", "", 3306, "centreon", "centreon",
+  database_config cfg("MySQL", "127.0.0.1", "", 3306, "root", "centreon",
                       "centreon");
-  database_config storage("MySQL", "127.0.0.1", "", 3306, "centreon",
-                          "centreon", "centreon_storage");
+  database_config storage("MySQL", "127.0.0.1", "", 3306, "root", "centreon",
+                          "centreon_storage");
 
   std::shared_ptr<persistent_cache> cache;
   std::unique_ptr<monitoring_stream> ms;
@@ -50,10 +56,10 @@ TEST_F(BamMonitoringStream, WriteKpi) {
 }
 
 TEST_F(BamMonitoringStream, WriteBA) {
-  database_config cfg("MySQL", "127.0.0.1", "", 3306, "centreon", "centreon",
+  database_config cfg("MySQL", "127.0.0.1", "", 3306, "root", "centreon",
                       "centreon");
-  database_config storage("MySQL", "127.0.0.1", "", 3306, "centreon",
-                          "centreon", "centreon_storage");
+  database_config storage("MySQL", "127.0.0.1", "", 3306, "root", "centreon",
+                          "centreon_storage");
   ;
   std::shared_ptr<persistent_cache> cache;
   std::unique_ptr<monitoring_stream> ms;
@@ -63,4 +69,54 @@ TEST_F(BamMonitoringStream, WriteBA) {
   std::shared_ptr<ba_status> st{std::make_shared<ba_status>(ba_status())};
 
   ms->write(std::static_pointer_cast<io::data>(st));
+}
+
+TEST_F(BamMonitoringStream, WorkWithNoPendigMysqlRequest) {
+  database_config cfg("MySQL", "127.0.0.1", "", 3306, "root", "centreon",
+                      "centreon", 0);
+  database_config storage("MySQL", "127.0.0.1", "", 3306, "root", "centreon",
+                          "centreon_storage", 0);
+  ;
+  std::shared_ptr<persistent_cache> cache;
+  std::unique_ptr<monitoring_stream> ms;
+
+  ASSERT_NO_THROW(ms.reset(new monitoring_stream("", cfg, storage, cache)));
+
+  std::shared_ptr<ba_status> st{std::make_shared<ba_status>(ba_status())};
+
+  ASSERT_EQ(ms->write(std::static_pointer_cast<io::data>(st)), 1);
+
+  std::shared_ptr<neb::acknowledgement> dt{
+      std::make_shared<neb::acknowledgement>()};
+
+  ASSERT_EQ(ms->write(std::static_pointer_cast<io::data>(dt)), 1);
+}
+
+TEST_F(BamMonitoringStream, WorkWithPendigMysqlRequest) {
+  database_config cfg("MySQL", "127.0.0.1", "", 3306, "root", "centreon",
+                      "centreon", 5);
+  database_config storage("MySQL", "127.0.0.1", "", 3306, "root", "centreon",
+                          "centreon_storage", 5);
+  ;
+  std::shared_ptr<persistent_cache> cache;
+  std::unique_ptr<monitoring_stream> ms;
+
+  ASSERT_NO_THROW(ms.reset(new monitoring_stream("", cfg, storage, cache)));
+
+  std::shared_ptr<ba_status> st{std::make_shared<ba_status>(ba_status())};
+
+  for (unsigned ii = 0; ii < 4; ++ii) {
+    ASSERT_EQ(ms->write(std::static_pointer_cast<io::data>(st)), 0);
+  }
+  ASSERT_EQ(ms->write(std::static_pointer_cast<io::data>(st)), 5);
+
+  std::shared_ptr<neb::acknowledgement> dt{
+      std::make_shared<neb::acknowledgement>()};
+
+  ASSERT_EQ(ms->write(std::static_pointer_cast<io::data>(st)), 0);
+  for (unsigned ii = 0; ii < 48; ++ii) {
+    std::cout << ii << std::endl;
+    ASSERT_EQ(ms->write(std::static_pointer_cast<io::data>(dt)), 0);
+  }
+  ASSERT_EQ(ms->write(std::static_pointer_cast<io::data>(dt)), 50);
 }

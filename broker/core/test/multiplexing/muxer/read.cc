@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 - 2019 Centreon (https://www.centreon.com/)
+ * Copyright 2011 - 2023 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,13 +25,16 @@
 
 using namespace com::centreon::broker;
 
+extern std::shared_ptr<asio::io_context> g_io_context;
+
 class MultiplexingMuxerRead : public ::testing::Test {
  protected:
-  std::unique_ptr<multiplexing::muxer> _m;
+  std::shared_ptr<multiplexing::muxer> _m;
 
  public:
   void SetUp() override {
     try {
+      g_io_context->restart();
       config::applier::init(0, "test_broker", 0);
       stats::center::load();
     } catch (std::exception const& e) {
@@ -47,16 +50,18 @@ class MultiplexingMuxerRead : public ::testing::Test {
 
   void setup(std::string const& name) {
     multiplexing::muxer::filters f{io::raw::static_type()};
-    _m = std::make_unique<multiplexing::muxer>(name, f, f, false);
+    _m = multiplexing::muxer::create(name, f, f, false);
   }
 
   void publish_events(int count = 10000) {
+    std::deque<std::shared_ptr<io::data>> q;
     for (int i = 0; i < count; ++i) {
       std::shared_ptr<io::raw> r{std::make_shared<io::raw>()};
       r->resize(sizeof(i));
       memcpy(r->data(), &i, sizeof(i));
-      _m->publish(r);
+      q.push_back(std::move(r));
     }
+    _m->publish(q);
   }
 
   void reread_events(int from = 0, int to = 10000) {

@@ -51,6 +51,10 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
 
+std::shared_ptr<asio::io_context> g_io_context =
+    std::make_shared<asio::io_context>();
+bool g_io_context_started = false;
+
 // Main config file.
 static std::vector<std::string> gl_mainconfigfiles;
 static config::state gl_state;
@@ -81,7 +85,7 @@ static void hup_handler(int) {
     config::parser parsr;
     config::state conf{parsr.parse(gl_mainconfigfiles.front())};
     try {
-      log_v2::instance().apply(conf);
+      log_v2::instance()->apply(conf);
     } catch (const std::exception& e) {
       log_v2::core()->error("problem while reloading cbd: {}", e.what());
     }
@@ -144,6 +148,8 @@ int main(int argc, char* argv[]) {
   std::string broker_name{"unknown"};
   uint16_t default_port{51000};
   std::string default_listen_address{"localhost"};
+
+  log_v2::load(g_io_context);
 
   // Set configuration update handler.
   if (signal(SIGHUP, hup_handler) == SIG_ERR) {
@@ -247,7 +253,7 @@ int main(int argc, char* argv[]) {
         config::parser parsr;
         config::state conf{parsr.parse(gl_mainconfigfiles.front())};
         try {
-          log_v2::instance().apply(conf);
+          log_v2::instance()->apply(conf);
         } catch (const std::exception& e) {
           log_v2::core()->error("{}", e.what());
         }
@@ -288,8 +294,10 @@ int main(int argc, char* argv[]) {
         log_v2::core()->info("main: termination request received by process {}",
                              getpid());
       }
+      log_v2::instance()->stop_flush_timer();
       // Unload endpoints.
       config::applier::deinit();
+      spdlog::shutdown();
     }
   }
   // Standard exception.

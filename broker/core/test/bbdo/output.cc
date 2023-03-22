@@ -34,6 +34,8 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::misc;
 
+extern std::shared_ptr<asio::io_context> g_io_context;
+
 class into_memory : public io::stream {
  public:
   into_memory() : io::stream("into_memory"), _memory() {}
@@ -69,6 +71,7 @@ class OutputTest : public ::testing::Test {
  public:
   void SetUp() override {
     io::data::broker_id = 0;
+    g_io_context->restart();
     try {
       config::applier::init(0, "broker_test", 0);
     } catch (std::exception const& e) {
@@ -82,7 +85,7 @@ class OutputTest : public ::testing::Test {
     // The cache must be destroyed before the applier deinit() call.
     config::applier::deinit();
     ::remove("/tmp/broker_test_cache");
-    ::remove(log_v2::instance().log_name().c_str());
+    ::remove(log_v2::instance()->log_name().c_str());
   }
 };
 

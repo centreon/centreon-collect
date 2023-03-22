@@ -33,6 +33,9 @@ using namespace com::centreon::broker::multiplexing;
 
 uint32_t muxer::_event_queue_max_size = std::numeric_limits<uint32_t>::max();
 
+std::mutex muxer::_running_muxers_m;
+absl::flat_hash_map<std::string, std::weak_ptr<muxer>> muxer::_running_muxers;
+
 /**
  *  Constructor.
  *
@@ -104,8 +107,44 @@ muxer::muxer(std::string name,
   log_v2::core()->info(
       "multiplexing: '{}' starts with {} in queue and the queue file is {}",
       _name, _events_size, _file ? "enable" : "disable");
+}
 
-  engine::instance_ptr()->subscribe(this);
+/**
+ * @brief muxer must be in a shared_ptr
+ * so this static method creates it and registers it in engine
+ *
+ * @param name
+ * @param r_filters
+ * @param w_filters
+ * @param persistent
+ * @return std::shared_ptr<muxer>
+ */
+std::shared_ptr<muxer> muxer::create(std::string name,
+                                     muxer::filters r_filters,
+                                     muxer::filters w_filters,
+                                     bool persistent) {
+  std::shared_ptr<muxer> retval;
+  {
+    std::lock_guard<std::mutex> lck(_running_muxers_m);
+    absl::erase_if(_running_muxers,
+                   [](const std::pair<std::string, std::weak_ptr<muxer>>& p) {
+                     return p.second.expired();
+                   });
+    retval = _running_muxers[name].lock();
+    if (retval) {
+      log_v2::config()->debug("muxer: muxer '{}' already exists, reusing it",
+                              name);
+      retval->set_filters(r_filters, w_filters);
+    } else {
+      log_v2::config()->debug("muxer: muxer '{}' unknown, creating it", name);
+      retval = std::shared_ptr<muxer>(
+          new muxer(name, r_filters, w_filters, persistent));
+      _running_muxers[name] = retval;
+    }
+  }
+
+  engine::instance_ptr()->subscribe(retval);
+  return retval;
 }
 
 /**
@@ -113,7 +152,9 @@ muxer::muxer(std::string name,
  */
 muxer::~muxer() noexcept {
   stats::center::instance().unregister_muxer(_name);
-  engine::instance_ptr()->unsubscribe(this);
+  auto eng = engine::instance_ptr();
+  if (eng)
+    eng->unsubscribe(this);
   std::lock_guard<std::mutex> lock(_mutex);
   log_v2::core()->info("Destroying muxer {}: number of events in the queue: {}",
                        _name, _events_size);
@@ -200,33 +241,57 @@ uint32_t muxer::event_queue_max_size() noexcept {
  *
  *  @param[in] event Event to add.
  */
-void muxer::publish(const std::shared_ptr<io::data> event) {
-  if (event) {
-    SPDLOG_LOGGER_TRACE(log_v2::core(), "{} publish {}", _name, *event);
-
-    std::lock_guard<std::mutex> lock(_mutex);
-    // Check if we should process this event.
-    if (_write_filters.find(event->type()) == _write_filters.end()) {
-      SPDLOG_LOGGER_TRACE(log_v2::core(), "{} reject {}", _name, *event);
+void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
+  auto evt = event_queue.begin();
+  while (evt != event_queue.end()) {
+    bool at_least_one_push_to_queue = false;
+    {  // we stop this first loop when mux queue is full on order to release
+       // mutex to let read do his job before write to file
+      std::lock_guard<std::mutex> lock(_mutex);
+      for (; evt != event_queue.end() && _events_size < event_queue_max_size();
+           ++evt) {
+        if (_write_filters.find((*evt)->type()) == _write_filters.end()) {
+          continue;
+        }
+        at_least_one_push_to_queue = true;
+        log_v2::core()->trace("muxer::publish {} publish one event to queue",
+                              _name);
+        _push_to_queue(*evt);
+      }
+    }
+    if (evt == event_queue.end()) {
       return;
     }
-    // Check if the event queue limit is reach.
-    if (_events_size >= event_queue_max_size()) {
-      // Try to create file if is necessary.
+    // we have stopped insertion because of full queue => retry
+    if (at_least_one_push_to_queue) {
+      continue;
+    }
+    // nothing pushed => to file
+    std::lock_guard<std::mutex> lock(_mutex);
+    for (; evt != event_queue.end(); ++evt) {
+      if (_write_filters.find((*evt)->type()) == _write_filters.end()) {
+        continue;
+      }
       if (!_file) {
         QueueFileStats* s =
             stats::center::instance().muxer_stats(_name)->mutable_queue_file();
         _file = std::make_unique<persistent_file>(_queue_file_name, s);
       }
-
-      SPDLOG_LOGGER_TRACE(log_v2::core(), "{} push to file {}", _name, *event);
-      _file->write(event);
-    } else {
-      SPDLOG_LOGGER_TRACE(log_v2::core(), "{} push to queue {}", _name, *event);
-      _push_to_queue(event);
+      try {
+        _file->write(*evt);
+        SPDLOG_LOGGER_TRACE(log_v2::core(),
+                            "muxer::publish {} publish one event to file {}",
+                            _name, _queue_file_name);
+      } catch (const std::exception& ex) {
+        // in case of exception, we lost event. It's mandatory to avoid infinite
+        // loop in case of permanent disk problem
+        SPDLOG_LOGGER_ERROR(log_v2::core(), "{} fail to write event to {}: {}",
+                            _name, _queue_file_name, ex.what());
+        _file.reset();
+      }
     }
-    _update_stats();
   }
+  _update_stats();
 }
 
 /**
@@ -506,4 +571,19 @@ void muxer::remove_queue_files() {
 
 const std::string& muxer::name() const {
   return _name;
+}
+
+/**
+ * @brief In case of a muxer reused by a failover, we have to update its
+ * filters. This is the purpose of this function.
+ *
+ * @param r_filters The read filters.
+ * @param w_filters The write filters.
+ */
+void muxer::set_filters(muxer::filters r_filters, muxer::filters w_filters) {
+  std::lock_guard<std::mutex> lck(_mutex);
+  _read_filters = std::move(r_filters);
+  _write_filters = std::move(w_filters);
+  _read_filters_str = misc::dump_filters(_read_filters);
+  _write_filters_str = misc::dump_filters(_write_filters);
 }
