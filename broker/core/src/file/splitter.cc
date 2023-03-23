@@ -1,20 +1,20 @@
 /*
-** Copyright 2020-2022 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+ * Copyright 2020-2023 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/file/splitter.hh"
 
@@ -52,12 +52,9 @@ splitter::splitter(std::string const& path,
       _max_file_size{max_file_size == 0u ? std::numeric_limits<uint32_t>::max()
                                          : std::max(max_file_size, 10000u)},
       _rfile{},
-      _rmutex{nullptr},
-      _rid{0},
       _roffset{0},
+      _write_m{},
       _wfile{},
-      _wmutex{nullptr},
-      _wid{0},
       _woffset{0} {
   // Get IDs of already existing file parts. File parts are suffixed
   // with their order number. A file named /var/lib/foo would have
@@ -124,16 +121,12 @@ splitter::~splitter() {
  *  If no files are open, nothing is done.
  */
 void splitter::close() {
-  if (_rfile) {
-    std::lock_guard<std::mutex> lck(*_rmutex);
+  std::lock_guard<std::mutex> lck(_write_m);
+  if (_rfile)
     _rfile.reset();
-    _rmutex = nullptr;
-  }
-  if (_wfile) {
-    std::lock_guard<std::mutex> lck(*_wmutex);
+
+  if (_wfile)
     _wfile.reset();
-    _wmutex = nullptr;
-  }
 }
 
 /**
@@ -145,41 +138,62 @@ void splitter::close() {
  *  @return Number of bytes read.
  */
 long splitter::read(void* buffer, long max_size) {
+  /* No lock here, there is only one consumer. */
   if (!_rfile) {
     _open_read_file();
     if (!_rfile)
       return 0;
   }
 
-  std::unique_lock<std::mutex> lck(*_rmutex);
+  /* We introduce the locker, but don't lock if not necessary */
+  std::unique_lock<std::mutex> lck(_write_m, std::defer_lock);
+
+  /* Here, _wid is atomic so we can read it. Maybe when we'll lock _wid will
+   * be greater but it is not so important. Usually, if _rid == _wid, we read
+   * and write in the same file, so we have to lock the mutex. */
+  if (_rid == _wid)
+    lck.lock();
+
   // Seek to current read position.
   fseek(_rfile.get(), _roffset, SEEK_SET);
 
   // Read data.
   long rb = disk_accessor::instance().fread(buffer, 1, max_size, _rfile.get());
   std::string file_path(get_file_path(_rid));
-  log_v2::bbdo()->debug("file: read {} bytes from '{}'", rb, file_path);
+  log_v2::bbdo()->debug("splitter: read {} bytes at offset {} from '{}'", rb,
+                        _roffset, file_path);
   _roffset += rb;
   if (rb == 0) {
     if (feof(_rfile.get())) {
       if (_auto_delete) {
         log_v2::bbdo()->info("file: end of file '{}' reached, erasing it",
                              file_path);
+        /* Here we have to really verify that _wfile and _rfile are the same,
+         * and then we close files before removing them. */
+        if (lck.owns_lock() && _wfile == _rfile) {
+          _rfile.reset();
+          _wfile.reset();
+        } else
+          _rfile.reset();
         disk_accessor::instance().remove(file_path);
       }
       if (_rid < _wid) {
         _rid++;
-        lck.unlock();
-        _open_read_file();
-        return read(static_cast<char*>(buffer), max_size);
+        /* As we said earlier, maybe we locked lck abusively while _rid < _wid
+         */
+        if (lck.owns_lock())
+          lck.unlock();
+        return read(buffer, max_size);
       } else
         throw exceptions::shutdown("No more data to read");
     } else {
       if (errno == EAGAIN || errno == EINTR)
         return 0;
-      else
+      else {
+        char msg[1024];
         throw msg_fmt("error while reading file '{}': {}", file_path,
-                      strerror(errno));
+                      strerror_r(errno, msg, sizeof(msg)));
+      }
     }
   }
   return rb;
@@ -215,25 +229,25 @@ long splitter::tell() {
  *  @return Number of bytes written.
  */
 long splitter::write(void const* buffer, long size) {
+  /* It is impossible for two threads to write at the same time. */
+  std::lock_guard<std::mutex> lck(_write_m);
   if (!_wfile)
-    _open_write_file();
+    if (!_open_write_file())
+      return 0;
 
-  {
-    std::unique_lock<std::mutex> lck(*_wmutex);
-    // Open next write file is max file size is reached.
-    if ((_woffset + size) > _max_file_size) {
-      ++_wid;
-      lck.unlock();
-      // After this call, _wmutex may change.
-      _open_write_file();
+  // Open next write file is max file size is reached.
+  if ((_woffset + size) > _max_file_size) {
+    if (fflush(_wfile.get())) {
+      log_v2::bbdo()->error("splitter: cannot flush file '{}'",
+                            get_file_path(_wid));
+      char msg[1024];
+      throw msg_fmt("cannot flush file '{}': {}", get_file_path(_wid),
+                    strerror_r(errno, msg, sizeof(msg)));
     }
+    ++_wid;
+    if (!_open_write_file())
+      return 0;
   }
-  std::unique_lock<std::mutex> lck(*_wmutex);
-  if (!_wfile) {
-    log_v2::core()->error("file: data of size {} lost", size);
-    return size;
-  }
-
   // Otherwise seek to end of file.
 
   fseek(_wfile.get(), _woffset, SEEK_SET);
@@ -243,15 +257,15 @@ long splitter::write(void const* buffer, long size) {
                         get_file_path(_wid));
 
   // Write data.
-  size_t wb = disk_accessor::instance().fwrite(buffer, 1, size, _wfile.get());
-  if (wb > 0)
-    _woffset += wb;
-  else {
-    log_v2::core()->error(
-        "file: error while writing event into the file '{}' - event lost: {}",
-        get_file_path(_wid), strerror(errno));
+  long wb = disk_accessor::instance().fwrite(buffer, 1, size, _wfile.get());
+  if (wb != size) {
+    std::string wfile(get_file_path(_wid));
+    char msg[1024];
+    log_v2::bbdo()->critical("splitter: cannot write to file '{}': {}", wfile,
+                             strerror_r(errno, msg, sizeof(msg)));
+    return 0;
   }
-
+  _woffset += size;
   return size;
 }
 
@@ -259,9 +273,12 @@ long splitter::write(void const* buffer, long size) {
  *  Flush the write stream.
  */
 void splitter::flush() {
-  if (fflush(_wfile.get()) == EOF)
+  std::lock_guard<std::mutex> lck(_write_m);
+  if (fflush(_wfile.get()) == EOF) {
+    char msg[1024];
     throw msg_fmt("error while writing the file '{}' content: {}",
-                  get_file_path(_wid), strerror(errno));
+                  get_file_path(_wid), strerror_r(errno, msg, sizeof(msg)));
+  }
 }
 
 /**
@@ -325,9 +342,12 @@ long splitter::get_woffset() const {
  *  Remove all the files the splitter is concerned by.
  */
 void splitter::remove_all_files() {
-  close();
-  std::lock_guard<std::mutex> lck1(_mutex1);
-  std::lock_guard<std::mutex> lck2(_mutex2);
+  std::lock_guard<std::mutex> lck(_write_m);
+  if (_rfile)
+    _rfile.reset();
+
+  if (_wfile)
+    _wfile.reset();
   std::string base_dir;
   std::string base_name;
   {
@@ -344,70 +364,71 @@ void splitter::remove_all_files() {
       misc::filesystem::dir_content_with_filter(base_dir, base_name + '*')};
   for (const std::string& f : parts)
     disk_accessor::instance().remove(f);
+
+  /* No more files, we reset rid and wid. */
+  _rid = 0;
+  _wid = 0;
 }
 
 /**
  * @brief Open the splitter in read mode.
  */
 void splitter::_open_read_file() {
+  bool done = false;
   {
-    std::lock_guard<std::mutex> lck(_id_m);
+    std::lock_guard<std::mutex> lck(_write_m);
     if (_rid == _wid && _wfile) {
       _rfile = _wfile;
-      _rmutex = _wmutex;
-    } else {
-      std::string fname(get_file_path(_rid));
-      FILE* f = disk_accessor::instance().fopen(fname, "r+");
-      if (f) {
-        log_v2::bbdo()->debug("splitter read open {}", fname);
-      } else {
-        log_v2::bbdo()->error("splitter read fail open {}", fname);
-      }
-      _rfile = f ? std::shared_ptr<FILE>(f, fclose) : std::shared_ptr<FILE>();
-      if (_rfile)
-        _rmutex = &_mutex1;
+      done = true;
     }
+  }
+
+  if (!done) {
+    std::string fname(get_file_path(_rid));
+    FILE* f = disk_accessor::instance().fopen(fname, "r+b");
+    if (f)
+      log_v2::bbdo()->debug("splitter: read open '{}'", fname);
+    else
+      log_v2::bbdo()->error("splitter: read fail open '{}'", fname);
+
+    _rfile = f ? std::shared_ptr<FILE>(f, fclose) : std::shared_ptr<FILE>();
   }
 
   if (!_rfile) {
     if (errno == ENOENT)
       return;
-    else
-      throw msg_fmt("cannot open '{}' to read/write: {}", get_file_path(_rid),
-                    strerror(errno));
+    else {
+      char msg[1024];
+      throw msg_fmt("cannot open '{}' to read: {}", get_file_path(_rid),
+                    strerror_r(errno, msg, sizeof(msg)));
+    }
   }
-  std::lock_guard<std::mutex> lck(*_rmutex);
   _roffset = 2 * sizeof(uint32_t);
   fseek(_rfile.get(), _roffset, SEEK_SET);
 }
 
 /**
- * @brief Open the splitter in write mode.
+ * @brief Open the splitter in write mode. This call must be protected by the
+ * _write_m mutex.
+ *
+ * @return True on success, False otherwise.
  */
-void splitter::_open_write_file() {
-  {
-    std::lock_guard<std::mutex> lck(_id_m);
-    if (_wid == _rid && _rfile) {
-      _wfile = _rfile;
-      _wmutex = _rmutex;
-    } else {
-      std::string fname(get_file_path(_wid));
-      FILE* f = disk_accessor::instance().fopen(fname.c_str(), "a+");
-      if (f) {
-        log_v2::bbdo()->debug("splitter write open {}", fname);
-      } else {
-        log_v2::bbdo()->error("splitter write fail open {}", fname);
-      }
-      _wfile = f ? std::shared_ptr<FILE>(f, fclose) : std::shared_ptr<FILE>();
-      _wmutex = &_mutex2;
-    }
+bool splitter::_open_write_file() {
+  std::string fname(get_file_path(_wid));
+  FILE* f = disk_accessor::instance().fopen(fname, "a+b");
+  if (f)
+    log_v2::bbdo()->debug("splitter: write open '{}'", fname);
+  else
+    log_v2::bbdo()->error("splitter: write fail open '{}'", fname);
+
+  _wfile = f ? std::shared_ptr<FILE>(f, fclose) : std::shared_ptr<FILE>();
+
+  if (!_wfile) {
+    char msg[1024];
+    throw msg_fmt("cannot open '{}' to read/write: {}", get_file_path(_wid),
+                  strerror_r(errno, msg, sizeof(msg)));
   }
 
-  if (!_wfile)
-    throw msg_fmt("cannot open '{}' to read/write: {}", get_file_path(_wid),
-                  strerror(errno));
-
-  std::lock_guard<std::mutex> lck(*_wmutex);
   fseek(_wfile.get(), 0, SEEK_END);
   _woffset = ftell(_wfile.get());
 
@@ -422,13 +443,15 @@ void splitter::_open_write_file() {
     header.integers[1] = htonl(2 * sizeof(uint32_t));
     size_t size = disk_accessor::instance().fwrite(
         header.bytes, 1, sizeof(header), _wfile.get());
-    if (size > 0)
-      _woffset = 2 * sizeof(uint32_t);
-    else {
-      log_v2::core()->error("file: could not create file '{}': {}",
-                            get_file_path(_wid), strerror(errno));
+    if (size != sizeof(header)) {
+      std::string wfile(get_file_path(_wid));
+      char msg[1024];
+      log_v2::bbdo()->critical("splitter: cannot write to file '{}': {}", wfile,
+                               strerror_r(errno, msg, sizeof(msg)));
       _wfile.reset();
-      _woffset = 0;
+      return false;
     }
+    _woffset = 2 * sizeof(uint32_t);
   }
+  return true;
 }
