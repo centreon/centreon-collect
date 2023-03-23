@@ -507,7 +507,6 @@ target_link_libraries(
   cbd
   "-rdynamic"
   rokerlog
-  multiplexing
   "-Wl,--whole-archive"
   rokerbase
   roker
