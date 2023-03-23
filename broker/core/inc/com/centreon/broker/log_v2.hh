@@ -18,9 +18,6 @@
 #ifndef CENTREON_BROKER_CORE_INC_COM_CENTREON_BROKER_LOG_V2_HH_
 #define CENTREON_BROKER_CORE_INC_COM_CENTREON_BROKER_LOG_V2_HH_
 
-#include <spdlog/common.h>
-#include <spdlog/spdlog.h>
-
 #include "com/centreon/broker/config/state.hh"
 #include "com/centreon/broker/namespace.hh"
 #include "com/centreon/engine/log_v2_base.hh"
@@ -144,6 +141,7 @@ class log_v2 : public com::centreon::engine::log_v2_base {
   static inline std::shared_ptr<spdlog::logger> grpc() {
     return _instance->get_logger(log_grpc, "grpc");
   }
+
   static bool contains_logger(const std::string& logger);
   static bool contains_level(const std::string& level);
   std::vector<std::pair<std::string, std::string>> levels() const;
