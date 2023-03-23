@@ -7,6 +7,6 @@ ${DBHost}	127.0.0.1
 ${DBUser}	centreon
 ${DBPass}	centreon
 ${DBPort}	3306
-${DBUserRoot}	root_centreon
+${DBUserRoot}	root
 ${DBPassRoot}	centreon
 
