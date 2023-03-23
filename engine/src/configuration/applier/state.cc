@@ -1321,7 +1321,7 @@ void applier::state::_processing(configuration::state& new_cfg,
 
     applier::logging::instance().apply(new_cfg);
 
-    log_v2::instance().apply(new_cfg);
+    log_v2::instance()->apply(new_cfg);
 
     // Apply globals configurations.
     applier::globals::instance().apply(new_cfg);

@@ -1,5 +1,5 @@
 /*
-** Copyright 2020-2022 Centreon
+** Copyright 2020-2023 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -75,11 +75,12 @@ static void grpc_logger(gpr_log_func_args* args) {
 std::shared_ptr<log_v2> log_v2::_instance;
 
 void log_v2::load(const std::shared_ptr<asio::io_context>& io_context) {
-  _instance.reset(new log_v2(io_context));
+  if (!_instance)
+    _instance.reset(new log_v2(io_context));
 }
 
-log_v2& log_v2::instance() {
-  return *_instance;
+std::shared_ptr<log_v2> log_v2::instance() {
+  return _instance;
 }
 
 log_v2::log_v2(const std::shared_ptr<asio::io_context>& io_context)
@@ -119,8 +120,8 @@ log_v2::log_v2(const std::shared_ptr<asio::io_context>& io_context)
   _running = true;
 }
 
-log_v2::~log_v2() {
-  core()->info("log finished");
+log_v2::~log_v2() noexcept {
+  _log[log_v2::log_core]->info("log finished");
   _running = false;
   for (auto& l : _log)
     l.reset();
@@ -311,8 +312,8 @@ std::vector<std::pair<std::string, std::string>> log_v2::levels() const {
  */
 std::shared_ptr<spdlog::logger> log_v2::get_logger(logger log_type,
                                                    const char* log_str) {
-  if (_instance->_running)
-    return _instance->_log[log_type];
+  if (_running)
+    return _log[log_type];
   else {
     auto null_sink = std::make_shared<sinks::null_sink_mt>();
     return std::make_shared<spdlog::logger>(log_str, null_sink);

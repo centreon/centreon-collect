@@ -102,12 +102,15 @@ tcp_async::tcp_async() : _clear_available_con_running(false) {}
  */
 void tcp_async::stop_timer() {
   log_v2::tcp()->trace("tcp_async::stop_timer");
-  std::unique_lock<std::mutex> l(_acceptor_available_con_m);
-  if (_clear_available_con_running && _timer) {
-    _timer->cancel();
+  {
+    std::lock_guard<std::mutex> l(_acceptor_available_con_m);
+    if (_clear_available_con_running) {
+      _clear_available_con_running = false;
+      _timer->cancel();
+    }
+    if (_timer)
+      _timer.reset();
   }
-  if (_timer)
-    _timer.reset();
 }
 
 /**

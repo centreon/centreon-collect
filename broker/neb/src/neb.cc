@@ -58,7 +58,7 @@ int nebmodule_deinit(int flags, int reason) {
 
     // Unload singletons.
     log_v2::instance()
-        .stop_flush_timer();  // beware at the order of these two calls
+        ->stop_flush_timer();  // beware at the order of these two calls
     com::centreon::broker::config::applier::deinit();
   }
   // Avoid exception propagation in C code.
@@ -132,7 +132,7 @@ int nebmodule_init(int flags, char const* args, void* handle) {
       // Initialization.
       com::centreon::broker::config::applier::init(s);
       try {
-        log_v2::instance().apply(s);
+        log_v2::instance()->apply(s);
       } catch (const std::exception& e) {
         log_v2::core()->error("main: {}", e.what());
       }
