@@ -61,7 +61,7 @@ add_library(
 set_target_properties("${UNIFIED_SQL}" PROPERTIES PREFIX "" COMPILE_FLAGS
                                                             "-fPIC")
 add_dependencies("${UNIFIED_SQL}" target_rebuild_message
-                 target_remove_graph_message target_neb target_neb)
+                 target_remove_graph_message target_neb)
 target_precompile_headers(${UNIFIED_SQL} PRIVATE precomp_inc/precomp.hpp)
 target_link_libraries(${UNIFIED_SQL} rokerbase bbdo_storage CONAN_PKG::spdlog
                       CONAN_PKG::abseil pb_neb_lib)

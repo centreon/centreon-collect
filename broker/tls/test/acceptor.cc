@@ -420,7 +420,7 @@ TEST_F(TlsTest, TlsStreamCaError) {
     cbd_finished = true;
   });
 
-  std::thread centengine([&cbd_finished] {
+  std::thread centengine([] {
     auto c{std::make_unique<tcp::connector>(test_conf2)};
 
     /* the name does not match with the CN of the server certificate */
