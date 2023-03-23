@@ -12,6 +12,7 @@ apt-get -y install cmake \
     g++ \
     pkg-config \
     ninja-build \
+    openssh-server \
     libmariadb3 \
     librrd-dev \
     libgnutls28-dev \

@@ -8,7 +8,7 @@ echo "########################### Configure and start sshd #####################
 ssh-keygen -t rsa -f /etc/ssh/ssh_host_rsa_key -P ""
 ssh-keygen -t ecdsa -f /etc/ssh/ssh_host_ecdsa_key -P ""
 ssh-keygen -t ed25519 -f /etc/ssh/ssh_host_ed25519_key -P ""
-/usr/sbin/sshd -D > /dev/null 2>&1 &
+/usr/sbin/sshd -D  &
 
 echo "########################### Start MariaDB ######################################"
 mysql_install_db --user=root --basedir=/usr --datadir=/var/lib/mysql
