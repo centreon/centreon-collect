@@ -2103,7 +2103,7 @@ void stream::_process_service_dependency(const std::shared_ptr<io::data>& d) {
         sd.dependent_host_id, sd.dependent_service_id, sd.host_id,
         sd.service_id);
     std::string query(fmt::format(
-        "DELETE FROM serivces_services_dependencies WHERE dependent_host_id={} "
+        "DELETE FROM services_services_dependencies WHERE dependent_host_id={} "
         "AND dependent_service_id={} AND host_id={} AND service_id={}",
         sd.dependent_host_id, sd.dependent_service_id, sd.host_id,
         sd.service_id));
