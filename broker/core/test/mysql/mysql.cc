@@ -555,6 +555,18 @@ TEST_F(DatabaseStorageTest, CustomVarStatement) {
   ms->run_query_and_get_result(query, std::move(promise));
   mysql_result res(future.get());
   ASSERT_TRUE(ms->fetch_row(res));
+  uint64_t r = res.value_as_u64(0);
+  ASSERT_TRUE(r > 0);
+  ASSERT_FALSE(ms->fetch_row(res));
+
+  promise = {};
+  future = promise.get_future();
+  mysql_stmt stmt(ms->prepare_query(query));
+  ms->run_statement_and_get_result(stmt, std::move(promise), -1, 200);
+  res = future.get();
+  ASSERT_TRUE(ms->fetch_row(res));
+  r = res.value_as_u64(0);
+  ASSERT_TRUE(r > 0);
   ASSERT_FALSE(ms->fetch_row(res));
 }
 
@@ -1309,6 +1321,43 @@ TEST_F(DatabaseStorageTest, RepeatStatements) {
   ASSERT_TRUE(ms->fetch_row(res));
   std::cout << "***** count = " << res.value_as_i32(0) << std::endl;
   ASSERT_EQ(res.value_as_i32(0), TOTAL);
+
+  std::string query4(
+      "SELECT id, unit_name, value, warn, crit, hidden, metric FROM ut_test "
+      "WHERE id < 20");
+  promise = {};
+  future = promise.get_future();
+  ms->run_query_and_get_result(query4, std::move(promise));
+  res = future.get();
+  uint32_t count_query = 0;
+  while (ms->fetch_row(res)) {
+    count_query++;
+    ASSERT_TRUE(res.value_as_u64(0) < 20);
+    ASSERT_TRUE(res.value_as_str(1).substr(0, 5) == "unit_");
+    ASSERT_TRUE(res.value_as_f64(3) >= 12);
+    ASSERT_TRUE(res.value_as_f32(4) >= 25);
+    ASSERT_TRUE(!res.value_as_bool(5));
+    ASSERT_TRUE(res.value_as_str(6).substr(0, 7) == "metric_");
+  }
+  ASSERT_TRUE(count_query);
+
+  /* Same query with a prepared statement */
+  promise = {};
+  future = promise.get_future();
+  mysql_stmt select_stmt(ms->prepare_query(query4));
+  ms->run_statement_and_get_result(select_stmt, std::move(promise), -1, 200);
+  res = future.get();
+  uint32_t count_statement = 0;
+  while (ms->fetch_row(res)) {
+    count_statement++;
+    ASSERT_TRUE(res.value_as_i64(0) < 20);
+    ASSERT_TRUE(res.value_as_str(1).substr(0, 5) == "unit_");
+    ASSERT_TRUE(res.value_as_f64(3) >= 12);
+    ASSERT_TRUE(res.value_as_f32(4) >= 25);
+    ASSERT_TRUE(!res.value_as_bool(5));
+    ASSERT_TRUE(res.value_as_str(6).substr(0, 7) == "metric_");
+  }
+  ASSERT_TRUE(count_query == count_statement);
 }
 
 TEST_F(DatabaseStorageTest, CheckBulkStatement) {
@@ -1349,6 +1398,7 @@ TEST_F(DatabaseStorageTest, CheckBulkStatement) {
 
     int step = 0;
     auto bb = stmt.create_bind();
+    ASSERT_TRUE(bb->empty());
     bb->reserve(20000);
     for (int j = 0; j < TOTAL; j++) {
       bb->set_value_as_str(0, fmt::format("unit_{}", step));
@@ -1379,6 +1429,8 @@ TEST_F(DatabaseStorageTest, CheckBulkStatement) {
 }
 
 TEST_F(DatabaseStorageTest, UpdateBulkStatement) {
+  constexpr int TOTAL = 20;
+
   database_config db_cfg("MySQL", "127.0.0.1", MYSQL_SOCKET, 3306, "root",
                          "centreon", "centreon_storage", 5, true, 5);
   auto ms{std::make_unique<mysql>(db_cfg)};
@@ -1396,20 +1448,19 @@ TEST_F(DatabaseStorageTest, UpdateBulkStatement) {
   if (server_name == "MariaDB" &&
       (major >= 10 || (major == 10 && minor >= 2))) {
     std::string query{
-        "UPDATE ut_test SET value=?, warn=?, crit=?, metric=? WHERE "
+        "UPDATE ut_test SET value=?, warn=?, crit=?, metric=?, hidden=? WHERE "
         "unit_name=?"};
     mysql_bulk_stmt s(query);
     ms->prepare_statement(s);
     auto b = s.create_bind();
 
-    constexpr int TOTAL = 5;
-
     for (int j = 0; j < TOTAL; j++) {
-      b->set_value_as_str(4, fmt::format("unit_{}", j));
+      b->set_value_as_str(5, fmt::format("unit_{}", j));
       b->set_value_as_f64(0, j);
       b->set_value_as_f32(1, 1000);
       b->set_value_as_f32(2, 2000);
       b->set_value_as_str(3, fmt::format("metric_{}", j));
+      b->set_value_as_str(4, fmt::format("{}", j % 2));
       b->next_row();
     }
     s.set_bind(std::move(b));
@@ -1423,31 +1474,32 @@ TEST_F(DatabaseStorageTest, UpdateBulkStatement) {
 
     ASSERT_TRUE(ms->fetch_row(res));
     std::cout << "***** count = " << res.value_as_i32(0) << std::endl;
-    ASSERT_EQ(res.value_as_i32(0), TOTAL * 10);
+    ASSERT_TRUE(res.value_as_i32(0) == TOTAL * 10);
   } else
     std::cout << "Test not executed." << std::endl;
-}
 
-TEST_F(DatabaseStorageTest, SelectStatement) {
-  database_config db_cfg("MySQL", "127.0.0.1", MYSQL_SOCKET, 3306, "root",
-                         "centreon", "centreon_storage", 5, true, 5);
-  std::unique_ptr<mysql> ms = std::make_unique<mysql>(db_cfg);
   std::string query(
-      "SELECT value,warn,metric FROM ut_test WHERE metric like ? "
-      "LIMIT 20");
+      "SELECT DISTINCT id,value,warn,metric,hidden FROM ut_test WHERE id < ? "
+      "LIMIT ?");
   mysql_stmt select_stmt(ms->prepare_query(query));
-  select_stmt.bind_value_as_str(0, "unit_1%");
+  select_stmt.bind_value_as_i32(0, TOTAL);
+  select_stmt.bind_value_as_i32(1, TOTAL);
   std::promise<mysql_result> promise;
   std::future<mysql_result> future = promise.get_future();
-  ms->run_statement_and_get_result(select_stmt, std::move(promise));
+  ms->run_statement_and_get_result(select_stmt, std::move(promise), -1, 200);
   mysql_result res(future.get());
 
+  bool inside = false;
   while (ms->fetch_row(res)) {
-    ASSERT_TRUE(std::abs(res.value_as_f64(0) - floor(res.value_as_f64(0))) == 0);
-    ASSERT_TRUE(res.value_as_f32(1) == 1000);
-    ASSERT_TRUE(res.value_as_f32(2) == 2000);
-    ASSERT_TRUE(res.value_as_str(3).substr(0, 6) == absl::string_view("unit_1"));
+    inside = true;
+    ASSERT_EQ(res.value_as_f64(1), res.value_as_i32(0) - 1);
+    ASSERT_EQ(res.value_as_f32(2), 1000);
+    ASSERT_EQ(res.value_as_str(3),
+              fmt::format("metric_{}", res.value_as_i32(0) - 1));
+    ASSERT_EQ(res.value_as_tiny(4), (res.value_as_i32(0) + 1) % 2);
+    ASSERT_EQ(res.value_as_bool(4), res.value_as_i32(0) % 2 ? false : true);
   }
+  ASSERT_TRUE(inside);
 }
 
 // Given a mysql object
@@ -1617,4 +1669,292 @@ TEST_F(DatabaseStorageTest, RepeatStatementsWithNull) {
   ASSERT_TRUE(ms->fetch_row(res));
   std::cout << "***** count = " << res.value_as_i32(0) << std::endl;
   ASSERT_EQ(res.value_as_i32(0), TOTAL);
+}
+
+TEST_F(DatabaseStorageTest, RepeatStatementsWithBigStrings) {
+  database_config db_cfg("MySQL", "127.0.0.1", MYSQL_SOCKET, 3306, "root",
+                         "centreon", "centreon_storage", 5, true, 5);
+  auto ms{std::make_unique<mysql>(db_cfg)};
+  std::string query1{"DROP TABLE IF EXISTS ut_test"};
+  std::string query2{
+      "CREATE TABLE ut_test (id BIGINT NOT NULL AUTO_INCREMENT "
+      "PRIMARY KEY, name VARCHAR(1000), value DOUBLE, t TINYINT, e enum('a', "
+      "'b', "
+      "'c') DEFAULT 'a')"};
+  ms->run_query(query1);
+  ms->commit();
+  ms->run_query(query2);
+  ms->commit();
+
+  std::string query("INSERT INTO ut_test (name, value, t, e) VALUES (?,?,?,?)");
+  mysql_stmt stmt(ms->prepare_query(query));
+
+  constexpr int TOTAL = 200;
+
+  for (int i = 0; i < TOTAL; i++) {
+    stmt.bind_value_as_str(0, fmt::format("{:a>{}}", i, 500));
+    stmt.bind_value_as_f64(1, static_cast<double>(i));
+    stmt.bind_value_as_tiny(2, i % 100);
+    stmt.bind_value_as_tiny(3, (i % 3) + 1);
+    ms->run_statement(stmt);
+  }
+  ms->commit();
+
+  std::string query4("SELECT id, name, value, t, e FROM ut_test");
+  std::promise<mysql_result> promise;
+  std::future<mysql_result> future = promise.get_future();
+  ms->run_query_and_get_result(query4, std::move(promise));
+  mysql_result res = future.get();
+  size_t count = 0;
+  while (ms->fetch_row(res)) {
+    count++;
+    int64_t id = res.value_as_i64(0);
+    ASSERT_TRUE(id >= 1 && id <= TOTAL);
+
+    double value = res.value_as_f64(2);
+    int32_t ivalue = static_cast<int32_t>(value);
+    ASSERT_TRUE(value >= 0 && value <= TOTAL - 1);
+
+    std::string name(res.value_as_str(1));
+    std::string exp_name(fmt::format("{:a>{}}", ivalue, 500));
+
+    ASSERT_EQ(name, exp_name);
+
+    ASSERT_EQ(res.value_as_tiny(3), ivalue % 100);
+
+    char exp_char = 'a' + (ivalue % 3);
+    char e = res.value_as_str(4)[0];
+    ASSERT_EQ(e, exp_char);
+  }
+  ASSERT_EQ(count, TOTAL);
+
+  mysql_stmt select_stmt(ms->prepare_query(query4));
+  for (size_t length : {200, 1000}) {
+    std::cout << "Case with length = " << length << std::endl;
+    promise = {};
+    future = promise.get_future();
+    ms->run_statement_and_get_result(select_stmt, std::move(promise), -1,
+                                     length);
+    res = future.get();
+    count = 0;
+
+    if (length == 200)
+      testing::internal::CaptureStdout();
+
+    while (ms->fetch_row(res)) {
+      count++;
+      int32_t id = res.value_as_u32(0);
+      ASSERT_TRUE(id >= 1 && id <= TOTAL);
+
+      double value = res.value_as_f64(2);
+      int32_t ivalue = static_cast<int32_t>(value);
+      ASSERT_TRUE(value >= 0 && value <= TOTAL - 1);
+
+      std::string name(res.value_as_str(1));
+      /* A string "aaaaa.....aaaaaNNN" where a is repeated 500 times and
+       * NNN is ivalue */
+      std::string exp_name(fmt::format("{:a>{}}", ivalue, 500));
+
+      ASSERT_EQ(name, exp_name);
+
+      ASSERT_EQ(res.value_as_tiny(3), ivalue % 100);
+
+      char exp_char = 'a' + (ivalue % 3);
+      char e = res.value_as_str(4)[0];
+      ASSERT_EQ(e, exp_char);
+    }
+    if (length == 200) {
+      std::string output(testing::internal::GetCapturedStdout());
+      std::cout << output << std::endl;
+      ASSERT_TRUE(output.find("columns in the current row are too long") !=
+                  std::string::npos);
+    } else
+      ASSERT_EQ(count, TOTAL);
+  }
+}
+
+TEST_F(DatabaseStorageTest, RepeatStatementsWithNullValues) {
+  database_config db_cfg("MySQL", "127.0.0.1", MYSQL_SOCKET, 3306, "root",
+                         "centreon", "centreon_storage", 5, true, 5);
+  auto ms{std::make_unique<mysql>(db_cfg)};
+  std::string query1{"DROP TABLE IF EXISTS ut_test"};
+  std::string query2{
+      "CREATE TABLE ut_test (id BIGINT NOT NULL AUTO_INCREMENT "
+      "PRIMARY KEY, name VARCHAR(1000), value DOUBLE, t TINYINT, e enum('a', "
+      "'b', 'c') DEFAULT 'a', b TINYINT)"};
+  ms->run_query(query1);
+  ms->commit();
+  ms->run_query(query2);
+  ms->commit();
+
+  std::string query("INSERT INTO ut_test (name,b) VALUES (?,?)");
+  mysql_stmt stmt(ms->prepare_query(query));
+
+  constexpr int TOTAL = 200;
+
+  for (int i = 0; i < TOTAL; i++) {
+    stmt.bind_value_as_str(0, fmt::format("foo{}", i));
+    stmt.bind_value_as_tiny(1, i % 2);
+    ms->run_statement(stmt);
+  }
+  ms->commit();
+
+  std::string query4("SELECT id, value, b FROM ut_test LIMIT 5");
+  std::promise<mysql_result> promise;
+  std::future<mysql_result> future = promise.get_future();
+  ms->run_query_and_get_result(query4, std::move(promise));
+  mysql_result res = future.get();
+  bool inside = false;
+  while (ms->fetch_row(res)) {
+    inside = true;
+    int64_t id = res.value_as_i64(0);
+    ASSERT_TRUE(id >= 1 && id <= TOTAL);
+
+    bool value = res.value_is_null(0);
+    ASSERT_FALSE(value);
+
+    value = res.value_is_null(1);
+    ASSERT_TRUE(value);
+
+    double val = res.value_as_f64(1);
+    ASSERT_EQ(val, 0);
+
+    char b = res.value_as_tiny(2);
+    ASSERT_TRUE(b == 0 || b == 1);
+
+    bool bb = res.value_as_bool(2);
+    ASSERT_TRUE((b && bb) || (!b && !bb));
+  }
+  ASSERT_TRUE(inside);
+
+  mysql_stmt select_stmt(ms->prepare_query(query4));
+  promise = {};
+  future = promise.get_future();
+  ms->run_statement_and_get_result(select_stmt, std::move(promise), -1, 50);
+  res = future.get();
+  inside = false;
+
+  while (ms->fetch_row(res)) {
+    inside = true;
+    int32_t id = res.value_as_i64(0);
+    ASSERT_TRUE(id >= 1 && id <= TOTAL);
+
+    bool value = res.value_is_null(0);
+    ASSERT_FALSE(value);
+
+    value = res.value_is_null(1);
+    ASSERT_TRUE(value);
+
+    double val = res.value_as_f64(1);
+    ASSERT_EQ(val, 0);
+  }
+  ASSERT_TRUE(inside);
+}
+
+TEST_F(DatabaseStorageTest, BulkStatementsWithNullValues) {
+  database_config db_cfg("MySQL", "127.0.0.1", MYSQL_SOCKET, 3306, "root",
+                         "centreon", "centreon_storage", 5, true, 5);
+  auto ms{std::make_unique<mysql>(db_cfg)};
+  std::string query1{"DROP TABLE IF EXISTS ut_test"};
+  std::string query2{
+      "CREATE TABLE ut_test (id BIGINT NOT NULL AUTO_INCREMENT "
+      "PRIMARY KEY, name VARCHAR(1000), value DOUBLE, t TINYINT, e enum('a', "
+      "'b', 'c') DEFAULT 'a', b TINYINT, i INT, u INT UNSIGNED)"};
+  ms->run_query(query1);
+  ms->commit();
+  ms->run_query(query2);
+  ms->commit();
+
+  std::string query("INSERT INTO ut_test (name,b, i, u) VALUES (?,?, ?, ?)");
+  mysql_bulk_stmt stmt(query);
+  ms->prepare_statement(stmt);
+
+  auto bb = stmt.create_bind();
+  bb->reserve(200);
+  constexpr int TOTAL = 200;
+
+  for (int i = 0; i < TOTAL; i++) {
+    ASSERT_EQ(bb->current_row(), i);
+    if (i % 2) {
+      bb->set_value_as_str(0, fmt::format("foo{}", i));
+      bb->set_value_as_tiny(1, (i / 2) % 2);
+      bb->set_value_as_i32(2, i + 2);
+      bb->set_value_as_u32(3, i);
+    } else {
+      bb->set_null_str(0);
+      bb->set_null_tiny(1);
+      bb->set_null_i32(2);
+      bb->set_null_u32(3);
+    }
+    bb->next_row();
+  }
+  stmt.set_bind(std::move(bb));
+  ms->run_statement(stmt);
+  ms->commit();
+
+  std::string query4("SELECT id, value, b, i, u FROM ut_test LIMIT 5");
+  std::promise<mysql_result> promise;
+  std::future<mysql_result> future = promise.get_future();
+  ms->run_query_and_get_result(query4, std::move(promise));
+  mysql_result res = future.get();
+  bool inside1 = false;
+  bool inside2 = false;
+  while (ms->fetch_row(res)) {
+    if (res.value_is_null(2)) {
+      inside1 = true;
+      ASSERT_TRUE(!res.value_is_null(0));
+      ASSERT_TRUE(res.value_is_null(1));
+      ASSERT_TRUE(res.value_is_null(3));
+      ASSERT_TRUE(res.value_is_null(4));
+    } else {
+      inside2 = true;
+      int64_t id = res.value_as_i64(0);
+      ASSERT_TRUE(id >= 1 && id <= TOTAL);
+
+      bool value = res.value_is_null(0);
+      ASSERT_FALSE(value);
+
+      value = res.value_is_null(1);
+      ASSERT_TRUE(value);
+
+      double val = res.value_as_f64(1);
+      ASSERT_EQ(val, 0);
+
+      char b = res.value_as_tiny(2);
+      ASSERT_TRUE(b == 0 || b == 1);
+
+      bool bb = res.value_as_bool(2);
+      ASSERT_TRUE((b && bb) || (!b && !bb));
+
+      int32_t i = res.value_as_i32(3);
+      ASSERT_TRUE(i < TOTAL + 2 && i >= 2);
+
+      int32_t u = res.value_as_u32(4);
+      ASSERT_EQ(u + 2, i);
+    }
+  }
+  ASSERT_TRUE(inside1 && inside2);
+
+  mysql_stmt select_stmt(ms->prepare_query(query4));
+  promise = {};
+  future = promise.get_future();
+  ms->run_statement_and_get_result(select_stmt, std::move(promise), -1, 50);
+  res = future.get();
+  bool inside = false;
+
+  while (ms->fetch_row(res)) {
+    inside = true;
+    int32_t id = res.value_as_i64(0);
+    ASSERT_TRUE(id >= 1 && id <= TOTAL);
+
+    bool value = res.value_is_null(0);
+    ASSERT_FALSE(value);
+
+    value = res.value_is_null(1);
+    ASSERT_TRUE(value);
+
+    double val = res.value_as_f64(1);
+    ASSERT_EQ(val, 0);
+  }
+  ASSERT_TRUE(inside);
 }

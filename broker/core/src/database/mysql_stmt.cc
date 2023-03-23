@@ -393,7 +393,7 @@ void mysql_stmt::operator<<(io::data const& d) {
 
 void mysql_stmt::bind_value_as_f32(size_t range, float value) {
   if (!_bind)
-    _bind = std::make_unique<database::mysql_bind>(get_param_count(), 0);
+    _bind = std::make_unique<database::mysql_bind>(get_param_count());
 
   if (std::isinf(value) || std::isnan(value))
     _bind->set_null_f32(range);
@@ -403,13 +403,13 @@ void mysql_stmt::bind_value_as_f32(size_t range, float value) {
 
 void mysql_stmt::bind_null_f32(size_t range) {
   if (!_bind)
-    _bind = std::make_unique<database::mysql_bind>(get_param_count(), 0);
+    _bind = std::make_unique<database::mysql_bind>(get_param_count());
   _bind->set_null_f32(range);
 }
 
 void mysql_stmt::bind_value_as_f64(size_t range, double value) {
   if (!_bind)
-    _bind = std::make_unique<database::mysql_bind>(get_param_count(), 0);
+    _bind = std::make_unique<database::mysql_bind>(get_param_count());
 
   if (std::isinf(value) || std::isnan(value))
     _bind->set_null_f64(range);
@@ -419,21 +419,21 @@ void mysql_stmt::bind_value_as_f64(size_t range, double value) {
 
 void mysql_stmt::bind_null_f64(size_t range) {
   if (!_bind)
-    _bind = std::make_unique<database::mysql_bind>(get_param_count(), 0);
+    _bind = std::make_unique<database::mysql_bind>(get_param_count());
   _bind->set_null_f64(range);
 }
 
-#define BIND_VALUE(ftype, vtype)                                            \
-  void mysql_stmt::bind_value_as_##ftype(size_t range, vtype value) {       \
-    if (!_bind)                                                             \
-      _bind = std::make_unique<database::mysql_bind>(get_param_count(), 0); \
-    _bind->set_value_as_##ftype(range, value);                              \
-  }                                                                         \
-                                                                            \
-  void mysql_stmt::bind_null_##ftype(size_t range) {                        \
-    if (!_bind)                                                             \
-      _bind = std::make_unique<database::mysql_bind>(get_param_count(), 0); \
-    _bind->set_null_##ftype(range);                                         \
+#define BIND_VALUE(ftype, vtype)                                         \
+  void mysql_stmt::bind_value_as_##ftype(size_t range, vtype value) {    \
+    if (!_bind)                                                          \
+      _bind = std::make_unique<database::mysql_bind>(get_param_count()); \
+    _bind->set_value_as_##ftype(range, value);                           \
+  }                                                                      \
+                                                                         \
+  void mysql_stmt::bind_null_##ftype(size_t range) {                     \
+    if (!_bind)                                                          \
+      _bind = std::make_unique<database::mysql_bind>(get_param_count()); \
+    _bind->set_null_##ftype(range);                                      \
   }
 
 BIND_VALUE(i32, int32_t)
