@@ -24,6 +24,23 @@
 
 using namespace com::centreon::broker;
 
+CCB_BEGIN()
+std::ostream& operator<<(std::ostream& s, const database_config cfg) {
+  s << cfg.get_type() << ": " << cfg.get_user() << '@';
+  if (cfg.get_socket().empty()) {
+    s << cfg.get_host() << ':' << cfg.get_port();
+  } else {
+    s << cfg.get_socket();
+  }
+  s << "queries per transaction:" << cfg.get_queries_per_transaction()
+    << " check replication:" << cfg.get_check_replication()
+    << " connnexion count:" << cfg.get_connections_count()
+    << " max comit delay:" << cfg.get_max_commit_delay() << 's';
+  return s;
+}
+
+CCB_END()
+
 /**
  *  Default constructor.
  */
@@ -58,7 +75,8 @@ database_config::database_config(const std::string& type,
                                  const std::string& name,
                                  uint32_t queries_per_transaction,
                                  bool check_replication,
-                                 int32_t connections_count)
+                                 int32_t connections_count,
+                                 unsigned max_commit_delay)
     : _type(type),
       _host(host),
       _socket(socket),
@@ -68,7 +86,8 @@ database_config::database_config(const std::string& type,
       _name(name),
       _queries_per_transaction(queries_per_transaction),
       _check_replication(check_replication),
-      _connections_count(connections_count) {}
+      _connections_count(connections_count),
+      _max_commit_delay(max_commit_delay) {}
 
 /**
  *  Build a database configuration from a configuration set.
@@ -175,6 +194,18 @@ database_config::database_config(config::endpoint const& cfg) {
     }
   } else
     _connections_count = 1;
+  it = cfg.params.find("max_commit_delay");
+  if (it != end) {
+    if (!absl::SimpleAtoi(it->second, &_max_commit_delay)) {
+      log_v2::core()->error(
+          "max_commit_delay is a string "
+          "containing an integer. If not "
+          "specified, it will be considered as "
+          "\"5\".");
+      _max_commit_delay = 5;
+    }
+  } else
+    _max_commit_delay = 5;
 }
 
 /**
@@ -218,7 +249,8 @@ bool database_config::operator==(database_config const& other) const {
                 _user == other._user && _password == other._password &&
                 _name == other._name &&
                 _queries_per_transaction == other._queries_per_transaction &&
-                _connections_count == other._connections_count};
+                _connections_count == other._connections_count &&
+                _max_commit_delay == other._max_commit_delay};
     if (!retval) {
       if (_type != other._type)
         log_v2::sql()->debug(
@@ -265,6 +297,11 @@ bool database_config::operator==(database_config const& other) const {
             "database configurations do not match because of their connections "
             "counts: {} != {}",
             _connections_count, other._connections_count);
+      else if (_max_commit_delay != other._max_commit_delay)
+        log_v2::sql()->debug(
+            "database configurations do not match because of their commit "
+            "delay: {} != {}",
+            _max_commit_delay, other._max_commit_delay);
       return false;
     }
   }
@@ -370,6 +407,15 @@ bool database_config::get_check_replication() const {
  */
 int database_config::get_connections_count() const {
   return _connections_count;
+}
+
+/**
+ * @brief get max commit delay
+ *
+ * @return unsigned delay in seconds
+ */
+unsigned database_config::get_max_commit_delay() const {
+  return _max_commit_delay;
 }
 
 /**
