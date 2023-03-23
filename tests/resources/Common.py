@@ -840,6 +840,7 @@ def find_internal_id(date, exists=True, timeout: int = TIMEOUT):
         time.sleep(1)
     return False
 
+
 def create_bad_queue(filename: str):
     f = open(f"{VAR_ROOT}/lib/centreon-broker/{filename}", 'wb')
     buffer = bytearray(10000)
@@ -859,6 +860,7 @@ def create_bad_queue(filename: str):
             t = 0
     f.write(buffer)
     f.close()
+
 
 def check_types_in_resources(lst: list):
     connection = pymysql.connect(host=DB_HOST,
@@ -896,3 +898,25 @@ def grep(file_path: str, pattern: str):
             if re.search(pattern, line):
                 return line.strip()
     return ""
+
+
+def get_version():
+    f = open("../CMakeLists.txt", "r")
+    lines = f.readlines()
+    f.close()
+    filtered = filter(lambda l: l.startswith("set(COLLECT_"), lines)
+
+    rmaj = re.compile(r"set\(COLLECT_MAJOR\s*([0-9]+)")
+    rmin = re.compile(r"set\(COLLECT_MINOR\s*([0-9]+)")
+    rpatch = re.compile(r"set\(COLLECT_PATCH\s*([0-9]+)")
+    for l in filtered:
+        m1 = rmaj.match(l)
+        m2 = rmin.match(l)
+        m3 = rpatch.match(l)
+        if m1:
+            maj = m1.group(1)
+        elif m2:
+            mini = m2.group(1)
+        elif m3:
+            patch = m3.group(1)
+    return f"{maj}.{mini}.{patch}"
