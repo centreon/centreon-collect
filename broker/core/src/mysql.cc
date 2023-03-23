@@ -100,24 +100,6 @@ bool mysql::fetch_row(mysql_result& res) {
 }
 
 /**
- *  This method commits only if the max queries per transaction is reached.
- *
- * @return true if a commit has been done, false otherwise.
- */
-bool mysql::commit_if_needed() {
-  bool retval(false);
-  int qpt(_db_cfg.get_queries_per_transaction());
-  if (qpt > 1) {
-    ++_pending_queries;
-    if (_pending_queries >= qpt) {
-      commit();
-      retval = true;
-    }
-  }
-  return retval;
-}
-
-/**
  *  Checks for previous errors. As queries are made asynchronously, errors
  *  may arise after the calls. This function is generally called just before
  *  adding a new query and throw an exception if an error is active.
@@ -219,7 +201,7 @@ int mysql::run_query_and_get_int(std::string const& query,
  *                  by the mysql connector.
  * @param fatal A boolean telling if the error is fatal. In that case, an
  *              exception will be thrown if an error occures.
- * @param thread A thread id or 0 to keep the library choosing which one.
+ * @param thread A thread id or -1 to keep the library choosing which one.
  *
  * @return The thread id that executed the query.
  */
@@ -245,7 +227,10 @@ int mysql::run_statement(database::mysql_stmt_base& stmt,
  *                available.
  * @param error_msg An error message to complete the error message returned
  *                  by the mysql connector.
- * @param thread_id A thread id or 0 to keep the library choosing which one.
+ * @param thread_id A thread id or -1 to keep the library choosing which one.
+ * @param length The max length of a column in characters. If it is too short,
+ * the query will fail by returning nothing with an error message telling
+ * this value is too short.
  *
  * With this function, the query is done. The promise will provide the result
  * if available and it will contain an exception if the query failed.
@@ -254,14 +239,15 @@ int mysql::run_statement(database::mysql_stmt_base& stmt,
  */
 int mysql::run_statement_and_get_result(database::mysql_stmt& stmt,
                                         std::promise<mysql_result>&& promise,
-                                        int thread_id) {
+                                        int thread_id,
+                                        size_t length) {
   _check_errors();
   if (thread_id < 0)
     // Here, we use _current_thread
     thread_id = choose_best_connection(-1);
 
-  _connection[thread_id]->run_statement_and_get_result(stmt,
-                                                       std::move(promise));
+  _connection[thread_id]->run_statement_and_get_result(stmt, std::move(promise),
+                                                       length);
   return thread_id;
 }
 

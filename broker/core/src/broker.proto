@@ -58,14 +58,25 @@ service Broker {
    */
   rpc GetLogInfo(GenericString) returns (LogInfo) {}
 
+
   /**
-   * @brief Set a new level to the given logger.
-   *
-   * @param A message with a logger and a level as strings.
-   *
-   * @return nothing.
-   */
+  * @brief Set level of a logger.
+  *
+  * @param A message with a logger and a level as strings.
+  *
+  * @return nothing.
+  */
   rpc SetLogLevel(LogLevel) returns (google.protobuf.Empty) {}
+
+  /**
+  * @brief Set log flush period of all loggers.
+  *
+  * @param period in second, 0 means flush all the times
+  *
+  * @return nothing.
+  */
+  rpc SetLogFlushPeriod(LogFlushPeriod) returns (google.protobuf.Empty) {}
+
 }
 
 message Version {
@@ -75,13 +86,28 @@ message Version {
 }
 
 message LogInfo {
-  string log_file = 1;
-  map<string, string> level = 2;
+  string log_name = 1;
+  string log_file = 2;
+  uint32 log_flush_period = 3;
+  map<string, string> level = 4;
 }
 
 message LogLevel {
-  string logger = 1;
-  string level = 2;
+  string name = 1;
+  enum LogLevelEnum {
+    TRACE = 0;
+    DEBUG = 1;
+    INFO = 2;
+    WARNING = 3;
+    ERROR = 4;
+    CRITICAL = 5;
+    OFF = 6;
+  }
+  LogLevelEnum level = 2;
+}
+
+message LogFlushPeriod {
+  uint32 period = 1;
 }
 
 message GenericString {

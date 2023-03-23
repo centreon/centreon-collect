@@ -27,31 +27,10 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
 
-mysql_bulk_bind::mysql_bulk_bind(int size, int length, size_t row_count)
+mysql_bulk_bind::mysql_bulk_bind(int size, size_t reserved_rows_count)
     : mysql_bind_base(size), _column(size) {
-  if (length) {
-    for (int i = 0; i < size; ++i) {
-      _bind[i].buffer_type = MYSQL_TYPE_STRING;
-      _column[i] = mysql_column(MYSQL_TYPE_STRING, row_count);
-      _bind[i].buffer = _column[i].get_buffer();
-      _bind[i].u.indicator = _column[i].indicator_buffer();
-      _bind[i].length = _column[i].length_buffer();
-      _bind[i].buffer_length = length;
-      _bind[i].error = _column[i].error_buffer();
-    }
-  }
-}
-
-/**
- * @brief Set the size of the bind, that is to say the number of columns.
- *
- * @param size An integer.
- */
-void mysql_bulk_bind::set_size(int size) {
-  _bind.resize(size);
-  _column.resize(size);
-  for (int i = 0; i < size; ++i)
-    _bind[i].buffer = _column[i].get_buffer();
+  for (auto& c : _column)
+    c.reserve(reserved_rows_count);
 }
 
 /**
@@ -91,12 +70,17 @@ void mysql_bulk_bind::_prepare_type(size_t range, enum enum_field_types type) {
     _bind[range].length = _column[range].length_buffer();                 \
   }
 
-#define VALUE(ftype, vtype, sqltype)                            \
-  vtype mysql_bulk_bind::value_as_##ftype(size_t range) const { \
-    if (_bind[range].buffer_type == sqltype)                    \
-      return *static_cast<vtype*>(_bind[range].buffer);         \
-    else                                                        \
-      assert("This field is not an " #sqltype == nullptr);      \
+#define VALUE(ftype, vtype, sqltype)                                        \
+  vtype mysql_bulk_bind::value_as_##ftype(size_t range) const {             \
+    if (_bind[range].buffer_type == sqltype)                                \
+      return *static_cast<vtype*>(_bind[range].buffer);                     \
+    else {                                                                  \
+      assert("This field is not an " #sqltype == nullptr);                  \
+      SPDLOG_LOGGER_CRITICAL(log_v2::sql(),                                 \
+                             "{} This field is not an " #sqltype " but {}", \
+                             __FUNCTION__, _bind[range].buffer_type);       \
+      return 0;                                                             \
+    }                                                                       \
   }
 
 SET_VALUE(i32, int32_t, MYSQL_TYPE_LONG, false)
@@ -149,15 +133,6 @@ bool mysql_bulk_bind::empty() const {
  */
 size_t mysql_bulk_bind::rows_count() const {
   return _column[0].array_size();
-}
-
-/**
- * @brief Empty the bind. Actually, the current_row is set to -1.
- */
-void mysql_bulk_bind::set_empty() {
-  for (auto& c : _column)
-    c.clear();
-  _current_row = 0;
 }
 
 /**

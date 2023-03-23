@@ -137,4 +137,14 @@ class channel : public std::enable_shared_from_this<channel> {
 
 CCB_END()
 
+namespace fmt {
+// formatter specializations for fmt
+template <>
+struct formatter<centreon_stream::centreon_event> : ostream_formatter {};
+
+template <>
+struct formatter<centreon_grpc::detail_centreon_event> : ostream_formatter {};
+
+}  // namespace fmt
+
 #endif  // !CCB_GRPC_CHANNEL_HH

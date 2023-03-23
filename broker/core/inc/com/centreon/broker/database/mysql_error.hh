@@ -143,8 +143,8 @@ class mysql_error {
       "could not delete outdated entries from the hosts table: ",
       "could not delete outdated entries from the modules table: ",
       "cannot update state of index: ",
-      "availability thread could not delete the BA availabilities from the "
-      "reporting database: ",
+      ("availability thread could not delete the BA availabilities from the "
+       "reporting database: "),
       "availability thread could not insert an availability: ",
       "could not update the list of BAs to rebuild: ",
       "could not close inconsistent event: ",

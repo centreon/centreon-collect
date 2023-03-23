@@ -47,7 +47,8 @@ class database_config {
                   std::string const& name,
                   uint32_t queries_per_transaction = 1,
                   bool check_replication = true,
-                  int connections_count = 1);
+                  int connections_count = 1,
+                  unsigned max_commit_delay = 5);
   database_config(config::endpoint const& cfg);
   database_config(database_config const& other);
   ~database_config();
@@ -65,6 +66,7 @@ class database_config {
   uint32_t get_queries_per_transaction() const;
   bool get_check_replication() const;
   int get_connections_count() const;
+  unsigned get_max_commit_delay() const;
 
   void set_type(std::string const& type);
   void set_host(std::string const& host);
@@ -90,8 +92,18 @@ class database_config {
   int _queries_per_transaction;
   bool _check_replication;
   int _connections_count;
+  unsigned _max_commit_delay;
 };
 
+std::ostream& operator<<(std::ostream& s, const database_config cfg);
+
 CCB_END()
+
+namespace fmt {
+// formatter specializations for fmt
+template <>
+struct formatter<com::centreon::broker::database_config> : ostream_formatter {};
+
+}  // namespace fmt
 
 #endif  // !CCB_DATABASE_CONFIG_HH

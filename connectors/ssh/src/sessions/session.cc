@@ -37,6 +37,12 @@ std::ostream& operator<<(std::ostream& os, const session& sess) {
 }  // namespace sessions
 CCCS_END()
 
+namespace fmt {
+// formatter specializations for fmt
+template <>
+struct formatter<asio::ip::tcp::endpoint> : ostream_formatter {};
+}  // namespace fmt
+
 /**************************************
  *                                     *
  *           Public Methods            *

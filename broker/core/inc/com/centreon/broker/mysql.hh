@@ -58,7 +58,8 @@ class mysql {
   int run_statement_and_get_result(
       database::mysql_stmt& stmt,
       std::promise<database::mysql_result>&& promise,
-      int thread_id = -1);
+      int thread_id, /* = -1, */
+      size_t length /*= 200*/);
 
   template <typename T>
   int run_statement_and_get_int(database::mysql_stmt& stmt,
@@ -78,7 +79,6 @@ class mysql {
   bool fetch_row(database::mysql_result& res);
   int get_last_insert_id(int thread_id);
   int connections_count() const;
-  bool commit_if_needed();
   int choose_connection_by_name(std::string const& name);
   int choose_connection_by_instance(int instance_id) const;
   int choose_best_connection(int32_t type);

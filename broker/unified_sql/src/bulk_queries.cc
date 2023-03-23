@@ -32,7 +32,10 @@ using namespace com::centreon::broker::unified_sql;
 bulk_queries::bulk_queries(const uint32_t max_interval,
                            const uint32_t max_queries,
                            const std::string& query)
-    : _interval{max_interval}, _max_size{max_queries}, _query(query), _next_time{std::time(nullptr) + max_interval} {}
+    : _interval{max_interval},
+      _max_size{max_queries},
+      _query(query),
+      _next_time{std::time(nullptr) + max_interval} {}
 
 /**
  * @brief Compute the query to execute as a string and return it. The container
@@ -50,7 +53,7 @@ std::string bulk_queries::get_query() {
   std::string query;
   if (!queue.empty()) {
     /* Building the query */
-    log_v2::sql()->debug("SQL: {} customvariables sent in bulk", queue.size());
+    log_v2::sql()->debug("SQL: {} items sent in bulk", queue.size());
     query = fmt::format(_query, fmt::join(queue, ","));
     log_v2::sql()->trace("sending query << {} >>", query);
   }
