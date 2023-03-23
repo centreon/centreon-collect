@@ -176,6 +176,11 @@ void tcp_relais::shutdown_relays() {
   _impl->shutdown_relays();
 }
 
+tcp_relais::~tcp_relais() {
+  _io_context.stop();
+  // ctx_thread.reset();
+}
+
 /**************************************************************************
  * incomming_outgoing
  **************************************************************************/
