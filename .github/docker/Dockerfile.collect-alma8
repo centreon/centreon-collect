@@ -20,6 +20,7 @@ dnf install -y cmake \
     gettext \
     git \
     ninja-build \
+    openssh-server \
     MariaDB-devel \
     MariaDB-shared \
     MariaDB-client \
