@@ -80,7 +80,7 @@ jobs:
     secrets: inherit
 
   deliver-rpm:
-    if: ${{ contains(fromJson('["unstable", "testing", "stable"]'), needs.get-version.outputs.stability) }}
+    if: ${{ contains(fromJson('["testing", "stable"]'), needs.get-version.outputs.stability) }}
     needs: [get-version, package]
     runs-on: [self-hosted, common]
     strategy:
@@ -103,7 +103,7 @@ jobs:
           stability: ${{ needs.get-version.outputs.stability }}
 
   deliver-deb:
-    if: ${{ contains(fromJson('["unstable", "testing", "stable"]'), needs.get-version.outputs.stability) }}
+    if: ${{ contains(fromJson('["testing", "stable"]'), needs.get-version.outputs.stability) }}
     needs: [get-version, package]
     runs-on: [self-hosted, common]
     strategy:
