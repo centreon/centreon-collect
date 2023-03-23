@@ -245,18 +245,26 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
     }
     // nothing pushed => to file
     std::lock_guard<std::mutex> lock(_mutex);
-    if (!_file) {
-      QueueFileStats* s =
-          stats::center::instance().muxer_stats(_name)->mutable_queue_file();
-      _file = std::make_unique<persistent_file>(_queue_file_name, s);
-    }
     for (; evt != event_queue.end(); ++evt) {
       if (_write_filters.find((*evt)->type()) == _write_filters.end()) {
         continue;
       }
-      _file->write(*evt);
-      log_v2::core()->trace("muxer::publish {} publish one event to file {}",
-                            _name, _queue_file_name);
+      if (!_file) {
+        QueueFileStats* s =
+            stats::center::instance().muxer_stats(_name)->mutable_queue_file();
+        _file = std::make_unique<persistent_file>(_queue_file_name, s);
+      }
+      try {
+        _file->write(*evt);
+        log_v2::core()->trace("muxer::publish {} publish one event to file {}",
+                              _name, _queue_file_name);
+      } catch (const std::exception& ex) {
+        // in case of exception, we lost event. It's mandatory to avoid infinite
+        // loop in case of permanent disk problem
+        log_v2::core()->error("{} fail to write event to {}: {}", _name,
+                              _queue_file_name, ex.what());
+        _file.reset();
+      }
     }
   }
   _update_stats();

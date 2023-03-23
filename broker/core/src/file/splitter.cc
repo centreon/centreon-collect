@@ -358,6 +358,11 @@ void splitter::_open_read_file() {
     } else {
       std::string fname(get_file_path(_rid));
       FILE* f = disk_accessor::instance().fopen(fname, "r+");
+      if (f) {
+        log_v2::bbdo()->debug("splitter read open {}", fname);
+      } else {
+        log_v2::bbdo()->error("splitter read fail open {}", fname);
+      }
       _rfile = f ? std::shared_ptr<FILE>(f, fclose) : std::shared_ptr<FILE>();
       if (_rfile)
         _rmutex = &_mutex1;
@@ -387,7 +392,12 @@ void splitter::_open_write_file() {
       _wmutex = _rmutex;
     } else {
       std::string fname(get_file_path(_wid));
-      FILE* f = disk_accessor::instance().fopen(fname, "a+");
+      FILE* f = disk_accessor::instance().fopen(fname.c_str(), "a+");
+      if (f) {
+        log_v2::bbdo()->debug("splitter write open {}", fname);
+      } else {
+        log_v2::bbdo()->error("splitter write fail open {}", fname);
+      }
       _wfile = f ? std::shared_ptr<FILE>(f, fclose) : std::shared_ptr<FILE>();
       _wmutex = &_mutex2;
     }
