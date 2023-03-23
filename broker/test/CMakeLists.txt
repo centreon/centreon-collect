@@ -130,6 +130,7 @@ target_link_libraries(
   roker
   rokerbase
   rokerlog
+  multiplexing
   ${TESTS_LIBRARIES}
   conflictmgr
   CONAN_PKG::nlohmann_json
@@ -140,6 +141,15 @@ target_link_libraries(
   CONAN_PKG::mariadb-connector-c
   CONAN_PKG::openssl
   CONAN_PKG::grpc)
+
+add_dependencies(
+  ut_broker
+  test_util
+  roker
+  rokerbase
+  rokerlog
+  multiplexing
+  conflictmgr)
 
 set_target_properties(ut_broker PROPERTIES COMPILE_FLAGS "-fPIC")
 

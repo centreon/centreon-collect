@@ -507,10 +507,10 @@ target_link_libraries(
   cbd
   "-rdynamic"
   rokerlog
-  multiplexing
   "-Wl,--whole-archive"
   rokerbase
   roker
+  multiplexing
   "-Wl,--no-whole-archive"
   CONAN_PKG::nlohmann_json
   CONAN_PKG::fmt
