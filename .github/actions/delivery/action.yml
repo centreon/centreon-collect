@@ -1,41 +1,17 @@
 name: "delivery"
 description: "RPM and DEB packages delivery Centreon"
 inputs:
+  module_name:
+    description: "The package module name"
+    required: true
   distrib:
     description: "The distribution used for packaging"
-    required: true
-  nexus_username:
-    description: "Artifact Manager technical username"
-    required: true
-  nexus_password:
-    description: "Artifact Manager technical password"
     required: true
   version:
     description: "Centreon packaged version"
     required: true
-  minor_version:
-    description: "Centreon packaged version"
-    required: true
-  release:
-    description: The release number
-    required: true
   cache_key:
     description: "The cached package key"
-    required: true
-  update_repo_path:
-    description: "The update repo script path"
-    required: true
-  cloudfront_id:
-    description: "The cloudfront ID for repo url"
-    required: true
-  yum_repo_address:
-    description: "The yum legacy repo address"
-    required: true
-  yum_repo_key:
-    description: "The yum repo key"
-    required: true
-  yum_repo_url:
-    description: "The legacy yum repo url"
     required: true
   artifactory_token:
     description: "The token for artifactory"
@@ -70,73 +46,61 @@ runs:
         JF_URL: https://centreon.jfrog.io
         JF_ACCESS_TOKEN: ${{ inputs.artifactory_token }}
 
-    - name: Setup awscli
+    - if: ${{ startsWith(inputs.distrib, 'el') }}
+      name: Publish RPMs
       run: |
-        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-        sudo unzip -q awscliv2.zip
-        sudo ./aws/install
-      shell: bash
-
-    - name: Publish packages
-      run: |
-        if [[ "${{ env.extfile }}" == "rpm" ]] ; then
-          eval `ssh-agent`
-          ssh-add - <<< "${{ inputs.yum_repo_key }}"
-        fi
-
-        MAJOR=${{ inputs.version }}
-        MINOR=${{ inputs.minor_version }}
-        RELEASE=${{ inputs.release }}
-
         FILES="*.${{ env.extfile }}"
 
-        for FILE in $FILES
-        do
+        echo "[DEBUG] - Version: ${{ inputs.version }}"
+        echo "[DEBUG] - Distrib: ${{ inputs.distrib }}"
+
+        if [ -z "${{ inputs.module_name }}" ]; then
+          echo "module name is required"
+          exit 1
+        fi
+
+        if [ -z "${{ inputs.distrib }}" ]; then
+          echo "distrib is required"
+          exit 1
+        fi
+
+        mkdir noarch x86_64
+
+        for FILE in $FILES; do
           echo "[DEBUG] - File: $FILE"
 
-          ARCH=$(echo $FILE | cut -d '_' -f3 | cut -d '.' -f1)
+          ARCH=$(echo $FILE | grep -oP '(x86_64|noarch)')
 
-          if [[ "${{ env.extfile }}" == "deb" ]] && [[ "${{ inputs.stability }}" == "stable" ]]; then
-            curl --fail -u "${{ inputs.nexus_username }}":"${{ inputs.nexus_password }}" -H "Content-Type: multipart/form-data" --data-binary "@./$FILE" https://apt.centreon.com/repository/${{ inputs.version }}/
-            jf rt upload "$FILE" "apt-${{ inputs.version }}-${{ inputs.stability }}/pool/" --deb "${{ inputs.distrib }}/main/$ARCH"
-          elif [[ "${{ env.extfile }}" == "deb" ]] && [[ "${{ inputs.stability }}" != "stable" ]]; then
-            curl --fail -u "${{ inputs.nexus_username }}":"${{ inputs.nexus_password }}" -H "Content-Type: multipart/form-data" --data-binary "@./$FILE" https://apt.centreon.com/repository/${{ inputs.version }}-${{ inputs.minor_version }}/
-            jf rt upload "$FILE" "apt-${{ inputs.version }}-${{ inputs.stability }}/pool/" --deb "${{ inputs.distrib }}/main/$ARCH"
-          else
-            DISTRIB="${{ inputs.distrib }}"
-            ARCH=$(echo $FILE | grep -oP '(x86_64|noarch)')
+          echo "[DEBUG] - Arch: $ARCH"
 
-            echo "[DEBUG] - DISTRIB: $DISTRIB"
-            echo "[DEBUG] - Arch: $ARCH"
-
-            # Delivery with proper repository structure according to stability
-            TARGET="/srv/centreon-yum/yum.centreon.com/standard/$MAJOR/$DISTRIB/${{ inputs.stability }}/$ARCH/RPMS"
-            jf rt upload "$FILE" "rpm-standard/$MAJOR/$DISTRIB/${{ inputs.stability }}/$ARCH/"
-
-            echo "[DEBUG] - Target : $TARGET"
-
-            ssh -o StrictHostKeyChecking=no "${{ inputs.yum_repo_address }}" mkdir -p "$TARGET" 2>&-
-            scp -o StrictHostKeyChecking=no "$FILE" "${{ inputs.yum_repo_address }}:$TARGET" 2>&-
-          fi
+          mv "$FILE" "$ARCH"
         done
 
-        # run this only for rpm
-        if [[ "${{ env.extfile }}" == "rpm" ]] ; then
-          # Update repository metadata
-          METADATAS="/srv/centreon-yum/yum.centreon.com/standard/$MAJOR/$DISTRIB/$REPOTYPE/$ARCH"
-          ssh -o StrictHostKeyChecking=no "${{ inputs.yum_repo_address }}" "sh "${{ inputs.update_repo_path }}" $METADATAS" 2>&-
-
-          # Invalidate cloudfront cache
-          ID="${{ inputs.cloudfront_id }}"
-          PATHS="/standard/$MAJOR/$DISTRIB/$REPOTYPE/$ARCH/*"
-          ITERATIONS=1
-          until aws cloudfront create-invalidation --distribution-id "$ID" --paths "$PATHS"; do
-            if [ ${ITERATIONS} -eq 10 ]; then
-              return 0
+        for ARCH in "noarch" "x86_64"; do
+          if [ "$(ls -A $ARCH)" ]; then
+            if [ "${{ inputs.stability }}" == "stable" ]; then
+              jf rt upload "$ARCH/*.rpm" "rpm-standard/${{ inputs.version }}/${{ inputs.distrib }}/${{ inputs.stability }}/$ARCH/" --flat
+            else
+              jf rt upload "$ARCH/*.rpm" "rpm-standard/${{ inputs.version }}/${{ inputs.distrib }}/${{ inputs.stability }}/$ARCH/${{ inputs.module_name }}/" --sync-deletes="rpm-standard/${{ inputs.version }}/${{ inputs.distrib }}/${{ inputs.stability }}/$ARCH/${{ inputs.module_name }}/" --flat
             fi
-            echo "couldn't invalidate cache, AWS quota might have been reached, retrying in 30 seconds..."
-            sleep 30s
-            ITERATIONS=$((ITERATIONS+1))
-          done
-        fi
+          fi
+        done
+      shell: bash
+
+    - if: ${{ inputs.distrib == 'bullseye' }}
+      name: Publish DEBs
+      run: |
+        FILES="*.${{ env.extfile }}"
+
+        for FILE in $FILES; do
+          echo "[DEBUG] - File: $FILE"
+
+          VERSION=${{ inputs.version }}
+          DISTRIB=$(echo $FILE | cut -d '_' -f2 | cut -d '-' -f2)
+          ARCH=$(echo $FILE | cut -d '_' -f3 | cut -d '.' -f1)
+
+          echo "[DEBUG] - Version: $VERSION"
+
+          jf rt upload "$FILE" "apt-${{ inputs.version }}-${{ inputs.stability }}/pool/" --deb "${{ inputs.distrib }}/main/$ARCH"
+        done
       shell: bash

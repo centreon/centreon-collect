@@ -74,19 +74,11 @@ jobs:
       - name: Publish RPM packages
         uses: ./.github/actions/delivery
         with:
+          module_name: collect
           distrib: ${{ matrix.distrib }}
           version: ${{ needs.get-version.outputs.version }}
-          minor_version: ${{ needs.get-version.outputs.patch }}
-          release: ${{ needs.get-version.outputs.release }}
-          nexus_username: ${{ secrets.NEXUS_USERNAME }}
-          nexus_password: ${{ secrets.NEXUS_PASSWORD }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           cache_key: cache-${{ github.sha }}-rpmbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
-          update_repo_path: ${{ secrets.UPDATE_REPO_PATH }}
-          cloudfront_id: ${{ secrets.CLOUDFRONT_ID }}
-          yum_repo_address: ${{ secrets.YUM_REPO_ADDRESS }}
-          yum_repo_key: ${{ secrets.YUM_REPO_KEY }}
-          yum_repo_url: ${{ secrets.YUM_REPO_URL }}
           stability: ${{ needs.get-version.outputs.stability }}
 
   deliver-deb:
@@ -105,10 +97,9 @@ jobs:
       - name: Publish DEB packages
         uses: ./.github/actions/delivery
         with:
+          module_name: collect
           distrib: ${{ matrix.distrib }}
           version: ${{ needs.get-version.outputs.version }}
-          nexus_username: ${{ secrets.NEXUS_USERNAME }}
-          nexus_password: ${{ secrets.NEXUS_PASSWORD }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           cache_key: cache-${{ github.sha }}-debbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
           stability: ${{ needs.get-version.outputs.stability }}
