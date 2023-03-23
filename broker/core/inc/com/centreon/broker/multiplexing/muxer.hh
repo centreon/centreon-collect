@@ -19,6 +19,7 @@
 #ifndef CCB_MULTIPLEXING_MUXER_HH
 #define CCB_MULTIPLEXING_MUXER_HH
 
+#include <absl/container/flat_hash_map.h>
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/persistent_file.hh"
 
@@ -56,10 +57,10 @@ class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
 
   const std::string _name;
   const std::string _queue_file_name;
-  const filters _read_filters;
-  const filters _write_filters;
-  const std::string _read_filters_str;
-  const std::string _write_filters_str;
+  filters _read_filters;
+  filters _write_filters;
+  std::string _read_filters_str;
+  std::string _write_filters_str;
   const bool _persistent;
 
   std::unique_ptr<persistent_file> _file;
@@ -69,6 +70,9 @@ class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
   size_t _events_size;
   std::list<std::shared_ptr<io::data>>::iterator _pos;
   std::time_t _last_stats;
+
+  static std::mutex _running_muxers_m;
+  static absl::flat_hash_map<std::string, std::weak_ptr<muxer>> _running_muxers;
 
   void _clean();
   void _get_event_from_file(std::shared_ptr<io::data>& event);
@@ -109,6 +113,7 @@ class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
   int32_t write(std::shared_ptr<io::data> const& d) override;
   int32_t stop() override;
   const std::string& name() const;
+  void set_filters(muxer::filters r_filters, muxer::filters w_filters);
 };
 }  // namespace multiplexing
 

@@ -277,7 +277,6 @@ void mysql_connection::_prepare(mysql_task* t) {
     log_v2::sql()->error(
         "mysql_connection: Statement already prepared: {} ({})", task->id,
         task->query);
-    assert(1 == 0);
     return;
   }
 
