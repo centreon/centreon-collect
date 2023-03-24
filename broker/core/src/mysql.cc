@@ -117,22 +117,19 @@ void mysql::_check_errors() {
  * @param query The query to execute.
  * @param error_msg An error message to complete the error message returned
  *                  by the mysql connector.
- * @param fatal A boolean telling if the error is fatal. In that case, an
- *              exception will be thrown if an error occures.
  * @param thread A thread id or 0 to keep the library choosing which one.
  *
  * @return The thread id that executed the query.
  */
 int mysql::run_query(std::string const& query,
                      my_error::code ec,
-                     bool fatal,
                      int thread_id) {
   _check_errors();
   if (thread_id < 0)
     // Here, we use _current_thread
     thread_id = choose_best_connection(-1);
 
-  _connection[thread_id]->run_query(query, ec, fatal);
+  _connection[thread_id]->run_query(query, ec);
   return thread_id;
 }
 
@@ -199,22 +196,19 @@ int mysql::run_query_and_get_int(std::string const& query,
  * @param stmt The statement to execute.
  * @param error_msg An error message to complete the error message returned
  *                  by the mysql connector.
- * @param fatal A boolean telling if the error is fatal. In that case, an
- *              exception will be thrown if an error occures.
  * @param thread A thread id or -1 to keep the library choosing which one.
  *
  * @return The thread id that executed the query.
  */
 int mysql::run_statement(database::mysql_stmt_base& stmt,
                          my_error::code ec,
-                         bool fatal,
                          int thread_id) {
   _check_errors();
   if (thread_id < 0)
     // Here, we use _current_thread
     thread_id = choose_best_connection(-1);
 
-  _connection[thread_id]->run_statement(stmt, ec, fatal);
+  _connection[thread_id]->run_statement(stmt, ec);
   return thread_id;
 }
 

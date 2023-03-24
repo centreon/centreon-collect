@@ -40,7 +40,6 @@ class mysql {
   void commit(int thread_id = -1);
   int run_query(std::string const& query,
                 my_error::code ec = my_error::empty,
-                bool fatal = false,
                 int thread = -1);
   int run_query_and_get_result(std::string const& query,
                                std::promise<database::mysql_result>&& promise,
@@ -52,7 +51,6 @@ class mysql {
 
   int run_statement(database::mysql_stmt_base& stmt,
                     my_error::code ec = my_error::empty,
-                    bool fatal = false,
                     int thread_id = -1);
 
   int run_statement_and_get_result(
