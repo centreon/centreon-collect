@@ -82,7 +82,7 @@ runs:
             echo "stability=stable" >> $GITHUB_ENV
             ;;
           *)
-            echo "stability=unstable" >> $GITHUB_ENV
+            echo "stability=canary" >> $GITHUB_ENV
             ;;
         esac
       shell: bash
