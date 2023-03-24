@@ -857,7 +857,7 @@ void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
                          mids_str);
       ms.run_query(
           fmt::format("DELETE FROM metrics WHERE metric_id in ({})", mids_str),
-          database::mysql_error::delete_metric, false);
+          database::mysql_error::delete_metric);
     }
     std::string ids_str{fmt::format("{}", fmt::join(indexes_to_delete, ","))};
     if (!indexes_to_delete.empty()) {
@@ -865,7 +865,7 @@ void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
                          ids_str);
       ms.run_query(
           fmt::format("DELETE FROM index_data WHERE id in ({})", ids_str),
-          database::mysql_error::delete_index, false);
+          database::mysql_error::delete_index);
     }
 
     if (!metrics_to_delete.empty() || !indexes_to_delete.empty()) {
@@ -988,18 +988,18 @@ void stream::remove_poller(const std::shared_ptr<io::data>& d) {
       SPDLOG_LOGGER_INFO(log_v2::sql(), "unified sql: removing poller {}", id);
       _mysql.run_query(
           fmt::format("DELETE FROM instances WHERE instance_id={}", id),
-          database::mysql_error::delete_poller, false, conn);
+          database::mysql_error::delete_poller, conn);
       SPDLOG_LOGGER_TRACE(log_v2::sql(),
                           "unified sql: removing poller {} hosts", id);
       _mysql.run_query(
           fmt::format("DELETE FROM hosts WHERE instance_id={}", id),
-          database::mysql_error::delete_poller, false, conn);
+          database::mysql_error::delete_poller, conn);
 
       SPDLOG_LOGGER_TRACE(log_v2::sql(),
                           "unified sql: removing poller {} resources", id);
       _mysql.run_query(
           fmt::format("DELETE FROM resources WHERE poller_id={}", id),
-          database::mysql_error::delete_poller, false, conn);
+          database::mysql_error::delete_poller, conn);
       _cache_deleted_instance_id.insert(id);
     }
     _clear_instances_cache(ids);

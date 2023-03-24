@@ -989,14 +989,14 @@ void conflict_manager::remove_graphs(const std::shared_ptr<io::data>& d) {
       log_v2::sql()->info("metrics {} erased from database", mids_str);
       ms.run_query(
           fmt::format("DELETE FROM metrics WHERE metric_id in ({})", mids_str),
-          database::mysql_error::delete_metric, false);
+          database::mysql_error::delete_metric);
     }
     std::string ids_str{fmt::format("{}", fmt::join(indexes_to_delete, ","))};
     if (!indexes_to_delete.empty()) {
       log_v2::sql()->info("indexes {} erased from database", ids_str);
       ms.run_query(
           fmt::format("DELETE FROM index_data WHERE id in ({})", ids_str),
-          database::mysql_error::delete_index, false);
+          database::mysql_error::delete_index);
     }
 
     if (!metrics_to_delete.empty() || !indexes_to_delete.empty()) {

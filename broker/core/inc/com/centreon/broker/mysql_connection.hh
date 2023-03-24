@@ -151,7 +151,7 @@ class mysql_connection {
   void commit(
       const database::mysql_task_commit::mysql_task_commit_data::pointer&
           commit_data);
-  void run_query(std::string const& query, my_error::code ec, bool fatal);
+  void run_query(std::string const& query, my_error::code ec);
   void run_query_and_get_result(std::string const& query,
                                 std::promise<database::mysql_result>&& promise);
   void run_query_and_get_int(std::string const& query,
@@ -159,9 +159,7 @@ class mysql_connection {
                              database::mysql_task::int_type type);
   void get_server_version(std::promise<const char*>&& promise);
 
-  void run_statement(database::mysql_stmt_base& stmt,
-                     my_error::code ec,
-                     bool fatal);
+  void run_statement(database::mysql_stmt_base& stmt, my_error::code ec);
   void run_statement_and_get_result(
       database::mysql_stmt& stmt,
       std::promise<database::mysql_result>&& promise,
