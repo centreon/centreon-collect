@@ -308,7 +308,7 @@ void reporting_stream::_close_inconsistent_events(char const* event_type,
                       table, end_time, id, p.first, p.second));
       SPDLOG_LOGGER_TRACE(log_v2::bam(), "reporting_stream: query: '{}'",
                           query);
-      _mysql.run_query(query, database::mysql_error::close_event, true);
+      _mysql.run_query(query, database::mysql_error::close_event);
     }
   }
 }
@@ -638,7 +638,7 @@ void reporting_stream::_process_ba_event(std::shared_ptr<io::data> const& e) {
           _kpi_event_link_update.bind_value_as_u64(
               1, m_events[be.start_time.get_time_t()]);
           _mysql.run_statement(_kpi_event_link_update,
-                               database::mysql_error::update_kpi_event, true);
+                               database::mysql_error::update_kpi_event);
         }
         // remove older events for BA
         for (auto it = m_events.begin(); it != m_events.end();) {
@@ -729,7 +729,7 @@ void reporting_stream::_process_pb_ba_event(
           _kpi_event_link_update.bind_value_as_u64(1,
                                                    m_events[be.start_time()]);
           _mysql.run_statement(_kpi_event_link_update,
-                               database::mysql_error::update_kpi_event, true);
+                               database::mysql_error::update_kpi_event);
         }
         // remove older events for BA
         for (auto it = m_events.begin(); it != m_events.end();) {
@@ -801,7 +801,7 @@ void reporting_stream::_process_ba_duration_event(
           7, static_cast<uint64_t>(bde.real_start_time.get_time_t()));
 
       _mysql.run_statement(_ba_duration_event_insert,
-                           database::mysql_error::empty, true, thread_id);
+                           database::mysql_error::empty, thread_id);
     }
   } catch (std::exception const& e) {
     throw msg_fmt(
@@ -857,7 +857,7 @@ void reporting_stream::_process_pb_ba_duration_event(
       _ba_duration_event_insert.bind_value_as_u64(7, bde.real_start_time());
 
       _mysql.run_statement(_ba_duration_event_insert,
-                           database::mysql_error::empty, true, thread_id);
+                           database::mysql_error::empty, thread_id);
     }
   } catch (std::exception const& e) {
     throw msg_fmt(
@@ -914,8 +914,7 @@ void reporting_stream::_process_kpi_event(std::shared_ptr<io::data> const& e) {
       _kpi_full_event_insert.bind_value_as_i32(5, ke.impact_level);
 
       _mysql.run_statement(_kpi_full_event_insert,
-                           database::mysql_error::insert_kpi_event, true,
-                           thread_id);
+                           database::mysql_error::insert_kpi_event, thread_id);
 
       // Insert kpi event link.
       _kpi_event_link.bind_value_as_i32(0, ke.kpi_id);
@@ -986,8 +985,7 @@ void reporting_stream::_process_pb_kpi_event(
       _kpi_full_event_insert.bind_value_as_i32(5, ke.impact_level());
 
       _mysql.run_statement(_kpi_full_event_insert,
-                           database::mysql_error::insert_kpi_event, true,
-                           thread_id);
+                           database::mysql_error::insert_kpi_event, thread_id);
 
       // Insert kpi event link.
       _kpi_event_link.bind_value_as_i32(0, ke.kpi_id());
@@ -1037,8 +1035,7 @@ void reporting_stream::_process_dimension_ba(
   _dimension_ba_insert.bind_value_as_f64(4, dba.sla_month_percent_warn);
   _dimension_ba_insert.bind_value_as_f64(5, dba.sla_duration_crit);
   _dimension_ba_insert.bind_value_as_f64(6, dba.sla_duration_warn);
-  _mysql.run_statement(_dimension_ba_insert, database::mysql_error::insert_ba,
-                       false);
+  _mysql.run_statement(_dimension_ba_insert, database::mysql_error::insert_ba);
 }
 
 /**
@@ -1066,8 +1063,7 @@ void reporting_stream::_process_pb_dimension_ba(
   _dimension_ba_insert.bind_value_as_f64(4, dba.sla_month_percent_warn());
   _dimension_ba_insert.bind_value_as_f64(5, dba.sla_duration_crit());
   _dimension_ba_insert.bind_value_as_f64(6, dba.sla_duration_warn());
-  _mysql.run_statement(_dimension_ba_insert, database::mysql_error::insert_ba,
-                       false);
+  _mysql.run_statement(_dimension_ba_insert, database::mysql_error::insert_ba);
 }
 
 /**
@@ -1092,8 +1088,7 @@ void reporting_stream::_process_dimension_bv(
       2, misc::string::truncate(dbv.bv_description,
                                 get_mod_bam_reporting_bv_col_size(
                                     mod_bam_reporting_bv_bv_description)));
-  _mysql.run_statement(_dimension_bv_insert, database::mysql_error::insert_bv,
-                       false);
+  _mysql.run_statement(_dimension_bv_insert, database::mysql_error::insert_bv);
 }
 
 /**
@@ -1118,8 +1113,7 @@ void reporting_stream::_process_pb_dimension_bv(
       2, misc::string::truncate(dbv.bv_description(),
                                 get_mod_bam_reporting_bv_col_size(
                                     mod_bam_reporting_bv_bv_description)));
-  _mysql.run_statement(_dimension_bv_insert, database::mysql_error::insert_bv,
-                       false);
+  _mysql.run_statement(_dimension_bv_insert, database::mysql_error::insert_bv);
 }
 
 /**
@@ -1138,7 +1132,7 @@ void reporting_stream::_process_dimension_ba_bv_relation(
   _dimension_ba_bv_relation_insert.bind_value_as_i32(0, dbabv.ba_id);
   _dimension_ba_bv_relation_insert.bind_value_as_i32(1, dbabv.bv_id);
   _mysql.run_statement(_dimension_ba_bv_relation_insert,
-                       database::mysql_error::insert_dimension_ba_bv, false);
+                       database::mysql_error::insert_dimension_ba_bv);
 }
 
 /**
@@ -1158,7 +1152,7 @@ void reporting_stream::_process_pb_dimension_ba_bv_relation(
   _dimension_ba_bv_relation_insert.bind_value_as_i32(0, dbabv.ba_id());
   _dimension_ba_bv_relation_insert.bind_value_as_i32(1, dbabv.bv_id());
   _mysql.run_statement(_dimension_ba_bv_relation_insert,
-                       database::mysql_error::insert_dimension_ba_bv, false);
+                       database::mysql_error::insert_dimension_ba_bv);
 }
 
 /**
@@ -1509,7 +1503,7 @@ void reporting_stream::_process_dimension_kpi(
                                      mod_bam_reporting_kpi_boolean_name)));
 
   _mysql.run_statement(_dimension_kpi_insert,
-                       database::mysql_error::insert_dimension_kpi, false);
+                       database::mysql_error::insert_dimension_kpi);
 }
 
 /**
@@ -1579,7 +1573,7 @@ void reporting_stream::_process_pb_dimension_kpi(
                                      mod_bam_reporting_kpi_boolean_name)));
 
   _mysql.run_statement(_dimension_kpi_insert,
-                       database::mysql_error::insert_dimension_kpi, false);
+                       database::mysql_error::insert_dimension_kpi);
 }
 
 /**
@@ -1630,7 +1624,7 @@ void reporting_stream::_process_pb_dimension_timeperiod(
                                 get_mod_bam_reporting_timeperiods_col_size(
                                     mod_bam_reporting_timeperiods_saturday)));
   _mysql.run_statement(_dimension_timeperiod_insert,
-                       database::mysql_error::insert_timeperiod, false);
+                       database::mysql_error::insert_timeperiod);
 
   _apply(tp);
 }
@@ -1683,7 +1677,7 @@ void reporting_stream::_process_dimension_timeperiod(
                                 get_mod_bam_reporting_timeperiods_col_size(
                                     mod_bam_reporting_timeperiods_saturday)));
   _mysql.run_statement(_dimension_timeperiod_insert,
-                       database::mysql_error::insert_timeperiod, false);
+                       database::mysql_error::insert_timeperiod);
   DimensionTimeperiod convert;
   convert.set_id(tp.id);
   convert.set_name(tp.name);
@@ -1716,8 +1710,7 @@ void reporting_stream::_process_dimension_ba_timeperiod_relation(
   _dimension_ba_timeperiod_insert.bind_value_as_i32(1, r.timeperiod_id);
   _dimension_ba_timeperiod_insert.bind_value_as_bool(2, r.is_default);
   _mysql.run_statement(_dimension_ba_timeperiod_insert,
-                       database::mysql_error::insert_relation_ba_timeperiod,
-                       false);
+                       database::mysql_error::insert_relation_ba_timeperiod);
   _timeperiods.add_relation(r.ba_id, r.timeperiod_id, r.is_default);
 }
 
@@ -1741,8 +1734,7 @@ void reporting_stream::_process_pb_dimension_ba_timeperiod_relation(
   _dimension_ba_timeperiod_insert.bind_value_as_i32(1, r.timeperiod_id());
   _dimension_ba_timeperiod_insert.bind_value_as_bool(2, r.is_default());
   _mysql.run_statement(_dimension_ba_timeperiod_insert,
-                       database::mysql_error::insert_relation_ba_timeperiod,
-                       false);
+                       database::mysql_error::insert_relation_ba_timeperiod);
   _timeperiods.add_relation(r.ba_id(), r.timeperiod_id(), r.is_default());
 }
 
@@ -1846,7 +1838,7 @@ void reporting_stream::_process_rebuild(std::shared_ptr<io::data> const& e) {
 
       SPDLOG_LOGGER_TRACE(log_v2::bam(), "reporting_stream: query: '{}'",
                           query);
-      _mysql.run_query(query, database::mysql_error::delete_ba_durations, true);
+      _mysql.run_query(query, database::mysql_error::delete_ba_durations);
     }
 
     // Get the ba events.

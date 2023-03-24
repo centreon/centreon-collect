@@ -219,9 +219,10 @@ void mysql_connection::_query(mysql_task* t) {
                       static_cast<const void*>(this), task->query);
   if (mysql_query(_conn, task->query.c_str())) {
     const char* m = mysql_error::msg[task->error_code];
-    std::string err_msg(fmt::format("{} {}", m, ::mysql_error(_conn)));
+    std::string err_msg(fmt::format("{} errrno={} {}", m, ::mysql_errno(_conn),
+                                    ::mysql_error(_conn)));
     SPDLOG_LOGGER_ERROR(log_v2::sql(), "mysql_connection: {}", err_msg);
-    if (task->fatal || _server_error(::mysql_errno(_conn)))
+    if (_server_error(::mysql_errno(_conn)))
       set_error_message(err_msg);
   } else {
     set_need_to_commit();
@@ -367,16 +368,10 @@ void mysql_connection::_statement(mysql_task* t) {
     }
   }
   if (bb && mysql_stmt_bind_param(stmt, bb)) {
-    std::string err_msg(::mysql_stmt_error(stmt));
-    SPDLOG_LOGGER_ERROR(log_v2::sql(), "mysql_connection: {}", err_msg);
-    if (task->fatal)
-      set_error_message(err_msg);
-    else {
-      SPDLOG_LOGGER_ERROR(
-          log_v2::sql(),
-          "mysql_connection: Error while binding values in statement: {}",
-          err_msg);
-    }
+    SPDLOG_LOGGER_ERROR(
+        log_v2::sql(),
+        "mysql_connection: Error while binding values in statement: {}",
+        ::mysql_stmt_error(stmt));
   } else {
     int32_t attempts = 0;
     std::chrono::system_clock::time_point request_begin =
@@ -388,9 +383,9 @@ void mysql_connection::_statement(mysql_task* t) {
           static_cast<const void*>(this), task->statement_id, attempts,
           _stmt_query[task->statement_id]);
       if (mysql_stmt_execute(stmt)) {
-        std::string err_msg(fmt::format("{} {}",
-                                        mysql_error::msg[task->error_code],
-                                        ::mysql_stmt_error(stmt)));
+        std::string err_msg(
+            fmt::format("{} errno={} {}", mysql_error::msg[task->error_code],
+                        ::mysql_errno(_conn), ::mysql_stmt_error(stmt)));
         SPDLOG_LOGGER_ERROR(log_v2::sql(),
                             "connection fail to execute statement {:p}: {}",
                             static_cast<const void*>(this), err_msg);
@@ -415,7 +410,7 @@ void mysql_connection::_statement(mysql_task* t) {
                             "mysql_connection {:p} attempts {}: {}",
                             static_cast<const void*>(this), attempts, err_msg);
         if (++attempts >= MAX_ATTEMPTS) {
-          if (task->fatal || _server_error(::mysql_stmt_errno(stmt)))
+          if (_server_error(::mysql_stmt_errno(stmt)))
             set_error_message("{} {}", mysql_error::msg[task->error_code],
                               ::mysql_stmt_error(stmt));
           break;
@@ -758,10 +753,14 @@ void mysql_connection::_run() {
 
     bool reconnect_failed_logged = false;
     std::list<std::unique_ptr<database::mysql_task>> tasks_list;
-    while (_state == running || !_tasks_list.empty()) {
+    while (true) {
       if (tasks_list.empty()) {
         std::unique_lock<std::mutex> lock(_tasks_m);
         _tasks_list.swap(tasks_list);
+      }
+      // no request to execute and want to exit => exit
+      if (tasks_list.empty() && _state != running) {
+        break;
       }
 
       if (_error.is_active()) {
@@ -972,10 +971,8 @@ void mysql_connection::prepare_query(int stmt_id, std::string const& query) {
  *  @param error_msg The error message to return in case of error.
  *  @param p A pointer to a promise.
  */
-void mysql_connection::run_query(std::string const& query,
-                                 my_error::code ec,
-                                 bool fatal) {
-  _push(std::make_unique<mysql_task_run>(query, ec, fatal));
+void mysql_connection::run_query(std::string const& query, my_error::code ec) {
+  _push(std::make_unique<mysql_task_run>(query, ec));
 }
 
 void mysql_connection::run_query_and_get_result(
@@ -991,9 +988,8 @@ void mysql_connection::run_query_and_get_int(std::string const& query,
 }
 
 void mysql_connection::run_statement(database::mysql_stmt_base& stmt,
-                                     my_error::code ec,
-                                     bool fatal) {
-  _push(std::make_unique<mysql_task_statement>(stmt, ec, fatal));
+                                     my_error::code ec) {
+  _push(std::make_unique<mysql_task_statement>(stmt, ec));
 }
 
 void mysql_connection::run_statement_and_get_result(

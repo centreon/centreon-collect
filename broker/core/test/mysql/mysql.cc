@@ -529,20 +529,20 @@ TEST_F(DatabaseStorageTest, CustomVarStatement) {
   cv.default_value = "centengine";
 
   cv_insert_or_update << cv;
-  ms->run_statement(cv_insert_or_update, mysql_error::empty, false, 0);
+  ms->run_statement(cv_insert_or_update, mysql_error::empty, 0);
 
   // Deletion
   cv_delete << cv;
-  ms->run_statement(cv_delete, mysql_error::empty, false, 0);
+  ms->run_statement(cv_delete, mysql_error::empty, 0);
 
   // Insert
   cv_insert_or_update << cv;
-  ms->run_statement(cv_insert_or_update, mysql_error::empty, false, 0);
+  ms->run_statement(cv_insert_or_update, mysql_error::empty, 0);
 
   // Update
   cv.update_time = time(nullptr) + 1;
   cv_insert_or_update << cv;
-  ms->run_statement(cv_insert_or_update, mysql_error::empty, false, 0);
+  ms->run_statement(cv_insert_or_update, mysql_error::empty, 0);
 
   ms->commit();
 
@@ -2040,8 +2040,8 @@ TEST_F(DatabaseStorageTest, BulkStatementsWithBooleanValues) {
   bool inside1 = false;
   while (ms->fetch_row(res)) {
     inside1 = true;
-    ASSERT_TRUE(res.value_as_int(2) <= 1);
-    ASSERT_TRUE(res.value_as_int(3) <= 1);
+    ASSERT_TRUE(res.value_as_i32(2) <= 1);
+    ASSERT_TRUE(res.value_as_i32(3) <= 1);
     ASSERT_NE(res.value_as_bool(2), res.value_as_bool(3));
   }
   ASSERT_TRUE(inside1);
