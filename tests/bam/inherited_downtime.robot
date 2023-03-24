@@ -157,6 +157,7 @@ BEBAMIGNDT1
 	Config Broker	central
 	Broker Config Log	central	bam	trace
 	Broker Config Log	central	sql	trace
+	broker_config_source_log  central  true
         Broker Config Flush Log	module0	0
 	Broker Config Log	module0	neb	trace
 	Config Broker	rrd

@@ -114,11 +114,10 @@ class mysql_task_prepare : public mysql_task {
 
 class mysql_task_run : public mysql_task {
  public:
-  mysql_task_run(std::string const& q, mysql_error::code ec, bool fatal)
-      : mysql_task(mysql_task::RUN), query(q), error_code(ec), fatal(fatal) {}
+  mysql_task_run(std::string const& q, mysql_error::code ec)
+      : mysql_task(mysql_task::RUN), query(q), error_code(ec) {}
   std::string query;
   mysql_error::code error_code;
-  bool fatal;
 };
 
 class mysql_task_run_res : public mysql_task {
@@ -154,14 +153,11 @@ class mysql_task_run_int : public mysql_task {
 
 class mysql_task_statement : public mysql_task {
  public:
-  mysql_task_statement(database::mysql_stmt_base& stmt,
-                       mysql_error::code ec,
-                       bool fatal)
+  mysql_task_statement(database::mysql_stmt_base& stmt, mysql_error::code ec)
       : mysql_task(mysql_task::STATEMENT),
         statement_id(stmt.get_id()),
         param_count(stmt.get_param_count()),
-        error_code(ec),
-        fatal(fatal) {
+        error_code(ec) {
     if (stmt.in_bulk()) {
       database::mysql_bulk_stmt& s =
           *static_cast<database::mysql_bulk_stmt*>(&stmt);
@@ -177,7 +173,6 @@ class mysql_task_statement : public mysql_task {
   int param_count;
   std::unique_ptr<database::mysql_bind_base> bind;
   mysql_error::code error_code;
-  bool fatal;
   bool bulk;
 };
 
@@ -217,12 +212,13 @@ class mysql_task_statement_int : public mysql_task {
   mysql_task_statement_int(database::mysql_stmt_base& stmt,
                            std::promise<T>&& promise,
                            int_type type)
-      : mysql_task((std::is_same<T, int>::value) ? mysql_task::STATEMENT_INT
-                   : (std::is_same<T, int64_t>::value)
-                       ? mysql_task::STATEMENT_INT64
-                   : (std::is_same<T, uint32_t>::value)
-                       ? mysql_task::STATEMENT_UINT
-                       : mysql_task::STATEMENT_UINT64),
+      : mysql_task((std::is_same<T, int>::value)
+                       ? mysql_task::STATEMENT_INT
+                       : (std::is_same<T, int64_t>::value)
+                             ? mysql_task::STATEMENT_INT64
+                             : (std::is_same<T, uint32_t>::value)
+                                   ? mysql_task::STATEMENT_UINT
+                                   : mysql_task::STATEMENT_UINT64),
         promise(std::move(promise)),
         return_type(type),
         statement_id(stmt.get_id()),

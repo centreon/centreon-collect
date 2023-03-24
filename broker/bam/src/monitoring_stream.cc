@@ -294,7 +294,7 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
       _ba_update.bind_value_as_bool(4, status->in_downtime);
       _ba_update.bind_value_as_i32(5, status->state);
 
-      _mysql.run_statement(_ba_update, database::mysql_error::update_ba, true);
+      _mysql.run_statement(_ba_update, database::mysql_error::update_ba);
       ++_pending_request;
       commit_if_needed();
 
@@ -338,8 +338,7 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
       _kpi_update.bind_value_as_bool(8, status->in_downtime);
       _kpi_update.bind_value_as_u32(9, status->kpi_id);
 
-      _mysql.run_statement(_kpi_update, database::mysql_error::update_kpi,
-                           true);
+      _mysql.run_statement(_kpi_update, database::mysql_error::update_kpi);
       ++_pending_request;
       commit_if_needed();
     } break;
