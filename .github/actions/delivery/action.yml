@@ -51,14 +51,12 @@ runs:
       shell: bash
       if: ${{ inputs.distrib == 'el7' || inputs.distrib == 'el8' }}
       run: |
-        echo "build=rpmbuild-centreon-collect" >> $GITHUB_ENV
         echo "extfile=rpm" >> $GITHUB_ENV
 
     - name: Build name for DEB
       shell: bash
       if: ${{ inputs.distrib == 'bullseye' }}
       run: |
-        echo "build=debbuild-centreon-collect" >> $GITHUB_ENV
         echo "extfile=deb" >> $GITHUB_ENV
 
     - name: detect stability
@@ -90,8 +88,7 @@ runs:
       uses: actions/cache@v3
       with:
         path: ./*.${{ env.extfile }}
-        key: ${{ inputs.cache_key }}-${{ env.build }}-${{ inputs.distrib }}
-        restore-keys: ${{ inputs.cache_key }}-${{ env.build }}-${{ inputs.distrib }}
+        key: ${{ inputs.cache_key }}
 
     - uses: jfrog/setup-jfrog-cli@v3
       env:

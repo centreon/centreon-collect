@@ -129,11 +129,9 @@ jobs:
 
       - name: Use cache RPM files
         uses: actions/cache@v3
-        env:
-          cache-name-rpmbuild: cache-${{ github.sha }}-${{ github.run_id }}-rpmbuild-centreon-collect-${{ matrix.distrib }}
         with:
           path: ./*.rpm
-          key: ${{ env.cache-name-rpmbuild }}
+          key: cache-${{ github.sha }}-${{ github.run_id }}-rpmbuild-centreon-collect-${{ matrix.distrib }}
 
   debian-packaging:
     needs: create-version
@@ -171,11 +169,9 @@ jobs:
 
       - name: Use cache DEB files
         uses: actions/cache@v3
-        env:
-          cache-name-debbuild: cache-${{ github.sha }}-${{ github.run_id }}-debbuild-centreon-collect-${{ matrix.distrib }}
         with:
           path: ./*.deb
-          key: ${{ env.cache-name-debbuild }}
+          key: cache-${{ github.sha }}-${{ github.run_id }}-debbuild-centreon-collect-${{ matrix.distrib }}
 
   delivery-debian:
     needs: [debian-packaging, create-version]
