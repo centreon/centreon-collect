@@ -84,7 +84,7 @@ static void hup_handler(int signum) {
     config::parser parsr;
     config::state conf{parsr.parse(gl_mainconfigfiles.front())};
     try {
-      log_v2::instance().apply(conf);
+      log_v2::instance()->apply(conf);
     } catch (const std::exception& e) {
       log_v2::core()->error("problem while reloading cbd: {}", e.what());
     }
@@ -252,7 +252,7 @@ int main(int argc, char* argv[]) {
         config::parser parsr;
         config::state conf{parsr.parse(gl_mainconfigfiles.front())};
         try {
-          log_v2::instance().apply(conf);
+          log_v2::instance()->apply(conf);
         } catch (const std::exception& e) {
           log_v2::core()->error("{}", e.what());
         }
@@ -289,7 +289,7 @@ int main(int argc, char* argv[]) {
         }
         log_v2::core()->info("main: termination request received by process");
       }
-      log_v2::instance().stop_flush_timer();
+      log_v2::instance()->stop_flush_timer();
       // Unload endpoints.
       config::applier::deinit();
       spdlog::shutdown();

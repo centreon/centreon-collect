@@ -1613,6 +1613,7 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
       int32_t conn = _mysql.choose_connection_by_instance(
           _cache_host_instance[static_cast<uint32_t>(hscr.host_id())]);
       if (_bulk_prepared_statement) {
+        std::lock_guard<bulk_bind> lck(*_hscr_bind);
         if (!_hscr_bind->bind(conn))
           _hscr_bind->init_from_stmt(conn);
         auto* b = _hscr_bind->bind(conn).get();
@@ -1707,6 +1708,7 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
       int32_t conn = _mysql.choose_connection_by_instance(
           _cache_host_instance[static_cast<uint32_t>(hscr.host_id())]);
       if (_bulk_prepared_statement) {
+        std::lock_guard<bulk_bind> lck(*_hscr_resources_bind);
         if (!_hscr_resources_bind->bind(conn))
           _hscr_resources_bind->init_from_stmt(conn);
         auto* b = _hscr_resources_bind->bind(conn).get();
@@ -2052,7 +2054,7 @@ void stream::_process_service_dependency(const std::shared_ptr<io::data>& d) {
         sd.dependent_host_id, sd.dependent_service_id, sd.host_id,
         sd.service_id);
     std::string query(fmt::format(
-        "DELETE FROM serivces_services_dependencies WHERE dependent_host_id={} "
+        "DELETE FROM services_services_dependencies WHERE dependent_host_id={} "
         "AND dependent_service_id={} AND host_id={} AND service_id={}",
         sd.dependent_host_id, sd.dependent_service_id, sd.host_id,
         sd.service_id));
@@ -2861,8 +2863,9 @@ void stream::_check_and_update_index_cache(const Service& ss) {
           "Attempt to get the index from the database for service ({}, {})",
           ss.host_id(), ss.service_id());
 
-      _mysql.run_statement_and_get_result(_index_data_query, std::move(pq),
-                                          conn);
+      _mysql.run_statement_and_get_result(
+          _index_data_query, std::move(pq), conn,
+          get_index_data_col_size(index_data_service_description));
 
       try {
         database::mysql_result res(future_pq.get());
@@ -3035,6 +3038,7 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
       int32_t conn = _mysql.choose_connection_by_instance(
           _cache_host_instance[static_cast<uint32_t>(sscr.host_id())]);
       if (_bulk_prepared_statement) {
+        std::lock_guard<bulk_bind> lck(*_sscr_bind);
         if (!_sscr_bind->bind(conn))
           _sscr_bind->init_from_stmt(conn);
         auto* b = _sscr_bind->bind(conn).get();
@@ -3136,6 +3140,7 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
       size_t output_size = misc::string::adjust_size_utf8(
           sscr.output(), get_resources_col_size(resources_output));
       if (_bulk_prepared_statement) {
+        std::lock_guard<bulk_bind> lck(*_sscr_resources_bind);
         if (!_sscr_resources_bind->bind(conn))
           _sscr_resources_bind->init_from_stmt(conn);
         auto* b = _sscr_resources_bind->bind(conn).get();

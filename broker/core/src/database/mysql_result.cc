@@ -1,5 +1,5 @@
 /*
-** Copyright 2018 Centreon
+** Copyright 2018-2023 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -44,7 +44,10 @@ mysql_result::mysql_result(mysql_connection* parent, int statement_id)
  * @param result The result returned by the Mariadb Connector.
  */
 mysql_result::mysql_result(mysql_connection* parent, MYSQL_RES* result)
-    : _parent(parent), _result(result, mysql_free_result), _statement_id(0) {}
+    : _parent(parent),
+      _result(result, mysql_free_result),
+      _row(nullptr),
+      _statement_id(0) {}
 
 /**
  *  Move Constructor
@@ -52,33 +55,33 @@ mysql_result::mysql_result(mysql_connection* parent, MYSQL_RES* result)
  * @param other Another result to move into this one.
  */
 mysql_result::mysql_result(mysql_result&& other)
-    : _parent(other._parent),
-      _result(other._result),
-      _row(other._row),
-      _statement_id(other._statement_id) {
-  other._row = nullptr;
-  other._result = nullptr;
+    : _parent(std::move(other._parent)),
+      _result(std::move(other._result)),
+      _row(std::move(other._row)),
+      _bind(std::move(other._bind)),
+      _statement_id(std::move(other._statement_id)) {
   other._parent = nullptr;
-  _bind = move(other._bind);
+  other._result = nullptr;
+  other._row = nullptr;
+  other._statement_id = 0;
 }
 
 /**
- *  Result copy operator.
+ *  Move operator.
  *
  * @param other
  *
  * @return this object.
  */
-mysql_result& mysql_result::operator=(mysql_result const& other) {
-  _result = other._result;
-  _statement_id = other._statement_id;
+mysql_result& mysql_result::operator=(mysql_result&& other) {
+  _parent = std::move(other._parent);
+  _result = std::move(other._result);
+  _row = std::move(other._row);
+  _bind = std::move(other._bind);
+  _statement_id = std::move(other._statement_id);
+  other._statement_id = 0;
   return *this;
 }
-
-/**
- *  Destructor
- */
-mysql_result::~mysql_result() {}
 
 /**
  *  Affects the result comming from the mariadb connector.
@@ -197,8 +200,8 @@ double mysql_result::value_as_f64(int idx) {
  *
  * @return an int
  */
-int mysql_result::value_as_i32(int idx) {
-  int retval;
+int32_t mysql_result::value_as_i32(int idx) {
+  int32_t retval;
   if (_bind)
     retval = _bind->value_as_i32(idx);
   else if (_row) {
@@ -215,6 +218,32 @@ int mysql_result::value_as_i32(int idx) {
   return retval;
 }
 
+/**
+ *  Accessor to a column tiny value
+ *
+ * @param idx The index of the column
+ *
+ * @return a char
+ */
+char mysql_result::value_as_tiny(int idx) {
+  char retval;
+  if (_bind)
+    retval = _bind->value_as_tiny(idx);
+  else if (_row) {
+    if (_row[idx]) {
+      int32_t tmp;
+      if (!absl::SimpleAtoi(_row[idx], &tmp))
+        throw msg_fmt(
+            "mysql: result at index {} should be an integer, the current value "
+            "is '{}'",
+            idx, _row[idx]);
+      retval = static_cast<char>(tmp);
+    } else
+      retval = 0;
+  } else
+    throw msg_fmt("mysql: No row fetched in result");
+  return retval;
+}
 /**
  *  Accessor to a column uint32_t value
  *
@@ -334,7 +363,8 @@ int mysql_result::get_rows_count() const {
  *
  * @param bind The bind to set to this result.
  */
-void mysql_result::set_bind(std::unique_ptr<database::mysql_bind>&& bind) {
+void mysql_result::set_bind(
+    std::unique_ptr<database::mysql_bind_result>&& bind) {
   _bind = std::move(bind);
 }
 
@@ -352,7 +382,7 @@ void mysql_result::set_row(MYSQL_ROW row) {
  *
  * @return the bind
  */
-std::unique_ptr<database::mysql_bind>& mysql_result::get_bind() {
+std::unique_ptr<database::mysql_bind_result>& mysql_result::get_bind() {
   return _bind;
 }
 

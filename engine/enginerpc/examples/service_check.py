@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 import time
 import grpc
 import engine_pb2
@@ -16,11 +16,11 @@ def run():
           seconds = int(now)
           nanos = int((now - seconds) * 10**9)
           timestamp = timestamp_pb2.Timestamp(seconds=seconds, nanos=nanos)
-          for i in range(1, 200):
+          for i in range(1, 400):
               check = stub.ProcessServiceCheckResult(engine_pb2.Check(
                     check_time=timestamp,
                     host_name = 'ceïntràl',
-                    svc_desc = 'broker_' + str(i),
+                    svc_desc = 'bonjour_' + str(i),
                     output = 'grpc check| grpc{}={}'.format(i, k),
                     code = 0))
           k += 0.1

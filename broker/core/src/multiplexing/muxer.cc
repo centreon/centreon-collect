@@ -33,6 +33,9 @@ using namespace com::centreon::broker::multiplexing;
 
 uint32_t muxer::_event_queue_max_size = std::numeric_limits<uint32_t>::max();
 
+std::mutex muxer::_running_muxers_m;
+absl::flat_hash_map<std::string, std::weak_ptr<muxer>> muxer::_running_muxers;
+
 /**
  *  Constructor.
  *
@@ -110,9 +113,28 @@ std::shared_ptr<muxer> muxer::create(std::string name,
                                      muxer::filters r_filters,
                                      muxer::filters w_filters,
                                      bool persistent) {
-  std::shared_ptr<muxer> ret(new muxer(name, r_filters, w_filters, persistent));
-  engine::instance_ptr()->subscribe(ret);
-  return ret;
+  std::shared_ptr<muxer> retval;
+  {
+    std::lock_guard<std::mutex> lck(_running_muxers_m);
+    absl::erase_if(_running_muxers,
+                   [](const std::pair<std::string, std::weak_ptr<muxer>>& p) {
+                     return p.second.expired();
+                   });
+    retval = _running_muxers[name].lock();
+    if (retval) {
+      log_v2::config()->debug("muxer: muxer '{}' already exists, reusing it",
+                              name);
+      retval->set_filters(r_filters, w_filters);
+    } else {
+      log_v2::config()->debug("muxer: muxer '{}' unknown, creating it", name);
+      retval = std::shared_ptr<muxer>(
+          new muxer(name, r_filters, w_filters, persistent));
+      _running_muxers[name] = retval;
+    }
+  }
+
+  engine::instance_ptr()->subscribe(retval);
+  return retval;
 }
 
 /**
@@ -220,7 +242,8 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
           continue;
         }
         at_least_one_push_to_queue = true;
-        log_v2::core()->trace("muxer::publish {} publish one event to queue");
+        log_v2::core()->trace("muxer::publish {} publish one event to queue",
+                              _name);
         _push_to_queue(*evt);
       }
     }
@@ -233,18 +256,26 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
     }
     // nothing pushed => to file
     std::lock_guard<std::mutex> lock(_mutex);
-    if (!_file) {
-      QueueFileStats* s =
-          stats::center::instance().muxer_stats(_name)->mutable_queue_file();
-      _file = std::make_unique<persistent_file>(_queue_file_name, s);
-    }
     for (; evt != event_queue.end(); ++evt) {
       if (_write_filters.find((*evt)->type()) == _write_filters.end()) {
         continue;
       }
-      _file->write(*evt);
-      log_v2::core()->trace("muxer::publish {} publish one event to file {}",
-                            _name, _queue_file_name);
+      if (!_file) {
+        QueueFileStats* s =
+            stats::center::instance().muxer_stats(_name)->mutable_queue_file();
+        _file = std::make_unique<persistent_file>(_queue_file_name, s);
+      }
+      try {
+        _file->write(*evt);
+        log_v2::core()->trace("muxer::publish {} publish one event to file {}",
+                              _name, _queue_file_name);
+      } catch (const std::exception& ex) {
+        // in case of exception, we lost event. It's mandatory to avoid infinite
+        // loop in case of permanent disk problem
+        log_v2::core()->error("{} fail to write event to {}: {}", _name,
+                              _queue_file_name, ex.what());
+        _file.reset();
+      }
     }
   }
   _update_stats();
@@ -524,4 +555,19 @@ void muxer::remove_queue_files() {
 
 const std::string& muxer::name() const {
   return _name;
+}
+
+/**
+ * @brief In case of a muxer reused by a failover, we have to update its
+ * filters. This is the purpose of this function.
+ *
+ * @param r_filters The read filters.
+ * @param w_filters The write filters.
+ */
+void muxer::set_filters(muxer::filters r_filters, muxer::filters w_filters) {
+  std::lock_guard<std::mutex> lck(_mutex);
+  _read_filters = std::move(r_filters);
+  _write_filters = std::move(w_filters);
+  _read_filters_str = misc::dump_filters(_read_filters);
+  _write_filters_str = misc::dump_filters(_write_filters);
 }

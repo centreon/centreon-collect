@@ -114,8 +114,13 @@ void bulk_bind::apply_to_stmt(int32_t conn) {
   _next_time[conn] = std::time(nullptr) + _interval;
 }
 
+/**
+ * @brief Initialize the bind at the given connection from the associated
+ * statement.
+ *
+ * @param conn
+ */
 void bulk_bind::init_from_stmt(int32_t conn) {
-  std::lock_guard<std::mutex> lck(_queue_m);
   _bind[conn] = _stmt.create_bind();
 }
 
@@ -128,6 +133,22 @@ std::size_t bulk_bind::connections_count() const {
   return _bind.size();
 }
 
+/**
+ * @brief accessor to the bind corresponding to a connection. This function
+ * call must be protected.
+ *
+ * @param conn
+ *
+ * @return An unique_ptr to a mysql_bulk_bind.
+ */
 std::unique_ptr<database::mysql_bulk_bind>& bulk_bind::bind(int32_t conn) {
   return _bind[conn];
+}
+
+void bulk_bind::lock() {
+  _queue_m.lock();
+}
+
+void bulk_bind::unlock() {
+  _queue_m.unlock();
 }

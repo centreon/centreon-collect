@@ -38,14 +38,12 @@ class mysql_bulk_stmt : public mysql_stmt_base {
   boost::circular_buffer<size_t> _hist_size;
 
  public:
-  mysql_bulk_stmt();
-  mysql_bulk_stmt(const std::string& query, bool named);
   mysql_bulk_stmt(
       const std::string& query,
       mysql_bind_mapping const& bind_mapping = mysql_bind_mapping());
-  mysql_bulk_stmt(mysql_bulk_stmt&& other);
+  mysql_bulk_stmt(mysql_bulk_stmt&& other) = delete;
   mysql_bulk_stmt& operator=(const mysql_bulk_stmt&) = delete;
-  mysql_bulk_stmt& operator=(mysql_bulk_stmt&& other);
+  mysql_bulk_stmt& operator=(mysql_bulk_stmt&& other)= delete;
   std::unique_ptr<database::mysql_bulk_bind> get_bind();
   // void operator<<(io::data const& d);
 
@@ -94,15 +92,6 @@ class mysql_bulk_stmt : public mysql_stmt_base {
    * @param value The value to set.
    */
   void bind_value_as_i64(size_t range, int64_t value);
-  template <typename not_null_predicate>
-  void bind_value_as_i64(size_t range,
-                         int64_t value,
-                         const not_null_predicate& pred) {
-    if (pred(value))
-      bind_value_as_i64(range, value);
-    else
-      bind_null_i64(range);
-  }
   /**
    * @brief Set the NULL value at the column in the prepared statement at index
    * range in the current row of the column. The type of the column must be
@@ -121,15 +110,6 @@ class mysql_bulk_stmt : public mysql_stmt_base {
    * @param value The value to set.
    */
   void bind_value_as_u64(size_t range, uint64_t value);
-  template <typename not_null_predicate>
-  void bind_value_as_u64(size_t range,
-                         uint64_t value,
-                         const not_null_predicate& pred) {
-    if (pred(value))
-      bind_value_as_u64(range, value);
-    else
-      bind_null_u64(range);
-  }
   /**
    * @brief Set the NULL value at the column in the prepared statement at index
    * range in the current row of the column. The type of the column must be

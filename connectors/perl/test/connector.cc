@@ -424,7 +424,7 @@ TEST_F(TestConnector, ExecuteModuleLoading) {
   write_cmd(*p, oss.str());
 
   // Read reply.
-  std::string output{std::move(read_reply(*p))};
+  std::string output{read_reply(*p)};
 
   int retval{wait_for_termination(*p)};
 
@@ -510,7 +510,7 @@ TEST_F(TestConnector, ExecuteSingleScript) {
   write_cmd(*p, oss.str());
 
   // Read reply.
-  std::string output{std::move(read_reply(*p))};
+  std::string output{read_reply(*p)};
 
   int retval{wait_for_termination(*p)};
 
@@ -544,7 +544,7 @@ TEST_F(TestConnector, ExecuteSingleWarningScript) {
   write_cmd(*p, oss.str());
 
   // Read reply.
-  std::string output{std::move(read_reply(*p))};
+  std::string output{read_reply(*p)};
 
   int retval{wait_for_termination(*p)};
 
@@ -579,7 +579,7 @@ TEST_F(TestConnector, ExecuteSingleCriticalScript) {
   write_cmd(*p, oss.str());
 
   // Read reply.
-  std::string output{std::move(read_reply(*p))};
+  std::string output{read_reply(*p)};
 
   int retval{wait_for_termination(*p)};
 
@@ -622,7 +622,7 @@ TEST_F(TestConnector, ExecuteSingleScriptLogFile) {
   write_cmd(*p, oss.str());
 
   // Read reply.
-  std::string output{std::move(read_reply(*p))};
+  std::string output{read_reply(*p)};
 
   int retval{wait_for_termination(*p)};
 
@@ -670,7 +670,7 @@ TEST_F(TestConnector, ExecuteWithAdditionalCode) {
   write_cmd(*p, oss.str());
 
   // Read reply.
-  std::string output{std::move(read_reply(*p))};
+  std::string output{read_reply(*p)};
 
   int retval{wait_for_termination(*p)};
 
@@ -693,7 +693,7 @@ TEST_F(TestConnector, NonExistantScript) {
   write_cmd(*p, oss.str());
 
   // Read reply.
-  std::string output{std::move(read_reply(*p))};
+  std::string output{read_reply(*p)};
 
   int retval{wait_for_termination(*p)};
 

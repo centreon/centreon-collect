@@ -28,7 +28,6 @@ using namespace com::centreon::broker::database;
 
 constexpr const char* mysql_error::msg[];
 
-const int STR_SIZE = 200;
 const int MAX_ATTEMPTS = 10;
 
 void (mysql_connection::*const mysql_connection::_task_processing_table[])(
@@ -278,7 +277,6 @@ void mysql_connection::_prepare(mysql_task* t) {
     log_v2::sql()->error(
         "mysql_connection: Statement already prepared: {} ({})", task->id,
         task->query);
-    assert(1 == 0);
     return;
   }
 
@@ -374,7 +372,7 @@ void mysql_connection::_statement_res(mysql_task* t) {
     task->promise.set_exception(std::make_exception_ptr<msg_fmt>(e));
     return;
   }
-  MYSQL_BIND* bb(nullptr);
+  MYSQL_BIND* bb = nullptr;
   if (task->bind) {
     bb = const_cast<MYSQL_BIND*>(task->bind->get_bind());
     if (task->bulk) {
@@ -428,7 +426,7 @@ void mysql_connection::_statement_res(mysql_task* t) {
             task->promise.set_value(nullptr);
         } else {
           int size(mysql_num_fields(prepare_meta_result));
-          auto bind = std::make_unique<mysql_bind>(size, STR_SIZE);
+          auto bind = std::make_unique<mysql_bind_result>(size, task->length);
 
           if (mysql_stmt_bind_result(stmt, bind->get_bind())) {
             std::string err_msg(::mysql_stmt_error(stmt));
@@ -528,8 +526,12 @@ void mysql_connection::_fetch_row_sync(mysql_task* t) {
   if (stmt_id) {
     MYSQL_STMT* stmt(_stmt[stmt_id]);
     int res(mysql_stmt_fetch(stmt));
-    if (res != 0)
+    if (res != 0) {
+      if (res == MYSQL_DATA_TRUNCATED)
+        log_v2::sql()->error(
+            "columns in the current row are too long, data would be truncated");
       task->result->get_bind()->set_empty();
+    }
     task->promise.set_value(res == 0);
   } else {
     MYSQL_ROW r(mysql_fetch_row(task->result->get()));
@@ -720,7 +722,7 @@ void mysql_connection::_run() {
 /*                    Methods executed by the main thread                     */
 /******************************************************************************/
 
-mysql_connection::mysql_connection(database_config const& db_cfg,
+mysql_connection::mysql_connection(const database_config& db_cfg,
                                    SqlConnectionStats* stats)
     : _conn(nullptr),
       _finish_asked(false),
@@ -760,8 +762,8 @@ mysql_connection::mysql_connection(database_config const& db_cfg,
  */
 mysql_connection::~mysql_connection() {
   log_v2::sql()->info("mysql_connection: finished");
-  stats::center::instance().remove_connection(_stats);
   finish();
+  stats::center::instance().remove_connection(_stats);
   _thread->join();
 }
 
@@ -829,8 +831,10 @@ void mysql_connection::run_statement(database::mysql_stmt_base& stmt,
 
 void mysql_connection::run_statement_and_get_result(
     database::mysql_stmt& stmt,
-    std::promise<mysql_result>&& promise) {
-  _push(std::make_unique<mysql_task_statement_res>(stmt, std::move(promise)));
+    std::promise<mysql_result>&& promise,
+    size_t length) {
+  _push(std::make_unique<mysql_task_statement_res>(stmt, length,
+                                                   std::move(promise)));
 }
 
 void mysql_connection::finish() {

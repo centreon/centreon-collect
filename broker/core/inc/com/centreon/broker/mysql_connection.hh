@@ -159,7 +159,8 @@ class mysql_connection {
                      bool fatal);
   void run_statement_and_get_result(
       database::mysql_stmt& stmt,
-      std::promise<database::mysql_result>&& promise);
+      std::promise<database::mysql_result>&& promise,
+      size_t length);
 
   template <typename T>
   void run_statement_and_get_int(database::mysql_stmt& stmt,

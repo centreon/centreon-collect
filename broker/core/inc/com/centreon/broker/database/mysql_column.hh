@@ -28,13 +28,14 @@ CCB_BEGIN()
 
 namespace database {
 class mysql_column {
-  int _type;
+  int _type = MYSQL_TYPE_NULL;
+  size_t _rows_to_reserve = 0;
   size_t _row_count = 0;
   int32_t _current_row = 0;
   /** A vector with data of type _type
    * Its content corresponds to a database table column.
    */
-  void* _vector;
+  void* _vector = nullptr;
 
   /** A vector of indicators.
    * Indicators are used in prepared statements. See the MariadDB C connector
@@ -72,9 +73,9 @@ class mysql_column {
   void _push_null_str();
 
  public:
-  mysql_column(int type = MYSQL_TYPE_LONG, size_t row_count = 0);
-  mysql_column(mysql_column&& other);
-  mysql_column& operator=(mysql_column&& other);
+  mysql_column() = default;
+  mysql_column(mysql_column&& other) = delete;
+  mysql_column& operator=(mysql_column&& other) = delete;
   ~mysql_column() noexcept;
   int get_type() const;
   void* get_buffer();

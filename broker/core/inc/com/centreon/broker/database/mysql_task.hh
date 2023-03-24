@@ -173,7 +173,7 @@ class mysql_task_statement : public mysql_task {
       bulk = false;
     }
   }
-  int statement_id;
+  uint32_t statement_id;
   int param_count;
   std::unique_ptr<database::mysql_bind_base> bind;
   mysql_error::code error_code;
@@ -184,8 +184,10 @@ class mysql_task_statement : public mysql_task {
 class mysql_task_statement_res : public mysql_task {
  public:
   mysql_task_statement_res(database::mysql_stmt_base& stmt,
+                           size_t length,
                            std::promise<mysql_result>&& promise)
       : mysql_task(mysql_task::STATEMENT_RES),
+        length(length),
         promise(std::move(promise)),
         statement_id(stmt.get_id()),
         param_count(stmt.get_param_count()) {
@@ -201,8 +203,9 @@ class mysql_task_statement_res : public mysql_task {
     }
   }
 
+  size_t length;
   std::promise<mysql_result> promise;
-  int statement_id;
+  uint32_t statement_id;
   int param_count;
   std::unique_ptr<database::mysql_bind_base> bind;
   bool bulk;
@@ -237,7 +240,7 @@ class mysql_task_statement_int : public mysql_task {
   }
   std::promise<T> promise;
   int_type return_type;
-  int statement_id;
+  uint32_t statement_id;
   int param_count;
   std::unique_ptr<database::mysql_bind_base> bind;
   bool bulk;

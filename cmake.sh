@@ -42,14 +42,15 @@ do
       BUILD_TYPE="Release"
       shift
       ;;
-    -fcr|--force-conan-rebuild)
-      CONAN_REBUILD="1"
-      ;;
     -clang)
       COMPILER=clang
       WITH_CLANG=ON
       STD=14
       EE="-e CXX=/usr/bin/clang++ -e CC=/usr/bin/clang -e:b CXX=/usr/bin/clang++ -e:b CC=/usr/bin/clang"
+      shift
+      ;;
+    -fcr|--force-conan-rebuild)
+      CONAN_REBUILD="1"
       shift
       ;;
     -h|--help)
@@ -61,6 +62,28 @@ do
     ;;
   esac
 done
+
+if [ "$COMPILER" = "clang" ] ; then
+  if [[ $(readlink -f /usr/bin/cc) =~ "gcc" ]] ; then
+    echo "/usr/bin/cc has not clang as target"
+    echo "You should execute as root commands like these ones:"
+    echo "  update-alternatives --install /usr/bin/cc cc /usr/bin/clang-11 100"
+    echo "  update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++-11 100"
+    echo
+    echo "Please adapt the command following the clang version you have."
+  fi
+  VERSION=$(clang --version | awk -F "version " '$2 != "" { split($2, major, ".") ; print major[1]}')
+elif [ "$COMPILER" = "gcc" ] ; then
+  if [[ $(readlink -f /usr/bin/cc) =~ "clang" ]] ; then
+    echo "/usr/bin/cc has not gcc as target"
+    echo "You should execute as root commands like these ones:"
+    echo "  update-alternatives --install /usr/bin/cc cc /usr/bin/gcc-10 100"
+    echo "  update-alternatives --install /usr/bin/c++ c++ /usr/bin/g++-10 100"
+    echo
+    echo "Please adapt the command following the gcc version you have."
+  fi
+  VERSION=$(gcc --version | awk '$1 == "gcc" { split($0, array, ") ") ; split(array[2], major, /[ \.]/) ; print major[1]}')
+fi
 
 # Am I root?
 my_id=$(id -u)
@@ -170,7 +193,6 @@ elif [ -r /etc/issue ] ; then
       gcc
       g++
       pkg-config
-      libmariadb3
       librrd-dev
       libgnutls28-dev
       ninja-build

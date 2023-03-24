@@ -20,15 +20,6 @@ if (EMBEDDED_PERL_CXXFLAGS)
 endif ()
 
 
-# With libasan
-option(WITH_ASAN "Add the libasan to check memory leaks and other memory issues." OFF)
-if (WITH_ASAN)
-  set(CMAKE_BUILD_TYPE Debug)
-  set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
-  set (CMAKE_LINKER_FLAGS_DEBUG
-       "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
-endif ()
-
 # We will use pkg-config if available.
 include_directories(${PROJECT_SOURCE_DIR}/common/inc)
 include_directories(${CMAKE_SOURCE_DIR}/clib/inc)
