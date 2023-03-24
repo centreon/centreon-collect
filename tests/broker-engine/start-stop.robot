@@ -7,6 +7,7 @@ Test Teardown	Save logs If Failed
 
 Documentation	Centreon Broker and Engine start/stop tests
 Library	Process
+Library	DateTime
 Library	OperatingSystem
 Library	DateTime
 Library	../resources/Engine.py
@@ -416,9 +417,10 @@ BESSBQ1
 	${start}=	Get Current Date
 	Start Broker
 	Start Engine
-	${content}=	Create List	mysql_connection: execute statement 306524174: UPDATE services SET command_line
+	${content}=	Create List	execute statement 306524174
 
 	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	120
 	Should Be True	${result}	msg=Services should be updated after the ingestion of the queue file
 	Stop Engine
 	Kindly Stop Broker
+
