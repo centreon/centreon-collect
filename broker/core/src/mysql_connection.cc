@@ -757,10 +757,11 @@ void mysql_connection::_run() {
       if (tasks_list.empty()) {
         std::unique_lock<std::mutex> lock(_tasks_m);
         _tasks_list.swap(tasks_list);
-      }
-      // no request to execute and want to exit => exit
-      if (tasks_list.empty() && _state != running) {
-        break;
+
+        // no request to execute and want to exit => exit
+        if (tasks_list.empty() && _state != running) {
+          break;
+        }
       }
 
       if (_error.is_active()) {
@@ -768,12 +769,16 @@ void mysql_connection::_run() {
           if (!reconnect_failed_logged) {
             SPDLOG_LOGGER_ERROR(log_v2::sql(), "SQL: Reconnection failed.");
             reconnect_failed_logged = true;
+          } else if (config::applier::mode == config::applier::finished) {
+            finish();
+            _send_exceptions_to_task_futures(tasks_list);
+            _send_exceptions_to_task_futures(_tasks_list);
+            break;
           }
           std::this_thread::sleep_for(std::chrono::seconds(10));
           continue;
-        } else {
+        } else
           reconnect_failed_logged = false;
-        }
       } else {
         if (!tasks_list.empty()) {
           _process_tasks(tasks_list);
@@ -786,6 +791,45 @@ void mysql_connection::_run() {
   _clear_connection();
   mysql_thread_end();
   log_v2::core()->trace("mysql connection main loop finished.");
+}
+
+void mysql_connection::_send_exceptions_to_task_futures(
+    std::list<std::unique_ptr<database::mysql_task>>& tasks_list) {
+  auto send_ex = [](auto* task) {
+    msg_fmt e("Query interrupted");
+    task->promise.set_exception(std::make_exception_ptr<msg_fmt>(e));
+  };
+
+  for (auto& task : tasks_list) {
+    switch (task->type) {
+      case mysql_task::RUN_RES:
+        send_ex(static_cast<mysql_task_run_res*>(task.get()));
+        break;
+      case mysql_task::RUN_INT:
+        send_ex(static_cast<mysql_task_run_int*>(task.get()));
+        break;
+      case mysql_task::STATEMENT_RES:
+        send_ex(static_cast<mysql_task_statement_res*>(task.get()));
+        break;
+      case mysql_task::STATEMENT_INT:
+        send_ex(static_cast<mysql_task_statement_int<int>*>(task.get()));
+        break;
+      case mysql_task::STATEMENT_UINT:
+        send_ex(static_cast<mysql_task_statement_int<uint32_t>*>(task.get()));
+        break;
+      case mysql_task::STATEMENT_INT64:
+        send_ex(static_cast<mysql_task_statement_int<int64_t>*>(task.get()));
+        break;
+      case mysql_task::STATEMENT_UINT64:
+        send_ex(static_cast<mysql_task_statement_int<uint64_t>*>(task.get()));
+        break;
+      case mysql_task::COMMIT:
+        static_cast<mysql_task_commit*>(task.get())->set_exception();
+        break;
+      default:
+        break;
+    }
+  }
 }
 
 /**
