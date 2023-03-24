@@ -136,6 +136,8 @@ class mysql_connection {
   void _prepare_connection();
   void _clear_connection();
   void _update_stats() noexcept;
+  void _send_exceptions_to_task_futures(
+      std::list<std::unique_ptr<database::mysql_task>>& tasks_list);
 
   inline void set_need_to_commit() { _need_commit = true; }
 

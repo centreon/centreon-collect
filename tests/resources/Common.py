@@ -71,11 +71,12 @@ def get_date(d: str):
     return retval
 
 
-def find_in_log_with_timeout(log: str, date, content, timeout: int):
+def find_in_log_with_timeout(log: str, date, content, timeout: int, *, regex=False):
+
     limit = time.time() + timeout
     c = ""
     while time.time() < limit:
-        ok, c = find_in_log(log, date, content)
+        ok, c = find_in_log(log, date, content, regex)
         if ok:
             return True
         time.sleep(5)
@@ -84,7 +85,7 @@ def find_in_log_with_timeout(log: str, date, content, timeout: int):
     return False
 
 
-def find_in_log(log: str, date, content):
+def find_in_log(log: str, date, content, regex):
     """Find content in log file from the given date
 
     Args:
@@ -95,6 +96,8 @@ def find_in_log(log: str, date, content):
     Returns:
         boolean,str: The boolean is True on success, and the string contains the first string not found in logs otherwise.
     """
+    logger.info(f"regex={regex}")
+
     try:
         f = open(log, "r")
         lines = f.readlines()
@@ -105,7 +108,11 @@ def find_in_log(log: str, date, content):
             found = False
             for i in range(idx, len(lines)):
                 line = lines[i]
-                if c in line:
+                if regex:
+                    match = re.search(c, line)
+                else:
+                    match = c in line
+                if match:
                     logger.console(
                         "\"{}\" found at line {} from {}".format(c, i, idx))
                     found = True

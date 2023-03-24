@@ -20,6 +20,9 @@
 #define CCB_MYSQL_TASK_HH
 
 #include "com/centreon/broker/database/mysql_bind_base.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
+
+using msg_fmt = com::centreon::exceptions::msg_fmt;
 
 CCB_BEGIN()
 
@@ -83,6 +86,10 @@ class mysql_task_commit : public mysql_task {
       }
       return false;
     }
+    void set_exception() {
+      msg_fmt e("Commit interrupted");
+      _promise.set_exception(std::make_exception_ptr<msg_fmt>(e));
+    }
   };
   mysql_task_commit_data::pointer _data;
 
@@ -92,6 +99,7 @@ class mysql_task_commit : public mysql_task {
 
   bool get() { return _data->get(); }
   bool set_value(bool value) { return _data->set_value(value); }
+  void set_exception() { _data->set_exception(); }
 };
 
 class mysql_task_fetch : public mysql_task {
@@ -212,13 +220,12 @@ class mysql_task_statement_int : public mysql_task {
   mysql_task_statement_int(database::mysql_stmt_base& stmt,
                            std::promise<T>&& promise,
                            int_type type)
-      : mysql_task((std::is_same<T, int>::value)
-                       ? mysql_task::STATEMENT_INT
-                       : (std::is_same<T, int64_t>::value)
-                             ? mysql_task::STATEMENT_INT64
-                             : (std::is_same<T, uint32_t>::value)
-                                   ? mysql_task::STATEMENT_UINT
-                                   : mysql_task::STATEMENT_UINT64),
+      : mysql_task((std::is_same<T, int>::value) ? mysql_task::STATEMENT_INT
+                   : (std::is_same<T, int64_t>::value)
+                       ? mysql_task::STATEMENT_INT64
+                   : (std::is_same<T, uint32_t>::value)
+                       ? mysql_task::STATEMENT_UINT
+                       : mysql_task::STATEMENT_UINT64),
         promise(std::move(promise)),
         return_type(type),
         statement_id(stmt.get_id()),
