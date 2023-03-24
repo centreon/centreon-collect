@@ -8,6 +8,7 @@ Documentation	ccc tests with engine and broker
 Library	Process
 Library	DateTime
 Library	OperatingSystem
+Library	String
 Library	../resources/Engine.py
 Library	../resources/Broker.py
 Library	../resources/Common.py
@@ -65,7 +66,10 @@ BECCC2
 	 EXIT FOR LOOP IF	len("${content.strip()}") > 0
 	 Sleep	1s
 	END
-	Should Be Equal As Strings	${content.strip()}	Connected to a Centreon Broker 22.10.0 gRPC server
+
+	${version}=	Get Version
+	${expected}=	Catenate	Connected to a Centreon Broker	${version}	gRPC server
+	Should Be Equal As Strings	${content.strip()}	${expected}
 	Stop Engine
 	Kindly Stop Broker
 	Remove File	/tmp/output.txt
@@ -97,7 +101,9 @@ BECCC3
 	 EXIT FOR LOOP IF	len("${content.strip()}") > 0
 	 Sleep	1s
 	END
-	Should Be Equal As Strings	${content.strip()}	Connected to a Centreon Engine 22.10.0 gRPC server
+	${version}=	Get Version
+	${expected}=	Catenate	Connected to a Centreon Engine	${version}	gRPC server
+	Should Be Equal As Strings	${content.strip()}	${expected}
 	Stop Engine
 	Kindly Stop Broker
 	Remove File	/tmp/output.txt
@@ -195,7 +201,11 @@ BECCC6
 	 EXIT FOR LOOP IF	len("""${content.strip().split()}""") > 50
 	 Sleep	1s
 	END
-	Should Contain	${content}	{\n \"major\": 22,\n \"minor\": 10\n}	msg=A version as json string should be returned
+	${version}=	Get Version
+	${vers}=	Split String	${version}	.
+	${mm}=	Evaluate	"""${vers}[0]""".lstrip("0")
+	${m}=	Evaluate	"""${vers}[1]""".lstrip("0")
+	Should Contain	${content}	{\n \"major\": ${mm},\n \"minor\": ${m}\n}	msg=A version as json string should be returned
 	Stop Engine
 	Kindly Stop Broker
 	Remove File	/tmp/output.txt
