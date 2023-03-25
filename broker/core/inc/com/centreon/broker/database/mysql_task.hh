@@ -60,46 +60,10 @@ class mysql_task {
 
 class mysql_task_commit : public mysql_task {
  public:
-  /**
-   * @brief the purpose of this class is to set the future once all connections
-   * are committed
-   *
-   */
-  class mysql_task_commit_data {
-    std::promise<bool> _promise;
-    std::atomic_int _count;
+  mysql_task_commit(std::promise<void>&& p)
+      : mysql_task(mysql_task::COMMIT), promise(std::move(p)) {}
 
-   public:
-    using pointer = std::shared_ptr<mysql_task_commit_data>;
-    /**
-     * @brief Construct a new mysql task commit data object
-     *
-     * @param connection_count number of connections to commit
-     */
-    mysql_task_commit_data(int connection_count) : _count(connection_count) {}
-    bool get() { return _promise.get_future().get(); }
-    bool set_value(bool value) {
-      int old = _count.fetch_sub(1);
-      if (old == 1) {  // commit is done on each connection => signal to get
-        _promise.set_value(value);
-        return true;
-      }
-      return false;
-    }
-    void set_exception() {
-      msg_fmt e("Commit interrupted");
-      _promise.set_exception(std::make_exception_ptr<msg_fmt>(e));
-    }
-  };
-  mysql_task_commit_data::pointer _data;
-
- public:
-  mysql_task_commit(const mysql_task_commit_data::pointer& data)
-      : mysql_task(mysql_task::COMMIT), _data(data) {}
-
-  bool get() { return _data->get(); }
-  bool set_value(bool value) { return _data->set_value(value); }
-  void set_exception() { _data->set_exception(); }
+  std::promise<void> promise;
 };
 
 class mysql_task_fetch : public mysql_task {

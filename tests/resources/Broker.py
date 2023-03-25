@@ -1421,7 +1421,7 @@ def compare_rrd_average_value(metric, value: float):
         return err < 0.005
     else:
         logger.console(
-           f"It was impossible to get the average value from the file {VAR_ROOT}/lib/centreon/metrics/{metric}.rrd from the last 30 days")
+            f"It was impossible to get the average value from the file {VAR_ROOT}/lib/centreon/metrics/{metric}.rrd from the last 30 days")
         return True
 
 
@@ -1442,10 +1442,14 @@ def check_sql_connections_count_with_grpc(port, count, timeout=TIMEOUT):
                 res = stub.GetSqlManagerStats(empty_pb2.Empty())
                 if len(res.connections) < count:
                     continue
+                count = 0
                 for c in res.connections:
                     if c.down_since:
-                        continue
-                return True
+                        pass
+                    else:
+                        count += 1
+                if count == 3:
+                    return True
             except:
                 logger.console("gRPC server not ready")
     return False
